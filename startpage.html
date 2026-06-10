@@ -132,10 +132,10 @@
             </div>
         </div>
 
-        <!-- 向下滚动提示（装饰） -->
-        <div class="mt-8 md:mt-12 flex flex-col items-center gap-2 text-white/40 text-xs tracking-widest">
+        <!-- 向下滚动提示（装饰，绝对定位不占空间） -->
+        <div class="absolute bottom-6 md:bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 text-white/35 text-[10px] tracking-widest pointer-events-none">
             <span>向下滚动</span>
-            <svg class="w-5 h-5 scroll-hint" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/></svg>
+            <svg class="w-4 h-4 scroll-hint" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/></svg>
         </div>
     </section>
 
@@ -146,9 +146,14 @@
     <section id="navSection" class="relative z-10 h-screen nav-hidden overflow-hidden">
         <div class="h-full flex flex-col pt-14 md:pt-16">
             <!-- 标题 -->
-            <div class="text-center mb-4 md:mb-6 shrink-0 px-4 fade-in">
+            <div class="text-center shrink-0 px-4 fade-in">
                 <h2 class="text-xl md:text-2xl font-light tracking-wider">🪐 导航</h2>
                 <p class="text-xs text-white/50 mt-1 tracking-wide">发现更多精彩网站</p>
+            </div>
+            <!-- 向上返回提示 -->
+            <div class="flex items-center justify-center gap-1 py-1.5 text-white/20 text-[10px] tracking-widest shrink-0 pointer-events-none">
+                <svg class="w-3 h-3 scroll-hint" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/></svg>
+                <span>向上滚动返回</span>
             </div>
             <!-- 主体：左分类 + 右内容 -->
             <div class="flex-1 flex gap-3 md:gap-4 px-3 md:px-4 pb-4 min-h-0">
@@ -161,11 +166,6 @@
                     <div id="navCategories"></div>
                 </main>
             </div>
-        </div>
-        <!-- 向上滚动提示 -->
-        <div class="absolute bottom-3 left-1/2 -translate-x-1/2 flex flex-col items-center gap-0.5 text-white/25 text-[10px] tracking-widest pointer-events-none">
-            <svg class="w-3.5 h-3.5 scroll-hint rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/></svg>
-            <span>向上滚动返回</span>
         </div>
     </section>
 
