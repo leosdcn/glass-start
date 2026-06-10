@@ -43,8 +43,8 @@
         .bookmark-item:hover { background: rgba(255,255,255,0.12); transform: translateY(-2px); }
         .nav-bookmark { transition: all 0.15s ease; }
         .nav-bookmark:hover { background: rgba(255,255,255,0.1); }
-        .nav-hidden { opacity:0; transform:translateY(40px); }
-        .nav-visible { opacity:1; transform:translateY(0); transition:opacity 0.6s ease-out, transform 0.6s ease-out; }
+        .nav-hidden { opacity:0; }
+        .nav-visible { opacity:1; transition:opacity 0.5s ease; }
         .sidebar-item {
             transition: all 0.15s ease;
             border-left: 2px solid transparent;
@@ -77,8 +77,8 @@
             </div>
 
             <!-- 搜索框 -->
-            <div class="w-full max-w-xl lg:max-w-2xl relative fade-in mb-8 md:mb-10" style="animation-delay:0.1s">
-                <div class="glass-strong apple-radius p-2 flex items-center gap-2">
+            <div class="w-full max-w-2xl lg:max-w-3xl relative fade-in mb-8 md:mb-10" style="animation-delay:0.1s">
+                <div class="glass-strong apple-radius p-2 flex items-center gap-2 border">
                     <div class="relative shrink-0">
                         <button id="engineBtn" type="button" class="flex items-center gap-2 px-3 py-3 apple-radius hover:bg-white/10 transition text-sm font-medium">
                             <img id="engineIcon" src="https://www.bing.com/favicon.ico" class="w-5 h-5 rounded-md" alt="" onerror="this.style.display='none'">
@@ -108,7 +108,7 @@
             </div>
 
             <!-- 快捷书签 -->
-            <div class="w-full max-w-xl lg:max-w-2xl glass apple-radius p-4 fade-in mb-6 md:mb-8" style="animation-delay:0.2s">
+            <div class="w-full max-w-2xl lg:max-w-3xl glass apple-radius p-4 fade-in mb-6 md:mb-8" style="animation-delay:0.2s">
                 <div id="bookmarks" class="grid grid-cols-4 md:grid-cols-8 gap-2"></div>
             </div>
         </div>
@@ -478,55 +478,66 @@
 
         // ==================== 滚动入场动画 ====================
         function initScrollControl() {
-            let scrollCount = 0;
+            let scrollAccum = 0;
             let isTransitioning = false;
             let currentSection = 'start';
-            const THRESHOLD = 3;
+            const SCROLL_THRESHOLD = 120; // 累积滚动像素阈值（跨浏览器一致）
             const nav = document.getElementById('navSection');
             const navContent = dom.navContent;
             let animationDone = false;
 
+            // 归一化 deltaY，兼容 Safari 的 LINE / PAGE 模式
+            function normDelta(e) {
+                let d = e.deltaY;
+                if (e.deltaMode === 1) d *= 16;       // DOM_DELTA_LINE → 像素
+                else if (e.deltaMode === 2) d *= 400;  // DOM_DELTA_PAGE → 像素
+                return d;
+            }
+
             document.addEventListener('wheel', (e) => {
                 if (isTransitioning) { e.preventDefault(); return; }
 
-                const down = e.deltaY > 0;
-                const up = e.deltaY < 0;
+                const delta = normDelta(e);
+                const down = delta > 0;
 
                 if (currentSection === 'start') {
+                    if (!down) { scrollAccum = Math.max(0, scrollAccum + delta); return; }
                     e.preventDefault();
-                    if (down) {
-                        scrollCount++;
-                        if (scrollCount >= THRESHOLD) {
-                            scrollCount = 0;
-                            isTransitioning = true;
-                            nav.scrollIntoView({ behavior: 'smooth' });
-                            if (!animationDone) {
-                                nav.classList.remove('nav-hidden');
-                                nav.classList.add('nav-visible');
-                                document.getElementById('navHint')?.classList.add('hint-up');
-                                animationDone = true;
-                            }
-                            waitForScroll(nav.offsetTop, () => {
-                                currentSection = 'nav';
-                                isTransitioning = false;
-                            });
-                        }
-                    } else {
-                        scrollCount = Math.max(0, scrollCount - 1);
+                    scrollAccum += delta;
+                    if (scrollAccum < SCROLL_THRESHOLD) return;
+                    scrollAccum = 0;
+                    isTransitioning = true;
+
+                    // 1) 先显示导航（无 transform 偏移，不会导致重排闪烁）
+                    nav.classList.remove('nav-hidden');
+                    nav.classList.add('nav-visible');
+                    if (!animationDone) {
+                        document.getElementById('navHint')?.classList.add('hint-up');
+                        animationDone = true;
                     }
+
+                    // 2) 下一帧再滚动（分离布局变化与滚动，避免 Safari 卡顿）
+                    requestAnimationFrame(() => {
+                        nav.scrollIntoView({ behavior: 'smooth' });
+                        waitForScroll(nav.offsetTop, () => {
+                            currentSection = 'nav';
+                            isTransitioning = false;
+                        });
+                    });
                 } else {
                     if (navContent.scrollTop > 0 || down) {
                         e.preventDefault();
-                        navContent.scrollTop += e.deltaY;
-                        scrollCount = 0; // 向下滚动时重置计数
-                    } else if (up && navContent.scrollTop <= 0) {
+                        // 限制单次滚动增量，避免 Safari 跳度过大
+                        navContent.scrollTop += Math.min(Math.abs(delta), 60) * (down ? 1 : -1);
+                        scrollAccum = 0;
+                    } else if (!down && navContent.scrollTop <= 0) {
                         e.preventDefault();
-                        scrollCount++;
-                        if (scrollCount >= THRESHOLD) {
-                            scrollCount = 0;
+                        scrollAccum += Math.abs(delta);
+                        if (scrollAccum >= SCROLL_THRESHOLD) {
+                            scrollAccum = 0;
                             isTransitioning = true;
-                            window.scrollTo({ top: 0, behavior: 'smooth' });
                             navContent.scrollTop = 0;
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
                             waitForScroll(0, () => {
                                 currentSection = 'start';
                                 isTransitioning = false;
@@ -536,12 +547,10 @@
                 }
             }, { passive: false });
 
-            function waitForScroll(target, cb) {
-                const check = () => {
-                    if (Math.abs(window.scrollY - target) < 10) cb();
-                    else requestAnimationFrame(check);
-                };
-                setTimeout(check, 400);
+            function waitForScroll(target, cb, attempts = 0) {
+                if (Math.abs(window.scrollY - target) < 2) { cb(); return; }
+                if (attempts > 120) { cb(); return; } // 超时保护 ~2s
+                requestAnimationFrame(() => waitForScroll(target, cb, attempts + 1));
             }
         }
 
