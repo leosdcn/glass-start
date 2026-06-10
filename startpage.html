@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Glass Start</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --glass-bg: rgba(255,255,255,0.08);
+            --glass-border: rgba(255,255,255,0.15);
+            --radius: 1.5rem;
+            --blur: 24px;
+        }
+        body { font-family: 'Nunito', sans-serif; }
+        .apple-radius { border-radius: var(--radius); }
+        .glass {
+            background: var(--glass-bg);
+            backdrop-filter: blur(var(--blur));
+            -webkit-backdrop-filter: blur(var(--blur));
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+        }
+        .glass-strong {
+            background: rgba(255,255,255,0.12);
+            backdrop-filter: blur(40px);
+            -webkit-backdrop-filter: blur(40px);
+            border-color: rgba(255,255,255,0.2);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+        .search-input::placeholder { color: rgba(255,255,255,0.6); }
+        .fade-in { animation: fadeIn 0.8s ease-out; }
+        @keyframes fadeIn { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+        .dropdown-menu { opacity:0; transform:translateY(-10px); pointer-events:none; transition:all 0.2s ease; }
+        .dropdown-menu.active { opacity:1; transform:translateY(0); pointer-events:auto; }
+        .clock-text { text-shadow: 0 2px 20px rgba(0,0,0,0.4), 0 0 60px rgba(0,0,0,0.2); }
+        .bookmark-item { transition: all 0.2s ease; }
+        .bookmark-item:hover { background: rgba(255,255,255,0.12); transform: translateY(-2px); }
+        .nav-bookmark { transition: all 0.2s ease; }
+        .nav-bookmark:hover { background: rgba(255,255,255,0.12); transform: translateY(-1px); }
+        .scroll-hint { animation: bounceDown 2s ease-in-out infinite; }
+        @keyframes bounceDown { 0%,100%{transform:translateY(0);opacity:0.6} 50%{transform:translateY(8px);opacity:1} }
+        .section-divider { background: linear-gradient(90deg,transparent,rgba(255,255,255,0.15),transparent); }
+    </style>
+</head>
+<body class="bg-cover bg-center bg-no-repeat text-white relative" 
+      style="background-image:url('https://images.unsplash.com/photo-1477346611705-65d1883cee1e?q=80&w=2070&auto=format&fit=crop');background-attachment:fixed">
+    <div class="fixed inset-0 bg-black/25 pointer-events-none"></div>
+
+    <!-- ========== 第一屏：起始页 ========== -->
+    <section class="relative z-10 min-h-screen flex flex-col items-center justify-center px-4 py-12">
+        <div class="flex-1 flex flex-col items-center justify-center w-full">
+            <!-- 时钟 -->
+            <div class="text-center fade-in clock-text mb-10 md:mb-14">
+                <div id="clock" class="text-7xl md:text-8xl lg:text-9xl font-light tracking-tight tabular-nums">00:00</div>
+                <div id="date" class="text-sm md:text-base mt-3 text-white/70 font-light tracking-widest uppercase">加载中...</div>
+            </div>
+
+            <!-- 搜索框 -->
+            <div class="w-full max-w-xl lg:max-w-2xl relative fade-in mb-8 md:mb-10" style="animation-delay:0.1s">
+                <div class="glass-strong apple-radius p-2 flex items-center gap-2">
+                    <div class="relative shrink-0">
+                        <button id="engineBtn" type="button" class="flex items-center gap-2 px-3 py-3 apple-radius hover:bg-white/10 transition text-sm font-medium">
+                            <img id="engineIcon" src="https://www.bing.com/favicon.ico" class="w-5 h-5 rounded-md" alt="" onerror="this.style.display='none'">
+                            <span id="engineName" class="hidden sm:inline">Bing</span>
+                            <svg class="w-4 h-4 opacity-60 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                        </button>
+                    </div>
+                    <input type="text" id="searchInput" class="flex-1 bg-transparent border-none outline-none text-lg search-input text-white h-12 px-1 min-w-0" placeholder="搜索..." autocomplete="off">
+                    <button id="searchBtn" type="button" class="p-3 apple-radius hover:bg-white/10 transition shrink-0 mr-1">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                    </button>
+                </div>
+                <div id="dropdownMenu" class="dropdown-menu absolute top-full left-0 mt-2 ml-2 glass-strong apple-radius p-2 min-w-[140px]" style="z-index:100">
+                    <button type="button" data-engine="bing" class="w-full flex items-center gap-3 px-3 py-2.5 apple-radius hover:bg-white/10 transition text-left text-sm">
+                        <img src="https://www.bing.com/favicon.ico" class="w-4 h-4 rounded-sm" alt="" onerror="this.style.display='none'"> Bing
+                    </button>
+                    <button type="button" data-engine="google" class="w-full flex items-center gap-3 px-3 py-2.5 apple-radius hover:bg-white/10 transition text-left text-sm">
+                        <img src="https://www.google.com/favicon.ico" class="w-4 h-4 rounded-sm" alt="" onerror="this.style.display='none'"> Google
+                    </button>
+                    <button type="button" data-engine="duckduckgo" class="w-full flex items-center gap-3 px-3 py-2.5 apple-radius hover:bg-white/10 transition text-left text-sm">
+                        <img src="https://duckduckgo.com/favicon.ico" class="w-4 h-4 rounded-sm" alt="" onerror="this.style.display='none'"> DuckDuckGo
+                    </button>
+                    <button type="button" data-engine="baidu" class="w-full flex items-center gap-3 px-3 py-2.5 apple-radius hover:bg-white/10 transition text-left text-sm">
+                        <img src="https://www.baidu.com/favicon.ico" class="w-4 h-4 rounded-sm" alt="" onerror="this.style.display='none'"> 百度
+                    </button>
+                </div>
+            </div>
+
+            <!-- 快捷书签 -->
+            <div class="w-full max-w-xl lg:max-w-2xl glass apple-radius p-4 fade-in mb-6 md:mb-8" style="animation-delay:0.2s">
+                <div id="bookmarks" class="grid grid-cols-4 md:grid-cols-8 gap-2"></div>
+            </div>
+
+            <!-- 天气 -->
+            <div class="w-full max-w-xl lg:max-w-2xl fade-in" style="animation-delay:0.3s">
+                <div class="glass apple-radius px-5 py-3 flex items-center justify-between gap-4">
+                    <div class="flex items-center gap-3 min-w-0">
+                        <div class="flex items-center gap-2 shrink-0">
+                            <svg class="w-4 h-4 text-white/70 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                            <span id="location" class="text-sm font-medium truncate">--</span>
+                        </div>
+                        <span id="weatherDesc" class="text-xs text-white/60 hidden sm:inline">--</span>
+                    </div>
+                    <div class="flex items-center gap-4 shrink-0">
+                        <span id="temperature" class="text-2xl font-extralight tracking-tighter">--°</span>
+                        <div class="flex items-center gap-3 text-xs text-white/50">
+                            <span id="highLow">--</span>
+                            <span class="hidden sm:inline">|</span>
+                            <span id="wind" class="hidden sm:inline">--</span>
+                        </div>
+                    </div>
+                    <div id="weatherError" class="hidden text-xs text-white/40"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 向下滚动提示 -->
+        <div class="mt-8 md:mt-12 flex flex-col items-center gap-2 text-white/40 text-xs tracking-widest cursor-pointer" onclick="document.getElementById('navSection').scrollIntoView({behavior:'smooth'})">
+            <span>向下滚动</span>
+            <svg class="w-5 h-5 scroll-hint" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/></svg>
+        </div>
+    </section>
+
+    <!-- 分隔线 -->
+    <div class="section-divider h-px relative z-10 mx-auto w-3/4 max-w-2xl"></div>
+
+    <!-- ========== 第二屏：分类导航 ========== -->
+    <section id="navSection" class="relative z-10 min-h-screen py-16 md:py-20 px-4">
+        <div class="max-w-5xl mx-auto">
+            <div class="text-center mb-12 fade-in">
+                <h2 class="text-2xl md:text-3xl font-light tracking-wider">🪐 导航</h2>
+                <p class="text-sm text-white/50 mt-2 tracking-wide">发现更多精彩网站</p>
+            </div>
+            <div id="navGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
+                <!-- 分类由 JS 动态生成 -->
+            </div>
+        </div>
+    </section>
+
+    <script>
+        // ==================== 书签配置（在此自定义）====================
+        // 顶部快捷书签（常用网站）
+        const BOOKMARKS = [
+            { name: 'GitHub', url: 'https://github.com', icon: 'https://github.com/favicon.ico' },
+            { name: 'Bilibili', url: 'https://www.bilibili.com', icon: 'https://www.bilibili.com/favicon.ico' },
+            { name: '知乎', url: 'https://www.zhihu.com', icon: 'https://www.zhihu.com/favicon.ico' },
+            { name: 'V2EX', url: 'https://www.v2ex.com', icon: 'https://www.v2ex.com/favicon.ico' },
+            { name: 'YouTube', url: 'https://www.youtube.com', icon: 'https://www.youtube.com/favicon.ico' },
+            { name: 'Twitter', url: 'https://x.com', icon: 'https://x.com/favicon.ico' },
+            { name: 'Reddit', url: 'https://www.reddit.com', icon: 'https://www.reddit.com/favicon.ico' },
+            { name: 'HackerNews', url: 'https://news.ycombinator.com', icon: 'https://news.ycombinator.com/favicon.ico' },
+        ];
+
+        // ==================== 分类导航配置（在此自定义）====================
+        const CATEGORIES = [
+            {
+                name: '开发工具',
+                icon: '⚡',
+                bookmarks: [
+                    { name: 'GitHub', url: 'https://github.com', icon: 'https://github.com/favicon.ico' },
+                    { name: 'Stack Overflow', url: 'https://stackoverflow.com', icon: 'https://stackoverflow.com/favicon.ico' },
+                    { name: 'MDN Web Docs', url: 'https://developer.mozilla.org', icon: 'https://developer.mozilla.org/favicon.ico' },
+                    { name: 'npm', url: 'https://www.npmjs.com', icon: 'https://www.npmjs.com/favicon.ico' },
+                    { name: 'Vercel', url: 'https://vercel.com', icon: 'https://vercel.com/favicon.ico' },
+                    { name: 'Netlify', url: 'https://www.netlify.com', icon: 'https://www.netlify.com/favicon.ico' },
+                    { name: 'CodePen', url: 'https://codepen.io', icon: 'https://codepen.io/favicon.ico' },
+                    { name: 'JSFiddle', url: 'https://jsfiddle.net', icon: 'https://jsfiddle.net/favicon.ico' },
+                    { name: 'Can I Use', url: 'https://caniuse.com', icon: 'https://caniuse.com/favicon.ico' },
+                    { name: 'DevDocs', url: 'https://devdocs.io', icon: 'https://devdocs.io/favicon.ico' },
+                ]
+            },
+            {
+                name: 'AI 与机器学习',
+                icon: '🤖',
+                bookmarks: [
+                    { name: 'ChatGPT', url: 'https://chat.openai.com', icon: 'https://chat.openai.com/favicon.ico' },
+                    { name: 'Claude', url: 'https://claude.ai', icon: 'https://claude.ai/favicon.ico' },
+                    { name: 'Hugging Face', url: 'https://huggingface.co', icon: 'https://huggingface.co/favicon.ico' },
+                    { name: 'GitHub Copilot', url: 'https://github.com/features/copilot', icon: 'https://github.com/favicon.ico' },
+                    { name: 'Midjourney', url: 'https://www.midjourney.com', icon: 'https://www.midjourney.com/favicon.ico' },
+                ]
+            },
+            {
+                name: '社交媒体',
+                icon: '💬',
+                bookmarks: [
+                    { name: 'Twitter / X', url: 'https://x.com', icon: 'https://x.com/favicon.ico' },
+                    { name: 'Reddit', url: 'https://www.reddit.com', icon: 'https://www.reddit.com/favicon.ico' },
+                    { name: 'V2EX', url: 'https://www.v2ex.com', icon: 'https://www.v2ex.com/favicon.ico' },
+                    { name: '豆瓣', url: 'https://www.douban.com', icon: 'https://www.douban.com/favicon.ico' },
+                    { name: '知乎', url: 'https://www.zhihu.com', icon: 'https://www.zhihu.com/favicon.ico' },
+                    { name: 'Telegram Web', url: 'https://web.telegram.org', icon: 'https://web.telegram.org/favicon.ico' },
+                    { name: 'Discord', url: 'https://discord.com', icon: 'https://discord.com/favicon.ico' },
+                ]
+            },
+            {
+                name: '影音娱乐',
+                icon: '🎬',
+                bookmarks: [
+                    { name: 'YouTube', url: 'https://www.youtube.com', icon: 'https://www.youtube.com/favicon.ico' },
+                    { name: 'Bilibili', url: 'https://www.bilibili.com', icon: 'https://www.bilibili.com/favicon.ico' },
+                    { name: 'Netflix', url: 'https://www.netflix.com', icon: 'https://www.netflix.com/favicon.ico' },
+                    { name: 'Spotify', url: 'https://open.spotify.com', icon: 'https://open.spotify.com/favicon.ico' },
+                    { name: 'SoundCloud', url: 'https://soundcloud.com', icon: 'https://soundcloud.com/favicon.ico' },
+                    { name: 'Twitch', url: 'https://www.twitch.tv', icon: 'https://www.twitch.tv/favicon.ico' },
+                ]
+            },
+            {
+                name: '新闻资讯',
+                icon: '📰',
+                bookmarks: [
+                    { name: 'Hacker News', url: 'https://news.ycombinator.com', icon: 'https://news.ycombinator.com/favicon.ico' },
+                    { name: 'Solidot', url: 'https://www.solidot.org', icon: 'https://www.solidot.org/favicon.ico' },
+                    { name: '36氪', url: 'https://36kr.com', icon: 'https://36kr.com/favicon.ico' },
+                    { name: 'InfoQ', url: 'https://www.infoq.cn', icon: 'https://www.infoq.cn/favicon.ico' },
+                    { name: 'Reuters', url: 'https://www.reuters.com', icon: 'https://www.reuters.com/favicon.ico' },
+                ]
+            },
+            {
+                name: '设计资源',
+                icon: '🎨',
+                bookmarks: [
+                    { name: 'Dribbble', url: 'https://dribbble.com', icon: 'https://dribbble.com/favicon.ico' },
+                    { name: 'Behance', url: 'https://www.behance.net', icon: 'https://www.behance.net/favicon.ico' },
+                    { name: 'Figma', url: 'https://www.figma.com', icon: 'https://www.figma.com/favicon.ico' },
+                    { name: 'Unsplash', url: 'https://unsplash.com', icon: 'https://unsplash.com/favicon.ico' },
+                    { name: 'Coolors', url: 'https://coolors.co', icon: 'https://coolors.co/favicon.ico' },
+                    { name: 'Font Awesome', url: 'https://fontawesome.com', icon: 'https://fontawesome.com/favicon.ico' },
+                ]
+            },
+            {
+                name: '学习平台',
+                icon: '📚',
+                bookmarks: [
+                    { name: 'Coursera', url: 'https://www.coursera.org', icon: 'https://www.coursera.org/favicon.ico' },
+                    { name: 'Udemy', url: 'https://www.udemy.com', icon: 'https://www.udemy.com/favicon.ico' },
+                    { name: 'freeCodeCamp', url: 'https://www.freecodecamp.org', icon: 'https://www.freecodecamp.org/favicon.ico' },
+                    { name: 'LeetCode', url: 'https://leetcode.cn', icon: 'https://leetcode.cn/favicon.ico' },
+                    { name: 'Roadmap.sh', url: 'https://roadmap.sh', icon: 'https://roadmap.sh/favicon.ico' },
+                ]
+            },
+            {
+                name: '云服务',
+                icon: '☁️',
+                bookmarks: [
+                    { name: 'Cloudflare', url: 'https://dash.cloudflare.com', icon: 'https://dash.cloudflare.com/favicon.ico' },
+                    { name: 'AWS Console', url: 'https://aws.amazon.com/console', icon: 'https://aws.amazon.com/favicon.ico' },
+                    { name: 'Vercel', url: 'https://vercel.com', icon: 'https://vercel.com/favicon.ico' },
+                    { name: 'Netlify', url: 'https://www.netlify.com', icon: 'https://www.netlify.com/favicon.ico' },
+                    { name: 'Railway', url: 'https://railway.app', icon: 'https://railway.app/favicon.ico' },
+                    { name: 'Supabase', url: 'https://supabase.com', icon: 'https://supabase.com/favicon.ico' },
+                ]
+            },
+        ];
+
+        // ==================== 配置 ====================
+        const CONFIG = {
+            CACHE_DURATION: 2 * 60 * 60 * 1000, // 天气缓存 2 小时
+            WEATHER_TIMEOUT: 10000,
+            GEO_TIMEOUT: 6000,
+        };
+
+        const engines = {
+            bing: { name: 'Bing', icon: 'https://www.bing.com/favicon.ico', url: 'https://www.bing.com/search?q=' },
+            google: { name: 'Google', icon: 'https://www.google.com/favicon.ico', url: 'https://www.google.com/search?q=' },
+            duckduckgo: { name: 'DuckDuckGo', icon: 'https://duckduckgo.com/favicon.ico', url: 'https://duckduckgo.com/?q=' },
+            baidu: { name: '百度', icon: 'https://www.baidu.com/favicon.ico', url: 'https://www.baidu.com/s?wd=' }
+        };
+
+        const backgrounds = [
+            'https://images.unsplash.com/photo-1477346611705-65d1883cee1e?q=80&w=2070&auto=format&fit=crop',
+            'https://images.unsplash.com/photo-1506744038136-46273834b3fb?q=80&w=2070&auto=format&fit=crop',
+            'https://images.unsplash.com/photo-1433086966358-54859d0ed716?q=80&w=2070&auto=format&fit=crop',
+            'https://images.unsplash.com/photo-1519681393784-d120267933ba?q=80&w=2070&auto=format&fit=crop',
+            'https://images.unsplash.com/photo-1469474968028-56623f02e42e?q=80&w=2070&auto=format&fit=crop',
+            'https://images.unsplash.com/photo-1501785888041-af3ef285b470?q=80&w=2070&auto=format&fit=crop'
+        ];
+
+        const WEATHER_SOURCES = {
+            openMeteo: {
+                name: 'Open-Meteo',
+                async fetch(coords) {
+                    const url = `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}&current=temperature_2m,weather_code,wind_speed_10m&daily=temperature_2m_max,temperature_2m_min&timezone=auto`;
+                    const res = await fetchWithTimeout(url, {}, 8000);
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                    const data = await res.json();
+                    if (!data.current || typeof data.current.temperature_2m !== 'number') throw new Error('数据异常');
+                    return {
+                        temp: Math.round(data.current.temperature_2m),
+                        desc: getWeatherDesc(data.current.weather_code),
+                        wind: Math.round(data.current.wind_speed_10m),
+                        high: Math.round(data.daily.temperature_2m_max[0]),
+                        low: Math.round(data.daily.temperature_2m_min[0])
+                    };
+                }
+            },
+            wttrIn: {
+                name: 'wttr.in',
+                async fetch() {
+                    const url = 'https://wttr.in/?format=j1&lang=zh';
+                    const res = await fetchWithTimeout(url, {}, CONFIG.WEATHER_TIMEOUT);
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                    const data = await res.json();
+                    const current = data.current_condition?.[0];
+                    const today = data.weather?.[0];
+                    if (!current) throw new Error('无天气数据');
+                    return {
+                        temp: parseInt(current.temp_C),
+                        desc: current.lang_zh?.[0]?.value || current.weatherDesc?.[0]?.value || '未知',
+                        wind: parseInt(current.windspeedKmph) || 0,
+                        high: today ? parseInt(today.maxtempC) : null,
+                        low: today ? parseInt(today.mintempC) : null
+                    };
+                }
+            }
+        };
+
+        // ==================== 状态与 DOM 缓存 ====================
+        const dom = {};
+        const state = { engine: 'bing', bg: 0, open: false, isWeatherLoading: false };
+
+        function $(id) { return document.getElementById(id); }
+
+        function cacheDOM() {
+            const ids = 'clock date searchInput engineBtn engineIcon engineName dropdownMenu searchBtn location weatherDesc temperature highLow wind weatherError bookmarks navGrid'.split(' ');
+            ids.forEach(id => dom[id] = $(id));
+        }
+
+        // ==================== 存储工具 ====================
+        function storageGet(key, fallback = null) {
+            try { const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : fallback; } catch { return fallback; }
+        }
+        function storageSet(key, value) {
+            try { localStorage.setItem(key, JSON.stringify(value)); return true; } catch { return false; }
+        }
+
+        // ==================== 网络请求 ====================
+        function fetchWithTimeout(url, options = {}, timeout = 5000) {
+            const controller = new AbortController();
+            const id = setTimeout(() => controller.abort(), timeout);
+            return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(id));
+        }
+
+        // ==================== 初始化 ====================
+        function init() {
+            cacheDOM();
+            renderBookmarks();
+            renderNavCategories();
+            const saved = storageGet('preferredEngine');
+            if (saved && engines[saved]) setEngine(saved, false);
+            updateClock(); setInterval(updateClock, 1000);
+            initWeather();
+            bindEvents();
+            preloadNextBg();
+        }
+
+        // ==================== 书签 ====================
+        function renderBookmarks() {
+            if (!dom.bookmarks) return;
+            dom.bookmarks.innerHTML = BOOKMARKS.map(bm => `
+                <a href="${bm.url}" target="_blank" rel="noopener" 
+                   class="bookmark-item flex flex-col items-center justify-center gap-2 p-3 apple-radius text-white/90 hover:text-white">
+                    <img src="${bm.icon}" class="w-8 h-8 rounded-lg opacity-90" alt="" 
+                         onerror="this.style.display='none';this.nextElementSibling.textContent='${bm.name.charAt(0)}'">
+                    <span class="text-xs truncate w-full text-center">${bm.name}</span>
+                </a>
+            `).join('');
+        }
+
+        // ==================== 分类导航 ====================
+        function renderNavCategories() {
+            if (!dom.navGrid) return;
+            dom.navGrid.innerHTML = CATEGORIES.map(cat => {
+                const links = cat.bookmarks.map(bm => `
+                    <a href="${bm.url}" target="_blank" rel="noopener"
+                       class="nav-bookmark flex items-center gap-2.5 px-3 py-2 apple-radius text-white/80 hover:text-white text-sm">
+                        <img src="${bm.icon}" class="w-4 h-4 rounded-sm shrink-0" alt=""
+                             onerror="this.style.display='none';this.nextElementSibling.textContent='${bm.name.charAt(0)}'">
+                        <span class="truncate">${bm.name}</span>
+                    </a>
+                `).join('');
+                return `
+                    <div class="glass apple-radius p-4 fade-in">
+                        <div class="flex items-center gap-2 mb-3 pb-2 border-b border-white/10">
+                            <span class="text-lg">${cat.icon}</span>
+                            <h3 class="text-sm font-medium tracking-wide text-white/90">${cat.name}</h3>
+                            <span class="ml-auto text-xs text-white/30">${cat.bookmarks.length}</span>
+                        </div>
+                        <div class="flex flex-col gap-0.5">${links}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // ==================== 事件绑定 ====================
+        function bindEvents() {
+            dom.searchInput.addEventListener('keydown', e => { if (e.key === 'Enter') doSearch(); });
+            dom.searchBtn.addEventListener('click', doSearch);
+
+            // 引擎下拉菜单
+            dom.engineBtn.addEventListener('click', e => { e.stopPropagation(); toggleDropdown(); });
+            dom.dropdownMenu.addEventListener('click', e => {
+                const btn = e.target.closest('[data-engine]');
+                if (btn) { e.stopPropagation(); setEngine(btn.dataset.engine); }
+            });
+            document.addEventListener('click', closeDropdown);
+            window.addEventListener('blur', closeDropdown);
+
+            // 键盘快捷键
+            document.addEventListener('keydown', e => {
+                if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
+                if ((e.key === 'b' || e.key === 'B') && document.activeElement !== dom.searchInput) switchBg();
+                if (e.key === '/' && document.activeElement !== dom.searchInput) { e.preventDefault(); dom.searchInput.focus(); }
+                if (e.key === 'Escape') { closeDropdown(); dom.searchInput.blur(); }
+            });
+
+            // 网络恢复后刷新天气
+            window.addEventListener('online', () => { if (dom.temperature?.textContent === '--°') initWeather(); });
+        }
+
+        // ==================== 时钟 ====================
+        function updateClock() {
+            const n = new Date();
+            dom.clock.textContent = `${String(n.getHours()).padStart(2, '0')}:${String(n.getMinutes()).padStart(2, '0')}`;
+            dom.date.textContent = n.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
+        }
+
+        // ==================== 搜索引擎切换 ====================
+        function toggleDropdown() {
+            state.open = !state.open;
+            dom.dropdownMenu.classList.toggle('active', state.open);
+        }
+        function closeDropdown() {
+            state.open = false;
+            dom.dropdownMenu.classList.remove('active');
+        }
+        function setEngine(key, save = true) {
+            state.engine = key;
+            dom.engineName.textContent = engines[key].name;
+            dom.engineIcon.src = engines[key].icon;
+            closeDropdown();
+            if (save) storageSet('preferredEngine', key);
+        }
+        function doSearch() {
+            const q = dom.searchInput.value.trim();
+            if (!q) return;
+            window.location.href = engines[state.engine].url + encodeURIComponent(q);
+        }
+
+        // ==================== 背景切换 ====================
+        function preloadNextBg() {
+            const img = new Image();
+            img.src = backgrounds[(state.bg + 1) % backgrounds.length];
+        }
+        function switchBg() {
+            state.bg = (state.bg + 1) % backgrounds.length;
+            document.body.style.backgroundImage = `url('${backgrounds[state.bg]}')`;
+            preloadNextBg();
+        }
+
+        // ==================== 天气 ====================
+        function getWeatherDesc(code) {
+            const map = {
+                0: '晴朗', 1: '晴间多云', 2: '多云', 3: '阴天',
+                45: '雾', 48: '雾凇', 51: '毛毛雨', 53: '中毛毛雨', 55: '大毛毛雨',
+                61: '小雨', 63: '中雨', 65: '大雨', 71: '小雪', 73: '中雪', 75: '大雪',
+                80: '阵雨', 81: '强阵雨', 82: '暴雨', 95: '雷雨', 96: '雷伴冰雹', 99: '强雷暴'
+            };
+            return map[code] ?? '多云';
+        }
+
+        function loadWeatherCache() {
+            const cache = storageGet('weatherCache');
+            if (!cache) return null;
+            return (Date.now() - cache.timestamp) < CONFIG.CACHE_DURATION ? cache : null;
+        }
+        function saveWeatherCache(data, name) {
+            storageSet('weatherCache', { data, name, timestamp: Date.now() });
+        }
+
+        function getCurrentPosition() {
+            return new Promise((resolve, reject) => {
+                if (!navigator.geolocation) { reject(new Error('不支持定位')); return; }
+                if (window.location.protocol === 'file:') { reject(new Error('本地文件不支持定位')); return; }
+                navigator.geolocation.getCurrentPosition(
+                    pos => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
+                    reject,
+                    { timeout: CONFIG.GEO_TIMEOUT, enableHighAccuracy: false, maximumAge: 300000 }
+                );
+            });
+        }
+
+        function renderWeather(data, name) {
+            dom.location.textContent = name;
+            dom.temperature.textContent = `${data.temp}°`;
+            dom.highLow.textContent = data.high !== null ? `H: ${data.high}° L: ${data.low}°` : '--';
+            dom.wind.textContent = `${data.wind} km/h`;
+            dom.weatherDesc.textContent = data.desc;
+        }
+
+        async function initWeather() {
+            if (state.isWeatherLoading) return;
+            state.isWeatherLoading = true;
+
+            const cache = loadWeatherCache();
+            if (cache) { renderWeather(cache.data, cache.name); }
+
+            let weatherData = null;
+            const locationName = '本地';
+
+            try {
+                try {
+                    const coords = await getCurrentPosition();
+                    weatherData = await WEATHER_SOURCES.openMeteo.fetch(coords);
+                } catch (e) {
+                    console.warn('Open-Meteo 链路失败:', e.message);
+                }
+
+                if (!weatherData) {
+                    try {
+                        weatherData = await WEATHER_SOURCES.wttrIn.fetch();
+                    } catch (e) {
+                        console.warn('wttr.in 失败:', e.message);
+                    }
+                }
+
+                if (weatherData) {
+                    renderWeather(weatherData, locationName);
+                    saveWeatherCache(weatherData, locationName);
+                    dom.weatherError.classList.add('hidden');
+                } else {
+                    throw new Error('所有天气源均不可用');
+                }
+            } catch (e) {
+                console.error('天气加载失败:', e);
+                if (!cache) {
+                    dom.location.textContent = '天气暂不可用';
+                    dom.temperature.textContent = '--°';
+                    dom.highLow.textContent = '--'; dom.wind.textContent = '--'; dom.weatherDesc.textContent = '--';
+                } else {
+                    dom.weatherError.textContent = '已离线 · 显示缓存数据';
+                    dom.weatherError.classList.remove('hidden');
+                }
+            } finally {
+                state.isWeatherLoading = false;
+            }
+        }
+
+        // ==================== 启动 ====================
+        document.readyState === 'loading'
+            ? document.addEventListener('DOMContentLoaded', init)
+            : init();
+    </script>
+</body>
+</html>
