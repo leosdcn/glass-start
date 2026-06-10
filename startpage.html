@@ -111,28 +111,6 @@
             <div class="w-full max-w-xl lg:max-w-2xl glass apple-radius p-4 fade-in mb-6 md:mb-8" style="animation-delay:0.2s">
                 <div id="bookmarks" class="grid grid-cols-4 md:grid-cols-8 gap-2"></div>
             </div>
-
-            <!-- 天气 -->
-            <div class="w-full max-w-xl lg:max-w-2xl fade-in" style="animation-delay:0.3s">
-                <div class="glass apple-radius px-5 py-3 flex items-center justify-between gap-4">
-                    <div class="flex items-center gap-3 min-w-0">
-                        <div class="flex items-center gap-2 shrink-0">
-                            <svg class="w-4 h-4 text-white/70 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                            <span id="location" class="text-sm font-medium truncate">--</span>
-                        </div>
-                        <span id="weatherDesc" class="text-xs text-white/60 hidden sm:inline">--</span>
-                    </div>
-                    <div class="flex items-center gap-4 shrink-0">
-                        <span id="temperature" class="text-2xl font-extralight tracking-tighter">--°</span>
-                        <div class="flex items-center gap-3 text-xs text-white/50">
-                            <span id="highLow">--</span>
-                            <span class="hidden sm:inline">|</span>
-                            <span id="wind" class="hidden sm:inline">--</span>
-                        </div>
-                    </div>
-                    <div id="weatherError" class="hidden text-xs text-white/40"></div>
-                </div>
-            </div>
         </div>
 
         <!-- 向下滚动提示（装饰，绝对定位不占空间） -->
@@ -289,12 +267,6 @@
         ];
 
         // ==================== 配置 ====================
-        const CONFIG = {
-            CACHE_DURATION: 2 * 60 * 60 * 1000, // 天气缓存 2 小时
-            WEATHER_TIMEOUT: 10000,
-            GEO_TIMEOUT: 6000,
-        };
-
         const engines = {
             bing: { name: 'Bing', icon: 'https://www.bing.com/favicon.ico', url: 'https://www.bing.com/search?q=' },
             google: { name: 'Google', icon: 'https://www.google.com/favicon.ico', url: 'https://www.google.com/search?q=' },
@@ -311,53 +283,14 @@
             'https://images.unsplash.com/photo-1501785888041-af3ef285b470?q=80&w=2070&auto=format&fit=crop'
         ];
 
-        const WEATHER_SOURCES = {
-            openMeteo: {
-                name: 'Open-Meteo',
-                async fetch(coords) {
-                    const url = `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}&current=temperature_2m,weather_code,wind_speed_10m&daily=temperature_2m_max,temperature_2m_min&timezone=auto`;
-                    const res = await fetchWithTimeout(url, {}, 8000);
-                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                    const data = await res.json();
-                    if (!data.current || typeof data.current.temperature_2m !== 'number') throw new Error('数据异常');
-                    return {
-                        temp: Math.round(data.current.temperature_2m),
-                        desc: getWeatherDesc(data.current.weather_code),
-                        wind: Math.round(data.current.wind_speed_10m),
-                        high: Math.round(data.daily.temperature_2m_max[0]),
-                        low: Math.round(data.daily.temperature_2m_min[0])
-                    };
-                }
-            },
-            wttrIn: {
-                name: 'wttr.in',
-                async fetch() {
-                    const url = 'https://wttr.in/?format=j1&lang=zh';
-                    const res = await fetchWithTimeout(url, {}, CONFIG.WEATHER_TIMEOUT);
-                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                    const data = await res.json();
-                    const current = data.current_condition?.[0];
-                    const today = data.weather?.[0];
-                    if (!current) throw new Error('无天气数据');
-                    return {
-                        temp: parseInt(current.temp_C),
-                        desc: current.lang_zh?.[0]?.value || current.weatherDesc?.[0]?.value || '未知',
-                        wind: parseInt(current.windspeedKmph) || 0,
-                        high: today ? parseInt(today.maxtempC) : null,
-                        low: today ? parseInt(today.mintempC) : null
-                    };
-                }
-            }
-        };
-
         // ==================== 状态与 DOM 缓存 ====================
         const dom = {};
-        const state = { engine: 'bing', bg: 0, open: false, isWeatherLoading: false };
+        const state = { engine: 'bing', bg: 0, open: false };
 
         function $(id) { return document.getElementById(id); }
 
         function cacheDOM() {
-            const ids = 'clock date searchInput engineBtn engineIcon engineName dropdownMenu searchBtn location weatherDesc temperature highLow wind weatherError bookmarks sidebarList navCategories navContent'.split(' ');
+            const ids = 'clock date searchInput engineBtn engineIcon engineName dropdownMenu searchBtn bookmarks sidebarList navCategories navContent'.split(' ');
             ids.forEach(id => dom[id] = $(id));
         }
 
@@ -386,7 +319,6 @@
             const saved = storageGet('preferredEngine');
             if (saved && engines[saved]) setEngine(saved, false);
             updateClock(); setInterval(updateClock, 1000);
-            initWeather();
             bindEvents();
             preloadNextBg();
         }
@@ -502,9 +434,6 @@
                 if (e.key === '/' && document.activeElement !== dom.searchInput) { e.preventDefault(); dom.searchInput.focus(); }
                 if (e.key === 'Escape') { closeDropdown(); dom.searchInput.blur(); }
             });
-
-            // 网络恢复后刷新天气
-            window.addEventListener('online', () => { if (dom.temperature?.textContent === '--°') initWeather(); });
         }
 
         // ==================== 时钟 ====================
@@ -613,94 +542,6 @@
                     else requestAnimationFrame(check);
                 };
                 setTimeout(check, 400);
-            }
-        }
-
-        // ==================== 天气 ====================
-        function getWeatherDesc(code) {
-            const map = {
-                0: '晴朗', 1: '晴间多云', 2: '多云', 3: '阴天',
-                45: '雾', 48: '雾凇', 51: '毛毛雨', 53: '中毛毛雨', 55: '大毛毛雨',
-                61: '小雨', 63: '中雨', 65: '大雨', 71: '小雪', 73: '中雪', 75: '大雪',
-                80: '阵雨', 81: '强阵雨', 82: '暴雨', 95: '雷雨', 96: '雷伴冰雹', 99: '强雷暴'
-            };
-            return map[code] ?? '多云';
-        }
-
-        function loadWeatherCache() {
-            const cache = storageGet('weatherCache');
-            if (!cache) return null;
-            return (Date.now() - cache.timestamp) < CONFIG.CACHE_DURATION ? cache : null;
-        }
-        function saveWeatherCache(data, name) {
-            storageSet('weatherCache', { data, name, timestamp: Date.now() });
-        }
-
-        function getCurrentPosition() {
-            return new Promise((resolve, reject) => {
-                if (!navigator.geolocation) { reject(new Error('不支持定位')); return; }
-                if (window.location.protocol === 'file:') { reject(new Error('本地文件不支持定位')); return; }
-                navigator.geolocation.getCurrentPosition(
-                    pos => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
-                    reject,
-                    { timeout: CONFIG.GEO_TIMEOUT, enableHighAccuracy: false, maximumAge: 300000 }
-                );
-            });
-        }
-
-        function renderWeather(data, name) {
-            dom.location.textContent = name;
-            dom.temperature.textContent = `${data.temp}°`;
-            dom.highLow.textContent = data.high !== null ? `H: ${data.high}° L: ${data.low}°` : '--';
-            dom.wind.textContent = `${data.wind} km/h`;
-            dom.weatherDesc.textContent = data.desc;
-        }
-
-        async function initWeather() {
-            if (state.isWeatherLoading) return;
-            state.isWeatherLoading = true;
-
-            const cache = loadWeatherCache();
-            if (cache) { renderWeather(cache.data, cache.name); }
-
-            let weatherData = null;
-            const locationName = '本地';
-
-            try {
-                try {
-                    const coords = await getCurrentPosition();
-                    weatherData = await WEATHER_SOURCES.openMeteo.fetch(coords);
-                } catch (e) {
-                    console.warn('Open-Meteo 链路失败:', e.message);
-                }
-
-                if (!weatherData) {
-                    try {
-                        weatherData = await WEATHER_SOURCES.wttrIn.fetch();
-                    } catch (e) {
-                        console.warn('wttr.in 失败:', e.message);
-                    }
-                }
-
-                if (weatherData) {
-                    renderWeather(weatherData, locationName);
-                    saveWeatherCache(weatherData, locationName);
-                    dom.weatherError.classList.add('hidden');
-                } else {
-                    throw new Error('所有天气源均不可用');
-                }
-            } catch (e) {
-                console.error('天气加载失败:', e);
-                if (!cache) {
-                    dom.location.textContent = '天气暂不可用';
-                    dom.temperature.textContent = '--°';
-                    dom.highLow.textContent = '--'; dom.wind.textContent = '--'; dom.weatherDesc.textContent = '--';
-                } else {
-                    dom.weatherError.textContent = '已离线 · 显示缓存数据';
-                    dom.weatherError.classList.remove('hidden');
-                }
-            } finally {
-                state.isWeatherLoading = false;
             }
         }
 
