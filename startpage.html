@@ -57,6 +57,9 @@
         }
         .scroll-hint { animation: bounceDown 2s ease-in-out infinite; }
         @keyframes bounceDown { 0%,100%{transform:translateY(0);opacity:0.6} 50%{transform:translateY(8px);opacity:1} }
+        .hint-down { animation:hintFade 7s ease forwards; }
+        .hint-up { animation:hintFade 6s ease 1s forwards; }
+        @keyframes hintFade { 0%,55%{opacity:1} 100%{opacity:0;pointer-events:none} }
         .section-divider { background: linear-gradient(90deg,transparent,rgba(255,255,255,0.15),transparent); }
     </style>
 </head>
@@ -133,7 +136,7 @@
         </div>
 
         <!-- 向下滚动提示（装饰，绝对定位不占空间） -->
-        <div class="absolute bottom-6 md:bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 text-white/35 text-[10px] tracking-widest pointer-events-none">
+        <div class="absolute bottom-6 md:bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 text-white/35 text-[10px] tracking-widest pointer-events-none hint-down">
             <span>向下滚动</span>
             <svg class="w-4 h-4 scroll-hint" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/></svg>
         </div>
@@ -144,25 +147,25 @@
 
     <!-- ========== 第二屏：分类导航 ========== -->
     <section id="navSection" class="relative z-10 h-screen nav-hidden overflow-hidden">
-        <div class="h-full flex flex-col pt-14 md:pt-16">
+        <div class="h-full flex flex-col pt-8 md:pt-10">
             <!-- 标题 -->
-            <div class="text-center shrink-0 px-4 fade-in">
-                <h2 class="text-xl md:text-2xl font-light tracking-wider">🪐 导航</h2>
-                <p class="text-xs text-white/50 mt-1 tracking-wide">发现更多精彩网站</p>
+            <div class="text-center shrink-0 px-4">
+                <h2 class="text-base md:text-lg font-light tracking-wider">🪐 导航</h2>
+                <p class="text-[10px] text-white/40 mt-0.5 tracking-wide">发现更多精彩网站</p>
             </div>
             <!-- 向上返回提示 -->
-            <div class="flex items-center justify-center gap-1 py-1.5 text-white/20 text-[10px] tracking-widest shrink-0 pointer-events-none">
-                <svg class="w-3 h-3 scroll-hint" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/></svg>
+            <div id="navHint" class="flex items-center justify-center gap-0.5 py-1 text-white/15 text-[9px] tracking-widest shrink-0 pointer-events-none">
+                <svg class="w-2.5 h-2.5 scroll-hint" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/></svg>
                 <span>向上滚动返回</span>
             </div>
             <!-- 主体：左分类 + 右内容 -->
-            <div class="flex-1 flex gap-3 md:gap-4 px-3 md:px-4 pb-4 min-h-0">
+            <div class="flex-1 flex gap-2 md:gap-3 px-3 md:px-4 pb-3 min-h-0">
                 <!-- 左侧分类列表 -->
-                <aside id="sidebar" class="w-36 md:w-44 shrink-0 glass apple-radius p-2 md:p-3 overflow-y-auto" style="scrollbar-width:none;-ms-overflow-style:none;">
+                <aside id="sidebar" class="w-32 md:w-40 shrink-0 glass apple-radius p-1.5 md:p-2 overflow-y-auto" style="scrollbar-width:none;-ms-overflow-style:none;">
                     <div id="sidebarList" class="flex flex-col gap-0.5"></div>
                 </aside>
                 <!-- 右侧书签内容 -->
-                <main id="navContent" class="flex-1 glass apple-radius p-3 md:p-4 overflow-y-auto" style="scrollbar-width:none;-ms-overflow-style:none;">
+                <main id="navContent" class="flex-1 glass apple-radius p-2 md:p-3 overflow-y-auto" style="scrollbar-width:none;-ms-overflow-style:none;">
                     <div id="navCategories"></div>
                 </main>
             </div>
@@ -395,7 +398,7 @@
                 <a href="${bm.url}" target="_blank" rel="noopener" 
                    class="bookmark-item flex flex-col items-center justify-center gap-2 p-3 apple-radius text-white/90 hover:text-white">
                     <img src="${bm.icon}" class="w-8 h-8 rounded-lg opacity-90" alt="" 
-                         onerror="this.style.display='none';this.nextElementSibling.textContent='${bm.name.charAt(0)}'">
+                         onerror="this.style.display='none'">
                     <span class="text-xs truncate w-full text-center">${bm.name}</span>
                 </a>
             `).join('');
@@ -426,7 +429,7 @@
                             <a href="${bm.url}" target="_blank" rel="noopener"
                                class="nav-bookmark flex items-center gap-2.5 px-2.5 md:px-3 py-2 md:py-2.5 apple-radius text-white/75 hover:text-white rounded-xl">
                                 <img src="${bm.icon}" class="w-5 h-5 rounded shrink-0" alt=""
-                                     onerror="this.style.display='none';this.nextElementSibling.textContent='${bm.name.charAt(0)}'">
+                                     onerror="this.style.display='none'">
                                 <span class="text-xs md:text-sm truncate">${bm.name}</span>
                             </a>
                         `).join('')}
@@ -571,6 +574,7 @@
                             if (!animationDone) {
                                 nav.classList.remove('nav-hidden');
                                 nav.classList.add('nav-visible');
+                                document.getElementById('navHint')?.classList.add('hint-up');
                                 animationDone = true;
                             }
                             waitForScroll(nav.offsetTop, () => {
