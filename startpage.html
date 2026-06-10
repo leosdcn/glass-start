@@ -13,7 +13,8 @@
             --radius: 1.5rem;
             --blur: 24px;
         }
-        body { font-family: 'Nunito', sans-serif; scrollbar-width:none; -ms-overflow-style:none; }
+        body { font-family: 'Nunito', sans-serif; scrollbar-width:none; -ms-overflow-style:none; 
+               overflow:hidden; }
         body::-webkit-scrollbar { display:none; }
         * { scrollbar-width:none; -ms-overflow-style:none; }
         *::-webkit-scrollbar { display:none; }
@@ -45,6 +46,11 @@
         .scroll-hint { animation: bounceDown 2s ease-in-out infinite; }
         @keyframes bounceDown { 0%,100%{transform:translateY(0);opacity:0.6} 50%{transform:translateY(8px);opacity:1} }
         .section-divider { background: linear-gradient(90deg,transparent,rgba(255,255,255,0.15),transparent); }
+        /* 导航区入场动画 */
+        .nav-hidden { opacity:0; transform:translateY(60px); }
+        .nav-visible { opacity:1; transform:translateY(0); transition:opacity 0.8s ease-out, transform 0.8s ease-out; }
+        .nav-card { opacity:0; transform:translateY(40px); }
+        .nav-card.visible { opacity:1; transform:translateY(0); transition:opacity 0.5s ease-out, transform 0.5s ease-out; }
     </style>
 </head>
 <body class="bg-cover bg-center bg-no-repeat text-white relative" 
@@ -119,8 +125,8 @@
             </div>
         </div>
 
-        <!-- 向下滚动提示 -->
-        <div class="mt-8 md:mt-12 flex flex-col items-center gap-2 text-white/40 text-xs tracking-widest cursor-pointer" onclick="document.getElementById('navSection').scrollIntoView({behavior:'smooth'})">
+        <!-- 向下滚动提示（装饰） -->
+        <div class="mt-8 md:mt-12 flex flex-col items-center gap-2 text-white/40 text-xs tracking-widest">
             <span>向下滚动</span>
             <svg class="w-5 h-5 scroll-hint" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/></svg>
         </div>
@@ -130,15 +136,18 @@
     <div class="section-divider h-px relative z-10 mx-auto w-3/4 max-w-2xl"></div>
 
     <!-- ========== 第二屏：分类导航 ========== -->
-    <section id="navSection" class="relative z-10 min-h-screen py-16 md:py-20 px-4">
-        <div class="max-w-5xl mx-auto">
-            <div class="text-center mb-12 fade-in">
+    <section id="navSection" class="relative z-10 h-screen py-16 md:py-20 px-4 nav-hidden overflow-hidden">
+        <div class="max-w-5xl mx-auto h-full flex flex-col">
+            <div class="text-center mb-8 shrink-0 fade-in">
                 <h2 class="text-2xl md:text-3xl font-light tracking-wider">🪐 导航</h2>
                 <p class="text-sm text-white/50 mt-2 tracking-wide">发现更多精彩网站</p>
             </div>
-            <div id="navGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
-                <!-- 分类由 JS 动态生成 -->
-            </div>
+            <div id="navGrid" class="nav-content grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5 overflow-y-auto pb-4" style="scrollbar-width:none;-ms-overflow-style:none;"></div>
+        </div>
+        <!-- 向上滚动提示（装饰） -->
+        <div class="absolute bottom-4 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 text-white/30 text-xs tracking-widest pointer-events-none">
+            <svg class="w-4 h-4 scroll-hint rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/></svg>
+            <span>向上滚动返回</span>
         </div>
     </section>
 
@@ -351,6 +360,7 @@
             cacheDOM();
             renderBookmarks();
             renderNavCategories();
+            initScrollControl();
             const saved = storageGet('preferredEngine');
             if (saved && engines[saved]) setEngine(saved, false);
             updateClock(); setInterval(updateClock, 1000);
@@ -375,7 +385,7 @@
         // ==================== 分类导航 ====================
         function renderNavCategories() {
             if (!dom.navGrid) return;
-            dom.navGrid.innerHTML = CATEGORIES.map(cat => {
+            dom.navGrid.innerHTML = CATEGORIES.map((cat, ci) => {
                 const links = cat.bookmarks.map(bm => `
                     <a href="${bm.url}" target="_blank" rel="noopener"
                        class="nav-bookmark flex items-center gap-2.5 px-3 py-2 apple-radius text-white/80 hover:text-white text-sm">
@@ -385,7 +395,7 @@
                     </a>
                 `).join('');
                 return `
-                    <div class="glass apple-radius p-4 fade-in">
+                    <div class="nav-card glass apple-radius p-4 fade-in" style="transition-delay:${ci * 80}ms">
                         <div class="flex items-center gap-2 mb-3 pb-2 border-b border-white/10">
                             <span class="text-lg">${cat.icon}</span>
                             <h3 class="text-sm font-medium tracking-wide text-white/90">${cat.name}</h3>
@@ -461,6 +471,82 @@
             state.bg = (state.bg + 1) % backgrounds.length;
             document.body.style.backgroundImage = `url('${backgrounds[state.bg]}')`;
             preloadNextBg();
+        }
+
+        // ==================== 滚动入场动画 ====================
+        function initScrollControl() {
+            let scrollCount = 0;
+            let isTransitioning = false;
+            let currentSection = 'start'; // 'start' | 'nav'
+            const THRESHOLD = 3;
+            const nav = document.getElementById('navSection');
+            const navContent = nav.querySelector('.nav-content');
+            let animationDone = false; // 入场动画只触发一次
+
+            // 滚轮监听
+            document.addEventListener('wheel', (e) => {
+                if (isTransitioning) { e.preventDefault(); return; }
+
+                const down = e.deltaY > 0;
+                const up = e.deltaY < 0;
+
+                if (currentSection === 'start') {
+                    // ---- 起始页 ----
+                    e.preventDefault();
+                    if (down) {
+                        scrollCount++;
+                        if (scrollCount >= THRESHOLD) {
+                            scrollCount = 0;
+                            isTransitioning = true;
+                            nav.scrollIntoView({ behavior: 'smooth' });
+                            // 触发入场动画
+                            if (!animationDone) {
+                                nav.classList.remove('nav-hidden');
+                                nav.classList.add('nav-visible');
+                                const cards = nav.querySelectorAll('.nav-card');
+                                cards.forEach((c, i) => setTimeout(() => c.classList.add('visible'), 100 + i * 100));
+                                animationDone = true;
+                            }
+                            waitForScroll(nav.offsetTop, () => {
+                                currentSection = 'nav';
+                                isTransitioning = false;
+                            });
+                        }
+                    } else {
+                        scrollCount = Math.max(0, scrollCount - 1);
+                    }
+                } else {
+                    // ---- 导航页 ----
+                    if (navContent.scrollTop > 0 || down) {
+                        // 导航内容可滚动 → 转发滚轮到内部滚动
+                        e.preventDefault();
+                        navContent.scrollTop += e.deltaY;
+                    } else if (up && navContent.scrollTop <= 0) {
+                        // 已到导航顶部，向上滚 → 计数返回起始页
+                        e.preventDefault();
+                        scrollCount++;
+                        if (scrollCount >= THRESHOLD) {
+                            scrollCount = 0;
+                            isTransitioning = true;
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                            // 复位导航内部滚动
+                            navContent.scrollTop = 0;
+                            waitForScroll(0, () => {
+                                currentSection = 'start';
+                                isTransitioning = false;
+                            });
+                        }
+                    }
+                }
+            }, { passive: false });
+
+            function waitForScroll(target, cb) {
+                const check = () => {
+                    if (Math.abs(window.scrollY - target) < 10) cb();
+                    else requestAnimationFrame(check);
+                };
+                setTimeout(check, 400);
+            }
         }
 
         // ==================== 天气 ====================
