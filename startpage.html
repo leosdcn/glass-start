@@ -61,7 +61,7 @@
     </style>
 </head>
 <body class="bg-cover bg-center bg-no-repeat text-white relative" 
-      style="background-image:url('https://images.unsplash.com/photo-1477346611705-65d1883cee1e?q=80&w=2070&auto=format&fit=crop');background-attachment:fixed">
+      style="background-color:#1a1a2e;background-image:url('https://images.unsplash.com/photo-1477346611705-65d1883cee1e?q=80&w=2070&auto=format&fit=crop');background-attachment:fixed">
     <div class="fixed inset-0 bg-black/25 pointer-events-none"></div>
 
     <!-- ========== 第一屏：起始页 ========== -->
@@ -585,6 +585,7 @@
                     if (navContent.scrollTop > 0 || down) {
                         e.preventDefault();
                         navContent.scrollTop += e.deltaY;
+                        scrollCount = 0; // 向下滚动时重置计数
                     } else if (up && navContent.scrollTop <= 0) {
                         e.preventDefault();
                         scrollCount++;
