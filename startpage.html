@@ -41,16 +41,23 @@
         .clock-text { text-shadow: 0 2px 20px rgba(0,0,0,0.4), 0 0 60px rgba(0,0,0,0.2); }
         .bookmark-item { transition: all 0.2s ease; }
         .bookmark-item:hover { background: rgba(255,255,255,0.12); transform: translateY(-2px); }
-        .nav-bookmark { transition: all 0.2s ease; }
-        .nav-bookmark:hover { background: rgba(255,255,255,0.12); transform: translateY(-1px); }
+        .nav-bookmark { transition: all 0.15s ease; }
+        .nav-bookmark:hover { background: rgba(255,255,255,0.1); }
+        .nav-hidden { opacity:0; transform:translateY(40px); }
+        .nav-visible { opacity:1; transform:translateY(0); transition:opacity 0.6s ease-out, transform 0.6s ease-out; }
+        .sidebar-item {
+            transition: all 0.15s ease;
+            border-left: 2px solid transparent;
+        }
+        .sidebar-item:hover { background: rgba(255,255,255,0.08); }
+        .sidebar-item.active {
+            background: rgba(255,255,255,0.12);
+            border-left-color: rgba(255,255,255,0.6);
+            color: #fff;
+        }
         .scroll-hint { animation: bounceDown 2s ease-in-out infinite; }
         @keyframes bounceDown { 0%,100%{transform:translateY(0);opacity:0.6} 50%{transform:translateY(8px);opacity:1} }
         .section-divider { background: linear-gradient(90deg,transparent,rgba(255,255,255,0.15),transparent); }
-        /* 导航区入场动画 */
-        .nav-hidden { opacity:0; transform:translateY(60px); }
-        .nav-visible { opacity:1; transform:translateY(0); transition:opacity 0.8s ease-out, transform 0.8s ease-out; }
-        .nav-card { opacity:0; transform:translateY(40px); }
-        .nav-card.visible { opacity:1; transform:translateY(0); transition:opacity 0.5s ease-out, transform 0.5s ease-out; }
     </style>
 </head>
 <body class="bg-cover bg-center bg-no-repeat text-white relative" 
@@ -136,17 +143,28 @@
     <div class="section-divider h-px relative z-10 mx-auto w-3/4 max-w-2xl"></div>
 
     <!-- ========== 第二屏：分类导航 ========== -->
-    <section id="navSection" class="relative z-10 h-screen py-16 md:py-20 px-4 nav-hidden overflow-hidden">
-        <div class="max-w-5xl mx-auto h-full flex flex-col">
-            <div class="text-center mb-8 shrink-0 fade-in">
-                <h2 class="text-2xl md:text-3xl font-light tracking-wider">🪐 导航</h2>
-                <p class="text-sm text-white/50 mt-2 tracking-wide">发现更多精彩网站</p>
+    <section id="navSection" class="relative z-10 h-screen nav-hidden overflow-hidden">
+        <div class="h-full flex flex-col pt-14 md:pt-16">
+            <!-- 标题 -->
+            <div class="text-center mb-4 md:mb-6 shrink-0 px-4 fade-in">
+                <h2 class="text-xl md:text-2xl font-light tracking-wider">🪐 导航</h2>
+                <p class="text-xs text-white/50 mt-1 tracking-wide">发现更多精彩网站</p>
             </div>
-            <div id="navGrid" class="nav-content grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5 overflow-y-auto pb-4" style="scrollbar-width:none;-ms-overflow-style:none;"></div>
+            <!-- 主体：左分类 + 右内容 -->
+            <div class="flex-1 flex gap-3 md:gap-4 px-3 md:px-4 pb-4 min-h-0">
+                <!-- 左侧分类列表 -->
+                <aside id="sidebar" class="w-36 md:w-44 shrink-0 glass apple-radius p-2 md:p-3 overflow-y-auto" style="scrollbar-width:none;-ms-overflow-style:none;">
+                    <div id="sidebarList" class="flex flex-col gap-0.5"></div>
+                </aside>
+                <!-- 右侧书签内容 -->
+                <main id="navContent" class="flex-1 glass apple-radius p-3 md:p-4 overflow-y-auto" style="scrollbar-width:none;-ms-overflow-style:none;">
+                    <div id="navCategories"></div>
+                </main>
+            </div>
         </div>
-        <!-- 向上滚动提示（装饰） -->
-        <div class="absolute bottom-4 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 text-white/30 text-xs tracking-widest pointer-events-none">
-            <svg class="w-4 h-4 scroll-hint rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/></svg>
+        <!-- 向上滚动提示 -->
+        <div class="absolute bottom-3 left-1/2 -translate-x-1/2 flex flex-col items-center gap-0.5 text-white/25 text-[10px] tracking-widest pointer-events-none">
+            <svg class="w-3.5 h-3.5 scroll-hint rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/></svg>
             <span>向上滚动返回</span>
         </div>
     </section>
@@ -336,7 +354,7 @@
         function $(id) { return document.getElementById(id); }
 
         function cacheDOM() {
-            const ids = 'clock date searchInput engineBtn engineIcon engineName dropdownMenu searchBtn location weatherDesc temperature highLow wind weatherError bookmarks navGrid'.split(' ');
+            const ids = 'clock date searchInput engineBtn engineIcon engineName dropdownMenu searchBtn location weatherDesc temperature highLow wind weatherError bookmarks sidebarList navCategories navContent'.split(' ');
             ids.forEach(id => dom[id] = $(id));
         }
 
@@ -360,6 +378,7 @@
             cacheDOM();
             renderBookmarks();
             renderNavCategories();
+            initSidebarNav();
             initScrollControl();
             const saved = storageGet('preferredEngine');
             if (saved && engines[saved]) setEngine(saved, false);
@@ -382,32 +401,84 @@
             `).join('');
         }
 
-        // ==================== 分类导航 ====================
+        // ==================== 分类导航（左右布局）====================
         function renderNavCategories() {
-            if (!dom.navGrid) return;
-            dom.navGrid.innerHTML = CATEGORIES.map((cat, ci) => {
-                const links = cat.bookmarks.map(bm => `
-                    <a href="${bm.url}" target="_blank" rel="noopener"
-                       class="nav-bookmark flex items-center gap-2.5 px-3 py-2 apple-radius text-white/80 hover:text-white text-sm">
-                        <img src="${bm.icon}" class="w-4 h-4 rounded-sm shrink-0" alt=""
-                             onerror="this.style.display='none';this.nextElementSibling.textContent='${bm.name.charAt(0)}'">
-                        <span class="truncate">${bm.name}</span>
-                    </a>
-                `).join('');
-                return `
-                    <div class="nav-card glass apple-radius p-4 fade-in" style="transition-delay:${ci * 80}ms">
-                        <div class="flex items-center gap-2 mb-3 pb-2 border-b border-white/10">
-                            <span class="text-lg">${cat.icon}</span>
-                            <h3 class="text-sm font-medium tracking-wide text-white/90">${cat.name}</h3>
-                            <span class="ml-auto text-xs text-white/30">${cat.bookmarks.length}</span>
-                        </div>
-                        <div class="flex flex-col gap-0.5">${links}</div>
+            if (!dom.sidebarList || !dom.navCategories) return;
+
+            // 左侧分类列表
+            dom.sidebarList.innerHTML = CATEGORIES.map((cat, i) => `
+                <button class="sidebar-item w-full text-left text-xs md:text-sm px-2.5 py-2 apple-radius text-white/70 ${i === 0 ? 'active' : ''}"
+                        data-target="cat-${i}">
+                    <span class="mr-1.5">${cat.icon}</span>${cat.name}
+                </button>
+            `).join('');
+
+            // 右侧书签内容
+            dom.navCategories.innerHTML = CATEGORIES.map((cat, i) => `
+                <div id="cat-${i}" class="mb-6 md:mb-8 ${i > 0 ? 'scroll-mt-4' : ''}">
+                    <div class="flex items-center gap-2 mb-3 pb-2 border-b border-white/10">
+                        <span class="text-lg">${cat.icon}</span>
+                        <h3 class="text-sm md:text-base font-medium tracking-wide text-white/90">${cat.name}</h3>
+                        <span class="ml-auto text-[10px] text-white/30">${cat.bookmarks.length} 个</span>
                     </div>
-                `;
-            }).join('');
+                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 md:gap-3">
+                        ${cat.bookmarks.map(bm => `
+                            <a href="${bm.url}" target="_blank" rel="noopener"
+                               class="nav-bookmark flex items-center gap-2.5 px-2.5 md:px-3 py-2 md:py-2.5 apple-radius text-white/75 hover:text-white rounded-xl">
+                                <img src="${bm.icon}" class="w-5 h-5 rounded shrink-0" alt=""
+                                     onerror="this.style.display='none';this.nextElementSibling.textContent='${bm.name.charAt(0)}'">
+                                <span class="text-xs md:text-sm truncate">${bm.name}</span>
+                            </a>
+                        `).join('')}
+                    </div>
+                </div>
+            `).join('');
         }
 
-        // ==================== 事件绑定 ====================
+        // ==================== 侧边栏导航 ====================
+        function initSidebarNav() {
+            const sidebar = dom.sidebarList;
+            const content = dom.navContent;
+            if (!sidebar || !content) return;
+
+            const items = sidebar.querySelectorAll('[data-target]');
+            const sections = [];
+            items.forEach(item => {
+                const el = document.getElementById(item.dataset.target);
+                if (el) sections.push(el);
+            });
+
+            // 根据滚动位置更新高亮
+            function updateActive() {
+                const scrollTop = content.scrollTop;
+                let activeIdx = 0;
+                for (let i = 0; i < sections.length; i++) {
+                    if (sections[i].offsetTop - scrollTop < 100) activeIdx = i;
+                }
+                items.forEach((item, i) => item.classList.toggle('active', i === activeIdx));
+            }
+
+            // 点击侧边栏 → 平滑滚动并高亮
+            sidebar.addEventListener('click', (e) => {
+                const btn = e.target.closest('[data-target]');
+                if (!btn) return;
+                const target = document.getElementById(btn.dataset.target);
+                if (target) {
+                    items.forEach(i => i.classList.remove('active'));
+                    btn.classList.add('active');
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+
+            // 滚动时更新高亮（节流）
+            let ticking = false;
+            content.addEventListener('scroll', () => {
+                if (!ticking) {
+                    requestAnimationFrame(() => { updateActive(); ticking = false; });
+                    ticking = true;
+                }
+            });
+        }
         function bindEvents() {
             dom.searchInput.addEventListener('keydown', e => { if (e.key === 'Enter') doSearch(); });
             dom.searchBtn.addEventListener('click', doSearch);
@@ -477,13 +548,12 @@
         function initScrollControl() {
             let scrollCount = 0;
             let isTransitioning = false;
-            let currentSection = 'start'; // 'start' | 'nav'
+            let currentSection = 'start';
             const THRESHOLD = 3;
             const nav = document.getElementById('navSection');
-            const navContent = nav.querySelector('.nav-content');
-            let animationDone = false; // 入场动画只触发一次
+            const navContent = dom.navContent;
+            let animationDone = false;
 
-            // 滚轮监听
             document.addEventListener('wheel', (e) => {
                 if (isTransitioning) { e.preventDefault(); return; }
 
@@ -491,7 +561,6 @@
                 const up = e.deltaY < 0;
 
                 if (currentSection === 'start') {
-                    // ---- 起始页 ----
                     e.preventDefault();
                     if (down) {
                         scrollCount++;
@@ -499,12 +568,9 @@
                             scrollCount = 0;
                             isTransitioning = true;
                             nav.scrollIntoView({ behavior: 'smooth' });
-                            // 触发入场动画
                             if (!animationDone) {
                                 nav.classList.remove('nav-hidden');
                                 nav.classList.add('nav-visible');
-                                const cards = nav.querySelectorAll('.nav-card');
-                                cards.forEach((c, i) => setTimeout(() => c.classList.add('visible'), 100 + i * 100));
                                 animationDone = true;
                             }
                             waitForScroll(nav.offsetTop, () => {
@@ -516,20 +582,16 @@
                         scrollCount = Math.max(0, scrollCount - 1);
                     }
                 } else {
-                    // ---- 导航页 ----
                     if (navContent.scrollTop > 0 || down) {
-                        // 导航内容可滚动 → 转发滚轮到内部滚动
                         e.preventDefault();
                         navContent.scrollTop += e.deltaY;
                     } else if (up && navContent.scrollTop <= 0) {
-                        // 已到导航顶部，向上滚 → 计数返回起始页
                         e.preventDefault();
                         scrollCount++;
                         if (scrollCount >= THRESHOLD) {
                             scrollCount = 0;
                             isTransitioning = true;
                             window.scrollTo({ top: 0, behavior: 'smooth' });
-                            // 复位导航内部滚动
                             navContent.scrollTop = 0;
                             waitForScroll(0, () => {
                                 currentSection = 'start';
