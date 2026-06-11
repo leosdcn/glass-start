@@ -31,12 +31,12 @@
             background: rgba(255,255,255,0.12);
             backdrop-filter: blur(40px);
             -webkit-backdrop-filter: blur(40px);
-            border-color: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.2);
             box-shadow: 0 8px 32px rgba(0,0,0,0.3);
             will-change: backdrop-filter;
         }
         .search-input::placeholder { color: rgba(255,255,255,0.6); }
-        .fade-in { animation: fadeIn 0.8s ease-out; }
+        .fade-in { animation: fadeIn 0.8s ease-out backwards; }
         @keyframes fadeIn { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
         .dropdown-menu { opacity:0; transform:translateY(-10px); pointer-events:none; transition:all 0.2s ease; }
         .dropdown-menu.active { opacity:1; transform:translateY(0); pointer-events:auto; }
@@ -364,7 +364,7 @@
                     <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 md:gap-3">
                         ${cat.bookmarks.map(bm => `
                             <a href="${bm.url}" target="_blank" rel="noopener"
-                               class="nav-bookmark flex items-center gap-2.5 px-2.5 md:px-3 py-2 md:py-2.5 apple-radius text-white/75 hover:text-white rounded-xl">
+                               class="nav-bookmark flex items-center gap-2.5 px-2.5 md:px-3 py-2 md:py-2.5 apple-radius text-white/75 hover:text-white">
                                 <img src="${bm.icon}" class="w-5 h-5 rounded shrink-0" alt=""
                                      onerror="this.style.display='none'">
                                 <span class="text-xs md:text-sm truncate">${bm.name}</span>
