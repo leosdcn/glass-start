@@ -25,6 +25,7 @@
             -webkit-backdrop-filter: blur(var(--blur));
             border: 1px solid var(--glass-border);
             box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+            will-change: backdrop-filter;
         }
         .glass-strong {
             background: rgba(255,255,255,0.12);
@@ -32,6 +33,7 @@
             -webkit-backdrop-filter: blur(40px);
             border-color: rgba(255,255,255,0.2);
             box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            will-change: backdrop-filter;
         }
         .search-input::placeholder { color: rgba(255,255,255,0.6); }
         .fade-in { animation: fadeIn 0.8s ease-out; }
@@ -43,8 +45,11 @@
         .bookmark-item:hover { background: rgba(255,255,255,0.12); transform: translateY(-2px); }
         .nav-bookmark { transition: all 0.15s ease; }
         .nav-bookmark:hover { background: rgba(255,255,255,0.1); }
-        .nav-hidden { opacity:0; }
-        .nav-visible { opacity:1; transition:opacity 0.5s ease; }
+        .nav-hidden { visibility:hidden; }
+        .nav-visible { visibility:visible; }
+        .nav-hidden .glass { opacity:0; }
+        .nav-visible .glass { animation:navFadeIn 0.6s ease forwards; }
+        @keyframes navFadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
         .sidebar-item {
             transition: all 0.15s ease;
             border-left: 2px solid transparent;
@@ -77,8 +82,8 @@
             </div>
 
             <!-- 搜索框 -->
-            <div class="w-full max-w-2xl lg:max-w-3xl relative fade-in mb-8 md:mb-10" style="animation-delay:0.1s">
-                <div class="glass-strong apple-radius p-2 flex items-center gap-2 border">
+            <div class="w-full max-w-2xl lg:max-w-3xl relative mb-8 md:mb-10">
+                <div class="glass-strong apple-radius p-2 flex items-center gap-2 border fade-in" style="animation-delay:0.1s">
                     <div class="relative shrink-0">
                         <button id="engineBtn" type="button" class="flex items-center gap-2 px-3 py-3 apple-radius hover:bg-white/10 transition text-sm font-medium">
                             <img id="engineIcon" src="https://www.bing.com/favicon.ico" class="w-5 h-5 rounded-md" alt="" onerror="this.style.display='none'">
