@@ -427,17 +427,20 @@
             return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(id));
         }
 
-        // ==================== 外部数据加载 ====================
-        // 优先使用 bookmarks.json，不存在时自动降级到 HTML 内联默认值
+        // ==================== 数据加载 ====================
+        // 优先从远程加载，本地打开时自动降级到内联默认值
         async function loadData() {
+            // 尝试远程加载（需要HTTP服务器）
             try {
-                const res = await fetch('bookmarks.json');
-                const data = await res.json();
-                if (data.bookmarks) pageData.bookmarks = data.bookmarks;
-                if (data.categories) pageData.categories = data.categories;
-            } catch {
-                // 加载失败，使用内联默认值
-            }
+                const res = await fetch('bookmarks.json', { mode: 'cors' });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.bookmarks) pageData.bookmarks = data.bookmarks;
+                    if (data.categories) pageData.categories = data.categories;
+                    return;
+                }
+            } catch {}
+            // 远程加载失败（如本地file://协议），使用内联默认值
         }
 
         // ==================== 用户编辑的书签（保存到 localStorage）====================
