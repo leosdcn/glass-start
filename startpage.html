@@ -180,13 +180,27 @@
             </div>
             <div id="editList" class="flex-1 overflow-y-auto space-y-1 mb-2 min-h-0" style="scrollbar-width:none;-ms-overflow-style:none;"></div>
             <button id="addBookmarkBtn" type="button" class="w-full py-1.5 border border-dashed border-white/15 apple-radius text-white/40 hover:text-white/70 hover:border-white/30 transition text-sm shrink-0">+ 添加</button>
-            <button id="togglePickerBtn" type="button" class="w-full py-1.5 text-xs text-white/30 hover:text-white/60 transition shrink-0">从导航页选择 ▾</button>
-            <div id="categoryPicker" class="overflow-y-auto max-h-48 space-y-1 mb-1" style="scrollbar-width:none;-ms-overflow-style:none;display:none"></div>
+            <button id="togglePickerBtn" type="button" class="w-full py-1.5 text-xs text-white/30 hover:text-white/60 transition shrink-0">从导航页选择</button>
             <div class="flex gap-2 mt-2 pt-2 border-t border-white/10 shrink-0">
                 <button id="saveEditBtn" type="button" class="flex-1 py-2.5 bg-white/10 hover:bg-white/20 apple-radius transition text-sm font-medium text-white/90">保存</button>
                 <button id="cancelEditBtn" type="button" class="flex-1 py-2.5 bg-white/5 hover:bg-white/10 apple-radius transition text-sm text-white/60">取消</button>
             </div>
             <button id="resetEditBtn" type="button" class="text-center w-full text-xs text-white/25 hover:text-white/60 transition py-1.5 mt-1.5">重置为默认值</button>
+        </div>
+    </div>
+
+    <!-- 从导航页选择弹窗 -->
+    <div id="bookmarkPicker" class="edit-overlay fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+        <div class="glass-strong apple-radius pt-4 pb-3 px-4 w-full max-w-2xl mx-4 max-h-[85vh] flex flex-col shadow-2xl" onclick="event.stopPropagation()">
+            <div class="flex items-center justify-between mb-2 pb-1.5 border-b border-white/10 shrink-0">
+                <h3 class="text-base font-medium tracking-wide text-white/80">从导航页选择</h3>
+                <button id="closePickerBtn" type="button" class="p-1 hover:bg-white/10 rounded apple-radius text-white/40 hover:text-white/70 transition">✕</button>
+            </div>
+            <div id="pickerContent" class="flex-1 overflow-y-auto min-h-0 space-y-3" style="scrollbar-width:none;-ms-overflow-style:none;"></div>
+            <div class="flex items-center justify-between mt-3 pt-2 border-t border-white/10 shrink-0">
+                <span id="pickerCount" class="text-xs text-white/40">已添加 0 项</span>
+                <button id="donePickerBtn" type="button" class="py-2 px-5 bg-white/10 hover:bg-white/20 apple-radius transition text-sm font-medium text-white/90">完成</button>
+            </div>
         </div>
     </div>
 
@@ -339,7 +353,7 @@
         function $(id) { return document.getElementById(id); } // DOM 快捷获取
 
         function         cacheDOM() {
-            const ids = 'clock date searchInput engineBtn engineIcon engineName dropdownMenu searchBtn bookmarks sidebarList navCategories navContent editModal editList editBookmarksBtn closeEditBtn addBookmarkBtn saveEditBtn cancelEditBtn resetEditBtn togglePickerBtn categoryPicker'.split(' ');
+            const ids = 'clock date searchInput engineBtn engineIcon engineName dropdownMenu searchBtn bookmarks sidebarList navCategories navContent editModal editList editBookmarksBtn closeEditBtn addBookmarkBtn saveEditBtn cancelEditBtn resetEditBtn togglePickerBtn bookmarkPicker pickerContent pickerCount closePickerBtn donePickerBtn'.split(' ');
             ids.forEach(id => dom[id] = $(id));
         }
 
@@ -416,9 +430,6 @@
         }
 
         function openEditModal() {
-            pickerOpen = false;
-            dom.togglePickerBtn.textContent = '从导航页选择 ▾';
-            dom.categoryPicker.style.display = 'none';
             state.editOpen = true;
             renderEditList();
             dom.editModal.classList.add('active');
@@ -437,27 +448,50 @@
             closeEditModal();
         }
 
-        let pickerOpen = false;
-        function toggleCategoryPicker() {
-            pickerOpen = !pickerOpen;
-            dom.togglePickerBtn.textContent = pickerOpen ? '从导航页选择 ▴' : '从导航页选择 ▾';
-            dom.categoryPicker.style.display = pickerOpen ? '' : 'none';
-            if (pickerOpen) renderCategoryPicker();
+        function openBookmarkPicker() {
+            dom.bookmarkPicker.classList.add('active');
+            renderPickerCategories();
         }
 
-        function renderCategoryPicker() {
-            dom.categoryPicker.innerHTML = pageData.categories.map(cat => `
-                <div class="text-[10px] text-white/30 tracking-wide px-1 pt-2 pb-0.5">${cat.icon} ${cat.name}</div>
-                <div class="grid grid-cols-2 gap-1">
-                    ${cat.bookmarks.map(bm => `
-                        <button type="button" class="picker-add flex items-center gap-1.5 px-2 py-1.5 apple-radius text-xs text-white/60 hover:text-white hover:bg-white/10 transition text-left"
-                                data-name="${escapeHtml(bm.name)}" data-url="${escapeHtml(bm.url)}">
-                            <span class="text-white/40 shrink-0">+</span>
-                            <span class="truncate">${escapeHtml(bm.name)}</span>
-                        </button>
-                    `).join('')}
+        function closeBookmarkPicker() {
+            dom.bookmarkPicker.classList.remove('active');
+        }
+
+        function renderPickerCategories() {
+            const urls = new Set();
+            dom.editList.querySelectorAll('.edit-url').forEach(inp => urls.add(inp.value.trim()));
+            pageData.bookmarks.forEach(bm => urls.add(bm.url));
+
+            dom.pickerContent.innerHTML = pageData.categories.map(cat => `
+                <div>
+                    <div class="flex items-center gap-1.5 mb-1.5 pb-1 border-b border-white/5">
+                        <span class="text-sm">${cat.icon}</span>
+                        <h4 class="text-xs font-medium text-white/70">${cat.name}</h4>
+                        <span class="ml-auto text-[10px] text-white/20">${cat.bookmarks.length}</span>
+                    </div>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-1">
+                        ${cat.bookmarks.map(bm => {
+                            const exists = urls.has(bm.url);
+                            return `
+                                <div class="flex items-center gap-2 px-2 py-1.5 apple-radius picker-item ${exists ? 'opacity-40' : 'hover:bg-white/5'}">
+                                    <img src="${bm.icon}" class="w-4 h-4 rounded shrink-0" alt="" onerror="this.remove()">
+                                    <span class="text-xs text-white/70 truncate flex-1">${escapeHtml(bm.name)}</span>
+                                    ${exists
+                                        ? '<span class="text-[10px] text-white/20 shrink-0">已存在</span>'
+                                        : `<button type="button" class="picker-add-btn shrink-0 w-5 h-5 flex items-center justify-center rounded hover:bg-white/10 text-white/40 hover:text-white transition text-sm" data-name="${escapeHtml(bm.name)}" data-url="${escapeHtml(bm.url)}">+</button>`
+                                    }
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
                 </div>
             `).join('');
+            updatePickerCount();
+        }
+
+        function updatePickerCount() {
+            const count = dom.editList.querySelectorAll('[data-idx]').length;
+            dom.pickerCount.textContent = `已添加 ${count} 项`;
         }
         async function init() {
             cacheDOM();
@@ -594,12 +628,21 @@
             dom.cancelEditBtn.addEventListener('click', closeEditModal);
             dom.resetEditBtn.addEventListener('click', resetBookmarks);
             dom.editModal.addEventListener('click', closeEditModal);
-            dom.togglePickerBtn.addEventListener('click', e => { e.stopPropagation(); toggleCategoryPicker(); });
-            dom.categoryPicker.addEventListener('click', e => {
-                const btn = e.target.closest('.picker-add');
+            dom.togglePickerBtn.addEventListener('click', e => { e.stopPropagation(); openBookmarkPicker(); });
+            dom.closePickerBtn.addEventListener('click', closeBookmarkPicker);
+            dom.donePickerBtn.addEventListener('click', closeBookmarkPicker);
+            dom.bookmarkPicker.addEventListener('click', closeBookmarkPicker);
+
+            dom.pickerContent.addEventListener('click', e => {
+                const btn = e.target.closest('.picker-add-btn');
                 if (!btn) return;
                 const name = btn.dataset.name;
                 const url = btn.dataset.url;
+                const urls = new Set();
+                dom.editList.querySelectorAll('.edit-url').forEach(inp => urls.add(inp.value.trim()));
+                pageData.bookmarks.forEach(bm => urls.add(bm.url));
+                if (urls.has(url)) return;
+
                 const div = document.createElement('div');
                 div.className = 'flex items-center gap-1.5 p-1.5 apple-radius hover:bg-white/5';
                 div.setAttribute('data-idx', Date.now());
@@ -611,7 +654,10 @@
                     </button>
                 `;
                 dom.editList.appendChild(div);
-                div.querySelector('.edit-name').focus();
+                btn.textContent = '✓';
+                btn.classList.add('text-green-400', 'pointer-events-none');
+                btn.closest('.picker-item')?.classList.add('opacity-40');
+                updatePickerCount();
             });
 
             dom.addBookmarkBtn.addEventListener('click', () => {
@@ -631,7 +677,7 @@
 
             dom.editList.addEventListener('click', e => {
                 const del = e.target.closest('.del-btn');
-                if (del) del.closest('[data-idx]')?.remove();
+                if (del) { del.closest('[data-idx]')?.remove(); updatePickerCount(); }
             });
 
             dom.saveEditBtn.addEventListener('click', () => {
