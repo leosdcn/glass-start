@@ -179,8 +179,10 @@
                 <button id="closeEditBtn" type="button" class="p-1 hover:bg-white/10 rounded apple-radius text-white/40 hover:text-white/70 transition">✕</button>
             </div>
             <div id="editList" class="flex-1 overflow-y-auto space-y-1 mb-2 min-h-0" style="scrollbar-width:none;-ms-overflow-style:none;"></div>
-            <button id="addBookmarkBtn" type="button" class="w-full py-1.5 border border-dashed border-white/15 apple-radius text-white/40 hover:text-white/70 hover:border-white/30 transition text-sm shrink-0">+ 添加</button>
-            <button id="togglePickerBtn" type="button" class="w-full py-1.5 text-xs text-white/30 hover:text-white/60 transition shrink-0">从导航页选择</button>
+            <div class="flex flex-col sm:flex-row gap-1.5 shrink-0">
+                <button id="addBookmarkBtn" type="button" class="flex-1 py-1.5 border border-dashed border-white/15 apple-radius text-white/40 hover:text-white/70 hover:border-white/30 transition text-sm">+ 手动输入</button>
+                <button id="togglePickerBtn" type="button" class="flex-1 py-1.5 border border-white/10 apple-radius text-xs text-white/30 hover:text-white/60 transition">从导航页选择</button>
+            </div>
             <div class="flex gap-2 mt-2 pt-2 border-t border-white/10 shrink-0">
                 <button id="saveEditBtn" type="button" class="flex-1 py-2.5 bg-white/10 hover:bg-white/20 apple-radius transition text-sm font-medium text-white/90">保存</button>
                 <button id="cancelEditBtn" type="button" class="flex-1 py-2.5 bg-white/5 hover:bg-white/10 apple-radius transition text-sm text-white/60">取消</button>
