@@ -430,17 +430,17 @@
         // ==================== 数据加载 ====================
         // 优先从远程加载，本地打开时自动降级到内联默认值
         async function loadData() {
-            // 尝试远程加载（需要HTTP服务器）
+            // 本地file://协议直接跳过，使用内联默认值
+            if (location.protocol === 'file:') return;
+            // HTTP/HTTPS下尝试远程加载
             try {
-                const res = await fetch('bookmarks.json', { mode: 'cors' });
+                const res = await fetch('bookmarks.json');
                 if (res.ok) {
                     const data = await res.json();
                     if (data.bookmarks) pageData.bookmarks = data.bookmarks;
                     if (data.categories) pageData.categories = data.categories;
-                    return;
                 }
             } catch {}
-            // 远程加载失败（如本地file://协议），使用内联默认值
         }
 
         // ==================== 用户编辑的书签（保存到 localStorage）====================
