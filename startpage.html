@@ -538,6 +538,15 @@
             const count = dom.editList.querySelectorAll('[data-idx]').length;
             dom.pickerCount.textContent = `已添加 ${count} 项`;
         }
+
+        // ==================== 后台预加载图标 ====================
+        function preloadFavicons() {
+            const urls = new Set();
+            pageData.bookmarks.forEach(bm => { if (bm.icon) urls.add(bm.icon); });
+            pageData.categories.forEach(cat => cat.bookmarks.forEach(bm => { if (bm.icon) urls.add(bm.icon); }));
+            urls.forEach(url => { const img = new Image(); img.src = url; });
+        }
+
         async function init() {
             cacheDOM();
             await loadData();
@@ -552,6 +561,7 @@
             bindEvents();
             bindEditEvents();
             preloadNextBg();
+            preloadFavicons();
         }
 
         // ==================== 书签 ====================
