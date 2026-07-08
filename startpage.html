@@ -180,11 +180,13 @@
             </div>
             <div id="editList" class="flex-1 overflow-y-auto space-y-1 mb-2 min-h-0" style="scrollbar-width:none;-ms-overflow-style:none;"></div>
             <button id="addBookmarkBtn" type="button" class="w-full py-1.5 border border-dashed border-white/15 apple-radius text-white/40 hover:text-white/70 hover:border-white/30 transition text-sm shrink-0">+ 添加</button>
-            <div class="flex gap-2 mt-3 pt-2 border-t border-white/10 shrink-0">
+            <button id="togglePickerBtn" type="button" class="w-full py-1.5 text-xs text-white/30 hover:text-white/60 transition shrink-0">从导航页选择 ▾</button>
+            <div id="categoryPicker" class="overflow-y-auto max-h-48 space-y-1 mb-1" style="scrollbar-width:none;-ms-overflow-style:none;display:none"></div>
+            <div class="flex gap-2 mt-2 pt-2 border-t border-white/10 shrink-0">
                 <button id="saveEditBtn" type="button" class="flex-1 py-2.5 bg-white/10 hover:bg-white/20 apple-radius transition text-sm font-medium text-white/90">保存</button>
                 <button id="cancelEditBtn" type="button" class="flex-1 py-2.5 bg-white/5 hover:bg-white/10 apple-radius transition text-sm text-white/60">取消</button>
             </div>
-            <button id="resetEditBtn" type="button" class="text-center w-full text-xs text-white/25 hover:text-white/60 transition py-1.5 mt-2.5">重置为默认值</button>
+            <button id="resetEditBtn" type="button" class="text-center w-full text-xs text-white/25 hover:text-white/60 transition py-1.5 mt-1.5">重置为默认值</button>
         </div>
     </div>
 
@@ -337,7 +339,7 @@
         function $(id) { return document.getElementById(id); } // DOM 快捷获取
 
         function         cacheDOM() {
-            const ids = 'clock date searchInput engineBtn engineIcon engineName dropdownMenu searchBtn bookmarks sidebarList navCategories navContent editModal editList editBookmarksBtn closeEditBtn addBookmarkBtn saveEditBtn cancelEditBtn resetEditBtn'.split(' ');
+            const ids = 'clock date searchInput engineBtn engineIcon engineName dropdownMenu searchBtn bookmarks sidebarList navCategories navContent editModal editList editBookmarksBtn closeEditBtn addBookmarkBtn saveEditBtn cancelEditBtn resetEditBtn togglePickerBtn categoryPicker'.split(' ');
             ids.forEach(id => dom[id] = $(id));
         }
 
@@ -414,6 +416,9 @@
         }
 
         function openEditModal() {
+            pickerOpen = false;
+            dom.togglePickerBtn.textContent = '从导航页选择 ▾';
+            dom.categoryPicker.style.display = 'none';
             state.editOpen = true;
             renderEditList();
             dom.editModal.classList.add('active');
@@ -432,7 +437,28 @@
             closeEditModal();
         }
 
-        // ==================== 初始化 ====================
+        let pickerOpen = false;
+        function toggleCategoryPicker() {
+            pickerOpen = !pickerOpen;
+            dom.togglePickerBtn.textContent = pickerOpen ? '从导航页选择 ▴' : '从导航页选择 ▾';
+            dom.categoryPicker.style.display = pickerOpen ? '' : 'none';
+            if (pickerOpen) renderCategoryPicker();
+        }
+
+        function renderCategoryPicker() {
+            dom.categoryPicker.innerHTML = pageData.categories.map(cat => `
+                <div class="text-[10px] text-white/30 tracking-wide px-1 pt-2 pb-0.5">${cat.icon} ${cat.name}</div>
+                <div class="grid grid-cols-2 gap-1">
+                    ${cat.bookmarks.map(bm => `
+                        <button type="button" class="picker-add flex items-center gap-1.5 px-2 py-1.5 apple-radius text-xs text-white/60 hover:text-white hover:bg-white/10 transition text-left"
+                                data-name="${escapeHtml(bm.name)}" data-url="${escapeHtml(bm.url)}">
+                            <span class="text-white/40 shrink-0">+</span>
+                            <span class="truncate">${escapeHtml(bm.name)}</span>
+                        </button>
+                    `).join('')}
+                </div>
+            `).join('');
+        }
         async function init() {
             cacheDOM();
             await loadData();
@@ -568,6 +594,25 @@
             dom.cancelEditBtn.addEventListener('click', closeEditModal);
             dom.resetEditBtn.addEventListener('click', resetBookmarks);
             dom.editModal.addEventListener('click', closeEditModal);
+            dom.togglePickerBtn.addEventListener('click', e => { e.stopPropagation(); toggleCategoryPicker(); });
+            dom.categoryPicker.addEventListener('click', e => {
+                const btn = e.target.closest('.picker-add');
+                if (!btn) return;
+                const name = btn.dataset.name;
+                const url = btn.dataset.url;
+                const div = document.createElement('div');
+                div.className = 'flex items-center gap-1.5 p-1.5 apple-radius hover:bg-white/5';
+                div.setAttribute('data-idx', Date.now());
+                div.innerHTML = `
+                    <input type="text" class="edit-name flex-1 bg-white/5 border border-white/10 rounded px-2 py-1.5 text-sm text-white/80 outline-none focus:border-white/30 transition" value="${escapeHtml(name)}" placeholder="名称">
+                    <input type="text" class="edit-url flex-[2] bg-white/5 border border-white/10 rounded px-2 py-1.5 text-sm text-white/80 outline-none focus:border-white/30 transition" value="${escapeHtml(url)}" placeholder="URL">
+                    <button type="button" class="del-btn shrink-0 p-1.5 hover:bg-white/10 rounded apple-radius text-white/30 hover:text-red-400 transition">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                    </button>
+                `;
+                dom.editList.appendChild(div);
+                div.querySelector('.edit-name').focus();
+            });
 
             dom.addBookmarkBtn.addEventListener('click', () => {
                 const div = document.createElement('div');
