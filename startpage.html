@@ -79,7 +79,7 @@
         .edit-overlay > div { transform:scale(0.95); transition:transform 0.2s ease; }
         .edit-overlay.active > div { transform:scale(1); }
         .edit-overlay .glass-strong { background: rgba(255,255,255,0.2); }
-        .drag-over { border-top: 2px solid rgba(255,255,255,0.35); }
+        .drag-over { background: rgba(255,255,255,0.12); }
         [draggable="true"] { cursor: grab; }
         [draggable="true"]:active { cursor: grabbing; }
     </style>
@@ -469,28 +469,19 @@
                 const item = e.target.closest('[data-idx]');
                 if (!item) return;
                 dragSrc = item;
-                item.classList.add('opacity-40');
+                item.style.opacity = '0.4';
                 e.dataTransfer.effectAllowed = 'move';
             });
-            dom.editList.addEventListener('dragend', e => {
-                const item = e.target.closest('[data-idx]');
-                if (item) item.classList.remove('opacity-40');
+            dom.editList.addEventListener('dragend', () => {
+                if (dragSrc) dragSrc.style.opacity = '';
                 dom.editList.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
             });
             dom.editList.addEventListener('dragover', e => {
                 e.preventDefault();
                 const target = e.target.closest('[data-idx]');
                 if (!target || target === dragSrc) return;
-                e.dataTransfer.dropEffect = 'move';
                 dom.editList.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
-                const rect = target.getBoundingClientRect();
-                if (e.clientY < rect.top + rect.height / 2) {
-                    target.classList.add('drag-over');
-                } else {
-                    dom.editList.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
-                    const next = target.nextElementSibling;
-                    if (next && next.matches('[data-idx]')) next.classList.add('drag-over');
-                }
+                target.classList.add('drag-over');
             });
             dom.editList.addEventListener('drop', e => {
                 e.preventDefault();
