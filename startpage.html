@@ -68,6 +68,34 @@
             border-left-color: rgba(255,255,255,0.6);
             color: #fff;
         }
+        /* 移动端侧边栏改为顶部水平滚动 */
+        @media (max-width: 640px) {
+            #sidebar {
+                width: 100% !important;
+                max-height: none !important;
+                overflow-x: auto !important;
+                overflow-y: hidden !important;
+                flex-direction: row !important;
+                flex-wrap: nowrap !important;
+                gap: 0.25rem !important;
+                padding: 0.5rem !important;
+            }
+            #sidebarList {
+                flex-direction: row !important;
+                flex-wrap: nowrap !important;
+                gap: 0 !important;
+            }
+            .sidebar-item {
+                border-left: none !important;
+                border-bottom: 2px solid transparent;
+                white-space: nowrap;
+                padding: 0.5rem 0.75rem !important;
+            }
+            .sidebar-item.active {
+                border-left-color: transparent !important;
+                border-bottom-color: rgba(255,255,255,0.6);
+            }
+        }
         .scroll-hint { animation: bounceDown 2s ease-in-out infinite; }
         @keyframes bounceDown { 0%,100%{transform:translateY(0);opacity:0.6} 50%{transform:translateY(8px);opacity:1} }
         .hint-down { animation:hintFade 7s ease forwards; }
@@ -82,6 +110,18 @@
         .drag-over { background: rgba(255,255,255,0.12); }
         [draggable="true"] { cursor: grab; }
         [draggable="true"]:active { cursor: grabbing; }
+        /* 屏幕阅读器专用样式 */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
     </style>
 </head>
 <body class="bg-cover bg-center bg-no-repeat text-white relative" 
@@ -93,7 +133,7 @@
         <div class="flex flex-col items-center justify-center w-full">
             <!-- 时钟 -->
             <div class="text-center fade-in clock-text mb-10 md:mb-14">
-                <div id="clock" class="text-7xl md:text-8xl lg:text-9xl font-light tracking-tight tabular-nums">00:00</div>
+                <div id="clock" aria-live="polite" aria-atomic="true" class="text-7xl md:text-8xl lg:text-9xl font-light tracking-tight tabular-nums">00:00</div>
                 <div id="date" class="text-sm md:text-base mt-3 text-white/70 font-light tracking-widest uppercase">加载中...</div>
             </div>
 
@@ -101,39 +141,42 @@
             <div class="w-full max-w-2xl lg:max-w-3xl relative mb-8 md:mb-10">
                 <div class="glass-strong apple-radius p-2 flex items-center gap-2 border fade-in" style="animation-delay:0.1s">
                     <div class="relative shrink-0">
-                        <button id="engineBtn" type="button" class="flex items-center gap-2 px-3 py-3 apple-radius hover:bg-white/10 transition text-sm font-medium">
-                            <img id="engineIcon" src="https://www.bing.com/favicon.ico" class="w-5 h-5 rounded-md" alt="" onerror="this.style.display='none'">
+                        <button id="engineBtn" type="button" aria-label="选择搜索引擎" aria-haspopup="true" aria-expanded="false" class="flex items-center gap-2 px-3 py-3 apple-radius hover:bg-white/10 transition text-sm font-medium">
+                            <img id="engineIcon" src="https://favicon.im/bing.com" class="w-5 h-5 rounded-md" alt="" onerror="this.style.display='none'">
                             <span id="engineName" class="hidden sm:inline">Bing</span>
                             <svg class="w-4 h-4 opacity-60 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
                         </button>
                     </div>
-                    <input type="text" id="searchInput" class="flex-1 bg-transparent border-none outline-none text-lg search-input text-white h-12 px-1 min-w-0" placeholder="搜索..." autocomplete="off">
-                    <button id="searchBtn" type="button" class="p-3 apple-radius hover:bg-white/10 transition shrink-0 mr-1">
+                    <label for="searchInput" class="sr-only">搜索</label>
+                    <input type="text" id="searchInput" aria-label="搜索输入框" class="flex-1 bg-transparent border-none outline-none text-lg search-input text-white h-12 px-1 min-w-0" placeholder="搜索..." autocomplete="off">
+                    <button id="searchBtn" type="button" aria-label="执行搜索" class="p-3 apple-radius hover:bg-white/10 transition shrink-0 mr-1">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                     </button>
                 </div>
-                <div id="dropdownMenu" class="dropdown-menu absolute top-full left-0 mt-2 ml-2 glass-strong apple-radius p-2 min-w-[140px]" style="z-index:100">
-                    <button type="button" data-engine="bing" class="w-full flex items-center gap-3 px-3 py-2.5 apple-radius hover:bg-white/10 transition text-left text-sm">
-                        <img src="https://www.bing.com/favicon.ico" class="w-4 h-4 rounded-sm" alt="" onerror="this.remove()"> Bing
+                <div id="dropdownMenu" role="menu" aria-label="搜索引擎选项" class="dropdown-menu absolute top-full left-0 mt-2 ml-2 glass-strong apple-radius p-2 min-w-[140px]" style="z-index:100">
+                    <button type="button" data-engine="bing" role="menuitem" class="w-full flex items-center gap-3 px-3 py-2.5 apple-radius hover:bg-white/10 transition text-left text-sm">
+                        <img src="https://favicon.im/bing.com" class="w-4 h-4 rounded-sm" alt="" onerror="this.remove()"> Bing
                     </button>
-                    <button type="button" data-engine="google" class="w-full flex items-center gap-3 px-3 py-2.5 apple-radius hover:bg-white/10 transition text-left text-sm">
-                        <img src="https://www.google.com/favicon.ico" class="w-4 h-4 rounded-sm" alt="" onerror="this.remove()"> Google
+                    <button type="button" data-engine="google" role="menuitem" class="w-full flex items-center gap-3 px-3 py-2.5 apple-radius hover:bg-white/10 transition text-left text-sm">
+                        <img src="https://favicon.im/google.com" class="w-4 h-4 rounded-sm" alt="" onerror="this.remove()"> Google
                     </button>
-                    <button type="button" data-engine="duckduckgo" class="w-full flex items-center gap-3 px-3 py-2.5 apple-radius hover:bg-white/10 transition text-left text-sm">
-                        <img src="https://duckduckgo.com/favicon.ico" class="w-4 h-4 rounded-sm" alt="" onerror="this.remove()"> DuckDuckGo
+                    <button type="button" data-engine="duckduckgo" role="menuitem" class="w-full flex items-center gap-3 px-3 py-2.5 apple-radius hover:bg-white/10 transition text-left text-sm">
+                        <img src="https://favicon.im/duckduckgo.com" class="w-4 h-4 rounded-sm" alt="" onerror="this.remove()"> DuckDuckGo
                     </button>
-                    <button type="button" data-engine="baidu" class="w-full flex items-center gap-3 px-3 py-2.5 apple-radius hover:bg-white/10 transition text-left text-sm">
-                        <img src="https://www.baidu.com/favicon.ico" class="w-4 h-4 rounded-sm" alt="" onerror="this.remove()"> 百度
+                    <button type="button" data-engine="baidu" role="menuitem" class="w-full flex items-center gap-3 px-3 py-2.5 apple-radius hover:bg-white/10 transition text-left text-sm">
+                        <img src="https://favicon.im/baidu.com" class="w-4 h-4 rounded-sm" alt="" onerror="this.remove()"> 百度
                     </button>
                 </div>
             </div>
 
             <!-- 快捷书签 -->
             <div class="w-full max-w-2xl lg:max-w-3xl glass apple-radius p-4 pr-11 fade-in mb-6 md:mb-8 relative group" style="animation-delay:0.2s">
-                <button id="editBookmarksBtn" type="button" class="absolute top-2 right-2 p-1.5 apple-radius text-white/40 hover:text-white hover:bg-white/10 transition opacity-0 group-hover:opacity-100 text-xs" title="编辑书签">
+                <button id="editBookmarksBtn" type="button" aria-label="编辑书签" class="absolute top-2 right-2 p-1.5 apple-radius text-white/40 hover:text-white hover:bg-white/10 transition opacity-0 group-hover:opacity-100 text-xs">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                 </button>
-                <div id="bookmarks" class="grid grid-cols-4 md:grid-cols-8 gap-2"></div>
+                <nav aria-label="快捷书签">
+                    <div id="bookmarks" class="grid grid-cols-4 md:grid-cols-8 gap-2"></div>
+                </nav>
             </div>
         </div>
 
@@ -161,13 +204,15 @@
                 <span>向上滚动返回</span>
             </div>
             <!-- 主体：左分类 + 右内容 -->
-            <div class="flex-1 flex gap-2 md:gap-3 px-3 md:px-4 pb-3 min-h-0">
-                <!-- 左侧分类列表 -->
-                <aside id="sidebar" class="w-32 md:w-40 shrink-0 glass apple-radius p-1.5 md:p-2 overflow-y-auto" style="scrollbar-width:none;-ms-overflow-style:none;">
-                    <div id="sidebarList" class="flex flex-col gap-0.5"></div>
+            <div class="flex-1 flex flex-col sm:flex-row gap-2 md:gap-3 px-3 md:px-4 pb-3 min-h-0">
+                <!-- 分类列表（移动端顶部水平，桌面端左侧垂直） -->
+                <aside id="sidebar" class="sm:w-32 md:w-40 shrink-0 glass apple-radius p-1.5 md:p-2 overflow-y-auto" style="scrollbar-width:none;-ms-overflow-style:none;">
+                    <nav aria-label="导航分类">
+                        <div id="sidebarList" class="flex sm:flex-col gap-0.5"></div>
+                    </nav>
                 </aside>
-                <!-- 右侧书签内容 -->
-                <main id="navContent" class="flex-1 glass apple-radius p-2 md:p-3 overflow-y-auto" style="scrollbar-width:none;-ms-overflow-style:none;">
+                <!-- 书签内容 -->
+                <main id="navContent" aria-label="书签内容" class="flex-1 glass apple-radius p-2 md:p-3 overflow-y-auto" style="scrollbar-width:none;-ms-overflow-style:none;">
                     <div id="navCategories"></div>
                 </main>
             </div>
@@ -175,13 +220,13 @@
     </section>
 
     <!-- 编辑书签弹窗 -->
-        <div id="editModal" class="edit-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+    <div id="editModal" role="dialog" aria-modal="true" aria-label="编辑快捷书签" class="edit-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
         <div class="glass-strong apple-radius pt-4 pb-3 px-4 w-full max-w-xl mx-4 max-h-[90vh] flex flex-col shadow-2xl" onclick="event.stopPropagation()">
             <div class="flex items-center justify-between mb-2 pb-1.5 border-b border-white/10 shrink-0">
                 <h3 class="text-base font-medium tracking-wide text-white/80">编辑快捷书签</h3>
-                <button id="closeEditBtn" type="button" class="p-1 hover:bg-white/10 rounded apple-radius text-white/40 hover:text-white/70 transition">✕</button>
+                <button id="closeEditBtn" type="button" aria-label="关闭编辑弹窗" class="p-1 hover:bg-white/10 rounded apple-radius text-white/40 hover:text-white/70 transition">✕</button>
             </div>
-            <div id="editList" class="flex-1 overflow-y-auto space-y-1 mb-2 min-h-0" style="scrollbar-width:none;-ms-overflow-style:none;"></div>
+            <div id="editList" role="list" aria-label="书签列表" class="flex-1 overflow-y-auto space-y-1 mb-2 min-h-0" style="scrollbar-width:none;-ms-overflow-style:none;"></div>
             <div class="flex flex-col sm:flex-row gap-1.5 shrink-0">
                 <button id="addBookmarkBtn" type="button" class="flex-1 py-1.5 border border-dashed border-white/15 apple-radius text-white/40 hover:text-white/70 hover:border-white/30 transition text-sm">+ 手动输入</button>
                 <button id="togglePickerBtn" type="button" class="flex-1 py-1.5 border border-dashed border-white/15 apple-radius text-sm text-white/40 hover:text-white/70 hover:border-white/30 transition">从导航页选择</button>
@@ -195,11 +240,11 @@
     </div>
 
     <!-- 从导航页选择弹窗 -->
-    <div id="bookmarkPicker" class="edit-overlay fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+    <div id="bookmarkPicker" role="dialog" aria-modal="true" aria-label="从导航页选择书签" class="edit-overlay fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm">
         <div class="glass-strong apple-radius pt-4 pb-3 px-4 w-full max-w-2xl mx-4 max-h-[85vh] flex flex-col shadow-2xl" onclick="event.stopPropagation()">
             <div class="flex items-center justify-between mb-2 pb-1.5 border-b border-white/10 shrink-0">
                 <h3 class="text-base font-medium tracking-wide text-white/80">从导航页选择</h3>
-                <button id="closePickerBtn" type="button" class="p-1 hover:bg-white/10 rounded apple-radius text-white/40 hover:text-white/70 transition">✕</button>
+                <button id="closePickerBtn" type="button" aria-label="关闭选择弹窗" class="p-1 hover:bg-white/10 rounded apple-radius text-white/40 hover:text-white/70 transition">✕</button>
             </div>
             <div id="pickerContent" class="flex-1 overflow-y-auto min-h-0 space-y-3" style="scrollbar-width:none;-ms-overflow-style:none;"></div>
             <div class="flex items-center justify-between mt-3 pt-2 border-t border-white/10 shrink-0">
@@ -228,105 +273,105 @@
         // ==================== 书签配置（在此自定义）====================
         // ==================== 默认书签（外部 bookmarks.json 加载失败时使用）====================
         const DEFAULT_BOOKMARKS = [
-            { name: 'GitHub', url: 'https://github.com', icon: 'https://github.com/favicon.ico' },
-            { name: 'Bilibili', url: 'https://www.bilibili.com', icon: 'https://www.bilibili.com/favicon.ico' },
-            { name: '知乎', url: 'https://www.zhihu.com', icon: 'https://www.zhihu.com/favicon.ico' },
-            { name: 'V2EX', url: 'https://www.v2ex.com', icon: 'https://www.v2ex.com/favicon.ico' },
-            { name: 'YouTube', url: 'https://www.youtube.com', icon: 'https://www.youtube.com/favicon.ico' },
-            { name: 'Twitter', url: 'https://x.com', icon: 'https://x.com/favicon.ico' },
-            { name: 'Reddit', url: 'https://www.reddit.com', icon: 'https://www.reddit.com/favicon.ico' },
-            { name: 'HackerNews', url: 'https://news.ycombinator.com', icon: 'https://news.ycombinator.com/favicon.ico' },
+            { name: 'GitHub', url: 'https://github.com', icon: 'https://favicon.im/github.com' },
+            { name: 'Bilibili', url: 'https://www.bilibili.com', icon: 'https://favicon.im/bilibili.com' },
+            { name: '知乎', url: 'https://www.zhihu.com', icon: 'https://favicon.im/zhihu.com' },
+            { name: 'V2EX', url: 'https://www.v2ex.com', icon: 'https://favicon.im/v2ex.com' },
+            { name: 'YouTube', url: 'https://www.youtube.com', icon: 'https://favicon.im/youtube.com' },
+            { name: 'Twitter', url: 'https://x.com', icon: 'https://favicon.im/twitter.com' },
+            { name: 'Reddit', url: 'https://www.reddit.com', icon: 'https://favicon.im/reddit.com' },
+            { name: 'HackerNews', url: 'https://news.ycombinator.com', icon: 'https://favicon.im/news.ycombinator.com' },
         ];
 
         const DEFAULT_CATEGORIES = [
             {
                 name: '开发工具', icon: '⚡',
                 bookmarks: [
-                    { name: 'GitHub', url: 'https://github.com', icon: 'https://github.com/favicon.ico' },
-                    { name: 'Stack Overflow', url: 'https://stackoverflow.com', icon: 'https://stackoverflow.com/favicon.ico' },
-                    { name: 'MDN Web Docs', url: 'https://developer.mozilla.org', icon: 'https://developer.mozilla.org/favicon.ico' },
-                    { name: 'npm', url: 'https://www.npmjs.com', icon: 'https://www.npmjs.com/favicon.ico' },
-                    { name: 'Vercel', url: 'https://vercel.com', icon: 'https://vercel.com/favicon.ico' },
-                    { name: 'Netlify', url: 'https://www.netlify.com', icon: 'https://www.netlify.com/favicon.ico' },
-                    { name: 'CodePen', url: 'https://codepen.io', icon: 'https://codepen.io/favicon.ico' },
-                    { name: 'JSFiddle', url: 'https://jsfiddle.net', icon: 'https://jsfiddle.net/favicon.ico' },
-                    { name: 'Can I Use', url: 'https://caniuse.com', icon: 'https://caniuse.com/favicon.ico' },
-                    { name: 'DevDocs', url: 'https://devdocs.io', icon: 'https://devdocs.io/favicon.ico' },
+                    { name: 'GitHub', url: 'https://github.com', icon: 'https://favicon.im/github.com' },
+                    { name: 'Stack Overflow', url: 'https://stackoverflow.com', icon: 'https://favicon.im/stackoverflow.com' },
+                    { name: 'MDN Web Docs', url: 'https://developer.mozilla.org', icon: 'https://favicon.im/developer.mozilla.org' },
+                    { name: 'npm', url: 'https://www.npmjs.com', icon: 'https://favicon.im/npmjs.com' },
+                    { name: 'Vercel', url: 'https://vercel.com', icon: 'https://favicon.im/vercel.com' },
+                    { name: 'Netlify', url: 'https://www.netlify.com', icon: 'https://favicon.im/netlify.com' },
+                    { name: 'CodePen', url: 'https://codepen.io', icon: 'https://favicon.im/codepen.io' },
+                    { name: 'JSFiddle', url: 'https://jsfiddle.net', icon: 'https://favicon.im/jsfiddle.net' },
+                    { name: 'Can I Use', url: 'https://caniuse.com', icon: 'https://favicon.im/caniuse.com' },
+                    { name: 'DevDocs', url: 'https://devdocs.io', icon: 'https://favicon.im/devdocs.io' },
                 ]
             },
             {
                 name: 'AI 与机器学习', icon: '🤖',
                 bookmarks: [
-                    { name: 'ChatGPT', url: 'https://chat.openai.com', icon: 'https://chat.openai.com/favicon.ico' },
-                    { name: 'Claude', url: 'https://claude.ai', icon: 'https://claude.ai/favicon.ico' },
-                    { name: 'Hugging Face', url: 'https://huggingface.co', icon: 'https://huggingface.co/favicon.ico' },
-                    { name: 'GitHub Copilot', url: 'https://github.com/features/copilot', icon: 'https://github.com/favicon.ico' },
-                    { name: 'Midjourney', url: 'https://www.midjourney.com', icon: 'https://www.midjourney.com/favicon.ico' },
+                    { name: 'ChatGPT', url: 'https://chat.openai.com', icon: 'https://favicon.im/chat.openai.com' },
+                    { name: 'Claude', url: 'https://claude.ai', icon: 'https://favicon.im/claude.ai' },
+                    { name: 'Hugging Face', url: 'https://huggingface.co', icon: 'https://favicon.im/huggingface.co' },
+                    { name: 'GitHub Copilot', url: 'https://github.com/features/copilot', icon: 'https://favicon.im/github.com' },
+                    { name: 'Midjourney', url: 'https://www.midjourney.com', icon: 'https://favicon.im/midjourney.com' },
                 ]
             },
             {
                 name: '社交媒体', icon: '💬',
                 bookmarks: [
-                    { name: 'Twitter / X', url: 'https://x.com', icon: 'https://x.com/favicon.ico' },
-                    { name: 'Reddit', url: 'https://www.reddit.com', icon: 'https://www.reddit.com/favicon.ico' },
-                    { name: 'V2EX', url: 'https://www.v2ex.com', icon: 'https://www.v2ex.com/favicon.ico' },
-                    { name: '豆瓣', url: 'https://www.douban.com', icon: 'https://www.douban.com/favicon.ico' },
-                    { name: '知乎', url: 'https://www.zhihu.com', icon: 'https://www.zhihu.com/favicon.ico' },
-                    { name: 'Telegram Web', url: 'https://web.telegram.org', icon: 'https://web.telegram.org/favicon.ico' },
-                    { name: 'Discord', url: 'https://discord.com', icon: 'https://discord.com/favicon.ico' },
+                    { name: 'Twitter / X', url: 'https://x.com', icon: 'https://favicon.im/twitter.com' },
+                    { name: 'Reddit', url: 'https://www.reddit.com', icon: 'https://favicon.im/reddit.com' },
+                    { name: 'V2EX', url: 'https://www.v2ex.com', icon: 'https://favicon.im/v2ex.com' },
+                    { name: '豆瓣', url: 'https://www.douban.com', icon: 'https://favicon.im/douban.com' },
+                    { name: '知乎', url: 'https://www.zhihu.com', icon: 'https://favicon.im/zhihu.com' },
+                    { name: 'Telegram Web', url: 'https://web.telegram.org', icon: 'https://favicon.im/web.telegram.org' },
+                    { name: 'Discord', url: 'https://discord.com', icon: 'https://favicon.im/discord.com' },
                 ]
             },
             {
                 name: '影音娱乐', icon: '🎬',
                 bookmarks: [
-                    { name: 'YouTube', url: 'https://www.youtube.com', icon: 'https://www.youtube.com/favicon.ico' },
-                    { name: 'Bilibili', url: 'https://www.bilibili.com', icon: 'https://www.bilibili.com/favicon.ico' },
-                    { name: 'Netflix', url: 'https://www.netflix.com', icon: 'https://www.netflix.com/favicon.ico' },
-                    { name: 'Spotify', url: 'https://open.spotify.com', icon: 'https://open.spotify.com/favicon.ico' },
-                    { name: 'SoundCloud', url: 'https://soundcloud.com', icon: 'https://soundcloud.com/favicon.ico' },
-                    { name: 'Twitch', url: 'https://www.twitch.tv', icon: 'https://www.twitch.tv/favicon.ico' },
+                    { name: 'YouTube', url: 'https://www.youtube.com', icon: 'https://favicon.im/youtube.com' },
+                    { name: 'Bilibili', url: 'https://www.bilibili.com', icon: 'https://favicon.im/bilibili.com' },
+                    { name: 'Netflix', url: 'https://www.netflix.com', icon: 'https://favicon.im/netflix.com' },
+                    { name: 'Spotify', url: 'https://open.spotify.com', icon: 'https://favicon.im/spotify.com' },
+                    { name: 'SoundCloud', url: 'https://soundcloud.com', icon: 'https://favicon.im/soundcloud.com' },
+                    { name: 'Twitch', url: 'https://www.twitch.tv', icon: 'https://favicon.im/twitch.tv' },
                 ]
             },
             {
                 name: '新闻资讯', icon: '📰',
                 bookmarks: [
-                    { name: 'Hacker News', url: 'https://news.ycombinator.com', icon: 'https://news.ycombinator.com/favicon.ico' },
-                    { name: 'Solidot', url: 'https://www.solidot.org', icon: 'https://www.solidot.org/favicon.ico' },
-                    { name: '36氪', url: 'https://36kr.com', icon: 'https://36kr.com/favicon.ico' },
-                    { name: 'InfoQ', url: 'https://www.infoq.cn', icon: 'https://www.infoq.cn/favicon.ico' },
-                    { name: 'Reuters', url: 'https://www.reuters.com', icon: 'https://www.reuters.com/favicon.ico' },
+                    { name: 'Hacker News', url: 'https://news.ycombinator.com', icon: 'https://favicon.im/news.ycombinator.com' },
+                    { name: 'Solidot', url: 'https://www.solidot.org', icon: 'https://favicon.im/solidot.org' },
+                    { name: '36氪', url: 'https://36kr.com', icon: 'https://favicon.im/36kr.com' },
+                    { name: 'InfoQ', url: 'https://www.infoq.cn', icon: 'https://favicon.im/infoq.cn' },
+                    { name: 'Reuters', url: 'https://www.reuters.com', icon: 'https://favicon.im/reuters.com' },
                 ]
             },
             {
                 name: '设计资源', icon: '🎨',
                 bookmarks: [
-                    { name: 'Dribbble', url: 'https://dribbble.com', icon: 'https://dribbble.com/favicon.ico' },
-                    { name: 'Behance', url: 'https://www.behance.net', icon: 'https://www.behance.net/favicon.ico' },
-                    { name: 'Figma', url: 'https://www.figma.com', icon: 'https://www.figma.com/favicon.ico' },
-                    { name: 'Unsplash', url: 'https://unsplash.com', icon: 'https://unsplash.com/favicon.ico' },
-                    { name: 'Coolors', url: 'https://coolors.co', icon: 'https://coolors.co/favicon.ico' },
-                    { name: 'Font Awesome', url: 'https://fontawesome.com', icon: 'https://fontawesome.com/favicon.ico' },
+                    { name: 'Dribbble', url: 'https://dribbble.com', icon: 'https://favicon.im/dribbble.com' },
+                    { name: 'Behance', url: 'https://www.behance.net', icon: 'https://favicon.im/behance.net' },
+                    { name: 'Figma', url: 'https://www.figma.com', icon: 'https://favicon.im/figma.com' },
+                    { name: 'Unsplash', url: 'https://unsplash.com', icon: 'https://favicon.im/unsplash.com' },
+                    { name: 'Coolors', url: 'https://coolors.co', icon: 'https://favicon.im/coolors.co' },
+                    { name: 'Font Awesome', url: 'https://fontawesome.com', icon: 'https://favicon.im/fontawesome.com' },
                 ]
             },
             {
                 name: '学习平台', icon: '📚',
                 bookmarks: [
-                    { name: 'Coursera', url: 'https://www.coursera.org', icon: 'https://www.coursera.org/favicon.ico' },
-                    { name: 'Udemy', url: 'https://www.udemy.com', icon: 'https://www.udemy.com/favicon.ico' },
-                    { name: 'freeCodeCamp', url: 'https://www.freecodecamp.org', icon: 'https://www.freecodecamp.org/favicon.ico' },
-                    { name: 'LeetCode', url: 'https://leetcode.cn', icon: 'https://leetcode.cn/favicon.ico' },
-                    { name: 'Roadmap.sh', url: 'https://roadmap.sh', icon: 'https://roadmap.sh/favicon.ico' },
+                    { name: 'Coursera', url: 'https://www.coursera.org', icon: 'https://favicon.im/coursera.org' },
+                    { name: 'Udemy', url: 'https://www.udemy.com', icon: 'https://favicon.im/udemy.com' },
+                    { name: 'freeCodeCamp', url: 'https://www.freecodecamp.org', icon: 'https://favicon.im/freecodecamp.org' },
+                    { name: 'LeetCode', url: 'https://leetcode.cn', icon: 'https://favicon.im/leetcode.cn' },
+                    { name: 'Roadmap.sh', url: 'https://roadmap.sh', icon: 'https://favicon.im/roadmap.sh' },
                 ]
             },
             {
                 name: '云服务', icon: '☁️',
                 bookmarks: [
-                    { name: 'Cloudflare', url: 'https://dash.cloudflare.com', icon: 'https://dash.cloudflare.com/favicon.ico' },
-                    { name: 'AWS Console', url: 'https://aws.amazon.com/console', icon: 'https://aws.amazon.com/favicon.ico' },
-                    { name: 'Vercel', url: 'https://vercel.com', icon: 'https://vercel.com/favicon.ico' },
-                    { name: 'Netlify', url: 'https://www.netlify.com', icon: 'https://www.netlify.com/favicon.ico' },
-                    { name: 'Railway', url: 'https://railway.app', icon: 'https://railway.app/favicon.ico' },
-                    { name: 'Supabase', url: 'https://supabase.com', icon: 'https://supabase.com/favicon.ico' },
+                    { name: 'Cloudflare', url: 'https://dash.cloudflare.com', icon: 'https://favicon.im/cloudflare.com' },
+                    { name: 'AWS Console', url: 'https://aws.amazon.com/console', icon: 'https://favicon.im/amazonaws.com' },
+                    { name: 'Vercel', url: 'https://vercel.com', icon: 'https://favicon.im/vercel.com' },
+                    { name: 'Netlify', url: 'https://www.netlify.com', icon: 'https://favicon.im/netlify.com' },
+                    { name: 'Railway', url: 'https://railway.app', icon: 'https://favicon.im/railway.app' },
+                    { name: 'Supabase', url: 'https://supabase.com', icon: 'https://favicon.im/supabase.com' },
                 ]
             },
         ];
@@ -335,10 +380,10 @@
 
         // ==================== 配置 ====================
         const engines = {
-            bing: { name: 'Bing', icon: 'https://www.bing.com/favicon.ico', url: 'https://www.bing.com/search?q=' },
-            google: { name: 'Google', icon: 'https://www.google.com/favicon.ico', url: 'https://www.google.com/search?q=' },
-            duckduckgo: { name: 'DuckDuckGo', icon: 'https://duckduckgo.com/favicon.ico', url: 'https://duckduckgo.com/?q=' },
-            baidu: { name: '百度', icon: 'https://www.baidu.com/favicon.ico', url: 'https://www.baidu.com/s?wd=' }
+            bing: { name: 'Bing', icon: 'https://favicon.im/bing.com', url: 'https://www.bing.com/search?q=' },
+            google: { name: 'Google', icon: 'https://favicon.im/google.com', url: 'https://www.google.com/search?q=' },
+            duckduckgo: { name: 'DuckDuckGo', icon: 'https://favicon.im/duckduckgo.com', url: 'https://duckduckgo.com/?q=' },
+            baidu: { name: '百度', icon: 'https://favicon.im/baidu.com', url: 'https://www.baidu.com/s?wd=' }
         };
 
         // 内置壁纸轮播列表（快捷键 B 切换）
@@ -408,7 +453,7 @@
         }
 
         function faviconFromUrl(url) {
-            try { return new URL(url).origin + '/favicon.ico'; } catch { return ''; }
+            try { return 'https://favicon.im/' + new URL(url).hostname; } catch { return ''; }
         }
 
         // ==================== 编辑快捷书签弹窗 ====================
@@ -584,7 +629,7 @@
 
             // 左侧分类列表
             dom.sidebarList.innerHTML = pageData.categories.map((cat, i) => `
-                <button class="sidebar-item w-full text-left text-xs md:text-sm px-2.5 py-2 apple-radius text-white/70 ${i === 0 ? 'active' : ''}"
+                <button class="sidebar-item w-full sm:w-full text-left text-xs md:text-sm px-2.5 py-2 apple-radius text-white/70 ${i === 0 ? 'active' : ''}"
                         data-target="cat-${i}">
                     <span class="mr-1.5">${cat.icon}</span>${cat.name}
                 </button>
@@ -764,10 +809,12 @@
         function toggleDropdown() {
             state.open = !state.open;
             dom.dropdownMenu.classList.toggle('active', state.open);
+            dom.engineBtn.setAttribute('aria-expanded', state.open);
         }
         function closeDropdown() {
             state.open = false;
             dom.dropdownMenu.classList.remove('active');
+            dom.engineBtn.setAttribute('aria-expanded', 'false');
         }
         /** @param {string} key - 引擎标识（bing/google/duckduckgo/baidu）
          * @param {boolean} [save] - 是否持久化到 localStorage */
