@@ -473,12 +473,12 @@
                         ${cat.bookmarks.map(bm => {
                             const exists = urls.has(bm.url);
                             return `
-                                <div class="flex items-center gap-2 px-2 py-1.5 apple-radius picker-item ${exists ? 'opacity-40' : 'hover:bg-white/5'}">
+                                <div class="flex items-center gap-2 px-2 py-1.5 apple-radius picker-item ${exists ? 'opacity-40' : 'hover:bg-white/10 cursor-pointer'}" ${!exists ? `data-name="${escapeHtml(bm.name)}" data-url="${escapeHtml(bm.url)}"` : ''}>
                                     <img src="${bm.icon}" class="w-4 h-4 rounded shrink-0" alt="" onerror="this.remove()">
                                     <span class="text-xs text-white/70 truncate flex-1">${escapeHtml(bm.name)}</span>
                                     ${exists
                                         ? '<span class="text-[10px] text-white/20 shrink-0">已存在</span>'
-                                        : `<button type="button" class="picker-add-btn shrink-0 w-5 h-5 flex items-center justify-center rounded hover:bg-white/10 text-white/40 hover:text-white transition text-sm" data-name="${escapeHtml(bm.name)}" data-url="${escapeHtml(bm.url)}">+</button>`
+                                        : '<span class="text-white/40 shrink-0 text-sm">+</span>'
                                     }
                                 </div>
                             `;
@@ -634,10 +634,10 @@
             dom.bookmarkPicker.addEventListener('click', closeBookmarkPicker);
 
             dom.pickerContent.addEventListener('click', e => {
-                const btn = e.target.closest('.picker-add-btn');
-                if (!btn) return;
-                const name = btn.dataset.name;
-                const url = btn.dataset.url;
+                const item = e.target.closest('.picker-item');
+                if (!item || !item.dataset.name || !item.dataset.url) return;
+                const name = item.dataset.name;
+                const url = item.dataset.url;
                 const urls = new Set();
                 dom.editList.querySelectorAll('.edit-url').forEach(inp => urls.add(inp.value.trim()));
                 pageData.bookmarks.forEach(bm => urls.add(bm.url));
@@ -654,9 +654,10 @@
                     </button>
                 `;
                 dom.editList.appendChild(div);
-                btn.textContent = '✓';
-                btn.classList.add('text-green-400', 'pointer-events-none');
-                btn.closest('.picker-item')?.classList.add('opacity-40');
+                item.classList.add('opacity-40', 'pointer-events-none');
+                item.dataset.name = '';
+                item.dataset.url = '';
+                item.querySelector('span:last-child').textContent = '✓';
                 updatePickerCount();
             });
 
