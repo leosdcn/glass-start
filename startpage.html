@@ -357,7 +357,7 @@
 
         function $(id) { return document.getElementById(id); } // DOM 快捷获取
 
-        function         cacheDOM() {
+        function cacheDOM() {
             const ids = 'clock date searchInput engineBtn engineIcon engineName dropdownMenu searchBtn bookmarks sidebarList navCategories navContent editModal editList editBookmarksBtn closeEditBtn addBookmarkBtn saveEditBtn cancelEditBtn resetEditBtn togglePickerBtn bookmarkPicker pickerContent pickerCount closePickerBtn donePickerBtn'.split(' ');
             ids.forEach(id => dom[id] = $(id));
         }

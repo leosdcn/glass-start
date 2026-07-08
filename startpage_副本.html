@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Glass Start</title>
+    <!-- 页面预检：若上次在导航页，给 <html> 加 .nr 隐藏首屏，避免刷新后闪烁 -->
+    <script>try{sessionStorage.getItem('startpage_section')==='nav'&&document.documentElement.classList.add('nr')}catch(e){}</script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        /* .nr 模式：隐藏起始页、显示导航页，与上方 inline script 配合防止闪烁 */
+        .nr section:first-of-type { display: none; }
+        .nr #navSection { visibility: visible; }
+        /* ===== 布局 & 基础 ===== */
+        :root {
+            --glass-bg: rgba(255,255,255,0.08);
+            --glass-border: rgba(255,255,255,0.15);
+            --radius: 1.5rem;
+            --blur: 24px;
+        }
+        body { font-family: 'Nunito', sans-serif; scrollbar-width:none; -ms-overflow-style:none; 
+               overflow:hidden; }
+        body::-webkit-scrollbar { display:none; }
+        * { scrollbar-width:none; -ms-overflow-style:none; }
+        *::-webkit-scrollbar { display:none; }
+        .apple-radius { border-radius: var(--radius); }
+        /* ===== 玻璃效果 ===== */
+        .glass {
+            background: var(--glass-bg);
+            backdrop-filter: blur(var(--blur));
+            -webkit-backdrop-filter: blur(var(--blur));
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+            will-change: backdrop-filter;
+        }
+        .glass-strong {
+            background: rgba(255,255,255,0.12);
+            backdrop-filter: blur(40px);
+            -webkit-backdrop-filter: blur(40px);
+            border: 1px solid rgba(255,255,255,0.2);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            will-change: backdrop-filter;
+        }
+        /* ===== 组件 ===== */
+        .search-input::placeholder { color: rgba(255,255,255,0.6); }
+        .fade-in { animation: fadeIn 0.8s ease-out backwards; }
+        @keyframes fadeIn { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+        .dropdown-menu { opacity:0; transform:translateY(-10px); pointer-events:none; transition:all 0.2s ease; }
+        .dropdown-menu.active { opacity:1; transform:translateY(0); pointer-events:auto; }
+        .clock-text { text-shadow: 0 2px 20px rgba(0,0,0,0.4), 0 0 60px rgba(0,0,0,0.2); }
+        .bookmark-item { transition: all 0.2s ease; }
+        .bookmark-item:hover { background: rgba(255,255,255,0.12); transform: translateY(-2px); }
+        .nav-bookmark { transition: all 0.15s ease; }
+        .nav-bookmark:hover { background: rgba(255,255,255,0.1); }
+        .nav-hidden { visibility:hidden; }
+        .nav-visible { visibility:visible; }
+        .nav-hidden .glass { opacity:0; }
+        .nav-visible .glass { animation:navFadeIn 0.6s ease forwards; }
+        @keyframes navFadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+        .sidebar-item {
+            transition: all 0.15s ease;
+            border-left: 2px solid transparent;
+        }
+        .sidebar-item:hover { background: rgba(255,255,255,0.08); }
+        .sidebar-item.active {
+            background: rgba(255,255,255,0.12);
+            border-left-color: rgba(255,255,255,0.6);
+            color: #fff;
+        }
+        .scroll-hint { animation: bounceDown 2s ease-in-out infinite; }
+        @keyframes bounceDown { 0%,100%{transform:translateY(0);opacity:0.6} 50%{transform:translateY(8px);opacity:1} }
+        .hint-down { animation:hintFade 7s ease forwards; }
+        .hint-up { animation:hintFade 6s ease 1s forwards; }
+        @keyframes hintFade { 0%,55%{opacity:1} 100%{opacity:0;pointer-events:none} }
+        .section-divider { background: linear-gradient(90deg,transparent,rgba(255,255,255,0.15),transparent); }
+    </style>
+</head>
+<body class="bg-cover bg-center bg-no-repeat text-white relative" 
+      style="background-color:#1a1a2e;background-image:url('https://images.unsplash.com/photo-1477346611705-65d1883cee1e?q=80&w=2070&auto=format&fit=crop');background-attachment:fixed">
+    <div class="fixed inset-0 bg-black/25 pointer-events-none"></div>
+
+    <!-- ========== 第一屏：起始页 ========== -->
+    <section class="relative z-10 min-h-screen flex flex-col items-center justify-center px-4 py-12">
+        <div class="flex flex-col items-center justify-center w-full">
+            <!-- 时钟 -->
+            <div class="text-center fade-in clock-text mb-10 md:mb-14">
+                <div id="clock" class="text-7xl md:text-8xl lg:text-9xl font-light tracking-tight tabular-nums">00:00</div>
+                <div id="date" class="text-sm md:text-base mt-3 text-white/70 font-light tracking-widest uppercase">加载中...</div>
+            </div>
+
+            <!-- 搜索框 -->
+            <div class="w-full max-w-2xl lg:max-w-3xl relative mb-8 md:mb-10">
+                <div class="glass-strong apple-radius p-2 flex items-center gap-2 border fade-in" style="animation-delay:0.1s">
+                    <div class="relative shrink-0">
+                        <button id="engineBtn" type="button" class="flex items-center gap-2 px-3 py-3 apple-radius hover:bg-white/10 transition text-sm font-medium">
+                            <img id="engineIcon" src="https://www.bing.com/favicon.ico" class="w-5 h-5 rounded-md" alt="" onerror="this.style.display='none'">
+                            <span id="engineName" class="hidden sm:inline">Bing</span>
+                            <svg class="w-4 h-4 opacity-60 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                        </button>
+                    </div>
+                    <input type="text" id="searchInput" class="flex-1 bg-transparent border-none outline-none text-lg search-input text-white h-12 px-1 min-w-0" placeholder="搜索..." autocomplete="off">
+                    <button id="searchBtn" type="button" class="p-3 apple-radius hover:bg-white/10 transition shrink-0 mr-1">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                    </button>
+                </div>
+                <div id="dropdownMenu" class="dropdown-menu absolute top-full left-0 mt-2 ml-2 glass-strong apple-radius p-2 min-w-[140px]" style="z-index:100">
+                    <button type="button" data-engine="bing" class="w-full flex items-center gap-3 px-3 py-2.5 apple-radius hover:bg-white/10 transition text-left text-sm">
+                        <img src="https://www.bing.com/favicon.ico" class="w-4 h-4 rounded-sm" alt="" onerror="this.remove()"> Bing
+                    </button>
+                    <button type="button" data-engine="google" class="w-full flex items-center gap-3 px-3 py-2.5 apple-radius hover:bg-white/10 transition text-left text-sm">
+                        <img src="https://www.google.com/favicon.ico" class="w-4 h-4 rounded-sm" alt="" onerror="this.remove()"> Google
+                    </button>
+                    <button type="button" data-engine="duckduckgo" class="w-full flex items-center gap-3 px-3 py-2.5 apple-radius hover:bg-white/10 transition text-left text-sm">
+                        <img src="https://duckduckgo.com/favicon.ico" class="w-4 h-4 rounded-sm" alt="" onerror="this.remove()"> DuckDuckGo
+                    </button>
+                    <button type="button" data-engine="baidu" class="w-full flex items-center gap-3 px-3 py-2.5 apple-radius hover:bg-white/10 transition text-left text-sm">
+                        <img src="https://www.baidu.com/favicon.ico" class="w-4 h-4 rounded-sm" alt="" onerror="this.remove()"> 百度
+                    </button>
+                </div>
+            </div>
+
+            <!-- 快捷书签 -->
+            <div class="w-full max-w-2xl lg:max-w-3xl glass apple-radius p-4 fade-in mb-6 md:mb-8" style="animation-delay:0.2s">
+                <div id="bookmarks" class="grid grid-cols-4 md:grid-cols-8 gap-2"></div>
+            </div>
+        </div>
+
+        <!-- 向下滚动提示（装饰，绝对定位不占空间） -->
+        <div class="absolute bottom-6 md:bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 text-white/35 text-[10px] tracking-widest pointer-events-none hint-down">
+            <span>向下滚动</span>
+            <svg class="w-4 h-4 scroll-hint" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/></svg>
+        </div>
+    </section>
+
+    <!-- 分隔线 -->
+    <div class="section-divider h-px relative z-10 mx-auto w-3/4 max-w-2xl"></div>
+
+    <!-- ========== 第二屏：导航页 ========== -->
+    <section id="navSection" class="relative z-10 h-screen nav-hidden overflow-hidden">
+        <div class="h-full flex flex-col pt-8 md:pt-10">
+            <!-- 标题 -->
+            <div class="text-center shrink-0 px-4">
+                <h2 class="text-base md:text-lg font-light tracking-wider">🪐 导航</h2>
+                <p class="text-[10px] text-white/40 mt-0.5 tracking-wide">发现更多精彩网站</p>
+            </div>
+            <!-- 向上返回提示 -->
+            <div id="navHint" class="flex items-center justify-center gap-0.5 py-1 text-white/15 text-[9px] tracking-widest shrink-0 pointer-events-none">
+                <svg class="w-2.5 h-2.5 scroll-hint" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/></svg>
+                <span>向上滚动返回</span>
+            </div>
+            <!-- 主体：左分类 + 右内容 -->
+            <div class="flex-1 flex gap-2 md:gap-3 px-3 md:px-4 pb-3 min-h-0">
+                <!-- 左侧分类列表 -->
+                <aside id="sidebar" class="w-32 md:w-40 shrink-0 glass apple-radius p-1.5 md:p-2 overflow-y-auto" style="scrollbar-width:none;-ms-overflow-style:none;">
+                    <div id="sidebarList" class="flex flex-col gap-0.5"></div>
+                </aside>
+                <!-- 右侧书签内容 -->
+                <main id="navContent" class="flex-1 glass apple-radius p-2 md:p-3 overflow-y-auto" style="scrollbar-width:none;-ms-overflow-style:none;">
+                    <div id="navCategories"></div>
+                </main>
+            </div>
+        </div>
+    </section>
+
+    <script>
+        /**
+         * Glass Start — 两屏结构的新标签页
+         * 功能区块：
+         *   起始页      — 时钟 + 搜索框 + 快捷书签
+         *   导航页      — 侧边栏分类 + 书签网格，内部独立滚动
+         *   滚动切换    — 滚轮/触屏累积阈值后在两屏间切换
+         * 基础服务：
+         *   搜索引擎切换 — 引擎选择下拉 + 搜索跳转
+         *   壁纸切换    — 快捷键 B 轮播背景
+         *   存储工具    — localStorage（偏好引擎）/ sessionStorage（当前屏）
+         * @typedef {{ name:string, url:string, icon:string }} Bookmark
+         * @typedef {{ name:string, icon:string, bookmarks:Bookmark[] }} Category
+         * @typedef {{ name:string, icon:string, url:string }} EngineConfig
+         */
+
+        // ==================== 书签配置（在此自定义）====================
+        // ==================== 默认书签（外部 bookmarks.json 加载失败时使用）====================
+        const DEFAULT_BOOKMARKS = [
+            { name: 'GitHub', url: 'https://github.com', icon: 'https://github.com/favicon.ico' },
+            { name: 'Bilibili', url: 'https://www.bilibili.com', icon: 'https://www.bilibili.com/favicon.ico' },
+            { name: '知乎', url: 'https://www.zhihu.com', icon: 'https://www.zhihu.com/favicon.ico' },
+            { name: 'V2EX', url: 'https://www.v2ex.com', icon: 'https://www.v2ex.com/favicon.ico' },
+            { name: 'YouTube', url: 'https://www.youtube.com', icon: 'https://www.youtube.com/favicon.ico' },
+            { name: 'Twitter', url: 'https://x.com', icon: 'https://x.com/favicon.ico' },
+            { name: 'Reddit', url: 'https://www.reddit.com', icon: 'https://www.reddit.com/favicon.ico' },
+            { name: 'HackerNews', url: 'https://news.ycombinator.com', icon: 'https://news.ycombinator.com/favicon.ico' },
+        ];
+
+        const DEFAULT_CATEGORIES = [
+            {
+                name: '开发工具', icon: '⚡',
+                bookmarks: [
+                    { name: 'GitHub', url: 'https://github.com', icon: 'https://github.com/favicon.ico' },
+                    { name: 'Stack Overflow', url: 'https://stackoverflow.com', icon: 'https://stackoverflow.com/favicon.ico' },
+                    { name: 'MDN Web Docs', url: 'https://developer.mozilla.org', icon: 'https://developer.mozilla.org/favicon.ico' },
+                    { name: 'npm', url: 'https://www.npmjs.com', icon: 'https://www.npmjs.com/favicon.ico' },
+                    { name: 'Vercel', url: 'https://vercel.com', icon: 'https://vercel.com/favicon.ico' },
+                    { name: 'Netlify', url: 'https://www.netlify.com', icon: 'https://www.netlify.com/favicon.ico' },
+                    { name: 'CodePen', url: 'https://codepen.io', icon: 'https://codepen.io/favicon.ico' },
+                    { name: 'JSFiddle', url: 'https://jsfiddle.net', icon: 'https://jsfiddle.net/favicon.ico' },
+                    { name: 'Can I Use', url: 'https://caniuse.com', icon: 'https://caniuse.com/favicon.ico' },
+                    { name: 'DevDocs', url: 'https://devdocs.io', icon: 'https://devdocs.io/favicon.ico' },
+                ]
+            },
+            {
+                name: 'AI 与机器学习', icon: '🤖',
+                bookmarks: [
+                    { name: 'ChatGPT', url: 'https://chat.openai.com', icon: 'https://chat.openai.com/favicon.ico' },
+                    { name: 'Claude', url: 'https://claude.ai', icon: 'https://claude.ai/favicon.ico' },
+                    { name: 'Hugging Face', url: 'https://huggingface.co', icon: 'https://huggingface.co/favicon.ico' },
+                    { name: 'GitHub Copilot', url: 'https://github.com/features/copilot', icon: 'https://github.com/favicon.ico' },
+                    { name: 'Midjourney', url: 'https://www.midjourney.com', icon: 'https://www.midjourney.com/favicon.ico' },
+                ]
+            },
+            {
+                name: '社交媒体', icon: '💬',
+                bookmarks: [
+                    { name: 'Twitter / X', url: 'https://x.com', icon: 'https://x.com/favicon.ico' },
+                    { name: 'Reddit', url: 'https://www.reddit.com', icon: 'https://www.reddit.com/favicon.ico' },
+                    { name: 'V2EX', url: 'https://www.v2ex.com', icon: 'https://www.v2ex.com/favicon.ico' },
+                    { name: '豆瓣', url: 'https://www.douban.com', icon: 'https://www.douban.com/favicon.ico' },
+                    { name: '知乎', url: 'https://www.zhihu.com', icon: 'https://www.zhihu.com/favicon.ico' },
+                    { name: 'Telegram Web', url: 'https://web.telegram.org', icon: 'https://web.telegram.org/favicon.ico' },
+                    { name: 'Discord', url: 'https://discord.com', icon: 'https://discord.com/favicon.ico' },
+                ]
+            },
+            {
+                name: '影音娱乐', icon: '🎬',
+                bookmarks: [
+                    { name: 'YouTube', url: 'https://www.youtube.com', icon: 'https://www.youtube.com/favicon.ico' },
+                    { name: 'Bilibili', url: 'https://www.bilibili.com', icon: 'https://www.bilibili.com/favicon.ico' },
+                    { name: 'Netflix', url: 'https://www.netflix.com', icon: 'https://www.netflix.com/favicon.ico' },
+                    { name: 'Spotify', url: 'https://open.spotify.com', icon: 'https://open.spotify.com/favicon.ico' },
+                    { name: 'SoundCloud', url: 'https://soundcloud.com', icon: 'https://soundcloud.com/favicon.ico' },
+                    { name: 'Twitch', url: 'https://www.twitch.tv', icon: 'https://www.twitch.tv/favicon.ico' },
+                ]
+            },
+            {
+                name: '新闻资讯', icon: '📰',
+                bookmarks: [
+                    { name: 'Hacker News', url: 'https://news.ycombinator.com', icon: 'https://news.ycombinator.com/favicon.ico' },
+                    { name: 'Solidot', url: 'https://www.solidot.org', icon: 'https://www.solidot.org/favicon.ico' },
+                    { name: '36氪', url: 'https://36kr.com', icon: 'https://36kr.com/favicon.ico' },
+                    { name: 'InfoQ', url: 'https://www.infoq.cn', icon: 'https://www.infoq.cn/favicon.ico' },
+                    { name: 'Reuters', url: 'https://www.reuters.com', icon: 'https://www.reuters.com/favicon.ico' },
+                ]
+            },
+            {
+                name: '设计资源', icon: '🎨',
+                bookmarks: [
+                    { name: 'Dribbble', url: 'https://dribbble.com', icon: 'https://dribbble.com/favicon.ico' },
+                    { name: 'Behance', url: 'https://www.behance.net', icon: 'https://www.behance.net/favicon.ico' },
+                    { name: 'Figma', url: 'https://www.figma.com', icon: 'https://www.figma.com/favicon.ico' },
+                    { name: 'Unsplash', url: 'https://unsplash.com', icon: 'https://unsplash.com/favicon.ico' },
+                    { name: 'Coolors', url: 'https://coolors.co', icon: 'https://coolors.co/favicon.ico' },
+                    { name: 'Font Awesome', url: 'https://fontawesome.com', icon: 'https://fontawesome.com/favicon.ico' },
+                ]
+            },
+            {
+                name: '学习平台', icon: '📚',
+                bookmarks: [
+                    { name: 'Coursera', url: 'https://www.coursera.org', icon: 'https://www.coursera.org/favicon.ico' },
+                    { name: 'Udemy', url: 'https://www.udemy.com', icon: 'https://www.udemy.com/favicon.ico' },
+                    { name: 'freeCodeCamp', url: 'https://www.freecodecamp.org', icon: 'https://www.freecodecamp.org/favicon.ico' },
+                    { name: 'LeetCode', url: 'https://leetcode.cn', icon: 'https://leetcode.cn/favicon.ico' },
+                    { name: 'Roadmap.sh', url: 'https://roadmap.sh', icon: 'https://roadmap.sh/favicon.ico' },
+                ]
+            },
+            {
+                name: '云服务', icon: '☁️',
+                bookmarks: [
+                    { name: 'Cloudflare', url: 'https://dash.cloudflare.com', icon: 'https://dash.cloudflare.com/favicon.ico' },
+                    { name: 'AWS Console', url: 'https://aws.amazon.com/console', icon: 'https://aws.amazon.com/favicon.ico' },
+                    { name: 'Vercel', url: 'https://vercel.com', icon: 'https://vercel.com/favicon.ico' },
+                    { name: 'Netlify', url: 'https://www.netlify.com', icon: 'https://www.netlify.com/favicon.ico' },
+                    { name: 'Railway', url: 'https://railway.app', icon: 'https://railway.app/favicon.ico' },
+                    { name: 'Supabase', url: 'https://supabase.com', icon: 'https://supabase.com/favicon.ico' },
+                ]
+            },
+        ];
+
+        let pageData = { bookmarks: DEFAULT_BOOKMARKS, categories: DEFAULT_CATEGORIES };
+
+        // ==================== 配置 ====================
+        const engines = {
+            bing: { name: 'Bing', icon: 'https://www.bing.com/favicon.ico', url: 'https://www.bing.com/search?q=' },
+            google: { name: 'Google', icon: 'https://www.google.com/favicon.ico', url: 'https://www.google.com/search?q=' },
+            duckduckgo: { name: 'DuckDuckGo', icon: 'https://duckduckgo.com/favicon.ico', url: 'https://duckduckgo.com/?q=' },
+            baidu: { name: '百度', icon: 'https://www.baidu.com/favicon.ico', url: 'https://www.baidu.com/s?wd=' }
+        };
+
+        // 内置壁纸轮播列表（快捷键 B 切换）
+        const backgrounds = [
+            'https://images.unsplash.com/photo-1477346611705-65d1883cee1e?q=80&w=2070&auto=format&fit=crop',
+            'https://images.unsplash.com/photo-1506744038136-46273834b3fb?q=80&w=2070&auto=format&fit=crop',
+            'https://images.unsplash.com/photo-1433086966358-54859d0ed716?q=80&w=2070&auto=format&fit=crop',
+            'https://images.unsplash.com/photo-1519681393784-d120267933ba?q=80&w=2070&auto=format&fit=crop',
+            'https://images.unsplash.com/photo-1469474968028-56623f02e42e?q=80&w=2070&auto=format&fit=crop',
+            'https://images.unsplash.com/photo-1501785888041-af3ef285b470?q=80&w=2070&auto=format&fit=crop'
+        ];
+
+        // ==================== 状态与 DOM 缓存 ====================
+        const dom = {};
+        const state = { engine: 'bing', bg: 0, open: false }; // 当前引擎 / 背景索引 / 下拉菜单是否展开
+
+        function $(id) { return document.getElementById(id); } // DOM 快捷获取
+
+        function cacheDOM() {
+            const ids = 'clock date searchInput engineBtn engineIcon engineName dropdownMenu searchBtn bookmarks sidebarList navCategories navContent'.split(' ');
+            ids.forEach(id => dom[id] = $(id));
+        }
+
+        // ==================== 存储工具 ====================
+        // 安全读写 localStorage（JSON 序列化），异常时返回默认值
+        function storageGet(key, fallback = null) {
+            try { const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : fallback; } catch { return fallback; }
+        }
+        function storageSet(key, value) {
+            try { localStorage.setItem(key, JSON.stringify(value)); return true; } catch { return false; }
+        }
+
+        // ==================== 网络请求 ====================
+        /** 带超时的 fetch（未使用，保留以备扩展）
+         * @param {string} url
+         * @param {RequestInit} [options]
+         * @param {number} [timeout] */
+        function fetchWithTimeout(url, options = {}, timeout = 5000) {
+            const controller = new AbortController();
+            const id = setTimeout(() => controller.abort(), timeout);
+            return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(id));
+        }
+
+        // ==================== 外部数据加载 ====================
+        // 优先使用 bookmarks.json，不存在时自动降级到 HTML 内联默认值
+        async function loadData() {
+            try {
+                const res = await fetch('bookmarks.json');
+                const data = await res.json();
+                if (data.bookmarks) pageData.bookmarks = data.bookmarks;
+                if (data.categories) pageData.categories = data.categories;
+            } catch {
+                // 加载失败，使用内联默认值
+            }
+        }
+
+        // ==================== 初始化 ====================
+        async function init() {
+            cacheDOM();
+            await loadData();
+            renderBookmarks();
+            renderNavCategories();
+            initSidebarNav();
+            initScrollControl();
+            const saved = storageGet('preferredEngine');
+            if (saved && engines[saved]) setEngine(saved, false);
+            updateClock(); setInterval(updateClock, 1000);
+            bindEvents();
+            preloadNextBg();
+        }
+
+        // ==================== 书签 ====================
+        function renderBookmarks() {
+            if (!dom.bookmarks) return;
+            dom.bookmarks.innerHTML = pageData.bookmarks.map(bm => `
+                <a href="${bm.url}" target="_blank" rel="noopener" 
+                   class="bookmark-item flex flex-col items-center justify-center gap-2 p-3 apple-radius text-white/90 hover:text-white">
+                    <img src="${bm.icon}" class="w-8 h-8 rounded-lg opacity-90" alt="" 
+                         onerror="this.remove()">
+                    <span class="text-xs truncate w-full text-center">${bm.name}</span>
+                </a>
+            `).join('');
+        }
+
+        // ==================== 导航页（左右布局）====================
+        function renderNavCategories() {
+            if (!dom.sidebarList || !dom.navCategories) return;
+
+            // 左侧分类列表
+            dom.sidebarList.innerHTML = pageData.categories.map((cat, i) => `
+                <button class="sidebar-item w-full text-left text-xs md:text-sm px-2.5 py-2 apple-radius text-white/70 ${i === 0 ? 'active' : ''}"
+                        data-target="cat-${i}">
+                    <span class="mr-1.5">${cat.icon}</span>${cat.name}
+                </button>
+            `).join('');
+
+            // 右侧书签内容
+            dom.navCategories.innerHTML = pageData.categories.map((cat, i) => `
+                <div id="cat-${i}" class="mb-6 md:mb-8 ${i > 0 ? 'scroll-mt-4' : ''}">
+                    <div class="flex items-center gap-2 mb-3 pb-2 border-b border-white/10">
+                        <span class="text-lg">${cat.icon}</span>
+                        <h3 class="text-sm md:text-base font-medium tracking-wide text-white/90">${cat.name}</h3>
+                        <span class="ml-auto text-[10px] text-white/30">${cat.bookmarks.length} 个</span>
+                    </div>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 md:gap-3">
+                        ${cat.bookmarks.map(bm => `
+                            <a href="${bm.url}" target="_blank" rel="noopener"
+                               class="nav-bookmark flex items-center gap-2.5 px-2.5 md:px-3 py-2 md:py-2.5 apple-radius text-white/75 hover:text-white">
+                                <img src="${bm.icon}" class="w-5 h-5 rounded shrink-0" alt=""
+                                     onerror="this.remove()">
+                                <span class="text-xs md:text-sm truncate">${bm.name}</span>
+                            </a>
+                        `).join('')}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // ==================== 侧边栏导航 ====================
+        function initSidebarNav() {
+            const sidebar = dom.sidebarList;
+            const content = dom.navContent;
+            if (!sidebar || !content) return;
+
+            const items = sidebar.querySelectorAll('[data-target]');
+            const sections = [];
+            items.forEach(item => {
+                const el = document.getElementById(item.dataset.target);
+                if (el) sections.push(el);
+            });
+
+            // 根据滚动位置更新高亮：取距内容顶部 < 100px 的最后一个分区作为活跃项
+            function updateActive() {
+                const scrollTop = content.scrollTop;
+                let activeIdx = 0;
+                for (let i = 0; i < sections.length; i++) {
+                    if (sections[i].offsetTop - scrollTop < 100) activeIdx = i;
+                }
+                items.forEach((item, i) => item.classList.toggle('active', i === activeIdx));
+            }
+
+            // 点击侧边栏 → 平滑滚动并高亮
+            sidebar.addEventListener('click', (e) => {
+                const btn = e.target.closest('[data-target]');
+                if (!btn) return;
+                const target = document.getElementById(btn.dataset.target);
+                if (target) {
+                    items.forEach(i => i.classList.remove('active'));
+                    btn.classList.add('active');
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+
+            // 滚动时更新高亮（节流）
+            let ticking = false;
+            content.addEventListener('scroll', () => {
+                if (!ticking) {
+                    requestAnimationFrame(() => { updateActive(); ticking = false; });
+                    ticking = true;
+                }
+            });
+        }
+        function bindEvents() {
+            dom.searchInput.addEventListener('keydown', e => { if (e.key === 'Enter') doSearch(); });
+            dom.searchBtn.addEventListener('click', doSearch);
+
+            // 引擎下拉菜单
+            dom.engineBtn.addEventListener('click', e => { e.stopPropagation(); toggleDropdown(); });
+            dom.dropdownMenu.addEventListener('click', e => {
+                const btn = e.target.closest('[data-engine]');
+                if (btn) { e.stopPropagation(); setEngine(btn.dataset.engine); }
+            });
+            document.addEventListener('click', closeDropdown);
+            window.addEventListener('blur', closeDropdown);
+
+            // 键盘快捷键：B 切换壁纸，/ 聚焦搜索，Escape 关闭菜单并失焦
+            document.addEventListener('keydown', e => {
+                if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
+                if ((e.key === 'b' || e.key === 'B') && document.activeElement !== dom.searchInput) switchBg();
+                if (e.key === '/' && document.activeElement !== dom.searchInput) { e.preventDefault(); dom.searchInput.focus(); }
+                if (e.key === 'Escape') { closeDropdown(); dom.searchInput.blur(); }
+            });
+        }
+
+        // ==================== 时钟 ====================
+        function updateClock() {
+            const n = new Date();
+            dom.clock.textContent = `${String(n.getHours()).padStart(2, '0')}:${String(n.getMinutes()).padStart(2, '0')}`;
+            dom.date.textContent = n.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
+        }
+
+        // ==================== 搜索引擎切换 ====================
+        function toggleDropdown() {
+            state.open = !state.open;
+            dom.dropdownMenu.classList.toggle('active', state.open);
+        }
+        function closeDropdown() {
+            state.open = false;
+            dom.dropdownMenu.classList.remove('active');
+        }
+        /** @param {string} key - 引擎标识（bing/google/duckduckgo/baidu）
+         * @param {boolean} [save] - 是否持久化到 localStorage */
+        function setEngine(key, save = true) {
+            state.engine = key;
+            dom.engineName.textContent = engines[key].name;
+            dom.engineIcon.src = engines[key].icon;
+            closeDropdown();
+            if (save) storageSet('preferredEngine', key);
+        }
+        function doSearch() {
+            const q = dom.searchInput.value.trim();
+            if (!q) return;
+            window.location.href = engines[state.engine].url + encodeURIComponent(q);
+        }
+
+        // ==================== 壁纸切换 ====================
+        function preloadNextBg() {
+            const img = new Image();
+            img.src = backgrounds[(state.bg + 1) % backgrounds.length];
+        }
+        function switchBg() {
+            state.bg = (state.bg + 1) % backgrounds.length;
+            document.body.style.backgroundImage = `url('${backgrounds[state.bg]}')`;
+            preloadNextBg();
+        }
+
+        // ==================== 滚动切换 ====================
+        function initScrollControl() {
+            let scrollAccum = 0;
+            let isTransitioning = false;
+            let currentSection = 'start';
+            const SCROLL_THRESHOLD = 120; // 累积滚动像素阈值（跨浏览器一致）
+            const nav = document.getElementById('navSection');
+            const navContent = dom.navContent;
+            let animationDone = false;
+
+            // ===== sessionStorage 刷新保持：恢复/保存页面位置 =====
+            function getSavedSection() {
+                try { return sessionStorage.getItem('startpage_section'); } catch { return null; }
+            }
+            function saveSection(s) {
+                try { sessionStorage.setItem('startpage_section', s); } catch {}
+            }
+
+            // 若上次在导航页或滚动超过 40% 视口，直接显示导航区并跳过入场动画
+            if (getSavedSection() === 'nav' || window.scrollY > window.innerHeight * 0.4) {
+                nav.classList.remove('nav-hidden');
+                nav.classList.add('nav-visible');
+                document.documentElement.classList.remove('nr');
+                window.scrollTo(0, nav.offsetTop);
+                currentSection = 'nav';
+                animationDone = true;
+            } else {
+                saveSection('start');
+            }
+
+            // 归一化 deltaY，兼容 Safari 的 LINE / PAGE 模式
+            function normDelta(e) {
+                let d = e.deltaY;
+                if (e.deltaMode === 1) d *= 16;       // DOM_DELTA_LINE → 像素
+                else if (e.deltaMode === 2) d *= 400;  // DOM_DELTA_PAGE → 像素
+                return d;
+            }
+
+            document.addEventListener('wheel', (e) => {
+                if (isTransitioning) { e.preventDefault(); return; }
+
+                const delta = normDelta(e);
+                const down = delta > 0;
+
+                if (currentSection === 'start') {
+                    if (!down) { scrollAccum = Math.max(0, scrollAccum + delta); return; }
+                    e.preventDefault();
+                    scrollAccum += delta;
+                    if (scrollAccum < SCROLL_THRESHOLD) return;
+                    scrollAccum = 0;
+                    isTransitioning = true;
+                    saveSection('nav');
+
+                    // 1) 先显示导航（无 transform 偏移，不会导致重排闪烁）
+                    nav.classList.remove('nav-hidden');
+                    nav.classList.add('nav-visible');
+                    if (!animationDone) {
+                        document.getElementById('navHint')?.classList.add('hint-up');
+                        animationDone = true;
+                    }
+
+                    // 2) 下一帧再滚动（分离布局变化与滚动，避免 Safari 同时处理两件事导致卡顿/闪烁）
+                    requestAnimationFrame(() => {
+                        nav.scrollIntoView({ behavior: 'smooth' });
+                        waitForScroll(nav.offsetTop, () => {
+                            currentSection = 'nav';
+                            isTransitioning = false;
+                        });
+                    });
+                } else {
+                    if (navContent.scrollTop > 0 || down) {
+                        e.preventDefault();
+                        // 限制单次滚动增量，避免 Safari 跳度过大
+                        navContent.scrollTop += Math.min(Math.abs(delta), 60) * (down ? 1 : -1);
+                        if (down) scrollAccum = 0;
+                    } else if (!down && navContent.scrollTop <= 0) {
+                        e.preventDefault();
+                        scrollAccum += Math.abs(delta);
+                        if (scrollAccum >= SCROLL_THRESHOLD) {
+                            scrollAccum = 0;
+                            isTransitioning = true;
+                            saveSection('start');
+                            navContent.scrollTop = 0;
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                            waitForScroll(0, () => {
+                                animationDone = false;
+                                currentSection = 'start';
+                                isTransitioning = false;
+                            });
+                        }
+                    }
+                }
+            }, { passive: false });
+
+            // ==================== 触屏支持 ====================
+            let touchStartY = 0;
+            let touchStartTime = 0;
+
+            document.addEventListener('touchstart', (e) => {
+                touchStartY = e.touches[0].clientY;
+                touchStartTime = Date.now();
+            }, { passive: true });
+
+            document.addEventListener('touchmove', (e) => {
+                if (isTransitioning) return;
+                const deltaY = touchStartY - e.touches[0].clientY;
+                if (Math.abs(deltaY) < 10) return;
+
+                if (currentSection === 'start') {
+                    if (deltaY > 0) {
+                        e.preventDefault();
+                        scrollAccum += Math.abs(deltaY);
+                        if (scrollAccum >= SCROLL_THRESHOLD) {
+                            scrollAccum = 0;
+                            isTransitioning = true;
+                            saveSection('nav');
+                            nav.classList.remove('nav-hidden');
+                            nav.classList.add('nav-visible');
+                            if (!animationDone) {
+                                document.getElementById('navHint')?.classList.add('hint-up');
+                                animationDone = true;
+                            }
+                            requestAnimationFrame(() => {
+                                nav.scrollIntoView({ behavior: 'smooth' });
+                                waitForScroll(nav.offsetTop, () => {
+                                    currentSection = 'nav';
+                                    isTransitioning = false;
+                                });
+                            });
+                        }
+                    }
+                } else {
+                    if (navContent.scrollTop > 0 || deltaY > 0) {
+                        e.preventDefault();
+                        navContent.scrollTop += deltaY;
+                        touchStartY = e.touches[0].clientY;
+                    } else if (deltaY < 0 && navContent.scrollTop <= 0) {
+                        e.preventDefault();
+                        scrollAccum += Math.abs(deltaY);
+                        if (scrollAccum >= SCROLL_THRESHOLD) {
+                            scrollAccum = 0;
+                            isTransitioning = true;
+                            saveSection('start');
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                            waitForScroll(0, () => {
+                                animationDone = false;
+                                currentSection = 'start';
+                                isTransitioning = false;
+                            });
+                        }
+                    }
+                }
+            }, { passive: false });
+
+            /** 轮询等待 scrollIntoView/scrollTo 完成，兜底 120 帧（~2s）超时
+             * @param {number} target - 目标 scrollY
+             * @param {Function} cb - 完成回调
+             * @param {number} [attempts] - 当前尝试计数 */
+            function waitForScroll(target, cb, attempts = 0) {
+                if (Math.abs(window.scrollY - target) < 2) { cb(); return; }
+                if (attempts > 120) { cb(); return; } // 超时保护 ~2s
+                requestAnimationFrame(() => waitForScroll(target, cb, attempts + 1));
+            }
+
+            // ==================== 窗口变化修正：全屏/旋转/缩放后保持导航页在视口顶部 ====================
+            var resizeTick = null;
+            function scrollToNav() {
+                if (currentSection !== 'nav') return;
+                var target = nav.offsetTop;
+                if (Math.abs(window.scrollY - target) > 2) {
+                    window.scrollTo(0, target);
+                    requestAnimationFrame(scrollToNav);
+                }
+            }
+            function onViewportChange() {
+                if (currentSection !== 'nav' || resizeTick) return;
+                resizeTick = requestAnimationFrame(function() {
+                    resizeTick = null;
+                    scrollToNav();
+                });
+            }
+            document.addEventListener('fullscreenchange', onViewportChange);
+            document.addEventListener('webkitfullscreenchange', onViewportChange);
+            window.addEventListener('resize', onViewportChange);
+        }
+
+        // ==================== 启动（兼容 DOMContentLoaded）====================
+        document.readyState === 'loading'
+            ? document.addEventListener('DOMContentLoaded', init)
+            : init();
+    </script>
+</body>
+</html>
