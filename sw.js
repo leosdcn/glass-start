@@ -1,7 +1,13 @@
-const CACHE = 'favicon-cache-v2';
+const CACHE = 'favicon-cache-v3';
+const MAX_ENTRIES = 500;
 
 self.addEventListener('install', () => self.skipWaiting());
-self.addEventListener('activate', e => e.waitUntil(clients.claim()));
+
+self.addEventListener('activate', e => e.waitUntil(
+    caches.keys().then(keys =>
+        Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
+    ).then(() => clients.claim())
+));
 
 self.addEventListener('fetch', e => {
     if (!e.request.url.includes('favicon')) return;
@@ -11,10 +17,14 @@ self.addEventListener('fetch', e => {
             if (cached) return cached;
             try {
                 const res = await fetch(e.request, { mode: 'no-cors' });
-                if (res.ok || res.type === 'opaque') cache.put(e.request, res.clone());
+                if (res.ok || res.type === 'opaque') {
+                    cache.put(e.request, res.clone());
+                    const keys = await cache.keys();
+                    if (keys.length > MAX_ENTRIES) await cache.delete(keys[0]);
+                }
                 return res;
             } catch {
-                return cached || new Response('', { status: 404 });
+                return new Response('', { status: 404 });
             }
         })
     );
