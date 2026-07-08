@@ -743,6 +743,7 @@
         }
 
         // ==================== 时钟 ====================
+        function updateClock() {
             const n = new Date();
             dom.clock.textContent = `${String(n.getHours()).padStart(2, '0')}:${String(n.getMinutes()).padStart(2, '0')}`;
             dom.date.textContent = n.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
