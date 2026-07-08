@@ -411,6 +411,7 @@
             try { return new URL(url).origin + '/favicon.ico'; } catch { return ''; }
         }
 
+        // ==================== 编辑快捷书签弹窗 ====================
         function renderEditList() {
             dom.editList.innerHTML = pageData.bookmarks.map((bm, i) => `
                 <div class="flex items-center gap-1.5 p-1.5 apple-radius hover:bg-white/5" draggable="true" data-idx="${i}">
@@ -447,6 +448,7 @@
         }
 
         function resetBookmarks() {
+            // 清除 localStorage 用户编辑，恢复默认书签
             if (!confirm('确定重置为默认书签？')) return;
             localStorage.removeItem('userBookmarks');
             pageData.bookmarks = DEFAULT_BOOKMARKS;
@@ -454,6 +456,7 @@
             closeEditModal();
         }
 
+        // ==================== 从导航页选择弹窗 ====================
         function openBookmarkPicker() {
             dom.bookmarkPicker.classList.add('active');
             renderPickerCategories();
@@ -463,6 +466,7 @@
             dom.bookmarkPicker.classList.remove('active');
         }
 
+        // ==================== 编辑列表拖拽排序 ====================
         function initDragSort() {
             let dragSrc = null;
             dom.editList.addEventListener('dragstart', e => {
@@ -497,6 +501,7 @@
             });
         }
 
+        /** 渲染导航页所有分类书签，已存在的标记灰色 + 已存在文字 */
         function renderPickerCategories() {
             const urls = new Set();
             dom.editList.querySelectorAll('.edit-url').forEach(inp => urls.add(inp.value.trim()));
@@ -653,15 +658,16 @@
             document.addEventListener('click', closeDropdown);
             window.addEventListener('blur', closeDropdown);
 
-            // 键盘快捷键：B 切换壁纸，/ 聚焦搜索，Escape 关闭菜单并失焦
+            // 键盘快捷键：任意可打印字符聚焦搜索，Ctrl/Cmd+B 切换壁纸，Escape 失焦
             document.addEventListener('keydown', e => {
+                if ((e.key === 'b' || e.key === 'B') && (e.metaKey || e.ctrlKey) && document.activeElement !== dom.searchInput) { switchBg(); return; }
                 if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
-                if ((e.key === 'b' || e.key === 'B') && document.activeElement !== dom.searchInput) switchBg();
-                if (e.key === '/' && document.activeElement !== dom.searchInput) { e.preventDefault(); dom.searchInput.focus(); }
+                if (e.key.length === 1 && document.activeElement !== dom.searchInput && document.activeElement?.tagName !== 'INPUT') { dom.searchInput.focus(); return; }
                 if (e.key === 'Escape') { closeDropdown(); dom.searchInput.blur(); closeEditModal(); }
             });
         }
 
+        // ==================== 编辑弹窗事件绑定 ====================
         function bindEditEvents() {
             dom.editBookmarksBtn.addEventListener('click', openEditModal);
             dom.closeEditBtn.addEventListener('click', closeEditModal);
@@ -737,7 +743,6 @@
         }
 
         // ==================== 时钟 ====================
-        function updateClock() {
             const n = new Date();
             dom.clock.textContent = `${String(n.getHours()).padStart(2, '0')}:${String(n.getMinutes()).padStart(2, '0')}`;
             dom.date.textContent = n.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
