@@ -1,0 +1,112 @@
+{
+    "bookmarks": [
+        { "name": "GitHub", "url": "https://github.com", "icon": "https://github.com/favicon.ico" },
+        { "name": "Bilibili", "url": "https://www.bilibili.com", "icon": "https://www.bilibili.com/favicon.ico" },
+        { "name": "知乎", "url": "https://www.zhihu.com", "icon": "https://www.zhihu.com/favicon.ico" },
+        { "name": "V2EX", "url": "https://www.v2ex.com", "icon": "https://www.v2ex.com/favicon.ico" },
+        { "name": "YouTube", "url": "https://www.youtube.com", "icon": "https://www.youtube.com/favicon.ico" },
+        { "name": "Twitter", "url": "https://x.com", "icon": "https://x.com/favicon.ico" },
+        { "name": "Reddit", "url": "https://www.reddit.com", "icon": "https://www.reddit.com/favicon.ico" },
+        { "name": "HackerNews", "url": "https://news.ycombinator.com", "icon": "https://news.ycombinator.com/favicon.ico" }
+    ],
+    "categories": [
+        {
+            "name": "开发工具",
+            "icon": "⚡",
+            "bookmarks": [
+                { "name": "GitHub", "url": "https://github.com", "icon": "https://github.com/favicon.ico" },
+                { "name": "Stack Overflow", "url": "https://stackoverflow.com", "icon": "https://stackoverflow.com/favicon.ico" },
+                { "name": "MDN Web Docs", "url": "https://developer.mozilla.org", "icon": "https://developer.mozilla.org/favicon.ico" },
+                { "name": "npm", "url": "https://www.npmjs.com", "icon": "https://www.npmjs.com/favicon.ico" },
+                { "name": "Vercel", "url": "https://vercel.com", "icon": "https://vercel.com/favicon.ico" },
+                { "name": "Netlify", "url": "https://www.netlify.com", "icon": "https://www.netlify.com/favicon.ico" },
+                { "name": "CodePen", "url": "https://codepen.io", "icon": "https://codepen.io/favicon.ico" },
+                { "name": "JSFiddle", "url": "https://jsfiddle.net", "icon": "https://jsfiddle.net/favicon.ico" },
+                { "name": "Can I Use", "url": "https://caniuse.com", "icon": "https://caniuse.com/favicon.ico" },
+                { "name": "DevDocs", "url": "https://devdocs.io", "icon": "https://devdocs.io/favicon.ico" }
+            ]
+        },
+        {
+            "name": "AI 与机器学习",
+            "icon": "🤖",
+            "bookmarks": [
+                { "name": "ChatGPT", "url": "https://chat.openai.com", "icon": "https://chat.openai.com/favicon.ico" },
+                { "name": "Claude", "url": "https://claude.ai", "icon": "https://claude.ai/favicon.ico" },
+                { "name": "Hugging Face", "url": "https://huggingface.co", "icon": "https://huggingface.co/favicon.ico" },
+                { "name": "GitHub Copilot", "url": "https://github.com/features/copilot", "icon": "https://github.com/favicon.ico" },
+                { "name": "Midjourney", "url": "https://www.midjourney.com", "icon": "https://www.midjourney.com/favicon.ico" }
+            ]
+        },
+        {
+            "name": "社交媒体",
+            "icon": "💬",
+            "bookmarks": [
+                { "name": "Twitter / X", "url": "https://x.com", "icon": "https://x.com/favicon.ico" },
+                { "name": "Reddit", "url": "https://www.reddit.com", "icon": "https://www.reddit.com/favicon.ico" },
+                { "name": "V2EX", "url": "https://www.v2ex.com", "icon": "https://www.v2ex.com/favicon.ico" },
+                { "name": "豆瓣", "url": "https://www.douban.com", "icon": "https://www.douban.com/favicon.ico" },
+                { "name": "知乎", "url": "https://www.zhihu.com", "icon": "https://www.zhihu.com/favicon.ico" },
+                { "name": "Telegram Web", "url": "https://web.telegram.org", "icon": "https://web.telegram.org/favicon.ico" },
+                { "name": "Discord", "url": "https://discord.com", "icon": "https://discord.com/favicon.ico" }
+            ]
+        },
+        {
+            "name": "影音娱乐",
+            "icon": "🎬",
+            "bookmarks": [
+                { "name": "YouTube", "url": "https://www.youtube.com", "icon": "https://www.youtube.com/favicon.ico" },
+                { "name": "Bilibili", "url": "https://www.bilibili.com", "icon": "https://www.bilibili.com/favicon.ico" },
+                { "name": "Netflix", "url": "https://www.netflix.com", "icon": "https://www.netflix.com/favicon.ico" },
+                { "name": "Spotify", "url": "https://open.spotify.com", "icon": "https://open.spotify.com/favicon.ico" },
+                { "name": "SoundCloud", "url": "https://soundcloud.com", "icon": "https://soundcloud.com/favicon.ico" },
+                { "name": "Twitch", "url": "https://www.twitch.tv", "icon": "https://www.twitch.tv/favicon.ico" }
+            ]
+        },
+        {
+            "name": "新闻资讯",
+            "icon": "📰",
+            "bookmarks": [
+                { "name": "Hacker News", "url": "https://news.ycombinator.com", "icon": "https://news.ycombinator.com/favicon.ico" },
+                { "name": "Solidot", "url": "https://www.solidot.org", "icon": "https://www.solidot.org/favicon.ico" },
+                { "name": "36氪", "url": "https://36kr.com", "icon": "https://36kr.com/favicon.ico" },
+                { "name": "InfoQ", "url": "https://www.infoq.cn", "icon": "https://www.infoq.cn/favicon.ico" },
+                { "name": "Reuters", "url": "https://www.reuters.com", "icon": "https://www.reuters.com/favicon.ico" }
+            ]
+        },
+        {
+            "name": "设计资源",
+            "icon": "🎨",
+            "bookmarks": [
+                { "name": "Dribbble", "url": "https://dribbble.com", "icon": "https://dribbble.com/favicon.ico" },
+                { "name": "Behance", "url": "https://www.behance.net", "icon": "https://www.behance.net/favicon.ico" },
+                { "name": "Figma", "url": "https://www.figma.com", "icon": "https://www.figma.com/favicon.ico" },
+                { "name": "Unsplash", "url": "https://unsplash.com", "icon": "https://unsplash.com/favicon.ico" },
+                { "name": "Coolors", "url": "https://coolors.co", "icon": "https://coolors.co/favicon.ico" },
+                { "name": "Font Awesome", "url": "https://fontawesome.com", "icon": "https://fontawesome.com/favicon.ico" }
+            ]
+        },
+        {
+            "name": "学习平台",
+            "icon": "📚",
+            "bookmarks": [
+                { "name": "Coursera", "url": "https://www.coursera.org", "icon": "https://www.coursera.org/favicon.ico" },
+                { "name": "Udemy", "url": "https://www.udemy.com", "icon": "https://www.udemy.com/favicon.ico" },
+                { "name": "freeCodeCamp", "url": "https://www.freecodecamp.org", "icon": "https://www.freecodecamp.org/favicon.ico" },
+                { "name": "LeetCode", "url": "https://leetcode.cn", "icon": "https://leetcode.cn/favicon.ico" },
+                { "name": "Roadmap.sh", "url": "https://roadmap.sh", "icon": "https://roadmap.sh/favicon.ico" }
+            ]
+        },
+        {
+            "name": "云服务",
+            "icon": "☁️",
+            "bookmarks": [
+                { "name": "Cloudflare", "url": "https://dash.cloudflare.com", "icon": "https://dash.cloudflare.com/favicon.ico" },
+                { "name": "AWS Console", "url": "https://aws.amazon.com/console", "icon": "https://aws.amazon.com/favicon.ico" },
+                { "name": "Vercel", "url": "https://vercel.com", "icon": "https://vercel.com/favicon.ico" },
+                { "name": "Netlify", "url": "https://www.netlify.com", "icon": "https://www.netlify.com/favicon.ico" },
+                { "name": "Railway", "url": "https://railway.app", "icon": "https://railway.app/favicon.ico" },
+                { "name": "Supabase", "url": "https://supabase.com", "icon": "https://supabase.com/favicon.ico" }
+            ]
+        }
+    ]
+}
