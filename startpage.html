@@ -19,7 +19,7 @@
             --radius: 1.5rem;
             --blur: 24px;
         }
-        body { font-family: 'Nunito', sans-serif; scrollbar-width:none; -ms-overflow-style:none; 
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Nunito', sans-serif; /* 优先 Apple 原生系统字体栈 */ scrollbar-width:none; -ms-overflow-style:none; 
                overflow:hidden; }
         body::-webkit-scrollbar { display:none; }
         * { scrollbar-width:none; -ms-overflow-style:none; }
@@ -31,7 +31,7 @@
             backdrop-filter: blur(var(--blur));
             -webkit-backdrop-filter: blur(var(--blur));
             border: 1px solid var(--glass-border);
-            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+            box-shadow: inset 0 1px 0 0 rgba(255,255,255,0.22), inset 0 -1px 0 0 rgba(255,255,255,0.05), 0 8px 32px rgba(0,0,0,0.2); /* Liquid Glass 1px 物理折射高光 */
             will-change: backdrop-filter;
         }
         .glass-strong {
@@ -39,7 +39,7 @@
             backdrop-filter: blur(40px);
             -webkit-backdrop-filter: blur(40px);
             border: 1px solid rgba(255,255,255,0.2);
-            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            box-shadow: inset 0 1px 0 0 rgba(255,255,255,0.32), inset 0 -1px 0 0 rgba(255,255,255,0.08), 0 8px 32px rgba(0,0,0,0.3); /* Liquid Glass 强物理折射高光 */
             will-change: backdrop-filter;
         }
         /* ===== 组件 ===== */
@@ -122,6 +122,26 @@
             white-space: nowrap;
             border: 0;
         }
+        /* ===== 苹果风格物理按压触感微反馈 (iOS 18 Active Press-down Feedback) ===== */
+        .bookmark-item:active, .nav-bookmark:active {
+            transform: scale(0.95) translateY(0) !important;
+            opacity: 0.85;
+            transition: transform 0.08s ease, opacity 0.08s ease !important;
+        }
+        #engineBtn:active, #searchBtn:active, #editBookmarksBtn:active {
+            transform: scale(0.95);
+            background: rgba(255, 255, 255, 0.18);
+            transition: transform 0.08s ease !important;
+        }
+        .sidebar-item:active {
+            transform: scale(0.97);
+            transition: transform 0.08s ease !important;
+        }
+        button:active {
+            transform: scale(0.96);
+            transition: transform 0.08s ease !important;
+        }
+
     </style>
 </head>
 <body class="bg-cover bg-center bg-no-repeat text-white relative" 
@@ -133,8 +153,8 @@
         <div class="flex flex-col items-center justify-center w-full">
             <!-- 时钟 -->
             <div class="text-center fade-in clock-text mb-10 md:mb-14">
-                <div id="clock" aria-live="polite" aria-atomic="true" class="text-7xl md:text-8xl lg:text-9xl font-light tracking-tight tabular-nums">00:00</div>
-                <div id="date" class="text-sm md:text-base mt-3 text-white/70 font-light tracking-widest uppercase">加载中...</div>
+                <div id="clock" aria-live="polite" aria-atomic="true" class="text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-light tracking-tight tabular-nums">00:00</div>
+                <div id="date" class="text-xs sm:text-sm md:text-base mt-3 text-white/70 font-light tracking-widest uppercase">加载中...</div>
             </div>
 
             <!-- 搜索框 -->
@@ -621,7 +641,7 @@
                    class="bookmark-item flex flex-col items-center justify-center gap-2 p-3 apple-radius text-white/90 hover:text-white">
             <img src="${bm.icon}" class="w-8 h-8 rounded-lg opacity-90" alt="" 
                  onerror="this.remove()">
-                    <span class="text-xs w-full text-center truncate" style="min-width:5em">${bm.name}</span>
+                    <span class="text-[11px] sm:text-xs w-full text-center truncate" style="min-width:5em">${bm.name}</span>
                 </a>
             `).join('');
         }
@@ -652,7 +672,7 @@
                                class="nav-bookmark flex items-center gap-2.5 px-2.5 md:px-3 py-2 md:py-2.5 apple-radius text-white/75 hover:text-white">
                                 <img src="${bm.icon}" class="w-5 h-5 rounded shrink-0" alt=""
                                      onerror="this.remove()">
-                                <span class="text-xs md:text-sm truncate">${bm.name}</span>
+                                <span class="text-[11px] sm:text-xs md:text-sm truncate">${bm.name}</span>
                             </a>
                         `).join('')}
                     </div>
