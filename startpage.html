@@ -7,7 +7,7 @@
     <!-- 页面预检：若上次在导航页，给 <html> 加 .nr 隐藏首屏，避免刷新后闪烁 -->
     <script>try{sessionStorage.getItem('startpage_section')==='nav'&&document.documentElement.classList.add('nr')}catch(e){}</script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@200;300;400;600&display=swap" rel="stylesheet">
     <style>
         /* .nr 模式：隐藏起始页、显示导航页，与上方 inline script 配合防止闪烁 */
         .nr section:first-of-type { display: none; }
@@ -48,7 +48,7 @@
         @keyframes fadeIn { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
         .dropdown-menu { opacity:0; transform:translateY(-10px); pointer-events:none; transition:all 0.2s ease; }
         .dropdown-menu.active { opacity:1; transform:translateY(0); pointer-events:auto; }
-        .clock-text { text-shadow: 0 2px 20px rgba(0,0,0,0.4), 0 0 60px rgba(0,0,0,0.2); }
+        .clock-text { font-family: 'SF Pro Rounded', 'Nunito', -apple-system, BlinkMacSystemFont, sans-serif; text-shadow: 0 2px 20px rgba(0,0,0,0.4), 0 0 60px rgba(0,0,0,0.2); }
         .bookmark-item { transition: all 0.2s ease; }
         .bookmark-item:hover { background: rgba(255,255,255,0.12); transform: translateY(-2px); }
         .nav-bookmark { transition: all 0.15s ease; }
@@ -631,6 +631,14 @@
             preloadNextBg();
             preloadFavicons();
             if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+        }
+
+        // ==================== 苹果风格 Favicon 兜底徽章 (Apple Favicon Badge Fallback) ====================
+        function getFaviconHTML(bm, sizeClass = 'w-8 h-8', textClass = 'text-xs') {
+            const initial = (bm.name || '?').trim().charAt(0).toUpperCase();
+            const fallbackHTML = "<div class=\"" + sizeClass + " rounded-lg bg-white/15 border border-white/20 flex items-center justify-center font-semibold text-white/90 shrink-0 " + textClass + "\">" + initial + "</div>";
+            if (!bm.icon) return fallbackHTML;
+            return "<img src=\"" + bm.icon + "\" class=\"" + sizeClass + " rounded-lg opacity-90 shrink-0\" alt=\"\" onerror=\"this.outerHTML='" + fallbackHTML + "'\">";
         }
 
         // ==================== 书签 ====================
