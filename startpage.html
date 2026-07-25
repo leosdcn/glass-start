@@ -226,13 +226,13 @@
             <!-- 主体：左分类 + 右内容 -->
             <div class="flex-1 flex flex-col sm:flex-row gap-2 md:gap-3 px-3 md:px-4 pb-3 min-h-0">
                 <!-- 分类列表（移动端顶部水平，桌面端左侧垂直） -->
-                <aside id="sidebar" class="sm:w-32 md:w-40 shrink-0 glass apple-radius p-1.5 md:p-2 overflow-y-auto" style="scrollbar-width:none;-ms-overflow-style:none;">
+                <aside id="sidebar" class="sm:w-32 md:w-40 shrink-0 glass apple-radius p-1.5 md:p-2 overflow-y-auto">
                     <nav aria-label="导航分类">
                         <div id="sidebarList" class="flex sm:flex-col gap-0.5"></div>
                     </nav>
                 </aside>
                 <!-- 书签内容 -->
-                <main id="navContent" aria-label="书签内容" class="flex-1 glass apple-radius p-2 md:p-3 overflow-y-auto" style="scrollbar-width:none;-ms-overflow-style:none;">
+                <main id="navContent" aria-label="书签内容" class="flex-1 glass apple-radius p-2 md:p-3 overflow-y-auto">
                     <div id="navCategories"></div>
                 </main>
             </div>
@@ -246,7 +246,7 @@
                 <h3 class="text-base font-medium tracking-wide text-white/80">编辑快捷书签</h3>
                 <button id="closeEditBtn" type="button" aria-label="关闭编辑弹窗" class="p-1 hover:bg-white/10 rounded apple-radius text-white/40 hover:text-white/70 transition">✕</button>
             </div>
-            <div id="editList" role="list" aria-label="书签列表" class="flex-1 overflow-y-auto space-y-1 mb-2 min-h-0" style="scrollbar-width:none;-ms-overflow-style:none;"></div>
+            <div id="editList" role="list" aria-label="书签列表" class="flex-1 overflow-y-auto space-y-1 mb-2 min-h-0"></div>
             <div class="flex flex-col sm:flex-row gap-1.5 shrink-0">
                 <button id="addBookmarkBtn" type="button" class="flex-1 py-1.5 border border-dashed border-white/15 apple-radius text-white/40 hover:text-white/70 hover:border-white/30 transition text-sm">+ 手动输入</button>
                 <button id="togglePickerBtn" type="button" class="flex-1 py-1.5 border border-dashed border-white/15 apple-radius text-sm text-white/40 hover:text-white/70 hover:border-white/30 transition">从导航页选择</button>
@@ -266,7 +266,7 @@
                 <h3 class="text-base font-medium tracking-wide text-white/80">从导航页选择</h3>
                 <button id="closePickerBtn" type="button" aria-label="关闭选择弹窗" class="p-1 hover:bg-white/10 rounded apple-radius text-white/40 hover:text-white/70 transition">✕</button>
             </div>
-            <div id="pickerContent" class="flex-1 overflow-y-auto min-h-0 space-y-3" style="scrollbar-width:none;-ms-overflow-style:none;"></div>
+            <div id="pickerContent" class="flex-1 overflow-y-auto min-h-0 space-y-3"></div>
             <div class="flex items-center justify-between mt-3 pt-2 border-t border-white/10 shrink-0">
                 <span id="pickerCount" class="text-xs text-white/40">已添加 0 项</span>
                 <button id="donePickerBtn" type="button" class="py-2 px-5 bg-white/10 hover:bg-white/20 apple-radius transition text-sm font-medium text-white/90">完成</button>
