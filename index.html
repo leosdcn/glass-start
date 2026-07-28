@@ -4,10 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Glass Start</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🪐</text></svg>">
     <!-- 页面预检：若上次在导航页，给 <html> 加 .nr 隐藏首屏，避免刷新后闪烁 -->
     <script>try{sessionStorage.getItem('startpage_section')==='nav'&&document.documentElement.classList.add('nr')}catch(e){}</script>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@200;300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
     <style>
         /* .nr 模式：隐藏起始页、显示导航页，与上方 inline script 配合防止闪烁 */
         .nr section:first-of-type { display: none; }
@@ -51,22 +51,88 @@
         .clock-text { font-family: 'SF Pro Rounded', 'Nunito', -apple-system, BlinkMacSystemFont, sans-serif; text-shadow: 0 2px 20px rgba(0,0,0,0.4), 0 0 60px rgba(0,0,0,0.2); }
         .bookmark-item { transition: all 0.2s ease; }
         .bookmark-item:hover { background: rgba(255,255,255,0.12); transform: translateY(-2px); }
-        .nav-bookmark { transition: all 0.15s ease; }
-        .nav-bookmark:hover { background: rgba(255,255,255,0.1); }
+        .bookmark-title {
+            font-size: 11.5px;
+            line-height: 1.25;
+            letter-spacing: -0.01em;
+            text-align: center;
+            word-break: break-all;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            max-width: 100%;
+        }
+        @media (min-width: 640px) {
+            .bookmark-title { font-size: 12px; }
+        }
+        /* ===== 图标尺寸严格统一与归一化 =====
+           不同来源的外部 favicon（favicon.im 返回值）原始尺寸参差不齐（16px / 32px / 64px 均有），
+           若不强制统一，会导致书签网格中图标大小不一、垂直对齐混乱。
+           使用 !important 是为了覆盖 Tailwind 工具类可能产生的冲突，确保在任何上下文中尺寸都严格固定。
+           sm（20px）用于导航页列表行，md（32px）用于起始页快捷书签网格。
+        ===== */
+        .icon-box {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            overflow: hidden;
+            border-radius: 6px;
+        }
+        .icon-box-sm {
+            width: 20px !important;
+            height: 20px !important;
+            min-width: 20px !important;
+            min-height: 20px !important;
+            max-width: 20px !important;
+            max-height: 20px !important;
+        }
+        .icon-box-md {
+            width: 32px !important;
+            height: 32px !important;
+            min-width: 32px !important;
+            min-height: 32px !important;
+            max-width: 32px !important;
+            max-height: 32px !important;
+            border-radius: 8px;
+        }
+        .icon-box img {
+            width: 100% !important;
+            height: 100% !important;
+            object-fit: contain !important;
+            display: block;
+        }
+        .nav-bookmark {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+        }
+        .nav-bookmark:hover {
+            background: rgba(255, 255, 255, 0.14);
+            border-color: rgba(255, 255, 255, 0.28);
+            transform: translateY(-2px);
+            box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.3), 0 8px 20px rgba(0, 0, 0, 0.3);
+            color: #fff;
+        }
+        .nav-bookmark img { transition: transform 0.2s ease; }
+        .nav-bookmark:hover img { transform: scale(1.1); }
         .nav-hidden { visibility:hidden; }
         .nav-visible { visibility:visible; }
         .nav-hidden .glass { opacity:0; }
         .nav-visible .glass { animation:navFadeIn 0.6s ease forwards; }
         @keyframes navFadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
         .sidebar-item {
-            transition: all 0.15s ease;
-            border-left: 2px solid transparent;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
         }
-        .sidebar-item:hover { background: rgba(255,255,255,0.08); }
+        .sidebar-item:hover { background: rgba(255,255,255,0.08); color: #fff; }
         .sidebar-item.active {
-            background: rgba(255,255,255,0.12);
-            border-left-color: rgba(255,255,255,0.6);
+            background: rgba(255,255,255,0.16);
             color: #fff;
+            font-weight: 500;
+            box-shadow: inset 0 1px 0 0 rgba(255,255,255,0.22), 0 4px 12px rgba(0,0,0,0.2);
         }
         /* 移动端侧边栏改为顶部水平滚动 */
         @media (max-width: 640px) {
@@ -79,21 +145,26 @@
                 flex-wrap: nowrap !important;
                 gap: 0.25rem !important;
                 padding: 0.5rem !important;
+                -webkit-mask-image: linear-gradient(to right, transparent 0%, black 16px, black calc(100% - 16px), transparent 100%);
+                mask-image: linear-gradient(to right, transparent 0%, black 16px, black calc(100% - 16px), transparent 100%);
             }
             #sidebarList {
                 flex-direction: row !important;
                 flex-wrap: nowrap !important;
-                gap: 0 !important;
+                gap: 0.25rem !important;
             }
             .sidebar-item {
                 border-left: none !important;
-                border-bottom: 2px solid transparent;
                 white-space: nowrap;
-                padding: 0.5rem 0.75rem !important;
+                padding: 0.4rem 0.75rem !important;
+                flex-shrink: 0;
             }
-            .sidebar-item.active {
-                border-left-color: transparent !important;
-                border-bottom-color: rgba(255,255,255,0.6);
+            .sidebar-header {
+                border-bottom: none !important;
+                border-right: 1px solid rgba(255, 255, 255, 0.1);
+                padding: 0.4rem 0.6rem !important;
+                margin-bottom: 0 !important;
+                white-space: nowrap;
             }
         }
         .scroll-hint { animation: bounceDown 2s ease-in-out infinite; }
@@ -141,12 +212,93 @@
             transform: scale(0.96);
             transition: transform 0.08s ease !important;
         }
+        /* ===== group-hover 补全（style.css 为预编译静态文件，未收录这些工具类）===== */
+        /* 编辑按钮：常驻低透明，hover 渐亮 */
+        #editBookmarksBtn { opacity: 0.28; }
+        #editBookmarksBtn:hover { opacity: 1; }
+        /* 导航页书签行悬停时显示右箭头并微移 */
+        .nav-bookmark:hover .group-hover\:opacity-100 { opacity: 1; }
+        .nav-bookmark:hover .group-hover\:translate-x-0\.5 { transform: translateX(0.125rem); }
+        /* ===== 键盘焦点环（:focus-visible 仅对键盘导航生效，鼠标点击不触发）=====
+           遵循 Apple HIG：所有可交互元素必须具备可见焦点状态。
+           使用半透明白色描边+外发光，与玻璃风格保持一致。
+        ===== */
+        :focus-visible {
+            outline: 2px solid rgba(255, 255, 255, 0.55);
+            outline-offset: 3px;
+            border-radius: 8px;
+            box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.08);
+        }
+        /* 输入框用内发光替代 outline，与玻璃边框自然融合 */
+        input:focus-visible {
+            outline: none;
+            border-color: rgba(255, 255, 255, 0.45) !important;
+            box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.12);
+        }
+        /* 搜索框已在玻璃容器内，不需要额外焦点环 */
+        #searchInput:focus-visible {
+            outline: none;
+            box-shadow: none;
+            border-color: transparent !important;
+        }
+        /* ===== 自定义重置确认弹窗（精细化 iOS/macOS 玻璃规范） ===== */
+        .confirm-dialog-card {
+            width: 90% !important;
+            max-width: 360px !important;
+            background: rgba(28, 28, 35, 0.88) !important;
+            backdrop-filter: blur(24px) saturate(180%) !important;
+            -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+            border: 1px solid rgba(255, 255, 255, 0.16) !important;
+            border-radius: 20px !important;
+            padding: 24px 20px 20px 20px !important;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.65) !important;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+        .confirm-dialog-btn-cancel {
+            flex: 1;
+            padding: 10px 16px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            color: rgba(255, 255, 255, 0.75);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .confirm-dialog-btn-cancel:hover {
+            background: rgba(255, 255, 255, 0.15);
+            color: #ffffff;
+        }
+        .confirm-dialog-btn-ok {
+            flex: 1;
+            padding: 10px 16px;
+            border-radius: 12px;
+            background: rgba(239, 68, 68, 0.85);
+            border: 1px solid rgba(248, 113, 113, 0.4);
+            color: #ffffff;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            box-shadow: 0 4px 14px rgba(239, 68, 68, 0.35);
+        }
+        .confirm-dialog-btn-ok:hover {
+            background: rgba(239, 68, 68, 1);
+            box-shadow: 0 6px 20px rgba(239, 68, 68, 0.5);
+        }
 
     </style>
 </head>
-<body class="bg-cover bg-center bg-no-repeat text-white relative" 
-      style="background-color:#1a1a2e;background-image:url('https://images.unsplash.com/photo-1477346611705-65d1883cee1e?q=80&w=2070&auto=format&fit=crop');background-attachment:fixed">
-    <div class="fixed inset-0 bg-black/25 pointer-events-none"></div>
+<body class="text-white relative bg-[#1a1a2e]">
+    <!-- 固定定位背景图层（双层叠加 opacity 过渡，解决 background-image 不可 CSS 插值的问题） -->
+    <div id="bgLayer" class="fixed inset-0 bg-cover bg-center bg-no-repeat -z-10"
+         style="background-image:url('https://images.unsplash.com/photo-1477346611705-65d1883cee1e?q=80&w=2070&auto=format&fit=crop')"></div>
+    <div id="bgLayerNext" class="fixed inset-0 bg-cover bg-center bg-no-repeat -z-10 opacity-0" style="transition:opacity 0.6s ease;"></div>
+    <div class="fixed inset-0 bg-black/25 pointer-events-none z-0"></div>
 
     <!-- ========== 第一屏：起始页 ========== -->
     <section class="relative z-10 min-h-screen flex flex-col items-center justify-center px-4 py-12">
@@ -190,8 +342,8 @@
             </div>
 
             <!-- 快捷书签 -->
-            <div class="w-full max-w-2xl lg:max-w-3xl glass apple-radius p-4 pr-11 fade-in mb-6 md:mb-8 relative group" style="animation-delay:0.2s">
-                <button id="editBookmarksBtn" type="button" aria-label="编辑书签" class="absolute top-2 right-2 p-1.5 apple-radius text-white/40 hover:text-white hover:bg-white/10 transition opacity-0 hover:opacity-100 text-xs">
+            <div class="w-full max-w-2xl lg:max-w-3xl glass apple-radius p-4 sm:p-5 fade-in mb-6 md:mb-8 relative group" style="animation-delay:0.2s">
+                <button id="editBookmarksBtn" type="button" aria-label="编辑书签" class="absolute top-2 right-2 p-1.5 apple-radius text-white/40 hover:text-white hover:bg-white/10 transition text-xs">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                 </button>
                 <nav aria-label="快捷书签">
@@ -212,35 +364,42 @@
 
     <!-- ========== 第二屏：导航页 ========== -->
     <section id="navSection" class="relative z-10 h-screen nav-hidden overflow-hidden">
-        <div class="h-full flex flex-col pt-8 md:pt-10">
-            <!-- 标题 -->
-            <div class="text-center shrink-0 px-4">
-                <h2 class="text-base md:text-lg font-light tracking-wider">🪐 导航</h2>
-                <p class="text-[10px] text-white/40 mt-0.5 tracking-wide">发现更多精彩网站</p>
-            </div>
-            <!-- 向上返回提示 -->
-            <div id="navHint" class="flex items-center justify-center gap-0.5 py-1 text-white/15 text-[9px] tracking-widest shrink-0 pointer-events-none">
-                <svg class="w-2.5 h-2.5 scroll-hint" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/></svg>
-                <span>向上滚动返回</span>
-            </div>
-            <!-- 主体：左分类 + 右内容 -->
-            <div class="flex-1 flex flex-col sm:flex-row gap-2 md:gap-3 px-3 md:px-4 pb-3 min-h-0">
-                <!-- 分类列表（移动端顶部水平，桌面端左侧垂直） -->
-                <aside id="sidebar" class="sm:w-32 md:w-40 shrink-0 glass apple-radius p-1.5 md:p-2 overflow-y-auto">
-                    <nav aria-label="导航分类">
-                        <div id="sidebarList" class="flex sm:flex-col gap-0.5"></div>
-                    </nav>
-                </aside>
-                <!-- 书签内容 -->
-                <main id="navContent" aria-label="书签内容" class="flex-1 glass apple-radius p-2 md:p-3 overflow-y-auto">
-                    <div id="navCategories"></div>
-                </main>
+        <div class="h-full flex flex-col py-3 md:py-5 px-3 md:px-6 max-w-7xl mx-auto w-full">
+            <!-- 主体：一体化 Liquid Glass 窗口框架 -->
+            <div class="flex-1 glass apple-radius flex flex-col overflow-hidden min-h-0 border border-white/20 shadow-2xl">
+                <!-- 窗口顶部 Header 栏 -->
+                <div class="flex items-center justify-between px-4 py-2.5 border-b border-white/10 bg-black/20 shrink-0">
+                    <div class="flex items-center gap-2">
+                        <span class="text-base">🪐</span>
+                        <h2 class="text-xs sm:text-sm font-semibold tracking-wide text-white/90">导航</h2>
+                        <span class="text-[10px] text-white/40 tracking-wide hidden sm:inline ml-1">发现更多精彩网站</span>
+                    </div>
+                    <!-- 右侧返回提示 -->
+                    <div id="navHint" class="flex items-center gap-1.5 text-white/40 text-[10px] tracking-wider pointer-events-none bg-white/5 border border-white/10 px-2.5 py-1 apple-radius">
+                        <svg class="w-3 h-3 scroll-hint shrink-0 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/></svg>
+                        <span>向上滚动返回</span>
+                    </div>
+                </div>
+
+                <!-- 下方主体：左侧分类 + 右侧书签 -->
+                <div class="flex-1 flex flex-col sm:flex-row overflow-hidden min-h-0">
+                    <!-- 侧边栏（移动端顶部水平，桌面端左侧垂直） -->
+                    <aside id="sidebar" class="sm:w-36 md:w-44 shrink-0 p-2 overflow-y-auto border-b sm:border-b-0 sm:border-r border-white/10 bg-black/10">
+                        <nav aria-label="导航分类">
+                            <div id="sidebarList" class="flex sm:flex-col gap-1"></div>
+                        </nav>
+                    </aside>
+                    <!-- 主书签内容区 -->
+                    <main id="navContent" aria-label="书签内容" class="flex-1 p-3 md:p-5 overflow-y-auto relative scroll-smooth">
+                        <div id="navCategories" class="space-y-6 md:space-y-8"></div>
+                    </main>
+                </div>
             </div>
         </div>
     </section>
 
     <!-- 编辑书签弹窗 -->
-    <div id="editModal" role="dialog" aria-modal="true" aria-label="编辑快捷书签" class="edit-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+    <div id="editModal" role="dialog" aria-modal="true" aria-label="编辑快捷书签" class="edit-overlay fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm" style="z-index: 1000;">
         <div class="glass-strong apple-radius pt-4 pb-3 px-4 w-full max-w-xl mx-4 max-h-[90vh] flex flex-col shadow-2xl" onclick="event.stopPropagation()">
             <div class="flex items-center justify-between mb-2 pb-1.5 border-b border-white/10 shrink-0">
                 <h3 class="text-base font-medium tracking-wide text-white/80">编辑快捷书签</h3>
@@ -260,7 +419,7 @@
     </div>
 
     <!-- 从导航页选择弹窗 -->
-    <div id="bookmarkPicker" role="dialog" aria-modal="true" aria-label="从导航页选择书签" class="edit-overlay fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+    <div id="bookmarkPicker" role="dialog" aria-modal="true" aria-label="从导航页选择书签" class="edit-overlay fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm" style="z-index: 2000;">
         <div class="glass-strong apple-radius pt-4 pb-3 px-4 w-full max-w-2xl mx-4 max-h-[85vh] flex flex-col shadow-2xl" onclick="event.stopPropagation()">
             <div class="flex items-center justify-between mb-2 pb-1.5 border-b border-white/10 shrink-0">
                 <h3 class="text-base font-medium tracking-wide text-white/80">从导航页选择</h3>
@@ -270,6 +429,24 @@
             <div class="flex items-center justify-between mt-3 pt-2 border-t border-white/10 shrink-0">
                 <span id="pickerCount" class="text-xs text-white/40">已添加 0 项</span>
                 <button id="donePickerBtn" type="button" class="py-2 px-5 bg-white/10 hover:bg-white/20 apple-radius transition text-sm font-medium text-white/90">完成</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 自定义确认弹窗（替代原生 confirm()，保持玻璃风格一致） -->
+    <div id="confirmModal" role="alertdialog" aria-modal="true" aria-labelledby="confirmTitle"
+         class="edit-overlay fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-md" style="z-index: 9999;">
+        <div class="confirm-dialog-card" onclick="event.stopPropagation()">
+            <div style="width: 44px; height: 44px; border-radius: 50%; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); display: flex; align-items: center; justify-content: center; margin-bottom: 12px; color: #f87171; flex-shrink: 0;">
+                <svg style="width: 22px; height: 22px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                </svg>
+            </div>
+            <h3 id="confirmTitle" style="font-size: 15px; font-weight: 600; color: rgba(255,255,255,0.92); margin-bottom: 6px;">重置快捷书签</h3>
+            <p id="confirmMsg" style="font-size: 12px; line-height: 1.5; color: rgba(255,255,255,0.65); margin-bottom: 20px;"></p>
+            <div style="display: flex; gap: 10px; width: 100%;">
+                <button id="confirmCancelBtn" type="button" class="confirm-dialog-btn-cancel">取消</button>
+                <button id="confirmOkBtn" type="button" class="confirm-dialog-btn-ok">确认重置</button>
             </div>
         </div>
     </div>
@@ -285,118 +462,137 @@
          *   搜索引擎切换 — 引擎选择下拉 + 搜索跳转
          *   壁纸切换    — 快捷键 B 轮播背景
          *   存储工具    — localStorage（偏好引擎）/ sessionStorage（当前屏）
-         * @typedef {{ name:string, url:string, icon:string }} Bookmark
+         * @typedef {{ name:string, url:string, icon:string, desc?:string }} Bookmark
          * @typedef {{ name:string, icon:string, bookmarks:Bookmark[] }} Category
          * @typedef {{ name:string, icon:string, url:string }} EngineConfig
+         *
+         * 📌 导航页书签简短介绍副标题 (desc) 编写规范：
+         * 1. 字数限制：推荐控制在 6 ~ 10 个中文字符以内（或 12 ~ 20 个英文字符以内）。
+         * 2. 布局特性：在导航页卡片标题下方展示，超出字数会在移动端/小屏自动截断 (`truncate`)。
+         * 3. 内容准则：精准概括网站核心定位，避免冗余修饰词（如重叠动词、多余连词）。
          */
 
-        // ==================== 书签配置（在此自定义）====================
-        // ==================== 默认书签（外部 bookmarks.json 加载失败时使用）====================
+        // ==================== 默认书签（外部 bookmarks.json 加载失败 / file:// 本地运行时使用）====================
         const DEFAULT_BOOKMARKS = [
             { name: '微信', url: 'https://web.wechat.com/?lang=zh_CN', icon: 'https://favicon.im/web.wechat.com' },
+            { name: '微博', url: 'https://weibo.com', icon: 'https://favicon.im/weibo.com' },
+            { name: '豆包', url: 'https://www.doubao.com', icon: 'https://favicon.im/doubao.com' },
+            { name: 'DeepSeek', url: 'https://chat.deepseek.com', icon: 'https://favicon.im/chat.deepseek.com' },
             { name: '哔哩哔哩', url: 'https://www.bilibili.com', icon: 'https://favicon.im/bilibili.com' },
             { name: '抖音', url: 'https://www.douyin.com', icon: 'https://favicon.im/douyin.com' },
-            { name: '豆包', url: 'https://www.doubao.com', icon: 'https://favicon.im/doubao.com' },
-            { name: '微博', url: 'https://weibo.com', icon: 'https://favicon.im/weibo.com' },
+            { name: '中国天气网', url: 'https://www.weather.com.cn', icon: 'https://favicon.im/weather.com.cn' },
             { name: '网易云音乐', url: 'https://music.163.com', icon: 'https://favicon.im/music.163.com' },
-            { name: '豆瓣', url: 'https://www.douban.com', icon: 'https://favicon.im/douban.com' },
-            { name: '飞书', url: 'https://www.feishu.cn', icon: 'https://favicon.im/feishu.cn' },
         ];
 
         const DEFAULT_CATEGORIES = [
             {
+                name: '人工智能', icon: '🤖',
+                bookmarks: [
+                    { name: 'ChatGPT', url: 'https://chat.openai.com', icon: 'https://favicon.im/chat.openai.com', desc: '全球领先AI对话模型' },
+                    { name: 'Claude', url: 'https://claude.ai', icon: 'https://favicon.im/claude.ai', desc: 'Anthropic深度AI助手' },
+                    { name: 'DeepSeek', url: 'https://chat.deepseek.com', icon: 'https://favicon.im/chat.deepseek.com', desc: '深度求索国产硬核AI' },
+                    { name: 'Gemini', url: 'https://gemini.google.com', icon: 'https://favicon.im/gemini.google.com', desc: 'Google前沿多模态AI' },
+                    { name: 'GitHub Copilot', url: 'https://github.com/features/copilot', icon: 'https://favicon.im/github.com', desc: '代码自动补全与AI编程' },
+                    { name: 'Hugging Face', url: 'https://huggingface.co', icon: 'https://favicon.im/huggingface.co', desc: '开源AI模型与数据集' },
+                    { name: 'Kimi', url: 'https://kimi.moonshot.cn', icon: 'https://favicon.im/kimi.moonshot.cn', desc: '月之暗面长文本AI助手' },
+                    { name: 'Midjourney', url: 'https://www.midjourney.com', icon: 'https://favicon.im/midjourney.com', desc: 'AI图像生成与艺术创作' },
+                    { name: 'Perplexity', url: 'https://www.perplexity.ai', icon: 'https://favicon.im/perplexity.ai', desc: 'AI驱动知识问答引擎' },
+                    { name: '豆包', url: 'https://www.doubao.com', icon: 'https://favicon.im/doubao.com', desc: '字节跳动AI智能助手' },
+                ]
+            },
+            {
                 name: '开发工具', icon: '⚡',
                 bookmarks: [
-                    { name: 'GitHub', url: 'https://github.com', icon: 'https://favicon.im/github.com' },
-                    { name: 'Stack Overflow', url: 'https://stackoverflow.com', icon: 'https://favicon.im/stackoverflow.com' },
-                    { name: 'MDN Web Docs', url: 'https://developer.mozilla.org', icon: 'https://favicon.im/developer.mozilla.org' },
-                    { name: 'npm', url: 'https://www.npmjs.com', icon: 'https://favicon.im/npmjs.com' },
-                    { name: 'Vercel', url: 'https://vercel.com', icon: 'https://favicon.im/vercel.com' },
-                    { name: 'Netlify', url: 'https://www.netlify.com', icon: 'https://favicon.im/netlify.com' },
-                    { name: 'CodePen', url: 'https://codepen.io', icon: 'https://favicon.im/codepen.io' },
-                    { name: 'JSFiddle', url: 'https://jsfiddle.net', icon: 'https://favicon.im/jsfiddle.net' },
-                    { name: 'Can I Use', url: 'https://caniuse.com', icon: 'https://favicon.im/caniuse.com' },
-                    { name: 'DevDocs', url: 'https://devdocs.io', icon: 'https://favicon.im/devdocs.io' },
+                    { name: 'Can I Use', url: 'https://caniuse.com', icon: 'https://favicon.im/caniuse.com', desc: '前端特性兼容性查询' },
+                    { name: 'CodePen', url: 'https://codepen.io', icon: 'https://favicon.im/codepen.io', desc: '前端代码在线演示与创作' },
+                    { name: 'DevDocs', url: 'https://devdocs.io', icon: 'https://favicon.im/devdocs.io', desc: '离线开发者API文档库' },
+                    { name: 'GitHub', url: 'https://github.com', icon: 'https://favicon.im/github.com', desc: '全球最大开源代码托管' },
+                    { name: 'JSFiddle', url: 'https://jsfiddle.net', icon: 'https://favicon.im/jsfiddle.net', desc: '在线前端代码调试沙盒' },
+                    { name: 'MDN Web Docs', url: 'https://developer.mozilla.org', icon: 'https://favicon.im/developer.mozilla.org', desc: '权威Web前端开发文档' },
+                    { name: 'npm', url: 'https://www.npmjs.com', icon: 'https://favicon.im/npmjs.com', desc: 'Node.js官方包管理器' },
+                    { name: 'Stack Overflow', url: 'https://stackoverflow.com', icon: 'https://favicon.im/stackoverflow.com', desc: '全球开发者问答社区' },
+                    { name: 'v0.dev', url: 'https://v0.dev', icon: 'https://favicon.im/v0.dev', desc: 'Vercel生成式UI构建' },
                 ]
             },
             {
-                name: 'AI 与机器学习', icon: '🤖',
+                name: '云端服务', icon: '☁️',
                 bookmarks: [
-                    { name: 'ChatGPT', url: 'https://chat.openai.com', icon: 'https://favicon.im/chat.openai.com' },
-                    { name: 'Claude', url: 'https://claude.ai', icon: 'https://favicon.im/claude.ai' },
-                    { name: 'Hugging Face', url: 'https://huggingface.co', icon: 'https://favicon.im/huggingface.co' },
-                    { name: 'GitHub Copilot', url: 'https://github.com/features/copilot', icon: 'https://favicon.im/github.com' },
-                    { name: 'Midjourney', url: 'https://www.midjourney.com', icon: 'https://favicon.im/midjourney.com' },
+                    { name: 'AWS Console', url: 'https://aws.amazon.com/console', icon: 'https://favicon.im/amazonaws.com', desc: 'AWS云服务管理控制台' },
+                    { name: 'Cloudflare', url: 'https://dash.cloudflare.com', icon: 'https://favicon.im/cloudflare.com', desc: '全球网络安全与CDN' },
+                    { name: 'Netlify', url: 'https://www.netlify.com', icon: 'https://favicon.im/netlify.com', desc: '现代化前端自动化部署' },
+                    { name: 'Railway', url: 'https://railway.app', icon: 'https://favicon.im/railway.app', desc: '云端极速应用部署平台' },
+                    { name: 'Supabase', url: 'https://supabase.com', icon: 'https://favicon.im/supabase.com', desc: '开源BaaS后端云服务' },
+                    { name: 'Vercel', url: 'https://vercel.com', icon: 'https://favicon.im/vercel.com', desc: '前端全栈极速部署' },
                 ]
             },
             {
-                name: '社交媒体', icon: '💬',
+                name: '效率办公', icon: '📝',
                 bookmarks: [
-                    { name: 'Twitter / X', url: 'https://x.com', icon: 'https://favicon.im/twitter.com' },
-                    { name: 'Reddit', url: 'https://www.reddit.com', icon: 'https://favicon.im/reddit.com' },
-                    { name: 'V2EX', url: 'https://www.v2ex.com', icon: 'https://favicon.im/v2ex.com' },
-                    { name: '豆瓣', url: 'https://www.douban.com', icon: 'https://favicon.im/douban.com' },
-                    { name: '知乎', url: 'https://www.zhihu.com', icon: 'https://favicon.im/zhihu.com' },
-                    { name: 'Telegram Web', url: 'https://web.telegram.org', icon: 'https://favicon.im/web.telegram.org' },
-                    { name: 'Discord', url: 'https://discord.com', icon: 'https://favicon.im/discord.com' },
+                    { name: 'Excalidraw', url: 'https://excalidraw.com', icon: 'https://favicon.im/excalidraw.com', desc: '手绘风格在线协作白板' },
+                    { name: 'Flomo', url: 'https://flomoapp.com', icon: 'https://favicon.im/flomoapp.com', desc: '卡片式无压力笔记工具' },
+                    { name: 'Google Drive', url: 'https://drive.google.com', icon: 'https://favicon.im/drive.google.com', desc: '谷歌云端硬盘与文档' },
+                    { name: 'Notion', url: 'https://www.notion.so', icon: 'https://favicon.im/notion.so', desc: '一体化笔记与知识库' },
+                    { name: 'ProcessOn', url: 'https://www.processon.com', icon: 'https://favicon.im/processon.com', desc: '在线流程图与思维导图' },
+                    { name: '飞书', url: 'https://www.feishu.cn', icon: 'https://favicon.im/feishu.cn', desc: '先进企业协同办公平台' },
+                ]
+            },
+            {
+                name: '设计灵感', icon: '🎨',
+                bookmarks: [
+                    { name: 'Behance', url: 'https://www.behance.net', icon: 'https://favicon.im/behance.net', desc: '全球设计作品展示社区' },
+                    { name: 'Coolors', url: 'https://coolors.co', icon: 'https://favicon.im/coolors.co', desc: '极速配色方案在线生成' },
+                    { name: 'Dribbble', url: 'https://dribbble.com', icon: 'https://favicon.im/dribbble.com', desc: '设计师作品交流与灵感' },
+                    { name: 'Figma', url: 'https://www.figma.com', icon: 'https://favicon.im/figma.com', desc: '云端协同UI设计工具' },
+                    { name: 'Font Awesome', url: 'https://fontawesome.com', icon: 'https://favicon.im/fontawesome.com', desc: '经典Web矢量图标字体' },
+                    { name: 'Lucide Icons', url: 'https://lucide.dev', icon: 'https://favicon.im/lucide.dev', desc: '现代极简矢量图标库' },
+                    { name: 'Unsplash', url: 'https://unsplash.com', icon: 'https://favicon.im/unsplash.com', desc: '免费高质量无版权图库' },
+                ]
+            },
+            {
+                name: '社区社交', icon: '💬',
+                bookmarks: [
+                    { name: 'Discord', url: 'https://discord.com', icon: 'https://favicon.im/discord.com', desc: '游戏与开发者实时语音' },
+                    { name: 'Reddit', url: 'https://www.reddit.com', icon: 'https://favicon.im/reddit.com', desc: '全球热门话题与社区讨论' },
+                    { name: 'Telegram Web', url: 'https://web.telegram.org', icon: 'https://favicon.im/web.telegram.org', desc: '高隐私加密即时通讯' },
+                    { name: 'Twitter / X', url: 'https://x.com', icon: 'https://favicon.im/twitter.com', desc: '全球实时动态与热点' },
+                    { name: 'V2EX', url: 'https://www.v2ex.com', icon: 'https://favicon.im/v2ex.com', desc: '创意工作者与程序员社区' },
+                    { name: '微博', url: 'https://weibo.com', icon: 'https://favicon.im/weibo.com', desc: '国内热点社交媒体平台' },
+                    { name: '豆瓣', url: 'https://www.douban.com', icon: 'https://favicon.im/douban.com', desc: '图书电影音乐评分社区' },
+                    { name: '微信', url: 'https://web.wechat.com/?lang=zh_CN', icon: 'https://favicon.im/web.wechat.com', desc: '即时通讯与社交平台' },
+                    { name: '知乎', url: 'https://www.zhihu.com', icon: 'https://favicon.im/zhihu.com', desc: '知识问答与深度讨论' },
                 ]
             },
             {
                 name: '影音娱乐', icon: '🎬',
                 bookmarks: [
-                    { name: 'YouTube', url: 'https://www.youtube.com', icon: 'https://favicon.im/youtube.com' },
-                    { name: 'Bilibili', url: 'https://www.bilibili.com', icon: 'https://favicon.im/bilibili.com' },
-                    { name: 'Netflix', url: 'https://www.netflix.com', icon: 'https://favicon.im/netflix.com' },
-                    { name: 'Spotify', url: 'https://open.spotify.com', icon: 'https://favicon.im/spotify.com' },
-                    { name: 'SoundCloud', url: 'https://soundcloud.com', icon: 'https://favicon.im/soundcloud.com' },
-                    { name: 'Twitch', url: 'https://www.twitch.tv', icon: 'https://favicon.im/twitch.tv' },
+                    { name: 'Bilibili', url: 'https://www.bilibili.com', icon: 'https://favicon.im/bilibili.com', desc: '弹幕视频与文化社区' },
+                    { name: 'Netflix', url: 'https://www.netflix.com', icon: 'https://favicon.im/netflix.com', desc: '全球流媒体影视平台' },
+                    { name: 'SoundCloud', url: 'https://soundcloud.com', icon: 'https://favicon.im/soundcloud.com', desc: '独立音乐与音频分享' },
+                    { name: 'Spotify', url: 'https://open.spotify.com', icon: 'https://favicon.im/spotify.com', desc: '全球流行音乐流媒体' },
+                    { name: 'Twitch', url: 'https://www.twitch.tv', icon: 'https://favicon.im/twitch.tv', desc: '全球游戏与实况直播' },
+                    { name: 'YouTube', url: 'https://www.youtube.com', icon: 'https://favicon.im/youtube.com', desc: '全球最大视频分享平台' },
+                    { name: '抖音', url: 'https://www.douyin.com', icon: 'https://favicon.im/douyin.com', desc: '短视频与记录美好生活' },
+                    { name: '网易云音乐', url: 'https://music.163.com', icon: 'https://favicon.im/music.163.com', desc: '发现好音乐与听歌社区' },
                 ]
             },
             {
-                name: '新闻资讯', icon: '📰',
+                name: '资讯学习', icon: '📰',
                 bookmarks: [
-                    { name: 'Hacker News', url: 'https://news.ycombinator.com', icon: 'https://favicon.im/news.ycombinator.com' },
-                    { name: 'Solidot', url: 'https://www.solidot.org', icon: 'https://favicon.im/solidot.org' },
-                    { name: '36氪', url: 'https://36kr.com', icon: 'https://favicon.im/36kr.com' },
-                    { name: 'InfoQ', url: 'https://www.infoq.cn', icon: 'https://favicon.im/infoq.cn' },
-                    { name: 'Reuters', url: 'https://www.reuters.com', icon: 'https://favicon.im/reuters.com' },
-                ]
-            },
-            {
-                name: '设计资源', icon: '🎨',
-                bookmarks: [
-                    { name: 'Dribbble', url: 'https://dribbble.com', icon: 'https://favicon.im/dribbble.com' },
-                    { name: 'Behance', url: 'https://www.behance.net', icon: 'https://favicon.im/behance.net' },
-                    { name: 'Figma', url: 'https://www.figma.com', icon: 'https://favicon.im/figma.com' },
-                    { name: 'Unsplash', url: 'https://unsplash.com', icon: 'https://favicon.im/unsplash.com' },
-                    { name: 'Coolors', url: 'https://coolors.co', icon: 'https://favicon.im/coolors.co' },
-                    { name: 'Font Awesome', url: 'https://fontawesome.com', icon: 'https://favicon.im/fontawesome.com' },
-                ]
-            },
-            {
-                name: '学习平台', icon: '📚',
-                bookmarks: [
-                    { name: 'Coursera', url: 'https://www.coursera.org', icon: 'https://favicon.im/coursera.org' },
-                    { name: 'Udemy', url: 'https://www.udemy.com', icon: 'https://favicon.im/udemy.com' },
-                    { name: 'freeCodeCamp', url: 'https://www.freecodecamp.org', icon: 'https://favicon.im/freecodecamp.org' },
-                    { name: 'LeetCode', url: 'https://leetcode.cn', icon: 'https://favicon.im/leetcode.cn' },
-                    { name: 'Roadmap.sh', url: 'https://roadmap.sh', icon: 'https://favicon.im/roadmap.sh' },
-                ]
-            },
-            {
-                name: '云服务', icon: '☁️',
-                bookmarks: [
-                    { name: 'Cloudflare', url: 'https://dash.cloudflare.com', icon: 'https://favicon.im/cloudflare.com' },
-                    { name: 'AWS Console', url: 'https://aws.amazon.com/console', icon: 'https://favicon.im/amazonaws.com' },
-                    { name: 'Vercel', url: 'https://vercel.com', icon: 'https://favicon.im/vercel.com' },
-                    { name: 'Netlify', url: 'https://www.netlify.com', icon: 'https://favicon.im/netlify.com' },
-                    { name: 'Railway', url: 'https://railway.app', icon: 'https://favicon.im/railway.app' },
-                    { name: 'Supabase', url: 'https://supabase.com', icon: 'https://favicon.im/supabase.com' },
+                    { name: 'Coursera', url: 'https://www.coursera.org', icon: 'https://favicon.im/coursera.org', desc: '在线课程与学术学习' },
+                    { name: 'freeCodeCamp', url: 'https://www.freecodecamp.org', icon: 'https://favicon.im/freecodecamp.org', desc: '免费编程实战与学习' },
+                    { name: 'Hacker News', url: 'https://news.ycombinator.com', icon: 'https://favicon.im/news.ycombinator.com', desc: '全球极客与技术前沿' },
+                    { name: 'Nature', url: 'https://www.nature.com', icon: 'https://favicon.im/nature.com', desc: '全球顶尖科学期刊' },
+                    { name: 'OMG! Ubuntu', url: 'https://www.omgubuntu.co.uk', icon: 'https://favicon.im/omgubuntu.co.uk', desc: 'Ubuntu与Linux硬核资讯' },
+                    { name: 'Roadmap.sh', url: 'https://roadmap.sh', icon: 'https://favicon.im/roadmap.sh', desc: '开发者技术路线图指南' },
+                    { name: 'Solidot', url: 'https://www.solidot.org', icon: 'https://favicon.im/solidot.org', desc: '奇客科技与开源新闻' },
+                    { name: '维基百科', url: 'https://zh.wikipedia.org', icon: 'https://favicon.im/wikipedia.org', desc: '自由的百科全书' },
+                    { name: '中国天气网', url: 'https://www.weather.com.cn', icon: 'https://favicon.im/weather.com.cn', desc: '权威天气预报与气象' },
                 ]
             },
         ];
 
-        let pageData = { bookmarks: DEFAULT_BOOKMARKS, categories: DEFAULT_CATEGORIES };
+        let initialBookmarks = DEFAULT_BOOKMARKS.map(bm => ({ ...bm }));
+        let pageData = { bookmarks: DEFAULT_BOOKMARKS.map(bm => ({ ...bm })), categories: DEFAULT_CATEGORIES };
 
         // ==================== 配置 ====================
         const engines = {
@@ -418,7 +614,13 @@
 
         // ==================== 状态与 DOM 缓存 ====================
         const dom = {};
-        const state = { engine: 'bing', bg: 0, open: false, editOpen: false };
+        const state = {
+            engine: 'bing',          // 当前激活的搜索引擎 key，对应 engines 对象的键名
+            bg: 0,                   // 当前壁纸在 backgrounds 数组中的索引
+            open: false,             // 搜索引擎下拉菜单是否展开
+            editOpen: false,         // 编辑书签弹窗是否打开（用于屏蔽滚轮切屏与键盘快捷键）
+            currentSection: 'start'  // 当前可见屏：'start'（起始页）或 'nav'（导航页）
+        };
 
         function $(id) { return document.getElementById(id); } // DOM 快捷获取
 
@@ -436,15 +638,12 @@
             try { localStorage.setItem(key, JSON.stringify(value)); return true; } catch { return false; }
         }
 
-        // ==================== 网络请求 ====================
-        /** 带超时的 fetch（未使用，保留以备扩展）
-         * @param {string} url
-         * @param {RequestInit} [options]
-         * @param {number} [timeout] */
-        function fetchWithTimeout(url, options = {}, timeout = 5000) {
-            const controller = new AbortController();
-            const id = setTimeout(() => controller.abort(), timeout);
-            return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(id));
+        // ==================== 安全工具 ====================
+        /** 仅允许 http/https 协议的 URL，拦截 javascript: 等恶意协议
+         * @param {string} url @returns {string} */
+        function safeUrl(url) {
+            const u = (url || '').trim();
+            return /^https?:\/\//i.test(u) ? escapeHtml(u) : '#';
         }
 
         // ==================== 数据加载 ====================
@@ -457,7 +656,10 @@
                 const res = await fetch('bookmarks.json');
                 if (res.ok) {
                     const data = await res.json();
-                    if (data.bookmarks) pageData.bookmarks = data.bookmarks;
+                    if (data.bookmarks) {
+                        pageData.bookmarks = data.bookmarks.map(bm => ({ ...bm }));
+                        initialBookmarks = data.bookmarks.map(bm => ({ ...bm }));
+                    }
                     if (data.categories) pageData.categories = data.categories;
                 }
             } catch {}
@@ -471,19 +673,49 @@
             }
         }
 
+        /**
+         * 规范化用户输入的 URL：去除首尾空格，若缺少协议头则自动补 https://
+         * 用于编辑弹窗保存时处理用户输入的裸域名（如 "github.com"）
+         * @param {string} url
+         * @returns {string} 规范化后的 URL，空输入返回 ''
+         */
+        function normalizeUrl(url) {
+            url = (url || '').trim();
+            if (!url) return '';
+            if (!/^https?:\/\//i.test(url)) {
+                return 'https://' + url;
+            }
+            return url;
+        }
+
+        /**
+         * 将字符串中的 HTML 特殊字符转义为实体，防止 XSS
+         * 用于所有将外部/用户数据插入 innerHTML 模板的场景
+         * @param {string} str
+         * @returns {string} HTML 转义后的安全字符串
+         */
         function escapeHtml(str) {
             return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
         }
 
+        /**
+         * 根据书签 URL 自动推断其 favicon 地址（通过 favicon.im 服务）
+         * 在编辑弹窗保存时，为没有手动指定 icon 的书签自动生成图标 URL
+         * @param {string} url - 书签的目标 URL
+         * @returns {string} favicon.im 代理地址，URL 解析失败时返回 ''
+         */
         function faviconFromUrl(url) {
-            try { return 'https://favicon.im/' + new URL(url).hostname; } catch { return ''; }
+            const normalized = normalizeUrl(url);
+            try { return 'https://favicon.im/' + new URL(normalized).hostname; } catch { return ''; }
         }
 
         // ==================== 编辑快捷书签弹窗 ====================
         function renderEditList() {
             dom.editList.innerHTML = pageData.bookmarks.map((bm, i) => `
-                <div class="flex items-center gap-1.5 p-1.5 apple-radius hover:bg-white/5" draggable="true" data-idx="${i}">
-                    <svg class="w-3.5 h-3.5 shrink-0 text-white/20" viewBox="0 0 16 16" fill="currentColor"><circle cx="5" cy="4" r="1.5"/><circle cx="11" cy="4" r="1.5"/><circle cx="5" cy="8" r="1.5"/><circle cx="11" cy="8" r="1.5"/><circle cx="5" cy="12" r="1.5"/><circle cx="11" cy="12" r="1.5"/></svg>
+                <div class="flex items-center gap-1.5 p-1.5 apple-radius hover:bg-white/5" data-idx="${i}">
+                    <div class="drag-handle p-1 shrink-0 text-white/20 hover:text-white/60 cursor-grab active:cursor-grabbing" draggable="true" title="拖拽排序">
+                        <svg class="w-3.5 h-3.5 pointer-events-none" viewBox="0 0 16 16" fill="currentColor"><circle cx="5" cy="4" r="1.5"/><circle cx="11" cy="4" r="1.5"/><circle cx="5" cy="8" r="1.5"/><circle cx="11" cy="8" r="1.5"/><circle cx="5" cy="12" r="1.5"/><circle cx="11" cy="12" r="1.5"/></svg>
+                    </div>
                     <input type="text" class="edit-name flex-1 bg-white/5 border border-white/10 rounded px-2 py-1.5 text-sm text-white/80 outline-none focus:border-white/30 transition" value="${escapeHtml(bm.name)}" placeholder="名称">
                     <input type="text" class="edit-url flex-[2] bg-white/5 border border-white/10 rounded px-2 py-1.5 text-sm text-white/80 outline-none focus:border-white/30 transition" value="${escapeHtml(bm.url)}" placeholder="URL">
                     <button type="button" class="del-btn shrink-0 p-1.5 hover:bg-white/10 rounded apple-radius text-white/30 hover:text-red-400 transition">
@@ -493,12 +725,19 @@
             `).join('');
         }
 
+        /**
+         * 从编辑弹窗的 DOM 列表中读取当前所有书签条目
+         * 遍历每行的名称/URL 输入框，过滤掉名称或 URL 为空的无效行，
+         * 并自动为每条记录生成 icon（取目标域名的 favicon）
+         * @returns {Bookmark[]} 书签对象数组，可直接写入 pageData.bookmarks
+         */
         function collectEditData() {
             const items = dom.editList.querySelectorAll('[data-idx]');
             const bookmarks = [];
             items.forEach(el => {
                 const name = el.querySelector('.edit-name').value.trim();
-                const url = el.querySelector('.edit-url').value.trim();
+                let url = el.querySelector('.edit-url').value.trim();
+                url = normalizeUrl(url);
                 if (name && url) bookmarks.push({ name, url, icon: faviconFromUrl(url) });
             });
             return bookmarks;
@@ -515,14 +754,58 @@
             dom.editModal.classList.remove('active');
         }
 
-        function resetBookmarks() {
-            // 清除 localStorage 用户编辑，恢复默认书签
-            if (!confirm('确定重置为默认书签？')) return;
-            localStorage.removeItem('userBookmarks');
-            pageData.bookmarks = DEFAULT_BOOKMARKS;
-            renderBookmarks();
-            closeEditModal();
+        // ==================== 自定义确认弹窗（替代原生 confirm()）====================
+        /**
+         * 显示玻璃风格的确认弹窗，用事件回调替代阻塞式 confirm()
+         * @param {string} message   - 弹窗正文
+         * @param {Function} onConfirm - 用户点击「确认」后执行的回调
+         */
+        function showConfirm(message, onConfirm, title = '重置确认') {
+            const modal = $('confirmModal');
+            const titleEl = $('confirmTitle');
+            const msgEl = $('confirmMsg');
+            const okBtn = $('confirmOkBtn');
+            const cancelBtn = $('confirmCancelBtn');
+            // 降级兜底：弹窗 DOM 不存在时退回原生 confirm
+            if (!modal) { if (window.confirm(message)) onConfirm?.(); return; }
+
+            if (titleEl) titleEl.textContent = title;
+            msgEl.textContent = message;
+            modal.classList.add('active');
+
+            function cleanup() {
+                modal.classList.remove('active');
+                okBtn.removeEventListener('click', handleOk);
+                cancelBtn.removeEventListener('click', handleCancel);
+                modal.removeEventListener('click', handleCancel);
+            }
+
+            function handleOk() {
+                cleanup();
+                onConfirm?.();
+            }
+
+            function handleCancel() {
+                cleanup();
+            }
+
+            okBtn.addEventListener('click', handleOk);
+            cancelBtn.addEventListener('click', handleCancel);
+            modal.addEventListener('click', handleCancel);
         }
+
+        function resetBookmarks() {
+            // 清除 localStorage 用户编辑，恢复默认书签或 JSON 初始数据
+            showConfirm('重置后将恢复为初始默认书签，当前自定义书签将被清除。确定要重置吗？', () => {
+                localStorage.removeItem('userBookmarks');
+                pageData.bookmarks = initialBookmarks.map(bm => ({ ...bm }));
+                renderBookmarks();
+                renderEditList();
+                closeBookmarkPicker();
+                closeEditModal();
+            }, '重置快捷书签');
+        }
+
 
         // ==================== 从导航页选择弹窗 ====================
         function openBookmarkPicker() {
@@ -538,7 +821,9 @@
         function initDragSort() {
             let dragSrc = null;
             dom.editList.addEventListener('dragstart', e => {
-                const item = e.target.closest('[data-idx]');
+                const handle = e.target.closest('.drag-handle');
+                if (!handle) { e.preventDefault(); return; }
+                const item = handle.closest('[data-idx]');
                 if (!item) return;
                 dragSrc = item;
                 item.style.opacity = '0.4';
@@ -575,7 +860,11 @@
             dom.editList.querySelectorAll('.edit-url').forEach(inp => urls.add(inp.value.trim()));
             pageData.bookmarks.forEach(bm => urls.add(bm.url));
 
-            dom.pickerContent.innerHTML = pageData.categories.map(cat => `
+            dom.pickerContent.innerHTML = pageData.categories.map(cat => {
+                const sortedBookmarks = [...cat.bookmarks].sort((a, b) => 
+                    a.name.localeCompare(b.name, 'zh-CN', { numeric: true, sensitivity: 'base' })
+                );
+                return `
                 <div>
                     <div class="flex items-center gap-1.5 mb-1.5 pb-1 border-b border-white/5">
                         <span class="text-sm">${cat.icon}</span>
@@ -583,11 +872,11 @@
                         <span class="ml-auto text-[10px] text-white/20">${cat.bookmarks.length}</span>
                     </div>
                     <div class="grid grid-cols-2 sm:grid-cols-3 gap-1">
-                        ${cat.bookmarks.map(bm => {
+                        ${sortedBookmarks.map(bm => {
                             const exists = urls.has(bm.url);
                             return `
                                 <div class="flex items-center gap-2 px-2 py-1.5 apple-radius picker-item ${exists ? 'opacity-40' : 'hover:bg-white/10 cursor-pointer'}" ${!exists ? `data-name="${escapeHtml(bm.name)}" data-url="${escapeHtml(bm.url)}"` : ''}>
-                                    <img src="${bm.icon}" class="w-4 h-4 rounded shrink-0" alt="" onerror="this.remove()">
+                                    ${getFaviconHTML(bm, 'sm')}
                                     <span class="text-xs text-white/70 truncate flex-1">${escapeHtml(bm.name)}</span>
                                     ${exists
                                         ? '<span class="text-[10px] text-white/20 shrink-0">已存在</span>'
@@ -598,7 +887,8 @@
                         }).join('')}
                     </div>
                 </div>
-            `).join('');
+            `;
+            }).join('');
             updatePickerCount();
         }
 
@@ -615,6 +905,17 @@
             urls.forEach(url => { const img = new Image(); img.src = url; });
         }
 
+        /**
+         * 应用入口，按严格顺序初始化所有模块
+         *
+         * 执行顺序存在以下依赖，调整顺序可能导致静默错误，请勿随意变更：
+         *   1. cacheDOM()         — 必须最先执行，所有后续函数通过 dom.* 访问元素
+         *   2. await loadData()   — 从服务器拉取 bookmarks.json，覆盖内置默认数据
+         *   3. loadUserData()     — 从 localStorage 读取用户编辑，覆盖第2步的数据
+         *                          （用户编辑优先级最高，必须在 loadData 之后执行）
+         *   4. renderBookmarks()  — 依赖 pageData.bookmarks 已由前三步确定
+         *   5. renderNavCategories() + initSidebarNav() — 后者依赖前者生成的 DOM
+         */
         async function init() {
             cacheDOM();
             await loadData();
@@ -633,59 +934,85 @@
             if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
         }
 
-        // ==================== 苹果风格 Favicon 兜底徽章 (Apple Favicon Badge Fallback) ====================
-        function getFaviconHTML(bm, sizeClass = 'w-8 h-8', textClass = 'text-xs') {
+        // ==================== 苹果风格 Favicon 兜底徽章 (严格尺寸强制归一) ====================
+        function handleIconError(img, initial, isMd) {
+            const sizeClass = isMd ? 'icon-box-md' : 'icon-box-sm';
+            const textClass = isMd ? 'text-xs font-semibold' : 'text-[10px] font-semibold';
+            const badge = document.createElement('div');
+            badge.className = `icon-box ${sizeClass} bg-white/15 border border-white/20 text-white/90 ${textClass}`;
+            badge.textContent = initial;
+            if (img && img.parentElement) {
+                img.parentElement.replaceWith(badge);
+            }
+        }
+
+        function getFaviconHTML(bm, sizeType = 'sm') {
             const initial = (bm.name || '?').trim().charAt(0).toUpperCase();
-            const fallbackHTML = "<div class=\"" + sizeClass + " rounded-lg bg-white/15 border border-white/20 flex items-center justify-center font-semibold text-white/90 shrink-0 " + textClass + "\">" + initial + "</div>";
-            if (!bm.icon) return fallbackHTML;
-            return "<img src=\"" + bm.icon + "\" class=\"" + sizeClass + " rounded-lg opacity-90 shrink-0\" alt=\"\" onerror=\"this.outerHTML='" + fallbackHTML + "'\">";
+            const isMd = sizeType === 'md';
+            const sizeClass = isMd ? 'icon-box-md' : 'icon-box-sm';
+            const textClass = isMd ? 'text-xs font-semibold' : 'text-[10px] font-semibold';
+            
+            if (!bm.icon) {
+                return `<div class="icon-box ${sizeClass} bg-white/15 border border-white/20 text-white/90 ${textClass}">${initial}</div>`;
+            }
+            const safeInitial = escapeHtml(initial).replace(/'/g, "\\'");
+            return `<div class="icon-box ${sizeClass}"><img src="${escapeHtml(bm.icon)}" class="opacity-90" alt="" onerror="handleIconError(this, '${safeInitial}', ${isMd})"></div>`;
         }
 
         // ==================== 书签 ====================
         function renderBookmarks() {
             if (!dom.bookmarks) return;
             dom.bookmarks.innerHTML = pageData.bookmarks.map(bm => `
-                <a href="${bm.url}" target="_blank" rel="noopener" 
-                   class="bookmark-item flex flex-col items-center justify-center gap-2 p-3 apple-radius text-white/90 hover:text-white">
-            <img src="${bm.icon}" class="w-8 h-8 rounded-lg opacity-90" alt="" 
-                 onerror="this.remove()">
-                    <span class="text-[11px] sm:text-xs w-full text-center truncate" style="min-width:5em">${bm.name}</span>
+                <a href="${safeUrl(bm.url)}" target="_blank" rel="noopener" 
+                   class="bookmark-item flex flex-col items-center justify-center gap-2 py-3 px-1 sm:px-1.5 apple-radius text-white/90 hover:text-white">
+                    ${getFaviconHTML(bm, 'md')}
+                    <span class="bookmark-title text-white/90">${escapeHtml(bm.name)}</span>
                 </a>
             `).join('');
         }
 
-        // ==================== 导航页（左右布局）====================
+        // ==================== 导航页（双栏布局）====================
         function renderNavCategories() {
             if (!dom.sidebarList || !dom.navCategories) return;
 
             // 左侧分类列表
             dom.sidebarList.innerHTML = pageData.categories.map((cat, i) => `
-                <button class="sidebar-item w-full sm:w-full text-left text-xs md:text-sm px-2.5 py-2 apple-radius text-white/70 ${i === 0 ? 'active' : ''}"
+                <button class="sidebar-item w-full text-left text-xs md:text-sm px-3 py-2.5 apple-radius text-white/70 flex items-center gap-2.5 ${i === 0 ? 'active' : ''}"
                         data-target="cat-${i}">
-                    <span class="mr-1.5">${cat.icon}</span>${cat.name}
+                    <span class="text-sm shrink-0">${cat.icon}</span>
+                    <span class="truncate font-medium">${escapeHtml(cat.name)}</span>
                 </button>
             `).join('');
 
-            // 右侧书签内容
-            dom.navCategories.innerHTML = pageData.categories.map((cat, i) => `
-                <div id="cat-${i}" class="mb-6 md:mb-8 ${i > 0 ? 'scroll-mt-4' : ''}">
-                    <div class="flex items-center gap-2 mb-3 pb-2 border-b border-white/10">
-                        <span class="text-lg">${cat.icon}</span>
-                        <h3 class="text-sm md:text-base font-medium tracking-wide text-white/90">${cat.name}</h3>
-                        <span class="ml-auto text-[10px] text-white/30">${cat.bookmarks.length} 个</span>
+            // 右侧书签内容（自动按 A-Z 拼音/字母排序）
+            dom.navCategories.innerHTML = pageData.categories.map((cat, i) => {
+                const sortedBookmarks = [...cat.bookmarks].sort((a, b) => 
+                    a.name.localeCompare(b.name, 'zh-CN', { numeric: true, sensitivity: 'base' })
+                );
+                return `
+                <div id="cat-${i}" class="${i > 0 ? 'scroll-mt-6' : ''}">
+                    <!-- 毛玻璃 Sticky 吸顶标题 -->
+                    <div class="sticky top-0 z-10 backdrop-blur-xl bg-black/50 py-2.5 mb-3 border-b border-white/10 flex items-center gap-2.5 shadow-sm">
+                        <span class="text-base md:text-lg">${cat.icon}</span>
+                        <h3 class="text-xs md:text-sm font-semibold tracking-wide text-white/90">${escapeHtml(cat.name)}</h3>
+                        <span class="ml-auto text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-white/50 border border-white/10 font-mono">${cat.bookmarks.length} 个</span>
                     </div>
-                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 md:gap-3">
-                        ${cat.bookmarks.map(bm => `
-                            <a href="${bm.url}" target="_blank" rel="noopener"
-                               class="nav-bookmark flex items-center gap-2.5 px-2.5 md:px-3 py-2 md:py-2.5 apple-radius text-white/75 hover:text-white">
-                                <img src="${bm.icon}" class="w-5 h-5 rounded shrink-0" alt=""
-                                     onerror="this.remove()">
-                                <span class="text-[11px] sm:text-xs md:text-sm truncate">${bm.name}</span>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 md:gap-3">
+                        ${sortedBookmarks.map(bm => `
+                            <a href="${safeUrl(bm.url)}" target="_blank" rel="noopener"
+                               class="nav-bookmark group flex items-center gap-2.5 px-3 py-2.5 apple-radius text-white/80 hover:text-white">
+                                ${getFaviconHTML(bm, 'sm')}
+                                <div class="flex-1 min-w-0 flex flex-col justify-center">
+                                    <span class="text-xs md:text-sm font-medium truncate leading-tight">${escapeHtml(bm.name)}</span>
+                                    ${bm.desc ? `<span class="text-[10px] text-white/40 truncate leading-none mt-1">${escapeHtml(bm.desc)}</span>` : ''}
+                                </div>
+                                <svg class="w-3.5 h-3.5 text-white/20 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
                             </a>
                         `).join('')}
                     </div>
                 </div>
-            `).join('');
+            `;
+            }).join('');
         }
 
         // ==================== 侧边栏导航 ====================
@@ -701,14 +1028,21 @@
                 if (el) sections.push(el);
             });
 
-            // 根据滚动位置更新高亮：取距内容顶部 < 100px 的最后一个分区作为活跃项
+            // 根据滚动位置更新高亮：取距内容顶部 < 100px 的最后一个分区作为活跃项，并让侧边栏项自动平滑居中
             function updateActive() {
                 const scrollTop = content.scrollTop;
                 let activeIdx = 0;
                 for (let i = 0; i < sections.length; i++) {
                     if (sections[i].offsetTop - scrollTop < 100) activeIdx = i;
                 }
-                items.forEach((item, i) => item.classList.toggle('active', i === activeIdx));
+                items.forEach((item, i) => {
+                    const isActive = i === activeIdx;
+                    const wasActive = item.classList.contains('active');
+                    item.classList.toggle('active', isActive);
+                    if (isActive && !wasActive) {
+                        item.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                    }
+                });
             }
 
             // 点击侧边栏 → 平滑滚动并高亮
@@ -719,6 +1053,7 @@
                 if (target) {
                     items.forEach(i => i.classList.remove('active'));
                     btn.classList.add('active');
+                    btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
                     target.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }
             });
@@ -745,12 +1080,13 @@
             document.addEventListener('click', closeDropdown);
             window.addEventListener('blur', closeDropdown);
 
-            // 键盘快捷键：任意可打印字符聚焦搜索，Ctrl/Cmd+B 切换壁纸，Escape 失焦
+            // 键盘快捷键：任意可打印字符仅在起始页（state.currentSection === 'start'）聚焦搜索，Ctrl/Cmd+B 切换壁纸，Escape 失焦/关弹窗
             document.addEventListener('keydown', e => {
+                if (state.editOpen || (dom.bookmarkPicker && dom.bookmarkPicker.classList.contains('active'))) return;
                 if ((e.key === 'b' || e.key === 'B') && (e.metaKey || e.ctrlKey) && document.activeElement !== dom.searchInput) { switchBg(); return; }
                 if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
-                if (e.key.length === 1 && document.activeElement !== dom.searchInput && document.activeElement?.tagName !== 'INPUT') { dom.searchInput.focus(); return; }
-                if (e.key === 'Escape') { closeDropdown(); dom.searchInput.blur(); closeEditModal(); }
+                if (state.currentSection === 'start' && e.key.length === 1 && document.activeElement !== dom.searchInput && document.activeElement?.tagName !== 'INPUT') { dom.searchInput.focus(); return; }
+                if (e.key === 'Escape') { closeDropdown(); dom.searchInput.blur(); closeEditModal(); closeBookmarkPicker(); }
             });
         }
 
@@ -779,9 +1115,10 @@
                 const div = document.createElement('div');
                 div.className = 'flex items-center gap-1.5 p-1.5 apple-radius hover:bg-white/5';
                 div.setAttribute('data-idx', Date.now());
-                div.draggable = true;
                 div.innerHTML = `
-                    <svg class="w-3.5 h-3.5 shrink-0 text-white/20" viewBox="0 0 16 16" fill="currentColor"><circle cx="5" cy="4" r="1.5"/><circle cx="11" cy="4" r="1.5"/><circle cx="5" cy="8" r="1.5"/><circle cx="11" cy="8" r="1.5"/><circle cx="5" cy="12" r="1.5"/><circle cx="11" cy="12" r="1.5"/></svg>
+                    <div class="drag-handle p-1 shrink-0 text-white/20 hover:text-white/60 cursor-grab active:cursor-grabbing" draggable="true" title="拖拽排序">
+                        <svg class="w-3.5 h-3.5 pointer-events-none" viewBox="0 0 16 16" fill="currentColor"><circle cx="5" cy="4" r="1.5"/><circle cx="11" cy="4" r="1.5"/><circle cx="5" cy="8" r="1.5"/><circle cx="11" cy="8" r="1.5"/><circle cx="5" cy="12" r="1.5"/><circle cx="11" cy="12" r="1.5"/></svg>
+                    </div>
                     <input type="text" class="edit-name flex-1 bg-white/5 border border-white/10 rounded px-2 py-1.5 text-sm text-white/80 outline-none focus:border-white/30 transition" value="${escapeHtml(name)}" placeholder="名称">
                     <input type="text" class="edit-url flex-[2] bg-white/5 border border-white/10 rounded px-2 py-1.5 text-sm text-white/80 outline-none focus:border-white/30 transition" value="${escapeHtml(url)}" placeholder="URL">
                     <button type="button" class="del-btn shrink-0 p-1.5 hover:bg-white/10 rounded apple-radius text-white/30 hover:text-red-400 transition">
@@ -800,9 +1137,10 @@
                 const div = document.createElement('div');
                 div.className = 'flex items-center gap-1.5 p-1.5 apple-radius hover:bg-white/5';
                 div.setAttribute('data-idx', Date.now());
-                div.draggable = true;
                 div.innerHTML = `
-                    <svg class="w-3.5 h-3.5 shrink-0 text-white/20" viewBox="0 0 16 16" fill="currentColor"><circle cx="5" cy="4" r="1.5"/><circle cx="11" cy="4" r="1.5"/><circle cx="5" cy="8" r="1.5"/><circle cx="11" cy="8" r="1.5"/><circle cx="5" cy="12" r="1.5"/><circle cx="11" cy="12" r="1.5"/></svg>
+                    <div class="drag-handle p-1 shrink-0 text-white/20 hover:text-white/60 cursor-grab active:cursor-grabbing" draggable="true" title="拖拽排序">
+                        <svg class="w-3.5 h-3.5 pointer-events-none" viewBox="0 0 16 16" fill="currentColor"><circle cx="5" cy="4" r="1.5"/><circle cx="11" cy="4" r="1.5"/><circle cx="5" cy="8" r="1.5"/><circle cx="11" cy="8" r="1.5"/><circle cx="5" cy="12" r="1.5"/><circle cx="11" cy="12" r="1.5"/></svg>
+                    </div>
                     <input type="text" class="edit-name flex-1 bg-white/5 border border-white/10 rounded px-2 py-1.5 text-sm text-white/80 outline-none focus:border-white/30 transition" placeholder="名称">
                     <input type="text" class="edit-url flex-[2] bg-white/5 border border-white/10 rounded px-2 py-1.5 text-sm text-white/80 outline-none focus:border-white/30 transition" placeholder="URL">
                     <button type="button" class="del-btn shrink-0 p-1.5 hover:bg-white/10 rounded apple-radius text-white/30 hover:text-red-400 transition">
@@ -869,7 +1207,22 @@
         }
         function switchBg() {
             state.bg = (state.bg + 1) % backgrounds.length;
-            document.body.style.backgroundImage = `url('${backgrounds[state.bg]}')`;
+            const bgBase = $('bgLayer');
+            const bgNext = $('bgLayerNext');
+            const newUrl = `url('${backgrounds[state.bg]}')`;
+            if (bgNext) {
+                // 新图先设置到上层，fade-in，过渡完成后更新底层并重置上层
+                bgNext.style.backgroundImage = newUrl;
+                requestAnimationFrame(() => {
+                    bgNext.style.opacity = '1';
+                    setTimeout(() => {
+                        if (bgBase) bgBase.style.backgroundImage = newUrl;
+                        bgNext.style.opacity = '0';
+                    }, 650); // 略短于 transition duration，确保底层更新前上层已完全不透明
+                });
+            } else if (bgBase) {
+                bgBase.style.backgroundImage = newUrl;
+            }
             preloadNextBg();
         }
 
@@ -888,6 +1241,7 @@
                 try { return sessionStorage.getItem('startpage_section'); } catch { return null; }
             }
             function saveSection(s) {
+                state.currentSection = s;
                 try { sessionStorage.setItem('startpage_section', s); } catch {}
             }
 
@@ -898,6 +1252,7 @@
                 document.documentElement.classList.remove('nr');
                 window.scrollTo(0, nav.offsetTop);
                 currentSection = 'nav';
+                state.currentSection = 'nav';
                 animationDone = true;
             } else {
                 saveSection('start');
@@ -940,16 +1295,12 @@
                         nav.scrollIntoView({ behavior: 'smooth' });
                         waitForScroll(nav.offsetTop, () => {
                             currentSection = 'nav';
+                            state.currentSection = 'nav';
                             isTransitioning = false;
                         });
                     });
                 } else {
-                    if (navContent.scrollTop > 0 || down) {
-                        e.preventDefault();
-                        // 限制单次滚动增量，避免 Safari 跳度过大
-                        navContent.scrollTop += Math.min(Math.abs(delta), 60) * (down ? 1 : -1);
-                        if (down) scrollAccum = 0;
-                    } else if (!down && navContent.scrollTop <= 0) {
+                    if (!down && navContent.scrollTop <= 0) {
                         e.preventDefault();
                         scrollAccum += Math.abs(delta);
                         if (scrollAccum >= SCROLL_THRESHOLD) {
@@ -961,16 +1312,20 @@
                             waitForScroll(0, () => {
                                 animationDone = false;
                                 currentSection = 'start';
+                                state.currentSection = 'start';
                                 isTransitioning = false;
                             });
                         }
+                    } else {
+                        // 在 navContent 内部，恢复原生触控与平滑滚动，不再拦截
+                        scrollAccum = 0;
                     }
                 }
             }, { passive: false });
 
             // ==================== 触屏支持 ====================
             let touchStartY = 0;
-            let touchStartTime = 0;
+            let touchStartTime = 0; // 预留：用于未来基于滑动速度动态调整切换阈值（当前未使用）
 
             document.addEventListener('touchstart', (e) => {
                 touchStartY = e.touches[0].clientY;
@@ -1000,17 +1355,14 @@
                                 nav.scrollIntoView({ behavior: 'smooth' });
                                 waitForScroll(nav.offsetTop, () => {
                                     currentSection = 'nav';
+                                    state.currentSection = 'nav';
                                     isTransitioning = false;
                                 });
                             });
                         }
                     }
                 } else {
-                    if (navContent.scrollTop > 0 || deltaY > 0) {
-                        e.preventDefault();
-                        navContent.scrollTop += deltaY;
-                        touchStartY = e.touches[0].clientY;
-                    } else if (deltaY < 0 && navContent.scrollTop <= 0) {
+                    if (deltaY < 0 && navContent.scrollTop <= 0) {
                         e.preventDefault();
                         scrollAccum += Math.abs(deltaY);
                         if (scrollAccum >= SCROLL_THRESHOLD) {
@@ -1021,9 +1373,13 @@
                             waitForScroll(0, () => {
                                 animationDone = false;
                                 currentSection = 'start';
+                                state.currentSection = 'start';
                                 isTransitioning = false;
                             });
                         }
+                    } else {
+                        // 导航页内自然触控滚动
+                        scrollAccum = 0;
                     }
                 }
             }, { passive: false });

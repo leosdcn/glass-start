@@ -1,111 +1,125 @@
 {
     "bookmarks": [
         { "name": "微信", "url": "https://web.wechat.com/?lang=zh_CN", "icon": "https://favicon.im/web.wechat.com" },
+        { "name": "微博", "url": "https://weibo.com", "icon": "https://favicon.im/weibo.com" },
+        { "name": "豆包", "url": "https://www.doubao.com", "icon": "https://favicon.im/doubao.com" },
+        { "name": "DeepSeek", "url": "https://chat.deepseek.com", "icon": "https://favicon.im/chat.deepseek.com" },
         { "name": "哔哩哔哩", "url": "https://www.bilibili.com", "icon": "https://favicon.im/bilibili.com" },
         { "name": "抖音", "url": "https://www.douyin.com", "icon": "https://favicon.im/douyin.com" },
-        { "name": "豆包", "url": "https://www.doubao.com", "icon": "https://favicon.im/doubao.com" },
-        { "name": "微博", "url": "https://weibo.com", "icon": "https://favicon.im/weibo.com" },
-        { "name": "网易云音乐", "url": "https://music.163.com", "icon": "https://favicon.im/music.163.com" },
-        { "name": "豆瓣", "url": "https://www.douban.com", "icon": "https://favicon.im/douban.com" },
-        { "name": "飞书", "url": "https://www.feishu.cn", "icon": "https://favicon.im/feishu.cn" }
+        { "name": "中国天气网", "url": "https://www.weather.com.cn", "icon": "https://favicon.im/weather.com.cn" },
+        { "name": "网易云音乐", "url": "https://music.163.com", "icon": "https://favicon.im/music.163.com" }
     ],
     "categories": [
+        {
+            "name": "人工智能",
+            "icon": "🤖",
+            "bookmarks": [
+                { "name": "ChatGPT", "url": "https://chat.openai.com", "icon": "https://favicon.im/chat.openai.com", "desc": "全球领先AI对话模型" },
+                { "name": "Claude", "url": "https://claude.ai", "icon": "https://favicon.im/claude.ai", "desc": "Anthropic深度AI助手" },
+                { "name": "DeepSeek", "url": "https://chat.deepseek.com", "icon": "https://favicon.im/chat.deepseek.com", "desc": "深度求索国产硬核AI" },
+                { "name": "Gemini", "url": "https://gemini.google.com", "icon": "https://favicon.im/gemini.google.com", "desc": "Google前沿多模态AI" },
+                { "name": "GitHub Copilot", "url": "https://github.com/features/copilot", "icon": "https://favicon.im/github.com", "desc": "代码自动补全与AI编程" },
+                { "name": "Hugging Face", "url": "https://huggingface.co", "icon": "https://favicon.im/huggingface.co", "desc": "开源AI模型与数据集" },
+                { "name": "Kimi", "url": "https://kimi.moonshot.cn", "icon": "https://favicon.im/kimi.moonshot.cn", "desc": "月之暗面长文本AI助手" },
+                { "name": "Midjourney", "url": "https://www.midjourney.com", "icon": "https://favicon.im/midjourney.com", "desc": "AI图像生成与艺术创作" },
+                { "name": "Perplexity", "url": "https://www.perplexity.ai", "icon": "https://favicon.im/perplexity.ai", "desc": "AI驱动知识问答引擎" },
+                { "name": "豆包", "url": "https://www.doubao.com", "icon": "https://favicon.im/doubao.com", "desc": "字节跳动AI智能助手" }
+            ]
+        },
         {
             "name": "开发工具",
             "icon": "⚡",
             "bookmarks": [
-                { "name": "GitHub", "url": "https://github.com", "icon": "https://favicon.im/github.com" },
-                { "name": "Stack Overflow", "url": "https://stackoverflow.com", "icon": "https://favicon.im/stackoverflow.com" },
-                { "name": "MDN Web Docs", "url": "https://developer.mozilla.org", "icon": "https://favicon.im/developer.mozilla.org" },
-                { "name": "npm", "url": "https://www.npmjs.com", "icon": "https://favicon.im/npmjs.com" },
-                { "name": "Vercel", "url": "https://vercel.com", "icon": "https://favicon.im/vercel.com" },
-                { "name": "Netlify", "url": "https://www.netlify.com", "icon": "https://favicon.im/netlify.com" },
-                { "name": "CodePen", "url": "https://codepen.io", "icon": "https://favicon.im/codepen.io" },
-                { "name": "JSFiddle", "url": "https://jsfiddle.net", "icon": "https://favicon.im/jsfiddle.net" },
-                { "name": "Can I Use", "url": "https://caniuse.com", "icon": "https://favicon.im/caniuse.com" },
-                { "name": "DevDocs", "url": "https://devdocs.io", "icon": "https://favicon.im/devdocs.io" }
+                { "name": "Can I Use", "url": "https://caniuse.com", "icon": "https://favicon.im/caniuse.com", "desc": "前端特性兼容性查询" },
+                { "name": "CodePen", "url": "https://codepen.io", "icon": "https://favicon.im/codepen.io", "desc": "前端代码在线演示与创作" },
+                { "name": "DevDocs", "url": "https://devdocs.io", "icon": "https://favicon.im/devdocs.io", "desc": "离线开发者API文档库" },
+                { "name": "GitHub", "url": "https://github.com", "icon": "https://favicon.im/github.com", "desc": "全球最大开源代码托管" },
+                { "name": "JSFiddle", "url": "https://jsfiddle.net", "icon": "https://favicon.im/jsfiddle.net", "desc": "在线前端代码调试沙盒" },
+                { "name": "MDN Web Docs", "url": "https://developer.mozilla.org", "icon": "https://favicon.im/developer.mozilla.org", "desc": "权威Web前端开发文档" },
+                { "name": "npm", "url": "https://www.npmjs.com", "icon": "https://favicon.im/npmjs.com", "desc": "Node.js官方包管理器" },
+                { "name": "Stack Overflow", "url": "https://stackoverflow.com", "icon": "https://favicon.im/stackoverflow.com", "desc": "全球开发者问答社区" },
+                { "name": "v0.dev", "url": "https://v0.dev", "icon": "https://favicon.im/v0.dev", "desc": "Vercel生成式UI构建" }
             ]
         },
         {
-            "name": "AI 与机器学习",
-            "icon": "🤖",
+            "name": "云端服务",
+            "icon": "☁️",
             "bookmarks": [
-                { "name": "ChatGPT", "url": "https://chat.openai.com", "icon": "https://favicon.im/chat.openai.com" },
-                { "name": "Claude", "url": "https://claude.ai", "icon": "https://favicon.im/claude.ai" },
-                { "name": "Hugging Face", "url": "https://huggingface.co", "icon": "https://favicon.im/huggingface.co" },
-                { "name": "GitHub Copilot", "url": "https://github.com/features/copilot", "icon": "https://favicon.im/github.com" },
-                { "name": "Midjourney", "url": "https://www.midjourney.com", "icon": "https://favicon.im/midjourney.com" }
+                { "name": "AWS Console", "url": "https://aws.amazon.com/console", "icon": "https://favicon.im/amazonaws.com", "desc": "AWS云服务管理控制台" },
+                { "name": "Cloudflare", "url": "https://dash.cloudflare.com", "icon": "https://favicon.im/cloudflare.com", "desc": "全球网络安全与CDN" },
+                { "name": "Netlify", "url": "https://www.netlify.com", "icon": "https://favicon.im/netlify.com", "desc": "现代化前端自动化部署" },
+                { "name": "Railway", "url": "https://railway.app", "icon": "https://favicon.im/railway.app", "desc": "云端极速应用部署平台" },
+                { "name": "Supabase", "url": "https://supabase.com", "icon": "https://favicon.im/supabase.com", "desc": "开源BaaS后端云服务" },
+                { "name": "Vercel", "url": "https://vercel.com", "icon": "https://favicon.im/vercel.com", "desc": "前端全栈极速部署" }
             ]
         },
         {
-            "name": "社交媒体",
+            "name": "效率办公",
+            "icon": "📝",
+            "bookmarks": [
+                { "name": "Excalidraw", "url": "https://excalidraw.com", "icon": "https://favicon.im/excalidraw.com", "desc": "手绘风格在线协作白板" },
+                { "name": "Flomo", "url": "https://flomoapp.com", "icon": "https://favicon.im/flomoapp.com", "desc": "卡片式无压力笔记工具" },
+                { "name": "Google Drive", "url": "https://drive.google.com", "icon": "https://favicon.im/drive.google.com", "desc": "谷歌云端硬盘与文档" },
+                { "name": "Notion", "url": "https://www.notion.so", "icon": "https://favicon.im/notion.so", "desc": "一体化笔记与知识库" },
+                { "name": "ProcessOn", "url": "https://www.processon.com", "icon": "https://favicon.im/processon.com", "desc": "在线流程图与思维导图" },
+                { "name": "飞书", "url": "https://www.feishu.cn", "icon": "https://favicon.im/feishu.cn", "desc": "先进企业协同办公平台" }
+            ]
+        },
+        {
+            "name": "设计灵感",
+            "icon": "🎨",
+            "bookmarks": [
+                { "name": "Behance", "url": "https://www.behance.net", "icon": "https://favicon.im/behance.net", "desc": "全球设计作品展示社区" },
+                { "name": "Coolors", "url": "https://coolors.co", "icon": "https://favicon.im/coolors.co", "desc": "极速配色方案在线生成" },
+                { "name": "Dribbble", "url": "https://dribbble.com", "icon": "https://favicon.im/dribbble.com", "desc": "设计师作品交流与灵感" },
+                { "name": "Figma", "url": "https://www.figma.com", "icon": "https://favicon.im/figma.com", "desc": "云端协同UI设计工具" },
+                { "name": "Font Awesome", "url": "https://fontawesome.com", "icon": "https://favicon.im/fontawesome.com", "desc": "经典Web矢量图标字体" },
+                { "name": "Lucide Icons", "url": "https://lucide.dev", "icon": "https://favicon.im/lucide.dev", "desc": "现代极简矢量图标库" },
+                { "name": "Unsplash", "url": "https://unsplash.com", "icon": "https://favicon.im/unsplash.com", "desc": "免费高质量无版权图库" }
+            ]
+        },
+        {
+            "name": "社区社交",
             "icon": "💬",
             "bookmarks": [
-                { "name": "Twitter / X", "url": "https://x.com", "icon": "https://favicon.im/twitter.com" },
-                { "name": "Reddit", "url": "https://www.reddit.com", "icon": "https://favicon.im/reddit.com" },
-                { "name": "V2EX", "url": "https://www.v2ex.com", "icon": "https://favicon.im/v2ex.com" },
-                { "name": "豆瓣", "url": "https://www.douban.com", "icon": "https://favicon.im/douban.com" },
-                { "name": "知乎", "url": "https://www.zhihu.com", "icon": "https://favicon.im/zhihu.com" },
-                { "name": "Telegram Web", "url": "https://web.telegram.org", "icon": "https://favicon.im/web.telegram.org" },
-                { "name": "Discord", "url": "https://discord.com", "icon": "https://favicon.im/discord.com" }
+                { "name": "Discord", "url": "https://discord.com", "icon": "https://favicon.im/discord.com", "desc": "游戏与开发者实时语音" },
+                { "name": "Reddit", "url": "https://www.reddit.com", "icon": "https://favicon.im/reddit.com", "desc": "全球热门话题与社区讨论" },
+                { "name": "Telegram Web", "url": "https://web.telegram.org", "icon": "https://favicon.im/web.telegram.org", "desc": "高隐私加密即时通讯" },
+                { "name": "Twitter / X", "url": "https://x.com", "icon": "https://favicon.im/twitter.com", "desc": "全球实时动态与热点" },
+                { "name": "V2EX", "url": "https://www.v2ex.com", "icon": "https://favicon.im/v2ex.com", "desc": "创意工作者与程序员社区" },
+                { "name": "微博", "url": "https://weibo.com", "icon": "https://favicon.im/weibo.com", "desc": "国内热点社交媒体平台" },
+                { "name": "豆瓣", "url": "https://www.douban.com", "icon": "https://favicon.im/douban.com", "desc": "图书电影音乐评分社区" },
+                { "name": "微信", "url": "https://web.wechat.com/?lang=zh_CN", "icon": "https://favicon.im/web.wechat.com", "desc": "即时通讯与社交平台" },
+                { "name": "知乎", "url": "https://www.zhihu.com", "icon": "https://favicon.im/zhihu.com", "desc": "知识问答与深度讨论" }
             ]
         },
         {
             "name": "影音娱乐",
             "icon": "🎬",
             "bookmarks": [
-                { "name": "YouTube", "url": "https://www.youtube.com", "icon": "https://favicon.im/youtube.com" },
-                { "name": "Bilibili", "url": "https://www.bilibili.com", "icon": "https://favicon.im/bilibili.com" },
-                { "name": "Netflix", "url": "https://www.netflix.com", "icon": "https://favicon.im/netflix.com" },
-                { "name": "Spotify", "url": "https://open.spotify.com", "icon": "https://favicon.im/spotify.com" },
-                { "name": "SoundCloud", "url": "https://soundcloud.com", "icon": "https://favicon.im/soundcloud.com" },
-                { "name": "Twitch", "url": "https://www.twitch.tv", "icon": "https://favicon.im/twitch.tv" }
+                { "name": "Bilibili", "url": "https://www.bilibili.com", "icon": "https://favicon.im/bilibili.com", "desc": "弹幕视频与文化社区" },
+                { "name": "Netflix", "url": "https://www.netflix.com", "icon": "https://favicon.im/netflix.com", "desc": "全球流媒体影视平台" },
+                { "name": "SoundCloud", "url": "https://soundcloud.com", "icon": "https://favicon.im/soundcloud.com", "desc": "独立音乐与音频分享" },
+                { "name": "Spotify", "url": "https://open.spotify.com", "icon": "https://favicon.im/spotify.com", "desc": "全球流行音乐流媒体" },
+                { "name": "Twitch", "url": "https://www.twitch.tv", "icon": "https://favicon.im/twitch.tv", "desc": "全球游戏与实况直播" },
+                { "name": "YouTube", "url": "https://www.youtube.com", "icon": "https://favicon.im/youtube.com", "desc": "全球最大视频分享平台" },
+                { "name": "抖音", "url": "https://www.douyin.com", "icon": "https://favicon.im/douyin.com", "desc": "短视频与记录美好生活" },
+                { "name": "网易云音乐", "url": "https://music.163.com", "icon": "https://favicon.im/music.163.com", "desc": "发现好音乐与听歌社区" }
             ]
         },
         {
-            "name": "新闻资讯",
+            "name": "资讯学习",
             "icon": "📰",
             "bookmarks": [
-                { "name": "Hacker News", "url": "https://news.ycombinator.com", "icon": "https://favicon.im/news.ycombinator.com" },
-                { "name": "Solidot", "url": "https://www.solidot.org", "icon": "https://favicon.im/solidot.org" },
-                { "name": "36氪", "url": "https://36kr.com", "icon": "https://favicon.im/36kr.com" },
-                { "name": "InfoQ", "url": "https://www.infoq.cn", "icon": "https://favicon.im/infoq.cn" },
-                { "name": "Reuters", "url": "https://www.reuters.com", "icon": "https://favicon.im/reuters.com" }
-            ]
-        },
-        {
-            "name": "设计资源",
-            "icon": "🎨",
-            "bookmarks": [
-                { "name": "Dribbble", "url": "https://dribbble.com", "icon": "https://favicon.im/dribbble.com" },
-                { "name": "Behance", "url": "https://www.behance.net", "icon": "https://favicon.im/behance.net" },
-                { "name": "Figma", "url": "https://www.figma.com", "icon": "https://favicon.im/figma.com" },
-                { "name": "Unsplash", "url": "https://unsplash.com", "icon": "https://favicon.im/unsplash.com" },
-                { "name": "Coolors", "url": "https://coolors.co", "icon": "https://favicon.im/coolors.co" },
-                { "name": "Font Awesome", "url": "https://fontawesome.com", "icon": "https://favicon.im/fontawesome.com" }
-            ]
-        },
-        {
-            "name": "学习平台",
-            "icon": "📚",
-            "bookmarks": [
-                { "name": "Coursera", "url": "https://www.coursera.org", "icon": "https://favicon.im/coursera.org" },
-                { "name": "Udemy", "url": "https://www.udemy.com", "icon": "https://favicon.im/udemy.com" },
-                { "name": "freeCodeCamp", "url": "https://www.freecodecamp.org", "icon": "https://favicon.im/freecodecamp.org" },
-                { "name": "LeetCode", "url": "https://leetcode.cn", "icon": "https://favicon.im/leetcode.cn" },
-                { "name": "Roadmap.sh", "url": "https://roadmap.sh", "icon": "https://favicon.im/roadmap.sh" }
-            ]
-        },
-        {
-            "name": "云服务",
-            "icon": "☁️",
-            "bookmarks": [
-                { "name": "Cloudflare", "url": "https://dash.cloudflare.com", "icon": "https://favicon.im/cloudflare.com" },
-                { "name": "AWS Console", "url": "https://aws.amazon.com/console", "icon": "https://favicon.im/amazonaws.com" },
-                { "name": "Vercel", "url": "https://vercel.com", "icon": "https://favicon.im/vercel.com" },
-                { "name": "Netlify", "url": "https://www.netlify.com", "icon": "https://favicon.im/netlify.com" },
-                { "name": "Railway", "url": "https://railway.app", "icon": "https://favicon.im/railway.app" },
-                { "name": "Supabase", "url": "https://supabase.com", "icon": "https://favicon.im/supabase.com" }
+                { "name": "Coursera", "url": "https://www.coursera.org", "icon": "https://favicon.im/coursera.org", "desc": "在线课程与学术学习" },
+                { "name": "freeCodeCamp", "url": "https://www.freecodecamp.org", "icon": "https://favicon.im/freecodecamp.org", "desc": "免费编程实战与学习" },
+                { "name": "Hacker News", "url": "https://news.ycombinator.com", "icon": "https://favicon.im/news.ycombinator.com", "desc": "全球极客与技术前沿" },
+                { "name": "Nature", "url": "https://www.nature.com", "icon": "https://favicon.im/nature.com", "desc": "全球顶尖科学期刊" },
+                { "name": "OMG! Ubuntu", "url": "https://www.omgubuntu.co.uk", "icon": "https://favicon.im/omgubuntu.co.uk", "desc": "Ubuntu与Linux硬核资讯" },
+                { "name": "Roadmap.sh", "url": "https://roadmap.sh", "icon": "https://favicon.im/roadmap.sh", "desc": "开发者技术路线图指南" },
+                { "name": "Solidot", "url": "https://www.solidot.org", "icon": "https://favicon.im/solidot.org", "desc": "奇客科技与开源新闻" },
+                { "name": "维基百科", "url": "https://zh.wikipedia.org", "icon": "https://favicon.im/wikipedia.org", "desc": "自由的百科全书" },
+                { "name": "中国天气网", "url": "https://www.weather.com.cn", "icon": "https://favicon.im/weather.com.cn", "desc": "权威天气预报与气象" }
             ]
         }
     ]
