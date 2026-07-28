@@ -168,6 +168,8 @@
             }
         }
         .scroll-hint { animation: bounceDown 2s ease-in-out infinite; }
+        #navHint { white-space: nowrap; flex-shrink: 0; border-radius: var(--radius); }
+        #navHint svg { width: 12px; height: 12px; max-width: 12px; max-height: 12px; flex-shrink: 0; }
         @keyframes bounceDown { 0%,100%{transform:translateY(0);opacity:0.6} 50%{transform:translateY(8px);opacity:1} }
         .hint-down { animation:hintFade 7s ease forwards; }
         .hint-up { animation:hintFade 6s ease 1s forwards; }
@@ -375,9 +377,9 @@
                         <span class="text-[10px] text-white/40 tracking-wide hidden sm:inline ml-1">发现更多精彩网站</span>
                     </div>
                     <!-- 右侧返回提示 -->
-                    <div id="navHint" class="flex items-center gap-1.5 text-white/40 text-[10px] tracking-wider pointer-events-none bg-white/5 border border-white/10 px-2.5 py-1 apple-radius">
-                        <svg class="w-3 h-3 scroll-hint shrink-0 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/></svg>
-                        <span>向上滚动返回</span>
+                    <div id="navHint" class="flex items-center gap-1.5 text-white/40 text-[10px] tracking-wider bg-white/5 border border-white/10 px-2.5 py-1 apple-radius whitespace-nowrap shrink-0 cursor-pointer hover:bg-white/10 hover:text-white/70 transition" title="点击或向上滚动返回起始页">
+                        <svg class="w-3 h-3 scroll-hint shrink-0 text-white/60" width="12" height="12" style="width: 12px; height: 12px; min-width: 12px; min-height: 12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/></svg>
+                        <span class="whitespace-nowrap">向上滚动返回</span>
                     </div>
                 </div>
 
@@ -1080,10 +1082,20 @@
             document.addEventListener('click', closeDropdown);
             window.addEventListener('blur', closeDropdown);
 
+            // 点击右侧返回提示按钮即可直接返回起始页
+            document.getElementById('navHint')?.addEventListener('click', () => {
+                const navContent = dom.navContent;
+                if (navContent) navContent.scrollTop = 0;
+                try { sessionStorage.setItem('startpage_section', 'start'); } catch {}
+                animateScrollTo(0, 450, () => {
+                    state.currentSection = 'start';
+                });
+            });
+
             // 键盘快捷键：任意可打印字符仅在起始页（state.currentSection === 'start'）聚焦搜索，Ctrl/Cmd+B 切换壁纸，Escape 失焦/关弹窗
             document.addEventListener('keydown', e => {
                 if (state.editOpen || (dom.bookmarkPicker && dom.bookmarkPicker.classList.contains('active'))) return;
-                if ((e.key === 'b' || e.key === 'B') && (e.metaKey || e.ctrlKey) && document.activeElement !== dom.searchInput) { switchBg(); return; }
+                if ((e.key === 'b' || e.key === 'B') && (e.metaKey || e.ctrlKey) && document.activeElement !== dom.searchInput) { e.preventDefault(); switchBg(); return; }
                 if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
                 if (state.currentSection === 'start' && e.key.length === 1 && document.activeElement !== dom.searchInput && document.activeElement?.tagName !== 'INPUT') { dom.searchInput.focus(); return; }
                 if (e.key === 'Escape') { closeDropdown(); dom.searchInput.blur(); closeEditModal(); closeBookmarkPicker(); }
@@ -1226,6 +1238,33 @@
             preloadNextBg();
         }
 
+        // ==================== 跨浏览器/跨系统平滑滚动动画（解耦系统与浏览器原生 flag，规避 Windows 闪跳）====================
+        function animateScrollTo(targetY, duration = 450, cb = null) {
+            const startY = window.scrollY;
+            const distance = targetY - startY;
+            if (Math.abs(distance) < 2) {
+                window.scrollTo(0, targetY);
+                if (cb) cb();
+                return;
+            }
+            const startTime = performance.now();
+            function step(currentTime) {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                const ease = progress < 0.5 
+                    ? 4 * progress * progress * progress 
+                    : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+                window.scrollTo(0, startY + distance * ease);
+                if (progress < 1) {
+                    requestAnimationFrame(step);
+                } else {
+                    window.scrollTo(0, targetY);
+                    if (cb) cb();
+                }
+            }
+            requestAnimationFrame(step);
+        }
+
         // ==================== 滚动切换 ====================
         function initScrollControl() {
             let scrollAccum = 0;
@@ -1258,7 +1297,7 @@
                 saveSection('start');
             }
 
-            // 归一化 deltaY，兼容 Safari 的 LINE / PAGE 模式
+            // 归一化 deltaY，兼容 Safari / Windows 的 LINE / PAGE 模式
             function normDelta(e) {
                 let d = e.deltaY;
                 if (e.deltaMode === 1) d *= 16;       // DOM_DELTA_LINE → 像素
@@ -1282,7 +1321,6 @@
                     isTransitioning = true;
                     saveSection('nav');
 
-                    // 1) 先显示导航（无 transform 偏移，不会导致重排闪烁）
                     nav.classList.remove('nav-hidden');
                     nav.classList.add('nav-visible');
                     if (!animationDone) {
@@ -1290,10 +1328,8 @@
                         animationDone = true;
                     }
 
-                    // 2) 下一帧再滚动（分离布局变化与滚动，避免 Safari 同时处理两件事导致卡顿/闪烁）
                     requestAnimationFrame(() => {
-                        nav.scrollIntoView({ behavior: 'smooth' });
-                        waitForScroll(nav.offsetTop, () => {
+                        animateScrollTo(nav.offsetTop, 450, () => {
                             currentSection = 'nav';
                             state.currentSection = 'nav';
                             isTransitioning = false;
@@ -1308,8 +1344,7 @@
                             isTransitioning = true;
                             saveSection('start');
                             navContent.scrollTop = 0;
-                            window.scrollTo({ top: 0, behavior: 'smooth' });
-                            waitForScroll(0, () => {
+                            animateScrollTo(0, 450, () => {
                                 animationDone = false;
                                 currentSection = 'start';
                                 state.currentSection = 'start';
@@ -1325,7 +1360,7 @@
 
             // ==================== 触屏支持 ====================
             let touchStartY = 0;
-            let touchStartTime = 0; // 预留：用于未来基于滑动速度动态调整切换阈值（当前未使用）
+            let touchStartTime = 0;
 
             document.addEventListener('touchstart', (e) => {
                 touchStartY = e.touches[0].clientY;
@@ -1352,8 +1387,7 @@
                                 animationDone = true;
                             }
                             requestAnimationFrame(() => {
-                                nav.scrollIntoView({ behavior: 'smooth' });
-                                waitForScroll(nav.offsetTop, () => {
+                                animateScrollTo(nav.offsetTop, 450, () => {
                                     currentSection = 'nav';
                                     state.currentSection = 'nav';
                                     isTransitioning = false;
@@ -1369,8 +1403,7 @@
                             scrollAccum = 0;
                             isTransitioning = true;
                             saveSection('start');
-                            window.scrollTo({ top: 0, behavior: 'smooth' });
-                            waitForScroll(0, () => {
+                            animateScrollTo(0, 450, () => {
                                 animationDone = false;
                                 currentSection = 'start';
                                 state.currentSection = 'start';
