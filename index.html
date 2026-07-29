@@ -52,7 +52,7 @@
         }
         .category-block {
             content-visibility: auto;
-            contain-intrinsic-size: 180px;
+            contain-intrinsic-size: auto 360px;
         }
         /* ===== 组件 ===== */
         .search-input::placeholder { color: rgba(255,255,255,0.6); }
@@ -186,7 +186,6 @@
         @keyframes bounceDown { 0%,100%{transform:translateY(0);opacity:0.6} 50%{transform:translateY(8px);opacity:1} }
         @keyframes bounceUp { 0%,100%{transform:translateY(0);opacity:0.7} 50%{transform:translateY(-3px);opacity:1} }
         .hint-down { animation:hintFade 7s ease forwards; }
-        .hint-up { animation:hintFade 6s ease 1s forwards; }
         @keyframes hintFade { 0%,55%{opacity:1} 100%{opacity:0;pointer-events:none} }
         .section-divider { background: linear-gradient(90deg,transparent,rgba(255,255,255,0.15),transparent); }
         .edit-overlay { opacity:0; pointer-events:none; transition:opacity 0.2s ease; }
@@ -214,6 +213,11 @@
             transform: scale(0.95) translateY(0) !important;
             opacity: 0.85;
             transition: transform 0.08s ease, opacity 0.08s ease !important;
+        }
+        /* 按下时重置子图标缩放，避免 hover:scale(1.1) × active:scale(0.95) 叠加跳变 */
+        .bookmark-item:active .icon-box img, .nav-bookmark:active .icon-box img {
+            transform: scale(1) !important;
+            transition: transform 0.08s ease !important;
         }
         #engineBtn:active, #searchBtn:active, #editBookmarksBtn:active {
             transform: scale(0.95);
@@ -885,29 +889,32 @@
             // 降级兜底：弹窗 DOM 不存在时退回原生 confirm
             if (!modal) { if (window.confirm(message)) onConfirm?.(); return; }
 
+            // 区分「纯通知」（onConfirm 为 null）和「确认操作」两种模式
+            const isNotify = onConfirm == null;
+            okBtn.textContent = isNotify ? '知道了' : '确认';
+            cancelBtn.style.display = isNotify ? 'none' : '';
+
             if (titleEl) titleEl.textContent = title;
             msgEl.textContent = message;
             modal.classList.add('active');
 
+            function handleOk() { cleanup(); onConfirm?.(); }
+            function handleCancel() { cleanup(); }
+
+            // 用变量保存实际注册到 modal 的 handler，确保 cleanup 能精确移除
+            const handleModalClick = isNotify ? handleOk : handleCancel;
+
             function cleanup() {
                 modal.classList.remove('active');
+                cancelBtn.style.display = ''; // 恢复取消按钮，防止影响下次调用
                 okBtn.removeEventListener('click', handleOk);
                 cancelBtn.removeEventListener('click', handleCancel);
-                modal.removeEventListener('click', handleCancel);
-            }
-
-            function handleOk() {
-                cleanup();
-                onConfirm?.();
-            }
-
-            function handleCancel() {
-                cleanup();
+                modal.removeEventListener('click', handleModalClick); // 移除正确的 handler
             }
 
             okBtn.addEventListener('click', handleOk);
-            cancelBtn.addEventListener('click', handleCancel);
-            modal.addEventListener('click', handleCancel);
+            if (!isNotify) cancelBtn.addEventListener('click', handleCancel);
+            modal.addEventListener('click', handleModalClick);
         }
 
         function resetBookmarks() {
@@ -989,7 +996,7 @@
                 <div>
                     <div class="flex items-center gap-1.5 mb-1.5 pb-1 border-b border-white/5">
                         <span class="text-sm">${cat.icon}</span>
-                        <h4 class="text-xs font-medium text-white/70">${cat.name}</h4>
+                        <h4 class="text-xs font-medium text-white/70">${escapeHtml(cat.name)}</h4>
                         <span class="ml-auto text-[10px] text-white/20">${cat.bookmarks.length}</span>
                     </div>
                     <div class="grid grid-cols-2 sm:grid-cols-3 gap-1">
@@ -1041,8 +1048,7 @@
             updateClock();
             loadUserData();
             renderBookmarks();
-            renderNavCategories();
-            initSidebarNav();
+            renderNavCategories(); // 内部已调用 initSidebarNav()，无需重复
             initScrollControl();
             const saved = storageGet('preferredEngine');
             if (saved && engines[saved]) setEngine(saved, false);
@@ -1091,7 +1097,7 @@
         function renderBookmarks() {
             if (!dom.bookmarks) return;
             dom.bookmarks.innerHTML = pageData.bookmarks.map(bm => `
-                <a href="${safeUrl(bm.url)}" target="_blank" rel="noopener" 
+                <a href="${safeUrl(bm.url)}" target="_blank" rel="noopener noreferrer" 
                    class="bookmark-item flex flex-col items-center justify-center gap-2 py-3 px-1 sm:px-1.5 apple-radius text-white/90 hover:text-white">
                     ${getFaviconHTML(bm, 'md')}
                     <span class="bookmark-title text-white/90">${escapeHtml(bm.name)}</span>
@@ -1127,7 +1133,7 @@
                     </div>
                     <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 md:gap-3">
                         ${sortedBookmarks.map(bm => `
-                            <a href="${safeUrl(bm.url)}" target="_blank" rel="noopener"
+                            <a href="${safeUrl(bm.url)}" target="_blank" rel="noopener noreferrer"
                                class="nav-bookmark group flex items-center gap-2.5 px-3 py-2.5 apple-radius text-white/80 hover:text-white">
                                 ${getFaviconHTML(bm, 'sm')}
                                 <div class="flex-1 min-w-0 flex flex-col justify-center">
@@ -1316,7 +1322,10 @@
 
             dom.saveEditBtn.addEventListener('click', () => {
                 const data = collectEditData();
-                if (data.length === 0) return;
+                if (data.length === 0) {
+                    showConfirm('至少需要保留一个名称和 URL 均已填写的书签才能保存。', null, '无法保存');
+                    return;
+                }
                 pageData.bookmarks = data;
                 storageSet('userBookmarks', data);
                 renderBookmarks();
@@ -1427,7 +1436,9 @@
             const bgNext = $('bgLayerNext');
             if (!bgBase || !bgNext) return;
 
-            const newStyleUrl = urlStr.startsWith('data:') ? `url("${urlStr}")` : `url('${urlStr}')`;
+            // 过滤 URL 中可能破坏 CSS url() 语法的字符，防止 CSS 注入
+            const safeCssUrl = urlStr.startsWith('data:') ? urlStr : urlStr.replace(/['"()\\]/g, '');
+            const newStyleUrl = urlStr.startsWith('data:') ? `url("${safeCssUrl}")` : `url('${safeCssUrl}')`;
 
             if (bgSwitchTimer) {
                 clearTimeout(bgSwitchTimer);
@@ -1679,15 +1690,7 @@
                 }
             }, { passive: false });
 
-            /** 轮询等待 scrollIntoView/scrollTo 完成，兜底 120 帧（~2s）超时
-             * @param {number} target - 目标 scrollY
-             * @param {Function} cb - 完成回调
-             * @param {number} [attempts] - 当前尝试计数 */
-            function waitForScroll(target, cb, attempts = 0) {
-                if (Math.abs(window.scrollY - target) < 2) { cb(); return; }
-                if (attempts > 120) { cb(); return; } // 超时保护 ~2s
-                requestAnimationFrame(() => waitForScroll(target, cb, attempts + 1));
-            }
+
 
             // ==================== 窗口变化修正：全屏/旋转/缩放后保持导航页在视口顶部 ====================
             var resizeTick = null;
