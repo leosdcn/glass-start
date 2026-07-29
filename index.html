@@ -32,7 +32,7 @@
             -webkit-backdrop-filter: blur(var(--blur));
             border: 1px solid var(--glass-border);
             box-shadow: inset 0 1px 0 0 rgba(255,255,255,0.22), inset 0 -1px 0 0 rgba(255,255,255,0.05), 0 8px 32px rgba(0,0,0,0.2); /* Liquid Glass 1px 物理折射高光 */
-            will-change: backdrop-filter;
+            transform: translateZ(0);
         }
         .glass-strong {
             background: rgba(255,255,255,0.12);
@@ -40,7 +40,15 @@
             -webkit-backdrop-filter: blur(40px);
             border: 1px solid rgba(255,255,255,0.2);
             box-shadow: inset 0 1px 0 0 rgba(255,255,255,0.32), inset 0 -1px 0 0 rgba(255,255,255,0.08), 0 8px 32px rgba(0,0,0,0.3); /* Liquid Glass 强物理折射高光 */
-            will-change: backdrop-filter;
+            transform: translateZ(0);
+        }
+        section {
+            transform: translateZ(0);
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+        }
+        #navSection {
+            contain: layout paint;
         }
         /* ===== 组件 ===== */
         .search-input::placeholder { color: rgba(255,255,255,0.6); }
@@ -121,8 +129,8 @@
         .nav-hidden { visibility:hidden; }
         .nav-visible { visibility:visible; }
         .nav-hidden .glass { opacity:0; }
-        .nav-visible .glass { animation:navFadeIn 0.6s ease forwards; }
-        @keyframes navFadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+        .nav-visible .glass { animation:navFadeIn 0.55s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        @keyframes navFadeIn { from{opacity:0;transform:translate3d(0,16px,0)} to{opacity:1;transform:translate3d(0,0,0)} }
         .sidebar-item {
             transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative;
@@ -309,6 +317,7 @@
             <div class="text-center fade-in clock-text mb-10 md:mb-14">
                 <div id="clock" aria-live="polite" aria-atomic="true" class="text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-light tracking-tight tabular-nums">00:00</div>
                 <div id="date" class="text-xs sm:text-sm md:text-base mt-3 text-white/70 font-light tracking-widest uppercase">加载中...</div>
+                <script>(function(){const n=new Date();const c=document.getElementById('clock');const d=document.getElementById('date');if(c)c.textContent=`${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`;if(d)d.textContent=n.toLocaleDateString('zh-CN',{year:'numeric',month:'long',day:'numeric',weekday:'long'});})()</script>
             </div>
 
             <!-- 搜索框 -->
@@ -918,9 +927,9 @@
          *   4. renderBookmarks()  — 依赖 pageData.bookmarks 已由前三步确定
          *   5. renderNavCategories() + initSidebarNav() — 后者依赖前者生成的 DOM
          */
-        async function init() {
+        function init() {
             cacheDOM();
-            await loadData();
+            updateClock();
             loadUserData();
             renderBookmarks();
             renderNavCategories();
@@ -928,12 +937,20 @@
             initScrollControl();
             const saved = storageGet('preferredEngine');
             if (saved && engines[saved]) setEngine(saved, false);
-            updateClock(); setInterval(updateClock, 1000);
+            setInterval(updateClock, 1000);
             bindEvents();
             bindEditEvents();
             preloadNextBg();
             preloadFavicons();
             if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+            
+            // 后台非阻塞异步加载远程数据，不拖累首屏渲染与 LCP
+            loadData().then(() => {
+                if (!storageGet('userBookmarks')) {
+                    renderBookmarks();
+                    renderNavCategories();
+                }
+            });
         }
 
         // ==================== 苹果风格 Favicon 兜底徽章 (严格尺寸强制归一) ====================
@@ -958,7 +975,7 @@
                 return `<div class="icon-box ${sizeClass} bg-white/15 border border-white/20 text-white/90 ${textClass}">${initial}</div>`;
             }
             const safeInitial = escapeHtml(initial).replace(/'/g, "\\'");
-            return `<div class="icon-box ${sizeClass}"><img src="${escapeHtml(bm.icon)}" class="opacity-90" alt="" onerror="handleIconError(this, '${safeInitial}', ${isMd})"></div>`;
+            return `<div class="icon-box ${sizeClass}"><img src="${escapeHtml(bm.icon)}" class="opacity-90" alt="" loading="lazy" decoding="async" onerror="this.onerror=null;handleIconError(this, '${safeInitial}', ${isMd})"></div>`;
         }
 
         // ==================== 书签 ====================
@@ -1025,17 +1042,24 @@
 
             const items = sidebar.querySelectorAll('[data-target]');
             const sections = [];
+            let sectionOffsets = [];
             items.forEach(item => {
                 const el = document.getElementById(item.dataset.target);
                 if (el) sections.push(el);
             });
+
+            function updateOffsets() {
+                sectionOffsets = sections.map(el => el.offsetTop);
+            }
+            updateOffsets();
+            window.addEventListener('resize', updateOffsets, { passive: true });
 
             // 根据滚动位置更新高亮：取距内容顶部 < 100px 的最后一个分区作为活跃项，并让侧边栏项自动平滑居中
             function updateActive() {
                 const scrollTop = content.scrollTop;
                 let activeIdx = 0;
                 for (let i = 0; i < sections.length; i++) {
-                    if (sections[i].offsetTop - scrollTop < 100) activeIdx = i;
+                    if ((sectionOffsets[i] || 0) - scrollTop < 100) activeIdx = i;
                 }
                 items.forEach((item, i) => {
                     const isActive = i === activeIdx;
@@ -1087,7 +1111,7 @@
                 const navContent = dom.navContent;
                 if (navContent) navContent.scrollTop = 0;
                 try { sessionStorage.setItem('startpage_section', 'start'); } catch {}
-                animateScrollTo(0, 450, () => {
+                animateScrollTo(0, 520, () => {
                     state.currentSection = 'start';
                 });
             });
@@ -1238,11 +1262,16 @@
             preloadNextBg();
         }
 
-        // ==================== 跨浏览器/跨系统平滑滚动动画（解耦系统与浏览器原生 flag，规避 Windows 闪跳）====================
-        function animateScrollTo(targetY, duration = 450, cb = null) {
+        // ==================== 跨浏览器/跨系统高帧率平滑滚动动画（Apple 物理平滑曲线 + RAF 防重叠）====================
+        let activeScrollRaf = null;
+        function animateScrollTo(targetY, duration = 520, cb = null) {
+            if (activeScrollRaf) {
+                cancelAnimationFrame(activeScrollRaf);
+                activeScrollRaf = null;
+            }
             const startY = window.scrollY;
             const distance = targetY - startY;
-            if (Math.abs(distance) < 2) {
+            if (Math.abs(distance) < 1.5) {
                 window.scrollTo(0, targetY);
                 if (cb) cb();
                 return;
@@ -1251,18 +1280,20 @@
             function step(currentTime) {
                 const elapsed = currentTime - startTime;
                 const progress = Math.min(elapsed / duration, 1);
+                // 优雅物理平滑 S 型减速滑行曲线（保留清晰自然的页面过渡轨迹，避免瞬间跳变感）
                 const ease = progress < 0.5 
-                    ? 4 * progress * progress * progress 
+                    ? 4 * Math.pow(progress, 3) 
                     : 1 - Math.pow(-2 * progress + 2, 3) / 2;
                 window.scrollTo(0, startY + distance * ease);
                 if (progress < 1) {
-                    requestAnimationFrame(step);
+                    activeScrollRaf = requestAnimationFrame(step);
                 } else {
                     window.scrollTo(0, targetY);
+                    activeScrollRaf = null;
                     if (cb) cb();
                 }
             }
-            requestAnimationFrame(step);
+            activeScrollRaf = requestAnimationFrame(step);
         }
 
         // ==================== 滚动切换 ====================
@@ -1329,7 +1360,7 @@
                     }
 
                     requestAnimationFrame(() => {
-                        animateScrollTo(nav.offsetTop, 450, () => {
+                        animateScrollTo(nav.offsetTop, 520, () => {
                             currentSection = 'nav';
                             state.currentSection = 'nav';
                             isTransitioning = false;
@@ -1344,7 +1375,7 @@
                             isTransitioning = true;
                             saveSection('start');
                             navContent.scrollTop = 0;
-                            animateScrollTo(0, 450, () => {
+                            animateScrollTo(0, 520, () => {
                                 animationDone = false;
                                 currentSection = 'start';
                                 state.currentSection = 'start';
@@ -1387,7 +1418,7 @@
                                 animationDone = true;
                             }
                             requestAnimationFrame(() => {
-                                animateScrollTo(nav.offsetTop, 450, () => {
+                                animateScrollTo(nav.offsetTop, 520, () => {
                                     currentSection = 'nav';
                                     state.currentSection = 'nav';
                                     isTransitioning = false;
@@ -1403,7 +1434,7 @@
                             scrollAccum = 0;
                             isTransitioning = true;
                             saveSection('start');
-                            animateScrollTo(0, 450, () => {
+                            animateScrollTo(0, 520, () => {
                                 animationDone = false;
                                 currentSection = 'start';
                                 state.currentSection = 'start';
