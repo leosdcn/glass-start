@@ -376,7 +376,7 @@
                     </button>
                 </div>
                 <!-- 搜索实时建议联想下拉框 (Spotlight 高颜值全宽样式) -->
-                <div id="suggestionMenu" role="listbox" aria-label="搜索建议" class="dropdown-menu absolute top-full left-0 right-0 w-full mt-2.5 glass-strong apple-radius p-2 border border-white/20 shadow-2xl backdrop-blur-2xl" style="z-index:150"></div>
+                <div id="suggestionMenu" role="listbox" aria-label="搜索建议" class="dropdown-menu absolute top-full left-0 right-0 w-full mt-3.5 sm:mt-4 glass-strong apple-radius p-2 border border-white/20 shadow-2xl backdrop-blur-2xl" style="z-index:150"></div>
             </div>
 
             <!-- 快捷书签 -->
@@ -1234,11 +1234,26 @@
             }
         }
         function bindEvents() {
-            // 搜索框输入与清空按键
+            // 搜索框输入、拼音合成与清空按键
+            let isComposing = false;
             let suggestDebounceTimer = null;
+
+            dom.searchInput.addEventListener('compositionstart', () => {
+                isComposing = true;
+                hideSuggestions(); // 拼音打字未完成前隐藏联想，彻底杜绝输入法候选框与联想下拉框冲突重叠
+            });
+
+            dom.searchInput.addEventListener('compositionend', () => {
+                isComposing = false;
+                const val = dom.searchInput.value;
+                if (dom.searchClearBtn) dom.searchClearBtn.classList.toggle('hidden', !val);
+                fetchSuggestions(state.engine, val);
+            });
+
             dom.searchInput.addEventListener('input', () => {
                 const val = dom.searchInput.value;
                 if (dom.searchClearBtn) dom.searchClearBtn.classList.toggle('hidden', !val);
+                if (isComposing) return; // 拼音打字合成中不触发请求
                 if (suggestDebounceTimer) clearTimeout(suggestDebounceTimer);
                 suggestDebounceTimer = setTimeout(() => {
                     fetchSuggestions(state.engine, val);
@@ -1663,7 +1678,7 @@
             `).join('');
 
             const footerHtml = `
-                <div class="flex items-center justify-between px-3 pt-3.5 pb-1 mt-3 border-t border-white/10 text-[11px] text-white/40 select-none font-normal leading-normal">
+                <div class="flex items-center justify-between px-3.5 pt-3.5 pb-2.5 mt-3 border-t border-white/10 text-[11px] text-white/45 select-none font-normal leading-none">
                     <span class="flex items-center gap-1.5"><kbd class="px-1.5 py-0.5 rounded bg-white/10 text-[10px] font-mono text-white/70 border border-white/15">↑</kbd><kbd class="px-1.5 py-0.5 rounded bg-white/10 text-[10px] font-mono text-white/70 border border-white/15">↓</kbd> 切换</span>
                     <span class="flex items-center gap-1.5"><kbd class="px-1.5 py-0.5 rounded bg-white/10 text-[10px] font-mono text-white/70 border border-white/15">⌥ / Alt + ↵</kbd> 新标签页打开</span>
                 </div>
