@@ -1412,7 +1412,6 @@
 
         // ==================== 壁纸切换 ====================
         let bgSwitchTimer = null;
-        let lastBgSwitchTime = 0;
 
         function preloadNextBg() {
             const img = new Image();
@@ -1421,33 +1420,43 @@
         function applyWallpaper(urlStr, animate = true) {
             const bgBase = $('bgLayer');
             const bgNext = $('bgLayerNext');
+            if (!bgBase || !bgNext) return;
+
             const newStyleUrl = urlStr.startsWith('data:') ? `url("${urlStr}")` : `url('${urlStr}')`;
-            
-            // 防并发与未完成中断：若上一次淡入动画未完成，取消定时器并将上一张图同步到底层，重置上层 opacity
+
             if (bgSwitchTimer) {
                 clearTimeout(bgSwitchTimer);
                 bgSwitchTimer = null;
-                if (bgBase && bgNext && bgNext.style.backgroundImage) {
-                    bgBase.style.backgroundImage = bgNext.style.backgroundImage;
-                }
-                if (bgNext) bgNext.style.opacity = '0';
             }
 
-            if (animate && bgNext) {
+            if (animate) {
+                // 1. 若当前上层已有背景，将当前上层的图片同步到底层作为起点
+                if (bgNext.style.backgroundImage) {
+                    bgBase.style.backgroundImage = bgNext.style.backgroundImage;
+                }
+                // 2. 暂时断开 CSS 过渡动画，防止 0.6s 过渡延迟，强制将 opacity 归零
+                bgNext.style.transition = 'none';
+                bgNext.style.opacity = '0';
+                void bgNext.offsetWidth; // 强行触发 DOM 重排，确保 opacity:0 瞬间生效
+
+                // 3. 换入新图片 URL 并恢复 CSS 0.6s 淡入动画
                 bgNext.style.backgroundImage = newStyleUrl;
-                // 强制重绘，确保 opacity 重新从 0 平滑淡入
-                void bgNext.offsetWidth;
+                bgNext.style.transition = 'opacity 0.6s ease';
+
+                // 4. 启动淡入动画 0 ➔ 1
                 requestAnimationFrame(() => {
                     bgNext.style.opacity = '1';
                     bgSwitchTimer = setTimeout(() => {
-                        if (bgBase) bgBase.style.backgroundImage = newStyleUrl;
+                        bgBase.style.backgroundImage = newStyleUrl;
+                        bgNext.style.transition = 'none';
                         bgNext.style.opacity = '0';
                         bgSwitchTimer = null;
-                    }, 650);
+                    }, 600);
                 });
             } else {
-                if (bgBase) bgBase.style.backgroundImage = newStyleUrl;
-                if (bgNext) bgNext.style.opacity = '0';
+                bgNext.style.transition = 'none';
+                bgNext.style.opacity = '0';
+                bgBase.style.backgroundImage = newStyleUrl;
             }
             updateWallpaperStatusUI();
         }
@@ -1470,11 +1479,6 @@
             updateWallpaperStatusUI();
         }
         function switchBg() {
-            // 防抖节流：300ms 门限，防止快速连按导致动画重叠失效
-            const now = performance.now();
-            if (now - lastBgSwitchTime < 300) return;
-            lastBgSwitchTime = now;
-
             const customBg = storageGet('userWallpaper');
             if (customBg) {
                 localStorage.removeItem('userWallpaper');
@@ -1482,7 +1486,7 @@
             } else {
                 state.bg = (state.bg + 1) % backgrounds.length;
             }
-            applyWallpaper(backgrounds[state.bg]);
+            applyWallpaper(backgrounds[state.bg], true);
             preloadNextBg();
         }
 
