@@ -389,7 +389,7 @@
             <!-- 主体：一体化 Liquid Glass 窗口框架 -->
             <div class="flex-1 glass apple-radius flex flex-col overflow-hidden min-h-0 border border-white/20 shadow-2xl">
                 <!-- 窗口顶部 Header 栏 -->
-                <div class="flex items-center justify-between px-4 py-2.5 border-b border-white/10 bg-black/20 shrink-0">
+                <div id="navHeader" class="flex items-center justify-between px-4 py-2.5 border-b border-white/10 bg-black/20 shrink-0 cursor-pointer select-none" title="点击返回起始页">
                     <div class="flex items-center gap-2">
                         <span class="text-base">🪐</span>
                         <h2 class="text-xs sm:text-sm font-semibold tracking-wide text-white/90">导航</h2>
@@ -1229,28 +1229,58 @@
             document.addEventListener('click', closeDropdown);
             window.addEventListener('blur', closeDropdown);
 
-            // 点击右侧返回提示按钮即可直接返回起始页
-            document.getElementById('navHint')?.addEventListener('click', () => {
-                const navContent = dom.navContent;
-                if (navContent) navContent.scrollTop = 0;
-                try { sessionStorage.setItem('startpage_section', 'start'); } catch {}
-                animateScrollTo(0, 520, () => {
-                    state.currentSection = 'start';
-                    const nav = document.getElementById('navSection');
-                    if (nav) {
-                        nav.classList.remove('nav-visible');
-                        nav.classList.add('nav-hidden');
-                    }
-                });
-            });
+            // 点击导航页顶栏或右侧返回按钮，平滑返回起始页
+            const handleBackToStart = () => {
+                if (window.switchToStart) window.switchToStart();
+            };
+            document.getElementById('navHint')?.addEventListener('click', handleBackToStart);
+            document.getElementById('navHeader')?.addEventListener('click', handleBackToStart);
 
-            // 键盘快捷键：任意可打印字符仅在起始页（state.currentSection === 'start'）聚焦搜索，Ctrl/Cmd+B 切换壁纸，Escape 失焦/关弹窗
+            // 键盘快捷键：
+            // 1. 屏间切换：PageDown / Down (非输入态切至导航页)，PageUp / Home / Up (非输入态且在导航页顶切回首屏)
+            // 2. 字母键：仅在起始页非输入态聚焦搜索框
+            // 3. Ctrl/Cmd+B：切换壁纸
+            // 4. Escape：关弹窗/失焦
             document.addEventListener('keydown', e => {
                 if (state.editOpen || (dom.bookmarkPicker && dom.bookmarkPicker.classList.contains('active'))) return;
-                if ((e.key === 'b' || e.key === 'B') && (e.metaKey || e.ctrlKey) && document.activeElement !== dom.searchInput) { e.preventDefault(); switchBg(); return; }
-                if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
-                if (state.currentSection === 'start' && e.key.length === 1 && document.activeElement !== dom.searchInput && document.activeElement?.tagName !== 'INPUT') { dom.searchInput.focus(); return; }
-                if (e.key === 'Escape') { closeDropdown(); dom.searchInput.blur(); closeEditModal(); closeBookmarkPicker(); }
+
+                const activeTag = document.activeElement?.tagName;
+                const isInputActive = activeTag === 'INPUT' || activeTag === 'TEXTAREA' || document.activeElement?.isContentEditable;
+
+                // 快捷键 B：切换壁纸
+                if ((e.key === 'b' || e.key === 'B') && (e.metaKey || e.ctrlKey) && !isInputActive) {
+                    e.preventDefault();
+                    switchBg();
+                    return;
+                }
+                if (e.ctrlKey || e.metaKey || e.altKey) return;
+
+                // 屏间切换快捷键（无组合键、非输入状态）
+                if (!isInputActive) {
+                    if (e.key === 'PageDown' || (e.key === 'ArrowDown' && state.currentSection === 'start')) {
+                        e.preventDefault();
+                        if (window.switchToNav) window.switchToNav();
+                        return;
+                    }
+                    if (e.key === 'PageUp' || e.key === 'Home' || (e.key === 'ArrowUp' && state.currentSection === 'nav' && dom.navContent?.scrollTop <= 0)) {
+                        e.preventDefault();
+                        if (window.switchToStart) window.switchToStart();
+                        return;
+                    }
+                }
+
+                // 首屏单字符盲打自动聚焦搜索框
+                if (state.currentSection === 'start' && e.key.length === 1 && !isInputActive) {
+                    dom.searchInput.focus();
+                    return;
+                }
+
+                if (e.key === 'Escape') {
+                    closeDropdown();
+                    dom.searchInput.blur();
+                    closeEditModal();
+                    closeBookmarkPicker();
+                }
             });
         }
 
@@ -1543,12 +1573,27 @@
         // ==================== 滚动切换 ====================
         function initScrollControl() {
             let scrollAccum = 0;
+            let resetAccumTimer = null;
             let isTransitioning = false;
             let currentSection = 'start';
             const SCROLL_THRESHOLD = 120; // 累积滚动像素阈值（跨浏览器一致）
             const nav = document.getElementById('navSection');
             const navContent = dom.navContent;
             let animationDone = false;
+
+            // 滚动停顿 400ms 后自动归零积累的 delta 值，彻底解决慢速滚动停顿后的误触发问题
+            function resetAccumAfterDelay() {
+                if (resetAccumTimer) clearTimeout(resetAccumTimer);
+                resetAccumTimer = setTimeout(() => { scrollAccum = 0; }, 400);
+            }
+
+            function clearAccum() {
+                scrollAccum = 0;
+                if (resetAccumTimer) {
+                    clearTimeout(resetAccumTimer);
+                    resetAccumTimer = null;
+                }
+            }
 
             // ===== sessionStorage 刷新保持：恢复/保存页面位置 =====
             function getSavedSection() {
@@ -1558,6 +1603,46 @@
                 state.currentSection = s;
                 try { sessionStorage.setItem('startpage_section', s); } catch {}
             }
+
+            // 暴露全局切屏控制接口，供点击 Header、键盘快捷键等共享调用
+            function switchToNav() {
+                if (isTransitioning || currentSection === 'nav') return;
+                isTransitioning = true;
+                clearAccum();
+                saveSection('nav');
+
+                nav.classList.remove('nav-hidden');
+                nav.classList.add('nav-visible');
+                animationDone = true;
+
+                requestAnimationFrame(() => {
+                    animateScrollTo(nav.offsetTop, 520, () => {
+                        currentSection = 'nav';
+                        state.currentSection = 'nav';
+                        isTransitioning = false;
+                    });
+                });
+            }
+
+            function switchToStart() {
+                if (isTransitioning || currentSection === 'start') return;
+                isTransitioning = true;
+                clearAccum();
+                if (navContent) navContent.scrollTop = 0;
+                saveSection('start');
+
+                animateScrollTo(0, 520, () => {
+                    animationDone = false;
+                    currentSection = 'start';
+                    state.currentSection = 'start';
+                    isTransitioning = false;
+                    nav.classList.remove('nav-visible');
+                    nav.classList.add('nav-hidden');
+                });
+            }
+
+            window.switchToNav = switchToNav;
+            window.switchToStart = switchToStart;
 
             // 若上次在导航页或滚动超过 40% 视口，直接显示导航区并跳过入场动画
             if (getSavedSection() === 'nav' || window.scrollY > window.innerHeight * 0.4) {
@@ -1588,46 +1673,28 @@
                 const down = delta > 0;
 
                 if (currentSection === 'start') {
-                    if (!down) { scrollAccum = Math.max(0, scrollAccum + delta); return; }
+                    if (!down) {
+                        scrollAccum = Math.max(0, scrollAccum + delta);
+                        resetAccumAfterDelay();
+                        return;
+                    }
                     e.preventDefault();
                     scrollAccum += delta;
-                    if (scrollAccum < SCROLL_THRESHOLD) return;
-                    scrollAccum = 0;
-                    isTransitioning = true;
-                    saveSection('nav');
-
-                    nav.classList.remove('nav-hidden');
-                    nav.classList.add('nav-visible');
-                    animationDone = true;
-
-                    requestAnimationFrame(() => {
-                        animateScrollTo(nav.offsetTop, 520, () => {
-                            currentSection = 'nav';
-                            state.currentSection = 'nav';
-                            isTransitioning = false;
-                        });
-                    });
+                    resetAccumAfterDelay();
+                    if (scrollAccum >= SCROLL_THRESHOLD) {
+                        switchToNav();
+                    }
                 } else {
                     if (!down && navContent.scrollTop <= 0) {
                         e.preventDefault();
                         scrollAccum += Math.abs(delta);
+                        resetAccumAfterDelay();
                         if (scrollAccum >= SCROLL_THRESHOLD) {
-                            scrollAccum = 0;
-                            isTransitioning = true;
-                            saveSection('start');
-                            navContent.scrollTop = 0;
-                            animateScrollTo(0, 520, () => {
-                                animationDone = false;
-                                currentSection = 'start';
-                                state.currentSection = 'start';
-                                isTransitioning = false;
-                                nav.classList.remove('nav-visible');
-                                nav.classList.add('nav-hidden');
-                            });
+                            switchToStart();
                         }
                     } else {
                         // 在 navContent 内部，恢复原生触控与平滑滚动，不再拦截
-                        scrollAccum = 0;
+                        clearAccum();
                     }
                 }
             }, { passive: false });
@@ -1650,42 +1717,22 @@
                     if (deltaY > 0) {
                         e.preventDefault();
                         scrollAccum += Math.abs(deltaY);
+                        resetAccumAfterDelay();
                         if (scrollAccum >= SCROLL_THRESHOLD) {
-                            scrollAccum = 0;
-                            isTransitioning = true;
-                            saveSection('nav');
-                            nav.classList.remove('nav-hidden');
-                            nav.classList.add('nav-visible');
-                            animationDone = true;
-                            requestAnimationFrame(() => {
-                                animateScrollTo(nav.offsetTop, 520, () => {
-                                    currentSection = 'nav';
-                                    state.currentSection = 'nav';
-                                    isTransitioning = false;
-                                });
-                            });
+                            switchToNav();
                         }
                     }
                 } else {
                     if (deltaY < 0 && navContent.scrollTop <= 0) {
                         e.preventDefault();
                         scrollAccum += Math.abs(deltaY);
+                        resetAccumAfterDelay();
                         if (scrollAccum >= SCROLL_THRESHOLD) {
-                            scrollAccum = 0;
-                            isTransitioning = true;
-                            saveSection('start');
-                            animateScrollTo(0, 520, () => {
-                                animationDone = false;
-                                currentSection = 'start';
-                                state.currentSection = 'start';
-                                isTransitioning = false;
-                                nav.classList.remove('nav-visible');
-                                nav.classList.add('nav-hidden');
-                            });
+                            switchToStart();
                         }
                     } else {
                         // 导航页内自然触控滚动
-                        scrollAccum = 0;
+                        clearAccum();
                     }
                 }
             }, { passive: false });
