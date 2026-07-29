@@ -3,8 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0f172a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Glass Start</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🪐</text></svg>">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🪐</text></svg>">
     <!-- 预解析与预连接联想 API 域名，消除首次打字时的 DNS/TLS 握手延时 -->
     <link rel="dns-prefetch" href="https://suggestion.baidu.com">
     <link rel="dns-prefetch" href="https://api.bing.com">
@@ -1646,15 +1650,16 @@
                             showConfirm('请选择有效的图片文件（JPG / PNG / WebP 等）。', null, '格式错误');
                             return;
                         }
-                        if (file.size > 4 * 1024 * 1024) {
-                            showConfirm('图片文件过大（推荐 4MB 以内），请选择更小尺寸的图片以保证本地存储性能。', null, '文件过大');
-                            return;
-                        }
                         const reader = new FileReader();
                         reader.onload = ev => {
                             const dataUrl = ev.target.result;
-                            storageSet('userWallpaper', dataUrl);
+                            // 立即应用用户上传的原图壁纸
                             applyWallpaper(dataUrl);
+                            // 尝试持久化存储至 localStorage
+                            const success = storageSet('userWallpaper', dataUrl);
+                            if (!success) {
+                                showConfirm('原图壁纸已在当前页面生效。但因图片文件体积超过浏览器本地存储上限（5MB），刷新页面后将恢复默认壁纸。建议使用网络图片 URL 地址。', null, '持久化提示');
+                            }
                         };
                         reader.readAsDataURL(file);
                     }
@@ -1806,7 +1811,9 @@
                 script.src = `https://suggestion.baidu.com/su?wd=${encodeURIComponent(query)}&cb=${cbName}`;
             } else if (engineKey === 'bing') {
                 script.src = `https://api.bing.com/osjson.aspx?query=${encodeURIComponent(query)}&JsonType=callback&JsonCallback=${cbName}`;
-            } else if (engineKey === 'google' || engineKey === 'duckduckgo') {
+            } else if (engineKey === 'google') {
+                script.src = `https://suggestqueries.google.com/complete/search?client=chrome&q=${encodeURIComponent(query)}&callback=${cbName}`;
+            } else if (engineKey === 'duckduckgo') {
                 script.src = `https://suggestqueries.google.com/complete/search?client=chrome&q=${encodeURIComponent(query)}&callback=${cbName}`;
             }
 
