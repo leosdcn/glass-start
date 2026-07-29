@@ -421,6 +421,11 @@
                 <button id="addBookmarkBtn" type="button" class="flex-1 py-1.5 border border-dashed border-white/15 apple-radius text-white/40 hover:text-white/70 hover:border-white/30 transition text-sm">+ 手动输入</button>
                 <button id="togglePickerBtn" type="button" class="flex-1 py-1.5 border border-dashed border-white/15 apple-radius text-sm text-white/40 hover:text-white/70 hover:border-white/30 transition">从导航页选择</button>
             </div>
+            <div class="flex flex-col sm:flex-row gap-1.5 shrink-0 mt-1.5">
+                <button id="importJsonBtn" type="button" class="flex-1 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 apple-radius text-sm text-white/70 hover:text-white transition flex items-center justify-center gap-1.5">📥 导入 JSON 配置</button>
+                <button id="exportJsonBtn" type="button" class="flex-1 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 apple-radius text-sm text-white/70 hover:text-white transition flex items-center justify-center gap-1.5">📤 导出 JSON 备份</button>
+                <input type="file" id="importJsonInput" accept=".json,application/json" class="hidden">
+            </div>
             <div class="flex gap-2 mt-2 pt-2 border-t border-white/10 shrink-0">
                 <button id="saveEditBtn" type="button" class="flex-1 py-2.5 bg-white/10 hover:bg-white/20 apple-radius transition text-sm font-medium text-white/90">保存</button>
                 <button id="cancelEditBtn" type="button" class="flex-1 py-2.5 bg-white/5 hover:bg-white/10 apple-radius transition text-sm text-white/60">取消</button>
@@ -636,7 +641,7 @@
         function $(id) { return document.getElementById(id); } // DOM 快捷获取
 
         function cacheDOM() {
-            const ids = 'clock date searchInput engineBtn engineIcon engineName dropdownMenu searchBtn bookmarks sidebarList navCategories navContent editModal editList editBookmarksBtn closeEditBtn addBookmarkBtn saveEditBtn cancelEditBtn resetEditBtn togglePickerBtn bookmarkPicker pickerContent pickerCount closePickerBtn donePickerBtn'.split(' ');
+            const ids = 'clock date searchInput engineBtn engineIcon engineName dropdownMenu searchBtn bookmarks sidebarList navCategories navContent editModal editList editBookmarksBtn closeEditBtn addBookmarkBtn saveEditBtn cancelEditBtn resetEditBtn togglePickerBtn bookmarkPicker pickerContent pickerCount closePickerBtn donePickerBtn importJsonBtn exportJsonBtn importJsonInput'.split(' ');
             ids.forEach(id => dom[id] = $(id));
         }
 
@@ -763,6 +768,79 @@
         function closeEditModal() {
             state.editOpen = false;
             dom.editModal.classList.remove('active');
+        }
+
+        // ==================== 纯前端 JSON 配置文件导入与导出 ====================
+        function exportBookmarksJSON() {
+            const data = collectEditData();
+            const bookmarksToExport = data.length ? data : pageData.bookmarks;
+            const exportData = {
+                version: '1.0',
+                exportDate: new Date().toISOString(),
+                bookmarks: bookmarksToExport
+            };
+            const jsonStr = JSON.stringify(exportData, null, 2);
+            const blob = new Blob([jsonStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            const dateStr = new Date().toISOString().slice(0, 10);
+            a.href = url;
+            a.download = `startpage_bookmarks_${dateStr}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function importBookmarksJSON(file) {
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const parsed = JSON.parse(e.target.result);
+                    let importedList = [];
+                    if (Array.isArray(parsed)) {
+                        importedList = parsed;
+                    } else if (parsed && Array.isArray(parsed.bookmarks)) {
+                        importedList = parsed.bookmarks;
+                    } else if (parsed && Array.isArray(parsed.categories)) {
+                        parsed.categories.forEach(cat => {
+                            if (Array.isArray(cat.bookmarks)) importedList.push(...cat.bookmarks);
+                        });
+                    } else {
+                        showConfirm('上传的配置文件结构不匹配，未包含有效的书签数组。', null, '格式错误');
+                        return;
+                    }
+
+                    const validBookmarks = [];
+                    importedList.forEach(item => {
+                        if (item && (item.name || item.url)) {
+                            const name = (item.name || '未命名').trim();
+                            const url = normalizeUrl(item.url || '');
+                            if (name && url) {
+                                const icon = item.icon || faviconFromUrl(url);
+                                validBookmarks.push({ name, url, icon });
+                            }
+                        }
+                    });
+
+                    if (validBookmarks.length === 0) {
+                        showConfirm('配置文件中没有提取到有效的书签条目。', null, '导入失败');
+                        return;
+                    }
+
+                    showConfirm(`检测到合规书签 ${validBookmarks.length} 项，确定导入并覆盖当前快捷书签吗？`, () => {
+                        pageData.bookmarks = validBookmarks;
+                        storageSet('userBookmarks', validBookmarks);
+                        renderBookmarks();
+                        renderEditList();
+                        closeBookmarkPicker();
+                    }, '导入确认');
+                } catch (err) {
+                    showConfirm('解析 JSON 配置文件失败，请检查文件格式。', null, '解析错误');
+                }
+            };
+            reader.readAsText(file, 'UTF-8');
         }
 
         // ==================== 自定义确认弹窗（替代原生 confirm()）====================
@@ -1200,6 +1278,17 @@
                 renderBookmarks();
                 closeEditModal();
             });
+
+            // JSON 导入导出事件绑定
+            if (dom.exportJsonBtn) dom.exportJsonBtn.addEventListener('click', exportBookmarksJSON);
+            if (dom.importJsonBtn) dom.importJsonBtn.addEventListener('click', () => dom.importJsonInput?.click());
+            if (dom.importJsonInput) {
+                dom.importJsonInput.addEventListener('change', e => {
+                    const file = e.target.files[0];
+                    if (file) importBookmarksJSON(file);
+                    e.target.value = '';
+                });
+            }
             initDragSort();
         }
 
