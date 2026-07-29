@@ -1637,19 +1637,13 @@
                 return;
             }
 
-            // DuckDuckGo Fetch (原生独立拉取，不二次跳转/不降级兜底)
+            // DuckDuckGo（因 DDG 官方 Autocomplete 接口不支持 CORS 跨域与 JSONP，纯前端环境使用 Google 开放 JSONP 建议接口）
             if (engineKey === 'duckduckgo') {
-                fetch(`https://ac.duckduckgo.com/ac/?q=${encodeURIComponent(query)}&type=list`)
-                    .then(res => res.json())
-                    .then(data => {
-                        if (Array.isArray(data)) {
-                            const list = Array.isArray(data[1]) ? data[1] : data.map(item => item.phrase).filter(Boolean);
-                            onGotSuggestions(list);
-                        } else {
-                            onGotSuggestions([]);
-                        }
-                    })
-                    .catch(() => onGotSuggestions([]));
+                window._ddgSuggestCb = function(data) {
+                    onGotSuggestions(data && data[1] ? data[1] : []);
+                };
+                script.src = `https://suggestqueries.google.com/complete/search?client=chrome&q=${encodeURIComponent(query)}&callback=_ddgSuggestCb`;
+                document.body.appendChild(script);
                 return;
             }
 
