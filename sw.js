@@ -10,7 +10,8 @@ self.addEventListener('activate', e => e.waitUntil(
 ));
 
 self.addEventListener('fetch', e => {
-    if (!e.request.url.includes('favicon')) return;
+    const url = e.request.url.toLowerCase();
+    if (!url.includes('favicon') && !url.includes('.ico') && !url.includes('icon')) return;
     e.respondWith(
         caches.open(CACHE).then(async cache => {
             const cached = await cache.match(e.request);
