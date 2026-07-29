@@ -1230,6 +1230,11 @@
                 try { sessionStorage.setItem('startpage_section', 'start'); } catch {}
                 animateScrollTo(0, 520, () => {
                     state.currentSection = 'start';
+                    const nav = document.getElementById('navSection');
+                    if (nav) {
+                        nav.classList.remove('nav-visible');
+                        nav.classList.add('nav-hidden');
+                    }
                 });
             });
 
@@ -1605,6 +1610,8 @@
                                 currentSection = 'start';
                                 state.currentSection = 'start';
                                 isTransitioning = false;
+                                nav.classList.remove('nav-visible');
+                                nav.classList.add('nav-hidden');
                             });
                         }
                     } else {
@@ -1661,6 +1668,8 @@
                                 currentSection = 'start';
                                 state.currentSection = 'start';
                                 isTransitioning = false;
+                                nav.classList.remove('nav-visible');
+                                nav.classList.add('nav-hidden');
                             });
                         }
                     } else {
