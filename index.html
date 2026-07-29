@@ -1411,6 +1411,9 @@
         }
 
         // ==================== 壁纸切换 ====================
+        let bgSwitchTimer = null;
+        let lastBgSwitchTime = 0;
+
         function preloadNextBg() {
             const img = new Image();
             img.src = backgrounds[(state.bg + 1) % backgrounds.length];
@@ -1419,13 +1422,27 @@
             const bgBase = $('bgLayer');
             const bgNext = $('bgLayerNext');
             const newStyleUrl = urlStr.startsWith('data:') ? `url("${urlStr}")` : `url('${urlStr}')`;
+            
+            // 防并发与未完成中断：若上一次淡入动画未完成，取消定时器并将上一张图同步到底层，重置上层 opacity
+            if (bgSwitchTimer) {
+                clearTimeout(bgSwitchTimer);
+                bgSwitchTimer = null;
+                if (bgBase && bgNext && bgNext.style.backgroundImage) {
+                    bgBase.style.backgroundImage = bgNext.style.backgroundImage;
+                }
+                if (bgNext) bgNext.style.opacity = '0';
+            }
+
             if (animate && bgNext) {
                 bgNext.style.backgroundImage = newStyleUrl;
+                // 强制重绘，确保 opacity 重新从 0 平滑淡入
+                void bgNext.offsetWidth;
                 requestAnimationFrame(() => {
                     bgNext.style.opacity = '1';
-                    setTimeout(() => {
+                    bgSwitchTimer = setTimeout(() => {
                         if (bgBase) bgBase.style.backgroundImage = newStyleUrl;
                         bgNext.style.opacity = '0';
+                        bgSwitchTimer = null;
                     }, 650);
                 });
             } else {
@@ -1453,6 +1470,11 @@
             updateWallpaperStatusUI();
         }
         function switchBg() {
+            // 防抖节流：300ms 门限，防止快速连按导致动画重叠失效
+            const now = performance.now();
+            if (now - lastBgSwitchTime < 300) return;
+            lastBgSwitchTime = now;
+
             const customBg = storageGet('userWallpaper');
             if (customBg) {
                 localStorage.removeItem('userWallpaper');
