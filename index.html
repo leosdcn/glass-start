@@ -71,7 +71,7 @@
         .bookmark-item { transition: all 0.2s ease; }
         .bookmark-item:hover { background: rgba(255,255,255,0.12); transform: translateY(-2px); }
         .bookmark-title {
-            font-size: 11.5px;
+            font-size: 0.72rem;
             line-height: 1.25;
             letter-spacing: -0.01em;
             text-align: center;
@@ -83,13 +83,11 @@
             max-width: 100%;
         }
         @media (min-width: 640px) {
-            .bookmark-title { font-size: 12px; }
+            .bookmark-title { font-size: 0.75rem; }
         }
-        /* ===== 图标尺寸严格统一与归一化 =====
-           不同来源的外部 favicon（favicon.im 返回值）原始尺寸参差不齐（16px / 32px / 64px 均有），
-           若不强制统一，会导致书签网格中图标大小不一、垂直对齐混乱。
-           使用 !important 是为了覆盖 Tailwind 工具类可能产生的冲突，确保在任何上下文中尺寸都严格固定。
-           sm（20px）用于导航页列表行，md（32px）用于起始页快捷书签网格。
+        /* ===== 图标尺寸严格统一与归一化（采用 rem 实现高分屏等比例动态缩放） =====
+           不同来源的外部 favicon 原始尺寸参差不齐，统一使用 rem 保证图标与字体在大屏/高分屏同比例响应。
+           sm（1.25rem / 20px 基准）用于导航页列表行，md（2rem / 32px 基准）用于起始页快捷书签网格。
         ===== */
         .icon-box {
             display: inline-flex;
@@ -97,25 +95,25 @@
             justify-content: center;
             flex-shrink: 0;
             overflow: hidden;
-            border-radius: 6px;
+            border-radius: 0.375rem;
             transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
         .icon-box-sm {
-            width: 20px !important;
-            height: 20px !important;
-            min-width: 20px !important;
-            min-height: 20px !important;
-            max-width: 20px !important;
-            max-height: 20px !important;
+            width: 1.25rem !important;
+            height: 1.25rem !important;
+            min-width: 1.25rem !important;
+            min-height: 1.25rem !important;
+            max-width: 1.25rem !important;
+            max-height: 1.25rem !important;
         }
         .icon-box-md {
-            width: 32px !important;
-            height: 32px !important;
-            min-width: 32px !important;
-            min-height: 32px !important;
-            max-width: 32px !important;
-            max-height: 32px !important;
-            border-radius: 8px;
+            width: 2rem !important;
+            height: 2rem !important;
+            min-width: 2rem !important;
+            min-height: 2rem !important;
+            max-width: 2rem !important;
+            max-height: 2rem !important;
+            border-radius: 0.5rem;
         }
         .icon-box img {
             width: 100% !important;
@@ -189,7 +187,7 @@
         .scroll-hint { animation: bounceDown 2s ease-in-out infinite; }
         .scroll-up-hint { animation: bounceUp 1.8s ease-in-out infinite; }
         #navHint { white-space: nowrap; flex-shrink: 0; border-radius: var(--radius); }
-        #navHint svg { width: 12px; height: 12px; max-width: 12px; max-height: 12px; flex-shrink: 0; }
+        #navHint svg { width: 0.75rem; height: 0.75rem; max-width: 0.75rem; max-height: 0.75rem; flex-shrink: 0; }
         @keyframes bounceDown { 0%,100%{transform:translateY(0);opacity:0.6} 50%{transform:translateY(8px);opacity:1} }
         @keyframes bounceUp { 0%,100%{transform:translateY(0);opacity:0.7} 50%{transform:translateY(-3px);opacity:1} }
         .hint-down { animation:hintFade 7s ease forwards; }
@@ -279,125 +277,6 @@
         /* 导航页书签行悬停时显示右箭头并微移 */
         .nav-bookmark:hover .group-hover\:opacity-100 { opacity: 1; }
         .nav-bookmark:hover .group-hover\:translate-x-0\.5 { transform: translateX(0.125rem); }
-
-        /* ===== 2K & 4K+ 高分辨率大屏响应式阶梯等比例放大与组件扩容系统 ===== */
-        /* 1. 大屏 Laptop / MacBook Retina 视窗 (屏幕宽度 >= 1440px) */
-        @media (min-width: 1440px) {
-            html {
-                font-size: 17px;
-            }
-            .max-w-2xl, .max-w-3xl {
-                max-width: 52rem !important; /* 搜索框与快捷书签扩容至 884px */
-            }
-            .icon-box-md {
-                width: 35px !important;
-                height: 35px !important;
-                min-width: 35px !important;
-                min-height: 35px !important;
-            }
-        }
-
-        /* 2. 2K 缩放屏 / 标准台式机大屏 (屏幕宽度 >= 1680px) */
-        @media (min-width: 1680px) {
-            html {
-                font-size: 18.5px;
-            }
-            .max-w-2xl, .max-w-3xl {
-                max-width: 58rem !important; /* 搜索框与快捷书签扩容至 1073px */
-            }
-            .max-w-7xl {
-                max-width: 104rem !important; /* 导航页全屏视窗框架扩容 */
-            }
-            .icon-box-md {
-                width: 38px !important;
-                height: 38px !important;
-                min-width: 38px !important;
-                min-height: 38px !important;
-            }
-            .icon-box-sm {
-                width: 24px !important;
-                height: 24px !important;
-                min-width: 24px !important;
-                min-height: 24px !important;
-            }
-            #editBookmarksBtn {
-                bottom: 2.5rem !important;
-                right: 2.5rem !important;
-                padding: 1rem !important;
-            }
-            #editBookmarksBtn svg {
-                width: 1.5rem !important;
-                height: 1.5rem !important;
-            }
-        }
-
-        /* 3. 2K 原生点对点 / 1080p 全屏大屏 (屏幕宽度 >= 1920px) */
-        @media (min-width: 1920px) {
-            html {
-                font-size: 20.5px;
-            }
-            .max-w-2xl, .max-w-3xl {
-                max-width: 64rem !important; /* 搜索框与快捷书签扩容至 1312px */
-            }
-            .max-w-7xl {
-                max-width: 118rem !important;
-            }
-            .icon-box-md {
-                width: 42px !important;
-                height: 42px !important;
-                min-width: 42px !important;
-                min-height: 42px !important;
-            }
-            .icon-box-sm {
-                width: 26px !important;
-                height: 26px !important;
-                min-width: 26px !important;
-                min-height: 26px !important;
-            }
-            #editBookmarksBtn {
-                bottom: 3rem !important;
-                right: 3rem !important;
-                padding: 1.15rem !important;
-            }
-            #editBookmarksBtn svg {
-                width: 1.65rem !important;
-                height: 1.65rem !important;
-            }
-        }
-
-        /* 4. 4K 原生 / 5K 超大屏 (屏幕宽度 >= 2560px) */
-        @media (min-width: 2560px) {
-            html {
-                font-size: 24px;
-            }
-            .max-w-2xl, .max-w-3xl {
-                max-width: 72rem !important; /* 搜索框与快捷书签扩容至 1728px */
-            }
-            .max-w-7xl {
-                max-width: 136rem !important; /* 导航页框架扩容至 3264px */
-            }
-            .icon-box-md {
-                width: 48px !important;
-                height: 48px !important;
-                min-width: 48px !important;
-                min-height: 48px !important;
-            }
-            .icon-box-sm {
-                width: 30px !important;
-                height: 30px !important;
-                min-width: 30px !important;
-                min-height: 30px !important;
-            }
-            #editBookmarksBtn {
-                bottom: 4rem !important;
-                right: 4rem !important;
-                padding: 1.35rem !important;
-            }
-            #editBookmarksBtn svg {
-                width: 1.85rem !important;
-                height: 1.85rem !important;
-            }
-        }
         /* ===== 键盘焦点环（:focus-visible 仅对键盘导航生效，鼠标点击不触发）=====
            遵循 Apple HIG：所有可交互元素必须具备可见焦点状态。
            使用半透明白色描边+外发光，与玻璃风格保持一致。
@@ -459,13 +338,13 @@
         /* ===== 自定义重置确认弹窗（精细化 iOS/macOS 玻璃规范） ===== */
         .confirm-dialog-card {
             width: 90% !important;
-            max-width: 360px !important;
+            max-width: 22.5rem !important;
             background: rgba(28, 28, 35, 0.88) !important;
             backdrop-filter: blur(24px) saturate(180%) !important;
             -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
             border: 1px solid rgba(255, 255, 255, 0.16) !important;
-            border-radius: 20px !important;
-            padding: 24px 20px 20px 20px !important;
+            border-radius: 1.25rem !important;
+            padding: 1.5rem 1.25rem 1.25rem 1.25rem !important;
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.65) !important;
             display: flex;
             flex-direction: column;
@@ -474,12 +353,12 @@
         }
         .confirm-dialog-btn-cancel {
             flex: 1;
-            padding: 10px 16px;
-            border-radius: 12px;
+            padding: 0.625rem 1rem;
+            border-radius: 0.75rem;
             background: rgba(255, 255, 255, 0.08);
             border: 1px solid rgba(255, 255, 255, 0.12);
             color: rgba(255, 255, 255, 0.75);
-            font-size: 13px;
+            font-size: 0.8125rem;
             font-weight: 500;
             cursor: pointer;
             transition: all 0.15s ease;
@@ -490,12 +369,12 @@
         }
         .confirm-dialog-btn-ok {
             flex: 1;
-            padding: 10px 16px;
-            border-radius: 12px;
+            padding: 0.625rem 1rem;
+            border-radius: 0.75rem;
             background: rgba(239, 68, 68, 0.85);
             border: 1px solid rgba(248, 113, 113, 0.4);
             color: #ffffff;
-            font-size: 13px;
+            font-size: 0.8125rem;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.15s ease;
@@ -506,6 +385,46 @@
             box-shadow: 0 6px 20px rgba(239, 68, 68, 0.5);
         }
 
+        /* ===== 高分辨率屏（2K / 4K / 大屏显示器）等比例响应式缩放适配 ===== */
+
+        /* 1. Root Rem 阶梯式动态缩放：
+           以 MacBook Air (物理 2560x1664，默认渲染逻辑宽 1470px x 956px) 为 100% 原始视口标尺 (16px)；
+           当外接 2K / 4K 高分辨率显示器或调整系统缩放导致视口逻辑宽 > 1500px 时，动态调高 html font-size，
+           页面所有基于 rem 的元素（高宽、字号、间距、圆角、图标）实现精确的物理等比例无损放大。
+        */
+        @media (min-width: 1500px) {
+            html { font-size: 17.5px; }
+        }
+        @media (min-width: 1800px) {
+            html { font-size: 19.5px; }
+        }
+        @media (min-width: 2400px) {
+            html { font-size: 22.5px; }
+        }
+        @media (min-width: 3000px) {
+            html { font-size: 25px; }
+        }
+        @media (min-width: 3600px) {
+            html { font-size: 27.5px; }
+        }
+
+        /* 2. 大屏与 4K 屏容器最大宽度 & 网格列数扩展 */
+        @media (min-width: 1500px) {
+            .xl\:max-w-4xl { max-width: 56rem; }
+            .xl\:max-w-3xl { max-width: 48rem; }
+            .xl\:w-52 { width: 13rem; }
+        }
+        @media (min-width: 1800px) {
+            .2xl\:max-w-5xl { max-width: 64rem; }
+            .2xl\:max-w-4xl { max-width: 56rem; }
+            .2xl\:max-w-\[1500px\] { max-width: 1500px; }
+            .2xl\:grid-cols-5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+            .2xl\:w-60 { width: 15rem; }
+        }
+        @media (min-width: 2400px) {
+            .3xl\:max-w-\[1800px\] { max-width: 1800px; }
+            .3xl\:grid-cols-6 { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+        }
     </style>
 </head>
 <body class="text-white relative bg-[#1a1a2e]">
@@ -526,7 +445,7 @@
             </div>
 
             <!-- 搜索框 -->
-            <div class="w-full max-w-2xl lg:max-w-3xl relative mb-8 md:mb-10">
+            <div class="w-full max-w-2xl lg:max-w-3xl xl:max-w-4xl 2xl:max-w-5xl relative mb-8 md:mb-10">
                 <div class="glass-strong apple-radius p-2 flex items-center gap-2 border fade-in" style="animation-delay:0.1s">
                     <div class="relative shrink-0">
                         <button id="engineBtn" type="button" aria-label="选择搜索引擎" aria-haspopup="true" aria-expanded="false" class="flex items-center gap-2 px-3 py-3 apple-radius hover:bg-white/10 transition text-sm font-medium">
@@ -563,7 +482,7 @@
             </div>
 
             <!-- 快捷书签 -->
-            <div class="w-full max-w-2xl lg:max-w-3xl glass apple-radius p-4 sm:p-5 fade-in mb-6 md:mb-8 relative group" style="animation-delay:0.2s">
+            <div class="w-full max-w-2xl lg:max-w-3xl xl:max-w-4xl 2xl:max-w-5xl glass apple-radius p-4 sm:p-5 fade-in mb-6 md:mb-8 relative group" style="animation-delay:0.2s">
                 <nav aria-label="快捷书签">
                     <div id="bookmarks" class="grid grid-cols-4 md:grid-cols-8 gap-2"></div>
                 </nav>
@@ -586,11 +505,11 @@
     </section>
 
     <!-- 分隔线 -->
-    <div class="section-divider h-px relative z-10 mx-auto w-3/4 max-w-2xl"></div>
+    <div class="section-divider h-px relative z-10 mx-auto w-3/4 max-w-2xl xl:max-w-4xl 2xl:max-w-5xl"></div>
 
     <!-- ========== 第二屏：导航页 ========== -->
     <section id="navSection" class="relative z-10 h-screen nav-hidden overflow-hidden">
-        <div class="h-full flex flex-col py-3 md:py-5 px-3 md:px-6 max-w-7xl mx-auto w-full">
+        <div class="h-full flex flex-col py-3 md:py-5 px-3 md:px-6 max-w-7xl 2xl:max-w-[1500px] 3xl:max-w-[1800px] mx-auto w-full">
             <!-- 主体：一体化 Liquid Glass 窗口框架 -->
             <div class="flex-1 glass apple-radius flex flex-col overflow-hidden min-h-0 border border-white/20 shadow-2xl">
                 <!-- 窗口顶部 Header 栏 -->
@@ -602,7 +521,7 @@
                     </div>
                     <!-- 右侧返回提示 -->
                     <div id="navHint" class="flex items-center gap-1.5 text-white/40 text-[10px] tracking-wider bg-white/5 border border-white/10 px-2.5 py-1 apple-radius whitespace-nowrap shrink-0 cursor-pointer hover:bg-white/10 hover:text-white/70 transition" title="点击或向上滚动返回起始页">
-                        <svg class="w-3 h-3 scroll-up-hint shrink-0 text-white/60" width="12" height="12" style="width: 12px; height: 12px; min-width: 12px; min-height: 12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/></svg>
+                        <svg class="w-3 h-3 scroll-up-hint shrink-0 text-white/60" width="12" height="12" style="width: 0.75rem; height: 0.75rem; min-width: 0.75rem; min-height: 0.75rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/></svg>
                         <span class="whitespace-nowrap">向上滚动返回</span>
                     </div>
                 </div>
@@ -610,7 +529,7 @@
                 <!-- 下方主体：左侧分类 + 右侧书签 -->
                 <div class="flex-1 flex flex-col sm:flex-row overflow-hidden min-h-0">
                     <!-- 侧边栏（移动端顶部水平，桌面端左侧垂直） -->
-                    <aside id="sidebar" class="sm:w-36 md:w-44 shrink-0 p-2 overflow-y-auto border-b sm:border-b-0 sm:border-r border-white/10 bg-black/10">
+                    <aside id="sidebar" class="sm:w-36 md:w-44 xl:w-52 2xl:w-60 shrink-0 p-2 overflow-y-auto border-b sm:border-b-0 sm:border-r border-white/10 bg-black/10">
                         <nav aria-label="导航分类">
                             <div id="sidebarList" class="flex sm:flex-col gap-1"></div>
                         </nav>
@@ -626,7 +545,7 @@
 
     <!-- 编辑书签弹窗 -->
     <div id="editModal" role="dialog" aria-modal="true" aria-label="编辑快捷书签" class="edit-overlay fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm" style="z-index: 1000;">
-        <div class="glass-strong apple-radius pt-4 pb-3 px-4 w-full max-w-xl mx-4 max-h-[90vh] flex flex-col shadow-2xl" onclick="event.stopPropagation()">
+        <div class="glass-strong apple-radius pt-4 pb-3 px-4 w-full max-w-xl xl:max-w-2xl 2xl:max-w-3xl mx-4 max-h-[90vh] flex flex-col shadow-2xl" onclick="event.stopPropagation()">
             <div class="flex items-center justify-between mb-2 pb-1.5 border-b border-white/10 shrink-0">
                 <h3 class="text-base font-medium tracking-wide text-white/80">编辑快捷书签</h3>
                 <button id="closeEditBtn" type="button" aria-label="关闭编辑弹窗" class="p-1 hover:bg-white/10 rounded apple-radius text-white/40 hover:text-white/70 transition">✕</button>
@@ -667,7 +586,7 @@
 
     <!-- 从导航页选择弹窗 -->
     <div id="bookmarkPicker" role="dialog" aria-modal="true" aria-label="从导航页选择书签" class="edit-overlay fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm" style="z-index: 2000;">
-        <div class="glass-strong apple-radius pt-4 pb-3 px-4 w-full max-w-2xl mx-4 max-h-[85vh] flex flex-col shadow-2xl" onclick="event.stopPropagation()">
+        <div class="glass-strong apple-radius pt-4 pb-3 px-4 w-full max-w-2xl xl:max-w-3xl 2xl:max-w-4xl mx-4 max-h-[85vh] flex flex-col shadow-2xl" onclick="event.stopPropagation()">
             <div class="flex items-center justify-between mb-2 pb-1.5 border-b border-white/10 shrink-0">
                 <h3 class="text-base font-medium tracking-wide text-white/80">从导航页选择</h3>
                 <button id="closePickerBtn" type="button" aria-label="关闭选择弹窗" class="p-1 hover:bg-white/10 rounded apple-radius text-white/40 hover:text-white/70 transition">✕</button>
@@ -1336,7 +1255,7 @@
                         <h3 class="text-xs md:text-sm font-semibold tracking-wide text-white/90">${escapeHtml(cat.name)}</h3>
                         <span class="ml-auto text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-white/50 border border-white/10 font-mono">${cat.bookmarks.length} 个</span>
                     </div>
-                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 md:gap-3">
+                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 2xl:grid-cols-5 3xl:grid-cols-6 gap-2.5 md:gap-3">
                         ${sortedBookmarks.map(bm => `
                             <a href="${safeUrl(bm.url)}" target="_blank" rel="noopener noreferrer"
                                class="nav-bookmark group flex items-center gap-2.5 px-3 py-2.5 apple-radius text-white/80 hover:text-white">
