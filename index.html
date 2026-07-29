@@ -234,7 +234,7 @@
         }
         /* ===== group-hover 补全（style.css 为预编译静态文件，未收录这些工具类）===== */
         /* 编辑按钮：常驻低透明，hover 渐亮 */
-        #editBookmarksBtn { opacity: 0.28; }
+        #editBookmarksBtn { opacity: 0.6; }
         #editBookmarksBtn:hover { opacity: 1; }
         /* 导航页书签行悬停时显示右箭头并微移 */
         .nav-bookmark:hover .group-hover\:opacity-100 { opacity: 1; }
@@ -381,9 +381,6 @@
 
             <!-- 快捷书签 -->
             <div class="w-full max-w-2xl lg:max-w-3xl glass apple-radius p-4 sm:p-5 fade-in mb-6 md:mb-8 relative group" style="animation-delay:0.2s">
-                <button id="editBookmarksBtn" type="button" aria-label="编辑书签" class="absolute top-2 right-2 p-1.5 apple-radius text-white/40 hover:text-white hover:bg-white/10 transition text-xs">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                </button>
                 <nav aria-label="快捷书签">
                     <div id="bookmarks" class="grid grid-cols-4 md:grid-cols-8 gap-2"></div>
                 </nav>
