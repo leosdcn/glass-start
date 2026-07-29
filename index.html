@@ -5,6 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Glass Start</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🪐</text></svg>">
+    <!-- 预解析与预连接联想 API 域名，消除首次打字时的 DNS/TLS 握手延时 -->
+    <link rel="dns-prefetch" href="https://suggestion.baidu.com">
+    <link rel="dns-prefetch" href="https://api.bing.com">
+    <link rel="dns-prefetch" href="https://suggestqueries.google.com">
+    <link rel="preconnect" href="https://suggestion.baidu.com" crossorigin>
+    <link rel="preconnect" href="https://api.bing.com" crossorigin>
+    <link rel="preconnect" href="https://suggestqueries.google.com" crossorigin>
     <!-- 页面预检：若上次在导航页，给 <html> 加 .nr 隐藏首屏，避免刷新后闪烁 -->
     <script>try{sessionStorage.getItem('startpage_section')==='nav'&&document.documentElement.classList.add('nr')}catch(e){}</script>
     <link rel="stylesheet" href="style.css">
@@ -232,13 +239,165 @@
             transform: scale(0.96);
             transition: transform 0.08s ease !important;
         }
-        /* ===== group-hover 补全（style.css 为预编译静态文件，未收录这些工具类）===== */
-        /* 编辑按钮：常驻低透明，hover 渐亮 */
-        #editBookmarksBtn { opacity: 0.6; }
+        /* ===== group-hover & 定位工具类补全（style.css 为预编译静态文件，未收录这些工具类）===== */
+        .right-6 { right: 1.5rem; }
+        .right-8 { right: 2rem; }
+        @media (min-width: 768px) {
+            .md\:bottom-8 { bottom: 2rem; }
+            .md\:right-8 { right: 2rem; }
+        }
+        /* 搜索建议弹窗定位：紧贴搜索框下方保持精细的 6px / 8px 悬浮间距 */
+        #suggestionMenu {
+            margin-top: 0.375rem !important;
+        }
+        @media (min-width: 640px) {
+            #suggestionMenu {
+                margin-top: 0.5rem !important;
+            }
+        }
+        /* 编辑按钮：固定于右下角，常驻低透明，hover 渐亮并让齿轮图标顺畅旋转 90 度 */
+        #editBookmarksBtn {
+            position: fixed;
+            bottom: 1.5rem;
+            right: 1.5rem;
+            opacity: 0.6;
+            z-index: 50;
+        }
         #editBookmarksBtn:hover { opacity: 1; }
+        #editBookmarksBtn svg {
+            transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        }
+        #editBookmarksBtn:hover svg {
+            transform: rotate(90deg) !important;
+        }
+        @media (min-width: 768px) {
+            #editBookmarksBtn {
+                bottom: 2rem;
+                right: 2rem;
+            }
+        }
         /* 导航页书签行悬停时显示右箭头并微移 */
         .nav-bookmark:hover .group-hover\:opacity-100 { opacity: 1; }
         .nav-bookmark:hover .group-hover\:translate-x-0\.5 { transform: translateX(0.125rem); }
+
+        /* ===== 2K & 4K+ 高分辨率大屏响应式阶梯等比例放大与组件扩容系统 ===== */
+        /* 1. 大屏 Laptop / MacBook Retina 视窗 (屏幕宽度 >= 1440px) */
+        @media (min-width: 1440px) {
+            html {
+                font-size: 17px;
+            }
+            .max-w-2xl, .max-w-3xl {
+                max-width: 52rem !important; /* 搜索框与快捷书签扩容至 884px */
+            }
+            .icon-box-md {
+                width: 35px !important;
+                height: 35px !important;
+                min-width: 35px !important;
+                min-height: 35px !important;
+            }
+        }
+
+        /* 2. 2K 缩放屏 / 标准台式机大屏 (屏幕宽度 >= 1680px) */
+        @media (min-width: 1680px) {
+            html {
+                font-size: 18.5px;
+            }
+            .max-w-2xl, .max-w-3xl {
+                max-width: 58rem !important; /* 搜索框与快捷书签扩容至 1073px */
+            }
+            .max-w-7xl {
+                max-width: 104rem !important; /* 导航页全屏视窗框架扩容 */
+            }
+            .icon-box-md {
+                width: 38px !important;
+                height: 38px !important;
+                min-width: 38px !important;
+                min-height: 38px !important;
+            }
+            .icon-box-sm {
+                width: 24px !important;
+                height: 24px !important;
+                min-width: 24px !important;
+                min-height: 24px !important;
+            }
+            #editBookmarksBtn {
+                bottom: 2.5rem !important;
+                right: 2.5rem !important;
+                padding: 1rem !important;
+            }
+            #editBookmarksBtn svg {
+                width: 1.5rem !important;
+                height: 1.5rem !important;
+            }
+        }
+
+        /* 3. 2K 原生点对点 / 1080p 全屏大屏 (屏幕宽度 >= 1920px) */
+        @media (min-width: 1920px) {
+            html {
+                font-size: 20.5px;
+            }
+            .max-w-2xl, .max-w-3xl {
+                max-width: 64rem !important; /* 搜索框与快捷书签扩容至 1312px */
+            }
+            .max-w-7xl {
+                max-width: 118rem !important;
+            }
+            .icon-box-md {
+                width: 42px !important;
+                height: 42px !important;
+                min-width: 42px !important;
+                min-height: 42px !important;
+            }
+            .icon-box-sm {
+                width: 26px !important;
+                height: 26px !important;
+                min-width: 26px !important;
+                min-height: 26px !important;
+            }
+            #editBookmarksBtn {
+                bottom: 3rem !important;
+                right: 3rem !important;
+                padding: 1.15rem !important;
+            }
+            #editBookmarksBtn svg {
+                width: 1.65rem !important;
+                height: 1.65rem !important;
+            }
+        }
+
+        /* 4. 4K 原生 / 5K 超大屏 (屏幕宽度 >= 2560px) */
+        @media (min-width: 2560px) {
+            html {
+                font-size: 24px;
+            }
+            .max-w-2xl, .max-w-3xl {
+                max-width: 72rem !important; /* 搜索框与快捷书签扩容至 1728px */
+            }
+            .max-w-7xl {
+                max-width: 136rem !important; /* 导航页框架扩容至 3264px */
+            }
+            .icon-box-md {
+                width: 48px !important;
+                height: 48px !important;
+                min-width: 48px !important;
+                min-height: 48px !important;
+            }
+            .icon-box-sm {
+                width: 30px !important;
+                height: 30px !important;
+                min-width: 30px !important;
+                min-height: 30px !important;
+            }
+            #editBookmarksBtn {
+                bottom: 4rem !important;
+                right: 4rem !important;
+                padding: 1.35rem !important;
+            }
+            #editBookmarksBtn svg {
+                width: 1.85rem !important;
+                height: 1.85rem !important;
+            }
+        }
         /* ===== 键盘焦点环（:focus-visible 仅对键盘导航生效，鼠标点击不触发）=====
            遵循 Apple HIG：所有可交互元素必须具备可见焦点状态。
            使用半透明白色描边+外发光，与玻璃风格保持一致。
@@ -272,6 +431,30 @@
         }
         .suggestion-item.active svg {
             color: rgba(255, 255, 255, 0.95) !important;
+        }
+        /* 搜索提示框底部操作指引栏 */
+        .suggestion-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 14px 8px 14px;
+            margin-top: 10px;
+            border-top: 1px solid rgba(255, 255, 255, 0.12);
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.45);
+            user-select: none;
+            line-height: 1;
+        }
+        .kbd-key {
+            padding: 2px 5.5px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.75);
+            line-height: 1;
+            display: inline-block;
         }
         /* ===== 自定义重置确认弹窗（精细化 iOS/macOS 玻璃规范） ===== */
         .confirm-dialog-card {
@@ -1242,6 +1425,7 @@
             // 搜索框输入、拼音合成与清空按键
             let isComposing = false;
             let suggestDebounceTimer = null;
+            let originalQuery = '';
 
             dom.searchInput.addEventListener('compositionstart', () => {
                 isComposing = true;
@@ -1251,34 +1435,41 @@
             dom.searchInput.addEventListener('compositionend', () => {
                 isComposing = false;
                 const val = dom.searchInput.value;
+                originalQuery = val;
                 if (dom.searchClearBtn) dom.searchClearBtn.classList.toggle('hidden', !val);
                 fetchSuggestions(state.engine, val);
             });
 
             dom.searchInput.addEventListener('click', e => {
                 e.stopPropagation(); // 阻止点击输入框触发 document.click 误收起联想面板
+                const val = dom.searchInput.value.trim();
+                if (val && (!dom.suggestionMenu || !dom.suggestionMenu.classList.contains('active'))) {
+                    fetchSuggestions(state.engine, val);
+                }
             });
 
             dom.searchInput.addEventListener('input', () => {
                 const val = dom.searchInput.value;
+                originalQuery = val;
                 if (dom.searchClearBtn) dom.searchClearBtn.classList.toggle('hidden', !val);
                 if (isComposing) return; // 拼音打字合成中不触发请求
                 if (suggestDebounceTimer) clearTimeout(suggestDebounceTimer);
                 suggestDebounceTimer = setTimeout(() => {
                     fetchSuggestions(state.engine, val);
-                }, 150);
+                }, 100);
             });
 
             if (dom.searchClearBtn) {
                 dom.searchClearBtn.addEventListener('click', () => {
                     dom.searchInput.value = '';
+                    originalQuery = '';
                     dom.searchClearBtn.classList.add('hidden');
                     hideSuggestions();
                     dom.searchInput.focus();
                 });
             }
 
-            // 点击联想词执行搜索（支持 Alt/Cmd+Click 新标签页打开）
+            // 点击或悬停联想词（事件委托，零内存开销，支持 Alt/Cmd+Click 新标签页打开）
             if (dom.suggestionMenu) {
                 dom.suggestionMenu.addEventListener('click', e => {
                     const item = e.target.closest('[data-suggestion]');
@@ -1287,6 +1478,16 @@
                     const query = item.dataset.suggestion;
                     dom.searchInput.value = query;
                     doSearch(query, e.altKey || e.metaKey || e.ctrlKey);
+                });
+                dom.suggestionMenu.addEventListener('mouseover', e => {
+                    const item = e.target.closest('.suggestion-item');
+                    if (!item) return;
+                    const idx = parseInt(item.dataset.idx, 10);
+                    if (isNaN(idx) || selectedSuggestionIdx === idx) return;
+                    selectedSuggestionIdx = idx;
+                    dom.suggestionMenu.querySelectorAll('.suggestion-item').forEach((el, i) => {
+                        el.classList.toggle('active', i === idx);
+                    });
                 });
             }
 
@@ -1336,33 +1537,12 @@
                     switchBg();
                     return;
                 }
-                if (e.ctrlKey || e.metaKey || e.altKey) return;
 
-                // 搜索框或建议框获得焦点时的键盘控制（上下键导航联想词）
+                // 搜索框或建议框获得焦点时的键盘控制（Enter/Alt+Enter/Cmd+Enter 触发搜索，上下键导航联想词）
                 if (document.activeElement === dom.searchInput) {
                     const isSuggestActive = dom.suggestionMenu && dom.suggestionMenu.classList.contains('active');
                     const items = isSuggestActive ? Array.from(dom.suggestionMenu.querySelectorAll('.suggestion-item')) : [];
 
-                    if (e.key === 'ArrowDown' && items.length > 0) {
-                        e.preventDefault();
-                        selectedSuggestionIdx = (selectedSuggestionIdx + 1) % items.length;
-                        items.forEach((el, idx) => el.classList.toggle('active', idx === selectedSuggestionIdx));
-                        if (items[selectedSuggestionIdx]) {
-                            dom.searchInput.value = items[selectedSuggestionIdx].dataset.suggestion;
-                            if (dom.searchClearBtn) dom.searchClearBtn.classList.remove('hidden');
-                        }
-                        return;
-                    }
-                    if (e.key === 'ArrowUp' && items.length > 0) {
-                        e.preventDefault();
-                        selectedSuggestionIdx = selectedSuggestionIdx <= 0 ? items.length - 1 : selectedSuggestionIdx - 1;
-                        items.forEach((el, idx) => el.classList.toggle('active', idx === selectedSuggestionIdx));
-                        if (items[selectedSuggestionIdx]) {
-                            dom.searchInput.value = items[selectedSuggestionIdx].dataset.suggestion;
-                            if (dom.searchClearBtn) dom.searchClearBtn.classList.remove('hidden');
-                        }
-                        return;
-                    }
                     if (e.key === 'Enter') {
                         e.preventDefault();
                         const isNewTab = e.altKey || e.metaKey || e.ctrlKey;
@@ -1373,7 +1553,47 @@
                         }
                         return;
                     }
+
+                    if (!e.ctrlKey && !e.metaKey && !e.altKey) {
+                        if (e.key === 'ArrowDown' && items.length > 0) {
+                            e.preventDefault();
+                            if (selectedSuggestionIdx === -1) {
+                                originalQuery = dom.searchInput.value;
+                            }
+                            selectedSuggestionIdx++;
+                            if (selectedSuggestionIdx >= items.length) {
+                                selectedSuggestionIdx = -1; // 导航超出底部，恢复原始输入
+                            }
+                            items.forEach((el, idx) => el.classList.toggle('active', idx === selectedSuggestionIdx));
+                            if (selectedSuggestionIdx >= 0 && items[selectedSuggestionIdx]) {
+                                dom.searchInput.value = items[selectedSuggestionIdx].dataset.suggestion;
+                            } else {
+                                dom.searchInput.value = originalQuery;
+                            }
+                            if (dom.searchClearBtn) dom.searchClearBtn.classList.toggle('hidden', !dom.searchInput.value);
+                            return;
+                        }
+                        if (e.key === 'ArrowUp' && items.length > 0) {
+                            e.preventDefault();
+                            if (selectedSuggestionIdx === -1) {
+                                originalQuery = dom.searchInput.value;
+                                selectedSuggestionIdx = items.length - 1;
+                            } else {
+                                selectedSuggestionIdx--;
+                            }
+                            items.forEach((el, idx) => el.classList.toggle('active', idx === selectedSuggestionIdx));
+                            if (selectedSuggestionIdx >= 0 && items[selectedSuggestionIdx]) {
+                                dom.searchInput.value = items[selectedSuggestionIdx].dataset.suggestion;
+                            } else {
+                                dom.searchInput.value = originalQuery;
+                            }
+                            if (dom.searchClearBtn) dom.searchClearBtn.classList.toggle('hidden', !dom.searchInput.value);
+                            return;
+                        }
+                    }
                 }
+
+                if (e.ctrlKey || e.metaKey || e.altKey) return;
 
                 // 屏间切换快捷键（无组合键、非输入状态）
                 if (!isInputActive) {
@@ -1396,6 +1616,9 @@
                 }
 
                 if (e.key === 'Escape') {
+                    if (dom.suggestionMenu && dom.suggestionMenu.classList.contains('active') && selectedSuggestionIdx >= 0) {
+                        dom.searchInput.value = originalQuery;
+                    }
                     closeDropdown();
                     hideSuggestions();
                     dom.searchInput.blur();
@@ -1603,7 +1826,7 @@
                 return;
             }
 
-            // 递增请求 ID，废弃此前所有未完成的旧异步请求，防止竞态倒错
+            // 递增请求 ID，唯一 JSONP 回调名称防止快速连续按键时的竞态倒错与回调函数覆盖
             activeSuggestReqId++;
             const reqId = activeSuggestReqId;
 
@@ -1612,57 +1835,63 @@
                 suggestionScriptTag = null;
             }
 
-            function onGotSuggestions(list) {
-                if (reqId !== activeSuggestReqId) return; // 废弃旧按键的延迟响应
-                if (Array.isArray(list) && list.length > 0) {
-                    renderSuggestions(list.slice(0, 4));
+            const cbName = `_suggestCb_${reqId}`;
+            let timeoutTimer = null;
+
+            const cleanup = () => {
+                if (timeoutTimer) {
+                    clearTimeout(timeoutTimer);
+                    timeoutTimer = null;
                 }
-            }
+                try { delete window[cbName]; } catch {}
+                if (suggestionScriptTag) {
+                    suggestionScriptTag.remove();
+                    suggestionScriptTag = null;
+                }
+            };
+
+            // 4 秒超时防护：若第三方接口挂起或被拦截，自动清理垃圾闭包与 DOM 节点
+            timeoutTimer = setTimeout(() => {
+                if (reqId === activeSuggestReqId) {
+                    cleanup();
+                }
+            }, 4000);
+
+            window[cbName] = function(data) {
+                cleanup();
+                if (reqId !== activeSuggestReqId) return; // 废弃过期异步响应
+                let list = [];
+                if (Array.isArray(data)) {
+                    // Bing / Google format: [query, [suggestions]]
+                    list = Array.isArray(data[1]) ? data[1] : data;
+                } else if (data && Array.isArray(data.s)) {
+                    // Baidu format: {s: [suggestions]}
+                    list = data.s;
+                }
+                if (Array.isArray(list) && list.length > 0) {
+                    renderSuggestions(list.slice(0, 5));
+                } else {
+                    hideSuggestions();
+                }
+            };
 
             const script = document.createElement('script');
             suggestionScriptTag = script;
-            script.onerror = () => { if (reqId === activeSuggestReqId) {} };
+            script.onerror = () => {
+                cleanup();
+            };
 
             // 百度 JSONP (指定 GBK 编码防乱码)
             if (engineKey === 'baidu') {
-                window._baiduSuggestCb = function(data) {
-                    onGotSuggestions(data && data.s ? data.s : []);
-                };
                 script.charset = 'gbk';
-                script.src = `https://suggestion.baidu.com/su?wd=${encodeURIComponent(query)}&cb=_baiduSuggestCb`;
-                document.body.appendChild(script);
-                return;
+                script.src = `https://suggestion.baidu.com/su?wd=${encodeURIComponent(query)}&cb=${cbName}`;
+            } else if (engineKey === 'bing') {
+                script.src = `https://api.bing.com/osjson.aspx?query=${encodeURIComponent(query)}&JsonType=callback&JsonCallback=${cbName}`;
+            } else if (engineKey === 'google' || engineKey === 'duckduckgo') {
+                script.src = `https://suggestqueries.google.com/complete/search?client=chrome&q=${encodeURIComponent(query)}&callback=${cbName}`;
             }
 
-            // Bing JSONP (带 JsonCallback 绕过浏览器 CORS 跨域拦截)
-            if (engineKey === 'bing') {
-                window._bingCb = function(data) {
-                    onGotSuggestions(data && data[1] ? data[1] : []);
-                };
-                script.src = `https://api.bing.com/osjson.aspx?query=${encodeURIComponent(query)}&JsonType=callback&JsonCallback=_bingCb`;
-                document.body.appendChild(script);
-                return;
-            }
-
-            // Google JSONP
-            if (engineKey === 'google') {
-                window._googleCb = function(data) {
-                    onGotSuggestions(data && data[1] ? data[1] : []);
-                };
-                script.src = `https://suggestqueries.google.com/complete/search?client=chrome&q=${encodeURIComponent(query)}&callback=_googleCb`;
-                document.body.appendChild(script);
-                return;
-            }
-
-            // DuckDuckGo（因 DDG 官方 Autocomplete 接口不支持 CORS 跨域与 JSONP，纯前端环境使用 Google 开放 JSONP 建议接口）
-            if (engineKey === 'duckduckgo') {
-                window._ddgSuggestCb = function(data) {
-                    onGotSuggestions(data && data[1] ? data[1] : []);
-                };
-                script.src = `https://suggestqueries.google.com/complete/search?client=chrome&q=${encodeURIComponent(query)}&callback=_ddgSuggestCb`;
-                document.body.appendChild(script);
-                return;
-            }
+            document.body.appendChild(script);
         }
 
         function renderSuggestions(list) {
@@ -1678,9 +1907,12 @@
             `).join('');
 
             const footerHtml = `
-                <div class="flex items-center justify-between px-3.5 pt-3.5 pb-2.5 mt-3 border-t border-white/10 text-[11px] text-white/45 select-none font-normal leading-none">
-                    <span class="flex items-center gap-1.5"><kbd class="px-1.5 py-0.5 rounded bg-white/10 text-[10px] font-mono text-white/70 border border-white/15">↑</kbd><kbd class="px-1.5 py-0.5 rounded bg-white/10 text-[10px] font-mono text-white/70 border border-white/15">↓</kbd> 切换</span>
-                    <span class="flex items-center gap-1.5"><kbd class="px-1.5 py-0.5 rounded bg-white/10 text-[10px] font-mono text-white/70 border border-white/15">⌥ / Alt + ↵</kbd> 新标签页打开</span>
+                <div class="suggestion-footer">
+                    <div class="flex items-center gap-3">
+                        <span class="flex items-center gap-1.5"><kbd class="kbd-key">↑</kbd><kbd class="kbd-key">↓</kbd> 切换</span>
+                        <span class="flex items-center gap-1.5"><kbd class="kbd-key">↵</kbd> 选择</span>
+                    </div>
+                    <span class="flex items-center gap-1.5"><kbd class="kbd-key">Alt / ⌥ + ↵</kbd> 新标签页打开</span>
                 </div>
             `;
 
