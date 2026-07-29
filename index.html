@@ -432,6 +432,22 @@
                 <button id="exportJsonBtn" type="button" class="flex-1 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 apple-radius text-sm text-white/70 hover:text-white transition flex items-center justify-center gap-1.5">📤 导出 JSON 备份</button>
                 <input type="file" id="importJsonInput" accept=".json,application/json" class="hidden">
             </div>
+            <!-- 壁纸设置区 -->
+            <div class="mt-2 pt-2 border-t border-white/10 shrink-0">
+                <div class="flex items-center justify-between mb-1.5">
+                    <span class="text-xs font-medium text-white/70 flex items-center gap-1.5">
+                        <svg class="w-3.5 h-3.5 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                        自定义壁纸
+                    </span>
+                    <span id="wallpaperStatus" class="text-[10px] text-white/35">当前使用默认壁纸</span>
+                </div>
+                <div class="flex flex-col sm:flex-row gap-1.5">
+                    <button id="uploadBgBtn" type="button" class="flex-1 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 apple-radius text-xs text-white/70 hover:text-white transition flex items-center justify-center gap-1">📁 本地图片</button>
+                    <button id="urlBgBtn" type="button" class="flex-1 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 apple-radius text-xs text-white/70 hover:text-white transition flex items-center justify-center gap-1">🔗 图片 URL</button>
+                    <button id="resetBgBtn" type="button" class="py-1.5 px-3 bg-white/5 hover:bg-white/10 border border-white/10 apple-radius text-xs text-white/40 hover:text-red-400 transition hidden">恢复默认</button>
+                    <input type="file" id="uploadBgInput" accept="image/*" class="hidden">
+                </div>
+            </div>
             <div class="flex gap-2 mt-2 pt-2 border-t border-white/10 shrink-0">
                 <button id="saveEditBtn" type="button" class="flex-1 py-2.5 bg-white/10 hover:bg-white/20 apple-radius transition text-sm font-medium text-white/90">保存</button>
                 <button id="cancelEditBtn" type="button" class="flex-1 py-2.5 bg-white/5 hover:bg-white/10 apple-radius transition text-sm text-white/60">取消</button>
@@ -647,7 +663,7 @@
         function $(id) { return document.getElementById(id); } // DOM 快捷获取
 
         function cacheDOM() {
-            const ids = 'clock date searchInput engineBtn engineIcon engineName dropdownMenu searchBtn bookmarks sidebarList navCategories navContent editModal editList editBookmarksBtn closeEditBtn addBookmarkBtn saveEditBtn cancelEditBtn resetEditBtn togglePickerBtn bookmarkPicker pickerContent pickerCount closePickerBtn donePickerBtn importJsonBtn exportJsonBtn importJsonInput'.split(' ');
+            const ids = 'clock date searchInput engineBtn engineIcon engineName dropdownMenu searchBtn bookmarks sidebarList navCategories navContent editModal editList editBookmarksBtn closeEditBtn addBookmarkBtn saveEditBtn cancelEditBtn resetEditBtn togglePickerBtn bookmarkPicker pickerContent pickerCount closePickerBtn donePickerBtn importJsonBtn exportJsonBtn importJsonInput uploadBgBtn urlBgBtn resetBgBtn uploadBgInput wallpaperStatus'.split(' ');
             ids.forEach(id => dom[id] = $(id));
         }
 
@@ -692,6 +708,10 @@
             const saved = storageGet('userBookmarks');
             if (saved && Array.isArray(saved) && saved.length) {
                 pageData.bookmarks = saved;
+            }
+            const customBg = storageGet('userWallpaper');
+            if (customBg) {
+                applyWallpaper(customBg, false);
             }
         }
 
@@ -768,6 +788,7 @@
         function openEditModal() {
             state.editOpen = true;
             renderEditList();
+            updateWallpaperStatusUI();
             dom.editModal.classList.add('active');
         }
 
@@ -894,7 +915,10 @@
             showConfirm('重置后将恢复为网站默认配置，当前自定义的所有设置都将被清除。确定要重置吗？', () => {
                 localStorage.removeItem('userBookmarks');
                 localStorage.removeItem('preferredEngine');
+                localStorage.removeItem('userWallpaper');
                 setEngine('bing', false);
+                state.bg = 0;
+                applyWallpaper(backgrounds[0], false);
                 pageData.bookmarks = initialBookmarks.map(bm => ({ ...bm }));
                 renderBookmarks();
                 renderEditList();
@@ -1304,6 +1328,49 @@
                     e.target.value = '';
                 });
             }
+
+            // 自定义壁纸事件绑定
+            if (dom.uploadBgBtn) dom.uploadBgBtn.addEventListener('click', () => dom.uploadBgInput?.click());
+            if (dom.uploadBgInput) {
+                dom.uploadBgInput.addEventListener('change', e => {
+                    const file = e.target.files[0];
+                    if (file) {
+                        if (!file.type.startsWith('image/')) {
+                            showConfirm('请选择有效的图片文件（JPG / PNG / WebP 等）。', null, '格式错误');
+                            return;
+                        }
+                        if (file.size > 4 * 1024 * 1024) {
+                            showConfirm('图片文件过大（推荐 4MB 以内），请选择更小尺寸的图片以保证本地存储性能。', null, '文件过大');
+                            return;
+                        }
+                        const reader = new FileReader();
+                        reader.onload = ev => {
+                            const dataUrl = ev.target.result;
+                            storageSet('userWallpaper', dataUrl);
+                            applyWallpaper(dataUrl);
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                    e.target.value = '';
+                });
+            }
+            if (dom.urlBgBtn) {
+                dom.urlBgBtn.addEventListener('click', () => {
+                    const current = storageGet('userWallpaper') || '';
+                    const input = prompt('请输入高清图片的网络 URL 地址：', current.startsWith('http') ? current : '');
+                    if (input === null) return;
+                    const trimmed = input.trim();
+                    if (!trimmed) return;
+                    if (!/^https?:\/\//i.test(trimmed)) {
+                        showConfirm('请输入以 http:// 或 https:// 开头的有效图片链接。', null, '地址错误');
+                        return;
+                    }
+                    storageSet('userWallpaper', trimmed);
+                    applyWallpaper(trimmed);
+                });
+            }
+            if (dom.resetBgBtn) dom.resetBgBtn.addEventListener('click', resetCustomWallpaper);
+
             initDragSort();
         }
 
@@ -1348,24 +1415,52 @@
             const img = new Image();
             img.src = backgrounds[(state.bg + 1) % backgrounds.length];
         }
-        function switchBg() {
-            state.bg = (state.bg + 1) % backgrounds.length;
+        function applyWallpaper(urlStr, animate = true) {
             const bgBase = $('bgLayer');
             const bgNext = $('bgLayerNext');
-            const newUrl = `url('${backgrounds[state.bg]}')`;
-            if (bgNext) {
-                // 新图先设置到上层，fade-in，过渡完成后更新底层并重置上层
-                bgNext.style.backgroundImage = newUrl;
+            const newStyleUrl = urlStr.startsWith('data:') ? `url("${urlStr}")` : `url('${urlStr}')`;
+            if (animate && bgNext) {
+                bgNext.style.backgroundImage = newStyleUrl;
                 requestAnimationFrame(() => {
                     bgNext.style.opacity = '1';
                     setTimeout(() => {
-                        if (bgBase) bgBase.style.backgroundImage = newUrl;
+                        if (bgBase) bgBase.style.backgroundImage = newStyleUrl;
                         bgNext.style.opacity = '0';
-                    }, 650); // 略短于 transition duration，确保底层更新前上层已完全不透明
+                    }, 650);
                 });
-            } else if (bgBase) {
-                bgBase.style.backgroundImage = newUrl;
+            } else {
+                if (bgBase) bgBase.style.backgroundImage = newStyleUrl;
+                if (bgNext) bgNext.style.opacity = '0';
             }
+            updateWallpaperStatusUI();
+        }
+        function updateWallpaperStatusUI() {
+            const customBg = storageGet('userWallpaper');
+            if (!dom.wallpaperStatus || !dom.resetBgBtn) return;
+            if (customBg) {
+                dom.wallpaperStatus.textContent = '已使用自定义壁纸';
+                dom.wallpaperStatus.className = 'text-[10px] text-emerald-400/90 font-medium';
+                dom.resetBgBtn.classList.remove('hidden');
+            } else {
+                dom.wallpaperStatus.textContent = '当前使用默认壁纸';
+                dom.wallpaperStatus.className = 'text-[10px] text-white/35';
+                dom.resetBgBtn.classList.add('hidden');
+            }
+        }
+        function resetCustomWallpaper() {
+            localStorage.removeItem('userWallpaper');
+            applyWallpaper(backgrounds[state.bg]);
+            updateWallpaperStatusUI();
+        }
+        function switchBg() {
+            const customBg = storageGet('userWallpaper');
+            if (customBg) {
+                localStorage.removeItem('userWallpaper');
+                state.bg = 0;
+            } else {
+                state.bg = (state.bg + 1) % backgrounds.length;
+            }
+            applyWallpaper(backgrounds[state.bg]);
             preloadNextBg();
         }
 
