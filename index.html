@@ -261,6 +261,11 @@
             box-shadow: none;
             border-color: transparent !important;
         }
+        .suggestion-item.active {
+            background: rgba(255, 255, 255, 0.18) !important;
+            color: #ffffff !important;
+            font-weight: 500;
+        }
         /* ===== 自定义重置确认弹窗（精细化 iOS/macOS 玻璃规范） ===== */
         .confirm-dialog-card {
             width: 90% !important;
@@ -342,6 +347,9 @@
                     </div>
                     <label for="searchInput" class="sr-only">搜索</label>
                     <input type="text" id="searchInput" aria-label="搜索输入框" class="flex-1 bg-transparent border-none outline-none text-lg search-input text-white h-12 px-1 min-w-0" placeholder="搜索..." autocomplete="off">
+                    <button id="searchClearBtn" type="button" aria-label="清空搜索框" class="hidden p-2 apple-radius hover:bg-white/10 text-white/40 hover:text-white/90 transition shrink-0" title="清空搜索框">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
                     <button id="searchBtn" type="button" aria-label="执行搜索" class="p-3 apple-radius hover:bg-white/10 transition shrink-0 mr-1">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                     </button>
@@ -360,6 +368,8 @@
                         <img src="https://favicon.im/baidu.com" class="w-4 h-4 rounded-sm" alt="" onerror="this.remove()"> 百度
                     </button>
                 </div>
+                <!-- 搜索实时建议联想下拉框 -->
+                <div id="suggestionMenu" role="listbox" aria-label="搜索建议" class="dropdown-menu absolute top-full left-0 right-0 mt-2 glass-strong apple-radius p-1.5 min-w-[200px]" style="z-index:150"></div>
             </div>
 
             <!-- 快捷书签 -->
@@ -667,7 +677,7 @@
         function $(id) { return document.getElementById(id); } // DOM 快捷获取
 
         function cacheDOM() {
-            const ids = 'clock date searchInput engineBtn engineIcon engineName dropdownMenu searchBtn bookmarks sidebarList navCategories navContent editModal editList editBookmarksBtn closeEditBtn addBookmarkBtn saveEditBtn cancelEditBtn resetEditBtn togglePickerBtn bookmarkPicker pickerContent pickerCount closePickerBtn donePickerBtn importJsonBtn exportJsonBtn importJsonInput uploadBgBtn urlBgBtn resetBgBtn uploadBgInput wallpaperStatus'.split(' ');
+            const ids = 'clock date searchInput searchClearBtn engineBtn engineIcon engineName dropdownMenu suggestionMenu searchBtn bookmarks sidebarList navCategories navContent editModal editList editBookmarksBtn closeEditBtn addBookmarkBtn saveEditBtn cancelEditBtn resetEditBtn togglePickerBtn bookmarkPicker pickerContent pickerCount closePickerBtn donePickerBtn importJsonBtn exportJsonBtn importJsonInput uploadBgBtn urlBgBtn resetBgBtn uploadBgInput wallpaperStatus'.split(' ');
             ids.forEach(id => dom[id] = $(id));
         }
 
@@ -1217,17 +1227,59 @@
             }
         }
         function bindEvents() {
-            dom.searchInput.addEventListener('keydown', e => { if (e.key === 'Enter') doSearch(); });
-            dom.searchBtn.addEventListener('click', doSearch);
+            // 搜索框输入与清空按键
+            let suggestDebounceTimer = null;
+            dom.searchInput.addEventListener('input', () => {
+                const val = dom.searchInput.value;
+                if (dom.searchClearBtn) dom.searchClearBtn.classList.toggle('hidden', !val);
+                if (suggestDebounceTimer) clearTimeout(suggestDebounceTimer);
+                suggestDebounceTimer = setTimeout(() => {
+                    fetchSuggestions(state.engine, val);
+                }, 150);
+            });
+
+            if (dom.searchClearBtn) {
+                dom.searchClearBtn.addEventListener('click', () => {
+                    dom.searchInput.value = '';
+                    dom.searchClearBtn.classList.add('hidden');
+                    hideSuggestions();
+                    dom.searchInput.focus();
+                });
+            }
+
+            // 点击联想词执行搜索（支持 Alt/Cmd+Click 新标签页打开）
+            if (dom.suggestionMenu) {
+                dom.suggestionMenu.addEventListener('click', e => {
+                    const item = e.target.closest('[data-suggestion]');
+                    if (!item) return;
+                    e.stopPropagation();
+                    const query = item.dataset.suggestion;
+                    dom.searchInput.value = query;
+                    doSearch(query, e.altKey || e.metaKey || e.ctrlKey);
+                });
+            }
+
+            dom.searchBtn.addEventListener('click', e => {
+                doSearch(undefined, e.altKey || e.metaKey || e.ctrlKey);
+            });
 
             // 引擎下拉菜单
-            dom.engineBtn.addEventListener('click', e => { e.stopPropagation(); toggleDropdown(); });
+            dom.engineBtn.addEventListener('click', e => {
+                e.stopPropagation();
+                hideSuggestions();
+                toggleDropdown();
+            });
             dom.dropdownMenu.addEventListener('click', e => {
                 const btn = e.target.closest('[data-engine]');
                 if (btn) { e.stopPropagation(); setEngine(btn.dataset.engine); }
             });
-            document.addEventListener('click', closeDropdown);
-            window.addEventListener('blur', closeDropdown);
+
+            const handleCloseMenus = () => {
+                closeDropdown();
+                hideSuggestions();
+            };
+            document.addEventListener('click', handleCloseMenus);
+            window.addEventListener('blur', handleCloseMenus);
 
             // 点击导航页顶栏或右侧返回按钮，平滑返回起始页
             const handleBackToStart = () => {
@@ -1255,6 +1307,43 @@
                 }
                 if (e.ctrlKey || e.metaKey || e.altKey) return;
 
+                // 搜索框或建议框获得焦点时的键盘控制（上下键导航联想词）
+                if (document.activeElement === dom.searchInput) {
+                    const isSuggestActive = dom.suggestionMenu && dom.suggestionMenu.classList.contains('active');
+                    const items = isSuggestActive ? Array.from(dom.suggestionMenu.querySelectorAll('.suggestion-item')) : [];
+
+                    if (e.key === 'ArrowDown' && items.length > 0) {
+                        e.preventDefault();
+                        selectedSuggestionIdx = (selectedSuggestionIdx + 1) % items.length;
+                        items.forEach((el, idx) => el.classList.toggle('active', idx === selectedSuggestionIdx));
+                        if (items[selectedSuggestionIdx]) {
+                            dom.searchInput.value = items[selectedSuggestionIdx].dataset.suggestion;
+                            if (dom.searchClearBtn) dom.searchClearBtn.classList.remove('hidden');
+                        }
+                        return;
+                    }
+                    if (e.key === 'ArrowUp' && items.length > 0) {
+                        e.preventDefault();
+                        selectedSuggestionIdx = selectedSuggestionIdx <= 0 ? items.length - 1 : selectedSuggestionIdx - 1;
+                        items.forEach((el, idx) => el.classList.toggle('active', idx === selectedSuggestionIdx));
+                        if (items[selectedSuggestionIdx]) {
+                            dom.searchInput.value = items[selectedSuggestionIdx].dataset.suggestion;
+                            if (dom.searchClearBtn) dom.searchClearBtn.classList.remove('hidden');
+                        }
+                        return;
+                    }
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        const isNewTab = e.altKey || e.metaKey || e.ctrlKey;
+                        if (selectedSuggestionIdx >= 0 && items[selectedSuggestionIdx]) {
+                            doSearch(items[selectedSuggestionIdx].dataset.suggestion, isNewTab);
+                        } else {
+                            doSearch(undefined, isNewTab);
+                        }
+                        return;
+                    }
+                }
+
                 // 屏间切换快捷键（无组合键、非输入状态）
                 if (!isInputActive) {
                     if (e.key === 'PageDown' || (e.key === 'ArrowDown' && state.currentSection === 'start')) {
@@ -1277,6 +1366,7 @@
 
                 if (e.key === 'Escape') {
                     closeDropdown();
+                    hideSuggestions();
                     dom.searchInput.blur();
                     closeEditModal();
                     closeBookmarkPicker();
@@ -1425,7 +1515,10 @@
             dom.date.textContent = n.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
         }
 
-        // ==================== 搜索引擎切换 ====================
+        // ==================== 搜索引擎与实时建议 ====================
+        let suggestionScriptTag = null;
+        let selectedSuggestionIdx = -1;
+
         function toggleDropdown() {
             state.open = !state.open;
             dom.dropdownMenu.classList.toggle('active', state.open);
@@ -1447,11 +1540,131 @@
             }
             closeDropdown();
             if (save) storageSet('preferredEngine', key);
+            if (dom.searchInput && dom.searchInput.value.trim()) {
+                fetchSuggestions(key, dom.searchInput.value.trim());
+            }
         }
-        function doSearch() {
-            const q = dom.searchInput.value.trim();
+        /** 
+         * 执行搜索
+         * @param {string} [queryOverride] - 可选直接传入建议词
+         * @param {boolean} [newTab] - 是否在新标签页中打开（支持 Alt/Cmd/Ctrl+Enter 或新标签模式）
+         */
+        function doSearch(queryOverride, newTab = false) {
+            const q = (queryOverride !== undefined ? queryOverride : dom.searchInput.value).trim();
             if (!q) return;
-            window.location.href = engines[state.engine].url + encodeURIComponent(q);
+            hideSuggestions();
+            closeDropdown();
+            const targetUrl = engines[state.engine].url + encodeURIComponent(q);
+            if (newTab) {
+                window.open(targetUrl, '_blank', 'noopener,noreferrer');
+            } else {
+                window.location.href = targetUrl;
+            }
+        }
+
+        // 核心实时建议拉取函数：全面支持 百度 / Bing / Google / DuckDuckGo 的开放 Suggest API
+        function fetchSuggestions(engineKey, query) {
+            query = (query || '').trim();
+            if (!query) {
+                hideSuggestions();
+                return;
+            }
+
+            if (suggestionScriptTag) {
+                suggestionScriptTag.remove();
+                suggestionScriptTag = null;
+            }
+
+            const timeoutMs = 800; // 800ms 防卡顿超时
+            let didFinish = false;
+            const timer = setTimeout(() => {
+                if (!didFinish) {
+                    didFinish = true;
+                    hideSuggestions();
+                }
+            }, timeoutMs);
+
+            function onGotSuggestions(list) {
+                if (didFinish) return;
+                didFinish = true;
+                clearTimeout(timer);
+                if (Array.isArray(list) && list.length > 0) {
+                    renderSuggestions(list.slice(0, 7));
+                } else {
+                    hideSuggestions();
+                }
+            }
+
+            // 百度 JSONP
+            if (engineKey === 'baidu') {
+                window._baiduSuggestCb = function(data) {
+                    onGotSuggestions(data && data.s ? data.s : []);
+                };
+                suggestionScriptTag = document.createElement('script');
+                suggestionScriptTag.src = `https://suggestion.baidu.com/su?wd=${encodeURIComponent(query)}&cb=_baiduSuggestCb`;
+                suggestionScriptTag.onerror = () => onGotSuggestions([]);
+                document.body.appendChild(suggestionScriptTag);
+                return;
+            }
+
+            // Google JSONP
+            if (engineKey === 'google') {
+                window._googleSuggestCb = function(data) {
+                    onGotSuggestions(data && data[1] ? data[1] : []);
+                };
+                suggestionScriptTag = document.createElement('script');
+                suggestionScriptTag.src = `https://suggestqueries.google.com/complete/search?client=chrome&q=${encodeURIComponent(query)}&callback=_googleSuggestCb`;
+                suggestionScriptTag.onerror = () => onGotSuggestions([]);
+                document.body.appendChild(suggestionScriptTag);
+                return;
+            }
+
+            // Bing Fetch
+            if (engineKey === 'bing') {
+                fetch(`https://api.bing.com/osjson.aspx?query=${encodeURIComponent(query)}`)
+                    .then(res => res.json())
+                    .then(data => onGotSuggestions(data && data[1] ? data[1] : []))
+                    .catch(() => onGotSuggestions([]));
+                return;
+            }
+
+            // DuckDuckGo Fetch
+            if (engineKey === 'duckduckgo') {
+                fetch(`https://duckduckgo.com/ac/?q=${encodeURIComponent(query)}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        if (Array.isArray(data)) {
+                            onGotSuggestions(data.map(item => item.phrase).filter(Boolean));
+                        } else {
+                            onGotSuggestions([]);
+                        }
+                    })
+                    .catch(() => onGotSuggestions([]));
+                return;
+            }
+
+            hideSuggestions();
+        }
+
+        function renderSuggestions(list) {
+            if (!dom.suggestionMenu) return;
+            selectedSuggestionIdx = -1;
+            dom.suggestionMenu.innerHTML = list.map((item, i) => `
+                <div role="option" aria-selected="false" data-suggestion="${escapeHtml(item)}" data-idx="${i}"
+                     class="suggestion-item px-3 py-2 apple-radius text-sm text-white/80 hover:bg-white/10 hover:text-white cursor-pointer flex items-center gap-2.5 transition">
+                    <svg class="w-3.5 h-3.5 text-white/35 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                    <span class="truncate flex-1">${escapeHtml(item)}</span>
+                </div>
+            `).join('');
+            dom.suggestionMenu.classList.add('active');
+        }
+
+        function hideSuggestions() {
+            if (dom.suggestionMenu) {
+                dom.suggestionMenu.classList.remove('active');
+                dom.suggestionMenu.innerHTML = '';
+            }
+            selectedSuggestionIdx = -1;
         }
 
         // ==================== 壁纸切换 ====================
