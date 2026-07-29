@@ -1320,7 +1320,10 @@
         function setEngine(key, save = true) {
             state.engine = key;
             dom.engineName.textContent = engines[key].name;
-            dom.engineIcon.src = engines[key].icon;
+            if (dom.engineIcon) {
+                dom.engineIcon.style.display = '';
+                dom.engineIcon.src = engines[key].icon;
+            }
             closeDropdown();
             if (save) storageSet('preferredEngine', key);
         }
@@ -1448,10 +1451,7 @@
 
                     nav.classList.remove('nav-hidden');
                     nav.classList.add('nav-visible');
-                    if (!animationDone) {
-                        document.getElementById('navHint')?.classList.add('hint-up');
-                        animationDone = true;
-                    }
+                    animationDone = true;
 
                     requestAnimationFrame(() => {
                         animateScrollTo(nav.offsetTop, 520, () => {
@@ -1507,10 +1507,7 @@
                             saveSection('nav');
                             nav.classList.remove('nav-hidden');
                             nav.classList.add('nav-visible');
-                            if (!animationDone) {
-                                document.getElementById('navHint')?.classList.add('hint-up');
-                                animationDone = true;
-                            }
+                            animationDone = true;
                             requestAnimationFrame(() => {
                                 animateScrollTo(nav.offsetTop, 520, () => {
                                     currentSection = 'nav';
