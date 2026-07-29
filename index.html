@@ -50,6 +50,10 @@
         #navSection {
             contain: layout paint;
         }
+        .category-block {
+            content-visibility: auto;
+            contain-intrinsic-size: 180px;
+        }
         /* ===== 组件 ===== */
         .search-input::placeholder { color: rgba(255,255,255,0.6); }
         .fade-in { animation: fadeIn 0.8s ease-out backwards; }
@@ -988,11 +992,10 @@
             dom.pickerCount.textContent = `已添加 ${count} 项`;
         }
 
-        // ==================== 后台预加载图标 ====================
+        // ==================== 后台预加载图标（仅预加载首屏快捷书签）====================
         function preloadFavicons() {
             const urls = new Set();
             pageData.bookmarks.forEach(bm => { if (bm.icon) urls.add(bm.icon); });
-            pageData.categories.forEach(cat => cat.bookmarks.forEach(bm => { if (bm.icon) urls.add(bm.icon); }));
             urls.forEach(url => { const img = new Image(); img.src = url; });
         }
 
@@ -1089,9 +1092,9 @@
                     a.name.localeCompare(b.name, 'zh-CN', { numeric: true, sensitivity: 'base' })
                 );
                 return `
-                <div id="cat-${i}" class="${i > 0 ? 'scroll-mt-6' : ''}">
+                <div id="cat-${i}" class="category-block ${i > 0 ? 'scroll-mt-6' : ''}">
                     <!-- 毛玻璃 Sticky 吸顶标题 -->
-                    <div class="sticky top-0 z-10 backdrop-blur-xl bg-black/50 py-2.5 mb-3 border-b border-white/10 flex items-center gap-2.5 shadow-sm">
+                    <div class="sticky top-0 z-10 backdrop-blur-md bg-black/70 py-2.5 mb-3 border-b border-white/10 flex items-center gap-2.5 shadow-sm">
                         <span class="text-base md:text-lg">${cat.icon}</span>
                         <h3 class="text-xs md:text-sm font-semibold tracking-wide text-white/90">${escapeHtml(cat.name)}</h3>
                         <span class="ml-auto text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-white/50 border border-white/10 font-mono">${cat.bookmarks.length} 个</span>
