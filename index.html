@@ -1575,7 +1575,7 @@
                 suggestionScriptTag = null;
             }
 
-            const timeoutMs = 800; // 800ms 防卡顿超时
+            const timeoutMs = 1200; // 1.2 秒超时兜底，防止极端慢网
             let didFinish = false;
             const timer = setTimeout(() => {
                 if (!didFinish) {
@@ -1595,46 +1595,49 @@
                 }
             }
 
-            // 百度 JSONP
+            const script = document.createElement('script');
+            suggestionScriptTag = script;
+            script.onerror = () => onGotSuggestions([]);
+
+            // 百度 JSONP (指定 GBK 编码防乱码)
             if (engineKey === 'baidu') {
                 window._baiduSuggestCb = function(data) {
                     onGotSuggestions(data && data.s ? data.s : []);
                 };
-                suggestionScriptTag = document.createElement('script');
-                suggestionScriptTag.src = `https://suggestion.baidu.com/su?wd=${encodeURIComponent(query)}&cb=_baiduSuggestCb`;
-                suggestionScriptTag.onerror = () => onGotSuggestions([]);
-                document.body.appendChild(suggestionScriptTag);
+                script.charset = 'gbk';
+                script.src = `https://suggestion.baidu.com/su?wd=${encodeURIComponent(query)}&cb=_baiduSuggestCb`;
+                document.body.appendChild(script);
+                return;
+            }
+
+            // Bing JSONP (带 JsonCallback 绕过浏览器 CORS 跨域拦截)
+            if (engineKey === 'bing') {
+                window._bingCb = function(data) {
+                    onGotSuggestions(data && data[1] ? data[1] : []);
+                };
+                script.src = `https://api.bing.com/osjson.aspx?query=${encodeURIComponent(query)}&JsonType=callback&JsonCallback=_bingCb`;
+                document.body.appendChild(script);
                 return;
             }
 
             // Google JSONP
             if (engineKey === 'google') {
-                window._googleSuggestCb = function(data) {
+                window._googleCb = function(data) {
                     onGotSuggestions(data && data[1] ? data[1] : []);
                 };
-                suggestionScriptTag = document.createElement('script');
-                suggestionScriptTag.src = `https://suggestqueries.google.com/complete/search?client=chrome&q=${encodeURIComponent(query)}&callback=_googleSuggestCb`;
-                suggestionScriptTag.onerror = () => onGotSuggestions([]);
-                document.body.appendChild(suggestionScriptTag);
-                return;
-            }
-
-            // Bing Fetch
-            if (engineKey === 'bing') {
-                fetch(`https://api.bing.com/osjson.aspx?query=${encodeURIComponent(query)}`)
-                    .then(res => res.json())
-                    .then(data => onGotSuggestions(data && data[1] ? data[1] : []))
-                    .catch(() => onGotSuggestions([]));
+                script.src = `https://suggestqueries.google.com/complete/search?client=chrome&q=${encodeURIComponent(query)}&callback=_googleCb`;
+                document.body.appendChild(script);
                 return;
             }
 
             // DuckDuckGo Fetch
             if (engineKey === 'duckduckgo') {
-                fetch(`https://duckduckgo.com/ac/?q=${encodeURIComponent(query)}`)
+                fetch(`https://duckduckgo.com/ac/?q=${encodeURIComponent(query)}&type=list`)
                     .then(res => res.json())
                     .then(data => {
                         if (Array.isArray(data)) {
-                            onGotSuggestions(data.map(item => item.phrase).filter(Boolean));
+                            const list = Array.isArray(data[1]) ? data[1] : data.map(item => item.phrase).filter(Boolean);
+                            onGotSuggestions(list);
                         } else {
                             onGotSuggestions([]);
                         }
