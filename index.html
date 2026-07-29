@@ -1250,6 +1250,10 @@
                 fetchSuggestions(state.engine, val);
             });
 
+            dom.searchInput.addEventListener('click', e => {
+                e.stopPropagation(); // 阻止点击输入框触发 document.click 误收起联想面板
+            });
+
             dom.searchInput.addEventListener('input', () => {
                 const val = dom.searchInput.value;
                 if (dom.searchClearBtn) dom.searchClearBtn.classList.toggle('hidden', !val);
@@ -1585,6 +1589,8 @@
         }
 
         // 核心实时建议拉取函数：全面支持 百度 / Bing / Google / DuckDuckGo 的开放 Suggest API
+        let activeSuggestReqId = 0;
+
         function fetchSuggestions(engineKey, query) {
             query = (query || '').trim();
             if (!query) {
@@ -1592,34 +1598,25 @@
                 return;
             }
 
+            // 递增请求 ID，废弃此前所有未完成的旧异步请求，防止竞态倒错
+            activeSuggestReqId++;
+            const reqId = activeSuggestReqId;
+
             if (suggestionScriptTag) {
                 suggestionScriptTag.remove();
                 suggestionScriptTag = null;
             }
 
-            const timeoutMs = 1200; // 1.2 秒超时兜底，防止极端慢网
-            let didFinish = false;
-            const timer = setTimeout(() => {
-                if (!didFinish) {
-                    didFinish = true;
-                    hideSuggestions();
-                }
-            }, timeoutMs);
-
             function onGotSuggestions(list) {
-                if (didFinish) return;
-                didFinish = true;
-                clearTimeout(timer);
+                if (reqId !== activeSuggestReqId) return; // 废弃旧按键的延迟响应
                 if (Array.isArray(list) && list.length > 0) {
                     renderSuggestions(list.slice(0, 4));
-                } else {
-                    hideSuggestions();
                 }
             }
 
             const script = document.createElement('script');
             suggestionScriptTag = script;
-            script.onerror = () => onGotSuggestions([]);
+            script.onerror = () => { if (reqId === activeSuggestReqId) {} };
 
             // 百度 JSONP (指定 GBK 编码防乱码)
             if (engineKey === 'baidu') {
@@ -1661,8 +1658,6 @@
                 document.body.appendChild(script);
                 return;
             }
-
-            hideSuggestions();
         }
 
         function renderSuggestions(list) {
