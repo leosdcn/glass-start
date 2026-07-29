@@ -430,7 +430,7 @@
                 <button id="saveEditBtn" type="button" class="flex-1 py-2.5 bg-white/10 hover:bg-white/20 apple-radius transition text-sm font-medium text-white/90">保存</button>
                 <button id="cancelEditBtn" type="button" class="flex-1 py-2.5 bg-white/5 hover:bg-white/10 apple-radius transition text-sm text-white/60">取消</button>
             </div>
-            <button id="resetEditBtn" type="button" class="text-center w-full text-xs text-white/25 hover:text-white/60 transition py-1.5 mt-1.5">重置为默认值</button>
+            <button id="resetEditBtn" type="button" class="text-center w-full text-xs text-white/25 hover:text-white/60 transition py-1.5 mt-1.5">重置所有设置</button>
         </div>
     </div>
 
@@ -884,15 +884,17 @@
         }
 
         function resetBookmarks() {
-            // 清除 localStorage 用户编辑，恢复默认书签或 JSON 初始数据
-            showConfirm('重置后将恢复为初始默认书签，当前自定义书签将被清除。确定要重置吗？', () => {
+            // 清除 localStorage 用户编辑与偏好设置，恢复出厂默认配置
+            showConfirm('重置后将恢复为出厂默认配置（包含快捷书签与偏好设置），当前自定义设置将被清除。确定要重置吗？', () => {
                 localStorage.removeItem('userBookmarks');
+                localStorage.removeItem('preferredEngine');
+                setEngine('bing', false);
                 pageData.bookmarks = initialBookmarks.map(bm => ({ ...bm }));
                 renderBookmarks();
                 renderEditList();
                 closeBookmarkPicker();
                 closeEditModal();
-            }, '重置快捷书签');
+            }, '重置所有设置');
         }
 
 
