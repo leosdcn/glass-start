@@ -91,6 +91,7 @@
             flex-shrink: 0;
             overflow: hidden;
             border-radius: 6px;
+            transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
         .icon-box-sm {
             width: 20px !important;
@@ -128,8 +129,7 @@
             box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.3), 0 8px 20px rgba(0, 0, 0, 0.3);
             color: #fff;
         }
-        .nav-bookmark img { transition: transform 0.2s ease; }
-        .nav-bookmark:hover img { transform: scale(1.1); }
+        .nav-bookmark:hover .icon-box, .bookmark-item:hover .icon-box { transform: scale(1.12); }
         .nav-hidden { visibility:hidden; }
         .nav-visible { visibility:visible; }
         .nav-hidden .glass { opacity:0; }
@@ -214,9 +214,9 @@
             opacity: 0.85;
             transition: transform 0.08s ease, opacity 0.08s ease !important;
         }
-        /* 按下时重置子图标缩放，避免 hover:scale(1.1) × active:scale(0.95) 叠加跳变 */
-        .bookmark-item:active .icon-box img, .nav-bookmark:active .icon-box img {
-            transform: scale(1) !important;
+        /* 按下时重置子图标缩放，避免 hover 物理缩放叠加跳变 */
+        .bookmark-item:active .icon-box, .nav-bookmark:active .icon-box {
+            transform: scale(0.95) !important;
             transition: transform 0.08s ease !important;
         }
         #engineBtn:active, #searchBtn:active, #editBookmarksBtn:active {
@@ -1669,12 +1669,12 @@
             `).join('');
 
             const footerHtml = `
-                <div class="flex items-center justify-between px-3 pt-2.5 pb-1 mt-1.5 border-t border-white/10 text-[11px] text-white/45 select-none font-medium">
-                    <div class="flex items-center gap-3">
-                        <span class="flex items-center gap-1.5"><kbd class="px-1.5 py-0.5 rounded bg-white/10 text-[10px] font-mono text-white/70 border border-white/10">↑</kbd><kbd class="px-1.5 py-0.5 rounded bg-white/10 text-[10px] font-mono text-white/70 border border-white/10">↓</kbd> 切换</span>
-                        <span class="flex items-center gap-1.5"><kbd class="px-1.5 py-0.5 rounded bg-white/10 text-[10px] font-mono text-white/70 border border-white/10">↵</kbd> 当前页搜索</span>
+                <div class="flex items-center justify-between px-3.5 pt-3.5 pb-2 mt-2.5 border-t border-white/10 text-[11px] text-white/50 select-none font-medium">
+                    <div class="flex items-center gap-4">
+                        <span class="flex items-center gap-1.5"><kbd class="px-1.5 py-0.5 rounded bg-white/10 text-[10px] font-mono text-white/80 border border-white/15 shadow-sm leading-none">↑</kbd><kbd class="px-1.5 py-0.5 rounded bg-white/10 text-[10px] font-mono text-white/80 border border-white/15 shadow-sm leading-none">↓</kbd> 切换</span>
+                        <span class="flex items-center gap-1.5"><kbd class="px-1.5 py-0.5 rounded bg-white/10 text-[10px] font-mono text-white/80 border border-white/15 shadow-sm leading-none">↵</kbd> 当前页搜索</span>
                     </div>
-                    <span class="flex items-center gap-1.5"><kbd class="px-1.5 py-0.5 rounded bg-white/10 text-[10px] font-mono text-white/70 border border-white/10">⌥ / Alt + ↵</kbd> 新标签页打开</span>
+                    <span class="flex items-center gap-1.5"><kbd class="px-1.5 py-0.5 rounded bg-white/10 text-[10px] font-mono text-white/80 border border-white/15 shadow-sm leading-none">⌥ / Alt + ↵</kbd> 新标签页打开</span>
                 </div>
             `;
 
