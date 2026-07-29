@@ -261,10 +261,17 @@
             box-shadow: none;
             border-color: transparent !important;
         }
+        .suggestion-item {
+            transition: background 0.15s ease, transform 0.15s ease, color 0.15s ease;
+        }
         .suggestion-item.active {
-            background: rgba(255, 255, 255, 0.18) !important;
+            background: rgba(255, 255, 255, 0.22) !important;
             color: #ffffff !important;
             font-weight: 500;
+            transform: translateX(4px);
+        }
+        .suggestion-item.active svg {
+            color: rgba(255, 255, 255, 0.95) !important;
         }
         /* ===== 自定义重置确认弹窗（精细化 iOS/macOS 玻璃规范） ===== */
         .confirm-dialog-card {
@@ -368,8 +375,8 @@
                         <img src="https://favicon.im/baidu.com" class="w-4 h-4 rounded-sm" alt="" onerror="this.remove()"> 百度
                     </button>
                 </div>
-                <!-- 搜索实时建议联想下拉框 -->
-                <div id="suggestionMenu" role="listbox" aria-label="搜索建议" class="dropdown-menu absolute top-full left-0 right-0 mt-2 glass-strong apple-radius p-1.5 min-w-[200px]" style="z-index:150"></div>
+                <!-- 搜索实时建议联想下拉框 (Spotlight 高颜值全宽样式) -->
+                <div id="suggestionMenu" role="listbox" aria-label="搜索建议" class="dropdown-menu absolute top-full left-0 right-0 w-full mt-2.5 glass-strong apple-radius p-2 border border-white/20 shadow-2xl backdrop-blur-2xl" style="z-index:150"></div>
             </div>
 
             <!-- 快捷书签 -->
@@ -1630,19 +1637,24 @@
                 return;
             }
 
-            // DuckDuckGo Fetch
+            // DuckDuckGo Fetch (带 Bing/Google 优雅降级兜底)
             if (engineKey === 'duckduckgo') {
-                fetch(`https://duckduckgo.com/ac/?q=${encodeURIComponent(query)}&type=list`)
+                fetch(`https://ac.duckduckgo.com/ac/?q=${encodeURIComponent(query)}&type=list`)
                     .then(res => res.json())
                     .then(data => {
+                        let list = [];
                         if (Array.isArray(data)) {
-                            const list = Array.isArray(data[1]) ? data[1] : data.map(item => item.phrase).filter(Boolean);
+                            list = Array.isArray(data[1]) ? data[1] : data.map(item => item.phrase).filter(Boolean);
+                        }
+                        if (list.length > 0) {
                             onGotSuggestions(list);
                         } else {
-                            onGotSuggestions([]);
+                            fetchSuggestions('bing', query);
                         }
                     })
-                    .catch(() => onGotSuggestions([]));
+                    .catch(() => {
+                        fetchSuggestions('bing', query);
+                    });
                 return;
             }
 
@@ -1652,13 +1664,26 @@
         function renderSuggestions(list) {
             if (!dom.suggestionMenu) return;
             selectedSuggestionIdx = -1;
-            dom.suggestionMenu.innerHTML = list.map((item, i) => `
+            const itemsHtml = list.map((item, i) => `
                 <div role="option" aria-selected="false" data-suggestion="${escapeHtml(item)}" data-idx="${i}"
-                     class="suggestion-item px-3 py-2 apple-radius text-sm text-white/80 hover:bg-white/10 hover:text-white cursor-pointer flex items-center gap-2.5 transition">
-                    <svg class="w-3.5 h-3.5 text-white/35 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-                    <span class="truncate flex-1">${escapeHtml(item)}</span>
+                     class="suggestion-item group px-3.5 py-2.5 my-0.5 apple-radius text-sm text-white/85 flex items-center gap-3 transition-all duration-150 cursor-pointer hover:bg-white/15 hover:text-white">
+                    <svg class="w-4 h-4 text-white/40 group-hover:text-white/80 shrink-0 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                    <span class="truncate flex-1 font-normal tracking-wide">${escapeHtml(item)}</span>
+                    <span class="text-[11px] text-white/30 shrink-0 opacity-0 group-hover:opacity-80 transition">选择</span>
                 </div>
             `).join('');
+
+            const footerHtml = `
+                <div class="flex items-center justify-between px-3 pt-2.5 pb-1 mt-1.5 border-t border-white/10 text-[11px] text-white/45 select-none font-medium">
+                    <div class="flex items-center gap-3">
+                        <span class="flex items-center gap-1.5"><kbd class="px-1.5 py-0.5 rounded bg-white/10 text-[10px] font-mono text-white/70 border border-white/10">↑</kbd><kbd class="px-1.5 py-0.5 rounded bg-white/10 text-[10px] font-mono text-white/70 border border-white/10">↓</kbd> 切换</span>
+                        <span class="flex items-center gap-1.5"><kbd class="px-1.5 py-0.5 rounded bg-white/10 text-[10px] font-mono text-white/70 border border-white/10">↵</kbd> 当前页搜索</span>
+                    </div>
+                    <span class="flex items-center gap-1.5"><kbd class="px-1.5 py-0.5 rounded bg-white/10 text-[10px] font-mono text-white/70 border border-white/10">⌥ / Alt + ↵</kbd> 新标签页打开</span>
+                </div>
+            `;
+
+            dom.suggestionMenu.innerHTML = itemsHtml + footerHtml;
             dom.suggestionMenu.classList.add('active');
         }
 
