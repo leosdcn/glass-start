@@ -1117,30 +1117,31 @@
                 </div>
             `;
             }).join('');
+
+            // 每次重新渲染分类后，自动刷新侧边栏动态 DOM 节点关联
+            initSidebarNav();
         }
 
         // ==================== 侧边栏导航 ====================
+        let isSidebarNavInitialized = false;
+        let updateSidebarOffsets = null;
+        let updateSidebarActive = null;
+
         function initSidebarNav() {
             const sidebar = dom.sidebarList;
             const content = dom.navContent;
             if (!sidebar || !content) return;
 
-            const items = sidebar.querySelectorAll('[data-target]');
-            const sections = [];
+            const items = Array.from(sidebar.querySelectorAll('[data-target]'));
+            const sections = items.map(item => document.getElementById(item.dataset.target)).filter(Boolean);
             let sectionOffsets = [];
-            items.forEach(item => {
-                const el = document.getElementById(item.dataset.target);
-                if (el) sections.push(el);
-            });
 
-            function updateOffsets() {
+            updateSidebarOffsets = function() {
                 sectionOffsets = sections.map(el => el.offsetTop);
-            }
-            updateOffsets();
-            window.addEventListener('resize', updateOffsets, { passive: true });
+            };
+            updateSidebarOffsets();
 
-            // 根据滚动位置更新高亮：取距内容顶部 < 100px 的最后一个分区作为活跃项，并让侧边栏项自动平滑居中
-            function updateActive() {
+            updateSidebarActive = function() {
                 const scrollTop = content.scrollTop;
                 let activeIdx = 0;
                 for (let i = 0; i < sections.length; i++) {
@@ -1154,29 +1155,36 @@
                         item.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
                     }
                 });
+            };
+
+            if (!isSidebarNavInitialized) {
+                window.addEventListener('resize', () => updateSidebarOffsets && updateSidebarOffsets(), { passive: true });
+
+                sidebar.addEventListener('click', (e) => {
+                    const btn = e.target.closest('[data-target]');
+                    if (!btn) return;
+                    const target = document.getElementById(btn.dataset.target);
+                    if (target) {
+                        sidebar.querySelectorAll('[data-target]').forEach(i => i.classList.remove('active'));
+                        btn.classList.add('active');
+                        btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                });
+
+                let ticking = false;
+                content.addEventListener('scroll', () => {
+                    if (!ticking) {
+                        requestAnimationFrame(() => {
+                            if (updateSidebarActive) updateSidebarActive();
+                            ticking = false;
+                        });
+                        ticking = true;
+                    }
+                }, { passive: true });
+
+                isSidebarNavInitialized = true;
             }
-
-            // 点击侧边栏 → 平滑滚动并高亮
-            sidebar.addEventListener('click', (e) => {
-                const btn = e.target.closest('[data-target]');
-                if (!btn) return;
-                const target = document.getElementById(btn.dataset.target);
-                if (target) {
-                    items.forEach(i => i.classList.remove('active'));
-                    btn.classList.add('active');
-                    btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }
-            });
-
-            // 滚动时更新高亮（节流）
-            let ticking = false;
-            content.addEventListener('scroll', () => {
-                if (!ticking) {
-                    requestAnimationFrame(() => { updateActive(); ticking = false; });
-                    ticking = true;
-                }
-            });
         }
         function bindEvents() {
             dom.searchInput.addEventListener('keydown', e => { if (e.key === 'Enter') doSearch(); });
