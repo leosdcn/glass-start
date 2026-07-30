@@ -660,14 +660,14 @@
             <!-- 主体：一体化 Liquid Glass 窗口框架 -->
             <div class="flex-1 glass apple-radius flex flex-col overflow-hidden min-h-0 border border-white/20 shadow-2xl">
                 <!-- 窗口顶部 Header 栏 -->
-                <div id="navHeader" class="flex items-center justify-between px-4 py-2.5 border-b border-white/10 bg-black/20 shrink-0 cursor-pointer select-none" title="点击返回起始页">
+                <div id="navHeader" class="flex items-center justify-between px-4 py-2.5 border-b border-white/10 bg-transparent shrink-0 cursor-pointer select-none hover:bg-white/[0.06] transition-colors" title="点击返回起始页">
                     <div class="flex items-center gap-2">
                         <span class="text-base">🪐</span>
-                        <h2 class="text-xs sm:text-sm font-semibold tracking-wide text-white/90">导航</h2>
-                        <span class="text-[10px] text-white/40 tracking-wide hidden sm:inline ml-1">发现更多精彩网站</span>
+                        <h2 class="text-xs sm:text-sm font-semibold tracking-wide text-white">导航</h2>
+                        <span class="text-[10px] text-white/60 tracking-wide hidden sm:inline ml-1 font-normal">发现更多精彩网站</span>
                     </div>
                     <!-- 右侧返回提示 -->
-                    <div id="navHint" class="flex items-center gap-1.5 text-white/40 text-[10px] tracking-wider bg-white/5 border border-white/10 px-2.5 py-1 apple-radius whitespace-nowrap shrink-0 cursor-pointer hover:bg-white/10 hover:text-white/70 transition" title="点击或向上滚动返回起始页">
+                    <div id="navHint" class="flex items-center gap-1.5 text-white/80 text-[10px] tracking-wider bg-white/10 border border-white/15 px-2.5 py-1 apple-radius whitespace-nowrap shrink-0 cursor-pointer hover:bg-white/20 hover:text-white transition" title="点击或向上滚动返回起始页">
                         <svg class="w-3 h-3 scroll-up-hint shrink-0 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/></svg>
                         <span class="whitespace-nowrap">向上滚动返回</span>
                     </div>
@@ -1578,18 +1578,23 @@
             const scrollHeight = content.scrollHeight;
 
             let activeIdx = 0;
-            // 1. 若滚动条接近最顶部，高亮第 0 项 (人工智能)
+            // 1. 若滚动条接近最顶部，高亮第 0 项
             if (scrollTop <= 15) {
                 activeIdx = 0;
-            } else if (scrollTop + containerHeight >= scrollHeight - 20) {
-                // 2. 触底保底判定：若滚动条已到底部，高亮最后一项
-                activeIdx = sections.length - 1;
             } else {
-                // 3. 正常滚动：找出位于内容区顶端 60px 范围内的最后一个分类
+                // 2. 正常滚动：找出位于内容区顶端 (<= 80px) 的最后一个分类
                 for (let i = 0; i < sections.length; i++) {
                     const relTop = sections[i].getBoundingClientRect().top - containerTop;
-                    if (relTop <= 60) {
+                    if (relTop <= 80) {
                         activeIdx = i;
+                    }
+                }
+                // 3. 触底保护：当滚动条到达最底部 limit 时
+                if (scrollTop + containerHeight >= scrollHeight - 12) {
+                    const currentRelTop = sections[activeIdx].getBoundingClientRect().top - containerTop;
+                    // 如果当前匹配的分类标题并未贴合在顶端 (不在 -30px ~ 80px 范围内)，说明已到底部且是在看最后一项
+                    if (currentRelTop < -30 || currentRelTop > 80) {
+                        activeIdx = sections.length - 1;
                     }
                 }
             }
@@ -1648,15 +1653,24 @@
                         header.classList.add('category-title-pulse');
                     }
 
-                    // 4. 待平滑滚动动画结束后解除锁定 (550ms)
+                    // 4. 待平滑滚动完全静止后自动解锁并校准高亮（采用 120ms 防抖 + 800ms 兜底）
                     manualScrollTimer = setTimeout(() => {
                         isManualScrolling = false;
                         updateSidebarActive();
-                    }, 550);
+                    }, 800);
                 });
 
                 let ticking = false;
+                let scrollEndTimer = null;
                 content.addEventListener('scroll', () => {
+                    if (isManualScrolling) {
+                        if (scrollEndTimer) clearTimeout(scrollEndTimer);
+                        scrollEndTimer = setTimeout(() => {
+                            isManualScrolling = false;
+                            updateSidebarActive();
+                        }, 120);
+                        return;
+                    }
                     if (!ticking) {
                         requestAnimationFrame(() => {
                             updateSidebarActive();
