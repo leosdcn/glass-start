@@ -504,6 +504,46 @@
         .text-\[10px\] { font-size: 0.625rem !important; }  /* 10px @ 16px base */
         .text-\[11px\] { font-size: 0.6875rem !important; } /* 11px @ 16px base */
         .text-\[9px\]  { font-size: 0.5625rem !important; } /* 9px  @ 16px base */
+
+        /* ===== Apple 风格 Tab 设置弹窗样式 ===== */
+        .settings-tab-btn {
+            background: transparent;
+            color: rgba(255, 255, 255, 0.6);
+            border: 1px solid transparent;
+        }
+        .settings-tab-btn:hover {
+            color: rgba(255, 255, 255, 0.9);
+            background: rgba(255, 255, 255, 0.08);
+        }
+        .settings-tab-btn.active {
+            background: rgba(255, 255, 255, 0.18);
+            color: #ffffff;
+            border-color: rgba(255, 255, 255, 0.25);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+        }
+        .json-dropzone.drag-over {
+            background: rgba(255, 255, 255, 0.12) !important;
+            border-color: rgba(255, 255, 255, 0.45) !important;
+        }
+        .preset-bg-card.active {
+            border-color: rgba(255, 255, 255, 0.9) !important;
+            box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.4);
+        }
+        /* 危险区域 (Danger Zone) 玻璃风红框样式，绝不产生默认浅色白边 */
+        .danger-zone-card {
+            background: rgba(239, 68, 68, 0.08) !important;
+            border: 1px solid rgba(239, 68, 68, 0.25) !important;
+        }
+        .danger-zone-btn {
+            background: rgba(239, 68, 68, 0.18) !important;
+            border: 1px solid rgba(239, 68, 68, 0.35) !important;
+            color: rgba(254, 202, 202, 0.95) !important;
+        }
+        .danger-zone-btn:hover {
+            background: rgba(239, 68, 68, 0.32) !important;
+            border-color: rgba(239, 68, 68, 0.55) !important;
+            color: #ffffff !important;
+        }
     </style>
 </head>
 <body class="text-white relative bg-[#1a1a2e]">
@@ -631,20 +671,20 @@
                     <span class="text-base">⚙️</span>
                     <h3 class="text-base font-semibold tracking-wide text-white/90">设置与偏好</h3>
                 </div>
-                <button id="closeEditBtn" type="button" aria-label="关闭设置弹窗" class="w-7 h-7 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/15 text-white/40 hover:text-white transition">✕</button>
+                <button id="closeEditBtn" type="button" aria-label="关闭设置弹窗" class="p-1 hover:bg-white/10 rounded apple-radius text-white/40 hover:text-white/70 transition">✕</button>
             </div>
 
-            <!-- Tab 导航栏 (Outer radius: 1rem/16px, Inner tab radius: 0.75rem/12px) -->
-            <div class="flex items-center gap-1.5 p-1 bg-black/30 backdrop-blur-md border border-white/10 rounded-2xl mb-3 shrink-0">
-                <button type="button" class="settings-tab-btn active flex-1 py-1.5 px-3 rounded-xl text-xs sm:text-sm font-medium transition flex items-center justify-center gap-1.5 text-white/70 hover:text-white" data-tab="tabBookmarks">
+            <!-- Tab 导航栏 -->
+            <div class="flex items-center gap-1.5 p-1 bg-black/20 border border-white/10 rounded-lg mb-3 shrink-0">
+                <button type="button" class="settings-tab-btn active flex-1 py-1.5 px-3 apple-radius text-xs sm:text-sm font-medium transition flex items-center justify-center gap-1.5 text-white/70 hover:text-white" data-tab="tabBookmarks">
                     <span>📌</span>
                     <span>快捷书签</span>
                 </button>
-                <button type="button" class="settings-tab-btn flex-1 py-1.5 px-3 rounded-xl text-xs sm:text-sm font-medium transition flex items-center justify-center gap-1.5 text-white/70 hover:text-white" data-tab="tabAppearance">
+                <button type="button" class="settings-tab-btn flex-1 py-1.5 px-3 apple-radius text-xs sm:text-sm font-medium transition flex items-center justify-center gap-1.5 text-white/70 hover:text-white" data-tab="tabAppearance">
                     <span>🎨</span>
                     <span>外观壁纸</span>
                 </button>
-                <button type="button" class="settings-tab-btn flex-1 py-1.5 px-3 rounded-xl text-xs sm:text-sm font-medium transition flex items-center justify-center gap-1.5 text-white/70 hover:text-white" data-tab="tabData">
+                <button type="button" class="settings-tab-btn flex-1 py-1.5 px-3 apple-radius text-xs sm:text-sm font-medium transition flex items-center justify-center gap-1.5 text-white/70 hover:text-white" data-tab="tabData">
                     <span>⚙️</span>
                     <span>数据与备份</span>
                 </button>
@@ -654,19 +694,19 @@
             <div id="tabBookmarks" class="settings-tab-panel flex-1 flex flex-col min-h-0 overflow-hidden">
                 <div class="flex items-center justify-between mb-2 shrink-0">
                     <span class="text-xs font-medium text-white/60">编辑书签与排序</span>
-                    <span id="bookmarkCountBadge" class="text-[10px] px-2.5 py-0.5 rounded-full bg-white/10 border border-white/15 text-white/70">已添加 0 项</span>
+                    <span id="bookmarkCountBadge" class="text-[10px] px-2 py-0.5 rounded-full bg-white/10 border border-white/15 text-white/70">已添加 0 项</span>
                 </div>
-                <div id="editList" role="list" aria-label="书签列表" class="flex-1 overflow-y-auto space-y-1.5 mb-3 min-h-0 pr-0.5"></div>
+                <div id="editList" role="list" aria-label="书签列表" class="flex-1 overflow-y-auto space-y-1 mb-3 min-h-0 pr-0.5"></div>
                 <div class="flex flex-col sm:flex-row gap-2 shrink-0 pt-2 border-t border-white/10">
-                    <button id="addBookmarkBtn" type="button" class="flex-1 py-2 border border-dashed border-white/20 rounded-xl text-white/60 hover:text-white hover:border-white/40 hover:bg-white/5 transition text-xs sm:text-sm flex items-center justify-center gap-1.5">+ 手动输入</button>
-                    <button id="togglePickerBtn" type="button" class="flex-1 py-2 border border-dashed border-white/20 rounded-xl text-xs sm:text-sm text-white/60 hover:text-white hover:border-white/40 hover:bg-white/5 transition flex items-center justify-center gap-1.5">🗂️ 从导航页选择</button>
+                    <button id="addBookmarkBtn" type="button" class="flex-1 py-2 border border-dashed border-white/20 apple-radius text-white/60 hover:text-white hover:border-white/40 hover:bg-white/5 transition text-xs sm:text-sm flex items-center justify-center gap-1.5">+ 手动输入</button>
+                    <button id="togglePickerBtn" type="button" class="flex-1 py-2 border border-dashed border-white/20 apple-radius text-xs sm:text-sm text-white/60 hover:text-white hover:border-white/40 hover:bg-white/5 transition flex items-center justify-center gap-1.5">🗂️ 从导航页选择</button>
                 </div>
             </div>
 
             <!-- Tab 内容 2: 外观与壁纸 (tabAppearance) -->
             <div id="tabAppearance" class="settings-tab-panel flex-1 flex flex-col min-h-0 overflow-y-auto hidden space-y-3 pr-0.5">
                 <!-- 自定义壁纸 -->
-                <div class="p-3.5 bg-white/5 border border-white/10 rounded-2xl space-y-2.5">
+                <div class="p-3 bg-white/5 border border-white/10 apple-radius space-y-2">
                     <div class="flex items-center justify-between">
                         <span class="text-xs font-medium text-white/80 flex items-center gap-1.5">
                             <svg class="w-4 h-4 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
@@ -674,51 +714,52 @@
                         </span>
                         <span id="wallpaperStatus" class="text-[10px] text-white/40">当前使用默认壁纸</span>
                     </div>
-                    <div class="flex flex-wrap sm:flex-nowrap gap-2">
-                        <button id="uploadBgBtn" type="button" class="flex-1 py-2 px-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs text-white/80 hover:text-white transition flex items-center justify-center gap-1">📁 本地图片</button>
-                        <button id="urlBgBtn" type="button" class="flex-1 py-2 px-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs text-white/80 hover:text-white transition flex items-center justify-center gap-1">🔗 图片 URL</button>
-                        <button id="resetBgBtn" type="button" class="py-2 px-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs text-white/50 hover:text-red-400 transition hidden">恢复默认</button>
+                    <div class="flex flex-wrap sm:flex-nowrap gap-1.5">
+                        <button id="uploadBgBtn" type="button" class="flex-1 py-1.5 px-2.5 bg-white/5 hover:bg-white/10 border border-white/10 apple-radius text-xs text-white/80 hover:text-white transition flex items-center justify-center gap-1">📁 本地图片</button>
+                        <button id="urlBgBtn" type="button" class="flex-1 py-1.5 px-2.5 bg-white/5 hover:bg-white/10 border border-white/10 apple-radius text-xs text-white/80 hover:text-white transition flex items-center justify-center gap-1">🔗 图片 URL</button>
+                        <button id="resetBgBtn" type="button" class="py-1.5 px-3 bg-white/5 hover:bg-white/10 border border-white/10 apple-radius text-xs text-white/50 hover:text-red-400 transition hidden">恢复默认</button>
                         <input type="file" id="uploadBgInput" accept="image/*" class="hidden">
                     </div>
                 </div>
 
-                <!-- 预设壁纸库 -->
-                <div class="p-3.5 bg-white/5 border border-white/10 rounded-2xl space-y-2.5">
+                <!-- 预设壁纸库（自带 8 款高清系统壁纸） -->
+                <div class="p-3 bg-white/5 border border-white/10 apple-radius space-y-2">
                     <span class="text-xs font-medium text-white/80 flex items-center gap-1.5">
                         <span>🖼️</span> 预设高清壁纸
                     </span>
                     <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                        <button type="button" class="preset-bg-card relative aspect-video rounded-xl overflow-hidden border border-white/15 hover:border-white/40 transition group" data-bg="https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=1200&auto=format&fit=crop" title="深空星云">
-                            <img src="https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=200&auto=format&fit=crop" alt="深空星云" class="w-full h-full object-cover group-hover:scale-105 transition duration-300 pointer-events-none">
-                            <span class="absolute inset-x-0 bottom-0 py-0.5 bg-black/60 backdrop-blur-xs text-[10px] text-white/80 text-center pointer-events-none">深空星云</span>
+                        <button type="button" class="preset-bg-card relative aspect-video rounded-xl overflow-hidden border border-white/15 hover:border-white/40 transition group" data-bg="https://images.unsplash.com/photo-1477346611705-65d1883cee1e?q=80&w=2070&auto=format&fit=crop" data-title="山峦夜空" title="山峦夜空（系统默认）">
+                            <img src="https://images.unsplash.com/photo-1477346611705-65d1883cee1e?q=80&w=200&auto=format&fit=crop" alt="山峦夜空" class="w-full h-full object-cover group-hover:scale-105 transition duration-300 pointer-events-none">
+                            <span class="absolute inset-x-0 bottom-0 py-0.5 bg-black/60 text-[10px] text-white/80 text-center pointer-events-none">山峦夜空</span>
                         </button>
-                        <button type="button" class="preset-bg-card relative aspect-video rounded-xl overflow-hidden border border-white/15 hover:border-white/40 transition group" data-bg="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=1200&auto=format&fit=crop" title="静谧海岸">
-                            <img src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=200&auto=format&fit=crop" alt="静谧海岸" class="w-full h-full object-cover group-hover:scale-105 transition duration-300 pointer-events-none">
-                            <span class="absolute inset-x-0 bottom-0 py-0.5 bg-black/60 backdrop-blur-xs text-[10px] text-white/80 text-center pointer-events-none">静谧海岸</span>
+                        <button type="button" class="preset-bg-card relative aspect-video rounded-xl overflow-hidden border border-white/15 hover:border-white/40 transition group" data-bg="https://images.unsplash.com/photo-1506744038136-46273834b3fb?q=80&w=2070&auto=format&fit=crop" data-title="湖光山色" title="湖光山色">
+                            <img src="https://images.unsplash.com/photo-1506744038136-46273834b3fb?q=80&w=200&auto=format&fit=crop" alt="湖光山色" class="w-full h-full object-cover group-hover:scale-105 transition duration-300 pointer-events-none">
+                            <span class="absolute inset-x-0 bottom-0 py-0.5 bg-black/60 text-[10px] text-white/80 text-center pointer-events-none">湖光山色</span>
                         </button>
-                        <button type="button" class="preset-bg-card relative aspect-video rounded-xl overflow-hidden border border-white/15 hover:border-white/40 transition group" data-bg="https://images.unsplash.com/photo-1519681393784-d120267933ba?q=80&w=1200&auto=format&fit=crop" title="星空雪山">
+                        <button type="button" class="preset-bg-card relative aspect-video rounded-xl overflow-hidden border border-white/15 hover:border-white/40 transition group" data-bg="https://images.unsplash.com/photo-1433086966358-54859d0ed716?q=80&w=2070&auto=format&fit=crop" data-title="森林瀑布" title="森林瀑布">
+                            <img src="https://images.unsplash.com/photo-1433086966358-54859d0ed716?q=80&w=200&auto=format&fit=crop" alt="森林瀑布" class="w-full h-full object-cover group-hover:scale-105 transition duration-300 pointer-events-none">
+                            <span class="absolute inset-x-0 bottom-0 py-0.5 bg-black/60 text-[10px] text-white/80 text-center pointer-events-none">森林瀑布</span>
+                        </button>
+                        <button type="button" class="preset-bg-card relative aspect-video rounded-xl overflow-hidden border border-white/15 hover:border-white/40 transition group" data-bg="https://images.unsplash.com/photo-1519681393784-d120267933ba?q=80&w=2070&auto=format&fit=crop" data-title="星空雪山" title="星空雪山">
                             <img src="https://images.unsplash.com/photo-1519681393784-d120267933ba?q=80&w=200&auto=format&fit=crop" alt="星空雪山" class="w-full h-full object-cover group-hover:scale-105 transition duration-300 pointer-events-none">
-                            <span class="absolute inset-x-0 bottom-0 py-0.5 bg-black/60 backdrop-blur-xs text-[10px] text-white/80 text-center pointer-events-none">星空雪山</span>
+                            <span class="absolute inset-x-0 bottom-0 py-0.5 bg-black/60 text-[10px] text-white/80 text-center pointer-events-none">星空雪山</span>
                         </button>
-                        <button type="button" class="preset-bg-card relative aspect-video rounded-xl overflow-hidden border border-white/15 hover:border-white/40 transition group" data-bg="https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=1200&auto=format&fit=crop" title="赛博霓虹">
+                        <button type="button" class="preset-bg-card relative aspect-video rounded-xl overflow-hidden border border-white/15 hover:border-white/40 transition group" data-bg="https://images.unsplash.com/photo-1469474968028-56623f02e42e?q=80&w=2070&auto=format&fit=crop" data-title="壮丽旷野" title="壮丽旷野">
+                            <img src="https://images.unsplash.com/photo-1469474968028-56623f02e42e?q=80&w=200&auto=format&fit=crop" alt="壮丽旷野" class="w-full h-full object-cover group-hover:scale-105 transition duration-300 pointer-events-none">
+                            <span class="absolute inset-x-0 bottom-0 py-0.5 bg-black/60 text-[10px] text-white/80 text-center pointer-events-none">壮丽旷野</span>
+                        </button>
+                        <button type="button" class="preset-bg-card relative aspect-video rounded-xl overflow-hidden border border-white/15 hover:border-white/40 transition group" data-bg="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=2070&auto=format&fit=crop" data-title="静谧海岸" title="静谧海岸">
+                            <img src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=200&auto=format&fit=crop" alt="静谧海岸" class="w-full h-full object-cover group-hover:scale-105 transition duration-300 pointer-events-none">
+                            <span class="absolute inset-x-0 bottom-0 py-0.5 bg-black/60 text-[10px] text-white/80 text-center pointer-events-none">静谧海岸</span>
+                        </button>
+                        <button type="button" class="preset-bg-card relative aspect-video rounded-xl overflow-hidden border border-white/15 hover:border-white/40 transition group" data-bg="https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=2070&auto=format&fit=crop" data-title="深空星云" title="深空星云">
+                            <img src="https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=200&auto=format&fit=crop" alt="深空星云" class="w-full h-full object-cover group-hover:scale-105 transition duration-300 pointer-events-none">
+                            <span class="absolute inset-x-0 bottom-0 py-0.5 bg-black/60 text-[10px] text-white/80 text-center pointer-events-none">深空星云</span>
+                        </button>
+                        <button type="button" class="preset-bg-card relative aspect-video rounded-xl overflow-hidden border border-white/15 hover:border-white/40 transition group" data-bg="https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=2070&auto=format&fit=crop" data-title="赛博霓虹" title="赛博霓虹">
                             <img src="https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=200&auto=format&fit=crop" alt="赛博霓虹" class="w-full h-full object-cover group-hover:scale-105 transition duration-300 pointer-events-none">
-                            <span class="absolute inset-x-0 bottom-0 py-0.5 bg-black/60 backdrop-blur-xs text-[10px] text-white/80 text-center pointer-events-none">赛博霓虹</span>
+                            <span class="absolute inset-x-0 bottom-0 py-0.5 bg-black/60 text-[10px] text-white/80 text-center pointer-events-none">赛博霓虹</span>
                         </button>
-                    </div>
-                </div>
-
-                <!-- 背景高斯模糊控制 -->
-                <div class="p-3.5 bg-white/5 border border-white/10 rounded-2xl space-y-2">
-                    <div class="flex items-center justify-between">
-                        <span class="text-xs font-medium text-white/80 flex items-center gap-1.5">
-                            <span>🎚️</span> 毛玻璃模糊强度
-                        </span>
-                        <span id="blurValDisplay" class="text-xs font-mono text-white/70">24px</span>
-                    </div>
-                    <div class="flex items-center gap-3">
-                        <span class="text-[10px] text-white/40">清晰</span>
-                        <input type="range" id="blurSlider" min="0" max="40" step="2" value="24" class="flex-1 accent-white/80 cursor-pointer h-1.5 bg-white/10 rounded-lg">
-                        <span class="text-[10px] text-white/40">浓郁</span>
                     </div>
                 </div>
             </div>
@@ -726,15 +767,15 @@
             <!-- Tab 内容 3: 数据与备份 (tabData) -->
             <div id="tabData" class="settings-tab-panel flex-1 flex flex-col min-h-0 overflow-y-auto hidden space-y-3 pr-0.5">
                 <!-- 配置文件导出/导入 -->
-                <div class="p-3.5 bg-white/5 border border-white/10 rounded-2xl space-y-2.5">
+                <div class="p-3 bg-white/5 border border-white/10 apple-radius space-y-2.5">
                     <span class="text-xs font-medium text-white/80 flex items-center gap-1.5">
                         <span>📦</span> 配置备份与恢复
                     </span>
                     <div class="flex flex-col sm:flex-row gap-2">
-                        <button id="exportJsonBtn" type="button" class="flex-1 py-2 px-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs text-white/80 hover:text-white transition flex items-center justify-center gap-1.5">📤 导出 JSON 备份文件</button>
+                        <button id="exportJsonBtn" type="button" class="flex-1 py-2 px-3 bg-white/5 hover:bg-white/10 border border-white/10 apple-radius text-xs text-white/80 hover:text-white transition flex items-center justify-center gap-1.5">📤 导出 JSON 备份文件</button>
                     </div>
                     <!-- 可拖拽区域 Dropzone -->
-                    <div id="jsonDropzone" class="json-dropzone border-2 border-dashed border-white/15 hover:border-white/30 rounded-2xl p-4 text-center transition cursor-pointer bg-white/[0.02] hover:bg-white/5 flex flex-col items-center justify-center gap-1">
+                    <div id="jsonDropzone" class="json-dropzone border-2 border-dashed border-white/15 hover:border-white/30 apple-radius p-3 text-center transition cursor-pointer bg-white/[0.02] hover:bg-white/5 flex flex-col items-center justify-center gap-1">
                         <span class="text-base">📥</span>
                         <p class="text-xs text-white/70 font-medium">点击或将 JSON 备份文件拖入此处导入</p>
                         <p class="text-[10px] text-white/35">自动解析恢复快捷书签配置</p>
@@ -743,7 +784,7 @@
                 </div>
 
                 <!-- 危险区域 (Danger Zone) -->
-                <div class="p-3.5 bg-red-500/10 border border-red-500/20 rounded-2xl space-y-2">
+                <div class="p-3 danger-zone-card apple-radius space-y-2">
                     <div class="flex items-center justify-between">
                         <span class="text-xs font-semibold text-red-300/90 flex items-center gap-1.5">
                             <span>🚨</span> 危险区域 (Danger Zone)
@@ -752,14 +793,14 @@
                     <p class="text-[11px] text-white/50 leading-relaxed">
                         恢复为系统初始默认状态，将永久清除您自定义的所有快捷书签、背景壁纸与偏好设置。
                     </p>
-                    <button id="resetEditBtn" type="button" class="w-full py-2 bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 rounded-xl text-xs font-medium text-red-200 transition">⚠️ 重置所有系统设置</button>
+                    <button id="resetEditBtn" type="button" class="danger-zone-btn w-full py-2 apple-radius text-xs font-medium transition">⚠️ 重置所有系统设置</button>
                 </div>
             </div>
 
             <!-- 底部通用 Save/Cancel 按键栏 -->
             <div class="flex gap-2 mt-3 pt-2.5 border-t border-white/10 shrink-0">
-                <button id="saveEditBtn" type="button" class="flex-1 py-2.5 bg-white/15 hover:bg-white/25 border border-white/15 rounded-xl transition text-xs sm:text-sm font-medium text-white/90 shadow-lg">保存并关闭</button>
-                <button id="cancelEditBtn" type="button" class="flex-1 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition text-xs sm:text-sm text-white/60">取消</button>
+                <button id="saveEditBtn" type="button" class="flex-1 py-2 bg-white/15 hover:bg-white/25 apple-radius transition text-xs sm:text-sm font-medium text-white/90 shadow-lg">保存并关闭</button>
+                <button id="cancelEditBtn" type="button" class="flex-1 py-2 bg-white/5 hover:bg-white/10 apple-radius transition text-xs sm:text-sm text-white/60">取消</button>
             </div>
         </div>
     </div>
@@ -971,7 +1012,7 @@
         function $(id) { return document.getElementById(id); } // DOM 快捷获取
 
         function cacheDOM() {
-            const ids = 'clock date searchInput searchClearBtn engineBtn engineIcon engineName dropdownMenu suggestionMenu searchBtn bookmarks sidebarList navCategories navContent editModal editList editBookmarksBtn closeEditBtn addBookmarkBtn saveEditBtn cancelEditBtn resetEditBtn togglePickerBtn bookmarkPicker pickerContent pickerCount closePickerBtn donePickerBtn importJsonBtn exportJsonBtn importJsonInput uploadBgBtn urlBgBtn resetBgBtn uploadBgInput wallpaperStatus bookmarkCountBadge blurSlider blurValDisplay jsonDropzone'.split(' ');
+            const ids = 'clock date searchInput searchClearBtn engineBtn engineIcon engineName dropdownMenu suggestionMenu searchBtn bookmarks sidebarList navCategories navContent editModal editList editBookmarksBtn closeEditBtn addBookmarkBtn saveEditBtn cancelEditBtn resetEditBtn togglePickerBtn bookmarkPicker pickerContent pickerCount closePickerBtn donePickerBtn importJsonBtn exportJsonBtn importJsonInput uploadBgBtn urlBgBtn resetBgBtn uploadBgInput wallpaperStatus bookmarkCountBadge jsonDropzone'.split(' ');
             ids.forEach(id => dom[id] = $(id));
         }
 
@@ -1012,15 +1053,6 @@
         }
 
         // ==================== 用户编辑的书签与偏好（保存到 localStorage）====================
-        function applyGlassBlur(val, save = true) {
-            const px = parseInt(val, 10);
-            if (isNaN(px)) return;
-            document.documentElement.style.setProperty('--blur', px + 'px');
-            if (dom.blurSlider) dom.blurSlider.value = px;
-            if (dom.blurValDisplay) dom.blurValDisplay.textContent = px + 'px';
-            if (save) storageSet('userBlur', px);
-        }
-
         function loadUserData() {
             const saved = storageGet('userBookmarks');
             if (saved && Array.isArray(saved) && saved.length) {
@@ -1029,10 +1061,6 @@
             const customBg = storageGet('userWallpaper');
             if (customBg) {
                 applyWallpaper(customBg, false);
-            }
-            const savedBlur = storageGet('userBlur');
-            if (savedBlur !== null) {
-                applyGlassBlur(savedBlur, false);
             }
         }
 
@@ -1102,13 +1130,13 @@
         // ==================== 编辑快捷书签弹窗 ====================
         function renderEditList() {
             dom.editList.innerHTML = pageData.bookmarks.map((bm, i) => `
-                <div class="flex items-center gap-1.5 p-1.5 rounded-xl hover:bg-white/5 transition" data-idx="${i}">
+                <div class="flex items-center gap-1.5 p-1.5 apple-radius hover:bg-white/5" data-idx="${i}">
                     <div class="drag-handle p-1 shrink-0 text-white/20 hover:text-white/60 cursor-grab active:cursor-grabbing" draggable="true" title="拖拽排序">
                         <svg class="w-3.5 h-3.5 pointer-events-none" viewBox="0 0 16 16" fill="currentColor"><circle cx="5" cy="4" r="1.5"/><circle cx="11" cy="4" r="1.5"/><circle cx="5" cy="8" r="1.5"/><circle cx="11" cy="8" r="1.5"/><circle cx="5" cy="12" r="1.5"/><circle cx="11" cy="12" r="1.5"/></svg>
                     </div>
-                    <input type="text" class="edit-name flex-1 bg-white/5 border border-white/10 rounded-xl px-2.5 py-1.5 text-sm text-white/80 outline-none focus:border-white/30 transition" value="${escapeHtml(bm.name)}" placeholder="名称">
-                    <input type="text" class="edit-url flex-[2] bg-white/5 border border-white/10 rounded-xl px-2.5 py-1.5 text-sm text-white/80 outline-none focus:border-white/30 transition" value="${escapeHtml(bm.url)}" placeholder="URL">
-                    <button type="button" class="del-btn shrink-0 p-1.5 hover:bg-white/10 rounded-xl text-white/30 hover:text-red-400 transition">
+                    <input type="text" class="edit-name flex-1 bg-white/5 border border-white/10 rounded px-2 py-1.5 text-sm text-white/80 outline-none focus:border-white/30 transition" value="${escapeHtml(bm.name)}" placeholder="名称">
+                    <input type="text" class="edit-url flex-[2] bg-white/5 border border-white/10 rounded px-2 py-1.5 text-sm text-white/80 outline-none focus:border-white/30 transition" value="${escapeHtml(bm.url)}" placeholder="URL">
+                    <button type="button" class="del-btn shrink-0 p-1.5 hover:bg-white/10 rounded apple-radius text-white/30 hover:text-red-400 transition">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                     </button>
                 </div>
@@ -1270,11 +1298,9 @@
                 localStorage.removeItem('userBookmarks');
                 localStorage.removeItem('preferredEngine');
                 localStorage.removeItem('userWallpaper');
-                localStorage.removeItem('userBlur');
                 setEngine('bing', false);
                 state.bg = 0;
                 applyWallpaper(backgrounds[0], false);
-                applyGlassBlur(24, false);
                 pageData.bookmarks = initialBookmarks.map(bm => ({ ...bm }));
                 renderBookmarks();
                 renderEditList();
@@ -1805,13 +1831,6 @@
                 });
             });
 
-            // 毛玻璃模糊度滑动条监听
-            if (dom.blurSlider) {
-                dom.blurSlider.addEventListener('input', e => {
-                    applyGlassBlur(e.target.value, true);
-                });
-            }
-
             // JSON 拖拽 Dropzone 交互绑定
             if (dom.jsonDropzone) {
                 dom.jsonDropzone.addEventListener('click', () => dom.importJsonInput?.click());
@@ -1845,15 +1864,15 @@
                 if (urls.has(url)) return;
 
                 const div = document.createElement('div');
-                div.className = 'flex items-center gap-1.5 p-1.5 rounded-xl hover:bg-white/5 transition';
+                div.className = 'flex items-center gap-1.5 p-1.5 apple-radius hover:bg-white/5';
                 div.setAttribute('data-idx', Date.now());
                 div.innerHTML = `
                     <div class="drag-handle p-1 shrink-0 text-white/20 hover:text-white/60 cursor-grab active:cursor-grabbing" draggable="true" title="拖拽排序">
                         <svg class="w-3.5 h-3.5 pointer-events-none" viewBox="0 0 16 16" fill="currentColor"><circle cx="5" cy="4" r="1.5"/><circle cx="11" cy="4" r="1.5"/><circle cx="5" cy="8" r="1.5"/><circle cx="11" cy="8" r="1.5"/><circle cx="5" cy="12" r="1.5"/><circle cx="11" cy="12" r="1.5"/></svg>
                     </div>
-                    <input type="text" class="edit-name flex-1 bg-white/5 border border-white/10 rounded-xl px-2.5 py-1.5 text-sm text-white/80 outline-none focus:border-white/30 transition" value="${escapeHtml(name)}" placeholder="名称">
-                    <input type="text" class="edit-url flex-[2] bg-white/5 border border-white/10 rounded-xl px-2.5 py-1.5 text-sm text-white/80 outline-none focus:border-white/30 transition" value="${escapeHtml(url)}" placeholder="URL">
-                    <button type="button" class="del-btn shrink-0 p-1.5 hover:bg-white/10 rounded-xl text-white/30 hover:text-red-400 transition">
+                    <input type="text" class="edit-name flex-1 bg-white/5 border border-white/10 rounded px-2 py-1.5 text-sm text-white/80 outline-none focus:border-white/30 transition" value="${escapeHtml(name)}" placeholder="名称">
+                    <input type="text" class="edit-url flex-[2] bg-white/5 border border-white/10 rounded px-2 py-1.5 text-sm text-white/80 outline-none focus:border-white/30 transition" value="${escapeHtml(url)}" placeholder="URL">
+                    <button type="button" class="del-btn shrink-0 p-1.5 hover:bg-white/10 rounded apple-radius text-white/30 hover:text-red-400 transition">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                     </button>
                 `;
@@ -1868,15 +1887,15 @@
 
             dom.addBookmarkBtn.addEventListener('click', () => {
                 const div = document.createElement('div');
-                div.className = 'flex items-center gap-1.5 p-1.5 rounded-xl hover:bg-white/5 transition';
+                div.className = 'flex items-center gap-1.5 p-1.5 apple-radius hover:bg-white/5';
                 div.setAttribute('data-idx', Date.now());
                 div.innerHTML = `
                     <div class="drag-handle p-1 shrink-0 text-white/20 hover:text-white/60 cursor-grab active:cursor-grabbing" draggable="true" title="拖拽排序">
                         <svg class="w-3.5 h-3.5 pointer-events-none" viewBox="0 0 16 16" fill="currentColor"><circle cx="5" cy="4" r="1.5"/><circle cx="11" cy="4" r="1.5"/><circle cx="5" cy="8" r="1.5"/><circle cx="11" cy="8" r="1.5"/><circle cx="5" cy="12" r="1.5"/><circle cx="11" cy="12" r="1.5"/></svg>
                     </div>
-                    <input type="text" class="edit-name flex-1 bg-white/5 border border-white/10 rounded-xl px-2.5 py-1.5 text-sm text-white/80 outline-none focus:border-white/30 transition" placeholder="名称">
-                    <input type="text" class="edit-url flex-[2] bg-white/5 border border-white/10 rounded-xl px-2.5 py-1.5 text-sm text-white/80 outline-none focus:border-white/30 transition" placeholder="URL">
-                    <button type="button" class="del-btn shrink-0 p-1.5 hover:bg-white/10 rounded-xl text-white/30 hover:text-red-400 transition">
+                    <input type="text" class="edit-name flex-1 bg-white/5 border border-white/10 rounded px-2 py-1.5 text-sm text-white/80 outline-none focus:border-white/30 transition" placeholder="名称">
+                    <input type="text" class="edit-url flex-[2] bg-white/5 border border-white/10 rounded px-2 py-1.5 text-sm text-white/80 outline-none focus:border-white/30 transition" placeholder="URL">
+                    <button type="button" class="del-btn shrink-0 p-1.5 hover:bg-white/10 rounded apple-radius text-white/30 hover:text-red-400 transition">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                     </button>
                 `;
