@@ -6,6 +6,9 @@
     <meta name="theme-color" content="#0f172a">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' data: blob: https:; script-src 'self' 'unsafe-inline' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: blob: https:; connect-src 'self' https:;">
+    <meta name="description" content="Glass Start — 基于 HTML5 与 Modern JS 构建的高颜值、轻量级玻璃拟态（Glassmorphism）浏览器起始页。">
+    <meta name="keywords" content="起始页, 浏览器导航, 玻璃拟态, 个人主页, Glassmorphism, Startpage">
     <title>Glass Start</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🪐</text></svg>">
     <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🪐</text></svg>">
@@ -18,7 +21,7 @@
     <link rel="preconnect" href="https://suggestqueries.google.com" crossorigin>
     <!-- 页面预检：若上次在导航页，给 <html> 加 .nr 隐藏首屏，避免刷新后闪烁 -->
     <script>try{sessionStorage.getItem('startpage_section')==='nav'&&document.documentElement.classList.add('nr')}catch(e){}</script>
-    <!-- Tailwind Play CDN：运行时按需生成所有工具类，AI 添加任何新类都能立即生效，无需构建步骤 -->
+    <!-- Tailwind Play CDN：开发模式下运行时按需生成工具类，随改随看无需手动编译步骤 -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -599,7 +602,7 @@
                 <div class="glass-strong apple-radius p-2 flex items-center gap-2 border fade-in" style="animation-delay:0.1s">
                     <div class="relative shrink-0">
                         <button id="engineBtn" type="button" aria-label="选择搜索引擎" aria-haspopup="true" aria-expanded="false" class="flex items-center gap-2 px-3 py-3 apple-radius hover:bg-white/10 transition text-sm font-medium">
-                            <img id="engineIcon" src="https://favicon.im/bing.com" class="w-5 h-5 rounded-md" alt="" onerror="this.style.display='none'">
+                            <img id="engineIcon" src="https://favicon.im/bing.com" class="engine-icon w-5 h-5 rounded-md" alt="">
                             <span id="engineName" class="hidden sm:inline">Bing</span>
                             <svg class="w-4 h-4 opacity-60 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
                         </button>
@@ -615,16 +618,16 @@
                 </div>
                 <div id="dropdownMenu" role="menu" aria-label="搜索引擎选项" class="dropdown-menu absolute top-full left-0 mt-2 ml-2 glass-strong apple-radius p-2" style="min-width:8.75rem;z-index:100">
                     <button type="button" data-engine="bing" role="menuitem" class="w-full flex items-center gap-3 px-3 py-2.5 apple-radius hover:bg-white/10 transition text-left text-sm">
-                        <img src="https://favicon.im/bing.com" class="w-4 h-4 rounded-sm" alt="" onerror="this.remove()"> Bing
+                        <img src="https://favicon.im/bing.com" class="engine-icon w-4 h-4 rounded-sm" alt=""> Bing
                     </button>
                     <button type="button" data-engine="google" role="menuitem" class="w-full flex items-center gap-3 px-3 py-2.5 apple-radius hover:bg-white/10 transition text-left text-sm">
-                        <img src="https://favicon.im/google.com" class="w-4 h-4 rounded-sm" alt="" onerror="this.remove()"> Google
+                        <img src="https://favicon.im/google.com" class="engine-icon w-4 h-4 rounded-sm" alt=""> Google
                     </button>
                     <button type="button" data-engine="duckduckgo" role="menuitem" class="w-full flex items-center gap-3 px-3 py-2.5 apple-radius hover:bg-white/10 transition text-left text-sm">
-                        <img src="https://favicon.im/duckduckgo.com" class="w-4 h-4 rounded-sm" alt="" onerror="this.remove()"> DuckDuckGo
+                        <img src="https://favicon.im/duckduckgo.com" class="engine-icon w-4 h-4 rounded-sm" alt=""> DuckDuckGo
                     </button>
                     <button type="button" data-engine="baidu" role="menuitem" class="w-full flex items-center gap-3 px-3 py-2.5 apple-radius hover:bg-white/10 transition text-left text-sm">
-                        <img src="https://favicon.im/baidu.com" class="w-4 h-4 rounded-sm" alt="" onerror="this.remove()"> 百度
+                        <img src="https://favicon.im/baidu.com" class="engine-icon w-4 h-4 rounded-sm" alt=""> 百度
                     </button>
                 </div>
                 <!-- 搜索实时建议联想下拉框 (Spotlight 高颜值全宽样式) -->
@@ -1056,11 +1059,11 @@
         }
 
         // ==================== 安全工具 ====================
-        /** 仅允许 http/https 协议的 URL，拦截 javascript: 等恶意协议
+        /** 仅允许 http/https/data:image 协议的 URL，拦截 javascript: 等恶意协议
          * @param {string} url @returns {string} */
         function safeUrl(url) {
             const u = (url || '').trim();
-            return /^https?:\/\//i.test(u) ? escapeHtml(u) : '#';
+            return (/^https?:\/\//i.test(u) || /^data:image\//i.test(u)) ? escapeHtml(u) : '#';
         }
 
         // ==================== 数据加载 ====================
@@ -1116,7 +1119,12 @@
          * @returns {string} HTML 转义后的安全字符串
          */
         function escapeHtml(str) {
-            return String(str ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+            return String(str ?? '')
+                .replace(/&/g,'&amp;')
+                .replace(/</g,'&lt;')
+                .replace(/>/g,'&gt;')
+                .replace(/"/g,'&quot;')
+                .replace(/'/g,'&#39;');
         }
 
         /**
@@ -1254,7 +1262,8 @@
                             const name = String(item.name || '未命名').trim();
                             const url = normalizeUrl(item.url || '');
                             if (name && url) {
-                                const icon = typeof item.icon === 'string' ? item.icon : faviconFromUrl(url);
+                                const rawIcon = typeof item.icon === 'string' ? item.icon : faviconFromUrl(url);
+                                const icon = safeUrl(rawIcon) !== '#' ? rawIcon : faviconFromUrl(url);
                                 validBookmarks.push({ name, url, icon });
                             }
                         }
@@ -1450,6 +1459,11 @@
          */
         function init() {
             cacheDOM();
+            document.addEventListener('error', e => {
+                if (e.target && e.target.tagName === 'IMG' && e.target.classList.contains('engine-icon')) {
+                    e.target.style.display = 'none';
+                }
+            }, true);
             updateClock();
             loadUserData();
             renderBookmarks();
@@ -1474,28 +1488,32 @@
         }
 
         // ==================== 苹果风格 Favicon 兜底徽章 (严格尺寸强制归一) ====================
-        function handleIconError(img, initial, isMd) {
+        function handleIconError(img) {
+            if (!img) return;
+            const initial = img.dataset.initial || '?';
+            const isMd = img.dataset.md === '1';
             const sizeClass = isMd ? 'icon-box-md' : 'icon-box-sm';
             const textClass = isMd ? 'text-xs font-semibold' : 'text-[10px] font-semibold';
             const badge = document.createElement('div');
             badge.className = `icon-box ${sizeClass} bg-white/15 border border-white/20 text-white/90 ${textClass}`;
             badge.textContent = initial;
-            if (img && img.parentElement) {
+            if (img.parentElement) {
                 img.parentElement.replaceWith(badge);
             }
         }
+        window.handleIconError = handleIconError;
 
         function getFaviconHTML(bm, sizeType = 'sm') {
             const initial = (bm.name || '?').trim().charAt(0).toUpperCase();
             const isMd = sizeType === 'md';
             const sizeClass = isMd ? 'icon-box-md' : 'icon-box-sm';
             const textClass = isMd ? 'text-xs font-semibold' : 'text-[10px] font-semibold';
+            const safeIcon = safeUrl(bm.icon);
             
-            if (!bm.icon) {
-                return `<div class="icon-box ${sizeClass} bg-white/15 border border-white/20 text-white/90 ${textClass}">${initial}</div>`;
+            if (!bm.icon || safeIcon === '#') {
+                return `<div class="icon-box ${sizeClass} bg-white/15 border border-white/20 text-white/90 ${textClass}">${escapeHtml(initial)}</div>`;
             }
-            const safeInitial = escapeHtml(initial).replace(/'/g, "\\'");
-            return `<div class="icon-box ${sizeClass}"><img src="${escapeHtml(bm.icon)}" class="opacity-90" alt="" loading="lazy" decoding="async" onerror="this.onerror=null;handleIconError(this, '${safeInitial}', ${isMd})"></div>`;
+            return `<div class="icon-box ${sizeClass}"><img src="${safeIcon}" data-initial="${escapeHtml(initial)}" data-md="${isMd ? '1' : '0'}" class="opacity-90" alt="" loading="lazy" decoding="async" onerror="handleIconError(this)"></div>`;
         }
 
         // ==================== 书签 ====================
@@ -2161,7 +2179,7 @@
                     clearTimeout(timeoutTimer);
                     timeoutTimer = null;
                 }
-                try { delete window[cbName]; } catch {}
+                try { window[cbName] = () => {}; } catch {}
                 if (suggestionScriptTag) {
                     suggestionScriptTag.remove();
                     suggestionScriptTag = null;
