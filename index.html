@@ -1332,7 +1332,7 @@
                     <div class="sticky top-0 z-10 backdrop-blur-md bg-black/70 py-2.5 mb-3 border-b border-white/10 flex items-center gap-2.5 shadow-sm">
                         <span class="text-base md:text-lg">${cat.icon}</span>
                         <h3 class="text-xs md:text-sm font-semibold tracking-wide text-white/90">${escapeHtml(cat.name)}</h3>
-                        <span class="ml-auto text-[10px] font-medium px-2 py-0.5 rounded-md bg-white/10 text-white/60 border border-white/15 tracking-wide">${cat.bookmarks.length} 个</span>
+                        <span class="ml-auto text-[10px] font-medium min-w-[2.75rem] px-1.5 py-0.5 rounded-md bg-white/10 text-white/60 border border-white/15 tracking-wide inline-flex items-center justify-center">${cat.bookmarks.length} 个</span>
                     </div>
                     <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 2xl:grid-cols-5 3xl:grid-cols-6 gap-2.5 md:gap-3">
                         ${sortedBookmarks.map(bm => `
