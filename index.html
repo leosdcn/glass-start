@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="theme-color" content="#0f172a">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -241,12 +241,52 @@
             transform: scale(0.96);
             transition: transform 0.08s ease !important;
         }
-        /* ===== group-hover & 定位工具类补全（style.css 为预编译静态文件，未收录这些工具类）===== */
-        .right-6 { right: 1.5rem; }
-        .right-8 { right: 2rem; }
+        /* ===== 移动端视口高度 (100dvh) 与 safe-area-inset 安全区适配 ===== */
+        .h-screen { height: 100vh; height: 100dvh; }
+        .min-h-screen { min-height: 100vh; min-height: 100dvh; }
+        .max-h-\[90vh\] { max-height: 90vh; max-height: 90dvh; }
+        .max-h-\[85vh\] { max-height: 85vh; max-height: 85dvh; }
+
+        /* 起始页首屏 padding 安全区适配 */
+        section:first-of-type {
+            padding-top: max(3rem, calc(3rem + env(safe-area-inset-top)));
+            padding-bottom: max(3rem, calc(3rem + env(safe-area-inset-bottom)));
+            padding-left: max(1rem, calc(1rem + env(safe-area-inset-left)));
+            padding-right: max(1rem, calc(1rem + env(safe-area-inset-right)));
+        }
+
+        /* 导航页第二屏 padding 安全区适配 */
+        #navSection > div {
+            padding-top: max(0.75rem, calc(0.75rem + env(safe-area-inset-top)));
+            padding-bottom: max(0.75rem, calc(0.75rem + env(safe-area-inset-bottom)));
+            padding-left: max(0.75rem, calc(0.75rem + env(safe-area-inset-left)));
+            padding-right: max(0.75rem, calc(0.75rem + env(safe-area-inset-right)));
+        }
         @media (min-width: 768px) {
-            .md\:bottom-8 { bottom: 2rem; }
-            .md\:right-8 { right: 2rem; }
+            #navSection > div {
+                padding-top: max(1.25rem, calc(1.25rem + env(safe-area-inset-top)));
+                padding-bottom: max(1.25rem, calc(1.25rem + env(safe-area-inset-bottom)));
+                padding-left: max(1.5rem, calc(1.5rem + env(safe-area-inset-left)));
+                padding-right: max(1.5rem, calc(1.5rem + env(safe-area-inset-right)));
+            }
+        }
+
+        /* 下滑指示器安全区偏移 */
+        .hint-down {
+            bottom: calc(1.5rem + env(safe-area-inset-bottom));
+        }
+        @media (min-width: 768px) {
+            .hint-down {
+                bottom: calc(2.5rem + env(safe-area-inset-bottom));
+            }
+        }
+
+        /* ===== group-hover & 定位工具类补全（style.css 为预编译静态文件，未收录这些工具类）===== */
+        .right-6 { right: calc(1.5rem + env(safe-area-inset-right)); }
+        .right-8 { right: calc(2rem + env(safe-area-inset-right)); }
+        @media (min-width: 768px) {
+            .md\:bottom-8 { bottom: calc(2rem + env(safe-area-inset-bottom)); }
+            .md\:right-8 { right: calc(2rem + env(safe-area-inset-right)); }
         }
         /* 搜索建议弹窗定位：紧贴搜索框下方保持精细的 6px / 8px 悬浮间距 */
         #suggestionMenu {
@@ -260,8 +300,8 @@
         /* 编辑按钮：固定于右下角，常驻低透明，hover 渐亮并让齿轮图标顺畅旋转 90 度 */
         #editBookmarksBtn {
             position: fixed;
-            bottom: 1.5rem;
-            right: 1.5rem;
+            bottom: calc(1.5rem + env(safe-area-inset-bottom));
+            right: calc(1.5rem + env(safe-area-inset-right));
             opacity: 0.6;
             z-index: 50;
         }
@@ -274,8 +314,8 @@
         }
         @media (min-width: 768px) {
             #editBookmarksBtn {
-                bottom: 2rem;
-                right: 2rem;
+                bottom: calc(2rem + env(safe-area-inset-bottom));
+                right: calc(2rem + env(safe-area-inset-right));
             }
         }
         /* 导航页书签行悬停时显示右箭头并微移 */
