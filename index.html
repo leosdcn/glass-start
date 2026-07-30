@@ -285,7 +285,7 @@
             padding-right: max(1rem, calc(1rem + env(safe-area-inset-right)));
         }
 
-        /* 导航页第二屏 padding 安全区适配 (收窄四周外边距，扩大窗口尺寸) */
+        /* 导航页第二屏 padding 安全区适配 (四周统一 0.75rem / 12px 等宽外边距) */
         #navSection > div {
             padding-top: max(0.375rem, calc(0.375rem + env(safe-area-inset-top)));
             padding-bottom: max(0.375rem, calc(0.375rem + env(safe-area-inset-bottom)));
@@ -294,8 +294,8 @@
         }
         @media (min-width: 768px) {
             #navSection > div {
-                padding-top: max(0.625rem, calc(0.625rem + env(safe-area-inset-top)));
-                padding-bottom: max(0.625rem, calc(0.625rem + env(safe-area-inset-bottom)));
+                padding-top: max(0.75rem, calc(0.75rem + env(safe-area-inset-top)));
+                padding-bottom: max(0.75rem, calc(0.75rem + env(safe-area-inset-bottom)));
                 padding-left: max(0.75rem, calc(0.75rem + env(safe-area-inset-left)));
                 padding-right: max(0.75rem, calc(0.75rem + env(safe-area-inset-right)));
             }
@@ -585,7 +585,7 @@
     <div id="bgLayer" class="fixed inset-0 bg-cover bg-center bg-no-repeat -z-10"
          style="background-image:url('https://images.unsplash.com/photo-1477346611705-65d1883cee1e?q=80&w=2070&auto=format&fit=crop')"></div>
     <div id="bgLayerNext" class="fixed inset-0 bg-cover bg-center bg-no-repeat -z-10 opacity-0" style="transition:opacity 0.6s ease;"></div>
-    <div class="fixed inset-0 bg-black/25 pointer-events-none z-0"></div>
+    <div id="bgOverlay" class="fixed inset-0 bg-black/25 pointer-events-none z-0" style="transition: background-color 0.2s ease, backdrop-filter 0.2s ease, -webkit-backdrop-filter 0.2s ease;"></div>
 
     <!-- ========== 第一屏：起始页 ========== -->
     <section class="relative z-10 min-h-screen flex flex-col items-center justify-center px-4 py-12">
@@ -662,7 +662,7 @@
 
     <!-- ========== 第二屏：导航页 ========== -->
     <section id="navSection" class="relative z-10 h-screen nav-hidden overflow-hidden">
-        <div class="h-full flex flex-col p-1.5 md:py-2.5 md:px-3 w-full">
+        <div class="h-full flex flex-col p-1.5 md:p-3 w-full">
             <!-- 主体：一体化 Liquid Glass 窗口框架 -->
             <div class="flex-1 glass apple-radius flex flex-col overflow-hidden min-h-0 border border-white/20 shadow-2xl">
                 <!-- 窗口顶部 Header 栏 -->
@@ -698,9 +698,9 @@
 
     <!-- 编辑与设置弹窗 (Apple 风格 Tab 分栏设置面板) -->
     <div id="editModal" role="dialog" aria-modal="true" aria-label="设置与偏好" class="edit-overlay fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm" style="z-index: 1000;">
-        <div class="glass-strong apple-radius w-full max-w-xl lg:max-w-2xl xl:max-w-3xl mx-4 h-[620px] max-h-[88vh] flex flex-col shadow-2xl" style="padding: 1.25rem 1.25rem 1rem;" onclick="event.stopPropagation()">
+        <div class="glass-strong apple-radius w-full max-w-xl sm:max-w-2xl md:max-w-3xl lg:max-w-4xl mx-4 h-[40rem] max-h-[90vh] flex flex-col shadow-2xl" style="padding: 1.25rem 1.5rem 1.25rem;" onclick="event.stopPropagation()">
             <!-- 弹窗 Header -->
-            <div class="flex items-center justify-between mb-3 pb-2 border-b border-white/10 shrink-0">
+            <div class="flex items-center justify-between mb-3.5 pb-2.5 border-b border-white/10 shrink-0">
                 <div class="flex items-center gap-2">
                     <span class="text-base">⚙️</span>
                     <h3 class="text-base font-semibold tracking-wide text-white/90">设置与偏好</h3>
@@ -708,16 +708,16 @@
             </div>
 
             <!-- Tab 导航栏 -->
-            <div class="flex items-center gap-1.5 p-1 bg-black/20 border border-white/10 apple-radius mb-3 shrink-0">
-                <button type="button" class="settings-tab-btn active flex-1 py-1.5 px-3 apple-radius text-xs sm:text-sm font-medium transition flex items-center justify-center gap-1.5 text-white/70 hover:text-white" data-tab="tabBookmarks">
+            <div class="flex items-center gap-1.5 p-1 bg-black/20 border border-white/10 apple-radius mb-3.5 shrink-0">
+                <button type="button" class="settings-tab-btn active flex-1 py-2 px-3.5 apple-radius text-xs sm:text-sm font-medium transition flex items-center justify-center gap-1.5 text-white/70 hover:text-white" data-tab="tabBookmarks">
                     <span>📌</span>
                     <span>快捷书签</span>
                 </button>
-                <button type="button" class="settings-tab-btn flex-1 py-1.5 px-3 apple-radius text-xs sm:text-sm font-medium transition flex items-center justify-center gap-1.5 text-white/70 hover:text-white" data-tab="tabAppearance">
+                <button type="button" class="settings-tab-btn flex-1 py-2 px-3.5 apple-radius text-xs sm:text-sm font-medium transition flex items-center justify-center gap-1.5 text-white/70 hover:text-white" data-tab="tabAppearance">
                     <span>🎨</span>
                     <span>外观壁纸</span>
                 </button>
-                <button type="button" class="settings-tab-btn flex-1 py-1.5 px-3 apple-radius text-xs sm:text-sm font-medium transition flex items-center justify-center gap-1.5 text-white/70 hover:text-white" data-tab="tabData">
+                <button type="button" class="settings-tab-btn flex-1 py-2 px-3.5 apple-radius text-xs sm:text-sm font-medium transition flex items-center justify-center gap-1.5 text-white/70 hover:text-white" data-tab="tabData">
                     <span>⚙️</span>
                     <span>数据与备份</span>
                 </button>
@@ -725,108 +725,195 @@
 
             <!-- Tab 内容 1: 快捷书签 (tabBookmarks) -->
             <div id="tabBookmarks" class="settings-tab-panel flex-1 flex flex-col min-h-0 overflow-hidden">
-                <div class="flex items-center justify-between mb-2 shrink-0">
-                    <span class="text-xs font-medium text-white/60">编辑书签与排序</span>
+                <div class="flex items-center justify-between mb-3 shrink-0">
+                    <div class="flex items-center gap-1.5">
+                        <span class="text-xs font-semibold text-white/80">快捷书签管理</span>
+                        <span class="text-[10px] text-white/40 font-normal">（支持拖拽 ⠿ 调整排序）</span>
+                    </div>
                     <span id="bookmarkCountBadge" class="text-[10px] px-2.5 py-0.5 rounded-full bg-white/10 border border-white/15 text-white/70 font-medium tracking-wide">已添加 0 项</span>
                 </div>
-                <div id="editList" role="list" aria-label="书签列表" class="flex-1 overflow-y-auto space-y-1 mb-3 min-h-0 pr-0.5"></div>
-                <div class="flex flex-col sm:flex-row gap-2 shrink-0 pt-2 border-t border-white/10">
-                    <button id="addBookmarkBtn" type="button" class="flex-1 py-2 border border-dashed border-white/20 apple-radius text-white/60 hover:text-white hover:border-white/40 hover:bg-white/5 transition text-xs sm:text-sm flex items-center justify-center gap-1.5">+ 手动输入</button>
-                    <button id="togglePickerBtn" type="button" class="flex-1 py-2 border border-dashed border-white/20 apple-radius text-xs sm:text-sm text-white/60 hover:text-white hover:border-white/40 hover:bg-white/5 transition flex items-center justify-center gap-1.5">🗂️ 从导航页选择</button>
+                <div id="editList" role="list" aria-label="书签列表" class="flex-1 overflow-y-auto space-y-1.5 mb-3.5 min-h-0 pr-1"></div>
+                <div class="flex flex-col sm:flex-row gap-2.5 shrink-0 pt-2.5 border-t border-white/10">
+                    <button id="addBookmarkBtn" type="button" class="flex-1 py-2 px-3 border border-dashed border-white/20 apple-radius text-white/75 hover:text-white hover:border-white/40 hover:bg-white/5 transition text-xs flex items-center justify-center gap-1.5 font-medium">+ 手动添加书签</button>
+                    <button id="togglePickerBtn" type="button" class="flex-1 py-2 px-3 border border-dashed border-white/20 apple-radius text-xs text-white/75 hover:text-white hover:border-white/40 hover:bg-white/5 transition flex items-center justify-center gap-1.5 font-medium">🗂️ 从导航页批量选择</button>
                 </div>
             </div>
 
             <!-- Tab 内容 2: 外观与壁纸 (tabAppearance) -->
-            <div id="tabAppearance" class="settings-tab-panel flex-1 flex flex-col min-h-0 overflow-y-auto hidden space-y-3 pr-0.5">
-                <!-- 自定义壁纸 -->
-                <div class="p-3 bg-white/5 border border-white/10 apple-radius space-y-2">
-                    <div class="flex items-center justify-between">
-                        <span class="text-xs font-medium text-white/80 flex items-center gap-1.5">
-                            <svg class="w-4 h-4 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                            自定义壁纸
-                        </span>
-                        <span id="wallpaperStatus" class="text-[10px] px-2.5 py-0.5 rounded-full bg-white/10 border border-white/15 text-white/70 font-medium tracking-wide">当前使用默认壁纸</span>
+            <div id="tabAppearance" class="settings-tab-panel flex-1 flex flex-col min-h-0 overflow-y-auto hidden space-y-3.5 pr-0.5">
+                <!-- 上半部分：自定义壁纸 与 壁纸特效 左右双列布局 -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5 shrink-0">
+                    <!-- 自定义壁纸 -->
+                    <div class="p-3.5 bg-white/5 border border-white/10 apple-radius space-y-2.5 flex flex-col justify-between">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-semibold text-white/80 flex items-center gap-1.5">
+                                <svg class="w-4 h-4 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                自定义壁纸来源
+                            </span>
+                            <span id="wallpaperStatus" class="text-[10px] px-2.5 py-0.5 rounded-full bg-white/10 border border-white/15 text-white/70 font-medium tracking-wide">默认壁纸</span>
+                        </div>
+                        <div class="flex gap-2">
+                            <button id="uploadBgBtn" type="button" class="flex-1 py-2 px-3 bg-white/5 hover:bg-white/10 border border-white/10 apple-radius text-xs text-white/80 hover:text-white transition flex items-center justify-center gap-1.5">📁 本地图片</button>
+                            <button id="urlBgBtn" type="button" class="flex-1 py-2 px-3 bg-white/5 hover:bg-white/10 border border-white/10 apple-radius text-xs text-white/80 hover:text-white transition flex items-center justify-center gap-1.5">🔗 图片 URL</button>
+                            <button id="resetBgBtn" type="button" class="py-2 px-3 bg-white/5 hover:bg-white/10 border border-white/10 apple-radius text-xs text-white/50 hover:text-red-400 transition hidden">恢复默认</button>
+                            <input type="file" id="uploadBgInput" accept="image/*" class="hidden">
+                        </div>
                     </div>
-                    <div class="flex flex-wrap sm:flex-nowrap gap-1.5">
-                        <button id="uploadBgBtn" type="button" class="flex-1 py-1.5 px-2.5 bg-white/5 hover:bg-white/10 border border-white/10 apple-radius text-xs text-white/80 hover:text-white transition flex items-center justify-center gap-1">📁 本地图片</button>
-                        <button id="urlBgBtn" type="button" class="flex-1 py-1.5 px-2.5 bg-white/5 hover:bg-white/10 border border-white/10 apple-radius text-xs text-white/80 hover:text-white transition flex items-center justify-center gap-1">🔗 图片 URL</button>
-                        <button id="resetBgBtn" type="button" class="py-1.5 px-3 bg-white/5 hover:bg-white/10 border border-white/10 apple-radius text-xs text-white/50 hover:text-red-400 transition hidden">恢复默认</button>
-                        <input type="file" id="uploadBgInput" accept="image/*" class="hidden">
+
+                    <!-- 背景视觉特效调节 -->
+                    <div class="p-3.5 bg-white/5 border border-white/10 apple-radius space-y-2.5 flex flex-col justify-between">
+                        <span class="text-xs font-semibold text-white/80 flex items-center gap-1.5">
+                            <span>✨</span> 背景视觉特效
+                        </span>
+                        <div class="grid grid-cols-2 gap-3">
+                            <!-- 遮罩透明度 -->
+                            <div class="space-y-1">
+                                <div class="flex items-center justify-between text-[11px] text-white/70">
+                                    <span>暗色遮罩</span>
+                                    <span id="maskOpacityVal" class="font-mono text-white/90">25%</span>
+                                </div>
+                                <input type="range" id="maskOpacityInput" min="0" max="80" value="25" class="w-full h-1.5 bg-white/20 rounded-lg appearance-none cursor-pointer accent-white">
+                            </div>
+                            <!-- 高斯模糊度 -->
+                            <div class="space-y-1">
+                                <div class="flex items-center justify-between text-[11px] text-white/70">
+                                    <span>高斯模糊</span>
+                                    <span id="bgBlurVal" class="font-mono text-white/90">0px</span>
+                                </div>
+                                <input type="range" id="bgBlurInput" min="0" max="20" value="0" class="w-full h-1.5 bg-white/20 rounded-lg appearance-none cursor-pointer accent-white">
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <!-- 预设壁纸库（自带 8 款高清系统壁纸） -->
-                <div class="p-3 bg-white/5 border border-white/10 apple-radius space-y-2">
-                    <span class="text-xs font-medium text-white/80 flex items-center gap-1.5">
-                        <span>🖼️</span> 预设高清壁纸
-                    </span>
-                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                        <button type="button" class="preset-bg-card relative aspect-video rounded-xl overflow-hidden border border-white/15 hover:border-white/40 transition group" data-bg="https://images.unsplash.com/photo-1477346611705-65d1883cee1e?q=80&w=2070&auto=format&fit=crop" data-title="山峦夜空" title="山峦夜空（系统默认）">
+                <!-- 下半部分：预设高清壁纸库 -->
+                <div class="p-3.5 bg-white/5 border border-white/10 apple-radius space-y-3 flex-1 flex flex-col min-h-0">
+                    <div class="flex items-center justify-between shrink-0">
+                        <span class="text-xs font-semibold text-white/80 flex items-center gap-1.5">
+                            <span>🖼️</span> 预设 4K 高清壁纸库
+                        </span>
+                        <span class="text-[10px] text-white/40">点击即可即时应用壁纸</span>
+                    </div>
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 flex-1 min-h-0">
+                        <button type="button" class="preset-bg-card relative aspect-video rounded-xl overflow-hidden border border-white/15 hover:border-white/50 transition group shadow-md" data-bg="https://images.unsplash.com/photo-1477346611705-65d1883cee1e?q=80&w=2070&auto=format&fit=crop" data-title="山峦夜空" title="山峦夜空（系统默认）">
                             <img src="https://images.unsplash.com/photo-1477346611705-65d1883cee1e?q=80&w=200&auto=format&fit=crop" alt="山峦夜空" class="w-full h-full object-cover group-hover:scale-105 transition duration-300 pointer-events-none">
-                            <span class="absolute inset-x-0 bottom-0 py-0.5 bg-black/60 text-[10px] text-white/80 text-center pointer-events-none">山峦夜空</span>
+                            <span class="absolute inset-x-0 bottom-0 py-1 bg-black/60 backdrop-blur-xs text-[10px] text-white/90 text-center font-medium pointer-events-none">山峦夜空</span>
                         </button>
-                        <button type="button" class="preset-bg-card relative aspect-video rounded-xl overflow-hidden border border-white/15 hover:border-white/40 transition group" data-bg="https://images.unsplash.com/photo-1506744038136-46273834b3fb?q=80&w=2070&auto=format&fit=crop" data-title="湖光山色" title="湖光山色">
+                        <button type="button" class="preset-bg-card relative aspect-video rounded-xl overflow-hidden border border-white/15 hover:border-white/50 transition group shadow-md" data-bg="https://images.unsplash.com/photo-1506744038136-46273834b3fb?q=80&w=2070&auto=format&fit=crop" data-title="湖光山色" title="湖光山色">
                             <img src="https://images.unsplash.com/photo-1506744038136-46273834b3fb?q=80&w=200&auto=format&fit=crop" alt="湖光山色" class="w-full h-full object-cover group-hover:scale-105 transition duration-300 pointer-events-none">
-                            <span class="absolute inset-x-0 bottom-0 py-0.5 bg-black/60 text-[10px] text-white/80 text-center pointer-events-none">湖光山色</span>
+                            <span class="absolute inset-x-0 bottom-0 py-1 bg-black/60 backdrop-blur-xs text-[10px] text-white/90 text-center font-medium pointer-events-none">湖光山色</span>
                         </button>
-                        <button type="button" class="preset-bg-card relative aspect-video rounded-xl overflow-hidden border border-white/15 hover:border-white/40 transition group" data-bg="https://images.unsplash.com/photo-1433086966358-54859d0ed716?q=80&w=2070&auto=format&fit=crop" data-title="森林瀑布" title="森林瀑布">
+                        <button type="button" class="preset-bg-card relative aspect-video rounded-xl overflow-hidden border border-white/15 hover:border-white/50 transition group shadow-md" data-bg="https://images.unsplash.com/photo-1433086966358-54859d0ed716?q=80&w=2070&auto=format&fit=crop" data-title="森林瀑布" title="森林瀑布">
                             <img src="https://images.unsplash.com/photo-1433086966358-54859d0ed716?q=80&w=200&auto=format&fit=crop" alt="森林瀑布" class="w-full h-full object-cover group-hover:scale-105 transition duration-300 pointer-events-none">
-                            <span class="absolute inset-x-0 bottom-0 py-0.5 bg-black/60 text-[10px] text-white/80 text-center pointer-events-none">森林瀑布</span>
+                            <span class="absolute inset-x-0 bottom-0 py-1 bg-black/60 backdrop-blur-xs text-[10px] text-white/90 text-center font-medium pointer-events-none">森林瀑布</span>
                         </button>
-                        <button type="button" class="preset-bg-card relative aspect-video rounded-xl overflow-hidden border border-white/15 hover:border-white/40 transition group" data-bg="https://images.unsplash.com/photo-1519681393784-d120267933ba?q=80&w=2070&auto=format&fit=crop" data-title="星空雪山" title="星空雪山">
+                        <button type="button" class="preset-bg-card relative aspect-video rounded-xl overflow-hidden border border-white/15 hover:border-white/50 transition group shadow-md" data-bg="https://images.unsplash.com/photo-1519681393784-d120267933ba?q=80&w=2070&auto=format&fit=crop" data-title="星空雪山" title="星空雪山">
                             <img src="https://images.unsplash.com/photo-1519681393784-d120267933ba?q=80&w=200&auto=format&fit=crop" alt="星空雪山" class="w-full h-full object-cover group-hover:scale-105 transition duration-300 pointer-events-none">
-                            <span class="absolute inset-x-0 bottom-0 py-0.5 bg-black/60 text-[10px] text-white/80 text-center pointer-events-none">星空雪山</span>
+                            <span class="absolute inset-x-0 bottom-0 py-1 bg-black/60 backdrop-blur-xs text-[10px] text-white/90 text-center font-medium pointer-events-none">星空雪山</span>
                         </button>
-                        <button type="button" class="preset-bg-card relative aspect-video rounded-xl overflow-hidden border border-white/15 hover:border-white/40 transition group" data-bg="https://images.unsplash.com/photo-1469474968028-56623f02e42e?q=80&w=2070&auto=format&fit=crop" data-title="壮丽旷野" title="壮丽旷野">
+                        <button type="button" class="preset-bg-card relative aspect-video rounded-xl overflow-hidden border border-white/15 hover:border-white/50 transition group shadow-md" data-bg="https://images.unsplash.com/photo-1469474968028-56623f02e42e?q=80&w=2070&auto=format&fit=crop" data-title="壮丽旷野" title="壮丽旷野">
                             <img src="https://images.unsplash.com/photo-1469474968028-56623f02e42e?q=80&w=200&auto=format&fit=crop" alt="壮丽旷野" class="w-full h-full object-cover group-hover:scale-105 transition duration-300 pointer-events-none">
-                            <span class="absolute inset-x-0 bottom-0 py-0.5 bg-black/60 text-[10px] text-white/80 text-center pointer-events-none">壮丽旷野</span>
+                            <span class="absolute inset-x-0 bottom-0 py-1 bg-black/60 backdrop-blur-xs text-[10px] text-white/90 text-center font-medium pointer-events-none">壮丽旷野</span>
                         </button>
-                        <button type="button" class="preset-bg-card relative aspect-video rounded-xl overflow-hidden border border-white/15 hover:border-white/40 transition group" data-bg="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=2070&auto=format&fit=crop" data-title="静谧海岸" title="静谧海岸">
+                        <button type="button" class="preset-bg-card relative aspect-video rounded-xl overflow-hidden border border-white/15 hover:border-white/50 transition group shadow-md" data-bg="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=2070&auto=format&fit=crop" data-title="静谧海岸" title="静谧海岸">
                             <img src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=200&auto=format&fit=crop" alt="静谧海岸" class="w-full h-full object-cover group-hover:scale-105 transition duration-300 pointer-events-none">
-                            <span class="absolute inset-x-0 bottom-0 py-0.5 bg-black/60 text-[10px] text-white/80 text-center pointer-events-none">静谧海岸</span>
+                            <span class="absolute inset-x-0 bottom-0 py-1 bg-black/60 backdrop-blur-xs text-[10px] text-white/90 text-center font-medium pointer-events-none">静谧海岸</span>
                         </button>
-                        <button type="button" class="preset-bg-card relative aspect-video rounded-xl overflow-hidden border border-white/15 hover:border-white/40 transition group" data-bg="https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=2070&auto=format&fit=crop" data-title="深空星云" title="深空星云">
-                            <img src="https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=200&auto=format&fit=crop" alt="深空星云" class="w-full h-full object-cover group-hover:scale-105 transition duration-300 pointer-events-none">
-                            <span class="absolute inset-x-0 bottom-0 py-0.5 bg-black/60 text-[10px] text-white/80 text-center pointer-events-none">深空星云</span>
+                        <button type="button" class="preset-bg-card relative aspect-video rounded-xl overflow-hidden border border-white/15 hover:border-white/50 transition group shadow-md" data-bg="https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=2070&auto=format&fit=crop" data-title="迷雾古堡" title="迷雾古堡">
+                            <img src="https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=200&auto=format&fit=crop" alt="迷雾古堡" class="w-full h-full object-cover group-hover:scale-105 transition duration-300 pointer-events-none">
+                            <span class="absolute inset-x-0 bottom-0 py-1 bg-black/60 backdrop-blur-xs text-[10px] text-white/90 text-center font-medium pointer-events-none">迷雾古堡</span>
                         </button>
-                        <button type="button" class="preset-bg-card relative aspect-video rounded-xl overflow-hidden border border-white/15 hover:border-white/40 transition group" data-bg="https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=2070&auto=format&fit=crop" data-title="赛博霓虹" title="赛博霓虹">
-                            <img src="https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=200&auto=format&fit=crop" alt="赛博霓虹" class="w-full h-full object-cover group-hover:scale-105 transition duration-300 pointer-events-none">
-                            <span class="absolute inset-x-0 bottom-0 py-0.5 bg-black/60 text-[10px] text-white/80 text-center pointer-events-none">赛博霓虹</span>
+                        <button type="button" class="preset-bg-card relative aspect-video rounded-xl overflow-hidden border border-white/15 hover:border-white/50 transition group shadow-md" data-bg="https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=2070&auto=format&fit=crop" data-title="梦幻流彩" title="梦幻流彩">
+                            <img src="https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=200&auto=format&fit=crop" alt="梦幻流彩" class="w-full h-full object-cover group-hover:scale-105 transition duration-300 pointer-events-none">
+                            <span class="absolute inset-x-0 bottom-0 py-1 bg-black/60 backdrop-blur-xs text-[10px] text-white/90 text-center font-medium pointer-events-none">梦幻流彩</span>
                         </button>
                     </div>
                 </div>
             </div>
 
             <!-- Tab 内容 3: 数据与备份 (tabData) -->
-            <div id="tabData" class="settings-tab-panel flex-1 flex flex-col min-h-0 overflow-y-auto hidden space-y-3 pr-0.5">
-                <!-- 配置文件导出/导入 -->
-                <div class="p-3 bg-white/5 border border-white/10 apple-radius space-y-2.5">
-                    <span class="text-xs font-medium text-white/80 flex items-center gap-1.5">
-                        <span>📦</span> 配置备份与恢复
-                    </span>
-                    <div class="flex flex-col sm:flex-row gap-2">
-                        <button id="exportJsonBtn" type="button" class="flex-1 py-2 px-3 bg-white/5 hover:bg-white/10 border border-white/10 apple-radius text-xs text-white/80 hover:text-white transition flex items-center justify-center gap-1.5">📤 导出 JSON 备份文件</button>
+            <div id="tabData" class="settings-tab-panel flex-1 flex flex-col min-h-0 overflow-y-auto hidden space-y-3.5 pr-0.5">
+                <!-- 顶部综合状态仪表盘 (Full Width Status Dashboard) -->
+                <div class="p-3.5 bg-white/5 border border-white/10 apple-radius flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
+                    <div class="flex items-center gap-3">
+                        <div class="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center text-base border border-white/15 shadow-inner">🪐</div>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs font-semibold text-white/90">Glass Start Page</span>
+                                <span class="text-[10px] px-2 py-0.5 rounded-full bg-white/10 border border-white/15 text-white/60 font-mono">v2.0</span>
+                            </div>
+                            <div class="text-[10px] text-white/50">极简 Liquid Glass 导航主页 • Build 2026.07</div>
+                        </div>
                     </div>
-                    <!-- 可拖拽区域 Dropzone -->
-                    <div id="jsonDropzone" class="json-dropzone border-2 border-dashed border-white/15 hover:border-white/30 apple-radius p-3 text-center transition cursor-pointer bg-white/[0.02] hover:bg-white/5 flex flex-col items-center justify-center gap-1">
-                        <span class="text-base">📥</span>
-                        <p class="text-xs text-white/70 font-medium">点击或将 JSON 备份文件拖入此处导入</p>
-                        <p class="text-[10px] text-white/35">自动解析恢复快捷书签配置</p>
-                        <input type="file" id="importJsonInput" accept=".json,application/json" class="hidden">
+                    <!-- 核心数据统计徽章 -->
+                    <div class="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
+                        <div class="px-3 py-1.5 bg-white/5 apple-radius border border-white/10 text-center min-w-[4.5rem]">
+                            <div id="statBookmarkCount" class="font-semibold text-white/90 text-xs">0</div>
+                            <div class="text-[9px] text-white/50">快捷书签</div>
+                        </div>
+                        <div class="px-3 py-1.5 bg-white/5 apple-radius border border-white/10 text-center min-w-[4.5rem]">
+                            <div id="statWallpaperType" class="font-semibold text-white/90 text-xs">系统</div>
+                            <div class="text-[9px] text-white/50">壁纸来源</div>
+                        </div>
+                        <div class="px-3 py-1.5 bg-white/5 apple-radius border border-white/10 text-center min-w-[4.5rem]">
+                            <div id="statPwaStatus" class="font-semibold text-green-400 text-xs">就绪</div>
+                            <div class="text-[9px] text-white/50">离线 PWA</div>
+                        </div>
                     </div>
                 </div>
 
-                <!-- 危险区域 (Danger Zone) -->
-                <div class="p-3 danger-zone-card apple-radius space-y-2">
-                    <div class="flex items-center justify-between">
-                        <span class="text-xs font-semibold text-red-300/90 flex items-center gap-1.5">
-                            <span>🚨</span> 危险区域 (Danger Zone)
-                        </span>
+                <!-- 下半部分：功能区域左右双列布局 -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5 flex-1 min-h-0">
+                    <!-- 左侧栏：配置备份与恢复 -->
+                    <div class="p-3.5 bg-white/5 border border-white/10 apple-radius flex flex-col justify-between space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-semibold text-white/80 flex items-center gap-1.5">
+                                <span>📦</span> 配置备份与恢复
+                            </span>
+                            <span id="storageSizeBadge" class="text-[10px] px-2.5 py-0.5 rounded-full bg-white/10 border border-white/15 text-white/60 font-mono">计算中...</span>
+                        </div>
+                        <button id="exportJsonBtn" type="button" class="w-full py-2 px-3.5 bg-white/5 hover:bg-white/10 border border-white/10 apple-radius text-xs text-white/80 hover:text-white transition flex items-center justify-center gap-2">
+                            <span>📤</span> 导出 JSON 配置文件备份
+                        </button>
+                        <!-- Dropzone 导入框 -->
+                        <div id="jsonDropzone" class="json-dropzone flex-1 border-2 border-dashed border-white/15 hover:border-white/35 apple-radius p-3.5 text-center transition cursor-pointer bg-white/[0.02] hover:bg-white/5 flex flex-col items-center justify-center gap-1 min-h-[6.5rem]">
+                            <span class="text-lg">📥</span>
+                            <p class="text-xs text-white/80 font-medium">点击或将 JSON 备份文件拖入此处</p>
+                            <p class="text-[10px] text-white/40">自动解析恢复快捷书签与系统偏好配置</p>
+                            <input type="file" id="importJsonInput" accept=".json,application/json" class="hidden">
+                        </div>
                     </div>
-                    <p class="text-[11px] text-white/50 leading-relaxed">
-                        恢复为系统初始默认状态，将永久清除您自定义的所有快捷书签、背景壁纸与偏好设置。
-                    </p>
-                    <button id="resetEditBtn" type="button" class="danger-zone-btn w-full py-2 apple-radius text-xs font-medium transition">⚠️ 重置所有系统设置</button>
+
+                    <!-- 右侧栏：系统维护与危险区域 -->
+                    <div class="flex flex-col space-y-3.5 justify-between">
+                        <!-- 离线缓存刷新 -->
+                        <div class="p-3.5 bg-white/5 border border-white/10 apple-radius space-y-2">
+                            <span class="text-xs font-semibold text-white/80 flex items-center gap-1.5">
+                                <span>🧹</span> 离线 Service Worker 缓存
+                            </span>
+                            <p class="text-[11px] text-white/50 leading-relaxed">
+                                若离线资源异常或更新未及时应用，可手动刷新 Service Worker 离线缓存。
+                            </p>
+                            <button id="clearCacheBtn" type="button" class="w-full py-2 px-3.5 bg-white/5 hover:bg-white/10 border border-white/10 apple-radius text-xs text-white/75 hover:text-white transition flex items-center justify-center gap-1.5">
+                                🧹 一键刷新 Service Worker 离线缓存
+                            </button>
+                        </div>
+
+                        <!-- 危险区域 (Danger Zone) -->
+                        <div class="p-3.5 danger-zone-card apple-radius space-y-2 flex-1 flex flex-col justify-between">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-semibold text-red-300/90 flex items-center gap-1.5">
+                                    <span>🚨</span> 危险区域 (Danger Zone)
+                                </span>
+                            </div>
+                            <p class="text-[10px] text-white/50 leading-relaxed">
+                                恢复为系统初始默认状态，将永久清除所有自定义书签、壁纸与偏好设置。
+                            </p>
+                            <button id="resetEditBtn" type="button" class="danger-zone-btn w-full py-2 apple-radius text-xs font-medium transition flex items-center justify-center gap-1.5">
+                                ⚠️ 重置所有系统设置
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -1045,7 +1132,7 @@
         function $(id) { return document.getElementById(id); } // DOM 快捷获取
 
         function cacheDOM() {
-            const ids = 'clock date searchInput searchClearBtn engineBtn engineIcon engineName dropdownMenu suggestionMenu searchBtn bookmarks sidebarList navCategories navContent editModal editList editBookmarksBtn addBookmarkBtn saveEditBtn cancelEditBtn resetEditBtn togglePickerBtn bookmarkPicker pickerContent pickerCount closePickerBtn donePickerBtn importJsonBtn exportJsonBtn importJsonInput uploadBgBtn urlBgBtn resetBgBtn uploadBgInput wallpaperStatus bookmarkCountBadge jsonDropzone'.split(' ');
+            const ids = 'clock date searchInput searchClearBtn engineBtn engineIcon engineName dropdownMenu suggestionMenu searchBtn bookmarks sidebarList navCategories navContent editModal editList editBookmarksBtn addBookmarkBtn saveEditBtn cancelEditBtn resetEditBtn togglePickerBtn bookmarkPicker pickerContent pickerCount closePickerBtn donePickerBtn importJsonBtn exportJsonBtn importJsonInput uploadBgBtn urlBgBtn resetBgBtn uploadBgInput wallpaperStatus bookmarkCountBadge jsonDropzone maskOpacityInput maskOpacityVal bgBlurInput bgBlurVal storageSizeBadge statBookmarkCount statWallpaperType statPwaStatus clearCacheBtn bgOverlay'.split(' ');
             ids.forEach(id => dom[id] = $(id));
         }
 
@@ -1149,7 +1236,65 @@
             panels.forEach(panel => {
                 panel.classList.toggle('hidden', panel.id !== targetTabId);
             });
+            if (targetTabId === 'tabData') {
+                updateDataTabStats();
+            }
         }
+
+        function applyBgEffects(opacity, blur, save = false) {
+            const op = Math.max(0, Math.min(80, parseInt(opacity, 10) || 0));
+            const bl = Math.max(0, Math.min(20, parseInt(blur, 10) || 0));
+            if (dom.bgOverlay) {
+                dom.bgOverlay.style.backgroundColor = `rgba(0, 0, 0, ${op / 100})`;
+                const blurStyle = bl > 0 ? `blur(${bl}px)` : 'none';
+                dom.bgOverlay.style.backdropFilter = blurStyle;
+                dom.bgOverlay.style.webkitBackdropFilter = blurStyle;
+            }
+            if (dom.maskOpacityVal) dom.maskOpacityVal.textContent = `${op}%`;
+            if (dom.bgBlurVal) dom.bgBlurVal.textContent = `${bl}px`;
+            if (dom.maskOpacityInput && dom.maskOpacityInput.value != op) dom.maskOpacityInput.value = op;
+            if (dom.bgBlurInput && dom.bgBlurInput.value != bl) dom.bgBlurInput.value = bl;
+            if (save) {
+                storageSet('maskOpacity', op);
+                storageSet('bgBlur', bl);
+            }
+        }
+
+        function updateDataTabStats() {
+            if (!dom.storageSizeBadge) return;
+            try {
+                const raw = JSON.stringify(localStorage);
+                const bytes = new Blob([raw]).size;
+                const kb = (bytes / 1024).toFixed(1);
+                dom.storageSizeBadge.textContent = `已用 ${kb} KB`;
+            } catch {
+                dom.storageSizeBadge.textContent = '读取中...';
+            }
+
+            if (dom.statBookmarkCount) {
+                const count = dom.editList ? dom.editList.querySelectorAll('[data-idx]').length : pageData.bookmarks.length;
+                dom.statBookmarkCount.textContent = count;
+            }
+            if (dom.statWallpaperType) {
+                const customBg = storageGet('userWallpaper');
+                dom.statWallpaperType.textContent = customBg ? '自定义' : '系统';
+            }
+            if (dom.statPwaStatus) {
+                dom.statPwaStatus.textContent = ('serviceWorker' in navigator) ? '就绪' : '未开启';
+            }
+        }
+
+        const modalState = {
+            initialWallpaper: null,
+            initialMaskOpacity: 25,
+            initialBgBlur: 0,
+            initialBookmarks: [],
+            
+            draftWallpaper: undefined,
+            draftMaskOpacity: null,
+            draftBgBlur: null,
+            wallpaperChanged: false
+        };
 
         function updateBookmarkCountBadge() {
             if (!dom.bookmarkCountBadge) return;
@@ -1157,24 +1302,55 @@
             dom.bookmarkCountBadge.textContent = `已添加 ${count} 项`;
         }
 
-        function updatePresetBgCardsUI() {
-            const currentBg = storageGet('userWallpaper') || backgrounds[state.bg] || '';
+        function updatePresetBgCardsUI(customWallpaperOverride) {
+            const currentBg = customWallpaperOverride !== undefined ? (customWallpaperOverride || backgrounds[state.bg] || '') : (storageGet('userWallpaper') || backgrounds[state.bg] || '');
             document.querySelectorAll('.preset-bg-card').forEach(card => {
                 const bg = card.dataset.bg;
                 card.classList.toggle('active', bg === currentBg);
             });
         }
 
+        function updateWallpaperStatusUI(customWallpaperOverride) {
+            const customBg = customWallpaperOverride !== undefined ? customWallpaperOverride : storageGet('userWallpaper');
+            if (!dom.wallpaperStatus || !dom.resetBgBtn) return;
+            if (customBg) {
+                dom.wallpaperStatus.textContent = '已使用自定义壁纸';
+                dom.wallpaperStatus.className = 'text-[10px] text-emerald-400/90 font-medium';
+                dom.resetBgBtn.classList.remove('hidden');
+            } else {
+                dom.wallpaperStatus.textContent = '当前使用默认壁纸';
+                dom.wallpaperStatus.className = 'text-[10px] text-white/35';
+                dom.resetBgBtn.classList.add('hidden');
+            }
+        }
+
+        function previewDraftWallpaper(urlStr) {
+            modalState.draftWallpaper = urlStr;
+            modalState.wallpaperChanged = true;
+            applyWallpaper(urlStr || backgrounds[state.bg], true);
+            updateWallpaperStatusUI(urlStr);
+            updatePresetBgCardsUI(urlStr);
+        }
+
+        function resetDraftWallpaper() {
+            modalState.draftWallpaper = null;
+            modalState.wallpaperChanged = true;
+            applyWallpaper(backgrounds[0], true);
+            updateWallpaperStatusUI(null);
+            updatePresetBgCardsUI(backgrounds[0]);
+        }
+
         // ==================== 编辑快捷书签弹窗 ====================
-        function renderEditList() {
-            dom.editList.innerHTML = pageData.bookmarks.map((bm, i) => `
-                <div class="flex items-center gap-1.5 p-1.5 apple-radius hover:bg-white/5" data-idx="${i}">
-                    <div class="drag-handle p-1 shrink-0 text-white/20 hover:text-white/60 cursor-grab active:cursor-grabbing" draggable="true" title="拖拽排序">
+        function renderEditList(listToRender) {
+            const list = listToRender || pageData.bookmarks;
+            dom.editList.innerHTML = list.map((bm, i) => `
+                <div class="flex items-center gap-2 p-1.5 px-2 bg-white/5 border border-white/10 apple-radius hover:border-white/25 transition group mb-1.5 shadow-xs" data-idx="${i}">
+                    <div class="drag-handle p-1 shrink-0 text-white/30 hover:text-white cursor-grab active:cursor-grabbing transition" draggable="true" title="按住拖拽排序">
                         <svg class="w-3.5 h-3.5 pointer-events-none" viewBox="0 0 16 16" fill="currentColor"><circle cx="5" cy="4" r="1.5"/><circle cx="11" cy="4" r="1.5"/><circle cx="5" cy="8" r="1.5"/><circle cx="11" cy="8" r="1.5"/><circle cx="5" cy="12" r="1.5"/><circle cx="11" cy="12" r="1.5"/></svg>
                     </div>
-                    <input type="text" class="edit-name flex-1 bg-white/5 border border-white/10 rounded px-2 py-1.5 text-sm text-white/80 outline-none focus:border-white/30 transition" value="${escapeHtml(bm.name)}" placeholder="名称">
-                    <input type="text" class="edit-url flex-[2] bg-white/5 border border-white/10 rounded px-2 py-1.5 text-sm text-white/80 outline-none focus:border-white/30 transition" value="${escapeHtml(bm.url)}" placeholder="URL">
-                    <button type="button" class="del-btn shrink-0 p-1.5 hover:bg-white/10 rounded apple-radius text-white/30 hover:text-red-400 transition">
+                    <input type="text" class="edit-name flex-1 bg-black/20 border border-white/10 apple-radius px-2.5 py-1.5 text-xs text-white/90 focus:border-white/40 focus:bg-black/40 outline-none transition" value="${escapeHtml(bm.name)}" placeholder="书签名称">
+                    <input type="text" class="edit-url flex-[2] bg-black/20 border border-white/10 apple-radius px-2.5 py-1.5 text-xs text-white/75 focus:border-white/40 focus:bg-black/40 focus:text-white outline-none transition font-mono" value="${escapeHtml(bm.url)}" placeholder="https://...">
+                    <button type="button" class="del-btn shrink-0 p-1.5 hover:bg-red-500/20 apple-radius text-white/30 hover:text-red-400 transition" title="删除书签">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                     </button>
                 </div>
@@ -1202,11 +1378,35 @@
 
         function openEditModal() {
             state.editOpen = true;
+
+            // 备份打开前的初始配置
+            modalState.initialWallpaper = storageGet('userWallpaper');
+            modalState.initialMaskOpacity = storageGet('maskOpacity', 25);
+            modalState.initialBgBlur = storageGet('bgBlur', 0);
+            modalState.initialBookmarks = JSON.parse(JSON.stringify(pageData.bookmarks));
+
+            // 初始化草稿值
+            modalState.draftWallpaper = modalState.initialWallpaper;
+            modalState.draftMaskOpacity = modalState.initialMaskOpacity;
+            modalState.draftBgBlur = modalState.initialBgBlur;
+            modalState.wallpaperChanged = false;
+
             switchSettingsTab('tabBookmarks');
             renderEditList();
-            updateWallpaperStatusUI();
-            updatePresetBgCardsUI();
+            updateWallpaperStatusUI(modalState.draftWallpaper);
+            updatePresetBgCardsUI(modalState.draftWallpaper);
+            applyBgEffects(modalState.draftMaskOpacity, modalState.draftBgBlur, false);
             dom.editModal.classList.add('active');
+        }
+
+        function cancelEditModal() {
+            // 撤销草稿中的预览变更，滚回打开前的真实配置
+            if (modalState.wallpaperChanged) {
+                const bgToRestore = modalState.initialWallpaper || backgrounds[state.bg];
+                applyWallpaper(bgToRestore, false);
+            }
+            applyBgEffects(modalState.initialMaskOpacity, modalState.initialBgBlur, false);
+            closeEditModal();
         }
 
         function closeEditModal() {
@@ -1274,13 +1474,10 @@
                         return;
                     }
 
-                    showConfirm(`检测到合规书签 ${validBookmarks.length} 项，确定导入并覆盖当前快捷书签吗？`, () => {
-                        pageData.bookmarks = validBookmarks;
-                        storageSet('userBookmarks', validBookmarks);
-                        renderBookmarks();
-                        renderEditList();
+                    showConfirm(`检测到合规书签 ${validBookmarks.length} 项，确定导入并填入草稿列表中吗？需点击『保存并关闭』后生效。`, () => {
+                        renderEditList(validBookmarks);
                         closeBookmarkPicker();
-                    }, '导入确认');
+                    }, '导入草稿确认');
                 } catch (err) {
                     showConfirm('解析 JSON 配置文件失败，请检查文件格式。', null, '解析错误');
                 }
@@ -1332,20 +1529,23 @@
         }
 
         function resetBookmarks() {
-            // 清除 localStorage 用户编辑与偏好设置，恢复网站默认配置
-            showConfirm('重置后将恢复为网站默认配置，当前自定义的所有设置都将被清除。确定要重置吗？', () => {
+            // 清除 localStorage 用户编辑与偏好设置，恢复系统初始默认配置并立即生效
+            showConfirm('确定要恢复系统初始默认状态吗？此操作将立即清除您自定义的所有快捷书签、背景壁纸与偏好设置。', () => {
                 localStorage.removeItem('userBookmarks');
                 localStorage.removeItem('preferredEngine');
                 localStorage.removeItem('userWallpaper');
+                localStorage.removeItem('maskOpacity');
+                localStorage.removeItem('bgBlur');
+
                 setEngine('bing', false);
                 state.bg = 0;
                 applyWallpaper(backgrounds[0], false);
+                applyBgEffects(25, 0, false);
                 pageData.bookmarks = initialBookmarks.map(bm => ({ ...bm }));
                 renderBookmarks();
-                renderEditList();
                 closeBookmarkPicker();
                 closeEditModal();
-            }, '重置所有设置');
+            }, '重置所有系统设置');
         }
 
 
@@ -1474,6 +1674,9 @@
             setInterval(updateClock, 1000);
             bindEvents();
             bindEditEvents();
+            const savedOpacity = storageGet('maskOpacity', 25);
+            const savedBlur = storageGet('bgBlur', 0);
+            applyBgEffects(savedOpacity, savedBlur);
             preloadNextBg();
             preloadFavicons();
             if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => {});
@@ -1904,7 +2107,7 @@
                     closeDropdown();
                     hideSuggestions();
                     dom.searchInput.blur();
-                    closeEditModal();
+                    cancelEditModal();
                     closeBookmarkPicker();
                 }
             });
@@ -1913,13 +2116,15 @@
         // ==================== 编辑弹窗事件绑定 ====================
         function bindEditEvents() {
             dom.editBookmarksBtn.addEventListener('click', openEditModal);
-            dom.cancelEditBtn.addEventListener('click', closeEditModal);
-            dom.resetEditBtn.addEventListener('click', resetBookmarks);
-            dom.editModal.addEventListener('click', closeEditModal);
+            dom.cancelEditBtn.addEventListener('click', cancelEditModal);
+            dom.editModal.addEventListener('click', cancelEditModal);
             dom.togglePickerBtn.addEventListener('click', e => { e.stopPropagation(); openBookmarkPicker(); });
             dom.closePickerBtn.addEventListener('click', closeBookmarkPicker);
             dom.donePickerBtn.addEventListener('click', closeBookmarkPicker);
             dom.bookmarkPicker.addEventListener('click', closeBookmarkPicker);
+
+            // 重置所有设置 (Danger Zone - 确认后立即重置系统，无需再点击保存)
+            dom.resetEditBtn.addEventListener('click', resetBookmarks);
 
             // Tab 切换按钮绑定
             document.querySelectorAll('.settings-tab-btn').forEach(btn => {
@@ -1929,15 +2134,13 @@
                 });
             });
 
-            // 预设壁纸库点击绑定
+            // 预设壁纸库点击绑定（草稿实时预览，点击『保存并关闭』才提交）
             document.querySelectorAll('.preset-bg-card').forEach(card => {
                 card.addEventListener('click', e => {
                     e.stopPropagation();
                     const url = card.dataset.bg;
                     if (url) {
-                        storageSet('userWallpaper', url);
-                        applyWallpaper(url);
-                        updatePresetBgCardsUI();
+                        previewDraftWallpaper(url);
                     }
                 });
             });
@@ -1975,15 +2178,15 @@
                 if (urls.has(url)) return;
 
                 const div = document.createElement('div');
-                div.className = 'flex items-center gap-1.5 p-1.5 apple-radius hover:bg-white/5';
+                div.className = 'flex items-center gap-2 p-1.5 px-2 bg-white/5 border border-white/10 apple-radius hover:border-white/25 transition group mb-1.5 shadow-xs';
                 div.setAttribute('data-idx', Date.now());
                 div.innerHTML = `
-                    <div class="drag-handle p-1 shrink-0 text-white/20 hover:text-white/60 cursor-grab active:cursor-grabbing" draggable="true" title="拖拽排序">
+                    <div class="drag-handle p-1 shrink-0 text-white/30 hover:text-white cursor-grab active:cursor-grabbing transition" draggable="true" title="按住拖拽排序">
                         <svg class="w-3.5 h-3.5 pointer-events-none" viewBox="0 0 16 16" fill="currentColor"><circle cx="5" cy="4" r="1.5"/><circle cx="11" cy="4" r="1.5"/><circle cx="5" cy="8" r="1.5"/><circle cx="11" cy="8" r="1.5"/><circle cx="5" cy="12" r="1.5"/><circle cx="11" cy="12" r="1.5"/></svg>
                     </div>
-                    <input type="text" class="edit-name flex-1 bg-white/5 border border-white/10 rounded px-2 py-1.5 text-sm text-white/80 outline-none focus:border-white/30 transition" value="${escapeHtml(name)}" placeholder="名称">
-                    <input type="text" class="edit-url flex-[2] bg-white/5 border border-white/10 rounded px-2 py-1.5 text-sm text-white/80 outline-none focus:border-white/30 transition" value="${escapeHtml(url)}" placeholder="URL">
-                    <button type="button" class="del-btn shrink-0 p-1.5 hover:bg-white/10 rounded apple-radius text-white/30 hover:text-red-400 transition">
+                    <input type="text" class="edit-name flex-1 bg-black/20 border border-white/10 apple-radius px-2.5 py-1.5 text-xs text-white/90 focus:border-white/40 focus:bg-black/40 outline-none transition" value="${escapeHtml(name)}" placeholder="书签名称">
+                    <input type="text" class="edit-url flex-[2] bg-black/20 border border-white/10 apple-radius px-2.5 py-1.5 text-xs text-white/75 focus:border-white/40 focus:bg-black/40 focus:text-white outline-none transition font-mono" value="${escapeHtml(url)}" placeholder="https://...">
+                    <button type="button" class="del-btn shrink-0 p-1.5 hover:bg-red-500/20 apple-radius text-white/30 hover:text-red-400 transition" title="删除书签">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                     </button>
                 `;
@@ -1998,15 +2201,15 @@
 
             dom.addBookmarkBtn.addEventListener('click', () => {
                 const div = document.createElement('div');
-                div.className = 'flex items-center gap-1.5 p-1.5 apple-radius hover:bg-white/5';
+                div.className = 'flex items-center gap-2 p-1.5 px-2 bg-white/5 border border-white/10 apple-radius hover:border-white/25 transition group mb-1.5 shadow-xs';
                 div.setAttribute('data-idx', Date.now());
                 div.innerHTML = `
-                    <div class="drag-handle p-1 shrink-0 text-white/20 hover:text-white/60 cursor-grab active:cursor-grabbing" draggable="true" title="拖拽排序">
+                    <div class="drag-handle p-1 shrink-0 text-white/30 hover:text-white cursor-grab active:cursor-grabbing transition" draggable="true" title="按住拖拽排序">
                         <svg class="w-3.5 h-3.5 pointer-events-none" viewBox="0 0 16 16" fill="currentColor"><circle cx="5" cy="4" r="1.5"/><circle cx="11" cy="4" r="1.5"/><circle cx="5" cy="8" r="1.5"/><circle cx="11" cy="8" r="1.5"/><circle cx="5" cy="12" r="1.5"/><circle cx="11" cy="12" r="1.5"/></svg>
                     </div>
-                    <input type="text" class="edit-name flex-1 bg-white/5 border border-white/10 rounded px-2 py-1.5 text-sm text-white/80 outline-none focus:border-white/30 transition" placeholder="名称">
-                    <input type="text" class="edit-url flex-[2] bg-white/5 border border-white/10 rounded px-2 py-1.5 text-sm text-white/80 outline-none focus:border-white/30 transition" placeholder="URL">
-                    <button type="button" class="del-btn shrink-0 p-1.5 hover:bg-white/10 rounded apple-radius text-white/30 hover:text-red-400 transition">
+                    <input type="text" class="edit-name flex-1 bg-black/20 border border-white/10 apple-radius px-2.5 py-1.5 text-xs text-white/90 focus:border-white/40 focus:bg-black/40 outline-none transition" placeholder="书签名称">
+                    <input type="text" class="edit-url flex-[2] bg-black/20 border border-white/10 apple-radius px-2.5 py-1.5 text-xs text-white/75 focus:border-white/40 focus:bg-black/40 focus:text-white outline-none transition font-mono" placeholder="https://...">
+                    <button type="button" class="del-btn shrink-0 p-1.5 hover:bg-red-500/20 apple-radius text-white/30 hover:text-red-400 transition" title="删除书签">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                     </button>
                 `;
@@ -2024,15 +2227,34 @@
                 }
             });
 
+            // 点击「保存并关闭」按钮提交草稿中的全部修改
             dom.saveEditBtn.addEventListener('click', () => {
                 const data = collectEditData();
                 if (data.length === 0) {
                     showConfirm('至少需要保留一个名称和 URL 均已填写的书签才能保存。', null, '无法保存');
                     return;
                 }
+                
+                // 1. 提交书签
                 pageData.bookmarks = data;
                 storageSet('userBookmarks', data);
                 renderBookmarks();
+
+                // 2. 提交壁纸
+                if (modalState.wallpaperChanged) {
+                    if (modalState.draftWallpaper) {
+                        storageSet('userWallpaper', modalState.draftWallpaper);
+                    } else {
+                        localStorage.removeItem('userWallpaper');
+                    }
+                }
+
+                // 3. 提交特效
+                if (modalState.draftMaskOpacity !== null && modalState.draftBgBlur !== null) {
+                    storageSet('maskOpacity', modalState.draftMaskOpacity);
+                    storageSet('bgBlur', modalState.draftBgBlur);
+                }
+
                 closeEditModal();
             });
 
@@ -2047,7 +2269,7 @@
                 });
             }
 
-            // 自定义壁纸事件绑定
+            // 自定义壁纸事件绑定（草稿实时预览，保存后提交）
             if (dom.uploadBgBtn) dom.uploadBgBtn.addEventListener('click', () => dom.uploadBgInput?.click());
             if (dom.uploadBgInput) {
                 dom.uploadBgInput.addEventListener('change', e => {
@@ -2060,12 +2282,7 @@
                         const reader = new FileReader();
                         reader.onload = ev => {
                             const dataUrl = ev.target.result;
-                            applyWallpaper(dataUrl);
-                            updatePresetBgCardsUI();
-                            const success = storageSet('userWallpaper', dataUrl);
-                            if (!success) {
-                                showConfirm('原图壁纸已在当前页面生效。但因图片文件体积超过浏览器本地存储上限（5MB），刷新页面后将恢复默认壁纸。建议使用网络图片 URL 地址。', null, '持久化提示');
-                            }
+                            previewDraftWallpaper(dataUrl);
                         };
                         reader.readAsDataURL(file);
                     }
@@ -2074,7 +2291,7 @@
             }
             if (dom.urlBgBtn) {
                 dom.urlBgBtn.addEventListener('click', () => {
-                    const current = storageGet('userWallpaper') || '';
+                    const current = modalState.draftWallpaper || storageGet('userWallpaper') || '';
                     const input = prompt('请输入高清图片的网络 URL 地址：', current.startsWith('http') ? current : '');
                     if (input === null) return;
                     const trimmed = input.trim();
@@ -2083,15 +2300,43 @@
                         showConfirm('请输入以 http:// 或 https:// 开头的有效图片链接。', null, '地址错误');
                         return;
                     }
-                    storageSet('userWallpaper', trimmed);
-                    applyWallpaper(trimmed);
-                    updatePresetBgCardsUI();
+                    previewDraftWallpaper(trimmed);
                 });
             }
             if (dom.resetBgBtn) {
                 dom.resetBgBtn.addEventListener('click', () => {
-                    resetCustomWallpaper();
-                    updatePresetBgCardsUI();
+                    resetDraftWallpaper();
+                });
+            }
+
+            // 壁纸视觉特效事件绑定（草稿实时预览）
+            if (dom.maskOpacityInput) {
+                dom.maskOpacityInput.addEventListener('input', e => {
+                    modalState.draftMaskOpacity = parseInt(e.target.value, 10) || 0;
+                    applyBgEffects(modalState.draftMaskOpacity, modalState.draftBgBlur !== null ? modalState.draftBgBlur : 0, false);
+                });
+            }
+            if (dom.bgBlurInput) {
+                dom.bgBlurInput.addEventListener('input', e => {
+                    modalState.draftBgBlur = parseInt(e.target.value, 10) || 0;
+                    applyBgEffects(modalState.draftMaskOpacity !== null ? modalState.draftMaskOpacity : 25, modalState.draftBgBlur, false);
+                });
+            }
+
+            // 清理缓存事件绑定
+            if (dom.clearCacheBtn) {
+                dom.clearCacheBtn.addEventListener('click', async () => {
+                    if ('caches' in window) {
+                        try {
+                            const keys = await caches.keys();
+                            await Promise.all(keys.map(key => caches.delete(key)));
+                            showConfirm('Service Worker 离线资源与页面缓存已成功刷新清理！', null, '离线缓存已重置');
+                        } catch (err) {
+                            showConfirm('缓存清理完成或无需清理。', null, '清理提示');
+                        }
+                    } else {
+                        showConfirm('当前浏览器不支持 Service Worker 缓存，或已是最新状态。', null, '提示');
+                    }
                 });
             }
 
