@@ -504,41 +504,6 @@
         .text-\[10px\] { font-size: 0.625rem !important; }  /* 10px @ 16px base */
         .text-\[11px\] { font-size: 0.6875rem !important; } /* 11px @ 16px base */
         .text-\[9px\]  { font-size: 0.5625rem !important; } /* 9px  @ 16px base */
-
-        /* ===== 补全 Tailwind 缺失的圆角与边距工具类 (静态 style.css 未包含) ===== */
-        .rounded-xl { border-radius: 0.75rem !important; }   /* 12px Apple 柔和圆角 */
-        .rounded-2xl { border-radius: 1rem !important; }     /* 16px Apple 中大圆角 */
-        .rounded-3xl { border-radius: 1.5rem !important; }   /* 24px Apple 大圆角 */
-        .rounded-full { border-radius: 9999px !important; }  /* 椭圆/圆形 */
-        .p-3\.5 { padding: 0.875rem !important; }
-        .space-y-2\.5 > :not([hidden]) ~ :not([hidden]) { margin-top: 0.625rem !important; }
-        .backdrop-blur-xs { backdrop-filter: blur(2px) !important; -webkit-backdrop-filter: blur(2px) !important; }
-
-        /* ===== Apple 风格 Tab 设置弹窗精细化样式 ===== */
-        .settings-tab-btn {
-            background: transparent;
-            color: rgba(255, 255, 255, 0.6);
-            border: 1px solid transparent;
-            border-radius: 0.75rem !important;
-        }
-        .settings-tab-btn:hover {
-            color: rgba(255, 255, 255, 0.9);
-            background: rgba(255, 255, 255, 0.08);
-        }
-        .settings-tab-btn.active {
-            background: rgba(255, 255, 255, 0.16);
-            color: #ffffff;
-            border-color: rgba(255, 255, 255, 0.22);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25), inset 0 1px 0 0 rgba(255, 255, 255, 0.2);
-        }
-        .json-dropzone.drag-over {
-            background: rgba(255, 255, 255, 0.12) !important;
-            border-color: rgba(255, 255, 255, 0.45) !important;
-        }
-        .preset-bg-card.active {
-            border-color: rgba(255, 255, 255, 0.9) !important;
-            box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.5), 0 4px 12px rgba(0,0,0,0.3);
-        }
     </style>
 </head>
 <body class="text-white relative bg-[#1a1a2e]">
