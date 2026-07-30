@@ -67,9 +67,10 @@
 npm run build
 ```
 构建过程会自动执行：
-1. 调用 Tailwind CLI 扫描 `index.html`，生成 19KB 精简压缩版 `dist/style.css`。
-2. 自动处理 `dist/index.html`，将 Play CDN 脚本替换为 `<link rel="stylesheet" href="style.css">`。
-3. 将 `bookmarks.json` 与 `sw.js` 复制到 `dist/` 目录。
+1. **自动数据双向同步**：解析 `bookmarks.json` 最新数据，自动同步注入更新源码 `index.html` 与 `dist/index.html` 的 `DEFAULT_BOOKMARKS` 与 `DEFAULT_CATEGORIES` 数组（解决本地 `file://` 协议双击打开时因 CORS 拦截导致的降级书签不一致问题）。
+2. **Tailwind 静态编译**：调用 Tailwind CLI 扫描 `index.html`，生成精简压缩版 `dist/style.css`。
+3. **HTML 脚本处理**：自动处理 `dist/index.html`，将 Play CDN 脚本替换为 `<link rel="stylesheet" href="style.css">`。
+4. **资源复制**：将 `bookmarks.json` 与 `sw.js` 复制至 `dist/` 目录。
 
 **上线发布**：只需将生成的 **`dist/` 文件夹下的全部内容** 上传部署至 GitHub Pages、Cloudflare Pages、Vercel、Nginx 或 NAS 即可。
 
@@ -80,9 +81,9 @@ npm run build
 | 文件 / 目录名 | 属性 | 文件作用描述 | 必选性 |
 | :--- | :--- | :--- | :--- |
 | **`index.html`** | **源码主入口** | 开发模式页面主入口。内置 Tailwind Play CDN，AI/开发者修改代码立即可见，零编译开销。 | **必须** |
-| **`bookmarks.json`** | 配置文件 | 外部书签与分类数据源。通过 JSON 格式解耦数据与界面，方便快速备份、导入和编辑书签。 | 推荐（缺失时自动回退内置默认数据/本地存储） |
+| **`bookmarks.json`** | **唯一数据源** | 唯一数据维护源。修改书签只需编辑此文件，运行 `npm run build` 会自动将书签同步注入 HTML。 | **推荐** |
 | **`sw.js`** | 缓存脚本 | Service Worker 独立脚本。专门用于在 HTTPS/localhost 环境下本地缓存 Favicon 网站图标，提升加载速度。 | 推荐（缺失时不影响主流程运行） |
-| **`build.js`** | 打包脚本 | 生产构建 Node 脚本。运行 `npm run build` 自动编译静态 `dist/style.css` 并替换 CDN 输出至 `dist/`。 | 工具脚本 |
+| **`build.js`** | 打包脚本 | 生产构建 Node 脚本。运行 `npm run build` 自动同步书签数据、编译静态 `style.css` 并输出至 `dist/`。 | 工具脚本 |
 | **`package.json`** | 项目配置 | Node 项目配置文件，提供 `npm run dev` 与 `npm run build` 脚本命令。 | 配置文件 |
 | **`dist/`** | **生产输出** | `npm run build` 自动生成的生产构建目录。包含剥离 Play CDN 并精简 CSS 后的上线资源。 | 生产部署产物 |
 | `.gitignore` | 配置文档 | Git 版本控制忽略配置。 | 运维配置 |
@@ -90,23 +91,29 @@ npm run build
 
 ---
 
-## ⚙️ 核心运行与依赖机制
+## ⚙️ 核心运行与数据同步机制
 
 ```
-[ 用户访问 index.html ]
+[ 开发者维护 bookmarks.json ] ──(运行 npm run build)──> 自动注入更新 index.html 默认数组
+                                                                    │
+[ 用户访问网页 / 打开 index.html ]                                    │
+         │                                                         │
+         ├── 1. HTTP/HTTPS 环境: 异步 fetch("bookmarks.json") ────────┘
+         │      ├── 成功: 加载最新 JSON 配置文件数据
+         │      └── 失败: 自动平滑降级使用 HTML 内置 DEFAULT_* 默认数组
          │
-         ├── 1. 尝试读取外部 bookmarks.json (配置解耦)
-         │      ├── 成功: 加载外部书签分类数据
-         │      └── 失败/缺失: 自动回退使用内置默认数据及 localStorage
-         │
-         └── 2. 尝试注册 Service Worker (sw.js)
-                ├── 成功: 开启 Favicon 图标本地缓存 (CacheStorage)
-                └── 失败/缺失/file:// 协议: 静默忽略，使用普通浏览器 HTTP 缓存
+         └── 2. file:// 本地双击环境: 绕过 CORS 拦截 ─────────────────┘
+                └── 直接秒级加载 HTML 内置的 DEFAULT_* 完美镜像数据
 ```
 
 ---
 
-## 🛠️ 自定义配置
+## 🛠️ 单点维护书签指南
 
-* **修改书签**：可直接修改 `bookmarks.json` 文件结构（支持 `"desc"` 简短介绍副标题，**推荐控制在 6 ~ 10 个中文字符**），或者在页面 UI 中的编辑模式下进行修改（数据会自动保存在浏览器的 `localStorage` 中）。
-* **修改引擎**：可在 `index.html` 中的搜索引擎配置数组中新增或定制新的搜索引擎（百度、Google、Bing 等）。
+1. **修改/添加书签**：**只需要修改 `bookmarks.json` 一个文件即可**（支持 `"desc"` 简短介绍副标题，推荐控制在 6 ~ 10 个字）。
+2. **执行自动同步**：修改完成后，在终端运行打包命令：
+   ```bash
+   npm run build
+   ```
+   `build.js` 脚本会自动将 `bookmarks.json` 中的最新书签同步更新至源码 `index.html` 及 `dist/index.html` 中。
+3. **修改搜索引擎**：可在 `index.html` 中的 `engines` 引擎配置对象中新增或定制新的搜索引擎（百度、Google、Bing 等）。
