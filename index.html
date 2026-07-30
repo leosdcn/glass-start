@@ -1101,7 +1101,7 @@
          * @returns {string} 规范化后的 URL，空输入返回 ''
          */
         function normalizeUrl(url) {
-            url = (url || '').trim();
+            url = String(url || '').trim();
             if (!url) return '';
             if (!/^https?:\/\//i.test(url)) {
                 return 'https://' + url;
@@ -1116,7 +1116,7 @@
          * @returns {string} HTML 转义后的安全字符串
          */
         function escapeHtml(str) {
-            return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+            return String(str ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
         }
 
         /**
@@ -1251,10 +1251,10 @@
                     const validBookmarks = [];
                     importedList.forEach(item => {
                         if (item && (item.name || item.url)) {
-                            const name = (item.name || '未命名').trim();
+                            const name = String(item.name || '未命名').trim();
                             const url = normalizeUrl(item.url || '');
                             if (name && url) {
-                                const icon = item.icon || faviconFromUrl(url);
+                                const icon = typeof item.icon === 'string' ? item.icon : faviconFromUrl(url);
                                 validBookmarks.push({ name, url, icon });
                             }
                         }
@@ -1462,7 +1462,7 @@
             bindEditEvents();
             preloadNextBg();
             preloadFavicons();
-            if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+            if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => {});
             
             // 后台非阻塞异步加载远程数据，不拖累首屏渲染与 LCP
             loadData().then(() => {
