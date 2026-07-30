@@ -505,12 +505,21 @@
         .text-\[11px\] { font-size: 0.6875rem !important; } /* 11px @ 16px base */
         .text-\[9px\]  { font-size: 0.5625rem !important; } /* 9px  @ 16px base */
 
+        /* ===== 补全 Tailwind 缺失的圆角与边距工具类 (静态 style.css 未包含) ===== */
+        .rounded-xl { border-radius: 0.75rem !important; }   /* 12px Apple 柔和圆角 */
+        .rounded-2xl { border-radius: 1rem !important; }     /* 16px Apple 中大圆角 */
+        .rounded-3xl { border-radius: 1.5rem !important; }   /* 24px Apple 大圆角 */
+        .rounded-full { border-radius: 9999px !important; }  /* 椭圆/圆形 */
+        .p-3\.5 { padding: 0.875rem !important; }
+        .space-y-2\.5 > :not([hidden]) ~ :not([hidden]) { margin-top: 0.625rem !important; }
+        .backdrop-blur-xs { backdrop-filter: blur(2px) !important; -webkit-backdrop-filter: blur(2px) !important; }
+
         /* ===== Apple 风格 Tab 设置弹窗精细化样式 ===== */
         .settings-tab-btn {
             background: transparent;
             color: rgba(255, 255, 255, 0.6);
             border: 1px solid transparent;
-            border-radius: 0.75rem;
+            border-radius: 0.75rem !important;
         }
         .settings-tab-btn:hover {
             color: rgba(255, 255, 255, 0.9);
