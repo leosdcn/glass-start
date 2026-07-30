@@ -692,18 +692,17 @@
 
     <!-- 编辑与设置弹窗 (Apple 风格 Tab 分栏设置面板) -->
     <div id="editModal" role="dialog" aria-modal="true" aria-label="设置与偏好" class="edit-overlay fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm" style="z-index: 1000;">
-        <div class="glass-strong apple-radius w-full max-w-xl xl:max-w-2xl 2xl:max-w-3xl mx-4 max-h-[95vh] flex flex-col shadow-2xl" style="padding: 1.25rem 1.25rem 1rem;" onclick="event.stopPropagation()">
+        <div class="glass-strong apple-radius w-full max-w-xl lg:max-w-2xl xl:max-w-3xl mx-4 h-[620px] max-h-[88vh] flex flex-col shadow-2xl" style="padding: 1.25rem 1.25rem 1rem;" onclick="event.stopPropagation()">
             <!-- 弹窗 Header -->
             <div class="flex items-center justify-between mb-3 pb-2 border-b border-white/10 shrink-0">
                 <div class="flex items-center gap-2">
                     <span class="text-base">⚙️</span>
                     <h3 class="text-base font-semibold tracking-wide text-white/90">设置与偏好</h3>
                 </div>
-                <button id="closeEditBtn" type="button" aria-label="关闭设置弹窗" class="p-1 hover:bg-white/10 rounded apple-radius text-white/40 hover:text-white/70 transition">✕</button>
             </div>
 
             <!-- Tab 导航栏 -->
-            <div class="flex items-center gap-1.5 p-1 bg-black/20 border border-white/10 rounded-lg mb-3 shrink-0">
+            <div class="flex items-center gap-1.5 p-1 bg-black/20 border border-white/10 apple-radius mb-3 shrink-0">
                 <button type="button" class="settings-tab-btn active flex-1 py-1.5 px-3 apple-radius text-xs sm:text-sm font-medium transition flex items-center justify-center gap-1.5 text-white/70 hover:text-white" data-tab="tabBookmarks">
                     <span>📌</span>
                     <span>快捷书签</span>
@@ -827,8 +826,8 @@
 
             <!-- 底部通用 Save/Cancel 按键栏 (增加内边距与顶部间距，彻底消除拥挤感) -->
             <div class="flex gap-3 mt-3 pt-2 pb-1 border-t border-white/10 shrink-0">
-                <button id="saveEditBtn" type="button" class="flex-1 py-2.5 px-4 bg-white/15 hover:bg-white/25 apple-radius transition text-xs sm:text-sm font-medium text-white/90 shadow-lg">保存并关闭</button>
                 <button id="cancelEditBtn" type="button" class="flex-1 py-2.5 px-4 bg-white/5 hover:bg-white/10 apple-radius transition text-xs sm:text-sm text-white/60">取消</button>
+                <button id="saveEditBtn" type="button" class="flex-1 py-2.5 px-4 bg-white/15 hover:bg-white/25 apple-radius transition text-xs sm:text-sm font-medium text-white/90 shadow-lg">保存并关闭</button>
             </div>
         </div>
     </div>
@@ -1040,7 +1039,7 @@
         function $(id) { return document.getElementById(id); } // DOM 快捷获取
 
         function cacheDOM() {
-            const ids = 'clock date searchInput searchClearBtn engineBtn engineIcon engineName dropdownMenu suggestionMenu searchBtn bookmarks sidebarList navCategories navContent editModal editList editBookmarksBtn closeEditBtn addBookmarkBtn saveEditBtn cancelEditBtn resetEditBtn togglePickerBtn bookmarkPicker pickerContent pickerCount closePickerBtn donePickerBtn importJsonBtn exportJsonBtn importJsonInput uploadBgBtn urlBgBtn resetBgBtn uploadBgInput wallpaperStatus bookmarkCountBadge jsonDropzone'.split(' ');
+            const ids = 'clock date searchInput searchClearBtn engineBtn engineIcon engineName dropdownMenu suggestionMenu searchBtn bookmarks sidebarList navCategories navContent editModal editList editBookmarksBtn addBookmarkBtn saveEditBtn cancelEditBtn resetEditBtn togglePickerBtn bookmarkPicker pickerContent pickerCount closePickerBtn donePickerBtn importJsonBtn exportJsonBtn importJsonInput uploadBgBtn urlBgBtn resetBgBtn uploadBgInput wallpaperStatus bookmarkCountBadge jsonDropzone'.split(' ');
             ids.forEach(id => dom[id] = $(id));
         }
 
@@ -1893,7 +1892,6 @@
         // ==================== 编辑弹窗事件绑定 ====================
         function bindEditEvents() {
             dom.editBookmarksBtn.addEventListener('click', openEditModal);
-            dom.closeEditBtn.addEventListener('click', closeEditModal);
             dom.cancelEditBtn.addEventListener('click', closeEditModal);
             dom.resetEditBtn.addEventListener('click', resetBookmarks);
             dom.editModal.addEventListener('click', closeEditModal);
