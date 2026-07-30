@@ -63,17 +63,17 @@
         }
         .category-block {
             content-visibility: auto;
-            contain-intrinsic-size: auto 360px;
+            contain-intrinsic-size: auto 22.5rem; /* 360px @ 16px 基准，随 rem 缩放，避免大屏滚动跳动 */
         }
         /* ===== 组件 ===== */
         .search-input::placeholder { color: rgba(255,255,255,0.6); }
         .fade-in { animation: fadeIn 0.8s ease-out backwards; }
-        @keyframes fadeIn { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
-        .dropdown-menu { opacity:0; transform:translateY(-10px); pointer-events:none; transition:all 0.2s ease; }
+        @keyframes fadeIn { from { opacity:0; transform:translateY(1.25rem); } to { opacity:1; transform:translateY(0); } }
+        .dropdown-menu { opacity:0; transform:translateY(-0.625rem); pointer-events:none; transition:all 0.2s ease; }
         .dropdown-menu.active { opacity:1; transform:translateY(0); pointer-events:auto; }
         .clock-text { font-family: 'SF Pro Rounded', 'Nunito', -apple-system, BlinkMacSystemFont, sans-serif; text-shadow: 0 2px 20px rgba(0,0,0,0.4), 0 0 60px rgba(0,0,0,0.2); }
         .bookmark-item { transition: all 0.2s ease; }
-        .bookmark-item:hover { background: rgba(255,255,255,0.12); transform: translateY(-2px); }
+        .bookmark-item:hover { background: rgba(255,255,255,0.12); transform: translateY(-0.125rem); }
         .bookmark-title {
             font-size: 0.72rem;
             line-height: 1.25;
@@ -134,7 +134,7 @@
         .nav-bookmark:hover {
             background: rgba(255, 255, 255, 0.14);
             border-color: rgba(255, 255, 255, 0.28);
-            transform: translateY(-2px);
+            transform: translateY(-0.125rem);
             box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.3), 0 8px 20px rgba(0, 0, 0, 0.3);
             color: #fff;
         }
@@ -143,7 +143,7 @@
         .nav-visible { visibility:visible; }
         .nav-hidden .glass { opacity:0; }
         .nav-visible .glass { animation:navFadeIn 0.55s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-        @keyframes navFadeIn { from{opacity:0;transform:translate3d(0,16px,0)} to{opacity:1;transform:translate3d(0,0,0)} }
+        @keyframes navFadeIn { from{opacity:0;transform:translate3d(0,1rem,0)} to{opacity:1;transform:translate3d(0,0,0)} }
         .sidebar-item {
             transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative;
@@ -166,8 +166,8 @@
                 flex-wrap: nowrap !important;
                 gap: 0.25rem !important;
                 padding: 0.5rem !important;
-                -webkit-mask-image: linear-gradient(to right, transparent 0%, black 16px, black calc(100% - 16px), transparent 100%);
-                mask-image: linear-gradient(to right, transparent 0%, black 16px, black calc(100% - 16px), transparent 100%);
+                -webkit-mask-image: linear-gradient(to right, transparent 0%, black 1rem, black calc(100% - 1rem), transparent 100%);
+                mask-image: linear-gradient(to right, transparent 0%, black 1rem, black calc(100% - 1rem), transparent 100%);
             }
             #sidebarList {
                 flex-direction: row !important;
@@ -192,8 +192,8 @@
         .scroll-up-hint { animation: bounceUp 1.8s ease-in-out infinite; }
         #navHint { white-space: nowrap; flex-shrink: 0; border-radius: var(--radius); }
         #navHint svg { width: 0.75rem; height: 0.75rem; max-width: 0.75rem; max-height: 0.75rem; flex-shrink: 0; }
-        @keyframes bounceDown { 0%,100%{transform:translateY(0);opacity:0.6} 50%{transform:translateY(8px);opacity:1} }
-        @keyframes bounceUp { 0%,100%{transform:translateY(0);opacity:0.7} 50%{transform:translateY(-3px);opacity:1} }
+        @keyframes bounceDown { 0%,100%{transform:translateY(0);opacity:0.6} 50%{transform:translateY(0.5rem);opacity:1} }
+        @keyframes bounceUp { 0%,100%{transform:translateY(0);opacity:0.7} 50%{transform:translateY(-0.1875rem);opacity:1} }
         .hint-down { animation:hintFade 7s ease forwards; }
         @keyframes hintFade { 0%,55%{opacity:1} 100%{opacity:0;pointer-events:none} }
         .section-divider { background: linear-gradient(90deg,transparent,rgba(255,255,255,0.15),transparent); }
@@ -320,21 +320,21 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 10px 14px 8px 14px;
-            margin-top: 10px;
+            padding: 0.625rem 0.875rem 0.5rem 0.875rem;
+            margin-top: 0.625rem;
             border-top: 1px solid rgba(255, 255, 255, 0.12);
-            font-size: 11px;
+            font-size: 0.6875rem;  /* 11px @ 16px base */
             color: rgba(255, 255, 255, 0.45);
             user-select: none;
             line-height: 1;
         }
         .kbd-key {
-            padding: 2px 5.5px;
-            border-radius: 4px;
+            padding: 0.125rem 0.34375rem;
+            border-radius: 0.25rem;
             background: rgba(255, 255, 255, 0.1);
             border: 1px solid rgba(255, 255, 255, 0.15);
             font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-            font-size: 10px;
+            font-size: 0.625rem;  /* 10px @ 16px base */
             color: rgba(255, 255, 255, 0.75);
             line-height: 1;
             display: inline-block;
@@ -391,44 +391,76 @@
 
         /* ===== 高分辨率屏（2K / 4K / 大屏显示器）等比例响应式缩放适配 ===== */
 
-        /* 1. Root Rem 阶梯式动态缩放：
-           以 MacBook Air (物理 2560x1664，默认渲染逻辑宽 1470px x 956px) 为 100% 原始视口标尺 (16px)；
-           当外接 2K / 4K 高分辨率显示器或调整系统缩放导致视口逻辑宽 > 1500px 时，动态调高 html font-size，
-           页面所有基于 rem 的元素（高宽、字号、间距、圆角、图标）实现精确的物理等比例无损放大。
+        /* Root Rem 线性比例缩放：
+           基准：MacBook Air 逻辑渲染宽 1470px → 16px (100%)
+           公式：font-size = 16 × (viewport / 1470)
+           使用阶梯近似，覆盖 1.5K / 2K / QHD / 4K / 5K 等主流分辨率。
+           页面所有基于 rem 的元素（字号、间距、圆角、容器宽度、图标）
+           随 font-size 等比例缩放，视觉比例与 MacBook Air 完全一致。
         */
-        @media (min-width: 1500px) {
-            html { font-size: 17.5px; }
+        /* ~1600px 逻辑宽（如外接 2K 屏 125% 缩放）*/
+        @media (min-width: 1550px) {
+            html { font-size: 16.87px; } /* 16 × 1550/1470 */
         }
-        @media (min-width: 1800px) {
-            html { font-size: 19.5px; }
+        /* ~1700px 逻辑宽 */
+        @media (min-width: 1680px) {
+            html { font-size: 18.29px; } /* 16 × 1680/1470 */
         }
-        @media (min-width: 2400px) {
-            html { font-size: 22.5px; }
+        /* ~1920px 逻辑宽（2K 外接屏 100% 缩放）*/
+        @media (min-width: 1880px) {
+            html { font-size: 20.49px; } /* 16 × 1880/1470 */
         }
-        @media (min-width: 3000px) {
-            html { font-size: 25px; }
+        /* ~2048px 逻辑宽 */
+        @media (min-width: 2000px) {
+            html { font-size: 21.77px; } /* 16 × 2000/1470 */
         }
-        @media (min-width: 3600px) {
-            html { font-size: 27.5px; }
+        /* ~2560px 逻辑宽（QHD / 2.5K 外接屏）*/
+        @media (min-width: 2500px) {
+            html { font-size: 27.21px; } /* 16 × 2500/1470 */
+        }
+        /* ~3840px 逻辑宽（4K 外接屏 100% 缩放）*/
+        @media (min-width: 3700px) {
+            html { font-size: 40.27px; } /* 16 × 3700/1470 */
+        }
+        /* ~5120px 逻辑宽（5K 外接屏）*/
+        @media (min-width: 5000px) {
+            html { font-size: 54.42px; } /* 16 × 5000/1470 */
         }
 
-        /* 2. 大屏与 4K 屏容器最大宽度 & 网格列数扩展 */
-        @media (min-width: 1500px) {
-            .xl\:max-w-4xl { max-width: 56rem; }
-            .xl\:max-w-3xl { max-width: 48rem; }
-            .xl\:w-52 { width: 13rem; }
+        /* 容器最大宽度：统一用 rem，随 font-size 等比例缩放，始终保持与 MacBook Air 相同的视觉占比 */
+        /* 起始页搜索框 + 书签容器：基准 48rem（≈ 768px @ 16px，对应 lg:max-w-3xl，已直接用 Tailwind 类代替）*/
+        .hi-res-container-md {
+            max-width: 48rem;
         }
-        @media (min-width: 1800px) {
-            .2xl\:max-w-5xl { max-width: 64rem; }
-            .2xl\:max-w-4xl { max-width: 56rem; }
-            .2xl\:max-w-\[1500px\] { max-width: 1500px; }
-            .2xl\:grid-cols-5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
-            .2xl\:w-60 { width: 15rem; }
+
+        /* 大屏网格自动扩列（利用 auto-fill 代替硬编码列数）*/
+        @media (min-width: 1550px) {
+            .hi-res-grid-auto {
+                grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
+            }
         }
-        @media (min-width: 2400px) {
-            .3xl\:max-w-\[1800px\] { max-width: 1800px; }
-            .3xl\:grid-cols-6 { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+
+        /* ===== 导航页书签网格大屏扩列（看运 style.css 无 xl:/2xl: 断点，此处直接用 min-width 定义）*/
+        @media (min-width: 1280px) {
+            #navCategories .grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
         }
+        @media (min-width: 1550px) {
+            #navCategories .grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+        }
+        @media (min-width: 1880px) {
+            #navCategories .grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+        }
+        @media (min-width: 2500px) {
+            #navCategories .grid { grid-template-columns: repeat(8, minmax(0, 1fr)); }
+        }
+        /* ===== Tailwind 任意值 px 字号 → rem 覆盖 =====
+           Tailwind 的 text-[10px] / text-[11px] 是绝对 px，不随 html font-size 缩放。
+           此处用 CSS 原生类名覆盖，让这些字号在高分屏也等比放大。
+           注意：类名中 [ ] 需要用 \\ 转义。
+        ===== */
+        .text-\[10px\] { font-size: 0.625rem !important; }  /* 10px @ 16px base */
+        .text-\[11px\] { font-size: 0.6875rem !important; } /* 11px @ 16px base */
+        .text-\[9px\]  { font-size: 0.5625rem !important; } /* 9px  @ 16px base */
     </style>
 </head>
 <body class="text-white relative bg-[#1a1a2e]">
@@ -449,7 +481,7 @@
             </div>
 
             <!-- 搜索框 -->
-            <div class="w-full max-w-2xl lg:max-w-3xl xl:max-w-4xl 2xl:max-w-5xl relative mb-8 md:mb-10">
+            <div class="w-full max-w-2xl lg:max-w-3xl mx-auto relative mb-8 md:mb-10">
                 <div class="glass-strong apple-radius p-2 flex items-center gap-2 border fade-in" style="animation-delay:0.1s">
                     <div class="relative shrink-0">
                         <button id="engineBtn" type="button" aria-label="选择搜索引擎" aria-haspopup="true" aria-expanded="false" class="flex items-center gap-2 px-3 py-3 apple-radius hover:bg-white/10 transition text-sm font-medium">
@@ -467,7 +499,7 @@
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                     </button>
                 </div>
-                <div id="dropdownMenu" role="menu" aria-label="搜索引擎选项" class="dropdown-menu absolute top-full left-0 mt-2 ml-2 glass-strong apple-radius p-2 min-w-[140px]" style="z-index:100">
+                <div id="dropdownMenu" role="menu" aria-label="搜索引擎选项" class="dropdown-menu absolute top-full left-0 mt-2 ml-2 glass-strong apple-radius p-2" style="min-width:8.75rem;z-index:100">
                     <button type="button" data-engine="bing" role="menuitem" class="w-full flex items-center gap-3 px-3 py-2.5 apple-radius hover:bg-white/10 transition text-left text-sm">
                         <img src="https://favicon.im/bing.com" class="w-4 h-4 rounded-sm" alt="" onerror="this.remove()"> Bing
                     </button>
@@ -486,7 +518,7 @@
             </div>
 
             <!-- 快捷书签 -->
-            <div class="w-full max-w-2xl lg:max-w-3xl xl:max-w-4xl 2xl:max-w-5xl glass apple-radius p-4 sm:p-5 fade-in mb-6 md:mb-8 relative group" style="animation-delay:0.2s">
+            <div class="w-full max-w-2xl lg:max-w-3xl mx-auto glass apple-radius p-4 sm:p-5 fade-in mb-6 md:mb-8 relative group" style="animation-delay:0.2s">
                 <nav aria-label="快捷书签">
                     <div id="bookmarks" class="grid grid-cols-4 md:grid-cols-8 gap-2"></div>
                 </nav>
@@ -509,11 +541,11 @@
     </section>
 
     <!-- 分隔线 -->
-    <div class="section-divider h-px relative z-10 mx-auto w-3/4 max-w-2xl xl:max-w-4xl 2xl:max-w-5xl"></div>
+    <div class="section-divider h-px relative z-10 max-w-2xl lg:max-w-3xl w-3/4 mx-auto"></div>
 
     <!-- ========== 第二屏：导航页 ========== -->
     <section id="navSection" class="relative z-10 h-screen nav-hidden overflow-hidden">
-        <div class="h-full flex flex-col py-3 md:py-5 px-3 md:px-6 max-w-7xl 2xl:max-w-[1500px] 3xl:max-w-[1800px] mx-auto w-full">
+        <div class="h-full flex flex-col py-3 md:py-5 px-3 md:px-6 w-full">
             <!-- 主体：一体化 Liquid Glass 窗口框架 -->
             <div class="flex-1 glass apple-radius flex flex-col overflow-hidden min-h-0 border border-white/20 shadow-2xl">
                 <!-- 窗口顶部 Header 栏 -->
@@ -525,7 +557,7 @@
                     </div>
                     <!-- 右侧返回提示 -->
                     <div id="navHint" class="flex items-center gap-1.5 text-white/40 text-[10px] tracking-wider bg-white/5 border border-white/10 px-2.5 py-1 apple-radius whitespace-nowrap shrink-0 cursor-pointer hover:bg-white/10 hover:text-white/70 transition" title="点击或向上滚动返回起始页">
-                        <svg class="w-3 h-3 scroll-up-hint shrink-0 text-white/60" width="12" height="12" style="width: 0.75rem; height: 0.75rem; min-width: 0.75rem; min-height: 0.75rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/></svg>
+                        <svg class="w-3 h-3 scroll-up-hint shrink-0 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/></svg>
                         <span class="whitespace-nowrap">向上滚动返回</span>
                     </div>
                 </div>
@@ -533,7 +565,7 @@
                 <!-- 下方主体：左侧分类 + 右侧书签 -->
                 <div class="flex-1 flex flex-col sm:flex-row overflow-hidden min-h-0">
                     <!-- 侧边栏（移动端顶部水平，桌面端左侧垂直） -->
-                    <aside id="sidebar" class="sm:w-36 md:w-44 xl:w-52 2xl:w-60 shrink-0 p-2 overflow-y-auto border-b sm:border-b-0 sm:border-r border-white/10 bg-black/10">
+                    <aside id="sidebar" class="sm:w-36 md:w-44 xl:w-52 shrink-0 p-2 overflow-y-auto border-b sm:border-b-0 sm:border-r border-white/10 bg-black/10">
                         <nav aria-label="导航分类">
                             <div id="sidebarList" class="flex sm:flex-col gap-1"></div>
                         </nav>
@@ -607,14 +639,14 @@
     <div id="confirmModal" role="alertdialog" aria-modal="true" aria-labelledby="confirmTitle"
          class="edit-overlay fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-md" style="z-index: 9999;">
         <div class="confirm-dialog-card" onclick="event.stopPropagation()">
-            <div style="width: 44px; height: 44px; border-radius: 50%; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); display: flex; align-items: center; justify-content: center; margin-bottom: 12px; color: #f87171; flex-shrink: 0;">
-                <svg style="width: 22px; height: 22px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div style="width: 2.75rem; height: 2.75rem; border-radius: 50%; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); display: flex; align-items: center; justify-content: center; margin-bottom: 0.75rem; color: #f87171; flex-shrink: 0;">
+                <svg style="width: 1.375rem; height: 1.375rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
                 </svg>
             </div>
-            <h3 id="confirmTitle" style="font-size: 15px; font-weight: 600; color: rgba(255,255,255,0.92); margin-bottom: 6px;">重置快捷书签</h3>
-            <p id="confirmMsg" style="font-size: 12px; line-height: 1.5; color: rgba(255,255,255,0.65); margin-bottom: 20px;"></p>
-            <div style="display: flex; gap: 10px; width: 100%;">
+            <h3 id="confirmTitle" style="font-size: 0.9375rem; font-weight: 600; color: rgba(255,255,255,0.92); margin-bottom: 0.375rem;">重置快捷书签</h3>
+            <p id="confirmMsg" style="font-size: 0.75rem; line-height: 1.5; color: rgba(255,255,255,0.65); margin-bottom: 1.25rem;"></p>
+            <div style="display: flex; gap: 0.625rem; width: 100%;">
                 <button id="confirmCancelBtn" type="button" class="confirm-dialog-btn-cancel">取消</button>
                 <button id="confirmOkBtn" type="button" class="confirm-dialog-btn-ok">确认重置</button>
             </div>
