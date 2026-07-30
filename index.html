@@ -459,7 +459,10 @@
         /* ===== 高分辨率屏（2K / 4K / 大屏显示器）等比例响应式缩放适配 ===== */
 
         /* Root Rem 线性比例缩放：
-           基准：MacBook Air 逻辑渲染宽 1470px → 16px (100%)
+           基准设备：MacBook Air（Liquid Retina）
+             · 物理分辨率：2560 × 1664 px
+             · 逻辑渲染尺寸：1470 × 956 px（缩放比约 1.742x）
+             · 基准 font-size：16px（对应逻辑宽 1470px，即 100%）
            公式：font-size = 16 × (viewport / 1470)
            使用阶梯近似，覆盖 1.5K / 2K / QHD / 4K / 5K 等主流分辨率。
            页面所有基于 rem 的元素（字号、间距、圆角、容器宽度、图标）
@@ -629,7 +632,7 @@
             </div>
 
             <!-- 快捷书签 -->
-            <div class="w-full max-w-2xl lg:max-w-3xl mx-auto glass apple-radius p-4 sm:p-5 fade-in mb-6 md:mb-8 relative group" style="animation-delay:0.2s">
+            <div class="w-full max-w-2xl lg:max-w-3xl mx-auto glass apple-radius p-3 sm:p-4 fade-in mb-6 md:mb-8 relative group" style="animation-delay:0.2s">
                 <nav aria-label="快捷书签">
                     <div id="bookmarks" class="grid grid-cols-4 md:grid-cols-8 gap-2"></div>
                 </nav>
