@@ -80,8 +80,8 @@
         }
         /* ===== 组件 ===== */
         .search-input::placeholder { color: rgba(255,255,255,0.6); }
-        .fade-in { animation: fadeIn 0.8s ease-out backwards; }
-        @keyframes fadeIn { from { opacity:0; transform:translateY(1.25rem); } to { opacity:1; transform:translateY(0); } }
+        .fade-in { animation: fadeIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) backwards; }
+        @keyframes fadeIn { from { opacity:0.1; transform:translateY(0.625rem); } to { opacity:1; transform:translateY(0); } }
         .dropdown-menu { opacity:0; transform:translateY(-0.625rem); pointer-events:none; transition:all 0.2s ease; }
         .dropdown-menu.active { opacity:1; transform:translateY(0); pointer-events:auto; }
         .clock-text { font-family: 'SF Pro Rounded', 'Nunito', -apple-system, BlinkMacSystemFont, sans-serif; text-shadow: 0 2px 20px rgba(0,0,0,0.4), 0 0 60px rgba(0,0,0,0.2); }

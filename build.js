@@ -107,7 +107,7 @@ console.log('🔧 处理生产环境 index.html (移除 Play CDN 脚本，注入
 let prodHtmlContent = fs.readFileSync(indexHtmlPath, 'utf-8');
 
 const cdnPattern = /<!--\s*Tailwind Play CDN[\s\S]*?<\/script>\s*<script>[\s\S]*?<\/script>/i;
-const replaceTarget = `<!-- 静态编译 Tailwind CSS 样式表 (零 JS 运行开销，极速秒开 & 100% 离线支持) -->\n    <link rel="stylesheet" href="style.css">`;
+const replaceTarget = `<!-- 静态编译 Tailwind CSS 样式表 (高优先级 Preload + 零 JS 运行开销，极速秒开 & 100% 离线支持) -->\n    <link rel="preload" href="style.css" as="style">\n    <link rel="stylesheet" href="style.css">`;
 
 if (cdnPattern.test(prodHtmlContent)) {
     prodHtmlContent = prodHtmlContent.replace(cdnPattern, replaceTarget);

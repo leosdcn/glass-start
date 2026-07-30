@@ -9,7 +9,7 @@
  */
 
 // 缓存版本号（升级版本号自动清理旧缓存）
-const CACHE = 'favicon-cache-v5';
+const CACHE = 'app-cache-v6';
 // 缓存文件条目上限（严格控制在 120 条以内，占用极小磁盘配额）
 const MAX_ENTRIES = 120;
 
@@ -23,7 +23,7 @@ self.addEventListener('activate', e => e.waitUntil(
     ).then(() => clients.claim())
 ));
 
-// 拦截请求阶段：仅精准拦截 favicon.im 及 .ico 静态图标 GET 请求
+// 拦截请求阶段：精准拦截 favicon.im、.ico 静态图标及 style.css 关键样式表 GET 请求
 self.addEventListener('fetch', e => {
     // 仅拦截 HTTP GET 请求，非 GET 请求直接放行
     if (e.request.method !== 'GET') return;
@@ -35,12 +35,13 @@ self.addEventListener('fetch', e => {
         return;
     }
 
-    // 精确判定：仅针对 https://favicon.im/ 域名以及以 .ico 结尾的静态图标路径
+    // 精确判定：仅针对 https://favicon.im/ 域名、.ico 静态图标路径及 style.css
     const isFaviconDomain = urlObj.origin === 'https://favicon.im';
     const pathnameLower = urlObj.pathname.toLowerCase();
     const isIcoPath = pathnameLower.endsWith('.ico') || pathnameLower === '/favicon.ico';
+    const isStyleCss = pathnameLower.endsWith('/style.css') || pathnameLower === 'style.css';
 
-    if (!isFaviconDomain && !isIcoPath) return;
+    if (!isFaviconDomain && !isIcoPath && !isStyleCss) return;
 
     e.respondWith(
         caches.open(CACHE).then(async cache => {
