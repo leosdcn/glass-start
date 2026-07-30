@@ -544,6 +544,10 @@
             border-color: rgba(239, 68, 68, 0.55) !important;
             color: #ffffff !important;
         }
+        /* 胶囊胶质圆角徽章 (Apple Pill Badge) */
+        .rounded-full {
+            border-radius: 9999px !important;
+        }
     </style>
 </head>
 <body class="text-white relative bg-[#1a1a2e]">
@@ -664,7 +668,7 @@
 
     <!-- 编辑与设置弹窗 (Apple 风格 Tab 分栏设置面板) -->
     <div id="editModal" role="dialog" aria-modal="true" aria-label="设置与偏好" class="edit-overlay fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm" style="z-index: 1000;">
-        <div class="glass-strong apple-radius pt-4 pb-4 px-4 w-full max-w-xl xl:max-w-2xl 2xl:max-w-3xl mx-4 max-h-[90vh] flex flex-col shadow-2xl" onclick="event.stopPropagation()">
+        <div class="glass-strong apple-radius pt-5 pb-6 px-5 w-full max-w-xl xl:max-w-2xl 2xl:max-w-3xl mx-4 max-h-[90vh] flex flex-col shadow-2xl" onclick="event.stopPropagation()">
             <!-- 弹窗 Header -->
             <div class="flex items-center justify-between mb-3 pb-2 border-b border-white/10 shrink-0">
                 <div class="flex items-center gap-2">
@@ -694,7 +698,7 @@
             <div id="tabBookmarks" class="settings-tab-panel flex-1 flex flex-col min-h-0 overflow-hidden">
                 <div class="flex items-center justify-between mb-2 shrink-0">
                     <span class="text-xs font-medium text-white/60">编辑书签与排序</span>
-                    <span id="bookmarkCountBadge" class="text-[10px] px-2 py-0.5 rounded-full bg-white/10 border border-white/15 text-white/70">已添加 0 项</span>
+                    <span id="bookmarkCountBadge" class="text-[10px] px-2.5 py-0.5 rounded-full bg-white/10 border border-white/15 text-white/70 font-medium tracking-wide">已添加 0 项</span>
                 </div>
                 <div id="editList" role="list" aria-label="书签列表" class="flex-1 overflow-y-auto space-y-1 mb-3 min-h-0 pr-0.5"></div>
                 <div class="flex flex-col sm:flex-row gap-2 shrink-0 pt-2 border-t border-white/10">
@@ -712,7 +716,7 @@
                             <svg class="w-4 h-4 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                             自定义壁纸
                         </span>
-                        <span id="wallpaperStatus" class="text-[10px] text-white/40">当前使用默认壁纸</span>
+                        <span id="wallpaperStatus" class="text-[10px] px-2.5 py-0.5 rounded-full bg-white/10 border border-white/15 text-white/70 font-medium tracking-wide">当前使用默认壁纸</span>
                     </div>
                     <div class="flex flex-wrap sm:flex-nowrap gap-1.5">
                         <button id="uploadBgBtn" type="button" class="flex-1 py-1.5 px-2.5 bg-white/5 hover:bg-white/10 border border-white/10 apple-radius text-xs text-white/80 hover:text-white transition flex items-center justify-center gap-1">📁 本地图片</button>
@@ -797,10 +801,10 @@
                 </div>
             </div>
 
-            <!-- 底部通用 Save/Cancel 按键栏 -->
-            <div class="flex gap-2 mt-3 pt-2.5 border-t border-white/10 shrink-0">
-                <button id="saveEditBtn" type="button" class="flex-1 py-2 bg-white/15 hover:bg-white/25 apple-radius transition text-xs sm:text-sm font-medium text-white/90 shadow-lg">保存并关闭</button>
-                <button id="cancelEditBtn" type="button" class="flex-1 py-2 bg-white/5 hover:bg-white/10 apple-radius transition text-xs sm:text-sm text-white/60">取消</button>
+            <!-- 底部通用 Save/Cancel 按键栏 (增加内边距与顶部间距，彻底消除拥挤感) -->
+            <div class="flex gap-3 mt-4 pt-4 pb-1 border-t border-white/10 shrink-0">
+                <button id="saveEditBtn" type="button" class="flex-1 py-2.5 px-4 bg-white/15 hover:bg-white/25 apple-radius transition text-xs sm:text-sm font-medium text-white/90 shadow-lg">保存并关闭</button>
+                <button id="cancelEditBtn" type="button" class="flex-1 py-2.5 px-4 bg-white/5 hover:bg-white/10 apple-radius transition text-xs sm:text-sm text-white/60">取消</button>
             </div>
         </div>
     </div>
@@ -814,7 +818,7 @@
             </div>
             <div id="pickerContent" class="flex-1 overflow-y-auto min-h-0 space-y-3"></div>
             <div class="flex items-center justify-between mt-3 pt-2 border-t border-white/10 shrink-0">
-                <span id="pickerCount" class="text-xs text-white/40">已添加 0 项</span>
+                <span id="pickerCount" class="text-[10px] px-2.5 py-0.5 rounded-full bg-white/10 border border-white/15 text-white/70 font-medium tracking-wide">已添加 0 项</span>
                 <button id="donePickerBtn" type="button" class="py-2 px-5 bg-white/10 hover:bg-white/20 apple-radius transition text-sm font-medium text-white/90">完成</button>
             </div>
         </div>
