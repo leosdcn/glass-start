@@ -18,7 +18,17 @@
     <link rel="preconnect" href="https://suggestqueries.google.com" crossorigin>
     <!-- 页面预检：若上次在导航页，给 <html> 加 .nr 隐藏首屏，避免刷新后闪烁 -->
     <script>try{sessionStorage.getItem('startpage_section')==='nav'&&document.documentElement.classList.add('nr')}catch(e){}</script>
-    <link rel="stylesheet" href="style.css">
+    <!-- Tailwind Play CDN：运行时按需生成所有工具类，AI 添加任何新类都能立即生效，无需构建步骤 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    maxWidth: { '2xl': '42rem', '3xl': '48rem', '4xl': '56rem' },
+                }
+            }
+        }
+    </script>
     <style>
         /* .nr 模式：隐藏起始页、显示导航页，与上方 inline script 配合防止闪烁 */
         .nr section:first-of-type { display: none; }
@@ -245,11 +255,14 @@
             transform: scale(0.96);
             transition: transform 0.08s ease !important;
         }
-        /* ===== 移动端视口高度 (100dvh) 与 safe-area-inset 安全区适配 ===== */
-        .h-screen { height: 100vh; height: 100dvh; }
-        .min-h-screen { min-height: 100vh; min-height: 100dvh; }
-        .max-h-\[90vh\] { max-height: 90vh; max-height: 90dvh; }
-        .max-h-\[85vh\] { max-height: 85vh; max-height: 85dvh; }
+        /* ===== 移动端视口高度 (100dvh) 与 safe-area-inset 安全区适配 =====
+           !important 确保覆盖 Tailwind CDN 动态注入的同名工具类。
+        ===== */
+        .h-screen { height: 100dvh !important; }
+        .min-h-screen { min-height: 100dvh !important; }
+        .max-h-\[90vh\] { max-height: 90dvh !important; }
+        .max-h-\[95vh\] { max-height: 95dvh !important; }
+        .max-h-\[85vh\] { max-height: 85dvh !important; }
 
         /* 起始页首屏 padding 安全区适配 */
         section:first-of-type {
@@ -285,12 +298,12 @@
             }
         }
 
-        /* ===== group-hover & 定位工具类补全（style.css 为预编译静态文件，未收录这些工具类）===== */
-        .right-6 { right: calc(1.5rem + env(safe-area-inset-right)); }
-        .right-8 { right: calc(2rem + env(safe-area-inset-right)); }
+        /* ===== 安全区定位覆盖（safe-area-inset 适配，!important 覆盖 Tailwind CDN 生成值）===== */
+        .right-6 { right: calc(1.5rem + env(safe-area-inset-right)) !important; }
+        .right-8 { right: calc(2rem + env(safe-area-inset-right)) !important; }
         @media (min-width: 768px) {
-            .md\:bottom-8 { bottom: calc(2rem + env(safe-area-inset-bottom)); }
-            .md\:right-8 { right: calc(2rem + env(safe-area-inset-right)); }
+            .md\:bottom-8 { bottom: calc(2rem + env(safe-area-inset-bottom)) !important; }
+            .md\:right-8 { right: calc(2rem + env(safe-area-inset-right)) !important; }
         }
         /* 搜索建议弹窗定位：紧贴搜索框下方保持精细的 6px / 8px 悬浮间距 */
         #suggestionMenu {
@@ -484,7 +497,7 @@
             }
         }
 
-        /* ===== 导航页书签网格大屏扩列（看运 style.css 无 xl:/2xl: 断点，此处直接用 min-width 定义）*/
+        /* ===== 导航页书签网格大屏扩列（Tailwind CDN 支持 xl:/2xl: 断点，但此处保留 min-width 媒体查询以精确控制）*/
         @media (min-width: 1280px) {
             #navCategories .grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
         }
@@ -669,7 +682,7 @@
 
     <!-- 编辑与设置弹窗 (Apple 风格 Tab 分栏设置面板) -->
     <div id="editModal" role="dialog" aria-modal="true" aria-label="设置与偏好" class="edit-overlay fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm" style="z-index: 1000;">
-        <div class="glass-strong apple-radius pt-5 pb-6 px-5 w-full max-w-xl xl:max-w-2xl 2xl:max-w-3xl mx-4 max-h-[90vh] flex flex-col shadow-2xl" onclick="event.stopPropagation()">
+        <div class="glass-strong apple-radius w-full max-w-xl xl:max-w-2xl 2xl:max-w-3xl mx-4 max-h-[95vh] flex flex-col shadow-2xl" style="padding: 1.25rem 1.25rem 1rem;" onclick="event.stopPropagation()">
             <!-- 弹窗 Header -->
             <div class="flex items-center justify-between mb-3 pb-2 border-b border-white/10 shrink-0">
                 <div class="flex items-center gap-2">
@@ -803,7 +816,7 @@
             </div>
 
             <!-- 底部通用 Save/Cancel 按键栏 (增加内边距与顶部间距，彻底消除拥挤感) -->
-            <div class="flex gap-3 mt-4 pt-4 pb-1 border-t border-white/10 shrink-0">
+            <div class="flex gap-3 mt-3 pt-2 pb-1 border-t border-white/10 shrink-0">
                 <button id="saveEditBtn" type="button" class="flex-1 py-2.5 px-4 bg-white/15 hover:bg-white/25 apple-radius transition text-xs sm:text-sm font-medium text-white/90 shadow-lg">保存并关闭</button>
                 <button id="cancelEditBtn" type="button" class="flex-1 py-2.5 px-4 bg-white/5 hover:bg-white/10 apple-radius transition text-xs sm:text-sm text-white/60">取消</button>
             </div>
