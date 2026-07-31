@@ -19,8 +19,31 @@
     <link rel="preconnect" href="https://suggestion.baidu.com" crossorigin>
     <link rel="preconnect" href="https://api.bing.com" crossorigin>
     <link rel="preconnect" href="https://suggestqueries.google.com" crossorigin>
-    <!-- 页面预检：若上次在导航页，给 <html> 加 .nr 隐藏首屏，避免刷新后闪烁 -->
-    <script>try{sessionStorage.getItem('startpage_section')==='nav'&&document.documentElement.classList.add('nr')}catch(e){}</script>
+    <!-- 页面预检：若上次在导航页，给 <html> 加 .nr 隐藏首屏；同步预解析用户偏好，避免刷新闪烁 -->
+    <script>
+      if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+      try{sessionStorage.getItem('startpage_section')==='nav'&&document.documentElement.classList.add('nr')}catch(e){}
+      try{
+        const rawEngine = localStorage.getItem('preferredEngine');
+        if (rawEngine) {
+          const engine = JSON.parse(rawEngine);
+          const engineMap = {
+            bing: { name: 'Bing', icon: 'https://favicon.im/bing.com' },
+            google: { name: 'Google', icon: 'https://favicon.im/google.com' },
+            duckduckgo: { name: 'DuckDuckGo', icon: 'https://favicon.im/duckduckgo.com' },
+            baidu: { name: '百度', icon: 'https://favicon.im/baidu.com' }
+          };
+          if (engineMap[engine]) window.__PRE_ENGINE__ = engineMap[engine];
+        }
+        const rawOp = localStorage.getItem('maskOpacity');
+        const rawBlur = localStorage.getItem('bgBlur');
+        if (rawOp !== null || rawBlur !== null) {
+          const op = rawOp !== null ? JSON.parse(rawOp) : 25;
+          const bl = rawBlur !== null ? JSON.parse(rawBlur) : 0;
+          window.__PRE_BG_EFFECTS__ = { op, bl };
+        }
+      }catch(e){}
+    </script>
     <!-- Tailwind Play CDN：开发模式下运行时按需生成工具类，随改随看无需手动编译步骤 -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -67,12 +90,12 @@
             transform: translateZ(0);
         }
         section {
-            transform: translateZ(0);
+            /* 保持硬件合成层但避免在 Safari 中与 backdrop-filter 产生多重 3D 隔离上下文 */
             backface-visibility: hidden;
             -webkit-backface-visibility: hidden;
         }
         #navSection {
-            contain: layout paint;
+            contain: layout;
         }
         .category-block {
             content-visibility: auto;
@@ -81,9 +104,10 @@
         /* ===== 组件 ===== */
         .search-input::placeholder { color: rgba(255,255,255,0.6); }
         .fade-in { animation: fadeIn 0.48s cubic-bezier(0.16, 1, 0.3, 1) backwards; }
+        .nr .fade-in { animation: none !important; }
         @keyframes fadeIn { from { opacity:0.05; transform:translateY(1rem); } to { opacity:1; transform:translateY(0); } }
-        .dropdown-menu { opacity:0; transform:translateY(-0.625rem); pointer-events:none; transition:all 0.2s ease; }
-        .dropdown-menu.active { opacity:1; transform:translateY(0); pointer-events:auto; }
+        .dropdown-menu { opacity:0; transform:translateY(-0.625rem); pointer-events:none; visibility:hidden; transition:opacity 0.2s ease, transform 0.2s ease, visibility 0.2s ease; }
+        .dropdown-menu.active { opacity:1; transform:translateY(0); pointer-events:auto; visibility:visible; }
         .clock-text { font-family: 'SF Pro Rounded', 'Nunito', -apple-system, BlinkMacSystemFont, sans-serif; text-shadow: 0 2px 20px rgba(0,0,0,0.4), 0 0 60px rgba(0,0,0,0.2); }
         .bookmark-item { transition: all 0.2s ease; }
         .bookmark-item:hover { background: rgba(255,255,255,0.12); transform: translateY(-0.125rem); }
@@ -153,14 +177,14 @@
             box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.3), 0 8px 20px rgba(0, 0, 0, 0.3);
             color: #fff;
         }
-        .nav-bookmark:hover .icon-box, .bookmark-item:hover .icon-box { transform: scale(1.12); }
+        .nav-bookmark:hover .icon-box, .bookmark-item:hover .icon-box { transform: scale(1.08); }
         .nav-hidden { visibility:hidden; }
         .nav-visible { visibility:visible; }
         .nav-hidden .glass { opacity:0; }
         .nav-visible .glass { animation:navFadeIn 0.55s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
         @keyframes navFadeIn { from{opacity:0;transform:translate3d(0,1rem,0)} to{opacity:1;transform:translate3d(0,0,0)} }
         .sidebar-item {
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1), color 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative;
         }
         .sidebar-item:hover { background: rgba(255,255,255,0.08); color: #fff; }
@@ -224,11 +248,12 @@
         .hint-down { animation:hintFade 7s ease forwards; }
         @keyframes hintFade { 0%,55%{opacity:1} 100%{opacity:0;pointer-events:none} }
         .section-divider { background: linear-gradient(90deg,transparent,rgba(255,255,255,0.15),transparent); }
-        .edit-overlay { opacity:0; pointer-events:none; transition:opacity 0.2s ease; }
+        .edit-overlay { opacity:0; pointer-events:none; transition:opacity 0.2s ease; will-change:opacity; }
         .edit-overlay.active { opacity:1; pointer-events:auto; }
-        .edit-overlay > div { transform:scale(0.95); transition:transform 0.2s ease; }
+        .edit-overlay > div { transform:scale(0.95); transition:transform 0.2s ease; will-change:transform; }
         .edit-overlay.active > div { transform:scale(1); }
         .edit-overlay .glass-strong { background: rgba(255,255,255,0.2); }
+        .preset-bg-card img { transform: translateZ(0); }
         .drag-over { background: rgba(255,255,255,0.12); }
         [draggable="true"] { cursor: grab; }
         [draggable="true"]:active { cursor: grabbing; }
@@ -586,13 +611,14 @@
          style="background-image:url('https://images.unsplash.com/photo-1477346611705-65d1883cee1e?q=80&w=2070&auto=format&fit=crop')"></div>
     <div id="bgLayerNext" class="fixed inset-0 bg-cover bg-center bg-no-repeat -z-10 opacity-0" style="transition:opacity 0.6s ease;"></div>
     <div id="bgOverlay" class="fixed inset-0 bg-black/25 pointer-events-none z-0" style="transition: background-color 0.2s ease, backdrop-filter 0.2s ease, -webkit-backdrop-filter 0.2s ease;"></div>
+    <script>(function(){if(window.__PRE_BG_EFFECTS__){const o=document.getElementById('bgOverlay');if(o){o.style.backgroundColor='rgba(0, 0, 0, '+(window.__PRE_BG_EFFECTS__.op/100)+')';if(window.__PRE_BG_EFFECTS__.bl>0){const b='blur('+window.__PRE_BG_EFFECTS__.bl+'px)';o.style.backdropFilter=b;o.style.webkitBackdropFilter=b;}}}})()</script>
 
     <!-- ========== 第一屏：起始页 ========== -->
     <section class="relative z-10 min-h-screen flex flex-col items-center justify-center px-4 py-12">
         <div class="flex flex-col items-center justify-center w-full">
             <!-- 时钟 -->
             <div class="text-center fade-in clock-text mb-10 md:mb-14">
-                <div id="clock" aria-live="polite" aria-atomic="true" class="text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-light tracking-tight tabular-nums">00:00</div>
+                <div id="clock" aria-live="polite" aria-atomic="true" class="text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-light tracking-tight tabular-nums" style="will-change: contents; transform: translateZ(0);">00:00</div>
                 <div id="date" class="text-xs sm:text-sm md:text-base mt-3 text-white/70 font-light tracking-widest uppercase">加载中...</div>
                 <script>(function(){const n=new Date();const c=document.getElementById('clock');const d=document.getElementById('date');if(c)c.textContent=`${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`;if(d)d.textContent=n.toLocaleDateString('zh-CN',{year:'numeric',month:'long',day:'numeric',weekday:'long'});})()</script>
             </div>
@@ -601,11 +627,12 @@
             <div class="w-full max-w-2xl lg:max-w-3xl mx-auto relative mb-8 md:mb-10">
                 <div class="glass-strong apple-radius p-2 flex items-center gap-2 border fade-in" style="animation-delay:0.1s">
                     <div class="relative shrink-0">
-                        <button id="engineBtn" type="button" aria-label="选择搜索引擎" aria-haspopup="true" aria-expanded="false" class="flex items-center gap-2 px-3 py-3 apple-radius hover:bg-white/10 transition text-sm font-medium">
+                        <button id="engineBtn" type="button" aria-label="选择搜索引擎" aria-haspopup="true" aria-expanded="false" class="flex items-center gap-2 px-3 py-3 apple-radius hover:bg-white/10 transition text-sm font-medium min-h-[2.75rem]">
                             <img id="engineIcon" src="https://favicon.im/bing.com" class="engine-icon w-5 h-5 rounded-md" alt="">
                             <span id="engineName" class="hidden sm:inline">Bing</span>
                             <svg class="w-4 h-4 opacity-60 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
                         </button>
+                        <script>(function(){if(window.__PRE_ENGINE__){const i=document.getElementById('engineIcon');const n=document.getElementById('engineName');if(i)i.src=window.__PRE_ENGINE__.icon;if(n)n.textContent=window.__PRE_ENGINE__.name;}})()</script>
                     </div>
                     <label for="searchInput" class="sr-only">搜索</label>
                     <input type="text" id="searchInput" aria-label="搜索输入框" class="flex-1 bg-transparent border-none outline-none text-lg search-input text-white h-12 px-1 min-w-0" placeholder="搜索..." autocomplete="off">
@@ -637,19 +664,52 @@
             <!-- 快捷书签 -->
             <div class="w-full max-w-2xl lg:max-w-3xl mx-auto glass apple-radius p-3 sm:p-4 fade-in mb-6 md:mb-8 relative group" style="animation-delay:0.2s">
                 <nav aria-label="快捷书签">
-                    <div id="bookmarks" class="grid grid-cols-4 md:grid-cols-8 gap-2"></div>
+                    <div id="bookmarks" class="grid grid-cols-4 md:grid-cols-8 gap-2">
+                        <a href="https://web.wechat.com/?lang=zh_CN" target="_blank" rel="noopener noreferrer" class="bookmark-item flex flex-col items-center justify-center gap-2 py-3 px-1 sm:px-1.5 apple-radius text-white/90 hover:text-white">
+                            <div class="icon-box icon-box-md"><img src="https://favicon.im/web.wechat.com" data-initial="微" data-md="1" class="opacity-90" alt="" loading="lazy" decoding="async" onerror="handleIconError(this)"></div>
+                            <span class="bookmark-title text-white/90">微信</span>
+                        </a>
+                        <a href="https://weibo.com" target="_blank" rel="noopener noreferrer" class="bookmark-item flex flex-col items-center justify-center gap-2 py-3 px-1 sm:px-1.5 apple-radius text-white/90 hover:text-white">
+                            <div class="icon-box icon-box-md"><img src="https://favicon.im/weibo.com" data-initial="微" data-md="1" class="opacity-90" alt="" loading="lazy" decoding="async" onerror="handleIconError(this)"></div>
+                            <span class="bookmark-title text-white/90">微博</span>
+                        </a>
+                        <a href="https://www.doubao.com" target="_blank" rel="noopener noreferrer" class="bookmark-item flex flex-col items-center justify-center gap-2 py-3 px-1 sm:px-1.5 apple-radius text-white/90 hover:text-white">
+                            <div class="icon-box icon-box-md"><img src="https://favicon.im/doubao.com" data-initial="豆" data-md="1" class="opacity-90" alt="" loading="lazy" decoding="async" onerror="handleIconError(this)"></div>
+                            <span class="bookmark-title text-white/90">豆包</span>
+                        </a>
+                        <a href="https://chat.deepseek.com" target="_blank" rel="noopener noreferrer" class="bookmark-item flex flex-col items-center justify-center gap-2 py-3 px-1 sm:px-1.5 apple-radius text-white/90 hover:text-white">
+                            <div class="icon-box icon-box-md"><img src="https://favicon.im/chat.deepseek.com" data-initial="D" data-md="1" class="opacity-90" alt="" loading="lazy" decoding="async" onerror="handleIconError(this)"></div>
+                            <span class="bookmark-title text-white/90">DeepSeek</span>
+                        </a>
+                        <a href="https://www.bilibili.com" target="_blank" rel="noopener noreferrer" class="bookmark-item flex flex-col items-center justify-center gap-2 py-3 px-1 sm:px-1.5 apple-radius text-white/90 hover:text-white">
+                            <div class="icon-box icon-box-md"><img src="https://favicon.im/bilibili.com" data-initial="哔" data-md="1" class="opacity-90" alt="" loading="lazy" decoding="async" onerror="handleIconError(this)"></div>
+                            <span class="bookmark-title text-white/90">哔哩哔哩</span>
+                        </a>
+                        <a href="https://www.douyin.com" target="_blank" rel="noopener noreferrer" class="bookmark-item flex flex-col items-center justify-center gap-2 py-3 px-1 sm:px-1.5 apple-radius text-white/90 hover:text-white">
+                            <div class="icon-box icon-box-md"><img src="https://favicon.im/douyin.com" data-initial="抖" data-md="1" class="opacity-90" alt="" loading="lazy" decoding="async" onerror="handleIconError(this)"></div>
+                            <span class="bookmark-title text-white/90">抖音</span>
+                        </a>
+                        <a href="https://www.weather.com.cn" target="_blank" rel="noopener noreferrer" class="bookmark-item flex flex-col items-center justify-center gap-2 py-3 px-1 sm:px-1.5 apple-radius text-white/90 hover:text-white">
+                            <div class="icon-box icon-box-md"><img src="https://favicon.im/weather.com.cn" data-initial="中" data-md="1" class="opacity-90" alt="" loading="lazy" decoding="async" onerror="handleIconError(this)"></div>
+                            <span class="bookmark-title text-white/90">中国天气网</span>
+                        </a>
+                        <a href="https://music.163.com" target="_blank" rel="noopener noreferrer" class="bookmark-item flex flex-col items-center justify-center gap-2 py-3 px-1 sm:px-1.5 apple-radius text-white/90 hover:text-white">
+                            <div class="icon-box icon-box-md"><img src="https://favicon.im/music.163.com" data-initial="网" data-md="1" class="opacity-90" alt="" loading="lazy" decoding="async" onerror="handleIconError(this)"></div>
+                            <span class="bookmark-title text-white/90">网易云音乐</span>
+                        </a>
+                    </div>
                 </nav>
             </div>
         </div>
 
         <!-- 向下滚动提示（装饰，绝对定位不占空间） -->
-        <div class="absolute bottom-6 md:bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 text-white/35 text-[10px] tracking-widest pointer-events-none hint-down">
+        <div class="absolute bottom-6 md:bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 text-white/35 text-[10px] tracking-widest pointer-events-none hint-down" style="transform-style: preserve-3d; backface-visibility: hidden;">
             <span>向下滚动</span>
             <svg class="w-4 h-4 scroll-hint" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/></svg>
         </div>
 
         <!-- 全屏右下角固定悬浮编辑设置按钮 -->
-        <button id="editBookmarksBtn" type="button" aria-label="编辑与设置" title="编辑书签与设置" class="group fixed bottom-6 right-6 md:bottom-8 md:right-8 p-3 glass-strong apple-radius text-white/70 hover:text-white hover:bg-white/20 transition-all duration-300 border border-white/20 shadow-2xl z-50 flex items-center justify-center">
+        <button id="editBookmarksBtn" type="button" aria-label="编辑与设置" title="编辑书签与设置" class="group fixed bottom-6 right-6 md:bottom-8 md:right-8 p-3 glass-strong apple-radius text-white/70 hover:text-white hover:bg-white/20 transition-colors duration-300 border border-white/20 shadow-2xl z-50 flex items-center justify-center" style="will-change: transform; transform: translateZ(0);">
             <svg class="w-5 h-5 transition-transform duration-300 group-hover:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
@@ -728,7 +788,7 @@
                 <div class="flex items-center justify-between mb-3 shrink-0">
                     <div class="flex items-center gap-1.5">
                         <span class="text-xs font-semibold text-white/80">快捷书签管理</span>
-                        <span class="text-[10px] text-white/40 font-normal">（支持拖拽 ⠿ 调整排序）</span>
+                        <span class="text-[10px] text-white/40 font-normal">（拖拽 ⠿ 排序）</span>
                     </div>
                     <span id="bookmarkCountBadge" class="text-[10px] px-2.5 py-0.5 rounded-full bg-white/10 border border-white/15 text-white/70 font-medium tracking-wide">已添加 0 项</span>
                 </div>
@@ -792,7 +852,7 @@
                         <span class="text-xs font-semibold text-white/80 flex items-center gap-1.5">
                             <span>🖼️</span> 预设 4K 高清壁纸库
                         </span>
-                        <span class="text-[10px] text-white/40">点击即可即时应用壁纸</span>
+                        <span class="text-[10px] text-white/40">点击预览</span>
                     </div>
                     <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 flex-1 min-h-0">
                         <button type="button" class="preset-bg-card relative aspect-video rounded-xl overflow-hidden border border-white/15 hover:border-white/50 transition group shadow-md" data-bg="https://images.unsplash.com/photo-1477346611705-65d1883cee1e?q=80&w=2070&auto=format&fit=crop" data-title="山峦夜空" title="山峦夜空（系统默认）">
@@ -839,10 +899,10 @@
                         <div class="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center text-base border border-white/15 shadow-inner">🪐</div>
                         <div>
                             <div class="flex items-center gap-2">
-                                <span class="text-xs font-semibold text-white/90">Glass Start Page</span>
+                                <span class="text-xs font-semibold text-white/90">Glass Start</span>
                                 <span class="text-[10px] px-2 py-0.5 rounded-full bg-white/10 border border-white/15 text-white/60 font-mono">v2.0</span>
                             </div>
-                            <div class="text-[10px] text-white/50">极简 Liquid Glass 导航主页 • Build 2026.07</div>
+                            <div class="text-[10px] text-white/50">极简 Liquid Glass 拟态导航 • Build 2026.07</div>
                         </div>
                     </div>
                     <!-- 核心数据统计徽章 -->
@@ -923,10 +983,10 @@
                 <button id="saveEditBtn" type="button" class="flex-1 py-2.5 px-4 bg-white/15 hover:bg-white/25 apple-radius transition text-xs sm:text-sm font-medium text-white/90 shadow-lg">保存并关闭</button>
             </div>
         </div>
-    </div>
+    </div><!-- /#editModal -->
 
     <!-- 从导航页选择弹窗 -->
-    <div id="bookmarkPicker" role="dialog" aria-modal="true" aria-label="从导航页选择书签" class="edit-overlay fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm" style="z-index: 2000;">
+    <div id="bookmarkPicker" role="dialog" aria-modal="true" aria-label="从导航页选择书签" class="edit-overlay fixed inset-0 flex items-center justify-center bg-black/60" style="z-index: 2000;">
         <div class="glass-strong apple-radius pt-4 pb-3 px-4 w-full max-w-2xl xl:max-w-3xl 2xl:max-w-4xl mx-4 max-h-[85vh] flex flex-col shadow-2xl" onclick="event.stopPropagation()">
             <div class="flex items-center justify-between mb-2 pb-1.5 border-b border-white/10 shrink-0">
                 <h3 class="text-base font-medium tracking-wide text-white/80">从导航页选择</h3>
@@ -938,7 +998,7 @@
                 <button id="donePickerBtn" type="button" class="py-2 px-5 bg-white/10 hover:bg-white/20 apple-radius transition text-sm font-medium text-white/90">完成</button>
             </div>
         </div>
-    </div>
+    </div><!-- /#bookmarkPicker -->
 
     <!-- 自定义确认弹窗（替代原生 confirm()，保持玻璃风格一致） -->
     <div id="confirmModal" role="alertdialog" aria-modal="true" aria-labelledby="confirmTitle"
@@ -956,7 +1016,7 @@
                 <button id="confirmOkBtn" type="button" class="confirm-dialog-btn-ok">确认重置</button>
             </div>
         </div>
-    </div>
+    </div><!-- /#confirmModal -->
 
     <script>
         /**
@@ -980,6 +1040,12 @@
          */
 
         // ==================== 默认书签（外部 bookmarks.json 加载失败 / file:// 本地运行时使用）====================
+        /**
+         * 🤖 AI 编程 / 开发者注意事项：
+         * 1. 此处的 DEFAULT_BOOKMARKS 与 DEFAULT_CATEGORIES 数组用于 file:// 协议及网络异常时的离线降级回退。
+         * 2. 运行 `npm run build` 时，build.js 会自动读取根目录 bookmarks.json 并通过正则表达式自动同步替换此处的数组。
+         * 3. 重构代码时请勿重命名 `DEFAULT_BOOKMARKS` / `DEFAULT_CATEGORIES` 变量名，否则会导致 build.js 的正则匹配同步失效。
+         */
         const DEFAULT_BOOKMARKS = [
             {
                 name: "微信",
@@ -1029,6 +1095,12 @@
                 icon: "🤖",
                 bookmarks: [
                     {
+                        name: "Arena AI",
+                        url: "https://arena.ai",
+                        icon: "https://favicon.im/arena.ai",
+                        desc: "Arena AI 体验平台"
+                    },
+                    {
                         name: "ChatGPT",
                         url: "https://chat.openai.com",
                         icon: "https://favicon.im/chat.openai.com",
@@ -1053,16 +1125,16 @@
                         desc: "深度求索国产硬核AI"
                     },
                     {
+                        name: "Gamma",
+                        url: "https://gamma.app",
+                        icon: "https://favicon.im/gamma.app",
+                        desc: "AI驱动的演示文稿与网页生成"
+                    },
+                    {
                         name: "Gemini",
                         url: "https://gemini.google.com",
                         icon: "https://favicon.im/gemini.google.com",
                         desc: "谷歌前沿多模态AI"
-                    },
-                    {
-                        name: "GitHub Copilot",
-                        url: "https://github.com/features/copilot",
-                        icon: "https://favicon.im/github.com",
-                        desc: "代码补全与AI编程"
                     },
                     {
                         name: "Hugging Face",
@@ -1119,6 +1191,12 @@
                 icon: "⚡",
                 bookmarks: [
                     {
+                        name: "BrowserLeaks",
+                        url: "https://browserleaks.com",
+                        icon: "https://favicon.im/browserleaks.com",
+                        desc: "Web浏览器指纹与安全隐私检测"
+                    },
+                    {
                         name: "Can I Use",
                         url: "https://caniuse.com",
                         icon: "https://favicon.im/caniuse.com",
@@ -1141,6 +1219,12 @@
                         url: "https://github.com",
                         icon: "https://favicon.im/github.com",
                         desc: "全球最大开源代码托管"
+                    },
+                    {
+                        name: "IT Tools",
+                        url: "https://it-tools.tech",
+                        icon: "https://favicon.im/it-tools.tech",
+                        desc: "开发者在线实用小工具集合"
                     },
                     {
                         name: "JSFiddle",
@@ -1233,6 +1317,12 @@
                 icon: "📝",
                 bookmarks: [
                     {
+                        name: "Diagrams",
+                        url: "https://app.diagrams.net",
+                        icon: "https://favicon.im/app.diagrams.net",
+                        desc: "免费开源流程图与架构图绘制"
+                    },
+                    {
                         name: "Excalidraw",
                         url: "https://excalidraw.com",
                         icon: "https://favicon.im/excalidraw.com",
@@ -1261,6 +1351,12 @@
                         url: "https://www.processon.com",
                         icon: "https://favicon.im/processon.com",
                         desc: "在线流程图与思维导图"
+                    },
+                    {
+                        name: "Publish Markdown",
+                        url: "https://publishmarkdown.com",
+                        icon: "https://favicon.im/publishmarkdown.com",
+                        desc: "一键将Markdown笔记在线发布为网页"
                     },
                     {
                         name: "飞书",
@@ -1357,6 +1453,12 @@
                         url: "https://discord.com",
                         icon: "https://favicon.im/discord.com",
                         desc: "游戏与开发者实时语音"
+                    },
+                    {
+                        name: "Linux Do",
+                        url: "https://linux.do",
+                        icon: "https://favicon.im/linux.do",
+                        desc: "Linux DO 开发者与极客社区"
                     },
                     {
                         name: "Reddit",
@@ -1579,32 +1681,72 @@
             currentSection: 'start'  // 当前可见屏：'start'（起始页）或 'nav'（导航页）
         };
 
-        function $(id) { return document.getElementById(id); } // DOM 快捷获取
+        /**
+         * DOM 快速查找助手函数 (document.getElementById 封装)
+         * @param {string} id - 目标 DOM 元素的 ID 字符串
+         * @returns {HTMLElement|null} 返回匹配的 DOM 元素节点，未找到时返回 null
+         */
+        function $(id) { return document.getElementById(id); }
 
+        /**
+         * 缓存常用的 DOM 节点对象至 dom 全局映射表中
+         * 避免高频交互时反复查询 DOM 节点导致的性能损耗
+         * @returns {void}
+         */
         function cacheDOM() {
             const ids = 'clock date searchInput searchClearBtn engineBtn engineIcon engineName dropdownMenu suggestionMenu searchBtn bookmarks sidebarList navCategories navContent editModal editList editBookmarksBtn addBookmarkBtn saveEditBtn cancelEditBtn resetEditBtn togglePickerBtn bookmarkPicker pickerContent pickerCount closePickerBtn donePickerBtn importJsonBtn exportJsonBtn importJsonInput uploadBgBtn urlBgBtn resetBgBtn uploadBgInput wallpaperStatus bookmarkCountBadge jsonDropzone maskOpacityInput maskOpacityVal bgBlurInput bgBlurVal storageSizeBadge statBookmarkCount statWallpaperType statPwaStatus clearCacheBtn bgOverlay'.split(' ');
             ids.forEach(id => dom[id] = $(id));
         }
 
         // ==================== 存储工具 ====================
-        // 安全读写 localStorage（JSON 序列化），异常时返回默认值
+        /**
+         * 安全读取 localStorage 中的配置项并反序列化为 JSON
+         * 在 Safari 无痕模式或 Cookie 拦截环境下具备 try...catch 保护
+         * @param {string} key - 存储的键名
+         * @param {*} [fallback=null] - 当键名不存在或读取抛出异常时的默认返回值
+         * @returns {*} 解析后的对象/数组或 fallback 默认值
+         */
         function storageGet(key, fallback = null) {
             try { const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : fallback; } catch { return fallback; }
         }
+
+        /**
+         * 安全写入 JSON 序列化数据至 localStorage
+         * @param {string} key - 存储的键名
+         * @param {*} value - 需要存储的数据对象/数组/值
+         * @returns {boolean} 写入成功返回 true，被沙盒阻断或磁盘超限时返回 false
+         */
         function storageSet(key, value) {
             try { localStorage.setItem(key, JSON.stringify(value)); return true; } catch { return false; }
         }
 
+        /**
+         * 安全删除 localStorage 中的指定键名记录
+         * @param {string} key - 需移除的键名
+         * @returns {boolean} 移除成功返回 true，抛出安全异常时返回 false
+         */
+        function storageRemove(key) {
+            try { localStorage.removeItem(key); return true; } catch { return false; }
+        }
+
         // ==================== 安全工具 ====================
-        /** 仅允许 http/https/data:image 协议的 URL，拦截 javascript: 等恶意协议
-         * @param {string} url @returns {string} */
+        /**
+         * 协议白名单校验与 URL 安全过滤函数
+         * 仅放行 http://, https:// 及 data:image/ 格式协议，彻底阻断 javascript:、vbscript: 等伪协议 XSS 注入
+         * @param {string} url - 待校验的原始 URL 字符串
+         * @returns {string} 校验通过返回经过 HTML 实体转义的 URL，校验失败时返回 '#' 安全占位符
+         */
         function safeUrl(url) {
             const u = (url || '').trim();
             return (/^https?:\/\//i.test(u) || /^data:image\//i.test(u)) ? escapeHtml(u) : '#';
         }
 
         // ==================== 数据加载 ====================
-        // 优先从远程加载，本地打开时自动降级到内联默认值
+        /**
+         * 异步加载外部 bookmarks.json 配置文件
+         * 在 file:// 本地双击协议下直接降级至内存默认值；在 HTTP/HTTPS 下异步 Fetch 最新的配置文件
+         * @returns {Promise<void>}
+         */
         async function loadData() {
             // 本地file://协议直接跳过，使用内联默认值
             if (location.protocol === 'file:') return;
@@ -1613,16 +1755,20 @@
                 const res = await fetch('bookmarks.json');
                 if (res.ok) {
                     const data = await res.json();
-                    if (data.bookmarks) {
+                    if (data && Array.isArray(data.bookmarks)) {
                         pageData.bookmarks = data.bookmarks.map(bm => ({ ...bm }));
                         initialBookmarks = data.bookmarks.map(bm => ({ ...bm }));
                     }
-                    if (data.categories) pageData.categories = data.categories;
+                    if (data && Array.isArray(data.categories)) pageData.categories = data.categories;
                 }
             } catch {}
         }
 
-        // ==================== 用户编辑的书签与偏好（保存到 localStorage）====================
+        /**
+         * 加载用户保存在 localStorage 中的自定义快捷书签与壁纸偏好
+         * 用户自定义数据具备最高优先覆盖权
+         * @returns {void}
+         */
         function loadUserData() {
             const saved = storageGet('userBookmarks');
             if (saved && Array.isArray(saved) && saved.length) {
@@ -1655,13 +1801,10 @@
          * @param {string} str
          * @returns {string} HTML 转义后的安全字符串
          */
+        const htmlEscapes = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+        const htmlEscapeRegex = /[&<>"']/g;
         function escapeHtml(str) {
-            return String(str ?? '')
-                .replace(/&/g,'&amp;')
-                .replace(/</g,'&lt;')
-                .replace(/>/g,'&gt;')
-                .replace(/"/g,'&quot;')
-                .replace(/'/g,'&#39;');
+            return String(str ?? '').replace(htmlEscapeRegex, ch => htmlEscapes[ch]);
         }
 
         /**
@@ -1676,6 +1819,11 @@
         }
 
         // ==================== 设置弹窗 Tab 切换与助手函数 ====================
+        /**
+         * 切换设置弹窗内部的 Tab 选项卡（快捷书签 / 外观壁纸 / 数据与备份）
+         * @param {string} targetTabId - 目标 Tab 面板 DOM ID ('tabBookmarks' | 'tabAppearance' | 'tabData')
+         * @returns {void}
+         */
         function switchSettingsTab(targetTabId) {
             const tabs = document.querySelectorAll('.settings-tab-btn');
             const panels = document.querySelectorAll('.settings-tab-panel');
@@ -1691,14 +1839,27 @@
             }
         }
 
+        /**
+         * 实时应用背景遮罩暗化度与高斯模糊度效果
+         * @param {number|string} opacity - 暗色遮罩不透明度百分比 (0 ~ 80)
+         * @param {number|string} blur - 背景高斯模糊像素值 (0 ~ 20)
+         * @param {boolean} [save=false] - 是否同步持久化至 localStorage
+         * @returns {void}
+         */
         function applyBgEffects(opacity, blur, save = false) {
             const op = Math.max(0, Math.min(80, parseInt(opacity, 10) || 0));
             const bl = Math.max(0, Math.min(20, parseInt(blur, 10) || 0));
             if (dom.bgOverlay) {
+                if (!save) dom.bgOverlay.style.transition = 'none';
                 dom.bgOverlay.style.backgroundColor = `rgba(0, 0, 0, ${op / 100})`;
                 const blurStyle = bl > 0 ? `blur(${bl}px)` : 'none';
                 dom.bgOverlay.style.backdropFilter = blurStyle;
                 dom.bgOverlay.style.webkitBackdropFilter = blurStyle;
+                if (!save) {
+                    requestAnimationFrame(() => {
+                        dom.bgOverlay.style.transition = 'background-color 0.2s ease, backdrop-filter 0.2s ease, -webkit-backdrop-filter 0.2s ease';
+                    });
+                }
             }
             if (dom.maskOpacityVal) dom.maskOpacityVal.textContent = `${op}%`;
             if (dom.bgBlurVal) dom.bgBlurVal.textContent = `${bl}px`;
@@ -1710,11 +1871,15 @@
             }
         }
 
+        /**
+         * 更新设置弹窗「数据与备份」Tab 中的存储占用容量与项目统计状态
+         * @returns {void}
+         */
         function updateDataTabStats() {
             if (!dom.storageSizeBadge) return;
             try {
                 const raw = JSON.stringify(localStorage);
-                const bytes = new Blob([raw]).size;
+                const bytes = new TextEncoder().encode(raw).length;
                 const kb = (bytes / 1024).toFixed(1);
                 dom.storageSizeBadge.textContent = `已用 ${kb} KB`;
             } catch {
@@ -1722,7 +1887,8 @@
             }
 
             if (dom.statBookmarkCount) {
-                const count = dom.editList ? dom.editList.querySelectorAll('[data-idx]').length : pageData.bookmarks.length;
+                const editRows = dom.editList ? dom.editList.querySelectorAll('[data-idx]') : null;
+                const count = (editRows && editRows.length > 0) ? editRows.length : pageData.bookmarks.length;
                 dom.statBookmarkCount.textContent = count;
             }
             if (dom.statWallpaperType) {
@@ -1746,12 +1912,21 @@
             wallpaperChanged: false
         };
 
+        /**
+         * 刷新快捷书签数量统计徽章文本
+         * @returns {void}
+         */
         function updateBookmarkCountBadge() {
             if (!dom.bookmarkCountBadge) return;
             const count = dom.editList ? dom.editList.querySelectorAll('[data-idx]').length : pageData.bookmarks.length;
             dom.bookmarkCountBadge.textContent = `已添加 ${count} 项`;
         }
 
+        /**
+         * 刷新预设壁纸库卡片的激活（Active）高亮选中状态
+         * @param {string} [customWallpaperOverride] - 选填，草稿模式下用于覆盖当前生效壁纸地址的 URL
+         * @returns {void}
+         */
         function updatePresetBgCardsUI(customWallpaperOverride) {
             const currentBg = customWallpaperOverride !== undefined ? (customWallpaperOverride || backgrounds[state.bg] || '') : (storageGet('userWallpaper') || backgrounds[state.bg] || '');
             document.querySelectorAll('.preset-bg-card').forEach(card => {
@@ -1760,6 +1935,11 @@
             });
         }
 
+        /**
+         * 刷新外观壁纸 Tab 中的壁纸来源文字提示与「恢复默认」按钮显隐状态
+         * @param {string|null} [customWallpaperOverride] - 选填，草稿模式下的动态壁纸 URL
+         * @returns {void}
+         */
         function updateWallpaperStatusUI(customWallpaperOverride) {
             const customBg = customWallpaperOverride !== undefined ? customWallpaperOverride : storageGet('userWallpaper');
             if (!dom.wallpaperStatus || !dom.resetBgBtn) return;
@@ -1774,14 +1954,33 @@
             }
         }
 
+        /**
+         * 在草稿中实时预览选中的新壁纸（在点击「保存并关闭」之前不持久化）
+         * @param {string} urlStr - 目标壁纸的图片 URL 或 DataURL
+         * @returns {void}
+         */
         function previewDraftWallpaper(urlStr) {
             modalState.draftWallpaper = urlStr;
             modalState.wallpaperChanged = true;
-            applyWallpaper(urlStr || backgrounds[state.bg], true);
+            if (urlStr && /^https?:\/\//i.test(urlStr)) {
+                const testImg = new Image();
+                testImg.onload = () => { applyWallpaper(urlStr, true); testImg.onload = testImg.onerror = null; };
+                testImg.onerror = () => {
+                    showConfirm('无法加载该网络图片，请检查图片 URL 是否有效。', null, '图片无法加载');
+                    testImg.onload = testImg.onerror = null;
+                };
+                testImg.src = urlStr;
+            } else {
+                applyWallpaper(urlStr || backgrounds[state.bg], true);
+            }
             updateWallpaperStatusUI(urlStr);
             updatePresetBgCardsUI(urlStr);
         }
 
+        /**
+         * 在草稿中重置为默认系统壁纸（在点击「保存并关闭」之前不持久化）
+         * @returns {void}
+         */
         function resetDraftWallpaper() {
             modalState.draftWallpaper = null;
             modalState.wallpaperChanged = true;
@@ -1791,20 +1990,40 @@
         }
 
         // ==================== 编辑快捷书签弹窗 ====================
-        function renderEditList(listToRender) {
-            const list = listToRender || pageData.bookmarks;
-            dom.editList.innerHTML = list.map((bm, i) => `
-                <div class="flex items-center gap-2 p-1.5 px-2 bg-white/5 border border-white/10 apple-radius hover:border-white/25 transition group mb-1.5 shadow-xs" data-idx="${i}">
-                    <div class="drag-handle p-1 shrink-0 text-white/30 hover:text-white cursor-grab active:cursor-grabbing transition" draggable="true" title="按住拖拽排序">
+        /**
+         * 生成编辑弹窗中单条书签行的 HTML 模板
+         * @param {string} [name=''] - 书签名称
+         * @param {string} [url=''] - 书签 URL
+         * @param {number|string} [idx=''] - 行索引数据标记
+         * @returns {string} 行 HTML 拼接字符串
+         */
+        function getEditRowHTML(name = '', url = '', idx = '') {
+            return `
+                <div class="flex items-center gap-1.5 p-1.5 px-2 bg-white/5 border border-white/10 apple-radius hover:border-white/25 transition group mb-1.5 shadow-xs" data-idx="${idx}">
+                    <div class="drag-handle p-1 shrink-0 text-white/30 hover:text-white cursor-grab active:cursor-grabbing transition" draggable="true" title="按住拖拽排序（桌面端）">
                         <svg class="w-3.5 h-3.5 pointer-events-none" viewBox="0 0 16 16" fill="currentColor"><circle cx="5" cy="4" r="1.5"/><circle cx="11" cy="4" r="1.5"/><circle cx="5" cy="8" r="1.5"/><circle cx="11" cy="8" r="1.5"/><circle cx="5" cy="12" r="1.5"/><circle cx="11" cy="12" r="1.5"/></svg>
                     </div>
-                    <input type="text" class="edit-name flex-1 bg-black/20 border border-white/10 apple-radius px-2.5 py-1.5 text-xs text-white/90 focus:border-white/40 focus:bg-black/40 outline-none transition" value="${escapeHtml(bm.name)}" placeholder="书签名称">
-                    <input type="text" class="edit-url flex-[2] bg-black/20 border border-white/10 apple-radius px-2.5 py-1.5 text-xs text-white/75 focus:border-white/40 focus:bg-black/40 focus:text-white outline-none transition font-mono" value="${escapeHtml(bm.url)}" placeholder="https://...">
+                    <div class="flex flex-col gap-0.5 shrink-0">
+                        <button type="button" class="move-up-btn p-0.5 text-[9px] leading-none hover:bg-white/10 apple-radius text-white/40 hover:text-white transition" title="上移书签">▲</button>
+                        <button type="button" class="move-down-btn p-0.5 text-[9px] leading-none hover:bg-white/10 apple-radius text-white/40 hover:text-white transition" title="下移书签">▼</button>
+                    </div>
+                    <input type="text" class="edit-name flex-1 bg-black/20 border border-white/10 apple-radius px-2.5 py-1.5 text-xs text-white/90 focus:border-white/40 focus:bg-black/40 outline-none transition" value="${escapeHtml(name)}" placeholder="书签名称">
+                    <input type="text" class="edit-url flex-[2] bg-black/20 border border-white/10 apple-radius px-2.5 py-1.5 text-xs text-white/75 focus:border-white/40 focus:bg-black/40 focus:text-white outline-none transition font-mono" value="${escapeHtml(url)}" placeholder="https://...">
                     <button type="button" class="del-btn shrink-0 p-1.5 hover:bg-red-500/20 apple-radius text-white/30 hover:text-red-400 transition" title="删除书签">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                     </button>
                 </div>
-            `).join('');
+            `;
+        }
+
+        /**
+         * 渲染编辑弹窗中的快捷书签列表 DOM
+         * @param {Bookmark[]} [listToRender] - 选填，渲染指定的书签数组，未传时默认渲染 pageData.bookmarks
+         * @returns {void}
+         */
+        function renderEditList(listToRender) {
+            const list = listToRender || pageData.bookmarks;
+            dom.editList.innerHTML = list.map((bm, i) => getEditRowHTML(bm.name, bm.url, i)).join('');
             updateBookmarkCountBadge();
         }
 
@@ -1818,14 +2037,18 @@
             const items = dom.editList.querySelectorAll('[data-idx]');
             const bookmarks = [];
             items.forEach(el => {
-                const name = el.querySelector('.edit-name').value.trim();
-                let url = el.querySelector('.edit-url').value.trim();
+                const name = (el.querySelector('.edit-name')?.value || '').trim();
+                let url = (el.querySelector('.edit-url')?.value || '').trim();
                 url = normalizeUrl(url);
                 if (name && url) bookmarks.push({ name, url, icon: faviconFromUrl(url) });
             });
             return bookmarks;
         }
 
+        /**
+         * 打开设置与偏好弹窗，备份打开前的初始配置以备取消时回滚
+         * @returns {void}
+         */
         function openEditModal() {
             state.editOpen = true;
 
@@ -1849,6 +2072,10 @@
             dom.editModal.classList.add('active');
         }
 
+        /**
+         * 取消编辑并关闭弹窗，撤销草稿中的预览变更，回滚至打开前的原始配置
+         * @returns {void}
+         */
         function cancelEditModal() {
             // 撤销草稿中的预览变更，滚回打开前的真实配置
             if (modalState.wallpaperChanged) {
@@ -1859,12 +2086,21 @@
             closeEditModal();
         }
 
+        /**
+         * 关闭设置与偏好弹窗
+         * @returns {void}
+         */
         function closeEditModal() {
             state.editOpen = false;
             dom.editModal.classList.remove('active');
         }
 
         // ==================== 纯前端 JSON 配置文件导入与导出 ====================
+        /**
+         * 导出当前快捷书签为 JSON 格式备份文件
+         * 自动触发浏览器下载，文件名为 startpage_bookmarks_YYYY-MM-DD.json
+         * @returns {void}
+         */
         function exportBookmarksJSON() {
             const data = collectEditData();
             const bookmarksToExport = data.length ? data : pageData.bookmarks;
@@ -1877,15 +2113,21 @@
             const blob = new Blob([jsonStr], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
-            const dateStr = new Date().toISOString().slice(0, 10);
+            const d = new Date();
+            const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
             a.href = url;
             a.download = `startpage_bookmarks_${dateStr}.json`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
-            URL.revokeObjectURL(url);
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
         }
 
+        /**
+         * 读取并解析用户选择/拖入的 JSON 备份文件，校验结构后填入编辑草稿列表中
+         * @param {File} file - 用户选择的 JSON File 对象
+         * @returns {void}
+         */
         function importBookmarksJSON(file) {
             if (!file) return;
             const reader = new FileReader();
@@ -1930,6 +2172,8 @@
                     }, '导入草稿确认');
                 } catch (err) {
                     showConfirm('解析 JSON 配置文件失败，请检查文件格式。', null, '解析错误');
+                } finally {
+                    reader.onload = null;
                 }
             };
             reader.readAsText(file, 'UTF-8');
@@ -1959,33 +2203,45 @@
             msgEl.textContent = message;
             modal.classList.add('active');
 
-            function handleOk() { cleanup(); onConfirm?.(); }
-            function handleCancel() { cleanup(); }
-
-            // 用变量保存实际注册到 modal 的 handler，确保 cleanup 能精确移除
-            const handleModalClick = isNotify ? handleOk : handleCancel;
-
             function cleanup() {
                 modal.classList.remove('active');
-                cancelBtn.style.display = ''; // 恢复取消按钮，防止影响下次调用
+                cancelBtn.style.display = '';
                 okBtn.removeEventListener('click', handleOk);
                 cancelBtn.removeEventListener('click', handleCancel);
-                modal.removeEventListener('click', handleModalClick); // 移除正确的 handler
+                modal.removeEventListener('click', handleBackdropClick);
+            }
+
+            function handleOk() { cleanup(); onConfirm?.(); }
+            function handleCancel() { cleanup(); }
+            function handleBackdropClick(e) {
+                if (e.target === modal) {
+                    cleanup();
+                }
             }
 
             okBtn.addEventListener('click', handleOk);
             if (!isNotify) cancelBtn.addEventListener('click', handleCancel);
-            modal.addEventListener('click', handleModalClick);
+            modal.addEventListener('click', handleBackdropClick);
         }
 
+        /**
+         * 恢复系统初始默认状态（重置用户快捷书签、背景壁纸与偏好设置）
+         * 触发二步确认弹窗，确认后清除相关 localStorage 记录并即时生效
+         * @returns {void}
+         */
         function resetBookmarks() {
             // 清除 localStorage 用户编辑与偏好设置，恢复系统初始默认配置并立即生效
             showConfirm('确定要恢复系统初始默认状态吗？此操作将立即清除您自定义的所有快捷书签、背景壁纸与偏好设置。', () => {
-                localStorage.removeItem('userBookmarks');
-                localStorage.removeItem('preferredEngine');
-                localStorage.removeItem('userWallpaper');
-                localStorage.removeItem('maskOpacity');
-                localStorage.removeItem('bgBlur');
+                storageRemove('userBookmarks');
+                storageRemove('preferredEngine');
+                storageRemove('userWallpaper');
+                storageRemove('maskOpacity');
+                storageRemove('bgBlur');
+
+                modalState.draftWallpaper = undefined;
+                modalState.draftMaskOpacity = null;
+                modalState.draftBgBlur = null;
+                modalState.wallpaperChanged = false;
 
                 setEngine('bing', false);
                 state.bg = 0;
@@ -2000,20 +2256,35 @@
 
 
         // ==================== 从导航页选择弹窗 ====================
+        /**
+         * 打开「从导航页选择」批量挑选弹窗，渲染所有分类及其包含的站点列表
+         * @returns {void}
+         */
         function openBookmarkPicker() {
             dom.bookmarkPicker.classList.add('active');
             renderPickerCategories();
         }
 
+        /**
+         * 关闭「从导航页选择」挑选弹窗
+         * @returns {void}
+         */
         function closeBookmarkPicker() {
             dom.bookmarkPicker.classList.remove('active');
         }
 
         // ==================== 编辑列表拖拽排序 ====================
+        /**
+         * 初始化编辑弹窗中书签条目的 HTML5 拖拽排序（Drag & Drop）监听器
+         * 支持桌面上拖拽 `⋮⋮` 句柄调整书签排列顺序
+         * @returns {void}
+         */
         function initDragSort() {
             let dragSrc = null;
             dom.editList.addEventListener('dragstart', e => {
+                const isInput = e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA');
                 const handle = e.target.closest('.drag-handle');
+                if (!handle && isInput) return; // 放行输入框文本选择与拖拽，不进行 preventDefault 阻断
                 if (!handle) { e.preventDefault(); return; }
                 const item = handle.closest('[data-idx]');
                 if (!item) return;
@@ -2046,16 +2317,20 @@
             });
         }
 
-        /** 渲染导航页所有分类书签，已存在的标记灰色 + 已存在文字 */
+        /**
+         * 渲染导航页所有分类及其包含的书签列表至挑选弹窗中
+         * 自动标记已存在于快捷书签中的站点为不可选状态
+         * @returns {void}
+         */
+        const zhCollator = new Intl.Collator('zh-CN', { numeric: true, sensitivity: 'base' });
+
         function renderPickerCategories() {
             const urls = new Set();
             dom.editList.querySelectorAll('.edit-url').forEach(inp => urls.add(inp.value.trim()));
             pageData.bookmarks.forEach(bm => urls.add(bm.url));
 
             dom.pickerContent.innerHTML = pageData.categories.map(cat => {
-                const sortedBookmarks = [...cat.bookmarks].sort((a, b) => 
-                    a.name.localeCompare(b.name, 'zh-CN', { numeric: true, sensitivity: 'base' })
-                );
+                const sortedBookmarks = [...cat.bookmarks].sort((a, b) => zhCollator.compare(a.name, b.name));
                 return `
                 <div>
                     <div class="flex items-center gap-1.5 mb-1.5 pb-1 border-b border-white/5">
@@ -2084,16 +2359,28 @@
             updatePickerCount();
         }
 
+        /**
+         * 刷新挑选弹窗底部的已选择书签计数
+         * @returns {void}
+         */
         function updatePickerCount() {
             const count = dom.editList.querySelectorAll('[data-idx]').length;
             dom.pickerCount.textContent = `已添加 ${count} 项`;
         }
 
         // ==================== 后台预加载图标（仅预加载首屏快捷书签）====================
+        /**
+         * 预加载首屏快捷书签的 Favicon 图标，提升页面初次加载体验
+         * @returns {void}
+         */
         function preloadFavicons() {
             const urls = new Set();
             pageData.bookmarks.forEach(bm => { if (bm.icon) urls.add(bm.icon); });
-            urls.forEach(url => { const img = new Image(); img.src = url; });
+            urls.forEach(url => {
+                const img = new Image();
+                img.onload = img.onerror = () => { img.onload = img.onerror = null; };
+                img.src = url;
+            });
         }
 
         /**
@@ -2107,7 +2394,10 @@
          *   4. renderBookmarks()  — 依赖 pageData.bookmarks 已由前三步确定
          *   5. renderNavCategories() + initSidebarNav() — 后者依赖前者生成的 DOM
          */
+        let isAppInitialized = false;
         function init() {
+            if (isAppInitialized) return;
+            isAppInitialized = true;
             cacheDOM();
             document.addEventListener('error', e => {
                 if (e.target && e.target.tagName === 'IMG' && e.target.classList.contains('engine-icon')) {
@@ -2135,14 +2425,21 @@
             loadData().then(() => {
                 if (!storageGet('userBookmarks')) {
                     renderBookmarks();
-                    renderNavCategories();
                 }
+                renderNavCategories();
             });
         }
 
         // ==================== 苹果风格 Favicon 兜底徽章 (严格尺寸强制归一) ====================
+        /**
+         * 图像加载失败时的全局 onerror 降级回调
+         * 将加载失败的 <img> 节点替换为带站点首字母的 Apple 风格半透明徽章
+         * @param {HTMLImageElement} img - 加载失败的图片节点
+         * @returns {void}
+         */
         function handleIconError(img) {
-            if (!img) return;
+            if (!img || img.dataset.failed) return;
+            img.dataset.failed = '1';
             const initial = img.dataset.initial || '?';
             const isMd = img.dataset.md === '1';
             const sizeClass = isMd ? 'icon-box-md' : 'icon-box-sm';
@@ -2156,6 +2453,13 @@
         }
         window.handleIconError = handleIconError;
 
+        /**
+         * 根据书签数据对象生成规范化的 Favicon HTML 图标结构
+         * 自动处理缺失图标时的首字母文字徽章，以及合法 URL 图片节点的生成
+         * @param {Bookmark} bm - 单个书签数据对象
+         * @param {'sm'|'md'} [sizeType='sm'] - 图标尺寸类别 ('sm': 导航页 1.5rem | 'md': 首屏 2rem)
+         * @returns {string} 渲染后的 HTML 字符串
+         */
         function getFaviconHTML(bm, sizeType = 'sm') {
             const initial = (bm.name || '?').trim().charAt(0).toUpperCase();
             const isMd = sizeType === 'md';
@@ -2170,6 +2474,10 @@
         }
 
         // ==================== 书签 ====================
+        /**
+         * 渲染首屏快捷书签网格 (pageData.bookmarks)
+         * @returns {void}
+         */
         function renderBookmarks() {
             if (!dom.bookmarks) return;
             dom.bookmarks.innerHTML = pageData.bookmarks.map(bm => `
@@ -2184,6 +2492,7 @@
         // ==================== 导航页（双栏布局）====================
         function renderNavCategories() {
             if (!dom.sidebarList || !dom.navCategories) return;
+            const savedScrollTop = dom.navContent ? dom.navContent.scrollTop : 0;
 
             // 左侧分类列表
             dom.sidebarList.innerHTML = pageData.categories.map((cat, i) => `
@@ -2196,9 +2505,7 @@
 
             // 右侧书签内容（自动按 A-Z 拼音/字母排序）
             dom.navCategories.innerHTML = pageData.categories.map((cat, i) => {
-                const sortedBookmarks = [...cat.bookmarks].sort((a, b) => 
-                    a.name.localeCompare(b.name, 'zh-CN', { numeric: true, sensitivity: 'base' })
-                );
+                const sortedBookmarks = [...cat.bookmarks].sort((a, b) => zhCollator.compare(a.name, b.name));
                 return `
                 <div id="cat-${i}" class="category-block ${i > 0 ? 'scroll-mt-6' : ''}">
                     <!-- Apple 极简原生分类标题 (清爽无异形圆角框) -->
@@ -2227,23 +2534,34 @@
             }).join('');
 
             // 每次重新渲染分类后，自动刷新侧边栏动态 DOM 节点关联
+            refreshSidebarNavCache();
             initSidebarNav();
+            if (dom.navContent && savedScrollTop > 0) {
+                dom.navContent.scrollTop = savedScrollTop;
+            }
         }
 
-        // ==================== 侧边栏导航 (实时位置计算 + 点击动画锁) ====================
         let isSidebarNavInitialized = false;
         let isManualScrolling = false;
         let manualScrollTimer = null;
+        let cachedSidebarItems = [];
+        let cachedSidebarSections = [];
+
+        function refreshSidebarNavCache() {
+            if (!dom.sidebarList) return;
+            cachedSidebarItems = Array.from(dom.sidebarList.querySelectorAll('[data-target]'));
+            cachedSidebarSections = cachedSidebarItems.map(item => document.getElementById(item.dataset.target)).filter(Boolean);
+        }
 
         function updateSidebarActive() {
             const sidebar = dom.sidebarList;
             const content = dom.navContent;
             if (!sidebar || !content || isManualScrolling) return;
 
-            const items = Array.from(sidebar.querySelectorAll('[data-target]'));
-            if (!items.length) return;
-            const sections = items.map(item => document.getElementById(item.dataset.target)).filter(Boolean);
-            if (!sections.length) return;
+            if (!cachedSidebarItems.length) refreshSidebarNavCache();
+            const items = cachedSidebarItems;
+            const sections = cachedSidebarSections;
+            if (!items.length || !sections.length) return;
 
             const containerTop = content.getBoundingClientRect().top;
             const containerHeight = content.clientHeight;
@@ -2276,8 +2594,12 @@
                 const isActive = i === activeIdx;
                 const wasActive = item.classList.contains('active');
                 item.classList.toggle('active', isActive);
-                if (isActive && !wasActive) {
-                    item.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                if (isActive && !wasActive && !isManualScrolling) {
+                    const sRect = sidebar.getBoundingClientRect();
+                    const iRect = item.getBoundingClientRect();
+                    if (iRect.top < sRect.top || iRect.bottom > sRect.bottom || iRect.left < sRect.left || iRect.right > sRect.right) {
+                        item.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                    }
                 }
             });
         }
@@ -2395,7 +2717,9 @@
             });
 
             if (dom.searchClearBtn) {
-                dom.searchClearBtn.addEventListener('click', () => {
+                dom.searchClearBtn.addEventListener('click', e => {
+                    e.stopPropagation();
+                    e.preventDefault();
                     dom.searchInput.value = '';
                     originalQuery = '';
                     dom.searchClearBtn.classList.add('hidden');
@@ -2554,6 +2878,7 @@
                     if (dom.suggestionMenu && dom.suggestionMenu.classList.contains('active') && selectedSuggestionIdx >= 0) {
                         dom.searchInput.value = originalQuery;
                     }
+                    if (dom.searchClearBtn) dom.searchClearBtn.classList.toggle('hidden', !dom.searchInput.value);
                     closeDropdown();
                     hideSuggestions();
                     dom.searchInput.blur();
@@ -2606,6 +2931,7 @@
                 dom.jsonDropzone.addEventListener('dragleave', e => {
                     e.preventDefault();
                     e.stopPropagation();
+                    if (e.relatedTarget && dom.jsonDropzone.contains(e.relatedTarget)) return;
                     dom.jsonDropzone.classList.remove('drag-over');
                 });
                 dom.jsonDropzone.addEventListener('drop', e => {
@@ -2627,19 +2953,9 @@
                 pageData.bookmarks.forEach(bm => urls.add(bm.url));
                 if (urls.has(url)) return;
 
-                const div = document.createElement('div');
-                div.className = 'flex items-center gap-2 p-1.5 px-2 bg-white/5 border border-white/10 apple-radius hover:border-white/25 transition group mb-1.5 shadow-xs';
-                div.setAttribute('data-idx', Date.now());
-                div.innerHTML = `
-                    <div class="drag-handle p-1 shrink-0 text-white/30 hover:text-white cursor-grab active:cursor-grabbing transition" draggable="true" title="按住拖拽排序">
-                        <svg class="w-3.5 h-3.5 pointer-events-none" viewBox="0 0 16 16" fill="currentColor"><circle cx="5" cy="4" r="1.5"/><circle cx="11" cy="4" r="1.5"/><circle cx="5" cy="8" r="1.5"/><circle cx="11" cy="8" r="1.5"/><circle cx="5" cy="12" r="1.5"/><circle cx="11" cy="12" r="1.5"/></svg>
-                    </div>
-                    <input type="text" class="edit-name flex-1 bg-black/20 border border-white/10 apple-radius px-2.5 py-1.5 text-xs text-white/90 focus:border-white/40 focus:bg-black/40 outline-none transition" value="${escapeHtml(name)}" placeholder="书签名称">
-                    <input type="text" class="edit-url flex-[2] bg-black/20 border border-white/10 apple-radius px-2.5 py-1.5 text-xs text-white/75 focus:border-white/40 focus:bg-black/40 focus:text-white outline-none transition font-mono" value="${escapeHtml(url)}" placeholder="https://...">
-                    <button type="button" class="del-btn shrink-0 p-1.5 hover:bg-red-500/20 apple-radius text-white/30 hover:text-red-400 transition" title="删除书签">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                    </button>
-                `;
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = getEditRowHTML(name, url, Date.now()).trim();
+                const div = tempDiv.firstElementChild;
                 dom.editList.appendChild(div);
                 item.classList.add('opacity-40', 'pointer-events-none');
                 item.dataset.name = '';
@@ -2650,19 +2966,9 @@
             });
 
             dom.addBookmarkBtn.addEventListener('click', () => {
-                const div = document.createElement('div');
-                div.className = 'flex items-center gap-2 p-1.5 px-2 bg-white/5 border border-white/10 apple-radius hover:border-white/25 transition group mb-1.5 shadow-xs';
-                div.setAttribute('data-idx', Date.now());
-                div.innerHTML = `
-                    <div class="drag-handle p-1 shrink-0 text-white/30 hover:text-white cursor-grab active:cursor-grabbing transition" draggable="true" title="按住拖拽排序">
-                        <svg class="w-3.5 h-3.5 pointer-events-none" viewBox="0 0 16 16" fill="currentColor"><circle cx="5" cy="4" r="1.5"/><circle cx="11" cy="4" r="1.5"/><circle cx="5" cy="8" r="1.5"/><circle cx="11" cy="8" r="1.5"/><circle cx="5" cy="12" r="1.5"/><circle cx="11" cy="12" r="1.5"/></svg>
-                    </div>
-                    <input type="text" class="edit-name flex-1 bg-black/20 border border-white/10 apple-radius px-2.5 py-1.5 text-xs text-white/90 focus:border-white/40 focus:bg-black/40 outline-none transition" placeholder="书签名称">
-                    <input type="text" class="edit-url flex-[2] bg-black/20 border border-white/10 apple-radius px-2.5 py-1.5 text-xs text-white/75 focus:border-white/40 focus:bg-black/40 focus:text-white outline-none transition font-mono" placeholder="https://...">
-                    <button type="button" class="del-btn shrink-0 p-1.5 hover:bg-red-500/20 apple-radius text-white/30 hover:text-red-400 transition" title="删除书签">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                    </button>
-                `;
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = getEditRowHTML('', '', Date.now()).trim();
+                const div = tempDiv.firstElementChild;
                 dom.editList.appendChild(div);
                 div.querySelector('.edit-name').focus();
                 updateBookmarkCountBadge();
@@ -2674,6 +2980,23 @@
                     del.closest('[data-idx]')?.remove();
                     updatePickerCount();
                     updateBookmarkCountBadge();
+                    return;
+                }
+                const moveUp = e.target.closest('.move-up-btn');
+                if (moveUp) {
+                    const item = moveUp.closest('[data-idx]');
+                    if (item && item.previousElementSibling) {
+                        item.parentNode.insertBefore(item, item.previousElementSibling);
+                    }
+                    return;
+                }
+                const moveDown = e.target.closest('.move-down-btn');
+                if (moveDown) {
+                    const item = moveDown.closest('[data-idx]');
+                    if (item && item.nextElementSibling) {
+                        item.parentNode.insertBefore(item.nextElementSibling, item);
+                    }
+                    return;
                 }
             });
 
@@ -2695,7 +3018,7 @@
                     if (modalState.draftWallpaper) {
                         storageSet('userWallpaper', modalState.draftWallpaper);
                     } else {
-                        localStorage.removeItem('userWallpaper');
+                        storageRemove('userWallpaper');
                     }
                 }
 
@@ -2732,7 +3055,46 @@
                         const reader = new FileReader();
                         reader.onload = ev => {
                             const dataUrl = ev.target.result;
-                            previewDraftWallpaper(dataUrl);
+                            // 若原始图片文件小于 2.5MB 且非超大文件，直接保留 100% 无损原图，不经过 Canvas 重新编码
+                            if (file.size <= 2.5 * 1024 * 1024) {
+                                previewDraftWallpaper(dataUrl);
+                                reader.onload = null;
+                                return;
+                            }
+
+                            const img = new Image();
+                            img.onload = () => {
+                                // 针对超大文件（如 > 2.5MB 的 8K/BMP 等），智能按 4K 顶级超清分辨率 (3840x2160) 及 92% 高品质 JPEG 进行优化
+                                const MAX_WIDTH = 3840;
+                                const MAX_HEIGHT = 2160;
+                                let width = img.width;
+                                let height = img.height;
+
+                                if (width > MAX_WIDTH || height > MAX_HEIGHT) {
+                                    if (width / height > MAX_WIDTH / MAX_HEIGHT) {
+                                        height = Math.round((height * MAX_WIDTH) / width);
+                                        width = MAX_WIDTH;
+                                    } else {
+                                        width = Math.round((width * MAX_HEIGHT) / height);
+                                        height = MAX_HEIGHT;
+                                    }
+                                }
+
+                                const canvas = document.createElement('canvas');
+                                canvas.width = width;
+                                canvas.height = height;
+                                const ctx = canvas.getContext('2d');
+                                ctx.drawImage(img, 0, 0, width, height);
+
+                                const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.95);
+                                previewDraftWallpaper(compressedDataUrl);
+
+                                canvas.width = 0;
+                                canvas.height = 0;
+                                img.onload = null;
+                                reader.onload = null;
+                            };
+                            img.src = dataUrl;
                         };
                         reader.readAsDataURL(file);
                     }
@@ -2793,11 +3155,15 @@
             initDragSort();
         }
 
-        // ==================== 时钟 ====================
+        let lastDateDay = -1;
         function updateClock() {
             const n = new Date();
             dom.clock.textContent = `${String(n.getHours()).padStart(2, '0')}:${String(n.getMinutes()).padStart(2, '0')}`;
-            dom.date.textContent = n.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
+            const day = n.getDate();
+            if (day !== lastDateDay) {
+                lastDateDay = day;
+                dom.date.textContent = n.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
+            }
         }
 
         // ==================== 搜索引擎与实时建议 ====================
@@ -2817,16 +3183,18 @@
         /** @param {string} key - 引擎标识（bing/google/duckduckgo/baidu）
          * @param {boolean} [save] - 是否持久化到 localStorage */
         function setEngine(key, save = true) {
-            state.engine = key;
-            dom.engineName.textContent = engines[key].name;
+            const validEngine = engines[key] ? key : 'bing';
+            state.engine = validEngine;
+            const engineObj = engines[validEngine] || engines.bing;
+            dom.engineName.textContent = engineObj.name;
             if (dom.engineIcon) {
                 dom.engineIcon.style.display = '';
-                dom.engineIcon.src = engines[key].icon;
+                dom.engineIcon.src = engineObj.icon;
             }
             closeDropdown();
-            if (save) storageSet('preferredEngine', key);
+            if (save) storageSet('preferredEngine', validEngine);
             if (dom.searchInput && dom.searchInput.value.trim()) {
-                fetchSuggestions(key, dom.searchInput.value.trim());
+                fetchSuggestions(validEngine, dom.searchInput.value.trim());
             }
         }
         /** 
@@ -2839,7 +3207,8 @@
             if (!q) return;
             hideSuggestions();
             closeDropdown();
-            const targetUrl = engines[state.engine].url + encodeURIComponent(q);
+            const engineObj = engines[state.engine] || engines.bing;
+            const targetUrl = engineObj.url + encodeURIComponent(q);
             if (newTab) {
                 window.open(targetUrl, '_blank', 'noopener,noreferrer');
             } else {
@@ -2874,8 +3243,9 @@
                     clearTimeout(timeoutTimer);
                     timeoutTimer = null;
                 }
-                try { window[cbName] = () => {}; } catch {}
+                try { delete window[cbName]; } catch { window[cbName] = undefined; }
                 if (suggestionScriptTag) {
+                    suggestionScriptTag.onerror = null;
                     suggestionScriptTag.remove();
                     suggestionScriptTag = null;
                 }
@@ -2893,8 +3263,8 @@
                 if (reqId !== activeSuggestReqId) return; // 废弃过期异步响应
                 let list = [];
                 if (Array.isArray(data)) {
-                    // Bing / Google format: [query, [suggestions]]
-                    list = Array.isArray(data[1]) ? data[1] : data;
+                    // Bing / Google format: [query, [suggestions]] / DuckDuckGo format: [{phrase:"..."}, ...]
+                    list = Array.isArray(data[1]) ? data[1] : data.map(item => (typeof item === 'object' && item && item.phrase) ? item.phrase : item);
                 } else if (data && Array.isArray(data.s)) {
                     // Baidu format: {s: [suggestions]}
                     list = data.s;
@@ -2912,16 +3282,16 @@
                 cleanup();
             };
 
-            // 百度 JSONP (指定 GBK 编码防乱码)
+            // 百度 JSONP (强制指定 ie=utf-8，防止 Safari WebKit 动态 script 忽略 charset 属性导致中文乱码)
             if (engineKey === 'baidu') {
                 script.charset = 'gbk';
-                script.src = `https://suggestion.baidu.com/su?wd=${encodeURIComponent(query)}&cb=${cbName}`;
+                script.src = `https://suggestion.baidu.com/su?wd=${encodeURIComponent(query)}&p=3&ie=utf-8&oe=utf-8&cb=${cbName}`;
             } else if (engineKey === 'bing') {
                 script.src = `https://api.bing.com/osjson.aspx?query=${encodeURIComponent(query)}&JsonType=callback&JsonCallback=${cbName}`;
             } else if (engineKey === 'google') {
                 script.src = `https://suggestqueries.google.com/complete/search?client=chrome&q=${encodeURIComponent(query)}&callback=${cbName}`;
             } else if (engineKey === 'duckduckgo') {
-                script.src = `https://suggestqueries.google.com/complete/search?client=chrome&q=${encodeURIComponent(query)}&callback=${cbName}`;
+                script.src = `https://ac.duckduckgo.com/ac/?q=${encodeURIComponent(query)}&type=list&callback=${cbName}`;
             }
 
             document.body.appendChild(script);
@@ -2956,7 +3326,6 @@
         function hideSuggestions() {
             if (dom.suggestionMenu) {
                 dom.suggestionMenu.classList.remove('active');
-                dom.suggestionMenu.innerHTML = '';
             }
             selectedSuggestionIdx = -1;
         }
@@ -2980,6 +3349,9 @@
             if (bgSwitchTimer) {
                 clearTimeout(bgSwitchTimer);
                 bgSwitchTimer = null;
+                if (bgNext.style.backgroundImage && parseFloat(getComputedStyle(bgNext).opacity) > 0.4) {
+                    bgBase.style.backgroundImage = bgNext.style.backgroundImage;
+                }
             }
 
             if (animate) {
@@ -3027,14 +3399,14 @@
             }
         }
         function resetCustomWallpaper() {
-            localStorage.removeItem('userWallpaper');
+            storageRemove('userWallpaper');
             applyWallpaper(backgrounds[state.bg]);
             updateWallpaperStatusUI();
         }
         function switchBg() {
             const customBg = storageGet('userWallpaper');
             if (customBg) {
-                localStorage.removeItem('userWallpaper');
+                storageRemove('userWallpaper');
                 state.bg = 0;
             } else {
                 state.bg = (state.bg + 1) % backgrounds.length;
@@ -3044,17 +3416,27 @@
         }
 
         // ==================== 跨浏览器/跨系统高帧率平滑滚动动画（Apple 物理平滑曲线 + RAF 防重叠）====================
+        // ==================== 跨浏览器/跨系统高帧率平滑滚动动画（Apple 物理平滑曲线 + RAF 防重叠）====================
         let activeScrollRaf = null;
+        let activeScrollCb = null;
         function animateScrollTo(targetY, duration = 520, cb = null) {
             if (activeScrollRaf) {
                 cancelAnimationFrame(activeScrollRaf);
                 activeScrollRaf = null;
             }
+            if (activeScrollCb) {
+                activeScrollCb = null;
+            }
+            activeScrollCb = cb;
             const startY = window.scrollY;
             const distance = targetY - startY;
             if (Math.abs(distance) < 1.5) {
                 window.scrollTo(0, targetY);
-                if (cb) cb();
+                if (activeScrollCb) {
+                    const fn = activeScrollCb;
+                    activeScrollCb = null;
+                    fn();
+                }
                 return;
             }
             const startTime = performance.now();
@@ -3071,7 +3453,11 @@
                 } else {
                     window.scrollTo(0, targetY);
                     activeScrollRaf = null;
-                    if (cb) cb();
+                    if (activeScrollCb) {
+                        const fn = activeScrollCb;
+                        activeScrollCb = null;
+                        fn();
+                    }
                 }
             }
             activeScrollRaf = requestAnimationFrame(step);
@@ -3083,6 +3469,7 @@
             let resetAccumTimer = null;
             let isTransitioning = false;
             let currentSection = 'start';
+            let targetSection = getSavedSection() === 'nav' ? 'nav' : 'start';
             const SCROLL_THRESHOLD = 120; // 累积滚动像素阈值（跨浏览器一致）
             const nav = document.getElementById('navSection');
             const navContent = dom.navContent;
@@ -3113,7 +3500,8 @@
 
             // 暴露全局切屏控制接口，供点击 Header、键盘快捷键等共享调用
             function switchToNav() {
-                if (isTransitioning || currentSection === 'nav') return;
+                if (targetSection === 'nav') return;
+                targetSection = 'nav';
                 isTransitioning = true;
                 clearAccum();
                 saveSection('nav');
@@ -3132,7 +3520,8 @@
             }
 
             function switchToStart() {
-                if (isTransitioning || currentSection === 'start') return;
+                if (targetSection === 'start') return;
+                targetSection = 'start';
                 isTransitioning = true;
                 clearAccum();
                 if (navContent) navContent.scrollTop = 0;
@@ -3151,18 +3540,33 @@
             window.switchToNav = switchToNav;
             window.switchToStart = switchToStart;
 
-            // 若上次在导航页或滚动超过 40% 视口，直接显示导航区并跳过入场动画
-            if (getSavedSection() === 'nav' || window.scrollY > window.innerHeight * 0.4) {
+            // 依据 sessionStorage 精准同步页面状态与滚动位置（精准防误判）
+            if (getSavedSection() === 'nav') {
                 nav.classList.remove('nav-hidden');
                 nav.classList.add('nav-visible');
                 document.documentElement.classList.remove('nr');
-                window.scrollTo(0, nav.offsetTop);
                 currentSection = 'nav';
+                targetSection = 'nav';
                 state.currentSection = 'nav';
                 animationDone = true;
+                requestAnimationFrame(() => {
+                    window.scrollTo(0, nav.offsetTop);
+                });
             } else {
                 saveSection('start');
+                currentSection = 'start';
+                targetSection = 'start';
+                state.currentSection = 'start';
+                document.documentElement.classList.remove('nr');
+                window.scrollTo(0, 0);
             }
+
+            // 页面全量加载完成后重新校准导航页对齐位置（解决图片/字体延迟加载导致的高度微变）
+            window.addEventListener('load', () => {
+                if (currentSection === 'nav') {
+                    window.scrollTo(0, nav.offsetTop);
+                }
+            });
 
             // 归一化 deltaY，兼容 Safari / Windows 的 LINE / PAGE 模式
             function normDelta(e) {
@@ -3172,9 +3576,11 @@
                 return d;
             }
 
+            // ==================== 触屏与滚轮手势支持（高帧率优化的防干预逻辑） ====================
+            let lastTouchY = 0;
+
             document.addEventListener('wheel', (e) => {
-                if (isTransitioning) { e.preventDefault(); return; }
-                if (state.editOpen) return;
+                if (isTransitioning || state.editOpen) return;
 
                 const delta = normDelta(e);
                 const down = delta > 0;
@@ -3192,7 +3598,8 @@
                         switchToNav();
                     }
                 } else {
-                    if (!down && navContent.scrollTop <= 0) {
+                    // 仅当位于导航页顶端且向上滚动时才拦截并累积切屏阈值，其余状态下完全放行原生滚动
+                    if (!down && navContent && navContent.scrollTop <= 0) {
                         e.preventDefault();
                         scrollAccum += Math.abs(delta);
                         resetAccumAfterDelay();
@@ -3200,45 +3607,43 @@
                             switchToStart();
                         }
                     } else {
-                        // 在 navContent 内部，恢复原生触控与平滑滚动，不再拦截
                         clearAccum();
                     }
                 }
             }, { passive: false });
 
-            // ==================== 触屏支持 ====================
-            let touchStartY = 0;
-            let touchStartTime = 0;
-
             document.addEventListener('touchstart', (e) => {
-                touchStartY = e.touches[0].clientY;
-                touchStartTime = Date.now();
+                lastTouchY = e.touches[0].clientY;
             }, { passive: true });
 
             document.addEventListener('touchmove', (e) => {
                 if (isTransitioning || state.editOpen) return;
-                const deltaY = touchStartY - e.touches[0].clientY;
-                if (Math.abs(deltaY) < 10) return;
+                const currentY = e.touches[0].clientY;
+                const incrementalDelta = lastTouchY - currentY;
+                lastTouchY = currentY;
+
+                if (Math.abs(incrementalDelta) < 1) return;
 
                 if (currentSection === 'start') {
-                    if (deltaY > 0) {
+                    if (incrementalDelta > 0) {
                         e.preventDefault();
-                        scrollAccum += Math.abs(deltaY);
+                        scrollAccum += Math.abs(incrementalDelta);
                         resetAccumAfterDelay();
                         if (scrollAccum >= SCROLL_THRESHOLD) {
                             switchToNav();
                         }
+                    } else {
+                        scrollAccum = Math.max(0, scrollAccum - Math.abs(incrementalDelta));
                     }
                 } else {
-                    if (deltaY < 0 && navContent.scrollTop <= 0) {
+                    if (incrementalDelta < 0 && navContent && navContent.scrollTop <= 0) {
                         e.preventDefault();
-                        scrollAccum += Math.abs(deltaY);
+                        scrollAccum += Math.abs(incrementalDelta);
                         resetAccumAfterDelay();
                         if (scrollAccum >= SCROLL_THRESHOLD) {
                             switchToStart();
                         }
                     } else {
-                        // 导航页内自然触控滚动
                         clearAccum();
                     }
                 }

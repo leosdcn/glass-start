@@ -54,7 +54,7 @@ self.addEventListener('fetch', e => {
                 const res = await fetch(e.request);
                 // 仅接受正常响应 (res.ok) 或标准响应
                 if (res.ok || res.type === 'opaque') {
-                    cache.put(e.request, res.clone());
+                    await cache.put(e.request, res.clone());
                     // 3. 动态容量管控：超过 MAX_ENTRIES 时清理最早入队的一条记录
                     const keys = await cache.keys();
                     if (keys.length > MAX_ENTRIES) await cache.delete(keys[0]);
