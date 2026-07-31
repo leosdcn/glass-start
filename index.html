@@ -2526,11 +2526,10 @@
          *
          * 执行顺序存在以下依赖，调整顺序可能导致静默错误，请勿随意变更：
          *   1. cacheDOM()         — 必须最先执行，所有后续函数通过 dom.* 访问元素
-         *   2. await loadData()   — 从服务器拉取 bookmarks.json，覆盖内置默认数据
-         *   3. loadUserData()     — 从 localStorage 读取用户编辑，覆盖第2步的数据
-         *                          （用户编辑优先级最高，必须在 loadData 之后执行）
-         *   4. renderBookmarks()  — 依赖 pageData.bookmarks 已由前三步确定
-         *   5. renderNavCategories() + initSidebarNav() — 后者依赖前者生成的 DOM
+         *   2. loadUserData()     — 先从 localStorage 同步恢复用户编辑的书签
+         *   3. renderBookmarks()  — 渲染首屏书签（此时已是用户数据或内置默认值）
+         *   4. renderNavCategories() + initSidebarNav() — 渲染导航页，后者依赖前者生成的 DOM
+         *   5. loadData()（异步） — 后台拉取 bookmarks.json，仅在无用户编辑时覆盖书签
          */
         let isAppInitialized = false;
         function init() {
@@ -2543,7 +2542,7 @@
                 }
             }, true);
             updateClock();
-            loadUserData();
+            loadUserData().catch(() => {});
             renderBookmarks();
             renderNavCategories(); // 内部已调用 initSidebarNav()，无需重复
             initScrollControl();
@@ -2927,7 +2926,7 @@
                 // 快捷键 B：切换壁纸
                 if ((e.key === 'b' || e.key === 'B') && (e.metaKey || e.ctrlKey) && !isInputActive) {
                     e.preventDefault();
-                    switchBg();
+                    switchBg().catch(() => {});
                     return;
                 }
 
@@ -3524,14 +3523,7 @@
                 bgNext.style.opacity = '0';
                 bgBase.style.backgroundImage = newStyleUrl;
             }
-            updateWallpaperStatusUI();
-        }
-        async function resetCustomWallpaper() {
-            await removeWallpaperDB();
-            storageRemove('userWallpaper');
-            state.customWallpaper = null;
-            applyWallpaper(backgrounds[state.bg]);
-            updateWallpaperStatusUI();
+            updateWallpaperStatusUI().catch(() => {});
         }
         async function switchBg() {
             let customBg = state.customWallpaper || await getWallpaperDB() || storageGet('userWallpaper');
@@ -3547,7 +3539,6 @@
             preloadNextBg();
         }
 
-        // ==================== 跨浏览器/跨系统高帧率平滑滚动动画（Apple 物理平滑曲线 + RAF 防重叠）====================
         // ==================== 跨浏览器/跨系统高帧率平滑滚动动画（Apple 物理平滑曲线 + RAF 防重叠）====================
         let activeScrollRaf = null;
         let activeScrollCb = null;
@@ -3600,7 +3591,6 @@
             let scrollAccum = 0;
             let resetAccumTimer = null;
             let isTransitioning = false;
-            let currentSection = 'start';
             let targetSection = getSavedSection() === 'nav' ? 'nav' : 'start';
             const SCROLL_THRESHOLD = 120; // 累积滚动像素阈值（跨浏览器一致）
             const nav = document.getElementById('navSection');
@@ -3642,7 +3632,6 @@
 
                 requestAnimationFrame(() => {
                     animateScrollTo(nav.offsetTop, 520, () => {
-                        currentSection = 'nav';
                         state.currentSection = 'nav';
                         isTransitioning = false;
                     });
@@ -3658,7 +3647,6 @@
                 saveSection('start');
 
                 animateScrollTo(0, 520, () => {
-                    currentSection = 'start';
                     state.currentSection = 'start';
                     isTransitioning = false;
                     nav.classList.remove('nav-visible');
@@ -3674,24 +3662,21 @@
                 nav.classList.remove('nav-hidden');
                 nav.classList.add('nav-visible');
                 document.documentElement.classList.remove('nr');
-                currentSection = 'nav';
                 targetSection = 'nav';
-                state.currentSection = 'nav';
+                saveSection('nav');
                 requestAnimationFrame(() => {
                     window.scrollTo(0, nav.offsetTop);
                 });
             } else {
                 saveSection('start');
-                currentSection = 'start';
                 targetSection = 'start';
-                state.currentSection = 'start';
                 document.documentElement.classList.remove('nr');
                 window.scrollTo(0, 0);
             }
 
             // 页面全量加载完成后重新校准导航页对齐位置（解决图片/字体延迟加载导致的高度微变）
             window.addEventListener('load', () => {
-                if (currentSection === 'nav') {
+                if (state.currentSection === 'nav') {
                     window.scrollTo(0, nav.offsetTop);
                 }
             });
@@ -3713,7 +3698,7 @@
                 const delta = normDelta(e);
                 const down = delta > 0;
 
-                if (currentSection === 'start') {
+                if (state.currentSection === 'start') {
                     if (!down) {
                         scrollAccum = Math.max(0, scrollAccum + delta);
                         resetAccumAfterDelay();
@@ -3752,7 +3737,7 @@
 
                 if (Math.abs(incrementalDelta) < 1) return;
 
-                if (currentSection === 'start') {
+                if (state.currentSection === 'start') {
                     if (incrementalDelta > 0) {
                         e.preventDefault();
                         scrollAccum += Math.abs(incrementalDelta);
@@ -3780,17 +3765,17 @@
 
 
             // ==================== 窗口变化修正：全屏/旋转/缩放后保持导航页在视口顶部 ====================
-            var resizeTick = null;
+            let resizeTick = null;
             function scrollToNav() {
-                if (currentSection !== 'nav') return;
-                var target = nav.offsetTop;
+                if (state.currentSection !== 'nav') return;
+                const target = nav.offsetTop;
                 if (Math.abs(window.scrollY - target) > 2) {
                     window.scrollTo(0, target);
                     requestAnimationFrame(scrollToNav);
                 }
             }
             function onViewportChange() {
-                if (currentSection !== 'nav' || resizeTick) return;
+                if (state.currentSection !== 'nav' || resizeTick) return;
                 resizeTick = requestAnimationFrame(function() {
                     resizeTick = null;
                     scrollToNav();
