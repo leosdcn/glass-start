@@ -9,6 +9,19 @@
     <meta http-equiv="Content-Security-Policy" content="default-src 'self' data: blob: https:; script-src 'self' 'unsafe-inline' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: blob: https:; connect-src 'self' https:;">
     <meta name="description" content="Glass Start — 基于 HTML5 与 Modern JS 构建的高颜值、轻量级玻璃拟态（Glassmorphism）浏览器起始页。">
     <meta name="keywords" content="起始页, 浏览器导航, 玻璃拟态, 个人主页, Glassmorphism, Startpage">
+
+    <!-- Open Graph / 社交卡片元数据 -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://goldcoast.dpdns.org/">
+    <meta property="og:title" content="Glass Start — 轻量级玻璃拟态浏览器起始页">
+    <meta property="og:description" content="基于 HTML5 与 Modern JS 构建的高颜值、轻量级玻璃拟态（Glassmorphism）浏览器起始页。">
+    <meta property="og:image" content="https://images.unsplash.com/photo-1477346611705-65d1883cee1e?q=80&w=1200&auto=format&fit=crop">
+
+    <!-- Twitter Card 元数据 -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Glass Start — 轻量级玻璃拟态浏览器起始页">
+    <meta name="twitter:description" content="基于 HTML5 与 Modern JS 构建的高颜值、轻量级玻璃拟态（Glassmorphism）浏览器起始页。">
+
     <title>Glass Start</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🪐</text></svg>">
     <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🪐</text></svg>">
@@ -19,8 +32,14 @@
     <link rel="preconnect" href="https://suggestion.baidu.com" crossorigin>
     <link rel="preconnect" href="https://api.bing.com" crossorigin>
     <link rel="preconnect" href="https://suggestqueries.google.com" crossorigin>
-    <!-- 页面预检：若上次在导航页，给 <html> 加 .nr 隐藏首屏；同步预解析用户偏好，避免刷新闪烁 -->
+    <!-- 页面预检：仅在 HTTP/HTTPS 环境下加载 manifest；支持 file:// 协议本地双击无报错 -->
     <script>
+      if (location.protocol.startsWith('http')) {
+        const manifestLink = document.createElement('link');
+        manifestLink.rel = 'manifest';
+        manifestLink.href = 'manifest.json';
+        document.head.appendChild(manifestLink);
+      }
       if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
       try{sessionStorage.getItem('startpage_section')==='nav'&&document.documentElement.classList.add('nr')}catch(e){}
       try{
@@ -782,7 +801,7 @@
     </section>
 
     <!-- 编辑与设置弹窗 (Apple 风格 Tab 分栏设置面板) -->
-    <div id="editModal" role="dialog" aria-modal="true" aria-label="设置与偏好" class="edit-overlay fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm" style="z-index: 1000;">
+    <div id="editModal" role="dialog" aria-modal="true" aria-hidden="true" hidden aria-label="设置与偏好" class="edit-overlay fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm" style="z-index: 1000;">
         <div class="glass-strong apple-radius w-full max-w-xl sm:max-w-2xl md:max-w-3xl lg:max-w-4xl mx-4 h-[40rem] max-h-[90vh] flex flex-col shadow-2xl" style="padding: 1.25rem 1.5rem 1.25rem;" onclick="event.stopPropagation()">
             <!-- 弹窗 Header -->
             <div class="flex items-center justify-between mb-3.5 pb-2.5 border-b border-white/10 shrink-0">
@@ -1011,7 +1030,7 @@
     </div><!-- /#editModal -->
 
     <!-- 从导航页选择弹窗 -->
-    <div id="bookmarkPicker" role="dialog" aria-modal="true" aria-label="从导航页选择书签" class="edit-overlay fixed inset-0 flex items-center justify-center bg-black/60" style="z-index: 2000;">
+    <div id="bookmarkPicker" role="dialog" aria-modal="true" aria-hidden="true" hidden aria-label="从导航页选择书签" class="edit-overlay fixed inset-0 flex items-center justify-center bg-black/60" style="z-index: 2000;">
         <div class="glass-strong apple-radius pt-4 pb-3 px-4 w-full max-w-2xl xl:max-w-3xl 2xl:max-w-4xl mx-4 max-h-[85vh] flex flex-col shadow-2xl" onclick="event.stopPropagation()">
             <div class="flex items-center justify-between mb-2 pb-1.5 border-b border-white/10 shrink-0">
                 <h3 class="text-base font-medium tracking-wide text-white/80">从导航页选择</h3>
@@ -1026,7 +1045,7 @@
     </div><!-- /#bookmarkPicker -->
 
     <!-- 自定义确认弹窗（替代原生 confirm()，保持玻璃风格一致） -->
-    <div id="confirmModal" role="alertdialog" aria-modal="true" aria-labelledby="confirmTitle"
+    <div id="confirmModal" role="alertdialog" aria-modal="true" aria-hidden="true" hidden aria-labelledby="confirmTitle"
          class="edit-overlay fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-md" style="z-index: 9999;">
         <div class="confirm-dialog-card" onclick="event.stopPropagation()">
             <div style="width: 2.75rem; height: 2.75rem; border-radius: 50%; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); display: flex; align-items: center; justify-content: center; margin-bottom: 0.75rem; color: #f87171; flex-shrink: 0;">
@@ -2018,10 +2037,14 @@
         /**
          * 刷新外观壁纸 Tab 中的壁纸来源文字提示与「恢复默认」按钮显隐状态
          * @param {string|null} [customWallpaperOverride] - 选填，草稿模式下的动态壁纸 URL
-         * @returns {void}
+         * @returns {Promise<void>}
          */
-        function updateWallpaperStatusUI(customWallpaperOverride) {
-            const customBg = customWallpaperOverride !== undefined ? customWallpaperOverride : storageGet('userWallpaper');
+        async function updateWallpaperStatusUI(customWallpaperOverride) {
+            const customBg = customWallpaperOverride !== undefined
+                ? customWallpaperOverride
+                : (modalState.draftWallpaper !== null && modalState.draftWallpaper !== undefined
+                    ? modalState.draftWallpaper
+                    : (state.customWallpaper || await getWallpaperDB() || storageGet('userWallpaper')));
             if (!dom.wallpaperStatus || !dom.resetBgBtn) return;
             if (customBg) {
                 dom.wallpaperStatus.textContent = '已使用自定义壁纸';
@@ -2149,6 +2172,8 @@
             updateWallpaperStatusUI(modalState.draftWallpaper);
             updatePresetBgCardsUI(modalState.draftWallpaper);
             applyBgEffects(modalState.draftMaskOpacity, modalState.draftBgBlur, false);
+            dom.editModal.removeAttribute('aria-hidden');
+            dom.editModal.removeAttribute('hidden');
             dom.editModal.classList.add('active');
         }
 
@@ -2172,6 +2197,8 @@
          */
         function closeEditModal() {
             state.editOpen = false;
+            dom.editModal.setAttribute('aria-hidden', 'true');
+            dom.editModal.setAttribute('hidden', '');
             dom.editModal.classList.remove('active');
         }
 
@@ -2281,9 +2308,13 @@
 
             if (titleEl) titleEl.textContent = title;
             msgEl.textContent = message;
+            modal.removeAttribute('aria-hidden');
+            modal.removeAttribute('hidden');
             modal.classList.add('active');
 
             function cleanup() {
+                modal.setAttribute('aria-hidden', 'true');
+                modal.setAttribute('hidden', '');
                 modal.classList.remove('active');
                 cancelBtn.style.display = '';
                 okBtn.removeEventListener('click', handleOk);
@@ -2341,6 +2372,8 @@
          * @returns {void}
          */
         function openBookmarkPicker() {
+            dom.bookmarkPicker.removeAttribute('aria-hidden');
+            dom.bookmarkPicker.removeAttribute('hidden');
             dom.bookmarkPicker.classList.add('active');
             renderPickerCategories();
         }
@@ -2350,6 +2383,8 @@
          * @returns {void}
          */
         function closeBookmarkPicker() {
+            dom.bookmarkPicker.setAttribute('aria-hidden', 'true');
+            dom.bookmarkPicker.setAttribute('hidden', '');
             dom.bookmarkPicker.classList.remove('active');
         }
 
@@ -3468,19 +3503,6 @@
             }
             updateWallpaperStatusUI();
         }
-        async function updateWallpaperStatusUI() {
-            let customBg = modalState.draftWallpaper !== null ? modalState.draftWallpaper : (state.customWallpaper || await getWallpaperDB() || storageGet('userWallpaper'));
-            if (!dom.wallpaperStatus || !dom.resetBgBtn) return;
-            if (customBg) {
-                dom.wallpaperStatus.textContent = '已使用自定义壁纸';
-                dom.wallpaperStatus.className = 'text-[10px] text-emerald-400/90 font-medium';
-                dom.resetBgBtn.classList.remove('hidden');
-            } else {
-                dom.wallpaperStatus.textContent = '当前使用默认壁纸';
-                dom.wallpaperStatus.className = 'text-[10px] text-white/35';
-                dom.resetBgBtn.classList.add('hidden');
-            }
-        }
         async function resetCustomWallpaper() {
             await removeWallpaperDB();
             storageRemove('userWallpaper');
@@ -3560,7 +3582,6 @@
             const SCROLL_THRESHOLD = 120; // 累积滚动像素阈值（跨浏览器一致）
             const nav = document.getElementById('navSection');
             const navContent = dom.navContent;
-            let animationDone = false;
 
             // 滚动停顿 400ms 后自动归零积累的 delta 值，彻底解决慢速滚动停顿后的误触发问题
             function resetAccumAfterDelay() {
@@ -3595,7 +3616,6 @@
 
                 nav.classList.remove('nav-hidden');
                 nav.classList.add('nav-visible');
-                animationDone = true;
 
                 requestAnimationFrame(() => {
                     animateScrollTo(nav.offsetTop, 520, () => {
@@ -3615,7 +3635,6 @@
                 saveSection('start');
 
                 animateScrollTo(0, 520, () => {
-                    animationDone = false;
                     currentSection = 'start';
                     state.currentSection = 'start';
                     isTransitioning = false;
@@ -3635,7 +3654,6 @@
                 currentSection = 'nav';
                 targetSection = 'nav';
                 state.currentSection = 'nav';
-                animationDone = true;
                 requestAnimationFrame(() => {
                     window.scrollTo(0, nav.offsetTop);
                 });

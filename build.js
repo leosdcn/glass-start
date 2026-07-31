@@ -33,9 +33,15 @@ try {
 }
 
 // 3. 复制静态数据与服务文件
-console.log('📑 复制 bookmarks.json & sw.js...');
+console.log('📑 复制 bookmarks.json, sw.js, manifest.json & _headers...');
 if (fs.existsSync(bookmarksJsonPath)) {
     fs.copyFileSync(bookmarksJsonPath, path.join(distDir, 'bookmarks.json'));
+}
+if (fs.existsSync(path.join(rootDir, 'manifest.json'))) {
+    fs.copyFileSync(path.join(rootDir, 'manifest.json'), path.join(distDir, 'manifest.json'));
+}
+if (fs.existsSync(path.join(rootDir, '_headers'))) {
+    fs.copyFileSync(path.join(rootDir, '_headers'), path.join(distDir, '_headers'));
 }
 if (fs.existsSync(path.join(rootDir, 'sw.js'))) {
     let swContent = fs.readFileSync(path.join(rootDir, 'sw.js'), 'utf-8');
