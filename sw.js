@@ -9,7 +9,7 @@
  */
 
 // 缓存版本号（升级版本号自动清理旧缓存）
-const CACHE = 'app-cache-v6';
+const CACHE = 'app-cache-v1785481162496';
 // 缓存文件条目上限（严格控制在 120 条以内，占用极小磁盘配额）
 const MAX_ENTRIES = 120;
 
@@ -43,25 +43,37 @@ self.addEventListener('fetch', e => {
 
     if (!isFaviconDomain && !isIcoPath && !isStyleCss) return;
 
+    // 对 style.css 采取 Stale-While-Revalidate 策略：优先命中缓存秒开，后台异步 Fetch 最新 CSS 更新 Cache
+    if (isStyleCss) {
+        e.respondWith(
+            caches.open(CACHE).then(async cache => {
+                const cached = await cache.match(e.request);
+                const fetchPromise = fetch(e.request).then(netRes => {
+                    if (netRes.ok) cache.put(e.request, netRes.clone());
+                    return netRes;
+                }).catch(() => null);
+                return cached || fetchPromise;
+            })
+        );
+        return;
+    }
+
     e.respondWith(
         caches.open(CACHE).then(async cache => {
-            // 1. 优先命中本地 Cache 缓存
+            // 1. 图标文件：优先命中本地 Cache 缓存
             const cached = await cache.match(e.request);
             if (cached) return cached;
 
-            // 2. 未命中缓存，发起网络请求并存入 Cache（使用标准 fetch，避免 no-cors 导致的 7MB 跨域虚假配额膨胀）
+            // 2. 未命中缓存，发起网络请求并存入 Cache
             try {
                 const res = await fetch(e.request);
-                // 仅接受正常响应 (res.ok) 或标准响应
                 if (res.ok || res.type === 'opaque') {
                     await cache.put(e.request, res.clone());
-                    // 3. 动态容量管控：超过 MAX_ENTRIES 时清理最早入队的一条记录
                     const keys = await cache.keys();
                     if (keys.length > MAX_ENTRIES) await cache.delete(keys[0]);
                 }
                 return res;
             } catch {
-                // 网络异常兜底：返回 404 空响应
                 return new Response('', { status: 404 });
             }
         })

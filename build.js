@@ -38,7 +38,12 @@ if (fs.existsSync(bookmarksJsonPath)) {
     fs.copyFileSync(bookmarksJsonPath, path.join(distDir, 'bookmarks.json'));
 }
 if (fs.existsSync(path.join(rootDir, 'sw.js'))) {
-    fs.copyFileSync(path.join(rootDir, 'sw.js'), path.join(distDir, 'sw.js'));
+    let swContent = fs.readFileSync(path.join(rootDir, 'sw.js'), 'utf-8');
+    const timestampVersion = 'app-cache-v' + Date.now();
+    swContent = swContent.replace(/const\s+CACHE\s*=\s*['"][^'"]+['"];/, `const CACHE = '${timestampVersion}';`);
+    fs.writeFileSync(path.join(rootDir, 'sw.js'), swContent, 'utf-8');
+    fs.writeFileSync(path.join(distDir, 'sw.js'), swContent, 'utf-8');
+    console.log(`   ✅ Service Worker 缓存版本已自动更新为: ${timestampVersion}`);
 }
 
 /**
