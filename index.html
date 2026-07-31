@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="theme-color" content="#0f172a">
+    <meta name="theme-color" content="#0b0f19">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta http-equiv="Content-Security-Policy" content="default-src 'self' data: blob: https:; script-src 'self' 'unsafe-inline' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: blob: https:; connect-src 'self' https:;">
@@ -346,6 +346,18 @@
         .max-h-\[95vh\] { max-height: 95dvh !important; }
         .max-h-\[85vh\] { max-height: 85dvh !important; }
 
+        /* 壁纸与遮罩全屏安全区无缝延伸（向外补全 100px 覆盖移动端状态栏与浏览器底栏） */
+        .bg-fullscreen {
+            position: fixed !important;
+            top: calc(-100px - env(safe-area-inset-top, 0px)) !important;
+            bottom: calc(-100px - env(safe-area-inset-bottom, 0px)) !important;
+            left: calc(-50px - env(safe-area-inset-left, 0px)) !important;
+            right: calc(-50px - env(safe-area-inset-right, 0px)) !important;
+            width: calc(100vw + 100px + env(safe-area-inset-left, 0px) + env(safe-area-inset-right, 0px)) !important;
+            height: calc(100vh + 200px + env(safe-area-inset-top, 0px) + env(safe-area-inset-bottom, 0px)) !important;
+            height: calc(100dvh + 200px + env(safe-area-inset-top, 0px) + env(safe-area-inset-bottom, 0px)) !important;
+        }
+
         /* 起始页首屏 padding 安全区适配 */
         section:first-of-type {
             padding-top: max(3rem, calc(3rem + env(safe-area-inset-top)));
@@ -649,12 +661,12 @@
         }
     </style>
 </head>
-<body class="text-white relative bg-[#1a1a2e]">
-    <!-- 固定定位背景图层（双层叠加 opacity 过渡，解决 background-image 不可 CSS 插值的问题） -->
-    <div id="bgLayer" class="fixed inset-0 bg-cover bg-center bg-no-repeat -z-10"
+<body class="text-white relative bg-[#0b0f19]">
+    <!-- 固定定位背景图层（双层叠加 opacity 过渡，解决 background-image 不可 CSS 插值的问题；配合 bg-fullscreen 延伸至移动端安全区与过滚动区域） -->
+    <div id="bgLayer" class="bg-fullscreen bg-cover bg-center bg-no-repeat -z-10"
          style="background-image:url('https://images.unsplash.com/photo-1477346611705-65d1883cee1e?q=80&w=2070&auto=format&fit=crop'); transform: translateZ(0); will-change: transform, opacity;"></div>
-    <div id="bgLayerNext" class="fixed inset-0 bg-cover bg-center bg-no-repeat -z-10 opacity-0" style="transition:opacity 0.6s ease; transform: translateZ(0); will-change: transform, opacity;"></div>
-    <div id="bgOverlay" class="fixed inset-0 bg-black/25 pointer-events-none z-0" style="transition: background-color 0.2s ease, backdrop-filter 0.2s ease, -webkit-backdrop-filter 0.2s ease; transform: translateZ(0); will-change: transform, opacity;"></div>
+    <div id="bgLayerNext" class="bg-fullscreen bg-cover bg-center bg-no-repeat -z-10 opacity-0" style="transition:opacity 0.6s ease; transform: translateZ(0); will-change: transform, opacity;"></div>
+    <div id="bgOverlay" class="bg-fullscreen bg-black/25 pointer-events-none z-0" style="transition: background-color 0.2s ease, backdrop-filter 0.2s ease, -webkit-backdrop-filter 0.2s ease; transform: translateZ(0); will-change: transform, opacity;"></div>
     <script>(function(){if(window.__PRE_BG_EFFECTS__){const o=document.getElementById('bgOverlay');if(o){o.style.backgroundColor='rgba(0, 0, 0, '+(window.__PRE_BG_EFFECTS__.op/100)+')';if(window.__PRE_BG_EFFECTS__.bl>0){const b='blur('+window.__PRE_BG_EFFECTS__.bl+'px)';o.style.backdropFilter=b;o.style.webkitBackdropFilter=b;}}}})()</script>
 
     <!-- ========== 第一屏：起始页 ========== -->

@@ -9,7 +9,7 @@
  */
 
 // 缓存版本号（升级版本号自动清理旧缓存）
-const CACHE = 'app-cache-v1785482491756';
+const CACHE = 'app-cache-v1785485154224';
 // 缓存文件条目上限（严格控制在 120 条以内，占用极小磁盘配额）
 const MAX_ENTRIES = 120;
 
