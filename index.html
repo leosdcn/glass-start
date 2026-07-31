@@ -3378,17 +3378,21 @@
         }
 
         /**
-         * 打开本站书签 URL（带安全协议校验，防止 javascript: 或 data: 恶意伪协议）
+         * 打开本站书签 URL（带安全协议校验与域名自动补全）
          * @param {string} url - 目标网址
          * @param {boolean} [newTab] - 是否在新标签页打开
          */
         function openBookmarkUrl(url, newTab = false) {
             if (!url) return;
-            const trimmed = url.trim();
-            // 安全方案：仅允许 http/https/相对路径 等常规 URL
+            let trimmed = url.trim();
+            // 自动补全不带协议头的纯域名（如 bilibili.com 补全为 https://bilibili.com）
             if (!/^(https?:|\/|\.\/|#)/i.test(trimmed)) {
-                console.warn('⚠️ 拦截非安全协议书签 URL:', trimmed);
-                return;
+                if (/^[\w.-]+\.[a-z]{2,}(:\d+)?(\/.*)?$/i.test(trimmed)) {
+                    trimmed = 'https://' + trimmed;
+                } else {
+                    console.warn('⚠️ 拦截非安全协议书签 URL:', trimmed);
+                    return;
+                }
             }
             hideSuggestions();
             closeDropdown();
@@ -3402,7 +3406,7 @@
         /**
          * 在本地全站书签中根据关键词检索匹配项（包含快捷书签与分类书签）
          * @param {string} query - 搜索关键词
-         * @param {number} [limit=3] - 最多返回匹配条数（升级为最多 3 条特色书签）
+         * @param {number} [limit=3] - 最多返回匹配条数（最多 3 条特色书签）
          * @returns {Array<{type: string, name: string, url: string, icon: string, desc: string, category: string}>}
          */
         function getLocalBookmarkSuggestions(query, limit = 3) {
@@ -3410,11 +3414,14 @@
             if (!q) return [];
             const results = [];
             const addedUrls = new Set();
+            const normalizeUrl = u => (u || '').trim().toLowerCase().replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '');
 
             // 1. 匹配快捷书签
             if (pageData && Array.isArray(pageData.bookmarks)) {
                 for (const bm of pageData.bookmarks) {
-                    if (!bm || !bm.url || addedUrls.has(bm.url)) continue;
+                    if (!bm || !bm.url) continue;
+                    const normUrl = normalizeUrl(bm.url);
+                    if (addedUrls.has(normUrl)) continue;
                     const nameMatch = (bm.name || '').toLowerCase().includes(q);
                     const urlMatch = (bm.url || '').toLowerCase().includes(q);
                     const descMatch = (bm.desc || '').toLowerCase().includes(q);
@@ -3427,7 +3434,7 @@
                             desc: bm.desc || '',
                             category: '快捷书签'
                         });
-                        addedUrls.add(bm.url);
+                        addedUrls.add(normUrl);
                         if (results.length >= limit) return results;
                     }
                 }
@@ -3438,7 +3445,9 @@
                 for (const cat of pageData.categories) {
                     if (!cat || !Array.isArray(cat.bookmarks)) continue;
                     for (const bm of cat.bookmarks) {
-                        if (!bm || !bm.url || addedUrls.has(bm.url)) continue;
+                        if (!bm || !bm.url) continue;
+                        const normUrl = normalizeUrl(bm.url);
+                        if (addedUrls.has(normUrl)) continue;
                         const nameMatch = (bm.name || '').toLowerCase().includes(q);
                         const urlMatch = (bm.url || '').toLowerCase().includes(q);
                         const descMatch = (bm.desc || '').toLowerCase().includes(q);
@@ -3451,7 +3460,7 @@
                                 desc: bm.desc || '',
                                 category: cat.name || '分类书签'
                             });
-                            addedUrls.add(bm.url);
+                            addedUrls.add(normUrl);
                             if (results.length >= limit) return results;
                         }
                     }
