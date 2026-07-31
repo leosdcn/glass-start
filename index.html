@@ -1606,6 +1606,12 @@
                         desc: "全球流行音乐流媒体"
                     },
                     {
+                        name: "Steam",
+                        url: "https://store.steampowered.com",
+                        icon: "https://favicon.im/store.steampowered.com",
+                        desc: "全球 PC 数字游戏平台"
+                    },
+                    {
                         name: "Twitch",
                         url: "https://www.twitch.tv",
                         icon: "https://favicon.im/twitch.tv",
@@ -2814,16 +2820,25 @@
         function bindEvents() {
             // 搜索框输入、拼音合成与清空按键
             let isComposing = false;
+            let justEndedComposition = false;
+            let compositionEndTimer = null;
             let suggestDebounceTimer = null;
             let originalQuery = '';
 
             dom.searchInput.addEventListener('compositionstart', () => {
                 isComposing = true;
+                justEndedComposition = false;
                 hideSuggestions(); // 拼音打字未完成前隐藏联想，彻底杜绝输入法候选框与联想下拉框冲突重叠
             });
 
             dom.searchInput.addEventListener('compositionend', () => {
                 isComposing = false;
+                justEndedComposition = true;
+                if (compositionEndTimer) clearTimeout(compositionEndTimer);
+                compositionEndTimer = setTimeout(() => {
+                    justEndedComposition = false;
+                }, 100);
+
                 const val = dom.searchInput.value;
                 originalQuery = val;
                 if (dom.searchClearBtn) dom.searchClearBtn.classList.toggle('hidden', !val);
@@ -2861,15 +2876,20 @@
                 });
             }
 
-            // 点击或悬停联想词（事件委托，零内存开销，支持 Alt/Cmd+Click 新标签页打开）
+            // 点击或悬停联想词/书签（事件委托，支持 Alt/Cmd+Click 新标签页打开）
             if (dom.suggestionMenu) {
                 dom.suggestionMenu.addEventListener('click', e => {
                     const item = e.target.closest('[data-suggestion]');
                     if (!item) return;
                     e.stopPropagation();
-                    const query = item.dataset.suggestion;
-                    dom.searchInput.value = query;
-                    doSearch(query, e.altKey || e.metaKey || e.ctrlKey);
+                    const isNewTab = e.altKey || e.metaKey || e.ctrlKey;
+                    if (item.dataset.type === 'bookmark' && item.dataset.url) {
+                        openBookmarkUrl(item.dataset.url, isNewTab);
+                    } else {
+                        const query = item.dataset.suggestion;
+                        dom.searchInput.value = query;
+                        doSearch(query, isNewTab);
+                    }
                 });
                 dom.suggestionMenu.addEventListener('mouseover', e => {
                     const item = e.target.closest('.suggestion-item');
@@ -2930,8 +2950,10 @@
                     return;
                 }
 
-                // 搜索框或建议框获得焦点时的键盘控制（Enter/Alt+Enter/Cmd+Enter 触发搜索，上下键导航联想词）
+                // 搜索框或建议框获得焦点时的键盘控制（Enter 走默认搜索引擎，仅在 ↑↓ 明确选中某项时响应选中项）
                 if (document.activeElement === dom.searchInput) {
+                    if (e.isComposing || e.keyCode === 229 || isComposing || justEndedComposition) return; // 拼音输入法合成选中汉字时不触发搜索与键盘拦截
+
                     const isSuggestActive = dom.suggestionMenu && dom.suggestionMenu.classList.contains('active');
                     const items = isSuggestActive ? Array.from(dom.suggestionMenu.querySelectorAll('.suggestion-item')) : [];
 
@@ -2939,7 +2961,12 @@
                         e.preventDefault();
                         const isNewTab = e.altKey || e.metaKey || e.ctrlKey;
                         if (selectedSuggestionIdx >= 0 && items[selectedSuggestionIdx]) {
-                            doSearch(items[selectedSuggestionIdx].dataset.suggestion, isNewTab);
+                            const selectedEl = items[selectedSuggestionIdx];
+                            if (selectedEl.dataset.type === 'bookmark' && selectedEl.dataset.url) {
+                                openBookmarkUrl(selectedEl.dataset.url, isNewTab);
+                            } else {
+                                doSearch(selectedEl.dataset.suggestion, isNewTab);
+                            }
                         } else {
                             doSearch(undefined, isNewTab);
                         }
@@ -3350,7 +3377,90 @@
             }
         }
 
-        // 核心实时建议拉取函数：全面支持 百度 / Bing / Google / DuckDuckGo 的开放 Suggest API
+        /**
+         * 打开本站书签 URL（带安全协议校验，防止 javascript: 或 data: 恶意伪协议）
+         * @param {string} url - 目标网址
+         * @param {boolean} [newTab] - 是否在新标签页打开
+         */
+        function openBookmarkUrl(url, newTab = false) {
+            if (!url) return;
+            const trimmed = url.trim();
+            // 安全方案：仅允许 http/https/相对路径 等常规 URL
+            if (!/^(https?:|\/|\.\/|#)/i.test(trimmed)) {
+                console.warn('⚠️ 拦截非安全协议书签 URL:', trimmed);
+                return;
+            }
+            hideSuggestions();
+            closeDropdown();
+            if (newTab) {
+                window.open(trimmed, '_blank', 'noopener,noreferrer');
+            } else {
+                window.location.href = trimmed;
+            }
+        }
+
+        /**
+         * 在本地全站书签中根据关键词检索匹配项（包含快捷书签与分类书签）
+         * @param {string} query - 搜索关键词
+         * @param {number} [limit=3] - 最多返回匹配条数（升级为最多 3 条特色书签）
+         * @returns {Array<{type: string, name: string, url: string, icon: string, desc: string, category: string}>}
+         */
+        function getLocalBookmarkSuggestions(query, limit = 3) {
+            const q = (query || '').trim().toLowerCase();
+            if (!q) return [];
+            const results = [];
+            const addedUrls = new Set();
+
+            // 1. 匹配快捷书签
+            if (pageData && Array.isArray(pageData.bookmarks)) {
+                for (const bm of pageData.bookmarks) {
+                    if (!bm || !bm.url || addedUrls.has(bm.url)) continue;
+                    const nameMatch = (bm.name || '').toLowerCase().includes(q);
+                    const urlMatch = (bm.url || '').toLowerCase().includes(q);
+                    const descMatch = (bm.desc || '').toLowerCase().includes(q);
+                    if (nameMatch || urlMatch || descMatch) {
+                        results.push({
+                            type: 'bookmark',
+                            name: bm.name || '未命名书签',
+                            url: bm.url,
+                            icon: bm.icon || '',
+                            desc: bm.desc || '',
+                            category: '快捷书签'
+                        });
+                        addedUrls.add(bm.url);
+                        if (results.length >= limit) return results;
+                    }
+                }
+            }
+
+            // 2. 匹配导航分类书签
+            if (pageData && Array.isArray(pageData.categories)) {
+                for (const cat of pageData.categories) {
+                    if (!cat || !Array.isArray(cat.bookmarks)) continue;
+                    for (const bm of cat.bookmarks) {
+                        if (!bm || !bm.url || addedUrls.has(bm.url)) continue;
+                        const nameMatch = (bm.name || '').toLowerCase().includes(q);
+                        const urlMatch = (bm.url || '').toLowerCase().includes(q);
+                        const descMatch = (bm.desc || '').toLowerCase().includes(q);
+                        if (nameMatch || urlMatch || descMatch) {
+                            results.push({
+                                type: 'bookmark',
+                                name: bm.name || '未命名书签',
+                                url: bm.url,
+                                icon: bm.icon || '',
+                                desc: bm.desc || '',
+                                category: cat.name || '分类书签'
+                            });
+                            addedUrls.add(bm.url);
+                            if (results.length >= limit) return results;
+                        }
+                    }
+                }
+            }
+            return results;
+        }
+
+        // 核心实时建议拉取函数：全面支持 百度 / Bing / Google / DuckDuckGo 的开放 Suggest API + 本地书签混排
         let activeSuggestReqId = 0;
 
         function fetchSuggestions(engineKey, query) {
@@ -3358,6 +3468,14 @@
             if (!query) {
                 hideSuggestions();
                 return;
+            }
+
+            // 1. 实时检索本站书签匹配结果（最多 3 条特色书签）
+            const localList = getLocalBookmarkSuggestions(query, 3);
+
+            // 2. 若存在本地匹配项，极速 0ms 呈现本地书签结果（无需阻塞等待网络 JSONP）
+            if (localList.length > 0) {
+                renderSuggestions(localList, []);
             }
 
             // 递增请求 ID，唯一 JSONP 回调名称防止快速连续按键时的竞态倒错与回调函数覆盖
@@ -3385,7 +3503,7 @@
                 }
             };
 
-            // 4 秒超时防护：若第三方接口挂起或被拦截，自动清理垃圾闭包与 DOM 节点
+            // 4 秒超时防护：若第三方接口挂起，自动清洗
             timeoutTimer = setTimeout(() => {
                 if (reqId === activeSuggestReqId) {
                     cleanup();
@@ -3403,8 +3521,11 @@
                     // Baidu format: {s: [suggestions]}
                     list = data.s;
                 }
-                if (Array.isArray(list) && list.length > 0) {
-                    renderSuggestions(list.slice(0, 5));
+                // 动态计算：确保 (本站书签数 + 网络联想数) 严格总计不超过 5 行
+                const maxNetCount = Math.max(0, 5 - localList.length);
+                const netList = (Array.isArray(list) ? list : []).slice(0, maxNetCount);
+                if (localList.length > 0 || netList.length > 0) {
+                    renderSuggestions(localList, netList, true);
                 } else {
                     hideSuggestions();
                 }
@@ -3430,30 +3551,99 @@
             document.body.appendChild(script);
         }
 
-        function renderSuggestions(list) {
+        function renderSuggestions(localList = [], netList = [], preserveSelection = false) {
             if (!dom.suggestionMenu) return;
+            const prevIdx = preserveSelection ? selectedSuggestionIdx : -1;
             selectedSuggestionIdx = -1;
-            const itemsHtml = list.map((item, i) => `
-                <div role="option" aria-selected="false" data-suggestion="${escapeHtml(item)}" data-idx="${i}"
-                     class="suggestion-item group px-3.5 py-2.5 my-0.5 apple-radius text-sm text-white/85 flex items-center gap-3 transition-all duration-150 cursor-pointer hover:bg-white/15 hover:text-white">
-                    <svg class="w-4 h-4 text-white/40 group-hover:text-white/80 shrink-0 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-                    <span class="truncate flex-1 font-normal tracking-wide">${escapeHtml(item)}</span>
-                    <span class="text-[11px] text-white/30 shrink-0 opacity-0 group-hover:opacity-80 transition">选择</span>
-                </div>
-            `).join('');
+
+            if ((!localList || localList.length === 0) && (!netList || netList.length === 0)) {
+                hideSuggestions();
+                return;
+            }
+
+            let html = '';
+            let globalIdx = 0;
+
+            // 📌 本站书签分组（最多 3 条）
+            if (localList && localList.length > 0) {
+                html += `
+                    <div class="px-3 py-1 text-[11px] font-semibold tracking-wider text-white/50 uppercase flex items-center justify-between border-b border-white/10 pb-1.5 mb-1 select-none">
+                        <span class="flex items-center gap-1.5">📌 本站书签</span>
+                    </div>
+                `;
+                localList.forEach(bm => {
+                    const iconHtml = bm.icon 
+                        ? `<img src="${escapeHtml(bm.icon)}" class="w-4 h-4 rounded-sm object-cover shrink-0" alt="" onerror="this.style.display='none'">`
+                        : `<svg class="w-4 h-4 text-white/40 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/></svg>`;
+                    
+                    html += `
+                        <div role="option" aria-selected="false" 
+                             data-type="bookmark" 
+                             data-url="${escapeHtml(bm.url)}" 
+                             data-suggestion="${escapeHtml(bm.name)}"
+                             data-idx="${globalIdx}"
+                             class="suggestion-item group px-3.5 py-2.5 my-0.5 apple-radius text-sm text-white/90 flex items-center gap-3 transition-all duration-150 cursor-pointer hover:bg-white/15 hover:text-white">
+                            ${iconHtml}
+                            <div class="truncate flex-1 min-w-0 flex items-center gap-2">
+                                <span class="truncate font-medium text-white/95">${escapeHtml(bm.name)}</span>
+                                ${bm.desc ? `<span class="truncate text-xs text-white/45 hidden sm:inline">${escapeHtml(bm.desc)}</span>` : ''}
+                            </div>
+                            <span class="text-[10px] px-2 py-0.5 apple-radius bg-white/10 border border-white/15 text-white/60 shrink-0">${escapeHtml(bm.category)}</span>
+                        </div>
+                    `;
+                    globalIdx++;
+                });
+            }
+
+            // 🌐 网络搜索建议分组（确保与本站书签合计不超过 5 行）
+            const maxNetCount = Math.max(0, 5 - (localList ? localList.length : 0));
+            const safeNetList = (netList || []).slice(0, maxNetCount);
+
+            if (safeNetList.length > 0) {
+                if (localList && localList.length > 0) {
+                    html += `
+                        <div class="px-3 pt-2 pb-1 text-[11px] font-semibold tracking-wider text-white/50 uppercase flex items-center gap-1.5 border-t border-white/10 mt-1 select-none">
+                            <span>🌐 搜索联想</span>
+                        </div>
+                    `;
+                }
+                safeNetList.forEach(item => {
+                    html += `
+                        <div role="option" aria-selected="false" 
+                             data-type="query" 
+                             data-suggestion="${escapeHtml(item)}" 
+                             data-idx="${globalIdx}"
+                             class="suggestion-item group px-3.5 py-2.5 my-0.5 apple-radius text-sm text-white/85 flex items-center gap-3 transition-all duration-150 cursor-pointer hover:bg-white/15 hover:text-white">
+                            <svg class="w-4 h-4 text-white/40 group-hover:text-white/80 shrink-0 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                            <span class="truncate flex-1 font-normal tracking-wide">${escapeHtml(item)}</span>
+                            <span class="text-[11px] text-white/30 shrink-0 opacity-0 group-hover:opacity-80 transition">搜索</span>
+                        </div>
+                    `;
+                    globalIdx++;
+                });
+            }
 
             const footerHtml = `
                 <div class="suggestion-footer">
                     <div class="flex items-center gap-3">
                         <span class="flex items-center gap-1.5"><kbd class="kbd-key">↑</kbd><kbd class="kbd-key">↓</kbd> 切换</span>
-                        <span class="flex items-center gap-1.5"><kbd class="kbd-key">↵</kbd> 选择</span>
+                        <span class="flex items-center gap-1.5"><kbd class="kbd-key">↵</kbd> 选择/搜索</span>
                     </div>
                     <span class="flex items-center gap-1.5"><kbd class="kbd-key">Alt / ⌥ + ↵</kbd> 新标签页打开</span>
                 </div>
             `;
 
-            dom.suggestionMenu.innerHTML = itemsHtml + footerHtml;
+            dom.suggestionMenu.innerHTML = html + footerHtml;
             dom.suggestionMenu.classList.add('active');
+
+            // 保持键盘导航选中索引
+            if (prevIdx >= 0) {
+                const items = dom.suggestionMenu.querySelectorAll('.suggestion-item');
+                if (items[prevIdx]) {
+                    selectedSuggestionIdx = prevIdx;
+                    items[prevIdx].classList.add('active');
+                }
+            }
         }
 
         function hideSuggestions() {

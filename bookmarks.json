@@ -491,6 +491,12 @@
                     "desc": "全球流行音乐流媒体"
                 },
                 {
+                    "name": "Steam",
+                    "url": "https://store.steampowered.com",
+                    "icon": "https://favicon.im/store.steampowered.com",
+                    "desc": "全球 PC 数字游戏平台"
+                },
+                {
                     "name": "Twitch",
                     "url": "https://www.twitch.tv",
                     "icon": "https://favicon.im/twitch.tv",
