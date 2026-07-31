@@ -346,16 +346,27 @@
         .max-h-\[95vh\] { max-height: 95dvh !important; }
         .max-h-\[85vh\] { max-height: 85dvh !important; }
 
-        /* 壁纸与遮罩全屏安全区无缝延伸（向外补全 100px 覆盖移动端状态栏与浏览器底栏） */
+        /* 壁纸与遮罩全屏图层：桌面端保持 100% 原始 1:1 视口比例（零拉伸放大）；移动端极微量 15px 防露白补边 */
         .bg-fullscreen {
             position: fixed !important;
-            top: calc(-100px - env(safe-area-inset-top, 0px)) !important;
-            bottom: calc(-100px - env(safe-area-inset-bottom, 0px)) !important;
-            left: calc(-50px - env(safe-area-inset-left, 0px)) !important;
-            right: calc(-50px - env(safe-area-inset-right, 0px)) !important;
-            width: calc(100vw + 100px + env(safe-area-inset-left, 0px) + env(safe-area-inset-right, 0px)) !important;
-            height: calc(100vh + 200px + env(safe-area-inset-top, 0px) + env(safe-area-inset-bottom, 0px)) !important;
-            height: calc(100dvh + 200px + env(safe-area-inset-top, 0px) + env(safe-area-inset-bottom, 0px)) !important;
+            top: 0 !important;
+            bottom: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            height: 100dvh !important;
+        }
+        @media (max-width: 640px) {
+            .bg-fullscreen {
+                top: calc(-15px - env(safe-area-inset-top, 0px)) !important;
+                bottom: calc(-15px - env(safe-area-inset-bottom, 0px)) !important;
+                left: calc(-10px - env(safe-area-inset-left, 0px)) !important;
+                right: calc(-10px - env(safe-area-inset-right, 0px)) !important;
+                width: calc(100vw + 20px + env(safe-area-inset-left, 0px) + env(safe-area-inset-right, 0px)) !important;
+                height: calc(100vh + 30px + env(safe-area-inset-top, 0px) + env(safe-area-inset-bottom, 0px)) !important;
+                height: calc(100dvh + 30px + env(safe-area-inset-top, 0px) + env(safe-area-inset-bottom, 0px)) !important;
+            }
         }
 
         /* 起始页首屏 padding 安全区适配 */
