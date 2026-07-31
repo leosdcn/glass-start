@@ -40,6 +40,9 @@ if (fs.existsSync(bookmarksJsonPath)) {
 if (fs.existsSync(path.join(rootDir, 'manifest.json'))) {
     fs.copyFileSync(path.join(rootDir, 'manifest.json'), path.join(distDir, 'manifest.json'));
 }
+if (fs.existsSync(path.join(rootDir, 'icon.svg'))) {
+    fs.copyFileSync(path.join(rootDir, 'icon.svg'), path.join(distDir, 'icon.svg'));
+}
 if (fs.existsSync(path.join(rootDir, '_headers'))) {
     fs.copyFileSync(path.join(rootDir, '_headers'), path.join(distDir, '_headers'));
 }
@@ -47,9 +50,8 @@ if (fs.existsSync(path.join(rootDir, 'sw.js'))) {
     let swContent = fs.readFileSync(path.join(rootDir, 'sw.js'), 'utf-8');
     const timestampVersion = 'app-cache-v' + Date.now();
     swContent = swContent.replace(/const\s+CACHE\s*=\s*['"][^'"]+['"];/, `const CACHE = '${timestampVersion}';`);
-    fs.writeFileSync(path.join(rootDir, 'sw.js'), swContent, 'utf-8');
     fs.writeFileSync(path.join(distDir, 'sw.js'), swContent, 'utf-8');
-    console.log(`   ✅ Service Worker 缓存版本已自动更新为: ${timestampVersion}`);
+    console.log(`   ✅ Service Worker 缓存版本已自动为 dist/sw.js 更新为: ${timestampVersion}`);
 }
 
 /**
