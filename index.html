@@ -25,13 +25,19 @@
     <title>Glass Start</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🪐</text></svg>">
     <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🪐</text></svg>">
-    <!-- 预解析与预连接联想 API 域名，消除首次打字时的 DNS/TLS 握手延时 -->
+    <!-- 预解析与预连接联想 API、壁纸 CDN 及图标代理域名，消除 DNS/TLS 握手延时 -->
     <link rel="dns-prefetch" href="https://suggestion.baidu.com">
     <link rel="dns-prefetch" href="https://api.bing.com">
     <link rel="dns-prefetch" href="https://suggestqueries.google.com">
+    <link rel="dns-prefetch" href="https://images.unsplash.com">
+    <link rel="dns-prefetch" href="https://favicon.im">
     <link rel="preconnect" href="https://suggestion.baidu.com" crossorigin>
     <link rel="preconnect" href="https://api.bing.com" crossorigin>
     <link rel="preconnect" href="https://suggestqueries.google.com" crossorigin>
+    <link rel="preconnect" href="https://images.unsplash.com" crossorigin>
+    <link rel="preconnect" href="https://favicon.im" crossorigin>
+    <!-- 高优先级 Preload 预加载首屏默认壁纸 (LCP 关键资源) -->
+    <link rel="preload" as="image" href="https://images.unsplash.com/photo-1477346611705-65d1883cee1e?q=80&w=2070&auto=format&fit=crop" fetchpriority="high">
     <!-- 页面预检：仅在 HTTP/HTTPS 环境下加载 manifest；支持 file:// 协议本地双击无报错 -->
     <script>
       if (location.protocol.startsWith('http')) {
@@ -118,7 +124,10 @@
         }
         .category-block {
             content-visibility: auto;
-            contain-intrinsic-size: auto 22.5rem; /* 360px @ 16px 基准，随 rem 缩放，避免大屏滚动跳动 */
+            contain-intrinsic-block-size: 16rem; /* 随 rem 缩放，避免大屏滚动跳动 */
+        }
+        .suggestion-item:hover {
+            background: rgba(255, 255, 255, 0.12);
         }
         /* ===== 组件 ===== */
         .search-input::placeholder { color: rgba(255,255,255,0.6); }
@@ -731,37 +740,37 @@
             <!-- 快捷书签 -->
             <div class="w-full max-w-2xl lg:max-w-3xl mx-auto glass apple-radius p-3 sm:p-4 fade-in mb-6 md:mb-8 relative group" style="animation-delay:0.2s">
                 <nav aria-label="快捷书签">
-                    <div id="bookmarks" class="grid grid-cols-4 md:grid-cols-8 gap-2">
+                    <div id="bookmarks" class="grid grid-cols-4 md:grid-cols-8 gap-2 min-h-[5.5rem]">
                         <a href="https://web.wechat.com/?lang=zh_CN" target="_blank" rel="noopener noreferrer" class="bookmark-item flex flex-col items-center justify-center gap-2 py-3 px-1 sm:px-1.5 apple-radius text-white/90 hover:text-white">
-                            <div class="icon-box icon-box-md"><img src="https://favicon.im/web.wechat.com" data-initial="微" data-md="1" class="opacity-90" alt="" loading="lazy" decoding="async" onerror="handleIconError(this)"></div>
+                            <div class="icon-box icon-box-md"><img src="https://favicon.im/web.wechat.com" data-initial="微" data-md="1" class="opacity-90" alt="" loading="eager" fetchpriority="high" decoding="async" onerror="handleIconError(this)"></div>
                             <span class="bookmark-title text-white/90">微信</span>
                         </a>
                         <a href="https://weibo.com" target="_blank" rel="noopener noreferrer" class="bookmark-item flex flex-col items-center justify-center gap-2 py-3 px-1 sm:px-1.5 apple-radius text-white/90 hover:text-white">
-                            <div class="icon-box icon-box-md"><img src="https://favicon.im/weibo.com" data-initial="微" data-md="1" class="opacity-90" alt="" loading="lazy" decoding="async" onerror="handleIconError(this)"></div>
+                            <div class="icon-box icon-box-md"><img src="https://favicon.im/weibo.com" data-initial="微" data-md="1" class="opacity-90" alt="" loading="eager" fetchpriority="high" decoding="async" onerror="handleIconError(this)"></div>
                             <span class="bookmark-title text-white/90">微博</span>
                         </a>
                         <a href="https://www.doubao.com" target="_blank" rel="noopener noreferrer" class="bookmark-item flex flex-col items-center justify-center gap-2 py-3 px-1 sm:px-1.5 apple-radius text-white/90 hover:text-white">
-                            <div class="icon-box icon-box-md"><img src="https://favicon.im/doubao.com" data-initial="豆" data-md="1" class="opacity-90" alt="" loading="lazy" decoding="async" onerror="handleIconError(this)"></div>
+                            <div class="icon-box icon-box-md"><img src="https://favicon.im/doubao.com" data-initial="豆" data-md="1" class="opacity-90" alt="" loading="eager" fetchpriority="high" decoding="async" onerror="handleIconError(this)"></div>
                             <span class="bookmark-title text-white/90">豆包</span>
                         </a>
                         <a href="https://chat.deepseek.com" target="_blank" rel="noopener noreferrer" class="bookmark-item flex flex-col items-center justify-center gap-2 py-3 px-1 sm:px-1.5 apple-radius text-white/90 hover:text-white">
-                            <div class="icon-box icon-box-md"><img src="https://favicon.im/chat.deepseek.com" data-initial="D" data-md="1" class="opacity-90" alt="" loading="lazy" decoding="async" onerror="handleIconError(this)"></div>
+                            <div class="icon-box icon-box-md"><img src="https://favicon.im/chat.deepseek.com" data-initial="D" data-md="1" class="opacity-90" alt="" loading="eager" fetchpriority="high" decoding="async" onerror="handleIconError(this)"></div>
                             <span class="bookmark-title text-white/90">DeepSeek</span>
                         </a>
                         <a href="https://www.bilibili.com" target="_blank" rel="noopener noreferrer" class="bookmark-item flex flex-col items-center justify-center gap-2 py-3 px-1 sm:px-1.5 apple-radius text-white/90 hover:text-white">
-                            <div class="icon-box icon-box-md"><img src="https://favicon.im/bilibili.com" data-initial="哔" data-md="1" class="opacity-90" alt="" loading="lazy" decoding="async" onerror="handleIconError(this)"></div>
+                            <div class="icon-box icon-box-md"><img src="https://favicon.im/bilibili.com" data-initial="哔" data-md="1" class="opacity-90" alt="" loading="eager" fetchpriority="high" decoding="async" onerror="handleIconError(this)"></div>
                             <span class="bookmark-title text-white/90">哔哩哔哩</span>
                         </a>
                         <a href="https://www.douyin.com" target="_blank" rel="noopener noreferrer" class="bookmark-item flex flex-col items-center justify-center gap-2 py-3 px-1 sm:px-1.5 apple-radius text-white/90 hover:text-white">
-                            <div class="icon-box icon-box-md"><img src="https://favicon.im/douyin.com" data-initial="抖" data-md="1" class="opacity-90" alt="" loading="lazy" decoding="async" onerror="handleIconError(this)"></div>
+                            <div class="icon-box icon-box-md"><img src="https://favicon.im/douyin.com" data-initial="抖" data-md="1" class="opacity-90" alt="" loading="eager" fetchpriority="high" decoding="async" onerror="handleIconError(this)"></div>
                             <span class="bookmark-title text-white/90">抖音</span>
                         </a>
                         <a href="https://www.weather.com.cn" target="_blank" rel="noopener noreferrer" class="bookmark-item flex flex-col items-center justify-center gap-2 py-3 px-1 sm:px-1.5 apple-radius text-white/90 hover:text-white">
-                            <div class="icon-box icon-box-md"><img src="https://favicon.im/weather.com.cn" data-initial="中" data-md="1" class="opacity-90" alt="" loading="lazy" decoding="async" onerror="handleIconError(this)"></div>
+                            <div class="icon-box icon-box-md"><img src="https://favicon.im/weather.com.cn" data-initial="中" data-md="1" class="opacity-90" alt="" loading="eager" fetchpriority="high" decoding="async" onerror="handleIconError(this)"></div>
                             <span class="bookmark-title text-white/90">中国天气网</span>
                         </a>
                         <a href="https://music.163.com" target="_blank" rel="noopener noreferrer" class="bookmark-item flex flex-col items-center justify-center gap-2 py-3 px-1 sm:px-1.5 apple-radius text-white/90 hover:text-white">
-                            <div class="icon-box icon-box-md"><img src="https://favicon.im/music.163.com" data-initial="网" data-md="1" class="opacity-90" alt="" loading="lazy" decoding="async" onerror="handleIconError(this)"></div>
+                            <div class="icon-box icon-box-md"><img src="https://favicon.im/music.163.com" data-initial="网" data-md="1" class="opacity-90" alt="" loading="eager" fetchpriority="high" decoding="async" onerror="handleIconError(this)"></div>
                             <span class="bookmark-title text-white/90">网易云音乐</span>
                         </a>
                     </div>
@@ -2440,12 +2449,17 @@
                 if (dragSrc) dragSrc.style.opacity = '';
                 dom.editList.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
             });
+            let dragOverRafId = null;
             dom.editList.addEventListener('dragover', e => {
                 e.preventDefault();
+                if (dragOverRafId) return;
                 const target = e.target.closest('[data-idx]');
                 if (!target || target === dragSrc) return;
-                dom.editList.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
-                target.classList.add('drag-over');
+                dragOverRafId = requestAnimationFrame(() => {
+                    dragOverRafId = null;
+                    dom.editList.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+                    target.classList.add('drag-over');
+                });
             });
             dom.editList.addEventListener('drop', e => {
                 e.preventDefault();
@@ -2584,14 +2598,13 @@
             if (!img || img.dataset.failed) return;
             img.dataset.failed = '1';
             const initial = img.dataset.initial || '?';
-            const isMd = img.dataset.md === '1';
-            const sizeClass = isMd ? 'icon-box-md' : 'icon-box-sm';
-            const textClass = isMd ? 'text-xs font-semibold' : 'text-[10px] font-semibold';
-            const badge = document.createElement('div');
-            badge.className = `icon-box ${sizeClass} bg-white/15 border border-white/20 text-white/90 ${textClass}`;
-            badge.textContent = initial;
-            if (img.parentElement) {
-                img.parentElement.replaceWith(badge);
+            const parent = img.parentElement;
+            if (parent) {
+                img.remove();
+                const isMd = img.dataset.md === '1';
+                const textClass = isMd ? 'text-xs' : 'text-[10px]';
+                parent.classList.add('bg-white/15', 'border', 'border-white/20', 'text-white/90', textClass, 'font-semibold');
+                parent.textContent = initial;
             }
         }
         window.handleIconError = handleIconError;
@@ -2613,7 +2626,8 @@
             if (!bm.icon || safeIcon === '#') {
                 return `<div class="icon-box ${sizeClass} bg-white/15 border border-white/20 text-white/90 ${textClass}">${escapeHtml(initial)}</div>`;
             }
-            return `<div class="icon-box ${sizeClass}"><img src="${safeIcon}" data-initial="${escapeHtml(initial)}" data-md="${isMd ? '1' : '0'}" class="opacity-90" alt="" loading="lazy" decoding="async" onerror="handleIconError(this)"></div>`;
+            const loadingAttr = isMd ? 'loading="eager" fetchpriority="high"' : 'loading="lazy" decoding="async"';
+            return `<div class="icon-box ${sizeClass}"><img src="${safeIcon}" data-initial="${escapeHtml(initial)}" data-md="${isMd ? '1' : '0'}" class="opacity-90" alt="" ${loadingAttr} onerror="handleIconError(this)"></div>`;
         }
 
         // ==================== 书签 ====================
@@ -2897,9 +2911,9 @@
                     const idx = parseInt(item.dataset.idx, 10);
                     if (isNaN(idx) || selectedSuggestionIdx === idx) return;
                     selectedSuggestionIdx = idx;
-                    dom.suggestionMenu.querySelectorAll('.suggestion-item').forEach((el, i) => {
-                        el.classList.toggle('active', i === idx);
-                    });
+                    const prevActive = dom.suggestionMenu.querySelector('.suggestion-item.active');
+                    if (prevActive) prevActive.classList.remove('active');
+                    item.classList.add('active');
                 });
             }
 
