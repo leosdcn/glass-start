@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#0b0f19">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self' data: blob: https:; script-src 'self' 'unsafe-inline' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: blob: https:; connect-src 'self' https:;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' data: blob: https:; script-src 'self' 'unsafe-inline' https://suggestion.baidu.com https://api.bing.com https://suggestqueries.google.com https://ac.duckduckgo.com https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: blob: https:; connect-src 'self' https:;">
     <meta name="description" content="Glass Start — 基于 HTML5 与 Modern JS 构建的高颜值、轻量级玻璃拟态（Glassmorphism）浏览器起始页。">
     <meta name="keywords" content="起始页, 浏览器导航, 玻璃拟态, 个人主页, Glassmorphism, Startpage">
 
@@ -36,10 +36,37 @@
     <link rel="preconnect" href="https://suggestqueries.google.com" crossorigin>
     <link rel="preconnect" href="https://images.unsplash.com" crossorigin>
     <link rel="preconnect" href="https://favicon.im" crossorigin>
-    <!-- 高优先级 Preload 预加载首屏默认壁纸 (LCP 关键资源) -->
-    <link rel="preload" as="image" href="https://images.unsplash.com/photo-1477346611705-65d1883cee1e?q=80&w=2070&auto=format&fit=crop" fetchpriority="high">
-    <!-- 页面预检：仅在 HTTP/HTTPS 环境下加载 manifest；支持 file:// 协议本地双击无报错 -->
+    <!-- 动态壁纸 Preload：检测用户设定的壁纸并优先预加载，避免硬编码默认壁纸的网络开销 -->
     <script>
+      (function() {
+        const backgrounds = [
+          'https://images.unsplash.com/photo-1477346611705-65d1883cee1e?q=80&w=2070&auto=format&fit=crop',
+          'https://images.unsplash.com/photo-1506744038136-46273834b3fb?q=80&w=2070&auto=format&fit=crop',
+          'https://images.unsplash.com/photo-1433086966358-54859d0ed716?q=80&w=2070&auto=format&fit=crop',
+          'https://images.unsplash.com/photo-1519681393784-d120267933ba?q=80&w=2070&auto=format&fit=crop',
+          'https://images.unsplash.com/photo-1469474968028-56623f02e42e?q=80&w=2070&auto=format&fit=crop',
+          'https://images.unsplash.com/photo-1501785888041-af3ef285b470?q=80&w=2070&auto=format&fit=crop'
+        ];
+        try {
+          const rawUserWp = localStorage.getItem('userWallpaper');
+          let preloadUrl = '';
+          if (rawUserWp) {
+            preloadUrl = JSON.parse(rawUserWp);
+          } else {
+            const rawBg = localStorage.getItem('bg');
+            const bgIdx = rawBg !== null ? JSON.parse(rawBg) : 0;
+            preloadUrl = backgrounds[bgIdx] || backgrounds[0];
+          }
+          if (preloadUrl && typeof preloadUrl === 'string' && preloadUrl.startsWith('http')) {
+            const link = document.createElement('link');
+            link.rel = 'preload';
+            link.as = 'image';
+            link.href = preloadUrl;
+            link.setAttribute('fetchpriority', 'high');
+            document.head.appendChild(link);
+          }
+        } catch (e) {}
+      })();
       if (location.protocol.startsWith('http')) {
         const manifestLink = document.createElement('link');
         manifestLink.rel = 'manifest';
@@ -728,6 +755,15 @@
         .rounded-full {
             border-radius: 9999px !important;
         }
+        /* 无障碍：减弱动态效果适配 (Prefers Reduced Motion) */
+        @media (prefers-reduced-motion: reduce) {
+            *, ::before, ::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+                scroll-behavior: auto !important;
+            }
+        }
     </style>
 </head>
 <body class="text-white relative bg-[#0b0f19]">
@@ -739,7 +775,7 @@
     <script>(function(){if(window.__PRE_BG_EFFECTS__){const o=document.getElementById('bgOverlay');if(o){o.style.backgroundColor='rgba(0, 0, 0, '+(window.__PRE_BG_EFFECTS__.op/100)+')';if(window.__PRE_BG_EFFECTS__.bl>0){const b='blur('+window.__PRE_BG_EFFECTS__.bl+'px)';o.style.backdropFilter=b;o.style.webkitBackdropFilter=b;}}}})()</script>
 
     <!-- ========== 第一屏：起始页 ========== -->
-    <section class="relative z-10 min-h-screen flex flex-col items-center justify-center px-4 py-12">
+    <section id="startSection" class="relative z-10 min-h-screen flex flex-col items-center justify-center px-4 py-12">
         <div class="flex flex-col items-center justify-center w-full">
             <!-- 时钟 -->
             <div class="text-center fade-in clock-text mb-10 md:mb-14">
@@ -791,35 +827,35 @@
                 <nav aria-label="快捷书签">
                     <div id="bookmarks" class="grid grid-cols-4 md:grid-cols-8 gap-2 min-h-[5.5rem]">
                         <a href="https://web.wechat.com/?lang=zh_CN" target="_blank" rel="noopener noreferrer" class="bookmark-item flex flex-col items-center justify-center gap-2 py-3 px-1 sm:px-1.5 apple-radius text-white/90 hover:text-white">
-                            <div class="icon-box icon-box-md"><img src="https://favicon.im/web.wechat.com" width="32" height="32" data-initial="微" data-md="1" class="opacity-90" alt="" loading="eager" decoding="async" onerror="handleIconError(this)"></div>
+                            <div class="icon-box icon-box-md"><img src="https://favicon.im/web.wechat.com" width="32" height="32" data-initial="微" data-md="1" class="opacity-90" alt="" loading="eager" decoding="async"></div>
                             <span class="bookmark-title text-white/90">微信</span>
                         </a>
                         <a href="https://weibo.com" target="_blank" rel="noopener noreferrer" class="bookmark-item flex flex-col items-center justify-center gap-2 py-3 px-1 sm:px-1.5 apple-radius text-white/90 hover:text-white">
-                            <div class="icon-box icon-box-md"><img src="https://favicon.im/weibo.com" width="32" height="32" data-initial="微" data-md="1" class="opacity-90" alt="" loading="eager" decoding="async" onerror="handleIconError(this)"></div>
+                            <div class="icon-box icon-box-md"><img src="https://favicon.im/weibo.com" width="32" height="32" data-initial="微" data-md="1" class="opacity-90" alt="" loading="eager" decoding="async"></div>
                             <span class="bookmark-title text-white/90">微博</span>
                         </a>
                         <a href="https://www.doubao.com" target="_blank" rel="noopener noreferrer" class="bookmark-item flex flex-col items-center justify-center gap-2 py-3 px-1 sm:px-1.5 apple-radius text-white/90 hover:text-white">
-                            <div class="icon-box icon-box-md"><img src="https://favicon.im/doubao.com" width="32" height="32" data-initial="豆" data-md="1" class="opacity-90" alt="" loading="eager" decoding="async" onerror="handleIconError(this)"></div>
+                            <div class="icon-box icon-box-md"><img src="https://favicon.im/doubao.com" width="32" height="32" data-initial="豆" data-md="1" class="opacity-90" alt="" loading="eager" decoding="async"></div>
                             <span class="bookmark-title text-white/90">豆包</span>
                         </a>
                         <a href="https://chat.deepseek.com" target="_blank" rel="noopener noreferrer" class="bookmark-item flex flex-col items-center justify-center gap-2 py-3 px-1 sm:px-1.5 apple-radius text-white/90 hover:text-white">
-                            <div class="icon-box icon-box-md"><img src="https://favicon.im/chat.deepseek.com" width="32" height="32" data-initial="D" data-md="1" class="opacity-90" alt="" loading="eager" decoding="async" onerror="handleIconError(this)"></div>
+                            <div class="icon-box icon-box-md"><img src="https://favicon.im/chat.deepseek.com" width="32" height="32" data-initial="D" data-md="1" class="opacity-90" alt="" loading="eager" decoding="async"></div>
                             <span class="bookmark-title text-white/90">DeepSeek</span>
                         </a>
                         <a href="https://www.bilibili.com" target="_blank" rel="noopener noreferrer" class="bookmark-item flex flex-col items-center justify-center gap-2 py-3 px-1 sm:px-1.5 apple-radius text-white/90 hover:text-white">
-                            <div class="icon-box icon-box-md"><img src="https://favicon.im/bilibili.com" width="32" height="32" data-initial="哔" data-md="1" class="opacity-90" alt="" loading="eager" decoding="async" onerror="handleIconError(this)"></div>
+                            <div class="icon-box icon-box-md"><img src="https://favicon.im/bilibili.com" width="32" height="32" data-initial="哔" data-md="1" class="opacity-90" alt="" loading="eager" decoding="async"></div>
                             <span class="bookmark-title text-white/90">哔哩哔哩</span>
                         </a>
                         <a href="https://www.douyin.com" target="_blank" rel="noopener noreferrer" class="bookmark-item flex flex-col items-center justify-center gap-2 py-3 px-1 sm:px-1.5 apple-radius text-white/90 hover:text-white">
-                            <div class="icon-box icon-box-md"><img src="https://favicon.im/douyin.com" width="32" height="32" data-initial="抖" data-md="1" class="opacity-90" alt="" loading="eager" decoding="async" onerror="handleIconError(this)"></div>
+                            <div class="icon-box icon-box-md"><img src="https://favicon.im/douyin.com" width="32" height="32" data-initial="抖" data-md="1" class="opacity-90" alt="" loading="eager" decoding="async"></div>
                             <span class="bookmark-title text-white/90">抖音</span>
                         </a>
                         <a href="https://www.weather.com.cn" target="_blank" rel="noopener noreferrer" class="bookmark-item flex flex-col items-center justify-center gap-2 py-3 px-1 sm:px-1.5 apple-radius text-white/90 hover:text-white">
-                            <div class="icon-box icon-box-md"><img src="https://favicon.im/weather.com.cn" width="32" height="32" data-initial="中" data-md="1" class="opacity-90" alt="" loading="eager" decoding="async" onerror="handleIconError(this)"></div>
+                            <div class="icon-box icon-box-md"><img src="https://favicon.im/weather.com.cn" width="32" height="32" data-initial="中" data-md="1" class="opacity-90" alt="" loading="eager" decoding="async"></div>
                             <span class="bookmark-title text-white/90">中国天气网</span>
                         </a>
                         <a href="https://music.163.com" target="_blank" rel="noopener noreferrer" class="bookmark-item flex flex-col items-center justify-center gap-2 py-3 px-1 sm:px-1.5 apple-radius text-white/90 hover:text-white">
-                            <div class="icon-box icon-box-md"><img src="https://favicon.im/music.163.com" width="32" height="32" data-initial="网" data-md="1" class="opacity-90" alt="" loading="eager" decoding="async" onerror="handleIconError(this)"></div>
+                            <div class="icon-box icon-box-md"><img src="https://favicon.im/music.163.com" width="32" height="32" data-initial="网" data-md="1" class="opacity-90" alt="" loading="eager" decoding="async"></div>
                             <span class="bookmark-title text-white/90">网易云音乐</span>
                         </a>
                     </div>
@@ -1025,7 +1061,7 @@
                         <div>
                             <div class="flex items-center gap-2">
                                 <span class="text-xs font-semibold text-white/90">Glass Start</span>
-                                <span class="text-[11px] px-2 py-0.5 rounded-full bg-white/10 border border-white/15 text-white/70 font-medium tracking-wide">v2.2</span>
+                                <span class="text-[11px] px-2 py-0.5 rounded-full bg-white/10 border border-white/15 text-white/70 font-medium tracking-wide">v2.3</span>
                             </div>
                             <div class="text-[10px] text-white/50">极简 Liquid Glass 拟态导航 • Build 2026.07</div>
                         </div>
@@ -2200,7 +2236,7 @@
                 }
             }
             if (faviconUrl) {
-                return `<div class="icon-box icon-box-sm edit-favicon-img-wrapper"><img src="${escapeHtml(faviconUrl)}" width="24" height="24" data-initial="${escapeHtml(initial)}" class="opacity-90 edit-favicon-img" alt="" loading="lazy" decoding="async" onerror="handleEditIconError(this)"></div>`;
+                return `<div class="icon-box icon-box-sm edit-favicon-img-wrapper"><img src="${escapeHtml(faviconUrl)}" width="24" height="24" data-initial="${escapeHtml(initial)}" class="opacity-90 edit-favicon-img" alt="" loading="lazy" decoding="async"></div>`;
             }
             return `<div class="icon-box icon-box-sm bg-white/15 border border-white/20 text-white/90 text-[10px] font-semibold edit-favicon-initial">${escapeHtml(initial)}</div>`;
         }
@@ -2784,6 +2820,20 @@
         }
         window.handleIconError = handleIconError;
 
+        // 全局捕获阶段图片加载错误处理器，彻底代替 HTML 模板行内 onerror 绑定
+        document.addEventListener('error', (e) => {
+            const target = e.target;
+            if (target && target.tagName === 'IMG') {
+                if (target.classList.contains('edit-favicon-img')) {
+                    handleEditIconError(target);
+                } else if (target.dataset.initial !== undefined || target.closest('.icon-box')) {
+                    handleIconError(target);
+                } else if (target.dataset.hideOnError === '1') {
+                    target.style.display = 'none';
+                }
+            }
+        }, true);
+
         /**
          * 根据书签数据对象生成规范化的 Favicon HTML 图标结构
          * 自动处理缺失图标时的首字母文字徽章，以及合法 URL 图片节点的生成
@@ -2803,7 +2853,7 @@
             }
             const loadingAttr = isMd ? 'loading="eager" decoding="async"' : 'loading="lazy" decoding="async"';
             const imgSize = isMd ? '32' : '24';
-            return `<div class="icon-box ${sizeClass}"><img src="${safeIcon}" width="${imgSize}" height="${imgSize}" data-initial="${escapeHtml(initial)}" data-md="${isMd ? '1' : '0'}" class="opacity-90" alt="" ${loadingAttr} onerror="handleIconError(this)"></div>`;
+            return `<div class="icon-box ${sizeClass}"><img src="${safeIcon}" width="${imgSize}" height="${imgSize}" data-initial="${escapeHtml(initial)}" data-md="${isMd ? '1' : '0'}" class="opacity-90" alt="" ${loadingAttr}></div>`;
         }
 
         // ==================== 书签 ====================
@@ -3780,7 +3830,7 @@
                 `;
                 localList.forEach(bm => {
                     const iconHtml = bm.icon 
-                        ? `<img src="${escapeHtml(bm.icon)}" width="16" height="16" class="w-4 h-4 rounded-sm object-cover shrink-0" alt="" onerror="this.style.display='none'">`
+                        ? `<img src="${escapeHtml(bm.icon)}" width="16" height="16" class="w-4 h-4 rounded-sm object-cover shrink-0" alt="" data-hide-on-error="1">`
                         : `<svg class="w-4 h-4 text-white/40 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/></svg>`;
                     
                     html += `
@@ -3947,6 +3997,8 @@
         }
 
         // ==================== 跨浏览器/跨系统高帧率平滑滚动动画（Apple 物理平滑曲线 + RAF 防重叠）====================
+        // 无障碍：系统开启"减少动态效果"时，跳过逐帧滚动动画直接定位，避免强制播放大幅位移动画
+        const prefersReducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
         let activeScrollRaf = null;
         let activeScrollCb = null;
         function animateScrollTo(targetY, duration = 520, cb = null) {
@@ -3960,7 +4012,7 @@
             activeScrollCb = cb;
             const startY = window.scrollY;
             const distance = targetY - startY;
-            if (Math.abs(distance) < 1.5) {
+            if (prefersReducedMotion || Math.abs(distance) < 1.5) {
                 window.scrollTo(0, targetY);
                 if (activeScrollCb) {
                     const fn = activeScrollCb;
@@ -4000,8 +4052,32 @@
             let isTransitioning = false;
             let targetSection = getSavedSection() === 'nav' ? 'nav' : 'start';
             const SCROLL_THRESHOLD = 120; // 累积滚动像素阈值（跨浏览器一致）
+            const startSection = document.getElementById('startSection');
             const nav = document.getElementById('navSection');
             const navContent = dom.navContent;
+
+            // 纯无障碍 (a11y) 屏隔离与 Tab 聚焦防护：防止键盘导航误入视口外的隐藏区
+            function updateSectionAccessibility(sec) {
+                if (sec === 'nav') {
+                    if (startSection) {
+                        startSection.setAttribute('aria-hidden', 'true');
+                        startSection.setAttribute('inert', '');
+                    }
+                    if (nav) {
+                        nav.removeAttribute('aria-hidden');
+                        nav.removeAttribute('inert');
+                    }
+                } else {
+                    if (startSection) {
+                        startSection.removeAttribute('aria-hidden');
+                        startSection.removeAttribute('inert');
+                    }
+                    if (nav) {
+                        nav.setAttribute('aria-hidden', 'true');
+                        nav.setAttribute('inert', '');
+                    }
+                }
+            }
 
             // 滚动停顿 400ms 后自动归零积累的 delta 值，彻底解决慢速滚动停顿后的误触发问题
             function resetAccumAfterDelay() {
@@ -4033,6 +4109,7 @@
                 isTransitioning = true;
                 clearAccum();
                 saveSection('nav');
+                updateSectionAccessibility('nav');
 
                 nav.classList.remove('nav-hidden');
                 nav.classList.add('nav-visible');
@@ -4041,6 +4118,7 @@
                     animateScrollTo(nav.offsetTop, 520, () => {
                         state.currentSection = 'nav';
                         isTransitioning = false;
+                        if (navContent) navContent.focus();
                     });
                 });
             }
@@ -4052,12 +4130,14 @@
                 clearAccum();
                 if (navContent) navContent.scrollTop = 0;
                 saveSection('start');
+                updateSectionAccessibility('start');
 
                 animateScrollTo(0, 520, () => {
                     state.currentSection = 'start';
                     isTransitioning = false;
                     nav.classList.remove('nav-visible');
                     nav.classList.add('nav-hidden');
+                    if (dom.searchInput) dom.searchInput.focus();
                 });
             }
 
@@ -4071,6 +4151,7 @@
                 document.documentElement.classList.remove('nr');
                 targetSection = 'nav';
                 saveSection('nav');
+                updateSectionAccessibility('nav');
                 requestAnimationFrame(() => {
                     window.scrollTo(0, nav.offsetTop);
                 });
@@ -4078,6 +4159,7 @@
                 saveSection('start');
                 targetSection = 'start';
                 document.documentElement.classList.remove('nr');
+                updateSectionAccessibility('start');
                 window.scrollTo(0, 0);
             }
 
