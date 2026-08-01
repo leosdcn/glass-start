@@ -3786,7 +3786,7 @@
                 renderSuggestions(localList, []);
             }
 
-            // 递增请求 ID，唯一 JSONP 回调名称防止快速连续按键时的竞态倒错与回调函数覆盖
+            // 递增请求 ID，用于在回调内部丢弃过期的异步响应
             activeSuggestReqId++;
             const reqId = activeSuggestReqId;
 
@@ -3795,7 +3795,10 @@
                 suggestionScriptTag = null;
             }
 
-            const cbName = `_suggestCb_${reqId}`;
+            // 固定 JSONP 回调名（而非每次递增唯一名）：window 上永远只存在一个回调属性，
+            // 彻底杜绝 `_suggestCb_N` 随每次搜索/按键无限累积的 T0 内存泄漏。
+            // 过期响应会命中最新回调，由下方 reqId 判等兜底丢弃，行为与唯一名方案等价。
+            const cbName = '__glassSuggestCb';
             let timeoutTimer = null;
 
             const cleanup = () => {
@@ -3803,10 +3806,8 @@
                     clearTimeout(timeoutTimer);
                     timeoutTimer = null;
                 }
-                // 自清洗 safe stub：防止迟到的 JSONP 响应在已被清理的回调上抛出 Uncaught TypeError 异常
-                window[cbName] = function() {
-                    try { delete window[cbName]; } catch { window[cbName] = undefined; }
-                };
+                // 直接删除固定回调属性，不留残余函数；迟到响应因脚本已被移除不会再执行，不会触发 TypeError
+                try { delete window[cbName]; } catch { window[cbName] = undefined; }
                 if (suggestionScriptTag) {
                     suggestionScriptTag.onerror = null;
                     suggestionScriptTag.remove();
