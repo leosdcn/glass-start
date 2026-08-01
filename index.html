@@ -229,7 +229,7 @@
             box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
         }
         .nav-bookmark:hover {
-            background: rgba(255, 255, 255, 0.14);
+            background: rgba(255, 255, 255, 0.12);
             border-color: rgba(255, 255, 255, 0.28);
             transform: translateY(-0.125rem);
             box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.3), 0 8px 20px rgba(0, 0, 0, 0.3);
@@ -251,9 +251,9 @@
             transition: background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1), color 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative;
         }
-        .sidebar-item:hover { background: rgba(255,255,255,0.08); color: #fff; }
+        .sidebar-item:hover { background: rgba(255,255,255,0.10); color: #fff; }
         .sidebar-item.active {
-            background: rgba(255,255,255,0.16);
+            background: rgba(255,255,255,0.18);
             color: #fff;
             font-weight: 500;
             box-shadow: inset 0 1px 0 0 rgba(255,255,255,0.22), 0 4px 12px rgba(0,0,0,0.2);
@@ -554,7 +554,7 @@
             transition: background 0.15s ease, transform 0.15s ease, color 0.15s ease;
         }
         .suggestion-item.active {
-            background: rgba(255, 255, 255, 0.22) !important;
+            background: rgba(255, 255, 255, 0.18) !important;
             color: #ffffff !important;
             font-weight: 500;
             transform: translateX(4px);
@@ -720,7 +720,7 @@
         }
         .settings-tab-btn:hover {
             color: rgba(255, 255, 255, 0.9);
-            background: rgba(255, 255, 255, 0.08);
+            background: rgba(255, 255, 255, 0.10);
         }
         .settings-tab-btn.active {
             background: rgba(255, 255, 255, 0.18);
@@ -885,7 +885,7 @@
     <section id="navSection" class="relative z-10 h-screen nav-hidden overflow-hidden">
         <div class="h-full flex flex-col p-1.5 md:p-3 w-full">
             <!-- 主体：一体化 Liquid Glass 窗口框架 -->
-            <div class="flex-1 glass glass-strong apple-radius flex flex-col overflow-hidden min-h-0 border border-white/20 shadow-2xl">
+            <div class="flex-1 glass apple-radius flex flex-col overflow-hidden min-h-0 border border-white/20 shadow-2xl">
                 <!-- 窗口顶部 Header 栏 -->
                 <div id="navHeader" class="flex items-center justify-between px-4 py-2.5 border-b border-white/10 bg-transparent shrink-0 cursor-pointer select-none hover:bg-white/[0.06] transition-colors" title="点击返回起始页">
                     <div class="flex items-center gap-2">
@@ -955,8 +955,8 @@
                 </div>
                 <div id="editList" role="list" aria-label="书签列表" class="flex-1 overflow-y-auto space-y-1.5 mb-3.5 min-h-0 pr-1"></div>
                 <div class="flex flex-col sm:flex-row gap-2.5 shrink-0 pt-2.5 border-t border-white/10">
-                    <button id="addBookmarkBtn" type="button" class="flex-1 py-2 px-3 border border-dashed border-white/20 apple-radius text-white/75 hover:text-white hover:border-white/40 hover:bg-white/5 transition text-xs flex items-center justify-center gap-1.5 font-medium">+ 手动添加书签</button>
-                    <button id="togglePickerBtn" type="button" class="flex-1 py-2 px-3 border border-dashed border-white/20 apple-radius text-xs text-white/75 hover:text-white hover:border-white/40 hover:bg-white/5 transition flex items-center justify-center gap-1.5 font-medium">🗂️ 从导航页批量选择</button>
+                    <button id="addBookmarkBtn" type="button" class="flex-1 py-2 px-3 border border-dashed border-white/20 apple-radius text-white/75 hover:text-white hover:border-white/40 hover:bg-white/10 transition text-xs flex items-center justify-center gap-1.5 font-medium">+ 手动添加书签</button>
+                    <button id="togglePickerBtn" type="button" class="flex-1 py-2 px-3 border border-dashed border-white/20 apple-radius text-xs text-white/75 hover:text-white hover:border-white/40 hover:bg-white/10 transition flex items-center justify-center gap-1.5 font-medium">🗂️ 从导航页批量选择</button>
                 </div>
             </div>
 
@@ -1097,7 +1097,7 @@
                             <span>📤</span> 导出 JSON 配置文件备份
                         </button>
                         <!-- Dropzone 导入框 -->
-                        <div id="jsonDropzone" class="json-dropzone flex-1 border-2 border-dashed border-white/15 hover:border-white/35 apple-radius p-3.5 text-center transition cursor-pointer bg-white/[0.02] hover:bg-white/5 flex flex-col items-center justify-center gap-1 min-h-[6.5rem]">
+                        <div id="jsonDropzone" class="json-dropzone flex-1 border-2 border-dashed border-white/15 hover:border-white/35 apple-radius p-3.5 text-center transition cursor-pointer bg-white/[0.02] hover:bg-white/10 flex flex-col items-center justify-center gap-1 min-h-[6.5rem]">
                             <span class="text-lg">📥</span>
                             <p class="text-xs text-white/80 font-medium">点击或将 JSON 备份文件拖入此处</p>
                             <p class="text-[10px] text-white/40">自动解析恢复快捷书签与系统偏好配置</p>
@@ -3856,7 +3856,7 @@
                              data-url="${escapeHtml(bm.url)}" 
                              data-suggestion="${escapeHtml(bm.name)}"
                              data-idx="${globalIdx}"
-                             class="suggestion-item group px-3.5 py-2.5 my-0.5 apple-radius text-sm text-white/90 flex items-center gap-3 transition-all duration-150 cursor-pointer hover:bg-white/15 hover:text-white">
+                             class="suggestion-item group px-3.5 py-2.5 my-0.5 apple-radius text-sm text-white/90 flex items-center gap-3 transition-all duration-150 cursor-pointer hover:text-white">
                             ${iconHtml}
                             <div class="truncate flex-1 min-w-0 flex items-center gap-2">
                                 <span class="truncate font-medium text-white/95">${escapeHtml(bm.name)}</span>
@@ -3887,7 +3887,7 @@
                              data-type="query" 
                              data-suggestion="${escapeHtml(item)}" 
                              data-idx="${globalIdx}"
-                             class="suggestion-item group px-3.5 py-2.5 my-0.5 apple-radius text-sm text-white/85 flex items-center gap-3 transition-all duration-150 cursor-pointer hover:bg-white/15 hover:text-white">
+                             class="suggestion-item group px-3.5 py-2.5 my-0.5 apple-radius text-sm text-white/85 flex items-center gap-3 transition-all duration-150 cursor-pointer hover:text-white">
                             <svg class="w-4 h-4 text-white/40 group-hover:text-white/80 shrink-0 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                             <span class="truncate flex-1 font-normal tracking-wide">${escapeHtml(item)}</span>
                             <span class="text-[11px] text-white/30 shrink-0 opacity-0 group-hover:opacity-80 transition">搜索</span>
