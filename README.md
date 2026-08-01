@@ -119,7 +119,7 @@ npm run build
 
 | 缓存层级 | 技术实现 | 作用目标与缓存对象 | 缓存策略 / 容量限制 | 失效与清理机制 |
 | :--- | :--- | :--- | :--- | :--- |
-| **Service Worker 离线网络层** | `sw.js` (Cache API + IDB) | `favicon.im` 图标、`.ico` 静态图标、`style.css` 等 | 图标: `Cache-First` (三池隔离: Favicon 800条 / 本地图片 200条)<br>核心: `Network-First` | `npm run build` 自动更新版本号 `app-core-v<timestamp>` 强制清除旧缓存，IDB 精准 LRU 淘汰 |
+| **Service Worker 离线网络层** | `sw.js` (Cache API + IDB) | `a.favicon.im` 图标、`.ico` 静态图标、`style.css` 等 | 图标: `Cache-First` (三池隔离: Favicon 800条 / 本地图片 200条)<br>核心: `Network-First` | `npm run build` 自动更新版本号 `app-core-v<timestamp>` 强制清除旧缓存，IDB 精准 LRU 淘汰 |
 | **持久化偏好存储层** | `LocalStorage` | 默认引擎、遮罩透明度、模糊度、自定义书签、壁纸偏好 | key-value / 容量上限 ~5MB | 用户手动点击「重置系统设置」或浏览器清除 Cookie |
 | **高清大图存储层** | `IndexedDB` (`GlassStartDB`) | 4K 高清自定义上传壁纸 (`wallpapers` 表) | 3840x2160 JPEG Base64 / 容量 50MB~数百MB | 彻底打破 LocalStorage 5MB 上限，随重置系统操作清空 |
 | **会话状态防闪烁层** | `SessionStorage` + `<head>` 脚本 | 页面屏间位置 (`startpage_section`: `home` / `nav`) | 仅在当前会话生命周期内有效 | 渲染前 Head 内联脚本检测并同步添加 `.nr` 类，防止刷新首屏闪烁 |
@@ -133,7 +133,7 @@ npm run build
 #### 🌐 Service Worker 三池隔离与 IndexedDB LRU (`sw.js`)
 - **三池独立隔离 (Core / Favicon / Image)**：
   - `CORE_CACHE`：存放 HTML/CSS/JSON 等核心程序资源。
-  - `FAVICON_CACHE`：`favicon.im` 外部图标专用池（配额上限 **800 条**）。
+  - `FAVICON_CACHE`：`a.favicon.im` 外部图标专用池（配额上限 **800 条**）。
   - `IMG_CACHE`：站内本地图片及 `.ico` 资源池（配额上限 **200 条**）。
   - 核心优势：图标作为导航站核心功能享有独立高额配额，且不会被本地大图挤占。
 - **IndexedDB 真时间戳 LRU 淘汰**：在独立数据库 `sw-lru-db` 中维护真实访问时间戳，当缓存池超限时，基于实际时间戳进行批量精准淘汰，应对大量书签瞬间导入场景更稳健。

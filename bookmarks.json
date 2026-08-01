@@ -3,42 +3,42 @@
         {
             "name": "微信",
             "url": "https://web.wechat.com/?lang=zh_CN",
-            "icon": "https://favicon.im/web.wechat.com"
+            "icon": "https://a.favicon.im/web.wechat.com"
         },
         {
             "name": "微博",
             "url": "https://weibo.com",
-            "icon": "https://favicon.im/weibo.com"
+            "icon": "https://a.favicon.im/weibo.com"
         },
         {
             "name": "豆包",
             "url": "https://www.doubao.com",
-            "icon": "https://favicon.im/doubao.com"
+            "icon": "https://a.favicon.im/doubao.com"
         },
         {
             "name": "DeepSeek",
             "url": "https://chat.deepseek.com",
-            "icon": "https://favicon.im/chat.deepseek.com"
+            "icon": "https://a.favicon.im/chat.deepseek.com"
         },
         {
             "name": "哔哩哔哩",
             "url": "https://www.bilibili.com",
-            "icon": "https://favicon.im/bilibili.com"
+            "icon": "https://a.favicon.im/bilibili.com"
         },
         {
             "name": "抖音",
             "url": "https://www.douyin.com",
-            "icon": "https://favicon.im/douyin.com"
+            "icon": "https://a.favicon.im/douyin.com"
         },
         {
             "name": "中国天气网",
             "url": "https://www.weather.com.cn",
-            "icon": "https://favicon.im/weather.com.cn"
+            "icon": "https://a.favicon.im/weather.com.cn"
         },
         {
             "name": "网易云音乐",
             "url": "https://music.163.com",
-            "icon": "https://favicon.im/music.163.com"
+            "icon": "https://a.favicon.im/music.163.com"
         }
     ],
     "categories": [
@@ -49,97 +49,97 @@
                 {
                     "name": "Arena AI",
                     "url": "https://arena.ai",
-                    "icon": "https://favicon.im/arena.ai",
+                    "icon": "https://a.favicon.im/arena.ai",
                     "desc": "全球AI盲测平台"
                 },
                 {
                     "name": "ChatGPT",
                     "url": "https://chat.openai.com",
-                    "icon": "https://favicon.im/chat.openai.com",
+                    "icon": "https://a.favicon.im/chat.openai.com",
                     "desc": "全球领先AI对话模型"
                 },
                 {
                     "name": "Civitai",
                     "url": "https://civitai.com",
-                    "icon": "https://favicon.im/civitai.com",
+                    "icon": "https://a.favicon.im/civitai.com",
                     "desc": "开源AI绘画模型社区"
                 },
                 {
                     "name": "Claude",
                     "url": "https://claude.ai",
-                    "icon": "https://favicon.im/claude.ai",
+                    "icon": "https://a.favicon.im/claude.ai",
                     "desc": "前沿硬核AI对话助手"
                 },
                 {
                     "name": "DeepSeek",
                     "url": "https://chat.deepseek.com",
-                    "icon": "https://favicon.im/chat.deepseek.com",
+                    "icon": "https://a.favicon.im/chat.deepseek.com",
                     "desc": "深度求索国产硬核AI"
                 },
                 {
                     "name": "Gamma",
                     "url": "https://gamma.app",
-                    "icon": "https://favicon.im/gamma.app",
+                    "icon": "https://a.favicon.im/gamma.app",
                     "desc": "AI生成PPT与网页"
                 },
                 {
                     "name": "Gemini",
                     "url": "https://gemini.google.com",
-                    "icon": "https://favicon.im/gemini.google.com",
+                    "icon": "https://a.favicon.im/gemini.google.com",
                     "desc": "谷歌前沿多模态AI"
                 },
                 {
                     "name": "Grok",
                     "url": "https://grok.com",
-                    "icon": "https://favicon.im/grok.com",
+                    "icon": "https://a.favicon.im/grok.com",
                     "desc": "xAI智能对话模型"
                 },
                 {
                     "name": "Hugging Face",
                     "url": "https://huggingface.co",
-                    "icon": "https://favicon.im/huggingface.co",
+                    "icon": "https://a.favicon.im/huggingface.co",
                     "desc": "开源AI模型与数据集"
                 },
                 {
                     "name": "Kimi",
                     "url": "https://kimi.moonshot.cn",
-                    "icon": "https://favicon.im/kimi.moonshot.cn",
+                    "icon": "https://a.favicon.im/kimi.moonshot.cn",
                     "desc": "月之暗面长文本AI"
                 },
                 {
                     "name": "Midjourney",
                     "url": "https://www.midjourney.com",
-                    "icon": "https://favicon.im/midjourney.com",
+                    "icon": "https://a.favicon.im/midjourney.com",
                     "desc": "AI图像生成与艺术"
                 },
                 {
                     "name": "Perplexity",
                     "url": "https://www.perplexity.ai",
-                    "icon": "https://favicon.im/perplexity.ai",
+                    "icon": "https://a.favicon.im/perplexity.ai",
                     "desc": "AI驱动知识问答引擎"
                 },
                 {
                     "name": "Suno",
                     "url": "https://suno.com",
-                    "icon": "https://favicon.im/suno.com",
+                    "icon": "https://a.favicon.im/suno.com",
                     "desc": "AI音乐与歌曲创作"
                 },
                 {
                     "name": "智谱清言",
                     "url": "https://chatglm.cn",
-                    "icon": "https://favicon.im/chatglm.cn",
+                    "icon": "https://a.favicon.im/chatglm.cn",
                     "desc": "国产全自研AI大模型"
                 },
                 {
                     "name": "豆包",
                     "url": "https://www.doubao.com",
-                    "icon": "https://favicon.im/doubao.com",
+                    "icon": "https://a.favicon.im/doubao.com",
                     "desc": "字节跳动AI智能助手"
                 },
                 {
                     "name": "通义千问",
                     "url": "https://www.qianwen.com",
-                    "icon": "https://favicon.im/www.qianwen.com",
+                    "icon": "https://a.favicon.im/www.qianwen.com",
                     "desc": "阿里官方AI智能助手"
                 }
             ]
@@ -151,73 +151,73 @@
                 {
                     "name": "BrowserLeaks",
                     "url": "https://browserleaks.com",
-                    "icon": "https://favicon.im/browserleaks.com",
+                    "icon": "https://a.favicon.im/browserleaks.com",
                     "desc": "浏览器指纹与隐私检测"
                 },
                 {
                     "name": "Can I Use",
                     "url": "https://caniuse.com",
-                    "icon": "https://favicon.im/caniuse.com",
+                    "icon": "https://a.favicon.im/caniuse.com",
                     "desc": "前端特性兼容性查询"
                 },
                 {
                     "name": "CodePen",
                     "url": "https://codepen.io",
-                    "icon": "https://favicon.im/codepen.io",
+                    "icon": "https://a.favicon.im/codepen.io",
                     "desc": "前端代码在线演示"
                 },
                 {
                     "name": "DevDocs",
                     "url": "https://devdocs.io",
-                    "icon": "https://favicon.im/devdocs.io",
+                    "icon": "https://a.favicon.im/devdocs.io",
                     "desc": "开发者API离线文档"
                 },
                 {
                     "name": "GitHub",
                     "url": "https://github.com",
-                    "icon": "https://favicon.im/github.com",
+                    "icon": "https://a.favicon.im/github.com",
                     "desc": "全球最大开源代码托管"
                 },
                 {
                     "name": "IT Tools",
                     "url": "https://it-tools.tech",
-                    "icon": "https://favicon.im/it-tools.tech",
+                    "icon": "https://a.favicon.im/it-tools.tech",
                     "desc": "开发者在线实用工具集"
                 },
                 {
                     "name": "JSFiddle",
                     "url": "https://jsfiddle.net",
-                    "icon": "https://favicon.im/jsfiddle.net",
+                    "icon": "https://a.favicon.im/jsfiddle.net",
                     "desc": "在线前端代码调试沙盒"
                 },
                 {
                     "name": "MDN Web Docs",
                     "url": "https://developer.mozilla.org",
-                    "icon": "https://favicon.im/developer.mozilla.org",
+                    "icon": "https://a.favicon.im/developer.mozilla.org",
                     "desc": "权威Web开发文档"
                 },
                 {
                     "name": "npm",
                     "url": "https://www.npmjs.com",
-                    "icon": "https://favicon.im/npmjs.com",
+                    "icon": "https://a.favicon.im/npmjs.com",
                     "desc": "Node官方包管理器"
                 },
                 {
                     "name": "Speedtest",
                     "url": "https://www.speedtest.net",
-                    "icon": "https://favicon.im/speedtest.net",
+                    "icon": "https://a.favicon.im/speedtest.net",
                     "desc": "权威网络测速诊断"
                 },
                 {
                     "name": "Stack Overflow",
                     "url": "https://stackoverflow.com",
-                    "icon": "https://favicon.im/stackoverflow.com",
+                    "icon": "https://a.favicon.im/stackoverflow.com",
                     "desc": "全球开发者问答社区"
                 },
                 {
                     "name": "v0",
                     "url": "https://v0.dev",
-                    "icon": "https://favicon.im/v0.dev",
+                    "icon": "https://a.favicon.im/v0.dev",
                     "desc": "AI代码与生成式UI"
                 }
             ]
@@ -229,43 +229,43 @@
                 {
                     "name": "AWS Console",
                     "url": "https://aws.amazon.com/console",
-                    "icon": "https://favicon.im/amazonaws.com",
+                    "icon": "https://a.favicon.im/amazonaws.com",
                     "desc": "AWS云服务控制台"
                 },
                 {
                     "name": "Cloudflare",
                     "url": "https://dash.cloudflare.com",
-                    "icon": "https://favicon.im/cloudflare.com",
+                    "icon": "https://a.favicon.im/cloudflare.com",
                     "desc": "全球网络安全与CDN"
                 },
                 {
                     "name": "Google Cloud",
                     "url": "https://console.cloud.google.com",
-                    "icon": "https://favicon.im/cloud.google.com",
+                    "icon": "https://a.favicon.im/cloud.google.com",
                     "desc": "谷歌云基础设施平台"
                 },
                 {
                     "name": "Microsoft Azure",
                     "url": "https://portal.azure.com",
-                    "icon": "https://favicon.im/azure.microsoft.com",
+                    "icon": "https://a.favicon.im/azure.microsoft.com",
                     "desc": "微软企业级云平台"
                 },
                 {
                     "name": "Railway",
                     "url": "https://railway.app",
-                    "icon": "https://favicon.im/railway.app",
+                    "icon": "https://a.favicon.im/railway.app",
                     "desc": "云端极速应用部署平台"
                 },
                 {
                     "name": "Supabase",
                     "url": "https://supabase.com",
-                    "icon": "https://favicon.im/supabase.com",
+                    "icon": "https://a.favicon.im/supabase.com",
                     "desc": "开源BaaS后端服务"
                 },
                 {
                     "name": "Vercel",
                     "url": "https://vercel.com",
-                    "icon": "https://favicon.im/vercel.com",
+                    "icon": "https://a.favicon.im/vercel.com",
                     "desc": "前端全栈极速部署"
                 }
             ]
@@ -275,75 +275,87 @@
             "icon": "📝",
             "bookmarks": [
                 {
+                    "name": "DeepL",
+                    "url": "https://www.deepl.com",
+                    "icon": "https://a.favicon.im/deepl.com",
+                    "desc": "精准自然AI神经网络翻译"
+                },
+                {
                     "name": "draw.io",
                     "url": "https://app.diagrams.net",
-                    "icon": "https://favicon.im/app.diagrams.net",
+                    "icon": "https://a.favicon.im/app.diagrams.net",
                     "desc": "免费开源流程架构图"
                 },
                 {
                     "name": "Excalidraw",
                     "url": "https://excalidraw.com",
-                    "icon": "https://favicon.im/excalidraw.com",
+                    "icon": "https://a.favicon.im/excalidraw.com",
                     "desc": "手绘风格在线协作白板"
                 },
                 {
                     "name": "Flomo",
                     "url": "https://flomoapp.com",
-                    "icon": "https://favicon.im/flomoapp.com",
+                    "icon": "https://a.favicon.im/flomoapp.com",
                     "desc": "卡片式无压力笔记工具"
                 },
                 {
                     "name": "Gmail",
                     "url": "https://mail.google.com",
-                    "icon": "https://favicon.im/mail.google.com",
+                    "icon": "https://a.favicon.im/mail.google.com",
                     "desc": "谷歌高效安全电子邮箱"
                 },
                 {
                     "name": "Google Drive",
                     "url": "https://drive.google.com",
-                    "icon": "https://favicon.im/drive.google.com",
+                    "icon": "https://a.favicon.im/drive.google.com",
                     "desc": "谷歌云端硬盘与文档"
+                },
+                {
+                    "name": "Google 翻译",
+                    "url": "https://translate.google.com",
+                    "icon": "https://a.favicon.im/translate.google.com",
+                    "desc": "全球多语种即时互译"
                 },
                 {
                     "name": "MEGA",
                     "url": "https://mega.nz",
-                    "icon": "https://favicon.im/mega.nz",
+                    "icon": "https://a.favicon.im/mega.nz",
                     "desc": "端到端加密云端存储"
                 },
                 {
                     "name": "Notion",
                     "url": "https://www.notion.so",
-                    "icon": "https://favicon.im/notion.so",
+                    "icon": "https://a.favicon.im/notion.so",
                     "desc": "一体化笔记与知识库"
                 },
                 {
                     "name": "Obsidian",
                     "url": "https://obsidian.md",
-                    "icon": "https://favicon.im/obsidian.md",
+                    "icon": "https://a.favicon.im/obsidian.md",
                     "desc": "本地双链知识库笔记"
                 },
                 {
                     "name": "OneDrive",
                     "url": "https://onedrive.live.com",
-                    "icon": "https://favicon.im/onedrive.live.com",
+                    "icon": "https://a.favicon.im/onedrive.live.com",
                     "desc": "微软云端文件存储服务"
                 },
                 {
                     "name": "ProcessOn",
                     "url": "https://www.processon.com",
-                    "icon": "https://favicon.im/processon.com",
+                    "icon": "https://a.favicon.im/processon.com",
                     "desc": "在线流程图与思维导图"
                 },
                 {
                     "name": "Publish Markdown",
                     "url": "https://publishmarkdown.com",
-                    "icon": "https://favicon.im/publishmarkdown.com",
+                    "icon": "https://a.favicon.im/publishmarkdown.com",
                     "desc": "MD笔记一键发网页"
                 },
                 {
                     "name": "飞书",
                     "url": "https://www.feishu.cn",
-                    "icon": "https://favicon.im/feishu.cn",
+                    "icon": "https://a.favicon.im/feishu.cn",
                     "desc": "先进企业协同办公平台"
                 }
             ]
@@ -355,67 +367,67 @@
                 {
                     "name": "Behance",
                     "url": "https://www.behance.net",
-                    "icon": "https://favicon.im/behance.net",
+                    "icon": "https://a.favicon.im/behance.net",
                     "desc": "全球设计作品展示社区"
                 },
                 {
                     "name": "Canva",
                     "url": "https://www.canva.cn",
-                    "icon": "https://favicon.im/canva.cn",
+                    "icon": "https://a.favicon.im/canva.cn",
                     "desc": "在线平面与海报设计"
                 },
                 {
                     "name": "Coolors",
                     "url": "https://coolors.co",
-                    "icon": "https://favicon.im/coolors.co",
+                    "icon": "https://a.favicon.im/coolors.co",
                     "desc": "极速配色方案在线生成"
                 },
                 {
                     "name": "Dribbble",
                     "url": "https://dribbble.com",
-                    "icon": "https://favicon.im/dribbble.com",
+                    "icon": "https://a.favicon.im/dribbble.com",
                     "desc": "设计师作品交流与灵感"
                 },
                 {
                     "name": "Figma",
                     "url": "https://www.figma.com",
-                    "icon": "https://favicon.im/figma.com",
+                    "icon": "https://a.favicon.im/figma.com",
                     "desc": "云端协同UI设计工具"
                 },
                 {
                     "name": "Font Awesome",
                     "url": "https://fontawesome.com",
-                    "icon": "https://favicon.im/fontawesome.com",
+                    "icon": "https://a.favicon.im/fontawesome.com",
                     "desc": "经典Web矢量图标"
                 },
                 {
                     "name": "Lucide Icons",
                     "url": "https://lucide.dev",
-                    "icon": "https://favicon.im/lucide.dev",
+                    "icon": "https://a.favicon.im/lucide.dev",
                     "desc": "现代极简矢量图标库"
                 },
                 {
                     "name": "Pexels",
                     "url": "https://www.pexels.com",
-                    "icon": "https://favicon.im/pexels.com",
+                    "icon": "https://a.favicon.im/pexels.com",
                     "desc": "免费高质量素材图库"
                 },
                 {
                     "name": "Pixiv",
                     "url": "https://www.pixiv.net",
-                    "icon": "https://favicon.im/pixiv.net",
+                    "icon": "https://a.favicon.im/pixiv.net",
                     "desc": "二次元插画艺术社区"
                 },
                 {
                     "name": "Unsplash",
                     "url": "https://unsplash.com",
-                    "icon": "https://favicon.im/unsplash.com",
+                    "icon": "https://a.favicon.im/unsplash.com",
                     "desc": "免费高质量无版权图库"
                 },
                 {
                     "name": "Wallhaven",
                     "url": "https://wallhaven.cc",
-                    "icon": "https://favicon.im/wallhaven.cc",
+                    "icon": "https://a.favicon.im/wallhaven.cc",
                     "desc": "高质量极客桌面壁纸库"
                 }
             ]
@@ -427,61 +439,61 @@
                 {
                     "name": "Discord",
                     "url": "https://discord.com",
-                    "icon": "https://favicon.im/discord.com",
+                    "icon": "https://a.favicon.im/discord.com",
                     "desc": "游戏与开发者实时语音"
                 },
                 {
                     "name": "LINUX DO",
                     "url": "https://linux.do",
-                    "icon": "https://favicon.im/linux.do",
+                    "icon": "https://a.favicon.im/linux.do",
                     "desc": "极客与开发者社区"
                 },
                 {
                     "name": "Reddit",
                     "url": "https://www.reddit.com",
-                    "icon": "https://favicon.im/reddit.com",
+                    "icon": "https://a.favicon.im/reddit.com",
                     "desc": "全球热门话题社区"
                 },
                 {
                     "name": "Telegram Web",
                     "url": "https://web.telegram.org",
-                    "icon": "https://favicon.im/web.telegram.org",
+                    "icon": "https://a.favicon.im/web.telegram.org",
                     "desc": "高隐私加密即时通讯"
                 },
                 {
                     "name": "V2EX",
                     "url": "https://www.v2ex.com",
-                    "icon": "https://favicon.im/v2ex.com",
+                    "icon": "https://a.favicon.im/v2ex.com",
                     "desc": "程序员与极客社区"
                 },
                 {
                     "name": "X (Twitter)",
                     "url": "https://x.com",
-                    "icon": "https://favicon.im/twitter.com",
+                    "icon": "https://a.favicon.im/twitter.com",
                     "desc": "全球实时动态与热点"
                 },
                 {
                     "name": "微信",
                     "url": "https://web.wechat.com/?lang=zh_CN",
-                    "icon": "https://favicon.im/web.wechat.com",
+                    "icon": "https://a.favicon.im/web.wechat.com",
                     "desc": "即时通讯与社交平台"
                 },
                 {
                     "name": "微博",
                     "url": "https://weibo.com",
-                    "icon": "https://favicon.im/weibo.com",
+                    "icon": "https://a.favicon.im/weibo.com",
                     "desc": "国内热点社交媒体平台"
                 },
                 {
                     "name": "知乎",
                     "url": "https://www.zhihu.com",
-                    "icon": "https://favicon.im/zhihu.com",
+                    "icon": "https://a.favicon.im/zhihu.com",
                     "desc": "知识问答与深度讨论"
                 },
                 {
                     "name": "豆瓣",
                     "url": "https://www.douban.com",
-                    "icon": "https://favicon.im/douban.com",
+                    "icon": "https://a.favicon.im/douban.com",
                     "desc": "图书电影音乐评分社区"
                 }
             ]
@@ -493,67 +505,67 @@
                 {
                     "name": "Apple Music",
                     "url": "https://music.apple.com",
-                    "icon": "https://favicon.im/music.apple.com",
+                    "icon": "https://a.favicon.im/music.apple.com",
                     "desc": "苹果官方无损音乐平台"
                 },
                 {
                     "name": "Netflix",
                     "url": "https://www.netflix.com",
-                    "icon": "https://favicon.im/netflix.com",
+                    "icon": "https://a.favicon.im/netflix.com",
                     "desc": "全球流媒体影视平台"
                 },
                 {
                     "name": "SoundCloud",
                     "url": "https://soundcloud.com",
-                    "icon": "https://favicon.im/soundcloud.com",
+                    "icon": "https://a.favicon.im/soundcloud.com",
                     "desc": "独立音乐与音频分享"
                 },
                 {
                     "name": "Spotify",
                     "url": "https://open.spotify.com",
-                    "icon": "https://favicon.im/spotify.com",
+                    "icon": "https://a.favicon.im/spotify.com",
                     "desc": "全球流行音乐流媒体"
                 },
                 {
                     "name": "Steam",
                     "url": "https://store.steampowered.com",
-                    "icon": "https://favicon.im/store.steampowered.com",
+                    "icon": "https://a.favicon.im/store.steampowered.com",
                     "desc": "全球PC数字游戏平台"
                 },
                 {
                     "name": "Twitch",
                     "url": "https://www.twitch.tv",
-                    "icon": "https://favicon.im/twitch.tv",
+                    "icon": "https://a.favicon.im/twitch.tv",
                     "desc": "全球游戏与实况直播"
                 },
                 {
                     "name": "YouTube",
                     "url": "https://www.youtube.com",
-                    "icon": "https://favicon.im/youtube.com",
+                    "icon": "https://a.favicon.im/youtube.com",
                     "desc": "全球最大视频分享平台"
                 },
                 {
                     "name": "YouTube Music",
                     "url": "https://music.youtube.com",
-                    "icon": "https://favicon.im/music.youtube.com",
+                    "icon": "https://a.favicon.im/music.youtube.com",
                     "desc": "谷歌音乐与歌曲流媒体"
                 },
                 {
                     "name": "哔哩哔哩",
                     "url": "https://www.bilibili.com",
-                    "icon": "https://favicon.im/bilibili.com",
+                    "icon": "https://a.favicon.im/bilibili.com",
                     "desc": "弹幕视频与文化社区"
                 },
                 {
                     "name": "抖音",
                     "url": "https://www.douyin.com",
-                    "icon": "https://favicon.im/douyin.com",
+                    "icon": "https://a.favicon.im/douyin.com",
                     "desc": "短视频与记录美好生活"
                 },
                 {
                     "name": "网易云音乐",
                     "url": "https://music.163.com",
-                    "icon": "https://favicon.im/music.163.com",
+                    "icon": "https://a.favicon.im/music.163.com",
                     "desc": "发现好音乐与听歌社区"
                 }
             ]
@@ -565,73 +577,73 @@
                 {
                     "name": "Coursera",
                     "url": "https://www.coursera.org",
-                    "icon": "https://favicon.im/coursera.org",
+                    "icon": "https://a.favicon.im/coursera.org",
                     "desc": "在线课程与学术学习"
                 },
                 {
                     "name": "freeCodeCamp",
                     "url": "https://www.freecodecamp.org",
-                    "icon": "https://favicon.im/freecodecamp.org",
+                    "icon": "https://a.favicon.im/freecodecamp.org",
                     "desc": "免费编程实战与学习"
                 },
                 {
                     "name": "Google Earth",
                     "url": "https://earth.google.com/web/",
-                    "icon": "https://favicon.im/earth.google.com",
+                    "icon": "https://a.favicon.im/earth.google.com",
                     "desc": "三维数字地球探索"
                 },
                 {
                     "name": "Hacker News",
                     "url": "https://news.ycombinator.com",
-                    "icon": "https://favicon.im/news.ycombinator.com",
+                    "icon": "https://a.favicon.im/news.ycombinator.com",
                     "desc": "全球极客与技术前沿"
                 },
                 {
                     "name": "Internet Archive",
                     "url": "https://archive.org",
-                    "icon": "https://favicon.im/archive.org",
+                    "icon": "https://a.favicon.im/archive.org",
                     "desc": "互联网数字历史档案馆"
                 },
                 {
                     "name": "Nature",
                     "url": "https://www.nature.com",
-                    "icon": "https://favicon.im/nature.com",
+                    "icon": "https://a.favicon.im/nature.com",
                     "desc": "全球顶尖科学期刊"
                 },
                 {
                     "name": "OMG! Ubuntu",
                     "url": "https://www.omgubuntu.co.uk",
-                    "icon": "https://favicon.im/omgubuntu.co.uk",
+                    "icon": "https://a.favicon.im/omgubuntu.co.uk",
                     "desc": "Ubuntu硬核资讯"
                 },
                 {
                     "name": "roadmap.sh",
                     "url": "https://roadmap.sh",
-                    "icon": "https://favicon.im/roadmap.sh",
+                    "icon": "https://a.favicon.im/roadmap.sh",
                     "desc": "开发者技术路线图指南"
                 },
                 {
                     "name": "Solidot",
                     "url": "https://www.solidot.org",
-                    "icon": "https://favicon.im/solidot.org",
+                    "icon": "https://a.favicon.im/solidot.org",
                     "desc": "奇客科技与开源新闻"
                 },
                 {
                     "name": "中国天气网",
                     "url": "https://www.weather.com.cn",
-                    "icon": "https://favicon.im/weather.com.cn",
+                    "icon": "https://a.favicon.im/weather.com.cn",
                     "desc": "权威天气预报与气象"
                 },
                 {
                     "name": "少数派",
                     "url": "https://sspai.com",
-                    "icon": "https://favicon.im/sspai.com",
+                    "icon": "https://a.favicon.im/sspai.com",
                     "desc": "高效工作与数字生活"
                 },
                 {
                     "name": "维基百科",
                     "url": "https://zh.wikipedia.org",
-                    "icon": "https://favicon.im/wikipedia.org",
+                    "icon": "https://a.favicon.im/wikipedia.org",
                     "desc": "自由的百科全书"
                 }
             ]

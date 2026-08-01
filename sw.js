@@ -3,23 +3,23 @@
  * Service Worker: 高性能全站离线与图标 LRU 缓存器 (v9)
  * ==============================================================================
  * 核心功能与安全保障：
- * 1. 【三 Cache 缓存池隔离】：CORE_CACHE 存核心静态资源（永不删）；FAVICON_CACHE 存 favicon.im 外部图标；
+ * 1. 【三 Cache 缓存池隔离】：CORE_CACHE 存核心静态资源（永不删）；FAVICON_CACHE 存 a.favicon.im 外部图标；
  *    IMG_CACHE 存站内本地图片资源。三者独立限额，互不挤占，导航站大量图标场景下更稳。
  * 2. 【IndexedDB 真时间戳 LRU】：在 IDB 中维护访问时间戳，按真实时间精准淘汰，不依赖 Cache.keys() 排序实现细节。
  *    favicon 与本地图片的时间戳分别用不同 key 前缀区分，避免互相覆盖。
  * 3. 【Network-First 503 兜底】：断网且无本地缓存时兜底返回可控 503 响应，主文档导航自动尝试退回 index.html。
  * 4. 【e.waitUntil 竞态保护】：背景异步调序/时间戳更新由 e.waitUntil(...) 延展 SW 生命周期，防进程提前终止。
  * 5. 【批量淘汰】：一次性清理到限额以内，而非每次只删 1 条，应对图标突增场景更及时。
- * 6. 【全资源精准匹配】：涵盖 HTML, CSS, JSON, SVG, PNG, ICO, WebP 及 favicon.im 外部图标。
+ * 6. 【全资源精准匹配】：涵盖 HTML, CSS, JSON, SVG, PNG, ICO, WebP 及 a.favicon.im 外部图标。
  */
 
 // 缓存池定义（打包 build.js 时自动替换 CORE_CACHE 为时间戳版本）
 const CORE_CACHE = 'app-core-v1785571342044';
-const FAVICON_CACHE = 'app-favicons-v1'; // favicon.im 外部图标专用池
+const FAVICON_CACHE = 'app-favicons-v1'; // a.favicon.im 外部图标专用池
 const IMG_CACHE = 'app-images-v1';       // 站内本地图片资源专用池
 
 // 图标是导航站核心功能，量大，各自独立限额
-const MAX_FAVICON_ENTRIES = 800; // favicon.im 外部图标上限
+const MAX_FAVICON_ENTRIES = 800; // a.favicon.im 外部图标上限
 const MAX_IMG_ENTRIES = 200;     // 站内本地图片上限
 
 // 核心预缓存静态资源列表（PWA 离线打不开保障）
@@ -157,7 +157,7 @@ self.addEventListener('fetch', e => {
     // 精准资源匹配判定
     const isMainDoc = e.request.mode === 'navigate' || pathnameLower === '/' || pathnameLower.endsWith('/index.html');
     const isCoreData = pathnameLower.endsWith('/style.css') || pathnameLower.endsWith('/bookmarks.json') || pathnameLower.endsWith('/manifest.json');
-    const isFaviconDomain = urlObj.origin === 'https://favicon.im';
+    const isFaviconDomain = urlObj.origin === 'https://a.favicon.im';
     const isImgAsset = /\.(ico|png|jpg|jpeg|svg|webp)$/i.test(pathnameLower);
 
     // 1. 对 index.html (主文档)、style.css、bookmarks.json、manifest.json 采取 Network-First 策略
@@ -196,8 +196,8 @@ self.addEventListener('fetch', e => {
         return;
     }
 
-    // 2. 对图标及图片资源（favicon.im 域名、.ico/.svg/.png 等）采取 Cache-First 策略 + IndexedDB 真 LRU 调序
-    // favicon.im 外部图标与站内本地图片分池存储，各自独立限额，互不挤占
+    // 2. 对图标及图片资源（a.favicon.im 域名、.ico/.svg/.png 等）采取 Cache-First 策略 + IndexedDB 真 LRU 调序
+    // a.favicon.im 外部图标与站内本地图片分池存储，各自独立限额，互不挤占
     if (isFaviconDomain || isImgAsset) {
         const pool = isFaviconDomain ? 'favicon' : 'img';
         const cacheName = isFaviconDomain ? FAVICON_CACHE : IMG_CACHE;
