@@ -38,7 +38,7 @@ default-src 'self' data: blob: https:; script-src 'self' 'unsafe-inline' https:/
 | 1 | 导航页（第二屏）上齿轮按钮 `#editBookmarksBtn` 点击无响应 | 按钮位于 `#startSection`（`relative z-10`）内，`z-50` 被困在该 section 的层叠上下文中；`#navSection`（同为 `z-10`、DOM 靠后）整体覆盖了按钮的层叠上下文 | 将按钮移出两个 section，置于 `#editModal` 之前 |
 | 2 | 生产 CSP 剥离逻辑曾致策略损坏 | 过滤时连同尾部 `;` 一并删除，`style-src` 被并入 `script-src`（浏览器报 `directive 'script-src' contains 'style-src'`） | 改为按前缀剥离域名并保留 `;` 分隔符（见上） |
 
-**设计确认（v2.3.3）**：齿轮按钮为作者特意设计，仅搜索页显示、导航页隐藏。实现为 `#editBookmarksBtn.hidden-on-nav`（淡出 + `pointer-events: none`），由 `updateGearVisibility()` 依据 `state.currentSection` 统一切换。**过渡动画**：`opacity` 以 0.45s ease 淡入淡出；**切换时机**：仅在切屏动画完成（`animateScrollTo` 结束回调）后才显示/隐藏，滚动开始时按钮保持可见，避免"一开始滚动就立刻消失"。sessionStorage 恢复分支（刷新后停留在导航页）则立即隐藏。
+**设计确认（v2.3.3）**：齿轮按钮为作者特意设计，仅搜索页显示、导航页隐藏。实现为 `#editBookmarksBtn.hidden-on-nav`（淡出 + `pointer-events: none`），由 `updateGearVisibility()` 依据 `state.currentSection` 统一切换。**过渡动画**：`opacity` 以 0.45s ease 淡入淡出；**切换时机**：切向导航页时随滚动开始即平滑淡出（约 500ms 内消失，与页面到达同步，避免残留）；切回搜索页时等待切屏动画完成后再淡入。sessionStorage 恢复分支（刷新后停留在导航页）则立即隐藏。
 
 ## 四、冒烟测试覆盖（38 项）
 

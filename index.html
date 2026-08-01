@@ -4171,6 +4171,7 @@
                 clearAccum();
                 saveSection('nav');
                 updateSectionAccessibility('nav');
+                updateGearVisibility();
 
                 nav.classList.remove('nav-hidden');
                 nav.classList.add('nav-visible');
@@ -4179,7 +4180,6 @@
                     animateScrollTo(nav.offsetTop, 520, () => {
                         state.currentSection = 'nav';
                         isTransitioning = false;
-                        updateGearVisibility();
                         if (navContent) navContent.focus();
                     });
                 });
