@@ -6,12 +6,12 @@
 
 ## 结论
 
-**PASS，可上线。** 共 118 项自动化断言全部通过；测试中发现并修复 1 个真实 UI bug；上线前完成生产 CSP 收紧。
+**PASS，可上线。** 共 122 项自动化断言全部通过；测试中发现并修复 1 个真实 UI bug、确认齿轮按钮"仅搜索页显示"设计、上线前完成生产 CSP 收紧。
 
 | 套件 | DEV | PROD |
 |---|---|---|
-| 冒烟测试 smoke.js（37 项） | 37/37 ✅ | 37/37 ✅ |
-| 高级测试 advanced.js（22 项） | 22/22 ✅ | 22/22 ✅ |
+| 冒烟测试 smoke.js（38 项） | 38/38 ✅ | 38/38 ✅ |
+| 高级测试 advanced.js（23 项） | 23/23 ✅ | 23/23 ✅ |
 
 ## 一、静态审查
 
@@ -35,23 +35,26 @@ default-src 'self' data: blob: https:; script-src 'self' 'unsafe-inline' https:/
 
 | # | 问题 | 根因 | 修复 |
 |---|---|---|---|
-| 1 | 导航页（第二屏）上齿轮按钮 `#editBookmarksBtn` 点击无响应 | 按钮位于 `#startSection`（`relative z-10`）内，`z-50` 被困在该 section 的层叠上下文中；`#navSection`（同为 `z-10`、DOM 靠后）整体覆盖了按钮的层叠上下文 | 将按钮移出两个 section，置于 `#editModal` 之前；验证导航页上可正常打开设置弹窗 |
+| 1 | 导航页（第二屏）上齿轮按钮 `#editBookmarksBtn` 点击无响应 | 按钮位于 `#startSection`（`relative z-10`）内，`z-50` 被困在该 section 的层叠上下文中；`#navSection`（同为 `z-10`、DOM 靠后）整体覆盖了按钮的层叠上下文 | 将按钮移出两个 section，置于 `#editModal` 之前 |
 | 2 | 生产 CSP 剥离逻辑曾致策略损坏 | 过滤时连同尾部 `;` 一并删除，`style-src` 被并入 `script-src`（浏览器报 `directive 'script-src' contains 'style-src'`） | 改为按前缀剥离域名并保留 `;` 分隔符（见上） |
 
-## 四、冒烟测试覆盖（37 项）
+**设计确认（v2.3.3）**：齿轮按钮为作者特意设计，仅搜索页显示、导航页隐藏。实现为 `#editBookmarksBtn.hidden-on-nav`（淡出 + `pointer-events: none`），由 `updateGearVisibility()` 依据 `state.currentSection` 在 `switchToNav`/`switchToStart` 及 sessionStorage 恢复分支中统一切换；刷新后若停留在导航页，按钮保持隐藏。
+
+## 四、冒烟测试覆盖（38 项）
 
 - 页面渲染：标题、时钟、顶栏 8 个书签
 - 搜索：输入触发联想（项数与网络相关）、引擎下拉含 4 个引擎且切换持久化到 UI
 - 导航：滚动进入第二屏、分类区块、侧栏分类、链接总数 = bookmarks.json 总数
-- 设置弹窗：导航页可打开、3 个 Tab 切换、书签编辑列表 8 行
+- 齿轮按钮：导航页隐藏、返回搜索页恢复显示
+- 设置弹窗：3 个 Tab 切换、书签编辑列表 8 行
 - 书签 E2E：新增空白行 → 填名填 URL → 保存 → 顶栏 9 个 → 删除 → 恢复 8 个 → 下移排序
 - 外观：遮罩透明度滑杆联动 overlay 实际透明度
 - 数据：书签统计、PWA 状态（就绪）、刷新后持久化
 - 可靠性：SW 注册成功、`manifest.json` 有效、`icon.svg` 可访问、无意外失败请求、无 HTTP>=400、无意外 console 错误、无页面 JS 错误
 
-## 五、高级测试覆盖（22 项）
+## 五、高级测试覆盖（23 项）
 
-- **移动端** 375×812：无横向溢出、顶栏/导航/侧栏正常、齿轮可打开
+- **移动端** 375×812：无横向溢出、顶栏/导航/侧栏正常、齿轮导航页隐藏/搜索页可打开
 - **快捷键**：字母键聚焦搜索框、PageDown/Home 切屏、Cmd+B 循环壁纸
 - **离线**：SW 就绪后断网 reload，页面从 SW 缓存正常加载
 - **书签选择器 + JSON 导入**：选择器打开、候选列表、导入填充编辑行、localStorage 持久化、顶栏刷新

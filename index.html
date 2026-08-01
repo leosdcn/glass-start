@@ -519,6 +519,11 @@
         #editBookmarksBtn:hover svg {
             transform: rotate(90deg) !important;
         }
+        /* 仅搜索页（起始页）显示编辑按钮，导航页隐藏：淡出并禁用点击 */
+        #editBookmarksBtn.hidden-on-nav {
+            opacity: 0;
+            pointer-events: none;
+        }
         @media (min-width: 768px) {
             #editBookmarksBtn {
                 bottom: calc(2rem + env(safe-area-inset-bottom));
@@ -4150,6 +4155,13 @@
                 try { sessionStorage.setItem('startpage_section', s); } catch {}
             }
 
+            // 编辑按钮仅在搜索页显示（导航页隐藏）
+            function updateGearVisibility() {
+                if (dom.editBookmarksBtn) {
+                    dom.editBookmarksBtn.classList.toggle('hidden-on-nav', state.currentSection === 'nav');
+                }
+            }
+
             // 暴露全局切屏控制接口，供点击 Header、键盘快捷键等共享调用
             function switchToNav() {
                 if (targetSection === 'nav') return;
@@ -4158,6 +4170,7 @@
                 clearAccum();
                 saveSection('nav');
                 updateSectionAccessibility('nav');
+                updateGearVisibility();
 
                 nav.classList.remove('nav-hidden');
                 nav.classList.add('nav-visible');
@@ -4179,6 +4192,7 @@
                 if (navContent) navContent.scrollTop = 0;
                 saveSection('start');
                 updateSectionAccessibility('start');
+                updateGearVisibility();
 
                 animateScrollTo(0, 520, () => {
                     state.currentSection = 'start';
@@ -4200,6 +4214,7 @@
                 targetSection = 'nav';
                 saveSection('nav');
                 updateSectionAccessibility('nav');
+                updateGearVisibility();
                 requestAnimationFrame(() => {
                     window.scrollTo(0, nav.offsetTop);
                 });
@@ -4208,6 +4223,7 @@
                 targetSection = 'start';
                 document.documentElement.classList.remove('nr');
                 updateSectionAccessibility('start');
+                updateGearVisibility();
                 window.scrollTo(0, 0);
             }
 
