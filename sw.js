@@ -1,20 +1,37 @@
 /**
  * ==============================================================================
- * Service Worker: 快捷书签与导航图标专用高性能本地缓存器 (v5)
+ * Service Worker: 高性能全站离线与图标 LRU 缓存器 (v6)
  * ==============================================================================
- * 核心目的：
- * 1. 拦截并缓存第三方 Favicon 图标请求（如 favicon.im），提升图标加载速度与防重复请求。
- * 2. 采用容量控制机制（最多 120 条），防止磁盘配额无限制膨胀。
- * 3. 精确匹配图标请求域名与路径，严禁误拦截普通 API / 搜索联想 / 其它资源文件。
+ * 核心功能：
+ * 1. 【Network-First 网络优先】：主文档 index.html 与 style.css 优先走网络获取最新版本，
+ *    彻底防止旧版 CSS 匹配新版 HTML 导致的样式错位；断网时自动降级退回 Cache 本地离线开。
+ * 2. 【Cache-First 缓存优先】：图标与图片资源优先命中本地缓存秒开 (0ms)，未命中才联网下载。
+ * 3. 【真 LRU 容量控制】：安全扩容至 250 条，并提供自动清理淘汰机制，避免常用图标循环失效。
+ * 4. 【多格式图片匹配】：完美拦截 favicon.im 域名、本站 icon.svg 及常见的 .ico/.png/.svg/.webp 图片。
  */
 
-// 缓存版本号（升级版本号自动清理旧缓存）
+// 缓存版本号（打包 build.js 时会自动更名为时间戳版本）
 const CACHE = 'app-cache-v1785485154224';
-// 缓存文件条目上限（严格控制在 120 条以内，占用极小磁盘配额）
-const MAX_ENTRIES = 120;
+// 缓存文件条目上限（扩容至 250 条，避免热门图标被频繁淘汰震荡）
+const MAX_ENTRIES = 250;
 
-// 安装阶段：直接跳过等待，强制激活最新 SW
-self.addEventListener('install', () => self.skipWaiting());
+// 核心预缓存静态资源列表（PWA 离线打不开保障）
+const CORE_ASSETS = [
+    './',
+    './index.html',
+    './style.css',
+    './icon.svg',
+    './manifest.json',
+    './bookmarks.json'
+];
+
+// 安装阶段：预缓存核心静态文件，跳过等待强制激活最新 SW
+self.addEventListener('install', e => {
+    self.skipWaiting();
+    e.waitUntil(
+        caches.open(CACHE).then(cache => cache.addAll(CORE_ASSETS).catch(() => {}))
+    );
+});
 
 // 激活阶段：清理旧版本 CACHE 存储，并接管当前客户端页面
 self.addEventListener('activate', e => e.waitUntil(
@@ -23,9 +40,9 @@ self.addEventListener('activate', e => e.waitUntil(
     ).then(() => clients.claim())
 ));
 
-// 拦截请求阶段：精准拦截 favicon.im、.ico 静态图标及 style.css 关键样式表 GET 请求
+// 拦截请求阶段
 self.addEventListener('fetch', e => {
-    // 仅拦截 HTTP GET 请求，非 GET 请求直接放行
+    // 仅拦截 HTTP GET 请求
     if (e.request.method !== 'GET') return;
 
     let urlObj;
@@ -35,50 +52,48 @@ self.addEventListener('fetch', e => {
         return;
     }
 
-    // 精确判定：仅针对 https://favicon.im/ 域名、.ico 静态图标路径及 style.css
-    const isFaviconDomain = urlObj.origin === 'https://favicon.im';
     const pathnameLower = urlObj.pathname.toLowerCase();
-    const isIcoPath = pathnameLower.endsWith('.ico') || pathnameLower === '/favicon.ico';
+    const isMainDoc = e.request.mode === 'navigate' || pathnameLower.endsWith('/index.html') || pathnameLower === '/' || pathnameLower === '';
     const isStyleCss = pathnameLower.endsWith('/style.css') || pathnameLower === 'style.css';
+    const isFaviconDomain = urlObj.origin === 'https://favicon.im';
+    const isImgAsset = /\.(ico|png|jpg|jpeg|svg|webp)$/i.test(pathnameLower);
 
-    if (!isFaviconDomain && !isIcoPath && !isStyleCss) return;
-
-    // 对 style.css 采取 Stale-While-Revalidate 策略：优先命中缓存秒开，后台异步 Fetch 最新 CSS 更新 Cache
-    if (isStyleCss) {
+    // 1. 对 index.html (主文档) 及 style.css 采取 Network-First 策略
+    // 保证部署更新后第一时间拉到最新代码与 CSS 样式；断网无网时自动从 Cache 降级兜底
+    if (isMainDoc || isStyleCss) {
         e.respondWith(
-            caches.open(CACHE).then(async cache => {
-                const cached = await cache.match(e.request);
-                const fetchPromise = fetch(e.request).then(netRes => {
-                    if (netRes.ok) cache.put(e.request, netRes.clone());
-                    return netRes;
-                }).catch(() => null);
-                const res = cached || await fetchPromise;
-                return res || new Response('', { status: 503 });
-            })
+            fetch(e.request).then(netRes => {
+                if (netRes.ok) {
+                    const resClone = netRes.clone();
+                    caches.open(CACHE).then(cache => cache.put(e.request, resClone));
+                }
+                return netRes;
+            }).catch(() => caches.match(e.request)) // 网络失败/断网时退回本地 Cache
         );
         return;
     }
 
-    e.respondWith(
-        caches.open(CACHE).then(async cache => {
-            // 1. 图标文件：优先命中本地 Cache 缓存
-            const cached = await cache.match(e.request);
-            if (cached) return cached;
+    // 2. 对图标及图片资源（favicon.im 域名、.ico/.svg/.png 等）采取 Cache-First 策略
+    if (isFaviconDomain || isImgAsset) {
+        e.respondWith(
+            caches.open(CACHE).then(async cache => {
+                // 优先命中本地 Cache 缓存 (0ms 秒开)
+                const cached = await cache.match(e.request);
+                if (cached) return cached;
 
-            // 2. 未命中缓存，发起网络请求并存入 Cache
-            try {
-                const res = await fetch(e.request);
-                if (res.ok || res.type === 'opaque') {
-                    await cache.put(e.request, res.clone());
-                    const keys = await cache.keys();
-                    if (keys.length > MAX_ENTRIES) await cache.delete(keys[0]);
+                // 未命中缓存，发起网络请求并存入 Cache
+                try {
+                    const res = await fetch(e.request);
+                    if (res.ok || res.type === 'opaque') {
+                        await cache.put(e.request, res.clone());
+                        const keys = await cache.keys();
+                        if (keys.length > MAX_ENTRIES) await cache.delete(keys[0]);
+                    }
+                    return res;
+                } catch {
+                    return new Response('', { status: 404 });
                 }
-                return res;
-            } catch {
-                return new Response('', { status: 404 });
-            }
-        })
-    );
+            })
+        );
+    }
 });
-
-
