@@ -125,13 +125,7 @@
                     "desc": "AI音乐与歌曲创作"
                 },
                 {
-                    "name": "千问",
-                    "url": "https://www.qianwen.com",
-                    "icon": "https://favicon.im/www.qianwen.com",
-                    "desc": "阿里通义千问AI助手"
-                },
-                {
-                    "name": "智谱",
+                    "name": "智谱清言",
                     "url": "https://chatglm.cn",
                     "icon": "https://favicon.im/chatglm.cn",
                     "desc": "国产全自研AI大模型"
@@ -141,6 +135,12 @@
                     "url": "https://www.doubao.com",
                     "icon": "https://favicon.im/doubao.com",
                     "desc": "字节跳动AI智能助手"
+                },
+                {
+                    "name": "通义千问",
+                    "url": "https://www.qianwen.com",
+                    "icon": "https://favicon.im/www.qianwen.com",
+                    "desc": "阿里通义千问AI助手"
                 }
             ]
         },
@@ -203,16 +203,16 @@
                     "desc": "Node官方包管理器"
                 },
                 {
-                    "name": "Stack Overflow",
-                    "url": "https://stackoverflow.com",
-                    "icon": "https://favicon.im/stackoverflow.com",
-                    "desc": "全球开发者问答社区"
-                },
-                {
                     "name": "Speedtest",
                     "url": "https://www.speedtest.net",
                     "icon": "https://favicon.im/speedtest.net",
                     "desc": "权威网络测速诊断"
+                },
+                {
+                    "name": "Stack Overflow",
+                    "url": "https://stackoverflow.com",
+                    "icon": "https://favicon.im/stackoverflow.com",
+                    "desc": "全球开发者问答社区"
                 },
                 {
                     "name": "v0",
@@ -275,7 +275,7 @@
             "icon": "📝",
             "bookmarks": [
                 {
-                    "name": "Diagrams",
+                    "name": "draw.io",
                     "url": "https://app.diagrams.net",
                     "icon": "https://favicon.im/app.diagrams.net",
                     "desc": "免费开源流程与架构图"
@@ -431,7 +431,7 @@
                     "desc": "游戏与开发者实时语音"
                 },
                 {
-                    "name": "Linux Do",
+                    "name": "LINUX DO",
                     "url": "https://linux.do",
                     "icon": "https://favicon.im/linux.do",
                     "desc": "极客与开发者社区"
@@ -449,28 +449,16 @@
                     "desc": "高隐私加密即时通讯"
                 },
                 {
-                    "name": "X (Twitter)",
-                    "url": "https://x.com",
-                    "icon": "https://favicon.im/twitter.com",
-                    "desc": "全球实时动态与热点"
-                },
-                {
                     "name": "V2EX",
                     "url": "https://www.v2ex.com",
                     "icon": "https://favicon.im/v2ex.com",
                     "desc": "程序员与极客社区"
                 },
                 {
-                    "name": "微博",
-                    "url": "https://weibo.com",
-                    "icon": "https://favicon.im/weibo.com",
-                    "desc": "国内热点社交媒体平台"
-                },
-                {
-                    "name": "豆瓣",
-                    "url": "https://www.douban.com",
-                    "icon": "https://favicon.im/douban.com",
-                    "desc": "图书电影音乐评分社区"
+                    "name": "X (Twitter)",
+                    "url": "https://x.com",
+                    "icon": "https://favicon.im/twitter.com",
+                    "desc": "全球实时动态与热点"
                 },
                 {
                     "name": "微信",
@@ -479,10 +467,22 @@
                     "desc": "即时通讯与社交平台"
                 },
                 {
+                    "name": "微博",
+                    "url": "https://weibo.com",
+                    "icon": "https://favicon.im/weibo.com",
+                    "desc": "国内热点社交媒体平台"
+                },
+                {
                     "name": "知乎",
                     "url": "https://www.zhihu.com",
                     "icon": "https://favicon.im/zhihu.com",
                     "desc": "知识问答与深度讨论"
+                },
+                {
+                    "name": "豆瓣",
+                    "url": "https://www.douban.com",
+                    "icon": "https://favicon.im/douban.com",
+                    "desc": "图书电影音乐评分社区"
                 }
             ]
         },
@@ -491,10 +491,10 @@
             "icon": "🎬",
             "bookmarks": [
                 {
-                    "name": "哔哩哔哩",
-                    "url": "https://www.bilibili.com",
-                    "icon": "https://favicon.im/bilibili.com",
-                    "desc": "弹幕视频与文化社区"
+                    "name": "Apple Music",
+                    "url": "https://music.apple.com",
+                    "icon": "https://favicon.im/music.apple.com",
+                    "desc": "苹果官方无损音乐平台"
                 },
                 {
                     "name": "Netflix",
@@ -533,6 +533,18 @@
                     "desc": "全球最大视频分享平台"
                 },
                 {
+                    "name": "YouTube Music",
+                    "url": "https://music.youtube.com",
+                    "icon": "https://favicon.im/music.youtube.com",
+                    "desc": "谷歌音乐与歌曲流媒体"
+                },
+                {
+                    "name": "哔哩哔哩",
+                    "url": "https://www.bilibili.com",
+                    "icon": "https://favicon.im/bilibili.com",
+                    "desc": "弹幕视频与文化社区"
+                },
+                {
                     "name": "抖音",
                     "url": "https://www.douyin.com",
                     "icon": "https://favicon.im/douyin.com",
@@ -543,18 +555,6 @@
                     "url": "https://music.163.com",
                     "icon": "https://favicon.im/music.163.com",
                     "desc": "发现好音乐与听歌社区"
-                },
-                {
-                    "name": "Apple Music",
-                    "url": "https://music.apple.com",
-                    "icon": "https://favicon.im/music.apple.com",
-                    "desc": "苹果官方无损音乐平台"
-                },
-                {
-                    "name": "YouTube Music",
-                    "url": "https://music.youtube.com",
-                    "icon": "https://favicon.im/music.youtube.com",
-                    "desc": "谷歌音乐与歌曲流媒体"
                 }
             ]
         },
@@ -567,12 +567,6 @@
                     "url": "https://www.coursera.org",
                     "icon": "https://favicon.im/coursera.org",
                     "desc": "在线课程与学术学习"
-                },
-                {
-                    "name": "Developer Roadmaps",
-                    "url": "https://roadmap.sh",
-                    "icon": "https://favicon.im/roadmap.sh",
-                    "desc": "开发者技术路线图指南"
                 },
                 {
                     "name": "freeCodeCamp",
@@ -609,6 +603,12 @@
                     "url": "https://www.omgubuntu.co.uk",
                     "icon": "https://favicon.im/omgubuntu.co.uk",
                     "desc": "Linux硬核技术"
+                },
+                {
+                    "name": "roadmap.sh",
+                    "url": "https://roadmap.sh",
+                    "icon": "https://favicon.im/roadmap.sh",
+                    "desc": "开发者技术路线图指南"
                 },
                 {
                     "name": "Solidot",
