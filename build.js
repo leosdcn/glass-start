@@ -115,12 +115,23 @@ if (fs.existsSync(bookmarksJsonPath) && fs.existsSync(indexHtmlPath)) {
     }
 }
 
-// 5. 处理生产环境 index.html (替换 Play CDN 为 style.css，添加自动生成防护头部)
-console.log('🔧 处理生产环境 index.html (移除 Play CDN 脚本，注入 style.css)...');
+// 5. 处理生产环境 index.html (替换 Play CDN 为全量内嵌 <style> 标签，添加自动生成防护头部)
+console.log('🔧 处理生产环境 index.html (移除 Play CDN 脚本，全量内嵌 Tailwind CSS)...');
 let prodHtmlContent = fs.readFileSync(indexHtmlPath, 'utf-8');
 
+const distCssPath = path.join(distDir, 'style.css');
+let cssContent = '';
+if (fs.existsSync(distCssPath)) {
+    cssContent = fs.readFileSync(distCssPath, 'utf-8');
+    // 🛡️ 安全防御：避免 CSS 内容（如 content: "</style>"）意外转义提前闭合 HTML <style> 标签引发 XSS/页面崩溃
+    cssContent = cssContent.replace(/<\/style>/gi, '\\3c/style>');
+    const cssKb = (fs.statSync(distCssPath).size / 1024).toFixed(2);
+    console.log(`   ✅ 已提取静态编译 CSS (${cssKb} KB) 并进行防注入安全转义，准备全量内嵌至 dist/index.html`);
+    fs.unlinkSync(distCssPath);
+}
+
 const cdnPattern = /<!--\s*Tailwind Play CDN[\s\S]*?<\/script>\s*<script[\s\S]*?<\/script>/i;
-const replaceTarget = `<!-- 静态编译 Tailwind CSS 样式表 (高优先级 Preload + 零 JS 运行开销，极速秒开 & 100% 离线支持) -->\n    <link rel="preload" href="style.css" as="style">\n    <link rel="stylesheet" href="style.css">`;
+const replaceTarget = `<!-- 内嵌静态编译 Tailwind CSS 样式表 (零网络 RTT 请求，消除渲染阻塞，极速秒开 & 100% 离线支持) -->\n    <style>${cssContent}</style>`;
 
 if (cdnPattern.test(prodHtmlContent)) {
     prodHtmlContent = prodHtmlContent.replace(cdnPattern, replaceTarget);

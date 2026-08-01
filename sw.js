@@ -22,11 +22,10 @@ const IMG_CACHE = 'app-images-v1';       // 站内本地图片资源专用池
 const MAX_FAVICON_ENTRIES = 800; // a.favicon.im 外部图标上限
 const MAX_IMG_ENTRIES = 200;     // 站内本地图片上限
 
-// 核心预缓存静态资源列表（PWA 离线打不开保障）
+// 核心预缓存静态资源列表（PWA 离线打不开保障，CSS 已全量内嵌在 index.html 中）
 const CORE_ASSETS = [
     './',
     './index.html',
-    './style.css',
     './icon.svg',
     './manifest.json',
     './bookmarks.json'
@@ -156,11 +155,11 @@ self.addEventListener('fetch', e => {
 
     // 精准资源匹配判定
     const isMainDoc = e.request.mode === 'navigate' || pathnameLower === '/' || pathnameLower.endsWith('/index.html');
-    const isCoreData = pathnameLower.endsWith('/style.css') || pathnameLower.endsWith('/bookmarks.json') || pathnameLower.endsWith('/manifest.json');
+    const isCoreData = pathnameLower.endsWith('/bookmarks.json') || pathnameLower.endsWith('/manifest.json');
     const isFaviconDomain = urlObj.origin === 'https://a.favicon.im';
     const isImgAsset = /\.(ico|png|jpg|jpeg|svg|webp)$/i.test(pathnameLower);
 
-    // 1. 对 index.html (主文档)、style.css、bookmarks.json、manifest.json 采取 Network-First 策略
+    // 1. 对 index.html (主文档)、bookmarks.json、manifest.json 采取 Network-First 策略
     // 附带 { cache: 'no-cache' } 强制向服务器发起条件请求，绕过浏览器 HTTP 磁盘强缓存
     if (isMainDoc || isCoreData) {
         const fetchReq = e.request.mode === 'navigate'

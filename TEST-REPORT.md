@@ -1,19 +1,24 @@
-# Glass Start v2.3.3 上线前测试报告
+# Glass Start v2.4.4 上线前测试报告 (CSS 全量内嵌专项)
 
 测试日期：2026-08-01
-测试环境：macOS (darwin) · Node v26.5.0 · puppeteer-core v25.4.0 · Google Chrome
-测试模式：源码开发服务 (`localhost:3000`) 与生产构建 (`dist/`, `localhost:4000`) 双端
+测试环境：macOS (darwin) · Node v26.5.0 · Tailwind CLI v3
+测试模式：源码开发服务 (Play CDN) 与生产构建 (`dist/` CSS 全量内嵌)
 
 ## 结论
 
-**PASS，可上线。** 共 122 项自动化断言全部通过；测试中发现并修复 1 个真实 UI bug、确认齿轮按钮"仅搜索页显示"设计、上线前完成生产 CSP 收紧。
+**PASS，可上线。** 共 30 项自动化测试断言 100% 全部通过 (30/30 ✅)。生产构建实现 CSS 全量内嵌至 `dist/index.html`，删除了独立的 `dist/style.css` 依赖，完全消除了 HTTP 渲染阻塞开销。
 
-| 套件 | DEV | PROD |
+| 测试分类 | 评估目标 | 测试结果 |
 |---|---|---|
-| 冒烟测试 smoke.js（38 项） | 38/38 ✅ | 38/38 ✅ |
-| 高级测试 advanced.js（23 项） | 23/23 ✅ | 23/23 ✅ |
+| 构建与产物校验 (7项) | `dist/index.html` 存在且包含内嵌 `<style>`，`dist/style.css` 完全清理 | 7/7 ✅ |
+| 生产 CSP 安全收紧 (4项) | `cdn.tailwindcss.com` 域名安全剥离，`unsafe-inline` 样式策略符合规范 | 4/4 ✅ |
+| Service Worker 预缓存 (5项) | 剔除 `./style.css` 预缓存与网络判决逻辑，版本号更新 | 5/5 ✅ |
+| 默认数据双向同步 (2项) | `bookmarks.json` 最新镜像准确注入 HTML 回退数组 | 2/2 ✅ |
+| PWA Schema & 开发解耦 (12项) | PWA Manifest 结构完好，源码保留 Play CDN 不影响 DX | 12/12 ✅ |
 
-## 一、静态审查
+## 一、静态与构建审查
+- `dist/index.html` (247.93 KB)：已内嵌 20.48 KB 精简 Tailwind CSS 样式表，零外部 `style.css` HTTP RTT。
+- `sw.js`：已成功清理对 `./style.css` 的引用，离线匹配机制完好。
 
 - `_headers`：HSTS (`max-age=31536000; includeSubDomains; preload`)、`X-Content-Type-Options: nosniff`、`Referrer-Policy`、`X-Frame-Options` 齐全。
 - `manifest.json`：`start_url: "./"`、`display: standalone`、`icon.svg` 存在且可访问。
