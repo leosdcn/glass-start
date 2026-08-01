@@ -511,6 +511,7 @@
             right: calc(1.5rem + env(safe-area-inset-right));
             opacity: 0.6;
             z-index: 50;
+            transition: opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1), color 0.3s ease, background-color 0.3s ease, border-color 0.3s ease;
         }
         #editBookmarksBtn:hover { opacity: 1; }
         #editBookmarksBtn svg {
@@ -4170,7 +4171,6 @@
                 clearAccum();
                 saveSection('nav');
                 updateSectionAccessibility('nav');
-                updateGearVisibility();
 
                 nav.classList.remove('nav-hidden');
                 nav.classList.add('nav-visible');
@@ -4179,6 +4179,7 @@
                     animateScrollTo(nav.offsetTop, 520, () => {
                         state.currentSection = 'nav';
                         isTransitioning = false;
+                        updateGearVisibility();
                         if (navContent) navContent.focus();
                     });
                 });
@@ -4192,11 +4193,11 @@
                 if (navContent) navContent.scrollTop = 0;
                 saveSection('start');
                 updateSectionAccessibility('start');
-                updateGearVisibility();
 
                 animateScrollTo(0, 520, () => {
                     state.currentSection = 'start';
                     isTransitioning = false;
+                    updateGearVisibility();
                     nav.classList.remove('nav-visible');
                     nav.classList.add('nav-hidden');
                     if (dom.searchInput) dom.searchInput.focus();
