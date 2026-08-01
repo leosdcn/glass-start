@@ -140,7 +140,7 @@
                     "name": "通义千问",
                     "url": "https://www.qianwen.com",
                     "icon": "https://favicon.im/www.qianwen.com",
-                    "desc": "阿里通义千问AI助手"
+                    "desc": "阿里官方AI智能助手"
                 }
             ]
         },
@@ -278,7 +278,7 @@
                     "name": "draw.io",
                     "url": "https://app.diagrams.net",
                     "icon": "https://favicon.im/app.diagrams.net",
-                    "desc": "免费开源流程与架构图"
+                    "desc": "免费开源流程架构图"
                 },
                 {
                     "name": "Excalidraw",
@@ -602,7 +602,7 @@
                     "name": "OMG! Ubuntu",
                     "url": "https://www.omgubuntu.co.uk",
                     "icon": "https://favicon.im/omgubuntu.co.uk",
-                    "desc": "Linux硬核技术"
+                    "desc": "Ubuntu硬核资讯"
                 },
                 {
                     "name": "roadmap.sh",
