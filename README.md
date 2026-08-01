@@ -9,7 +9,7 @@
 - 🪐 ** Liquid Glass 物理高光与玻璃拟态**：采用 Apple HIG 规范的 1px 物理折射高光、微拟物触感反馈与 iOS 18 物理按压微缩放。
 - ⚡ **零开销双模式构建 (Dev vs Prod)**：开发模式使用 Tailwind Play CDN 随改随看；生产打包（`npm run build`）自动编译 21KB 纯 CSS 并剥离 JS 编译脚本，实现秒开与 100% 离线使用。
 - 🛡️ **严格安全防护**：内置严格 Content Security Policy (CSP)、全面 XSS HTML 实体转义、`safeUrl` 协议白名单拦截（防 `javascript:` 注入）、JSONP 超时悬挂防爆防护。
-- 🚀 **图标高性能缓存**：内置 Service Worker (v5)，精准拦截并缓存 Favicon 图标，采用标准 CORS 模式消除 Chrome 840MB 虚拟存储配额膨胀问题。
+- 🚀 **图标高性能缓存**：内置 Service Worker (v9)，三池隔离（800+200配额）与 IndexedDB 真 LRU 淘汰，结合标准 CORS 模式彻底消除 Chrome 虚拟存储配额膨胀问题。
 
 ---
 
@@ -119,7 +119,7 @@ npm run build
 
 | 缓存层级 | 技术实现 | 作用目标与缓存对象 | 缓存策略 / 容量限制 | 失效与清理机制 |
 | :--- | :--- | :--- | :--- | :--- |
-| **Service Worker 离线网络层** | `sw.js` (Cache API) | `favicon.im` 图标、`.ico` 静态图标、`style.css` | 图标: `Cache-First` (上限 120 条)<br>CSS: `Stale-While-Revalidate` | `npm run build` 自动更新版本号 `app-cache-v<timestamp>` 强制清除旧缓存 |
+| **Service Worker 离线网络层** | `sw.js` (Cache API + IDB) | `favicon.im` 图标、`.ico` 静态图标、`style.css` 等 | 图标: `Cache-First` (三池隔离: Favicon 800条 / 本地图片 200条)<br>核心: `Network-First` | `npm run build` 自动更新版本号 `app-core-v<timestamp>` 强制清除旧缓存，IDB 精准 LRU 淘汰 |
 | **持久化偏好存储层** | `LocalStorage` | 默认引擎、遮罩透明度、模糊度、自定义书签、壁纸偏好 | key-value / 容量上限 ~5MB | 用户手动点击「重置系统设置」或浏览器清除 Cookie |
 | **高清大图存储层** | `IndexedDB` (`GlassStartDB`) | 4K 高清自定义上传壁纸 (`wallpapers` 表) | 3840x2160 JPEG Base64 / 容量 50MB~数百MB | 彻底打破 LocalStorage 5MB 上限，随重置系统操作清空 |
 | **会话状态防闪烁层** | `SessionStorage` + `<head>` 脚本 | 页面屏间位置 (`startpage_section`: `home` / `nav`) | 仅在当前会话生命周期内有效 | 渲染前 Head 内联脚本检测并同步添加 `.nr` 类，防止刷新首屏闪烁 |
@@ -130,10 +130,14 @@ npm run build
 
 ### 2. ⚡ 核心缓存机制详解
 
-#### 🌐 Service Worker 离线与图标拦截 (`sw.js`)
-- **图标抓取防重复**: 拦截对 `https://favicon.im/*` 及任意 `.ico` 的 GET 请求。首次抓取后写入 Cache API，再次访问直接命中本地缓存，响应时间提升至 0~2ms。
-- **配额防膨胀 (LRU/FIFO 限额)**: 自动维持 Cache 条目上限在 **120 条以内**，超限自动剔除最早的缓存，解决 Chrome 虚拟磁盘配额过度膨胀问题。
-- **CSS 资源平滑更新**: 对 `style.css` 采用 **Stale-While-Revalidate** 策略，实现首屏样式秒开，并在后台静默拉取最新 CSS 完成更新。
+#### 🌐 Service Worker 三池隔离与 IndexedDB LRU (`sw.js`)
+- **三池独立隔离 (Core / Favicon / Image)**：
+  - `CORE_CACHE`：存放 HTML/CSS/JSON 等核心程序资源。
+  - `FAVICON_CACHE`：`favicon.im` 外部图标专用池（配额上限 **800 条**）。
+  - `IMG_CACHE`：站内本地图片及 `.ico` 资源池（配额上限 **200 条**）。
+  - 核心优势：图标作为导航站核心功能享有独立高额配额，且不会被本地大图挤占。
+- **IndexedDB 真时间戳 LRU 淘汰**：在独立数据库 `sw-lru-db` 中维护真实访问时间戳，当缓存池超限时，基于实际时间戳进行批量精准淘汰，应对大量书签瞬间导入场景更稳健。
+- **CSS / HTML 实时平滑更新**: 对核心资源采用 **Network-First** 策略，保障首屏秒开的同时，支持静默后台更新。
 
 #### 🖼️ IndexedDB 4K 高清壁纸存储
 - 针对用户上传的 4K 本地壁纸，系统会在 Canvas 中统一优化转换为 3840x2160 @ 95% 高品质 JPEG DataURL。

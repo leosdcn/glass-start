@@ -1061,9 +1061,9 @@
                         <div>
                             <div class="flex items-center gap-2">
                                 <span class="text-xs font-semibold text-white/90">Glass Start</span>
-                                <span class="text-[11px] px-2 py-0.5 rounded-full bg-white/10 border border-white/15 text-white/70 font-medium tracking-wide">v2.3</span>
+                                <span class="text-[11px] px-2 py-0.5 rounded-full bg-white/10 border border-white/15 text-white/70 font-medium tracking-wide">v2.3.1</span>
                             </div>
-                            <div class="text-[10px] text-white/50">极简 Liquid Glass 拟态导航 • Build 2026.07</div>
+                            <div class="text-[10px] text-white/50">极简 Liquid Glass 拟态导航 • Build 2026.08</div>
                         </div>
                     </div>
                     <!-- 核心数据统计徽章 -->
@@ -3661,7 +3661,23 @@
             const addedUrls = new Set();
             const normalizeUrl = u => (u || '').trim().toLowerCase().replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '');
 
-            // 1. 匹配快捷书签
+            // 预先建立 URL -> 分类名称 映射表
+            const urlToCategoryMap = new Map();
+            if (pageData && Array.isArray(pageData.categories)) {
+                for (const cat of pageData.categories) {
+                    if (!cat || !Array.isArray(cat.bookmarks)) continue;
+                    for (const bm of cat.bookmarks) {
+                        if (bm && bm.url) {
+                            const normUrl = normalizeUrl(bm.url);
+                            if (!urlToCategoryMap.has(normUrl)) {
+                                urlToCategoryMap.set(normUrl, cat.name);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 1. 匹配快捷书签（若在分类导航中存在，优先显示实际分类名称，如“人工智能”、“影音娱乐”）
             if (pageData && Array.isArray(pageData.bookmarks)) {
                 for (const bm of pageData.bookmarks) {
                     if (!bm || !bm.url) continue;
@@ -3671,13 +3687,14 @@
                     const urlMatch = (bm.url || '').toLowerCase().includes(q);
                     const descMatch = (bm.desc || '').toLowerCase().includes(q);
                     if (nameMatch || urlMatch || descMatch) {
+                        const realCat = urlToCategoryMap.get(normUrl) || '快捷书签';
                         results.push({
                             type: 'bookmark',
                             name: bm.name || '未命名书签',
                             url: bm.url,
                             icon: bm.icon || '',
                             desc: bm.desc || '',
-                            category: '快捷书签'
+                            category: realCat
                         });
                         addedUrls.add(normUrl);
                         if (results.length >= limit) return results;
