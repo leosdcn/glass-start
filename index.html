@@ -804,18 +804,18 @@
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                     </button>
                 </div>
-                <div id="dropdownMenu" role="menu" aria-label="搜索引擎选项" class="dropdown-menu absolute top-full left-0 mt-2 ml-2 glass-strong apple-radius p-2" style="min-width:8.75rem;z-index:100">
+                <div id="dropdownMenu" role="menu" aria-label="搜索引擎选项" class="dropdown-menu absolute top-full left-0 mt-2 ml-2 glass-strong apple-radius p-2 border border-white/20 shadow-2xl" style="min-width:8.75rem;z-index:100">
                     <button type="button" data-engine="bing" role="menuitem" class="w-full flex items-center gap-3 px-3 py-2.5 apple-radius hover:bg-white/10 transition text-left text-sm">
-                        <img src="https://favicon.im/bing.com" width="16" height="16" class="engine-icon w-4 h-4 rounded-sm" alt=""> Bing
+                        <img src="https://favicon.im/bing.com" width="16" height="16" class="engine-icon w-4 h-4 rounded" alt=""> Bing
                     </button>
                     <button type="button" data-engine="google" role="menuitem" class="w-full flex items-center gap-3 px-3 py-2.5 apple-radius hover:bg-white/10 transition text-left text-sm">
-                        <img src="https://favicon.im/google.com" width="16" height="16" class="engine-icon w-4 h-4 rounded-sm" alt=""> Google
+                        <img src="https://favicon.im/google.com" width="16" height="16" class="engine-icon w-4 h-4 rounded" alt=""> Google
                     </button>
                     <button type="button" data-engine="duckduckgo" role="menuitem" class="w-full flex items-center gap-3 px-3 py-2.5 apple-radius hover:bg-white/10 transition text-left text-sm">
-                        <img src="https://favicon.im/duckduckgo.com" width="16" height="16" class="engine-icon w-4 h-4 rounded-sm" alt=""> DuckDuckGo
+                        <img src="https://favicon.im/duckduckgo.com" width="16" height="16" class="engine-icon w-4 h-4 rounded" alt=""> DuckDuckGo
                     </button>
                     <button type="button" data-engine="baidu" role="menuitem" class="w-full flex items-center gap-3 px-3 py-2.5 apple-radius hover:bg-white/10 transition text-left text-sm">
-                        <img src="https://favicon.im/baidu.com" width="16" height="16" class="engine-icon w-4 h-4 rounded-sm" alt=""> 百度
+                        <img src="https://favicon.im/baidu.com" width="16" height="16" class="engine-icon w-4 h-4 rounded" alt=""> 百度
                     </button>
                 </div>
                 <!-- 搜索实时建议联想下拉框 (Spotlight 高颜值全宽样式) -->
@@ -885,7 +885,7 @@
     <section id="navSection" class="relative z-10 h-screen nav-hidden overflow-hidden">
         <div class="h-full flex flex-col p-1.5 md:p-3 w-full">
             <!-- 主体：一体化 Liquid Glass 窗口框架 -->
-            <div class="flex-1 glass apple-radius flex flex-col overflow-hidden min-h-0 border border-white/20 shadow-2xl">
+            <div class="flex-1 glass glass-strong apple-radius flex flex-col overflow-hidden min-h-0 border border-white/20 shadow-2xl">
                 <!-- 窗口顶部 Header 栏 -->
                 <div id="navHeader" class="flex items-center justify-between px-4 py-2.5 border-b border-white/10 bg-transparent shrink-0 cursor-pointer select-none hover:bg-white/[0.06] transition-colors" title="点击返回起始页">
                     <div class="flex items-center gap-2">
@@ -1147,7 +1147,7 @@
     </div><!-- /#editModal -->
 
     <!-- 从导航页选择弹窗 -->
-    <div id="bookmarkPicker" role="dialog" aria-modal="true" aria-hidden="true" hidden aria-label="从导航页选择书签" class="edit-overlay fixed inset-0 flex items-center justify-center bg-black/60" style="z-index: 2000;">
+    <div id="bookmarkPicker" role="dialog" aria-modal="true" aria-hidden="true" hidden aria-label="从导航页选择书签" class="edit-overlay fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm" style="z-index: 2000;">
         <div class="glass-strong apple-radius pt-4 pb-3 px-4 w-full max-w-2xl xl:max-w-3xl 2xl:max-w-4xl mx-4 max-h-[85vh] flex flex-col shadow-2xl" onclick="event.stopPropagation()">
             <div class="flex items-center justify-between mb-2 pb-1.5 border-b border-white/10 shrink-0">
                 <h3 class="text-base font-medium tracking-wide text-white/80">从导航页选择</h3>
@@ -1163,7 +1163,7 @@
 
     <!-- 自定义确认弹窗（替代原生 confirm()，保持玻璃风格一致） -->
     <div id="confirmModal" role="alertdialog" aria-modal="true" aria-hidden="true" hidden aria-labelledby="confirmTitle"
-         class="edit-overlay fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-md" style="z-index: 9999;">
+         class="edit-overlay fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm" style="z-index: 9999;">
         <div class="confirm-dialog-card" onclick="event.stopPropagation()">
             <div style="width: 2.75rem; height: 2.75rem; border-radius: 50%; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); display: flex; align-items: center; justify-content: center; margin-bottom: 0.75rem; color: #f87171; flex-shrink: 0;">
                 <svg style="width: 1.375rem; height: 1.375rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -3847,7 +3847,7 @@
                 `;
                 localList.forEach(bm => {
                     const iconHtml = bm.icon 
-                        ? `<img src="${escapeHtml(bm.icon)}" width="16" height="16" class="w-4 h-4 rounded-sm object-cover shrink-0" alt="" data-hide-on-error="1">`
+                        ? `<img src="${escapeHtml(bm.icon)}" width="16" height="16" class="w-4 h-4 rounded object-cover shrink-0" alt="" data-hide-on-error="1">`
                         : `<svg class="w-4 h-4 text-white/40 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/></svg>`;
                     
                     html += `
