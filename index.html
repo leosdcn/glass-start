@@ -3063,7 +3063,6 @@
             let justEndedComposition = false;
             let compositionEndTimer = null;
             let suggestDebounceTimer = null;
-            let originalQuery = '';
 
             dom.searchInput.addEventListener('compositionstart', () => {
                 isComposing = true;
@@ -3570,6 +3569,7 @@
         // ==================== 搜索引擎与实时建议 ====================
         let suggestionScriptTag = null;
         let selectedSuggestionIdx = -1;
+        let originalQuery = '';
 
         function toggleDropdown() {
             state.open = !state.open;
