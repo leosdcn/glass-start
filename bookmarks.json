@@ -50,7 +50,7 @@
                     "name": "Arena AI",
                     "url": "https://arena.ai",
                     "icon": "https://favicon.im/arena.ai",
-                    "desc": "Arena AI 体验平台"
+                    "desc": "全球AI盲测平台"
                 },
                 {
                     "name": "ChatGPT",
@@ -68,7 +68,7 @@
                     "name": "Claude",
                     "url": "https://claude.ai",
                     "icon": "https://favicon.im/claude.ai",
-                    "desc": "Anthropic AI助手"
+                    "desc": "前沿硬核AI对话助手"
                 },
                 {
                     "name": "DeepSeek",
@@ -80,7 +80,7 @@
                     "name": "Gamma",
                     "url": "https://gamma.app",
                     "icon": "https://favicon.im/gamma.app",
-                    "desc": "AI驱动的演示文稿与网页生成"
+                    "desc": "AI生成PPT与网页"
                 },
                 {
                     "name": "Gemini",
@@ -152,7 +152,7 @@
                     "name": "BrowserLeaks",
                     "url": "https://browserleaks.com",
                     "icon": "https://favicon.im/browserleaks.com",
-                    "desc": "Web浏览器指纹与安全隐私检测"
+                    "desc": "浏览器指纹与隐私检测"
                 },
                 {
                     "name": "Can I Use",
@@ -182,7 +182,7 @@
                     "name": "IT Tools",
                     "url": "https://it-tools.tech",
                     "icon": "https://favicon.im/it-tools.tech",
-                    "desc": "开发者在线实用小工具集合"
+                    "desc": "开发者在线实用工具集"
                 },
                 {
                     "name": "JSFiddle",
@@ -218,7 +218,7 @@
                     "name": "v0",
                     "url": "https://v0.dev",
                     "icon": "https://favicon.im/v0.dev",
-                    "desc": "Vercel生成式UI"
+                    "desc": "AI代码与生成式UI"
                 }
             ]
         },
@@ -278,7 +278,7 @@
                     "name": "Diagrams",
                     "url": "https://app.diagrams.net",
                     "icon": "https://favicon.im/app.diagrams.net",
-                    "desc": "免费开源流程图与架构图绘制"
+                    "desc": "免费开源流程与架构图"
                 },
                 {
                     "name": "Excalidraw",
@@ -338,7 +338,7 @@
                     "name": "Publish Markdown",
                     "url": "https://publishmarkdown.com",
                     "icon": "https://favicon.im/publishmarkdown.com",
-                    "desc": "一键将Markdown笔记在线发布为网页"
+                    "desc": "MD笔记一键发网页"
                 },
                 {
                     "name": "飞书",
@@ -434,7 +434,7 @@
                     "name": "Linux Do",
                     "url": "https://linux.do",
                     "icon": "https://favicon.im/linux.do",
-                    "desc": "Linux DO 开发者与极客社区"
+                    "desc": "极客与开发者社区"
                 },
                 {
                     "name": "Reddit",
@@ -518,7 +518,7 @@
                     "name": "Steam",
                     "url": "https://store.steampowered.com",
                     "icon": "https://favicon.im/store.steampowered.com",
-                    "desc": "全球 PC 数字游戏平台"
+                    "desc": "全球PC数字游戏平台"
                 },
                 {
                     "name": "Twitch",
@@ -608,7 +608,7 @@
                     "name": "OMG! Ubuntu",
                     "url": "https://www.omgubuntu.co.uk",
                     "icon": "https://favicon.im/omgubuntu.co.uk",
-                    "desc": "Linux硬核技术资讯"
+                    "desc": "Linux硬核技术"
                 },
                 {
                     "name": "Solidot",
