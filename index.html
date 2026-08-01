@@ -307,7 +307,56 @@
         .edit-overlay.active > div { transform:scale(1); }
         .edit-overlay .glass-strong { background: rgba(255,255,255,0.2); }
         .preset-bg-card img { transform: translateZ(0); }
-        .drag-over { background: rgba(255,255,255,0.12); }
+        .edit-row-card {
+            position: relative;
+            transition: background-color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+        }
+        .edit-row-card input {
+            user-select: text;
+        }
+        .edit-row-card.dragging {
+            opacity: 0.45 !important;
+            border-style: dashed !important;
+            border-color: #3b82f6 !important;
+            background-color: rgba(59, 130, 246, 0.12) !important;
+            box-shadow: 0 0 12px rgba(59, 130, 246, 0.25) !important;
+        }
+        .edit-row-card.drag-over-top {
+            position: relative;
+        }
+        .edit-row-card.drag-over-top::before {
+            content: '';
+            position: absolute;
+            top: -1.5px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: #3b82f6;
+            border-radius: 1px;
+            z-index: 30;
+            pointer-events: none;
+        }
+        .edit-row-card.drag-over-bottom {
+            position: relative;
+        }
+        .edit-row-card.drag-over-bottom::after {
+            content: '';
+            position: absolute;
+            bottom: -1.5px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: #3b82f6;
+            border-radius: 1px;
+            z-index: 30;
+            pointer-events: none;
+        }
+        .edit-favicon-box {
+            position: relative;
+            background: transparent;
+            border: none;
+            transition: all 0.2s ease;
+        }
         [draggable="true"] { cursor: grab; }
         [draggable="true"]:active { cursor: grabbing; }
         /* 屏幕阅读器专用样式 */
@@ -2132,7 +2181,49 @@
 
         // ==================== 编辑快捷书签弹窗 ====================
         /**
+         * 生成编辑弹窗中单条书签行内 Favicon 图标 HTML
+         * @param {string} name - 书签名称
+         * @param {string} url - 书签 URL
+         * @returns {string} 图标 HTML 字符串
+         */
+        function getEditFaviconInner(name = '', url = '') {
+            const initial = (name || '?').trim().charAt(0).toUpperCase() || '?';
+            const normalizedUrl = normalizeUrl(url);
+            let faviconUrl = '';
+            if (normalizedUrl) {
+                try {
+                    const hostname = new URL(normalizedUrl).hostname;
+                    if (hostname && hostname.includes('.')) {
+                        faviconUrl = 'https://favicon.im/' + hostname;
+                    }
+                } catch {
+                    faviconUrl = '';
+                }
+            }
+            if (faviconUrl) {
+                return `<div class="icon-box icon-box-sm edit-favicon-img-wrapper"><img src="${escapeHtml(faviconUrl)}" data-initial="${escapeHtml(initial)}" class="opacity-90 edit-favicon-img" alt="" loading="lazy" decoding="async" onerror="handleEditIconError(this)"></div>`;
+            }
+            return `<div class="icon-box icon-box-sm bg-white/15 border border-white/20 text-white/90 text-[10px] font-semibold edit-favicon-initial">${escapeHtml(initial)}</div>`;
+        }
+
+        /**
+         * 处理编辑弹窗中行内 Favicon 图片加载失败的情况，优雅降级为首字母文字
+         * @param {HTMLImageElement} img - 发生错误的 <img> 元素
+         */
+        function handleEditIconError(img) {
+            if (!img || img.dataset.failed) return;
+            img.dataset.failed = '1';
+            const initial = img.dataset.initial || '?';
+            const box = img.closest('.edit-favicon-box');
+            if (box) {
+                box.innerHTML = `<div class="icon-box icon-box-sm bg-white/15 border border-white/20 text-white/90 text-[10px] font-semibold edit-favicon-initial">${escapeHtml(initial)}</div>`;
+            }
+        }
+        window.handleEditIconError = handleEditIconError;
+
+        /**
          * 生成编辑弹窗中单条书签行的 HTML 模板
+         * 支持双轨自适应（移动端窄屏切为上下两轨，桌面端单横轨）及全卡片拖拽与实时 Favicon
          * @param {string} [name=''] - 书签名称
          * @param {string} [url=''] - 书签 URL
          * @param {number|string} [idx=''] - 行索引数据标记
@@ -2140,17 +2231,24 @@
          */
         function getEditRowHTML(name = '', url = '', idx = '') {
             return `
-                <div class="flex items-center gap-1.5 p-1.5 px-2 bg-white/5 border border-white/10 apple-radius hover:border-white/25 transition group mb-1.5 shadow-xs" data-idx="${idx}">
-                    <div class="drag-handle p-1 shrink-0 text-white/30 hover:text-white cursor-grab active:cursor-grabbing transition" draggable="true" title="按住拖拽排序（桌面端）">
-                        <svg class="w-3.5 h-3.5 pointer-events-none" viewBox="0 0 16 16" fill="currentColor"><circle cx="5" cy="4" r="1.5"/><circle cx="11" cy="4" r="1.5"/><circle cx="5" cy="8" r="1.5"/><circle cx="11" cy="8" r="1.5"/><circle cx="5" cy="12" r="1.5"/><circle cx="11" cy="12" r="1.5"/></svg>
+                <div class="edit-row-card flex flex-wrap sm:flex-nowrap items-center gap-1.5 p-1.5 px-2 bg-white/5 border border-white/10 apple-radius hover:border-white/25 transition group mb-1.5 shadow-xs" data-idx="${idx}" draggable="true">
+                    <div class="flex items-center gap-1.5 shrink-0">
+                        <div class="drag-handle p-1 shrink-0 text-white/30 group-hover:text-white/70 hover:!text-white cursor-grab active:cursor-grabbing transition" title="按住拖拽排序">
+                            <svg class="w-3.5 h-3.5 pointer-events-none" viewBox="0 0 16 16" fill="currentColor"><circle cx="5" cy="4" r="1.5"/><circle cx="11" cy="4" r="1.5"/><circle cx="5" cy="8" r="1.5"/><circle cx="11" cy="8" r="1.5"/><circle cx="5" cy="12" r="1.5"/><circle cx="11" cy="12" r="1.5"/></svg>
+                        </div>
+                        <div class="flex flex-col gap-0.5 shrink-0">
+                            <button type="button" class="move-up-btn p-0.5 text-[9px] leading-none hover:bg-white/10 apple-radius text-white/40 hover:text-white transition" title="上移书签">▲</button>
+                            <button type="button" class="move-down-btn p-0.5 text-[9px] leading-none hover:bg-white/10 apple-radius text-white/40 hover:text-white transition" title="下移书签">▼</button>
+                        </div>
+                        <div class="edit-favicon-box shrink-0 flex items-center justify-center text-white/90 select-none">
+                            ${getEditFaviconInner(name, url)}
+                        </div>
                     </div>
-                    <div class="flex flex-col gap-0.5 shrink-0">
-                        <button type="button" class="move-up-btn p-0.5 text-[9px] leading-none hover:bg-white/10 apple-radius text-white/40 hover:text-white transition" title="上移书签">▲</button>
-                        <button type="button" class="move-down-btn p-0.5 text-[9px] leading-none hover:bg-white/10 apple-radius text-white/40 hover:text-white transition" title="下移书签">▼</button>
+                    <div class="flex-1 flex flex-col sm:flex-row items-center gap-1.5 min-w-0 w-full sm:w-auto">
+                        <input type="text" class="edit-name w-full sm:w-1/3 bg-black/20 border border-white/10 apple-radius px-2.5 py-1.5 text-xs text-white/90 focus:border-white/40 focus:bg-black/40 outline-none transition" value="${escapeHtml(name)}" placeholder="书签名称">
+                        <input type="text" class="edit-url w-full sm:w-2/3 bg-black/20 border border-white/10 apple-radius px-2.5 py-1.5 text-xs text-white/75 focus:border-white/40 focus:bg-black/40 focus:text-white outline-none transition font-mono" value="${escapeHtml(url)}" placeholder="https://...">
                     </div>
-                    <input type="text" class="edit-name flex-1 bg-black/20 border border-white/10 apple-radius px-2.5 py-1.5 text-xs text-white/90 focus:border-white/40 focus:bg-black/40 outline-none transition" value="${escapeHtml(name)}" placeholder="书签名称">
-                    <input type="text" class="edit-url flex-[2] bg-black/20 border border-white/10 apple-radius px-2.5 py-1.5 text-xs text-white/75 focus:border-white/40 focus:bg-black/40 focus:text-white outline-none transition font-mono" value="${escapeHtml(url)}" placeholder="https://...">
-                    <button type="button" class="del-btn shrink-0 p-1.5 hover:bg-red-500/20 apple-radius text-white/30 hover:text-red-400 transition" title="删除书签">
+                    <button type="button" class="del-btn shrink-0 p-1.5 hover:bg-red-500/20 apple-radius text-white/30 hover:text-red-400 transition ml-auto sm:ml-0" title="删除书签">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                     </button>
                 </div>
@@ -2426,51 +2524,129 @@
             dom.bookmarkPicker.classList.remove('active');
         }
 
-        // ==================== 编辑列表拖拽排序 ====================
+        // ==================== 编辑列表拖拽排序 & 实时感知 ====================
         /**
-         * 初始化编辑弹窗中书签条目的 HTML5 拖拽排序（Drag & Drop）监听器
-         * 支持桌面上拖拽 `⋮⋮` 句柄调整书签排列顺序
+         * 初始化编辑弹窗中书签条目的 HTML5 拖拽排序（Drag & Drop）与实时 input 监听器
+         * 支持整条卡片拖拽随动、.dragging 蓝边虚线透光态与 .drag-over-top / .drag-over-bottom 蓝光插入指示线
          * @returns {void}
          */
         function initDragSort() {
             let dragSrc = null;
+
+            function clearDragClasses() {
+                dom.editList.querySelectorAll('.edit-row-card').forEach(el => {
+                    el.classList.remove('dragging', 'drag-over-top', 'drag-over-bottom', 'drag-over');
+                });
+            }
+
             dom.editList.addEventListener('dragstart', e => {
-                const isInput = e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA');
-                const handle = e.target.closest('.drag-handle');
-                if (!handle && isInput) return; // 放行输入框文本选择与拖拽，不进行 preventDefault 阻断
-                if (!handle) { e.preventDefault(); return; }
-                const item = handle.closest('[data-idx]');
+                // 如果拖拽是从输入框发起的，放行输入框本身的选中文本操作，不触发卡片拖拽
+                if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) {
+                    e.preventDefault();
+                    return;
+                }
+
+                const item = e.target.closest('.edit-row-card');
                 if (!item) return;
+
                 dragSrc = item;
-                item.style.opacity = '0.4';
+                item.classList.add('dragging');
                 e.dataTransfer.effectAllowed = 'move';
+                try {
+                    e.dataTransfer.setData('text/plain', item.dataset.idx || '');
+                } catch (_) {}
             });
+
             dom.editList.addEventListener('dragend', () => {
-                if (dragSrc) dragSrc.style.opacity = '';
-                dom.editList.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+                clearDragClasses();
+                dragSrc = null;
             });
+
             let dragOverRafId = null;
             dom.editList.addEventListener('dragover', e => {
                 e.preventDefault();
-                if (dragOverRafId) return;
-                const target = e.target.closest('[data-idx]');
+                e.dataTransfer.dropEffect = 'move';
+
+                const target = e.target.closest('.edit-row-card');
                 if (!target || target === dragSrc) return;
+
+                if (dragOverRafId) return;
                 dragOverRafId = requestAnimationFrame(() => {
                     dragOverRafId = null;
-                    dom.editList.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
-                    target.classList.add('drag-over');
+                    dom.editList.querySelectorAll('.edit-row-card').forEach(el => {
+                        if (el !== target) el.classList.remove('drag-over-top', 'drag-over-bottom', 'drag-over');
+                    });
+
+                    const rect = target.getBoundingClientRect();
+                    const isTop = e.clientY < (rect.top + rect.height / 2);
+
+                    if (isTop) {
+                        target.classList.add('drag-over-top');
+                        target.classList.remove('drag-over-bottom', 'drag-over');
+                    } else {
+                        target.classList.add('drag-over-bottom');
+                        target.classList.remove('drag-over-top', 'drag-over');
+                    }
                 });
             });
+
+            dom.editList.addEventListener('dragleave', e => {
+                const target = e.target.closest('.edit-row-card');
+                if (target && e.relatedTarget && !target.contains(e.relatedTarget)) {
+                    target.classList.remove('drag-over-top', 'drag-over-bottom', 'drag-over');
+                }
+            });
+
             dom.editList.addEventListener('drop', e => {
                 e.preventDefault();
-                dom.editList.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
-                const target = e.target.closest('[data-idx]');
+                const target = e.target.closest('.edit-row-card');
+                const isTop = target ? target.classList.contains('drag-over-top') : false;
+                clearDragClasses();
+
                 if (!target || !dragSrc || target === dragSrc) return;
-                const rect = target.getBoundingClientRect();
-                if (e.clientY < rect.top + rect.height / 2) {
+
+                if (isTop) {
                     target.parentNode.insertBefore(dragSrc, target);
                 } else {
                     target.parentNode.insertBefore(dragSrc, target.nextSibling);
+                }
+                updateBookmarkCountBadge();
+            });
+
+            // 实时 Favicon 与首字母图标感知：修改 URL 或名称时自动抓取刷新
+            let editFaviconDebounceTimer = null;
+            dom.editList.addEventListener('input', e => {
+                const target = e.target;
+                const row = target.closest('.edit-row-card');
+                if (!row) return;
+
+                const nameInput = row.querySelector('.edit-name');
+                const urlInput = row.querySelector('.edit-url');
+                const faviconBox = row.querySelector('.edit-favicon-box');
+                if (!faviconBox) return;
+
+                const nameVal = nameInput ? nameInput.value : '';
+                const urlVal = urlInput ? urlInput.value : '';
+                const initial = (nameVal || '?').trim().charAt(0).toUpperCase() || '?';
+
+                const existingImg = faviconBox.querySelector('.edit-favicon-img');
+                const existingInitial = faviconBox.querySelector('.edit-favicon-initial');
+                if (existingImg) {
+                    existingImg.dataset.initial = initial;
+                }
+                if (existingInitial) {
+                    existingInitial.textContent = initial;
+                }
+
+                if (target.classList.contains('edit-url')) {
+                    clearTimeout(editFaviconDebounceTimer);
+                    editFaviconDebounceTimer = setTimeout(() => {
+                        faviconBox.innerHTML = getEditFaviconInner(nameVal, urlVal);
+                    }, 180);
+                } else if (target.classList.contains('edit-name')) {
+                    if (!existingImg || existingImg.dataset.failed === '1') {
+                        faviconBox.innerHTML = getEditFaviconInner(nameVal, urlVal);
+                    }
                 }
             });
         }
