@@ -1,19 +1,26 @@
 /**
  * ==============================================================================
- * Service Worker: 高性能全站离线与图标 LRU 缓存器 (v7)
+ * Service Worker: 高性能全站离线与图标 LRU 缓存器 (v9)
  * ==============================================================================
- * 核心功能：
- * 1. 【Network-First 网络优先】：主文档 (index.html)、样式表 (style.css)、数据清单 (bookmarks.json, manifest.json)
- *    优先走网络 (带 cache: 'no-cache' 绕过浏览器 HTTP 强缓存) 获取最新版本，确保部署即更新；断网自动降级退回 Cache 本地离线兜底。
- * 2. 【Cache-First 缓存优先】：图标与图片资源优先命中本地缓存秒开 (0ms)，未命中才联网下载。
- * 3. 【真 LRU 动态更新与容量控制】：命中缓存时动态将其调至队列末尾，超过 250 条时淘汰最久未使用的项 (Least Recently Used)。
- * 4. 【全资源精准匹配】：涵盖 HTML, CSS, JSON, SVG, PNG, ICO, WebP 及 favicon.im 外部图标。
+ * 核心功能与安全保障：
+ * 1. 【三 Cache 缓存池隔离】：CORE_CACHE 存核心静态资源（永不删）；FAVICON_CACHE 存 favicon.im 外部图标；
+ *    IMG_CACHE 存站内本地图片资源。三者独立限额，互不挤占，导航站大量图标场景下更稳。
+ * 2. 【IndexedDB 真时间戳 LRU】：在 IDB 中维护访问时间戳，按真实时间精准淘汰，不依赖 Cache.keys() 排序实现细节。
+ *    favicon 与本地图片的时间戳分别用不同 key 前缀区分，避免互相覆盖。
+ * 3. 【Network-First 503 兜底】：断网且无本地缓存时兜底返回可控 503 响应，主文档导航自动尝试退回 index.html。
+ * 4. 【e.waitUntil 竞态保护】：背景异步调序/时间戳更新由 e.waitUntil(...) 延展 SW 生命周期，防进程提前终止。
+ * 5. 【批量淘汰】：一次性清理到限额以内，而非每次只删 1 条，应对图标突增场景更及时。
+ * 6. 【全资源精准匹配】：涵盖 HTML, CSS, JSON, SVG, PNG, ICO, WebP 及 favicon.im 外部图标。
  */
 
-// 缓存版本号（打包 build.js 时会自动更名为时间戳版本）
-const CACHE = 'app-cache-v1';
-// 缓存文件条目上限（250 条）
-const MAX_ENTRIES = 250;
+// 缓存池定义（打包 build.js 时自动替换 CORE_CACHE 为时间戳版本）
+const CORE_CACHE = 'app-core-v1785571342044';
+const FAVICON_CACHE = 'app-favicons-v1'; // favicon.im 外部图标专用池
+const IMG_CACHE = 'app-images-v1';       // 站内本地图片资源专用池
+
+// 图标是导航站核心功能，量大，各自独立限额
+const MAX_FAVICON_ENTRIES = 800; // favicon.im 外部图标上限
+const MAX_IMG_ENTRIES = 200;     // 站内本地图片上限
 
 // 核心预缓存静态资源列表（PWA 离线打不开保障）
 const CORE_ASSETS = [
@@ -25,18 +32,111 @@ const CORE_ASSETS = [
     './bookmarks.json'
 ];
 
+// IndexedDB LRU 时间戳管理
+const IDB_NAME = 'sw-lru-db';
+const IDB_STORE = 'icon-timestamps';
+
+// 复用同一个 IDB 连接，避免每次访问图标都重新 open 一次数据库
+let dbPromise = null;
+function openIDB() {
+    if (dbPromise) return dbPromise;
+    dbPromise = new Promise((resolve, reject) => {
+        const req = indexedDB.open(IDB_NAME, 1);
+        req.onupgradeneeded = () => {
+            const db = req.result;
+            if (!db.objectStoreNames.contains(IDB_STORE)) {
+                db.createObjectStore(IDB_STORE);
+            }
+        };
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => {
+            dbPromise = null; // 打开失败时重置，允许下次重试
+            reject(req.error);
+        };
+    });
+    return dbPromise;
+}
+
+// 记录或刷新条目最后访问时间戳
+// key 加上 pool 前缀（favicon: / img:），避免两个缓存池的同名时间戳互相覆盖
+async function recordAccess(pool, url) {
+    try {
+        const db = await openIDB();
+        const tx = db.transaction(IDB_STORE, 'readwrite');
+        tx.objectStore(IDB_STORE).put(Date.now(), `${pool}:${url}`);
+        await new Promise(r => { tx.oncomplete = r; tx.onerror = r; });
+    } catch {}
+}
+
+// 基于 IndexedDB 时间戳批量清理最久未使用的条目，一次性清到限额以内
+// 应对短时间内大量新图标涌入（如批量导入书签）的场景
+async function pruneCache(pool, cache, maxEntries) {
+    try {
+        const keys = await cache.keys();
+        const overflow = keys.length - maxEntries;
+        if (overflow <= 0) return;
+
+        const db = await openIDB();
+        const tx = db.transaction(IDB_STORE, 'readonly');
+        const store = tx.objectStore(IDB_STORE);
+        const prefix = `${pool}:`;
+
+        const timestamps = await new Promise((resolve) => {
+            const list = [];
+            const req = store.openCursor();
+            req.onsuccess = (e) => {
+                const cursor = e.target.result;
+                if (cursor) {
+                    if (String(cursor.key).startsWith(prefix)) {
+                        list.push({ idbKey: cursor.key, url: String(cursor.key).slice(prefix.length), time: cursor.value });
+                    }
+                    cursor.continue();
+                } else {
+                    resolve(list);
+                }
+            };
+            req.onerror = () => resolve([]);
+        });
+
+        const cacheUrlSet = new Set(keys.map(k => k.url));
+        const validRecords = timestamps.filter(t => cacheUrlSet.has(t.url));
+        validRecords.sort((a, b) => a.time - b.time);
+
+        // 优先按时间戳从最旧到新删除，凑不够数量再用 keys[0..] 兜底（无 IDB 记录的条目）
+        const toDeleteUrls = validRecords.slice(0, overflow).map(r => r.url);
+        if (toDeleteUrls.length < overflow) {
+            const knownSet = new Set(toDeleteUrls);
+            for (const k of keys) {
+                if (toDeleteUrls.length >= overflow) break;
+                if (!knownSet.has(k.url) && !validRecords.some(r => r.url === k.url)) {
+                    toDeleteUrls.push(k.url);
+                }
+            }
+        }
+
+        if (toDeleteUrls.length === 0) return;
+
+        await Promise.all(toDeleteUrls.map(url => cache.delete(url)));
+
+        const deleteTx = db.transaction(IDB_STORE, 'readwrite');
+        const delStore = deleteTx.objectStore(IDB_STORE);
+        toDeleteUrls.forEach(url => delStore.delete(`${prefix}${url}`));
+        await new Promise(r => { deleteTx.oncomplete = r; deleteTx.onerror = r; });
+    } catch {}
+}
+
 // 安装阶段：预缓存核心静态文件，跳过等待强制激活最新 SW
 self.addEventListener('install', e => {
     self.skipWaiting();
     e.waitUntil(
-        caches.open(CACHE).then(cache => cache.addAll(CORE_ASSETS).catch(() => {}))
+        caches.open(CORE_CACHE).then(cache => cache.addAll(CORE_ASSETS).catch(() => {}))
     );
 });
 
 // 激活阶段：清理旧版本 CACHE 存储，并接管当前客户端页面
 self.addEventListener('activate', e => e.waitUntil(
     caches.keys().then(keys =>
-        Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
+        Promise.all(keys.filter(k => k !== CORE_CACHE && k !== FAVICON_CACHE && k !== IMG_CACHE).map(k => caches.delete(k)))
     ).then(() => clients.claim())
 ));
 
@@ -55,7 +155,7 @@ self.addEventListener('fetch', e => {
     const pathnameLower = urlObj.pathname.toLowerCase();
 
     // 精准资源匹配判定
-    const isMainDoc = e.request.mode === 'navigate' || pathnameLower === '/' || pathnameLower.endsWith('/index.html') || pathnameLower === '';
+    const isMainDoc = e.request.mode === 'navigate' || pathnameLower === '/' || pathnameLower.endsWith('/index.html');
     const isCoreData = pathnameLower.endsWith('/style.css') || pathnameLower.endsWith('/bookmarks.json') || pathnameLower.endsWith('/manifest.json');
     const isFaviconDomain = urlObj.origin === 'https://favicon.im';
     const isImgAsset = /\.(ico|png|jpg|jpeg|svg|webp)$/i.test(pathnameLower);
@@ -71,36 +171,60 @@ self.addEventListener('fetch', e => {
             fetch(fetchReq).then(netRes => {
                 if (netRes.ok) {
                     const resClone = netRes.clone();
-                    caches.open(CACHE).then(cache => cache.put(e.request, resClone));
+                    caches.open(CORE_CACHE).then(cache => cache.put(e.request, resClone)).catch(() => {});
                 }
                 return netRes;
-            }).catch(() => caches.match(e.request)) // 网络失败/断网时退回本地 Cache 兜底
+            }).catch(async () => {
+                // 网络失败/断网时退回本地 Cache 兜底
+                const cachedRes = await caches.match(e.request);
+                if (cachedRes) return cachedRes;
+
+                // 若主导航请求无缓存，尝试退回 index.html 或 /
+                if (e.request.mode === 'navigate') {
+                    const fallbackDoc = (await caches.match('./index.html')) || (await caches.match('/'));
+                    if (fallbackDoc) return fallbackDoc;
+                }
+
+                // 最终无任何缓存时的 503 兜底响应
+                return new Response('网络离线且本地无缓存', {
+                    status: 503,
+                    statusText: 'Service Unavailable',
+                    headers: { 'Content-Type': 'text/plain; charset=utf-8' }
+                });
+            })
         );
         return;
     }
 
-    // 2. 对图标及图片资源（favicon.im 域名、.ico/.svg/.png 等）采取 Cache-First 策略 + 真 LRU 调序
+    // 2. 对图标及图片资源（favicon.im 域名、.ico/.svg/.png 等）采取 Cache-First 策略 + IndexedDB 真 LRU 调序
+    // favicon.im 外部图标与站内本地图片分池存储，各自独立限额，互不挤占
     if (isFaviconDomain || isImgAsset) {
+        const pool = isFaviconDomain ? 'favicon' : 'img';
+        const cacheName = isFaviconDomain ? FAVICON_CACHE : IMG_CACHE;
+        const maxEntries = isFaviconDomain ? MAX_FAVICON_ENTRIES : MAX_IMG_ENTRIES;
+
         e.respondWith(
-            caches.open(CACHE).then(async cache => {
+            caches.open(cacheName).then(async cache => {
                 // 优先命中本地 Cache 缓存 (0ms 秒开)
                 const cached = await cache.match(e.request);
                 if (cached) {
-                    // 真 LRU 关键逻辑：命中时重新写入 Cache 顺位，将其移至 Cache Keys 队列末尾 (最新使用)
-                    cache.delete(e.request).then(() => cache.put(e.request, cached.clone())).catch(() => {});
+                    // 命中时刷新时间戳（放入 waitUntil 保证 SW 线程生命周期）
+                    e.waitUntil(recordAccess(pool, e.request.url));
                     return cached;
                 }
 
-                // 未命中缓存，发起网络请求并存入 Cache
+                // 未命中缓存，发起网络请求并存入对应缓存池
                 try {
                     const res = await fetch(e.request);
                     if (res.ok || res.type === 'opaque') {
-                        await cache.put(e.request, res.clone());
-                        const keys = await cache.keys();
-                        if (keys.length > MAX_ENTRIES) {
-                            // 删除最久未使用的项 (队列头部 keys[0])
-                            await cache.delete(keys[0]);
-                        }
+                        const resClone = res.clone();
+                        e.waitUntil(
+                            (async () => {
+                                await cache.put(e.request, resClone);
+                                await recordAccess(pool, e.request.url);
+                                await pruneCache(pool, cache, maxEntries);
+                            })()
+                        );
                     }
                     return res;
                 } catch {

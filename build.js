@@ -48,8 +48,8 @@ if (fs.existsSync(path.join(rootDir, '_headers'))) {
 }
 if (fs.existsSync(path.join(rootDir, 'sw.js'))) {
     let swContent = fs.readFileSync(path.join(rootDir, 'sw.js'), 'utf-8');
-    const timestampVersion = 'app-cache-v' + Date.now();
-    swContent = swContent.replace(/const\s+CACHE\s*=\s*['"][^'"]+['"];/, `const CACHE = '${timestampVersion}';`);
+    const timestampVersion = 'app-core-v' + Date.now();
+    swContent = swContent.replace(/const\s+(CORE_CACHE|CACHE)\s*=\s*['"][^'"]+['"];/, `const CORE_CACHE = '${timestampVersion}';`);
     fs.writeFileSync(path.join(distDir, 'sw.js'), swContent, 'utf-8');
     console.log(`   ✅ Service Worker 缓存版本已自动为 dist/sw.js 更新为: ${timestampVersion}`);
 }
