@@ -52,7 +52,8 @@ self.addEventListener('fetch', e => {
                     if (netRes.ok) cache.put(e.request, netRes.clone());
                     return netRes;
                 }).catch(() => null);
-                return cached || fetchPromise;
+                const res = cached || await fetchPromise;
+                return res || new Response('', { status: 503 });
             })
         );
         return;

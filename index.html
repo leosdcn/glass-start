@@ -2078,8 +2078,7 @@
                 dom.statBookmarkCount.textContent = count;
             }
             if (dom.statWallpaperType) {
-                const customBg = storageGet('userWallpaper');
-                dom.statWallpaperType.textContent = customBg ? '自定义' : '系统';
+                dom.statWallpaperType.textContent = state.customWallpaper ? '自定义' : '系统';
             }
             if (dom.statPwaStatus) {
                 dom.statPwaStatus.textContent = ('serviceWorker' in navigator) ? '就绪' : '未开启';
