@@ -4213,6 +4213,12 @@
         }
 
         function hideSuggestions() {
+            activeSuggestReqId++; // 作废所有挂起的联想网络请求，防止 Escape/失焦后联想下拉意外"复活"
+            if (suggestionScriptTag) {
+                suggestionScriptTag.onerror = null;
+                suggestionScriptTag.remove();
+                suggestionScriptTag = null;
+            }
             OverlayStack.pop('suggestions');
             if (dom.suggestionMenu) {
                 dom.suggestionMenu.classList.remove('active');
