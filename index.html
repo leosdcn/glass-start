@@ -2527,6 +2527,8 @@
          * @param {string} message   - 弹窗正文
          * @param {Function} onConfirm - 用户点击「确认」后执行的回调
          */
+        // 当前已挂载监听的确认弹窗清理函数（防叠加：上一弹窗未关闭时再次 showConfirm，先解除旧监听再挂新监听）
+        let activeConfirmCleanup = null;
         function showConfirm(message, onConfirm, title = '重置确认') {
             const modal = $('confirmModal');
             const titleEl = $('confirmTitle');
@@ -2535,6 +2537,13 @@
             const cancelBtn = $('confirmCancelBtn');
             // 降级兜底：弹窗 DOM 不存在时退回原生 confirm
             if (!modal) { if (window.confirm(message)) onConfirm?.(); return; }
+
+            // 防重：若上一个弹窗尚未关闭（监听仍挂载于同一组按钮上），先调用其 cleanup 解除监听，
+            // 避免同屏叠加多套监听导致点击一次确认触发多次 onConfirm 回调
+            if (activeConfirmCleanup) {
+                activeConfirmCleanup();
+                activeConfirmCleanup = null;
+            }
 
             // 区分「纯通知」（onConfirm 为 null）和「确认操作」两种模式
             const isNotify = onConfirm == null;
@@ -2548,6 +2557,7 @@
             modal.classList.add('active');
 
             function cleanup() {
+                activeConfirmCleanup = null;
                 modal.setAttribute('aria-hidden', 'true');
                 modal.setAttribute('hidden', '');
                 modal.classList.remove('active');
@@ -2568,6 +2578,7 @@
             okBtn.addEventListener('click', handleOk);
             if (!isNotify) cancelBtn.addEventListener('click', handleCancel);
             modal.addEventListener('click', handleBackdropClick);
+            activeConfirmCleanup = cleanup;
         }
 
         /**
