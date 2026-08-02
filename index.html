@@ -823,7 +823,7 @@
         <div class="flex flex-col items-center justify-center w-full">
             <!-- 时钟 -->
             <div class="text-center fade-in clock-text mb-10 md:mb-14">
-                <div id="clock" aria-live="polite" aria-atomic="true" class="text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-light tracking-tight tabular-nums" style="will-change: contents; transform: translateZ(0);">00:00</div>
+                <div id="clock" aria-live="polite" aria-atomic="true" class="text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-light tracking-tight tabular-nums" style="transform: translateZ(0);">00:00</div>
                 <div id="date" class="text-xs sm:text-sm md:text-base mt-3 text-white/70 font-light tracking-widest uppercase">加载中...</div>
                 <script>(function(){const n=new Date();const c=document.getElementById('clock');const d=document.getElementById('date');if(c)c.textContent=`${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`;if(d)d.textContent=n.toLocaleDateString('zh-CN',{year:'numeric',month:'long',day:'numeric',weekday:'long'});})()</script>
             </div>
@@ -869,40 +869,7 @@
             <!-- 快捷书签 -->
             <div class="w-full max-w-2xl lg:max-w-3xl mx-auto glass apple-radius p-3 sm:p-4 fade-in mb-6 md:mb-8 relative group" style="animation-delay:0.2s">
                 <nav aria-label="快捷书签">
-                    <div id="bookmarks" class="grid grid-cols-4 md:grid-cols-8 gap-2 min-h-[5.5rem]">
-                        <a href="https://web.wechat.com/?lang=zh_CN" target="_blank" rel="noopener noreferrer" class="bookmark-item flex flex-col items-center justify-center gap-2 py-3 px-1 sm:px-1.5 apple-radius text-white/90 hover:text-white">
-                            <div class="icon-box icon-box-md"><img src="https://a.favicon.im/web.wechat.com" width="32" height="32" data-initial="微" data-md="1" class="opacity-90" alt="" loading="eager" decoding="async"></div>
-                            <span class="bookmark-title text-white/90">微信</span>
-                        </a>
-                        <a href="https://weibo.com" target="_blank" rel="noopener noreferrer" class="bookmark-item flex flex-col items-center justify-center gap-2 py-3 px-1 sm:px-1.5 apple-radius text-white/90 hover:text-white">
-                            <div class="icon-box icon-box-md"><img src="https://a.favicon.im/weibo.com" width="32" height="32" data-initial="微" data-md="1" class="opacity-90" alt="" loading="eager" decoding="async"></div>
-                            <span class="bookmark-title text-white/90">微博</span>
-                        </a>
-                        <a href="https://www.doubao.com" target="_blank" rel="noopener noreferrer" class="bookmark-item flex flex-col items-center justify-center gap-2 py-3 px-1 sm:px-1.5 apple-radius text-white/90 hover:text-white">
-                            <div class="icon-box icon-box-md"><img src="https://a.favicon.im/doubao.com" width="32" height="32" data-initial="豆" data-md="1" class="opacity-90" alt="" loading="eager" decoding="async"></div>
-                            <span class="bookmark-title text-white/90">豆包</span>
-                        </a>
-                        <a href="https://chat.deepseek.com" target="_blank" rel="noopener noreferrer" class="bookmark-item flex flex-col items-center justify-center gap-2 py-3 px-1 sm:px-1.5 apple-radius text-white/90 hover:text-white">
-                            <div class="icon-box icon-box-md"><img src="https://a.favicon.im/chat.deepseek.com" width="32" height="32" data-initial="D" data-md="1" class="opacity-90" alt="" loading="eager" decoding="async"></div>
-                            <span class="bookmark-title text-white/90">DeepSeek</span>
-                        </a>
-                        <a href="https://www.bilibili.com" target="_blank" rel="noopener noreferrer" class="bookmark-item flex flex-col items-center justify-center gap-2 py-3 px-1 sm:px-1.5 apple-radius text-white/90 hover:text-white">
-                            <div class="icon-box icon-box-md"><img src="https://a.favicon.im/bilibili.com" width="32" height="32" data-initial="哔" data-md="1" class="opacity-90" alt="" loading="eager" decoding="async"></div>
-                            <span class="bookmark-title text-white/90">哔哩哔哩</span>
-                        </a>
-                        <a href="https://www.douyin.com" target="_blank" rel="noopener noreferrer" class="bookmark-item flex flex-col items-center justify-center gap-2 py-3 px-1 sm:px-1.5 apple-radius text-white/90 hover:text-white">
-                            <div class="icon-box icon-box-md"><img src="https://a.favicon.im/douyin.com" width="32" height="32" data-initial="抖" data-md="1" class="opacity-90" alt="" loading="eager" decoding="async"></div>
-                            <span class="bookmark-title text-white/90">抖音</span>
-                        </a>
-                        <a href="https://www.weather.com.cn" target="_blank" rel="noopener noreferrer" class="bookmark-item flex flex-col items-center justify-center gap-2 py-3 px-1 sm:px-1.5 apple-radius text-white/90 hover:text-white">
-                            <div class="icon-box icon-box-md"><img src="https://a.favicon.im/weather.com.cn" width="32" height="32" data-initial="中" data-md="1" class="opacity-90" alt="" loading="eager" decoding="async"></div>
-                            <span class="bookmark-title text-white/90">中国天气网</span>
-                        </a>
-                        <a href="https://music.163.com" target="_blank" rel="noopener noreferrer" class="bookmark-item flex flex-col items-center justify-center gap-2 py-3 px-1 sm:px-1.5 apple-radius text-white/90 hover:text-white">
-                            <div class="icon-box icon-box-md"><img src="https://a.favicon.im/music.163.com" width="32" height="32" data-initial="网" data-md="1" class="opacity-90" alt="" loading="eager" decoding="async"></div>
-                            <span class="bookmark-title text-white/90">网易云音乐</span>
-                        </a>
-                    </div>
+                    <div id="bookmarks" class="grid grid-cols-4 md:grid-cols-8 gap-2 min-h-[5.5rem]"></div>
                 </nav>
             </div>
         </div>
@@ -1106,7 +1073,7 @@
                         <div>
                             <div class="flex items-center gap-2">
                                 <span class="text-xs font-semibold text-white/90">Glass Start</span>
-                                <span class="text-[11px] px-2 py-0.5 rounded-full bg-white/10 border border-white/15 text-white/70 font-medium tracking-wide">v2.4.6</span>
+                                <span class="text-[11px] px-2 py-0.5 rounded-full bg-white/10 border border-white/15 text-white/70 font-medium tracking-wide">v2.5.6</span>
                             </div>
                             <div class="text-[10px] text-white/50">极简 Liquid Glass 拟态导航 • Build 2026.08</div>
                         </div>
@@ -1948,7 +1915,7 @@
          * @returns {void}
          */
         function cacheDOM() {
-            const ids = 'clock date searchInput searchClearBtn engineBtn engineIcon engineName dropdownMenu suggestionMenu searchBtn bookmarks sidebarList navCategories navContent editModal editList editBookmarksBtn addBookmarkBtn saveEditBtn cancelEditBtn resetEditBtn togglePickerBtn bookmarkPicker pickerContent pickerCount closePickerBtn donePickerBtn importJsonBtn exportJsonBtn importJsonInput uploadBgBtn urlBgBtn resetBgBtn uploadBgInput wallpaperStatus bookmarkCountBadge jsonDropzone maskOpacityInput maskOpacityVal bgBlurInput bgBlurVal storageSizeBadge statBookmarkCount statWallpaperType statPwaStatus clearCacheBtn bgOverlay'.split(' ');
+            const ids = 'clock date searchInput searchClearBtn engineBtn engineIcon engineName dropdownMenu suggestionMenu searchBtn bookmarks sidebarList navCategories navContent editModal editList editBookmarksBtn addBookmarkBtn saveEditBtn cancelEditBtn resetEditBtn togglePickerBtn bookmarkPicker pickerContent pickerCount closePickerBtn donePickerBtn exportJsonBtn importJsonInput uploadBgBtn urlBgBtn resetBgBtn uploadBgInput wallpaperStatus bookmarkCountBadge jsonDropzone maskOpacityInput maskOpacityVal bgBlurInput bgBlurVal storageSizeBadge statBookmarkCount statWallpaperType statPwaStatus clearCacheBtn bgOverlay'.split(' ');
             ids.forEach(id => dom[id] = $(id));
         }
 
@@ -3538,7 +3505,6 @@
 
             // JSON 导入导出事件绑定
             if (dom.exportJsonBtn) dom.exportJsonBtn.addEventListener('click', exportBookmarksJSON);
-            if (dom.importJsonBtn) dom.importJsonBtn.addEventListener('click', () => dom.importJsonInput?.click());
             if (dom.importJsonInput) {
                 dom.importJsonInput.addEventListener('change', e => {
                     const file = e.target.files[0];
@@ -3762,7 +3728,7 @@
             if (!q || !/[a-z0-9\u4e00-\u9fff]/.test(q)) return [];
             const results = [];
             const addedUrls = new Set();
-            const normalizeUrl = u => (u || '').trim().toLowerCase().replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '');
+            const toNormUrl = u => (u || '').trim().toLowerCase().replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '');
 
             // 预先建立 URL -> 分类名称 映射表
             const urlToCategoryMap = new Map();
@@ -3771,7 +3737,7 @@
                     if (!cat || !Array.isArray(cat.bookmarks)) continue;
                     for (const bm of cat.bookmarks) {
                         if (bm && bm.url) {
-                            const normUrl = normalizeUrl(bm.url);
+                            const normUrl = toNormUrl(bm.url);
                             if (!urlToCategoryMap.has(normUrl)) {
                                 urlToCategoryMap.set(normUrl, cat.name);
                             }
@@ -3784,7 +3750,7 @@
             if (pageData && Array.isArray(pageData.bookmarks)) {
                 for (const bm of pageData.bookmarks) {
                     if (!bm || !bm.url) continue;
-                    const normUrl = normalizeUrl(bm.url);
+                    const normUrl = toNormUrl(bm.url);
                     if (addedUrls.has(normUrl)) continue;
                     const nameMatch = (bm.name || '').toLowerCase().includes(q);
                     const urlMatch = (bm.url || '').toLowerCase().includes(q);
@@ -3811,7 +3777,7 @@
                     if (!cat || !Array.isArray(cat.bookmarks)) continue;
                     for (const bm of cat.bookmarks) {
                         if (!bm || !bm.url) continue;
-                        const normUrl = normalizeUrl(bm.url);
+                        const normUrl = toNormUrl(bm.url);
                         if (addedUrls.has(normUrl)) continue;
                         const nameMatch = (bm.name || '').toLowerCase().includes(q);
                         const urlMatch = (bm.url || '').toLowerCase().includes(q);
