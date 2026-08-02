@@ -159,15 +159,10 @@ self.addEventListener('fetch', e => {
     const isFaviconDomain = urlObj.origin === 'https://a.favicon.im';
     const isImgAsset = /\.(ico|png|jpg|jpeg|svg|webp)$/i.test(pathnameLower);
 
-    // 1. 对 index.html (主文档)、bookmarks.json、manifest.json 采取 Network-First 策略
-    // 附带 { cache: 'no-cache' } 强制向服务器发起条件请求，绕过浏览器 HTTP 磁盘强缓存
-    if (isMainDoc || isCoreData) {
-        const fetchReq = e.request.mode === 'navigate'
-            ? e.request
-            : new Request(e.request, { cache: 'no-cache' });
-
+    // 1. 对 index.html (主文档) 采取 Network-First 策略
+    if (isMainDoc) {
         e.respondWith(
-            fetch(fetchReq).then(netRes => {
+            fetch(e.request).then(netRes => {
                 if (netRes.ok) {
                     const resClone = netRes.clone();
                     caches.open(CORE_CACHE).then(cache => cache.put(e.request, resClone)).catch(() => {});
@@ -179,12 +174,42 @@ self.addEventListener('fetch', e => {
                 if (cachedRes) return cachedRes;
 
                 // 若主导航请求无缓存，尝试退回 index.html 或 /
-                if (e.request.mode === 'navigate') {
-                    const fallbackDoc = (await caches.match('./index.html')) || (await caches.match('/'));
-                    if (fallbackDoc) return fallbackDoc;
-                }
+                const fallbackDoc = (await caches.match('./index.html')) || (await caches.match('/'));
+                if (fallbackDoc) return fallbackDoc;
 
                 // 最终无任何缓存时的 503 兜底响应
+                return new Response('网络离线且本地无缓存', {
+                    status: 503,
+                    statusText: 'Service Unavailable',
+                    headers: { 'Content-Type': 'text/plain; charset=utf-8' }
+                });
+            })
+        );
+        return;
+    }
+
+    // 2. 对 bookmarks.json 和 manifest.json 采取 Stale-While-Revalidate 策略 (0ms 秒响应 + 后台静默刷新)
+    if (isCoreData) {
+        e.respondWith(
+            caches.open(CORE_CACHE).then(async cache => {
+                const cachedRes = await cache.match(e.request);
+                const fetchPromise = fetch(new Request(e.request, { cache: 'no-cache' })).then(netRes => {
+                    if (netRes.ok) {
+                        cache.put(e.request, netRes.clone()).catch(() => {});
+                    }
+                    return netRes;
+                }).catch(() => null);
+
+                // 若本地缓存已存在，实现 0ms 秒级响应，并在后台异步刷新缓存
+                if (cachedRes) {
+                    e.waitUntil(fetchPromise);
+                    return cachedRes;
+                }
+
+                // 无本地缓存时等待网络响应
+                const netRes = await fetchPromise;
+                if (netRes) return netRes;
+
                 return new Response('网络离线且本地无缓存', {
                     status: 503,
                     statusText: 'Service Unavailable',

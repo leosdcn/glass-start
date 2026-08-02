@@ -29,11 +29,10 @@
     <link rel="dns-prefetch" href="https://suggestion.baidu.com">
     <link rel="dns-prefetch" href="https://api.bing.com">
     <link rel="dns-prefetch" href="https://suggestqueries.google.com">
+    <link rel="dns-prefetch" href="https://ac.duckduckgo.com">
     <link rel="dns-prefetch" href="https://images.unsplash.com">
     <link rel="dns-prefetch" href="https://a.favicon.im">
-    <link rel="preconnect" href="https://suggestion.baidu.com" crossorigin>
     <link rel="preconnect" href="https://api.bing.com" crossorigin>
-    <link rel="preconnect" href="https://suggestqueries.google.com" crossorigin>
     <link rel="preconnect" href="https://images.unsplash.com" crossorigin>
     <link rel="preconnect" href="https://a.favicon.im" crossorigin>
     <!-- 动态壁纸 Preload：检测用户设定的壁纸并优先预加载，避免硬编码默认壁纸的网络开销 -->
@@ -531,9 +530,25 @@
                 right: calc(2rem + env(safe-area-inset-right));
             }
         }
-        /* 导航页书签行悬停时显示右箭头并微移 */
-        .nav-bookmark:hover .group-hover\:opacity-100 { opacity: 1; }
-        .nav-bookmark:hover .group-hover\:translate-x-0\.5 { transform: translateX(0.125rem); }
+        /* 导航页书签行悬停时显示右箭头并微移 (CSS 伪元素零 DOM 节点模式) */
+        .nav-bookmark::after {
+            content: '';
+            width: 0.875rem;
+            height: 0.875rem;
+            background-color: currentColor;
+            mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='currentColor'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M9 5l7 7-7 7'/%3E%3C/svg%3E") center/contain no-repeat;
+            -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='currentColor'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M9 5l7 7-7 7'/%3E%3C/svg%3E") center/contain no-repeat;
+            opacity: 0;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            margin-left: auto;
+            flex-shrink: 0;
+            color: rgba(255, 255, 255, 0.25);
+        }
+        .nav-bookmark:hover::after {
+            opacity: 1;
+            transform: translateX(0.125rem);
+            color: rgba(255, 255, 255, 0.6);
+        }
         /* ===== 键盘焦点环（:focus-visible 仅对键盘导航生效，鼠标点击不触发）=====
            遵循 Apple HIG：所有可交互元素必须具备可见焦点状态。
            使用半透明白色描边+外发光，与玻璃风格保持一致。
@@ -1068,7 +1083,7 @@
                         <div>
                             <div class="flex items-center gap-2">
                                 <span class="text-xs font-semibold text-white/90">Glass Start</span>
-                                <span class="text-[11px] px-2 py-0.5 rounded-full bg-white/10 border border-white/15 text-white/70 font-medium tracking-wide">v2.4.4</span>
+                                <span class="text-[11px] px-2 py-0.5 rounded-full bg-white/10 border border-white/15 text-white/70 font-medium tracking-wide">v2.4.5</span>
                             </div>
                             <div class="text-[10px] text-white/50">极简 Liquid Glass 拟态导航 • Build 2026.08</div>
                         </div>
@@ -2900,7 +2915,7 @@
             if (!bm.icon || safeIcon === '#') {
                 return `<div class="icon-box ${sizeClass} bg-white/15 border border-white/20 text-white/90 ${textClass}">${escapeHtml(initial)}</div>`;
             }
-            const loadingAttr = isMd ? 'loading="eager" decoding="async"' : 'loading="lazy" decoding="async"';
+            const loadingAttr = isMd ? 'loading="eager" fetchpriority="high" decoding="async"' : 'loading="lazy" decoding="async"';
             const imgSize = isMd ? '32' : '24';
             return `<div class="icon-box ${sizeClass}"><img src="${safeIcon}" width="${imgSize}" height="${imgSize}" data-initial="${escapeHtml(initial)}" data-md="${isMd ? '1' : '0'}" class="opacity-90" alt="" ${loadingAttr}></div>`;
         }
@@ -2953,11 +2968,14 @@
                             <a href="${safeUrl(bm.url)}" target="_blank" rel="noopener noreferrer"
                                class="nav-bookmark group flex items-center gap-2.5 px-3 py-2.5 md:px-3.5 md:py-2.5 apple-radius text-white/80 hover:text-white">
                                 ${getFaviconHTML(bm, 'sm')}
-                                <div class="flex-1 min-w-0 flex flex-col justify-center">
-                                    <span class="text-xs md:text-sm font-semibold truncate leading-tight">${escapeHtml(bm.name)}</span>
-                                    ${bm.desc ? `<span class="text-[10px] text-white/45 truncate leading-none mt-1">${escapeHtml(bm.desc)}</span>` : ''}
-                                </div>
-                                <svg class="w-3.5 h-3.5 text-white/20 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                                ${bm.desc ? `
+                                    <div class="flex-1 min-w-0 flex flex-col justify-center">
+                                        <span class="text-xs md:text-sm font-semibold truncate leading-tight">${escapeHtml(bm.name)}</span>
+                                        <span class="text-[10px] text-white/45 truncate leading-none mt-1">${escapeHtml(bm.desc)}</span>
+                                    </div>
+                                ` : `
+                                    <span class="flex-1 min-w-0 text-xs md:text-sm font-semibold truncate leading-tight text-white/90">${escapeHtml(bm.name)}</span>
+                                `}
                             </a>
                         `).join('')}
                     </div>
