@@ -519,10 +519,11 @@
         #editBookmarksBtn:hover svg {
             transform: rotate(90deg) !important;
         }
-        /* 仅搜索页（起始页）显示编辑按钮，导航页隐藏：淡出并禁用点击 */
+        /* 仅搜索页（起始页）显示编辑按钮，导航页隐藏：快速淡出并禁用点击（淡出提速至 0.25s，确保滚动到达导航页前完全消失；淡入仍用基础规则的 0.45s） */
         #editBookmarksBtn.hidden-on-nav {
             opacity: 0;
             pointer-events: none;
+            transition: opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         }
         @media (min-width: 768px) {
             #editBookmarksBtn {
