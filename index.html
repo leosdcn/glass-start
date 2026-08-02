@@ -3735,7 +3735,8 @@
          */
         function getLocalBookmarkSuggestions(query, limit = 2) {
             const q = (query || '').trim().toLowerCase();
-            if (!q) return [];
+            // 纯标点查询（如“/”会被 https:// 的斜杠误命中所有书签）不触发本地书签检索
+            if (!q || !/[a-z0-9\u4e00-\u9fff]/.test(q)) return [];
             const results = [];
             const addedUrls = new Set();
             const normalizeUrl = u => (u || '').trim().toLowerCase().replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '');
