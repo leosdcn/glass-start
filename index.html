@@ -1950,6 +1950,164 @@
             try { localStorage.removeItem(key); return true; } catch { return false; }
         }
 
+        // ==================== 统一 UI 状态与弹窗响应栈 (Overlay Priority Stack) ====================
+        const OverlayStack = {
+            stack: [],
+            push(id, closeFn) {
+                this.pop(id);
+                this.stack.push({ id, close: closeFn });
+            },
+            pop(id) {
+                if (id) {
+                    this.stack = this.stack.filter(item => item.id !== id);
+                } else {
+                    return this.stack.pop();
+                }
+            },
+            top() {
+                return this.stack[this.stack.length - 1] || null;
+            },
+            has(id) {
+                return this.stack.some(item => item.id === id);
+            },
+            isEmpty() {
+                return this.stack.length === 0;
+            }
+        };
+
+        // ==================== 派生式快捷书签数据架构 (Derived Bookmark Architecture) ====================
+        function deriveNameFromUrl(url) {
+            try {
+                const host = new URL(normalizeUrl(url)).hostname.replace(/^www\./, '');
+                return host.split('.')[0] || '书签';
+            } catch {
+                return '书签';
+            }
+        }
+
+        /**
+         * 从分类数据库中动态派生快捷书签的全量元数据（保证 bookmarks.json 更新可即时应用）
+         * @param {string[]} keys - 快捷书签 URL 数组
+         * @param {Array} categories - 分类书签数据库
+         * @param {Object} [customMeta={}] - 用户添加的自定义元数据
+         * @returns {Array} 完整的快捷书签对象数组
+         */
+        function getDerivedBookmarks(keys, categories, customMeta = {}) {
+            if (!Array.isArray(keys)) return [];
+
+            const catMap = new Map();
+            if (Array.isArray(categories)) {
+                categories.forEach(cat => {
+                    if (Array.isArray(cat.bookmarks)) {
+                        cat.bookmarks.forEach(bm => {
+                            if (bm.url && !catMap.has(normalizeUrl(bm.url))) {
+                                catMap.set(normalizeUrl(bm.url), bm);
+                            }
+                        });
+                    }
+                });
+            }
+
+            return keys.map(url => {
+                const normalized = normalizeUrl(url);
+                if (catMap.has(normalized)) {
+                    const catBm = catMap.get(normalized);
+                    return {
+                        name: catBm.name,
+                        url: catBm.url,
+                        icon: catBm.icon || faviconFromUrl(catBm.url),
+                        desc: catBm.desc || ''
+                    };
+                }
+                if (customMeta && customMeta[normalized]) {
+                    const custom = customMeta[normalized];
+                    return {
+                        name: custom.name || deriveNameFromUrl(normalized),
+                        url: normalized,
+                        icon: custom.icon || faviconFromUrl(normalized),
+                        desc: custom.desc || ''
+                    };
+                }
+                return {
+                    name: deriveNameFromUrl(normalized),
+                    url: normalized,
+                    icon: faviconFromUrl(normalized)
+                };
+            });
+        }
+
+        /**
+         * 自动无缝迁移旧版 localStorage.userBookmarks 静态数组至派生架构
+         */
+        function migrateBookmarksStorage() {
+            const rawUserKeys = storageGet('userBookmarkKeys');
+            const rawLegacy = storageGet('userBookmarks');
+
+            if (rawUserKeys && Array.isArray(rawUserKeys)) return;
+
+            if (rawLegacy && Array.isArray(rawLegacy) && rawLegacy.length > 0) {
+                const keys = [];
+                const customMeta = storageGet('userCustomMeta') || {};
+
+                const existingCatUrls = new Set();
+                (DEFAULT_CATEGORIES || []).forEach(cat => {
+                    (cat.bookmarks || []).forEach(bm => {
+                        if (bm.url) existingCatUrls.add(normalizeUrl(bm.url));
+                    });
+                });
+
+                rawLegacy.forEach(bm => {
+                    if (!bm || !bm.url) return;
+                    const normUrl = normalizeUrl(bm.url);
+                    keys.push(normUrl);
+                    if (!existingCatUrls.has(normUrl)) {
+                        customMeta[normUrl] = {
+                            name: bm.name || '',
+                            icon: bm.icon || '',
+                            desc: bm.desc || ''
+                        };
+                    }
+                });
+
+                storageSet('userBookmarkKeys', keys);
+                storageSet('userCustomMeta', customMeta);
+                storageRemove('userBookmarks');
+            }
+        }
+
+        /**
+         * 提交并持久化用户自定义的快捷书签（更新 URL 顺序列表与自定义扩展表）
+         * @param {Array} list - 用户在编辑弹窗提交的书签列表
+         */
+        function saveUserBookmarks(list) {
+            const keys = [];
+            const customMeta = storageGet('userCustomMeta') || {};
+            const catUrls = new Set();
+            (pageData.categories || []).forEach(cat => {
+                (cat.bookmarks || []).forEach(bm => { if (bm.url) catUrls.add(normalizeUrl(bm.url)); });
+            });
+
+            list.forEach(bm => {
+                const normUrl = normalizeUrl(bm.url);
+                if (!normUrl) return;
+                keys.push(normUrl);
+                if (!catUrls.has(normUrl)) {
+                    customMeta[normUrl] = {
+                        name: bm.name,
+                        icon: bm.icon,
+                        desc: bm.desc || ''
+                    };
+                } else {
+                    delete customMeta[normUrl];
+                }
+            });
+
+            storageSet('userBookmarkKeys', keys);
+            storageSet('userCustomMeta', customMeta);
+            pageData.bookmarks = getDerivedBookmarks(keys, pageData.categories, customMeta);
+            renderBookmarks();
+        }
+
         // ==================== IndexedDB 4K 壁纸存储工具 (打破 5MB LocalStorage 限制) ====================
         const dbPromise = new Promise(resolve => {
             if (!('indexedDB' in window)) { resolve(null); return; }
@@ -2022,18 +2180,19 @@
          * @returns {Promise<void>}
          */
         async function loadData() {
-            // 本地file://协议直接跳过，使用内联默认值
             if (location.protocol === 'file:') return;
-            // HTTP/HTTPS下尝试远程加载
             try {
                 const res = await fetch('bookmarks.json');
                 if (res.ok) {
                     const data = await res.json();
-                    if (data && Array.isArray(data.bookmarks)) {
-                        pageData.bookmarks = data.bookmarks.map(bm => ({ ...bm }));
-                        initialBookmarks = data.bookmarks.map(bm => ({ ...bm }));
+                    if (data && Array.isArray(data.categories)) {
+                        pageData.categories = data.categories;
                     }
-                    if (data && Array.isArray(data.categories)) pageData.categories = data.categories;
+                    // 加载远程 categories 后重新派生快捷书签，自动保持图标与名称同步更新
+                    const userKeys = storageGet('userBookmarkKeys');
+                    const customMeta = storageGet('userCustomMeta') || {};
+                    const keys = (userKeys && Array.isArray(userKeys)) ? userKeys : DEFAULT_BOOKMARKS.map(b => b.url);
+                    pageData.bookmarks = getDerivedBookmarks(keys, pageData.categories, customMeta);
                 }
             } catch {}
         }
@@ -2044,10 +2203,16 @@
          * @returns {Promise<void>}
          */
         async function loadUserData() {
-            const saved = storageGet('userBookmarks');
-            if (saved && Array.isArray(saved) && saved.length) {
-                pageData.bookmarks = saved;
+            migrateBookmarksStorage();
+            const userKeys = storageGet('userBookmarkKeys');
+            const customMeta = storageGet('userCustomMeta') || {};
+
+            if (userKeys && Array.isArray(userKeys) && userKeys.length) {
+                pageData.bookmarks = getDerivedBookmarks(userKeys, pageData.categories, customMeta);
+            } else {
+                pageData.bookmarks = getDerivedBookmarks(DEFAULT_BOOKMARKS.map(b => b.url), pageData.categories, customMeta);
             }
+
             let customBg = await getWallpaperDB();
             if (!customBg) customBg = storageGet('userWallpaper');
             if (customBg) {
@@ -2275,18 +2440,20 @@
          * @param {string} url - 书签 URL
          * @returns {string} 图标 HTML 字符串
          */
-        function getEditFaviconInner(name = '', url = '') {
+        function getEditFaviconInner(name = '', url = '', icon = '') {
             const initial = (name || '?').trim().charAt(0).toUpperCase() || '?';
-            const normalizedUrl = normalizeUrl(url);
-            let faviconUrl = '';
-            if (normalizedUrl) {
-                try {
-                    const hostname = new URL(normalizedUrl).hostname;
-                    if (hostname && hostname.includes('.')) {
-                        faviconUrl = 'https://a.favicon.im/' + hostname;
+            let faviconUrl = icon;
+            if (!faviconUrl) {
+                const normalizedUrl = normalizeUrl(url);
+                if (normalizedUrl) {
+                    try {
+                        const hostname = new URL(normalizedUrl).hostname;
+                        if (hostname && hostname.includes('.')) {
+                            faviconUrl = 'https://a.favicon.im/' + hostname;
+                        }
+                    } catch {
+                        faviconUrl = '';
                     }
-                } catch {
-                    faviconUrl = '';
                 }
             }
             if (faviconUrl) {
@@ -2316,11 +2483,12 @@
          * @param {string} [name=''] - 书签名称
          * @param {string} [url=''] - 书签 URL
          * @param {number|string} [idx=''] - 行索引数据标记
+         * @param {string} [icon=''] - 书签自定义或原图标 URL
          * @returns {string} 行 HTML 拼接字符串
          */
-        function getEditRowHTML(name = '', url = '', idx = '') {
+        function getEditRowHTML(name = '', url = '', idx = '', icon = '') {
             return `
-                <div class="edit-row-card flex flex-wrap sm:flex-nowrap items-center gap-1.5 p-1.5 px-2 bg-white/5 border border-white/10 apple-radius hover:border-white/25 transition group mb-1.5 shadow-xs" data-idx="${idx}" draggable="true">
+                <div class="edit-row-card flex flex-wrap sm:flex-nowrap items-center gap-1.5 p-1.5 px-2 bg-white/5 border border-white/10 apple-radius hover:border-white/25 transition group mb-1.5 shadow-xs" data-idx="${idx}" data-icon="${escapeHtml(icon || '')}" data-orig-url="${escapeHtml(url || '')}" draggable="true">
                     <div class="flex items-center gap-1.5 shrink-0">
                         <div class="drag-handle p-1 shrink-0 text-white/30 group-hover:text-white/70 hover:!text-white cursor-grab active:cursor-grabbing transition" title="按住拖拽排序">
                             <svg class="w-3.5 h-3.5 pointer-events-none" viewBox="0 0 16 16" fill="currentColor"><circle cx="5" cy="4" r="1.5"/><circle cx="11" cy="4" r="1.5"/><circle cx="5" cy="8" r="1.5"/><circle cx="11" cy="8" r="1.5"/><circle cx="5" cy="12" r="1.5"/><circle cx="11" cy="12" r="1.5"/></svg>
@@ -2330,7 +2498,7 @@
                             <button type="button" class="move-down-btn p-0.5 text-[9px] leading-none hover:bg-white/10 apple-radius text-white/40 hover:text-white transition" title="下移书签">▼</button>
                         </div>
                         <div class="edit-favicon-box shrink-0 flex items-center justify-center text-white/90 select-none">
-                            ${getEditFaviconInner(name, url)}
+                            ${getEditFaviconInner(name, url, icon)}
                         </div>
                     </div>
                     <div class="flex-1 flex flex-col sm:flex-row items-center gap-1.5 min-w-0 w-full sm:w-auto">
@@ -2351,14 +2519,14 @@
          */
         function renderEditList(listToRender) {
             const list = listToRender || pageData.bookmarks;
-            dom.editList.innerHTML = list.map((bm, i) => getEditRowHTML(bm.name, bm.url, i)).join('');
+            dom.editList.innerHTML = list.map((bm, i) => getEditRowHTML(bm.name, bm.url, i, bm.icon)).join('');
             updateBookmarkCountBadge();
         }
 
         /**
          * 从编辑弹窗的 DOM 列表中读取当前所有书签条目
          * 遍历每行的名称/URL 输入框，过滤掉名称或 URL 为空的无效行，
-         * 并自动为每条记录生成 icon（取目标域名的 favicon）
+         * 并自动为每条记录生成 icon（若 URL 未变且有自定义 icon 则保留，URL 被修改则重新生成）
          * @returns {Bookmark[]} 书签对象数组，可直接写入 pageData.bookmarks
          */
         function collectEditData() {
@@ -2368,7 +2536,17 @@
                 const name = (el.querySelector('.edit-name')?.value || '').trim();
                 let url = (el.querySelector('.edit-url')?.value || '').trim();
                 url = normalizeUrl(url);
-                if (name && url) bookmarks.push({ name, url, icon: faviconFromUrl(url) });
+                const origIcon = el.dataset.icon || '';
+                const origUrl = normalizeUrl(el.dataset.origUrl || '');
+                if (name && url) {
+                    let icon = '';
+                    if (origIcon && (url === origUrl || !origUrl)) {
+                        icon = origIcon;
+                    } else {
+                        icon = faviconFromUrl(url);
+                    }
+                    bookmarks.push({ name, url, icon });
+                }
             });
             return bookmarks;
         }
@@ -2379,6 +2557,7 @@
          */
         function openEditModal() {
             state.editOpen = true;
+            OverlayStack.push('editModal', cancelEditModal);
 
             // 备份打开前的初始配置
             modalState.initialWallpaper = storageGet('userWallpaper');
@@ -2422,6 +2601,7 @@
          */
         function closeEditModal() {
             state.editOpen = false;
+            OverlayStack.pop('editModal');
             dom.editModal.setAttribute('aria-hidden', 'true');
             dom.editModal.setAttribute('hidden', '');
             dom.editModal.classList.remove('active');
@@ -2545,9 +2725,11 @@
             modal.removeAttribute('aria-hidden');
             modal.removeAttribute('hidden');
             modal.classList.add('active');
+            OverlayStack.push('confirmModal', cleanup);
 
             function cleanup() {
                 activeConfirmCleanup = null;
+                OverlayStack.pop('confirmModal');
                 modal.setAttribute('aria-hidden', 'true');
                 modal.setAttribute('hidden', '');
                 modal.classList.remove('active');
@@ -2580,6 +2762,8 @@
             // 清除 localStorage 用户编辑与偏好设置，恢复系统初始默认配置并立即生效
             showConfirm('确定要恢复系统初始默认状态吗？此操作将立即清除您自定义的所有快捷书签、背景壁纸与偏好设置。', () => {
                 storageRemove('userBookmarks');
+                storageRemove('userBookmarkKeys');
+                storageRemove('userCustomMeta');
                 storageRemove('preferredEngine');
                 storageRemove('userWallpaper');
                 storageRemove('maskOpacity');
@@ -2594,7 +2778,7 @@
                 state.bg = 0;
                 applyWallpaper(backgrounds[0], false);
                 applyBgEffects(25, 0, false);
-                pageData.bookmarks = initialBookmarks.map(bm => ({ ...bm }));
+                pageData.bookmarks = getDerivedBookmarks(DEFAULT_BOOKMARKS.map(b => b.url), pageData.categories);
                 renderBookmarks();
                 closeBookmarkPicker();
                 closeEditModal();
@@ -2608,6 +2792,7 @@
          * @returns {void}
          */
         function openBookmarkPicker() {
+            OverlayStack.push('bookmarkPicker', closeBookmarkPicker);
             dom.bookmarkPicker.removeAttribute('aria-hidden');
             dom.bookmarkPicker.removeAttribute('hidden');
             dom.bookmarkPicker.classList.add('active');
@@ -2619,6 +2804,7 @@
          * @returns {void}
          */
         function closeBookmarkPicker() {
+            OverlayStack.pop('bookmarkPicker');
             dom.bookmarkPicker.setAttribute('aria-hidden', 'true');
             dom.bookmarkPicker.setAttribute('hidden', '');
             dom.bookmarkPicker.classList.remove('active');
@@ -2938,8 +3124,15 @@
         }
 
         // ==================== 导航页（双栏布局）====================
-        function renderNavCategories() {
+        let lastNavCategoriesSignature = '';
+
+        function renderNavCategories(force = false) {
             if (!dom.sidebarList || !dom.navCategories) return;
+
+            const currentSig = JSON.stringify(pageData.categories);
+            if (!force && lastNavCategoriesSignature && currentSig === lastNavCategoriesSignature) return;
+            lastNavCategoriesSignature = currentSig;
+
             const savedScrollTop = dom.navContent ? dom.navContent.scrollTop : 0;
 
             // 左侧分类列表
@@ -2984,7 +3177,7 @@
             `;
             }).join('');
 
-            // 每次重新渲染分类后，自动刷新侧边栏动态 DOM 节点关联
+            // 每次重新渲染分类后，自动刷新侧边栏动态 DOM 节点关联与位移缓存
             refreshSidebarNavCache();
             initSidebarNav();
             if (dom.navContent && savedScrollTop > 0) {
@@ -2997,11 +3190,14 @@
         let manualScrollTimer = null;
         let cachedSidebarItems = [];
         let cachedSidebarSections = [];
+        let cachedSectionOffsets = [];
 
         function refreshSidebarNavCache() {
-            if (!dom.sidebarList) return;
+            if (!dom.sidebarList || !dom.navContent) return;
             cachedSidebarItems = Array.from(dom.sidebarList.querySelectorAll('[data-target]'));
             cachedSidebarSections = cachedSidebarItems.map(item => document.getElementById(item.dataset.target)).filter(Boolean);
+            const contentTop = dom.navContent.offsetTop;
+            cachedSectionOffsets = cachedSidebarSections.map(s => s.offsetTop - contentTop);
         }
 
         function updateSidebarActive() {
@@ -3009,12 +3205,11 @@
             const content = dom.navContent;
             if (!sidebar || !content || isManualScrolling) return;
 
-            if (!cachedSidebarItems.length) refreshSidebarNavCache();
+            if (!cachedSidebarItems.length || !cachedSectionOffsets.length) refreshSidebarNavCache();
             const items = cachedSidebarItems;
             const sections = cachedSidebarSections;
             if (!items.length || !sections.length) return;
 
-            const containerTop = content.getBoundingClientRect().top;
             const containerHeight = content.clientHeight;
             const scrollTop = content.scrollTop;
             const scrollHeight = content.scrollHeight;
@@ -3023,7 +3218,7 @@
             if (scrollTop <= 15) {
                 activeIdx = 0;
             } else {
-                const secTops = sections.map(s => s.getBoundingClientRect().top - containerTop);
+                const secTops = cachedSectionOffsets.map(off => off - scrollTop);
                 for (let i = 0; i < secTops.length; i++) {
                     if (secTops[i] <= 80) {
                         activeIdx = i;
@@ -3061,6 +3256,7 @@
 
             if (!isSidebarNavInitialized) {
                 window.addEventListener('resize', () => {
+                    refreshSidebarNavCache();
                     requestAnimationFrame(updateSidebarActive);
                 }, { passive: true });
 
@@ -3245,7 +3441,30 @@
             // 3. Ctrl/Cmd+B：切换壁纸
             // 4. Escape：关弹窗/失焦
             document.addEventListener('keydown', e => {
-                if (state.editOpen || (dom.bookmarkPicker && dom.bookmarkPicker.classList.contains('active'))) return;
+                // 1. 优先使用 UI 响应栈 (OverlayStack) 逆序优雅处理 Escape 按键
+                if (e.key === 'Escape') {
+                    const topOverlay = OverlayStack.top();
+                    if (topOverlay && typeof topOverlay.close === 'function') {
+                        topOverlay.close();
+                        e.stopPropagation();
+                        return;
+                    }
+                    if (dom.suggestionMenu && dom.suggestionMenu.classList.contains('active') && selectedSuggestionIdx >= 0) {
+                        dom.searchInput.value = originalQuery;
+                    }
+                    if (dom.searchClearBtn) dom.searchClearBtn.classList.toggle('hidden', !dom.searchInput.value);
+                    closeDropdown();
+                    hideSuggestions();
+                    dom.searchInput.blur();
+                    return;
+                }
+
+                // 2. 若当前有任何弹窗或 Overlay 处于激活状态，拦截后续所有全局快捷键及页面导航操作
+                //    (联想面板自身也会入栈；但搜索框聚焦时方向键/回车等联想操作仍须响应，故栈内仅剩联想面板时放行)
+                if (!OverlayStack.isEmpty()) {
+                    const onlySuggestions = OverlayStack.top()?.id === 'suggestions' && OverlayStack.stack.length === 1;
+                    if (!onlySuggestions) return;
+                }
 
                 const activeTag = document.activeElement?.tagName;
                 const isInputActive = activeTag === 'INPUT' || activeTag === 'TEXTAREA' || document.activeElement?.isContentEditable;
@@ -3340,18 +3559,6 @@
                 if (state.currentSection === 'start' && e.key.length === 1 && !isInputActive) {
                     dom.searchInput.focus();
                     return;
-                }
-
-                if (e.key === 'Escape') {
-                    if (dom.suggestionMenu && dom.suggestionMenu.classList.contains('active') && selectedSuggestionIdx >= 0) {
-                        dom.searchInput.value = originalQuery;
-                    }
-                    if (dom.searchClearBtn) dom.searchClearBtn.classList.toggle('hidden', !dom.searchInput.value);
-                    closeDropdown();
-                    hideSuggestions();
-                    dom.searchInput.blur();
-                    cancelEditModal();
-                    closeBookmarkPicker();
                 }
             });
         }
@@ -3476,10 +3683,8 @@
                     return;
                 }
                 
-                // 1. 提交书签
-                pageData.bookmarks = data;
-                storageSet('userBookmarks', data);
-                renderBookmarks();
+                // 1. 提交书签（派生架构保存）
+                saveUserBookmarks(data);
 
                 // 2. 提交壁纸（大图优先持久化至 IndexedDB，彻底解除 LocalStorage 5MB 上限）
                 if (modalState.wallpaperChanged) {
@@ -3643,9 +3848,15 @@
             state.open = !state.open;
             dom.dropdownMenu.classList.toggle('active', state.open);
             dom.engineBtn.setAttribute('aria-expanded', state.open);
+            if (state.open) {
+                OverlayStack.push('dropdown', closeDropdown);
+            } else {
+                OverlayStack.pop('dropdown');
+            }
         }
         function closeDropdown() {
             state.open = false;
+            OverlayStack.pop('dropdown');
             dom.dropdownMenu.classList.remove('active');
             dom.engineBtn.setAttribute('aria-expanded', 'false');
         }
@@ -3979,6 +4190,7 @@
 
             dom.suggestionMenu.innerHTML = html + footerHtml;
             dom.suggestionMenu.classList.add('active');
+            OverlayStack.push('suggestions', hideSuggestions);
 
             // 保持键盘导航选中索引并平滑校准边界
             if (prevIdx >= 0) {
@@ -4001,6 +4213,7 @@
         }
 
         function hideSuggestions() {
+            OverlayStack.pop('suggestions');
             if (dom.suggestionMenu) {
                 dom.suggestionMenu.classList.remove('active');
             }
@@ -4227,7 +4440,7 @@
             let lastTouchY = 0;
 
             document.addEventListener('wheel', (e) => {
-                if (isTransitioning || state.editOpen) return;
+                if (isTransitioning || !OverlayStack.isEmpty()) return;
 
                 const delta = normDelta(e);
                 const down = delta > 0;
@@ -4264,7 +4477,7 @@
             }, { passive: true });
 
             document.addEventListener('touchmove', (e) => {
-                if (isTransitioning || state.editOpen) return;
+                if (isTransitioning || !OverlayStack.isEmpty()) return;
                 const currentY = e.touches[0].clientY;
                 const incrementalDelta = lastTouchY - currentY;
                 lastTouchY = currentY;
