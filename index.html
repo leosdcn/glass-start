@@ -2778,7 +2778,7 @@
                 return `
                 <div>
                     <div class="flex items-center gap-1.5 mb-1.5 pb-1 border-b border-white/5">
-                        <span class="text-sm">${cat.icon}</span>
+                        <span class="text-sm">${escapeHtml(cat.icon)}</span>
                         <h4 class="text-xs font-medium text-white/70">${escapeHtml(cat.name)}</h4>
                         <span class="ml-auto text-[10px] text-white/20">${cat.bookmarks.length}</span>
                     </div>
@@ -2956,7 +2956,7 @@
             dom.sidebarList.innerHTML = pageData.categories.map((cat, i) => `
                 <button class="sidebar-item w-full text-left text-xs md:text-sm px-2.5 py-2 apple-radius text-white/70 flex items-center gap-2 ${i === 0 ? 'active' : ''}"
                         data-target="cat-${i}">
-                    <span class="text-sm shrink-0">${cat.icon}</span>
+                    <span class="text-sm shrink-0">${escapeHtml(cat.icon)}</span>
                     <span class="truncate font-medium">${escapeHtml(cat.name)}</span>
                 </button>
             `).join('');
@@ -2969,7 +2969,7 @@
                     <!-- Apple 极简原生分类标题 (清爽无异形圆角框) -->
                     <div class="category-header flex items-center justify-between pb-2 mb-3.5 border-b border-white/10 transition-colors duration-300">
                         <div class="flex items-center gap-2">
-                            <span class="text-sm sm:text-base shrink-0">${cat.icon}</span>
+                            <span class="text-sm sm:text-base shrink-0">${escapeHtml(cat.icon)}</span>
                             <h3 class="text-xs sm:text-sm font-semibold tracking-wide text-white/90">${escapeHtml(cat.name)}</h3>
                         </div>
                         <span class="text-[10px] font-medium px-2.5 py-0.5 rounded-full bg-white/10 text-white/60 border border-white/15 tracking-wide shrink-0">${cat.bookmarks.length} 项</span>
@@ -3926,7 +3926,7 @@
                 `;
                 localList.forEach(bm => {
                     const iconHtml = bm.icon 
-                        ? `<img src="${escapeHtml(bm.icon)}" width="16" height="16" class="w-4 h-4 rounded object-cover shrink-0" alt="" data-hide-on-error="1">`
+                        ? `<img src="${safeUrl(bm.icon)}" width="16" height="16" class="w-4 h-4 rounded object-cover shrink-0" alt="" data-hide-on-error="1">`
                         : `<svg class="w-4 h-4 text-white/40 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/></svg>`;
                     
                     html += `
