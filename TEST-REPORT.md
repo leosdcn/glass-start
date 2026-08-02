@@ -71,3 +71,45 @@ default-src 'self' data: blob: https:; script-src 'self' 'unsafe-inline' https:/
 - 联想 API / 外链 favicon / Unsplash 壁纸依赖网络，离线或受限网络下失败属预期行为。
 - `index.html` 第 1895 行 DOM id 列表含 `importJsonBtn`，但实际 HTML 仅用 `#jsonDropzone` + 隐藏 `#importJsonInput`（dead reference，不影响功能）。
 - `bookmarks.json` 顶栏条目无 `id` 字段；代码不依赖书签 `id`（仅使用 DOM 元素 `panel.id`），无影响。
+
+## 七、第三方请求审计与图标服务调研（v2.4.6 专项）
+
+### 1. 外联面审计（B 项结论）
+
+运行时实际外联的第三方域**仅 4 个，全部有明确功能用途**，无任何 analytics/telemetry/pixel/sendBeacon/XHR/WebSocket：
+
+| 域 | 用途 | 触发时机 | 泄露数据 | 评估 |
+|---|---|---|---|---|
+| `a.favicon.im` | 全部书签图标 | 页面加载即请求 | 完整书签域名集合 | 唯一需知悉的隐私面；SW 已 Cache-First + LRU 缓存（首次后不再外联） |
+| `images.unsplash.com` | 默认壁纸 + 8 张预设 | 加载/选壁纸 | 仅 IP | 低 |
+| 4 个联想 API（baidu/bing/google/duckduckgo） | 搜索联想 JSONP | 仅用户主动输入 | 键入的搜索词（按所选引擎） | 设计内 |
+| `cdn.tailwindcss.com` | Tailwind Play CDN | 仅 dev | — | 生产构建已内嵌移除 |
+
+CSP（`img-src https:` + `connect-src 'self' https:` + script-src 精确白名单）与实际请求面完全一致，无绕过。`goldcoast.dpdns.org` 仅为 `og:url` 元数据，不发请求。
+
+### 2. 图标服务横向实测（四轮 130+ 域名，本机真实网络）
+
+| 服务 | 速度 | 可靠性 | 载荷 | 判定 |
+|---|---|---|---|---|
+| **a.favicon.im（现役）** | 约六成域名胜 | 0 失败 | 最轻，多站给 SVG/ICO | **维持主服务** |
+| icon.horse | 略慢 | 0 失败 | 偏重，偶发超大图（deepl 101KB） | 可作备选 |
+| geticon.dev | 慢（89% 域名败） | 3 个返回 HTML（jd.com / chat.deepseek.com / publishmarkdown.com）+ 13 个 301B 通用占位图（npmjs、linux.do、midjourney、pixiv 等） | 部分 SVG 原图 | 排除 |
+| favicon.so | 国内站首访慢一倍（实测 5.5s vs 2.7s） | 正常 | 33KB PNG | 一般 |
+| Google s2 | （海外）理论最优 | 全网覆盖最佳 | 1-3KB | 本网络全 301 被墙，排除 |
+
+**结论：图标方案保持 `a.favicon.im` 不动，零代码改动。** 该服务速度、载荷、可靠性综合最优，且为首访最轻（多站 SVG/ICO，如 github 959B SVG vs icon.horse 33KB PNG）。其余候选均因可靠性缺陷（geticon.dev）、载荷偏重（icon.horse/favicon.so）或网络不可达（Google s2）不构成替换理由。图标失败已有文字徽章降级兜底。
+
+### 3. 性能量化（Lighthouse 13.4.1 · desktop 预设 · 本地 serve dist/）
+
+**Performance 98 · Accessibility 100 · Best Practices 100 · SEO 100**
+
+| 指标 | 值 |
+|---|---|
+| FCP | 0.3s |
+| LCP | 0.4s |
+| CLS | 0 |
+| TBT | 0ms |
+| Speed Index | 1.5s |
+| TTI | 0.4s |
+
+总载荷 884 KiB（首访外联壁纸 + 书签图标，HTML 本体约 250KB），首次后由 SW 缓存。**无需优化，性能健康。**
