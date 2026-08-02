@@ -170,7 +170,7 @@
                     "name": "DevDocs",
                     "url": "https://devdocs.io",
                     "icon": "https://a.favicon.im/devdocs.io",
-                    "desc": "开发者API离线文档"
+                    "desc": "开发者API文档聚合"
                 },
                 {
                     "name": "GitHub",
@@ -200,7 +200,7 @@
                     "name": "npm",
                     "url": "https://www.npmjs.com",
                     "icon": "https://a.favicon.im/npmjs.com",
-                    "desc": "Node官方包管理器"
+                    "desc": "Node.js默认包管理器"
                 },
                 {
                     "name": "Speedtest",
@@ -374,7 +374,7 @@
                     "name": "Canva",
                     "url": "https://www.canva.cn",
                     "icon": "https://a.favicon.im/canva.cn",
-                    "desc": "在线平面与海报设计"
+                    "desc": "全能在线设计与AI创作"
                 },
                 {
                     "name": "Coolors",
@@ -422,7 +422,7 @@
                     "name": "Unsplash",
                     "url": "https://unsplash.com",
                     "icon": "https://a.favicon.im/unsplash.com",
-                    "desc": "免费高质量无版权图库"
+                    "desc": "免费高质量图片素材库"
                 },
                 {
                     "name": "Wallhaven",
