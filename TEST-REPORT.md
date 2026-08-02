@@ -113,3 +113,63 @@ CSP（`img-src https:` + `connect-src 'self' https:` + script-src 精确白名�
 | TTI | 0.4s |
 
 总载荷 884 KiB（首访外联壁纸 + 书签图标，HTML 本体约 250KB），首次后由 SW 缓存。**无需优化，性能健康。**
+
+## 八、两屏切换滚动卡顿分析（v2.4.7 专项）
+
+### 1. 当前实现
+
+两屏通过**窗口滚动**切换：起始页（`#startSection`，min-h-screen）在上、导航页（`#navSection`，h-screen）在下，`switchToNav/switchToStart` 用 `animateScrollTo`（index.html:4102）在 520ms 内以 easeInOutCubic 曲线把 `window.scrollY` 从 0 滚到 `nav.offsetTop`（本机约 801px），每帧 rAF 执行一次 `window.scrollTo`。**实现无逻辑错误，卡顿属渲染时机问题，可根治。**
+
+### 2. 卡顿来源一（主因）：导航内容"首次进入视口才渲染"
+
+`.category-block` 启用了 `content-visibility: auto`（index.html:152），含义是屏幕外的分类块跳过布局与绘制，直到进入视口才补做。后果：
+
+- 向下滚动的 520ms 里，8 个分类块（共 93 个书签）在**滑动途中**被逐个在主线程上执行 layout + paint（网格、边框、阴影、图标），同步开销压在动画的某几帧上 → 掉帧 1~3 帧。
+- 第二次切换时块已渲染 → 丝滑，与"有时整体流畅、偶尔掉帧"的体感吻合。
+- 浏览器在内存压力下逐出已栅格 tile 缓存时，再滚入会重新补课。
+
+### 3. 卡顿来源二（次因）：导航区移动毛玻璃逐帧重采样
+
+导航页顶栏/侧栏使用 `.glass`（index.html:127，`backdrop-filter: blur(24px)`），随页面滚动移动 → 毛玻璃逐帧重采样背板 → 每帧 GPU 重算模糊。桌面 60Hz 通常廉价，仅在低电量 / GPU 忙 / 高分屏时明显。齿轮按钮（blur 40px）切换后约 250ms 半透明淡出期间也会短暂重采样（量小）。壁纸与 `#bgOverlay` 为 `position: fixed`、背板静止，可被缓存，不是问题。
+
+### 4. 掉帧触发条件
+
+| 触发条件 | 表现 |
+|---|---|
+| 首次切换 / tile 缓存被逐出 | 明显卡顿（来源一） |
+| 已渲染、缓存命中 | 流畅 |
+| 低电量 / GPU 忙 / 高分辨率 | 偶发掉帧（来源二） |
+| 稳定负载、60Hz 桌面 | 整体流畅 |
+
+### 5. 根治方向（评估结论）
+
+**正确方案 = CSS transform 硬件合成层架构**，分层三步，缺一不可：
+
+| 步骤 | 改动 | 消除 |
+|---|---|---|
+| ① 必做 | `.category-block { content-visibility: auto }` → `visible`（或删除），导航加载期一次性渲染 | 来源一（首绘补课，硬性消除，不依赖 tile 缓存） |
+| ② 可选 | 导航区玻璃元素改纯 rgba 底色，去除移动 `backdrop-filter` | 来源二（逐帧模糊重采样，视觉取舍） |
+| ③ 终极 | 窗口停止滚动，导航改为 `position: fixed` 覆盖层 + `transform: translateY(100%→0)` 合成器过渡（`transition: transform 520ms`），动画全程跑在 GPU 合成线程，主线程每帧零工作 | 全部逐帧开销；顺带可删 `animateScrollTo`（4102-4148）、load 校准（4276-4280）、resize/全屏追位（4367-4384）整类错位代码 |
+
+**注意**：③ 必须叠加 ①，否则 `content-visibility` 按 transform 后几何判断视口，仍会在滑动途中补课。Safari 存在"fixed 层 + transform + 内部 backdrop-filter"组合的模糊采样不全风险，过渡期需临时挂 `backdrop-filter: none`，结束后移除。
+
+### 6. 落地实施（v2.4.7 已改造）
+
+采用方法 ③ + ①（CSS transform 硬件合成层架构），具体落地：
+
+- **布局重构**：`#startSection` / `#navSection` 均改 `position: absolute` 全屏层（z-index 10 / 20），`#navSection` 初始 `translateY(100dvh)`，`.screen-pushed-in` 滑至 `translateY(0)`；起始页 `.screen-pushed-up` 反向移出。窗口永远停在 `scrollY=0`，`body` 禁用页面滚动。
+- **过渡**：`transition: transform 0.52s cubic-bezier(0.65, 0, 0.35, 1)` 合成器动画，替代原 `animateScrollTo`（已删除）及 load 校准 / resize / fullscreen 追位代码（已删除）。
+- **首绘补课根治**：删除 `.category-block` 的 `content-visibility: auto` 与 `contain-intrinsic-block-size`，导航加载期一次性渲染。
+- **`.nr` 直达模式**：刷新直达导航页改为两屏预置 transform（`!important` + 关过渡），消除抖动。
+- **键盘死键修复**：搜索框聚焦但联想菜单未激活时放行屏间切屏（ArrowDown/PageDown 不再被 `isInputActive` 守卫拦死）。
+- **取消自动聚焦**：`switchToStart` 完成后不再 `searchInput.focus()`，焦点回落 BODY，↓ 立即可切屏；字母键盲打聚焦搜索框逻辑保留（输入体验不损）。
+
+### 7. 回归验证（无头 Chrome CDP，1280×800）
+
+**功能回归 20/20 通过**：初始状态（scrollY=0、start 在位、nav 屏下 translateY=713、a11y 隔离、齿轮可见）、滑入单调 713→0 且终点归零、scrollY 恒 0、start 同步移出、刷新恢复直达 nav 无过渡、切回复位、齿轮隐藏/恢复、PageDown 切屏、编辑弹窗可开。
+
+**手势回归通过**：滚轮下滚 120px 切 nav、导航页内部可滚动（内容 2529 > 视口 641）、有内容时上滚不放行、到顶上滚切回 start、触屏上滑切屏；惯性未停时上滚不放行属防误触设计内行为。
+
+**方向键/焦点专项 4/4 通过**：切回后焦点=BODY（未自动聚焦）、立即 ArrowDown 切回导航页、字母键盲打仍聚焦搜索框、联想激活时 ArrowDown 用于联想选中（不误切）。
+
+**构建校验**：`npm run build` 通过，bookmarks 同步 100%；dist 中 `content-visibility` / `animateScrollTo` / `window.scrollTo` 残留均为 0。

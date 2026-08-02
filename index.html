@@ -107,9 +107,10 @@
         }
     </script>
     <style>
-        /* .nr 模式：隐藏起始页、显示导航页，与上方 inline script 配合防止闪烁 */
-        .nr section:first-of-type { display: none; }
-        .nr #navSection { visibility: visible; }
+        /* .nr 模式：直达导航页预渲染，与 HEAD inline script 配合消除刷新抖动 */
+        .nr #startSection { transform: translateY(-100vh) !important; transform: translateY(-100dvh) !important; transition: none !important; }
+        .nr #navSection { visibility: visible !important; transform: translateY(0) !important; transition: none !important; }
+        .nr *, .nr *::before, .nr *::after { animation: none !important; transition: none !important; }
         /* ===== 布局 & 基础 ===== */
         :root {
             --glass-bg: rgba(255,255,255,0.08);
@@ -148,9 +149,37 @@
         #navSection {
             contain: layout;
         }
-        .category-block {
-            content-visibility: auto;
-            contain-intrinsic-block-size: 16rem; /* 随 rem 缩放，避免大屏滚动跳动 */
+        #startSection {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            height: 100dvh;
+            z-index: 10;
+            transform: translateY(0);
+            will-change: transform;
+            transition: transform 0.52s cubic-bezier(0.65, 0, 0.35, 1);
+        }
+        #startSection.screen-pushed-up {
+            transform: translateY(-100vh);
+            transform: translateY(-100dvh);
+        }
+        #navSection {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            height: 100dvh;
+            z-index: 20;
+            transform: translateY(100vh);
+            transform: translateY(100dvh);
+            will-change: transform;
+            transition: transform 0.52s cubic-bezier(0.65, 0, 0.35, 1);
+        }
+        #navSection.screen-pushed-in {
+            transform: translateY(0);
         }
         .suggestion-item:hover {
             background: rgba(255, 255, 255, 0.12);
@@ -238,14 +267,7 @@
         .nav-hidden { visibility: hidden; }
         .nav-visible { visibility: visible; }
         .nav-hidden .glass { opacity: 0; }
-        .nav-visible .glass {
-            animation: navFadeIn 0.55s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-            will-change: transform, opacity;
-        }
-        @keyframes navFadeIn {
-            from { opacity: 0; transform: translate3d(0, 1rem, 0); }
-            to { opacity: 1; transform: translate3d(0, 0, 0); }
-        }
+        .nav-visible .glass { opacity: 1; }
         .sidebar-item {
             transition: background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1), color 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative;
@@ -3332,8 +3354,9 @@
 
                 if (e.ctrlKey || e.metaKey || e.altKey) return;
 
-                // 屏间切换快捷键（无组合键、非输入状态）
-                if (!isInputActive) {
+                // 屏间切换快捷键（无组合键、非输入状态；搜索框聚焦但联想未激活时也放行，避免方向键死键）
+                const suggestionActive = dom.suggestionMenu && dom.suggestionMenu.classList.contains('active');
+                if (!isInputActive || (document.activeElement === dom.searchInput && !suggestionActive)) {
                     if (e.key === 'PageDown' || (e.key === 'ArrowDown' && state.currentSection === 'start')) {
                         e.preventDefault();
                         if (window.switchToNav) window.switchToNav();
@@ -4094,54 +4117,7 @@
             preloadNextBg();
         }
 
-        // ==================== 跨浏览器/跨系统高帧率平滑滚动动画（Apple 物理平滑曲线 + RAF 防重叠）====================
-        // 无障碍：系统开启"减少动态效果"时，跳过逐帧滚动动画直接定位，避免强制播放大幅位移动画
-        const prefersReducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
-        let activeScrollRaf = null;
-        let activeScrollCb = null;
-        function animateScrollTo(targetY, duration = 520, cb = null) {
-            if (activeScrollRaf) {
-                cancelAnimationFrame(activeScrollRaf);
-                activeScrollRaf = null;
-            }
-            if (activeScrollCb) {
-                activeScrollCb = null;
-            }
-            activeScrollCb = cb;
-            const startY = window.scrollY;
-            const distance = targetY - startY;
-            if (prefersReducedMotion || Math.abs(distance) < 1.5) {
-                window.scrollTo(0, targetY);
-                if (activeScrollCb) {
-                    const fn = activeScrollCb;
-                    activeScrollCb = null;
-                    fn();
-                }
-                return;
-            }
-            const startTime = performance.now();
-            function step(currentTime) {
-                const elapsed = currentTime - startTime;
-                const progress = Math.min(elapsed / duration, 1);
-                // 优雅物理平滑 S 型减速滑行曲线（520ms 顺滑自然轨迹）
-                const ease = progress < 0.5 
-                    ? 4 * Math.pow(progress, 3) 
-                    : 1 - Math.pow(-2 * progress + 2, 3) / 2;
-                window.scrollTo(0, startY + distance * ease);
-                if (progress < 1) {
-                    activeScrollRaf = requestAnimationFrame(step);
-                } else {
-                    window.scrollTo(0, targetY);
-                    activeScrollRaf = null;
-                    if (activeScrollCb) {
-                        const fn = activeScrollCb;
-                        activeScrollCb = null;
-                        fn();
-                    }
-                }
-            }
-            activeScrollRaf = requestAnimationFrame(step);
-        }
+
 
         // ==================== 滚动切换 ====================
         function initScrollControl() {
@@ -4217,16 +4193,15 @@
                 updateSectionAccessibility('nav');
                 updateGearVisibility();
 
+                if (startSection) startSection.classList.add('screen-pushed-up');
                 nav.classList.remove('nav-hidden');
-                nav.classList.add('nav-visible');
+                nav.classList.add('nav-visible', 'screen-pushed-in');
 
-                requestAnimationFrame(() => {
-                    animateScrollTo(nav.offsetTop, 520, () => {
-                        state.currentSection = 'nav';
-                        isTransitioning = false;
-                        if (navContent) navContent.focus();
-                    });
-                });
+                setTimeout(() => {
+                    state.currentSection = 'nav';
+                    isTransitioning = false;
+                    if (navContent) navContent.focus();
+                }, 520);
             }
 
             function switchToStart() {
@@ -4238,46 +4213,41 @@
                 saveSection('start');
                 updateSectionAccessibility('start');
 
-                animateScrollTo(0, 520, () => {
+                if (startSection) startSection.classList.remove('screen-pushed-up');
+                nav.classList.remove('screen-pushed-in');
+
+                setTimeout(() => {
                     state.currentSection = 'start';
                     isTransitioning = false;
                     updateGearVisibility();
                     nav.classList.remove('nav-visible');
                     nav.classList.add('nav-hidden');
-                    if (dom.searchInput) dom.searchInput.focus();
-                });
+                }, 520);
             }
 
             window.switchToNav = switchToNav;
             window.switchToStart = switchToStart;
 
-            // 依据 sessionStorage 精准同步页面状态与滚动位置（精准防误判）
+            // 依据 sessionStorage 精准同步页面状态与位置
             if (getSavedSection() === 'nav') {
+                if (startSection) startSection.classList.add('screen-pushed-up');
                 nav.classList.remove('nav-hidden');
-                nav.classList.add('nav-visible');
+                nav.classList.add('nav-visible', 'screen-pushed-in');
                 document.documentElement.classList.remove('nr');
                 targetSection = 'nav';
                 saveSection('nav');
                 updateSectionAccessibility('nav');
                 updateGearVisibility();
-                requestAnimationFrame(() => {
-                    window.scrollTo(0, nav.offsetTop);
-                });
             } else {
+                if (startSection) startSection.classList.remove('screen-pushed-up');
+                nav.classList.remove('screen-pushed-in', 'nav-visible');
+                nav.classList.add('nav-hidden');
                 saveSection('start');
                 targetSection = 'start';
                 document.documentElement.classList.remove('nr');
                 updateSectionAccessibility('start');
                 updateGearVisibility();
-                window.scrollTo(0, 0);
             }
-
-            // 页面全量加载完成后重新校准导航页对齐位置（解决图片/字体延迟加载导致的高度微变）
-            window.addEventListener('load', () => {
-                if (state.currentSection === 'nav') {
-                    window.scrollTo(0, nav.offsetTop);
-                }
-            });
 
             // 归一化 deltaY，兼容 Safari / Windows 的 LINE / PAGE 模式
             function normDelta(e) {
@@ -4362,26 +4332,6 @@
 
 
 
-            // ==================== 窗口变化修正：全屏/旋转/缩放后保持导航页在视口顶部 ====================
-            let resizeTick = null;
-            function scrollToNav() {
-                if (state.currentSection !== 'nav') return;
-                const target = nav.offsetTop;
-                if (Math.abs(window.scrollY - target) > 2) {
-                    window.scrollTo(0, target);
-                    requestAnimationFrame(scrollToNav);
-                }
-            }
-            function onViewportChange() {
-                if (state.currentSection !== 'nav' || resizeTick) return;
-                resizeTick = requestAnimationFrame(function() {
-                    resizeTick = null;
-                    scrollToNav();
-                });
-            }
-            document.addEventListener('fullscreenchange', onViewportChange);
-            document.addEventListener('webkitfullscreenchange', onViewportChange);
-            window.addEventListener('resize', onViewportChange);
         }
 
         // ==================== 启动（兼容 DOMContentLoaded）====================
