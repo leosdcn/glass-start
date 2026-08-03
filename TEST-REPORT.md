@@ -1,3 +1,26 @@
+# Glass Start 测试报告
+
+## 📌 最新：v2.7.0 Tailwind v4 迁移验证 (2026-08-03)
+
+测试环境：macOS (darwin) · Node v26.5.0 · Tailwind CLI v4 (4.3.3)
+测试模式：源码开发服务 (Tailwind v4 Browser CDN) 与生产构建 (`dist/` CSS 全量内嵌)
+
+**PASS，可上线。** 7 个端到端测试文件 / 57 项断言 100% 全部通过。构建产物 `dist/index.html` (279.16 KB) 已内嵌 35.27 KB Tailwind v4 编译 CSS，零外部 `style.css` HTTP RTT。
+
+| 验证项 | 结果 |
+|---|---|
+| 构建与产物校验 | ✅ `dist/index.html` 内嵌 `<style>`，`dist/style.css` 已清理 |
+| 生产 CSP 安全收紧 | ✅ `cdn.jsdelivr.net` / `cdn.tailwindcss.com` 域名安全剥离，`unsafe-inline` 样式策略符合规范 |
+| 测试套件 | ✅ 7 个测试文件全过（arrow 6 / cleanup 6 / derive 6 / framebusting 2 / overlay 12 / transform 19 / wheel 6） |
+| browserslist 旧数据警告 | ✅ 随 v4 升级消除（v4 改用 Lightning CSS，不再内置 caniuse-lite 快照） |
+| 视觉回归 | ✅ `shadow-md/lg/2xl/inner` 与 v3 逐项一致；`shadow-xs` / `backdrop-blur-xs` 由 no-op 转为生效（符合原设计意图）；`3xl:` 断点在 v3/v4 均无效，无变化 |
+| v4 preflight 差异修复 | ✅ 补 `button, [role="button"] { cursor: pointer }`（v4 不再默认按钮 pointer 光标） |
+| dev CDN | ✅ Play CDN → `@tailwindcss/browser@4`；生产构建自动剥离脚本并内嵌编译 CSS |
+
+以下为历史报告存档（v2.4.x 记录，保留备查）：
+
+---
+
 # Glass Start v2.4.4 上线前测试报告 (CSS 全量内嵌专项)
 
 测试日期：2026-08-01
