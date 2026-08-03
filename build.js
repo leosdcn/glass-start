@@ -32,14 +32,8 @@ try {
     if (fs.existsSync(inputCssPath)) fs.unlinkSync(inputCssPath);
 }
 
-// 3. 复制静态数据与服务文件
-console.log('📑 复制 sw.js & manifest.json...');
-if (fs.existsSync(path.join(rootDir, 'manifest.json'))) {
-    fs.copyFileSync(path.join(rootDir, 'manifest.json'), path.join(distDir, 'manifest.json'));
-}
-if (fs.existsSync(path.join(rootDir, 'icon.svg'))) {
-    fs.copyFileSync(path.join(rootDir, 'icon.svg'), path.join(distDir, 'icon.svg'));
-}
+// 3. 处理并复制 Service Worker 底座脚本
+console.log('📑 编译 Service Worker 缓存版本 (sw.js)...');
 if (fs.existsSync(path.join(rootDir, 'sw.js'))) {
     let swContent = fs.readFileSync(path.join(rootDir, 'sw.js'), 'utf-8');
     const timestampVersion = 'app-core-v' + Date.now();
@@ -137,16 +131,40 @@ prodHtmlContent = prodHtmlContent.replace(/(<!DOCTYPE\s+html[^>]*>)/i, '$1\n' + 
 
 // 5.1 生产 CSP 收紧：剥离仅开发模式使用的 Tailwind Play CDN 域名，避免放宽线上 script-src 策略
 // 生产构建已移除 CDN 脚本，保留其域名在 CSP 中属于无效且多余的白名单风险面
-prodHtmlContent = prodHtmlContent.replace(
-    /(<meta\s+http-equiv="Content-Security-Policy"[^>]*content=")([^"]*)(")/i,
-    (m, pre, csp, post) => {
-        const cleaned = csp.split(/\s+/).map(tok => {
-            if (tok.startsWith('https://cdn.tailwindcss.com')) return tok.endsWith(';') ? ';' : '';
-            return tok;
-        }).filter(Boolean).join(' ');
-        return pre + cleaned + post;
+// 5.2 自动转译与内嵌 icon.svg 与 manifest.json 为 Data URI (实现双文件零余项架构)
+const iconSvgPath = path.join(rootDir, 'icon.svg');
+let iconDataUrl = "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🪐</text></svg>";
+if (fs.existsSync(iconSvgPath)) {
+    const rawSvg = fs.readFileSync(iconSvgPath, 'utf-8');
+    iconDataUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(rawSvg.trim());
+}
+
+prodHtmlContent = prodHtmlContent.replace(/<link\s+rel="icon"[^>]*>/i, `<link rel="icon" href="${iconDataUrl}">`);
+prodHtmlContent = prodHtmlContent.replace(/<link\s+rel="apple-touch-icon"[^>]*>/i, `<link rel="apple-touch-icon" href="${iconDataUrl}">`);
+
+const manifestJsonPath = path.join(rootDir, 'manifest.json');
+if (fs.existsSync(manifestJsonPath)) {
+    try {
+        const manifestObj = JSON.parse(fs.readFileSync(manifestJsonPath, 'utf-8'));
+        if (manifestObj.icons && Array.isArray(manifestObj.icons)) {
+            manifestObj.icons.forEach(ic => {
+                if (ic.src === 'icon.svg') ic.src = iconDataUrl;
+            });
+        }
+        const manifestStr = JSON.stringify(manifestObj);
+        const manifestBase64 = Buffer.from(manifestStr, 'utf-8').toString('base64');
+        const manifestDataUrl = `data:application/manifest+json;base64,${manifestBase64}`;
+
+        if (/<link\s+rel="manifest"[^>]*>/i.test(prodHtmlContent)) {
+            prodHtmlContent = prodHtmlContent.replace(/<link\s+rel="manifest"[^>]*>/i, `<link rel="manifest" href="${manifestDataUrl}">`);
+        } else {
+            prodHtmlContent = prodHtmlContent.replace(/<\/head>/i, `    <link rel="manifest" href="${manifestDataUrl}">\n</head>`);
+        }
+        console.log('   ✅ 已将 manifest.json & icon.svg 转化为 Data URI 全量内嵌至 dist/index.html');
+    } catch (e) {
+        console.warn('   ⚠️ 内嵌 manifest.json 时提示:', e.message);
     }
-);
+}
 
 fs.writeFileSync(path.join(distDir, 'index.html'), prodHtmlContent, 'utf-8');
 
