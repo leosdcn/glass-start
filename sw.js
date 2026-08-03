@@ -14,7 +14,7 @@
  */
 
 // 缓存池定义（打包 build.js 时自动替换 CORE_CACHE 为时间戳版本）
-const CORE_CACHE = 'app-core-v1785571342044';
+const CORE_CACHE = 'app-core-v1785747000000';
 const FAVICON_CACHE = 'app-favicons-v1'; // a.favicon.im 外部图标专用池
 const IMG_CACHE = 'app-images-v1';       // 站内本地图片资源专用池
 
