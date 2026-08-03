@@ -831,7 +831,7 @@
             <div class="w-full max-w-2xl lg:max-w-3xl mx-auto relative mb-8 md:mb-10">
                 <div class="glass-strong apple-radius p-2 flex items-center gap-2 border fade-in" style="animation-delay:0.1s">
                     <div class="relative shrink-0">
-                        <button id="engineBtn" type="button" aria-label="选择搜索引擎" aria-haspopup="true" aria-expanded="false" class="flex items-center gap-2 px-3 py-3 apple-radius hover:bg-white/10 transition text-sm font-medium min-h-[2.75rem]">
+                        <button id="engineBtn" type="button" aria-label="选择搜索引擎" aria-haspopup="true" aria-expanded="false" aria-controls="dropdownMenu" class="flex items-center gap-2 px-3 py-3 apple-radius hover:bg-white/10 transition text-sm font-medium min-h-[2.75rem]">
                             <img id="engineIcon" src="https://a.favicon.im/bing.com" width="20" height="20" class="engine-icon w-5 h-5 rounded-md" alt="">
                             <span id="engineName" class="hidden sm:inline">Bing</span>
                             <svg class="w-4 h-4 opacity-60 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
@@ -839,7 +839,7 @@
                         <script>(function(){if(window.__PRE_ENGINE__){const i=document.getElementById('engineIcon');const n=document.getElementById('engineName');if(i)i.src=window.__PRE_ENGINE__.icon;if(n)n.textContent=window.__PRE_ENGINE__.name;}})()</script>
                     </div>
                     <label for="searchInput" class="sr-only">搜索</label>
-                    <input type="text" id="searchInput" name="q" aria-label="搜索输入框" class="flex-1 bg-transparent border-none outline-none text-lg search-input text-white h-12 px-1 min-w-0" placeholder="搜索..." autocomplete="off">
+                    <input type="text" id="searchInput" name="q" aria-label="搜索输入框" aria-autocomplete="list" aria-controls="suggestionMenu" aria-expanded="false" class="flex-1 bg-transparent border-none outline-none text-lg search-input text-white h-12 px-1 min-w-0" placeholder="搜索..." autocomplete="off">
                     <button id="searchClearBtn" type="button" aria-label="清空搜索框" class="hidden p-2 apple-radius hover:bg-white/10 text-white/40 hover:text-white/90 transition shrink-0" title="清空搜索框">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                     </button>
@@ -847,7 +847,7 @@
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                     </button>
                 </div>
-                <div id="dropdownMenu" role="menu" aria-label="搜索引擎选项" class="dropdown-menu absolute top-full left-0 mt-2 ml-2 glass-strong apple-radius p-2 border border-white/20 shadow-2xl" style="min-width:8.75rem;z-index:100">
+                <div id="dropdownMenu" role="menu" aria-label="搜索引擎选项" aria-hidden="true" class="dropdown-menu absolute top-full left-0 mt-2 ml-2 glass-strong apple-radius p-2 border border-white/20 shadow-2xl" style="min-width:8.75rem;z-index:100">
                     <button type="button" data-engine="bing" role="menuitem" class="w-full flex items-center gap-3 px-3 py-2.5 apple-radius hover:bg-white/10 transition text-left text-sm">
                         <img src="https://a.favicon.im/bing.com" width="16" height="16" class="engine-icon w-4 h-4 rounded" alt=""> Bing
                     </button>
@@ -862,7 +862,7 @@
                     </button>
                 </div>
                 <!-- 搜索实时建议联想下拉框 (Spotlight 高颜值全宽样式) -->
-                <div id="suggestionMenu" role="listbox" aria-label="搜索建议" class="dropdown-menu absolute top-full left-0 right-0 w-full mt-3.5 sm:mt-4 glass-strong apple-radius p-2 border border-white/20 shadow-2xl" style="z-index:150"></div>
+                <div id="suggestionMenu" role="listbox" aria-label="搜索建议" aria-hidden="true" class="dropdown-menu absolute top-full left-0 right-0 w-full mt-3.5 sm:mt-4 glass-strong apple-radius p-2 border border-white/20 shadow-2xl" style="z-index:150"></div>
             </div>
 
             <!-- 快捷书签 -->
@@ -908,7 +908,7 @@
                     <!-- 侧边栏（移动端顶部水平，桌面端左侧垂直） -->
                     <aside id="sidebar" class="sm:w-28 md:w-32 lg:w-36 shrink-0 p-2 md:p-3 overflow-y-auto sm:border-r border-white/10 bg-black/10">
                         <nav aria-label="导航分类">
-                            <div id="sidebarList" class="flex sm:flex-col gap-1"></div>
+                            <div id="sidebarList" role="tablist" aria-label="分类导航列表" class="flex sm:flex-col gap-1"></div>
                         </nav>
                     </aside>
                     <!-- 主书签内容区 (pb-56 md:pb-[40vh] 确保末尾分类如“资讯学习”点击侧边栏时能流畅置顶展示，同时避免多余留白过大) -->
@@ -940,23 +940,23 @@
             </div>
 
             <!-- Tab 导航栏 -->
-            <div class="flex items-center gap-1.5 p-1 bg-black/20 border border-white/10 apple-radius mb-3.5 shrink-0">
-                <button type="button" class="settings-tab-btn active flex-1 py-2 px-3.5 apple-radius text-xs sm:text-sm font-medium transition flex items-center justify-center gap-1.5 text-white/70 hover:text-white" data-tab="tabBookmarks">
+            <div role="tablist" aria-label="设置偏好选项卡" class="flex items-center gap-1.5 p-1 bg-black/20 border border-white/10 apple-radius mb-3.5 shrink-0">
+                <button type="button" role="tab" id="tab-btn-bookmarks" aria-selected="true" aria-controls="tabBookmarks" class="settings-tab-btn active flex-1 py-2 px-3.5 apple-radius text-xs sm:text-sm font-medium transition flex items-center justify-center gap-1.5 text-white/70 hover:text-white" data-tab="tabBookmarks">
                     <span>📌</span>
                     <span>快捷书签</span>
                 </button>
-                <button type="button" class="settings-tab-btn flex-1 py-2 px-3.5 apple-radius text-xs sm:text-sm font-medium transition flex items-center justify-center gap-1.5 text-white/70 hover:text-white" data-tab="tabAppearance">
+                <button type="button" role="tab" id="tab-btn-appearance" aria-selected="false" aria-controls="tabAppearance" class="settings-tab-btn flex-1 py-2 px-3.5 apple-radius text-xs sm:text-sm font-medium transition flex items-center justify-center gap-1.5 text-white/70 hover:text-white" data-tab="tabAppearance">
                     <span>🎨</span>
                     <span>外观壁纸</span>
                 </button>
-                <button type="button" class="settings-tab-btn flex-1 py-2 px-3.5 apple-radius text-xs sm:text-sm font-medium transition flex items-center justify-center gap-1.5 text-white/70 hover:text-white" data-tab="tabData">
+                <button type="button" role="tab" id="tab-btn-data" aria-selected="false" aria-controls="tabData" class="settings-tab-btn flex-1 py-2 px-3.5 apple-radius text-xs sm:text-sm font-medium transition flex items-center justify-center gap-1.5 text-white/70 hover:text-white" data-tab="tabData">
                     <span>⚙️</span>
                     <span>数据与备份</span>
                 </button>
             </div>
 
             <!-- Tab 内容 1: 快捷书签 (tabBookmarks) -->
-            <div id="tabBookmarks" class="settings-tab-panel flex-1 flex flex-col min-h-0 overflow-hidden">
+            <div id="tabBookmarks" role="tabpanel" aria-labelledby="tab-btn-bookmarks" class="settings-tab-panel flex-1 flex flex-col min-h-0 overflow-hidden">
                 <div class="flex items-center justify-between mb-3 shrink-0">
                     <div class="flex items-center gap-1.5">
                         <span class="text-xs font-semibold text-white/80">快捷书签管理</span>
@@ -972,7 +972,7 @@
             </div>
 
             <!-- Tab 内容 2: 外观与壁纸 (tabAppearance) -->
-            <div id="tabAppearance" class="settings-tab-panel flex-1 flex flex-col min-h-0 overflow-y-auto hidden space-y-3.5 pr-0.5">
+            <div id="tabAppearance" role="tabpanel" aria-labelledby="tab-btn-appearance" class="settings-tab-panel flex-1 flex flex-col min-h-0 overflow-y-auto hidden space-y-3.5 pr-0.5">
                 <!-- 上半部分：自定义壁纸 与 壁纸特效 左右双列布局 -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5 shrink-0">
                     <!-- 自定义壁纸 -->
@@ -1064,7 +1064,7 @@
             </div>
 
             <!-- Tab 内容 3: 数据与备份 (tabData) -->
-            <div id="tabData" class="settings-tab-panel flex-1 flex flex-col min-h-0 overflow-y-auto hidden space-y-3.5 pr-0.5">
+            <div id="tabData" role="tabpanel" aria-labelledby="tab-btn-data" class="settings-tab-panel flex-1 flex flex-col min-h-0 overflow-y-auto hidden space-y-3.5 pr-0.5">
                 <!-- 顶部综合状态仪表盘 (Full Width Status Dashboard) -->
                 <div class="p-3.5 bg-white/5 border border-white/10 apple-radius flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
                     <div class="flex items-center gap-3">
@@ -2267,6 +2267,7 @@
             tabs.forEach(tab => {
                 const isTarget = tab.dataset.tab === targetTabId;
                 tab.classList.toggle('active', isTarget);
+                tab.setAttribute('aria-selected', isTarget ? 'true' : 'false');
             });
             panels.forEach(panel => {
                 panel.classList.toggle('hidden', panel.id !== targetTabId);
@@ -3168,7 +3169,7 @@
 
             // 左侧分类列表
             dom.sidebarList.innerHTML = pageData.categories.map((cat, i) => `
-                <button class="sidebar-item w-full text-left text-xs md:text-sm px-2.5 py-2 apple-radius text-white/70 flex items-center gap-2 ${i === 0 ? 'active' : ''}"
+                <button type="button" role="tab" id="cat-tab-${i}" aria-selected="${i === 0 ? 'true' : 'false'}" aria-controls="cat-${i}" class="sidebar-item w-full text-left text-xs md:text-sm px-2.5 py-2 apple-radius text-white/70 flex items-center gap-2 ${i === 0 ? 'active' : ''}"
                         data-target="cat-${i}">
                     <span class="text-sm shrink-0">${escapeHtml(cat.icon)}</span>
                     <span class="truncate font-medium">${escapeHtml(cat.name)}</span>
@@ -3267,6 +3268,7 @@
                 const isActive = i === activeIdx;
                 const wasActive = item.classList.contains('active');
                 item.classList.toggle('active', isActive);
+                item.setAttribute('aria-selected', isActive ? 'true' : 'false');
                 if (isActive && !wasActive && !isManualScrolling) {
                     const sRect = sidebar.getBoundingClientRect();
                     const iRect = item.getBoundingClientRect();
@@ -3881,7 +3883,8 @@
         function toggleDropdown() {
             state.open = !state.open;
             dom.dropdownMenu.classList.toggle('active', state.open);
-            dom.engineBtn.setAttribute('aria-expanded', state.open);
+            dom.dropdownMenu.setAttribute('aria-hidden', (!state.open).toString());
+            dom.engineBtn.setAttribute('aria-expanded', state.open.toString());
             if (state.open) {
                 OverlayStack.push('dropdown', closeDropdown);
             } else {
@@ -3892,6 +3895,7 @@
             state.open = false;
             OverlayStack.pop('dropdown');
             dom.dropdownMenu.classList.remove('active');
+            dom.dropdownMenu.setAttribute('aria-hidden', 'true');
             dom.engineBtn.setAttribute('aria-expanded', 'false');
         }
         /** @param {string} key - 引擎标识（bing/google/duckduckgo/baidu）
@@ -4224,6 +4228,8 @@
 
             dom.suggestionMenu.innerHTML = html + footerHtml;
             dom.suggestionMenu.classList.add('active');
+            dom.suggestionMenu.setAttribute('aria-hidden', 'false');
+            if (dom.searchInput) dom.searchInput.setAttribute('aria-expanded', 'true');
             OverlayStack.push('suggestions', hideSuggestions);
 
             // 保持键盘导航选中索引并平滑校准边界
@@ -4256,6 +4262,10 @@
             OverlayStack.pop('suggestions');
             if (dom.suggestionMenu) {
                 dom.suggestionMenu.classList.remove('active');
+                dom.suggestionMenu.setAttribute('aria-hidden', 'true');
+            }
+            if (dom.searchInput) {
+                dom.searchInput.setAttribute('aria-expanded', 'false');
             }
             selectedSuggestionIdx = -1;
         }
