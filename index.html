@@ -2006,6 +2006,16 @@
 
             return keys.map(url => {
                 const normalized = normalizeUrl(url);
+                if (customMeta && customMeta[normalized]) {
+                    const custom = customMeta[normalized];
+                    const catBm = catMap.get(normalized);
+                    return {
+                        name: custom.name || catBm?.name || deriveNameFromUrl(normalized),
+                        url: normalized,
+                        icon: custom.icon || catBm?.icon || faviconFromUrl(normalized),
+                        desc: custom.desc !== undefined ? custom.desc : (catBm?.desc || '')
+                    };
+                }
                 if (catMap.has(normalized)) {
                     const catBm = catMap.get(normalized);
                     return {
@@ -2013,15 +2023,6 @@
                         url: catBm.url,
                         icon: catBm.icon || faviconFromUrl(catBm.url),
                         desc: catBm.desc || ''
-                    };
-                }
-                if (customMeta && customMeta[normalized]) {
-                    const custom = customMeta[normalized];
-                    return {
-                        name: custom.name || deriveNameFromUrl(normalized),
-                        url: normalized,
-                        icon: custom.icon || faviconFromUrl(normalized),
-                        desc: custom.desc || ''
                     };
                 }
                 return {
