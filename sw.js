@@ -27,8 +27,7 @@ const CORE_ASSETS = [
     './',
     './index.html',
     './icon.svg',
-    './manifest.json',
-    './bookmarks.json'
+    './manifest.json'
 ];
 
 // IndexedDB LRU 时间戳管理
@@ -160,7 +159,7 @@ self.addEventListener('fetch', e => {
 
     // 精准资源匹配判定
     const isMainDoc = e.request.mode === 'navigate' || pathnameLower === '/' || pathnameLower.endsWith('/index.html');
-    const isCoreData = pathnameLower.endsWith('/bookmarks.json') || pathnameLower.endsWith('/manifest.json');
+    const isCoreData = pathnameLower.endsWith('/manifest.json');
     const isFaviconDomain = urlObj.origin === 'https://a.favicon.im';
     const isImgAsset = /\.(ico|png|jpg|jpeg|svg|webp)$/i.test(pathnameLower);
 

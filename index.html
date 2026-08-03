@@ -2185,21 +2185,8 @@
          * @returns {Promise<void>}
          */
         async function loadData() {
-            if (location.protocol === 'file:') return;
-            try {
-                const res = await fetch('bookmarks.json');
-                if (res.ok) {
-                    const data = await res.json();
-                    if (data && Array.isArray(data.categories)) {
-                        pageData.categories = data.categories;
-                    }
-                    // 加载远程 categories 后重新派生快捷书签，自动保持图标与名称同步更新
-                    const userKeys = storageGet('userBookmarkKeys');
-                    const customMeta = storageGet('userCustomMeta') || {};
-                    const keys = (userKeys && Array.isArray(userKeys)) ? userKeys : DEFAULT_BOOKMARKS.map(b => b.url);
-                    pageData.bookmarks = getDerivedBookmarks(keys, pageData.categories, customMeta);
-                }
-            } catch {}
+            // 默认完全读取 HTML 内置 DEFAULT_CATEGORIES / DEFAULT_BOOKMARKS 数据，不再请求外部 bookmarks.json
+            return;
         }
 
         /**

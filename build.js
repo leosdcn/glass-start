@@ -33,10 +33,7 @@ try {
 }
 
 // 3. 复制静态数据与服务文件
-console.log('📑 复制 bookmarks.json, sw.js, manifest.json & _headers...');
-if (fs.existsSync(bookmarksJsonPath)) {
-    fs.copyFileSync(bookmarksJsonPath, path.join(distDir, 'bookmarks.json'));
-}
+console.log('📑 复制 sw.js, manifest.json & _headers...');
 if (fs.existsSync(path.join(rootDir, 'manifest.json'))) {
     fs.copyFileSync(path.join(rootDir, 'manifest.json'), path.join(distDir, 'manifest.json'));
 }
