@@ -13,7 +13,7 @@
 
 ---
 
-## 📖 完整用户操作指南手册
+## 📖 用户使用指南手册
 
 ### 1. 屏间切换与导航交互
 * **滚轮 / 触摸屏滑动**：首屏向下滚动或滑屏可平滑切换至「导航页」；在导航页顶部向上滚动或滑屏可返回「起始页」。
@@ -55,13 +55,15 @@
 
 ---
 
-## 🛠️ 开发与生产部署流程 (Dev vs Prod)
+## 🛠️ 开发者与 Agent 工作流指南
 
-### 1. 本地开发模式 (Development)
+### 1. 本地开发与生产部署 (Dev vs Prod)
+
+#### 本地开发模式 (Development)
 - 根目录 `index.html` 内置 **Tailwind Play CDN** 运行时脚本。
 - **无需任何编译命令**，双击 `index.html` 或运行 `npm run dev` 即可预览。AI 或开发者添加任何新 Tailwind 类名立即可见。
 
-### 2. 生产环境打包上线 (Production)
+#### 生产环境打包上线 (Production)
 在需要部署到生产服务器或 GitHub Pages / Cloudflare Pages 时，运行打包命令：
 ```bash
 npm run build
@@ -74,14 +76,26 @@ npm run build
 
 **上线发布**：只需将生成的 **`dist/` 文件夹下的全部内容** 上传部署至 GitHub Pages、Cloudflare Pages、Vercel、Nginx 或 NAS 即可。
 
-### 3. 静态检查与测试规范 (Lint & Testing Guidelines for Agent / Dev)
-- ⚡ **静态代码检查 (`npm run lint`)**：耗时仅 0.2 秒。修改 HTML / JS 代码后仅需运行此命令做轻量语法校验。
+### 2. 书签单点维护与 `desc` 撰写规范
+1. **修改/添加书签**：**只需要修改 `bookmarks.json` 一个文件即可**。
+   * **`desc` 简介副标题编写规范**（参见 [index.html#L1203](./index.html#L1203)）：
+     - **字数限制**：推荐严格控制在 **6 ~ 10 个中文字符**（或 12 ~ 20 个英文字符）以内。
+     - **布局与截断**：展示在导航卡片标题下方，窄屏或超长字符会自动触发单行截断（`truncate`）。
+     - **内容准则**：精准概括网站核心定位，避免冗余修饰词（如 `全球领先AI对话模型`、`开源卡片式IP检测`）。
+2. **执行自动同步**：修改完成后，运行 `npm run build` 自动同步注入源码与 `dist/` 产物。
+3. **修改搜索引擎**：可在 `index.html` 中的 `engines` 引擎配置对象中新增或定制新的搜索引擎（百度、Google、Bing 等）。
+
+### 3. 静态检查、Git 规范与测试指南 (Agent / Dev Guidelines)
+- ⚡ **静态代码检查 (`npm run lint`)**：耗时仅 0.03 秒。自动完成 `index.html` 内联 JS、`build.js`/`sw.js` 语法预检及 `bookmarks.json`/`manifest.json`/`package.json` 的 JSON 合法性校验。修改代码后运行此命令做轻量校验。
 - 🚀 **生产构建打包 (`npm run build`)**：耗时仅 0.15 秒。编译 Tailwind CSS 并同步书签数据，无需等待任何测试。
-- ⚠️ **全量端到端测试 (`npm test`)**：会启动无头 Chrome 运行 6 个 CDP 端到端测试文件。**Agent 或开发者在日常修复小 Bug 或调整小功能时严禁自动运行 `npm test`**，避免浪费时间；仅在用户明确发出指令要求“全量测试”时才执行。
+- 🛑 **Git 提交约束 (Git Rule)**：**未收到用户明确指令前，Agent 严禁自动执行 `git add` / `git commit`**；所有改动与编译仅在本地工作区生效，静待用户预览确认并主动指令后再执行提交。
+- ⚠️ **全量端到端测试 (`npm test`)**：会启动无头 Chrome 运行 6 个 CDP 端到端测试文件。**Agent 在日常修复小 Bug 或调整功能时严禁自动运行 `npm test`**，避免浪费时间；仅在用户明确发出指令要求“全量测试”时才执行。
 
 ---
 
-## 📁 项目目录结构与文件作用
+## 🏗️ 代码结构与全栈架构设计
+
+### 1. 项目目录结构与文件职责
 
 | 文件 / 目录名 | 属性 | 文件作用描述 | 必选性 |
 | :--- | :--- | :--- | :--- |
@@ -92,7 +106,7 @@ npm run build
 | **`manifest.json`** | Web App 应用配置 | PWA 应用清单文件。配置应用名称、图标、启动 URL、主题颜色，支持添加至手机主屏幕与独立 Web App 运行。 | PWA 必需 |
 | **`icon.svg`** | 矢量图标 | 网站 Logo 与 PWA 图标源文件。采用 SVG 格式确保高清高分屏无损缩放。 | 图标资源 |
 | **`_headers`** | HTTP 头部配置 | Cloudflare Pages / Vercel 静态托管的安全响应头配置 (HSTS, X-Content-Type-Options, Referrer-Policy 等)。 | 部署配置 |
-| **`lint.mjs`** | 检查脚本 | Node 零依赖静态检查脚本。用于提取 `index.html` 内联 `<script>` 及检查所有 `.js`/`.mjs` 语法。 | 工具脚本 |
+| **`lint.mjs`** | 检查脚本 | Node 零依赖静态检查脚本。用于校验根目录核心 JS/HTML 语法与 JSON 配置文件合法性。 | 工具脚本 |
 | **`test/`** | **测试目录** | 端到端 UI 自动化测试目录。内含 6 个 CDP 浏览器自动化测试套件与 Web 调试服务器。 | 测试框架 |
 | **`TEST-REPORT.md`** | 测试文档 | 项目自动化测试覆盖率分析与完整功能验证报告。 | 运维文档 |
 | **`package.json`** | 项目配置 | Node 项目配置文件，提供 `npm run dev`、`npm run build`、`npm run lint` 与 `npm test` 命令。 | 配置文件 |
@@ -102,7 +116,7 @@ npm run build
 
 ---
 
-## ⚙️ 核心运行与数据同步机制
+### 2. 核心运行与数据同步机制
 
 ```
 [ 开发者维护 bookmarks.json ] ──(运行 npm run build)──> 自动注入更新 index.html 默认数组
@@ -119,11 +133,11 @@ npm run build
 
 ---
 
-## 💾 项目全栈缓存与存储架构 (Cache & Storage Architecture)
+### 3. 项目全栈缓存与存储架构 (Cache & Storage Architecture)
 
 本项目采用了多层级、高可用、离线优先的全栈缓存体系，覆盖 **Service Worker 离线网络拦截**、**浏览器持久化偏好存储**、**IndexedDB 高清大图存储**、**会话状态防闪烁缓存**、**内存级 DOM/UI 节点映射** 以及 **构建期静态数据回退** 6 大核心维度，确保网页秒级加载、零重复开销与 100% 离线可用。
 
-### 1. ⚙️ 缓存分层架构概览
+#### ⚙️ 缓存分层架构概览
 
 | 缓存层级 | 技术实现 | 作用目标与缓存对象 | 缓存策略 / 容量限制 | 失效与清理机制 |
 | :--- | :--- | :--- | :--- | :--- |
@@ -134,45 +148,19 @@ npm run build
 | **运行时内存缓存层** | JS 全局变量 (`dom` / 侧边栏 Cache) | 40+ 常用 DOM 节点引用、导航分类与 Section 映射 | 内存映射，零 DOM 树二次查询开销 | 页面卸载或重新载入时自动释放与重新建立 |
 | **静态回退与离线数据层** | HTML 内联 `DEFAULT_*` 数组 | `bookmarks.json` 最新镜像数据 | 内存直接加载 / 零 HTTP 请求开销 | `npm run build` 时通过 `build.js` 自动双向同步 `bookmarks.json` 数据 |
 
----
+#### ⚡ 核心缓存与防闪烁机制详解
 
-### 2. ⚡ 核心缓存机制详解
-
-#### 🌐 Service Worker 三池隔离与 IndexedDB LRU (`sw.js`)
-- **三池独立隔离 (Core / Favicon / Image)**：
+* **Service Worker 三池隔离与 IndexedDB LRU (`sw.js`)**：
   - `CORE_CACHE`：存放 HTML/CSS/JSON 等核心程序资源。
   - `FAVICON_CACHE`：`a.favicon.im` 外部图标专用池（配额上限 **800 条**）。
   - `IMG_CACHE`：站内本地图片及 `.ico` 资源池（配额上限 **200 条**）。
   - 核心优势：图标作为导航站核心功能享有独立高额配额，且不会被本地大图挤占。
-- **IndexedDB 真时间戳 LRU 淘汰**：在独立数据库 `sw-lru-db` 中维护真实访问时间戳，当缓存池超限时，基于实际时间戳进行批量精准淘汰，应对大量书签瞬间导入场景更稳健。
-- **CSS / HTML 实时平滑更新**: 对核心资源采用 **Network-First** 策略，保障首屏秒开的同时，支持静默后台更新。
-
-#### 🖼️ IndexedDB 4K 高清壁纸存储
-- 针对用户上传的 4K 本地壁纸，系统会在 Canvas 中统一优化转换为 3840x2160 @ 95% 高品质 JPEG DataURL。
-- 存入专用 IndexedDB 数据库 `GlassStartDB` 的 `wallpapers` 对象存储中，成功避开 LocalStorage 的 5MB 磁盘限制与 Safari 无痕模式崩塌隐患。
-
-#### 🛡️ `<head>` 内联防闪烁状态恢复
-- 避免传统单页应用在刷新页面时先展示「起始页」再跳动切换回「导航页」的体验断层。
-- 在 HTML `<head>` 最顶部内联同步脚本：若检测到 `sessionStorage` 记录的 `startpage_section === 'nav'`，立即赋予 `<html>` `nr` 标志类，DOM 挂载前即可完成布局定位。
-
-#### 🧹 缓存管理与一键清理
-- **离线缓存一键刷新**：在设置面板的「数据与备份」中提供 `[清理离线缓存]` 按钮，直接调用 `caches.delete()` 清空 Service Worker 离线存储。
-- **系统全量重置**：在「危险区域」提供 `[重置所有系统设置]` 按钮，一键清空 LocalStorage 及 IndexedDB 数据库，恢复纯净默认状态。
-
----
-
-## 🛠️ 单点维护书签指南
-
-1. **修改/添加书签**：**只需要修改 `bookmarks.json` 一个文件即可**。
-   * **`desc` 简介副标题编写规范**（参见 [index.html#L1203](./index.html#L1203)）：
-     - **字数限制**：推荐严格控制在 **6 ~ 10 个中文字符**（或 12 ~ 20 个英文字符）以内。
-     - **布局与截断**：展示在导航卡片标题下方，窄屏或超长字符会自动触发单行截断（`truncate`）。
-     - **内容准则**：精准概括网站核心定位，避免冗余修饰词（如 `全球领先AI对话模型`、`开源卡片式IP检测`）。
-2. **执行自动同步**：修改完成后，在终端运行打包命令：
-   ```bash
-   npm run build
-   ```
-   `build.js` 脚本会自动将 `bookmarks.json` 中的最新书签同步更新至源码 `index.html` 及 `dist/index.html` 内置回退数组中。
-3. **修改搜索引擎**：可在 `index.html` 中的 `engines` 引擎配置对象中新增或定制新的搜索引擎（百度、Google、Bing 等）。
-
-
+  - IndexedDB 真时间戳 LRU 淘汰：在独立数据库 `sw-lru-db` 中维护真实访问时间戳，超限时精确淘汰旧图标。
+* **IndexedDB 4K 高清壁纸存储**：
+  - 针对用户上传的 4K 本地壁纸，系统在 Canvas 中统一优化转换为 3840x2160 @ 95% 高品质 JPEG DataURL。
+  - 存入专用 IndexedDB 数据库 `GlassStartDB` 的 `wallpapers` 对象存储，成功避开 LocalStorage 5MB 上限。
+* **`<head>` 内联防闪烁状态恢复**：
+  - 在 HTML `<head>` 最顶部内联同步脚本：若检测到 `sessionStorage` 记录的 `startpage_section === 'nav'`，立即赋予 `<html>` `nr` 标志类，DOM 挂载前即可完成布局定位。
+* **缓存管理与一键清理**：
+  - **离线缓存一键刷新**：设置面板「数据与备份」中提供 `[清理离线缓存]` 按钮，直接调用 `caches.delete()` 清空 Service Worker 离线存储。
+  - **系统全量重置**：设置面板「危险区域」提供 `[重置所有系统设置]` 按钮，一键清空 LocalStorage 及 IndexedDB 数据库。
