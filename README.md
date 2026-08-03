@@ -7,7 +7,7 @@
 ## ✨ 核心亮点与安全性能特性
 
 - 🪐 ** Liquid Glass 物理高光与玻璃拟态**：采用 Apple HIG 规范的 1px 物理折射高光、微拟物触感反馈与 iOS 18 物理按压微缩放。
-- ⚡ **零开销双模式构建 (Dev vs Prod)**：开发模式使用 Tailwind Play CDN 随改随看；生产打包（`npm run build`）自动编译 21KB 纯 CSS 并剥离 JS 编译脚本，实现秒开与 100% 离线使用。
+- ⚡ **零开销双模式构建 (Dev vs Prod)**：开发模式使用 Tailwind v4 Browser CDN 随改随看；生产打包（`npm run build`）自动编译精简纯 CSS 并剥离 JS 编译脚本，实现秒开与 100% 离线使用。
 - 🛡️ **严格安全防护**：内置严格 Content Security Policy (CSP)、全面 XSS HTML 实体转义、`safeUrl` 协议白名单拦截（防 `javascript:` 注入）、JSONP 超时悬挂防爆防护。
 - 🚀 **图标高性能缓存**：内置 Service Worker (v9)，三池隔离（800+200配额）与 IndexedDB 真 LRU 淘汰，结合标准 CORS 模式彻底消除 Chrome 虚拟存储配额膨胀问题。
 
@@ -60,7 +60,7 @@
 ### 1. 本地开发与生产部署 (Dev vs Prod)
 
 #### 本地开发模式 (Development)
-- 根目录 `index.html` 内置 **Tailwind Play CDN** 运行时脚本。
+- 根目录 `index.html` 内置 **Tailwind v4 Browser CDN** 运行时脚本。
 - **无需任何编译命令**，双击 `index.html` 或运行 `npm run dev` 即可预览。AI 或开发者添加任何新 Tailwind 类名立即可见。
 
 #### 生产环境打包上线 (Production)
@@ -71,7 +71,7 @@ npm run build
 构建过程会自动执行：
 1. **自动数据双向同步**：解析 `bookmarks.json` 最新数据，自动同步注入更新源码 `index.html` 与 `dist/index.html` 的 `DEFAULT_BOOKMARKS` 与 `DEFAULT_CATEGORIES` 数组（解决本地 `file://` 协议双击打开时因 CORS 拦截导致的降级书签不一致问题）。
 2. **Tailwind 静态编译**：调用 Tailwind CLI 扫描 `index.html` 生成精简 CSS。
-3. **HTML 脚本处理与 CSS 全量内嵌**：自动处理 `dist/index.html`，移除 Play CDN 脚本并将编译好的 CSS 全量内嵌为 `<style>` 标签（消除 `style.css` 渲染阻塞与网络 RTT 请求）。
+3. **HTML 脚本处理与 CSS 全量内嵌**：自动处理 `dist/index.html`，移除 v4 Browser CDN 脚本并将编译好的 CSS 全量内嵌为 `<style>` 标签（消除 `style.css` 渲染阻塞与网络 RTT 请求）。
 4. **资源复制**：将 `sw.js` 与 `manifest.json` 复制至 `dist/` 目录（实现极简打包部署与零 404 网络请求）。
 
 **上线发布**：只需将生成的 **`dist/` 文件夹下的全部内容** 上传部署至 GitHub Pages、Cloudflare Pages、Vercel、Nginx 或 NAS 即可。
@@ -100,7 +100,7 @@ npm run build
 
 | 文件 / 目录名 | 属性 | 文件作用描述 | 必选性 |
 | :--- | :--- | :--- | :--- |
-| **`index.html`** | **源码主入口** | 开发模式页面主入口。内置 Tailwind Play CDN，AI/开发者修改代码立即可见，零编译开销。 | **必须** |
+| **`index.html`** | **源码主入口** | 开发模式页面主入口。内置 Tailwind v4 Browser CDN，AI/开发者修改代码立即可见，零编译开销。 | **必须** |
 | **`bookmarks.json`** | **唯一数据源** | 唯一数据维护源。修改书签只需编辑此文件，运行 `npm run build` 会自动将书签同步注入 HTML。 | **推荐** |
 | **`sw.js`** | 缓存脚本 | Service Worker 独立脚本。专门用于在 HTTPS/localhost 环境下本地缓存 Favicon 网站图标，提升加载速度。 | 推荐（缺失时不影响主流程运行） |
 | **`build.js`** | 打包脚本 | 生产构建 Node 脚本。运行 `npm run build` 自动同步书签数据、编译全量内嵌 CSS 并输出至 `dist/`。 | 工具脚本 |
@@ -110,7 +110,7 @@ npm run build
 | **`test/`** | **测试目录** | 端到端 UI 自动化测试目录。内含 6 个 CDP 浏览器自动化测试套件与 Web 调试服务器。 | 测试框架 |
 | **`TEST-REPORT.md`** | 测试文档 | 项目自动化测试覆盖率分析与完整功能验证报告。 | 运维文档 |
 | **`package.json`** | 项目配置 | Node 项目配置文件，提供 `npm run dev`、`npm run build`、`npm run lint` 与 `npm test` 命令。 | 配置文件 |
-| **`dist/`** | **生产输出** | `npm run build` 自动生成的生产构建目录。包含剥离 Play CDN 并精简 CSS 后的上线资源。 | 生产部署产物 |
+| **`dist/`** | **生产输出** | `npm run build` 自动生成的生产构建目录。包含剥离 v4 Browser CDN 并精简 CSS 后的上线资源。 | 生产部署产物 |
 | `.gitignore` | 配置文档 | Git 版本控制忽略配置。 | 运维配置 |
 | **`README.md`** | 说明文档 | 本文档，记录项目架构、文件职责、运行机制及部署指南。 | 运维文档 |
 
