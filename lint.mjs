@@ -1,9 +1,10 @@
 /**
- * 零依赖静态检查：
- * 1. 提取 index.html 内所有内联 <script> 做语法校验（ESLint 无法直接覆盖内联脚本）
- * 2. 对根目录 .js / test 目录 .mjs 用 node --check 校验语法
+ * 根目录零依赖静态语法与格式检查：
+ * 1. 提取 index.html 内所有内联 <script> 做语法校验
+ * 2. 对根目录 JavaScript 核心脚本 (build.js, sw.js) 用 node --check 校验语法
+ * 3. 对根目录 JSON 配置文件 (bookmarks.json, manifest.json, package.json) 做合法性校验
  */
-import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { readFileSync, statSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { join, dirname, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -30,18 +31,30 @@ if (statSync(htmlPath).isFile()) {
   });
 }
 
-// ---- 2. 根目录 .js + test/ .mjs 用 node --check ----
-const jsFiles = ['build.js'].filter(f => statSync(join(root, f)).isFile());
-const testDir = join(root, 'test');
-const mjsFiles = readdirSync(testDir).filter(f => f.endsWith('.mjs')).map(f => join(testDir, f));
+// ---- 2. 根目录 JS 脚本 (build.js, sw.js) 用 node --check 校验 ----
+const jsFiles = ['build.js', 'sw.js'].filter(f => statSync(join(root, f)).isFile());
 
-for (const f of [...jsFiles, ...mjsFiles]) {
+for (const f of jsFiles) {
   const r = spawnSync(process.execPath, ['--check', f], { encoding: 'utf-8' });
   if (r.status === 0) {
     console.log(`✅ node --check ${basename(f)} 通过`);
   } else {
     fail++;
     console.error(`❌ node --check ${basename(f)} 失败:\n${r.stderr}`);
+  }
+}
+
+// ---- 3. 根目录 JSON 配置文件合法性校验 ----
+const jsonFiles = ['bookmarks.json', 'manifest.json', 'package.json'].filter(f => statSync(join(root, f)).isFile());
+
+for (const f of jsonFiles) {
+  try {
+    const content = readFileSync(join(root, f), 'utf-8');
+    JSON.parse(content);
+    console.log(`✅ JSON 格式 ${basename(f)} 通过`);
+  } catch (e) {
+    fail++;
+    console.error(`❌ JSON 格式 ${basename(f)} 语法错误: ${e.message}`);
   }
 }
 

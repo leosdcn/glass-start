@@ -330,13 +330,11 @@
             transform: translateZ(0);
             will-change: transform, opacity;
         }
-        #navContent {
+        #navContent, #navContent:focus, #navContent:focus-visible {
             contain: content;
             will-change: scroll-position;
-            outline: none;
-        }
-        #navContent:focus, #navContent:focus-visible {
-            outline: none;
+            outline: none !important;
+            box-shadow: none !important;
         }
         .scroll-hint { animation: bounceDown 2s ease-in-out infinite; }
         .scroll-up-hint { animation: bounceUp 1.8s ease-in-out infinite; }
@@ -4404,7 +4402,9 @@
                 setTimeout(() => {
                     state.currentSection = 'nav';
                     isTransitioning = false;
-                    if (navContent) navContent.focus();
+                    if (document.activeElement && typeof document.activeElement.blur === 'function') {
+                        document.activeElement.blur();
+                    }
                 }, 520);
             }
 
