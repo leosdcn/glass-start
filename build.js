@@ -71,9 +71,7 @@ console.log('🔄 正在同步 bookmarks.json 数据至 index.html 内置默认�
 
 function formatJsObject(obj, indent = 8) {
     const jsonStr = JSON.stringify(obj, null, 4);
-    // 转换为 JS 对象字面量格式 (清洗双引号键名)
     const formatted = jsonStr
-        .replace(/"([^"]+)":/g, '$1:')
         .split('\n')
         .map((line, idx) => (idx === 0 ? line : ' '.repeat(indent) + line))
         .join('\n');

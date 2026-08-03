@@ -47,7 +47,12 @@ function openIDB() {
                 db.createObjectStore(IDB_STORE);
             }
         };
-        req.onsuccess = () => resolve(req.result);
+        req.onsuccess = () => {
+            const db = req.result;
+            db.onversionchange = () => { try { db.close(); } catch {} dbPromise = null; };
+            db.onclose = () => { dbPromise = null; };
+            resolve(db);
+        };
         req.onerror = () => {
             dbPromise = null; // 打开失败时重置，允许下次重试
             reject(req.error);
