@@ -132,9 +132,9 @@ prodHtmlContent = prodHtmlContent.replace(/(<!DOCTYPE\s+html[^>]*>)/i, '$1\n' + 
 // 5.1 生产 CSP 收紧：剥离仅开发模式使用的 Tailwind Play CDN 域名，避免放宽线上 script-src 策略
 // 生产构建已移除 CDN 脚本，保留其域名在 CSP 中属于无效且多余的白名单风险面
 // 5.2 自动转译与内嵌 manifest.json 为 Data URI (使用原生 🪐 SVG 图标，实现双文件零余项架构)
-const iconDataUrl = "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🪐</text></svg>";
-prodHtmlContent = prodHtmlContent.replace(/<link\s+rel="icon"[^>]*>/i, `<link rel="icon" href="${iconDataUrl}">`);
-prodHtmlContent = prodHtmlContent.replace(/<link\s+rel="apple-touch-icon"[^>]*>/i, `<link rel="apple-touch-icon" href="${iconDataUrl}">`);
+const iconDataUrl = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🪐%3C/text%3E%3C/svg%3E";
+prodHtmlContent = prodHtmlContent.replace(/<link\s+rel="icon"\s+href="[^"]*">/i, `<link rel="icon" href="${iconDataUrl}">`);
+prodHtmlContent = prodHtmlContent.replace(/<link\s+rel="apple-touch-icon"\s+href="[^"]*">/i, `<link rel="apple-touch-icon" href="${iconDataUrl}">`);
 
 const manifestJsonPath = path.join(rootDir, 'manifest.json');
 if (fs.existsSync(manifestJsonPath)) {
