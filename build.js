@@ -133,8 +133,8 @@ prodHtmlContent = prodHtmlContent.replace(/(<!DOCTYPE\s+html[^>]*>)/i, '$1\n' + 
 // 生产构建已移除 CDN 脚本，保留其域名在 CSP 中属于无效且多余的白名单风险面
 // 5.2 自动转译与内嵌 manifest.json 为 Data URI (使用原生 🪐 SVG 图标，实现双文件零余项架构)
 const iconDataUrl = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🪐%3C/text%3E%3C/svg%3E";
-prodHtmlContent = prodHtmlContent.replace(/<link\s+rel="icon"\s+href="[^"]*">/i, `<link rel="icon" href="${iconDataUrl}">`);
-prodHtmlContent = prodHtmlContent.replace(/<link\s+rel="apple-touch-icon"\s+href="[^"]*">/i, `<link rel="apple-touch-icon" href="${iconDataUrl}">`);
+prodHtmlContent = prodHtmlContent.replace(/<link\s+[^>]*rel=["']icon["'][^>]*>/i, `<link rel="icon" href="${iconDataUrl}">`);
+prodHtmlContent = prodHtmlContent.replace(/<link\s+[^>]*rel=["']apple-touch-icon["'][^>]*>/i, `<link rel="apple-touch-icon" href="${iconDataUrl}">`);
 
 const manifestJsonPath = path.join(rootDir, 'manifest.json');
 if (fs.existsSync(manifestJsonPath)) {
@@ -142,15 +142,15 @@ if (fs.existsSync(manifestJsonPath)) {
         const manifestObj = JSON.parse(fs.readFileSync(manifestJsonPath, 'utf-8'));
         if (manifestObj.icons && Array.isArray(manifestObj.icons)) {
             manifestObj.icons.forEach(ic => {
-                if (ic.src === 'icon.svg') ic.src = iconDataUrl;
+                if (ic.src === 'icon.svg' || !ic.src) ic.src = iconDataUrl;
             });
         }
         const manifestStr = JSON.stringify(manifestObj);
         const manifestBase64 = Buffer.from(manifestStr, 'utf-8').toString('base64');
         const manifestDataUrl = `data:application/manifest+json;base64,${manifestBase64}`;
 
-        if (/<link\s+rel="manifest"[^>]*>/i.test(prodHtmlContent)) {
-            prodHtmlContent = prodHtmlContent.replace(/<link\s+rel="manifest"[^>]*>/i, `<link rel="manifest" href="${manifestDataUrl}">`);
+        if (/<link\s+[^>]*rel=["']manifest["'][^>]*>/i.test(prodHtmlContent)) {
+            prodHtmlContent = prodHtmlContent.replace(/<link\s+[^>]*rel=["']manifest["'][^>]*>/i, `<link rel="manifest" href="${manifestDataUrl}">`);
         } else {
             prodHtmlContent = prodHtmlContent.replace(/<\/head>/i, `    <link rel="manifest" href="${manifestDataUrl}">\n</head>`);
         }
