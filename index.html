@@ -3007,7 +3007,7 @@
          *   2. loadUserData()     — 先从 localStorage 同步恢复用户编辑的书签
          *   3. renderBookmarks()  — 渲染首屏书签（此时已是用户数据或内置默认值）
          *   4. renderNavCategories() + initSidebarNav() — 渲染导航页，后者依赖前者生成的 DOM
-         *   5. loadData()（异步） — 后台拉取 bookmarks.json，仅在无用户编辑时覆盖书签
+         *   5. loadData()（异步） — 直接读取内置 DEFAULT_* 默认值，不发起外部网络请求
          */
         let isAppInitialized = false;
         function init() {
