@@ -333,6 +333,10 @@
         #navContent {
             contain: content;
             will-change: scroll-position;
+            outline: none;
+        }
+        #navContent:focus, #navContent:focus-visible {
+            outline: none;
         }
         .scroll-hint { animation: bounceDown 2s ease-in-out infinite; }
         .scroll-up-hint { animation: bounceUp 1.8s ease-in-out infinite; }
@@ -907,7 +911,7 @@
                         </nav>
                     </aside>
                     <!-- 主书签内容区 (pb-56 md:pb-[40vh] 确保末尾分类如“资讯学习”点击侧边栏时能流畅置顶展示，同时避免多余留白过大) -->
-                    <main id="navContent" aria-label="书签内容" class="flex-1 p-3 md:p-4 lg:p-5 overflow-y-auto relative scroll-smooth">
+                    <main id="navContent" tabindex="-1" aria-label="书签内容" class="flex-1 p-3 md:p-4 lg:p-5 overflow-y-auto relative scroll-smooth focus:outline-none">
                         <div id="navCategories" class="space-y-6 md:space-y-8 pb-56 md:pb-[40vh]"></div>
                     </main>
                 </div>
