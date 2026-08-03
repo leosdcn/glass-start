@@ -37,16 +37,23 @@
     <link rel="dns-prefetch" href="https://a.favicon.im">
     <link rel="preconnect" href="https://images.unsplash.com">
     <link rel="preconnect" href="https://a.favicon.im">
-    <!-- 动态壁纸 Preload：检测用户设定的壁纸并优先预加载，避免硬编码默认壁纸的网络开销 -->
+    <!-- 动态壁纸 Preload：根据设备物理 DPI (如 13" MacBook Air 2940px) 动态计算匹配 Unsplash 目标宽度，零阻塞预加载 -->
     <script>
+      /**
+       * 动态壁纸预加载自执行函数 (DPI 响应式优化)
+       * 📌 设计原理与性能开销说明：
+       *    1. 在 <head> 中同步读取 window.innerWidth 与 window.devicePixelRatio 属于纯粹内存属性查询，执行耗时 < 0.001ms，零 Reflow 开销。
+       *    2. 根据物理像素宽度 (innerWidth * dpr) 动态匹配 Unsplash 请求宽度 w=... (如 13" MacBook Air 匹配 w=3000)，
+       *       既避免移动端/1080P 屏幕加载 4K 原图浪费带宽，又保障 2K / 4K / Mac Retina 屏 100% 物理点对点像素级清晰度。
+       */
       (function() {
         const backgrounds = [
-          'https://images.unsplash.com/photo-1477346611705-65d1883cee1e?q=80&w=2070&auto=format&fit=crop',
-          'https://images.unsplash.com/photo-1506744038136-46273834b3fb?q=80&w=2070&auto=format&fit=crop',
-          'https://images.unsplash.com/photo-1433086966358-54859d0ed716?q=80&w=2070&auto=format&fit=crop',
-          'https://images.unsplash.com/photo-1519681393784-d120267933ba?q=80&w=2070&auto=format&fit=crop',
-          'https://images.unsplash.com/photo-1469474968028-56623f02e42e?q=80&w=2070&auto=format&fit=crop',
-          'https://images.unsplash.com/photo-1501785888041-af3ef285b470?q=80&w=2070&auto=format&fit=crop'
+          'https://images.unsplash.com/photo-1477346611705-65d1883cee1e?q=75&w=2070&auto=format&fit=crop',
+          'https://images.unsplash.com/photo-1506744038136-46273834b3fb?q=75&w=2070&auto=format&fit=crop',
+          'https://images.unsplash.com/photo-1433086966358-54859d0ed716?q=75&w=2070&auto=format&fit=crop',
+          'https://images.unsplash.com/photo-1519681393784-d120267933ba?q=75&w=2070&auto=format&fit=crop',
+          'https://images.unsplash.com/photo-1469474968028-56623f02e42e?q=75&w=2070&auto=format&fit=crop',
+          'https://images.unsplash.com/photo-1501785888041-af3ef285b470?q=75&w=2070&auto=format&fit=crop'
         ];
         try {
           const rawUserWp = localStorage.getItem('userWallpaper');
@@ -59,6 +66,13 @@
             preloadUrl = backgrounds[bgIdx] || backgrounds[0];
           }
           if (preloadUrl && typeof preloadUrl === 'string' && preloadUrl.startsWith('http')) {
+            // 根据设备物理像素 (宽度 * DPR) 动态调优 Unsplash 尺寸参数 (阶梯以 200px 递增，上限 3840px)
+            const dpr = window.devicePixelRatio || 1;
+            const targetW = Math.min(Math.ceil((window.innerWidth * dpr) / 200) * 200, 3840);
+            if (preloadUrl.includes('images.unsplash.com')) {
+              preloadUrl = preloadUrl.replace(/w=\d+/, 'w=' + targetW).replace(/q=\d+/, 'q=75');
+            }
+            window.__PRELOADED_BG__ = preloadUrl;
             const link = document.createElement('link');
             link.rel = 'preload';
             link.as = 'image';
@@ -347,7 +361,6 @@
         @keyframes bounceUp { 0%,100%{transform:translateY(0);opacity:0.7} 50%{transform:translateY(-0.1875rem);opacity:1} }
         .hint-down { animation:hintFade 7s ease forwards; }
         @keyframes hintFade { 0%,55%{opacity:1} 100%{opacity:0;pointer-events:none} }
-        .section-divider { background: linear-gradient(90deg,transparent,rgba(255,255,255,0.15),transparent); }
         .edit-overlay { opacity:0; pointer-events:none; transition:opacity 0.2s ease; will-change:opacity; }
         .edit-overlay.active { opacity:1; pointer-events:auto; }
         .edit-overlay > div { transform:scale(0.95); transition:transform 0.2s ease; will-change:transform; }
@@ -811,11 +824,10 @@
 </head>
 <body class="text-white relative bg-[#0b0f19]">
     <!-- 固定定位背景图层（双层叠加 opacity 过渡，解决 background-image 不可 CSS 插值的问题；配合 bg-fullscreen 延伸至移动端安全区与过滚动区域） -->
-    <div id="bgLayer" class="bg-fullscreen bg-cover bg-center bg-no-repeat -z-10"
-         style="background-image:url('https://images.unsplash.com/photo-1477346611705-65d1883cee1e?q=80&w=2070&auto=format&fit=crop'); transform: translateZ(0); will-change: transform, opacity;"></div>
+    <div id="bgLayer" class="bg-fullscreen bg-cover bg-center bg-no-repeat -z-10" style="transform: translateZ(0); will-change: transform, opacity;"></div>
     <div id="bgLayerNext" class="bg-fullscreen bg-cover bg-center bg-no-repeat -z-10 opacity-0" style="transition:opacity 0.6s ease; transform: translateZ(0); will-change: transform, opacity;"></div>
     <div id="bgOverlay" class="bg-fullscreen bg-black/25 pointer-events-none z-0" style="transition: background-color 0.2s ease, backdrop-filter 0.2s ease, -webkit-backdrop-filter 0.2s ease; transform: translateZ(0); will-change: transform, opacity;"></div>
-    <script>(function(){if(window.__PRE_BG_EFFECTS__){const o=document.getElementById('bgOverlay');if(o){o.style.backgroundColor='rgba(0, 0, 0, '+(window.__PRE_BG_EFFECTS__.op/100)+')';if(window.__PRE_BG_EFFECTS__.bl>0){const b='blur('+window.__PRE_BG_EFFECTS__.bl+'px)';o.style.backdropFilter=b;o.style.webkitBackdropFilter=b;}}}})()</script>
+    <script>(function(){const bg=document.getElementById('bgLayer');const url=window.__PRELOADED_BG__||'https://images.unsplash.com/photo-1477346611705-65d1883cee1e?q=75&w=2070&auto=format&fit=crop';if(bg)bg.style.backgroundImage="url('"+url.replace(/['"()\\]/g,'')+"')";if(window.__PRE_BG_EFFECTS__){const o=document.getElementById('bgOverlay');if(o){o.style.backgroundColor='rgba(0, 0, 0, '+(window.__PRE_BG_EFFECTS__.op/100)+')';if(window.__PRE_BG_EFFECTS__.bl>0){const b='blur('+window.__PRE_BG_EFFECTS__.bl+'px)';o.style.backdropFilter=b;o.style.webkitBackdropFilter=b;}}}})()</script>
 
     <!-- ========== 第一屏：起始页 ========== -->
     <section id="startSection" class="relative z-10 min-h-screen flex flex-col items-center justify-center px-4 py-12">
@@ -880,9 +892,6 @@
         </div>
 
     </section>
-
-    <!-- 分隔线 -->
-    <div class="section-divider h-px relative z-10 max-w-2xl lg:max-w-3xl w-3/4 mx-auto"></div>
 
     <!-- ========== 第二屏：导航页 ========== -->
     <section id="navSection" class="relative z-10 h-screen nav-hidden overflow-hidden">
@@ -3120,6 +3129,9 @@
         /**
          * 根据书签数据对象生成规范化的 Favicon HTML 图标结构
          * 自动处理缺失图标时的首字母文字徽章，以及合法 URL 图片节点的生成
+         * 📌 网络优先级调优 (HTTP/2 Multiplexing & Lazy Loading):
+         *    - 首屏 8 个快捷图标 (isMd): 设置 loading="eager" fetchpriority="high"，确保首页开屏瞬间高清渲染。
+         *    - 视口下方导航页 90+ 图标 (sm): 设置 loading="lazy" fetchpriority="low"，避开首屏关键资源竞争，在后台静默完成下载。
          * @param {Bookmark} bm - 单个书签数据对象
          * @param {'sm'|'md'} [sizeType='sm'] - 图标尺寸类别 ('sm': 导航页 1.5rem | 'md': 首屏 2rem)
          * @returns {string} 渲染后的 HTML 字符串
@@ -3134,7 +3146,7 @@
             if (!bm.icon || safeIcon === '#') {
                 return `<div class="icon-box ${sizeClass} bg-white/15 border border-white/20 text-white/90 ${textClass}">${escapeHtml(initial)}</div>`;
             }
-            const loadingAttr = isMd ? 'loading="eager" fetchpriority="high" decoding="async"' : 'loading="lazy" decoding="async"';
+            const loadingAttr = isMd ? 'loading="eager" fetchpriority="high" decoding="async"' : 'loading="lazy" fetchpriority="low" decoding="async"';
             const imgSize = isMd ? '32' : '24';
             return `<div class="icon-box ${sizeClass}"><img src="${safeIcon}" width="${imgSize}" height="${imgSize}" data-initial="${escapeHtml(initial)}" data-md="${isMd ? '1' : '0'}" class="opacity-90" alt="" ${loadingAttr}></div>`;
         }

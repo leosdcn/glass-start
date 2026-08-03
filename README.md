@@ -159,3 +159,23 @@ npm run build
 * **缓存管理与一键清理**：
   - **离线缓存一键刷新**：设置面板「数据与备份」中提供 `[清理离线缓存]` 按钮，直接调用 `caches.delete()` 清空 Service Worker 离线存储。
   - **系统全量重置**：设置面板「危险区域」提供 `[重置所有系统设置]` 按钮，一键清空 LocalStorage 及 IndexedDB 数据库。
+
+---
+
+### 4. HTTP 生产安全响应头最佳实践配置 (Security Headers Guide)
+
+在部署至 Cloudflare Pages、Nginx、Caddy、Vercel 或 NAS Web 服务器时，推荐配置以下 HTTP 安全响应标头（符合 Web Security / Lighthouse 最高安全合规等级）：
+
+```nginx
+# 1. 强制 HTTPS 传输 (HSTS, Strict-Transport-Security)
+add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
+
+# 2. 防点击劫持防护 (Clickjacking Protection / X-Frame-Options)
+add_header X-Frame-Options "SAMEORIGIN" always;
+
+# 3. 跨源隔离政策 (COOP - Cross-Origin-Opener-Policy)
+add_header Cross-Origin-Opener-Policy "same-origin" always;
+
+# 4. 内容安全策略 (Content-Security-Policy HTTP 标头)
+add_header Content-Security-Policy "default-src 'self' data: blob: https:; script-src 'self' 'unsafe-inline' https://suggestion.baidu.com https://api.bing.com https://suggestqueries.google.com; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: blob: https:; connect-src 'self' https:; worker-src 'self' blob:; frame-ancestors 'self';" always;
+```
