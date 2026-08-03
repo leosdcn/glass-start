@@ -10,7 +10,7 @@
     <meta name="theme-color" content="#0b0f19">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self' data: blob: https:; script-src 'self' 'unsafe-inline' https://suggestion.baidu.com https://api.bing.com https://suggestqueries.google.com https://ac.duckduckgo.com https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: blob: https:; connect-src 'self' https:;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' data: blob: https:; script-src 'self' 'unsafe-inline' https://suggestion.baidu.com https://api.bing.com https://suggestqueries.google.com https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: blob: https:; connect-src 'self' https:; worker-src 'self' blob:;">
     <meta name="description" content="Glass Start — 基于 HTML5 与 Modern JS 构建的高颜值、轻量级玻璃拟态（Glassmorphism）浏览器起始页。">
     <meta name="keywords" content="起始页, 浏览器导航, 玻璃拟态, 个人主页, Glassmorphism, Startpage">
 
@@ -33,7 +33,6 @@
     <link rel="dns-prefetch" href="https://suggestion.baidu.com">
     <link rel="dns-prefetch" href="https://api.bing.com">
     <link rel="dns-prefetch" href="https://suggestqueries.google.com">
-    <link rel="dns-prefetch" href="https://ac.duckduckgo.com">
     <link rel="dns-prefetch" href="https://images.unsplash.com">
     <link rel="dns-prefetch" href="https://a.favicon.im">
     <link rel="preconnect" href="https://images.unsplash.com">
@@ -931,7 +930,7 @@
 
     <!-- 编辑与设置弹窗 (Apple 风格 Tab 分栏设置面板) -->
     <div id="editModal" role="dialog" aria-modal="true" aria-hidden="true" hidden aria-label="设置与偏好" class="edit-overlay fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm" style="z-index: 1000;">
-        <div class="glass-strong apple-radius w-full max-w-xl sm:max-w-2xl md:max-w-3xl lg:max-w-4xl mx-4 h-[40rem] max-h-[90vh] flex flex-col shadow-2xl" style="padding: 1.25rem 1.5rem 1.25rem;" onclick="event.stopPropagation()">
+        <div class="glass-strong apple-radius w-full max-w-xl sm:max-w-2xl md:max-w-3xl lg:max-w-4xl mx-4 h-[40rem] max-h-[90vh] flex flex-col shadow-2xl" style="padding: 1.25rem 1.5rem 1.25rem;">
             <!-- 弹窗 Header -->
             <div class="flex items-center justify-between mb-3.5 pb-2.5 border-b border-white/10 shrink-0">
                 <div class="flex items-center gap-2">
@@ -1073,7 +1072,7 @@
                         <div>
                             <div class="flex items-center gap-2">
                                 <span class="text-xs font-semibold text-white/90">Glass Start</span>
-                                <span class="text-[11px] px-2 py-0.5 rounded-full bg-white/10 border border-white/15 text-white/70 font-medium tracking-wide">v2.6.0</span>
+                                <span class="text-[11px] px-2 py-0.5 rounded-full bg-white/10 border border-white/15 text-white/70 font-medium tracking-wide">v2.6.1</span>
                             </div>
                             <div class="text-[10px] text-white/50">极简 Liquid Glass 拟态导航 • Build 2026.08</div>
                         </div>
@@ -1160,7 +1159,7 @@
 
     <!-- 从导航页选择弹窗 -->
     <div id="bookmarkPicker" role="dialog" aria-modal="true" aria-hidden="true" hidden aria-label="从导航页选择书签" class="edit-overlay fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm" style="z-index: 2000;">
-        <div class="glass-strong apple-radius pt-4 pb-3 px-4 w-full max-w-2xl xl:max-w-3xl 2xl:max-w-4xl mx-4 max-h-[85vh] flex flex-col shadow-2xl" onclick="event.stopPropagation()">
+        <div class="glass-strong apple-radius pt-4 pb-3 px-4 w-full max-w-2xl xl:max-w-3xl 2xl:max-w-4xl mx-4 max-h-[85vh] flex flex-col shadow-2xl">
             <div class="flex items-center justify-between mb-2 pb-1.5 border-b border-white/10 shrink-0">
                 <h3 class="text-base font-medium tracking-wide text-white/80">从导航页选择</h3>
                 <button id="closePickerBtn" type="button" aria-label="关闭选择弹窗" class="p-1 hover:bg-white/10 rounded apple-radius text-white/40 hover:text-white/70 transition">✕</button>
@@ -1176,7 +1175,7 @@
     <!-- 自定义确认弹窗（替代原生 confirm()，保持玻璃风格一致） -->
     <div id="confirmModal" role="alertdialog" aria-modal="true" aria-hidden="true" hidden aria-labelledby="confirmTitle"
          class="edit-overlay fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm" style="z-index: 9999;">
-        <div class="confirm-dialog-card" onclick="event.stopPropagation()">
+        <div class="confirm-dialog-card">
             <div style="width: 2.75rem; height: 2.75rem; border-radius: 50%; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); display: flex; align-items: center; justify-content: center; margin-bottom: 0.75rem; color: #f87171; flex-shrink: 0;">
                 <svg style="width: 1.375rem; height: 1.375rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
@@ -2599,6 +2598,9 @@
         function closeEditModal() {
             state.editOpen = false;
             OverlayStack.pop('editModal');
+            if (document.activeElement && dom.editModal.contains(document.activeElement)) {
+                document.activeElement.blur();
+            }
             dom.editModal.setAttribute('aria-hidden', 'true');
             dom.editModal.setAttribute('hidden', '');
             dom.editModal.classList.remove('active');
@@ -2727,6 +2729,9 @@
             function cleanup() {
                 activeConfirmCleanup = null;
                 OverlayStack.pop('confirmModal');
+                if (document.activeElement && modal.contains(document.activeElement)) {
+                    document.activeElement.blur();
+                }
                 modal.setAttribute('aria-hidden', 'true');
                 modal.setAttribute('hidden', '');
                 modal.classList.remove('active');
@@ -2802,6 +2807,9 @@
          */
         function closeBookmarkPicker() {
             OverlayStack.pop('bookmarkPicker');
+            if (document.activeElement && dom.bookmarkPicker.contains(document.activeElement)) {
+                document.activeElement.blur();
+            }
             dom.bookmarkPicker.setAttribute('aria-hidden', 'true');
             dom.bookmarkPicker.setAttribute('hidden', '');
             dom.bookmarkPicker.classList.remove('active');
@@ -3587,6 +3595,9 @@
 
         // ==================== 编辑弹窗事件绑定 ====================
         function bindEditEvents() {
+            document.querySelectorAll('#editModal > div, #bookmarkPicker > div, #confirmModal > div').forEach(el => {
+                el.addEventListener('click', e => e.stopPropagation());
+            });
             dom.editBookmarksBtn.addEventListener('click', openEditModal);
             dom.cancelEditBtn.addEventListener('click', cancelEditModal);
             dom.editModal.addEventListener('click', cancelEditModal);
