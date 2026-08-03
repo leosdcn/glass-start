@@ -42,11 +42,12 @@ const startVisible = await evalJS('document.getElementById("startSection").getAt
 const navBackTy = tyOf(await evalJS('getComputedStyle(document.getElementById("navSection")).transform'));
 pass('到顶后上滚两次切回 start', startVisible && navBackTy !== null && navBackTy > 600, `nav translateY=${navBackTy}`);
 
-// 触屏 touchmove 累积切换
+// 触屏 touchmove 累积与 touchend 拖拽切换
 await evalJS(`(function(){
   const tc = (y) => new Touch({ identifier: 1, target: document.body, clientX: 0, clientY: y });
   document.dispatchEvent(new TouchEvent('touchstart', { touches: [tc(400)], cancelable: true }));
   document.dispatchEvent(new TouchEvent('touchmove', { touches: [tc(260)], cancelable: true }));
+  document.dispatchEvent(new TouchEvent('touchend', { changedTouches: [tc(260)], cancelable: true }));
 })()`);
 await sleep(900);
 const touchTy = tyOf(await evalJS('getComputedStyle(document.getElementById("navSection")).transform'));

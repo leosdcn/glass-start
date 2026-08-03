@@ -4338,7 +4338,7 @@
                 const urlParam = new URLSearchParams(window.location.search).get('threshold');
                 if (urlParam && !isNaN(Number(urlParam))) baseThreshold = Number(urlParam);
             } catch {}
-            const SCROLL_THRESHOLD = window.__SCROLL_THRESHOLD__ || baseThreshold; // 累积滚动像素阈值（跨浏览器一致）
+            const SCROLL_THRESHOLD = window.__SCROLL_THRESHOLD__ ?? baseThreshold; // 累积滚动像素阈值（跨浏览器一致）
             const startSection = document.getElementById('startSection');
             const nav = document.getElementById('navSection');
             const navContent = dom.navContent;
@@ -4551,7 +4551,7 @@
                 lastTouchY = currentY;
 
                 if (state.currentSection === 'start') {
-                    // 从首屏向上拖拽到导航页（跟手跟随）
+                    // 从首屏向上拖拽到导航页（全流程 100% 跟手跟随）
                     if (totalDeltaY > 0) {
                         if (e.cancelable) e.preventDefault();
                         isTouchDragging = true;
@@ -4561,13 +4561,6 @@
 
                         nav.classList.remove('nav-hidden');
                         nav.classList.add('nav-visible');
-
-                        if (totalDeltaY >= SCROLL_THRESHOLD) {
-                            resetTouchDragStyles();
-                            isTouchDragging = false;
-                            switchToNav();
-                            return;
-                        }
 
                         startSection.style.transition = 'none';
                         nav.style.transition = 'none';
@@ -4579,7 +4572,7 @@
                         nav.style.transform = `translateY(100vh)`;
                     }
                 } else if (state.currentSection === 'nav') {
-                    // 从导航页顶部向下拖拽回首屏（跟手跟随）
+                    // 从导航页顶部向下拖拽回首屏（全流程 100% 跟手跟随）
                     if (totalDeltaY < 0 && navContent && navContent.scrollTop <= 0) {
                         if (e.cancelable) e.preventDefault();
                         isTouchDragging = true;
@@ -4590,13 +4583,6 @@
 
                         nav.classList.remove('nav-hidden');
                         nav.classList.add('nav-visible');
-
-                        if (absDelta >= SCROLL_THRESHOLD) {
-                            resetTouchDragStyles();
-                            isTouchDragging = false;
-                            switchToStart();
-                            return;
-                        }
 
                         startSection.style.transition = 'none';
                         nav.style.transition = 'none';
