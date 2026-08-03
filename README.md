@@ -72,7 +72,7 @@ npm run build
 1. **自动数据双向同步**：解析 `bookmarks.json` 最新数据，自动同步注入更新源码 `index.html` 与 `dist/index.html` 的 `DEFAULT_BOOKMARKS` 与 `DEFAULT_CATEGORIES` 数组（解决本地 `file://` 协议双击打开时因 CORS 拦截导致的降级书签不一致问题）。
 2. **Tailwind 静态编译**：调用 Tailwind CLI 扫描 `index.html` 生成精简 CSS。
 3. **HTML 脚本处理与 CSS 全量内嵌**：自动处理 `dist/index.html`，移除 Play CDN 脚本并将编译好的 CSS 全量内嵌为 `<style>` 标签（消除 `style.css` 渲染阻塞与网络 RTT 请求）。
-4. **资源复制**：将 `sw.js`、`manifest.json` 与 `_headers` 复制至 `dist/` 目录（无须复制 `bookmarks.json`，实现极简打包部署与零 404 网络请求）。
+4. **资源复制**：将 `sw.js` 与 `manifest.json` 复制至 `dist/` 目录（实现极简打包部署与零 404 网络请求）。
 
 **上线发布**：只需将生成的 **`dist/` 文件夹下的全部内容** 上传部署至 GitHub Pages、Cloudflare Pages、Vercel、Nginx 或 NAS 即可。
 
@@ -105,7 +105,6 @@ npm run build
 | **`build.js`** | 打包脚本 | 生产构建 Node 脚本。运行 `npm run build` 自动同步书签数据、编译全量内嵌 CSS 并输出至 `dist/`。 | 工具脚本 |
 | **`manifest.json`** | Web App 应用配置 | PWA 应用清单文件。配置应用名称、图标、启动 URL、主题颜色，支持添加至手机主屏幕与独立 Web App 运行。 | PWA 必需 |
 | **`icon.svg`** | 矢量图标 | 网站 Logo 与 PWA 图标源文件。采用 SVG 格式确保高清高分屏无损缩放。 | 图标资源 |
-| **`_headers`** | HTTP 头部配置 | Cloudflare Pages / Vercel 静态托管的安全响应头配置 (HSTS, X-Content-Type-Options, Referrer-Policy 等)。 | 部署配置 |
 | **`lint.mjs`** | 检查脚本 | Node 零依赖静态检查脚本。用于校验根目录核心 JS/HTML 语法与 JSON 配置文件合法性。 | 工具脚本 |
 | **`test/`** | **测试目录** | 端到端 UI 自动化测试目录。内含 6 个 CDP 浏览器自动化测试套件与 Web 调试服务器。 | 测试框架 |
 | **`TEST-REPORT.md`** | 测试文档 | 项目自动化测试覆盖率分析与完整功能验证报告。 | 运维文档 |
