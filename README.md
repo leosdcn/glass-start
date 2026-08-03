@@ -88,6 +88,7 @@ npm run build
 ### 3. 静态检查、Git 规范与测试指南 (Agent / Dev Guidelines)
 - ⚡ **静态代码检查 (`npm run lint`)**：耗时仅 0.03 秒。自动完成 `index.html` 内联 JS、`build.js`/`sw.js` 语法预检及 `bookmarks.json`/`manifest.json`/`package.json` 的 JSON 合法性校验。修改代码后运行此命令做轻量校验。
 - 🚀 **生产构建打包 (`npm run build`)**：耗时仅 0.15 秒。编译 Tailwind CSS 并同步书签数据，无需等待任何测试。
+- 🌐 **联网信息检索 (Web Search Recommendation)**：在处理复杂的 Web 安全规范（如 CSP / Security Policy 最新细节）、浏览器新特性兼容性或特定技术方案选型时，**鼓励并推荐 Agent / 开发者在必要时主动进行联网搜索**，实时查询最新官方文档与行业最佳实践，确保调优与修补方案的严谨性与前瞻性。
 - 🛑 **Git 提交约束 (Git Rule)**：**未收到用户明确指令前，Agent 严禁自动执行 `git add` / `git commit`**；所有改动与编译仅在本地工作区生效，静待用户预览确认并主动指令后再执行提交。
 - ⚠️ **全量端到端测试 (`npm test`)**：会启动无头 Chrome 运行 6 个 CDP 端到端测试文件。**Agent 在日常修复小 Bug 或调整功能时严禁自动运行 `npm test`**，避免浪费时间；仅在用户明确发出指令要求“全量测试”时才执行。
 
