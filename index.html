@@ -32,9 +32,8 @@
     <link rel="dns-prefetch" href="https://ac.duckduckgo.com">
     <link rel="dns-prefetch" href="https://images.unsplash.com">
     <link rel="dns-prefetch" href="https://a.favicon.im">
-    <link rel="preconnect" href="https://api.bing.com" crossorigin>
-    <link rel="preconnect" href="https://images.unsplash.com" crossorigin>
-    <link rel="preconnect" href="https://a.favicon.im" crossorigin>
+    <link rel="preconnect" href="https://images.unsplash.com">
+    <link rel="preconnect" href="https://a.favicon.im">
     <!-- 动态壁纸 Preload：检测用户设定的壁纸并优先预加载，避免硬编码默认壁纸的网络开销 -->
     <script>
       (function() {
@@ -66,12 +65,7 @@
           }
         } catch (e) {}
       })();
-      if (location.protocol.startsWith('http')) {
-        const manifestLink = document.createElement('link');
-        manifestLink.rel = 'manifest';
-        manifestLink.href = 'manifest.json';
-        document.head.appendChild(manifestLink);
-      }
+
       if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
       try{sessionStorage.getItem('startpage_section')==='nav'&&document.documentElement.classList.add('nr')}catch(e){}
       try{
@@ -3040,13 +3034,34 @@
             preloadFavicons();
             if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => {});
             
-            // 后台非阻塞异步加载远程数据，不拖累首屏渲染与 LCP
-            loadData().then(() => {
-                if (!storageGet('userBookmarks')) {
-                    renderBookmarks();
+            // 调度空闲任务，避免 manifest.json 与 loadData() 抢占关键路径带宽（消除 Critical Request Chain 警告）
+            const scheduleIdleTask = (fn, fallbackDelay = 1500) => {
+                if ('requestIdleCallback' in window) {
+                    requestIdleCallback(fn, { timeout: 3000 });
+                } else {
+                    setTimeout(fn, fallbackDelay);
                 }
-                renderNavCategories();
-            });
+            };
+
+            if (location.protocol.startsWith('http')) {
+                scheduleIdleTask(() => {
+                    if (!document.querySelector('link[rel="manifest"]')) {
+                        const manifestLink = document.createElement('link');
+                        manifestLink.rel = 'manifest';
+                        manifestLink.href = 'manifest.json';
+                        document.head.appendChild(manifestLink);
+                    }
+                }, 1000);
+            }
+
+            scheduleIdleTask(() => {
+                loadData().then(() => {
+                    if (!storageGet('userBookmarks')) {
+                        renderBookmarks();
+                    }
+                    renderNavCategories();
+                });
+            }, 1500);
         }
 
         // ==================== 苹果风格 Favicon 兜底徽章 (严格尺寸强制归一) ====================
