@@ -449,7 +449,7 @@
             transition: transform 0.08s ease !important;
         }
         /* ===== 移动端视口高度 (100dvh) 与 safe-area-inset 安全区适配 =====
-           !important 确保覆盖 Tailwind CDN 动态注入的同名工具类。
+           !important 确保覆盖 Tailwind v4 Browser CDN 动态注入的同名工具类。
         ===== */
         .h-screen { height: 100dvh !important; }
         .min-h-screen { min-height: 100dvh !important; }
@@ -514,7 +514,7 @@
             }
         }
 
-        /* ===== 安全区定位覆盖（safe-area-inset 适配，!important 覆盖 Tailwind CDN 生成值）===== */
+        /* ===== 安全区定位覆盖（safe-area-inset 适配，!important 覆盖 Tailwind v4 Browser CDN 生成值）===== */
         .right-6 { right: calc(1.5rem + env(safe-area-inset-right)) !important; }
         .right-8 { right: calc(2rem + env(safe-area-inset-right)) !important; }
         @media (min-width: 768px) {
@@ -739,7 +739,7 @@
             }
         }
 
-        /* ===== 导航页书签网格大屏扩列（Tailwind CDN 支持 xl:/2xl: 断点，但此处保留 min-width 媒体查询以精确控制）*/
+        /* ===== 导航页书签网格大屏扩列（Tailwind v4 Browser CDN 支持 xl:/2xl: 断点，但此处保留 min-width 媒体查询以精确控制）*/
         @media (min-width: 1280px) {
             #navCategories .grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
         }
@@ -1074,7 +1074,7 @@
                         <div>
                             <div class="flex items-center gap-2">
                                 <span class="text-xs font-semibold text-white/90">Glass Start</span>
-                                <span class="text-[11px] px-2 py-0.5 rounded-full bg-white/10 border border-white/15 text-white/70 font-medium tracking-wide">v2.7.0</span>
+                                <span class="text-[11px] px-2 py-0.5 rounded-full bg-white/10 border border-white/15 text-white/70 font-medium tracking-wide">v2.7.1</span>
                             </div>
                             <div class="text-[10px] text-white/50">极简 Liquid Glass 拟态导航 • Build 2026.08</div>
                         </div>

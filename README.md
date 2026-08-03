@@ -87,10 +87,10 @@ npm run build
 
 ### 3. 静态检查、Git 规范与测试指南 (Agent / Dev Guidelines)
 - ⚡ **静态代码检查 (`npm run lint`)**：耗时仅 0.03 秒。自动完成 `index.html` 内联 JS、`build.js`/`sw.js` 语法预检及 `bookmarks.json`/`manifest.json`/`package.json` 的 JSON 合法性校验。修改代码后运行此命令做轻量校验。
-- 🚀 **生产构建打包 (`npm run build`)**：耗时仅 0.15 秒。编译 Tailwind CSS 并同步书签数据，无需等待任何测试。
+- 🚀 **生产构建打包 (`npm run build`)**：耗时仅约 0.05 秒（Tailwind v4 Rust 引擎）。编译 Tailwind CSS 并同步书签数据，无需等待任何测试。
 - 🌐 **联网信息检索 (Web Search Recommendation)**：在处理复杂的 Web 安全规范（如 CSP / Security Policy 最新细节）、浏览器新特性兼容性或特定技术方案选型时，**鼓励并推荐 Agent / 开发者在必要时主动进行联网搜索**，实时查询最新官方文档与行业最佳实践，确保调优与修补方案的严谨性与前瞻性。
 - 🛑 **Git 提交约束 (Git Rule)**：**未收到用户明确指令前，Agent 严禁自动执行 `git add` / `git commit`**；所有改动与编译仅在本地工作区生效，静待用户预览确认并主动指令后再执行提交。
-- ⚠️ **全量端到端测试 (`npm test`)**：会启动无头 Chrome 运行 6 个 CDP 端到端测试文件。**Agent 在日常修复小 Bug 或调整功能时严禁自动运行 `npm test`**，避免浪费时间；仅在用户明确发出指令要求“全量测试”时才执行。
+- ⚠️ **全量端到端测试 (`npm test`)**：会启动无头 Chrome 运行 7 个 CDP 端到端测试文件。**Agent 在日常修复小 Bug 或调整功能时严禁自动运行 `npm test`**，避免浪费时间；仅在用户明确发出指令要求“全量测试”时才执行。
 
 ---
 
@@ -107,7 +107,7 @@ npm run build
 | **`manifest.json`** | Web App 应用配置 | PWA 应用清单文件。配置应用名称、图标、启动 URL、主题颜色，支持添加至手机主屏幕与独立 Web App 运行。 | PWA 必需 |
 | **`icon.svg`** | 矢量图标 | 网站 Logo 与 PWA 图标源文件。采用 SVG 格式确保高清高分屏无损缩放。 | 图标资源 |
 | **`lint.mjs`** | 检查脚本 | Node 零依赖静态检查脚本。用于校验根目录核心 JS/HTML 语法与 JSON 配置文件合法性。 | 工具脚本 |
-| **`test/`** | **测试目录** | 端到端 UI 自动化测试目录。内含 6 个 CDP 浏览器自动化测试套件与 Web 调试服务器。 | 测试框架 |
+| **`test/`** | **测试目录** | 端到端 UI 自动化测试目录。内含 7 个 CDP 浏览器自动化测试套件与 Web 调试服务器。 | 测试框架 |
 | **`TEST-REPORT.md`** | 测试文档 | 项目自动化测试覆盖率分析与完整功能验证报告。 | 运维文档 |
 | **`package.json`** | 项目配置 | Node 项目配置文件，提供 `npm run dev`、`npm run build`、`npm run lint` 与 `npm test` 命令。 | 配置文件 |
 | **`dist/`** | **生产输出** | `npm run build` 自动生成的生产构建目录。包含剥离 v4 Browser CDN 并精简 CSS 后的上线资源。 | 生产部署产物 |
@@ -179,3 +179,25 @@ add_header Cross-Origin-Opener-Policy "same-origin" always;
 # 4. 内容安全策略 (Content-Security-Policy HTTP 标头)
 add_header Content-Security-Policy "default-src 'self' data: blob: https:; script-src 'self' 'unsafe-inline' https://suggestion.baidu.com https://api.bing.com https://suggestqueries.google.com; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: blob: https:; connect-src 'self' https:; worker-src 'self' blob:; frame-ancestors 'self';" always;
 ```
+
+---
+
+### 5. 框架与依赖版本清单 (Framework & Dependency Versions)
+
+本项目框架依赖极简——**唯一的第三方框架是 Tailwind CSS**，其余全部为原生 HTML5 + Modern JS + 手写 CSS，零其他框架依赖。以下为所有带明确版本号的框架 / 组件清单：
+
+| 名称 | 类型 | 版本号 | 位置 / 说明 |
+| :--- | :--- | :--- | :--- |
+| **Tailwind CSS** | CSS 框架（第三方） | `4.3.3` | `package.json` `devDependencies`；CSS 编译核心 |
+| **@tailwindcss/cli** | Tailwind v4 构建 CLI | `4.3.3` | `package.json` `devDependencies`；由 `build.js` 调用完成生产 CSS 编译 |
+| **@tailwindcss/browser** | Tailwind v4 浏览器运行时 | `@4`（对应 4.3.3） | `index.html` dev CDN 脚本，仅开发预览使用；生产构建自动内嵌编译 CSS 并剥离该脚本 |
+| **Service Worker** | 项目内组件 | `v9` | `sw.js` 头部注释；三池隔离 + IndexedDB LRU 缓存架构 |
+| **CORE_CACHE** | 缓存池版本 | `app-core-v<时间戳>` | `sw.js`；每次 `npm run build` 自动更新，强制客户端刷新旧缓存 |
+| **FAVICON_CACHE / IMG_CACHE** | 缓存池版本 | `v1` | `sw.js`；图标 / 本地图片独立缓存池 |
+| **Glass Start 站点版本** | 项目发布版本 | `v2.7.1` | `package.json` + `index.html` 页脚徽章 |
+
+**无版本号的外部服务**（非框架，版本由服务商维护，升级无需本项目介入）：
+- `a.favicon.im` — Favicon 图标 API
+- 百度 / Bing / Google — 搜索联想建议 API
+- `images.unsplash.com` — 内置壁纸图片 CDN
+- `npx serve` — 开发静态服务器（取最新版，未锁定版本）
