@@ -4332,7 +4332,13 @@
             let resetAccumTimer = null;
             let isTransitioning = false;
             let targetSection = getSavedSection() === 'nav' ? 'nav' : 'start';
-            const SCROLL_THRESHOLD = 120; // 累积滚动像素阈值（跨浏览器一致）
+            // 调试参数扩展：支持 URL Query (e.g. ?threshold=120) 或 window.__SCROLL_THRESHOLD__ 实时调节
+            let baseThreshold = 120;
+            try {
+                const urlParam = new URLSearchParams(window.location.search).get('threshold');
+                if (urlParam && !isNaN(Number(urlParam))) baseThreshold = Number(urlParam);
+            } catch {}
+            const SCROLL_THRESHOLD = window.__SCROLL_THRESHOLD__ || baseThreshold; // 累积滚动像素阈值（跨浏览器一致）
             const startSection = document.getElementById('startSection');
             const nav = document.getElementById('navSection');
             const navContent = dom.navContent;
@@ -4468,14 +4474,22 @@
                 return d;
             }
 
-            // ==================== 触屏与滚轮手势支持（高帧率优化的防干预逻辑） ====================
-            let lastTouchY = 0;
+            // ==================== 触屏跟手拖拽与滚轮速度/大步幅感应 ====================
+            let lastWheelTime = 0;
 
             document.addEventListener('wheel', (e) => {
                 if (isTransitioning || !OverlayStack.isEmpty()) return;
 
                 const delta = normDelta(e);
                 const down = delta > 0;
+                const absDelta = Math.abs(delta);
+                const now = performance.now();
+                const dt = now - lastWheelTime;
+                lastWheelTime = now;
+                const velocity = dt > 0 ? absDelta / dt : 0; // px/ms
+
+                // 动态有效阈值：若单次滚动步幅 >= 100px 或快速甩动 (velocity > 1.2)，降低切屏门槛至 60px
+                const effectiveThreshold = (absDelta >= 100 || velocity > 1.2) ? 60 : SCROLL_THRESHOLD;
 
                 if (state.currentSection === 'start') {
                     if (!down) {
@@ -4486,16 +4500,16 @@
                     e.preventDefault();
                     scrollAccum += delta;
                     resetAccumAfterDelay();
-                    if (scrollAccum >= SCROLL_THRESHOLD) {
+                    if (scrollAccum >= effectiveThreshold) {
                         switchToNav();
                     }
                 } else {
                     // 仅当位于导航页顶端且向上滚动时才拦截并累积切屏阈值，其余状态下完全放行原生滚动
                     if (!down && navContent && navContent.scrollTop <= 0) {
                         e.preventDefault();
-                        scrollAccum += Math.abs(delta);
+                        scrollAccum += absDelta;
                         resetAccumAfterDelay();
-                        if (scrollAccum >= SCROLL_THRESHOLD) {
+                        if (scrollAccum >= effectiveThreshold) {
                             switchToStart();
                         }
                     } else {
@@ -4504,42 +4518,139 @@
                 }
             }, { passive: false });
 
+            let startTouchY = 0;
+            let lastTouchY = 0;
+            let touchStartTime = 0;
+            let isTouchDragging = false;
+            let touchDragDirection = null; // 'up' or 'down'
+
+            function resetTouchDragStyles() {
+                if (startSection) {
+                    startSection.style.transition = '';
+                    startSection.style.transform = '';
+                }
+                if (nav) {
+                    nav.style.transition = '';
+                    nav.style.transform = '';
+                }
+            }
+
             document.addEventListener('touchstart', (e) => {
-                lastTouchY = e.touches[0].clientY;
+                if (isTransitioning || !OverlayStack.isEmpty()) return;
+                startTouchY = e.touches[0].clientY;
+                lastTouchY = startTouchY;
+                touchStartTime = performance.now();
+                isTouchDragging = false;
+                touchDragDirection = null;
             }, { passive: true });
 
             document.addEventListener('touchmove', (e) => {
                 if (isTransitioning || !OverlayStack.isEmpty()) return;
                 const currentY = e.touches[0].clientY;
-                const incrementalDelta = lastTouchY - currentY;
+                const totalDeltaY = startTouchY - currentY;
                 lastTouchY = currentY;
 
-                if (Math.abs(incrementalDelta) < 1) return;
-
                 if (state.currentSection === 'start') {
-                    if (incrementalDelta > 0) {
-                        e.preventDefault();
-                        scrollAccum += Math.abs(incrementalDelta);
-                        resetAccumAfterDelay();
-                        if (scrollAccum >= SCROLL_THRESHOLD) {
+                    // 从首屏向上拖拽到导航页（跟手跟随）
+                    if (totalDeltaY > 0) {
+                        if (e.cancelable) e.preventDefault();
+                        isTouchDragging = true;
+                        touchDragDirection = 'up';
+                        const vh = window.innerHeight || 800;
+                        const progress = Math.min(1, Math.max(0, totalDeltaY / vh));
+
+                        nav.classList.remove('nav-hidden');
+                        nav.classList.add('nav-visible');
+
+                        if (totalDeltaY >= SCROLL_THRESHOLD) {
+                            resetTouchDragStyles();
+                            isTouchDragging = false;
                             switchToNav();
+                            return;
                         }
-                    } else {
-                        scrollAccum = Math.max(0, scrollAccum - Math.abs(incrementalDelta));
+
+                        startSection.style.transition = 'none';
+                        nav.style.transition = 'none';
+                        startSection.style.transform = `translateY(${-progress * 100}vh)`;
+                        nav.style.transform = `translateY(${(1 - progress) * 100}vh)`;
+                    } else if (isTouchDragging) {
+                        if (e.cancelable) e.preventDefault();
+                        startSection.style.transform = `translateY(0vh)`;
+                        nav.style.transform = `translateY(100vh)`;
                     }
-                } else {
-                    if (incrementalDelta < 0 && navContent && navContent.scrollTop <= 0) {
-                        e.preventDefault();
-                        scrollAccum += Math.abs(incrementalDelta);
-                        resetAccumAfterDelay();
-                        if (scrollAccum >= SCROLL_THRESHOLD) {
+                } else if (state.currentSection === 'nav') {
+                    // 从导航页顶部向下拖拽回首屏（跟手跟随）
+                    if (totalDeltaY < 0 && navContent && navContent.scrollTop <= 0) {
+                        if (e.cancelable) e.preventDefault();
+                        isTouchDragging = true;
+                        touchDragDirection = 'down';
+                        const vh = window.innerHeight || 800;
+                        const absDelta = Math.abs(totalDeltaY);
+                        const progress = Math.min(1, Math.max(0, absDelta / vh));
+
+                        nav.classList.remove('nav-hidden');
+                        nav.classList.add('nav-visible');
+
+                        if (absDelta >= SCROLL_THRESHOLD) {
+                            resetTouchDragStyles();
+                            isTouchDragging = false;
                             switchToStart();
+                            return;
                         }
-                    } else {
-                        clearAccum();
+
+                        startSection.style.transition = 'none';
+                        nav.style.transition = 'none';
+                        startSection.style.transform = `translateY(${-(1 - progress) * 100}vh)`;
+                        nav.style.transform = `translateY(${progress * 100}vh)`;
+                    } else if (isTouchDragging) {
+                        if (e.cancelable) e.preventDefault();
+                        startSection.style.transform = `translateY(-100vh)`;
+                        nav.style.transform = `translateY(0vh)`;
                     }
                 }
             }, { passive: false });
+
+            document.addEventListener('touchend', (e) => {
+                if (!isTouchDragging) return;
+                const endTouchY = (e.changedTouches && e.changedTouches.length > 0) ? e.changedTouches[0].clientY : lastTouchY;
+                const totalDeltaY = startTouchY - endTouchY;
+                const touchDuration = performance.now() - touchStartTime;
+                const velocity = touchDuration > 0 ? Math.abs(totalDeltaY) / touchDuration : 0; // px/ms
+                const vh = window.innerHeight || 800;
+                const progress = Math.min(1, Math.max(0, Math.abs(totalDeltaY) / vh));
+
+                resetTouchDragStyles();
+                isTouchDragging = false;
+
+                // 若拉动超过 25% 视口或甩动速度 > 0.35 px/ms，执行切屏；否则弹性吸附复位
+                const shouldSwitch = progress >= 0.25 || velocity > 0.35;
+
+                if (state.currentSection === 'start' && touchDragDirection === 'up') {
+                    if (shouldSwitch) {
+                        switchToNav();
+                    } else {
+                        targetSection = 'start';
+                        startSection.classList.remove('screen-pushed-up');
+                        nav.classList.remove('screen-pushed-in', 'nav-visible');
+                        nav.classList.add('nav-hidden');
+                        saveSection('start');
+                        updateSectionAccessibility('start');
+                        updateGearVisibility();
+                    }
+                } else if (state.currentSection === 'nav' && touchDragDirection === 'down') {
+                    if (shouldSwitch) {
+                        switchToStart();
+                    } else {
+                        targetSection = 'nav';
+                        startSection.classList.add('screen-pushed-up');
+                        nav.classList.remove('nav-hidden');
+                        nav.classList.add('nav-visible', 'screen-pushed-in');
+                        saveSection('nav');
+                        updateSectionAccessibility('nav');
+                        updateGearVisibility();
+                    }
+                }
+            });
 
 
 
