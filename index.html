@@ -4596,8 +4596,9 @@
                 }
             }, { passive: false });
 
-            document.addEventListener('touchend', (e) => {
+            function handleTouchEndOrCancel(e) {
                 if (!isTouchDragging) return;
+                const isCancel = e.type === 'touchcancel';
                 const endTouchY = (e.changedTouches && e.changedTouches.length > 0) ? e.changedTouches[0].clientY : lastTouchY;
                 const totalDeltaY = startTouchY - endTouchY;
                 const touchDuration = performance.now() - touchStartTime;
@@ -4608,8 +4609,8 @@
                 resetTouchDragStyles();
                 isTouchDragging = false;
 
-                // 若拉动超过 25% 视口或甩动速度 > 0.35 px/ms，执行切屏；否则弹性吸附复位
-                const shouldSwitch = progress >= 0.25 || velocity > 0.35;
+                // 若被系统事件打断 (touchcancel)，安全起见一律弹性复位弹回原位；正常 touchend 满足条件则切屏
+                const shouldSwitch = !isCancel && (progress >= 0.25 || velocity > 0.35);
 
                 if (state.currentSection === 'start' && touchDragDirection === 'up') {
                     if (shouldSwitch) {
@@ -4636,7 +4637,10 @@
                         updateGearVisibility();
                     }
                 }
-            });
+            }
+
+            document.addEventListener('touchend', handleTouchEndOrCancel);
+            document.addEventListener('touchcancel', handleTouchEndOrCancel);
 
 
 
