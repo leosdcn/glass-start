@@ -1,21 +1,15 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
   <defs>
-    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#1e293b"/>
-      <stop offset="50%" stop-color="#0f172a"/>
-      <stop offset="100%" stop-color="#020617"/>
-    </linearGradient>
     <linearGradient id="planetGrad" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#38bdf8"/>
       <stop offset="50%" stop-color="#818cf8"/>
       <stop offset="100%" stop-color="#c084fc"/>
     </linearGradient>
     <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="rgba(255, 255, 255, 0.8)"/>
-      <stop offset="100%" stop-color="rgba(255, 255, 255, 0.2)"/>
+      <stop offset="0%" stop-color="rgba(255, 255, 255, 0.9)"/>
+      <stop offset="100%" stop-color="rgba(255, 255, 255, 0.3)"/>
     </linearGradient>
   </defs>
-  <rect width="512" height="512" rx="128" fill="url(#bgGrad)"/>
   <g transform="translate(256, 256)">
     <circle r="110" fill="url(#planetGrad)"/>
     <ellipse rx="190" ry="55" fill="none" stroke="url(#ringGrad)" stroke-width="18" transform="rotate(-25)"/>
