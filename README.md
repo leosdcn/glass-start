@@ -74,6 +74,11 @@ npm run build
 
 **上线发布**：只需将生成的 **`dist/` 文件夹下的全部内容** 上传部署至 GitHub Pages、Cloudflare Pages、Vercel、Nginx 或 NAS 即可。
 
+### 3. 静态检查与测试规范 (Lint & Testing Guidelines for Agent / Dev)
+- ⚡ **静态代码检查 (`npm run lint`)**：耗时仅 0.2 秒。修改 HTML / JS 代码后仅需运行此命令做轻量语法校验。
+- 🚀 **生产构建打包 (`npm run build`)**：耗时仅 0.15 秒。编译 Tailwind CSS 并同步书签数据，无需等待任何测试。
+- ⚠️ **全量端到端测试 (`npm test`)**：会启动无头 Chrome 运行 6 个 CDP 端到端测试文件。**Agent 或开发者在日常修复小 Bug 或调整小功能时严禁自动运行 `npm test`**，避免浪费时间；仅在用户明确发出指令要求“全量测试”时才执行。
+
 ---
 
 ## 📁 项目目录结构与文件作用
@@ -87,7 +92,10 @@ npm run build
 | **`manifest.json`** | Web App 应用配置 | PWA 应用清单文件。配置应用名称、图标、启动 URL、主题颜色，支持添加至手机主屏幕与独立 Web App 运行。 | PWA 必需 |
 | **`icon.svg`** | 矢量图标 | 网站 Logo 与 PWA 图标源文件。采用 SVG 格式确保高清高分屏无损缩放。 | 图标资源 |
 | **`_headers`** | HTTP 头部配置 | Cloudflare Pages / Vercel 静态托管的安全响应头配置 (HSTS, X-Content-Type-Options, Referrer-Policy 等)。 | 部署配置 |
-| **`package.json`** | 项目配置 | Node 项目配置文件，提供 `npm run dev` 与 `npm run build` 脚本命令。 | 配置文件 |
+| **`lint.mjs`** | 检查脚本 | Node 零依赖静态检查脚本。用于提取 `index.html` 内联 `<script>` 及检查所有 `.js`/`.mjs` 语法。 | 工具脚本 |
+| **`test/`** | **测试目录** | 端到端 UI 自动化测试目录。内含 6 个 CDP 浏览器自动化测试套件与 Web 调试服务器。 | 测试框架 |
+| **`TEST-REPORT.md`** | 测试文档 | 项目自动化测试覆盖率分析与完整功能验证报告。 | 运维文档 |
+| **`package.json`** | 项目配置 | Node 项目配置文件，提供 `npm run dev`、`npm run build`、`npm run lint` 与 `npm test` 命令。 | 配置文件 |
 | **`dist/`** | **生产输出** | `npm run build` 自动生成的生产构建目录。包含剥离 Play CDN 并精简 CSS 后的上线资源。 | 生产部署产物 |
 | `.gitignore` | 配置文档 | Git 版本控制忽略配置。 | 运维配置 |
 | **`README.md`** | 说明文档 | 本文档，记录项目架构、文件职责、运行机制及部署指南。 | 运维文档 |
@@ -155,11 +163,16 @@ npm run build
 
 ## 🛠️ 单点维护书签指南
 
-1. **修改/添加书签**：**只需要修改 `bookmarks.json` 一个文件即可**（支持 `"desc"` 简短介绍副标题，推荐控制在 6 ~ 10 个字）。
+1. **修改/添加书签**：**只需要修改 `bookmarks.json` 一个文件即可**。
+   * **`desc` 简介副标题编写规范**（参见 [index.html#L1203](./index.html#L1203)）：
+     - **字数限制**：推荐严格控制在 **6 ~ 10 个中文字符**（或 12 ~ 20 个英文字符）以内。
+     - **布局与截断**：展示在导航卡片标题下方，窄屏或超长字符会自动触发单行截断（`truncate`）。
+     - **内容准则**：精准概括网站核心定位，避免冗余修饰词（如 `全球领先AI对话模型`、`开源卡片式IP检测`）。
 2. **执行自动同步**：修改完成后，在终端运行打包命令：
    ```bash
    npm run build
    ```
-   `build.js` 脚本会自动将 `bookmarks.json` 中的最新书签同步更新至源码 `index.html` 及 `dist/index.html` 中。
+   `build.js` 脚本会自动将 `bookmarks.json` 中的最新书签同步更新至源码 `index.html` 及 `dist/index.html` 内置回退数组中。
 3. **修改搜索引擎**：可在 `index.html` 中的 `engines` 引擎配置对象中新增或定制新的搜索引擎（百度、Google、Bing 等）。
+
 
