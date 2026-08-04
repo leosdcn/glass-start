@@ -2555,12 +2555,14 @@
          * 打开设置与偏好弹窗，备份打开前的初始配置以备取消时回滚
          * @returns {void}
          */
-        function openEditModal() {
+        async function openEditModal() {
             state.editOpen = true;
             OverlayStack.push('editModal', cancelEditModal);
 
-            // 备份打开前的初始配置
-            modalState.initialWallpaper = storageGet('userWallpaper');
+            // 备份打开前的初始配置：自定义壁纸存储于 IndexedDB（保存路径只写 IDB 并清理了
+            // localStorage），因此必须优先取 state.customWallpaper / IDB，localStorage 仅作历史兜底；
+            // 否则“取消”回滚会错误地丢失当前生效的自定义壁纸
+            modalState.initialWallpaper = state.customWallpaper || await getWallpaperDB() || storageGet('userWallpaper');
             modalState.initialMaskOpacity = storageGet('maskOpacity', 25);
             modalState.initialBgBlur = storageGet('bgBlur', 0);
             modalState.initialBookmarks = JSON.parse(JSON.stringify(pageData.bookmarks));
@@ -2774,6 +2776,11 @@
                 storageRemove('userWallpaper');
                 storageRemove('maskOpacity');
                 storageRemove('bgBlur');
+
+                // 自定义壁纸实际持久化于 IndexedDB（保存路径只写 IDB 并清理了 localStorage），
+                // 重置时必须同步清除 IDB 与内存状态，否则刷新页面后自定义壁纸会“复活”
+                removeWallpaperDB();
+                state.customWallpaper = null;
 
                 modalState.draftWallpaper = undefined;
                 modalState.draftMaskOpacity = null;
@@ -3233,8 +3240,11 @@
             if (!dom.sidebarList || !dom.navContent) return;
             cachedSidebarItems = Array.from(dom.sidebarList.querySelectorAll('[data-target]'));
             cachedSidebarSections = cachedSidebarItems.map(item => document.getElementById(item.dataset.target)).filter(Boolean);
-            const contentTop = dom.navContent.offsetTop;
-            cachedSectionOffsets = cachedSidebarSections.map(s => s.offsetTop - contentTop);
+            // 分类块 (#cat-i) 的 offsetParent 是 #navContent（relative），其 offsetTop 以
+            // #navContent 的 padding edge 为原点，与 scrollTop 的原点完全一致，直接使用即可；
+            // 不能再减 navContent.offsetTop —— 那是相对 #navSection 的另一个坐标系（偏差约 51~57px），
+            // 会导致滚动监听中分类高亮提前约 50px 切换
+            cachedSectionOffsets = cachedSidebarSections.map(s => s.offsetTop);
         }
 
         function updateSidebarActive() {
@@ -3483,14 +3493,16 @@
                 if (e.key === 'Escape') {
                     const topOverlay = OverlayStack.top();
                     if (topOverlay && typeof topOverlay.close === 'function') {
+                        // 联想面板在栈中时，Escape 必然命中栈顶分支（此前位于 return 之后的还原
+                        // 逻辑是永远执行不到的死代码）；此处先还原被 ↑↓ 选中的联想词为原始输入，再关闭面板
+                        if (topOverlay.id === 'suggestions' && dom.suggestionMenu && dom.suggestionMenu.classList.contains('active') && selectedSuggestionIdx >= 0) {
+                            dom.searchInput.value = originalQuery;
+                            if (dom.searchClearBtn) dom.searchClearBtn.classList.toggle('hidden', !dom.searchInput.value);
+                        }
                         topOverlay.close();
                         e.stopPropagation();
                         return;
                     }
-                    if (dom.suggestionMenu && dom.suggestionMenu.classList.contains('active') && selectedSuggestionIdx >= 0) {
-                        dom.searchInput.value = originalQuery;
-                    }
-                    if (dom.searchClearBtn) dom.searchClearBtn.classList.toggle('hidden', !dom.searchInput.value);
                     closeDropdown();
                     hideSuggestions();
                     dom.searchInput.blur();
@@ -4307,8 +4319,10 @@
             }
 
             if (animate) {
-                // 1. 若当前上层已有背景，将当前上层的图片同步到底层作为起点
-                if (bgNext.style.backgroundImage) {
+                // 1. 仅当上层背景当前可见（淡入动画进行中，opacity > 0.4）时才将其同步到底层作为淡入起点。
+                //    与上方中断分支的守卫保持一致：不可见的陈旧图层（动画已结束或刚被置 0）不得复制为底图，
+                //    否则 0.6s 淡入期间会闪现上一次未完整显示的壁纸
+                if (bgNext.style.backgroundImage && parseFloat(getComputedStyle(bgNext).opacity) > 0.4) {
                     bgBase.style.backgroundImage = bgNext.style.backgroundImage;
                 }
                 // 2. 暂时断开 CSS 过渡动画，防止 0.6s 过渡延迟，强制将 opacity 归零
