@@ -59,14 +59,14 @@
          * bg8.webp - 梦幻流彩 (https://images.unsplash.com/photo-1550684848-fac1c5b4e853)
          */
         const backgrounds = [
-          './wallpapers/bg1.webp',
-          './wallpapers/bg2.webp',
-          './wallpapers/bg3.webp',
-          './wallpapers/bg4.webp',
-          './wallpapers/bg5.webp',
-          './wallpapers/bg6.webp',
-          './wallpapers/bg7.webp',
-          './wallpapers/bg8.webp'
+          './wallpapers/bg1.avif',
+          './wallpapers/bg2.avif',
+          './wallpapers/bg3.avif',
+          './wallpapers/bg4.avif',
+          './wallpapers/bg5.avif',
+          './wallpapers/bg6.avif',
+          './wallpapers/bg7.avif',
+          './wallpapers/bg8.avif'
         ];
         try {
           const rawUserWp = localStorage.getItem('userWallpaper');
@@ -847,7 +847,7 @@
     <div id="bgLayer" class="bg-fullscreen bg-cover bg-center bg-no-repeat -z-10 bg-[#0f172a] opacity-0" style="transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1); transform: translateZ(0); will-change: transform, opacity;"></div>
     <div id="bgLayerNext" class="bg-fullscreen bg-cover bg-center bg-no-repeat -z-10 opacity-0 bg-[#0f172a]" style="transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1); transform: translateZ(0); will-change: transform, opacity;"></div>
     <div id="bgOverlay" class="bg-fullscreen bg-black/25 pointer-events-none z-0" style="transition: background-color 0.2s ease, backdrop-filter 0.2s ease, -webkit-backdrop-filter 0.2s ease; transform: translateZ(0); will-change: transform, opacity;"></div>
-    <script>(function(){const bg=document.getElementById('bgLayer');const url=window.__PRELOADED_BG__||'./wallpapers/bg1.webp';if(bg){const show=function(){bg.style.backgroundImage="url(\""+url.replace(/["'\\]/g,'\\$&')+"\")";bg.style.opacity='1';};const img=new Image();img.onload=show;img.src=url;if(img.complete&&img.naturalWidth>0)show();}if(window.__PRE_BG_EFFECTS__){const o=document.getElementById('bgOverlay');if(o){o.style.backgroundColor='rgba(0, 0, 0, '+(window.__PRE_BG_EFFECTS__.op/100)+')';if(window.__PRE_BG_EFFECTS__.bl>0){const b='blur('+window.__PRE_BG_EFFECTS__.bl+'px)';o.style.backdropFilter=b;o.style.webkitBackdropFilter=b;}}}})()</script>
+    <script>(function(){const bg=document.getElementById('bgLayer');const url=window.__PRELOADED_BG__||'./wallpapers/bg1.avif';if(bg){const show=function(){bg.style.backgroundImage="url(\""+url.replace(/["'\\]/g,'\\$&')+"\")";bg.style.opacity='1';};const img=new Image();img.onload=show;img.src=url;if(img.complete&&img.naturalWidth>0)show();}if(window.__PRE_BG_EFFECTS__){const o=document.getElementById('bgOverlay');if(o){o.style.backgroundColor='rgba(0, 0, 0, '+(window.__PRE_BG_EFFECTS__.op/100)+')';if(window.__PRE_BG_EFFECTS__.bl>0){const b='blur('+window.__PRE_BG_EFFECTS__.bl+'px)';o.style.backdropFilter=b;o.style.webkitBackdropFilter=b;}}}})()</script>
 
     <!-- ========== 第一屏：起始页 ========== -->
     <section id="startSection" class="relative z-10 min-h-screen flex flex-col items-center justify-center px-4 py-12">
@@ -1056,36 +1056,36 @@
                         <span class="text-[10px] text-white/40">点击预览</span>
                     </div>
                     <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 flex-1 min-h-0">
-                        <button type="button" class="preset-bg-card relative aspect-video rounded-xl overflow-hidden border border-white/15 hover:border-white/50 transition group shadow-md" data-bg="./wallpapers/bg1.webp" data-title="山峦夜空" title="山峦夜空（系统默认）">
-                            <img data-src="./wallpapers/bg1.webp" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 9'%3E%3C/svg%3E" alt="山峦夜空" class="w-full h-full object-cover group-hover:scale-105 transition duration-300 pointer-events-none" loading="lazy" decoding="async">
+                        <button type="button" class="preset-bg-card relative aspect-video rounded-xl overflow-hidden border border-white/15 hover:border-white/50 transition group shadow-md" data-bg="./wallpapers/bg1.avif" data-title="山峦夜空" title="山峦夜空（系统默认）">
+                            <img data-src="./wallpapers/bg1.avif" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 9'%3E%3C/svg%3E" alt="山峦夜空" class="w-full h-full object-cover group-hover:scale-105 transition duration-300 pointer-events-none" loading="lazy" decoding="async">
                             <span class="absolute inset-x-0 bottom-0 py-1 bg-black/60 backdrop-blur-xs text-[10px] text-white/90 text-center font-medium pointer-events-none">山峦夜空</span>
                         </button>
-                        <button type="button" class="preset-bg-card relative aspect-video rounded-xl overflow-hidden border border-white/15 hover:border-white/50 transition group shadow-md" data-bg="./wallpapers/bg2.webp" data-title="湖光山色" title="湖光山色">
-                            <img data-src="./wallpapers/bg2.webp" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 9'%3E%3C/svg%3E" alt="湖光山色" class="w-full h-full object-cover group-hover:scale-105 transition duration-300 pointer-events-none" loading="lazy" decoding="async">
+                        <button type="button" class="preset-bg-card relative aspect-video rounded-xl overflow-hidden border border-white/15 hover:border-white/50 transition group shadow-md" data-bg="./wallpapers/bg2.avif" data-title="湖光山色" title="湖光山色">
+                            <img data-src="./wallpapers/bg2.avif" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 9'%3E%3C/svg%3E" alt="湖光山色" class="w-full h-full object-cover group-hover:scale-105 transition duration-300 pointer-events-none" loading="lazy" decoding="async">
                             <span class="absolute inset-x-0 bottom-0 py-1 bg-black/60 backdrop-blur-xs text-[10px] text-white/90 text-center font-medium pointer-events-none">湖光山色</span>
                         </button>
-                        <button type="button" class="preset-bg-card relative aspect-video rounded-xl overflow-hidden border border-white/15 hover:border-white/50 transition group shadow-md" data-bg="./wallpapers/bg3.webp" data-title="森林瀑布" title="森林瀑布">
-                            <img data-src="./wallpapers/bg3.webp" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 9'%3E%3C/svg%3E" alt="森林瀑布" class="w-full h-full object-cover group-hover:scale-105 transition duration-300 pointer-events-none" loading="lazy" decoding="async">
+                        <button type="button" class="preset-bg-card relative aspect-video rounded-xl overflow-hidden border border-white/15 hover:border-white/50 transition group shadow-md" data-bg="./wallpapers/bg3.avif" data-title="森林瀑布" title="森林瀑布">
+                            <img data-src="./wallpapers/bg3.avif" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 9'%3E%3C/svg%3E" alt="森林瀑布" class="w-full h-full object-cover group-hover:scale-105 transition duration-300 pointer-events-none" loading="lazy" decoding="async">
                             <span class="absolute inset-x-0 bottom-0 py-1 bg-black/60 backdrop-blur-xs text-[10px] text-white/90 text-center font-medium pointer-events-none">森林瀑布</span>
                         </button>
-                        <button type="button" class="preset-bg-card relative aspect-video rounded-xl overflow-hidden border border-white/15 hover:border-white/50 transition group shadow-md" data-bg="./wallpapers/bg4.webp" data-title="星空雪山" title="星空雪山">
-                            <img data-src="./wallpapers/bg4.webp" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 9'%3E%3C/svg%3E" alt="星空雪山" class="w-full h-full object-cover group-hover:scale-105 transition duration-300 pointer-events-none" loading="lazy" decoding="async">
+                        <button type="button" class="preset-bg-card relative aspect-video rounded-xl overflow-hidden border border-white/15 hover:border-white/50 transition group shadow-md" data-bg="./wallpapers/bg4.avif" data-title="星空雪山" title="星空雪山">
+                            <img data-src="./wallpapers/bg4.avif" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 9'%3E%3C/svg%3E" alt="星空雪山" class="w-full h-full object-cover group-hover:scale-105 transition duration-300 pointer-events-none" loading="lazy" decoding="async">
                             <span class="absolute inset-x-0 bottom-0 py-1 bg-black/60 backdrop-blur-xs text-[10px] text-white/90 text-center font-medium pointer-events-none">星空雪山</span>
                         </button>
-                        <button type="button" class="preset-bg-card relative aspect-video rounded-xl overflow-hidden border border-white/15 hover:border-white/50 transition group shadow-md" data-bg="./wallpapers/bg5.webp" data-title="壮丽旷野" title="壮丽旷野">
-                            <img data-src="./wallpapers/bg5.webp" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 9'%3E%3C/svg%3E" alt="壮丽旷野" class="w-full h-full object-cover group-hover:scale-105 transition duration-300 pointer-events-none" loading="lazy" decoding="async">
+                        <button type="button" class="preset-bg-card relative aspect-video rounded-xl overflow-hidden border border-white/15 hover:border-white/50 transition group shadow-md" data-bg="./wallpapers/bg5.avif" data-title="壮丽旷野" title="壮丽旷野">
+                            <img data-src="./wallpapers/bg5.avif" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 9'%3E%3C/svg%3E" alt="壮丽旷野" class="w-full h-full object-cover group-hover:scale-105 transition duration-300 pointer-events-none" loading="lazy" decoding="async">
                             <span class="absolute inset-x-0 bottom-0 py-1 bg-black/60 backdrop-blur-xs text-[10px] text-white/90 text-center font-medium pointer-events-none">壮丽旷野</span>
                         </button>
-                        <button type="button" class="preset-bg-card relative aspect-video rounded-xl overflow-hidden border border-white/15 hover:border-white/50 transition group shadow-md" data-bg="./wallpapers/bg6.webp" data-title="静谧海岸" title="静谧海岸">
-                            <img data-src="./wallpapers/bg6.webp" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 9'%3E%3C/svg%3E" alt="静谧海岸" class="w-full h-full object-cover group-hover:scale-105 transition duration-300 pointer-events-none" loading="lazy" decoding="async">
+                        <button type="button" class="preset-bg-card relative aspect-video rounded-xl overflow-hidden border border-white/15 hover:border-white/50 transition group shadow-md" data-bg="./wallpapers/bg6.avif" data-title="静谧海岸" title="静谧海岸">
+                            <img data-src="./wallpapers/bg6.avif" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 9'%3E%3C/svg%3E" alt="静谧海岸" class="w-full h-full object-cover group-hover:scale-105 transition duration-300 pointer-events-none" loading="lazy" decoding="async">
                             <span class="absolute inset-x-0 bottom-0 py-1 bg-black/60 backdrop-blur-xs text-[10px] text-white/90 text-center font-medium pointer-events-none">静谧海岸</span>
                         </button>
-                        <button type="button" class="preset-bg-card relative aspect-video rounded-xl overflow-hidden border border-white/15 hover:border-white/50 transition group shadow-md" data-bg="./wallpapers/bg7.webp" data-title="迷雾古堡" title="迷雾古堡">
-                            <img data-src="./wallpapers/bg7.webp" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 9'%3E%3C/svg%3E" alt="迷雾古堡" class="w-full h-full object-cover group-hover:scale-105 transition duration-300 pointer-events-none" loading="lazy" decoding="async">
+                        <button type="button" class="preset-bg-card relative aspect-video rounded-xl overflow-hidden border border-white/15 hover:border-white/50 transition group shadow-md" data-bg="./wallpapers/bg7.avif" data-title="迷雾古堡" title="迷雾古堡">
+                            <img data-src="./wallpapers/bg7.avif" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 9'%3E%3C/svg%3E" alt="迷雾古堡" class="w-full h-full object-cover group-hover:scale-105 transition duration-300 pointer-events-none" loading="lazy" decoding="async">
                             <span class="absolute inset-x-0 bottom-0 py-1 bg-black/60 backdrop-blur-xs text-[10px] text-white/90 text-center font-medium pointer-events-none">迷雾古堡</span>
                         </button>
-                        <button type="button" class="preset-bg-card relative aspect-video rounded-xl overflow-hidden border border-white/15 hover:border-white/50 transition group shadow-md" data-bg="./wallpapers/bg8.webp" data-title="梦幻流彩" title="梦幻流彩">
-                            <img data-src="./wallpapers/bg8.webp" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 9'%3E%3C/svg%3E" alt="梦幻流彩" class="w-full h-full object-cover group-hover:scale-105 transition duration-300 pointer-events-none" loading="lazy" decoding="async">
+                        <button type="button" class="preset-bg-card relative aspect-video rounded-xl overflow-hidden border border-white/15 hover:border-white/50 transition group shadow-md" data-bg="./wallpapers/bg8.avif" data-title="梦幻流彩" title="梦幻流彩">
+                            <img data-src="./wallpapers/bg8.avif" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 9'%3E%3C/svg%3E" alt="梦幻流彩" class="w-full h-full object-cover group-hover:scale-105 transition duration-300 pointer-events-none" loading="lazy" decoding="async">
                             <span class="absolute inset-x-0 bottom-0 py-1 bg-black/60 backdrop-blur-xs text-[10px] text-white/90 text-center font-medium pointer-events-none">梦幻流彩</span>
                         </button>
                     </div>
@@ -1915,14 +1915,14 @@
          * bg8.webp - 梦幻流彩 (https://images.unsplash.com/photo-1550684848-fac1c5b4e853)
          */
         const backgrounds = [
-            './wallpapers/bg1.webp',
-            './wallpapers/bg2.webp',
-            './wallpapers/bg3.webp',
-            './wallpapers/bg4.webp',
-            './wallpapers/bg5.webp',
-            './wallpapers/bg6.webp',
-            './wallpapers/bg7.webp',
-            './wallpapers/bg8.webp'
+            './wallpapers/bg1.avif',
+            './wallpapers/bg2.avif',
+            './wallpapers/bg3.avif',
+            './wallpapers/bg4.avif',
+            './wallpapers/bg5.avif',
+            './wallpapers/bg6.avif',
+            './wallpapers/bg7.avif',
+            './wallpapers/bg8.avif'
         ];
 
         // ==================== 状态与 DOM 缓存 ====================
