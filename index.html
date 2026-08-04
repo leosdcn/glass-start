@@ -72,11 +72,29 @@
           const rawUserWp = localStorage.getItem('userWallpaper');
           let preloadUrl = '';
           if (rawUserWp) {
-            preloadUrl = JSON.parse(rawUserWp);
-          } else {
+            const parsed = JSON.parse(rawUserWp);
+            if (typeof parsed === 'string') {
+              // 兼容旧版脏数据：若 userWallpaper 里存的是预设相对路径（./wallpapers/bgN.avif），
+              // 按索引方式处理并擦除，避免后续被误识别为"自定义壁纸"
+              const presetIdx = backgrounds.indexOf(parsed);
+              if (presetIdx >= 0) {
+                try { localStorage.removeItem('userWallpaper'); } catch(e) {}
+                try { localStorage.setItem('bg', JSON.stringify(presetIdx)); } catch(e) {}
+                preloadUrl = backgrounds[presetIdx];
+              } else {
+                preloadUrl = parsed;
+              }
+            }
+            // parsed 非字符串（损坏值）则留空，后续统一 fallback 到 backgrounds[0]
+            if (!preloadUrl) {
+              try { localStorage.removeItem('userWallpaper'); } catch(e) {}
+            }
+          }
+          if (!preloadUrl) {
             const rawBg = localStorage.getItem('bg');
-            const bgIdx = rawBg !== null ? JSON.parse(rawBg) : 0;
-            preloadUrl = backgrounds[bgIdx] || backgrounds[0];
+            let bgIdx = 0;
+            try { bgIdx = rawBg !== null ? JSON.parse(rawBg) : 0; } catch(e) { bgIdx = 0; }
+            preloadUrl = (typeof bgIdx === 'number' && backgrounds[bgIdx]) ? backgrounds[bgIdx] : backgrounds[0];
           }
           if (preloadUrl && typeof preloadUrl === 'string') {
             // 根据设备物理像素 (宽度 * DPR) 动态调优 Unsplash 尺寸参数 (阶梯以 200px 递增，上限 2560px 且强置 WebP)
@@ -2213,6 +2231,32 @@
             } catch {}
         }
 
+        /**
+         * 判断给定 URL 是否命中预设壁纸 backgrounds[] 数组；返回索引，未命中返回 -1。
+         * 用于在"保存壁纸草稿"分支中区分「选中系统预设」与「真·自定义壁纸」，
+         * 避免把 './wallpapers/bg5.avif' 这类预设路径错误写入 userWallpaper/IDB，
+         * 导致 switchBg() 把预设当成"自定义"清掉并强制跳回 bg1（BUG 4a）。
+         * @param {string|null|undefined} url
+         * @returns {number}
+         */
+        function findPresetBgIndex(url) {
+            if (!url || typeof url !== 'string') return -1;
+            // data:URL 与 http(s) 外网图不可能是预设，快速短路
+            if (/^(data:|https?:)/i.test(url)) return -1;
+            return backgrounds.indexOf(url);
+        }
+
+        /**
+         * 彻底清除"自定义壁纸"三通道（内存 / IDB / localStorage），不触碰 state.bg。
+         * 保存系统预设或恢复默认时统一调用，避免三处清理遗漏。
+         * @returns {Promise<void>}
+         */
+        async function clearCustomWallpaper() {
+            state.customWallpaper = null;
+            await removeWallpaperDB();
+            storageRemove('userWallpaper');
+        }
+
         // ==================== 安全工具 ====================
         /**
          * 协议白名单校验与 URL 安全过滤函数
@@ -2258,8 +2302,19 @@
                 state.bg = savedBg;
             }
 
+            // 读取自定义壁纸：兼容旧版本 BUG（v1.0 把 './wallpapers/bgN.avif' 预设路径误写入
+            // userWallpaper/IDB，导致被当作"自定义壁纸"、按 B 键强制跳回 bg1）。启动时做一次性迁移，
+            // 命中预设即还原为对应索引 state.bg 并清掉三通道脏数据。
             let customBg = await getWallpaperDB();
             if (!customBg) customBg = storageGet('userWallpaper');
+            const legacyPresetIdx = findPresetBgIndex(customBg);
+            if (legacyPresetIdx >= 0) {
+                // 旧脏数据迁移：还原 bg 索引，擦除伪自定义通道
+                state.bg = legacyPresetIdx;
+                storageSet('bg', legacyPresetIdx);
+                await clearCustomWallpaper();
+                customBg = null;
+            }
             if (customBg) {
                 state.customWallpaper = customBg;
                 applyWallpaper(customBg, false);
@@ -2441,13 +2496,15 @@
          * @returns {Promise<void>}
          */
         async function updateWallpaperStatusUI(customWallpaperOverride) {
-            const customBg = customWallpaperOverride !== undefined
+            const resolveBg = customWallpaperOverride !== undefined
                 ? customWallpaperOverride
                 : (modalState.draftWallpaper !== null && modalState.draftWallpaper !== undefined
                     ? modalState.draftWallpaper
                     : (state.customWallpaper || await getWallpaperDB() || storageGet('userWallpaper')));
+            // 命中预设 backgrounds[] 的 URL 不属于"自定义"，只有 data:/http(s): 以及非预设字符串才算自定义
+            const isCustom = !!resolveBg && findPresetBgIndex(resolveBg) === -1;
             if (!dom.wallpaperStatus || !dom.resetBgBtn) return;
-            if (customBg) {
+            if (isCustom) {
                 dom.wallpaperStatus.textContent = '已使用自定义壁纸';
                 dom.wallpaperStatus.className = 'text-[10px] text-emerald-400/90 font-medium';
                 dom.resetBgBtn.classList.remove('hidden');
@@ -3897,7 +3954,7 @@
             });
 
             // 点击「保存并关闭」按钮提交草稿中的全部修改
-            dom.saveEditBtn.addEventListener('click', () => {
+            dom.saveEditBtn.addEventListener('click', async () => {
                 const data = collectEditData();
                 if (data.length === 0) {
                     showConfirm('至少需要保留一个名称和 URL 均已填写的书签才能保存。', null, '无法保存');
@@ -3908,16 +3965,39 @@
                 saveUserBookmarks(data);
 
                 // 2. 提交壁纸（大图持久化至 IndexedDB，同步写入 localStorage['userWallpaper'] 供 head 极速预加载）
+                //    关键：区分「选中系统预设（bg1~bg8）」与「真·自定义壁纸（上传 / 网络 URL）」：
+                //    - 预设：只同步 state.bg 索引 + localStorage.bg，并清掉 customWallpaper 三通道。
+                //      此前不做区分会把 './wallpapers/bg5.avif' 当作"自定义图"持久化，switchBg() 读到后
+                //      会清掉自定义通道并强制 state.bg=0 跳回 bg1，导致 Ctrl/Cmd+B 无法继续轮播（BUG 4a）。
+                //    - 自定义（data:/http:）：保持原逻辑，写入 state.customWallpaper + IDB + userWallpaper。
+                //    - 恢复默认（draftWallpaper === null）：同时重置 state.bg=0 并持久化 bg=0，
+                //      并清掉 customWallpaper 三通道；此前漏掉 state.bg 与 localStorage.bg，导致刷新后旧壁纸复活（BUG 4b）。
                 if (modalState.wallpaperChanged) {
-                    if (modalState.draftWallpaper) {
-                        state.customWallpaper = modalState.draftWallpaper;
-                        setWallpaperDB(modalState.draftWallpaper);
-                        storageSet('userWallpaper', modalState.draftWallpaper);
+                    const draft = modalState.draftWallpaper;
+                    const presetIdx = findPresetBgIndex(draft);
+                    if (presetIdx >= 0) {
+                        // 选中系统预设：按索引模式持久化（previewDraftWallpaper 已视觉切好）
+                        await clearCustomWallpaper();
+                        state.bg = presetIdx;
+                        storageSet('bg', presetIdx);
+                    } else if (draft) {
+                        // 真·自定义壁纸（上传 data:URL 或 http(s) 外网图）（previewDraftWallpaper 已视觉切好）
+                        state.customWallpaper = draft;
+                        setWallpaperDB(draft);
+                        storageSet('userWallpaper', draft);
+                        // 切到自定义图时，bg 索引不再有效，归零保证退出自定义后轮播从 bg1 开始
+                        state.bg = 0;
+                        storageSet('bg', 0);
                     } else {
-                        state.customWallpaper = null;
-                        removeWallpaperDB();
-                        storageRemove('userWallpaper');
+                        // 点击"恢复默认" → 回到 bg1（resetDraftWallpaper 已视觉切到 bg1）
+                        await clearCustomWallpaper();
+                        state.bg = 0;
+                        storageSet('bg', 0);
                     }
+                    if (dom.statWallpaperType) {
+                        dom.statWallpaperType.textContent = state.customWallpaper ? '自定义' : '系统';
+                    }
+                    updatePresetBgCardsUI(draft !== null && draft !== undefined ? draft : backgrounds[0]);
                 }
 
                 // 3. 提交特效
@@ -4541,6 +4621,14 @@
         }
         async function switchBg() {
             let customBg = state.customWallpaper || await getWallpaperDB() || storageGet('userWallpaper');
+            // 防御：若拿到的是预设壁纸路径（旧数据 / 其他路径误写），当作预设处理而非"自定义"
+            const legacyPresetIdx = findPresetBgIndex(customBg);
+            if (legacyPresetIdx >= 0) {
+                await clearCustomWallpaper();
+                state.bg = legacyPresetIdx;
+                // 落到下方统一"轮播到下一张"
+                customBg = null;
+            }
             if (customBg) {
                 await removeWallpaperDB();
                 storageRemove('userWallpaper');
