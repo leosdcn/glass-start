@@ -17,6 +17,34 @@ if (fs.existsSync(distDir)) {
 }
 fs.mkdirSync(distDir, { recursive: true });
 
+// 1.1 构建前依赖自检：Tailwind CLI 编译时需要从项目目录内解析 tailwindcss 包。
+//     从 GitHub ZIP 解压或新克隆的仓库不包含 node_modules，此时直接运行构建会报出
+//     晦涩难懂的 "Can't resolve 'tailwindcss'" 错误，这里提前拦截并给出中文指引
+function checkTailwindInstalled() {
+    const pkgJsonPath = path.join(rootDir, 'node_modules', 'tailwindcss', 'package.json');
+    try {
+        return !!(require(pkgJsonPath).version);
+    } catch {
+        return false;
+    }
+}
+
+if (!checkTailwindInstalled()) {
+    console.error('❌ 未检测到 Tailwind CSS 依赖 (node_modules/tailwindcss)。');
+    console.error('');
+    console.error('   请在项目根目录先安装依赖（包含 devDependencies 中的 tailwindcss）：');
+    console.error('');
+    console.error('       npm install');
+    console.error('');
+    console.error('   若已安装过仍报此错，可尝试删除 node_modules 后重新安装：');
+    console.error('');
+    console.error('       rm -rf node_modules && npm install');
+    console.error('');
+    console.error('   💡 提示：从 GitHub 下载的 ZIP 或新克隆的仓库不包含 node_modules，需先执行上述安装步骤。');
+    if (fs.existsSync(inputCssPath)) fs.unlinkSync(inputCssPath);
+    process.exit(1);
+}
+
 // 2. 创建临时 Tailwind v4 输入样式文件
 fs.writeFileSync(inputCssPath, '@import "tailwindcss";\n@source "./index.html";\n', 'utf-8');
 
@@ -26,7 +54,13 @@ try {
         stdio: 'inherit'
     });
 } catch (err) {
-    console.error('❌ Tailwind CSS 编译失败:', err);
+    console.error('❌ Tailwind CSS 编译失败:', err.message || err);
+    // 兜底提示：自检未拦截到的依赖解析类错误（如依赖损坏、版本不兼容等）
+    if (/can't resolve 'tailwindcss'|cannot find module 'tailwindcss'|module not found/i.test(String(err.message || ''))) {
+        console.error('');
+        console.error('   💡 提示：未能从项目目录解析到 tailwindcss 依赖包。');
+        console.error('      请先在项目根目录执行 `npm install`，或删除 node_modules 后重新安装再试。');
+    }
     if (fs.existsSync(inputCssPath)) fs.unlinkSync(inputCssPath);
     process.exit(1);
 } finally {
