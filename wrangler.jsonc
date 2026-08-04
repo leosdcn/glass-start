@@ -3,7 +3,6 @@
   "name": "glass-start",
   "compatibility_date": "2026-08-04",
   "assets": {
-    "directory": "dist",
-    "binding": "ASSETS"
+    "directory": "dist"
   }
 }
