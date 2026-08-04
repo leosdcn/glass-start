@@ -236,6 +236,8 @@
         @keyframes fadeIn { from { opacity:0.05; transform:translate3d(0, 1rem, 0); } to { opacity:1; transform:translate3d(0,0,0); } }
         .dropdown-menu { opacity:0; transform:translateY(-0.625rem); pointer-events:none; visibility:hidden; transition:opacity 0.2s ease, transform 0.2s ease, visibility 0.2s ease; }
         .dropdown-menu.active { opacity:1; transform:translateY(0); pointer-events:auto; visibility:visible; }
+        @keyframes skeletonPulse { 0%, 100% { opacity: 0.25; } 50% { opacity: 0.55; } }
+        .skeleton-pulse { animation: skeletonPulse 1.4s ease-in-out infinite; }
         .clock-text { font-family: 'SF Pro Rounded', 'Nunito', -apple-system, BlinkMacSystemFont, sans-serif; text-shadow: 0 2px 20px rgba(0,0,0,0.4), 0 0 60px rgba(0,0,0,0.2); }
         .bookmark-item { transition: all 0.2s ease; }
         .bookmark-item:hover { background: rgba(255,255,255,0.12); transform: translateY(-0.125rem); }
@@ -1543,7 +1545,7 @@
                 "bookmarks": [
                     {
                         "name": "DeepL",
-                        "url": "https://www.deepl.com",
+                        "url": "https://www.deepl.com/zh/translator",
                         "icon": "https://a.favicon.im/deepl.com",
                         "desc": "精准自然AI神经网络翻译"
                     },
@@ -4343,10 +4345,8 @@
             // 1. 实时检索本站书签匹配结果（最多 2 条特色书签）
             const localList = getLocalBookmarkSuggestions(query, 2);
 
-            // 2. 若存在本地匹配项，极速 0ms 呈现本地书签结果（无需阻塞等待网络 JSONP）
-            if (localList.length > 0) {
-                renderSuggestions(localList, []);
-            }
+            // 2. 极速 0ms 呈现本地书签 + 预留网络联想骨架槽位（实现零 CLS 布局抖动）
+            renderSuggestions(localList, [], false, true);
 
             // 递增请求 ID，用于在回调内部丢弃过期的异步响应
             activeSuggestReqId++;
@@ -4426,12 +4426,12 @@
             document.body.appendChild(script);
         }
 
-        function renderSuggestions(localList = [], netList = [], preserveSelection = false) {
+        function renderSuggestions(localList = [], netList = [], preserveSelection = false, isNetLoading = false) {
             if (!dom.suggestionMenu) return;
             const prevIdx = preserveSelection ? selectedSuggestionIdx : -1;
             selectedSuggestionIdx = -1;
 
-            if ((!localList || localList.length === 0) && (!netList || netList.length === 0)) {
+            if ((!localList || localList.length === 0) && (!netList || netList.length === 0) && !isNetLoading) {
                 hideSuggestions();
                 return;
             }
@@ -4496,6 +4496,25 @@
                     `;
                     globalIdx++;
                 });
+            } else if (isNetLoading) {
+                if (localList && localList.length > 0) {
+                    html += `
+                        <div class="px-3 pt-2 pb-1 text-[11px] font-semibold tracking-wider text-white/50 uppercase flex items-center gap-1.5 border-t border-white/10 mt-1 select-none">
+                            <span>🌐 搜索联想</span>
+                        </div>
+                    `;
+                }
+                const skeletonCount = Math.max(1, 4 - (localList ? localList.length : 0));
+                for (let k = 0; k < skeletonCount; k++) {
+                    const widthClass = k % 2 === 0 ? 'w-44' : 'w-28';
+                    html += `
+                        <div class="px-3.5 py-2.5 my-0.5 apple-radius flex items-center gap-3 select-none pointer-events-none skeleton-pulse">
+                            <svg class="w-4 h-4 text-white/20 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                            <div class="h-5 bg-white/15 apple-radius ${widthClass}"></div>
+                            <div class="h-3 w-7 bg-white/10 apple-radius shrink-0 ml-auto"></div>
+                        </div>
+                    `;
+                }
             }
 
             const footerHtml = `
