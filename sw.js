@@ -29,7 +29,7 @@ const MAX_IMG_ENTRIES = 200;     // 站内本地图片上限
 const CORE_ASSETS = [
     './',
     './index.html',
-    './wallpapers/bg1.webp'
+    './wallpapers/bg1.avif'
 ];
 
 // IndexedDB LRU 时间戳管理
