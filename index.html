@@ -1872,7 +1872,6 @@
             }
         ];
 
-        let initialBookmarks = DEFAULT_BOOKMARKS.map(bm => ({ ...bm }));
         let pageData = { bookmarks: DEFAULT_BOOKMARKS.map(bm => ({ ...bm })), categories: DEFAULT_CATEGORIES };
 
         // ==================== 配置 ====================
@@ -2343,8 +2342,7 @@
             initialWallpaper: null,
             initialMaskOpacity: 25,
             initialBgBlur: 0,
-            initialBookmarks: [],
-            
+
             draftWallpaper: undefined,
             draftMaskOpacity: null,
             draftBgBlur: null,
@@ -2565,7 +2563,6 @@
             modalState.initialWallpaper = state.customWallpaper || await getWallpaperDB() || storageGet('userWallpaper');
             modalState.initialMaskOpacity = storageGet('maskOpacity', 25);
             modalState.initialBgBlur = storageGet('bgBlur', 0);
-            modalState.initialBookmarks = JSON.parse(JSON.stringify(pageData.bookmarks));
 
             // 初始化草稿值
             modalState.draftWallpaper = modalState.initialWallpaper;
@@ -2776,6 +2773,7 @@
                 storageRemove('userWallpaper');
                 storageRemove('maskOpacity');
                 storageRemove('bgBlur');
+                storageRemove('bg'); // 清除持久化的壁纸轮播索引，与 state.bg = 0 保持一致
 
                 // 自定义壁纸实际持久化于 IndexedDB（保存路径只写 IDB 并清理了 localStorage），
                 // 重置时必须同步清除 IDB 与内存状态，否则刷新页面后自定义壁纸会“复活”
@@ -4103,7 +4101,9 @@
                     clearTimeout(timeoutTimer);
                     timeoutTimer = null;
                 }
-                try { delete window[cbName]; } catch { window[cbName] = undefined; }
+                // 保留一个空壳回调而非 delete：已下载完成的 JSONP 脚本即使标签被移除仍会执行，
+                // 若其回调已被删除会抛 ReferenceError（超时迟到执行场景）；空壳函数负责拦截并静默丢弃
+                try { window[cbName] = function() {}; } catch {}
                 if (suggestionScriptTag) {
                     suggestionScriptTag.onerror = null;
                     suggestionScriptTag.remove();
@@ -4361,6 +4361,9 @@
             } else {
                 state.bg = (state.bg + 1) % backgrounds.length;
             }
+            // 持久化壁纸轮播索引：刷新/重开后保持 Ctrl+B 轮播到的壁纸
+            // （head 预加载脚本依赖 localStorage['bg'] 决定预加载哪张壁纸，此前该键只读不写）
+            storageSet('bg', state.bg);
             applyWallpaper(backgrounds[state.bg], true);
             preloadNextBg();
         }
