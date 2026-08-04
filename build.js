@@ -84,6 +84,13 @@ if (fs.existsSync(wallpapersSrc)) {
     console.log('   ✅ 已将 wallpapers/ 壁纸资源目录全量复制至 dist/wallpapers/');
 }
 
+// 3.2 复制 Cloudflare Pages _headers 配置文件
+const headersSrc = path.join(rootDir, '_headers');
+if (fs.existsSync(headersSrc)) {
+    fs.copyFileSync(headersSrc, path.join(distDir, '_headers'));
+    console.log('   ✅ 已将 Cloudflare Pages _headers 配置文件复制至 dist/_headers');
+}
+
 /**
  * 4. 自动数据双向同步机制 (Auto-Sync bookmarks.json -> index.html DEFAULT_CATEGORIES / DEFAULT_BOOKMARKS)
  * ---------------------------------------------------------------------------------------------------------
