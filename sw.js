@@ -29,7 +29,14 @@ const MAX_IMG_ENTRIES = 200;     // 站内本地图片上限
 const CORE_ASSETS = [
     './',
     './index.html',
-    './wallpapers/bg1.webp'
+    './wallpapers/bg1.webp',
+    './wallpapers/bg2.webp',
+    './wallpapers/bg3.webp',
+    './wallpapers/bg4.webp',
+    './wallpapers/bg5.webp',
+    './wallpapers/bg6.webp',
+    './wallpapers/bg7.webp',
+    './wallpapers/bg8.webp'
 ];
 
 // IndexedDB LRU 时间戳管理

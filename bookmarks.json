@@ -1,9 +1,9 @@
 {
     "bookmarks": [
         {
-            "name": "微信",
-            "url": "https://web.wechat.com/?lang=zh_CN",
-            "icon": "https://a.favicon.im/web.wechat.com"
+            "name": "微信传输助手",
+            "url": "https://filehelper.weixin.qq.com",
+            "icon": "https://a.favicon.im/filehelper.weixin.qq.com"
         },
         {
             "name": "微博",
@@ -389,12 +389,6 @@
                     "desc": "云端协同UI设计工具"
                 },
                 {
-                    "name": "Font Awesome",
-                    "url": "https://fontawesome.com",
-                    "icon": "https://a.favicon.im/fontawesome.com",
-                    "desc": "经典Web矢量图标"
-                },
-                {
                     "name": "Fontshare",
                     "url": "https://www.fontshare.com",
                     "icon": "https://a.favicon.im/fontshare.com",
@@ -479,10 +473,10 @@
                     "desc": "全球实时动态与热点"
                 },
                 {
-                    "name": "微信",
-                    "url": "https://web.wechat.com/?lang=zh_CN",
-                    "icon": "https://a.favicon.im/web.wechat.com",
-                    "desc": "即时通讯与社交平台"
+                    "name": "微信传输助手",
+                    "url": "https://filehelper.weixin.qq.com",
+                    "icon": "https://a.favicon.im/filehelper.weixin.qq.com",
+                    "desc": "微信官方跨端文件传输"
                 },
                 {
                     "name": "微博",

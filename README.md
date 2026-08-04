@@ -72,7 +72,7 @@ npm run build
 1. **自动数据双向同步**：解析 `bookmarks.json` 最新数据，自动同步注入更新源码 `index.html` 与 `dist/index.html` 的 `DEFAULT_BOOKMARKS` 与 `DEFAULT_CATEGORIES` 数组（解决本地 `file://` 协议双击打开时因 CORS 拦截导致的降级书签不一致问题）。
 2. **Tailwind 静态编译**：调用 Tailwind CLI 扫描 `index.html` 生成精简 CSS。
 3. **HTML 脚本处理与 CSS 全量内嵌**：自动处理 `dist/index.html`，移除 v4 Browser CDN 脚本并将编译好的 CSS 全量内嵌为 `<style>` 标签（消除 `style.css` 渲染阻塞与网络 RTT 请求）。
-4. **资源复制**：将 `sw.js` 与 `manifest.json` 复制至 `dist/` 目录（实现极简打包部署与零 404 网络请求）。
+4. **资源复制**：将 `sw.js` 缓存脚本与 `wallpapers/` 壁纸资源目录全量复制至 `dist/` 目录（实现极简打包部署与 100% 离线支持）。
 
 **上线发布**：只需将生成的 **`dist/` 文件夹下的全部内容** 上传部署至 GitHub Pages、Cloudflare Pages、Vercel、Nginx 或 NAS 即可。
 
@@ -94,6 +94,9 @@ npm run build
      - **字数限制**：推荐严格控制在 **6 ~ 10 个中文字符**（或 12 ~ 20 个英文字符）以内。
      - **布局与截断**：展示在导航卡片标题下方，窄屏或超长字符会自动触发单行截断（`truncate`）。
      - **内容准则**：精准概括网站核心定位，避免冗余修饰词（如 `全球领先AI对话模型`、`开源卡片式IP检测`）。
+   * **书签筛选与用户友好准则（Bookmark Selection & User-Friendliness Rules）**：
+     - **极同质化功能只留 Top 2 准则**：秉持精简主义（Less is More），对功能几乎一模一样的同类网站（如在线翻译工具等）最多保留前 2 个，坚决避免同质化工具过度堆叠。
+     - **用户友好度审核**：优先收录 **免注册、无打扰、支持一键复制/下载、无强迫付费弹窗** 的优质开源/免费工具。坚决剔除商业化过度干扰、充斥 Pro 锁头弹窗或体验不佳的网站（如 Font Awesome 等）。
 2. **执行自动同步**：修改完成后，运行 `npm run build` 自动同步注入源码与 `dist/` 产物。
 3. **修改搜索引擎**：可在 `index.html` 中的 `engines` 引擎配置对象中新增或定制新的搜索引擎（百度、Google、Bing 等）。
 
@@ -105,7 +108,7 @@ npm run build
   - **禁止 Agent 擅自提交**：未收到用户明确指令前，Agent 严禁自动执行 `git add` / `git commit` / `git push`；所有改动与编译仅在本地工作区生效，静待用户预览确认。
   - **控制 Push 频次（防频繁部署）**：由于已配置 Cloudflare Pages 自动构建，日常开发推荐**本地多 commit，完成阶段性功能后再统一 push**。
   - **跳过云端构建**：若仅需向远程仓库推送备份代码但**不想触发线上构建**，请在提交信息中加上 `[skip ci]`（如：`git commit -m "wip: 修改样式 [skip ci]"`）。
-- ⚠️ **全量端到端测试 (`npm test`)**：会启动无头 Chrome 运行 7 个 CDP 端到端测试文件。**Agent 在日常修复小 Bug 或调整功能时严禁自动运行 `npm test`**，避免浪费时间；仅在用户明确发出指令要求“全量测试”时才执行。
+- ⚠️ **全量端到端测试 (`npm test`)**：会启动无头 Chrome 运行 10 个自动化测试文件。**Agent 在日常修复小 Bug 或调整功能时严禁自动运行 `npm test`**，避免浪费时间；仅在用户明确发出指令要求“全量测试”时才执行。
 
 ---
 
@@ -117,12 +120,13 @@ npm run build
 | :--- | :--- | :--- | :--- |
 | **`index.html`** | **源码主入口** | 开发模式页面主入口。内置 Tailwind v4 Browser CDN，AI/开发者修改代码立即可见，零编译开销。 | **必须** |
 | **`bookmarks.json`** | **唯一数据源** | 唯一数据维护源。修改书签只需编辑此文件，运行 `npm run build` 会自动将书签同步注入 HTML。 | **推荐** |
-| **`sw.js`** | 缓存脚本 | Service Worker 独立脚本。专门用于在 HTTPS/localhost 环境下本地缓存 Favicon 网站图标，提升加载速度。 | 推荐（缺失时不影响主流程运行） |
+| **`sw.js`** | 缓存脚本 | Service Worker 独立脚本。专门用于在 HTTPS/localhost 环境下本地缓存 Favicon 网站图标与壁纸，提升加载速度。 | 推荐（缺失时不影响主流程运行） |
+| **`wallpapers/`** | **本地壁纸库** | 高清预设 WebP 壁纸目录（包含 bg1.webp ~ bg8.webp），由 `build.js` 自动打包至 `dist/` 实现全量离线可用。 | **必须** |
 | **`build.js`** | 打包脚本 | 生产构建 Node 脚本。运行 `npm run build` 自动同步书签数据、编译全量内嵌 CSS 并输出至 `dist/`。 | 工具脚本 |
 | **`manifest.json`** | Web App 应用配置 | PWA 应用清单文件。配置应用名称、图标、启动 URL、主题颜色，支持添加至手机主屏幕与独立 Web App 运行。 | PWA 必需 |
 | **`icon.svg`** | 矢量图标 | 网站 Logo 与 PWA 图标源文件。采用 SVG 格式确保高清高分屏无损缩放。 | 图标资源 |
 | **`lint.mjs`** | 检查脚本 | Node 零依赖静态检查脚本。用于校验根目录核心 JS/HTML 语法与 JSON 配置文件合法性。 | 工具脚本 |
-| **`test/`** | **测试目录** | 端到端 UI 自动化测试目录。内含 7 个 CDP 浏览器自动化测试套件与 Web 调试服务器。 | 测试框架 |
+| **`test/`** | **测试目录** | 端到端 UI 自动化测试目录。内含 10 个 CDP 浏览器自动化测试套件与 Web 调试服务器。 | 测试框架 |
 | **`TEST-REPORT.md`** | 测试文档 | 项目自动化测试覆盖率分析与完整功能验证报告。 | 运维文档 |
 | **`package.json`** | 项目配置 | Node 项目配置文件，提供 `npm run dev`、`npm run build`、`npm run lint` 与 `npm test` 命令。 | 配置文件 |
 | **`dist/`** | **生产输出** | `npm run build` 自动生成的生产构建目录。包含剥离 v4 Browser CDN 并精简 CSS 后的上线资源。 | 生产部署产物 |
@@ -210,10 +214,10 @@ add_header Content-Security-Policy "default-src 'self' data: blob: https:; scrip
 | **Service Worker** | 项目内组件 | `v9` | `sw.js` 头部注释；三池隔离 + IndexedDB LRU 缓存架构 |
 | **CORE_CACHE** | 缓存池版本 | `app-core-v<时间戳>` | `sw.js`；每次 `npm run build` 自动更新，强制客户端刷新旧缓存 |
 | **FAVICON_CACHE / IMG_CACHE** | 缓存池版本 | `v1` | `sw.js`；图标 / 本地图片独立缓存池 |
-| **Glass Start 站点版本** | 项目发布版本 | `v2.7.5` | `package.json` + `index.html` 页脚徽章 |
+| **Glass Start 站点版本** | 项目发布版本 | `v2.7.6` | `package.json` + `index.html` 页脚徽章 |
 
 **无版本号的外部服务**（非框架，版本由服务商维护，升级无需本项目介入）：
 - `a.favicon.im` — Favicon 图标 API
 - 百度 / Bing / Google — 搜索联想建议 API
-- `images.unsplash.com` — 内置壁纸图片 CDN
+- `wallpapers/` — 本地预设 WebP 高清壁纸库（全量预缓存，不再依赖 Unsplash CDN）
 - `npx serve` — 开发静态服务器（取最新版，未锁定版本）
