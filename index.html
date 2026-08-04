@@ -3151,22 +3151,6 @@
                 });
             }, 1500);
 
-            // 调度 Service Worker 在 CPU 闲置时静默预热前 3 个常用分类图标，存入 FAVICON_CACHE (0ms 零网络开销秒开)
-            scheduleIdleTask(() => {
-                if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
-                    const idleUrls = new Set();
-                    (pageData.categories || []).slice(0, 3).forEach(cat => {
-                        (cat.bookmarks || []).forEach(bm => {
-                            if (bm.icon && bm.icon.startsWith('http')) {
-                                idleUrls.add(bm.icon);
-                            }
-                        });
-                    });
-                    idleUrls.forEach(url => {
-                        fetch(url, { mode: 'no-cors', cache: 'force-cache' }).catch(() => {});
-                    });
-                }
-            }, 2500);
         }
 
         // ==================== 苹果风格 Favicon 兜底徽章 (严格尺寸强制归一) ====================
