@@ -4454,8 +4454,8 @@
 
             // 搜索引擎 Suggest API 调度策略与回退机制说明：
             // 1. 百度 JSONP：显式指定 ie=utf-8&oe=utf-8，防止部分浏览器以 GBK 解码导致中文联想词乱码。
-            // 2. DuckDuckGo 回退机制：DuckDuckGo 官方 ac.duckduckgo.com 接口未开放 CORS 且不支持 JSONP 回调包裹。
-            //    此处选择回退至 Bing API 而非 Google API，是因为 Bing Suggest API 全球可用（国内网络直连无需梯子），
+            // 2. ⚠️ DuckDuckGo 接口不可用与回退机制：DuckDuckGo 官方 ac.duckduckgo.com 接口完全不可用（服务端未开放 CORS 标头且不支持 JSONP 回调包裹），严禁前端直接调用。
+            //    此处选择无缝回退至 Bing Suggest API 而非 Google API，是因为 Bing Suggest API 全球可用（国内网络直连无需梯子），
             //    可彻底避免国内用户在未开启代理时因 Google 域名被墙导致联想词 4s 超时悬挂。
             if (engineKey === 'baidu') {
                 script.src = `https://suggestion.baidu.com/su?wd=${encodeURIComponent(query)}&p=3&ie=utf-8&oe=utf-8&cb=${cbName}`;
