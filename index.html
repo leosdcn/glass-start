@@ -65,7 +65,7 @@
             const bgIdx = rawBg !== null ? JSON.parse(rawBg) : 0;
             preloadUrl = backgrounds[bgIdx] || backgrounds[0];
           }
-          if (preloadUrl && typeof preloadUrl === 'string' && preloadUrl.startsWith('http')) {
+          if (preloadUrl && typeof preloadUrl === 'string') {
             // 根据设备物理像素 (宽度 * DPR) 动态调优 Unsplash 尺寸参数 (阶梯以 200px 递增，上限 3840px)
             const dpr = window.devicePixelRatio || 1;
             const targetW = Math.min(Math.ceil((window.innerWidth * dpr) / 200) * 200, 3840);
@@ -73,12 +73,14 @@
               preloadUrl = preloadUrl.replace(/w=\d+/, 'w=' + targetW).replace(/q=\d+/, 'q=75');
             }
             window.__PRELOADED_BG__ = preloadUrl;
-            const link = document.createElement('link');
-            link.rel = 'preload';
-            link.as = 'image';
-            link.href = preloadUrl;
-            link.setAttribute('fetchpriority', 'high');
-            document.head.appendChild(link);
+            if (preloadUrl.startsWith('http')) {
+              const link = document.createElement('link');
+              link.rel = 'preload';
+              link.as = 'image';
+              link.href = preloadUrl;
+              link.setAttribute('fetchpriority', 'high');
+              document.head.appendChild(link);
+            }
           }
         } catch (e) {}
       })();
@@ -112,6 +114,7 @@
         /* .nr 模式：直达导航页预渲染，与 HEAD inline script 配合消除刷新抖动 */
         .nr #startSection { transform: translateY(-100vh) !important; transform: translateY(-100dvh) !important; transition: none !important; }
         .nr #navSection { visibility: visible !important; transform: translateY(0) !important; transition: none !important; }
+        .nr #editBookmarksBtn { opacity: 0 !important; pointer-events: none !important; transition: none !important; }
         .nr *, .nr *::before, .nr *::after { animation: none !important; transition: none !important; }
         /* ===== 布局 & 基础 ===== */
         :root {
@@ -120,6 +123,7 @@
             --radius: 1.5rem;
             --blur: 24px;
         }
+        html, body { background-color: #0f172a !important; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Nunito', sans-serif; /* 优先 Apple 原生系统字体栈 */ scrollbar-width:none; -ms-overflow-style:none; 
                overflow:hidden; }
         body::-webkit-scrollbar { display:none; }
@@ -817,10 +821,10 @@
 </head>
 <body class="text-white relative bg-[#0b0f19]">
     <!-- 固定定位背景图层（双层叠加 opacity 过渡，解决 background-image 不可 CSS 插值的问题；配合 bg-fullscreen 延伸至移动端安全区与过滚动区域） -->
-    <div id="bgLayer" class="bg-fullscreen bg-cover bg-center bg-no-repeat -z-10" style="transform: translateZ(0); will-change: transform, opacity;"></div>
-    <div id="bgLayerNext" class="bg-fullscreen bg-cover bg-center bg-no-repeat -z-10 opacity-0" style="transition:opacity 0.6s ease; transform: translateZ(0); will-change: transform, opacity;"></div>
+    <div id="bgLayer" class="bg-fullscreen bg-cover bg-center bg-no-repeat -z-10 bg-[#0f172a]" style="transform: translateZ(0); will-change: transform, opacity;"></div>
+    <div id="bgLayerNext" class="bg-fullscreen bg-cover bg-center bg-no-repeat -z-10 opacity-0 bg-[#0f172a]" style="transition:opacity 0.6s ease; transform: translateZ(0); will-change: transform, opacity;"></div>
     <div id="bgOverlay" class="bg-fullscreen bg-black/25 pointer-events-none z-0" style="transition: background-color 0.2s ease, backdrop-filter 0.2s ease, -webkit-backdrop-filter 0.2s ease; transform: translateZ(0); will-change: transform, opacity;"></div>
-    <script>(function(){const bg=document.getElementById('bgLayer');const url=window.__PRELOADED_BG__||'https://images.unsplash.com/photo-1477346611705-65d1883cee1e?q=75&w=2070&auto=format&fit=crop';if(bg)bg.style.backgroundImage="url('"+url.replace(/['"()\\]/g,'')+"')";if(window.__PRE_BG_EFFECTS__){const o=document.getElementById('bgOverlay');if(o){o.style.backgroundColor='rgba(0, 0, 0, '+(window.__PRE_BG_EFFECTS__.op/100)+')';if(window.__PRE_BG_EFFECTS__.bl>0){const b='blur('+window.__PRE_BG_EFFECTS__.bl+'px)';o.style.backdropFilter=b;o.style.webkitBackdropFilter=b;}}}})()</script>
+    <script>(function(){const bg=document.getElementById('bgLayer');const url=window.__PRELOADED_BG__||'https://images.unsplash.com/photo-1477346611705-65d1883cee1e?q=75&w=2070&auto=format&fit=crop';if(bg)bg.style.backgroundImage="url(\""+url.replace(/["'\\]/g,'\\$&')+"\")";if(window.__PRE_BG_EFFECTS__){const o=document.getElementById('bgOverlay');if(o){o.style.backgroundColor='rgba(0, 0, 0, '+(window.__PRE_BG_EFFECTS__.op/100)+')';if(window.__PRE_BG_EFFECTS__.bl>0){const b='blur('+window.__PRE_BG_EFFECTS__.bl+'px)';o.style.backdropFilter=b;o.style.webkitBackdropFilter=b;}}}})()</script>
 
     <!-- ========== 第一屏：起始页 ========== -->
     <section id="startSection" class="relative z-10 min-h-screen flex flex-col items-center justify-center px-4 py-12">
@@ -2219,11 +2223,19 @@
                 pageData.bookmarks = getDerivedBookmarks(DEFAULT_BOOKMARKS.map(b => b.url), pageData.categories, customMeta);
             }
 
+            // 恢复持久化的系统壁纸轮播索引 state.bg
+            const savedBg = storageGet('bg');
+            if (savedBg !== null && typeof savedBg === 'number' && savedBg >= 0 && savedBg < backgrounds.length) {
+                state.bg = savedBg;
+            }
+
             let customBg = await getWallpaperDB();
             if (!customBg) customBg = storageGet('userWallpaper');
             if (customBg) {
                 state.customWallpaper = customBg;
                 applyWallpaper(customBg, false);
+            } else if (state.bg !== 0) {
+                applyWallpaper(backgrounds[state.bg], false);
             }
         }
 
@@ -3875,6 +3887,9 @@
                         try {
                             const keys = await caches.keys();
                             await Promise.all(keys.map(key => caches.delete(key)));
+                            if ('indexedDB' in window) {
+                                try { indexedDB.deleteDatabase('sw-lru-db'); } catch {}
+                            }
                             showConfirm('Service Worker 离线资源与页面缓存已成功刷新清理！', null, '离线缓存已重置');
                         } catch (err) {
                             showConfirm('缓存清理完成或无需清理。', null, '清理提示');
@@ -4312,11 +4327,18 @@
         function applyWallpaper(urlStr, animate = true) {
             const bgBase = $('bgLayer');
             const bgNext = $('bgLayerNext');
-            if (!bgBase || !bgNext) return;
+            if (!bgBase || !bgNext || !urlStr || typeof urlStr !== 'string') return;
 
-            // 过滤 URL 中可能破坏 CSS url() 语法的字符，防止 CSS 注入
-            const safeCssUrl = urlStr.replace(/['"()\\]/g, '');
-            const newStyleUrl = `url('${safeCssUrl}')`;
+            // 过滤 URL 中可能破坏 CSS url() 语法的引号与反斜杠，安全保留圆括号与复杂 Query 参数
+            const safeCssUrl = urlStr.replace(/["'\\]/g, '\\$&');
+            const newStyleUrl = `url("${safeCssUrl}")`;
+
+            // 预解码背景图片，消除解压卡顿与黑屏闪烁
+            const img = new Image();
+            img.src = urlStr;
+            if ('decode' in img) {
+                img.decode().catch(() => {});
+            }
 
             if (bgSwitchTimer) {
                 clearTimeout(bgSwitchTimer);
@@ -4328,8 +4350,6 @@
 
             if (animate) {
                 // 1. 仅当上层背景当前可见（淡入动画进行中，opacity > 0.4）时才将其同步到底层作为淡入起点。
-                //    与上方中断分支的守卫保持一致：不可见的陈旧图层（动画已结束或刚被置 0）不得复制为底图，
-                //    否则 0.6s 淡入期间会闪现上一次未完整显示的壁纸
                 if (bgNext.style.backgroundImage && parseFloat(getComputedStyle(bgNext).opacity) > 0.4) {
                     bgBase.style.backgroundImage = bgNext.style.backgroundImage;
                 }
@@ -4503,11 +4523,11 @@
                 if (startSection) startSection.classList.add('screen-pushed-up');
                 nav.classList.remove('nav-hidden');
                 nav.classList.add('nav-visible', 'screen-pushed-in');
-                document.documentElement.classList.remove('nr');
                 targetSection = 'nav';
                 saveSection('nav');
                 updateSectionAccessibility('nav');
                 updateGearVisibility();
+                document.documentElement.classList.remove('nr');
                 refreshSidebarNavCache();
                 updateSidebarActive();
             } else {
@@ -4516,9 +4536,9 @@
                 nav.classList.add('nav-hidden');
                 saveSection('start');
                 targetSection = 'start';
-                document.documentElement.classList.remove('nr');
                 updateSectionAccessibility('start');
                 updateGearVisibility();
+                document.documentElement.classList.remove('nr');
             }
 
             // 归一化 deltaY，兼容 Safari / Windows 的 LINE / PAGE 模式
