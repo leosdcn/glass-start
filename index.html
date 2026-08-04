@@ -2095,10 +2095,12 @@
                 });
             });
 
+            const newKeysSet = new Set();
             list.forEach(bm => {
                 const normUrl = normalizeUrl(bm.url);
                 if (!normUrl) return;
                 keys.push(normUrl);
+                newKeysSet.add(normUrl);
                 const catBm = catMetaMap.get(normUrl);
                 const isCustomized = !catBm || (bm.name && bm.name !== catBm.name) || (bm.icon && bm.icon !== (catBm.icon || faviconFromUrl(catBm.url))) || (bm.desc && bm.desc !== (catBm.desc || ''));
                 if (isCustomized) {
@@ -2109,6 +2111,13 @@
                     };
                 } else {
                     delete customMeta[normUrl];
+                }
+            });
+
+            // 清理已不再使用的旧 URL 自定义元数据，避免废弃 URL 记录永久残留于 localStorage
+            Object.keys(customMeta).forEach(urlKey => {
+                if (!newKeysSet.has(urlKey)) {
+                    delete customMeta[urlKey];
                 }
             });
 
@@ -3737,12 +3746,12 @@
                 // 1. 提交书签（派生架构保存）
                 saveUserBookmarks(data);
 
-                // 2. 提交壁纸（大图优先持久化至 IndexedDB，彻底解除 LocalStorage 5MB 上限）
+                // 2. 提交壁纸（大图持久化至 IndexedDB，同步写入 localStorage['userWallpaper'] 供 head 极速预加载）
                 if (modalState.wallpaperChanged) {
                     if (modalState.draftWallpaper) {
                         state.customWallpaper = modalState.draftWallpaper;
                         setWallpaperDB(modalState.draftWallpaper);
-                        storageRemove('userWallpaper'); // 清理 localStorage 避免冗余占用
+                        storageSet('userWallpaper', modalState.draftWallpaper);
                     } else {
                         state.customWallpaper = null;
                         removeWallpaperDB();
@@ -4101,9 +4110,7 @@
                     clearTimeout(timeoutTimer);
                     timeoutTimer = null;
                 }
-                // 保留一个空壳回调而非 delete：已下载完成的 JSONP 脚本即使标签被移除仍会执行，
-                // 若其回调已被删除会抛 ReferenceError（超时迟到执行场景）；空壳函数负责拦截并静默丢弃
-                try { window[cbName] = function() {}; } catch {}
+                try { delete window[cbName]; } catch {}
                 if (suggestionScriptTag) {
                     suggestionScriptTag.onerror = null;
                     suggestionScriptTag.remove();
@@ -4120,6 +4127,7 @@
 
             window[cbName] = function(data) {
                 cleanup();
+                try { delete window[cbName]; } catch {}
                 if (reqId !== activeSuggestReqId) return; // 废弃过期异步响应
                 let list = [];
                 if (Array.isArray(data)) {
@@ -4454,6 +4462,9 @@
                 nav.classList.remove('nav-hidden');
                 nav.classList.add('nav-visible', 'screen-pushed-in');
 
+                refreshSidebarNavCache();
+                updateSidebarActive();
+
                 setTimeout(() => {
                     state.currentSection = 'nav';
                     isTransitioning = false;
@@ -4645,8 +4656,8 @@
                 const isCancel = e.type === 'touchcancel';
                 const endTouchY = (e.changedTouches && e.changedTouches.length > 0) ? e.changedTouches[0].clientY : lastTouchY;
                 const totalDeltaY = startTouchY - endTouchY;
-                const touchDuration = performance.now() - touchStartTime;
-                const velocity = touchDuration > 0 ? Math.abs(totalDeltaY) / touchDuration : 0; // px/ms
+                const touchDuration = Math.max(1, performance.now() - touchStartTime);
+                const velocity = Math.abs(totalDeltaY) / touchDuration; // px/ms
                 const vh = window.innerHeight || 800;
                 const progress = Math.min(1, Math.max(0, Math.abs(totalDeltaY) / vh));
 
