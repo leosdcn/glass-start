@@ -3084,8 +3084,14 @@
 
         function renderPickerCategories() {
             const urls = new Set();
-            dom.editList.querySelectorAll('.edit-url').forEach(inp => urls.add(inp.value.trim()));
-            pageData.bookmarks.forEach(bm => urls.add(bm.url));
+            dom.editList.querySelectorAll('.edit-url').forEach(inp => {
+                const norm = normalizeUrl(inp.value);
+                if (norm) urls.add(norm);
+            });
+            pageData.bookmarks.forEach(bm => {
+                const norm = normalizeUrl(bm.url);
+                if (norm) urls.add(norm);
+            });
 
             dom.pickerContent.innerHTML = pageData.categories.map(cat => {
                 const sortedBookmarks = [...cat.bookmarks].sort((a, b) => zhCollator.compare(a.name, b.name));
@@ -3630,6 +3636,7 @@
             });
 
             dom.searchInput.addEventListener('input', () => {
+                selectedSuggestionIdx = -1;
                 const val = dom.searchInput.value;
                 originalQuery = val;
                 if (dom.searchClearBtn) dom.searchClearBtn.classList.toggle('hidden', !val);
@@ -3902,8 +3909,14 @@
                 const name = item.dataset.name;
                 const url = item.dataset.url;
                 const urls = new Set();
-                dom.editList.querySelectorAll('.edit-url').forEach(inp => urls.add(inp.value.trim()));
-                pageData.bookmarks.forEach(bm => urls.add(bm.url));
+                dom.editList.querySelectorAll('.edit-url').forEach(inp => {
+                    const norm = normalizeUrl(inp.value);
+                    if (norm) urls.add(norm);
+                });
+                pageData.bookmarks.forEach(bm => {
+                    const norm = normalizeUrl(bm.url);
+                    if (norm) urls.add(norm);
+                });
                 if (urls.has(url)) return;
 
                 const tempDiv = document.createElement('div');
