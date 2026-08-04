@@ -343,7 +343,7 @@
                 flex-direction: row !important;
                 flex-wrap: nowrap !important;
                 gap: 0.25rem !important;
-                padding: 0.5rem !important;
+                padding: 0.4rem 1rem !important;
                 -webkit-mask-image: linear-gradient(to right, transparent 0%, black 1rem, black calc(100% - 1rem), transparent 100%);
                 mask-image: linear-gradient(to right, transparent 0%, black 1rem, black calc(100% - 1rem), transparent 100%);
             }
@@ -357,6 +357,7 @@
                 white-space: nowrap;
                 padding: 0.4rem 0.75rem !important;
                 flex-shrink: 0;
+                width: auto !important;
             }
             .sidebar-header {
                 border-bottom: none !important;
@@ -366,6 +367,18 @@
                 white-space: nowrap;
             }
         }
+        /* iOS / iPad 触屏长按系统菜单与选中文本拦截 (Callout Suppression) */
+        .bookmark-item, .nav-bookmark, .sidebar-item, .icon-box, #sidebar, #bookmarks {
+            -webkit-touch-callout: none !important;
+            -webkit-user-select: none !important;
+            user-select: none !important;
+        }
+        /* 确保输入框正常支持选中文本 */
+        input, textarea {
+            -webkit-user-select: text !important;
+            user-select: text !important;
+        }
+
         /* 点击侧边栏跳转时的目标分类标题底线柔和发光提醒 */
         .category-title-pulse {
             animation: catTitlePulse 1.1s cubic-bezier(0.16, 1, 0.3, 1);
@@ -1968,7 +1981,7 @@
          * @returns {void}
          */
         function cacheDOM() {
-            const ids = 'clock date searchInput searchClearBtn engineBtn engineIcon engineName dropdownMenu suggestionMenu searchBtn bookmarks sidebarList navCategories navContent editModal editList editBookmarksBtn addBookmarkBtn saveEditBtn cancelEditBtn resetEditBtn togglePickerBtn bookmarkPicker pickerContent pickerCount closePickerBtn donePickerBtn exportJsonBtn importJsonInput uploadBgBtn urlBgBtn resetBgBtn uploadBgInput wallpaperStatus bookmarkCountBadge jsonDropzone maskOpacityInput maskOpacityVal bgBlurInput bgBlurVal storageSizeBadge statBookmarkCount statWallpaperType statPwaStatus clearCacheBtn bgOverlay'.split(' ');
+            const ids = 'clock date searchInput searchClearBtn engineBtn engineIcon engineName dropdownMenu suggestionMenu searchBtn bookmarks sidebar sidebarList navCategories navContent editModal editList editBookmarksBtn addBookmarkBtn saveEditBtn cancelEditBtn resetEditBtn togglePickerBtn bookmarkPicker pickerContent pickerCount closePickerBtn donePickerBtn exportJsonBtn importJsonInput uploadBgBtn urlBgBtn resetBgBtn uploadBgInput wallpaperStatus bookmarkCountBadge jsonDropzone maskOpacityInput maskOpacityVal bgBlurInput bgBlurVal storageSizeBadge statBookmarkCount statWallpaperType statPwaStatus clearCacheBtn bgOverlay'.split(' ');
             ids.forEach(id => dom[id] = $(id));
         }
 
@@ -3480,10 +3493,30 @@
             cachedSectionOffsets = cachedSidebarSections.map(s => s.offsetTop);
         }
 
+        function scrollTabIntoView(item, container) {
+            if (!item || !container) return;
+            const isMobile = window.innerWidth <= 640;
+            if (isMobile) {
+                const cRect = container.getBoundingClientRect();
+                const iRect = item.getBoundingClientRect();
+                if (iRect.left < cRect.left + 8 || iRect.right > cRect.right - 8) {
+                    const targetLeft = item.offsetLeft - (container.clientWidth / 2) + (item.offsetWidth / 2);
+                    container.scrollTo({ left: Math.max(0, targetLeft), behavior: 'smooth' });
+                }
+            } else {
+                const cRect = container.getBoundingClientRect();
+                const iRect = item.getBoundingClientRect();
+                if (iRect.top < cRect.top || iRect.bottom > cRect.bottom) {
+                    item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }
+            }
+        }
+
         function updateSidebarActive() {
-            const sidebar = dom.sidebarList;
+            const sidebarContainer = dom.sidebar || document.getElementById('sidebar');
+            const sidebarList = dom.sidebarList;
             const content = dom.navContent;
-            if (!sidebar || !content || isManualScrolling) return;
+            if (!sidebarList || !content || isManualScrolling) return;
 
             if (!cachedSidebarItems.length || !cachedSectionOffsets.length) refreshSidebarNavCache();
             const items = cachedSidebarItems;
@@ -3518,30 +3551,38 @@
                 item.classList.toggle('active', isActive);
                 item.setAttribute('aria-selected', isActive ? 'true' : 'false');
                 if (isActive && !wasActive && !isManualScrolling) {
-                    const sRect = sidebar.getBoundingClientRect();
-                    const iRect = item.getBoundingClientRect();
-                    if (iRect.top < sRect.top || iRect.bottom > sRect.bottom || iRect.left < sRect.left || iRect.right > sRect.right) {
-                        item.scrollIntoView({ behavior: 'auto', block: 'nearest', inline: 'center' });
-                    }
+                    scrollTabIntoView(item, sidebarContainer);
                 }
             });
         }
 
         function initSidebarNav() {
-            const sidebar = dom.sidebarList;
+            const sidebarList = dom.sidebarList;
             const content = dom.navContent;
-            if (!sidebar || !content) return;
+            if (!sidebarList || !content) return;
 
             // 动态更新一次当前选中高亮
             updateSidebarActive();
 
             if (!isSidebarNavInitialized) {
-                window.addEventListener('resize', () => {
-                    refreshSidebarNavCache();
-                    requestAnimationFrame(updateSidebarActive);
-                }, { passive: true });
+                let resizeTimer = null;
+                const handleResizeOrRotate = () => {
+                    if (resizeTimer) clearTimeout(resizeTimer);
+                    resizeTimer = setTimeout(() => {
+                        refreshSidebarNavCache();
+                        requestAnimationFrame(updateSidebarActive);
+                    }, 120);
+                };
+                window.addEventListener('resize', handleResizeOrRotate, { passive: true });
+                window.addEventListener('orientationchange', handleResizeOrRotate, { passive: true });
+                if ('ResizeObserver' in window && content) {
+                    try {
+                        const ro = new ResizeObserver(() => handleResizeOrRotate());
+                        ro.observe(content);
+                    } catch {}
+                }
 
-                sidebar.addEventListener('click', (e) => {
+                sidebarList.addEventListener('click', (e) => {
                     const btn = e.target.closest('[data-target]');
                     if (!btn) return;
                     const targetId = btn.dataset.target;
@@ -3552,10 +3593,11 @@
                     isManualScrolling = true;
                     if (manualScrollTimer) clearTimeout(manualScrollTimer);
 
-                    const allItems = Array.from(sidebar.querySelectorAll('[data-target]'));
+                    const allItems = Array.from(sidebarList.querySelectorAll('[data-target]'));
                     allItems.forEach(item => item.classList.remove('active'));
                     btn.classList.add('active');
-                    btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                    const sidebarContainer = dom.sidebar || document.getElementById('sidebar');
+                    scrollTabIntoView(btn, sidebarContainer);
 
                     // 2. 精确计算 target 相对 content 的 offsetTop，扣除容器 paddingTop 偏移
                     const cat0 = document.getElementById('cat-0');
@@ -4746,6 +4788,18 @@
                 }
             }
 
+            function updateThemeColor(color) {
+                if (!color) return;
+                let meta = document.querySelector('meta[name="theme-color"]');
+                if (meta) meta.remove();
+                meta = document.createElement('meta');
+                meta.name = 'theme-color';
+                meta.content = color;
+                document.head.appendChild(meta);
+                if (document.body) document.body.style.backgroundColor = color;
+                if (document.documentElement) document.documentElement.style.backgroundColor = color;
+            }
+
             // 暴露全局切屏控制接口，供点击 Header、键盘快捷键等共享调用
             function switchToNav() {
                 if (targetSection === 'nav') return;
@@ -4755,6 +4809,7 @@
                 saveSection('nav');
                 updateSectionAccessibility('nav');
                 updateGearVisibility();
+                updateThemeColor('#12141a');
 
                 if (startSection) startSection.classList.add('screen-pushed-up');
                 nav.classList.remove('nav-hidden');
@@ -4781,6 +4836,7 @@
                 if (navContent) navContent.scrollTop = 0;
                 saveSection('start');
                 updateSectionAccessibility('start');
+                updateThemeColor('#0b0f19');
 
                 if (startSection) startSection.classList.remove('screen-pushed-up');
                 nav.classList.remove('screen-pushed-in');
@@ -4806,6 +4862,7 @@
                 saveSection('nav');
                 updateSectionAccessibility('nav');
                 updateGearVisibility();
+                updateThemeColor('#12141a');
                 document.documentElement.classList.remove('nr');
                 refreshSidebarNavCache();
                 updateSidebarActive();
