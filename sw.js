@@ -23,11 +23,12 @@ const MAX_FAVICON_ENTRIES = 800; // a.favicon.im 外部图标上限
 const MAX_IMG_ENTRIES = 200;     // 站内本地图片上限
 
 // 核心预缓存静态资源列表（PWA 离线打不开保障，CSS 已全量内嵌在 index.html 中）
+// 注意：manifest.json 在构建时已被 build.js 内联为 data URI（dist 产物中不存在该文件），
+// icon.svg 亦不存在于仓库与构建产物中；二者均不能作为预缓存目标，
+// 否则 cache.addAll 会因任一 404 而整批失败（连 './' 与 './index.html' 也一起回滚丢失）
 const CORE_ASSETS = [
     './',
-    './index.html',
-    './icon.svg',
-    './manifest.json'
+    './index.html'
 ];
 
 // IndexedDB LRU 时间戳管理
@@ -129,10 +130,13 @@ async function pruneCache(pool, cache, maxEntries) {
 }
 
 // 安装阶段：预缓存核心静态文件，跳过等待强制激活最新 SW
+// 逐项添加并吞掉单项失败：即使未来某个资源意外 404，也不会拖垮整批预缓存
 self.addEventListener('install', e => {
     self.skipWaiting();
     e.waitUntil(
-        caches.open(CORE_CACHE).then(cache => cache.addAll(CORE_ASSETS).catch(() => {}))
+        caches.open(CORE_CACHE).then(cache =>
+            Promise.all(CORE_ASSETS.map(asset => cache.add(asset).catch(() => {})))
+        )
     );
 });
 

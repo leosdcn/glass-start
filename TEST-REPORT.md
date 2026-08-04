@@ -1,6 +1,25 @@
 # Glass Start 测试报告
 
-## 📌 最新：v2.7.0 Tailwind v4 迁移验证 (2026-08-03)
+## 📌 最新：v2.7.2 核心 BUG 修复验证 (2026-08-04)
+
+**修复 6 个高置信度功能缺陷**（详见 PR #1），版本号由 v2.7.1 提升至 v2.7.2：
+
+| # | 缺陷 | 修复 |
+|---|------|------|
+| 1 | 重置设置后 IndexedDB 自定义壁纸未清除，刷新后复活 | 重置时同步 `removeWallpaperDB()` + `state.customWallpaper = null` |
+| 2 | 设置弹窗初始壁纸只读 localStorage（从不写入），取消回滚丢失自定义壁纸 | 初始值优先取 `state.customWallpaper` / IndexedDB |
+| 3 | Escape 还原搜索原文的逻辑位于 return 之后，为死代码 | 还原逻辑移入 Overlay 栈顶分支 |
+| 4 | 侧边栏分类高亮混用坐标系，滚动切换偏差约 51~57px | 直接使用与 `scrollTop` 同原点的 `s.offsetTop` |
+| 5 | SW 预缓存含不存在的 `icon.svg`/`manifest.json`，`addAll` 整批失败 | 清单精简为真实资源 + 逐项 `cache.add` 容错 |
+| 6 | `applyWallpaper` 动画分支无守卫复制底图，快速切换闪现陈旧壁纸 | 增加可见性守卫 `opacity > 0.4` |
+
+**验证**：`lint` 全过 ✅ · 生产构建成功 ✅ · 新增回归测试 `escape.test.mjs`（BUG 3，CDP）/ `sw-precache.test.mjs`（BUG 5，静态 8/8 通过）✅。CDP 类测试需在装有 Chrome 的 macOS 环境实跑确认。
+
+以下为历史报告存档（v2.4.x / v2.7.0 记录，保留备查）：
+
+---
+
+## 📌 v2.7.0 Tailwind v4 迁移验证 (2026-08-03)
 
 测试环境：macOS (darwin) · Node v26.5.0 · Tailwind CLI v4 (4.3.3)
 测试模式：源码开发服务 (Tailwind v4 Browser CDN) 与生产构建 (`dist/` CSS 全量内嵌)
