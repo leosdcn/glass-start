@@ -15,11 +15,11 @@
 
 **验证**：`lint` 全过 ✅ · 生产构建成功 ✅ · 新增回归测试 `escape.test.mjs`（BUG 3，CDP）/ `sw-precache.test.mjs`（BUG 5，静态 8/8 通过）✅。CDP 类测试需在装有 Chrome 的 macOS 环境实跑确认。
 
-以下为历史报告存档（v2.4.x / v2.7.0 记录，保留备查）：
+以下为历史报告存档（v2.4.x / v2.7.1 记录，保留备查）：
 
 ---
 
-## 📌 v2.7.0 Tailwind v4 迁移验证 (2026-08-03)
+## 📌 v2.7.1 Tailwind v4 迁移验证 (2026-08-03)
 
 测试环境：macOS (darwin) · Node v26.5.0 · Tailwind CLI v4 (4.3.3)
 测试模式：源码开发服务 (Tailwind v4 Browser CDN) 与生产构建 (`dist/` CSS 全量内嵌)
