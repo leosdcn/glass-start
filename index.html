@@ -66,11 +66,14 @@
             preloadUrl = backgrounds[bgIdx] || backgrounds[0];
           }
           if (preloadUrl && typeof preloadUrl === 'string') {
-            // 根据设备物理像素 (宽度 * DPR) 动态调优 Unsplash 尺寸参数 (阶梯以 200px 递增，上限 3840px)
+            // 根据设备物理像素 (宽度 * DPR) 动态调优 Unsplash 尺寸参数 (阶梯以 200px 递增，上限 2560px 且强置 WebP)
             const dpr = window.devicePixelRatio || 1;
-            const targetW = Math.min(Math.ceil((window.innerWidth * dpr) / 200) * 200, 3840);
+            const targetW = Math.min(Math.ceil((window.innerWidth * dpr) / 200) * 200, 2560);
             if (preloadUrl.includes('images.unsplash.com')) {
-              preloadUrl = preloadUrl.replace(/w=\d+/, 'w=' + targetW).replace(/q=\d+/, 'q=75');
+              preloadUrl = preloadUrl.replace(/w=\d+/, 'w=' + targetW).replace(/q=\d+/, 'q=70');
+              if (!preloadUrl.includes('fm=webp')) {
+                preloadUrl += '&fm=webp';
+              }
             }
             window.__PRELOADED_BG__ = preloadUrl;
             if (preloadUrl.startsWith('http')) {
@@ -257,6 +260,13 @@
             height: 100% !important;
             object-fit: contain !important;
             display: block;
+        }
+        .lazy-icon {
+            opacity: 0;
+            transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .lazy-icon.loaded {
+            opacity: 0.9;
         }
         .nav-bookmark {
             transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -821,10 +831,10 @@
 </head>
 <body class="text-white relative bg-[#0b0f19]">
     <!-- 固定定位背景图层（双层叠加 opacity 过渡，解决 background-image 不可 CSS 插值的问题；配合 bg-fullscreen 延伸至移动端安全区与过滚动区域） -->
-    <div id="bgLayer" class="bg-fullscreen bg-cover bg-center bg-no-repeat -z-10 bg-[#0f172a]" style="transform: translateZ(0); will-change: transform, opacity;"></div>
-    <div id="bgLayerNext" class="bg-fullscreen bg-cover bg-center bg-no-repeat -z-10 opacity-0 bg-[#0f172a]" style="transition:opacity 0.6s ease; transform: translateZ(0); will-change: transform, opacity;"></div>
+    <div id="bgLayer" class="bg-fullscreen bg-cover bg-center bg-no-repeat -z-10 bg-[#0f172a] opacity-0" style="transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1); transform: translateZ(0); will-change: transform, opacity;"></div>
+    <div id="bgLayerNext" class="bg-fullscreen bg-cover bg-center bg-no-repeat -z-10 opacity-0 bg-[#0f172a]" style="transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1); transform: translateZ(0); will-change: transform, opacity;"></div>
     <div id="bgOverlay" class="bg-fullscreen bg-black/25 pointer-events-none z-0" style="transition: background-color 0.2s ease, backdrop-filter 0.2s ease, -webkit-backdrop-filter 0.2s ease; transform: translateZ(0); will-change: transform, opacity;"></div>
-    <script>(function(){const bg=document.getElementById('bgLayer');const url=window.__PRELOADED_BG__||'https://images.unsplash.com/photo-1477346611705-65d1883cee1e?q=75&w=2070&auto=format&fit=crop';if(bg)bg.style.backgroundImage="url(\""+url.replace(/["'\\]/g,'\\$&')+"\")";if(window.__PRE_BG_EFFECTS__){const o=document.getElementById('bgOverlay');if(o){o.style.backgroundColor='rgba(0, 0, 0, '+(window.__PRE_BG_EFFECTS__.op/100)+')';if(window.__PRE_BG_EFFECTS__.bl>0){const b='blur('+window.__PRE_BG_EFFECTS__.bl+'px)';o.style.backdropFilter=b;o.style.webkitBackdropFilter=b;}}}})()</script>
+    <script>(function(){const bg=document.getElementById('bgLayer');const url=window.__PRELOADED_BG__||'https://images.unsplash.com/photo-1477346611705-65d1883cee1e?q=75&w=2070&auto=format&fit=crop';if(bg){const show=function(){bg.style.backgroundImage="url(\""+url.replace(/["'\\]/g,'\\$&')+"\")";bg.style.opacity='1';};const img=new Image();img.onload=show;img.src=url;if(img.complete&&img.naturalWidth>0)show();}if(window.__PRE_BG_EFFECTS__){const o=document.getElementById('bgOverlay');if(o){o.style.backgroundColor='rgba(0, 0, 0, '+(window.__PRE_BG_EFFECTS__.op/100)+')';if(window.__PRE_BG_EFFECTS__.bl>0){const b='blur('+window.__PRE_BG_EFFECTS__.bl+'px)';o.style.backdropFilter=b;o.style.webkitBackdropFilter=b;}}}})()</script>
 
     <!-- ========== 第一屏：起始页 ========== -->
     <section id="startSection" class="relative z-10 min-h-screen flex flex-col items-center justify-center px-4 py-12">
@@ -1078,7 +1088,7 @@
                         <div>
                             <div class="flex items-center gap-2">
                                 <span class="text-xs font-semibold text-white/90">Glass Start</span>
-                                <span class="text-[11px] px-2 py-0.5 rounded-full bg-white/10 border border-white/15 text-white/70 font-medium tracking-wide">v2.7.2</span>
+                                <span class="text-[11px] px-2 py-0.5 rounded-full bg-white/10 border border-white/15 text-white/70 font-medium tracking-wide">v2.7.3</span>
                             </div>
                             <div class="text-[10px] text-white/50">极简 Liquid Glass 拟态导航 • Build 2026.08</div>
                         </div>
@@ -3016,6 +3026,7 @@
             `;
             }).join('');
             updatePickerCount();
+            initFaviconObserver();
         }
 
         /**
@@ -3107,6 +3118,23 @@
                     renderNavCategories();
                 });
             }, 1500);
+
+            // 调度 Service Worker 在 CPU 闲置时静默预热前 3 个常用分类图标，存入 FAVICON_CACHE (0ms 零网络开销秒开)
+            scheduleIdleTask(() => {
+                if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+                    const idleUrls = new Set();
+                    (pageData.categories || []).slice(0, 3).forEach(cat => {
+                        (cat.bookmarks || []).forEach(bm => {
+                            if (bm.icon && bm.icon.startsWith('http')) {
+                                idleUrls.add(bm.icon);
+                            }
+                        });
+                    });
+                    idleUrls.forEach(url => {
+                        fetch(url, { mode: 'no-cors', cache: 'force-cache' }).catch(() => {});
+                    });
+                }
+            }, 2500);
         }
 
         // ==================== 苹果风格 Favicon 兜底徽章 (严格尺寸强制归一) ====================
@@ -3155,6 +3183,16 @@
          * @param {'sm'|'md'} [sizeType='sm'] - 图标尺寸类别 ('sm': 导航页 1.5rem | 'md': 首屏 2rem)
          * @returns {string} 渲染后的 HTML 字符串
          */
+        /**
+         * 根据书签数据对象生成规范化的 Favicon HTML 图标结构
+         * 自动处理缺失图标时的首字母文字徽章，以及合法 URL 图片节点的生成
+         * 📌 网络优先级调优 (HTTP/2 Multiplexing & Lazy Loading):
+         *    - 首屏 8 个快捷图标 (isMd): 设置 loading="eager" fetchpriority="high"，确保首页开屏瞬间高清渲染。
+         *    - 视口下方导航页 90+ 图标 (sm): 设置 data-src 属性与 lazy-icon 类，由 IntersectionObserver 在视口内按需加载。
+         * @param {Bookmark} bm - 单个书签数据对象
+         * @param {'sm'|'md'} [sizeType='sm'] - 图标尺寸类别 ('sm': 导航页 1.5rem | 'md': 首屏 2rem)
+         * @returns {string} 渲染后的 HTML 字符串
+         */
         function getFaviconHTML(bm, sizeType = 'sm') {
             const initial = (bm.name || '?').trim().charAt(0).toUpperCase();
             const isMd = sizeType === 'md';
@@ -3165,9 +3203,88 @@
             if (!bm.icon || safeIcon === '#') {
                 return `<div class="icon-box ${sizeClass} bg-white/15 border border-white/20 text-white/90 ${textClass}">${escapeHtml(initial)}</div>`;
             }
-            const loadingAttr = isMd ? 'loading="eager" fetchpriority="high" decoding="async"' : 'loading="lazy" fetchpriority="low" decoding="async"';
             const imgSize = isMd ? '32' : '24';
-            return `<div class="icon-box ${sizeClass}"><img src="${safeIcon}" width="${imgSize}" height="${imgSize}" data-initial="${escapeHtml(initial)}" data-md="${isMd ? '1' : '0'}" class="opacity-90" alt="" ${loadingAttr}></div>`;
+            if (isMd) {
+                return `<div class="icon-box ${sizeClass}"><img src="${safeIcon}" width="${imgSize}" height="${imgSize}" data-initial="${escapeHtml(initial)}" data-md="1" class="lazy-icon" alt="" loading="eager" fetchpriority="high" decoding="async" onload="this.classList.add('loaded')"></div>`;
+            }
+            return `<div class="icon-box ${sizeClass}"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1 1'%3E%3C/svg%3E" data-src="${safeIcon}" width="${imgSize}" height="${imgSize}" data-initial="${escapeHtml(initial)}" data-md="0" class="lazy-icon" alt="" loading="lazy" decoding="async"></div>`;
+        }
+
+        // ==================== 图标 IntersectionObserver 按需微任务队列加载器 ====================
+        let faviconObserver = null;
+        const lazyIconQueue = [];
+        let isProcessingLazyQueue = false;
+
+        /**
+         * 调度队列分批放行图标请求 (每次放行 4 个，间隔 30ms)
+         * 消除快速滚屏时 30+ 图标在单帧内集中并发导致的 CPU 重排卡顿与主线程掉帧
+         */
+        function processLazyIconQueue() {
+            if (lazyIconQueue.length === 0) {
+                isProcessingLazyQueue = false;
+                return;
+            }
+            isProcessingLazyQueue = true;
+            const batch = lazyIconQueue.splice(0, 4);
+            batch.forEach(img => {
+                if (img && img.dataset.src) {
+                    const targetSrc = img.dataset.src;
+                    delete img.dataset.src;
+                    img.onload = () => {
+                        img.classList.add('loaded');
+                    };
+                    img.src = targetSrc;
+                    if (img.complete && img.naturalWidth > 0) {
+                        img.classList.add('loaded');
+                    }
+                }
+            });
+            setTimeout(processLazyIconQueue, 30);
+        }
+
+        function enqueueLazyIcon(img) {
+            if (img && img.dataset.src) {
+                lazyIconQueue.push(img);
+                if (!isProcessingLazyQueue) {
+                    processLazyIconQueue();
+                }
+            }
+        }
+
+        /**
+         * 初始化或刷新图标视口观察器 (IntersectionObserver)
+         * 仅在图标节点滚动至视口 (或提前 200px 缓冲区) 时才将 data-src 转换为 src 发起网络请求，
+         * 彻底消除 90+ 图标同时并发竞争导致的浏览器 connection queueing 阻塞。
+         */
+        function initFaviconObserver() {
+            if (faviconObserver) {
+                try { faviconObserver.disconnect(); } catch {}
+            }
+            lazyIconQueue.length = 0; // 清空旧队列
+
+            if ('IntersectionObserver' in window) {
+                faviconObserver = new IntersectionObserver((entries, observer) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            const img = entry.target;
+                            enqueueLazyIcon(img);
+                            observer.unobserve(entry.target);
+                        }
+                    });
+                }, {
+                    root: dom.navContent || null,
+                    rootMargin: '200px 0px 200px 0px'
+                });
+
+                document.querySelectorAll('img.lazy-icon[data-src]').forEach(img => {
+                    faviconObserver.observe(img);
+                });
+            } else {
+                document.querySelectorAll('img.lazy-icon[data-src]').forEach(img => {
+                    img.src = img.dataset.src;
+                    delete img.dataset.src;
+                });
+            }
         }
 
         // ==================== 书签 ====================
@@ -3184,6 +3301,14 @@
                     <span class="bookmark-title text-white/90">${escapeHtml(bm.name)}</span>
                 </a>
             `).join('');
+
+            dom.bookmarks.querySelectorAll('img.lazy-icon').forEach(img => {
+                if (img.complete && img.naturalWidth > 0) {
+                    img.classList.add('loaded');
+                } else {
+                    img.addEventListener('load', () => img.classList.add('loaded'), { once: true });
+                }
+            });
         }
 
         // ==================== 导航页（双栏布局）====================
@@ -3240,9 +3365,10 @@
             `;
             }).join('');
 
-            // 每次重新渲染分类后，自动刷新侧边栏动态 DOM 节点关联与位移缓存
+            // 每次重新渲染分类后，自动刷新侧边栏动态 DOM 节点关联与位移缓存，并初始化图标懒加载观察器
             refreshSidebarNavCache();
             initSidebarNav();
+            initFaviconObserver();
             if (dom.navContent && savedScrollTop > 0) {
                 dom.navContent.scrollTop = savedScrollTop;
             }
@@ -4333,49 +4459,53 @@
             const safeCssUrl = urlStr.replace(/["'\\]/g, '\\$&');
             const newStyleUrl = `url("${safeCssUrl}")`;
 
-            // 预解码背景图片，消除解压卡顿与黑屏闪烁
             const img = new Image();
+
+            const executeTransition = () => {
+                if (bgSwitchTimer) {
+                    clearTimeout(bgSwitchTimer);
+                    bgSwitchTimer = null;
+                }
+
+                if (animate) {
+                    // 1. 仅当上层背景当前可见（淡入动画进行中，opacity > 0.4）时才将其同步到底层作为淡入起点。
+                    if (bgNext.style.backgroundImage && parseFloat(getComputedStyle(bgNext).opacity) > 0.4) {
+                        bgBase.style.backgroundImage = bgNext.style.backgroundImage;
+                        bgBase.style.opacity = '1';
+                    }
+                    // 2. 暂时断开 CSS 过渡动画，强制将 opacity 归零
+                    bgNext.style.transition = 'none';
+                    bgNext.style.opacity = '0';
+                    void bgNext.offsetWidth; // 强行触发 DOM 重排，确保 opacity:0 瞬间生效
+
+                    // 3. 换入新图片 URL 并设置 0.8s 平滑缓动淡入动画
+                    bgNext.style.backgroundImage = newStyleUrl;
+                    bgNext.style.transition = 'opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1)';
+
+                    // 4. 启动淡入动画 0 ➔ 1
+                    requestAnimationFrame(() => {
+                        bgNext.style.opacity = '1';
+                        bgSwitchTimer = setTimeout(() => {
+                            bgBase.style.backgroundImage = newStyleUrl;
+                            bgBase.style.opacity = '1';
+                            bgNext.style.transition = 'none';
+                            bgNext.style.opacity = '0';
+                            bgSwitchTimer = null;
+                        }, 800);
+                    });
+                } else {
+                    bgNext.style.transition = 'none';
+                    bgNext.style.opacity = '0';
+                    bgBase.style.backgroundImage = newStyleUrl;
+                    bgBase.style.opacity = '1';
+                }
+            };
+
             img.src = urlStr;
-            if ('decode' in img) {
-                img.decode().catch(() => {});
-            }
-
-            if (bgSwitchTimer) {
-                clearTimeout(bgSwitchTimer);
-                bgSwitchTimer = null;
-                if (bgNext.style.backgroundImage && parseFloat(getComputedStyle(bgNext).opacity) > 0.4) {
-                    bgBase.style.backgroundImage = bgNext.style.backgroundImage;
-                }
-            }
-
-            if (animate) {
-                // 1. 仅当上层背景当前可见（淡入动画进行中，opacity > 0.4）时才将其同步到底层作为淡入起点。
-                if (bgNext.style.backgroundImage && parseFloat(getComputedStyle(bgNext).opacity) > 0.4) {
-                    bgBase.style.backgroundImage = bgNext.style.backgroundImage;
-                }
-                // 2. 暂时断开 CSS 过渡动画，防止 0.6s 过渡延迟，强制将 opacity 归零
-                bgNext.style.transition = 'none';
-                bgNext.style.opacity = '0';
-                void bgNext.offsetWidth; // 强行触发 DOM 重排，确保 opacity:0 瞬间生效
-
-                // 3. 换入新图片 URL 并恢复 CSS 0.6s 淡入动画
-                bgNext.style.backgroundImage = newStyleUrl;
-                bgNext.style.transition = 'opacity 0.6s ease';
-
-                // 4. 启动淡入动画 0 ➔ 1
-                requestAnimationFrame(() => {
-                    bgNext.style.opacity = '1';
-                    bgSwitchTimer = setTimeout(() => {
-                        bgBase.style.backgroundImage = newStyleUrl;
-                        bgNext.style.transition = 'none';
-                        bgNext.style.opacity = '0';
-                        bgSwitchTimer = null;
-                    }, 600);
-                });
+            if (img.complete && img.naturalWidth > 0) {
+                executeTransition();
             } else {
-                bgNext.style.transition = 'none';
-                bgNext.style.opacity = '0';
-                bgBase.style.backgroundImage = newStyleUrl;
+                img.onload = executeTransition;
             }
             updateWallpaperStatusUI().catch(() => {});
         }
