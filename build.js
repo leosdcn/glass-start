@@ -150,9 +150,25 @@ if (fs.existsSync(bookmarksJsonPath) && fs.existsSync(indexHtmlPath)) {
     }
 }
 
-// 5. 处理生产环境 index.html (替换 v4 Browser CDN 为全量内嵌 <style> 标签，添加自动生成防护头部)
+// 5. 处理生产环境 index.html (替换 v4 Browser CDN 为全量内嵌 <style> 标签，压缩默认数据数组)
 console.log('🔧 处理生产环境 index.html (移除 v4 Browser CDN 脚本，全量内嵌 Tailwind CSS)...');
 let prodHtmlContent = fs.readFileSync(indexHtmlPath, 'utf-8');
+
+// 5.0 生产环境 HTML 数据内嵌压缩：将 DEFAULT_BOOKMARKS 与 DEFAULT_CATEGORIES 替换为单行 JSON 字符串
+if (fs.existsSync(bookmarksJsonPath)) {
+    try {
+        const bookmarksData = JSON.parse(fs.readFileSync(bookmarksJsonPath, 'utf-8'));
+        if (bookmarksData.bookmarks) {
+            const minBm = JSON.stringify(bookmarksData.bookmarks);
+            prodHtmlContent = prodHtmlContent.replace(/(?:const|let|var)\s+DEFAULT_BOOKMARKS\s*=\s*\[[\s\S]*?\n\s*\];/, `const DEFAULT_BOOKMARKS = ${minBm};`);
+        }
+        if (bookmarksData.categories) {
+            const minCat = JSON.stringify(bookmarksData.categories);
+            prodHtmlContent = prodHtmlContent.replace(/(?:const|let|var)\s+DEFAULT_CATEGORIES\s*=\s*\[[\s\S]*?\n\s*\];/, `const DEFAULT_CATEGORIES = ${minCat};`);
+        }
+        console.log('   ✅ 已完成生产环境默认书签数据 (DEFAULT_*) 的无损单行紧凑压缩');
+    } catch {}
+}
 
 const distCssPath = path.join(distDir, 'style.css');
 let cssContent = '';
