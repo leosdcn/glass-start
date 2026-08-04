@@ -28,7 +28,8 @@ const MAX_IMG_ENTRIES = 200;     // 站内本地图片上限
 // 否则 cache.addAll 会因任一 404 而整批失败（连 './' 与 './index.html' 也一起回滚丢失）
 const CORE_ASSETS = [
     './',
-    './index.html'
+    './index.html',
+    './wallpapers/bg1.webp'
 ];
 
 // IndexedDB LRU 时间戳管理

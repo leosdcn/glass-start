@@ -77,6 +77,13 @@ if (fs.existsSync(path.join(rootDir, 'sw.js'))) {
     console.log(`   ✅ Service Worker 缓存版本已自动为 dist/sw.js 更新为: ${timestampVersion}`);
 }
 
+// 3.1 复制 wallpapers 本地壁纸目录至 dist 产物中
+const wallpapersSrc = path.join(rootDir, 'wallpapers');
+if (fs.existsSync(wallpapersSrc)) {
+    fs.cpSync(wallpapersSrc, path.join(distDir, 'wallpapers'), { recursive: true });
+    console.log('   ✅ 已将 wallpapers/ 壁纸资源目录全量复制至 dist/wallpapers/');
+}
+
 /**
  * 4. 自动数据双向同步机制 (Auto-Sync bookmarks.json -> index.html DEFAULT_CATEGORIES / DEFAULT_BOOKMARKS)
  * ---------------------------------------------------------------------------------------------------------

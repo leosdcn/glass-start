@@ -48,12 +48,12 @@
        */
       (function() {
         const backgrounds = [
-          'https://images.unsplash.com/photo-1477346611705-65d1883cee1e?q=75&w=2070&auto=format&fit=crop',
-          'https://images.unsplash.com/photo-1506744038136-46273834b3fb?q=75&w=2070&auto=format&fit=crop',
-          'https://images.unsplash.com/photo-1433086966358-54859d0ed716?q=75&w=2070&auto=format&fit=crop',
-          'https://images.unsplash.com/photo-1519681393784-d120267933ba?q=75&w=2070&auto=format&fit=crop',
-          'https://images.unsplash.com/photo-1469474968028-56623f02e42e?q=75&w=2070&auto=format&fit=crop',
-          'https://images.unsplash.com/photo-1501785888041-af3ef285b470?q=75&w=2070&auto=format&fit=crop'
+          './wallpapers/bg1.webp',
+          './wallpapers/bg2.webp',
+          './wallpapers/bg3.webp',
+          './wallpapers/bg4.webp',
+          './wallpapers/bg5.webp',
+          './wallpapers/bg6.webp'
         ];
         try {
           const rawUserWp = localStorage.getItem('userWallpaper');
@@ -1043,28 +1043,28 @@
                         <span class="text-[10px] text-white/40">点击预览</span>
                     </div>
                     <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 flex-1 min-h-0">
-                        <button type="button" class="preset-bg-card relative aspect-video rounded-xl overflow-hidden border border-white/15 hover:border-white/50 transition group shadow-md" data-bg="https://images.unsplash.com/photo-1477346611705-65d1883cee1e?q=80&w=2070&auto=format&fit=crop" data-title="山峦夜空" title="山峦夜空（系统默认）">
-                            <img src="https://images.unsplash.com/photo-1477346611705-65d1883cee1e?q=80&w=200&auto=format&fit=crop" alt="山峦夜空" class="w-full h-full object-cover group-hover:scale-105 transition duration-300 pointer-events-none" loading="lazy" decoding="async">
+                        <button type="button" class="preset-bg-card relative aspect-video rounded-xl overflow-hidden border border-white/15 hover:border-white/50 transition group shadow-md" data-bg="./wallpapers/bg1.webp" data-title="山峦夜空" title="山峦夜空（系统默认）">
+                            <img src="./wallpapers/bg1.webp" alt="山峦夜空" class="w-full h-full object-cover group-hover:scale-105 transition duration-300 pointer-events-none" loading="lazy" decoding="async">
                             <span class="absolute inset-x-0 bottom-0 py-1 bg-black/60 backdrop-blur-xs text-[10px] text-white/90 text-center font-medium pointer-events-none">山峦夜空</span>
                         </button>
-                        <button type="button" class="preset-bg-card relative aspect-video rounded-xl overflow-hidden border border-white/15 hover:border-white/50 transition group shadow-md" data-bg="https://images.unsplash.com/photo-1506744038136-46273834b3fb?q=80&w=2070&auto=format&fit=crop" data-title="湖光山色" title="湖光山色">
-                            <img src="https://images.unsplash.com/photo-1506744038136-46273834b3fb?q=80&w=200&auto=format&fit=crop" alt="湖光山色" class="w-full h-full object-cover group-hover:scale-105 transition duration-300 pointer-events-none" loading="lazy" decoding="async">
+                        <button type="button" class="preset-bg-card relative aspect-video rounded-xl overflow-hidden border border-white/15 hover:border-white/50 transition group shadow-md" data-bg="./wallpapers/bg2.webp" data-title="湖光山色" title="湖光山色">
+                            <img src="./wallpapers/bg2.webp" alt="湖光山色" class="w-full h-full object-cover group-hover:scale-105 transition duration-300 pointer-events-none" loading="lazy" decoding="async">
                             <span class="absolute inset-x-0 bottom-0 py-1 bg-black/60 backdrop-blur-xs text-[10px] text-white/90 text-center font-medium pointer-events-none">湖光山色</span>
                         </button>
-                        <button type="button" class="preset-bg-card relative aspect-video rounded-xl overflow-hidden border border-white/15 hover:border-white/50 transition group shadow-md" data-bg="https://images.unsplash.com/photo-1433086966358-54859d0ed716?q=80&w=2070&auto=format&fit=crop" data-title="森林瀑布" title="森林瀑布">
-                            <img src="https://images.unsplash.com/photo-1433086966358-54859d0ed716?q=80&w=200&auto=format&fit=crop" alt="森林瀑布" class="w-full h-full object-cover group-hover:scale-105 transition duration-300 pointer-events-none" loading="lazy" decoding="async">
+                        <button type="button" class="preset-bg-card relative aspect-video rounded-xl overflow-hidden border border-white/15 hover:border-white/50 transition group shadow-md" data-bg="./wallpapers/bg3.webp" data-title="森林瀑布" title="森林瀑布">
+                            <img src="./wallpapers/bg3.webp" alt="森林瀑布" class="w-full h-full object-cover group-hover:scale-105 transition duration-300 pointer-events-none" loading="lazy" decoding="async">
                             <span class="absolute inset-x-0 bottom-0 py-1 bg-black/60 backdrop-blur-xs text-[10px] text-white/90 text-center font-medium pointer-events-none">森林瀑布</span>
                         </button>
-                        <button type="button" class="preset-bg-card relative aspect-video rounded-xl overflow-hidden border border-white/15 hover:border-white/50 transition group shadow-md" data-bg="https://images.unsplash.com/photo-1519681393784-d120267933ba?q=80&w=2070&auto=format&fit=crop" data-title="星空雪山" title="星空雪山">
-                            <img src="https://images.unsplash.com/photo-1519681393784-d120267933ba?q=80&w=200&auto=format&fit=crop" alt="星空雪山" class="w-full h-full object-cover group-hover:scale-105 transition duration-300 pointer-events-none" loading="lazy" decoding="async">
+                        <button type="button" class="preset-bg-card relative aspect-video rounded-xl overflow-hidden border border-white/15 hover:border-white/50 transition group shadow-md" data-bg="./wallpapers/bg4.webp" data-title="星空雪山" title="星空雪山">
+                            <img src="./wallpapers/bg4.webp" alt="星空雪山" class="w-full h-full object-cover group-hover:scale-105 transition duration-300 pointer-events-none" loading="lazy" decoding="async">
                             <span class="absolute inset-x-0 bottom-0 py-1 bg-black/60 backdrop-blur-xs text-[10px] text-white/90 text-center font-medium pointer-events-none">星空雪山</span>
                         </button>
-                        <button type="button" class="preset-bg-card relative aspect-video rounded-xl overflow-hidden border border-white/15 hover:border-white/50 transition group shadow-md" data-bg="https://images.unsplash.com/photo-1469474968028-56623f02e42e?q=80&w=2070&auto=format&fit=crop" data-title="壮丽旷野" title="壮丽旷野">
-                            <img src="https://images.unsplash.com/photo-1469474968028-56623f02e42e?q=80&w=200&auto=format&fit=crop" alt="壮丽旷野" class="w-full h-full object-cover group-hover:scale-105 transition duration-300 pointer-events-none" loading="lazy" decoding="async">
+                        <button type="button" class="preset-bg-card relative aspect-video rounded-xl overflow-hidden border border-white/15 hover:border-white/50 transition group shadow-md" data-bg="./wallpapers/bg5.webp" data-title="壮丽旷野" title="壮丽旷野">
+                            <img src="./wallpapers/bg5.webp" alt="壮丽旷野" class="w-full h-full object-cover group-hover:scale-105 transition duration-300 pointer-events-none" loading="lazy" decoding="async">
                             <span class="absolute inset-x-0 bottom-0 py-1 bg-black/60 backdrop-blur-xs text-[10px] text-white/90 text-center font-medium pointer-events-none">壮丽旷野</span>
                         </button>
-                        <button type="button" class="preset-bg-card relative aspect-video rounded-xl overflow-hidden border border-white/15 hover:border-white/50 transition group shadow-md" data-bg="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=2070&auto=format&fit=crop" data-title="静谧海岸" title="静谧海岸">
-                            <img src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=200&auto=format&fit=crop" alt="静谧海岸" class="w-full h-full object-cover group-hover:scale-105 transition duration-300 pointer-events-none" loading="lazy" decoding="async">
+                        <button type="button" class="preset-bg-card relative aspect-video rounded-xl overflow-hidden border border-white/15 hover:border-white/50 transition group shadow-md" data-bg="./wallpapers/bg6.webp" data-title="静谧海岸" title="静谧海岸">
+                            <img src="./wallpapers/bg6.webp" alt="静谧海岸" class="w-full h-full object-cover group-hover:scale-105 transition duration-300 pointer-events-none" loading="lazy" decoding="async">
                             <span class="absolute inset-x-0 bottom-0 py-1 bg-black/60 backdrop-blur-xs text-[10px] text-white/90 text-center font-medium pointer-events-none">静谧海岸</span>
                         </button>
                         <button type="button" class="preset-bg-card relative aspect-video rounded-xl overflow-hidden border border-white/15 hover:border-white/50 transition group shadow-md" data-bg="https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=2070&auto=format&fit=crop" data-title="迷雾古堡" title="迷雾古堡">
@@ -1088,7 +1088,7 @@
                         <div>
                             <div class="flex items-center gap-2">
                                 <span class="text-xs font-semibold text-white/90">Glass Start</span>
-                                <span class="text-[11px] px-2 py-0.5 rounded-full bg-white/10 border border-white/15 text-white/70 font-medium tracking-wide">v2.7.3</span>
+                                <span class="text-[11px] px-2 py-0.5 rounded-full bg-white/10 border border-white/15 text-white/70 font-medium tracking-wide">v2.7.4</span>
                             </div>
                             <div class="text-[10px] text-white/50">极简 Liquid Glass 拟态导航 • Build 2026.08</div>
                         </div>
@@ -1898,12 +1898,12 @@
 
         // 内置壁纸轮播列表（快捷键 B 切换）
         const backgrounds = [
-            'https://images.unsplash.com/photo-1477346611705-65d1883cee1e?q=80&w=2070&auto=format&fit=crop',
-            'https://images.unsplash.com/photo-1506744038136-46273834b3fb?q=80&w=2070&auto=format&fit=crop',
-            'https://images.unsplash.com/photo-1433086966358-54859d0ed716?q=80&w=2070&auto=format&fit=crop',
-            'https://images.unsplash.com/photo-1519681393784-d120267933ba?q=80&w=2070&auto=format&fit=crop',
-            'https://images.unsplash.com/photo-1469474968028-56623f02e42e?q=80&w=2070&auto=format&fit=crop',
-            'https://images.unsplash.com/photo-1501785888041-af3ef285b470?q=80&w=2070&auto=format&fit=crop'
+            './wallpapers/bg1.webp',
+            './wallpapers/bg2.webp',
+            './wallpapers/bg3.webp',
+            './wallpapers/bg4.webp',
+            './wallpapers/bg5.webp',
+            './wallpapers/bg6.webp'
         ];
 
         // ==================== 状态与 DOM 缓存 ====================
