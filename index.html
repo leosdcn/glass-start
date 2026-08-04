@@ -4439,11 +4439,11 @@
             let html = '';
             let globalIdx = 0;
 
-            // 📌 本站书签分组（最多 2 条）
+            // 书签分组（最多 2 条）
             if (localList && localList.length > 0) {
                 html += `
-                    <div class="px-3 py-1 text-[11px] font-semibold tracking-wider text-white/50 uppercase flex items-center justify-between border-b border-white/10 pb-1.5 mb-1 select-none">
-                        <span class="flex items-center gap-1.5">📌 本站书签</span>
+                    <div class="px-3.5 pt-1.5 pb-1 text-[10px] font-medium tracking-wider text-white/35 uppercase select-none">
+                        <span>书签</span>
                     </div>
                 `;
                 localList.forEach(bm => {
@@ -4470,15 +4470,15 @@
                 });
             }
 
-            // 🌐 网络搜索建议分组（确保与本站书签合计不超过 4 行）
+            // 网络搜索建议分组（确保与本站书签合计不超过 4 行）
             const maxNetCount = Math.max(0, 4 - (localList ? localList.length : 0));
             const safeNetList = (netList || []).slice(0, maxNetCount);
 
             if (safeNetList.length > 0) {
                 if (localList && localList.length > 0) {
                     html += `
-                        <div class="px-3 pt-2 pb-1 text-[11px] font-semibold tracking-wider text-white/50 uppercase flex items-center gap-1.5 border-t border-white/10 mt-1 select-none">
-                            <span>🌐 搜索联想</span>
+                        <div class="px-3.5 pt-2 pb-1 text-[10px] font-medium tracking-wider text-white/35 uppercase select-none">
+                            <span>搜索</span>
                         </div>
                     `;
                 }
@@ -4491,7 +4491,6 @@
                              class="suggestion-item group px-3.5 py-2.5 my-0.5 apple-radius text-sm text-white/85 flex items-center gap-3 transition-all duration-150 cursor-pointer hover:text-white">
                             <svg class="w-4 h-4 text-white/40 group-hover:text-white/80 shrink-0 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                             <span class="truncate flex-1 font-normal tracking-wide">${escapeHtml(item)}</span>
-                            <span class="text-[11px] text-white/30 shrink-0 opacity-0 group-hover:opacity-80 transition">搜索</span>
                         </div>
                     `;
                     globalIdx++;
@@ -4499,8 +4498,8 @@
             } else if (isNetLoading) {
                 if (localList && localList.length > 0) {
                     html += `
-                        <div class="px-3 pt-2 pb-1 text-[11px] font-semibold tracking-wider text-white/50 uppercase flex items-center gap-1.5 border-t border-white/10 mt-1 select-none">
-                            <span>🌐 搜索联想</span>
+                        <div class="px-3.5 pt-2 pb-1 text-[10px] font-medium tracking-wider text-white/35 uppercase select-none">
+                            <span>搜索</span>
                         </div>
                     `;
                 }
@@ -4511,7 +4510,6 @@
                         <div class="px-3.5 py-2.5 my-0.5 apple-radius flex items-center gap-3 select-none pointer-events-none skeleton-pulse">
                             <svg class="w-4 h-4 text-white/20 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                             <div class="h-5 bg-white/15 apple-radius ${widthClass}"></div>
-                            <div class="h-3 w-7 bg-white/10 apple-radius shrink-0 ml-auto"></div>
                         </div>
                     `;
                 }
