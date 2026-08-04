@@ -40,23 +40,29 @@ let dbPromise = null;
 function openIDB() {
     if (dbPromise) return dbPromise;
     dbPromise = new Promise((resolve, reject) => {
-        const req = indexedDB.open(IDB_NAME, 1);
-        req.onupgradeneeded = () => {
-            const db = req.result;
-            if (!db.objectStoreNames.contains(IDB_STORE)) {
-                db.createObjectStore(IDB_STORE);
-            }
-        };
-        req.onsuccess = () => {
-            const db = req.result;
-            db.onversionchange = () => { try { db.close(); } catch {} dbPromise = null; };
-            db.onclose = () => { dbPromise = null; };
-            resolve(db);
-        };
-        req.onerror = () => {
-            dbPromise = null; // 打开失败时重置，允许下次重试
-            reject(req.error);
-        };
+        try {
+            const req = indexedDB.open(IDB_NAME, 1);
+            req.onupgradeneeded = () => {
+                const db = req.result;
+                if (!db.objectStoreNames.contains(IDB_STORE)) {
+                    db.createObjectStore(IDB_STORE);
+                }
+            };
+            req.onsuccess = () => {
+                const db = req.result;
+                db.onversionchange = () => { try { db.close(); } catch {} dbPromise = null; };
+                db.onclose = () => { dbPromise = null; };
+                db.onerror = () => { dbPromise = null; };
+                resolve(db);
+            };
+            req.onerror = () => {
+                dbPromise = null; // 打开失败时重置，允许下次重试
+                reject(req.error);
+            };
+        } catch (e) {
+            dbPromise = null;
+            reject(e);
+        }
     });
     return dbPromise;
 }
@@ -69,7 +75,18 @@ async function recordAccess(pool, url) {
         const tx = db.transaction(IDB_STORE, 'readwrite');
         tx.objectStore(IDB_STORE).put(Date.now(), `${pool}:${url}`);
         await new Promise(r => { tx.oncomplete = r; tx.onerror = r; });
-    } catch {}
+    } catch {
+        dbPromise = null; // 异常时清空连接句柄，以便下次重新建连
+    }
+}
+
+// 同一缓存池互斥串行锁，消除并发请求并发执行 pruneCache 导致的淘汰目标重复与溢出 BUG
+const pruneLocks = new Map();
+function enqueuePruneCache(pool, cache, maxEntries) {
+    const previous = pruneLocks.get(pool) || Promise.resolve();
+    const next = previous.then(() => pruneCache(pool, cache, maxEntries)).catch(() => {});
+    pruneLocks.set(pool, next);
+    return next;
 }
 
 // 基于 IndexedDB 时间戳批量清理最久未使用的条目，一次性清到限额以内
@@ -78,7 +95,6 @@ async function pruneCache(pool, cache, maxEntries) {
     try {
         const keys = await cache.keys();
         const overflow = keys.length - maxEntries;
-        if (overflow <= 0) return;
 
         const db = await openIDB();
         const tx = db.transaction(IDB_STORE, 'readonly');
@@ -106,27 +122,40 @@ async function pruneCache(pool, cache, maxEntries) {
         const validRecords = timestamps.filter(t => cacheUrlSet.has(t.url));
         validRecords.sort((a, b) => a.time - b.time);
 
-        // 优先按时间戳从最旧到新删除，凑不够数量再用 keys[0..] 兜底（无 IDB 记录的条目）
-        const toDeleteUrls = validRecords.slice(0, overflow).map(r => r.url);
-        if (toDeleteUrls.length < overflow) {
-            const knownSet = new Set(toDeleteUrls);
-            for (const k of keys) {
-                if (toDeleteUrls.length >= overflow) break;
-                if (!knownSet.has(k.url) && !validRecords.some(r => r.url === k.url)) {
-                    toDeleteUrls.push(k.url);
+        // 收集已不存在于 Cache API 中的 IDB 孤立无用时间戳记录（垃圾回收 GC）
+        const orphanRecords = timestamps.filter(t => !cacheUrlSet.has(t.url));
+
+        let toDeleteUrls = [];
+        if (overflow > 0) {
+            // 优先按时间戳从最旧到新删除，凑不够数量再用 keys[0..] 兜底（无 IDB 记录的条目）
+            toDeleteUrls = validRecords.slice(0, overflow).map(r => r.url);
+            if (toDeleteUrls.length < overflow) {
+                const knownSet = new Set(toDeleteUrls);
+                for (const k of keys) {
+                    if (toDeleteUrls.length >= overflow) break;
+                    if (!knownSet.has(k.url) && !validRecords.some(r => r.url === k.url)) {
+                        toDeleteUrls.push(k.url);
+                        knownSet.add(k.url); // 修复：补全 Set 注册，防止相同 URL 重复压入与兜底清理缺失
+                    }
                 }
             }
         }
 
-        if (toDeleteUrls.length === 0) return;
+        if (toDeleteUrls.length === 0 && orphanRecords.length === 0) return;
 
-        await Promise.all(toDeleteUrls.map(url => cache.delete(url)));
+        if (toDeleteUrls.length > 0) {
+            await Promise.all(toDeleteUrls.map(url => cache.delete(url)));
+        }
 
         const deleteTx = db.transaction(IDB_STORE, 'readwrite');
         const delStore = deleteTx.objectStore(IDB_STORE);
         toDeleteUrls.forEach(url => delStore.delete(`${prefix}${url}`));
+        // 垃圾回收：同步擦除已不存在于 Cache API 中的孤立 IDB 时间戳，彻底消除硬盘/内存泄漏
+        orphanRecords.forEach(r => delStore.delete(r.idbKey));
         await new Promise(r => { deleteTx.oncomplete = r; deleteTx.onerror = r; });
-    } catch {}
+    } catch {
+        dbPromise = null;
+    }
 }
 
 // 安装阶段：预缓存核心静态文件，跳过等待强制激活最新 SW
@@ -254,7 +283,7 @@ self.addEventListener('fetch', e => {
                             (async () => {
                                 await cache.put(e.request, resClone);
                                 await recordAccess(pool, e.request.url);
-                                await pruneCache(pool, cache, maxEntries);
+                                await enqueuePruneCache(pool, cache, maxEntries);
                             })()
                         );
                     }
