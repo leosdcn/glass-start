@@ -239,6 +239,11 @@
         @keyframes skeletonPulse { 0%, 100% { opacity: 0.25; } 50% { opacity: 0.55; } }
         .skeleton-pulse { animation: skeletonPulse 1.4s ease-in-out infinite; }
         .clock-text { font-family: 'SF Pro Rounded', 'Nunito', -apple-system, BlinkMacSystemFont, sans-serif; text-shadow: 0 2px 20px rgba(0,0,0,0.4), 0 0 60px rgba(0,0,0,0.2); }
+        .clock-pulse { animation: clockFade 0.52s cubic-bezier(0.16, 1, 0.3, 1); }
+        @keyframes clockFade {
+            0% { opacity: 0.35; transform: scale(0.985); }
+            100% { opacity: 1; transform: scale(1); }
+        }
         .bookmark-item { transition: all 0.2s ease; }
         .bookmark-item:hover { background: rgba(255,255,255,0.12); transform: translateY(-0.125rem); }
         .bookmark-title {
@@ -4148,13 +4153,25 @@
         }
 
         let lastDateDay = -1;
+        let lastClockStr = '';
         function updateClock() {
             const n = new Date();
-            dom.clock.textContent = `${String(n.getHours()).padStart(2, '0')}:${String(n.getMinutes()).padStart(2, '0')}`;
+            const timeStr = `${String(n.getHours()).padStart(2, '0')}:${String(n.getMinutes()).padStart(2, '0')}`;
+            if (dom.clock) {
+                if (timeStr !== lastClockStr) {
+                    if (lastClockStr !== '') {
+                        dom.clock.classList.remove('clock-pulse');
+                        void dom.clock.offsetWidth;
+                        dom.clock.classList.add('clock-pulse');
+                    }
+                    dom.clock.textContent = timeStr;
+                    lastClockStr = timeStr;
+                }
+            }
             const day = n.getDate();
             if (day !== lastDateDay) {
                 lastDateDay = day;
-                dom.date.textContent = n.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
+                if (dom.date) dom.date.textContent = n.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
             }
         }
 
