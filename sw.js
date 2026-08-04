@@ -258,41 +258,97 @@ self.addEventListener('fetch', e => {
         return;
     }
 
-    // 2. 对图标及图片资源（a.favicon.im 域名、.ico/.svg/.png 等）采取 Cache-First 策略 + IndexedDB 真 LRU 调序
-    // a.favicon.im 外部图标与站内本地图片分池存储，各自独立限额，互不挤占
+    // 2. 对图标及图片资源采取分策略缓存 + IndexedDB 真 LRU 调序
+    //    - a.favicon.im 跨域图标：Stale-While-Revalidate。
+    //      跨域 <img> 默认 no-cors，响应恒为 opaque（status=0、ok=false、body 不可读），
+    //      JS 无法区分 200/404/5xx/中间层告警页；若 Cache-First 一旦首次写进坏响应（网络抖动/被墙/404），
+    //      就会永久命中坏缓存导致 favicon 再也不显示。改为"命中即返回 + 后台强制 revalidate 覆盖"，
+    //      让瞬时故障在网络恢复后自愈，首次 miss 仍走网络。
+    //    - 站内本地图片（同源）：保持 Cache-First。同源响应 res.ok 可靠，不会误缓存坏响应。
+    // 两个缓存池独立限额，互不挤占。
     if (isFaviconDomain || isImgAsset) {
         const pool = isFaviconDomain ? 'favicon' : 'img';
         const cacheName = isFaviconDomain ? FAVICON_CACHE : IMG_CACHE;
         const maxEntries = isFaviconDomain ? MAX_FAVICON_ENTRIES : MAX_IMG_ENTRIES;
 
-        e.respondWith(
-            caches.open(cacheName).then(async cache => {
-                // 优先命中本地 Cache 缓存 (0ms 秒开)
-                const cached = await cache.match(e.request);
-                if (cached) {
-                    // 命中时刷新时间戳（放入 waitUntil 保证 SW 线程生命周期）
-                    e.waitUntil(recordAccess(pool, e.request.url));
-                    return cached;
-                }
+        if (isFaviconDomain) {
+            // ---------- Stale-While-Revalidate：跨域 favicon ----------
+            e.respondWith(
+                caches.open(cacheName).then(async cache => {
+                    const cached = await cache.match(e.request);
 
-                // 未命中缓存，发起网络请求并存入对应缓存池
-                try {
-                    const res = await fetch(e.request);
-                    if (res.ok || res.type === 'opaque') {
-                        const resClone = res.clone();
-                        e.waitUntil(
-                            (async () => {
-                                await cache.put(e.request, resClone);
+                    // 后台无条件 revalidate：无论命中与否都尝试用最新响应覆盖缓存，
+                    // 让此前被误缓存的 opaque 错误响应能在网络恢复后自愈。
+                    const revalidatePromise = (async () => {
+                        try {
+                            // 用 no-cache 强制走协商/回源，避免被浏览器 HTTP 缓存二次挡在外面
+                            const netRes = await fetch(e.request, { cache: 'no-cache' });
+                            // opaque 响应无法判别成功失败，但网络层成功到达（未抛异常）即说明
+                            // 服务器返回了某种响应——比之前的坏响应当前更"新鲜"，覆盖之；
+                            // 真正的网络错误（抛异常）会走到 catch，保留旧缓存不动。
+                            if (netRes && (netRes.ok || netRes.type === 'opaque')) {
+                                await cache.put(e.request, netRes.clone());
                                 await recordAccess(pool, e.request.url);
                                 await enqueuePruneCache(pool, cache, maxEntries);
-                            })()
-                        );
+                            }
+                        } catch {
+                            // 离线/网络错误：保留旧缓存即可，刷新时间戳维持 LRU 顺序
+                            if (cached) {
+                                await recordAccess(pool, e.request.url).catch(() => {});
+                            }
+                        }
+                    })();
+
+                    if (cached) {
+                        e.waitUntil(revalidatePromise);
+                        e.waitUntil(recordAccess(pool, e.request.url));
+                        return cached;
                     }
-                    return res;
-                } catch {
-                    return new Response('', { status: 404 });
-                }
-            })
-        );
+
+                    // 首次 miss：等待 revalidate 完成，缓存中已有结果则直接返回；
+                    // 失败（网络离线等）则兜底 404。
+                    try {
+                        await revalidatePromise;
+                        const freshCached = await cache.match(e.request);
+                        if (freshCached) return freshCached;
+                        return new Response('', { status: 404 });
+                    } catch {
+                        return new Response('', { status: 404 });
+                    }
+                })
+            );
+        } else {
+            // ---------- Cache-First：站内本地图片（同源，res.ok 可靠） ----------
+            e.respondWith(
+                caches.open(cacheName).then(async cache => {
+                    // 优先命中本地 Cache 缓存 (0ms 秒开)
+                    const cached = await cache.match(e.request);
+                    if (cached) {
+                        // 命中时刷新时间戳（放入 waitUntil 保证 SW 线程生命周期）
+                        e.waitUntil(recordAccess(pool, e.request.url));
+                        return cached;
+                    }
+
+                    // 未命中缓存，发起网络请求并存入对应缓存池
+                    try {
+                        const res = await fetch(e.request);
+                        if (res.ok) {
+                            // 站内同源响应可靠，仅缓存 res.ok===true 的成功响应，拒绝任何错误态
+                            const resClone = res.clone();
+                            e.waitUntil(
+                                (async () => {
+                                    await cache.put(e.request, resClone);
+                                    await recordAccess(pool, e.request.url);
+                                    await enqueuePruneCache(pool, cache, maxEntries);
+                                })()
+                            );
+                        }
+                        return res;
+                    } catch {
+                        return new Response('', { status: 404 });
+                    }
+                })
+            );
+        }
     }
 });
