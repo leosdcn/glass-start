@@ -159,7 +159,7 @@
         }
         html, body { background-color: #0f172a !important; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Nunito', sans-serif; /* 优先 Apple 原生系统字体栈 */ scrollbar-width:none; -ms-overflow-style:none; 
-               overflow:hidden; }
+               overflow:hidden; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-rendering: optimizeLegibility; }
         body::-webkit-scrollbar { display:none; }
         * { scrollbar-width:none; -ms-overflow-style:none; }
         *::-webkit-scrollbar { display:none; }
@@ -664,21 +664,21 @@
             align-items: center;
             justify-content: space-between;
             padding: 0.625rem 0.875rem 0.5rem 0.875rem;
-            margin-top: 0.625rem;
-            border-top: 1px solid rgba(255, 255, 255, 0.12);
+            margin-top: 0.5rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
             font-size: 0.6875rem;  /* 11px @ 16px base */
-            color: rgba(255, 255, 255, 0.45);
+            color: rgba(255, 255, 255, 0.35);
             user-select: none;
             line-height: 1;
         }
         .kbd-key {
             padding: 0.125rem 0.34375rem;
             border-radius: 0.25rem;
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.15);
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.12);
             font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
             font-size: 0.625rem;  /* 10px @ 16px base */
-            color: rgba(255, 255, 255, 0.75);
+            color: rgba(255, 255, 255, 0.65);
             line-height: 1;
             display: inline-block;
         }
@@ -4150,13 +4150,11 @@
         let lastDateDay = -1;
         function updateClock() {
             const n = new Date();
-            if (dom.clock) {
-                dom.clock.textContent = `${String(n.getHours()).padStart(2, '0')}:${String(n.getMinutes()).padStart(2, '0')}`;
-            }
+            dom.clock.textContent = `${String(n.getHours()).padStart(2, '0')}:${String(n.getMinutes()).padStart(2, '0')}`;
             const day = n.getDate();
             if (day !== lastDateDay) {
                 lastDateDay = day;
-                if (dom.date) dom.date.textContent = n.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
+                dom.date.textContent = n.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
             }
         }
 
@@ -4465,7 +4463,7 @@
                                 <span class="truncate font-medium text-white/95">${escapeHtml(bm.name)}</span>
                                 ${bm.desc ? `<span class="truncate text-xs text-white/45 hidden sm:inline">${escapeHtml(bm.desc)}</span>` : ''}
                             </div>
-                            <span class="text-[10px] px-2 py-0.5 apple-radius bg-white/10 border border-white/15 text-white/60 shrink-0">${escapeHtml(bm.category)}</span>
+                            <span class="text-[10px] px-2 py-0.5 apple-radius bg-white/5 border border-white/10 text-white/45 shrink-0">${escapeHtml(bm.category)}</span>
                         </div>
                     `;
                     globalIdx++;
