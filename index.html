@@ -478,41 +478,26 @@
             user-select: text;
         }
         .edit-row-card.dragging {
-            opacity: 0.45 !important;
+            opacity: 0.35 !important;
             border-style: dashed !important;
-            border-color: #3b82f6 !important;
-            background-color: rgba(59, 130, 246, 0.12) !important;
-            box-shadow: 0 0 12px rgba(59, 130, 246, 0.25) !important;
+            border-color: rgba(255, 255, 255, 0.25) !important;
+            background-color: rgba(255, 255, 255, 0.04) !important;
+            box-shadow: none !important;
         }
-        .edit-row-card.drag-over-top {
-            position: relative;
-        }
-        .edit-row-card.drag-over-top::before {
-            content: '';
+        .drag-drop-line {
             position: absolute;
-            top: -1.5px;
-            left: 0;
-            right: 0;
+            top: 0;
+            left: 2.5rem;
+            right: 2.5rem;
             height: 2px;
-            background: #3b82f6;
-            border-radius: 1px;
-            z-index: 30;
+            background: rgba(255, 255, 255, 0.75);
+            border-radius: 9999px;
+            box-shadow: 0 0 8px rgba(255, 255, 255, 0.4);
             pointer-events: none;
-        }
-        .edit-row-card.drag-over-bottom {
-            position: relative;
-        }
-        .edit-row-card.drag-over-bottom::after {
-            content: '';
-            position: absolute;
-            bottom: -1.5px;
-            left: 0;
-            right: 0;
-            height: 2px;
-            background: #3b82f6;
-            border-radius: 1px;
-            z-index: 30;
-            pointer-events: none;
+            z-index: 50;
+            opacity: 0;
+            transition: transform 0.12s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.12s ease;
+            will-change: transform, opacity;
         }
         .edit-favicon-box {
             position: relative;
@@ -814,7 +799,9 @@
             background-color: rgba(255, 255, 255, 0.2) !important;
         }
         .suggestion-item {
-            transition: background-color 0.15s ease, color 0.15s ease;
+            position: relative;
+            z-index: 2;
+            transition: color 0.15s ease;
             border-radius: var(--radius, 1.5rem);
         }
         .suggestion-item > * {
@@ -2129,7 +2116,7 @@
          * @returns {void}
          */
         function cacheDOM() {
-            const ids = 'clock date searchInput searchClearBtn engineBtn engineIcon engineName dropdownMenu suggestionMenu searchBtn bookmarks sidebar sidebarList navCategories navContent editModal editList editBookmarksBtn addBookmarkBtn saveEditBtn cancelEditBtn resetEditBtn togglePickerBtn bookmarkPicker pickerContent pickerCount closePickerBtn donePickerBtn exportJsonBtn importJsonInput uploadBgBtn urlBgBtn resetBgBtn uploadBgInput wallpaperStatus bookmarkCountBadge jsonDropzone maskOpacityInput maskOpacityVal bgBlurInput bgBlurVal storageSizeBadge statBookmarkCount statWallpaperType statPwaStatus clearCacheBtn bgOverlay'.split(' ');
+            const ids = 'clock date searchInput searchClearBtn engineBtn engineIcon engineName dropdownMenu suggestionMenu searchBtn bookmarks sidebar sidebarList navCategories navContent editModal editList dragDropIndicator editBookmarksBtn addBookmarkBtn saveEditBtn cancelEditBtn resetEditBtn togglePickerBtn bookmarkPicker pickerContent pickerCount closePickerBtn donePickerBtn exportJsonBtn importJsonInput uploadBgBtn urlBgBtn resetBgBtn uploadBgInput wallpaperStatus bookmarkCountBadge jsonDropzone maskOpacityInput maskOpacityVal bgBlurInput bgBlurVal storageSizeBadge statBookmarkCount statWallpaperType statPwaStatus clearCacheBtn bgOverlay'.split(' ');
             ids.forEach(id => dom[id] = $(id));
         }
 
@@ -2800,7 +2787,8 @@
          */
         function renderEditList(listToRender) {
             const list = listToRender || pageData.bookmarks;
-            dom.editList.innerHTML = list.map((bm, i) => getEditRowHTML(bm.name, bm.url, i, bm.icon)).join('');
+            dom.editList.innerHTML = '<div id="dragDropIndicator" class="drag-drop-line"></div>' + list.map((bm, i) => getEditRowHTML(bm.name, bm.url, i, bm.icon)).join('');
+            dom.dragDropIndicator = dom.editList.querySelector('#dragDropIndicator');
             updateBookmarkCountBadge();
         }
 
@@ -3123,8 +3111,13 @@
                     dragOverRafId = null;
                 }
                 dom.editList.querySelectorAll('.edit-row-card').forEach(el => {
-                    el.classList.remove('dragging', 'drag-over-top', 'drag-over-bottom', 'drag-over');
+                    el.classList.remove('dragging');
                 });
+                if (dom.dragDropIndicator) {
+                    dom.dragDropIndicator.style.opacity = '0';
+                }
+                lastOverTarget = null;
+                lastIsTop = null;
             }
 
             dom.editList.addEventListener('dragstart', e => {
@@ -3151,6 +3144,9 @@
             });
 
             let dragOverRafId = null;
+            let lastOverTarget = null;
+            let lastIsTop = null;
+
             dom.editList.addEventListener('dragover', e => {
                 e.preventDefault();
                 e.dataTransfer.dropEffect = 'move';
@@ -3161,43 +3157,86 @@
                 if (dragOverRafId) return;
                 dragOverRafId = requestAnimationFrame(() => {
                     dragOverRafId = null;
-                    dom.editList.querySelectorAll('.edit-row-card').forEach(el => {
-                        if (el !== target) el.classList.remove('drag-over-top', 'drag-over-bottom', 'drag-over');
-                    });
 
                     const rect = target.getBoundingClientRect();
-                    const isTop = e.clientY < (rect.top + rect.height / 2);
+                    const relY = (e.clientY - rect.top) / rect.height;
 
-                    if (isTop) {
-                        target.classList.add('drag-over-top');
-                        target.classList.remove('drag-over-bottom', 'drag-over');
+                    // 15% 中点门限死区 (Hysteresis Buffer)
+                    let isTop = true;
+                    if (lastOverTarget === target && lastIsTop !== null) {
+                        isTop = lastIsTop ? (relY <= 0.58) : (relY < 0.42);
                     } else {
-                        target.classList.add('drag-over-bottom');
-                        target.classList.remove('drag-over-top', 'drag-over');
+                        isTop = relY < 0.5;
+                    }
+
+                    lastOverTarget = target;
+                    lastIsTop = isTop;
+
+                    // 计算独立发光线条在两卡片 6px 间隙正中央的绝对位移
+                    const lineY = isTop ? (target.offsetTop - 4.5) : (target.offsetTop + target.offsetHeight + 1.5);
+
+                    if (dom.dragDropIndicator) {
+                        dom.dragDropIndicator.style.transform = `translate3d(0, ${lineY}px, 0)`;
+                        dom.dragDropIndicator.style.opacity = '1';
                     }
                 });
             });
 
             dom.editList.addEventListener('dragleave', e => {
-                const target = e.target.closest('.edit-row-card');
-                if (target && e.relatedTarget && !target.contains(e.relatedTarget)) {
-                    target.classList.remove('drag-over-top', 'drag-over-bottom', 'drag-over');
+                // 仅当划出整个 editList 容器时才清除高亮，避免子节点间移动引发闪烁
+                if (e.target === dom.editList || !dom.editList.contains(e.relatedTarget)) {
+                    clearDragClasses();
                 }
             });
 
             dom.editList.addEventListener('drop', e => {
                 e.preventDefault();
-                const target = e.target.closest('.edit-row-card');
-                const isTop = target ? target.classList.contains('drag-over-top') : false;
+                const target = lastOverTarget || e.target.closest('.edit-row-card');
+                const isTop = lastIsTop !== null ? lastIsTop : true;
                 clearDragClasses();
 
                 if (!target || !dragSrc || target === dragSrc) return;
 
+                // FLIP Step 1: 记录初始位置 (First)
+                const cards = Array.from(dom.editList.querySelectorAll('.edit-row-card'));
+                const firstPositions = new Map();
+                cards.forEach(card => {
+                    firstPositions.set(card, card.getBoundingClientRect());
+                });
+
+                // FLIP Step 2: 执行 DOM 重排 (Last)
                 if (isTop) {
                     target.parentNode.insertBefore(dragSrc, target);
                 } else {
                     target.parentNode.insertBefore(dragSrc, target.nextSibling);
                 }
+
+                // FLIP Step 3: 倒置偏差并播放物理滑入 (Invert & Play)
+                cards.forEach(card => {
+                    const first = firstPositions.get(card);
+                    const last = card.getBoundingClientRect();
+                    if (!first || !last) return;
+
+                    const deltaY = first.top - last.top;
+                    const deltaX = first.left - last.left;
+
+                    if (deltaY !== 0 || deltaX !== 0) {
+                        card.style.transition = 'none';
+                        card.style.transform = `translate3d(${deltaX}px, ${deltaY}px, 0)`;
+
+                        // 强制重绘 (Reflow)
+                        card.offsetHeight;
+
+                        card.style.transition = 'transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)';
+                        card.style.transform = 'translate3d(0, 0, 0)';
+
+                        setTimeout(() => {
+                            card.style.transition = '';
+                            card.style.transform = '';
+                        }, 360);
+                    }
+                });
+
                 updateBookmarkCountBadge();
             });
 
@@ -4387,6 +4426,24 @@
             initDragSort();
         }
 
+        function hideSuggestions() {
+            activeSuggestReqId++; // 作废所有挂起的联想网络请求，防止 Escape/失焦后联想下拉意外"复活"
+            if (suggestionScriptTag) {
+                suggestionScriptTag.onerror = null;
+                suggestionScriptTag.remove();
+                suggestionScriptTag = null;
+            }
+            OverlayStack.pop('suggestions');
+            if (dom.suggestionMenu) {
+                dom.suggestionMenu.classList.remove('active');
+                dom.suggestionMenu.setAttribute('aria-hidden', 'true');
+            }
+            if (dom.searchInput) {
+                dom.searchInput.setAttribute('aria-expanded', 'false');
+            }
+            selectedSuggestionIdx = -1;
+        }
+
         let lastDateDay = -1;
         function updateClock() {
             const n = new Date();
@@ -5127,7 +5184,6 @@
 
             // 暴露全局切屏控制接口，供点击 Header、键盘快捷键等共享调用
             function switchToNav() {
-                if (targetSection === 'nav') return;
                 targetSection = 'nav';
                 isTransitioning = true;
                 clearAccum();
@@ -5136,9 +5192,17 @@
                 updateGearVisibility();
                 updateThemeColor('#12141a');
 
-                if (startSection) startSection.classList.add('screen-pushed-up');
-                nav.classList.remove('nav-hidden');
-                nav.classList.add('nav-visible', 'screen-pushed-in');
+                if (startSection) {
+                    startSection.style.transform = '';
+                    startSection.style.transition = '';
+                    startSection.classList.add('screen-pushed-up');
+                }
+                if (nav) {
+                    nav.style.transform = '';
+                    nav.style.transition = '';
+                    nav.classList.remove('nav-hidden');
+                    nav.classList.add('nav-visible', 'screen-pushed-in');
+                }
 
                 refreshSidebarNavCache();
                 updateSidebarActive();
@@ -5154,7 +5218,6 @@
             }
 
             function switchToStart() {
-                if (targetSection === 'start') return;
                 targetSection = 'start';
                 isTransitioning = true;
                 clearAccum();
@@ -5163,8 +5226,16 @@
                 updateSectionAccessibility('start');
                 updateThemeColor('#0b0f19');
 
-                if (startSection) startSection.classList.remove('screen-pushed-up');
-                nav.classList.remove('screen-pushed-in');
+                if (startSection) {
+                    startSection.style.transform = '';
+                    startSection.style.transition = '';
+                    startSection.classList.remove('screen-pushed-up');
+                }
+                if (nav) {
+                    nav.style.transform = '';
+                    nav.style.transition = '';
+                    nav.classList.remove('screen-pushed-in');
+                }
 
                 setTimeout(() => {
                     state.currentSection = 'start';
@@ -5265,10 +5336,12 @@
                 if (startSection) {
                     startSection.style.transition = '';
                     startSection.style.transform = '';
+                    startSection.offsetHeight;
                 }
                 if (nav) {
                     nav.style.transition = '';
                     nav.style.transform = '';
+                    nav.offsetHeight;
                 }
             }
 
@@ -5347,7 +5420,7 @@
                 isTouchDragging = false;
 
                 // 若被系统事件打断 (touchcancel)，安全起见一律弹性复位弹回原位；正常 touchend 满足条件则切屏
-                const shouldSwitch = !isCancel && (progress >= 0.25 || velocity > 0.35);
+                const shouldSwitch = !isCancel && (progress >= 0.20 || velocity > 0.25 || Math.abs(totalDeltaY) >= 100);
 
                 if (state.currentSection === 'start' && touchDragDirection === 'up') {
                     if (shouldSwitch) {
@@ -5375,6 +5448,9 @@
                     }
                 }
             }
+
+            document.addEventListener('touchend', handleTouchEndOrCancel, { passive: true });
+            document.addEventListener('touchcancel', handleTouchEndOrCancel, { passive: true });
 
             // ===== VisionOS 玻璃材质 3D 倾斜与光标折射高光代理 (Apple HIG 规范) =====
             (function initGlassSpotlightAndTilt() {
