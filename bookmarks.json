@@ -150,7 +150,7 @@
             "bookmarks": [
                 {
                     "name": "BrowserLeaks",
-                    "url": "https://browserleaks.com",
+                    "url": "https://browserleaks.com/ip",
                     "icon": "https://a.favicon.im/browserleaks.com",
                     "desc": "浏览器指纹与隐私检测"
                 },
