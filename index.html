@@ -5299,7 +5299,7 @@
                     const rotateX = -((y - centerY) / centerY) * 1.5;
                     const rotateY = ((x - centerX) / centerX) * 1.5;
 
-                    activeCard.style.transform = `perspective(800px) rotateX(${rotateX.toFixed(2)}deg) rotateY(${rotateY.toFixed(2)}deg) translateY(-3px) scale(1.015)`;
+                    activeCard.style.transform = `perspective(800px) rotateX(${rotateX.toFixed(2)}deg) rotateY(${rotateY.toFixed(2)}deg)`;
                     rafId = null;
                 }
 
@@ -5315,15 +5315,37 @@
                             rafId = requestAnimationFrame(updateCardTransform);
                         }
                     } else if (activeCard) {
-                        activeCard.style.transform = '';
-                        activeCard = null;
+                        // 滞后量缓冲区检查 (Hysteresis Check)：防止卡片边缘 3D 倾斜导致鼠标离开容器引发 60Hz 循环闪烁抖动
+                        const rect = activeCard.getBoundingClientRect();
+                        const margin = 8;
+                        const isNearCard = e.clientX >= rect.left - margin &&
+                                           e.clientX <= rect.right + margin &&
+                                           e.clientY >= rect.top - margin &&
+                                           e.clientY <= rect.bottom + margin;
+                        if (isNearCard) {
+                            pendingEvent = e;
+                            if (!rafId) {
+                                rafId = requestAnimationFrame(updateCardTransform);
+                            }
+                        } else {
+                            activeCard.style.transform = '';
+                            activeCard = null;
+                        }
                     }
                 }, { passive: true });
 
                 document.addEventListener('mouseout', (e) => {
                     if (activeCard && !activeCard.contains(e.relatedTarget)) {
-                        activeCard.style.transform = '';
-                        activeCard = null;
+                        const rect = activeCard.getBoundingClientRect();
+                        const margin = 8;
+                        const isNearCard = e.clientX >= rect.left - margin &&
+                                           e.clientX <= rect.right + margin &&
+                                           e.clientY >= rect.top - margin &&
+                                           e.clientY <= rect.bottom + margin;
+                        if (!isNearCard) {
+                            activeCard.style.transform = '';
+                            activeCard = null;
+                        }
                     }
                 }, { passive: true });
             })();
