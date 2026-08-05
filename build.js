@@ -220,6 +220,16 @@ if (fs.existsSync(manifestJsonPath)) {
                 if (ic.src === 'icon.svg' || !ic.src) ic.src = iconDataUrl;
             });
         }
+        // 解决 Data URI 模式下相对路径 "./" 无法基于 data: 协议解析导致的 Chrome 控制台警告
+        if (manifestObj.start_url === './' || manifestObj.start_url === '.') {
+            manifestObj.start_url = 'https://goldcoast.dpdns.org/';
+        }
+        if (manifestObj.scope === './' || manifestObj.scope === '.') {
+            manifestObj.scope = 'https://goldcoast.dpdns.org/';
+        }
+        if (manifestObj.id === '/' || manifestObj.id === './') {
+            manifestObj.id = 'https://goldcoast.dpdns.org/';
+        }
         const manifestStr = JSON.stringify(manifestObj);
         const manifestBase64 = Buffer.from(manifestStr, 'utf-8').toString('base64');
         const manifestDataUrl = `data:application/manifest+json;base64,${manifestBase64}`;

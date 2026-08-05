@@ -10,11 +10,11 @@
  * 3. 【Network-First 503 兜底】：断网且无本地缓存时兜底返回可控 503 响应，主文档导航自动尝试退回 index.html。
  * 4. 【e.waitUntil 竞态保护】：背景异步调序/时间戳更新由 e.waitUntil(...) 延展 SW 生命周期，防进程提前终止。
  * 5. 【批量淘汰】：一次性清理到限额以内，而非每次只删 1 条，应对图标突增场景更及时。
- * 6. 【全资源精准匹配】：涵盖 HTML, CSS, JSON, SVG, PNG, ICO, WebP 及 a.favicon.im 外部图标。
+ * 6. 【全资源精准匹配】：涵盖 HTML, CSS, JSON, SVG, PNG, ICO, WebP, AVIF 及 a.favicon.im 外部图标。
  */
 
 // 缓存池定义（打包 build.js 时自动替换 CORE_CACHE 为时间戳版本）
-const CORE_CACHE = 'app-core-v1785747000000';
+const CORE_CACHE = 'app-core-v1785905314218';
 const FAVICON_CACHE = 'app-favicons-v1'; // a.favicon.im 外部图标专用池
 const IMG_CACHE = 'app-images-v1';       // 站内本地图片资源专用池
 
@@ -193,9 +193,9 @@ self.addEventListener('fetch', e => {
 
     // 精准资源匹配判定
     const isMainDoc = e.request.mode === 'navigate' || pathnameLower === '/' || pathnameLower.endsWith('/index.html');
-    const isCoreData = pathnameLower.endsWith('/manifest.json');
+    const isCoreData = pathnameLower.endsWith('/manifest.json') || pathnameLower.endsWith('/bookmarks.json');
     const isFaviconDomain = urlObj.origin === 'https://a.favicon.im';
-    const isImgAsset = /\.(ico|png|jpg|jpeg|svg|webp)$/i.test(pathnameLower);
+    const isImgAsset = /\.(ico|png|jpg|jpeg|svg|webp|avif)$/i.test(pathnameLower);
 
     // 1. 对 index.html (主文档) 采取 Network-First 策略
     if (isMainDoc) {
@@ -258,7 +258,7 @@ self.addEventListener('fetch', e => {
         return;
     }
 
-    // 2. 对图标及图片资源采取分策略缓存 + IndexedDB 真 LRU 调序
+    // 3. 对图标及图片资源采取分策略缓存 + IndexedDB 真 LRU 调序
     //    - a.favicon.im 跨域图标：Stale-While-Revalidate。
     //      跨域 <img> 默认 no-cors，响应恒为 opaque（status=0、ok=false、body 不可读），
     //      JS 无法区分 200/404/5xx/中间层告警页；若 Cache-First 一旦首次写进坏响应（网络抖动/被墙/404），
