@@ -1136,7 +1136,7 @@
                         <div>
                             <div class="flex items-center gap-2">
                                 <span class="text-xs font-semibold text-white/90">Glass Start</span>
-                                <span class="text-[11px] px-2 py-0.5 rounded-full bg-white/10 border border-white/15 text-white/70 font-medium tracking-wide">v2.7.9</span>
+                                <span class="text-[11px] px-2 py-0.5 rounded-full bg-white/10 border border-white/15 text-white/70 font-medium tracking-wide">v2.8.0</span>
                             </div>
                             <div class="text-[10px] text-white/50">极简 Liquid Glass 拟态导航 • Build 2026.08</div>
                         </div>
@@ -4314,7 +4314,82 @@
         }
 
         /**
-         * 在本地全站书签中根据关键词检索匹配项（包含快捷书签与分类书签）
+         * 计算 Damerau-Levenshtein 编辑距离（支持插入、删除、替换与相邻字符易位/拼错容错）
+         */
+        function damerauLevenshteinDistance(a, b) {
+            const al = a.length, bl = b.length;
+            if (al === 0) return bl;
+            if (bl === 0) return al;
+            const dp = Array.from({ length: al + 1 }, () => new Int32Array(bl + 1));
+            for (let i = 0; i <= al; i++) dp[i][0] = i;
+            for (let j = 0; j <= bl; j++) dp[0][j] = j;
+
+            for (let i = 1; i <= al; i++) {
+                for (let j = 1; j <= bl; j++) {
+                    const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+                    dp[i][j] = Math.min(
+                        dp[i - 1][j] + 1,       // deletion
+                        dp[i][j - 1] + 1,       // insertion
+                        dp[i - 1][j - 1] + cost // substitution
+                    );
+                    if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) {
+                        dp[i][j] = Math.min(dp[i][j], dp[i - 2][j - 2] + cost); // transposition
+                    }
+                }
+            }
+            return dp[al][bl];
+        }
+
+        /**
+         * 计算关键词 q 与书签 bm 的前缀拼写容错 / 模糊匹配得分 (Token Prefix Fuzzy Score)
+         * 支持单词及按空格分割的多词子项容错检索（如 MDN Wbe Docs / oGogle Cloud）
+         */
+        function getFuzzyScore(q, bm) {
+            const query = (q || '').trim().toLowerCase();
+            if (query.length < 3) return Infinity;
+            const normUrl = (bm.url || '').trim().toLowerCase().replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '');
+            const fullText = `${bm.name || ''} ${normUrl} ${bm.desc || ''}`.toLowerCase();
+            const rawTokens = fullText.split(/\s+/);
+            const wordTokens = fullText.split(/[^a-z0-9\u4e00-\u9fff]+/);
+            const tokens = Array.from(new Set([...rawTokens, ...wordTokens].filter(t => t.length > 0)));
+
+            const subQueries = query.split(/\s+/).filter(sq => sq.length > 0);
+            if (subQueries.length === 0) return Infinity;
+
+            let totalDist = 0;
+
+            for (const sq of subQueries) {
+                if (sq.length < 2) continue;
+                const maxDist = sq.length <= 5 ? 1 : 2;
+                let minSubDist = Infinity;
+
+                for (const token of tokens) {
+                    if (token.length < Math.max(2, sq.length - 1)) continue;
+                    const minLen = Math.max(2, sq.length - 1);
+                    const maxLen = Math.min(token.length, sq.length + 1);
+                    for (let len = minLen; len <= maxLen; len++) {
+                        const prefix = token.substring(0, len);
+                        const dist = damerauLevenshteinDistance(sq, prefix);
+                        if (dist < minSubDist) {
+                            minSubDist = dist;
+                            if (minSubDist === 0) break;
+                        }
+                    }
+                    if (minSubDist === 0) break;
+                }
+
+                if (minSubDist > maxDist) {
+                    return Infinity; // 子词未能命中任何 Token
+                }
+                totalDist += minSubDist;
+            }
+
+            const maxTotalDist = query.length <= 5 ? 1 : 2;
+            return totalDist <= maxTotalDist ? totalDist : Infinity;
+        }
+
+        /**
+         * 在本地全站书签中根据关键词检索匹配项（包含快捷书签与分类书签），支持精确匹配与拼写容错/模糊匹配
          * @param {string} query - 搜索关键词
          * @param {number} [limit=2] - 最多返回匹配条数（最多 2 条特色书签）
          * @returns {Array<{type: string, name: string, url: string, icon: string, desc: string, category: string}>}
@@ -4343,7 +4418,7 @@
                 }
             }
 
-            // 1. 匹配快捷书签（若在分类导航中存在，优先显示实际分类名称，如“人工智能”、“影音娱乐”）
+            // 1. 优先匹配快捷书签（精确匹配包含 q）
             if (pageData && Array.isArray(pageData.bookmarks)) {
                 for (const bm of pageData.bookmarks) {
                     if (!bm || !bm.url) continue;
@@ -4368,7 +4443,7 @@
                 }
             }
 
-            // 2. 匹配导航分类书签
+            // 2. 匹配导航分类书签（精确匹配包含 q）
             if (pageData && Array.isArray(pageData.categories)) {
                 for (const cat of pageData.categories) {
                     if (!cat || !Array.isArray(cat.bookmarks)) continue;
@@ -4394,6 +4469,52 @@
                     }
                 }
             }
+
+            // 3. 若精确匹配未填满 limit 且关键词长度 >= 3，进行拼写容错 / 模糊匹配 (Fuzzy Match / Levenshtein Distance)
+            if (results.length < limit && q.length >= 3) {
+                const fuzzyCandidates = [];
+                const checkFuzzy = (bm, defaultCat) => {
+                    if (!bm || !bm.url) return;
+                    const normUrl = toNormUrl(bm.url);
+                    if (addedUrls.has(normUrl)) return;
+                    const score = getFuzzyScore(q, bm);
+                    if (score !== Infinity) {
+                        const realCat = urlToCategoryMap.get(normUrl) || defaultCat;
+                        fuzzyCandidates.push({
+                            score,
+                            item: {
+                                type: 'bookmark',
+                                name: bm.name || '未命名书签',
+                                url: bm.url,
+                                icon: bm.icon || '',
+                                desc: bm.desc || '',
+                                category: realCat
+                            },
+                            normUrl
+                        });
+                    }
+                };
+
+                if (pageData && Array.isArray(pageData.bookmarks)) {
+                    for (const bm of pageData.bookmarks) checkFuzzy(bm, '快捷书签');
+                }
+                if (pageData && Array.isArray(pageData.categories)) {
+                    for (const cat of pageData.categories) {
+                        if (!cat || !Array.isArray(cat.bookmarks)) continue;
+                        for (const bm of cat.bookmarks) checkFuzzy(bm, cat.name || '分类书签');
+                    }
+                }
+
+                // 按模糊匹配得分（编辑距离）从低到高排序
+                fuzzyCandidates.sort((a, b) => a.score - b.score);
+                for (const candidate of fuzzyCandidates) {
+                    if (addedUrls.has(candidate.normUrl)) continue;
+                    results.push(candidate.item);
+                    addedUrls.add(candidate.normUrl);
+                    if (results.length >= limit) break;
+                }
+            }
+
             return results;
         }
 
