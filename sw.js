@@ -23,9 +23,11 @@ const MAX_FAVICON_ENTRIES = 800; // a.favicon.im 外部图标上限
 const MAX_IMG_ENTRIES = 200;     // 站内本地图片上限
 
 // 核心预缓存静态资源列表（PWA 离线打不开保障，CSS 已全量内嵌在 index.html 中）
-// 注意：manifest.json 在构建时已被 build.js 内联为 data URI（dist 产物中不存在该文件），
-// icon.svg 亦不存在于仓库与构建产物中；二者均不能作为预缓存目标，
-// 否则 cache.addAll 会因任一 404 而整批失败（连 './' 与 './index.html' 也一起回滚丢失）
+// 📌 预设壁纸缓存设计考量：
+//    仅将默认壁纸 ./wallpapers/bg1.avif 纳入 SW 首次安装强行预缓存清单，
+//    其余壁纸 (bg2.avif ~ bg8.avif) 严禁一次性全部放入 CORE_ASSETS。
+//    原因：8 张 2.5K 高清壁纸总计约 3MB~5MB，若在 SW 安装时并发全量下载会造成首屏严重抢占带宽与流量浪费；
+//    后续壁纸统一由 index.html 的 preloadNextBg() 在 requestIdleCallback 浏览器空闲时渐进式预拉取缓存。
 const CORE_ASSETS = [
     './',
     './index.html',
@@ -301,7 +303,6 @@ self.addEventListener('fetch', e => {
 
                     if (cached) {
                         e.waitUntil(revalidatePromise);
-                        e.waitUntil(recordAccess(pool, e.request.url));
                         return cached;
                     }
 

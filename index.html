@@ -2698,6 +2698,7 @@
             // localStorage），因此必须优先取 state.customWallpaper / IDB，localStorage 仅作历史兜底；
             // 否则“取消”回滚会错误地丢失当前生效的自定义壁纸
             modalState.initialWallpaper = state.customWallpaper || await getWallpaperDB() || storageGet('userWallpaper');
+            if (!state.editOpen) return; // 若在读取 IDB 期间用户按 Esc 取消了弹窗，中断后续渲染逻辑
             modalState.initialMaskOpacity = storageGet('maskOpacity', 25);
             modalState.initialBgBlur = storageGet('bgBlur', 0);
 
@@ -3214,9 +3215,29 @@
             if (location.protocol.startsWith('http')) {
                 scheduleIdleTask(() => {
                     if (!document.querySelector('link[rel="manifest"]')) {
+                        const originUrl = location.origin + location.pathname;
+                        const manifestObj = {
+                            name: "Glass Start — 轻量级玻璃拟态浏览器起始页",
+                            short_name: "Glass Start",
+                            description: "基于 HTML5 与 Modern JS 构建的高颜值、轻量级玻璃拟态（Glassmorphism）浏览器起始页。",
+                            id: originUrl,
+                            scope: originUrl,
+                            start_url: originUrl,
+                            display: "standalone",
+                            display_override: ["standalone", "minimal-ui"],
+                            background_color: "#0f172a",
+                            theme_color: "#0f172a",
+                            icons: [{
+                                src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🪐%3C/text%3E%3C/svg%3E",
+                                sizes: "512x512",
+                                type: "image/svg+xml",
+                                purpose: "any maskable"
+                            }]
+                        };
+                        const blob = new Blob([JSON.stringify(manifestObj)], { type: 'application/manifest+json' });
                         const manifestLink = document.createElement('link');
                         manifestLink.rel = 'manifest';
-                        manifestLink.href = 'manifest.json';
+                        manifestLink.href = URL.createObjectURL(blob);
                         document.head.appendChild(manifestLink);
                     }
                 }, 1000);
@@ -4615,6 +4636,7 @@
 
         // ==================== 壁纸切换 ====================
         let bgSwitchTimer = null;
+        let activeWallpaperReqId = 0;
 
         function preloadNextBg() {
             const load = () => {
@@ -4639,6 +4661,9 @@
             const bgNext = $('bgLayerNext');
             if (!bgBase || !bgNext || !urlStr || typeof urlStr !== 'string') return;
 
+            activeWallpaperReqId++;
+            const reqId = activeWallpaperReqId;
+
             // 过滤 URL 中可能破坏 CSS url() 语法的引号与反斜杠，安全保留圆括号与复杂 Query 参数
             const safeCssUrl = urlStr.replace(/["'\\]/g, '\\$&');
             const newStyleUrl = `url("${safeCssUrl}")`;
@@ -4646,6 +4671,7 @@
             const img = new Image();
 
             const executeTransition = () => {
+                if (reqId !== activeWallpaperReqId) return; // 废弃过期的慢速网络图片异步回调，防止覆盖最新壁纸
                 if (bgSwitchTimer) {
                     clearTimeout(bgSwitchTimer);
                     bgSwitchTimer = null;
