@@ -293,12 +293,6 @@
                     "desc": "手绘风格在线协作白板"
                 },
                 {
-                    "name": "Flomo",
-                    "url": "https://flomoapp.com",
-                    "icon": "https://a.favicon.im/flomoapp.com",
-                    "desc": "卡片式无压力笔记工具"
-                },
-                {
                     "name": "Gmail",
                     "url": "https://mail.google.com",
                     "icon": "https://a.favicon.im/mail.google.com",
@@ -351,6 +345,12 @@
                     "url": "https://www.feishu.cn",
                     "icon": "https://a.favicon.im/feishu.cn",
                     "desc": "先进企业协同办公平台"
+                },
+                {
+                    "name": "微信传输助手",
+                    "url": "https://filehelper.weixin.qq.com",
+                    "icon": "https://a.favicon.im/filehelper.weixin.qq.com",
+                    "desc": "微信官方跨端文件传输"
                 }
             ]
         },
@@ -375,12 +375,6 @@
                     "url": "https://coolors.co",
                     "icon": "https://a.favicon.im/coolors.co",
                     "desc": "极速配色方案在线生成"
-                },
-                {
-                    "name": "Dribbble",
-                    "url": "https://dribbble.com",
-                    "icon": "https://a.favicon.im/dribbble.com",
-                    "desc": "设计师作品交流与灵感"
                 },
                 {
                     "name": "Figma",
@@ -473,22 +467,10 @@
                     "desc": "全球实时动态与热点"
                 },
                 {
-                    "name": "微信传输助手",
-                    "url": "https://filehelper.weixin.qq.com",
-                    "icon": "https://a.favicon.im/filehelper.weixin.qq.com",
-                    "desc": "微信官方跨端文件传输"
-                },
-                {
                     "name": "微博",
                     "url": "https://weibo.com",
                     "icon": "https://a.favicon.im/weibo.com",
                     "desc": "国内热点社交媒体平台"
-                },
-                {
-                    "name": "知乎",
-                    "url": "https://www.zhihu.com",
-                    "icon": "https://a.favicon.im/zhihu.com",
-                    "desc": "知识问答与深度讨论"
                 },
                 {
                     "name": "豆瓣",
@@ -502,12 +484,6 @@
             "name": "影音娱乐",
             "icon": "🎬",
             "bookmarks": [
-                {
-                    "name": "Apple Music",
-                    "url": "https://music.apple.com",
-                    "icon": "https://a.favicon.im/music.apple.com",
-                    "desc": "苹果官方无损音乐平台"
-                },
                 {
                     "name": "Netflix",
                     "url": "https://www.netflix.com",
@@ -567,6 +543,12 @@
                     "url": "https://music.163.com/st/webplayer",
                     "icon": "https://a.favicon.im/music.163.com",
                     "desc": "发现好音乐与听歌社区"
+                },
+                {
+                    "name": "Rate Your Music",
+                    "url": "https://rateyourmusic.com",
+                    "icon": "https://a.favicon.im/rateyourmusic.com",
+                    "desc": "全球最权威音乐评分与唱片库"
                 }
             ]
         },
@@ -575,16 +557,22 @@
             "icon": "📰",
             "bookmarks": [
                 {
-                    "name": "Coursera",
-                    "url": "https://www.coursera.org",
-                    "icon": "https://a.favicon.im/coursera.org",
-                    "desc": "在线课程与学术学习"
-                },
-                {
                     "name": "Google Earth",
                     "url": "https://earth.google.com/web/",
                     "icon": "https://a.favicon.im/earth.google.com",
                     "desc": "三维数字地球探索"
+                },
+                {
+                    "name": "Google Maps",
+                    "url": "https://maps.google.com",
+                    "icon": "https://a.favicon.im/maps.google.com",
+                    "desc": "全球卫星地图与路线导航"
+                },
+                {
+                    "name": "高德地图",
+                    "url": "https://www.amap.com",
+                    "icon": "https://a.favicon.im/amap.com",
+                    "desc": "精准路线规划与地图导航"
                 },
                 {
                     "name": "Internet Archive",
@@ -609,12 +597,6 @@
                     "url": "https://roadmap.sh",
                     "icon": "https://a.favicon.im/roadmap.sh",
                     "desc": "开发者技术路线图指南"
-                },
-                {
-                    "name": "Solidot",
-                    "url": "https://www.solidot.org",
-                    "icon": "https://a.favicon.im/solidot.org",
-                    "desc": "奇客科技与开源新闻"
                 },
                 {
                     "name": "中国天气网",
