@@ -20,6 +20,7 @@ const PATHS = {
     tempCss: path.join(__dirname, '.temp_input.css'),
     bookmarksJson: path.join(__dirname, 'bookmarks.json'),
     indexHtml: path.join(__dirname, 'index.html'),
+    appJs: path.join(__dirname, 'app.js'),
     sw: path.join(__dirname, 'sw.js'),
     wallpapers: path.join(__dirname, 'wallpapers'),
     headers: path.join(__dirname, '_headers')
@@ -70,7 +71,7 @@ if (!checkTailwindInstalled()) {
 
 // 2. 编译 Tailwind CSS (v4 CLI)
 function compileTailwindCss() {
-    fs.writeFileSync(PATHS.tempCss, '@import "tailwindcss";\n@source "./index.html";\n', 'utf-8');
+    fs.writeFileSync(PATHS.tempCss, '@import "tailwindcss";\n@source "./index.html";\n@source "./app.js";\n', 'utf-8');
     const distStyleCss = path.join(PATHS.dist, 'style.css');
 
     try {
@@ -131,13 +132,12 @@ function formatJsObject(obj, indent = 8) {
 }
 
 function syncBookmarksData() {
-    console.log('🔄 正在同步 bookmarks.json 数据至 index.html 内置默认回退数组 (DEFAULT_BOOKMARKS & DEFAULT_CATEGORIES)...');
+    console.log('🔄 正在同步 bookmarks.json 数据至 app.js / index.html 内置默认回退数组 (DEFAULT_BOOKMARKS & DEFAULT_CATEGORIES)...');
 
-    if (fs.existsSync(PATHS.bookmarksJson) && fs.existsSync(PATHS.indexHtml)) {
+    if (fs.existsSync(PATHS.bookmarksJson)) {
         try {
             const bookmarksData = JSON.parse(fs.readFileSync(PATHS.bookmarksJson, 'utf-8'));
-            let htmlContent = fs.readFileSync(PATHS.indexHtml, 'utf-8');
-            let updatedCount = 0;
+            const targetFiles = [PATHS.appJs, PATHS.indexHtml].filter(f => fs.existsSync(f));
 
             function safeReplaceJsVariable(code, varName, replacementJs) {
                 const regex = new RegExp(`(?:export\\s+)?(?:const|let|var)\\s+${varName}(?:\\s*:\\s*[^=]+)?\\s*=\\s*\\[[\\s\\S]*?\\];`);
@@ -147,29 +147,34 @@ function syncBookmarksData() {
                 return code;
             }
 
-            // 4.1 自动同步常用顶栏 DEFAULT_BOOKMARKS
-            if (bookmarksData.bookmarks && Array.isArray(bookmarksData.bookmarks)) {
-                const formattedBookmarks = formatJsObject(bookmarksData.bookmarks, 8);
-                const nextHtml = safeReplaceJsVariable(htmlContent, 'DEFAULT_BOOKMARKS', formattedBookmarks);
-                if (nextHtml !== htmlContent) {
-                    htmlContent = nextHtml;
-                    updatedCount++;
-                }
-            }
+            for (const file of targetFiles) {
+                let content = fs.readFileSync(file, 'utf-8');
+                let updatedCount = 0;
 
-            // 4.2 自动同步分类书签 DEFAULT_CATEGORIES
-            if (bookmarksData.categories && Array.isArray(bookmarksData.categories)) {
-                const formattedCategories = formatJsObject(bookmarksData.categories, 8);
-                const nextHtml = safeReplaceJsVariable(htmlContent, 'DEFAULT_CATEGORIES', formattedCategories);
-                if (nextHtml !== htmlContent) {
-                    htmlContent = nextHtml;
-                    updatedCount++;
+                // 4.1 自动同步常用顶栏 DEFAULT_BOOKMARKS
+                if (bookmarksData.bookmarks && Array.isArray(bookmarksData.bookmarks)) {
+                    const formattedBookmarks = formatJsObject(bookmarksData.bookmarks, 8);
+                    const nextContent = safeReplaceJsVariable(content, 'DEFAULT_BOOKMARKS', formattedBookmarks);
+                    if (nextContent !== content) {
+                        content = nextContent;
+                        updatedCount++;
+                    }
                 }
-            }
 
-            if (updatedCount > 0) {
-                fs.writeFileSync(PATHS.indexHtml, htmlContent, 'utf-8');
-                console.log('   ✅ 源码 index.html 内置默认数据已自动与 bookmarks.json 保持 100% 同步！');
+                // 4.2 自动同步分类书签 DEFAULT_CATEGORIES
+                if (bookmarksData.categories && Array.isArray(bookmarksData.categories)) {
+                    const formattedCategories = formatJsObject(bookmarksData.categories, 8);
+                    const nextContent = safeReplaceJsVariable(content, 'DEFAULT_CATEGORIES', formattedCategories);
+                    if (nextContent !== content) {
+                        content = nextContent;
+                        updatedCount++;
+                    }
+                }
+
+                if (updatedCount > 0) {
+                    fs.writeFileSync(file, content, 'utf-8');
+                    console.log(`   ✅ 源码 ${path.basename(file)} 内置默认数据已自动与 bookmarks.json 保持 100% 同步！`);
+                }
             }
         } catch (e) {
             console.warn('   ⚠️ 自动同步默认书签时出现警告（未影响主体打包流程）:', e.message);
@@ -177,6 +182,39 @@ function syncBookmarksData() {
     }
 }
 syncBookmarksData();
+
+// 4.9 处理生产环境 app.js (单行无损紧凑压缩默认数据)
+function processProductionAppJs() {
+    if (!fs.existsSync(PATHS.appJs)) return;
+    console.log('⚡️ 处理生产环境 app.js...');
+    let appJsContent = fs.readFileSync(PATHS.appJs, 'utf-8');
+
+    function safeReplaceJsVariable(code, varName, replacementJs) {
+        const regex = new RegExp(`(?:export\\s+)?(?:const|let|var)\\s+${varName}(?:\\s*:\\s*[^=]+)?\\s*=\\s*\\[[\\s\\S]*?\\];`);
+        if (regex.test(code)) {
+            return code.replace(regex, () => `const ${varName} = ${replacementJs};`);
+        }
+        return code;
+    }
+
+    if (fs.existsSync(PATHS.bookmarksJson)) {
+        try {
+            const bookmarksData = JSON.parse(fs.readFileSync(PATHS.bookmarksJson, 'utf-8'));
+            if (bookmarksData.bookmarks) {
+                const minBm = JSON.stringify(bookmarksData.bookmarks);
+                appJsContent = safeReplaceJsVariable(appJsContent, 'DEFAULT_BOOKMARKS', minBm);
+            }
+            if (bookmarksData.categories) {
+                const minCat = JSON.stringify(bookmarksData.categories);
+                appJsContent = safeReplaceJsVariable(appJsContent, 'DEFAULT_CATEGORIES', minCat);
+            }
+            console.log('   ✅ 已完成生产环境 app.js 默认书签数据的紧凑压缩');
+        } catch {}
+    }
+
+    fs.writeFileSync(path.join(PATHS.dist, 'app.js'), appJsContent, 'utf-8');
+}
+processProductionAppJs();
 
 // 5. 处理生产环境 index.html (替换 v4 Browser CDN 为全量内嵌 <style> 标签，压缩默认数据数组)
 function processProductionHtml() {

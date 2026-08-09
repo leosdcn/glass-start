@@ -36,8 +36,8 @@ if (statSync(htmlPath).isFile()) {
   });
 }
 
-// ---- 2. 根目录 JS 脚本 (build.js, sw.js) 用 node --check 校验 ----
-const jsFiles = ['build.js', 'sw.js'].filter(f => statSync(join(root, f)).isFile());
+// ---- 2. 根目录 JS 脚本 (app.js, build.js, sw.js) 用 node --check 校验 ----
+const jsFiles = ['app.js', 'build.js', 'sw.js'].filter(f => statSync(join(root, f)).isFile());
 
 for (const f of jsFiles) {
   const r = spawnSync(process.execPath, ['--check', f], { encoding: 'utf-8' });

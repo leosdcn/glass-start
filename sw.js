@@ -12,6 +12,9 @@
  *    pruneLocks map 追加并发限流与异常捕获逻辑，防止 Promise 链崩溃导致后续清理队列挂起。
  * 4. 【严密边界防护】：
  *    核心 assets 预缓存吞掉单项失败，主导航 Network-First 追加统一 503 兜底页面。
+ * 5. 【修复同源 JS/CSS 静态资源缓存漏洞】：
+ *    原 fetch handler 仅处理主文档/JSON数据/图标/图片四类，app.js 等同源脚本穿透 SW 走浏览器 HTTP 缓存，
+ *    install 预缓存形同虚设、离线不可用。新增 isCoreStaticAsset 分支实现 Cache-First，使预缓存真正生效。
  */
 
 // 缓存池定义（打包 build.js 时自动替换 CORE_CACHE 为时间戳版本）
@@ -27,6 +30,7 @@ const MAX_IMG_ENTRIES = 200;
 const CORE_ASSETS = [
     './',
     './index.html',
+    './app.js',
     './wallpapers/bg1.avif'
 ];
 
@@ -182,7 +186,7 @@ self.addEventListener('install', e => {
     self.skipWaiting();
     e.waitUntil(
         caches.open(CORE_CACHE).then(cache =>
-            Promise.all(CORE_ASSETS.map(asset => cache.add(asset).catch(() => {})))
+            Promise.all(CORE_ASSETS.map(asset => cache.add(new Request(asset, { cache: 'reload' })).catch(() => {})))
         )
     );
 });
@@ -263,7 +267,40 @@ self.addEventListener('fetch', e => {
         return;
     }
 
-    // 3. 图标/图片 Stale-While-Revalidate (跨域 Favicon) / Cache-First (站内图片)
+    // 3. 同源 JS/CSS 静态资源 Cache-First 策略
+    //    app.js 等同源脚本由 install 阶段预缓存写入 CORE_CACHE，fetch 时直接从缓存服务。
+    //    显式排除 sw.js 自身，确保 Service Worker 脚本更新机制不受拦截干扰。
+    //    缓存未命中（极罕见，install 失败时兜底）时回退网络；离线且无缓存时返回 503。
+    const isCoreStaticAsset = urlObj.origin === self.location.origin
+        && (pathnameLower.endsWith('.js') || pathnameLower.endsWith('.css'))
+        && !pathnameLower.endsWith('/sw.js');
+
+    if (isCoreStaticAsset) {
+        e.respondWith(
+            caches.open(CORE_CACHE).then(async cache => {
+                const cached = await cache.match(e.request);
+                if (cached) return cached;
+
+                // 缓存未命中时回退网络（install 预缓存失败的兜底路径）
+                try {
+                    const netRes = await fetch(e.request);
+                    if (netRes.ok) {
+                        cache.put(e.request, netRes.clone()).catch(() => {});
+                    }
+                    return netRes;
+                } catch {
+                    return new Response('离线且无本地缓存', {
+                        status: 503,
+                        statusText: 'Service Unavailable',
+                        headers: { 'Content-Type': 'text/plain; charset=utf-8' }
+                    });
+                }
+            })
+        );
+        return;
+    }
+
+    // 4. 图标/图片 Stale-While-Revalidate (跨域 Favicon) / Cache-First (站内图片)
     if (isFaviconDomain || isImgAsset) {
         const pool = isFaviconDomain ? 'favicon' : 'img';
         const cacheName = isFaviconDomain ? FAVICON_CACHE : IMG_CACHE;
