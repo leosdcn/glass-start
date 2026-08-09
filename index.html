@@ -216,9 +216,15 @@
             aspect-ratio: 16 / 9;
             border-radius: 0.75rem;
             overflow: hidden;
+            isolation: isolate;
+            transform: translateZ(0);
             border: 1px solid rgba(255, 255, 255, 0.15);
             transition: all 0.2s ease;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        .preset-bg-card span {
+            border-bottom-left-radius: calc(0.75rem - 1px);
+            border-bottom-right-radius: calc(0.75rem - 1px);
         }
         .preset-bg-card:hover {
             border-color: rgba(255, 255, 255, 0.5);
