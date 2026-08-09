@@ -66,16 +66,35 @@ function openIDB() {
 }
 
 /**
- * 记录或更新访问时间戳 (LRU)
+ * 记录或更新访问时间戳 (LRU 内存防抖批处理)
  */
-async function recordAccess(pool, url) {
+const pendingAccessLogs = new Map();
+let batchTimer = null;
+
+async function flushAccessLogs() {
+    if (pendingAccessLogs.size === 0) return;
+    const entries = Array.from(pendingAccessLogs.entries());
+    pendingAccessLogs.clear();
+
     try {
         const db = await openIDB();
         const tx = db.transaction(IDB_STORE, 'readwrite');
-        tx.objectStore(IDB_STORE).put(Date.now(), `${pool}:${url}`);
+        const store = tx.objectStore(IDB_STORE);
+        const now = Date.now();
+        entries.forEach(([key]) => store.put(now, key));
         await new Promise(r => { tx.oncomplete = r; tx.onerror = r; });
     } catch {
         dbPromise = null;
+    }
+}
+
+async function recordAccess(pool, url) {
+    pendingAccessLogs.set(`${pool}:${url}`, true);
+    if (!batchTimer) {
+        batchTimer = setTimeout(() => {
+            batchTimer = null;
+            flushAccessLogs();
+        }, 3000);
     }
 }
 

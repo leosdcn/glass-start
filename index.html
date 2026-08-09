@@ -734,7 +734,6 @@
         :focus-visible {
             outline: 2px solid rgba(255, 255, 255, 0.55);
             outline-offset: 3px;
-            border-radius: 8px;
             box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.08);
         }
         /* 输入框用内发光替代 outline，与玻璃边框自然融合 */
@@ -1427,7 +1426,7 @@
         <div class="glass-strong apple-radius pt-4 pb-3 px-4 w-full max-w-2xl xl:max-w-3xl 2xl:max-w-4xl mx-4 max-h-[85vh] flex flex-col shadow-2xl">
             <div class="flex items-center justify-between mb-2 pb-1.5 border-b border-white/10 shrink-0">
                 <h3 class="text-base font-medium tracking-wide text-white/80">从导航页选择</h3>
-                <button id="closePickerBtn" type="button" aria-label="关闭选择弹窗" class="p-1 hover:bg-white/10 rounded apple-radius text-white/40 hover:text-white/70 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50">✕</button>
+                <button id="closePickerBtn" type="button" aria-label="关闭选择弹窗" class="p-1 min-w-[2.5rem] min-h-[2.5rem] inline-flex items-center justify-center hover:bg-white/10 rounded apple-radius text-white/40 hover:text-white/70 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50">✕</button>
             </div>
             <div id="pickerContent" class="flex-1 overflow-y-auto min-h-0 space-y-3"></div>
             <div class="flex items-center justify-between mt-3 pt-2 border-t border-white/10 shrink-0">
@@ -2184,8 +2183,21 @@
          * @param {*} [fallback=null] - 当键名不存在或读取抛出异常时的默认返回值
          * @returns {*} 解析后的对象/数组或 fallback 默认值
          */
+        // LocalStorage 一级 RAM 内存缓存池，彻底消除重复 Disk I/O 与 JSON.parse 开销
+        const storageCache = new Map();
+
         function storageGet(key, fallback = null) {
-            try { const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : fallback; } catch { return fallback; }
+            if (storageCache.has(key)) {
+                return storageCache.get(key);
+            }
+            try {
+                const raw = localStorage.getItem(key);
+                const val = raw ? JSON.parse(raw) : fallback;
+                storageCache.set(key, val);
+                return val;
+            } catch {
+                return fallback;
+            }
         }
 
         /**
@@ -2195,6 +2207,7 @@
          * @returns {boolean} 写入成功返回 true，被沙盒阻断或磁盘超限时返回 false
          */
         function storageSet(key, value) {
+            storageCache.set(key, value);
             try { localStorage.setItem(key, JSON.stringify(value)); return true; } catch { return false; }
         }
 
@@ -2204,6 +2217,7 @@
          * @returns {boolean} 移除成功返回 true，抛出安全异常时返回 false
          */
         function storageRemove(key) {
+            storageCache.delete(key);
             try { localStorage.removeItem(key); return true; } catch { return false; }
         }
 
@@ -3010,13 +3024,15 @@
 
                     const validBookmarks = [];
                     importedList.forEach(item => {
-                        if (item && (item.name || item.url)) {
-                            const name = String(item.name || '未命名').trim();
-                            const url = normalizeUrl(item.url || '');
-                            if (name && url) {
-                                const rawIcon = typeof item.icon === 'string' ? item.icon : faviconFromUrl(url);
+                        if (item && typeof item === 'object' && (item.name || item.url)) {
+                            const name = String(item.name || '未命名').trim().slice(0, 60);
+                            const rawUrl = String(item.url || '').trim();
+                            const url = normalizeUrl(rawUrl);
+                            if (name && url && (/^https?:\/\//i.test(url) || url.startsWith('data:'))) {
+                                const rawIcon = typeof item.icon === 'string' && item.icon.trim() ? item.icon.trim() : faviconFromUrl(url);
                                 const icon = safeUrl(rawIcon) !== '#' ? rawIcon : faviconFromUrl(url);
-                                validBookmarks.push({ name, url, icon });
+                                const desc = typeof item.desc === 'string' ? item.desc.trim().slice(0, 40) : '';
+                                validBookmarks.push({ name, url, icon, desc });
                             }
                         }
                     });
@@ -3331,23 +3347,30 @@
                 try { handle.setPointerCapture(e.pointerId); } catch (_) {}
             });
 
+            let touchMoveRafId = null;
             dom.editList.addEventListener('pointermove', e => {
                 if (!touchDragCard || e.pointerId !== touchCapturedId) return;
-                const target = document.elementFromPoint(e.clientX, e.clientY)?.closest('.edit-row-card');
-                if (!target || target === touchDragCard) return;
+                if (touchMoveRafId) return;
+                const clientX = e.clientX;
+                const clientY = e.clientY;
+                touchMoveRafId = requestAnimationFrame(() => {
+                    touchMoveRafId = null;
+                    const target = document.elementFromPoint(clientX, clientY)?.closest('.edit-row-card');
+                    if (!target || target === touchDragCard) return;
 
-                const rect = target.getBoundingClientRect();
-                const relY = (e.clientY - rect.top) / rect.height;
-                const isTop = relY < 0.5;
+                    const rect = target.getBoundingClientRect();
+                    const relY = (clientY - rect.top) / rect.height;
+                    const isTop = relY < 0.5;
 
-                lastOverTarget = target;
-                lastIsTop = isTop;
+                    lastOverTarget = target;
+                    lastIsTop = isTop;
 
-                const lineY = isTop ? (target.offsetTop - 4.5) : (target.offsetTop + target.offsetHeight + 1.5);
-                if (dom.dragDropIndicator) {
-                    dom.dragDropIndicator.style.transform = `translate3d(0, ${lineY}px, 0)`;
-                    dom.dragDropIndicator.style.opacity = '1';
-                }
+                    const lineY = isTop ? (target.offsetTop - 4.5) : (target.offsetTop + target.offsetHeight + 1.5);
+                    if (dom.dragDropIndicator) {
+                        dom.dragDropIndicator.style.transform = `translate3d(0, ${lineY}px, 0)`;
+                        dom.dragDropIndicator.style.opacity = '1';
+                    }
+                });
             });
 
             const handleTouchPointerEnd = e => {
@@ -3755,6 +3778,20 @@
 
         // ==================== 导航页（双栏布局）====================
         let lastNavCategoriesSignature = '';
+        let cachedSortedCategories = null;
+        let lastCategoriesRef = null;
+
+        function getSortedCategories() {
+            if (cachedSortedCategories && pageData.categories === lastCategoriesRef) {
+                return cachedSortedCategories;
+            }
+            lastCategoriesRef = pageData.categories;
+            cachedSortedCategories = pageData.categories.map(cat => ({
+                ...cat,
+                sortedBookmarks: [...cat.bookmarks].sort((a, b) => zhCollator.compare(a.name, b.name))
+            }));
+            return cachedSortedCategories;
+        }
 
         function renderNavCategories(force = false) {
             if (!dom.sidebarList || !dom.navCategories) return;
@@ -3764,6 +3801,7 @@
             lastNavCategoriesSignature = currentSig;
 
             const savedScrollTop = dom.navContent ? dom.navContent.scrollTop : 0;
+            const sortedCats = getSortedCategories();
 
             // 左侧分类列表
             dom.sidebarList.innerHTML = pageData.categories.map((cat, i) => `
@@ -3774,9 +3812,9 @@
                 </button>
             `).join('');
 
-            // 右侧书签内容（自动按 A-Z 拼音/字母排序）
-            dom.navCategories.innerHTML = pageData.categories.map((cat, i) => {
-                const sortedBookmarks = [...cat.bookmarks].sort((a, b) => zhCollator.compare(a.name, b.name));
+            // 右侧书签内容（自动按 A-Z 拼音/字母排序，命中 getSortedCategories 记忆化缓存）
+            dom.navCategories.innerHTML = sortedCats.map((cat, i) => {
+                const sortedBookmarks = cat.sortedBookmarks;
                 return `
                 <div id="cat-${i}" role="tabpanel" aria-labelledby="cat-tab-${i}" class="category-block ${i > 0 ? 'scroll-mt-6' : ''}">
                     <!-- Apple 极简原生分类标题 (清爽无异形圆角框) -->
@@ -4058,7 +4096,7 @@
                 if (suggestDebounceTimer) clearTimeout(suggestDebounceTimer);
                 suggestDebounceTimer = setTimeout(() => {
                     fetchSuggestions(state.engine, val);
-                }, 100);
+                }, 180);
             });
 
             if (dom.searchClearBtn) {
@@ -4130,11 +4168,47 @@
             document.getElementById('navHeader')?.addEventListener('click', handleBackToStart);
 
             // 键盘快捷键：
+            // Web 无障碍 Focus Trap 锁：防 Tab 键焦点逃逸出弹窗
+            function handleModalTabFocus(e, modalEl) {
+                if (!modalEl) return;
+                const focusables = Array.from(modalEl.querySelectorAll('button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])')).filter(el => {
+                    return el.offsetWidth > 0 || el.offsetHeight > 0 || el === document.activeElement;
+                });
+                if (focusables.length === 0) return;
+                const first = focusables[0];
+                const last = focusables[focusables.length - 1];
+                if (e.shiftKey) {
+                    if (document.activeElement === first || !modalEl.contains(document.activeElement)) {
+                        last.focus();
+                        e.preventDefault();
+                    }
+                } else {
+                    if (document.activeElement === last || !modalEl.contains(document.activeElement)) {
+                        first.focus();
+                        e.preventDefault();
+                    }
+                }
+            }
+
+            // 键盘快捷键：
             // 1. 屏间切换：PageDown / Down (非输入态切至导航页)，PageUp / Home / Up (非输入态且在导航页顶切回首屏)
             // 2. 字母键：仅在起始页非输入态聚焦搜索框
             // 3. Ctrl/Cmd+B：切换壁纸
             // 4. Escape：关弹窗/失焦
+            // 5. Tab：Modal 弹窗激活时 Focus Trap 循环锁定
             document.addEventListener('keydown', e => {
+                // 0. 当有活动 Modal 弹窗在栈顶时，强行防逃逸循环锁定 Tab 键焦点 (a11y Focus Trap)
+                if (e.key === 'Tab' && !OverlayStack.isEmpty()) {
+                    const topOverlay = OverlayStack.top();
+                    if (topOverlay && topOverlay.id !== 'suggestions' && topOverlay.id !== 'dropdown') {
+                        const modalEl = dom[topOverlay.id] || document.getElementById(topOverlay.id);
+                        if (modalEl) {
+                            handleModalTabFocus(e, modalEl);
+                            return;
+                        }
+                    }
+                }
+
                 // 1. 优先使用 UI 响应栈 (OverlayStack) 逆序优雅处理 Escape 按键
                 if (e.key === 'Escape') {
                     const topOverlay = OverlayStack.top();
@@ -4580,13 +4654,19 @@
         }
 
         let lastDateDay = -1;
+        let lastTimeStr = '';
         function updateClock() {
+            if (document.hidden) return;
             const n = new Date();
-            dom.clock.textContent = `${String(n.getHours()).padStart(2, '0')}:${String(n.getMinutes()).padStart(2, '0')}`;
+            const curTimeStr = `${String(n.getHours()).padStart(2, '0')}:${String(n.getMinutes()).padStart(2, '0')}`;
+            if (curTimeStr !== lastTimeStr) {
+                lastTimeStr = curTimeStr;
+                if (dom.clock) dom.clock.textContent = curTimeStr;
+            }
             const day = n.getDate();
             if (day !== lastDateDay) {
                 lastDateDay = day;
-                dom.date.textContent = n.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
+                if (dom.date) dom.date.textContent = n.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
             }
         }
 
@@ -5080,7 +5160,9 @@
                 </div>
             `;
 
-            dom.suggestionMenu.innerHTML = html + footerHtml;
+            const range = document.createRange();
+            const fragment = range.createContextualFragment(html + footerHtml);
+            dom.suggestionMenu.replaceChildren(fragment);
             dom.suggestionMenu.classList.add('active');
             dom.suggestionMenu.setAttribute('aria-hidden', 'false');
             if (dom.searchInput) dom.searchInput.setAttribute('aria-expanded', 'true');
