@@ -523,8 +523,13 @@
         #navHint svg { width: 0.75rem; height: 0.75rem; max-width: 0.75rem; max-height: 0.75rem; flex-shrink: 0; }
         @keyframes bounceDown { 0%,100%{transform:translateY(0);opacity:0.6} 50%{transform:translateY(0.5rem);opacity:1} }
         @keyframes bounceUp { 0%,100%{transform:translateY(0);opacity:0.7} 50%{transform:translateY(-0.1875rem);opacity:1} }
-        .hint-down { animation:hintFade 7s ease forwards; }
+        .hint-down { animation:hintFade 7s ease forwards; transform-style: preserve-3d; backface-visibility: hidden; }
         @keyframes hintFade { 0%,55%{opacity:1} 100%{opacity:0;pointer-events:none} }
+        .bg-layer { transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1); transform: translateZ(0); will-change: transform, opacity; }
+        #bgOverlay { transition: background-color 0.2s ease, backdrop-filter 0.2s ease, -webkit-backdrop-filter 0.2s ease; transform: translateZ(0); will-change: transform, opacity; }
+        #clock, #editBookmarksBtn { will-change: transform; transform: translateZ(0); }
+        .delay-100 { animation-delay: 0.1s; }
+        .delay-200 { animation-delay: 0.2s; }
         .edit-overlay { opacity:0; pointer-events:none; transition:opacity 0.2s ease; will-change:opacity; }
         .edit-overlay.active { opacity:1; pointer-events:auto; }
         .edit-overlay > div { transform:scale(0.95); transition:transform 0.2s ease; will-change:transform; }
@@ -1084,9 +1089,9 @@
 </head>
 <body class="text-white relative bg-[#0b0f19]">
     <!-- 固定定位背景图层（双层叠加 opacity 过渡，解决 background-image 不可 CSS 插值的问题；配合 bg-fullscreen 延伸至移动端安全区与过滚动区域） -->
-    <div id="bgLayer" class="bg-fullscreen bg-cover bg-center bg-no-repeat -z-10 bg-[#0f172a] opacity-0" style="transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1); transform: translateZ(0); will-change: transform, opacity;"></div>
-    <div id="bgLayerNext" class="bg-fullscreen bg-cover bg-center bg-no-repeat -z-10 opacity-0 bg-[#0f172a]" style="transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1); transform: translateZ(0); will-change: transform, opacity;"></div>
-    <div id="bgOverlay" class="bg-fullscreen bg-black/25 pointer-events-none z-0" style="transition: background-color 0.2s ease, backdrop-filter 0.2s ease, -webkit-backdrop-filter 0.2s ease; transform: translateZ(0); will-change: transform, opacity;"></div>
+    <div id="bgLayer" class="bg-fullscreen bg-cover bg-center bg-no-repeat -z-10 bg-[#0f172a] opacity-0 bg-layer"></div>
+    <div id="bgLayerNext" class="bg-fullscreen bg-cover bg-center bg-no-repeat -z-10 opacity-0 bg-[#0f172a] bg-layer"></div>
+    <div id="bgOverlay" class="bg-fullscreen bg-black/25 pointer-events-none z-0"></div>
     <script>(function(){const bg=document.getElementById('bgLayer');const url=window.__PRELOADED_BG__||'./wallpapers/bg1.avif';if(bg){const show=function(){bg.style.backgroundImage="url(\""+url.replace(/["'\\]/g,'\\$&')+"\")";bg.style.opacity='1';};const img=new Image();img.onload=show;img.src=url;if(img.complete&&img.naturalWidth>0)show();}if(window.__PRE_BG_EFFECTS__){const o=document.getElementById('bgOverlay');if(o){o.style.backgroundColor='rgba(0, 0, 0, '+(window.__PRE_BG_EFFECTS__.op/100)+')';if(window.__PRE_BG_EFFECTS__.bl>0){const b='blur('+window.__PRE_BG_EFFECTS__.bl+'px)';o.style.backdropFilter=b;o.style.webkitBackdropFilter=b;}}}})()</script>
 
     <!-- ========== 第一屏：起始页 ========== -->
@@ -1095,14 +1100,14 @@
         <div class="flex flex-col items-center justify-center w-full">
             <!-- 时钟 -->
             <div class="text-center fade-in clock-text mb-10 md:mb-14">
-                <div id="clock" aria-live="polite" aria-atomic="true" class="text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-light tracking-tight tabular-nums" style="transform: translateZ(0);">00:00</div>
+                <div id="clock" aria-live="polite" aria-atomic="true" class="text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-light tracking-tight tabular-nums">00:00</div>
                 <div id="date" class="text-xs sm:text-sm md:text-base mt-3 text-white/70 font-light tracking-widest uppercase">加载中...</div>
                 <script>(function(){const n=new Date();const c=document.getElementById('clock');const d=document.getElementById('date');if(c)c.textContent=`${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`;if(d)d.textContent=n.toLocaleDateString('zh-CN',{year:'numeric',month:'long',day:'numeric',weekday:'long'});})()</script>
             </div>
 
             <!-- 搜索框 -->
             <div class="w-full max-w-2xl lg:max-w-3xl mx-auto relative mb-8 md:mb-10">
-                <div class="glass-strong apple-radius p-2 flex items-center gap-1.5 border fade-in search-box-wrapper" style="animation-delay:0.1s">
+                <div class="glass-strong apple-radius p-2 flex items-center gap-1.5 border fade-in search-box-wrapper delay-100">
                     <div class="relative shrink-0">
                         <button id="engineBtn" type="button" aria-label="选择搜索引擎" aria-haspopup="true" aria-expanded="false" aria-controls="dropdownMenu" class="flex items-center gap-1.5 pl-3 pr-2 py-3 apple-radius hover:bg-white/10 transition-all text-sm font-medium min-h-11 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed">
                             <img id="engineIcon" src="https://a.favicon.im/bing.com" width="16" height="16" class="engine-icon size-4 rounded-md" alt="当前引擎：Bing">
@@ -1135,11 +1140,11 @@
                     </button>
                 </div>
                 <!-- 搜索实时建议联想下拉框 (Spotlight 高颜值全宽样式) -->
-                <div id="suggestionMenu" role="listbox" aria-label="搜索建议" aria-hidden="true" class="dropdown-menu absolute top-full left-0 right-0 w-full mt-3.5 sm:mt-4 glass-strong apple-radius p-2 border border-white/20 shadow-2xl" style="z-index:150"></div>
+                <div id="suggestionMenu" role="listbox" aria-label="搜索建议" aria-hidden="true" class="dropdown-menu absolute top-full left-0 right-0 w-full mt-3.5 sm:mt-4 glass-strong apple-radius p-2 border border-white/20 shadow-2xl z-[150]"></div>
             </div>
 
             <!-- 快捷书签 -->
-            <div class="w-full max-w-2xl lg:max-w-3xl mx-auto glass apple-radius p-3 sm:p-4 fade-in mb-6 md:mb-8 relative group" style="animation-delay:0.2s">
+            <div class="w-full max-w-2xl lg:max-w-3xl mx-auto glass apple-radius p-3 sm:p-4 fade-in mb-6 md:mb-8 relative group delay-200">
                 <nav aria-label="快捷书签">
                     <div id="bookmarks" class="grid grid-cols-4 md:grid-cols-8 gap-2 min-h-[5.5rem]"></div>
                 </nav>
@@ -1147,7 +1152,7 @@
         </div>
 
         <!-- 向下滚动提示（装饰，绝对定位不占空间） -->
-        <div class="absolute bottom-6 md:bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 text-white/35 text-2xs tracking-widest pointer-events-none hint-down" style="transform-style: preserve-3d; backface-visibility: hidden;">
+        <div class="absolute bottom-6 md:bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 text-white/35 text-2xs tracking-widest pointer-events-none hint-down">
             <span>向下滚动</span>
             <svg class="size-4 scroll-hint" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/></svg>
         </div>
@@ -1191,7 +1196,7 @@
     </section>
 
     <!-- 全屏右下角固定悬浮编辑设置按钮（置于两屏 section 之外，避免被导航页 z-10 层叠上下文遮挡导致点击失效） -->
-    <button id="editBookmarksBtn" type="button" aria-label="编辑与设置" title="编辑书签与设置" class="group fixed bottom-6 right-6 md:bottom-8 md:right-8 p-3 glass-strong apple-radius text-white/70 hover:text-white hover:bg-white/20 transition-all duration-300 border border-white/20 shadow-2xl z-50 flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900" style="will-change: transform; transform: translateZ(0);">
+    <button id="editBookmarksBtn" type="button" aria-label="编辑与设置" title="编辑书签与设置" class="group fixed bottom-6 right-6 md:bottom-8 md:right-8 p-3 glass-strong apple-radius text-white/70 hover:text-white hover:bg-white/20 transition-all duration-300 border border-white/20 shadow-2xl z-50 flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900">
         <svg class="size-5 transition-transform duration-300 group-hover:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
@@ -1199,7 +1204,7 @@
     </button>
 
     <!-- 编辑与设置弹窗 (Apple 风格 Tab 分栏设置面板) -->
-    <div id="editModal" role="dialog" aria-modal="true" aria-hidden="true" hidden aria-label="设置与偏好" class="edit-overlay fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm" style="z-index: 1000;">
+    <div id="editModal" role="dialog" aria-modal="true" aria-hidden="true" hidden aria-label="设置与偏好" class="edit-overlay fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-[1000]">
         <div class="glass-strong apple-radius w-full max-w-xl sm:max-w-2xl md:max-w-3xl lg:max-w-4xl mx-4 h-[85vh] sm:h-[40rem] max-h-[90dvh] flex flex-col p-5 sm:p-6 shadow-2xl overflow-hidden">
             <!-- 弹窗 Header -->
             <div class="flex items-center justify-between mb-3.5 pb-2.5 border-b border-white/10 shrink-0">
@@ -1428,7 +1433,7 @@
     </div><!-- /#editModal -->
 
     <!-- 从导航页选择弹窗 -->
-    <div id="bookmarkPicker" role="dialog" aria-modal="true" aria-hidden="true" hidden aria-label="从导航页选择书签" class="edit-overlay fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm" style="z-index: 2000;">
+    <div id="bookmarkPicker" role="dialog" aria-modal="true" aria-hidden="true" hidden aria-label="从导航页选择书签" class="edit-overlay fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-[2000]">
         <div class="glass-strong apple-radius pt-4 pb-3 px-4 w-full max-w-2xl xl:max-w-3xl 2xl:max-w-4xl mx-4 max-h-[85vh] flex flex-col shadow-2xl">
             <div class="flex items-center justify-between mb-2 pb-1.5 border-b border-white/10 shrink-0">
                 <h3 class="text-base font-medium tracking-wide text-white/80">从导航页选择</h3>
@@ -1444,7 +1449,7 @@
 
     <!-- 自定义确认弹窗（替代原生 confirm()，保持玻璃风格一致） -->
     <div id="confirmModal" role="alertdialog" aria-modal="true" aria-hidden="true" hidden aria-labelledby="confirmTitle"
-         class="edit-overlay fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm" style="z-index: 9999;">
+         class="edit-overlay fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-[9999]">
         <div class="confirm-dialog-card">
             <div class="size-11 rounded-full bg-red-500/15 border border-red-500/30 flex items-center justify-center mb-3 text-red-400 shrink-0">
                 <svg class="size-5.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
