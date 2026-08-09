@@ -1,3 +1,4 @@
+import { createServer as createNetServer } from 'node:net';
 import { startServer } from './server.mjs';
 import { launchChrome } from './cdp.mjs';
 
@@ -8,13 +9,48 @@ export const tyOf = (m) => {
   return r ? parseFloat(r[1]) : null;
 };
 
+/** 获取系统当前随机可用空闲端口 */
+export function getFreePort() {
+  return new Promise((resolve, reject) => {
+    const srv = createNetServer();
+    srv.listen(0, '127.0.0.1', () => {
+      const { port } = srv.address();
+      srv.close(() => resolve(port));
+    });
+    srv.on('error', reject);
+  });
+}
+
 /**
  * 启动一次完整测试会话：本地静态服务 + 无头 Chrome CDP。
- * @param {number} [port] - 静态服务端口（Chrome 调试端口 +1）
+ * @param {number} [preferredPort] - 静态服务首选端口（若未指定或占用则自动获取空闲端口）
  */
-export async function launchSession(port = 9333) {
-  const server = await startServer(port);
-  const chrome = await launchChrome({ port: port + 1, url: `http://127.0.0.1:${port}/` });
+export async function launchSession(preferredPort) {
+  let port = preferredPort;
+  if (!port) {
+    port = await getFreePort();
+  }
+  let cdpPort;
+  try {
+    cdpPort = await getFreePort();
+  } catch {
+    cdpPort = port + 1;
+  }
+
+  let server;
+  try {
+    server = await startServer(port);
+  } catch (err) {
+    if (err && err.code === 'EADDRINUSE') {
+      port = await getFreePort();
+      cdpPort = await getFreePort();
+      server = await startServer(port);
+    } else {
+      throw err;
+    }
+  }
+
+  const chrome = await launchChrome({ port: cdpPort, url: `http://127.0.0.1:${port}/` });
   const { send } = chrome;
   await send('Page.enable');
   await send('Runtime.enable');

@@ -1,7 +1,7 @@
 import { launchSession, sleep, tyOf, makeTester } from './helpers.mjs';
 
 const { pass, finish } = makeTester();
-const { server, chrome, evalJS } = await launchSession(9333);
+const { server, chrome, evalJS } = await launchSession();
 
 // 等页面初始化 & 壁纸/图标不阻塞
 await sleep(1800);

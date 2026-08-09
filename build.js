@@ -139,22 +139,30 @@ function syncBookmarksData() {
             let htmlContent = fs.readFileSync(PATHS.indexHtml, 'utf-8');
             let updatedCount = 0;
 
-            // 4.1 自动同步常用顶栏 DEFAULT_BOOKMARKS (增强正则：兼容量产压缩与格式化缩进)
+            function safeReplaceJsVariable(code, varName, replacementJs) {
+                const regex = new RegExp(`(?:export\\s+)?(?:const|let|var)\\s+${varName}(?:\\s*:\\s*[^=]+)?\\s*=\\s*\\[[\\s\\S]*?\\];`);
+                if (regex.test(code)) {
+                    return code.replace(regex, () => `const ${varName} = ${replacementJs};`);
+                }
+                return code;
+            }
+
+            // 4.1 自动同步常用顶栏 DEFAULT_BOOKMARKS
             if (bookmarksData.bookmarks && Array.isArray(bookmarksData.bookmarks)) {
                 const formattedBookmarks = formatJsObject(bookmarksData.bookmarks, 8);
-                const bmRegex = /(?:const|let|var)\s+DEFAULT_BOOKMARKS\s*=\s*\[[\s\S]*?\];/;
-                if (bmRegex.test(htmlContent)) {
-                    htmlContent = htmlContent.replace(bmRegex, () => `const DEFAULT_BOOKMARKS = ${formattedBookmarks};`);
+                const nextHtml = safeReplaceJsVariable(htmlContent, 'DEFAULT_BOOKMARKS', formattedBookmarks);
+                if (nextHtml !== htmlContent) {
+                    htmlContent = nextHtml;
                     updatedCount++;
                 }
             }
 
-            // 4.2 自动同步分类书签 DEFAULT_CATEGORIES (增强正则：兼容量产压缩与格式化缩进)
+            // 4.2 自动同步分类书签 DEFAULT_CATEGORIES
             if (bookmarksData.categories && Array.isArray(bookmarksData.categories)) {
                 const formattedCategories = formatJsObject(bookmarksData.categories, 8);
-                const catRegex = /(?:const|let|var)\s+DEFAULT_CATEGORIES\s*=\s*\[[\s\S]*?\];/;
-                if (catRegex.test(htmlContent)) {
-                    htmlContent = htmlContent.replace(catRegex, () => `const DEFAULT_CATEGORIES = ${formattedCategories};`);
+                const nextHtml = safeReplaceJsVariable(htmlContent, 'DEFAULT_CATEGORIES', formattedCategories);
+                if (nextHtml !== htmlContent) {
+                    htmlContent = nextHtml;
                     updatedCount++;
                 }
             }
@@ -175,17 +183,25 @@ function processProductionHtml() {
     console.log('🔧 处理生产环境 index.html (移除 v4 Browser CDN 脚本，全量内嵌 Tailwind CSS)...');
     let prodHtmlContent = fs.readFileSync(PATHS.indexHtml, 'utf-8');
 
+    function safeReplaceJsVariable(code, varName, replacementJs) {
+        const regex = new RegExp(`(?:export\\s+)?(?:const|let|var)\\s+${varName}(?:\\s*:\\s*[^=]+)?\\s*=\\s*\\[[\\s\\S]*?\\];`);
+        if (regex.test(code)) {
+            return code.replace(regex, () => `const ${varName} = ${replacementJs};`);
+        }
+        return code;
+    }
+
     // 5.0 生产环境 HTML 数据内嵌压缩：将 DEFAULT_BOOKMARKS 与 DEFAULT_CATEGORIES 替换为单行 JSON 字符串
     if (fs.existsSync(PATHS.bookmarksJson)) {
         try {
             const bookmarksData = JSON.parse(fs.readFileSync(PATHS.bookmarksJson, 'utf-8'));
             if (bookmarksData.bookmarks) {
                 const minBm = JSON.stringify(bookmarksData.bookmarks);
-                prodHtmlContent = prodHtmlContent.replace(/(?:const|let|var)\s+DEFAULT_BOOKMARKS\s*=\s*\[[\s\S]*?\];/, () => `const DEFAULT_BOOKMARKS = ${minBm};`);
+                prodHtmlContent = safeReplaceJsVariable(prodHtmlContent, 'DEFAULT_BOOKMARKS', minBm);
             }
             if (bookmarksData.categories) {
                 const minCat = JSON.stringify(bookmarksData.categories);
-                prodHtmlContent = prodHtmlContent.replace(/(?:const|let|var)\s+DEFAULT_CATEGORIES\s*=\s*\[[\s\S]*?\];/, () => `const DEFAULT_CATEGORIES = ${minCat};`);
+                prodHtmlContent = safeReplaceJsVariable(prodHtmlContent, 'DEFAULT_CATEGORIES', minCat);
             }
             console.log('   ✅ 已完成生产环境默认书签数据 (DEFAULT_*) 的无损单行紧凑压缩');
         } catch {}
