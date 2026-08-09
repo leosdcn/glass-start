@@ -92,13 +92,11 @@ pass('SW install 阶段使用逐项 reload 并容错',
   distSw.includes('cache.add(') && distSw.includes('.catch(() => {}))') && !/cache\.addAll\s*\(/.test(distSw),
   '逐项 reload + catch 容错');
 
-console.log('\n🔍 [3/3] 校验 Service Worker 内存池 LRU 队列与 GC 机制...');
+console.log('\n🔍 [3/3] 校验 Service Worker 内存池 FIFO 清理与限额机制...');
 
-pass('SW 内存池引入 pruneLocks 串行锁与去重', srcSw.includes('const pruneLocks = new Map()') && srcSw.includes('knownSet.add(k.url)'), '锁与去重正常');
+pass('SW 内存池 FIFO 自动容量限额与清理机制', srcSw.includes('async function pruneCache(cache, maxEntries)') && srcSw.includes('cache.keys()'), '清理与限额正常');
 
-const htmlContent = readFileSync(join(ROOT, 'index.html'), 'utf-8');
-const appContent = existsSync(join(ROOT, 'app.js')) ? readFileSync(join(ROOT, 'app.js'), 'utf-8') : '';
-const gcValid = srcSw.includes('orphanRecords') && (htmlContent.includes("indexedDB.deleteDatabase('sw-lru-db')") || appContent.includes("indexedDB.deleteDatabase('sw-lru-db')")) && srcSw.includes('dbPromise = null');
-pass('SW IDB 节点孤立 GC 擦除与异常重置闭环', gcValid, 'GC及异常释放完备');
+const gcValid = srcSw.includes('pruneCache(cache, maxEntries)');
+pass('SW 静态池超限自动淘汰与安全防污染闭环', gcValid, '自动淘汰及防污染完备');
 
 process.exit(finish());

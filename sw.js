@@ -34,152 +34,17 @@ const CORE_ASSETS = [
     './wallpapers/bg1.avif'
 ];
 
-// IndexedDB LRU 配置
-const IDB_NAME = 'sw-lru-db';
-const IDB_STORE = 'icon-timestamps';
-
-let dbPromise = null;
-function openIDB() {
-    if (dbPromise) return dbPromise;
-    dbPromise = new Promise((resolve, reject) => {
-        try {
-            const req = indexedDB.open(IDB_NAME, 1);
-            req.onupgradeneeded = () => {
-                const db = req.result;
-                if (!db.objectStoreNames.contains(IDB_STORE)) {
-                    db.createObjectStore(IDB_STORE);
-                }
-            };
-            req.onsuccess = () => {
-                const db = req.result;
-                db.onversionchange = () => { try { db.close(); } catch {} dbPromise = null; };
-                db.onclose = () => { dbPromise = null; };
-                db.onerror = () => { dbPromise = null; };
-                resolve(db);
-            };
-            req.onerror = () => {
-                dbPromise = null;
-                reject(req.error);
-            };
-        } catch (e) {
-            dbPromise = null;
-            reject(e);
-        }
-    });
-    return dbPromise;
-}
-
-/**
- * 记录或更新访问时间戳 (LRU 内存防抖批处理)
- */
-const pendingAccessLogs = new Map();
-let batchTimer = null;
-
-async function flushAccessLogs() {
-    if (pendingAccessLogs.size === 0) return;
-    const entries = Array.from(pendingAccessLogs.entries());
-    pendingAccessLogs.clear();
-
-    try {
-        const db = await openIDB();
-        const tx = db.transaction(IDB_STORE, 'readwrite');
-        const store = tx.objectStore(IDB_STORE);
-        const now = Date.now();
-        entries.forEach(([key]) => store.put(now, key));
-        await new Promise(r => { tx.oncomplete = r; tx.onerror = r; });
-    } catch {
-        dbPromise = null;
-    }
-}
-
-async function recordAccess(pool, url) {
-    pendingAccessLogs.set(`${pool}:${url}`, true);
-    if (!batchTimer) {
-        batchTimer = setTimeout(() => {
-            batchTimer = null;
-            flushAccessLogs();
-        }, 3000);
-    }
-}
-
-/**
- * 缓存池串行并发锁
- */
-const pruneLocks = new Map();
-function enqueuePruneCache(pool, cache, maxEntries) {
-    const previous = pruneLocks.get(pool) || Promise.resolve();
-    const next = previous.then(() => pruneCache(pool, cache, maxEntries)).catch(() => {});
-    pruneLocks.set(pool, next);
-    return next;
-}
-
-/**
- * LRU 缓存清理主逻辑
- */
-async function pruneCache(pool, cache, maxEntries) {
+// 简单 CacheStorage 数量限额清理 (FIFO 超限自动淘汰，淘汰重度 IDB 依赖)
+async function pruneCache(cache, maxEntries) {
     try {
         const keys = await cache.keys();
-        const overflow = keys.length - maxEntries;
-        if (overflow <= 0) return;
-
-        const db = await openIDB();
-        const tx = db.transaction(IDB_STORE, 'readonly');
-        const store = tx.objectStore(IDB_STORE);
-        const prefix = `${pool}:`;
-
-        const timestamps = await new Promise((resolve) => {
-            const list = [];
-            const req = store.openCursor();
-            req.onsuccess = (e) => {
-                const cursor = e.target.result;
-                if (cursor) {
-                    if (String(cursor.key).startsWith(prefix)) {
-                        list.push({ idbKey: cursor.key, url: String(cursor.key).slice(prefix.length), time: cursor.value });
-                    }
-                    cursor.continue();
-                } else {
-                    resolve(list);
-                }
-            };
-            req.onerror = () => resolve([]);
-        });
-
-        const cacheUrlSet = new Set(keys.map(k => k.url));
-        const validRecords = timestamps.filter(t => cacheUrlSet.has(t.url));
-        validRecords.sort((a, b) => a.time - b.time);
-
-        const orphanRecords = timestamps.filter(t => !cacheUrlSet.has(t.url));
-
-        let toDeleteUrls = [];
-        if (overflow > 0) {
-            toDeleteUrls = validRecords.slice(0, overflow).map(r => r.url);
-            if (toDeleteUrls.length < overflow) {
-                const knownSet = new Set(toDeleteUrls);
-                for (const k of keys) {
-                    if (toDeleteUrls.length >= overflow) break;
-                    if (!knownSet.has(k.url) && !validRecords.some(r => r.url === k.url)) {
-                        toDeleteUrls.push(k.url);
-                        knownSet.add(k.url);
-                    }
-                }
-            }
+        if (keys.length > maxEntries) {
+            const overflow = keys.length - maxEntries;
+            await Promise.all(keys.slice(0, overflow).map(k => cache.delete(k)));
         }
-
-        if (toDeleteUrls.length === 0 && orphanRecords.length === 0) return;
-
-        if (toDeleteUrls.length > 0) {
-            await Promise.all(toDeleteUrls.map(url => cache.delete(url)));
-        }
-
-        const deleteTx = db.transaction(IDB_STORE, 'readwrite');
-        const delStore = deleteTx.objectStore(IDB_STORE);
-        toDeleteUrls.forEach(url => delStore.delete(`${prefix}${url}`));
-        orphanRecords.forEach(r => delStore.delete(r.idbKey));
-        await new Promise(r => { deleteTx.oncomplete = r; deleteTx.onerror = r; });
-    } catch {
-        dbPromise = null;
-    }
+    } catch {}
 }
+
 
 // 安装阶段
 self.addEventListener('install', e => {
@@ -318,14 +183,9 @@ self.addEventListener('fetch', e => {
                             // 防污染控制：仅在网络层有效且非零字节异常应答时才写入缓存
                             if (netRes && (netRes.ok || netRes.type === 'opaque')) {
                                 await cache.put(e.request, netRes.clone());
-                                await recordAccess(pool, e.request.url);
-                                await enqueuePruneCache(pool, cache, maxEntries);
+                                await pruneCache(cache, maxEntries);
                             }
-                        } catch {
-                            if (cached) {
-                                await recordAccess(pool, e.request.url).catch(() => {});
-                            }
-                        }
+                        } catch {}
                     })();
 
                     if (cached) {
@@ -348,10 +208,7 @@ self.addEventListener('fetch', e => {
             e.respondWith(
                 caches.open(cacheName).then(async cache => {
                     const cached = await cache.match(e.request);
-                    if (cached) {
-                        e.waitUntil(recordAccess(pool, e.request.url));
-                        return cached;
-                    }
+                    if (cached) return cached;
 
                     try {
                         const res = await fetch(e.request);
@@ -360,8 +217,7 @@ self.addEventListener('fetch', e => {
                             e.waitUntil(
                                 (async () => {
                                     await cache.put(e.request, resClone);
-                                    await recordAccess(pool, e.request.url);
-                                    await enqueuePruneCache(pool, cache, maxEntries);
+                                    await pruneCache(cache, maxEntries);
                                 })()
                             );
                         }

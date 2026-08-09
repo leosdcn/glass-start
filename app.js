@@ -4214,17 +4214,19 @@
             document.addEventListener('touchend', handleTouchEndOrCancel, { passive: true });
             document.addEventListener('touchcancel', handleTouchEndOrCancel, { passive: true });
 
-            // ===== VisionOS 玻璃材质 3D 倾斜与光标折射高光代理 (Apple HIG 规范) =====
+            // ===== VisionOS 玻璃材质 3D 倾斜与光标折射高光代理 (Apple HIG 规范, 零 Reflow 高效引擎) =====
             (function initGlassSpotlightAndTilt() {
                 if (window.matchMedia && !window.matchMedia('(hover: hover)').matches) return;
 
                 let activeCard = null;
+                let activeCardRect = null;
                 let rafId = null;
                 let pendingEvent = null;
 
                 function updateCardTransform() {
                     if (!activeCard || !pendingEvent) return;
-                    const rect = activeCard.getBoundingClientRect();
+                    if (!activeCardRect) activeCardRect = activeCard.getBoundingClientRect();
+                    const rect = activeCardRect;
                     const x = pendingEvent.clientX - rect.left;
                     const y = pendingEvent.clientY - rect.top;
 
@@ -4233,7 +4235,6 @@
 
                     const centerX = rect.width / 2;
                     const centerY = rect.height / 2;
-                    // 严格限制倾斜角在 1.5 度以内，保持 Apple 沉稳克制的物理质感
                     const rotateX = -((y - centerY) / centerY) * 1.5;
                     const rotateY = ((x - centerX) / centerX) * 1.5;
 
@@ -4243,11 +4244,13 @@
 
                 let searchBoxRafId = null;
                 let activeSearchBox = null;
+                let activeSearchBoxRect = null;
                 let pendingSearchBoxEvent = null;
 
                 function updateSearchBoxTransform() {
                     if (!activeSearchBox || !pendingSearchBoxEvent) return;
-                    const rect = activeSearchBox.getBoundingClientRect();
+                    if (!activeSearchBoxRect) activeSearchBoxRect = activeSearchBox.getBoundingClientRect();
+                    const rect = activeSearchBoxRect;
                     activeSearchBox.style.setProperty('--mouse-x', `${pendingSearchBoxEvent.clientX - rect.left}px`);
                     activeSearchBox.style.setProperty('--mouse-y', `${pendingSearchBoxEvent.clientY - rect.top}px`);
                     searchBoxRafId = null;
@@ -4256,26 +4259,35 @@
                 document.addEventListener('mousemove', (e) => {
                     const searchBox = e.target.closest('.search-box-wrapper');
                     if (searchBox) {
-                        activeSearchBox = searchBox;
+                        if (activeSearchBox !== searchBox) {
+                            activeSearchBox = searchBox;
+                            activeSearchBoxRect = searchBox.getBoundingClientRect();
+                        }
                         pendingSearchBoxEvent = e;
                         if (!searchBoxRafId) {
                             searchBoxRafId = requestAnimationFrame(updateSearchBoxTransform);
                         }
+                    } else if (activeSearchBox) {
+                        activeSearchBox = null;
+                        activeSearchBoxRect = null;
                     }
 
                     const card = e.target.closest('.bookmark-item, .nav-bookmark');
                     if (card) {
                         if (activeCard && activeCard !== card) {
                             activeCard.style.transform = '';
+                            activeCardRect = null;
                         }
-                        activeCard = card;
+                        if (activeCard !== card) {
+                            activeCard = card;
+                            activeCardRect = card.getBoundingClientRect();
+                        }
                         pendingEvent = e;
                         if (!rafId) {
                             rafId = requestAnimationFrame(updateCardTransform);
                         }
                     } else if (activeCard) {
-                        // 滞后量缓冲区检查 (Hysteresis Check)：防止卡片边缘 3D 倾斜导致鼠标离开容器引发 60Hz 循环闪烁抖动
-                        const rect = activeCard.getBoundingClientRect();
+                        const rect = activeCardRect || activeCard.getBoundingClientRect();
                         const margin = 8;
                         const isNearCard = e.clientX >= rect.left - margin &&
                                            e.clientX <= rect.right + margin &&
@@ -4289,13 +4301,14 @@
                         } else {
                             activeCard.style.transform = '';
                             activeCard = null;
+                            activeCardRect = null;
                         }
                     }
                 }, { passive: true });
 
                 document.addEventListener('mouseout', (e) => {
                     if (activeCard && !activeCard.contains(e.relatedTarget)) {
-                        const rect = activeCard.getBoundingClientRect();
+                        const rect = activeCardRect || activeCard.getBoundingClientRect();
                         const margin = 8;
                         const isNearCard = e.clientX >= rect.left - margin &&
                                            e.clientX <= rect.right + margin &&
@@ -4304,6 +4317,7 @@
                         if (!isNearCard) {
                             activeCard.style.transform = '';
                             activeCard = null;
+                            activeCardRect = null;
                         }
                     }
                 }, { passive: true });
