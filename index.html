@@ -191,6 +191,10 @@
         .nr #navSection { visibility: visible !important; transform: translateY(0) !important; transition: none !important; }
         .nr #editBookmarksBtn { opacity: 0 !important; pointer-events: none !important; transition: none !important; }
         .nr *, .nr *::before, .nr *::after { animation: none !important; transition: none !important; }
+        /* Standard Font Size Utility Classes */
+        .text-3xs { font-size: 0.5625rem; line-height: 0.75rem; }
+        .text-2xs { font-size: 0.625rem; line-height: 0.875rem; }
+        .text-2xs-plus { font-size: 0.6875rem; line-height: 1rem; }
         /* ===== 布局 & 基础 ===== */
         :root {
             --glass-bg: rgba(255,255,255,0.08);
@@ -207,6 +211,18 @@
         /* Tailwind v4 preflight 不再默认给按钮 pointer 光标，此处恢复 */
         button, [role="button"] { cursor: pointer; }
         .apple-radius { border-radius: var(--radius); }
+        .preset-bg-card {
+            position: relative;
+            aspect-ratio: 16 / 9;
+            border-radius: 0.75rem;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        .preset-bg-card:hover {
+            border-color: rgba(255, 255, 255, 0.5);
+        }
         /* ===== 玻璃效果 ===== */
         .glass {
             background: var(--glass-bg);
@@ -1083,34 +1099,34 @@
             <div class="w-full max-w-2xl lg:max-w-3xl mx-auto relative mb-8 md:mb-10">
                 <div class="glass-strong apple-radius p-2 flex items-center gap-1.5 border fade-in search-box-wrapper" style="animation-delay:0.1s">
                     <div class="relative shrink-0">
-                        <button id="engineBtn" type="button" aria-label="选择搜索引擎" aria-haspopup="true" aria-expanded="false" aria-controls="dropdownMenu" class="flex items-center gap-1.5 pl-3 pr-2 py-3 apple-radius hover:bg-white/10 transition text-sm font-medium min-h-[2.75rem]">
-                            <img id="engineIcon" src="https://a.favicon.im/bing.com" width="16" height="16" class="engine-icon w-4 h-4 rounded-md" alt="">
+                        <button id="engineBtn" type="button" aria-label="选择搜索引擎" aria-haspopup="true" aria-expanded="false" aria-controls="dropdownMenu" class="flex items-center gap-1.5 pl-3 pr-2 py-3 apple-radius hover:bg-white/10 transition-all text-sm font-medium min-h-11 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed">
+                            <img id="engineIcon" src="https://a.favicon.im/bing.com" width="16" height="16" class="engine-icon size-4 rounded-md" alt="">
                             <span id="engineName" class="hidden sm:inline">Bing</span>
-                            <svg class="w-4 h-4 opacity-60 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                            <svg class="size-4 opacity-60 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
                         </button>
                         <script>(function(){if(window.__PRE_ENGINE__){const i=document.getElementById('engineIcon');const n=document.getElementById('engineName');if(i)i.src=window.__PRE_ENGINE__.icon;if(n)n.textContent=window.__PRE_ENGINE__.name;}})()</script>
                     </div>
                     <label for="searchInput" class="sr-only">搜索</label>
-                    <input type="text" id="searchInput" name="q" role="combobox" aria-label="搜索输入框" aria-autocomplete="list" aria-controls="suggestionMenu" aria-expanded="false" class="flex-1 bg-transparent border-none outline-none text-lg search-input text-white h-12 px-1 min-w-0" placeholder="搜索..." autocomplete="off">
-                    <button id="searchClearBtn" type="button" aria-label="清空搜索框" class="hidden p-2 apple-radius hover:bg-white/10 text-white/40 hover:text-white/90 transition shrink-0" title="清空搜索框">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    <input type="text" id="searchInput" name="q" role="combobox" aria-label="搜索输入框" aria-autocomplete="list" aria-controls="suggestionMenu" aria-expanded="false" class="flex-1 bg-transparent border-none outline-none text-lg search-input text-white h-12 px-1 min-w-0 focus-visible:ring-0" placeholder="搜索..." autocomplete="off">
+                    <button id="searchClearBtn" type="button" aria-label="清空搜索框" class="hidden p-2 apple-radius hover:bg-white/10 text-white/40 hover:text-white/90 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 shrink-0" title="清空搜索框">
+                        <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                     </button>
-                    <button id="searchBtn" type="button" aria-label="执行搜索" class="p-3 apple-radius hover:bg-white/10 transition shrink-0 mr-1">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                    <button id="searchBtn" type="button" aria-label="执行搜索" class="p-3 apple-radius hover:bg-white/10 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 shrink-0 mr-1">
+                        <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                     </button>
                 </div>
-                <div id="dropdownMenu" role="menu" aria-label="搜索引擎选项" aria-hidden="true" class="dropdown-menu absolute top-full left-0 glass-strong apple-radius p-2 border border-white/20 shadow-2xl" style="min-width:8.75rem;z-index:100">
-                    <button type="button" data-engine="bing" role="menuitem" class="w-full flex items-center gap-3 px-3 py-2.5 apple-radius hover:bg-white/10 transition text-left text-sm">
-                        <img src="https://a.favicon.im/bing.com" width="16" height="16" class="engine-icon w-4 h-4 rounded" alt=""> Bing
+                <div id="dropdownMenu" role="menu" aria-label="搜索引擎选项" aria-hidden="true" class="dropdown-menu absolute top-full left-0 glass-strong apple-radius p-2 border border-white/20 shadow-2xl min-w-[8.75rem] z-50">
+                    <button type="button" data-engine="bing" role="menuitem" class="w-full flex items-center gap-3 px-3 py-2.5 apple-radius hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 transition-all text-left text-sm">
+                        <img src="https://a.favicon.im/bing.com" width="16" height="16" class="engine-icon size-4 rounded" alt=""> Bing
                     </button>
-                    <button type="button" data-engine="google" role="menuitem" class="w-full flex items-center gap-3 px-3 py-2.5 apple-radius hover:bg-white/10 transition text-left text-sm">
-                        <img src="https://a.favicon.im/google.com" width="16" height="16" class="engine-icon w-4 h-4 rounded" alt=""> Google
+                    <button type="button" data-engine="google" role="menuitem" class="w-full flex items-center gap-3 px-3 py-2.5 apple-radius hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 transition-all text-left text-sm">
+                        <img src="https://a.favicon.im/google.com" width="16" height="16" class="engine-icon size-4 rounded" alt=""> Google
                     </button>
-                    <button type="button" data-engine="duckduckgo" role="menuitem" class="w-full flex items-center gap-3 px-3 py-2.5 apple-radius hover:bg-white/10 transition text-left text-sm">
-                        <img src="https://a.favicon.im/duckduckgo.com" width="16" height="16" class="engine-icon w-4 h-4 rounded" alt=""> DuckDuckGo
+                    <button type="button" data-engine="duckduckgo" role="menuitem" class="w-full flex items-center gap-3 px-3 py-2.5 apple-radius hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 transition-all text-left text-sm">
+                        <img src="https://a.favicon.im/duckduckgo.com" width="16" height="16" class="engine-icon size-4 rounded" alt=""> DuckDuckGo
                     </button>
-                    <button type="button" data-engine="baidu" role="menuitem" class="w-full flex items-center gap-3 px-3 py-2.5 apple-radius hover:bg-white/10 transition text-left text-sm">
-                        <img src="https://a.favicon.im/baidu.com" width="16" height="16" class="engine-icon w-4 h-4 rounded" alt=""> 百度
+                    <button type="button" data-engine="baidu" role="menuitem" class="w-full flex items-center gap-3 px-3 py-2.5 apple-radius hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 transition-all text-left text-sm">
+                        <img src="https://a.favicon.im/baidu.com" width="16" height="16" class="engine-icon size-4 rounded" alt=""> 百度
                     </button>
                 </div>
                 <!-- 搜索实时建议联想下拉框 (Spotlight 高颜值全宽样式) -->
@@ -1126,9 +1142,9 @@
         </div>
 
         <!-- 向下滚动提示（装饰，绝对定位不占空间） -->
-        <div class="absolute bottom-6 md:bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 text-white/35 text-[10px] tracking-widest pointer-events-none hint-down" style="transform-style: preserve-3d; backface-visibility: hidden;">
+        <div class="absolute bottom-6 md:bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 text-white/35 text-2xs tracking-widest pointer-events-none hint-down" style="transform-style: preserve-3d; backface-visibility: hidden;">
             <span>向下滚动</span>
-            <svg class="w-4 h-4 scroll-hint" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/></svg>
+            <svg class="size-4 scroll-hint" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/></svg>
         </div>
 
     </section>
@@ -1143,19 +1159,19 @@
                     <div class="flex items-center gap-2">
                         <span class="text-base">🪐</span>
                         <h2 class="text-xs sm:text-sm font-semibold tracking-wide text-white">导航</h2>
-                        <span class="text-[10px] text-white/60 tracking-wide hidden sm:inline ml-1 font-normal">发现更多精彩网站</span>
+                        <span class="text-2xs text-white/60 tracking-wide hidden sm:inline ml-1 font-normal">发现更多精彩网站</span>
                     </div>
                     <!-- 右侧返回提示 -->
-                    <div id="navHint" class="flex items-center gap-1.5 text-white/80 text-[10px] tracking-wider bg-white/10 border border-white/15 px-2.5 py-1 apple-radius whitespace-nowrap shrink-0 cursor-pointer hover:bg-white/20 hover:text-white transition" title="点击或向上滚动返回起始页">
-                        <svg class="w-3 h-3 scroll-up-hint shrink-0 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/></svg>
+                    <div id="navHint" class="flex items-center gap-1.5 text-white/80 text-2xs tracking-wider bg-white/10 border border-white/15 px-2.5 py-1 apple-radius whitespace-nowrap shrink-0 cursor-pointer hover:bg-white/20 hover:text-white transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" title="点击或向上滚动返回起始页">
+                        <svg class="size-3 scroll-up-hint shrink-0 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/></svg>
                         <span class="whitespace-nowrap">向上滚动返回</span>
                     </div>
                 </div>
 
                 <!-- 下方主体：左侧分类 + 右侧书签 -->
                 <div class="flex-1 flex flex-col sm:flex-row overflow-hidden min-h-0">
-                    <!-- 侧边栏（移动端顶部水平，桌面端左侧垂直） -->
-                    <aside id="sidebar" class="sm:w-28 md:w-32 lg:w-36 shrink-0 p-2 md:p-3 overflow-y-auto sm:border-r border-white/10 bg-black/10">
+                    <!-- 侧边栏（移动端顶部水平滚动，桌面端左侧垂直滚动） -->
+                    <aside id="sidebar" class="sm:w-28 md:w-32 lg:w-36 shrink-0 p-2 md:p-3 overflow-x-auto sm:overflow-y-auto sm:border-r border-white/10 bg-black/10">
                         <nav aria-label="导航分类">
                             <div id="sidebarList" role="tablist" aria-label="分类导航列表" class="flex sm:flex-col gap-1"></div>
                         </nav>
@@ -1170,8 +1186,8 @@
     </section>
 
     <!-- 全屏右下角固定悬浮编辑设置按钮（置于两屏 section 之外，避免被导航页 z-10 层叠上下文遮挡导致点击失效） -->
-    <button id="editBookmarksBtn" type="button" aria-label="编辑与设置" title="编辑书签与设置" class="group fixed bottom-6 right-6 md:bottom-8 md:right-8 p-3 glass-strong apple-radius text-white/70 hover:text-white hover:bg-white/20 transition-colors duration-300 border border-white/20 shadow-2xl z-50 flex items-center justify-center" style="will-change: transform; transform: translateZ(0);">
-        <svg class="w-5 h-5 transition-transform duration-300 group-hover:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <button id="editBookmarksBtn" type="button" aria-label="编辑与设置" title="编辑书签与设置" class="group fixed bottom-6 right-6 md:bottom-8 md:right-8 p-3 glass-strong apple-radius text-white/70 hover:text-white hover:bg-white/20 transition-all duration-300 border border-white/20 shadow-2xl z-50 flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900" style="will-change: transform; transform: translateZ(0);">
+        <svg class="size-5 transition-transform duration-300 group-hover:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
         </svg>
@@ -1179,7 +1195,7 @@
 
     <!-- 编辑与设置弹窗 (Apple 风格 Tab 分栏设置面板) -->
     <div id="editModal" role="dialog" aria-modal="true" aria-hidden="true" hidden aria-label="设置与偏好" class="edit-overlay fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm" style="z-index: 1000;">
-        <div class="glass-strong apple-radius w-full max-w-xl sm:max-w-2xl md:max-w-3xl lg:max-w-4xl mx-4 h-[40rem] max-h-[90vh] flex flex-col shadow-2xl" style="padding: 1.25rem 1.5rem 1.25rem;">
+        <div class="glass-strong apple-radius w-full max-w-xl sm:max-w-2xl md:max-w-3xl lg:max-w-4xl mx-4 h-[85vh] sm:h-[40rem] max-h-[90dvh] flex flex-col p-5 sm:p-6 shadow-2xl overflow-hidden">
             <!-- 弹窗 Header -->
             <div class="flex items-center justify-between mb-3.5 pb-2.5 border-b border-white/10 shrink-0">
                 <div class="flex items-center gap-2">
@@ -1190,15 +1206,15 @@
 
             <!-- Tab 导航栏 -->
             <div role="tablist" aria-label="设置偏好选项卡" class="flex items-center gap-1.5 p-1 bg-black/20 border border-white/10 apple-radius mb-3.5 shrink-0">
-                <button type="button" role="tab" id="tab-btn-bookmarks" aria-selected="true" aria-controls="tabBookmarks" class="settings-tab-btn active flex-1 py-2 px-3.5 apple-radius text-xs sm:text-sm font-medium transition flex items-center justify-center gap-1.5 text-white/70 hover:text-white" data-tab="tabBookmarks">
+                <button type="button" role="tab" id="tab-btn-bookmarks" aria-selected="true" aria-controls="tabBookmarks" class="settings-tab-btn active flex-1 py-2 px-3.5 apple-radius text-xs sm:text-sm font-medium transition-all flex items-center justify-center gap-1.5 text-white/70 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" data-tab="tabBookmarks">
                     <span>📌</span>
                     <span>快捷书签</span>
                 </button>
-                <button type="button" role="tab" id="tab-btn-appearance" aria-selected="false" aria-controls="tabAppearance" class="settings-tab-btn flex-1 py-2 px-3.5 apple-radius text-xs sm:text-sm font-medium transition flex items-center justify-center gap-1.5 text-white/70 hover:text-white" data-tab="tabAppearance">
+                <button type="button" role="tab" id="tab-btn-appearance" aria-selected="false" aria-controls="tabAppearance" class="settings-tab-btn flex-1 py-2 px-3.5 apple-radius text-xs sm:text-sm font-medium transition-all flex items-center justify-center gap-1.5 text-white/70 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" data-tab="tabAppearance">
                     <span>🎨</span>
                     <span>外观壁纸</span>
                 </button>
-                <button type="button" role="tab" id="tab-btn-data" aria-selected="false" aria-controls="tabData" class="settings-tab-btn flex-1 py-2 px-3.5 apple-radius text-xs sm:text-sm font-medium transition flex items-center justify-center gap-1.5 text-white/70 hover:text-white" data-tab="tabData">
+                <button type="button" role="tab" id="tab-btn-data" aria-selected="false" aria-controls="tabData" class="settings-tab-btn flex-1 py-2 px-3.5 apple-radius text-xs sm:text-sm font-medium transition-all flex items-center justify-center gap-1.5 text-white/70 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" data-tab="tabData">
                     <span>⚙️</span>
                     <span>数据与备份</span>
                 </button>
@@ -1209,14 +1225,14 @@
                 <div class="flex items-center justify-between mb-3 shrink-0">
                     <div class="flex items-center gap-1.5">
                         <span class="text-xs font-semibold text-white/80">快捷书签管理</span>
-                        <span class="text-[10px] text-white/40 font-normal">（拖拽 ⠿ 排序）</span>
+                        <span class="text-2xs text-white/40 font-normal">（拖拽 ⠿ 排序）</span>
                     </div>
-                    <span id="bookmarkCountBadge" class="text-[10px] px-2.5 py-0.5 rounded-full bg-white/10 border border-white/15 text-white/70 font-medium tracking-wide">已添加 0 项</span>
+                    <span id="bookmarkCountBadge" class="text-2xs px-2.5 py-0.5 rounded-full bg-white/10 border border-white/15 text-white/70 font-medium tracking-wide">已添加 0 项</span>
                 </div>
                 <div id="editList" role="list" aria-label="书签列表" class="flex-1 overflow-y-auto space-y-1.5 mb-3.5 min-h-0 pr-1"></div>
                 <div class="flex flex-col sm:flex-row gap-2.5 shrink-0 pt-2.5 border-t border-white/10">
-                    <button id="addBookmarkBtn" type="button" class="flex-1 py-2 px-3 border border-dashed border-white/20 apple-radius text-white/75 hover:text-white hover:border-white/40 hover:bg-white/10 transition text-xs flex items-center justify-center gap-1.5 font-medium">+ 手动添加书签</button>
-                    <button id="togglePickerBtn" type="button" class="flex-1 py-2 px-3 border border-dashed border-white/20 apple-radius text-xs text-white/75 hover:text-white hover:border-white/40 hover:bg-white/10 transition flex items-center justify-center gap-1.5 font-medium">🗂️ 从导航页批量选择</button>
+                    <button id="addBookmarkBtn" type="button" class="flex-1 py-2 px-3 border border-dashed border-white/20 apple-radius text-white/75 hover:text-white hover:border-white/40 hover:bg-white/10 transition-all text-xs flex items-center justify-center gap-1.5 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50">+ 手动添加书签</button>
+                    <button id="togglePickerBtn" type="button" class="flex-1 py-2 px-3 border border-dashed border-white/20 apple-radius text-xs text-white/75 hover:text-white hover:border-white/40 hover:bg-white/10 transition-all flex items-center justify-center gap-1.5 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50">🗂️ 从导航页批量选择</button>
                 </div>
             </div>
 
@@ -1228,15 +1244,15 @@
                     <div class="p-3.5 bg-white/5 border border-white/10 apple-radius space-y-2.5 flex flex-col justify-between">
                         <div class="flex items-center justify-between">
                             <span class="text-xs font-semibold text-white/80 flex items-center gap-1.5">
-                                <svg class="w-4 h-4 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                <svg class="size-4 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                                 自定义壁纸来源
                             </span>
-                            <span id="wallpaperStatus" class="text-[10px] px-2.5 py-0.5 rounded-full bg-white/10 border border-white/15 text-white/70 font-medium tracking-wide">默认壁纸</span>
+                            <span id="wallpaperStatus" class="text-2xs px-2.5 py-0.5 rounded-full bg-white/10 border border-white/15 text-white/70 font-medium tracking-wide">默认壁纸</span>
                         </div>
                         <div class="flex gap-2">
-                            <button id="uploadBgBtn" type="button" class="flex-1 py-2 px-3 bg-white/5 hover:bg-white/10 border border-white/10 apple-radius text-xs text-white/80 hover:text-white transition flex items-center justify-center gap-1.5">📁 本地图片</button>
-                            <button id="urlBgBtn" type="button" class="flex-1 py-2 px-3 bg-white/5 hover:bg-white/10 border border-white/10 apple-radius text-xs text-white/80 hover:text-white transition flex items-center justify-center gap-1.5">🔗 图片 URL</button>
-                            <button id="resetBgBtn" type="button" class="py-2 px-3 bg-white/5 hover:bg-white/10 border border-white/10 apple-radius text-xs text-white/50 hover:text-red-400 transition hidden">恢复默认</button>
+                            <button id="uploadBgBtn" type="button" class="flex-1 py-2 px-3 bg-white/5 hover:bg-white/10 border border-white/10 apple-radius text-xs text-white/80 hover:text-white transition-all flex items-center justify-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50">📁 本地图片</button>
+                            <button id="urlBgBtn" type="button" class="flex-1 py-2 px-3 bg-white/5 hover:bg-white/10 border border-white/10 apple-radius text-xs text-white/80 hover:text-white transition-all flex items-center justify-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50">🔗 图片 URL</button>
+                            <button id="resetBgBtn" type="button" class="py-2 px-3 bg-white/5 hover:bg-white/10 border border-white/10 apple-radius text-xs text-white/50 hover:text-red-400 transition-all hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50">恢复默认</button>
                             <input type="file" id="uploadBgInput" name="uploadBgInput" accept="image/*" class="hidden">
                         </div>
                     </div>
@@ -1249,7 +1265,7 @@
                         <div class="grid grid-cols-2 gap-3">
                             <!-- 遮罩透明度 -->
                             <div class="space-y-1">
-                                <div class="flex items-center justify-between text-[11px] text-white/70">
+                                <div class="flex items-center justify-between text-2xs-plus text-white/70">
                                     <span>暗色遮罩</span>
                                     <span id="maskOpacityVal" class="font-mono text-white/90">25%</span>
                                 </div>
@@ -1257,7 +1273,7 @@
                             </div>
                             <!-- 高斯模糊度 -->
                             <div class="space-y-1">
-                                <div class="flex items-center justify-between text-[11px] text-white/70">
+                                <div class="flex items-center justify-between text-2xs-plus text-white/70">
                                     <span>高斯模糊</span>
                                     <span id="bgBlurVal" class="font-mono text-white/90">0px</span>
                                 </div>
@@ -1273,40 +1289,40 @@
                         <span class="text-xs font-semibold text-white/80 flex items-center gap-1.5">
                             <span>🖼️</span> 预设 4K 高清壁纸库
                         </span>
-                        <span class="text-[10px] text-white/40">点击预览</span>
+                        <span class="text-2xs text-white/40">点击预览</span>
                     </div>
                     <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 flex-1 min-h-0">
-                        <button type="button" class="preset-bg-card relative aspect-video rounded-xl overflow-hidden border border-white/15 hover:border-white/50 transition group shadow-md" data-bg="./wallpapers/bg1.avif" data-title="山峦夜空" title="山峦夜空（系统默认）">
+                        <button type="button" class="preset-bg-card group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70" data-bg="./wallpapers/bg1.avif" data-title="山峦夜空" title="山峦夜空（系统默认）">
                             <img data-src="./wallpapers/bg1.avif" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 9'%3E%3C/svg%3E" alt="山峦夜空" class="w-full h-full object-cover group-hover:scale-105 transition duration-300 pointer-events-none" loading="lazy" decoding="async">
-                            <span class="absolute inset-x-0 bottom-0 py-1 bg-black/60 backdrop-blur-xs text-[10px] text-white/90 text-center font-medium pointer-events-none">山峦夜空</span>
+                            <span class="absolute inset-x-0 bottom-0 py-1 bg-black/60 backdrop-blur-xs text-2xs text-white/90 text-center font-medium pointer-events-none">山峦夜空</span>
                         </button>
-                        <button type="button" class="preset-bg-card relative aspect-video rounded-xl overflow-hidden border border-white/15 hover:border-white/50 transition group shadow-md" data-bg="./wallpapers/bg2.avif" data-title="湖光山色" title="湖光山色">
+                        <button type="button" class="preset-bg-card group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70" data-bg="./wallpapers/bg2.avif" data-title="湖光山色" title="湖光山色">
                             <img data-src="./wallpapers/bg2.avif" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 9'%3E%3C/svg%3E" alt="湖光山色" class="w-full h-full object-cover group-hover:scale-105 transition duration-300 pointer-events-none" loading="lazy" decoding="async">
-                            <span class="absolute inset-x-0 bottom-0 py-1 bg-black/60 backdrop-blur-xs text-[10px] text-white/90 text-center font-medium pointer-events-none">湖光山色</span>
+                            <span class="absolute inset-x-0 bottom-0 py-1 bg-black/60 backdrop-blur-xs text-2xs text-white/90 text-center font-medium pointer-events-none">湖光山色</span>
                         </button>
-                        <button type="button" class="preset-bg-card relative aspect-video rounded-xl overflow-hidden border border-white/15 hover:border-white/50 transition group shadow-md" data-bg="./wallpapers/bg3.avif" data-title="森林瀑布" title="森林瀑布">
+                        <button type="button" class="preset-bg-card group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70" data-bg="./wallpapers/bg3.avif" data-title="森林瀑布" title="森林瀑布">
                             <img data-src="./wallpapers/bg3.avif" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 9'%3E%3C/svg%3E" alt="森林瀑布" class="w-full h-full object-cover group-hover:scale-105 transition duration-300 pointer-events-none" loading="lazy" decoding="async">
-                            <span class="absolute inset-x-0 bottom-0 py-1 bg-black/60 backdrop-blur-xs text-[10px] text-white/90 text-center font-medium pointer-events-none">森林瀑布</span>
+                            <span class="absolute inset-x-0 bottom-0 py-1 bg-black/60 backdrop-blur-xs text-2xs text-white/90 text-center font-medium pointer-events-none">森林瀑布</span>
                         </button>
-                        <button type="button" class="preset-bg-card relative aspect-video rounded-xl overflow-hidden border border-white/15 hover:border-white/50 transition group shadow-md" data-bg="./wallpapers/bg4.avif" data-title="星空雪山" title="星空雪山">
+                        <button type="button" class="preset-bg-card group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70" data-bg="./wallpapers/bg4.avif" data-title="星空雪山" title="星空雪山">
                             <img data-src="./wallpapers/bg4.avif" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 9'%3E%3C/svg%3E" alt="星空雪山" class="w-full h-full object-cover group-hover:scale-105 transition duration-300 pointer-events-none" loading="lazy" decoding="async">
-                            <span class="absolute inset-x-0 bottom-0 py-1 bg-black/60 backdrop-blur-xs text-[10px] text-white/90 text-center font-medium pointer-events-none">星空雪山</span>
+                            <span class="absolute inset-x-0 bottom-0 py-1 bg-black/60 backdrop-blur-xs text-2xs text-white/90 text-center font-medium pointer-events-none">星空雪山</span>
                         </button>
-                        <button type="button" class="preset-bg-card relative aspect-video rounded-xl overflow-hidden border border-white/15 hover:border-white/50 transition group shadow-md" data-bg="./wallpapers/bg5.avif" data-title="壮丽旷野" title="壮丽旷野">
+                        <button type="button" class="preset-bg-card group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70" data-bg="./wallpapers/bg5.avif" data-title="壮丽旷野" title="壮丽旷野">
                             <img data-src="./wallpapers/bg5.avif" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 9'%3E%3C/svg%3E" alt="壮丽旷野" class="w-full h-full object-cover group-hover:scale-105 transition duration-300 pointer-events-none" loading="lazy" decoding="async">
-                            <span class="absolute inset-x-0 bottom-0 py-1 bg-black/60 backdrop-blur-xs text-[10px] text-white/90 text-center font-medium pointer-events-none">壮丽旷野</span>
+                            <span class="absolute inset-x-0 bottom-0 py-1 bg-black/60 backdrop-blur-xs text-2xs text-white/90 text-center font-medium pointer-events-none">壮丽旷野</span>
                         </button>
-                        <button type="button" class="preset-bg-card relative aspect-video rounded-xl overflow-hidden border border-white/15 hover:border-white/50 transition group shadow-md" data-bg="./wallpapers/bg6.avif" data-title="静谧海岸" title="静谧海岸">
+                        <button type="button" class="preset-bg-card group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70" data-bg="./wallpapers/bg6.avif" data-title="静谧海岸" title="静谧海岸">
                             <img data-src="./wallpapers/bg6.avif" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 9'%3E%3C/svg%3E" alt="静谧海岸" class="w-full h-full object-cover group-hover:scale-105 transition duration-300 pointer-events-none" loading="lazy" decoding="async">
-                            <span class="absolute inset-x-0 bottom-0 py-1 bg-black/60 backdrop-blur-xs text-[10px] text-white/90 text-center font-medium pointer-events-none">静谧海岸</span>
+                            <span class="absolute inset-x-0 bottom-0 py-1 bg-black/60 backdrop-blur-xs text-2xs text-white/90 text-center font-medium pointer-events-none">静谧海岸</span>
                         </button>
-                        <button type="button" class="preset-bg-card relative aspect-video rounded-xl overflow-hidden border border-white/15 hover:border-white/50 transition group shadow-md" data-bg="./wallpapers/bg7.avif" data-title="迷雾古堡" title="迷雾古堡">
+                        <button type="button" class="preset-bg-card group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70" data-bg="./wallpapers/bg7.avif" data-title="迷雾古堡" title="迷雾古堡">
                             <img data-src="./wallpapers/bg7.avif" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 9'%3E%3C/svg%3E" alt="迷雾古堡" class="w-full h-full object-cover group-hover:scale-105 transition duration-300 pointer-events-none" loading="lazy" decoding="async">
-                            <span class="absolute inset-x-0 bottom-0 py-1 bg-black/60 backdrop-blur-xs text-[10px] text-white/90 text-center font-medium pointer-events-none">迷雾古堡</span>
+                            <span class="absolute inset-x-0 bottom-0 py-1 bg-black/60 backdrop-blur-xs text-2xs text-white/90 text-center font-medium pointer-events-none">迷雾古堡</span>
                         </button>
-                        <button type="button" class="preset-bg-card relative aspect-video rounded-xl overflow-hidden border border-white/15 hover:border-white/50 transition group shadow-md" data-bg="./wallpapers/bg8.avif" data-title="梦幻流彩" title="梦幻流彩">
+                        <button type="button" class="preset-bg-card group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70" data-bg="./wallpapers/bg8.avif" data-title="梦幻流彩" title="梦幻流彩">
                             <img data-src="./wallpapers/bg8.avif" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 9'%3E%3C/svg%3E" alt="梦幻流彩" class="w-full h-full object-cover group-hover:scale-105 transition duration-300 pointer-events-none" loading="lazy" decoding="async">
-                            <span class="absolute inset-x-0 bottom-0 py-1 bg-black/60 backdrop-blur-xs text-[10px] text-white/90 text-center font-medium pointer-events-none">梦幻流彩</span>
+                            <span class="absolute inset-x-0 bottom-0 py-1 bg-black/60 backdrop-blur-xs text-2xs text-white/90 text-center font-medium pointer-events-none">梦幻流彩</span>
                         </button>
                     </div>
                 </div>
@@ -1317,28 +1333,28 @@
                 <!-- 顶部综合状态仪表盘 (Full Width Status Dashboard) -->
                 <div class="p-3.5 bg-white/5 border border-white/10 apple-radius flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
                     <div class="flex items-center gap-3">
-                        <div class="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center text-base border border-white/15 shadow-inner">🪐</div>
+                        <div class="size-9 rounded-xl bg-white/10 flex items-center justify-center text-base border border-white/15 shadow-inner">🪐</div>
                         <div>
                             <div class="flex items-center gap-2">
                                 <span class="text-xs font-semibold text-white/90">Glass Start</span>
-                                <span class="text-[11px] px-2 py-0.5 rounded-full bg-white/10 border border-white/15 text-white/70 font-medium tracking-wide">v2.9.0</span>
+                                <span class="text-2xs-plus px-2 py-0.5 rounded-full bg-white/10 border border-white/15 text-white/70 font-medium tracking-wide">v2.9.0</span>
                             </div>
-                            <div class="text-[10px] text-white/50">极简 Liquid Glass 拟态导航 • Build 2026.08</div>
+                            <div class="text-2xs text-white/50">极简 Liquid Glass 拟态导航 • Build 2026.08</div>
                         </div>
                     </div>
                     <!-- 核心数据统计徽章 -->
                     <div class="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
                         <div class="px-3 py-1.5 bg-white/5 apple-radius border border-white/10 text-center min-w-[4.5rem]">
                             <div id="statBookmarkCount" class="font-semibold text-white/90 text-xs">0</div>
-                            <div class="text-[9px] text-white/50">快捷书签</div>
+                            <div class="text-3xs text-white/50">快捷书签</div>
                         </div>
                         <div class="px-3 py-1.5 bg-white/5 apple-radius border border-white/10 text-center min-w-[4.5rem]">
                             <div id="statWallpaperType" class="font-semibold text-white/90 text-xs">系统</div>
-                            <div class="text-[9px] text-white/50">壁纸来源</div>
+                            <div class="text-3xs text-white/50">壁纸来源</div>
                         </div>
                         <div class="px-3 py-1.5 bg-white/5 apple-radius border border-white/10 text-center min-w-[4.5rem]">
                             <div id="statPwaStatus" class="font-semibold text-green-400 text-xs">就绪</div>
-                            <div class="text-[9px] text-white/50">离线 PWA</div>
+                            <div class="text-3xs text-white/50">离线 PWA</div>
                         </div>
                     </div>
                 </div>
@@ -1351,16 +1367,16 @@
                             <span class="text-xs font-semibold text-white/80 flex items-center gap-1.5">
                                 <span>📦</span> 配置备份与恢复
                             </span>
-                            <span id="storageSizeBadge" class="text-[10px] px-2.5 py-0.5 rounded-full bg-white/10 border border-white/15 text-white/60 font-mono">计算中...</span>
+                            <span id="storageSizeBadge" class="text-2xs px-2.5 py-0.5 rounded-full bg-white/10 border border-white/15 text-white/60 font-mono">计算中...</span>
                         </div>
-                        <button id="exportJsonBtn" type="button" class="w-full py-2 px-3.5 bg-white/5 hover:bg-white/10 border border-white/10 apple-radius text-xs text-white/80 hover:text-white transition flex items-center justify-center gap-2">
+                        <button id="exportJsonBtn" type="button" class="w-full py-2 px-3.5 bg-white/5 hover:bg-white/10 border border-white/10 apple-radius text-xs text-white/80 hover:text-white transition-all flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 disabled:opacity-50 disabled:cursor-not-allowed">
                             <span>📤</span> 导出 JSON 配置文件备份
                         </button>
                         <!-- Dropzone 导入框 -->
-                        <div id="jsonDropzone" class="json-dropzone flex-1 border-2 border-dashed border-white/15 hover:border-white/35 apple-radius p-3.5 text-center transition cursor-pointer bg-white/[0.02] hover:bg-white/10 flex flex-col items-center justify-center gap-1 min-h-[6.5rem]">
+                        <div id="jsonDropzone" class="json-dropzone flex-1 border-2 border-dashed border-white/15 hover:border-white/35 apple-radius p-3.5 text-center transition-all cursor-pointer bg-white/[0.02] hover:bg-white/10 flex flex-col items-center justify-center gap-1 min-h-[6.5rem] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" tabindex="0">
                             <span class="text-lg">📥</span>
                             <p class="text-xs text-white/80 font-medium">点击或将 JSON 备份文件拖入此处</p>
-                            <p class="text-[10px] text-white/40">自动解析恢复快捷书签与系统偏好配置</p>
+                            <p class="text-2xs text-white/40">自动解析恢复快捷书签与系统偏好配置</p>
                             <input type="file" id="importJsonInput" name="importJsonInput" accept=".json,application/json" class="hidden">
                         </div>
                     </div>
@@ -1372,10 +1388,10 @@
                             <span class="text-xs font-semibold text-white/80 flex items-center gap-1.5">
                                 <span>🧹</span> 离线 Service Worker 缓存
                             </span>
-                            <p class="text-[11px] text-white/50 leading-relaxed">
+                            <p class="text-2xs-plus text-white/50 leading-relaxed">
                                 若离线资源异常或更新未及时应用，可手动刷新 Service Worker 离线缓存。
                             </p>
-                            <button id="clearCacheBtn" type="button" class="w-full py-2 px-3.5 bg-white/5 hover:bg-white/10 border border-white/10 apple-radius text-xs text-white/75 hover:text-white transition flex items-center justify-center gap-1.5">
+                            <button id="clearCacheBtn" type="button" class="w-full py-2 px-3.5 bg-white/5 hover:bg-white/10 border border-white/10 apple-radius text-xs text-white/75 hover:text-white transition-all flex items-center justify-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 disabled:opacity-50 disabled:cursor-not-allowed">
                                 🧹 一键刷新 Service Worker 离线缓存
                             </button>
                         </div>
@@ -1387,10 +1403,10 @@
                                     <span>🚨</span> 危险区域 (Danger Zone)
                                 </span>
                             </div>
-                            <p class="text-[10px] text-white/50 leading-relaxed">
+                            <p class="text-2xs text-white/50 leading-relaxed">
                                 恢复为系统初始默认状态，将永久清除所有自定义书签、壁纸与偏好设置。
                             </p>
-                            <button id="resetEditBtn" type="button" class="danger-zone-btn w-full py-2 apple-radius text-xs font-medium transition flex items-center justify-center gap-1.5">
+                            <button id="resetEditBtn" type="button" class="danger-zone-btn w-full py-2 apple-radius text-xs font-medium transition-all flex items-center justify-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 disabled:opacity-50 disabled:cursor-not-allowed">
                                 ⚠️ 重置所有系统设置
                             </button>
                         </div>
@@ -1400,8 +1416,8 @@
 
             <!-- 底部通用 Save/Cancel 按键栏 (增加内边距与顶部间距，彻底消除拥挤感) -->
             <div class="flex gap-3 mt-3 pt-2 pb-1 border-t border-white/10 shrink-0">
-                <button id="cancelEditBtn" type="button" class="flex-1 py-2.5 px-4 bg-white/5 hover:bg-white/10 apple-radius transition text-xs sm:text-sm text-white/60">取消</button>
-                <button id="saveEditBtn" type="button" class="flex-1 py-2.5 px-4 bg-white/15 hover:bg-white/25 apple-radius transition text-xs sm:text-sm font-medium text-white/90 shadow-lg">保存并关闭</button>
+                <button id="cancelEditBtn" type="button" class="flex-1 py-2.5 px-4 bg-white/5 hover:bg-white/10 apple-radius transition-all text-xs sm:text-sm text-white/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50">取消</button>
+                <button id="saveEditBtn" type="button" class="flex-1 py-2.5 px-4 bg-white/15 hover:bg-white/25 apple-radius transition-all text-xs sm:text-sm font-medium text-white/90 shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:opacity-50 disabled:cursor-not-allowed">保存并关闭</button>
             </div>
         </div>
     </div><!-- /#editModal -->
@@ -1411,12 +1427,12 @@
         <div class="glass-strong apple-radius pt-4 pb-3 px-4 w-full max-w-2xl xl:max-w-3xl 2xl:max-w-4xl mx-4 max-h-[85vh] flex flex-col shadow-2xl">
             <div class="flex items-center justify-between mb-2 pb-1.5 border-b border-white/10 shrink-0">
                 <h3 class="text-base font-medium tracking-wide text-white/80">从导航页选择</h3>
-                <button id="closePickerBtn" type="button" aria-label="关闭选择弹窗" class="p-1 hover:bg-white/10 rounded apple-radius text-white/40 hover:text-white/70 transition">✕</button>
+                <button id="closePickerBtn" type="button" aria-label="关闭选择弹窗" class="p-1 hover:bg-white/10 rounded apple-radius text-white/40 hover:text-white/70 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50">✕</button>
             </div>
             <div id="pickerContent" class="flex-1 overflow-y-auto min-h-0 space-y-3"></div>
             <div class="flex items-center justify-between mt-3 pt-2 border-t border-white/10 shrink-0">
-                <span id="pickerCount" class="text-[10px] px-2.5 py-0.5 rounded-full bg-white/10 border border-white/15 text-white/70 font-medium tracking-wide">已添加 0 项</span>
-                <button id="donePickerBtn" type="button" class="py-2 px-5 bg-white/10 hover:bg-white/20 apple-radius transition text-sm font-medium text-white/90">完成</button>
+                <span id="pickerCount" class="text-2xs px-2.5 py-0.5 rounded-full bg-white/10 border border-white/15 text-white/70 font-medium tracking-wide">已添加 0 项</span>
+                <button id="donePickerBtn" type="button" class="py-2 px-5 bg-white/10 hover:bg-white/20 apple-radius transition-all text-sm font-medium text-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50">完成</button>
             </div>
         </div>
     </div><!-- /#bookmarkPicker -->
@@ -1425,16 +1441,16 @@
     <div id="confirmModal" role="alertdialog" aria-modal="true" aria-hidden="true" hidden aria-labelledby="confirmTitle"
          class="edit-overlay fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm" style="z-index: 9999;">
         <div class="confirm-dialog-card">
-            <div style="width: 2.75rem; height: 2.75rem; border-radius: 50%; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); display: flex; align-items: center; justify-content: center; margin-bottom: 0.75rem; color: #f87171; flex-shrink: 0;">
-                <svg style="width: 1.375rem; height: 1.375rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="size-11 rounded-full bg-red-500/15 border border-red-500/30 flex items-center justify-center mb-3 text-red-400 shrink-0">
+                <svg class="size-5.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
                 </svg>
             </div>
-            <h3 id="confirmTitle" style="font-size: 0.9375rem; font-weight: 600; color: rgba(255,255,255,0.92); margin-bottom: 0.375rem;">重置快捷书签</h3>
-            <p id="confirmMsg" style="font-size: 0.75rem; line-height: 1.5; color: rgba(255,255,255,0.65); margin-bottom: 1.25rem;"></p>
-            <div style="display: flex; gap: 0.625rem; width: 100%;">
-                <button id="confirmCancelBtn" type="button" class="confirm-dialog-btn-cancel">取消</button>
-                <button id="confirmOkBtn" type="button" class="confirm-dialog-btn-ok">确认重置</button>
+            <h3 id="confirmTitle" class="text-sm sm:text-base font-semibold text-white/90 mb-1.5">重置快捷书签</h3>
+            <p id="confirmMsg" class="text-xs text-white/65 leading-relaxed mb-5"></p>
+            <div class="flex gap-2.5 w-full">
+                <button id="confirmCancelBtn" type="button" class="confirm-dialog-btn-cancel focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50">取消</button>
+                <button id="confirmOkBtn" type="button" class="confirm-dialog-btn-ok focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400">确认重置</button>
             </div>
         </div>
     </div><!-- /#confirmModal -->
@@ -2775,7 +2791,7 @@
             if (faviconUrl) {
                 return `<div class="icon-box icon-box-sm edit-favicon-img-wrapper"><img src="${escapeHtml(faviconUrl)}" width="24" height="24" data-initial="${escapeHtml(initial)}" class="opacity-90 edit-favicon-img" alt="" loading="lazy" decoding="async"></div>`;
             }
-            return `<div class="icon-box icon-box-sm bg-white/15 border border-white/20 text-white/90 text-[10px] font-semibold edit-favicon-initial">${escapeHtml(initial)}</div>`;
+            return `<div class="icon-box icon-box-sm bg-white/15 border border-white/20 text-white/90 text-2xs font-semibold edit-favicon-initial">${escapeHtml(initial)}</div>`;
         }
 
         /**
@@ -2788,7 +2804,7 @@
             const initial = img.dataset.initial || '?';
             const box = img.closest('.edit-favicon-box');
             if (box) {
-                box.innerHTML = `<div class="icon-box icon-box-sm bg-white/15 border border-white/20 text-white/90 text-[10px] font-semibold edit-favicon-initial">${escapeHtml(initial)}</div>`;
+                box.innerHTML = `<div class="icon-box icon-box-sm bg-white/15 border border-white/20 text-white/90 text-2xs font-semibold edit-favicon-initial">${escapeHtml(initial)}</div>`;
             }
         }
         window.handleEditIconError = handleEditIconError;
@@ -2805,14 +2821,14 @@
         function getEditRowHTML(name = '', url = '', idx = '', icon = '') {
             const rowId = (idx !== '' && idx !== undefined) ? idx : Date.now();
             return `
-                <div class="edit-row-card flex flex-wrap sm:flex-nowrap items-center gap-1.5 p-1.5 px-2 bg-white/5 border border-white/10 apple-radius hover:border-white/25 transition group mb-1.5 shadow-xs" data-idx="${idx}" data-icon="${escapeHtml(icon || '')}" data-orig-url="${escapeHtml(url || '')}" draggable="true">
+                <div class="edit-row-card flex flex-wrap sm:flex-nowrap items-center gap-1.5 p-1.5 px-2 bg-white/5 border border-white/10 apple-radius hover:border-white/25 transition-all group mb-1.5 shadow-xs" data-idx="${idx}" data-icon="${escapeHtml(icon || '')}" data-orig-url="${escapeHtml(url || '')}" draggable="true">
                     <div class="flex items-center gap-1.5 shrink-0">
-                        <div class="drag-handle p-1 shrink-0 text-white/30 group-hover:text-white/70 hover:!text-white cursor-grab active:cursor-grabbing transition" title="按住拖拽排序">
-                            <svg class="w-3.5 h-3.5 pointer-events-none" viewBox="0 0 16 16" fill="currentColor"><circle cx="5" cy="4" r="1.5"/><circle cx="11" cy="4" r="1.5"/><circle cx="5" cy="8" r="1.5"/><circle cx="11" cy="8" r="1.5"/><circle cx="5" cy="12" r="1.5"/><circle cx="11" cy="12" r="1.5"/></svg>
+                        <div class="drag-handle p-1 shrink-0 text-white/30 group-hover:text-white/70 hover:!text-white cursor-grab active:cursor-grabbing transition-all" title="按住拖拽排序">
+                            <svg class="size-3.5 pointer-events-none" viewBox="0 0 16 16" fill="currentColor"><circle cx="5" cy="4" r="1.5"/><circle cx="11" cy="4" r="1.5"/><circle cx="5" cy="8" r="1.5"/><circle cx="11" cy="8" r="1.5"/><circle cx="5" cy="12" r="1.5"/><circle cx="11" cy="12" r="1.5"/></svg>
                         </div>
                         <div class="flex flex-col gap-0.5 shrink-0">
-                            <button type="button" class="move-up-btn p-0.5 text-[9px] leading-none hover:bg-white/10 apple-radius text-white/40 hover:text-white transition" title="上移书签">▲</button>
-                            <button type="button" class="move-down-btn p-0.5 text-[9px] leading-none hover:bg-white/10 apple-radius text-white/40 hover:text-white transition" title="下移书签">▼</button>
+                            <button type="button" class="move-up-btn p-0.5 text-3xs leading-none hover:bg-white/10 apple-radius text-white/40 hover:text-white transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/50" title="上移书签">▲</button>
+                            <button type="button" class="move-down-btn p-0.5 text-3xs leading-none hover:bg-white/10 apple-radius text-white/40 hover:text-white transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/50" title="下移书签">▼</button>
                         </div>
                         <div class="edit-favicon-box shrink-0 flex items-center justify-center text-white/90 select-none">
                             ${getEditFaviconInner(name, url, icon)}
