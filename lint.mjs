@@ -19,10 +19,15 @@ if (statSync(htmlPath).isFile()) {
   const html = readFileSync(htmlPath, 'utf-8');
   const scripts = [...html.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi)];
   scripts.forEach((m, i) => {
+    const fullTag = m[0];
     const code = m[1];
     const label = `index.html 内联 script #${i} (${code.length} chars)`;
     try {
-      new vm.Script(code, { filename: `inline-${i}.js` });
+      if (fullTag.includes('application/ld+json')) {
+        JSON.parse(code);
+      } else {
+        new vm.Script(code, { filename: `inline-${i}.js` });
+      }
       console.log(`✅ ${label} 语法通过`);
     } catch (e) {
       fail++;

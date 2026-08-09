@@ -28,6 +28,45 @@
     <meta name="twitter:title" content="Glass Start — 轻量级玻璃拟态浏览器起始页">
     <meta name="twitter:description" content="基于 HTML5 与 Modern JS 构建的高颜值、轻量级玻璃拟态（Glassmorphism）浏览器起始页。">
 
+    <!-- Schema.org 结构化数据 (JSON-LD 动态自适应 Origin) -->
+    <script id="schemaJsonLd" type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "Glass Start",
+      "url": "https://goldcoast.dpdns.org/",
+      "description": "基于 HTML5 与 Modern JS 构建的高颜值、轻量级玻璃拟态个人起始页与导航",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": "https://goldcoast.dpdns.org/?q={search_term_string}",
+        "query-input": "required name=search_term_string"
+      }
+    }
+    </script>
+    <script>
+      (function() {
+        try {
+          const origin = (window.location && window.location.origin && window.location.origin !== 'null') ? window.location.origin : 'https://goldcoast.dpdns.org';
+          const baseUrl = origin.endsWith('/') ? origin : origin + '/';
+          const script = document.getElementById('schemaJsonLd');
+          if (script) {
+            script.textContent = JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "WebSite",
+              "name": "Glass Start",
+              "url": baseUrl,
+              "description": "基于 HTML5 与 Modern JS 构建的高颜值、轻量级玻璃拟态个人起始页与导航",
+              "potentialAction": {
+                "@type": "SearchAction",
+                "target": baseUrl + "?q={search_term_string}",
+                "query-input": "required name=search_term_string"
+              }
+            }, null, 2);
+          }
+        } catch (e) {}
+      })();
+    </script>
+
     <title>Glass Start</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🪐%3C/text%3E%3C/svg%3E">
     <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🪐%3C/text%3E%3C/svg%3E">
@@ -393,7 +432,7 @@
                 flex-direction: row !important;
                 flex-wrap: nowrap !important;
                 gap: 0.25rem !important;
-                padding: 0.4rem 1rem !important;
+                padding: 0.4rem 0.5rem !important;
                 -webkit-mask-image: linear-gradient(to right, transparent 0%, black 1rem, black calc(100% - 1rem), transparent 100%);
                 mask-image: linear-gradient(to right, transparent 0%, black 1rem, black calc(100% - 1rem), transparent 100%);
             }
@@ -1031,6 +1070,7 @@
 
     <!-- ========== 第一屏：起始页 ========== -->
     <section id="startSection" class="relative z-10 min-h-screen flex flex-col items-center justify-center px-4 py-12">
+        <h1 class="sr-only">Glass Start — 轻量级玻璃拟态个人起始页与导航</h1>
         <div class="flex flex-col items-center justify-center w-full">
             <!-- 时钟 -->
             <div class="text-center fade-in clock-text mb-10 md:mb-14">
@@ -2157,13 +2197,22 @@
             push(id, closeFn) {
                 this.pop(id);
                 this.stack.push({ id, close: closeFn });
+                if (id !== 'suggestions') {
+                    document.body.classList.add('overflow-hidden', 'touch-none');
+                }
             },
             pop(id) {
+                let removed = null;
                 if (id) {
                     this.stack = this.stack.filter(item => item.id !== id);
                 } else {
-                    return this.stack.pop();
+                    removed = this.stack.pop();
                 }
+                const modalOverlays = this.stack.filter(item => item.id !== 'suggestions');
+                if (modalOverlays.length === 0) {
+                    document.body.classList.remove('overflow-hidden', 'touch-none');
+                }
+                return removed;
             },
             top() {
                 return this.stack[this.stack.length - 1] || null;
@@ -3240,6 +3289,65 @@
                 updateBookmarkCountBadge();
             });
 
+            let touchDragCard = null;
+            let touchCapturedId = null;
+
+            dom.editList.addEventListener('pointerdown', e => {
+                if (e.pointerType === 'mouse') return;
+                const handle = e.target.closest('.drag-handle');
+                if (!handle) return;
+                const item = handle.closest('.edit-row-card');
+                if (!item) return;
+
+                touchDragCard = item;
+                dragSrc = item;
+                item.classList.add('dragging');
+                touchCapturedId = e.pointerId;
+                try { handle.setPointerCapture(e.pointerId); } catch (_) {}
+            });
+
+            dom.editList.addEventListener('pointermove', e => {
+                if (!touchDragCard || e.pointerId !== touchCapturedId) return;
+                const target = document.elementFromPoint(e.clientX, e.clientY)?.closest('.edit-row-card');
+                if (!target || target === touchDragCard) return;
+
+                const rect = target.getBoundingClientRect();
+                const relY = (e.clientY - rect.top) / rect.height;
+                const isTop = relY < 0.5;
+
+                lastOverTarget = target;
+                lastIsTop = isTop;
+
+                const lineY = isTop ? (target.offsetTop - 4.5) : (target.offsetTop + target.offsetHeight + 1.5);
+                if (dom.dragDropIndicator) {
+                    dom.dragDropIndicator.style.transform = `translate3d(0, ${lineY}px, 0)`;
+                    dom.dragDropIndicator.style.opacity = '1';
+                }
+            });
+
+            const handleTouchPointerEnd = e => {
+                if (!touchDragCard || e.pointerId !== touchCapturedId) return;
+                const target = lastOverTarget;
+                const isTop = lastIsTop !== null ? lastIsTop : true;
+
+                if (target && dragSrc && target !== dragSrc) {
+                    if (isTop) {
+                        target.parentNode.insertBefore(dragSrc, target);
+                    } else {
+                        target.parentNode.insertBefore(dragSrc, target.nextSibling);
+                    }
+                }
+
+                clearDragClasses();
+                try { e.target.releasePointerCapture(e.pointerId); } catch (_) {}
+                touchDragCard = null;
+                touchCapturedId = null;
+                dragSrc = null;
+            };
+
+            dom.editList.addEventListener('pointerup', handleTouchPointerEnd);
+            dom.editList.addEventListener('pointercancel', handleTouchPointerEnd);
+
             // 实时 Favicon 与首字母图标感知：修改 URL 或名称时自动抓取刷新
             let editFaviconDebounceTimer = null;
             dom.editList.addEventListener('input', e => {
@@ -3645,7 +3753,7 @@
             dom.navCategories.innerHTML = pageData.categories.map((cat, i) => {
                 const sortedBookmarks = [...cat.bookmarks].sort((a, b) => zhCollator.compare(a.name, b.name));
                 return `
-                <div id="cat-${i}" class="category-block ${i > 0 ? 'scroll-mt-6' : ''}">
+                <div id="cat-${i}" role="tabpanel" aria-labelledby="cat-tab-${i}" class="category-block ${i > 0 ? 'scroll-mt-6' : ''}">
                     <!-- Apple 极简原生分类标题 (清爽无异形圆角框) -->
                     <div class="category-header flex items-center justify-between pb-2 mb-3.5 border-b border-white/10 transition-colors duration-300">
                         <div class="flex items-center gap-2">
@@ -4075,6 +4183,7 @@
                             items.forEach((el, idx) => el.classList.toggle('active', idx === selectedSuggestionIdx));
                             if (selectedSuggestionIdx >= 0 && items[selectedSuggestionIdx]) {
                                 dom.searchInput.value = items[selectedSuggestionIdx].dataset.suggestion;
+                                items[selectedSuggestionIdx].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
                             } else {
                                 dom.searchInput.value = originalQuery;
                             }
@@ -4092,6 +4201,7 @@
                             items.forEach((el, idx) => el.classList.toggle('active', idx === selectedSuggestionIdx));
                             if (selectedSuggestionIdx >= 0 && items[selectedSuggestionIdx]) {
                                 dom.searchInput.value = items[selectedSuggestionIdx].dataset.suggestion;
+                                items[selectedSuggestionIdx].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
                             } else {
                                 dom.searchInput.value = originalQuery;
                             }
@@ -5479,12 +5589,26 @@
                     rafId = null;
                 }
 
+                let searchBoxRafId = null;
+                let activeSearchBox = null;
+                let pendingSearchBoxEvent = null;
+
+                function updateSearchBoxTransform() {
+                    if (!activeSearchBox || !pendingSearchBoxEvent) return;
+                    const rect = activeSearchBox.getBoundingClientRect();
+                    activeSearchBox.style.setProperty('--mouse-x', `${pendingSearchBoxEvent.clientX - rect.left}px`);
+                    activeSearchBox.style.setProperty('--mouse-y', `${pendingSearchBoxEvent.clientY - rect.top}px`);
+                    searchBoxRafId = null;
+                }
+
                 document.addEventListener('mousemove', (e) => {
                     const searchBox = e.target.closest('.search-box-wrapper');
                     if (searchBox) {
-                        const rect = searchBox.getBoundingClientRect();
-                        searchBox.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`);
-                        searchBox.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`);
+                        activeSearchBox = searchBox;
+                        pendingSearchBoxEvent = e;
+                        if (!searchBoxRafId) {
+                            searchBoxRafId = requestAnimationFrame(updateSearchBoxTransform);
+                        }
                     }
 
                     const card = e.target.closest('.bookmark-item, .nav-bookmark');
