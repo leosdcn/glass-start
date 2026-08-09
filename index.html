@@ -1100,11 +1100,11 @@
                 <div class="glass-strong apple-radius p-2 flex items-center gap-1.5 border fade-in search-box-wrapper" style="animation-delay:0.1s">
                     <div class="relative shrink-0">
                         <button id="engineBtn" type="button" aria-label="选择搜索引擎" aria-haspopup="true" aria-expanded="false" aria-controls="dropdownMenu" class="flex items-center gap-1.5 pl-3 pr-2 py-3 apple-radius hover:bg-white/10 transition-all text-sm font-medium min-h-11 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed">
-                            <img id="engineIcon" src="https://a.favicon.im/bing.com" width="16" height="16" class="engine-icon size-4 rounded-md" alt="">
+                            <img id="engineIcon" src="https://a.favicon.im/bing.com" width="16" height="16" class="engine-icon size-4 rounded-md" alt="当前引擎：Bing">
                             <span id="engineName" class="hidden sm:inline">Bing</span>
                             <svg class="size-4 opacity-60 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
                         </button>
-                        <script>(function(){if(window.__PRE_ENGINE__){const i=document.getElementById('engineIcon');const n=document.getElementById('engineName');if(i)i.src=window.__PRE_ENGINE__.icon;if(n)n.textContent=window.__PRE_ENGINE__.name;}})()</script>
+                        <script>(function(){if(window.__PRE_ENGINE__){const i=document.getElementById('engineIcon');const n=document.getElementById('engineName');if(i){i.src=window.__PRE_ENGINE__.icon;i.alt='当前引擎：'+window.__PRE_ENGINE__.name;}if(n)n.textContent=window.__PRE_ENGINE__.name;}})()</script>
                     </div>
                     <label for="searchInput" class="sr-only">搜索</label>
                     <input type="text" id="searchInput" name="q" role="combobox" aria-label="搜索输入框" aria-autocomplete="list" aria-controls="suggestionMenu" aria-expanded="false" class="flex-1 bg-transparent border-none outline-none text-lg search-input text-white h-12 px-1 min-w-0 focus-visible:ring-0" placeholder="搜索..." autocomplete="off">
@@ -2885,11 +2885,14 @@
             return bookmarks;
         }
 
+        let editModalTriggerEl = null;
+
         /**
          * 打开设置与偏好弹窗，备份打开前的初始配置以备取消时回滚
          * @returns {void}
          */
         async function openEditModal() {
+            editModalTriggerEl = document.activeElement;
             state.editOpen = true;
             OverlayStack.push('editModal', cancelEditModal);
 
@@ -2944,6 +2947,12 @@
             dom.editModal.setAttribute('aria-hidden', 'true');
             dom.editModal.setAttribute('hidden', '');
             dom.editModal.classList.remove('active');
+
+            if (editModalTriggerEl && typeof editModalTriggerEl.focus === 'function') {
+                const opener = editModalTriggerEl;
+                editModalTriggerEl = null;
+                requestAnimationFrame(() => opener.focus());
+            }
         }
 
         // ==================== 纯前端 JSON 配置文件导入与导出 ====================
@@ -4614,6 +4623,7 @@
             if (dom.engineIcon) {
                 dom.engineIcon.style.display = '';
                 dom.engineIcon.src = engineObj.icon;
+                dom.engineIcon.alt = `当前引擎：${engineObj.name}`;
             }
             closeDropdown();
             if (save) storageSet('preferredEngine', validEngine);
@@ -4938,9 +4948,10 @@
                     // Baidu format: {s: [suggestions]}
                     list = data.s;
                 }
-                // 动态计算：确保 (本站书签数 + 网络联想数) 严格总计不超过 4 行
+                // 动态计算：确保 (本站书签数 + 网络联想数) 严格总计不超过 4 行，且防御性过滤非字符串项
                 const maxNetCount = Math.max(0, 4 - localList.length);
-                const netList = (Array.isArray(list) ? list : []).slice(0, maxNetCount);
+                const safeList = (Array.isArray(list) ? list : []).filter(item => typeof item === 'string' && item.trim().length > 0);
+                const netList = safeList.slice(0, maxNetCount);
                 if (localList.length > 0 || netList.length > 0) {
                     renderSuggestions(localList, netList, true);
                 } else {
@@ -5144,8 +5155,8 @@
             activeWallpaperReqId++;
             const reqId = activeWallpaperReqId;
 
-            // 过滤 URL 中可能破坏 CSS url() 语法的引号与反斜杠，安全保留圆括号与复杂 Query 参数
-            const safeCssUrl = urlStr.replace(/["'\\]/g, '\\$&');
+            // 过滤 URL 中可能破坏 CSS url() 语法的引号、反斜杠、右括号与换行符
+            const safeCssUrl = urlStr.replace(/["'\\\r\n)]/g, '\\$&');
             const newStyleUrl = `url("${safeCssUrl}")`;
 
             const img = new Image();
