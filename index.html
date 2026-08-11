@@ -174,14 +174,27 @@
         .text-3xs { font-size: 0.5625rem; line-height: 0.75rem; }
         .text-2xs { font-size: 0.625rem; line-height: 0.875rem; }
         .text-2xs-plus { font-size: 0.6875rem; line-height: 1rem; }
-        /* ===== 布局 & 基础 ===== */
         :root {
-            --glass-bg: rgba(255,255,255,0.08);
-            --glass-border: rgba(255,255,255,0.15);
+            color-scheme: dark;
+            --bg-base: #0f172a;
+            --bg-start: #0b0f19;
+            --bg-nav: #12141a;
+            --danger: 239 68 68;
+            --glass-bg: rgba(255, 255, 255, 0.08);
+            --glass-border: rgba(255, 255, 255, 0.15);
+            --tint-04: rgba(255, 255, 255, 0.04);
+            --tint-08: rgba(255, 255, 255, 0.08);
+            --tint-10: rgba(255, 255, 255, 0.10);
+            --tint-12: rgba(255, 255, 255, 0.12);
+            --tint-14: rgba(255, 255, 255, 0.14);
+            --tint-15: rgba(255, 255, 255, 0.15);
+            --tint-18: rgba(255, 255, 255, 0.18);
+            --tint-20: rgba(255, 255, 255, 0.20);
+            --tint-25: rgba(255, 255, 255, 0.25);
             --radius: 1.5rem;
             --blur: 24px;
         }
-        html, body { background-color: #0f172a !important; }
+        html, body { background-color: var(--bg-base); }
         body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Nunito', sans-serif; /* 优先 Apple 原生系统字体栈 */ scrollbar-width:none; -ms-overflow-style:none; 
                overflow:hidden; }
         body::-webkit-scrollbar { display:none; }
@@ -218,7 +231,7 @@
             transform: translateZ(0);
         }
         .glass-strong {
-            background: rgba(255,255,255,0.12);
+            background: var(--tint-12);
             backdrop-filter: blur(40px);
             -webkit-backdrop-filter: blur(40px);
             border: 1px solid rgba(255,255,255,0.2);
@@ -453,13 +466,6 @@
                 flex-shrink: 0;
                 width: auto !important;
             }
-            .sidebar-header {
-                border-bottom: none !important;
-                border-right: 1px solid rgba(255, 255, 255, 0.1);
-                padding: 0.4rem 0.6rem !important;
-                margin-bottom: 0 !important;
-                white-space: nowrap;
-            }
         }
         /* iOS / iPad 触屏长按系统菜单与选中文本拦截 (Callout Suppression) */
         .bookmark-item, .nav-bookmark, .sidebar-item, .icon-box, #sidebar, #bookmarks {
@@ -494,11 +500,13 @@
             transform: translateZ(0);
             will-change: transform, opacity;
         }
-        #navContent, #navContent:focus, #navContent:focus-visible {
+        #navContent {
             contain: content;
             will-change: scroll-position;
-            outline: none !important;
-            box-shadow: none !important;
+        }
+        #navContent:focus {
+            outline: none;
+            box-shadow: none;
         }
         .scroll-hint { animation: bounceDown 2s ease-in-out infinite; }
         .scroll-up-hint { animation: bounceUp 1.8s ease-in-out infinite; }
@@ -592,11 +600,7 @@
             transform: scale(0.96);
             transition: transform 0.08s ease !important;
         }
-        /* ===== 移动端视口高度 (100dvh) 与 safe-area-inset 安全区适配 =====
-           !important 确保覆盖 Tailwind v4 Browser CDN 动态注入的同名工具类。
-        ===== */
-        .h-screen { height: 100dvh !important; }
-        .min-h-screen { min-height: 100dvh !important; }
+        /* ===== 移动端视口高度 (100dvh) 与 safe-area-inset 安全区适配 ===== */
         .max-h-\[90vh\] { max-height: 90dvh !important; }
         .max-h-\[95vh\] { max-height: 95dvh !important; }
         .max-h-\[85vh\] { max-height: 85dvh !important; }
@@ -656,14 +660,6 @@
             .hint-down {
                 bottom: calc(2.5rem + env(safe-area-inset-bottom));
             }
-        }
-
-        /* ===== 安全区定位覆盖（safe-area-inset 适配，!important 覆盖 Tailwind v4 Browser CDN 生成值）===== */
-        .right-6 { right: calc(1.5rem + env(safe-area-inset-right)) !important; }
-        .right-8 { right: calc(2rem + env(safe-area-inset-right)) !important; }
-        @media (min-width: 768px) {
-            .md\:bottom-8 { bottom: calc(2rem + env(safe-area-inset-bottom)) !important; }
-            .md\:right-8 { right: calc(2rem + env(safe-area-inset-right)) !important; }
         }
         /* 搜索下拉弹窗（搜索引擎 + 联想建议）：紧贴搜索框下方保持精细的 6px / 8px 悬浮间距 */
         #dropdownMenu, #suggestionMenu {
@@ -952,33 +948,8 @@
            页面所有基于 rem 的元素（字号、间距、圆角、容器宽度、图标）
            随 font-size 等比例缩放，视觉比例与 MacBook Air 完全一致。
         */
-        /* ~1600px 逻辑宽（如外接 2K 屏 125% 缩放）*/
         @media (min-width: 1550px) {
-            html { font-size: 16.87px; } /* 16 × 1550/1470 */
-        }
-        /* ~1700px 逻辑宽 */
-        @media (min-width: 1680px) {
-            html { font-size: 18.29px; } /* 16 × 1680/1470 */
-        }
-        /* ~1920px 逻辑宽（2K 外接屏 100% 缩放）*/
-        @media (min-width: 1880px) {
-            html { font-size: 20.49px; } /* 16 × 1880/1470 */
-        }
-        /* ~2048px 逻辑宽 */
-        @media (min-width: 2000px) {
-            html { font-size: 21.77px; } /* 16 × 2000/1470 */
-        }
-        /* ~2560px 逻辑宽（QHD / 2.5K 外接屏）*/
-        @media (min-width: 2500px) {
-            html { font-size: 27.21px; } /* 16 × 2500/1470 */
-        }
-        /* ~3840px 逻辑宽（4K 外接屏 100% 缩放）*/
-        @media (min-width: 3700px) {
-            html { font-size: 40.27px; } /* 16 × 3700/1470 */
-        }
-        /* ~5120px 逻辑宽（5K 外接屏）*/
-        @media (min-width: 5000px) {
-            html { font-size: 54.42px; } /* 16 × 5000/1470 */
+            html { font-size: clamp(16px, calc(16px + (100vw - 1470px) * 0.0108), 54.42px); }
         }
 
         /* 容器最大宽度：统一用 rem，随 font-size 等比例缩放，始终保持与 MacBook Air 相同的视觉占比 */
@@ -998,30 +969,22 @@
            采用 auto-fill + minmax(14rem, 1fr) 弹性自适应布局，确保单张卡片具有充足的最小宽度，彻底杜绝 4K 及大屏下内容挤压截断
         */
         #navCategories .grid {
-            display: grid !important;
-            grid-template-columns: repeat(auto-fill, minmax(13.5rem, 1fr)) !important;
-            gap: 0.625rem !important;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(13.5rem, 1fr));
+            gap: 0.625rem;
         }
         @media (min-width: 768px) {
             #navCategories .grid {
-                grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr)) !important;
-                gap: 0.75rem !important;
+                grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+                gap: 0.75rem;
             }
         }
         @media (max-width: 480px) {
             #navCategories .grid {
-                grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-                gap: 0.5rem !important;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 0.5rem;
             }
         }
-        /* ===== Tailwind 任意值 px 字号 → rem 覆盖 =====
-           Tailwind 的 text-[10px] / text-[11px] 是绝对 px，不随 html font-size 缩放。
-           此处用 CSS 原生类名覆盖，让这些字号在高分屏也等比放大。
-           注意：类名中 [ ] 需要用 \\ 转义。
-        ===== */
-        .text-\[10px\] { font-size: 0.625rem !important; }  /* 10px @ 16px base */
-        .text-\[11px\] { font-size: 0.6875rem !important; } /* 11px @ 16px base */
-        .text-\[9px\]  { font-size: 0.5625rem !important; } /* 9px  @ 16px base */
 
         /* ===== Apple 风格 Tab 设置弹窗样式 ===== */
         .settings-tab-btn {
@@ -1031,40 +994,36 @@
         }
         .settings-tab-btn:hover {
             color: rgba(255, 255, 255, 0.9);
-            background: rgba(255, 255, 255, 0.10);
+            background: var(--tint-10);
         }
         .settings-tab-btn.active {
-            background: rgba(255, 255, 255, 0.18);
+            background: var(--tint-18);
             color: #ffffff;
             border-color: rgba(255, 255, 255, 0.25);
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
         }
         .json-dropzone.drag-over {
-            background: rgba(255, 255, 255, 0.12) !important;
+            background: var(--tint-12) !important;
             border-color: rgba(255, 255, 255, 0.45) !important;
         }
         .preset-bg-card.active {
             border-color: rgba(255, 255, 255, 0.9) !important;
             box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.4);
         }
-        /* 危险区域 (Danger Zone) 玻璃风红框样式，绝不产生默认浅色白边 */
+        /* 危险区域 (Danger Zone) 玻璃风红框样式 */
         .danger-zone-card {
-            background: rgba(239, 68, 68, 0.08) !important;
-            border: 1px solid rgba(239, 68, 68, 0.25) !important;
+            background: rgb(var(--danger) / 0.08);
+            border: 1px solid rgb(var(--danger) / 0.25);
         }
         .danger-zone-btn {
-            background: rgba(239, 68, 68, 0.18) !important;
-            border: 1px solid rgba(239, 68, 68, 0.35) !important;
-            color: rgba(254, 202, 202, 0.95) !important;
+            background: rgb(var(--danger) / 0.18);
+            border: 1px solid rgb(var(--danger) / 0.35);
+            color: rgba(254, 202, 202, 0.95);
         }
         .danger-zone-btn:hover {
-            background: rgba(239, 68, 68, 0.32) !important;
-            border-color: rgba(239, 68, 68, 0.55) !important;
-            color: #ffffff !important;
-        }
-        /* 胶囊胶质圆角徽章 (Apple Pill Badge) */
-        .rounded-full {
-            border-radius: 9999px !important;
+            background: rgb(var(--danger) / 0.32);
+            border-color: rgb(var(--danger) / 0.55);
+            color: #ffffff;
         }
         /* 无障碍：减弱动态效果适配 (Prefers Reduced Motion) */
         @media (prefers-reduced-motion: reduce) {
@@ -1077,7 +1036,7 @@
         }
     </style>
 </head>
-<body class="text-white relative bg-[#0b0f19]">
+<body class="text-white relative" style="background-color: var(--bg-start);">
     <!-- 固定定位背景图层（双层叠加 opacity 过渡，解决 background-image 不可 CSS 插值的问题；配合 bg-fullscreen 延伸至移动端安全区与过滚动区域） -->
     <div id="bgLayer" class="bg-fullscreen bg-cover bg-center bg-no-repeat -z-10 bg-[#0f172a] opacity-0 bg-layer"></div>
     <div id="bgLayerNext" class="bg-fullscreen bg-cover bg-center bg-no-repeat -z-10 opacity-0 bg-[#0f172a] bg-layer"></div>
@@ -1085,7 +1044,7 @@
     <script>(function(){const bg=document.getElementById('bgLayer');const url=window.__PRELOADED_BG__||'./wallpapers/bg1.avif';if(bg){const show=function(){bg.style.backgroundImage="url(\""+url.replace(/["'\\]/g,'\\$&')+"\")";bg.style.opacity='1';};const img=new Image();img.onload=show;img.src=url;if(img.complete&&img.naturalWidth>0)show();}if(window.__PRE_BG_EFFECTS__){const o=document.getElementById('bgOverlay');if(o){o.style.backgroundColor='rgba(0, 0, 0, '+(window.__PRE_BG_EFFECTS__.op/100)+')';if(window.__PRE_BG_EFFECTS__.bl>0){const b='blur('+window.__PRE_BG_EFFECTS__.bl+'px)';o.style.backdropFilter=b;o.style.webkitBackdropFilter=b;}}}})()</script>
 
     <!-- ========== 第一屏：起始页 ========== -->
-    <section id="startSection" class="relative z-10 min-h-screen flex flex-col items-center justify-center px-4 py-12">
+    <section id="startSection" class="relative z-10 min-h-dvh flex flex-col items-center justify-center px-4 py-12">
         <h1 class="sr-only">Glass Start — 轻量级玻璃拟态个人起始页与导航</h1>
         <div class="flex flex-col items-center justify-center w-full">
             <!-- 时钟 -->
@@ -1150,7 +1109,7 @@
     </section>
 
     <!-- ========== 第二屏：导航页 ========== -->
-    <section id="navSection" class="relative z-10 h-screen nav-hidden overflow-hidden">
+    <section id="navSection" class="relative z-10 h-dvh nav-hidden overflow-hidden">
         <div class="h-full flex flex-col p-1.5 md:p-3 w-full">
             <!-- 主体：一体化 Liquid Glass 窗口框架 -->
             <div class="flex-1 glass apple-radius flex flex-col overflow-hidden min-h-0 border border-white/20 shadow-2xl">
@@ -1186,7 +1145,7 @@
     </section>
 
     <!-- 全屏右下角固定悬浮编辑设置按钮（置于两屏 section 之外，避免被导航页 z-10 层叠上下文遮挡导致点击失效） -->
-    <button id="editBookmarksBtn" type="button" aria-label="编辑与设置" title="编辑书签与设置" class="group fixed bottom-6 right-6 md:bottom-8 md:right-8 p-3 glass-strong apple-radius text-white/70 hover:text-white hover:bg-white/20 transition-all duration-300 border border-white/20 shadow-2xl z-50 flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900">
+    <button id="editBookmarksBtn" type="button" aria-label="编辑与设置" title="编辑书签与设置" class="group fixed bottom-[calc(1.5rem+env(safe-area-inset-bottom))] right-[calc(1.5rem+env(safe-area-inset-right))] md:bottom-[calc(2rem+env(safe-area-inset-bottom))] md:right-[calc(2rem+env(safe-area-inset-right))] p-3 glass-strong apple-radius text-white/70 hover:text-white hover:bg-white/20 transition-all duration-300 border border-white/20 shadow-2xl z-50 flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900">
         <svg class="size-5 transition-transform duration-300 group-hover:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
@@ -1370,10 +1329,11 @@
                             <span id="storageSizeBadge" class="text-2xs px-2.5 py-0.5 rounded-full bg-white/10 border border-white/15 text-white/60 font-mono">计算中...</span>
                         </div>
                         <button id="exportJsonBtn" type="button" class="w-full py-2 px-3.5 bg-white/5 hover:bg-white/10 border border-white/10 apple-radius text-xs text-white/80 hover:text-white transition-all flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 disabled:opacity-50 disabled:cursor-not-allowed">
-                            <span>📤</span> 导出 JSON 配置文件备份
+                            <svg class="spinner size-4 animate-spin hidden" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
+                            <span>📤</span> <span class="btn-label">导出 JSON 配置文件备份</span>
                         </button>
                         <!-- Dropzone 导入框 -->
-                        <div id="jsonDropzone" class="json-dropzone flex-1 border-2 border-dashed border-white/15 hover:border-white/35 apple-radius p-3.5 text-center transition-all cursor-pointer bg-white/[0.02] hover:bg-white/10 flex flex-col items-center justify-center gap-1 min-h-[6.5rem] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" tabindex="0">
+                        <div id="jsonDropzone" class="json-dropzone flex-1 border-2 border-dashed border-white/15 hover:border-white/35 apple-radius p-3.5 text-center transition-all cursor-pointer bg-white/5 hover:bg-white/10 flex flex-col items-center justify-center gap-1 min-h-[6.5rem] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" tabindex="0">
                             <span class="text-lg">📥</span>
                             <p class="text-xs text-white/80 font-medium">点击或将 JSON 备份文件拖入此处</p>
                             <p class="text-2xs text-white/40">自动解析恢复快捷书签与系统偏好配置</p>
@@ -1392,7 +1352,8 @@
                                 若离线资源异常或更新未及时应用，可手动刷新 Service Worker 离线缓存。
                             </p>
                             <button id="clearCacheBtn" type="button" class="w-full py-2 px-3.5 bg-white/5 hover:bg-white/10 border border-white/10 apple-radius text-xs text-white/75 hover:text-white transition-all flex items-center justify-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 disabled:opacity-50 disabled:cursor-not-allowed">
-                                🧹 一键刷新 Service Worker 离线缓存
+                                <svg class="spinner size-4 animate-spin hidden" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
+                                <span>🧹</span> <span class="btn-label">一键刷新 Service Worker 离线缓存</span>
                             </button>
                         </div>
 
@@ -1407,7 +1368,8 @@
                                 恢复为系统初始默认状态，将永久清除所有自定义书签、壁纸与偏好设置。
                             </p>
                             <button id="resetEditBtn" type="button" class="danger-zone-btn w-full py-2 apple-radius text-xs font-medium transition-all flex items-center justify-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 disabled:opacity-50 disabled:cursor-not-allowed">
-                                ⚠️ 重置所有系统设置
+                                <svg class="spinner size-4 animate-spin hidden" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
+                                <span>⚠️</span> <span class="btn-label">重置所有系统设置</span>
                             </button>
                         </div>
                     </div>
@@ -1417,7 +1379,10 @@
             <!-- 底部通用 Save/Cancel 按键栏 (增加内边距与顶部间距，彻底消除拥挤感) -->
             <div class="flex gap-3 mt-3 pt-2 pb-1 border-t border-white/10 shrink-0">
                 <button id="cancelEditBtn" type="button" class="flex-1 py-2.5 px-4 bg-white/5 hover:bg-white/10 apple-radius transition-all text-xs sm:text-sm text-white/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50">取消</button>
-                <button id="saveEditBtn" type="button" class="flex-1 py-2.5 px-4 bg-white/15 hover:bg-white/25 apple-radius transition-all text-xs sm:text-sm font-medium text-white/90 shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:opacity-50 disabled:cursor-not-allowed">保存并关闭</button>
+                <button id="saveEditBtn" type="button" class="flex-1 py-2.5 px-4 bg-white/15 hover:bg-white/25 apple-radius transition-all text-xs sm:text-sm font-medium text-white/90 shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2">
+                    <svg class="spinner size-4 animate-spin hidden" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
+                    <span class="btn-label">保存并关闭</span>
+                </button>
             </div>
         </div>
     </div><!-- /#editModal -->
@@ -2581,6 +2546,33 @@
         }
 
         /**
+         * 微型 class 组合工具，过滤 falsy 项
+         */
+        function cx(...parts) {
+            return parts.filter(Boolean).join(' ');
+        }
+
+        /**
+         * 异步按钮操作通用包装函数，防重复点击并呈现 loading state
+         */
+        async function runWithLoading(btn, fn) {
+            if (!btn || btn.disabled) return;
+            const spin = btn.querySelector('.spinner');
+            const label = btn.querySelector('.btn-label');
+            const origText = label ? label.textContent : '';
+            btn.disabled = true;
+            if (spin) spin.classList.remove('hidden');
+            if (label) label.textContent = '处理中…';
+            try {
+                await fn();
+            } finally {
+                btn.disabled = false;
+                if (spin) spin.classList.add('hidden');
+                if (label) label.textContent = origText;
+            }
+        }
+
+        /**
          * 根据书签 URL 自动推断其 favicon 地址（通过 a.favicon.im 服务）
          * 在编辑弹窗保存时，为没有手动指定 icon 的书签自动生成图标 URL
          * @param {string} url - 书签的目标 URL
@@ -2736,11 +2728,11 @@
             if (!dom.wallpaperStatus || !dom.resetBgBtn) return;
             if (isCustom) {
                 dom.wallpaperStatus.textContent = '已使用自定义壁纸';
-                dom.wallpaperStatus.className = 'text-[10px] text-emerald-400/90 font-medium';
+                dom.wallpaperStatus.className = 'text-2xs text-emerald-400/90 font-medium';
                 dom.resetBgBtn.classList.remove('hidden');
             } else {
                 dom.wallpaperStatus.textContent = '当前使用默认壁纸';
-                dom.wallpaperStatus.className = 'text-[10px] text-white/35';
+                dom.wallpaperStatus.className = 'text-2xs text-white/35';
                 dom.resetBgBtn.classList.add('hidden');
             }
         }
@@ -3460,7 +3452,7 @@
                     <div class="flex items-center gap-1.5 mb-1.5 pb-1 border-b border-white/5">
                         <span class="text-sm">${escapeHtml(cat.icon)}</span>
                         <h4 class="text-xs font-medium text-white/70">${escapeHtml(cat.name)}</h4>
-                        <span class="ml-auto text-[10px] text-white/20">${cat.bookmarks.length}</span>
+                        <span class="ml-auto text-2xs text-white/20">${cat.bookmarks.length}</span>
                     </div>
                     <div class="grid grid-cols-2 sm:grid-cols-3 gap-1">
                         ${sortedBookmarks.map(bm => {
@@ -3470,7 +3462,7 @@
                                     ${getFaviconHTML(bm, 'sm')}
                                     <span class="text-xs text-white/70 truncate flex-1">${escapeHtml(bm.name)}</span>
                                     ${exists
-                                        ? '<span class="text-[10px] text-white/20 shrink-0">已存在</span>'
+                                        ? '<span class="text-2xs text-white/20 shrink-0">已存在</span>'
                                         : '<span class="text-white/40 shrink-0 text-sm">+</span>'
                                     }
                                 </div>
@@ -3611,7 +3603,7 @@
             if (parent) {
                 img.remove();
                 const isMd = img.dataset.md === '1';
-                const textClass = isMd ? 'text-xs' : 'text-[10px]';
+                const textClass = isMd ? 'text-xs' : 'text-2xs';
                 parent.classList.add('bg-white/15', 'border', 'border-white/20', 'text-white/90', textClass, 'font-semibold');
                 parent.textContent = initial;
             }
@@ -3656,7 +3648,7 @@
             const initial = (bm.name || '?').trim().charAt(0).toUpperCase();
             const isMd = sizeType === 'md';
             const sizeClass = isMd ? 'icon-box-md' : 'icon-box-sm';
-            const textClass = isMd ? 'text-xs font-semibold' : 'text-[10px] font-semibold';
+            const textClass = isMd ? 'text-xs font-semibold' : 'text-2xs font-semibold';
             const safeIcon = safeUrl(bm.icon);
             
             if (!bm.icon || safeIcon === '#') {
@@ -3824,9 +3816,9 @@
                             <span class="text-sm sm:text-base shrink-0">${escapeHtml(cat.icon)}</span>
                             <h3 class="text-xs sm:text-sm font-semibold tracking-wide text-white/90">${escapeHtml(cat.name)}</h3>
                         </div>
-                        <span class="text-[10px] font-medium px-2.5 py-0.5 rounded-full bg-white/10 text-white/60 border border-white/15 tracking-wide shrink-0">${cat.bookmarks.length} 项</span>
+                        <span class="text-2xs font-medium px-2.5 py-0.5 rounded-full bg-white/10 text-white/60 border border-white/15 tracking-wide shrink-0">${cat.bookmarks.length} 项</span>
                     </div>
-                    <div class="grid gap-2.5 md:gap-3">
+                    <div class="grid">
                         ${sortedBookmarks.map(bm => `
                             <a href="${safeUrl(bm.url)}" target="_blank" rel="noopener noreferrer"
                                class="nav-bookmark group flex items-center gap-2.5 px-3 py-2.5 md:px-3.5 md:py-2.5 apple-radius text-white/80 hover:text-white">
@@ -3834,7 +3826,7 @@
                                 ${bm.desc ? `
                                     <div class="flex-1 min-w-0 flex flex-col justify-center">
                                         <span class="text-xs md:text-sm font-semibold truncate leading-tight">${escapeHtml(bm.name)}</span>
-                                        <span class="text-[10px] text-white/45 truncate leading-none mt-1">${escapeHtml(bm.desc)}</span>
+                                        <span class="text-2xs text-white/45 truncate leading-none mt-1">${escapeHtml(bm.desc)}</span>
                                     </div>
                                 ` : `
                                     <span class="flex-1 min-w-0 text-xs md:text-sm font-semibold truncate leading-tight text-white/90">${escapeHtml(bm.name)}</span>
@@ -4386,6 +4378,12 @@
             // JSON 拖拽 Dropzone 交互绑定
             if (dom.jsonDropzone) {
                 dom.jsonDropzone.addEventListener('click', () => dom.importJsonInput?.click());
+                dom.jsonDropzone.addEventListener('keydown', e => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        dom.importJsonInput?.click();
+                    }
+                });
                 dom.jsonDropzone.addEventListener('dragover', e => {
                     e.preventDefault();
                     e.stopPropagation();
@@ -4470,7 +4468,7 @@
             });
 
             // 点击「保存并关闭」按钮提交草稿中的全部修改
-            dom.saveEditBtn.addEventListener('click', async () => {
+            dom.saveEditBtn.addEventListener('click', () => runWithLoading(dom.saveEditBtn, async () => {
                 const data = collectEditData();
                 if (data.length === 0) {
                     showConfirm('至少需要保留一个名称和 URL 均已填写的书签才能保存。', null, '无法保存');
@@ -4481,13 +4479,6 @@
                 saveUserBookmarks(data);
 
                 // 2. 提交壁纸（大图持久化至 IndexedDB，同步写入 localStorage['userWallpaper'] 供 head 极速预加载）
-                //    关键：区分「选中系统预设（bg1~bg8）」与「真·自定义壁纸（上传 / 网络 URL）」：
-                //    - 预设：只同步 state.bg 索引 + localStorage.bg，并清掉 customWallpaper 三通道。
-                //      此前不做区分会把 './wallpapers/bg5.avif' 当作"自定义图"持久化，switchBg() 读到后
-                //      会清掉自定义通道并强制 state.bg=0 跳回 bg1，导致 Ctrl/Cmd+B 无法继续轮播（BUG 4a）。
-                //    - 自定义（data:/http:）：保持原逻辑，写入 state.customWallpaper + IDB + userWallpaper。
-                //    - 恢复默认（draftWallpaper === null）：同时重置 state.bg=0 并持久化 bg=0，
-                //      并清掉 customWallpaper 三通道；此前漏掉 state.bg 与 localStorage.bg，导致刷新后旧壁纸复活（BUG 4b）。
                 if (modalState.wallpaperChanged) {
                     const draft = modalState.draftWallpaper;
                     const presetIdx = findPresetBgIndex(draft);
@@ -4523,10 +4514,10 @@
                 }
 
                 closeEditModal();
-            });
+            }));
 
             // JSON 导入导出事件绑定
-            if (dom.exportJsonBtn) dom.exportJsonBtn.addEventListener('click', exportBookmarksJSON);
+            if (dom.exportJsonBtn) dom.exportJsonBtn.addEventListener('click', () => runWithLoading(dom.exportJsonBtn, async () => exportBookmarksJSON()));
             if (dom.importJsonInput) {
                 dom.importJsonInput.addEventListener('change', e => {
                     const file = e.target.files[0];
@@ -4627,7 +4618,7 @@
 
             // 清理缓存事件绑定
             if (dom.clearCacheBtn) {
-                dom.clearCacheBtn.addEventListener('click', async () => {
+                dom.clearCacheBtn.addEventListener('click', () => runWithLoading(dom.clearCacheBtn, async () => {
                     if ('caches' in window) {
                         try {
                             const keys = await caches.keys();
@@ -4642,7 +4633,7 @@
                     } else {
                         showConfirm('当前浏览器不支持 Service Worker 缓存，或已是最新状态。', null, '提示');
                     }
-                });
+                }));
             }
 
             initDragSort();
@@ -5093,7 +5084,7 @@
             // 书签分组（最多 2 条）
             if (localList && localList.length > 0) {
                 html += `
-                    <div class="px-3.5 pt-1.5 pb-1 text-[10px] font-medium tracking-wider text-white/35 uppercase select-none">
+                    <div class="px-3.5 pt-1.5 pb-1 text-2xs font-medium tracking-wider text-white/35 uppercase select-none">
                         <span>书签</span>
                     </div>
                 `;
@@ -5115,7 +5106,7 @@
                                 <span class="truncate font-medium text-white/95">${escapeHtml(bm.name)}</span>
                                 ${bm.desc ? `<span class="truncate text-xs text-white/45 hidden sm:inline">${escapeHtml(bm.desc)}</span>` : ''}
                             </div>
-                            <span class="text-[10px] px-2 py-0.5 apple-radius bg-white/10 border border-white/15 text-white/60 shrink-0">${escapeHtml(bm.category)}</span>
+                            <span class="text-2xs px-2 py-0.5 apple-radius bg-white/10 border border-white/15 text-white/60 shrink-0">${escapeHtml(bm.category)}</span>
                         </div>
                     `;
                     globalIdx++;
@@ -5129,7 +5120,7 @@
             if (safeNetList.length > 0) {
                 if (localList && localList.length > 0) {
                     html += `
-                        <div class="px-3.5 pt-2 pb-1 text-[10px] font-medium tracking-wider text-white/35 uppercase select-none">
+                        <div class="px-3.5 pt-2 pb-1 text-2xs font-medium tracking-wider text-white/35 uppercase select-none">
                             <span>搜索</span>
                         </div>
                     `;
@@ -5151,7 +5142,7 @@
             } else if (isNetLoading) {
                 if (localList && localList.length > 0) {
                     html += `
-                        <div class="px-3.5 pt-2 pb-1 text-[10px] font-medium tracking-wider text-white/35 uppercase select-none">
+                        <div class="px-3.5 pt-2 pb-1 text-2xs font-medium tracking-wider text-white/35 uppercase select-none">
                             <span>搜索</span>
                         </div>
                     `;
