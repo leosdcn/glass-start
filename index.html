@@ -182,15 +182,10 @@
             --danger: 239 68 68;
             --glass-bg: rgba(255, 255, 255, 0.08);
             --glass-border: rgba(255, 255, 255, 0.15);
-            --tint-04: rgba(255, 255, 255, 0.04);
-            --tint-08: rgba(255, 255, 255, 0.08);
+            /* 以下 4 个 token 在 CSS 中有实际引用；其余 5 个无引用的 --tint-XX 已移除 */
             --tint-10: rgba(255, 255, 255, 0.10);
             --tint-12: rgba(255, 255, 255, 0.12);
-            --tint-14: rgba(255, 255, 255, 0.14);
-            --tint-15: rgba(255, 255, 255, 0.15);
             --tint-18: rgba(255, 255, 255, 0.18);
-            --tint-20: rgba(255, 255, 255, 0.20);
-            --tint-25: rgba(255, 255, 255, 0.25);
             --radius: 1.5rem;
             --blur: 24px;
         }
@@ -333,7 +328,7 @@
             box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.35), 0 8px 24px rgba(0, 0, 0, 0.25);
         }
         .bookmark-title {
-            font-size: 0.72rem;
+            font-size: 0.75rem;
             line-height: 1.25;
             letter-spacing: -0.01em;
             text-align: center;
@@ -361,28 +356,29 @@
             border-radius: 0.375rem;
             transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
-        .icon-box-sm {
-            width: 1.5rem !important;
-            height: 1.5rem !important;
-            min-width: 1.5rem !important;
-            min-height: 1.5rem !important;
-            max-width: 1.5rem !important;
-            max-height: 1.5rem !important;
+        /* 使用复合选择器 (0-0-2) 替代 !important，在不破坏响应式的前提下锁定图标尺寸 */
+        .icon-box.icon-box-sm {
+            width: 1.5rem;
+            height: 1.5rem;
+            min-width: 1.5rem;
+            min-height: 1.5rem;
+            max-width: 1.5rem;
+            max-height: 1.5rem;
             border-radius: 0.375rem;
         }
-        .icon-box-md {
-            width: 2rem !important;
-            height: 2rem !important;
-            min-width: 2rem !important;
-            min-height: 2rem !important;
-            max-width: 2rem !important;
-            max-height: 2rem !important;
+        .icon-box.icon-box-md {
+            width: 2rem;
+            height: 2rem;
+            min-width: 2rem;
+            min-height: 2rem;
+            max-width: 2rem;
+            max-height: 2rem;
             border-radius: 0.5rem;
         }
         .icon-box img {
-            width: 100% !important;
-            height: 100% !important;
-            object-fit: contain !important;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
             display: block;
         }
         .lazy-icon {
@@ -416,7 +412,7 @@
             transition: color 0.2s ease;
             position: relative;
             z-index: 2;
-            background: transparent !important;
+            background: transparent;
         }
         .sidebar-item:hover { color: #fff; }
         .sidebar-item.active {
@@ -438,33 +434,34 @@
             will-change: transform, width, height;
         }
         @media (min-width: 640px) {
-            #sidebar { border-bottom: none !important; }
+            #sidebar { border-bottom: none; }
         }
-        /* 移动端侧边栏改为顶部水平滚动 */
-        @media (max-width: 640px) {
+        /* 移动端侧边栏改为顶部水平滚动：断点用 639px 避免与 Tailwind sm: (min-width:640px) 双向触发 */
+        @media (max-width: 639px) {
             #sidebar {
-                width: 100% !important;
-                max-height: none !important;
-                overflow-x: auto !important;
-                overflow-y: hidden !important;
-                flex-direction: row !important;
-                flex-wrap: nowrap !important;
-                gap: 0.25rem !important;
-                padding: 0.4rem 0.5rem !important;
+                width: 100%;
+                max-height: none;
+                overflow-x: auto;
+                overflow-y: hidden;
+                flex-direction: row;
+                flex-wrap: nowrap;
+                gap: 0.25rem;
+                padding: 0.375rem 0.5rem;
                 -webkit-mask-image: linear-gradient(to right, transparent 0%, black 1rem, black calc(100% - 1rem), transparent 100%);
                 mask-image: linear-gradient(to right, transparent 0%, black 1rem, black calc(100% - 1rem), transparent 100%);
             }
             #sidebarList {
-                flex-direction: row !important;
-                flex-wrap: nowrap !important;
-                gap: 0.25rem !important;
+                flex-direction: row;
+                flex-wrap: nowrap;
+                gap: 0.25rem;
             }
-            .sidebar-item {
-                border-left: none !important;
+            /* 复合选择器 (1-0-1) 替代 !important */
+            #sidebarList .sidebar-item {
+                border-left: none;
                 white-space: nowrap;
-                padding: 0.4rem 0.75rem !important;
+                padding: 0.375rem 0.75rem;
                 flex-shrink: 0;
-                width: auto !important;
+                width: auto;
             }
         }
         /* iOS / iPad 触屏长按系统菜单与选中文本拦截 (Callout Suppression) */
@@ -681,10 +678,10 @@
         }
         #editBookmarksBtn:hover { opacity: 1; }
         #editBookmarksBtn svg {
-            transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1) !important;
+            transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
         }
         #editBookmarksBtn:hover svg {
-            transform: rotate(90deg) !important;
+            transform: rotate(90deg);
         }
         /* 仅搜索页（起始页）显示编辑按钮，导航页隐藏：快速淡出并禁用点击（淡出提速至 0.25s，确保滚动到达导航页前完全消失；淡入仍用基础规则的 0.45s） */
         #editBookmarksBtn.hidden-on-nav {
@@ -788,7 +785,7 @@
         }
         #engineBtn:hover {
             transform: scale(1.03);
-            background-color: rgba(255, 255, 255, 0.12) !important;
+            background-color: rgba(255, 255, 255, 0.12);
         }
         #engineBtn:hover .engine-icon {
             transform: scale(1.08);
@@ -801,7 +798,7 @@
         }
         #engineBtn:active {
             transform: scale(0.96);
-            background-color: rgba(255, 255, 255, 0.18) !important;
+            background-color: rgba(255, 255, 255, 0.18);
         }
 
         #searchBtn {
@@ -812,14 +809,14 @@
         }
         #searchBtn:hover {
             transform: scale(1.05);
-            background-color: rgba(255, 255, 255, 0.14) !important;
+            background-color: rgba(255, 255, 255, 0.14);
         }
         #searchBtn:hover svg {
             transform: scale(1.1) rotate(-8deg);
         }
         #searchBtn:active {
             transform: scale(0.94);
-            background-color: rgba(255, 255, 255, 0.2) !important;
+            background-color: rgba(255, 255, 255, 0.2);
         }
         #searchBtn:active svg {
             transform: scale(0.95) rotate(0deg);
@@ -833,14 +830,14 @@
         }
         #searchClearBtn:hover {
             transform: scale(1.06);
-            background-color: rgba(255, 255, 255, 0.14) !important;
+            background-color: rgba(255, 255, 255, 0.14);
         }
         #searchClearBtn:hover svg {
             transform: rotate(90deg);
         }
         #searchClearBtn:active {
             transform: scale(0.92);
-            background-color: rgba(255, 255, 255, 0.2) !important;
+            background-color: rgba(255, 255, 255, 0.2);
         }
         .suggestion-item {
             position: relative;
@@ -888,15 +885,15 @@
         }
         /* ===== 自定义重置确认弹窗（精细化 iOS/macOS 玻璃规范） ===== */
         .confirm-dialog-card {
-            width: 90% !important;
-            max-width: 22.5rem !important;
-            background: rgba(28, 28, 35, 0.88) !important;
-            backdrop-filter: blur(24px) saturate(180%) !important;
-            -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
-            border: 1px solid rgba(255, 255, 255, 0.16) !important;
-            border-radius: 1.25rem !important;
-            padding: 1.5rem 1.25rem 1.25rem 1.25rem !important;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.65) !important;
+            width: 90%;
+            max-width: 22.5rem;
+            background: rgba(28, 28, 35, 0.88);
+            backdrop-filter: blur(24px) saturate(180%);
+            -webkit-backdrop-filter: blur(24px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            border-radius: 1.25rem;
+            padding: 1.5rem 1.25rem 1.25rem 1.25rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.65);
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -978,6 +975,10 @@
                 grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
                 gap: 0.75rem;
             }
+            /* H-4 修复：clamp 限制大屏底部留白最大 25rem（≈400px），避免 4K 屏 40vh≈1536px 的巨量空白 */
+            #navCategories {
+                padding-bottom: clamp(14rem, 40vh, 25rem);
+            }
         }
         @media (max-width: 480px) {
             #navCategories .grid {
@@ -1049,7 +1050,7 @@
         <div class="flex flex-col items-center justify-center w-full">
             <!-- 时钟 -->
             <div class="text-center fade-in clock-text mb-10 md:mb-14">
-                <div id="clock" aria-live="polite" aria-atomic="true" class="text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-light tracking-tight tabular-nums">00:00</div>
+                <div id="clock" class="text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-light tracking-tight tabular-nums">00:00</div>
                 <div id="date" class="text-xs sm:text-sm md:text-base mt-3 text-white/70 font-light tracking-widest uppercase">加载中...</div>
                 <script>(function(){const n=new Date();const c=document.getElementById('clock');const d=document.getElementById('date');if(c)c.textContent=`${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`;if(d)d.textContent=n.toLocaleDateString('zh-CN',{year:'numeric',month:'long',day:'numeric',weekday:'long'});})()</script>
             </div>
@@ -1058,7 +1059,7 @@
             <div class="w-full max-w-2xl lg:max-w-3xl mx-auto relative mb-8 md:mb-10">
                 <div class="glass-strong apple-radius p-2 flex items-center gap-1.5 border fade-in search-box-wrapper delay-100">
                     <div class="relative shrink-0">
-                        <button id="engineBtn" type="button" aria-label="选择搜索引擎" aria-haspopup="true" aria-expanded="false" aria-controls="dropdownMenu" class="flex items-center gap-1.5 pl-3 pr-2 py-3 apple-radius hover:bg-white/10 transition-all text-sm font-medium min-h-11 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <button id="engineBtn" type="button" aria-label="选择搜索引擎" aria-haspopup="menu" aria-expanded="false" aria-controls="dropdownMenu" class="flex items-center gap-1.5 pl-3 pr-2 py-3 apple-radius hover:bg-white/10 transition-all text-sm font-medium min-h-11 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed">
                             <img id="engineIcon" src="https://a.favicon.im/bing.com" width="16" height="16" class="engine-icon size-4 rounded-md" alt="当前引擎：Bing">
                             <span id="engineName" class="hidden sm:inline">Bing</span>
                             <svg class="size-4 opacity-60 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
@@ -1075,16 +1076,16 @@
                     </button>
                 </div>
                 <div id="dropdownMenu" role="menu" aria-label="搜索引擎选项" aria-hidden="true" class="dropdown-menu absolute top-full left-0 glass-strong apple-radius p-2 border border-white/20 shadow-2xl min-w-[8.75rem] z-50">
-                    <button type="button" data-engine="bing" role="menuitem" class="w-full flex items-center gap-3 px-3 py-2.5 apple-radius hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 transition-all text-left text-sm">
+                    <button type="button" data-engine="bing" role="menuitemradio" aria-checked="true" class="w-full flex items-center gap-3 px-3 py-2.5 apple-radius hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 transition-all text-left text-sm">
                         <img src="https://a.favicon.im/bing.com" width="16" height="16" class="engine-icon size-4 rounded" alt=""> Bing
                     </button>
-                    <button type="button" data-engine="google" role="menuitem" class="w-full flex items-center gap-3 px-3 py-2.5 apple-radius hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 transition-all text-left text-sm">
+                    <button type="button" data-engine="google" role="menuitemradio" aria-checked="false" class="w-full flex items-center gap-3 px-3 py-2.5 apple-radius hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 transition-all text-left text-sm">
                         <img src="https://a.favicon.im/google.com" width="16" height="16" class="engine-icon size-4 rounded" alt=""> Google
                     </button>
-                    <button type="button" data-engine="duckduckgo" role="menuitem" class="w-full flex items-center gap-3 px-3 py-2.5 apple-radius hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 transition-all text-left text-sm">
+                    <button type="button" data-engine="duckduckgo" role="menuitemradio" aria-checked="false" class="w-full flex items-center gap-3 px-3 py-2.5 apple-radius hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 transition-all text-left text-sm">
                         <img src="https://a.favicon.im/duckduckgo.com" width="16" height="16" class="engine-icon size-4 rounded" alt=""> DuckDuckGo
                     </button>
-                    <button type="button" data-engine="baidu" role="menuitem" class="w-full flex items-center gap-3 px-3 py-2.5 apple-radius hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 transition-all text-left text-sm">
+                    <button type="button" data-engine="baidu" role="menuitemradio" aria-checked="false" class="w-full flex items-center gap-3 px-3 py-2.5 apple-radius hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 transition-all text-left text-sm">
                         <img src="https://a.favicon.im/baidu.com" width="16" height="16" class="engine-icon size-4 rounded" alt=""> 百度
                     </button>
                 </div>
@@ -1135,9 +1136,9 @@
                             <div id="sidebarList" role="tablist" aria-label="分类导航列表" class="flex sm:flex-col gap-1"></div>
                         </nav>
                     </aside>
-                    <!-- 主书签内容区 (pb-56 md:pb-[40vh] 确保末尾分类如“资讯学习”点击侧边栏时能流畅置顶展示，同时避免多余留白过大) -->
+                    <!-- 主书签内容区：pb-56 为移动端底部留白；md+ 由 CSS clamp(14rem,40vh,25rem) 控制，防止 4K 屏过大留白 -->
                     <main id="navContent" tabindex="-1" aria-label="书签内容" class="flex-1 p-3 md:p-4 lg:p-5 overflow-y-auto relative scroll-smooth focus:outline-none">
-                        <div id="navCategories" class="space-y-6 md:space-y-8 pb-56 md:pb-[40vh]"></div>
+                        <div id="navCategories" class="space-y-6 md:space-y-8 pb-56"></div>
                     </main>
                 </div>
             </div>
@@ -1145,8 +1146,9 @@
     </section>
 
     <!-- 全屏右下角固定悬浮编辑设置按钮（置于两屏 section 之外，避免被导航页 z-10 层叠上下文遮挡导致点击失效） -->
-    <button id="editBookmarksBtn" type="button" aria-label="编辑与设置" title="编辑书签与设置" class="group fixed bottom-[calc(1.5rem+env(safe-area-inset-bottom))] right-[calc(1.5rem+env(safe-area-inset-right))] md:bottom-[calc(2rem+env(safe-area-inset-bottom))] md:right-[calc(2rem+env(safe-area-inset-right))] p-3 glass-strong apple-radius text-white/70 hover:text-white hover:bg-white/20 transition-all duration-300 border border-white/20 shadow-2xl z-50 flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900">
-        <svg class="size-5 transition-transform duration-300 group-hover:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <!-- M-4：bottom/right 定位由 <style> #editBookmarksBtn 统一定义；SVG 旋转由 #editBookmarksBtn:hover svg 统一定义 -->
+    <button id="editBookmarksBtn" type="button" aria-label="编辑与设置" title="编辑书签与设置" class="p-3 glass-strong apple-radius text-white/70 hover:text-white hover:bg-white/20 transition-all duration-300 border border-white/20 shadow-2xl z-50 flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900">
+        <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
         </svg>
@@ -1154,7 +1156,7 @@
 
     <!-- 编辑与设置弹窗 (Apple 风格 Tab 分栏设置面板) -->
     <div id="editModal" role="dialog" aria-modal="true" aria-hidden="true" hidden aria-label="设置与偏好" class="edit-overlay fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-[1000]">
-        <div class="glass-strong apple-radius w-full max-w-xl sm:max-w-2xl md:max-w-3xl lg:max-w-4xl mx-4 h-[85vh] sm:h-[40rem] max-h-[90dvh] flex flex-col p-5 sm:p-6 shadow-2xl overflow-hidden">
+        <div class="glass-strong apple-radius w-full max-w-xl sm:max-w-2xl md:max-w-3xl lg:max-w-4xl mx-4 h-[85dvh] sm:h-[40rem] max-h-[90dvh] flex flex-col p-5 sm:p-6 shadow-2xl overflow-hidden">
             <!-- 弹窗 Header -->
             <div class="flex items-center justify-between mb-3.5 pb-2.5 border-b border-white/10 shrink-0">
                 <div class="flex items-center gap-2">
@@ -3752,6 +3754,10 @@
          */
         function renderBookmarks() {
             if (!dom.bookmarks) return;
+            // M-5 修复：签名比对，内容未变则跳过全量 innerHTML 替换（与 renderNavCategories 保持一致）
+            const _sig = JSON.stringify(pageData.bookmarks);
+            if (renderBookmarks._lastSig === _sig) return;
+            renderBookmarks._lastSig = _sig;
             dom.bookmarks.innerHTML = pageData.bookmarks.map(bm => `
                 <a href="${safeUrl(bm.url)}" target="_blank" rel="noopener noreferrer" 
                    class="bookmark-item flex flex-col items-center justify-center gap-2 py-3 px-1 sm:px-1.5 apple-radius text-white/90 hover:text-white">
@@ -4709,6 +4715,11 @@
                 dom.engineIcon.src = engineObj.icon;
                 dom.engineIcon.alt = `当前引擎：${engineObj.name}`;
             }
+            // M-6 修复：同步更新菜单项的 aria-checked，使屏幕阅读器能感知当前选中引擎
+            const menuItems = document.querySelectorAll('#dropdownMenu [role="menuitemradio"]');
+            menuItems.forEach(btn => {
+                btn.setAttribute('aria-checked', btn.dataset.engine === validEngine ? 'true' : 'false');
+            });
             closeDropdown();
             if (save) storageSet('preferredEngine', validEngine);
             if (dom.searchInput && dom.searchInput.value.trim()) {
