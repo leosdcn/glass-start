@@ -43,29 +43,7 @@
       }
     }
     </script>
-    <script>
-      (function() {
-        try {
-          const origin = (window.location && window.location.origin && window.location.origin !== 'null') ? window.location.origin : 'https://goldcoast.dpdns.org';
-          const baseUrl = origin.endsWith('/') ? origin : origin + '/';
-          const script = document.getElementById('schemaJsonLd');
-          if (script) {
-            script.textContent = JSON.stringify({
-              "@context": "https://schema.org",
-              "@type": "WebSite",
-              "name": "Glass Start",
-              "url": baseUrl,
-              "description": "基于 HTML5 与 Modern JS 构建的高颜值、轻量级玻璃拟态个人起始页与导航",
-              "potentialAction": {
-                "@type": "SearchAction",
-                "target": baseUrl + "?q={search_term_string}",
-                "query-input": "required name=search_term_string"
-              }
-            }, null, 2);
-          }
-        } catch (e) {}
-      })();
-    </script>
+
 
     <title>Glass Start</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🪐%3C/text%3E%3C/svg%3E">
@@ -138,9 +116,10 @@
             preloadUrl = (typeof bgIdx === 'number' && backgrounds[bgIdx]) ? backgrounds[bgIdx] : backgrounds[0];
           }
           if (preloadUrl && typeof preloadUrl === 'string') {
-            // 根据设备物理像素 (宽度 * DPR) 动态调优 Unsplash 尺寸参数 (阶梯以 200px 递增，上限 2560px 且强置 WebP)
+            // 根据设备物理像素 (宽度 * DPR) 动态调优 Unsplash 尺寸参数 (阶梯以 200px 递增，普通屏上限 2560px，4K/Retina 屏上限 3840px，强置 WebP)
             const dpr = window.devicePixelRatio || 1;
-            const targetW = Math.min(Math.ceil((window.innerWidth * dpr) / 200) * 200, 2560);
+            const maxCap = (window.innerWidth * dpr > 2560) ? 3840 : 2560;
+            const targetW = Math.min(Math.ceil((window.innerWidth * dpr) / 200) * 200, maxCap);
             if (preloadUrl.includes('images.unsplash.com')) {
               preloadUrl = preloadUrl.replace(/w=\d+/, 'w=' + targetW).replace(/q=\d+/, 'q=70');
               if (!preloadUrl.includes('fm=webp')) {
@@ -290,7 +269,11 @@
             background: rgba(255, 255, 255, 0.12);
         }
         /* ===== 组件 ===== */
-        .search-input::placeholder { color: rgba(255,255,255,0.6); }
+        .search-input::placeholder { color: rgba(255,255,255,0.6); text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45); }
+        .text-white\/40, .text-white\/60 { text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45); }
+        @media (prefers-reduced-motion: reduce) {
+            .glass, .glass-strong { backdrop-filter: blur(12px) !important; -webkit-backdrop-filter: blur(12px) !important; }
+        }
         .fade-in {
             animation: fadeIn 0.48s cubic-bezier(0.16, 1, 0.3, 1) backwards;
             will-change: transform, opacity;
@@ -4297,12 +4280,18 @@
                             if (selectedSuggestionIdx >= items.length) {
                                 selectedSuggestionIdx = -1; // 导航超出底部，恢复原始输入
                             }
-                            items.forEach((el, idx) => el.classList.toggle('active', idx === selectedSuggestionIdx));
+                            items.forEach((el, idx) => {
+                                const isSel = idx === selectedSuggestionIdx;
+                                el.classList.toggle('active', isSel);
+                                el.setAttribute('aria-selected', isSel ? 'true' : 'false');
+                            });
                             if (selectedSuggestionIdx >= 0 && items[selectedSuggestionIdx]) {
                                 dom.searchInput.value = items[selectedSuggestionIdx].dataset.suggestion;
+                                dom.searchInput.setAttribute('aria-activedescendant', `sug-opt-${selectedSuggestionIdx}`);
                                 items[selectedSuggestionIdx].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
                             } else {
                                 dom.searchInput.value = originalQuery;
+                                dom.searchInput.removeAttribute('aria-activedescendant');
                             }
                             if (dom.searchClearBtn) dom.searchClearBtn.classList.toggle('hidden', !dom.searchInput.value);
                             return;
@@ -4315,12 +4304,18 @@
                             } else {
                                 selectedSuggestionIdx--;
                             }
-                            items.forEach((el, idx) => el.classList.toggle('active', idx === selectedSuggestionIdx));
+                            items.forEach((el, idx) => {
+                                const isSel = idx === selectedSuggestionIdx;
+                                el.classList.toggle('active', isSel);
+                                el.setAttribute('aria-selected', isSel ? 'true' : 'false');
+                            });
                             if (selectedSuggestionIdx >= 0 && items[selectedSuggestionIdx]) {
                                 dom.searchInput.value = items[selectedSuggestionIdx].dataset.suggestion;
+                                dom.searchInput.setAttribute('aria-activedescendant', `sug-opt-${selectedSuggestionIdx}`);
                                 items[selectedSuggestionIdx].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
                             } else {
                                 dom.searchInput.value = originalQuery;
+                                dom.searchInput.removeAttribute('aria-activedescendant');
                             }
                             if (dom.searchClearBtn) dom.searchClearBtn.classList.toggle('hidden', !dom.searchInput.value);
                             return;
@@ -5060,7 +5055,10 @@
             const script = document.createElement('script');
             suggestionScriptTag = script;
             script.onerror = () => {
-                cleanup();
+                if (window[cbName]) delete window[cbName];
+                if (script.parentNode) script.parentNode.removeChild(script);
+                suggestionScriptTag = null;
+                hideSuggestions();
             };
 
             // 搜索引擎 Suggest API 调度策略与回退机制说明：
@@ -5105,7 +5103,8 @@
                         : `<svg class="w-4 h-4 text-white/40 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/></svg>`;
                     
                     html += `
-                        <div role="option" aria-selected="false" 
+                        <div id="sug-opt-${globalIdx}"
+                             role="option" aria-selected="false" 
                              data-type="bookmark" 
                              data-url="${escapeHtml(bm.url)}" 
                              data-suggestion="${escapeHtml(bm.name)}"
@@ -5137,7 +5136,8 @@
                 }
                 safeNetList.forEach(item => {
                     html += `
-                        <div role="option" aria-selected="false" 
+                        <div id="sug-opt-${globalIdx}"
+                             role="option" aria-selected="false" 
                              data-type="query" 
                              data-suggestion="${escapeHtml(item)}" 
                              data-idx="${globalIdx}"
