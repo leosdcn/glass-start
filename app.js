@@ -2368,7 +2368,7 @@
                         </div>
                         <span class="text-[10px] font-medium px-2.5 py-0.5 rounded-full bg-white/10 text-white/60 border border-white/15 tracking-wide shrink-0">${cat.bookmarks.length} 项</span>
                     </div>
-                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 2xl:grid-cols-5 3xl:grid-cols-6 gap-2.5 md:gap-3">
+                    <div class="grid gap-2.5 md:gap-3">
                         ${sortedBookmarks.map(bm => `
                             <a href="${safeUrl(bm.url)}" target="_blank" rel="noopener noreferrer"
                                class="nav-bookmark group flex items-center gap-2.5 px-3 py-2.5 md:px-3.5 md:py-2.5 apple-radius text-white/80 hover:text-white">

@@ -1011,18 +1011,25 @@
             }
         }
 
-        /* ===== 导航页书签网格大屏扩列（Tailwind v4 Browser CDN 支持 xl:/2xl: 断点，但此处保留 min-width 媒体查询以精确控制）*/
-        @media (min-width: 1280px) {
-            #navCategories .grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+        /* ===== 导航页书签网格自适应流式排版 =====
+           采用 auto-fill + minmax(14rem, 1fr) 弹性自适应布局，确保单张卡片具有充足的最小宽度，彻底杜绝 4K 及大屏下内容挤压截断
+        */
+        #navCategories .grid {
+            display: grid !important;
+            grid-template-columns: repeat(auto-fill, minmax(13.5rem, 1fr)) !important;
+            gap: 0.625rem !important;
         }
-        @media (min-width: 1550px) {
-            #navCategories .grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+        @media (min-width: 768px) {
+            #navCategories .grid {
+                grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr)) !important;
+                gap: 0.75rem !important;
+            }
         }
-        @media (min-width: 1880px) {
-            #navCategories .grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
-        }
-        @media (min-width: 2500px) {
-            #navCategories .grid { grid-template-columns: repeat(8, minmax(0, 1fr)); }
+        @media (max-width: 480px) {
+            #navCategories .grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+                gap: 0.5rem !important;
+            }
         }
         /* ===== Tailwind 任意值 px 字号 → rem 覆盖 =====
            Tailwind 的 text-[10px] / text-[11px] 是绝对 px，不随 html font-size 缩放。
