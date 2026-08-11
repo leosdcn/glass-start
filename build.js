@@ -71,7 +71,7 @@ if (!checkTailwindInstalled()) {
 
 // 2. 编译 Tailwind CSS (v4 CLI)
 function compileTailwindCss() {
-    fs.writeFileSync(PATHS.tempCss, '@import "tailwindcss";\n@source "./index.html";\n@source "./app.js";\n', 'utf-8');
+    fs.writeFileSync(PATHS.tempCss, '@import "tailwindcss";\n@source "./index.html";\n', 'utf-8');
     const distStyleCss = path.join(PATHS.dist, 'style.css');
 
     try {
@@ -132,12 +132,12 @@ function formatJsObject(obj, indent = 8) {
 }
 
 function syncBookmarksData() {
-    console.log('🔄 正在同步 bookmarks.json 数据至 app.js / index.html 内置默认回退数组 (DEFAULT_BOOKMARKS & DEFAULT_CATEGORIES)...');
+    console.log('🔄 正在同步 bookmarks.json 数据至 index.html 内置默认回退数组 (DEFAULT_BOOKMARKS & DEFAULT_CATEGORIES)...');
 
     if (fs.existsSync(PATHS.bookmarksJson)) {
         try {
             const bookmarksData = JSON.parse(fs.readFileSync(PATHS.bookmarksJson, 'utf-8'));
-            const targetFiles = [PATHS.appJs, PATHS.indexHtml].filter(f => fs.existsSync(f));
+            const targetFiles = [PATHS.indexHtml].filter(f => fs.existsSync(f));
 
             function safeReplaceJsVariable(code, varName, replacementJs) {
                 const regex = new RegExp(`(?:export\\s+)?(?:const|let|var)\\s+${varName}(?:\\s*:\\s*[^=]+)?\\s*=\\s*\\[[\\s\\S]*?\\];`);
@@ -183,11 +183,19 @@ function syncBookmarksData() {
 }
 syncBookmarksData();
 
-// 4.9 处理生产环境 app.js (单行无损紧凑压缩默认数据)
+// 4.9 从 index.html 提取主体 JS 并处理生成生产环境 dist/app.js (单行无损紧凑压缩默认数据)
 function processProductionAppJs() {
-    if (!fs.existsSync(PATHS.appJs)) return;
-    console.log('⚡️ 处理生产环境 app.js...');
-    let appJsContent = fs.readFileSync(PATHS.appJs, 'utf-8');
+    if (!fs.existsSync(PATHS.indexHtml)) return;
+    console.log('⚡️ 正在从 index.html 提取主体逻辑并生成生产环境 dist/app.js...');
+    const htmlContent = fs.readFileSync(PATHS.indexHtml, 'utf-8');
+    const mainScriptMatch = htmlContent.match(/<script\s+id="main-script"[^>]*>([\s\S]*?)<\/script>/i);
+    
+    if (!mainScriptMatch) {
+        console.error('❌ 未能在 index.html 中找到 <script id="main-script"> 标签');
+        process.exit(1);
+    }
+
+    let appJsContent = mainScriptMatch[1].trim();
 
     function safeReplaceJsVariable(code, varName, replacementJs) {
         const regex = new RegExp(`(?:export\\s+)?(?:const|let|var)\\s+${varName}(?:\\s*:\\s*[^=]+)?\\s*=\\s*\\[[\\s\\S]*?\\];`);
@@ -208,7 +216,7 @@ function processProductionAppJs() {
                 const minCat = JSON.stringify(bookmarksData.categories);
                 appJsContent = safeReplaceJsVariable(appJsContent, 'DEFAULT_CATEGORIES', minCat);
             }
-            console.log('   ✅ 已完成生产环境 app.js 默认书签数据的紧凑压缩');
+            console.log('   ✅ 已完成生产环境 dist/app.js 默认书签数据的紧凑压缩');
         } catch {}
     }
 
@@ -216,9 +224,9 @@ function processProductionAppJs() {
 }
 processProductionAppJs();
 
-// 5. 处理生产环境 index.html (替换 v4 Browser CDN 为全量内嵌 <style> 标签，压缩默认数据数组)
+// 5. 处理生产环境 index.html (替换内联 JS 为外链 dist/app.js，替换 v4 Browser CDN 为全量内嵌 <style> 标签)
 function processProductionHtml() {
-    console.log('🔧 处理生产环境 index.html (移除 v4 Browser CDN 脚本，全量内嵌 Tailwind CSS)...');
+    console.log('🔧 处理生产环境 index.html (剥离内联 JS 转换为 app.js 外链，移除 v4 Browser CDN 脚本，全量内嵌 Tailwind CSS)...');
     let prodHtmlContent = fs.readFileSync(PATHS.indexHtml, 'utf-8');
 
     function safeReplaceJsVariable(code, varName, replacementJs) {
@@ -229,21 +237,11 @@ function processProductionHtml() {
         return code;
     }
 
-    // 5.0 生产环境 HTML 数据内嵌压缩：将 DEFAULT_BOOKMARKS 与 DEFAULT_CATEGORIES 替换为单行 JSON 字符串
-    if (fs.existsSync(PATHS.bookmarksJson)) {
-        try {
-            const bookmarksData = JSON.parse(fs.readFileSync(PATHS.bookmarksJson, 'utf-8'));
-            if (bookmarksData.bookmarks) {
-                const minBm = JSON.stringify(bookmarksData.bookmarks);
-                prodHtmlContent = safeReplaceJsVariable(prodHtmlContent, 'DEFAULT_BOOKMARKS', minBm);
-            }
-            if (bookmarksData.categories) {
-                const minCat = JSON.stringify(bookmarksData.categories);
-                prodHtmlContent = safeReplaceJsVariable(prodHtmlContent, 'DEFAULT_CATEGORIES', minCat);
-            }
-            console.log('   ✅ 已完成生产环境默认书签数据 (DEFAULT_*) 的无损单行紧凑压缩');
-        } catch {}
-    }
+    // 5.0 将 index.html 中的 <script id="main-script">... Replacer 替换为外链 <script src="./app.js" defer></script>
+    prodHtmlContent = prodHtmlContent.replace(
+        /<script\s+id="main-script"[^>]*>[\s\S]*?<\/script>/i,
+        '<script src="./app.js" defer></script>'
+    );
 
     const distCssPath = path.join(PATHS.dist, 'style.css');
     let cssContent = '';

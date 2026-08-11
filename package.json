@@ -1,6 +1,6 @@
 {
   "name": "glass-start",
-  "version": "2.9.2",
+  "version": "2.9.3",
   "description": "基于 HTML5、Tailwind CSS 与 Modern JS 构建的高颜值、轻量级玻璃拟态浏览器起始页",
   "main": "index.html",
   "scripts": {
