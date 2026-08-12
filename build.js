@@ -269,6 +269,23 @@ function processProductionHtml() {
     prodHtmlContent = prodHtmlContent.replace(/<link\s+[^>]*rel=["']icon["'][^>]*>/i, () => `<link rel="icon" href="${iconDataUrl}">`);
     prodHtmlContent = prodHtmlContent.replace(/<link\s+[^>]*rel=["']apple-touch-icon["'][^>]*>/i, () => `<link rel="apple-touch-icon" href="${iconDataUrl}">`);
 
+    // 5.3 生产环境 HTML 零依赖极致压缩（清除 HTML 注释与多余空白缩进，保护 <style> 与 <script> 块）
+    function minifyHtml(htmlStr) {
+        const warningMatch = htmlStr.match(/(<!DOCTYPE[\s\S]*?-->\n?)/i);
+        const prefix = warningMatch ? warningMatch[1] : '';
+        if (prefix) htmlStr = htmlStr.slice(prefix.length);
+
+        htmlStr = htmlStr.replace(/<!--(?!\[if|[\s\S]*?DO NOT EDIT)[\s\S]*?-->/g, '');
+        const parts = htmlStr.split(/(<(?:style|script)[\s\S]*?<\/(?:style|script)>)/i);
+        const minified = parts.map(part => {
+            if (/^<(?:style|script)/i.test(part)) return part;
+            return part.replace(/\s+/g, ' ').replace(/>\s+</g, '><').trim();
+        }).join('');
+        return (prefix + minified).trim();
+    }
+    prodHtmlContent = minifyHtml(prodHtmlContent);
+    console.log('   ⚡️ 已完成生产环境 dist/index.html 零依赖 HTML 压缩');
+
     fs.writeFileSync(path.join(PATHS.dist, 'index.html'), prodHtmlContent, 'utf-8');
 }
 processProductionHtml();
