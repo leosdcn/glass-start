@@ -289,13 +289,13 @@
         .skeleton-pulse { animation: skeletonPulse 1.4s ease-in-out infinite; }
         .clock-text { font-family: 'SF Pro Rounded', 'Nunito', -apple-system, BlinkMacSystemFont, sans-serif; text-shadow: 0 2px 20px rgba(0,0,0,0.4), 0 0 60px rgba(0,0,0,0.2); }
         /* ===== 玻璃材质物理高光折射与 3D 视差倾斜 (VisionOS / Apple HIG 规范) ===== */
-        .bookmark-item, .nav-bookmark, .glass-spotlight {
+        .bookmark-item, .nav-bookmark {
             position: relative;
             overflow: hidden;
             will-change: transform;
             transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
         }
-        .bookmark-item::before, .nav-bookmark::before, .glass-spotlight::before {
+        .bookmark-item::before, .nav-bookmark::before {
             content: '';
             position: absolute;
             inset: 0;
@@ -931,18 +931,6 @@
             html { font-size: clamp(16px, calc(16px + (100vw - 1470px) * 0.0108), 54.42px); }
         }
 
-        /* 容器最大宽度：统一用 rem，随 font-size 等比例缩放，始终保持与 MacBook Air 相同的视觉占比 */
-        /* 起始页搜索框 + 书签容器：基准 48rem（≈ 768px @ 16px，对应 lg:max-w-3xl，已直接用 Tailwind 类代替）*/
-        .hi-res-container-md {
-            max-width: 48rem;
-        }
-
-        /* 大屏网格自动扩列（利用 auto-fill 代替硬编码列数）*/
-        @media (min-width: 1550px) {
-            .hi-res-grid-auto {
-                grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
-            }
-        }
 
         /* ===== 导航页书签网格自适应流式排版 =====
            采用 auto-fill + minmax(14rem, 1fr) 弹性自适应布局，确保单张卡片具有充足的最小宽度，彻底杜绝 4K 及大屏下内容挤压截断
@@ -2191,9 +2179,6 @@
             },
             top() {
                 return this.stack[this.stack.length - 1] || null;
-            },
-            has(id) {
-                return this.stack.some(item => item.id === id);
             },
             isEmpty() {
                 return this.stack.length === 0;
@@ -4621,24 +4606,6 @@
             }
 
             initDragSort();
-        }
-
-        function hideSuggestions() {
-            activeSuggestReqId++; // 作废所有挂起的联想网络请求，防止 Escape/失焦后联想下拉意外"复活"
-            if (suggestionScriptTag) {
-                suggestionScriptTag.onerror = null;
-                suggestionScriptTag.remove();
-                suggestionScriptTag = null;
-            }
-            OverlayStack.pop('suggestions');
-            if (dom.suggestionMenu) {
-                dom.suggestionMenu.classList.remove('active');
-                dom.suggestionMenu.setAttribute('aria-hidden', 'true');
-            }
-            if (dom.searchInput) {
-                dom.searchInput.setAttribute('aria-expanded', 'false');
-            }
-            selectedSuggestionIdx = -1;
         }
 
         let lastDateDay = -1;

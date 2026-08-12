@@ -20,11 +20,19 @@ const PATHS = {
     tempCss: path.join(__dirname, '.temp_input.css'),
     bookmarksJson: path.join(__dirname, 'bookmarks.json'),
     indexHtml: path.join(__dirname, 'index.html'),
-    appJs: path.join(__dirname, 'app.js'),
     sw: path.join(__dirname, 'sw.js'),
     wallpapers: path.join(__dirname, 'wallpapers'),
     headers: path.join(__dirname, '_headers')
 };
+
+// 顶层 JS 变量正则替换工具函数
+function safeReplaceJsVariable(code, varName, replacementJs) {
+    const regex = new RegExp(`(?:export\\s+)?(?:const|let|var)\\s+${varName}(?:\\s*:\\s*[^=]+)?\\s*=\\s*\\[[\\s\\S]*?\\];`);
+    if (regex.test(code)) {
+        return code.replace(regex, () => `const ${varName} = ${replacementJs};`);
+    }
+    return code;
+}
 
 // 自动资源清理 Hook：保障遇到 Ctrl+C 或中途报错时无残存临时文件
 function cleanupTempFiles() {
@@ -139,14 +147,6 @@ function syncBookmarksData() {
             const bookmarksData = JSON.parse(fs.readFileSync(PATHS.bookmarksJson, 'utf-8'));
             const targetFiles = [PATHS.indexHtml].filter(f => fs.existsSync(f));
 
-            function safeReplaceJsVariable(code, varName, replacementJs) {
-                const regex = new RegExp(`(?:export\\s+)?(?:const|let|var)\\s+${varName}(?:\\s*:\\s*[^=]+)?\\s*=\\s*\\[[\\s\\S]*?\\];`);
-                if (regex.test(code)) {
-                    return code.replace(regex, () => `const ${varName} = ${replacementJs};`);
-                }
-                return code;
-            }
-
             for (const file of targetFiles) {
                 let content = fs.readFileSync(file, 'utf-8');
                 let updatedCount = 0;
@@ -197,14 +197,6 @@ function processProductionAppJs() {
 
     let appJsContent = mainScriptMatch[1].trim();
 
-    function safeReplaceJsVariable(code, varName, replacementJs) {
-        const regex = new RegExp(`(?:export\\s+)?(?:const|let|var)\\s+${varName}(?:\\s*:\\s*[^=]+)?\\s*=\\s*\\[[\\s\\S]*?\\];`);
-        if (regex.test(code)) {
-            return code.replace(regex, () => `const ${varName} = ${replacementJs};`);
-        }
-        return code;
-    }
-
     if (fs.existsSync(PATHS.bookmarksJson)) {
         try {
             const bookmarksData = JSON.parse(fs.readFileSync(PATHS.bookmarksJson, 'utf-8'));
@@ -228,14 +220,6 @@ processProductionAppJs();
 function processProductionHtml() {
     console.log('🔧 处理生产环境 index.html (剥离内联 JS 转换为 app.js 外链，移除 v4 Browser CDN 脚本，全量内嵌 Tailwind CSS)...');
     let prodHtmlContent = fs.readFileSync(PATHS.indexHtml, 'utf-8');
-
-    function safeReplaceJsVariable(code, varName, replacementJs) {
-        const regex = new RegExp(`(?:export\\s+)?(?:const|let|var)\\s+${varName}(?:\\s*:\\s*[^=]+)?\\s*=\\s*\\[[\\s\\S]*?\\];`);
-        if (regex.test(code)) {
-            return code.replace(regex, () => `const ${varName} = ${replacementJs};`);
-        }
-        return code;
-    }
 
     // 5.0 将 index.html 中的 <script id="main-script">... Replacer 替换为外链 <script src="./app.js" defer></script>
     prodHtmlContent = prodHtmlContent.replace(

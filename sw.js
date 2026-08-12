@@ -167,7 +167,6 @@ self.addEventListener('fetch', e => {
 
     // 4. 图标/图片 Stale-While-Revalidate (跨域 Favicon) / Cache-First (站内图片)
     if (isFaviconDomain || isImgAsset) {
-        const pool = isFaviconDomain ? 'favicon' : 'img';
         const cacheName = isFaviconDomain ? FAVICON_CACHE : IMG_CACHE;
         const maxEntries = isFaviconDomain ? MAX_FAVICON_ENTRIES : MAX_IMG_ENTRIES;
 
