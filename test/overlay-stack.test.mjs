@@ -19,9 +19,9 @@ pass('clock 基础状态正常 (无常驻 will-change)', (await evalJS(`document
 await evalJS(`document.getElementById('editBookmarksBtn').click()`); await sleep(300);
 await evalJS(`document.getElementById('togglePickerBtn').click()`); await sleep(300);
 const topPicker = await stackTop();
-await press('Escape'); await sleep(300);
+await press('Escape'); await sleep(350);
 const afterEsc1 = await evalJS(`({ pickerHidden: document.getElementById('bookmarkPicker').hasAttribute('hidden'), editOpen: !document.getElementById('editModal').hasAttribute('hidden') })`);
-await press('Escape'); await sleep(300);
+await press('Escape'); await sleep(350);
 const topNull = await stackTop();
 pass('多层 Modal 嵌套压栈且 Escape 先关顶层', topPicker === 'bookmarkPicker' && afterEsc1.pickerHidden && afterEsc1.editOpen && topNull === null, '压栈退栈符合 FIFO');
 

@@ -294,8 +294,10 @@
         .bookmark-item, .nav-bookmark {
             position: relative;
             overflow: hidden;
-            will-change: transform;
             transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+        }
+        .bookmark-item:hover, .nav-bookmark:hover {
+            will-change: transform;
         }
         .bookmark-item::before, .nav-bookmark::before {
             content: '';
@@ -351,7 +353,6 @@
             flex-shrink: 0;
             overflow: hidden;
             border-radius: 0.375rem;
-            will-change: transform;
             transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
         .icon-box-sm {
@@ -389,9 +390,11 @@
             box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.35), 0 8px 24px rgba(0, 0, 0, 0.3);
             color: #fff;
         }
-        .nav-bookmark:hover .icon-box, .bookmark-item:hover .icon-box { transform: scale(1.08); }
+        .nav-bookmark:hover .icon-box, .bookmark-item:hover .icon-box { transform: scale(1.08); will-change: transform; }
+        .category-block { content-visibility: auto; contain-intrinsic-size: 1px 200px; }
         .nav-hidden { visibility: hidden; }
         .nav-visible { visibility: visible; }
+        .start-hidden { visibility: hidden !important; pointer-events: none !important; }
         .nav-hidden .glass { opacity: 0; }
         .nav-visible .glass { opacity: 1; }
         #sidebarList {
@@ -3544,7 +3547,6 @@
             preloadFavicons();
             if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => {});
             
-            // 调度空闲任务，避免 manifest.json 与 loadData() 抢占关键路径带宽（消除 Critical Request Chain 警告）
             const scheduleIdleTask = (fn, fallbackDelay = 1500) => {
                 if ('requestIdleCallback' in window) {
                     requestIdleCallback(fn, { timeout: 3000 });
@@ -3552,6 +3554,11 @@
                     setTimeout(fn, fallbackDelay);
                 }
             };
+
+            scheduleIdleTask(() => {
+                refreshSidebarNavCache();
+                initFaviconObserver(true);
+            });
 
             if (location.protocol.startsWith('http')) {
                 scheduleIdleTask(() => {
@@ -3688,6 +3695,7 @@
                 if (img && img.dataset.src) {
                     const targetSrc = img.dataset.src;
                     delete img.dataset.src;
+                    img.decoding = 'async';
                     img.onload = () => {
                         img.classList.add('loaded');
                     };
@@ -3714,14 +3722,14 @@
          * 仅在图标节点滚动至视口 (或提前 200px 缓冲区) 时才将 data-src 转换为 src 发起网络请求，
          * 彻底消除 90+ 图标同时并发竞争导致的浏览器 connection queueing 阻塞。
          */
-        function initFaviconObserver() {
+        function initFaviconObserver(force = false) {
             if (faviconObserver) {
                 try { faviconObserver.disconnect(); } catch {}
             }
             lazyIconQueue.length = 0; // 清空旧队列
 
             const navEl = dom.navSection || document.getElementById('navSection');
-            if (navEl && navEl.classList.contains('nav-hidden')) {
+            if (!force && navEl && navEl.classList.contains('nav-hidden')) {
                 return;
             }
 
@@ -5462,9 +5470,12 @@
                     nav.classList.add('nav-visible', 'screen-pushed-in');
                 }
 
-                refreshSidebarNavCache();
-                updateSidebarActive();
-                initFaviconObserver();
+                // 异步延后非关键 DOM 几何计算与 Icon 观察器绑定，避免在 CSS 动画首帧触发同步布局重排 (Reflow)
+                requestAnimationFrame(() => {
+                    refreshSidebarNavCache();
+                    updateSidebarActive();
+                    initFaviconObserver();
+                });
 
                 setTimeout(() => {
                     state.currentSection = 'nav';
@@ -5594,12 +5605,10 @@
                 if (startSection) {
                     startSection.style.transition = '';
                     startSection.style.transform = '';
-                    startSection.offsetHeight;
                 }
                 if (nav) {
                     nav.style.transition = '';
                     nav.style.transform = '';
-                    nav.offsetHeight;
                 }
             }
 
