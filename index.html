@@ -178,7 +178,6 @@
             color-scheme: dark;
             --bg-base: #0f172a;
             --bg-start: #0b0f19;
-            --bg-nav: #12141a;
             --danger: 239 68 68;
             --glass-bg: rgba(255, 255, 255, 0.08);
             --glass-border: rgba(255, 255, 255, 0.15);
@@ -189,10 +188,9 @@
             --blur: 24px;
         }
         html, body { background-color: var(--bg-base); }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Nunito', sans-serif; /* 优先 Apple 原生系统字体栈 */ scrollbar-width:none; -ms-overflow-style:none; 
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Nunito', sans-serif; /* 优先 Apple 原生系统字体栈 */
                overflow:hidden; }
-        body::-webkit-scrollbar { display:none; }
-        * { scrollbar-width:none; -ms-overflow-style:none; }
+        * { scrollbar-width:none; }
         *::-webkit-scrollbar { display:none; }
         /* Tailwind v4 preflight 不再默认给按钮 pointer 光标，此处恢复 */
         button, [role="button"] { cursor: pointer; }
@@ -237,9 +235,6 @@
             backface-visibility: hidden;
             -webkit-backface-visibility: hidden;
         }
-        #navSection {
-            contain: layout;
-        }
         #startSection {
             position: absolute;
             top: 0;
@@ -257,6 +252,7 @@
             transform: translateY(-100dvh);
         }
         #navSection {
+            contain: layout;
             position: absolute;
             top: 0;
             left: 0;
@@ -287,8 +283,8 @@
         }
         .nr .fade-in { animation: none !important; }
         @keyframes fadeIn { from { opacity:0.05; transform:translate3d(0, 1rem, 0); } to { opacity:1; transform:translate3d(0,0,0); } }
-        .dropdown-menu { opacity:0; transform:translateY(-0.5rem) scale(0.96); pointer-events:none; visibility:hidden; transition:opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1), transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.22s step-end; transform-origin: top left; will-change: opacity, transform; }
-        .dropdown-menu.active { opacity:1; transform:translateY(0) scale(1); pointer-events:auto; visibility:visible; transition:opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1), transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), visibility 0s; }
+        .dropdown-menu { opacity:0; transform:translateY(-0.5rem) scale(0.96) translateZ(0); pointer-events:none; visibility:hidden; transition:opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1), transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.22s step-end; transform-origin: top left; will-change: opacity, transform; }
+        .dropdown-menu.active { opacity:1; transform:translateY(0) scale(1) translateZ(0); pointer-events:auto; visibility:visible; transition:opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1), transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), visibility 0s; }
         @keyframes skeletonPulse { 0%, 100% { opacity: 0.25; } 50% { opacity: 0.55; } }
         .skeleton-pulse { animation: skeletonPulse 1.4s ease-in-out infinite; }
         .clock-text { font-family: 'SF Pro Rounded', 'Nunito', -apple-system, BlinkMacSystemFont, sans-serif; text-shadow: 0 2px 20px rgba(0,0,0,0.4), 0 0 60px rgba(0,0,0,0.2); }
@@ -353,24 +349,17 @@
             flex-shrink: 0;
             overflow: hidden;
             border-radius: 0.375rem;
+            will-change: transform;
             transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
         .icon-box-sm {
             width: 1.5rem;
             height: 1.5rem;
-            min-width: 1.5rem;
-            min-height: 1.5rem;
-            max-width: 1.5rem;
-            max-height: 1.5rem;
             border-radius: 0.375rem;
         }
         .icon-box-md {
             width: 2rem;
             height: 2rem;
-            min-width: 2rem;
-            min-height: 2rem;
-            max-width: 2rem;
-            max-height: 2rem;
             border-radius: 0.5rem;
         }
         .icon-box img {
@@ -431,9 +420,6 @@
             opacity: 0;
             will-change: transform, width, height;
         }
-        @media (min-width: 640px) {
-            #sidebar { border-bottom: none; }
-        }
         /* 移动端侧边栏改为顶部水平滚动 (639.98px 边界精确防竞态) */
         @media (max-width: 639.98px) {
             #sidebar {
@@ -483,15 +469,11 @@
             100% { border-bottom-color: rgba(255, 255, 255, 0.1); }
         }
 
-        .icon-box {
-            will-change: transform;
-        }
         .scroll-hint, .scroll-up-hint {
             will-change: transform;
             transform: translateZ(0);
         }
         #dropdownMenu, #suggestionMenu {
-            transform: translateZ(0);
             will-change: transform, opacity;
         }
         #navContent {
@@ -581,7 +563,7 @@
             transform: scale(0.95) !important;
             transition: transform 0.08s ease !important;
         }
-        #engineBtn:active, #searchBtn:active, #editBookmarksBtn:active {
+        #editBookmarksBtn:active {
             transform: scale(0.95);
             background: rgba(255, 255, 255, 0.18);
             transition: transform 0.08s ease !important;
