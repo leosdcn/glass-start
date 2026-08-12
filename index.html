@@ -5022,10 +5022,15 @@
                 }
             };
 
-            // 4 秒超时防护：若第三方接口挂起，自动清洗
+            // 4 秒超时防护：若第三方接口挂起，自动清洗并回退为保留本地匹配书签结果
             timeoutTimer = setTimeout(() => {
                 if (reqId === activeSuggestReqId) {
                     cleanup();
+                    if (localList && localList.length > 0) {
+                        renderSuggestions(localList, [], true, false);
+                    } else {
+                        hideSuggestions();
+                    }
                 }
             }, 4000);
 
@@ -5055,10 +5060,12 @@
             const script = document.createElement('script');
             suggestionScriptTag = script;
             script.onerror = () => {
-                if (window[cbName]) delete window[cbName];
-                if (script.parentNode) script.parentNode.removeChild(script);
-                suggestionScriptTag = null;
-                hideSuggestions();
+                cleanup();
+                if (localList && localList.length > 0) {
+                    renderSuggestions(localList, [], true, false);
+                } else {
+                    hideSuggestions();
+                }
             };
 
             // 搜索引擎 Suggest API 调度策略与回退机制说明：
