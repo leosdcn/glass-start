@@ -177,7 +177,6 @@
         :root {
             color-scheme: dark;
             --bg-base: #0f172a;
-            --bg-start: #0b0f19;
             --danger: 239 68 68;
             --glass-bg: rgba(255, 255, 255, 0.08);
             --glass-border: rgba(255, 255, 255, 0.15);
@@ -473,9 +472,6 @@
             will-change: transform;
             transform: translateZ(0);
         }
-        #dropdownMenu, #suggestionMenu {
-            will-change: transform, opacity;
-        }
         #navContent {
             contain: content;
             will-change: scroll-position;
@@ -490,7 +486,6 @@
         #navHint svg { width: 0.75rem; height: 0.75rem; max-width: 0.75rem; max-height: 0.75rem; flex-shrink: 0; }
         @keyframes bounceDown { 0%,100%{transform:translateY(0);opacity:0.6} 50%{transform:translateY(0.5rem);opacity:1} }
         @keyframes bounceUp { 0%,100%{transform:translateY(0);opacity:0.7} 50%{transform:translateY(-0.1875rem);opacity:1} }
-        .hint-down { animation:hintFade 7s ease forwards; transform-style: preserve-3d; backface-visibility: hidden; }
         @keyframes hintFade { 0%,55%{opacity:1} 100%{opacity:0;pointer-events:none} }
         .bg-layer { transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1); transform: translateZ(0); will-change: transform, opacity; }
         #bgOverlay { transition: background-color 0.2s ease, backdrop-filter 0.2s ease, -webkit-backdrop-filter 0.2s ease; transform: translateZ(0); will-change: transform, opacity; }
@@ -577,8 +572,7 @@
             transition: transform 0.08s ease !important;
         }
         /* ===== 移动端视口高度 (100dvh) 与 safe-area-inset 安全区适配 ===== */
-        .max-h-\[90vh\] { max-height: 90dvh; }
-        .max-h-\[95vh\] { max-height: 95dvh; }
+        .max-h-\[90dvh\] { max-height: 90dvh; }
         .max-h-\[85vh\] { max-height: 85dvh; }
 
         /* 壁纸与遮罩全屏图层：桌面端保持 100% 原始 1:1 视口比例（零拉伸放大）；移动端极微量 15px 防露白补边 */
@@ -630,6 +624,9 @@
 
         /* 下滑指示器安全区偏移 */
         .hint-down {
+            animation: hintFade 7s ease forwards;
+            transform-style: preserve-3d;
+            backface-visibility: hidden;
             bottom: calc(1.5rem + env(safe-area-inset-bottom));
         }
         @media (min-width: 768px) {
@@ -639,6 +636,7 @@
         }
         /* 搜索下拉弹窗（搜索引擎 + 联想建议）：紧贴搜索框下方保持精细的 6px / 8px 悬浮间距 */
         #dropdownMenu, #suggestionMenu {
+            will-change: transform, opacity;
             margin-top: 0.375rem;
         }
         @media (min-width: 640px) {
