@@ -153,7 +153,7 @@ function syncBookmarksData() {
 
                 // 4.1 自动同步常用顶栏 DEFAULT_BOOKMARKS
                 if (bookmarksData.bookmarks && Array.isArray(bookmarksData.bookmarks)) {
-                    const formattedBookmarks = formatJsObject(bookmarksData.bookmarks, 8);
+                    const formattedBookmarks = JSON.stringify(bookmarksData.bookmarks);
                     const nextContent = safeReplaceJsVariable(content, 'DEFAULT_BOOKMARKS', formattedBookmarks);
                     if (nextContent !== content) {
                         content = nextContent;
@@ -163,7 +163,7 @@ function syncBookmarksData() {
 
                 // 4.2 自动同步分类书签 DEFAULT_CATEGORIES
                 if (bookmarksData.categories && Array.isArray(bookmarksData.categories)) {
-                    const formattedCategories = formatJsObject(bookmarksData.categories, 8);
+                    const formattedCategories = JSON.stringify(bookmarksData.categories);
                     const nextContent = safeReplaceJsVariable(content, 'DEFAULT_CATEGORIES', formattedCategories);
                     if (nextContent !== content) {
                         content = nextContent;
