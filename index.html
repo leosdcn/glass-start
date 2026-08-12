@@ -171,9 +171,9 @@
         .nr #editBookmarksBtn { opacity: 0 !important; pointer-events: none !important; transition: none !important; }
         .nr *, .nr *::before, .nr *::after { animation: none !important; transition: none !important; }
         /* Standard Font Size Utility Classes */
-        .text-3xs { font-size: 0.5625rem; line-height: 0.75rem; }
-        .text-2xs { font-size: 0.625rem; line-height: 0.875rem; }
-        .text-2xs-plus { font-size: 0.6875rem; line-height: 1rem; }
+        .text-3xs { font-size: 0.5625rem; }
+        .text-2xs { font-size: 0.625rem; }
+        .text-2xs-plus { font-size: 0.6875rem; }
         :root {
             color-scheme: dark;
             --bg-base: #0f172a;
@@ -3822,7 +3822,7 @@
                         </div>
                         <span class="text-2xs font-medium px-2.5 py-0.5 rounded-full bg-white/10 text-white/60 border border-white/15 tracking-wide shrink-0">${cat.bookmarks.length} 项</span>
                     </div>
-                    <div class="grid">
+                    <div class="grid gap-2.5 md:gap-3">
                         ${sortedBookmarks.map(bm => `
                             <a href="${safeUrl(bm.url)}" target="_blank" rel="noopener noreferrer"
                                class="nav-bookmark group flex items-center gap-2.5 px-3 py-2.5 md:px-3.5 md:py-2.5 apple-radius text-white/80 hover:text-white">
