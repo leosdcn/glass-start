@@ -286,7 +286,10 @@
         .dropdown-menu.active { opacity:1; transform:translateY(0) scale(1) translateZ(0); pointer-events:auto; visibility:visible; transition:opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1), transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), visibility 0s; }
         @keyframes skeletonPulse { 0%, 100% { opacity: 0.25; } 50% { opacity: 0.55; } }
         .skeleton-pulse { animation: skeletonPulse 1.4s ease-in-out infinite; }
-        .clock-text { font-family: 'SF Pro Rounded', 'Nunito', -apple-system, BlinkMacSystemFont, sans-serif; text-shadow: 0 2px 20px rgba(0,0,0,0.4), 0 0 60px rgba(0,0,0,0.2); }
+        .clock-text { font-family: 'SF Pro Rounded', 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif; text-shadow: 0 4px 30px rgba(0,0,0,0.45), 0 0 60px rgba(0,0,0,0.25); }
+        .clock-colon { display: inline-block; animation: colonPulse 2s ease-in-out infinite; will-change: opacity; }
+        @keyframes colonPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+        .nr .clock-colon { animation: none !important; opacity: 1 !important; }
         /* ===== 玻璃材质物理高光折射与 3D 视差倾斜 (VisionOS / Apple HIG 规范) ===== */
         .bookmark-item, .nav-bookmark {
             position: relative;
@@ -492,16 +495,43 @@
         #clock, #editBookmarksBtn { will-change: transform; transform: translateZ(0); }
         .delay-100 { animation-delay: 0.1s; }
         .delay-200 { animation-delay: 0.2s; }
-        .edit-overlay { opacity:0; pointer-events:none; transition:opacity 0.2s ease; will-change:opacity; }
-        .edit-overlay.active { opacity:1; pointer-events:auto; }
-        .edit-overlay > div { transform:scale(0.95); transition:transform 0.2s ease; will-change:transform; }
-        .edit-overlay.active > div { transform:scale(1); }
+        .edit-overlay {
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+        }
+        .edit-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .edit-overlay > div {
+            opacity: 0;
+            transform: scale(0.94) translateZ(0);
+            transition: opacity 0.32s cubic-bezier(0.16, 1, 0.3, 1), transform 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+        }
+        .edit-overlay.active > div {
+            opacity: 1;
+            transform: scale(1) translateZ(0);
+        }
         .edit-overlay .glass-strong { background: rgba(255,255,255,0.2); }
+        .nr .edit-overlay, .nr .edit-overlay > div { transition: none !important; opacity: 1 !important; transform: none !important; }
         .preset-bg-card img { transform: translateZ(0); }
         .edit-row-card {
             position: relative;
-            transition: background-color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+            transition: background-color 0.15s ease, border-color 0.15s ease, opacity 0.2s ease, transform 0.2s ease, box-shadow 0.15s ease;
         }
+        .edit-row-card.animate-item-in {
+            animation: itemFadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+        }
+        @keyframes itemFadeIn {
+            from { opacity: 0; transform: translateY(-8px) scale(0.97); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .nr .edit-row-card { animation: none !important; }
         .edit-row-card input {
             user-select: text;
         }
@@ -967,6 +997,7 @@
             border-color: rgba(255, 255, 255, 0.25);
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
         }
+
         .json-dropzone.drag-over {
             background: var(--tint-12);
             border-color: rgba(255, 255, 255, 0.45);
@@ -1014,9 +1045,9 @@
         <div class="flex flex-col items-center justify-center w-full">
             <!-- 时钟 -->
             <div class="text-center fade-in clock-text mb-10 md:mb-14">
-                <time id="clock" datetime="00:00" aria-label="当前时间" class="text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-light tracking-tight tabular-nums block">00:00</time>
-                <div id="date" class="text-xs sm:text-sm md:text-base mt-3 text-white/70 font-light tracking-widest uppercase">加载中...</div>
-                <script>(function(){const n=new Date();const c=document.getElementById('clock');const d=document.getElementById('date');if(c){const t=`${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`;c.textContent=t;c.setAttribute('datetime',t);}if(d)d.textContent=n.toLocaleDateString('zh-CN',{year:'numeric',month:'long',day:'numeric',weekday:'long'});})()</script>
+                <time id="clock" datetime="00:00" aria-label="当前时间" class="text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-light tracking-tight tabular-nums block">00<span class="clock-colon mx-0.5 sm:mx-1">:</span>00</time>
+                <div id="date" class="text-xs sm:text-sm md:text-base mt-3.5 text-white/80 font-normal tracking-[0.2em] sm:tracking-[0.25em] -mr-[0.2em] sm:-mr-[0.25em] uppercase drop-shadow-sm">加载中...</div>
+                <script>(function(){const n=new Date();const c=document.getElementById('clock');const d=document.getElementById('date');if(c){const h=String(n.getHours()).padStart(2,'0');const m=String(n.getMinutes()).padStart(2,'0');c.innerHTML=`${h}<span class="clock-colon mx-0.5 sm:mx-1">:</span>${m}`;c.setAttribute('datetime',`${h}:${m}`);}if(d){const w=['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];d.textContent=`${n.getFullYear()}年${n.getMonth()+1}月${n.getDate()}日  ${w[n.getDay()]}`;}})()</script>
             </div>
 
             <!-- 搜索框 -->
@@ -2674,6 +2705,30 @@
             });
         }
 
+        function animateShowModal(modalEl) {
+            if (!modalEl) return;
+            modalEl.removeAttribute('aria-hidden');
+            modalEl.removeAttribute('hidden');
+            requestAnimationFrame(() => {
+                modalEl.classList.add('active');
+            });
+        }
+
+        function animateHideModal(modalEl) {
+            if (!modalEl) return;
+            modalEl.setAttribute('aria-hidden', 'true');
+            modalEl.classList.remove('active');
+            if (document.body.classList.contains('nr') || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                modalEl.setAttribute('hidden', '');
+            } else {
+                setTimeout(() => {
+                    if (!modalEl.classList.contains('active')) {
+                        modalEl.setAttribute('hidden', '');
+                    }
+                }, 320);
+            }
+        }
+
         /**
          * 刷新外观壁纸 Tab 中的壁纸来源文字提示与「恢复默认」按钮显隐状态
          * @param {string|null} [customWallpaperOverride] - 选填，草稿模式下的动态壁纸 URL
@@ -2913,9 +2968,7 @@
             if (document.activeElement && dom.editModal.contains(document.activeElement)) {
                 document.activeElement.blur();
             }
-            dom.editModal.setAttribute('aria-hidden', 'true');
-            dom.editModal.setAttribute('hidden', '');
-            dom.editModal.classList.remove('active');
+            animateHideModal(dom.editModal);
 
             if (editModalTriggerEl && typeof editModalTriggerEl.focus === 'function') {
                 const opener = editModalTriggerEl;
@@ -3041,9 +3094,7 @@
 
             if (titleEl) titleEl.textContent = title;
             msgEl.textContent = message;
-            modal.removeAttribute('aria-hidden');
-            modal.removeAttribute('hidden');
-            modal.classList.add('active');
+            animateShowModal(modal);
             OverlayStack.push('confirmModal', cleanup);
 
             function cleanup() {
@@ -3052,9 +3103,7 @@
                 if (document.activeElement && modal.contains(document.activeElement)) {
                     document.activeElement.blur();
                 }
-                modal.setAttribute('aria-hidden', 'true');
-                modal.setAttribute('hidden', '');
-                modal.classList.remove('active');
+                animateHideModal(modal);
                 cancelBtn.style.display = '';
                 okBtn.removeEventListener('click', handleOk);
                 cancelBtn.removeEventListener('click', handleCancel);
@@ -3121,9 +3170,7 @@
          */
         function openBookmarkPicker() {
             OverlayStack.push('bookmarkPicker', closeBookmarkPicker);
-            dom.bookmarkPicker.removeAttribute('aria-hidden');
-            dom.bookmarkPicker.removeAttribute('hidden');
-            dom.bookmarkPicker.classList.add('active');
+            animateShowModal(dom.bookmarkPicker);
             renderPickerCategories();
         }
 
@@ -3136,9 +3183,7 @@
             if (document.activeElement && dom.bookmarkPicker.contains(document.activeElement)) {
                 document.activeElement.blur();
             }
-            dom.bookmarkPicker.setAttribute('aria-hidden', 'true');
-            dom.bookmarkPicker.setAttribute('hidden', '');
-            dom.bookmarkPicker.classList.remove('active');
+            animateHideModal(dom.bookmarkPicker);
         }
 
         // ==================== 编辑列表拖拽排序 & 实时感知 ====================
@@ -4390,6 +4435,7 @@
                 const tempDiv = document.createElement('div');
                 tempDiv.innerHTML = getEditRowHTML(name, url, Date.now()).trim();
                 const div = tempDiv.firstElementChild;
+                div.classList.add('animate-item-in');
                 dom.editList.appendChild(div);
                 item.classList.add('opacity-40', 'pointer-events-none');
                 item.dataset.name = '';
@@ -4403,6 +4449,7 @@
                 const tempDiv = document.createElement('div');
                 tempDiv.innerHTML = getEditRowHTML('', '', Date.now()).trim();
                 const div = tempDiv.firstElementChild;
+                div.classList.add('animate-item-in');
                 dom.editList.appendChild(div);
                 div.querySelector('.edit-name').focus();
                 updateBookmarkCountBadge();
@@ -4411,9 +4458,23 @@
             dom.editList.addEventListener('click', e => {
                 const del = e.target.closest('.del-btn');
                 if (del) {
-                    del.closest('[data-idx]')?.remove();
-                    updatePickerCount();
-                    updateBookmarkCountBadge();
+                    const item = del.closest('[data-idx]');
+                    if (item) {
+                        if (document.body.classList.contains('nr') || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                            item.remove();
+                            updatePickerCount();
+                            updateBookmarkCountBadge();
+                        } else {
+                            item.style.transition = 'all 0.18s cubic-bezier(0.16, 1, 0.3, 1)';
+                            item.style.opacity = '0';
+                            item.style.transform = 'scale(0.92) translateY(-6px)';
+                            setTimeout(() => {
+                                item.remove();
+                                updatePickerCount();
+                                updateBookmarkCountBadge();
+                            }, 180);
+                        }
+                    }
                     return;
                 }
                 const moveUp = e.target.closest('.move-up-btn');
@@ -4611,15 +4672,23 @@
         function updateClock() {
             if (document.hidden) return;
             const n = new Date();
-            const curTimeStr = `${String(n.getHours()).padStart(2, '0')}:${String(n.getMinutes()).padStart(2, '0')}`;
+            const hh = String(n.getHours()).padStart(2, '0');
+            const mm = String(n.getMinutes()).padStart(2, '0');
+            const curTimeStr = `${hh}:${mm}`;
             if (curTimeStr !== lastTimeStr) {
                 lastTimeStr = curTimeStr;
-                if (dom.clock) dom.clock.textContent = curTimeStr;
+                if (dom.clock) {
+                    dom.clock.innerHTML = `${hh}<span class="clock-colon mx-0.5 sm:mx-1">:</span>${mm}`;
+                    dom.clock.setAttribute('datetime', curTimeStr);
+                }
             }
             const day = n.getDate();
             if (day !== lastDateDay) {
                 lastDateDay = day;
-                if (dom.date) dom.date.textContent = n.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
+                if (dom.date) {
+                    const weekdays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+                    dom.date.textContent = `${n.getFullYear()}年${n.getMonth() + 1}月${n.getDate()}日  ${weekdays[n.getDay()]}`;
+                }
             }
         }
 
