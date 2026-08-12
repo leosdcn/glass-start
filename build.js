@@ -212,6 +212,21 @@ function processProductionAppJs() {
         } catch {}
     }
 
+    // 生产环境 JS 零依赖安全压缩（清除单行/多行注释与首尾缩进）
+    function minifyJs(jsCode) {
+        return jsCode
+            .replace(/^\s*\/\/[^\n]*/gm, '')
+            .replace(/\/\*[\s\S]*?\*\//g, '')
+            .split('\n')
+            .map(line => line.trim())
+            .filter(Boolean)
+            .join('\n');
+    }
+
+    appJsContent = minifyJs(appJsContent);
+    const appJsKb = (Buffer.byteLength(appJsContent, 'utf-8') / 1024).toFixed(2);
+    console.log(`   ⚡️ 已完成生产环境 dist/app.js 零依赖 JS 压缩 (${appJsKb} KB)`);
+
     fs.writeFileSync(path.join(PATHS.dist, 'app.js'), appJsContent, 'utf-8');
 }
 processProductionAppJs();
