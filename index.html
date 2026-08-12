@@ -394,7 +394,6 @@
             color: #fff;
         }
         .nav-bookmark:hover .icon-box, .bookmark-item:hover .icon-box { transform: scale(1.08); will-change: transform; }
-        .category-block { content-visibility: auto; contain-intrinsic-size: 1px 200px; }
         .nav-hidden { visibility: hidden; }
         .nav-visible { visibility: visible; }
         .start-hidden { visibility: hidden !important; pointer-events: none !important; }
@@ -497,8 +496,8 @@
         @keyframes bounceUp { 0%,100%{transform:translateY(0);opacity:0.7} 50%{transform:translateY(-0.1875rem);opacity:1} }
         @keyframes hintFade { 0%,55%{opacity:1} 100%{opacity:0;pointer-events:none} }
         .bg-layer { transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1); transform: translateZ(0); will-change: opacity; pointer-events: none; }
-        #bgOverlay { transition: background-color 0.2s ease, backdrop-filter 0.2s ease, -webkit-backdrop-filter 0.2s ease; transform: translateZ(0); will-change: opacity; pointer-events: none; }
-        #clock, #editBookmarksBtn { will-change: transform; transform: translateZ(0); }
+        #bgOverlay { transition: background-color 0.2s ease, opacity 0.2s ease; transform: translateZ(0); will-change: opacity; pointer-events: none; }
+        #clock, #editBookmarksBtn { transform: translateZ(0); }
         .delay-100 { animation-delay: 0.1s; }
         .delay-200 { animation-delay: 0.2s; }
         .edit-overlay {
@@ -2634,7 +2633,7 @@
                 dom.bgOverlay.style.webkitBackdropFilter = blurStyle;
                 if (!save) {
                     requestAnimationFrame(() => {
-                        dom.bgOverlay.style.transition = 'background-color 0.2s ease, backdrop-filter 0.2s ease, -webkit-backdrop-filter 0.2s ease';
+                        dom.bgOverlay.style.transition = 'background-color 0.2s ease, opacity 0.2s ease';
                     });
                 }
             }
@@ -3320,11 +3319,11 @@
                         card.style.transition = 'none';
                         card.style.transform = `translate3d(${deltaX}px, ${deltaY}px, 0)`;
 
-                        // 强制重绘 (Reflow)
-                        card.offsetHeight;
-
-                        card.style.transition = 'transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)';
-                        card.style.transform = 'translate3d(0, 0, 0)';
+                        // 帧同步切换平滑过渡，避免强制同步重排 (Reflow)
+                        requestAnimationFrame(() => {
+                            card.style.transition = 'transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)';
+                            card.style.transform = 'translate3d(0, 0, 0)';
+                        });
 
                         setTimeout(() => {
                             card.style.transition = '';
@@ -3944,8 +3943,10 @@
             items.forEach((item, i) => {
                 const isActive = i === activeIdx;
                 const wasActive = item.classList.contains('active');
-                item.classList.toggle('active', isActive);
-                item.setAttribute('aria-selected', isActive ? 'true' : 'false');
+                if (isActive !== wasActive) {
+                    item.classList.toggle('active', isActive);
+                    item.setAttribute('aria-selected', isActive ? 'true' : 'false');
+                }
                 if (isActive) activeBtn = item;
                 if (isActive && !wasActive && !isManualScrolling) {
                     scrollTabIntoView(item, sidebarContainer);
@@ -4034,8 +4035,11 @@
                     const header = target.querySelector('.category-header');
                     if (header) {
                         header.classList.remove('category-title-pulse');
-                        void header.offsetWidth; // 触发 reflow
-                        header.classList.add('category-title-pulse');
+                        requestAnimationFrame(() => {
+                            requestAnimationFrame(() => {
+                                header.classList.add('category-title-pulse');
+                            });
+                        });
                     }
 
                     // 4. 待平滑滚动完全静止后自动解锁并校准高亮（采用 120ms 防抖 + 800ms 兜底）
@@ -5306,17 +5310,14 @@
                         bgBase.style.backgroundImage = bgNext.style.backgroundImage;
                         bgBase.style.opacity = '1';
                     }
-                    // 2. 暂时断开 CSS 过渡动画，强制将 opacity 归零
+                    // 2. 暂时断开 CSS 过渡动画，将 opacity 归零
                     bgNext.style.transition = 'none';
                     bgNext.style.opacity = '0';
-                    void bgNext.offsetWidth; // 强行触发 DOM 重排，确保 opacity:0 瞬间生效
 
-                    // 3. 换入新图片 URL 并设置 0.8s 平滑缓动淡入动画
+                    // 3. 换入新图片 URL 并使用 rAF 在下一帧启动淡入动画
                     bgNext.style.backgroundImage = newStyleUrl;
-                    bgNext.style.transition = 'opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1)';
-
-                    // 4. 启动淡入动画 0 ➔ 1
                     requestAnimationFrame(() => {
+                        bgNext.style.transition = 'opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1)';
                         bgNext.style.opacity = '1';
                         bgSwitchTimer = setTimeout(() => {
                             bgBase.style.backgroundImage = newStyleUrl;
@@ -5624,55 +5625,50 @@
                 touchDragDirection = null;
             }, { passive: true });
 
+            let touchMoveTicking = false;
             document.addEventListener('touchmove', (e) => {
                 if (isTransitioning || !OverlayStack.isEmpty()) return;
                 const currentY = e.touches[0].clientY;
                 const totalDeltaY = startTouchY - currentY;
                 lastTouchY = currentY;
 
-                if (state.currentSection === 'start') {
-                    // 从首屏向上拖拽到导航页（全流程 100% 跟手跟随）
-                    if (totalDeltaY > 0) {
-                        if (e.cancelable) e.preventDefault();
-                        isTouchDragging = true;
-                        touchDragDirection = 'up';
+                const isStartUp = state.currentSection === 'start' && totalDeltaY > 0;
+                const isNavDown = state.currentSection === 'nav' && totalDeltaY < 0 && navContent && navContent.scrollTop <= 0;
+
+                if (isStartUp || isNavDown) {
+                    if (e.cancelable) e.preventDefault();
+                    isTouchDragging = true;
+                    touchDragDirection = isStartUp ? 'up' : 'down';
+                } else if (isTouchDragging && e.cancelable) {
+                    e.preventDefault();
+                }
+
+                if (!touchMoveTicking) {
+                    requestAnimationFrame(() => {
+                        touchMoveTicking = false;
+                        if (!isTouchDragging) return;
+
+                        const curDeltaY = startTouchY - lastTouchY;
                         const vh = window.innerHeight || 800;
-                        const progress = Math.min(1, Math.max(0, totalDeltaY / vh));
+                        const isUp = touchDragDirection === 'up';
 
                         nav.classList.remove('nav-hidden');
                         nav.classList.add('nav-visible');
-
                         startSection.style.transition = 'none';
                         nav.style.transition = 'none';
-                        startSection.style.transform = `translateY(${-progress * 100}vh)`;
-                        nav.style.transform = `translateY(${(1 - progress) * 100}vh)`;
-                    } else if (isTouchDragging) {
-                        if (e.cancelable) e.preventDefault();
-                        startSection.style.transform = `translateY(0vh)`;
-                        nav.style.transform = `translateY(100vh)`;
-                    }
-                } else if (state.currentSection === 'nav') {
-                    // 从导航页顶部向下拖拽回首屏（全流程 100% 跟手跟随）
-                    if (totalDeltaY < 0 && navContent && navContent.scrollTop <= 0) {
-                        if (e.cancelable) e.preventDefault();
-                        isTouchDragging = true;
-                        touchDragDirection = 'down';
-                        const vh = window.innerHeight || 800;
-                        const absDelta = Math.abs(totalDeltaY);
-                        const progress = Math.min(1, Math.max(0, absDelta / vh));
 
-                        nav.classList.remove('nav-hidden');
-                        nav.classList.add('nav-visible');
-
-                        startSection.style.transition = 'none';
-                        nav.style.transition = 'none';
-                        startSection.style.transform = `translateY(${-(1 - progress) * 100}vh)`;
-                        nav.style.transform = `translateY(${progress * 100}vh)`;
-                    } else if (isTouchDragging) {
-                        if (e.cancelable) e.preventDefault();
-                        startSection.style.transform = `translateY(-100vh)`;
-                        nav.style.transform = `translateY(0vh)`;
-                    }
+                        if (isUp ? curDeltaY > 0 : curDeltaY < 0) {
+                            const progress = Math.min(1, Math.max(0, Math.abs(curDeltaY) / vh));
+                            const startY = isUp ? -progress * 100 : -(1 - progress) * 100;
+                            const navY = isUp ? (1 - progress) * 100 : progress * 100;
+                            startSection.style.transform = `translateY(${startY}vh)`;
+                            nav.style.transform = `translateY(${navY}vh)`;
+                        } else {
+                            startSection.style.transform = isUp ? 'translateY(0vh)' : 'translateY(-100vh)';
+                            nav.style.transform = isUp ? 'translateY(100vh)' : 'translateY(0vh)';
+                        }
+                    });
+                    touchMoveTicking = true;
                 }
             }, { passive: false });
 
