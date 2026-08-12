@@ -577,30 +577,30 @@
             transition: transform 0.08s ease !important;
         }
         /* ===== 移动端视口高度 (100dvh) 与 safe-area-inset 安全区适配 ===== */
-        .max-h-\[90vh\] { max-height: 90dvh !important; }
-        .max-h-\[95vh\] { max-height: 95dvh !important; }
-        .max-h-\[85vh\] { max-height: 85dvh !important; }
+        .max-h-\[90vh\] { max-height: 90dvh; }
+        .max-h-\[95vh\] { max-height: 95dvh; }
+        .max-h-\[85vh\] { max-height: 85dvh; }
 
         /* 壁纸与遮罩全屏图层：桌面端保持 100% 原始 1:1 视口比例（零拉伸放大）；移动端极微量 15px 防露白补边 */
         .bg-fullscreen {
-            position: fixed !important;
-            top: 0 !important;
-            bottom: 0 !important;
-            left: 0 !important;
-            right: 0 !important;
-            width: 100vw !important;
-            height: 100vh !important;
-            height: 100dvh !important;
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            width: 100vw;
+            height: 100vh;
+            height: 100dvh;
         }
         @media (max-width: 640px) {
             .bg-fullscreen {
-                top: calc(-15px - env(safe-area-inset-top, 0px)) !important;
-                bottom: calc(-15px - env(safe-area-inset-bottom, 0px)) !important;
-                left: calc(-10px - env(safe-area-inset-left, 0px)) !important;
-                right: calc(-10px - env(safe-area-inset-right, 0px)) !important;
-                width: calc(100vw + 20px + env(safe-area-inset-left, 0px) + env(safe-area-inset-right, 0px)) !important;
-                height: calc(100vh + 30px + env(safe-area-inset-top, 0px) + env(safe-area-inset-bottom, 0px)) !important;
-                height: calc(100dvh + 30px + env(safe-area-inset-top, 0px) + env(safe-area-inset-bottom, 0px)) !important;
+                top: calc(-15px - env(safe-area-inset-top, 0px));
+                bottom: calc(-15px - env(safe-area-inset-bottom, 0px));
+                left: calc(-10px - env(safe-area-inset-left, 0px));
+                right: calc(-10px - env(safe-area-inset-right, 0px));
+                width: calc(100vw + 20px + env(safe-area-inset-left, 0px) + env(safe-area-inset-right, 0px));
+                height: calc(100vh + 30px + env(safe-area-inset-top, 0px) + env(safe-area-inset-bottom, 0px));
+                height: calc(100dvh + 30px + env(safe-area-inset-top, 0px) + env(safe-area-inset-bottom, 0px));
             }
         }
 
@@ -639,11 +639,11 @@
         }
         /* 搜索下拉弹窗（搜索引擎 + 联想建议）：紧贴搜索框下方保持精细的 6px / 8px 悬浮间距 */
         #dropdownMenu, #suggestionMenu {
-            margin-top: 0.375rem !important;
+            margin-top: 0.375rem;
         }
         @media (min-width: 640px) {
             #dropdownMenu, #suggestionMenu {
-                margin-top: 0.5rem !important;
+                margin-top: 0.5rem;
             }
         }
         /* 编辑按钮：固定于右下角，常驻低透明，hover 渐亮并让齿轮图标顺畅旋转 90 度 */
@@ -746,13 +746,13 @@
             z-index: 2;
         }
         .search-box-wrapper:hover {
-            border-color: rgba(255, 255, 255, 0.25) !important;
-            background: rgba(255, 255, 255, 0.14) !important;
+            border-color: rgba(255, 255, 255, 0.25);
+            background: rgba(255, 255, 255, 0.14);
         }
         .search-box-wrapper:focus-within {
-            background: rgba(255, 255, 255, 0.15) !important;
-            border-color: rgba(255, 255, 255, 0.28) !important;
-            box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.25), 0 8px 24px rgba(0, 0, 0, 0.25) !important;
+            background: rgba(255, 255, 255, 0.15);
+            border-color: rgba(255, 255, 255, 0.28);
+            box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.25), 0 8px 24px rgba(0, 0, 0, 0.25);
         }
 
         /* 搜索引擎按钮与搜索按钮微触感 (Apple Tactile Button Feedback) */
@@ -767,7 +767,7 @@
         }
         #engineBtn:hover {
             transform: scale(1.03);
-            background-color: rgba(255, 255, 255, 0.12) !important;
+            background-color: rgba(255, 255, 255, 0.12);
         }
         #engineBtn:hover .engine-icon {
             transform: scale(1.08);
@@ -780,7 +780,7 @@
         }
         #engineBtn:active {
             transform: scale(0.96);
-            background-color: rgba(255, 255, 255, 0.18) !important;
+            background-color: rgba(255, 255, 255, 0.18);
         }
 
         #searchBtn {
@@ -791,14 +791,14 @@
         }
         #searchBtn:hover {
             transform: scale(1.05);
-            background-color: rgba(255, 255, 255, 0.14) !important;
+            background-color: rgba(255, 255, 255, 0.14);
         }
         #searchBtn:hover svg {
             transform: scale(1.1) rotate(-8deg);
         }
         #searchBtn:active {
             transform: scale(0.94);
-            background-color: rgba(255, 255, 255, 0.2) !important;
+            background-color: rgba(255, 255, 255, 0.2);
         }
         #searchBtn:active svg {
             transform: scale(0.95) rotate(0deg);
@@ -812,14 +812,14 @@
         }
         #searchClearBtn:hover {
             transform: scale(1.06);
-            background-color: rgba(255, 255, 255, 0.14) !important;
+            background-color: rgba(255, 255, 255, 0.14);
         }
         #searchClearBtn:hover svg {
             transform: rotate(90deg);
         }
         #searchClearBtn:active {
             transform: scale(0.92);
-            background-color: rgba(255, 255, 255, 0.2) !important;
+            background-color: rgba(255, 255, 255, 0.2);
         }
         .suggestion-item {
             position: relative;
@@ -831,15 +831,15 @@
             transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1);
         }
         .suggestion-item.active {
-            background: rgba(255, 255, 255, 0.18) !important;
-            color: #ffffff !important;
+            background: rgba(255, 255, 255, 0.18);
+            color: #ffffff;
             font-weight: 500;
         }
         .suggestion-item.active > * {
             transform: translateX(4px);
         }
         .suggestion-item.active svg {
-            color: rgba(255, 255, 255, 0.95) !important;
+            color: rgba(255, 255, 255, 0.95);
         }
         /* 搜索提示框底部操作指引栏 */
         .suggestion-footer {
@@ -867,15 +867,15 @@
         }
         /* ===== 自定义重置确认弹窗（精细化 iOS/macOS 玻璃规范） ===== */
         .confirm-dialog-card {
-            width: 90% !important;
-            max-width: 22.5rem !important;
-            background: rgba(28, 28, 35, 0.88) !important;
-            backdrop-filter: blur(24px) saturate(180%) !important;
-            -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
-            border: 1px solid rgba(255, 255, 255, 0.16) !important;
-            border-radius: 1.25rem !important;
-            padding: 1.5rem 1.25rem 1.25rem 1.25rem !important;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.65) !important;
+            width: 90%;
+            max-width: 22.5rem;
+            background: rgba(28, 28, 35, 0.88);
+            backdrop-filter: blur(24px) saturate(180%);
+            -webkit-backdrop-filter: blur(24px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            border-radius: 1.25rem;
+            padding: 1.5rem 1.25rem 1.25rem 1.25rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.65);
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -982,11 +982,11 @@
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
         }
         .json-dropzone.drag-over {
-            background: var(--tint-12) !important;
-            border-color: rgba(255, 255, 255, 0.45) !important;
+            background: var(--tint-12);
+            border-color: rgba(255, 255, 255, 0.45);
         }
         .preset-bg-card.active {
-            border-color: rgba(255, 255, 255, 0.9) !important;
+            border-color: rgba(255, 255, 255, 0.9);
             box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.4);
         }
         /* 危险区域 (Danger Zone) 玻璃风红框样式 */
