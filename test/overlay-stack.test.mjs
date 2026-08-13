@@ -3,13 +3,13 @@
  *
  * 精简版：8 个核心精准断言
  */
-import { launchSession, sleep, makeTester } from './helpers.mjs';
+import { launchSession, sleep, makeTester, pressKey } from './helpers.mjs';
 
 const { pass, finish } = makeTester();
 const { server, chrome, evalJS } = await launchSession();
 
 await sleep(1800);
-const press = (key) => evalJS(`document.dispatchEvent(new KeyboardEvent('keydown', { key: '${key}', bubbles: true, cancelable: true }))`);
+const press = (key) => pressKey(evalJS, key);
 const stackTop = () => evalJS(`OverlayStack.top() ? OverlayStack.top().id : null`);
 
 // 1. clock 基础状态校验

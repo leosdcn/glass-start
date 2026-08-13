@@ -3,6 +3,7 @@ import { startServer } from './server.mjs';
 import { launchChrome } from './cdp.mjs';
 
 export const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+export const pressKey = (evalJS, key) => evalJS(`document.dispatchEvent(new KeyboardEvent('keydown', { key: '${key}', bubbles: true, cancelable: true }))`);
 
 export const tyOf = (m) => {
   const r = /matrix\(1, 0, 0, 1, 0, (-?\d+(?:\.\d+)?)\)/.exec(m);

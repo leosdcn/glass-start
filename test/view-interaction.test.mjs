@@ -3,14 +3,14 @@
  *
  * 精简版：9 个核心精准断言
  */
-import { launchSession, sleep, tyOf, makeTester } from './helpers.mjs';
+import { launchSession, sleep, tyOf, makeTester, pressKey } from './helpers.mjs';
 
 const { pass, finish } = makeTester();
 const { server, chrome, evalJS } = await launchSession();
 
 await sleep(1800);
 
-const press = (key) => evalJS(`document.dispatchEvent(new KeyboardEvent('keydown', { key: '${key}', bubbles: true, cancelable: true }))`);
+const press = (key) => pressKey(evalJS, key);
 const section = async () => evalJS(`document.getElementById('startSection').getAttribute('aria-hidden') === 'true' ? 'nav' : 'start'`);
 const focus = async () => evalJS(`document.activeElement ? (document.activeElement.id || document.activeElement.tagName) : 'none'`);
 
