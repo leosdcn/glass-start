@@ -298,7 +298,7 @@
         .bookmark-item, .nav-bookmark {
             position: relative;
             overflow: hidden;
-            transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+            transition: transform 0.38s cubic-bezier(0.2, 0.9, 0.2, 1), background-color 0.32s ease, border-color 0.32s ease, box-shadow 0.38s cubic-bezier(0.2, 0.9, 0.2, 1);
         }
         .bookmark-item:hover, .nav-bookmark:hover {
             will-change: transform;
@@ -309,9 +309,9 @@
             inset: 0;
             border-radius: inherit;
             background: radial-gradient(
-                450px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
-                rgba(255, 255, 255, 0.22),
-                transparent 60%
+                380px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+                rgba(255, 255, 255, 0.2),
+                transparent 65%
             );
             opacity: 0;
             pointer-events: none;
@@ -357,7 +357,7 @@
             flex-shrink: 0;
             overflow: hidden;
             border-radius: 0.375rem;
-            transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+            transition: transform 0.35s cubic-bezier(0.2, 0.9, 0.2, 1);
         }
         .icon-box-sm {
             width: 1.5rem;
@@ -1487,6 +1487,12 @@
                         "desc": "全球 AI 盲测平台"
                     },
                     {
+                        "name": "Artificial Analysis",
+                        "url": "https://artificialanalysis.ai",
+                        "icon": "https://a.favicon.im/artificialanalysis.ai",
+                        "desc": "AI 模型基准评测"
+                    },
+                    {
                         "name": "ChatGPT",
                         "url": "https://chat.openai.com",
                         "icon": "https://a.favicon.im/chat.openai.com",
@@ -1670,13 +1676,13 @@
                         "name": "AWS Console",
                         "url": "https://aws.amazon.com/console",
                         "icon": "https://a.favicon.im/amazonaws.com",
-                        "desc": "AWS云服务控制台"
+                        "desc": "AWS 云服务控制台"
                     },
                     {
                         "name": "Cloudflare",
                         "url": "https://dash.cloudflare.com",
                         "icon": "https://a.favicon.im/cloudflare.com",
-                        "desc": "全球网络安全与CDN"
+                        "desc": "全球网络安全与 CDN"
                     },
                     {
                         "name": "Google Cloud",
@@ -1718,7 +1724,7 @@
                         "name": "draw.io",
                         "url": "https://app.diagrams.net",
                         "icon": "https://a.favicon.im/app.diagrams.net",
-                        "desc": "免费开源流程架构图"
+                        "desc": "免费开源流程图绘制"
                     },
                     {
                         "name": "Excalidraw",
@@ -5682,8 +5688,8 @@
 
                     const centerX = rect.width / 2;
                     const centerY = rect.height / 2;
-                    const rotateX = -((y - centerY) / centerY) * 1.5;
-                    const rotateY = ((x - centerX) / centerX) * 1.5;
+                    const rotateX = -((y - centerY) / centerY) * 2.5;
+                    const rotateY = ((x - centerX) / centerX) * 2.5;
 
                     activeCard.style.transform = `perspective(800px) rotateX(${rotateX.toFixed(2)}deg) rotateY(${rotateY.toFixed(2)}deg) scale(1.025)`;
                     rafId = null;

@@ -53,6 +53,12 @@
                     "desc": "全球 AI 盲测平台"
                 },
                 {
+                    "name": "Artificial Analysis",
+                    "url": "https://artificialanalysis.ai",
+                    "icon": "https://a.favicon.im/artificialanalysis.ai",
+                    "desc": "AI 模型基准评测"
+                },
+                {
                     "name": "ChatGPT",
                     "url": "https://chat.openai.com",
                     "icon": "https://a.favicon.im/chat.openai.com",
@@ -236,13 +242,13 @@
                     "name": "AWS Console",
                     "url": "https://aws.amazon.com/console",
                     "icon": "https://a.favicon.im/amazonaws.com",
-                    "desc": "AWS云服务控制台"
+                    "desc": "AWS 云服务控制台"
                 },
                 {
                     "name": "Cloudflare",
                     "url": "https://dash.cloudflare.com",
                     "icon": "https://a.favicon.im/cloudflare.com",
-                    "desc": "全球网络安全与CDN"
+                    "desc": "全球网络安全与 CDN"
                 },
                 {
                     "name": "Google Cloud",
@@ -284,7 +290,7 @@
                     "name": "draw.io",
                     "url": "https://app.diagrams.net",
                     "icon": "https://a.favicon.im/app.diagrams.net",
-                    "desc": "免费开源流程架构图"
+                    "desc": "免费开源流程图绘制"
                 },
                 {
                     "name": "Excalidraw",
