@@ -5078,8 +5078,8 @@
             // 书签分组（最多 2 条）
             if (localList && localList.length > 0) {
                 html += `
-                    <div class="px-3.5 pt-1.5 pb-1 text-2xs font-medium tracking-wider text-white/35 uppercase select-none">
-                        <span>书签</span>
+                    <div class="mx-3.5 px-0 pt-1.5 pb-1 mb-1 border-b border-white/10 text-2xs font-medium tracking-wider text-white/35 uppercase select-none">
+                        <span class="inline-block pb-0.5">书签</span>
                     </div>
                 `;
                 localList.forEach(bm => {
@@ -5114,8 +5114,8 @@
             if (safeNetList.length > 0) {
                 if (localList && localList.length > 0) {
                     html += `
-                        <div class="px-3.5 pt-2 pb-1 text-2xs font-medium tracking-wider text-white/35 uppercase select-none">
-                            <span>搜索</span>
+                        <div class="mx-3.5 px-0 pt-2 pb-1 mb-1 border-b border-white/10 text-2xs font-medium tracking-wider text-white/35 uppercase select-none">
+                            <span class="inline-block pb-0.5">搜索</span>
                         </div>
                     `;
                 }
@@ -5136,8 +5136,8 @@
             } else if (isNetLoading) {
                 if (localList && localList.length > 0) {
                     html += `
-                        <div class="px-3.5 pt-2 pb-1 text-2xs font-medium tracking-wider text-white/35 uppercase select-none">
-                            <span>搜索</span>
+                        <div class="mx-3.5 px-0 pt-2 pb-1 mb-1 border-b border-white/10 text-2xs font-medium tracking-wider text-white/35 uppercase select-none">
+                            <span class="inline-block pb-0.5">搜索</span>
                         </div>
                     `;
                 }
