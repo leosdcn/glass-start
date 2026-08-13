@@ -1154,7 +1154,7 @@
                 <!-- 下方主体：左侧分类 + 右侧书签 -->
                 <div class="flex-1 flex flex-col sm:flex-row overflow-hidden min-h-0">
                     <!-- 侧边栏（移动端顶部水平滚动，桌面端左侧垂直滚动） -->
-                    <aside id="sidebar" class="sm:w-28 md:w-32 lg:w-36 shrink-0 p-2 md:p-3 overflow-x-auto sm:overflow-y-auto sm:border-r border-white/10 bg-black/10">
+                    <aside id="sidebar" class="sm:w-[6.5rem] md:w-[7.5rem] lg:w-[8.25rem] shrink-0 p-2 md:p-2.5 overflow-x-auto sm:overflow-y-auto sm:border-r border-white/10 bg-black/10">
                         <nav aria-label="导航分类">
                             <div id="sidebarList" role="tablist" aria-label="分类导航列表" class="flex sm:flex-col gap-1"></div>
                         </nav>
@@ -3829,7 +3829,7 @@
 
             // 左侧分类列表
             dom.sidebarList.innerHTML = pageData.categories.map((cat, i) => `
-                <button type="button" role="tab" id="cat-tab-${i}" aria-selected="${i === 0 ? 'true' : 'false'}" aria-controls="cat-${i}" class="sidebar-item w-full text-left text-xs md:text-sm pl-4 pr-2.5 py-2 apple-radius text-white/70 flex items-center gap-2 ${i === 0 ? 'active' : ''}"
+                <button type="button" role="tab" id="cat-tab-${i}" aria-selected="${i === 0 ? 'true' : 'false'}" aria-controls="cat-${i}" class="sidebar-item w-full text-left text-xs md:text-sm px-3 py-1.5 md:py-2 apple-radius text-white/70 flex items-center gap-2 ${i === 0 ? 'active' : ''}"
                         data-target="cat-${i}">
                     <span class="text-sm shrink-0 sidebar-icon">${escapeHtml(cat.icon)}</span>
                     <span class="truncate font-medium sidebar-label">${escapeHtml(cat.name)}</span>
