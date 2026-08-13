@@ -171,10 +171,10 @@
         .nr #navSection { visibility: visible !important; transform: translateY(0) !important; transition: none !important; }
         .nr #editBookmarksBtn { opacity: 0 !important; pointer-events: none !important; transition: none !important; }
         .nr *, .nr *::before, .nr *::after { animation: none !important; transition: none !important; }
-        /* Standard Font Size Utility Classes */
-        .text-3xs { font-size: 0.5625rem; }
-        .text-2xs { font-size: 0.625rem; }
-        .text-2xs-plus { font-size: 0.6875rem; }
+        /* Standard Font Size Utility Classes with Apple Optical Tracking */
+        .text-3xs { font-size: 0.5625rem; letter-spacing: -0.012em; }
+        .text-2xs { font-size: 0.625rem; letter-spacing: -0.012em; }
+        .text-2xs-plus { font-size: 0.6875rem; letter-spacing: -0.012em; }
         :root {
             color-scheme: dark;
             --bg-base: #0f172a;
@@ -333,7 +333,7 @@
         .bookmark-title {
             font-size: 0.72rem;
             line-height: 1.25;
-            letter-spacing: -0.01em;
+            letter-spacing: -0.015em;
             text-align: center;
             word-break: break-all;
             display: -webkit-box;
