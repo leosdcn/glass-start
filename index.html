@@ -87,6 +87,7 @@
           './wallpapers/bg7.avif',
           './wallpapers/bg8.avif'
         ];
+        window.__BACKGROUNDS__ = backgrounds;
         try {
           const rawUserWp = localStorage.getItem('userWallpaper');
           let preloadUrl = '';
@@ -2086,7 +2087,7 @@
          * bg7.avif - 迷雾古堡 (1692x2560 2:3 竖屏) https://images.unsplash.com/photo-1518709268805-4e9042af9f23
          * bg8.avif - 梦幻流彩 (2560x1707 3:2 横屏) https://images.unsplash.com/photo-1550684848-fac1c5b4e853
          */
-        const backgrounds = [
+        const backgrounds = window.__BACKGROUNDS__ || [
             './wallpapers/bg1.avif',
             './wallpapers/bg2.avif',
             './wallpapers/bg3.avif',
