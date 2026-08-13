@@ -290,7 +290,7 @@
         .dropdown-menu.active { opacity:1; transform:translateY(0) scale(1) translateZ(0); pointer-events:auto; visibility:visible; transition:opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1), transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), visibility 0s; }
         @keyframes skeletonPulse { 0%, 100% { opacity: 0.25; } 50% { opacity: 0.55; } }
         .skeleton-pulse { animation: skeletonPulse 1.4s ease-in-out infinite; }
-        .clock-text { font-family: 'SF Pro Rounded', 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif; text-shadow: 0 4px 30px rgba(0,0,0,0.45), 0 0 60px rgba(0,0,0,0.25); }
+        .clock-text { font-family: 'SF Pro Rounded', 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif; font-variant-numeric: tabular-nums; -webkit-font-feature-settings: "tnum"; font-feature-settings: "tnum"; text-shadow: 0 4px 30px rgba(0,0,0,0.45), 0 0 60px rgba(0,0,0,0.25); }
         .clock-colon { display: inline-block; position: relative; top: -0.05em; animation: colonPulse 6s ease-in-out infinite; will-change: opacity; }
         @keyframes colonPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
         .nr .clock-colon { animation: none !important; opacity: 1 !important; }
@@ -905,15 +905,18 @@
             line-height: 1;
         }
         .kbd-key {
-            padding: 0.125rem 0.34375rem;
+            padding: 0.125rem 0.375rem;
             border-radius: 0.25rem;
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.15);
+            background: rgba(255, 255, 255, 0.12);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-bottom: 2px solid rgba(255, 255, 255, 0.35);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.25);
             font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
             font-size: 0.625rem;  /* 10px @ 16px base */
-            color: rgba(255, 255, 255, 0.75);
+            color: rgba(255, 255, 255, 0.85);
             line-height: 1;
             display: inline-block;
+            text-shadow: 0 1px 1px rgba(0, 0, 0, 0.4);
         }
         /* ===== 自定义重置确认弹窗（精细化 iOS/macOS 玻璃规范） ===== */
         .confirm-dialog-card {
@@ -5160,7 +5163,7 @@
                         <span class="flex items-center gap-1.5"><kbd class="kbd-key">↑</kbd><kbd class="kbd-key">↓</kbd> 切换</span>
                         <span class="flex items-center gap-1.5"><kbd class="kbd-key">↵</kbd> 选择/搜索</span>
                     </div>
-                    <span class="flex items-center gap-1.5"><kbd class="kbd-key">Alt / ⌥ + ↵</kbd> 新标签页打开</span>
+                    <span class="flex items-center gap-1.5"><kbd class="kbd-key">Cmd ⌘ / Alt + ↵</kbd> 新标签页打开</span>
                 </div>
             `;
 
