@@ -316,3 +316,34 @@ distFiles.forEach(file => {
 });
 console.log('\n💡 提示：部署时只需将 dist/ 文件夹下的内容上传至 GitHub Pages / Cloudflare Pages / NAS 即可！\n');
 
+// 监听模式 (--watch)
+if (process.argv.includes('--watch')) {
+    console.log('👀 开启文件修改自动构建监听模式 (Watch Mode)...');
+    console.log('   正在监听 index.html 与 bookmarks.json 的修改...\n');
+    let watchTimer = null;
+    const triggerRebuild = (filename) => {
+        if (watchTimer) clearTimeout(watchTimer);
+        watchTimer = setTimeout(() => {
+            console.log(`\n📝 [Watch] 检测到文件修改: ${filename}，正在重新增量编译 dist/ ...`);
+            try {
+                compileTailwindCss();
+                buildServiceWorker();
+                syncBookmarksData();
+                processProductionAppJs();
+                processProductionHtml();
+                console.log('   ✅ [Watch] 增量编译完成！');
+            } catch (err) {
+                console.error('   ❌ [Watch] 增量编译失败:', err.message || err);
+            }
+        }, 120);
+    };
+
+    if (fs.existsSync(PATHS.indexHtml)) {
+        fs.watch(PATHS.indexHtml, () => triggerRebuild('index.html'));
+    }
+    if (fs.existsSync(PATHS.bookmarksJson)) {
+        fs.watch(PATHS.bookmarksJson, () => triggerRebuild('bookmarks.json'));
+    }
+}
+
+

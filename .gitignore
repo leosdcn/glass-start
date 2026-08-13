@@ -4,4 +4,6 @@ dist/
 .temp_input.css
 .claude/
 test/.cache.json
+scratch/
+
 
