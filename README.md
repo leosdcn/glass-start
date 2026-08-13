@@ -8,7 +8,9 @@
 
 - 🪐 **Liquid Glass 物理高光与玻璃拟态**：采用 Apple HIG 规范的 1px 物理折射高光、微拟物触感反馈与 iOS 18 物理按压微缩放。
 - ⚡ **零开销双模式构建 (Dev vs Prod)**：开发模式使用 Tailwind v4 Browser CDN 随改随看；生产打包（`npm run build`）自动编译精简纯 CSS 并剥离 JS 编译脚本，实现秒开与 100% 离线使用。
+- ⚡ **`<head>` 零闪烁预加载恢复 (Pre-hydration)**：在 DOM 挂载前通过 `<head>` 内联脚本瞬间还原上次屏间位置、背景壁纸与遮罩模糊滤镜，消除刷新闪烁 (FOUC)。
 - 🛡️ **严格安全防护**：内置严格 Content Security Policy (CSP)、全面 XSS HTML 实体转义、`safeUrl` 协议白名单拦截（防 `javascript:` 注入）、JSONP 超时悬挂防爆防护。
+- ♿ **UI 弹窗栈管理与无障碍 Focus Trap**：基于 `OverlayStack` 管理全局弹窗与下拉菜单，弹窗激活时自动锁定 `Tab` 键焦点循环，按 `Esc` 键按后进先出 (LIFO) 顺序平滑逐层关闭。
 - 🚀 **图标高性能缓存**：内置 Service Worker (v9)，三池隔离（800+200配额）与 IndexedDB 真 LRU 淘汰，结合标准 CORS 模式彻底消除 Chrome 虚拟存储配额膨胀问题。
 
 ---
@@ -18,6 +20,7 @@
 ### 1. 屏间切换与导航交互
 - **顶部 / 右侧快捷按钮**：点击导航页顶部 Header 栏或右侧「向上滚动返回」胶囊按钮，可随时平滑切回首屏。
 - **滚轮 / 触摸屏滑动**：首屏向下滚动或滑屏可平滑切换至「导航页」；在导航页顶部向上滚动或滑屏可返回「起始页」。
+- **零闪烁状态记忆**：系统自动记录上次停留的屏间位置（`SessionStorage`），刷新页面时自动无闪烁恢复。
 - **键盘快捷键切换**：
   - 非输入状态下按 `PageDown` 或 `↓` 快速前往导航页。
   - 在导航页顶部按 `PageUp`、`Home` 或 `↑` 快速返回首屏。
@@ -25,20 +28,22 @@
 ### 2. 搜索与搜索引擎操作
 - **搜索引擎切换**：点击搜索框左侧引擎图标（支持 Bing、Google、DuckDuckGo、百度），在下拉菜单中快速切换。
 - **盲打自动聚焦**：在起始页非输入状态下，直接按下键盘上的任意字母/数字键，搜索框将自动获得焦点并输入。
-- **实时联想面板交互**：
-  - 输入关键词后自动拉取下拉建议词。
-  - 按 `↑` / `↓` 方向键可在联想建议词间上下循环挑选（按上/下超出范围时自动恢复原始输入内容）。
-  - 按 `Enter` 回车直接在当前页搜索。
-  - 按 `Alt + Enter` (Windows) 或 `Option + Enter` (Mac) 可在**新标签页**中打开搜索结果。
+- **中文拼音输入法 (IME) 保护**：输入中文时自动识别拼音合成状态（`compositionstart` / `compositionend`），避免选字过程中误触发搜索或拦截。
+- **混合联想与本地书签匹配**：
+  - 输入关键词后，下拉菜单同时拉取**搜索引擎建议词**与**本地快捷书签模糊匹配**（高亮显示图标）。
+  - 按 `↑` / `↓` 方向键可在联想建议词与本地匹配书签间上下循环挑选（按上/下超出范围时自动恢复原始输入内容）。
+  - 选中匹配的本地书签按 `Enter` 可直接跳转至目标网站。
+  - 按 `Enter` 回车直接在当前页搜索；按 `Alt + Enter` (Windows) 或 `Option + Enter` (Mac) 可在**新标签页**中打开搜索结果。
   - 按 `Esc` 键快速收起联想下拉框或取消搜索框焦点。
 
 ### 3. 壁纸与外观偏好设置
 - **一键轮播壁纸**：在非输入状态下按下快捷键 `Ctrl + B` (Windows) 或 `Cmd + B` (Mac)，可在线轮播内置的高清风光壁纸。
-- **自定义壁纸**：
+- **自定义壁纸与玻璃滤镜**：
   - 点击右下角齿轮设置按钮 ⚙️ ➔ 切换至「外观壁纸」Tab。
-  - 支持 **上传本地图片**（自动转存至浏览器本地存储）。
+  - 支持 **上传本地图片**（自动转换为 4K JPEG 存入 IndexedDB 数据库，打破 5MB 限制）。
   - 支持 **输入网络图片 URL 地址**。
   - 支持 **选择预设高清壁纸库**（精选 8 款系统经典壁纸）。
+  - 支持 **遮罩透明度 (0% ~ 80%)** 与 **高斯模糊强度 (0px ~ 20px)** 拖动条微调，实时预览并无闪烁保存。
   - 支持 **恢复默认壁纸**。
 
 ### 4. 快捷书签管理与拖拽排序
@@ -69,10 +74,11 @@
 npm run build
 ```
 构建过程会自动执行：
-1. **自动数据双向同步**：解析 `bookmarks.json` 最新数据，自动同步注入更新源码 `index.html` 与 `dist/index.html` 的 `DEFAULT_BOOKMARKS` 与 `DEFAULT_CATEGORIES` 数组（解决本地 `file://` 协议双击打开时因 CORS 拦截导致的降级书签不一致问题）。
-2. **Tailwind 静态编译**：调用 Tailwind CLI 扫描 `index.html` 生成精简 CSS。
-3. **HTML 脚本处理与 CSS 全量内嵌**：自动处理 `dist/index.html`，移除 v4 Browser CDN 脚本并将编译好的 CSS 全量内嵌为 `<style>` 标签（消除 `style.css` 渲染阻塞与网络 RTT 请求）。
-4. **资源复制**：将 `sw.js` 缓存脚本与 `wallpapers/` 壁纸资源目录全量复制至 `dist/` 目录（实现极简打包部署与 100% 离线支持）。
+1. **自动数据双向同步**：解析 `bookmarks.json` 最新数据，自动同步注入更新源码 `index.html` 的 `DEFAULT_BOOKMARKS` 与 `DEFAULT_CATEGORIES` 数组（解决本地 `file://` 协议双击打开时因 CORS 拦截导致的降级书签不一致问题）。
+2. **Tailwind 静态编译与 CSS 压缩**：调用 Tailwind CLI (`-m`) 扫描 `index.html` 编译并输出极致 Minify 压缩的 CSS 样式。
+3. **JS 逻辑提取与零依赖压缩**：从 `index.html` 提取 `<script id="main-script">` 主体逻辑，对默认书签 JSON 数据做紧凑序列化，并剥离注释与缩进（`minifyJs`）后独立输出为 `dist/app.js`。
+4. **HTML 结构精简与 CSS 全量内嵌**：自动处理 `dist/index.html`，移除 v4 Browser CDN 运行时脚本，将压缩好的 CSS 全量安全转义后内嵌至 `<style>` 标签（消除 `style.css` 渲染阻塞与网络 RTT 请求），替换内联脚本为外链 `app.js`，并执行零依赖 HTML 体积压缩（`minifyHtml`，剥离非功能性注释与冗余空白）。
+5. **静态资源全量复制**：将 `sw.js` 缓存脚本（自动更新版本号 `app-core-v<timestamp>`）、`wallpapers/` 壁纸资源目录及 `_headers` 配置文件全量复制至 `dist/` 目录（实现极简打包部署与 100% 离线支持）。
 
 **上线发布**：只需将生成的 **`dist/` 文件夹下的全部内容** 上传部署至 GitHub Pages、Cloudflare Pages、Vercel、Nginx 或 NAS 即可。
 
@@ -84,13 +90,13 @@ npm run build
 - **生产分支**：`main`（每次 push 自动触发部署）
 - **构建命令 (Build command)**：`npm run build`
 - **部署命令 (Deploy command)**：`npx wrangler deploy`
-- **静态资源目录**：`dist/`（通过根目录 `wrangler.jsonc` 的 `assets.directory = "dist"` 声明，仅上传 `index.html` + `sw.js` 两个产物，避免整仓上传超 25 MiB 限制）
+- **静态资源目录**：`dist/`（通过根目录 `wrangler.jsonc` 的 `assets.directory = "dist"` 声明，仅上传 `dist/` 产物，避免整仓上传超 25 MiB 限制）
 - **自定义域名**：`goldcoast.dpdns.org`
 - **回滚策略**：无需维护 dev 分支；回滚依赖频繁 commit（`git log` / `git reset`）与 Cloudflare 历史部署版本
 
 ### 2. 书签单点维护与 `desc` 撰写规范
 1. **修改/添加书签**：**只需要修改 `bookmarks.json` 一个文件即可**。
-   * **`desc` 简介副标题编写规范**（参见 [index.html#L1203](./index.html#L1203)）：
+   * **`desc` 简介副标题编写规范**（参见 [index.html#L1462](./index.html#L1462)）：
      - **字数限制**：推荐严格控制在 **6 ~ 10 个中文字符**（或 12 ~ 20 个英文字符）以内。
      - **布局与截断**：展示在导航卡片标题下方，窄屏或超长字符会自动触发单行截断（`truncate`）。
      - **内容准则**：精准概括网站核心定位，避免冗余修饰词（如 `全球领先AI对话模型`、`开源卡片式IP检测`）。
@@ -121,15 +127,14 @@ npm run build
 | **`index.html`** | **源码主入口** | 开发模式页面主入口。内置 Tailwind v4 Browser CDN，AI/开发者修改代码立即可见，零编译开销。 | **必须** |
 | **`bookmarks.json`** | **唯一数据源** | 唯一数据维护源。修改书签只需编辑此文件，运行 `npm run build` 会自动将书签同步注入 HTML。 | **推荐** |
 | **`sw.js`** | 缓存脚本 | Service Worker 独立脚本。专门用于在 HTTPS/localhost 环境下本地缓存 Favicon 网站图标与壁纸，提升加载速度。 | 推荐（缺失时不影响主流程运行） |
-| **`wallpapers/`** | **本地壁纸库** | 高清预设 WebP 壁纸目录（包含 bg1.webp ~ bg8.webp），由 `build.js` 自动打包至 `dist/` 实现全量离线可用。 | **必须** |
-| **`build.js`** | 打包脚本 | 生产构建 Node 脚本。运行 `npm run build` 自动同步书签数据、编译全量内嵌 CSS 并输出至 `dist/`。 | 工具脚本 |
+| **`wallpapers/`** | **本地壁纸库** | 高清预设 AVIF 壁纸目录（包含 bg1.avif ~ bg8.avif），由 `build.js` 自动打包至 `dist/` 实现全量离线可用。 | **必须** |
+| **`build.js`** | 打包脚本 | 生产构建 Node 脚本。运行 `npm run build` 自动同步书签数据、编译 CSS、提取 `app.js` 并输出至 `dist/`。 | 工具脚本 |
 | **`manifest.json`** | Web App 应用配置 | PWA 应用清单文件。配置应用名称、图标、启动 URL、主题颜色，支持添加至手机主屏幕与独立 Web App 运行。 | PWA 必需 |
-| **`icon.svg`** | 矢量图标 | 网站 Logo 与 PWA 图标源文件。采用 SVG 格式确保高清高分屏无损缩放。 | 图标资源 |
+| **`_headers`** | 部署响应头配置 | Cloudflare Pages HTTP 安全响应头与静态资源缓存控制配置文件。 | 部署配置 |
 | **`lint.mjs`** | 检查脚本 | Node 零依赖静态检查脚本。用于校验根目录核心 JS/HTML 语法与 JSON 配置文件合法性。 | 工具脚本 |
 | **`test/`** | **测试目录** | 端到端 UI 自动化测试目录。内含 10 个 CDP 浏览器自动化测试套件与 Web 调试服务器。 | 测试框架 |
-| **`TEST-REPORT.md`** | 测试文档 | 项目自动化测试覆盖率分析与完整功能验证报告。 | 运维文档 |
 | **`package.json`** | 项目配置 | Node 项目配置文件，提供 `npm run dev`、`npm run build`、`npm run lint` 与 `npm test` 命令。 | 配置文件 |
-| **`dist/`** | **生产输出** | `npm run build` 自动生成的生产构建目录。包含剥离 v4 Browser CDN 并精简 CSS 后的上线资源。 | 生产部署产物 |
+| **`dist/`** | **生产输出** | `npm run build` 自动生成的生产构建目录。包含剥离 v4 Browser CDN、内嵌 CSS 及外链 `app.js` 的上线资源。 | 生产部署产物 |
 | **`wrangler.jsonc`** | 部署配置 | Cloudflare Workers / Pages 部署配置，声明 `assets.directory = "dist"` 指定静态资源上传目录。 | Cloudflare 部署必需 |
 | `.gitignore` | 配置文档 | Git 版本控制忽略配置。 | 运维配置 |
 | **`README.md`** | 说明文档 | 本文档，记录项目架构、文件职责、运行机制及部署指南。 | 运维文档 |
@@ -214,7 +219,7 @@ add_header Content-Security-Policy "default-src 'self' data: blob: https:; scrip
 | **Service Worker** | 项目内组件 | `v9` | `sw.js` 头部注释；三池隔离 + IndexedDB LRU 缓存架构 |
 | **CORE_CACHE** | 缓存池版本 | `app-core-v<时间戳>` | `sw.js`；每次 `npm run build` 自动更新，强制客户端刷新旧缓存 |
 | **FAVICON_CACHE / IMG_CACHE** | 缓存池版本 | `v1` | `sw.js`；图标 / 本地图片独立缓存池 |
-| **Glass Start 站点版本** | 项目发布版本 | `v2.9.4` | `package.json` + `index.html` 页脚徽章 |
+| **Glass Start 站点版本** | 项目发布版本 | `v2.9.5` | `package.json` + `index.html` 页脚徽章 |
 
 **无版本号的外部服务**（非框架，版本由服务商维护，升级无需本项目介入）：
 - `a.favicon.im` — Favicon 图标 API
