@@ -45,6 +45,15 @@ async function pruneCache(cache, maxEntries) {
     } catch {}
 }
 
+function make503Response() {
+    return new Response('离线且无本地缓存', {
+        status: 503,
+        statusText: 'Service Unavailable',
+        headers: { 'Content-Type': 'text/plain; charset=utf-8' }
+    });
+}
+
+
 
 // 安装阶段
 self.addEventListener('install', e => {
@@ -96,11 +105,7 @@ self.addEventListener('fetch', e => {
                 const fallbackDoc = (await caches.match('./index.html')) || (await caches.match('/'));
                 if (fallbackDoc) return fallbackDoc;
 
-                return new Response('离线且无本地缓存', {
-                    status: 503,
-                    statusText: 'Service Unavailable',
-                    headers: { 'Content-Type': 'text/plain; charset=utf-8' }
-                });
+                return make503Response();
             })
         );
         return;
@@ -126,7 +131,7 @@ self.addEventListener('fetch', e => {
                 const netRes = await fetchPromise;
                 if (netRes) return netRes;
 
-                return new Response('离线且无本地缓存', { status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
+                return make503Response();
             })
         );
         return;
@@ -154,11 +159,7 @@ self.addEventListener('fetch', e => {
                     }
                     return netRes;
                 } catch {
-                    return new Response('离线且无本地缓存', {
-                        status: 503,
-                        statusText: 'Service Unavailable',
-                        headers: { 'Content-Type': 'text/plain; charset=utf-8' }
-                    });
+                    return make503Response();
                 }
             })
         );

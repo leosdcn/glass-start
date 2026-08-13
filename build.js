@@ -305,6 +305,8 @@ function processProductionHtml() {
 }
 processProductionHtml();
 
+
+
 console.log('\n✅ 生产打包成功！构建产物保存在 dist/ 目录下：');
 const distFiles = fs.readdirSync(PATHS.dist);
 distFiles.forEach(file => {
@@ -313,3 +315,4 @@ distFiles.forEach(file => {
     console.log(`   └─ dist/${file} (${kb} KB)`);
 });
 console.log('\n💡 提示：部署时只需将 dist/ 文件夹下的内容上传至 GitHub Pages / Cloudflare Pages / NAS 即可！\n');
+
