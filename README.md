@@ -65,8 +65,9 @@
 ### 1. 本地开发与生产部署 (Dev vs Prod)
 
 #### 本地开发模式 (Development)
-- 根目录 `index.html` 内置 **Tailwind v4 Browser CDN** 运行时脚本。
-- **无需任何编译命令**，双击 `index.html` 或运行 `npm run dev` 即可预览。AI 或开发者添加任何新 Tailwind 类名立即可见。
+- 运行 `npm run dev` 会自动构建打包并启动 `dist/` 预览服务 (`http://localhost:3000`)。默认服务静态编译后的产物，避免浏览器端 JIT 实时 DOM 扫描造成的 Chrome Helper CPU 100% 占用。
+- 在编辑源码 `index.html` 或 `bookmarks.json` 时，可在另一终端开启 `npm run watch` 文件增量修改监听，保存时自动秒级重建 `dist/` 产物。
+- 若直接双击根目录 `index.html`，页面仍内置 **Tailwind v4 Browser CDN** 运行时脚本，保持开箱即用。
 
 #### 生产环境打包上线 (Production)
 在需要部署到生产服务器或 GitHub Pages / Cloudflare Pages 时，运行打包命令：
@@ -133,7 +134,7 @@ npm run build
 | **`_headers`** | 部署响应头配置 | Cloudflare Pages HTTP 安全响应头与静态资源缓存控制配置文件。 | 部署配置 |
 | **`lint.mjs`** | 检查脚本 | Node 零依赖静态检查脚本。用于校验根目录核心 JS/HTML 语法与 JSON 配置文件合法性。 | 工具脚本 |
 | **`test/`** | **测试目录** | 端到端 UI 自动化测试目录。内含 10 个 CDP 浏览器自动化测试套件与 Web 调试服务器。 | 测试框架 |
-| **`package.json`** | 项目配置 | Node 项目配置文件，提供 `npm run dev`、`npm run build`、`npm run lint` 与 `npm test` 命令。 | 配置文件 |
+| **`package.json`** | 项目配置 | Node 项目配置文件，提供 `npm run dev`、`npm run watch`、`npm run build`、`npm run lint` 与 `npm test` 命令。 | 配置文件 |
 | **`dist/`** | **生产输出** | `npm run build` 自动生成的生产构建目录。包含剥离 v4 Browser CDN、内嵌 CSS 及外链 `app.js` 的上线资源。 | 生产部署产物 |
 | **`wrangler.jsonc`** | 部署配置 | Cloudflare Workers / Pages 部署配置，声明 `assets.directory = "dist"` 指定静态资源上传目录。 | Cloudflare 部署必需 |
 | `.gitignore` | 配置文档 | Git 版本控制忽略配置。 | 运维配置 |
