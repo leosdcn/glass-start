@@ -793,12 +793,7 @@
             transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.2s ease, border-color 0.2s ease;
         }
         #engineBtn .engine-icon {
-            transform-origin: center center;
-            transition: transform 0.12s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.1s ease;
-        }
-        .engine-icon-switching {
-            opacity: 0 !important;
-            transform: scale(0.65) rotate(-12deg) !important;
+            transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
         }
         #engineBtn svg {
             transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease;
@@ -4721,19 +4716,8 @@
             dom.engineName.textContent = engineObj.name;
             if (dom.engineIcon) {
                 dom.engineIcon.style.display = '';
-                if (dom.engineIcon.src !== engineObj.icon && !dom.engineIcon.classList.contains('engine-icon-switching')) {
-                    dom.engineIcon.classList.add('engine-icon-switching');
-                    dom.engineIcon.src = engineObj.icon;
-                    dom.engineIcon.alt = `当前引擎：${engineObj.name}`;
-                    setTimeout(() => {
-                        requestAnimationFrame(() => {
-                            dom.engineIcon.classList.remove('engine-icon-switching');
-                        });
-                    }, 35);
-                } else {
-                    dom.engineIcon.src = engineObj.icon;
-                    dom.engineIcon.alt = `当前引擎：${engineObj.name}`;
-                }
+                dom.engineIcon.src = engineObj.icon;
+                dom.engineIcon.alt = `当前引擎：${engineObj.name}`;
             }
             if (dom.dropdownMenu) {
                 dom.dropdownMenu.querySelectorAll('[role="menuitemradio"]').forEach(btn => {
