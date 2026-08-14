@@ -316,7 +316,7 @@ distFiles.forEach(file => {
     const kb = (stat.size / 1024).toFixed(2);
     console.log(`   └─ dist/${file} (${kb} KB)`);
 });
-console.log('\n💡 提示：部署时只需将 dist/ 文件夹下的内容上传至 GitHub Pages / Cloudflare Pages / NAS 即可！\n');
+console.log('\n💡 提示：部署时只需将 dist/ 文件夹下的内容上传至 GitHub Pages / Cloudflare Pages 即可！\n');
 
 // 监听模式 (--watch)
 if (process.argv.includes('--watch')) {

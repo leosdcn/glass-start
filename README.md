@@ -81,7 +81,7 @@ npm run build
 4. **HTML 结构精简与 CSS 全量内嵌**：自动处理 `dist/index.html`，移除 v4 Browser CDN 运行时脚本，将压缩好的 CSS 全量安全转义后内嵌至 `<style>` 标签（消除 `style.css` 渲染阻塞与网络 RTT 请求），替换内联脚本为外链 `app.js`，并执行零依赖 HTML 体积压缩（`minifyHtml`，剥离非功能性注释与冗余空白）。
 5. **静态资源全量复制**：将 `sw.js` 缓存脚本（自动更新版本号 `app-core-v<timestamp>`）、`wallpapers/` 壁纸资源目录及 `_headers` 配置文件全量复制至 `dist/` 目录（实现极简打包部署与 100% 离线支持）。
 
-**上线发布**：只需将生成的 **`dist/` 文件夹下的全部内容** 上传部署至 GitHub Pages、Cloudflare Pages、Vercel、Nginx 或 NAS 即可。
+**上线发布**：只需将生成的 **`dist/` 文件夹下的全部内容** 上传部署至 GitHub Pages、Cloudflare Pages、Vercel 或 Nginx 即可。
 
 #### Cloudflare Pages / Workers 自动部署 (推荐)
 
@@ -190,7 +190,7 @@ npm run build
 
 ### 4. HTTP 生产安全响应头最佳实践配置 (Security Headers Guide)
 
-在部署至 Cloudflare Pages、Nginx、Caddy、Vercel 或 NAS Web 服务器时，推荐配置以下 HTTP 安全响应标头（符合 Web Security / Lighthouse 最高安全合规等级）：
+在部署至 Cloudflare Pages、Nginx、Caddy 或 Vercel 等 Web 服务器时，推荐配置以下 HTTP 安全响应标头（符合 Web Security / Lighthouse 最高安全合规等级）：
 
 ```nginx
 # 1. 强制 HTTPS 传输 (HSTS, Strict-Transport-Security)
