@@ -186,6 +186,10 @@
             --tint-18: rgba(255, 255, 255, 0.18);
             --radius: 1.5rem;
             --blur: 24px;
+            --z-dropdown: 150;
+            --z-modal: 1000;
+            --z-picker: 2000;
+            --z-alert: 9999;
         }
         html, body { background-color: var(--bg-base); }
         body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Nunito', sans-serif; /* 优先 Apple 原生系统字体栈 */
@@ -982,19 +986,19 @@
         /* ===== 导航页书签网格自适应流式排版 =====
            采用 auto-fill + minmax(14rem, 1fr) 弹性自适应布局，确保单张卡片具有充足的最小宽度，彻底杜绝 4K 及大屏下内容挤压截断
         */
-        #navCategories .grid {
+        .nav-bookmark-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(13.5rem, 1fr));
             gap: 0.625rem;
         }
         @media (min-width: 768px) {
-            #navCategories .grid {
+            .nav-bookmark-grid {
                 grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
                 gap: 0.75rem;
             }
         }
         @media (max-width: 480px) {
-            #navCategories .grid {
+            .nav-bookmark-grid {
                 grid-template-columns: repeat(2, minmax(0, 1fr));
                 gap: 0.5rem;
             }
@@ -1104,7 +1108,7 @@
                     </button>
                 </div>
                 <!-- 搜索实时建议联想下拉框 (Spotlight 高颜值全宽样式) -->
-                <div id="suggestionMenu" role="listbox" aria-label="搜索建议" aria-hidden="true" class="dropdown-menu absolute top-full left-0 right-0 w-full mt-3.5 sm:mt-4 glass-strong apple-radius p-2 border border-white/20 shadow-2xl z-[150]"></div>
+                <div id="suggestionMenu" role="listbox" aria-label="搜索建议" aria-hidden="true" class="dropdown-menu absolute top-full left-0 right-0 w-full mt-3.5 sm:mt-4 glass-strong apple-radius p-2 border border-white/20 shadow-2xl z-[var(--z-dropdown)]"></div>
             </div>
 
             <!-- 快捷书签 -->
@@ -1168,7 +1172,7 @@
     </button>
 
     <!-- 编辑与设置弹窗 (Apple 风格 Tab 分栏设置面板) -->
-    <div id="editModal" role="dialog" aria-modal="true" aria-hidden="true" hidden aria-label="设置与偏好" class="edit-overlay fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-[1000]">
+    <div id="editModal" role="dialog" aria-modal="true" aria-hidden="true" hidden aria-label="设置与偏好" class="edit-overlay fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-[var(--z-modal)]">
         <div class="glass-strong apple-radius w-full max-w-xl sm:max-w-2xl md:max-w-3xl lg:max-w-4xl mx-4 min-h-[60dvh] max-h-[90dvh] sm:h-[40rem] flex flex-col p-5 sm:p-6 shadow-2xl overflow-hidden">
             <!-- 弹窗 Header -->
             <div class="flex items-center justify-between mb-3.5 pb-2.5 border-b border-white/10 shrink-0">
@@ -1370,7 +1374,7 @@
     </div><!-- /#editModal -->
 
     <!-- 从导航页选择弹窗 -->
-    <div id="bookmarkPicker" role="dialog" aria-modal="true" aria-hidden="true" hidden aria-label="从导航页选择书签" class="edit-overlay fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-[2000]">
+    <div id="bookmarkPicker" role="dialog" aria-modal="true" aria-hidden="true" hidden aria-label="从导航页选择书签" class="edit-overlay fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-[var(--z-picker)]">
         <div class="glass-strong apple-radius pt-4 pb-3 px-4 w-full max-w-2xl xl:max-w-3xl 2xl:max-w-4xl mx-4 max-h-[85vh] flex flex-col shadow-2xl">
             <div class="flex items-center justify-between mb-2 pb-1.5 border-b border-white/10 shrink-0">
                 <h3 class="text-base font-medium tracking-wide text-white/80">从导航页选择</h3>
@@ -1386,7 +1390,7 @@
 
     <!-- 自定义确认弹窗（替代原生 confirm()，保持玻璃风格一致） -->
     <div id="confirmModal" role="alertdialog" aria-modal="true" aria-hidden="true" hidden aria-labelledby="confirmTitle"
-         class="edit-overlay fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-[9999]">
+         class="edit-overlay fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-[var(--z-alert)]">
         <div class="confirm-dialog-card">
             <div class="size-11 rounded-full bg-red-500/15 border border-red-500/30 flex items-center justify-center mb-3 text-red-400 shrink-0">
                 <svg class="size-5.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -3819,7 +3823,7 @@
                         </div>
                         <span class="text-2xs font-medium px-2.5 py-0.5 rounded-full bg-white/10 text-white/60 border border-white/15 tracking-wide shrink-0">${cat.bookmarks.length} 项</span>
                     </div>
-                    <div class="grid gap-2.5 md:gap-3">
+                    <div class="nav-bookmark-grid">
                         ${sortedBookmarks.map(bm => `
                             <a href="${safeUrl(bm.url)}" target="_blank" rel="noopener noreferrer"
                                class="nav-bookmark group flex items-center gap-2.5 px-3 py-2.5 md:px-3.5 md:py-2.5 apple-radius text-white/80 hover:text-white">
