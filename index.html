@@ -971,13 +971,26 @@
 
         #searchClearBtn {
             display: inline-flex;
-            transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.2s ease, color 0.2s ease;
+            align-items: center;
+            justify-content: center;
+            opacity: 1;
+            transform: scale(1);
+            visibility: visible;
+            pointer-events: auto;
+            transition: opacity 0.18s cubic-bezier(0.16, 1, 0.3, 1), transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.15s ease, color 0.15s ease, visibility 0.18s ease;
         }
         #searchClearBtn.hidden {
-            display: none !important;
+            display: inline-flex !important;
+            opacity: 0 !important;
+            transform: scale(0.65) !important;
+            visibility: hidden !important;
+            pointer-events: none !important;
+        }
+        .nr #searchClearBtn {
+            transition: none !important;
         }
         #searchClearBtn svg {
-            transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+            transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1);
         }
         #searchClearBtn:hover {
             transform: scale(1.05);
@@ -985,10 +998,10 @@
             color: rgba(255, 255, 255, 0.95);
         }
         #searchClearBtn:hover svg {
-            transform: scale(1.1);
+            transform: scale(1.15);
         }
         #searchClearBtn:active {
-            transform: scale(0.92);
+            transform: scale(0.9) !important;
             background-color: rgba(255, 255, 255, 0.22);
         }
         .suggestion-item {
@@ -1139,6 +1152,32 @@
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
         }
 
+        .settings-tab-panel:not(.hidden) {
+            animation: tabFadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        @keyframes tabFadeIn {
+            from {
+                opacity: 0.3;
+                transform: translateY(4px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .nr .settings-tab-panel:not(.hidden) {
+            animation: none !important;
+            opacity: 1 !important;
+            transform: none !important;
+        }
+
+        .picker-item {
+            transition: background-color 0.15s ease, opacity 0.2s ease, transform 0.1s var(--ease-snappy);
+        }
+        .picker-item:active {
+            transform: scale(0.97);
+        }
+
         .json-dropzone.drag-over {
             background: var(--tint-12);
             border-color: rgba(255, 255, 255, 0.45);
@@ -1159,6 +1198,7 @@
             border: 1px solid rgb(var(--danger) / 0.35);
             border-radius: 0.75rem;
             color: rgba(254, 202, 202, 0.95);
+            transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.1s var(--ease-snappy);
         }
         @media (hover: hover) and (pointer: fine) {
             .danger-zone-btn:hover {
@@ -1166,6 +1206,10 @@
                 border-color: rgb(var(--danger) / 0.55);
                 color: #ffffff;
             }
+        }
+        .danger-zone-btn:active {
+            transform: scale(0.96) !important;
+            transition: transform 0.08s var(--ease-snappy) !important;
         }
         /* 无障碍：降低透明度 (Prefers Reduced Transparency - iOS 26/27 Liquid Glass 规范) */
         @media (prefers-reduced-transparency: reduce) {
@@ -3328,6 +3372,10 @@
             if (document.activeElement && dom.bookmarkPicker.contains(document.activeElement)) {
                 document.activeElement.blur();
             }
+            if (pickerFaviconObserver) {
+                try { pickerFaviconObserver.disconnect(); } catch {}
+                pickerFaviconObserver = null;
+            }
             animateHideModal(dom.bookmarkPicker);
         }
 
@@ -3624,7 +3672,7 @@
             `;
             }).join('');
             updatePickerCount();
-            initFaviconObserver();
+            initPickerFaviconObserver();
         }
 
         /**
@@ -3854,6 +3902,41 @@
                 });
             } else {
                 document.querySelectorAll('#navCategories img.lazy-icon[data-src]').forEach(img => {
+                    if (img.dataset.src) {
+                        img.src = img.dataset.src;
+                        delete img.dataset.src;
+                    }
+                });
+            }
+        }
+
+        let pickerFaviconObserver = null;
+        function initPickerFaviconObserver() {
+            if (pickerFaviconObserver) {
+                try { pickerFaviconObserver.disconnect(); } catch {}
+            }
+            const container = dom.pickerContent || document.getElementById('pickerContent');
+            if (!container) return;
+
+            if ('IntersectionObserver' in window) {
+                pickerFaviconObserver = new IntersectionObserver((entries, observer) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting && entry.target.dataset.src) {
+                            const img = entry.target;
+                            enqueueLazyIcon(img);
+                            observer.unobserve(img);
+                        }
+                    });
+                }, {
+                    root: container,
+                    rootMargin: '120px 0px 120px 0px'
+                });
+
+                container.querySelectorAll('img.lazy-icon[data-src]').forEach(img => {
+                    pickerFaviconObserver.observe(img);
+                });
+            } else {
+                container.querySelectorAll('img.lazy-icon[data-src]').forEach(img => {
                     if (img.dataset.src) {
                         img.src = img.dataset.src;
                         delete img.dataset.src;
