@@ -1436,13 +1436,13 @@
                 </div>
             </div>
 
-            <!-- 底部通用 Save/Cancel 按键栏 (响应式右对齐 + 高亮白晶 Primary CTA) -->
+            <!-- 底部通用 Save/Cancel 按键栏 (响应式右对齐 + 柔和通透 Glass Primary CTA) -->
             <div class="flex items-center justify-end gap-3 mt-3 pt-3 border-t border-white/10 shrink-0">
                 <button id="cancelEditBtn" type="button" class="flex-1 sm:flex-initial py-2.5 px-5 rounded-xl text-xs sm:text-sm font-normal text-white/60 hover:text-white hover:bg-white/10 transition-[background-color,color,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50">取消</button>
-                <button id="saveEditBtn" type="button" class="flex-1 sm:flex-initial py-2.5 px-6 rounded-xl text-xs sm:text-sm font-semibold text-slate-900 bg-white/90 hover:bg-white active:scale-[0.98] shadow-[0_4px_16px_rgba(255,255,255,0.22),inset_0_1px_0_rgba(255,255,255,1)] hover:shadow-[0_6px_20px_rgba(255,255,255,0.32)] transition-[background-color,box-shadow,transform] duration-150 inline-flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:opacity-50 disabled:cursor-not-allowed">
-                <svg class="spinner size-4 animate-spin hidden" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
-                <span class="btn-label">保存并关闭</span>
-            </button>
+                <button id="saveEditBtn" type="button" class="flex-1 sm:flex-initial py-2.5 px-6 rounded-xl text-xs sm:text-sm font-medium text-white bg-white/20 hover:bg-white/30 border border-white/25 hover:border-white/40 shadow-[0_2px_8px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.25)] active:scale-[0.98] transition-[background-color,border-color,box-shadow,transform] duration-150 inline-flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <svg class="spinner size-4 animate-spin hidden" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
+                    <span class="btn-label">保存并关闭</span>
+                </button>
             </div>
         </div>
     </div><!-- /#editModal -->
@@ -1457,7 +1457,7 @@
             <div id="pickerContent" class="flex-1 overflow-y-auto min-h-0 space-y-3"></div>
             <div class="flex items-center justify-between mt-3 pt-2 border-t border-white/10 shrink-0">
                 <span id="pickerCount" class="glass-badge">已添加 0 项</span>
-                <button id="donePickerBtn" type="button" class="py-2 px-6 bg-white/90 hover:bg-white text-slate-900 shadow-[0_4px_16px_rgba(255,255,255,0.22),inset_0_1px_0_rgba(255,255,255,1)] hover:shadow-[0_6px_20px_rgba(255,255,255,0.32)] rounded-xl active:scale-[0.98] transition-[background-color,box-shadow,transform] duration-150 text-xs sm:text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">完成</button>
+                <button id="donePickerBtn" type="button" class="py-2 px-6 bg-white/20 hover:bg-white/30 text-white border border-white/25 hover:border-white/40 shadow-[0_2px_8px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.25)] rounded-xl active:scale-[0.98] transition-[background-color,border-color,box-shadow,transform] duration-150 text-xs sm:text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60">完成</button>
             </div>
         </div>
     </div><!-- /#bookmarkPicker -->
