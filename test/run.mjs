@@ -4,6 +4,24 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
 
+// 终端高颜值排版与彩色工具
+const isTTY = process.stdout.isTTY && !process.env.NO_COLOR;
+const c = {
+    reset: isTTY ? '\x1b[0m' : '',
+    bold: isTTY ? '\x1b[1m' : '',
+    dim: isTTY ? '\x1b[2m' : '',
+    cyan: isTTY ? '\x1b[36m' : '',
+    green: isTTY ? '\x1b[32m' : '',
+    yellow: isTTY ? '\x1b[33m' : '',
+    red: isTTY ? '\x1b[31m' : '',
+    gray: isTTY ? '\x1b[90m' : '',
+};
+
+const LINE_WIDTH = 72;
+const HR_DOUBLE = '═'.repeat(LINE_WIDTH);
+const HR_SINGLE = '─'.repeat(LINE_WIDTH);
+
+const startTime = Date.now();
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const rootDir = join(__dirname, '..');
 const cacheFile = join(__dirname, '.cache.json');
@@ -48,16 +66,20 @@ if (!force && existsSync(cacheFile)) {
   }
 }
 
+console.log(`\n${c.cyan}${HR_DOUBLE}${c.reset}`);
+console.log(`${c.bold}${c.cyan}🧪 Glass Start — 自动化端到端与架构综合测试套件 (Test Suite)${c.reset}`);
+console.log(`${c.cyan}${HR_DOUBLE}${c.reset}\n`);
+
 // 扫描所有 test/*.test.mjs
 let files = readdirSync(__dirname).filter(f => f.endsWith('.test.mjs')).sort();
 
 if (pattern) {
   files = files.filter(f => f.toLowerCase().includes(pattern.toLowerCase()));
-  console.log(`🔍 匹配模式 "${pattern}": 找到 ${files.length} 个测试文件`);
+  console.log(`${c.cyan}🔍 匹配过滤模式 "${pattern}": 找到 ${files.length} 个测试文件${c.reset}\n`);
 }
 
 if (files.length === 0) {
-  console.log('未找到匹配的测试文件');
+  console.log(`${c.yellow}⚠️ 未找到匹配的测试文件${c.reset}\n`);
   process.exit(0);
 }
 
@@ -78,25 +100,26 @@ for (const f of files) {
 }
 
 if (skipped.length > 0) {
-  console.log(`⚡ [缓存命中] 跳过 ${skipped.length} 个未修改测试:`);
+  console.log(`${c.yellow}⚡ [缓存命中]${c.reset} 跳过 ${skipped.length} 个未修改测试文件:`);
   for (const s of skipped) {
-    console.log(`  ✔ ${s} (cached)`);
+    console.log(`  ${c.green}✔${c.reset} ${c.dim}${s} (cached)${c.reset}`);
   }
+  console.log('');
 }
 
 if (toRun.length === 0) {
-  console.log(`\n✨ 所有 ${files.length} 个测试文件均命中缓存通过！(耗时 <10ms)`);
+  console.log(`${c.gray}${HR_DOUBLE}${c.reset}`);
+  console.log(`${c.green}${c.bold}✨ 全部 ${files.length} 个测试文件均命中缓存通过！${c.reset}${c.dim} (耗时: <10ms)${c.reset}`);
+  console.log(`${c.gray}${HR_DOUBLE}${c.reset}\n`);
   process.exit(0);
 }
 
-console.log(`\n🚀 准备运行 ${toRun.length} 个待测文件...`);
-
-// 执行构建
+// 执行预构建
 if (!skipBuildArg) {
-  console.log('▶ npm run build (同步 bookmarks 并重建 dist)');
+  console.log(`${c.cyan}▶ 执行生产预构建 (npm run build)...${c.reset}`);
   const buildResult = spawnSync('npm', ['run', 'build'], { cwd: rootDir, stdio: 'inherit' });
   if (buildResult.status !== 0) {
-    console.error('✗ 构建失败，终止测试');
+    console.error(`\n${c.red}❌ 构建失败，已终止测试套件执行${c.reset}\n`);
     process.exit(1);
   }
 }
@@ -116,11 +139,13 @@ let failedCount = 0;
 
 async function runQueue() {
   let index = 0;
+  const activeWorkers = Math.min(CONCURRENCY, toRun.length);
+  console.log(`\n${c.cyan}─── 🚀 运行待测套件清单 (待测: ${toRun.length} 项, 并发数: ${activeWorkers}) ${'─'.repeat(Math.max(4, LINE_WIDTH - 50))}${c.reset}`);
   
   async function worker() {
     while (index < toRun.length) {
       const item = toRun[index++];
-      console.log(`\n▸ [Running] ${item.filename}`);
+      console.log(`\n${c.bold}${c.cyan}▸ [Running] ${item.filename}${c.reset}`);
       
       const code = await new Promise((resolve) => {
         const child = spawn('node', [join(__dirname, item.filename)], {
@@ -133,22 +158,29 @@ async function runQueue() {
       if (code === 0) {
         cache[item.filename] = item.hash;
         saveCache();
-        console.log(`  ✅ ${item.filename} 通过`);
+        console.log(`  ${c.green}✅ ${item.filename} 通过${c.reset}`);
       } else {
         failedCount++;
         delete cache[item.filename];
         saveCache();
-        console.error(`  ❌ ${item.filename} 失败 (exit ${code})`);
+        console.error(`  ${c.red}❌ ${item.filename} 失败 (exit ${code})${c.reset}`);
       }
     }
   }
 
-  const workers = Array.from({ length: Math.min(CONCURRENCY, toRun.length) }, () => worker());
+  const workers = Array.from({ length: activeWorkers }, () => worker());
   await Promise.all(workers);
 }
 
 await runQueue();
 
-console.log(`\n=== 测试完成: ${files.length - failedCount - skipped.length}/${toRun.length} 个运行项通过，${skipped.length} 个命中缓存 ===`);
-process.exit(failedCount ? 1 : 0);
+const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
+console.log(`\n${c.gray}${HR_DOUBLE}${c.reset}`);
+if (failedCount === 0) {
+  console.log(`${c.green}${c.bold}✨ 全部测试套件通过！${c.reset}${c.dim} (${toRun.length}/${toRun.length} 运行项通过, ${skipped.length} 命中缓存, 总耗时: ${elapsed}s)${c.reset}`);
+} else {
+  console.log(`${c.red}${c.bold}❌ 测试未通过！${c.reset}${c.dim} (${failedCount} 项失败, ${toRun.length - failedCount} 项通过, 总耗时: ${elapsed}s)${c.reset}`);
+}
+console.log(`${c.gray}${HR_DOUBLE}${c.reset}\n`);
 
+process.exit(failedCount ? 1 : 0);

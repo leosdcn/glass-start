@@ -4,11 +4,30 @@ const path = require('path');
 const { exec } = require('child_process');
 const os = require('os');
 
+// 终端高颜值排版与彩色工具
+const isTTY = process.stdout.isTTY && !process.env.NO_COLOR;
+const c = {
+    reset: isTTY ? '\x1b[0m' : '',
+    bold: isTTY ? '\x1b[1m' : '',
+    dim: isTTY ? '\x1b[2m' : '',
+    cyan: isTTY ? '\x1b[36m' : '',
+    green: isTTY ? '\x1b[32m' : '',
+    yellow: isTTY ? '\x1b[33m' : '',
+    red: isTTY ? '\x1b[31m' : '',
+    gray: isTTY ? '\x1b[90m' : '',
+    magenta: isTTY ? '\x1b[35m' : '',
+};
+
+const LINE_WIDTH = 72;
+const HR_DOUBLE = '═'.repeat(LINE_WIDTH);
+const HR_SINGLE = '─'.repeat(LINE_WIDTH);
+
 let targetPort = parseInt(process.env.PORT || '3000', 10);
 const DIST_DIR = path.join(__dirname, 'dist');
 
 if (!fs.existsSync(DIST_DIR)) {
-    console.error('❌ dist 目录不存在，请先运行 npm run build 构建。');
+    console.error(`\n${c.red}${c.bold}❌ 错误: dist 目录不存在${c.reset}`);
+    console.error(`   请先在项目根目录运行 ${c.cyan}npm run build${c.reset} 完成生产编译。\n`);
     process.exit(1);
 }
 
@@ -98,19 +117,23 @@ function startListening(port) {
 
     server.listen(port, '0.0.0.0', () => {
         const lanIps = getLanIps();
-        console.log('\n✨ Glass Start 本地局域网服务器已就绪！\n');
-        console.log('-------------------------------------------------------');
-        console.log(`  💻 本机访问:    http://localhost:${port}`);
-        console.log(`  🔗 本地备用:    http://127.0.0.1:${port}`);
+        console.log(`\n${c.cyan}${HR_DOUBLE}${c.reset}`);
+        console.log(`${c.bold}${c.cyan}🚀 Glass Start — 本地开发与局域网预览服务${c.reset}`);
+        console.log(`${c.cyan}${HR_DOUBLE}${c.reset}\n`);
+
+        console.log(`  ${c.green}➜${c.reset}  ${c.bold}本机访问:${c.reset}    ${c.cyan}http://localhost:${port}/${c.reset}`);
+        console.log(`  ${c.green}➜${c.reset}  ${c.bold}本地回环:${c.reset}    ${c.cyan}http://127.0.0.1:${port}/${c.reset}`);
         if (lanIps.length > 0) {
-            console.log(`  📱 局域网访问:  http://${lanIps[0]}:${port}`);
+            console.log(`  ${c.green}➜${c.reset}  ${c.bold}局域网访问:${c.reset}  ${c.green}${c.bold}http://${lanIps[0]}:${port}/${c.reset}`);
             if (lanIps.length > 1) {
-                console.log(`  🌐 其他网卡:    ${lanIps.slice(1).map(ip => `http://${ip}:${port}`).join(', ')}`);
+                console.log(`  ${c.green}➜${c.reset}  ${c.bold}其它网卡:${c.reset}    ${lanIps.slice(1).map(ip => `${c.cyan}http://${ip}:${port}/${c.reset}`).join(', ')}`);
             }
         }
-        console.log('-------------------------------------------------------');
-        console.log('  💡 同一 Wi-Fi / 局域网下的手机、平板或其他设备可直接访问上述局域网地址。');
-        console.log('  🛑 停止服务请按: Ctrl + C\n');
+
+        console.log(`\n${c.gray}─── 💡 快速提示 ${'─'.repeat(LINE_WIDTH - 16)}${c.reset}`);
+        console.log(`  • 局域网设备 (手机 / 平板) 连接同一 Wi-Fi 后即可直接访问上述局域网地址`);
+        console.log(`  • 停止本地服务请按: ${c.yellow}Ctrl + C${c.reset}`);
+        console.log(`${c.gray}${HR_DOUBLE}${c.reset}\n`);
 
         // 仅在服务确已 listen 成功并能接收请求时，才自动唤起浏览器
         if (process.env.AUTO_OPEN !== '0') {
@@ -127,10 +150,10 @@ function startListening(port) {
 
     server.on('error', (err) => {
         if (err.code === 'EADDRINUSE') {
-            console.warn(`⚠️ 端口 ${port} 已被占用，正在尝试端口 ${port + 1}...`);
+            console.warn(`  ${c.yellow}⚠️ 端口 ${port} 已被占用，正在尝试端口 ${port + 1}...${c.reset}`);
             startListening(port + 1);
         } else {
-            console.error('❌ 服务器启动出错:', err);
+            console.error(`\n${c.red}${c.bold}❌ 服务器启动出错:${c.reset}`, err);
             process.exit(1);
         }
     });

@@ -8,10 +8,70 @@ const { execSync } = require('child_process');
  * ==============================================================================
  * 📌 设计原理与架构改进 (Senior Architect Refactoring):
  * 1. 【模块化管线封装】：拆分为自检、样式编译、SW更新、数据同步与HTML终化等高内聚模块。
- * 2. 【进程退出清理钩子】：注册 process exit / SIGINT 钩子，确保临时输入文件 100% 擦除。
- * 3. 【强壮正则匹配】：提升 DEFAULT_* 默认书签数组替换正则的格式容错度（支持单行/多行/极简压缩）。
- * 4. 【完整日志与诊断】：保持原始脚本极为丰富的控制台交互日志与分步骤 KB 体积统计。
+ * 2. 【现代化控制台排版】：提供分步横向分隔线、ANSI 彩色高亮、清晰树形产物清单与毫秒级耗时统计。
+ * 3. 【进程退出清理钩子】：注册 process exit / SIGINT 钩子，确保临时输入文件 100% 擦除。
+ * 4. 【强壮正则匹配】：提升 DEFAULT_* 默认书签数组替换正则的格式容错度（支持单行/多行/极简压缩）。
+ * 5. 【优雅降级压缩】：JS 压缩优先调用 esbuild AST 编译器，未安装时平滑降级至零依赖正则压缩。
  */
+
+// 终端高颜值排版与彩色工具
+const isTTY = process.stdout.isTTY && !process.env.NO_COLOR;
+const c = {
+    reset: isTTY ? '\x1b[0m' : '',
+    bold: isTTY ? '\x1b[1m' : '',
+    dim: isTTY ? '\x1b[2m' : '',
+    cyan: isTTY ? '\x1b[36m' : '',
+    green: isTTY ? '\x1b[32m' : '',
+    yellow: isTTY ? '\x1b[33m' : '',
+    blue: isTTY ? '\x1b[34m' : '',
+    magenta: isTTY ? '\x1b[35m' : '',
+    gray: isTTY ? '\x1b[90m' : '',
+};
+
+const LINE_WIDTH = 72;
+const HR_DOUBLE = '═'.repeat(LINE_WIDTH);
+const HR_SINGLE = '─'.repeat(LINE_WIDTH);
+
+/**
+ * 计算终端文本实际视觉展示宽度（兼容中文字符与 Emoji 占位）
+ */
+function getVisualWidth(str) {
+    const clean = str.replace(/\x1b\[[0-9;]*m/g, '');
+    let width = 0;
+    for (const ch of clean) {
+        const code = ch.codePointAt(0);
+        if (code >= 0xFE00 && code <= 0xFE0F) continue; // Variation Selectors
+        if (code === 0x200D) continue; // Zero-width Joiner
+        if (code > 0x7f) {
+            width += 2;
+        } else {
+            width += 1;
+        }
+    }
+    return width;
+}
+
+/**
+ * 打印带横行分隔符的构建阶段标题
+ */
+function logSection(step, title) {
+    const prefix = `─── [${step}] ${title} `;
+    const visualLen = getVisualWidth(prefix);
+    const fillLen = Math.max(4, LINE_WIDTH - visualLen);
+    const trailingLine = '─'.repeat(fillLen);
+    console.log(`\n${c.cyan}─── [${step}] ${title} ${c.gray}${trailingLine}${c.reset}`);
+}
+
+/**
+ * 打印阶段子步骤项
+ */
+function logItem(msg, status = 'ok') {
+    const icon = status === 'ok' ? `${c.green}✔${c.reset}`
+               : status === 'warn' ? `${c.yellow}⚠${c.reset}`
+               : status === 'info' ? `${c.cyan}ℹ${c.reset}`
+               : `${c.green}✅${c.reset}`;
+    console.log(`  ${icon} ${msg}`);
+}
 
 // 路径常量定义
 const PATHS = {
@@ -43,65 +103,6 @@ function cleanupTempFiles() {
 process.on('exit', cleanupTempFiles);
 process.on('SIGINT', () => { cleanupTempFiles(); process.exit(1); });
 
-console.log('🚀 开始生产环境构建打包 (Glass Start)...');
-
-// 1. 确保 dist 目录存在并清空旧构建产物
-if (fs.existsSync(PATHS.dist)) {
-    fs.rmSync(PATHS.dist, { recursive: true, force: true });
-}
-fs.mkdirSync(PATHS.dist, { recursive: true });
-
-// 1.1 构建前依赖自检
-function checkTailwindInstalled() {
-    const pkgJsonPath = path.join(PATHS.root, 'node_modules', 'tailwindcss', 'package.json');
-    try {
-        return !!(require(pkgJsonPath).version);
-    } catch {
-        return false;
-    }
-}
-
-if (!checkTailwindInstalled()) {
-    console.error('❌ 未检测到 Tailwind CSS 依赖 (node_modules/tailwindcss)。');
-    console.error('');
-    console.error('   请在项目根目录先安装依赖（包含 devDependencies 中的 tailwindcss）：');
-    console.error('');
-    console.error('       npm install');
-    console.error('');
-    console.error('   若已安装过仍报此错，可尝试删除 node_modules 后重新安装：');
-    console.error('');
-    console.error('       rm -rf node_modules && npm install');
-    console.error('');
-    console.error('   💡 提示：从 GitHub 下载的 ZIP 或新克隆的仓库不包含 node_modules，需先执行上述安装步骤。');
-    cleanupTempFiles();
-    process.exit(1);
-}
-
-// 2. 编译 Tailwind CSS (v4 CLI)
-function compileTailwindCss() {
-    fs.writeFileSync(PATHS.tempCss, '@import "tailwindcss";\n@source "./index.html";\n', 'utf-8');
-    const distStyleCss = path.join(PATHS.dist, 'style.css');
-
-    try {
-        console.log('📦 正在扫描 HTML 并编译精简 CSS 样式表 (Tailwind CLI)...');
-        execSync(`npx -y @tailwindcss/cli@4 -i "${PATHS.tempCss}" -o "${distStyleCss}" -m`, {
-            stdio: 'inherit'
-        });
-    } catch (err) {
-        console.error('❌ Tailwind CSS 编译失败:', err.message || err);
-        if (/can't resolve 'tailwindcss'|cannot find module 'tailwindcss'|module not found/i.test(String(err.message || ''))) {
-            console.error('');
-            console.error('   💡 提示：未能从项目目录解析到 tailwindcss 依赖包。');
-            console.error('      请先在项目根目录执行 `npm install`，或删除 node_modules 后重新安装再试。');
-        }
-        cleanupTempFiles();
-        process.exit(1);
-    } finally {
-        cleanupTempFiles();
-    }
-}
-compileTailwindCss();
-
 // 引入 esbuild 编译器（具备优雅降级能力）
 let esbuild;
 try {
@@ -121,7 +122,7 @@ function minifyJsCode(jsCode, filename = 'script.js') {
             });
             return result.code;
         } catch (e) {
-            console.warn(`   ⚠️ esbuild 压缩 ${filename} 时出现警告，自动回退到基础正则压缩:`, e.message);
+            logItem(`esbuild 压缩 ${filename} 时出现警告，自动回退到基础正则压缩: ${e.message}`, 'warn');
         }
     }
     return jsCode
@@ -133,43 +134,7 @@ function minifyJsCode(jsCode, filename = 'script.js') {
         .join('\n');
 }
 
-// 3. 处理并复制 Service Worker 底座脚本
-function buildServiceWorker() {
-    console.log('📑 编译 Service Worker 缓存版本 (sw.js)...');
-    if (fs.existsSync(PATHS.sw)) {
-        let swContent = fs.readFileSync(PATHS.sw, 'utf-8');
-        const timestampVersion = 'app-core-v' + Date.now();
-        swContent = swContent.replace(/const\s+(CORE_CACHE|CACHE)\s*=\s*['"][^'"]+['"];/, `const CORE_CACHE = '${timestampVersion}';`);
-        fs.writeFileSync(path.join(PATHS.dist, 'sw.js'), swContent, 'utf-8');
-        console.log(`   ✅ Service Worker 缓存版本已自动为 dist/sw.js 更新为: ${timestampVersion}`);
-    }
-}
-buildServiceWorker();
-
-// 3.1 复制 wallpapers 本地壁纸目录、_headers、manifest.json 及 PNG 图标资产
-function copyStaticAssets() {
-    if (fs.existsSync(PATHS.wallpapers)) {
-        fs.cpSync(PATHS.wallpapers, path.join(PATHS.dist, 'wallpapers'), { recursive: true });
-        console.log('   ✅ 已将 wallpapers/ 壁纸资源目录全量复制至 dist/wallpapers/');
-    }
-    if (fs.existsSync(PATHS.headers)) {
-        fs.copyFileSync(PATHS.headers, path.join(PATHS.dist, '_headers'));
-        console.log('   ✅ 已将 Cloudflare Pages _headers 配置文件复制至 dist/_headers');
-    }
-    const rootAssets = ['manifest.json', 'apple-touch-icon.png'];
-    rootAssets.forEach(asset => {
-        const srcPath = path.join(PATHS.root, asset);
-        if (fs.existsSync(srcPath)) {
-            fs.copyFileSync(srcPath, path.join(PATHS.dist, asset));
-        }
-    });
-    console.log('   ✅ 已将 PWA manifest.json 与 Apple Touch Icon 高清图标同步至 dist/');
-}
-copyStaticAssets();
-
-/**
- * 4. 自动数据双向同步机制 (Auto-Sync bookmarks.json -> index.html DEFAULT_CATEGORIES / DEFAULT_BOOKMARKS)
- */
+// 格式化 JS 数组对象供源码替换
 function formatJsObject(obj, indent = 8) {
     const jsonStr = JSON.stringify(obj, null, 4);
     return jsonStr
@@ -178,13 +143,94 @@ function formatJsObject(obj, indent = 8) {
         .join('\n');
 }
 
+// 1.1 构建前依赖自检
+function checkTailwindInstalled() {
+    const pkgJsonPath = path.join(PATHS.root, 'node_modules', 'tailwindcss', 'package.json');
+    try {
+        return !!(require(pkgJsonPath).version);
+    } catch {
+        return false;
+    }
+}
+
+// 1.2 准备 dist 目录
+function initDistDir() {
+    if (fs.existsSync(PATHS.dist)) {
+        fs.rmSync(PATHS.dist, { recursive: true, force: true });
+    }
+    fs.mkdirSync(PATHS.dist, { recursive: true });
+}
+
+// 2. 编译 Tailwind CSS (v4 CLI)
+function compileTailwindCss() {
+    logSection('1/5', '📦 编译 Tailwind CSS 样式表 (v4 CLI)');
+    fs.writeFileSync(PATHS.tempCss, '@import "tailwindcss";\n@source "./index.html";\n', 'utf-8');
+    const distStyleCss = path.join(PATHS.dist, 'style.css');
+
+    try {
+        const cssStart = Date.now();
+        execSync(`npx -y @tailwindcss/cli@4 -i "${PATHS.tempCss}" -o "${distStyleCss}" -m`, {
+            stdio: 'pipe'
+        });
+        const cssDuration = Date.now() - cssStart;
+        const cssKb = (fs.statSync(distStyleCss).size / 1024).toFixed(2);
+        logItem(`扫描 index.html 完成，原子化 CSS 静态编译就绪 (${cssKb} KB, 耗时 ${cssDuration}ms)`);
+    } catch (err) {
+        console.error(`\n  ${c.yellow}❌ Tailwind CSS 编译失败:${c.reset}`, err.message || err);
+        if (/can't resolve 'tailwindcss'|cannot find module 'tailwindcss'|module not found/i.test(String(err.message || ''))) {
+            console.error('');
+            console.error('   💡 提示：未能从项目目录解析到 tailwindcss 依赖包。');
+            console.error('      请先在项目根目录执行 `npm install`，或删除 node_modules 后重新安装再试。');
+        }
+        cleanupTempFiles();
+        process.exit(1);
+    } finally {
+        cleanupTempFiles();
+    }
+}
+
+// 3. 处理并复制 Service Worker 底座脚本与静态资产
+function buildServiceWorkerAndAssets() {
+    logSection('2/5', '📑 构建 Service Worker 与静态资产 (sw.js & assets)');
+    
+    // 3.1 Service Worker
+    if (fs.existsSync(PATHS.sw)) {
+        let swContent = fs.readFileSync(PATHS.sw, 'utf-8');
+        const timestampVersion = 'app-core-v' + Date.now();
+        swContent = swContent.replace(/const\s+(CORE_CACHE|CACHE)\s*=\s*['"][^'"]+['"];/, `const CORE_CACHE = '${timestampVersion}';`);
+        fs.writeFileSync(path.join(PATHS.dist, 'sw.js'), swContent, 'utf-8');
+        logItem(`Service Worker 缓存版本已更新: ${c.cyan}${timestampVersion}${c.reset}`);
+    }
+
+    // 3.2 静态资产同步
+    if (fs.existsSync(PATHS.wallpapers)) {
+        fs.cpSync(PATHS.wallpapers, path.join(PATHS.dist, 'wallpapers'), { recursive: true });
+        const wpCount = fs.readdirSync(PATHS.wallpapers).length;
+        logItem(`壁纸资源目录已全量复制 (${wpCount} 个文件) 至 dist/wallpapers/`);
+    }
+    if (fs.existsSync(PATHS.headers)) {
+        fs.copyFileSync(PATHS.headers, path.join(PATHS.dist, '_headers'));
+        logItem('Cloudflare Pages _headers 配置文件已复制至 dist/_headers');
+    }
+    const rootAssets = ['manifest.json', 'apple-touch-icon.png'];
+    rootAssets.forEach(asset => {
+        const srcPath = path.join(PATHS.root, asset);
+        if (fs.existsSync(srcPath)) {
+            fs.copyFileSync(srcPath, path.join(PATHS.dist, asset));
+        }
+    });
+    logItem('PWA manifest.json 与 Apple Touch Icon 高清图标已同步至 dist/');
+}
+
+// 4. 自动数据双向同步机制 (Auto-Sync bookmarks.json -> index.html DEFAULT_CATEGORIES / DEFAULT_BOOKMARKS)
 function syncBookmarksData() {
-    console.log('🔄 正在同步 bookmarks.json 数据至 index.html 内置默认回退数组 (DEFAULT_BOOKMARKS & DEFAULT_CATEGORIES)...');
+    logSection('3/5', '🔄 同步书签默认数据 (bookmarks.json -> index.html)');
 
     if (fs.existsSync(PATHS.bookmarksJson)) {
         try {
             const bookmarksData = JSON.parse(fs.readFileSync(PATHS.bookmarksJson, 'utf-8'));
             const targetFiles = [PATHS.indexHtml].filter(f => fs.existsSync(f));
+            let totalUpdated = 0;
 
             for (const file of targetFiles) {
                 let content = fs.readFileSync(file, 'utf-8');
@@ -212,21 +258,25 @@ function syncBookmarksData() {
 
                 if (updatedCount > 0) {
                     fs.writeFileSync(file, content, 'utf-8');
-                    console.log(`   ✅ 源码 ${path.basename(file)} 内置默认数据已自动与 bookmarks.json 保持 100% 同步！`);
+                    totalUpdated += updatedCount;
                 }
             }
+
+            if (totalUpdated > 0) {
+                logItem(`源码 index.html 内置默认数据已更新并与 bookmarks.json 保持同步`);
+            } else {
+                logItem(`源码 index.html 内置默认数据已是最新 (与 bookmarks.json 保持 100% 同步)`);
+            }
         } catch (e) {
-            console.warn('   ⚠️ 自动同步默认书签时出现警告（未影响主体打包流程）:', e.message);
+            logItem(`自动同步默认书签时出现警告: ${e.message}`, 'warn');
         }
     }
 }
-syncBookmarksData();
 
 // 4.9 从 index.html 提取主体 JS 并处理生成生产环境 dist/app.js (单行无损紧凑压缩默认数据)
-let cachedAppJsContent = '';
 function processProductionAppJs() {
     if (!fs.existsSync(PATHS.indexHtml)) return;
-    console.log('⚡️ 正在从 index.html 提取主体逻辑并生成生产环境 dist/app.js 与内联脚本...');
+    logSection('4/5', '⚡ 提取并压缩生产脚本 (dist/app.js)');
     const htmlContent = fs.readFileSync(PATHS.indexHtml, 'utf-8');
     const mainScriptMatch = htmlContent.match(/<script\s+id="main-script"[^>]*>([\s\S]*?)<\/script>/i);
     
@@ -248,22 +298,20 @@ function processProductionAppJs() {
                 const minCat = JSON.stringify(bookmarksData.categories);
                 appJsContent = safeReplaceJsVariable(appJsContent, 'DEFAULT_CATEGORIES', minCat);
             }
-            console.log('   ✅ 已完成生产环境 dist/app.js 默认书签数据的紧凑压缩');
+            logItem('已完成生产环境 dist/app.js 默认书签数据紧凑压缩');
         } catch {}
     }
 
     appJsContent = minifyJsCode(appJsContent, 'app.js');
-    cachedAppJsContent = appJsContent;
     const appJsKb = (Buffer.byteLength(appJsContent, 'utf-8') / 1024).toFixed(2);
-    console.log(`   ⚡️ 已完成生产环境 dist/app.js 标准 AST 压缩 (${appJsKb} KB)`);
+    logItem(`生产环境 dist/app.js AST 安全压缩完成 (${appJsKb} KB)`);
 
     fs.writeFileSync(path.join(PATHS.dist, 'app.js'), appJsContent, 'utf-8');
 }
-processProductionAppJs();
 
 // 5. 处理生产环境 index.html (替换内联 JS 为外链 dist/app.js，全量内嵌静态编译 Tailwind CSS)
 function processProductionHtml() {
-    console.log('🔧 处理生产环境 index.html (剥离内联 JS 转换为 app.js 外链，全量内嵌 Tailwind CSS)...');
+    logSection('5/5', '🔧 处理生产环境页面 (dist/index.html)');
     let prodHtmlContent = fs.readFileSync(PATHS.indexHtml, 'utf-8');
 
     // 5.0 将 index.html 中的 <script id="main-script"> 替换为外链 <script src="./app.js" defer></script>
@@ -279,7 +327,7 @@ function processProductionHtml() {
         // 🛡️ 安全防御：避免 CSS 内容（如 content: "</style>"）意外转义提前闭合 HTML <style> 标签引发 XSS/页面崩溃
         cssContent = cssContent.replace(/<\/style>/gi, '\\3c/style>');
         const cssKb = (fs.statSync(distCssPath).size / 1024).toFixed(2);
-        console.log(`   ✅ 已提取静态编译 CSS (${cssKb} KB) 并进行防注入安全转义，准备全量内嵌至 dist/index.html`);
+        logItem(`全量内嵌静态 Tailwind CSS (${cssKb} KB，已完成防注入安全转义)`);
         fs.unlinkSync(distCssPath);
     }
 
@@ -340,7 +388,7 @@ function processProductionHtml() {
             return `script-src ${cleanDomains};`;
         }
     );
-    console.log('   🛡️ 已完成生产环境 CSP 策略优化（剔除已废弃的 CDN 域名）');
+    logItem('已完成生产环境 CSP 策略优化 (剔除冗余 CDN 域名)');
 
     // 5.3 自动转译应用图标（现代浏览器使用原生 🪐 SVG Data URI，Safari/iOS 使用标准 180x180 PNG）
     const iconDataUrl = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🪐%3C/text%3E%3C/svg%3E";
@@ -362,41 +410,111 @@ function processProductionHtml() {
         return (prefix + minified).trim();
     }
     prodHtmlContent = minifyHtml(prodHtmlContent);
-    console.log('   ⚡️ 已完成生产环境 dist/index.html 零依赖 HTML 压缩');
+    const htmlKb = (Buffer.byteLength(prodHtmlContent, 'utf-8') / 1024).toFixed(2);
+    logItem(`生产环境 dist/index.html 零依赖压缩完成 (${htmlKb} KB)`);
 
     fs.writeFileSync(path.join(PATHS.dist, 'index.html'), prodHtmlContent, 'utf-8');
 }
-processProductionHtml();
 
+// 6. 打印构建成功产物清单与耗时汇总
+function printDistSummary(startTime) {
+    const elapsed = Date.now() - startTime;
+    console.log(`\n${c.gray}${HR_DOUBLE}${c.reset}`);
+    console.log(`${c.green}${c.bold}✨ 生产打包成功！${c.reset}${c.dim} (总耗时: ${elapsed}ms)${c.reset}\n`);
+    console.log(`${c.cyan}📁 dist/ 构建产物清单:${c.reset}`);
 
+    const files = fs.readdirSync(PATHS.dist).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
 
-console.log('\n✅ 生产打包成功！构建产物保存在 dist/ 目录下：');
-const distFiles = fs.readdirSync(PATHS.dist);
-distFiles.forEach(file => {
-    const stat = fs.statSync(path.join(PATHS.dist, file));
-    const kb = (stat.size / 1024).toFixed(2);
-    console.log(`   └─ dist/${file} (${kb} KB)`);
-});
-console.log('\n💡 提示：部署时只需将 dist/ 文件夹下的内容上传至 GitHub Pages / Cloudflare Pages 即可！\n');
+    let totalBytes = 0;
+    const items = files.map(file => {
+        const fullPath = path.join(PATHS.dist, file);
+        const stat = fs.statSync(fullPath);
+        const isDir = stat.isDirectory();
+        let size = stat.size;
+        if (isDir) {
+            try {
+                const subFiles = fs.readdirSync(fullPath);
+                size = subFiles.reduce((acc, sub) => acc + fs.statSync(path.join(fullPath, sub)).size, 0);
+            } catch {}
+        }
+        totalBytes += size;
+        const kbStr = (size / 1024).toFixed(2) + ' KB';
+        const displayName = isDir ? `${file}/ (目录)` : file;
+        return { displayName, kbStr };
+    });
+
+    const maxNameLen = Math.max(...items.map(it => it.displayName.length), 20);
+
+    items.forEach((item, index) => {
+        const isLast = index === items.length - 1;
+        const branch = isLast ? '└──' : '├──';
+        const paddedName = item.displayName.padEnd(maxNameLen + 2, ' ');
+        const paddedSize = item.kbStr.padStart(10, ' ');
+        console.log(`  ${c.gray}${branch}${c.reset} ${c.bold}${paddedName}${c.reset}${c.cyan}${paddedSize}${c.reset}`);
+    });
+
+    const totalKbStr = (totalBytes / 1024).toFixed(2) + ' KB';
+    console.log(`\n  ${c.dim}总大小: ${totalKbStr} | 产物目录: dist/${c.reset}`);
+    console.log(`\n${c.yellow}💡 部署提示:${c.reset} 部署时只需将 ${c.bold}dist/${c.reset} 文件夹下的内容上传至 GitHub Pages / Cloudflare Pages 即可！`);
+    console.log(`${c.gray}${HR_DOUBLE}${c.reset}\n`);
+}
+
+// 主构建入口流程
+function main() {
+    const startTime = Date.now();
+
+    console.log(`\n${c.cyan}${HR_DOUBLE}${c.reset}`);
+    console.log(`${c.bold}${c.cyan}🚀 Glass Start — 生产环境构建打包 (Production Build)${c.reset}`);
+    console.log(`${c.cyan}${HR_DOUBLE}${c.reset}`);
+
+    if (!checkTailwindInstalled()) {
+        console.error(`\n${c.yellow}❌ 未检测到 Tailwind CSS 依赖 (node_modules/tailwindcss)。${c.reset}`);
+        console.error('');
+        console.error('   请在项目根目录先安装依赖（包含 devDependencies 中的 tailwindcss）：');
+        console.error('');
+        console.error(`       ${c.bold}npm install${c.reset}`);
+        console.error('');
+        console.error('   若已安装过仍报此错，可尝试删除 node_modules 后重新安装：');
+        console.error('');
+        console.error(`       ${c.bold}rm -rf node_modules && npm install${c.reset}`);
+        console.error('');
+        console.error('   💡 提示：从 GitHub 下载的 ZIP 或新克隆的仓库不包含 node_modules，需先执行上述安装步骤。');
+        cleanupTempFiles();
+        process.exit(1);
+    }
+
+    initDistDir();
+    compileTailwindCss();
+    buildServiceWorkerAndAssets();
+    syncBookmarksData();
+    processProductionAppJs();
+    processProductionHtml();
+
+    printDistSummary(startTime);
+}
+
+main();
 
 // 监听模式 (--watch)
 if (process.argv.includes('--watch')) {
-    console.log('👀 开启文件修改自动构建监听模式 (Watch Mode)...');
-    console.log('   正在监听 index.html 与 bookmarks.json 的修改...\n');
+    console.log(`\n${c.yellow}👀 开启文件修改自动构建监听模式 (Watch Mode)...${c.reset}`);
+    console.log(`   ${c.dim}正在监听 index.html 与 bookmarks.json 的修改...${c.reset}\n`);
     let watchTimer = null;
     const triggerRebuild = (filename) => {
         if (watchTimer) clearTimeout(watchTimer);
         watchTimer = setTimeout(() => {
-            console.log(`\n📝 [Watch] 检测到文件修改: ${filename}，正在重新增量编译 dist/ ...`);
+            console.log(`\n${c.magenta}📝 [Watch] 检测到文件修改: ${filename}，正在重新增量编译 dist/ ...${c.reset}`);
             try {
+                const rebuildStart = Date.now();
                 compileTailwindCss();
-                buildServiceWorker();
+                buildServiceWorkerAndAssets();
                 syncBookmarksData();
                 processProductionAppJs();
                 processProductionHtml();
-                console.log('   ✅ [Watch] 增量编译完成！');
+                const rebuildDuration = Date.now() - rebuildStart;
+                console.log(`  ${c.green}✔ [Watch] 增量编译完成！(耗时: ${rebuildDuration}ms)${c.reset}\n`);
             } catch (err) {
-                console.error('   ❌ [Watch] 增量编译失败:', err.message || err);
+                console.error(`  ${c.yellow}❌ [Watch] 增量编译失败:${c.reset}`, err.message || err);
             }
         }, 120);
     };
@@ -408,5 +526,3 @@ if (process.argv.includes('--watch')) {
         fs.watch(PATHS.bookmarksJson, () => triggerRebuild('bookmarks.json'));
     }
 }
-
-
