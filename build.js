@@ -146,7 +146,7 @@ function buildServiceWorker() {
 }
 buildServiceWorker();
 
-// 3.1 复制 wallpapers 本地壁纸目录与 _headers 配置文件
+// 3.1 复制 wallpapers 本地壁纸目录、_headers、manifest.json 及 PNG 图标资产
 function copyStaticAssets() {
     if (fs.existsSync(PATHS.wallpapers)) {
         fs.cpSync(PATHS.wallpapers, path.join(PATHS.dist, 'wallpapers'), { recursive: true });
@@ -156,6 +156,14 @@ function copyStaticAssets() {
         fs.copyFileSync(PATHS.headers, path.join(PATHS.dist, '_headers'));
         console.log('   ✅ 已将 Cloudflare Pages _headers 配置文件复制至 dist/_headers');
     }
+    const rootAssets = ['manifest.json', 'apple-touch-icon.png'];
+    rootAssets.forEach(asset => {
+        const srcPath = path.join(PATHS.root, asset);
+        if (fs.existsSync(srcPath)) {
+            fs.copyFileSync(srcPath, path.join(PATHS.dist, asset));
+        }
+    });
+    console.log('   ✅ 已将 PWA manifest.json 与 Apple Touch Icon 高清图标同步至 dist/');
 }
 copyStaticAssets();
 
@@ -334,10 +342,10 @@ function processProductionHtml() {
     );
     console.log('   🛡️ 已完成生产环境 CSP 策略优化（剔除已废弃的 CDN 域名）');
 
-    // 5.3 自动转译与内嵌应用图标为 Data URI (使用原生 🪐 SVG 图标)
+    // 5.3 自动转译应用图标（现代浏览器使用原生 🪐 SVG Data URI，Safari/iOS 使用标准 180x180 PNG）
     const iconDataUrl = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🪐%3C/text%3E%3C/svg%3E";
-    prodHtmlContent = prodHtmlContent.replace(/<link\s+[^>]*rel=["']icon["'][^>]*>/i, () => `<link rel="icon" href="${iconDataUrl}">`);
-    prodHtmlContent = prodHtmlContent.replace(/<link\s+[^>]*rel=["']apple-touch-icon["'][^>]*>/i, () => `<link rel="apple-touch-icon" href="${iconDataUrl}">`);
+    prodHtmlContent = prodHtmlContent.replace(/<link\s+[^>]*rel=["']icon["'][^>]*>/i, () => `<link rel="icon" type="image/svg+xml" href="${iconDataUrl}">`);
+    prodHtmlContent = prodHtmlContent.replace(/<link\s+[^>]*rel=["']apple-touch-icon["'][^>]*>/i, () => `<link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png">`);
 
     // 5.4 生产环境 HTML 零依赖极致压缩（清除 HTML 注释与多余空白缩进，保护 <style> 与 <script> 块）
     function minifyHtml(htmlStr) {

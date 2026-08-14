@@ -269,12 +269,6 @@
                     "desc": "微软企业级云平台"
                 },
                 {
-                    "name": "Railway",
-                    "url": "https://railway.app",
-                    "icon": "https://a.favicon.im/railway.app",
-                    "desc": "云端极速应用部署平台"
-                },
-                {
                     "name": "Vercel",
                     "url": "https://vercel.com",
                     "icon": "https://a.favicon.im/vercel.com",
@@ -323,6 +317,12 @@
                     "desc": "全球多语种即时互译"
                 },
                 {
+                    "name": "iCloud",
+                    "url": "https://www.icloud.com",
+                    "icon": "https://a.favicon.im/icloud.com",
+                    "desc": "苹果官方云端服务"
+                },
+                {
                     "name": "MEGA",
                     "url": "https://mega.nz",
                     "icon": "https://a.favicon.im/mega.nz",
@@ -333,12 +333,6 @@
                     "url": "https://www.notion.so",
                     "icon": "https://a.favicon.im/notion.so",
                     "desc": "一体化笔记与知识库"
-                },
-                {
-                    "name": "Obsidian",
-                    "url": "https://obsidian.md",
-                    "icon": "https://a.favicon.im/obsidian.md",
-                    "desc": "本地双链知识库笔记"
                 },
                 {
                     "name": "OneDrive",
@@ -393,12 +387,6 @@
                     "url": "https://www.figma.com",
                     "icon": "https://a.favicon.im/figma.com",
                     "desc": "云端协同 UI 设计工具"
-                },
-                {
-                    "name": "Fontshare",
-                    "url": "https://www.fontshare.com",
-                    "icon": "https://a.favicon.im/fontshare.com",
-                    "desc": "免费商用高品质字体库"
                 },
                 {
                     "name": "Lucide Icons",
