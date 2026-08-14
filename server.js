@@ -121,12 +121,12 @@ function startListening(port) {
         console.log(`${c.bold}${c.cyan}🚀 Glass Start — 本地开发与局域网预览服务${c.reset}`);
         console.log(`${c.cyan}${HR_DOUBLE}${c.reset}\n`);
 
-        console.log(`  ${c.green}➜${c.reset}  💻 ${c.bold}本机访问:${c.reset}    ${c.cyan}http://localhost:${port}/${c.reset}`);
-        console.log(`  ${c.green}➜${c.reset}  🔗 ${c.bold}本地回环:${c.reset}    ${c.cyan}http://127.0.0.1:${port}/${c.reset}`);
+        console.log(`  💻 ${c.bold}本机访问:${c.reset}    ${c.cyan}http://localhost:${port}/${c.reset}`);
+        console.log(`  🔗 ${c.bold}本地回环:${c.reset}    ${c.cyan}http://127.0.0.1:${port}/${c.reset}`);
         if (lanIps.length > 0) {
-            console.log(`  ${c.green}➜${c.reset}  📱 ${c.bold}局域网访问:${c.reset}  ${c.green}${c.bold}http://${lanIps[0]}:${port}/${c.reset}`);
+            console.log(`  📱 ${c.bold}局域网访问:${c.reset}  ${c.green}${c.bold}http://${lanIps[0]}:${port}/${c.reset}`);
             if (lanIps.length > 1) {
-                console.log(`  ${c.green}➜${c.reset}  🌐 ${c.bold}其它网卡:${c.reset}    ${lanIps.slice(1).map(ip => `${c.cyan}http://${ip}:${port}/${c.reset}`).join(', ')}`);
+                console.log(`  🌐 ${c.bold}其它网卡:${c.reset}    ${lanIps.slice(1).map(ip => `${c.cyan}http://${ip}:${port}/${c.reset}`).join(', ')}`);
             }
         }
 
