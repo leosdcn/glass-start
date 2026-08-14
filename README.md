@@ -220,7 +220,7 @@ add_header Content-Security-Policy "default-src 'self' data: blob: https:; scrip
 | **Service Worker** | 项目内组件 | `v9` | `sw.js` 头部注释；三池隔离 + IndexedDB LRU 缓存架构 |
 | **CORE_CACHE** | 缓存池版本 | `app-core-v<时间戳>` | `sw.js`；每次 `npm run build` 自动更新，强制客户端刷新旧缓存 |
 | **FAVICON_CACHE / IMG_CACHE** | 缓存池版本 | `v1` | `sw.js`；图标 / 本地图片独立缓存池 |
-| **Glass Start 站点版本** | 项目发布版本 | `v2.9.6` | `package.json` + `index.html` 页脚徽章 |
+| **Glass Start 站点版本** | 项目发布版本 | `v2.9.7` | `package.json` + `index.html` 页脚徽章 |
 
 **无版本号的外部服务**（非框架，版本由服务商维护，升级无需本项目介入）：
 - `a.favicon.im` — Favicon 图标 API
