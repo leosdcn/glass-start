@@ -383,6 +383,12 @@
                     "desc": "极速配色方案在线生成"
                 },
                 {
+                    "name": "EmojiAll",
+                    "url": "https://www.emojiall.com/zh-hans",
+                    "icon": "https://a.favicon.im/emojiall.com",
+                    "desc": "Emoji 字典与符号库"
+                },
+                {
                     "name": "Figma",
                     "url": "https://www.figma.com",
                     "icon": "https://a.favicon.im/figma.com",
@@ -395,22 +401,28 @@
                     "desc": "现代极简矢量图标库"
                 },
                 {
-                    "name": "Simple Icons",
-                    "url": "https://simpleicons.org",
-                    "icon": "https://a.favicon.im/simpleicons.org",
-                    "desc": "开源品牌矢量图标库"
-                },
-                {
                     "name": "Pexels",
                     "url": "https://www.pexels.com",
                     "icon": "https://a.favicon.im/pexels.com",
                     "desc": "免费高质量素材图库"
                 },
                 {
+                    "name": "Pinterest",
+                    "url": "https://www.pinterest.com",
+                    "icon": "https://a.favicon.im/pinterest.com",
+                    "desc": "视觉灵感与画板收集"
+                },
+                {
                     "name": "Pixiv",
                     "url": "https://www.pixiv.net",
                     "icon": "https://a.favicon.im/pixiv.net",
                     "desc": "二次元插画艺术社区"
+                },
+                {
+                    "name": "Simple Icons",
+                    "url": "https://simpleicons.org",
+                    "icon": "https://a.favicon.im/simpleicons.org",
+                    "desc": "开源品牌矢量图标库"
                 },
                 {
                     "name": "Unsplash",

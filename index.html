@@ -229,9 +229,20 @@
             border-radius: 0.75rem;
             overflow: hidden;
             isolation: isolate;
+            contain: paint;
+            background-color: rgba(255, 255, 255, 0.05);
             border: 1px solid rgba(255, 255, 255, 0.15);
-            transition: border-color 0.2s var(--ease-spring), box-shadow 0.2s var(--ease-spring), transform 0.2s var(--ease-spring);
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            transition: border-color 0.25s var(--ease-spring), box-shadow 0.25s var(--ease-spring), transform 0.12s var(--ease-snappy);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.15);
+            transform: translateZ(0);
+        }
+        .preset-bg-card img {
+            opacity: 0;
+            transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1), transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            will-change: transform, opacity;
+        }
+        .preset-bg-card img.loaded {
+            opacity: 1;
         }
         .preset-bg-card span {
             border-bottom-left-radius: calc(0.75rem - 1px);
@@ -239,8 +250,11 @@
         }
         @media (hover: hover) and (pointer: fine) {
             .preset-bg-card:hover {
-                border-color: rgba(255, 255, 255, 0.5);
-                transform: translateY(-2px);
+                border-color: rgba(255, 255, 255, 0.55);
+                box-shadow: 0 8px 16px -2px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.15);
+            }
+            .preset-bg-card:hover img {
+                transform: scale(1.06);
             }
         }
         .preset-bg-card:active {
@@ -1938,6 +1952,12 @@
                         "desc": "极速配色方案在线生成"
                     },
                     {
+                        "name": "EmojiAll",
+                        "url": "https://www.emojiall.com/zh-hans",
+                        "icon": "https://a.favicon.im/emojiall.com",
+                        "desc": "Emoji 字典与符号库"
+                    },
+                    {
                         "name": "Figma",
                         "url": "https://www.figma.com",
                         "icon": "https://a.favicon.im/figma.com",
@@ -1950,22 +1970,28 @@
                         "desc": "现代极简矢量图标库"
                     },
                     {
-                        "name": "Simple Icons",
-                        "url": "https://simpleicons.org",
-                        "icon": "https://a.favicon.im/simpleicons.org",
-                        "desc": "开源品牌矢量图标库"
-                    },
-                    {
                         "name": "Pexels",
                         "url": "https://www.pexels.com",
                         "icon": "https://a.favicon.im/pexels.com",
                         "desc": "免费高质量素材图库"
                     },
                     {
+                        "name": "Pinterest",
+                        "url": "https://www.pinterest.com",
+                        "icon": "https://a.favicon.im/pinterest.com",
+                        "desc": "视觉灵感与画板收集"
+                    },
+                    {
                         "name": "Pixiv",
                         "url": "https://www.pixiv.net",
                         "icon": "https://a.favicon.im/pixiv.net",
                         "desc": "二次元插画艺术社区"
+                    },
+                    {
+                        "name": "Simple Icons",
+                        "url": "https://simpleicons.org",
+                        "icon": "https://a.favicon.im/simpleicons.org",
+                        "desc": "开源品牌矢量图标库"
                     },
                     {
                         "name": "Unsplash",
@@ -2241,14 +2267,16 @@
             }).join('');
         }
 
+        let isPresetBgImagesLoaded = false;
         function renderPresetWallpapers() {
             if (!dom.presetWallpaperGrid) return;
+            isPresetBgImagesLoaded = false;
             const titles = ['山峦夜空', '湖光山色', '森林瀑布', '星空雪山', '壮丽旷野', '静谧海岸', '迷雾古堡', '梦幻流彩'];
             dom.presetWallpaperGrid.innerHTML = titles.map((title, i) => {
                 const bg = `./wallpapers/bg${i + 1}.avif`;
                 const fullTitle = i === 0 ? `${title}（系统默认）` : title;
                 return `<button type="button" class="preset-bg-card group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70" data-bg="${bg}" data-title="${title}" title="${fullTitle}">
-                    <img data-src="${bg}" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 9'%3E%3C/svg%3E" alt="${title}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300 pointer-events-none" loading="lazy" decoding="async">
+                    <img data-src="${bg}" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 9'%3E%3C/svg%3E" alt="${title}" class="w-full h-full object-cover pointer-events-none" loading="lazy" decoding="async">
                     <span class="absolute inset-x-0 bottom-0 py-1 bg-black/60 backdrop-blur-xs text-2xs text-white/90 text-center font-medium pointer-events-none">${title}</span>
                 </button>`;
             }).join('');
@@ -2699,24 +2727,38 @@
          * @param {string} targetTabId - 目标 Tab 面板 DOM ID ('tabBookmarks' | 'tabAppearance' | 'tabData')
          * @returns {void}
          */
+        let cachedSettingsTabs = null;
+        let cachedSettingsPanels = null;
         function loadPresetBgCardImages() {
-            document.querySelectorAll('.preset-bg-card img[data-src]').forEach(img => {
-                if (img.dataset.src) {
-                    img.src = img.dataset.src;
-                    delete img.dataset.src;
+            if (isPresetBgImagesLoaded) return;
+            isPresetBgImagesLoaded = true;
+            const container = dom.presetWallpaperGrid || document.getElementById('presetWallpaperGrid');
+            if (!container) return;
+            container.querySelectorAll('img[data-src]').forEach(img => {
+                const src = img.dataset.src;
+                if (!src) return;
+                delete img.dataset.src;
+                const handleLoaded = () => {
+                    img.classList.add('loaded');
+                    img.onload = null;
+                };
+                img.onload = handleLoaded;
+                img.src = src;
+                if (img.complete) {
+                    handleLoaded();
                 }
             });
         }
 
         function switchSettingsTab(targetTabId) {
-            const tabs = document.querySelectorAll('.settings-tab-btn');
-            const panels = document.querySelectorAll('.settings-tab-panel');
-            tabs.forEach(tab => {
+            if (!cachedSettingsTabs) cachedSettingsTabs = document.querySelectorAll('.settings-tab-btn');
+            if (!cachedSettingsPanels) cachedSettingsPanels = document.querySelectorAll('.settings-tab-panel');
+            cachedSettingsTabs.forEach(tab => {
                 const isTarget = tab.dataset.tab === targetTabId;
                 tab.classList.toggle('active', isTarget);
                 tab.setAttribute('aria-selected', isTarget ? 'true' : 'false');
             });
-            panels.forEach(panel => {
+            cachedSettingsPanels.forEach(panel => {
                 panel.classList.toggle('hidden', panel.id !== targetTabId);
             });
             if (targetTabId === 'tabAppearance') {
@@ -2814,9 +2856,10 @@
          * @returns {void}
          */
         function updatePresetBgCardsUI(customWallpaperOverride) {
-            loadPresetBgCardImages();
             const currentBg = customWallpaperOverride !== undefined ? (customWallpaperOverride || backgrounds[state.bg] || '') : (storageGet('userWallpaper') || backgrounds[state.bg] || '');
-            document.querySelectorAll('.preset-bg-card').forEach(card => {
+            const container = dom.presetWallpaperGrid || document.getElementById('presetWallpaperGrid');
+            if (!container) return;
+            container.querySelectorAll('.preset-bg-card').forEach(card => {
                 const bg = card.dataset.bg;
                 card.classList.toggle('active', bg === currentBg);
             });
