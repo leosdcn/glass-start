@@ -102,6 +102,37 @@ function compileTailwindCss() {
 }
 compileTailwindCss();
 
+// 引入 esbuild 编译器（具备优雅降级能力）
+let esbuild;
+try {
+    esbuild = require('esbuild');
+} catch {
+    esbuild = null;
+}
+
+// 生产环境 JS 标准安全压缩（优先使用 esbuild AST 编译，未安装时自动回退至零依赖正则压缩）
+function minifyJsCode(jsCode, filename = 'script.js') {
+    if (esbuild && typeof esbuild.transformSync === 'function') {
+        try {
+            const result = esbuild.transformSync(jsCode, {
+                minify: true,
+                target: 'es2020',
+                legalComments: 'none'
+            });
+            return result.code;
+        } catch (e) {
+            console.warn(`   ⚠️ esbuild 压缩 ${filename} 时出现警告，自动回退到基础正则压缩:`, e.message);
+        }
+    }
+    return jsCode
+        .replace(/^\s*\/\/[^\n]*/gm, '')
+        .replace(/\/\*[\s\S]*?\*\//g, '')
+        .split('\n')
+        .map(line => line.trim())
+        .filter(Boolean)
+        .join('\n');
+}
+
 // 3. 处理并复制 Service Worker 底座脚本
 function buildServiceWorker() {
     console.log('📑 编译 Service Worker 缓存版本 (sw.js)...');
@@ -213,34 +244,10 @@ function processProductionAppJs() {
         } catch {}
     }
 
-    // 生产环境 CSS 零依赖安全压缩（清除注释与多余空白缩进）
-    function minifyCss(cssCode) {
-        return cssCode
-            .replace(/\/\*[\s\S]*?\*\//g, '')
-            .split('\n')
-            .map(line => line.trim())
-            .filter(Boolean)
-            .join('\n')
-            .replace(/\s*\{\s*/g, '{')
-            .replace(/\s*;\s*/g, ';')
-            .replace(/;\}/g, '}');
-    }
-
-    // 生产环境 JS 零依赖安全压缩（清除单行/多行注释与首尾缩进）
-    function minifyJs(jsCode) {
-        return jsCode
-            .replace(/^\s*\/\/[^\n]*/gm, '')
-            .replace(/\/\*[\s\S]*?\*\//g, '')
-            .split('\n')
-            .map(line => line.trim())
-            .filter(Boolean)
-            .join('\n');
-    }
-
-    appJsContent = minifyJs(appJsContent);
+    appJsContent = minifyJsCode(appJsContent, 'app.js');
     cachedAppJsContent = appJsContent;
     const appJsKb = (Buffer.byteLength(appJsContent, 'utf-8') / 1024).toFixed(2);
-    console.log(`   ⚡️ 已完成生产环境 dist/app.js 零依赖 JS 压缩 (${appJsKb} KB)`);
+    console.log(`   ⚡️ 已完成生产环境 dist/app.js 标准 AST 压缩 (${appJsKb} KB)`);
 
     fs.writeFileSync(path.join(PATHS.dist, 'app.js'), appJsContent, 'utf-8');
 }
@@ -302,13 +309,7 @@ function processProductionHtml() {
                     return match;
                 }
             }
-            const minified = content
-                .replace(/^\s*\/\/[^\n]*/gm, '')
-                .replace(/\/\*[\s\S]*?\*\//g, '')
-                .split('\n')
-                .map(l => l.trim())
-                .filter(Boolean)
-                .join('\n');
+            const minified = minifyJsCode(content, 'inline.js');
             return `<script${attrs}>${minified}</script>`;
         });
 
