@@ -57,7 +57,7 @@
     <link rel="preconnect" href="https://images.unsplash.com" crossorigin>
     <link rel="preconnect" href="https://a.favicon.im" crossorigin>
     <!-- 默认壁纸静态 Preload：让 Preload Scanner 在 HTML 解析首帧即刻并发发起请求，消灭 LCP 发现时延 -->
-    <link rel="preload" href="./wallpapers/bg1.avif" as="image" type="image/avif" fetchpriority="high">
+    <link id="preloadWallpaper" rel="preload" href="./wallpapers/bg1.avif" as="image" type="image/avif" fetchpriority="high">
     <!-- 动态壁纸 Preload：根据设备物理 DPI (如 13" MacBook Air 2940px) 动态计算匹配 Unsplash 目标宽度，零阻塞预加载 -->
     <script>
       /**
@@ -130,13 +130,28 @@
               }
             }
             window.__PRELOADED_BG__ = preloadUrl;
-            if (preloadUrl && !preloadUrl.startsWith('data:') && preloadUrl !== './wallpapers/bg1.avif') {
-              const link = document.createElement('link');
-              link.rel = 'preload';
-              link.as = 'image';
-              link.href = preloadUrl;
-              link.setAttribute('fetchpriority', 'high');
-              document.head.appendChild(link);
+            if (preloadUrl && !preloadUrl.startsWith('data:')) {
+              const link = document.getElementById('preloadWallpaper');
+              if (link) {
+                if (link.getAttribute('href') !== preloadUrl) {
+                  link.setAttribute('href', preloadUrl);
+                  if (preloadUrl.includes('.avif')) {
+                    link.setAttribute('type', 'image/avif');
+                  } else if (preloadUrl.includes('.webp') || preloadUrl.includes('fm=webp')) {
+                    link.setAttribute('type', 'image/webp');
+                  } else {
+                    link.removeAttribute('type');
+                  }
+                }
+              } else {
+                const newLink = document.createElement('link');
+                newLink.id = 'preloadWallpaper';
+                newLink.rel = 'preload';
+                newLink.as = 'image';
+                newLink.href = preloadUrl;
+                newLink.setAttribute('fetchpriority', 'high');
+                document.head.appendChild(newLink);
+              }
             }
           }
         } catch (e) {}
