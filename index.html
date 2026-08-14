@@ -196,9 +196,13 @@
             --ease-overshoot: cubic-bezier(0.34, 1.56, 0.64, 1);
             --ease-snappy: cubic-bezier(0.2, 0, 0, 1);
         }
-        html, body { background-color: var(--bg-base); }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif; /* 优先 Apple 原生系统字体栈 */
-               overflow:hidden; }
+        html, body {
+            background-color: var(--bg-base);
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif; /* 优先 Apple 原生系统字体栈 */ }
         * { scrollbar-width:none; }
         *::-webkit-scrollbar { display:none; }
         /* Tailwind v4 preflight 不再默认给按钮 pointer 光标，此处恢复 */
@@ -275,7 +279,6 @@
             -webkit-backface-visibility: hidden;
         }
         #startSection {
-            contain: layout;
             position: absolute;
             top: 0;
             left: 0;
@@ -292,7 +295,6 @@
             transform: translateY(-100dvh);
         }
         #navSection {
-            contain: layout;
             position: absolute;
             top: 0;
             left: 0;
@@ -488,6 +490,8 @@
                 max-height: none;
                 overflow-x: auto;
                 overflow-y: hidden;
+                -webkit-overflow-scrolling: touch;
+                overscroll-behavior-x: contain;
                 flex-direction: row;
                 flex-wrap: nowrap;
                 gap: 0.25rem;
@@ -503,7 +507,10 @@
             .sidebar-item {
                 border-left: none;
                 white-space: nowrap;
-                padding: 0.4rem 0.75rem;
+                padding: 0.5rem 0.75rem;
+                min-height: 2.25rem;
+                display: inline-flex;
+                align-items: center;
                 flex-shrink: 0;
                 width: auto;
             }
@@ -561,8 +568,11 @@
             opacity: 0;
             pointer-events: none;
             transition: opacity 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+            -webkit-backdrop-filter: blur(8px);
+            backdrop-filter: blur(8px);
             -webkit-backface-visibility: hidden;
             backface-visibility: hidden;
+            -webkit-mask-image: -webkit-radial-gradient(white, black);
         }
         .edit-overlay.active {
             opacity: 1;
@@ -690,9 +700,7 @@
         .bg-fullscreen {
             position: fixed;
             top: 0;
-            bottom: 0;
             left: 0;
-            right: 0;
             width: 100vw;
             height: 100vh;
             height: 100dvh;
@@ -700,9 +708,7 @@
         @media (max-width: 640px) {
             .bg-fullscreen {
                 top: calc(-15px - env(safe-area-inset-top, 0px));
-                bottom: calc(-15px - env(safe-area-inset-bottom, 0px));
                 left: calc(-10px - env(safe-area-inset-left, 0px));
-                right: calc(-10px - env(safe-area-inset-right, 0px));
                 width: calc(100vw + 20px + env(safe-area-inset-left, 0px) + env(safe-area-inset-right, 0px));
                 height: calc(100vh + 30px + env(safe-area-inset-top, 0px) + env(safe-area-inset-bottom, 0px));
                 height: calc(100dvh + 30px + env(safe-area-inset-top, 0px) + env(safe-area-inset-bottom, 0px));
@@ -711,25 +717,25 @@
 
         /* 起始页首屏 padding 安全区适配 */
         section:first-of-type {
-            padding-top: max(3rem, calc(3rem + env(safe-area-inset-top)));
-            padding-bottom: max(3rem, calc(3rem + env(safe-area-inset-bottom)));
-            padding-left: max(1rem, calc(1rem + env(safe-area-inset-left)));
-            padding-right: max(1rem, calc(1rem + env(safe-area-inset-right)));
+            padding-top: max(3rem, calc(3rem + env(safe-area-inset-top, 0px)));
+            padding-bottom: max(3rem, calc(3rem + env(safe-area-inset-bottom, 0px)));
+            padding-left: max(1rem, calc(1rem + env(safe-area-inset-left, 0px)));
+            padding-right: max(1rem, calc(1rem + env(safe-area-inset-right, 0px)));
         }
 
         /* 导航页第二屏 padding 安全区适配 (四周统一 0.75rem / 12px 等宽外边距) */
         #navSection > div {
-            padding-top: max(0.375rem, calc(0.375rem + env(safe-area-inset-top)));
-            padding-bottom: max(0.375rem, calc(0.375rem + env(safe-area-inset-bottom)));
-            padding-left: max(0.375rem, calc(0.375rem + env(safe-area-inset-left)));
-            padding-right: max(0.375rem, calc(0.375rem + env(safe-area-inset-right)));
+            padding-top: max(0.375rem, calc(0.375rem + env(safe-area-inset-top, 0px)));
+            padding-bottom: max(0.375rem, calc(0.375rem + env(safe-area-inset-bottom, 0px)));
+            padding-left: max(0.375rem, calc(0.375rem + env(safe-area-inset-left, 0px)));
+            padding-right: max(0.375rem, calc(0.375rem + env(safe-area-inset-right, 0px)));
         }
         @media (min-width: 768px) {
             #navSection > div {
-                padding-top: max(0.75rem, calc(0.75rem + env(safe-area-inset-top)));
-                padding-bottom: max(0.75rem, calc(0.75rem + env(safe-area-inset-bottom)));
-                padding-left: max(0.75rem, calc(0.75rem + env(safe-area-inset-left)));
-                padding-right: max(0.75rem, calc(0.75rem + env(safe-area-inset-right)));
+                padding-top: max(0.75rem, calc(0.75rem + env(safe-area-inset-top, 0px)));
+                padding-bottom: max(0.75rem, calc(0.75rem + env(safe-area-inset-bottom, 0px)));
+                padding-left: max(0.75rem, calc(0.75rem + env(safe-area-inset-left, 0px)));
+                padding-right: max(0.75rem, calc(0.75rem + env(safe-area-inset-right, 0px)));
             }
         }
 
@@ -738,11 +744,11 @@
             animation: hintFade 7s ease forwards;
             transform-style: preserve-3d;
             backface-visibility: hidden;
-            bottom: calc(1.5rem + env(safe-area-inset-bottom));
+            bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px));
         }
         @media (min-width: 768px) {
             .hint-down {
-                bottom: calc(2.5rem + env(safe-area-inset-bottom));
+                bottom: calc(2.5rem + env(safe-area-inset-bottom, 0px));
             }
         }
         /* 搜索下拉弹窗（搜索引擎 + 联想建议）：紧贴搜索框下方保持精细的 6px / 8px 悬浮间距 */
@@ -758,8 +764,8 @@
         /* 编辑按钮：固定于右下角，常驻低透明，hover 渐亮并让齿轮图标顺畅旋转 90 度 */
         #editBookmarksBtn {
             position: fixed;
-            bottom: calc(1.5rem + env(safe-area-inset-bottom));
-            right: calc(1.5rem + env(safe-area-inset-right));
+            bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px));
+            right: calc(1.5rem + env(safe-area-inset-right, 0px));
             opacity: 0.6;
             z-index: 50;
             transition: opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1), color 0.3s ease, background-color 0.3s ease, border-color 0.3s ease;
@@ -784,8 +790,8 @@
         }
         @media (min-width: 768px) {
             #editBookmarksBtn {
-                bottom: calc(2rem + env(safe-area-inset-bottom));
-                right: calc(2rem + env(safe-area-inset-right));
+                bottom: calc(2rem + env(safe-area-inset-bottom, 0px));
+                right: calc(2rem + env(safe-area-inset-right, 0px));
             }
         }
         /* 导航页书签行悬停时显示右箭头并微移 (CSS 伪元素零 DOM 节点模式) */
@@ -1118,6 +1124,19 @@
                 color: #ffffff;
             }
         }
+        /* 无障碍：降低透明度 (Prefers Reduced Transparency - iOS 26/27 Liquid Glass 规范) */
+        @media (prefers-reduced-transparency: reduce) {
+            .glass {
+                background: rgba(15, 23, 42, 0.92) !important;
+                backdrop-filter: none !important;
+                -webkit-backdrop-filter: none !important;
+            }
+            .glass-strong {
+                background: rgba(15, 23, 42, 0.96) !important;
+                backdrop-filter: none !important;
+                -webkit-backdrop-filter: none !important;
+            }
+        }
         /* 无障碍：减弱动态效果适配 (Prefers Reduced Motion) */
         @media (prefers-reduced-motion: reduce) {
             *, ::before, ::after {
@@ -1131,8 +1150,8 @@
 </head>
 <body class="text-white relative" style="background-color: var(--bg-start);">
     <!-- 固定定位背景图层（双层叠加 opacity 过渡，解决 background-image 不可 CSS 插值的问题；配合 bg-fullscreen 延伸至移动端安全区与过滚动区域） -->
-    <div id="bgLayer" class="bg-fullscreen bg-cover bg-center bg-no-repeat -z-10 bg-[#0f172a] opacity-0 bg-layer"></div>
-    <div id="bgLayerNext" class="bg-fullscreen bg-cover bg-center bg-no-repeat -z-10 opacity-0 bg-[#0f172a] bg-layer"></div>
+    <div id="bgLayer" class="bg-fullscreen bg-cover bg-center bg-no-repeat z-0 bg-[#0f172a] opacity-0 bg-layer"></div>
+    <div id="bgLayerNext" class="bg-fullscreen bg-cover bg-center bg-no-repeat z-0 opacity-0 bg-[#0f172a] bg-layer"></div>
     <div id="bgOverlay" class="bg-fullscreen bg-black/15 pointer-events-none z-0"></div>
     <script>(function(){const bg=document.getElementById('bgLayer');const url=window.__PRELOADED_BG__||'./wallpapers/bg1.avif';if(bg){const show=function(){bg.style.backgroundImage="url(\""+url.replace(/["'\\]/g,'\\$&')+"\")";bg.style.opacity='1';};const img=new Image();img.onload=show;img.src=url;if(img.complete&&img.naturalWidth>0)show();}if(window.__PRE_BG_EFFECTS__){const o=document.getElementById('bgOverlay');if(o){o.style.backgroundColor='rgba(0, 0, 0, '+(window.__PRE_BG_EFFECTS__.op/100)+')';if(window.__PRE_BG_EFFECTS__.bl>0){const b='blur('+window.__PRE_BG_EFFECTS__.bl+'px)';o.style.backdropFilter=b;o.style.webkitBackdropFilter=b;}}}})()</script>
 
@@ -1160,7 +1179,7 @@
                     </div>
                     <label for="searchInput" class="sr-only">搜索</label>
                     <input type="text" id="searchInput" name="q" role="combobox" aria-label="搜索输入框" aria-autocomplete="list" aria-controls="suggestionMenu" aria-expanded="false" class="flex-1 bg-transparent border-none outline-none text-lg search-input text-white h-12 px-1 min-w-0 focus-visible:ring-0" placeholder="搜索..." autocomplete="off">
-                    <button id="searchClearBtn" type="button" aria-label="清空搜索框" class="hidden p-2 apple-radius hover:bg-white/10 text-white/40 hover:text-white/90 transition-[background-color,color,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 shrink-0" title="清空搜索框">
+                    <button id="searchClearBtn" type="button" aria-label="清空搜索框" class="hidden min-w-11 min-h-11 p-2.5 apple-radius hover:bg-white/10 text-white/40 hover:text-white/90 inline-flex items-center justify-center transition-[background-color,color,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 shrink-0" title="清空搜索框">
                         <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                     </button>
                     <button id="searchBtn" type="button" aria-label="执行搜索" class="p-3 apple-radius hover:bg-white/10 transition-[background-color,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 shrink-0 mr-1">
@@ -1229,7 +1248,7 @@
                         </nav>
                     </aside>
                     <!-- 主书签内容区 (在 CSS 中使用 clamp 优雅响应式控制底部 padding) -->
-                    <main id="navContent" tabindex="-1" aria-label="书签内容" class="flex-1 p-3 md:p-4 lg:p-5 overflow-y-auto relative scroll-smooth focus:outline-none">
+                    <main id="navContent" tabindex="-1" aria-label="书签内容" class="flex-1 min-h-0 p-3 md:p-4 lg:p-5 overflow-y-auto relative scroll-smooth focus:outline-none">
                         <div id="navCategories" class="space-y-6 md:space-y-8"></div>
                     </main>
                 </div>
@@ -1258,15 +1277,15 @@
 
             <!-- Tab 导航栏 -->
             <div role="tablist" aria-label="设置偏好选项卡" class="flex items-center gap-1.5 p-1 bg-black/20 border border-white/10 apple-radius mb-3 shrink-0">
-                <button type="button" role="tab" id="tab-btn-bookmarks" aria-selected="true" aria-controls="tabBookmarks" class="settings-tab-btn active flex-1 py-2 px-3.5 apple-radius text-xs sm:text-sm font-medium transition-[background-color,color,border-color,box-shadow,transform] duration-150 flex items-center justify-center gap-1.5 text-white/70 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" data-tab="tabBookmarks">
+                <button type="button" role="tab" id="tab-btn-bookmarks" aria-selected="true" aria-controls="tabBookmarks" class="settings-tab-btn active flex-1 py-2 sm:py-2 px-2 sm:px-3.5 apple-radius text-xs sm:text-sm font-medium whitespace-nowrap transition-[background-color,color,border-color,box-shadow,transform] duration-150 flex items-center justify-center gap-1 sm:gap-1.5 text-white/70 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" data-tab="tabBookmarks">
                     <span>📌</span>
                     <span>快捷书签</span>
                 </button>
-                <button type="button" role="tab" id="tab-btn-appearance" aria-selected="false" aria-controls="tabAppearance" class="settings-tab-btn flex-1 py-2 px-3.5 apple-radius text-xs sm:text-sm font-medium transition-[background-color,color,border-color,box-shadow,transform] duration-150 flex items-center justify-center gap-1.5 text-white/70 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" data-tab="tabAppearance">
+                <button type="button" role="tab" id="tab-btn-appearance" aria-selected="false" aria-controls="tabAppearance" class="settings-tab-btn flex-1 py-2 sm:py-2 px-2 sm:px-3.5 apple-radius text-xs sm:text-sm font-medium whitespace-nowrap transition-[background-color,color,border-color,box-shadow,transform] duration-150 flex items-center justify-center gap-1 sm:gap-1.5 text-white/70 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" data-tab="tabAppearance">
                     <span>🎨</span>
                     <span>外观壁纸</span>
                 </button>
-                <button type="button" role="tab" id="tab-btn-data" aria-selected="false" aria-controls="tabData" class="settings-tab-btn flex-1 py-2 px-3.5 apple-radius text-xs sm:text-sm font-medium transition-[background-color,color,border-color,box-shadow,transform] duration-150 flex items-center justify-center gap-1.5 text-white/70 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" data-tab="tabData">
+                <button type="button" role="tab" id="tab-btn-data" aria-selected="false" aria-controls="tabData" class="settings-tab-btn flex-1 py-2 sm:py-2 px-2 sm:px-3.5 apple-radius text-xs sm:text-sm font-medium whitespace-nowrap transition-[background-color,color,border-color,box-shadow,transform] duration-150 flex items-center justify-center gap-1 sm:gap-1.5 text-white/70 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" data-tab="tabData">
                     <span>⚙️</span>
                     <span>数据与备份</span>
                 </button>
@@ -2920,23 +2939,23 @@
             return `
                 <div class="edit-row-card flex flex-wrap sm:flex-nowrap items-center gap-1.5 p-1.5 px-2 bg-white/5 border border-white/10 apple-radius hover:border-white/25 transition-[background-color,border-color,transform,opacity] duration-150 group mb-1.5 shadow-xs" data-idx="${idx}" data-icon="${escapeHtml(icon || '')}" data-orig-url="${escapeHtml(url || '')}" draggable="true">
                     <div class="flex items-center gap-1.5 shrink-0">
-                        <div class="drag-handle p-1 shrink-0 text-white/30 group-hover:text-white/70 hover:!text-white cursor-grab active:cursor-grabbing transition-[color,transform] duration-150" title="按住拖拽排序">
+                        <div class="drag-handle touch-none p-2 sm:p-1 min-w-9 min-h-9 sm:min-w-0 sm:min-h-0 flex items-center justify-center shrink-0 text-white/30 group-hover:text-white/70 hover:!text-white cursor-grab active:cursor-grabbing transition-[color,transform] duration-150" title="按住拖拽排序">
                             <svg class="size-3.5 pointer-events-none" viewBox="0 0 16 16" fill="currentColor"><circle cx="5" cy="4" r="1.5"/><circle cx="11" cy="4" r="1.5"/><circle cx="5" cy="8" r="1.5"/><circle cx="11" cy="8" r="1.5"/><circle cx="5" cy="12" r="1.5"/><circle cx="11" cy="12" r="1.5"/></svg>
                         </div>
                         <div class="flex flex-col gap-0.5 shrink-0">
-                            <button type="button" class="move-up-btn p-0.5 text-3xs leading-none hover:bg-white/10 apple-radius text-white/40 hover:text-white transition-[background-color,color,transform] duration-150 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/50" title="上移书签">▲</button>
-                            <button type="button" class="move-down-btn p-0.5 text-3xs leading-none hover:bg-white/10 apple-radius text-white/40 hover:text-white transition-[background-color,color,transform] duration-150 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/50" title="下移书签">▼</button>
+                            <button type="button" class="move-up-btn min-w-7 min-h-5 sm:min-w-0 sm:min-h-0 p-1 sm:p-0.5 text-2xs sm:text-3xs leading-none hover:bg-white/10 apple-radius text-white/40 hover:text-white transition-[background-color,color,transform] duration-150 flex items-center justify-center focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/50" title="上移书签">▲</button>
+                            <button type="button" class="move-down-btn min-w-7 min-h-5 sm:min-w-0 sm:min-h-0 p-1 sm:p-0.5 text-2xs sm:text-3xs leading-none hover:bg-white/10 apple-radius text-white/40 hover:text-white transition-[background-color,color,transform] duration-150 flex items-center justify-center focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/50" title="下移书签">▼</button>
                         </div>
                         <div class="edit-favicon-box shrink-0 flex items-center justify-center text-white/90 select-none">
                             ${getEditFaviconInner(name, url, icon)}
                         </div>
                     </div>
                     <div class="flex-1 flex flex-col sm:flex-row items-center gap-1.5 min-w-0 w-full sm:w-auto">
-                        <input type="text" id="bm-name-${rowId}" name="bookmark_name_${rowId}" class="edit-name w-full sm:w-1/3 bg-black/20 border border-white/10 apple-radius px-2.5 py-1.5 text-xs text-white/90 focus:border-white/40 focus:bg-black/40 outline-none transition" value="${escapeHtml(name)}" placeholder="书签名称" aria-label="书签名称">
-                        <input type="text" id="bm-url-${rowId}" name="bookmark_url_${rowId}" class="edit-url w-full sm:w-2/3 bg-black/20 border border-white/10 apple-radius px-2.5 py-1.5 text-xs text-white/75 focus:border-white/40 focus:bg-black/40 focus:text-white outline-none transition font-mono" value="${escapeHtml(url)}" placeholder="https://..." aria-label="书签网址">
+                        <input type="text" id="bm-name-${rowId}" name="bookmark_name_${rowId}" class="edit-name w-full sm:w-1/3 bg-black/20 border border-white/10 apple-radius px-2.5 py-2 sm:py-1.5 text-base sm:text-xs text-white/90 focus:border-white/40 focus:bg-black/40 outline-none transition" value="${escapeHtml(name)}" placeholder="书签名称" aria-label="书签名称">
+                        <input type="text" id="bm-url-${rowId}" name="bookmark_url_${rowId}" class="edit-url w-full sm:w-2/3 bg-black/20 border border-white/10 apple-radius px-2.5 py-2 sm:py-1.5 text-base sm:text-xs text-white/75 focus:border-white/40 focus:bg-black/40 focus:text-white outline-none transition font-mono" value="${escapeHtml(url)}" placeholder="https://..." aria-label="书签网址">
                     </div>
-                    <button type="button" class="del-btn shrink-0 p-1.5 hover:bg-red-500/20 apple-radius text-white/30 hover:text-red-400 transition ml-auto sm:ml-0" title="删除书签">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                    <button type="button" class="del-btn shrink-0 min-w-9 min-h-9 sm:min-w-0 sm:min-h-0 p-2 sm:p-1.5 hover:bg-red-500/20 apple-radius text-white/30 hover:text-red-400 flex items-center justify-center transition ml-auto sm:ml-0" title="删除书签">
+                        <svg class="w-4 h-4 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                     </button>
                 </div>
             `;
@@ -5473,8 +5492,6 @@
                 meta.name = 'theme-color';
                 meta.content = color;
                 document.head.appendChild(meta);
-                if (document.body) document.body.style.backgroundColor = color;
-                if (document.documentElement) document.documentElement.style.backgroundColor = color;
             }
 
             // 暴露全局切屏控制接口，供点击 Header、键盘快捷键等共享调用
@@ -5643,6 +5660,7 @@
 
             document.addEventListener('touchstart', (e) => {
                 if (isTransitioning || !OverlayStack.isEmpty()) return;
+                if (e.target && typeof e.target.closest === 'function' && e.target.closest('#sidebar')) return;
                 startTouchY = e.touches[0].clientY;
                 lastTouchY = startTouchY;
                 touchStartTime = performance.now();
