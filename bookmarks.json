@@ -95,6 +95,12 @@
                     "desc": "谷歌前沿多模态 AI"
                 },
                 {
+                    "name": "Google AI Studio",
+                    "url": "https://aistudio.google.com",
+                    "icon": "https://a.favicon.im/aistudio.google.com",
+                    "desc": "谷歌 AI 原型工作台"
+                },
+                {
                     "name": "Grok",
                     "url": "https://grok.com",
                     "icon": "https://a.favicon.im/grok.com",
@@ -164,7 +170,7 @@
                     "name": "DistroSea",
                     "url": "https://distrosea.com",
                     "icon": "https://a.favicon.im/distrosea.com",
-                    "desc": "浏览器在线体验 Linux"
+                    "desc": "在线体验 Linux 系统"
                 },
                 {
                     "name": "GitHub",
@@ -176,7 +182,7 @@
                     "name": "ip.skk.moe",
                     "url": "https://ip.skk.moe",
                     "icon": "https://a.favicon.im/ip.skk.moe",
-                    "desc": "极速 IP 与网络分流检测"
+                    "desc": "全方位 IP 与网络检测"
                 },
                 {
                     "name": "IPCheck.ing",
@@ -194,7 +200,7 @@
                     "name": "ITDOG",
                     "url": "https://www.itdog.cn",
                     "icon": "https://a.favicon.im/itdog.cn",
-                    "desc": "多节点 Ping 与路由诊断"
+                    "desc": "全国多线路测速排障"
                 },
                 {
                     "name": "JSFiddle",
@@ -212,7 +218,7 @@
                     "name": "npm",
                     "url": "https://www.npmjs.com",
                     "icon": "https://a.favicon.im/npmjs.com",
-                    "desc": "Node.js 官方包管理器"
+                    "desc": "Node.js 官方包仓库"
                 },
                 {
                     "name": "Speedtest",
