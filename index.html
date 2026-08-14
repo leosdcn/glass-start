@@ -220,8 +220,8 @@
         body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif; /* 优先 Apple 原生系统字体栈 */ }
         * { scrollbar-width:none; }
         *::-webkit-scrollbar { display:none; }
-        /* Tailwind v4 preflight 不再默认给按钮 pointer 光标，此处恢复 */
-        button, [role="button"] { cursor: pointer; }
+        /* Tailwind v4 preflight 不再默认给按钮 pointer 光标，此处恢复并设置 touch-action: manipulation 消除移动端 300ms 点击延迟 (提升 INP/FID) */
+        button, [role="button"], a { cursor: pointer; touch-action: manipulation; }
         .apple-radius { border-radius: var(--radius); }
         .preset-bg-card {
             position: relative;
@@ -408,6 +408,7 @@
             -webkit-box-orient: vertical;
             overflow: hidden;
             max-width: 100%;
+            min-height: 2.5em; /* 统一 1 行与 2 行标题的占据高度，彻底杜绝网格卡片不对齐与布局偏移 (0 CLS) */
         }
         @media (min-width: 640px) {
             .bookmark-title { font-size: 0.75rem; }
@@ -4382,7 +4383,7 @@
                         if (selectedSuggestionIdx >= 0 && items[selectedSuggestionIdx]) {
                             dom.searchInput.value = items[selectedSuggestionIdx].dataset.suggestion;
                             dom.searchInput.setAttribute('aria-activedescendant', `sug-opt-${selectedSuggestionIdx}`);
-                            items[selectedSuggestionIdx].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                            items[selectedSuggestionIdx].scrollIntoView({ block: 'nearest', behavior: 'auto' });
                         } else {
                             dom.searchInput.value = originalQuery;
                             dom.searchInput.removeAttribute('aria-activedescendant');
