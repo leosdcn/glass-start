@@ -242,6 +242,7 @@
             background: rgba(255, 255, 255, 0.05);
             border: 1px solid rgba(255, 255, 255, 0.10);
             box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.10);
+            border-radius: 1rem; /* 16px 精准同心圆角: R_inner = R_outer(24px) - Padding(20px) 视觉黄金比例 */
         }
         .glass-badge {
             display: inline-flex;
@@ -826,8 +827,13 @@
         }
         .search-box-wrapper:focus-within {
             background: rgba(255, 255, 255, 0.15);
-            border-color: rgba(255, 255, 255, 0.28);
-            box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.25), 0 8px 24px rgba(0, 0, 0, 0.25);
+            border-color: rgba(255, 255, 255, 0.30);
+            box-shadow: 
+                inset 0 1px 0 0 rgba(255, 255, 255, 0.28),
+                inset 0 -1px 0 0 rgba(255, 255, 255, 0.05),
+                0 0 0 1px rgba(255, 255, 255, 0.08),
+                0 6px 24px -4px rgba(255, 255, 255, 0.05),
+                0 12px 32px -6px rgba(0, 0, 0, 0.35);
         }
 
         /* 搜索引擎按钮与搜索按钮微触感 (Apple Tactile Button Feedback) */
@@ -1055,10 +1061,13 @@
         .danger-zone-card {
             background: rgb(var(--danger) / 0.08);
             border: 1px solid rgb(var(--danger) / 0.25);
+            box-shadow: inset 0 1px 0 0 rgb(var(--danger) / 0.20);
+            border-radius: 1rem;
         }
         .danger-zone-btn {
             background: rgb(var(--danger) / 0.18);
             border: 1px solid rgb(var(--danger) / 0.35);
+            border-radius: 0.75rem;
             color: rgba(254, 202, 202, 0.95);
         }
         .danger-zone-btn:hover {
@@ -1171,7 +1180,7 @@
                 <!-- 下方主体：左侧分类 + 右侧书签 -->
                 <div class="flex-1 flex flex-col sm:flex-row overflow-hidden min-h-0">
                     <!-- 侧边栏（移动端顶部水平滚动，桌面端左侧垂直滚动） -->
-                    <aside id="sidebar" class="sm:w-28 md:w-32 lg:w-[8.5rem] shrink-0 p-2 md:p-2.5 sm:pt-3 md:pt-3 overflow-x-auto sm:overflow-y-auto sm:border-r border-white/10 bg-black/10">
+                    <aside id="sidebar" class="sm:w-28 md:w-32 lg:w-[8.5rem] shrink-0 p-2 md:p-2.5 sm:pt-3 md:pt-3 overflow-x-auto sm:overflow-y-auto sm:border-r border-white/[0.08] bg-black/[0.06] sm:bg-gradient-to-b sm:from-black/[0.05] sm:to-black/[0.09] sm:shadow-[inset_-1px_0_0_0_rgba(255,255,255,0.06)]">
                         <nav aria-label="导航分类">
                             <div id="sidebarList" role="tablist" aria-label="分类导航列表" class="flex sm:flex-col gap-1"></div>
                         </nav>
@@ -1197,7 +1206,7 @@
     <div id="editModal" role="dialog" aria-modal="true" aria-hidden="true" hidden aria-label="设置与偏好" class="edit-overlay fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-[var(--z-modal)]">
         <div class="glass-strong apple-radius w-full max-w-xl sm:max-w-2xl md:max-w-3xl lg:max-w-4xl mx-4 min-h-[60dvh] max-h-[90dvh] sm:h-[40rem] flex flex-col p-5 sm:p-6 shadow-2xl overflow-hidden">
             <!-- 弹窗 Header -->
-            <div class="flex items-center justify-between mb-3.5 pb-2.5 border-b border-white/10 shrink-0">
+            <div class="flex items-center justify-between mb-3 pb-2 border-b border-white/10 shrink-0">
                 <div class="flex items-center gap-2">
                     <span class="text-base">⚙️</span>
                     <h3 class="text-base font-semibold tracking-wide text-white/90">设置与偏好</h3>
@@ -1205,7 +1214,7 @@
             </div>
 
             <!-- Tab 导航栏 -->
-            <div role="tablist" aria-label="设置偏好选项卡" class="flex items-center gap-1.5 p-1 bg-black/20 border border-white/10 apple-radius mb-3.5 shrink-0">
+            <div role="tablist" aria-label="设置偏好选项卡" class="flex items-center gap-1.5 p-1 bg-black/20 border border-white/10 apple-radius mb-3 shrink-0">
                 <button type="button" role="tab" id="tab-btn-bookmarks" aria-selected="true" aria-controls="tabBookmarks" class="settings-tab-btn active flex-1 py-2 px-3.5 apple-radius text-xs sm:text-sm font-medium transition-all flex items-center justify-center gap-1.5 text-white/70 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" data-tab="tabBookmarks">
                     <span>📌</span>
                     <span>快捷书签</span>
@@ -1229,19 +1238,19 @@
                     </div>
                     <span id="bookmarkCountBadge" class="glass-badge">已添加 0 项</span>
                 </div>
-                <div id="editList" role="list" aria-label="书签列表" class="flex-1 overflow-y-auto space-y-1.5 mb-3.5 min-h-0 pr-1"></div>
-                <div class="flex flex-col sm:flex-row gap-2.5 shrink-0 pt-2.5 border-t border-white/10">
+                <div id="editList" role="list" aria-label="书签列表" class="flex-1 overflow-y-auto space-y-1.5 mb-3 min-h-0 pr-1"></div>
+                <div class="flex flex-col sm:flex-row gap-2 shrink-0 pt-2.5 border-t border-white/10">
                     <button id="addBookmarkBtn" type="button" class="flex-1 py-2 px-3 border border-dashed border-white/20 apple-radius text-white/75 hover:text-white hover:border-white/40 hover:bg-white/10 transition-all text-xs flex items-center justify-center gap-1.5 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50">+ 手动添加书签</button>
                     <button id="togglePickerBtn" type="button" class="flex-1 py-2 px-3 border border-dashed border-white/20 apple-radius text-xs text-white/75 hover:text-white hover:border-white/40 hover:bg-white/10 transition-all flex items-center justify-center gap-1.5 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50">🗂️ 从导航页批量选择</button>
                 </div>
             </div>
 
             <!-- Tab 内容 2: 外观与壁纸 (tabAppearance) -->
-            <div id="tabAppearance" role="tabpanel" aria-labelledby="tab-btn-appearance" class="settings-tab-panel flex-1 flex flex-col min-h-0 overflow-y-auto hidden space-y-3.5 pr-0.5">
+            <div id="tabAppearance" role="tabpanel" aria-labelledby="tab-btn-appearance" class="settings-tab-panel flex-1 flex flex-col min-h-0 overflow-y-auto hidden space-y-3 pr-0.5">
                 <!-- 上半部分：自定义壁纸 与 壁纸特效 左右双列布局 -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5 shrink-0">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 shrink-0">
                     <!-- 自定义壁纸 -->
-                    <div class="p-3.5 glass-subcard apple-radius space-y-2.5 flex flex-col justify-between">
+                    <div class="p-3 glass-subcard space-y-2 flex flex-col justify-between">
                         <div class="flex items-center justify-between">
                             <span class="text-xs font-semibold text-white/80 flex items-center gap-1.5">
                                 <svg class="size-4 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
@@ -1250,15 +1259,15 @@
                             <span id="wallpaperStatus" class="glass-badge">默认壁纸</span>
                         </div>
                         <div class="flex gap-2">
-                            <button id="uploadBgBtn" type="button" class="flex-1 py-2 px-3 bg-white/5 hover:bg-white/10 border border-white/10 apple-radius text-xs text-white/80 hover:text-white transition-all flex items-center justify-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50">📁 本地图片</button>
-                            <button id="urlBgBtn" type="button" class="flex-1 py-2 px-3 bg-white/5 hover:bg-white/10 border border-white/10 apple-radius text-xs text-white/80 hover:text-white transition-all flex items-center justify-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50">🔗 图片 URL</button>
-                            <button id="resetBgBtn" type="button" class="py-2 px-3 bg-white/5 hover:bg-white/10 border border-white/10 apple-radius text-xs text-white/50 hover:text-red-400 transition-all hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50">恢复默认</button>
+                            <button id="uploadBgBtn" type="button" class="flex-1 py-2 px-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs text-white/80 hover:text-white transition-all flex items-center justify-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50">📁 本地图片</button>
+                            <button id="urlBgBtn" type="button" class="flex-1 py-2 px-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs text-white/80 hover:text-white transition-all flex items-center justify-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50">🔗 图片 URL</button>
+                            <button id="resetBgBtn" type="button" class="py-2 px-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs text-white/50 hover:text-red-400 transition-all hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50">恢复默认</button>
                             <input type="file" id="uploadBgInput" name="uploadBgInput" accept="image/*" class="hidden">
                         </div>
                     </div>
 
                     <!-- 背景视觉特效调节 -->
-                    <div class="p-3.5 glass-subcard apple-radius space-y-2.5 flex flex-col justify-between">
+                    <div class="p-3 glass-subcard space-y-2 flex flex-col justify-between">
                         <span class="text-xs font-semibold text-white/80 flex items-center gap-1.5">
                             <span>✨</span> 背景视觉特效
                         </span>
@@ -1284,7 +1293,7 @@
                 </div>
 
                 <!-- 下半部分：预设高清壁纸库 -->
-                <div class="p-3.5 glass-subcard apple-radius space-y-3 flex-1 flex flex-col min-h-0">
+                <div class="p-3 glass-subcard space-y-2.5 flex-1 flex flex-col min-h-0">
                     <div class="flex items-center justify-between shrink-0">
                         <span class="text-xs font-semibold text-white/80 flex items-center gap-1.5">
                             <span>🖼️</span> 预设 4K 高清壁纸库
@@ -1296,9 +1305,9 @@
             </div>
 
             <!-- Tab 内容 3: 数据与备份 (tabData) -->
-            <div id="tabData" role="tabpanel" aria-labelledby="tab-btn-data" class="settings-tab-panel flex-1 flex flex-col min-h-0 overflow-y-auto hidden space-y-3.5 pr-0.5">
+            <div id="tabData" role="tabpanel" aria-labelledby="tab-btn-data" class="settings-tab-panel flex-1 flex flex-col min-h-0 overflow-y-auto hidden space-y-3 pr-0.5">
                 <!-- 顶部综合状态仪表盘 (Full Width Status Dashboard) -->
-                <div class="p-3.5 glass-subcard apple-radius flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
+                <div class="p-3 glass-subcard flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
                     <div class="flex items-center gap-3">
                         <div class="size-9 rounded-xl bg-white/10 flex items-center justify-center text-base border border-white/15 shadow-inner">🪐</div>
                         <div>
@@ -1311,15 +1320,15 @@
                     </div>
                     <!-- 核心数据统计徽章 -->
                     <div class="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
-                        <div class="px-3 py-1.5 bg-white/5 apple-radius border border-white/10 text-center min-w-[4.5rem]">
+                        <div class="px-3 py-1.5 bg-white/5 rounded-xl border border-white/10 text-center min-w-[4.5rem]">
                             <div id="statBookmarkCount" class="font-semibold text-white/90 text-xs">0</div>
                             <div class="text-2xs text-white/65 font-medium tracking-tight">快捷书签</div>
                         </div>
-                        <div class="px-3 py-1.5 bg-white/5 apple-radius border border-white/10 text-center min-w-[4.5rem]">
+                        <div class="px-3 py-1.5 bg-white/5 rounded-xl border border-white/10 text-center min-w-[4.5rem]">
                             <div id="statWallpaperType" class="font-semibold text-white/90 text-xs">系统</div>
                             <div class="text-2xs text-white/65 font-medium tracking-tight">壁纸来源</div>
                         </div>
-                        <div class="px-3 py-1.5 bg-white/5 apple-radius border border-white/10 text-center min-w-[4.5rem]">
+                        <div class="px-3 py-1.5 bg-white/5 rounded-xl border border-white/10 text-center min-w-[4.5rem]">
                             <div id="statPwaStatus" class="font-semibold text-green-400 text-xs">就绪</div>
                             <div class="text-2xs text-white/65 font-medium tracking-tight">离线 PWA</div>
                         </div>
@@ -1327,21 +1336,21 @@
                 </div>
 
                 <!-- 下半部分：功能区域左右双列布局 -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5 flex-1 min-h-0">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 flex-1 min-h-0">
                     <!-- 左侧栏：配置备份与恢复 -->
-                    <div class="p-3.5 glass-subcard apple-radius flex flex-col justify-between space-y-3">
+                    <div class="p-3 glass-subcard flex flex-col justify-between space-y-2.5">
                         <div class="flex items-center justify-between">
                             <span class="text-xs font-semibold text-white/80 flex items-center gap-1.5">
                                 <span>📦</span> 配置备份与恢复
                             </span>
                             <span id="storageSizeBadge" class="glass-badge font-mono">计算中...</span>
                         </div>
-                        <button id="exportJsonBtn" type="button" class="w-full py-2 px-3.5 bg-white/5 hover:bg-white/10 border border-white/10 apple-radius text-xs text-white/80 hover:text-white transition-all flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <button id="exportJsonBtn" type="button" class="w-full py-2 px-3.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs text-white/80 hover:text-white transition-all flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 disabled:opacity-50 disabled:cursor-not-allowed">
                             <svg class="spinner size-4 animate-spin hidden" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
                             <span>📤</span> <span class="btn-label">导出 JSON 配置文件备份</span>
                         </button>
                         <!-- Dropzone 导入框 -->
-                        <div id="jsonDropzone" class="json-dropzone flex-1 border-2 border-dashed border-white/15 hover:border-white/35 apple-radius p-3.5 text-center transition-all cursor-pointer bg-white/5 hover:bg-white/10 flex flex-col items-center justify-center gap-1 min-h-[6.5rem] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" tabindex="0">
+                        <div id="jsonDropzone" class="json-dropzone flex-1 border-2 border-dashed border-white/15 hover:border-white/35 rounded-2xl p-3 text-center transition-all cursor-pointer bg-white/5 hover:bg-white/10 flex flex-col items-center justify-center gap-1 min-h-[6rem] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" tabindex="0">
                             <span class="text-lg">📥</span>
                             <p class="text-xs text-white/80 font-medium">点击或将 JSON 备份文件拖入此处</p>
                             <p class="text-2xs text-white/40">自动解析恢复快捷书签与系统偏好配置</p>
@@ -1350,23 +1359,23 @@
                     </div>
 
                     <!-- 右侧栏：系统维护与危险区域 -->
-                    <div class="flex flex-col space-y-3.5 justify-between">
+                    <div class="flex flex-col space-y-3 justify-between">
                         <!-- 离线缓存刷新 -->
-                        <div class="p-3.5 glass-subcard apple-radius space-y-2">
+                        <div class="p-3 glass-subcard space-y-2">
                             <span class="text-xs font-semibold text-white/80 flex items-center gap-1.5">
                                 <span>🧹</span> 离线 Service Worker 缓存
                             </span>
                             <p class="text-2xs-plus text-white/50 leading-relaxed">
                                 若离线资源异常或更新未及时应用，可手动刷新 Service Worker 离线缓存。
                             </p>
-                            <button id="clearCacheBtn" type="button" class="w-full py-2 px-3.5 bg-white/5 hover:bg-white/10 border border-white/10 apple-radius text-xs text-white/75 hover:text-white transition-all flex items-center justify-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 disabled:opacity-50 disabled:cursor-not-allowed">
+                            <button id="clearCacheBtn" type="button" class="w-full py-2 px-3.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs text-white/75 hover:text-white transition-all flex items-center justify-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 disabled:opacity-50 disabled:cursor-not-allowed">
                                 <svg class="spinner size-4 animate-spin hidden" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
                                 <span>🧹</span> <span class="btn-label">一键刷新 Service Worker 离线缓存</span>
                             </button>
                         </div>
 
                         <!-- 危险区域 (Danger Zone) -->
-                        <div class="p-3.5 danger-zone-card apple-radius space-y-2 flex-1 flex flex-col justify-between">
+                        <div class="p-3 danger-zone-card space-y-2 flex-1 flex flex-col justify-between">
                             <div class="flex items-center justify-between">
                                 <span class="text-xs font-semibold text-red-300/90 flex items-center gap-1.5">
                                     <span>🚨</span> 危险区域 (Danger Zone)
@@ -1375,7 +1384,7 @@
                             <p class="text-2xs text-white/50 leading-relaxed">
                                 恢复为系统初始默认状态，将永久清除所有自定义书签、壁纸与偏好设置。
                             </p>
-                            <button id="resetEditBtn" type="button" class="danger-zone-btn w-full py-2 apple-radius text-xs font-medium transition-all flex items-center justify-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 disabled:opacity-50 disabled:cursor-not-allowed">
+                            <button id="resetEditBtn" type="button" class="danger-zone-btn w-full py-2 text-xs font-medium transition-all flex items-center justify-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 disabled:opacity-50 disabled:cursor-not-allowed">
                                 <svg class="spinner size-4 animate-spin hidden" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
                                 <span>⚠️</span> <span class="btn-label">重置所有系统设置</span>
                             </button>
@@ -1384,10 +1393,10 @@
                 </div>
             </div>
 
-            <!-- 底部通用 Save/Cancel 按键栏 (增加内边距与顶部间距，彻底消除拥挤感) -->
-            <div class="flex gap-3 mt-3 pt-2 pb-1 border-t border-white/10 shrink-0">
-                <button id="cancelEditBtn" type="button" class="flex-1 py-2.5 px-4 bg-white/5 hover:bg-white/10 apple-radius transition-all text-xs sm:text-sm text-white/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50">取消</button>
-                <button id="saveEditBtn" type="button" class="flex-1 py-2.5 px-4 bg-white/15 hover:bg-white/25 apple-radius transition-all text-xs sm:text-sm font-medium text-white/90 shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2">
+            <!-- 底部通用 Save/Cancel 按键栏 (响应式右对齐 + 高亮白晶 Primary CTA) -->
+            <div class="flex items-center justify-end gap-3 mt-3 pt-3 border-t border-white/10 shrink-0">
+                <button id="cancelEditBtn" type="button" class="flex-1 sm:flex-initial py-2.5 px-5 rounded-xl text-xs sm:text-sm font-normal text-white/60 hover:text-white hover:bg-white/10 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50">取消</button>
+                <button id="saveEditBtn" type="button" class="flex-1 sm:flex-initial py-2.5 px-6 rounded-xl text-xs sm:text-sm font-semibold text-slate-900 bg-white/90 hover:bg-white active:scale-[0.98] shadow-[0_4px_16px_rgba(255,255,255,0.22),inset_0_1px_0_rgba(255,255,255,1)] hover:shadow-[0_6px_20px_rgba(255,255,255,0.32)] transition-all duration-200 inline-flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:opacity-50 disabled:cursor-not-allowed">
                     <svg class="spinner size-4 animate-spin hidden" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
                     <span class="btn-label">保存并关闭</span>
                 </button>
@@ -1405,7 +1414,7 @@
             <div id="pickerContent" class="flex-1 overflow-y-auto min-h-0 space-y-3"></div>
             <div class="flex items-center justify-between mt-3 pt-2 border-t border-white/10 shrink-0">
                 <span id="pickerCount" class="glass-badge">已添加 0 项</span>
-                <button id="donePickerBtn" type="button" class="py-2 px-5 bg-white/10 hover:bg-white/20 apple-radius transition-all text-sm font-medium text-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50">完成</button>
+                <button id="donePickerBtn" type="button" class="py-2 px-6 bg-white/90 hover:bg-white text-slate-900 shadow-[0_4px_16px_rgba(255,255,255,0.22),inset_0_1px_0_rgba(255,255,255,1)] hover:shadow-[0_6px_20px_rgba(255,255,255,0.32)] rounded-xl active:scale-[0.98] transition-all text-xs sm:text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">完成</button>
             </div>
         </div>
     </div><!-- /#bookmarkPicker -->
