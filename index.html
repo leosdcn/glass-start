@@ -214,7 +214,6 @@
             border-radius: 0.75rem;
             overflow: hidden;
             isolation: isolate;
-            transform: translateZ(0);
             border: 1px solid rgba(255, 255, 255, 0.15);
             transition: border-color 0.2s var(--ease-spring), box-shadow 0.2s var(--ease-spring), transform 0.2s var(--ease-spring);
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
@@ -240,7 +239,6 @@
             -webkit-backdrop-filter: blur(var(--blur));
             border: 1px solid var(--glass-border);
             box-shadow: inset 0 1px 0 0 rgba(255,255,255,0.22), inset 0 -1px 0 0 rgba(255,255,255,0.05), 0 8px 32px rgba(0,0,0,0.2); /* Liquid Glass 1px 物理折射高光 */
-            transform: translateZ(0);
             isolation: isolate;
         }
         .glass-strong {
@@ -249,7 +247,6 @@
             -webkit-backdrop-filter: blur(40px);
             border: 1px solid rgba(255,255,255,0.2);
             box-shadow: inset 0 1px 0 0 rgba(255,255,255,0.32), inset 0 -1px 0 0 rgba(255,255,255,0.08), 0 8px 32px rgba(0,0,0,0.3); /* Liquid Glass 强物理折射高光 */
-            transform: translateZ(0);
             isolation: isolate;
         }
         .glass-subcard {
@@ -561,7 +558,7 @@
         @keyframes hintFade { 0%,55%{opacity:1} 100%{opacity:0;pointer-events:none} }
         .bg-layer { transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1); transform: translateZ(0); will-change: opacity; pointer-events: none; }
         #bgOverlay { transition: background-color 0.2s ease, opacity 0.2s ease; transform: translateZ(0); will-change: opacity; pointer-events: none; }
-        #clock, #editBookmarksBtn { transform: translateZ(0); }
+        #editBookmarksBtn { transform: translateZ(0); }
         .delay-100 { animation-delay: 0.1s; }
         .delay-200 { animation-delay: 0.2s; }
         .edit-overlay {
@@ -591,7 +588,6 @@
         }
         .edit-overlay .glass-strong { background: rgba(255,255,255,0.2); }
         .nr .edit-overlay, .nr .edit-overlay > div { transition: none !important; opacity: 1 !important; transform: none !important; }
-        .preset-bg-card img { transform: translateZ(0); }
         .edit-row-card {
             position: relative;
             transition: background-color 0.15s ease, border-color 0.15s ease, opacity 0.2s ease, transform 0.2s ease, box-shadow 0.15s ease;
@@ -931,7 +927,11 @@
         }
 
         #searchClearBtn {
+            display: inline-flex;
             transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.2s ease, color 0.2s ease;
+        }
+        #searchClearBtn.hidden {
+            display: none !important;
         }
         #searchClearBtn svg {
             transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
@@ -1150,8 +1150,8 @@
 </head>
 <body class="text-white relative" style="background-color: var(--bg-start);">
     <!-- 固定定位背景图层（双层叠加 opacity 过渡，解决 background-image 不可 CSS 插值的问题；配合 bg-fullscreen 延伸至移动端安全区与过滚动区域） -->
-    <div id="bgLayer" class="bg-fullscreen bg-cover bg-center bg-no-repeat z-0 bg-[#0f172a] opacity-0 bg-layer"></div>
-    <div id="bgLayerNext" class="bg-fullscreen bg-cover bg-center bg-no-repeat z-0 opacity-0 bg-[#0f172a] bg-layer"></div>
+    <div id="bgLayer" class="bg-fullscreen bg-cover bg-center bg-no-repeat z-0 bg-slate-900 opacity-0 bg-layer"></div>
+    <div id="bgLayerNext" class="bg-fullscreen bg-cover bg-center bg-no-repeat z-0 opacity-0 bg-slate-900 bg-layer"></div>
     <div id="bgOverlay" class="bg-fullscreen bg-black/15 pointer-events-none z-0"></div>
     <script>(function(){const bg=document.getElementById('bgLayer');const url=window.__PRELOADED_BG__||'./wallpapers/bg1.avif';if(bg){const show=function(){bg.style.backgroundImage="url(\""+url.replace(/["'\\]/g,'\\$&')+"\")";bg.style.opacity='1';};const img=new Image();img.onload=show;img.src=url;if(img.complete&&img.naturalWidth>0)show();}if(window.__PRE_BG_EFFECTS__){const o=document.getElementById('bgOverlay');if(o){o.style.backgroundColor='rgba(0, 0, 0, '+(window.__PRE_BG_EFFECTS__.op/100)+')';if(window.__PRE_BG_EFFECTS__.bl>0){const b='blur('+window.__PRE_BG_EFFECTS__.bl+'px)';o.style.backdropFilter=b;o.style.webkitBackdropFilter=b;}}}})()</script>
 
@@ -1162,7 +1162,7 @@
             <!-- 时钟 -->
             <div class="text-center fade-in clock-text mb-10 md:mb-14">
                 <time id="clock" datetime="00:00" aria-label="当前时间" class="text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-light tracking-tight tabular-nums block">00<span class="clock-colon mx-0.5 sm:mx-1">:</span>00</time>
-                <div id="date" class="text-xs sm:text-sm md:text-base mt-3.5 text-white/80 font-normal tracking-[0.2em] sm:tracking-[0.25em] -mr-[0.2em] sm:-mr-[0.25em] uppercase drop-shadow-sm min-h-[1.5em]">&nbsp;</div>
+                <div id="date" class="text-xs sm:text-sm md:text-base mt-3.5 text-white/80 font-normal tracking-[0.2em] sm:tracking-[0.25em] -mr-[0.2em] sm:-mr-[0.25em] pl-1 sm:pl-2 uppercase drop-shadow-sm min-h-[1.5em]">&nbsp;</div>
                 <script>(function(){const n=new Date();const c=document.getElementById('clock');const d=document.getElementById('date');if(c){const h=String(n.getHours()).padStart(2,'0');const m=String(n.getMinutes()).padStart(2,'0');c.innerHTML=`${h}<span class="clock-colon mx-0.5 sm:mx-1">:</span>${m}`;c.setAttribute('datetime',`${h}:${m}`);}if(d){const w=['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];d.textContent=`${n.getFullYear()}年${n.getMonth()+1}月${n.getDate()}日  ${w[n.getDay()]}`;}})()</script>
             </div>
 
@@ -1179,7 +1179,7 @@
                     </div>
                     <label for="searchInput" class="sr-only">搜索</label>
                     <input type="text" id="searchInput" name="q" role="combobox" aria-label="搜索输入框" aria-autocomplete="list" aria-controls="suggestionMenu" aria-expanded="false" class="flex-1 bg-transparent border-none outline-none text-lg search-input text-white h-12 px-1 min-w-0 focus-visible:ring-0" placeholder="搜索..." autocomplete="off">
-                    <button id="searchClearBtn" type="button" aria-label="清空搜索框" class="hidden min-w-11 min-h-11 p-2.5 apple-radius hover:bg-white/10 text-white/40 hover:text-white/90 inline-flex items-center justify-center transition-[background-color,color,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 shrink-0" title="清空搜索框">
+                    <button id="searchClearBtn" type="button" aria-label="清空搜索框" class="hidden p-2 apple-radius hover:bg-white/10 text-white/40 hover:text-white/90 transition-[background-color,color,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 shrink-0" title="清空搜索框">
                         <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                     </button>
                     <button id="searchBtn" type="button" aria-label="执行搜索" class="p-3 apple-radius hover:bg-white/10 transition-[background-color,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 shrink-0 mr-1">
@@ -1207,7 +1207,7 @@
             <!-- 快捷书签 -->
             <div class="w-full max-w-2xl lg:max-w-3xl mx-auto glass apple-radius p-3 sm:p-4 fade-in mb-6 md:mb-8 relative group delay-200">
                 <nav aria-label="快捷书签">
-                    <div id="bookmarks" class="grid grid-cols-4 md:grid-cols-8 gap-2 min-h-[10.75rem] md:min-h-[5.5rem]"></div>
+                    <div id="bookmarks" class="grid grid-cols-4 md:grid-cols-8 gap-2 min-h-43 md:min-h-22"></div>
                 </nav>
             </div>
         </div>
@@ -1242,7 +1242,7 @@
                 <!-- 下方主体：左侧分类 + 右侧书签 -->
                 <div class="flex-1 flex flex-col sm:flex-row overflow-hidden min-h-0">
                     <!-- 侧边栏（移动端顶部水平滚动，桌面端左侧垂直滚动） -->
-                    <aside id="sidebar" class="sm:w-28 md:w-32 lg:w-[8.5rem] shrink-0 p-2 md:p-2.5 sm:pt-3 md:pt-3 overflow-x-auto sm:overflow-y-auto sm:border-r border-white/[0.08] bg-black/[0.06] sm:bg-gradient-to-b sm:from-black/[0.05] sm:to-black/[0.09] sm:shadow-[inset_-1px_0_0_0_rgba(255,255,255,0.06)]">
+                    <aside id="sidebar" class="sm:w-28 md:w-32 lg:w-34 shrink-0 p-2 md:p-2.5 sm:pt-3 md:pt-3 overflow-x-auto sm:overflow-y-auto sm:border-r border-white/[0.08] bg-black/[0.06] sm:bg-gradient-to-b sm:from-black/[0.05] sm:to-black/[0.09] sm:shadow-[inset_-1px_0_0_0_rgba(255,255,255,0.06)]">
                         <nav aria-label="导航分类">
                             <div id="sidebarList" role="tablist" aria-label="分类导航列表" class="flex sm:flex-col gap-1"></div>
                         </nav>
@@ -1382,15 +1382,15 @@
                     </div>
                     <!-- 核心数据统计徽章 -->
                     <div class="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
-                        <div class="px-3 py-1.5 bg-white/5 rounded-xl border border-white/10 text-center min-w-[4.5rem]">
+                        <div class="px-3 py-1.5 bg-white/5 rounded-xl border border-white/10 text-center min-w-18">
                             <div id="statBookmarkCount" class="font-semibold text-white/90 text-xs">0</div>
                             <div class="text-2xs text-white/65 font-medium tracking-tight">快捷书签</div>
                         </div>
-                        <div class="px-3 py-1.5 bg-white/5 rounded-xl border border-white/10 text-center min-w-[4.5rem]">
+                        <div class="px-3 py-1.5 bg-white/5 rounded-xl border border-white/10 text-center min-w-18">
                             <div id="statWallpaperType" class="font-semibold text-white/90 text-xs">系统</div>
                             <div class="text-2xs text-white/65 font-medium tracking-tight">壁纸来源</div>
                         </div>
-                        <div class="px-3 py-1.5 bg-white/5 rounded-xl border border-white/10 text-center min-w-[4.5rem]">
+                        <div class="px-3 py-1.5 bg-white/5 rounded-xl border border-white/10 text-center min-w-18">
                             <div id="statPwaStatus" class="font-semibold text-green-400 text-xs">就绪</div>
                             <div class="text-2xs text-white/65 font-medium tracking-tight">离线 PWA</div>
                         </div>
@@ -1412,7 +1412,7 @@
                             <span>📤</span> <span class="btn-label">导出 JSON 配置文件备份</span>
                         </button>
                         <!-- Dropzone 导入框 -->
-                        <div id="jsonDropzone" class="json-dropzone flex-1 border-2 border-dashed border-white/15 hover:border-white/35 rounded-2xl p-3 text-center transition-[background-color,border-color,transform] duration-150 cursor-pointer bg-white/5 hover:bg-white/10 flex flex-col items-center justify-center gap-1 min-h-[6rem] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" tabindex="0">
+                        <div id="jsonDropzone" class="json-dropzone flex-1 border-2 border-dashed border-white/15 hover:border-white/35 rounded-2xl p-3 text-center transition-[background-color,border-color,transform] duration-150 cursor-pointer bg-white/5 hover:bg-white/10 flex flex-col items-center justify-center gap-1 min-h-24 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" tabindex="0">
                             <span class="text-lg">📥</span>
                             <p class="text-xs text-white/80 font-medium">点击或将 JSON 备份文件拖入此处</p>
                             <p class="text-2xs text-white/40">自动解析恢复快捷书签与系统偏好配置</p>
@@ -1471,7 +1471,7 @@
         <div class="glass-strong apple-radius pt-4 pb-3 px-4 w-full max-w-2xl xl:max-w-3xl 2xl:max-w-4xl mx-4 max-h-[85vh] flex flex-col shadow-2xl">
             <div class="flex items-center justify-between mb-2 pb-1.5 border-b border-white/10 shrink-0">
                 <h3 class="text-base font-medium tracking-wide text-white/80">从导航页选择</h3>
-                <button id="closePickerBtn" type="button" aria-label="关闭选择弹窗" class="p-1 min-w-[2.5rem] min-h-[2.5rem] inline-flex items-center justify-center hover:bg-white/10 rounded apple-radius text-white/40 hover:text-white/70 transition-[background-color,color,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"><svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+                <button id="closePickerBtn" type="button" aria-label="关闭选择弹窗" class="p-1 size-10 inline-flex items-center justify-center hover:bg-white/10 rounded apple-radius text-white/40 hover:text-white/70 transition-[background-color,color,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"><svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
             </div>
             <div id="pickerContent" class="flex-1 overflow-y-auto min-h-0 space-y-3"></div>
             <div class="flex items-center justify-between mt-3 pt-2 border-t border-white/10 shrink-0">
@@ -2932,7 +2932,7 @@
             return `
                 <div class="edit-row-card flex flex-wrap sm:flex-nowrap items-center gap-1.5 p-1.5 px-2 bg-white/5 border border-white/10 apple-radius hover:border-white/25 transition-[background-color,border-color,transform,opacity] duration-150 group mb-1.5 shadow-xs" data-idx="${idx}" data-icon="${escapeHtml(icon || '')}" data-orig-url="${escapeHtml(url || '')}" draggable="true">
                     <div class="flex items-center gap-1.5 shrink-0">
-                        <div class="drag-handle touch-none p-2 sm:p-1 min-w-9 min-h-9 sm:min-w-0 sm:min-h-0 flex items-center justify-center shrink-0 text-white/30 group-hover:text-white/70 hover:!text-white cursor-grab active:cursor-grabbing transition-[color,transform] duration-150" title="按住拖拽排序">
+                        <div class="drag-handle touch-none p-2 sm:p-1 min-w-9 min-h-9 sm:min-w-0 sm:min-h-0 flex items-center justify-center shrink-0 text-white/30 group-hover:text-white/70 hover:!text-white cursor-grab active:cursor-grabbing transition-[color,transform] duration-150" title="按住拖拽排序" role="button" tabindex="0" aria-label="按住拖拽或使用键盘排序">
                             <svg class="size-3.5 pointer-events-none" viewBox="0 0 16 16" fill="currentColor"><circle cx="5" cy="4" r="1.5"/><circle cx="11" cy="4" r="1.5"/><circle cx="5" cy="8" r="1.5"/><circle cx="11" cy="8" r="1.5"/><circle cx="5" cy="12" r="1.5"/><circle cx="11" cy="12" r="1.5"/></svg>
                         </div>
                         <div class="flex flex-col gap-0.5 shrink-0">
@@ -2948,7 +2948,7 @@
                         <input type="text" id="bm-url-${rowId}" name="bookmark_url_${rowId}" class="edit-url w-full sm:w-2/3 bg-black/20 border border-white/10 apple-radius px-2.5 py-2 sm:py-1.5 text-base sm:text-xs text-white/75 focus:border-white/40 focus:bg-black/40 focus:text-white outline-none transition font-mono" value="${escapeHtml(url)}" placeholder="https://..." aria-label="书签网址">
                     </div>
                     <button type="button" class="del-btn shrink-0 min-w-9 min-h-9 sm:min-w-0 sm:min-h-0 p-2 sm:p-1.5 hover:bg-red-500/20 apple-radius text-white/30 hover:text-red-400 flex items-center justify-center transition ml-auto sm:ml-0" title="删除书签">
-                        <svg class="w-4 h-4 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                        <svg class="size-4 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                     </button>
                 </div>
             `;
@@ -5245,15 +5245,23 @@
                     selectedSuggestionIdx = validIdx;
                     items[validIdx].classList.add('active');
                     items[validIdx].setAttribute('aria-selected', 'true');
-                    if (dom.searchInput && items[validIdx].dataset.suggestion) {
-                        dom.searchInput.value = items[validIdx].dataset.suggestion;
+                    if (dom.searchInput) {
+                        dom.searchInput.setAttribute('aria-activedescendant', `sug-opt-${validIdx}`);
+                        if (items[validIdx].dataset.suggestion) {
+                            dom.searchInput.value = items[validIdx].dataset.suggestion;
+                        }
                     }
                 } else {
                     selectedSuggestionIdx = -1;
-                    if (dom.searchInput && typeof originalQuery === 'string') {
-                        dom.searchInput.value = originalQuery;
+                    if (dom.searchInput) {
+                        dom.searchInput.removeAttribute('aria-activedescendant');
+                        if (typeof originalQuery === 'string') {
+                            dom.searchInput.value = originalQuery;
+                        }
                     }
                 }
+            } else if (dom.searchInput) {
+                dom.searchInput.removeAttribute('aria-activedescendant');
             }
         }
 
@@ -5271,6 +5279,7 @@
             }
             if (dom.searchInput) {
                 dom.searchInput.setAttribute('aria-expanded', 'false');
+                dom.searchInput.removeAttribute('aria-activedescendant');
             }
             selectedSuggestionIdx = -1;
         }
