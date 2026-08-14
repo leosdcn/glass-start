@@ -4862,16 +4862,16 @@
         }
 
         /**
-         * 计算关键词 q 与书签 bm 的前缀拼写容错 / 模糊匹配得分 (Token Prefix Fuzzy Score)
+         * 计算关键词 q 与目标文本（或书签）的前缀拼写容错 / 模糊匹配得分 (Token Prefix Fuzzy Score)
          * 支持单词及按空格分割的多词子项容错检索（如 MDN Wbe Docs / oGogle Cloud）
          */
-        function getFuzzyScore(q, bm) {
+        function getFuzzyScore(q, target) {
             const query = (q || '').trim().toLowerCase();
             if (query.length < 3) return Infinity;
-            const normUrl = (bm.url || '').trim().toLowerCase().replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '');
-            const fullText = `${bm.name || ''} ${normUrl} ${bm.desc || ''}`.toLowerCase();
-            const rawTokens = fullText.split(/\s+/);
-            const wordTokens = fullText.split(/[^a-z0-9\u4e00-\u9fff]+/);
+            const rawText = (typeof target === 'string' ? target : `${target?.name || ''} ${target?.url || ''} ${target?.desc || ''}`).toLowerCase();
+            if (!rawText.trim()) return Infinity;
+            const rawTokens = rawText.split(/\s+/);
+            const wordTokens = rawText.split(/[^a-z0-9\u4e00-\u9fff]+/);
             const tokens = Array.from(new Set([...rawTokens, ...wordTokens].filter(t => t.length > 0)));
 
             const subQueries = query.split(/\s+/).filter(sq => sq.length > 0);
@@ -4910,7 +4910,15 @@
         }
 
         /**
-         * 在本地全站书签中根据关键词检索匹配项（包含快捷书签与分类书签），支持精确匹配与拼写容错/模糊匹配
+         * 在本地全站书签中根据关键词检索匹配项（包含快捷书签与分类书签），优先匹配书签名，其次匹配 URL 与简介，并支持拼写容错/模糊匹配
+         * 优先级策略 (Priority Tiers)：
+         *  1. 书签名完全匹配 (Exact Name Match)
+         *  2. 书签名以关键词开头 (Prefix Name Match)
+         *  3. 书签名包含关键词 (Substring Name Match)
+         *  4. URL 域名/路径包含关键词 (URL Match)
+         *  5. 书签简介包含关键词 (Description Match)
+         *  6. 书签名拼写容错/模糊匹配 (Fuzzy Name Match)
+         *  7. URL/简介拼写容错/模糊匹配 (Fuzzy Other Match)
          * @param {string} query - 搜索关键词
          * @param {number} [limit=2] - 最多返回匹配条数（最多 2 条特色书签）
          * @returns {Array<{type: string, name: string, url: string, icon: string, desc: string, category: string}>}
@@ -4919,11 +4927,8 @@
             const q = (query || '').trim().toLowerCase();
             // 纯标点查询（如“/”会被 https:// 的斜杠误命中所有书签）不触发本地书签检索
             if (!q || !/[a-z0-9\u4e00-\u9fff]/.test(q)) return [];
-            const results = [];
-            const addedUrls = new Set();
             const toNormUrl = u => (u || '').trim().toLowerCase().replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '');
             const isFuzzyEligible = q.length >= 3;
-            const fuzzyCandidates = [];
 
             // 预先建立 URL -> 分类名称 映射表
             const urlToCategoryMap = new Map();
@@ -4943,72 +4948,89 @@
 
             // 统一单次遍历序列：快捷书签优先，导航分类书签随后
             const allCandidates = [];
+            const seenNormUrls = new Set();
+
             if (pageData && Array.isArray(pageData.bookmarks)) {
                 for (const bm of pageData.bookmarks) {
-                    if (bm && bm.url) allCandidates.push({ bm, defaultCat: '快捷书签' });
+                    if (bm && bm.url) {
+                        const normUrl = toNormUrl(bm.url);
+                        if (!seenNormUrls.has(normUrl)) {
+                            seenNormUrls.add(normUrl);
+                            allCandidates.push({ bm, normUrl, defaultCat: '快捷书签' });
+                        }
+                    }
                 }
             }
             if (pageData && Array.isArray(pageData.categories)) {
                 for (const cat of pageData.categories) {
                     if (!cat || !Array.isArray(cat.bookmarks)) continue;
                     for (const bm of cat.bookmarks) {
-                        if (bm && bm.url) allCandidates.push({ bm, defaultCat: cat.name || '分类书签' });
+                        if (bm && bm.url) {
+                            const normUrl = toNormUrl(bm.url);
+                            if (!seenNormUrls.has(normUrl)) {
+                                seenNormUrls.add(normUrl);
+                                allCandidates.push({ bm, normUrl, defaultCat: cat.name || '分类书签' });
+                            }
+                        }
                     }
                 }
             }
 
-            // 单次遍历完成精准子串匹配与模糊候选评分收集
-            for (const { bm, defaultCat } of allCandidates) {
-                const normUrl = toNormUrl(bm.url);
-                if (addedUrls.has(normUrl)) continue;
+            const matches = [];
 
-                const nameMatch = (bm.name || '').toLowerCase().includes(q);
-                const urlMatch = (bm.url || '').toLowerCase().includes(q);
-                const descMatch = (bm.desc || '').toLowerCase().includes(q);
+            for (let idx = 0; idx < allCandidates.length; idx++) {
+                const { bm, normUrl, defaultCat } = allCandidates[idx];
+                const bmName = (bm.name || '').toLowerCase();
+                const bmDesc = (bm.desc || '').toLowerCase();
+                const bmUrl = (bm.url || '').toLowerCase();
                 const realCat = urlToCategoryMap.get(normUrl) || defaultCat;
 
-                if (nameMatch || urlMatch || descMatch) {
-                    results.push({
-                        type: 'bookmark',
-                        name: bm.name || '未命名书签',
-                        url: bm.url,
-                        icon: bm.icon || '',
-                        desc: bm.desc || '',
-                        category: realCat
-                    });
-                    addedUrls.add(normUrl);
-                    if (results.length >= limit) return results;
-                } else if (isFuzzyEligible && results.length < limit) {
-                    const score = getFuzzyScore(q, bm);
-                    if (score !== Infinity) {
-                        fuzzyCandidates.push({
-                            score,
-                            item: {
-                                type: 'bookmark',
-                                name: bm.name || '未命名书签',
-                                url: bm.url,
-                                icon: bm.icon || '',
-                                desc: bm.desc || '',
-                                category: realCat
-                            },
-                            normUrl
-                        });
+                let tier = Infinity;
+
+                // 优先层级判定：书签名绝对优先于 URL 与简介
+                if (bmName === q) {
+                    tier = 10; // 书签名完全一致
+                } else if (bmName.startsWith(q)) {
+                    tier = 20; // 书签名以查询词开头
+                } else if (bmName.includes(q)) {
+                    tier = 30; // 书签名包含查询词
+                } else if (bmUrl.includes(q) || normUrl.includes(q)) {
+                    tier = 40; // URL 命中
+                } else if (bmDesc.includes(q)) {
+                    tier = 50; // 书签简介命中
+                } else if (isFuzzyEligible) {
+                    // 模糊容错匹配也优先书签名
+                    const nameFuzzyScore = getFuzzyScore(q, bm.name || '');
+                    if (nameFuzzyScore !== Infinity) {
+                        tier = 60 + nameFuzzyScore;
+                    } else {
+                        const otherFuzzyScore = getFuzzyScore(q, `${normUrl} ${bm.desc || ''}`);
+                        if (otherFuzzyScore !== Infinity) {
+                            tier = 70 + otherFuzzyScore;
+                        }
                     }
                 }
-            }
 
-            // 若精准匹配未满额，按模糊匹配编辑距离补全结果
-            if (results.length < limit && fuzzyCandidates.length > 0) {
-                fuzzyCandidates.sort((a, b) => a.score - b.score);
-                for (const candidate of fuzzyCandidates) {
-                    if (addedUrls.has(candidate.normUrl)) continue;
-                    results.push(candidate.item);
-                    addedUrls.add(candidate.normUrl);
-                    if (results.length >= limit) break;
+                if (tier !== Infinity) {
+                    matches.push({
+                        tier,
+                        idx,
+                        item: {
+                            type: 'bookmark',
+                            name: bm.name || '未命名书签',
+                            url: bm.url,
+                            icon: bm.icon || '',
+                            desc: bm.desc || '',
+                            category: realCat
+                        }
+                    });
                 }
             }
 
-            return results;
+            // 按优先级梯队排序，同一梯队保持原始索引顺序
+            matches.sort((a, b) => (a.tier - b.tier) || (a.idx - b.idx));
+
+            return matches.slice(0, limit).map(m => m.item);
         }
 
         // 核心实时建议拉取函数：全面支持 百度 / Bing / Google / DuckDuckGo (Bing 回退) 的开放 Suggest API + 本地书签混排

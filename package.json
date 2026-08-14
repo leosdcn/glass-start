@@ -7,9 +7,9 @@
     "build": "node build.js",
     "test": "node test/run.mjs",
     "lint": "node lint.mjs",
-    "dev": "npm run build && npx -y serve dist -p 3000",
+    "dev": "npm run build && node server.js",
     "watch": "node build.js --watch",
-    "preview": "npm run build && npx -y serve dist -p 3000"
+    "preview": "npm run build && node server.js"
   },
   "devDependencies": {
     "@tailwindcss/cli": "^4.3.3",

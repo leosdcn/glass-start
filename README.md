@@ -65,9 +65,10 @@
 ### 1. 本地开发与生产部署 (Dev vs Prod)
 
 #### 本地开发模式 (Development)
-- 运行 `npm run dev` 会自动构建打包并启动 `dist/` 预览服务 (`http://localhost:3000`)。默认服务静态编译后的产物，避免浏览器端 JIT 实时 DOM 扫描造成的 Chrome Helper CPU 100% 占用。
-- 在编辑源码 `index.html` 或 `bookmarks.json` 时，可在另一终端开启 `npm run watch` 文件增量修改监听，保存时自动秒级重建 `dist/` 产物。
-- 若直接双击根目录 `index.html`，页面仍内置 **Tailwind v4 Browser CDN** 运行时脚本，保持开箱即用。
+- **一键双击启动 (macOS)**：在访达（Finder）中直接双击根目录 `start.command` 快捷指令，自动完成构建同步并在局域网启动 `dist/` 网页服务，秒级打开默认浏览器。
+- **命令行启动**：运行 `npm run dev`（或 `npm run preview`）会自动构建打包并通过原生 `server.js` 启动 `dist/` 局域网预览服务 (`http://localhost:3000`)。
+- **文件增量监听**：在编辑源码 `index.html` 或 `bookmarks.json` 时，可在另一终端开启 `npm run watch` 文件修改监听，保存时自动秒级重建 `dist/` 产物。
+- **免构建直开模式**：若直接双击根目录 `index.html`（`file://` 协议），页面仍内置 **Tailwind v4 Browser CDN** 运行时脚本，保持零环境开箱即用。
 
 #### 生产环境打包上线 (Production)
 在需要部署到生产服务器或 GitHub Pages / Cloudflare Pages 时，运行打包命令：
@@ -115,7 +116,7 @@ npm run build
   - **禁止 Agent 擅自提交**：未收到用户明确指令前，Agent 严禁自动执行 `git add` / `git commit` / `git push`；所有改动与编译仅在本地工作区生效，静待用户预览确认。
   - **控制 Push 频次（防频繁部署）**：由于已配置 Cloudflare Pages 自动构建，日常开发推荐**本地多 commit，完成阶段性功能后再统一 push**。
   - **跳过云端构建**：若仅需向远程仓库推送备份代码但**不想触发线上构建**，请在提交信息中加上 `[skip ci]`（如：`git commit -m "wip: 修改样式 [skip ci]"`）。
-- ⚠️ **全量端到端测试 (`npm test`)**：会启动无头 Chrome 运行 10 个自动化测试文件。**Agent 在日常修复小 Bug 或调整功能时严禁自动运行 `npm test`**，避免浪费时间；仅在用户明确发出指令要求“全量测试”时才执行。
+- ⚠️ **全量端到端测试 (`npm test`)**：会启动无头 Chrome 运行 6 个自动化测试套件（含 40+ 核心交互断言）。**Agent 在日常修复小 Bug 或调整功能时严禁自动运行 `npm test`**，避免浪费时间；仅在用户明确发出指令要求“全量测试”时才执行。
 
 ---
 
@@ -130,10 +131,12 @@ npm run build
 | **`sw.js`** | 缓存脚本 | Service Worker 独立脚本。专门用于在 HTTPS/localhost 环境下本地缓存 Favicon 网站图标与壁纸，提升加载速度。 | 推荐（缺失时不影响主流程运行） |
 | **`wallpapers/`** | **本地壁纸库** | 高清预设 AVIF 壁纸目录（包含 bg1.avif ~ bg8.avif），由 `build.js` 自动打包至 `dist/` 实现全量离线可用。 | **必须** |
 | **`build.js`** | 打包脚本 | 生产构建 Node 脚本。运行 `npm run build` 自动同步书签数据、编译 CSS、提取 `app.js` 并输出至 `dist/`。 | 工具脚本 |
+| **`server.js`** | 静态服务器 | 原生 Node.js 零依赖局域网静态服务器。提供开发预览、全网卡广播、端口防冲突与多端访问能力。 | 工具脚本 |
+| **`start.command`** | macOS 快捷指令 | 双击直接一键打包并在局域网启动 `dist/` 网页服务，并自动打开默认浏览器。 | 快捷工具 |
 | **`manifest.json`** | Web App 应用配置 | PWA 应用清单文件。配置应用名称、图标、启动 URL、主题颜色，支持添加至手机主屏幕与独立 Web App 运行。 | PWA 必需 |
 | **`_headers`** | 部署响应头配置 | Cloudflare Pages HTTP 安全响应头与静态资源缓存控制配置文件。 | 部署配置 |
 | **`lint.mjs`** | 检查脚本 | Node 零依赖静态检查脚本。用于校验根目录核心 JS/HTML 语法与 JSON 配置文件合法性。 | 工具脚本 |
-| **`test/`** | **测试目录** | 端到端 UI 自动化测试目录。内含 10 个 CDP 浏览器自动化测试套件与 Web 调试服务器。 | 测试框架 |
+| **`test/`** | **测试目录** | 端到端 UI 自动化测试目录。内含 6 个 CDP 浏览器自动化测试套件与 Web 调试服务器。 | 测试框架 |
 | **`package.json`** | 项目配置 | Node 项目配置文件，提供 `npm run dev`、`npm run watch`、`npm run build`、`npm run lint` 与 `npm test` 命令。 | 配置文件 |
 | **`dist/`** | **生产输出** | `npm run build` 自动生成的生产构建目录。包含剥离 v4 Browser CDN、内嵌 CSS 及外链 `app.js` 的上线资源。 | 生产部署产物 |
 | **`wrangler.jsonc`** | 部署配置 | Cloudflare Workers / Pages 部署配置，声明 `assets.directory = "dist"` 指定静态资源上传目录。 | Cloudflare 部署必需 |
@@ -226,4 +229,4 @@ add_header Content-Security-Policy "default-src 'self' data: blob: https:; scrip
 - `a.favicon.im` — Favicon 图标 API
 - 百度 / Bing / Google — 搜索联想建议 API
 - `wallpapers/` — 本地预设 2.5K AVIF 高清壁纸库（支持 10-bit 色深与全量预缓存）
-- `npx serve` — 开发静态服务器（取最新版，未锁定版本）
+- `server.js` / `start.command` — 原生 Node.js 零依赖本地与局域网开发静态服务器 (0ms 秒级启动)
