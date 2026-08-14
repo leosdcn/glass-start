@@ -56,6 +56,8 @@
     <link rel="dns-prefetch" href="https://a.favicon.im">
     <link rel="preconnect" href="https://images.unsplash.com" crossorigin>
     <link rel="preconnect" href="https://a.favicon.im" crossorigin>
+    <!-- 默认壁纸静态 Preload：让 Preload Scanner 在 HTML 解析首帧即刻并发发起请求，消灭 LCP 发现时延 -->
+    <link rel="preload" href="./wallpapers/bg1.avif" as="image" type="image/avif" fetchpriority="high">
     <!-- 动态壁纸 Preload：根据设备物理 DPI (如 13" MacBook Air 2940px) 动态计算匹配 Unsplash 目标宽度，零阻塞预加载 -->
     <script>
       /**
@@ -128,7 +130,7 @@
               }
             }
             window.__PRELOADED_BG__ = preloadUrl;
-            if (preloadUrl && !preloadUrl.startsWith('data:')) {
+            if (preloadUrl && !preloadUrl.startsWith('data:') && preloadUrl !== './wallpapers/bg1.avif') {
               const link = document.createElement('link');
               link.rel = 'preload';
               link.as = 'image';
@@ -192,7 +194,7 @@
             --z-alert: 9999;
         }
         html, body { background-color: var(--bg-base); }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Nunito', sans-serif; /* 优先 Apple 原生系统字体栈 */
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif; /* 优先 Apple 原生系统字体栈 */
                overflow:hidden; }
         * { scrollbar-width:none; }
         *::-webkit-scrollbar { display:none; }
@@ -207,7 +209,7 @@
             isolation: isolate;
             transform: translateZ(0);
             border: 1px solid rgba(255, 255, 255, 0.15);
-            transition: all 0.2s ease;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
         .preset-bg-card span {
@@ -440,9 +442,9 @@
             box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.3), 0 4px 16px rgba(0, 0, 0, 0.2);
             pointer-events: none;
             z-index: 1;
-            transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1), width 0.32s cubic-bezier(0.16, 1, 0.3, 1), height 0.32s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease;
+            transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease;
             opacity: 0;
-            will-change: transform, width, height;
+            will-change: transform;
         }
         /* 移动端侧边栏改为顶部水平滚动 (639.98px 边界精确防竞态) */
         @media (max-width: 639.98px) {
@@ -586,7 +588,7 @@
             position: relative;
             background: transparent;
             border: none;
-            transition: all 0.2s ease;
+            transition: opacity 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
         }
         [draggable="true"] { cursor: grab; }
         [draggable="true"]:active { cursor: grabbing; }
@@ -948,7 +950,7 @@
             font-size: 0.8125rem;
             font-weight: 500;
             cursor: pointer;
-            transition: all 0.15s ease;
+            transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
         }
         .confirm-dialog-btn-cancel:hover {
             background: rgba(255, 255, 255, 0.15);
@@ -964,7 +966,7 @@
             font-size: 0.8125rem;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.15s ease;
+            transition: background-color 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
             box-shadow: 0 4px 14px rgba(239, 68, 68, 0.35);
         }
         .confirm-dialog-btn-ok:hover {
@@ -1069,7 +1071,7 @@
             <!-- 时钟 -->
             <div class="text-center fade-in clock-text mb-10 md:mb-14">
                 <time id="clock" datetime="00:00" aria-label="当前时间" class="text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-light tracking-tight tabular-nums block">00<span class="clock-colon mx-0.5 sm:mx-1">:</span>00</time>
-                <div id="date" class="text-xs sm:text-sm md:text-base mt-3.5 text-white/80 font-normal tracking-[0.2em] sm:tracking-[0.25em] -mr-[0.2em] sm:-mr-[0.25em] uppercase drop-shadow-sm">加载中...</div>
+                <div id="date" class="text-xs sm:text-sm md:text-base mt-3.5 text-white/80 font-normal tracking-[0.2em] sm:tracking-[0.25em] -mr-[0.2em] sm:-mr-[0.25em] uppercase drop-shadow-sm min-h-[1.5em]">&nbsp;</div>
                 <script>(function(){const n=new Date();const c=document.getElementById('clock');const d=document.getElementById('date');if(c){const h=String(n.getHours()).padStart(2,'0');const m=String(n.getMinutes()).padStart(2,'0');c.innerHTML=`${h}<span class="clock-colon mx-0.5 sm:mx-1">:</span>${m}`;c.setAttribute('datetime',`${h}:${m}`);}if(d){const w=['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];d.textContent=`${n.getFullYear()}年${n.getMonth()+1}月${n.getDate()}日  ${w[n.getDay()]}`;}})()</script>
             </div>
 
@@ -1114,7 +1116,7 @@
             <!-- 快捷书签 -->
             <div class="w-full max-w-2xl lg:max-w-3xl mx-auto glass apple-radius p-3 sm:p-4 fade-in mb-6 md:mb-8 relative group delay-200">
                 <nav aria-label="快捷书签">
-                    <div id="bookmarks" class="grid grid-cols-4 md:grid-cols-8 gap-2 min-h-[5.5rem]"></div>
+                    <div id="bookmarks" class="grid grid-cols-4 md:grid-cols-8 gap-2 min-h-[10.75rem] md:min-h-[5.5rem]"></div>
                 </nav>
             </div>
         </div>
