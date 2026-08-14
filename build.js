@@ -246,15 +246,15 @@ function processProductionAppJs() {
 }
 processProductionAppJs();
 
-// 5. 处理生产环境 index.html (全量内嵌压缩 JS 与 Tailwind CSS，支持本地直接双击秒开与线上托管)
+// 5. 处理生产环境 index.html (替换内联 JS 为外链 dist/app.js，全量内嵌静态编译 Tailwind CSS)
 function processProductionHtml() {
-    console.log('🔧 处理生产环境 index.html (全量内嵌压缩 JS、Tailwind CSS，消除网络 RTT 与跨域限制)...');
+    console.log('🔧 处理生产环境 index.html (剥离内联 JS 转换为 app.js 外链，全量内嵌 Tailwind CSS)...');
     let prodHtmlContent = fs.readFileSync(PATHS.indexHtml, 'utf-8');
 
-    // 5.0 将 index.html 中的 <script id="main-script"> 替换为紧凑压缩后的内联脚本（同时保留外链 dist/app.js 供 SW 缓存）
+    // 5.0 将 index.html 中的 <script id="main-script"> 替换为外链 <script src="./app.js" defer></script>
     prodHtmlContent = prodHtmlContent.replace(
         /<script\s+id="main-script"[^>]*>[\s\S]*?<\/script>/i,
-        () => `<script id="main-script">${cachedAppJsContent}</script>`
+        '<script src="./app.js" defer></script>'
     );
 
     const distCssPath = path.join(PATHS.dist, 'style.css');
