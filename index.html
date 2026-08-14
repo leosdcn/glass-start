@@ -2177,16 +2177,9 @@
             baidu: { name: '百度', icon: 'https://a.favicon.im/baidu.com', url: 'https://www.baidu.com/s?wd=' }
         };
 
-        const backgrounds = window.__BACKGROUNDS__ || [
-            './wallpapers/bg1.avif',
-            './wallpapers/bg2.avif',
-            './wallpapers/bg3.avif',
-            './wallpapers/bg4.avif',
-            './wallpapers/bg5.avif',
-            './wallpapers/bg6.avif',
-            './wallpapers/bg7.avif',
-            './wallpapers/bg8.avif'
-        ];
+        const backgrounds = (typeof window !== 'undefined' && Array.isArray(window.__BACKGROUNDS__) && window.__BACKGROUNDS__.length)
+            ? window.__BACKGROUNDS__
+            : ['./wallpapers/bg1.avif'];
 
         // ==================== 状态与 DOM 缓存 ====================
         const dom = {};
@@ -4950,6 +4943,8 @@
             const results = [];
             const addedUrls = new Set();
             const toNormUrl = u => (u || '').trim().toLowerCase().replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '');
+            const isFuzzyEligible = q.length >= 3;
+            const fuzzyCandidates = [];
 
             // 预先建立 URL -> 分类名称 映射表
             const urlToCategoryMap = new Map();
@@ -4967,15 +4962,33 @@
                 }
             }
 
-            const matchAndAddBookmark = (bm, defaultCat) => {
-                if (!bm || !bm.url) return false;
+            // 统一单次遍历序列：快捷书签优先，导航分类书签随后
+            const allCandidates = [];
+            if (pageData && Array.isArray(pageData.bookmarks)) {
+                for (const bm of pageData.bookmarks) {
+                    if (bm && bm.url) allCandidates.push({ bm, defaultCat: '快捷书签' });
+                }
+            }
+            if (pageData && Array.isArray(pageData.categories)) {
+                for (const cat of pageData.categories) {
+                    if (!cat || !Array.isArray(cat.bookmarks)) continue;
+                    for (const bm of cat.bookmarks) {
+                        if (bm && bm.url) allCandidates.push({ bm, defaultCat: cat.name || '分类书签' });
+                    }
+                }
+            }
+
+            // 单次遍历完成精准子串匹配与模糊候选评分收集
+            for (const { bm, defaultCat } of allCandidates) {
                 const normUrl = toNormUrl(bm.url);
-                if (addedUrls.has(normUrl)) return false;
+                if (addedUrls.has(normUrl)) continue;
+
                 const nameMatch = (bm.name || '').toLowerCase().includes(q);
                 const urlMatch = (bm.url || '').toLowerCase().includes(q);
                 const descMatch = (bm.desc || '').toLowerCase().includes(q);
+                const realCat = urlToCategoryMap.get(normUrl) || defaultCat;
+
                 if (nameMatch || urlMatch || descMatch) {
-                    const realCat = urlToCategoryMap.get(normUrl) || defaultCat;
                     results.push({
                         type: 'bookmark',
                         name: bm.name || '未命名书签',
@@ -4985,38 +4998,10 @@
                         category: realCat
                     });
                     addedUrls.add(normUrl);
-                    return results.length >= limit;
-                }
-                return false;
-            };
-
-            // 1. 优先匹配快捷书签（精确匹配包含 q）
-            if (pageData && Array.isArray(pageData.bookmarks)) {
-                for (const bm of pageData.bookmarks) {
-                    if (matchAndAddBookmark(bm, '快捷书签')) return results;
-                }
-            }
-
-            // 2. 匹配导航分类书签（精确匹配包含 q）
-            if (pageData && Array.isArray(pageData.categories)) {
-                for (const cat of pageData.categories) {
-                    if (!cat || !Array.isArray(cat.bookmarks)) continue;
-                    for (const bm of cat.bookmarks) {
-                        if (matchAndAddBookmark(bm, cat.name || '分类书签')) return results;
-                    }
-                }
-            }
-
-            // 3. 若精确匹配未填满 limit 且关键词长度 >= 3，进行拼写容错 / 模糊匹配 (Fuzzy Match / Levenshtein Distance)
-            if (results.length < limit && q.length >= 3) {
-                const fuzzyCandidates = [];
-                const checkFuzzy = (bm, defaultCat) => {
-                    if (!bm || !bm.url) return;
-                    const normUrl = toNormUrl(bm.url);
-                    if (addedUrls.has(normUrl)) return;
+                    if (results.length >= limit) return results;
+                } else if (isFuzzyEligible && results.length < limit) {
                     const score = getFuzzyScore(q, bm);
                     if (score !== Infinity) {
-                        const realCat = urlToCategoryMap.get(normUrl) || defaultCat;
                         fuzzyCandidates.push({
                             score,
                             item: {
@@ -5030,19 +5015,11 @@
                             normUrl
                         });
                     }
-                };
-
-                if (pageData && Array.isArray(pageData.bookmarks)) {
-                    for (const bm of pageData.bookmarks) checkFuzzy(bm, '快捷书签');
                 }
-                if (pageData && Array.isArray(pageData.categories)) {
-                    for (const cat of pageData.categories) {
-                        if (!cat || !Array.isArray(cat.bookmarks)) continue;
-                        for (const bm of cat.bookmarks) checkFuzzy(bm, cat.name || '分类书签');
-                    }
-                }
+            }
 
-                // 按模糊匹配得分（编辑距离）从低到高排序
+            // 若精准匹配未满额，按模糊匹配编辑距离补全结果
+            if (results.length < limit && fuzzyCandidates.length > 0) {
                 fuzzyCandidates.sort((a, b) => a.score - b.score);
                 for (const candidate of fuzzyCandidates) {
                     if (addedUrls.has(candidate.normUrl)) continue;
@@ -5170,13 +5147,15 @@
             let html = '';
             let globalIdx = 0;
 
+            const renderSectionHeader = (title, isFirst = false) => `
+                <div class="mx-3.5 px-0 ${isFirst ? 'pt-1.5' : 'pt-2'} pb-1 mb-1 border-b border-white/10 text-2xs font-medium tracking-wider text-white/35 uppercase select-none">
+                    <span class="inline-block pb-0.5">${title}</span>
+                </div>
+            `;
+
             // 书签分组（最多 2 条）
             if (localList && localList.length > 0) {
-                html += `
-                    <div class="mx-3.5 px-0 pt-1.5 pb-1 mb-1 border-b border-white/10 text-2xs font-medium tracking-wider text-white/35 uppercase select-none">
-                        <span class="inline-block pb-0.5">书签</span>
-                    </div>
-                `;
+                html += renderSectionHeader('书签', true);
                 localList.forEach(bm => {
                     const iconHtml = bm.icon 
                         ? `<img src="${safeUrl(bm.icon)}" width="16" height="16" class="w-4 h-4 rounded object-cover shrink-0" alt="" data-hide-on-error="1">`
@@ -5208,11 +5187,7 @@
 
             if (safeNetList.length > 0) {
                 if (localList && localList.length > 0) {
-                    html += `
-                        <div class="mx-3.5 px-0 pt-2 pb-1 mb-1 border-b border-white/10 text-2xs font-medium tracking-wider text-white/35 uppercase select-none">
-                            <span class="inline-block pb-0.5">搜索</span>
-                        </div>
-                    `;
+                    html += renderSectionHeader('搜索', false);
                 }
                 safeNetList.forEach(item => {
                     html += `
@@ -5230,11 +5205,7 @@
                 });
             } else if (isNetLoading) {
                 if (localList && localList.length > 0) {
-                    html += `
-                        <div class="mx-3.5 px-0 pt-2 pb-1 mb-1 border-b border-white/10 text-2xs font-medium tracking-wider text-white/35 uppercase select-none">
-                            <span class="inline-block pb-0.5">搜索</span>
-                        </div>
-                    `;
+                    html += renderSectionHeader('搜索', false);
                 }
                 const skeletonCount = Math.max(1, 4 - (localList ? localList.length : 0));
                 for (let k = 0; k < skeletonCount; k++) {
@@ -5274,7 +5245,6 @@
                     selectedSuggestionIdx = validIdx;
                     items[validIdx].classList.add('active');
                     items[validIdx].setAttribute('aria-selected', 'true');
-                    updateSuggestionIndicator(items[validIdx]);
                     if (dom.searchInput && items[validIdx].dataset.suggestion) {
                         dom.searchInput.value = items[validIdx].dataset.suggestion;
                     }

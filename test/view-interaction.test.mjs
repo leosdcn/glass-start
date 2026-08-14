@@ -129,6 +129,26 @@ await evalJS(`(async () => {
 const kbdTy = tyOf(await evalJS('getComputedStyle(document.getElementById("startSection")).transform'));
 pass('全局键盘 PageDown 按键流畅切屏', kbdTy !== null && kbdTy < -600, `translateY=${kbdTy}`);
 
+// 10. 联想重渲染保持键盘选中项无异常 (防止 ReferenceError 回归)
+await evalJS('window.switchToStart()'); await sleep(500);
+await evalJS(`(() => {
+  const i = document.getElementById('searchInput');
+  i.focus();
+  const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+  setter.call(i, 'git');
+  i.dispatchEvent(new Event('input', { bubbles: true }));
+})()`);
+await sleep(300);
+await press('ArrowDown');
+await sleep(150);
+const suggestSelectionCheck = await evalJS(`(() => {
+  const menu = document.getElementById('suggestionMenu');
+  const items = menu ? menu.querySelectorAll('.suggestion-item') : [];
+  const selected = menu ? menu.querySelector('.suggestion-item.active') : null;
+  return { hasItems: items.length > 0, isSelected: selected !== null };
+})()`);
+pass('联想重渲染保持键盘选中项无异常 (防止 ReferenceError 回归)', suggestSelectionCheck.hasItems && suggestSelectionCheck.isSelected);
+
 const code = finish();
 await chrome.close();
 await server.close();
