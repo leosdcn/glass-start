@@ -184,9 +184,10 @@ function syncBookmarksData() {
 syncBookmarksData();
 
 // 4.9 从 index.html 提取主体 JS 并处理生成生产环境 dist/app.js (单行无损紧凑压缩默认数据)
+let cachedAppJsContent = '';
 function processProductionAppJs() {
     if (!fs.existsSync(PATHS.indexHtml)) return;
-    console.log('⚡️ 正在从 index.html 提取主体逻辑并生成生产环境 dist/app.js...');
+    console.log('⚡️ 正在从 index.html 提取主体逻辑并生成生产环境 dist/app.js 与内联脚本...');
     const htmlContent = fs.readFileSync(PATHS.indexHtml, 'utf-8');
     const mainScriptMatch = htmlContent.match(/<script\s+id="main-script"[^>]*>([\s\S]*?)<\/script>/i);
     
@@ -224,6 +225,7 @@ function processProductionAppJs() {
     }
 
     appJsContent = minifyJs(appJsContent);
+    cachedAppJsContent = appJsContent;
     const appJsKb = (Buffer.byteLength(appJsContent, 'utf-8') / 1024).toFixed(2);
     console.log(`   ⚡️ 已完成生产环境 dist/app.js 零依赖 JS 压缩 (${appJsKb} KB)`);
 
@@ -231,15 +233,15 @@ function processProductionAppJs() {
 }
 processProductionAppJs();
 
-// 5. 处理生产环境 index.html (替换内联 JS 为外链 dist/app.js，替换 v4 Browser CDN 为全量内嵌 <style> 标签)
+// 5. 处理生产环境 index.html (全量内嵌压缩 JS 与 Tailwind CSS，支持本地直接双击秒开与线上托管)
 function processProductionHtml() {
-    console.log('🔧 处理生产环境 index.html (剥离内联 JS 转换为 app.js 外链，移除 v4 Browser CDN 脚本，全量内嵌 Tailwind CSS)...');
+    console.log('🔧 处理生产环境 index.html (全量内嵌压缩 JS、Tailwind CSS，消除网络 RTT 与跨域限制)...');
     let prodHtmlContent = fs.readFileSync(PATHS.indexHtml, 'utf-8');
 
-    // 5.0 将 index.html 中的 <script id="main-script">... Replacer 替换为外链 <script src="./app.js" defer></script>
+    // 5.0 将 index.html 中的 <script id="main-script"> 替换为紧凑压缩后的内联脚本（同时保留外链 dist/app.js 供 SW 缓存）
     prodHtmlContent = prodHtmlContent.replace(
         /<script\s+id="main-script"[^>]*>[\s\S]*?<\/script>/i,
-        '<script src="./app.js" defer></script>'
+        () => `<script id="main-script">${cachedAppJsContent}</script>`
     );
 
     const distCssPath = path.join(PATHS.dist, 'style.css');
