@@ -1260,7 +1260,7 @@
                     <button id="engineBtn" type="button" aria-label="选择搜索引擎" aria-haspopup="menu" aria-expanded="false" aria-controls="dropdownMenu" class="flex items-center gap-1.5 pl-3 pr-2 py-3 apple-radius hover:bg-white/10 transition-[background-color,transform,border-color] duration-150 text-sm font-medium min-h-11 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed select-none">
                         <img id="engineIcon" src="https://a.favicon.im/bing.com" width="20" height="20" class="engine-icon size-5 rounded-md select-none pointer-events-none" alt="当前引擎：Bing" draggable="false">
                         <span id="engineName" class="hidden sm:inline select-none">Bing</span>
-                        <svg class="size-4 opacity-60 shrink-0 pointer-events-none select-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                        <svg class="size-4 opacity-60 shrink-0 pointer-events-none select-none" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 16 16"><path d="M3.5 6l4.5 4.5 4.5-4.5"/></svg>
                     </button>
                     <script>(function(){if(window.__PRE_ENGINE__){const i=document.getElementById('engineIcon');const n=document.getElementById('engineName');if(i){i.src=window.__PRE_ENGINE__.icon;i.alt='当前引擎：'+window.__PRE_ENGINE__.name;}if(n)n.textContent=window.__PRE_ENGINE__.name;}})()</script>
                 </div>
@@ -1268,17 +1268,17 @@
                 <input type="text" id="searchInput" name="q" role="combobox" aria-label="搜索输入框" aria-autocomplete="list" aria-controls="suggestionMenu" aria-expanded="false" class="flex-1 bg-transparent border-none outline-none text-lg search-input text-white h-12 px-1 min-w-0 focus-visible:ring-0" placeholder="搜索..." autocomplete="off">
                 <div class="relative shrink-0 flex items-center justify-center size-9 mr-1.5 select-none">
                     <button id="randomBookmarkBtn" type="button" aria-label="随机访问书签" class="p-2 apple-radius hover:bg-white/10 text-white/40 hover:text-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 absolute inset-0 flex items-center justify-center select-none">
-                        <svg class="size-5 pointer-events-none select-none" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-                            <rect width="18" height="18" x="3" y="3" rx="4" ry="4"/>
-                            <circle cx="8" cy="8" r="1.2" fill="currentColor"/>
-                            <circle cx="16" cy="8" r="1.2" fill="currentColor"/>
-                            <circle cx="12" cy="12" r="1.2" fill="currentColor"/>
-                            <circle cx="8" cy="16" r="1.2" fill="currentColor"/>
-                            <circle cx="16" cy="16" r="1.2" fill="currentColor"/>
+                        <svg class="size-5 pointer-events-none select-none" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 20 20">
+                            <rect width="15" height="15" x="2.5" y="2.5" rx="3.5"/>
+                            <circle cx="7" cy="7" r="1.4" fill="currentColor" stroke="none"/>
+                            <circle cx="13" cy="7" r="1.4" fill="currentColor" stroke="none"/>
+                            <circle cx="10" cy="10" r="1.4" fill="currentColor" stroke="none"/>
+                            <circle cx="7" cy="13" r="1.4" fill="currentColor" stroke="none"/>
+                            <circle cx="13" cy="13" r="1.4" fill="currentColor" stroke="none"/>
                         </svg>
                     </button>
                     <button id="searchClearBtn" type="button" aria-label="清空搜索框" class="hidden p-2 apple-radius hover:bg-white/10 text-white/40 hover:text-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 absolute inset-0 flex items-center justify-center select-none">
-                        <svg class="size-4.5 pointer-events-none select-none" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>
+                        <svg class="size-5 pointer-events-none select-none" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 20 20"><path d="M5.5 14.5L14.5 5.5M5.5 5.5l9 9"/></svg>
                     </button>
                 </div>
             </div>
@@ -1307,7 +1307,7 @@
         <!-- 向下滚动提示（装饰，绝对定位不占空间） -->
         <div class="absolute bottom-6 md:bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 text-white/35 text-2xs tracking-widest pointer-events-none hint-down">
             <span>向下滚动</span>
-            <svg class="size-4 scroll-hint" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/></svg>
+            <svg class="size-4 scroll-hint" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 16 16"><path d="M12.5 9.5l-4.5 4.5m0 0l-4.5-4.5m4.5 4.5V2"/></svg>
         </div>
 
     </section><!-- /#startSection -->
@@ -1326,7 +1326,7 @@
                     </div>
                     <!-- 右侧返回提示 -->
                     <div id="navHint" class="flex items-center gap-1.5 text-white/80 text-2xs tracking-wider bg-white/10 border border-white/15 px-2.5 py-1 apple-radius whitespace-nowrap shrink-0 cursor-pointer hover:bg-white/20 hover:text-white transition-[background-color,color,border-color,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" title="点击或向上滚动返回起始页">
-                        <svg class="size-3 scroll-up-hint shrink-0 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/></svg>
+                        <svg class="size-3 scroll-up-hint shrink-0 text-white/60" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 12 12"><path d="M2.5 7.5L6 4l3.5 3.5"/></svg>
                         <span class="whitespace-nowrap">向上滚动返回</span>
                     </div>
                 </div>
@@ -1567,7 +1567,7 @@
         <div class="glass-strong apple-radius pt-4 pb-3 px-4 w-full max-w-2xl xl:max-w-3xl 2xl:max-w-4xl mx-4 max-h-[85dvh] flex flex-col shadow-2xl">
             <div class="flex items-center justify-between mb-2 pb-1.5 border-b border-white/10 shrink-0">
                 <h3 class="text-base font-medium tracking-wide text-white/80">从导航页选择</h3>
-                <button id="closePickerBtn" type="button" aria-label="关闭选择弹窗" class="p-1 size-10 inline-flex items-center justify-center hover:bg-white/10 rounded apple-radius text-white/40 hover:text-white/70 transition-[background-color,color,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 disabled:opacity-50 disabled:cursor-not-allowed"><svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+                <button id="closePickerBtn" type="button" aria-label="关闭选择弹窗" class="p-1 size-10 inline-flex items-center justify-center hover:bg-white/10 rounded apple-radius text-white/40 hover:text-white/70 transition-[background-color,color,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 disabled:opacity-50 disabled:cursor-not-allowed"><svg class="size-4" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 16 16"><path d="M4 12L12 4M4 4l8 8"/></svg></button>
             </div>
             <div id="pickerContent" class="flex-1 overflow-y-auto min-h-0 space-y-3"></div>
             <div class="flex items-center justify-between mt-3 pt-2 border-t border-white/10 shrink-0">
@@ -1605,7 +1605,7 @@
                     <h3 class="text-base font-semibold tracking-wide text-white/90">快捷键速查</h3>
                 </div>
                 <button id="closeShortcutBtn" type="button" aria-label="关闭快捷键速查" class="p-1 size-9 sm:size-10 inline-flex items-center justify-center hover:bg-white/10 apple-radius text-white/40 hover:text-white/70 transition-[background-color,color,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50">
-                    <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    <svg class="size-4" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 16 16"><path d="M4 12L12 4M4 4l8 8"/></svg>
                 </button>
             </div>
 
@@ -3172,7 +3172,7 @@
                         <input type="text" id="bm-url-${rowId}" name="bookmark_url_${rowId}" class="edit-url w-full sm:w-2/3 bg-black/25 border border-white/10 rounded-lg px-2.5 py-1 sm:py-1.5 text-2xs sm:text-xs text-white/60 focus:border-white/40 focus:bg-black/40 focus:text-white outline-none transition font-mono" value="${escapeHtml(url)}" placeholder="https://..." aria-label="书签网址">
                     </div>
                     <button type="button" class="del-btn shrink-0 size-7 sm:size-8 p-1 hover:bg-red-500/20 rounded-lg text-white/30 hover:text-red-400 flex items-center justify-center transition" title="删除书签">
-                        <svg class="size-4 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                        <svg class="size-4 pointer-events-none" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 16 16"><path d="M2.5 4h11M5.5 4V2.5a1 1 0 011-1h3a1 1 0 011 1V4m2 0v8.5a1.5 1.5 0 01-1.5 1.5h-6A1.5 1.5 0 013.5 12.5V4m3 3v4.5m3-4.5v4.5"/></svg>
                     </button>
                 </div>
             `;
@@ -5535,7 +5535,7 @@
                 localList.forEach(bm => {
                     const iconHtml = bm.icon 
                         ? `<img src="${safeUrl(bm.icon)}" width="20" height="20" class="w-5 h-5 rounded-md object-cover shrink-0 pointer-events-none select-none" alt="" data-hide-on-error="1" draggable="false">`
-                        : `<svg class="w-5 h-5 text-white/40 shrink-0 pointer-events-none select-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/></svg>`;
+                        : `<svg class="w-5 h-5 text-white/40 shrink-0 pointer-events-none select-none" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 20 20"><path d="M4.5 4.25A1.75 1.75 0 016.25 2.5h7.5a1.75 1.75 0 011.75 1.75v13.5l-5.5-2.75-5.5 2.75V4.25z"/></svg>`;
                     
                     html += `
                         <div id="sug-opt-${globalIdx}"
@@ -5573,7 +5573,7 @@
                              data-suggestion="${escapeHtml(item)}" 
                              data-idx="${globalIdx}"
                              class="suggestion-item group px-3.5 py-2.5 my-0.5 apple-radius text-sm text-white/85 flex items-center gap-3 transition-[background-color,color,transform] duration-150 cursor-pointer hover:text-white">
-                            <svg class="w-5 h-5 text-white/40 group-hover:text-white/80 shrink-0 pointer-events-none select-none transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                            <svg class="w-5 h-5 text-white/40 group-hover:text-white/80 shrink-0 pointer-events-none select-none transition" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 20 20"><circle cx="8.5" cy="8.5" r="5.25"/><path d="M12.5 12.5L16.5 16.5"/></svg>
                             <span class="truncate flex-1 font-normal tracking-wide">${escapeHtml(item)}</span>
                         </div>
                     `;
@@ -5588,7 +5588,7 @@
                     const widthClass = k % 2 === 0 ? 'w-44' : 'w-28';
                     html += `
                         <div class="px-3.5 py-2.5 my-0.5 apple-radius flex items-center gap-3 select-none pointer-events-none skeleton-pulse">
-                            <svg class="w-5 h-5 text-white/20 shrink-0 pointer-events-none select-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                            <svg class="w-5 h-5 text-white/20 shrink-0 pointer-events-none select-none" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 20 20"><circle cx="8.5" cy="8.5" r="5.25"/><path d="M12.5 12.5L16.5 16.5"/></svg>
                             <div class="h-5 bg-white/15 apple-radius ${widthClass}"></div>
                         </div>
                     `;
