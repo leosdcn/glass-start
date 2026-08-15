@@ -1389,10 +1389,7 @@
             <!-- Tab 内容 1: 快捷书签 (tabBookmarks) -->
             <div id="tabBookmarks" role="tabpanel" aria-labelledby="tab-btn-bookmarks" class="settings-tab-panel flex-1 flex flex-col min-h-0 overflow-hidden">
                 <div class="flex items-center justify-between mb-3 shrink-0">
-                    <div class="flex items-center gap-1.5">
-                        <span class="text-xs font-semibold text-white/80">快捷书签管理</span>
-                        <span class="text-2xs text-white/40 font-normal">（拖拽 ⠿ 排序）</span>
-                    </div>
+                    <span class="text-xs font-semibold text-white/80">快捷书签管理</span>
                     <span id="bookmarkCountBadge" class="glass-badge">已添加 0 项</span>
                 </div>
                 <div id="editList" role="list" aria-label="书签列表" class="flex-1 overflow-y-auto space-y-1.5 mb-3 min-h-0 pr-1"></div>
@@ -1608,67 +1605,57 @@
                 </button>
             </div>
 
-            <!-- 快捷键列表内容 (顶部双列 4+4 对称 + 底部跨列 2 项横排) -->
-            <div class="flex-1 overflow-y-auto min-h-0 space-y-3 pr-1 text-xs">
-                <!-- 上部分：双列网格 (4 vs 4 对称) -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-                    <!-- 全局与导航 (4 项) -->
-                    <div>
-                        <h4 class="text-2xs font-semibold uppercase tracking-wider text-white/40 mb-1.5 px-0.5">全局与导航</h4>
-                        <div class="space-y-1.5">
-                            <div class="flex items-center justify-between p-2 rounded-xl bg-white/[0.04] border border-white/[0.06]">
-                                <span class="text-white/80">唤起 / 关闭快捷键速查</span>
-                                <span class="flex items-center gap-1 font-mono text-2xs text-white/90 bg-white/10 px-2 py-0.5 rounded-md border border-white/10"><kbd id="kbd-slash">⌘ /</kbd></span>
-                            </div>
-                            <div class="flex items-center justify-between p-2 rounded-xl bg-white/[0.04] border border-white/[0.06]">
-                                <span class="text-white/80">快速轮播内置高清壁纸</span>
-                                <span class="flex items-center gap-1 font-mono text-2xs text-white/90 bg-white/10 px-2 py-0.5 rounded-md border border-white/10"><kbd id="kbd-bg">⌘ B</kbd></span>
-                            </div>
-                            <div class="flex items-center justify-between p-2 rounded-xl bg-white/[0.04] border border-white/[0.06]">
-                                <span class="text-white/80">平滑滚动至书签导航页</span>
-                                <span class="flex items-center gap-1 font-mono text-2xs text-white/90 bg-white/10 px-2 py-0.5 rounded-md border border-white/10"><kbd>↓</kbd> / <kbd>PageDown</kbd></span>
-                            </div>
-                            <div class="flex items-center justify-between p-2 rounded-xl bg-white/[0.04] border border-white/[0.06]">
-                                <span class="text-white/80">快速返回顶部起始页</span>
-                                <span class="flex items-center gap-1 font-mono text-2xs text-white/90 bg-white/10 px-2 py-0.5 rounded-md border border-white/10"><kbd>↑</kbd> / <kbd>PageUp</kbd> / <kbd>Home</kbd></span>
-                            </div>
+            <!-- 快捷键列表内容 (纯粹双列 5 vs 5 绝对对称布局) -->
+            <div class="flex-1 overflow-y-auto min-h-0 grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 pr-1 text-xs">
+                <!-- 左列：导航与控制 (5 项) -->
+                <div>
+                    <h4 class="text-2xs font-semibold uppercase tracking-wider text-white/40 mb-1.5 px-0.5">导航与控制</h4>
+                    <div class="space-y-1.5">
+                        <div class="flex items-center justify-between p-2 rounded-xl bg-white/[0.04] border border-white/[0.06]">
+                            <span class="text-white/80">唤起 / 关闭快捷键速查</span>
+                            <span class="flex items-center gap-1 font-mono text-2xs text-white/90 bg-white/10 px-2 py-0.5 rounded-md border border-white/10"><kbd id="kbd-slash">⌘ /</kbd></span>
                         </div>
-                    </div>
-
-                    <!-- 搜索与输入 (4 项) -->
-                    <div>
-                        <h4 class="text-2xs font-semibold uppercase tracking-wider text-white/40 mb-1.5 px-0.5">搜索与输入</h4>
-                        <div class="space-y-1.5">
-                            <div class="flex items-center justify-between p-2 rounded-xl bg-white/[0.04] border border-white/[0.06]">
-                                <span class="text-white/80">首屏单字符盲打自动聚焦</span>
-                                <span class="flex items-center gap-1 font-mono text-2xs text-white/90 bg-white/10 px-2 py-0.5 rounded-md border border-white/10"><kbd>任意字符键</kbd></span>
-                            </div>
-                            <div class="flex items-center justify-between p-2 rounded-xl bg-white/[0.04] border border-white/[0.06]">
-                                <span class="text-white/80">执行搜索 / 打开选中书签</span>
-                                <span class="flex items-center gap-1 font-mono text-2xs text-white/90 bg-white/10 px-2 py-0.5 rounded-md border border-white/10"><kbd>Enter</kbd></span>
-                            </div>
-                            <div class="flex items-center justify-between p-2 rounded-xl bg-white/[0.04] border border-white/[0.06]">
-                                <span class="text-white/80">在新标签页中打开搜索</span>
-                                <span class="flex items-center gap-1 font-mono text-2xs text-white/90 bg-white/10 px-2 py-0.5 rounded-md border border-white/10"><kbd id="kbd-newtab">⌘ ↵</kbd></span>
-                            </div>
-                            <div class="flex items-center justify-between p-2 rounded-xl bg-white/[0.04] border border-white/[0.06]">
-                                <span class="text-white/80">挑选搜索建议 / 本地书签</span>
-                                <span class="flex items-center gap-1 font-mono text-2xs text-white/90 bg-white/10 px-2 py-0.5 rounded-md border border-white/10"><kbd>↑</kbd> <kbd>↓</kbd></span>
-                            </div>
+                        <div class="flex items-center justify-between p-2 rounded-xl bg-white/[0.04] border border-white/[0.06]">
+                            <span class="text-white/80">轮播内置高清壁纸</span>
+                            <span class="flex items-center gap-1 font-mono text-2xs text-white/90 bg-white/10 px-2 py-0.5 rounded-md border border-white/10"><kbd id="kbd-bg">⌘ B</kbd></span>
+                        </div>
+                        <div class="flex items-center justify-between p-2 rounded-xl bg-white/[0.04] border border-white/[0.06]">
+                            <span class="text-white/80">滚动至书签导航页</span>
+                            <span class="flex items-center gap-1 font-mono text-2xs text-white/90 bg-white/10 px-2 py-0.5 rounded-md border border-white/10"><kbd>↓</kbd> / <kbd>PageDown</kbd></span>
+                        </div>
+                        <div class="flex items-center justify-between p-2 rounded-xl bg-white/[0.04] border border-white/[0.06]">
+                            <span class="text-white/80">返回顶部起始页</span>
+                            <span class="flex items-center gap-1 font-mono text-2xs text-white/90 bg-white/10 px-2 py-0.5 rounded-md border border-white/10"><kbd>↑</kbd> / <kbd>PageUp</kbd> / <kbd>Home</kbd></span>
+                        </div>
+                        <div class="flex items-center justify-between p-2 rounded-xl bg-white/[0.04] border border-white/[0.06]">
+                            <span class="text-white/80">关闭弹窗 / 取消聚焦</span>
+                            <span class="flex items-center gap-1 font-mono text-2xs text-white/90 bg-white/10 px-2 py-0.5 rounded-md border border-white/10"><kbd>Esc</kbd></span>
                         </div>
                     </div>
                 </div>
 
-                <!-- 下部分：弹窗与焦点 (2 项跨列横排) -->
+                <!-- 右列：搜索与操作 (5 项) -->
                 <div>
-                    <h4 class="text-2xs font-semibold uppercase tracking-wider text-white/40 mb-1.5 px-0.5">弹窗与焦点</h4>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-3">
+                    <h4 class="text-2xs font-semibold uppercase tracking-wider text-white/40 mb-1.5 px-0.5">搜索与操作</h4>
+                    <div class="space-y-1.5">
                         <div class="flex items-center justify-between p-2 rounded-xl bg-white/[0.04] border border-white/[0.06]">
-                            <span class="text-white/80">关闭弹窗 / 取消聚焦 / 收起建议</span>
-                            <span class="flex items-center gap-1 font-mono text-2xs text-white/90 bg-white/10 px-2 py-0.5 rounded-md border border-white/10"><kbd>Esc</kbd></span>
+                            <span class="text-white/80">首屏盲打自动聚焦</span>
+                            <span class="flex items-center gap-1 font-mono text-2xs text-white/90 bg-white/10 px-2 py-0.5 rounded-md border border-white/10"><kbd>任意字符键</kbd></span>
                         </div>
                         <div class="flex items-center justify-between p-2 rounded-xl bg-white/[0.04] border border-white/[0.06]">
-                            <span class="text-white/80">弹窗内焦点无障碍循环</span>
+                            <span class="text-white/80">选择搜索建议 / 书签</span>
+                            <span class="flex items-center gap-1 font-mono text-2xs text-white/90 bg-white/10 px-2 py-0.5 rounded-md border border-white/10"><kbd>↑</kbd> <kbd>↓</kbd></span>
+                        </div>
+                        <div class="flex items-center justify-between p-2 rounded-xl bg-white/[0.04] border border-white/[0.06]">
+                            <span class="text-white/80">执行搜索 / 打开选中书签</span>
+                            <span class="flex items-center gap-1 font-mono text-2xs text-white/90 bg-white/10 px-2 py-0.5 rounded-md border border-white/10"><kbd>Enter</kbd></span>
+                        </div>
+                        <div class="flex items-center justify-between p-2 rounded-xl bg-white/[0.04] border border-white/[0.06]">
+                            <span class="text-white/80">在新标签页中打开搜索</span>
+                            <span class="flex items-center gap-1 font-mono text-2xs text-white/90 bg-white/10 px-2 py-0.5 rounded-md border border-white/10"><kbd id="kbd-newtab">⌘ ↵</kbd></span>
+                        </div>
+                        <div class="flex items-center justify-between p-2 rounded-xl bg-white/[0.04] border border-white/[0.06]">
+                            <span class="text-white/80">弹窗内焦点循环</span>
                             <span class="flex items-center gap-1 font-mono text-2xs text-white/90 bg-white/10 px-2 py-0.5 rounded-md border border-white/10"><kbd id="kbd-tab">Tab / ⇧ Tab</kbd></span>
                         </div>
                     </div>
@@ -1676,8 +1663,7 @@
             </div>
 
             <!-- 底部操作与提示 -->
-            <div class="flex items-center justify-between mt-3 pt-2 border-t border-white/10 shrink-0 text-2xs text-white/40">
-                <span class="flex items-center gap-1.5 text-white/50"><span>💡</span> 支持中文输入法 (IME) 合成保护与本地书签模糊检索</span>
+            <div class="flex items-center justify-end mt-3 pt-2 border-t border-white/10 shrink-0">
                 <button id="doneShortcutBtn" type="button" class="py-1.5 px-4 bg-white/15 hover:bg-white/25 text-white/90 hover:text-white rounded-lg transition-colors text-xs font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50">知道了</button>
             </div>
         </div>
