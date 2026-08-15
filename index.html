@@ -322,7 +322,7 @@
             z-index: 10;
             transform: translateY(0);
             will-change: transform;
-            transition: transform 0.52s cubic-bezier(0.65, 0, 0.35, 1);
+            transition: transform 0.38s cubic-bezier(0.16, 1, 0.3, 1);
         }
         #startSection.screen-pushed-up {
             transform: translateY(-100vh);
@@ -339,7 +339,7 @@
             transform: translateY(100vh);
             transform: translateY(100dvh);
             will-change: transform;
-            transition: transform 0.52s cubic-bezier(0.65, 0, 0.35, 1);
+            transition: transform 0.38s cubic-bezier(0.16, 1, 0.3, 1);
         }
         #navSection.screen-pushed-in {
             transform: translateY(0);
@@ -5774,7 +5774,7 @@
                     if (document.activeElement && typeof document.activeElement.blur === 'function') {
                         document.activeElement.blur();
                     }
-                }, 520);
+                }, 380);
             }
 
             function switchToStart() {
@@ -5803,7 +5803,7 @@
                     updateGearVisibility();
                     nav.classList.remove('nav-visible');
                     nav.classList.add('nav-hidden');
-                }, 520);
+                }, 380);
             }
 
             window.switchToNav = switchToNav;
@@ -5974,7 +5974,7 @@
                 isTouchDragging = false;
 
                 // 若被系统事件打断 (touchcancel)，安全起见一律弹性复位弹回原位；正常 touchend 满足条件则切屏
-                const shouldSwitch = !isCancel && (progress >= 0.20 || velocity > 0.25 || Math.abs(totalDeltaY) >= 100);
+                const shouldSwitch = !isCancel && (progress >= 0.12 || velocity > 0.20 || Math.abs(totalDeltaY) >= 60);
 
                 if (state.currentSection === 'start' && touchDragDirection === 'up') {
                     if (shouldSwitch) {
