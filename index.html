@@ -222,6 +222,14 @@
         *::-webkit-scrollbar { display:none; }
         /* Tailwind v4 preflight 不再默认给按钮 pointer 光标，此处恢复 */
         button, [role="button"] { cursor: pointer; }
+        /* 全局禁用所有图片的原生幽灵拖拽与意外文本选中，确保 Web 应用手感丝滑 */
+        img {
+            -webkit-user-drag: none;
+            -khtml-user-drag: none;
+            -moz-user-drag: none;
+            -o-user-drag: none;
+            user-select: none;
+        }
         .apple-radius { border-radius: var(--radius); }
         .preset-bg-card {
             position: relative;
@@ -1258,7 +1266,7 @@
                 <div class="glass-strong apple-radius p-2 flex items-center gap-1.5 border fade-in search-box-wrapper delay-100 select-none">
                     <div class="relative shrink-0 select-none">
                         <button id="engineBtn" type="button" aria-label="选择搜索引擎" aria-haspopup="menu" aria-expanded="false" aria-controls="dropdownMenu" class="flex items-center gap-1.5 pl-3 pr-2 py-3 apple-radius hover:bg-white/10 transition-[background-color,transform,border-color] duration-150 text-sm font-medium min-h-11 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed select-none">
-                            <img id="engineIcon" src="https://a.favicon.im/bing.com" width="16" height="16" class="engine-icon size-4 rounded-md select-none pointer-events-none" alt="当前引擎：Bing">
+                            <img id="engineIcon" src="https://a.favicon.im/bing.com" width="16" height="16" class="engine-icon size-4 rounded-md select-none pointer-events-none" alt="当前引擎：Bing" draggable="false">
                             <span id="engineName" class="hidden sm:inline select-none">Bing</span>
                             <svg class="size-4 opacity-60 shrink-0 pointer-events-none select-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
                         </button>
@@ -1275,13 +1283,13 @@
                 </div>
                 <div id="dropdownMenu" role="menu" aria-label="搜索引擎选项" aria-hidden="true" class="dropdown-menu absolute top-full left-0 glass-strong apple-radius p-2 border border-white/20 shadow-2xl min-w-[8.75rem] z-50 select-none">
                     <button type="button" data-engine="bing" role="menuitemradio" aria-checked="true" class="w-full flex items-center gap-3 px-3 py-2.5 apple-radius hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 transition-[background-color,color,transform] duration-150 text-left text-sm select-none">
-                        <img src="https://a.favicon.im/bing.com" width="16" height="16" class="engine-icon size-4 rounded pointer-events-none select-none" alt=""> Bing
+                        <img src="https://a.favicon.im/bing.com" width="16" height="16" class="engine-icon size-4 rounded pointer-events-none select-none" alt="" draggable="false"> Bing
                     </button>
                     <button type="button" data-engine="google" role="menuitemradio" aria-checked="false" class="w-full flex items-center gap-3 px-3 py-2.5 apple-radius hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 transition-[background-color,color,transform] duration-150 text-left text-sm select-none">
-                        <img src="https://a.favicon.im/google.com" width="16" height="16" class="engine-icon size-4 rounded pointer-events-none select-none" alt=""> Google
+                        <img src="https://a.favicon.im/google.com" width="16" height="16" class="engine-icon size-4 rounded pointer-events-none select-none" alt="" draggable="false"> Google
                     </button>
                     <button type="button" data-engine="baidu" role="menuitemradio" aria-checked="false" class="w-full flex items-center gap-3 px-3 py-2.5 apple-radius hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 transition-[background-color,color,transform] duration-150 text-left text-sm select-none">
-                        <img src="https://a.favicon.im/baidu.com" width="16" height="16" class="engine-icon size-4 rounded pointer-events-none select-none" alt=""> 百度
+                        <img src="https://a.favicon.im/baidu.com" width="16" height="16" class="engine-icon size-4 rounded pointer-events-none select-none" alt="" draggable="false"> 百度
                     </button>
                 </div>
                 <!-- 搜索实时建议联想下拉框 (Spotlight 高颜值全宽样式) -->
@@ -2430,7 +2438,7 @@
                 if (!eng) return '';
                 const isChecked = key === curEngine;
                 return `<button type="button" data-engine="${key}" role="menuitemradio" aria-checked="${isChecked}" class="w-full flex items-center gap-3 px-3 py-2.5 apple-radius hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 transition-[background-color,color,transform] duration-150 text-left text-sm select-none">
-                    <img src="${eng.icon}" width="16" height="16" class="engine-icon size-4 rounded pointer-events-none select-none" alt=""> ${eng.name}
+                    <img src="${eng.icon}" width="16" height="16" class="engine-icon size-4 rounded pointer-events-none select-none" alt="" draggable="false"> ${eng.name}
                 </button>`;
             }).join('');
         }
@@ -2444,7 +2452,7 @@
                 const bg = `./wallpapers/bg${i + 1}.avif`;
                 const fullTitle = i === 0 ? `${title}（系统默认）` : title;
                 return `<button type="button" class="preset-bg-card group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70" data-bg="${bg}" data-title="${title}" title="${fullTitle}">
-                    <img data-src="${bg}" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 9'%3E%3C/svg%3E" alt="${title}" class="w-full h-full object-cover pointer-events-none" loading="lazy" decoding="async">
+                    <img data-src="${bg}" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 9'%3E%3C/svg%3E" alt="${title}" class="w-full h-full object-cover pointer-events-none" loading="lazy" decoding="async" draggable="false">
                     <span class="absolute inset-x-0 bottom-0 py-1 bg-black/60 backdrop-blur-xs text-2xs text-white/90 text-center font-medium pointer-events-none">${title}</span>
                 </button>`;
             }).join('');
@@ -3128,9 +3136,9 @@
             const initial = (name || '?').trim().charAt(0).toUpperCase() || '?';
             const faviconUrl = icon || faviconFromUrl(url);
             if (faviconUrl) {
-                return `<div class="icon-box icon-box-sm edit-favicon-img-wrapper"><img src="${escapeHtml(faviconUrl)}" width="24" height="24" data-initial="${escapeHtml(initial)}" class="opacity-90 edit-favicon-img" alt="" loading="lazy" decoding="async"></div>`;
+                return `<div class="icon-box icon-box-sm edit-favicon-img-wrapper pointer-events-none select-none"><img src="${escapeHtml(faviconUrl)}" width="24" height="24" data-initial="${escapeHtml(initial)}" class="opacity-90 edit-favicon-img pointer-events-none select-none" alt="" loading="lazy" decoding="async" draggable="false"></div>`;
             }
-            return `<div class="icon-box icon-box-sm bg-white/15 border border-white/20 text-white/90 text-2xs font-semibold edit-favicon-initial">${escapeHtml(initial)}</div>`;
+            return `<div class="icon-box icon-box-sm bg-white/15 border border-white/20 text-white/90 text-2xs font-semibold edit-favicon-initial pointer-events-none select-none">${escapeHtml(initial)}</div>`;
         }
 
         /**
@@ -3143,7 +3151,7 @@
             const initial = img.dataset.initial || '?';
             const box = img.closest('.edit-favicon-box');
             if (box) {
-                box.innerHTML = `<div class="icon-box icon-box-sm bg-white/15 border border-white/20 text-white/90 text-2xs font-semibold edit-favicon-initial">${escapeHtml(initial)}</div>`;
+                box.innerHTML = `<div class="icon-box icon-box-sm bg-white/15 border border-white/20 text-white/90 text-2xs font-semibold edit-favicon-initial pointer-events-none select-none">${escapeHtml(initial)}</div>`;
             }
         }
         window.handleEditIconError = handleEditIconError;
@@ -3165,11 +3173,7 @@
                         <div class="drag-handle touch-none p-2 sm:p-1 min-w-9 min-h-9 sm:min-w-0 sm:min-h-0 flex items-center justify-center shrink-0 text-white/30 group-hover:text-white/70 hover:!text-white cursor-grab active:cursor-grabbing transition-[color,transform] duration-150" title="按住拖拽排序" role="button" tabindex="0" aria-label="按住拖拽或使用键盘排序">
                             <svg class="size-3.5 pointer-events-none" viewBox="0 0 16 16" fill="currentColor"><circle cx="5" cy="4" r="1.5"/><circle cx="11" cy="4" r="1.5"/><circle cx="5" cy="8" r="1.5"/><circle cx="11" cy="8" r="1.5"/><circle cx="5" cy="12" r="1.5"/><circle cx="11" cy="12" r="1.5"/></svg>
                         </div>
-                        <div class="flex flex-col gap-0.5 shrink-0">
-                            <button type="button" class="move-up-btn min-w-7 min-h-5 sm:min-w-0 sm:min-h-0 p-1 sm:p-0.5 text-2xs sm:text-3xs leading-none hover:bg-white/10 apple-radius text-white/40 hover:text-white transition-[background-color,color,transform] duration-150 flex items-center justify-center focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/50" title="上移书签">▲</button>
-                            <button type="button" class="move-down-btn min-w-7 min-h-5 sm:min-w-0 sm:min-h-0 p-1 sm:p-0.5 text-2xs sm:text-3xs leading-none hover:bg-white/10 apple-radius text-white/40 hover:text-white transition-[background-color,color,transform] duration-150 flex items-center justify-center focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/50" title="下移书签">▼</button>
-                        </div>
-                        <div class="edit-favicon-box shrink-0 flex items-center justify-center text-white/90 select-none">
+                        <div class="edit-favicon-box shrink-0 flex items-center justify-center text-white/90 select-none pointer-events-none">
                             ${getEditFaviconInner(name, url, icon)}
                         </div>
                     </div>
@@ -3976,9 +3980,9 @@
             }
             const imgSize = isMd ? '32' : '24';
             if (isMd) {
-                return `<div class="icon-box ${sizeClass}"><img src="${safeIcon}" width="${imgSize}" height="${imgSize}" data-initial="${escapeHtml(initial)}" data-md="1" class="lazy-icon" alt="" loading="eager" fetchpriority="high" decoding="async" onload="this.classList.add('loaded')"></div>`;
+                return `<div class="icon-box ${sizeClass}"><img src="${safeIcon}" width="${imgSize}" height="${imgSize}" data-initial="${escapeHtml(initial)}" data-md="1" class="lazy-icon pointer-events-none select-none" alt="" loading="eager" fetchpriority="high" decoding="async" draggable="false" onload="this.classList.add('loaded')"></div>`;
             }
-            return `<div class="icon-box ${sizeClass}"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1 1'%3E%3C/svg%3E" data-src="${safeIcon}" width="${imgSize}" height="${imgSize}" data-initial="${escapeHtml(initial)}" data-md="0" class="lazy-icon" alt="" loading="lazy" decoding="async"></div>`;
+            return `<div class="icon-box ${sizeClass}"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1 1'%3E%3C/svg%3E" data-src="${safeIcon}" width="${imgSize}" height="${imgSize}" data-initial="${escapeHtml(initial)}" data-md="0" class="lazy-icon pointer-events-none select-none" alt="" loading="lazy" decoding="async" draggable="false"></div>`;
         }
 
         // ==================== 图标 IntersectionObserver 按需微任务队列加载器 ====================
@@ -4832,22 +4836,6 @@
                     }
                     return;
                 }
-                const moveUp = e.target.closest('.move-up-btn');
-                if (moveUp) {
-                    const item = moveUp.closest('[data-idx]');
-                    if (item && item.previousElementSibling) {
-                        item.parentNode.insertBefore(item, item.previousElementSibling);
-                    }
-                    return;
-                }
-                const moveDown = e.target.closest('.move-down-btn');
-                if (moveDown) {
-                    const item = moveDown.closest('[data-idx]');
-                    if (item && item.nextElementSibling) {
-                        item.parentNode.insertBefore(item.nextElementSibling, item);
-                    }
-                    return;
-                }
             });
 
             // 点击「保存并关闭」按钮提交草稿中的全部修改
@@ -5467,8 +5455,8 @@
                 html += renderSectionHeader('书签', true);
                 localList.forEach(bm => {
                     const iconHtml = bm.icon 
-                        ? `<img src="${safeUrl(bm.icon)}" width="16" height="16" class="w-4 h-4 rounded object-cover shrink-0" alt="" data-hide-on-error="1">`
-                        : `<svg class="w-4 h-4 text-white/40 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/></svg>`;
+                        ? `<img src="${safeUrl(bm.icon)}" width="16" height="16" class="w-4 h-4 rounded object-cover shrink-0 pointer-events-none select-none" alt="" data-hide-on-error="1" draggable="false">`
+                        : `<svg class="w-4 h-4 text-white/40 shrink-0 pointer-events-none select-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/></svg>`;
                     
                     html += `
                         <div id="sug-opt-${globalIdx}"
