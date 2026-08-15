@@ -1357,6 +1357,9 @@
                     <span class="text-base">⚙️</span>
                     <h3 class="text-base font-semibold tracking-wide text-white/90">设置与偏好</h3>
                 </div>
+                <button id="openShortcutFromSettingsBtn" type="button" class="text-2xs text-white/60 hover:text-white/90 bg-white/5 hover:bg-white/10 border border-white/10 px-2.5 py-1 apple-radius transition-[background-color,color,border-color,transform] duration-150 flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" title="查看全站键盘快捷键速查">
+                    <span>⌨️</span> 快捷键速查 <span id="settingsKbdHint" class="font-mono text-[10px] text-white/40 ml-0.5">⌘ /</span>
+                </button>
             </div>
 
             <!-- Tab 导航栏 -->
@@ -1582,6 +1585,95 @@
             </div>
         </div>
     </div><!-- /#confirmModal -->
+
+    <!-- 快捷键速查面板弹窗 (Cmd/Ctrl + /) -->
+    <div id="shortcutModal" role="dialog" aria-modal="true" aria-hidden="true" hidden aria-label="快捷键速查" class="edit-overlay fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-[var(--z-modal)]">
+        <div class="glass-strong apple-radius w-full max-w-xl md:max-w-2xl lg:max-w-3xl mx-4 max-h-[90dvh] flex flex-col p-4 sm:p-5 shadow-2xl overflow-hidden">
+            <!-- 弹窗 Header -->
+            <div class="flex items-center justify-between mb-3 pb-2 border-b border-white/10 shrink-0">
+                <div class="flex items-center gap-2">
+                    <span class="text-base">⌨️</span>
+                    <h3 class="text-base font-semibold tracking-wide text-white/90">快捷键速查</h3>
+                </div>
+                <button id="closeShortcutBtn" type="button" aria-label="关闭快捷键速查" class="p-1 size-8 inline-flex items-center justify-center hover:bg-white/10 rounded-lg text-white/40 hover:text-white/70 transition-[background-color,color,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50">
+                    <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+
+            <!-- 快捷键列表内容 (顶部双列 4+4 对称 + 底部跨列 2 项横排) -->
+            <div class="flex-1 overflow-y-auto min-h-0 space-y-3 pr-1 text-xs">
+                <!-- 上部分：双列网格 (4 vs 4 对称) -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+                    <!-- 全局与导航 (4 项) -->
+                    <div>
+                        <h4 class="text-2xs font-semibold uppercase tracking-wider text-white/40 mb-1.5 px-0.5">全局与导航</h4>
+                        <div class="space-y-1.5">
+                            <div class="flex items-center justify-between p-2 rounded-xl bg-white/[0.04] border border-white/[0.06]">
+                                <span class="text-white/80">唤起 / 关闭快捷键速查</span>
+                                <span class="flex items-center gap-1 font-mono text-2xs text-white/90 bg-white/10 px-2 py-0.5 rounded-md border border-white/10"><kbd id="kbd-slash">⌘ /</kbd></span>
+                            </div>
+                            <div class="flex items-center justify-between p-2 rounded-xl bg-white/[0.04] border border-white/[0.06]">
+                                <span class="text-white/80">快速轮播内置高清壁纸</span>
+                                <span class="flex items-center gap-1 font-mono text-2xs text-white/90 bg-white/10 px-2 py-0.5 rounded-md border border-white/10"><kbd id="kbd-bg">⌘ B</kbd></span>
+                            </div>
+                            <div class="flex items-center justify-between p-2 rounded-xl bg-white/[0.04] border border-white/[0.06]">
+                                <span class="text-white/80">平滑滚动至书签导航页</span>
+                                <span class="flex items-center gap-1 font-mono text-2xs text-white/90 bg-white/10 px-2 py-0.5 rounded-md border border-white/10"><kbd>↓</kbd> / <kbd>PageDown</kbd></span>
+                            </div>
+                            <div class="flex items-center justify-between p-2 rounded-xl bg-white/[0.04] border border-white/[0.06]">
+                                <span class="text-white/80">快速返回顶部起始页</span>
+                                <span class="flex items-center gap-1 font-mono text-2xs text-white/90 bg-white/10 px-2 py-0.5 rounded-md border border-white/10"><kbd>↑</kbd> / <kbd>PageUp</kbd> / <kbd>Home</kbd></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 搜索与输入 (4 项) -->
+                    <div>
+                        <h4 class="text-2xs font-semibold uppercase tracking-wider text-white/40 mb-1.5 px-0.5">搜索与输入</h4>
+                        <div class="space-y-1.5">
+                            <div class="flex items-center justify-between p-2 rounded-xl bg-white/[0.04] border border-white/[0.06]">
+                                <span class="text-white/80">首屏单字符盲打自动聚焦</span>
+                                <span class="flex items-center gap-1 font-mono text-2xs text-white/90 bg-white/10 px-2 py-0.5 rounded-md border border-white/10"><kbd>任意字符键</kbd></span>
+                            </div>
+                            <div class="flex items-center justify-between p-2 rounded-xl bg-white/[0.04] border border-white/[0.06]">
+                                <span class="text-white/80">执行搜索 / 打开选中书签</span>
+                                <span class="flex items-center gap-1 font-mono text-2xs text-white/90 bg-white/10 px-2 py-0.5 rounded-md border border-white/10"><kbd>Enter</kbd></span>
+                            </div>
+                            <div class="flex items-center justify-between p-2 rounded-xl bg-white/[0.04] border border-white/[0.06]">
+                                <span class="text-white/80">在新标签页中打开搜索</span>
+                                <span class="flex items-center gap-1 font-mono text-2xs text-white/90 bg-white/10 px-2 py-0.5 rounded-md border border-white/10"><kbd id="kbd-newtab">⌘ ↵</kbd></span>
+                            </div>
+                            <div class="flex items-center justify-between p-2 rounded-xl bg-white/[0.04] border border-white/[0.06]">
+                                <span class="text-white/80">挑选搜索建议 / 本地书签</span>
+                                <span class="flex items-center gap-1 font-mono text-2xs text-white/90 bg-white/10 px-2 py-0.5 rounded-md border border-white/10"><kbd>↑</kbd> <kbd>↓</kbd></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 下部分：弹窗与焦点 (2 项跨列横排) -->
+                <div>
+                    <h4 class="text-2xs font-semibold uppercase tracking-wider text-white/40 mb-1.5 px-0.5">弹窗与焦点</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-3">
+                        <div class="flex items-center justify-between p-2 rounded-xl bg-white/[0.04] border border-white/[0.06]">
+                            <span class="text-white/80">关闭弹窗 / 取消聚焦 / 收起建议</span>
+                            <span class="flex items-center gap-1 font-mono text-2xs text-white/90 bg-white/10 px-2 py-0.5 rounded-md border border-white/10"><kbd>Esc</kbd></span>
+                        </div>
+                        <div class="flex items-center justify-between p-2 rounded-xl bg-white/[0.04] border border-white/[0.06]">
+                            <span class="text-white/80">弹窗内焦点无障碍循环</span>
+                            <span class="flex items-center gap-1 font-mono text-2xs text-white/90 bg-white/10 px-2 py-0.5 rounded-md border border-white/10"><kbd id="kbd-tab">Tab / ⇧ Tab</kbd></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 底部操作与提示 -->
+            <div class="flex items-center justify-between mt-3 pt-2 border-t border-white/10 shrink-0 text-2xs text-white/40">
+                <span class="flex items-center gap-1.5 text-white/50"><span>💡</span> 支持中文输入法 (IME) 合成保护与本地书签模糊检索</span>
+                <button id="doneShortcutBtn" type="button" class="py-1.5 px-4 bg-white/15 hover:bg-white/25 text-white/90 hover:text-white rounded-lg transition-colors text-xs font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50">知道了</button>
+            </div>
+        </div>
+    </div><!-- /#shortcutModal -->
 
     <script id="main-script">
         /**
@@ -2270,6 +2362,38 @@
             ? window.__BACKGROUNDS__
             : ['./wallpapers/bg1.avif'];
 
+        // ==================== 平台按键与快捷键适配 ====================
+        const IS_MAC = (() => {
+            if (typeof navigator === 'undefined') return true;
+            if (navigator.userAgentData?.platform) {
+                return /mac|ios|iphone|ipad|ipod/i.test(navigator.userAgentData.platform);
+            }
+            const p = (navigator.platform || navigator.userAgent || '').toLowerCase();
+            return /mac|iphone|ipad|ipod/.test(p);
+        })();
+
+        const KBD = {
+            isMac: IS_MAC,
+            slash: IS_MAC ? '⌘ /' : 'Ctrl + /',
+            bg: IS_MAC ? '⌘ B' : 'Ctrl + B',
+            newTab: IS_MAC ? '⌘ ↵' : 'Alt + ↵',
+            tabTrap: IS_MAC ? 'Tab / ⇧ Tab' : 'Tab / Shift + Tab',
+            hintBadge: IS_MAC ? '⌘ /' : 'Ctrl+/'
+        };
+
+        function applyPlatformShortcuts() {
+            const elSlash = $('kbd-slash');
+            if (elSlash) elSlash.textContent = KBD.slash;
+            const elBg = $('kbd-bg');
+            if (elBg) elBg.textContent = KBD.bg;
+            const elNewTab = $('kbd-newtab');
+            if (elNewTab) elNewTab.textContent = KBD.newTab;
+            const elTab = $('kbd-tab');
+            if (elTab) elTab.textContent = KBD.tabTrap;
+            const elHint = $('settingsKbdHint');
+            if (elHint) elHint.textContent = KBD.hintBadge;
+        }
+
         // ==================== 状态与 DOM 缓存 ====================
         const dom = {};
         const state = {
@@ -2293,7 +2417,7 @@
          * @returns {void}
          */
         function cacheDOM() {
-            const ids = 'clock date searchInput searchClearBtn engineBtn engineIcon engineName dropdownMenu suggestionMenu searchBtn bookmarks sidebar sidebarList navCategories navContent editModal editList dragDropIndicator editBookmarksBtn addBookmarkBtn saveEditBtn cancelEditBtn resetEditBtn togglePickerBtn bookmarkPicker pickerContent pickerCount closePickerBtn donePickerBtn exportJsonBtn importJsonInput uploadBgBtn urlBgBtn resetBgBtn uploadBgInput wallpaperStatus bookmarkCountBadge jsonDropzone maskOpacityInput maskOpacityVal bgBlurInput bgBlurVal storageSizeBadge statBookmarkCount statWallpaperType statPwaStatus clearCacheBtn bgOverlay startSection navSection navHint navHeader presetWallpaperGrid'.split(' ');
+            const ids = 'clock date searchInput searchClearBtn engineBtn engineIcon engineName dropdownMenu suggestionMenu searchBtn bookmarks sidebar sidebarList navCategories navContent editModal editList dragDropIndicator editBookmarksBtn addBookmarkBtn saveEditBtn cancelEditBtn resetEditBtn togglePickerBtn bookmarkPicker pickerContent pickerCount closePickerBtn donePickerBtn exportJsonBtn importJsonInput uploadBgBtn urlBgBtn resetBgBtn uploadBgInput wallpaperStatus bookmarkCountBadge jsonDropzone maskOpacityInput maskOpacityVal bgBlurInput bgBlurVal storageSizeBadge statBookmarkCount statWallpaperType statPwaStatus clearCacheBtn bgOverlay startSection navSection navHint navHeader presetWallpaperGrid shortcutModal closeShortcutBtn doneShortcutBtn openShortcutFromSettingsBtn'.split(' ');
             ids.forEach(id => dom[id] = $(id));
         }
 
@@ -3166,6 +3290,37 @@
             }
         }
 
+        let shortcutModalTriggerEl = null;
+
+        /**
+         * 打开快捷键速查面板弹窗
+         * @returns {void}
+         */
+        function openShortcutModal() {
+            if (!dom.shortcutModal) return;
+            shortcutModalTriggerEl = document.activeElement;
+            OverlayStack.push('shortcutModal', closeShortcutModal);
+            animateShowModal(dom.shortcutModal);
+        }
+
+        /**
+         * 关闭快捷键速查面板弹窗
+         * @returns {void}
+         */
+        function closeShortcutModal() {
+            if (!dom.shortcutModal) return;
+            OverlayStack.pop('shortcutModal');
+            if (document.activeElement && dom.shortcutModal.contains(document.activeElement)) {
+                document.activeElement.blur();
+            }
+            animateHideModal(dom.shortcutModal);
+            if (shortcutModalTriggerEl && typeof shortcutModalTriggerEl.focus === 'function') {
+                const opener = shortcutModalTriggerEl;
+                shortcutModalTriggerEl = null;
+                requestAnimationFrame(() => opener.focus());
+            }
+        }
+
         // ==================== 纯前端 JSON 配置文件导入与导出 ====================
         /**
          * 导出当前快捷书签为 JSON 格式备份文件
@@ -3714,6 +3869,7 @@
             if (isAppInitialized) return;
             isAppInitialized = true;
             cacheDOM();
+            applyPlatformShortcuts();
             renderEngineDropdown();
             renderPresetWallpapers();
             document.addEventListener('error', e => {
@@ -4432,6 +4588,17 @@
                     return;
                 }
 
+                // 快捷键 Cmd/Ctrl + /：呼出/关闭快捷键速查面板（无论处于何种状态均可快速响应）
+                if ((e.key === '/' || e.code === 'Slash') && (e.metaKey || e.ctrlKey)) {
+                    e.preventDefault();
+                    if (dom.shortcutModal && !dom.shortcutModal.hasAttribute('hidden') && dom.shortcutModal.classList.contains('active')) {
+                        closeShortcutModal();
+                    } else {
+                        openShortcutModal();
+                    }
+                    return;
+                }
+
                 // 2. 若当前有任何弹窗或 Overlay 处于激活状态，拦截后续所有全局快捷键及页面导航操作
                 //    (联想面板自身也会入栈；但搜索框聚焦时方向键/回车等联想操作仍须响应，故栈内仅剩联想面板时放行)
                 if (!OverlayStack.isEmpty()) {
@@ -4543,7 +4710,7 @@
 
         // ==================== 编辑弹窗事件绑定 ====================
         function bindEditEvents() {
-            document.querySelectorAll('#editModal > div, #bookmarkPicker > div, #confirmModal > div').forEach(el => {
+            document.querySelectorAll('#editModal > div, #bookmarkPicker > div, #confirmModal > div, #shortcutModal > div').forEach(el => {
                 el.addEventListener('click', e => e.stopPropagation());
             });
             dom.editBookmarksBtn.addEventListener('click', openEditModal);
@@ -4553,6 +4720,13 @@
             dom.closePickerBtn.addEventListener('click', closeBookmarkPicker);
             dom.donePickerBtn.addEventListener('click', closeBookmarkPicker);
             dom.bookmarkPicker.addEventListener('click', closeBookmarkPicker);
+            dom.closeShortcutBtn?.addEventListener('click', closeShortcutModal);
+            dom.doneShortcutBtn?.addEventListener('click', closeShortcutModal);
+            dom.shortcutModal?.addEventListener('click', closeShortcutModal);
+            dom.openShortcutFromSettingsBtn?.addEventListener('click', () => {
+                cancelEditModal();
+                openShortcutModal();
+            });
 
             // 重置所有设置 (Danger Zone - 确认后立即重置系统，无需再点击保存)
             dom.resetEditBtn.addEventListener('click', resetBookmarks);
@@ -5360,7 +5534,7 @@
                         <span class="flex items-center gap-1.5"><kbd class="kbd-key">↑</kbd><kbd class="kbd-key">↓</kbd> 切换</span>
                         <span class="flex items-center gap-1.5"><kbd class="kbd-key">↵</kbd> 选择/搜索</span>
                     </div>
-                    <span class="flex items-center gap-1.5"><kbd class="kbd-key">Cmd ⌘ / Alt + ↵</kbd> 新标签页打开</span>
+                    <span class="flex items-center gap-1.5"><kbd class="kbd-key">${KBD.newTab}</kbd> 新标签页打开</span>
                 </div>
             `;
 
