@@ -1253,55 +1253,53 @@
     <!-- ========== 第一屏：起始页 ========== -->
     <section id="startSection" class="relative z-10 min-h-dvh flex flex-col items-center justify-center px-4 py-12">
         <h1 class="sr-only">Glass Start — 轻量级玻璃拟态个人起始页与导航</h1>
-        <div class="flex flex-col items-center justify-center w-full">
-            <!-- 时钟 -->
-            <div class="text-center fade-in clock-text mb-10 md:mb-14">
-                <time id="clock" datetime="00:00" aria-label="当前时间" class="text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-light tracking-tight tabular-nums block">00<span class="clock-colon mx-0.5 sm:mx-1">:</span>00</time>
-                <div id="date" class="text-xs sm:text-sm md:text-base mt-3.5 text-white/80 font-normal tracking-[0.2em] sm:tracking-[0.25em] -mr-[0.2em] sm:-mr-[0.25em] uppercase drop-shadow-sm min-h-[1.5em]">&nbsp;</div>
-                <script>(function(){const n=new Date();const c=document.getElementById('clock');const d=document.getElementById('date');if(c){const h=String(n.getHours()).padStart(2,'0');const m=String(n.getMinutes()).padStart(2,'0');c.innerHTML=`${h}<span class="clock-colon mx-0.5 sm:mx-1">:</span>${m}`;c.setAttribute('datetime',`${h}:${m}`);}if(d){const w=['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];d.textContent=`${n.getFullYear()}年${n.getMonth()+1}月${n.getDate()}日  ${w[n.getDay()]}`;}})()</script>
-            </div>
+        <!-- 时钟 -->
+        <div class="text-center fade-in clock-text mb-10 md:mb-14">
+            <time id="clock" datetime="00:00" aria-label="当前时间" class="text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-light tracking-tight tabular-nums block">00<span class="clock-colon mx-0.5 sm:mx-1">:</span>00</time>
+            <div id="date" class="text-xs sm:text-sm md:text-base mt-3.5 text-white/80 font-normal tracking-[0.2em] sm:tracking-[0.25em] -mr-[0.2em] sm:-mr-[0.25em] uppercase drop-shadow-sm min-h-[1.5em]">&nbsp;</div>
+            <script>(function(){const n=new Date();const c=document.getElementById('clock');const d=document.getElementById('date');if(c){const h=String(n.getHours()).padStart(2,'0');const m=String(n.getMinutes()).padStart(2,'0');c.innerHTML=`${h}<span class="clock-colon mx-0.5 sm:mx-1">:</span>${m}`;c.setAttribute('datetime',`${h}:${m}`);}if(d){const w=['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];d.textContent=`${n.getFullYear()}年${n.getMonth()+1}月${n.getDate()}日  ${w[n.getDay()]}`;}})()</script>
+        </div>
 
-            <!-- 搜索框 -->
-            <div class="w-full max-w-2xl lg:max-w-3xl mx-auto relative mb-8 md:mb-10">
-                <div class="glass-strong apple-radius p-2 flex items-center gap-1.5 border fade-in search-box-wrapper delay-100 select-none">
-                    <div class="relative shrink-0 select-none">
-                        <button id="engineBtn" type="button" aria-label="选择搜索引擎" aria-haspopup="menu" aria-expanded="false" aria-controls="dropdownMenu" class="flex items-center gap-1.5 pl-3 pr-2 py-3 apple-radius hover:bg-white/10 transition-[background-color,transform,border-color] duration-150 text-sm font-medium min-h-11 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed select-none">
-                            <img id="engineIcon" src="https://a.favicon.im/bing.com" width="16" height="16" class="engine-icon size-4 rounded-md select-none pointer-events-none" alt="当前引擎：Bing" draggable="false">
-                            <span id="engineName" class="hidden sm:inline select-none">Bing</span>
-                            <svg class="size-4 opacity-60 shrink-0 pointer-events-none select-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
-                        </button>
-                        <script>(function(){if(window.__PRE_ENGINE__){const i=document.getElementById('engineIcon');const n=document.getElementById('engineName');if(i){i.src=window.__PRE_ENGINE__.icon;i.alt='当前引擎：'+window.__PRE_ENGINE__.name;}if(n)n.textContent=window.__PRE_ENGINE__.name;}})()</script>
-                    </div>
-                    <label for="searchInput" class="sr-only">搜索</label>
-                    <input type="text" id="searchInput" name="q" role="combobox" aria-label="搜索输入框" aria-autocomplete="list" aria-controls="suggestionMenu" aria-expanded="false" class="flex-1 bg-transparent border-none outline-none text-lg search-input text-white h-12 px-1 min-w-0 focus-visible:ring-0" placeholder="搜索..." autocomplete="off">
-                    <button id="searchClearBtn" type="button" aria-label="清空搜索框" class="hidden p-2 apple-radius hover:bg-white/10 text-white/40 hover:text-white/90 transition-[background-color,color,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 shrink-0 select-none" title="清空搜索框">
-                        <svg class="size-4 pointer-events-none select-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        <!-- 搜索框 -->
+        <div class="w-full max-w-2xl lg:max-w-3xl mx-auto relative mb-8 md:mb-10">
+            <div class="glass-strong apple-radius p-2 flex items-center gap-1.5 border fade-in search-box-wrapper delay-100 select-none">
+                <div class="relative shrink-0 select-none">
+                    <button id="engineBtn" type="button" aria-label="选择搜索引擎" aria-haspopup="menu" aria-expanded="false" aria-controls="dropdownMenu" class="flex items-center gap-1.5 pl-3 pr-2 py-3 apple-radius hover:bg-white/10 transition-[background-color,transform,border-color] duration-150 text-sm font-medium min-h-11 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed select-none">
+                        <img id="engineIcon" src="https://a.favicon.im/bing.com" width="16" height="16" class="engine-icon size-4 rounded-md select-none pointer-events-none" alt="当前引擎：Bing" draggable="false">
+                        <span id="engineName" class="hidden sm:inline select-none">Bing</span>
+                        <svg class="size-4 opacity-60 shrink-0 pointer-events-none select-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
                     </button>
-                    <button id="searchBtn" type="button" aria-label="执行搜索" class="p-3 apple-radius hover:bg-white/10 transition-[background-color,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 shrink-0 mr-1 select-none">
-                        <svg class="size-5 pointer-events-none select-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-                    </button>
+                    <script>(function(){if(window.__PRE_ENGINE__){const i=document.getElementById('engineIcon');const n=document.getElementById('engineName');if(i){i.src=window.__PRE_ENGINE__.icon;i.alt='当前引擎：'+window.__PRE_ENGINE__.name;}if(n)n.textContent=window.__PRE_ENGINE__.name;}})()</script>
                 </div>
-                <div id="dropdownMenu" role="menu" aria-label="搜索引擎选项" aria-hidden="true" class="dropdown-menu absolute top-full left-0 glass-strong apple-radius p-2 border border-white/20 shadow-2xl min-w-[8.75rem] z-50 select-none">
-                    <button type="button" data-engine="bing" role="menuitemradio" aria-checked="true" class="w-full flex items-center gap-3 px-3 py-2.5 apple-radius hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 transition-[background-color,color,transform] duration-150 text-left text-sm select-none">
-                        <img src="https://a.favicon.im/bing.com" width="16" height="16" class="engine-icon size-4 rounded pointer-events-none select-none" alt="" draggable="false"> Bing
-                    </button>
-                    <button type="button" data-engine="google" role="menuitemradio" aria-checked="false" class="w-full flex items-center gap-3 px-3 py-2.5 apple-radius hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 transition-[background-color,color,transform] duration-150 text-left text-sm select-none">
-                        <img src="https://a.favicon.im/google.com" width="16" height="16" class="engine-icon size-4 rounded pointer-events-none select-none" alt="" draggable="false"> Google
-                    </button>
-                    <button type="button" data-engine="baidu" role="menuitemradio" aria-checked="false" class="w-full flex items-center gap-3 px-3 py-2.5 apple-radius hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 transition-[background-color,color,transform] duration-150 text-left text-sm select-none">
-                        <img src="https://a.favicon.im/baidu.com" width="16" height="16" class="engine-icon size-4 rounded pointer-events-none select-none" alt="" draggable="false"> 百度
-                    </button>
-                </div>
-                <!-- 搜索实时建议联想下拉框 (Spotlight 高颜值全宽样式) -->
-                <div id="suggestionMenu" role="listbox" aria-label="搜索建议" aria-hidden="true" class="dropdown-menu absolute top-full left-0 right-0 w-full mt-3.5 sm:mt-4 glass-strong apple-radius p-2 border border-white/20 shadow-2xl z-[var(--z-dropdown)] select-none"></div>
+                <label for="searchInput" class="sr-only">搜索</label>
+                <input type="text" id="searchInput" name="q" role="combobox" aria-label="搜索输入框" aria-autocomplete="list" aria-controls="suggestionMenu" aria-expanded="false" class="flex-1 bg-transparent border-none outline-none text-lg search-input text-white h-12 px-1 min-w-0 focus-visible:ring-0" placeholder="搜索..." autocomplete="off">
+                <button id="searchClearBtn" type="button" aria-label="清空搜索框" class="hidden p-2 apple-radius hover:bg-white/10 text-white/40 hover:text-white/90 transition-[background-color,color,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 shrink-0 select-none" title="清空搜索框">
+                    <svg class="size-4 pointer-events-none select-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+                <button id="searchBtn" type="button" aria-label="执行搜索" class="p-3 apple-radius hover:bg-white/10 transition-[background-color,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 shrink-0 mr-1 select-none">
+                    <svg class="size-5 pointer-events-none select-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                </button>
             </div>
+            <div id="dropdownMenu" role="menu" aria-label="搜索引擎选项" aria-hidden="true" class="dropdown-menu absolute top-full left-0 glass-strong apple-radius p-2 border border-white/20 shadow-2xl min-w-[8.75rem] z-50 select-none">
+                <button type="button" data-engine="bing" role="menuitemradio" aria-checked="true" class="w-full flex items-center gap-3 px-3 py-2.5 apple-radius hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 transition-[background-color,color,transform] duration-150 text-left text-sm select-none">
+                    <img src="https://a.favicon.im/bing.com" width="16" height="16" class="engine-icon size-4 rounded pointer-events-none select-none" alt="" draggable="false"> Bing
+                </button>
+                <button type="button" data-engine="google" role="menuitemradio" aria-checked="false" class="w-full flex items-center gap-3 px-3 py-2.5 apple-radius hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 transition-[background-color,color,transform] duration-150 text-left text-sm select-none">
+                    <img src="https://a.favicon.im/google.com" width="16" height="16" class="engine-icon size-4 rounded pointer-events-none select-none" alt="" draggable="false"> Google
+                </button>
+                <button type="button" data-engine="baidu" role="menuitemradio" aria-checked="false" class="w-full flex items-center gap-3 px-3 py-2.5 apple-radius hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 transition-[background-color,color,transform] duration-150 text-left text-sm select-none">
+                    <img src="https://a.favicon.im/baidu.com" width="16" height="16" class="engine-icon size-4 rounded pointer-events-none select-none" alt="" draggable="false"> 百度
+                </button>
+            </div>
+            <!-- 搜索实时建议联想下拉框 (Spotlight 高颜值全宽样式) -->
+            <div id="suggestionMenu" role="listbox" aria-label="搜索建议" aria-hidden="true" class="dropdown-menu absolute top-full left-0 right-0 w-full mt-3.5 sm:mt-4 glass-strong apple-radius p-2 border border-white/20 shadow-2xl z-[var(--z-dropdown)] select-none"></div>
+        </div>
 
-            <!-- 快捷书签 -->
-            <div class="w-full max-w-2xl lg:max-w-3xl mx-auto glass apple-radius p-3 sm:p-4 fade-in mb-6 md:mb-8 relative group delay-200">
-                <nav aria-label="快捷书签">
-                    <div id="bookmarks" class="grid grid-cols-4 md:grid-cols-8 gap-2 min-h-43 md:min-h-22"></div>
-                </nav>
-            </div>
+        <!-- 快捷书签 -->
+        <div class="w-full max-w-2xl lg:max-w-3xl mx-auto glass apple-radius p-3 sm:p-4 fade-in mb-6 md:mb-8 relative group delay-200">
+            <nav aria-label="快捷书签">
+                <div id="bookmarks" class="grid grid-cols-4 md:grid-cols-8 gap-2 min-h-43 md:min-h-22"></div>
+            </nav>
         </div>
 
         <!-- 向下滚动提示（装饰，绝对定位不占空间） -->
@@ -1366,7 +1364,7 @@
                     <h3 class="text-base font-semibold tracking-wide text-white/90">设置与偏好</h3>
                 </div>
                 <button id="openShortcutFromSettingsBtn" type="button" class="text-2xs text-white/60 hover:text-white/90 bg-white/5 hover:bg-white/10 border border-white/10 px-2.5 py-1 apple-radius transition-[background-color,color,border-color,transform] duration-150 flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" title="查看全站键盘快捷键速查">
-                    <span>⌨️</span> 快捷键速查 <span id="settingsKbdHint" class="font-mono text-[10px] text-white/40 ml-0.5">⌘ /</span>
+                    <span>⌨️</span> 快捷键速查 <span id="settingsKbdHint" class="font-mono text-2xs text-white/40 ml-0.5">⌘ /</span>
                 </button>
             </div>
 
@@ -1394,8 +1392,8 @@
                 </div>
                 <div id="editList" role="list" aria-label="书签列表" class="flex-1 overflow-y-auto space-y-1.5 mb-3 min-h-0 pr-1"></div>
                 <div class="flex flex-col sm:flex-row gap-2 shrink-0 pt-2.5 border-t border-white/10">
-                    <button id="addBookmarkBtn" type="button" class="flex-1 py-2 px-3 border border-dashed border-white/20 apple-radius text-white/75 hover:text-white hover:border-white/40 hover:bg-white/10 transition-[background-color,border-color,color,transform] duration-150 text-xs flex items-center justify-center gap-1.5 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50">+ 手动添加书签</button>
-                    <button id="togglePickerBtn" type="button" class="flex-1 py-2 px-3 border border-dashed border-white/20 apple-radius text-xs text-white/75 hover:text-white hover:border-white/40 hover:bg-white/10 transition-[background-color,border-color,color,transform] duration-150 flex items-center justify-center gap-1.5 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50">🗂️ 从导航页批量选择</button>
+                    <button id="addBookmarkBtn" type="button" class="flex-1 py-2 px-3 border border-dashed border-white/20 apple-radius text-white/75 hover:text-white hover:border-white/40 hover:bg-white/10 transition-[background-color,border-color,color,transform] duration-150 text-xs flex items-center justify-center gap-1.5 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 disabled:opacity-50 disabled:cursor-not-allowed">+ 手动添加书签</button>
+                    <button id="togglePickerBtn" type="button" class="flex-1 py-2 px-3 border border-dashed border-white/20 apple-radius text-xs text-white/75 hover:text-white hover:border-white/40 hover:bg-white/10 transition-[background-color,border-color,color,transform] duration-150 flex items-center justify-center gap-1.5 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 disabled:opacity-50 disabled:cursor-not-allowed">🗂️ 从导航页批量选择</button>
                 </div>
             </div>
 
@@ -1549,7 +1547,7 @@
 
             <!-- 底部通用 Save/Cancel 按键栏 (响应式右对齐 + 柔和通透 Glass Primary CTA) -->
             <div class="flex items-center justify-end gap-3 mt-3 pt-3 border-t border-white/10 shrink-0">
-                <button id="cancelEditBtn" type="button" class="flex-1 sm:flex-initial py-2.5 px-5 rounded-xl text-xs sm:text-sm font-normal text-white/60 hover:text-white hover:bg-white/10 transition-[background-color,color,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50">取消</button>
+                <button id="cancelEditBtn" type="button" class="flex-1 sm:flex-initial py-2.5 px-5 rounded-xl text-xs sm:text-sm font-normal text-white/60 hover:text-white hover:bg-white/10 transition-[background-color,color,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 disabled:opacity-50 disabled:cursor-not-allowed">取消</button>
                 <button id="saveEditBtn" type="button" class="flex-1 sm:flex-initial py-2.5 px-6 rounded-xl text-xs sm:text-sm font-medium text-white bg-white/20 hover:bg-white/30 border border-white/25 hover:border-white/40 shadow-[0_2px_8px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.25)] active:scale-[0.98] transition-[background-color,border-color,box-shadow,transform] duration-150 inline-flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:opacity-50 disabled:cursor-not-allowed">
                     <svg class="spinner size-4 animate-spin hidden" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
                     <span class="btn-label">保存并关闭</span>
@@ -1560,15 +1558,15 @@
 
     <!-- 从导航页选择弹窗 -->
     <div id="bookmarkPicker" role="dialog" aria-modal="true" aria-hidden="true" hidden aria-label="从导航页选择书签" class="edit-overlay fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-[var(--z-picker)]">
-        <div class="glass-strong apple-radius pt-4 pb-3 px-4 w-full max-w-2xl xl:max-w-3xl 2xl:max-w-4xl mx-4 max-h-[85vh] flex flex-col shadow-2xl">
+        <div class="glass-strong apple-radius pt-4 pb-3 px-4 w-full max-w-2xl xl:max-w-3xl 2xl:max-w-4xl mx-4 max-h-[85dvh] flex flex-col shadow-2xl">
             <div class="flex items-center justify-between mb-2 pb-1.5 border-b border-white/10 shrink-0">
                 <h3 class="text-base font-medium tracking-wide text-white/80">从导航页选择</h3>
-                <button id="closePickerBtn" type="button" aria-label="关闭选择弹窗" class="p-1 size-10 inline-flex items-center justify-center hover:bg-white/10 rounded apple-radius text-white/40 hover:text-white/70 transition-[background-color,color,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"><svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+                <button id="closePickerBtn" type="button" aria-label="关闭选择弹窗" class="p-1 size-10 inline-flex items-center justify-center hover:bg-white/10 rounded apple-radius text-white/40 hover:text-white/70 transition-[background-color,color,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 disabled:opacity-50 disabled:cursor-not-allowed"><svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
             </div>
             <div id="pickerContent" class="flex-1 overflow-y-auto min-h-0 space-y-3"></div>
             <div class="flex items-center justify-between mt-3 pt-2 border-t border-white/10 shrink-0">
                 <span id="pickerCount" class="glass-badge">已添加 0 项</span>
-                <button id="donePickerBtn" type="button" class="py-2 px-6 bg-white/20 hover:bg-white/30 text-white border border-white/25 hover:border-white/40 shadow-[0_2px_8px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.25)] rounded-xl active:scale-[0.98] transition-[background-color,border-color,box-shadow,transform] duration-150 text-xs sm:text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60">完成</button>
+                <button id="donePickerBtn" type="button" class="py-2 px-6 bg-white/20 hover:bg-white/30 text-white border border-white/25 hover:border-white/40 shadow-[0_2px_8px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.25)] rounded-xl active:scale-[0.98] transition-[background-color,border-color,box-shadow,transform] duration-150 text-xs sm:text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:opacity-50 disabled:cursor-not-allowed">完成</button>
             </div>
         </div>
     </div><!-- /#bookmarkPicker -->
@@ -3802,14 +3800,14 @@
                         ${sortedBookmarks.map(bm => {
                             const exists = urls.has(bm.url);
                             return `
-                                <div class="flex items-center gap-2 px-2 py-1.5 apple-radius picker-item ${exists ? 'opacity-40' : 'hover:bg-white/10 cursor-pointer'}" ${!exists ? `data-name="${escapeHtml(bm.name)}" data-url="${escapeHtml(bm.url)}"` : ''}>
+                                <button type="button" class="w-full flex items-center gap-2 px-2 py-1.5 apple-radius picker-item text-left select-none ${exists ? 'opacity-40 cursor-not-allowed' : 'hover:bg-white/10 cursor-pointer'}" ${exists ? 'disabled aria-disabled="true"' : ''} aria-label="${exists ? `${escapeHtml(bm.name)}（已添加）` : `添加快捷书签：${escapeHtml(bm.name)}`}" ${!exists ? `data-name="${escapeHtml(bm.name)}" data-url="${escapeHtml(bm.url)}"` : ''}>
                                     ${getFaviconHTML(bm, 'sm')}
                                     <span class="text-xs text-white/70 truncate flex-1">${escapeHtml(bm.name)}</span>
                                     ${exists
                                         ? '<span class="text-2xs text-white/20 shrink-0">已存在</span>'
                                         : '<span class="text-white/40 shrink-0 text-sm">+</span>'
                                     }
-                                </div>
+                                </button>
                             `;
                         }).join('')}
                     </div>
@@ -4783,9 +4781,13 @@
                 div.classList.add('animate-item-in');
                 dom.editList.appendChild(div);
                 item.classList.add('opacity-40', 'pointer-events-none');
+                item.disabled = true;
+                item.setAttribute('aria-disabled', 'true');
+                item.setAttribute('aria-label', `${escapeHtml(name)}（已添加）`);
                 item.dataset.name = '';
                 item.dataset.url = '';
-                item.querySelector('span:last-child').textContent = '✓';
+                const lastSpan = item.querySelector('span:last-child');
+                if (lastSpan) lastSpan.textContent = '✓';
                 updatePickerCount();
                 updateBookmarkCountBadge();
             });
