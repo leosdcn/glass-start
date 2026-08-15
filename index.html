@@ -1591,21 +1591,21 @@
 
     <!-- 快捷键速查面板弹窗 (Cmd/Ctrl + /) -->
     <div id="shortcutModal" role="dialog" aria-modal="true" aria-hidden="true" hidden aria-label="快捷键速查" class="edit-overlay fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-[var(--z-modal)]">
-        <div class="glass-strong apple-radius w-full max-w-xl md:max-w-2xl lg:max-w-3xl mx-4 max-h-[90dvh] flex flex-col p-4 sm:p-5 shadow-2xl overflow-hidden">
+        <div class="glass-strong apple-radius w-full max-w-md sm:max-w-lg md:max-w-xl mx-4 max-h-[85dvh] flex flex-col p-5 sm:p-6 shadow-2xl overflow-hidden">
             <!-- 弹窗 Header -->
             <div class="flex items-center justify-between mb-3 pb-2 border-b border-white/10 shrink-0">
                 <div class="flex items-center gap-2">
                     <span class="text-base">⌨️</span>
                     <h3 class="text-base font-semibold tracking-wide text-white/90">快捷键速查</h3>
                 </div>
-                <button id="closeShortcutBtn" type="button" aria-label="关闭快捷键速查" class="p-1 size-8 inline-flex items-center justify-center hover:bg-white/10 rounded-lg text-white/40 hover:text-white/70 transition-[background-color,color,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50">
+                <button id="closeShortcutBtn" type="button" aria-label="关闭快捷键速查" class="p-1 size-9 sm:size-10 inline-flex items-center justify-center hover:bg-white/10 apple-radius text-white/40 hover:text-white/70 transition-[background-color,color,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50">
                     <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>
             </div>
 
-            <!-- 快捷键列表内容 (纯粹双列 5 vs 5 绝对对称布局) -->
-            <div class="flex-1 overflow-y-auto min-h-0 grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 pr-1 text-xs">
-                <!-- 左列：导航与控制 (5 项) -->
+            <!-- 快捷键列表内容 (单列纵向分类流式布局) -->
+            <div class="flex-1 overflow-y-auto min-h-0 space-y-3.5 pr-1 text-xs">
+                <!-- 导航与控制 (5 项) -->
                 <div>
                     <h4 class="text-2xs font-semibold uppercase tracking-wider text-white/40 mb-1.5 px-0.5">导航与控制</h4>
                     <div class="space-y-1.5">
@@ -1632,7 +1632,7 @@
                     </div>
                 </div>
 
-                <!-- 右列：搜索与操作 (5 项) -->
+                <!-- 搜索与操作 (5 项) -->
                 <div>
                     <h4 class="text-2xs font-semibold uppercase tracking-wider text-white/40 mb-1.5 px-0.5">搜索与操作</h4>
                     <div class="space-y-1.5">
@@ -1661,8 +1661,8 @@
             </div>
 
             <!-- 底部操作与提示 -->
-            <div class="flex items-center justify-end mt-3 pt-2 border-t border-white/10 shrink-0">
-                <button id="doneShortcutBtn" type="button" class="py-1.5 px-4 bg-white/15 hover:bg-white/25 text-white/90 hover:text-white rounded-lg transition-colors text-xs font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50">知道了</button>
+            <div class="flex items-center justify-end mt-3 pt-3 border-t border-white/10 shrink-0">
+                <button id="doneShortcutBtn" type="button" class="py-2.5 px-6 rounded-xl text-xs sm:text-sm font-medium text-white bg-white/20 hover:bg-white/30 border border-white/25 hover:border-white/40 shadow-[0_2px_8px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.25)] active:scale-[0.98] transition-[background-color,border-color,box-shadow,transform] duration-150 inline-flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:opacity-50 disabled:cursor-not-allowed">知道了</button>
             </div>
         </div>
     </div><!-- /#shortcutModal -->
