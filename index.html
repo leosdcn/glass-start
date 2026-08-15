@@ -320,16 +320,13 @@
             height: 100vh;
             height: 100dvh;
             z-index: 10;
-            transform: translateY(0) scale(1);
-            opacity: 1;
-            will-change: transform, opacity;
-            transition: transform 0.62s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.5s ease;
+            transform: translateY(0);
+            will-change: transform;
+            transition: transform 0.58s cubic-bezier(0.33, 1, 0.68, 1);
         }
         #startSection.screen-pushed-up {
-            transform: translateY(-100vh) scale(0.96);
-            transform: translateY(-100dvh) scale(0.96);
-            opacity: 0.25;
-            pointer-events: none;
+            transform: translateY(-100vh);
+            transform: translateY(-100dvh);
         }
         #navSection {
             position: absolute;
@@ -342,7 +339,7 @@
             transform: translateY(100vh);
             transform: translateY(100dvh);
             will-change: transform;
-            transition: transform 0.62s cubic-bezier(0.22, 1, 0.36, 1);
+            transition: transform 0.58s cubic-bezier(0.33, 1, 0.68, 1);
         }
         #navSection.screen-pushed-in {
             transform: translateY(0);
@@ -5777,7 +5774,7 @@
                     if (document.activeElement && typeof document.activeElement.blur === 'function') {
                         document.activeElement.blur();
                     }
-                }, 620);
+                }, 580);
             }
 
             function switchToStart() {
@@ -5806,7 +5803,7 @@
                     updateGearVisibility();
                     nav.classList.remove('nav-visible');
                     nav.classList.add('nav-hidden');
-                }, 620);
+                }, 580);
             }
 
             window.switchToNav = switchToNav;
