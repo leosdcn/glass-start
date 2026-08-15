@@ -3141,7 +3141,7 @@
         function getEditRowHTML(name = '', url = '', idx = '', icon = '') {
             const rowId = (idx !== '' && idx !== undefined) ? idx : Date.now();
             return `
-                <div class="edit-row-card flex items-center gap-1.5 sm:gap-2 p-1.5 sm:p-2 bg-white/5 border border-white/10 apple-radius hover:border-white/25 transition-[background-color,border-color,transform,opacity] duration-150 group mb-1.5 shadow-xs" data-idx="${idx}" data-icon="${escapeHtml(icon || '')}" data-orig-url="${escapeHtml(url || '')}" draggable="true">
+                <div class="edit-row-card flex items-center gap-1.5 sm:gap-2 p-1.5 sm:p-2 bg-white/5 border border-white/10 apple-radius hover:border-white/25 transition-[background-color,border-color,transform,opacity] duration-150 group mb-1.5 shadow-xs" data-idx="${idx}" data-icon="${escapeHtml(icon || '')}" data-orig-url="${escapeHtml(url || '')}" draggable="false">
                     <div class="flex items-center gap-1 shrink-0">
                         <div class="drag-handle touch-none p-1 size-7 flex items-center justify-center shrink-0 text-white/30 group-hover:text-white/70 hover:!text-white cursor-grab active:cursor-grabbing transition-[color,transform] duration-150" title="按住拖拽排序" role="button" tabindex="0" aria-label="按住拖拽或使用键盘排序">
                             <svg class="size-3.5 pointer-events-none" viewBox="0 0 16 16" fill="currentColor"><circle cx="5" cy="4" r="1.5"/><circle cx="11" cy="4" r="1.5"/><circle cx="5" cy="8" r="1.5"/><circle cx="11" cy="8" r="1.5"/><circle cx="5" cy="12" r="1.5"/><circle cx="11" cy="12" r="1.5"/></svg>
@@ -3545,15 +3545,41 @@
                 lastIsTop = null;
             }
 
+            let isDragHandleActive = false;
+
+            dom.editList.addEventListener('mousedown', e => {
+                const handle = e.target.closest('.drag-handle');
+                const card = e.target.closest('.edit-row-card');
+                if (handle && card) {
+                    isDragHandleActive = true;
+                    card.setAttribute('draggable', 'true');
+                } else if (card) {
+                    isDragHandleActive = false;
+                    card.setAttribute('draggable', 'false');
+                }
+            });
+
+            document.addEventListener('mouseup', () => {
+                isDragHandleActive = false;
+                if (dom.editList) {
+                    dom.editList.querySelectorAll('.edit-row-card[draggable="true"]').forEach(card => {
+                        card.setAttribute('draggable', 'false');
+                    });
+                }
+            });
+
             dom.editList.addEventListener('dragstart', e => {
-                // 如果拖拽是从输入框发起的，放行输入框本身的选中文本操作，不触发卡片拖拽
-                if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) {
+                // 仅允许从拖拽手柄 (.drag-handle) 发起卡片拖拽排序，彻底放行输入框内圈选与拖拽高亮文本
+                if (!isDragHandleActive) {
                     e.preventDefault();
                     return;
                 }
 
                 const item = e.target.closest('.edit-row-card');
-                if (!item) return;
+                if (!item) {
+                    e.preventDefault();
+                    return;
+                }
 
                 dragSrc = item;
                 item.classList.add('dragging');
@@ -3564,6 +3590,12 @@
             });
 
             dom.editList.addEventListener('dragend', () => {
+                isDragHandleActive = false;
+                if (dom.editList) {
+                    dom.editList.querySelectorAll('.edit-row-card[draggable="true"]').forEach(card => {
+                        card.setAttribute('draggable', 'false');
+                    });
+                }
                 clearDragClasses();
                 dragSrc = null;
             });
