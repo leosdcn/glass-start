@@ -1160,25 +1160,6 @@
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
         }
 
-        .settings-tab-panel:not(.hidden) {
-            animation: tabFadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
-        @keyframes tabFadeIn {
-            from {
-                opacity: 0.3;
-                transform: translateY(4px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        .nr .settings-tab-panel:not(.hidden) {
-            animation: none !important;
-            opacity: 1 !important;
-            transform: none !important;
-        }
-
         .picker-item {
             transition: background-color 0.15s ease, opacity 0.2s ease, transform 0.1s var(--ease-snappy);
         }
@@ -1356,7 +1337,7 @@
 
     <!-- 编辑与设置弹窗 (Apple 风格 Tab 分栏设置面板) -->
     <div id="editModal" role="dialog" aria-modal="true" aria-hidden="true" hidden aria-label="设置与偏好" class="edit-overlay fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-[var(--z-modal)]">
-        <div class="glass-strong apple-radius w-full max-w-xl sm:max-w-2xl md:max-w-3xl lg:max-w-4xl mx-4 min-h-[60dvh] max-h-[90dvh] sm:h-[40rem] flex flex-col p-5 sm:p-6 shadow-2xl overflow-hidden">
+        <div class="glass-strong apple-radius w-full max-w-xl sm:max-w-2xl md:max-w-3xl lg:max-w-4xl mx-4 min-h-[60dvh] max-h-[90dvh] sm:h-[40rem] flex flex-col p-4 sm:p-6 shadow-2xl overflow-hidden">
             <!-- 弹窗 Header -->
             <div class="flex items-center justify-between mb-3 pb-2 border-b border-white/10 shrink-0">
                 <div class="flex items-center gap-2">
@@ -1369,18 +1350,18 @@
             </div>
 
             <!-- Tab 导航栏 -->
-            <div role="tablist" aria-label="设置偏好选项卡" class="flex items-center gap-1.5 p-1 bg-black/20 border border-white/10 apple-radius mb-3 shrink-0">
-                <button type="button" role="tab" id="tab-btn-bookmarks" aria-selected="true" aria-controls="tabBookmarks" class="settings-tab-btn active flex-1 py-2 sm:py-2 px-2 sm:px-3.5 apple-radius text-xs sm:text-sm font-medium whitespace-nowrap transition-[background-color,color,border-color,box-shadow,transform] duration-150 flex items-center justify-center gap-1 sm:gap-1.5 text-white/70 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" data-tab="tabBookmarks">
-                    <span>📌</span>
-                    <span>快捷书签</span>
+            <div role="tablist" aria-label="设置偏好选项卡" class="flex items-center gap-1 sm:gap-1.5 p-1 bg-black/20 border border-white/10 apple-radius mb-3 shrink-0">
+                <button type="button" role="tab" id="tab-btn-bookmarks" aria-selected="true" aria-controls="tabBookmarks" class="settings-tab-btn active flex-1 py-1.5 sm:py-2 px-1.5 sm:px-3.5 apple-radius text-2xs sm:text-xs md:text-sm font-medium whitespace-nowrap transition-[background-color,color,border-color,box-shadow,transform] duration-150 flex items-center justify-center gap-1 sm:gap-1.5 text-white/70 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" data-tab="tabBookmarks">
+                    <span class="shrink-0">📌</span>
+                    <span class="whitespace-nowrap shrink-0">快捷书签</span>
                 </button>
-                <button type="button" role="tab" id="tab-btn-appearance" aria-selected="false" aria-controls="tabAppearance" class="settings-tab-btn flex-1 py-2 sm:py-2 px-2 sm:px-3.5 apple-radius text-xs sm:text-sm font-medium whitespace-nowrap transition-[background-color,color,border-color,box-shadow,transform] duration-150 flex items-center justify-center gap-1 sm:gap-1.5 text-white/70 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" data-tab="tabAppearance">
-                    <span>🎨</span>
-                    <span>外观壁纸</span>
+                <button type="button" role="tab" id="tab-btn-appearance" aria-selected="false" aria-controls="tabAppearance" class="settings-tab-btn flex-1 py-1.5 sm:py-2 px-1.5 sm:px-3.5 apple-radius text-2xs sm:text-xs md:text-sm font-medium whitespace-nowrap transition-[background-color,color,border-color,box-shadow,transform] duration-150 flex items-center justify-center gap-1 sm:gap-1.5 text-white/70 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" data-tab="tabAppearance">
+                    <span class="shrink-0">🎨</span>
+                    <span class="whitespace-nowrap shrink-0">外观壁纸</span>
                 </button>
-                <button type="button" role="tab" id="tab-btn-data" aria-selected="false" aria-controls="tabData" class="settings-tab-btn flex-1 py-2 sm:py-2 px-2 sm:px-3.5 apple-radius text-xs sm:text-sm font-medium whitespace-nowrap transition-[background-color,color,border-color,box-shadow,transform] duration-150 flex items-center justify-center gap-1 sm:gap-1.5 text-white/70 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" data-tab="tabData">
-                    <span>⚙️</span>
-                    <span>数据与备份</span>
+                <button type="button" role="tab" id="tab-btn-data" aria-selected="false" aria-controls="tabData" class="settings-tab-btn flex-1 py-1.5 sm:py-2 px-1.5 sm:px-3.5 apple-radius text-2xs sm:text-xs md:text-sm font-medium whitespace-nowrap transition-[background-color,color,border-color,box-shadow,transform] duration-150 flex items-center justify-center gap-1 sm:gap-1.5 text-white/70 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" data-tab="tabData">
+                    <span class="shrink-0">⚙️</span>
+                    <span class="whitespace-nowrap shrink-0">数据与备份</span>
                 </button>
             </div>
 
@@ -1445,14 +1426,14 @@
                 </div>
 
                 <!-- 下半部分：预设高清壁纸库 -->
-                <div class="p-3 glass-subcard space-y-2.5 flex-1 flex flex-col min-h-0">
+                <div class="p-3 glass-subcard space-y-2.5 shrink-0">
                     <div class="flex items-center justify-between shrink-0">
                         <span class="text-xs font-semibold text-white/80 flex items-center gap-1.5">
                             <span>🖼️</span> 预设 4K 高清壁纸库
                         </span>
                         <span class="text-2xs text-white/40">点击预览</span>
                     </div>
-                    <div id="presetWallpaperGrid" class="grid grid-cols-2 sm:grid-cols-4 gap-3 flex-1 min-h-0"></div>
+                    <div id="presetWallpaperGrid" class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3"></div>
                 </div>
             </div>
 
@@ -1488,7 +1469,7 @@
                 </div>
 
                 <!-- 下半部分：功能区域左右双列布局 -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 flex-1 min-h-0">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 shrink-0">
                     <!-- 左侧栏：配置备份与恢复 -->
                     <div class="p-3 glass-subcard flex flex-col justify-between space-y-2.5">
                         <div class="flex items-center justify-between">
