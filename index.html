@@ -1372,16 +1372,16 @@
             <!-- Tab 内容 1: 快捷书签 (tabBookmarks) -->
             <div id="tabBookmarks" role="tabpanel" aria-labelledby="tab-btn-bookmarks" class="settings-tab-panel flex-1 flex flex-col min-h-0 overflow-hidden">
                 <div class="flex items-center justify-between mb-3 shrink-0">
-                    <div class="flex items-center gap-1.5">
-                        <span class="text-xs font-semibold text-white/80">快捷书签管理</span>
-                        <span class="text-2xs text-white/40 font-normal">（拖拽 ⠿ 排序）</span>
+                    <div class="flex items-center gap-1.5 sm:gap-2">
+                        <span class="text-xs sm:text-sm font-semibold text-white/80">快捷书签管理</span>
+                        <span class="text-2xs sm:text-xs text-white/40 font-normal">（拖拽 ⠿ 排序）</span>
                     </div>
-                    <span id="bookmarkCountBadge" class="glass-badge">已添加 0 项</span>
+                    <span id="bookmarkCountBadge" class="glass-badge text-2xs sm:text-xs">已添加 0 项</span>
                 </div>
-                <div id="editList" role="list" aria-label="书签列表" class="flex-1 overflow-y-auto space-y-1.5 mb-2.5 min-h-0 pr-1"></div>
-                <div class="grid grid-cols-2 gap-2 sm:gap-2.5 shrink-0 pt-2.5 border-t border-white/10">
-                    <button id="addBookmarkBtn" type="button" class="py-2 px-3 border border-dashed border-white/20 apple-radius text-white/75 hover:text-white hover:border-white/40 hover:bg-white/10 transition-[background-color,border-color,color,transform] duration-150 text-xs flex items-center justify-center gap-1.5 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 disabled:opacity-50 disabled:cursor-not-allowed truncate">+ 手动添加书签</button>
-                    <button id="togglePickerBtn" type="button" class="py-2 px-3 border border-dashed border-white/20 apple-radius text-xs text-white/75 hover:text-white hover:border-white/40 hover:bg-white/10 transition-[background-color,border-color,color,transform] duration-150 flex items-center justify-center gap-1.5 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 disabled:opacity-50 disabled:cursor-not-allowed truncate">🗂️ 从导航页批量选择</button>
+                <div id="editList" role="list" aria-label="书签列表" class="flex-1 overflow-y-auto space-y-1.5 sm:space-y-2 mb-2.5 min-h-0 pr-1"></div>
+                <div class="grid grid-cols-2 gap-2 sm:gap-3 shrink-0 pt-2.5 sm:pt-3 border-t border-white/10">
+                    <button id="addBookmarkBtn" type="button" class="py-2 sm:py-2.5 px-3 sm:px-4 border border-dashed border-white/20 apple-radius text-white/75 hover:text-white hover:border-white/40 hover:bg-white/10 transition-[background-color,border-color,color,transform] duration-150 text-xs sm:text-sm flex items-center justify-center gap-1.5 sm:gap-2 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 disabled:opacity-50 disabled:cursor-not-allowed truncate">+ 手动添加书签</button>
+                    <button id="togglePickerBtn" type="button" class="py-2 sm:py-2.5 px-3 sm:px-4 border border-dashed border-white/20 apple-radius text-xs sm:text-sm text-white/75 hover:text-white hover:border-white/40 hover:bg-white/10 transition-[background-color,border-color,color,transform] duration-150 flex items-center justify-center gap-1.5 sm:gap-2 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 disabled:opacity-50 disabled:cursor-not-allowed truncate">🗂️ 从导航页批量选择</button>
                 </div>
             </div>
 
@@ -3144,21 +3144,21 @@
         function getEditRowHTML(name = '', url = '', idx = '', icon = '') {
             const rowId = (idx !== '' && idx !== undefined) ? idx : Date.now();
             return `
-                <div class="edit-row-card flex items-center gap-1.5 sm:gap-2 p-1.5 sm:p-2 bg-white/5 border border-white/10 apple-radius hover:border-white/25 transition-[background-color,border-color,transform,opacity] duration-150 group mb-1.5 shadow-xs" data-idx="${idx}" data-icon="${escapeHtml(icon || '')}" data-orig-url="${escapeHtml(url || '')}" draggable="true">
-                    <div class="flex items-center gap-1 shrink-0">
-                        <div class="drag-handle touch-none p-1 size-7 flex items-center justify-center shrink-0 text-white/30 group-hover:text-white/70 hover:!text-white cursor-grab active:cursor-grabbing transition-[color,transform] duration-150" title="按住拖拽排序" role="button" tabindex="0" aria-label="按住拖拽或使用键盘排序">
-                            <svg class="size-3.5 pointer-events-none" viewBox="0 0 16 16" fill="currentColor"><circle cx="5" cy="4" r="1.5"/><circle cx="11" cy="4" r="1.5"/><circle cx="5" cy="8" r="1.5"/><circle cx="11" cy="8" r="1.5"/><circle cx="5" cy="12" r="1.5"/><circle cx="11" cy="12" r="1.5"/></svg>
+                <div class="edit-row-card flex items-center gap-1.5 sm:gap-2.5 p-1.5 sm:p-2.5 bg-white/5 border border-white/10 apple-radius hover:border-white/25 transition-[background-color,border-color,transform,opacity] duration-150 group mb-1.5 sm:mb-2 shadow-xs" data-idx="${idx}" data-icon="${escapeHtml(icon || '')}" data-orig-url="${escapeHtml(url || '')}" draggable="true">
+                    <div class="flex items-center gap-1 sm:gap-1.5 shrink-0">
+                        <div class="drag-handle touch-none p-1 sm:p-1.5 size-7 sm:size-8 flex items-center justify-center shrink-0 text-white/30 group-hover:text-white/70 hover:!text-white cursor-grab active:cursor-grabbing transition-[color,transform] duration-150" title="按住拖拽排序" role="button" tabindex="0" aria-label="按住拖拽或使用键盘排序">
+                            <svg class="size-3.5 sm:size-4 pointer-events-none" viewBox="0 0 16 16" fill="currentColor"><circle cx="5" cy="4" r="1.5"/><circle cx="11" cy="4" r="1.5"/><circle cx="5" cy="8" r="1.5"/><circle cx="11" cy="8" r="1.5"/><circle cx="5" cy="12" r="1.5"/><circle cx="11" cy="12" r="1.5"/></svg>
                         </div>
-                        <div class="edit-favicon-box shrink-0 flex items-center justify-center text-white/90 select-none pointer-events-none">
+                        <div class="edit-favicon-box shrink-0 flex items-center justify-center text-white/90 select-none pointer-events-none sm:scale-105">
                             ${getEditFaviconInner(name, url, icon)}
                         </div>
                     </div>
-                    <div class="flex-1 flex flex-col sm:flex-row items-stretch sm:items-center gap-1 sm:gap-1.5 min-w-0">
-                        <input type="text" id="bm-name-${rowId}" name="bookmark_name_${rowId}" class="edit-name w-full sm:w-1/3 bg-black/25 border border-white/10 rounded-lg px-2.5 py-1 sm:py-1.5 text-xs text-white/90 focus:border-white/40 focus:bg-black/40 outline-none transition font-medium" value="${escapeHtml(name)}" placeholder="书签名称" aria-label="书签名称">
-                        <input type="text" id="bm-url-${rowId}" name="bookmark_url_${rowId}" class="edit-url w-full sm:w-2/3 bg-black/25 border border-white/10 rounded-lg px-2.5 py-1 sm:py-1.5 text-2xs sm:text-xs text-white/60 focus:border-white/40 focus:bg-black/40 focus:text-white outline-none transition font-mono" value="${escapeHtml(url)}" placeholder="https://..." aria-label="书签网址">
+                    <div class="flex-1 flex flex-col sm:flex-row items-stretch sm:items-center gap-1 sm:gap-2 min-w-0">
+                        <input type="text" id="bm-name-${rowId}" name="bookmark_name_${rowId}" class="edit-name w-full sm:w-1/3 bg-black/25 border border-white/10 rounded-lg sm:rounded-xl px-2.5 sm:px-3.5 py-1 sm:py-2 text-xs sm:text-sm text-white/90 focus:border-white/40 focus:bg-black/40 outline-none transition font-medium" value="${escapeHtml(name)}" placeholder="书签名称" aria-label="书签名称">
+                        <input type="text" id="bm-url-${rowId}" name="bookmark_url_${rowId}" class="edit-url w-full sm:w-2/3 bg-black/25 border border-white/10 rounded-lg sm:rounded-xl px-2.5 sm:px-3.5 py-1 sm:py-2 text-2xs sm:text-xs text-white/60 focus:border-white/40 focus:bg-black/40 focus:text-white outline-none transition font-mono" value="${escapeHtml(url)}" placeholder="https://..." aria-label="书签网址">
                     </div>
-                    <button type="button" class="del-btn shrink-0 size-7 sm:size-8 p-1 hover:bg-red-500/20 rounded-lg text-white/30 hover:text-red-400 flex items-center justify-center transition" title="删除书签">
-                        <svg class="size-4 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                    <button type="button" class="del-btn shrink-0 size-7 sm:size-9 p-1 sm:p-2 hover:bg-red-500/20 rounded-lg sm:rounded-xl text-white/30 hover:text-red-400 flex items-center justify-center transition" title="删除书签">
+                        <svg class="size-4 sm:size-4.5 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                     </button>
                 </div>
             `;
