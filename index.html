@@ -367,7 +367,7 @@
         @keyframes skeletonPulse { 0%, 100% { opacity: 0.25; } 50% { opacity: 0.55; } }
         .skeleton-pulse { animation: skeletonPulse 1.4s ease-in-out infinite; }
         .clock-text { font-family: 'SF Pro Rounded', 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif; font-variant-numeric: tabular-nums; -webkit-font-feature-settings: "tnum"; font-feature-settings: "tnum"; text-shadow: 0 4px 30px rgba(0,0,0,0.45), 0 0 60px rgba(0,0,0,0.25); }
-        .clock-colon { display: inline-block; position: relative; top: -0.05em; animation: colonPulse 6s ease-in-out infinite; will-change: opacity; }
+        .clock-colon { display: inline-block; position: relative; top: -0.06em; animation: colonPulse 6s ease-in-out infinite; will-change: opacity; }
         @keyframes colonPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
         .nr .clock-colon { animation: none !important; opacity: 1 !important; }
         /* ===== 玻璃材质物理高光折射与 3D 视差倾斜 (VisionOS / Apple HIG 规范) ===== */
@@ -1247,10 +1247,10 @@
     <section id="startSection" class="relative z-10 min-h-dvh flex flex-col items-center justify-center px-4 py-12">
         <h1 class="sr-only">Glass Start — 轻量级玻璃拟态个人起始页与导航</h1>
         <!-- 时钟 -->
-        <div class="text-center fade-in clock-text mb-10 md:mb-14">
+        <div class="text-center fade-in clock-text mb-10 md:mb-14 select-none">
             <time id="clock" datetime="00:00" aria-label="当前时间" class="text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-light tracking-tight tabular-nums block">00<span class="clock-colon mx-0.5 sm:mx-1">:</span>00</time>
-            <div id="date" class="text-xs sm:text-sm md:text-base mt-3.5 text-white/80 font-normal tracking-[0.2em] sm:tracking-[0.25em] -mr-[0.2em] sm:-mr-[0.25em] uppercase drop-shadow-sm min-h-[1.5em]">&nbsp;</div>
-            <script>(function(){const n=new Date();const c=document.getElementById('clock');const d=document.getElementById('date');if(c){const h=String(n.getHours()).padStart(2,'0');const m=String(n.getMinutes()).padStart(2,'0');c.innerHTML=`${h}<span class="clock-colon mx-0.5 sm:mx-1">:</span>${m}`;c.setAttribute('datetime',`${h}:${m}`);}if(d){const w=['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];d.textContent=`${n.getFullYear()}年${n.getMonth()+1}月${n.getDate()}日  ${w[n.getDay()]}`;}})()</script>
+            <div id="date" class="text-xs sm:text-sm md:text-base mt-3.5 sm:mt-4 md:mt-5 text-white/85 font-medium tracking-[0.16em] sm:tracking-[0.2em] uppercase drop-shadow-sm min-h-[1.5em]">&nbsp;</div>
+            <script>(function(){const n=new Date();const c=document.getElementById('clock');const d=document.getElementById('date');if(c){const h=String(n.getHours()).padStart(2,'0');const m=String(n.getMinutes()).padStart(2,'0');c.innerHTML=`${h}<span class="clock-colon mx-0.5 sm:mx-1">:</span>${m}`;c.setAttribute('datetime',`${h}:${m}`);}if(d){const w=['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];d.textContent=`${n.getMonth()+1}月${n.getDate()}日 ${w[n.getDay()]}`;}})()</script>
         </div>
 
         <!-- 搜索框 -->
@@ -5074,7 +5074,7 @@
                 lastDateDay = day;
                 if (dom.date) {
                     const weekdays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
-                    dom.date.textContent = `${n.getFullYear()}年${n.getMonth() + 1}月${n.getDate()}日  ${weekdays[n.getDay()]}`;
+                    dom.date.textContent = `${n.getMonth() + 1}月${n.getDate()}日 ${weekdays[n.getDay()]}`;
                 }
             }
         }
