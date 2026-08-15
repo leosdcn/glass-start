@@ -49,13 +49,10 @@
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🪐%3C/text%3E%3C/svg%3E">
     <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png">
     <link rel="manifest" href="./manifest.json">
-    <!-- 预解析与预连接联想 API、壁纸 CDN 及图标代理域名，消除 DNS/TLS 握手延时 -->
-    <link rel="dns-prefetch" href="https://suggestion.baidu.com">
+    <!-- 预解析搜索联想 API (DNS 级) 与预连接图标代理 CDN (TLS 握手级) -->
     <link rel="dns-prefetch" href="https://api.bing.com">
+    <link rel="dns-prefetch" href="https://suggestion.baidu.com">
     <link rel="dns-prefetch" href="https://suggestqueries.google.com">
-    <link rel="dns-prefetch" href="https://images.unsplash.com">
-    <link rel="dns-prefetch" href="https://a.favicon.im">
-    <link rel="preconnect" href="https://images.unsplash.com" crossorigin>
     <link rel="preconnect" href="https://a.favicon.im" crossorigin>
     <!-- 默认壁纸静态 Preload：让 Preload Scanner 在 HTML 解析首帧即刻并发发起请求，消灭 LCP 发现时延 -->
     <link id="preloadWallpaper" rel="preload" href="./wallpapers/bg1.avif" as="image" type="image/avif" fetchpriority="high">
@@ -181,7 +178,7 @@
       }catch(e){}
     </script>
     <!-- Tailwind v4 Browser CDN：开发模式下运行时按需生成工具类，随改随看无需手动编译步骤 -->
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4" defer></script>
     <style>
         /* .nr 模式：直达导航页预渲染，与 HEAD inline script 配合消除刷新抖动 */
         .nr #startSection { transform: translateY(-100vh) !important; transform: translateY(-100dvh) !important; transition: none !important; }
@@ -363,8 +360,8 @@
         }
         .nr .fade-in { animation: none !important; }
         @keyframes fadeIn { from { opacity:0.05; transform:translate3d(0, 1rem, 0); } to { opacity:1; transform:translate3d(0,0,0); } }
-        .dropdown-menu { opacity:0; transform:translateY(-0.5rem) scale(0.96) translateZ(0); pointer-events:none; visibility:hidden; transition:opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1), transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.22s step-end; transform-origin: top left; will-change: opacity, transform; }
-        .dropdown-menu.active { opacity:1; transform:translateY(0) scale(1) translateZ(0); pointer-events:auto; visibility:visible; transition:opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1), transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), visibility 0s; }
+        .dropdown-menu { opacity:0; transform:translateY(-0.5rem) scale(0.96) translateZ(0); pointer-events:none; visibility:hidden; transition:opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1), transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.22s step-end; transform-origin: top left; }
+        .dropdown-menu.active { opacity:1; transform:translateY(0) scale(1) translateZ(0); pointer-events:auto; visibility:visible; transition:opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1), transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), visibility 0s; will-change: opacity, transform; }
         #dropdownMenu { transform-origin: top left; }
         #suggestionMenu { transform-origin: top center; }
         @keyframes skeletonPulse { 0%, 100% { opacity: 0.25; } 50% { opacity: 0.55; } }
@@ -1230,10 +1227,10 @@
 </head>
 <body class="text-white relative" style="background-color: var(--bg-start);">
     <!-- 固定定位背景图层（双层叠加 opacity 过渡，解决 background-image 不可 CSS 插值的问题；配合 bg-fullscreen 延伸至移动端安全区与过滚动区域） -->
-    <div id="bgLayer" class="bg-fullscreen bg-cover bg-center bg-no-repeat z-0 bg-slate-900 opacity-0 bg-layer"></div>
+    <div id="bgLayer" class="bg-fullscreen bg-cover bg-center bg-no-repeat z-0 bg-slate-900 bg-layer"></div>
     <div id="bgLayerNext" class="bg-fullscreen bg-cover bg-center bg-no-repeat z-0 opacity-0 bg-slate-900 bg-layer"></div>
     <div id="bgOverlay" class="bg-fullscreen bg-black/15 pointer-events-none z-0"></div>
-    <script>(function(){const bg=document.getElementById('bgLayer');const url=window.__PRELOADED_BG__||'./wallpapers/bg1.avif';if(bg){const show=function(){bg.style.backgroundImage="url(\""+url.replace(/["'\\]/g,'\\$&')+"\")";bg.style.opacity='1';};const img=new Image();img.onload=show;img.src=url;if(img.complete&&img.naturalWidth>0)show();}if(window.__PRE_BG_EFFECTS__){const o=document.getElementById('bgOverlay');if(o){o.style.backgroundColor='rgba(0, 0, 0, '+(window.__PRE_BG_EFFECTS__.op/100)+')';if(window.__PRE_BG_EFFECTS__.bl>0){const b='blur('+window.__PRE_BG_EFFECTS__.bl+'px)';o.style.backdropFilter=b;o.style.webkitBackdropFilter=b;}}}})()</script>
+    <script>(function(){const bg=document.getElementById('bgLayer');const url=window.__PRELOADED_BG__||'./wallpapers/bg1.avif';if(bg){bg.style.backgroundImage="url(\""+url.replace(/["'\\]/g,'\\$&')+"\")";bg.style.opacity='1';}if(window.__PRE_BG_EFFECTS__){const o=document.getElementById('bgOverlay');if(o){o.style.backgroundColor='rgba(0, 0, 0, '+(window.__PRE_BG_EFFECTS__.op/100)+')';if(window.__PRE_BG_EFFECTS__.bl>0){const b='blur('+window.__PRE_BG_EFFECTS__.bl+'px)';o.style.backdropFilter=b;o.style.webkitBackdropFilter=b;}}}})()</script>
 
     <!-- ========== 第一屏：起始页 ========== -->
     <section id="startSection" class="relative z-10 min-h-dvh flex flex-col items-center justify-center px-4 py-12">
@@ -1251,7 +1248,7 @@
                 <div class="relative shrink-0 select-none">
                     <button id="engineBtn" type="button" aria-label="选择搜索引擎" aria-haspopup="menu" aria-expanded="false" aria-controls="dropdownMenu" class="flex items-center gap-1.5 pl-3 pr-2 py-3 apple-radius hover:bg-white/10 transition-[background-color,transform,border-color] duration-150 text-sm font-medium min-h-11 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed select-none">
                         <img id="engineIcon" src="https://a.favicon.im/bing.com" width="16" height="16" class="engine-icon size-4 rounded-md select-none pointer-events-none" alt="当前引擎：Bing" draggable="false">
-                        <span id="engineName" class="hidden sm:inline select-none">Bing</span>
+                        <span id="engineName" class="hidden sm:inline select-none min-w-[2.5rem] text-left">Bing</span>
                         <svg class="size-4 opacity-60 shrink-0 pointer-events-none select-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
                     </button>
                     <script>(function(){if(window.__PRE_ENGINE__){const i=document.getElementById('engineIcon');const n=document.getElementById('engineName');if(i){i.src=window.__PRE_ENGINE__.icon;i.alt='当前引擎：'+window.__PRE_ENGINE__.name;}if(n)n.textContent=window.__PRE_ENGINE__.name;}})()</script>
@@ -3963,6 +3960,8 @@
             }
         }, true);
 
+        const TRANSPARENT_PLACEHOLDER_SVG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1 1'%3E%3C/svg%3E";
+
         /**
          * 根据书签数据对象生成规范化的 Favicon HTML 图标结构
          * 自动处理缺失图标时的首字母文字徽章，以及合法 URL 图片节点的生成
@@ -3987,7 +3986,7 @@
             if (isMd) {
                 return `<div class="icon-box ${sizeClass}"><img src="${safeIcon}" width="${imgSize}" height="${imgSize}" data-initial="${escapeHtml(initial)}" data-md="1" class="lazy-icon pointer-events-none select-none" alt="" loading="eager" fetchpriority="high" decoding="async" draggable="false" onload="this.classList.add('loaded')"></div>`;
             }
-            return `<div class="icon-box ${sizeClass}"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1 1'%3E%3C/svg%3E" data-src="${safeIcon}" width="${imgSize}" height="${imgSize}" data-initial="${escapeHtml(initial)}" data-md="0" class="lazy-icon pointer-events-none select-none" alt="" loading="lazy" decoding="async" draggable="false"></div>`;
+            return `<div class="icon-box ${sizeClass}"><img src="${TRANSPARENT_PLACEHOLDER_SVG}" data-src="${safeIcon}" width="${imgSize}" height="${imgSize}" data-initial="${escapeHtml(initial)}" data-md="0" class="lazy-icon pointer-events-none select-none" alt="" loading="lazy" decoding="async" draggable="false"></div>`;
         }
 
         // ==================== 图标 IntersectionObserver 按需微任务队列加载器 ====================
@@ -6059,18 +6058,29 @@
                 let rafId = null;
                 let pendingEvent = null;
 
+                const resetActiveCard = () => {
+                    if (rafId) {
+                        cancelAnimationFrame(rafId);
+                        rafId = null;
+                    }
+                    if (activeCard) {
+                        activeCard.style.transform = '';
+                        activeCard = null;
+                        activeCardRect = null;
+                    }
+                };
+
                 if (mediaMotion && mediaMotion.addEventListener) {
                     mediaMotion.addEventListener('change', (e) => {
-                        if (e.matches && activeCard) {
-                            activeCard.style.transform = '';
-                            activeCard = null;
-                            activeCardRect = null;
-                        }
+                        if (e.matches) resetActiveCard();
                     });
                 }
 
                 function updateCardTransform() {
-                    if (!activeCard || !pendingEvent) return;
+                    if (!activeCard || !pendingEvent) {
+                        rafId = null;
+                        return;
+                    }
                     if (!activeCardRect) activeCardRect = activeCard.getBoundingClientRect();
                     const rect = activeCardRect;
                     const x = pendingEvent.clientX - rect.left;
@@ -6094,7 +6104,10 @@
                 let pendingSearchBoxEvent = null;
 
                 function updateSearchBoxTransform() {
-                    if (!activeSearchBox || !pendingSearchBoxEvent) return;
+                    if (!activeSearchBox || !pendingSearchBoxEvent) {
+                        searchBoxRafId = null;
+                        return;
+                    }
                     if (!activeSearchBoxRect) activeSearchBoxRect = activeSearchBox.getBoundingClientRect();
                     const rect = activeSearchBoxRect;
                     activeSearchBox.style.setProperty('--mouse-x', `${pendingSearchBoxEvent.clientX - rect.left}px`);
@@ -6112,16 +6125,11 @@
                            e.clientY <= rect.bottom + margin;
                 };
 
-                const resetActiveCard = () => {
-                    if (activeCard) {
-                        activeCard.style.transform = '';
-                        activeCard = null;
-                        activeCardRect = null;
-                    }
-                };
-
                 document.addEventListener('mousemove', (e) => {
-                    const searchBox = e.target.closest('.search-box-wrapper');
+                    const target = e.target;
+                    if (!target) return;
+
+                    const searchBox = target.closest('.search-box-wrapper');
                     if (searchBox) {
                         if (activeSearchBox !== searchBox) {
                             activeSearchBox = searchBox;
@@ -6132,16 +6140,15 @@
                             searchBoxRafId = requestAnimationFrame(updateSearchBoxTransform);
                         }
                     } else if (activeSearchBox) {
+                        if (searchBoxRafId) { cancelAnimationFrame(searchBoxRafId); searchBoxRafId = null; }
                         activeSearchBox = null;
                         activeSearchBoxRect = null;
                     }
 
-                    const card = e.target.closest('.bookmark-item, .nav-bookmark');
+                    const card = target.closest('.bookmark-item, .nav-bookmark');
                     if (card) {
-                        if (activeCard && activeCard !== card) {
-                            resetActiveCard();
-                        }
                         if (activeCard !== card) {
+                            if (activeCard) resetActiveCard();
                             activeCard = card;
                             activeCardRect = card.getBoundingClientRect();
                         }
