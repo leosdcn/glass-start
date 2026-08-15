@@ -322,7 +322,7 @@
             z-index: 10;
             transform: translateY(0);
             will-change: transform;
-            transition: transform 0.65s cubic-bezier(0.42, 0, 0.58, 1);
+            transition: transform 0.58s cubic-bezier(0.5, 0, 0.2, 1);
         }
         #startSection.screen-pushed-up {
             transform: translateY(-100vh);
@@ -339,7 +339,7 @@
             transform: translateY(100vh);
             transform: translateY(100dvh);
             will-change: transform;
-            transition: transform 0.65s cubic-bezier(0.42, 0, 0.58, 1);
+            transition: transform 0.58s cubic-bezier(0.5, 0, 0.2, 1);
         }
         #navSection.screen-pushed-in {
             transform: translateY(0);
@@ -5774,7 +5774,7 @@
                     if (document.activeElement && typeof document.activeElement.blur === 'function') {
                         document.activeElement.blur();
                     }
-                }, 650);
+                }, 580);
             }
 
             function switchToStart() {
@@ -5803,7 +5803,7 @@
                     updateGearVisibility();
                     nav.classList.remove('nav-visible');
                     nav.classList.add('nav-hidden');
-                }, 650);
+                }, 580);
             }
 
             window.switchToNav = switchToNav;
