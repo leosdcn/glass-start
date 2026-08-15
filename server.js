@@ -4,7 +4,7 @@ const path = require('path');
 const { exec } = require('child_process');
 const os = require('os');
 
-// 终端高颜值排版与彩色工具
+// 终端格式化排版与 ANSI 彩色工具
 const isTTY = process.stdout.isTTY && !process.env.NO_COLOR;
 const c = {
     reset: isTTY ? '\x1b[0m' : '',
