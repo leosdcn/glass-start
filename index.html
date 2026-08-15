@@ -555,7 +555,7 @@
         }
         /* iOS / iPad 触屏长按系统菜单拦截与核心 UI 组件防圈选 (Callout Suppression & User-select Prevention) */
         .bookmark-item, .nav-bookmark, .sidebar-item, .icon-box, #sidebar, #bookmarks,
-        #engineBtn, #dropdownMenu, #dropdownMenu *, #suggestionMenu, .search-box-wrapper button, #searchClearBtn,
+        #engineBtn, #dropdownMenu, #dropdownMenu *, #suggestionMenu, .search-box-wrapper button, #randomBookmarkBtn, #searchClearBtn,
         #clock, #date, #navHeader {
             -webkit-touch-callout: none !important;
             -webkit-user-select: none !important;
@@ -957,25 +957,57 @@
             background-color: rgba(255, 255, 255, 0.18);
         }
 
+        #randomBookmarkBtn,
         #searchClearBtn {
             display: inline-flex;
             align-items: center;
             justify-content: center;
             opacity: 1;
-            transform: scale(1);
-            visibility: visible;
+            transform: scale(1) rotate(0deg);
             pointer-events: auto;
-            transition: opacity 0.18s cubic-bezier(0.16, 1, 0.3, 1), transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.15s ease, color 0.15s ease, visibility 0.18s ease;
+            transition: opacity 0.26s cubic-bezier(0.34, 1.56, 0.64, 1),
+                        transform 0.26s cubic-bezier(0.34, 1.56, 0.64, 1),
+                        background-color 0.15s ease,
+                        color 0.15s ease;
+        }
+        #randomBookmarkBtn.hidden {
+            display: inline-flex !important;
+            opacity: 0 !important;
+            transform: scale(0.2) rotate(-90deg) !important;
+            pointer-events: none !important;
+            transition: opacity 0.18s cubic-bezier(0.4, 0, 0.2, 1),
+                        transform 0.18s cubic-bezier(0.4, 0, 0.2, 1) !important;
         }
         #searchClearBtn.hidden {
             display: inline-flex !important;
             opacity: 0 !important;
-            transform: scale(0.65) !important;
-            visibility: hidden !important;
+            transform: scale(0.2) rotate(90deg) !important;
             pointer-events: none !important;
+            transition: opacity 0.18s cubic-bezier(0.4, 0, 0.2, 1),
+                        transform 0.18s cubic-bezier(0.4, 0, 0.2, 1) !important;
         }
+        .nr #randomBookmarkBtn,
         .nr #searchClearBtn {
             transition: none !important;
+        }
+        #randomBookmarkBtn svg {
+            transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        #randomBookmarkBtn:hover {
+            transform: scale(1.05);
+            background-color: rgba(255, 255, 255, 0.15);
+            color: rgba(255, 255, 255, 0.95);
+        }
+        #randomBookmarkBtn:hover svg {
+            transform: scale(1.1) rotate(15deg);
+        }
+        #randomBookmarkBtn:active {
+            transform: scale(0.9) !important;
+            background-color: rgba(255, 255, 255, 0.22);
+        }
+        #randomBookmarkBtn.rolling svg {
+            transform: rotate(360deg) scale(1.15);
+            transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
         #searchClearBtn svg {
             transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1);
@@ -1226,7 +1258,7 @@
             <div class="glass-strong apple-radius p-2 flex items-center gap-1.5 border fade-in search-box-wrapper delay-100 select-none">
                 <div class="relative shrink-0 select-none">
                     <button id="engineBtn" type="button" aria-label="选择搜索引擎" aria-haspopup="menu" aria-expanded="false" aria-controls="dropdownMenu" class="flex items-center gap-1.5 pl-3 pr-2 py-3 apple-radius hover:bg-white/10 transition-[background-color,transform,border-color] duration-150 text-sm font-medium min-h-11 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed select-none">
-                        <img id="engineIcon" src="https://a.favicon.im/bing.com" width="16" height="16" class="engine-icon size-4 rounded-md select-none pointer-events-none" alt="当前引擎：Bing" draggable="false">
+                        <img id="engineIcon" src="https://a.favicon.im/bing.com" width="20" height="20" class="engine-icon size-5 rounded-md select-none pointer-events-none" alt="当前引擎：Bing" draggable="false">
                         <span id="engineName" class="hidden sm:inline select-none">Bing</span>
                         <svg class="size-4 opacity-60 shrink-0 pointer-events-none select-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
                     </button>
@@ -1234,19 +1266,31 @@
                 </div>
                 <label for="searchInput" class="sr-only">搜索</label>
                 <input type="text" id="searchInput" name="q" role="combobox" aria-label="搜索输入框" aria-autocomplete="list" aria-controls="suggestionMenu" aria-expanded="false" class="flex-1 bg-transparent border-none outline-none text-lg search-input text-white h-12 px-1 min-w-0 focus-visible:ring-0" placeholder="搜索..." autocomplete="off">
-                <button id="searchClearBtn" type="button" aria-label="清空搜索框" class="hidden p-2 apple-radius hover:bg-white/10 text-white/40 hover:text-white/90 transition-[background-color,color,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 shrink-0 select-none mr-1.5" title="清空搜索框">
-                    <svg class="size-4 pointer-events-none select-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                </button>
+                <div class="relative shrink-0 flex items-center justify-center size-9 mr-1.5 select-none">
+                    <button id="randomBookmarkBtn" type="button" aria-label="随机访问书签" class="p-2 apple-radius hover:bg-white/10 text-white/40 hover:text-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 absolute inset-0 flex items-center justify-center select-none">
+                        <svg class="size-5 pointer-events-none select-none" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                            <rect width="18" height="18" x="3" y="3" rx="4" ry="4"/>
+                            <circle cx="8" cy="8" r="1.2" fill="currentColor"/>
+                            <circle cx="16" cy="8" r="1.2" fill="currentColor"/>
+                            <circle cx="12" cy="12" r="1.2" fill="currentColor"/>
+                            <circle cx="8" cy="16" r="1.2" fill="currentColor"/>
+                            <circle cx="16" cy="16" r="1.2" fill="currentColor"/>
+                        </svg>
+                    </button>
+                    <button id="searchClearBtn" type="button" aria-label="清空搜索框" class="hidden p-2 apple-radius hover:bg-white/10 text-white/40 hover:text-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 absolute inset-0 flex items-center justify-center select-none">
+                        <svg class="size-4.5 pointer-events-none select-none" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
             </div>
             <div id="dropdownMenu" role="menu" aria-label="搜索引擎选项" aria-hidden="true" class="dropdown-menu absolute top-full left-0 glass-strong apple-radius p-2 border border-white/20 shadow-2xl min-w-[8.75rem] z-50 select-none">
                 <button type="button" data-engine="bing" role="menuitemradio" aria-checked="true" class="w-full flex items-center gap-3 px-3 py-2.5 apple-radius hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 transition-[background-color,color,transform] duration-150 text-left text-sm select-none">
-                    <img src="https://a.favicon.im/bing.com" width="16" height="16" class="engine-icon size-4 rounded pointer-events-none select-none" alt="" draggable="false"> Bing
+                    <img src="https://a.favicon.im/bing.com" width="20" height="20" class="engine-icon size-5 rounded-md pointer-events-none select-none" alt="" draggable="false"> Bing
                 </button>
                 <button type="button" data-engine="google" role="menuitemradio" aria-checked="false" class="w-full flex items-center gap-3 px-3 py-2.5 apple-radius hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 transition-[background-color,color,transform] duration-150 text-left text-sm select-none">
-                    <img src="https://a.favicon.im/google.com" width="16" height="16" class="engine-icon size-4 rounded pointer-events-none select-none" alt="" draggable="false"> Google
+                    <img src="https://a.favicon.im/google.com" width="20" height="20" class="engine-icon size-5 rounded-md pointer-events-none select-none" alt="" draggable="false"> Google
                 </button>
                 <button type="button" data-engine="baidu" role="menuitemradio" aria-checked="false" class="w-full flex items-center gap-3 px-3 py-2.5 apple-radius hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 transition-[background-color,color,transform] duration-150 text-left text-sm select-none">
-                    <img src="https://a.favicon.im/baidu.com" width="16" height="16" class="engine-icon size-4 rounded pointer-events-none select-none" alt="" draggable="false"> 百度
+                    <img src="https://a.favicon.im/baidu.com" width="20" height="20" class="engine-icon size-5 rounded-md pointer-events-none select-none" alt="" draggable="false"> 百度
                 </button>
             </div>
             <!-- 搜索实时建议联想下拉框 (Spotlight 风格全宽下拉面板) -->
@@ -2371,7 +2415,7 @@
          * @returns {void}
          */
         function cacheDOM() {
-            const ids = 'clock date searchInput searchClearBtn engineBtn engineIcon engineName dropdownMenu suggestionMenu bookmarks sidebar sidebarList navCategories navContent editModal editList dragDropIndicator editBookmarksBtn addBookmarkBtn saveEditBtn cancelEditBtn resetEditBtn togglePickerBtn bookmarkPicker pickerContent pickerCount closePickerBtn donePickerBtn exportJsonBtn importJsonInput uploadBgBtn urlBgBtn resetBgBtn uploadBgInput wallpaperStatus bookmarkCountBadge jsonDropzone maskOpacityInput maskOpacityVal bgBlurInput bgBlurVal storageSizeBadge statBookmarkCount statWallpaperType statPwaStatus clearCacheBtn bgOverlay startSection navSection navHint navHeader presetWallpaperGrid shortcutModal closeShortcutBtn doneShortcutBtn openShortcutFromSettingsBtn'.split(' ');
+            const ids = 'clock date searchInput searchClearBtn randomBookmarkBtn engineBtn engineIcon engineName dropdownMenu suggestionMenu bookmarks sidebar sidebarList navCategories navContent editModal editList dragDropIndicator editBookmarksBtn addBookmarkBtn saveEditBtn cancelEditBtn resetEditBtn togglePickerBtn bookmarkPicker pickerContent pickerCount closePickerBtn donePickerBtn exportJsonBtn importJsonInput uploadBgBtn urlBgBtn resetBgBtn uploadBgInput wallpaperStatus bookmarkCountBadge jsonDropzone maskOpacityInput maskOpacityVal bgBlurInput bgBlurVal storageSizeBadge statBookmarkCount statWallpaperType statPwaStatus clearCacheBtn bgOverlay startSection navSection navHint navHeader presetWallpaperGrid shortcutModal closeShortcutBtn doneShortcutBtn openShortcutFromSettingsBtn'.split(' ');
             ids.forEach(id => dom[id] = $(id));
         }
 
@@ -2384,7 +2428,7 @@
                 if (!eng) return '';
                 const isChecked = key === curEngine;
                 return `<button type="button" data-engine="${key}" role="menuitemradio" aria-checked="${isChecked}" class="w-full flex items-center gap-3 px-3 py-2.5 apple-radius hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 transition-[background-color,color,transform] duration-150 text-left text-sm select-none">
-                    <img src="${eng.icon}" width="16" height="16" class="engine-icon size-4 rounded pointer-events-none select-none" alt="" draggable="false"> ${eng.name}
+                    <img src="${eng.icon}" width="20" height="20" class="engine-icon size-5 rounded-md pointer-events-none select-none" alt="" draggable="false"> ${eng.name}
                 </button>`;
             }).join('');
         }
@@ -4408,6 +4452,11 @@
                 hideSuggestions(); // 拼音打字未完成前隐藏联想，彻底杜绝输入法候选框与联想下拉框冲突重叠
             });
 
+            const updateSearchActionButtons = (hasVal) => {
+                if (dom.searchClearBtn) dom.searchClearBtn.classList.toggle('hidden', !hasVal);
+                if (dom.randomBookmarkBtn) dom.randomBookmarkBtn.classList.toggle('hidden', !!hasVal);
+            };
+
             dom.searchInput.addEventListener('compositionend', () => {
                 isComposing = false;
                 justEndedComposition = true;
@@ -4418,7 +4467,7 @@
 
                 const val = dom.searchInput.value;
                 originalQuery = val;
-                if (dom.searchClearBtn) dom.searchClearBtn.classList.toggle('hidden', !val);
+                updateSearchActionButtons(!!val);
                 fetchSuggestions(state.engine, val);
             });
 
@@ -4434,7 +4483,7 @@
                 selectedSuggestionIdx = -1;
                 const val = dom.searchInput.value;
                 originalQuery = val;
-                if (dom.searchClearBtn) dom.searchClearBtn.classList.toggle('hidden', !val);
+                updateSearchActionButtons(!!val);
                 if (isComposing) return; // 拼音打字合成中不触发请求
                 if (suggestDebounceTimer) clearTimeout(suggestDebounceTimer);
                 suggestDebounceTimer = setTimeout(() => {
@@ -4448,9 +4497,17 @@
                     e.preventDefault();
                     dom.searchInput.value = '';
                     originalQuery = '';
-                    dom.searchClearBtn.classList.add('hidden');
+                    updateSearchActionButtons(false);
                     hideSuggestions();
                     dom.searchInput.focus();
+                });
+            }
+
+            if (dom.randomBookmarkBtn) {
+                dom.randomBookmarkBtn.addEventListener('click', e => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    openRandomBookmark(e.altKey || e.metaKey || e.ctrlKey || true);
                 });
             }
 
@@ -4556,7 +4613,7 @@
                         // 逻辑是永远执行不到的死代码）；此处先还原被 ↑↓ 选中的联想词为原始输入，再关闭面板
                         if (topOverlay.id === 'suggestions' && dom.suggestionMenu && dom.suggestionMenu.classList.contains('active') && selectedSuggestionIdx >= 0) {
                             dom.searchInput.value = originalQuery;
-                            if (dom.searchClearBtn) dom.searchClearBtn.classList.toggle('hidden', !dom.searchInput.value);
+                            updateSearchActionButtons(!!dom.searchInput.value);
                         }
                         topOverlay.close();
                         e.stopPropagation();
@@ -4633,7 +4690,7 @@
                             dom.searchInput.value = originalQuery;
                             dom.searchInput.removeAttribute('aria-activedescendant');
                         }
-                        if (dom.searchClearBtn) dom.searchClearBtn.classList.toggle('hidden', !dom.searchInput.value);
+                        updateSearchActionButtons(!!dom.searchInput.value);
                     };
 
                     if (!e.ctrlKey && !e.metaKey && !e.altKey) {
@@ -5109,6 +5166,48 @@
             } else {
                 window.location.href = trimmed;
             }
+        }
+
+        /**
+         * 随机探索/手气不错：从本地书签库中随机挑选并访问一个站点
+         * @param {boolean} [newTab=true] - 是否在新标签页打开
+         */
+        function openRandomBookmark(newTab = true) {
+            const list = [];
+            const seen = new Set();
+            if (pageData && Array.isArray(pageData.categories)) {
+                pageData.categories.forEach(cat => {
+                    if (Array.isArray(cat.bookmarks)) {
+                        cat.bookmarks.forEach(bm => {
+                            if (bm && bm.url && typeof bm.url === 'string' && !seen.has(bm.url)) {
+                                seen.add(bm.url);
+                                list.push(bm);
+                            }
+                        });
+                    }
+                });
+            }
+            if (list.length === 0 && pageData && Array.isArray(pageData.bookmarks)) {
+                pageData.bookmarks.forEach(bm => {
+                    if (bm && bm.url && typeof bm.url === 'string' && !seen.has(bm.url)) {
+                        seen.add(bm.url);
+                        list.push(bm);
+                    }
+                });
+            }
+            if (list.length === 0) return;
+            const randomBm = list[Math.floor(Math.random() * list.length)];
+
+            if (dom.randomBookmarkBtn) {
+                dom.randomBookmarkBtn.classList.add('rolling');
+                setTimeout(() => {
+                    if (dom.randomBookmarkBtn) dom.randomBookmarkBtn.classList.remove('rolling');
+                }, 450);
+            }
+
+            setTimeout(() => {
+                openBookmarkUrl(randomBm.url, newTab);
+            }, 120);
         }
 
         /**
