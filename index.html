@@ -1248,7 +1248,7 @@
                 <div class="relative shrink-0 select-none">
                     <button id="engineBtn" type="button" aria-label="选择搜索引擎" aria-haspopup="menu" aria-expanded="false" aria-controls="dropdownMenu" class="flex items-center gap-1.5 pl-3 pr-2 py-3 apple-radius hover:bg-white/10 transition-[background-color,transform,border-color] duration-150 text-sm font-medium min-h-11 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed select-none">
                         <img id="engineIcon" src="https://a.favicon.im/bing.com" width="16" height="16" class="engine-icon size-4 rounded-md select-none pointer-events-none" alt="当前引擎：Bing" draggable="false">
-                        <span id="engineName" class="hidden sm:inline select-none min-w-[2.5rem] text-left">Bing</span>
+                        <span id="engineName" class="hidden sm:inline select-none">Bing</span>
                         <svg class="size-4 opacity-60 shrink-0 pointer-events-none select-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
                     </button>
                     <script>(function(){if(window.__PRE_ENGINE__){const i=document.getElementById('engineIcon');const n=document.getElementById('engineName');if(i){i.src=window.__PRE_ENGINE__.icon;i.alt='当前引擎：'+window.__PRE_ENGINE__.name;}if(n)n.textContent=window.__PRE_ENGINE__.name;}})()</script>
@@ -5463,8 +5463,8 @@
                 html += renderSectionHeader('书签', true);
                 localList.forEach(bm => {
                     const iconHtml = bm.icon 
-                        ? `<img src="${safeUrl(bm.icon)}" width="16" height="16" class="w-4 h-4 rounded object-cover shrink-0 pointer-events-none select-none" alt="" data-hide-on-error="1" draggable="false">`
-                        : `<svg class="w-4 h-4 text-white/40 shrink-0 pointer-events-none select-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/></svg>`;
+                        ? `<img src="${safeUrl(bm.icon)}" width="20" height="20" class="w-5 h-5 rounded-md object-cover shrink-0 pointer-events-none select-none" alt="" data-hide-on-error="1" draggable="false">`
+                        : `<svg class="w-5 h-5 text-white/40 shrink-0 pointer-events-none select-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/></svg>`;
                     
                     html += `
                         <div id="sug-opt-${globalIdx}"
@@ -5502,7 +5502,7 @@
                              data-suggestion="${escapeHtml(item)}" 
                              data-idx="${globalIdx}"
                              class="suggestion-item group px-3.5 py-2.5 my-0.5 apple-radius text-sm text-white/85 flex items-center gap-3 transition-[background-color,color,transform] duration-150 cursor-pointer hover:text-white">
-                            <svg class="w-4 h-4 text-white/40 group-hover:text-white/80 shrink-0 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                            <svg class="w-5 h-5 text-white/40 group-hover:text-white/80 shrink-0 pointer-events-none select-none transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                             <span class="truncate flex-1 font-normal tracking-wide">${escapeHtml(item)}</span>
                         </div>
                     `;
@@ -5517,7 +5517,7 @@
                     const widthClass = k % 2 === 0 ? 'w-44' : 'w-28';
                     html += `
                         <div class="px-3.5 py-2.5 my-0.5 apple-radius flex items-center gap-3 select-none pointer-events-none skeleton-pulse">
-                            <svg class="w-4 h-4 text-white/20 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                            <svg class="w-5 h-5 text-white/20 shrink-0 pointer-events-none select-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                             <div class="h-5 bg-white/15 apple-radius ${widthClass}"></div>
                         </div>
                     `;
