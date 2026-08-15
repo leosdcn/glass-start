@@ -787,16 +787,16 @@
             }
         }
 
-        /* 下滑指示器安全区偏移 */
+        /* 下滑指示器安全区偏移与状态驱动 */
         .hint-down {
-            animation: hintFade 7s ease forwards;
             transform-style: preserve-3d;
             backface-visibility: hidden;
-            bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px));
+            bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+            transition: opacity 0.6s ease;
         }
         @media (min-width: 768px) {
             .hint-down {
-                bottom: calc(2.5rem + env(safe-area-inset-bottom, 0px));
+                bottom: calc(1.75rem + env(safe-area-inset-bottom, 0px));
             }
         }
         /* 搜索下拉弹窗（搜索引擎 + 联想建议）：紧贴搜索框下方保持精细的 6px / 8px 悬浮间距 */
@@ -1304,11 +1304,12 @@
             </nav>
         </div>
 
-        <!-- 向下滚动提示（装饰，绝对定位不占空间） -->
-        <div class="absolute bottom-6 md:bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 text-white/35 text-2xs tracking-widest pointer-events-none hint-down">
-            <span>向下滚动</span>
-            <svg class="size-4 scroll-hint" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 16 16"><path d="M12.5 9.5l-4.5 4.5m0 0l-4.5-4.5m4.5 4.5V2"/></svg>
+        <!-- 向下滚动提示（保持纯净竖排原样，首次常驻直至初次下滑） -->
+        <div id="scrollDownHint" class="absolute bottom-4 md:bottom-7 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5 text-white/50 text-xs font-medium tracking-[0.25em] pointer-events-none hint-down select-none">
+            <span>向下探索</span>
+            <svg class="size-5 scroll-hint" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 20 20"><path d="M14.5 11.5L10 16m0 0L5.5 11.5m4.5 4.5V3"/></svg>
         </div>
+        <script>(function(){try{if(localStorage.getItem('hasDiscoveredNav')==='1'){const h=document.getElementById('scrollDownHint');if(h)h.style.display='none';}}catch(e){}})()</script>
 
     </section><!-- /#startSection -->
 
@@ -2415,7 +2416,7 @@
          * @returns {void}
          */
         function cacheDOM() {
-            const ids = 'clock date searchInput searchClearBtn randomBookmarkBtn engineBtn engineIcon engineName dropdownMenu suggestionMenu bookmarks sidebar sidebarList navCategories navContent editModal editList dragDropIndicator editBookmarksBtn addBookmarkBtn saveEditBtn cancelEditBtn resetEditBtn togglePickerBtn bookmarkPicker pickerContent pickerCount closePickerBtn donePickerBtn exportJsonBtn importJsonInput uploadBgBtn urlBgBtn resetBgBtn uploadBgInput wallpaperStatus bookmarkCountBadge jsonDropzone maskOpacityInput maskOpacityVal bgBlurInput bgBlurVal storageSizeBadge statBookmarkCount statWallpaperType statPwaStatus clearCacheBtn bgOverlay startSection navSection navHint navHeader presetWallpaperGrid shortcutModal closeShortcutBtn doneShortcutBtn openShortcutFromSettingsBtn'.split(' ');
+            const ids = 'clock date searchInput searchClearBtn randomBookmarkBtn engineBtn engineIcon engineName dropdownMenu suggestionMenu bookmarks sidebar sidebarList navCategories navContent editModal editList dragDropIndicator editBookmarksBtn addBookmarkBtn saveEditBtn cancelEditBtn resetEditBtn togglePickerBtn bookmarkPicker pickerContent pickerCount closePickerBtn donePickerBtn exportJsonBtn importJsonInput uploadBgBtn urlBgBtn resetBgBtn uploadBgInput wallpaperStatus bookmarkCountBadge jsonDropzone maskOpacityInput maskOpacityVal bgBlurInput bgBlurVal storageSizeBadge statBookmarkCount statWallpaperType statPwaStatus clearCacheBtn bgOverlay startSection navSection navHint navHeader presetWallpaperGrid shortcutModal closeShortcutBtn doneShortcutBtn openShortcutFromSettingsBtn scrollDownHint'.split(' ');
             ids.forEach(id => dom[id] = $(id));
         }
 
@@ -3478,6 +3479,12 @@
                 storageRemove('maskOpacity');
                 storageRemove('bgBlur');
                 storageRemove('bg'); // 清除持久化的壁纸轮播索引，与 state.bg = 0 保持一致
+                storageRemove('hasDiscoveredNav'); // 重置后允许重新展示下滑引导
+
+                if (dom.scrollDownHint) {
+                    dom.scrollDownHint.style.display = '';
+                    dom.scrollDownHint.style.opacity = '';
+                }
 
                 // 自定义壁纸实际持久化于 IndexedDB（保存路径只写 IDB 并清理了 localStorage），
                 // 重置时必须同步清除 IDB 与内存状态，否则刷新页面后自定义壁纸会“复活”
@@ -5858,6 +5865,19 @@
                 updateSectionAccessibility('nav');
                 updateGearVisibility();
                 updateThemeColor('#12141a');
+
+                // 首次触发切屏时持久化并优雅淡出下滑提示
+                try {
+                    if (!localStorage.getItem('hasDiscoveredNav')) {
+                        localStorage.setItem('hasDiscoveredNav', '1');
+                        const hint = dom.scrollDownHint || document.getElementById('scrollDownHint') || document.querySelector('.hint-down');
+                        if (hint) {
+                            hint.style.transition = 'opacity 0.6s ease';
+                            hint.style.opacity = '0';
+                            setTimeout(() => { hint.style.display = 'none'; }, 600);
+                        }
+                    }
+                } catch {}
 
                 if (startSection) {
                     startSection.style.transform = '';
