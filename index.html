@@ -5995,6 +5995,43 @@
                 return locCache;
             }
 
+            // 通道 1：国内高精度 IPIP.NET（支持 HTTPS、CORS，对国内二三线地级市定位极准）+ Open-Meteo 经纬度解析
+            try {
+                const ipRes = await fetch('https://myip.ipip.net/json', { signal: AbortSignal.timeout ? AbortSignal.timeout(3000) : undefined });
+                if (ipRes.ok) {
+                    const ipData = await ipRes.json();
+                    if (ipData && ipData.ret === 'ok' && Array.isArray(ipData?.data?.location)) {
+                        const locArr = ipData.data.location;
+                        const country = locArr[0] || '中国';
+                        const province = locArr[1] || '';
+                        const city = locArr[2] || locArr[3] || province;
+                        if (city) {
+                            const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&language=zh&count=1`;
+                            const geoRes = await fetch(geoUrl, { signal: AbortSignal.timeout ? AbortSignal.timeout(3000) : undefined });
+                            if (geoRes.ok) {
+                                const geoData = await geoRes.json();
+                                if (geoData && geoData.results && geoData.results[0]) {
+                                    const top = geoData.results[0];
+                                    const dispName = (top.name || city).replace(/(市|区|县)$/, '') || top.name || city;
+                                    const fullName = formatLocationFullName([top.country || country, top.admin1 || province, top.admin2, top.name || city]);
+                                    const resolved = {
+                                        name: dispName,
+                                        fullName: fullName,
+                                        lat: top.latitude,
+                                        lon: top.longitude,
+                                        isAuto: true,
+                                        timestamp: now
+                                    };
+                                    storageSet('glass_weather_loc_cache', resolved);
+                                    return resolved;
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch {}
+
+            // 通道 2：国际 GeoIP 接口兜底（海外用户或 IPIP 接口不可达时）
             try {
                 const res = await fetch('https://ipwho.is/?lang=zh-CN', { signal: AbortSignal.timeout ? AbortSignal.timeout(4000) : undefined });
                 if (res.ok) {
@@ -6018,6 +6055,7 @@
                 }
             } catch {}
 
+            // 通道 3：离线与全接口异常默认保底（中国 · 上海市）
             const fallbackLoc = {
                 name: '上海',
                 fullName: '中国 · 上海市',
