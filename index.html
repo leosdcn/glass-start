@@ -117,7 +117,7 @@
             preloadUrl = (typeof bgIdx === 'number' && backgrounds[bgIdx]) ? backgrounds[bgIdx] : backgrounds[0];
           }
           if (preloadUrl && typeof preloadUrl === 'string') {
-            // 根据设备物理像素 (宽度 * DPR) 动态调优 Unsplash 尺寸参数 (阶梯以 200px 递增，普通屏上限 2560px，4K/Retina 屏上限 3840px，强置 WebP)
+            // 根据设备物理像素 (宽度 * DPR) 动态调优 Unsplash 尺寸参数 (阶梯以 200px 递增，普通屏上限 2560px，4K/Retina 屏上限 3840px，强制使用 WebP 格式)
             const dpr = window.devicePixelRatio || 1;
             const maxCap = (window.innerWidth * dpr > 2560) ? 3840 : 2560;
             const targetW = Math.min(Math.ceil((window.innerWidth * dpr) / 200) * 200, maxCap);
@@ -199,7 +199,10 @@
             --tint-12: rgba(255, 255, 255, 0.12);
             --tint-18: rgba(255, 255, 255, 0.18);
             --radius: 1.5rem;
+            --radius-inner: 1rem;
+            --blur-sm: 8px;
             --blur: 24px;
+            --blur-lg: 40px;
             --z-dropdown: 150;
             --z-modal: 1000;
             --z-picker: 2000;
@@ -207,6 +210,11 @@
             --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
             --ease-overshoot: cubic-bezier(0.34, 1.56, 0.64, 1);
             --ease-snappy: cubic-bezier(0.2, 0, 0, 1);
+            --ease-exit: cubic-bezier(0.4, 0, 0.2, 1);
+            --duration-fast: 0.16s;
+            --duration-normal: 0.2s;
+            --duration-modal: 0.3s;
+            --duration-slide: 0.58s;
         }
         html, body {
             background-color: var(--bg-base);
@@ -253,8 +261,8 @@
             border-bottom-left-radius: calc(0.75rem - 1px);
             border-bottom-right-radius: calc(0.75rem - 1px);
             background: rgba(0, 0, 0, 0.65);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
+            backdrop-filter: blur(var(--blur-sm));
+            -webkit-backdrop-filter: blur(var(--blur-sm));
             border-top: 1px solid rgba(255, 255, 255, 0.1);
         }
         @media (hover: hover) and (pointer: fine) {
@@ -281,8 +289,8 @@
         }
         .glass-strong {
             background: var(--tint-12);
-            backdrop-filter: blur(40px);
-            -webkit-backdrop-filter: blur(40px);
+            backdrop-filter: blur(var(--blur-lg));
+            -webkit-backdrop-filter: blur(var(--blur-lg));
             border: 1px solid rgba(255,255,255,0.2);
             box-shadow: inset 0 1px 0 0 rgba(255,255,255,0.32), inset 0 -1px 0 0 rgba(255,255,255,0.08), 0 8px 32px rgba(0,0,0,0.3); /* Liquid Glass 强物理折射高光 */
             isolation: isolate;
@@ -291,7 +299,7 @@
             background: rgba(255, 255, 255, 0.05);
             border: 1px solid rgba(255, 255, 255, 0.10);
             box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.10);
-            border-radius: 1rem; /* 16px 精准同心圆角: R_inner = R_outer(24px) - Padding(20px) 视觉黄金比例 */
+            border-radius: var(--radius-inner); /* 16px 精准同心圆角: R_inner = R_outer(24px) - Padding(20px) 视觉黄金比例 */
         }
         .glass-badge {
             display: inline-flex;
@@ -360,8 +368,8 @@
         }
         .nr .fade-in { animation: none !important; }
         @keyframes fadeIn { from { opacity:0.05; transform:translate3d(0, 1rem, 0); } to { opacity:1; transform:translate3d(0,0,0); } }
-        .dropdown-menu { opacity:0; transform:translateY(-0.5rem) scale(0.96) translateZ(0); pointer-events:none; visibility:hidden; transition:opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1), transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.22s step-end; transform-origin: top left; }
-        .dropdown-menu.active { opacity:1; transform:translateY(0) scale(1) translateZ(0); pointer-events:auto; visibility:visible; transition:opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1), transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), visibility 0s; will-change: opacity, transform; }
+        .dropdown-menu { opacity:0; transform:translateY(-4px) scale(0.97) translateZ(0); pointer-events:none; visibility:hidden; transition:opacity var(--duration-fast) var(--ease-exit), transform var(--duration-fast) var(--ease-exit), visibility var(--duration-fast) step-end; transform-origin: top left; }
+        .dropdown-menu.active { opacity:1; transform:translateY(0) scale(1) translateZ(0); pointer-events:auto; visibility:visible; transition:opacity var(--duration-normal) var(--ease-spring), transform var(--duration-normal) var(--ease-spring), visibility 0s; will-change: opacity, transform; }
         #dropdownMenu { transform-origin: top left; }
         #suggestionMenu { transform-origin: top center; }
         @keyframes skeletonPulse { 0%, 100% { opacity: 0.25; } 50% { opacity: 0.55; } }
@@ -616,9 +624,9 @@
         .edit-overlay {
             opacity: 0;
             pointer-events: none;
-            transition: opacity 0.32s cubic-bezier(0.16, 1, 0.3, 1);
-            -webkit-backdrop-filter: blur(8px);
-            backdrop-filter: blur(8px);
+            transition: opacity var(--duration-normal) var(--ease-exit);
+            -webkit-backdrop-filter: blur(var(--blur-sm));
+            backdrop-filter: blur(var(--blur-sm));
             -webkit-backface-visibility: hidden;
             backface-visibility: hidden;
             -webkit-mask-image: -webkit-radial-gradient(white, black);
@@ -626,17 +634,19 @@
         .edit-overlay.active {
             opacity: 1;
             pointer-events: auto;
+            transition: opacity var(--duration-modal) var(--ease-spring);
         }
         .edit-overlay > div {
             opacity: 0;
-            transform: scale(0.94) translateZ(0);
-            transition: opacity 0.32s cubic-bezier(0.16, 1, 0.3, 1), transform 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+            transform: scale(0.95) translateZ(0);
+            transition: opacity var(--duration-normal) var(--ease-exit), transform var(--duration-normal) var(--ease-exit);
             -webkit-backface-visibility: hidden;
             backface-visibility: hidden;
         }
         .edit-overlay.active > div {
             opacity: 1;
             transform: scale(1) translateZ(0);
+            transition: opacity var(--duration-modal) var(--ease-spring), transform var(--duration-modal) var(--ease-spring);
         }
         .edit-overlay .glass-strong { background: rgba(255,255,255,0.2); }
         .nr .edit-overlay, .nr .edit-overlay > div { transition: none !important; opacity: 1 !important; transform: none !important; }
@@ -851,7 +861,7 @@
             mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='currentColor'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M9 5l7 7-7 7'/%3E%3C/svg%3E") center/contain no-repeat;
             -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='currentColor'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M9 5l7 7-7 7'/%3E%3C/svg%3E") center/contain no-repeat;
             opacity: 0;
-            transition: opacity 0.22s var(--ease-spring), transform 0.22s var(--ease-spring), color 0.2s ease;
+            transition: opacity 0.15s cubic-bezier(0.4, 0, 0.2, 1), transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), color 0.15s ease;
             margin-left: auto;
             flex-shrink: 0;
             color: rgba(255, 255, 255, 0.25);
@@ -861,6 +871,7 @@
                 opacity: 1;
                 transform: translateX(0.125rem);
                 color: rgba(255, 255, 255, 0.6);
+                transition: opacity 0.2s var(--ease-spring), transform 0.2s var(--ease-spring), color 0.2s ease;
             }
         }
         /* ===== 键盘焦点环（:focus-visible 仅对键盘导航生效，鼠标点击不触发）=====
@@ -937,7 +948,7 @@
             transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
         }
         #engineBtn svg {
-            transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease;
+            transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease;
         }
         #engineBtn:hover {
             transform: scale(1.03);
@@ -1282,7 +1293,7 @@
                     </button>
                 </div>
             </div>
-            <div id="dropdownMenu" role="menu" aria-label="搜索引擎选项" aria-hidden="true" class="dropdown-menu absolute top-full left-0 glass-strong apple-radius p-2 border border-white/20 shadow-2xl min-w-[8.75rem] z-50 select-none">
+            <div id="dropdownMenu" role="menu" aria-label="搜索引擎选项" aria-hidden="true" class="dropdown-menu absolute top-full left-0 glass-strong apple-radius p-2 border border-white/20 shadow-2xl min-w-[8.75rem] z-[var(--z-dropdown)] select-none">
                 <button type="button" data-engine="bing" role="menuitemradio" aria-checked="true" class="w-full flex items-center gap-3 px-3 py-2.5 apple-radius hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 transition-[background-color,color,transform] duration-150 text-left text-sm select-none">
                     <img src="https://a.favicon.im/bing.com" width="20" height="20" class="engine-icon size-5 rounded-md pointer-events-none select-none" alt="" draggable="false"> Bing
                 </button>
@@ -1568,7 +1579,7 @@
         <div class="glass-strong apple-radius pt-4 pb-3 px-4 w-full max-w-2xl xl:max-w-3xl 2xl:max-w-4xl mx-4 max-h-[85dvh] flex flex-col shadow-2xl">
             <div class="flex items-center justify-between mb-2 pb-1.5 border-b border-white/10 shrink-0">
                 <h3 class="text-base font-medium tracking-wide text-white/80">从导航页选择</h3>
-                <button id="closePickerBtn" type="button" aria-label="关闭选择弹窗" class="p-1 size-10 inline-flex items-center justify-center hover:bg-white/10 rounded apple-radius text-white/40 hover:text-white/70 transition-[background-color,color,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 disabled:opacity-50 disabled:cursor-not-allowed"><svg class="size-4" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 16 16"><path d="M4 12L12 4M4 4l8 8"/></svg></button>
+                <button id="closePickerBtn" type="button" aria-label="关闭选择弹窗" class="p-1 size-10 inline-flex items-center justify-center hover:bg-white/10 apple-radius text-white/40 hover:text-white/70 transition-[background-color,color,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 disabled:opacity-50 disabled:cursor-not-allowed"><svg class="size-4" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 16 16"><path d="M4 12L12 4M4 4l8 8"/></svg></button>
             </div>
             <div id="pickerContent" class="flex-1 overflow-y-auto min-h-0 space-y-3"></div>
             <div class="flex items-center justify-between mt-3 pt-2 border-t border-white/10 shrink-0">
@@ -1597,7 +1608,7 @@
     </div><!-- /#confirmModal -->
 
     <!-- 快捷键速查面板弹窗 (Cmd/Ctrl + /) -->
-    <div id="shortcutModal" role="dialog" aria-modal="true" aria-hidden="true" hidden aria-label="快捷键速查" class="edit-overlay fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-[var(--z-modal)]">
+    <div id="shortcutModal" role="dialog" aria-modal="true" aria-hidden="true" hidden aria-label="快捷键速查" class="edit-overlay fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-[var(--z-picker)]">
         <div class="glass-strong apple-radius w-full max-w-md sm:max-w-lg md:max-w-xl mx-4 max-h-[85dvh] flex flex-col p-5 sm:p-6 shadow-2xl overflow-hidden">
             <!-- 弹窗 Header -->
             <div class="flex items-center justify-between mb-3 pb-2 border-b border-white/10 shrink-0">
@@ -2380,6 +2391,10 @@
             hintBadge: IS_MAC ? '⌘ /' : 'Ctrl+/'
         };
 
+        /**
+         * 动态适配操作系统平台特定的按键提示文本（Mac 平台显示 ⌘ / ⇧，Windows/Linux 显示 Ctrl / Shift）
+         * @returns {void}
+         */
         function applyPlatformShortcuts() {
             const elSlash = $('kbd-slash');
             if (elSlash) elSlash.textContent = KBD.slash;
@@ -2420,6 +2435,10 @@
             ids.forEach(id => dom[id] = $(id));
         }
 
+        /**
+         * 渲染搜索引擎下拉切换菜单项 HTML
+         * @returns {void}
+         */
         function renderEngineDropdown() {
             if (!dom.dropdownMenu) return;
             const curEngine = state.engine || 'bing';
@@ -2435,6 +2454,10 @@
         }
 
         let isPresetBgImagesLoaded = false;
+        /**
+         * 渲染设置面板中预设高清壁纸缩略图网格卡片
+         * @returns {void}
+         */
         function renderPresetWallpapers() {
             if (!dom.presetWallpaperGrid) return;
             isPresetBgImagesLoaded = false;
@@ -2733,9 +2756,8 @@
 
         /**
          * 判断给定 URL 是否命中预设壁纸 backgrounds[] 数组；返回索引，未命中返回 -1。
-         * 用于在"保存壁纸草稿"分支中区分「选中系统预设」与「真·自定义壁纸」，
-         * 避免把 './wallpapers/bg5.avif' 这类预设路径错误写入 userWallpaper/IDB，
-         * 导致 switchBg() 把预设当成"自定义"清掉并强制跳回 bg1（BUG 4a）。
+         * 用于在保存壁纸草稿时区分「系统预设壁纸」与「用户自定义壁纸」，
+         * 避免将 './wallpapers/bg5.avif' 等预设路径误写入自定义壁纸存储，防止壁纸轮播时发生索引回跳。
          * @param {string|null|undefined} url
          * @returns {number}
          */
@@ -2802,14 +2824,13 @@
                 state.bg = savedBg;
             }
 
-            // 读取自定义壁纸：兼容旧版本 BUG（v1.0 把 './wallpapers/bgN.avif' 预设路径误写入
-            // userWallpaper/IDB，导致被当作"自定义壁纸"、按 B 键强制跳回 bg1）。启动时做一次性迁移，
-            // 命中预设即还原为对应索引 state.bg 并清掉三通道脏数据。
+            // 读取自定义壁纸：兼容旧版本残留数据（若历史版本将预设路径误写入了自定义存储），
+            // 启动时自动迁移并还原对应索引 state.bg，清除冗余的自定义记录。
             let customBg = await getWallpaperDB();
             if (!customBg) customBg = storageGet('userWallpaper');
             const legacyPresetIdx = findPresetBgIndex(customBg);
             if (legacyPresetIdx >= 0) {
-                // 旧脏数据迁移：还原 bg 索引，擦除伪自定义通道
+                // 旧数据迁移：还原 bg 索引，清除误写入的自定义通道
                 state.bg = legacyPresetIdx;
                 storageSet('bg', legacyPresetIdx);
                 await clearCustomWallpaper();
@@ -3052,7 +3073,7 @@
                     if (!modalEl.classList.contains('active')) {
                         modalEl.setAttribute('hidden', '');
                     }
-                }, 320);
+                }, 220);
             }
         }
 
@@ -3226,6 +3247,8 @@
          * @returns {void}
          */
         async function openEditModal() {
+            closeDropdown();
+            hideSuggestions();
             editModalTriggerEl = document.activeElement;
             state.editOpen = true;
             OverlayStack.push('editModal', cancelEditModal);
@@ -3257,7 +3280,7 @@
          * @returns {void}
          */
         function cancelEditModal() {
-            // 撤销草稿中的预览变更，滚回打开前的真实配置
+            // 撤销草稿中的预览变更，回滚至打开设置前的真实配置
             if (modalState.wallpaperChanged) {
                 const bgToRestore = modalState.initialWallpaper || backgrounds[state.bg];
                 applyWallpaper(bgToRestore, false);
@@ -3293,6 +3316,8 @@
          */
         function openShortcutModal() {
             if (!dom.shortcutModal) return;
+            closeDropdown();
+            hideSuggestions();
             shortcutModalTriggerEl = document.activeElement;
             OverlayStack.push('shortcutModal', closeShortcutModal);
             animateShowModal(dom.shortcutModal);
@@ -4480,6 +4505,7 @@
 
             dom.searchInput.addEventListener('click', e => {
                 e.stopPropagation(); // 阻止点击输入框触发 document.click 误收起联想面板
+                closeDropdown();
                 const val = dom.searchInput.value.trim();
                 if (val && (!dom.suggestionMenu || !dom.suggestionMenu.classList.contains('active'))) {
                     fetchSuggestions(state.engine, val);
@@ -4768,7 +4794,6 @@
             dom.doneShortcutBtn?.addEventListener('click', closeShortcutModal);
             dom.shortcutModal?.addEventListener('click', closeShortcutModal);
             dom.openShortcutFromSettingsBtn?.addEventListener('click', () => {
-                cancelEditModal();
                 openShortcutModal();
             });
 
@@ -5084,6 +5109,10 @@
         let selectedSuggestionIdx = -1;
         let originalQuery = '';
 
+        /**
+         * 切换搜索引擎下拉菜单的展开/收起状态并同步 OverlayStack
+         * @returns {void}
+         */
         function toggleDropdown() {
             state.open = !state.open;
             dom.dropdownMenu.classList.toggle('active', state.open);
@@ -5095,6 +5124,11 @@
                 OverlayStack.pop('dropdown');
             }
         }
+
+        /**
+         * 主动收起搜索引擎下拉菜单并从 OverlayStack 出栈
+         * @returns {void}
+         */
         function closeDropdown() {
             state.open = false;
             OverlayStack.pop('dropdown');
@@ -5517,6 +5551,14 @@
             document.body.appendChild(script);
         }
 
+        /**
+         * 渲染搜索联想下拉面板（包含本地书签精准命中 + 搜索引擎网络建议词 + 骨架屏加载占位）
+         * @param {Array<Object>} [localList=[]] - 命中的本地书签数组
+         * @param {Array<string>} [netList=[]] - 搜索引擎返回的建议词列表
+         * @param {boolean} [preserveSelection=false] - 是否保留当前键盘高亮选中的索引
+         * @param {boolean} [isNetLoading=false] - 网络建议词是否正在异步加载中
+         * @returns {void}
+         */
         function renderSuggestions(localList = [], netList = [], preserveSelection = false, isNetLoading = false) {
             if (!dom.suggestionMenu) return;
             const prevIdx = preserveSelection ? selectedSuggestionIdx : -1;
@@ -5648,6 +5690,10 @@
             }
         }
 
+        /**
+         * 收起联想下拉面板、作废未决网络请求并从 OverlayStack 出栈
+         * @returns {void}
+         */
         function hideSuggestions() {
             activeSuggestReqId++; // 作废所有挂起的联想网络请求，防止 Escape/失焦后联想下拉意外"复活"
             if (suggestionScriptTag) {
@@ -5671,6 +5717,10 @@
         let bgSwitchTimer = null;
         let activeWallpaperReqId = 0;
 
+        /**
+         * 利用浏览器空闲阶段（requestIdleCallback）预加载下一张轮播预设壁纸
+         * @returns {void}
+         */
         function preloadNextBg() {
             const load = () => {
                 const img = new Image();
@@ -5689,6 +5739,13 @@
                 window.addEventListener('load', () => setTimeout(schedule, 5000), { once: true });
             }
         }
+
+        /**
+         * 跨双层图层平滑淡入切换当前视口背景壁纸
+         * @param {string} urlStr - 壁纸图片地址或 base64 DataURL
+         * @param {boolean} [animate=true] - 是否启用跨图层渐变淡入动画
+         * @returns {void}
+         */
         function applyWallpaper(urlStr, animate = true) {
             const bgBase = $('bgLayer');
             const bgNext = $('bgLayerNext');
@@ -5858,6 +5915,8 @@
 
             // 暴露全局切屏控制接口，供点击 Header、键盘快捷键等共享调用
             function switchToNav() {
+                closeDropdown();
+                hideSuggestions();
                 targetSection = 'nav';
                 isTransitioning = true;
                 clearAccum();
