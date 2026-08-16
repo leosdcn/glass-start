@@ -86,6 +86,20 @@ const afterOverlay = await evalJS(`getComputedStyle(document.getElementById('bgO
 pass('Escape 关闭弹窗时不重置遮罩透明度设置', beforeOverlay === afterOverlay, `bg=${beforeOverlay}`);
 await evalJS(`localStorage.removeItem('maskOpacity')`);
 
+// 9. 搜索引擎白名单校验 (仅保留 Bing 与 Google，彻底杜绝百度与冗余项)
+const engineDropdownCheck = await evalJS(`(() => {
+  const buttons = [...document.querySelectorAll('#dropdownMenu button[data-engine]')];
+  const engineKeys = buttons.map(b => b.dataset.engine);
+  const hasBaidu = engineKeys.includes('baidu');
+  const hasDuck = engineKeys.includes('duckduckgo');
+  return {
+    count: buttons.length,
+    engineKeys,
+    isClean: engineKeys.length === 2 && engineKeys.includes('bing') && engineKeys.includes('google') && !hasBaidu && !hasDuck
+  };
+})()`);
+pass('搜索引擎白名单校验 (仅保留 Bing 与 Google，彻底杜绝百度/DuckDuckGo)', engineDropdownCheck.isClean, JSON.stringify(engineDropdownCheck.engineKeys));
+
 const code = finish();
 await chrome.close();
 await server.close();

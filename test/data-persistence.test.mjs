@@ -88,6 +88,24 @@ const keepIcon = await evalJS(`(() => {
 })()`);
 pass('自定义图标刷新后持久化正常', keepIcon.includes('aaa.example.com/a.png'), `icon=${keepIcon}`);
 
+// 7. 首屏快捷书签在全新加载与刷新后 100% 渲染且无空白丢失
+await evalJS('localStorage.clear(); location.reload()'); await sleep(2200);
+const refreshCheck = await evalJS(`(() => {
+  const items = [...document.querySelectorAll('#bookmarks .bookmark-item')];
+  const titles = items.map(i => (i.querySelector('.bookmark-title') || {}).textContent || '').filter(Boolean);
+  const imgs = items.map(i => i.querySelector('img')).filter(Boolean);
+  const allLoadedOrHaveSrc = imgs.length === 8 && imgs.every(img => img.src && !img.src.startsWith('data:image/svg'));
+  return {
+    itemCount: items.length,
+    titleCount: titles.length,
+    imgCount: imgs.length,
+    allLoadedOrHaveSrc
+  };
+})()`);
+pass('首屏快捷书签在全新加载与刷新后 100% 渲染且无空白丢失',
+  refreshCheck.itemCount === 8 && refreshCheck.titleCount === 8 && refreshCheck.imgCount === 8 && refreshCheck.allLoadedOrHaveSrc,
+  JSON.stringify(refreshCheck));
+
 await evalJS(`localStorage.clear()`);
 
 const code = finish();

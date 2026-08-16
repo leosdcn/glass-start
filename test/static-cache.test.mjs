@@ -99,4 +99,14 @@ pass('SW 内存池 FIFO 自动容量限额与清理机制', srcSw.includes('asyn
 const gcValid = srcSw.includes('pruneCache(cache, maxEntries)');
 pass('SW 静态池超限自动淘汰与安全防污染闭环', gcValid, '自动淘汰及防污染完备');
 
+// 9. SW 图标预缓存白名单校验 (CORE_FAVICONS 仅包含 Bing 与 Google，无百度)
+function extractCoreFavicons(swContent) {
+  const m = swContent.match(/const\s+CORE_FAVICONS\s*=\s*\[([\s\S]*?)\];/);
+  if (!m) return [];
+  return [...m[1].matchAll(/'([^']*)'/g)].map(x => x[1]);
+}
+const favicons = extractCoreFavicons(srcSw);
+const cleanFavicons = favicons.length === 2 && favicons.some(f => f.includes('bing.com')) && favicons.some(f => f.includes('google.com')) && !favicons.some(f => f.includes('baidu.com'));
+pass('SW 图标预缓存白名单校验 (CORE_FAVICONS 仅包含 Bing 与 Google，无百度)', cleanFavicons, `favicons=${JSON.stringify(favicons)}`);
+
 process.exit(finish());
