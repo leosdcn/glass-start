@@ -1542,18 +1542,6 @@
                         </div>
                     </div>
                 </div>
-
-                <!-- 中间部分：实时天气小组件设置 -->
-                <div id="weatherSettingCard" class="p-3.5 glass-subcard flex items-center justify-between shrink-0">
-                    <span class="text-xs font-semibold text-white/80 flex items-center gap-1.5">
-                        <span>🌤️</span> 首页右上角天气小组件
-                    </span>
-                    <label class="relative inline-flex items-center cursor-pointer" title="开启或关闭天气组件">
-                        <input type="checkbox" id="weatherEnabledInput" name="weatherEnabledInput" class="sr-only peer" checked>
-                        <div class="w-9 h-5 bg-white/20 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-500/80"></div>
-                    </label>
-                </div>
-
                 <!-- 下半部分：预设高清壁纸库 (移动端自然展开防堆叠，桌面端 sm:flex-1 自动撑满) -->
                 <div class="p-3.5 glass-subcard shrink-0 sm:flex-1 flex flex-col justify-between sm:min-h-0 space-y-2.5">
                     <div class="flex items-center justify-between shrink-0">
@@ -2526,7 +2514,7 @@
          * @returns {void}
          */
         function cacheDOM() {
-            const ids = 'clock date searchInput searchClearBtn randomBookmarkBtn engineBtn engineIcon engineName dropdownMenu suggestionMenu bookmarks sidebar sidebarList navCategories navContent editModal editList dragDropIndicator editBookmarksBtn addBookmarkBtn saveEditBtn cancelEditBtn resetEditBtn togglePickerBtn bookmarkPicker pickerContent pickerCount closePickerBtn donePickerBtn exportJsonBtn importJsonInput uploadBgBtn urlBgBtn resetBgBtn uploadBgInput wallpaperStatus bookmarkCountBadge jsonDropzone maskOpacityInput maskOpacityVal bgBlurInput bgBlurVal storageSizeBadge statBookmarkCount statWallpaperType statPwaStatus clearCacheBtn bgOverlay startSection navSection navHint navHeader presetWallpaperGrid shortcutModal closeShortcutBtn doneShortcutBtn openShortcutFromSettingsBtn scrollDownHint weatherWidget weatherBtn weatherIcon weatherTemp weatherCity weatherPopover weatherSettingCard weatherEnabledInput'.split(' ');
+            const ids = 'clock date searchInput searchClearBtn randomBookmarkBtn engineBtn engineIcon engineName dropdownMenu suggestionMenu bookmarks sidebar sidebarList navCategories navContent editModal editList dragDropIndicator editBookmarksBtn addBookmarkBtn saveEditBtn cancelEditBtn resetEditBtn togglePickerBtn bookmarkPicker pickerContent pickerCount closePickerBtn donePickerBtn exportJsonBtn importJsonInput uploadBgBtn urlBgBtn resetBgBtn uploadBgInput wallpaperStatus bookmarkCountBadge jsonDropzone maskOpacityInput maskOpacityVal bgBlurInput bgBlurVal storageSizeBadge statBookmarkCount statWallpaperType statPwaStatus clearCacheBtn bgOverlay startSection navSection navHint navHeader presetWallpaperGrid shortcutModal closeShortcutBtn doneShortcutBtn openShortcutFromSettingsBtn scrollDownHint weatherWidget weatherBtn weatherIcon weatherTemp weatherCity weatherPopover'.split(' ');
             ids.forEach(id => dom[id] = $(id));
         }
 
@@ -5875,23 +5863,6 @@
             };
         }
 
-        let weatherSettings = {
-            enabled: true
-        };
-
-        function loadWeatherSettings() {
-            const saved = storageGet('glass_weather_settings', null);
-            if (saved && typeof saved === 'object') {
-                if (typeof saved.enabled === 'boolean') {
-                    weatherSettings.enabled = saved.enabled;
-                }
-            }
-        }
-
-        function saveWeatherSettings() {
-            storageSet('glass_weather_settings', weatherSettings);
-        }
-
         function openWeatherPopover() {
             if (!dom.weatherPopover || !dom.weatherBtn) return;
             dom.weatherPopover.classList.add('active');
@@ -6175,12 +6146,6 @@
 
         let isFetchingWeather = false;
         async function updateWeather(force = false) {
-            if (!weatherSettings.enabled) {
-                if (dom.weatherWidget) dom.weatherWidget.style.display = 'none';
-                return;
-            }
-            if (dom.weatherWidget) dom.weatherWidget.style.display = '';
-
             const cache = storageGet('glass_weather_cache', null);
             const now = Date.now();
             const CACHE_TTL = 45 * 60 * 1000; // 45 分钟合理缓存有效期（行业标准黄金平衡点）
@@ -6189,7 +6154,6 @@
             if (!force && cache && cache.timestamp && (now - cache.timestamp < CACHE_TTL)) {
                 renderWeatherCapsule(cache);
                 renderWeatherPopover(cache);
-                updateWeatherSettingsUI(cache.location);
                 return;
             }
 
@@ -6210,7 +6174,6 @@
                     storageSet('glass_weather_cache', freshData);
                     renderWeatherCapsule(freshData);
                     renderWeatherPopover(freshData);
-                    updateWeatherSettingsUI();
 
                     // 后台等待位置校验完成，若发现城市发生迁移，则使用新城市静默更新
                     locationPromise.then(async (newLoc) => {
@@ -6230,13 +6193,11 @@
                     storageSet('glass_weather_cache', freshData);
                     renderWeatherCapsule(freshData);
                     renderWeatherPopover(freshData);
-                    updateWeatherSettingsUI();
                 }
             } catch (err) {
                 if (cache) {
                     renderWeatherCapsule(cache);
                     renderWeatherPopover(cache);
-                    updateWeatherSettingsUI();
                 } else {
                     if (dom.weatherCity) dom.weatherCity.textContent = '暂无数据';
                 }
@@ -6245,34 +6206,12 @@
             }
         }
 
-        function updateWeatherSettingsUI() {
-            if (dom.weatherEnabledInput) {
-                dom.weatherEnabledInput.checked = !!weatherSettings.enabled;
-            }
-        }
-
-        function bindWeatherSettingsEvents() {
-            if (dom.weatherEnabledInput) {
-                dom.weatherEnabledInput.addEventListener('change', () => {
-                    weatherSettings.enabled = dom.weatherEnabledInput.checked;
-                    saveWeatherSettings();
-                    updateWeather(true);
-                });
-            }
-        }
-
         function initWeather() {
-            loadWeatherSettings();
-            bindWeatherSettingsEvents();
-
             // 0ms 秒开优先读取本地缓存渲染
             const cache = storageGet('glass_weather_cache', null);
             if (cache) {
                 renderWeatherCapsule(cache);
                 renderWeatherPopover(cache);
-                updateWeatherSettingsUI();
-            } else {
-                updateWeatherSettingsUI();
             }
 
             // 检查缓存状态，若缓存有效则 0 网络请求；若超期则静默请求
