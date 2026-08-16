@@ -49,14 +49,16 @@
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🪐%3C/text%3E%3C/svg%3E">
     <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png">
     <link rel="manifest" href="./manifest.json">
-    <!-- 外部 API 与 CDN 全握手级网络预连接 (Preconnect) -->
+    <!-- 外部核心 API 与 CDN 全握手级网络预连接 (严格控制在 3 个以内，避免过度预热争抢首屏带宽) -->
     <link rel="preconnect" href="https://a.favicon.im" crossorigin>
     <link rel="preconnect" href="https://myip.ipip.net" crossorigin>
     <link rel="preconnect" href="https://api.open-meteo.com" crossorigin>
+    <!-- 次级按需接口（搜索联想与异常兜底）：按需触发，注释备查
     <link rel="preconnect" href="https://geocoding-api.open-meteo.com" crossorigin>
     <link rel="preconnect" href="https://ipwho.is" crossorigin>
     <link rel="preconnect" href="https://api.bing.com" crossorigin>
     <link rel="preconnect" href="https://suggestqueries.google.com" crossorigin>
+    -->
     <!-- 动态壁纸 Preload：根据设备物理 DPI 与用户历史偏好动态计算，单次精准预加载消灭带宽争抢与 LCP 延迟 -->
     <script>
       /**
