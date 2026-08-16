@@ -49,16 +49,14 @@
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🪐%3C/text%3E%3C/svg%3E">
     <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png">
     <link rel="manifest" href="./manifest.json">
-    <!-- 预解析搜索联想 API (DNS 级) 与预连接图标代理 CDN (TLS 握手级) -->
-    <link rel="dns-prefetch" href="https://api.bing.com">
-    <link rel="dns-prefetch" href="https://suggestqueries.google.com">
+    <!-- 外部 API 与 CDN 全握手级网络预连接 (Preconnect) -->
     <link rel="preconnect" href="https://a.favicon.im" crossorigin>
-    <!-- IP 定位与天气 API 网络预连接与 DNS 预解析 (IPIP.NET & Open-Meteo & ipwho.is) -->
-    <link rel="dns-prefetch" href="https://myip.ipip.net">
-    <link rel="dns-prefetch" href="https://geocoding-api.open-meteo.com">
-    <link rel="dns-prefetch" href="https://api.open-meteo.com">
+    <link rel="preconnect" href="https://myip.ipip.net" crossorigin>
     <link rel="preconnect" href="https://api.open-meteo.com" crossorigin>
-    <link rel="dns-prefetch" href="https://ipwho.is">
+    <link rel="preconnect" href="https://geocoding-api.open-meteo.com" crossorigin>
+    <link rel="preconnect" href="https://ipwho.is" crossorigin>
+    <link rel="preconnect" href="https://api.bing.com" crossorigin>
+    <link rel="preconnect" href="https://suggestqueries.google.com" crossorigin>
     <!-- 动态壁纸 Preload：根据设备物理 DPI 与用户历史偏好动态计算，单次精准预加载消灭带宽争抢与 LCP 延迟 -->
     <script>
       /**
