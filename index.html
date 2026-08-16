@@ -4713,6 +4713,10 @@
                     closeDropdown();
                     hideSuggestions();
                     toggleWeatherPopover();
+                    const cache = storageGet('glass_weather_cache', null);
+                    if (!cache || !cache.current) {
+                        updateWeather(false).catch(() => {});
+                    }
                 });
             }
             if (dom.weatherPopover) {
@@ -5918,39 +5922,10 @@
             }
         }
 
-        // 针对国际 GeoIP 数据库常见繁体行政地名（如「山東省」「濟南」「廣東」「臺北」）的轻量级规范化简体字库
-        const T2S_GEO_MAP = {
-            '東': '东', '廣': '广', '濟': '济', '島': '岛', '灣': '湾',
-            '陝': '陕', '莊': '庄', '臺': '台', '陽': '阳', '鄭': '郑',
-            '蘭': '兰', '銀': '银', '鄉': '乡', '蘇': '苏', '寧': '宁',
-            '齊': '齐', '烏': '乌', '漢': '汉', '門': '门', '開': '开',
-            '贛': '赣', '廬': '庐', '蕪': '芜', '濰': '潍', '撫': '抚',
-            '滄': '沧', '遼': '辽', '鐵': '铁', '錦': '锦', '長': '长',
-            '區': '区', '縣': '县', '國': '国', '華': '华', '內': '内',
-            '溫': '温', '麗': '丽', '達': '达', '貴': '贵', '雲': '云',
-            '義': '义', '樂': '乐', '瀘': '泸', '婁': '娄', '慶': '庆',
-            '鹽': '盐', '連': '连', '淮': '淮', '揚': '扬', '泰': '泰',
-            '鎮': '镇', '銅': '铜', '黃': '黄', '龍': '龙', '鷹': '鹰',
-            '棗': '枣', '煙': '烟', '臨': '临', '濱': '滨', '鶴': '鹤',
-            '駐': '驻', '荊': '荆', '隨': '随', '張': '张', '汕': '汕',
-            '欽': '钦', '賀': '贺', '來': '来', '綿': '绵', '遂': '遂',
-            '資': '资', '涼': '凉', '畢': '毕', '紅': '红', '寶': '宝',
-            '咸': '咸', '榆': '榆', '隴': '陇', '吳': '吴', '吐': '吐',
-            '喀': '喀', '塔': '塔', '豐': '丰', '衛': '卫', '瀋': '沈',
-            '爾': '尔', '庫': '库', '倫': '伦', '晉': '晋', '瓊': '琼',
-            '峽': '峡', '錫': '锡', '關': '关', '興': '兴', '順': '顺',
-            '盤': '盘', '萬': '万', '紹': '绍'
-        };
-
-        function normalizeGeoChineseText(str) {
-            if (!str || typeof str !== 'string') return '';
-            return str.split('').map(ch => T2S_GEO_MAP[ch] || ch).join('');
-        }
-
         function formatLocationFullName(parts) {
             const cleaned = parts
                 .filter(p => p && typeof p === 'string')
-                .map(p => normalizeGeoChineseText(p.trim()))
+                .map(p => p.trim())
                 .filter(Boolean);
 
             const result = [];
@@ -5986,16 +5961,16 @@
             return result.join(' · ');
         }
 
-        async function resolveWeatherLocation() {
-            // 自动 IP 定位优先：读取本地 24 小时位置缓存，彻底杜绝重复请求 IP 接口
+        async function resolveWeatherLocation(force = false) {
+            // 自动 IP 定位优先：读取本地 24 小时位置缓存，彻底杜绝重复请求 IP 接口（手动强刷时跳过缓存）
             const locCache = storageGet('glass_weather_loc_cache', null);
             const now = Date.now();
             const LOC_TTL = 24 * 60 * 60 * 1000; // 24 小时定位缓存
-            if (locCache && locCache.timestamp && (now - locCache.timestamp < LOC_TTL) && locCache.lat) {
+            if (!force && locCache && locCache.timestamp && (now - locCache.timestamp < LOC_TTL) && locCache.lat) {
                 return locCache;
             }
 
-            // 通道 1：国内高精度 IPIP.NET（支持 HTTPS、CORS，对国内二三线地级市定位极准）+ Open-Meteo 经纬度解析
+            // 通道 1：国内高精度 IPIP.NET + 官方气象高精度地理编码（Open-Meteo Geocoding）纯动态解析
             try {
                 const ipRes = await fetch('https://myip.ipip.net/json', { signal: AbortSignal.timeout ? AbortSignal.timeout(3000) : undefined });
                 if (ipRes.ok) {
@@ -6004,28 +5979,32 @@
                         const locArr = ipData.data.location;
                         const country = locArr[0] || '中国';
                         const province = locArr[1] || '';
-                        const city = locArr[2] || locArr[3] || province;
-                        if (city) {
-                            const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&language=zh&count=1`;
-                            const geoRes = await fetch(geoUrl, { signal: AbortSignal.timeout ? AbortSignal.timeout(3000) : undefined });
-                            if (geoRes.ok) {
-                                const geoData = await geoRes.json();
-                                if (geoData && geoData.results && geoData.results[0]) {
-                                    const top = geoData.results[0];
-                                    const dispName = (top.name || city).replace(/(市|区|县)$/, '') || top.name || city;
-                                    const fullName = formatLocationFullName([top.country || country, top.admin1 || province, top.admin2, top.name || city]);
-                                    const resolved = {
-                                        name: dispName,
-                                        fullName: fullName,
-                                        lat: top.latitude,
-                                        lon: top.longitude,
-                                        isAuto: true,
-                                        timestamp: now
-                                    };
-                                    storageSet('glass_weather_loc_cache', resolved);
-                                    return resolved;
+                        const rawCity = locArr[2] || locArr[3] || province;
+                        const cleanCity = rawCity.replace(/(市|区|县|特别行政区|壮族自治区|回族自治区|维吾尔自治区|自治区)$/, '') || rawCity;
+
+                        if (cleanCity) {
+                            try {
+                                const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cleanCity)}&language=zh&count=1`;
+                                const geoRes = await fetch(geoUrl, { signal: AbortSignal.timeout ? AbortSignal.timeout(3000) : undefined });
+                                if (geoRes.ok) {
+                                    const geoData = await geoRes.json();
+                                    if (geoData && geoData.results && geoData.results[0]) {
+                                        const top = geoData.results[0];
+                                        const dispName = (top.name || cleanCity).replace(/(市|区|县)$/, '') || top.name || cleanCity;
+                                        const fullName = formatLocationFullName([top.country || country, top.admin1 || province, top.admin2, top.name || cleanCity]);
+                                        const resolved = {
+                                            name: dispName,
+                                            fullName: fullName,
+                                            lat: top.latitude,
+                                            lon: top.longitude,
+                                            isAuto: true,
+                                            timestamp: now
+                                        };
+                                        storageSet('glass_weather_loc_cache', resolved);
+                                        return resolved;
+                                    }
                                 }
-                            }
+                            } catch {}
                         }
                     }
                 }
@@ -6033,12 +6012,12 @@
 
             // 通道 2：国际 GeoIP 接口兜底（海外用户或 IPIP 接口不可达时）
             try {
-                const res = await fetch('https://ipwho.is/?lang=zh-CN', { signal: AbortSignal.timeout ? AbortSignal.timeout(4000) : undefined });
+                const res = await fetch('https://ipwho.is/?lang=zh-CN', { signal: AbortSignal.timeout ? AbortSignal.timeout(3000) : undefined });
                 if (res.ok) {
                     const data = await res.json();
                     if (data && data.success && data.latitude) {
-                        const rawCity = normalizeGeoChineseText(data.city || '');
-                        const rawRegion = normalizeGeoChineseText(data.region || '');
+                        const rawCity = data.city || '';
+                        const rawRegion = data.region || '';
                         const dispName = (rawCity || rawRegion || '本地').replace(/(市|区|县)$/, '') || rawCity || rawRegion || '本地';
                         const fullName = formatLocationFullName([data.country, data.region, data.city]);
                         const resolved = {
@@ -6164,9 +6143,12 @@
             if (!dom.weatherPopover) return;
             if (!data || !data.current) {
                 dom.weatherPopover.innerHTML = `
-                    <div class="p-5 text-center flex flex-col items-center justify-center gap-2 select-none">
-                        <div class="size-4.5 border-2 border-white/25 border-t-white rounded-full animate-spin"></div>
-                        <span class="text-xs text-white/60 font-medium">正在获取实时天气...</span>
+                    <div class="p-4 text-center flex flex-col items-center justify-center gap-2.5 select-none min-w-[15rem]">
+                        <div class="size-5 border-2 border-white/25 border-t-white rounded-full animate-spin"></div>
+                        <div class="space-y-0.5">
+                            <div class="text-xs text-white/80 font-medium">正在获取实时天气...</div>
+                            <div class="text-2xs text-white/45">正在自动定位并同步气象数据</div>
+                        </div>
                     </div>
                 `;
                 return;
@@ -6288,39 +6270,37 @@
             isFetchingWeather = true;
 
             try {
-                // 乐观并发加速：若存在已知历史坐标，立即并发拉取天气，消灭串行等待 500ms
+                // 乐观并发加速：若存在已知坐标或使用默认保底坐标（上海），立即并发拉取天气，消灭串行阻塞
                 const locCache = storageGet('glass_weather_loc_cache', null);
-                const knownLoc = (locCache && locCache.lat) ? locCache : (cache && cache.location && cache.location.lat ? cache.location : null);
+                const knownLoc = (locCache && locCache.lat) ? locCache : (cache && cache.location && cache.location.lat ? cache.location : {
+                    name: '上海',
+                    fullName: '中国 · 上海市',
+                    lat: 31.230,
+                    lon: 121.473,
+                    isAuto: true,
+                    timestamp: now
+                });
 
-                if (knownLoc) {
-                    // 并发发起：1) 基于已知坐标的天气预测 2) 后台位置重校验
-                    const forecastPromise = fetchWeatherForecast(knownLoc);
-                    const locationPromise = resolveWeatherLocation();
+                // 并发发起：1) 基于坐标的天气预测 2) IP 定位校验与刷新（强制刷新时穿透位置缓存）
+                const locationPromise = resolveWeatherLocation(force);
+                const forecastPromise = fetchWeatherForecast(knownLoc);
 
-                    const freshData = await forecastPromise;
-                    storageSet('glass_weather_cache', freshData);
-                    renderWeatherCapsule(freshData);
-                    renderWeatherPopover(freshData);
+                const freshData = await forecastPromise;
+                storageSet('glass_weather_cache', freshData);
+                renderWeatherCapsule(freshData);
+                renderWeatherPopover(freshData);
 
-                    // 后台等待位置校验完成，若发现城市发生迁移，则使用新城市静默更新
-                    locationPromise.then(async (newLoc) => {
-                        if (newLoc && (Math.abs(newLoc.lat - knownLoc.lat) > 0.08 || Math.abs(newLoc.lon - knownLoc.lon) > 0.08)) {
-                            try {
-                                const relocatedData = await fetchWeatherForecast(newLoc);
-                                storageSet('glass_weather_cache', relocatedData);
-                                renderWeatherCapsule(relocatedData);
-                                renderWeatherPopover(relocatedData);
-                            } catch {}
-                        }
-                    }).catch(() => {});
-                } else {
-                    // 全冷启动（首访）：串行解析定位后拉取天气
-                    const loc = await resolveWeatherLocation();
-                    const freshData = await fetchWeatherForecast(loc);
-                    storageSet('glass_weather_cache', freshData);
-                    renderWeatherCapsule(freshData);
-                    renderWeatherPopover(freshData);
-                }
+                // 后台等待位置校验完成，若强制刷新或发现真实城市与已知坐标明显偏移，则使用新城市静默更新
+                locationPromise.then(async (newLoc) => {
+                    if (newLoc && (force || Math.abs(newLoc.lat - knownLoc.lat) > 0.08 || Math.abs(newLoc.lon - knownLoc.lon) > 0.08)) {
+                        try {
+                            const relocatedData = await fetchWeatherForecast(newLoc);
+                            storageSet('glass_weather_cache', relocatedData);
+                            renderWeatherCapsule(relocatedData);
+                            renderWeatherPopover(relocatedData);
+                        } catch {}
+                    }
+                }).catch(() => {});
             } catch (err) {
                 if (cache) {
                     renderWeatherCapsule(cache);
