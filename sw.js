@@ -34,6 +34,12 @@ const CORE_ASSETS = [
     './wallpapers/bg1.avif'
 ];
 
+// 核心搜索引擎跨域图标预存列表
+const CORE_FAVICONS = [
+    'https://a.favicon.im/bing.com',
+    'https://a.favicon.im/google.com'
+];
+
 // 简单 CacheStorage 数量限额清理 (FIFO 超限自动淘汰，淘汰重度 IDB 依赖)
 async function pruneCache(cache, maxEntries) {
     try {
@@ -59,9 +65,18 @@ function make503Response() {
 self.addEventListener('install', e => {
     self.skipWaiting();
     e.waitUntil(
-        caches.open(CORE_CACHE).then(cache =>
-            Promise.all(CORE_ASSETS.map(asset => cache.add(new Request(asset, { cache: 'reload' })).catch(() => {})))
-        )
+        Promise.all([
+            caches.open(CORE_CACHE).then(cache =>
+                Promise.all(CORE_ASSETS.map(asset => cache.add(new Request(asset, { cache: 'reload' })).catch(() => {})))
+            ),
+            caches.open(FAVICON_CACHE).then(cache =>
+                Promise.all(CORE_FAVICONS.map(url =>
+                    fetch(url, { mode: 'no-cors' })
+                        .then(res => cache.put(url, res))
+                        .catch(() => {})
+                ))
+            )
+        ])
     );
 });
 

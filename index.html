@@ -10,7 +10,7 @@
     <meta name="theme-color" content="#0b0f19">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self' data: blob: https:; script-src 'self' 'unsafe-inline' https://suggestion.baidu.com https://api.bing.com https://suggestqueries.google.com https://static.cloudflareinsights.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: blob: https:; connect-src 'self' https:; worker-src 'self' blob:;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' data: blob: https:; script-src 'self' 'unsafe-inline' https://api.bing.com https://suggestqueries.google.com https://static.cloudflareinsights.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: blob: https:; connect-src 'self' https:; worker-src 'self' blob:;">
     <meta name="description" content="Glass Start — 基于 HTML5 与 Modern JS 构建的高颜值、轻量级玻璃拟态（Glassmorphism）浏览器起始页。">
     <meta name="keywords" content="起始页, 浏览器导航, 玻璃拟态, 个人主页, Glassmorphism, Startpage">
     <link rel="canonical" href="https://goldcoast.dpdns.org/">
@@ -51,16 +51,13 @@
     <link rel="manifest" href="./manifest.json">
     <!-- 预解析搜索联想 API (DNS 级) 与预连接图标代理 CDN (TLS 握手级) -->
     <link rel="dns-prefetch" href="https://api.bing.com">
-    <link rel="dns-prefetch" href="https://suggestion.baidu.com">
     <link rel="dns-prefetch" href="https://suggestqueries.google.com">
     <link rel="preconnect" href="https://a.favicon.im" crossorigin>
-    <!-- 天气 API 网络预连接与 DNS 预解析 (Open-Meteo) -->
+    <!-- IP 定位与天气 API 网络预连接与 DNS 预解析 (Open-Meteo & IP Geolocation) -->
+    <link rel="dns-prefetch" href="https://ipwho.is">
     <link rel="dns-prefetch" href="https://api.open-meteo.com">
-    <link rel="dns-prefetch" href="https://geocoding-api.open-meteo.com">
     <link rel="preconnect" href="https://api.open-meteo.com" crossorigin>
-    <!-- 默认壁纸静态 Preload：让 Preload Scanner 在 HTML 解析首帧即刻并发发起请求，消灭 LCP 发现时延 -->
-    <link id="preloadWallpaper" rel="preload" href="./wallpapers/bg1.avif" as="image" type="image/avif" fetchpriority="high">
-    <!-- 动态壁纸 Preload：根据设备物理 DPI (如 13" MacBook Air 2940px) 动态计算匹配 Unsplash 目标宽度，零阻塞预加载 -->
+    <!-- 动态壁纸 Preload：根据设备物理 DPI 与用户历史偏好动态计算，单次精准预加载消灭带宽争抢与 LCP 延迟 -->
     <script>
       /**
        * 动态壁纸预加载自执行函数 (DPI 响应式优化)
@@ -68,6 +65,7 @@
        *    1. 在 <head> 中同步读取 window.innerWidth 与 window.devicePixelRatio 属于纯粹内存属性查询，执行耗时 < 0.001ms，零 Reflow 开销。
        *    2. 根据物理像素宽度 (innerWidth * dpr) 动态匹配 Unsplash 请求宽度 w=... (如 13" MacBook Air 匹配 w=3000)，
        *       既避免移动端/1080P 屏幕加载 4K 原图浪费带宽，又保障 2K / 4K / Mac Retina 屏 100% 物理点对点像素级清晰度。
+       *    3. 动态一次性注入 <link rel="preload">，彻底消除静态 Preload 盲发导致的重复下载与连接竞争。
        */
       (function() {
         /**
@@ -133,27 +131,18 @@
             }
             window.__PRELOADED_BG__ = preloadUrl;
             if (preloadUrl && !preloadUrl.startsWith('data:')) {
-              const link = document.getElementById('preloadWallpaper');
-              if (link) {
-                if (link.getAttribute('href') !== preloadUrl) {
-                  link.setAttribute('href', preloadUrl);
-                  if (preloadUrl.includes('.avif')) {
-                    link.setAttribute('type', 'image/avif');
-                  } else if (preloadUrl.includes('.webp') || preloadUrl.includes('fm=webp')) {
-                    link.setAttribute('type', 'image/webp');
-                  } else {
-                    link.removeAttribute('type');
-                  }
-                }
-              } else {
-                const newLink = document.createElement('link');
-                newLink.id = 'preloadWallpaper';
-                newLink.rel = 'preload';
-                newLink.as = 'image';
-                newLink.href = preloadUrl;
-                newLink.setAttribute('fetchpriority', 'high');
-                document.head.appendChild(newLink);
+              const newLink = document.createElement('link');
+              newLink.id = 'preloadWallpaper';
+              newLink.rel = 'preload';
+              newLink.as = 'image';
+              newLink.href = preloadUrl;
+              newLink.setAttribute('fetchpriority', 'high');
+              if (preloadUrl.includes('.avif')) {
+                newLink.setAttribute('type', 'image/avif');
+              } else if (preloadUrl.includes('.webp') || preloadUrl.includes('fm=webp')) {
+                newLink.setAttribute('type', 'image/webp');
               }
+              document.head.appendChild(newLink);
             }
           }
         } catch (e) {}
@@ -167,8 +156,7 @@
           const engine = JSON.parse(rawEngine);
           const engineMap = {
             bing: { name: 'Bing', icon: 'https://a.favicon.im/bing.com' },
-            google: { name: 'Google', icon: 'https://a.favicon.im/google.com' },
-            baidu: { name: '百度', icon: 'https://a.favicon.im/baidu.com' }
+            google: { name: 'Google', icon: 'https://a.favicon.im/google.com' }
           };
           if (engineMap[engine]) window.__PRE_ENGINE__ = engineMap[engine];
         }
@@ -897,6 +885,10 @@
             to { transform: rotate(360deg); }
         }
         /* ===== 导航页滚动流体优雅入场动效 (Apple HIG Balanced Scroll Reveal) ===== */
+        .category-block {
+            content-visibility: auto;
+            contain-intrinsic-size: auto 240px;
+        }
         @supports (animation-timeline: view()) {
             @media (prefers-reduced-motion: no-preference) {
                 .category-block {
@@ -1396,9 +1388,6 @@
                 <button type="button" data-engine="google" role="menuitemradio" aria-checked="false" class="w-full flex items-center gap-3 px-3 py-2.5 apple-radius hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 transition-[background-color,color,transform] duration-150 text-left text-sm select-none">
                     <img src="https://a.favicon.im/google.com" width="16" height="16" data-hide-on-error="1" class="engine-icon size-4 rounded pointer-events-none select-none" alt="" draggable="false"> Google
                 </button>
-                <button type="button" data-engine="baidu" role="menuitemradio" aria-checked="false" class="w-full flex items-center gap-3 px-3 py-2.5 apple-radius hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 transition-[background-color,color,transform] duration-150 text-left text-sm select-none">
-                    <img src="https://a.favicon.im/baidu.com" width="16" height="16" data-hide-on-error="1" class="engine-icon size-4 rounded pointer-events-none select-none" alt="" draggable="false"> 百度
-                </button>
             </div>
             <!-- 搜索实时建议联想下拉框 (Spotlight 风格全宽下拉面板) -->
             <div id="suggestionMenu" role="listbox" aria-label="搜索建议" aria-hidden="true" class="dropdown-menu absolute top-full left-0 right-0 w-full mt-3.5 sm:mt-4 glass-strong apple-radius p-2 border border-white/20 shadow-2xl z-[var(--z-dropdown)] select-none"></div>
@@ -1555,28 +1544,14 @@
                 </div>
 
                 <!-- 中间部分：实时天气小组件设置 -->
-                <div id="weatherSettingCard" class="p-3.5 glass-subcard space-y-2.5 shrink-0">
-                    <div class="flex items-center justify-between">
-                        <span class="text-xs font-semibold text-white/80 flex items-center gap-1.5">
-                            <span>🌤️</span> 首页右上角天气小组件
-                        </span>
-                        <label class="relative inline-flex items-center cursor-pointer" title="开启或关闭天气组件">
-                            <input type="checkbox" id="weatherEnabledInput" name="weatherEnabledInput" class="sr-only peer" checked>
-                            <div class="w-9 h-5 bg-white/20 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-500/80"></div>
-                        </label>
-                    </div>
-                    <div id="weatherConfigDetails" class="space-y-2 pt-1 border-t border-white/10">
-                        <div class="flex items-center justify-between text-2xs text-white/70">
-                            <span>当前定位与城市</span>
-                            <span id="weatherCurrentLocBadge" class="glass-badge text-white/90">自动定位中</span>
-                        </div>
-                        <div class="flex gap-2">
-                            <input type="text" id="weatherCityInput" name="weatherCityInput" placeholder="输入城市或区县（如：任城、海淀、杭州）" class="flex-1 bg-white/10 border border-white/15 rounded-xl px-3 py-1.5 text-xs text-white placeholder-white/40 focus:outline-none focus:border-white/40">
-                            <button id="weatherCitySaveBtn" type="button" class="py-1.5 px-3 bg-white/10 hover:bg-white/20 border border-white/15 rounded-xl text-xs text-white font-medium transition-[background-color,border-color,transform] shrink-0">应用城市</button>
-                            <button id="weatherCityResetBtn" type="button" class="py-1.5 px-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs text-white/60 hover:text-white transition-[background-color,border-color,transform] shrink-0" title="恢复为自动 IP 定位">自动 IP</button>
-                        </div>
-                        <div id="weatherCityFeedback" class="text-2xs text-white/50 min-h-[1.2em]"></div>
-                    </div>
+                <div id="weatherSettingCard" class="p-3.5 glass-subcard flex items-center justify-between shrink-0">
+                    <span class="text-xs font-semibold text-white/80 flex items-center gap-1.5">
+                        <span>🌤️</span> 首页右上角天气小组件
+                    </span>
+                    <label class="relative inline-flex items-center cursor-pointer" title="开启或关闭天气组件">
+                        <input type="checkbox" id="weatherEnabledInput" name="weatherEnabledInput" class="sr-only peer" checked>
+                        <div class="w-9 h-5 bg-white/20 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-500/80"></div>
+                    </label>
                 </div>
 
                 <!-- 下半部分：预设高清壁纸库 (移动端自然展开防堆叠，桌面端 sm:flex-1 自动撑满) -->
@@ -2485,8 +2460,7 @@
         // ==================== 配置 ====================
         const engines = {
             bing: { name: 'Bing', icon: 'https://a.favicon.im/bing.com', url: 'https://www.bing.com/search?q=' },
-            google: { name: 'Google', icon: 'https://a.favicon.im/google.com', url: 'https://www.google.com/search?q=' },
-            baidu: { name: '百度', icon: 'https://a.favicon.im/baidu.com', url: 'https://www.baidu.com/s?wd=' }
+            google: { name: 'Google', icon: 'https://a.favicon.im/google.com', url: 'https://www.google.com/search?q=' }
         };
 
         const backgrounds = (typeof window !== 'undefined' && Array.isArray(window.__BACKGROUNDS__) && window.__BACKGROUNDS__.length)
@@ -2552,7 +2526,7 @@
          * @returns {void}
          */
         function cacheDOM() {
-            const ids = 'clock date searchInput searchClearBtn randomBookmarkBtn engineBtn engineIcon engineName dropdownMenu suggestionMenu bookmarks sidebar sidebarList navCategories navContent editModal editList dragDropIndicator editBookmarksBtn addBookmarkBtn saveEditBtn cancelEditBtn resetEditBtn togglePickerBtn bookmarkPicker pickerContent pickerCount closePickerBtn donePickerBtn exportJsonBtn importJsonInput uploadBgBtn urlBgBtn resetBgBtn uploadBgInput wallpaperStatus bookmarkCountBadge jsonDropzone maskOpacityInput maskOpacityVal bgBlurInput bgBlurVal storageSizeBadge statBookmarkCount statWallpaperType statPwaStatus clearCacheBtn bgOverlay startSection navSection navHint navHeader presetWallpaperGrid shortcutModal closeShortcutBtn doneShortcutBtn openShortcutFromSettingsBtn scrollDownHint weatherWidget weatherBtn weatherIcon weatherTemp weatherCity weatherPopover weatherSettingCard weatherEnabledInput weatherConfigDetails weatherCurrentLocBadge weatherCityInput weatherCitySaveBtn weatherCityResetBtn weatherCityFeedback'.split(' ');
+            const ids = 'clock date searchInput searchClearBtn randomBookmarkBtn engineBtn engineIcon engineName dropdownMenu suggestionMenu bookmarks sidebar sidebarList navCategories navContent editModal editList dragDropIndicator editBookmarksBtn addBookmarkBtn saveEditBtn cancelEditBtn resetEditBtn togglePickerBtn bookmarkPicker pickerContent pickerCount closePickerBtn donePickerBtn exportJsonBtn importJsonInput uploadBgBtn urlBgBtn resetBgBtn uploadBgInput wallpaperStatus bookmarkCountBadge jsonDropzone maskOpacityInput maskOpacityVal bgBlurInput bgBlurVal storageSizeBadge statBookmarkCount statWallpaperType statPwaStatus clearCacheBtn bgOverlay startSection navSection navHint navHeader presetWallpaperGrid shortcutModal closeShortcutBtn doneShortcutBtn openShortcutFromSettingsBtn scrollDownHint weatherWidget weatherBtn weatherIcon weatherTemp weatherCity weatherPopover weatherSettingCard weatherEnabledInput'.split(' ');
             ids.forEach(id => dom[id] = $(id));
         }
 
@@ -2563,7 +2537,7 @@
         function renderEngineDropdown() {
             if (!dom.dropdownMenu) return;
             const curEngine = state.engine || 'bing';
-            const order = ['bing', 'google', 'baidu'];
+            const order = ['bing', 'google'];
             dom.dropdownMenu.innerHTML = order.map(key => {
                 const eng = engines[key];
                 if (!eng) return '';
@@ -2587,7 +2561,7 @@
                 const bg = `./wallpapers/bg${i + 1}.avif`;
                 const fullTitle = i === 0 ? `${title}（系统默认）` : title;
                 return `<button type="button" class="preset-bg-card group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70" data-bg="${bg}" data-title="${title}" title="${fullTitle}">
-                    <img data-src="${bg}" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 9'%3E%3C/svg%3E" alt="${title}" class="w-full h-full object-cover pointer-events-none" loading="lazy" decoding="async" draggable="false">
+                    <img data-src="${bg}" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 9'%3E%3C/svg%3E" width="160" height="90" alt="${title}" class="w-full h-full object-cover pointer-events-none" loading="lazy" decoding="async" draggable="false">
                     <span class="absolute inset-x-0 bottom-0 py-1.5 px-1 bg-black/65 backdrop-blur-sm border-t border-white/10 text-xs text-white/90 text-center font-medium tracking-tight pointer-events-none flex items-center justify-center">${title}</span>
                 </button>`;
             }).join('');
@@ -4396,6 +4370,7 @@
         let cachedSidebarItems = [];
         let cachedSidebarSections = [];
         let cachedSectionOffsets = [];
+        let cachedSidebarButtonGeometries = new Map();
 
         function refreshSidebarNavCache() {
             if (!dom.sidebarList || !dom.navContent) return;
@@ -4406,6 +4381,15 @@
             // 不能再减 navContent.offsetTop —— 那是相对 #navSection 的另一个坐标系（偏差约 51~57px），
             // 会导致滚动监听中分类高亮提前约 50px 切换
             cachedSectionOffsets = cachedSidebarSections.map(s => s.offsetTop);
+            cachedSidebarButtonGeometries.clear();
+            cachedSidebarItems.forEach(btn => {
+                cachedSidebarButtonGeometries.set(btn, {
+                    left: btn.offsetLeft,
+                    top: btn.offsetTop,
+                    width: btn.offsetWidth,
+                    height: btn.offsetHeight
+                });
+            });
         }
 
         function scrollTabIntoView(item, container) {
@@ -4490,14 +4474,16 @@
                 indicator.style.opacity = '0';
                 return;
             }
-            const left = activeBtn.offsetLeft;
-            const top = activeBtn.offsetTop;
-            const width = activeBtn.offsetWidth;
-            const height = activeBtn.offsetHeight;
+            const geo = cachedSidebarButtonGeometries.get(activeBtn) || {
+                left: activeBtn.offsetLeft,
+                top: activeBtn.offsetTop,
+                width: activeBtn.offsetWidth,
+                height: activeBtn.offsetHeight
+            };
 
-            indicator.style.width = `${width}px`;
-            indicator.style.height = `${height}px`;
-            indicator.style.transform = `translate3d(${left}px, ${top}px, 0)`;
+            indicator.style.width = `${geo.width}px`;
+            indicator.style.height = `${geo.height}px`;
+            indicator.style.transform = `translate3d(${geo.left}px, ${geo.top}px, 0)`;
             indicator.style.opacity = '1';
         }
 
@@ -5275,7 +5261,7 @@
             dom.dropdownMenu.setAttribute('aria-hidden', 'true');
             dom.engineBtn.setAttribute('aria-expanded', 'false');
         }
-        /** @param {string} key - 引擎标识（bing/google/baidu）
+        /** @param {string} key - 引擎标识（bing/google）
          * @param {boolean} [save] - 是否持久化到 localStorage */
         function setEngine(key, save = true) {
             const validEngine = engines[key] ? key : 'bing';
@@ -5592,7 +5578,7 @@
             return matches.slice(0, limit).map(m => m.item);
         }
 
-        // 核心实时建议拉取函数：全面支持 百度 / Bing / Google / DuckDuckGo (Bing 回退) 的开放 Suggest API + 本地书签混排
+        // 核心实时建议拉取函数：支持 Bing / Google 开放 Suggest API + 本地书签混排
         let activeSuggestReqId = 0;
 
         function fetchSuggestions(engineKey, query) {
@@ -5657,11 +5643,8 @@
                 if (reqId !== activeSuggestReqId) return; // 废弃过期异步响应
                 let list = [];
                 if (Array.isArray(data)) {
-                    // Bing / Google format: [query, [suggestions]] / DuckDuckGo format: [{phrase:"..."}, ...]
+                    // Bing / Google format: [query, [suggestions]]
                     list = Array.isArray(data[1]) ? data[1] : data.map(item => (typeof item === 'object' && item && item.phrase) ? item.phrase : item);
-                } else if (data && Array.isArray(data.s)) {
-                    // Baidu format: {s: [suggestions]}
-                    list = data.s;
                 }
                 // 动态计算：确保 (本站书签数 + 网络联想数) 严格总计不超过 4 行，且防御性过滤非字符串项
                 const maxNetCount = Math.max(0, 4 - localList.length);
@@ -5679,12 +5662,9 @@
             script.onerror = handleSuggestFallback;
 
             // 搜索引擎 Suggest API 调度策略：
-            // 1. 百度 JSONP：显式指定 ie=utf-8&oe=utf-8，防止部分浏览器以 GBK 解码导致中文联想词乱码。
-            // 2. Bing JSONP：全球通用，免代理极速响应。
-            // 3. Google JSONP：提供全球最全检索联想。
-            if (engineKey === 'baidu') {
-                script.src = `https://suggestion.baidu.com/su?wd=${encodeURIComponent(query)}&p=3&ie=utf-8&oe=utf-8&cb=${cbName}`;
-            } else if (engineKey === 'bing') {
+            // 1. Bing JSONP：全球通用，免代理极速响应。
+            // 2. Google JSONP：提供全球最全检索联想。
+            if (engineKey === 'bing') {
                 script.src = `https://api.bing.com/osjson.aspx?query=${encodeURIComponent(query)}&JsonType=callback&JsonCallback=${cbName}`;
             } else if (engineKey === 'google') {
                 script.src = `https://suggestqueries.google.com/complete/search?client=chrome&q=${encodeURIComponent(query)}&callback=${cbName}`;
@@ -5896,16 +5876,15 @@
         }
 
         let weatherSettings = {
-            enabled: true,
-            mode: 'auto',
-            customCity: '',
-            customGeo: null
+            enabled: true
         };
 
         function loadWeatherSettings() {
             const saved = storageGet('glass_weather_settings', null);
             if (saved && typeof saved === 'object') {
-                weatherSettings = { ...weatherSettings, ...saved };
+                if (typeof saved.enabled === 'boolean') {
+                    weatherSettings.enabled = saved.enabled;
+                }
             }
         }
 
@@ -5977,10 +5956,7 @@
             return result.join(' · ');
         }
 
-        async function resolveWeatherLocation(settings) {
-            if (settings.mode === 'custom' && settings.customGeo && settings.customGeo.lat) {
-                return settings.customGeo;
-            }
+        async function resolveWeatherLocation() {
             // 自动 IP 定位优先：读取本地 24 小时位置缓存，彻底杜绝重复请求 IP 接口
             const locCache = storageGet('glass_weather_loc_cache', null);
             const now = Date.now();
@@ -5998,26 +5974,6 @@
                         const fullName = formatLocationFullName([data.country, data.region, data.city]);
                         const resolved = {
                             name: dispName,
-                            fullName: fullName,
-                            lat: data.latitude,
-                            lon: data.longitude,
-                            isAuto: true,
-                            timestamp: now
-                        };
-                        storageSet('glass_weather_loc_cache', resolved);
-                        return resolved;
-                    }
-                }
-            } catch {}
-
-            try {
-                const res = await fetch('https://freeipapi.com/api/json', { signal: AbortSignal.timeout ? AbortSignal.timeout(4000) : undefined });
-                if (res.ok) {
-                    const data = await res.json();
-                    if (data && data.latitude) {
-                        const fullName = formatLocationFullName([data.countryName, data.regionName, data.cityName]);
-                        const resolved = {
-                            name: data.cityName || data.regionName || '本地',
                             fullName: fullName,
                             lat: data.latitude,
                             lon: data.longitude,
@@ -6241,17 +6197,46 @@
             isFetchingWeather = true;
 
             try {
-                const loc = await resolveWeatherLocation(weatherSettings);
-                const freshData = await fetchWeatherForecast(loc);
-                storageSet('glass_weather_cache', freshData);
-                renderWeatherCapsule(freshData);
-                renderWeatherPopover(freshData);
-                updateWeatherSettingsUI(loc);
+                // 乐观并发加速：若存在已知历史坐标，立即并发拉取天气，消灭串行等待 500ms
+                const locCache = storageGet('glass_weather_loc_cache', null);
+                const knownLoc = (locCache && locCache.lat) ? locCache : (cache && cache.location && cache.location.lat ? cache.location : null);
+
+                if (knownLoc) {
+                    // 并发发起：1) 基于已知坐标的天气预测 2) 后台位置重校验
+                    const forecastPromise = fetchWeatherForecast(knownLoc);
+                    const locationPromise = resolveWeatherLocation();
+
+                    const freshData = await forecastPromise;
+                    storageSet('glass_weather_cache', freshData);
+                    renderWeatherCapsule(freshData);
+                    renderWeatherPopover(freshData);
+                    updateWeatherSettingsUI();
+
+                    // 后台等待位置校验完成，若发现城市发生迁移，则使用新城市静默更新
+                    locationPromise.then(async (newLoc) => {
+                        if (newLoc && (Math.abs(newLoc.lat - knownLoc.lat) > 0.08 || Math.abs(newLoc.lon - knownLoc.lon) > 0.08)) {
+                            try {
+                                const relocatedData = await fetchWeatherForecast(newLoc);
+                                storageSet('glass_weather_cache', relocatedData);
+                                renderWeatherCapsule(relocatedData);
+                                renderWeatherPopover(relocatedData);
+                            } catch {}
+                        }
+                    }).catch(() => {});
+                } else {
+                    // 全冷启动（首访）：串行解析定位后拉取天气
+                    const loc = await resolveWeatherLocation();
+                    const freshData = await fetchWeatherForecast(loc);
+                    storageSet('glass_weather_cache', freshData);
+                    renderWeatherCapsule(freshData);
+                    renderWeatherPopover(freshData);
+                    updateWeatherSettingsUI();
+                }
             } catch (err) {
                 if (cache) {
                     renderWeatherCapsule(cache);
                     renderWeatherPopover(cache);
-                    updateWeatherSettingsUI(cache.location);
+                    updateWeatherSettingsUI();
                 } else {
                     if (dom.weatherCity) dom.weatherCity.textContent = '暂无数据';
                 }
@@ -6260,46 +6245,9 @@
             }
         }
 
-        async function searchCityGeocoding(name) {
-            if (!name || !name.trim()) return null;
-            const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(name.trim())}&language=zh&count=5`;
-            const res = await fetch(url);
-            if (!res.ok) return null;
-            const data = await res.json();
-            if (data.results && data.results.length > 0) {
-                const top = data.results[0];
-                const fullName = formatLocationFullName([top.country, top.admin1, top.admin2, top.name]);
-                return {
-                    name: top.name,
-                    fullName: fullName,
-                    lat: top.latitude,
-                    lon: top.longitude,
-                    isAuto: false
-                };
-            }
-            return null;
-        }
-
-        function updateWeatherSettingsUI(loc) {
+        function updateWeatherSettingsUI() {
             if (dom.weatherEnabledInput) {
                 dom.weatherEnabledInput.checked = !!weatherSettings.enabled;
-            }
-            if (dom.weatherConfigDetails) {
-                dom.weatherConfigDetails.style.display = weatherSettings.enabled ? '' : 'none';
-            }
-            if (dom.weatherCurrentLocBadge) {
-                if (weatherSettings.mode === 'custom' && weatherSettings.customGeo) {
-                    dom.weatherCurrentLocBadge.textContent = `自定义: ${weatherSettings.customGeo.name}`;
-                } else if (loc && loc.name) {
-                    dom.weatherCurrentLocBadge.textContent = `自动: ${loc.name}`;
-                } else {
-                    dom.weatherCurrentLocBadge.textContent = '自动定位';
-                }
-            }
-            if (dom.weatherCityInput) {
-                if (weatherSettings.mode === 'custom' && weatherSettings.customCity) {
-                    dom.weatherCityInput.value = weatherSettings.customCity;
-                }
             }
         }
 
@@ -6308,54 +6256,6 @@
                 dom.weatherEnabledInput.addEventListener('change', () => {
                     weatherSettings.enabled = dom.weatherEnabledInput.checked;
                     saveWeatherSettings();
-                    updateWeatherSettingsUI();
-                    updateWeather(true);
-                });
-            }
-
-            if (dom.weatherCitySaveBtn && dom.weatherCityInput) {
-                dom.weatherCitySaveBtn.addEventListener('click', async () => {
-                    const query = dom.weatherCityInput.value.trim();
-                    if (!query) {
-                        if (dom.weatherCityFeedback) dom.weatherCityFeedback.textContent = '请输入城市或区县名称';
-                        return;
-                    }
-                    if (dom.weatherCityFeedback) dom.weatherCityFeedback.textContent = '🔍 正在检索城市经纬度...';
-                    try {
-                        const geo = await searchCityGeocoding(query);
-                        if (geo) {
-                            weatherSettings.mode = 'custom';
-                            weatherSettings.customCity = query;
-                            weatherSettings.customGeo = geo;
-                            saveWeatherSettings();
-                            if (dom.weatherCityFeedback) dom.weatherCityFeedback.textContent = `✔ 已定位到：${geo.fullName}`;
-                            updateWeatherSettingsUI(geo);
-                            updateWeather(true);
-                        } else {
-                            if (dom.weatherCityFeedback) dom.weatherCityFeedback.textContent = '❌ 未找到该城市，请检查地名后重试';
-                        }
-                    } catch {
-                        if (dom.weatherCityFeedback) dom.weatherCityFeedback.textContent = '❌ 检索网络错误，请稍后重试';
-                    }
-                });
-
-                dom.weatherCityInput.addEventListener('keydown', e => {
-                    if (e.key === 'Enter') {
-                        e.preventDefault();
-                        dom.weatherCitySaveBtn.click();
-                    }
-                });
-            }
-
-            if (dom.weatherCityResetBtn) {
-                dom.weatherCityResetBtn.addEventListener('click', () => {
-                    weatherSettings.mode = 'auto';
-                    weatherSettings.customCity = '';
-                    weatherSettings.customGeo = null;
-                    if (dom.weatherCityInput) dom.weatherCityInput.value = '';
-                    if (dom.weatherCityFeedback) dom.weatherCityFeedback.textContent = '✔ 已恢复为自动 IP 定位模式';
-                    saveWeatherSettings();
-                    updateWeatherSettingsUI();
                     updateWeather(true);
                 });
             }
@@ -6370,7 +6270,7 @@
             if (cache) {
                 renderWeatherCapsule(cache);
                 renderWeatherPopover(cache);
-                updateWeatherSettingsUI(cache.location);
+                updateWeatherSettingsUI();
             } else {
                 updateWeatherSettingsUI();
             }
