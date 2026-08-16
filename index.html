@@ -4119,7 +4119,10 @@
                 return `<div class="icon-box ${sizeClass} bg-white/15 border border-white/20 text-white/90 ${textClass}">${escapeHtml(initial)}</div>`;
             }
             const imgSize = isMd ? '32' : '24';
-            return `<div class="icon-box ${sizeClass}"><img src="${TRANSPARENT_PLACEHOLDER_SVG}" data-src="${safeIcon}" width="${imgSize}" height="${imgSize}" data-initial="${escapeHtml(initial)}" data-md="${isMd ? '1' : '0'}" class="lazy-icon pointer-events-none select-none" alt="" loading="lazy" decoding="async" draggable="false"></div>`;
+            if (isMd) {
+                return `<div class="icon-box ${sizeClass}"><img src="${safeIcon}" width="${imgSize}" height="${imgSize}" data-initial="${escapeHtml(initial)}" data-md="1" class="lazy-icon pointer-events-none select-none" alt="" loading="lazy" decoding="async" draggable="false" onload="this.classList.add('loaded')"></div>`;
+            }
+            return `<div class="icon-box ${sizeClass}"><img src="${TRANSPARENT_PLACEHOLDER_SVG}" data-src="${safeIcon}" width="${imgSize}" height="${imgSize}" data-initial="${escapeHtml(initial)}" data-md="0" class="lazy-icon pointer-events-none select-none" alt="" loading="lazy" decoding="async" draggable="false"></div>`;
         }
 
         // ==================== 图标 IntersectionObserver 按需微任务队列加载器 ====================
@@ -4262,8 +4265,12 @@
                 </a>
             `).join('');
 
-            dom.bookmarks.querySelectorAll('img.lazy-icon[data-src]').forEach(img => {
-                enqueueLazyIcon(img);
+            dom.bookmarks.querySelectorAll('img.lazy-icon').forEach(img => {
+                if (img.complete && img.naturalWidth > 0) {
+                    img.classList.add('loaded');
+                } else {
+                    img.addEventListener('load', () => img.classList.add('loaded'), { once: true });
+                }
             });
         }
 
