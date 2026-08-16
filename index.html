@@ -6272,37 +6272,38 @@
             isFetchingWeather = true;
 
             try {
-                // 乐观并发加速：若存在已知坐标或使用默认保底坐标（上海），立即并发拉取天气，消灭串行阻塞
                 const locCache = storageGet('glass_weather_loc_cache', null);
-                const knownLoc = (locCache && locCache.lat) ? locCache : (cache && cache.location && cache.location.lat ? cache.location : {
-                    name: '上海',
-                    fullName: '中国 · 上海市',
-                    lat: 31.230,
-                    lon: 121.473,
-                    isAuto: true,
-                    timestamp: now
-                });
+                const knownLoc = (locCache && locCache.lat) ? locCache : (cache && cache.location && cache.location.lat ? cache.location : null);
 
-                // 并发发起：1) 基于坐标的天气预测 2) IP 定位校验与刷新（强制刷新时穿透位置缓存）
-                const locationPromise = resolveWeatherLocation(force);
-                const forecastPromise = fetchWeatherForecast(knownLoc);
+                if (knownLoc && !force) {
+                    // 已有已知坐标（二次访问/老用户）：并发基于已知坐标拉取天气，并在后台静默校验定位
+                    const forecastPromise = fetchWeatherForecast(knownLoc);
+                    const locationPromise = resolveWeatherLocation(false);
 
-                const freshData = await forecastPromise;
-                storageSet('glass_weather_cache', freshData);
-                renderWeatherCapsule(freshData);
-                renderWeatherPopover(freshData);
+                    const freshData = await forecastPromise;
+                    storageSet('glass_weather_cache', freshData);
+                    renderWeatherCapsule(freshData);
+                    renderWeatherPopover(freshData);
 
-                // 后台等待位置校验完成，若强制刷新或发现真实城市与已知坐标明显偏移，则使用新城市静默更新
-                locationPromise.then(async (newLoc) => {
-                    if (newLoc && (force || Math.abs(newLoc.lat - knownLoc.lat) > 0.08 || Math.abs(newLoc.lon - knownLoc.lon) > 0.08)) {
-                        try {
-                            const relocatedData = await fetchWeatherForecast(newLoc);
-                            storageSet('glass_weather_cache', relocatedData);
-                            renderWeatherCapsule(relocatedData);
-                            renderWeatherPopover(relocatedData);
-                        } catch {}
-                    }
-                }).catch(() => {});
+                    // 后台定位校验：若发现用户换了城市，静默更新
+                    locationPromise.then(async (newLoc) => {
+                        if (newLoc && (Math.abs(newLoc.lat - knownLoc.lat) > 0.08 || Math.abs(newLoc.lon - knownLoc.lon) > 0.08)) {
+                            try {
+                                const relocatedData = await fetchWeatherForecast(newLoc);
+                                storageSet('glass_weather_cache', relocatedData);
+                                renderWeatherCapsule(relocatedData);
+                                renderWeatherPopover(relocatedData);
+                            } catch {}
+                        }
+                    }).catch(() => {});
+                } else {
+                    // 全新首访（无坐标缓存）或用户点击立即刷新：先解析真实定位（国内 140ms / 国外 200ms），再精准拉取该城市天气
+                    const loc = await resolveWeatherLocation(force);
+                    const freshData = await fetchWeatherForecast(loc);
+                    storageSet('glass_weather_cache', freshData);
+                    renderWeatherCapsule(freshData);
+                    renderWeatherPopover(freshData);
+                }
             } catch (err) {
                 if (cache) {
                     renderWeatherCapsule(cache);
