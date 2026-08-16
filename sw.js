@@ -172,35 +172,53 @@ self.addEventListener('fetch', e => {
         const maxEntries = isFaviconDomain ? MAX_FAVICON_ENTRIES : MAX_IMG_ENTRIES;
 
         if (isFaviconDomain) {
-            // 安全防污染 Stale-While-Revalidate
+            // 安全防污染 Stale-While-Revalidate + 弹性超时降级
             e.respondWith(
                 caches.open(cacheName).then(async cache => {
                     const cached = await cache.match(e.request);
 
-                    const revalidatePromise = (async () => {
+                    // 异步向网络发起重新验证请求（带 4s 超时截断，防止慢速网络/PNA拦截导致渲染阻塞挂起）
+                    const fetchWithTimeout = async () => {
+                        let timeoutId = null;
                         try {
-                            const netRes = await fetch(e.request, { cache: 'no-cache' });
-                            // 防污染控制：仅在网络层有效且非零字节异常应答时才写入缓存
+                            const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+                            if (controller) {
+                                timeoutId = setTimeout(() => {
+                                    try { controller.abort(); } catch {}
+                                }, 4000);
+                            }
+                            const netRes = await fetch(e.request, {
+                                cache: 'no-cache',
+                                signal: controller ? controller.signal : undefined
+                            });
+                            if (timeoutId) clearTimeout(timeoutId);
+                            // 防污染控制：仅在网络层有效且非零字节应答时才写入缓存
                             if (netRes && (netRes.ok || netRes.type === 'opaque')) {
                                 await cache.put(e.request, netRes.clone());
                                 await pruneCache(cache, maxEntries);
+                                return netRes;
                             }
-                        } catch {}
-                    })();
+                        } catch {
+                            if (timeoutId) clearTimeout(timeoutId);
+                        }
+                        return null;
+                    };
 
                     if (cached) {
-                        e.waitUntil(revalidatePromise);
+                        e.waitUntil(fetchWithTimeout());
                         return cached;
                     }
 
-                    try {
-                        await revalidatePromise;
+                    // 首次请求且未命中缓存：等待快速网络拉取
+                    const netRes = await fetchWithTimeout();
+                    if (netRes) {
                         const freshCached = await cache.match(e.request);
                         if (freshCached) return freshCached;
-                        return new Response('', { status: 404 });
-                    } catch {
-                        return new Response('', { status: 404 });
+                        return netRes;
                     }
+
+                    // 网络拉取失败（离线/PNA/CORS/404）：返回 404，由前端 <img> 捕获 onerror 触发优雅首字母徽标降级
+                    return new Response('', { status: 404, statusText: 'Favicon Unavailable' });
                 })
             );
         } else {
