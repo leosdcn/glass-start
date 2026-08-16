@@ -6,13 +6,11 @@
  * 1. 【防透明响应污染 (Anti-Opaque Poisoning)】：
  *    跨域 a.favicon.im 的 no-cors 请求产生 opaque 响应 (status=0)。当遇到网络抖动或 DNS 拦截时，
  *    坏的 opaque 响应不能无差别覆写旧缓存。重构引入二次网络效验与自愈隔离机制。
- * 2. 【IndexedDB LRU 性能优化】：
- *    优化 IndexedDB 游标遍历性能，对时间戳清理追加错误界限保护，防止无故触发 $O(N)$ 内存排序耗时。
- * 3. 【串行锁与锁释放防死锁】：
- *    pruneLocks map 追加并发限流与异常捕获逻辑，防止 Promise 链崩溃导致后续清理队列挂起。
- * 4. 【严密边界防护】：
+ * 2. 【CacheStorage FIFO 容量限额淘汰】：
+ *    使用高效轻量的原生 CacheStorage 限额自动淘汰机制 (pruneCache)，淘汰重度 IDB 依赖，杜绝缓存无限膨胀。
+ * 3. 【严密边界防护】：
  *    核心 assets 预缓存吞掉单项失败，主导航 Network-First 追加统一 503 兜底页面。
- * 5. 【修复同源 JS/CSS 静态资源缓存漏洞】：
+ * 4. 【修复同源 JS/CSS 静态资源缓存漏洞】：
  *    原 fetch handler 仅处理主文档/JSON数据/图标/图片四类，app.js 等同源脚本穿透 SW 走浏览器 HTTP 缓存，
  *    install 预缓存形同虚设、离线不可用。新增 isCoreStaticAsset 分支实现 Cache-First，使预缓存真正生效。
  */

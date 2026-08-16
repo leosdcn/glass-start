@@ -44,7 +44,7 @@ function getFileHash(filepath) {
 
 // 核心依赖文件的哈希组合（任意源文件修改都会触发依赖它的测试重新运行）
 const sharedFiles = [
-  join(rootDir, 'app.js'),
+  join(rootDir, 'dist', 'app.js'),
   join(rootDir, 'index.html'),
   join(rootDir, 'sw.js'),
   join(rootDir, 'build.js'),
