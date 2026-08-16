@@ -308,6 +308,34 @@
             line-height: 1.25;
             white-space: nowrap;
         }
+        .glass-btn-primary {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 0.75rem;
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.85);
+            background: rgba(255, 255, 255, 0.10);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+            transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease, color 0.15s ease;
+            cursor: pointer;
+        }
+        @media (hover: hover) and (pointer: fine) {
+            .glass-btn-primary:hover {
+                background: rgba(255, 255, 255, 0.15);
+                border-color: rgba(255, 255, 255, 0.25);
+                color: #ffffff;
+            }
+        }
+        .glass-btn-primary:active {
+            transform: scale(0.98);
+        }
+        .glass-btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
         section {
             /* 保持硬件合成层但避免在 Safari 中与 backdrop-filter 产生多重 3D 隔离上下文 */
             backface-visibility: hidden;
@@ -1600,7 +1628,7 @@
                             <span>📤</span> <span class="btn-label">导出 JSON 配置文件备份</span>
                         </button>
                         <!-- Dropzone 导入框 (flex-1 自适应拉伸填充) -->
-                        <div id="jsonDropzone" class="json-dropzone flex-1 border-2 border-dashed border-white/15 hover:border-white/35 rounded-2xl p-4 text-center transition-[background-color,border-color,transform] duration-150 cursor-pointer bg-white/5 hover:bg-white/10 flex flex-col items-center justify-center gap-1.5 min-h-24 sm:min-h-28 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" tabindex="0">
+                        <div id="jsonDropzone" role="button" aria-label="点击或将 JSON 备份文件拖入此处上传" class="json-dropzone flex-1 border-2 border-dashed border-white/15 hover:border-white/35 rounded-2xl p-4 text-center transition-[background-color,border-color,transform] duration-150 cursor-pointer bg-white/5 hover:bg-white/10 flex flex-col items-center justify-center gap-1.5 min-h-24 sm:min-h-28 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" tabindex="0">
                             <span class="text-lg sm:text-xl">📥</span>
                             <p class="text-xs text-white/80 font-medium">点击或将 JSON 备份文件拖入此处</p>
                             <p class="text-2xs text-white/40">自动解析恢复快捷书签与系统偏好配置</p>
@@ -1650,7 +1678,7 @@
             <!-- 底部操作栏 (保存 / 取消响应式布局) -->
             <div class="flex items-center justify-end gap-3 mt-3 pt-3 border-t border-white/10 shrink-0">
                 <button id="cancelEditBtn" type="button" class="flex-1 sm:flex-initial py-2.5 px-5 rounded-xl text-xs sm:text-sm font-normal text-white/50 hover:text-white/80 hover:bg-white/5 transition-[background-color,color,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 disabled:opacity-50 disabled:cursor-not-allowed">取消</button>
-                <button id="saveEditBtn" type="button" class="flex-1 sm:flex-initial py-2.5 px-6 rounded-xl text-xs sm:text-sm font-medium text-white/85 hover:text-white bg-white/10 hover:bg-white/15 border border-white/15 hover:border-white/25 shadow-[0_2px_6px_rgba(0,0,0,0.15),inset_0_1px_0_rgba(255,255,255,0.12)] active:scale-[0.98] transition-[background-color,border-color,box-shadow,transform,color] duration-150 inline-flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:opacity-50 disabled:cursor-not-allowed">
+                <button id="saveEditBtn" type="button" class="glass-btn-primary flex-1 sm:flex-initial py-2.5 px-6 text-xs sm:text-sm gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:opacity-50 disabled:cursor-not-allowed">
                     <svg class="spinner size-4 animate-spin hidden" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
                     <span class="btn-label">保存并关闭</span>
                 </button>
@@ -1668,7 +1696,7 @@
             <div id="pickerContent" class="flex-1 overflow-y-auto min-h-0 space-y-3"></div>
             <div class="flex items-center justify-between mt-3 pt-2 border-t border-white/10 shrink-0">
                 <span id="pickerCount" class="glass-badge">已添加 0 项</span>
-                <button id="donePickerBtn" type="button" class="py-2 px-6 bg-white/10 hover:bg-white/15 text-white/85 hover:text-white border border-white/15 hover:border-white/25 shadow-[0_2px_6px_rgba(0,0,0,0.15),inset_0_1px_0_rgba(255,255,255,0.12)] rounded-xl active:scale-[0.98] transition-[background-color,border-color,box-shadow,transform,color] duration-150 text-xs sm:text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:opacity-50 disabled:cursor-not-allowed">完成</button>
+                <button id="donePickerBtn" type="button" class="glass-btn-primary py-2 px-6 text-xs sm:text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:opacity-50 disabled:cursor-not-allowed">完成</button>
             </div>
         </div>
     </div><!-- /#bookmarkPicker -->
@@ -1764,7 +1792,7 @@
 
             <!-- 底部操作与提示 -->
             <div class="flex items-center justify-end mt-3 pt-3 border-t border-white/10 shrink-0">
-                <button id="doneShortcutBtn" type="button" class="py-2.5 px-6 rounded-xl text-xs sm:text-sm font-medium text-white/85 hover:text-white bg-white/10 hover:bg-white/15 border border-white/15 hover:border-white/25 shadow-[0_2px_6px_rgba(0,0,0,0.15),inset_0_1px_0_rgba(255,255,255,0.12)] active:scale-[0.98] transition-[background-color,border-color,box-shadow,transform,color] duration-150 inline-flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:opacity-50 disabled:cursor-not-allowed">知道了</button>
+                <button id="doneShortcutBtn" type="button" class="glass-btn-primary py-2.5 px-6 text-xs sm:text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:opacity-50 disabled:cursor-not-allowed">知道了</button>
             </div>
         </div>
     </div><!-- /#shortcutModal -->
@@ -3263,7 +3291,7 @@
         function getEditRowHTML(name = '', url = '', idx = '', icon = '') {
             const rowId = (idx !== '' && idx !== undefined) ? idx : Date.now();
             return `
-                <div class="edit-row-card flex items-center gap-1.5 sm:gap-2 p-1.5 sm:p-2 bg-white/5 border border-white/10 apple-radius hover:border-white/25 transition-[background-color,border-color,transform,opacity] duration-150 group mb-1.5 shadow-xs" data-idx="${idx}" data-icon="${escapeHtml(icon || '')}" data-orig-url="${escapeHtml(url || '')}" draggable="false">
+                <div role="listitem" class="edit-row-card flex items-center gap-1.5 sm:gap-2 p-1.5 sm:p-2 bg-white/5 border border-white/10 apple-radius hover:border-white/25 transition-[background-color,border-color,transform,opacity] duration-150 group mb-1.5 shadow-xs" data-idx="${idx}" data-icon="${escapeHtml(icon || '')}" data-orig-url="${escapeHtml(url || '')}" draggable="false">
                     <div class="flex items-center gap-1 shrink-0">
                         <div class="drag-handle touch-none p-1 size-7 flex items-center justify-center shrink-0 text-white/30 group-hover:text-white/70 hover:!text-white cursor-grab active:cursor-grabbing transition-[color,transform] duration-150" title="按住拖拽排序" role="button" tabindex="0" aria-label="按住拖拽或使用键盘排序">
                             <svg class="size-3.5 pointer-events-none" viewBox="0 0 16 16" fill="currentColor"><circle cx="5" cy="4" r="1.5"/><circle cx="11" cy="4" r="1.5"/><circle cx="5" cy="8" r="1.5"/><circle cx="11" cy="8" r="1.5"/><circle cx="5" cy="12" r="1.5"/><circle cx="11" cy="12" r="1.5"/></svg>
@@ -3276,7 +3304,7 @@
                         <input type="text" id="bm-name-${rowId}" name="bookmark_name_${rowId}" class="edit-name w-full sm:w-1/3 bg-black/25 border border-white/10 rounded-lg px-2.5 py-1 sm:py-1.5 text-xs text-white/90 focus:border-white/40 focus:bg-black/40 outline-none transition font-medium" value="${escapeHtml(name)}" placeholder="书签名称" aria-label="书签名称">
                         <input type="text" id="bm-url-${rowId}" name="bookmark_url_${rowId}" class="edit-url w-full sm:w-2/3 bg-black/25 border border-white/10 rounded-lg px-2.5 py-1 sm:py-1.5 text-2xs sm:text-xs text-white/60 focus:border-white/40 focus:bg-black/40 focus:text-white outline-none transition font-mono" value="${escapeHtml(url)}" placeholder="https://..." aria-label="书签网址">
                     </div>
-                    <button type="button" class="del-btn shrink-0 size-7 sm:size-8 p-1 hover:bg-red-500/20 rounded-lg text-white/30 hover:text-red-400 flex items-center justify-center transition" title="删除书签">
+                    <button type="button" class="del-btn shrink-0 size-7 sm:size-8 p-1 hover:bg-red-500/20 rounded-lg text-white/30 hover:text-red-400 flex items-center justify-center transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-1 focus-visible:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed" title="删除书签">
                         <svg class="size-4 pointer-events-none" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 16 16"><path d="M2.5 4h11M5.5 4V2.5a1 1 0 011-1h3a1 1 0 011 1V4m2 0v8.5a1.5 1.5 0 01-1.5 1.5h-6A1.5 1.5 0 013.5 12.5V4m3 3v4.5m3-4.5v4.5"/></svg>
                     </button>
                 </div>
@@ -3955,7 +3983,7 @@
                             return `
                                 <button type="button" class="w-full flex items-center gap-2 px-2 py-1.5 apple-radius picker-item text-left select-none ${exists ? 'opacity-40 cursor-not-allowed' : 'hover:bg-white/10 cursor-pointer'}" ${exists ? 'disabled aria-disabled="true"' : ''} aria-label="${exists ? `${escapeHtml(bm.name)}（已添加）` : `添加快捷书签：${escapeHtml(bm.name)}`}" ${!exists ? `data-name="${escapeHtml(bm.name)}" data-url="${escapeHtml(bm.url)}"` : ''}>
                                     ${getFaviconHTML(bm, 'sm')}
-                                    <span class="text-xs text-white/70 truncate flex-1">${escapeHtml(bm.name)}</span>
+                                    <span class="text-xs text-white/70 truncate flex-1 min-w-0">${escapeHtml(bm.name)}</span>
                                     ${exists
                                         ? '<span class="text-2xs text-white/20 shrink-0">已存在</span>'
                                         : '<span class="text-white/40 shrink-0 text-sm">+</span>'
@@ -5733,7 +5761,7 @@
                              data-idx="${globalIdx}"
                              class="suggestion-item group px-3.5 py-2.5 my-0.5 apple-radius text-sm text-white/85 flex items-center gap-3 transition-[background-color,color,transform] duration-150 cursor-pointer hover:text-white">
                             <svg class="w-5 h-5 text-white/40 group-hover:text-white/80 shrink-0 pointer-events-none select-none transition" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 20 20"><circle cx="8.5" cy="8.5" r="5.25"/><path d="M12.5 12.5L16.5 16.5"/></svg>
-                            <span class="truncate flex-1 font-normal tracking-wide">${escapeHtml(item)}</span>
+                            <span class="truncate flex-1 min-w-0 font-normal tracking-wide">${escapeHtml(item)}</span>
                         </div>
                     `;
                     globalIdx++;
@@ -6055,7 +6083,7 @@
                         <span class="text-xs text-white/50 shrink-0">📍</span>
                         <span class="text-xs font-semibold text-white/90 truncate" title="${escapeHtml(loc.fullName || loc.name)}">${escapeHtml(loc.fullName || loc.name)}</span>
                     </div>
-                    <button id="weatherRefreshBtn" type="button" class="size-6 apple-radius bg-white/5 hover:bg-white/15 text-white/70 hover:text-white flex items-center justify-center transition-[background-color,transform] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 shrink-0" title="立即刷新天气">
+                    <button id="weatherRefreshBtn" type="button" class="size-6 apple-radius bg-white/5 hover:bg-white/15 text-white/70 hover:text-white flex items-center justify-center transition-[background-color,transform] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 shrink-0 disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none" title="立即刷新天气">
                         <svg class="size-3.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
                     </button>
                 </div>
@@ -6110,7 +6138,7 @@
                     ${days.slice(0, 4).map(d => `
                         <div class="flex items-center justify-between text-xs py-1 px-1.5 apple-radius hover:bg-white/5 transition-colors">
                             <span class="w-10 text-white/70 font-medium">${d.label}</span>
-                            <div class="flex items-center gap-1.5 flex-1 justify-center">
+                            <div class="flex items-center gap-1.5 flex-1 min-w-0 justify-center">
                                 <span class="select-none">${d.icon}</span>
                                 <span class="text-2xs text-white/60 truncate">${escapeHtml(d.text)}</span>
                             </div>
@@ -6124,6 +6152,9 @@
             if (refBtn) {
                 refBtn.addEventListener('click', (e) => {
                     e.stopPropagation();
+                    if (refBtn.disabled) return;
+                    refBtn.disabled = true;
+                    refBtn.setAttribute('aria-busy', 'true');
                     const svg = refBtn.querySelector('svg');
                     if (svg) svg.classList.add('weather-spin');
                     const startTime = Date.now();
@@ -6133,6 +6164,8 @@
                         const remaining = Math.max(0, MIN_SPIN_DURATION - elapsed);
                         setTimeout(() => {
                             if (svg) svg.classList.remove('weather-spin');
+                            refBtn.disabled = false;
+                            refBtn.removeAttribute('aria-busy');
                         }, remaining);
                     });
                 });
