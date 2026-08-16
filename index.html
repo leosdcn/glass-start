@@ -896,6 +896,27 @@
             from { transform: rotate(0deg); }
             to { transform: rotate(360deg); }
         }
+        /* ===== 导航页滚动流体优雅入场动效 (Apple HIG Balanced Scroll Reveal) ===== */
+        @supports (animation-timeline: view()) {
+            @media (prefers-reduced-motion: no-preference) {
+                .category-block {
+                    view-timeline: --cat-block-timeline block;
+                    animation: categoryScrollEntry linear both;
+                    animation-timeline: --cat-block-timeline;
+                    animation-range: entry 0% cover 18%;
+                }
+                @keyframes categoryScrollEntry {
+                    0% {
+                        opacity: 0.4;
+                        transform: translateY(12px) scale(0.988);
+                    }
+                    100% {
+                        opacity: 1;
+                        transform: translateY(0) scale(1);
+                    }
+                }
+            }
+        }
         /* 导航页书签行悬停时显示右箭头并微移 (CSS 伪元素零 DOM 节点模式) */
         .nav-bookmark::after {
             content: '';
