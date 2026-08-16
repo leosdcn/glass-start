@@ -6019,11 +6019,6 @@
 
         function renderWeatherCapsule(data) {
             if (!dom.weatherWidget) return;
-            if (!weatherSettings.enabled) {
-                dom.weatherWidget.style.display = 'none';
-                return;
-            }
-            dom.weatherWidget.style.display = '';
             if (!data || !data.current) return;
             if (dom.weatherIcon) dom.weatherIcon.textContent = data.current.icon;
             if (dom.weatherTemp) dom.weatherTemp.textContent = `${data.current.temp}°`;

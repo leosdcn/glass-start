@@ -15,7 +15,7 @@ const bm = await evalJS(`(() => {
   const imgs = [...document.querySelectorAll('#bookmarks img')];
   const keys = localStorage.getItem('userBookmarkKeys');
   const meta = localStorage.getItem('userCustomMeta');
-  return { count: imgs.length, hasJS: imgs.every(i => i.hasAttribute('fetchpriority')), keys, meta };
+  return { count: imgs.length, hasJS: imgs.every(i => i.classList.contains('lazy-icon') || i.hasAttribute('data-md')), keys, meta };
 })()`);
 pass('首屏书签 JS 动态渲染正常且全新启动无派生垃圾', bm.count === 8 && bm.hasJS && bm.keys === null && bm.meta === null);
 
