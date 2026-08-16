@@ -187,7 +187,7 @@
         /* .nr 模式：直达导航页预渲染，与 HEAD inline script 配合消除刷新抖动 */
         .nr #startSection { transform: translateY(-100vh) !important; transform: translateY(-100dvh) !important; transition: none !important; }
         .nr #navSection { visibility: visible !important; transform: translateY(0) !important; transition: none !important; }
-        .nr #editBookmarksBtn { opacity: 0 !important; pointer-events: none !important; transition: none !important; }
+        .nr #editBookmarksBtn, .nr #weatherWidget { opacity: 0 !important; pointer-events: none !important; transition: none !important; }
         .nr *, .nr *::before, .nr *::after { animation: none !important; transition: none !important; }
         /* Standard Font Size Utility Classes with Apple Optical Tracking */
         .text-3xs { font-size: 0.5625rem; letter-spacing: -0.012em; }
@@ -823,14 +823,14 @@
                 margin-top: 0.5rem;
             }
         }
-        /* 编辑按钮：固定于右下角，常驻低透明，hover 渐亮并让齿轮图标顺畅旋转 90 度 */
+        /* 编辑按钮：绝对定位固定于起始页右下角，跟随起始页物理滑屏，hover 渐亮并让齿轮图标顺畅旋转 90 度 */
         #editBookmarksBtn {
-            position: fixed;
+            position: absolute;
             bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px));
             right: calc(1.5rem + env(safe-area-inset-right, 0px));
             opacity: 0.6;
             z-index: 50;
-            transition: opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1), color 0.3s ease, background-color 0.3s ease, border-color 0.3s ease;
+            transition: opacity 0.3s ease, color 0.3s ease, background-color 0.3s ease, border-color 0.3s ease;
         }
         #editBookmarksBtn svg {
             transition: transform 0.45s var(--ease-overshoot);
@@ -844,12 +844,9 @@
         #navCategories {
             padding-bottom: clamp(14rem, 40vh, 25rem);
         }
-        /* 仅搜索页（起始页）显示编辑按钮与天气组件，导航页隐藏：快速淡出并禁用点击（淡出提速至 0.25s，确保滚动到达导航页前完全消失；淡入仍用基础规则的 0.45s） */
-        #editBookmarksBtn.hidden-on-nav,
-        #weatherWidget.hidden-on-nav {
-            opacity: 0;
+        /* 仅搜索页（起始页）激活编辑按钮，导航页时禁用点击 */
+        #editBookmarksBtn.hidden-on-nav {
             pointer-events: none;
-            transition: opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         }
         @media (min-width: 768px) {
             #editBookmarksBtn {
@@ -857,14 +854,12 @@
                 right: calc(2rem + env(safe-area-inset-right, 0px));
             }
         }
-        /* 天气小组件：固定于右上角，跟随首屏展示，导航页淡出 */
+        /* 天气小组件：绝对定位固定于起始页右上角，跟随起始页物理滑屏，全生命周期保持 100% 毛玻璃常驻 */
         #weatherWidget {
-            position: fixed;
+            position: absolute;
             top: calc(1.25rem + env(safe-area-inset-top, 0px));
             right: calc(1.25rem + env(safe-area-inset-right, 0px));
             z-index: 40;
-            transform: translateZ(0);
-            transform-origin: top right;
         }
         @media (min-width: 768px) {
             #weatherWidget {
@@ -872,19 +867,12 @@
                 right: calc(2rem + env(safe-area-inset-right, 0px));
             }
         }
-        #weatherWidget.hidden-on-nav {
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-        }
         #weatherBtn {
-            transform: translateZ(0);
             font-variant-numeric: tabular-nums;
-            transition: transform 0.2s var(--ease-spring), background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, color 0.2s ease;
+            transition: background-color var(--duration-normal) ease, border-color var(--duration-normal) ease, box-shadow var(--duration-normal) ease, color var(--duration-normal) ease;
         }
         @media (hover: hover) and (pointer: fine) {
             #weatherBtn:hover {
-                transform: scale(1.02) translateZ(0);
                 background-color: rgba(255, 255, 255, 0.18);
                 border-color: rgba(255, 255, 255, 0.28);
             }
@@ -895,7 +883,6 @@
             box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.40), 0 8px 24px rgba(0, 0, 0, 0.35) !important;
         }
         #weatherPopover {
-            transform: translateZ(0);
             transform-origin: top right;
             right: 0;
             top: calc(100% + 0.5rem);
@@ -903,7 +890,7 @@
             max-width: 21.5rem;
         }
         .weather-spin {
-            animation: weatherSpin 0.75s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+            animation: weatherSpin 0.75s var(--ease-exit) infinite;
         }
         @keyframes weatherSpin {
             from { transform: rotate(0deg); }
@@ -1314,6 +1301,37 @@
     <!-- ========== 第一屏：起始页 ========== -->
     <section id="startSection" class="relative z-10 min-h-dvh flex flex-col items-center justify-center px-4 py-12">
         <h1 class="sr-only">Glass Start — 轻量级玻璃拟态个人起始页与导航</h1>
+
+        <!-- 全屏右上角悬浮天气胶囊（置于起始页内，随起始页物理滑屏，全生命周期保持 100% 毛玻璃常驻） -->
+        <div id="weatherWidget" class="select-none">
+            <button id="weatherBtn" type="button" aria-expanded="false" aria-controls="weatherPopover" aria-haspopup="dialog" aria-label="查看实时天气与详细预报" class="glass-strong apple-radius px-3 py-1.5 sm:px-3.5 sm:py-2 text-white/90 hover:text-white hover:bg-white/20 border border-white/20 shadow-2xl flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-medium transition-[background-color,color,border-color,transform,box-shadow] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60">
+                <span id="weatherIcon" class="text-sm sm:text-base leading-none select-none">🌤️</span>
+                <span id="weatherTemp" class="tabular-nums font-semibold tracking-tight leading-none">--°</span>
+                <span class="text-white/30 font-light select-none">·</span>
+                <span id="weatherCity" class="text-white/80 max-w-[5.5rem] sm:max-w-[7.5rem] truncate text-2xs sm:text-xs">天气</span>
+            </button>
+            <!-- 下拉天气预报卡片 -->
+            <div id="weatherPopover" role="region" aria-label="实时天气预报卡片" class="dropdown-menu absolute p-3.5 sm:p-4 glass-strong apple-radius border border-white/20 shadow-2xl z-[var(--z-dropdown)] select-none"></div>
+        </div>
+        <script>
+            // 天气小组件首帧 0ms 极速水合（消灭 CLS 布局抖动）
+            (function(){
+                try {
+                    const s = JSON.parse(localStorage.getItem('glass_weather_settings') || '{}');
+                    const w = document.getElementById('weatherWidget');
+                    if (s && s.enabled === false) { if (w) w.style.display = 'none'; return; }
+                    const c = JSON.parse(localStorage.getItem('glass_weather_cache') || 'null');
+                    if (c && c.current) {
+                        const i = document.getElementById('weatherIcon');
+                        const t = document.getElementById('weatherTemp');
+                        const ct = document.getElementById('weatherCity');
+                        if (i && c.current.icon) i.textContent = c.current.icon;
+                        if (t && c.current.temp !== undefined) t.textContent = c.current.temp + '°';
+                        if (ct && c.location && c.location.name) ct.textContent = c.location.name;
+                    }
+                } catch(e){}
+            })()
+        </script>
         <!-- 时钟 -->
         <div class="text-center fade-in clock-text mb-10 md:mb-14 select-none">
             <time id="clock" datetime="00:00" aria-label="当前时间" class="text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-light tracking-tight tabular-nums block">00<span class="clock-colon mx-0.5 sm:mx-1">:</span>00</time>
@@ -1379,6 +1397,14 @@
         </div>
         <script>(function(){try{if(localStorage.getItem('hasDiscoveredNav')==='1'){const h=document.getElementById('scrollDownHint');if(h)h.style.display='none';}}catch(e){}})()</script>
 
+        <!-- 右下角悬浮编辑设置按钮（置于起始页内，随起始页物理滑屏） -->
+        <button id="editBookmarksBtn" type="button" aria-label="编辑与设置" title="编辑书签与设置" class="p-3 glass-strong apple-radius text-white/70 hover:text-white hover:bg-white/20 border border-white/20 shadow-2xl flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900">
+            <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+            </svg>
+        </button>
+
     </section><!-- /#startSection -->
 
     <!-- ========== 第二屏：导航页 ========== -->
@@ -1416,45 +1442,6 @@
             </div>
         </div>
     </section><!-- /#navSection -->
-
-    <!-- 全屏右上角固定悬浮天气胶囊（置于两屏 section 之外，跟随起始页显示，导航页淡出） -->
-    <div id="weatherWidget" class="select-none fade-in delay-100">
-        <button id="weatherBtn" type="button" aria-expanded="false" aria-controls="weatherPopover" aria-haspopup="dialog" aria-label="查看实时天气与详细预报" class="glass-strong apple-radius px-3 py-1.5 sm:px-3.5 sm:py-2 text-white/90 hover:text-white hover:bg-white/20 border border-white/20 shadow-2xl flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-medium transition-[background-color,color,border-color,transform,box-shadow] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60">
-            <span id="weatherIcon" class="text-sm sm:text-base leading-none select-none">🌤️</span>
-            <span id="weatherTemp" class="tabular-nums font-semibold tracking-tight leading-none">--°</span>
-            <span class="text-white/30 font-light select-none">·</span>
-            <span id="weatherCity" class="text-white/80 max-w-[5.5rem] sm:max-w-[7.5rem] truncate text-2xs sm:text-xs">天气</span>
-        </button>
-        <!-- 下拉天气预报卡片 -->
-        <div id="weatherPopover" role="region" aria-label="实时天气预报卡片" class="dropdown-menu absolute p-3.5 sm:p-4 glass-strong apple-radius border border-white/20 shadow-2xl z-[var(--z-dropdown)] select-none"></div>
-    </div>
-    <script>
-        // 天气小组件首帧 0ms 极速水合（消灭 CLS 布局抖动）
-        (function(){
-            try {
-                const s = JSON.parse(localStorage.getItem('glass_weather_settings') || '{}');
-                const w = document.getElementById('weatherWidget');
-                if (s && s.enabled === false) { if (w) w.style.display = 'none'; return; }
-                const c = JSON.parse(localStorage.getItem('glass_weather_cache') || 'null');
-                if (c && c.current) {
-                    const i = document.getElementById('weatherIcon');
-                    const t = document.getElementById('weatherTemp');
-                    const ct = document.getElementById('weatherCity');
-                    if (i && c.current.icon) i.textContent = c.current.icon;
-                    if (t && c.current.temp !== undefined) t.textContent = c.current.temp + '°';
-                    if (ct && c.location && c.location.name) ct.textContent = c.location.name;
-                }
-            } catch(e) {}
-        })();
-    </script>
-
-    <!-- 全屏右下角固定悬浮编辑设置按钮（置于两屏 section 之外，避免被导航页 z-10 层叠上下文遮挡导致点击失效） -->
-    <button id="editBookmarksBtn" type="button" aria-label="编辑与设置" title="编辑书签与设置" class="p-3 glass-strong apple-radius text-white/70 hover:text-white hover:bg-white/20 border border-white/20 shadow-2xl flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900">
-        <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-        </svg>
-    </button>
 
     <!-- 编辑与设置弹窗 (Apple 风格 Tab 分栏设置面板) -->
     <div id="editModal" role="dialog" aria-modal="true" aria-hidden="true" hidden aria-label="设置与偏好" class="edit-overlay fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-[var(--z-modal)]">
@@ -6196,10 +6183,14 @@
                     e.stopPropagation();
                     const svg = refBtn.querySelector('svg');
                     if (svg) svg.classList.add('weather-spin');
+                    const startTime = Date.now();
+                    const MIN_SPIN_DURATION = 750; // 与 CSS .weather-spin 0.75s 保持 100% 严格周期对齐
                     updateWeather(true).finally(() => {
+                        const elapsed = Date.now() - startTime;
+                        const remaining = Math.max(0, MIN_SPIN_DURATION - elapsed);
                         setTimeout(() => {
                             if (svg) svg.classList.remove('weather-spin');
-                        }, 500);
+                        }, remaining);
                     });
                 });
             }
@@ -6552,13 +6543,10 @@
                 try { sessionStorage.setItem('startpage_section', s); } catch {}
             }
 
-            // 编辑按钮与天气组件仅在搜索页显示（导航页隐藏）
+            // 编辑按钮仅在搜索页显示（导航页隐藏）
             function updateGearVisibility() {
                 if (dom.editBookmarksBtn) {
                     dom.editBookmarksBtn.classList.toggle('hidden-on-nav', state.currentSection === 'nav');
-                }
-                if (dom.weatherWidget) {
-                    dom.weatherWidget.classList.toggle('hidden-on-nav', state.currentSection === 'nav');
                 }
             }
 
