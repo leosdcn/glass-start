@@ -117,9 +117,10 @@ npm run build
 - ⚡ **静态代码检查 (`npm run lint`)**：耗时仅 0.03 秒。自动完成 `index.html` 内联 JS、`build.js`/`sw.js` 语法预检及 `bookmarks.json`/`manifest.json`/`package.json` 的 JSON 合法性校验。修改代码后运行此命令做轻量校验。
 - 🚀 **生产构建打包 (`npm run build`)**：耗时仅约 0.05 秒（Tailwind v4 Rust 引擎）。编译 Tailwind CSS 并同步书签数据，无需等待任何测试。
 - 🌐 **联网信息检索 (Web Search Recommendation)**：在处理复杂的 Web 安全规范（如 CSP / Security Policy 最新细节）、浏览器新特性兼容性或特定技术方案选型时，**鼓励并推荐 Agent / 开发者在必要时主动进行联网搜索**，实时查询最新官方文档与行业最佳实践，确保调优与修补方案的严谨性与前瞻性。
-- 🛑 **Git 提交与推送规范 (Git & Push Guidelines)**：
-  - **禁止 Agent 擅自提交**：未收到用户明确指令前，Agent 严禁自动执行 `git add` / `git commit` / `git push`；所有改动与编译仅在本地工作区生效，静待用户预览确认。
-  - **控制 Push 频次（防频繁部署）**：由于已配置 Cloudflare Pages 自动构建，日常开发推荐**本地多 commit，完成阶段性功能后再统一 push**。
+- 🛑 **Git 提交与推送铁律 (Git & Push Guidelines)**：
+  - **【最高优先级】无明确命令严禁任何 Git 操作**：未收到用户**在本轮对话中明确发出的指令**（如“Git保存”、“Git提交”、“推送”）前，Agent **严禁**自动执行 `git add`、`git commit` 或 `git push`；所有改动与构建编译必须仅在本地工作区生效，静待用户体验与确认。
+  - **【严禁跨对话惯性执行】**：**绝不能因为前一个对话或历史上下文中提过提交/推送，就在新的对话或后续任务中顺带/自动执行 Git 保存或推送**。每一次 Git 保存与云端推送必须以当前轮次的**单次明确指令**为准！
+  - **控制 Push 频次（防频繁部署）**：由于已配置 Cloudflare Pages 自动构建（push 到 `main` 分支即触发线上构建与部署），日常开发严格控制推送频次，必须在用户明确要求“推送”或“Git推送”时才可执行。
   - **跳过云端构建**：若仅需向远程仓库推送备份代码但**不想触发线上构建**，请在提交信息中加上 `[skip ci]`（如：`git commit -m "wip: 修改样式 [skip ci]"`）。
 - ⚠️ **全量端到端测试 (`npm test`)**：会启动无头 Chrome 运行 6 个自动化测试套件（含 40+ 核心交互断言）。**Agent 在日常修复小 Bug 或调整功能时严禁自动运行 `npm test`**，避免浪费时间；仅在用户明确发出指令要求“全量测试”时才执行。
 
@@ -228,7 +229,7 @@ add_header Content-Security-Policy "default-src 'self' data: blob: https:; scrip
 | **Service Worker** | 项目内组件 | `v10` | `sw.js` 头部注释；三池隔离 + FIFO 容量限额缓存架构 |
 | **CORE_CACHE** | 缓存池版本 | `app-core-v<时间戳>` | `sw.js`；每次 `npm run build` 自动更新，强制客户端刷新旧缓存 |
 | **FAVICON_CACHE / IMG_CACHE** | 缓存池版本 | `v1` | `sw.js`；图标 / 本地图片独立缓存池 |
-| **Glass Start 站点版本** | 项目发布版本 | `v3.1.0` | `package.json` + `index.html` 页脚徽章 |
+| **Glass Start 站点版本** | 项目发布版本 | `v3.1.1` | `package.json` + `index.html` 页脚徽章 |
 
 **无版本号的外部服务**（非框架，版本由服务商维护，升级无需本项目介入）：
 - `a.favicon.im` — Favicon 图标 API
