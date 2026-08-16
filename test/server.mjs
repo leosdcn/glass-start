@@ -17,11 +17,20 @@ const MIME = {
   '.txt': 'text/plain; charset=utf-8',
 };
 
-export function startServer(port, root = DEFAULT_ROOT) {
+export function startServer(port, root = DEFAULT_ROOT, customRoutes = {}) {
   return new Promise((resolve) => {
     const server = createServer((req, res) => {
       try {
         let p = normalize(decodeURIComponent(req.url.split('?')[0]));
+        if (customRoutes[p]) {
+          const handler = customRoutes[p];
+          if (typeof handler === 'string') {
+            res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
+            res.end(handler);
+            return;
+          }
+          return handler(req, res);
+        }
         if (p === '/') p = '/index.html';
         const file = join(root, p);
         const data = readFileSync(file);

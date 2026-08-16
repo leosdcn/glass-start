@@ -3,11 +3,10 @@
  *
  * 精简版：4 个核心精准断言
  */
-import { createServer } from 'node:http';
-import { readFileSync, existsSync } from 'node:fs';
-import { join, extname } from 'node:path';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { launchChrome } from './cdp.mjs';
+import { startServer } from './server.mjs';
 import { launchSession, makeTester, sleep } from './helpers.mjs';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
@@ -15,7 +14,7 @@ const ROOT = join(__dirname, '..');
 
 const t = makeTester();
 
-// ---------- 1. 移动端视口与 Tab 滚动测试 (来自原 mobile-tab.test.mjs) ----------
+// ---------- 1. 移动端视口与 Tab 滚动测试 ----------
 const { server, chrome, send, evalJS } = await launchSession(9338);
 
 try {
@@ -76,30 +75,8 @@ try {
 
 // ---------- 2. 防 <iframe> 恶意嵌套 Frame-Busting 测试 ----------
 const FRAME_PORT = 9444;
-const MIME = {
-  '.html': 'text/html; charset=utf-8',
-  '.js': 'text/javascript; charset=utf-8',
-  '.css': 'text/css; charset=utf-8',
-  '.json': 'application/json; charset=utf-8',
-};
-
-const frameServer = await new Promise((resolve) => {
-  const s = createServer((req, res) => {
-    const urlPath = req.url.split('?')[0];
-    if (urlPath === '/embed.html') {
-      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
-      res.end(`<!DOCTYPE html><html><body><iframe id="targetFrame" src="/index.html" style="width:800px;height:600px;"></iframe></body></html>`);
-      return;
-    }
-    const filePath = join(ROOT, urlPath === '/' ? 'index.html' : urlPath);
-    if (existsSync(filePath)) {
-      res.writeHead(200, { 'Content-Type': MIME[extname(filePath)] || 'text/plain', 'Cache-Control': 'no-store' });
-      res.end(readFileSync(filePath));
-    } else {
-      res.writeHead(404); res.end('404');
-    }
-  });
-  s.listen(FRAME_PORT, '127.0.0.1', () => resolve(s));
+const frameServer = await startServer(FRAME_PORT, ROOT, {
+  '/embed.html': '<!DOCTYPE html><html><body><iframe id="targetFrame" src="/index.html" style="width:800px;height:600px;"></iframe></body></html>'
 });
 
 const frameChrome = await launchChrome({ port: FRAME_PORT + 1, url: `http://127.0.0.1:${FRAME_PORT}/embed.html` });
@@ -118,6 +95,6 @@ const topUrl = await evalFrameJS('window.top.location.href');
 t.pass('防 iframe 嵌套 (Frame-Busting) 破局跳转正常', topUrl && topUrl.includes('/index.html'), `topUrl=${topUrl}`);
 
 await frameChrome.close();
-await new Promise(r => frameServer.close(r));
+await frameServer.close();
 
 process.exit(t.finish());

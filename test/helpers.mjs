@@ -61,9 +61,7 @@ export async function launchSession(preferredPort) {
     return r.result?.value;
   };
 
-  // 清空环境（防止跨文件单元测试遗留数据干扰）
-  await evalJS('try { localStorage.clear(); sessionStorage.clear(); location.reload(); } catch(e){}');
-  await sleep(1200);
+  await sleep(400);
 
   return { server, chrome, send, evalJS };
 }

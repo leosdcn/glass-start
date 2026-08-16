@@ -8,7 +8,7 @@ import { launchSession, sleep, makeTester } from './helpers.mjs';
 const { pass, finish } = makeTester();
 const { server, chrome, evalJS } = await launchSession();
 
-await sleep(1800);
+await sleep(300);
 
 // 1. 首屏书签 JS 动态渲染正常且全新启动无派生垃圾
 const bm = await evalJS(`(() => {

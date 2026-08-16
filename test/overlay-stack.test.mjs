@@ -8,7 +8,7 @@ import { launchSession, sleep, makeTester, pressKey } from './helpers.mjs';
 const { pass, finish } = makeTester();
 const { server, chrome, evalJS } = await launchSession();
 
-await sleep(1800);
+await sleep(300);
 const press = (key) => pressKey(evalJS, key);
 const stackTop = () => evalJS(`OverlayStack.top() ? OverlayStack.top().id : null`);
 

@@ -8,7 +8,7 @@ import { launchSession, sleep, tyOf, makeTester, pressKey } from './helpers.mjs'
 const { pass, finish } = makeTester();
 const { server, chrome, evalJS } = await launchSession();
 
-await sleep(1800);
+await sleep(300);
 
 const press = (key) => pressKey(evalJS, key);
 const section = async () => evalJS(`document.getElementById('startSection').getAttribute('aria-hidden') === 'true' ? 'nav' : 'start'`);
