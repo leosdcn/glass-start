@@ -5918,10 +5918,39 @@
             }
         }
 
+        // 针对国际 GeoIP 数据库常见繁体行政地名（如「山東省」「濟南」「廣東」「臺北」）的轻量级规范化简体字库
+        const T2S_GEO_MAP = {
+            '東': '东', '廣': '广', '濟': '济', '島': '岛', '灣': '湾',
+            '陝': '陕', '莊': '庄', '臺': '台', '陽': '阳', '鄭': '郑',
+            '蘭': '兰', '銀': '银', '鄉': '乡', '蘇': '苏', '寧': '宁',
+            '齊': '齐', '烏': '乌', '漢': '汉', '門': '门', '開': '开',
+            '贛': '赣', '廬': '庐', '蕪': '芜', '濰': '潍', '撫': '抚',
+            '滄': '沧', '遼': '辽', '鐵': '铁', '錦': '锦', '長': '长',
+            '區': '区', '縣': '县', '國': '国', '華': '华', '內': '内',
+            '溫': '温', '麗': '丽', '達': '达', '貴': '贵', '雲': '云',
+            '義': '义', '樂': '乐', '瀘': '泸', '婁': '娄', '慶': '庆',
+            '鹽': '盐', '連': '连', '淮': '淮', '揚': '扬', '泰': '泰',
+            '鎮': '镇', '銅': '铜', '黃': '黄', '龍': '龙', '鷹': '鹰',
+            '棗': '枣', '煙': '烟', '臨': '临', '濱': '滨', '鶴': '鹤',
+            '駐': '驻', '荊': '荆', '隨': '随', '張': '张', '汕': '汕',
+            '欽': '钦', '賀': '贺', '來': '来', '綿': '绵', '遂': '遂',
+            '資': '资', '涼': '凉', '畢': '毕', '紅': '红', '寶': '宝',
+            '咸': '咸', '榆': '榆', '隴': '陇', '吳': '吴', '吐': '吐',
+            '喀': '喀', '塔': '塔', '豐': '丰', '衛': '卫', '瀋': '沈',
+            '爾': '尔', '庫': '库', '倫': '伦', '晉': '晋', '瓊': '琼',
+            '峽': '峡', '錫': '锡', '關': '关', '興': '兴', '順': '顺',
+            '盤': '盘', '萬': '万', '紹': '绍'
+        };
+
+        function normalizeGeoChineseText(str) {
+            if (!str || typeof str !== 'string') return '';
+            return str.split('').map(ch => T2S_GEO_MAP[ch] || ch).join('');
+        }
+
         function formatLocationFullName(parts) {
             const cleaned = parts
                 .filter(p => p && typeof p === 'string')
-                .map(p => p.trim())
+                .map(p => normalizeGeoChineseText(p.trim()))
                 .filter(Boolean);
 
             const result = [];
@@ -5971,7 +6000,9 @@
                 if (res.ok) {
                     const data = await res.json();
                     if (data && data.success && data.latitude) {
-                        const dispName = data.city || data.region || '本地';
+                        const rawCity = normalizeGeoChineseText(data.city || '');
+                        const rawRegion = normalizeGeoChineseText(data.region || '');
+                        const dispName = (rawCity || rawRegion || '本地').replace(/(市|区|县)$/, '') || rawCity || rawRegion || '本地';
                         const fullName = formatLocationFullName([data.country, data.region, data.city]);
                         const resolved = {
                             name: dispName,
