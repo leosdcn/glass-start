@@ -2448,7 +2448,7 @@
                 if (!eng) return '';
                 const isChecked = key === curEngine;
                 return `<button type="button" data-engine="${key}" role="menuitemradio" aria-checked="${isChecked}" class="w-full flex items-center gap-3 px-3 py-2.5 apple-radius hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 transition-[background-color,color,transform] duration-150 text-left text-sm select-none">
-                    <img src="${eng.icon}" width="20" height="20" class="engine-icon size-5 rounded-md pointer-events-none select-none" alt="" draggable="false"> ${eng.name}
+                    <img src="${eng.icon}" width="16" height="16" data-hide-on-error="1" class="engine-icon size-4 rounded pointer-events-none select-none" alt="" draggable="false"> ${eng.name}
                 </button>`;
             }).join('');
         }
