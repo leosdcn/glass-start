@@ -4101,9 +4101,9 @@
         /**
          * 根据书签数据对象生成规范化的 Favicon HTML 图标结构
          * 自动处理缺失图标时的首字母文字徽章，以及合法 URL 图片节点的生成
-         * 📌 网络优先级调优 (HTTP/2 Multiplexing & Lazy Loading):
-         *    - 首屏 8 个快捷图标 (isMd): 设置 loading="eager" fetchpriority="high"，确保首页开屏瞬间高清渲染。
-         *    - 视口下方导航页 90+ 图标 (sm): 设置 data-src 属性与 lazy-icon 类，由 IntersectionObserver 在视口内按需加载。
+         * 📌 网络与渲染优先级调优 (HTTP/2 Multiplexing & Unified Queue Loading):
+         *    - 统一采用 1x1 透明 SVG 占位与 data-src 延迟绑定，消除浏览器解析初期的瞬时连接爆发与拥塞。
+         *    - 由微任务分批调度队列 (processLazyIconQueue) 平滑调度放行，获得原生 Apple 风格流体淡入动效。
          * @param {Bookmark} bm - 单个书签数据对象
          * @param {'sm'|'md'} [sizeType='sm'] - 图标尺寸类别 ('sm': 导航页 1.5rem | 'md': 首屏 2rem)
          * @returns {string} 渲染后的 HTML 字符串
@@ -4119,10 +4119,7 @@
                 return `<div class="icon-box ${sizeClass} bg-white/15 border border-white/20 text-white/90 ${textClass}">${escapeHtml(initial)}</div>`;
             }
             const imgSize = isMd ? '32' : '24';
-            if (isMd) {
-                return `<div class="icon-box ${sizeClass}"><img src="${safeIcon}" width="${imgSize}" height="${imgSize}" data-initial="${escapeHtml(initial)}" data-md="1" class="lazy-icon pointer-events-none select-none" alt="" loading="eager" fetchpriority="high" decoding="async" draggable="false" onload="this.classList.add('loaded')"></div>`;
-            }
-            return `<div class="icon-box ${sizeClass}"><img src="${TRANSPARENT_PLACEHOLDER_SVG}" data-src="${safeIcon}" width="${imgSize}" height="${imgSize}" data-initial="${escapeHtml(initial)}" data-md="0" class="lazy-icon pointer-events-none select-none" alt="" loading="lazy" decoding="async" draggable="false"></div>`;
+            return `<div class="icon-box ${sizeClass}"><img src="${TRANSPARENT_PLACEHOLDER_SVG}" data-src="${safeIcon}" width="${imgSize}" height="${imgSize}" data-initial="${escapeHtml(initial)}" data-md="${isMd ? '1' : '0'}" class="lazy-icon pointer-events-none select-none" alt="" loading="lazy" decoding="async" draggable="false"></div>`;
         }
 
         // ==================== 图标 IntersectionObserver 按需微任务队列加载器 ====================
@@ -4132,7 +4129,7 @@
 
         /**
          * 调度队列分批放行图标请求 (每次放行 4 个，间隔 30ms)
-         * 消除快速滚屏时 30+ 图标在单帧内集中并发导致的 CPU 重排卡顿与主线程掉帧
+         * 消除快速滚屏或首屏加载时图标集中爆发导致的连接排队阻塞与主线程重排卡顿
          */
         function processLazyIconQueue() {
             if (lazyIconQueue.length === 0) {
@@ -4265,12 +4262,8 @@
                 </a>
             `).join('');
 
-            dom.bookmarks.querySelectorAll('img.lazy-icon').forEach(img => {
-                if (img.complete && img.naturalWidth > 0) {
-                    img.classList.add('loaded');
-                } else {
-                    img.addEventListener('load', () => img.classList.add('loaded'), { once: true });
-                }
+            dom.bookmarks.querySelectorAll('img.lazy-icon[data-src]').forEach(img => {
+                enqueueLazyIcon(img);
             });
         }
 
