@@ -7,23 +7,26 @@
 ## ✨ 核心亮点与安全性能特性
 
 - 🪐 **Liquid Glass 物理高光与玻璃拟态**：采用 Apple HIG 规范的 1px 物理折射高光、微拟物触感反馈与 iOS 18 物理按压微缩放。
-- ⚡ **零开销双模式构建 (Dev vs Prod)**：开发模式使用 Tailwind v4 Browser CDN 随改随看；生产打包（`npm run build`）自动编译精简纯 CSS 并剥离 JS 编译脚本，实现秒开与 100% 离线使用。
+- 🌤️ **实时天气小组件与全球预报**：免 Key 开源气象底座 + 三通道高精度 IP 定位，首帧 0ms 水合秒开，支持 2×2 实时气象指标、未来 4 天天气预报与 45 分钟智能节流缓存，100% 符合 WCAG 2.5.3 无障碍标准。
+- 🎬 **原生双动效系统 (双屏滚动 + 书签入场)**：支持起始页与导航页全屏平滑推移（「双屏滚动」），以及导航列表向下滚动时基于 `@supports (animation-timeline: view())` 底部 20% 深度卡片流体渐显（「书签入场」），全流程 0 渲染空白。
+- ⚡ **零开销双模式构建与 esbuild 极速压缩**：开发模式使用 Tailwind v4 CDN 随改随看；生产打包（`npm run build`）集成 `esbuild` 原生 CSS 编译器，全量内嵌编译并压缩，实现首屏秒开与 100% 离线可用。
 - ⚡ **`<head>` 零闪烁预加载恢复 (Pre-hydration)**：在 DOM 挂载前通过 `<head>` 内联脚本瞬间还原上次屏间位置、背景壁纸与遮罩模糊滤镜，消除刷新闪烁 (FOUC)。
 - 🛡️ **严格安全防护**：内置严格 Content Security Policy (CSP)、全面 XSS HTML 实体转义、`safeUrl` 协议白名单拦截（防 `javascript:` 注入）、JSONP 超时悬挂防爆防护。
 - ♿ **UI 弹窗栈管理与无障碍 Focus Trap**：基于 `OverlayStack` 管理全局弹窗与下拉菜单，弹窗激活时自动锁定 `Tab` 键焦点循环，按 `Esc` 键按后进先出 (LIFO) 顺序平滑逐层关闭。
-- 🚀 **图标高性能缓存**：内置 Service Worker (v9)，三池隔离（800+200配额）与 IndexedDB 真 LRU 淘汰，结合标准 CORS 模式彻底消除 Chrome 虚拟存储配额膨胀问题。
+- 🚀 **图标高性能缓存**：内置 Service Worker (v10)，三池隔离（800+200配额）与 IndexedDB 真 LRU 淘汰，结合标准 CORS 模式彻底消除 Chrome 虚拟存储配额膨胀问题。
 
 ---
 
 ## 📖 用户使用指南手册
 
-### 1. 屏间切换与导航交互
-- **顶部 / 右侧快捷按钮**：点击导航页顶部 Header 栏或右侧「向上滚动返回」胶囊按钮，可随时平滑切回首屏。
-- **滚轮 / 触摸屏滑动**：首屏向下滚动或滑屏可平滑切换至「导航页」；在导航页顶部向上滚动或滑屏可返回「起始页」。
-- **零闪烁状态记忆**：系统自动记录上次停留的屏间位置（`SessionStorage`），刷新页面时自动无闪烁恢复。
-- **键盘快捷键切换**：
-  - 非输入状态下按 `PageDown` 或 `↓` 快速前往导航页。
-  - 在导航页顶部按 `PageUp`、`Home` 或 `↑` 快速返回首屏。
+### 1. 双屏滚动与书签入场交互
+- **双屏滚动 (Dual-Screen Scroll)**：
+  - **顶部 / 右侧快捷按钮**：点击导航页顶部 Header 栏或右侧「向上滚动返回」胶囊按钮，可随时平滑切回首屏。
+  - **滚轮 / 触摸屏滑动**：首屏向下滚动或滑屏可平滑切换至「导航页」；在导航页顶部向上滚动或滑屏可返回「起始页」。
+  - **零闪烁状态记忆**：系统自动记录上次停留的屏间位置（`SessionStorage`），刷新页面时自动无闪烁恢复。
+  - **键盘快捷键切换**：非输入状态下按 `PageDown` 或 `↓` 前往导航页；在导航页顶部按 `PageUp`、`Home` 或 `↑` 返回首屏。
+- **书签入场 (Bookmark Entrance)**：
+  - 在导航页内部向下滚动浏览时，视口底部 20% 区域的新卡片自动跟随滚轮产生基于 `@supports (animation-timeline: view())` 的平滑渐显与微缩放流体入场，全流程零空白。
 
 ### 2. 搜索与搜索引擎操作
 - **搜索引擎切换**：点击搜索框左侧引擎图标（支持 Bing、Google、百度），在下拉菜单中快速切换。
@@ -62,6 +65,12 @@
 - **一键唤起 / 关闭**：在任何状态下按下组合快捷键 `Cmd + /` (Mac) 或 `Ctrl + /` (Windows)，可随时唤起或关闭晶莹透亮的毛玻璃快捷键速查面板。
 - **界面入口**：点击右下角设置齿轮 ⚙️ ➔ 设置面板 Header 右上角「⌨️ 快捷键速查」按钮亦可一键打开。
 - **无障碍与快速退出**：速查面板激活时支持 Tab 键焦点循环锁定 (Focus Trap)，随时按 `Esc` 键或点击背景即可快速退出。
+
+### 7. 实时天气与气象小组件
+- **常驻天气胶囊**：起始页右上角常驻极简毛玻璃胶囊（`#weatherBtn`），显示实时温度、天气 Emoji 与城市名。
+- **天气详情卡片**：点击胶囊平滑展开弹窗面板，展示 2×2 气象指标（体感温度、湿度、降水概率、风速、日出/日落）及未来 4 天天气预报。
+- **手动即时刷新**：弹窗右上角提供「🔄」刷新按钮，点击时 100% 穿透缓存，强制重新定位并拉取最新天气。
+- **智能缓存节流**：气象数据本地缓存 45 分钟，IP 定位信息本地缓存 24 小时，杜绝重复网络请求与 API 限流。
 
 ---
 
@@ -172,6 +181,7 @@ npm run build
 | 缓存层级 | 技术实现 | 作用目标与缓存对象 | 缓存策略 / 容量限制 | 失效与清理机制 |
 | :--- | :--- | :--- | :--- | :--- |
 | **Service Worker 离线网络层** | `sw.js` (Cache API + IDB) | `a.favicon.im` 图标、`.ico` 静态图标、`index.html` 等 | 图标: `Cache-First` (三池隔离: Favicon 800条 / 本地图片 200条)<br>核心: `Network-First` | `npm run build` 自动更新版本号 `app-core-v<timestamp>` 强制清除旧缓存，IDB 精准 LRU 淘汰 |
+| **天气与定位数据缓存层** | `LocalStorage` (`glass_weather_*`) | 实时温度、4天预报、城市与省市区经纬度坐标 | 天气数据: 45 分钟 TTL<br>地理定位: 24 小时 TTL | 黄金节流平衡点，弹窗右上角「🔄」刷新按钮支持 100% 穿透强制即时刷新 |
 | **持久化偏好存储层** | `LocalStorage` | 默认引擎、遮罩透明度、模糊度、自定义书签、壁纸偏好 | key-value / 容量上限 ~5MB | 用户手动点击「重置系统设置」或浏览器清除 Cookie |
 | **高清大图存储层** | `IndexedDB` (`GlassStartDB`) | 4K 高清自定义上传壁纸 (`wallpapers` 表) | 3840x2160 JPEG Base64 / 容量 50MB~数百MB | 彻底打破 LocalStorage 5MB 上限，随重置系统操作清空 |
 | **会话状态防闪烁层** | `SessionStorage` + `<head>` 脚本 | 页面屏间位置 (`startpage_section`: `home` / `nav`) | 仅在当前会话生命周期内有效 | 渲染前 Head 内联脚本检测并同步添加 `.nr` 类，防止刷新首屏闪烁 |
@@ -219,13 +229,14 @@ add_header Content-Security-Policy "default-src 'self' data: blob: https:; scrip
 
 ### 5. 框架与依赖版本清单 (Framework & Dependency Versions)
 
-本项目框架依赖极简——**唯一的第三方框架是 Tailwind CSS**，其余全部为原生 HTML5 + Modern JS + 手写 CSS，零其他框架依赖。以下为所有带明确版本号的框架 / 组件清单：
+本项目框架依赖极简——**唯一的生产依赖是 Tailwind CSS 与 esbuild**，其余全部为原生 HTML5 + Modern JS + 手写 CSS，零其他框架依赖。以下为所有带明确版本号的框架 / 组件清单：
 
 | 名称 | 类型 | 版本号 | 位置 / 说明 |
 | :--- | :--- | :--- | :--- |
 | **Tailwind CSS** | CSS 框架（第三方） | `4.3.3` | `package.json` `devDependencies`；CSS 编译核心 |
 | **@tailwindcss/cli** | Tailwind v4 构建 CLI | `4.3.3` | `package.json` `devDependencies`；由 `build.js` 调用完成生产 CSS 编译 |
 | **@tailwindcss/browser** | Tailwind v4 浏览器运行时 | `@4`（对应 4.3.3） | `index.html` dev CDN 脚本，仅开发预览使用；生产构建自动内嵌编译 CSS 并剥离该脚本 |
+| **esbuild** | 构建与 CSS 编译器 | `0.28.2` | `package.json` `devDependencies`；由 `build.js` 调用实现 AST 级极速样式与脚本压缩 |
 | **Service Worker** | 项目内组件 | `v10` | `sw.js` 头部注释；三池隔离 + FIFO 容量限额缓存架构 |
 | **CORE_CACHE** | 缓存池版本 | `app-core-v<时间戳>` | `sw.js`；每次 `npm run build` 自动更新，强制客户端刷新旧缓存 |
 | **FAVICON_CACHE / IMG_CACHE** | 缓存池版本 | `v1` | `sw.js`；图标 / 本地图片独立缓存池 |
@@ -233,6 +244,8 @@ add_header Content-Security-Policy "default-src 'self' data: blob: https:; scrip
 
 **无版本号的外部服务**（非框架，版本由服务商维护，升级无需本项目介入）：
 - `a.favicon.im` — Favicon 图标 API
+- `api.open-meteo.com` / `geocoding-api.open-meteo.com` — 全球气象与地理编码 API (免 Key 开源底座)
+- `myip.ipip.net` / `ipwho.is` — 高精度 IP 归属地定位解析 API
 - 百度 / Bing / Google — 搜索联想建议 API
 - `wallpapers/` — 本地预设 2.5K AVIF 高清壁纸库（支持 10-bit 色深与全量预缓存）
 - `server.js` / `start.command` — 原生 Node.js 零依赖本地与局域网开发静态服务器 (0ms 秒级启动)

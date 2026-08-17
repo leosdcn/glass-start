@@ -5169,8 +5169,8 @@
             initDragSort();
         }
 
-        let lastDateDay = -1;
-        let lastTimeStr = '';
+        let lastDateDay = (typeof document !== 'undefined' && document.getElementById('date')?.textContent?.trim()) ? (new Date()).getDate() : -1;
+        let lastTimeStr = (typeof document !== 'undefined' && document.getElementById('clock')?.getAttribute('datetime')) || '';
         function updateClock() {
             if (document.hidden) return;
             const n = new Date();
@@ -6051,16 +6051,21 @@
         function renderWeatherCapsule(data) {
             if (!dom.weatherWidget) return;
             if (!data || !data.current) return;
-            if (dom.weatherIcon) dom.weatherIcon.textContent = data.current.icon;
-            if (dom.weatherTemp) dom.weatherTemp.textContent = `${data.current.temp}°`;
+            if (dom.weatherIcon && dom.weatherIcon.textContent !== data.current.icon) dom.weatherIcon.textContent = data.current.icon;
+            if (dom.weatherTemp) {
+                const tempStr = `${data.current.temp}°`;
+                if (dom.weatherTemp.textContent !== tempStr) dom.weatherTemp.textContent = tempStr;
+            }
             if (dom.weatherCity) {
-                dom.weatherCity.textContent = data.location ? data.location.name : '天气';
+                const cityName = data.location ? data.location.name : '天气';
+                if (dom.weatherCity.textContent !== cityName) dom.weatherCity.textContent = cityName;
                 dom.weatherCity.title = data.location ? data.location.fullName : '';
             }
             if (dom.weatherBtn) {
                 const cityName = data.location ? data.location.name : '天气';
                 const weatherDesc = data.current.weatherText ? ` ${data.current.weatherText}` : '';
-                dom.weatherBtn.setAttribute('aria-label', `${data.current.temp}° · ${cityName} 实时天气${weatherDesc}，点击查看详细预报`);
+                const newLabel = `${data.current.temp}° · ${cityName} 实时天气${weatherDesc}，点击查看详细预报`;
+                if (dom.weatherBtn.getAttribute('aria-label') !== newLabel) dom.weatherBtn.setAttribute('aria-label', newLabel);
             }
         }
 
