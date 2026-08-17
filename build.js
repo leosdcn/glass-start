@@ -134,6 +134,28 @@ function minifyJsCode(jsCode, filename = 'script.js') {
         .join('\n');
 }
 
+// 生产环境 CSS 极致安全压缩（优先使用 esbuild CSS 编译器，未安装时自动回退至高精度正则压缩）
+function minifyCssCode(cssCode) {
+    if (esbuild && typeof esbuild.transformSync === 'function') {
+        try {
+            const result = esbuild.transformSync(cssCode, {
+                loader: 'css',
+                minify: true,
+                legalComments: 'none'
+            });
+            return result.code;
+        } catch (e) {
+            logItem(`esbuild 压缩 CSS 时出现警告，自动回退到基础正则压缩: ${e.message}`, 'warn');
+        }
+    }
+    return cssCode
+        .replace(/\/\*[\s\S]*?\*\//g, '')
+        .replace(/\s+/g, ' ')
+        .replace(/\s*([\{\}\:\;\,\>\+\~])\s*/g, '$1')
+        .replace(/;}/g, '}')
+        .trim();
+}
+
 // 格式化 JS 数组对象供源码替换
 function formatJsObject(obj, indent = 8) {
     const jsonStr = JSON.stringify(obj, null, 4);
@@ -344,14 +366,7 @@ function processProductionHtml() {
     function minifyInlineStylesAndScripts(html) {
         // 压缩所有 <style> 块
         html = html.replace(/<style([^>]*)>([\s\S]*?)<\/style>/gi, (match, attrs, content) => {
-            const minified = content.replace(/\/\*[\s\S]*?\*\//g, '')
-                .split('\n')
-                .map(l => l.trim())
-                .filter(Boolean)
-                .join('\n')
-                .replace(/\s*\{\s*/g, '{')
-                .replace(/\s*;\s*/g, ';')
-                .replace(/;\}/g, '}');
+            const minified = minifyCssCode(content);
             return `<style${attrs}>${minified}</style>`;
         });
 
