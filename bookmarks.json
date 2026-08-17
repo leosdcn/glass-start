@@ -6,14 +6,19 @@
             "icon": "https://a.favicon.im/filehelper.weixin.qq.com"
         },
         {
-            "name": "微博",
-            "url": "https://weibo.com",
-            "icon": "https://a.favicon.im/weibo.com"
+            "name": "哔哩哔哩",
+            "url": "https://www.bilibili.com",
+            "icon": "https://a.favicon.im/bilibili.com"
         },
         {
-            "name": "豆包",
-            "url": "https://www.doubao.com",
-            "icon": "https://a.favicon.im/doubao.com"
+            "name": "Gemini",
+            "url": "https://gemini.google.com",
+            "icon": "https://a.favicon.im/gemini.google.com"
+        },
+        {
+            "name": "YouTube",
+            "url": "https://www.youtube.com",
+            "icon": "https://a.favicon.im/youtube.com"
         },
         {
             "name": "DeepSeek",
@@ -21,19 +26,14 @@
             "icon": "https://a.favicon.im/chat.deepseek.com"
         },
         {
-            "name": "哔哩哔哩",
-            "url": "https://www.bilibili.com",
-            "icon": "https://a.favicon.im/bilibili.com"
-        },
-        {
             "name": "抖音",
             "url": "https://www.douyin.com",
             "icon": "https://a.favicon.im/douyin.com"
         },
         {
-            "name": "中国天气网",
-            "url": "https://www.weather.com.cn",
-            "icon": "https://a.favicon.im/weather.com.cn"
+            "name": "豆包",
+            "url": "https://www.doubao.com",
+            "icon": "https://a.favicon.im/doubao.com"
         },
         {
             "name": "网易云音乐",

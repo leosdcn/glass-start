@@ -207,7 +207,50 @@ npm run build
 
 ---
 
-### 4. HTTP 生产安全响应头最佳实践配置 (Security Headers Guide)
+### 4. 全链路天气 API 架构与调度机制 (Weather API Architecture)
+
+天气模块采用 **「高精度主通道 ➔ 国际通道兜底 ➔ 静态保底」** 的三级高可用容灾链路，兼顾 **100% 免 API Key 开箱即用**、**国内地级市高精度定位** 与 **24h 智能缓存节流**：
+
+#### 🌐 天气调用链路与容灾流程图
+
+```mermaid
+graph TD
+    A[启动 / 刷新天气] --> B{本地定位缓存有效?<br/>24小时 TTL}
+    B -- 有效缓存 --> C[直接复用经纬度]
+    B -- 无缓存 / 手动强刷 --> D[通道 1: myip.ipip.net<br/>国内高精度 IP 定位]
+    
+    D -- 成功获取城市名 --> E[geocoding-api.open-meteo.com<br/>动态解析测站经纬度与行政全称]
+    D -- 超时 / 异常 --> F[通道 2: ipwho.is<br/>国际 GeoIP 接口兜底]
+    F -- 失败 --> G[通道 3: 默认保底<br/>中国 · 上海市]
+    
+    E --> H[获取精准经纬度 Coordinates]
+    F --> H
+    G --> H
+    
+    H --> I[调用 api.open-meteo.com<br/>拉取实时气象指标与 4 天预报]
+    I --> J[写入 45 分钟本地缓存 & 0ms 水合渲染]
+```
+
+#### 📡 全链路 API 职责与 DNS 预连接清单
+
+| 接口 / 服务 | 协议 / 域名 | 职能说明 | 预连接配置 (`<head>`) |
+| :--- | :--- | :--- | :--- |
+| **国内定位主通道** | `https://myip.ipip.net/json` | 国内权威 IP 库，毫秒级快速提取当前城市名（如“上海”） | `<link rel="preconnect" href="https://myip.ipip.net" crossorigin>` |
+| **地理编码逆解析** | `https://geocoding-api.open-meteo.com/v1/search` | 官方多语言测站编码库，将城市名精准转换为经纬度与行政区划 | `<link rel="preconnect" href="https://geocoding-api.open-meteo.com" crossorigin>` |
+| **全球气象预报底座** | `https://api.open-meteo.com/v1/forecast` | 拉取当前实时温度、体感、湿度、风速、降水量、天气代码及 4 天日出/日落预报 | `<link rel="preconnect" href="https://api.open-meteo.com" crossorigin>` |
+| **国际定位备用通道** | `https://ipwho.is/?lang=zh-CN` | 国际 GeoIP 容灾兜底（IPIP 受阻或海外用户时自动无缝接管） | 按需触发（次级容灾） |
+
+#### ⚡ 关键设计与节流优化
+1. **两步高精度流水线（IPIP + Open-Meteo Geocoding）**：
+   - 解决免 Key 接口中“国内高精度城市”与“气象经纬度”难以兼得的问题，保证国内地级市定位不漂移；
+2. **24 小时地理定位缓存 (`LOC_TTL = 24h`)**：
+   - 定位坐标存入 LocalStorage，用户日常打开/刷新页面时 **0 次网络请求 IP 接口**，彻底消除限流风险；
+3. **45 分钟气象数据缓存 (`WEATHER_TTL = 45min`)**：
+   - 日常开屏 0 延迟秒开，弹窗右上角「🔄」强刷按钮支持 100% 穿透缓存，强制即时同步最新气象。
+
+---
+
+### 5. HTTP 生产安全响应头最佳实践配置 (Security Headers Guide)
 
 在部署至 Cloudflare Pages、Nginx、Caddy 或 Vercel 等 Web 服务器时，推荐配置以下 HTTP 安全响应标头（符合 Web Security / Lighthouse 最高安全合规等级）：
 
@@ -227,7 +270,7 @@ add_header Content-Security-Policy "default-src 'self' data: blob: https:; scrip
 
 ---
 
-### 5. 框架与依赖版本清单 (Framework & Dependency Versions)
+### 6. 框架与依赖版本清单 (Framework & Dependency Versions)
 
 本项目框架依赖极简——**唯一的生产依赖是 Tailwind CSS 与 esbuild**，其余全部为原生 HTML5 + Modern JS + 手写 CSS，零其他框架依赖。以下为所有带明确版本号的框架 / 组件清单：
 
@@ -240,7 +283,7 @@ add_header Content-Security-Policy "default-src 'self' data: blob: https:; scrip
 | **Service Worker** | 项目内组件 | `v10` | `sw.js` 头部注释；三池隔离 + FIFO 容量限额缓存架构 |
 | **CORE_CACHE** | 缓存池版本 | `app-core-v<时间戳>` | `sw.js`；每次 `npm run build` 自动更新，强制客户端刷新旧缓存 |
 | **FAVICON_CACHE / IMG_CACHE** | 缓存池版本 | `v1` | `sw.js`；图标 / 本地图片独立缓存池 |
-| **Glass Start 站点版本** | 项目发布版本 | `v3.1.2` | `package.json` + `index.html` 页脚徽章 |
+| **Glass Start 站点版本** | 项目发布版本 | `v3.1.3` | `package.json` + `index.html` 页脚徽章 |
 
 **无版本号的外部服务**（非框架，版本由服务商维护，升级无需本项目介入）：
 - `a.favicon.im` — Favicon 图标 API
