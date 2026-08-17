@@ -913,9 +913,28 @@
             from { transform: rotate(0deg); }
             to { transform: rotate(360deg); }
         }
-        /* ===== 导航页分类块常驻流体排版 ===== */
+        /* ===== 导航页分类块常驻流体排版与切屏阶梯式物理微浮入 (方案一) ===== */
         .category-block {
             position: relative;
+            transform: translateZ(0);
+        }
+        /* 仅在切屏推入导航页时，前 6 个可见分类卡片依次呈现丝滑顺畅的阶梯物理微浮入 */
+        #navSection.screen-pushed-in .category-block:nth-child(1) { animation: catFluidIn 0.38s cubic-bezier(0.16, 1, 0.3, 1) 0.04s backwards; }
+        #navSection.screen-pushed-in .category-block:nth-child(2) { animation: catFluidIn 0.42s cubic-bezier(0.16, 1, 0.3, 1) 0.08s backwards; }
+        #navSection.screen-pushed-in .category-block:nth-child(3) { animation: catFluidIn 0.46s cubic-bezier(0.16, 1, 0.3, 1) 0.12s backwards; }
+        #navSection.screen-pushed-in .category-block:nth-child(4) { animation: catFluidIn 0.50s cubic-bezier(0.16, 1, 0.3, 1) 0.16s backwards; }
+        #navSection.screen-pushed-in .category-block:nth-child(5) { animation: catFluidIn 0.54s cubic-bezier(0.16, 1, 0.3, 1) 0.20s backwards; }
+        #navSection.screen-pushed-in .category-block:nth-child(6) { animation: catFluidIn 0.58s cubic-bezier(0.16, 1, 0.3, 1) 0.24s backwards; }
+
+        @keyframes catFluidIn {
+            from {
+                opacity: 0.35;
+                transform: translateY(14px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
         /* 导航页书签行悬停时显示右箭头并微移 (CSS 伪元素零 DOM 节点模式) */
         .nav-bookmark::after {
