@@ -771,10 +771,14 @@
             transform: scale(0.96);
             transition: transform 0.08s var(--ease-snappy) !important;
         }
-        #navHint:active, #navHeader:active {
-            transform: scale(0.97);
+        #navHint:active {
+            transform: scale(0.96);
             background-color: rgba(255, 255, 255, 0.22);
             transition: transform 0.08s var(--ease-snappy), background-color 0.08s ease !important;
+        }
+        #navHeader:active {
+            background-color: rgba(255, 255, 255, 0.16);
+            transition: background-color 0.08s ease !important;
         }
         .json-dropzone:active {
             transform: scale(0.985);
