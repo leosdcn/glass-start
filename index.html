@@ -2952,18 +2952,6 @@
          * @returns {Promise<void>}
          */
         async function loadUserData() {
-            // 一次性强制清理所有设备历史旧书签残留，使全网所有用户 100% 同步升级至 v3.1.3 最新官方书签
-            try {
-                if (localStorage.getItem('glass_v313_sync') !== '1') {
-                    localStorage.removeItem('userBookmarks');
-                    localStorage.removeItem('userBookmarkKeys');
-                    localStorage.removeItem('userCustomMeta');
-                    localStorage.removeItem('glass_bookmarks_version');
-                    localStorage.removeItem('glass_bookmarks_user_modified');
-                    localStorage.setItem('glass_v313_sync', '1');
-                }
-            } catch (_) {}
-
             migrateBookmarksStorage();
             const userKeys = storageGet('userBookmarkKeys');
             const customMeta = storageGet('userCustomMeta') || {};
@@ -3655,7 +3643,6 @@
                 storageRemove('userBookmarks');
                 storageRemove('userBookmarkKeys');
                 storageRemove('userCustomMeta');
-                storageRemove('glass_v313_sync');
                 storageRemove('preferredEngine');
                 storageRemove('userWallpaper');
                 storageRemove('maskOpacity');
