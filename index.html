@@ -3169,7 +3169,8 @@
             draftWallpaper: undefined,
             draftMaskOpacity: null,
             draftBgBlur: null,
-            wallpaperChanged: false
+            wallpaperChanged: false,
+            bookmarksChanged: false
         };
 
         /**
@@ -3410,6 +3411,7 @@
             modalState.draftMaskOpacity = modalState.initialMaskOpacity;
             modalState.draftBgBlur = modalState.initialBgBlur;
             modalState.wallpaperChanged = false;
+            modalState.bookmarksChanged = false;
 
             switchSettingsTab('tabBookmarks');
             renderEditList();
@@ -3559,6 +3561,7 @@
                     }
 
                     showConfirm(`检测到合规书签 ${validBookmarks.length} 项，确定导入并填入草稿列表中吗？需点击『保存并关闭』后生效。`, () => {
+                        modalState.bookmarksChanged = true;
                         renderEditList(validBookmarks);
                         closeBookmarkPicker();
                     }, '导入草稿确认');
@@ -3861,6 +3864,7 @@
                 } else {
                     target.parentNode.insertBefore(dragSrc, target.nextSibling);
                 }
+                modalState.bookmarksChanged = true;
 
                 // FLIP Step 3: 倒置偏差并播放物理滑入 (Invert & Play)
                 cards.forEach(card => {
@@ -5002,6 +5006,7 @@
                 item.dataset.url = '';
                 const lastSpan = item.querySelector('span:last-child');
                 if (lastSpan) lastSpan.textContent = '✓';
+                modalState.bookmarksChanged = true;
                 updatePickerCount();
                 updateBookmarkCountBadge();
             });
@@ -5013,7 +5018,12 @@
                 div.classList.add('animate-item-in');
                 dom.editList.appendChild(div);
                 div.querySelector('.edit-name').focus();
+                modalState.bookmarksChanged = true;
                 updateBookmarkCountBadge();
+            });
+
+            dom.editList.addEventListener('input', () => {
+                modalState.bookmarksChanged = true;
             });
 
             dom.editList.addEventListener('click', e => {
@@ -5021,6 +5031,7 @@
                 if (del) {
                     const item = del.closest('[data-idx]');
                     if (item) {
+                        modalState.bookmarksChanged = true;
                         if (document.body.classList.contains('nr') || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
                             item.remove();
                             updatePickerCount();
@@ -5048,8 +5059,11 @@
                     return;
                 }
                 
-                // 1. 提交书签（派生架构保存）
-                saveUserBookmarks(data);
+                // 1. 提交书签：只有当用户真正增/删/改/排过快捷书签时，才固化并持久化至 userBookmarkKeys；
+                //    若用户只是进入设置更换壁纸或调节遮罩透明度，绝对不写入书签存储，保持书签对官方默认值的自动跟随响应！
+                if (modalState.bookmarksChanged) {
+                    saveUserBookmarks(data);
+                }
 
                 // 2. 提交壁纸（大图持久化至 IndexedDB，同步写入 localStorage['userWallpaper'] 供 head 极速预加载）
                 if (modalState.wallpaperChanged) {
