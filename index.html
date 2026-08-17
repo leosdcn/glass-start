@@ -495,8 +495,8 @@
             display: block;
         }
         .lazy-icon {
-            opacity: 0;
-            transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            opacity: 0.9;
+            transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
         .lazy-icon.loaded {
             opacity: 0.9;
@@ -913,30 +913,9 @@
             from { transform: rotate(0deg); }
             to { transform: rotate(360deg); }
         }
-        /* ===== 导航页滚动流体优雅入场动效 (Apple HIG Balanced Scroll Reveal) ===== */
+        /* ===== 导航页分类块常驻流体排版 ===== */
         .category-block {
-            content-visibility: auto;
-            contain-intrinsic-size: auto 240px;
-        }
-        @supports (animation-timeline: view()) {
-            @media (prefers-reduced-motion: no-preference) {
-                .category-block {
-                    view-timeline: --cat-block-timeline block;
-                    animation: categoryScrollEntry linear both;
-                    animation-timeline: --cat-block-timeline;
-                    animation-range: entry 0% cover 18%;
-                }
-                @keyframes categoryScrollEntry {
-                    0% {
-                        opacity: 0.4;
-                        transform: translateY(12px) scale(0.988);
-                    }
-                    100% {
-                        opacity: 1;
-                        transform: translateY(0) scale(1);
-                    }
-                }
-            }
+            position: relative;
         }
         /* 导航页书签行悬停时显示右箭头并微移 (CSS 伪元素零 DOM 节点模式) */
         .nav-bookmark::after {
@@ -4076,6 +4055,19 @@
             scheduleIdleTask(() => {
                 refreshSidebarNavCache();
                 initFaviconObserver(true);
+                // 在空闲周期静默预热导航页前两个核心分类的 Favicon 图标缓存
+                try {
+                    const initialCategories = (pageData.categories || []).slice(0, 2);
+                    initialCategories.forEach(cat => {
+                        (cat.bookmarks || []).forEach(bm => {
+                            if (bm.icon && safeUrl(bm.icon) !== '#') {
+                                const img = new Image();
+                                img.onload = img.onerror = () => { img.onload = img.onerror = null; };
+                                img.src = safeUrl(bm.icon);
+                            }
+                        });
+                    });
+                } catch {}
             });
 
             scheduleIdleTask(() => {
@@ -4125,14 +4117,13 @@
             }
         }, true);
 
-        const TRANSPARENT_PLACEHOLDER_SVG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1 1'%3E%3C/svg%3E";
-
         /**
          * 根据书签数据对象生成规范化的 Favicon HTML 图标结构
          * 自动处理缺失图标时的首字母文字徽章，以及合法 URL 图片节点的生成
-         * 📌 网络与渲染优先级调优 (HTTP/2 Multiplexing & Unified Queue Loading):
-         *    - 统一采用 1x1 透明 SVG 占位与 data-src 延迟绑定，消除浏览器解析初期的瞬时连接爆发与拥塞。
-         *    - 由微任务分批调度队列 (processLazyIconQueue) 平滑调度放行，获得原生 Apple 风格流体淡入动效。
+         * 📌 浏览器内核原生级现代流式加载优化:
+         *    - 首屏 8 个快捷图标: loading="eager" fetchpriority="high"，开屏 0 延迟高清直出。
+         *    - 导航页与挑选器图标: loading="lazy" fetchpriority="low" decoding="async"，内核级非阻塞懒加载。
+         *    - 缓存命中时 0ms 瞬间常驻显示，滑屏切屏全流程零空白、零闪现。
          * @param {Bookmark} bm - 单个书签数据对象
          * @param {'sm'|'md'} [sizeType='sm'] - 图标尺寸类别 ('sm': 导航页 1.5rem | 'md': 首屏 2rem)
          * @returns {string} 渲染后的 HTML 字符串
@@ -4148,130 +4139,53 @@
                 return `<div class="icon-box ${sizeClass} bg-white/15 border border-white/20 text-white/90 ${textClass}">${escapeHtml(initial)}</div>`;
             }
             const imgSize = isMd ? '32' : '24';
-            if (isMd) {
-                return `<div class="icon-box ${sizeClass}"><img src="${safeIcon}" width="${imgSize}" height="${imgSize}" data-initial="${escapeHtml(initial)}" data-md="1" class="lazy-icon pointer-events-none select-none" alt="" loading="lazy" decoding="async" draggable="false" onload="this.classList.add('loaded')"></div>`;
-            }
-            return `<div class="icon-box ${sizeClass}"><img src="${TRANSPARENT_PLACEHOLDER_SVG}" data-src="${safeIcon}" width="${imgSize}" height="${imgSize}" data-initial="${escapeHtml(initial)}" data-md="0" class="lazy-icon pointer-events-none select-none" alt="" loading="lazy" decoding="async" draggable="false"></div>`;
+            const loadingAttr = isMd ? 'loading="eager" fetchpriority="high"' : 'loading="lazy" fetchpriority="low"';
+            return `<div class="icon-box ${sizeClass}"><img src="${safeIcon}" width="${imgSize}" height="${imgSize}" data-initial="${escapeHtml(initial)}" data-md="${isMd ? '1' : '0'}" class="lazy-icon pointer-events-none select-none" alt="" ${loadingAttr} decoding="async" draggable="false" onload="this.classList.add('loaded')"></div>`;
         }
 
-        // ==================== 图标 IntersectionObserver 按需微任务队列加载器 ====================
+        // ==================== 图标状态与缓存感知感知器 ====================
         let faviconObserver = null;
         const lazyIconQueue = [];
         let isProcessingLazyQueue = false;
 
-        /**
-         * 调度队列分批放行图标请求 (每次放行 4 个，间隔 30ms)
-         * 消除快速滚屏或首屏加载时图标集中爆发导致的连接排队阻塞与主线程重排卡顿
-         */
         function processLazyIconQueue() {
-            if (lazyIconQueue.length === 0) {
-                isProcessingLazyQueue = false;
-                return;
-            }
-            isProcessingLazyQueue = true;
-            const batch = lazyIconQueue.splice(0, 4);
-            batch.forEach(img => {
-                if (img && img.dataset.src) {
-                    const targetSrc = img.dataset.src;
-                    delete img.dataset.src;
-                    img.decoding = 'async';
-                    img.onload = () => {
-                        img.classList.add('loaded');
-                    };
-                    img.src = targetSrc;
-                    if (img.complete && img.naturalWidth > 0) {
-                        img.classList.add('loaded');
-                    }
-                }
-            });
-            setTimeout(processLazyIconQueue, 30);
+            lazyIconQueue.length = 0;
+            isProcessingLazyQueue = false;
         }
 
         function enqueueLazyIcon(img) {
-            if (img && img.dataset.src) {
-                lazyIconQueue.push(img);
-                if (!isProcessingLazyQueue) {
-                    processLazyIconQueue();
-                }
+            if (!img) return;
+            if (img.dataset && img.dataset.src) {
+                img.src = img.dataset.src;
+                delete img.dataset.src;
+            }
+            if (img.complete && img.naturalWidth > 0) {
+                img.classList.add('loaded');
+            } else {
+                img.addEventListener('load', () => img.classList.add('loaded'), { once: true });
             }
         }
 
         /**
-         * 初始化或刷新图标视口观察器 (IntersectionObserver)
-         * 仅在图标节点滚动至视口 (或提前 200px 缓冲区) 时才将 data-src 转换为 src 发起网络请求，
-         * 彻底消除 90+ 图标同时并发竞争导致的浏览器 connection queueing 阻塞。
+         * 扫描并同步图片 loaded 状态
          */
         function initFaviconObserver(force = false) {
-            if (faviconObserver) {
-                try { faviconObserver.disconnect(); } catch {}
-            }
-            lazyIconQueue.length = 0; // 清空旧队列
-
-            const navEl = dom.navSection || document.getElementById('navSection');
-            if (!force && navEl && navEl.classList.contains('nav-hidden')) {
-                return;
-            }
-
-            if ('IntersectionObserver' in window) {
-                faviconObserver = new IntersectionObserver((entries, observer) => {
-                    entries.forEach(entry => {
-                        if (entry.isIntersecting && entry.target.dataset.src) {
-                            const img = entry.target;
-                            enqueueLazyIcon(img);
-                            observer.unobserve(img);
-                        }
-                    });
-                }, {
-                    root: dom.navContent || null,
-                    rootMargin: '200px 0px 200px 0px'
-                });
-
-                document.querySelectorAll('#navCategories img.lazy-icon[data-src]').forEach(img => {
-                    faviconObserver.observe(img);
-                });
-            } else {
-                document.querySelectorAll('#navCategories img.lazy-icon[data-src]').forEach(img => {
-                    if (img.dataset.src) {
-                        img.src = img.dataset.src;
-                        delete img.dataset.src;
-                    }
-                });
-            }
+            document.querySelectorAll('img.lazy-icon').forEach(img => {
+                if (img.complete && img.naturalWidth > 0) {
+                    img.classList.add('loaded');
+                }
+            });
         }
 
         let pickerFaviconObserver = null;
         function initPickerFaviconObserver() {
-            if (pickerFaviconObserver) {
-                try { pickerFaviconObserver.disconnect(); } catch {}
-            }
             const container = dom.pickerContent || document.getElementById('pickerContent');
             if (!container) return;
-
-            if ('IntersectionObserver' in window) {
-                pickerFaviconObserver = new IntersectionObserver((entries, observer) => {
-                    entries.forEach(entry => {
-                        if (entry.isIntersecting && entry.target.dataset.src) {
-                            const img = entry.target;
-                            enqueueLazyIcon(img);
-                            observer.unobserve(img);
-                        }
-                    });
-                }, {
-                    root: container,
-                    rootMargin: '120px 0px 120px 0px'
-                });
-
-                container.querySelectorAll('img.lazy-icon[data-src]').forEach(img => {
-                    pickerFaviconObserver.observe(img);
-                });
-            } else {
-                container.querySelectorAll('img.lazy-icon[data-src]').forEach(img => {
-                    if (img.dataset.src) {
-                        img.src = img.dataset.src;
-                        delete img.dataset.src;
-                    }
-                });
-            }
+            container.querySelectorAll('img.lazy-icon').forEach(img => {
+                if (img.complete && img.naturalWidth > 0) {
+                    img.classList.add('loaded');
+                }
+            });
         }
 
         // ==================== 书签 ====================
