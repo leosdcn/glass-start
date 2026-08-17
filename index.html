@@ -68,6 +68,9 @@
        *    2. 根据物理像素宽度 (innerWidth * dpr) 动态匹配 Unsplash 请求宽度 w=... (如 13" MacBook Air 匹配 w=3000)，
        *       既避免移动端/1080P 屏幕加载 4K 原图浪费带宽，又保障 2K / 4K / Mac Retina 屏 100% 物理点对点像素级清晰度。
        *    3. 动态一次性注入 <link rel="preload">，彻底消除静态 Preload 盲发导致的重复下载与连接竞争。
+       *    4. ⚠️ 严禁在此处硬编码静态 <link rel="preload" href="bg1.avif">：
+       *       若硬编码默认壁纸，当用户偏好设置为 bg2~bg8 或自定义壁纸时，浏览器会在开屏无条件重复下载两张壁纸（浪费 600KB+ 带宽），
+       *       造成严重的网络连接阻塞并拖慢真实壁纸的 LCP 渲染速度。
        */
       (function() {
         /**
@@ -925,7 +928,13 @@
             from { transform: rotate(0deg); }
             to { transform: rotate(360deg); }
         }
-        /* ===== 导航页书签入场动效 (Scroll-Driven View Timeline 滚动渐显，无 content-visibility 纯净常驻版) ===== */
+        /* ===== 导航页书签入场动效 (Scroll-Driven View Timeline 滚动渐显) =====
+           ⚠️ 架构防踩坑警告 (严禁添加 content-visibility: auto 或 contain: layout/paint)：
+           本项目第二屏 (#navSection) 采用全屏 translateY(100vh) GPU 物理推移架构。
+           若在此处滥用 content-visibility: auto，浏览器会在首屏将第二屏全部书签判定为"离屏"而跳过渲染树构建；
+           当用户切屏至第二屏时会呈现大面积空白，必须二次滚动才能突发重绘闪现（严重视觉 Bug）。
+           此处必须保持 DOM 常驻渲染 (DOM-resident)！
+        ===== */
         .category-block {
             position: relative;
             transform: translateZ(0);
@@ -1403,7 +1412,7 @@
             <div class="glass-strong apple-radius p-2 flex items-center gap-1.5 border fade-in search-box-wrapper delay-100 select-none">
                 <div class="relative shrink-0 select-none">
                     <button id="engineBtn" type="button" aria-label="选择搜索引擎（当前：Bing）" aria-haspopup="menu" aria-expanded="false" aria-controls="dropdownMenu" class="flex items-center gap-1.5 pl-3 pr-2 py-3 apple-radius hover:bg-white/10 glass-interactive text-sm font-medium min-h-11 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed select-none">
-                        <img id="engineIcon" src="https://a.favicon.im/bing.com" width="16" height="16" data-hide-on-error="1" class="engine-icon size-4 rounded select-none pointer-events-none" alt="当前引擎：Bing" draggable="false">
+                        <img id="engineIcon" src="https://a.favicon.im/bing.com" width="16" height="16" decoding="async" data-hide-on-error="1" class="engine-icon size-4 rounded select-none pointer-events-none" alt="当前引擎：Bing" draggable="false">
                         <span id="engineName" class="hidden sm:inline select-none">Bing</span>
                         <svg class="size-4 opacity-60 shrink-0 pointer-events-none select-none" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 16 16"><path d="M3.5 6l4.5 4.5 4.5-4.5"/></svg>
                     </button>
@@ -1429,10 +1438,10 @@
             </div>
             <div id="dropdownMenu" role="menu" aria-label="搜索引擎选项" aria-hidden="true" class="dropdown-menu absolute top-full left-0 glass-strong apple-radius p-2 border border-white/20 shadow-2xl min-w-[8.75rem] z-[var(--z-dropdown)] select-none">
                 <button type="button" data-engine="bing" role="menuitemradio" aria-checked="true" class="w-full flex items-center gap-3 px-3 py-2.5 apple-radius hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 glass-interactive text-left text-sm select-none">
-                    <img src="https://a.favicon.im/bing.com" width="16" height="16" data-hide-on-error="1" class="engine-icon size-4 rounded pointer-events-none select-none" alt="" draggable="false"> Bing
+                    <img src="https://a.favicon.im/bing.com" width="16" height="16" decoding="async" data-hide-on-error="1" class="engine-icon size-4 rounded pointer-events-none select-none" alt="" draggable="false"> Bing
                 </button>
                 <button type="button" data-engine="google" role="menuitemradio" aria-checked="false" class="w-full flex items-center gap-3 px-3 py-2.5 apple-radius hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 glass-interactive text-left text-sm select-none">
-                    <img src="https://a.favicon.im/google.com" width="16" height="16" data-hide-on-error="1" class="engine-icon size-4 rounded pointer-events-none select-none" alt="" draggable="false"> Google
+                    <img src="https://a.favicon.im/google.com" width="16" height="16" decoding="async" data-hide-on-error="1" class="engine-icon size-4 rounded pointer-events-none select-none" alt="" draggable="false"> Google
                 </button>
             </div>
             <!-- 搜索实时建议联想下拉框 (Spotlight 风格全宽下拉面板) -->
@@ -2575,7 +2584,7 @@
                 if (!eng) return '';
                 const isChecked = key === curEngine;
                 return `<button type="button" data-engine="${key}" role="menuitemradio" aria-checked="${isChecked}" class="w-full flex items-center gap-3 px-3 py-2.5 apple-radius hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 glass-interactive text-left text-sm select-none">
-                    <img src="${eng.icon}" width="16" height="16" data-hide-on-error="1" class="engine-icon size-4 rounded pointer-events-none select-none" alt="" draggable="false"> ${eng.name}
+                    <img src="${eng.icon}" width="16" height="16" decoding="async" data-hide-on-error="1" class="engine-icon size-4 rounded pointer-events-none select-none" alt="" draggable="false"> ${eng.name}
                 </button>`;
             }).join('');
         }
@@ -4156,10 +4165,12 @@
         /**
          * 根据书签数据对象生成规范化的 Favicon HTML 图标结构
          * 自动处理缺失图标时的首字母文字徽章，以及合法 URL 图片节点的生成
-         * 📌 浏览器内核原生级现代流式加载优化:
+         * 📌 浏览器内核原生级现代流式加载规范 (严禁重构为 JS IntersectionObserver + data-src 模式):
          *    - 首屏 8 个快捷图标: loading="eager" fetchpriority="high"，开屏 0 延迟高清直出。
          *    - 导航页与挑选器图标: loading="lazy" fetchpriority="low" decoding="async"，内核级非阻塞懒加载。
-         *    - 缓存命中时 0ms 瞬间常驻显示，滑屏切屏全流程零空白、零闪现。
+         *    - ⚠️ 严禁使用 JS 手动 IntersectionObserver 监听 data-src 占位替换：
+         *      因为在双屏 translateY 切屏时，处于 transform 容器内的节点不会触发交叉事件，会导致切屏图标空白甚至闪烁。
+         *      浏览器原生 loading="lazy" 结合 DOM 常驻渲染是保证 0 空白 0 闪烁的最优解。
          * @param {Bookmark} bm - 单个书签数据对象
          * @param {'sm'|'md'} [sizeType='sm'] - 图标尺寸类别 ('sm': 导航页 1.5rem | 'md': 首屏 2rem)
          * @returns {string} 渲染后的 HTML 字符串
@@ -5583,7 +5594,9 @@
                 suggestionScriptTag = null;
             }
 
-            // 为每次异步 JSONP 分配独立的唯一回调，离线与悬挂回调自动隔离，彻底解决乱序覆盖与内存泄漏
+            // 为每次异步 JSONP 分配独立的唯一回调与独立 script 标签，离线与悬挂回调自动隔离
+            // ⚠️ 严禁改用单例 Script 节点复用：
+            // 若复用单个 script 节点通过修改 src 发起请求，会导致慢请求在网络返回时覆盖快请求结果（Race Condition 竞态乱序 Bug）。
             const cbName = `__glassSuggestCb_${reqId}`;
             let timeoutTimer = null;
 
@@ -5684,7 +5697,7 @@
                 html += renderSectionHeader('书签', true);
                 localList.forEach(bm => {
                     const iconHtml = bm.icon 
-                        ? `<img src="${safeUrl(bm.icon)}" width="20" height="20" class="w-5 h-5 rounded-md object-cover shrink-0 pointer-events-none select-none" alt="" data-hide-on-error="1" draggable="false">`
+                        ? `<img src="${safeUrl(bm.icon)}" width="20" height="20" decoding="async" class="w-5 h-5 rounded-md object-cover shrink-0 pointer-events-none select-none" alt="" data-hide-on-error="1" draggable="false">`
                         : `<svg class="w-5 h-5 text-white/40 shrink-0 pointer-events-none select-none" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 20 20"><path d="M4.5 4.25A1.75 1.75 0 016.25 2.5h7.5a1.75 1.75 0 011.75 1.75v13.5l-5.5-2.75-5.5 2.75V4.25z"/></svg>`;
                     
                     html += `
