@@ -1,7 +1,6 @@
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
-const crypto = require('crypto');
 
 /**
  * ==============================================================================
@@ -251,31 +250,13 @@ function syncBookmarksData() {
 
     if (fs.existsSync(PATHS.bookmarksJson)) {
         try {
-            const bookmarksRaw = fs.readFileSync(PATHS.bookmarksJson, 'utf-8');
-            const bookmarksData = JSON.parse(bookmarksRaw);
-
-            // 计算 bookmarks.json 内容的短哈希，用于注入 DEFAULT_BOOKMARKS_VERSION
-            const bookmarksHash = crypto.createHash('sha1')
-                .update(bookmarksRaw)
-                .digest('hex')
-                .slice(0, 10);
-
+            const bookmarksData = JSON.parse(fs.readFileSync(PATHS.bookmarksJson, 'utf-8'));
             const targetFiles = [PATHS.indexHtml].filter(f => fs.existsSync(f));
             let totalUpdated = 0;
 
             for (const file of targetFiles) {
                 let content = fs.readFileSync(file, 'utf-8');
                 let updatedCount = 0;
-
-                // 4.0 自动注入 DEFAULT_BOOKMARKS_VERSION（bookmarks.json 内容短哈希）
-                const nextVersionContent = content.replace(
-                    /(const\s+DEFAULT_BOOKMARKS_VERSION\s*=\s*)['"][^'"]*['"]/,
-                    `$1'${bookmarksHash}'`
-                );
-                if (nextVersionContent !== content) {
-                    content = nextVersionContent;
-                    updatedCount++;
-                }
 
                 // 4.1 自动同步常用顶栏 DEFAULT_BOOKMARKS
                 if (bookmarksData.bookmarks && Array.isArray(bookmarksData.bookmarks)) {
@@ -304,9 +285,9 @@ function syncBookmarksData() {
             }
 
             if (totalUpdated > 0) {
-                logItem(`源码 index.html 内置默认数据已更新并与 bookmarks.json 保持同步 (版本: ${bookmarksHash})`);
+                logItem(`源码 index.html 内置默认数据已更新并与 bookmarks.json 保持同步`);
             } else {
-                logItem(`源码 index.html 内置默认数据已是最新 (与 bookmarks.json 保持 100% 同步, 版本: ${bookmarksHash})`);
+                logItem(`源码 index.html 内置默认数据已是最新 (与 bookmarks.json 保持 100% 同步)`);
             }
         } catch (e) {
             logItem(`自动同步默认书签时出现警告: ${e.message}`, 'warn');
