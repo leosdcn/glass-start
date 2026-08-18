@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const { exec } = require('child_process');
 const os = require('os');
+const zlib = require('zlib');
 
 // 终端格式化排版与 ANSI 彩色工具
 const isTTY = process.stdout.isTTY && !process.env.NO_COLOR;
@@ -77,8 +78,25 @@ function createStaticServer() {
                             res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
                             res.end('404 Not Found');
                         } else {
-                            res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-                            res.end(data);
+                            const accept = req.headers['accept-encoding'] || '';
+                            if (accept.includes('gzip')) {
+                                zlib.gzip(data, { level: 6 }, (gzErr, compressed) => {
+                                    if (gzErr) {
+                                        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+                                        res.end(data);
+                                    } else {
+                                        res.writeHead(200, {
+                                            'Content-Type': 'text/html; charset=utf-8',
+                                            'Content-Encoding': 'gzip',
+                                            'Vary': 'Accept-Encoding'
+                                        });
+                                        res.end(compressed);
+                                    }
+                                });
+                            } else {
+                                res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+                                res.end(data);
+                            }
                         }
                     });
                     return;
@@ -90,8 +108,26 @@ function createStaticServer() {
                 res.setHeader('Access-Control-Allow-Origin', '*');
                 res.setHeader('Content-Type', contentType);
 
-                const stream = fs.createReadStream(filePath);
-                stream.pipe(res);
+                // 针对文本类静态资产（HTML, JS, CSS, JSON, SVG）支持原生 Gzip / Deflate 流式压缩
+                const isCompressible = /^(text\/|application\/(javascript|json|manifest\+json)|image\/svg\+xml)/.test(contentType);
+                const acceptEncoding = req.headers['accept-encoding'] || '';
+
+                if (isCompressible && acceptEncoding.includes('gzip')) {
+                    res.setHeader('Content-Encoding', 'gzip');
+                    res.setHeader('Vary', 'Accept-Encoding');
+                    const rawStream = fs.createReadStream(filePath);
+                    const gzip = zlib.createGzip({ level: 6 });
+                    rawStream.pipe(gzip).pipe(res);
+                } else if (isCompressible && acceptEncoding.includes('deflate')) {
+                    res.setHeader('Content-Encoding', 'deflate');
+                    res.setHeader('Vary', 'Accept-Encoding');
+                    const rawStream = fs.createReadStream(filePath);
+                    const deflate = zlib.createDeflate({ level: 6 });
+                    rawStream.pipe(deflate).pipe(res);
+                } else {
+                    const stream = fs.createReadStream(filePath);
+                    stream.pipe(res);
+                }
             });
         } catch {
             res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' });

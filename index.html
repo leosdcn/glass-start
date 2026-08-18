@@ -259,7 +259,7 @@
         }
         .preset-bg-card img {
             opacity: 0;
-            transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1), transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            transition: opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1), transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
             will-change: transform, opacity;
         }
         .preset-bg-card img.loaded {
@@ -514,10 +514,17 @@
             display: block;
         }
         .lazy-icon {
-            opacity: 0.9;
-            transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            opacity: 0;
+            transition: opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         }
         .lazy-icon.loaded {
+            opacity: 0.9;
+        }
+        .edit-favicon-img {
+            opacity: 0;
+            transition: opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .edit-favicon-img.loaded {
             opacity: 0.9;
         }
         .nav-bookmark {
@@ -1317,6 +1324,13 @@
         .preset-bg-card.active {
             border-color: rgba(255, 255, 255, 0.9);
             box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.4);
+        }
+        .settings-tab-panel:not(.hidden) {
+            animation: settingsTabIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        @keyframes settingsTabIn {
+            from { opacity: 0; transform: translateY(3px); }
+            to { opacity: 1; transform: translateY(0); }
         }
         /* 危险区域 (Danger Zone) 玻璃风红框样式 */
         .danger-zone-card {
@@ -2511,7 +2525,39 @@
 
         let pageData = { bookmarks: DEFAULT_BOOKMARKS.map(bm => ({ ...bm })), categories: DEFAULT_CATEGORIES };
 
-        // ==================== 配置 ====================
+        // ==================== 配置与全局常量 ====================
+        const CONFIG = Object.freeze({
+            GESTURE: {
+                TRANSITION_MS: 580,          // 双屏推移过渡动画时长 (ms)
+                WHEEL_THRESHOLD: 120,        // 滚轮累积触发切屏阈值
+                DRAG_PROGRESS_THRESHOLD: 0.20, // 拖拽切屏所需最小屏高进度 (20%)
+                DRAG_VELOCITY_THRESHOLD: 0.25, // 快速甩动手势最小速度 (px/ms)
+                DRAG_MIN_DELTA: 100          // 最小拖拽位移触发阈值 (px)
+            },
+            WEATHER: {
+                CACHE_TTL: 45 * 60 * 1000,    // 气象数据本地缓存有效期 (45分钟)
+                LOC_TTL: 24 * 60 * 60 * 1000, // 地理定位本地缓存有效期 (24小时)
+                TIMEOUT_IP: 3000,             // IP 定位接口超时限制 (ms)
+                TIMEOUT_WEATHER: 6000,        // Open-Meteo 预报接口超时限制 (ms)
+                POP_MID_THRESHOLD: 30,        // 降水概率备伞阈值 (30%)
+                POP_HIGH_THRESHOLD: 70,       // 降水概率必带伞阈值 (70%)
+                MIN_SPIN_DURATION: 750        // 刷新按钮自旋最小对齐周期 (ms)
+            },
+            SUGGEST: {
+                DEBOUNCE_MS: 180,             // 搜索输入防抖延时 (ms)
+                JSONP_TIMEOUT: 4000,          // 建议词 JSONP 请求熔断超时 (ms)
+                MAX_LOCAL_ITEMS: 2,           // 混排时最多呈现的本地书签数
+                MAX_TOTAL_ITEMS: 4            // 下拉菜单最大呈现总行数
+            },
+            APPEARANCE: {
+                MAX_MASK_OPACITY: 80,         // 遮罩透明度最大百分比
+                MAX_BG_BLUR: 20,              // 背景高斯模糊最大像素值 (px)
+                MAX_UPLOAD_WIDTH: 3840,       // 自定义壁纸最大宽度 (4K UHD)
+                MAX_UPLOAD_HEIGHT: 2160,      // 自定义壁纸最大高度
+                JPEG_QUALITY: 0.95            // Canvas 壁纸压缩质量
+            }
+        });
+
         const engines = {
             bing: { name: 'Bing', icon: 'https://a.favicon.im/bing.com', url: 'https://www.bing.com/search?q=' },
             google: { name: 'Google', icon: 'https://a.favicon.im/google.com', url: 'https://www.google.com/search?q=' }
@@ -2613,9 +2659,10 @@
             const titles = ['山峦夜空', '湖光山色', '森林瀑布', '星空雪山', '壮丽旷野', '静谧海岸', '迷雾古堡', '梦幻流彩'];
             dom.presetWallpaperGrid.innerHTML = titles.map((title, i) => {
                 const bg = `./wallpapers/bg${i + 1}.avif`;
+                const thumb = `./wallpapers/bg${i + 1}-thumb.avif`;
                 const fullTitle = i === 0 ? `${title}（系统默认）` : title;
                 return `<button type="button" class="preset-bg-card group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70" data-bg="${bg}" data-title="${title}" title="${fullTitle}">
-                    <img data-src="${bg}" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 9'%3E%3C/svg%3E" width="160" height="90" alt="${title}" class="w-full h-full object-cover pointer-events-none" loading="lazy" decoding="async" draggable="false">
+                    <img data-src="${thumb}" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 9'%3E%3C/svg%3E" width="160" height="90" alt="${title}" class="w-full h-full object-cover pointer-events-none" loading="lazy" decoding="async" draggable="false">
                     <span class="absolute inset-x-0 bottom-0 py-1.5 px-1 bg-black/65 backdrop-blur-sm border-t border-white/10 text-xs text-white/90 text-center font-medium tracking-tight pointer-events-none flex items-center justify-center">${title}</span>
                 </button>`;
             }).join('');
@@ -3028,6 +3075,17 @@
         }
 
         /**
+         * 生成书签加载失败或无图标时的首字母徽标 HTML（纯函数，零副作用）
+         * @param {string} initial - 首字母字符
+         * @param {string} [sizeClass='icon-box-sm'] - 容器尺寸样式类
+         * @param {string} [textClass='text-2xs font-semibold'] - 文字排版样式类
+         * @returns {string} HTML 字符串
+         */
+        function createLetterBadgeHtml(initial, sizeClass = 'icon-box-sm', textClass = 'text-2xs font-semibold') {
+            return `<div class="icon-box ${sizeClass} bg-white/15 border border-white/20 text-white/90 ${textClass} pointer-events-none select-none">${escapeHtml(initial)}</div>`;
+        }
+
+        /**
          * 异步按钮操作通用包装函数，防重复点击并呈现 loading state
          */
         async function runWithLoading(btn, fn) {
@@ -3071,17 +3129,23 @@
             isPresetBgImagesLoaded = true;
             const container = dom.presetWallpaperGrid || document.getElementById('presetWallpaperGrid');
             if (!container) return;
-            container.querySelectorAll('img[data-src]').forEach(img => {
+            container.querySelectorAll('img[data-src]').forEach((img, idx) => {
                 const src = img.dataset.src;
                 if (!src) return;
                 delete img.dataset.src;
                 const handleLoaded = () => {
-                    img.classList.add('loaded');
+                    requestAnimationFrame(() => {
+                        requestAnimationFrame(() => {
+                            setTimeout(() => {
+                                img.classList.add('loaded');
+                            }, idx * 20);
+                        });
+                    });
                     img.onload = null;
                 };
                 img.onload = handleLoaded;
                 img.src = src;
-                if (img.complete) {
+                if (img.complete && img.naturalWidth > 0) {
                     handleLoaded();
                 }
             });
@@ -3298,9 +3362,9 @@
             const initial = (name || '?').trim().charAt(0).toUpperCase() || '?';
             const faviconUrl = icon || faviconFromUrl(url);
             if (faviconUrl) {
-                return `<div class="icon-box icon-box-sm edit-favicon-img-wrapper pointer-events-none select-none"><img src="${escapeHtml(faviconUrl)}" width="24" height="24" data-initial="${escapeHtml(initial)}" class="opacity-90 edit-favicon-img pointer-events-none select-none" alt="" loading="lazy" decoding="async" draggable="false"></div>`;
+                return `<div class="icon-box icon-box-sm edit-favicon-img-wrapper pointer-events-none select-none"><img src="${escapeHtml(faviconUrl)}" width="24" height="24" data-initial="${escapeHtml(initial)}" class="edit-favicon-img pointer-events-none select-none" alt="" loading="lazy" decoding="async" draggable="false" onload="this.classList.add('loaded')"></div>`;
             }
-            return `<div class="icon-box icon-box-sm bg-white/15 border border-white/20 text-white/90 text-2xs font-semibold edit-favicon-initial pointer-events-none select-none">${escapeHtml(initial)}</div>`;
+            return createLetterBadgeHtml(initial, 'icon-box-sm edit-favicon-initial', 'text-2xs font-semibold');
         }
 
         /**
@@ -3313,7 +3377,7 @@
             const initial = img.dataset.initial || '?';
             const box = img.closest('.edit-favicon-box');
             if (box) {
-                box.innerHTML = `<div class="icon-box icon-box-sm bg-white/15 border border-white/20 text-white/90 text-2xs font-semibold edit-favicon-initial pointer-events-none select-none">${escapeHtml(initial)}</div>`;
+                box.innerHTML = createLetterBadgeHtml(initial, 'icon-box-sm edit-favicon-initial', 'text-2xs font-semibold');
             }
         }
         window.handleEditIconError = handleEditIconError;
@@ -4210,7 +4274,7 @@
             const safeIcon = safeUrl(bm.icon);
             
             if (!bm.icon || safeIcon === '#') {
-                return `<div class="icon-box ${sizeClass} bg-white/15 border border-white/20 text-white/90 ${textClass}">${escapeHtml(initial)}</div>`;
+                return createLetterBadgeHtml(initial, sizeClass, textClass);
             }
             const imgSize = isMd ? '32' : '24';
             const loadingAttr = isMd ? 'loading="eager" fetchpriority="high"' : 'loading="lazy" fetchpriority="low"';
@@ -4634,7 +4698,7 @@
                 if (suggestDebounceTimer) clearTimeout(suggestDebounceTimer);
                 suggestDebounceTimer = setTimeout(() => {
                     fetchSuggestions(state.engine, val);
-                }, 180);
+                }, CONFIG.SUGGEST.DEBOUNCE_MS);
             });
 
             if (dom.searchClearBtn) {
@@ -5134,8 +5198,8 @@
                             const img = new Image();
                             img.onload = () => {
                                 // 无论原图大小，全量统一按 4K 顶级超清分辨率 (3840x2160) 及 95% 高品质 JPEG 进行优化（配 IndexedDB 存储）
-                                const MAX_WIDTH = 3840;
-                                const MAX_HEIGHT = 2160;
+                                const MAX_WIDTH = CONFIG.APPEARANCE.MAX_UPLOAD_WIDTH;
+                                const MAX_HEIGHT = CONFIG.APPEARANCE.MAX_UPLOAD_HEIGHT;
                                 let width = img.width;
                                 let height = img.height;
 
@@ -5155,7 +5219,7 @@
                                 const ctx = canvas.getContext('2d');
                                 ctx.drawImage(img, 0, 0, width, height);
 
-                                const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.95);
+                                const compressedDataUrl = canvas.toDataURL('image/jpeg', CONFIG.APPEARANCE.JPEG_QUALITY);
                                 previewDraftWallpaper(compressedDataUrl);
 
                                 canvas.width = 0;
@@ -5616,7 +5680,7 @@
             }
 
             // 1. 实时检索本站书签匹配结果（最多 2 条特色书签）
-            const localList = getLocalBookmarkSuggestions(query, 2);
+            const localList = getLocalBookmarkSuggestions(query, CONFIG.SUGGEST.MAX_LOCAL_ITEMS);
 
             // 2. 极速 0ms 呈现本地书签 + 预留网络联想骨架槽位（实现零 CLS 布局抖动）
             renderSuggestions(localList, [], false, true);
@@ -5664,7 +5728,7 @@
                 if (reqId === activeSuggestReqId) {
                     handleSuggestFallback();
                 }
-            }, 4000);
+            }, CONFIG.SUGGEST.JSONP_TIMEOUT);
 
             window[cbName] = function(data) {
                 cleanup();
@@ -5676,7 +5740,7 @@
                     list = Array.isArray(data[1]) ? data[1] : data.map(item => (typeof item === 'object' && item && item.phrase) ? item.phrase : item);
                 }
                 // 动态计算：确保 (本站书签数 + 网络联想数) 严格总计不超过 4 行，且防御性过滤非字符串项
-                const maxNetCount = Math.max(0, 4 - localList.length);
+                const maxNetCount = Math.max(0, CONFIG.SUGGEST.MAX_TOTAL_ITEMS - localList.length);
                 const safeList = (Array.isArray(list) ? list : []).filter(item => typeof item === 'string' && item.trim().length > 0);
                 const netList = safeList.slice(0, maxNetCount);
                 if (localList.length > 0 || netList.length > 0) {
@@ -5975,14 +6039,14 @@
             // 自动 IP 定位优先：读取本地 24 小时位置缓存，彻底杜绝重复请求 IP 接口（手动强刷时跳过缓存）
             const locCache = storageGet('glass_weather_loc_cache', null);
             const now = Date.now();
-            const LOC_TTL = 24 * 60 * 60 * 1000; // 24 小时定位缓存
+            const LOC_TTL = CONFIG.WEATHER.LOC_TTL; // 24 小时定位缓存
             if (!force && locCache && locCache.timestamp && (now - locCache.timestamp < LOC_TTL) && locCache.lat) {
                 return locCache;
             }
 
             // 通道 1：国内高精度 IPIP.NET + 官方气象高精度地理编码（Open-Meteo Geocoding）纯动态解析
             try {
-                const ipRes = await fetch('https://myip.ipip.net/json', { signal: AbortSignal.timeout ? AbortSignal.timeout(3000) : undefined });
+                const ipRes = await fetch('https://myip.ipip.net/json', { signal: AbortSignal.timeout ? AbortSignal.timeout(CONFIG.WEATHER.TIMEOUT_IP) : undefined });
                 if (ipRes.ok) {
                     const ipData = await ipRes.json();
                     if (ipData && ipData.ret === 'ok' && Array.isArray(ipData?.data?.location)) {
@@ -5995,7 +6059,7 @@
                         if (cleanCity) {
                             try {
                                 const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cleanCity)}&language=zh&count=1`;
-                                const geoRes = await fetch(geoUrl, { signal: AbortSignal.timeout ? AbortSignal.timeout(3000) : undefined });
+                                const geoRes = await fetch(geoUrl, { signal: AbortSignal.timeout ? AbortSignal.timeout(CONFIG.WEATHER.TIMEOUT_IP) : undefined });
                                 if (geoRes.ok) {
                                     const geoData = await geoRes.json();
                                     if (geoData && geoData.results && geoData.results[0]) {
@@ -6022,7 +6086,7 @@
 
             // 通道 2：国际 GeoIP 接口兜底（海外用户或 IPIP 接口不可达时）
             try {
-                const res = await fetch('https://ipwho.is/?lang=zh-CN', { signal: AbortSignal.timeout ? AbortSignal.timeout(3000) : undefined });
+                const res = await fetch('https://ipwho.is/?lang=zh-CN', { signal: AbortSignal.timeout ? AbortSignal.timeout(CONFIG.WEATHER.TIMEOUT_IP) : undefined });
                 if (res.ok) {
                     const data = await res.json();
                     if (data && data.success && data.latitude) {
@@ -6062,7 +6126,7 @@
             const lat = loc.lat;
             const lon = loc.lon;
             const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,precipitation_probability_max&timezone=auto`;
-            const res = await fetch(url, { signal: AbortSignal.timeout ? AbortSignal.timeout(6000) : undefined });
+            const res = await fetch(url, { signal: AbortSignal.timeout ? AbortSignal.timeout(CONFIG.WEATHER.TIMEOUT_WEATHER) : undefined });
             if (!res.ok) throw new Error('Open-Meteo request failed');
             const data = await res.json();
 
@@ -6220,9 +6284,9 @@
             // 降水概率与雨伞三阶形态计算 (🌂: 0~29% 无忧收伞, ☂️: 30~69% 备伞, ☔️: ≥70% 必带伞)
             const popVal = c.pop !== undefined ? c.pop : (c.precipitation ? 100 : 0);
             let popIcon = '🌂';
-            if (popVal >= 70) {
+            if (popVal >= CONFIG.WEATHER.POP_HIGH_THRESHOLD) {
                 popIcon = '☔️';
-            } else if (popVal >= 30) {
+            } else if (popVal >= CONFIG.WEATHER.POP_MID_THRESHOLD) {
                 popIcon = '☂️';
             }
 
@@ -6308,7 +6372,7 @@
                     const svg = refBtn.querySelector('svg');
                     if (svg) svg.classList.add('weather-spin');
                     const startTime = Date.now();
-                    const MIN_SPIN_DURATION = 750; // 与 CSS .weather-spin 0.75s 保持 100% 严格周期对齐
+                    const MIN_SPIN_DURATION = CONFIG.WEATHER.MIN_SPIN_DURATION; // 与 CSS .weather-spin 0.75s 保持 100% 严格周期对齐
                     updateWeather(true).finally(() => {
                         const elapsed = Date.now() - startTime;
                         const remaining = Math.max(0, MIN_SPIN_DURATION - elapsed);
@@ -6326,7 +6390,7 @@
         async function updateWeather(force = false) {
             const cache = storageGet('glass_weather_cache', null);
             const now = Date.now();
-            const CACHE_TTL = 45 * 60 * 1000; // 45 分钟合理缓存有效期（行业标准黄金平衡点）
+            const CACHE_TTL = CONFIG.WEATHER.CACHE_TTL; // 45 分钟合理缓存有效期（行业标准黄金平衡点）
 
             // 若在缓存有效期内且非用户强制刷新，严禁触发任何网络请求，直接复用缓存渲染
             if (!force && cache && cache.timestamp && (now - cache.timestamp < CACHE_TTL)) {
@@ -6397,7 +6461,7 @@
             // 检查缓存状态，若缓存有效则 0 网络请求；若超期则静默请求
             updateWeather(false).catch(() => {});
             // 定时每 45 分钟静默刷新
-            setInterval(() => updateWeather(false), 45 * 60 * 1000);
+            setInterval(() => updateWeather(false), CONFIG.WEATHER.CACHE_TTL);
         }
 
         // ==================== 壁纸切换 ====================
@@ -6455,19 +6519,20 @@
                 }
 
                 if (animate) {
-                    // 1. 仅当上层背景当前可见（淡入动画进行中，opacity > 0.4）时才将其同步到底层作为淡入起点。
-                    if (bgNext.style.backgroundImage && parseFloat(getComputedStyle(bgNext).opacity) > 0.4) {
+                    // 同步上一图层（若已存在背景图片）作为当前底层基准，防止快速点击时画面闪烁回滚
+                    if (bgNext.style.backgroundImage) {
                         bgBase.style.backgroundImage = bgNext.style.backgroundImage;
                         bgBase.style.opacity = '1';
                     }
-                    // 2. 暂时断开 CSS 过渡动画，将 opacity 归零
                     bgNext.style.transition = 'none';
                     bgNext.style.opacity = '0';
-
-                    // 3. 换入新图片 URL 并使用 rAF 在下一帧启动淡入动画
                     bgNext.style.backgroundImage = newStyleUrl;
+
+                    // 强制一次同步样式重排，确保 opacity: 0 在过渡前生效
+                    void bgNext.offsetHeight;
+
                     requestAnimationFrame(() => {
-                        bgNext.style.transition = 'opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1)';
+                        bgNext.style.transition = 'opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1)';
                         bgNext.style.opacity = '1';
                         bgSwitchTimer = setTimeout(() => {
                             bgBase.style.backgroundImage = newStyleUrl;
@@ -6475,7 +6540,7 @@
                             bgNext.style.transition = 'none';
                             bgNext.style.opacity = '0';
                             bgSwitchTimer = null;
-                        }, 800);
+                        }, 450);
                     });
                 } else {
                     bgNext.style.transition = 'none';
@@ -6527,7 +6592,7 @@
             let isTransitioning = false;
             let targetSection = getSavedSection() === 'nav' ? 'nav' : 'start';
             // 调试参数扩展：支持 URL Query (e.g. ?threshold=120) 或 window.__SCROLL_THRESHOLD__ 实时调节
-            let baseThreshold = 120;
+            let baseThreshold = CONFIG.GESTURE.WHEEL_THRESHOLD;
             try {
                 const urlParam = new URLSearchParams(window.location.search).get('threshold');
                 if (urlParam && !isNaN(Number(urlParam))) baseThreshold = Number(urlParam);
@@ -6607,6 +6672,10 @@
                 targetSection = 'nav';
                 isTransitioning = true;
                 clearAccum();
+                resetTouchDragStyles();
+                window.scrollTo(0, 0);
+                if (document.documentElement.scrollTop !== 0) document.documentElement.scrollTop = 0;
+                if (document.body.scrollTop !== 0) document.body.scrollTop = 0;
                 saveSection('nav');
                 updateSectionAccessibility('nav');
                 updateGearVisibility();
@@ -6647,16 +6716,21 @@
                 setTimeout(() => {
                     state.currentSection = 'nav';
                     isTransitioning = false;
+                    window.scrollTo(0, 0);
                     if (document.activeElement && typeof document.activeElement.blur === 'function') {
                         document.activeElement.blur();
                     }
-                }, 580);
+                }, CONFIG.GESTURE.TRANSITION_MS);
             }
 
             function switchToStart() {
                 targetSection = 'start';
                 isTransitioning = true;
                 clearAccum();
+                resetTouchDragStyles();
+                window.scrollTo(0, 0);
+                if (document.documentElement.scrollTop !== 0) document.documentElement.scrollTop = 0;
+                if (document.body.scrollTop !== 0) document.body.scrollTop = 0;
                 if (navContent) navContent.scrollTop = 0;
                 saveSection('start');
                 updateSectionAccessibility('start');
@@ -6676,10 +6750,11 @@
                 setTimeout(() => {
                     state.currentSection = 'start';
                     isTransitioning = false;
+                    window.scrollTo(0, 0);
                     updateGearVisibility();
                     nav.classList.remove('nav-visible');
                     nav.classList.add('nav-hidden');
-                }, 580);
+                }, CONFIG.GESTURE.TRANSITION_MS);
             }
 
             window.switchToNav = switchToNav;
@@ -6722,7 +6797,10 @@
             let lastWheelTime = 0;
 
             document.addEventListener('wheel', (e) => {
-                if (isTransitioning || !OverlayStack.isEmpty()) return;
+                if (isTransitioning || !OverlayStack.isEmpty()) {
+                    if (isTransitioning && e.cancelable) e.preventDefault();
+                    return;
+                }
 
                 const delta = normDelta(e);
                 const down = delta > 0;
@@ -6767,8 +6845,15 @@
             let touchStartTime = 0;
             let isTouchDragging = false;
             let touchDragDirection = null; // 'up' or 'down'
+            let touchRafId = null;
+            let touchMoveTicking = false;
 
             function resetTouchDragStyles() {
+                if (touchRafId) {
+                    cancelAnimationFrame(touchRafId);
+                    touchRafId = null;
+                }
+                touchMoveTicking = false;
                 if (startSection) {
                     startSection.style.transition = '';
                     startSection.style.transform = '';
@@ -6789,7 +6874,6 @@
                 touchDragDirection = null;
             }, { passive: true });
 
-            let touchMoveTicking = false;
             document.addEventListener('touchmove', (e) => {
                 if (isTransitioning || !OverlayStack.isEmpty()) return;
                 const currentY = e.touches[0].clientY;
@@ -6808,8 +6892,9 @@
                 }
 
                 if (!touchMoveTicking) {
-                    requestAnimationFrame(() => {
+                    touchRafId = requestAnimationFrame(() => {
                         touchMoveTicking = false;
+                        touchRafId = null;
                         if (!isTouchDragging) return;
 
                         const curDeltaY = startTouchY - lastTouchY;
@@ -6837,7 +6922,17 @@
             }, { passive: false });
 
             function handleTouchEndOrCancel(e) {
-                if (!isTouchDragging) return;
+                if (touchRafId) {
+                    cancelAnimationFrame(touchRafId);
+                    touchRafId = null;
+                }
+                touchMoveTicking = false;
+
+                if (!isTouchDragging) {
+                    resetTouchDragStyles();
+                    return;
+                }
+
                 const isCancel = e.type === 'touchcancel';
                 const endTouchY = (e.changedTouches && e.changedTouches.length > 0) ? e.changedTouches[0].clientY : lastTouchY;
                 const totalDeltaY = startTouchY - endTouchY;
@@ -6850,10 +6945,14 @@
                 isTouchDragging = false;
 
                 // 若被系统事件打断 (touchcancel)，安全起见一律弹性复位弹回原位；正常 touchend 满足条件则切屏
-                const shouldSwitch = !isCancel && (progress >= 0.20 || velocity > 0.25 || Math.abs(totalDeltaY) >= 100);
+                const shouldSwitch = !isCancel && (
+                    progress >= CONFIG.GESTURE.DRAG_PROGRESS_THRESHOLD ||
+                    velocity > CONFIG.GESTURE.DRAG_VELOCITY_THRESHOLD ||
+                    Math.abs(totalDeltaY) >= CONFIG.GESTURE.DRAG_MIN_DELTA
+                );
 
-                if (state.currentSection === 'start' && touchDragDirection === 'up') {
-                    if (shouldSwitch) {
+                if (state.currentSection === 'start') {
+                    if (shouldSwitch && touchDragDirection === 'up') {
                         switchToNav();
                     } else {
                         targetSection = 'start';
@@ -6864,8 +6963,8 @@
                         updateSectionAccessibility('start');
                         updateGearVisibility();
                     }
-                } else if (state.currentSection === 'nav' && touchDragDirection === 'down') {
-                    if (shouldSwitch) {
+                } else if (state.currentSection === 'nav') {
+                    if (shouldSwitch && touchDragDirection === 'down') {
                         switchToStart();
                     } else {
                         targetSection = 'nav';
@@ -6881,6 +6980,12 @@
 
             document.addEventListener('touchend', handleTouchEndOrCancel, { passive: true });
             document.addEventListener('touchcancel', handleTouchEndOrCancel, { passive: true });
+            window.addEventListener('blur', () => {
+                if (isTouchDragging) {
+                    resetTouchDragStyles();
+                    isTouchDragging = false;
+                }
+            });
 
             // ===== VisionOS 玻璃材质 3D 倾斜与光标折射高光代理 (Apple HIG 规范, 零 Reflow 高效引擎) =====
             (function initGlassSpotlightAndTilt() {
