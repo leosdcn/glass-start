@@ -29,7 +29,7 @@
   - 在导航页内部向下滚动浏览时，视口底部 20% 区域的新卡片自动跟随滚轮产生基于 `@supports (animation-timeline: view())` 的平滑渐显与微缩放流体入场，全流程零空白。
 
 ### 2. 搜索与搜索引擎操作
-- **搜索引擎切换**：点击搜索框左侧引擎图标（支持 Bing、Google、百度），在下拉菜单中快速切换。
+- **搜索引擎切换**：点击搜索框左侧引擎图标（支持 Bing、Google），在下拉菜单中快速切换。
 - **盲打自动聚焦**：在起始页非输入状态下，直接按下键盘上的任意字母/数字键，搜索框将自动获得焦点并输入。
 - **中文拼音输入法 (IME) 保护**：输入中文时自动识别拼音合成状态（`compositionstart` / `compositionend`），避免选字过程中误触发搜索或拦截。
 - **混合联想与本地书签匹配**：
@@ -120,7 +120,7 @@ npm run build
      - **极同质化功能只留 Top 2 准则**：秉持精简主义（Less is More），对功能几乎一模一样的同类网站（如在线翻译工具等）最多保留前 2 个，坚决避免同质化工具过度堆叠。
      - **用户友好度审核**：优先收录 **免注册、无打扰、支持一键复制/下载、无强迫付费弹窗** 的优质开源/免费工具。坚决剔除商业化过度干扰、充斥 Pro 锁头弹窗或体验不佳的网站（如 Font Awesome 等）。
 2. **执行自动同步**：修改完成后，运行 `npm run build` 自动同步注入源码与 `dist/` 产物。
-3. **修改搜索引擎**：可在 `index.html` 中的 `engines` 引擎配置对象中新增或定制新的搜索引擎（百度、Google、Bing 等）。
+3. **修改搜索引擎**：可在 `index.html` 中的 `engines` 引擎配置对象中新增或定制新的搜索引擎（Google、Bing 等）。
 
 ### 3. 静态检查、Git 规范与测试指南 (Agent / Dev Guidelines)
 - ⚡ **静态代码检查 (`npm run lint`)**：耗时仅 0.03 秒。自动完成 `index.html` 内联 JS、`build.js`/`sw.js` 语法预检及 `bookmarks.json`/`manifest.json`/`package.json` 的 JSON 合法性校验。修改代码后运行此命令做轻量校验。
@@ -237,7 +237,7 @@ graph TD
 | :--- | :--- | :--- | :--- |
 | **国内定位主通道** | `https://myip.ipip.net/json` | 国内权威 IP 库，毫秒级快速提取当前城市名（如“上海”） | `<link rel="preconnect" href="https://myip.ipip.net" crossorigin>` |
 | **地理编码逆解析** | `https://geocoding-api.open-meteo.com/v1/search` | 官方多语言测站编码库，将城市名精准转换为经纬度与行政区划 | `<link rel="preconnect" href="https://geocoding-api.open-meteo.com" crossorigin>` |
-| **全球气象预报底座** | `https://api.open-meteo.com/v1/forecast` | 拉取当前实时温度、体感、湿度、风速、降水量、天气代码及 4 天日出/日落预报 | `<link rel="preconnect" href="https://api.open-meteo.com" crossorigin>` |
+| **全球气象预报底座** | `https://api.open-meteo.com/v1/forecast` | 拉取当前实时温度、体感、湿度、风速、降水概率、天气代码及 4 天日出/日落预报 | `<link rel="preconnect" href="https://api.open-meteo.com" crossorigin>` |
 | **国际定位备用通道** | `https://ipwho.is/?lang=zh-CN` | 国际 GeoIP 容灾兜底（IPIP 受阻或海外用户时自动无缝接管） | 按需触发（次级容灾） |
 
 #### ⚡ 关键设计与节流优化
@@ -289,6 +289,6 @@ add_header Content-Security-Policy "default-src 'self' data: blob: https:; scrip
 - `a.favicon.im` — Favicon 图标 API
 - `api.open-meteo.com` / `geocoding-api.open-meteo.com` — 全球气象与地理编码 API (免 Key 开源底座)
 - `myip.ipip.net` / `ipwho.is` — 高精度 IP 归属地定位解析 API
-- 百度 / Bing / Google — 搜索联想建议 API
+- Bing / Google — 搜索联想建议 API
 - `wallpapers/` — 本地预设 2.5K AVIF 高清壁纸库（支持 10-bit 色深与全量预缓存）
 - `server.js` / `start.command` — 原生 Node.js 零依赖本地与局域网开发静态服务器 (0ms 秒级启动)
