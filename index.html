@@ -6072,12 +6072,15 @@
             const daily = data.daily || {};
 
             const days = [];
+            const weekDays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
             if (daily.time && Array.isArray(daily.time)) {
                 for (let i = 0; i < Math.min(daily.time.length, 5); i++) {
-                    const dDate = new Date(daily.time[i]);
+                    const timeStr = daily.time[i] || '';
+                    const parts = timeStr.split('-').map(Number);
+                    const dDate = parts.length === 3 ? new Date(parts[0], parts[1] - 1, parts[2]) : new Date(timeStr);
                     const dayCode = daily.weather_code ? daily.weather_code[i] : 0;
                     const dwInfo = getWeatherInfo(dayCode, true);
-                    const wLabel = i === 0 ? '今天' : i === 1 ? '明天' : `${dDate.getMonth() + 1}/${dDate.getDate()}`;
+                    const wLabel = i === 0 ? '今天' : i === 1 ? '明天' : (weekDays[dDate.getDay()] || `${dDate.getMonth() + 1}/${dDate.getDate()}`);
                     days.push({
                         date: daily.time[i],
                         label: wLabel,
@@ -6214,6 +6217,15 @@
                 }
             } catch (_) {}
 
+            // 降水概率与雨伞三阶形态计算 (🌂: 0~29% 无忧收伞, ☂️: 30~69% 备伞, ☔️: ≥70% 必带伞)
+            const popVal = c.pop !== undefined ? c.pop : (c.precipitation ? 100 : 0);
+            let popIcon = '🌂';
+            if (popVal >= 70) {
+                popIcon = '☔️';
+            } else if (popVal >= 30) {
+                popIcon = '☂️';
+            }
+
             dom.weatherPopover.innerHTML = `
                 <!-- 头部地点与刷新 -->
                 <div class="flex items-center justify-between pb-2.5 mb-3 border-b border-white/10">
@@ -6255,10 +6267,10 @@
                         </div>
                     </div>
                     <div class="p-2 glass-subcard flex items-center gap-2">
-                        <span class="text-sm select-none">☂️</span>
+                        <span class="text-sm select-none">${popIcon}</span>
                         <div class="min-w-0">
                             <div class="text-2xs text-white/50 leading-tight">降水概率</div>
-                            <div class="text-xs font-semibold text-white/90 leading-tight mt-0.5">${c.pop !== undefined ? c.pop : (c.precipitation ? 100 : 0)}%</div>
+                            <div class="text-xs font-semibold text-white/90 leading-tight mt-0.5">${popVal}%</div>
                         </div>
                     </div>
                     <div class="p-2 glass-subcard flex items-center gap-2">
