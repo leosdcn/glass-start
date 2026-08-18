@@ -985,16 +985,17 @@
         }
         @supports (animation-timeline: view()) {
             @media (prefers-reduced-motion: no-preference) {
-                .nav-bookmark, .category-header {
-                    animation: cardScrollEntry linear both;
-                    animation-timeline: view();
-                    animation-range: entry 0% entry 70px;
+                .category-block {
+                    view-timeline: --cat-block-timeline block;
+                    animation: categoryScrollEntry linear both;
+                    animation-timeline: --cat-block-timeline;
+                    animation-range: entry 0% cover 20%;
                 }
-                @keyframes cardScrollEntry {
+                @keyframes categoryScrollEntry {
                     0% {
-                        opacity: 0.4;
+                        opacity: 0.35;
                         /* translateZ(0) 合并进关键帧，防止动画期间 GPU 合成层中断重建 */
-                        transform: translateY(8px) scale(0.985) translateZ(0);
+                        transform: translateY(12px) scale(0.988) translateZ(0);
                     }
                     100% {
                         opacity: 1;
@@ -1669,7 +1670,7 @@
                         <div>
                             <div class="flex items-center gap-2">
                                 <span class="text-sm font-semibold text-white/95 tracking-tight leading-none">Glass Start</span>
-                                <span class="text-2xs px-2 h-4.5 rounded-full bg-white/10 border border-white/15 text-white/75 font-medium inline-flex items-center justify-center select-none">v3.1.5</span>
+                                <span class="text-2xs px-2 h-4.5 rounded-full bg-white/10 border border-white/15 text-white/75 font-medium inline-flex items-center justify-center select-none">v3.1.6</span>
                             </div>
                             <div class="text-2xs text-white/50 leading-none mt-1.5">极简 Liquid Glass 拟态导航 • Build 2026.08</div>
                         </div>
