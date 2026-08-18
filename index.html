@@ -347,6 +347,38 @@
         .glass-btn-primary:active {
             transform: scale(0.98);
         }
+        .glass-pill-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            font-size: 0.625rem; /* text-2xs */
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.60);
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.10);
+            border-radius: 9999px; /* 极致圆润的标准 Pill 胶囊形态 */
+            padding: 0.25rem 0.625rem;
+            box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
+            transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
+            cursor: pointer;
+            white-space: nowrap;
+            user-select: none;
+        }
+        @media (hover: hover) and (pointer: fine) {
+            .glass-pill-btn:hover {
+                background: rgba(255, 255, 255, 0.10);
+                color: rgba(255, 255, 255, 0.90);
+                border-color: rgba(255, 255, 255, 0.18);
+            }
+        }
+        .glass-pill-btn:active {
+            transform: scale(0.97);
+        }
+        .glass-pill-btn:focus-visible {
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.50);
+        }
         .glass-btn-primary:disabled {
             opacity: 0.5;
             cursor: not-allowed;
@@ -1393,7 +1425,7 @@
                 <span id="weatherIcon" class="text-sm sm:text-base leading-none select-none">🌤️</span>
                 <span id="weatherTemp" class="tabular-nums font-semibold tracking-tight leading-none">--°</span>
                 <span class="text-white/30 font-light select-none">·</span>
-                <span id="weatherCity" class="text-white/80 max-w-[5.5rem] sm:max-w-[7.5rem] truncate text-2xs sm:text-xs">天气</span>
+                <span id="weatherCity" class="text-white/80 max-w-22 sm:max-w-30 truncate text-2xs sm:text-xs">天气</span>
             </button>
             <!-- 下拉天气预报卡片 -->
             <div id="weatherPopover" role="region" aria-label="实时天气预报卡片" aria-hidden="true" class="dropdown-menu absolute p-3.5 sm:p-4 glass-strong apple-radius border border-white/20 shadow-2xl z-[var(--z-dropdown)] select-none"></div>
@@ -1458,7 +1490,7 @@
                     </button>
                 </div>
             </div>
-            <div id="dropdownMenu" role="menu" aria-label="搜索引擎选项" aria-hidden="true" class="dropdown-menu absolute top-full left-0 glass-strong apple-radius p-2 border border-white/20 shadow-2xl min-w-[8.75rem] z-[var(--z-dropdown)] select-none">
+            <div id="dropdownMenu" role="menu" aria-label="搜索引擎选项" aria-hidden="true" class="dropdown-menu absolute top-full left-0 glass-strong apple-radius p-2 border border-white/20 shadow-2xl min-w-35 z-[var(--z-dropdown)] select-none">
                 <button type="button" data-engine="bing" role="menuitemradio" aria-checked="true" class="w-full flex items-center gap-3 px-3 py-2.5 apple-radius hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 glass-interactive text-left text-sm select-none">
                     <img src="https://a.favicon.im/bing.com" width="16" height="16" decoding="async" data-hide-on-error="1" class="engine-icon size-4 rounded pointer-events-none select-none" alt="" draggable="false"> Bing
                 </button>
@@ -1514,7 +1546,7 @@
                 <!-- 下方主体：左侧分类 + 右侧书签 -->
                 <div class="flex-1 flex flex-col sm:flex-row overflow-hidden min-h-0">
                     <!-- 侧边栏（移动端顶部水平滚动，桌面端左侧垂直滚动） -->
-                    <aside id="sidebar" class="sm:w-28 md:w-32 lg:w-34 shrink-0 p-2 md:p-2.5 sm:pt-3 md:pt-3 overflow-x-auto sm:overflow-y-auto no-scrollbar overscroll-x-contain sm:border-r border-white/[0.08] bg-black/[0.06] sm:bg-gradient-to-b sm:from-black/[0.05] sm:to-black/[0.09] sm:shadow-[inset_-1px_0_0_0_rgba(255,255,255,0.06)]">
+                    <aside id="sidebar" class="sm:w-28 md:w-32 lg:w-34 shrink-0 p-2 md:p-2.5 sm:pt-3 md:pt-3 overflow-x-auto sm:overflow-y-auto no-scrollbar overscroll-x-contain sm:border-r border-white/8 bg-black/6 sm:bg-gradient-to-b sm:from-black/5 sm:to-black/9 sm:shadow-[inset_-1px_0_0_0_rgba(255,255,255,0.06)]">
                         <nav aria-label="导航分类">
                             <div id="sidebarList" role="tablist" aria-label="分类导航列表" class="flex sm:flex-col gap-1"></div>
                         </nav>
@@ -1537,9 +1569,14 @@
                     <span class="text-base">⚙️</span>
                     <h3 class="text-base font-semibold tracking-wide text-white/90">设置与偏好</h3>
                 </div>
-                <button id="openShortcutFromSettingsBtn" type="button" class="text-2xs text-white/60 hover:text-white/90 bg-white/5 hover:bg-white/10 border border-white/10 px-2.5 py-1 apple-radius glass-interactive flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" title="查看全站键盘快捷键速查">
-                    <span>⌨️</span> 快捷键速查 <span id="settingsKbdHint" class="font-mono text-2xs text-white/40 ml-0.5">⌘ /</span>
-                </button>
+                <div class="flex items-center gap-2 shrink-0">
+                    <button id="openCreditsFromSettingsBtn" type="button" aria-expanded="false" aria-controls="creditsModal" aria-haspopup="dialog" class="glass-pill-btn" title="查看开源与数据鸣谢">
+                        <span>✨</span> 开源致谢
+                    </button>
+                    <button id="openShortcutFromSettingsBtn" type="button" class="glass-pill-btn" title="查看全站键盘快捷键速查">
+                        <span>⌨️</span> 快捷键速查 <span id="settingsKbdHint" class="font-mono text-2xs text-white/40 ml-0.5">⌘ /</span>
+                    </button>
+                </div>
             </div>
 
             <!-- Tab 导航栏 -->
@@ -1776,7 +1813,7 @@
                     <h3 class="text-base font-semibold tracking-wide text-white/90">快捷键速查</h3>
                 </div>
                 <button id="closeShortcutBtn" type="button" aria-label="关闭快捷键速查" class="p-1 size-9 sm:size-10 inline-flex items-center justify-center hover:bg-white/10 apple-radius text-white/40 hover:text-white/70 glass-interactive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50">
-                    <svg class="size-4" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 16 16"><path d="M4 12L12 4M4 4l8 8"/></svg>
+                    <svg class="size-4" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 16 16"><path d="M4 12L12 4M4 4l8 8"/></svg>
                 </button>
             </div>
 
@@ -1789,6 +1826,87 @@
             </div>
         </div>
     </div><!-- /#shortcutModal -->
+
+    <!-- 开源与数据鸣谢弹窗 (Credits & Attribution Modal) -->
+    <div id="creditsModal" role="dialog" aria-modal="true" aria-hidden="true" hidden aria-label="开源与数据鸣谢" class="edit-overlay fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-[var(--z-picker)] overscroll-contain">
+        <div class="glass-strong apple-radius w-full max-w-md mx-4 flex flex-col p-5 sm:p-6 shadow-2xl overflow-hidden">
+            <!-- 弹窗 Header -->
+            <div class="flex items-center justify-between mb-3 pb-2 border-b border-white/10 shrink-0">
+                <div class="flex items-center gap-2">
+                    <span class="text-base">✨</span>
+                    <h3 class="text-base font-semibold tracking-wide text-white/90">开源与数据鸣谢</h3>
+                </div>
+                <button id="closeCreditsBtn" type="button" aria-label="关闭开源与数据鸣谢" class="p-1 size-9 sm:size-10 inline-flex items-center justify-center hover:bg-white/10 apple-radius text-white/40 hover:text-white/70 glass-interactive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50">
+                    <svg class="size-4" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 16 16"><path d="M4 12L12 4M4 4l8 8"/></svg>
+                </button>
+            </div>
+
+            <!-- 致谢条目列表 -->
+            <div class="flex-1 overflow-y-auto min-h-0 space-y-2.5 pr-0.5 text-xs">
+                <div class="p-2.5 rounded-xl bg-white/5 border border-white/8 hover:bg-white/8 hover:border-white/15 transition-all flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-2.5 min-w-0">
+                        <span class="text-base shrink-0">🌤️</span>
+                        <div class="truncate">
+                            <div class="font-medium text-white/90 truncate">气象数据底座</div>
+                            <div class="text-2xs text-white/50 truncate">Open-Meteo 全球气象与逆地理编码</div>
+                        </div>
+                    </div>
+                    <a href="https://open-meteo.com" target="_blank" rel="noopener noreferrer" class="shrink-0 text-2xs px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 border border-white/15 text-white/80 hover:text-white transition-all flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" title="访问 Open-Meteo 官网">
+                        <span>CC-BY 4.0</span>
+                        <svg class="size-2.5 opacity-70" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M7 17L17 7M17 7H7M17 7V17"/></svg>
+                    </a>
+                </div>
+
+                <div class="p-2.5 rounded-xl bg-white/5 border border-white/8 hover:bg-white/8 hover:border-white/15 transition-all flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-2.5 min-w-0">
+                        <span class="text-base shrink-0">🖼️</span>
+                        <div class="truncate">
+                            <div class="font-medium text-white/90 truncate">预设高清壁纸</div>
+                            <div class="text-2xs text-white/50 truncate">Unsplash 精选 2.5K 摄影作品</div>
+                        </div>
+                    </div>
+                    <a href="https://unsplash.com" target="_blank" rel="noopener noreferrer" class="shrink-0 text-2xs px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 border border-white/15 text-white/80 hover:text-white transition-all flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" title="访问 Unsplash 官网">
+                        <span>免版税授权</span>
+                        <svg class="size-2.5 opacity-70" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M7 17L17 7M17 7H7M17 7V17"/></svg>
+                    </a>
+                </div>
+
+                <div class="p-2.5 rounded-xl bg-white/5 border border-white/8 hover:bg-white/8 hover:border-white/15 transition-all flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-2.5 min-w-0">
+                        <span class="text-base shrink-0">🎨</span>
+                        <div class="truncate">
+                            <div class="font-medium text-white/90 truncate">样式与设计系统</div>
+                            <div class="text-2xs text-white/50 truncate">Tailwind CSS 现代化原子工具集</div>
+                        </div>
+                    </div>
+                    <a href="https://tailwindcss.com" target="_blank" rel="noopener noreferrer" class="shrink-0 text-2xs px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 border border-white/15 text-white/80 hover:text-white transition-all flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" title="访问 Tailwind CSS 官网">
+                        <span>MIT 协议</span>
+                        <svg class="size-2.5 opacity-70" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M7 17L17 7M17 7H7M17 7V17"/></svg>
+                    </a>
+                </div>
+
+                <div class="p-2.5 rounded-xl bg-white/5 border border-white/8 hover:bg-white/8 hover:border-white/15 transition-all flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-2.5 min-w-0">
+                        <span class="text-base shrink-0">⚡</span>
+                        <div class="truncate">
+                            <div class="font-medium text-white/90 truncate">极速构建内核</div>
+                            <div class="text-2xs text-white/50 truncate">esbuild AST 高效压缩与编译器</div>
+                        </div>
+                    </div>
+                    <a href="https://esbuild.github.io" target="_blank" rel="noopener noreferrer" class="shrink-0 text-2xs px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 border border-white/15 text-white/80 hover:text-white transition-all flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" title="访问 esbuild 官网">
+                        <span>MIT 协议</span>
+                        <svg class="size-2.5 opacity-70" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M7 17L17 7M17 7H7M17 7V17"/></svg>
+                    </a>
+                </div>
+            </div>
+
+            <!-- 底部操作与提示 -->
+            <div class="flex items-center justify-between mt-3 pt-3 border-t border-white/10 shrink-0">
+                <span class="text-2xs text-white/45">致谢开源创作者与社区支持</span>
+                <button id="doneCreditsBtn" type="button" class="glass-btn-primary py-2 px-5 text-xs sm:text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:opacity-50 disabled:cursor-not-allowed">知道了</button>
+            </div>
+        </div>
+    </div><!-- /#creditsModal -->
 
     <script id="main-script">
         /**
@@ -2612,7 +2730,7 @@
          * @returns {void}
          */
         function cacheDOM() {
-            const ids = 'clock date searchInput searchClearBtn randomBookmarkBtn engineBtn engineIcon engineName dropdownMenu suggestionMenu bookmarks sidebar sidebarList navCategories navContent editModal editList dragDropIndicator editBookmarksBtn addBookmarkBtn saveEditBtn cancelEditBtn resetEditBtn togglePickerBtn bookmarkPicker pickerContent pickerCount closePickerBtn donePickerBtn exportJsonBtn importJsonInput uploadBgBtn urlBgBtn resetBgBtn uploadBgInput wallpaperStatus bookmarkCountBadge jsonDropzone maskOpacityInput maskOpacityVal bgBlurInput bgBlurVal storageSizeBadge statBookmarkCount statWallpaperType statPwaStatus clearCacheBtn bgOverlay startSection navSection navHint navHeader presetWallpaperGrid shortcutModal shortcutModalList closeShortcutBtn doneShortcutBtn openShortcutFromSettingsBtn scrollDownHint weatherWidget weatherBtn weatherIcon weatherTemp weatherCity weatherPopover'.split(' ');
+            const ids = 'clock date searchInput searchClearBtn randomBookmarkBtn engineBtn engineIcon engineName dropdownMenu suggestionMenu bookmarks sidebar sidebarList navCategories navContent editModal editList dragDropIndicator editBookmarksBtn addBookmarkBtn saveEditBtn cancelEditBtn resetEditBtn togglePickerBtn bookmarkPicker pickerContent pickerCount closePickerBtn donePickerBtn exportJsonBtn importJsonInput uploadBgBtn urlBgBtn resetBgBtn uploadBgInput wallpaperStatus bookmarkCountBadge jsonDropzone maskOpacityInput maskOpacityVal bgBlurInput bgBlurVal storageSizeBadge statBookmarkCount statWallpaperType statPwaStatus clearCacheBtn bgOverlay startSection navSection navHint navHeader presetWallpaperGrid shortcutModal shortcutModalList closeShortcutBtn doneShortcutBtn openShortcutFromSettingsBtn openCreditsFromSettingsBtn scrollDownHint weatherWidget weatherBtn weatherIcon weatherTemp weatherCity weatherPopover creditsModal closeCreditsBtn doneCreditsBtn'.split(' ');
             ids.forEach(id => dom[id] = $(id));
         }
 
@@ -3546,6 +3664,39 @@
             if (shortcutModalTriggerEl && typeof shortcutModalTriggerEl.focus === 'function') {
                 const opener = shortcutModalTriggerEl;
                 shortcutModalTriggerEl = null;
+                requestAnimationFrame(() => opener.focus());
+            }
+        }
+
+        let creditsModalTriggerEl = null;
+
+        /**
+         * 打开开源与数据鸣谢弹窗
+         * @returns {void}
+         */
+        function openCreditsModal() {
+            if (!dom.creditsModal) return;
+            creditsModalTriggerEl = document.activeElement;
+            dom.openCreditsFromSettingsBtn?.setAttribute('aria-expanded', 'true');
+            OverlayStack.push('creditsModal', closeCreditsModal);
+            animateShowModal(dom.creditsModal);
+        }
+
+        /**
+         * 关闭开源与数据鸣谢弹窗
+         * @returns {void}
+         */
+        function closeCreditsModal() {
+            if (!dom.creditsModal) return;
+            OverlayStack.pop('creditsModal');
+            dom.openCreditsFromSettingsBtn?.setAttribute('aria-expanded', 'false');
+            if (document.activeElement && dom.creditsModal.contains(document.activeElement)) {
+                document.activeElement.blur();
+            }
+            animateHideModal(dom.creditsModal);
+            if (creditsModalTriggerEl && typeof creditsModalTriggerEl.focus === 'function') {
+                const opener = creditsModalTriggerEl;
+                creditsModalTriggerEl = null;
                 requestAnimationFrame(() => opener.focus());
             }
         }
@@ -4980,7 +5131,7 @@
 
         // ==================== 编辑弹窗事件绑定 ====================
         function bindEditEvents() {
-            document.querySelectorAll('#editModal > div, #bookmarkPicker > div, #confirmModal > div, #shortcutModal > div').forEach(el => {
+            document.querySelectorAll('#editModal > div, #bookmarkPicker > div, #confirmModal > div, #shortcutModal > div, #creditsModal > div').forEach(el => {
                 el.addEventListener('click', e => e.stopPropagation());
             });
             dom.editBookmarksBtn.addEventListener('click', openEditModal);
@@ -4996,6 +5147,10 @@
             dom.openShortcutFromSettingsBtn?.addEventListener('click', () => {
                 openShortcutModal();
             });
+            dom.openCreditsFromSettingsBtn?.addEventListener('click', openCreditsModal);
+            dom.closeCreditsBtn?.addEventListener('click', closeCreditsModal);
+            dom.doneCreditsBtn?.addEventListener('click', closeCreditsModal);
+            dom.creditsModal?.addEventListener('click', closeCreditsModal);
 
             // 重置所有设置 (Danger Zone - 确认后立即重置系统，无需再点击保存)
             dom.resetEditBtn.addEventListener('click', resetBookmarks);
