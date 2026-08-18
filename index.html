@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <script>
-        // 防 iframe 点击劫持与恶意嵌套：若检测出页面处于 iframe 中，自动强行跳出并还原为独立窗口
-        if (window.top !== window.self) { try { window.top.location.replace(window.location.href); } catch { window.self.location.replace(window.location.href); } }
+        // 防 iframe 点击劫持与恶意嵌套：若检测出页面处于 iframe 中，自动强行跳出；沙箱受限时安全隐藏页面
+        if (window.top !== window.self) { try { window.top.location.replace(window.location.href); } catch { document.documentElement.style.display = 'none'; } }
     </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="theme-color" content="#0b0f19">
@@ -54,11 +54,6 @@
     <link rel="preconnect" href="https://myip.ipip.net" crossorigin>
     <link rel="preconnect" href="https://geocoding-api.open-meteo.com" crossorigin>
     <link rel="preconnect" href="https://api.open-meteo.com" crossorigin>
-    <!-- 次级按需接口（搜索联想与异常兜底）：按需触发，注释备查
-    <link rel="preconnect" href="https://ipwho.is" crossorigin>
-    <link rel="preconnect" href="https://api.bing.com" crossorigin>
-    <link rel="preconnect" href="https://suggestqueries.google.com" crossorigin>
-    -->
     <!-- 动态壁纸 Preload：根据设备物理 DPI 与用户历史偏好动态计算，单次精准预加载消灭带宽争抢与 LCP 延迟 -->
     <script>
       /**
@@ -3760,7 +3755,7 @@
                             const name = String(item.name || '未命名').trim().slice(0, 60);
                             const rawUrl = String(item.url || '').trim();
                             const url = normalizeUrl(rawUrl);
-                            if (name && url && (/^https?:\/\//i.test(url) || url.startsWith('data:'))) {
+                            if (name && url && (/^https?:\/\//i.test(url) || /^data:image\//i.test(url))) {
                                 const rawIcon = typeof item.icon === 'string' && item.icon.trim() ? item.icon.trim() : faviconFromUrl(url);
                                 const icon = safeUrl(rawIcon) !== '#' ? rawIcon : faviconFromUrl(url);
                                 const desc = typeof item.desc === 'string' ? item.desc.trim().slice(0, 40) : '';

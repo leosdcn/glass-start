@@ -64,7 +64,8 @@ function createStaticServer() {
             const filePath = path.join(DIST_DIR, safePath);
 
             // 防止目录遍历安全漏洞
-            if (!filePath.startsWith(DIST_DIR)) {
+            const rel = path.relative(DIST_DIR, filePath);
+            if (rel.startsWith('..') || path.isAbsolute(rel)) {
                 res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' });
                 res.end('403 Forbidden');
                 return;
