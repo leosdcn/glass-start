@@ -352,6 +352,8 @@
             cursor: not-allowed;
             pointer-events: none;
         }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         /* ===== 双屏滚动全屏推移系统 (起始页 Screen 1 <-> 导航页 Screen 2) ===== */
         section {
             /* 保持硬件合成层但避免在 Safari 中与 backdrop-filter 产生多重 3D 隔离上下文 */
@@ -1519,7 +1521,7 @@
                 <!-- 下方主体：左侧分类 + 右侧书签 -->
                 <div class="flex-1 flex flex-col sm:flex-row overflow-hidden min-h-0">
                     <!-- 侧边栏（移动端顶部水平滚动，桌面端左侧垂直滚动） -->
-                    <aside id="sidebar" class="sm:w-28 md:w-32 lg:w-34 shrink-0 p-2 md:p-2.5 sm:pt-3 md:pt-3 overflow-x-auto sm:overflow-y-auto sm:border-r border-white/[0.08] bg-black/[0.06] sm:bg-gradient-to-b sm:from-black/[0.05] sm:to-black/[0.09] sm:shadow-[inset_-1px_0_0_0_rgba(255,255,255,0.06)]">
+                    <aside id="sidebar" class="sm:w-28 md:w-32 lg:w-34 shrink-0 p-2 md:p-2.5 sm:pt-3 md:pt-3 overflow-x-auto sm:overflow-y-auto no-scrollbar overscroll-x-contain sm:border-r border-white/[0.08] bg-black/[0.06] sm:bg-gradient-to-b sm:from-black/[0.05] sm:to-black/[0.09] sm:shadow-[inset_-1px_0_0_0_rgba(255,255,255,0.06)]">
                         <nav aria-label="导航分类">
                             <div id="sidebarList" role="tablist" aria-label="分类导航列表" class="flex sm:flex-col gap-1"></div>
                         </nav>
@@ -1534,7 +1536,7 @@
     </section><!-- /#navSection -->
 
     <!-- 编辑与设置弹窗 (Apple 风格 Tab 分栏设置面板) -->
-    <div id="editModal" role="dialog" aria-modal="true" aria-hidden="true" hidden aria-label="设置与偏好" class="edit-overlay fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-[var(--z-modal)]">
+    <div id="editModal" role="dialog" aria-modal="true" aria-hidden="true" hidden aria-label="设置与偏好" class="edit-overlay fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-[var(--z-modal)] overscroll-contain">
         <div class="glass-strong apple-radius w-full max-w-xl sm:max-w-2xl md:max-w-3xl lg:max-w-4xl mx-4 min-h-[60dvh] max-h-[90dvh] sm:h-[40rem] flex flex-col p-4 sm:p-6 shadow-2xl overflow-hidden">
             <!-- 弹窗 Header -->
             <div class="flex items-center justify-between mb-3 pb-2 border-b border-white/10 shrink-0">
@@ -1609,7 +1611,7 @@
                                     <span>暗色遮罩</span>
                                     <span id="maskOpacityVal" class="font-mono text-white/90">15%</span>
                                 </div>
-                                <input type="range" id="maskOpacityInput" name="maskOpacityInput" min="0" max="80" value="15" class="w-full h-1.5 bg-white/20 rounded-lg appearance-none cursor-pointer accent-white">
+                                <input type="range" id="maskOpacityInput" name="maskOpacityInput" min="0" max="80" value="15" aria-label="背景暗色遮罩透明度" aria-valuemin="0" aria-valuemax="80" aria-valuenow="15" aria-valuetext="15%" class="w-full h-1.5 bg-white/20 rounded-lg appearance-none cursor-pointer accent-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 disabled:opacity-40 disabled:cursor-not-allowed">
                             </div>
                             <!-- 高斯模糊度 -->
                             <div class="space-y-1">
@@ -1617,7 +1619,7 @@
                                     <span>高斯模糊</span>
                                     <span id="bgBlurVal" class="font-mono text-white/90">0px</span>
                                 </div>
-                                <input type="range" id="bgBlurInput" name="bgBlurInput" min="0" max="20" value="0" class="w-full h-1.5 bg-white/20 rounded-lg appearance-none cursor-pointer accent-white">
+                                <input type="range" id="bgBlurInput" name="bgBlurInput" min="0" max="20" value="0" aria-label="背景高斯模糊度" aria-valuemin="0" aria-valuemax="20" aria-valuenow="0" aria-valuetext="0px" class="w-full h-1.5 bg-white/20 rounded-lg appearance-none cursor-pointer accent-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 disabled:opacity-40 disabled:cursor-not-allowed">
                             </div>
                         </div>
                     </div>
@@ -1739,7 +1741,7 @@
     </div><!-- /#editModal -->
 
     <!-- 从导航页选择弹窗 -->
-    <div id="bookmarkPicker" role="dialog" aria-modal="true" aria-hidden="true" hidden aria-label="从导航页选择书签" class="edit-overlay fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-[var(--z-picker)]">
+    <div id="bookmarkPicker" role="dialog" aria-modal="true" aria-hidden="true" hidden aria-label="从导航页选择书签" class="edit-overlay fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-[var(--z-picker)] overscroll-contain">
         <div class="glass-strong apple-radius pt-4 pb-3 px-4 w-full max-w-2xl xl:max-w-3xl 2xl:max-w-4xl mx-4 max-h-[85dvh] flex flex-col shadow-2xl">
             <div class="flex items-center justify-between mb-2 pb-1.5 border-b border-white/10 shrink-0">
                 <h3 class="text-base font-medium tracking-wide text-white/80">从导航页选择</h3>
@@ -1755,7 +1757,7 @@
 
     <!-- 自定义确认弹窗（替代原生 confirm()，保持玻璃风格一致） -->
     <div id="confirmModal" role="alertdialog" aria-modal="true" aria-hidden="true" hidden aria-labelledby="confirmTitle"
-         class="edit-overlay fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-[var(--z-alert)]">
+         class="edit-overlay fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-[var(--z-alert)] overscroll-contain">
         <div class="confirm-dialog-card">
             <div class="size-11 rounded-full bg-red-500/15 border border-red-500/30 flex items-center justify-center mb-3 text-red-400 shrink-0">
                 <svg class="size-5.5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
@@ -1772,7 +1774,7 @@
     </div><!-- /#confirmModal -->
 
     <!-- 快捷键速查面板弹窗 (Cmd/Ctrl + /) -->
-    <div id="shortcutModal" role="dialog" aria-modal="true" aria-hidden="true" hidden aria-label="快捷键速查" class="edit-overlay fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-[var(--z-picker)]">
+    <div id="shortcutModal" role="dialog" aria-modal="true" aria-hidden="true" hidden aria-label="快捷键速查" class="edit-overlay fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-[var(--z-picker)] overscroll-contain">
         <div class="glass-strong apple-radius w-full max-w-md sm:max-w-lg md:max-w-xl mx-4 max-h-[85dvh] flex flex-col p-5 sm:p-6 shadow-2xl overflow-hidden">
             <!-- 弹窗 Header -->
             <div class="flex items-center justify-between mb-3 pb-2 border-b border-white/10 shrink-0">
@@ -1786,61 +1788,7 @@
             </div>
 
             <!-- 快捷键列表内容 (单列纵向分类流式布局) -->
-            <div class="flex-1 overflow-y-auto min-h-0 space-y-3.5 pr-1 text-xs">
-                <!-- 导航与控制 (5 项) -->
-                <div>
-                    <h4 class="text-2xs font-semibold uppercase tracking-wider text-white/40 mb-1.5 px-0.5">导航与控制</h4>
-                    <div class="space-y-1.5">
-                        <div class="flex items-center justify-between p-2 rounded-xl bg-white/[0.04] border border-white/[0.06]">
-                            <span class="text-white/80">唤起 / 关闭快捷键速查</span>
-                            <span class="flex items-center gap-1 font-mono text-2xs text-white/90 bg-white/10 px-2 py-0.5 rounded-md border border-white/10"><kbd id="kbd-slash">⌘ /</kbd></span>
-                        </div>
-                        <div class="flex items-center justify-between p-2 rounded-xl bg-white/[0.04] border border-white/[0.06]">
-                            <span class="text-white/80">轮播内置高清壁纸</span>
-                            <span class="flex items-center gap-1 font-mono text-2xs text-white/90 bg-white/10 px-2 py-0.5 rounded-md border border-white/10"><kbd id="kbd-bg">⌘ B</kbd></span>
-                        </div>
-                        <div class="flex items-center justify-between p-2 rounded-xl bg-white/[0.04] border border-white/[0.06]">
-                            <span class="text-white/80">滚动至书签导航页</span>
-                            <span class="flex items-center gap-1 font-mono text-2xs text-white/90 bg-white/10 px-2 py-0.5 rounded-md border border-white/10"><kbd>↓</kbd> / <kbd>PageDown</kbd></span>
-                        </div>
-                        <div class="flex items-center justify-between p-2 rounded-xl bg-white/[0.04] border border-white/[0.06]">
-                            <span class="text-white/80">返回顶部起始页</span>
-                            <span class="flex items-center gap-1 font-mono text-2xs text-white/90 bg-white/10 px-2 py-0.5 rounded-md border border-white/10"><kbd>↑</kbd> / <kbd>PageUp</kbd> / <kbd>Home</kbd></span>
-                        </div>
-                        <div class="flex items-center justify-between p-2 rounded-xl bg-white/[0.04] border border-white/[0.06]">
-                            <span class="text-white/80">关闭弹窗 / 取消聚焦</span>
-                            <span class="flex items-center gap-1 font-mono text-2xs text-white/90 bg-white/10 px-2 py-0.5 rounded-md border border-white/10"><kbd>Esc</kbd></span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 搜索与操作 (5 项) -->
-                <div>
-                    <h4 class="text-2xs font-semibold uppercase tracking-wider text-white/40 mb-1.5 px-0.5">搜索与操作</h4>
-                    <div class="space-y-1.5">
-                        <div class="flex items-center justify-between p-2 rounded-xl bg-white/[0.04] border border-white/[0.06]">
-                            <span class="text-white/80">首屏盲打自动聚焦</span>
-                            <span class="flex items-center gap-1 font-mono text-2xs text-white/90 bg-white/10 px-2 py-0.5 rounded-md border border-white/10"><kbd>任意字符键</kbd></span>
-                        </div>
-                        <div class="flex items-center justify-between p-2 rounded-xl bg-white/[0.04] border border-white/[0.06]">
-                            <span class="text-white/80">选择搜索建议 / 书签</span>
-                            <span class="flex items-center gap-1 font-mono text-2xs text-white/90 bg-white/10 px-2 py-0.5 rounded-md border border-white/10"><kbd>↑</kbd> <kbd>↓</kbd></span>
-                        </div>
-                        <div class="flex items-center justify-between p-2 rounded-xl bg-white/[0.04] border border-white/[0.06]">
-                            <span class="text-white/80">执行搜索 / 打开选中书签</span>
-                            <span class="flex items-center gap-1 font-mono text-2xs text-white/90 bg-white/10 px-2 py-0.5 rounded-md border border-white/10"><kbd>Enter</kbd></span>
-                        </div>
-                        <div class="flex items-center justify-between p-2 rounded-xl bg-white/[0.04] border border-white/[0.06]">
-                            <span class="text-white/80">在新标签页中打开搜索</span>
-                            <span class="flex items-center gap-1 font-mono text-2xs text-white/90 bg-white/10 px-2 py-0.5 rounded-md border border-white/10"><kbd id="kbd-newtab">⌘ ↵</kbd></span>
-                        </div>
-                        <div class="flex items-center justify-between p-2 rounded-xl bg-white/[0.04] border border-white/[0.06]">
-                            <span class="text-white/80">弹窗内焦点循环</span>
-                            <span class="flex items-center gap-1 font-mono text-2xs text-white/90 bg-white/10 px-2 py-0.5 rounded-md border border-white/10"><kbd id="kbd-tab">Tab / ⇧ Tab</kbd></span>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <div id="shortcutModalList" class="flex-1 overflow-y-auto min-h-0 space-y-3.5 pr-1 text-xs"></div>
 
             <!-- 底部操作与提示 -->
             <div class="flex items-center justify-end mt-3 pt-3 border-t border-white/10 shrink-0">
@@ -2555,7 +2503,29 @@
                 MAX_UPLOAD_WIDTH: 3840,       // 自定义壁纸最大宽度 (4K UHD)
                 MAX_UPLOAD_HEIGHT: 2160,      // 自定义壁纸最大高度
                 JPEG_QUALITY: 0.95            // Canvas 壁纸压缩质量
-            }
+            },
+            SHORTCUTS: Object.freeze([
+                {
+                    group: '导航与控制',
+                    items: [
+                        { desc: '唤起 / 关闭快捷键速查', kbdId: 'kbd-slash', fallback: '⌘ /' },
+                        { desc: '轮播内置高清壁纸', kbdId: 'kbd-bg', fallback: '⌘ B' },
+                        { desc: '滚动至书签导航页', rawHtml: '<kbd>↓</kbd> / <kbd>PageDown</kbd>' },
+                        { desc: '返回顶部起始页', rawHtml: '<kbd>↑</kbd> / <kbd>PageUp</kbd> / <kbd>Home</kbd>' },
+                        { desc: '关闭弹窗 / 取消聚焦', rawHtml: '<kbd>Esc</kbd>' }
+                    ]
+                },
+                {
+                    group: '搜索与操作',
+                    items: [
+                        { desc: '首屏盲打自动聚焦', rawHtml: '<kbd>任意字符键</kbd>' },
+                        { desc: '选择搜索建议 / 书签', rawHtml: '<kbd>↑</kbd> <kbd>↓</kbd>' },
+                        { desc: '执行搜索 / 打开选中书签', rawHtml: '<kbd>Enter</kbd>' },
+                        { desc: '在新标签页中打开搜索', kbdId: 'kbd-newtab', fallback: '⌘ ↵' },
+                        { desc: '弹窗内焦点循环', kbdId: 'kbd-tab', fallback: 'Tab / ⇧ Tab' }
+                    ]
+                }
+            ])
         });
 
         const engines = {
@@ -2603,6 +2573,29 @@
             if (elHint) elHint.textContent = KBD.hintBadge;
         }
 
+        /**
+         * 渲染快捷键速查弹窗内的按键条目列表（数据驱动，消除 HTML 冗余）
+         * @returns {void}
+         */
+        function renderShortcutModalList() {
+            const container = dom.shortcutModalList || $('shortcutModalList');
+            if (!container) return;
+            container.innerHTML = CONFIG.SHORTCUTS.map(sec => `
+                <div>
+                    <h4 class="text-2xs font-semibold uppercase tracking-wider text-white/40 mb-1.5 px-0.5">${escapeHtml(sec.group)}</h4>
+                    <div class="space-y-1.5">
+                        ${sec.items.map(item => `
+                            <div class="flex items-center justify-between p-2 rounded-xl bg-white/[0.04] border border-white/[0.06]">
+                                <span class="text-white/80">${escapeHtml(item.desc)}</span>
+                                <span class="flex items-center gap-1 font-mono text-2xs text-white/90 bg-white/10 px-2 py-0.5 rounded-md border border-white/10">${item.kbdId ? `<kbd id="${item.kbdId}">${escapeHtml(item.fallback)}</kbd>` : item.rawHtml}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `).join('');
+            applyPlatformShortcuts();
+        }
+
         // ==================== 状态与 DOM 缓存 ====================
         const dom = {};
         const state = {
@@ -2626,7 +2619,7 @@
          * @returns {void}
          */
         function cacheDOM() {
-            const ids = 'clock date searchInput searchClearBtn randomBookmarkBtn engineBtn engineIcon engineName dropdownMenu suggestionMenu bookmarks sidebar sidebarList navCategories navContent editModal editList dragDropIndicator editBookmarksBtn addBookmarkBtn saveEditBtn cancelEditBtn resetEditBtn togglePickerBtn bookmarkPicker pickerContent pickerCount closePickerBtn donePickerBtn exportJsonBtn importJsonInput uploadBgBtn urlBgBtn resetBgBtn uploadBgInput wallpaperStatus bookmarkCountBadge jsonDropzone maskOpacityInput maskOpacityVal bgBlurInput bgBlurVal storageSizeBadge statBookmarkCount statWallpaperType statPwaStatus clearCacheBtn bgOverlay startSection navSection navHint navHeader presetWallpaperGrid shortcutModal closeShortcutBtn doneShortcutBtn openShortcutFromSettingsBtn scrollDownHint weatherWidget weatherBtn weatherIcon weatherTemp weatherCity weatherPopover'.split(' ');
+            const ids = 'clock date searchInput searchClearBtn randomBookmarkBtn engineBtn engineIcon engineName dropdownMenu suggestionMenu bookmarks sidebar sidebarList navCategories navContent editModal editList dragDropIndicator editBookmarksBtn addBookmarkBtn saveEditBtn cancelEditBtn resetEditBtn togglePickerBtn bookmarkPicker pickerContent pickerCount closePickerBtn donePickerBtn exportJsonBtn importJsonInput uploadBgBtn urlBgBtn resetBgBtn uploadBgInput wallpaperStatus bookmarkCountBadge jsonDropzone maskOpacityInput maskOpacityVal bgBlurInput bgBlurVal storageSizeBadge statBookmarkCount statWallpaperType statPwaStatus clearCacheBtn bgOverlay startSection navSection navHint navHeader presetWallpaperGrid shortcutModal shortcutModalList closeShortcutBtn doneShortcutBtn openShortcutFromSettingsBtn scrollDownHint weatherWidget weatherBtn weatherIcon weatherTemp weatherCity weatherPopover'.split(' ');
             ids.forEach(id => dom[id] = $(id));
         }
 
@@ -3194,8 +3187,16 @@
             }
             if (dom.maskOpacityVal) dom.maskOpacityVal.textContent = `${op}%`;
             if (dom.bgBlurVal) dom.bgBlurVal.textContent = `${bl}px`;
-            if (dom.maskOpacityInput && dom.maskOpacityInput.value != op) dom.maskOpacityInput.value = op;
-            if (dom.bgBlurInput && dom.bgBlurInput.value != bl) dom.bgBlurInput.value = bl;
+            if (dom.maskOpacityInput) {
+                if (dom.maskOpacityInput.value != op) dom.maskOpacityInput.value = op;
+                dom.maskOpacityInput.setAttribute('aria-valuenow', op);
+                dom.maskOpacityInput.setAttribute('aria-valuetext', `${op}%`);
+            }
+            if (dom.bgBlurInput) {
+                if (dom.bgBlurInput.value != bl) dom.bgBlurInput.value = bl;
+                dom.bgBlurInput.setAttribute('aria-valuenow', bl);
+                dom.bgBlurInput.setAttribute('aria-valuetext', `${bl}px`);
+            }
             if (save) {
                 storageSet('maskOpacity', op);
                 storageSet('bgBlur', bl);
@@ -4154,7 +4155,7 @@
             if (isAppInitialized) return;
             isAppInitialized = true;
             cacheDOM();
-            applyPlatformShortcuts();
+            renderShortcutModalList();
             renderEngineDropdown();
             renderPresetWallpapers();
             initWeather();
