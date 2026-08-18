@@ -571,7 +571,49 @@
             ]
         },
         {
-            "name": "资讯学习",
+            "name": "知识探索",
+            "icon": "📚",
+            "bookmarks": [
+                {
+                    "name": "Internet Archive",
+                    "url": "https://archive.org",
+                    "icon": "https://a.favicon.im/archive.org",
+                    "desc": "互联网数字资料库"
+                },
+                {
+                    "name": "Nature",
+                    "url": "https://www.nature.com",
+                    "icon": "https://a.favicon.im/nature.com",
+                    "desc": "权威科学学术期刊"
+                },
+                {
+                    "name": "roadmap.sh",
+                    "url": "https://roadmap.sh",
+                    "icon": "https://a.favicon.im/roadmap.sh",
+                    "desc": "开发者成长路线图"
+                },
+                {
+                    "name": "多邻国",
+                    "url": "https://www.duolingo.com",
+                    "icon": "https://a.favicon.im/duolingo.com",
+                    "desc": "全球趣味语言学习平台"
+                },
+                {
+                    "name": "维基百科",
+                    "url": "https://zh.wikipedia.org",
+                    "icon": "https://a.favicon.im/zh.wikipedia.org",
+                    "desc": "自由在线百科全书"
+                },
+                {
+                    "name": "鸟哥的Linux私房菜",
+                    "url": "https://linux.vbird.org",
+                    "icon": "https://a.favicon.im/linux.vbird.org",
+                    "desc": "经典 Linux 运维教程"
+                }
+            ]
+        },
+        {
+            "name": "新闻资讯",
             "icon": "📰",
             "bookmarks": [
                 {
@@ -587,40 +629,16 @@
                     "desc": "全球地图导航服务"
                 },
                 {
-                    "name": "高德地图",
-                    "url": "https://www.amap.com",
-                    "icon": "https://a.favicon.im/amap.com",
-                    "desc": "国内地图导航应用"
-                },
-                {
-                    "name": "Internet Archive",
-                    "url": "https://archive.org",
-                    "icon": "https://a.favicon.im/archive.org",
-                    "desc": "互联网数字资料库"
-                },
-                {
-                    "name": "Nature",
-                    "url": "https://www.nature.com",
-                    "icon": "https://a.favicon.im/nature.com",
-                    "desc": "权威科学学术期刊"
-                },
-                {
                     "name": "OMG! Ubuntu",
                     "url": "https://www.omgubuntu.co.uk",
                     "icon": "https://a.favicon.im/omgubuntu.co.uk",
                     "desc": "Ubuntu 资讯报道"
                 },
                 {
-                    "name": "roadmap.sh",
-                    "url": "https://roadmap.sh",
-                    "icon": "https://a.favicon.im/roadmap.sh",
-                    "desc": "开发者成长路线图"
-                },
-                {
-                    "name": "中国天气网",
-                    "url": "https://www.weather.com.cn",
-                    "icon": "https://a.favicon.im/weather.com.cn",
-                    "desc": "气象预报查询平台"
+                    "name": "高德地图",
+                    "url": "https://www.amap.com",
+                    "icon": "https://a.favicon.im/amap.com",
+                    "desc": "国内地图导航应用"
                 },
                 {
                     "name": "少数派",
@@ -629,16 +647,10 @@
                     "desc": "数字生活效率社区"
                 },
                 {
-                    "name": "维基百科",
-                    "url": "https://zh.wikipedia.org",
-                    "icon": "https://a.favicon.im/zh.wikipedia.org",
-                    "desc": "自由在线百科全书"
-                },
-                {
-                    "name": "鸟哥的Linux私房菜",
-                    "url": "https://linux.vbird.org",
-                    "icon": "https://a.favicon.im/linux.vbird.org",
-                    "desc": "经典 Linux 运维教程"
+                    "name": "中国天气网",
+                    "url": "https://www.weather.com.cn",
+                    "icon": "https://a.favicon.im/weather.com.cn",
+                    "desc": "气象预报查询平台"
                 }
             ]
         }

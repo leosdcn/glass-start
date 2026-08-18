@@ -918,7 +918,7 @@
             }
         }
         #navCategories {
-            padding-bottom: clamp(14rem, 40vh, 25rem);
+            padding-bottom: clamp(20rem, 50vh, 32rem);
         }
         /* 仅搜索页（起始页）激活编辑按钮，导航页时禁用点击 */
         #editBookmarksBtn.hidden-on-nav {
@@ -2504,7 +2504,49 @@
                 ]
             },
             {
-                "name": "资讯学习",
+                "name": "知识探索",
+                "icon": "📚",
+                "bookmarks": [
+                    {
+                        "name": "Internet Archive",
+                        "url": "https://archive.org",
+                        "icon": "https://a.favicon.im/archive.org",
+                        "desc": "互联网数字资料库"
+                    },
+                    {
+                        "name": "Nature",
+                        "url": "https://www.nature.com",
+                        "icon": "https://a.favicon.im/nature.com",
+                        "desc": "权威科学学术期刊"
+                    },
+                    {
+                        "name": "roadmap.sh",
+                        "url": "https://roadmap.sh",
+                        "icon": "https://a.favicon.im/roadmap.sh",
+                        "desc": "开发者成长路线图"
+                    },
+                    {
+                        "name": "多邻国",
+                        "url": "https://www.duolingo.com",
+                        "icon": "https://a.favicon.im/duolingo.com",
+                        "desc": "全球趣味语言学习平台"
+                    },
+                    {
+                        "name": "维基百科",
+                        "url": "https://zh.wikipedia.org",
+                        "icon": "https://a.favicon.im/zh.wikipedia.org",
+                        "desc": "自由在线百科全书"
+                    },
+                    {
+                        "name": "鸟哥的Linux私房菜",
+                        "url": "https://linux.vbird.org",
+                        "icon": "https://a.favicon.im/linux.vbird.org",
+                        "desc": "经典 Linux 运维教程"
+                    }
+                ]
+            },
+            {
+                "name": "新闻资讯",
                 "icon": "📰",
                 "bookmarks": [
                     {
@@ -2520,40 +2562,16 @@
                         "desc": "全球地图导航服务"
                     },
                     {
-                        "name": "高德地图",
-                        "url": "https://www.amap.com",
-                        "icon": "https://a.favicon.im/amap.com",
-                        "desc": "国内地图导航应用"
-                    },
-                    {
-                        "name": "Internet Archive",
-                        "url": "https://archive.org",
-                        "icon": "https://a.favicon.im/archive.org",
-                        "desc": "互联网数字资料库"
-                    },
-                    {
-                        "name": "Nature",
-                        "url": "https://www.nature.com",
-                        "icon": "https://a.favicon.im/nature.com",
-                        "desc": "权威科学学术期刊"
-                    },
-                    {
                         "name": "OMG! Ubuntu",
                         "url": "https://www.omgubuntu.co.uk",
                         "icon": "https://a.favicon.im/omgubuntu.co.uk",
                         "desc": "Ubuntu 资讯报道"
                     },
                     {
-                        "name": "roadmap.sh",
-                        "url": "https://roadmap.sh",
-                        "icon": "https://a.favicon.im/roadmap.sh",
-                        "desc": "开发者成长路线图"
-                    },
-                    {
-                        "name": "中国天气网",
-                        "url": "https://www.weather.com.cn",
-                        "icon": "https://a.favicon.im/weather.com.cn",
-                        "desc": "气象预报查询平台"
+                        "name": "高德地图",
+                        "url": "https://www.amap.com",
+                        "icon": "https://a.favicon.im/amap.com",
+                        "desc": "国内地图导航应用"
                     },
                     {
                         "name": "少数派",
@@ -2562,16 +2580,10 @@
                         "desc": "数字生活效率社区"
                     },
                     {
-                        "name": "维基百科",
-                        "url": "https://zh.wikipedia.org",
-                        "icon": "https://a.favicon.im/zh.wikipedia.org",
-                        "desc": "自由在线百科全书"
-                    },
-                    {
-                        "name": "鸟哥的Linux私房菜",
-                        "url": "https://linux.vbird.org",
-                        "icon": "https://a.favicon.im/linux.vbird.org",
-                        "desc": "经典 Linux 运维教程"
+                        "name": "中国天气网",
+                        "url": "https://www.weather.com.cn",
+                        "icon": "https://a.favicon.im/weather.com.cn",
+                        "desc": "气象预报查询平台"
                     }
                 ]
             }
@@ -2589,12 +2601,16 @@
                 DRAG_MIN_DELTA: 100          // 最小拖拽位移触发阈值 (px)
             },
             WEATHER: {
-                CACHE_TTL: 45 * 60 * 1000,    // 气象数据本地缓存有效期 (45分钟)
+                CACHE_TTL: 15 * 60 * 1000,    // 气象数据本地缓存有效期 (15分钟)
                 LOC_TTL: 24 * 60 * 60 * 1000, // 地理定位本地缓存有效期 (24小时)
                 TIMEOUT_IP: 3000,             // IP 定位接口超时限制 (ms)
                 TIMEOUT_WEATHER: 6000,        // Open-Meteo 预报接口超时限制 (ms)
                 POP_MID_THRESHOLD: 30,        // 降水概率备伞阈值 (30%)
                 POP_HIGH_THRESHOLD: 70,       // 降水概率必带伞阈值 (70%)
+                HUMIDITY_LOW_THRESHOLD: 35,   // 相对湿度干燥阈值 (35%)
+                HUMIDITY_HIGH_THRESHOLD: 75,  // 相对湿度高湿阈值 (75%)
+                WIND_MID_THRESHOLD: 15,       // 实时风速清风/疾风阈值 (15 km/h)
+                WIND_HIGH_THRESHOLD: 35,      // 实时风速大风/龙卷阈值 (35 km/h)
                 MIN_SPIN_DURATION: 750        // 刷新按钮自旋最小对齐周期 (ms)
             },
             SUGGEST: {
@@ -4585,10 +4601,6 @@
             if (!dom.sidebarList || !dom.navContent) return;
             cachedSidebarItems = Array.from(dom.sidebarList.querySelectorAll('[data-target]'));
             cachedSidebarSections = cachedSidebarItems.map(item => document.getElementById(item.dataset.target)).filter(Boolean);
-            // 分类块 (#cat-i) 的 offsetParent 是 #navContent（relative），其 offsetTop 以
-            // #navContent 的 padding edge 为原点，与 scrollTop 的原点完全一致，直接使用即可；
-            // 不能再减 navContent.offsetTop —— 那是相对 #navSection 的另一个坐标系（偏差约 51~57px），
-            // 会导致滚动监听中分类高亮提前约 50px 切换
             cachedSectionOffsets = cachedSidebarSections.map(s => s.offsetTop);
             cachedSidebarButtonGeometries.clear();
             cachedSidebarItems.forEach(btn => {
@@ -4645,11 +4657,8 @@
                         activeIdx = i;
                     }
                 }
-                if (scrollTop + containerHeight >= scrollHeight - 12) {
-                    const currentRelTop = secTops[activeIdx];
-                    if (currentRelTop < -30 || currentRelTop > 80) {
-                        activeIdx = sections.length - 1;
-                    }
+                if (scrollTop + containerHeight >= scrollHeight - 24) {
+                    activeIdx = sections.length - 1;
                 }
             }
 
@@ -6471,6 +6480,24 @@
                 popIcon = '☂️';
             }
 
+            // 相对湿度三阶形态感知 (🌵: <35% 干燥, 💧: 35~75% 适宜, 💦: >75% 潮湿)
+            const humVal = c.humidity !== undefined ? c.humidity : 50;
+            let humIcon = '💧';
+            if (humVal < CONFIG.WEATHER.HUMIDITY_LOW_THRESHOLD) {
+                humIcon = '🌵';
+            } else if (humVal > CONFIG.WEATHER.HUMIDITY_HIGH_THRESHOLD) {
+                humIcon = '💦';
+            }
+
+            // 实时风速三阶形态感知 (🍃: <15km/h 微风, 🎏: 15~35km/h 清风疾风, 🌪️: ≥35km/h 大风狂风)
+            const windVal = c.windSpeed !== undefined ? c.windSpeed : 0;
+            let windIcon = '🍃';
+            if (windVal >= CONFIG.WEATHER.WIND_HIGH_THRESHOLD) {
+                windIcon = '🌪️';
+            } else if (windVal >= CONFIG.WEATHER.WIND_MID_THRESHOLD) {
+                windIcon = '🎏';
+            }
+
             dom.weatherPopover.innerHTML = `
                 <!-- 头部地点与刷新 -->
                 <div class="flex items-center justify-between pb-2.5 mb-3 border-b border-white/10">
@@ -6498,14 +6525,14 @@
                 <!-- 详细指标 2x2 网格 -->
                 <div class="grid grid-cols-2 gap-2 mb-3">
                     <div class="p-2 glass-subcard flex items-center gap-2">
-                        <span class="text-sm select-none">💧</span>
+                        <span class="text-sm select-none">${humIcon}</span>
                         <div class="min-w-0">
                             <div class="text-2xs text-white/50 leading-tight">相对湿度</div>
                             <div class="text-xs font-semibold text-white/90 leading-tight mt-0.5">${c.humidity}%</div>
                         </div>
                     </div>
                     <div class="p-2 glass-subcard flex items-center gap-2">
-                        <span class="text-sm select-none">🍃</span>
+                        <span class="text-sm select-none">${windIcon}</span>
                         <div class="min-w-0">
                             <div class="text-2xs text-white/50 leading-tight">实时风速</div>
                             <div class="text-xs font-semibold text-white/90 leading-tight mt-0.5">${c.windSpeed} km/h</div>
@@ -6571,7 +6598,7 @@
         async function updateWeather(force = false) {
             const cache = storageGet('glass_weather_cache', null);
             const now = Date.now();
-            const CACHE_TTL = CONFIG.WEATHER.CACHE_TTL; // 45 分钟合理缓存有效期（行业标准黄金平衡点）
+            const CACHE_TTL = CONFIG.WEATHER.CACHE_TTL; // 15 分钟合理缓存有效期（行业标准黄金平衡点）
 
             // 若在缓存有效期内且非用户强制刷新，严禁触发任何网络请求，直接复用缓存渲染
             if (!force && cache && cache.timestamp && (now - cache.timestamp < CACHE_TTL)) {
@@ -6641,7 +6668,7 @@
 
             // 检查缓存状态，若缓存有效则 0 网络请求；若超期则静默请求
             updateWeather(false).catch(() => {});
-            // 定时每 45 分钟静默刷新
+            // 定时每 15 分钟静默刷新
             setInterval(() => updateWeather(false), CONFIG.WEATHER.CACHE_TTL);
         }
 

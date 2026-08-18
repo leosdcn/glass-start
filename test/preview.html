@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>气象演练场 (Weather Studio Playground) — Glass Start</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --primary: #38bdf8;
+            --primary-glow: rgba(56, 189, 248, 0.35);
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: #090d16 radial-gradient(circle at 20% 20%, #1e1b4b 0%, #0f172a 45%, #030712 100%);
+            background-image: radial-gradient(circle at 10% 10%, rgba(99, 102, 241, 0.3) 0%, transparent 45%),
+                              radial-gradient(circle at 90% 85%, rgba(14, 165, 233, 0.25) 0%, transparent 45%),
+                              url('../wallpapers/wallpaper-0.jpg');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            min-height: 100vh;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2.5rem 1.5rem;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* 柔光环境光晕层 */
+        .ambient-glow {
+            position: fixed;
+            width: 550px;
+            height: 550px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(56, 189, 248, 0.18) 0%, rgba(99, 102, 241, 0.12) 50%, transparent 70%);
+            filter: blur(80px);
+            pointer-events: none;
+            z-index: 0;
+            top: 25%;
+            left: 50%;
+            transform: translate(-50%, -20%);
+        }
+
+        /* 主容器 */
+        .studio-container {
+            position: relative;
+            z-index: 1;
+            max-width: 1060px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        /* 顶部标题栏（向上拉开呼吸感） */
+        .studio-header {
+            text-align: center;
+            margin-bottom: 0.25rem;
+            transform: translateY(-0.75rem);
+        }
+        .studio-header h1 {
+            font-size: 1.75rem;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            background: linear-gradient(135deg, #ffffff 40%, #bae6fd 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.35rem;
+        }
+        .studio-header p {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.65);
+        }
+
+        /* 双栏主体布局：左侧控制台，右侧天气组件 */
+        .studio-body {
+            display: grid;
+            grid-template-columns: 1fr 340px;
+            gap: 1.75rem;
+            align-items: start;
+        }
+        @media (max-width: 860px) {
+            .studio-body {
+                grid-template-columns: 1fr;
+            }
+            .weather-card-container {
+                order: -1; /* 窄屏下预览卡片在上方 */
+            }
+        }
+
+        /* 左侧：控制调控面板 */
+        .studio-controls {
+            background: rgba(26, 30, 42, 0.68);
+            backdrop-filter: blur(32px) saturate(190%);
+            -webkit-backdrop-filter: blur(32px) saturate(190%);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            border-radius: 1.5rem;
+            padding: 1.5rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), inset 0 1px 0 0 rgba(255, 255, 255, 0.15);
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+        }
+        .control-section-title {
+            font-size: 0.78rem;
+            font-weight: 700;
+            color: rgba(255, 255, 255, 0.5);
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            margin-bottom: 0.45rem;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        /* 5 等宽场景预设卡片 */
+        .preset-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 0.45rem;
+        }
+        @media (max-width: 960px) {
+            .preset-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+        @media (max-width: 600px) {
+            .preset-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        .preset-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 0.55rem 0.65rem;
+            border-radius: 0.75rem;
+            color: rgba(255, 255, 255, 0.85);
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 4.2rem;
+            gap: 0.25rem;
+        }
+        .preset-card:hover {
+            background: rgba(255, 255, 255, 0.12);
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-1px);
+        }
+        .preset-card.active {
+            background: rgba(56, 189, 248, 0.18);
+            border-color: #38bdf8;
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.25);
+            color: #fff;
+        }
+        .preset-title {
+            font-weight: 600;
+            font-size: 0.78rem;
+            line-height: 1.2;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .preset-sub {
+            color: rgba(255, 255, 255, 0.45);
+            font-size: 0.68rem;
+            line-height: 1.25;
+        }
+        .preset-card.active .preset-sub {
+            color: rgba(255, 255, 255, 0.75);
+        }
+
+        /* 实时滑块组 */
+        .slider-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+        }
+        .slider-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.9);
+        }
+        .slider-badge {
+            background: rgba(56, 189, 248, 0.15);
+            border: 1px solid rgba(56, 189, 248, 0.35);
+            color: #38bdf8;
+            padding: 0.15rem 0.55rem;
+            border-radius: 0.5rem;
+            font-size: 0.78rem;
+            font-variant-numeric: tabular-nums;
+            font-weight: 600;
+        }
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(255, 255, 255, 0.15);
+            outline: none;
+            accent-color: #38bdf8;
+            cursor: pointer;
+            transition: opacity 0.2s ease;
+        }
+
+        /* 规则速查卡片 (三列网格) */
+        .rules-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.5rem;
+        }
+        @media (max-width: 700px) {
+            .rules-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        .rule-card {
+            background: rgba(0, 0, 0, 0.22);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 0.75rem;
+            padding: 0.6rem 0.75rem;
+            font-size: 0.72rem;
+            color: rgba(255, 255, 255, 0.7);
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+        }
+        .rule-card-title {
+            font-weight: 700;
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+        .rule-step {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            color: rgba(255, 255, 255, 0.6);
+        }
+        .rule-step span.tag {
+            color: #38bdf8;
+            font-weight: 600;
+        }
+
+        /* 右侧：天气组件视图 (像素级对齐 Glass Start 原版) */
+        .weather-card-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.6rem;
+            position: sticky;
+            top: 2rem;
+        }
+        .card-caption {
+            font-size: 0.72rem;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.45);
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+        .weather-popover {
+            width: 100%;
+            max-width: 340px;
+            background: rgba(20, 24, 33, 0.74);
+            backdrop-filter: blur(32px) saturate(200%);
+            -webkit-backdrop-filter: blur(32px) saturate(200%);
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.65), 
+                        inset 0 1px 0 0 rgba(255, 255, 255, 0.25),
+                        0 0 0 1px rgba(255, 255, 255, 0.05);
+            border-radius: 1.5rem;
+            padding: 1.25rem;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .header-line {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-bottom: 0.65rem;
+            margin-bottom: 0.85rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .loc-box {
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.95);
+        }
+        .refresh-btn {
+            width: 1.5rem;
+            height: 1.5rem;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.05);
+            border: none;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.2s ease, transform 0.15s ease;
+            outline: none;
+        }
+        .refresh-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+        .refresh-btn:active {
+            transform: scale(0.92);
+        }
+        .refresh-btn svg {
+            width: 14px;
+            height: 14px;
+            opacity: 0.7;
+            transition: opacity 0.2s ease;
+        }
+        .refresh-btn:hover svg {
+            opacity: 1;
+        }
+        .refresh-btn.spinning svg {
+            animation: spinRefresh 0.75s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @keyframes spinRefresh {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .main-weather {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+            padding: 0 0.25rem;
+        }
+        .main-left {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .main-icon {
+            font-size: 2.5rem;
+            line-height: 1;
+            filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3));
+        }
+        .main-temp {
+            font-size: 1.85rem;
+            font-weight: 700;
+            letter-spacing: -0.03em;
+            line-height: 1;
+        }
+        .main-temp span {
+            font-size: 1.05rem;
+            font-weight: 400;
+            color: rgba(255, 255, 255, 0.7);
+        }
+        .main-desc {
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.75);
+            margin-top: 0.25rem;
+        }
+        .main-right {
+            text-align: right;
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.6);
+            line-height: 1.45;
+        }
+
+        /* 2x2 网格 */
+        .indicator-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        .glass-subcard {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.09);
+            border-radius: 0.75rem;
+            padding: 0.55rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .glass-subcard:hover {
+            background: rgba(255, 255, 255, 0.09);
+            border-color: rgba(255, 255, 255, 0.18);
+        }
+        .indicator-icon {
+            font-size: 0.95rem;
+            user-select: none;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.25));
+        }
+        .indicator-title {
+            font-size: 0.65rem;
+            color: rgba(255, 255, 255, 0.5);
+            line-height: 1.1;
+        }
+        .indicator-val {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.95);
+            margin-top: 0.15rem;
+            line-height: 1.1;
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* 多日预报 */
+        .forecast-title {
+            font-size: 0.65rem;
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.45);
+            margin-bottom: 0.45rem;
+            letter-spacing: 0.02em;
+        }
+        .forecast-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            padding: 0.35rem 0.3rem;
+            border-radius: 0.5rem;
+            color: rgba(255, 255, 255, 0.85);
+            transition: background 0.2s ease;
+        }
+        .forecast-row:nth-child(even) {
+            background: rgba(255, 255, 255, 0.02);
+        }
+        .forecast-row:hover {
+            background: rgba(255, 255, 255, 0.06);
+        }
+        .forecast-left {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            width: 58%;
+        }
+        .forecast-day {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 0.75rem;
+            min-width: 2rem;
+        }
+        .forecast-temps {
+            font-variant-numeric: tabular-nums;
+            color: rgba(255, 255, 255, 0.7);
+        }
+    </style>
+</head>
+<body>
+    <div class="ambient-glow"></div>
+
+    <div class="studio-container">
+        <!-- 顶部导航 -->
+        <div class="studio-header">
+            <h1>🌤️ 气象演练场 (Weather Studio)</h1>
+            <p>实时调试与感知 2×2 四大区块的动态 Emoji 演化形态</p>
+        </div>
+
+        <!-- 核心双栏主体：左侧控制台，右侧天气组件 -->
+        <div class="studio-body">
+            <!-- 左侧：控制调控面板 -->
+            <div class="studio-controls">
+                <!-- 1. 快速场景预设 (5 列对齐) -->
+                <div>
+                    <div class="control-section-title">⚡ 快速场景预设</div>
+                    <div class="preset-grid">
+                        <div class="preset-card active" onclick="applyPreset('current')">
+                            <div class="preset-title">🌙 晴朗凉夜</div>
+                            <div class="preset-sub">28° · 2.3km/h<br>78% · 4%</div>
+                        </div>
+                        <div class="preset-card" onclick="applyPreset('breeze')">
+                            <div class="preset-title">🍃 春日和风</div>
+                            <div class="preset-sub">22° · 6.5km/h<br>45% · 10%</div>
+                        </div>
+                        <div class="preset-card" onclick="applyPreset('gale')">
+                            <div class="preset-title">🎏 沿海清风</div>
+                            <div class="preset-sub">26° · 22.0km/h<br>60% · 35%</div>
+                        </div>
+                        <div class="preset-card" onclick="applyPreset('storm')">
+                            <div class="preset-title">🌪️ 暴风雷阵雨</div>
+                            <div class="preset-sub">25° · 45.0km/h<br>88% · 85%</div>
+                        </div>
+                        <div class="preset-card" onclick="applyPreset('dry')">
+                            <div class="preset-title">🌵 秋冬干旱</div>
+                            <div class="preset-sub">14° · 38.0km/h<br>18% · 0%</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. 实时滑块调节 -->
+                <div>
+                    <div class="control-section-title">🎚️ 实时微调滑块</div>
+                    <div style="display: flex; flex-direction: column; gap: 0.85rem;">
+                        <!-- 风速 -->
+                        <div class="slider-group">
+                            <div class="slider-header">
+                                <span>🍃 实时风速 (Wind Speed)</span>
+                                <span class="slider-badge" id="windBadge">2.3 km/h</span>
+                            </div>
+                            <input type="range" id="windInput" min="0" max="60" step="0.5" value="2.3">
+                        </div>
+                        <!-- 湿度与降水 (并排) -->
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                            <div class="slider-group">
+                                <div class="slider-header">
+                                    <span>💧 相对湿度</span>
+                                    <span class="slider-badge" id="humBadge">78%</span>
+                                </div>
+                                <input type="range" id="humInput" min="0" max="100" value="78">
+                            </div>
+                            <div class="slider-group">
+                                <div class="slider-header">
+                                    <span>🌂 降水概率</span>
+                                    <span class="slider-badge" id="popBadge">4%</span>
+                                </div>
+                                <input type="range" id="popInput" min="0" max="100" value="4">
+                            </div>
+                        </div>
+                        <!-- 温度与时段 (并排) -->
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                            <div class="slider-group">
+                                <div class="slider-header">
+                                    <span>🌡️ 实时温度</span>
+                                    <span class="slider-badge" id="tempBadge">28°C</span>
+                                </div>
+                                <input type="range" id="tempInput" min="-10" max="42" value="28">
+                            </div>
+                            <div class="slider-group">
+                                <div class="slider-header">
+                                    <span>🌅 时段感知</span>
+                                    <span class="slider-badge" id="sunBadge">夜间 (明日日出)</span>
+                                </div>
+                                <input type="range" id="sunInput" min="0" max="2" value="1" step="1">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. 规则速查卡片 (三列网格) -->
+                <div>
+                    <div class="control-section-title">📋 动态气象形态规则</div>
+                    <div class="rules-grid">
+                        <div class="rule-card">
+                            <div class="rule-card-title">🍃 实时风速梯队</div>
+                            <div class="rule-step"><span>&lt; 15 km/h</span><span class="tag">🍃 微风</span></div>
+                            <div class="rule-step"><span>15 ~ 35 km/h</span><span class="tag">🎏 清风疾风</span></div>
+                            <div class="rule-step"><span>&ge; 35 km/h</span><span class="tag">🌪️ 大风狂风</span></div>
+                        </div>
+                        <div class="rule-card">
+                            <div class="rule-card-title">💧 相对湿度梯队</div>
+                            <div class="rule-step"><span>&lt; 35%</span><span class="tag">🌵 干燥</span></div>
+                            <div class="rule-step"><span>35% ~ 75%</span><span class="tag">💧 适宜</span></div>
+                            <div class="rule-step"><span>&gt; 75%</span><span class="tag">💦 潮湿</span></div>
+                        </div>
+                        <div class="rule-card">
+                            <div class="rule-card-title">🌂 降水概率梯队</div>
+                            <div class="rule-step"><span>0% ~ 29%</span><span class="tag">🌂 收伞</span></div>
+                            <div class="rule-step"><span>30% ~ 69%</span><span class="tag">☂️ 备伞</span></div>
+                            <div class="rule-step"><span>&ge; 70%</span><span class="tag">☔️ 必带伞</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右侧：天气组件视图 -->
+            <div class="weather-card-container">
+                <span class="card-caption">Live Preview 组件实时渲染</span>
+                <div class="weather-popover" id="weatherCard">
+                    <!-- 头部 -->
+                    <div class="header-line">
+                        <div class="loc-box">
+                            <span>📍</span>
+                            <span id="locName">中国 · 上海市</span>
+                        </div>
+                        <div class="refresh-btn" title="点击旋转演示" onclick="spinRefresh()">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>
+                        </div>
+                    </div>
+                    <!-- 主天气 -->
+                    <div class="main-weather">
+                        <div class="main-left">
+                            <span class="main-icon" id="mainWeatherIcon">🌙</span>
+                            <div>
+                                <div class="main-temp"><span id="mainTemp">28</span><span>°C</span></div>
+                                <div class="main-desc"><span id="mainWeatherText">晴间多云</span> · 体感 <span id="apparentTemp">34</span>°C</div>
+                            </div>
+                        </div>
+                        <div class="main-right">
+                            <div>最高 <span id="todayMax">32</span>°</div>
+                            <div>最低 <span id="todayMin">24</span>°</div>
+                        </div>
+                    </div>
+                    <!-- 2x2 指标网格 -->
+                    <div class="indicator-grid">
+                        <div class="glass-subcard">
+                            <span class="indicator-icon" id="humIcon">💦</span>
+                            <div>
+                                <div class="indicator-title">相对湿度</div>
+                                <div class="indicator-val" id="humVal">78%</div>
+                            </div>
+                        </div>
+                        <div class="glass-subcard">
+                            <span class="indicator-icon" id="windIcon">🍃</span>
+                            <div>
+                                <div class="indicator-title">实时风速</div>
+                                <div class="indicator-val" id="windVal">2.3 km/h</div>
+                            </div>
+                        </div>
+                        <div class="glass-subcard">
+                            <span class="indicator-icon" id="popIcon">🌂</span>
+                            <div>
+                                <div class="indicator-title">降水概率</div>
+                                <div class="indicator-val" id="popVal">4%</div>
+                            </div>
+                        </div>
+                        <div class="glass-subcard">
+                            <span class="indicator-icon" id="sunIcon">🌄</span>
+                            <div>
+                                <div class="indicator-title" id="sunLabel">明日日出</div>
+                                <div class="indicator-val" id="sunTime">05:35</div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- 多日预报 -->
+                    <div class="forecast-title">未来几天预报</div>
+                    <div class="forecast-row">
+                        <div class="forecast-left"><span class="forecast-day">今天</span><span>🌤️ 晴间多云</span></div>
+                        <div class="forecast-temps">24° ~ 32°</div>
+                    </div>
+                    <div class="forecast-row">
+                        <div class="forecast-left"><span class="forecast-day">明天</span><span>🌦️ 阵雨</span></div>
+                        <div class="forecast-temps">25° ~ 29°</div>
+                    </div>
+                    <div class="forecast-row">
+                        <div class="forecast-left"><span class="forecast-day">周四</span><span>🌧️ 中度阵雨</span></div>
+                        <div class="forecast-temps">24° ~ 31°</div>
+                    </div>
+                    <div class="forecast-row">
+                        <div class="forecast-left"><span class="forecast-day">周五</span><span>⛈️ 雷雨伴冰雹</span></div>
+                        <div class="forecast-temps">25° ~ 29°</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const windInput = document.getElementById('windInput');
+        const humInput = document.getElementById('humInput');
+        const popInput = document.getElementById('popInput');
+        const tempInput = document.getElementById('tempInput');
+        const sunInput = document.getElementById('sunInput');
+
+        const windBadge = document.getElementById('windBadge');
+        const humBadge = document.getElementById('humBadge');
+        const popBadge = document.getElementById('popBadge');
+        const tempBadge = document.getElementById('tempBadge');
+        const sunBadge = document.getElementById('sunBadge');
+
+        const presets = {
+            current: { wind: 2.3, hum: 78, pop: 4, temp: 28, sun: 1, text: '晴间多云', icon: '🌙' },
+            breeze: { wind: 6.5, hum: 45, pop: 10, temp: 22, sun: 0, text: '晴', icon: '☀️' },
+            gale: { wind: 22.0, hum: 60, pop: 35, temp: 26, sun: 0, text: '多云', icon: '⛅' },
+            storm: { wind: 45.0, hum: 88, pop: 85, temp: 25, sun: 1, text: '雷阵雨', icon: '⛈️' },
+            dry: { wind: 38.0, hum: 18, pop: 0, temp: 14, sun: 0, text: '晴', icon: '☀️' }
+        };
+
+        function updateUI() {
+            const wind = parseFloat(windInput.value);
+            const hum = parseInt(humInput.value, 10);
+            const pop = parseInt(popInput.value, 10);
+            const temp = parseInt(tempInput.value, 10);
+            const sunMode = parseInt(sunInput.value, 10);
+
+            // 更新 Badge
+            windBadge.textContent = wind.toFixed(1) + ' km/h';
+            humBadge.textContent = hum + '%';
+            popBadge.textContent = pop + '%';
+            tempBadge.textContent = temp + '°C';
+
+            // 1. 实时风速 (🍃 < 15, 🎏 15~35, 🌪️ >= 35)
+            let windIcon = '🍃';
+            if (wind >= 35) windIcon = '🌪️';
+            else if (wind >= 15) windIcon = '🎏';
+            document.getElementById('windIcon').textContent = windIcon;
+            document.getElementById('windVal').textContent = wind.toFixed(1) + ' km/h';
+
+            // 2. 相对湿度 (🌵 < 35, 💧 35~75, 💦 > 75)
+            let humIcon = '💧';
+            if (hum < 35) humIcon = '🌵';
+            else if (hum > 75) humIcon = '💦';
+            document.getElementById('humIcon').textContent = humIcon;
+            document.getElementById('humVal').textContent = hum + '%';
+
+            // 3. 降水概率 (🌂 0~29, ☂️ 30~69, ☔️ >= 70)
+            let popIcon = '🌂';
+            if (pop >= 70) popIcon = '☔️';
+            else if (pop >= 30) popIcon = '☂️';
+            document.getElementById('popIcon').textContent = popIcon;
+            document.getElementById('popVal').textContent = pop + '%';
+
+            // 4. 温度与体感
+            document.getElementById('mainTemp').textContent = temp;
+            document.getElementById('apparentTemp').textContent = Math.round(temp + (hum > 70 ? 4 : (hum < 30 ? -2 : 1)));
+
+            // 5. 日出日落
+            if (sunMode === 0) {
+                sunBadge.textContent = '白天 (今日日落)';
+                document.getElementById('sunIcon').textContent = '🌅';
+                document.getElementById('sunLabel').textContent = '今日日落';
+                document.getElementById('sunTime').textContent = '18:58';
+            } else if (sunMode === 1) {
+                sunBadge.textContent = '夜间 (明日日出)';
+                document.getElementById('sunIcon').textContent = '🌄';
+                document.getElementById('sunLabel').textContent = '明日日出';
+                document.getElementById('sunTime').textContent = '05:35';
+            } else {
+                sunBadge.textContent = '凌晨 (今日日出)';
+                document.getElementById('sunIcon').textContent = '🌄';
+                document.getElementById('sunLabel').textContent = '今日日出';
+                document.getElementById('sunTime').textContent = '05:35';
+            }
+        }
+
+        function applyPreset(key) {
+            const p = presets[key];
+            if (!p) return;
+            windInput.value = p.wind;
+            humInput.value = p.hum;
+            popInput.value = p.pop;
+            tempInput.value = p.temp;
+            sunInput.value = p.sun;
+            document.getElementById('mainWeatherText').textContent = p.text;
+            document.getElementById('mainWeatherIcon').textContent = p.icon;
+
+            document.querySelectorAll('.preset-card').forEach((card, idx) => {
+                const keys = Object.keys(presets);
+                card.classList.toggle('active', keys[idx] === key);
+            });
+            updateUI();
+        }
+
+        function spinRefresh() {
+            const btn = document.querySelector('.refresh-btn');
+            if (btn.classList.contains('spinning')) return;
+            btn.classList.add('spinning');
+            setTimeout(() => { btn.classList.remove('spinning'); }, 750);
+        }
+
+        [windInput, humInput, popInput, tempInput, sunInput].forEach(input => {
+            input.addEventListener('input', () => {
+                updateUI();
+                document.querySelectorAll('.preset-card').forEach(c => c.classList.remove('active'));
+            });
+        });
+
+        updateUI();
+    </script>
+</body>
+</html>
