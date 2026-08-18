@@ -6091,6 +6091,8 @@
 
             const sunriseStr = daily.sunrise && daily.sunrise[0] ? daily.sunrise[0].split('T')[1] : '--:--';
             const sunsetStr = daily.sunset && daily.sunset[0] ? daily.sunset[0].split('T')[1] : '--:--';
+            const sunriseTomStr = daily.sunrise && daily.sunrise[1] ? daily.sunrise[1].split('T')[1] : sunriseStr;
+            const sunsetTomStr = daily.sunset && daily.sunset[1] ? daily.sunset[1].split('T')[1] : sunsetStr;
 
             return {
                 timestamp: Date.now(),
@@ -6107,7 +6109,11 @@
                     precipitation: cur.precipitation ?? 0,
                     pop: (daily.precipitation_probability_max && daily.precipitation_probability_max[0] != null) ? Math.round(daily.precipitation_probability_max[0]) : 0,
                     sunrise: sunriseStr,
-                    sunset: sunsetStr
+                    sunset: sunsetStr,
+                    sunriseToday: sunriseStr,
+                    sunsetToday: sunsetStr,
+                    sunriseTomorrow: sunriseTomStr,
+                    sunsetTomorrow: sunsetTomStr
                 },
                 daily: days
             };
@@ -6175,6 +6181,39 @@
             const loc = data.location || {};
             const days = data.daily || [];
 
+            // 智能日落/日出时间感知计算
+            let sunIcon = '🌅';
+            let sunLabel = '今日日落';
+            let sunTime = c.sunset || '--:--';
+            try {
+                const now = new Date();
+                const nowMins = now.getHours() * 60 + now.getMinutes();
+                const parseMins = (str) => {
+                    if (!str || typeof str !== 'string' || !str.includes(':')) return null;
+                    const [h, m] = str.split(':').map(Number);
+                    return isNaN(h) || isNaN(m) ? null : h * 60 + m;
+                };
+                const riseTodayMins = parseMins(c.sunriseToday || c.sunrise);
+                const setTodayMins = parseMins(c.sunsetToday || c.sunset);
+
+                if (setTodayMins !== null && nowMins >= setTodayMins) {
+                    // 今日日落之后 -> 展示明日日出
+                    sunIcon = '🌄';
+                    sunLabel = '明日日出';
+                    sunTime = c.sunriseTomorrow || c.sunriseToday || c.sunrise || '--:--';
+                } else if (riseTodayMins !== null && nowMins < riseTodayMins) {
+                    // 凌晨至今日日出之前 -> 展示今日日出
+                    sunIcon = '🌄';
+                    sunLabel = '今日日出';
+                    sunTime = c.sunriseToday || c.sunrise || '--:--';
+                } else {
+                    // 白昼时段（日出后至日落前） -> 展示今日日落
+                    sunIcon = '🌅';
+                    sunLabel = '今日日落';
+                    sunTime = c.sunsetToday || c.sunset || '--:--';
+                }
+            } catch (_) {}
+
             dom.weatherPopover.innerHTML = `
                 <!-- 头部地点与刷新 -->
                 <div class="flex items-center justify-between pb-2.5 mb-3 border-b border-white/10">
@@ -6223,10 +6262,10 @@
                         </div>
                     </div>
                     <div class="p-2 glass-subcard flex items-center gap-2">
-                        <span class="text-sm select-none">🌅</span>
+                        <span class="text-sm select-none">${sunIcon}</span>
                         <div class="min-w-0">
-                            <div class="text-2xs text-white/50 leading-tight">今日日落</div>
-                            <div class="text-xs font-semibold text-white/90 leading-tight mt-0.5">${c.sunset}</div>
+                            <div class="text-2xs text-white/50 leading-tight">${sunLabel}</div>
+                            <div class="text-xs font-semibold text-white/90 leading-tight mt-0.5">${sunTime}</div>
                         </div>
                     </div>
                 </div>
