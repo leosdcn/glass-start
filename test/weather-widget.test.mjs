@@ -46,6 +46,7 @@ pass('Escape 键优雅关闭天气弹窗并退栈',
 
 // 4. 模拟注入测试数据并验证 2x2 网格与动态雨伞 (🌂: 16% 低概率)
 await evalJS(`(() => {
+  isFetchingWeather = true; // 拦截异步网络回包覆盖测试 Mock
   const mockData = {
     location: { name: '上海市', fullName: '中国 · 上海市' },
     current: {
@@ -138,6 +139,74 @@ const weekdayCheck = await evalJS(`(() => {
   };
 })()`);
 pass('未来预报等宽“周几”两字符标签渲染准确', weekdayCheck && weekdayCheck.allTwoChars, JSON.stringify(weekdayCheck?.labels));
+
+// 8. 专项测试：验证「今天」多日预报平滑对齐逻辑 (POP < 40% 且无雨时平滑对齐为主天气，POP >= 40% 保留降雨预警)
+const smoothingCheck = await evalJS(`(() => {
+  const mockFetch = async (mockApiData) => {
+    const origFetch = window.fetch;
+    window.fetch = async () => ({
+      ok: true,
+      json: async () => mockApiData
+    });
+    try {
+      return await fetchWeatherForecast({ lat: 31.230, lon: 121.473, name: '上海' });
+    } finally {
+      window.fetch = origFetch;
+    }
+  };
+
+  return (async () => {
+    // 场景 A: 底层 24h 代码为 51 (毛毛雨), 实时为 1 (晴间多云), 降水概率 16% (低降水概率平滑对齐)
+    const resA = await mockFetch({
+      current: { temperature_2m: 31, apparent_temperature: 36, is_day: 1, precipitation: 0, weather_code: 1, wind_speed_10m: 3, relative_humidity_2m: 60 },
+      daily: {
+        time: ['2026-08-18', '2026-08-19'],
+        weather_code: [51, 80],
+        temperature_2m_max: [32, 29],
+        temperature_2m_min: [24, 25],
+        precipitation_probability_max: [16, 45]
+      }
+    });
+
+    // 场景 B: 底层 24h 代码为 63 (中雨), 实时为 1 (晴间多云), 降水概率 80% (高降水概率保留雨天预警)
+    const resB = await mockFetch({
+      current: { temperature_2m: 28, apparent_temperature: 30, is_day: 1, precipitation: 0, weather_code: 1, wind_speed_10m: 3, relative_humidity_2m: 70 },
+      daily: {
+        time: ['2026-08-18', '2026-08-19'],
+        weather_code: [63, 80],
+        temperature_2m_max: [30, 28],
+        temperature_2m_min: [23, 24],
+        precipitation_probability_max: [80, 45]
+      }
+    });
+
+    return {
+      scenarioA_smoothed: resA.daily[0].text === '晴间多云' && resA.daily[0].icon === '🌤️',
+      scenarioB_keptRain: resA.daily[1].text === '阵雨' && resB.daily[0].text === '中雨' && resB.daily[0].icon === '🌧️',
+      resA_today: resA.daily[0],
+      resB_today: resB.daily[0]
+    };
+  })();
+})()`);
+pass('「今天」多日预报平滑对齐逻辑 (低降水概率对齐实况，高降水概率保留预警)', smoothingCheck && smoothingCheck.scenarioA_smoothed && smoothingCheck.scenarioB_keptRain, JSON.stringify(smoothingCheck));
+
+// 9. 专项测试：地理层级多名合并与行政区去重格式化算法 (formatLocationFullName)
+const geoFormatCheck = await evalJS(`(() => {
+  const c1 = formatLocationFullName(['中国', '上海市', '上海市', '普陀']);
+  const c2 = formatLocationFullName(['中国', '北京市', '北京市', '朝阳']);
+  const c3 = formatLocationFullName(['中国', '吉林省', '吉林市', '吉林市']);
+  const c4 = formatLocationFullName(['中国', '上海市', '黄浦区', '黄浦']);
+  const c5 = formatLocationFullName(['中国', '香港特别行政区', '香港']);
+  return {
+    c1, c2, c3, c4, c5,
+    pass: c1 === '中国 · 上海市 · 普陀' &&
+          c2 === '中国 · 北京市 · 朝阳' &&
+          c3 === '中国 · 吉林省 · 吉林市' &&
+          c4 === '中国 · 上海市 · 黄浦区' &&
+          c5 === '中国 · 香港特别行政区'
+  };
+})()`);
+pass('地理编码多级行政区划合并与消歧去重算法格式化准确', geoFormatCheck && geoFormatCheck.pass, JSON.stringify(geoFormatCheck));
 
 await press('Escape');
 await sleep(200);

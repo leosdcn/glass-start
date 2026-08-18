@@ -6049,22 +6049,46 @@
                         const province = locArr[1] || '';
                         const rawCity = locArr[2] || locArr[3] || province;
                         const cleanCity = rawCity.replace(/(市|区|县|特别行政区|壮族自治区|回族自治区|维吾尔自治区|自治区)$/, '') || rawCity;
+                        const cleanProv = province.replace(/(省|市|特别行政区|壮族自治区|回族自治区|维吾尔自治区|自治区)$/, '') || province;
 
                         if (cleanCity) {
                             try {
-                                const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cleanCity)}&language=zh&count=1`;
+                                const queryName = (cleanCity === cleanProv && !rawCity.endsWith('省')) ? `${cleanCity}市` : cleanCity;
+                                const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(queryName)}&language=zh&count=10`;
                                 const geoRes = await fetch(geoUrl, { signal: AbortSignal.timeout ? AbortSignal.timeout(CONFIG.WEATHER.TIMEOUT_IP) : undefined });
                                 if (geoRes.ok) {
                                     const geoData = await geoRes.json();
-                                    if (geoData && geoData.results && geoData.results[0]) {
-                                        const top = geoData.results[0];
-                                        const dispName = (top.name || cleanCity).replace(/(市|区|县)$/, '') || top.name || cleanCity;
-                                        const fullName = formatLocationFullName([top.country || country, top.admin1 || province, top.admin2, top.name || cleanCity]);
+                                    const results = geoData.results || [];
+                                    let matched = results.find(r => {
+                                        const matchCountry = !country || (r.country && (r.country.includes(country) || country.includes(r.country)));
+                                        const matchProv = !cleanProv || (r.admin1 && (r.admin1.includes(cleanProv) || cleanProv.includes(r.admin1))) || (r.name && r.name.includes(cleanProv));
+                                        return matchCountry && matchProv;
+                                    });
+
+                                    // 若区县搜索未命中所属省份且省市不同（如直辖市区县），向上一级省市检索保底
+                                    if (!matched && cleanProv && cleanProv !== cleanCity) {
+                                        try {
+                                            const provUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cleanProv)}&language=zh&count=5`;
+                                            const provRes = await fetch(provUrl, { signal: AbortSignal.timeout ? AbortSignal.timeout(CONFIG.WEATHER.TIMEOUT_IP) : undefined });
+                                            if (provRes.ok) {
+                                                const provData = await provRes.json();
+                                                if (provData.results && provData.results[0]) {
+                                                    matched = provData.results[0];
+                                                }
+                                            }
+                                        } catch {}
+                                    }
+
+                                    if (!matched && results.length > 0) matched = results[0];
+
+                                    if (matched) {
+                                        const dispName = (matched.name || cleanCity).replace(/(市|区|县)$/, '') || matched.name || cleanCity;
+                                        const fullName = formatLocationFullName([matched.country || country, matched.admin1 || province, matched.admin2, matched.name || cleanCity]);
                                         const resolved = {
                                             name: dispName,
                                             fullName: fullName,
-                                            lat: top.latitude,
-                                            lon: top.longitude,
+                                            lat: matched.latitude,
+                                            lon: matched.longitude,
                                             isAuto: true,
                                             timestamp: now
                                         };
@@ -6136,7 +6160,20 @@
                     const timeStr = daily.time[i] || '';
                     const parts = timeStr.split('-').map(Number);
                     const dDate = parts.length === 3 ? new Date(parts[0], parts[1] - 1, parts[2]) : new Date(timeStr);
-                    const dayCode = daily.weather_code ? daily.weather_code[i] : 0;
+                    let dayCode = daily.weather_code ? daily.weather_code[i] : 0;
+
+                    // 针对“今天”(i === 0) 进行平滑对齐优化（遵循 Apple Weather / 主流天气应用设计规范）：
+                    // 当全天降水概率较低 (POP < 40%) 且当前实时无雨 (cur.precipitation == 0 且 cur.weather_code < 51) 时，
+                    // 避免单小时微量露水/弱扰动触发的 24h WMO 最严苛代码将整日判定为雨天，优先呈现当前白天主导天气。
+                    if (i === 0) {
+                        const todayPop = (daily.precipitation_probability_max && daily.precipitation_probability_max[0] != null) ? daily.precipitation_probability_max[0] : 0;
+                        const isPrecipCode = dayCode >= 51;
+                        const isCurRaining = (cur.precipitation && cur.precipitation > 0) || (cur.weather_code >= 51);
+                        if (isPrecipCode && !isCurRaining && todayPop < 40) {
+                            dayCode = (cur.weather_code != null) ? cur.weather_code : 1;
+                        }
+                    }
+
                     const dwInfo = getWeatherInfo(dayCode, true);
                     const wLabel = i === 0 ? '今天' : i === 1 ? '明天' : (weekDays[dDate.getDay()] || `${dDate.getMonth() + 1}/${dDate.getDate()}`);
                     days.push({
