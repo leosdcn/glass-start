@@ -7001,8 +7001,7 @@
                     }
                     if (activeCard) {
                         activeCard.style.transform = '';
-                        activeCard.style.removeProperty('--mouse-x');
-                        activeCard.style.removeProperty('--mouse-y');
+                        // 保留离开时的光斑坐标，让 CSS ::before 自然就地完成 opacity 0.3s 淡出过渡，避免突变至 50% 50% 产生闪烁
                         activeCard = null;
                         activeCardRect = null;
                     }
@@ -7014,8 +7013,6 @@
                         searchBoxRafId = null;
                     }
                     if (activeSearchBox) {
-                        activeSearchBox.style.removeProperty('--mouse-x');
-                        activeSearchBox.style.removeProperty('--mouse-y');
                         activeSearchBox = null;
                         activeSearchBoxRect = null;
                     }

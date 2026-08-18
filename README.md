@@ -299,3 +299,38 @@ add_header Content-Security-Policy "default-src 'self' data: blob: https:; scrip
 - Bing / Google — 搜索联想建议 API
 - `wallpapers/` — 本地预设 2.5K AVIF 高清壁纸库（支持 10-bit 色深与全量预缓存）
 - `server.js` / `start.command` — 原生 Node.js 零依赖本地与局域网开发静态服务器 (0ms 秒级启动)
+
+---
+
+### 7. 语义化版本规范与升级指南 (Semantic Versioning Guide)
+
+本项目严格遵循国际通用的 **SemVer（Semantic Versioning 语义化版本规范：`主版本号(MAJOR).次版本号(MINOR).修订号(PATCH)`）**。版本号由点号分隔的独立计数器构成（非十进制小数，不采用满十进一），日常迭代升级请参考以下三种场景与准则：
+
+| 升级类型 | 版本演进示例 | 触发条件与适用场景 | 典型变更内容与规则 |
+| :--- | :--- | :--- | :--- |
+| **小修小补（Patch）** | `v3.1.4` ➔ **`v3.1.5`**<br>`v3.1.9` ➔ **`v3.1.10`** | **Bug 修复、细节微调、依赖升级** | 仅递增末位修订号。用于修复机型兼容问题、微调动画参数、更新书签数据或升级构建依赖，不改变既有功能架构与 DOM 交互契约。 |
+| **功能新增（Minor）** | `v3.1.4` ➔ **`v3.2.0`**<br>`v3.2.x` ➔ **`v3.3.0`** | **新增功能模块、向下兼容特性上线** | 递增中间次版本号，**末位修订号强制重置归零**。用于新增独立功能（如待办/便签小组件、主题色彩切换、新搜索引擎添加器）或重大性能体验重构。 |
+| **重大重构（Major）** | `v3.x.x` ➔ **`v4.0.0`** | **颠覆性架构升级、破坏性重构** | 递增首位主版本号，**后两位次版本与修订号全部强制归零**。用于底层渲染引擎颠覆、核心视觉形态根本性改变或不向下兼容的存储模型迁移。 |
+
+#### 🛠️ 版本升级操作清单（4 处文件对齐）
+每次发布新版本时，需同步对齐以下 4 处文件中的版本号字符串：
+1. `package.json`：`"version": "x.y.z"`
+2. `package-lock.json`：第 3 行与第 9 行 `"version": "x.y.z"`
+3. `index.html`：设置弹窗中的数据仪表盘版本徽章 `<span ...>vx.y.z</span>`
+4. `README.md`：第 6 节依赖清单表格中的 `Glass Start 站点版本`
+
+#### 🚀 标准发布构建与测试流水线
+```bash
+# 1. 语法检查与生产编译打包
+npm run lint && npm run build
+
+# 2. 全量端到端自动化测试验证 (7 大套件 50 项断言)
+node test/run.mjs --force
+
+# 3. 提交并打 Git Tag 推送至云端
+git add .
+git commit -m "release: 发布 vx.y.z 正式版"
+git tag -a vx.y.z -m "release: Glass Start vx.y.z"
+git push origin main --tags
+```
+
