@@ -1,13 +1,14 @@
 /**
  * 数据持久化、书签搜索算法与天气组件功能测试套件 (data-features.test.mjs)
  *
- * 精炼架构：6 大高密度全景断言
+ * 精炼架构：7 大高密度全景断言
  * 1. 书签三级模糊搜索与优先级排序算法
  * 2. 书签轻量存储模型、旧版数据迁移与自定义图标持久化
  * 3. 天气组件胶囊交互与 OverlayStack 层叠栈响应
  * 4. 天气弹窗 2×2 网格布局与工位优先级规范
  * 5. 相对湿度、实时风速与降水雨伞 9 阶形态动态演化
  * 6. 预报等宽排版、多日平滑对齐与多级行政区划消歧
+ * 7. 标签页休眠唤醒感知与天气/时钟即时对齐测试
  */
 import { launchSession, sleep, makeTester, pressKey } from './helpers.mjs';
 
@@ -329,6 +330,98 @@ const geoFormatCheck = await evalJS(`(() => {
 
 pass('预报等宽排版、多日平滑对齐与多级行政区划消歧 (周几等宽/低POP平滑/多级行政消歧)',
   weekdayCheck && smoothingCheck && geoFormatCheck);
+
+// ══════════════════════════════════════════════════════════════════════
+// 7. 标签页休眠唤醒感知与天气/时钟即时对齐测试
+// ══════════════════════════════════════════════════════════════════════
+
+const wakeupSyncCheck = await evalJS(`(() => {
+  return (async () => {
+    isFetchingWeather = false;
+    let fetchCount = 0;
+    const origFetch = window.fetch;
+
+    window.fetch = async (url, opts) => {
+      fetchCount++;
+      return {
+        ok: true,
+        json: async () => ({
+          current: {
+            temperature_2m: 26,
+            apparent_temperature: 27,
+            is_day: 1,
+            precipitation: 0,
+            weather_code: 0,
+            wind_speed_10m: 4.2,
+            relative_humidity_2m: 50
+          },
+          daily: {
+            time: ['2026-08-19'],
+            weather_code: [0],
+            temperature_2m_max: [28],
+            temperature_2m_min: [22],
+            precipitation_probability_max: [10],
+            sunrise: ['2026-08-19T05:30'],
+            sunset: ['2026-08-19T18:50']
+          }
+        })
+      };
+    };
+
+    try {
+      // 7.1 缓存有效（< 15 分钟）切回前台：0 网络请求
+      const recentCache = {
+        timestamp: Date.now() - (5 * 60 * 1000), // 5分钟前
+        location: { name: '北京', fullName: '中国 · 北京市', lat: 39.9, lon: 116.4 },
+        current: { temp: 25, apparent: 26, weatherText: '晴', icon: '☀️', humidity: 45, windSpeed: 3.0, pop: 0 },
+        daily: []
+      };
+      storageSet('glass_weather_cache', recentCache);
+      fetchCount = 0;
+      document.dispatchEvent(new Event('visibilitychange'));
+      await new Promise(r => setTimeout(r, 60));
+      const validCacheNoFetch = fetchCount === 0;
+
+      // 7.2 缓存过期（> 15 分钟，如休眠 2 小时）切回前台：即时发起静默刷新并更新缓存
+      const expiredCache = {
+        timestamp: Date.now() - (120 * 60 * 1000), // 2小时前
+        location: { name: '北京', fullName: '中国 · 北京市', lat: 39.9, lon: 116.4 },
+        current: { temp: 20, apparent: 20, weatherText: '阴', icon: '☁️', humidity: 60, windSpeed: 2.0, pop: 10 },
+        daily: []
+      };
+      storageSet('glass_weather_cache', expiredCache);
+      storageSet('glass_weather_loc_cache', expiredCache.location);
+      fetchCount = 0;
+      document.dispatchEvent(new Event('visibilitychange'));
+      await new Promise(r => setTimeout(r, 120));
+      const updatedCache = storageGet('glass_weather_cache', null);
+      const expiredCacheAutoRefreshed = fetchCount > 0 && updatedCache && (Date.now() - updatedCache.timestamp < 1000);
+
+      // 7.3 时钟切回前台即时同步 (重置时间缓存模拟跨分钟切回)
+      lastTimeStr = '';
+      if (dom.clock) dom.clock.textContent = '00:00:00';
+      document.dispatchEvent(new Event('visibilitychange'));
+      const clockSynced = dom.clock && dom.clock.textContent !== '00:00:00';
+
+      return {
+        validCacheNoFetch,
+        expiredCacheAutoRefreshed,
+        clockSynced
+      };
+    } finally {
+      window.fetch = origFetch;
+      isFetchingWeather = false;
+    }
+  })();
+})()`);
+
+const wakeupAllOk = wakeupSyncCheck &&
+  wakeupSyncCheck.validCacheNoFetch &&
+  wakeupSyncCheck.expiredCacheAutoRefreshed &&
+  wakeupSyncCheck.clockSynced;
+
+pass('标签页休眠唤醒感知与天气/时钟即时对齐 (有效缓存0请求/超期自动静默刷新/时钟即时同步)',
+  wakeupAllOk, JSON.stringify(wakeupSyncCheck));
 
 await press('Escape');
 await sleep(200);

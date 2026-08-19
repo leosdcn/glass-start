@@ -6706,6 +6706,12 @@
             updateWeather(false).catch(() => {});
             // 定时每 15 分钟静默刷新
             setInterval(() => updateWeather(false), CONFIG.WEATHER.CACHE_TTL);
+            // 标签页从休眠/后台唤醒切回前台时，即时按需静默校验并刷新天气
+            document.addEventListener('visibilitychange', () => {
+                if (!document.hidden) {
+                    updateWeather(false).catch(() => {});
+                }
+            });
         }
 
         // ==================== 壁纸切换 ====================
@@ -7338,7 +7344,12 @@
                 window.addEventListener('drop', () => { resetActiveCard(); resetActiveSearchBox(); });
                 window.addEventListener('pointercancel', () => { resetActiveCard(); resetActiveSearchBox(); });
                 document.addEventListener('visibilitychange', () => {
-                    if (document.hidden) { resetActiveCard(); resetActiveSearchBox(); }
+                    if (document.hidden) {
+                        resetActiveCard();
+                        resetActiveSearchBox();
+                    } else {
+                        updateClock();
+                    }
                 });
             })();
         }
