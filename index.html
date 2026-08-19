@@ -906,7 +906,7 @@
             padding-right: max(1rem, calc(1rem + env(safe-area-inset-right, 0px)));
         }
 
-        /* 导航页第二屏 padding 安全区适配 (四周统一 0.75rem / 12px 等宽外边距) */
+        /* 导航页第二屏 padding 安全区适配 (四周统一 0.5rem / 8px 等宽外边距) */
         #navSection > div {
             padding-top: max(0.375rem, calc(0.375rem + env(safe-area-inset-top, 0px)));
             padding-bottom: max(0.375rem, calc(0.375rem + env(safe-area-inset-bottom, 0px)));
@@ -915,10 +915,10 @@
         }
         @media (min-width: 768px) {
             #navSection > div {
-                padding-top: max(0.75rem, calc(0.75rem + env(safe-area-inset-top, 0px)));
-                padding-bottom: max(0.75rem, calc(0.75rem + env(safe-area-inset-bottom, 0px)));
-                padding-left: max(0.75rem, calc(0.75rem + env(safe-area-inset-left, 0px)));
-                padding-right: max(0.75rem, calc(0.75rem + env(safe-area-inset-right, 0px)));
+                padding-top: max(0.5rem, calc(0.5rem + env(safe-area-inset-top, 0px)));
+                padding-bottom: max(0.5rem, calc(0.5rem + env(safe-area-inset-bottom, 0px)));
+                padding-left: max(0.5rem, calc(0.5rem + env(safe-area-inset-left, 0px)));
+                padding-right: max(0.5rem, calc(0.5rem + env(safe-area-inset-right, 0px)));
             }
         }
 
@@ -1574,7 +1574,7 @@
 
     <!-- ========== 第二屏：导航页 ========== -->
     <section id="navSection" aria-label="分类导航页" class="relative z-10 h-dvh nav-hidden overflow-hidden">
-        <div class="h-full flex flex-col p-1.5 md:p-3 w-full">
+        <div class="h-full flex flex-col p-1.5 md:p-2 w-full">
             <!-- 主体：一体化 Liquid Glass 窗口框架 -->
             <div class="flex-1 glass apple-radius flex flex-col overflow-hidden min-h-0 border border-white/20 shadow-2xl">
                 <!-- 窗口顶部 Header 栏 -->
