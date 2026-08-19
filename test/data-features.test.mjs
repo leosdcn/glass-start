@@ -15,6 +15,7 @@ const { pass, finish } = makeTester();
 const { server, chrome, evalJS } = await launchSession(9339);
 
 await sleep(300);
+await evalJS('window.fetchWeather = async () => {}; isFetchingWeather = true;');
 const press = (key) => pressKey(evalJS, key);
 
 // ══════════════════════════════════════════════════════════════════════

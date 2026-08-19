@@ -1634,7 +1634,7 @@
                                     <span>暗色遮罩</span>
                                     <span id="maskOpacityVal" class="font-mono text-white/90">15%</span>
                                 </div>
-                                <input type="range" id="maskOpacityInput" name="maskOpacityInput" min="0" max="80" value="15" aria-label="背景暗色遮罩透明度" aria-valuemin="0" aria-valuemax="80" aria-valuenow="15" aria-valuetext="15%" class="w-full h-1.5 bg-white/20 rounded-lg appearance-none cursor-pointer accent-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 disabled:opacity-40 disabled:cursor-not-allowed">
+                                <input type="range" id="maskOpacityInput" name="maskOpacityInput" min="5" max="80" value="15" aria-label="背景暗色遮罩透明度" aria-valuemin="5" aria-valuemax="80" aria-valuenow="15" aria-valuetext="15%" class="w-full h-1.5 bg-white/20 rounded-lg appearance-none cursor-pointer accent-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 disabled:opacity-40 disabled:cursor-not-allowed">
                             </div>
                             <!-- 高斯模糊度 -->
                             <div class="space-y-1">
@@ -1668,7 +1668,7 @@
                         <div>
                             <div class="flex items-center gap-2">
                                 <span class="text-sm font-semibold text-white/95 tracking-tight leading-none">Glass Start</span>
-                                <span class="text-2xs px-2 h-4.5 rounded-full bg-white/10 border border-white/15 text-white/75 font-medium inline-flex items-center justify-center select-none">v3.1.6</span>
+                                <span class="text-2xs px-2 h-4.5 rounded-full bg-white/10 border border-white/15 text-white/75 font-medium inline-flex items-center justify-center select-none">v3.1.7</span>
                             </div>
                             <div class="text-2xs text-white/50 leading-none mt-1.5">极简 Liquid Glass 拟态导航 • Build 2026.08</div>
                         </div>
@@ -1836,7 +1836,7 @@
 
             <!-- 致谢条目列表 -->
             <div class="flex-1 overflow-y-auto min-h-0 space-y-2.5 pr-0.5 text-xs">
-                <div class="p-2.5 rounded-xl bg-white/5 border border-white/8 hover:bg-white/8 hover:border-white/15 transition-all flex items-center justify-between gap-2">
+                <div class="p-2.5 rounded-xl bg-white/5 border border-white/8 hover:bg-white/8 hover:border-white/15 transition-colors duration-150 flex items-center justify-between gap-2">
                     <div class="flex items-center gap-2.5 min-w-0">
                         <span class="text-base shrink-0">🌤️</span>
                         <div class="truncate">
@@ -1844,13 +1844,13 @@
                             <div class="text-2xs text-white/50 truncate">Open-Meteo 全球气象与逆地理编码</div>
                         </div>
                     </div>
-                    <a href="https://open-meteo.com" target="_blank" rel="noopener noreferrer" class="shrink-0 text-2xs px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 border border-white/15 text-white/80 hover:text-white transition-all flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" title="访问 Open-Meteo 官网">
+                    <a href="https://open-meteo.com" target="_blank" rel="noopener noreferrer" class="shrink-0 text-2xs px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 border border-white/15 text-white/80 hover:text-white transition-colors duration-150 flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" title="访问 Open-Meteo 官网">
                         <span>CC-BY 4.0</span>
                         <svg class="size-2.5 opacity-70" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M7 17L17 7M17 7H7M17 7V17"/></svg>
                     </a>
                 </div>
 
-                <div class="p-2.5 rounded-xl bg-white/5 border border-white/8 hover:bg-white/8 hover:border-white/15 transition-all flex items-center justify-between gap-2">
+                <div class="p-2.5 rounded-xl bg-white/5 border border-white/8 hover:bg-white/8 hover:border-white/15 transition-colors duration-150 flex items-center justify-between gap-2">
                     <div class="flex items-center gap-2.5 min-w-0">
                         <span class="text-base shrink-0">🖼️</span>
                         <div class="truncate">
@@ -1858,13 +1858,13 @@
                             <div class="text-2xs text-white/50 truncate">Unsplash 精选 2.5K 摄影作品</div>
                         </div>
                     </div>
-                    <a href="https://unsplash.com" target="_blank" rel="noopener noreferrer" class="shrink-0 text-2xs px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 border border-white/15 text-white/80 hover:text-white transition-all flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" title="访问 Unsplash 官网">
+                    <a href="https://unsplash.com" target="_blank" rel="noopener noreferrer" class="shrink-0 text-2xs px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 border border-white/15 text-white/80 hover:text-white transition-colors duration-150 flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" title="访问 Unsplash 官网">
                         <span>免版税授权</span>
                         <svg class="size-2.5 opacity-70" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M7 17L17 7M17 7H7M17 7V17"/></svg>
                     </a>
                 </div>
 
-                <div class="p-2.5 rounded-xl bg-white/5 border border-white/8 hover:bg-white/8 hover:border-white/15 transition-all flex items-center justify-between gap-2">
+                <div class="p-2.5 rounded-xl bg-white/5 border border-white/8 hover:bg-white/8 hover:border-white/15 transition-colors duration-150 flex items-center justify-between gap-2">
                     <div class="flex items-center gap-2.5 min-w-0">
                         <span class="text-base shrink-0">🎨</span>
                         <div class="truncate">
@@ -1872,13 +1872,13 @@
                             <div class="text-2xs text-white/50 truncate">Tailwind CSS 现代化原子工具集</div>
                         </div>
                     </div>
-                    <a href="https://tailwindcss.com" target="_blank" rel="noopener noreferrer" class="shrink-0 text-2xs px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 border border-white/15 text-white/80 hover:text-white transition-all flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" title="访问 Tailwind CSS 官网">
+                    <a href="https://tailwindcss.com" target="_blank" rel="noopener noreferrer" class="shrink-0 text-2xs px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 border border-white/15 text-white/80 hover:text-white transition-colors duration-150 flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" title="访问 Tailwind CSS 官网">
                         <span>MIT 协议</span>
                         <svg class="size-2.5 opacity-70" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M7 17L17 7M17 7H7M17 7V17"/></svg>
                     </a>
                 </div>
 
-                <div class="p-2.5 rounded-xl bg-white/5 border border-white/8 hover:bg-white/8 hover:border-white/15 transition-all flex items-center justify-between gap-2">
+                <div class="p-2.5 rounded-xl bg-white/5 border border-white/8 hover:bg-white/8 hover:border-white/15 transition-colors duration-150 flex items-center justify-between gap-2">
                     <div class="flex items-center gap-2.5 min-w-0">
                         <span class="text-base shrink-0">⚡</span>
                         <div class="truncate">
@@ -1886,7 +1886,7 @@
                             <div class="text-2xs text-white/50 truncate">esbuild AST 高效压缩与编译器</div>
                         </div>
                     </div>
-                    <a href="https://esbuild.github.io" target="_blank" rel="noopener noreferrer" class="shrink-0 text-2xs px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 border border-white/15 text-white/80 hover:text-white transition-all flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" title="访问 esbuild 官网">
+                    <a href="https://esbuild.github.io" target="_blank" rel="noopener noreferrer" class="shrink-0 text-2xs px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 border border-white/15 text-white/80 hover:text-white transition-colors duration-150 flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" title="访问 esbuild 官网">
                         <span>MIT 协议</span>
                         <svg class="size-2.5 opacity-70" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M7 17L17 7M17 7H7M17 7V17"/></svg>
                     </a>
@@ -3525,8 +3525,8 @@
                         </div>
                     </div>
                     <div class="flex-1 flex flex-col sm:flex-row items-stretch sm:items-center gap-1 sm:gap-1.5 min-w-0">
-                        <input type="text" id="bm-name-${rowId}" name="bookmark_name_${rowId}" class="edit-name w-full sm:w-1/3 bg-black/25 border border-white/10 rounded-lg px-2.5 py-1 sm:py-1.5 text-xs text-white/90 focus:border-white/40 focus:bg-black/40 focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:outline-none outline-none transition font-medium" value="${escapeHtml(name)}" placeholder="书签名称" aria-label="书签名称">
-                        <input type="text" id="bm-url-${rowId}" name="bookmark_url_${rowId}" class="edit-url w-full sm:w-2/3 bg-black/25 border border-white/10 rounded-lg px-2.5 py-1 sm:py-1.5 text-2xs sm:text-xs text-white/60 focus:border-white/40 focus:bg-black/40 focus:text-white focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:outline-none outline-none transition font-mono" value="${escapeHtml(url)}" placeholder="https://..." aria-label="书签网址">
+                        <input type="text" id="bm-name-${rowId}" name="bookmark_name_${rowId}" class="edit-name w-full sm:w-1/3 bg-black/25 border border-white/10 rounded-lg px-2.5 py-1 sm:py-1.5 text-base sm:text-xs text-white/90 focus:border-white/40 focus:bg-black/40 focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:outline-none outline-none transition font-medium" value="${escapeHtml(name)}" placeholder="书签名称" aria-label="书签名称">
+                        <input type="text" id="bm-url-${rowId}" name="bookmark_url_${rowId}" class="edit-url w-full sm:w-2/3 bg-black/25 border border-white/10 rounded-lg px-2.5 py-1 sm:py-1.5 text-base sm:text-xs text-white/60 focus:border-white/40 focus:bg-black/40 focus:text-white focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:outline-none outline-none transition font-mono" value="${escapeHtml(url)}" placeholder="https://..." aria-label="书签网址">
                     </div>
                     <button type="button" class="del-btn shrink-0 size-7 sm:size-8 p-1 hover:bg-red-500/20 rounded-lg text-white/30 hover:text-red-400 flex items-center justify-center transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-1 focus-visible:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed" title="删除书签">
                         <svg class="size-4 pointer-events-none" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 16 16"><path d="M2.5 4h11M5.5 4V2.5a1 1 0 011-1h3a1 1 0 011 1V4m2 0v8.5a1.5 1.5 0 01-1.5 1.5h-6A1.5 1.5 0 013.5 12.5V4m3 3v4.5m3-4.5v4.5"/></svg>
@@ -4538,7 +4538,7 @@
 
             // 左侧分类列表
             dom.sidebarList.innerHTML = pageData.categories.map((cat, i) => `
-                <button type="button" role="tab" id="cat-tab-${i}" aria-selected="${i === 0 ? 'true' : 'false'}" aria-controls="cat-${i}" class="sidebar-item w-full text-left text-xs md:text-sm px-2.5 py-1.5 md:py-2 apple-radius text-white/70 flex items-center gap-2 ${i === 0 ? 'active' : ''}"
+                <button type="button" role="tab" id="cat-tab-${i}" aria-selected="${i === 0 ? 'true' : 'false'}" aria-controls="cat-${i}" class="sidebar-item w-full text-left text-xs md:text-sm px-2.5 py-1.5 md:py-2 min-h-11 md:min-h-0 apple-radius text-white/70 flex items-center gap-2 ${i === 0 ? 'active' : ''}"
                         data-target="cat-${i}">
                     <span class="text-sm shrink-0 sidebar-icon">${escapeHtml(cat.icon)}</span>
                     <span class="truncate font-medium sidebar-label">${escapeHtml(cat.name)}</span>
@@ -6503,7 +6503,7 @@
                         <span class="text-xs text-white/50 shrink-0">📍</span>
                         <span class="text-xs font-semibold text-white/90 truncate" title="${escapeHtml(loc.fullName || loc.name)}">${escapeHtml(loc.fullName || loc.name)}</span>
                     </div>
-                    <button id="weatherRefreshBtn" type="button" class="size-6 apple-radius bg-white/5 hover:bg-white/15 text-white flex items-center justify-center glass-interactive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 shrink-0 disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none" title="立即刷新天气">
+                    <button id="weatherRefreshBtn" type="button" class="size-7 apple-radius bg-white/5 hover:bg-white/15 text-white flex items-center justify-center glass-interactive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 shrink-0 disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none" title="立即刷新天气">
                         <svg class="size-3.5 opacity-70 hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>
                     </button>
                 </div>
