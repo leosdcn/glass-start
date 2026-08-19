@@ -172,6 +172,9 @@
     <!-- Tailwind v4 Browser CDN：开发模式下运行时按需生成工具类，随改随看无需手动编译步骤 -->
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4" defer></script>
     <style>
+        /* ==========================================================================
+           1. SETTINGS & DESIGN TOKENS (设计令牌与基础配置)
+           ========================================================================== */
         /* .nr 模式：直达导航页预渲染，与 HEAD inline script 配合消除刷新抖动 */
         .nr #startSection { transform: translateY(-100vh) !important; transform: translateY(-100dvh) !important; transition: none !important; }
         .nr #navSection { visibility: visible !important; transform: translateY(0) !important; transition: none !important; }
@@ -214,6 +217,10 @@
             --entrance-offset: 1.25rem;
             --opacity-subtle: 0.6;
         }
+
+        /* ==========================================================================
+           2. GENERIC & GLOBAL RESETS (全局重置与防拖拽规范)
+           ========================================================================== */
         html, body {
             background-color: var(--bg-base);
             width: 100%;
@@ -289,7 +296,10 @@
             transform: scale(0.96);
             transition: transform 0.08s var(--ease-snappy);
         }
-        /* ===== 玻璃效果 ===== */
+
+        /* ==========================================================================
+           3. OBJECTS & GLASS MORPHISM PRIMITIVES (通用玻璃拟态基类)
+           ========================================================================== */
         .glass {
             background: var(--glass-bg);
             backdrop-filter: blur(var(--blur));
@@ -389,7 +399,10 @@
         }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        /* ===== 双屏滚动全屏推移系统 (起始页 Screen 1 <-> 导航页 Screen 2) ===== */
+
+        /* ==========================================================================
+           4. SCREEN SYSTEM & STRUCTURAL LAYOUT (双屏推移与全屏分层系统)
+           ========================================================================== */
         section {
             /* 保持硬件合成层但避免在 Safari 中与 backdrop-filter 产生多重 3D 隔离上下文 */
             backface-visibility: hidden;
@@ -430,7 +443,10 @@
         .suggestion-item:hover {
             background: rgba(255, 255, 255, 0.12);
         }
-        /* ===== 组件 ===== */
+
+        /* ==========================================================================
+           5. COMPONENTS - SCREEN 1: STARTPAGE (第一屏组件：时钟/搜索/快捷书签)
+           ========================================================================== */
         .search-input::placeholder { color: rgba(255,255,255,0.6); text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45); }
         .text-white\/40, .text-white\/60 { text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45); }
         @media (prefers-reduced-motion: reduce) {
@@ -569,6 +585,10 @@
         .edit-favicon-img.loaded {
             opacity: 0.9;
         }
+
+        /* ==========================================================================
+           6. COMPONENTS - SCREEN 2: NAV (第二屏组件：分类导航/侧边栏)
+           ========================================================================== */
         .nav-bookmark {
             background: rgba(255, 255, 255, 0.04);
             border: 1px solid rgba(255, 255, 255, 0.08);
@@ -707,6 +727,10 @@
         #bgOverlay { transition: background-color 0.2s ease, opacity 0.2s ease; transform: translateZ(0); will-change: opacity; pointer-events: none; }
         .delay-100 { animation-delay: var(--delay-stagger-1); }
         .delay-200 { animation-delay: var(--delay-stagger-2); }
+
+        /* ==========================================================================
+           7. OVERLAYS & MODALS (弹窗/抽屉/挑选器/气泡层叠系统)
+           ========================================================================== */
         .edit-overlay {
             opacity: 0;
             pointer-events: none;
@@ -2921,6 +2945,11 @@
         };
 
         // ==================== 派生式快捷书签数据架构 (Derived Bookmark Architecture) ====================
+        /**
+         * 从 URL 域名或路径中提取用于兜底展示的站点名称
+         * @param {string} url - 站点 URL 字符串
+         * @returns {string} 提取到的站点名称或'书签'兜底文本
+         */
         function deriveNameFromUrl(url) {
             try {
                 const host = new URL(normalizeUrl(url)).hostname.replace(/^www\./, '');
@@ -3088,6 +3117,10 @@
             } catch { resolve(null); }
         });
 
+        /**
+         * 从 IndexedDB 异步读取用户自定义 4K 壁纸 DataURL
+         * @returns {Promise<string|null>} 返回壁纸 DataURL 字符串，不存在或异常时返回 null
+         */
         async function getWallpaperDB() {
             try {
                 const db = await dbPromise;
@@ -3102,6 +3135,11 @@
             } catch { return null; }
         }
 
+        /**
+         * 将用户自定义 4K 壁纸 DataURL 异步持久化写入 IndexedDB
+         * @param {string} dataUrl - 4K 分辨率优化后的图片 DataURL 字符串
+         * @returns {Promise<boolean>} 成功写入返回 true，失败返回 false
+         */
         async function setWallpaperDB(dataUrl) {
             try {
                 const db = await dbPromise;
@@ -3116,6 +3154,10 @@
             } catch { return false; }
         }
 
+        /**
+         * 从 IndexedDB 中异步彻底清除用户自定义壁纸
+         * @returns {Promise<void>}
+         */
         async function removeWallpaperDB() {
             try {
                 const db = await dbPromise;
@@ -5693,6 +5735,9 @@
 
         /**
          * 计算 Damerau-Levenshtein 编辑距离（支持插入、删除、替换与相邻字符易位/拼错容错）
+         * @param {string} a - 源字符串
+         * @param {string} b - 目标字符串
+         * @returns {number} 最小编辑距离步数
          */
         function damerauLevenshteinDistance(a, b) {
             const al = a.length, bl = b.length;
@@ -5721,6 +5766,9 @@
         /**
          * 计算关键词 q 与目标文本（或书签）的前缀拼写容错 / 模糊匹配得分 (Token Prefix Fuzzy Score)
          * 支持单词及按空格分割的多词子项容错检索（如 MDN Wbe Docs / oGogle Cloud）
+         * @param {string} q - 用户输入的查询关键词
+         * @param {string|Object} target - 目标字符串或书签对象
+         * @returns {number} 匹配惩罚得分（越小越精确，未匹配返回 Infinity）
          */
         function getFuzzyScore(q, target) {
             const query = (q || '').trim().toLowerCase();
