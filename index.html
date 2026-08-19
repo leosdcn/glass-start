@@ -436,12 +436,12 @@
             .glass, .glass-strong { backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
         }
         .fade-in {
-            animation: fadeIn 0.48s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+            animation: fadeIn 0.68s cubic-bezier(0.22, 1, 0.36, 1) backwards;
             will-change: transform, opacity;
         }
         .nr .fade-in { animation: none !important; }
-        @keyframes fadeIn { from { opacity:0.05; transform:translate3d(0, 1rem, 0); } to { opacity:1; transform:translate3d(0,0,0); } }
-        @keyframes fadeInSubtle { from { opacity:0.05; transform:translate3d(0, 1rem, 0); } to { opacity:0.6; transform:translate3d(0,0,0); } }
+        @keyframes fadeIn { from { opacity: 0; transform: translate3d(0, 1.25rem, 0); } to { opacity: 1; transform: translate3d(0, 0, 0); } }
+        @keyframes fadeInSubtle { from { opacity: 0; transform: translate3d(0, 1.25rem, 0); } to { opacity: 0.6; transform: translate3d(0, 0, 0); } }
         .dropdown-menu { opacity:0; transform:translateY(-4px) scale(0.97) translateZ(0); pointer-events:none; visibility:hidden; transition:opacity var(--duration-fast) var(--ease-exit), transform var(--duration-fast) var(--ease-exit), visibility var(--duration-fast) step-end; transform-origin: top left; }
         .dropdown-menu.active { opacity:1; transform:translateY(0) scale(1) translateZ(0); pointer-events:auto; visibility:visible; transition:opacity var(--duration-normal) var(--ease-spring), transform var(--duration-normal) var(--ease-spring), visibility 0s; }
         #dropdownMenu { transform-origin: top left; }
@@ -700,8 +700,8 @@
         @keyframes hintFade { 0%,55%{opacity:1} 100%{opacity:0;pointer-events:none} }
         .bg-layer { transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1); transform: translateZ(0); will-change: opacity; pointer-events: none; }
         #bgOverlay { transition: background-color 0.2s ease, opacity 0.2s ease; transform: translateZ(0); will-change: opacity; pointer-events: none; }
-        .delay-100 { animation-delay: 0.1s; }
-        .delay-200 { animation-delay: 0.2s; }
+        .delay-100 { animation-delay: 0.12s; }
+        .delay-200 { animation-delay: 0.24s; }
         .edit-overlay {
             opacity: 0;
             pointer-events: none;
@@ -915,7 +915,7 @@
             transition: opacity 0.3s ease, color 0.3s ease, background-color 0.3s ease, border-color 0.3s ease;
         }
         #editBookmarksBtn.fade-in {
-            animation: fadeInSubtle 0.48s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+            animation: fadeInSubtle 0.68s cubic-bezier(0.22, 1, 0.36, 1) backwards;
             will-change: transform, opacity;
         }
         #editBookmarksBtn svg {
