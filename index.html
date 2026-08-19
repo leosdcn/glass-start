@@ -3302,7 +3302,7 @@
         function loadPresetBgCardImages() {
             if (isPresetBgImagesLoaded) return;
             isPresetBgImagesLoaded = true;
-            const container = dom.presetWallpaperGrid || document.getElementById('presetWallpaperGrid');
+            const container = dom.presetWallpaperGrid;
             if (!container) return;
             container.querySelectorAll('img[data-src]').forEach((img, idx) => {
                 const src = img.dataset.src;
@@ -3442,7 +3442,7 @@
          */
         function updatePresetBgCardsUI(customWallpaperOverride) {
             const currentBg = customWallpaperOverride !== undefined ? (customWallpaperOverride || backgrounds[state.bg] || '') : (storageGet(CONFIG.KEYS.USER_WALLPAPER) || backgrounds[state.bg] || '');
-            const container = dom.presetWallpaperGrid || document.getElementById('presetWallpaperGrid');
+            const container = dom.presetWallpaperGrid;
             if (!container) return;
             container.querySelectorAll('.preset-bg-card').forEach(card => {
                 const bg = card.dataset.bg;
@@ -4055,7 +4055,7 @@
                         card.setAttribute('draggable', 'false');
                     });
                 }
-            });
+            }, { passive: true });
 
             dom.editList.addEventListener('dragstart', e => {
                 // 仅允许从拖拽手柄 (.drag-handle) 发起卡片拖拽排序，彻底放行输入框内圈选与拖拽高亮文本
@@ -4214,7 +4214,7 @@
 
                     updateDragIndicator(target, isTop);
                 });
-            });
+            }, { passive: true });
 
             const handleTouchPointerEnd = e => {
                 if (!touchDragCard || e.pointerId !== touchCapturedId) return;
@@ -4236,8 +4236,8 @@
                 dragSrc = null;
             };
 
-            dom.editList.addEventListener('pointerup', handleTouchPointerEnd);
-            dom.editList.addEventListener('pointercancel', handleTouchPointerEnd);
+            dom.editList.addEventListener('pointerup', handleTouchPointerEnd, { passive: true });
+            dom.editList.addEventListener('pointercancel', handleTouchPointerEnd, { passive: true });
 
             // 实时 Favicon 与首字母图标感知：修改 URL 或名称时自动抓取刷新
             let editFaviconDebounceTimer = null;
@@ -4533,7 +4533,7 @@
 
         let pickerFaviconObserver = null;
         function initPickerFaviconObserver() {
-            const container = dom.pickerContent || document.getElementById('pickerContent');
+            const container = dom.pickerContent;
             if (!container) return;
             container.querySelectorAll('img.lazy-icon').forEach(img => {
                 if (img.complete && img.naturalWidth > 0) {
@@ -4693,7 +4693,7 @@
         }
 
         function updateSidebarActive() {
-            const sidebarContainer = dom.sidebar || document.getElementById('sidebar');
+            const sidebarContainer = dom.sidebar;
             const sidebarList = dom.sidebarList;
             const content = dom.navContent;
             if (!sidebarList || !content || isManualScrolling) return;
@@ -4739,7 +4739,7 @@
         }
 
         function updateSidebarIndicator(activeBtn) {
-            const sidebarList = dom.sidebarList || document.getElementById('sidebarList');
+            const sidebarList = dom.sidebarList;
             if (!sidebarList) return;
             let indicator = document.getElementById('sidebarIndicator');
             if (!indicator) {
@@ -4806,7 +4806,7 @@
                     allItems.forEach(item => item.classList.remove('active'));
                     btn.classList.add('active');
                     updateSidebarIndicator(btn);
-                    const sidebarContainer = dom.sidebar || document.getElementById('sidebar');
+                    const sidebarContainer = dom.sidebar;
                     scrollTabIntoView(btn, sidebarContainer);
 
                     // 2. 精确计算 target 相对 content 的 offsetTop，扣除容器 paddingTop 偏移
@@ -4954,7 +4954,7 @@
                     const prevActive = dom.suggestionMenu.querySelector('.suggestion-item.active');
                     if (prevActive) prevActive.classList.remove('active');
                     item.classList.add('active');
-                });
+                }, { passive: true });
             }
 
             // 引擎下拉菜单
@@ -5000,11 +5000,9 @@
             const handleBackToStart = () => {
                 if (window.switchToStart) window.switchToStart();
             };
-            const navHintEl = dom.navHint || document.getElementById('navHint');
-            const navHeaderEl = dom.navHeader || document.getElementById('navHeader');
-            navHintEl?.addEventListener('click', handleBackToStart);
-            navHeaderEl?.addEventListener('click', handleBackToStart);
-            navHeaderEl?.addEventListener('keydown', (e) => {
+            dom.navHint?.addEventListener('click', handleBackToStart);
+            dom.navHeader?.addEventListener('click', handleBackToStart);
+            dom.navHeader?.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
                     handleBackToStart();
@@ -6739,7 +6737,7 @@
                 if (!document.hidden) {
                     updateWeather(false).catch(() => {});
                 }
-            });
+            }, { passive: true });
         }
 
         // ==================== 壁纸切换 ====================
@@ -6876,8 +6874,8 @@
                 if (urlParam && !isNaN(Number(urlParam))) baseThreshold = Number(urlParam);
             } catch {}
             const SCROLL_THRESHOLD = window.__SCROLL_THRESHOLD__ ?? baseThreshold; // 累积滚动像素阈值（跨浏览器一致）
-            const startSection = dom.startSection || document.getElementById('startSection');
-            const nav = dom.navSection || document.getElementById('navSection');
+            const startSection = dom.startSection;
+            const nav = dom.navSection;
             const navContent = dom.navContent;
 
             // 纯无障碍 (a11y) 屏隔离与 Tab 聚焦防护：防止键盘导航误入视口外的隐藏区
@@ -6970,7 +6968,7 @@
                 try {
                     if (!localStorage.getItem(CONFIG.KEYS.NAV_DISCOVERED)) {
                         localStorage.setItem(CONFIG.KEYS.NAV_DISCOVERED, '1');
-                        const hint = dom.scrollDownHint || document.getElementById('scrollDownHint') || document.querySelector('.hint-down');
+                        const hint = dom.scrollDownHint;
                         if (hint) {
                             hint.style.transition = 'opacity 0.6s ease';
                             hint.style.opacity = '0';
@@ -7367,10 +7365,10 @@
                 }, { capture: true });
 
                 // 窗口失焦、滚动、拖拽结束或指针取消时，强制重置所有 3D 高光卡片状态
-                window.addEventListener('blur', () => { resetActiveCard(); resetActiveSearchBox(); });
-                window.addEventListener('dragend', () => { resetActiveCard(); resetActiveSearchBox(); });
-                window.addEventListener('drop', () => { resetActiveCard(); resetActiveSearchBox(); });
-                window.addEventListener('pointercancel', () => { resetActiveCard(); resetActiveSearchBox(); });
+                window.addEventListener('blur', () => { resetActiveCard(); resetActiveSearchBox(); }, { passive: true });
+                window.addEventListener('dragend', () => { resetActiveCard(); resetActiveSearchBox(); }, { passive: true });
+                window.addEventListener('drop', () => { resetActiveCard(); resetActiveSearchBox(); }, { passive: true });
+                window.addEventListener('pointercancel', () => { resetActiveCard(); resetActiveSearchBox(); }, { passive: true });
                 document.addEventListener('visibilitychange', () => {
                     if (document.hidden) {
                         resetActiveCard();
@@ -7378,7 +7376,7 @@
                     } else {
                         updateClock();
                     }
-                });
+                }, { passive: true });
             })();
         }
 
