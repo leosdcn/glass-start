@@ -2709,6 +2709,14 @@
                 MAX_UPLOAD_HEIGHT: 2160,      // 自定义壁纸最大高度
                 JPEG_QUALITY: 0.95            // Canvas 壁纸压缩质量
             }),
+            TIMERS: Object.freeze({
+                STAGGER_OPEN: 120,            // 随机书签跳转延时 (ms)
+                DICE_ROLL: 450,               // 随机骰子转动归位延时 (ms)
+                SCROLL_RESET: 400,            // 滚轮累积阈值重置延时 (ms)
+                HINT_FADE: 600,               // 下滑提示淡出延时 (ms)
+                OBJECT_REVOKE: 1000,          // 临时 Blob/URL 释放安全延时 (ms)
+                PWA_SCHEDULE: 5000            // 后台静默调度延时 (ms)
+            }),
             SHORTCUTS: Object.freeze([
                 {
                     group: '导航与控制',
@@ -3844,7 +3852,7 @@
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
-            setTimeout(() => URL.revokeObjectURL(url), 1000);
+            setTimeout(() => URL.revokeObjectURL(url), CONFIG.TIMERS.OBJECT_REVOKE);
         }
 
         /**
@@ -5725,12 +5733,12 @@
                 dom.randomBookmarkBtn.classList.add('rolling');
                 setTimeout(() => {
                     if (dom.randomBookmarkBtn) dom.randomBookmarkBtn.classList.remove('rolling');
-                }, 450);
+                }, CONFIG.TIMERS.DICE_ROLL);
             }
 
             setTimeout(() => {
                 openBookmarkUrl(randomBm.url, newTab);
-            }, 120);
+            }, CONFIG.TIMERS.STAGGER_OPEN);
         }
 
         /**
@@ -6815,13 +6823,13 @@
                 if ('requestIdleCallback' in window) {
                     requestIdleCallback(load, { timeout: 8000 });
                 } else {
-                    setTimeout(load, 5000);
+                    setTimeout(load, CONFIG.TIMERS.PWA_SCHEDULE);
                 }
             };
             if (document.readyState === 'complete') {
-                setTimeout(schedule, 5000);
+                setTimeout(schedule, CONFIG.TIMERS.PWA_SCHEDULE);
             } else {
-                window.addEventListener('load', () => setTimeout(schedule, 5000), { once: true });
+                window.addEventListener('load', () => setTimeout(schedule, CONFIG.TIMERS.PWA_SCHEDULE), { once: true });
             }
         }
 
@@ -6965,7 +6973,7 @@
             // 滚动停顿 400ms 后自动归零积累的 delta 值，彻底解决慢速滚动停顿后的误触发问题
             function resetAccumAfterDelay() {
                 if (resetAccumTimer) clearTimeout(resetAccumTimer);
-                resetAccumTimer = setTimeout(() => { scrollAccum = 0; }, 400);
+                resetAccumTimer = setTimeout(() => { scrollAccum = 0; }, CONFIG.TIMERS.SCROLL_RESET);
             }
 
             function clearAccum() {
@@ -7033,7 +7041,7 @@
                         if (hint) {
                             hint.style.transition = 'opacity 0.6s ease';
                             hint.style.opacity = '0';
-                            setTimeout(() => { hint.style.display = 'none'; }, 600);
+                            setTimeout(() => { hint.style.display = 'none'; }, CONFIG.TIMERS.HINT_FADE);
                         }
                     }
                 } catch {}

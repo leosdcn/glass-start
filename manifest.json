@@ -2,6 +2,8 @@
     "name": "Glass Start — 轻量级玻璃拟态浏览器起始页",
     "short_name": "Glass Start",
     "description": "基于 HTML5 与 Modern JS 构建的高颜值、轻量级玻璃拟态（Glassmorphism）浏览器起始页。",
+    "lang": "zh-CN",
+    "dir": "ltr",
     "id": "/",
     "scope": "./",
     "start_url": "./",
@@ -9,6 +11,11 @@
     "display_override": [
         "standalone",
         "minimal-ui"
+    ],
+    "orientation": "any",
+    "categories": [
+        "productivity",
+        "utilities"
     ],
     "background_color": "#0f172a",
     "theme_color": "#0f172a",
