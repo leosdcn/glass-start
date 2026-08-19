@@ -208,6 +208,63 @@ try {
     logItem(`输入框规范扫描异常: ${e.message}`, 'error');
 }
 
+// 4.3 <button> 标签显式声明 type="button" 规范全量扫描
+try {
+    const htmlContent = readFileSync(join(root, 'index.html'), 'utf-8');
+    const buttonMatches = [...htmlContent.matchAll(/<button\b([^>]*)>/gi)];
+    let allButtonsCompliant = true;
+    const nonCompliantButtons = [];
+
+    for (const match of buttonMatches) {
+        const attrs = match[1];
+        if (!/\btype=["'](button|submit|reset)["']/i.test(attrs)) {
+            allButtonsCompliant = false;
+            const idMatch = attrs.match(/id=["']([^"']+)["']/i);
+            nonCompliantButtons.push(idMatch ? idMatch[1] : match[0].slice(0, 40));
+        }
+    }
+
+    if (allButtonsCompliant && buttonMatches.length > 0) {
+        passCount++;
+        logItem(`全站 ${buttonMatches.length} 处 <button> 标签均 100% 显式声明 type="button" 规范`);
+    } else {
+        failCount++;
+        logItem(`发现缺少显式 type 属性的按钮: ${nonCompliantButtons.join(', ')}`, 'error');
+    }
+} catch (e) {
+    failCount++;
+    logItem(`按钮 type 属性规范扫描异常: ${e.message}`, 'error');
+}
+
+// 4.4 装饰性 <svg> 矢量图标 W3C WAI-ARIA (aria-hidden="true") 规范扫描
+try {
+    const htmlContent = readFileSync(join(root, 'index.html'), 'utf-8');
+    const svgMatches = [...htmlContent.matchAll(/<svg\b([^>]*)>/gi)];
+    let allSvgsCompliant = true;
+    const nonCompliantSvgs = [];
+
+    for (const match of svgMatches) {
+        const attrs = match[1];
+        const hasA11y = /\baria-hidden=["']true["']/i.test(attrs) || /\baria-label=["'][^"']+["']/i.test(attrs) || /\brole=["']img["']/i.test(attrs);
+        if (!hasA11y) {
+            allSvgsCompliant = false;
+            const classMatch = attrs.match(/class=["']([^"']+)["']/i);
+            nonCompliantSvgs.push(classMatch ? classMatch[1] : match[0].slice(0, 40));
+        }
+    }
+
+    if (allSvgsCompliant && svgMatches.length > 0) {
+        passCount++;
+        logItem(`全站 ${svgMatches.length} 处内嵌 <svg> 矢量图标均 100% 符合 WAI-ARIA 无障碍规范`);
+    } else {
+        failCount++;
+        logItem(`发现缺少无障碍属性的 SVG: ${nonCompliantSvgs.join(', ')}`, 'error');
+    }
+} catch (e) {
+    failCount++;
+    logItem(`SVG 无障碍规范扫描异常: ${e.message}`, 'error');
+}
+
 const elapsed = Date.now() - startTime;
 console.log(`\n${c.gray}${HR_DOUBLE}${c.reset}`);
 if (failCount === 0) {
