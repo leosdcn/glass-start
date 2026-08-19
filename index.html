@@ -437,7 +437,7 @@
         .nr .fade-in { animation: none !important; }
         @keyframes fadeIn { from { opacity:0.05; transform:translate3d(0, 1rem, 0); } to { opacity:1; transform:translate3d(0,0,0); } }
         .dropdown-menu { opacity:0; transform:translateY(-4px) scale(0.97) translateZ(0); pointer-events:none; visibility:hidden; transition:opacity var(--duration-fast) var(--ease-exit), transform var(--duration-fast) var(--ease-exit), visibility var(--duration-fast) step-end; transform-origin: top left; }
-        .dropdown-menu.active { opacity:1; transform:translateY(0) scale(1) translateZ(0); pointer-events:auto; visibility:visible; transition:opacity var(--duration-normal) var(--ease-spring), transform var(--duration-normal) var(--ease-spring), visibility 0s; will-change: opacity, transform; }
+        .dropdown-menu.active { opacity:1; transform:translateY(0) scale(1) translateZ(0); pointer-events:auto; visibility:visible; transition:opacity var(--duration-normal) var(--ease-spring), transform var(--duration-normal) var(--ease-spring), visibility 0s; }
         #dropdownMenu { transform-origin: top left; }
         #suggestionMenu { transform-origin: top center; }
         @keyframes skeletonPulse { 0%, 100% { opacity: 0.25; } 50% { opacity: 0.55; } }
@@ -962,11 +962,20 @@
             transform-origin: top right;
             right: 0;
             top: calc(100% + 0.5rem);
-            min-width: 17.5rem;
-            max-width: 21.5rem;
+            width: 17.5rem;
+            max-width: calc(100vw - 2.5rem);
+        }
+        #weatherPopover::before {
+            content: '';
+            position: absolute;
+            top: -0.5rem;
+            left: 0;
+            right: 0;
+            height: 0.5rem;
         }
         .weather-spin {
-            animation: weatherSpin 0.75s var(--ease-exit) infinite;
+            animation: weatherSpin 0.75s linear infinite;
+            transform-origin: center;
         }
         @keyframes weatherSpin {
             from { transform: rotate(0deg); }
@@ -2852,12 +2861,13 @@
         }
 
         // ==================== 统一 UI 状态与弹窗响应栈 (Overlay Priority Stack) ====================
+        const MODAL_OVERLAY_IDS = new Set(['editModal', 'shortcutModal', 'creditsModal', 'confirmModal', 'bookmarkPicker']);
         const OverlayStack = {
             stack: [],
             push(id, closeFn) {
                 this.pop(id);
                 this.stack.push({ id, close: closeFn });
-                if (id !== 'suggestions') {
+                if (MODAL_OVERLAY_IDS.has(id)) {
                     document.body.classList.add('overflow-hidden', 'touch-none');
                 }
             },
@@ -2868,8 +2878,8 @@
                 } else {
                     removed = this.stack.pop();
                 }
-                const modalOverlays = this.stack.filter(item => item.id !== 'suggestions');
-                if (modalOverlays.length === 0) {
+                const hasOpenModal = this.stack.some(item => MODAL_OVERLAY_IDS.has(item.id));
+                if (!hasOpenModal) {
                     document.body.classList.remove('overflow-hidden', 'touch-none');
                 }
                 return removed;
@@ -6446,7 +6456,7 @@
             if (!dom.weatherPopover) return;
             if (!data || !data.current) {
                 dom.weatherPopover.innerHTML = `
-                    <div class="p-4 text-center flex flex-col items-center justify-center gap-2.5 select-none min-w-[15rem]">
+                    <div class="p-4 text-center flex flex-col items-center justify-center gap-2.5 select-none w-full">
                         <div class="size-5 border-2 border-white/25 border-t-white rounded-full animate-spin"></div>
                         <div class="space-y-0.5">
                             <div class="text-xs text-white/80 font-medium">正在获取实时天气...</div>
@@ -6607,9 +6617,13 @@
                         const elapsed = Date.now() - startTime;
                         const remaining = Math.max(0, MIN_SPIN_DURATION - elapsed);
                         setTimeout(() => {
-                            if (svg) svg.classList.remove('weather-spin');
-                            refBtn.disabled = false;
-                            refBtn.removeAttribute('aria-busy');
+                            const currentRefBtn = dom.weatherPopover ? dom.weatherPopover.querySelector('#weatherRefreshBtn') : null;
+                            const currentSvg = currentRefBtn ? currentRefBtn.querySelector('svg') : null;
+                            if (currentSvg) currentSvg.classList.remove('weather-spin');
+                            if (currentRefBtn) {
+                                currentRefBtn.disabled = false;
+                                currentRefBtn.removeAttribute('aria-busy');
+                            }
                         }, remaining);
                     });
                 });
