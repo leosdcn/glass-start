@@ -437,7 +437,6 @@
         }
         .fade-in {
             animation: fadeIn 0.52s cubic-bezier(0.22, 1, 0.36, 1) backwards;
-            will-change: transform, opacity;
         }
         .nr .fade-in { animation: none !important; }
         @keyframes fadeIn { from { opacity: 0; transform: translate3d(0, 1.25rem, 0); } to { opacity: 1; transform: translate3d(0, 0, 0); } }
@@ -916,7 +915,6 @@
         }
         #editBookmarksBtn.fade-in {
             animation: fadeInSubtle 0.52s cubic-bezier(0.22, 1, 0.36, 1) backwards;
-            will-change: transform, opacity;
         }
         #editBookmarksBtn svg {
             transition: transform 0.45s var(--ease-overshoot);
@@ -1429,8 +1427,8 @@
         <h1 class="sr-only">Glass Start — 轻量级玻璃拟态个人起始页与导航</h1>
 
         <!-- 全屏右上角悬浮天气胶囊（置于起始页内，随起始页物理滑屏，全生命周期保持 100% 毛玻璃常驻） -->
-        <div id="weatherWidget" class="select-none fade-in">
-            <button id="weatherBtn" type="button" aria-expanded="false" aria-controls="weatherPopover" aria-haspopup="dialog" aria-label="--° · 天气，点击查看实时天气与详细预报" class="glass apple-radius px-3 py-1.5 sm:px-3.5 sm:py-2 text-white/80 hover:text-white border border-white/12 flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-medium glass-interactive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60">
+        <div id="weatherWidget" class="select-none">
+            <button id="weatherBtn" type="button" aria-expanded="false" aria-controls="weatherPopover" aria-haspopup="dialog" aria-label="--° · 天气，点击查看实时天气与详细预报" class="glass apple-radius px-3 py-1.5 sm:px-3.5 sm:py-2 text-white/80 hover:text-white border border-white/12 flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-medium glass-interactive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 fade-in">
                 <span id="weatherIcon" class="text-sm sm:text-base leading-none select-none">🌤️</span>
                 <span id="weatherTemp" class="tabular-nums font-semibold tracking-tight leading-none">--°</span>
                 <span class="text-white/30 font-light select-none">·</span>
