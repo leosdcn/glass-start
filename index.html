@@ -203,10 +203,16 @@
             --ease-overshoot: cubic-bezier(0.34, 1.56, 0.64, 1);
             --ease-snappy: cubic-bezier(0.2, 0, 0, 1);
             --ease-exit: cubic-bezier(0.4, 0, 0.2, 1);
+            --ease-smooth: cubic-bezier(0.22, 1, 0.36, 1);
+            --duration-entrance: 0.52s;
             --duration-fast: 0.16s;
             --duration-normal: 0.2s;
             --duration-modal: 0.3s;
             --duration-slide: 0.58s;
+            --delay-stagger-1: 0.08s;
+            --delay-stagger-2: 0.16s;
+            --entrance-offset: 1.25rem;
+            --opacity-subtle: 0.6;
         }
         html, body {
             background-color: var(--bg-base);
@@ -436,11 +442,11 @@
             .glass, .glass-strong { backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
         }
         .fade-in {
-            animation: fadeIn 0.52s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+            animation: fadeIn var(--duration-entrance) var(--ease-smooth) backwards;
         }
         .nr .fade-in { animation: none !important; }
-        @keyframes fadeIn { from { opacity: 0; transform: translate3d(0, 1.25rem, 0); } to { opacity: 1; transform: translate3d(0, 0, 0); } }
-        @keyframes fadeInSubtle { from { opacity: 0; transform: translate3d(0, 1.25rem, 0); } to { opacity: 0.6; transform: translate3d(0, 0, 0); } }
+        @keyframes fadeIn { from { opacity: 0; transform: translate3d(0, var(--entrance-offset, 1.25rem), 0); } to { opacity: 1; transform: translate3d(0, 0, 0); } }
+        @keyframes fadeInSubtle { from { opacity: 0; transform: translate3d(0, var(--entrance-offset, 1.25rem), 0); } to { opacity: var(--opacity-subtle, 0.6); transform: translate3d(0, 0, 0); } }
         .dropdown-menu { opacity:0; transform:translateY(-4px) scale(0.97) translateZ(0); pointer-events:none; visibility:hidden; transition:opacity var(--duration-fast) var(--ease-exit), transform var(--duration-fast) var(--ease-exit), visibility var(--duration-fast) step-end; transform-origin: top left; }
         .dropdown-menu.active { opacity:1; transform:translateY(0) scale(1) translateZ(0); pointer-events:auto; visibility:visible; transition:opacity var(--duration-normal) var(--ease-spring), transform var(--duration-normal) var(--ease-spring), visibility 0s; }
         #dropdownMenu { transform-origin: top left; }
@@ -699,8 +705,8 @@
         @keyframes hintFade { 0%,55%{opacity:1} 100%{opacity:0;pointer-events:none} }
         .bg-layer { transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1); transform: translateZ(0); will-change: opacity; pointer-events: none; }
         #bgOverlay { transition: background-color 0.2s ease, opacity 0.2s ease; transform: translateZ(0); will-change: opacity; pointer-events: none; }
-        .delay-100 { animation-delay: 0.08s; }
-        .delay-200 { animation-delay: 0.16s; }
+        .delay-100 { animation-delay: var(--delay-stagger-1); }
+        .delay-200 { animation-delay: var(--delay-stagger-2); }
         .edit-overlay {
             opacity: 0;
             pointer-events: none;
@@ -908,13 +914,13 @@
             position: absolute;
             bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px));
             right: calc(1.5rem + env(safe-area-inset-right, 0px));
-            opacity: 0.6;
+            opacity: var(--opacity-subtle);
             z-index: 50;
             transform: translateZ(0);
             transition: opacity 0.3s ease, color 0.3s ease, background-color 0.3s ease, border-color 0.3s ease;
         }
         #editBookmarksBtn.fade-in {
-            animation: fadeInSubtle 0.52s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+            animation: fadeInSubtle var(--duration-entrance) var(--ease-smooth) backwards;
         }
         #editBookmarksBtn svg {
             transition: transform 0.45s var(--ease-overshoot);
@@ -2629,12 +2635,31 @@
 
         // ==================== 配置与全局常量 ====================
         const CONFIG = Object.freeze({
-            GESTURE: {
+            KEYS: Object.freeze({
+                BOOKMARK_KEYS: 'userBookmarkKeys',
+                LEGACY_BOOKMARKS: 'userBookmarks',
+                CUSTOM_META: 'userCustomMeta',
+                BG: 'bg',
+                USER_WALLPAPER: 'userWallpaper',
+                MASK_OPACITY: 'maskOpacity',
+                BG_BLUR: 'bgBlur',
+                PREFERRED_ENGINE: 'preferredEngine',
+                NAV_DISCOVERED: 'hasDiscoveredNav',
+                WEATHER_CACHE: 'glass_weather_cache',
+                WEATHER_LOC: 'glass_weather_loc_cache',
+                WEATHER_SETTINGS: 'glass_weather_settings'
+            }),
+            ANIMATION: Object.freeze({
+                ENTRANCE_MS: 520,            // 首屏入场基础时长 (ms)
+                STAGGER_1_MS: 80,            // 搜索框阶梯延迟 (ms)
+                STAGGER_2_MS: 160            // 书签/设置阶梯延迟 (ms)
+            }),
+            GESTURE: Object.freeze({
                 TRANSITION_MS: 580,          // 双屏推移过渡动画时长 (ms)
                 WHEEL_THRESHOLD: 120,        // 滚轮累积触发切屏阈值
                 SWIPE_THRESHOLD: 40          // 触屏轻扫触发切屏阈值 (px)
-            },
-            WEATHER: {
+            }),
+            WEATHER: Object.freeze({
                 CACHE_TTL: 15 * 60 * 1000,    // 气象数据本地缓存有效期 (15分钟)
                 LOC_TTL: 24 * 60 * 60 * 1000, // 地理定位本地缓存有效期 (24小时)
                 TIMEOUT_IP: 3000,             // IP 定位接口超时限制 (ms)
@@ -2646,20 +2671,20 @@
                 WIND_MID_THRESHOLD: 15,       // 实时风速清风/疾风阈值 (15 km/h)
                 WIND_HIGH_THRESHOLD: 35,      // 实时风速大风/龙卷阈值 (35 km/h)
                 MIN_SPIN_DURATION: 750        // 刷新按钮自旋最小对齐周期 (ms)
-            },
-            SUGGEST: {
+            }),
+            SUGGEST: Object.freeze({
                 DEBOUNCE_MS: 180,             // 搜索输入防抖延时 (ms)
                 JSONP_TIMEOUT: 4000,          // 建议词 JSONP 请求熔断超时 (ms)
                 MAX_LOCAL_ITEMS: 2,           // 混排时最多呈现的本地书签数
                 MAX_TOTAL_ITEMS: 4            // 下拉菜单最大呈现总行数
-            },
-            APPEARANCE: {
+            }),
+            APPEARANCE: Object.freeze({
                 MAX_MASK_OPACITY: 80,         // 遮罩透明度最大百分比
                 MAX_BG_BLUR: 20,              // 背景高斯模糊最大像素值 (px)
                 MAX_UPLOAD_WIDTH: 3840,       // 自定义壁纸最大宽度 (4K UHD)
                 MAX_UPLOAD_HEIGHT: 2160,      // 自定义壁纸最大高度
                 JPEG_QUALITY: 0.95            // Canvas 壁纸压缩质量
-            },
+            }),
             SHORTCUTS: Object.freeze([
                 {
                     group: '导航与控制',
@@ -2961,14 +2986,14 @@
          * 自动无缝迁移旧版 localStorage.userBookmarks 静态数组至派生架构
          */
         function migrateBookmarksStorage() {
-            const rawUserKeys = storageGet('userBookmarkKeys');
-            const rawLegacy = storageGet('userBookmarks');
+            const rawUserKeys = storageGet(CONFIG.KEYS.BOOKMARK_KEYS);
+            const rawLegacy = storageGet(CONFIG.KEYS.LEGACY_BOOKMARKS);
 
             if (rawUserKeys && Array.isArray(rawUserKeys)) return;
 
             if (rawLegacy && Array.isArray(rawLegacy) && rawLegacy.length > 0) {
                 const keys = [];
-                const customMeta = storageGet('userCustomMeta') || {};
+                const customMeta = storageGet(CONFIG.KEYS.CUSTOM_META) || {};
 
                 const existingCatUrls = new Set();
                 (DEFAULT_CATEGORIES || []).forEach(cat => {
@@ -2990,9 +3015,9 @@
                     }
                 });
 
-                storageSet('userBookmarkKeys', keys);
-                storageSet('userCustomMeta', customMeta);
-                storageRemove('userBookmarks');
+                storageSet(CONFIG.KEYS.BOOKMARK_KEYS, keys);
+                storageSet(CONFIG.KEYS.CUSTOM_META, customMeta);
+                storageRemove(CONFIG.KEYS.LEGACY_BOOKMARKS);
             }
         }
 
@@ -3002,7 +3027,7 @@
          */
         function saveUserBookmarks(list) {
             const keys = [];
-            const customMeta = storageGet('userCustomMeta') || {};
+            const customMeta = storageGet(CONFIG.KEYS.CUSTOM_META) || {};
             const catUrls = new Set();
             const catMetaMap = new Map();
             (pageData.categories || []).forEach(cat => {
@@ -3041,8 +3066,8 @@
                 }
             });
 
-            storageSet('userBookmarkKeys', keys);
-            storageSet('userCustomMeta', customMeta);
+            storageSet(CONFIG.KEYS.BOOKMARK_KEYS, keys);
+            storageSet(CONFIG.KEYS.CUSTOM_META, customMeta);
             pageData.bookmarks = getDerivedBookmarks(keys, pageData.categories, customMeta);
             renderBookmarks();
         }
@@ -3122,7 +3147,7 @@
         async function clearCustomWallpaper() {
             state.customWallpaper = null;
             await removeWallpaperDB();
-            storageRemove('userWallpaper');
+            storageRemove(CONFIG.KEYS.USER_WALLPAPER);
         }
 
         // ==================== 安全工具 ====================
@@ -3155,8 +3180,8 @@
          */
         async function loadUserData() {
             migrateBookmarksStorage();
-            const userKeys = storageGet('userBookmarkKeys');
-            const customMeta = storageGet('userCustomMeta') || {};
+            const userKeys = storageGet(CONFIG.KEYS.BOOKMARK_KEYS);
+            const customMeta = storageGet(CONFIG.KEYS.CUSTOM_META) || {};
 
             if (userKeys && Array.isArray(userKeys) && userKeys.length) {
                 pageData.bookmarks = getDerivedBookmarks(userKeys, pageData.categories, customMeta);
@@ -3165,7 +3190,7 @@
             }
 
             // 恢复持久化的系统壁纸轮播索引 state.bg
-            const savedBg = storageGet('bg');
+            const savedBg = storageGet(CONFIG.KEYS.BG);
             if (savedBg !== null && typeof savedBg === 'number' && savedBg >= 0 && savedBg < backgrounds.length) {
                 state.bg = savedBg;
             }
@@ -3173,12 +3198,12 @@
             // 读取自定义壁纸：兼容旧版本残留数据（若历史版本将预设路径误写入了自定义存储），
             // 启动时自动迁移并还原对应索引 state.bg，清除冗余的自定义记录。
             let customBg = await getWallpaperDB();
-            if (!customBg) customBg = storageGet('userWallpaper');
+            if (!customBg) customBg = storageGet(CONFIG.KEYS.USER_WALLPAPER);
             const legacyPresetIdx = findPresetBgIndex(customBg);
             if (legacyPresetIdx >= 0) {
                 // 旧数据迁移：还原 bg 索引，清除误写入的自定义通道
                 state.bg = legacyPresetIdx;
-                storageSet('bg', legacyPresetIdx);
+                storageSet(CONFIG.KEYS.BG, legacyPresetIdx);
                 await clearCustomWallpaper();
                 customBg = null;
             }
@@ -3355,8 +3380,8 @@
                 dom.bgBlurInput.setAttribute('aria-valuetext', `${bl}px`);
             }
             if (save) {
-                storageSet('maskOpacity', op);
-                storageSet('bgBlur', bl);
+                storageSet(CONFIG.KEYS.MASK_OPACITY, op);
+                storageSet(CONFIG.KEYS.BG_BLUR, bl);
             }
         }
 
@@ -3416,7 +3441,7 @@
          * @returns {void}
          */
         function updatePresetBgCardsUI(customWallpaperOverride) {
-            const currentBg = customWallpaperOverride !== undefined ? (customWallpaperOverride || backgrounds[state.bg] || '') : (storageGet('userWallpaper') || backgrounds[state.bg] || '');
+            const currentBg = customWallpaperOverride !== undefined ? (customWallpaperOverride || backgrounds[state.bg] || '') : (storageGet(CONFIG.KEYS.USER_WALLPAPER) || backgrounds[state.bg] || '');
             const container = dom.presetWallpaperGrid || document.getElementById('presetWallpaperGrid');
             if (!container) return;
             container.querySelectorAll('.preset-bg-card').forEach(card => {
@@ -3459,7 +3484,7 @@
                 ? customWallpaperOverride
                 : (modalState.draftWallpaper !== null && modalState.draftWallpaper !== undefined
                     ? modalState.draftWallpaper
-                    : (state.customWallpaper || await getWallpaperDB() || storageGet('userWallpaper')));
+                    : (state.customWallpaper || await getWallpaperDB() || storageGet(CONFIG.KEYS.USER_WALLPAPER)));
             // 命中预设 backgrounds[] 的 URL 不属于"自定义"，只有 data:/http(s): 以及非预设字符串才算自定义
             const isCustom = !!resolveBg && findPresetBgIndex(resolveBg) === -1;
             if (!dom.wallpaperStatus || !dom.resetBgBtn) return;
@@ -3628,10 +3653,10 @@
             // 备份打开前的初始配置：自定义壁纸存储于 IndexedDB（保存路径只写 IDB 并清理了
             // localStorage），因此必须优先取 state.customWallpaper / IDB，localStorage 仅作历史兜底；
             // 否则“取消”回滚会错误地丢失当前生效的自定义壁纸
-            modalState.initialWallpaper = state.customWallpaper || await getWallpaperDB() || storageGet('userWallpaper');
+            modalState.initialWallpaper = state.customWallpaper || await getWallpaperDB() || storageGet(CONFIG.KEYS.USER_WALLPAPER);
             if (!state.editOpen) return; // 若在读取 IDB 期间用户按 Esc 取消了弹窗，中断后续渲染逻辑
-            modalState.initialMaskOpacity = storageGet('maskOpacity', 15);
-            modalState.initialBgBlur = storageGet('bgBlur', 0);
+            modalState.initialMaskOpacity = storageGet(CONFIG.KEYS.MASK_OPACITY, 15);
+            modalState.initialBgBlur = storageGet(CONFIG.KEYS.BG_BLUR, 0);
 
             // 初始化草稿值
             modalState.draftWallpaper = modalState.initialWallpaper;
@@ -3903,15 +3928,15 @@
         function resetBookmarks() {
             // 清除 localStorage 用户编辑与偏好设置，恢复系统初始默认配置并立即生效
             showConfirm('确定要恢复系统初始默认状态吗？此操作将立即清除您自定义的所有快捷书签、背景壁纸与偏好设置。', () => {
-                storageRemove('userBookmarks');
-                storageRemove('userBookmarkKeys');
-                storageRemove('userCustomMeta');
-                storageRemove('preferredEngine');
-                storageRemove('userWallpaper');
-                storageRemove('maskOpacity');
-                storageRemove('bgBlur');
-                storageRemove('bg'); // 清除持久化的壁纸轮播索引，与 state.bg = 0 保持一致
-                storageRemove('hasDiscoveredNav'); // 重置后允许重新展示下滑引导
+                storageRemove(CONFIG.KEYS.LEGACY_BOOKMARKS);
+                storageRemove(CONFIG.KEYS.BOOKMARK_KEYS);
+                storageRemove(CONFIG.KEYS.CUSTOM_META);
+                storageRemove(CONFIG.KEYS.PREFERRED_ENGINE);
+                storageRemove(CONFIG.KEYS.USER_WALLPAPER);
+                storageRemove(CONFIG.KEYS.MASK_OPACITY);
+                storageRemove(CONFIG.KEYS.BG_BLUR);
+                storageRemove(CONFIG.KEYS.BG); // 清除持久化的壁纸轮播索引，与 state.bg = 0 保持一致
+                storageRemove(CONFIG.KEYS.NAV_DISCOVERED); // 重置后允许重新展示下滑引导
 
                 if (dom.scrollDownHint) {
                     dom.scrollDownHint.style.display = '';
@@ -4359,13 +4384,13 @@
             renderBookmarks();
             renderNavCategories(); // 内部已调用 initSidebarNav()，无需重复
             initScrollControl();
-            const saved = storageGet('preferredEngine');
+            const saved = storageGet(CONFIG.KEYS.PREFERRED_ENGINE);
             if (saved && engines[saved]) setEngine(saved, false);
             setInterval(updateClock, 1000);
             bindEvents();
             bindEditEvents();
-            const savedOpacity = storageGet('maskOpacity', 15);
-            const savedBlur = storageGet('bgBlur', 0);
+            const savedOpacity = storageGet(CONFIG.KEYS.MASK_OPACITY, 15);
+            const savedBlur = storageGet(CONFIG.KEYS.BG_BLUR, 0);
             applyBgEffects(savedOpacity, savedBlur);
             preloadNextBg();
             preloadFavicons();
@@ -4399,7 +4424,7 @@
 
             scheduleIdleTask(() => {
                 loadData().then(() => {
-                    if (!storageGet('userBookmarkKeys')) {
+                    if (!storageGet(CONFIG.KEYS.BOOKMARK_KEYS)) {
                         renderBookmarks();
                     }
                     renderNavCategories();
@@ -4951,7 +4976,7 @@
                     closeDropdown();
                     hideSuggestions();
                     toggleWeatherPopover();
-                    const cache = storageGet('glass_weather_cache', null);
+                    const cache = storageGet(CONFIG.KEYS.WEATHER_CACHE, null);
                     if (!cache || !cache.current) {
                         updateWeather(false).catch(() => {});
                     }
@@ -5330,20 +5355,20 @@
                         // 选中系统预设：按索引模式持久化（previewDraftWallpaper 已视觉切好）
                         await clearCustomWallpaper();
                         state.bg = presetIdx;
-                        storageSet('bg', presetIdx);
+                        storageSet(CONFIG.KEYS.BG, presetIdx);
                     } else if (draft) {
                         // 真·自定义壁纸（上传 data:URL 或 http(s) 外网图）（previewDraftWallpaper 已视觉切好）
                         state.customWallpaper = draft;
                         setWallpaperDB(draft);
-                        storageSet('userWallpaper', draft);
+                        storageSet(CONFIG.KEYS.USER_WALLPAPER, draft);
                         // 切到自定义图时，bg 索引不再有效，归零保证退出自定义后轮播从 bg1 开始
                         state.bg = 0;
-                        storageSet('bg', 0);
+                        storageSet(CONFIG.KEYS.BG, 0);
                     } else {
                         // 点击"恢复默认" → 回到 bg1（resetDraftWallpaper 已视觉切到 bg1）
                         await clearCustomWallpaper();
                         state.bg = 0;
-                        storageSet('bg', 0);
+                        storageSet(CONFIG.KEYS.BG, 0);
                     }
                     if (dom.statWallpaperType) {
                         dom.statWallpaperType.textContent = state.customWallpaper ? '自定义' : '系统';
@@ -5353,8 +5378,8 @@
 
                 // 3. 提交特效
                 if (modalState.draftMaskOpacity !== null && modalState.draftBgBlur !== null) {
-                    storageSet('maskOpacity', modalState.draftMaskOpacity);
-                    storageSet('bgBlur', modalState.draftBgBlur);
+                    storageSet(CONFIG.KEYS.MASK_OPACITY, modalState.draftMaskOpacity);
+                    storageSet(CONFIG.KEYS.BG_BLUR, modalState.draftBgBlur);
                 }
 
                 closeEditModal();
@@ -5428,7 +5453,7 @@
             }
             if (dom.urlBgBtn) {
                 dom.urlBgBtn.addEventListener('click', () => {
-                    const current = modalState.draftWallpaper || storageGet('userWallpaper') || '';
+                    const current = modalState.draftWallpaper || storageGet(CONFIG.KEYS.USER_WALLPAPER) || '';
                     const input = prompt('请输入高清图片的网络 URL 地址：', current.startsWith('http') ? current : '');
                     if (input === null) return;
                     const trimmed = input.trim();
@@ -5561,7 +5586,7 @@
                 });
             }
             closeDropdown();
-            if (save) storageSet('preferredEngine', validEngine);
+            if (save) storageSet(CONFIG.KEYS.PREFERRED_ENGINE, validEngine);
             if (dom.searchInput && dom.searchInput.value.trim()) {
                 fetchSuggestions(validEngine, dom.searchInput.value.trim());
             }
@@ -6225,7 +6250,7 @@
 
         async function resolveWeatherLocation(force = false) {
             // 自动 IP 定位优先：读取本地 24 小时位置缓存，彻底杜绝重复请求 IP 接口（手动强刷时跳过缓存）
-            const locCache = storageGet('glass_weather_loc_cache', null);
+            const locCache = storageGet(CONFIG.KEYS.WEATHER_LOC, null);
             const now = Date.now();
             const LOC_TTL = CONFIG.WEATHER.LOC_TTL; // 24 小时定位缓存
             if (!force && locCache && locCache.timestamp && (now - locCache.timestamp < LOC_TTL) && locCache.lat) {
@@ -6286,7 +6311,7 @@
                                             isAuto: true,
                                             timestamp: now
                                         };
-                                        storageSet('glass_weather_loc_cache', resolved);
+                                        storageSet(CONFIG.KEYS.WEATHER_LOC, resolved);
                                         return resolved;
                                     }
                                 }
@@ -6314,7 +6339,7 @@
                             isAuto: true,
                             timestamp: now
                         };
-                        storageSet('glass_weather_loc_cache', resolved);
+                        storageSet(CONFIG.KEYS.WEATHER_LOC, resolved);
                         return resolved;
                     }
                 }
@@ -6330,7 +6355,7 @@
                 isFallback: true,
                 timestamp: now
             };
-            storageSet('glass_weather_loc_cache', fallbackLoc);
+            storageSet(CONFIG.KEYS.WEATHER_LOC, fallbackLoc);
             return fallbackLoc;
         }
 
@@ -6635,7 +6660,7 @@
 
         let isFetchingWeather = false;
         async function updateWeather(force = false) {
-            const cache = storageGet('glass_weather_cache', null);
+            const cache = storageGet(CONFIG.KEYS.WEATHER_CACHE, null);
             const now = Date.now();
             const CACHE_TTL = CONFIG.WEATHER.CACHE_TTL; // 15 分钟合理缓存有效期（行业标准黄金平衡点）
 
@@ -6650,7 +6675,7 @@
             isFetchingWeather = true;
 
             try {
-                const locCache = storageGet('glass_weather_loc_cache', null);
+                const locCache = storageGet(CONFIG.KEYS.WEATHER_LOC, null);
                 const knownLoc = (locCache && locCache.lat) ? locCache : (cache && cache.location && cache.location.lat ? cache.location : null);
 
                 if (knownLoc && !force) {
@@ -6659,7 +6684,7 @@
                     const locationPromise = resolveWeatherLocation(false);
 
                     const freshData = await forecastPromise;
-                    storageSet('glass_weather_cache', freshData);
+                    storageSet(CONFIG.KEYS.WEATHER_CACHE, freshData);
                     renderWeatherCapsule(freshData);
                     renderWeatherPopover(freshData);
 
@@ -6668,7 +6693,7 @@
                         if (newLoc && (Math.abs(newLoc.lat - knownLoc.lat) > 0.08 || Math.abs(newLoc.lon - knownLoc.lon) > 0.08)) {
                             try {
                                 const relocatedData = await fetchWeatherForecast(newLoc);
-                                storageSet('glass_weather_cache', relocatedData);
+                                storageSet(CONFIG.KEYS.WEATHER_CACHE, relocatedData);
                                 renderWeatherCapsule(relocatedData);
                                 renderWeatherPopover(relocatedData);
                             } catch {}
@@ -6678,7 +6703,7 @@
                     // 全新首访（无坐标缓存）或用户点击立即刷新：先解析真实定位（国内 140ms / 国外 200ms），再精准拉取该城市天气
                     const loc = await resolveWeatherLocation(force);
                     const freshData = await fetchWeatherForecast(loc);
-                    storageSet('glass_weather_cache', freshData);
+                    storageSet(CONFIG.KEYS.WEATHER_CACHE, freshData);
                     renderWeatherCapsule(freshData);
                     renderWeatherPopover(freshData);
                 }
@@ -6697,7 +6722,7 @@
 
         function initWeather() {
             // 0ms 秒开优先读取本地缓存渲染
-            const cache = storageGet('glass_weather_cache', null);
+            const cache = storageGet(CONFIG.KEYS.WEATHER_CACHE, null);
             if (cache) {
                 renderWeatherCapsule(cache);
                 renderWeatherPopover(cache);
@@ -6812,7 +6837,7 @@
             updateWallpaperStatusUI().catch(() => {});
         }
         async function switchBg() {
-            let customBg = state.customWallpaper || await getWallpaperDB() || storageGet('userWallpaper');
+            let customBg = state.customWallpaper || await getWallpaperDB() || storageGet(CONFIG.KEYS.USER_WALLPAPER);
             // 防御：若拿到的是预设壁纸路径（旧数据 / 其他路径误写），当作预设处理而非"自定义"
             const legacyPresetIdx = findPresetBgIndex(customBg);
             if (legacyPresetIdx >= 0) {
@@ -6823,7 +6848,7 @@
             }
             if (customBg) {
                 await removeWallpaperDB();
-                storageRemove('userWallpaper');
+                storageRemove(CONFIG.KEYS.USER_WALLPAPER);
                 state.customWallpaper = null;
                 state.bg = 0;
             } else {
@@ -6831,7 +6856,7 @@
             }
             // 持久化壁纸轮播索引：刷新/重开后保持 Ctrl+B 轮播到的壁纸
             // （head 预加载脚本依赖 localStorage['bg'] 决定预加载哪张壁纸，此前该键只读不写）
-            storageSet('bg', state.bg);
+            storageSet(CONFIG.KEYS.BG, state.bg);
             applyWallpaper(backgrounds[state.bg], true);
             preloadNextBg();
         }
@@ -6943,8 +6968,8 @@
 
                 // 首次触发切屏时持久化并优雅淡出下滑提示
                 try {
-                    if (!localStorage.getItem('hasDiscoveredNav')) {
-                        localStorage.setItem('hasDiscoveredNav', '1');
+                    if (!localStorage.getItem(CONFIG.KEYS.NAV_DISCOVERED)) {
+                        localStorage.setItem(CONFIG.KEYS.NAV_DISCOVERED, '1');
                         const hint = dom.scrollDownHint || document.getElementById('scrollDownHint') || document.querySelector('.hint-down');
                         if (hint) {
                             hint.style.transition = 'opacity 0.6s ease';
