@@ -1187,7 +1187,7 @@
             transform: scale(1.1) rotate(15deg);
         }
         #randomBookmarkBtn:active {
-            transform: scale(0.9) !important;
+            transform: scale(0.9);
             background-color: rgba(255, 255, 255, 0.22);
         }
         #randomBookmarkBtn.rolling svg {
@@ -1206,7 +1206,7 @@
             transform: scale(1.15);
         }
         #searchClearBtn:active {
-            transform: scale(0.9) !important;
+            transform: scale(0.9);
             background-color: rgba(255, 255, 255, 0.22);
         }
         .suggestion-item {
@@ -1410,15 +1410,6 @@
                 -webkit-backdrop-filter: none !important;
             }
         }
-        /* 无障碍：减弱动态效果适配 (Prefers Reduced Motion) */
-        @media (prefers-reduced-motion: reduce) {
-            *, ::before, ::after {
-                animation-duration: 0.01ms !important;
-                animation-iteration-count: 1 !important;
-                transition-duration: 0.01ms !important;
-                scroll-behavior: auto !important;
-            }
-        }
     </style>
 </head>
 <body class="text-white relative" style="background-color: var(--bg-start);">
@@ -1479,14 +1470,14 @@
             <div class="glass-strong apple-radius p-2 flex items-center gap-1.5 border fade-in search-box-wrapper delay-100 select-none">
                 <div class="relative shrink-0 select-none">
                     <button id="engineBtn" type="button" aria-label="选择搜索引擎（当前：Bing）" aria-haspopup="menu" aria-expanded="false" aria-controls="dropdownMenu" class="flex items-center gap-1.5 pl-3 pr-2 py-3 apple-radius hover:bg-white/10 glass-interactive text-sm font-medium min-h-11 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed select-none">
-                        <img id="engineIcon" src="https://a.favicon.im/bing.com" width="16" height="16" decoding="async" data-hide-on-error="1" class="engine-icon size-4 rounded select-none pointer-events-none" alt="当前引擎：Bing" draggable="false">
+                        <img id="engineIcon" src="https://a.favicon.im/bing.com" width="16" height="16" decoding="async" data-hide-on-error="1" class="engine-icon size-4 aspect-square shrink-0 rounded select-none pointer-events-none" alt="当前引擎：Bing" draggable="false">
                         <span id="engineName" class="hidden sm:inline select-none">Bing</span>
                         <svg class="size-4 opacity-60 shrink-0 pointer-events-none select-none" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 16 16"><path d="M3.5 6l4.5 4.5 4.5-4.5"/></svg>
                     </button>
                     <script>(function(){if(window.__PRE_ENGINE__){const b=document.getElementById('engineBtn');const i=document.getElementById('engineIcon');const n=document.getElementById('engineName');if(b)b.setAttribute('aria-label','选择搜索引擎（当前：'+window.__PRE_ENGINE__.name+'）');if(i){i.src=window.__PRE_ENGINE__.icon;i.alt='当前引擎：'+window.__PRE_ENGINE__.name;}if(n)n.textContent=window.__PRE_ENGINE__.name;}})()</script>
                 </div>
                 <label for="searchInput" class="sr-only">搜索</label>
-                <input type="text" id="searchInput" name="q" role="combobox" aria-label="搜索输入框" aria-autocomplete="list" aria-controls="suggestionMenu" aria-expanded="false" class="flex-1 bg-transparent border-none outline-none text-lg search-input text-white h-12 px-1 min-w-0 focus-visible:ring-0" placeholder="搜索..." autocomplete="off">
+                <input type="text" id="searchInput" name="q" role="combobox" aria-label="搜索输入框" aria-autocomplete="list" aria-controls="suggestionMenu" aria-expanded="false" class="flex-1 bg-transparent border-none outline-none text-lg search-input text-white h-12 px-1 min-w-0 focus-visible:ring-0" placeholder="搜索..." autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
                 <div class="relative shrink-0 flex items-center justify-center size-9 mr-1.5 select-none">
                     <button id="randomBookmarkBtn" type="button" aria-label="随机访问书签" class="p-2 apple-radius hover:bg-white/10 text-white/40 hover:text-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 absolute inset-0 flex items-center justify-center select-none touch-manipulation">
                         <svg class="size-5 pointer-events-none select-none" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 20 20">
