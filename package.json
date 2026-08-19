@@ -1,7 +1,7 @@
 {
   "name": "glass-start",
   "version": "3.1.9",
-  "description": "Glass Start (毛玻璃极简起始页与导航站) - 高颜值现代化新标签页",
+  "description": "Glass Start — 灵动优雅、极简纯净的玻璃拟态浏览器起始页与分类导航。",
   "main": "index.html",
   "scripts": {
     "build": "node build.js",

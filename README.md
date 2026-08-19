@@ -1,6 +1,6 @@
-# Glass Start - 玻璃拟态个人起始页
+# Glass Start - 灵动起始页与分类导航
 
-基于 HTML5、Tailwind CSS 与 Modern JS 构建的高颜值、轻量级玻璃拟态（Glassmorphism）浏览器起始页。
+灵动优雅、极简纯净的玻璃拟态浏览器起始页与分类导航。
 
 ---
 
