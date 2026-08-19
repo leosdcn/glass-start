@@ -213,6 +213,8 @@
             width: 100%;
             height: 100%;
             overflow: hidden;
+            overscroll-behavior: none;
+            overscroll-behavior-y: none;
         }
         body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif; /* 优先 Apple 原生系统字体栈 */ }
         * { scrollbar-width:none; }
@@ -2594,9 +2596,7 @@
             GESTURE: {
                 TRANSITION_MS: 580,          // 双屏推移过渡动画时长 (ms)
                 WHEEL_THRESHOLD: 120,        // 滚轮累积触发切屏阈值
-                DRAG_PROGRESS_THRESHOLD: 0.20, // 拖拽切屏所需最小屏高进度 (20%)
-                DRAG_VELOCITY_THRESHOLD: 0.25, // 快速甩动手势最小速度 (px/ms)
-                DRAG_MIN_DELTA: 100          // 最小拖拽位移触发阈值 (px)
+                SWIPE_THRESHOLD: 40          // 触屏轻扫触发切屏阈值 (px)
             },
             WEATHER: {
                 CACHE_TTL: 15 * 60 * 1000,    // 气象数据本地缓存有效期 (15分钟)
@@ -6886,7 +6886,6 @@
                 state.currentSection = 'nav';
                 isTransitioning = true;
                 clearAccum();
-                resetTouchDragStyles();
                 window.scrollTo(0, 0);
                 if (document.documentElement.scrollTop !== 0) document.documentElement.scrollTop = 0;
                 if (document.body.scrollTop !== 0) document.body.scrollTop = 0;
@@ -6949,7 +6948,6 @@
                 state.currentSection = 'start';
                 isTransitioning = true;
                 clearAccum();
-                resetTouchDragStyles();
                 window.scrollTo(0, 0);
                 if (document.documentElement.scrollTop !== 0) document.documentElement.scrollTop = 0;
                 if (document.body.scrollTop !== 0) document.body.scrollTop = 0;
@@ -7073,156 +7071,78 @@
                 }
             }, { passive: false });
 
+            // ==================== 方案 B: 纯轻量触屏手势切屏 (Swipe Gesture Trigger, 零 Reflow 丝滑翻屏) ====================
+            let startTouchX = 0;
             let startTouchY = 0;
-            let lastTouchY = 0;
             let touchStartTime = 0;
-            let isTouchDragging = false;
-            let touchDragDirection = null; // 'up' or 'down'
-            let touchRafId = null;
-            let touchMoveTicking = false;
-
-            function resetTouchDragStyles() {
-                if (touchRafId) {
-                    cancelAnimationFrame(touchRafId);
-                    touchRafId = null;
-                }
-                touchMoveTicking = false;
-                if (startSection) {
-                    startSection.style.transition = '';
-                    startSection.style.transform = '';
-                }
-                if (nav) {
-                    nav.style.transition = '';
-                    nav.style.transform = '';
-                }
-            }
+            let isTouchHandled = false;
+            const SWIPE_THRESHOLD = CONFIG.GESTURE.SWIPE_THRESHOLD || 40;
 
             document.addEventListener('touchstart', (e) => {
                 if (isTransitioning || !OverlayStack.isEmpty()) return;
                 if (e.target && typeof e.target.closest === 'function' && (e.target.closest('#sidebar') || e.target.closest('#weatherWidget') || e.target.closest('#editBookmarksBtn'))) return;
+                if (!e.touches || e.touches.length === 0) return;
+                startTouchX = e.touches[0].clientX;
                 startTouchY = e.touches[0].clientY;
-                lastTouchY = startTouchY;
                 touchStartTime = performance.now();
-                isTouchDragging = false;
-                touchDragDirection = null;
+                isTouchHandled = false;
             }, { passive: true });
 
             document.addEventListener('touchmove', (e) => {
-                if (isTransitioning || !OverlayStack.isEmpty()) return;
+                if (isTransitioning || isTouchHandled || !OverlayStack.isEmpty()) return;
+                if (!e.touches || e.touches.length === 0) return;
+
+                const currentX = e.touches[0].clientX;
                 const currentY = e.touches[0].clientY;
-                const totalDeltaY = startTouchY - currentY;
-                lastTouchY = currentY;
+                const deltaX = Math.abs(startTouchX - currentX);
+                const deltaY = startTouchY - currentY; // > 0 向上划, < 0 向下划
+                const absDeltaY = Math.abs(deltaY);
 
-                const isStartUp = state.currentSection === 'start' && totalDeltaY > 0;
-                const isNavDown = state.currentSection === 'nav' && totalDeltaY < 0 && navContent && navContent.scrollTop <= 0;
+                // 水平滑动幅度大于垂直幅度（如横向滚动 Tab / 侧边栏）时，放行原生水平滚动
+                if (deltaX > absDeltaY) return;
 
-                if (isStartUp || isNavDown) {
-                    if (e.cancelable) e.preventDefault();
-                    isTouchDragging = true;
-                    touchDragDirection = isStartUp ? 'up' : 'down';
-                } else if (isTouchDragging && e.cancelable) {
-                    e.preventDefault();
-                }
-
-                if (!touchMoveTicking) {
-                    touchRafId = requestAnimationFrame(() => {
-                        touchMoveTicking = false;
-                        touchRafId = null;
-                        if (!isTouchDragging) return;
-
-                        const curDeltaY = startTouchY - lastTouchY;
-                        const vh = window.innerHeight || 800;
-                        const isUp = touchDragDirection === 'up';
-
-                        nav.classList.remove('nav-hidden');
-                        nav.classList.add('nav-visible');
-                        startSection.style.transition = 'none';
-                        nav.style.transition = 'none';
-
-                        if (isUp ? curDeltaY > 0 : curDeltaY < 0) {
-                            const progress = Math.min(1, Math.max(0, Math.abs(curDeltaY) / vh));
-                            const startY = isUp ? -progress * 100 : -(1 - progress) * 100;
-                            const navY = isUp ? (1 - progress) * 100 : progress * 100;
-                            startSection.style.transform = `translateY(${startY}vh)`;
-                            nav.style.transform = `translateY(${navY}vh)`;
-                        } else {
-                            startSection.style.transform = isUp ? 'translateY(0vh)' : 'translateY(-100vh)';
-                            nav.style.transform = isUp ? 'translateY(100vh)' : 'translateY(0vh)';
-                        }
-                    });
-                    touchMoveTicking = true;
+                if (state.currentSection === 'start') {
+                    if (deltaY >= SWIPE_THRESHOLD) {
+                        isTouchHandled = true;
+                        if (e.cancelable) e.preventDefault();
+                        switchToNav();
+                    }
+                } else if (state.currentSection === 'nav') {
+                    // 仅当位于导航页顶端且向下滑动时触发
+                    if (deltaY <= -SWIPE_THRESHOLD && navContent && navContent.scrollTop <= 0) {
+                        isTouchHandled = true;
+                        if (e.cancelable) e.preventDefault();
+                        switchToStart();
+                    }
                 }
             }, { passive: false });
 
-            function handleTouchEndOrCancel(e) {
-                if (touchRafId) {
-                    cancelAnimationFrame(touchRafId);
-                    touchRafId = null;
-                }
-                touchMoveTicking = false;
+            document.addEventListener('touchend', (e) => {
+                if (isTransitioning || isTouchHandled || !OverlayStack.isEmpty()) return;
+                const endTouchY = (e.changedTouches && e.changedTouches.length > 0) ? e.changedTouches[0].clientY : startTouchY;
+                const deltaY = startTouchY - endTouchY;
+                const dt = Math.max(1, performance.now() - touchStartTime);
+                const velocity = Math.abs(deltaY) / dt; // px/ms
 
-                if (!isTouchDragging) {
-                    resetTouchDragStyles();
-                    return;
-                }
-
-                const isCancel = e.type === 'touchcancel';
-                const endTouchY = (e.changedTouches && e.changedTouches.length > 0) ? e.changedTouches[0].clientY : lastTouchY;
-                const totalDeltaY = startTouchY - endTouchY;
-                const touchDuration = Math.max(1, performance.now() - touchStartTime);
-                const velocity = Math.abs(totalDeltaY) / touchDuration; // px/ms
-                const vh = window.innerHeight || 800;
-                const progress = Math.min(1, Math.max(0, Math.abs(totalDeltaY) / vh));
-
-                if (transitionTimer) {
-                    clearTimeout(transitionTimer);
-                    transitionTimer = null;
-                }
-                resetTouchDragStyles();
-                isTouchDragging = false;
-
-                // 若被系统事件打断 (touchcancel)，安全起见一律弹性复位弹回原位；正常 touchend 满足条件则切屏
-                const shouldSwitch = !isCancel && (
-                    progress >= CONFIG.GESTURE.DRAG_PROGRESS_THRESHOLD ||
-                    velocity > CONFIG.GESTURE.DRAG_VELOCITY_THRESHOLD ||
-                    Math.abs(totalDeltaY) >= CONFIG.GESTURE.DRAG_MIN_DELTA
-                );
+                // 快速轻扫 (Flick)：位移 >= 25px 且速度 > 0.25 px/ms
+                const isFlick = Math.abs(deltaY) >= 25 && velocity > 0.25;
 
                 if (state.currentSection === 'start') {
-                    if (shouldSwitch && touchDragDirection === 'up') {
+                    if (deltaY >= SWIPE_THRESHOLD || (deltaY > 0 && isFlick)) {
+                        isTouchHandled = true;
                         switchToNav();
-                    } else {
-                        targetSection = 'start';
-                        startSection.classList.remove('screen-pushed-up');
-                        nav.classList.remove('screen-pushed-in', 'nav-visible');
-                        nav.classList.add('nav-hidden');
-                        saveSection('start');
-                        updateSectionAccessibility('start');
-                        updateGearVisibility();
                     }
                 } else if (state.currentSection === 'nav') {
-                    if (shouldSwitch && touchDragDirection === 'down') {
+                    if ((deltaY <= -SWIPE_THRESHOLD || (deltaY < 0 && isFlick)) && navContent && navContent.scrollTop <= 0) {
+                        isTouchHandled = true;
                         switchToStart();
-                    } else {
-                        targetSection = 'nav';
-                        startSection.classList.add('screen-pushed-up');
-                        nav.classList.remove('nav-hidden');
-                        nav.classList.add('nav-visible', 'screen-pushed-in');
-                        saveSection('nav');
-                        updateSectionAccessibility('nav');
-                        updateGearVisibility();
                     }
                 }
-            }
+            }, { passive: true });
 
-            document.addEventListener('touchend', handleTouchEndOrCancel, { passive: true });
-            document.addEventListener('touchcancel', handleTouchEndOrCancel, { passive: true });
-            window.addEventListener('blur', () => {
-                if (isTouchDragging) {
-                    resetTouchDragStyles();
-                    isTouchDragging = false;
-                }
-            });
+            document.addEventListener('touchcancel', () => {
+                isTouchHandled = false;
+            }, { passive: true });
 
             // ===== VisionOS 玻璃材质 3D 倾斜与光标折射高光代理 (Apple HIG 规范, 零 Reflow 高效引擎) =====
             (function initGlassSpotlightAndTilt() {
