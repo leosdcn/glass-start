@@ -3638,6 +3638,7 @@
         }
 
         let editModalTriggerEl = null;
+        let editFaviconDebounceTimer = null;
 
         /**
          * 打开设置与偏好弹窗，备份打开前的初始配置以备取消时回滚
@@ -3694,6 +3695,10 @@
         function closeEditModal() {
             state.editOpen = false;
             OverlayStack.pop('editModal');
+            if (editFaviconDebounceTimer) {
+                clearTimeout(editFaviconDebounceTimer);
+                editFaviconDebounceTimer = null;
+            }
             if (document.activeElement && dom.editModal.contains(document.activeElement)) {
                 document.activeElement.blur();
             }
@@ -4240,7 +4245,6 @@
             dom.editList.addEventListener('pointercancel', handleTouchPointerEnd, { passive: true });
 
             // 实时 Favicon 与首字母图标感知：修改 URL 或名称时自动抓取刷新
-            let editFaviconDebounceTimer = null;
             dom.editList.addEventListener('input', e => {
                 const target = e.target;
                 const row = target.closest('.edit-row-card');
@@ -5433,13 +5437,19 @@
                                 const compressedDataUrl = canvas.toDataURL('image/jpeg', CONFIG.APPEARANCE.JPEG_QUALITY);
                                 previewDraftWallpaper(compressedDataUrl);
 
+                                ctx.clearRect(0, 0, width, height);
                                 canvas.width = 0;
                                 canvas.height = 0;
                                 img.onload = null;
+                                img.onerror = null;
+                                img.src = '';
                                 reader.onload = null;
                             };
                             img.onerror = () => {
                                 previewDraftWallpaper(dataUrl);
+                                img.onload = null;
+                                img.onerror = null;
+                                img.src = '';
                                 reader.onload = null;
                             };
                             img.src = dataUrl;
@@ -6788,6 +6798,8 @@
             const img = new Image();
 
             const executeTransition = () => {
+                img.onload = null;
+                img.onerror = null;
                 if (reqId !== activeWallpaperReqId) return; // 废弃过期的慢速网络图片异步回调，防止覆盖最新壁纸
                 if (bgSwitchTimer) {
                     clearTimeout(bgSwitchTimer);
@@ -6831,6 +6843,7 @@
                 executeTransition();
             } else {
                 img.onload = executeTransition;
+                img.onerror = () => { img.onload = img.onerror = null; };
             }
             updateWallpaperStatusUI().catch(() => {});
         }
