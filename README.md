@@ -272,7 +272,10 @@ add_header X-Frame-Options "SAMEORIGIN" always;
 # 3. 跨源隔离政策 (COOP - Cross-Origin-Opener-Policy)
 add_header Cross-Origin-Opener-Policy "same-origin" always;
 
-# 4. 内容安全策略 (Content-Security-Policy HTTP 标头)
+# 4. 现代硬件权限防御策略 (Permissions-Policy)
+add_header Permissions-Policy "accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()" always;
+
+# 5. 内容安全策略 (Content-Security-Policy HTTP 标头)
 add_header Content-Security-Policy "default-src 'self' data: blob: https:; script-src 'self' 'unsafe-inline' https://api.bing.com https://suggestqueries.google.com https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: blob: https:; connect-src 'self' https:; worker-src 'self' blob:; frame-ancestors 'self';" always;
 ```
 
@@ -325,7 +328,7 @@ add_header Content-Security-Policy "default-src 'self' data: blob: https:; scrip
 # 1. 语法检查与生产编译打包
 npm run lint && npm run build
 
-# 2. 全量端到端自动化测试验证 (3 大核心领域套件 18 项高密度断言)
+# 2. 全量端到端自动化测试验证 (3 大核心领域套件 19 项高密度断言)
 node test/run.mjs --force
 
 # 3. 提交并打 Git Tag 推送至云端
