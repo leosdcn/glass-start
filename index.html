@@ -441,6 +441,7 @@
         }
         .nr .fade-in { animation: none !important; }
         @keyframes fadeIn { from { opacity:0.05; transform:translate3d(0, 1rem, 0); } to { opacity:1; transform:translate3d(0,0,0); } }
+        @keyframes fadeInSubtle { from { opacity:0.05; transform:translate3d(0, 1rem, 0); } to { opacity:0.6; transform:translate3d(0,0,0); } }
         .dropdown-menu { opacity:0; transform:translateY(-4px) scale(0.97) translateZ(0); pointer-events:none; visibility:hidden; transition:opacity var(--duration-fast) var(--ease-exit), transform var(--duration-fast) var(--ease-exit), visibility var(--duration-fast) step-end; transform-origin: top left; }
         .dropdown-menu.active { opacity:1; transform:translateY(0) scale(1) translateZ(0); pointer-events:auto; visibility:visible; transition:opacity var(--duration-normal) var(--ease-spring), transform var(--duration-normal) var(--ease-spring), visibility 0s; }
         #dropdownMenu { transform-origin: top left; }
@@ -912,6 +913,10 @@
             z-index: 50;
             transform: translateZ(0);
             transition: opacity 0.3s ease, color 0.3s ease, background-color 0.3s ease, border-color 0.3s ease;
+        }
+        #editBookmarksBtn.fade-in {
+            animation: fadeInSubtle 0.48s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+            will-change: transform, opacity;
         }
         #editBookmarksBtn svg {
             transition: transform 0.45s var(--ease-overshoot);
@@ -1424,7 +1429,7 @@
         <h1 class="sr-only">Glass Start — 轻量级玻璃拟态个人起始页与导航</h1>
 
         <!-- 全屏右上角悬浮天气胶囊（置于起始页内，随起始页物理滑屏，全生命周期保持 100% 毛玻璃常驻） -->
-        <div id="weatherWidget" class="select-none">
+        <div id="weatherWidget" class="select-none fade-in">
             <button id="weatherBtn" type="button" aria-expanded="false" aria-controls="weatherPopover" aria-haspopup="dialog" aria-label="--° · 天气，点击查看实时天气与详细预报" class="glass apple-radius px-3 py-1.5 sm:px-3.5 sm:py-2 text-white/80 hover:text-white border border-white/12 flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-medium glass-interactive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60">
                 <span id="weatherIcon" class="text-sm sm:text-base leading-none select-none">🌤️</span>
                 <span id="weatherTemp" class="tabular-nums font-semibold tracking-tight leading-none">--°</span>
@@ -1512,14 +1517,14 @@
         </nav>
 
         <!-- 向下滚动提示（保持纯净竖排原样，首次常驻直至初次下滑） -->
-        <div id="scrollDownHint" class="absolute bottom-4 md:bottom-7 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5 text-white/50 text-xs font-medium tracking-[0.25em] pointer-events-none hint-down select-none">
+        <div id="scrollDownHint" class="absolute bottom-4 md:bottom-7 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5 text-white/50 text-xs font-medium tracking-[0.25em] pointer-events-none hint-down select-none fade-in delay-200">
             <span>向下探索</span>
             <svg class="size-5 scroll-hint" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 20 20"><path d="M14.5 11.5L10 16m0 0L5.5 11.5m4.5 4.5V3"/></svg>
         </div>
         <script>(function(){try{if(localStorage.getItem('hasDiscoveredNav')==='1'){const h=document.getElementById('scrollDownHint');if(h)h.style.display='none';}}catch(e){}})()</script>
 
         <!-- 右下角悬浮编辑设置按钮（置于起始页内，随起始页物理滑屏） -->
-        <button id="editBookmarksBtn" type="button" aria-label="编辑与设置" title="编辑书签与设置" class="p-3 glass-strong apple-radius text-white/70 hover:text-white hover:bg-white/20 border border-white/20 shadow-2xl flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900">
+        <button id="editBookmarksBtn" type="button" aria-label="编辑与设置" title="编辑书签与设置" class="p-3 glass-strong apple-radius text-white/70 hover:text-white hover:bg-white/20 border border-white/20 shadow-2xl flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 fade-in delay-200">
             <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
