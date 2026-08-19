@@ -561,10 +561,8 @@
             border: 1px solid rgba(255, 255, 255, 0.08);
             box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
         }
-        .nav-hidden { visibility: hidden; }
-        .nav-visible { visibility: visible; }
-        .nav-hidden .glass { opacity: 0; }
-        .nav-visible .glass { opacity: 1; }
+        .nav-hidden { visibility: hidden; pointer-events: none; }
+        .nav-visible { visibility: visible; pointer-events: auto; }
         #sidebarList {
             position: relative;
         }
@@ -6873,11 +6871,19 @@
                 document.head.appendChild(meta);
             }
 
+            let transitionTimer = null;
+            let lastTransitionEndTime = 0;
+
             // 暴露全局切屏控制接口，供点击 Header、键盘快捷键等共享调用
             function switchToNav() {
+                if (transitionTimer) {
+                    clearTimeout(transitionTimer);
+                    transitionTimer = null;
+                }
                 closeDropdown();
                 hideSuggestions();
                 targetSection = 'nav';
+                state.currentSection = 'nav';
                 isTransitioning = true;
                 clearAccum();
                 resetTouchDragStyles();
@@ -6921,9 +6927,12 @@
                     initFaviconObserver();
                 });
 
-                setTimeout(() => {
+                transitionTimer = setTimeout(() => {
+                    transitionTimer = null;
                     state.currentSection = 'nav';
                     isTransitioning = false;
+                    lastTransitionEndTime = performance.now();
+                    clearAccum();
                     window.scrollTo(0, 0);
                     if (document.activeElement && typeof document.activeElement.blur === 'function') {
                         document.activeElement.blur();
@@ -6932,7 +6941,12 @@
             }
 
             function switchToStart() {
+                if (transitionTimer) {
+                    clearTimeout(transitionTimer);
+                    transitionTimer = null;
+                }
                 targetSection = 'start';
+                state.currentSection = 'start';
                 isTransitioning = true;
                 clearAccum();
                 resetTouchDragStyles();
@@ -6955,13 +6969,18 @@
                     nav.classList.remove('screen-pushed-in');
                 }
 
-                setTimeout(() => {
+                transitionTimer = setTimeout(() => {
+                    transitionTimer = null;
                     state.currentSection = 'start';
                     isTransitioning = false;
+                    lastTransitionEndTime = performance.now();
+                    clearAccum();
                     window.scrollTo(0, 0);
                     updateGearVisibility();
-                    nav.classList.remove('nav-visible');
-                    nav.classList.add('nav-hidden');
+                    if (nav) {
+                        nav.classList.remove('nav-visible');
+                        nav.classList.add('nav-hidden');
+                    }
                 }, CONFIG.GESTURE.TRANSITION_MS);
             }
 
@@ -6974,6 +6993,7 @@
                 nav.classList.remove('nav-hidden');
                 nav.classList.add('nav-visible', 'screen-pushed-in');
                 targetSection = 'nav';
+                state.currentSection = 'nav';
                 saveSection('nav');
                 updateSectionAccessibility('nav');
                 updateGearVisibility();
@@ -6986,6 +7006,7 @@
                 if (startSection) startSection.classList.remove('screen-pushed-up');
                 nav.classList.remove('screen-pushed-in', 'nav-visible');
                 nav.classList.add('nav-hidden');
+                state.currentSection = 'start';
                 saveSection('start');
                 targetSection = 'start';
                 updateSectionAccessibility('start');
@@ -7007,6 +7028,10 @@
             document.addEventListener('wheel', (e) => {
                 if (isTransitioning || !OverlayStack.isEmpty()) {
                     if (isTransitioning && e.cancelable) e.preventDefault();
+                    return;
+                }
+                if (performance.now() - lastTransitionEndTime < 100) {
+                    if (e.cancelable) e.preventDefault();
                     return;
                 }
 
@@ -7149,6 +7174,10 @@
                 const vh = window.innerHeight || 800;
                 const progress = Math.min(1, Math.max(0, Math.abs(totalDeltaY) / vh));
 
+                if (transitionTimer) {
+                    clearTimeout(transitionTimer);
+                    transitionTimer = null;
+                }
                 resetTouchDragStyles();
                 isTouchDragging = false;
 
