@@ -19,14 +19,21 @@
     <!-- Open Graph / 社交卡片元数据 -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://goldcoast.dpdns.org/">
+    <meta property="og:site_name" content="Glass Start">
+    <meta property="og:locale" content="zh_CN">
     <meta property="og:title" content="Glass Start — 轻量级玻璃拟态浏览器起始页">
     <meta property="og:description" content="基于 HTML5 与 Modern JS 构建的高颜值、轻量级玻璃拟态（Glassmorphism）浏览器起始页。">
     <meta property="og:image" content="https://images.unsplash.com/photo-1477346611705-65d1883cee1e?q=80&w=1200&auto=format&fit=crop">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="Glass Start 极简玻璃拟态起始页预览">
 
     <!-- Twitter Card 元数据 -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="Glass Start — 轻量级玻璃拟态浏览器起始页">
     <meta name="twitter:description" content="基于 HTML5 与 Modern JS 构建的高颜值、轻量级玻璃拟态（Glassmorphism）浏览器起始页。">
+    <meta name="twitter:image" content="https://images.unsplash.com/photo-1477346611705-65d1883cee1e?q=80&w=1200&auto=format&fit=crop">
+    <meta name="twitter:image:alt" content="Glass Start 极简玻璃拟态起始页预览">
 
     <!-- Schema.org 结构化数据 (JSON-LD 动态自适应 Origin) -->
     <script id="schemaJsonLd" type="application/ld+json">
@@ -49,7 +56,11 @@
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🪐%3C/text%3E%3C/svg%3E">
     <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png">
     <link rel="manifest" href="./manifest.json">
-    <!-- 外部核心 API 与 CDN 全握手级网络预连接 (涵盖图标 CDN 与天气全链路 3 个 API) -->
+    <!-- 外部核心 API 与 CDN 全握手级网络预连接与 DNS 预解析兜底 -->
+    <link rel="dns-prefetch" href="https://a.favicon.im">
+    <link rel="dns-prefetch" href="https://myip.ipip.net">
+    <link rel="dns-prefetch" href="https://geocoding-api.open-meteo.com">
+    <link rel="dns-prefetch" href="https://api.open-meteo.com">
     <link rel="preconnect" href="https://a.favicon.im" crossorigin>
     <link rel="preconnect" href="https://myip.ipip.net" crossorigin>
     <link rel="preconnect" href="https://geocoding-api.open-meteo.com" crossorigin>
@@ -1453,7 +1464,7 @@
     <script>(function(){const bg=document.getElementById('bgLayer');const url=window.__PRELOADED_BG__||'./wallpapers/bg1.avif';if(bg){bg.style.backgroundImage="url(\""+url.replace(/["'\\]/g,'\\$&')+"\")";bg.style.opacity='1';}if(window.__PRE_BG_EFFECTS__){const o=document.getElementById('bgOverlay');if(o){o.style.backgroundColor='rgba(0, 0, 0, '+(window.__PRE_BG_EFFECTS__.op/100)+')';if(window.__PRE_BG_EFFECTS__.bl>0){const b='blur('+window.__PRE_BG_EFFECTS__.bl+'px)';o.style.backdropFilter=b;o.style.webkitBackdropFilter=b;}}}})()</script>
 
     <!-- ========== 第一屏：起始页 ========== -->
-    <section id="startSection" class="relative z-10 min-h-dvh flex flex-col items-center justify-center px-4 py-12">
+    <section id="startSection" aria-label="起始页" class="relative z-10 min-h-dvh flex flex-col items-center justify-center px-4 py-12">
         <h1 class="sr-only">Glass Start — 轻量级玻璃拟态个人起始页与导航</h1>
 
         <!-- 全屏右上角悬浮天气胶囊（置于起始页内，随起始页物理滑屏，全生命周期保持 100% 毛玻璃常驻） -->
@@ -1562,7 +1573,7 @@
     </section><!-- /#startSection -->
 
     <!-- ========== 第二屏：导航页 ========== -->
-    <section id="navSection" class="relative z-10 h-dvh nav-hidden overflow-hidden">
+    <section id="navSection" aria-label="分类导航页" class="relative z-10 h-dvh nav-hidden overflow-hidden">
         <div class="h-full flex flex-col p-1.5 md:p-3 w-full">
             <!-- 主体：一体化 Liquid Glass 窗口框架 -->
             <div class="flex-1 glass apple-radius flex flex-col overflow-hidden min-h-0 border border-white/20 shadow-2xl">
