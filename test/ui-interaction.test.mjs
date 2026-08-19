@@ -42,7 +42,7 @@ const initValid = init.scrollY === 0 && (init.startTransform === 'none' || init.
   && tyOf(init.navTransform) > 600 && init.navAria === 'true' && init.startAria !== 'true' && !init.gearClass.includes('hidden-on-nav');
 
 // 1.2 JS API 切换到 Nav
-await evalJS('window.switchToNav()'); await sleep(1200);
+await evalJS('window.switchToNav()'); await sleep(650);
 const navState = await evalJS(`(() => {
   const s = document.getElementById('startSection'), n = document.getElementById('navSection');
   return {
@@ -57,22 +57,22 @@ const navValid = tyOf(navState.navTransform) === 0 && navState.scrollY === 0 && 
   && navState.navAria !== 'true' && navState.gearClass.includes('hidden-on-nav');
 
 // 1.3 切回 Start + ArrowDown 切屏
-await evalJS('window.switchToStart()'); await sleep(700);
+await evalJS('window.switchToStart()'); await sleep(650);
 const focusAfterStart = await focus();
 await press('ArrowDown'); await sleep(200);
 const arrowDownToNav = (await section()) === 'nav';
 
 // 1.4 盲打自动聚焦
-await evalJS('window.switchToStart()'); await sleep(700);
+await evalJS('window.switchToStart()'); await sleep(650);
 await press('g'); await sleep(150);
 const blindTypeFocus = (await focus()) === 'searchInput';
 
 // 1.5 PageDown 按键切屏
-await evalJS('window.switchToStart()'); await sleep(800);
+await evalJS('window.switchToStart()'); await sleep(650);
 await evalJS(`(async () => {
   document.activeElement && document.activeElement.blur && document.activeElement.blur();
   document.dispatchEvent(new KeyboardEvent('keydown', { key: 'PageDown', bubbles: true, cancelable: true }));
-  await new Promise(r => setTimeout(r, 700));
+  await new Promise(r => setTimeout(r, 650));
 })()`);
 const pagedownTy = tyOf(await evalJS('getComputedStyle(document.getElementById("startSection")).transform'));
 const pagedownValid = pagedownTy !== null && pagedownTy < -600;
@@ -85,30 +85,30 @@ pass('双屏切屏状态机与键盘导航完整闭环 (初始态/API/ArrowDown/
 // 2. 键盘方向键在联想/弹窗与顶端的输入保护
 // ══════════════════════════════════════════════════════════════════════
 
-await evalJS('window.switchToStart()'); await sleep(800);
+await evalJS('window.switchToStart()'); await sleep(650);
 await evalJS(`(function(){
   const i = document.getElementById('searchInput');
   i.focus();
   const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
   setter.call(i, 'git');
   i.dispatchEvent(new Event('input', { bubbles: true }));
-})()`); await sleep(1800);
-await press('ArrowDown'); await sleep(200);
+})()`); await sleep(500);
+await press('ArrowDown'); await sleep(150);
 const suggestProtect = (await section()) === 'start';
-await press('Escape'); await sleep(300);
+await press('Escape'); await sleep(200);
 
-await evalJS('window.switchToNav()'); await sleep(800);
-await evalJS('window.switchToStart()'); await sleep(800);
-await evalJS('document.getElementById("editBookmarksBtn").click()'); await sleep(400);
+await evalJS('window.switchToNav()'); await sleep(650);
+await evalJS('window.switchToStart()'); await sleep(650);
+await evalJS('document.getElementById("editBookmarksBtn").click()'); await sleep(300);
 await evalJS(`document.querySelector('.edit-row-card input').focus()`);
-await press('ArrowDown'); await sleep(200);
+await press('ArrowDown'); await sleep(150);
 const modalProtect = (await section()) === 'start';
-await evalJS('document.getElementById("cancelEditBtn").click()'); await sleep(300);
+await evalJS('document.getElementById("cancelEditBtn").click()'); await sleep(200);
 
-await evalJS('window.switchToNav()'); await sleep(800);
-await evalJS('document.getElementById("navContent").scrollTop = 0'); await sleep(200);
+await evalJS('window.switchToNav()'); await sleep(650);
+await evalJS('document.getElementById("navContent").scrollTop = 0'); await sleep(150);
 await evalJS('document.activeElement && document.activeElement.blur()');
-await press('ArrowUp'); await sleep(800);
+await press('ArrowUp'); await sleep(650);
 const topArrowUpBack = (await section()) === 'start';
 
 pass('键盘方向键在联想/弹窗与顶端的输入保护 (联想防误切/弹窗防误切/顶端ArrowUp返回)',
@@ -119,20 +119,20 @@ pass('键盘方向键在联想/弹窗与顶端的输入保护 (联想防误切/�
 // 3. 滚轮与触屏手势切屏及内部滚动拦截机制
 // ══════════════════════════════════════════════════════════════════════
 
-await sleep(600);
+await sleep(300);
 await evalJS(`(function(){
   document.dispatchEvent(new WheelEvent('wheel', { deltaY: 60, cancelable: true }));
   setTimeout(() => document.dispatchEvent(new WheelEvent('wheel', { deltaY: 60, cancelable: true })), 30);
-})()`); await sleep(800);
+})()`); await sleep(650);
 const wheelInNav = tyOf(await evalJS('getComputedStyle(document.getElementById("navSection")).transform')) === 0;
 
-await evalJS(`document.getElementById('navContent').scrollTo({ top: 400 })`); await sleep(200);
-await evalJS(`document.dispatchEvent(new WheelEvent('wheel', { deltaY: -60, cancelable: true }))`); await sleep(400);
+await evalJS(`document.getElementById('navContent').scrollTo({ top: 400 })`); await sleep(150);
+await evalJS(`document.dispatchEvent(new WheelEvent('wheel', { deltaY: -60, cancelable: true }))`); await sleep(250);
 const scrollBlocked = await evalJS('document.getElementById("startSection").getAttribute("aria-hidden") === "true"');
 
-await evalJS(`document.getElementById('navContent').scrollTo({ top: 0 })`); await sleep(200);
-await evalJS(`document.dispatchEvent(new WheelEvent('wheel', { deltaY: -60, cancelable: true }))`); await sleep(300);
-await evalJS(`document.dispatchEvent(new WheelEvent('wheel', { deltaY: -60, cancelable: true }))`); await sleep(800);
+await evalJS(`document.getElementById('navContent').scrollTo({ top: 0 })`); await sleep(150);
+await evalJS(`document.dispatchEvent(new WheelEvent('wheel', { deltaY: -60, cancelable: true }))`); await sleep(200);
+await evalJS(`document.dispatchEvent(new WheelEvent('wheel', { deltaY: -60, cancelable: true }))`); await sleep(650);
 const wheelBackStart = await evalJS('document.getElementById("startSection").getAttribute("aria-hidden") !== "true"');
 
 await evalJS(`(function(){
@@ -140,7 +140,7 @@ await evalJS(`(function(){
   document.dispatchEvent(new TouchEvent('touchstart', { touches: [tc(400)], cancelable: true }));
   document.dispatchEvent(new TouchEvent('touchmove', { touches: [tc(260)], cancelable: true }));
   document.dispatchEvent(new TouchEvent('touchend', { changedTouches: [tc(260)], cancelable: true }));
-})()`); await sleep(900);
+})()`); await sleep(650);
 const touchInNav = tyOf(await evalJS('getComputedStyle(document.getElementById("navSection")).transform')) === 0;
 
 pass('滚轮与触屏手势切屏及内部滚动拦截机制 (滚轮下切/内容滚动拦截/滚轮上切/触屏滑屏)',
@@ -151,7 +151,7 @@ pass('滚轮与触屏手势切屏及内部滚动拦截机制 (滚轮下切/内�
 // ══════════════════════════════════════════════════════════════════════
 
 await evalJS('sessionStorage.setItem("startpage_section", "nav")');
-await evalJS('location.reload()'); await sleep(1500);
+await evalJS('location.reload()'); await sleep(800);
 const restored = await evalJS(`(() => {
   const n = document.getElementById('navSection');
   return n.className.includes('screen-pushed-in') && !n.className.includes('nav-hidden');
@@ -162,7 +162,7 @@ pass('sessionStorage 刷新状态保持无闪烁 (刷新后保持 Nav 屏无过�
 // 5. 搜索联想键盘选中项保持与 Escape 优雅清退
 // ══════════════════════════════════════════════════════════════════════
 
-await evalJS('window.switchToStart()'); await sleep(500);
+await evalJS('window.switchToStart()'); await sleep(350);
 await evalJS(`(() => {
   const i = document.getElementById('searchInput');
   i.focus();
@@ -170,7 +170,7 @@ await evalJS(`(() => {
   setter.call(i, 'git');
   i.dispatchEvent(new Event('input', { bubbles: true }));
 })()`);
-await sleep(1800);
+await sleep(500);
 await press('ArrowDown'); await sleep(150);
 const suggestSelectionCheck = await evalJS(`(() => {
   const menu = document.getElementById('suggestionMenu');
@@ -179,7 +179,7 @@ const suggestSelectionCheck = await evalJS(`(() => {
   return { hasItems: items.length > 0, isSelected: selected !== null };
 })()`);
 
-await press('Escape'); await sleep(300);
+await press('Escape'); await sleep(200);
 const escResult = await evalJS(`({
   val: document.getElementById('searchInput').value,
   menuActive: document.getElementById('suggestionMenu').classList.contains('active'),
