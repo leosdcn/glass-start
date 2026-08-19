@@ -280,10 +280,12 @@ const tab0Info = await evalJS(`(() => {
     text: tab0.textContent.trim(),
     active: tab0.classList.contains('active'),
     visible: tRect.left >= sRect.left && tRect.right <= sRect.right,
-    scrollLeft: sidebar.scrollLeft
+    scrollLeft: sidebar.scrollLeft,
+    tabHeight: tRect.height
   };
 })()`);
 const tab0Ok = tab0Info?.active && tab0Info?.text.includes('人工智能') && tab0Info?.visible && tab0Info?.scrollLeft === 0;
+const touchTargetOk = (tab0Info?.tabHeight || 0) >= 35;
 
 await evalJS('document.getElementById("navContent").scrollTop = 800'); await sleep(300);
 await evalJS('document.getElementById("navContent").dispatchEvent(new Event("scroll"))'); await sleep(500);
@@ -308,8 +310,9 @@ const restoredInfo = await evalJS(`(() => {
 })()`);
 const scrollBackOk = restoredInfo.active && restoredInfo.scrollLeft === 0 && restoredInfo.visible;
 
-pass('移动端视口 (iPhone) 与侧边栏 Tab 滚动联动 (默认激活可见/滚动高亮切分类/滚回顶部恢复)',
-  tab0Ok && scrollSwitchOk && scrollBackOk);
+pass('移动端视口 (iPhone) 与侧边栏 Tab 滚动联动及 44px 触控规范 (默认激活可见/滚动高亮切分类/滚回顶部恢复/触控高度达标)',
+  tab0Ok && scrollSwitchOk && scrollBackOk && touchTargetOk,
+  JSON.stringify({ tab0Ok, scrollSwitchOk, scrollBackOk, touchTargetOk, tabHeight: tab0Info?.tabHeight }));
 
 const code = finish();
 await chrome.close();

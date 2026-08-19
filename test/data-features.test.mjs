@@ -144,10 +144,24 @@ const refreshCheck = await evalJS(`(() => {
 })()`);
 const blankGuardOk = refreshCheck.itemCount === 8 && refreshCheck.titleCount === 8 && refreshCheck.imgCount === 8 && refreshCheck.allLoadedOrHaveSrc;
 
+// 2.6 恶意 XSS 注入与转义安全防护
+const xssCheck = await evalJS(`(() => {
+  const dirtyName = '<img src=x onerror="window.__xss_fired=true">测试XSS';
+  const sanitizedName = escapeHtml(dirtyName);
+  const dirtyUrl = 'javascript:alert(1)';
+  const normalized = normalizeUrl(dirtyUrl);
+  return {
+    escaped: sanitizedName.includes('&lt;img') && !sanitizedName.includes('<img'),
+    xssFired: !!window.__xss_fired,
+    safeUrl: normalized.startsWith('https://')
+  };
+})()`);
+const xssOk = xssCheck && xssCheck.escaped && !xssCheck.xssFired && xssCheck.safeUrl;
+
 await evalJS(`localStorage.clear()`);
 
-pass('书签轻量存储模型、旧版数据迁移与自定义图标持久化 (keys+customMeta/迁移/图标持久化/首屏防空白)',
-  bmClean && migrationOk && customMetaOk && saveModelOk && iconPersistOk && blankGuardOk);
+pass('书签轻量存储模型、旧版数据迁移、自定义图标持久化与 XSS 安全清洗 (keys+customMeta/迁移/图标持久化/首屏防空白/XSS防注入)',
+  bmClean && migrationOk && customMetaOk && saveModelOk && iconPersistOk && blankGuardOk && xssOk);
 
 // ══════════════════════════════════════════════════════════════════════
 // 3. 天气组件胶囊交互与 OverlayStack 层叠栈响应

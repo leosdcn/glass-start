@@ -72,7 +72,7 @@ console.log(`${c.bold}${c.cyan}🔍 Glass Start — 零依赖静态语法与格�
 console.log(`${c.cyan}${HR_DOUBLE}${c.reset}`);
 
 // ---- 1. index.html 内联 <script> 语法校验 ----
-logSection('1/3', '📄 校验 index.html 内联脚本语法');
+logSection('1/4', '📄 校验 index.html 内联脚本语法');
 const htmlPath = join(root, 'index.html');
 if (statSync(htmlPath).isFile()) {
     const html = readFileSync(htmlPath, 'utf-8');
@@ -103,7 +103,7 @@ if (statSync(htmlPath).isFile()) {
 }
 
 // ---- 2. 根目录 JS 脚本 (build.js, sw.js, server.js) 用 node --check 校验 ----
-logSection('2/3', '⚙️  校验核心 JavaScript 语法 (node --check)');
+logSection('2/4', '⚙️  校验核心 JavaScript 语法 (node --check)');
 const jsFiles = [
     { name: 'build.js', desc: '打包构建脚本' },
     { name: 'sw.js', desc: 'Service Worker 底座' },
@@ -125,7 +125,7 @@ for (const item of jsFiles) {
 }
 
 // ---- 3. 根目录 JSON 配置文件合法性校验 ----
-logSection('3/3', '📦 校验 JSON 配置文件格式');
+logSection('3/4', '📦 校验 JSON 配置文件格式');
 const jsonFiles = [
     { name: 'bookmarks.json', desc: '书签与分类数据源' },
     { name: 'manifest.json', desc: 'PWA Web 应用程序清单' },
@@ -147,13 +147,75 @@ for (const item of jsonFiles) {
     }
 }
 
+// ---- 4. 架构规范守门检查 (版本号全量对齐 & iOS 16px 规范) ----
+logSection('4/4', '🛡️  校验版本号全量对齐与移动端输入规范');
+
+// 4.1 版本号一致性检查 (package.json / package-lock.json / index.html / README.md)
+try {
+    const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf-8'));
+    const lock = JSON.parse(readFileSync(join(root, 'package-lock.json'), 'utf-8'));
+    const htmlContent = readFileSync(join(root, 'index.html'), 'utf-8');
+    const readmeContent = readFileSync(join(root, 'README.md'), 'utf-8');
+
+    const expectedVersion = pkg.version;
+    const lockVersion = lock.version;
+    const lockPkgVersion = lock.packages?.['']?.version;
+    const htmlMatch = htmlContent.match(/<span[^>]*class="[^"]*rounded-full[^"]*"[^>]*>v?([0-9]+\.[0-9]+\.[0-9]+)<\/span>/i);
+    const htmlVersion = htmlMatch ? htmlMatch[1] : null;
+    const readmeMatch = readmeContent.match(/\|\s*\*\*Glass Start 站点版本\*\*\s*\|\s*项目发布版本\s*\|\s*`v?([0-9]+\.[0-9]+\.[0-9]+)`/i);
+    const readmeVersion = readmeMatch ? readmeMatch[1] : null;
+
+    if (expectedVersion && lockVersion === expectedVersion && lockPkgVersion === expectedVersion && htmlVersion === expectedVersion && readmeVersion === expectedVersion) {
+        passCount++;
+        logItem(`版本号一致性 (v${expectedVersion}) 4 处文件 100% 对齐`);
+    } else {
+        failCount++;
+        logItem(`版本号不一致: pkg=${expectedVersion}, lock=${lockVersion}, html=${htmlVersion}, readme=${readmeVersion}`, 'error');
+    }
+} catch (e) {
+    failCount++;
+    logItem(`版本号一致性检查异常: ${e.message}`, 'error');
+}
+
+// 4.2 移动端 iOS 16px 防放大输入框规范静态扫描
+try {
+    const htmlContent = readFileSync(join(root, 'index.html'), 'utf-8');
+    // 匹配所有单行文本输入框
+    const inputMatches = [...htmlContent.matchAll(/<input[^>]*type=["']text["'][^>]*>/gi)];
+    let allInputsCompliant = true;
+    const nonCompliant = [];
+
+    for (const match of inputMatches) {
+        const tag = match[0];
+        // 必须含有 text-base 或 text-lg 或 text-xl 或 text-2xl
+        const has16pxPlus = /text-(base|lg|xl|2xl|3xl)/.test(tag);
+        if (!has16pxPlus) {
+            allInputsCompliant = false;
+            const idMatch = tag.match(/id=["']([^"']+)["']/);
+            nonCompliant.push(idMatch ? idMatch[1] : tag.slice(0, 40));
+        }
+    }
+
+    if (allInputsCompliant && inputMatches.length > 0) {
+        passCount++;
+        logItem(`全站 ${inputMatches.length} 处文本输入框均符合 iOS >=16px 防自动放大规范`);
+    } else {
+        failCount++;
+        logItem(`发现未适配 16px 的输入框: ${nonCompliant.join(', ')}`, 'error');
+    }
+} catch (e) {
+    failCount++;
+    logItem(`输入框规范扫描异常: ${e.message}`, 'error');
+}
+
 const elapsed = Date.now() - startTime;
 console.log(`\n${c.gray}${HR_DOUBLE}${c.reset}`);
 if (failCount === 0) {
-    console.log(`${c.green}${c.bold}✨ 全部 ${passCount} 项静态语法与配置文件检查通过！${c.reset}${c.dim} (耗时: ${elapsed}ms)${c.reset}`);
+    console.log(`${c.green}${c.bold}✨ 全部 ${passCount} 项静态语法与规范检查通过！${c.reset}${c.dim} (耗时: ${elapsed}ms)${c.reset}`);
 } else {
     console.log(`${c.red}${c.bold}❌ 检测到 ${failCount} 项检查失败 (共 ${passCount + failCount} 项)！${c.reset}${c.dim} (耗时: ${elapsed}ms)${c.reset}`);
 }
 console.log(`${c.gray}${HR_DOUBLE}${c.reset}\n`);
 
 process.exit(failCount ? 1 : 0);
+
