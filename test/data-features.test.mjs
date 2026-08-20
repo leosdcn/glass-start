@@ -16,7 +16,10 @@ const { pass, finish } = makeTester();
 const { server, chrome, evalJS } = await launchSession(9339);
 
 await sleep(300);
-await evalJS('isFetchingWeather = true;');
+await evalJS(`
+  window.fetch = async () => ({ ok: true, json: async () => ({}) });
+  isFetchingWeather = true;
+`);
 const press = (key) => pressKey(evalJS, key);
 
 // ══════════════════════════════════════════════════════════════════════
@@ -98,7 +101,10 @@ await evalJS(`localStorage.setItem('userBookmarks', JSON.stringify([
   { name: '自建站', url: 'https://custom.example.dev', icon: 'https://custom.example.dev/icon.png', desc: '个人站点' }
 ]))`);
 await evalJS('location.reload()'); await sleep(1800);
-await evalJS('isFetchingWeather = true;');
+await evalJS(`
+  window.fetch = async () => ({ ok: true, json: async () => ({}) });
+  isFetchingWeather = true;
+`);
 
 const migrated = await evalJS(`(() => ({
   keys: JSON.parse(localStorage.getItem('userBookmarkKeys') || 'null'),
