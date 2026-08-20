@@ -281,6 +281,12 @@
                     "desc": "苹果官方云端服务"
                 },
                 {
+                    "name": "LocalSend",
+                    "url": "https://web.localsend.org",
+                    "icon": "https://a.favicon.im/web.localsend.org",
+                    "desc": "开源局域网文件传输"
+                },
+                {
                     "name": "MEGA",
                     "url": "https://mega.nz",
                     "icon": "https://a.favicon.im/mega.nz",
