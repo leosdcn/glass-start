@@ -147,7 +147,7 @@ pass('滚轮与触屏手势切屏及内部滚动拦截机制 (滚轮下切/内�
   wheelInNav && scrollBlocked && wheelBackStart && touchInNav);
 
 // ══════════════════════════════════════════════════════════════════════
-// 4. sessionStorage 刷新状态保持无闪烁
+// 4. sessionStorage 刷新状态保持无闪烁及切回 Start 屏组件全量可见
 // ══════════════════════════════════════════════════════════════════════
 
 await evalJS('sessionStorage.setItem("startpage_section", "nav")');
@@ -156,7 +156,35 @@ const restored = await evalJS(`(() => {
   const n = document.getElementById('navSection');
   return n.className.includes('screen-pushed-in') && !n.className.includes('nav-hidden');
 })()`);
-pass('sessionStorage 刷新状态保持无闪烁 (刷新后保持 Nav 屏无过渡)', restored === true);
+
+await evalJS('window.switchToStart()'); await sleep(650);
+const backFromReloadedNav = await evalJS(`(() => {
+  const s = document.getElementById('startSection');
+  const clock = document.getElementById('clock');
+  const search = document.getElementById('searchInput');
+  const weather = document.getElementById('weatherWidget');
+  const gear = document.getElementById('editBookmarksBtn');
+  const sRect = s ? s.getBoundingClientRect() : null;
+  const sTy = getComputedStyle(s).transform;
+  const nrPresent = document.documentElement.classList.contains('nr');
+  const gearHidden = gear ? gear.classList.contains('hidden-on-nav') : false;
+  return {
+    sTop: sRect ? sRect.top : -999,
+    sHeight: sRect ? sRect.height : 0,
+    hasClock: !!clock && clock.offsetWidth > 0,
+    hasSearch: !!search && search.offsetWidth > 0,
+    hasWeather: !!weather,
+    nrPresent,
+    gearHidden,
+    startAria: s.getAttribute('aria-hidden')
+  };
+})()`);
+const startRestoredValid = backFromReloadedNav.sTop === 0 && backFromReloadedNav.sHeight > 0
+  && backFromReloadedNav.hasClock && backFromReloadedNav.hasSearch && backFromReloadedNav.hasWeather
+  && !backFromReloadedNav.nrPresent && !backFromReloadedNav.gearHidden && backFromReloadedNav.startAria !== 'true';
+
+pass('sessionStorage 刷新状态保持无闪烁及切回 Start 屏组件全量可见 (刷新后保持Nav/切回Start全组件可见)', restored === true && startRestoredValid,
+  `restored=${restored}, startRestored=${startRestoredValid}`);
 
 // ══════════════════════════════════════════════════════════════════════
 // 5. 搜索联想键盘选中项保持与 Escape 优雅清退

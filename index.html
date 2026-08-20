@@ -187,9 +187,9 @@
            1. SETTINGS & DESIGN TOKENS (设计令牌与基础配置)
            ========================================================================== */
         /* .nr 模式：直达导航页预渲染，与 HEAD inline script 配合消除刷新抖动 */
-        .nr #startSection { transform: translateY(-100vh) !important; transform: translateY(-100dvh) !important; transition: none !important; }
-        .nr #navSection { visibility: visible !important; transform: translateY(0) !important; transition: none !important; }
-        .nr #editBookmarksBtn, .nr #weatherWidget { opacity: 0 !important; pointer-events: none !important; transition: none !important; }
+        .nr #startSection { transform: translateY(-100vh); transform: translateY(-100dvh); transition: none; }
+        .nr #navSection { visibility: visible; transform: translateY(0); transition: none; }
+        .nr #editBookmarksBtn, .nr #weatherWidget { opacity: 0; pointer-events: none; transition: none; }
         .nr *, .nr *::before, .nr *::after { animation: none !important; transition: none !important; }
         /* Standard Font Size Utility Classes with Apple Optical Tracking */
         .text-3xs { font-size: 0.5625rem; letter-spacing: -0.012em; }
@@ -3524,7 +3524,7 @@
             if (!modalEl) return;
             modalEl.setAttribute('aria-hidden', 'true');
             modalEl.classList.remove('active');
-            if (document.body.classList.contains('nr') || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
                 modalEl.setAttribute('hidden', '');
             } else {
                 setTimeout(() => {
@@ -5377,7 +5377,7 @@
                     const item = del.closest('[data-idx]');
                     if (item) {
                         modalState.bookmarksChanged = true;
-                        if (document.body.classList.contains('nr') || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
                             item.remove();
                             updatePickerCount();
                             updateBookmarkCountBadge();
@@ -7026,6 +7026,7 @@
 
             // 暴露全局切屏控制接口，供点击 Header、键盘快捷键等共享调用
             function switchToNav() {
+                document.documentElement.classList.remove('nr');
                 if (transitionTimer) {
                     clearTimeout(transitionTimer);
                     transitionTimer = null;
@@ -7090,6 +7091,7 @@
             }
 
             function switchToStart() {
+                document.documentElement.classList.remove('nr');
                 if (transitionTimer) {
                     clearTimeout(transitionTimer);
                     transitionTimer = null;
