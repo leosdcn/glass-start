@@ -1038,7 +1038,7 @@
             from { transform: rotate(0deg); }
             to { transform: rotate(360deg); }
         }
-        /* ===== 导航页书签入场动效 (Scroll-Driven View Timeline 滚动渐显) =====
+        /* ===== 导航页书签入场效果 =====
            ⚠️ 架构防踩坑警告 (严禁添加 content-visibility: auto 或 contain: layout/paint)：
            本项目第二屏 (#navSection) 采用全屏 translateY(100vh) GPU 物理推移架构。
            若在此处滥用 content-visibility: auto，浏览器会在首屏将第二屏全部书签判定为"离屏"而跳过渲染树构建；
@@ -1052,9 +1052,8 @@
         @supports (animation-timeline: view()) {
             @media (prefers-reduced-motion: no-preference) {
                 .category-block {
-                    view-timeline: --cat-block-timeline block;
                     animation: categoryScrollEntry linear both;
-                    animation-timeline: --cat-block-timeline;
+                    animation-timeline: view();
                     animation-range: entry 0% cover 20%;
                 }
                 @keyframes categoryScrollEntry {
@@ -7030,6 +7029,13 @@
                 window.scrollTo(0, 0);
                 if (document.documentElement.scrollTop !== 0) document.documentElement.scrollTop = 0;
                 if (document.body.scrollTop !== 0) document.body.scrollTop = 0;
+                if (navContent) {
+                    navContent.style.scrollBehavior = 'auto';
+                    navContent.scrollTop = 0;
+                    requestAnimationFrame(() => {
+                        navContent.style.scrollBehavior = '';
+                    });
+                }
                 saveSection('nav');
                 updateSectionAccessibility('nav');
                 updateGearVisibility();
