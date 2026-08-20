@@ -485,7 +485,12 @@
         .clock-colon { display: inline-block; position: relative; top: -0.06em; animation: colonPulse 6s ease-in-out infinite; will-change: opacity; }
         @keyframes colonPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
         .nr .clock-colon { animation: none; opacity: 1; }
-        /* ===== 玻璃材质物理高光折射与 3D 视差倾斜 (VisionOS / Apple HIG 规范) ===== */
+        /* ===== 玻璃材质物理高光折射与 3D 视差倾斜 (VisionOS / Apple HIG 规范) =====
+           书签卡片共有两种类型，样式与交互行为不同：
+           · .bookmark-item  —— 第一屏（搜索页）快捷书签网格，纯 CSS hover 放大（scale 1.025），图标额外 scale(1.06)，无 3D 倾斜
+           · .nav-bookmark   —— 第二屏（导航页）分类书签列表，JS 实时驱动 perspective/rotateX/rotateY 3D 倾斜，图标额外 scale(1.06)
+           以下为两者的共享基础样式（硬件合成层锁定，防止 hover 移出时子像素吸附抖动）：
+        ===== */
         .bookmark-item, .nav-bookmark {
             position: relative;
             overflow: hidden;
@@ -530,7 +535,7 @@
                 box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.35), 0 8px 24px rgba(0, 0, 0, 0.3);
                 color: #fff;
             }
-            .nav-bookmark:hover .icon-box, .bookmark-item:hover .icon-box { transform: scale(1.08) translateZ(0); }
+            .nav-bookmark:hover .icon-box, .bookmark-item:hover .icon-box { transform: scale(1.06) translateZ(0); }
             .sidebar-item:hover {
                 color: #fff;
             }
@@ -601,6 +606,7 @@
         /* ==========================================================================
            6. COMPONENTS - SCREEN 2: NAV (第二屏组件：分类导航/侧边栏)
            ========================================================================== */
+        /* .nav-bookmark：第二屏导航页书签，交互由 JS initGlassSpotlightAndTilt() 实时驱动 3D 倾斜，以下仅定义静止态玻璃底色 */
         .nav-bookmark {
             background: rgba(255, 255, 255, 0.04);
             border: 1px solid rgba(255, 255, 255, 0.08);
@@ -7274,6 +7280,8 @@
             }, { passive: true });
 
             // ===== VisionOS 玻璃材质 3D 倾斜与光标折射高光代理 (Apple HIG 规范, 零 Reflow 高效引擎) =====
+            // 仅作用于 .nav-bookmark（第二屏导航页书签），.bookmark-item（搜索页）使用纯 CSS scale 不参与此引擎
+            // 原因：搜索页书签卡片较小，±2.5° 倾斜感知度低，且 JS transform 会覆盖 CSS transition 产生竞态，故解耦处理
             (function initGlassSpotlightAndTilt() {
                 const mediaHover = window.matchMedia && window.matchMedia('(hover: hover)');
                 const mediaMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -7382,7 +7390,7 @@
                         resetActiveSearchBox();
                     }
 
-                    const card = target.closest('.bookmark-item, .nav-bookmark');
+                    const card = target.closest('.nav-bookmark');
                     if (card) {
                         if (activeCard !== card) {
                             if (activeCard) resetActiveCard();
