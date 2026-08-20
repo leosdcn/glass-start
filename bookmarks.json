@@ -389,6 +389,12 @@
                     "desc": "视觉灵感与画板收集"
                 },
                 {
+                    "name": "Pixabay Music",
+                    "url": "https://pixabay.com/music/",
+                    "icon": "https://a.favicon.im/pixabay.com",
+                    "desc": "免版税背景音乐库"
+                },
+                {
                     "name": "Pixiv",
                     "url": "https://www.pixiv.net",
                     "icon": "https://a.favicon.im/pixiv.net",
@@ -399,6 +405,12 @@
                     "url": "https://simpleicons.org",
                     "icon": "https://a.favicon.im/simpleicons.org",
                     "desc": "开源品牌矢量图标库"
+                },
+                {
+                    "name": "Sound Effect Lab",
+                    "url": "https://soundeffect-lab.info",
+                    "icon": "https://a.favicon.im/soundeffect-lab.info",
+                    "desc": "日本免费商用音效库"
                 },
                 {
                     "name": "Unsplash",

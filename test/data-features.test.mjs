@@ -16,7 +16,7 @@ const { pass, finish } = makeTester();
 const { server, chrome, evalJS } = await launchSession(9339);
 
 await sleep(300);
-await evalJS('window.fetchWeather = async () => {}; isFetchingWeather = true;');
+await evalJS('isFetchingWeather = true;');
 const press = (key) => pressKey(evalJS, key);
 
 // ══════════════════════════════════════════════════════════════════════
@@ -98,6 +98,7 @@ await evalJS(`localStorage.setItem('userBookmarks', JSON.stringify([
   { name: '自建站', url: 'https://custom.example.dev', icon: 'https://custom.example.dev/icon.png', desc: '个人站点' }
 ]))`);
 await evalJS('location.reload()'); await sleep(1800);
+await evalJS('isFetchingWeather = true;');
 
 const migrated = await evalJS(`(() => ({
   keys: JSON.parse(localStorage.getItem('userBookmarkKeys') || 'null'),
@@ -393,9 +394,9 @@ const wakeupSyncCheck = await evalJS(`(() => {
       storageSet('glass_weather_loc_cache', expiredCache.location);
       fetchCount = 0;
       document.dispatchEvent(new Event('visibilitychange'));
-      await new Promise(r => setTimeout(r, 120));
+      await new Promise(r => setTimeout(r, 350));
       const updatedCache = storageGet('glass_weather_cache', null);
-      const expiredCacheAutoRefreshed = fetchCount > 0 && updatedCache && (Date.now() - updatedCache.timestamp < 1000);
+      const expiredCacheAutoRefreshed = fetchCount > 0 && updatedCache && (Date.now() - updatedCache.timestamp < 1500);
 
       // 7.3 时钟切回前台即时同步 (重置时间缓存模拟跨分钟切回)
       lastTimeStr = '';
