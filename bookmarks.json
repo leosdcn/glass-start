@@ -62,13 +62,13 @@
                     "name": "ChatGPT",
                     "url": "https://chat.openai.com",
                     "icon": "https://a.favicon.im/chat.openai.com",
-                    "desc": "旗舰级 AI 对话助手"
+                    "desc": "旗舰 AI 对话助手"
                 },
                 {
                     "name": "Civitai",
                     "url": "https://civitai.com",
                     "icon": "https://a.favicon.im/civitai.com",
-                    "desc": "开源 AI 绘画模型社区"
+                    "desc": "AI 绘画模型社区"
                 },
                 {
                     "name": "Claude",
@@ -116,7 +116,7 @@
                     "name": "Hugging Face",
                     "url": "https://huggingface.co",
                     "icon": "https://a.favicon.im/huggingface.co",
-                    "desc": "开源 AI 模型与数据集"
+                    "desc": "开源 AI 模型社区"
                 },
                 {
                     "name": "Kimi",
@@ -134,7 +134,7 @@
                     "name": "Perplexity",
                     "url": "https://www.perplexity.ai",
                     "icon": "https://a.favicon.im/perplexity.ai",
-                    "desc": "AI 驱动知识问答引擎"
+                    "desc": "AI 知识问答引擎"
                 },
                 {
                     "name": "Suno",
@@ -146,13 +146,13 @@
                     "name": "豆包",
                     "url": "https://www.doubao.com",
                     "icon": "https://a.favicon.im/doubao.com",
-                    "desc": "字节跳动 AI 智能助手"
+                    "desc": "字节跳动 AI 助手"
                 },
                 {
                     "name": "通义千问",
                     "url": "https://www.qianwen.com",
                     "icon": "https://a.favicon.im/www.qianwen.com",
-                    "desc": "阿里官方 AI 智能助手"
+                    "desc": "阿里官方 AI 助手"
                 }
             ]
         },
@@ -194,13 +194,13 @@
                     "name": "IPCheck.ing",
                     "url": "https://ipcheck.ing",
                     "icon": "https://a.favicon.im/ipcheck.ing",
-                    "desc": "开源卡片式 IP 检测"
+                    "desc": "多源 IP 网络检测"
                 },
                 {
                     "name": "IT Tools",
                     "url": "https://it-tools.tech",
                     "icon": "https://a.favicon.im/it-tools.tech",
-                    "desc": "开发者在线实用工具集"
+                    "desc": "开发者在线工具箱"
                 },
                 {
                     "name": "ITDOG",
@@ -212,7 +212,7 @@
                     "name": "JSFiddle",
                     "url": "https://jsfiddle.net",
                     "icon": "https://a.favicon.im/jsfiddle.net",
-                    "desc": "在线前端代码调试沙盒"
+                    "desc": "前端在线代码沙盒"
                 },
                 {
                     "name": "Speedtest",
@@ -242,7 +242,7 @@
                     "name": "DeepL",
                     "url": "https://www.deepl.com/zh/translator",
                     "icon": "https://a.favicon.im/deepl.com",
-                    "desc": "精准自然 AI 智能翻译"
+                    "desc": "精准自然 AI 翻译"
                 },
                 {
                     "name": "draw.io",
@@ -260,7 +260,7 @@
                     "name": "Gmail",
                     "url": "https://mail.google.com",
                     "icon": "https://a.favicon.im/mail.google.com",
-                    "desc": "谷歌高效安全电子邮箱"
+                    "desc": "谷歌官方安全邮箱"
                 },
                 {
                     "name": "Google Drive",
@@ -296,7 +296,7 @@
                     "name": "OneDrive",
                     "url": "https://onedrive.live.com",
                     "icon": "https://a.favicon.im/onedrive.live.com",
-                    "desc": "微软云端文件存储服务"
+                    "desc": "微软官方云端存储"
                 },
                 {
                     "name": "Publish Markdown",
@@ -422,13 +422,19 @@
                     "name": "Facebook",
                     "url": "https://www.facebook.com",
                     "icon": "https://a.favicon.im/facebook.com",
-                    "desc": "全球知名社交网络平台"
+                    "desc": "全球社交网络平台"
                 },
                 {
                     "name": "Instagram",
                     "url": "https://www.instagram.com",
                     "icon": "https://a.favicon.im/instagram.com",
                     "desc": "全球照片视频分享社区"
+                },
+                {
+                    "name": "LinkedIn",
+                    "url": "https://www.linkedin.com",
+                    "icon": "https://a.favicon.im/linkedin.com",
+                    "desc": "全球职业社交与人脉"
                 },
                 {
                     "name": "LINUX DO",
@@ -455,6 +461,12 @@
                     "desc": "程序员与极客社区"
                 },
                 {
+                    "name": "WhatsApp",
+                    "url": "https://web.whatsapp.com",
+                    "icon": "https://a.favicon.im/whatsapp.com",
+                    "desc": "全球即时通讯网页版"
+                },
+                {
                     "name": "X (Twitter)",
                     "url": "https://x.com",
                     "icon": "https://a.favicon.im/twitter.com",
@@ -464,7 +476,7 @@
                     "name": "微博",
                     "url": "https://weibo.com",
                     "icon": "https://a.favicon.im/weibo.com",
-                    "desc": "国内热点社交媒体平台"
+                    "desc": "国内热点社交平台"
                 },
                 {
                     "name": "豆瓣",
@@ -602,7 +614,7 @@
                     "name": "多邻国",
                     "url": "https://www.duolingo.com",
                     "icon": "https://a.favicon.im/duolingo.com",
-                    "desc": "游戏化外语学习"
+                    "desc": "游戏化外语学习平台"
                 },
                 {
                     "name": "维基百科",
@@ -638,7 +650,7 @@
                     "name": "OMG! Ubuntu",
                     "url": "https://www.omgubuntu.co.uk",
                     "icon": "https://a.favicon.im/omgubuntu.co.uk",
-                    "desc": "Ubuntu 资讯报道"
+                    "desc": "Ubuntu 资讯与社区动态"
                 },
                 {
                     "name": "高德地图",
