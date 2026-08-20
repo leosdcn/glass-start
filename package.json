@@ -1,6 +1,6 @@
 {
   "name": "glass-start",
-  "version": "3.2.3",
+  "version": "3.2.4",
   "description": "Glass Start — 灵动优雅、极简纯净的玻璃拟态浏览器起始页与分类导航。",
   "main": "index.html",
   "scripts": {
