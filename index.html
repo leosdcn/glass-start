@@ -558,7 +558,8 @@
         }
         /* ===== 图标尺寸严格统一与归一化（采用 rem 实现高分屏等比例动态缩放） =====
            不同来源的外部 favicon 原始尺寸参差不齐，统一使用 rem 保证图标与字体在大屏/高分屏同比例响应。
-           sm（1.25rem / 20px 基准）用于导航页列表行，md（2rem / 32px 基准）用于起始页快捷书签网格。
+           · icon-box-sm（1.5rem / 24px 基准）—— 用于第二屏导航页分类列表行、书签管理编辑弹窗
+           · icon-box-md（2rem / 32px 基准）  —— 用于第一屏起始页快捷书签网格
         ===== */
         .icon-box {
             display: inline-flex;
@@ -1730,7 +1731,7 @@
                         <div>
                             <div class="flex items-center gap-2">
                                 <span class="text-sm font-semibold text-white/95 tracking-tight leading-none">Glass Start</span>
-                                <span class="text-2xs px-2 h-4.5 rounded-full bg-white/10 border border-white/15 text-white/75 font-medium inline-flex items-center justify-center select-none">v3.2.2</span>
+                                <span class="text-2xs px-2 h-4.5 rounded-full bg-white/10 border border-white/15 text-white/75 font-medium inline-flex items-center justify-center select-none">v3.2.3</span>
                             </div>
                             <div class="text-2xs text-white/50 leading-none mt-1.5">极简 Liquid Glass 拟态导航 • Build 2026.08</div>
                         </div>
@@ -7280,8 +7281,10 @@
             }, { passive: true });
 
             // ===== VisionOS 玻璃材质 3D 倾斜与光标折射高光代理 (Apple HIG 规范, 零 Reflow 高效引擎) =====
-            // 仅作用于 .nav-bookmark（第二屏导航页书签），.bookmark-item（搜索页）使用纯 CSS scale 不参与此引擎
-            // 原因：搜索页书签卡片较小，±2.5° 倾斜感知度低，且 JS transform 会覆盖 CSS transition 产生竞态，故解耦处理
+            // 【交互分工架构说明】：
+            // 1. .nav-bookmark（第二屏导航页书签）：同时启用光斑折射（--mouse-x/y）+ 3D 视差微倾斜（perspective + rotateX/Y）
+            // 2. .search-box-wrapper（搜索框）：仅启用光斑折射（--mouse-x/y），坚决不加 3D 倾斜（保持输入框绝对水平，防打字时光标抖动）
+            // 3. .bookmark-item（第一屏搜索页书签）：纯 CSS transition 驱动，坚决不加 3D 倾斜（卡片紧凑且防与 CSS 缩放竞态），完全解耦不跑 JS 循环，保持零开销与绝对稳定
             (function initGlassSpotlightAndTilt() {
                 const mediaHover = window.matchMedia && window.matchMedia('(hover: hover)');
                 const mediaMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)');
