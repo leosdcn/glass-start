@@ -6,9 +6,9 @@
             "icon": "https://a.favicon.im/web.localsend.org"
         },
         {
-            "name": "哔哩哔哩",
-            "url": "https://www.bilibili.com",
-            "icon": "https://a.favicon.im/bilibili.com"
+            "name": "DeepSeek",
+            "url": "https://chat.deepseek.com",
+            "icon": "https://a.favicon.im/chat.deepseek.com"
         },
         {
             "name": "Gemini",
@@ -21,9 +21,9 @@
             "icon": "https://a.favicon.im/youtube.com"
         },
         {
-            "name": "DeepSeek",
-            "url": "https://chat.deepseek.com",
-            "icon": "https://a.favicon.im/chat.deepseek.com"
+            "name": "哔哩哔哩",
+            "url": "https://www.bilibili.com",
+            "icon": "https://a.favicon.im/bilibili.com"
         },
         {
             "name": "抖音",
@@ -631,8 +631,8 @@
             ]
         },
         {
-            "name": "新闻资讯",
-            "icon": "📰",
+            "name": "综合资讯",
+            "icon": "🌐",
             "bookmarks": [
                 {
                     "name": "Google Earth",

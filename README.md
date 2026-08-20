@@ -8,7 +8,7 @@
 
 - 🪐 **Liquid Glass 物理高光与玻璃拟态**：采用 Apple HIG 规范的 1px 物理折射高光、微拟物触感反馈与 iOS 18 物理按压微缩放。
 - 🌤️ **实时天气小组件与全球预报**：免 Key 开源气象底座 + 三通道高精度 IP 定位，首帧 0ms 水合秒开，支持 2×2 实时气象指标、未来 4 天天气预报与 15 分钟智能节流缓存，100% 符合 WCAG 2.5.3 无障碍标准。
-- 🎬 **原生双动效系统 (双屏滚动 + 书签入场)**：支持起始页与导航页全屏平滑推移（「双屏滚动」），以及导航列表向下滚动时基于 `@supports (animation-timeline: view())` 底部 20% 深度卡片流体渐显（「书签入场」），全流程 0 渲染空白。
+- 🎬 **原生双动效系统 (双屏滚动 + 底部透光收口)**：支持起始页与导航页全屏平滑推移（「双屏滚动」），以及导航视窗底部基于 `mask-image` 36px 纯 Alpha 真实透光渐隐（「底部透光收口」），全流程 0 渲染空白。
 - ⚡ **零开销双模式构建与 esbuild 极速压缩**：开发模式使用 Tailwind v4 CDN 随改随看；生产打包（`npm run build`）集成 `esbuild` 原生 CSS 编译器，全量内嵌编译并压缩，实现首屏秒开与 100% 离线可用。
 - ⚡ **`<head>` 零闪烁预加载恢复 (Pre-hydration)**：在 DOM 挂载前通过 `<head>` 内联脚本瞬间还原上次屏间位置、背景壁纸与遮罩模糊滤镜，消除刷新闪烁 (FOUC)。
 - 🛡️ **严格安全防护**：内置严格 Content Security Policy (CSP)、全面 XSS HTML 实体转义、`safeUrl` 协议白名单拦截（防 `javascript:` 注入）、JSONP 超时悬挂防爆防护。
@@ -25,8 +25,8 @@
   - **滚轮 / 触摸屏滑动**：首屏向下滚动或滑屏可平滑切换至「导航页」；在导航页顶部向上滚动或滑屏可返回「起始页」。
   - **零闪烁状态记忆**：系统自动记录上次停留的屏间位置（`SessionStorage`），刷新页面时自动无闪烁恢复。
   - **键盘快捷键切换**：非输入状态下按 `PageDown` 或 `↓` 前往导航页；在导航页顶部按 `PageUp`、`Home` 或 `↑` 返回首屏。
-- **书签入场 (Bookmark Entrance)**：
-  - 在导航页内部向下滚动浏览时，视口底部 20% 区域的新卡片自动跟随滚轮产生基于 `@supports (animation-timeline: view())` 的平滑渐显与微缩放流体入场，全流程零空白。
+- **底部透光收口 (Bottom Alpha Fade)**：
+  - 在导航页内部向下滚动浏览时，视口底部 36px 区域自动通过 `mask-image` 产生纯净 Alpha 透明渐隐，平滑透出底层动态壁纸，全流程零黑灰脏色、零卡顿。
 
 ### 2. 搜索与搜索引擎操作
 - **搜索引擎切换**：点击搜索框左侧引擎图标（支持 Bing、Google），在下拉菜单中快速切换。
@@ -299,7 +299,7 @@ add_header Content-Security-Policy "default-src 'self' data: blob: https:; scrip
 | **Service Worker** | 项目内组件 | `v10` | `sw.js` 头部注释；三池隔离 + FIFO 容量限额缓存架构 |
 | **CORE_CACHE** | 缓存池版本 | `app-core-v<时间戳>` | `sw.js`；每次 `npm run build` 自动更新，强制客户端刷新旧缓存 |
 | **FAVICON_CACHE / IMG_CACHE** | 缓存池版本 | `v1` | `sw.js`；图标 / 本地图片独立缓存池 |
-| **Glass Start 站点版本** | 项目发布版本 | `v3.2.4` | `package.json` + `index.html` 页脚徽章 |
+| **Glass Start 站点版本** | 项目发布版本 | `v3.2.5` | `package.json` + `index.html` 页脚徽章 |
 
 **无版本号的外部服务**（非框架，版本由服务商维护，升级无需本项目介入）：
 - `a.favicon.im` — Favicon 图标 API
