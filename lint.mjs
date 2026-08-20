@@ -265,6 +265,140 @@ try {
     logItem(`SVG 无障碍规范扫描异常: ${e.message}`, 'error');
 }
 
+// 4.5 CSS 样式表 !important 污染静态扫描门禁 (仅放行 prefers-reduced-motion 国际无障碍白名单)
+try {
+    const htmlContent = readFileSync(join(root, 'index.html'), 'utf-8');
+    const styleBlocks = [...htmlContent.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style>/gi)];
+    let unauthorizedImportantCount = 0;
+    const violations = [];
+
+    for (const block of styleBlocks) {
+        const css = block[1];
+        // 剥离合法的 @media (prefers-reduced-motion: reduce) { ... } 区域
+        const sanitizedCss = css.replace(/@media\s*\(\s*prefers-reduced-motion\s*:\s*reduce\s*\)\s*\{[\s\S]*?\}/gi, '/* a11y-reduced-motion-cleared */');
+        
+        const lines = sanitizedCss.split('\n');
+        lines.forEach((line, lineIdx) => {
+            if (/!important/i.test(line)) {
+                unauthorizedImportantCount++;
+                violations.push(`第 ${lineIdx + 1} 行: ${line.trim()}`);
+            }
+        });
+    }
+
+    if (unauthorizedImportantCount === 0) {
+        passCount++;
+        logItem(`全站 CSS 样式表 100% 纯净（零非标准 !important 污染，仅保留 A11y 减弱动效白名单）`);
+    } else {
+        failCount++;
+        logItem(`发现 ${unauthorizedImportantCount} 处非标准 !important 污染:\n    ${violations.slice(0, 5).join('\n    ')}`, 'error');
+    }
+} catch (e) {
+    failCount++;
+    logItem(`CSS !important 规范扫描异常: ${e.message}`, 'error');
+}
+
+// 4.6 DOM ID 唯一性与 cacheDOM() 引用健康门禁
+try {
+    const htmlContent = readFileSync(join(root, 'index.html'), 'utf-8');
+    const bodyMatch = htmlContent.match(/<body\b[^>]*>([\s\S]*?)<\/body>/i);
+    const bodyHtml = bodyMatch ? bodyMatch[1] : htmlContent;
+    const noScriptBody = bodyHtml.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '');
+    const idMatches = [...noScriptBody.matchAll(/\bid=["']([^"']+)["']/gi)];
+    
+    const idCounts = new Map();
+    const duplicateIds = [];
+    const domIdSet = new Set();
+
+    for (const match of idMatches) {
+        const id = match[1];
+        domIdSet.add(id);
+        const count = (idCounts.get(id) || 0) + 1;
+        idCounts.set(id, count);
+        if (count === 2) {
+            duplicateIds.push(id);
+        }
+    }
+
+    const cacheDomMatch = htmlContent.match(/function\s+cacheDOM\s*\(\)\s*\{[\s\S]*?const\s+ids\s*=\s*['"]([^'"]+)['"]/i);
+    const cachedIds = cacheDomMatch ? cacheDomMatch[1].trim().split(/\s+/) : [];
+    const missingCachedIds = cachedIds.filter(id => !domIdSet.has(id));
+
+    if (duplicateIds.length === 0 && missingCachedIds.length === 0 && domIdSet.size > 0) {
+        passCount++;
+        logItem(`全站 ${domIdSet.size} 个 DOM ID 100% 全局唯一，且 cacheDOM() ${cachedIds.length} 个缓存映射健康无死引用`);
+    } else {
+        failCount++;
+        const errors = [];
+        if (duplicateIds.length > 0) errors.push(`重复 ID: ${duplicateIds.join(', ')}`);
+        if (missingCachedIds.length > 0) errors.push(`cacheDOM 丢失引用 ID: ${missingCachedIds.join(', ')}`);
+        logItem(`DOM ID 校验失败: ${errors.join(' | ')}`, 'error');
+    }
+} catch (e) {
+    failCount++;
+    logItem(`DOM ID 唯一性与引用检查异常: ${e.message}`, 'error');
+}
+
+// 4.7 书签 Schema 结构、HTTPS 协议安全与 desc 排版规范门禁
+try {
+    const rawBookmarks = readFileSync(join(root, 'bookmarks.json'), 'utf-8');
+    const data = JSON.parse(rawBookmarks);
+    let totalBookmarks = 0;
+    const errors = [];
+
+    // 校验常用书签 bookmarks
+    if (Array.isArray(data.bookmarks)) {
+        data.bookmarks.forEach((bm, i) => {
+            totalBookmarks++;
+            if (!bm.name || typeof bm.name !== 'string') errors.push(`常用书签 #${i} 缺少有效 name`);
+            if (!bm.url || !bm.url.startsWith('https://')) errors.push(`常用书签 [${bm.name || i}] URL 必须以 https:// 开头 (当前: ${bm.url})`);
+            if (!bm.icon || typeof bm.icon !== 'string') errors.push(`常用书签 [${bm.name || i}] 缺少有效 icon`);
+        });
+    } else {
+        errors.push('缺少顶层 bookmarks 数组');
+    }
+
+    // 校验分类书签 categories
+    if (Array.isArray(data.categories)) {
+        const catNameSet = new Set();
+        data.categories.forEach((cat, catIdx) => {
+            if (!cat.name) errors.push(`分类 #${catIdx} 缺少 name`);
+            if (catNameSet.has(cat.name)) errors.push(`分类名重复: ${cat.name}`);
+            catNameSet.add(cat.name);
+
+            if (Array.isArray(cat.bookmarks)) {
+                cat.bookmarks.forEach((bm, bmIdx) => {
+                    totalBookmarks++;
+                    const prefix = `[${cat.name}] ${bm.name || '#' + bmIdx}`;
+                    if (!bm.name || typeof bm.name !== 'string') errors.push(`${prefix} 缺少有效 name`);
+                    if (!bm.url || !bm.url.startsWith('https://')) errors.push(`${prefix} URL 必须以 https:// 开头 (当前: ${bm.url})`);
+                    if (!bm.icon || typeof bm.icon !== 'string') errors.push(`${prefix} 缺少有效 icon`);
+                    if (!bm.desc || typeof bm.desc !== 'string' || bm.desc.trim().length === 0) {
+                        errors.push(`${prefix} 缺少有效 desc 简介`);
+                    } else if (bm.desc.length > 25) {
+                        errors.push(`${prefix} desc 简介过长 (${bm.desc.length}字): "${bm.desc}"`);
+                    }
+                });
+            } else {
+                errors.push(`分类 [${cat.name}] 缺少 bookmarks 数组`);
+            }
+        });
+    } else {
+        errors.push('缺少顶层 categories 数组');
+    }
+
+    if (errors.length === 0) {
+        passCount++;
+        logItem(`全站 ${totalBookmarks} 个书签数据 Schema 规范、100% HTTPS 安全协议且 desc 简介无溢出`);
+    } else {
+        failCount++;
+        logItem(`书签 Schema 校验失败 (${errors.length} 处):\n    ${errors.slice(0, 5).join('\n    ')}`, 'error');
+    }
+} catch (e) {
+    failCount++;
+    logItem(`书签 Schema 规范检查异常: ${e.message}`, 'error');
+}
+
 const elapsed = Date.now() - startTime;
 console.log(`\n${c.gray}${HR_DOUBLE}${c.reset}`);
 if (failCount === 0) {

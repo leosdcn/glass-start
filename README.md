@@ -137,7 +137,10 @@ npm run build
   - 内置 **3 大核心领域端到端与架构综合测试套件（覆盖 18 大高密度全景断言）**。
   - **智能增量 MD5 缓存加速**：未变动模块在测试运行时自动秒级命中缓存（`<10ms`），源码或依赖修改后精准触发对应套件重跑；亦可通过 `node test/run.mjs --force` 强制全量重跑。
   - **独立套件调试**：支持单独运行特定领域测试文件，例如 `node test/data-features.test.mjs`。
-- 🌐 **联网信息检索 (Web Search Recommendation)**：在处理复杂的 Web 安全规范（如 CSP / Security Policy 最新细节）、浏览器新特性兼容性或特定技术方案选型时，**鼓励并推荐 Agent / 开发者在必要时主动进行联网搜索**，实时查询最新官方文档与行业最佳实践，确保调优与修补方案的严谨性与前瞻性。
+- 🎨 **CSS 样式级联与 `!important` 禁入规范 (CSS Specificity & Anti-Pollution Rules)**：
+  - **严禁引入常规 `!important`**：坚决杜绝在常规组件样式、状态类（如 `.hidden`、`.dragging`、`.active`）或瞬态类（如 `.nr`）中使用 `!important`，避免破坏双屏推移（`translateY(100dvh)`）物理动效与组件生命周期。
+  - **特异性与层叠优先**：样式优先级一律纯粹依靠 **CSS 特异性（Specificity: ID > Class > Element）** 与 **ITCSS 级联顺序** 天然实现。
+  - **唯一合规例外（W3C A11y 白名单）**：仅允许在 `@media (prefers-reduced-motion: reduce)` 中针对通配符 `*, *::before, *::after` 强制关停动效时使用，以严格符合 WCAG 2.1 AAA 级国际无障碍规范（`npm run lint` 已配置自动化守门，拦截任何非法 `!important`）。
 - ☁️ **云端自动部署与构建提示 (CI/CD Guidelines)**：
   - 🛑 **严禁自行推送云端 (No Auto Push)**：严禁 Agent 自动执行 `git push` 推送至远程 Git 仓库；所有云端推送必须由用户下达明确指令（如“推送”、“git push”）后方可执行。
   - **Cloudflare Pages 自动构建**：push 到 `main` 分支会自动触发线上构建与部署。

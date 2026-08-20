@@ -190,7 +190,7 @@
         .nr #startSection { transform: translateY(-100vh); transform: translateY(-100dvh); transition: none; }
         .nr #navSection { visibility: visible; transform: translateY(0); transition: none; }
         .nr #editBookmarksBtn, .nr #weatherWidget { opacity: 0; pointer-events: none; transition: none; }
-        .nr *, .nr *::before, .nr *::after { animation: none !important; transition: none !important; }
+        .nr *, .nr *::before, .nr *::after { animation: none; transition: none; }
         /* Standard Font Size Utility Classes with Apple Optical Tracking */
         .text-3xs { font-size: 0.5625rem; letter-spacing: -0.012em; }
         .text-2xs { font-size: 0.625rem; letter-spacing: -0.012em; }
@@ -471,7 +471,7 @@
         .fade-in {
             animation: fadeIn var(--duration-entrance) var(--ease-smooth) backwards;
         }
-        .nr .fade-in { animation: none !important; }
+        .nr .fade-in { animation: none; }
         @keyframes fadeIn { from { opacity: 0; transform: translate3d(0, var(--entrance-offset, 1.25rem), 0); } to { opacity: 1; transform: translate3d(0, 0, 0); } }
         @keyframes fadeInSubtle { from { opacity: 0; transform: translate3d(0, var(--entrance-offset, 1.25rem), 0); } to { opacity: var(--opacity-subtle, 0.6); transform: translate3d(0, 0, 0); } }
         .dropdown-menu { opacity:0; transform:translateY(-4px) scale(0.97) translateZ(0); pointer-events:none; visibility:hidden; transition:opacity var(--duration-fast) var(--ease-exit), transform var(--duration-fast) var(--ease-exit), visibility var(--duration-fast) step-end; transform-origin: top left; }
@@ -484,7 +484,7 @@
         #date { font-variant-numeric: normal; -webkit-font-feature-settings: "normal"; font-feature-settings: "normal"; }
         .clock-colon { display: inline-block; position: relative; top: -0.06em; animation: colonPulse 6s ease-in-out infinite; will-change: opacity; }
         @keyframes colonPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-        .nr .clock-colon { animation: none !important; opacity: 1 !important; }
+        .nr .clock-colon { animation: none; opacity: 1; }
         /* ===== 玻璃材质物理高光折射与 3D 视差倾斜 (VisionOS / Apple HIG 规范) ===== */
         .bookmark-item, .nav-bookmark {
             position: relative;
@@ -683,14 +683,14 @@
         .bookmark-item, .nav-bookmark, .sidebar-item, .icon-box, #sidebar, #bookmarks,
         #engineBtn, #dropdownMenu, #dropdownMenu *, #suggestionMenu, .search-box-wrapper button, #randomBookmarkBtn, #searchClearBtn,
         #clock, #date, #navHeader {
-            -webkit-touch-callout: none !important;
-            -webkit-user-select: none !important;
-            user-select: none !important;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
         }
         /* 确保输入框正常支持选中已输入的文本 */
         input, textarea {
-            -webkit-user-select: text !important;
-            user-select: text !important;
+            -webkit-user-select: text;
+            user-select: text;
         }
         /* 占位符提示词 (Placeholder) 坚决禁止被圈选选中 */
         input::placeholder,
@@ -701,8 +701,8 @@
         textarea::-moz-placeholder,
         input:-ms-input-placeholder,
         textarea:-ms-input-placeholder {
-            -webkit-user-select: none !important;
-            user-select: none !important;
+            -webkit-user-select: none;
+            user-select: none;
         }
 
         /* 点击侧边栏跳转时的目标分类标题底线柔和发光提醒 */
@@ -770,7 +770,7 @@
             transition: opacity var(--duration-modal) var(--ease-spring), transform var(--duration-modal) var(--ease-spring);
         }
         .edit-overlay .glass-strong { background: rgba(255,255,255,0.2); }
-        .nr .edit-overlay, .nr .edit-overlay > div { transition: none !important; opacity: 1 !important; transform: none !important; }
+        .nr .edit-overlay, .nr .edit-overlay > div { transition: none; opacity: 1; transform: none; }
         .edit-row-card {
             position: relative;
             transition: background-color 0.15s ease, border-color 0.15s ease, opacity 0.2s ease, transform 0.2s ease, box-shadow 0.15s ease;
@@ -782,16 +782,16 @@
             from { opacity: 0; transform: translateY(-8px) scale(0.97); }
             to { opacity: 1; transform: translateY(0) scale(1); }
         }
-        .nr .edit-row-card { animation: none !important; }
+        .nr .edit-row-card { animation: none; }
         .edit-row-card input {
             user-select: text;
         }
         .edit-row-card.dragging {
-            opacity: 0.35 !important;
-            border-style: dashed !important;
-            border-color: rgba(255, 255, 255, 0.25) !important;
-            background-color: rgba(255, 255, 255, 0.04) !important;
-            box-shadow: none !important;
+            opacity: 0.35;
+            border-style: dashed;
+            border-color: rgba(255, 255, 255, 0.25);
+            background-color: rgba(255, 255, 255, 0.04);
+            box-shadow: none;
         }
         .drag-drop-line {
             position: absolute;
@@ -1200,24 +1200,24 @@
                         color 0.15s ease;
         }
         #randomBookmarkBtn.hidden {
-            display: inline-flex !important;
-            opacity: 0 !important;
-            transform: scale(0.2) rotate(-90deg) !important;
-            pointer-events: none !important;
+            display: inline-flex;
+            opacity: 0;
+            transform: scale(0.2) rotate(-90deg);
+            pointer-events: none;
             transition: opacity 0.18s cubic-bezier(0.4, 0, 0.2, 1),
-                        transform 0.18s cubic-bezier(0.4, 0, 0.2, 1) !important;
+                        transform 0.18s cubic-bezier(0.4, 0, 0.2, 1);
         }
         #searchClearBtn.hidden {
-            display: inline-flex !important;
-            opacity: 0 !important;
-            transform: scale(0.2) rotate(90deg) !important;
-            pointer-events: none !important;
+            display: inline-flex;
+            opacity: 0;
+            transform: scale(0.2) rotate(90deg);
+            pointer-events: none;
             transition: opacity 0.18s cubic-bezier(0.4, 0, 0.2, 1),
-                        transform 0.18s cubic-bezier(0.4, 0, 0.2, 1) !important;
+                        transform 0.18s cubic-bezier(0.4, 0, 0.2, 1);
         }
         .nr #randomBookmarkBtn,
         .nr #searchClearBtn {
-            transition: none !important;
+            transition: none;
         }
         #randomBookmarkBtn svg {
             transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
@@ -1444,14 +1444,14 @@
         /* 无障碍：降低透明度 (Prefers Reduced Transparency - iOS 26/27 Liquid Glass 规范) */
         @media (prefers-reduced-transparency: reduce) {
             .glass {
-                background: rgba(15, 23, 42, 0.92) !important;
-                backdrop-filter: none !important;
-                -webkit-backdrop-filter: none !important;
+                background: rgba(15, 23, 42, 0.92);
+                backdrop-filter: none;
+                -webkit-backdrop-filter: none;
             }
             .glass-strong {
-                background: rgba(15, 23, 42, 0.96) !important;
-                backdrop-filter: none !important;
-                -webkit-backdrop-filter: none !important;
+                background: rgba(15, 23, 42, 0.96);
+                backdrop-filter: none;
+                -webkit-backdrop-filter: none;
             }
         }
     </style>
@@ -2843,7 +2843,7 @@
          * @returns {void}
          */
         function cacheDOM() {
-            const ids = 'clock date searchInput searchClearBtn randomBookmarkBtn engineBtn engineIcon engineName dropdownMenu suggestionMenu bookmarks sidebar sidebarList navCategories navContent editModal editList dragDropIndicator editBookmarksBtn addBookmarkBtn saveEditBtn cancelEditBtn resetEditBtn togglePickerBtn bookmarkPicker pickerContent pickerCount closePickerBtn donePickerBtn exportJsonBtn importJsonInput uploadBgBtn urlBgBtn resetBgBtn uploadBgInput wallpaperStatus bookmarkCountBadge jsonDropzone maskOpacityInput maskOpacityVal bgBlurInput bgBlurVal storageSizeBadge statBookmarkCount statWallpaperType statPwaStatus clearCacheBtn bgOverlay startSection navSection navHint navHeader presetWallpaperGrid shortcutModal shortcutModalList closeShortcutBtn doneShortcutBtn openShortcutFromSettingsBtn openCreditsFromSettingsBtn scrollDownHint weatherWidget weatherBtn weatherIcon weatherTemp weatherCity weatherPopover creditsModal closeCreditsBtn doneCreditsBtn'.split(' ');
+            const ids = 'clock date searchInput searchClearBtn randomBookmarkBtn engineBtn engineIcon engineName dropdownMenu suggestionMenu bookmarks sidebar sidebarList navCategories navContent editModal editList editBookmarksBtn addBookmarkBtn saveEditBtn cancelEditBtn resetEditBtn togglePickerBtn bookmarkPicker pickerContent pickerCount closePickerBtn donePickerBtn exportJsonBtn importJsonInput uploadBgBtn urlBgBtn resetBgBtn uploadBgInput wallpaperStatus bookmarkCountBadge jsonDropzone maskOpacityInput maskOpacityVal bgBlurInput bgBlurVal storageSizeBadge statBookmarkCount statWallpaperType statPwaStatus clearCacheBtn bgOverlay startSection navSection navHint navHeader presetWallpaperGrid shortcutModal shortcutModalList closeShortcutBtn doneShortcutBtn openShortcutFromSettingsBtn openCreditsFromSettingsBtn scrollDownHint weatherWidget weatherBtn weatherIcon weatherTemp weatherCity weatherPopover creditsModal closeCreditsBtn doneCreditsBtn'.split(' ');
             ids.forEach(id => dom[id] = $(id));
         }
 
