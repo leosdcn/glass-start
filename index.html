@@ -2675,8 +2675,10 @@
             }),
             GESTURE: Object.freeze({
                 TRANSITION_MS: 580,          // 双屏推移过渡动画时长 (ms)
-                WHEEL_THRESHOLD: 120,        // 滚轮累积触发切屏阈值
-                SWIPE_THRESHOLD: 40          // 触屏轻扫触发切屏阈值 (px)
+                WHEEL_THRESHOLD: 100,        // 滚轮累积触发切屏阈值
+                SWIPE_THRESHOLD: 40,         // 触屏轻扫触发切屏阈值 (px)
+                MOMENTUM_QUIET_MS: 70,       // 切屏后 wheel 事件静默间隔阈值：≥ 此值判定触控板惯性已自然衰减
+                MOMENTUM_MAX_MS: 1500        // 动量吸收硬上限兜底，防止病态事件流导致永久锁滚
             }),
             WEATHER: Object.freeze({
                 CACHE_TTL: 15 * 60 * 1000,    // 气象数据本地缓存有效期 (15分钟)
@@ -7233,27 +7235,55 @@
 
             // ==================== 触屏跟手拖拽与滚轮速度/大步幅感应 ====================
             let lastWheelTime = 0;
+            // 动量静默吸收：快速甩动触发切屏后，Mac 触控板残余惯性事件可持续 1~3 秒，
+            // 远超过渡期(580ms)+100ms 防护窗，会穿透进导航页分支放行原生滚动导致书签区被"多滑一截"。
+            // 策略：仅快速手势触发的切屏启用吸收，持续吞掉垂直 wheel 事件，
+            // 直至事件流出现 ≥MOMENTUM_QUIET_MS 静默间隔（惯性自然死亡的唯一可靠信号）或达硬上限。
+            let swallowMomentum = false;
+            let swallowStartTs = 0;
+            let swallowDir = null; // 'down' | 'up' | null — 仅吸收同向残余惯性，反向手势立即打断
 
             document.addEventListener('wheel', (e) => {
+                // 时间戳必须在所有早退路径之前更新，否则过渡期吞掉的事件会造成"假间隔"误判惯性结束
+                const now = performance.now();
+                const dt = now - lastWheelTime;
+                lastWheelTime = now;
+                const delta = normDelta(e);
+                const absDelta = Math.abs(delta);
+                const vertical = absDelta >= Math.abs(e.deltaX || 0);
+
+                if (swallowMomentum) {
+                    // 横向滚动（侧边栏 Tab）与弹窗交互不受吸收期影响
+                    if (!vertical || !OverlayStack.isEmpty()) return;
+                    // 反向手势立即打断吸收（用户意图切回），避免来回切屏被吞
+                    const curDir = delta > 0 ? 'down' : delta < 0 ? 'up' : null;
+                    if (curDir && curDir !== swallowDir) {
+                        swallowMomentum = false;
+                        swallowDir = null;
+                    } else if (dt >= CONFIG.GESTURE.MOMENTUM_QUIET_MS || now - swallowStartTs >= CONFIG.GESTURE.MOMENTUM_MAX_MS) {
+                        swallowMomentum = false; // 惯性已结束，本事件交由下方正常流程处理（不 preventDefault，保留原生滚动）
+                        swallowDir = null;
+                    } else {
+                        if (vertical && e.cancelable) e.preventDefault();
+                        return;
+                    }
+                }
+
                 if (isTransitioning || !OverlayStack.isEmpty()) {
                     if (isTransitioning && e.cancelable) e.preventDefault();
                     return;
                 }
-                if (performance.now() - lastTransitionEndTime < 100) {
+                if (now - lastTransitionEndTime < 100) {
                     if (e.cancelable) e.preventDefault();
                     return;
                 }
 
-                const delta = normDelta(e);
                 const down = delta > 0;
-                const absDelta = Math.abs(delta);
-                const now = performance.now();
-                const dt = now - lastWheelTime;
-                lastWheelTime = now;
                 const velocity = dt > 0 ? absDelta / dt : 0; // px/ms
 
                 // 动态有效阈值：若单次滚动步幅 >= 100px 或快速甩动 (velocity > 1.2)，降低切屏门槛至 60px
-                const effectiveThreshold = (absDelta >= 100 || velocity > 1.2) ? 60 : SCROLL_THRESHOLD;
+                const isFastGesture = absDelta >= 100 || velocity > 1.2;
+                const effectiveThreshold = isFastGesture ? 60 : SCROLL_THRESHOLD;
 
                 if (state.currentSection === 'start') {
                     if (!down) {
@@ -7266,6 +7296,12 @@
                     resetAccumAfterDelay();
                     if (scrollAccum >= effectiveThreshold) {
                         switchToNav();
+                        // 速度门控：慢速累积触发几乎不产生惯性，不启用吸收以免吞掉用户后续主动滚动
+                        if (isFastGesture) {
+                            swallowMomentum = true;
+                            swallowStartTs = now;
+                            swallowDir = 'down';
+                        }
                     }
                 } else {
                     // 仅当位于导航页顶端且向上滚动时才拦截并累积切屏阈值，其余状态下完全放行原生滚动
@@ -7275,6 +7311,11 @@
                         resetAccumAfterDelay();
                         if (scrollAccum >= effectiveThreshold) {
                             switchToStart();
+                            if (isFastGesture) {
+                                swallowMomentum = true;
+                                swallowStartTs = now;
+                                swallowDir = 'up';
+                            }
                         }
                     } else {
                         clearAccum();
