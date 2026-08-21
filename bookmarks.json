@@ -329,16 +329,16 @@
             "icon": "📚",
             "bookmarks": [
                 {
+                    "name": "Duolingo",
+                    "url": "https://www.duolingo.com",
+                    "icon": "https://a.favicon.im/duolingo.com",
+                    "desc": "游戏化外语学习平台"
+                },
+                {
                     "name": "Internet Archive",
                     "url": "https://archive.org",
                     "icon": "https://a.favicon.im/archive.org",
                     "desc": "互联网数字资料库"
-                },
-                {
-                    "name": "Nature",
-                    "url": "https://www.nature.com",
-                    "icon": "https://a.favicon.im/nature.com",
-                    "desc": "权威科学学术期刊"
                 },
                 {
                     "name": "roadmap.sh",
@@ -347,10 +347,10 @@
                     "desc": "开发者成长路线图"
                 },
                 {
-                    "name": "Duolingo",
-                    "url": "https://www.duolingo.com",
-                    "icon": "https://a.favicon.im/duolingo.com",
-                    "desc": "游戏化外语学习平台"
+                    "name": "wikiHow",
+                    "url": "https://zh.wikihow.com",
+                    "icon": "https://a.favicon.im/zh.wikihow.com",
+                    "desc": "万物生活与实操指南"
                 },
                 {
                     "name": "Wikipedia",
@@ -359,10 +359,28 @@
                     "desc": "自由在线百科全书"
                 },
                 {
+                    "name": "极客湾芯片榜",
+                    "url": "https://socpk.com",
+                    "icon": "https://a.favicon.im/socpk.com",
+                    "desc": "手机电脑处理器能效榜"
+                },
+                {
+                    "name": "默沙东诊疗手册",
+                    "url": "https://www.msdmanuals.cn/home",
+                    "icon": "https://a.favicon.im/www.msdmanuals.cn",
+                    "desc": "权威大众医学健康指南"
+                },
+                {
                     "name": "鸟哥的 Linux 私房菜",
                     "url": "https://linux.vbird.org",
                     "icon": "https://a.favicon.im/linux.vbird.org",
                     "desc": "经典 Linux 运维教程"
+                },
+                {
+                    "name": "食用手册",
+                    "url": "https://cook.yunyoujun.cn",
+                    "icon": "https://a.favicon.im/cook.yunyoujun.cn",
+                    "desc": "精准量化家庭烹饪指南"
                 }
             ]
         },
