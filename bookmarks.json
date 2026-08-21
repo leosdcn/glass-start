@@ -455,10 +455,10 @@
                     "desc": "开源品牌矢量图标库"
                 },
                 {
-                    "name": "効果音ラボ",
-                    "url": "https://soundeffect-lab.info",
-                    "icon": "https://a.favicon.im/soundeffect-lab.info",
-                    "desc": "日本免费商用音效库"
+                    "name": "Squoosh",
+                    "url": "https://squoosh.app",
+                    "icon": "https://a.favicon.im/squoosh.app",
+                    "desc": "谷歌开源本地图片压缩"
                 },
                 {
                     "name": "Unsplash",
@@ -467,10 +467,22 @@
                     "desc": "无版权高品质摄影图库"
                 },
                 {
+                    "name": "waifu2x",
+                    "url": "https://waifu2x.udp.jp",
+                    "icon": "https://a.favicon.im/waifu2x.udp.jp",
+                    "desc": "开源图片降噪与无损放大"
+                },
+                {
                     "name": "Wallhaven",
                     "url": "https://wallhaven.cc",
                     "icon": "https://a.favicon.im/wallhaven.cc",
                     "desc": "高质量极客桌面壁纸库"
+                },
+                {
+                    "name": "効果音ラボ",
+                    "url": "https://soundeffect-lab.info",
+                    "icon": "https://a.favicon.im/soundeffect-lab.info",
+                    "desc": "日本免费商用音效库"
                 }
             ]
         },
