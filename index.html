@@ -2702,7 +2702,8 @@
                 MAX_BG_BLUR: 20,              // 背景高斯模糊最大像素值 (px)
                 MAX_UPLOAD_WIDTH: 3840,       // 自定义壁纸最大宽度 (4K UHD)
                 MAX_UPLOAD_HEIGHT: 2160,      // 自定义壁纸最大高度
-                JPEG_QUALITY: 0.95            // Canvas 壁纸压缩质量
+                JPEG_QUALITY: 0.95,           // Canvas 壁纸压缩质量
+                MAX_LS_WALLPAPER_BYTES: 2000000 // 自定义壁纸双写 localStorage 的体积上限（超出仅存 IndexedDB）
             }),
             TIMERS: Object.freeze({
                 STAGGER_OPEN: 120,            // 随机书签跳转延时 (ms)
@@ -3689,8 +3690,8 @@
             state.editOpen = true;
             OverlayStack.push('editModal', cancelEditModal);
 
-            // 备份打开前的初始配置：自定义壁纸存储于 IndexedDB（保存路径只写 IDB 并清理了
-            // localStorage），因此必须优先取 state.customWallpaper / IDB，localStorage 仅作历史兜底；
+            // 备份打开前的初始配置：自定义壁纸持久化于 IndexedDB（小体积额外双写 localStorage 供
+            // head 预加载），因此必须优先取 state.customWallpaper / IDB，localStorage 仅作历史兜底；
             // 否则“取消”回滚会错误地丢失当前生效的自定义壁纸
             modalState.initialWallpaper = state.customWallpaper || await getWallpaperDB() || storageGet(CONFIG.KEYS.USER_WALLPAPER);
             if (!state.editOpen) return; // 若在读取 IDB 期间用户按 Esc 取消了弹窗，中断后续渲染逻辑
@@ -3989,7 +3990,7 @@
                     dom.scrollDownHint.style.opacity = '';
                 }
 
-                // 自定义壁纸实际持久化于 IndexedDB（保存路径只写 IDB 并清理了 localStorage），
+                // 自定义壁纸实际持久化于 IndexedDB（小体积额外双写 localStorage），
                 // 重置时必须同步清除 IDB 与内存状态，否则刷新页面后自定义壁纸会“复活”
                 removeWallpaperDB();
                 state.customWallpaper = null;
@@ -5380,7 +5381,7 @@
                     saveUserBookmarks(data);
                 }
 
-                // 2. 提交壁纸（大图持久化至 IndexedDB，同步写入 localStorage['userWallpaper'] 供 head 极速预加载）
+                // 2. 提交壁纸（统一持久化至 IndexedDB；小体积额外双写 localStorage['userWallpaper'] 供 head 极速预加载）
                 if (modalState.wallpaperChanged) {
                     const draft = modalState.draftWallpaper;
                     const presetIdx = findPresetBgIndex(draft);
@@ -5393,7 +5394,13 @@
                         // 真·自定义壁纸（上传 data:URL 或 http(s) 外网图）（previewDraftWallpaper 已视觉切好）
                         state.customWallpaper = draft;
                         setWallpaperDB(draft);
-                        storageSet(CONFIG.KEYS.USER_WALLPAPER, draft);
+                        // 大体积 DataURL（4K 壁纸可达数 MB）超出 localStorage 配额时跳过双写并清除残留旧记录，
+                        // 避免 head 预加载到过期壁纸（loadUserData 以 IndexedDB 为最高优先回退源，功能不受影响）
+                        if (draft.length <= CONFIG.APPEARANCE.MAX_LS_WALLPAPER_BYTES) {
+                            storageSet(CONFIG.KEYS.USER_WALLPAPER, draft);
+                        } else {
+                            storageRemove(CONFIG.KEYS.USER_WALLPAPER);
+                        }
                         // 切到自定义图时，bg 索引不再有效，归零保证退出自定义后轮播从 bg1 开始
                         state.bg = 0;
                         storageSet(CONFIG.KEYS.BG, 0);
@@ -6232,6 +6239,46 @@
             };
         }
 
+        // ==================== 天气数据净化工具（本地缓存信任边界防御） ====================
+        /**
+         * 将任意来源（实时 API / 本地缓存）的天气数值字段强制收敛为有限数字
+         * 防御被篡改的 localStorage 缓存将非数字字符串注入 innerHTML 模板
+         * @param {*} v - 原始值
+         * @param {number} fallback - 非法（NaN/Infinity/undefined 等）时的回退默认值
+         * @returns {number} 有限数字
+         */
+        function weatherNum(v, fallback) {
+            const n = Number(v);
+            return Number.isFinite(n) ? n : fallback;
+        }
+
+        /**
+         * 校验 "HH:MM" / "H:MM" 时间字符串（兼容 9:41 与 09:41），非法输入回退占位符
+         * @param {*} v - 原始值
+         * @returns {string}
+         */
+        function weatherTime(v) {
+            return (typeof v === 'string' && /^\d{1,2}:\d{2}$/.test(v.trim())) ? v.trim() : '--:--';
+        }
+
+        /**
+         * 带超时熔断的 fetch 统一封装（AbortController + setTimeout）
+         * 在不支持 AbortSignal.timeout 的旧浏览器上同样具备超时中断能力，
+         * 避免 isFetchingWeather 锁因挂起请求长期无法释放
+         * @param {string} url - 请求地址
+         * @param {number} timeoutMs - 超时毫秒数
+         * @returns {Promise<Response>}
+         */
+        async function fetchWithTimeout(url, timeoutMs) {
+            const controller = new AbortController();
+            const timer = setTimeout(() => { try { controller.abort(); } catch {} }, timeoutMs);
+            try {
+                return await fetch(url, { signal: controller.signal });
+            } finally {
+                clearTimeout(timer);
+            }
+        }
+
         function openWeatherPopover() {
             if (!dom.weatherPopover || !dom.weatherBtn) return;
             if (!dom.weatherPopover.innerHTML.trim()) {
@@ -6310,7 +6357,7 @@
 
             // 通道 1：国内高精度 IPIP.NET + 官方气象高精度地理编码（Open-Meteo Geocoding）纯动态解析
             try {
-                const ipRes = await fetch('https://myip.ipip.net/json', { signal: AbortSignal.timeout ? AbortSignal.timeout(CONFIG.WEATHER.TIMEOUT_IP) : undefined });
+                const ipRes = await fetchWithTimeout('https://myip.ipip.net/json', CONFIG.WEATHER.TIMEOUT_IP);
                 if (ipRes.ok) {
                     const ipData = await ipRes.json();
                     if (ipData && ipData.ret === 'ok' && Array.isArray(ipData?.data?.location)) {
@@ -6325,7 +6372,7 @@
                             try {
                                 const queryName = (cleanCity === cleanProv && !rawCity.endsWith('省')) ? `${cleanCity}市` : cleanCity;
                                 const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(queryName)}&language=zh&count=10`;
-                                const geoRes = await fetch(geoUrl, { signal: AbortSignal.timeout ? AbortSignal.timeout(CONFIG.WEATHER.TIMEOUT_IP) : undefined });
+                                const geoRes = await fetchWithTimeout(geoUrl, CONFIG.WEATHER.TIMEOUT_IP);
                                 if (geoRes.ok) {
                                     const geoData = await geoRes.json();
                                     const results = geoData.results || [];
@@ -6339,7 +6386,7 @@
                                     if (!matched && cleanProv && cleanProv !== cleanCity) {
                                         try {
                                             const provUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cleanProv)}&language=zh&count=5`;
-                                            const provRes = await fetch(provUrl, { signal: AbortSignal.timeout ? AbortSignal.timeout(CONFIG.WEATHER.TIMEOUT_IP) : undefined });
+                                            const provRes = await fetchWithTimeout(provUrl, CONFIG.WEATHER.TIMEOUT_IP);
                                             if (provRes.ok) {
                                                 const provData = await provRes.json();
                                                 if (provData.results && provData.results[0]) {
@@ -6374,7 +6421,7 @@
 
             // 通道 2：国际 GeoIP 接口兜底（海外用户或 IPIP 接口不可达时）
             try {
-                const res = await fetch('https://ipwho.is/?lang=zh-CN', { signal: AbortSignal.timeout ? AbortSignal.timeout(CONFIG.WEATHER.TIMEOUT_IP) : undefined });
+                const res = await fetchWithTimeout('https://ipwho.is/?lang=zh-CN', CONFIG.WEATHER.TIMEOUT_IP);
                 if (res.ok) {
                     const data = await res.json();
                     if (data && data.success && data.latitude) {
@@ -6414,7 +6461,7 @@
             const lat = loc.lat;
             const lon = loc.lon;
             const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,precipitation_probability_max&timezone=auto`;
-            const res = await fetch(url, { signal: AbortSignal.timeout ? AbortSignal.timeout(CONFIG.WEATHER.TIMEOUT_WEATHER) : undefined });
+            const res = await fetchWithTimeout(url, CONFIG.WEATHER.TIMEOUT_WEATHER);
             if (!res.ok) throw new Error('Open-Meteo request failed');
             const data = await res.json();
 
@@ -6545,9 +6592,27 @@
                 `;
                 return;
             }
-            const c = data.current;
+            // 缓存信任边界净化：data 可能来自 localStorage 旧缓存（存在被同源漏洞篡改的可能），
+            // 所有进入 innerHTML 模板的字段先收敛为安全形态（数值化/类型校验/截断）
+            const raw = data.current;
+            const c = {
+                ...raw,
+                temp: Math.round(weatherNum(raw.temp, 0)),
+                apparent: Math.round(weatherNum(raw.apparent, weatherNum(raw.temp, 0))),
+                humidity: Math.round(weatherNum(raw.humidity, 50)),
+                windSpeed: Math.round(weatherNum(raw.windSpeed, 0) * 10) / 10,
+                icon: (typeof raw.icon === 'string' && raw.icon) ? raw.icon : '⛅',
+                weatherText: (typeof raw.weatherText === 'string') ? raw.weatherText : ''
+            };
             const loc = data.location || {};
-            const days = data.daily || [];
+            const days = (Array.isArray(data.daily) ? data.daily : []).map(d => ({
+                ...d,
+                label: (typeof d.label === 'string') ? d.label.slice(0, 12) : '',
+                icon: (typeof d.icon === 'string' && d.icon) ? d.icon : '⛅',
+                text: (typeof d.text === 'string') ? d.text.slice(0, 40) : '',
+                tempMax: Math.round(weatherNum(d.tempMax, 0)),
+                tempMin: Math.round(weatherNum(d.tempMin, 0))
+            }));
 
             // 智能日落/日出时间感知计算
             let sunIcon = '🌅';
@@ -6581,9 +6646,10 @@
                     sunTime = c.sunsetToday || c.sunset || '--:--';
                 }
             } catch (_) {}
+            sunTime = weatherTime(sunTime); // 日出日落时间白名单校验（缓存路径防注入）
 
             // 降水概率与雨伞三阶形态计算 (🌂: 0~29% 无忧收伞, ☂️: 30~69% 备伞, ☔️: ≥70% 必带伞)
-            const popVal = c.pop !== undefined ? c.pop : (c.precipitation ? 100 : 0);
+            const popVal = Math.max(0, Math.min(100, c.pop !== undefined ? weatherNum(c.pop, 0) : (weatherNum(c.precipitation, 0) > 0 ? 100 : 0)));
             let popIcon = '🌂';
             if (popVal >= CONFIG.WEATHER.POP_HIGH_THRESHOLD) {
                 popIcon = '☔️';
@@ -6624,7 +6690,7 @@
                 <!-- 当前主天气 -->
                 <div class="flex items-center justify-between mb-3 px-1">
                     <div class="flex items-center gap-3">
-                        <span class="text-3xl sm:text-4xl leading-none select-none">${c.icon}</span>
+                        <span class="text-3xl sm:text-4xl leading-none select-none">${escapeHtml(c.icon)}</span>
                         <div>
                             <div class="text-2xl font-bold tracking-tight text-white leading-none">${c.temp}<span class="text-base font-normal text-white/70">°C</span></div>
                             <div class="text-xs text-white/75 mt-1">${escapeHtml(c.weatherText)} · 体感 ${c.apparent}°C</div>
@@ -6670,9 +6736,9 @@
                     <div class="text-2xs text-white/50 font-medium px-1 mb-1">未来几天预报</div>
                     ${days.slice(0, 4).map(d => `
                         <div class="flex items-center justify-between text-xs py-1 px-1.5 apple-radius hover:bg-white/5 transition-colors">
-                            <span class="w-10 text-white/70 font-medium shrink-0">${d.label}</span>
+                            <span class="w-10 text-white/70 font-medium shrink-0">${escapeHtml(d.label)}</span>
                             <div class="flex items-center gap-2 flex-1 min-w-0 pl-7 sm:pl-8">
-                                <span class="w-5 text-center select-none shrink-0">${d.icon}</span>
+                                <span class="w-5 text-center select-none shrink-0">${escapeHtml(d.icon)}</span>
                                 <span class="text-2xs text-white/60 truncate">${escapeHtml(d.text)}</span>
                             </div>
                             <span class="w-16 text-right tabular-nums text-white/80 shrink-0">${d.tempMin}° ~ ${d.tempMax}°</span>

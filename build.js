@@ -359,7 +359,8 @@ function processProductionHtml() {
     if (cdnPattern.test(prodHtmlContent)) {
         prodHtmlContent = prodHtmlContent.replace(cdnPattern, () => replaceTarget);
     } else {
-        prodHtmlContent = prodHtmlContent.replace(/<script src="https:\/\/cdn\.jsdelivr\.net\/npm\/@tailwindcss\/browser@4"><\/script>/i, () => replaceTarget);
+        // 容错回退：注释锚点缺失时按脚本特征匹配（兼容带 defer/async 等任意属性形态）
+        prodHtmlContent = prodHtmlContent.replace(/<script[^>]*@tailwindcss\/browser@4[^>]*><\/script>/i, () => replaceTarget);
     }
 
     // 5.1 对 HTML 中所有的 <style> 和 <script> 标签内容进行全面压缩
@@ -427,6 +428,13 @@ function processProductionHtml() {
     prodHtmlContent = minifyHtml(prodHtmlContent);
     const htmlKb = (Buffer.byteLength(prodHtmlContent, 'utf-8') / 1024).toFixed(2);
     logItem(`生产环境 dist/index.html 零依赖压缩完成 (${htmlKb} KB)`);
+
+    // 🛡️ 构建断言（最终产物写盘前）：严禁残留任何 jsdelivr CDN 引用 ——
+    // 生产 CSP 已剔除该域名，脚本或 CSP 白名单任一残留都会导致线上样式全挂且难以察觉，必须 fail build 阻断部署
+    if (/jsdelivr/i.test(prodHtmlContent)) {
+        console.error('❌ 构建断言失败: dist/index.html 最终产物中仍残留 jsdelivr CDN 引用，请检查 Tailwind CDN 替换（5.0）与 CSP 清理（5.2）逻辑');
+        process.exit(1);
+    }
 
     fs.writeFileSync(path.join(PATHS.dist, 'index.html'), prodHtmlContent, 'utf-8');
 }
