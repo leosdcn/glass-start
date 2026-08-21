@@ -105,9 +105,12 @@ function createStaticServer() {
 
                 const ext = path.extname(filePath).toLowerCase();
                 const contentType = MIME_TYPES[ext] || 'application/octet-stream';
-                
-                res.setHeader('Access-Control-Allow-Origin', '*');
+
                 res.setHeader('Content-Type', contentType);
+                // 仅对非文档类静态资产开放跨域读取；HTML 文档不设置 CORS，避免局域网内任意页面跨域读取页面内容
+                if (!contentType.startsWith('text/html')) {
+                    res.setHeader('Access-Control-Allow-Origin', '*');
+                }
 
                 // 针对文本类静态资产（HTML, JS, CSS, JSON, SVG）支持原生 Gzip / Deflate 流式压缩
                 const isCompressible = /^(text\/|application\/(javascript|json|manifest\+json)|image\/svg\+xml)/.test(contentType);

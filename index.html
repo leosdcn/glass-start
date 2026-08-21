@@ -3208,15 +3208,8 @@
         }
 
         // ==================== 数据加载 ====================
-        /**
-         * 异步加载外部 bookmarks.json 配置文件
-         * 在 file:// 本地双击协议下直接降级至内存默认值；在 HTTP/HTTPS 下异步 Fetch 最新的配置文件
-         * @returns {Promise<void>}
-         */
-        async function loadData() {
-            // 默认完全读取 HTML 内置 DEFAULT_CATEGORIES / DEFAULT_BOOKMARKS 数据，不再请求外部 bookmarks.json
-            return;
-        }
+        // 书签与分类数据完全读取 HTML 内置 DEFAULT_CATEGORIES / DEFAULT_BOOKMARKS（构建期由 build.js
+        // 从 bookmarks.json 自动同步），运行时不发起外部配置请求；用户自定义数据由 loadUserData() 恢复。
 
         /**
          * 加载用户保存在 IndexedDB / localStorage 中的自定义快捷书签与壁纸偏好
@@ -3460,7 +3453,7 @@
 
         const modalState = {
             initialWallpaper: null,
-            initialMaskOpacity: 25,
+            initialMaskOpacity: 15,
             initialBgBlur: 0,
 
             draftWallpaper: undefined,
@@ -3987,6 +3980,9 @@
                 storageRemove(CONFIG.KEYS.BG_BLUR);
                 storageRemove(CONFIG.KEYS.BG); // 清除持久化的壁纸轮播索引，与 state.bg = 0 保持一致
                 storageRemove(CONFIG.KEYS.NAV_DISCOVERED); // 重置后允许重新展示下滑引导
+                storageRemove(CONFIG.KEYS.WEATHER_CACHE);   // 清除天气数据缓存
+                storageRemove(CONFIG.KEYS.WEATHER_LOC);     // 清除 IP 定位缓存（含经纬度隐私数据）
+                storageRemove(CONFIG.KEYS.WEATHER_SETTINGS); // 恢复天气组件默认开启状态
 
                 if (dom.scrollDownHint) {
                     dom.scrollDownHint.style.display = '';
@@ -4006,7 +4002,7 @@
                 setEngine('bing', false);
                 state.bg = 0;
                 applyWallpaper(backgrounds[0], false);
-                applyBgEffects(25, 0, false);
+                applyBgEffects(15, 0, false);
                 pageData.bookmarks = getDerivedBookmarks(DEFAULT_BOOKMARKS.map(b => b.url), pageData.categories);
                 renderBookmarks();
                 closeBookmarkPicker();
@@ -4412,7 +4408,7 @@
          *   2. loadUserData()     — 先从 localStorage 同步恢复用户编辑的书签
          *   3. renderBookmarks()  — 渲染首屏书签（此时已是用户数据或内置默认值）
          *   4. renderNavCategories() + initSidebarNav() — 渲染导航页，后者依赖前者生成的 DOM
-         *   5. loadData()（异步） — 直接读取内置 DEFAULT_* 默认值，不发起外部网络请求
+         *   5. 书签/分类数据直接使用内置 DEFAULT_* 默认值，运行时不发起外部配置请求
          */
         let isAppInitialized = false;
         function init() {
@@ -4470,16 +4466,6 @@
                     });
                 } catch {}
             });
-
-            scheduleIdleTask(() => {
-                loadData().then(() => {
-                    if (!storageGet(CONFIG.KEYS.BOOKMARK_KEYS)) {
-                        renderBookmarks();
-                    }
-                    renderNavCategories();
-                });
-            }, 1500);
-
         }
 
         // ==================== 苹果风格 Favicon 兜底徽章 (严格尺寸强制归一) ====================
@@ -4975,7 +4961,7 @@
                 dom.randomBookmarkBtn.addEventListener('click', e => {
                     e.stopPropagation();
                     e.preventDefault();
-                    openRandomBookmark(e.altKey || e.metaKey || e.ctrlKey || true);
+                    openRandomBookmark(true);
                 });
             }
 
@@ -5534,7 +5520,7 @@
             if (dom.bgBlurInput) {
                 dom.bgBlurInput.addEventListener('input', e => {
                     modalState.draftBgBlur = parseInt(e.target.value, 10) || 0;
-                    applyBgEffects(modalState.draftMaskOpacity !== null ? modalState.draftMaskOpacity : 25, modalState.draftBgBlur, false);
+                    applyBgEffects(modalState.draftMaskOpacity !== null ? modalState.draftMaskOpacity : 15, modalState.draftBgBlur, false);
                 });
             }
 
@@ -5545,8 +5531,14 @@
                         try {
                             const keys = await caches.keys();
                             await Promise.all(keys.map(key => caches.delete(key)));
-                            if ('indexedDB' in window) {
-                                try { indexedDB.deleteDatabase('sw-lru-db'); } catch {}
+                            // 注销并重新注册 SW：立即触发全新 install 重建 CORE_CACHE 核心预缓存，
+                            // 消除"清缓存后未重新加载页面就离线"导致核心资源无兜底的窗口期
+                            if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+                                try {
+                                    const regs = await navigator.serviceWorker.getRegistrations();
+                                    await Promise.all(regs.map(r => r.unregister()));
+                                    await navigator.serviceWorker.register('sw.js');
+                                } catch {}
                             }
                             showConfirm('Service Worker 离线资源与页面缓存已成功刷新清理！', null, '离线缓存已重置');
                         } catch (err) {

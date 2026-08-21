@@ -205,7 +205,8 @@ self.addEventListener('fetch', e => {
                                 signal: controller ? controller.signal : undefined
                             });
                             if (timeoutId) clearTimeout(timeoutId);
-                            // 防污染控制：仅在网络层有效且非零字节应答时才写入缓存
+                            // 防污染控制：opaque 响应（status=0）无法读取字节，仅按响应类型放行写入；
+                            // 网络层有效应答（netRes.ok）或合法 opaque 响应才允许进入缓存池
                             if (netRes && (netRes.ok || netRes.type === 'opaque')) {
                                 await cache.put(e.request, netRes.clone());
                                 await pruneCache(cache, maxEntries);
