@@ -29,7 +29,7 @@
   - 在导航页内部向下滚动浏览时，视口底部 36px 区域自动通过 `mask-image` 产生纯净 Alpha 透明渐隐，平滑透出底层动态壁纸，全流程零黑灰脏色、零卡顿。
 
 ### 2. 搜索与搜索引擎操作
-- **搜索引擎切换**：点击搜索框左侧引擎图标（支持 Bing、Google），在下拉菜单中快速切换。
+- **搜索引擎切换**：点击搜索框左侧引擎图标（支持 Bing、Google、Wikipedia），在下拉菜单中快速切换。
 - **盲打自动聚焦**：在起始页非输入状态下，直接按下键盘上的任意字母/数字键，搜索框将自动获得焦点并输入。
 - **中文拼音输入法 (IME) 保护**：输入中文时自动识别拼音合成状态（`compositionstart` / `compositionend`），避免选字过程中误触发搜索或拦截。
 - **混合联想与本地书签匹配**：
@@ -281,7 +281,7 @@ add_header Cross-Origin-Opener-Policy "same-origin" always;
 add_header Permissions-Policy "accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()" always;
 
 # 5. 内容安全策略 (Content-Security-Policy HTTP 标头)
-add_header Content-Security-Policy "default-src 'self' data: blob: https:; script-src 'self' 'unsafe-inline' https://api.bing.com https://suggestqueries.google.com https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: blob: https:; connect-src 'self' https:; worker-src 'self' blob:; frame-ancestors 'self';" always;
+add_header Content-Security-Policy "default-src 'self' data: blob: https:; script-src 'self' 'unsafe-inline' https://api.bing.com https://suggestqueries.google.com https://zh.wikipedia.org https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: blob: https:; connect-src 'self' https:; worker-src 'self' blob:; frame-ancestors 'self';" always;
 ```
 
 ---
@@ -305,7 +305,7 @@ add_header Content-Security-Policy "default-src 'self' data: blob: https:; scrip
 - `a.favicon.im` — Favicon 图标 API
 - `api.open-meteo.com` / `geocoding-api.open-meteo.com` — 全球气象与地理编码 API (免 Key 开源底座)
 - `myip.ipip.net` / `ipwho.is` — 高精度 IP 归属地定位解析 API
-- Bing / Google — 搜索联想建议 API
+- Bing / Google / Wikipedia — 搜索联想建议 API
 - `wallpapers/` — 本地预设 2.5K AVIF 高清壁纸库（支持 10-bit 色深与全量预缓存）
 - `server.js` / `start.command` — 原生 Node.js 零依赖本地与局域网开发静态服务器 (0ms 秒级启动)
 

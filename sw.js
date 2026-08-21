@@ -35,7 +35,8 @@ const CORE_ASSETS = [
 // 核心搜索引擎跨域图标预存列表
 const CORE_FAVICONS = [
     'https://a.favicon.im/bing.com',
-    'https://a.favicon.im/google.com'
+    'https://a.favicon.im/google.com',
+    'https://a.favicon.im/wikipedia.org'
 ];
 
 // 简单 CacheStorage 数量限额清理 (FIFO 超限自动淘汰，淘汰重度 IDB 依赖)

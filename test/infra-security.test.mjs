@@ -121,9 +121,9 @@ function extractCoreFavicons(swContent) {
   return [...m[1].matchAll(/'([^']*)'/g)].map(x => x[1]);
 }
 const favicons = extractCoreFavicons(srcSw);
-const cleanFavicons = favicons.length === 2 && favicons.some(f => f.includes('bing.com')) && favicons.some(f => f.includes('google.com')) && !favicons.some(f => f.includes('baidu.com'));
+const cleanFavicons = favicons.length === 3 && favicons.some(f => f.includes('bing.com')) && favicons.some(f => f.includes('google.com')) && favicons.some(f => f.includes('wikipedia.org')) && !favicons.some(f => f.includes('baidu.com'));
 
-pass('Service Worker 图标预缓存安全白名单校验 (仅Bing&Google/杜绝百度与未知源)',
+pass('Service Worker 图标预缓存安全白名单校验 (仅Bing&Google&Wikipedia/杜绝百度与未知源)',
   cleanFavicons, `favicons=${JSON.stringify(favicons)}`);
 
 // ══════════════════════════════════════════════════════════════════════

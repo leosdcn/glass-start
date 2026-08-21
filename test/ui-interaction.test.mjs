@@ -279,11 +279,11 @@ const engineDropdownCheck = await evalJS(`(() => {
   const buttons = [...document.querySelectorAll('#dropdownMenu button[data-engine]')];
   const engineKeys = buttons.map(b => b.dataset.engine);
   return {
-    isClean: engineKeys.length === 2 && engineKeys.includes('bing') && engineKeys.includes('google') && !engineKeys.includes('baidu') && !engineKeys.includes('duckduckgo')
+    isClean: engineKeys.length === 3 && engineKeys.includes('bing') && engineKeys.includes('google') && engineKeys.includes('wikipedia') && !engineKeys.includes('baidu') && !engineKeys.includes('duckduckgo')
   };
 })()`);
 
-pass('OverlayStack 多层弹窗嵌套压退栈与安全白名单 (多层Modal/引擎下拉/快捷键拦截/遮罩记忆/Bing-Google白名单)',
+pass('OverlayStack 多层弹窗嵌套压退栈与安全白名单 (多层Modal/引擎下拉/快捷键拦截/遮罩记忆/Bing-Google-Wikipedia白名单)',
   clockOk && modalStackOk && dropdownOk && lockOk && confirmOk && dropzoneOk && maskOk && engineDropdownCheck.isClean);
 
 // ══════════════════════════════════════════════════════════════════════
