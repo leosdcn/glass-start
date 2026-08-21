@@ -10,7 +10,7 @@
     <meta name="theme-color" content="#0b0f19">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self' data: blob: https:; script-src 'self' 'unsafe-inline' https://api.bing.com https://suggestqueries.google.com https://static.cloudflareinsights.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: blob: https:; connect-src 'self' https:; worker-src 'self' blob:;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://api.bing.com https://suggestqueries.google.com https://static.cloudflareinsights.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https://api.open-meteo.com https://geocoding-api.open-meteo.com https://myip.ipip.net https://ipwho.is https://a.favicon.im https://cloudflareinsights.com; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'self'; upgrade-insecure-requests">
     <meta name="description" content="灵动优雅、极简纯净的玻璃拟态浏览器起始页与分类导航。">
     <meta name="keywords" content="起始页, 浏览器导航, 玻璃拟态, 个人主页, Glassmorphism, Startpage">
     <link rel="canonical" href="https://goldcoast.dpdns.org/">
@@ -3584,7 +3584,7 @@
             const initial = (name || '?').trim().charAt(0).toUpperCase() || '?';
             const faviconUrl = icon || faviconFromUrl(url);
             if (faviconUrl) {
-                return `<div class="icon-box icon-box-sm edit-favicon-img-wrapper pointer-events-none select-none"><img src="${escapeHtml(faviconUrl)}" width="24" height="24" data-initial="${escapeHtml(initial)}" class="edit-favicon-img pointer-events-none select-none" alt="" loading="lazy" decoding="async" draggable="false" onload="this.classList.add('loaded')"></div>`;
+                return `<div class="icon-box icon-box-sm edit-favicon-img-wrapper pointer-events-none select-none"><img src="${escapeHtml(faviconUrl)}" width="24" height="24" data-initial="${escapeHtml(initial)}" class="edit-favicon-img pointer-events-none select-none" alt="" loading="lazy" decoding="async" draggable="false"></div>`;
             }
             return createLetterBadgeHtml(initial, 'icon-box-sm edit-favicon-initial', 'text-2xs font-semibold');
         }
@@ -4505,6 +4505,16 @@
             }
         }, true);
 
+        // 全局捕获阶段图片加载成功处理器，代替 HTML 模板行内 onload 绑定（为 CSP 收紧铺路）。
+        // load 事件虽不冒泡，但捕获阶段自 document 下行传播仍可命中；监听器于脚本初始化时注册，
+        // 早于一切动态图标渲染，故不存在"缓存图先加载完成导致事件丢失"的时序窗口。
+        document.addEventListener('load', (e) => {
+            const target = e.target;
+            if (target && target.tagName === 'IMG' && (target.classList.contains('lazy-icon') || target.classList.contains('edit-favicon-img'))) {
+                target.classList.add('loaded');
+            }
+        }, true);
+
         /**
          * 根据书签数据对象生成规范化的 Favicon HTML 图标结构
          * 自动处理缺失图标时的首字母文字徽章，以及合法 URL 图片节点的生成
@@ -4530,7 +4540,7 @@
             }
             const imgSize = isMd ? '32' : '24';
             const loadingAttr = isMd ? 'loading="eager" fetchpriority="high"' : 'loading="lazy" fetchpriority="low"';
-            return `<div class="icon-box ${sizeClass}"><img src="${safeIcon}" width="${imgSize}" height="${imgSize}" data-initial="${escapeHtml(initial)}" data-md="${isMd ? '1' : '0'}" class="lazy-icon pointer-events-none select-none" alt="" ${loadingAttr} decoding="async" draggable="false" onload="this.classList.add('loaded')"></div>`;
+            return `<div class="icon-box ${sizeClass}"><img src="${safeIcon}" width="${imgSize}" height="${imgSize}" data-initial="${escapeHtml(initial)}" data-md="${isMd ? '1' : '0'}" class="lazy-icon pointer-events-none select-none" alt="" ${loadingAttr} decoding="async" draggable="false"></div>`;
         }
 
         // ==================== 图标状态与缓存感知感知器 ====================

@@ -100,7 +100,9 @@ self.addEventListener('fetch', e => {
     const isMainDoc = e.request.mode === 'navigate' || pathnameLower === '/' || pathnameLower.endsWith('/index.html');
     const isCoreData = pathnameLower.endsWith('/manifest.json') || pathnameLower.endsWith('/bookmarks.json');
     const isFaviconDomain = urlObj.origin === 'https://a.favicon.im';
-    const isImgAsset = /\.(ico|png|jpg|jpeg|svg|webp|avif)$/i.test(pathnameLower);
+    // 仅拦截同源图片进 IMG_CACHE：跨域图片（如用户自定义壁纸）交由浏览器直连，
+    // 由页面 CSP img-src 管辖 —— 避免 SW 上下文 fetch 受 connect-src 白名单限制而阻断任意壁纸主机
+    const isImgAsset = urlObj.origin === self.location.origin && /\.(ico|png|jpg|jpeg|svg|webp|avif)$/i.test(pathnameLower);
 
     // 1. 主文档 Network-First 策略
     if (isMainDoc) {

@@ -7,7 +7,11 @@
   Referrer-Policy: strict-origin-when-cross-origin
   Cross-Origin-Opener-Policy: same-origin
   Permissions-Policy: accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()
-  Content-Security-Policy: default-src 'self' data: blob: https:; script-src 'self' 'unsafe-inline' https://api.bing.com https://suggestqueries.google.com https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: blob: https:; connect-src 'self' https:; worker-src 'self' blob:; frame-ancestors 'self';
+  # CSP 说明：
+  # - img-src 保留 data:/blob:/https: 通配 —— 自定义壁纸（任意 http(s)/DataURL）与第三方 favicon 的功能生命线，严禁收紧
+  # - connect-src 白名单含 a.favicon.im —— Service Worker 上下文内的图标重验证请求同样受其管辖
+  # - script-src 暂保留 'unsafe-inline'（多个内联 hydration 脚本依赖），后续 nonce 化后移除
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://api.bing.com https://suggestqueries.google.com https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https://api.open-meteo.com https://geocoding-api.open-meteo.com https://myip.ipip.net https://ipwho.is https://a.favicon.im https://cloudflareinsights.com; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'self'; upgrade-insecure-requests
 
 /wallpapers/*
   Cache-Control: public, max-age=31536000, immutable
