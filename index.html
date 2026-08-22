@@ -3269,6 +3269,9 @@
             } else {
                 pageData.bookmarks = getDerivedBookmarks(DEFAULT_BOOKMARKS.map(b => b.url), pageData.categories, customMeta);
             }
+            if (dom.bookmarks) {
+                renderBookmarks();
+            }
 
             // 恢复持久化的系统壁纸轮播索引 state.bg
             const savedBg = storageGet(CONFIG.KEYS.BG);
@@ -3291,8 +3294,8 @@
             if (customBg) {
                 state.customWallpaper = customBg;
                 applyWallpaper(customBg, false);
-            } else if (state.bg !== 0) {
-                applyWallpaper(backgrounds[state.bg], false);
+            } else {
+                applyWallpaper(backgrounds[state.bg] || backgrounds[0], false);
             }
         }
 
