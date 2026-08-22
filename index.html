@@ -418,11 +418,6 @@
         /* ==========================================================================
            4. SCREEN SYSTEM & STRUCTURAL LAYOUT (双屏推移与全屏分层系统)
            ========================================================================== */
-        section {
-            /* 保持硬件合成层但避免在 Safari 中与 backdrop-filter 产生多重 3D 隔离上下文 */
-            backface-visibility: hidden;
-            -webkit-backface-visibility: hidden;
-        }
         #startSection {
             position: fixed;
             inset: 0;
@@ -437,6 +432,10 @@
         #startSection.screen-pushed-up {
             transform: translateY(-100vh);
             transform: translateY(-100dvh);
+        }
+        #startSection.start-hidden {
+            visibility: hidden;
+            pointer-events: none;
         }
         #navSection {
             position: fixed;
@@ -7084,25 +7083,29 @@
             const nav = dom.navSection;
             const navContent = dom.navContent;
 
-            // 纯无障碍 (a11y) 屏隔离与 Tab 聚焦防护：aria-hidden 即时生效，inert 待过渡彻底完成后赋予
-            function updateSectionAccessibility(sec, immediateInert = false) {
+            // 纯无障碍 (a11y) 屏隔离与 Tab 聚焦防护：aria-hidden 即时生效，离屏时通过 .start-hidden / .nav-hidden 安全隔离
+            function updateSectionAccessibility(sec, isFinished = false) {
                 if (sec === 'nav') {
                     if (startSection) {
                         startSection.setAttribute('aria-hidden', 'true');
-                        if (immediateInert) startSection.setAttribute('inert', '');
+                        if (isFinished) startSection.classList.add('start-hidden');
                     }
                     if (nav) {
                         nav.removeAttribute('aria-hidden');
-                        nav.removeAttribute('inert');
+                        nav.classList.remove('nav-hidden');
+                        nav.classList.add('nav-visible');
                     }
                 } else {
                     if (startSection) {
                         startSection.removeAttribute('aria-hidden');
-                        startSection.removeAttribute('inert');
+                        startSection.classList.remove('start-hidden');
                     }
                     if (nav) {
                         nav.setAttribute('aria-hidden', 'true');
-                        if (immediateInert) nav.setAttribute('inert', '');
+                        if (isFinished) {
+                            nav.classList.remove('nav-visible');
+                            nav.classList.add('nav-hidden');
+                        }
                     }
                 }
             }
@@ -7197,6 +7200,7 @@
                 if (startSection) {
                     startSection.style.transform = '';
                     startSection.style.transition = '';
+                    startSection.classList.remove('start-hidden');
                     startSection.classList.add('screen-pushed-up');
                 }
                 if (nav) {
@@ -7251,8 +7255,8 @@
                 if (startSection) {
                     startSection.style.transform = '';
                     startSection.style.transition = '';
+                    startSection.classList.remove('start-hidden');
                     startSection.classList.remove('screen-pushed-up');
-                    void startSection.offsetHeight; // 强制触发 WebKit 几何重排重绘，防硬件图层挂起
                 }
                 if (nav) {
                     nav.style.transform = '';
@@ -7269,10 +7273,6 @@
                     window.scrollTo(0, 0);
                     updateGearVisibility();
                     updateSectionAccessibility('start', true);
-                    if (nav) {
-                        nav.classList.remove('nav-visible');
-                        nav.classList.add('nav-hidden');
-                    }
                 }, CONFIG.GESTURE.TRANSITION_MS);
             }
 
@@ -7281,7 +7281,9 @@
 
             // 依据 sessionStorage 精准同步页面状态与位置
             if (getSavedSection() === 'nav') {
-                if (startSection) startSection.classList.add('screen-pushed-up');
+                if (startSection) {
+                    startSection.classList.add('screen-pushed-up', 'start-hidden');
+                }
                 nav.classList.remove('nav-hidden');
                 nav.classList.add('nav-visible', 'screen-pushed-in');
                 targetSection = 'nav';
@@ -7295,7 +7297,9 @@
                 updateSidebarActive();
                 initFaviconObserver();
             } else {
-                if (startSection) startSection.classList.remove('screen-pushed-up');
+                if (startSection) {
+                    startSection.classList.remove('screen-pushed-up', 'start-hidden');
+                }
                 nav.classList.remove('screen-pushed-in', 'nav-visible');
                 nav.classList.add('nav-hidden');
                 state.currentSection = 'start';
