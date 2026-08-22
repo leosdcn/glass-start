@@ -5089,6 +5089,23 @@
             document.addEventListener('click', handleCloseMenus);
             window.addEventListener('blur', handleCloseMenus);
 
+            // 链接与书签点击后自动失焦，防止新标签页返回时残留高亮与焦点被困在离屏硬件图层
+            document.addEventListener('click', (e) => {
+                const link = e.target && e.target.closest && e.target.closest('a[target="_blank"], .bookmark-item, .nav-bookmark');
+                if (link && typeof link.blur === 'function') {
+                    setTimeout(() => {
+                        if (document.activeElement === link) {
+                            link.blur();
+                        }
+                    }, 0);
+                }
+            }, { passive: true });
+            window.addEventListener('blur', () => {
+                if (document.activeElement && typeof document.activeElement.blur === 'function' && document.activeElement !== document.body && document.activeElement !== dom.searchInput) {
+                    document.activeElement.blur();
+                }
+            }, { passive: true });
+
             // 点击导航页顶栏或右侧返回按钮，平滑返回起始页
             const handleBackToStart = () => {
                 if (window.switchToStart) window.switchToStart();
@@ -7060,12 +7077,12 @@
             const nav = dom.navSection;
             const navContent = dom.navContent;
 
-            // 纯无障碍 (a11y) 屏隔离与 Tab 聚焦防护：防止键盘导航误入视口外的隐藏区
-            function updateSectionAccessibility(sec) {
+            // 纯无障碍 (a11y) 屏隔离与 Tab 聚焦防护：aria-hidden 即时生效，inert 待过渡彻底完成后赋予
+            function updateSectionAccessibility(sec, immediateInert = false) {
                 if (sec === 'nav') {
                     if (startSection) {
                         startSection.setAttribute('aria-hidden', 'true');
-                        startSection.setAttribute('inert', '');
+                        if (immediateInert) startSection.setAttribute('inert', '');
                     }
                     if (nav) {
                         nav.removeAttribute('aria-hidden');
@@ -7078,7 +7095,7 @@
                     }
                     if (nav) {
                         nav.setAttribute('aria-hidden', 'true');
-                        nav.setAttribute('inert', '');
+                        if (immediateInert) nav.setAttribute('inert', '');
                     }
                 }
             }
@@ -7133,6 +7150,9 @@
                     clearTimeout(transitionTimer);
                     transitionTimer = null;
                 }
+                if (document.activeElement && typeof document.activeElement.blur === 'function') {
+                    document.activeElement.blur();
+                }
                 closeDropdown();
                 hideSuggestions();
                 targetSection = 'nav';
@@ -7150,7 +7170,7 @@
                     });
                 }
                 saveSection('nav');
-                updateSectionAccessibility('nav');
+                updateSectionAccessibility('nav', false);
                 updateGearVisibility();
                 updateThemeColor('#12141a');
 
@@ -7193,6 +7213,7 @@
                     lastTransitionEndTime = performance.now();
                     clearAccum();
                     window.scrollTo(0, 0);
+                    updateSectionAccessibility('nav', true);
                     if (document.activeElement && typeof document.activeElement.blur === 'function') {
                         document.activeElement.blur();
                     }
@@ -7205,6 +7226,9 @@
                     clearTimeout(transitionTimer);
                     transitionTimer = null;
                 }
+                if (document.activeElement && typeof document.activeElement.blur === 'function') {
+                    document.activeElement.blur();
+                }
                 targetSection = 'start';
                 state.currentSection = 'start';
                 isTransitioning = true;
@@ -7214,13 +7238,14 @@
                 if (document.body.scrollTop !== 0) document.body.scrollTop = 0;
                 if (navContent) navContent.scrollTop = 0;
                 saveSection('start');
-                updateSectionAccessibility('start');
+                updateSectionAccessibility('start', false);
                 updateThemeColor('#0b0f19');
 
                 if (startSection) {
                     startSection.style.transform = '';
                     startSection.style.transition = '';
                     startSection.classList.remove('screen-pushed-up');
+                    void startSection.offsetHeight; // 强制触发 WebKit 几何重排重绘，防硬件图层挂起
                 }
                 if (nav) {
                     nav.style.transform = '';
@@ -7236,6 +7261,7 @@
                     clearAccum();
                     window.scrollTo(0, 0);
                     updateGearVisibility();
+                    updateSectionAccessibility('start', true);
                     if (nav) {
                         nav.classList.remove('nav-visible');
                         nav.classList.add('nav-hidden');
@@ -7254,7 +7280,7 @@
                 targetSection = 'nav';
                 state.currentSection = 'nav';
                 saveSection('nav');
-                updateSectionAccessibility('nav');
+                updateSectionAccessibility('nav', true);
                 updateGearVisibility();
                 updateThemeColor('#12141a');
                 document.documentElement.classList.remove('nr');
@@ -7268,7 +7294,7 @@
                 state.currentSection = 'start';
                 saveSection('start');
                 targetSection = 'start';
-                updateSectionAccessibility('start');
+                updateSectionAccessibility('start', true);
                 updateGearVisibility();
                 document.documentElement.classList.remove('nr');
             }
