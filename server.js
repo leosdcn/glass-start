@@ -80,22 +80,24 @@ function createStaticServer() {
                             res.end('404 Not Found');
                         } else {
                             const accept = req.headers['accept-encoding'] || '';
+                            const headers = {
+                                'Content-Type': 'text/html; charset=utf-8',
+                                'Cache-Control': 'no-cache, must-revalidate'
+                            };
                             if (accept.includes('gzip')) {
                                 zlib.gzip(data, { level: 6 }, (gzErr, compressed) => {
                                     if (gzErr) {
-                                        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+                                        res.writeHead(200, headers);
                                         res.end(data);
                                     } else {
-                                        res.writeHead(200, {
-                                            'Content-Type': 'text/html; charset=utf-8',
-                                            'Content-Encoding': 'gzip',
-                                            'Vary': 'Accept-Encoding'
-                                        });
+                                        headers['Content-Encoding'] = 'gzip';
+                                        headers['Vary'] = 'Accept-Encoding';
+                                        res.writeHead(200, headers);
                                         res.end(compressed);
                                     }
                                 });
                             } else {
-                                res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+                                res.writeHead(200, headers);
                                 res.end(data);
                             }
                         }
@@ -107,7 +109,12 @@ function createStaticServer() {
                 const contentType = MIME_TYPES[ext] || 'application/octet-stream';
 
                 res.setHeader('Content-Type', contentType);
-                res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+                const isWallpaper = rel.startsWith('wallpapers' + path.sep) || rel.startsWith('wallpapers/');
+                if (isWallpaper) {
+                    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+                } else {
+                    res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+                }
                 // 仅对非文档类静态资产开放跨域读取；HTML 文档不设置 CORS，避免局域网内任意页面跨域读取页面内容
                 if (!contentType.startsWith('text/html')) {
                     res.setHeader('Access-Control-Allow-Origin', '*');

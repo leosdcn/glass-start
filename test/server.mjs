@@ -25,7 +25,7 @@ export function startServer(port, root = DEFAULT_ROOT, customRoutes = {}) {
         if (customRoutes[p]) {
           const handler = customRoutes[p];
           if (typeof handler === 'string') {
-            res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
+            res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-cache' });
             res.end(handler);
             return;
           }
@@ -34,7 +34,7 @@ export function startServer(port, root = DEFAULT_ROOT, customRoutes = {}) {
         if (p === '/') p = '/index.html';
         const file = join(root, p);
         const data = readFileSync(file);
-        res.writeHead(200, { 'Content-Type': MIME[extname(file)] || 'application/octet-stream', 'Cache-Control': 'no-store' });
+        res.writeHead(200, { 'Content-Type': MIME[extname(file)] || 'application/octet-stream', 'Cache-Control': 'no-cache' });
         res.end(data);
       } catch {
         res.writeHead(404);

@@ -29,7 +29,7 @@ if (!existsSync(DIST)) {
 }
 
 // 1.1 文件完整性
-const requiredFiles = ['index.html', 'sw.js', 'app.js', '_headers', 'wallpapers/bg1.avif'];
+const requiredFiles = ['index.html', 'sw.js', 'app.js', '_headers', 'robots.txt', 'wallpapers/bg1.avif'];
 const missingFiles = requiredFiles.filter(f => !existsSync(join(DIST, f)));
 const filesExistOk = missingFiles.length === 0;
 

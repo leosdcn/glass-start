@@ -234,14 +234,14 @@ function buildServiceWorkerAndAssets() {
         fs.copyFileSync(PATHS.headers, path.join(PATHS.dist, '_headers'));
         logItem('Cloudflare Pages _headers 配置文件已复制至 dist/_headers');
     }
-    const rootAssets = ['manifest.json', 'apple-touch-icon.png'];
+    const rootAssets = ['manifest.json', 'apple-touch-icon.png', 'robots.txt'];
     rootAssets.forEach(asset => {
         const srcPath = path.join(PATHS.root, asset);
         if (fs.existsSync(srcPath)) {
             fs.copyFileSync(srcPath, path.join(PATHS.dist, asset));
         }
     });
-    logItem('PWA manifest.json 与 Apple Touch Icon 高清图标已同步至 dist/');
+    logItem('PWA manifest.json、Apple Touch Icon 与 robots.txt 已同步至 dist/');
 }
 
 // 4. 自动数据双向同步机制 (Auto-Sync bookmarks.json -> index.html DEFAULT_CATEGORIES / DEFAULT_BOOKMARKS)

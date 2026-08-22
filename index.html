@@ -56,15 +56,12 @@
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🪐%3C/text%3E%3C/svg%3E">
     <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png">
     <link rel="manifest" href="./manifest.json">
-    <!-- 外部核心 API 与 CDN 全握手级网络预连接与 DNS 预解析兜底 -->
+    <!-- 外部核心资源预连接与 DNS 极速预解析 -->
     <link rel="dns-prefetch" href="https://a.favicon.im">
     <link rel="dns-prefetch" href="https://myip.ipip.net">
     <link rel="dns-prefetch" href="https://geocoding-api.open-meteo.com">
     <link rel="dns-prefetch" href="https://api.open-meteo.com">
     <link rel="preconnect" href="https://a.favicon.im" crossorigin>
-    <link rel="preconnect" href="https://myip.ipip.net" crossorigin>
-    <link rel="preconnect" href="https://geocoding-api.open-meteo.com" crossorigin>
-    <link rel="preconnect" href="https://api.open-meteo.com" crossorigin>
     <!-- 动态壁纸 Preload：根据设备物理 DPI 与用户历史偏好动态计算，单次精准预加载消灭带宽争抢与 LCP 延迟 -->
     <script>
       /**
@@ -333,6 +330,19 @@
             border: 1px solid rgba(255, 255, 255, 0.10);
             box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.10);
             border-radius: var(--radius-inner); /* 16px 精准同心圆角: R_inner = R_outer(24px) - Padding(20px) 视觉黄金比例 */
+            transition: background-color var(--duration-fast) var(--ease-spring), border-color var(--duration-fast) var(--ease-spring), transform var(--duration-fast) var(--ease-spring), box-shadow var(--duration-fast) var(--ease-spring);
+            will-change: transform;
+        }
+        @media (hover: hover) and (pointer: fine) {
+            .glass-subcard:hover {
+                background-color: rgba(255, 255, 255, 0.09);
+                border-color: rgba(255, 255, 255, 0.20);
+                transform: translateY(-1.5px);
+                box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.20), 0 4px 12px rgba(0, 0, 0, 0.15);
+            }
+        }
+        .glass-subcard:active {
+            transform: scale(0.97);
         }
         .glass-badge {
             display: inline-flex;
@@ -1036,6 +1046,37 @@
             from { transform: rotate(0deg); }
             to { transform: rotate(360deg); }
         }
+        /* 天气小组件：入场动效系统 */
+        /* 弹窗层级交错弹簧入场 (iOS Staggered Spring) */
+        #weatherPopover.active .weather-stagger-1 {
+            animation: weatherStaggerSlide var(--duration-entrance) var(--ease-spring) backwards;
+            animation-delay: 0ms;
+        }
+        #weatherPopover.active .weather-stagger-2 {
+            animation: weatherStaggerSlide var(--duration-entrance) var(--ease-spring) backwards;
+            animation-delay: 35ms;
+        }
+        #weatherPopover.active .weather-stagger-3 {
+            animation: weatherStaggerSlide var(--duration-entrance) var(--ease-spring) backwards;
+            animation-delay: 70ms;
+        }
+        #weatherPopover.active .weather-stagger-4 {
+            animation: weatherStaggerSlide var(--duration-entrance) var(--ease-spring) backwards;
+            animation-delay: 105ms;
+        }
+        @keyframes weatherStaggerSlide {
+            from {
+                opacity: 0;
+                transform: translate3d(0, 6px, 0);
+            }
+            to {
+                opacity: 1;
+                transform: translate3d(0, 0, 0);
+            }
+        }
+        #weatherPopover:not(.active) * {
+            animation-play-state: paused;
+        }
         /* ===== 导航页书签入场效果 =====
            ⚠️ 架构防踩坑警告 (严禁添加 content-visibility: auto 或 contain: layout/paint)：
            本项目第二屏 (#navSection) 采用全屏 translateY(100vh) GPU 物理推移架构。
@@ -1454,9 +1495,9 @@
         <!-- 全屏右上角悬浮天气胶囊（置于起始页内，随起始页物理滑屏，全生命周期保持 100% 毛玻璃常驻） -->
         <div id="weatherWidget" class="select-none">
             <button id="weatherBtn" type="button" aria-expanded="false" aria-controls="weatherPopover" aria-haspopup="dialog" aria-label="--° · 天气，点击查看实时天气与详细预报" class="glass apple-radius px-3 py-1.5 sm:px-3.5 sm:py-2 text-white/80 hover:text-white border border-white/12 flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-medium glass-interactive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 fade-in">
-                <span id="weatherIcon" class="text-sm sm:text-base leading-none select-none">🌤️</span>
+                <span id="weatherIcon" aria-hidden="true" class="text-sm sm:text-base leading-none select-none">🌤️</span>
                 <span id="weatherTemp" class="tabular-nums font-semibold tracking-tight leading-none">--°</span>
-                <span class="text-white/30 font-light select-none">·</span>
+                <span aria-hidden="true" class="text-white/30 font-light select-none">·</span>
                 <span id="weatherCity" class="text-white/80 max-w-22 sm:max-w-30 truncate text-2xs sm:text-xs">天气</span>
             </button>
             <!-- 下拉天气预报卡片 -->
@@ -1710,7 +1751,7 @@
                         <div>
                             <div class="flex items-center gap-2">
                                 <span class="text-sm font-semibold text-white/95 tracking-tight leading-none">Glass Start</span>
-                                <span class="text-2xs px-2 h-4.5 rounded-full bg-white/10 border border-white/15 text-white/75 font-medium inline-flex items-center justify-center select-none">v3.2.8</span>
+                                <span class="text-2xs px-2 h-4.5 rounded-full bg-white/10 border border-white/15 text-white/75 font-medium inline-flex items-center justify-center select-none">v3.2.9</span>
                             </div>
                             <div class="text-2xs text-white/50 leading-none mt-1.5">极简 Liquid Glass 拟态导航 • Build 2026.08</div>
                         </div>
@@ -6757,7 +6798,7 @@
 
             dom.weatherPopover.innerHTML = `
                 <!-- 头部地点与刷新 -->
-                <div class="flex items-center justify-between pb-2.5 mb-3 border-b border-white/10">
+                <div class="weather-stagger-1 flex items-center justify-between pb-2.5 mb-3 border-b border-white/10">
                     <div class="flex items-center gap-1.5 min-w-0 pr-2">
                         <span class="text-xs text-white/50 shrink-0">📍</span>
                         <span class="text-xs font-semibold text-white/90 truncate" title="${escapeHtml(loc.fullName || loc.name)}">${escapeHtml(loc.fullName || loc.name)}</span>
@@ -6768,7 +6809,7 @@
                 </div>
 
                 <!-- 当前主天气 -->
-                <div class="flex items-center justify-between mb-3 px-1">
+                <div class="weather-stagger-2 flex items-center justify-between mb-3 px-1">
                     <div class="flex items-center gap-3">
                         <span class="text-3xl sm:text-4xl leading-none select-none">${escapeHtml(c.icon)}</span>
                         <div>
@@ -6780,7 +6821,7 @@
                 </div>
 
                 <!-- 详细指标 2x2 网格 -->
-                <div class="grid grid-cols-2 gap-2 mb-3">
+                <div class="weather-stagger-3 grid grid-cols-2 gap-2 mb-3">
                     <div class="p-2 glass-subcard flex items-center gap-2">
                         <span class="text-sm select-none">${humIcon}</span>
                         <div class="min-w-0">
@@ -6812,7 +6853,7 @@
                 </div>
 
                 <!-- 未来预报 -->
-                <div class="space-y-1.5 pt-2 border-t border-white/10">
+                <div class="weather-stagger-4 space-y-1.5 pt-2 border-t border-white/10">
                     <div class="text-2xs text-white/50 font-medium px-1 mb-1">未来几天预报</div>
                     ${days.slice(0, 4).map(d => `
                         <div class="flex items-center justify-between text-xs py-1 px-1.5 apple-radius hover:bg-white/5 transition-colors">
