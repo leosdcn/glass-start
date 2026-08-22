@@ -1,8 +1,42 @@
-import { spawn, spawnSync } from 'node:child_process';
+import { spawn, spawnSync, execSync } from 'node:child_process';
 import { readdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
+import { tmpdir } from 'node:os';
+
+// 终极进程清理器：强杀任意残留的无头 Chrome 实例与清除临时目录
+function cleanupLingeringTestProcesses() {
+  try {
+    execSync('pkill -9 -f "glass-start-test"', { stdio: 'ignore' });
+  } catch {}
+  try {
+    execSync(`rm -rf "${tmpdir()}"/glass-start-test-* /tmp/glass-start-test-* 2>/dev/null || true`, { stdio: 'ignore' });
+  } catch {}
+}
+
+// 启动前先扫清既往残留
+cleanupLingeringTestProcesses();
+
+// 注册退出信号保护
+const runningChildProcesses = new Set();
+process.on('SIGINT', () => {
+  for (const child of runningChildProcesses) {
+    try { child.kill('SIGKILL'); } catch {}
+  }
+  cleanupLingeringTestProcesses();
+  process.exit(130);
+});
+process.on('SIGTERM', () => {
+  for (const child of runningChildProcesses) {
+    try { child.kill('SIGKILL'); } catch {}
+  }
+  cleanupLingeringTestProcesses();
+  process.exit(143);
+});
+process.on('exit', () => {
+  cleanupLingeringTestProcesses();
+});
 
 // 终端格式化排版与 ANSI 彩色工具
 const isTTY = process.stdout.isTTY && !process.env.NO_COLOR;
@@ -152,7 +186,11 @@ async function runQueue() {
           cwd: rootDir,
           stdio: 'inherit'
         });
-        child.on('close', resolve);
+        runningChildProcesses.add(child);
+        child.on('close', (res) => {
+          runningChildProcesses.delete(child);
+          resolve(res);
+        });
       });
 
       if (code === 0) {
