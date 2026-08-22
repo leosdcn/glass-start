@@ -188,7 +188,7 @@
            1. SETTINGS & DESIGN TOKENS (设计令牌与基础配置)
            ========================================================================== */
         /* .nr 模式：直达导航页预渲染，与 HEAD inline script 配合消除刷新抖动 */
-        .nr #startSection { transform: translateY(-100vh); transform: translateY(-100dvh); transition: none; }
+        .nr #startSection { transform: translateY(-100vh); transform: translateY(-100dvh); transition: none; visibility: hidden; }
         .nr #navSection { visibility: visible; transform: translateY(0); transition: none; }
         .nr #editBookmarksBtn, .nr #weatherWidget { opacity: 0; pointer-events: none; transition: none; }
         .nr *, .nr *::before, .nr *::after { animation: none; transition: none; }
