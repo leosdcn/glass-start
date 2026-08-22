@@ -188,7 +188,7 @@
            1. SETTINGS & DESIGN TOKENS (设计令牌与基础配置)
            ========================================================================== */
         /* .nr 模式：直达导航页预渲染，与 HEAD inline script 配合消除刷新抖动 */
-        .nr #startSection { transform: translateY(-100vh); transform: translateY(-100dvh); transition: none; visibility: hidden; }
+        .nr #startSection { transform: translateY(-100vh); transform: translateY(-100dvh); transition: none; }
         .nr #navSection { visibility: visible; transform: translateY(0); transition: none; }
         .nr #editBookmarksBtn, .nr #weatherWidget { opacity: 0; pointer-events: none; transition: none; }
         .nr *, .nr *::before, .nr *::after { animation: none; transition: none; }
@@ -432,10 +432,6 @@
         #startSection.screen-pushed-up {
             transform: translateY(-100vh);
             transform: translateY(-100dvh);
-        }
-        #startSection.start-hidden {
-            visibility: hidden;
-            pointer-events: none;
         }
         #navSection {
             position: fixed;
@@ -5088,28 +5084,17 @@
             document.addEventListener('click', handleCloseMenus);
             window.addEventListener('blur', handleCloseMenus);
 
-            // 链接与书签点击/失焦后瞬态重置 hover 与 focus 状态，彻底消除切回页面时的残留高亮
+            // 链接与书签点击/失焦后即时失焦并重置高光状态，消除切回页面时的焦点滞留
             document.addEventListener('click', (e) => {
                 const link = e.target && e.target.closest && e.target.closest('a[target="_blank"], .bookmark-item, .nav-bookmark');
-                if (link) {
-                    if (typeof link.blur === 'function') link.blur();
-                    link.style.pointerEvents = 'none';
-                    requestAnimationFrame(() => {
-                        link.style.pointerEvents = '';
-                    });
+                if (link && typeof link.blur === 'function') {
+                    link.blur();
                 }
             }, { passive: true });
             window.addEventListener('blur', () => {
                 if (document.activeElement && typeof document.activeElement.blur === 'function' && document.activeElement !== document.body && document.activeElement !== dom.searchInput) {
                     document.activeElement.blur();
                 }
-                const cards = document.querySelectorAll('.bookmark-item, .nav-bookmark');
-                cards.forEach(el => {
-                    el.style.pointerEvents = 'none';
-                    requestAnimationFrame(() => {
-                        el.style.pointerEvents = '';
-                    });
-                });
             }, { passive: true });
 
             // 点击导航页顶栏或右侧返回按钮，平滑返回起始页
@@ -7083,29 +7068,25 @@
             const nav = dom.navSection;
             const navContent = dom.navContent;
 
-            // 纯无障碍 (a11y) 屏隔离与 Tab 聚焦防护：aria-hidden 即时生效，离屏时通过 .start-hidden / .nav-hidden 安全隔离
-            function updateSectionAccessibility(sec, isFinished = false) {
+            // 纯无障碍 (a11y) 屏隔离与 Tab 聚焦防护：防止键盘导航误入视口外的隐藏区
+            function updateSectionAccessibility(sec) {
                 if (sec === 'nav') {
                     if (startSection) {
                         startSection.setAttribute('aria-hidden', 'true');
-                        if (isFinished) startSection.classList.add('start-hidden');
+                        startSection.setAttribute('inert', '');
                     }
                     if (nav) {
                         nav.removeAttribute('aria-hidden');
-                        nav.classList.remove('nav-hidden');
-                        nav.classList.add('nav-visible');
+                        nav.removeAttribute('inert');
                     }
                 } else {
                     if (startSection) {
                         startSection.removeAttribute('aria-hidden');
-                        startSection.classList.remove('start-hidden');
+                        startSection.removeAttribute('inert');
                     }
                     if (nav) {
                         nav.setAttribute('aria-hidden', 'true');
-                        if (isFinished) {
-                            nav.classList.remove('nav-visible');
-                            nav.classList.add('nav-hidden');
-                        }
+                        nav.setAttribute('inert', '');
                     }
                 }
             }
@@ -7180,7 +7161,7 @@
                     });
                 }
                 saveSection('nav');
-                updateSectionAccessibility('nav', false);
+                updateSectionAccessibility('nav');
                 updateGearVisibility();
                 updateThemeColor('#12141a');
 
@@ -7200,7 +7181,6 @@
                 if (startSection) {
                     startSection.style.transform = '';
                     startSection.style.transition = '';
-                    startSection.classList.remove('start-hidden');
                     startSection.classList.add('screen-pushed-up');
                 }
                 if (nav) {
@@ -7224,7 +7204,6 @@
                     lastTransitionEndTime = performance.now();
                     clearAccum();
                     window.scrollTo(0, 0);
-                    updateSectionAccessibility('nav', true);
                     if (document.activeElement && typeof document.activeElement.blur === 'function') {
                         document.activeElement.blur();
                     }
@@ -7249,13 +7228,12 @@
                 if (document.body.scrollTop !== 0) document.body.scrollTop = 0;
                 if (navContent) navContent.scrollTop = 0;
                 saveSection('start');
-                updateSectionAccessibility('start', false);
+                updateSectionAccessibility('start');
                 updateThemeColor('#0b0f19');
 
                 if (startSection) {
                     startSection.style.transform = '';
                     startSection.style.transition = '';
-                    startSection.classList.remove('start-hidden');
                     startSection.classList.remove('screen-pushed-up');
                 }
                 if (nav) {
@@ -7272,7 +7250,10 @@
                     clearAccum();
                     window.scrollTo(0, 0);
                     updateGearVisibility();
-                    updateSectionAccessibility('start', true);
+                    if (nav) {
+                        nav.classList.remove('nav-visible');
+                        nav.classList.add('nav-hidden');
+                    }
                 }, CONFIG.GESTURE.TRANSITION_MS);
             }
 
@@ -7281,15 +7262,13 @@
 
             // 依据 sessionStorage 精准同步页面状态与位置
             if (getSavedSection() === 'nav') {
-                if (startSection) {
-                    startSection.classList.add('screen-pushed-up', 'start-hidden');
-                }
+                if (startSection) startSection.classList.add('screen-pushed-up');
                 nav.classList.remove('nav-hidden');
                 nav.classList.add('nav-visible', 'screen-pushed-in');
                 targetSection = 'nav';
                 state.currentSection = 'nav';
                 saveSection('nav');
-                updateSectionAccessibility('nav', true);
+                updateSectionAccessibility('nav');
                 updateGearVisibility();
                 updateThemeColor('#12141a');
                 document.documentElement.classList.remove('nr');
@@ -7297,15 +7276,13 @@
                 updateSidebarActive();
                 initFaviconObserver();
             } else {
-                if (startSection) {
-                    startSection.classList.remove('screen-pushed-up', 'start-hidden');
-                }
+                if (startSection) startSection.classList.remove('screen-pushed-up');
                 nav.classList.remove('screen-pushed-in', 'nav-visible');
                 nav.classList.add('nav-hidden');
                 state.currentSection = 'start';
                 saveSection('start');
                 targetSection = 'start';
-                updateSectionAccessibility('start', true);
+                updateSectionAccessibility('start');
                 updateGearVisibility();
                 document.documentElement.classList.remove('nr');
             }
