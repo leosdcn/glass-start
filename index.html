@@ -7648,6 +7648,14 @@
                         updateClock();
                     }
                 }, { passive: true });
+                window.addEventListener('pageshow', () => {
+                    resetActiveCard();
+                    resetActiveSearchBox();
+                    updateClock();
+                    if (document.activeElement && typeof document.activeElement.blur === 'function' && document.activeElement !== document.body && document.activeElement !== dom.searchInput) {
+                        document.activeElement.blur();
+                    }
+                }, { passive: true });
             })();
         }
 
