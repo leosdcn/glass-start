@@ -5089,21 +5089,28 @@
             document.addEventListener('click', handleCloseMenus);
             window.addEventListener('blur', handleCloseMenus);
 
-            // 链接与书签点击后自动失焦，防止新标签页返回时残留高亮与焦点被困在离屏硬件图层
+            // 链接与书签点击/失焦后瞬态重置 hover 与 focus 状态，彻底消除切回页面时的残留高亮
             document.addEventListener('click', (e) => {
                 const link = e.target && e.target.closest && e.target.closest('a[target="_blank"], .bookmark-item, .nav-bookmark');
-                if (link && typeof link.blur === 'function') {
-                    setTimeout(() => {
-                        if (document.activeElement === link) {
-                            link.blur();
-                        }
-                    }, 0);
+                if (link) {
+                    if (typeof link.blur === 'function') link.blur();
+                    link.style.pointerEvents = 'none';
+                    requestAnimationFrame(() => {
+                        link.style.pointerEvents = '';
+                    });
                 }
             }, { passive: true });
             window.addEventListener('blur', () => {
                 if (document.activeElement && typeof document.activeElement.blur === 'function' && document.activeElement !== document.body && document.activeElement !== dom.searchInput) {
                     document.activeElement.blur();
                 }
+                const cards = document.querySelectorAll('.bookmark-item, .nav-bookmark');
+                cards.forEach(el => {
+                    el.style.pointerEvents = 'none';
+                    requestAnimationFrame(() => {
+                        el.style.pointerEvents = '';
+                    });
+                });
             }, { passive: true });
 
             // 点击导航页顶栏或右侧返回按钮，平滑返回起始页
