@@ -4118,10 +4118,6 @@
             if (document.activeElement && dom.bookmarkPicker.contains(document.activeElement)) {
                 document.activeElement.blur();
             }
-            if (pickerFaviconObserver) {
-                try { pickerFaviconObserver.disconnect(); } catch {}
-                pickerFaviconObserver = null;
-            }
             animateHideModal(dom.bookmarkPicker);
         }
 
@@ -4630,28 +4626,6 @@
         }
 
         // ==================== 图标状态与缓存感知感知器 ====================
-        let faviconObserver = null;
-        const lazyIconQueue = [];
-        let isProcessingLazyQueue = false;
-
-        function processLazyIconQueue() {
-            lazyIconQueue.length = 0;
-            isProcessingLazyQueue = false;
-        }
-
-        function enqueueLazyIcon(img) {
-            if (!img) return;
-            if (img.dataset && img.dataset.src) {
-                img.src = img.dataset.src;
-                delete img.dataset.src;
-            }
-            if (img.complete && img.naturalWidth > 0) {
-                img.classList.add('loaded');
-            } else {
-                img.addEventListener('load', () => img.classList.add('loaded'), { once: true });
-            }
-        }
-
         /**
          * 扫描并同步图片 loaded 状态
          */
@@ -4663,7 +4637,6 @@
             });
         }
 
-        let pickerFaviconObserver = null;
         function initPickerFaviconObserver() {
             const container = dom.pickerContent;
             if (!container) return;
