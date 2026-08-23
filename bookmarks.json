@@ -599,10 +599,10 @@
                     "desc": "独立音乐与数字唱片"
                 },
                 {
-                    "name": "MyAbandonware",
-                    "url": "https://www.myabandonware.com",
-                    "icon": "https://a.favicon.im/www.myabandonware.com",
-                    "desc": "绝版游戏数字博物馆"
+                    "name": "IMDb",
+                    "url": "https://www.imdb.com",
+                    "icon": "https://a.favicon.im/www.imdb.com",
+                    "desc": "全球权威影视数据库"
                 },
                 {
                     "name": "Netflix",
