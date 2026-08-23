@@ -5163,6 +5163,8 @@
 
             // 点击导航页顶栏或右侧返回按钮，平滑返回起始页
             const handleBackToStart = () => {
+                // 与滚轮/触屏路径保持一致：切屏动画进行中忽略新的触发，避免中途打断导致状态错乱
+                if (window.isScreenTransitioning && window.isScreenTransitioning()) return;
                 if (window.switchToStart) window.switchToStart();
             };
             dom.navHint?.addEventListener('click', handleBackToStart);
@@ -5336,6 +5338,15 @@
                 // 屏间切换快捷键（无组合键、非输入状态；搜索框聚焦但联想未激活时也放行，避免方向键死键）
                 const suggestionActive = dom.suggestionMenu && dom.suggestionMenu.classList.contains('active');
                 if (!isInputActive || (document.activeElement === dom.searchInput && !suggestionActive)) {
+                    const isNavKey = e.key === 'PageDown' || e.key === 'PageUp' || e.key === 'Home'
+                        || (e.key === 'ArrowDown' && state.currentSection === 'start')
+                        || (e.key === 'ArrowUp' && state.currentSection === 'nav' && dom.navContent?.scrollTop <= 0);
+                    // 与滚轮/触屏路径保持一致：切屏动画进行中忽略新的触发（含按键连发场景），
+                    // 避免中途反复打断导致 transitionTimer 被无限重置、页面状态与视觉脱节
+                    if (isNavKey && window.isScreenTransitioning && window.isScreenTransitioning()) {
+                        e.preventDefault();
+                        return;
+                    }
                     if (e.key === 'PageDown' || (e.key === 'ArrowDown' && state.currentSection === 'start')) {
                         e.preventDefault();
                         if (window.switchToNav) window.switchToNav();
@@ -7120,7 +7131,6 @@
             let scrollAccum = 0;
             let resetAccumTimer = null;
             let isTransitioning = false;
-            let targetSection = getSavedSection() === 'nav' ? 'nav' : 'start';
             // 调试参数扩展：支持 URL Query (e.g. ?threshold=120) 或 window.__SCROLL_THRESHOLD__ 实时调节
             let baseThreshold = CONFIG.GESTURE.WHEEL_THRESHOLD;
             try {
@@ -7210,7 +7220,6 @@
                 }
                 closeDropdown();
                 hideSuggestions();
-                targetSection = 'nav';
                 state.currentSection = 'nav';
                 isTransitioning = true;
                 clearAccum();
@@ -7283,7 +7292,6 @@
                 if (document.activeElement && typeof document.activeElement.blur === 'function') {
                     document.activeElement.blur();
                 }
-                targetSection = 'start';
                 state.currentSection = 'start';
                 isTransitioning = true;
                 clearAccum();
@@ -7323,13 +7331,15 @@
 
             window.switchToNav = switchToNav;
             window.switchToStart = switchToStart;
+            // 供 bindEvents() 等其他闭包（无法直接访问本函数内的 isTransitioning 局部变量）
+            // 查询切屏动画是否正在进行，用于统一点击/键盘触发路径与滚轮/触屏路径的防抖策略
+            window.isScreenTransitioning = () => isTransitioning;
 
             // 依据 sessionStorage 精准同步页面状态与位置
             if (getSavedSection() === 'nav') {
                 if (startSection) startSection.classList.add('screen-pushed-up');
                 nav.classList.remove('nav-hidden');
                 nav.classList.add('nav-visible', 'screen-pushed-in');
-                targetSection = 'nav';
                 state.currentSection = 'nav';
                 saveSection('nav');
                 updateSectionAccessibility('nav');
@@ -7345,7 +7355,6 @@
                 nav.classList.add('nav-hidden');
                 state.currentSection = 'start';
                 saveSection('start');
-                targetSection = 'start';
                 updateSectionAccessibility('start');
                 updateGearVisibility();
                 document.documentElement.classList.remove('nr');
