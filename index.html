@@ -972,7 +972,7 @@
             }
         }
         #navCategories {
-            padding-bottom: clamp(5rem, 12vh, 8rem);
+            padding-bottom: clamp(14rem, 36vh, 22rem);
         }
         /* 仅搜索页（起始页）激活编辑按钮，导航页时禁用点击 */
         #editBookmarksBtn.hidden-on-nav {
@@ -4809,21 +4809,19 @@
             let activeIdx = 0;
             if (scrollTop <= 15) {
                 activeIdx = 0;
-            } else if (scrollTop + containerHeight >= scrollHeight - 20) {
-                const secTops = cachedSectionOffsets.map(off => off - scrollTop);
-                let bestIdx = sections.length - 1;
-                for (let i = sections.length - 1; i >= 0; i--) {
-                    if (secTops[i] <= containerHeight * 0.45) {
-                        bestIdx = i;
-                        break;
-                    }
-                }
-                activeIdx = bestIdx;
             } else {
                 const secTops = cachedSectionOffsets.map(off => off - scrollTop);
                 for (let i = 0; i < secTops.length; i++) {
-                    if (secTops[i] <= 110) {
+                    if (secTops[i] <= 100) {
                         activeIdx = i;
+                    }
+                }
+                if (scrollTop + containerHeight >= scrollHeight - 32) {
+                    for (let i = sections.length - 1; i >= 0; i--) {
+                        if (secTops[i] <= containerHeight * 0.45) {
+                            activeIdx = i;
+                            break;
+                        }
                     }
                 }
             }
@@ -4902,9 +4900,10 @@
                         });
                     }
 
-                    // 4. 待平滑滚动完全静止后自动解锁（无需重新强行触发 updateSidebarActive 抢夺用户点击项）
+                    // 4. 待平滑滚动完全静止后自动解锁并校准高亮（采用 120ms 防抖 + 800ms 兜底）
                     manualScrollTimer = setTimeout(() => {
                         isManualScrolling = false;
+                        updateSidebarActive();
                     }, 800);
                 });
 
@@ -4915,6 +4914,7 @@
                         if (scrollEndTimer) clearTimeout(scrollEndTimer);
                         scrollEndTimer = setTimeout(() => {
                             isManualScrolling = false;
+                            updateSidebarActive();
                         }, 120);
                         return;
                     }
