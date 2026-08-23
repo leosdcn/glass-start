@@ -461,6 +461,12 @@
                     "desc": "谷歌开源本地图片压缩"
                 },
                 {
+                    "name": "Tenor",
+                    "url": "https://tenor.com",
+                    "icon": "https://a.favicon.im/tenor.com",
+                    "desc": "谷歌旗下 GIF 动图与表情搜索"
+                },
+                {
                     "name": "Unsplash",
                     "url": "https://unsplash.com",
                     "icon": "https://a.favicon.im/unsplash.com",
