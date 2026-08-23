@@ -1,7 +1,7 @@
 {
   "name": "glass-start",
-  "version": "3.4.0",
-  "description": "Glass Start - 灵动极简的毛玻璃拟态浏览器起始页与分类导航",
+  "version": "3.4.1",
+  "description": "极简 macOS 毛玻璃风格新标签页与多引擎极速搜索工具",
   "main": "index.html",
   "scripts": {
     "build": "node build.js",

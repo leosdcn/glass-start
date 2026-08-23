@@ -628,29 +628,25 @@
             position: relative;
         }
         .sidebar-item {
-            transition: color 0.18s ease, text-shadow 0.18s ease;
             position: relative;
-            z-index: 2;
             background: transparent;
+            border: 1px solid transparent;
+            border-radius: var(--radius-inner, 1rem);
+            color: rgba(255, 255, 255, 0.7);
             font-weight: 500;
+            transition: background-color 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease, color 0.16s ease;
+        }
+        .sidebar-item:hover:not(.active) {
+            background: rgba(255, 255, 255, 0.08);
+            color: rgba(255, 255, 255, 0.95);
         }
         .sidebar-item.active {
-            color: #ffffff;
-            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
-        }
-        .sidebar-indicator {
-            position: absolute;
-            top: 0;
-            left: 0;
             background: rgba(255, 255, 255, 0.15);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: var(--radius, 1.5rem);
-            box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.28), 0 4px 12px rgba(0, 0, 0, 0.15);
-            pointer-events: none;
-            z-index: 1;
-            transition: transform 0.2s cubic-bezier(0.2, 0.85, 0.3, 1), opacity 0.18s ease;
-            opacity: 0;
-            will-change: transform;
+            border-color: rgba(255, 255, 255, 0.22);
+            box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.28), 0 4px 12px rgba(0, 0, 0, 0.16);
+            color: #ffffff;
+            font-weight: 600;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
         }
         /* 移动端侧边栏改为顶部水平滚动 (639.98px 边界精确防竞态) */
         @media (max-width: 639.98px) {
@@ -853,8 +849,8 @@
             background: rgba(255, 255, 255, 0.22);
             transition: transform 0.08s var(--ease-snappy), background-color 0.08s ease;
         }
-        .sidebar-item:active .sidebar-icon, .sidebar-item:active .sidebar-label {
-            transform: scale(0.96);
+        .sidebar-item:active {
+            transform: scale(0.97);
             transition: transform 0.08s var(--ease-snappy);
         }
         .settings-tab-btn:active, .confirm-dialog-btn-cancel:active, .confirm-dialog-btn-ok:active {
@@ -1727,7 +1723,7 @@
                         <div>
                             <div class="flex items-center gap-2">
                                 <span class="text-sm font-semibold text-white/95 tracking-tight leading-none">Glass Start</span>
-                                <span class="text-2xs px-2 h-4.5 rounded-full bg-white/10 border border-white/15 text-white/75 font-medium inline-flex items-center justify-center select-none">v3.4.0</span>
+                                <span class="text-2xs px-2 h-4.5 rounded-full bg-white/10 border border-white/15 text-white/75 font-medium inline-flex items-center justify-center select-none">v3.4.1</span>
                             </div>
                             <div class="text-2xs text-white/50 leading-none mt-1.5">极简 Liquid Glass 拟态导航 • Build 2026.08</div>
                         </div>
@@ -4712,10 +4708,10 @@
 
             // 左侧分类列表
             dom.sidebarList.innerHTML = pageData.categories.map((cat, i) => `
-                <button type="button" role="tab" id="cat-tab-${i}" aria-selected="${i === 0 ? 'true' : 'false'}" aria-controls="cat-${i}" class="sidebar-item w-full text-left text-xs md:text-sm px-2.5 py-1.5 md:py-2 min-h-11 md:min-h-0 apple-radius text-white/70 flex items-center gap-2 ${i === 0 ? 'active' : ''}"
-                        data-target="cat-${i}">
+                <button type="button" role="tab" id="cat-tab-${i}" aria-selected="${i === 0 ? 'true' : 'false'}" aria-controls="cat-${i}" class="sidebar-item w-full text-left text-xs md:text-sm px-2.5 py-[7px] min-h-9 text-white/70 flex items-center gap-2 ${i === 0 ? 'active' : ''}"
+                        data-target="cat-${i}" data-idx="${i}">
                     <span class="text-sm shrink-0 sidebar-icon">${escapeHtml(cat.icon)}</span>
-                    <span class="truncate font-medium sidebar-label">${escapeHtml(cat.name)}</span>
+                    <span class="truncate sidebar-label">${escapeHtml(cat.name)}</span>
                 </button>
             `).join('');
 
@@ -4767,22 +4763,12 @@
         let cachedSidebarItems = [];
         let cachedSidebarSections = [];
         let cachedSectionOffsets = [];
-        let cachedSidebarButtonGeometries = new Map();
 
         function refreshSidebarNavCache() {
             if (!dom.sidebarList || !dom.navContent) return;
             cachedSidebarItems = Array.from(dom.sidebarList.querySelectorAll('[data-target]'));
             cachedSidebarSections = cachedSidebarItems.map(item => document.getElementById(item.dataset.target)).filter(Boolean);
             cachedSectionOffsets = cachedSidebarSections.map(s => s.offsetTop);
-            cachedSidebarButtonGeometries.clear();
-            cachedSidebarItems.forEach(btn => {
-                cachedSidebarButtonGeometries.set(btn, {
-                    left: btn.offsetLeft,
-                    top: btn.offsetTop,
-                    width: btn.offsetWidth,
-                    height: btn.offsetHeight
-                });
-            });
         }
 
         function scrollTabIntoView(item, container) {
@@ -4835,7 +4821,6 @@
                 }
             }
 
-            let activeBtn = null;
             items.forEach((item, i) => {
                 const isActive = i === activeIdx;
                 const wasActive = item.classList.contains('active');
@@ -4843,39 +4828,10 @@
                     item.classList.toggle('active', isActive);
                     item.setAttribute('aria-selected', isActive ? 'true' : 'false');
                 }
-                if (isActive) activeBtn = item;
                 if (isActive && !wasActive && !isManualScrolling) {
                     scrollTabIntoView(item, sidebarContainer);
                 }
             });
-            updateSidebarIndicator(activeBtn);
-        }
-
-        function updateSidebarIndicator(activeBtn) {
-            const sidebarList = dom.sidebarList;
-            if (!sidebarList) return;
-            let indicator = document.getElementById('sidebarIndicator');
-            if (!indicator) {
-                indicator = document.createElement('div');
-                indicator.id = 'sidebarIndicator';
-                indicator.className = 'sidebar-indicator';
-                sidebarList.appendChild(indicator);
-            }
-            if (!activeBtn) {
-                indicator.style.opacity = '0';
-                return;
-            }
-            const geo = cachedSidebarButtonGeometries.get(activeBtn) || {
-                left: activeBtn.offsetLeft,
-                top: activeBtn.offsetTop,
-                width: activeBtn.offsetWidth,
-                height: activeBtn.offsetHeight
-            };
-
-            indicator.style.width = `${geo.width}px`;
-            indicator.style.height = `${geo.height}px`;
-            indicator.style.transform = `translate3d(${geo.left}px, ${geo.top}px, 0)`;
-            indicator.style.opacity = '1';
         }
 
         function initSidebarNav() {
@@ -4918,7 +4874,6 @@
                     const allItems = Array.from(sidebarList.querySelectorAll('[data-target]'));
                     allItems.forEach(item => item.classList.remove('active'));
                     btn.classList.add('active');
-                    updateSidebarIndicator(btn);
                     const sidebarContainer = dom.sidebar;
                     scrollTabIntoView(btn, sidebarContainer);
 
