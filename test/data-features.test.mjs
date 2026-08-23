@@ -35,7 +35,7 @@ const searchAlgoCheck = await evalJS(`(() => {
       { name: "代码托管平台", url: "https://hub.example.com", desc: "全球最大的 GitHub 开源平台" }
     ];
     pageData.categories = [
-      { name: "开发工具", bookmarks: [{ name: "GitHub", url: "https://github.com", desc: "开源项目托管" }] }
+      { name: "开发编程", bookmarks: [{ name: "GitHub", url: "https://github.com", desc: "开源项目托管" }] }
     ];
     const res1 = getLocalBookmarkSuggestions("GitHub", 2);
     const exactNameOk = res1[0]?.name === 'GitHub' && res1[1]?.name === '代码托管平台';
