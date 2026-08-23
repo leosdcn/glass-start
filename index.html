@@ -1723,7 +1723,7 @@
                         <div>
                             <div class="flex items-center gap-2">
                                 <span class="text-sm font-semibold text-white/95 tracking-tight leading-none">Glass Start</span>
-                                <span class="text-2xs px-2 h-4.5 rounded-full bg-white/10 border border-white/15 text-white/75 font-medium inline-flex items-center justify-center select-none">v3.4.1</span>
+                                <span class="text-2xs px-2 h-4.5 rounded-full bg-white/10 border border-white/15 text-white/75 font-medium inline-flex items-center justify-center select-none">v3.4.2</span>
                             </div>
                             <div class="text-2xs text-white/50 leading-none mt-1.5">极简 Liquid Glass 拟态导航 • Build 2026.08</div>
                         </div>
@@ -2781,6 +2781,17 @@
                 JSONP_TIMEOUT: 4000,          // 建议词 JSONP 请求熔断超时 (ms)
                 MAX_LOCAL_ITEMS: 2,           // 混排时最多呈现的本地书签数
                 MAX_TOTAL_ITEMS: 4            // 下拉菜单最大呈现总行数
+            }),
+            NAV: Object.freeze({
+                TOP_THRESHOLD: 15,            // 顶部激活首项判定阈值 (px)
+                HEADER_OFFSET: 100,           // 滚动监听分类标题吸顶判定线 (px)
+                BOTTOM_TOLERANCE: 32,         // 触底判定容差 (px)
+                BOTTOM_VISIBILITY_RATIO: 0.6, // 触底时末尾分类可见度占比判定线
+                SCROLL_END_DEBOUNCE: 120,     // 滚动静止解锁防抖延时 (ms)
+                MANUAL_LOCK_MAX_MS: 800,      // 点击跳转平滑滚动最大锁定硬上限 (ms)
+                RESIZE_DEBOUNCE: 120,         // 视口尺寸变化防抖延时 (ms)
+                MOBILE_BREAKPOINT: 640,       // 移动端/桌面端分界断点 (px)
+                TAB_SCROLL_MARGIN: 8          // 侧边栏横向/纵向对齐边界安全内距 (px)
             }),
             APPEARANCE: Object.freeze({
                 MAX_MASK_OPACITY: 80,         // 遮罩透明度最大百分比
@@ -4773,18 +4784,19 @@
 
         function scrollTabIntoView(item, container) {
             if (!item || !container) return;
-            const isMobile = window.innerWidth <= 640;
+            const isMobile = window.innerWidth <= CONFIG.NAV.MOBILE_BREAKPOINT;
+            const margin = CONFIG.NAV.TAB_SCROLL_MARGIN;
             if (isMobile) {
                 const cRect = container.getBoundingClientRect();
                 const iRect = item.getBoundingClientRect();
-                if (iRect.left < cRect.left + 8 || iRect.right > cRect.right - 8) {
+                if (iRect.left < cRect.left + margin || iRect.right > cRect.right - margin) {
                     const targetLeft = item.offsetLeft - (container.clientWidth / 2) + (item.offsetWidth / 2);
                     container.scrollTo({ left: Math.max(0, targetLeft), behavior: 'smooth' });
                 }
             } else {
                 const cRect = container.getBoundingClientRect();
                 const iRect = item.getBoundingClientRect();
-                if (iRect.top < cRect.top + 8 || iRect.bottom > cRect.bottom - 8) {
+                if (iRect.top < cRect.top + margin || iRect.bottom > cRect.bottom - margin) {
                     const targetTop = item.offsetTop - (container.clientHeight / 2) + (item.offsetHeight / 2);
                     container.scrollTo({ top: Math.max(0, targetTop), behavior: 'smooth' });
                 }
@@ -4807,18 +4819,18 @@
             const scrollHeight = content.scrollHeight;
 
             let activeIdx = 0;
-            if (scrollTop <= 15) {
+            if (scrollTop <= CONFIG.NAV.TOP_THRESHOLD) {
                 activeIdx = 0;
             } else {
                 const secTops = cachedSectionOffsets.map(off => off - scrollTop);
                 for (let i = 0; i < secTops.length; i++) {
-                    if (secTops[i] <= 100) {
+                    if (secTops[i] <= CONFIG.NAV.HEADER_OFFSET) {
                         activeIdx = i;
                     }
                 }
-                if (scrollTop + containerHeight >= scrollHeight - 32) {
+                if (scrollTop + containerHeight >= scrollHeight - CONFIG.NAV.BOTTOM_TOLERANCE) {
                     for (let i = sections.length - 1; i >= 0; i--) {
-                        if (secTops[i] <= containerHeight * 0.6) {
+                        if (secTops[i] <= containerHeight * CONFIG.NAV.BOTTOM_VISIBILITY_RATIO) {
                             activeIdx = i;
                             break;
                         }
@@ -4854,7 +4866,7 @@
                     resizeTimer = setTimeout(() => {
                         refreshSidebarNavCache();
                         requestAnimationFrame(updateSidebarActive);
-                    }, 120);
+                    }, CONFIG.NAV.RESIZE_DEBOUNCE);
                 };
                 window.addEventListener('resize', handleResizeOrRotate, { passive: true });
                 window.addEventListener('orientationchange', handleResizeOrRotate, { passive: true });
@@ -4904,7 +4916,7 @@
                     manualScrollTimer = setTimeout(() => {
                         isManualScrolling = false;
                         updateSidebarActive();
-                    }, 800);
+                    }, CONFIG.NAV.MANUAL_LOCK_MAX_MS);
                 });
 
                 let ticking = false;
@@ -4915,7 +4927,7 @@
                         scrollEndTimer = setTimeout(() => {
                             isManualScrolling = false;
                             updateSidebarActive();
-                        }, 120);
+                        }, CONFIG.NAV.SCROLL_END_DEBOUNCE);
                         return;
                     }
                     if (!ticking) {
