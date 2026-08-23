@@ -60,8 +60,8 @@
                 },
                 {
                     "name": "ChatGPT",
-                    "url": "https://chat.openai.com",
-                    "icon": "https://a.favicon.im/chat.openai.com",
+                    "url": "https://chatgpt.com",
+                    "icon": "https://a.favicon.im/chatgpt.com",
                     "desc": "旗舰 AI 对话助手"
                 },
                 {
@@ -120,8 +120,8 @@
                 },
                 {
                     "name": "Kimi",
-                    "url": "https://kimi.moonshot.cn",
-                    "icon": "https://a.favicon.im/kimi.moonshot.cn",
+                    "url": "https://www.kimi.com",
+                    "icon": "https://a.favicon.im/www.kimi.com",
                     "desc": "月之暗面长文本 AI"
                 },
                 {
@@ -198,8 +198,8 @@
                 },
                 {
                     "name": "v0",
-                    "url": "https://v0.dev",
-                    "icon": "https://a.favicon.im/v0.dev",
+                    "url": "https://v0.app",
+                    "icon": "https://a.favicon.im/v0.app",
                     "desc": "AI 代码与生成式 UI"
                 },
                 {
@@ -282,8 +282,8 @@
                 },
                 {
                     "name": "Notion",
-                    "url": "https://www.notion.so",
-                    "icon": "https://a.favicon.im/notion.so",
+                    "url": "https://www.notion.com",
+                    "icon": "https://a.favicon.im/notion.com",
                     "desc": "一体化笔记与知识库"
                 },
                 {
@@ -510,8 +510,8 @@
                 },
                 {
                     "name": "waifu2x",
-                    "url": "https://waifu2x.udp.jp",
-                    "icon": "https://a.favicon.im/waifu2x.udp.jp",
+                    "url": "https://www.waifu2x.net",
+                    "icon": "https://a.favicon.im/www.waifu2x.net",
                     "desc": "开源图片无损放大"
                 }
             ]
@@ -732,7 +732,7 @@
                 },
                 {
                     "name": "Google Maps",
-                    "url": "https://maps.google.com",
+                    "url": "https://www.google.com/maps",
                     "icon": "https://a.favicon.im/maps.google.com",
                     "desc": "全球地图导航服务"
                 },
