@@ -1,6 +1,6 @@
 /**
  * ==============================================================================
- * Service Worker: 高性能全站离线与图标 LRU 缓存器 (v10 - Architect Edition)
+ * Service Worker: 高性能全站离线与图标 FIFO 缓存器 (v10 - Architect Edition)
  * ==============================================================================
  * 核心架构优化与修补点 (Senior Architect Refactoring):
  * 1. 【防透明响应污染 (Anti-Opaque Poisoning)】：

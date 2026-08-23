@@ -12,8 +12,8 @@
 - ⚡ **零开销双模式构建与 esbuild 极速压缩**：开发模式使用 Tailwind v4 CDN 随改随看；生产打包（`npm run build`）集成 `esbuild` 原生 CSS 编译器，全量内嵌编译并压缩，实现首屏秒开与 100% 离线可用。
 - ⚡ **`<head>` 零闪烁预加载恢复 (Pre-hydration)**：在 DOM 挂载前通过 `<head>` 内联脚本瞬间还原上次屏间位置、背景壁纸与遮罩模糊滤镜，消除刷新闪烁 (FOUC)。
 - 🛡️ **严格安全防护**：内置严格 Content Security Policy (CSP)、全面 XSS HTML 实体转义、`safeUrl` 协议白名单拦截（防 `javascript:` 注入）、JSONP 超时悬挂防爆防护。
-- ♿ **UI 弹窗栈管理与无障碍 Focus Trap**：基于 `OverlayStack` 管理全局弹窗与下拉菜单，弹窗激活时自动锁定 `Tab` 键焦点循环，按 `Esc` 键按后进先出 (LIFO) 顺序平滑逐层关闭。
-- 🚀 **图标高性能缓存**：内置 Service Worker (v10)，三池隔离（800+200配额）与 IndexedDB 真 LRU 淘汰，结合标准 CORS 模式彻底消除 Chrome 虚拟存储配额膨胀问题。
+- ♿ **UI 弹窗栈管理与无障碍 Focus Trap**：基于 `OverlayStack` 管理全局弹窗与下拉菜单，弹窗激活时自动锁定 `Tab` 键焦点循环，按 `Esc` 键依后进先出 (LIFO) 顺序平滑逐层关闭。
+- 🚀 **图标高性能缓存**：内置 Service Worker (v10)，三池隔离（800+200配额）与原生 CacheStorage FIFO 容量限额自动淘汰，结合 no-cors 隔离与自愈机制彻底消除 Chrome 存储配额膨胀问题。
 
 ---
 
@@ -125,8 +125,8 @@ npm run build
    * **`desc` 简介副标题编写规范**（参见源码 `index.html` 导航卡片渲染模板）：
      - **字数限制**：推荐严格控制在 **6 ~ 10 个中文字符**（或 12 ~ 20 个英文字符）以内。
      - **布局与截断**：展示在导航卡片标题下方，窄屏或超长字符会自动触发单行截断（`truncate`）。
-     - **内容准则**：精准概括网站核心定位，避免冗余修饰词（如 `全球领先AI对话模型`、`开源卡片式IP检测`）。
-     - **中文搜索关键词锚点（Search Intent Keyword Anchor）**：简介必须包含工具所属的标准中文品类词（如 `翻译`、`云盘`、`邮箱`、`测速`、`流程图`、`白板`、`壁纸`、`动图`、`压缩` 等），推荐采用 `[品质定语/特性] + [中文核心品类词]` 结构（如 `全球多语种即时` + `翻译`、`谷歌官方` + `云盘与文档`），确保用户在搜索框输入中文通用词时能精准召回对应英文品牌工具。
+     - **内容准则**：精准概括网站核心定位，直述产品核心价值，避免夸大与冗余修饰词。
+     - **中文搜索关键词锚点（Search Intent Keyword Anchor）**：简介必须包含工具所属的标准中文品类词，推荐采用「品质定语/特性」+「中文核心品类词」结构，确保用户在搜索框输入中文通用词时能精准召回对应英文品牌工具。
    * **书签筛选与用户友好准则（Bookmark Selection & User-Friendliness Rules）**：
      - **品质优先与杜绝同质堆叠（Quality & Differentiation First）**：秉持宁缺毋滥原则，坚决避免功能雷同、缺乏实质差异的工具盲目堆叠；优先精选各领域综合体验好、口碑高的代表性产品，保持页面克制高效。
      - **拒绝「伪同质化」，尊重独立生态位（Niche Coverage）**：避免粗暴按宽泛大类一刀切，精准识别各工具在细分场景、垂直受众、内容来源或核心模式上的独特性，对于具备不可替代价值的独立生态予以充分保留。
@@ -213,22 +213,22 @@ npm run build
 
 | 缓存层级 | 技术实现 | 作用目标与缓存对象 | 缓存策略 / 容量限制 | 失效与清理机制 |
 | :--- | :--- | :--- | :--- | :--- |
-| **Service Worker 离线网络层** | `sw.js` (Cache API + IDB) | `a.favicon.im` 图标、`.ico` 静态图标、`index.html` 等 | 图标: `Cache-First` (三池隔离: Favicon 800条 / 本地图片 200条)<br>核心: `Network-First` | `npm run build` 自动更新版本号 `app-core-v<timestamp>` 强制清除旧缓存，IDB 精准 LRU 淘汰 |
+| **Service Worker 离线网络层** | `sw.js` (CacheStorage API) | `a.favicon.im` 图标、`.ico` 静态图标、`index.html` 等 | 图标: `Cache-First` (三池隔离: Favicon 800条 / 本地图片 200条)<br>核心: `Network-First` | `npm run build` 自动更新版本号 `app-core-v<timestamp>` 强制清除旧缓存，原生 FIFO 容量限额自动淘汰 |
 | **天气与定位数据缓存层** | `LocalStorage` (`glass_weather_*`) | 实时温度、4天预报、城市与省市区经纬度坐标 | 天气数据: 15 分钟 TTL<br>地理定位: 24 小时 TTL | 黄金节流平衡点，弹窗右上角「🔄」刷新按钮支持 100% 穿透强制即时刷新 |
 | **持久化偏好存储层** | `LocalStorage` | 默认引擎、遮罩透明度、模糊度、自定义书签、壁纸偏好 | key-value / 容量上限 ~5MB | 用户手动点击「重置系统设置」或浏览器清除 Cookie |
 | **高清大图存储层** | `IndexedDB` (`GlassStartDB`) | 4K 高清自定义上传壁纸 (`wallpapers` 表) | 3840x2160 JPEG Base64 / 容量 50MB~数百MB | 彻底打破 LocalStorage 5MB 上限，随重置系统操作清空 |
-| **会话状态防闪烁层** | `SessionStorage` + `<head>` 脚本 | 页面屏间位置 (`startpage_section`: `home` / `nav`) | 仅在当前会话生命周期内有效 | 渲染前 Head 内联脚本检测并同步添加 `.nr` 类，防止刷新首屏闪烁 |
+| **会话状态防闪烁层** | `SessionStorage` + `<head>` 脚本 | 页面屏间位置 (`startpage_section`: `start` / `nav`) | 仅在当前会话生命周期内有效 | 渲染前 Head 内联脚本检测并同步添加 `.nr` 类，防止刷新首屏闪烁 |
 | **运行时内存缓存层** | JS 全局变量 (`dom` / 侧边栏 Cache) | 40+ 常用 DOM 节点引用、导航分类与 Section 映射 | 内存映射，零 DOM 树二次查询开销 | 页面卸载或重新载入时自动释放与重新建立 |
 | **静态回退与离线数据层** | HTML 内联 `DEFAULT_*` 数组 | `bookmarks.json` 最新镜像数据 | 内存直接加载 / 零 HTTP 请求开销 | `npm run build` 时通过 `build.js` 自动双向同步 `bookmarks.json` 数据 |
 
 #### ⚡ 核心缓存与防闪烁机制详解
 
-* **Service Worker 三池隔离与 IndexedDB LRU (`sw.js`)**：
+* **Service Worker 三池隔离与 FIFO 限额淘汰 (`sw.js`)**：
   - `CORE_CACHE`：存放 HTML/CSS/JSON 等核心程序资源。
   - `FAVICON_CACHE`：`a.favicon.im` 外部图标专用池（配额上限 **800 条**）。
   - `IMG_CACHE`：站内本地图片及 `.ico` 资源池（配额上限 **200 条**）。
   - 核心优势：图标作为导航站核心功能享有独立高额配额，且不会被本地大图挤占。
-  - IndexedDB 真时间戳 LRU 淘汰：在独立数据库 `sw-lru-db` 中维护真实访问时间戳，超限时精确淘汰旧图标。
+  - 原生 CacheStorage FIFO 自动淘汰：通过 `pruneCache` 轻量监测缓存条目总数，超限时自动修剪淘汰旧资源，杜绝缓存无限膨胀并彻底免除 IndexedDB 依赖。
 * **IndexedDB 4K 高清壁纸存储**：
   - 针对用户上传的 4K 本地壁纸，系统在 Canvas 中统一优化转换为 3840x2160 @ 95% 高品质 JPEG DataURL。
   - 存入专用 IndexedDB 数据库 `GlassStartDB` 的 `wallpapers` 对象存储，成功避开 LocalStorage 5MB 上限。
@@ -294,14 +294,20 @@ add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; prelo
 # 2. 防点击劫持防护 (Clickjacking Protection / X-Frame-Options)
 add_header X-Frame-Options "SAMEORIGIN" always;
 
-# 3. 跨源隔离政策 (COOP - Cross-Origin-Opener-Policy)
+# 3. 防止 MIME 类型混淆嗅探 (X-Content-Type-Options)
+add_header X-Content-Type-Options "nosniff" always;
+
+# 4. 引用策略保护 (Referrer-Policy)
+add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+
+# 5. 跨源隔离政策 (COOP - Cross-Origin-Opener-Policy)
 add_header Cross-Origin-Opener-Policy "same-origin" always;
 
-# 4. 现代硬件权限防御策略 (Permissions-Policy)
+# 6. 现代硬件权限防御策略 (Permissions-Policy)
 add_header Permissions-Policy "accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()" always;
 
-# 5. 内容安全策略 (Content-Security-Policy HTTP 标头)
-add_header Content-Security-Policy "default-src 'self' data: blob: https:; script-src 'self' 'unsafe-inline' https://api.bing.com https://suggestqueries.google.com https://zh.wikipedia.org https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: blob: https:; connect-src 'self' https:; worker-src 'self' blob:; frame-ancestors 'self';" always;
+# 7. 内容安全策略 (Content-Security-Policy HTTP 标头)
+add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://api.bing.com https://suggestqueries.google.com https://zh.wikipedia.org https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https://api.open-meteo.com https://geocoding-api.open-meteo.com https://myip.ipip.net https://ipwho.is https://a.favicon.im https://cloudflareinsights.com https://zh.wikipedia.org; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'self'; upgrade-insecure-requests" always;
 ```
 
 ---
