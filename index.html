@@ -972,7 +972,7 @@
             }
         }
         #navCategories {
-            padding-bottom: clamp(14rem, 36vh, 22rem);
+            padding-bottom: calc(100vh - 8rem);
         }
         /* 仅搜索页（起始页）激活编辑按钮，导航页时禁用点击 */
         #editBookmarksBtn.hidden-on-nav {
@@ -4818,7 +4818,7 @@
                 }
                 if (scrollTop + containerHeight >= scrollHeight - 32) {
                     for (let i = sections.length - 1; i >= 0; i--) {
-                        if (secTops[i] <= containerHeight * 0.45) {
+                        if (secTops[i] <= containerHeight * 0.6) {
                             activeIdx = i;
                             break;
                         }
