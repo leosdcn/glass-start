@@ -972,7 +972,7 @@
             }
         }
         #navCategories {
-            padding-bottom: clamp(20rem, 50vh, 32rem);
+            padding-bottom: calc(100vh - 8rem);
         }
         /* 仅搜索页（起始页）激活编辑按钮，导航页时禁用点击 */
         #editBookmarksBtn.hidden-on-nav {
@@ -4812,12 +4812,17 @@
             } else {
                 const secTops = cachedSectionOffsets.map(off => off - scrollTop);
                 for (let i = 0; i < secTops.length; i++) {
-                    if (secTops[i] <= 80) {
+                    if (secTops[i] <= 100) {
                         activeIdx = i;
                     }
                 }
-                if (scrollTop + containerHeight >= scrollHeight - 24) {
-                    activeIdx = sections.length - 1;
+                if (scrollTop + containerHeight >= scrollHeight - 32) {
+                    for (let i = sections.length - 1; i >= 0; i--) {
+                        if (secTops[i] <= containerHeight * 0.6) {
+                            activeIdx = i;
+                            break;
+                        }
+                    }
                 }
             }
 
