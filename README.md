@@ -9,7 +9,7 @@
 - 🪐 **Liquid Glass 物理高光与玻璃拟态**：采用 Apple HIG 规范的 1px 物理折射高光、微拟物触感反馈与 iOS 18 物理按压微缩放。
 - 🌤️ **实时天气小组件与全球预报**：免 Key 开源气象底座 + 三通道高精度 IP 定位，首帧 0ms 水合秒开，支持 2×2 实时气象指标、未来 4 天天气预报与 15 分钟智能节流缓存，100% 符合 WCAG 2.5.3 无障碍标准。
 - 🎬 **原生双动效系统 (双屏滚动 + 底部透光收口)**：支持起始页与导航页全屏平滑推移（「双屏滚动」），以及导航视窗底部基于 `mask-image` 36px 纯 Alpha 真实透光渐隐（「底部透光收口」），全流程 0 渲染空白。
-- ⚡ **零开销双模式构建与 esbuild 极速压缩**：开发模式使用 Tailwind v4 CDN 随改随看；生产打包（`npm run build`）集成 `esbuild` 原生 CSS 编译器，全量内嵌编译并压缩，实现首屏秒开与 100% 离线可用。
+- ⚡ **零开销双模式构建与 esbuild 极速压缩**：开发模式使用 Tailwind v4 CDN 随改随看；生产打包（`npm run build`）集成 Tailwind CLI 静态编译与 `esbuild` AST 极速压缩，全量内嵌样式，实现首屏秒开与 100% 离线可用。
 - ⚡ **`<head>` 零闪烁预加载恢复 (Pre-hydration)**：在 DOM 挂载前通过 `<head>` 内联脚本瞬间还原上次屏间位置、背景壁纸与遮罩模糊滤镜，消除刷新闪烁 (FOUC)。
 - 🛡️ **严格安全防护**：内置严格 Content Security Policy (CSP)、全面 XSS HTML 实体转义、`safeUrl` 协议白名单拦截（防 `javascript:` 注入）、JSONP 超时悬挂防爆防护。
 - ♿ **UI 弹窗栈管理与无障碍 Focus Trap**：基于 `OverlayStack` 管理全局弹窗与下拉菜单，弹窗激活时自动锁定 `Tab` 键焦点循环，按 `Esc` 键依后进先出 (LIFO) 顺序平滑逐层关闭。
@@ -98,7 +98,7 @@ npm run build
 构建过程会自动执行：
 1. **自动数据双向同步**：解析 `bookmarks.json` 最新数据，自动同步注入更新源码 `index.html` 的 `DEFAULT_BOOKMARKS` 与 `DEFAULT_CATEGORIES` 数组（解决本地 `file://` 协议双击打开时因 CORS 拦截导致的降级书签不一致问题）。
 2. **Tailwind 静态编译与 CSS 压缩**：调用 Tailwind CLI (`-m`) 扫描 `index.html` 编译并输出极致 Minify 压缩的 CSS 样式。
-3. **JS 逻辑提取与零依赖压缩**：从 `index.html` 提取 `<script id="main-script">` 主体逻辑，对默认书签 JSON 数据做紧凑序列化，并剥离注释与缩进（`minifyJs`）后独立输出为 `dist/app.js`。
+3. **JS 逻辑提取与零依赖压缩**：从 `index.html` 提取 `<script id="main-script">` 主体逻辑，对默认书签 JSON 数据做紧凑序列化，并剥离注释与缩进（`minifyJsCode`）后独立输出为 `dist/app.js`。
 4. **HTML 结构精简与 CSS 全量内嵌**：自动处理 `dist/index.html`，移除 v4 Browser CDN 运行时脚本，将压缩好的 CSS 全量安全转义后内嵌至 `<style>` 标签（消除 `style.css` 渲染阻塞与网络 RTT 请求），替换内联脚本为外链 `app.js`，并执行零依赖 HTML 体积压缩（`minifyHtml`，剥离非功能性注释与冗余空白）。
 5. **静态资源全量复制**：将 `sw.js` 缓存脚本（自动更新版本号 `app-core-v<timestamp>`）、`wallpapers/` 壁纸资源目录及 `_headers` 配置文件全量复制至 `dist/` 目录（实现极简打包部署与 100% 离线支持）。
 
@@ -175,7 +175,7 @@ npm run build
 | 文件 / 目录名 | 属性 | 文件作用描述 | 必选性 |
 | :--- | :--- | :--- | :--- |
 | **`index.html`** | **源码主入口** | 开发模式页面主入口。内置 Tailwind v4 Browser CDN，AI/开发者修改代码立即可见，零编译开销。 | **必须** |
-| **`bookmarks.json`** | **唯一数据源** | 唯一数据维护源。修改书签只需编辑此文件，运行 `npm run build` 会自动将书签同步注入 HTML。 | **推荐** |
+| **`bookmarks.json`** | **唯一数据源** | 唯一数据维护源。修改书签只需编辑此文件，运行 `npm run build` 会自动将书签同步注入 HTML。 | **必须（数据真源）** |
 | **`sw.js`** | 缓存脚本 | Service Worker 独立脚本。专门用于在 HTTPS/localhost 环境下本地缓存 Favicon 网站图标与壁纸，提升加载速度。 | 推荐（缺失时不影响主流程运行） |
 | **`wallpapers/`** | **本地壁纸库** | 高清预设 AVIF 壁纸目录（包含 bg1.avif ~ bg8.avif），由 `build.js` 自动打包至 `dist/` 实现全量离线可用。 | **必须** |
 | **`build.js`** | 打包脚本 | 生产构建 Node 脚本。运行 `npm run build` 自动同步书签数据、编译 CSS、提取 `app.js` 并输出至 `dist/`。 | 工具脚本 |
@@ -186,7 +186,7 @@ npm run build
 | **`lint.mjs`** | 检查脚本 | Node 零依赖静态检查脚本。用于校验根目录核心 JS/HTML 语法与 JSON 配置文件合法性。 | 工具脚本 |
 | **`test/`** | **测试目录** | 自动化测试目录。内含 3 大领域 CDP 自动化端到端测试套件（19 项高密度全景断言）与 MD5 增量缓存运行器。 | 测试框架 |
 | **`package.json`** | 项目配置 | Node 项目配置文件，提供 `npm run dev`、`npm run watch`、`npm run build`、`npm run lint` 与 `npm test` 命令。 | 配置文件 |
-| **`dist/`** | **生产输出** | `npm run build` 自动生成的生产构建目录。包含剥离 v4 Browser CDN、内嵌 CSS 及外链 `app.js` 的上线资源。 | 生产部署产物 |
+| **`dist/`** | **生产输出** | `npm run build` 自动生成的生产构建目录（⚠️ 严禁直接编辑）。包含剥离 v4 Browser CDN、内嵌 CSS 及外链 `app.js` 的上线资源。 | 生产部署产物 |
 | **`wrangler.jsonc`** | 部署配置 | Cloudflare Workers / Pages 部署配置，声明 `assets.directory = "dist"` 指定静态资源上传目录。 | Cloudflare 部署必需 |
 | `.gitignore` | 配置文档 | Git 版本控制忽略配置。 | 运维配置 |
 | **`README.md`** | 说明文档 | 本文档，记录项目架构、文件职责、运行机制及部署指南。 | 运维文档 |
@@ -314,7 +314,7 @@ add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsaf
 
 ### 6. 框架与依赖版本清单 (Framework & Dependency Versions)
 
-本项目框架依赖极简——**唯一的生产依赖是 Tailwind CSS 与 esbuild**，其余全部为原生 HTML5 + Modern JS + 手写 CSS，零其他框架依赖。以下为所有带明确版本号的框架 / 组件清单：
+本项目框架依赖极简——**唯一的构建期工具依赖是 Tailwind CSS 与 esbuild**，生产运行环境为原生纯静态文件（0 框架依赖 / 0 Runtime Dependencies）。以下为所有带明确版本号的框架 / 组件清单：
 
 | 名称 | 类型 | 版本号 | 位置 / 说明 |
 | :--- | :--- | :--- | :--- |
@@ -362,10 +362,12 @@ npm run lint && npm run build
 # 2. 全量端到端自动化测试验证 (3 大核心领域套件 19 项高密度断言)
 node test/run.mjs --force
 
-# 3. 提交并打 Git Tag 推送至云端
+# 3. 提交并打本地 Git Tag
 git add .
 git commit -m "release: 发布 vx.y.z 正式版"
 git tag -a vx.y.z -m "release: Glass Start vx.y.z"
+
+# 4. 推送至远程私有仓库（⚠️ 仅限人类用户手动执行，Agent 严禁未经指令自动推送）
 git push origin main --tags
 ```
 
