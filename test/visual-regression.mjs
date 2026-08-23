@@ -19,6 +19,7 @@ import { launchSession, sleep, makeTester, pressKey } from './helpers.mjs';
 const ARTIFACT_DIRS = [
   '/tmp/glass-start-visual-artifacts',
   '/tmp/glass-start-visual-artifacts',
+  '/tmp/glass-start-visual-artifacts',
 ];
 
 for (const dir of ARTIFACT_DIRS) {
@@ -351,6 +352,93 @@ pass('场景 H [Mobile 390x844]: 移动端刷新后切回搜索页全量复原 (
     gear: `${metricsH.editBookmarksBtn.rect.width}x${metricsH.editBookmarksBtn.rect.height}`,
   }));
 
+// ══════════════════════════════════════════════════════════════════════
+// 场景 I (Desktop 1280x800): 设置与偏好弹窗完整渲染 (外观/书签/数据面板)
+// ══════════════════════════════════════════════════════════════════════
+await send('Emulation.setDeviceMetricsOverride', { width: 1280, height: 800, deviceScaleFactor: 2, mobile: false });
+await evalJS('window.switchToStart()');
+await sleep(600);
+await evalJS('document.getElementById("editBookmarksBtn").click()');
+await sleep(500);
+
+const metricsI = await inspectComponentMetrics({
+  editModal: '#editModal',
+  editModalContent: '#editModal > div',
+  tabBookmarks: '#tabBookmarks',
+  editList: '#editList',
+  saveEditBtn: '#saveEditBtn',
+});
+await captureScreenshot('visual_test_scenario_I_edit_modal.png');
+
+const editModalValidI = 
+  metricsI.editModal.exists && metricsI.editModal.computed.visibility !== 'hidden' &&
+  metricsI.editModalContent.rect.width > 500 && metricsI.editModalContent.rect.height > 400 &&
+  metricsI.saveEditBtn.exists;
+
+pass('场景 I [Desktop 1280x800]: 设置与偏好弹窗渲染 (毛玻璃容器/Tab导航/快捷书签列表/保存取消按钮)',
+  editModalValidI,
+  JSON.stringify({
+    modalRect: metricsI.editModalContent.rect,
+    saveBtn: metricsI.saveEditBtn.rect,
+  }));
+
+// ══════════════════════════════════════════════════════════════════════
+// 场景 J (Desktop 1280x800): 天气预报详情卡片展开
+// ══════════════════════════════════════════════════════════════════════
+await press('Escape');
+await sleep(400);
+await evalJS('document.getElementById("weatherBtn").click()');
+await sleep(500);
+
+const metricsJ = await inspectComponentMetrics({
+  weatherWidget: '#weatherWidget',
+  weatherPopover: '#weatherPopover',
+  weatherBtn: '#weatherBtn',
+});
+await captureScreenshot('visual_test_scenario_J_weather_popover.png');
+
+const weatherPopoverValidJ = 
+  metricsJ.weatherPopover.exists && metricsJ.weatherPopover.rect.width > 200 &&
+  metricsJ.weatherPopover.computed.visibility !== 'hidden' &&
+  metricsJ.weatherPopover.computed.opacity > 0.8;
+
+pass('场景 J [Desktop 1280x800]: 天气预报详情展开卡片 (2×2详细指标/多日天气预报/日落感知/带伞提示)',
+  weatherPopoverValidJ,
+  JSON.stringify({
+    popoverRect: metricsJ.weatherPopover.rect,
+    popoverOpacity: metricsJ.weatherPopover.computed.opacity,
+  }));
+
+// ══════════════════════════════════════════════════════════════════════
+// 场景 K (Desktop 1280x800): 全站快捷键速查面板 (Cmd/Ctrl + /)
+// ══════════════════════════════════════════════════════════════════════
+await press('Escape');
+await sleep(400);
+await evalJS(`document.dispatchEvent(new KeyboardEvent('keydown', { key: '/', code: 'Slash', metaKey: true, bubbles: true }))`);
+await sleep(500);
+
+const metricsK = await inspectComponentMetrics({
+  shortcutModal: '#shortcutModal',
+  shortcutModalContent: '#shortcutModal > div',
+  shortcutModalList: '#shortcutModalList',
+  doneShortcutBtn: '#doneShortcutBtn',
+});
+await captureScreenshot('visual_test_scenario_K_shortcut_modal.png');
+
+const shortcutModalValidK = 
+  metricsK.shortcutModal.exists && metricsK.shortcutModal.computed.visibility !== 'hidden' &&
+  metricsK.shortcutModalContent.rect.width > 350 &&
+  metricsK.doneShortcutBtn.exists;
+
+pass('场景 K [Desktop 1280x800]: 快捷键速查面板 (⌘/ 触发/全站键盘快捷键键位指引)',
+  shortcutModalValidK,
+  JSON.stringify({
+    shortcutRect: metricsK.shortcutModalContent.rect,
+  }));
+
+await press('Escape');
+await sleep(400);
+
 const exitCode = finish();
 await chrome.close();
 await server.close();
@@ -369,6 +457,9 @@ const testSummaryData = {
     metricsF,
     metricsG,
     metricsH,
+    metricsI,
+    metricsJ,
+    metricsK,
   }
 };
 
