@@ -1,5 +1,3 @@
 User-agent: *
 Allow: /
 Disallow: /api/
-
-Sitemap: https://goldcoast.dpdns.org/sitemap.xml

@@ -22,5 +22,6 @@
     "tailwind"
   ],
   "author": "",
-  "license": "MIT"
+  "license": "UNLICENSED",
+  "private": true
 }

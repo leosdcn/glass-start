@@ -122,7 +122,7 @@ npm run build
      - **中文网站使用中文名**：中文本土项目与服务一律使用标准中文官方名。
      - **英文及国际网站使用英文名**：国际通用产品与服务一律使用其官方英文/国际品牌名。
      - **特定语种本土知名服务**：保留其原产国官方原名。
-   * **`desc` 简介副标题编写规范**（参见 [index.html#L1462](./index.html#L1462)）：
+   * **`desc` 简介副标题编写规范**（参见源码 `index.html` 导航卡片渲染模板）：
      - **字数限制**：推荐严格控制在 **6 ~ 10 个中文字符**（或 12 ~ 20 个英文字符）以内。
      - **布局与截断**：展示在导航卡片标题下方，窄屏或超长字符会自动触发单行截断（`truncate`）。
      - **内容准则**：精准概括网站核心定位，避免冗余修饰词（如 `全球领先AI对话模型`、`开源卡片式IP检测`）。
@@ -136,10 +136,18 @@ npm run build
 3. **修改搜索引擎**：可在 `index.html` 中的 `engines` 引擎配置对象中新增或定制新的搜索引擎（Google、Bing 等）。
 
 ### 3. 静态检查、Git 规范与自动化测试指南 (Agent / Dev Guidelines)
-- ⚡ **静态代码检查 (`npm run lint`)**：耗时仅 0.07 秒。自动完成 `index.html` 内嵌 JS、`build.js`/`sw.js`/`server.js` 语法预检及 `bookmarks.json`/`manifest.json`/`package.json` 的 JSON 合法性校验。修改代码后运行此命令做轻量校验。
-- 🚀 **生产构建打包 (`npm run build`)**：耗时约 0.2 秒（Tailwind v4 CLI + esbuild 引擎）。编译 Tailwind CSS 并同步书签数据，自动校验产物完整性。
+- ⚡ **静态代码检查 (`npm run lint`)**：耗时约 0.08 秒。自动完成 `index.html` 内嵌 JS、`build.js`/`sw.js`/`server.js` 语法预检及 `bookmarks.json`/`manifest.json`/`package.json` 的 JSON 合法性校验。修改代码后运行此命令做轻量校验。
+- 🚀 **生产构建打包 (`npm run build`)**：耗时约 0.5 秒（Tailwind v4 CLI + esbuild 引擎）。编译 Tailwind CSS 并同步书签数据，自动校验产物完整性。
 - 🧪 **自动化测试套件 (`npm test` 或 `node test/run.mjs`)**：
-  - 内置 **3 大核心领域端到端与架构综合测试套件（覆盖 18 大高密度全景断言）**。
+  - 内置 **3 大核心领域端到端与架构综合测试套件（覆盖 19 大高密度全景断言）**。
+  - **测试目录文件职责明细 (`test/`)**：
+    - `run.mjs` — MD5 增量缓存测试运行器。未改动套件自动秒级跳过；支持 `--force` 强制全量重跑、指定单套件名精准调试与 `--no-build` 跳过构建极速测试。
+    - `cdp.mjs` — 无头 Chrome 启动器与 CDP (Chrome DevTools Protocol) WebSocket 连接管理（临时独立用户配置目录，跑完自动清理）。
+    - `server.mjs` — 面向自动化测试的零依赖静态服务器，负责在随机空闲端口服务 `dist/` 构建产物。
+    - `helpers.mjs` — 共享工具函数库（随机空闲端口探测、键盘事件模拟、测试会话一键拉起等）。
+    - `data-features.test.mjs` / `infra-security.test.mjs` / `ui-interaction.test.mjs` — 数据功能、基础安全、UI 交互三大领域断言套件。
+    - `visual-regression.mjs` — 独立运行的视觉回归脚本（桌面 + 移动端 11 场景全页截图与关键组件几何校验），产物输出至项目内 `test/artifacts/` 目录（已加入 `.gitignore`）。手动执行：`node test/visual-regression.mjs`。
+    - `preview.html` — 天气组件独立「演练场」页面，供浏览器直接打开隔离调试 UI，不参与自动化测试流水线。
   - **智能增量 MD5 缓存加速**：未变动模块在测试运行时自动秒级命中缓存（`<10ms`），源码或依赖修改后精准触发对应套件重跑；亦可通过 `node test/run.mjs --force` 强制全量重跑。
   - **独立套件调试**：支持单独运行特定领域测试文件，例如 `node test/data-features.test.mjs`。
 - 🎨 **CSS 样式级联与 `!important` 禁入规范 (CSS Specificity & Anti-Pollution Rules)**：
@@ -169,7 +177,7 @@ npm run build
 | **`manifest.json`** | Web App 应用配置 | PWA 应用清单文件。配置应用名称、图标、启动 URL、主题颜色，支持添加至手机主屏幕与独立 Web App 运行。 | PWA 必需 |
 | **`_headers`** | 部署响应头配置 | Cloudflare Pages HTTP 安全响应头与静态资源缓存控制配置文件。 | 部署配置 |
 | **`lint.mjs`** | 检查脚本 | Node 零依赖静态检查脚本。用于校验根目录核心 JS/HTML 语法与 JSON 配置文件合法性。 | 工具脚本 |
-| **`test/`** | **测试目录** | 自动化测试目录。内含 3 大领域 CDP 自动化端到端测试套件（18 项高密度全景断言）与 MD5 增量缓存运行器。 | 测试框架 |
+| **`test/`** | **测试目录** | 自动化测试目录。内含 3 大领域 CDP 自动化端到端测试套件（19 项高密度全景断言）与 MD5 增量缓存运行器。 | 测试框架 |
 | **`package.json`** | 项目配置 | Node 项目配置文件，提供 `npm run dev`、`npm run watch`、`npm run build`、`npm run lint` 与 `npm test` 命令。 | 配置文件 |
 | **`dist/`** | **生产输出** | `npm run build` 自动生成的生产构建目录。包含剥离 v4 Browser CDN、内嵌 CSS 及外链 `app.js` 的上线资源。 | 生产部署产物 |
 | **`wrangler.jsonc`** | 部署配置 | Cloudflare Workers / Pages 部署配置，声明 `assets.directory = "dist"` 指定静态资源上传目录。 | Cloudflare 部署必需 |
