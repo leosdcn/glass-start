@@ -323,12 +323,6 @@
                     "desc": "MD 笔记一键发布网页"
                 },
                 {
-                    "name": "飞书",
-                    "url": "https://www.feishu.cn",
-                    "icon": "https://a.favicon.im/feishu.cn",
-                    "desc": "企业级协同办公平台"
-                },
-                {
                     "name": "微信文件传输助手",
                     "url": "https://filehelper.weixin.qq.com",
                     "icon": "https://a.favicon.im/filehelper.weixin.qq.com",
