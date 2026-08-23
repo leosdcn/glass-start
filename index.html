@@ -219,6 +219,8 @@
             --duration-entrance: 0.52s;
             --duration-fast: 0.16s;
             --duration-normal: 0.2s;
+            --duration-popover: 0.26s;
+            --duration-popover-exit: 0.18s;
             --duration-modal: 0.3s;
             --duration-slide: 0.58s;
             --delay-stagger-1: 0.08s;
@@ -330,19 +332,14 @@
             border: 1px solid rgba(255, 255, 255, 0.10);
             box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.10);
             border-radius: var(--radius-inner); /* 16px 精准同心圆角: R_inner = R_outer(24px) - Padding(20px) 视觉黄金比例 */
-            transition: background-color var(--duration-fast) var(--ease-spring), border-color var(--duration-fast) var(--ease-spring), transform var(--duration-fast) var(--ease-spring), box-shadow var(--duration-fast) var(--ease-spring);
-            will-change: transform;
+            transition: background-color var(--duration-fast) var(--ease-spring), border-color var(--duration-fast) var(--ease-spring), box-shadow var(--duration-fast) var(--ease-spring);
         }
         @media (hover: hover) and (pointer: fine) {
             .glass-subcard:hover {
                 background-color: rgba(255, 255, 255, 0.09);
                 border-color: rgba(255, 255, 255, 0.20);
-                transform: translateY(-1.5px);
                 box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.20), 0 4px 12px rgba(0, 0, 0, 0.15);
             }
-        }
-        .glass-subcard:active {
-            transform: scale(0.97);
         }
         .glass-badge {
             display: inline-flex;
@@ -1023,12 +1020,26 @@
             border-color: rgba(255, 255, 255, 0.25);
             box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.25), 0 4px 16px rgba(0, 0, 0, 0.2);
         }
+        /* 天气小组件：原生 Apple 弹簧质感展开 (macOS / iOS Unified Spring) */
         #weatherPopover {
             transform-origin: top right;
             right: 0;
             top: calc(100% + 0.5rem);
             width: 17.5rem;
             max-width: calc(100vw - 2.5rem);
+            opacity: 0;
+            transform: translateY(-2px) scale(0.96) translateZ(0);
+            pointer-events: none;
+            visibility: hidden;
+            will-change: transform, opacity;
+            transition: opacity var(--duration-popover-exit) var(--ease-exit), transform var(--duration-popover-exit) var(--ease-exit), visibility var(--duration-popover-exit) step-end;
+        }
+        #weatherPopover.active {
+            opacity: 1;
+            transform: translateY(0) scale(1) translateZ(0);
+            pointer-events: auto;
+            visibility: visible;
+            transition: opacity var(--duration-popover) var(--ease-spring), transform var(--duration-popover) var(--ease-spring), visibility 0s;
         }
         #weatherPopover::before {
             content: '';
@@ -1045,37 +1056,6 @@
         @keyframes weatherSpin {
             from { transform: rotate(0deg); }
             to { transform: rotate(360deg); }
-        }
-        /* 天气小组件：入场动效系统 */
-        /* 弹窗层级交错弹簧入场 (iOS Staggered Spring) */
-        #weatherPopover.active .weather-stagger-1 {
-            animation: weatherStaggerSlide var(--duration-entrance) var(--ease-spring) backwards;
-            animation-delay: 0ms;
-        }
-        #weatherPopover.active .weather-stagger-2 {
-            animation: weatherStaggerSlide var(--duration-entrance) var(--ease-spring) backwards;
-            animation-delay: 35ms;
-        }
-        #weatherPopover.active .weather-stagger-3 {
-            animation: weatherStaggerSlide var(--duration-entrance) var(--ease-spring) backwards;
-            animation-delay: 70ms;
-        }
-        #weatherPopover.active .weather-stagger-4 {
-            animation: weatherStaggerSlide var(--duration-entrance) var(--ease-spring) backwards;
-            animation-delay: 105ms;
-        }
-        @keyframes weatherStaggerSlide {
-            from {
-                opacity: 0;
-                transform: translate3d(0, 6px, 0);
-            }
-            to {
-                opacity: 1;
-                transform: translate3d(0, 0, 0);
-            }
-        }
-        #weatherPopover:not(.active) * {
-            animation-play-state: paused;
         }
         /* ===== 导航页书签入场效果 =====
            ⚠️ 架构防踩坑警告 (严禁添加 content-visibility: auto 或 contain: layout/paint)：
@@ -6788,7 +6768,7 @@
 
             dom.weatherPopover.innerHTML = `
                 <!-- 头部地点与刷新 -->
-                <div class="weather-stagger-1 flex items-center justify-between pb-2.5 mb-3 border-b border-white/10">
+                <div class="flex items-center justify-between pb-2.5 mb-3 border-b border-white/10">
                     <div class="flex items-center gap-1.5 min-w-0 pr-2">
                         <span class="text-xs text-white/50 shrink-0">📍</span>
                         <span class="text-xs font-semibold text-white/90 truncate" title="${escapeHtml(loc.fullName || loc.name)}">${escapeHtml(loc.fullName || loc.name)}</span>
@@ -6799,7 +6779,7 @@
                 </div>
 
                 <!-- 当前主天气 -->
-                <div class="weather-stagger-2 flex items-center justify-between mb-3 px-1">
+                <div class="flex items-center justify-between mb-3 px-1">
                     <div class="flex items-center gap-3">
                         <span class="text-3xl sm:text-4xl leading-none select-none">${escapeHtml(c.icon)}</span>
                         <div>
@@ -6811,7 +6791,7 @@
                 </div>
 
                 <!-- 详细指标 2x2 网格 -->
-                <div class="weather-stagger-3 grid grid-cols-2 gap-2 mb-3">
+                <div class="grid grid-cols-2 gap-2 mb-3">
                     <div class="p-2 glass-subcard flex items-center gap-2">
                         <span class="text-sm select-none">${humIcon}</span>
                         <div class="min-w-0">
@@ -6843,7 +6823,7 @@
                 </div>
 
                 <!-- 未来预报 -->
-                <div class="weather-stagger-4 space-y-1.5 pt-2 border-t border-white/10">
+                <div class="space-y-1.5 pt-2 border-t border-white/10">
                     <div class="text-2xs text-white/50 font-medium px-1 mb-1">未来几天预报</div>
                     ${days.slice(0, 4).map(d => `
                         <div class="flex items-center justify-between text-xs py-1 px-1.5 apple-radius hover:bg-white/5 transition-colors">
