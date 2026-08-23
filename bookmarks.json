@@ -47,7 +47,7 @@
             "icon": "🤖",
             "bookmarks": [
                 {
-                    "name": "Arena AI",
+                    "name": "Arena",
                     "url": "https://arena.ai",
                     "icon": "https://a.favicon.im/arena.ai",
                     "desc": "全球 AI 盲测平台"
@@ -149,7 +149,7 @@
                     "desc": "字节跳动 AI 助手"
                 },
                 {
-                    "name": "通义千问",
+                    "name": "千问",
                     "url": "https://www.qianwen.com",
                     "icon": "https://a.favicon.im/www.qianwen.com",
                     "desc": "阿里官方 AI 助手"
@@ -419,7 +419,7 @@
                     "desc": "Emoji 字典与符号库"
                 },
                 {
-                    "name": "Lucide Icons",
+                    "name": "Lucide",
                     "url": "https://lucide.dev",
                     "icon": "https://a.favicon.im/lucide.dev",
                     "desc": "现代极简矢量图标库"
