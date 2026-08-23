@@ -338,7 +338,7 @@
                     "name": "Google Arts & Culture",
                     "url": "https://artsandculture.google.com",
                     "icon": "https://a.favicon.im/artsandculture.google.com",
-                    "desc": "全球艺术博物馆名作漫游"
+                    "desc": "全球艺术博物馆漫游"
                 },
                 {
                     "name": "Internet Archive",
@@ -482,7 +482,7 @@
                     "name": "waifu2x",
                     "url": "https://waifu2x.udp.jp",
                     "icon": "https://a.favicon.im/waifu2x.udp.jp",
-                    "desc": "开源图片降噪与无损放大"
+                    "desc": "开源图片无损放大"
                 },
                 {
                     "name": "Wallhaven",
