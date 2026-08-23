@@ -314,7 +314,7 @@
                     "name": "Publish Markdown",
                     "url": "https://publishmarkdown.com",
                     "icon": "https://a.favicon.im/publishmarkdown.com",
-                    "desc": "MD 笔记一键发布网页"
+                    "desc": "笔记一键发布静态网页"
                 },
                 {
                     "name": "微信文件传输助手",
@@ -368,7 +368,7 @@
                     "name": "极客湾芯片榜",
                     "url": "https://socpk.com",
                     "icon": "https://a.favicon.im/socpk.com",
-                    "desc": "手机电脑处理器能效榜"
+                    "desc": "手机电脑芯片能效榜"
                 },
                 {
                     "name": "默沙东诊疗手册",
@@ -557,16 +557,16 @@
                     "desc": "全球实时动态与热点"
                 },
                 {
-                    "name": "微博",
-                    "url": "https://weibo.com",
-                    "icon": "https://a.favicon.im/weibo.com",
-                    "desc": "国内热点社交平台"
-                },
-                {
                     "name": "豆瓣",
                     "url": "https://www.douban.com",
                     "icon": "https://a.favicon.im/douban.com",
                     "desc": "图书电影音乐评分社区"
+                },
+                {
+                    "name": "微博",
+                    "url": "https://weibo.com",
+                    "icon": "https://a.favicon.im/weibo.com",
+                    "desc": "国内热点社交平台"
                 }
             ]
         },
@@ -614,7 +614,7 @@
                     "name": "Steam",
                     "url": "https://store.steampowered.com",
                     "icon": "https://a.favicon.im/store.steampowered.com",
-                    "desc": "全球 PC 数字游戏平台"
+                    "desc": "全球数字游戏发行平台"
                 },
                 {
                     "name": "Twitch",
