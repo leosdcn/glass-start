@@ -92,7 +92,7 @@
                     "name": "Gamma",
                     "url": "https://gamma.app",
                     "icon": "https://a.favicon.im/gamma.app",
-                    "desc": "AI 生成 PPT 与网页"
+                    "desc": "AI生成PPT与网页"
                 },
                 {
                     "name": "Gemini",
@@ -170,7 +170,7 @@
                     "name": "DistroSea",
                     "url": "https://distrosea.com",
                     "icon": "https://a.favicon.im/distrosea.com",
-                    "desc": "在线体验 Linux 系统"
+                    "desc": "在线体验Linux系统"
                 },
                 {
                     "name": "GitHub",
@@ -392,7 +392,7 @@
                     "name": "鸟哥的 Linux 私房菜",
                     "url": "https://linux.vbird.org",
                     "icon": "https://a.favicon.im/linux.vbird.org",
-                    "desc": "经典 Linux 运维教程"
+                    "desc": "经典Linux运维教程"
                 },
                 {
                     "name": "食用手册",
@@ -503,6 +503,12 @@
                     "desc": "极速配色方案在线生成"
                 },
                 {
+                    "name": "SauceNAO",
+                    "url": "https://saucenao.com",
+                    "icon": "https://a.favicon.im/saucenao.com",
+                    "desc": "二次元动漫以图搜图"
+                },
+                {
                     "name": "Squoosh",
                     "url": "https://squoosh.app",
                     "icon": "https://a.favicon.im/squoosh.app",
@@ -554,7 +560,7 @@
                     "name": "OMG! Ubuntu",
                     "url": "https://www.omgubuntu.co.uk",
                     "icon": "https://a.favicon.im/omgubuntu.co.uk",
-                    "desc": "Linux 桌面与开源资讯"
+                    "desc": "Linux桌面与开源资讯"
                 },
                 {
                     "name": "Reddit",
