@@ -5,6 +5,8 @@
     <script>
         // 防 iframe 点击劫持与恶意嵌套：若检测出页面处于 iframe 中，自动强行跳出；沙箱受限时安全隐藏页面
         if (window.top !== window.self) { try { window.top.location.replace(window.location.href); } catch { document.documentElement.style.display = 'none'; } }
+        // 标记 Chromium 环境，用于字体与排版专属微调
+        if (window.chrome) document.documentElement.classList.add('is-chrome');
     </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="theme-color" content="#0b0f19">
@@ -240,7 +242,20 @@
             overscroll-behavior: none;
             overscroll-behavior-y: none;
         }
+        /* 声明仅 Chrome 启用的 Emoji 缩放虚拟字体（补偿 SBIX 内嵌位图的透明 Padding） */
+        @font-face {
+            font-family: 'ChromeScaledEmoji';
+            src: local('Apple Color Emoji'), local('Segoe UI Emoji'), local('Noto Color Emoji');
+            unicode-range: 
+                U+1F000-1FAFF, U+1F300-1F5FF, U+1F600-1F64F, 
+                U+1F680-1F6FF, U+1F900-1F9FF, U+2600-27BF, 
+                U+2300-23FF, U+FE0E-FE0F;
+            size-adjust: 125%;
+        }
         body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif; /* 优先 Apple 原生系统字体栈 */ }
+        html.is-chrome body {
+            font-family: 'ChromeScaledEmoji', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+        }
         * { scrollbar-width:none; }
         *::-webkit-scrollbar { display:none; }
         /* Tailwind v4 preflight 不再默认给按钮 pointer 光标，此处恢复并清除移动端高亮 */
