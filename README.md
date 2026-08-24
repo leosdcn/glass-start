@@ -17,6 +17,87 @@
 
 ---
 
+## 🏛️ 系统架构与设计决策
+
+Glass Start 采用现代纯前端响应式架构与零依赖离线底座，整体分为 **UI 表现与硬件渲染层**、**双屏状态机与交互路由层**、**数据管理与持久化层** 以及 **Service Worker 离线网络底座** 4 大核心分层：
+
+```mermaid
+flowchart TB
+    %% ======================= LAYER 1: UI & HARDWARE RENDERING =======================
+    subgraph L1 [" 1. UI 表现与硬件渲染层 (Presentation & Hardware Rendering) "]
+        direction TB
+        TW4["Tailwind CSS v4 编译管道<br/>@theme 原生 CSS 变量"]
+        LG["Liquid Glass 毛玻璃拟态引擎<br/>backdrop-blur / glass-strong / CSS Mask"]
+        PMG["Pointer Motion Gating 光影守卫<br/>--mouse-x / --mouse-y / RAF 帧合并"]
+        T3D["3D Perspective 陀螺仪矩阵<br/>perspective(800px) rotateX/Y scale(1.025)"]
+        A11Y_MOT["动态感知降级门控<br/>prefers-reduced-motion / (hover: hover)"]
+    end
+
+    %% ======================= LAYER 2: STATE MACHINE & INTERACTION =======================
+    subgraph L2 [" 2. 状态机与交互路由层 (State Machine & Interaction Routing) "]
+        direction TB
+        SM["双屏状态机 (Dual-Screen SM)<br/>state.currentSection: 'start' ↔ 'nav'"]
+        WHEEL["滚轮动量吞咽器 (Momentum Swallower)<br/>normDelta / 速度门控 / 反向手势即时熔断"]
+        TOUCH["触屏手势处理器 (Touch Engine)<br/>40px 阈值 / 25px+0.25px/ms 快速轻扫 (Flick)"]
+        ROUTER["修饰键分流器 (Modifier Dispatcher)<br/>Cmd / Ctrl / 鼠标中键 (button: 1) 新标签分流"]
+        FOCUS_TRAP["无障碍焦点循环陷阱 (Focus Trap)<br/>Tab / Shift+Tab 循环锁定"]
+    end
+
+    %% ======================= LAYER 3: DATA MANAGEMENT & STORAGE =======================
+    subgraph L3 [" 3. 数据管理与本地持久化层 (Data Management & Local Persistence) "]
+        direction TB
+        RUNTIME["pageData 响应式内存模型<br/>{ bookmarks, categories, customMeta }"]
+        MIGRATION["LocalStorage 迁移与写入<br/>SCHEMA_VERSION 校验 / 脏数据收敛清洗"]
+        ASSET_STORE["自定义壁纸与图标持久化<br/>DataURL Base64 / LocalStorage / 预设壁纸"]
+        FALLBACK_JSON["静态数据库默认回退<br/>bookmarks.json 派生式元数据生成 (Derived BM)"]
+    end
+
+    %% ======================= LAYER 4: SERVICE WORKER & SECURITY =======================
+    subgraph L4 [" 4. 离线运行与网络服务底座 (Offline Runtime & Service Worker Base) "]
+        direction TB
+        SW_THREAD["Service Worker 独立线程 (sw.js)<br/>skipWaiting / clients.claim"]
+        THREE_CACHE["三池隔离缓存模型 (Three-Pool Isolation)<br/>CORE_CACHE | FAVICON_CACHE | IMG_CACHE"]
+        FIFO_PRUNE["FIFO 自动容量淘汰引擎<br/>MAX_FAVICON(800) | MAX_IMG(200)"]
+        CSP_SEC["Edge / CSP 安全隔离标头<br/>connect-src / img-src 通配 / Strict-Transport-Security"]
+    end
+
+    %% ======================= RELATIONSHIPS =======================
+    L1 <-->|"DOM 事件监听 / CSS 变量绑定"| L2
+    L2 <-->|"状态同步 / 派生数据驱动"| L3
+    L3 <-->|"静态资源与数据预存"| L4
+
+    TW4 -.-> LG
+    LG -.-> PMG
+    PMG -.-> T3D
+    A11Y_MOT ==>|禁用动效| T3D
+
+    SM <--> WHEEL
+    SM <--> TOUCH
+    SM --- ROUTER
+    L2 --- FOCUS_TRAP
+
+    RUNTIME <--> MIGRATION
+    RUNTIME <--> ASSET_STORE
+    MIGRATION -.->|缺省回退| FALLBACK_JSON
+
+    SW_THREAD --> THREE_CACHE
+    THREE_CACHE --> FIFO_PRUNE
+    SW_THREAD --- CSP_SEC
+
+    %% ======================= STYLES =======================
+    classDef layerBox fill:#1e293b,stroke:#3b82f6,stroke-width:2px,color:#f8fafc,rx:8px
+    classDef nodeBox fill:#0f172a,stroke:#64748b,stroke-width:1px,color:#e2e8f0,rx:5px
+    classDef activeBox fill:#1e3a8a,stroke:#60a5fa,stroke-width:1px,color:#ffffff,rx:5px
+
+    class L1,L2,L3,L4 layerBox
+    class TW4,LG,PMG,T3D,A11Y_MOT,SM,WHEEL,TOUCH,ROUTER,FOCUS_TRAP,RUNTIME,MIGRATION,ASSET_STORE,FALLBACK_JSON,SW_THREAD,THREE_CACHE,FIFO_PRUNE,CSP_SEC nodeBox
+    class SM,THREE_CACHE,RUNTIME,LG activeBox
+```
+
+> 📘 **深入架构与交互决策**：关于双屏状态机流转、OverlayStack 弹窗逆序退栈、Service Worker 三池物理隔离、智能搜索匹配及气象演化引擎的完整 Mermaid 图表与深度解析，请参阅 ➔ [**Glass Start 架构设计与核心技术白皮书 (ARCHITECTURE.md)**](./ARCHITECTURE.md)。
+
+---
+
 ## 📖 用户使用指南手册
 
 ### 1. 双屏滚动与书签入场交互
