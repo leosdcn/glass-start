@@ -376,8 +376,8 @@ try {
                     if (!bm.icon || typeof bm.icon !== 'string') errors.push(`${prefix} 缺少有效 icon`);
                     if (!bm.desc || typeof bm.desc !== 'string' || bm.desc.trim().length === 0) {
                         errors.push(`${prefix} 缺少有效 desc 简介`);
-                    } else if (bm.desc.length > 25) {
-                        errors.push(`${prefix} desc 简介过长 (${bm.desc.length}字): "${bm.desc}"`);
+                    } else if (bm.desc.length > 15) {
+                        errors.push(`${prefix} desc 简介过长 (${bm.desc.length}字, 上限15字): "${bm.desc}"`);
                     }
                 });
             } else {
