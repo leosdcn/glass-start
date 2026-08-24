@@ -1,7 +1,7 @@
 /**
- * 根目录零依赖静态语法与格式检查 (lint.mjs)
+ * 根目录零依赖静态语法与格式检查 (scripts/lint.mjs)
  * 1. 提取 index.html 内所有内联 <script> 做语法校验
- * 2. 对根目录 JavaScript 核心脚本 (build.js, sw.js, server.js) 用 node --check 校验语法
+ * 2. 对核心 JavaScript 脚本 (scripts/build.js, sw.js, scripts/server.js) 用 node --check 校验语法
  * 3. 对根目录 JSON 配置文件 (bookmarks.json, manifest.json, package.json) 做合法性校验
  */
 import { readFileSync, statSync } from 'node:fs';
