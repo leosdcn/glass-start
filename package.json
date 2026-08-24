@@ -1,6 +1,6 @@
 {
   "name": "glass-start",
-  "version": "3.5.0",
+  "version": "3.5.1",
   "description": "极简 macOS 毛玻璃风格新标签页与多引擎极速搜索工具",
   "main": "index.html",
   "scripts": {

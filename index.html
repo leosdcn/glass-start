@@ -511,7 +511,22 @@
             transform: translateZ(0);
             transition: transform 0.38s cubic-bezier(0.2, 0.9, 0.2, 1), background-color 0.32s ease, border-color 0.32s ease, box-shadow 0.38s cubic-bezier(0.2, 0.9, 0.2, 1);
         }
-        .bookmark-item::before, .nav-bookmark::before {
+        .bookmark-item::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            background: radial-gradient(
+                200px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+                rgba(255, 255, 255, 0.08),
+                transparent 70%
+            );
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            z-index: 1;
+        }
+        .nav-bookmark::before {
             content: '';
             position: absolute;
             inset: 0;
@@ -536,9 +551,9 @@
                 opacity: 1;
             }
             body:not(.tab-blurred) .bookmark-item:not(.is-clicked):hover:not(:active) {
-                background: rgba(255, 255, 255, 0.14);
+                background: rgba(255, 255, 255, 0.08);
                 transform: scale(1.025) translateZ(0);
-                box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.35), 0 8px 24px rgba(0, 0, 0, 0.25);
+                box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.15), 0 8px 20px rgba(0, 0, 0, 0.2);
             }
             body:not(.tab-blurred) .nav-bookmark:not(.is-clicked):hover:not(:active) {
                 background: rgba(255, 255, 255, 0.12);
@@ -1747,7 +1762,7 @@
                         <div>
                             <div class="flex items-center gap-2">
                                 <span class="text-sm font-semibold text-white/95 tracking-tight leading-none">Glass Start</span>
-                                <span class="text-2xs px-2 h-4.5 rounded-full bg-white/10 border border-white/15 text-white/75 font-medium inline-flex items-center justify-center select-none">v3.5.0</span>
+                                <span class="text-2xs px-2 h-4.5 rounded-full bg-white/10 border border-white/15 text-white/75 font-medium inline-flex items-center justify-center select-none">v3.5.1</span>
                             </div>
                             <div class="text-2xs text-white/50 leading-none mt-1.5">极简 Liquid Glass 拟态导航 • Build 2026.08</div>
                         </div>
