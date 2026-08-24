@@ -252,9 +252,25 @@
                 U+2300-23FF, U+FE0E-FE0F;
             size-adjust: 125%;
         }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif; /* 优先 Apple 原生系统字体栈 */ }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif; /* 优先 Apple 原生系统字体栈 */
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            text-rendering: optimizeLegibility;
+        }
         html.is-chrome body {
             font-family: 'ChromeScaledEmoji', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+        }
+        /* 彻底压制 Chromium 自动填充注入的实心底色，保护毛玻璃透明质感 */
+        input:-webkit-autofill,
+        input:-webkit-autofill:hover, 
+        input:-webkit-autofill:focus,
+        textarea:-webkit-autofill,
+        textarea:-webkit-autofill:hover,
+        textarea:-webkit-autofill:focus {
+            -webkit-text-fill-color: #ffffff;
+            box-shadow: 0 0 0px 1000px rgba(255, 255, 255, 0.08) inset;
+            transition: background-color 5000s ease-in-out 0s;
         }
         * { scrollbar-width:none; }
         *::-webkit-scrollbar { display:none; }
