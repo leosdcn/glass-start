@@ -111,10 +111,25 @@ export async function launchChrome({ port, url }) {
   };
   await new Promise((res, rej) => { ws.onopen = res; ws.onerror = rej; });
 
-  const send = (method, params = {}) => new Promise((res) => {
+  const send = (method, params = {}, timeoutMs = 15000) => new Promise((res, rej) => {
     const mid = ++id;
-    pending.set(mid, res);
-    ws.send(JSON.stringify({ id: mid, method, params }));
+    const timer = setTimeout(() => {
+      if (pending.has(mid)) {
+        pending.delete(mid);
+        rej(new Error(`CDP command ${method} timed out after ${timeoutMs}ms`));
+      }
+    }, timeoutMs);
+    pending.set(mid, (result) => {
+      clearTimeout(timer);
+      res(result);
+    });
+    try {
+      ws.send(JSON.stringify({ id: mid, method, params }));
+    } catch (err) {
+      clearTimeout(timer);
+      pending.delete(mid);
+      rej(err);
+    }
   });
 
   return {

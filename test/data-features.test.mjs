@@ -100,7 +100,7 @@ await evalJS(`localStorage.setItem('userBookmarks', JSON.stringify([
   { name: 'Gitee', url: 'https://gitee.com', icon: '' },
   { name: '自建站', url: 'https://custom.example.dev', icon: 'https://custom.example.dev/icon.png', desc: '个人站点' }
 ]))`);
-await evalJS('location.reload()'); await sleep(1800);
+await evalJS('setTimeout(() => location.reload(), 10)'); await sleep(1200);
 await evalJS(`
   window.fetch = async () => ({ ok: true, json: async () => ({}) });
   isFetchingWeather = true;

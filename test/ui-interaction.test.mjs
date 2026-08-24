@@ -151,7 +151,7 @@ pass('滚轮与触屏手势切屏及内部滚动拦截机制 (滚轮下切/内�
 // ══════════════════════════════════════════════════════════════════════
 
 await evalJS('sessionStorage.setItem("startpage_section", "nav")');
-await evalJS('location.reload()'); await sleep(800);
+await evalJS('setTimeout(() => location.reload(), 10)'); await sleep(800);
 const restored = await evalJS(`(() => {
   const n = document.getElementById('navSection');
   return n.className.includes('screen-pushed-in') && !n.className.includes('nav-hidden');
@@ -267,7 +267,8 @@ const dropzoneOk = await evalJS(`(() => {
 })()`);
 
 // 6.7 遮罩透明度设置记忆
-await evalJS(`localStorage.setItem('maskOpacity', 50); location.reload()`); await sleep(2200);
+await evalJS(`localStorage.setItem('maskOpacity', 50)`);
+await evalJS('setTimeout(() => location.reload(), 10)'); await sleep(1200);
 const beforeOverlay = await evalJS(`getComputedStyle(document.getElementById('bgOverlay')).backgroundColor`);
 await press('Escape'); await sleep(300);
 const afterOverlay = await evalJS(`getComputedStyle(document.getElementById('bgOverlay')).backgroundColor`);

@@ -59,17 +59,21 @@ if (existsSync(headersPath)) {
   const headersContent = readFileSync(headersPath, 'utf-8');
   const rules = parseHeadersFile(headersContent);
   const indexCc = rules['/index.html']?.['cache-control'] || '';
+  const rootCc = rules['/']?.['cache-control'] || '';
   const swCc = rules['/sw.js']?.['cache-control'] || '';
   const appCc = rules['/app.js']?.['cache-control'] || '';
-  const validNoCache = indexCc.includes('max-age=0') && swCc.includes('max-age=0') && appCc.includes('max-age=0') && !appCc.includes('immutable');
+  const manifestCc = rules['/manifest.json']?.['cache-control'] || '';
+  const iconCc = rules['/apple-touch-icon.png']?.['cache-control'] || '';
   const wpCc = rules['/wallpapers/*']?.['cache-control'] || '';
+  const validNoCache = indexCc.includes('max-age=0') && rootCc.includes('max-age=0') && swCc.includes('max-age=0') && appCc.includes('max-age=0') && manifestCc.includes('max-age=0') && !appCc.includes('immutable');
   const validWp = wpCc.includes('max-age=31536000') && wpCc.includes('immutable');
+  const validIcon = iconCc.includes('max-age=604800');
   const srcHeadersContent = readFileSync(join(ROOT, '_headers'), 'utf-8');
   const syncOk = srcHeadersContent.trim() === headersContent.trim();
-  headersOk = validNoCache && validWp && syncOk;
+  headersOk = validNoCache && validWp && validIcon && syncOk;
 }
 
-pass('dist/ 产物完整性与 Cache-Control 标头规则 (产物齐全/HTML-JS协商缓存/壁纸强缓存/同步)',
+pass('dist/ 产物完整性与 Cache-Control 标头规则 (产物齐全/全链路协商缓存/壁纸强缓存/同步)',
   filesExistOk && headersOk,
   filesExistOk && headersOk ? '产物与响应头100%合规' : `缺失: ${missingFiles.join(', ')}`);
 

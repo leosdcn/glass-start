@@ -22,9 +22,19 @@
 /index.html
   Cache-Control: public, max-age=0, must-revalidate
 
+/
+  Cache-Control: public, max-age=0, must-revalidate
+
 /app.js
   Cache-Control: public, max-age=0, must-revalidate
 
+/manifest.json
+  Cache-Control: public, max-age=0, must-revalidate
+
+/apple-touch-icon.png
+  Cache-Control: public, max-age=604800, must-revalidate
+
 /robots.txt
   Cache-Control: public, max-age=86400, must-revalidate
+
 
