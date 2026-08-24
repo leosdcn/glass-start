@@ -838,13 +838,12 @@
         }
         /* ===== 苹果风格物理按压触感微反馈 (iOS 18 Active Press-down Feedback) ===== */
         .bookmark-item:active, .nav-bookmark:active {
-            transform: scale(0.95) translateY(0);
-            opacity: 0.85;
-            transition: transform 0.08s var(--ease-snappy), opacity 0.08s ease;
+            transform: scale(0.96) translateY(0);
+            transition: transform 0.08s var(--ease-snappy);
         }
         /* 按下时重置子图标缩放，避免 hover 物理缩放叠加跳变 */
         .bookmark-item:active .icon-box, .nav-bookmark:active .icon-box {
-            transform: scale(0.95);
+            transform: scale(0.96);
             transition: transform 0.08s var(--ease-snappy);
         }
         #editBookmarksBtn:active, #weatherBtn:active {
@@ -5100,6 +5099,9 @@
             const handleLinkClickFeedback = (e) => {
                 const link = e.target && e.target.closest && e.target.closest('a[target="_blank"], .bookmark-item, .nav-bookmark');
                 if (link) {
+                    if (typeof window.resetActiveTiltCard === 'function') {
+                        window.resetActiveTiltCard();
+                    }
                     if (typeof link.blur === 'function') link.blur();
                     if (document.activeElement && typeof document.activeElement.blur === 'function' && document.activeElement !== document.body && document.activeElement !== dom.searchInput) {
                         document.activeElement.blur();
@@ -5132,7 +5134,6 @@
             const clearTabBlurOnInteraction = () => {
                 if (document.body.classList.contains('tab-blurred')) {
                     document.body.classList.remove('tab-blurred');
-                    document.querySelectorAll('.is-clicked').forEach(el => el.classList.remove('is-clicked'));
                 }
             };
             window.addEventListener('blur', handleTabBlur, { passive: true });
@@ -7623,6 +7624,7 @@
                         activeCardRect = null;
                     }
                 };
+                window.resetActiveTiltCard = resetActiveCard;
 
                 const resetActiveSearchBox = () => {
                     if (searchBoxRafId) {
@@ -7659,7 +7661,10 @@
                     const rotateX = -((y - centerY) / centerY) * 2.5;
                     const rotateY = ((x - centerX) / centerX) * 2.5;
 
-                    activeCard.style.transform = `perspective(800px) rotateX(${rotateX.toFixed(2)}deg) rotateY(${rotateY.toFixed(2)}deg) scale(1.025)`;
+                    const isPressed = (typeof activeCard.matches === 'function' && activeCard.matches(':active')) || (pendingEvent.buttons === 1);
+                    const targetScale = isPressed ? 0.96 : 1.025;
+
+                    activeCard.style.transform = `perspective(800px) rotateX(${rotateX.toFixed(2)}deg) rotateY(${rotateY.toFixed(2)}deg) scale(${targetScale})`;
                     rafId = null;
                 }
 
@@ -7678,6 +7683,33 @@
                     activeSearchBox.style.setProperty('--mouse-y', `${pendingSearchBoxEvent.clientY - activeSearchBoxRect.top}px`);
                     searchBoxRafId = null;
                 }
+
+                document.addEventListener('pointerdown', (e) => {
+                    const target = e.target;
+                    if (!target) return;
+                    const card = target.closest('.nav-bookmark');
+                    if (card) {
+                        if (activeCard !== card) {
+                            if (activeCard) resetActiveCard();
+                            activeCard = card;
+                            activeCardRect = card.getBoundingClientRect();
+                            activeCard.style.transition = 'transform 0.08s ease-out, background-color 0.32s ease, border-color 0.32s ease, box-shadow 0.38s cubic-bezier(0.2, 0.9, 0.2, 1)';
+                        }
+                        pendingEvent = e;
+                        if (!rafId) {
+                            rafId = requestAnimationFrame(updateCardTransform);
+                        }
+                    }
+                }, { passive: true });
+
+                document.addEventListener('pointerup', (e) => {
+                    if (activeCard) {
+                        pendingEvent = e;
+                        if (!rafId) {
+                            rafId = requestAnimationFrame(updateCardTransform);
+                        }
+                    }
+                }, { passive: true });
 
                 document.addEventListener('mousemove', (e) => {
                     const target = e.target;
