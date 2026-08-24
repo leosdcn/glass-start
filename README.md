@@ -260,6 +260,11 @@ npm run build
   - **严禁引入常规 `!important`**：坚决杜绝在常规组件样式、状态类（如 `.hidden`、`.dragging`、`.active`）或瞬态类（如 `.nr`）中使用 `!important`，避免破坏双屏推移（`translateY(100dvh)`）物理动效与组件生命周期。
   - **特异性与层叠优先**：样式优先级一律纯粹依靠 **CSS 特异性（Specificity: ID > Class > Element）** 与 **ITCSS 级联顺序** 天然实现。
   - **唯一合规例外（W3C A11y 白名单）**：仅允许在 `@media (prefers-reduced-motion: reduce)` 中针对通配符 `*, *::before, *::after` 强制关停动效时使用，以严格符合 WCAG 2.1 AAA 级国际无障碍规范（`npm run lint` 已配置自动化守门，拦截任何非法 `!important`）。
+- 🛡️ **BFCache 与页面生命周期防失步准则 (BFCache & Lifecycle Guardrails)**：
+  - **防语义污染**：布局推屏类 `.nr` 严禁滥用为通用动画禁用类，任何切屏/自愈入口同步剥离；
+  - **防跨帧竞态**：严禁 `style.transition = 'none'` + `rAF` 异步反模式，100% 依赖声明式状态类，唤醒自愈同步清除内联脏样式；
+  - **防模型割裂**：`visibilitychange` 与 `pageshow` 双通道收敛至 `handleAppWakeUp()` 单点自愈；
+  - **防动画时间穿越**：入场动画（`.fade-in` / `.animate-item-in`）播放完后必须立即卸载，避免 WebKit BFCache 解冻回滚至 `opacity:0`。
 - ☁️ **云端自动部署与构建提示 (CI/CD Guidelines)**：
   - 🛑 **严禁自行推送云端 (No Auto Push)**：严禁 Agent 自动执行 `git push` 推送至远程 Git 仓库；所有云端推送必须由用户下达明确指令（如“推送”、“git push”）后方可执行。
   - **Cloudflare Pages 自动构建**：push 到 `main` 分支会自动触发线上构建与部署。

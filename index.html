@@ -4922,6 +4922,7 @@
                         requestAnimationFrame(() => {
                             requestAnimationFrame(() => {
                                 header.classList.add('category-title-pulse');
+                                header.addEventListener('animationend', () => header.classList.remove('category-title-pulse'), { once: true });
                             });
                         });
                     }
@@ -5433,6 +5434,7 @@
                 tempDiv.innerHTML = getEditRowHTML(name, url, Date.now()).trim();
                 const div = tempDiv.firstElementChild;
                 div.classList.add('animate-item-in');
+                div.addEventListener('animationend', () => div.classList.remove('animate-item-in'), { once: true });
                 dom.editList.appendChild(div);
                 item.classList.add('opacity-40', 'pointer-events-none');
                 item.disabled = true;
@@ -5452,6 +5454,7 @@
                 tempDiv.innerHTML = getEditRowHTML('', '', Date.now()).trim();
                 const div = tempDiv.firstElementChild;
                 div.classList.add('animate-item-in');
+                div.addEventListener('animationend', () => div.classList.remove('animate-item-in'), { once: true });
                 dom.editList.appendChild(div);
                 div.querySelector('.edit-name').focus();
                 modalState.bookmarksChanged = true;
@@ -7560,10 +7563,21 @@
             // ===== 全局页面生命周期与多标签/BFCache 唤醒自愈闭环 (全设备通用，不依赖 hover/motion 硬件特征) =====
             const handleAppWakeUp = () => {
                 updateClock();
+                // 1. 清除所有点击按压态与悬停残留
                 document.querySelectorAll('.is-clicked').forEach(el => el.classList.remove('is-clicked'));
+                // 2. 清理所有瞬态入场动画与脉冲类名，彻底杜绝 WebKit 从 BFCache 唤醒时重估 CSS 动画回滚至初始帧
+                document.querySelectorAll('.fade-in, .animate-item-in, .category-title-pulse').forEach(el => {
+                    el.classList.remove('fade-in', 'animate-item-in', 'category-title-pulse');
+                });
+                // 3. 清理拖拽锁与旋转态图标
+                document.body.classList.remove('bookmark-dragging');
+                document.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
+                if (dom.randomBookmarkBtn) dom.randomBookmarkBtn.classList.remove('rolling');
+                // 4. 解除多余焦点锁定
                 if (document.activeElement && typeof document.activeElement.blur === 'function' && document.activeElement !== document.body && document.activeElement !== dom.searchInput) {
                     document.activeElement.blur();
                 }
+                // 5. 幂等校准双屏状态机与 DOM 样式
                 if (typeof window.reconcileScreenState === 'function') {
                     window.reconcileScreenState(undefined, true);
                 }

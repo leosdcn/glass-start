@@ -162,6 +162,15 @@ flowchart TD
 2. **零 Reflow 触屏手势引擎**：触摸事件通过对比 $X/Y$ 轴位移比率（`deltaX > absDeltaY` 则判定为侧边栏横滑并放行原生滚动），在垂直滑动达到 40px 阈值或满足 Flick 轻扫（位移 $\ge 25\text{px}$ 且速度 $> 0.25\text{px/ms}$）时瞬间触发切换。
 3. **BFCache 幂等式瞬态自愈**：当用户点击书签跳转并在数分钟后通过浏览器“后退”键唤醒时，页面直接从 BFCache（往返缓存）恢复。`pageshow` 事件捕获后调用 `reconcileScreenState(undefined, true)`，无视过渡动画直接在单帧内清空互斥锁、消除定时器、校准 `scrollTop` 与 DOM 类名，杜绝切屏卡在半空的异常状态。
 
+#### 🛡️ BFCache 与页面生命周期失步 4 大暗坑防线 (Lifecycle Anti-Patterns & Defenses)
+
+| 经典陷阱类别 | 错误本质与致命代价 | 工业级避坑标准与 Glass Start 防御实现 |
+| :--- | :--- | :--- |
+| **1. 语义污染与隐式副作用**<br>*(Class Name Semantic Pollution)* | 将具有强破坏性推屏布局的类名（`.nr` 强推首屏至 `-100dvh`）误当通用禁用动画类；若在首屏唤醒未剥离，JS 以为在首屏，CSS 却将首屏推飞，导致两屏错乱。 | **严格入口剥离**：`reconcileScreenState`、`switchToNav`、`switchToStart` 入口首行均同步执行 `document.documentElement.classList.remove('nr')`，配合自动化断言守门。 |
+| **2. 异步跨帧竞态反模式**<br>*(Async Inter-Frame Race Condition)* | 采用 `el.style.transition = 'none'` + `rAF` 异步清除；后台标签页被浏览器完全冻结 `rAF` 时，残留内联样式在唤醒瞬间破坏 CSS 动画，导致屏幕卡死。 | **纯声明式状态类**：绝不常驻内联样式修改，100% 依托 `.screen-pushed-up` 等状态类驱动，唤醒自愈时同步清空 `startSection` / `nav` 内联脏样式。 |
+| **3. 生命周期事件模型割裂**<br>*(Lifecycle Fragmentation)* | 混淆 BFCache 唤醒（仅触发 `pageshow`）与多标签页切回（仅触发 `visibilitychange`）；若仅监听单边事件，另一侧唤醒即成为无监管死锁盲区。 | **双保险全量收敛**：统一提炼 `handleAppWakeUp()`，同时向 `visibilitychange` (`!document.hidden`) 与 `pageshow` 注册，单点实现多标签与 BFCache 统一自愈。 |
+| **4. CSS 动画时间穿越隐患**<br>*(CSS Animation Rewind Issue)* | 让带有 `animation-fill-mode: backwards` 的入场动画类（`.fade-in`、`.animate-item-in`）常驻 DOM；WebKit 从 BFCache 解冻唤醒时重估动画并回滚至 `opacity:0` 造成页面不可见。 | **入场后主动脱壳卸载**：页面首屏入场后 800ms 自动卸载 `.fade-in`，新增条目通过 `animationend` 同步卸载 `.animate-item-in`，唤醒时全局扫除动画类，保持静态 DOM。 |
+
 ---
 
 ### 3. 📚 OverlayStack 多层弹窗层叠栈与 Escape 统一退栈决策 (OverlayStack & Modal Flow)
