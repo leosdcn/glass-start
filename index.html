@@ -460,8 +460,10 @@
         #navSection.screen-pushed-in {
             transform: translateY(0);
         }
-        .suggestion-item:hover {
-            background: rgba(255, 255, 255, 0.12);
+        @media (hover: hover) and (pointer: fine) {
+            #suggestionMenu:not(.keyboard-nav) .suggestion-item:hover {
+                background: rgba(255, 255, 255, 0.12);
+            }
         }
 
         /* ==========================================================================
@@ -736,9 +738,20 @@
             outline: none;
         }
         .scroll-hint { animation: bounceDown 2s ease-in-out infinite; }
+        #startSection.screen-pushed-up .scroll-hint { animation-play-state: paused; }
         .scroll-up-hint { animation: bounceUp 1.8s ease-in-out infinite; }
         #navHint { white-space: nowrap; flex-shrink: 0; border-radius: var(--radius); }
-        #navHint svg { width: 0.75rem; height: 0.75rem; max-width: 0.75rem; max-height: 0.75rem; flex-shrink: 0; }
+        #navHint svg {
+            width: 0.75rem;
+            height: 0.75rem;
+            max-width: 0.75rem;
+            max-height: 0.75rem;
+            flex-shrink: 0;
+            transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        #navHint:active svg {
+            transform: translateY(-2px);
+        }
         @keyframes bounceDown { 0%,100%{transform:translateY(0);opacity:0.6} 50%{transform:translateY(0.5rem);opacity:1} }
         @keyframes bounceUp { 0%,100%{transform:translateY(0);opacity:0.7} 50%{transform:translateY(-0.1875rem);opacity:1} }
         @keyframes hintFade { 0%,55%{opacity:1} 100%{opacity:0;pointer-events:none} }
@@ -753,9 +766,9 @@
         .edit-overlay {
             opacity: 0;
             pointer-events: none;
-            transition: opacity var(--duration-normal) var(--ease-exit);
-            -webkit-backdrop-filter: blur(var(--blur-sm));
-            backdrop-filter: blur(var(--blur-sm));
+            transition: opacity var(--duration-normal) var(--ease-exit), -webkit-backdrop-filter var(--duration-normal) var(--ease-exit), backdrop-filter var(--duration-normal) var(--ease-exit);
+            -webkit-backdrop-filter: blur(0px);
+            backdrop-filter: blur(0px);
             -webkit-backface-visibility: hidden;
             backface-visibility: hidden;
             -webkit-mask-image: -webkit-radial-gradient(white, black);
@@ -763,7 +776,9 @@
         .edit-overlay.active {
             opacity: 1;
             pointer-events: auto;
-            transition: opacity var(--duration-modal) var(--ease-spring);
+            -webkit-backdrop-filter: blur(var(--blur-sm));
+            backdrop-filter: blur(var(--blur-sm));
+            transition: opacity var(--duration-modal) var(--ease-spring), -webkit-backdrop-filter var(--duration-modal) var(--ease-spring), backdrop-filter var(--duration-modal) var(--ease-spring);
         }
         .edit-overlay > div {
             opacity: 0;
@@ -1044,12 +1059,21 @@
             height: 0.5rem;
         }
         .weather-spin {
-            animation: weatherSpin 0.75s linear infinite;
+            animation: weatherSpin 0.6s linear infinite;
             transform-origin: center;
         }
         @keyframes weatherSpin {
             from { transform: rotate(0deg); }
             to { transform: rotate(360deg); }
+        }
+        #weatherRefreshBtn {
+            transition: background-color 0.15s ease, transform 0.08s var(--ease-snappy);
+        }
+        #weatherRefreshBtn:active {
+            transform: scale(0.92);
+        }
+        #weatherRefreshBtn svg {
+            transition: transform 0.25s ease-out;
         }
         /* ===== 导航页书签入场效果 =====
            ⚠️ 架构防踩坑警告 (严禁添加 content-visibility: auto 或 contain: layout/paint)：
@@ -1234,12 +1258,17 @@
             }
         }
         #randomBookmarkBtn:active {
-            transform: scale(0.9);
+            transform: scale(0.94);
             background-color: rgba(255, 255, 255, 0.22);
+            transition: transform 0.08s var(--ease-snappy), background-color 0.08s ease;
+        }
+        @keyframes diceRoll {
+            0% { transform: scale(1.1) rotate(15deg); }
+            50% { transform: scale(1.18) rotate(195deg); }
+            100% { transform: scale(1.1) rotate(375deg); }
         }
         #randomBookmarkBtn.rolling svg {
-            transform: rotate(360deg) scale(1.15);
-            transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            animation: diceRoll 0.42s cubic-bezier(0.34, 1.4, 0.64, 1);
         }
         #searchClearBtn svg {
             transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1);
@@ -1255,8 +1284,9 @@
             }
         }
         #searchClearBtn:active {
-            transform: scale(0.9);
+            transform: scale(0.94);
             background-color: rgba(255, 255, 255, 0.22);
+            transition: transform 0.08s var(--ease-snappy), background-color 0.08s ease;
         }
         .suggestion-item {
             position: relative;
@@ -2810,7 +2840,7 @@
                 MAX_LS_WALLPAPER_BYTES: 2000000 // 自定义壁纸双写 localStorage 的体积上限（超出仅存 IndexedDB）
             }),
             TIMERS: Object.freeze({
-                STAGGER_OPEN: 120,            // 随机书签跳转延时 (ms)
+                STAGGER_OPEN: 240,            // 随机书签跳转延时 (ms)
                 DICE_ROLL: 450,               // 随机骰子转动归位延时 (ms)
                 SCROLL_RESET: 400,            // 滚轮累积阈值重置延时 (ms)
                 HINT_FADE: 600,               // 下滑提示淡出延时 (ms)
@@ -5045,6 +5075,7 @@
                     }
                 });
                 dom.suggestionMenu.addEventListener('mouseover', e => {
+                    dom.suggestionMenu.classList.remove('keyboard-nav');
                     const item = e.target.closest('.suggestion-item');
                     if (!item) return;
                     const idx = parseInt(item.dataset.idx, 10);
@@ -5272,6 +5303,7 @@
                     }
 
                     const updateActiveSuggestion = () => {
+                        if (dom.suggestionMenu) dom.suggestionMenu.classList.add('keyboard-nav');
                         items.forEach((el, idx) => {
                             const isSel = idx === selectedSuggestionIdx;
                             el.classList.toggle('active', isSel);
@@ -5848,10 +5880,12 @@
             const randomBm = list[Math.floor(Math.random() * list.length)];
 
             if (dom.randomBookmarkBtn) {
+                dom.randomBookmarkBtn.classList.remove('rolling');
+                void dom.randomBookmarkBtn.offsetWidth;
                 dom.randomBookmarkBtn.classList.add('rolling');
                 setTimeout(() => {
                     if (dom.randomBookmarkBtn) dom.randomBookmarkBtn.classList.remove('rolling');
-                }, CONFIG.TIMERS.DICE_ROLL);
+                }, 450);
             }
 
             setTimeout(() => {
@@ -6316,7 +6350,7 @@
             }
             OverlayStack.pop('suggestions');
             if (dom.suggestionMenu) {
-                dom.suggestionMenu.classList.remove('active');
+                dom.suggestionMenu.classList.remove('active', 'keyboard-nav');
                 dom.suggestionMenu.setAttribute('aria-hidden', 'true');
             }
             if (dom.searchInput) {
@@ -6884,10 +6918,10 @@
                     const svg = refBtn.querySelector('svg');
                     if (svg) svg.classList.add('weather-spin');
                     const startTime = Date.now();
-                    const MIN_SPIN_DURATION = CONFIG.WEATHER.MIN_SPIN_DURATION; // 与 CSS .weather-spin 0.75s 保持 100% 严格周期对齐
+                    const MIN_VISUAL_SPIN_MS = 200; // 极简防闪微动效门槛 (200ms)
                     updateWeather(true).finally(() => {
                         const elapsed = Date.now() - startTime;
-                        const remaining = Math.max(0, MIN_SPIN_DURATION - elapsed);
+                        const remaining = Math.max(0, MIN_VISUAL_SPIN_MS - elapsed);
                         setTimeout(() => {
                             const currentRefBtn = dom.weatherPopover ? dom.weatherPopover.querySelector('#weatherRefreshBtn') : null;
                             const currentSvg = currentRefBtn ? currentRefBtn.querySelector('svg') : null;
