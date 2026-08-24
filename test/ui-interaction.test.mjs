@@ -345,12 +345,12 @@ pass('OverlayStack 多层弹窗嵌套压退栈与安全白名单 (多层Modal/�
   clockOk && modalStackOk && dropdownOk && lockOk && confirmOk && dropzoneOk && maskOk && engineDropdownCheck.isClean);
 
 // ══════════════════════════════════════════════════════════════════════
-// 7. 移动端视口 (iPhone) 与侧边栏 Tab 滚动联动
+// 7. 移动端视口 (iPhone 17 402x874) 与侧边栏 Tab 滚动联动
 // ══════════════════════════════════════════════════════════════════════
 
 await send('Emulation.setDeviceMetricsOverride', {
-  width: 390,
-  height: 844,
+  width: 402,
+  height: 874,
   deviceScaleFactor: 3,
   mobile: true
 });
@@ -396,7 +396,7 @@ const restoredInfo = await evalJS(`(() => {
 })()`);
 const scrollBackOk = restoredInfo.active && restoredInfo.scrollLeft === 0 && restoredInfo.visible;
 
-pass('移动端视口 (iPhone) 与侧边栏 Tab 滚动联动及 44px 触控规范 (默认激活可见/滚动高亮切分类/滚回顶部恢复/触控高度达标)',
+pass('移动端视口 (iPhone 17) 与侧边栏 Tab 滚动联动及 44px 触控规范 (默认激活可见/滚动高亮切分类/滚回顶部恢复/触控高度达标)',
   tab0Ok && scrollSwitchOk && scrollBackOk && touchTargetOk,
   JSON.stringify({ tab0Ok, scrollSwitchOk, scrollBackOk, touchTargetOk, tabHeight: tab0Info?.tabHeight }));
 

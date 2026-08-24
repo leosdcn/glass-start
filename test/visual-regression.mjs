@@ -2,17 +2,17 @@
  * 视觉回归与真实渲染 CDP 自动化测试脚本 (test/visual-regression.mjs)
  *
  * 覆盖场景：
- * - 场景 A (Desktop): 首屏正常初始态 (时钟, 搜索框, 快捷书签, 天气胶囊, 齿轮按钮)
- * - 场景 B (Desktop): 平滑切换至导航页 (导航主体卡片, 分类侧边栏, Header, 返回提示)
- * - 场景 C (Desktop): 导航页刷新水合 (sessionStorage['startpage_section'] = 'nav')
- * - 场景 D (Desktop): 从刷新后的导航页平滑切回搜索页 (全量组件100%可见性与几何检验)
- * - 场景 E1/E2 (Desktop): 搜索框联想输入激活与 Escape 退栈还原状态
- * - 场景 F (Mobile 390x844): 移动端视口起始页
- * - 场景 G (Mobile 390x844): 移动端导航页 (水平分类 Tab 与卡片流)
- * - 场景 H (Mobile 390x844): 移动端从导航页返回起始页全量渲染
- * - 场景 I (Desktop): 设置与偏好弹窗完整渲染 (毛玻璃容器/Tab 导航/书签列表/保存取消)
- * - 场景 J (Desktop): 天气预报详情展开卡片 (2×2 指标/多日预报/日落感知)
- * - 场景 K (Desktop): 快捷键速查面板 (⌘/ 触发与键位指引)
+ * - 场景 A (Desktop 1440x900): 首屏正常初始态 (时钟, 搜索框, 快捷书签, 天气胶囊, 齿轮按钮)
+ * - 场景 B (Desktop 1440x900): 平滑切换至导航页 (导航主体卡片, 分类侧边栏, Header, 返回提示)
+ * - 场景 C (Desktop 1440x900): 导航页刷新水合 (sessionStorage['startpage_section'] = 'nav')
+ * - 场景 D (Desktop 1440x900): 从刷新后的导航页平滑切回搜索页 (全量组件100%可见性与几何检验)
+ * - 场景 E1/E2 (Desktop 1440x900): 搜索框联想输入激活与 Escape 退栈还原状态
+ * - 场景 F (Mobile 402x874): 移动端 iPhone 17 视口起始页
+ * - 场景 G (Mobile 402x874): 移动端 iPhone 17 导航页 (水平分类 Tab 与卡片流)
+ * - 场景 H (Mobile 402x874): 移动端 iPhone 17 从导航页返回起始页全量渲染
+ * - 场景 I (Desktop 1440x900): 设置与偏好弹窗完整渲染 (毛玻璃容器/Tab 导航/书签列表/保存取消)
+ * - 场景 J (Desktop 1440x900): 天气预报详情展开卡片 (2×2 指标/多日预报/日落感知)
+ * - 场景 K (Desktop 1440x900): 快捷键速查面板 (⌘/ 触发与键位指引)
  */
 
 import { mkdir, writeFile } from 'node:fs/promises';
@@ -116,11 +116,11 @@ const NAV_COMPONENTS = {
 console.log('🚀 开始执行 Glass Start 视觉渲染与切屏回归测试...\n');
 
 // ══════════════════════════════════════════════════════════════════════
-// 场景 A (Desktop 1280x800): 首屏正常初始态
+// 场景 A (Desktop 1440x900): 首屏正常初始态
 // ══════════════════════════════════════════════════════════════════════
 await send('Emulation.setDeviceMetricsOverride', {
-  width: 1280,
-  height: 800,
+  width: 1440,
+  height: 900,
   deviceScaleFactor: 2,
   mobile: false,
 });
@@ -137,7 +137,7 @@ const startVisibleA =
   metricsA.editBookmarksBtn.exists && metricsA.editBookmarksBtn.rect.width > 30 && metricsA.editBookmarksBtn.computed.visibility !== 'hidden' &&
   metricsA.startSection.rect.top === 0 && metricsA.startSection.ariaHidden !== 'true';
 
-pass('场景 A [Desktop 1280x800]: 首屏初始态完整渲染 (时钟/搜索框/天气胶囊/快捷书签/设置按钮全量就位)',
+pass('场景 A [Desktop 1440x900]: 首屏初始态完整渲染 (时钟/搜索框/天气胶囊/快捷书签/设置按钮全量就位)',
   startVisibleA,
   JSON.stringify({
     clock: `${metricsA.clock.rect.width}x${metricsA.clock.rect.height} @ y=${metricsA.clock.rect.y}`,
@@ -147,7 +147,7 @@ pass('场景 A [Desktop 1280x800]: 首屏初始态完整渲染 (时钟/搜索框
   }));
 
 // ══════════════════════════════════════════════════════════════════════
-// 场景 B (Desktop 1280x800): 平滑切换至导航页
+// 场景 B (Desktop 1440x900): 平滑切换至导航页
 // ══════════════════════════════════════════════════════════════════════
 await evalJS('window.switchToNav()');
 await sleep(700);
@@ -164,7 +164,7 @@ const navVisibleB =
   metricsB.editBookmarksBtn.computed.pointerEvents === 'none' && // gear disabled on nav
   metricsB.editBookmarksBtn.className.includes('hidden-on-nav');
 
-pass('场景 B [Desktop 1280x800]: 切换至导航页 (分类侧边栏/导航Header/卡片流容器 100% 呈现，起始页平滑移出视口，齿轮安全禁用)',
+pass('场景 B [Desktop 1440x900]: 切换至导航页 (分类侧边栏/导航Header/卡片流容器 100% 呈现，起始页平滑移出视口，齿轮安全禁用)',
   navVisibleB,
   JSON.stringify({
     navSectionY: metricsB.navSection.rect.y,
@@ -176,7 +176,7 @@ pass('场景 B [Desktop 1280x800]: 切换至导航页 (分类侧边栏/导航Hea
   }));
 
 // ══════════════════════════════════════════════════════════════════════
-// 场景 C (Desktop 1280x800): 在导航页刷新页面 (sessionStorage='nav')
+// 场景 C (Desktop 1440x900): 在导航页刷新页面 (sessionStorage='nav')
 // ══════════════════════════════════════════════════════════════════════
 await evalJS('sessionStorage.setItem("startpage_section", "nav")');
 await evalJS('location.reload()');
@@ -190,7 +190,7 @@ const navReloadedC =
   metricsC.sidebar.exists && metricsC.sidebar.rect.width > 80 &&
   metricsC.navContent.exists && metricsC.navContent.rect.width > 500;
 
-pass('场景 C [Desktop 1280x800]: 导航页刷新水合态 (sessionStorage 保持直出导航页无闪烁)',
+pass('场景 C [Desktop 1440x900]: 导航页刷新水合态 (sessionStorage 保持直出导航页无闪烁)',
   navReloadedC,
   JSON.stringify({
     navTop: metricsC.navSection.rect.top,
@@ -198,7 +198,7 @@ pass('场景 C [Desktop 1280x800]: 导航页刷新水合态 (sessionStorage 保�
   }));
 
 // ══════════════════════════════════════════════════════════════════════
-// 场景 D (Desktop 1280x800): 从刷新后的导航页平滑切回搜索页 (重点验证组件消失问题)
+// 场景 D (Desktop 1440x900): 从刷新后的导航页平滑切回搜索页 (重点验证组件消失问题)
 // ══════════════════════════════════════════════════════════════════════
 await evalJS('window.switchToStart()');
 await sleep(700);
@@ -215,7 +215,7 @@ const startRestoredD =
   metricsD.editBookmarksBtn.exists && metricsD.editBookmarksBtn.rect.width > 30 && metricsD.editBookmarksBtn.computed.opacity > 0.5 &&
   metricsD.editBookmarksBtn.computed.visibility !== 'hidden';
 
-pass('场景 D [Desktop 1280x800]: 从刷新后的导航页切回搜索页 (时钟/搜索框/快捷书签/天气/齿轮 100% 完整复原，零空白零残影)',
+pass('场景 D [Desktop 1440x900]: 从刷新后的导航页切回搜索页 (时钟/搜索框/快捷书签/天气/齿轮 100% 完整复原，零空白零残影)',
   startRestoredD,
   JSON.stringify({
     clock: `${metricsD.clock.rect.width}x${metricsD.clock.rect.height} @ (${metricsD.clock.rect.x}, ${metricsD.clock.rect.y}) opacity=${metricsD.clock.computed.opacity}`,
@@ -226,7 +226,7 @@ pass('场景 D [Desktop 1280x800]: 从刷新后的导航页切回搜索页 (时�
   }));
 
 // ══════════════════════════════════════════════════════════════════════
-// 场景 E (Desktop 1280x800): 搜索框联想输入与退栈还原状态
+// 场景 E (Desktop 1440x900): 搜索框联想输入与退栈还原状态
 // ══════════════════════════════════════════════════════════════════════
 await evalJS(`(() => {
   const i = document.getElementById('searchInput');
@@ -264,7 +264,7 @@ const suggestionDismissedE2 =
   metricsE2.suggestionMenu.rect.height === 0 ||
   metricsE2.suggestionMenu.ariaHidden === 'true';
 
-pass('场景 E [Desktop 1280x800]: 搜索框联想输入激活与退栈清退 (Spotlight 级下拉渲染与 Escape 优雅隐退)',
+pass('场景 E [Desktop 1440x900]: 搜索框联想输入激活与退栈清退 (Spotlight 级下拉渲染与 Escape 优雅隐退)',
   suggestionActiveE1 && suggestionDismissedE2,
   JSON.stringify({
     suggestionActiveHeight: metricsE1.suggestionMenu.rect.height,
@@ -273,11 +273,11 @@ pass('场景 E [Desktop 1280x800]: 搜索框联想输入激活与退栈清退 (S
   }));
 
 // ══════════════════════════════════════════════════════════════════════
-// 场景 F (Mobile iPhone 14/15 390x844): 移动端起始页
+// 场景 F (Mobile iPhone 17 402x874): 移动端起始页
 // ══════════════════════════════════════════════════════════════════════
 await send('Emulation.setDeviceMetricsOverride', {
-  width: 390,
-  height: 844,
+  width: 402,
+  height: 874,
   deviceScaleFactor: 3,
   mobile: true,
 });
@@ -293,7 +293,7 @@ const mobileStartValidF =
   metricsF.bookmarks.exists && metricsF.bookmarks.rect.width >= 300 &&
   metricsF.editBookmarksBtn.exists && metricsF.editBookmarksBtn.rect.width >= 35;
 
-pass('场景 F [Mobile 390x844]: 移动端起始页响应式渲染 (时钟/搜索框/快捷书签/天气/齿轮在移动端完美自适应)',
+pass('场景 F [Mobile 402x874]: 移动端起始页响应式渲染 (时钟/搜索框/快捷书签/天气/齿轮在移动端完美自适应)',
   mobileStartValidF,
   JSON.stringify({
     clock: `${metricsF.clock.rect.width}x${metricsF.clock.rect.height}`,
@@ -303,7 +303,7 @@ pass('场景 F [Mobile 390x844]: 移动端起始页响应式渲染 (时钟/搜�
   }));
 
 // ══════════════════════════════════════════════════════════════════════
-// 场景 G (Mobile 390x844): 移动端导航页 (顶部水平 Tab 与卡片流)
+// 场景 G (Mobile 402x874): 移动端导航页 (顶部水平 Tab 与卡片流)
 // ══════════════════════════════════════════════════════════════════════
 await evalJS('window.switchToNav()');
 await sleep(700);
@@ -316,7 +316,7 @@ const mobileNavValidG =
   metricsG.sidebar.exists && metricsG.sidebar.rect.height >= 40 && // horizontal top bar
   metricsG.navContent.exists && metricsG.navContent.rect.width >= 350;
 
-pass('场景 G [Mobile 390x844]: 移动端导航页响应式渲染 (水平分类Tab栏/卡片流/返回Header正常呈现)',
+pass('场景 G [Mobile 402x874]: 移动端导航页响应式渲染 (水平分类Tab栏/卡片流/返回Header正常呈现)',
   mobileNavValidG,
   JSON.stringify({
     sidebarHeight: metricsG.sidebar.rect.height,
@@ -324,7 +324,7 @@ pass('场景 G [Mobile 390x844]: 移动端导航页响应式渲染 (水平分类
   }));
 
 // ══════════════════════════════════════════════════════════════════════
-// 场景 H (Mobile 390x844): 移动端在导航页刷新并切回搜索页
+// 场景 H (Mobile 402x874): 移动端在导航页刷新并切回搜索页
 // ══════════════════════════════════════════════════════════════════════
 await evalJS('sessionStorage.setItem("startpage_section", "nav")');
 await evalJS('location.reload()');
@@ -343,7 +343,7 @@ const mobileStartRestoredH =
   metricsH.bookmarks.exists && metricsH.bookmarks.rect.width >= 300 &&
   metricsH.editBookmarksBtn.exists && metricsH.editBookmarksBtn.rect.width >= 35 && metricsH.editBookmarksBtn.computed.opacity > 0.5;
 
-pass('场景 H [Mobile 390x844]: 移动端刷新后切回搜索页全量复原 (时钟/搜索框/快捷书签/天气/齿轮 零缺失)',
+pass('场景 H [Mobile 402x874]: 移动端刷新后切回搜索页全量复原 (时钟/搜索框/快捷书签/天气/齿轮 零缺失)',
   mobileStartRestoredH,
   JSON.stringify({
     clock: `${metricsH.clock.rect.width}x${metricsH.clock.rect.height}`,
@@ -353,9 +353,9 @@ pass('场景 H [Mobile 390x844]: 移动端刷新后切回搜索页全量复原 (
   }));
 
 // ══════════════════════════════════════════════════════════════════════
-// 场景 I (Desktop 1280x800): 设置与偏好弹窗完整渲染 (外观/书签/数据面板)
+// 场景 I (Desktop 1440x900): 设置与偏好弹窗完整渲染 (外观/书签/数据面板)
 // ══════════════════════════════════════════════════════════════════════
-await send('Emulation.setDeviceMetricsOverride', { width: 1280, height: 800, deviceScaleFactor: 2, mobile: false });
+await send('Emulation.setDeviceMetricsOverride', { width: 1440, height: 900, deviceScaleFactor: 2, mobile: false });
 await evalJS('window.switchToStart()');
 await sleep(600);
 await evalJS('document.getElementById("editBookmarksBtn").click()');
@@ -375,7 +375,7 @@ const editModalValidI =
   metricsI.editModalContent.rect.width > 500 && metricsI.editModalContent.rect.height > 400 &&
   metricsI.saveEditBtn.exists;
 
-pass('场景 I [Desktop 1280x800]: 设置与偏好弹窗渲染 (毛玻璃容器/Tab导航/快捷书签列表/保存取消按钮)',
+pass('场景 I [Desktop 1440x900]: 设置与偏好弹窗渲染 (毛玻璃容器/Tab导航/快捷书签列表/保存取消按钮)',
   editModalValidI,
   JSON.stringify({
     modalRect: metricsI.editModalContent.rect,
@@ -383,7 +383,7 @@ pass('场景 I [Desktop 1280x800]: 设置与偏好弹窗渲染 (毛玻璃容器/
   }));
 
 // ══════════════════════════════════════════════════════════════════════
-// 场景 J (Desktop 1280x800): 天气预报详情卡片展开
+// 场景 J (Desktop 1440x900): 天气预报详情卡片展开
 // ══════════════════════════════════════════════════════════════════════
 await press('Escape');
 await sleep(400);
@@ -402,7 +402,7 @@ const weatherPopoverValidJ =
   metricsJ.weatherPopover.computed.visibility !== 'hidden' &&
   metricsJ.weatherPopover.computed.opacity > 0.8;
 
-pass('场景 J [Desktop 1280x800]: 天气预报详情展开卡片 (2×2详细指标/多日天气预报/日落感知/带伞提示)',
+pass('场景 J [Desktop 1440x900]: 天气预报详情展开卡片 (2×2详细指标/多日天气预报/日落感知/带伞提示)',
   weatherPopoverValidJ,
   JSON.stringify({
     popoverRect: metricsJ.weatherPopover.rect,
@@ -410,7 +410,7 @@ pass('场景 J [Desktop 1280x800]: 天气预报详情展开卡片 (2×2详细指
   }));
 
 // ══════════════════════════════════════════════════════════════════════
-// 场景 K (Desktop 1280x800): 全站快捷键速查面板 (Cmd/Ctrl + /)
+// 场景 K (Desktop 1440x900): 全站快捷键速查面板 (Cmd/Ctrl + /)
 // ══════════════════════════════════════════════════════════════════════
 await press('Escape');
 await sleep(400);
@@ -430,7 +430,7 @@ const shortcutModalValidK =
   metricsK.shortcutModalContent.rect.width > 350 &&
   metricsK.doneShortcutBtn.exists;
 
-pass('场景 K [Desktop 1280x800]: 快捷键速查面板 (⌘/ 触发/全站键盘快捷键键位指引)',
+pass('场景 K [Desktop 1440x900]: 快捷键速查面板 (⌘/ 触发/全站键盘快捷键键位指引)',
   shortcutModalValidK,
   JSON.stringify({
     shortcutRect: metricsK.shortcutModalContent.rect,

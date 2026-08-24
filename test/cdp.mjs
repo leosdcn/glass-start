@@ -67,7 +67,7 @@ export async function launchChrome({ port, url }) {
     '--disable-gpu',
     '--no-first-run',
     '--no-default-browser-check',
-    '--window-size=1280,800',
+    '--window-size=1440,900',
     '--hide-scrollbars',
     `--remote-debugging-port=${port}`,
     `--user-data-dir=${profileDir}`,
