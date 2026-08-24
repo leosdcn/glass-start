@@ -541,7 +541,6 @@
             body:not(.tab-blurred) .nav-bookmark:not(.is-clicked):hover {
                 background: rgba(255, 255, 255, 0.12);
                 border-color: rgba(255, 255, 255, 0.28);
-                transform: scale(1.025) translateZ(0);
                 box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.35), 0 8px 24px rgba(0, 0, 0, 0.3);
                 color: #fff;
             }
@@ -638,9 +637,11 @@
             font-weight: 500;
             transition: background-color 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease, color 0.16s ease;
         }
-        .sidebar-item:hover:not(.active) {
-            background: rgba(255, 255, 255, 0.08);
-            color: rgba(255, 255, 255, 0.95);
+        @media (hover: hover) and (pointer: fine) {
+            .sidebar-item:hover:not(.active) {
+                background: rgba(255, 255, 255, 0.08);
+                color: rgba(255, 255, 255, 0.95);
+            }
         }
         .sidebar-item.active {
             background: rgba(255, 255, 255, 0.15);
@@ -1167,15 +1168,17 @@
         #engineBtn svg {
             transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease;
         }
-        #engineBtn:hover {
-            transform: scale(1.03);
-            background-color: rgba(255, 255, 255, 0.12);
-        }
-        #engineBtn:hover .engine-icon {
-            transform: scale(1.08);
-        }
-        #engineBtn:hover svg {
-            transform: translateY(1px);
+        @media (hover: hover) and (pointer: fine) {
+            #engineBtn:hover {
+                transform: scale(1.03);
+                background-color: rgba(255, 255, 255, 0.12);
+            }
+            #engineBtn:hover .engine-icon {
+                transform: scale(1.08);
+            }
+            #engineBtn:hover:not([aria-expanded="true"]) svg {
+                transform: translateY(1px);
+            }
         }
         #engineBtn[aria-expanded="true"] svg {
             transform: rotate(180deg);
@@ -1221,13 +1224,15 @@
         #randomBookmarkBtn svg {
             transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
         }
-        #randomBookmarkBtn:hover {
-            transform: scale(1.05);
-            background-color: rgba(255, 255, 255, 0.15);
-            color: rgba(255, 255, 255, 0.95);
-        }
-        #randomBookmarkBtn:hover svg {
-            transform: scale(1.1) rotate(15deg);
+        @media (hover: hover) and (pointer: fine) {
+            #randomBookmarkBtn:hover {
+                transform: scale(1.05);
+                background-color: rgba(255, 255, 255, 0.15);
+                color: rgba(255, 255, 255, 0.95);
+            }
+            #randomBookmarkBtn:hover svg {
+                transform: scale(1.1) rotate(15deg);
+            }
         }
         #randomBookmarkBtn:active {
             transform: scale(0.9);
@@ -1240,13 +1245,15 @@
         #searchClearBtn svg {
             transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1);
         }
-        #searchClearBtn:hover {
-            transform: scale(1.05);
-            background-color: rgba(255, 255, 255, 0.15);
-            color: rgba(255, 255, 255, 0.95);
-        }
-        #searchClearBtn:hover svg {
-            transform: scale(1.15);
+        @media (hover: hover) and (pointer: fine) {
+            #searchClearBtn:hover {
+                transform: scale(1.05);
+                background-color: rgba(255, 255, 255, 0.15);
+                color: rgba(255, 255, 255, 0.95);
+            }
+            #searchClearBtn:hover svg {
+                transform: scale(1.15);
+            }
         }
         #searchClearBtn:active {
             transform: scale(0.9);
@@ -7575,6 +7582,7 @@
                         rafId = null;
                     }
                     if (activeCard) {
+                        activeCard.style.transition = '';
                         activeCard.style.transform = '';
                         // 保留离开时的光斑坐标，让 CSS ::before 自然就地完成 opacity 0.3s 淡出过渡，避免突变至 50% 50% 产生闪烁
                         activeCard = null;
@@ -7637,16 +7645,6 @@
                     searchBoxRafId = null;
                 }
 
-                const isPointerNearCard = (e) => {
-                    if (!activeCard) return false;
-                    const rect = activeCardRect || activeCard.getBoundingClientRect();
-                    const margin = 4;
-                    return e.clientX >= rect.left - margin &&
-                           e.clientX <= rect.right + margin &&
-                           e.clientY >= rect.top - margin &&
-                           e.clientY <= rect.bottom + margin;
-                };
-
                 document.addEventListener('mousemove', (e) => {
                     const target = e.target;
                     if (!target) return;
@@ -7671,29 +7669,20 @@
                             if (activeCard) resetActiveCard();
                             activeCard = card;
                             activeCardRect = card.getBoundingClientRect();
+                            activeCard.style.transition = 'transform 0.08s ease-out, background-color 0.32s ease, border-color 0.32s ease, box-shadow 0.38s cubic-bezier(0.2, 0.9, 0.2, 1)';
                         }
                         pendingEvent = e;
                         if (!rafId) {
                             rafId = requestAnimationFrame(updateCardTransform);
                         }
                     } else if (activeCard) {
-                        if (isPointerNearCard(e)) {
-                            pendingEvent = e;
-                            if (!rafId) {
-                                rafId = requestAnimationFrame(updateCardTransform);
-                            }
-                        } else {
-                            resetActiveCard();
-                        }
+                        resetActiveCard();
                     }
                 }, { passive: true });
 
-                document.addEventListener('mouseout', (e) => {
-                    if (activeCard && !activeCard.contains(e.relatedTarget)) {
-                        if (!isPointerNearCard(e)) {
-                            resetActiveCard();
-                        }
-                    }
+                document.addEventListener('mouseleave', () => {
+                    resetActiveCard();
+                    resetActiveSearchBox();
                 }, { passive: true });
 
                 // 全局拖拽保护：全局拦截普通链接/文字的原生拖拽，防止浏览器进入原生 Drag 会话产生 hover 卡死
@@ -7708,6 +7697,7 @@
 
                 // 窗口失焦、滚动、拖拽结束或指针取消时，强制重置所有 3D 高光卡片状态
                 window.addEventListener('blur', () => { resetActiveCard(); resetActiveSearchBox(); }, { passive: true });
+                window.addEventListener('scroll', () => { resetActiveCard(); resetActiveSearchBox(); }, { passive: true, capture: true });
                 window.addEventListener('dragend', () => { resetActiveCard(); resetActiveSearchBox(); }, { passive: true });
                 window.addEventListener('drop', () => { resetActiveCard(); resetActiveSearchBox(); }, { passive: true });
                 window.addEventListener('pointercancel', () => { resetActiveCard(); resetActiveSearchBox(); }, { passive: true });
