@@ -6,7 +6,7 @@
 
 ---
 
-## 🚫 一、不可触碰的 7 大工程红线 (The 7 Non-Negotiable Red Lines)
+## 🚫 一、不可触碰的 8 大工程红线 (The 8 Non-Negotiable Red Lines)
 
 ### 1. 🔴 零运行时 npm 依赖原则 (Zero Runtime Dependency)
 - **铁律**：严禁在 `package.json` 的 `dependencies` 中引入任何运行时的外部 npm 依赖包（如 React, Vue, Lodash, Axios, Dayjs, Date-fns, jQuery 等）。
@@ -68,6 +68,15 @@
 - **执行准则**：
   - AI 可以根据任务进展在本地执行 `git add` 和 `git commit` 保存工作区进度；
   - 所有的远程推送（`git push`）必须由人类用户明确指示后方可执行。
+
+---
+
+### 8. 🔴 重大任务 3 大 MD 文档说辞强一致性 (Tri-Document Coherence)
+- **铁律**：在执行涉及架构重构、新增功能特性、目录或命令变更、版本发布等重大任务时，AI **必须在交付前交叉核对并统一 3 大核心 Markdown 文档的说辞与参数**，严禁只改代码而遗留文档陈旧或自相矛盾：
+  1. [**AGENTS.md**](./AGENTS.md)：更新工程红线、系统地图行号索引与自愈流水线；
+  2. [**ARCHITECTURE.md**](./ARCHITECTURE.md)：更新系统分层拓扑图、Mermaid 状态机与缓存机制设计；
+  3. [**README.md**](./README.md)：更新目录结构表、功能说明、使用指令与依赖清单。
+- **执行准则**：确保 3 大文档中的**命令参数（如 `--no-build` / `--force`）、文件路径（如 `scripts/`）、版本号与专业术语** 100% 同步对齐。
 
 ---
 
@@ -154,7 +163,7 @@ node test/visual-regression.mjs
 ```markdown
 【目标】：优化天气卡片的风速显示布局
 【涉及模块】：index.html 5150~7100 行 (initWeather)
-【约束要求】：遵守 7 大工程红线，不破坏现有的 9 阶动态形态演化
+【约束要求】：遵守 8 大工程红线，不破坏现有的 9 阶动态形态演化
 【自愈验证】：修改后请执行 npm run lint 及 node test/run.mjs data --no-build 确保全绿
 ```
 
