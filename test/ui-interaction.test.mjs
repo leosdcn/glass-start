@@ -183,8 +183,19 @@ const startRestoredValid = backFromReloadedNav.sTop === 0 && backFromReloadedNav
   && backFromReloadedNav.hasClock && backFromReloadedNav.hasSearch && backFromReloadedNav.hasWeather
   && !backFromReloadedNav.nrPresent && !backFromReloadedNav.gearHidden && backFromReloadedNav.startAria !== 'true';
 
-pass('sessionStorage 刷新状态保持无闪烁及切回 Start 屏组件全量可见 (刷新后保持Nav/切回Start全组件可见)', restored === true && startRestoredValid,
-  `restored=${restored}, startRestored=${startRestoredValid}`);
+// 4.2 BFCache / pageshow 生命周期切屏锁自愈与防白屏校验
+await evalJS('window.switchToNav()');
+await sleep(100); // 切屏进行中（isTransitioning === true 且定时器挂起）
+await evalJS('window.dispatchEvent(new Event("pageshow"))'); // 模拟外部返回触发 pageshow 唤醒
+const bfCacheHealed = await evalJS(`(() => {
+  const isTrans = typeof window.isScreenTransitioning === 'function' ? window.isScreenTransitioning() : false;
+  const n = document.getElementById('navSection');
+  const s = document.getElementById('startSection');
+  return !isTrans && n.classList.contains('screen-pushed-in') && !n.classList.contains('nav-hidden') && s.classList.contains('screen-pushed-up');
+})()`);
+
+pass('sessionStorage 刷新状态保持无闪烁及 BFCache pageshow 自愈 (刷新后保持Nav/切回Start全组件可见/BFCache自愈)', restored === true && startRestoredValid && bfCacheHealed,
+  `restored=${restored}, startRestored=${startRestoredValid}, bfCacheHealed=${bfCacheHealed}`);
 
 // ══════════════════════════════════════════════════════════════════════
 // 5. 搜索联想键盘选中项保持与 Escape 优雅清退

@@ -7160,6 +7160,82 @@
 
             let transitionTimer = null;
             let lastTransitionEndTime = 0;
+            let swallowMomentum = false;
+            let swallowStartTs = 0;
+            let swallowDir = null; // 'down' | 'up' | null — 仅吸收同向残余惯性，反向手势立即打断
+            let isTouchHandled = false;
+
+            // 幂等式全屏状态与 DOM 样式强制对齐校准器（专用于冷启动、BFCache 恢复、快速跳转自愈）
+            function reconcileScreenState(targetSection, immediate = true) {
+                if (transitionTimer) {
+                    clearTimeout(transitionTimer);
+                    transitionTimer = null;
+                }
+                isTransitioning = false;
+                swallowMomentum = false;
+                swallowDir = null;
+                isTouchHandled = false;
+                clearAccum();
+
+                const sec = (targetSection === 'nav' || targetSection === 'start')
+                    ? targetSection
+                    : (getSavedSection() || 'start');
+
+                state.currentSection = sec;
+                saveSection(sec);
+                updateSectionAccessibility(sec);
+                updateGearVisibility();
+                updateThemeColor(sec === 'nav' ? '#12141a' : '#0b0f19');
+
+                // 确保全局滚动偏移归零
+                window.scrollTo(0, 0);
+                if (document.documentElement.scrollTop !== 0) document.documentElement.scrollTop = 0;
+                if (document.body.scrollTop !== 0) document.body.scrollTop = 0;
+                if (navContent && sec === 'start') {
+                    navContent.scrollTop = 0;
+                }
+
+                // 清理可能残留的内联动画与位移样式
+                if (startSection) {
+                    startSection.style.transform = '';
+                    if (immediate) startSection.style.transition = 'none';
+                }
+                if (nav) {
+                    nav.style.transform = '';
+                    if (immediate) nav.style.transition = 'none';
+                }
+
+                if (sec === 'nav') {
+                    if (startSection) {
+                        startSection.classList.add('screen-pushed-up');
+                    }
+                    if (nav) {
+                        nav.classList.remove('nav-hidden');
+                        nav.classList.add('nav-visible', 'screen-pushed-in');
+                    }
+                    refreshSidebarNavCache();
+                    updateSidebarActive();
+                    initFaviconObserver();
+                } else {
+                    if (startSection) {
+                        startSection.classList.remove('screen-pushed-up');
+                    }
+                    if (nav) {
+                        nav.classList.remove('screen-pushed-in', 'nav-visible');
+                        nav.classList.add('nav-hidden');
+                    }
+                }
+
+                // 移除 head 预水合防闪烁标志类
+                document.documentElement.classList.remove('nr');
+
+                if (immediate) {
+                    requestAnimationFrame(() => {
+                        if (startSection) startSection.style.transition = '';
+                        if (nav) nav.style.transition = '';
+                    });
+                }
+            }
 
             // 暴露全局切屏控制接口，供点击 Header、键盘快捷键等共享调用
             function switchToNav() {
@@ -7269,49 +7345,29 @@
 
                 transitionTimer = setTimeout(() => {
                     transitionTimer = null;
-                    state.currentSection = 'start';
-                    isTransitioning = false;
-                    lastTransitionEndTime = performance.now();
-                    clearAccum();
-                    window.scrollTo(0, 0);
-                    updateGearVisibility();
-                    if (nav) {
-                        nav.classList.remove('nav-visible');
-                        nav.classList.add('nav-hidden');
+                    if (state.currentSection === 'start') {
+                        isTransitioning = false;
+                        lastTransitionEndTime = performance.now();
+                        clearAccum();
+                        window.scrollTo(0, 0);
+                        updateGearVisibility();
+                        if (nav) {
+                            nav.classList.remove('nav-visible');
+                            nav.classList.add('nav-hidden');
+                        }
                     }
                 }, CONFIG.GESTURE.TRANSITION_MS);
             }
 
             window.switchToNav = switchToNav;
             window.switchToStart = switchToStart;
+            window.reconcileScreenState = reconcileScreenState;
             // 供 bindEvents() 等其他闭包（无法直接访问本函数内的 isTransitioning 局部变量）
             // 查询切屏动画是否正在进行，用于统一点击/键盘触发路径与滚轮/触屏路径的防抖策略
             window.isScreenTransitioning = () => isTransitioning;
 
             // 依据 sessionStorage 精准同步页面状态与位置
-            if (getSavedSection() === 'nav') {
-                if (startSection) startSection.classList.add('screen-pushed-up');
-                nav.classList.remove('nav-hidden');
-                nav.classList.add('nav-visible', 'screen-pushed-in');
-                state.currentSection = 'nav';
-                saveSection('nav');
-                updateSectionAccessibility('nav');
-                updateGearVisibility();
-                updateThemeColor('#12141a');
-                document.documentElement.classList.remove('nr');
-                refreshSidebarNavCache();
-                updateSidebarActive();
-                initFaviconObserver();
-            } else {
-                if (startSection) startSection.classList.remove('screen-pushed-up');
-                nav.classList.remove('screen-pushed-in', 'nav-visible');
-                nav.classList.add('nav-hidden');
-                state.currentSection = 'start';
-                saveSection('start');
-                updateSectionAccessibility('start');
-                updateGearVisibility();
-                document.documentElement.classList.remove('nr');
-            }
+            reconcileScreenState(getSavedSection() === 'nav' ? 'nav' : 'start', true);
 
             // 归一化 deltaY，兼容 Safari / Windows 的 LINE / PAGE 模式
             function normDelta(e) {
@@ -7327,9 +7383,6 @@
             // 远超过渡期(580ms)+100ms 防护窗，会穿透进导航页分支放行原生滚动导致书签区被"多滑一截"。
             // 策略：仅快速手势触发的切屏启用吸收，持续吞掉垂直 wheel 事件，
             // 直至事件流出现 ≥MOMENTUM_QUIET_MS 静默间隔（惯性自然死亡的唯一可靠信号）或达硬上限。
-            let swallowMomentum = false;
-            let swallowStartTs = 0;
-            let swallowDir = null; // 'down' | 'up' | null — 仅吸收同向残余惯性，反向手势立即打断
 
             document.addEventListener('wheel', (e) => {
                 // 时间戳必须在所有早退路径之前更新，否则过渡期吞掉的事件会造成"假间隔"误判惯性结束
@@ -7415,7 +7468,7 @@
             let startTouchX = 0;
             let startTouchY = 0;
             let touchStartTime = 0;
-            let isTouchHandled = false;
+            isTouchHandled = false;
             const SWIPE_THRESHOLD = CONFIG.GESTURE.SWIPE_THRESHOLD || 40;
 
             document.addEventListener('touchstart', (e) => {
@@ -7656,8 +7709,17 @@
                     resetActiveCard();
                     resetActiveSearchBox();
                     updateClock();
+                    document.querySelectorAll('.is-clicked').forEach(el => el.classList.remove('is-clicked'));
                     if (document.activeElement && typeof document.activeElement.blur === 'function' && document.activeElement !== document.body && document.activeElement !== dom.searchInput) {
                         document.activeElement.blur();
+                    }
+                    if (typeof window.reconcileScreenState === 'function') {
+                        window.reconcileScreenState(undefined, true);
+                    }
+                }, { passive: true });
+                window.addEventListener('pagehide', () => {
+                    if (typeof window.reconcileScreenState === 'function') {
+                        window.reconcileScreenState(undefined, true);
                     }
                 }, { passive: true });
             })();
