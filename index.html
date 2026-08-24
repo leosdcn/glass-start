@@ -4572,6 +4572,11 @@
                     });
                 } catch {}
             });
+
+            // 入场动效播放完毕后自动卸载 .fade-in 类名，防止 Safari 从 BFCache 唤醒时重触发 CSS 动画产生 opacity:0 回滚
+            setTimeout(() => {
+                document.querySelectorAll('.fade-in').forEach(el => el.classList.remove('fade-in'));
+            }, 800);
         }
 
         // ==================== 苹果风格 Favicon 兜底徽章 (严格尺寸强制归一) ====================
@@ -7217,14 +7222,14 @@
                     navContent.scrollTop = 0;
                 }
 
-                // 清理可能残留的内联动画与位移样式
+                // 清理所有内联位移与过渡样式，100% 交由 CSS 类名体系统一管理
                 if (startSection) {
                     startSection.style.transform = '';
-                    if (immediate) startSection.style.transition = 'none';
+                    startSection.style.transition = '';
                 }
                 if (nav) {
                     nav.style.transform = '';
-                    if (immediate) nav.style.transition = 'none';
+                    nav.style.transition = '';
                 }
 
                 if (sec === 'nav') {
@@ -7250,13 +7255,6 @@
 
                 // 移除 head 预水合防闪烁标志类
                 document.documentElement.classList.remove('nr');
-
-                if (immediate) {
-                    requestAnimationFrame(() => {
-                        if (startSection) startSection.style.transition = '';
-                        if (nav) nav.style.transition = '';
-                    });
-                }
             }
 
             // 暴露全局切屏控制接口，供点击 Header、键盘快捷键等共享调用
@@ -7559,6 +7557,28 @@
                 isTouchHandled = false;
             }, { passive: true });
 
+            // ===== 全局页面生命周期与多标签/BFCache 唤醒自愈闭环 (全设备通用，不依赖 hover/motion 硬件特征) =====
+            const handleAppWakeUp = () => {
+                updateClock();
+                document.querySelectorAll('.is-clicked').forEach(el => el.classList.remove('is-clicked'));
+                if (document.activeElement && typeof document.activeElement.blur === 'function' && document.activeElement !== document.body && document.activeElement !== dom.searchInput) {
+                    document.activeElement.blur();
+                }
+                if (typeof window.reconcileScreenState === 'function') {
+                    window.reconcileScreenState(undefined, true);
+                }
+            };
+
+            document.addEventListener('visibilitychange', () => {
+                if (!document.hidden) {
+                    handleAppWakeUp();
+                }
+            }, { passive: true });
+
+            window.addEventListener('pageshow', () => {
+                handleAppWakeUp();
+            }, { passive: true });
+
             // ===== VisionOS 玻璃材质 3D 倾斜与光标折射高光代理 (Apple HIG 规范, 零 Reflow 高效引擎) =====
             // 【交互分工架构说明】：
             // 1. .nav-bookmark（第二屏导航页书签）：同时启用光斑折射（--mouse-x/y）+ 3D 视差微倾斜（perspective + rotateX/Y）
@@ -7706,26 +7726,11 @@
                     if (document.hidden) {
                         resetActiveCard();
                         resetActiveSearchBox();
-                    } else {
-                        updateClock();
                     }
                 }, { passive: true });
                 window.addEventListener('pageshow', () => {
                     resetActiveCard();
                     resetActiveSearchBox();
-                    updateClock();
-                    document.querySelectorAll('.is-clicked').forEach(el => el.classList.remove('is-clicked'));
-                    if (document.activeElement && typeof document.activeElement.blur === 'function' && document.activeElement !== document.body && document.activeElement !== dom.searchInput) {
-                        document.activeElement.blur();
-                    }
-                    if (typeof window.reconcileScreenState === 'function') {
-                        window.reconcileScreenState(undefined, true);
-                    }
-                }, { passive: true });
-                window.addEventListener('pagehide', () => {
-                    if (typeof window.reconcileScreenState === 'function') {
-                        window.reconcileScreenState(undefined, true);
-                    }
                 }, { passive: true });
             })();
         }
