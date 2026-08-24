@@ -2792,7 +2792,7 @@
                 HUMIDITY_HIGH_THRESHOLD: 75,  // 相对湿度高湿阈值 (75%)
                 WIND_MID_THRESHOLD: 15,       // 实时风速清风/疾风阈值 (15 km/h)
                 WIND_HIGH_THRESHOLD: 35,      // 实时风速大风/龙卷阈值 (35 km/h)
-                MIN_SPIN_DURATION: 750        // 刷新按钮自旋最小对齐周期 (ms)
+                MIN_SPIN_DURATION: 200        // 气象刷新防闪最小视觉动效门槛 (ms)
             }),
             SUGGEST: Object.freeze({
                 DEBOUNCE_MS: 180,             // 搜索输入防抖延时 (ms)
@@ -6896,10 +6896,10 @@
                     const svg = refBtn.querySelector('svg');
                     if (svg) svg.classList.add('weather-spin');
                     const startTime = Date.now();
-                    const MIN_VISUAL_SPIN_MS = 200; // 极简防闪微动效门槛 (200ms)
+                    const MIN_SPIN_DURATION = CONFIG.WEATHER.MIN_SPIN_DURATION;
                     updateWeather(true).finally(() => {
                         const elapsed = Date.now() - startTime;
-                        const remaining = Math.max(0, MIN_VISUAL_SPIN_MS - elapsed);
+                        const remaining = Math.max(0, MIN_SPIN_DURATION - elapsed);
                         setTimeout(() => {
                             const currentRefBtn = dom.weatherPopover ? dom.weatherPopover.querySelector('#weatherRefreshBtn') : null;
                             const currentSvg = currentRefBtn ? currentRefBtn.querySelector('svg') : null;
