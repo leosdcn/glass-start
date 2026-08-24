@@ -226,7 +226,7 @@ npm run build
 3. **修改搜索引擎**：可在 `index.html` 中的 `engines` 引擎配置对象中新增或定制新的搜索引擎（Google、Bing 等）。
 
 ### 3. 静态检查、Git 规范与自动化测试指南 (Agent / Dev Guidelines)
-- ⚡ **静态代码检查 (`npm run lint`)**：耗时约 0.08 秒。自动完成 `index.html` 内嵌 JS、`build.js`/`sw.js`/`server.js` 语法预检及 `bookmarks.json`/`manifest.json`/`package.json` 的 JSON 合法性校验。修改代码后运行此命令做轻量校验。
+- ⚡ **静态代码检查 (`npm run lint`)**：耗时约 0.08 秒。自动完成 `index.html` 内嵌 JS、`scripts/build.js`/`sw.js`/`scripts/server.js` 语法预检及 `bookmarks.json`/`manifest.json`/`package.json` 的 JSON 合法性校验。修改代码后运行此命令做轻量校验。
 - 🚀 **生产构建打包 (`npm run build`)**：耗时约 0.5 秒（Tailwind v4 CLI + esbuild 引擎）。编译 Tailwind CSS 并同步书签数据，自动校验产物完整性。
 - 🧪 **自动化测试套件 (`npm test` 或 `node test/run.mjs`)**：
   - 内置 **3 大核心领域端到端与架构综合测试套件（覆盖 19 大高密度全景断言）**。
@@ -260,13 +260,10 @@ npm run build
 | **`index.html`** | **源码主入口** | 开发模式页面主入口。内置 Tailwind v4 Browser CDN，AI/开发者修改代码立即可见，零编译开销。 | **必须** |
 | **`bookmarks.json`** | **唯一数据源** | 唯一数据维护源。修改书签只需编辑此文件，运行 `npm run build` 会自动将书签同步注入 HTML。 | **必须（数据真源）** |
 | **`sw.js`** | 缓存脚本 | Service Worker 独立脚本。专门用于在 HTTPS/localhost 环境下本地缓存 Favicon 网站图标与壁纸，提升加载速度。 | 推荐（缺失时不影响主流程运行） |
-| **`wallpapers/`** | **本地壁纸库** | 高清预设 AVIF 壁纸目录（包含 bg1.avif ~ bg8.avif），由 `build.js` 自动打包至 `dist/` 实现全量离线可用。 | **必须** |
-| **`build.js`** | 打包脚本 | 生产构建 Node 脚本。运行 `npm run build` 自动同步书签数据、编译 CSS、提取 `app.js` 并输出至 `dist/`。 | 工具脚本 |
-| **`server.js`** | 静态服务器 | 原生 Node.js 零依赖局域网静态服务器。提供开发预览、全网卡广播、端口防冲突与多端访问能力。 | 工具脚本 |
-| **`start.command`** | macOS 快捷指令 | 双击直接一键打包并在局域网启动 `dist/` 网页服务，并自动打开默认浏览器。 | 快捷工具 |
+| **`wallpapers/`** | **本地壁纸库** | 高清预设 AVIF 壁纸目录（包含 bg1.avif ~ bg8.avif），由构建脚本自动打包至 `dist/` 实现全量离线可用。 | **必须** |
+| **`scripts/`** | **工具与脚本目录** | 包含生产构建打包 (`build.js`)、零依赖静态检查 (`lint.mjs`)、本地开发服务 (`server.js`) 与 macOS 双击启动 (`start.command`)。 | 工具目录 |
 | **`manifest.json`** | Web App 应用配置 | PWA 应用清单文件。配置应用名称、图标、启动 URL、主题颜色，支持添加至手机主屏幕与独立 Web App 运行。 | PWA 必需 |
 | **`_headers`** | 部署响应头配置 | Cloudflare Pages HTTP 安全响应头与静态资源缓存控制配置文件。 | 部署配置 |
-| **`lint.mjs`** | 检查脚本 | Node 零依赖静态检查脚本。用于校验根目录核心 JS/HTML 语法与 JSON 配置文件合法性。 | 工具脚本 |
 | **`test/`** | **测试目录** | 自动化测试目录。内含 3 大领域 CDP 自动化端到端测试套件（19 项高密度全景断言）与 MD5 增量缓存运行器。 | 测试框架 |
 | **`package.json`** | 项目配置 | Node 项目配置文件，提供 `npm run dev`、`npm run watch`、`npm run build`、`npm run lint` 与 `npm test` 命令。 | 配置文件 |
 | **`dist/`** | **生产输出** | `npm run build` 自动生成的生产构建目录（⚠️ 严禁直接编辑）。包含剥离 v4 Browser CDN、内嵌 CSS 及外链 `app.js` 的上线资源。 | 生产部署产物 |

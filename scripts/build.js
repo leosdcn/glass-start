@@ -74,15 +74,16 @@ function logItem(msg, status = 'ok') {
 }
 
 // 路径常量定义
+const ROOT_DIR = path.resolve(__dirname, '..');
 const PATHS = {
-    root: __dirname,
-    dist: path.join(__dirname, 'dist'),
-    tempCss: path.join(__dirname, '.temp_input.css'),
-    bookmarksJson: path.join(__dirname, 'bookmarks.json'),
-    indexHtml: path.join(__dirname, 'index.html'),
-    sw: path.join(__dirname, 'sw.js'),
-    wallpapers: path.join(__dirname, 'wallpapers'),
-    headers: path.join(__dirname, '_headers')
+    root: ROOT_DIR,
+    dist: path.join(ROOT_DIR, 'dist'),
+    tempCss: path.join(ROOT_DIR, '.temp_input.css'),
+    bookmarksJson: path.join(ROOT_DIR, 'bookmarks.json'),
+    indexHtml: path.join(ROOT_DIR, 'index.html'),
+    sw: path.join(ROOT_DIR, 'sw.js'),
+    wallpapers: path.join(ROOT_DIR, 'wallpapers'),
+    headers: path.join(ROOT_DIR, '_headers')
 };
 
 // 顶层 JS 变量正则替换工具函数

@@ -10,7 +10,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import vm from 'node:vm';
 
-const root = join(dirname(fileURLToPath(import.meta.url)));
+const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 
 const isTTY = process.stdout.isTTY && !process.env.NO_COLOR;
 const c = {
@@ -102,19 +102,20 @@ if (statSync(htmlPath).isFile()) {
     });
 }
 
-// ---- 2. 根目录 JS 脚本 (build.js, sw.js, server.js) 用 node --check 校验 ----
+// ---- 2. 核心 JS 脚本 (scripts/build.js, sw.js, scripts/server.js) 用 node --check 校验 ----
 logSection('2/4', '⚙️  校验核心 JavaScript 语法 (node --check)');
 const jsFiles = [
-    { name: 'build.js', desc: '打包构建脚本' },
+    { name: 'scripts/build.js', desc: '打包构建脚本' },
     { name: 'sw.js', desc: 'Service Worker 底座' },
-    { name: 'server.js', desc: '本地开发/预览服务' }
+    { name: 'scripts/server.js', desc: '本地开发/预览服务' }
 ].filter(f => {
     try { return statSync(join(root, f.name)).isFile(); } catch { return false; }
 });
 
 for (const item of jsFiles) {
-    const r = spawnSync(process.execPath, ['--check', item.name], { encoding: 'utf-8' });
-    const label = `${item.name.padEnd(10, ' ')} (${item.desc})`;
+    const fullPath = join(root, item.name);
+    const r = spawnSync(process.execPath, ['--check', fullPath], { encoding: 'utf-8' });
+    const label = `${item.name.padEnd(18, ' ')} (${item.desc})`;
     if (r.status === 0) {
         passCount++;
         logItem(`${label} 语法通过`);

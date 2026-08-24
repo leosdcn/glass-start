@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# 自动切换至当前脚本所在目录
-cd "$(dirname "$0")"
+# 自动切换至项目根目录
+cd "$(dirname "$0")/.."
 
 # 自动补充 macOS 常见的 Node / NVM / Homebrew / FNM 环境变量路径（解决从 Finder 双击启动时 PATH 缺失问题）
 export PATH="/usr/local/bin:/opt/homebrew/bin:$HOME/.nvm/versions/node/$(ls $HOME/.nvm/versions/node 2>/dev/null | tail -n 1)/bin:$HOME/.fnm/current/bin:$HOME/.volta/bin:$PATH"
@@ -40,4 +40,4 @@ if [ $? -ne 0 ]; then
 fi
 
 # 启动静态服务器（原生 Node.js 零依赖快速启动，服务就绪后自动打开浏览器）
-node server.js
+node scripts/server.js

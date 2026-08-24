@@ -81,7 +81,7 @@ const sharedFiles = [
   join(rootDir, 'dist', 'app.js'),
   join(rootDir, 'index.html'),
   join(rootDir, 'sw.js'),
-  join(rootDir, 'build.js'),
+  join(rootDir, 'scripts', 'build.js'),
   join(rootDir, 'bookmarks.json'),
   join(__dirname, 'helpers.mjs'),
   join(__dirname, 'cdp.mjs'),

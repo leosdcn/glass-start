@@ -24,7 +24,7 @@ const HR_DOUBLE = '═'.repeat(LINE_WIDTH);
 const HR_SINGLE = '─'.repeat(LINE_WIDTH);
 
 let targetPort = parseInt(process.env.PORT || '3000', 10);
-const DIST_DIR = path.join(__dirname, 'dist');
+const DIST_DIR = path.join(__dirname, '..', 'dist');
 
 if (!fs.existsSync(DIST_DIR)) {
     console.error(`\n${c.red}${c.bold}❌ 错误: dist 目录不存在${c.reset}`);

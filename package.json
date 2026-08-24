@@ -4,12 +4,12 @@
   "description": "极简 macOS 毛玻璃风格新标签页与多引擎极速搜索工具",
   "main": "index.html",
   "scripts": {
-    "build": "node build.js",
+    "build": "node scripts/build.js",
     "test": "node test/run.mjs",
-    "lint": "node lint.mjs",
-    "dev": "npm run build && node server.js",
-    "watch": "node build.js --watch",
-    "preview": "npm run build && node server.js"
+    "lint": "node scripts/lint.mjs",
+    "dev": "npm run build && node scripts/server.js",
+    "watch": "node scripts/build.js --watch",
+    "preview": "npm run build && node scripts/server.js"
   },
   "devDependencies": {
     "@tailwindcss/cli": "^4.3.3",
