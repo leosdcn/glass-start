@@ -1862,20 +1862,20 @@
 
     <!-- 快捷键速查面板弹窗 (Cmd/Ctrl + /) -->
     <div id="shortcutModal" role="dialog" aria-modal="true" aria-hidden="true" hidden aria-label="快捷键速查" class="edit-overlay fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-[var(--z-picker)] overscroll-contain">
-        <div class="glass-strong apple-radius w-full max-w-md sm:max-w-lg md:max-w-xl mx-4 max-h-[85dvh] flex flex-col p-5 sm:p-6 shadow-2xl overflow-hidden">
+        <div class="glass-strong apple-radius w-full max-w-md mx-4 min-h-[60dvh] max-h-[90dvh] sm:h-[40rem] flex flex-col p-5 sm:p-6 shadow-2xl overflow-hidden">
             <!-- 弹窗 Header -->
             <div class="flex items-center justify-between mb-3 pb-2 border-b border-white/10 shrink-0">
                 <div class="flex items-center gap-2">
                     <span class="text-base">⌨️</span>
                     <h3 class="text-base font-semibold tracking-wide text-white/90">快捷键速查</h3>
                 </div>
-                <button id="closeShortcutBtn" type="button" aria-label="关闭快捷键速查" class="p-1 size-9 sm:size-10 inline-flex items-center justify-center hover:bg-white/10 apple-radius text-white/40 hover:text-white/70 glass-interactive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50">
+                <button id="closeShortcutBtn" type="button" aria-label="关闭快捷键速查" class="p-1 size-9 inline-flex items-center justify-center hover:bg-white/10 apple-radius text-white/40 hover:text-white/70 glass-interactive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50">
                     <svg class="size-4" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 16 16"><path d="M4 12L12 4M4 4l8 8"/></svg>
                 </button>
             </div>
 
             <!-- 快捷键列表内容 (单列纵向分类流式布局) -->
-            <div id="shortcutModalList" class="flex-1 overflow-y-auto min-h-0 space-y-3.5 pr-1 text-xs"></div>
+            <div id="shortcutModalList" class="flex-1 overflow-y-auto min-h-0 space-y-3 pr-1 text-xs"></div>
 
             <!-- 底部操作与提示 -->
             <div class="flex items-center justify-end mt-3 pt-3 border-t border-white/10 shrink-0">
@@ -2900,9 +2900,9 @@
                     <h4 class="text-2xs font-semibold uppercase tracking-wider text-white/40 mb-1.5 px-0.5">${escapeHtml(sec.group)}</h4>
                     <div class="space-y-1.5">
                         ${sec.items.map(item => `
-                            <div class="flex items-center justify-between p-2 rounded-xl bg-white/[0.04] border border-white/[0.06]">
-                                <span class="text-white/80">${escapeHtml(item.desc)}</span>
-                                <span class="flex items-center gap-1 font-mono text-2xs text-white/90 bg-white/10 px-2 py-0.5 rounded-md border border-white/10">${item.kbdId ? `<kbd id="${item.kbdId}">${escapeHtml(item.fallback)}</kbd>` : item.rawHtml}</span>
+                            <div class="flex items-center justify-between gap-3 px-3.5 py-2 rounded-xl bg-white/[0.04] border border-white/[0.06]">
+                                <span class="text-white/85 shrink-0 text-xs">${escapeHtml(item.desc)}</span>
+                                <span class="flex items-center gap-1 font-mono text-2xs text-white/90 bg-white/10 px-2.5 py-0.5 rounded-md border border-white/10 shrink-0">${item.kbdId ? `<kbd id="${item.kbdId}">${escapeHtml(item.fallback)}</kbd>` : item.rawHtml}</span>
                             </div>
                         `).join('')}
                     </div>
