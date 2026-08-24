@@ -400,6 +400,84 @@ try {
     logItem(`书签 Schema 规范检查异常: ${e.message}`, 'error');
 }
 
+// 4.8 🚫 严禁主应用脚本在运行期滥加 .nr 类名（防止首屏被推飞）
+try {
+    const htmlContent = readFileSync(join(root, 'index.html'), 'utf-8');
+    const mainScriptMatch = htmlContent.match(/<script\b(?=[^>]*id=["']main-script["'])[^>]*>([\s\S]*?)<\/script>/i);
+    const mainScript = mainScriptMatch ? mainScriptMatch[1] : '';
+
+    const hasNrAdd = /\.classList\.add\(\s*['"]nr['"]\s*\)/.test(mainScript);
+    if (!hasNrAdd) {
+        passCount++;
+        logItem(`运行期 .nr 布局类名零污染（仅保留 HEAD 脚本刷新预水合通道）`);
+    } else {
+        failCount++;
+        logItem(`主脚本发现运行期滥加 .nr 类名（会导致首屏在唤醒时被推飞），必须立即移除`, 'error');
+    }
+} catch (e) {
+    failCount++;
+    logItem(`运行期 .nr 规范扫描异常: ${e.message}`, 'error');
+}
+
+// 4.9 🚫 严禁 reconcileScreenState 注入内联 transition:none（防止后台冻结 rAF 导致卡死）
+try {
+    const htmlContent = readFileSync(join(root, 'index.html'), 'utf-8');
+    const reconcileMatch = htmlContent.match(/function\s+reconcileScreenState\s*\([^)]*\)\s*\{([\s\S]*?)\n\s*(?:function|window\.)/i);
+    const reconcileBody = reconcileMatch ? reconcileMatch[1] : '';
+
+    const hasInlineTransitionNone = /\.style\.transition\s*=\s*['"]none['"]/i.test(reconcileBody);
+    if (!hasInlineTransitionNone && reconcileBody.length > 0) {
+        passCount++;
+        logItem(`reconcileScreenState 双屏状态自愈 100% 声明式（零内联 transition:none 竞态隐患）`);
+    } else {
+        failCount++;
+        logItem(`reconcileScreenState 中发现内联 style.transition='none'（在后台挂起时会导致切屏过渡失效），必须改为纯 CSS 类名控制`, 'error');
+    }
+} catch (e) {
+    failCount++;
+    logItem(`reconcileScreenState 样式纯净度扫描异常: ${e.message}`, 'error');
+}
+
+// 4.10 🛡️ 全局多标签与 BFCache 双通道唤醒自愈闭环门禁
+try {
+    const htmlContent = readFileSync(join(root, 'index.html'), 'utf-8');
+    const mainScriptMatch = htmlContent.match(/<script\b(?=[^>]*id=["']main-script["'])[^>]*>([\s\S]*?)<\/script>/i);
+    const mainScript = mainScriptMatch ? mainScriptMatch[1] : '';
+
+    const hasVisibilityListener = /addEventListener\(\s*['"]visibilitychange['"][\s\S]*?handleAppWakeUp/i.test(mainScript) ||
+                                  /addEventListener\(\s*['"]visibilitychange['"][\s\S]*?reconcileScreenState/i.test(mainScript);
+    const hasPageshowListener = /addEventListener\(\s*['"]pageshow['"][\s\S]*?handleAppWakeUp/i.test(mainScript) ||
+                                /addEventListener\(\s*['"]pageshow['"][\s\S]*?reconcileScreenState/i.test(mainScript);
+
+    if (hasVisibilityListener && hasPageshowListener) {
+        passCount++;
+        logItem(`页面唤醒自愈机制 100% 覆盖 visibilitychange（多标签切回）与 pageshow（BFCache后退）双通道`);
+    } else {
+        failCount++;
+        logItem(`页面唤醒自愈通道缺失: visibilitychange=${hasVisibilityListener}, pageshow=${hasPageshowListener}`, 'error');
+    }
+} catch (e) {
+    failCount++;
+    logItem(`唤醒自愈双通道扫描异常: ${e.message}`, 'error');
+}
+
+// 4.11 🛡️ fade-in 入场动效自动脱壳卸载门禁
+try {
+    const htmlContent = readFileSync(join(root, 'index.html'), 'utf-8');
+    const hasFadeInUnload = /classList\.remove\(\s*['"]fade-in['"]\s*\)/.test(htmlContent);
+
+    if (hasFadeInUnload) {
+        passCount++;
+        logItem(`入场动画包含自动脱壳机制（fade-in 播完即卸载，根绝 Safari BFCache 回退 opacity:0）`);
+    } else {
+        failCount++;
+        logItem(`未检测到 fade-in 自动脱壳卸载逻辑（会导致 Safari 从快照恢复时动画重置回滚至透明）`, 'error');
+    }
+} catch (e) {
+    failCount++;
+    logItem(`fade-in 脱壳机制扫描异常: ${e.message}`, 'error');
+}
+
 const elapsed = Date.now() - startTime;
 console.log(`\n${c.gray}${HR_DOUBLE}${c.reset}`);
 if (failCount === 0) {
