@@ -478,6 +478,24 @@ try {
     logItem(`fade-in 脱壳机制扫描异常: ${e.message}`, 'error');
 }
 
+// 4.12 🚫 严禁滥加全局字体抗锯齿属性（-webkit-font-smoothing / -moz-osx-font-smoothing）
+try {
+    const htmlContent = readFileSync(join(root, 'index.html'), 'utf-8');
+    const hasFontSmoothing = /font-smoothing\s*:\s*antialiased/i.test(htmlContent) ||
+                             /-moz-osx-font-smoothing\s*:\s*grayscale/i.test(htmlContent);
+
+    if (!hasFontSmoothing) {
+        passCount++;
+        logItem(`全站字体排版纯净合规（严禁人为添加 -webkit-font-smoothing 降级抗锯齿）`);
+    } else {
+        failCount++;
+        logItem(`检测到非法 font-smoothing 属性，严禁滥用该属性导致字体发虚和单薄`, 'error');
+    }
+} catch (e) {
+    failCount++;
+    logItem(`字体抗锯齿门禁扫描异常: ${e.message}`, 'error');
+}
+
 const elapsed = Date.now() - startTime;
 console.log(`\n${c.gray}${HR_DOUBLE}${c.reset}`);
 if (failCount === 0) {

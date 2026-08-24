@@ -6,7 +6,7 @@
 
 ---
 
-## 🚫 一、不可触碰的 8 大工程红线 (The 8 Non-Negotiable Red Lines)
+## 🚫 一、不可触碰的 9 大工程红线 (The 9 Non-Negotiable Red Lines)
 
 ### 1. 🔴 零运行时 npm 依赖原则 (Zero Runtime Dependency)
 - **铁律**：严禁在 `package.json` 的 `dependencies` 中引入任何运行时的外部 npm 依赖包（如 React, Vue, Lodash, Axios, Dayjs, Date-fns, jQuery 等）。
@@ -77,6 +77,14 @@
   2. [**ARCHITECTURE.md**](./ARCHITECTURE.md)：更新系统分层拓扑图、Mermaid 状态机与缓存机制设计；
   3. [**README.md**](./README.md)：更新目录结构表、功能说明、使用指令与依赖清单。
 - **执行准则**：确保 3 大文档中的**命令参数（如 `--no-build` / `--force`）、文件路径（如 `scripts/`）、版本号与专业术语** 100% 同步对齐。
+
+---
+
+### 9. 🔴 严禁人为添加字体抗锯齿属性 (No Artificial Font Smoothing)
+- **铁律**：**严禁在全站任何 CSS 选择器中滥加 `-webkit-font-smoothing`、`-moz-osx-font-smoothing` 或 `font-smooth` 属性！**
+- **执行准则**：
+  - 此类属性会强行剥离 macOS / iOS 系统的原生次像素字形饱满度，将高质量矢量字形降级为发虚、单薄、毛糙的灰度抗锯齿；
+  - 必须 100% 保持操作系统与浏览器默认的纯原生次像素排版机制（`scripts/lint.mjs` 门禁会自动进行静态拦截与拦截校验）。
 
 ---
 
