@@ -270,6 +270,7 @@ npm run build
 | **`wrangler.jsonc`** | 部署配置 | Cloudflare Workers / Pages 部署配置，声明 `assets.directory = "dist"` 指定静态资源上传目录。 | Cloudflare 部署必需 |
 | `.gitignore` | 配置文档 | Git 版本控制忽略配置。 | 运维配置 |
 | **`README.md`** | 说明文档 | 本文档，记录项目架构、文件职责、运行机制及部署指南。 | 运维文档 |
+| **`COCKPIT.md`** | **人类驾驶舱** | 专为人类指挥官打造的 1 页纸控制手册，包含一键双击启动、AI 现成口令卡与上线检查单。 | 指挥手册 |
 
 ---
 
