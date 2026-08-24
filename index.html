@@ -1245,30 +1245,19 @@
             transition: none;
         }
         #randomBookmarkBtn svg {
-            transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+            transition: transform 0.24s cubic-bezier(0.34, 1.4, 0.64, 1);
         }
         @media (hover: hover) and (pointer: fine) {
             #randomBookmarkBtn:hover {
-                transform: scale(1.05);
+                transform: scale(1.06) rotate(12deg);
                 background-color: rgba(255, 255, 255, 0.15);
                 color: rgba(255, 255, 255, 0.95);
-            }
-            #randomBookmarkBtn:hover svg {
-                transform: scale(1.1) rotate(15deg);
             }
         }
         #randomBookmarkBtn:active {
             transform: scale(0.94);
             background-color: rgba(255, 255, 255, 0.22);
             transition: transform 0.08s var(--ease-snappy), background-color 0.08s ease;
-        }
-        @keyframes diceRoll {
-            0% { transform: scale(1.1) rotate(15deg); }
-            50% { transform: scale(1.18) rotate(195deg); }
-            100% { transform: scale(1.1) rotate(375deg); }
-        }
-        #randomBookmarkBtn.rolling svg {
-            animation: diceRoll 0.42s cubic-bezier(0.34, 1.4, 0.64, 1);
         }
         #searchClearBtn svg {
             transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1);
@@ -2840,8 +2829,8 @@
                 MAX_LS_WALLPAPER_BYTES: 2000000 // 自定义壁纸双写 localStorage 的体积上限（超出仅存 IndexedDB）
             }),
             TIMERS: Object.freeze({
-                STAGGER_OPEN: 240,            // 随机书签跳转延时 (ms)
-                DICE_ROLL: 450,               // 随机骰子转动归位延时 (ms)
+                STAGGER_OPEN: 260,            // 随机书签跳转延时 (ms) - 0.24s 灵动翻转 + 20ms 从容停靠
+                DICE_ROLL: 300,               // 随机骰子转动归位延时 (ms)
                 SCROLL_RESET: 400,            // 滚轮累积阈值重置延时 (ms)
                 HINT_FADE: 600,               // 下滑提示淡出延时 (ms)
                 OBJECT_REVOKE: 1000,          // 临时 Blob/URL 释放安全延时 (ms)
@@ -5853,6 +5842,7 @@
          * 随机探索/手气不错：从本地书签库中随机挑选并访问一个站点
          * @param {boolean} [newTab=true] - 是否在新标签页打开
          */
+        let diceAngle = 0;
         function openRandomBookmark(newTab = true) {
             const list = [];
             const seen = new Set();
@@ -5880,12 +5870,9 @@
             const randomBm = list[Math.floor(Math.random() * list.length)];
 
             if (dom.randomBookmarkBtn) {
-                dom.randomBookmarkBtn.classList.remove('rolling');
-                void dom.randomBookmarkBtn.offsetWidth;
-                dom.randomBookmarkBtn.classList.add('rolling');
-                setTimeout(() => {
-                    if (dom.randomBookmarkBtn) dom.randomBookmarkBtn.classList.remove('rolling');
-                }, 450);
+                diceAngle += 180;
+                const svg = dom.randomBookmarkBtn.querySelector('svg');
+                if (svg) svg.style.transform = `rotate(${diceAngle}deg)`;
             }
 
             setTimeout(() => {
