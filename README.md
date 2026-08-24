@@ -168,8 +168,8 @@ flowchart TB
 ### 1. 本地开发与生产部署 (Dev vs Prod)
 
 #### 本地开发模式 (Development)
-- **一键双击启动 (macOS)**：在访达（Finder）中直接双击根目录 `start.command` 快捷指令，自动完成构建同步并在局域网启动 `dist/` 网页服务，秒级打开默认浏览器。
-- **命令行启动**：运行 `npm run dev`（或 `npm run preview`）会自动构建打包并通过原生 `server.js` 启动 `dist/` 局域网预览服务 (`http://localhost:3000`)。
+- **一键双击启动 (macOS)**：在访达（Finder）中直接双击 `scripts/start.command` 快捷指令，自动完成构建同步并在局域网启动 `dist/` 网页服务，秒级打开默认浏览器。
+- **命令行启动**：运行 `npm run dev`（或 `npm run preview`）会自动构建打包并通过原生 `scripts/server.js` 启动 `dist/` 局域网预览服务 (`http://localhost:3000`)。
 - **文件增量监听**：在编辑源码 `index.html` 或 `bookmarks.json` 时，可在另一终端开启 `npm run watch` 文件修改监听，保存时自动秒级重建 `dist/` 产物。
 - **免构建直开模式**：若直接双击根目录 `index.html`（`file://` 协议），页面仍内置 **Tailwind v4 Browser CDN** 运行时脚本，保持零环境开箱即用。
 
@@ -299,7 +299,7 @@ npm run build
 | **高清大图存储层** | `IndexedDB` (`GlassStartDB`) | 4K 高清自定义上传壁纸 (`wallpapers` 表) | 3840x2160 JPEG Base64 / 容量 50MB~数百MB | 彻底打破 LocalStorage 5MB 上限，随重置系统操作清空 |
 | **会话状态防闪烁层** | `SessionStorage` + `<head>` 脚本 | 页面屏间位置 (`startpage_section`: `start` / `nav`) | 仅在当前会话生命周期内有效 | 渲染前 Head 内联脚本检测并同步添加 `.nr` 类，防止刷新首屏闪烁 |
 | **运行时内存缓存层** | JS 全局变量 (`dom` / 侧边栏 Cache) | 40+ 常用 DOM 节点引用、导航分类与 Section 映射 | 内存映射，零 DOM 树二次查询开销 | 页面卸载或重新载入时自动释放与重新建立 |
-| **静态回退与离线数据层** | HTML 内联 `DEFAULT_*` 数组 | `bookmarks.json` 最新镜像数据 | 内存直接加载 / 零 HTTP 请求开销 | `npm run build` 时通过 `build.js` 自动双向同步 `bookmarks.json` 数据 |
+| **静态回退与离线数据层** | HTML 内联 `DEFAULT_*` 数组 | `bookmarks.json` 最新镜像数据 | 内存直接加载 / 零 HTTP 请求开销 | `npm run build` 时通过 `scripts/build.js` 自动双向同步 `bookmarks.json` 数据 |
 
 #### ⚡ 核心缓存与防闪烁机制详解
 
@@ -399,9 +399,9 @@ add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsaf
 | 名称 | 类型 | 版本号 | 位置 / 说明 |
 | :--- | :--- | :--- | :--- |
 | **Tailwind CSS** | CSS 框架（第三方） | `4.3.3` | `package.json` `devDependencies`；CSS 编译核心 |
-| **@tailwindcss/cli** | Tailwind v4 构建 CLI | `4.3.3` | `package.json` `devDependencies`；由 `build.js` 调用完成生产 CSS 编译 |
+| **@tailwindcss/cli** | Tailwind v4 构建 CLI | `4.3.3` | `package.json` `devDependencies`；由 `scripts/build.js` 调用完成生产 CSS 编译 |
 | **@tailwindcss/browser** | Tailwind v4 浏览器运行时 | `@4`（对应 4.3.3） | `index.html` dev CDN 脚本，仅开发预览使用；生产构建自动内嵌编译 CSS 并剥离该脚本 |
-| **esbuild** | 构建与 CSS 编译器 | `0.28.2` | `package.json` `devDependencies`；由 `build.js` 调用实现 AST 级极速样式与脚本压缩 |
+| **esbuild** | 构建与 CSS 编译器 | `0.28.2` | `package.json` `devDependencies`；由 `scripts/build.js` 调用实现 AST 级极速样式与脚本压缩 |
 | **Service Worker** | 项目内组件 | `v10` | `sw.js` 头部注释；三池隔离 + FIFO 容量限额缓存架构 |
 | **CORE_CACHE** | 缓存池版本 | `app-core-v<时间戳>` | `sw.js`；每次 `npm run build` 自动更新，强制客户端刷新旧缓存 |
 | **FAVICON_CACHE / IMG_CACHE** | 缓存池版本 | `v1` | `sw.js`；图标 / 本地图片独立缓存池 |
@@ -413,7 +413,7 @@ add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsaf
 - `myip.ipip.net` / `ipwho.is` — 高精度 IP 归属地定位解析 API
 - Bing / Google / Wikipedia — 搜索联想建议 API
 - `wallpapers/` — 本地预设 2.5K AVIF 高清壁纸库（支持 10-bit 色深与全量预缓存）
-- `server.js` / `start.command` — 原生 Node.js 零依赖本地与局域网开发静态服务器 (0ms 秒级启动)
+- `scripts/server.js` / `scripts/start.command` — 原生 Node.js 零依赖本地与局域网开发静态服务器 (0ms 秒级启动)
 
 ---
 
