@@ -1183,24 +1183,15 @@
 
         /* 搜索引擎按钮与搜索按钮微触感 (Apple Tactile Button Feedback) */
         #engineBtn {
-            transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.2s ease, border-color 0.2s ease;
-        }
-        #engineBtn .engine-icon {
-            transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            transition: background-color 0.15s ease, color 0.15s ease, transform 0.08s var(--ease-snappy);
         }
         #engineBtn svg {
-            transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease;
+            transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.15s ease;
         }
         @media (hover: hover) and (pointer: fine) {
             #engineBtn:hover {
-                transform: scale(1.03);
                 background-color: rgba(255, 255, 255, 0.12);
-            }
-            #engineBtn:hover .engine-icon {
-                transform: scale(1.08);
-            }
-            #engineBtn:hover:not([aria-expanded="true"]) svg {
-                transform: translateY(1px);
+                color: #ffffff;
             }
         }
         #engineBtn[aria-expanded="true"] svg {
