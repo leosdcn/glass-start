@@ -95,6 +95,8 @@ flowchart TB
 ```
 
 > 📘 **深入架构与交互决策**：关于双屏状态机流转、OverlayStack 弹窗逆序退栈、Service Worker 三池物理隔离、智能搜索匹配及气象演化引擎的完整 Mermaid 图表与深度解析，请参阅 ➔ [**Glass Start 架构设计与核心技术白皮书 (ARCHITECTURE.md)**](./ARCHITECTURE.md)。
+> 
+> 🤖 **AI 编程行为准则**：关于 AI 代理与自动化代码助手的 7 大工程红线、验证门禁与开发纪律，请参阅 ➔ [**AI 编程行为宪法 (AGENTS.md)**](./AGENTS.md)。
 
 ---
 
