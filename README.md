@@ -242,7 +242,7 @@ npm run build
 3. **修改搜索引擎**：可在 `index.html` 中的 `engines` 引擎配置对象中新增或定制新的搜索引擎（Google、Bing 等）。
 
 ### 3. 静态检查、Git 规范与自动化测试指南 (Agent / Dev Guidelines)
-- ⚡ **静态代码检查 (`npm run lint`)**：耗时约 0.08 秒。自动完成 `index.html` 内嵌 JS、`scripts/build.js`/`sw.js`/`scripts/server.js` 语法预检及 `bookmarks.json`/`manifest.json`/`package.json` 的 JSON 合法性校验。修改代码后运行此命令做轻量校验。
+- ⚡ **静态代码检查 (`npm run lint`)**：耗时约 0.08 秒（全量 26 项机器级语法与工程红线门禁守门）。自动完成 `index.html` 内嵌 JS、`scripts/build.js`/`sw.js`/`scripts/server.js` 语法预检及 `bookmarks.json`/`manifest.json`/`package.json` 的 JSON 合法性校验，并强校验生命周期与 BFCache 防退化守卫。修改代码后运行此命令做轻量校验。
 - 🚀 **生产构建打包 (`npm run build`)**：耗时约 0.5 秒（Tailwind v4 CLI + esbuild 引擎）。编译 Tailwind CSS 并同步书签数据，自动校验产物完整性。
 - 🧪 **自动化测试套件 (`npm test` 或 `node test/run.mjs`)**：
   - 内置 **3 大核心领域端到端与架构综合测试套件（覆盖 19 大高密度全景断言）**。
@@ -252,7 +252,7 @@ npm run build
     - `server.mjs` — 面向自动化测试的零依赖静态服务器，负责在随机空闲端口服务 `dist/` 构建产物。
     - `helpers.mjs` — 共享工具函数库（随机空闲端口探测、键盘事件模拟、测试会话一键拉起等）。
     - `data-features.test.mjs` / `infra-security.test.mjs` / `ui-interaction.test.mjs` — 数据功能、基础安全、UI 交互三大领域断言套件。
-    - `visual-regression.mjs` — 独立运行的视觉回归脚本（桌面 + 移动端 11 场景全页截图与关键组件几何校验），产物输出至项目内 `test/artifacts/` 目录（已加入 `.gitignore`）。手动执行：`node test/visual-regression.mjs`。
+    - `visual-regression.mjs` — 独立运行的视觉回归脚本（对标 **MacBook Air 1470×956** 桌面端与 **iPhone 17 402×874** 移动端 11 场景全页截图与关键组件几何校验），产物输出至项目内 `test/artifacts/` 目录（已加入 `.gitignore`）。手动执行：`node test/visual-regression.mjs`。
     - `preview.html` — 天气组件独立「演练场」页面，供浏览器直接打开隔离调试 UI，不参与自动化测试流水线。
   - **智能增量 MD5 缓存加速**：未变动模块在测试运行时自动秒级命中缓存（`<10ms`），源码或依赖修改后精准触发对应套件重跑；亦可通过 `node test/run.mjs --force` 强制全量重跑。
   - **独立套件调试**：支持单独运行特定领域测试文件，例如 `node test/data-features.test.mjs`。
