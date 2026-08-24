@@ -194,8 +194,54 @@ const bfCacheHealed = await evalJS(`(() => {
   return !isTrans && n.classList.contains('screen-pushed-in') && !n.classList.contains('nav-hidden') && s.classList.contains('screen-pushed-up');
 })()`);
 
-pass('sessionStorage 刷新状态保持无闪烁及 BFCache pageshow 自愈 (刷新后保持Nav/切回Start全组件可见/BFCache自愈)', restored === true && startRestoredValid && bfCacheHealed,
-  `restored=${restored}, startRestored=${startRestoredValid}, bfCacheHealed=${bfCacheHealed}`);
+// 4.3 Command+左键 / 鼠标中键后台打开防 is-clicked 下沉迟滞与普通点击分流校验
+await evalJS('window.switchToStart()'); await sleep(350);
+const bookmarkClickTest = await evalJS(`(() => {
+  const bm = document.querySelector('.bookmark-item');
+  if (!bm) return { hasBm: false };
+  // 模拟 Command + 左键点击 (metaKey: true)
+  bm.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, metaKey: true }));
+  const cmdHasIsClicked = bm.classList.contains('is-clicked');
+  
+  // 模拟中键 auxclick (button: 1)
+  bm.dispatchEvent(new MouseEvent('auxclick', { bubbles: true, cancelable: true, button: 1 }));
+  const midHasIsClicked = bm.classList.contains('is-clicked');
+
+  // 模拟普通左键点击 (无修饰键)
+  bm.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, button: 0 }));
+  const normalHasIsClicked = bm.classList.contains('is-clicked');
+
+  return { hasBm: true, cmdHasIsClicked, midHasIsClicked, normalHasIsClicked };
+})()`);
+const bookmarkTactileOk = bookmarkClickTest.hasBm && !bookmarkClickTest.cmdHasIsClicked && !bookmarkClickTest.midHasIsClicked && bookmarkClickTest.normalHasIsClicked;
+
+// 4.4 普通点击返回不动鼠标时防假性悬停残留与鼠标移动唤醒校验
+const hoverGatingTest = await evalJS(`(() => {
+  const bm = document.querySelector('.bookmark-item');
+  if (!bm) return { ok: false };
+  // 模拟普通点击跳出
+  bm.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, button: 0 }));
+  window.dispatchEvent(new Event('blur'));
+  
+  // 模拟返回聚焦但不移动鼠标
+  window.dispatchEvent(new Event('focus'));
+  const bodyHasTabBlurredOnReturn = document.body.classList.contains('tab-blurred');
+  const style = window.getComputedStyle(bm);
+  const isScaleNormal = !style.transform || style.transform === 'none' || style.transform.includes('matrix(1, 0, 0, 1');
+  
+  // 模拟物理鼠标移动 1px
+  window.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: 200, clientY: 200 }));
+  const bodyClearedTabBlurred = !document.body.classList.contains('tab-blurred');
+  
+  return {
+    ok: bodyHasTabBlurredOnReturn && isScaleNormal && bodyClearedTabBlurred
+  };
+})()`);
+const hoverGatingOk = hoverGatingTest.ok;
+
+pass('sessionStorage 刷新保持、BFCache 自愈、Command 后台防迟滞及返回不动鼠标防残留', 
+  restored === true && startRestoredValid && bfCacheHealed && bookmarkTactileOk && hoverGatingOk,
+  `restored=${restored}, startRestored=${startRestoredValid}, bfCacheHealed=${bfCacheHealed}, bookmarkTactile=${bookmarkTactileOk}, hoverGating=${hoverGatingOk}`);
 
 // ══════════════════════════════════════════════════════════════════════
 // 5. 搜索联想键盘选中项保持与 Escape 优雅清退
