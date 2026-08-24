@@ -255,6 +255,48 @@ npm run build
 
 ### 1. 项目目录结构与文件职责
 
+```text
+glass-start/
+├── 📄 根目录核心生产文件 (8 个)
+│   ├── index.html            # 源码主入口（开发模式直开，内置 Tailwind v4 Browser CDN）
+│   ├── bookmarks.json        # 全站唯一书签数据真源（构建时自动注入 HTML）
+│   ├── sw.js                 # Service Worker 离线网络拦截与三池隔离缓存底座
+│   ├── manifest.json         # PWA Web App 应用程序清单
+│   ├── apple-touch-icon.png  # iOS Safari 主屏幕 180x180 图标
+│   ├── robots.txt            # 搜索引擎爬虫协议规则
+│   ├── _headers              # Cloudflare Pages 生产环境 HTTP 安全响应头配置
+│   └── wrangler.jsonc        # Cloudflare Pages / Workers 自动构建与部署配置
+│
+├── ⚙️ 根目录工程配置与文档体系 (6 个)
+│   ├── package.json          # Node 项目配置（0 运行时依赖，仅 devDependencies 构建工具）
+│   ├── package-lock.json     # 依赖锁定清单（严格锁定 SemVer v3.4.4）
+│   ├── .gitignore            # Git 忽略规则（已严格隔离 dist/、node_modules/、test 产物）
+│   ├── README.md             # 全站功能特性、使用手册、架构表与部署指南
+│   ├── ARCHITECTURE.md       # 系统分层、双屏状态机、OverlayStack 等 5 大 Mermaid 白皮书
+│   └── AGENTS.md             # AI 编程行为宪法（8 大红线、局部手术地图、自愈流水线）
+│
+├── 🛠️ scripts/ 自动化工程工具目录 (4 个)
+│   ├── build.js              # 生产环境编译打包流水线（Tailwind CLI + esbuild AST 压缩）
+│   ├── lint.mjs              # 零依赖静态语法与 8 大红线规范门禁（<80ms 极速自愈）
+│   ├── server.js             # 原生 Node.js 零依赖本地开发与局域网预览服务器
+│   └── start.command         # macOS 访达一键双击启动快捷指令
+│
+├── 🧪 test/ 自动化测试与质量保障目录 (9 个源码文件)
+│   ├── run.mjs               # MD5 增量缓存测试运行器（支持 --force / --no-build）
+│   ├── cdp.mjs               # 无头 Chrome 启动器与 CDP WebSocket 通信管理
+│   ├── server.mjs            # 面向自动化测试的随机空闲端口静态服务器
+│   ├── helpers.mjs           # 测试共享辅助函数库（键盘模拟、端口探测等）
+│   ├── infra-security.test.mjs # 基础架构、安全标头与 SW 离线缓存领域断言套件 (5项)
+│   ├── data-features.test.mjs  # 搜索匹配、轻量存储、气象 9 阶演化领域断言套件 (7项)
+│   ├── ui-interaction.test.mjs # 双屏状态机、手势、BFCache、OverlayStack 领域断言套件 (7项)
+│   ├── visual-regression.mjs   # 桌面端 + 移动端 11 大场景视觉几何与截图回归套件
+│   └── preview.html          # 天气小组件独立隔离演练场（已在 README.md 明确职责）
+│
+└── 🖼️ wallpapers/ 预设高清壁纸资产库 (16 个文件)
+    ├── bg1.avif ~ bg8.avif   # 8 款精选 2.5K AVIF 极清风光壁纸（支持 10-bit 色深）
+    └── bg1-thumb.avif ~ bg8-thumb.avif # 8 款设置面板壁纸选择器极速微缩缩略图
+```
+
 | 文件 / 目录名 | 属性 | 文件作用描述 | 必选性 |
 | :--- | :--- | :--- | :--- |
 | **`index.html`** | **源码主入口** | 开发模式页面主入口。内置 Tailwind v4 Browser CDN，AI/开发者修改代码立即可见，零编译开销。 | **必须** |
