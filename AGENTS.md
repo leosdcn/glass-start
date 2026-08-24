@@ -71,37 +71,60 @@
 
 ---
 
-## 🛠️ 二、标准开发与质量验证工作流 (Quality Assurance)
+## 🛠️ 二、分级开发与质量自愈流水线 (Tiered QA & Self-Healing Pipeline)
 
-任何代码修改或重构完成后，AI 必须依次执行以下闭环校验命令，确保 0 报错后再向用户交付：
+为了最大化 AI 迭代效率并实现“零返工”闭环，项目划分为两级验证流水线：
 
+```mermaid
+flowchart TD
+    A[AI 编写 / 修改局部代码] --> B[第一道门禁: npm run lint <93ms>]
+    B -- 发现规范或语法报错 --> C[AI 读取报错并在本轮自动修复]
+    C --> B
+    B -- 22/22 项静态全绿 --> D[第二道门禁: node test/run.mjs <模块名> --no-build <50ms>]
+    D -- CDP 端到端断言失败 --> E[AI 根据断言差异定位修复]
+    E --> D
+    D -- 模块单测通过 --> F[极速闭环完成，向用户交付]
+```
+
+### 1. ⚡ 日常敏捷自愈流（< 150ms，每次代码改动后必跑）
 ```bash
-# 1. 静态规范与语法门禁检查 (耗时 < 100ms，必须 22/22 项全绿)
+# 步骤 1：静态规范与语法极速门禁 (< 100ms)
 npm run lint
 
-# 2. 生产环境构建打包 (验证 Tailwind v4 编译、CSP 优化与 esbuild AST 压缩)
+# 步骤 2：针对修改模块的免构建极速单测 (< 50ms)
+node test/run.mjs ui --no-build      # 修改 UI/切屏/弹窗时
+node test/run.mjs data --no-build    # 修改天气/书签搜索时
+node test/run.mjs infra --no-build   # 修改 SW缓存/安全标头时
+```
+
+### 2. 🚀 发布级全量验证流（重大改动或提交前执行）
+```bash
+# 1. 生产环境构建打包 (验证 Tailwind v4 编译、CSP 优化与 esbuild AST 压缩)
 npm run build
 
-# 3. 全量端到端自动化测试套件 (必须 3 大套件 19 项高密度断言全绿)
+# 2. 全量端到端自动化测试套件 (必须 3 大套件 19 项高密度断言全绿)
 node test/run.mjs --force
 
-# 4. 如涉及关键 UI / 动画 / 视口变动，执行多视口全景视觉回归测试 (11 大场景断言)
+# 3. 如涉及关键 UI / 动画 / 视口变动，执行多视口全景视觉回归测试 (11 大场景断言)
 node test/visual-regression.mjs
 ```
 
 ---
 
-## 🗺️ 三、核心系统架构导读 (System Map)
+## 🗺️ 三、系统架构导读与 414KB 局部手术准则 (Surgical Editing & System Map)
 
-在着手修改任何业务逻辑前，请务必先查阅 [**ARCHITECTURE.md**](./ARCHITECTURE.md) 系统架构设计白皮书，了解各模块拓扑与生命周期：
+### ⚠️ 单文件局部手术铁律 (The Surgical Editing Law)
+`index.html` 单文件体积达 414KB+（7,700+ 行代码）。**严禁让 AI 重新输出整份 `index.html`！**
+- **只切片读取**：根据下表精准圈定行号区间或函数名进行局部读取；
+- **只局部替换**：使用精确文本替换，单次改动控制在最小代码块（Diff），杜绝截断风险。
 
-| 业务领域 | 核心逻辑位置 (`index.html`) | 关联架构图与核心设计机制 |
-| :--- | :--- | :--- |
-| **UI 与 3D 光影** | `Lines 1~1460, 7550~7749` | **图 1**：Liquid Glass、Tailwind v4、Pointer Motion Gating 光影守卫、3D 陀螺仪 |
-| **双屏切换与 BFCache** | `Lines 4600~5150, 7100~7550` | **图 2**：`switchToNav` / `switchToStart` 状态机、`reconcileScreenState` 纯内存自愈器、滚轮动量吞咽 |
-| **弹窗与覆盖层** | `Lines 1460~2000, 3018~3050` | **图 3**：`OverlayStack` LIFO 栈模型、Focus Trap 焦点锁定与归还 |
-| **离线与缓存底座** | `sw.js` (全量 337 行) | **图 4**：`CORE_CACHE` / `FAVICON_CACHE` / `IMG_CACHE` 三池物理隔离、FIFO 限额淘汰 |
-| **搜索与气象演化** | `Lines 5150~7100` | **图 5**：本地 7 级书签命中算法、零 CLS 骨架混排、湿度/风速/雨伞 9 阶动态形态演化 |
+| 业务领域 | 核心逻辑位置 (`index.html`) | 核心函数/DOM 锚点 | 关联架构图机制 |
+| :--- | :--- | :--- | :--- |
+| **UI 表现与 3D 光影** | `Lines 1~1460, 7550~7749` | `cacheDOM()`, `handlePointerMove()`, `motionGating` | **图 1**：Liquid Glass、Tailwind v4、光影守卫、3D 陀螺仪 |
+| **弹窗与覆盖层** | `Lines 1460~2000, 3018~3050` | `OverlayStack.push()`, `OverlayStack.pop()`, `openModal()` | **图 3**：`OverlayStack` LIFO 栈模型、Focus Trap 焦点锁定 |
+| **搜索联想与气象演化** | `Lines 4950~7100` | `fetchSuggestions()`, `initWeather()`, `weatherNum()` | **图 5**：搜索联想防竞态、零 CLS 骨架、9 阶气象形态 |
+| **双屏切换与 BFCache** | `Lines 7100~7550` | `switchToNav()`, `switchToStart()`, `reconcileScreenState()` | **图 2**：双屏状态机、纯内存自愈器、滚轮动量吞咽 |
+| **离线与缓存底座** | `sw.js` (全量 337 行) | `CORE_CACHE`, `FAVICON_CACHE`, `IMG_CACHE` | **图 4**：三池物理隔离、FIFO 限额淘汰 |
 
 ---
 
@@ -118,6 +141,24 @@ node test/visual-regression.mjs
    - 所有的动态书签渲染必须经过 `escapeHtml()` 与 `safeUrl()` 白名单过滤；
    - 气象数据入库必须经过 `weatherNum()` 强制数值化清洗；
    - 外部搜索联想必须配备 `activeSuggestReqId` 防竞态乱序。
+
+---
+
+## 🤝 五、人机高效协同与 Prompt 最佳实践 (Interaction Protocols)
+
+为了获得最高质量的 AI 产出，推荐采用以下标准指令模板：
+
+### 1. 结构化指令模板
+```markdown
+【目标】：优化天气卡片的风速显示布局
+【涉及模块】：index.html 5150~7100 行 (initWeather)
+【约束要求】：遵守 7 大工程红线，不破坏现有的 9 阶动态形态演化
+【自愈验证】：修改后请执行 npm run lint 及 node test/run.mjs data --no-build 确保全绿
+```
+
+### 2. 遇错自愈指令
+遇到测试或运行时报错时，直接投喂完整的报错日志即可：
+> *“测试报错如下：`[粘贴 terminal 输出]`，请分析原因并定位到具体行进行最小化补丁修复，修复后重新运行验证至全绿。”*
 
 ---
 
