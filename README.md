@@ -112,7 +112,7 @@ flowchart TB
 
 > 📘 **深入架构与交互决策**：关于双屏状态机流转、OverlayStack 弹窗逆序退栈、Service Worker 三池物理隔离、智能搜索匹配及气象演化引擎的完整 Mermaid 图表与深度解析，请参阅 ➔ [**Glass Start 架构设计与核心技术白皮书 (ARCHITECTURE.md)**](./ARCHITECTURE.md)。
 > 
-> 🤖 **AI 编程行为准则**：关于 AI 代理与自动化代码助手的 8 大工程红线、验证门禁与开发纪律，请参阅 ➔ [**AI 编程行为宪法 (AGENTS.md)**](./AGENTS.md)。
+> 🤖 **AI 编程行为准则**：关于 AI 代理与自动化代码助手的 10 大工程红线、验证门禁与开发纪律，请参阅 ➔ [**AI 编程行为宪法 (AGENTS.md)**](./AGENTS.md)。
 
 ---
 
@@ -475,7 +475,7 @@ add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsaf
 | **@tailwindcss/cli** | Tailwind v4 构建 CLI | `4.3.3` | `package.json` `devDependencies`；由 `scripts/build.js` 调用完成生产 CSS 编译 |
 | **@tailwindcss/browser** | Tailwind v4 浏览器运行时 | `@4`（对应 4.3.3） | `index.html` dev CDN 脚本，仅开发预览使用；生产构建自动内嵌编译 CSS 并剥离该脚本 |
 | **esbuild** | 构建与 CSS 编译器 | `0.28.2` | `package.json` `devDependencies`；由 `scripts/build.js` 调用实现 AST 级极速样式与脚本压缩 |
-| **Service Worker** | 项目内组件 | `v10` | `sw.js` 头部注释；三池隔离 + FIFO 容量限额缓存架构 |
+| **Service Worker** | 项目内组件 | `v11` | `sw.js` 头部注释；三池隔离 + FIFO 容量限额缓存架构 |
 | **CORE_CACHE** | 缓存池版本 | `app-core-v<时间戳>` | `sw.js`；每次 `npm run build` 自动更新，强制客户端刷新旧缓存 |
 | **FAVICON_CACHE / IMG_CACHE** | 缓存池版本 | `v1` | `sw.js`；图标 / 本地图片独立缓存池 |
 | **Glass Start 站点版本** | 项目发布版本 | `v3.5.6` | `package.json` + `index.html` 设置面板徽章 |

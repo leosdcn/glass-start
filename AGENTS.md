@@ -103,7 +103,7 @@
 
 ```mermaid
 flowchart TD
-    A[AI 编写 / 修改局部代码] --> B[第一道门禁: npm run lint <93ms>]
+    A[AI 编写 / 修改局部代码] --> B[第一道门禁: npm run lint <10ms>]
     B -- 发现规范或语法报错 --> C[AI 读取报错并在本轮自动修复]
     C --> B
     B -- 27/27 项静态全绿 --> D[第二道门禁: node test/run.mjs <模块名> --no-build <50ms>]
@@ -112,9 +112,9 @@ flowchart TD
     D -- 模块单测通过 --> F[极速闭环完成，向用户交付]
 ```
 
-### 1. ⚡ 日常敏捷自愈流（< 150ms，每次代码改动后必跑）
+### 1. ⚡ 日常敏捷自愈流（< 50ms，每次代码改动后必跑）
 ```bash
-# 步骤 1：静态规范与语法极速门禁 (< 100ms)
+# 步骤 1：静态规范与语法极速门禁 (< 10ms)
 npm run lint
 
 # 步骤 2：针对修改模块的免构建极速单测 (< 50ms)
@@ -152,7 +152,7 @@ node test/visual-regression.mjs
 | **弹窗与覆盖层** | `Lines 1520~3040, 3137~4600` | `OverlayStack.push()`, `OverlayStack.pop()`, `openEditModal()` | **[图 3](./ARCHITECTURE.md#3--overlaystack-多层弹窗层叠栈与-escape-统一退栈决策-overlaystack--modal-flow)**：`OverlayStack` LIFO 栈模型、Focus Trap 焦点锁定 |
 | **搜索联想与气象演化** | `Lines 6100~7200` | `fetchSuggestions()`, `initWeather()`, `weatherNum()` | **[图 5](./ARCHITECTURE.md#5--智能搜索三级模糊匹配与气象-9-阶动态演化决策-search--weather-decision-engine)**：搜索联想防竞态、零 CLS 骨架、9 阶气象形态 |
 | **双屏切换与 BFCache** | `Lines 7200~8052` | `switchToNav()`, `switchToStart()`, `reconcileScreenState()`, `__GLASS_DIAG__` | **[图 2](./ARCHITECTURE.md#2--双屏切屏状态机手势与-bfcache-全生命周期流转-screen-state--bfcache-lifecycle)**：双屏状态机、纯内存自愈器、滚轮动量吞咽、构建指纹黑匣子三级自愈阶梯 |
-| **离线与缓存底座** | `sw.js` (全量 264 行) | `CORE_CACHE`, `FAVICON_CACHE`, `IMG_CACHE` | **[图 4](./ARCHITECTURE.md#4--service-worker-三池隔离与离线数据流向-storage--cache-topology)**：三池物理隔离、FIFO 限额淘汰 |
+| **离线与缓存底座** | `sw.js` (全量 185 行) | `CORE_CACHE`, `FAVICON_CACHE`, `IMG_CACHE` | **[图 4](./ARCHITECTURE.md#4--service-worker-三池隔离与离线数据流向-storage--cache-topology)**：三池物理隔离、FIFO 限额淘汰 |
 
 ---
 
