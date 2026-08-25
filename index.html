@@ -1711,6 +1711,13 @@
                             <button id="resetBgBtn" type="button" class="py-2 px-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs text-white/50 hover:text-red-400 glass-interactive hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50">恢复默认</button>
                             <input type="file" id="uploadBgInput" name="uploadBgInput" accept="image/*" class="hidden" aria-label="上传自定义壁纸">
                         </div>
+                        <div id="urlBgInputRow" class="hidden flex items-center gap-1.5 mt-1">
+                            <input type="text" id="urlBgInput" name="urlBgInput" autocomplete="off" spellcheck="false"
+                                class="flex-1 min-w-0 bg-black/30 border border-white/15 rounded-xl px-2.5 py-1.5 text-base text-white/85 focus:border-white/40 focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:outline-none outline-none transition placeholder:text-white/30"
+                                placeholder="https://..." aria-label="图片 URL 地址">
+                            <button type="button" id="urlBgConfirmBtn" class="shrink-0 py-1.5 px-3 bg-white/10 hover:bg-white/20 border border-white/15 rounded-xl text-xs text-white/80 hover:text-white glass-interactive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" aria-label="确认图片 URL">确认</button>
+                            <button type="button" id="urlBgCancelBtn" class="shrink-0 size-7 flex items-center justify-center text-white/40 hover:text-white/80 glass-interactive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 rounded-xl" aria-label="取消输入图片 URL">✕</button>
+                        </div>
                     </div>
 
                     <!-- 背景视觉特效调节 -->
@@ -3015,7 +3022,7 @@
          * @returns {void}
          */
         function cacheDOM() {
-            const ids = 'clock date searchInput searchClearBtn randomBookmarkBtn engineBtn engineIcon engineName dropdownMenu suggestionMenu bookmarks sidebar sidebarList navCategories navContent editModal editList editBookmarksBtn addBookmarkBtn saveEditBtn cancelEditBtn resetEditBtn togglePickerBtn bookmarkPicker pickerContent pickerCount closePickerBtn donePickerBtn exportJsonBtn importJsonInput uploadBgBtn urlBgBtn resetBgBtn uploadBgInput wallpaperStatus bookmarkCountBadge jsonDropzone maskOpacityInput maskOpacityVal bgBlurInput bgBlurVal storageSizeBadge statBookmarkCount statWallpaperType statPwaStatus clearCacheBtn bgOverlay startSection navSection navHint navHeader presetWallpaperGrid shortcutModal shortcutModalList closeShortcutBtn doneShortcutBtn openShortcutFromSettingsBtn openCreditsFromSettingsBtn scrollDownHint weatherWidget weatherBtn weatherIcon weatherTemp weatherCity weatherPopover creditsModal closeCreditsBtn doneCreditsBtn'.split(' ');
+            const ids = 'clock date searchInput searchClearBtn randomBookmarkBtn engineBtn engineIcon engineName dropdownMenu suggestionMenu bookmarks sidebar sidebarList navCategories navContent editModal editList editBookmarksBtn addBookmarkBtn saveEditBtn cancelEditBtn resetEditBtn togglePickerBtn bookmarkPicker pickerContent pickerCount closePickerBtn donePickerBtn exportJsonBtn importJsonInput uploadBgBtn urlBgBtn urlBgInputRow urlBgInput urlBgConfirmBtn urlBgCancelBtn resetBgBtn uploadBgInput wallpaperStatus bookmarkCountBadge jsonDropzone maskOpacityInput maskOpacityVal bgBlurInput bgBlurVal storageSizeBadge statBookmarkCount statWallpaperType statPwaStatus clearCacheBtn bgOverlay startSection navSection navHint navHeader presetWallpaperGrid shortcutModal shortcutModalList closeShortcutBtn doneShortcutBtn openShortcutFromSettingsBtn openCreditsFromSettingsBtn scrollDownHint weatherWidget weatherBtn weatherIcon weatherTemp weatherCity weatherPopover creditsModal closeCreditsBtn doneCreditsBtn'.split(' ');
             ids.forEach(id => dom[id] = $(id));
         }
 
@@ -3537,7 +3544,11 @@
                 const src = img.dataset.src;
                 if (!src) return;
                 delete img.dataset.src;
+                let handled = false;
                 const handleLoaded = () => {
+                    if (handled) return;
+                    handled = true;
+                    img.onload = null;
                     requestAnimationFrame(() => {
                         requestAnimationFrame(() => {
                             setTimeout(() => {
@@ -3545,7 +3556,6 @@
                             }, idx * 20);
                         });
                     });
-                    img.onload = null;
                 };
                 img.onload = handleLoaded;
                 img.src = src;
@@ -5706,17 +5716,32 @@
                 });
             }
             if (dom.urlBgBtn) {
-                dom.urlBgBtn.addEventListener('click', () => {
+                const openUrlInput = () => {
                     const current = modalState.draftWallpaper || storageGet(CONFIG.KEYS.USER_WALLPAPER) || '';
-                    const input = prompt('请输入高清图片的网络 URL 地址：', current.startsWith('http') ? current : '');
-                    if (input === null) return;
-                    const trimmed = input.trim();
+                    if (dom.urlBgInput) dom.urlBgInput.value = current.startsWith('http') ? current : '';
+                    dom.urlBgInputRow?.classList.remove('hidden');
+                    dom.urlBgInput?.focus();
+                };
+                const closeUrlInput = () => {
+                    dom.urlBgInputRow?.classList.add('hidden');
+                    if (dom.urlBgInput) dom.urlBgInput.value = '';
+                };
+                const submitUrl = () => {
+                    const trimmed = (dom.urlBgInput?.value || '').trim();
+                    closeUrlInput();
                     if (!trimmed) return;
                     if (!/^https?:\/\//i.test(trimmed)) {
                         showConfirm('请输入以 http:// 或 https:// 开头的有效图片链接。', null, '地址错误');
                         return;
                     }
                     previewDraftWallpaper(trimmed);
+                };
+                dom.urlBgBtn.addEventListener('click', openUrlInput);
+                dom.urlBgConfirmBtn?.addEventListener('click', submitUrl);
+                dom.urlBgCancelBtn?.addEventListener('click', closeUrlInput);
+                dom.urlBgInput?.addEventListener('keydown', e => {
+                    if (e.key === 'Enter') { e.preventDefault(); submitUrl(); }
+                    if (e.key === 'Escape') { e.preventDefault(); closeUrlInput(); }
                 });
             }
             if (dom.resetBgBtn) {
