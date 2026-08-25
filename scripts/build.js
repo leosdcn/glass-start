@@ -89,13 +89,10 @@ const PATHS = {
 // 生产构建全链路统一版本戳（用于 Service Worker 缓存池与 HTML 外链脚本防穿透对齐）
 let currentBuildVersion = 'app-core-v' + Date.now();
 
-// 顶层 JS 变量正则替换工具函数
+// 顶层 JS 变量正则替换工具函数 (单次遍历替换，消除冗余的 test() 预扫描)
 function safeReplaceJsVariable(code, varName, replacementJs) {
     const regex = new RegExp(`(?:export\\s+)?(?:const|let|var)\\s+${varName}(?:\\s*:\\s*[^=]+)?\\s*=\\s*\\[[\\s\\S]*?\\];`);
-    if (regex.test(code)) {
-        return code.replace(regex, () => `const ${varName} = ${replacementJs};`);
-    }
-    return code;
+    return code.replace(regex, () => `const ${varName} = ${replacementJs};`);
 }
 
 // 自动资源清理 Hook：保障遇到 Ctrl+C 或中途报错时无残存临时文件
@@ -509,6 +506,7 @@ function printDistSummary(startTime) {
 // 主构建入口流程
 function main() {
     const startTime = Date.now();
+    currentBuildVersion = 'app-core-v' + startTime;
 
     console.log(`\n${c.cyan}${HR_DOUBLE}${c.reset}`);
     console.log(`${c.bold}${c.cyan}🚀 Glass Start — 生产环境构建打包 (Production Build)${c.reset}`);

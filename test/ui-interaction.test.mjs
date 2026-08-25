@@ -13,7 +13,7 @@
 import { launchSession, sleep, tyOf, makeTester, pressKey } from './helpers.mjs';
 
 const { pass, finish } = makeTester();
-const { server, chrome, send, evalJS } = await launchSession(9338);
+const { server, chrome, send, evalJS } = await launchSession();
 
 await sleep(300);
 

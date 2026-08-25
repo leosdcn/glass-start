@@ -1,11 +1,11 @@
 /**
  * 根目录零依赖静态语法与格式检查 (scripts/lint.mjs)
- * 1. 提取 index.html 内所有内联 <script> 做语法校验
- * 2. 对核心 JavaScript 脚本 (scripts/build.js, sw.js, scripts/server.js) 用 node --check 校验语法
+ * 1. 提取 index.html 内所有内联 <script> 做纯内存 AST 语法校验
+ * 2. 对核心 JavaScript 脚本 (scripts/build.js, sw.js, scripts/server.js) 做纯内存语法校验
  * 3. 对根目录 JSON 配置文件 (bookmarks.json, manifest.json, package.json) 做合法性校验
+ * 4. 全站 12 项工程宪法规范静态门禁扫描 (iOS 16px, WAI-ARIA, !important, DOM ID, BFCache 等)
  */
 import { readFileSync, statSync } from 'node:fs';
-import { spawnSync } from 'node:child_process';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import vm from 'node:vm';
@@ -26,7 +26,6 @@ const c = {
 
 const LINE_WIDTH = 72;
 const HR_DOUBLE = '═'.repeat(LINE_WIDTH);
-const HR_SINGLE = '─'.repeat(LINE_WIDTH);
 
 function getVisualWidth(str) {
     const clean = str.replace(/\x1b\[[0-9;]*m/g, '');
@@ -71,38 +70,38 @@ console.log(`\n${c.cyan}${HR_DOUBLE}${c.reset}`);
 console.log(`${c.bold}${c.cyan}🔍 Glass Start — 零依赖静态语法与格式检查 (Static Lint)${c.reset}`);
 console.log(`${c.cyan}${HR_DOUBLE}${c.reset}`);
 
+// 全局单次读取核心文件，彻底消除多次读盘 I/O
+const htmlPath = join(root, 'index.html');
+const indexHtml = readFileSync(htmlPath, 'utf-8');
+
 // ---- 1. index.html 内联 <script> 语法校验 ----
 logSection('1/4', '📄 校验 index.html 内联脚本语法');
-const htmlPath = join(root, 'index.html');
-if (statSync(htmlPath).isFile()) {
-    const html = readFileSync(htmlPath, 'utf-8');
-    const scripts = [...html.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi)];
-    scripts.forEach((m, i) => {
-        const fullTag = m[0];
-        const code = m[1];
-        let tagDesc = '';
-        if (fullTag.includes('id="main-script"')) {
-            tagDesc = ' (主应用逻辑)';
-        } else if (fullTag.includes('application/ld+json')) {
-            tagDesc = ' (结构化数据 JSON-LD)';
+const scripts = [...indexHtml.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi)];
+scripts.forEach((m, i) => {
+    const fullTag = m[0];
+    const code = m[1];
+    let tagDesc = '';
+    if (fullTag.includes('id="main-script"')) {
+        tagDesc = ' (主应用逻辑)';
+    } else if (fullTag.includes('application/ld+json')) {
+        tagDesc = ' (结构化数据 JSON-LD)';
+    }
+    const label = `内联 script #${i}${tagDesc} [${formatSize(code.length)}]`;
+    try {
+        if (fullTag.includes('application/ld+json')) {
+            JSON.parse(code);
+        } else {
+            new vm.Script(code, { filename: `inline-${i}.js` });
         }
-        const label = `内联 script #${i}${tagDesc} [${formatSize(code.length)}]`;
-        try {
-            if (fullTag.includes('application/ld+json')) {
-                JSON.parse(code);
-            } else {
-                new vm.Script(code, { filename: `inline-${i}.js` });
-            }
-            passCount++;
-            logItem(`${label} 语法通过`);
-        } catch (e) {
-            failCount++;
-            logItem(`${label} 语法错误: ${e.message}`, 'error');
-        }
-    });
-}
+        passCount++;
+        logItem(`${label} 语法通过`);
+    } catch (e) {
+        failCount++;
+        logItem(`${label} 语法错误: ${e.message}`, 'error');
+    }
+});
 
-// ---- 2. 核心 JS 脚本 (scripts/build.js, sw.js, scripts/server.js) 用 node --check 校验 ----
+// ---- 2. 核心 JS 脚本 (scripts/build.js, sw.js, scripts/server.js) 用 node:vm 纯内存校验 ----
 logSection('2/4', '⚙️  校验核心 JavaScript 语法 (node --check)');
 const jsFiles = [
     { name: 'scripts/build.js', desc: '打包构建脚本' },
@@ -114,14 +113,15 @@ const jsFiles = [
 
 for (const item of jsFiles) {
     const fullPath = join(root, item.name);
-    const r = spawnSync(process.execPath, ['--check', fullPath], { encoding: 'utf-8' });
     const label = `${item.name.padEnd(18, ' ')} (${item.desc})`;
-    if (r.status === 0) {
+    try {
+        const code = readFileSync(fullPath, 'utf-8');
+        new vm.Script(code, { filename: item.name });
         passCount++;
         logItem(`${label} 语法通过`);
-    } else {
+    } catch (e) {
         failCount++;
-        logItem(`${label} 语法错误:\n${r.stderr}`, 'error');
+        logItem(`${label} 语法错误:\n${e.message}`, 'error');
     }
 }
 
@@ -155,13 +155,12 @@ logSection('4/4', '🛡️  校验版本号全量对齐与移动端输入规范'
 try {
     const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf-8'));
     const lock = JSON.parse(readFileSync(join(root, 'package-lock.json'), 'utf-8'));
-    const htmlContent = readFileSync(join(root, 'index.html'), 'utf-8');
     const readmeContent = readFileSync(join(root, 'README.md'), 'utf-8');
 
     const expectedVersion = pkg.version;
     const lockVersion = lock.version;
     const lockPkgVersion = lock.packages?.['']?.version;
-    const htmlMatch = htmlContent.match(/<span[^>]*class="[^"]*rounded-full[^"]*"[^>]*>v?([0-9]+\.[0-9]+\.[0-9]+)<\/span>/i);
+    const htmlMatch = indexHtml.match(/<span[^>]*class="[^"]*rounded-full[^"]*"[^>]*>v?([0-9]+\.[0-9]+\.[0-9]+)<\/span>/i);
     const htmlVersion = htmlMatch ? htmlMatch[1] : null;
     const readmeMatch = readmeContent.match(/\|\s*\*\*Glass Start 站点版本\*\*\s*\|\s*项目发布版本\s*\|\s*`v?([0-9]+\.[0-9]+\.[0-9]+)`/i);
     const readmeVersion = readmeMatch ? readmeMatch[1] : null;
@@ -180,15 +179,12 @@ try {
 
 // 4.2 移动端 iOS 16px 防放大输入框规范静态扫描
 try {
-    const htmlContent = readFileSync(join(root, 'index.html'), 'utf-8');
-    // 匹配所有单行文本输入框
-    const inputMatches = [...htmlContent.matchAll(/<input[^>]*type=["']text["'][^>]*>/gi)];
+    const inputMatches = [...indexHtml.matchAll(/<input[^>]*type=["']text["'][^>]*>/gi)];
     let allInputsCompliant = true;
     const nonCompliant = [];
 
     for (const match of inputMatches) {
         const tag = match[0];
-        // 必须含有 text-base 或 text-lg 或 text-xl 或 text-2xl
         const has16pxPlus = /text-(base|lg|xl|2xl|3xl)/.test(tag);
         if (!has16pxPlus) {
             allInputsCompliant = false;
@@ -211,8 +207,7 @@ try {
 
 // 4.3 <button> 标签显式声明 type="button" 规范全量扫描
 try {
-    const htmlContent = readFileSync(join(root, 'index.html'), 'utf-8');
-    const buttonMatches = [...htmlContent.matchAll(/<button\b([^>]*)>/gi)];
+    const buttonMatches = [...indexHtml.matchAll(/<button\b([^>]*)>/gi)];
     let allButtonsCompliant = true;
     const nonCompliantButtons = [];
 
@@ -239,8 +234,7 @@ try {
 
 // 4.4 装饰性 <svg> 矢量图标 W3C WAI-ARIA (aria-hidden="true") 规范扫描
 try {
-    const htmlContent = readFileSync(join(root, 'index.html'), 'utf-8');
-    const svgMatches = [...htmlContent.matchAll(/<svg\b([^>]*)>/gi)];
+    const svgMatches = [...indexHtml.matchAll(/<svg\b([^>]*)>/gi)];
     let allSvgsCompliant = true;
     const nonCompliantSvgs = [];
 
@@ -268,16 +262,13 @@ try {
 
 // 4.5 CSS 样式表 !important 污染静态扫描门禁 (仅放行 prefers-reduced-motion 国际无障碍白名单)
 try {
-    const htmlContent = readFileSync(join(root, 'index.html'), 'utf-8');
-    const styleBlocks = [...htmlContent.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style>/gi)];
+    const styleBlocks = [...indexHtml.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style>/gi)];
     let unauthorizedImportantCount = 0;
     const violations = [];
 
     for (const block of styleBlocks) {
         const css = block[1];
-        // 剥离合法的 @media (prefers-reduced-motion: reduce) { ... } 区域
         const sanitizedCss = css.replace(/@media\s*\(\s*prefers-reduced-motion\s*:\s*reduce\s*\)\s*\{[\s\S]*?\}/gi, '/* a11y-reduced-motion-cleared */');
-        
         const lines = sanitizedCss.split('\n');
         lines.forEach((line, lineIdx) => {
             if (/!important/i.test(line)) {
@@ -301,9 +292,8 @@ try {
 
 // 4.6 DOM ID 唯一性与 cacheDOM() 引用健康门禁
 try {
-    const htmlContent = readFileSync(join(root, 'index.html'), 'utf-8');
-    const bodyMatch = htmlContent.match(/<body\b[^>]*>([\s\S]*?)<\/body>/i);
-    const bodyHtml = bodyMatch ? bodyMatch[1] : htmlContent;
+    const bodyMatch = indexHtml.match(/<body\b[^>]*>([\s\S]*?)<\/body>/i);
+    const bodyHtml = bodyMatch ? bodyMatch[1] : indexHtml;
     const noScriptBody = bodyHtml.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '');
     const idMatches = [...noScriptBody.matchAll(/\bid=["']([^"']+)["']/gi)];
     
@@ -321,7 +311,7 @@ try {
         }
     }
 
-    const cacheDomMatch = htmlContent.match(/function\s+cacheDOM\s*\(\)\s*\{[\s\S]*?const\s+ids\s*=\s*['"]([^'"]+)['"]/i);
+    const cacheDomMatch = indexHtml.match(/function\s+cacheDOM\s*\(\)\s*\{[\s\S]*?const\s+ids\s*=\s*['"]([^'"]+)['"]/i);
     const cachedIds = cacheDomMatch ? cacheDomMatch[1].trim().split(/\s+/) : [];
     const missingCachedIds = cachedIds.filter(id => !domIdSet.has(id));
 
@@ -347,7 +337,6 @@ try {
     let totalBookmarks = 0;
     const errors = [];
 
-    // 校验常用书签 bookmarks
     if (Array.isArray(data.bookmarks)) {
         data.bookmarks.forEach((bm, i) => {
             totalBookmarks++;
@@ -359,7 +348,6 @@ try {
         errors.push('缺少顶层 bookmarks 数组');
     }
 
-    // 校验分类书签 categories
     if (Array.isArray(data.categories)) {
         const catNameSet = new Set();
         data.categories.forEach((cat, catIdx) => {
@@ -407,10 +395,8 @@ try {
 
 // 4.8 🚫 严禁主应用脚本在运行期滥加 .nr 类名（防止首屏被推飞）
 try {
-    const htmlContent = readFileSync(join(root, 'index.html'), 'utf-8');
-    const mainScriptMatch = htmlContent.match(/<script\b(?=[^>]*id=["']main-script["'])[^>]*>([\s\S]*?)<\/script>/i);
+    const mainScriptMatch = indexHtml.match(/<script\b(?=[^>]*id=["']main-script["'])[^>]*>([\s\S]*?)<\/script>/i);
     const mainScript = mainScriptMatch ? mainScriptMatch[1] : '';
-
     const hasNrAdd = /\.classList\.add\(\s*['"]nr['"]\s*\)/.test(mainScript);
     if (!hasNrAdd) {
         passCount++;
@@ -426,10 +412,8 @@ try {
 
 // 4.9 🚫 严禁 reconcileScreenState 注入内联 transition:none（防止后台冻结 rAF 导致卡死）
 try {
-    const htmlContent = readFileSync(join(root, 'index.html'), 'utf-8');
-    const reconcileMatch = htmlContent.match(/function\s+reconcileScreenState\s*\([^)]*\)\s*\{([\s\S]*?)\n\s*(?:function|window\.)/i);
+    const reconcileMatch = indexHtml.match(/function\s+reconcileScreenState\s*\([^)]*\)\s*\{([\s\S]*?)\n\s*(?:function|window\.)/i);
     const reconcileBody = reconcileMatch ? reconcileMatch[1] : '';
-
     const hasInlineTransitionNone = /\.style\.transition\s*=\s*['"]none['"]/i.test(reconcileBody);
     if (!hasInlineTransitionNone && reconcileBody.length > 0) {
         passCount++;
@@ -445,10 +429,8 @@ try {
 
 // 4.10 🛡️ 全局多标签与 BFCache 双通道唤醒自愈闭环门禁
 try {
-    const htmlContent = readFileSync(join(root, 'index.html'), 'utf-8');
-    const mainScriptMatch = htmlContent.match(/<script\b(?=[^>]*id=["']main-script["'])[^>]*>([\s\S]*?)<\/script>/i);
+    const mainScriptMatch = indexHtml.match(/<script\b(?=[^>]*id=["']main-script["'])[^>]*>([\s\S]*?)<\/script>/i);
     const mainScript = mainScriptMatch ? mainScriptMatch[1] : '';
-
     const hasVisibilityListener = /addEventListener\(\s*['"]visibilitychange['"][\s\S]*?handleAppWakeUp/i.test(mainScript) ||
                                   /addEventListener\(\s*['"]visibilitychange['"][\s\S]*?reconcileScreenState/i.test(mainScript);
     const hasPageshowListener = /addEventListener\(\s*['"]pageshow['"][\s\S]*?handleAppWakeUp/i.test(mainScript) ||
@@ -468,9 +450,7 @@ try {
 
 // 4.11 🛡️ fade-in 入场动效自动脱壳卸载门禁
 try {
-    const htmlContent = readFileSync(join(root, 'index.html'), 'utf-8');
-    const hasFadeInUnload = /classList\.remove\(\s*['"]fade-in['"]\s*\)/.test(htmlContent);
-
+    const hasFadeInUnload = /classList\.remove\(\s*['"]fade-in['"]\s*\)/.test(indexHtml);
     if (hasFadeInUnload) {
         passCount++;
         logItem(`入场动画包含自动脱壳机制（fade-in 播完即卸载，根绝 Safari BFCache 回退 opacity:0）`);
@@ -485,10 +465,8 @@ try {
 
 // 4.12 🚫 严禁滥加全局字体抗锯齿属性（-webkit-font-smoothing / -moz-osx-font-smoothing）
 try {
-    const htmlContent = readFileSync(join(root, 'index.html'), 'utf-8');
-    const hasFontSmoothing = /font-smoothing\s*:\s*antialiased/i.test(htmlContent) ||
-                             /-moz-osx-font-smoothing\s*:\s*grayscale/i.test(htmlContent);
-
+    const hasFontSmoothing = /font-smoothing\s*:\s*antialiased/i.test(indexHtml) ||
+                             /-moz-osx-font-smoothing\s*:\s*grayscale/i.test(indexHtml);
     if (!hasFontSmoothing) {
         passCount++;
         logItem(`全站字体排版纯净合规（严禁人为添加 -webkit-font-smoothing 降级抗锯齿）`);
@@ -511,4 +489,3 @@ if (failCount === 0) {
 console.log(`${c.gray}${HR_DOUBLE}${c.reset}\n`);
 
 process.exit(failCount ? 1 : 0);
-

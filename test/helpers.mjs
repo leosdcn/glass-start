@@ -10,6 +10,34 @@ export const tyOf = (m) => {
   return r ? parseFloat(r[1]) : null;
 };
 
+/** 响应式状态轮询器：等待表达式求值为真即刻放行，彻底消除盲等 sleep */
+export async function waitFor(evalJS, predicateJs, timeout = 3000, interval = 20) {
+  const start = Date.now();
+  while (Date.now() - start < timeout) {
+    const res = await evalJS(predicateJs);
+    if (res) return res;
+    await new Promise(r => setTimeout(r, interval));
+  }
+  throw new Error(`Timeout after ${timeout}ms waiting for: ${predicateJs}`);
+}
+
+/** 模拟输入框输入事件并触发 input/change 事件 */
+export async function typeInput(evalJS, selector, value) {
+  return evalJS(`(() => {
+    const el = document.querySelector(${JSON.stringify(selector)});
+    if (!el) return false;
+    const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
+    if (nativeSetter) {
+      nativeSetter.call(el, ${JSON.stringify(value)});
+    } else {
+      el.value = ${JSON.stringify(value)};
+    }
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+    return true;
+  })()`);
+}
+
 /** 获取系统当前随机可用空闲端口 */
 export function getFreePort() {
   return new Promise((resolve, reject) => {
@@ -24,32 +52,12 @@ export function getFreePort() {
 
 /**
  * 启动一次完整测试会话：本地静态服务 + 无头 Chrome CDP。
- * @param {number} [preferredPort] - 静态服务首选端口（若未指定或占用则自动获取空闲端口）
+ * @param {number} [preferredPort=0] - 静态服务首选端口（默认 0 使用内核动态分配，杜绝 EADDRINUSE）
  */
-export async function launchSession(preferredPort) {
-  let port = preferredPort;
-  if (!port) {
-    port = await getFreePort();
-  }
-  let cdpPort;
-  try {
-    cdpPort = await getFreePort();
-  } catch {
-    cdpPort = port + 1;
-  }
-
-  let server;
-  try {
-    server = await startServer(port);
-  } catch (err) {
-    if (err && err.code === 'EADDRINUSE') {
-      port = await getFreePort();
-      cdpPort = await getFreePort();
-      server = await startServer(port);
-    } else {
-      throw err;
-    }
-  }
+export async function launchSession(preferredPort = 0) {
+  let server = await startServer(preferredPort);
+  let port = server.port;
+  let cdpPort = await getFreePort();
 
   const chrome = await launchChrome({ port: cdpPort, url: `http://127.0.0.1:${port}/` });
   const { send } = chrome;
@@ -61,9 +69,9 @@ export async function launchSession(preferredPort) {
     return r.result?.value;
   };
 
-  await sleep(400);
+  await sleep(100);
 
-  return { server, chrome, send, evalJS };
+  return { server, chrome, send, evalJS, port, cdpPort };
 }
 
 /** 创建一个收集断言结果的测试器，finish() 返回进程退出码 */

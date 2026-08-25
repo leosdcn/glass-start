@@ -11,7 +11,7 @@
 import { launchSession, sleep, makeTester } from './helpers.mjs';
 
 const { pass, finish } = makeTester();
-const { server, chrome, evalJS } = await launchSession(9341);
+const { server, chrome, evalJS } = await launchSession();
 
 await sleep(300);
 

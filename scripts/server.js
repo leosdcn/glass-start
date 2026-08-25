@@ -72,50 +72,40 @@ function createStaticServer() {
             }
 
             fs.stat(filePath, (err, stats) => {
+                let targetPath = filePath;
+                let isFallback = false;
                 if (err || !stats.isFile()) {
-                    const fallback = path.join(DIST_DIR, 'index.html');
-                    fs.readFile(fallback, (fErr, data) => {
-                        if (fErr) {
-                            res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
-                            res.end('404 Not Found');
-                        } else {
-                            const accept = req.headers['accept-encoding'] || '';
-                            const headers = {
-                                'Content-Type': 'text/html; charset=utf-8',
-                                'Cache-Control': 'no-cache, must-revalidate'
-                            };
-                            if (accept.includes('gzip')) {
-                                zlib.gzip(data, { level: 6 }, (gzErr, compressed) => {
-                                    if (gzErr) {
-                                        res.writeHead(200, headers);
-                                        res.end(data);
-                                    } else {
-                                        headers['Content-Encoding'] = 'gzip';
-                                        headers['Vary'] = 'Accept-Encoding';
-                                        res.writeHead(200, headers);
-                                        res.end(compressed);
-                                    }
-                                });
-                            } else {
-                                res.writeHead(200, headers);
-                                res.end(data);
-                            }
-                        }
-                    });
-                    return;
+                    targetPath = path.join(DIST_DIR, 'index.html');
+                    isFallback = true;
                 }
 
-                const ext = path.extname(filePath).toLowerCase();
+                // 304 协商缓存 (基于 mtime)
+                const ifModifiedSince = req.headers['if-modified-since'];
+                if (!isFallback && stats && ifModifiedSince) {
+                    const reqMtime = new Date(ifModifiedSince).getTime();
+                    if (Math.floor(stats.mtimeMs / 1000) <= Math.floor(reqMtime / 1000)) {
+                        res.writeHead(304, 'Not Modified');
+                        res.end();
+                        return;
+                    }
+                }
+
+                const ext = path.extname(targetPath).toLowerCase();
                 const contentType = MIME_TYPES[ext] || 'application/octet-stream';
 
                 res.setHeader('Content-Type', contentType);
+                if (stats && !isFallback) {
+                    res.setHeader('Last-Modified', stats.mtime.toUTCString());
+                }
+
                 const isWallpaper = rel.startsWith('wallpapers' + path.sep) || rel.startsWith('wallpapers/');
                 if (isWallpaper) {
                     res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
                 } else {
                     res.setHeader('Cache-Control', 'no-cache, must-revalidate');
                 }
-                // 仅对非文档类静态资产开放跨域读取；HTML 文档不设置 CORS，避免局域网内任意页面跨域读取页面内容
+
+                // 仅对非文档类静态资产开放跨域读取；HTML 文档不设置 CORS
                 if (!contentType.startsWith('text/html')) {
                     res.setHeader('Access-Control-Allow-Origin', '*');
                 }
@@ -124,21 +114,22 @@ function createStaticServer() {
                 const isCompressible = /^(text\/|application\/(javascript|json|manifest\+json)|image\/svg\+xml)/.test(contentType);
                 const acceptEncoding = req.headers['accept-encoding'] || '';
 
+                const rawStream = fs.createReadStream(targetPath);
+                rawStream.on('error', () => {
+                    if (!res.headersSent) res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+                    res.end('404 Not Found');
+                });
+
                 if (isCompressible && acceptEncoding.includes('gzip')) {
                     res.setHeader('Content-Encoding', 'gzip');
                     res.setHeader('Vary', 'Accept-Encoding');
-                    const rawStream = fs.createReadStream(filePath);
-                    const gzip = zlib.createGzip({ level: 6 });
-                    rawStream.pipe(gzip).pipe(res);
+                    rawStream.pipe(zlib.createGzip({ level: 6 })).pipe(res);
                 } else if (isCompressible && acceptEncoding.includes('deflate')) {
                     res.setHeader('Content-Encoding', 'deflate');
                     res.setHeader('Vary', 'Accept-Encoding');
-                    const rawStream = fs.createReadStream(filePath);
-                    const deflate = zlib.createDeflate({ level: 6 });
-                    rawStream.pipe(deflate).pipe(res);
+                    rawStream.pipe(zlib.createDeflate({ level: 6 })).pipe(res);
                 } else {
-                    const stream = fs.createReadStream(filePath);
-                    stream.pipe(res);
+                    rawStream.pipe(res);
                 }
             });
         } catch {

@@ -17,8 +17,8 @@ const MIME = {
   '.txt': 'text/plain; charset=utf-8',
 };
 
-export function startServer(port, root = DEFAULT_ROOT, customRoutes = {}) {
-  return new Promise((resolve) => {
+export function startServer(port = 0, root = DEFAULT_ROOT, customRoutes = {}) {
+  return new Promise((resolve, reject) => {
     const server = createServer((req, res) => {
       try {
         let p = normalize(decodeURIComponent(req.url.split('?')[0]));
@@ -41,8 +41,15 @@ export function startServer(port, root = DEFAULT_ROOT, customRoutes = {}) {
         res.end('404');
       }
     });
-    server.listen(port, '127.0.0.1', () => resolve({
-      close: () => new Promise((r) => server.close(r)),
-    }));
+
+    server.on('error', reject);
+    server.listen(port, '127.0.0.1', () => {
+      const actualPort = server.address().port;
+      resolve({
+        port: actualPort,
+        server,
+        close: () => new Promise((r) => server.close(r)),
+      });
+    });
   });
 }
