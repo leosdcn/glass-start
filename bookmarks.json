@@ -92,7 +92,7 @@
                     "name": "Gamma",
                     "url": "https://gamma.app",
                     "icon": "https://a.favicon.im/gamma.app",
-                    "desc": "AI生成PPT与网页"
+                    "desc": "AI 生成 PPT 与网页"
                 },
                 {
                     "name": "Gemini",
@@ -170,7 +170,7 @@
                     "name": "DistroSea",
                     "url": "https://distrosea.com",
                     "icon": "https://a.favicon.im/distrosea.com",
-                    "desc": "在线体验Linux系统"
+                    "desc": "在线体验 Linux 系统"
                 },
                 {
                     "name": "GitHub",
@@ -243,6 +243,12 @@
                     "url": "https://www.speedtest.net",
                     "icon": "https://a.favicon.im/speedtest.net",
                     "desc": "权威网络测速诊断"
+                },
+                {
+                    "name": "VirusTotal",
+                    "url": "https://www.virustotal.com",
+                    "icon": "https://a.favicon.im/virustotal.com",
+                    "desc": "多引擎在线病毒检测"
                 }
             ]
         },
@@ -285,6 +291,12 @@
                     "url": "https://www.notion.com",
                     "icon": "https://a.favicon.im/notion.com",
                     "desc": "一体化笔记与知识库"
+                },
+                {
+                    "name": "PDF24 Tools",
+                    "url": "https://tools.pdf24.org/zh",
+                    "icon": "https://a.favicon.im/tools.pdf24.org",
+                    "desc": "免费在线PDF工具箱"
                 },
                 {
                     "name": "Publish Markdown",
@@ -392,7 +404,7 @@
                     "name": "鸟哥的 Linux 私房菜",
                     "url": "https://linux.vbird.org",
                     "icon": "https://a.favicon.im/linux.vbird.org",
-                    "desc": "经典Linux运维教程"
+                    "desc": "经典 Linux 运维教程"
                 },
                 {
                     "name": "食用手册",
@@ -417,6 +429,12 @@
                     "url": "https://www.emojiall.com/zh-hans",
                     "icon": "https://a.favicon.im/emojiall.com",
                     "desc": "Emoji 字典与符号库"
+                },
+                {
+                    "name": "Kenney",
+                    "url": "https://kenney.nl",
+                    "icon": "https://a.favicon.im/kenney.nl",
+                    "desc": "免费开源游戏素材资产"
                 },
                 {
                     "name": "Lucide",
@@ -453,6 +471,12 @@
                     "url": "https://www.pixiv.net",
                     "icon": "https://a.favicon.im/pixiv.net",
                     "desc": "二次元插画艺术社区"
+                },
+                {
+                    "name": "Poly Haven",
+                    "url": "https://polyhaven.com",
+                    "icon": "https://a.favicon.im/polyhaven.com",
+                    "desc": "免费3D材质与模型"
                 },
                 {
                     "name": "Simple Icons",
@@ -501,6 +525,12 @@
                     "url": "https://coolors.co",
                     "icon": "https://a.favicon.im/coolors.co",
                     "desc": "极速配色方案在线生成"
+                },
+                {
+                    "name": "Photopea",
+                    "url": "https://www.photopea.com",
+                    "icon": "https://a.favicon.im/photopea.com",
+                    "desc": "全功能在线图像编辑"
                 },
                 {
                     "name": "SauceNAO",
@@ -560,7 +590,7 @@
                     "name": "OMG! Ubuntu",
                     "url": "https://www.omgubuntu.co.uk",
                     "icon": "https://a.favicon.im/omgubuntu.co.uk",
-                    "desc": "Linux桌面与开源资讯"
+                    "desc": "Linux 桌面与开源资讯"
                 },
                 {
                     "name": "Reddit",

@@ -376,8 +376,13 @@ try {
                     if (!bm.icon || typeof bm.icon !== 'string') errors.push(`${prefix} 缺少有效 icon`);
                     if (!bm.desc || typeof bm.desc !== 'string' || bm.desc.trim().length === 0) {
                         errors.push(`${prefix} 缺少有效 desc 简介`);
-                    } else if (bm.desc.length > 12) {
-                        errors.push(`${prefix} desc 简介过长 (${bm.desc.length}字, 上限12字): "${bm.desc}"`);
+                    } else {
+                        const hasAlpha = /[a-zA-Z0-9]/.test(bm.desc);
+                        const maxLen = hasAlpha ? 15 : 10;
+                        if (bm.desc.length > maxLen) {
+                            const typeDesc = hasAlpha ? '中英混排上限15字符' : '纯中文上限10字符';
+                            errors.push(`${prefix} desc 简介过长 (${bm.desc.length}字, ${typeDesc}): "${bm.desc}"`);
+                        }
                     }
                 });
             } else {
