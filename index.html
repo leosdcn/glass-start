@@ -756,10 +756,10 @@
         }
 
         /* 导航页分类标题与优雅向右渐隐微光底边 */
-        .category-header, #navHeader {
+        .category-header {
             position: relative;
         }
-        .category-header::after, #navHeader::after {
+        .category-header::after {
             content: '';
             position: absolute;
             bottom: 0;
@@ -1614,16 +1614,16 @@
             <!-- 主体：一体化 Liquid Glass 窗口框架 -->
             <div class="flex-1 glass apple-radius flex flex-col overflow-hidden min-h-0 border border-white/20 shadow-2xl">
                 <!-- 窗口顶部 Header 栏 -->
-                <header id="navHeader" role="button" tabindex="0" aria-label="返回起始页" class="flex items-center justify-between px-4 py-2.5 bg-transparent shrink-0 cursor-pointer select-none hover:bg-white/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" title="点击返回起始页">
+                <header id="navHeader" role="button" tabindex="0" aria-label="返回起始页" class="flex items-center justify-between px-4 py-2.5 border-b border-white/10 bg-transparent shrink-0 cursor-pointer select-none hover:bg-white/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" title="点击返回起始页">
                     <div class="flex items-center gap-2 pointer-events-none">
                         <span class="text-base" aria-hidden="true">🪐</span>
                         <h2 class="text-xs sm:text-sm font-semibold tracking-wide text-white">导航</h2>
-                        <span id="navStatsBadge" class="text-2xs text-white/55 tracking-wider hidden sm:inline-flex items-center px-2 py-0.5 apple-radius bg-white/6 border border-white/10 font-normal ml-1 select-none">12 个分类 · 115 个站点</span>
+                        <span class="text-2xs text-white/60 tracking-wide hidden sm:inline ml-1 font-normal">发现更多精彩网站</span>
                     </div>
                     <!-- 右侧返回提示 -->
-                    <button id="navHint" type="button" aria-label="返回起始页" class="flex items-center gap-1.5 text-white/80 text-2xs tracking-wider bg-white/10 border border-white/15 px-2.5 py-1 apple-radius whitespace-nowrap shrink-0 cursor-pointer hover:bg-white/20 hover:text-white glass-interactive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" title="点击或向上滚动返回起始页">
+                    <button id="navHint" type="button" aria-label="向上滚动返回起始页" class="flex items-center gap-1.5 text-white/80 text-2xs tracking-wider bg-white/10 border border-white/15 px-2.5 py-1 apple-radius whitespace-nowrap shrink-0 cursor-pointer hover:bg-white/20 hover:text-white glass-interactive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" title="点击或向上滚动返回起始页">
                         <svg class="size-3 scroll-up-hint shrink-0 text-white/60" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 12 12"><path d="M2.5 7.5L6 4l3.5 3.5"/></svg>
-                        <span class="whitespace-nowrap">返回起始页</span>
+                        <span class="whitespace-nowrap">向上滚动返回</span>
                     </button>
                 </header>
 
@@ -3015,7 +3015,7 @@
          * @returns {void}
          */
         function cacheDOM() {
-            const ids = 'clock date searchInput searchClearBtn randomBookmarkBtn engineBtn engineIcon engineName dropdownMenu suggestionMenu bookmarks sidebar sidebarList navCategories navContent editModal editList editBookmarksBtn addBookmarkBtn saveEditBtn cancelEditBtn resetEditBtn togglePickerBtn bookmarkPicker pickerContent pickerCount closePickerBtn donePickerBtn exportJsonBtn importJsonInput uploadBgBtn urlBgBtn resetBgBtn uploadBgInput wallpaperStatus bookmarkCountBadge jsonDropzone maskOpacityInput maskOpacityVal bgBlurInput bgBlurVal storageSizeBadge statBookmarkCount statWallpaperType statPwaStatus clearCacheBtn bgOverlay startSection navSection navHint navHeader navStatsBadge presetWallpaperGrid shortcutModal shortcutModalList closeShortcutBtn doneShortcutBtn openShortcutFromSettingsBtn openCreditsFromSettingsBtn scrollDownHint weatherWidget weatherBtn weatherIcon weatherTemp weatherCity weatherPopover creditsModal closeCreditsBtn doneCreditsBtn'.split(' ');
+            const ids = 'clock date searchInput searchClearBtn randomBookmarkBtn engineBtn engineIcon engineName dropdownMenu suggestionMenu bookmarks sidebar sidebarList navCategories navContent editModal editList editBookmarksBtn addBookmarkBtn saveEditBtn cancelEditBtn resetEditBtn togglePickerBtn bookmarkPicker pickerContent pickerCount closePickerBtn donePickerBtn exportJsonBtn importJsonInput uploadBgBtn urlBgBtn resetBgBtn uploadBgInput wallpaperStatus bookmarkCountBadge jsonDropzone maskOpacityInput maskOpacityVal bgBlurInput bgBlurVal storageSizeBadge statBookmarkCount statWallpaperType statPwaStatus clearCacheBtn bgOverlay startSection navSection navHint navHeader presetWallpaperGrid shortcutModal shortcutModalList closeShortcutBtn doneShortcutBtn openShortcutFromSettingsBtn openCreditsFromSettingsBtn scrollDownHint weatherWidget weatherBtn weatherIcon weatherTemp weatherCity weatherPopover creditsModal closeCreditsBtn doneCreditsBtn'.split(' ');
             ids.forEach(id => dom[id] = $(id));
         }
 
@@ -4811,12 +4811,6 @@
 
             const savedScrollTop = dom.navContent ? dom.navContent.scrollTop : 0;
             const sortedCats = getSortedCategories();
-
-            // 动态同步顶栏统计徽章 (分类数与站点总数)
-            if (dom.navStatsBadge) {
-                const totalBookmarks = (pageData.categories || []).reduce((acc, cat) => acc + (cat.bookmarks ? cat.bookmarks.length : 0), 0);
-                dom.navStatsBadge.textContent = `${pageData.categories.length} 个分类 · ${totalBookmarks} 个站点`;
-            }
 
             // 左侧分类列表
             dom.sidebarList.innerHTML = pageData.categories.map((cat, i) => `
