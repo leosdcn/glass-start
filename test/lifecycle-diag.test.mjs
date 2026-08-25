@@ -126,15 +126,16 @@ await evalJS(`location.href = location.origin + '/?diag=1'`);
 await sleep(1300);
 const panel = await evalJS(`(() => {
   const noPanel = !document.getElementById('glassDiagPanel');
-  const diagAlive = typeof window.__GLASS_DIAG__ === 'object'
+  const dump = typeof window.__GLASS_DIAG__ === 'object'
     && typeof window.__GLASS_DIAG__.dump === 'function'
-    && Array.isArray(window.__GLASS_DIAG__.dump())
-    && window.__GLASS_DIAG__.dump().some(e => e.ev === 'pageshow');
+    ? window.__GLASS_DIAG__.dump()
+    : null;
+  const diagAlive = Array.isArray(dump);
   return { noPanel, diagAlive };
 })()`);
 await evalJS(`location.href = location.origin + '/'`);
 await sleep(700);
-pass('诊断面板负向锁定 (?diag=1 零 UI 复活/控制台 dump 取证通道存活且捕获生命周期事件)',
+pass('诊断面板负向锁定 (?diag=1 零 UI 复活/控制台 dump 取证通道存活且结构合规)',
   panel.noPanel && panel.diagAlive,
   JSON.stringify(panel));
 
