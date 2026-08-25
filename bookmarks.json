@@ -371,6 +371,12 @@
                     "desc": "时光机与数字图书馆"
                 },
                 {
+                    "name": "QWERTY Learner",
+                    "url": "https://qwerty.kaiyi.cool",
+                    "icon": "https://a.favicon.im/qwerty.kaiyi.cool",
+                    "desc": "键盘肌肉记忆背单词"
+                },
+                {
                     "name": "roadmap.sh",
                     "url": "https://roadmap.sh",
                     "icon": "https://a.favicon.im/roadmap.sh",
@@ -527,6 +533,12 @@
                     "desc": "极速配色方案在线生成"
                 },
                 {
+                    "name": "LocalConvert",
+                    "url": "https://localconvert.com",
+                    "icon": "https://a.favicon.im/localconvert.com",
+                    "desc": "本地全格式文件转换"
+                },
+                {
                     "name": "Photopea",
                     "url": "https://www.photopea.com",
                     "icon": "https://a.favicon.im/photopea.com",
@@ -543,6 +555,12 @@
                     "url": "https://squoosh.app",
                     "icon": "https://a.favicon.im/squoosh.app",
                     "desc": "谷歌开源本地图片压缩"
+                },
+                {
+                    "name": "Trace.moe",
+                    "url": "https://trace.moe",
+                    "icon": "https://a.favicon.im/trace.moe",
+                    "desc": "动画截图出处秒级识别"
                 },
                 {
                     "name": "waifu2x",
