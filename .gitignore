@@ -6,5 +6,6 @@ dist/
 test/.cache.json
 test/artifacts/
 scratch/
+.agents/
 
 

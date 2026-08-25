@@ -192,7 +192,6 @@
         .nr #editBookmarksBtn, .nr #weatherWidget { opacity: 0; pointer-events: none; transition: none; }
         .nr *, .nr *::before, .nr *::after { animation: none; transition: none; }
         /* Standard Font Size Utility Classes with Apple Optical Tracking */
-        .text-3xs { font-size: 0.5625rem; letter-spacing: -0.012em; }
         .text-2xs { font-size: 0.625rem; letter-spacing: -0.012em; }
         .text-2xs-plus { font-size: 0.6875rem; letter-spacing: -0.012em; }
         :root {
@@ -283,12 +282,6 @@
         /* 全局禁用所有图片、普通链接与卡片的原生拖拽，防止意外拖动触发浏览器 Ghost Drag 导致 :hover / 3D 状态卡死 */
         img, a, button, .nav-bookmark, .bookmark-item {
             -webkit-user-drag: none;
-            -khtml-user-drag: none;
-            -moz-user-drag: none;
-            -o-user-drag: none;
-            user-drag: none;
-        }
-        img {
             user-select: none;
         }
         .apple-radius { border-radius: var(--radius); }
@@ -451,8 +444,6 @@
             cursor: not-allowed;
             pointer-events: none;
         }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
         /* ==========================================================================
            4. SCREEN SYSTEM & STRUCTURAL LAYOUT (双屏推移与全屏分层系统)
@@ -466,7 +457,7 @@
             z-index: 10;
             transform: translateY(0);
             will-change: transform;
-            transition: transform 0.58s cubic-bezier(0.5, 0, 0.2, 1);
+            transition: transform var(--duration-slide) cubic-bezier(0.5, 0, 0.2, 1);
         }
         #startSection.screen-pushed-up {
             transform: translateY(-100vh);
@@ -482,7 +473,7 @@
             transform: translateY(100vh);
             transform: translateY(100dvh);
             will-change: transform;
-            transition: transform 0.58s cubic-bezier(0.5, 0, 0.2, 1);
+            transition: transform var(--duration-slide) cubic-bezier(0.5, 0, 0.2, 1);
         }
         #navSection.screen-pushed-in {
             transform: translateY(0);
@@ -516,7 +507,6 @@
         .dropdown-menu.active { opacity:1; transform:translateY(0) scale(1) translateZ(0); pointer-events:auto; visibility:visible; transition:opacity var(--duration-normal) var(--ease-spring), transform var(--duration-normal) var(--ease-spring), visibility 0s; }
         #dropdownMenu { transform-origin: top left; }
         #suggestionMenu { transform-origin: top center; }
-        @keyframes skeletonPulse { 0%, 100% { opacity: 0.25; } 50% { opacity: 0.55; } }
         .clock-text { font-family: 'SF Pro Rounded', 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif; text-shadow: 0 2px 14px rgba(0,0,0,0.4), 0 8px 32px rgba(0,0,0,0.25); }
         #clock { font-variant-numeric: tabular-nums; -webkit-font-feature-settings: "tnum"; font-feature-settings: "tnum"; letter-spacing: -0.035em; }
         #date { font-variant-numeric: normal; -webkit-font-feature-settings: "normal"; font-feature-settings: "normal"; }
@@ -643,18 +633,11 @@
             aspect-ratio: 1 / 1;
             display: block;
         }
-        .lazy-icon {
+        .lazy-icon, .edit-favicon-img {
             opacity: 0;
             transition: opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        .lazy-icon.loaded {
-            opacity: 0.9;
-        }
-        .edit-favicon-img {
-            opacity: 0;
-            transition: opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .edit-favicon-img.loaded {
+        .lazy-icon.loaded, .edit-favicon-img.loaded {
             opacity: 0.9;
         }
 
@@ -745,13 +728,7 @@
         }
         /* 占位符提示词 (Placeholder) 坚决禁止被圈选选中 */
         input::placeholder,
-        textarea::placeholder,
-        input::-webkit-input-placeholder,
-        textarea::-webkit-input-placeholder,
-        input::-moz-placeholder,
-        textarea::-moz-placeholder,
-        input:-ms-input-placeholder,
-        textarea:-ms-input-placeholder {
+        textarea::placeholder {
             -webkit-user-select: none;
             user-select: none;
         }
@@ -812,7 +789,6 @@
         }
         @keyframes bounceDown { 0%,100%{transform:translateY(0);opacity:0.6} 50%{transform:translateY(0.5rem);opacity:1} }
         @keyframes bounceUp { 0%,100%{transform:translateY(0);opacity:0.7} 50%{transform:translateY(-0.1875rem);opacity:1} }
-        @keyframes hintFade { 0%,55%{opacity:1} 100%{opacity:0;pointer-events:none} }
         .bg-layer { transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1); transform: translateZ(0); will-change: opacity; pointer-events: none; }
         #bgOverlay { transition: background-color 0.2s ease, opacity 0.2s ease; transform: translateZ(0); will-change: opacity; pointer-events: none; }
         .delay-100 { animation-delay: var(--delay-stagger-1); }
@@ -864,9 +840,6 @@
             to { opacity: 1; transform: translateY(0) scale(1); }
         }
         .nr .edit-row-card { animation: none; }
-        .edit-row-card input {
-            user-select: text;
-        }
         .edit-row-card.dragging {
             opacity: 0.35;
             border-style: dashed;
@@ -910,32 +883,24 @@
             border: 0;
         }
         /* ===== 苹果风格物理按压触感微反馈 (iOS 18 Active Press-down Feedback) ===== */
-        body:not(.tab-blurred) .bookmark-item:active,
-        body:not(.tab-blurred) .nav-bookmark:active,
         .bookmark-item:active,
         .nav-bookmark:active {
             transform: scale(0.975) translateY(0) translateZ(0);
             transition: transform 0.08s var(--ease-snappy);
         }
         /* 按下时重置子图标缩放，避免 hover 物理缩放叠加跳变 */
-        body:not(.tab-blurred) .bookmark-item:active .icon-box,
-        body:not(.tab-blurred) .nav-bookmark:active .icon-box,
         .bookmark-item:active .icon-box,
         .nav-bookmark:active .icon-box {
             transform: scale(0.975) translateZ(0);
             transition: transform 0.08s var(--ease-snappy);
         }
-        #editBookmarksBtn:active, #weatherBtn:active {
+        #editBookmarksBtn:active, #weatherBtn:active, #randomBookmarkBtn:active, #searchClearBtn:active {
             transform: scale(0.94) translateZ(0);
-            background: rgba(255, 255, 255, 0.22);
+            background-color: rgba(255, 255, 255, 0.22);
             transition: transform 0.08s var(--ease-snappy), background-color 0.08s ease;
         }
         .sidebar-item:active {
             transform: scale(0.97);
-            transition: transform 0.08s var(--ease-snappy);
-        }
-        .settings-tab-btn:active, .confirm-dialog-btn-cancel:active, .confirm-dialog-btn-ok:active {
-            transform: scale(0.96);
             transition: transform 0.08s var(--ease-snappy);
         }
         #navHint:active {
@@ -961,9 +926,6 @@
             transform: scale(0.96);
             transition: transform 0.08s var(--ease-snappy);
         }
-        /* ===== 移动端视口高度 (100dvh) 与 safe-area-inset 安全区适配 ===== */
-        .max-h-\[90dvh\] { max-height: 90dvh; }
-        .max-h-\[85vh\] { max-height: 85dvh; }
 
         /* 壁纸与遮罩全屏图层：桌面端保持 100% 原始 1:1 视口比例（零拉伸放大）；移动端极微量 15px 防露白补边 */
         .bg-fullscreen {
@@ -1276,11 +1238,6 @@
                 color: rgba(255, 255, 255, 0.95);
             }
         }
-        #randomBookmarkBtn:active {
-            transform: scale(0.94);
-            background-color: rgba(255, 255, 255, 0.22);
-            transition: transform 0.08s var(--ease-snappy), background-color 0.08s ease;
-        }
         #searchClearBtn svg {
             transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1);
         }
@@ -1293,11 +1250,6 @@
             #searchClearBtn:hover svg {
                 transform: scale(1.15);
             }
-        }
-        #searchClearBtn:active {
-            transform: scale(0.94);
-            background-color: rgba(255, 255, 255, 0.22);
-            transition: transform 0.08s var(--ease-snappy), background-color 0.08s ease;
         }
         .suggestion-item {
             position: relative;
@@ -1470,10 +1422,6 @@
                 border-color: rgb(var(--danger) / 0.55);
                 color: #ffffff;
             }
-        }
-        .danger-zone-btn:active {
-            transform: scale(0.96);
-            transition: transform 0.08s var(--ease-snappy);
         }
         /* 无障碍：降低透明度 (Prefers Reduced Transparency - iOS 26/27 Liquid Glass 规范) */
         @media (prefers-reduced-transparency: reduce) {
