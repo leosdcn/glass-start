@@ -161,7 +161,7 @@ flowchart TD
 1. **滚轮动量吞咽与反向熔断**：在从 Start 屏快速滑动进入 Nav 屏后，触控板产生的物理动量会持续 1~3 秒。系统开启 `swallowMomentum = true`，吞掉持续的同向事件，防止动量直接穿透导致导航页书签被意外跳滚；一旦检测到用户反向滚动（`curDir !== swallowDir`）或静默间隔超过 140ms（`MOMENTUM_QUIET_MS`），吞咽器立即熔断放行。
 2. **零 Reflow 触屏手势引擎**：触摸事件通过对比 $X/Y$ 轴位移比率（`deltaX > absDeltaY` 则判定为侧边栏横滑并放行原生滚动），在垂直滑动达到 40px 阈值或满足 Flick 轻扫（位移 $\ge 25\text{px}$ 且速度 $> 0.25\text{px/ms}$）时瞬间触发切换。
 3. **BFCache 幂等式瞬态自愈**：当用户点击书签跳转并在数分钟后通过浏览器“后退”键唤醒时，页面直接从 BFCache（往返缓存）恢复。`pageshow` 事件捕获后调用 `reconcileScreenState(undefined, true)`，无视过渡动画直接在单帧内清空互斥锁、消除定时器、校准 `scrollTop` 与 DOM 类名，杜绝切屏卡在半空的异常状态。
-4. **构建指纹黑匣子与三级自愈阶梯**：`window.__GLASS_DIAG__`（verify/probe/dump/log）在启动时校验 HTML 内联指纹 `__GLASS_BUILD_HTML__` 与 app.js 头部指纹 `__GLASS_BUILD_APP__` 的同版契约（不一致 → 60s 冷却期守卫单次刷新）；双屏 transform 过渡结束后执行健全性探测（首屏矩阵 ≈ 单位阵 + 哨兵元素可见），连续异常按 L1 幂等校准 → L2 合成层磁贴强制重栅格化 → L3 冷却守卫刷新升级，全程写入 sessionStorage 环形日志（≤40 条），并支持 `?diag=1` 只读现场导出。
+4. **构建指纹黑匣子与三级自愈阶梯**：`window.__GLASS_DIAG__`（verify/probe/dump/log）在启动时校验 HTML 内联指纹 `__GLASS_BUILD_HTML__` 与 app.js 头部指纹 `__GLASS_BUILD_APP__` 的同版契约（不一致 → 60s 冷却期守卫单次刷新）；双屏 transform 过渡结束后执行健全性探测（首屏矩阵 ≈ 单位阵 + 哨兵元素可见），连续异常按 L1 幂等校准 → L2 合成层磁贴强制重栅格化 → L3 冷却守卫刷新升级。全过程记录于**纯内存环形日志**（≤40 条，零存储写入；BFCache 恢复不重置 JS 堆，天然覆盖偶发白屏的被动取证窗口）；无任何 UI 诊断面板，现场经控制台 `dump()` 导出，L3 自刷新瞬间一次性落 `gs_last_heal` 面包屑跨刷新留痕。
 
 #### 🛡️ BFCache 与页面生命周期失步 4 大暗坑防线 (Lifecycle Anti-Patterns & Defenses)
 

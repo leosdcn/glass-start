@@ -6,7 +6,7 @@
  * 2. 运行时黑匣子生命周期环形日志（persisted pageshow / visibilitychange / js-error 全捕获且容量封顶）
  * 3. WebKit 合成层磁贴重建门控（仅真实 BFCache persisted 恢复时间窗内执行，常规唤醒零开销）
  * 4. 白屏异常三级修复阶梯（连续异常升级制 + 冷却期拦截刷新风暴，绝不误伤正常会话）
- * 5. ?diag=1 只读现场诊断面板渲染、构建指纹回显与 A11y 合规
+ * 5. 诊断面板负向锁定（?diag=1 零 UI 复活；取证仅存控制台 __GLASS_DIAG__.dump() 通道）
  */
 import { launchSession, sleep, makeTester } from './helpers.mjs';
 
@@ -61,11 +61,12 @@ const bb = await evalJS(`(() => {
     errorMessageKept: !!unitErrorEntry && String(unitErrorEntry.d && unitErrorEntry.d.msg).includes('diag-unit-test'),
     persistedTrue: !!lastPageshow && !!lastPageshow.d && lastPageshow.d.persisted === true,
     entriesShaped: dump.every(e => typeof e.t === 'number' && typeof e.ev === 'string'),
-    capped: dump.length <= 40
+    capped: dump.length <= 40,
+    noStorageWrites: sessionStorage.getItem('gs_diag_log') === null && sessionStorage.getItem('gs_last_heal') === null
   };
 })()`);
-pass('运行时黑匣子环形日志 (pageshow persisted/visibility/js-error 全捕获/条目结构合规/容量封顶)',
-  bb.hasPageshow && bb.hasVisibility && bb.hasError && bb.errorMessageKept && bb.persistedTrue && bb.entriesShaped && bb.capped,
+pass('运行时黑匣子纯内存环形日志 (persisted/visibility/js-error 全捕获/结构合规/容量封顶/零存储写入)',
+  bb.hasPageshow && bb.hasVisibility && bb.hasError && bb.errorMessageKept && bb.persistedTrue && bb.entriesShaped && bb.capped && bb.noStorageWrites,
   JSON.stringify(bb));
 
 // ══════════════════════════════════════════════════════════════════════
@@ -118,26 +119,23 @@ pass('白屏异常三级修复阶梯 (L1校准/L2磁贴/L3冷却拦截连续升�
   JSON.stringify(ladder));
 
 // ══════════════════════════════════════════════════════════════════════
-// 5. ?diag=1 只读现场诊断面板 (渲染/指纹回显/A11y/复制按钮)
+// 5. 诊断面板负向锁定 (?diag=1 不得复活任何 UI；取证仅存控制台 dump 通道)
 // ══════════════════════════════════════════════════════════════════════
 
 await evalJS(`location.href = location.origin + '/?diag=1'`);
 await sleep(1300);
 const panel = await evalJS(`(() => {
-  const p = document.getElementById('glassDiagPanel');
-  if (!p) return { exists: false };
-  const pre = p.querySelector('pre');
-  return {
-    exists: true,
-    showsBuild: !!pre && pre.textContent.includes('html=app-core-v') && pre.textContent.includes('app=app-core-v'),
-    hasCopyBtn: !!p.querySelector('button[aria-label="复制诊断现场信息到剪贴板"]'),
-    a11yLabel: p.getAttribute('aria-label') === '运行时诊断信息面板'
-  };
+  const noPanel = !document.getElementById('glassDiagPanel');
+  const diagAlive = typeof window.__GLASS_DIAG__ === 'object'
+    && typeof window.__GLASS_DIAG__.dump === 'function'
+    && Array.isArray(window.__GLASS_DIAG__.dump())
+    && window.__GLASS_DIAG__.dump().some(e => e.ev === 'pageshow');
+  return { noPanel, diagAlive };
 })()`);
 await evalJS(`location.href = location.origin + '/'`);
 await sleep(700);
-pass('?diag=1 只读诊断面板 (面板渲染/双端构建指纹回显/复制按钮/A11y 标签)',
-  panel.exists && panel.showsBuild && panel.hasCopyBtn && panel.a11yLabel,
+pass('诊断面板负向锁定 (?diag=1 零 UI 复活/控制台 dump 取证通道存活且捕获生命周期事件)',
+  panel.noPanel && panel.diagAlive,
   JSON.stringify(panel));
 
 const code = finish();

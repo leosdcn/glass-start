@@ -1767,7 +1767,7 @@
                         <div>
                             <div class="flex items-center gap-2">
                                 <span class="text-sm font-semibold text-white/95 tracking-tight leading-none">Glass Start</span>
-                                <span class="text-2xs px-2 h-4.5 rounded-full bg-white/10 border border-white/15 text-white/75 font-medium inline-flex items-center justify-center select-none">v3.5.5</span>
+                                <span class="text-2xs px-2 h-4.5 rounded-full bg-white/10 border border-white/15 text-white/75 font-medium inline-flex items-center justify-center select-none">v3.5.6</span>
                             </div>
                             <div class="text-2xs text-white/50 leading-none mt-1.5">极简 Liquid Glass 拟态导航 • Build 2026.08</div>
                         </div>
@@ -7883,27 +7883,26 @@
         }
 
         // ==================== 构建指纹契约与运行时黑匣子自愈闭环 ====================
-        // 零依赖零网络零轮询：双端构建指纹校验、生命周期环形日志（sessionStorage ≤40 条）、
-        // 白屏异常两级连续探测 + 守卫软刷新阶梯，以及 ?diag=1 只读现场导出面板。
+        // 零依赖零网络零轮询零存储写入：双端构建指纹校验、纯内存生命周期环形日志（≤40 条；
+        // BFCache 恢复不重置 JS 堆，恰好完整覆盖"跳出→返回→白屏"的被动取证窗口）、
+        // 白屏异常连续探测 + 守卫软刷新阶梯。仅 L3 触发瞬间一次性写 gs_last_heal 面包屑。
         (function initBuildContractAndBlackbox() {
-            const BB_KEY = 'gs_diag_log';
             const RELOAD_GUARD_KEY = 'gs_build_reload_at';
+            const HEAL_BREADCRUMB_KEY = 'gs_last_heal';
             const BB_MAX_ENTRIES = 40;
             const RELOAD_COOLDOWN_MS = 60000;
             const PROBE_DELAY_MS = 700;
 
+            // 纯内存环形缓冲：零存储写入；BFCache 往返不丢，仅真实 reload 清空
+            const bbBuffer = [];
+
             function bbLog(ev, detail) {
-                try {
-                    const arr = JSON.parse(sessionStorage.getItem(BB_KEY) || '[]');
-                    if (!Array.isArray(arr)) return;
-                    arr.push({ t: Date.now(), ev, d: detail === undefined ? null : detail });
-                    while (arr.length > BB_MAX_ENTRIES) arr.shift();
-                    sessionStorage.setItem(BB_KEY, JSON.stringify(arr));
-                } catch {}
+                bbBuffer.push({ t: Date.now(), ev, d: detail === undefined ? null : detail });
+                while (bbBuffer.length > BB_MAX_ENTRIES) bbBuffer.shift();
             }
 
             function bbDump() {
-                try { return JSON.parse(sessionStorage.getItem(BB_KEY) || '[]'); } catch { return []; }
+                return bbBuffer.slice();
             }
 
             // 指纹契约裁决（纯函数便于测试注入）：仅生产环境双端齐备时参与比对；
@@ -7958,6 +7957,8 @@
                     try { lastReloadAt = Number(sessionStorage.getItem(RELOAD_GUARD_KEY)) || 0; } catch {}
                     if (Date.now() - lastReloadAt > RELOAD_COOLDOWN_MS) {
                         try { sessionStorage.setItem(RELOAD_GUARD_KEY, String(Date.now())); } catch {}
+                        // 单事故一次性面包屑：跨 reload 解释"页面为何自我刷新"（内存日志会随刷新清空）
+                        try { sessionStorage.setItem(HEAL_BREADCRUMB_KEY, JSON.stringify({ t: Date.now(), trail: bbDump().slice(-6) })); } catch {}
                         bbLog('heal-reload', null);
                         location.reload();
                     } else {
@@ -7997,51 +7998,9 @@
                 }
             }, { passive: true });
 
-            // ?diag=1 只读现场面板（默认零存在感；2s 节流自刷新 + 一键复制现场）
-            try {
-                if (new URLSearchParams(location.search).get('diag') === '1') renderDiagPanel();
-            } catch {}
-
-            function renderDiagPanel() {
-                if (document.getElementById('glassDiagPanel')) return;
-                const panel = document.createElement('aside');
-                panel.id = 'glassDiagPanel';
-                panel.setAttribute('role', 'complementary');
-                panel.setAttribute('aria-label', '运行时诊断信息面板');
-                panel.style.cssText = 'position:fixed;left:8px;bottom:8px;z-index:9999;max-width:min(420px,92vw);max-height:45vh;overflow:auto;background:rgba(11,15,25,.92);color:#e5e7eb;font:11px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;padding:10px 12px;border:1px solid rgba(255,255,255,.2);border-radius:12px;';
-                const info = document.createElement('pre');
-                info.style.cssText = 'margin:0 0 6px;white-space:pre-wrap;word-break:break-all;';
-                const refreshTimer = setInterval(() => {
-                    info.textContent = [
-                        'html=' + (window.__GLASS_BUILD_HTML__ || 'dev'),
-                        'app=' + (window.__GLASS_BUILD_APP__ || 'dev'),
-                        'events=' + JSON.stringify(bbDump())
-                    ].join('\n');
-                }, 2000);
-                info.textContent = [
-                    'html=' + (window.__GLASS_BUILD_HTML__ || 'dev'),
-                    'app=' + (window.__GLASS_BUILD_APP__ || 'dev'),
-                    'events=' + JSON.stringify(bbDump())
-                ].join('\n');
-                const copyBtn = document.createElement('button');
-                copyBtn.type = 'button';
-                copyBtn.textContent = '复制现场';
-                copyBtn.setAttribute('aria-label', '复制诊断现场信息到剪贴板');
-                copyBtn.style.cssText = 'padding:3px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.12);color:#fff;font-size:11px;cursor:pointer;';
-                copyBtn.addEventListener('click', () => {
-                    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(info.textContent).catch(() => {});
-                });
-                const closeBtn = document.createElement('button');
-                closeBtn.type = 'button';
-                closeBtn.textContent = '✕ 关闭';
-                closeBtn.setAttribute('aria-label', '关闭诊断面板');
-                closeBtn.style.cssText = copyBtn.style.cssText + 'margin-left:6px;';
-                closeBtn.addEventListener('click', () => { clearInterval(refreshTimer); panel.remove(); });
-                panel.appendChild(info);
-                panel.appendChild(copyBtn);
-                panel.appendChild(closeBtn);
-                document.body.appendChild(panel);
-            }
+            // 现场取证通道：无任何 UI 面板（偶发事件无法预挂 ?diag=1，面板形同虚设）；
+            // 复发时于 DevTools 控制台执行 __GLASS_DIAG__.dump() 导出内存事件流，
+            // 或读取 sessionStorage['gs_last_heal'] 查看 L3 自刷新面包屑。
         })();
 
         // ==================== 启动（兼容 DOMContentLoaded）====================

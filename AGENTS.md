@@ -179,7 +179,7 @@ node test/visual-regression.mjs
    - **构建防穿透**：生产环境构建时必须为 `app.js` 自动注入版本查询参数（`?v=app-core-v<timestamp>`），彻底击穿旧版 SW 缓存池残留，根绝“HTML 是新版但 JS 执行旧版”的跨版本白屏死锁。
 6. **双端构建指纹契约与运行时黑匣子纪律 (Build Fingerprint & Blackbox Contract)**：
    - **指纹对铁律**：`scripts/build.js` 必须向 `dist/index.html` 内联注入 `__GLASS_BUILD_HTML__`、向 `dist/app.js` 头部注入 `__GLASS_BUILD_APP__`，两键同源同版并由构建断言强制校验；严禁绕过 build.js 手工篡改 dist 产物；
-   - **黑匣子契约**：`window.__GLASS_DIAG__`（verify/probe/dump/log）承载指纹校验、生命周期环形日志（sessionStorage `gs_diag_log` ≤40 条）、白屏异常三级阶梯（L1 幂等校准 → L2 合成层磁贴重建 → L3 冷却守卫刷新）与 `?diag=1` 只读现场导出；
+   - **黑匣子契约**：`window.__GLASS_DIAG__`（verify/probe/dump/log）承载指纹校验、纯内存生命周期环形日志（≤40 条，零存储写入，BFCache 往返不灭）、白屏异常三级阶梯（L1 幂等校准 → L2 合成层磁贴重建 → L3 冷却守卫刷新）；严禁复活任何 UI 诊断面板（取证仅走控制台 `dump()`）；L3 触发瞬间仅允许一次性写 `gs_last_heal` 面包屑；
    - **刷新纪律**：任何自动 `location.reload()` 必须经 `gs_build_reload_at` 冷却期（60s）守卫，严禁裸调用；自动化测试环境（`navigator.webdriver`）下自动探针必须静默。
 
 ---
