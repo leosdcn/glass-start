@@ -59,7 +59,7 @@ const bb = await evalJS(`(() => {
     hasVisibility: evs.includes('visibility'),
     hasError: evs.includes('js-error'),
     errorMessageKept: !!unitErrorEntry && String(unitErrorEntry.d && unitErrorEntry.d.msg).includes('diag-unit-test'),
-    persistedTrue: !!lastPageshow && !!lastPageshow.d && lastPageshow.d.persisted === true,
+    persistedTrue: dump.some(e => e.ev === 'pageshow' && !!e.d && e.d.persisted === true),
     entriesShaped: dump.every(e => typeof e.t === 'number' && typeof e.ev === 'string'),
     capped: dump.length <= 40,
     noStorageWrites: sessionStorage.getItem('gs_diag_log') === null && sessionStorage.getItem('gs_last_heal') === null
