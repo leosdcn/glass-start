@@ -161,6 +161,7 @@ flowchart TD
 1. **滚轮动量吞咽与反向熔断**：在从 Start 屏快速滑动进入 Nav 屏后，触控板产生的物理动量会持续 1~3 秒。系统开启 `swallowMomentum = true`，吞掉持续的同向事件，防止动量直接穿透导致导航页书签被意外跳滚；一旦检测到用户反向滚动（`curDir !== swallowDir`）或静默间隔超过 140ms（`MOMENTUM_QUIET_MS`），吞咽器立即熔断放行。
 2. **零 Reflow 触屏手势引擎**：触摸事件通过对比 $X/Y$ 轴位移比率（`deltaX > absDeltaY` 则判定为侧边栏横滑并放行原生滚动），在垂直滑动达到 40px 阈值或满足 Flick 轻扫（位移 $\ge 25\text{px}$ 且速度 $> 0.25\text{px/ms}$）时瞬间触发切换。
 3. **BFCache 幂等式瞬态自愈**：当用户点击书签跳转并在数分钟后通过浏览器“后退”键唤醒时，页面直接从 BFCache（往返缓存）恢复。`pageshow` 事件捕获后调用 `reconcileScreenState(undefined, true)`，无视过渡动画直接在单帧内清空互斥锁、消除定时器、校准 `scrollTop` 与 DOM 类名，杜绝切屏卡在半空的异常状态。
+4. **构建指纹黑匣子与三级自愈阶梯**：`window.__GLASS_DIAG__`（verify/probe/dump/log）在启动时校验 HTML 内联指纹 `__GLASS_BUILD_HTML__` 与 app.js 头部指纹 `__GLASS_BUILD_APP__` 的同版契约（不一致 → 60s 冷却期守卫单次刷新）；双屏 transform 过渡结束后执行健全性探测（首屏矩阵 ≈ 单位阵 + 哨兵元素可见），连续异常按 L1 幂等校准 → L2 合成层磁贴强制重栅格化 → L3 冷却守卫刷新升级，全程写入 sessionStorage 环形日志（≤40 条），并支持 `?diag=1` 只读现场导出。
 
 #### 🛡️ BFCache 与页面生命周期失步 4 大暗坑防线 (Lifecycle Anti-Patterns & Defenses)
 
@@ -170,6 +171,7 @@ flowchart TD
 | **2. 异步跨帧竞态反模式**<br>*(Async Inter-Frame Race Condition)* | 采用 `el.style.transition = 'none'` + `rAF` 异步清除；后台标签页被浏览器完全冻结 `rAF` 时，残留内联样式在唤醒瞬间破坏 CSS 动画，导致屏幕卡死。 | **纯声明式状态类**：绝不常驻内联样式修改，100% 依托 `.screen-pushed-up` 等状态类驱动，唤醒自愈时同步清空 `startSection` / `nav` 内联脏样式。 |
 | **3. 生命周期事件模型割裂**<br>*(Lifecycle Fragmentation)* | 混淆 BFCache 唤醒（仅触发 `pageshow`）与多标签页切回（仅触发 `visibilitychange`）；若仅监听单边事件，另一侧唤醒即成为无监管死锁盲区。 | **双保险全量收敛**：统一提炼 `handleAppWakeUp()`，同时向 `visibilitychange` (`!document.hidden`) 与 `pageshow` 注册，单点实现多标签与 BFCache 统一自愈。 |
 | **4. CSS 动画时间穿越隐患**<br>*(CSS Animation Rewind Issue)* | 让带有 `animation-fill-mode: backwards` 的入场动画类（`.fade-in`、`.animate-item-in`）常驻 DOM；WebKit 从 BFCache 解冻唤醒时重估动画并回滚至 `opacity:0` 造成页面不可见。 | **入场后主动脱壳卸载**：页面首屏入场后 800ms 自动卸载 `.fade-in`，新增条目通过 `animationend` 同步卸载 `.animate-item-in`，唤醒时全局扫除动画类，保持静态 DOM。 |
+| **5. 离屏图层磁贴失栅格化**<br>*(Stale Tile Rasterization)* | 长期离屏的 `fixed` 双屏图层（`-100dvh` 推移 + `will-change: transform`）经 BFCache 快照恢复后再滑入视口时，WebKit 偶发不为新露出区域重栅格化磁贴，导致首屏整片空白。 | **persisted 门控磁贴重建 + 黑匣子阶梯兜底**：仅在真实 BFCache 恢复（`persisted=true`）时间窗内对首屏执行 willChange 拆建强制重栅格化；黑匣子健全性探测连续异常时逐级升级至 L2 磁贴重建与 L3 守卫刷新。 |
 
 ---
 

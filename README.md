@@ -245,13 +245,13 @@ npm run build
 - ⚡ **静态代码检查 (`npm run lint`)**：耗时约 0.08 秒（全量 27 项机器级语法与工程红线门禁守门）。自动完成 `index.html` 内嵌 JS、`scripts/build.js`/`sw.js`/`scripts/server.js` 语法预检及 `bookmarks.json`/`manifest.json`/`package.json` 的 JSON 合法性校验，并强校验生命周期与 BFCache 防退化守卫。修改代码后运行此命令做轻量校验。
 - 🚀 **生产构建打包 (`npm run build`)**：耗时约 0.5 秒（Tailwind v4 CLI + esbuild 引擎）。编译 Tailwind CSS 并同步书签数据，自动校验产物完整性。
 - 🧪 **自动化测试套件 (`npm test` 或 `node test/run.mjs`)**：
-  - 内置 **3 大核心领域端到端与架构综合测试套件（覆盖 19 大高密度全景断言）**。
+  - 内置 **4 大核心领域端到端与架构综合测试套件（覆盖 24 项高密度全景断言）**。
   - **测试目录文件职责明细 (`test/`)**：
     - `run.mjs` — MD5 增量缓存测试运行器。未改动套件自动秒级跳过；支持 `--force` 强制全量重跑、指定单套件名精准调试与 `--no-build` 跳过构建极速测试。
     - `cdp.mjs` — 无头 Chrome 启动器与 CDP (Chrome DevTools Protocol) WebSocket 连接管理（临时独立用户配置目录，跑完自动清理）。
     - `server.mjs` — 面向自动化测试的零依赖静态服务器，负责在随机空闲端口服务 `dist/` 构建产物。
     - `helpers.mjs` — 共享工具函数库（随机空闲端口探测、键盘事件模拟、测试会话一键拉起等）。
-    - `data-features.test.mjs` / `infra-security.test.mjs` / `ui-interaction.test.mjs` — 数据功能、基础安全、UI 交互三大领域断言套件。
+    - `data-features.test.mjs` / `infra-security.test.mjs` / `ui-interaction.test.mjs` / `lifecycle-diag.test.mjs` — 数据功能、基础安全、UI 交互、构建指纹与生命周期自愈四大领域断言套件。
     - `visual-regression.mjs` — 独立运行的视觉回归脚本（对标 **MacBook Air 1470×956** 桌面端与 **iPhone 17 402×874** 移动端 11 场景全页截图与关键组件几何校验），产物输出至项目内 `test/artifacts/` 目录（已加入 `.gitignore`）。手动执行：`node test/visual-regression.mjs`。
     - `preview.html` — 天气组件独立「演练场」页面，供浏览器直接打开隔离调试 UI，不参与自动化测试流水线。
   - **智能增量 MD5 缓存加速**：未变动模块在测试运行时自动秒级命中缓存（`<10ms`），源码或依赖修改后精准触发对应套件重跑；亦可通过 `node test/run.mjs --force` 强制全量重跑。
@@ -264,7 +264,17 @@ npm run build
   - **防语义污染**：布局推屏类 `.nr` 严禁滥用为通用动画禁用类，任何切屏/自愈入口同步剥离；
   - **防跨帧竞态**：严禁 `style.transition = 'none'` + `rAF` 异步反模式，100% 依赖声明式状态类，唤醒自愈同步清除内联脏样式；
   - **防模型割裂**：`visibilitychange` 与 `pageshow` 双通道收敛至 `handleAppWakeUp()` 单点自愈；
-  - **防动画时间穿越**：入场动画（`.fade-in` / `.animate-item-in`）播放完后必须立即卸载，避免 WebKit BFCache 解冻回滚至 `opacity:0`。
+  - **防动画时间穿越**：入场动画（`.fade-in` / `.animate-item-in`）播放完后必须立即卸载，避免 WebKit BFCache 解冻回滚至 `opacity:0`；
+  - **防磁贴失栅格化**：离屏 `fixed` 图层在 BFCache 恢复后可能出现合成层磁贴丢失（白屏），磁贴重建抖动仅在 `persisted=true` 时间窗内执行。
+- 🩺 **运行时诊断黑匣子 (`?diag=1`) (Runtime Diagnostic Blackbox)**：
+  - 构建产物内置双端指纹契约：`__GLASS_BUILD_HTML__`（HTML 内联）与 `__GLASS_BUILD_APP__`（app.js 头部）由 build.js 同源注入并断言校验；运行时不一致即判定跨版本缓存割裂，按 60s 冷却期执行单次守卫刷新；
+  - 生命周期环形日志（`sessionStorage['gs_diag_log']` ≤40 条）被动记录 pageshow(persisted)/visibilitychange/reconcile/controllerchange/js-error 与白屏异常三级阶梯（L1 校准 → L2 磁贴重建 → L3 守卫刷新）全过程；
+  - 线上复现白屏时，在 URL 追加 `?diag=1` 打开左下角只读诊断面板，点击「复制现场」即可导出指纹与事件流用于定位。
+- 📱 **真机 BFCache 回归 QA 协议 (Real-Device BFCache QA Protocol)**：
+  - ⚠️ CDP 无头测试只能模拟合成生命周期事件，无法模拟真实往返缓存（BFCache）恢复路径——每次发布前必须在真机执行以下矩阵：
+  - **iPhone Safari**：导航页点书签跳出 → 外部站停留 → 左上角返回 / 右滑手势返回 → 上滑切回首屏，断言首屏时钟/搜索框/书签完整可见无白屏；重复 3 次（含冷启动后首次）；
+  - **macOS Safari / Chrome**：同链路使用 ⌘[ 与后退按钮各验证一轮；PWA 独立窗口从最近任务切回再验证一轮；
+  - 若复现白屏：追加 `?diag=1` 复现一次 → 复制现场 → 检查 `gs_diag_log` 中 anomaly/heal-reload 事件序列定位阶梯拦截情况。
 - ☁️ **云端自动部署与构建提示 (CI/CD Guidelines)**：
   - 🛑 **严禁自行推送云端 (No Auto Push)**：严禁 Agent 自动执行 `git push` 推送至远程 Git 仓库；所有云端推送必须由用户下达明确指令（如“推送”、“git push”）后方可执行。
   - **Cloudflare Pages 自动构建**：push 到 `main` 分支会自动触发线上构建与部署。
@@ -290,7 +300,7 @@ glass-start/
 │
 ├── ⚙️ 根目录工程配置与文档体系 (6 个)
 │   ├── package.json          # Node 项目配置（0 运行时依赖，仅 devDependencies 构建工具）
-│   ├── package-lock.json     # 依赖锁定清单（严格锁定 SemVer v3.5.4）
+│   ├── package-lock.json     # 依赖锁定清单（严格锁定 SemVer v3.5.5）
 │   ├── .gitignore            # Git 忽略规则（已严格隔离 dist/、node_modules/、test 产物）
 │   ├── README.md             # 全站功能特性、使用手册、架构表与部署指南
 │   ├── ARCHITECTURE.md       # 系统分层、双屏状态机、OverlayStack 等 5 大 Mermaid 白皮书
@@ -327,7 +337,7 @@ glass-start/
 | **`scripts/`** | **工具与脚本目录** | 包含生产构建打包 (`build.js`)、零依赖静态检查 (`lint.mjs`)、本地开发服务 (`server.js`) 与 macOS 双击启动 (`start.command`)。 | 工具目录 |
 | **`manifest.json`** | Web App 应用配置 | PWA 应用清单文件。配置应用名称、图标、启动 URL、主题颜色，支持添加至手机主屏幕与独立 Web App 运行。 | PWA 必需 |
 | **`_headers`** | 部署响应头配置 | Cloudflare Pages HTTP 安全响应头与静态资源缓存控制配置文件。 | 部署配置 |
-| **`test/`** | **测试目录** | 自动化测试目录。内含 3 大领域 CDP 自动化端到端测试套件（19 项高密度全景断言）与 MD5 增量缓存运行器。 | 测试框架 |
+| **`test/`** | **测试目录** | 自动化测试目录。内含 4 大领域 CDP 自动化端到端测试套件（24 项高密度全景断言）与 MD5 增量缓存运行器。 | 测试框架 |
 | **`package.json`** | 项目配置 | Node 项目配置文件，提供 `npm run dev`、`npm run watch`、`npm run build`、`npm run lint` 与 `npm test` 命令。 | 配置文件 |
 | **`dist/`** | **生产输出** | `npm run build` 自动生成的生产构建目录（⚠️ 严禁直接编辑）。包含剥离 v4 Browser CDN、内嵌 CSS 及外链 `app.js` 的上线资源。 | 生产部署产物 |
 | **`wrangler.jsonc`** | 部署配置 | Cloudflare Workers / Pages 部署配置，声明 `assets.directory = "dist"` 指定静态资源上传目录。 | Cloudflare 部署必需 |
@@ -468,7 +478,7 @@ add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsaf
 | **Service Worker** | 项目内组件 | `v10` | `sw.js` 头部注释；三池隔离 + FIFO 容量限额缓存架构 |
 | **CORE_CACHE** | 缓存池版本 | `app-core-v<时间戳>` | `sw.js`；每次 `npm run build` 自动更新，强制客户端刷新旧缓存 |
 | **FAVICON_CACHE / IMG_CACHE** | 缓存池版本 | `v1` | `sw.js`；图标 / 本地图片独立缓存池 |
-| **Glass Start 站点版本** | 项目发布版本 | `v3.5.4` | `package.json` + `index.html` 设置面板徽章 |
+| **Glass Start 站点版本** | 项目发布版本 | `v3.5.5` | `package.json` + `index.html` 设置面板徽章 |
 
 **无版本号的外部服务**（非框架，版本由服务商维护，升级无需本项目介入）：
 - `a.favicon.im` — Favicon 图标 API
@@ -502,7 +512,7 @@ add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsaf
 # 1. 语法检查与生产编译打包
 npm run lint && npm run build
 
-# 2. 全量端到端自动化测试验证 (3 大核心领域套件 19 项高密度断言)
+# 2. 全量端到端自动化测试验证 (4 大核心领域套件 24 项高密度断言)
 node test/run.mjs --force
 
 # 3. 提交并打本地 Git Tag

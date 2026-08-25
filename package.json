@@ -1,6 +1,6 @@
 {
   "name": "glass-start",
-  "version": "3.5.4",
+  "version": "3.5.5",
   "description": "Glass Start (极光毛玻璃起始页) - 优雅、快速、私密的现代化浏览器新标签页与全能分类导航",
   "main": "index.html",
   "scripts": {

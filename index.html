@@ -1767,7 +1767,7 @@
                         <div>
                             <div class="flex items-center gap-2">
                                 <span class="text-sm font-semibold text-white/95 tracking-tight leading-none">Glass Start</span>
-                                <span class="text-2xs px-2 h-4.5 rounded-full bg-white/10 border border-white/15 text-white/75 font-medium inline-flex items-center justify-center select-none">v3.5.4</span>
+                                <span class="text-2xs px-2 h-4.5 rounded-full bg-white/10 border border-white/15 text-white/75 font-medium inline-flex items-center justify-center select-none">v3.5.5</span>
                             </div>
                             <div class="text-2xs text-white/50 leading-none mt-1.5">极简 Liquid Glass 拟态导航 • Build 2026.08</div>
                         </div>
@@ -7298,6 +7298,11 @@
 
             let transitionTimer = null;
             let lastTransitionEndTime = 0;
+            // WebKit BFCache 磁贴重建门控：仅真实 BFCache 恢复后的时间窗内允许拆建合成层，
+            // 避免每次 visibilitychange（切 App/切标签）都做无谓的图层降级与重栅格化开销
+            let lastPersistedWakeAt = -Infinity;
+            const TILE_REBUILD_WINDOW_MS = 2500;
+            const shouldForceTileRebuild = () => performance.now() - lastPersistedWakeAt < TILE_REBUILD_WINDOW_MS;
             let swallowMomentum = false;
             let swallowStartTs = 0;
             let swallowDir = null; // 'down' | 'up' | null — 仅吸收同向残余惯性，反向手势立即打断
@@ -7357,9 +7362,12 @@
                 } else {
                     if (startSection) {
                         // 🛡️ WebKit BFCache 图层重栅格化防御：强制触发合成层重绘，解决离屏 fixed 图层磁贴丢失导致的白屏 bug
-                        startSection.style.willChange = 'auto';
-                        void startSection.offsetHeight;
-                        startSection.style.willChange = 'transform';
+                        // 门控：仅在真实 BFCache 恢复时间窗内执行，常规冷启动/切屏零额外开销
+                        if (shouldForceTileRebuild()) {
+                            startSection.style.willChange = 'auto';
+                            void startSection.offsetHeight;
+                            startSection.style.willChange = 'transform';
+                        }
                         startSection.classList.remove('screen-pushed-up');
                     }
                     if (nav) {
@@ -7472,9 +7480,12 @@
                     startSection.style.transform = '';
                     startSection.style.transition = '';
                     // 🛡️ WebKit BFCache 图层重栅格化防御：强制触发合成层重绘，解决离屏 fixed 图层磁贴丢失导致的白屏 bug
-                    startSection.style.willChange = 'auto';
-                    void startSection.offsetHeight;
-                    startSection.style.willChange = 'transform';
+                    // 门控：仅在真实 BFCache 恢复时间窗内执行（BFCache 返回后上滑切回首屏正是白屏高发路径）
+                    if (shouldForceTileRebuild()) {
+                        startSection.style.willChange = 'auto';
+                        void startSection.offsetHeight;
+                        startSection.style.willChange = 'transform';
+                    }
                     startSection.classList.remove('screen-pushed-up');
                 }
                 if (nav) {
@@ -7678,7 +7689,7 @@
             }, { passive: true });
 
             // ===== 全局页面生命周期与多标签/BFCache 唤醒自愈闭环 (全设备通用，不依赖 hover/motion 硬件特征) =====
-            const handleAppWakeUp = () => {
+            const handleAppWakeUp = (wasPersisted = false) => {
                 updateClock();
                 // 1. 清除所有点击按压态、悬停残留与标签页失焦态
                 document.body.classList.remove('tab-blurred');
@@ -7709,7 +7720,8 @@
                     }).catch(() => {});
                 }
                 // 7. 🛡️ 强制刷新 WebKit 合成层磁贴 (BFCache Tile Invalidation Guard)
-                if (dom.startSection) {
+                // 门控：仅在真实 BFCache 恢复（persisted=true）时执行，常规唤醒零开销
+                if (dom.startSection && wasPersisted) {
                     dom.startSection.style.willChange = 'auto';
                     void dom.startSection.offsetHeight;
                     dom.startSection.style.willChange = 'transform';
@@ -7722,8 +7734,9 @@
                 }
             }, { passive: true });
 
-            window.addEventListener('pageshow', () => {
-                handleAppWakeUp();
+            window.addEventListener('pageshow', (e) => {
+                if (e && e.persisted) lastPersistedWakeAt = performance.now();
+                handleAppWakeUp(!!(e && e.persisted));
             }, { passive: true });
 
             // ===== VisionOS 玻璃材质 3D 倾斜与光标折射高光代理 (Apple HIG 规范, 零 Reflow 高效引擎) =====
@@ -7868,6 +7881,168 @@
                 }, { passive: true });
             })();
         }
+
+        // ==================== 构建指纹契约与运行时黑匣子自愈闭环 ====================
+        // 零依赖零网络零轮询：双端构建指纹校验、生命周期环形日志（sessionStorage ≤40 条）、
+        // 白屏异常两级连续探测 + 守卫软刷新阶梯，以及 ?diag=1 只读现场导出面板。
+        (function initBuildContractAndBlackbox() {
+            const BB_KEY = 'gs_diag_log';
+            const RELOAD_GUARD_KEY = 'gs_build_reload_at';
+            const BB_MAX_ENTRIES = 40;
+            const RELOAD_COOLDOWN_MS = 60000;
+            const PROBE_DELAY_MS = 700;
+
+            function bbLog(ev, detail) {
+                try {
+                    const arr = JSON.parse(sessionStorage.getItem(BB_KEY) || '[]');
+                    if (!Array.isArray(arr)) return;
+                    arr.push({ t: Date.now(), ev, d: detail === undefined ? null : detail });
+                    while (arr.length > BB_MAX_ENTRIES) arr.shift();
+                    sessionStorage.setItem(BB_KEY, JSON.stringify(arr));
+                } catch {}
+            }
+
+            function bbDump() {
+                try { return JSON.parse(sessionStorage.getItem(BB_KEY) || '[]'); } catch { return []; }
+            }
+
+            // 指纹契约裁决（纯函数便于测试注入）：仅生产环境双端齐备时参与比对；
+            // 不一致 → 记录黑匣子并按冷却期决定是否放行守卫刷新（每分钟至多一次，杜绝刷新风暴）
+            function verifyFingerprint(htmlBuild, jsBuild) {
+                if (!htmlBuild || !jsBuild) return { mismatch: false, mayReload: false };
+                if (htmlBuild === jsBuild) return { mismatch: false, mayReload: false };
+                let lastReloadAt = 0;
+                try { lastReloadAt = Number(sessionStorage.getItem(RELOAD_GUARD_KEY)) || 0; } catch {}
+                const mayReload = Date.now() - lastReloadAt > RELOAD_COOLDOWN_MS;
+                if (mayReload) {
+                    try { sessionStorage.setItem(RELOAD_GUARD_KEY, String(Date.now())); } catch {}
+                }
+                bbLog('build-mismatch', { html: htmlBuild, js: jsBuild, mayReload });
+                return { mismatch: true, mayReload };
+            }
+
+            // 健全性快照：首屏应在位时断言变换矩阵 ≈ 单位阵且哨兵元素真实可见
+            function snapshotHealth() {
+                const s = document.getElementById('startSection');
+                if (!s || s.classList.contains('screen-pushed-up')) return { ok: true };
+                let t = 'none';
+                try { t = getComputedStyle(s).transform; } catch {}
+                const identityOk = !t || t === 'none' || t === 'matrix(1, 0, 0, 1, 0, 0)';
+                const clock = document.getElementById('clock');
+                const search = document.getElementById('searchInput');
+                const sentinelsOk = !!clock && clock.offsetWidth > 0 && !!search && search.offsetWidth > 0;
+                return { ok: identityOk && sentinelsOk, identityOk, sentinelsOk };
+            }
+
+            let unhealthyStreak = 0;
+            // 三级修复阶梯（连续异常升级制，单次抖动不动作）：
+            // L1 幂等状态校准 → L2 合成层磁贴强制重栅格化 → L3 冷却期守卫软刷新
+            function probe() {
+                if (snapshotHealth().ok) {
+                    unhealthyStreak = 0;
+                    return;
+                }
+                unhealthyStreak++;
+                bbLog('anomaly-' + unhealthyStreak, null);
+                if (unhealthyStreak === 1) {
+                    if (typeof window.reconcileScreenState === 'function') window.reconcileScreenState(undefined, true);
+                } else if (unhealthyStreak === 2) {
+                    const s = document.getElementById('startSection');
+                    if (s) {
+                        s.style.willChange = 'auto';
+                        void s.offsetHeight;
+                        s.style.willChange = 'transform';
+                    }
+                } else {
+                    let lastReloadAt = 0;
+                    try { lastReloadAt = Number(sessionStorage.getItem(RELOAD_GUARD_KEY)) || 0; } catch {}
+                    if (Date.now() - lastReloadAt > RELOAD_COOLDOWN_MS) {
+                        try { sessionStorage.setItem(RELOAD_GUARD_KEY, String(Date.now())); } catch {}
+                        bbLog('heal-reload', null);
+                        location.reload();
+                    } else {
+                        bbLog('heal-reload-blocked', null);
+                    }
+                    unhealthyStreak = 0;
+                    return;
+                }
+                setTimeout(probe, PROBE_DELAY_MS);
+            }
+
+            // 对外最小诊断/测试面
+            window.__GLASS_DIAG__ = { verify: verifyFingerprint, probe, dump: bbDump, log: bbLog };
+
+            // 1. 启动即执行指纹契约校验（开发模式双端缺省自动跳过；不一致且冷却放行 → 立即守卫刷新）
+            const verdict = verifyFingerprint(window.__GLASS_BUILD_HTML__, window.__GLASS_BUILD_APP__);
+            if (verdict.mismatch && verdict.mayReload) {
+                location.reload();
+                return;
+            }
+
+            // 2. 黑匣子：低频生命周期事件记录（全部被动监听，无定时器无轮询）
+            window.addEventListener('pageshow', (e) => { bbLog('pageshow', { persisted: !!(e && e.persisted) }); }, { passive: true });
+            document.addEventListener('visibilitychange', () => { bbLog('visibility', { hidden: document.hidden }); }, { passive: true });
+            window.addEventListener('error', (e) => { bbLog('js-error', { msg: String((e && e.message) || 'unknown').slice(0, 120) }); });
+            window.addEventListener('unhandledrejection', () => { bbLog('unhandled-rejection', null); });
+            if ('serviceWorker' in navigator) {
+                try { navigator.serviceWorker.addEventListener('controllerchange', () => bbLog('controllerchange', null)); } catch {}
+            }
+
+            // 3. 异常探针触发点：双屏 transform 过渡结束（reduced-motion 无过渡时由唤醒探针兜底）
+            //    自动化测试环境（navigator.webdriver）下禁用"自动"触发，杜绝杂讯误伤其他测试套件；
+            //    显式调用 window.__GLASS_DIAG__.probe() 的诊断/测试路径不受影响
+            document.addEventListener('transitionend', (e) => {
+                if (e && e.propertyName === 'transform' && e.target && (e.target.id === 'startSection' || e.target.id === 'navSection')) {
+                    if (!(navigator.webdriver)) setTimeout(probe, PROBE_DELAY_MS);
+                }
+            }, { passive: true });
+
+            // ?diag=1 只读现场面板（默认零存在感；2s 节流自刷新 + 一键复制现场）
+            try {
+                if (new URLSearchParams(location.search).get('diag') === '1') renderDiagPanel();
+            } catch {}
+
+            function renderDiagPanel() {
+                if (document.getElementById('glassDiagPanel')) return;
+                const panel = document.createElement('aside');
+                panel.id = 'glassDiagPanel';
+                panel.setAttribute('role', 'complementary');
+                panel.setAttribute('aria-label', '运行时诊断信息面板');
+                panel.style.cssText = 'position:fixed;left:8px;bottom:8px;z-index:9999;max-width:min(420px,92vw);max-height:45vh;overflow:auto;background:rgba(11,15,25,.92);color:#e5e7eb;font:11px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;padding:10px 12px;border:1px solid rgba(255,255,255,.2);border-radius:12px;';
+                const info = document.createElement('pre');
+                info.style.cssText = 'margin:0 0 6px;white-space:pre-wrap;word-break:break-all;';
+                const refreshTimer = setInterval(() => {
+                    info.textContent = [
+                        'html=' + (window.__GLASS_BUILD_HTML__ || 'dev'),
+                        'app=' + (window.__GLASS_BUILD_APP__ || 'dev'),
+                        'events=' + JSON.stringify(bbDump())
+                    ].join('\n');
+                }, 2000);
+                info.textContent = [
+                    'html=' + (window.__GLASS_BUILD_HTML__ || 'dev'),
+                    'app=' + (window.__GLASS_BUILD_APP__ || 'dev'),
+                    'events=' + JSON.stringify(bbDump())
+                ].join('\n');
+                const copyBtn = document.createElement('button');
+                copyBtn.type = 'button';
+                copyBtn.textContent = '复制现场';
+                copyBtn.setAttribute('aria-label', '复制诊断现场信息到剪贴板');
+                copyBtn.style.cssText = 'padding:3px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.12);color:#fff;font-size:11px;cursor:pointer;';
+                copyBtn.addEventListener('click', () => {
+                    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(info.textContent).catch(() => {});
+                });
+                const closeBtn = document.createElement('button');
+                closeBtn.type = 'button';
+                closeBtn.textContent = '✕ 关闭';
+                closeBtn.setAttribute('aria-label', '关闭诊断面板');
+                closeBtn.style.cssText = copyBtn.style.cssText + 'margin-left:6px;';
+                closeBtn.addEventListener('click', () => { clearInterval(refreshTimer); panel.remove(); });
+                panel.appendChild(info);
+                panel.appendChild(copyBtn);
+                panel.appendChild(closeBtn);
+                document.body.appendChild(panel);
+            }
+        })();
 
         // ==================== 启动（兼容 DOMContentLoaded）====================
         document.readyState === 'loading'

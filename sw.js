@@ -166,8 +166,10 @@ self.addEventListener('fetch', e => {
                 if (netRes.ok) {
                     const resClone = netRes.clone();
                     caches.open(CORE_CACHE).then(cache => cache.put(e.request, resClone)).catch(() => {});
+                    return netRes;
                 }
-                return netRes;
+                // 非 ok 响应（源站 5xx / 网关错误等）不得覆盖本地可用版本：降级回退 CORE_CACHE 缓存
+                return caches.match(e.request).then(cached => cached || netRes);
             }).catch(async () => {
                 const cached = (await caches.match(e.request)) || (await caches.match(e.request, { ignoreSearch: true })) || (await caches.match('./app.js'));
                 if (cached) return cached;

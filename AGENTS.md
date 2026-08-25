@@ -128,7 +128,7 @@ node test/run.mjs infra --no-build   # 修改 SW缓存/安全标头时
 # 1. 生产环境构建打包 (验证 Tailwind v4 编译、CSP 优化与 esbuild AST 压缩)
 npm run build
 
-# 2. 全量端到端自动化测试套件 (必须 3 大套件 19 项高密度断言全绿)
+# 2. 全量端到端自动化测试套件 (必须 4 大套件 24 项高密度断言全绿)
 node test/run.mjs --force
 
 # 3. 如涉及关键 UI / 动画 / 视口变动，执行多视口全景视觉回归测试 (11 大场景断言)
@@ -151,8 +151,8 @@ node test/visual-regression.mjs
 | **UI 表现与 3D 光影** | `Lines 1~3045, 7770~7870` | `cacheDOM()`, `updateCardTransform`, `motionGating` | **[图 1](./ARCHITECTURE.md#1-️-系统全景分层与模块拓扑架构-high-level-layer-architecture)**：Liquid Glass、Tailwind v4、光影守卫、3D 陀螺仪 |
 | **弹窗与覆盖层** | `Lines 1520~3040, 3137~4600` | `OverlayStack.push()`, `OverlayStack.pop()`, `openEditModal()` | **[图 3](./ARCHITECTURE.md#3--overlaystack-多层弹窗层叠栈与-escape-统一退栈决策-overlaystack--modal-flow)**：`OverlayStack` LIFO 栈模型、Focus Trap 焦点锁定 |
 | **搜索联想与气象演化** | `Lines 6100~7200` | `fetchSuggestions()`, `initWeather()`, `weatherNum()` | **[图 5](./ARCHITECTURE.md#5--智能搜索三级模糊匹配与气象-9-阶动态演化决策-search--weather-decision-engine)**：搜索联想防竞态、零 CLS 骨架、9 阶气象形态 |
-| **双屏切换与 BFCache** | `Lines 7200~7600` | `switchToNav()`, `switchToStart()`, `reconcileScreenState()` | **[图 2](./ARCHITECTURE.md#2--双屏切屏状态机手势与-bfcache-全生命周期流转-screen-state--bfcache-lifecycle)**：双屏状态机、纯内存自愈器、滚轮动量吞咽 |
-| **离线与缓存底座** | `sw.js` (全量 263 行) | `CORE_CACHE`, `FAVICON_CACHE`, `IMG_CACHE` | **[图 4](./ARCHITECTURE.md#4--service-worker-三池隔离与离线数据流向-storage--cache-topology)**：三池物理隔离、FIFO 限额淘汰 |
+| **双屏切换与 BFCache** | `Lines 7200~8052` | `switchToNav()`, `switchToStart()`, `reconcileScreenState()`, `__GLASS_DIAG__` | **[图 2](./ARCHITECTURE.md#2--双屏切屏状态机手势与-bfcache-全生命周期流转-screen-state--bfcache-lifecycle)**：双屏状态机、纯内存自愈器、滚轮动量吞咽、构建指纹黑匣子三级自愈阶梯 |
+| **离线与缓存底座** | `sw.js` (全量 264 行) | `CORE_CACHE`, `FAVICON_CACHE`, `IMG_CACHE` | **[图 4](./ARCHITECTURE.md#4--service-worker-三池隔离与离线数据流向-storage--cache-topology)**：三池物理隔离、FIFO 限额淘汰 |
 
 ---
 
@@ -177,6 +177,10 @@ node test/visual-regression.mjs
 5. **防 Service Worker 跨版本缓存割裂 (SW Version Lockstep Guard)**：
    - **铁律**：主文档 `index.html` 与同源核心脚本 `app.js` 必须 100% 保持同调的 **Network-First** 策略；
    - **构建防穿透**：生产环境构建时必须为 `app.js` 自动注入版本查询参数（`?v=app-core-v<timestamp>`），彻底击穿旧版 SW 缓存池残留，根绝“HTML 是新版但 JS 执行旧版”的跨版本白屏死锁。
+6. **双端构建指纹契约与运行时黑匣子纪律 (Build Fingerprint & Blackbox Contract)**：
+   - **指纹对铁律**：`scripts/build.js` 必须向 `dist/index.html` 内联注入 `__GLASS_BUILD_HTML__`、向 `dist/app.js` 头部注入 `__GLASS_BUILD_APP__`，两键同源同版并由构建断言强制校验；严禁绕过 build.js 手工篡改 dist 产物；
+   - **黑匣子契约**：`window.__GLASS_DIAG__`（verify/probe/dump/log）承载指纹校验、生命周期环形日志（sessionStorage `gs_diag_log` ≤40 条）、白屏异常三级阶梯（L1 幂等校准 → L2 合成层磁贴重建 → L3 冷却守卫刷新）与 `?diag=1` 只读现场导出；
+   - **刷新纪律**：任何自动 `location.reload()` 必须经 `gs_build_reload_at` 冷却期（60s）守卫，严禁裸调用；自动化测试环境（`navigator.webdriver`）下自动探针必须静默。
 
 ---
 

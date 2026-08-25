@@ -312,6 +312,10 @@ function processProductionAppJs() {
 
     let appJsContent = mainScriptMatch[1].trim();
 
+    // 🛡️ 双端构建指纹注入 (app 侧)：与 dist/index.html 内联的 __GLASS_BUILD_HTML__ 构成版本契约对，
+    //    供页面运行时黑匣子校验跨版本缓存割裂（HTML 新版 + JS 旧版等半更新死态）
+    appJsContent = `window.__GLASS_BUILD_APP__="${currentBuildVersion}";\n` + appJsContent;
+
     if (fs.existsSync(PATHS.bookmarksJson)) {
         try {
             const bookmarksData = JSON.parse(fs.readFileSync(PATHS.bookmarksJson, 'utf-8'));
@@ -328,6 +332,10 @@ function processProductionAppJs() {
     }
 
     appJsContent = minifyJsCode(appJsContent, 'app.js');
+    if (!appJsContent.includes('__GLASS_BUILD_APP__')) {
+        console.error('❌ 构建断言失败: dist/app.js 未注入构建指纹 (__GLASS_BUILD_APP__)，运行时版本契约将失效');
+        process.exit(1);
+    }
     const appJsKb = (Buffer.byteLength(appJsContent, 'utf-8') / 1024).toFixed(2);
     logItem(`生产环境 dist/app.js AST 安全压缩完成 (${appJsKb} KB)`);
 
@@ -343,6 +351,13 @@ function processProductionHtml() {
     prodHtmlContent = prodHtmlContent.replace(
         /<script\s+id="main-script"[^>]*>[\s\S]*?<\/script>/i,
         `<script src="./app.js?v=${currentBuildVersion}" defer></script>`
+    );
+
+    // 5.0.1 双端构建指纹注入 (HTML 侧)：在 <head> 起始处内联指纹脚本，与 app.js 头部 __GLASS_BUILD_APP__
+    //       构成版本契约对；deferred 外链脚本必然晚于本内联脚本执行，运行时黑匣子可安全比对
+    prodHtmlContent = prodHtmlContent.replace(
+        /<head[^>]*>/i,
+        (m) => `${m}<script>window.__GLASS_BUILD_HTML__="${currentBuildVersion}"</script>`
     );
 
     const distCssPath = path.join(PATHS.dist, 'style.css');
@@ -436,6 +451,12 @@ function processProductionHtml() {
     // 生产 CSP 已剔除该域名，脚本或 CSP 白名单任一残留都会导致线上样式全挂且难以察觉，必须 fail build 阻断部署
     if (/jsdelivr/i.test(prodHtmlContent)) {
         console.error('❌ 构建断言失败: dist/index.html 最终产物中仍残留 jsdelivr CDN 引用，请检查 Tailwind CDN 替换（5.0）与 CSP 清理（5.2）逻辑');
+        process.exit(1);
+    }
+
+    // 🛡️ 构建断言（最终产物写盘前）：HTML 侧构建指纹必须存在且与 app.js 侧同源同版
+    if (!prodHtmlContent.includes('__GLASS_BUILD_HTML__') || !prodHtmlContent.includes(`"${currentBuildVersion}"`)) {
+        console.error('❌ 构建断言失败: dist/index.html 未注入构建指纹 (__GLASS_BUILD_HTML__)，运行时版本契约将失效');
         process.exit(1);
     }
 
