@@ -242,7 +242,7 @@ npm run build
 3. **修改搜索引擎**：可在 `index.html` 中的 `engines` 引擎配置对象中新增或定制新的搜索引擎（Google、Bing 等）。
 
 ### 3. 静态检查、Git 规范与自动化测试指南 (Agent / Dev Guidelines)
-- ⚡ **静态代码检查 (`npm run lint`)**：耗时约 0.08 秒（全量 26 项机器级语法与工程红线门禁守门）。自动完成 `index.html` 内嵌 JS、`scripts/build.js`/`sw.js`/`scripts/server.js` 语法预检及 `bookmarks.json`/`manifest.json`/`package.json` 的 JSON 合法性校验，并强校验生命周期与 BFCache 防退化守卫。修改代码后运行此命令做轻量校验。
+- ⚡ **静态代码检查 (`npm run lint`)**：耗时约 0.08 秒（全量 27 项机器级语法与工程红线门禁守门）。自动完成 `index.html` 内嵌 JS、`scripts/build.js`/`sw.js`/`scripts/server.js` 语法预检及 `bookmarks.json`/`manifest.json`/`package.json` 的 JSON 合法性校验，并强校验生命周期与 BFCache 防退化守卫。修改代码后运行此命令做轻量校验。
 - 🚀 **生产构建打包 (`npm run build`)**：耗时约 0.5 秒（Tailwind v4 CLI + esbuild 引擎）。编译 Tailwind CSS 并同步书签数据，自动校验产物完整性。
 - 🧪 **自动化测试套件 (`npm test` 或 `node test/run.mjs`)**：
   - 内置 **3 大核心领域端到端与架构综合测试套件（覆盖 19 大高密度全景断言）**。
@@ -298,7 +298,7 @@ glass-start/
 │
 ├── 🛠️ scripts/ 自动化工程工具目录 (4 个)
 │   ├── build.js              # 生产环境编译打包流水线（Tailwind CLI + esbuild AST 压缩）
-│   ├── lint.mjs              # 零依赖静态语法与 8 大红线规范门禁（<80ms 极速自愈）
+│   ├── lint.mjs              # 零依赖静态语法与 10 大红线规范门禁（<80ms 极速自愈）
 │   ├── server.js             # 原生 Node.js 零依赖本地开发与局域网预览服务器
 │   └── start.command         # macOS 访达一键双击启动快捷指令
 │
