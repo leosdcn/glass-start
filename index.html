@@ -1199,35 +1199,12 @@
             box-shadow: none;
             border-color: transparent;
         }
-        /* 搜索框：光标跟随径向渐变流光容器 */
+        /* 搜索框：Apple 原生纯净毛玻璃容器 */
         .search-box-wrapper {
             position: relative;
-            overflow: hidden;
-            transition: border-color 0.25s ease, box-shadow 0.25s ease, background-color 0.25s ease;
-        }
-        .search-box-wrapper::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            border-radius: inherit;
-            background: radial-gradient(
-                340px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
-                rgba(255, 255, 255, 0.08),
-                transparent 75%
-            );
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.4s ease;
-            z-index: 1;
-        }
-        .search-box-wrapper > * {
-            position: relative;
-            z-index: 2;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
         }
         @media (hover: hover) and (pointer: fine) {
-            .search-box-wrapper:hover::before {
-                opacity: 1;
-            }
             .search-box-wrapper:hover {
                 border-color: rgba(255, 255, 255, 0.25);
                 background: rgba(255, 255, 255, 0.14);
@@ -7755,17 +7732,6 @@
                 };
                 window.resetActiveTiltCard = resetActiveCard;
 
-                const resetActiveSearchBox = () => {
-                    if (searchBoxRafId) {
-                        cancelAnimationFrame(searchBoxRafId);
-                        searchBoxRafId = null;
-                    }
-                    if (activeSearchBox) {
-                        activeSearchBox = null;
-                        activeSearchBoxRect = null;
-                    }
-                };
-
                 if (mediaMotion && mediaMotion.addEventListener) {
                     mediaMotion.addEventListener('change', (e) => {
                         if (e.matches) resetActiveCard();
@@ -7795,22 +7761,6 @@
 
                     activeCard.style.transform = `perspective(800px) rotateX(${rotateX.toFixed(2)}deg) rotateY(${rotateY.toFixed(2)}deg) scale(${targetScale})`;
                     rafId = null;
-                }
-
-                let searchBoxRafId = null;
-                let activeSearchBox = null;
-                let activeSearchBoxRect = null;
-                let pendingSearchBoxEvent = null;
-
-                function updateSearchBoxTransform() {
-                    if (!activeSearchBox || !pendingSearchBoxEvent) {
-                        searchBoxRafId = null;
-                        return;
-                    }
-                    if (!activeSearchBoxRect) activeSearchBoxRect = activeSearchBox.getBoundingClientRect();
-                    activeSearchBox.style.setProperty('--mouse-x', `${pendingSearchBoxEvent.clientX - activeSearchBoxRect.left}px`);
-                    activeSearchBox.style.setProperty('--mouse-y', `${pendingSearchBoxEvent.clientY - activeSearchBoxRect.top}px`);
-                    searchBoxRafId = null;
                 }
 
                 document.addEventListener('pointerdown', (e) => {
@@ -7844,20 +7794,6 @@
                     const target = e.target;
                     if (!target) return;
 
-                    const searchBox = target.closest('.search-box-wrapper');
-                    if (searchBox) {
-                        if (activeSearchBox !== searchBox) {
-                            activeSearchBox = searchBox;
-                            activeSearchBoxRect = searchBox.getBoundingClientRect();
-                        }
-                        pendingSearchBoxEvent = e;
-                        if (!searchBoxRafId) {
-                            searchBoxRafId = requestAnimationFrame(updateSearchBoxTransform);
-                        }
-                    } else if (activeSearchBox) {
-                        resetActiveSearchBox();
-                    }
-
                     const card = target.closest('.nav-bookmark');
                     if (card) {
                         if (activeCard !== card) {
@@ -7877,7 +7813,6 @@
 
                 document.addEventListener('mouseleave', () => {
                     resetActiveCard();
-                    resetActiveSearchBox();
                 }, { passive: true });
 
                 // 全局拖拽保护：全局拦截普通链接/文字的原生拖拽，防止浏览器进入原生 Drag 会话产生 hover 卡死
@@ -7887,20 +7822,18 @@
                         e.preventDefault();
                     }
                     resetActiveCard();
-                    resetActiveSearchBox();
                 }, { capture: true });
 
                 // 窗口失焦、滚动、拖拽结束或指针取消时，强制重置所有 3D 高光卡片状态
-                window.addEventListener('blur', () => { resetActiveCard(); resetActiveSearchBox(); }, { passive: true });
-                window.addEventListener('scroll', () => { resetActiveCard(); resetActiveSearchBox(); }, { passive: true, capture: true });
-                window.addEventListener('dragend', () => { resetActiveCard(); resetActiveSearchBox(); }, { passive: true });
-                window.addEventListener('drop', () => { resetActiveCard(); resetActiveSearchBox(); }, { passive: true });
-                window.addEventListener('pointercancel', () => { resetActiveCard(); resetActiveSearchBox(); }, { passive: true });
-                window.addEventListener('focus', () => { resetActiveCard(); resetActiveSearchBox(); }, { passive: true });
+                window.addEventListener('blur', () => { resetActiveCard(); }, { passive: true });
+                window.addEventListener('scroll', () => { resetActiveCard(); }, { passive: true, capture: true });
+                window.addEventListener('dragend', () => { resetActiveCard(); }, { passive: true });
+                window.addEventListener('drop', () => { resetActiveCard(); }, { passive: true });
+                window.addEventListener('pointercancel', () => { resetActiveCard(); }, { passive: true });
+                window.addEventListener('focus', () => { resetActiveCard(); }, { passive: true });
                 document.addEventListener('visibilitychange', () => {
                     if (document.hidden) {
                         resetActiveCard();
-                        resetActiveSearchBox();
                     }
                 }, { passive: true });
                 window.addEventListener('pageshow', () => {
