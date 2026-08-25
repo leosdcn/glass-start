@@ -1439,6 +1439,36 @@
     </style>
 </head>
 <body class="text-white relative" style="background-color: var(--bg-start);">
+    <!-- 全局 SVG 矢量图标精灵池 (零运行时 JS 开销, 0 CLS, 支持 Tailwind currentColor) -->
+    <svg id="svg-sprite" class="hidden" aria-hidden="true">
+        <defs>
+            <!-- Loading Spinner 菊花 (原 #exportJsonBtn, #clearCacheBtn, #resetEditBtn, #saveEditBtn 共享) -->
+            <symbol id="icon-spinner" viewBox="0 0 24 24" fill="none">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+            </symbol>
+            <!-- Modal Close X 叉号 (原 #closePickerBtn, #closeShortcutBtn, #closeCreditsBtn 共享) -->
+            <symbol id="icon-close" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 12L12 4M4 4l8 8"/>
+            </symbol>
+            <!-- 45° External Link 外链箭头 (原 creditsModal 卡片共享) -->
+            <symbol id="icon-external" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M7 17L17 7M17 7H7M17 7V17"/>
+            </symbol>
+            <!-- 搜索放大镜 Search Magnifier (原搜索联想与骨架屏共享) -->
+            <symbol id="icon-search" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M16.5 16.5L12.212 12.212A5.25 5.25 0 1 0 4.788 4.788a5.25 5.25 0 0 0 7.424 7.424z"/>
+            </symbol>
+            <!-- 编辑书签 6 点拖拽手柄 -->
+            <symbol id="icon-drag" viewBox="0 0 16 16" fill="currentColor">
+                <circle cx="5" cy="4" r="1.5"/><circle cx="11" cy="4" r="1.5"/><circle cx="5" cy="8" r="1.5"/><circle cx="11" cy="8" r="1.5"/><circle cx="5" cy="12" r="1.5"/><circle cx="11" cy="12" r="1.5"/>
+            </symbol>
+            <!-- 垃圾桶删除 Trash -->
+            <symbol id="icon-trash" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M2.5 4h11M5.5 4V2.5a1 1 0 011-1h3a1 1 0 011 1V4m2 0v8.5a1.5 1.5 0 01-1.5 1.5h-6A1.5 1.5 0 013.5 12.5V4m3 3v4.5m3-4.5v4.5"/>
+            </symbol>
+        </defs>
+    </svg>
     <!-- 固定定位背景图层（双层叠加 opacity 过渡，解决 background-image 不可 CSS 插值的问题；配合 bg-fullscreen 延伸至移动端安全区与过滚动区域） -->
     <div id="bgLayer" class="bg-fullscreen bg-cover bg-center bg-no-repeat z-0 bg-slate-900 bg-layer"></div>
     <div id="bgLayerNext" class="bg-fullscreen bg-cover bg-center bg-no-repeat z-0 opacity-0 bg-slate-900 bg-layer"></div>
@@ -1748,7 +1778,7 @@
                             <span id="storageSizeBadge" class="glass-badge font-mono">计算中...</span>
                         </div>
                         <button id="exportJsonBtn" type="button" class="w-full py-2 px-3.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs text-white/80 hover:text-white glass-interactive flex items-center justify-center gap-2 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 disabled:opacity-50 disabled:cursor-not-allowed">
-                            <svg class="spinner size-4 animate-spin hidden" aria-hidden="true" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
+                            <svg class="spinner size-4 animate-spin hidden" aria-hidden="true"><use href="#icon-spinner"/></svg>
                             <span>📤</span> <span class="btn-label">导出 JSON 配置文件备份</span>
                         </button>
                         <!-- Dropzone 导入框 (flex-1 自适应拉伸填充) -->
@@ -1773,7 +1803,7 @@
                                 </p>
                             </div>
                             <button id="clearCacheBtn" type="button" class="w-full py-2 px-3.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs text-white/75 hover:text-white glass-interactive flex items-center justify-center gap-1.5 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 disabled:opacity-50 disabled:cursor-not-allowed">
-                                <svg class="spinner size-4 animate-spin hidden" aria-hidden="true" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
+                                <svg class="spinner size-4 animate-spin hidden" aria-hidden="true"><use href="#icon-spinner"/></svg>
                                 <span>🧹</span> <span class="btn-label">一键刷新 Service Worker 离线缓存</span>
                             </button>
                         </div>
@@ -1791,7 +1821,7 @@
                                 </p>
                             </div>
                             <button id="resetEditBtn" type="button" class="danger-zone-btn w-full py-2 text-xs font-medium glass-interactive flex items-center justify-center gap-1.5 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 disabled:opacity-50 disabled:cursor-not-allowed">
-                                <svg class="spinner size-4 animate-spin hidden" aria-hidden="true" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
+                                <svg class="spinner size-4 animate-spin hidden" aria-hidden="true"><use href="#icon-spinner"/></svg>
                                 <span>⚠️</span> <span class="btn-label">重置所有系统设置</span>
                             </button>
                         </div>
@@ -1803,7 +1833,7 @@
             <div class="flex items-center justify-end gap-3 mt-3 pt-3 border-t border-white/10 shrink-0">
                 <button id="cancelEditBtn" type="button" class="flex-1 sm:flex-initial py-2.5 px-5 rounded-xl text-xs sm:text-sm font-normal text-white/50 hover:text-white/80 hover:bg-white/5 glass-interactive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 disabled:opacity-50 disabled:cursor-not-allowed">取消</button>
                 <button id="saveEditBtn" type="button" class="glass-btn-primary flex-1 sm:flex-initial py-2.5 px-6 text-xs sm:text-sm gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:opacity-50 disabled:cursor-not-allowed">
-                    <svg class="spinner size-4 animate-spin hidden" aria-hidden="true" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
+                    <svg class="spinner size-4 animate-spin hidden" aria-hidden="true"><use href="#icon-spinner"/></svg>
                     <span class="btn-label">保存并关闭</span>
                 </button>
             </div>
@@ -1815,7 +1845,7 @@
         <div class="glass-strong apple-radius pt-4 pb-3 px-4 w-full max-w-2xl xl:max-w-3xl 2xl:max-w-4xl mx-4 max-h-[85dvh] flex flex-col shadow-2xl">
             <div class="flex items-center justify-between mb-2 pb-1.5 border-b border-white/10 shrink-0">
                 <h3 class="text-base font-medium tracking-wide text-white/80">从导航页选择</h3>
-                <button id="closePickerBtn" type="button" aria-label="关闭选择弹窗" class="p-1 size-10 inline-flex items-center justify-center hover:bg-white/10 apple-radius text-white/40 hover:text-white/70 glass-interactive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 disabled:opacity-50 disabled:cursor-not-allowed"><svg class="size-4" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 16 16"><path d="M4 12L12 4M4 4l8 8"/></svg></button>
+                <button id="closePickerBtn" type="button" aria-label="关闭选择弹窗" class="p-1 size-10 inline-flex items-center justify-center hover:bg-white/10 apple-radius text-white/40 hover:text-white/70 glass-interactive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 disabled:opacity-50 disabled:cursor-not-allowed"><svg class="size-4" aria-hidden="true"><use href="#icon-close"/></svg></button>
             </div>
             <div id="pickerContent" class="flex-1 overflow-y-auto min-h-0 space-y-3"></div>
             <div class="flex items-center justify-between mt-3 pt-2 border-t border-white/10 shrink-0">
@@ -1853,7 +1883,7 @@
                     <h3 class="text-base font-semibold tracking-wide text-white/90">快捷键速查</h3>
                 </div>
                 <button id="closeShortcutBtn" type="button" aria-label="关闭快捷键速查" class="p-1 size-9 inline-flex items-center justify-center hover:bg-white/10 apple-radius text-white/40 hover:text-white/70 glass-interactive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50">
-                    <svg class="size-4" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 16 16"><path d="M4 12L12 4M4 4l8 8"/></svg>
+                    <svg class="size-4" aria-hidden="true"><use href="#icon-close"/></svg>
                 </button>
             </div>
 
@@ -1877,68 +1907,12 @@
                     <h3 class="text-base font-semibold tracking-wide text-white/90">开源与数据鸣谢</h3>
                 </div>
                 <button id="closeCreditsBtn" type="button" aria-label="关闭开源与数据鸣谢" class="p-1 size-9 sm:size-10 inline-flex items-center justify-center hover:bg-white/10 apple-radius text-white/40 hover:text-white/70 glass-interactive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50">
-                    <svg class="size-4" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 16 16"><path d="M4 12L12 4M4 4l8 8"/></svg>
+                    <svg class="size-4" aria-hidden="true"><use href="#icon-close"/></svg>
                 </button>
             </div>
 
-            <!-- 致谢条目列表 -->
-            <div class="flex-1 overflow-y-auto min-h-0 space-y-2.5 pr-0.5 text-xs">
-                <div class="p-2.5 rounded-xl bg-white/5 border border-white/8 hover:bg-white/8 hover:border-white/15 transition-colors duration-150 flex items-center justify-between gap-2">
-                    <div class="flex items-center gap-2.5 min-w-0">
-                        <span class="text-base shrink-0">🌤️</span>
-                        <div class="truncate">
-                            <div class="font-medium text-white/90 truncate">气象数据底座</div>
-                            <div class="text-2xs text-white/50 truncate">Open-Meteo 全球气象与逆地理编码</div>
-                        </div>
-                    </div>
-                    <a href="https://open-meteo.com" target="_blank" rel="noopener noreferrer" class="shrink-0 text-2xs px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 border border-white/15 text-white/80 hover:text-white transition-colors duration-150 flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" title="访问 Open-Meteo 官网">
-                        <span>CC-BY 4.0</span>
-                        <svg class="size-2.5 opacity-70" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M7 17L17 7M17 7H7M17 7V17"/></svg>
-                    </a>
-                </div>
-
-                <div class="p-2.5 rounded-xl bg-white/5 border border-white/8 hover:bg-white/8 hover:border-white/15 transition-colors duration-150 flex items-center justify-between gap-2">
-                    <div class="flex items-center gap-2.5 min-w-0">
-                        <span class="text-base shrink-0">🖼️</span>
-                        <div class="truncate">
-                            <div class="font-medium text-white/90 truncate">预设高清壁纸</div>
-                            <div class="text-2xs text-white/50 truncate">Unsplash 精选 2.5K 摄影作品</div>
-                        </div>
-                    </div>
-                    <a href="https://unsplash.com" target="_blank" rel="noopener noreferrer" class="shrink-0 text-2xs px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 border border-white/15 text-white/80 hover:text-white transition-colors duration-150 flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" title="访问 Unsplash 官网">
-                        <span>免版税授权</span>
-                        <svg class="size-2.5 opacity-70" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M7 17L17 7M17 7H7M17 7V17"/></svg>
-                    </a>
-                </div>
-
-                <div class="p-2.5 rounded-xl bg-white/5 border border-white/8 hover:bg-white/8 hover:border-white/15 transition-colors duration-150 flex items-center justify-between gap-2">
-                    <div class="flex items-center gap-2.5 min-w-0">
-                        <span class="text-base shrink-0">🎨</span>
-                        <div class="truncate">
-                            <div class="font-medium text-white/90 truncate">样式与设计系统</div>
-                            <div class="text-2xs text-white/50 truncate">Tailwind CSS 现代化原子工具集</div>
-                        </div>
-                    </div>
-                    <a href="https://tailwindcss.com" target="_blank" rel="noopener noreferrer" class="shrink-0 text-2xs px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 border border-white/15 text-white/80 hover:text-white transition-colors duration-150 flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" title="访问 Tailwind CSS 官网">
-                        <span>MIT 协议</span>
-                        <svg class="size-2.5 opacity-70" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M7 17L17 7M17 7H7M17 7V17"/></svg>
-                    </a>
-                </div>
-
-                <div class="p-2.5 rounded-xl bg-white/5 border border-white/8 hover:bg-white/8 hover:border-white/15 transition-colors duration-150 flex items-center justify-between gap-2">
-                    <div class="flex items-center gap-2.5 min-w-0">
-                        <span class="text-base shrink-0">⚡</span>
-                        <div class="truncate">
-                            <div class="font-medium text-white/90 truncate">极速构建内核</div>
-                            <div class="text-2xs text-white/50 truncate">esbuild AST 高效压缩与编译器</div>
-                        </div>
-                    </div>
-                    <a href="https://esbuild.github.io" target="_blank" rel="noopener noreferrer" class="shrink-0 text-2xs px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 border border-white/15 text-white/80 hover:text-white transition-colors duration-150 flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" title="访问 esbuild 官网">
-                        <span>MIT 协议</span>
-                        <svg class="size-2.5 opacity-70" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M7 17L17 7M17 7H7M17 7V17"/></svg>
-                    </a>
-                </div>
-            </div>
+            <!-- 致谢条目列表 (由 JS 数据驱动渲染) -->
+            <div id="creditsList" class="flex-1 overflow-y-auto min-h-0 space-y-2.5 pr-0.5 text-xs"></div>
 
             <!-- 底部操作与提示 -->
             <div class="flex items-center justify-between mt-3 pt-3 border-t border-white/10 shrink-0">
@@ -2875,6 +2849,12 @@
                         { desc: '弹窗内焦点循环', kbdId: 'kbd-tab', fallback: 'Tab / ⇧ Tab' }
                     ]
                 }
+            ]),
+            CREDITS: Object.freeze([
+                { icon: '🌤️', name: '气象数据底座', desc: 'Open-Meteo 全球气象与逆地理编码', url: 'https://open-meteo.com', license: 'CC-BY 4.0' },
+                { icon: '🖼️', name: '预设高清壁纸', desc: 'Unsplash 精选 2.5K 摄影作品', url: 'https://unsplash.com', license: '免版税授权' },
+                { icon: '🎨', name: '样式与设计系统', desc: 'Tailwind CSS 现代化原子工具集', url: 'https://tailwindcss.com', license: 'MIT 协议' },
+                { icon: '⚡', name: '极速构建内核', desc: 'esbuild AST 高效压缩与编译器', url: 'https://esbuild.github.io', license: 'MIT 协议' }
             ])
         });
 
@@ -2947,6 +2927,30 @@
             applyPlatformShortcuts();
         }
 
+        /**
+         * 渲染开源与数据鸣谢弹窗内的条目列表（数据驱动，消除 HTML 冗余）
+         * @returns {void}
+         */
+        function renderCreditsModalList() {
+            const container = dom.creditsList || $('creditsList');
+            if (!container || container.hasChildNodes()) return;
+            container.innerHTML = CONFIG.CREDITS.map(item => `
+                <div class="p-2.5 rounded-xl bg-white/5 border border-white/8 hover:bg-white/8 hover:border-white/15 transition-colors duration-150 flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-2.5 min-w-0">
+                        <span class="text-base shrink-0 select-none">${escapeHtml(item.icon)}</span>
+                        <div class="truncate">
+                            <div class="font-medium text-white/90 truncate">${escapeHtml(item.name)}</div>
+                            <div class="text-2xs text-white/50 truncate">${escapeHtml(item.desc)}</div>
+                        </div>
+                    </div>
+                    <a href="${safeUrl(item.url)}" target="_blank" rel="noopener noreferrer" class="shrink-0 text-2xs px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 border border-white/15 text-white/80 hover:text-white transition-colors duration-150 flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" title="访问 ${escapeHtml(item.name)} 官网">
+                        <span>${escapeHtml(item.license)}</span>
+                        <svg class="size-2.5 opacity-70" aria-hidden="true"><use href="#icon-external"/></svg>
+                    </a>
+                </div>
+            `).join('');
+        }
+
         // ==================== 状态与 DOM 缓存 ====================
         const dom = {};
         const state = {
@@ -2970,7 +2974,7 @@
          * @returns {void}
          */
         function cacheDOM() {
-            const ids = 'clock date searchInput searchClearBtn randomBookmarkBtn engineBtn engineIcon engineName dropdownMenu suggestionMenu bookmarks sidebar sidebarList navCategories navContent editModal editList editBookmarksBtn addBookmarkBtn saveEditBtn cancelEditBtn resetEditBtn togglePickerBtn bookmarkPicker pickerContent pickerCount closePickerBtn donePickerBtn exportJsonBtn importJsonInput uploadBgBtn urlBgBtn urlBgInputRow urlBgInput urlBgConfirmBtn urlBgCancelBtn resetBgBtn uploadBgInput wallpaperStatus bookmarkCountBadge jsonDropzone maskOpacityInput maskOpacityVal bgBlurInput bgBlurVal storageSizeBadge statBookmarkCount statWallpaperType statPwaStatus clearCacheBtn bgOverlay startSection navSection navHint navHeader presetWallpaperGrid shortcutModal shortcutModalList closeShortcutBtn doneShortcutBtn openShortcutFromSettingsBtn openCreditsFromSettingsBtn scrollDownHint weatherWidget weatherBtn weatherIcon weatherTemp weatherCity weatherPopover creditsModal closeCreditsBtn doneCreditsBtn confirmModal confirmTitle confirmMsg confirmCancelBtn confirmOkBtn'.split(' ');
+            const ids = 'clock date searchInput searchClearBtn randomBookmarkBtn engineBtn engineIcon engineName dropdownMenu suggestionMenu bookmarks sidebar sidebarList navCategories navContent editModal editList editBookmarksBtn addBookmarkBtn saveEditBtn cancelEditBtn resetEditBtn togglePickerBtn bookmarkPicker pickerContent pickerCount closePickerBtn donePickerBtn exportJsonBtn importJsonInput uploadBgBtn urlBgBtn urlBgInputRow urlBgInput urlBgConfirmBtn urlBgCancelBtn resetBgBtn uploadBgInput wallpaperStatus bookmarkCountBadge jsonDropzone maskOpacityInput maskOpacityVal bgBlurInput bgBlurVal storageSizeBadge statBookmarkCount statWallpaperType statPwaStatus clearCacheBtn bgOverlay startSection navSection navHint navHeader presetWallpaperGrid shortcutModal shortcutModalList closeShortcutBtn doneShortcutBtn openShortcutFromSettingsBtn openCreditsFromSettingsBtn scrollDownHint weatherWidget weatherBtn weatherIcon weatherTemp weatherCity weatherPopover creditsModal creditsList closeCreditsBtn doneCreditsBtn confirmModal confirmTitle confirmMsg confirmCancelBtn confirmOkBtn'.split(' ');
             ids.forEach(id => dom[id] = $(id));
         }
 
@@ -3767,7 +3771,7 @@
                 <div role="listitem" class="edit-row-card flex items-center gap-1.5 sm:gap-2 p-1.5 sm:p-2 bg-white/5 border border-white/10 apple-radius hover:border-white/25 glass-interactive group mb-1.5 shadow-xs" data-idx="${idx}" data-icon="${escapeHtml(icon || '')}" data-orig-url="${escapeHtml(url || '')}" draggable="false">
                     <div class="flex items-center gap-1 shrink-0">
                         <div class="drag-handle touch-none p-1 size-7 flex items-center justify-center shrink-0 text-white/30 group-hover:text-white/70 hover:!text-white cursor-grab active:cursor-grabbing glass-interactive" title="按住拖拽排序" role="button" tabindex="0" aria-label="按住拖拽或使用键盘排序">
-                            <svg class="size-3.5 pointer-events-none" aria-hidden="true" viewBox="0 0 16 16" fill="currentColor"><circle cx="5" cy="4" r="1.5"/><circle cx="11" cy="4" r="1.5"/><circle cx="5" cy="8" r="1.5"/><circle cx="11" cy="8" r="1.5"/><circle cx="5" cy="12" r="1.5"/><circle cx="11" cy="12" r="1.5"/></svg>
+                            <svg class="size-3.5 pointer-events-none" aria-hidden="true"><use href="#icon-drag"/></svg>
                         </div>
                         <div class="edit-favicon-box shrink-0 flex items-center justify-center text-white/90 select-none pointer-events-none">
                             ${getEditFaviconInner(name, url, icon)}
@@ -3778,7 +3782,7 @@
                         <input type="text" id="bm-url-${rowId}" name="bookmark_url_${rowId}" class="edit-url w-full sm:w-2/3 bg-black/25 border border-white/10 rounded-lg px-2.5 py-1 sm:py-1.5 text-base sm:text-xs text-white/60 focus:border-white/40 focus:bg-black/40 focus:text-white focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:outline-none outline-none transition font-mono" value="${escapeHtml(url)}" placeholder="https://..." aria-label="书签网址">
                     </div>
                     <button type="button" class="del-btn shrink-0 size-7 sm:size-8 p-1 hover:bg-red-500/20 rounded-lg text-white/30 hover:text-red-400 flex items-center justify-center transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-1 focus-visible:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed" title="删除书签">
-                        <svg class="size-4 pointer-events-none" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 16 16"><path d="M2.5 4h11M5.5 4V2.5a1 1 0 011-1h3a1 1 0 011 1V4m2 0v8.5a1.5 1.5 0 01-1.5 1.5h-6A1.5 1.5 0 013.5 12.5V4m3 3v4.5m3-4.5v4.5"/></svg>
+                        <svg class="size-4 pointer-events-none" aria-hidden="true"><use href="#icon-trash"/></svg>
                     </button>
                 </div>
             `;
@@ -3939,6 +3943,7 @@
          */
         function openCreditsModal() {
             if (!dom.creditsModal) return;
+            renderCreditsModalList();
             creditsModalTriggerEl = document.activeElement;
             dom.openCreditsFromSettingsBtn?.setAttribute('aria-expanded', 'true');
             OverlayStack.push('creditsModal', closeCreditsModal);
@@ -6302,7 +6307,7 @@
                              data-suggestion="${escapeHtml(item)}" 
                              data-idx="${globalIdx}"
                              class="suggestion-item group px-3.5 py-2.5 my-0.5 apple-radius text-sm text-white/85 flex items-center gap-3 glass-interactive cursor-pointer hover:text-white">
-                            <svg class="w-5 h-5 text-white/40 group-hover:text-white/80 shrink-0 pointer-events-none select-none transition" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 20 20"><path d="M16.5 16.5L12.212 12.212A5.25 5.25 0 1 0 4.788 4.788a5.25 5.25 0 0 0 7.424 7.424z"/></svg>
+                            <svg class="w-5 h-5 text-white/40 group-hover:text-white/80 shrink-0 pointer-events-none select-none transition" aria-hidden="true"><use href="#icon-search"/></svg>
                             <span class="truncate flex-1 min-w-0 font-normal tracking-wide">${escapeHtml(item)}</span>
                         </div>
                     `;
@@ -6317,7 +6322,7 @@
                     const widthClass = k % 2 === 0 ? 'w-44' : 'w-28';
                     html += `
                         <div class="px-3.5 py-2.5 my-0.5 apple-radius flex items-center gap-3 select-none pointer-events-none skeleton-pulse">
-                            <svg class="w-5 h-5 text-white/20 shrink-0 pointer-events-none select-none" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 20 20"><path d="M16.5 16.5L12.212 12.212A5.25 5.25 0 1 0 4.788 4.788a5.25 5.25 0 0 0 7.424 7.424z"/></svg>
+                            <svg class="w-5 h-5 text-white/20 shrink-0 pointer-events-none select-none" aria-hidden="true"><use href="#icon-search"/></svg>
                             <div class="h-5 bg-white/15 apple-radius ${widthClass}"></div>
                         </div>
                     `;
@@ -6859,6 +6864,16 @@
                 windIcon = '🎏';
             }
 
+            const weatherCard = (icon, label, val) => `
+                <div class="p-2 glass-subcard flex items-center gap-2">
+                    <span class="text-sm select-none">${icon}</span>
+                    <div class="min-w-0">
+                        <div class="text-2xs text-white/50 leading-tight">${label}</div>
+                        <div class="text-xs font-semibold text-white/90 leading-tight mt-0.5">${val}</div>
+                    </div>
+                </div>
+            `;
+
             dom.weatherPopover.innerHTML = `
                 <!-- 头部地点与刷新 -->
                 <div class="flex items-center justify-between pb-2.5 mb-3 border-b border-white/10">
@@ -6885,34 +6900,10 @@
 
                 <!-- 详细指标 2x2 网格 -->
                 <div class="grid grid-cols-2 gap-2 mb-3">
-                    <div class="p-2 glass-subcard flex items-center gap-2">
-                        <span class="text-sm select-none">${humIcon}</span>
-                        <div class="min-w-0">
-                            <div class="text-2xs text-white/50 leading-tight">相对湿度</div>
-                            <div class="text-xs font-semibold text-white/90 leading-tight mt-0.5">${c.humidity}%</div>
-                        </div>
-                    </div>
-                    <div class="p-2 glass-subcard flex items-center gap-2">
-                        <span class="text-sm select-none">${windIcon}</span>
-                        <div class="min-w-0">
-                            <div class="text-2xs text-white/50 leading-tight">实时风速</div>
-                            <div class="text-xs font-semibold text-white/90 leading-tight mt-0.5">${c.windSpeed} km/h</div>
-                        </div>
-                    </div>
-                    <div class="p-2 glass-subcard flex items-center gap-2">
-                        <span class="text-sm select-none">${popIcon}</span>
-                        <div class="min-w-0">
-                            <div class="text-2xs text-white/50 leading-tight">降水概率</div>
-                            <div class="text-xs font-semibold text-white/90 leading-tight mt-0.5">${popVal}%</div>
-                        </div>
-                    </div>
-                    <div class="p-2 glass-subcard flex items-center gap-2">
-                        <span class="text-sm select-none">${sunIcon}</span>
-                        <div class="min-w-0">
-                            <div class="text-2xs text-white/50 leading-tight">${sunLabel}</div>
-                            <div class="text-xs font-semibold text-white/90 leading-tight mt-0.5">${sunTime}</div>
-                        </div>
-                    </div>
+                    ${weatherCard(humIcon, '相对湿度', c.humidity + '%')}
+                    ${weatherCard(windIcon, '实时风速', c.windSpeed + ' km/h')}
+                    ${weatherCard(popIcon, '降水概率', popVal + '%')}
+                    ${weatherCard(sunIcon, sunLabel, sunTime)}
                 </div>
 
                 <!-- 未来预报 -->
