@@ -2849,7 +2849,6 @@
             }),
             TIMERS: Object.freeze({
                 STAGGER_OPEN: 260,            // 随机书签跳转延时 (ms) - 0.24s 灵动翻转 + 20ms 从容停靠
-                DICE_ROLL: 300,               // 随机骰子转动归位延时 (ms)
                 SCROLL_RESET: 400,            // 滚轮累积阈值重置延时 (ms)
                 HINT_FADE: 600,               // 下滑提示淡出延时 (ms)
                 OBJECT_REVOKE: 1000,          // 临时 Blob/URL 释放安全延时 (ms)
@@ -2971,7 +2970,7 @@
          * @returns {void}
          */
         function cacheDOM() {
-            const ids = 'clock date searchInput searchClearBtn randomBookmarkBtn engineBtn engineIcon engineName dropdownMenu suggestionMenu bookmarks sidebar sidebarList navCategories navContent editModal editList editBookmarksBtn addBookmarkBtn saveEditBtn cancelEditBtn resetEditBtn togglePickerBtn bookmarkPicker pickerContent pickerCount closePickerBtn donePickerBtn exportJsonBtn importJsonInput uploadBgBtn urlBgBtn urlBgInputRow urlBgInput urlBgConfirmBtn urlBgCancelBtn resetBgBtn uploadBgInput wallpaperStatus bookmarkCountBadge jsonDropzone maskOpacityInput maskOpacityVal bgBlurInput bgBlurVal storageSizeBadge statBookmarkCount statWallpaperType statPwaStatus clearCacheBtn bgOverlay startSection navSection navHint navHeader presetWallpaperGrid shortcutModal shortcutModalList closeShortcutBtn doneShortcutBtn openShortcutFromSettingsBtn openCreditsFromSettingsBtn scrollDownHint weatherWidget weatherBtn weatherIcon weatherTemp weatherCity weatherPopover creditsModal closeCreditsBtn doneCreditsBtn'.split(' ');
+            const ids = 'clock date searchInput searchClearBtn randomBookmarkBtn engineBtn engineIcon engineName dropdownMenu suggestionMenu bookmarks sidebar sidebarList navCategories navContent editModal editList editBookmarksBtn addBookmarkBtn saveEditBtn cancelEditBtn resetEditBtn togglePickerBtn bookmarkPicker pickerContent pickerCount closePickerBtn donePickerBtn exportJsonBtn importJsonInput uploadBgBtn urlBgBtn urlBgInputRow urlBgInput urlBgConfirmBtn urlBgCancelBtn resetBgBtn uploadBgInput wallpaperStatus bookmarkCountBadge jsonDropzone maskOpacityInput maskOpacityVal bgBlurInput bgBlurVal storageSizeBadge statBookmarkCount statWallpaperType statPwaStatus clearCacheBtn bgOverlay startSection navSection navHint navHeader presetWallpaperGrid shortcutModal shortcutModalList closeShortcutBtn doneShortcutBtn openShortcutFromSettingsBtn openCreditsFromSettingsBtn scrollDownHint weatherWidget weatherBtn weatherIcon weatherTemp weatherCity weatherPopover creditsModal closeCreditsBtn doneCreditsBtn confirmModal confirmTitle confirmMsg confirmCancelBtn confirmOkBtn'.split(' ');
             ids.forEach(id => dom[id] = $(id));
         }
 
@@ -3091,19 +3090,41 @@
             }
         };
 
-        // ==================== 派生式快捷书签数据架构 (Derived Bookmark Architecture) ====================
+        /**
+         * 规范化用户输入的 URL：去除首尾空格，若缺少协议头则自动补 https://
+         * @param {string} url
+         * @returns {string} 规范化后的 URL，空输入返回 ''
+         */
+        function normalizeUrl(url) {
+            url = String(url || '').trim();
+            if (!url) return '';
+            if (!/^https?:\/\//i.test(url)) {
+                return 'https://' + url;
+            }
+            return url;
+        }
+
+        /**
+         * 从给定的 URL 字符串中安全提取规范化 Hostname 并剥离前缀 www.
+         * @param {string} url
+         * @returns {string} 规范化 Hostname 或 ''
+         */
+        function getHostname(url) {
+            try {
+                return new URL(normalizeUrl(url)).hostname.replace(/^www\./, '');
+            } catch {
+                return '';
+            }
+        }
+
         /**
          * 从 URL 域名或路径中提取用于兜底展示的站点名称
          * @param {string} url - 站点 URL 字符串
          * @returns {string} 提取到的站点名称或'书签'兜底文本
          */
         function deriveNameFromUrl(url) {
-            try {
-                const host = new URL(normalizeUrl(url)).hostname.replace(/^www\./, '');
-                return host.split('.')[0] || '书签';
-            } catch {
-                return '书签';
-            }
+            const host = getHostname(url);
+            return (host ? host.split('.')[0] : '') || '书签';
         }
 
         /**
@@ -3401,21 +3422,6 @@
         }
 
         /**
-         * 规范化用户输入的 URL：去除首尾空格，若缺少协议头则自动补 https://
-         * 用于编辑弹窗保存时处理用户输入的裸域名（如 "github.com"）
-         * @param {string} url
-         * @returns {string} 规范化后的 URL，空输入返回 ''
-         */
-        function normalizeUrl(url) {
-            url = String(url || '').trim();
-            if (!url) return '';
-            if (!/^https?:\/\//i.test(url)) {
-                return 'https://' + url;
-            }
-            return url;
-        }
-
-        /**
          * 将字符串中的 HTML 特殊字符转义为实体，防止 XSS
          * 用于所有将外部/用户数据插入 innerHTML 模板的场景
          * @param {string} str
@@ -3425,13 +3431,6 @@
         const htmlEscapeRegex = /[&<>"']/g;
         function escapeHtml(str) {
             return String(str ?? '').replace(htmlEscapeRegex, ch => htmlEscapes[ch]);
-        }
-
-        /**
-         * 微型 class 组合工具，过滤 falsy 项
-         */
-        function cx(...parts) {
-            return parts.filter(Boolean).join(' ');
         }
 
         /**
@@ -3472,8 +3471,8 @@
          * @returns {string} a.favicon.im 代理地址，URL 解析失败时返回 ''
          */
         function faviconFromUrl(url) {
-            const normalized = normalizeUrl(url);
-            try { return 'https://a.favicon.im/' + new URL(normalized).hostname; } catch { return ''; }
+            const host = getHostname(url);
+            return host ? 'https://a.favicon.im/' + host : '';
         }
 
         // ==================== 设置弹窗 Tab 切换与助手函数 ====================
@@ -4061,13 +4060,13 @@
         // 当前已挂载监听的确认弹窗清理函数（防叠加：上一弹窗未关闭时再次 showConfirm，先解除旧监听再挂新监听）
         let activeConfirmCleanup = null;
         function showConfirm(message, onConfirm, title = '重置确认') {
-            const modal = $('confirmModal');
-            const titleEl = $('confirmTitle');
-            const msgEl = $('confirmMsg');
-            const okBtn = $('confirmOkBtn');
-            const cancelBtn = $('confirmCancelBtn');
+            const modal = dom.confirmModal;
+            const titleEl = dom.confirmTitle;
+            const msgEl = dom.confirmMsg;
+            const okBtn = dom.confirmOkBtn;
+            const cancelBtn = dom.confirmCancelBtn;
             // 降级兜底：弹窗 DOM 不存在时退回原生 confirm
-            if (!modal) { if (window.confirm(message)) onConfirm?.(); return; }
+            if (!modal || !okBtn || !cancelBtn || !msgEl) { if (window.confirm(message)) onConfirm?.(); return; }
 
             // 防重：若上一个弹窗尚未关闭（监听仍挂载于同一组按钮上），先调用其 cleanup 解除监听，
             // 避免同屏叠加多套监听导致点击一次确认触发多次 onConfirm 回调
@@ -4192,6 +4191,10 @@
          */
         function initDragSort() {
             let dragSrc = null;
+            let dragOverRafId = null;
+            let touchMoveRafId = null;
+            let lastOverTarget = null;
+            let lastIsTop = null;
 
             function updateDragIndicator(target, isTop) {
                 lastOverTarget = target;
@@ -4207,6 +4210,10 @@
                 if (dragOverRafId) {
                     cancelAnimationFrame(dragOverRafId);
                     dragOverRafId = null;
+                }
+                if (touchMoveRafId) {
+                    cancelAnimationFrame(touchMoveRafId);
+                    touchMoveRafId = null;
                 }
                 dom.editList.querySelectorAll('.edit-row-card').forEach(el => {
                     el.classList.remove('dragging');
@@ -4282,10 +4289,6 @@
                 clearDragClasses();
                 dragSrc = null;
             });
-
-            let dragOverRafId = null;
-            let lastOverTarget = null;
-            let lastIsTop = null;
 
             dom.editList.addEventListener('dragover', e => {
                 e.preventDefault();
@@ -4389,7 +4392,6 @@
                 try { handle.setPointerCapture(e.pointerId); } catch (_) {}
             });
 
-            let touchMoveRafId = null;
             dom.editList.addEventListener('pointermove', e => {
                 if (!touchDragCard || e.pointerId !== touchCapturedId) return;
                 if (touchMoveRafId) return;
@@ -4704,7 +4706,7 @@
         /**
          * 扫描并同步图片 loaded 状态
          */
-        function initFaviconObserver(force = false) {
+        function initFaviconObserver() {
             document.querySelectorAll('img.lazy-icon').forEach(img => {
                 if (img.complete && img.naturalWidth > 0) {
                     img.classList.add('loaded');
@@ -7234,14 +7236,20 @@
                 }
             }
 
+            let cachedThemeColorMeta = null;
             function updateThemeColor(color) {
                 if (!color) return;
-                let meta = document.querySelector('meta[name="theme-color"]');
-                if (meta) meta.remove();
-                meta = document.createElement('meta');
-                meta.name = 'theme-color';
-                meta.content = color;
-                document.head.appendChild(meta);
+                if (!cachedThemeColorMeta || !cachedThemeColorMeta.parentNode) {
+                    cachedThemeColorMeta = document.querySelector('meta[name="theme-color"]');
+                    if (!cachedThemeColorMeta) {
+                        cachedThemeColorMeta = document.createElement('meta');
+                        cachedThemeColorMeta.name = 'theme-color';
+                        document.head.appendChild(cachedThemeColorMeta);
+                    }
+                }
+                if (cachedThemeColorMeta.content !== color) {
+                    cachedThemeColorMeta.content = color;
+                }
             }
 
             let transitionTimer = null;
@@ -7360,8 +7368,8 @@
 
                 // 首次触发切屏时持久化并优雅淡出下滑提示
                 try {
-                    if (!localStorage.getItem(CONFIG.KEYS.NAV_DISCOVERED)) {
-                        localStorage.setItem(CONFIG.KEYS.NAV_DISCOVERED, '1');
+                    if (!storageGet(CONFIG.KEYS.NAV_DISCOVERED)) {
+                        storageSet(CONFIG.KEYS.NAV_DISCOVERED, 1);
                         const hint = dom.scrollDownHint;
                         if (hint) {
                             hint.style.transition = 'opacity 0.6s ease';
@@ -7750,21 +7758,23 @@
                     rafId = null;
                 }
 
+                function setActiveCardAndSchedule(card, e) {
+                    if (activeCard !== card) {
+                        if (activeCard) resetActiveCard();
+                        activeCard = card;
+                        activeCardRect = card.getBoundingClientRect();
+                        activeCard.style.transition = 'transform 0.08s ease-out, background-color 0.32s ease, border-color 0.32s ease, box-shadow 0.38s cubic-bezier(0.2, 0.9, 0.2, 1)';
+                    }
+                    pendingEvent = e;
+                    if (!rafId) {
+                        rafId = requestAnimationFrame(updateCardTransform);
+                    }
+                }
+
                 document.addEventListener('pointerdown', (e) => {
-                    const target = e.target;
-                    if (!target) return;
-                    const card = target.closest('.nav-bookmark');
+                    const card = e.target?.closest?.('.nav-bookmark');
                     if (card) {
-                        if (activeCard !== card) {
-                            if (activeCard) resetActiveCard();
-                            activeCard = card;
-                            activeCardRect = card.getBoundingClientRect();
-                            activeCard.style.transition = 'transform 0.08s ease-out, background-color 0.32s ease, border-color 0.32s ease, box-shadow 0.38s cubic-bezier(0.2, 0.9, 0.2, 1)';
-                        }
-                        pendingEvent = e;
-                        if (!rafId) {
-                            rafId = requestAnimationFrame(updateCardTransform);
-                        }
+                        setActiveCardAndSchedule(card, e);
                     }
                 }, { passive: true });
 
@@ -7778,21 +7788,9 @@
                 }, { passive: true });
 
                 document.addEventListener('mousemove', (e) => {
-                    const target = e.target;
-                    if (!target) return;
-
-                    const card = target.closest('.nav-bookmark');
+                    const card = e.target?.closest?.('.nav-bookmark');
                     if (card) {
-                        if (activeCard !== card) {
-                            if (activeCard) resetActiveCard();
-                            activeCard = card;
-                            activeCardRect = card.getBoundingClientRect();
-                            activeCard.style.transition = 'transform 0.08s ease-out, background-color 0.32s ease, border-color 0.32s ease, box-shadow 0.38s cubic-bezier(0.2, 0.9, 0.2, 1)';
-                        }
-                        pendingEvent = e;
-                        if (!rafId) {
-                            rafId = requestAnimationFrame(updateCardTransform);
-                        }
+                        setActiveCardAndSchedule(card, e);
                     } else if (activeCard) {
                         resetActiveCard();
                     }
@@ -7825,7 +7823,6 @@
                 }, { passive: true });
                 window.addEventListener('pageshow', () => {
                     resetActiveCard();
-                    resetActiveSearchBox();
                 }, { passive: true });
             })();
         }
