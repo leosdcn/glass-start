@@ -159,7 +159,7 @@
       })();
 
       if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
-      try{sessionStorage.getItem('startpage_section')==='nav'&&document.documentElement.classList.add('nr')}catch(e){}
+      try{sessionStorage.getItem('startpage_section')==='nav'&&document.documentElement.classList.add('nr');setTimeout(function(){document.documentElement.classList.remove('nr')},1500);}catch(e){}
       try{
         const rawEngine = localStorage.getItem('preferredEngine');
         if (rawEngine) {
@@ -198,6 +198,7 @@
         :root {
             color-scheme: dark;
             --bg-base: #0f172a;
+            --bg-start: #0b0f19;
             --danger: 239 68 68;
             --glass-bg: rgba(255, 255, 255, 0.08);
             --glass-border: rgba(255, 255, 255, 0.15);
@@ -4636,7 +4637,14 @@
             applyBgEffects(savedOpacity, savedBlur);
             preloadNextBg();
             preloadFavicons();
-            if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => {});
+            if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+                navigator.serviceWorker.register('sw.js').catch(() => {});
+                navigator.serviceWorker.addEventListener('controllerchange', () => {
+                    if (typeof window.reconcileScreenState === 'function') {
+                        window.reconcileScreenState(undefined, true);
+                    }
+                });
+            }
             
             const scheduleIdleTask = (fn, fallbackDelay = 1500) => {
                 if ('requestIdleCallback' in window) {
@@ -7348,6 +7356,10 @@
                     initFaviconObserver();
                 } else {
                     if (startSection) {
+                        // 🛡️ WebKit BFCache 图层重栅格化防御：强制触发合成层重绘，解决离屏 fixed 图层磁贴丢失导致的白屏 bug
+                        startSection.style.willChange = 'auto';
+                        void startSection.offsetHeight;
+                        startSection.style.willChange = 'transform';
                         startSection.classList.remove('screen-pushed-up');
                     }
                     if (nav) {
@@ -7424,13 +7436,14 @@
 
                 transitionTimer = setTimeout(() => {
                     transitionTimer = null;
-                    state.currentSection = 'nav';
-                    isTransitioning = false;
-                    lastTransitionEndTime = performance.now();
-                    clearAccum();
-                    window.scrollTo(0, 0);
-                    if (document.activeElement && typeof document.activeElement.blur === 'function') {
-                        document.activeElement.blur();
+                    if (state.currentSection === 'nav') {
+                        isTransitioning = false;
+                        lastTransitionEndTime = performance.now();
+                        clearAccum();
+                        window.scrollTo(0, 0);
+                        if (document.activeElement && typeof document.activeElement.blur === 'function') {
+                            document.activeElement.blur();
+                        }
                     }
                 }, CONFIG.GESTURE.TRANSITION_MS);
             }
@@ -7458,6 +7471,10 @@
                 if (startSection) {
                     startSection.style.transform = '';
                     startSection.style.transition = '';
+                    // 🛡️ WebKit BFCache 图层重栅格化防御：强制触发合成层重绘，解决离屏 fixed 图层磁贴丢失导致的白屏 bug
+                    startSection.style.willChange = 'auto';
+                    void startSection.offsetHeight;
+                    startSection.style.willChange = 'transform';
                     startSection.classList.remove('screen-pushed-up');
                 }
                 if (nav) {
@@ -7663,16 +7680,20 @@
             // ===== 全局页面生命周期与多标签/BFCache 唤醒自愈闭环 (全设备通用，不依赖 hover/motion 硬件特征) =====
             const handleAppWakeUp = () => {
                 updateClock();
-                // 1. 清除所有点击按压态与悬停残留
+                // 1. 清除所有点击按压态、悬停残留与标签页失焦态
+                document.body.classList.remove('tab-blurred');
                 document.querySelectorAll('.is-clicked').forEach(el => el.classList.remove('is-clicked'));
                 // 2. 清理所有瞬态入场动画与脉冲类名，彻底杜绝 WebKit 从 BFCache 唤醒时重估 CSS 动画回滚至初始帧
                 document.querySelectorAll('.fade-in, .animate-item-in, .category-title-pulse').forEach(el => {
                     el.classList.remove('fade-in', 'animate-item-in', 'category-title-pulse');
                 });
-                // 3. 清理拖拽锁与旋转态图标
+                // 3. 清理拖拽锁与旋转态图标，复位 3D 悬浮高光
                 document.body.classList.remove('bookmark-dragging');
                 document.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
                 if (dom.randomBookmarkBtn) dom.randomBookmarkBtn.classList.remove('rolling');
+                if (typeof window.resetActiveTiltCard === 'function') {
+                    window.resetActiveTiltCard();
+                }
                 // 4. 解除多余焦点锁定
                 if (document.activeElement && typeof document.activeElement.blur === 'function' && document.activeElement !== document.body && document.activeElement !== dom.searchInput) {
                     document.activeElement.blur();
@@ -7680,6 +7701,18 @@
                 // 5. 幂等校准双屏状态机与 DOM 样式
                 if (typeof window.reconcileScreenState === 'function') {
                     window.reconcileScreenState(undefined, true);
+                }
+                // 6. 后台静默检查 Service Worker 差量版本更新
+                if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+                    navigator.serviceWorker.getRegistration().then(reg => {
+                        if (reg) reg.update().catch(() => {});
+                    }).catch(() => {});
+                }
+                // 7. 🛡️ 强制刷新 WebKit 合成层磁贴 (BFCache Tile Invalidation Guard)
+                if (dom.startSection) {
+                    dom.startSection.style.willChange = 'auto';
+                    void dom.startSection.offsetHeight;
+                    dom.startSection.style.willChange = 'transform';
                 }
             };
 

@@ -260,7 +260,7 @@ flowchart LR
         subgraph P1 [" 1. CORE_CACHE (app-core-v*) "]
             C_HTML["主文档 HTML (Network-First)<br/>index.html / '/'"]
             C_DATA["静态数据 (Stale-While-Revalidate)<br/>manifest.json / bookmarks.json"]
-            C_STATIC["核心静态脚本 (Cache-First)<br/>app.js / 本地壁纸 (排除 sw.js)"]
+            C_STATIC["核心静态脚本 (Network-First)<br/>app.js / 本地壁纸 (排除 sw.js)"]
         end
 
         subgraph P2 [" 2. FAVICON_CACHE (app-favicons-v1) "]
@@ -313,8 +313,8 @@ flowchart LR
 ```
 
 #### 💡 技术原理解析
-1. **三池物理隔离与版本受控**：
-   - `CORE_CACHE`：打包时基于构建时间戳命名（如 `app-core-v1786255428688`），包含全站运行所需的 HTML/JS/JSON，更新时激活阶段自动彻底销毁旧版本池。
+1. **三池物理隔离与版本强同调 (Version Lockstep)**：
+   - `CORE_CACHE`：打包时基于构建时间戳命名（如 `app-core-v1786255428688`），主文档 `index.html` 与同源脚本 `app.js` 统一采用 **Network-First** 策略，并由构建管线自动在 HTML 注入 `app.js?v=app-core-v<timestamp>` 版本查询参数。确保每次版本迭代时 HTML 结构与 JS 逻辑 100% 同步拉取与执行，彻底杜绝“旧 JS 执行于新 HTML”导致的切屏/BFCache 白屏死锁；离线时则平滑降级读取 `CORE_CACHE` 保障 100% 离线可用。
    - `FAVICON_CACHE`：独立存储 `a.favicon.im` 外部图标，与核心脚本完全隔离，防止外部网络动荡影响核心预缓存。
    - `IMG_CACHE`：独立存储站内高分辨率壁纸与图片，通过 Cache-First 策略减少重复带宽消耗。
 2. **防透明响应污染 (Anti-Opaque Poisoning)**：请求跨域图标时产生 `status = 0` 的 `opaque` 响应。若直接缓存可能存入被 DNS 劫持或损坏的数据。系统引入二次网络校验与 4 秒超时熔断（`AbortController`），确保仅有合法的 `opaque` 或 `200 OK` 响应才被允许写入，并由轻量 `pruneCache` 原生实现先进先出（FIFO）淘汰，杜绝 IndexedDB 膨胀与崩溃隐患。

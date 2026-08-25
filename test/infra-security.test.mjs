@@ -100,10 +100,13 @@ for (const asset of distAssets) {
 }
 const validAssets = missingAssets.length === 0 && !distAssets.includes('./icon.svg') && !distAssets.includes('./manifest.json') && distAssets.includes('./index.html');
 const validInstall = distSw.includes('cache.add(') && distSw.includes('.catch(() => {}))') && !/cache\.addAll\s*\(/.test(distSw);
+const validStrategy = distSw.includes('isCoreStaticAsset') && distSw.includes('fetch(e.request).then(');
+const distIndexContent = existsSync(join(DIST, 'index.html')) ? readFileSync(join(DIST, 'index.html'), 'utf-8') : '';
+const validScriptVersion = /<script\s+src=["']\.\/app\.js\?v=app-core-v\d+["']\s+defer><\/script>/.test(distIndexContent);
 
-pass('Service Worker 核心预缓存清单与容错安装 (CORE_ASSETS真实存在/逐项reload容错)',
-  validAssets && validInstall,
-  `包含 ${distAssets.length} 项有效资源，容错机制完备`);
+pass('Service Worker 核心预缓存清单与容错安装 (CORE_ASSETS真实存在/逐项reload容错/Network-First与版本对齐)',
+  validAssets && validInstall && validStrategy && validScriptVersion,
+  `包含 ${distAssets.length} 项有效资源，Network-First 策略与版本参数 100% 对齐`);
 
 // ══════════════════════════════════════════════════════════════════════
 // 3. Service Worker 内存池 FIFO 自动限额淘汰与防污染

@@ -152,7 +152,7 @@ node test/visual-regression.mjs
 | **弹窗与覆盖层** | `Lines 1520~3040, 3137~4600` | `OverlayStack.push()`, `OverlayStack.pop()`, `openEditModal()` | **[图 3](./ARCHITECTURE.md#3--overlaystack-多层弹窗层叠栈与-escape-统一退栈决策-overlaystack--modal-flow)**：`OverlayStack` LIFO 栈模型、Focus Trap 焦点锁定 |
 | **搜索联想与气象演化** | `Lines 6100~7200` | `fetchSuggestions()`, `initWeather()`, `weatherNum()` | **[图 5](./ARCHITECTURE.md#5--智能搜索三级模糊匹配与气象-9-阶动态演化决策-search--weather-decision-engine)**：搜索联想防竞态、零 CLS 骨架、9 阶气象形态 |
 | **双屏切换与 BFCache** | `Lines 7200~7600` | `switchToNav()`, `switchToStart()`, `reconcileScreenState()` | **[图 2](./ARCHITECTURE.md#2--双屏切屏状态机手势与-bfcache-全生命周期流转-screen-state--bfcache-lifecycle)**：双屏状态机、纯内存自愈器、滚轮动量吞咽 |
-| **离线与缓存底座** | `sw.js` (全量 267 行) | `CORE_CACHE`, `FAVICON_CACHE`, `IMG_CACHE` | **[图 4](./ARCHITECTURE.md#4--service-worker-三池隔离与离线数据流向-storage--cache-topology)**：三池物理隔离、FIFO 限额淘汰 |
+| **离线与缓存底座** | `sw.js` (全量 263 行) | `CORE_CACHE`, `FAVICON_CACHE`, `IMG_CACHE` | **[图 4](./ARCHITECTURE.md#4--service-worker-三池隔离与离线数据流向-storage--cache-topology)**：三池物理隔离、FIFO 限额淘汰 |
 
 ---
 
@@ -170,10 +170,13 @@ node test/visual-regression.mjs
    - 气象数据入库必须经过 `weatherNum()` 强制数值化清洗；
    - 外部搜索联想必须配备 `activeSuggestReqId` 防竞态乱序。
 4. **防 BFCache 与生命周期失步 4 大暗坑 (BFCache & Lifecycle State Machine Guards)**：
-   - **坑点 1：类名语义污染** ➔ 严禁将布局推屏类（如 `.nr`）误作通用动画禁用类；任何切屏/自愈入口必须首行同步 `classList.remove('nr')`；
+   - **坑点 1：类名语义污染** ➔ 严禁将布局推屏类（如 `.nr`）误作通用动画禁用类；任何切屏/自愈入口必须首行同步 `classList.remove('nr')`，并在 `<head>` 中配备 1.5s 超时防卡死兜底；
    - **坑点 2：异步跨帧竞态** ➔ 严禁使用 `el.style.transition = 'none'` + `rAF` 清理的异步反模式（后台标签页会冻结 `rAF`）；全量收敛至声明式 CSS 状态类并由 `reconcileScreenState()` 同步清空内联脏样式；
-   - **坑点 3：生命周期模型割裂** ➔ 唤醒自愈必须同时挂载 `visibilitychange`（多标签页切回）与 `pageshow`（BFCache 后退）双通道，统一收敛至 `handleAppWakeUp()`；
+   - **坑点 3：生命周期模型割裂** ➔ 唤醒自愈必须同时挂载 `visibilitychange`（多标签页切回）与 `pageshow`（BFCache 后退）双通道，统一收敛至 `handleAppWakeUp()`，并同步触发 SW 差量更新探活；
    - **坑点 4：CSS 动画时间穿越** ➔ 带有 `animation-fill-mode: backwards` 的入场动画类（如 `.fade-in`、`.animate-item-in`、`.category-title-pulse`）播放完后必须立即卸载（通过 `animationend` 或定时器脱壳），防止 WebKit 从 BFCache 唤醒时重置动画导致永久回滚至 `opacity:0`。
+5. **防 Service Worker 跨版本缓存割裂 (SW Version Lockstep Guard)**：
+   - **铁律**：主文档 `index.html` 与同源核心脚本 `app.js` 必须 100% 保持同调的 **Network-First** 策略；
+   - **构建防穿透**：生产环境构建时必须为 `app.js` 自动注入版本查询参数（`?v=app-core-v<timestamp>`），彻底击穿旧版 SW 缓存池残留，根绝“HTML 是新版但 JS 执行旧版”的跨版本白屏死锁。
 
 ---
 

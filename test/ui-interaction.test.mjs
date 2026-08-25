@@ -239,9 +239,60 @@ const hoverGatingTest = await evalJS(`(() => {
 })()`);
 const hoverGatingOk = hoverGatingTest.ok;
 
-pass('sessionStorage 刷新保持、BFCache 自愈、Command 后台防迟滞及返回不动鼠标防残留', 
-  restored === true && startRestoredValid && bfCacheHealed && bookmarkTactileOk && hoverGatingOk,
-  `restored=${restored}, startRestored=${startRestoredValid}, bfCacheHealed=${bfCacheHealed}, bookmarkTactile=${bookmarkTactileOk}, hoverGating=${hoverGatingOk}`);
+// 4.5 模拟“导航页点击标签跳出 -> 外部页面唤醒/切回 -> 滚轮切回首屏”全链路自愈与防白屏深度校验
+await evalJS('window.switchToNav()'); await sleep(650);
+const navJumpBackTest = await evalJS(`(async () => {
+  const navBm = document.querySelector('.nav-bookmark');
+  if (!navBm) return { ok: false, reason: 'no-nav-bm' };
+  
+  // 1. 模拟在导航页点击书签标签跳转外部站点
+  navBm.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, button: 0 }));
+  window.dispatchEvent(new Event('blur'));
+  window.dispatchEvent(new Event('pagehide'));
+  
+  // 2. 模拟从外部站点返回（多标签切回 / BFCache 恢复）
+  window.dispatchEvent(new Event('focus'));
+  window.dispatchEvent(new Event('pageshow'));
+  document.dispatchEvent(new Event('visibilitychange'));
+  
+  // 3. 用户在导航页顶端向上滚动切回起始页
+  document.getElementById('navContent').scrollTop = 0;
+  document.dispatchEvent(new WheelEvent('wheel', { deltaY: -60, cancelable: true }));
+  await new Promise(r => setTimeout(r, 30));
+  document.dispatchEvent(new WheelEvent('wheel', { deltaY: -60, cancelable: true }));
+  await new Promise(r => setTimeout(r, 650));
+  
+  const s = document.getElementById('startSection');
+  const n = document.getElementById('navSection');
+  const clock = document.getElementById('clock');
+  const search = document.getElementById('searchInput');
+  const weather = document.getElementById('weatherWidget');
+  const gear = document.getElementById('editBookmarksBtn');
+  const bms = document.querySelectorAll('.bookmark-item');
+  const sRect = s ? s.getBoundingClientRect() : null;
+  const sTransform = s ? getComputedStyle(s).transform : '';
+  const isScaleNormal = !sTransform || sTransform === 'none' || sTransform === 'matrix(1, 0, 0, 1, 0, 0)';
+  
+  return {
+    ok: sRect && sRect.top === 0 && sRect.height > 0 && isScaleNormal
+      && s.getAttribute('aria-hidden') !== 'true'
+      && n.classList.contains('nav-hidden')
+      && !document.documentElement.classList.contains('nr')
+      && !!clock && clock.offsetWidth > 0
+      && !!search && search.offsetWidth > 0
+      && !!weather
+      && bms.length > 0
+      && (!gear || !gear.classList.contains('hidden-on-nav')),
+    sTop: sRect ? sRect.top : -999,
+    bmCount: bms.length,
+    isScaleNormal
+  };
+})()`);
+const navJumpBackOk = navJumpBackTest.ok;
+
+pass('sessionStorage 刷新保持、BFCache 自愈、导航页跳出返回滚动防白屏及无残留', 
+  restored === true && startRestoredValid && bfCacheHealed && bookmarkTactileOk && hoverGatingOk && navJumpBackOk,
+  `restored=${restored}, startRestored=${startRestoredValid}, bfCacheHealed=${bfCacheHealed}, bookmarkTactile=${bookmarkTactileOk}, hoverGating=${hoverGatingOk}, navJumpBack=${navJumpBackOk}`);
 
 // ══════════════════════════════════════════════════════════════════════
 // 5. 搜索联想键盘选中项保持与 Escape 优雅清退

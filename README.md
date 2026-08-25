@@ -356,18 +356,18 @@ glass-start/
 
 | 缓存层级 | 技术实现 | 作用目标与缓存对象 | 缓存策略 / 容量限制 | 失效与清理机制 |
 | :--- | :--- | :--- | :--- | :--- |
-| **Service Worker 离线网络层** | `sw.js` (CacheStorage API) | `a.favicon.im` 图标、`.ico` 静态图标、`index.html` 等 | 图标: `Cache-First` (三池隔离: Favicon 800条 / 本地图片 200条)<br>核心: `Network-First` | `npm run build` 自动更新版本号 `app-core-v<timestamp>` 强制清除旧缓存，原生 FIFO 容量限额自动淘汰 |
+| **Service Worker 离线网络层** | `sw.js` (CacheStorage API) | `a.favicon.im` 图标、`.ico` 静态图标、`index.html`、`app.js` 等 | 图标: `Cache-First` (三池隔离: Favicon 800条 / 本地图片 200条)<br>核心程序(HTML/JS): `Network-First` | `npm run build` 自动更新版本号 `app-core-v<timestamp>` 与 `app.js?v=...` 防缓存割裂，原生 FIFO 容量限额自动淘汰 |
 | **天气与定位数据缓存层** | `LocalStorage` (`glass_weather_*`) | 实时温度、4天预报、城市与省市区经纬度坐标 | 天气数据: 15 分钟 TTL<br>地理定位: 24 小时 TTL | 黄金节流平衡点，弹窗右上角「🔄」刷新按钮支持 100% 穿透强制即时刷新 |
 | **持久化偏好存储层** | `LocalStorage` | 默认引擎、遮罩透明度、模糊度、自定义书签、壁纸偏好 | key-value / 容量上限 ~5MB | 用户手动点击「重置系统设置」或浏览器清除 Cookie |
 | **高清大图存储层** | `IndexedDB` (`GlassStartDB`) | 4K 高清自定义上传壁纸 (`wallpapers` 表) | 3840x2160 JPEG Base64 / 容量 50MB~数百MB | 彻底打破 LocalStorage 5MB 上限，随重置系统操作清空 |
-| **会话状态防闪烁层** | `SessionStorage` + `<head>` 脚本 | 页面屏间位置 (`startpage_section`: `start` / `nav`) | 仅在当前会话生命周期内有效 | 渲染前 Head 内联脚本检测并同步添加 `.nr` 类，防止刷新首屏闪烁 |
+| **会话状态防闪烁层** | `SessionStorage` + `<head>` 脚本 | 页面屏间位置 (`startpage_section`: `start` / `nav`) | 仅在当前会话生命周期内有效 | 渲染前 Head 内联脚本检测并同步添加 `.nr` 类 (带1.5s自愈兜底)，防止刷新首屏闪烁 |
 | **运行时内存缓存层** | JS 全局变量 (`dom` / 侧边栏 Cache) | 68 个常用 DOM 节点引用、导航分类与 Section 映射 | 内存映射，零 DOM 树二次查询开销 | 页面卸载或重新载入时自动释放与重新建立 |
 | **静态回退与离线数据层** | HTML 内联 `DEFAULT_*` 数组 | `bookmarks.json` 最新镜像数据 | 内存直接加载 / 零 HTTP 请求开销 | `npm run build` 时通过 `scripts/build.js` 自动双向同步 `bookmarks.json` 数据 |
 
 #### ⚡ 核心缓存与防闪烁机制详解
 
 * **Service Worker 三池隔离与 FIFO 限额淘汰 (`sw.js`)**：
-  - `CORE_CACHE`：存放 HTML/CSS/JSON 等核心程序资源。
+  - `CORE_CACHE`：存放 HTML/JS/CSS/JSON 等核心程序资源，采用 Network-First 与版本查询参数强同调策略。
   - `FAVICON_CACHE`：`a.favicon.im` 外部图标专用池（配额上限 **800 条**）。
   - `IMG_CACHE`：站内本地图片及 `.ico` 资源池（配额上限 **200 条**）。
   - 核心优势：图标作为导航站核心功能享有独立高额配额，且不会被本地大图挤占。

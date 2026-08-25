@@ -86,6 +86,9 @@ const PATHS = {
     headers: path.join(ROOT_DIR, '_headers')
 };
 
+// 生产构建全链路统一版本戳（用于 Service Worker 缓存池与 HTML 外链脚本防穿透对齐）
+let currentBuildVersion = 'app-core-v' + Date.now();
+
 // 顶层 JS 变量正则替换工具函数
 function safeReplaceJsVariable(code, varName, replacementJs) {
     const regex = new RegExp(`(?:export\\s+)?(?:const|let|var)\\s+${varName}(?:\\s*:\\s*[^=]+)?\\s*=\\s*\\[[\\s\\S]*?\\];`);
@@ -219,10 +222,9 @@ function buildServiceWorkerAndAssets() {
     // 3.1 Service Worker
     if (fs.existsSync(PATHS.sw)) {
         let swContent = fs.readFileSync(PATHS.sw, 'utf-8');
-        const timestampVersion = 'app-core-v' + Date.now();
-        swContent = swContent.replace(/const\s+(CORE_CACHE|CACHE)\s*=\s*['"][^'"]+['"];/, `const CORE_CACHE = '${timestampVersion}';`);
+        swContent = swContent.replace(/const\s+(CORE_CACHE|CACHE)\s*=\s*['"][^'"]+['"];/, `const CORE_CACHE = '${currentBuildVersion}';`);
         fs.writeFileSync(path.join(PATHS.dist, 'sw.js'), swContent, 'utf-8');
-        logItem(`Service Worker 缓存版本已更新: ${c.cyan}${timestampVersion}${c.reset}`);
+        logItem(`Service Worker 缓存版本已更新: ${c.cyan}${currentBuildVersion}${c.reset}`);
     }
 
     // 3.2 静态资产同步
@@ -337,10 +339,10 @@ function processProductionHtml() {
     logSection('5/5', '🔧 处理生产环境页面 (dist/index.html)');
     let prodHtmlContent = fs.readFileSync(PATHS.indexHtml, 'utf-8');
 
-    // 5.0 将 index.html 中的 <script id="main-script"> 替换为外链 <script src="./app.js" defer></script>
+    // 5.0 将 index.html 中的 <script id="main-script"> 替换为带版本参数的外链 <script src="./app.js?v=..." defer></script>
     prodHtmlContent = prodHtmlContent.replace(
         /<script\s+id="main-script"[^>]*>[\s\S]*?<\/script>/i,
-        '<script src="./app.js" defer></script>'
+        `<script src="./app.js?v=${currentBuildVersion}" defer></script>`
     );
 
     const distCssPath = path.join(PATHS.dist, 'style.css');

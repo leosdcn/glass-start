@@ -10,9 +10,8 @@
  *    使用高效轻量的原生 CacheStorage 限额自动淘汰机制 (pruneCache)，淘汰重度 IDB 依赖，杜绝缓存无限膨胀。
  * 3. 【严密边界防护】：
  *    核心 assets 预缓存吞掉单项失败，主导航 Network-First 追加统一 503 兜底页面。
- * 4. 【修复同源 JS/CSS 静态资源缓存漏洞】：
- *    原 fetch handler 仅处理主文档/JSON数据/图标/图片四类，app.js 等同源脚本穿透 SW 走浏览器 HTTP 缓存，
- *    install 预缓存形同虚设、离线不可用。新增 isCoreStaticAsset 分支实现 Cache-First，使预缓存真正生效。
+ * 4. 【同源 JS/CSS 静态资源 Network-First 策略与版本防割裂】：
+ *    app.js 等同源脚本采用 Network-First（联网时拉取最新代码并刷新 CORE_CACHE，离线时降级从 CORE_CACHE 读取），彻底杜绝与主文档 index.html 产生跨版本缓存割裂。
  */
 
 // 缓存池定义（打包 build.js 时自动替换 CORE_CACHE 为时间戳版本）
@@ -153,30 +152,26 @@ self.addEventListener('fetch', e => {
         return;
     }
 
-    // 3. 同源 JS/CSS 静态资源 Cache-First 策略
-    //    app.js 等同源脚本由 install 阶段预缓存写入 CORE_CACHE，fetch 时直接从缓存服务。
+    // 3. 同源 JS/CSS 静态资源 Network-First 策略 (彻底杜绝 HTML 与 app.js 跨版本缓存割裂)
+    //    app.js 等同源脚本优先拉取服务端最新版本并同步更新 CORE_CACHE；
+    //    网络异常或离线时，平滑降级从 CORE_CACHE 读取以保障 100% 离线可用；离线且无缓存时返回 503。
     //    显式排除 sw.js 自身，确保 Service Worker 脚本更新机制不受拦截干扰。
-    //    缓存未命中（极罕见，install 失败时兜底）时回退网络；离线且无缓存时返回 503。
     const isCoreStaticAsset = urlObj.origin === self.location.origin
         && (pathnameLower.endsWith('.js') || pathnameLower.endsWith('.css'))
         && !pathnameLower.endsWith('/sw.js');
 
     if (isCoreStaticAsset) {
         e.respondWith(
-            caches.open(CORE_CACHE).then(async cache => {
-                const cached = await cache.match(e.request);
-                if (cached) return cached;
-
-                // 缓存未命中时回退网络（install 预缓存失败的兜底路径）
-                try {
-                    const netRes = await fetch(e.request);
-                    if (netRes.ok) {
-                        cache.put(e.request, netRes.clone()).catch(() => {});
-                    }
-                    return netRes;
-                } catch {
-                    return make503Response();
+            fetch(e.request).then(netRes => {
+                if (netRes.ok) {
+                    const resClone = netRes.clone();
+                    caches.open(CORE_CACHE).then(cache => cache.put(e.request, resClone)).catch(() => {});
                 }
+                return netRes;
+            }).catch(async () => {
+                const cached = (await caches.match(e.request)) || (await caches.match(e.request, { ignoreSearch: true })) || (await caches.match('./app.js'));
+                if (cached) return cached;
+                return make503Response();
             })
         );
         return;
