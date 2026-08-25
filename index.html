@@ -1318,32 +1318,20 @@
         .suggestion-item.active svg {
             color: rgba(255, 255, 255, 0.95);
         }
-        /* 搜索提示框底部操作指引栏 */
-        .suggestion-footer {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0.625rem 0.875rem 0.5rem 0.875rem;
-            margin-top: 0.625rem;
-            border-top: 1px solid rgba(255, 255, 255, 0.06);
-            font-size: 0.6875rem;  /* 11px @ 16px base */
-            color: rgba(255, 255, 255, 0.45);
-            user-select: none;
-            line-height: 1;
+        /* 搜索提示框分组标题：与导航页一致的向右渐隐微光底边 */
+        .suggestion-section-header {
+            position: relative;
         }
-        .kbd-key {
-            padding: 0.125rem 0.375rem;
-            border-radius: 0.25rem;
-            background: rgba(255, 255, 255, 0.12);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-bottom: 2px solid rgba(255, 255, 255, 0.35);
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.25);
-            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-            font-size: 0.625rem;  /* 10px @ 16px base */
-            color: rgba(255, 255, 255, 0.85);
-            line-height: 1;
-            display: inline-block;
-            text-shadow: 0 1px 1px rgba(0, 0, 0, 0.4);
+        .suggestion-section-header::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(to right, rgba(255, 255, 255, 0.45) 0%, rgba(255, 255, 255, 0.12) 35%, transparent 100%);
+            opacity: 0.35;
+            pointer-events: none;
         }
         /* ===== 自定义重置确认弹窗（精细化 iOS/macOS 玻璃规范） ===== */
         .confirm-dialog-card {
@@ -6282,7 +6270,7 @@
             let globalIdx = 0;
 
             const renderSectionHeader = (title, isFirst = false) => `
-                <div class="mx-3.5 px-0 ${isFirst ? 'pt-1.5' : 'pt-2'} pb-1 mb-1 border-b border-white/10 text-2xs font-medium tracking-wider text-white/35 uppercase select-none">
+                <div class="suggestion-section-header mx-3.5 px-0 ${isFirst ? 'pt-1.5' : 'pt-2'} pb-1.5 mb-1 text-2xs font-medium tracking-wider text-white/40 uppercase select-none">
                     <span class="inline-block pb-0.5">${title}</span>
                 </div>
             `;
@@ -6353,18 +6341,8 @@
                 }
             }
 
-            const footerHtml = `
-                <div class="suggestion-footer">
-                    <div class="flex items-center gap-3">
-                        <span class="flex items-center gap-1.5"><kbd class="kbd-key">↑</kbd><kbd class="kbd-key">↓</kbd> 切换</span>
-                        <span class="flex items-center gap-1.5"><kbd class="kbd-key">↵</kbd> 选择/搜索</span>
-                    </div>
-                    <span class="flex items-center gap-1.5"><kbd class="kbd-key">${KBD.newTab}</kbd> 新标签页打开</span>
-                </div>
-            `;
-
             const range = document.createRange();
-            const fragment = range.createContextualFragment(html + footerHtml);
+            const fragment = range.createContextualFragment(html);
             dom.suggestionMenu.replaceChildren(fragment);
             dom.suggestionMenu.classList.add('active');
             dom.suggestionMenu.setAttribute('aria-hidden', 'false');
