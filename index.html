@@ -755,14 +755,30 @@
             user-select: none;
         }
 
-        /* 点击侧边栏跳转时的目标分类标题底线柔和发光提醒 */
-        .category-title-pulse {
-            animation: catTitlePulse 1.1s cubic-bezier(0.16, 1, 0.3, 1);
+        /* 导航页分类标题与优雅向右渐隐微光底边 */
+        .category-header {
+            position: relative;
         }
-        @keyframes catTitlePulse {
-            0% { border-bottom-color: rgba(255, 255, 255, 0.55); }
-            60% { border-bottom-color: rgba(255, 255, 255, 0.55); }
-            100% { border-bottom-color: rgba(255, 255, 255, 0.1); }
+        .category-header::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(to right, rgba(255, 255, 255, 0.65) 0%, rgba(255, 255, 255, 0.2) 45%, transparent 100%);
+            opacity: 0.28;
+            pointer-events: none;
+        }
+
+        /* 点击侧边栏跳转时的目标分类底线微光脉冲提醒（纯 GPU Opacity 逐帧平滑渐隐） */
+        .category-title-pulse::after {
+            animation: catLinePulse 1.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+        @keyframes catLinePulse {
+            0%   { opacity: 1; }
+            35%  { opacity: 1; }
+            100% { opacity: 0.28; }
         }
 
         .scroll-hint, .scroll-up-hint {
@@ -4856,7 +4872,7 @@
                 return `
                 <div id="cat-${i}" role="tabpanel" aria-labelledby="cat-tab-${i}" class="category-block ${i > 0 ? 'scroll-mt-6' : ''}">
                     <!-- Apple 极简原生分类标题 (清爽无异形圆角框) -->
-                    <div class="category-header flex items-center justify-between pb-2 mb-3.5 border-b border-white/10 transition-colors duration-300 select-none">
+                    <div class="category-header flex items-center justify-between pb-2.5 mb-3.5 transition-colors duration-300 select-none">
                         <div class="flex items-center gap-2 select-none">
                             <span class="text-sm sm:text-base shrink-0 select-none">${escapeHtml(cat.icon)}</span>
                             <h3 class="text-xs sm:text-sm font-semibold tracking-wide text-white/90 select-none">${escapeHtml(cat.name)}</h3>
