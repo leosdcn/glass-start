@@ -1,6 +1,6 @@
 {
   "name": "glass-start",
-  "version": "3.7.0",
+  "version": "3.7.1",
   "description": "Glass Start — 现代化玻璃拟态新标签页与分类导航",
   "main": "index.html",
   "scripts": {
