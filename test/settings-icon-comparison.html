@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>设置弹窗图标升级示范：Emoji 现行 vs 纯白毛玻璃矢量线框方案</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+            background: #090d16 radial-gradient(circle at 20% 20%, #1e1b4b 0%, #0f172a 45%, #030712 100%);
+            background-image: radial-gradient(circle at 10% 10%, rgba(99, 102, 241, 0.3) 0%, transparent 45%),
+                              radial-gradient(circle at 90% 85%, rgba(14, 165, 233, 0.25) 0%, transparent 45%),
+                              url('../wallpapers/bg1.avif');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            min-height: 100vh;
+            color: #fff;
+            padding: 2rem 1.5rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            max-width: 1380px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        /* 顶部 Header */
+        .header {
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.35rem 0.85rem;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 9999px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            backdrop-filter: blur(12px);
+        }
+        h1 {
+            font-size: 1.85rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 50%, #94a3b8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        p.subtitle {
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.7);
+            max-width: 720px;
+            line-height: 1.5;
+        }
+
+        /* 交互控制栏 */
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 1rem;
+            padding: 0.75rem 1.25rem;
+        }
+        .pill-group {
+            display: flex;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 0.6rem;
+            padding: 0.2rem;
+            gap: 0.2rem;
+        }
+        .pill-btn {
+            background: transparent;
+            border: none;
+            color: rgba(255, 255, 255, 0.6);
+            padding: 0.4rem 0.85rem;
+            font-size: 0.82rem;
+            font-weight: 500;
+            border-radius: 0.45rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .pill-btn:hover {
+            color: #fff;
+            background: rgba(255, 255, 255, 0.08);
+        }
+        .pill-btn.active {
+            background: rgba(255, 255, 255, 0.2);
+            color: #fff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+        }
+
+        /* 布局模式容器 */
+        .workspace {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            align-items: start;
+        }
+        .workspace.single-mode {
+            grid-template-columns: minmax(0, 860px);
+            justify-content: center;
+        }
+
+        /* 模拟弹窗卡片 (与线上 index.html 100% 结构和纯白毛玻璃质感对齐) */
+        .modal-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        .modal-label-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 0.5rem;
+        }
+        .modal-scheme-title {
+            font-size: 0.95rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .scheme-tag {
+            font-size: 0.72rem;
+            padding: 0.2rem 0.55rem;
+            border-radius: 9999px;
+            font-weight: 500;
+        }
+        .scheme-a .scheme-tag { background: rgba(251, 146, 60, 0.2); color: #fb923c; border: 1px solid rgba(251, 146, 60, 0.3); }
+        .scheme-b .scheme-tag { background: rgba(255, 255, 255, 0.15); color: #fff; border: 1px solid rgba(255, 255, 255, 0.25); }
+
+        .modal-card {
+            background: rgba(15, 23, 42, 0.65);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            backdrop-filter: blur(28px);
+            -webkit-backdrop-filter: blur(28px);
+            border-radius: 1.25rem;
+            padding: 1.25rem 1.5rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+            display: flex;
+            flex-direction: column;
+            gap: 0.85rem;
+            min-height: 520px;
+        }
+
+        /* 弹窗 Header */
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .modal-title {
+            font-size: 1rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: rgba(255, 255, 255, 0.95);
+        }
+        .modal-header-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .glass-pill-btn {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.72rem;
+            padding: 0.3rem 0.65rem;
+            border-radius: 9999px;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .glass-pill-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+            color: #fff;
+        }
+
+        /* Tab 导航条 */
+        .tab-bar {
+            display: flex;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 0.75rem;
+            padding: 0.25rem;
+            gap: 0.35rem;
+        }
+        .tab-btn {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: rgba(255, 255, 255, 0.65);
+            padding: 0.5rem 0.75rem;
+            font-size: 0.8rem;
+            font-weight: 500;
+            border-radius: 0.6rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.45rem;
+            transition: all 0.15s ease;
+        }
+        .tab-btn:hover {
+            color: #fff;
+            background: rgba(255, 255, 255, 0.06);
+        }
+        .tab-btn.active {
+            background: rgba(255, 255, 255, 0.16);
+            color: #fff;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        /* 弹窗内容面板 */
+        .tab-panel {
+            display: none;
+            flex-direction: column;
+            gap: 0.85rem;
+            flex: 1;
+        }
+        .tab-panel.active {
+            display: flex;
+        }
+
+        /* 子卡片 (glass-subcard) */
+        .subcard {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 0.85rem;
+            padding: 0.85rem 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.65rem;
+        }
+        .subcard-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .subcard-title {
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.85);
+            display: flex;
+            align-items: center;
+            gap: 0.45rem;
+        }
+        .badge-small {
+            font-size: 0.68rem;
+            padding: 0.15rem 0.45rem;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 0.4rem;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        /* 按钮与交互控件 */
+        .btn-row {
+            display: flex;
+            gap: 0.5rem;
+        }
+        .action-btn {
+            flex: 1;
+            padding: 0.45rem 0.75rem;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 0.65rem;
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.8);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .action-btn:hover {
+            background: rgba(255, 255, 255, 0.12);
+            color: #fff;
+        }
+        .btn-dashed {
+            border: 1px dashed rgba(255, 255, 255, 0.2);
+            background: transparent;
+        }
+        .btn-dashed:hover {
+            border-color: rgba(255, 255, 255, 0.4);
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        /* 预设壁纸网格微缩 */
+        .wallpaper-mock-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.5rem;
+        }
+        .wallpaper-mock-item {
+            height: 48px;
+            border-radius: 0.5rem;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            display: flex;
+            align-items: flex-end;
+            padding: 0.25rem 0.4rem;
+            font-size: 0.65rem;
+            color: rgba(255, 255, 255, 0.8);
+            background-size: cover;
+            background-position: center;
+        }
+
+        /* 滑块控件 */
+        .slider-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+        }
+        .slider-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+        .slider-info {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.7rem;
+            color: rgba(255, 255, 255, 0.7);
+        }
+        .mock-slider {
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 2px;
+            position: relative;
+        }
+        .mock-slider-bar {
+            height: 100%;
+            width: 30%;
+            background: #fff;
+            border-radius: 2px;
+        }
+
+        /* 状态仪表盘 */
+        .stat-dash {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.65rem 0.85rem;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 0.75rem;
+        }
+        .stat-badges {
+            display: flex;
+            gap: 0.4rem;
+        }
+        .stat-box {
+            padding: 0.25rem 0.6rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 0.5rem;
+            text-align: center;
+            font-size: 0.68rem;
+        }
+
+        /* 底部操作栏 */
+        .modal-footer {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 0.75rem;
+            padding-top: 0.75rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .save-btn {
+            background: #fff;
+            color: #0f172a;
+            font-weight: 600;
+            padding: 0.45rem 1.15rem;
+            border-radius: 0.65rem;
+            font-size: 0.8rem;
+            border: none;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 头部 -->
+        <header class="header">
+            <div class="badge">🔬 设置弹窗 (Settings Modal) 视觉升级实验室</div>
+            <h1>设置与偏好弹窗：Emoji 现行 vs 纯白毛玻璃矢量线框方案</h1>
+            <p class="subtitle">
+                所有 SVG 均遵循全站原生的 <strong>纯白半透明毛玻璃配色（text-white/60 ~ 80%，悬浮 100%）</strong>，快捷键图标已换用 <strong>极简 Apple 键盘图标</strong>。
+            </p>
+        </header>
+
+        <!-- 交互工具栏 -->
+        <div class="toolbar">
+            <div style="display:flex; align-items:center; gap:0.75rem; font-size:0.85rem;">
+                <span>展示模式：</span>
+                <div class="pill-group" id="layoutGroup">
+                    <button class="pill-btn active" data-layout="dual">左右并排实时对照</button>
+                    <button class="pill-btn" data-layout="b-only">仅展示 矢量线框方案</button>
+                    <button class="pill-btn" data-layout="a-only">仅展示 Emoji 现行方案</button>
+                </div>
+            </div>
+
+            <div style="display:flex; align-items:center; gap:0.75rem; font-size:0.85rem;">
+                <span>同步切换 Tab：</span>
+                <div class="pill-group" id="syncTabGroup">
+                    <button class="pill-btn" data-tab="tabBookmarks">快捷书签</button>
+                    <button class="pill-btn active" data-tab="tabAppearance">外观壁纸 (焦点)</button>
+                    <button class="pill-btn" data-tab="tabData">数据与备份</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 核心工作区：双弹窗实景渲染 -->
+        <div class="workspace" id="workspace">
+
+            <!-- ==================== 弹窗 A：现行 Emoji 方案 ==================== -->
+            <div class="modal-wrapper scheme-a" id="modalA">
+                <div class="modal-label-bar">
+                    <span class="modal-scheme-title">
+                        <span>方案 A：现行 Emoji 方案</span>
+                        <span class="scheme-tag">当前状态</span>
+                    </span>
+                    <span style="font-size:0.72rem; color:rgba(255,255,255,0.45);">彩色 Emoji + 局部 SVG 混杂</span>
+                </div>
+
+                <div class="modal-card">
+                    <!-- Header -->
+                    <div class="modal-header">
+                        <div class="modal-title">
+                            <span>⚙️</span>
+                            <span>设置与偏好</span>
+                        </div>
+                        <div class="modal-header-actions">
+                            <button class="glass-pill-btn" type="button"><span>✨</span> 开源致谢</button>
+                            <button class="glass-pill-btn" type="button"><span>⌨️</span> 快捷键速查 <span style="opacity:0.4; font-family:monospace;">⌘ /</span></button>
+                        </div>
+                    </div>
+
+                    <!-- Tab 栏 -->
+                    <div class="tab-bar">
+                        <button class="tab-btn" data-target="panel-a-bookmarks">
+                            <span>📌</span> 快捷书签
+                        </button>
+                        <button class="tab-btn active" data-target="panel-a-appearance">
+                            <span>🎨</span> 外观壁纸
+                        </button>
+                        <button class="tab-btn" data-target="panel-a-data">
+                            <span>⚙️</span> 数据与备份
+                        </button>
+                    </div>
+
+                    <!-- Panel 1: 快捷书签 -->
+                    <div class="tab-panel" id="panel-a-bookmarks">
+                        <div class="subcard" style="flex:1;">
+                            <div class="subcard-header">
+                                <span class="subcard-title">快捷书签管理</span>
+                                <span class="badge-small">已添加 8 项</span>
+                            </div>
+                            <div style="font-size:0.75rem; color:rgba(255,255,255,0.5); padding:1.5rem 0; text-align:center;">
+                                书签列表展示区（支持拖拽排序与单项删除）
+                            </div>
+                            <div class="btn-row">
+                                <button class="action-btn btn-dashed" type="button"><span>+</span> 手动添加书签</button>
+                                <button class="action-btn btn-dashed" type="button"><span>🗂️</span> 从导航页批量选择</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Panel 2: 外观壁纸 -->
+                    <div class="tab-panel active" id="panel-a-appearance">
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.65rem;">
+                            <!-- 自定义壁纸 -->
+                            <div class="subcard">
+                                <div class="subcard-header">
+                                    <span class="subcard-title">
+                                        <svg style="width:15px;height:15px;opacity:0.6;" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z"/></svg>
+                                        自定义壁纸来源
+                                    </span>
+                                    <span class="badge-small">默认壁纸</span>
+                                </div>
+                                <div class="btn-row">
+                                    <button class="action-btn" type="button"><span>📁</span> 本地图片</button>
+                                    <button class="action-btn" type="button"><span>🔗</span> 图片 URL</button>
+                                </div>
+                            </div>
+
+                            <!-- 背景特效 -->
+                            <div class="subcard">
+                                <div class="subcard-header">
+                                    <span class="subcard-title">
+                                        <span>✨</span> 背景视觉特效
+                                    </span>
+                                </div>
+                                <div class="slider-grid">
+                                    <div class="slider-group">
+                                        <div class="slider-info"><span>暗色遮罩</span><span>15%</span></div>
+                                        <div class="mock-slider"><div class="mock-slider-bar"></div></div>
+                                    </div>
+                                    <div class="slider-group">
+                                        <div class="slider-info"><span>高斯模糊</span><span>0px</span></div>
+                                        <div class="mock-slider"><div class="mock-slider-bar" style="width:0;"></div></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 预设壁纸库 -->
+                        <div class="subcard" style="flex:1;">
+                            <div class="subcard-header">
+                                <span class="subcard-title"><span>🖼️</span> 预设 4K 高清壁纸库</span>
+                                <span style="font-size:0.68rem; opacity:0.4;">点击预览</span>
+                            </div>
+                            <div class="wallpaper-mock-grid">
+                                <div class="wallpaper-mock-item" style="background-image:url('../wallpapers/bg1.avif');">山峦夜空</div>
+                                <div class="wallpaper-mock-item" style="background-image:url('../wallpapers/bg2.avif');">湖光山色</div>
+                                <div class="wallpaper-mock-item" style="background-image:url('../wallpapers/bg3.avif');">森林瀑布</div>
+                                <div class="wallpaper-mock-item" style="background-image:url('../wallpapers/bg4.avif');">星空雪山</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Panel 3: 数据与备份 -->
+                    <div class="tab-panel" id="panel-a-data">
+                        <div class="stat-dash">
+                            <div style="display:flex; align-items:center; gap:0.5rem;">
+                                <span style="font-size:1.2rem;">🪐</span>
+                                <div>
+                                    <div style="font-size:0.8rem; font-weight:600;">Glass Start <span class="badge-small">v3.6.0</span></div>
+                                    <div style="font-size:0.65rem; color:rgba(255,255,255,0.45);">极简 Liquid Glass 拟态导航</div>
+                                </div>
+                            </div>
+                            <div class="stat-badges">
+                                <div class="stat-box"><div style="font-weight:600;">8</div><div style="opacity:0.6;">快捷书签</div></div>
+                                <div class="stat-box"><div style="font-weight:600;">系统</div><div style="opacity:0.6;">壁纸来源</div></div>
+                                <div class="stat-box"><div style="color:#4ade80;font-weight:600;">就绪</div><div style="opacity:0.6;">离线PWA</div></div>
+                            </div>
+                        </div>
+
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.65rem; flex:1;">
+                            <div class="subcard">
+                                <div class="subcard-header">
+                                    <span class="subcard-title"><span>📦</span> 配置备份与恢复</span>
+                                </div>
+                                <button class="action-btn" type="button"><span>📤</span> 导出 JSON 备份</button>
+                                <div style="border:1px dashed rgba(255,255,255,0.15); border-radius:0.6rem; padding:0.6rem; text-align:center; font-size:0.7rem; color:rgba(255,255,255,0.6);">
+                                    <span>📥</span> 点击或拖拽导入备份文件
+                                </div>
+                            </div>
+                            <div class="subcard">
+                                <div class="subcard-header">
+                                    <span class="subcard-title"><span>🧹</span> 离线与系统维护</span>
+                                </div>
+                                <button class="action-btn" type="button"><span>🧹</span> 一键刷新 Service Worker 缓存</button>
+                                <button class="action-btn" style="border-color:rgba(239,68,68,0.3); color:#fca5a5;" type="button"><span>🚨</span> 重置为系统默认状态</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Footer -->
+                    <div class="modal-footer">
+                        <span style="font-size:0.75rem; color:rgba(255,255,255,0.5); cursor:pointer;">取消</span>
+                        <button class="save-btn" type="button">保存并关闭</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ==================== 弹窗 B：纯白毛玻璃矢量线框方案 ==================== -->
+            <div class="modal-wrapper scheme-b" id="modalB">
+                <div class="modal-label-bar">
+                    <span class="modal-scheme-title">
+                        <span>方案 B：纯白毛玻璃矢量线框方案</span>
+                        <span class="scheme-tag">实装标准</span>
+                    </span>
+                    <span style="font-size:0.72rem; color:rgba(255,255,255,0.7);">100% 纯白半透明毛玻璃质感 • 键盘与全套线框</span>
+                </div>
+
+                <div class="modal-card">
+                    <!-- Header -->
+                    <div class="modal-header">
+                        <div class="modal-title">
+                            <!-- Heroicons 24 cog-6-tooth (纯白半透明) -->
+                            <svg style="width:18px;height:18px;color:rgba(255,255,255,0.85);" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                                <path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            </svg>
+                            <span>设置与偏好</span>
+                        </div>
+                        <div class="modal-header-actions">
+                            <!-- Heroicons 24 sparkles -->
+                            <button class="glass-pill-btn" type="button">
+                                <svg style="width:13px;height:13px;opacity:0.8;" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z"/></svg>
+                                开源致谢
+                            </button>
+                            <!-- 经典 Apple 实体键盘图标 (Keyboard) -->
+                            <button class="glass-pill-btn" type="button">
+                                <svg style="width:13px;height:13px;opacity:0.8;" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                                    <rect width="20" height="13" x="2" y="5.5" rx="2.5"/>
+                                    <path d="M6 9.5h.01M10 9.5h.01M14 9.5h.01M18 9.5h.01M6 13.5h.01M18 13.5h.01M9.5 13.5h5"/>
+                                </svg>
+                                快捷键速查 <span style="opacity:0.4; font-family:monospace;">⌘ /</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Tab 栏 (纯白半透明) -->
+                    <div class="tab-bar">
+                        <button class="tab-btn" data-target="panel-b-bookmarks">
+                            <svg style="width:15px;height:15px;opacity:0.8;" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0 1 11.186 0Z"/></svg>
+                            快捷书签
+                        </button>
+                        <button class="tab-btn active" data-target="panel-b-appearance">
+                            <svg style="width:15px;height:15px;opacity:0.8;" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M9.53 16.122a3 3 0 0 0-5.78 1.128 2.25 2.25 0 0 1-2.4 2.245 4.5 4.5 0 0 0 8.4-2.245c0-.399-.078-.78-.22-1.128Zm0 0a15.998 15.998 0 0 0 3.388-1.62m-5.043-.025a15.994 15.994 0 0 1 1.622-3.39m3.42 3.42a15.995 15.995 0 0 0 4.764-4.648l3.876-5.814a1.151 1.151 0 0 0-1.597-1.597L14.146 6.32a15.996 15.996 0 0 0-4.649 4.763m3.42 3.42a6.776 6.776 0 0 0-3.42-3.42"/></svg>
+                            外观壁纸
+                        </button>
+                        <button class="tab-btn" data-target="panel-b-data">
+                            <svg style="width:15px;height:15px;opacity:0.8;" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 5.625c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125"/></svg>
+                            数据与备份
+                        </button>
+                    </div>
+
+                    <!-- Panel 1: 快捷书签 (Heroicons) -->
+                    <div class="tab-panel" id="panel-b-bookmarks">
+                        <div class="subcard" style="flex:1;">
+                            <div class="subcard-header">
+                                <span class="subcard-title">
+                                    <svg style="width:14px;height:14px;opacity:0.6;" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0 1 11.186 0Z"/></svg>
+                                    快捷书签管理
+                                </span>
+                                <span class="badge-small">已添加 8 项</span>
+                            </div>
+                            <div style="font-size:0.75rem; color:rgba(255,255,255,0.5); padding:1.5rem 0; text-align:center;">
+                                书签列表展示区（支持拖拽排序与单项删除）
+                            </div>
+                            <div class="btn-row">
+                                <button class="action-btn btn-dashed" type="button">
+                                    <svg style="width:14px;height:14px;opacity:0.8;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 4.5v15m7.5-7.5h-15"/></svg>
+                                    手动添加书签
+                                </button>
+                                <button class="action-btn btn-dashed" type="button">
+                                    <svg style="width:14px;height:14px;opacity:0.8;" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path d="M12 9v6m3-3H9m12 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>
+                                    从导航页批量选择
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Panel 2: 外观壁纸 (纯白半透明 Heroicons) -->
+                    <div class="tab-panel active" id="panel-b-appearance">
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.65rem;">
+                            <!-- 自定义壁纸 -->
+                            <div class="subcard">
+                                <div class="subcard-header">
+                                    <span class="subcard-title">
+                                        <svg style="width:15px;height:15px;opacity:0.6;" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z"/></svg>
+                                        自定义壁纸来源
+                                    </span>
+                                    <span class="badge-small">默认壁纸</span>
+                                </div>
+                                <div class="btn-row">
+                                    <button class="action-btn" type="button">
+                                        <svg style="width:14px;height:14px;opacity:0.8;" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path d="M2.25 12.75V12A2.25 2.25 0 0 1 4.5 9.75h15A2.25 2.25 0 0 1 21.75 12v.75m-8.69-6.44-2.12-2.12a1.5 1.5 0 0 0-1.061-.44H4.5A2.25 2.25 0 0 0 2.25 6v12a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9a2.25 2.25 0 0 0-2.25-2.25h-5.379a1.5 1.5 0 0 1-1.06-.44Z"/></svg>
+                                        本地图片
+                                    </button>
+                                    <button class="action-btn" type="button">
+                                        <svg style="width:14px;height:14px;opacity:0.8;" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244"/></svg>
+                                        图片 URL
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- 背景特效 (Heroicons adjustments-horizontal) -->
+                            <div class="subcard">
+                                <div class="subcard-header">
+                                    <span class="subcard-title">
+                                        <svg style="width:15px;height:15px;opacity:0.6;" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path d="M6 13.5V3.75m0 9.75a1.5 1.5 0 0 1 0 3m0-3a1.5 1.5 0 0 0 0 3m0 3.75V16.5m12-3V3.75m0 9.75a1.5 1.5 0 0 1 0 3m0-3a1.5 1.5 0 0 0 0 3m0 3.75V16.5m-6-9V3.75m0 3.75a1.5 1.5 0 0 1 0 3m0-3a1.5 1.5 0 0 0 0 3m0 9.75V10.5"/></svg>
+                                        背景视觉特效
+                                    </span>
+                                </div>
+                                <div class="slider-grid">
+                                    <div class="slider-group">
+                                        <div class="slider-info"><span>暗色遮罩</span><span>15%</span></div>
+                                        <div class="mock-slider"><div class="mock-slider-bar"></div></div>
+                                    </div>
+                                    <div class="slider-group">
+                                        <div class="slider-info"><span>高斯模糊</span><span>0px</span></div>
+                                        <div class="mock-slider"><div class="mock-slider-bar" style="width:0;"></div></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 预设壁纸库 (Heroicons squares-2x2) -->
+                        <div class="subcard" style="flex:1;">
+                            <div class="subcard-header">
+                                <span class="subcard-title">
+                                    <svg style="width:15px;height:15px;opacity:0.6;" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z"/></svg>
+                                    预设 4K 高清壁纸库
+                                </span>
+                                <span style="font-size:0.68rem; opacity:0.4;">点击预览</span>
+                            </div>
+                            <div class="wallpaper-mock-grid">
+                                <div class="wallpaper-mock-item" style="background-image:url('../wallpapers/bg1.avif');">山峦夜空</div>
+                                <div class="wallpaper-mock-item" style="background-image:url('../wallpapers/bg2.avif');">湖光山色</div>
+                                <div class="wallpaper-mock-item" style="background-image:url('../wallpapers/bg3.avif');">森林瀑布</div>
+                                <div class="wallpaper-mock-item" style="background-image:url('../wallpapers/bg4.avif');">星空雪山</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Panel 3: 数据与备份 (Heroicons) -->
+                    <div class="tab-panel" id="panel-b-data">
+                        <div class="stat-dash">
+                            <div style="display:flex; align-items:center; gap:0.5rem;">
+                                <span style="font-size:1.2rem;">🪐</span>
+                                <div>
+                                    <div style="font-size:0.8rem; font-weight:600;">Glass Start <span class="badge-small">v3.6.0</span></div>
+                                    <div style="font-size:0.65rem; color:rgba(255,255,255,0.45);">极简 Liquid Glass 拟态导航</div>
+                                </div>
+                            </div>
+                            <div class="stat-badges">
+                                <div class="stat-box"><div style="font-weight:600;">8</div><div style="opacity:0.6;">快捷书签</div></div>
+                                <div class="stat-box"><div style="font-weight:600;">系统</div><div style="opacity:0.6;">壁纸来源</div></div>
+                                <div class="stat-box"><div style="color:#4ade80;font-weight:600;">就绪</div><div style="opacity:0.6;">离线PWA</div></div>
+                            </div>
+                        </div>
+
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.65rem; flex:1;">
+                            <div class="subcard">
+                                <div class="subcard-header">
+                                    <span class="subcard-title">
+                                        <svg style="width:14px;height:14px;opacity:0.6;" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path d="m20.25 7.5-.625 10.632a2.25 2.25 0 0 1-2.247 2.118H6.622a2.25 2.25 0 0 1-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z"/></svg>
+                                        配置备份与恢复
+                                    </span>
+                                </div>
+                                <button class="action-btn" type="button">
+                                    <svg style="width:14px;height:14px;opacity:0.8;" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
+                                    导出 JSON 备份
+                                </button>
+                                <div style="border:1px dashed rgba(255,255,255,0.15); border-radius:0.6rem; padding:0.6rem; text-align:center; font-size:0.7rem; color:rgba(255,255,255,0.6); display:flex; flex-direction:column; align-items:center; gap:0.25rem;">
+                                    <svg style="width:16px;height:16px;opacity:0.8;" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5"/></svg>
+                                    点击或拖拽导入备份文件
+                                </div>
+                            </div>
+                            <div class="subcard">
+                                <div class="subcard-header">
+                                    <span class="subcard-title">
+                                        <svg style="width:14px;height:14px;opacity:0.6;" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z"/></svg>
+                                        离线与系统维护
+                                    </span>
+                                </div>
+                                <button class="action-btn" type="button">
+                                    <svg style="width:14px;height:14px;opacity:0.8;" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>
+                                    一键刷新 Service Worker 缓存
+                                </button>
+                                <button class="action-btn" style="border-color:rgba(239,68,68,0.3); color:#fca5a5;" type="button">
+                                    <svg style="width:14px;height:14px;opacity:0.8;" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"/></svg>
+                                    重置为系统默认状态
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Footer -->
+                    <div class="modal-footer">
+                        <span style="font-size:0.75rem; color:rgba(255,255,255,0.5); cursor:pointer;">取消</span>
+                        <button class="save-btn" type="button">保存并关闭</button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // 布局切换逻辑
+        const layoutBtns = document.querySelectorAll('#layoutGroup .pill-btn');
+        const workspace = document.getElementById('workspace');
+        const modalA = document.getElementById('modalA');
+        const modalB = document.getElementById('modalB');
+
+        layoutBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                layoutBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                const mode = btn.dataset.layout;
+
+                if (mode === 'dual') {
+                    workspace.classList.remove('single-mode');
+                    modalA.style.display = 'flex';
+                    modalB.style.display = 'flex';
+                } else if (mode === 'b-only') {
+                    workspace.classList.add('single-mode');
+                    modalA.style.display = 'none';
+                    modalB.style.display = 'flex';
+                } else if (mode === 'a-only') {
+                    workspace.classList.add('single-mode');
+                    modalA.style.display = 'flex';
+                    modalB.style.display = 'none';
+                }
+            });
+        });
+
+        // 弹窗内部 Tab 切换
+        function bindTabSwitching(containerId) {
+            const container = document.getElementById(containerId);
+            const tabBtns = container.querySelectorAll('.tab-btn');
+            tabBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    tabBtns.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    const targetId = btn.dataset.target;
+                    container.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+                    const panel = document.getElementById(targetId);
+                    if (panel) panel.classList.add('active');
+                });
+            });
+        }
+        bindTabSwitching('modalA');
+        bindTabSwitching('modalB');
+
+        // 同步 Tab 切换
+        const syncTabBtns = document.querySelectorAll('#syncTabGroup .pill-btn');
+        syncTabBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                syncTabBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                const tabKey = btn.dataset.tab;
+
+                const map = {
+                    tabBookmarks: ['panel-a-bookmarks', 'panel-b-bookmarks'],
+                    tabAppearance: ['panel-a-appearance', 'panel-b-appearance'],
+                    tabData: ['panel-a-data', 'panel-b-data']
+                };
+
+                const [targetA, targetB] = map[tabKey];
+                
+                modalA.querySelectorAll('.tab-btn').forEach(b => {
+                    b.classList.toggle('active', b.dataset.target === targetA);
+                });
+                modalA.querySelectorAll('.tab-panel').forEach(p => {
+                    p.classList.toggle('active', p.id === targetA);
+                });
+
+                modalB.querySelectorAll('.tab-btn').forEach(b => {
+                    b.classList.toggle('active', b.dataset.target === targetB);
+                });
+                modalB.querySelectorAll('.tab-panel').forEach(p => {
+                    p.classList.toggle('active', p.id === targetB);
+                });
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1447,25 +1447,25 @@
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
             </symbol>
-            <!-- Modal Close X 叉号 (原 #closePickerBtn, #closeShortcutBtn, #closeCreditsBtn 共享) -->
-            <symbol id="icon-close" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M4 12L12 4M4 4l8 8"/>
+            <!-- Heroicons 24 x-mark 叉号 (原 #closePickerBtn, #closeShortcutBtn, #closeCreditsBtn 共享) -->
+            <symbol id="icon-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M6 18 18 6M6 6l12 12"/>
             </symbol>
-            <!-- 45° External Link 外链箭头 (原 creditsModal 卡片共享) -->
-            <symbol id="icon-external" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M7 17L17 7M17 7H7M17 7V17"/>
+            <!-- Heroicons 24 arrow-up-right 外链箭头 (原 creditsModal 卡片共享) -->
+            <symbol id="icon-external" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m4.5 19.5 15-15m0 0H8.25m11.25 0v11.25"/>
             </symbol>
-            <!-- 搜索放大镜 Search Magnifier (原搜索联想与骨架屏共享) -->
-            <symbol id="icon-search" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M16.5 16.5L12.212 12.212A5.25 5.25 0 1 0 4.788 4.788a5.25 5.25 0 0 0 7.424 7.424z"/>
+            <!-- Heroicons 24 magnifying-glass 搜索放大镜 (原搜索联想与骨架屏共享) -->
+            <symbol id="icon-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"/>
             </symbol>
             <!-- 编辑书签 6 点拖拽手柄 -->
             <symbol id="icon-drag" viewBox="0 0 16 16" fill="currentColor">
                 <circle cx="5" cy="4" r="1.5"/><circle cx="11" cy="4" r="1.5"/><circle cx="5" cy="8" r="1.5"/><circle cx="11" cy="8" r="1.5"/><circle cx="5" cy="12" r="1.5"/><circle cx="11" cy="12" r="1.5"/>
             </symbol>
-            <!-- 垃圾桶删除 Trash -->
-            <symbol id="icon-trash" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M2.5 4h11M5.5 4V2.5a1 1 0 011-1h3a1 1 0 011 1V4m2 0v8.5a1.5 1.5 0 01-1.5 1.5h-6A1.5 1.5 0 013.5 12.5V4m3 3v4.5m3-4.5v4.5"/>
+            <!-- Heroicons 24 trash 垃圾桶删除 -->
+            <symbol id="icon-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"/>
             </symbol>
         </defs>
     </svg>
@@ -1528,7 +1528,7 @@
                     <button id="engineBtn" type="button" aria-label="选择搜索引擎（当前：Bing）" aria-haspopup="menu" aria-expanded="false" aria-controls="dropdownMenu" class="flex items-center gap-1.5 pl-3 pr-2 py-3 apple-radius hover:bg-white/10 glass-interactive text-sm font-medium min-h-11 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed select-none">
                         <img id="engineIcon" src="https://a.favicon.im/bing.com" width="16" height="16" decoding="async" data-hide-on-error="1" class="engine-icon size-4 aspect-square shrink-0 rounded select-none pointer-events-none" alt="当前引擎：Bing" draggable="false">
                         <span id="engineName" class="hidden sm:inline select-none">Bing</span>
-                        <svg class="size-4 opacity-60 shrink-0 pointer-events-none select-none" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 16 16"><path d="M3.5 6l4.5 4.5 4.5-4.5"/></svg>
+                        <svg class="size-4 opacity-60 shrink-0 pointer-events-none select-none" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="m19.5 8.25-7.5 7.5-7.5-7.5"/></svg>
                     </button>
                     <script>(function(){if(window.__PRE_ENGINE__){const b=document.getElementById('engineBtn');const i=document.getElementById('engineIcon');const n=document.getElementById('engineName');if(b)b.setAttribute('aria-label','选择搜索引擎（当前：'+window.__PRE_ENGINE__.name+'）');if(i){i.src=window.__PRE_ENGINE__.icon;i.alt='当前引擎：'+window.__PRE_ENGINE__.name;}if(n)n.textContent=window.__PRE_ENGINE__.name;}})()</script>
                 </div>
@@ -1546,7 +1546,7 @@
                         </svg>
                     </button>
                     <button id="searchClearBtn" type="button" aria-label="清空搜索框" class="hidden p-2 apple-radius hover:bg-white/10 text-white/40 hover:text-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 absolute inset-0 flex items-center justify-center select-none touch-manipulation">
-                        <svg class="size-5 pointer-events-none select-none" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 20 20"><path d="M5.5 14.5L14.5 5.5M5.5 5.5l9 9"/></svg>
+                        <svg class="size-5 pointer-events-none select-none" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M6 18 18 6M6 6l12 12"/></svg>
                     </button>
                 </div>
             </div>
@@ -1573,7 +1573,7 @@
         <!-- 向下滚动提示（保持纯净竖排原样，首次常驻直至初次下滑） -->
         <div id="scrollDownHint" class="absolute bottom-4 md:bottom-7 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5 text-white/50 text-xs font-medium tracking-[0.25em] pointer-events-none hint-down select-none fade-in delay-200">
             <span>向下探索</span>
-            <svg class="size-5 scroll-hint" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 20 20"><path d="M14.5 11.5L10 16m0 0L5.5 11.5m4.5 4.5V3"/></svg>
+            <svg class="size-5 scroll-hint" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M19.5 13.5 12 21m0 0-7.5-7.5M12 21V3"/></svg>
         </div>
         <script>(function(){try{if(localStorage.getItem('hasDiscoveredNav')==='1'){const h=document.getElementById('scrollDownHint');if(h)h.style.display='none';}}catch(e){}})()</script>
 
@@ -1601,7 +1601,7 @@
                     </div>
                     <!-- 右侧返回提示 -->
                     <button id="navHint" type="button" aria-label="向上滚动返回起始页" class="flex items-center gap-1.5 text-white/80 text-2xs tracking-wider bg-white/10 border border-white/15 px-2.5 py-1 apple-radius whitespace-nowrap shrink-0 cursor-pointer hover:bg-white/20 hover:text-white glass-interactive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" title="点击或向上滚动返回起始页">
-                        <svg class="size-3 scroll-up-hint shrink-0 text-white/60" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 12 12"><path d="M2.5 7.5L6 4l3.5 3.5"/></svg>
+                        <svg class="size-3 scroll-up-hint shrink-0 text-white/60" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="m4.5 15.75 7.5-7.5 7.5 7.5"/></svg>
                         <span class="whitespace-nowrap">向上滚动返回</span>
                     </button>
                 </header>
@@ -1629,15 +1629,17 @@
             <!-- 弹窗 Header -->
             <div class="flex items-center justify-between mb-3 pb-2 border-b border-white/10 shrink-0">
                 <div class="flex items-center gap-2">
-                    <span class="text-base">⚙️</span>
+                    <svg class="size-4.5 text-white/80 shrink-0" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                     <h3 class="text-base font-semibold tracking-wide text-white/90">设置与偏好</h3>
                 </div>
                 <div class="flex items-center gap-2 shrink-0">
                     <button id="openCreditsFromSettingsBtn" type="button" aria-expanded="false" aria-controls="creditsModal" aria-haspopup="dialog" class="glass-pill-btn" title="查看开源与数据鸣谢">
-                        <span>✨</span> 开源致谢
+                        <svg class="size-3.5 opacity-80 shrink-0" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z"/></svg>
+                        <span>开源致谢</span>
                     </button>
                     <button id="openShortcutFromSettingsBtn" type="button" class="glass-pill-btn" title="查看全站键盘快捷键速查">
-                        <span>⌨️</span> 快捷键速查 <span id="settingsKbdHint" class="font-mono text-2xs text-white/40 ml-0.5">⌘ /</span>
+                        <svg class="size-3.5 opacity-80 shrink-0" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect width="20" height="13" x="2" y="5.5" rx="2.5"/><path d="M6 9.5h.01M10 9.5h.01M14 9.5h.01M18 9.5h.01M6 13.5h.01M18 13.5h.01M9.5 13.5h5"/></svg>
+                        <span>快捷键速查</span> <span id="settingsKbdHint" class="font-mono text-2xs text-white/40 ml-0.5">⌘ /</span>
                     </button>
                 </div>
             </div>
@@ -1645,15 +1647,15 @@
             <!-- Tab 导航栏 -->
             <div role="tablist" aria-label="设置偏好选项卡" class="flex items-center gap-1.5 sm:gap-2 p-1 bg-black/20 border border-white/10 apple-radius mb-3 shrink-0">
                 <button type="button" role="tab" id="tab-btn-bookmarks" aria-selected="true" aria-controls="tabBookmarks" class="settings-tab-btn active flex-1 py-2 px-3 sm:px-4 apple-radius text-xs sm:text-sm font-medium whitespace-nowrap glass-interactive flex items-center justify-center gap-1.5 sm:gap-2 text-white/70 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" data-tab="tabBookmarks">
-                    <span class="shrink-0 text-sm">📌</span>
+                    <svg class="size-4 shrink-0 opacity-80" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0 1 11.186 0Z"/></svg>
                     <span class="whitespace-nowrap shrink-0">快捷书签</span>
                 </button>
                 <button type="button" role="tab" id="tab-btn-appearance" aria-selected="false" aria-controls="tabAppearance" class="settings-tab-btn flex-1 py-2 px-3 sm:px-4 apple-radius text-xs sm:text-sm font-medium whitespace-nowrap glass-interactive flex items-center justify-center gap-1.5 sm:gap-2 text-white/70 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" data-tab="tabAppearance">
-                    <span class="shrink-0 text-sm">🎨</span>
+                    <svg class="size-4 shrink-0 opacity-80" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M9.53 16.122a3 3 0 0 0-5.78 1.128 2.25 2.25 0 0 1-2.4 2.245 4.5 4.5 0 0 0 8.4-2.245c0-.399-.078-.78-.22-1.128Zm0 0a15.998 15.998 0 0 0 3.388-1.62m-5.043-.025a15.994 15.994 0 0 1 1.622-3.39m3.42 3.42a15.995 15.995 0 0 0 4.764-4.648l3.876-5.814a1.151 1.151 0 0 0-1.597-1.597L14.146 6.32a15.996 15.996 0 0 0-4.649 4.763m3.42 3.42a6.776 6.776 0 0 0-3.42-3.42"/></svg>
                     <span class="whitespace-nowrap shrink-0">外观壁纸</span>
                 </button>
                 <button type="button" role="tab" id="tab-btn-data" aria-selected="false" aria-controls="tabData" class="settings-tab-btn flex-1 py-2 px-3 sm:px-4 apple-radius text-xs sm:text-sm font-medium whitespace-nowrap glass-interactive flex items-center justify-center gap-1.5 sm:gap-2 text-white/70 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" data-tab="tabData">
-                    <span class="shrink-0 text-sm">⚙️</span>
+                    <svg class="size-4 shrink-0 opacity-80" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 5.625c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125"/></svg>
                     <span class="whitespace-nowrap shrink-0">数据与备份</span>
                 </button>
             </div>
@@ -1666,8 +1668,8 @@
                 </div>
                 <div id="editList" role="list" aria-label="书签列表" class="flex-1 overflow-y-auto space-y-1.5 mb-2.5 min-h-0 pr-1"></div>
                 <div class="grid grid-cols-2 gap-2 sm:gap-2.5 shrink-0 pt-2.5 border-t border-white/10">
-                    <button id="addBookmarkBtn" type="button" class="py-2 px-3 border border-dashed border-white/20 apple-radius text-white/75 hover:text-white hover:border-white/40 hover:bg-white/10 glass-interactive text-xs flex items-center justify-center gap-1.5 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 disabled:opacity-50 disabled:cursor-not-allowed truncate">+ 手动添加书签</button>
-                    <button id="togglePickerBtn" type="button" class="py-2 px-3 border border-dashed border-white/20 apple-radius text-xs text-white/75 hover:text-white hover:border-white/40 hover:bg-white/10 glass-interactive flex items-center justify-center gap-1.5 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 disabled:opacity-50 disabled:cursor-not-allowed truncate">🗂️ 从导航页批量选择</button>
+                    <button id="addBookmarkBtn" type="button" class="py-2 px-3 border border-dashed border-white/20 apple-radius text-white/75 hover:text-white hover:border-white/40 hover:bg-white/10 glass-interactive text-xs flex items-center justify-center gap-1.5 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 disabled:opacity-50 disabled:cursor-not-allowed truncate"><svg class="size-3.5 shrink-0 opacity-80" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M12 4.5v15m7.5-7.5h-15"/></svg> 手动添加书签</button>
+                    <button id="togglePickerBtn" type="button" class="py-2 px-3 border border-dashed border-white/20 apple-radius text-xs text-white/75 hover:text-white hover:border-white/40 hover:bg-white/10 glass-interactive flex items-center justify-center gap-1.5 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 disabled:opacity-50 disabled:cursor-not-allowed truncate"><svg class="size-3.5 shrink-0 opacity-80" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M12 9v6m3-3H9m12 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg> 从导航页批量选择</button>
                 </div>
             </div>
 
@@ -1685,8 +1687,8 @@
                             <span id="wallpaperStatus" class="glass-badge">默认壁纸</span>
                         </div>
                         <div class="flex gap-2">
-                            <button id="uploadBgBtn" type="button" class="flex-1 py-2 px-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs text-white/80 hover:text-white glass-interactive flex items-center justify-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50">📁 本地图片</button>
-                            <button id="urlBgBtn" type="button" class="flex-1 py-2 px-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs text-white/80 hover:text-white glass-interactive flex items-center justify-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50">🔗 图片 URL</button>
+                            <button id="uploadBgBtn" type="button" class="flex-1 py-2 px-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs text-white/80 hover:text-white glass-interactive flex items-center justify-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"><svg class="size-3.5 shrink-0 opacity-80" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M2.25 12.75V12A2.25 2.25 0 0 1 4.5 9.75h15A2.25 2.25 0 0 1 21.75 12v.75m-8.69-6.44-2.12-2.12a1.5 1.5 0 0 0-1.061-.44H4.5A2.25 2.25 0 0 0 2.25 6v12a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9a2.25 2.25 0 0 0-2.25-2.25h-5.379a1.5 1.5 0 0 1-1.06-.44Z"/></svg> 本地图片</button>
+                            <button id="urlBgBtn" type="button" class="flex-1 py-2 px-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs text-white/80 hover:text-white glass-interactive flex items-center justify-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"><svg class="size-3.5 shrink-0 opacity-80" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244"/></svg> 图片 URL</button>
                             <button id="resetBgBtn" type="button" class="py-2 px-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs text-white/50 hover:text-red-400 glass-interactive hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50">恢复默认</button>
                             <input type="file" id="uploadBgInput" name="uploadBgInput" accept="image/*" class="hidden" aria-label="上传自定义壁纸">
                         </div>
@@ -1702,7 +1704,7 @@
                     <!-- 背景视觉特效调节 -->
                     <div class="p-3.5 glass-subcard space-y-2 flex flex-col justify-between">
                         <span class="text-xs font-semibold text-white/80 flex items-center gap-1.5">
-                            <span>✨</span> 背景视觉特效
+                            <svg class="size-4 text-white/60 shrink-0" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M6 13.5V3.75m0 9.75a1.5 1.5 0 0 1 0 3m0-3a1.5 1.5 0 0 0 0 3m0 3.75V16.5m12-3V3.75m0 9.75a1.5 1.5 0 0 1 0 3m0-3a1.5 1.5 0 0 0 0 3m0 3.75V16.5m-6-9V3.75m0 3.75a1.5 1.5 0 0 1 0 3m0-3a1.5 1.5 0 0 0 0 3m0 9.75V10.5"/></svg> 背景视觉特效
                         </span>
                         <div class="grid grid-cols-2 gap-3">
                             <!-- 遮罩透明度 -->
@@ -1728,7 +1730,7 @@
                 <div class="p-3.5 glass-subcard shrink-0 sm:flex-1 flex flex-col justify-between sm:min-h-0 space-y-2.5">
                     <div class="flex items-center justify-between shrink-0">
                         <span class="text-xs font-semibold text-white/80 flex items-center gap-1.5">
-                            <span>🖼️</span> 预设 4K 高清壁纸库
+                            <svg class="size-4 text-white/60 shrink-0" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z"/></svg> 预设 4K 高清壁纸库
                         </span>
                         <span class="text-2xs text-white/40">点击预览</span>
                     </div>
@@ -1773,17 +1775,17 @@
                     <div class="p-3.5 glass-subcard shrink-0 md:flex-1 flex flex-col justify-between space-y-2.5 md:min-h-0">
                         <div class="flex items-center justify-between shrink-0">
                             <span class="text-xs font-semibold text-white/80 flex items-center gap-1.5">
-                                <span>📦</span> 配置备份与恢复
+                                <svg class="size-4 text-white/60 shrink-0" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="m20.25 7.5-.625 10.632a2.25 2.25 0 0 1-2.247 2.118H6.622a2.25 2.25 0 0 1-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z"/></svg> 配置备份与恢复
                             </span>
                             <span id="storageSizeBadge" class="glass-badge font-mono">计算中...</span>
                         </div>
                         <button id="exportJsonBtn" type="button" class="w-full py-2 px-3.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs text-white/80 hover:text-white glass-interactive flex items-center justify-center gap-2 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 disabled:opacity-50 disabled:cursor-not-allowed">
                             <svg class="spinner size-4 animate-spin hidden" aria-hidden="true"><use href="#icon-spinner"/></svg>
-                            <span>📤</span> <span class="btn-label">导出 JSON 配置文件备份</span>
+                            <svg class="size-3.5 shrink-0 opacity-80" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg> <span class="btn-label">导出 JSON 配置文件备份</span>
                         </button>
                         <!-- Dropzone 导入框 (flex-1 自适应拉伸填充) -->
                         <div id="jsonDropzone" role="button" aria-label="点击或将 JSON 备份文件拖入此处上传" class="json-dropzone flex-1 border-2 border-dashed border-white/15 hover:border-white/35 rounded-2xl p-4 text-center glass-interactive cursor-pointer bg-white/5 hover:bg-white/10 flex flex-col items-center justify-center gap-1.5 min-h-24 sm:min-h-28 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" tabindex="0">
-                            <span class="text-lg sm:text-xl">📥</span>
+                            <svg class="size-6 sm:size-7 text-white/70 shrink-0" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5"/></svg>
                             <p class="text-xs text-white/80 font-medium">点击或将 JSON 备份文件拖入此处</p>
                             <p class="text-2xs text-white/40">自动解析恢复快捷书签与系统偏好配置</p>
                             <input type="file" id="importJsonInput" name="importJsonInput" accept=".json,application/json" class="hidden" aria-label="导入书签配置文件">
@@ -1796,7 +1798,7 @@
                         <div class="p-3.5 glass-subcard space-y-2 flex-1 flex flex-col justify-between">
                             <div>
                                 <span class="text-xs font-semibold text-white/80 flex items-center gap-1.5">
-                                    <span>🧹</span> 离线 Service Worker 缓存
+                                    <svg class="size-4 text-white/60 shrink-0" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z"/></svg> 离线 Service Worker 缓存
                                 </span>
                                 <p class="text-2xs-plus text-white/50 leading-relaxed mt-1">
                                      若离线资源异常或更新未及时应用，可手动刷新 Service Worker 离线缓存。
@@ -1804,7 +1806,7 @@
                             </div>
                             <button id="clearCacheBtn" type="button" class="w-full py-2 px-3.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs text-white/75 hover:text-white glass-interactive flex items-center justify-center gap-1.5 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 disabled:opacity-50 disabled:cursor-not-allowed">
                                 <svg class="spinner size-4 animate-spin hidden" aria-hidden="true"><use href="#icon-spinner"/></svg>
-                                <span>🧹</span> <span class="btn-label">一键刷新 Service Worker 离线缓存</span>
+                                <svg class="size-3.5 shrink-0 opacity-80" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/></svg> <span class="btn-label">一键刷新 Service Worker 离线缓存</span>
                             </button>
                         </div>
 
@@ -1813,7 +1815,7 @@
                             <div>
                                 <div class="flex items-center justify-between">
                                     <span class="text-xs font-semibold text-red-300/90 flex items-center gap-1.5">
-                                        <span>🚨</span> 危险区域 (Danger Zone)
+                                        <svg class="size-4 text-red-400 shrink-0" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"/></svg> 危险区域 (Danger Zone)
                                     </span>
                                 </div>
                                 <p class="text-2xs text-white/50 leading-relaxed mt-1">
@@ -1822,7 +1824,7 @@
                             </div>
                             <button id="resetEditBtn" type="button" class="danger-zone-btn w-full py-2 text-xs font-medium glass-interactive flex items-center justify-center gap-1.5 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 disabled:opacity-50 disabled:cursor-not-allowed">
                                 <svg class="spinner size-4 animate-spin hidden" aria-hidden="true"><use href="#icon-spinner"/></svg>
-                                <span>⚠️</span> <span class="btn-label">重置所有系统设置</span>
+                                <svg class="size-3.5 shrink-0 opacity-80" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"/></svg> <span class="btn-label">重置所有系统设置</span>
                             </button>
                         </div>
                     </div>
@@ -1879,7 +1881,7 @@
             <!-- 弹窗 Header -->
             <div class="flex items-center justify-between mb-3 pb-2 border-b border-white/10 shrink-0">
                 <div class="flex items-center gap-2">
-                    <span class="text-base">⌨️</span>
+                    <svg class="size-4.5 text-white/80 shrink-0" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect width="20" height="13" x="2" y="5.5" rx="2.5"/><path d="M6 9.5h.01M10 9.5h.01M14 9.5h.01M18 9.5h.01M6 13.5h.01M18 13.5h.01M9.5 13.5h5"/></svg>
                     <h3 class="text-base font-semibold tracking-wide text-white/90">快捷键速查</h3>
                 </div>
                 <button id="closeShortcutBtn" type="button" aria-label="关闭快捷键速查" class="p-1 size-9 inline-flex items-center justify-center hover:bg-white/10 apple-radius text-white/40 hover:text-white/70 glass-interactive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50">
@@ -1903,7 +1905,7 @@
             <!-- 弹窗 Header -->
             <div class="flex items-center justify-between mb-3 pb-2 border-b border-white/10 shrink-0">
                 <div class="flex items-center gap-2">
-                    <span class="text-base">✨</span>
+                    <svg class="size-4.5 text-white/80 shrink-0" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z"/></svg>
                     <h3 class="text-base font-semibold tracking-wide text-white/90">开源与数据鸣谢</h3>
                 </div>
                 <button id="closeCreditsBtn" type="button" aria-label="关闭开源与数据鸣谢" class="p-1 size-9 sm:size-10 inline-flex items-center justify-center hover:bg-white/10 apple-radius text-white/40 hover:text-white/70 glass-interactive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50">
@@ -6269,7 +6271,7 @@
                 localList.forEach(bm => {
                     const iconHtml = bm.icon 
                         ? `<img src="${safeUrl(bm.icon)}" width="20" height="20" decoding="async" class="w-5 h-5 rounded-md object-cover shrink-0 pointer-events-none select-none" alt="" data-hide-on-error="1" draggable="false">`
-                        : `<svg class="w-5 h-5 text-white/40 shrink-0 pointer-events-none select-none" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 20 20"><path d="M4.5 4.25A1.75 1.75 0 016.25 2.5h7.5a1.75 1.75 0 011.75 1.75v13.5l-5.5-2.75-5.5 2.75V4.25z"/></svg>`;
+                        : `<svg class="w-5 h-5 text-white/40 shrink-0 pointer-events-none select-none" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0 1 11.186 0Z"/></svg>`;
                     
                     html += `
                         <div id="sug-opt-${globalIdx}"
