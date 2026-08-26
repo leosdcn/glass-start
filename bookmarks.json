@@ -296,7 +296,7 @@
                     "name": "PDF24 Tools",
                     "url": "https://tools.pdf24.org/zh",
                     "icon": "https://a.favicon.im/tools.pdf24.org",
-                    "desc": "免费在线PDF工具箱"
+                    "desc": "免费在线 PDF 工具箱"
                 },
                 {
                     "name": "Publish Markdown",
@@ -440,7 +440,7 @@
                     "name": "Kenney",
                     "url": "https://kenney.nl",
                     "icon": "https://a.favicon.im/kenney.nl",
-                    "desc": "免费开源游戏素材资产"
+                    "desc": "免费开源游戏素材库"
                 },
                 {
                     "name": "Lucide",
@@ -458,7 +458,7 @@
                     "name": "Pexels",
                     "url": "https://www.pexels.com",
                     "icon": "https://a.favicon.im/pexels.com",
-                    "desc": "免费高质量素材图库"
+                    "desc": "免费商用摄影图库"
                 },
                 {
                     "name": "Pinterest",
@@ -500,13 +500,19 @@
                     "name": "Unsplash",
                     "url": "https://unsplash.com",
                     "icon": "https://a.favicon.im/unsplash.com",
-                    "desc": "无版权高品质摄影图库"
+                    "desc": "知名免版税摄影图库"
                 },
                 {
                     "name": "Wallhaven",
                     "url": "https://wallhaven.cc",
                     "icon": "https://a.favicon.im/wallhaven.cc",
-                    "desc": "高质量极客桌面壁纸库"
+                    "desc": "高质量桌面壁纸库"
+                },
+                {
+                    "name": "Yesicon",
+                    "url": "https://yesicon.app",
+                    "icon": "https://a.favicon.im/yesicon.app",
+                    "desc": "精选全球矢量图标库"
                 },
                 {
                     "name": "効果音ラボ",
@@ -548,7 +554,7 @@
                     "name": "SauceNAO",
                     "url": "https://saucenao.com",
                     "icon": "https://a.favicon.im/saucenao.com",
-                    "desc": "二次元动漫以图搜图"
+                    "desc": "动漫插画以图搜图"
                 },
                 {
                     "name": "Squoosh",
@@ -716,7 +722,7 @@
                     "name": "YouTube Music",
                     "url": "https://music.youtube.com",
                     "icon": "https://a.favicon.im/music.youtube.com",
-                    "desc": "谷歌音乐与歌曲流媒体"
+                    "desc": "谷歌官方音乐流媒体"
                 },
                 {
                     "name": "哔哩哔哩",
@@ -734,7 +740,7 @@
                     "name": "网易云音乐",
                     "url": "https://music.163.com/st/webplayer",
                     "icon": "https://a.favicon.im/music.163.com",
-                    "desc": "发现好音乐与听歌社区"
+                    "desc": "主流音乐与歌单社区"
                 }
             ]
         },
@@ -752,7 +758,7 @@
                     "name": "Neal.fun",
                     "url": "https://neal.fun",
                     "icon": "https://a.favicon.im/neal.fun",
-                    "desc": "创意趣味互动实验室"
+                    "desc": "趣味网页互动实验室"
                 },
                 {
                     "name": "Pointer Pointer",
