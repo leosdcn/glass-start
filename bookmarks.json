@@ -443,12 +443,6 @@
                     "desc": "免费开源游戏素材库"
                 },
                 {
-                    "name": "Lucide",
-                    "url": "https://lucide.dev",
-                    "icon": "https://a.favicon.im/lucide.dev",
-                    "desc": "现代极简矢量图标库"
-                },
-                {
                     "name": "Mixkit",
                     "url": "https://mixkit.co",
                     "icon": "https://a.favicon.im/mixkit.co",
