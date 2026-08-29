@@ -7650,8 +7650,7 @@
             // ===== 全局页面生命周期与多标签/BFCache 唤醒自愈闭环 (全设备通用，不依赖 hover/motion 硬件特征) =====
             const handleAppWakeUp = (wasPersisted = false) => {
                 updateClock();
-                // 1. 清除所有点击按压态、悬停残留与标签页失焦态
-                document.body.classList.remove('tab-blurred');
+                // 1. 清除所有点击按压态与瞬态类名 (tab-blurred 由物理交互监听器按需脱壳)
                 document.querySelectorAll('.is-clicked').forEach(el => el.classList.remove('is-clicked'));
                 // 2. 清理所有瞬态入场动画与脉冲类名，彻底杜绝 WebKit 从 BFCache 唤醒时重估 CSS 动画回滚至初始帧
                 document.querySelectorAll('.fade-in, .animate-item-in, .category-title-pulse').forEach(el => {

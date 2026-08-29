@@ -222,9 +222,12 @@ const hoverGatingTest = await evalJS(`(() => {
   // 模拟普通点击跳出
   bm.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, button: 0 }));
   window.dispatchEvent(new Event('blur'));
+  window.dispatchEvent(new Event('pagehide'));
   
-  // 模拟返回聚焦但不移动鼠标
+  // 模拟从外部返回（多标签切回 / BFCache 恢复：focus + pageshow + visibilitychange）但不移动鼠标
   window.dispatchEvent(new Event('focus'));
+  window.dispatchEvent(new Event('pageshow'));
+  document.dispatchEvent(new Event('visibilitychange'));
   const bodyHasTabBlurredOnReturn = document.body.classList.contains('tab-blurred');
   const style = window.getComputedStyle(bm);
   const isScaleNormal = !style.transform || style.transform === 'none' || style.transform.includes('matrix(1, 0, 0, 1');
