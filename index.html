@@ -1588,7 +1588,7 @@
         <script>(function(){try{if(localStorage.getItem('hasDiscoveredNav')==='1'){const h=document.getElementById('scrollDownHint');if(h)h.style.display='none';}}catch(e){}})()</script>
 
         <!-- 右下角悬浮编辑设置按钮（置于起始页内，随起始页物理滑屏） -->
-        <button id="editBookmarksBtn" type="button" aria-label="编辑与设置" title="编辑书签与设置" class="p-3 glass-strong apple-radius text-white/70 hover:text-white hover:bg-white/20 border border-white/20 shadow-2xl flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 fade-in delay-200">
+        <button id="editBookmarksBtn" type="button" aria-expanded="false" aria-controls="editModal" aria-haspopup="dialog" aria-label="编辑与设置" title="编辑书签与设置" class="p-3 glass-strong apple-radius text-white/70 hover:text-white hover:bg-white/20 border border-white/20 shadow-2xl flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 fade-in delay-200">
             <svg class="size-5" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
@@ -1647,7 +1647,7 @@
                         <svg class="size-3.5 opacity-80 shrink-0" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z"/></svg>
                         <span>开源致谢</span>
                     </button>
-                    <button id="openShortcutFromSettingsBtn" type="button" class="glass-pill-btn" title="查看全站键盘快捷键速查">
+                    <button id="openShortcutFromSettingsBtn" type="button" aria-expanded="false" aria-controls="shortcutModal" aria-haspopup="dialog" class="glass-pill-btn" title="查看全站键盘快捷键速查">
                         <svg class="size-3.5 opacity-80 shrink-0" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect width="20" height="13" x="2" y="5.5" rx="2.5"/><path d="M6 9.5h.01M10 9.5h.01M14 9.5h.01M18 9.5h.01M6 13.5h.01M18 13.5h.01M9.5 13.5h5"/></svg>
                         <span>快捷键速查</span> <span id="settingsKbdHint" class="font-mono text-2xs text-white/40 ml-0.5">⌘ /</span>
                     </button>
@@ -1679,7 +1679,7 @@
                 <div id="editList" role="list" aria-label="书签列表" class="flex-1 overflow-y-auto space-y-1.5 mb-2.5 min-h-0 pr-1"></div>
                 <div class="grid grid-cols-2 gap-2 sm:gap-2.5 shrink-0 pt-2.5 border-t border-white/10">
                     <button id="addBookmarkBtn" type="button" class="py-2 px-3 border border-dashed border-white/20 apple-radius text-white/75 hover:text-white hover:border-white/40 hover:bg-white/10 glass-interactive text-xs flex items-center justify-center gap-1.5 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 disabled:opacity-50 disabled:cursor-not-allowed truncate"><svg class="size-3.5 shrink-0 opacity-80" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M12 4.5v15m7.5-7.5h-15"/></svg> 手动添加书签</button>
-                    <button id="togglePickerBtn" type="button" class="py-2 px-3 border border-dashed border-white/20 apple-radius text-xs text-white/75 hover:text-white hover:border-white/40 hover:bg-white/10 glass-interactive flex items-center justify-center gap-1.5 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 disabled:opacity-50 disabled:cursor-not-allowed truncate"><svg class="size-3.5 shrink-0 opacity-80" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M12 9v6m3-3H9m12 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg> 从导航页批量选择</button>
+                    <button id="togglePickerBtn" type="button" aria-expanded="false" aria-controls="bookmarkPicker" aria-haspopup="dialog" class="py-2 px-3 border border-dashed border-white/20 apple-radius text-xs text-white/75 hover:text-white hover:border-white/40 hover:bg-white/10 glass-interactive flex items-center justify-center gap-1.5 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 disabled:opacity-50 disabled:cursor-not-allowed truncate"><svg class="size-3.5 shrink-0 opacity-80" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M12 9v6m3-3H9m12 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg> 从导航页批量选择</button>
                 </div>
             </div>
 
@@ -1832,7 +1832,7 @@
                                     恢复为系统初始默认状态，将永久清除所有自定义书签、壁纸与偏好设置。
                                 </p>
                             </div>
-                            <button id="resetEditBtn" type="button" class="danger-zone-btn w-full py-2 text-xs font-medium glass-interactive flex items-center justify-center gap-1.5 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 disabled:opacity-50 disabled:cursor-not-allowed">
+                            <button id="resetEditBtn" type="button" aria-expanded="false" aria-controls="confirmModal" aria-haspopup="dialog" class="danger-zone-btn w-full py-2 text-xs font-medium glass-interactive flex items-center justify-center gap-1.5 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 disabled:opacity-50 disabled:cursor-not-allowed">
                                 <svg class="spinner size-4 animate-spin hidden" aria-hidden="true"><use href="#icon-spinner"/></svg>
                                 <svg class="size-3.5 shrink-0 opacity-80" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"/></svg> <span class="btn-label">重置所有系统设置</span>
                             </button>
@@ -3085,9 +3085,12 @@
             pop(id) {
                 let removed = null;
                 if (id) {
-                    this.stack = this.stack.filter(item => item.id !== id);
+                    const idx = this.stack.findIndex(item => item.id === id);
+                    if (idx !== -1) {
+                        removed = this.stack.splice(idx, 1)[0];
+                    }
                 } else {
-                    removed = this.stack.pop();
+                    removed = this.stack.pop() || null;
                 }
                 const hasOpenModal = this.stack.some(item => MODAL_OVERLAY_IDS.has(item.id));
                 if (!hasOpenModal) {
@@ -3790,7 +3793,7 @@
                         <input type="text" id="bm-name-${rowId}" name="bookmark_name_${rowId}" class="edit-name w-full sm:w-1/3 bg-black/25 border border-white/10 rounded-lg px-2.5 py-1 sm:py-1.5 text-base sm:text-xs text-white/90 focus:border-white/40 focus:bg-black/40 focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:outline-none outline-none transition font-medium" value="${escapeHtml(name)}" placeholder="书签名称" aria-label="书签名称">
                         <input type="text" id="bm-url-${rowId}" name="bookmark_url_${rowId}" class="edit-url w-full sm:w-2/3 bg-black/25 border border-white/10 rounded-lg px-2.5 py-1 sm:py-1.5 text-base sm:text-xs text-white/60 focus:border-white/40 focus:bg-black/40 focus:text-white focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:outline-none outline-none transition font-mono" value="${escapeHtml(url)}" placeholder="https://..." aria-label="书签网址">
                     </div>
-                    <button type="button" class="del-btn shrink-0 size-7 sm:size-8 p-1 hover:bg-red-500/20 rounded-lg text-white/30 hover:text-red-400 flex items-center justify-center transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-1 focus-visible:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed" title="删除书签">
+                    <button type="button" class="del-btn shrink-0 size-7 sm:size-8 p-1 hover:bg-red-500/20 rounded-lg text-white/30 hover:text-red-400 flex items-center justify-center transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-1 focus-visible:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed" title="删除书签" aria-label="删除书签">
                         <svg class="size-4 pointer-events-none" aria-hidden="true"><use href="#icon-trash"/></svg>
                     </button>
                 </div>
@@ -3848,6 +3851,7 @@
             closeDropdown();
             hideSuggestions();
             editModalTriggerEl = document.activeElement;
+            dom.editBookmarksBtn?.setAttribute('aria-expanded', 'true');
             state.editOpen = true;
             OverlayStack.push('editModal', cancelEditModal);
 
@@ -3895,6 +3899,7 @@
         function closeEditModal() {
             state.editOpen = false;
             OverlayStack.pop('editModal');
+            dom.editBookmarksBtn?.setAttribute('aria-expanded', 'false');
             if (editFaviconDebounceTimer) {
                 clearTimeout(editFaviconDebounceTimer);
                 editFaviconDebounceTimer = null;
@@ -3922,6 +3927,7 @@
             closeDropdown();
             hideSuggestions();
             shortcutModalTriggerEl = document.activeElement;
+            dom.openShortcutFromSettingsBtn?.setAttribute('aria-expanded', 'true');
             OverlayStack.push('shortcutModal', closeShortcutModal);
             animateShowModal(dom.shortcutModal);
         }
@@ -3933,6 +3939,7 @@
         function closeShortcutModal() {
             if (!dom.shortcutModal) return;
             OverlayStack.pop('shortcutModal');
+            dom.openShortcutFromSettingsBtn?.setAttribute('aria-expanded', 'false');
             if (document.activeElement && dom.shortcutModal.contains(document.activeElement)) {
                 document.activeElement.blur();
             }
@@ -4073,7 +4080,7 @@
          */
         // 当前已挂载监听的确认弹窗清理函数（防叠加：上一弹窗未关闭时再次 showConfirm，先解除旧监听再挂新监听）
         let activeConfirmCleanup = null;
-        function showConfirm(message, onConfirm, title = '重置确认') {
+        function showConfirm(message, onConfirm, title = '重置确认', triggerEl = null) {
             const modal = dom.confirmModal;
             const titleEl = dom.confirmTitle;
             const msgEl = dom.confirmMsg;
@@ -4099,6 +4106,10 @@
             animateShowModal(modal);
             OverlayStack.push('confirmModal', cleanup);
 
+            let confirmTriggerEl = triggerEl || document.activeElement || dom.resetEditBtn;
+            if (confirmTriggerEl && typeof confirmTriggerEl.setAttribute === 'function') {
+                confirmTriggerEl.setAttribute('aria-expanded', 'true');
+            }
             function cleanup() {
                 activeConfirmCleanup = null;
                 OverlayStack.pop('confirmModal');
@@ -4110,6 +4121,14 @@
                 okBtn.removeEventListener('click', handleOk);
                 cancelBtn.removeEventListener('click', handleCancel);
                 modal.removeEventListener('click', handleBackdropClick);
+                if (confirmTriggerEl && typeof confirmTriggerEl.focus === 'function') {
+                    const opener = confirmTriggerEl;
+                    confirmTriggerEl = null;
+                    if (typeof opener.setAttribute === 'function') {
+                        opener.setAttribute('aria-expanded', 'false');
+                    }
+                    requestAnimationFrame(() => opener.focus());
+                }
             }
 
             function handleOk() { cleanup(); onConfirm?.(); }
@@ -4174,12 +4193,16 @@
         }
 
 
+        let bookmarkPickerTriggerEl = null;
+
         // ==================== 从导航页选择弹窗 ====================
         /**
          * 打开「从导航页选择」批量挑选弹窗，渲染所有分类及其包含的站点列表
          * @returns {void}
          */
-        function openBookmarkPicker() {
+        function openBookmarkPicker(triggerEl = null) {
+            bookmarkPickerTriggerEl = triggerEl || document.activeElement || dom.togglePickerBtn;
+            dom.togglePickerBtn?.setAttribute('aria-expanded', 'true');
             OverlayStack.push('bookmarkPicker', closeBookmarkPicker);
             animateShowModal(dom.bookmarkPicker);
             renderPickerCategories();
@@ -4191,10 +4214,16 @@
          */
         function closeBookmarkPicker() {
             OverlayStack.pop('bookmarkPicker');
+            dom.togglePickerBtn?.setAttribute('aria-expanded', 'false');
             if (document.activeElement && dom.bookmarkPicker.contains(document.activeElement)) {
                 document.activeElement.blur();
             }
             animateHideModal(dom.bookmarkPicker);
+            if (bookmarkPickerTriggerEl && typeof bookmarkPickerTriggerEl.focus === 'function') {
+                const opener = bookmarkPickerTriggerEl;
+                bookmarkPickerTriggerEl = null;
+                requestAnimationFrame(() => opener.focus());
+            }
         }
 
         // ==================== 编辑列表拖拽排序 & 实时感知 ====================
@@ -5256,7 +5285,7 @@
                 // 0. 当有活动 Modal 弹窗在栈顶时，强行防逃逸循环锁定 Tab 键焦点 (a11y Focus Trap)
                 if (e.key === 'Tab' && !OverlayStack.isEmpty()) {
                     const topOverlay = OverlayStack.top();
-                    if (topOverlay && topOverlay.id !== 'suggestions' && topOverlay.id !== 'dropdown') {
+                    if (topOverlay && MODAL_OVERLAY_IDS.has(topOverlay.id)) {
                         const modalEl = dom[topOverlay.id] || document.getElementById(topOverlay.id);
                         if (modalEl) {
                             handleModalTabFocus(e, modalEl);
@@ -5423,16 +5452,14 @@
             dom.editBookmarksBtn.addEventListener('click', openEditModal);
             dom.cancelEditBtn.addEventListener('click', cancelEditModal);
             dom.editModal.addEventListener('click', cancelEditModal);
-            dom.togglePickerBtn.addEventListener('click', e => { e.stopPropagation(); openBookmarkPicker(); });
+            dom.togglePickerBtn.addEventListener('click', e => { e.stopPropagation(); openBookmarkPicker(dom.togglePickerBtn); });
             dom.closePickerBtn.addEventListener('click', closeBookmarkPicker);
             dom.donePickerBtn.addEventListener('click', closeBookmarkPicker);
             dom.bookmarkPicker.addEventListener('click', closeBookmarkPicker);
             dom.closeShortcutBtn?.addEventListener('click', closeShortcutModal);
             dom.doneShortcutBtn?.addEventListener('click', closeShortcutModal);
             dom.shortcutModal?.addEventListener('click', closeShortcutModal);
-            dom.openShortcutFromSettingsBtn?.addEventListener('click', () => {
-                openShortcutModal();
-            });
+            dom.openShortcutFromSettingsBtn?.addEventListener('click', openShortcutModal);
             dom.openCreditsFromSettingsBtn?.addEventListener('click', openCreditsModal);
             dom.closeCreditsBtn?.addEventListener('click', closeCreditsModal);
             dom.doneCreditsBtn?.addEventListener('click', closeCreditsModal);
@@ -5953,7 +5980,7 @@
             const al = a.length, bl = b.length;
             if (al === 0) return bl;
             if (bl === 0) return al;
-            const dp = Array.from({ length: al + 1 }, () => new Int32Array(bl + 1));
+            const dp = Array.from({ length: al + 1 }, () => typeof Int32Array !== 'undefined' ? new Int32Array(bl + 1) : new Array(bl + 1).fill(0));
             for (let i = 0; i <= al; i++) dp[i][0] = i;
             for (let j = 0; j <= bl; j++) dp[0][j] = j;
 
@@ -6449,6 +6476,7 @@
          * @returns {number} 有限数字
          */
         function weatherNum(v, fallback) {
+            if (v === null || v === undefined || v === '' || typeof v === 'boolean') return fallback;
             const n = Number(v);
             return Number.isFinite(n) ? n : fallback;
         }
@@ -6893,7 +6921,7 @@
                         <span class="text-xs text-white/50 shrink-0">📍</span>
                         <span class="text-xs font-semibold text-white/90 truncate" title="${escapeHtml(loc.fullName || loc.name)}">${escapeHtml(loc.fullName || loc.name)}</span>
                     </div>
-                    <button id="weatherRefreshBtn" type="button" class="size-7 apple-radius bg-white/5 hover:bg-white/15 text-white flex items-center justify-center glass-interactive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 shrink-0 disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none" title="立即刷新天气">
+                    <button id="weatherRefreshBtn" type="button" class="size-7 apple-radius bg-white/5 hover:bg-white/15 text-white flex items-center justify-center glass-interactive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 shrink-0 disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none" title="立即刷新天气" aria-label="立即刷新天气">
                         <svg class="size-3.5 opacity-70 hover:opacity-100 transition-opacity" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>
                     </button>
                 </div>
@@ -7683,6 +7711,10 @@
                     dom.startSection.style.willChange = 'auto';
                     void dom.startSection.offsetHeight;
                     dom.startSection.style.willChange = 'transform';
+                }
+                // 8. 标签页与 BFCache 唤醒时静默校验气象缓存有效期并按需刷新
+                if (typeof updateWeather === 'function') {
+                    updateWeather(false).catch(() => {});
                 }
             };
 

@@ -143,8 +143,32 @@ await evalJS(`(function(){
 })()`); await sleep(650);
 const touchInNav = tyOf(await evalJS('getComputedStyle(document.getElementById("navSection")).transform')) === 0;
 
-pass('滚轮与触屏手势切屏及内部滚动拦截机制 (滚轮下切/内容滚动拦截/滚轮上切/触屏滑屏)',
-  wheelInNav && scrollBlocked && wheelBackStart && touchInNav);
+// 3.5 触屏快速轻扫 (Flick Gesture: 位移 >= 25px 且速度 > 0.25px/ms 快速切屏)
+await evalJS('window.switchToStart()'); await sleep(650);
+const flickCheck = await evalJS(`(async () => {
+  const tc = (y) => new Touch({ identifier: 2, target: document.body, clientX: 0, clientY: y });
+  // 模拟在 50ms 内轻扫 30px (位移 < 40px 阈值，但速度 0.6px/ms > 0.25px/ms 满足 Flick)
+  document.dispatchEvent(new TouchEvent('touchstart', { touches: [tc(300)], cancelable: true }));
+  await new Promise(r => setTimeout(r, 50));
+  document.dispatchEvent(new TouchEvent('touchend', { changedTouches: [tc(270)], cancelable: true }));
+  await new Promise(r => setTimeout(r, 650));
+  const navTy = typeof tyOf === 'function' ? tyOf(getComputedStyle(document.getElementById('navSection')).transform) : 0;
+  const inNav = navTy === 0;
+
+  // 导航页顶端反向 Flick 轻扫切回 Start
+  document.getElementById('navContent').scrollTop = 0;
+  document.dispatchEvent(new TouchEvent('touchstart', { touches: [tc(270)], cancelable: true }));
+  await new Promise(r => setTimeout(r, 50));
+  document.dispatchEvent(new TouchEvent('touchend', { changedTouches: [tc(300)], cancelable: true }));
+  await new Promise(r => setTimeout(r, 650));
+  const backStart = document.getElementById('startSection').getAttribute('aria-hidden') !== 'true';
+
+  return { inNav, backStart };
+})()`);
+const flickOk = flickCheck.inNav && flickCheck.backStart;
+
+pass('滚轮与触屏手势切屏及内部滚动拦截机制 (滚轮下切/内容滚动拦截/滚轮上切/触屏阈值滑屏/Flick快速轻扫)',
+  wheelInNav && scrollBlocked && wheelBackStart && touchInNav && flickOk);
 
 // ══════════════════════════════════════════════════════════════════════
 // 4. sessionStorage 刷新状态保持无闪烁及切回 Start 屏组件全量可见
@@ -395,8 +419,113 @@ const engineDropdownCheck = await evalJS(`(() => {
   };
 })()`);
 
-pass('OverlayStack 多层弹窗嵌套压退栈与安全白名单 (多层Modal/引擎下拉/快捷键拦截/遮罩记忆/Bing-Google-Wikipedia白名单)',
-  clockOk && modalStackOk && dropdownOk && lockOk && confirmOk && dropzoneOk && maskOk && engineDropdownCheck.isClean);
+// 6.9 无障碍 Focus Trap 焦点循环锁定与焦点平滑归还 (Tab 从末尾回绕首项 / Shift+Tab 从首项回绕末尾 / 外部焦点强制回捕 / 多层嵌套栈顶隔离 / 弹窗关闭归还焦点到触发按钮)
+const focusTrapCheck = await evalJS(`(async () => {
+  // 1. 打开设置弹窗
+  const editBtn = document.getElementById('editBookmarksBtn');
+  const editInitExpanded = editBtn ? editBtn.getAttribute('aria-expanded') : null;
+  editBtn.focus();
+  editBtn.click();
+  await new Promise(r => setTimeout(r, 300));
+  const editOpenExpanded = editBtn ? editBtn.getAttribute('aria-expanded') : null;
+  
+  const modalEl = document.getElementById('editModal');
+  const focusables = Array.from(modalEl.querySelectorAll('button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])')).filter(el => el.offsetWidth > 0 || el.offsetHeight > 0);
+  const firstEl = focusables[0];
+  const lastEl = focusables[focusables.length - 1];
+
+  // 2. 从末尾元素按下 Tab 键 -> 焦点循环回绕至首项
+  lastEl.focus();
+  document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true }));
+  const tabWrapOk = document.activeElement === firstEl;
+
+  // 3. 从首项元素按下 Shift + Tab 键 -> 焦点循环回绕至末尾
+  firstEl.focus();
+  document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', shiftKey: true, bubbles: true, cancelable: true }));
+  const shiftTabWrapOk = document.activeElement === lastEl;
+
+  // 4. 模拟外部元素失控聚焦 (如 body) -> 按下 Tab 键强行回捕至首项
+  document.body.focus();
+  document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true }));
+  const outsideTrapOk = document.activeElement === firstEl;
+
+  // 5. 多层嵌套弹窗测试：在 editModal 之上呼出 confirmModal -> Focus Trap 必须严格隔离在栈顶 confirmModal 内部
+  document.getElementById('tab-btn-data').click();
+  await new Promise(r => setTimeout(r, 200));
+  const resetBtn = document.getElementById('resetEditBtn');
+  const confirmInitExpanded = resetBtn ? resetBtn.getAttribute('aria-expanded') : null;
+  resetBtn.focus();
+  resetBtn.click();
+  await new Promise(r => setTimeout(r, 300));
+  const confirmOpenExpanded = resetBtn ? resetBtn.getAttribute('aria-expanded') : null;
+  const confirmEl = document.getElementById('confirmModal');
+  const confirmFocusables = Array.from(confirmEl.querySelectorAll('button:not([disabled])')).filter(el => el.offsetWidth > 0 || el.offsetHeight > 0);
+  const confirmFirst = confirmFocusables[0];
+  const confirmLast = confirmFocusables[confirmFocusables.length - 1];
+  
+  confirmLast.focus();
+  document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true }));
+  const stackedTabWrapOk = document.activeElement === confirmFirst;
+  
+  document.getElementById('confirmCancelBtn').click();
+  await new Promise(r => setTimeout(r, 300));
+  const confirmClosedExpanded = resetBtn ? resetBtn.getAttribute('aria-expanded') : null;
+  const confirmTriggerRestoredOk = document.activeElement && document.activeElement.id === 'resetEditBtn';
+  const confirmAriaOk = confirmInitExpanded === 'false' && confirmOpenExpanded === 'true' && confirmClosedExpanded === 'false';
+
+  // 6. 书签提取子弹窗 (bookmarkPicker) 焦点归还测试 (位于 tabBookmarks 选项卡)
+  document.getElementById('tab-btn-bookmarks').click();
+  await new Promise(r => setTimeout(r, 200));
+  const pickerBtn = document.getElementById('togglePickerBtn');
+  const pickerInitExpanded = pickerBtn ? pickerBtn.getAttribute('aria-expanded') : null;
+  pickerBtn.focus();
+  pickerBtn.click();
+  await new Promise(r => setTimeout(r, 300));
+  const pickerOpenExpanded = pickerBtn ? pickerBtn.getAttribute('aria-expanded') : null;
+  document.getElementById('closePickerBtn').click();
+  await new Promise(r => setTimeout(r, 300));
+  const pickerClosedExpanded = pickerBtn ? pickerBtn.getAttribute('aria-expanded') : null;
+  const pickerTriggerRestoredOk = document.activeElement && document.activeElement.id === 'togglePickerBtn';
+  const pickerAriaOk = pickerInitExpanded === 'false' && pickerOpenExpanded === 'true' && pickerClosedExpanded === 'false';
+
+  // 7. 设置弹窗内快捷键与鸣谢按钮 aria-expanded 联动测试
+  const shortcutBtn = document.getElementById('openShortcutFromSettingsBtn');
+  const creditsBtn = document.getElementById('openCreditsFromSettingsBtn');
+  const shortcutInitExpanded = shortcutBtn ? shortcutBtn.getAttribute('aria-expanded') : null;
+  shortcutBtn?.focus();
+  shortcutBtn?.click();
+  await new Promise(r => setTimeout(r, 300));
+  const shortcutOpenExpanded = shortcutBtn ? shortcutBtn.getAttribute('aria-expanded') : null;
+  document.getElementById('doneShortcutBtn')?.click();
+  await new Promise(r => setTimeout(r, 300));
+  const shortcutClosedExpanded = shortcutBtn ? shortcutBtn.getAttribute('aria-expanded') : null;
+  const shortcutAriaOk = shortcutInitExpanded === 'false' && shortcutOpenExpanded === 'true' && shortcutClosedExpanded === 'false';
+
+  const creditsInitExpanded = creditsBtn ? creditsBtn.getAttribute('aria-expanded') : null;
+  creditsBtn?.focus();
+  creditsBtn?.click();
+  await new Promise(r => setTimeout(r, 300));
+  const creditsOpenExpanded = creditsBtn ? creditsBtn.getAttribute('aria-expanded') : null;
+  document.getElementById('doneCreditsBtn')?.click();
+  await new Promise(r => setTimeout(r, 300));
+  const creditsClosedExpanded = creditsBtn ? creditsBtn.getAttribute('aria-expanded') : null;
+  const creditsAriaOk = creditsInitExpanded === 'false' && creditsOpenExpanded === 'true' && creditsClosedExpanded === 'false';
+
+  // 8. 关闭设置弹窗并验证焦点平滑归还至触发源 (editBookmarksBtn)
+  document.getElementById('cancelEditBtn').click();
+  await new Promise(r => setTimeout(r, 300));
+  const editClosedExpanded = editBtn ? editBtn.getAttribute('aria-expanded') : null;
+  const editAriaOk = editInitExpanded === 'false' && editOpenExpanded === 'true' && editClosedExpanded === 'false';
+  const focusRestoredOk = document.activeElement && document.activeElement.id === 'editBookmarksBtn';
+  const bodyLockReleased = !document.body.classList.contains('overflow-hidden') && !document.body.classList.contains('touch-none');
+
+  return { tabWrapOk, shiftTabWrapOk, outsideTrapOk, stackedTabWrapOk, confirmTriggerRestoredOk, confirmAriaOk, pickerTriggerRestoredOk, pickerAriaOk, shortcutAriaOk, creditsAriaOk, editAriaOk, focusRestoredOk, bodyLockReleased };
+})()`);
+const focusTrapOk = focusTrapCheck.tabWrapOk && focusTrapCheck.shiftTabWrapOk && focusTrapCheck.outsideTrapOk && focusTrapCheck.stackedTabWrapOk && focusTrapCheck.confirmTriggerRestoredOk && focusTrapCheck.confirmAriaOk && focusTrapCheck.pickerTriggerRestoredOk && focusTrapCheck.pickerAriaOk && focusTrapCheck.shortcutAriaOk && focusTrapCheck.creditsAriaOk && focusTrapCheck.editAriaOk && focusTrapCheck.focusRestoredOk && focusTrapCheck.bodyLockReleased;
+
+pass('OverlayStack 多层弹窗嵌套压退栈、安全白名单与 Focus Trap 焦点锁 (多层Modal/引擎下拉/快捷键拦截/遮罩记忆/Bing-Google-Wikipedia/Focus Trap回绕/外部回捕/栈顶隔离/子弹窗焦点归还/ARIA联动/主弹窗焦点归还)',
+  clockOk && modalStackOk && dropdownOk && lockOk && confirmOk && dropzoneOk && maskOk && engineDropdownCheck.isClean && focusTrapOk,
+  JSON.stringify({ clockOk, modalStackOk, dropdownOk, lockOk, confirmOk, dropzoneOk, maskOk, isClean: engineDropdownCheck.isClean, focusTrapCheck }));
 
 // ══════════════════════════════════════════════════════════════════════
 // 7. 移动端视口 (iPhone 17 402x874) 与侧边栏 Tab 滚动联动

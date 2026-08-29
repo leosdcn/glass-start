@@ -68,15 +68,30 @@ const searchAlgoCheck = await evalJS(`(() => {
     const res4 = getLocalBookmarkSuggestions("大数据", 1);
     const fallbackOk = res4[0]?.name === '阿里云';
 
-    return { exactNameOk, subNameOk, tierOk, fallbackOk };
+    // 1.5 Damerau-Levenshtein 拼写容错/模糊纠错匹配 (Tier 60/70)
+    pageData.bookmarks = [
+      { name: "GitHub", url: "https://github.com", desc: "代码托管" },
+      { name: "React 官方文档", url: "https://react.dev", desc: "前端框架" }
+    ];
+    pageData.categories = [];
+    const resFuzzy1 = getLocalBookmarkSuggestions("githbu", 1); // 易位错字容错 (bu -> ub)
+    const fuzzyNameOk = resFuzzy1[0]?.name === 'GitHub';
+    const resFuzzy2 = getLocalBookmarkSuggestions("reac", 1);   // 前缀容错
+    const fuzzyPrefixOk = resFuzzy2[0]?.name === 'React 官方文档';
+
+    // 1.6 纯标点符号查询过滤 (如 "/" 不得误命中所有以 https:// 开头的书签)
+    const resPunct = getLocalBookmarkSuggestions("/", 5);
+    const punctFilterOk = resPunct.length === 0;
+
+    return { exactNameOk, subNameOk, tierOk, fallbackOk, fuzzyNameOk, fuzzyPrefixOk, punctFilterOk };
   } finally {
     pageData.bookmarks = originalBookmarks;
     pageData.categories = originalCategories;
   }
 })()`);
 
-pass('书签三级模糊搜索与优先级排序算法 (精确匹配/包含匹配/三级梯队/简介降级)',
-  searchAlgoCheck.exactNameOk && searchAlgoCheck.subNameOk && searchAlgoCheck.tierOk && searchAlgoCheck.fallbackOk,
+pass('书签三级模糊搜索与优先级排序算法 (精确匹配/包含匹配/三级梯队/简介降级/Damerau-Levenshtein模糊纠错/纯标点过滤)',
+  searchAlgoCheck.exactNameOk && searchAlgoCheck.subNameOk && searchAlgoCheck.tierOk && searchAlgoCheck.fallbackOk && searchAlgoCheck.fuzzyNameOk && searchAlgoCheck.fuzzyPrefixOk && searchAlgoCheck.punctFilterOk,
   JSON.stringify(searchAlgoCheck));
 
 // ══════════════════════════════════════════════════════════════════════
@@ -151,13 +166,62 @@ const xssCheck = await evalJS(`(() => {
 })()`);
 const xssOk = xssCheck && xssCheck.escaped && !xssCheck.xssFired && xssCheck.safeUrl;
 
+// 2.6 气象缓存数值信任边界与 weatherNum / weatherTime 安全净化
+const weatherSanitizeCheck = await evalJS(`(() => {
+  const n1 = weatherNum('<script>alert(1)</script>', 0);
+  const n2 = weatherNum('NaN', 50);
+  const n3 = weatherNum(null, 50);
+  const n4 = weatherNum(undefined, 50);
+  const n5 = weatherNum('', 50);
+  const n6 = weatherNum('42.5', 0);
+  const n7 = weatherNum(true, 50);
+  const n8 = weatherNum(false, 50);
+  const t1 = weatherTime('<script>18:00</script>');
+  const t2 = weatherTime('18:59');
+  const t3 = weatherTime('9:41');
+  const t4 = weatherTime(null);
+  return {
+    n1: n1 === 0,
+    n2: n2 === 50,
+    n3: n3 === 50,
+    n4: n4 === 50,
+    n5: n5 === 50,
+    n6: n6 === 42.5,
+    n7: n7 === 50,
+    n8: n8 === 50,
+    t1: t1 === '--:--',
+    t2: t2 === '18:59',
+    t3: t3 === '9:41',
+    t4: t4 === '--:--'
+  };
+})()`);
+const weatherSanitizeOk = weatherSanitizeCheck && weatherSanitizeCheck.n1 && weatherSanitizeCheck.n2 && weatherSanitizeCheck.n3 && weatherSanitizeCheck.n4 && weatherSanitizeCheck.n5 && weatherSanitizeCheck.n6 && weatherSanitizeCheck.n7 && weatherSanitizeCheck.n8 && weatherSanitizeCheck.t1 && weatherSanitizeCheck.t2 && weatherSanitizeCheck.t3 && weatherSanitizeCheck.t4;
+
+// 2.7 关键交互图标按钮 (del-btn / weatherRefreshBtn) 显式声明 aria-label 规范
+const btnA11yCheck = await evalJS(`(() => {
+  renderEditList();
+  const delBtn = document.querySelector('.del-btn');
+  const delHasAria = delBtn ? delBtn.getAttribute('aria-label') === '删除书签' : false;
+
+  renderWeatherPopover({
+    location: { name: '北京', fullName: '中国 · 北京市' },
+    current: { temp: 22, apparent: 23, weatherText: '晴', icon: '☀️', humidity: 40, windSpeed: 2.0, pop: 0, sunrise: '05:30', sunset: '18:50' },
+    daily: []
+  });
+  const refBtn = document.getElementById('weatherRefreshBtn');
+  const refHasAria = refBtn ? refBtn.getAttribute('aria-label') === '立即刷新天气' : false;
+
+  return { delHasAria, refHasAria };
+})()`);
+const btnA11yOk = btnA11yCheck && btnA11yCheck.delHasAria && btnA11yCheck.refHasAria;
+
 await evalJS(`localStorage.clear()`);
 
-pass('书签轻量存储模型、旧版数据迁移、自定义图标持久化与 XSS 安全清洗 (keys+customMeta/迁移/图标持久化/首屏防空白/XSS防注入)',
-  bmClean && migrationOk && customMetaOk && saveModelOk && xssOk);
+pass('书签轻量存储模型、旧版数据迁移、自定义图标持久化与 XSS/气象数值安全清洗 (keys+customMeta/迁移/图标持久化/首屏防空白/XSS防注入/weatherNum清洗/图标按钮Aria-Label)',
+  bmClean && migrationOk && customMetaOk && saveModelOk && xssOk && weatherSanitizeOk && btnA11yOk);
 
 // ══════════════════════════════════════════════════════════════════════
-// 3. 天气组件胶囊交互与 OverlayStack 层叠栈响应
+// 3. 天气组件胶囊交互、OverlayStack 层叠栈响应与搜索联想防竞态
 // ══════════════════════════════════════════════════════════════════════
 
 const widgetExists = await evalJS(`!!document.getElementById('weatherWidget') && !!document.getElementById('weatherBtn')`);
@@ -179,8 +243,38 @@ const popoverClosed = await evalJS(`({
 })`);
 const closeOk = !popoverClosed.active && popoverClosed.expanded && popoverClosed.stackTop === null;
 
-pass('天气组件胶囊交互与 OverlayStack 层叠栈响应 (挂载存在/点击展开入栈/Escape退栈)',
-  widgetExists && openOk && closeOk);
+// 3.2 搜索联想 activeSuggestReqId 递增防竞态调度与失效请求自动丢弃
+const suggestAntiRaceCheck = await evalJS(`(() => {
+  // 1. 发起第一次请求
+  fetchSuggestions('bing', 'git');
+  const req1Id = activeSuggestReqId;
+  const cb1Name = '__glassSuggestCb_' + req1Id;
+  const cb1Exists = typeof window[cb1Name] === 'function';
+
+  // 2. 快速键入第二个词发起第二次请求
+  fetchSuggestions('bing', 'github');
+  const req2Id = activeSuggestReqId;
+  const cb2Name = '__glassSuggestCb_' + req2Id;
+  const reqIdIncremented = req2Id > req1Id;
+
+  // 3. 模拟请求 1 晚于请求 2 返回：调用旧回调 cb1 时，由于内部校验 reqId !== activeSuggestReqId，必须静默丢弃
+  if (typeof window[cb1Name] === 'function') {
+    window[cb1Name](['git', ['git-old-slow-result']]);
+  }
+  const oldResultDiscarded = !document.getElementById('suggestionMenu').innerText.includes('git-old-slow-result');
+
+  // 4. 清退联想时自动自增 reqId 并清空未决脚本
+  hideSuggestions();
+  const req3Id = activeSuggestReqId;
+  const hideInvalidatedReq = req3Id > req2Id;
+
+  return { cb1Exists, reqIdIncremented, oldResultDiscarded, hideInvalidatedReq };
+})()`);
+const antiRaceOk = suggestAntiRaceCheck && suggestAntiRaceCheck.cb1Exists && suggestAntiRaceCheck.reqIdIncremented && suggestAntiRaceCheck.oldResultDiscarded && suggestAntiRaceCheck.hideInvalidatedReq;
+
+pass('天气组件胶囊交互、OverlayStack 层叠栈响应与搜索联想防竞态 (挂载存在/点击展开入栈/Escape退栈/activeSuggestReqId防竞态丢弃)',
+  widgetExists && openOk && closeOk && antiRaceOk,
+  JSON.stringify({ widgetExists, openOk, closeOk, antiRaceOk }));
 
 // ══════════════════════════════════════════════════════════════════════
 // 4. 天气弹窗 2×2 网格布局与工位优先级规范
@@ -410,10 +504,26 @@ const wakeupSyncCheck = await evalJS(`(() => {
       document.dispatchEvent(new Event('visibilitychange'));
       const clockSynced = dom.clock && dom.clock.textContent !== '00:00:00';
 
+      // 7.4 BFCache pageshow 唤醒感知：超期缓存通过 pageshow 唤醒即时自动刷新
+      const expiredCachePageshow = {
+        timestamp: Date.now() - (120 * 60 * 1000),
+        location: { name: '上海', fullName: '中国 · 上海市', lat: 31.2, lon: 121.5 },
+        current: { temp: 22, apparent: 22, weatherText: '多云', icon: '⛅', humidity: 55, windSpeed: 2.5, pop: 5 },
+        daily: []
+      };
+      storageSet('glass_weather_cache', expiredCachePageshow);
+      storageSet('glass_weather_loc_cache', expiredCachePageshow.location);
+      fetchCount = 0;
+      window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true }));
+      await new Promise(r => setTimeout(r, 350));
+      const updatedPageshowCache = storageGet('glass_weather_cache', null);
+      const pageshowExpiredAutoRefreshed = fetchCount > 0 && updatedPageshowCache && (Date.now() - updatedPageshowCache.timestamp < 1500);
+
       return {
         validCacheNoFetch,
         expiredCacheAutoRefreshed,
-        clockSynced
+        clockSynced,
+        pageshowExpiredAutoRefreshed
       };
     } finally {
       window.fetch = origFetch;
@@ -425,9 +535,10 @@ const wakeupSyncCheck = await evalJS(`(() => {
 const wakeupAllOk = wakeupSyncCheck &&
   wakeupSyncCheck.validCacheNoFetch &&
   wakeupSyncCheck.expiredCacheAutoRefreshed &&
-  wakeupSyncCheck.clockSynced;
+  wakeupSyncCheck.clockSynced &&
+  wakeupSyncCheck.pageshowExpiredAutoRefreshed;
 
-pass('标签页休眠唤醒感知与天气/时钟即时对齐 (有效缓存0请求/超期自动静默刷新/时钟即时同步)',
+pass('标签页休眠唤醒感知与天气/时钟即时对齐 (有效缓存0请求/超期自动静默刷新/时钟即时同步/BFCache双通道气象刷新)',
   wakeupAllOk, JSON.stringify(wakeupSyncCheck));
 
 await press('Escape');
