@@ -4124,9 +4124,7 @@
                 if (confirmTriggerEl && typeof confirmTriggerEl.focus === 'function') {
                     const opener = confirmTriggerEl;
                     confirmTriggerEl = null;
-                    if (typeof opener.setAttribute === 'function') {
-                        opener.setAttribute('aria-expanded', 'false');
-                    }
+                    opener.setAttribute('aria-expanded', 'false');
                     requestAnimationFrame(() => opener.focus());
                 }
             }
@@ -6239,7 +6237,6 @@
 
             window[cbName] = function(data) {
                 cleanup();
-                try { delete window[cbName]; } catch {}
                 if (reqId !== activeSuggestReqId) return; // 废弃过期异步响应
                 let list = [];
                 if (Array.isArray(data)) {
