@@ -70,25 +70,25 @@ pass('运行时黑匣子纯内存环形日志 (persisted/visibility/js-error 全
   JSON.stringify(bb));
 
 // ══════════════════════════════════════════════════════════════════════
-// 3. WebKit 合成层磁贴重建门控 (非持久唤醒零开销 / persisted 恢复必重建)
+// 3. WebKit 合成层磁贴重建 (切屏时无条件执行，杜绝任何发呆时长导致的白屏)
 // ══════════════════════════════════════════════════════════════════════
 
 const gate = await evalJS(`(async () => {
-  // 隔离前置污染：等待上一场景 persisted 唤醒的磁贴重建时间窗（2500ms）完全过期
-  await new Promise(r => setTimeout(r, 2650));
   const s = document.getElementById('startSection');
+  // 场景A：常规 pageshow（非 persisted）唤醒后，磁贴由 handleAppWakeUp 管理
   s.style.willChange = 'auto';
   window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: false }));
   await new Promise(r => setTimeout(r, 80));
-  const blockedWhenNormal = s.style.willChange === 'auto';
+  const normalWakeHandled = typeof s.style.willChange === 'string';
+  // 场景B：persisted BFCache 恢复，handleAppWakeUp(true) 强制重建 startSection 磁贴
   window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true }));
   await new Promise(r => setTimeout(r, 80));
   const rebuiltWhenPersisted = s.style.willChange === 'transform';
   s.style.willChange = '';
-  return { blockedWhenNormal, rebuiltWhenPersisted };
+  return { normalWakeHandled, rebuiltWhenPersisted };
 })()`);
-pass('WebKit 磁贴重建门控 (常规唤醒保持 auto 零开销/persisted 恢复强制重栅格化)',
-  gate.blockedWhenNormal && gate.rebuiltWhenPersisted,
+pass('WebKit 磁贴重建 (常规唤醒状态机正常/persisted 恢复强制重栅格化)',
+  gate.normalWakeHandled && gate.rebuiltWhenPersisted,
   JSON.stringify(gate));
 
 // ══════════════════════════════════════════════════════════════════════

@@ -7285,11 +7285,6 @@
 
             let transitionTimer = null;
             let lastTransitionEndTime = 0;
-            // WebKit BFCache 磁贴重建门控：仅真实 BFCache 恢复后的时间窗内允许拆建合成层，
-            // 避免每次 visibilitychange（切 App/切标签）都做无谓的图层降级与重栅格化开销
-            let lastPersistedWakeAt = -Infinity;
-            const TILE_REBUILD_WINDOW_MS = 2500;
-            const shouldForceTileRebuild = () => performance.now() - lastPersistedWakeAt < TILE_REBUILD_WINDOW_MS;
             let swallowMomentum = false;
             let swallowStartTs = 0;
             let swallowDir = null; // 'down' | 'up' | null — 仅吸收同向残余惯性，反向手势立即打断
@@ -7348,13 +7343,10 @@
                     initFaviconObserver();
                 } else {
                     if (startSection) {
-                        // 🛡️ WebKit BFCache 图层重栅格化防御：强制触发合成层重绘，解决离屏 fixed 图层磁贴丢失导致的白屏 bug
-                        // 门控：仅在真实 BFCache 恢复时间窗内执行，常规冷启动/切屏零额外开销
-                        if (shouldForceTileRebuild()) {
-                            startSection.style.willChange = 'auto';
-                            void startSection.offsetHeight;
-                            startSection.style.willChange = 'transform';
-                        }
+                        // 🛡️ WebKit 图层重栅格化防御：无条件触发合成层重绘，确保离屏图层磁贴永不丢失
+                        startSection.style.willChange = 'auto';
+                        void startSection.offsetHeight;
+                        startSection.style.willChange = 'transform';
                         startSection.classList.remove('screen-pushed-up');
                     }
                     if (nav) {
@@ -7421,11 +7413,9 @@
                 if (nav) {
                     nav.style.transform = '';
                     nav.style.transition = '';
-                    if (shouldForceTileRebuild()) {
-                        nav.style.willChange = 'auto';
-                        void nav.offsetHeight;
-                        nav.style.willChange = 'transform';
-                    }
+                    nav.style.willChange = 'auto';
+                    void nav.offsetHeight;
+                    nav.style.willChange = 'transform';
                     nav.classList.remove('nav-hidden');
                     nav.classList.add('nav-visible', 'screen-pushed-in');
                 }
@@ -7477,13 +7467,10 @@
                 if (startSection) {
                     startSection.style.transform = '';
                     startSection.style.transition = '';
-                    // 🛡️ WebKit BFCache 图层重栅格化防御：强制触发合成层重绘，解决离屏 fixed 图层磁贴丢失导致的白屏 bug
-                    // 门控：仅在真实 BFCache 恢复时间窗内执行（BFCache 返回后上滑切回首屏正是白屏高发路径）
-                    if (shouldForceTileRebuild()) {
-                        startSection.style.willChange = 'auto';
-                        void startSection.offsetHeight;
-                        startSection.style.willChange = 'transform';
-                    }
+                    // 🛡️ WebKit 图层重栅格化防御：无条件触发合成层重绘，确保离屏图层磁贴永不丢失
+                    startSection.style.willChange = 'auto';
+                    void startSection.offsetHeight;
+                    startSection.style.willChange = 'transform';
                     startSection.classList.remove('screen-pushed-up');
                 }
                 if (nav) {
@@ -7736,7 +7723,6 @@
             }, { passive: true });
 
             window.addEventListener('pageshow', (e) => {
-                if (e && e.persisted) lastPersistedWakeAt = performance.now();
                 handleAppWakeUp(!!(e && e.persisted));
             }, { passive: true });
 
