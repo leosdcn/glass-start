@@ -4408,10 +4408,11 @@
                             card.style.transform = 'translate3d(0, 0, 0)';
                         });
 
-                        setTimeout(() => {
+                        card.addEventListener('transitionend', (e) => {
+                            if (e.propertyName !== 'transform') return;
                             card.style.transition = '';
                             card.style.transform = '';
-                        }, 360);
+                        }, { once: true });
                     }
                 });
 
