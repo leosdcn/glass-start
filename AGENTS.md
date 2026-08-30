@@ -6,7 +6,7 @@
 
 ---
 
-## 🚫 一、不可触碰的 10 大工程红线 (The 10 Non-Negotiable Red Lines)
+## 🚫 一、不可触碰的 7 大工程红线 (The 7 Non-Negotiable Red Lines)
 
 ### 1. 🔴 零运行时 npm 依赖原则 (Zero Runtime Dependency)
 - **铁律**：严禁在 `package.json` 的 `dependencies` 中引入任何运行时的外部 npm 依赖包（如 React, Vue, Lodash, Axios, Dayjs, Date-fns, jQuery 等）。
@@ -17,24 +17,16 @@
 
 ---
 
-### 2. 🔴 CSS 零非标 `!important` 污染 (Clean CSS Enforcement)
-- **铁律**：严禁在 `<style>` 或内联样式中滥用 `!important`。
+### 2. 🔴 纯原生 CSS、字体排版与 iOS 视口规范 (Clean CSS, Typography & Viewport Guard)
+- **铁律**：全站 CSS 与排版必须纯净原生，严禁滥用非标属性、破坏规则级联或破坏移动端响应式布局。
 - **执行准则**：
-  - 唯一允许放行的特例为 `@media (prefers-reduced-motion: reduce)` 国际无障碍减弱动效白名单（`lint.mjs` 门禁会自动静态扫描）；
-  - 样式覆盖必须通过 **CSS 变量动态绑定**、**组合选择器特异性（Specificity）** 或 **DOM 状态类名切换**（如 `body:not(.tab-blurred)`）解决；
-  - 严禁为了“图省事”而使用 `!important` 破坏 CSS 规则级联层。
+  - **零 `!important` 污染**：严禁在 `<style>` 或内联样式中滥用 `!important`（唯一允许放行的特例为 `@media (prefers-reduced-motion: reduce)` 无障碍白名单）；样式覆盖必须通过 CSS 变量动态绑定、组合选择器特异性或 DOM 状态类名切换解决；
+  - **零人为字体抗锯齿**：严禁在全站任何 CSS 选择器中滥加 `-webkit-font-smoothing`、`-moz-osx-font-smoothing` 或 `font-smooth` 属性，100% 保持操作系统与浏览器默认的原生次像素排版字形；
+  - **iOS 16px 视口守卫**：全站所有单行 `<input type="text">` 文本输入框计算字体大小必须 $\ge 16\text{px}$（必须包含 Tailwind 类名 `text-base` 或以上），彻底杜绝 iOS Safari 聚焦时强行拉近放大视口。
 
 ---
 
-### 3. 🔴 移动端 iOS 16px 防自动放大规范 (iOS Viewport Guard)
-- **铁律**：全站所有单行 `<input type="text">` 文本输入框的计算字体大小必须 $\ge 16\text{px}$。
-- **执行准则**：
-  - 必须包含 Tailwind 类名 `text-base`（或 `text-lg`/`text-xl`），禁止使用小于 16px 的类名（如 `text-xs`/`text-sm`）；
-  - 此项用于彻底杜绝 iOS Safari 在聚焦输入框时强行拉近放大视口、破坏全站响应式布局的浏览器顽疾（`lint.mjs` 会进行强制校验）。
-
----
-
-### 4. 🔴 W3C WAI-ARIA 无障碍全量合规 (A11y Standard)
+### 3. 🔴 W3C WAI-ARIA 无障碍全量合规 (A11y Standard)
 - **铁律**：全站所有交互与装饰元素必须 100% 符合 W3C WAI-ARIA 无障碍标准。
 - **执行准则**：
   - **所有 `<button>` 标签**：必须 100% 显式声明 `type="button"`（防止在 form 上下文中被意外触发为 submit）；
@@ -44,7 +36,7 @@
 
 ---
 
-### 5. 🔴 弹窗管理必须通过 OverlayStack 压退栈 (Modal Hierarchy)
+### 4. 🔴 弹窗管理必须通过 OverlayStack 压退栈 (Modal Hierarchy)
 - **铁律**：严禁通过直接修改 DOM 的 `style.display = 'block'` 或直接移除 `hidden` 属性来弹出/关闭弹窗。
 - **执行准则**：
   - 必须统一通过 `OverlayStack.push(id, closeFn)` 进行压栈，通过 `OverlayStack.pop(id)` 进行退栈；
@@ -53,47 +45,29 @@
 
 ---
 
-### 6. 🔴 SemVer 版本号 4 处文件强一致性 (Version Alignment)
-- **铁律**：发布任何新版本时，必须同步对齐以下 4 处文件中的版本号字符串，严禁只修改单处：
-  1. `package.json` 中的 `"version": "x.y.z"`
-  2. `package-lock.json` 中的两处 `"version": "x.y.z"`（根节点与 packages 节点）
-  3. `index.html` 设置弹窗数据仪表盘中的版本徽章 `<span ...>vx.y.z</span>`
-  4. [README.md](./README.md) 第 6 节依赖清单表格中的 `Glass Start 站点版本`
-- **执行准则**：严格遵循 SemVer 语义化版本规则（`主版本(MAJOR).次版本(MINOR).修订号(PATCH)`）。
-
----
-
-### 7. 🔴 Git 权限边界与安全纪律 (Git Safety Protocol)
-- **铁律**：**严禁在未经人类用户明确指令的情况下，擅自向远程仓库执行 `git push`！**
-- **执行准则**：
-  - AI 可以根据任务进展在本地执行 `git add` 和 `git commit` 保存工作区进度；
-  - 所有的远程推送（`git push`）必须由人类用户明确指示后方可执行。
-
----
-
-### 8. 🔴 重大任务 3 大 MD 文档说辞强一致性 (Tri-Document Coherence)
-- **铁律**：在执行涉及架构重构、新增功能特性、目录或命令变更、版本发布等重大任务时，AI **必须在交付前交叉核对并统一 3 大核心 Markdown 文档的说辞与参数**，严禁只改代码而遗留文档陈旧或自相矛盾：
-  1. [**AGENTS.md**](./AGENTS.md)：更新工程红线、系统地图行号索引与自愈流水线；
-  2. [**ARCHITECTURE.md**](./ARCHITECTURE.md)：更新系统分层拓扑图、Mermaid 状态机与缓存机制设计；
-  3. [**README.md**](./README.md)：更新目录结构表、功能说明、使用指令与依赖清单。
-- **执行准则**：确保 3 大文档中的**命令参数（如 `--no-build` / `--force`）、文件路径（如 `scripts/`）、版本号与专业术语** 100% 同步对齐。
-
----
-
-### 9. 🔴 严禁人为添加字体抗锯齿属性 (No Artificial Font Smoothing)
-- **铁律**：**严禁在全站任何 CSS 选择器中滥加 `-webkit-font-smoothing`、`-moz-osx-font-smoothing` 或 `font-smooth` 属性！**
-- **执行准则**：
-  - 此类属性会强行剥离 macOS / iOS 系统的原生次像素字形饱满度，将高质量矢量字形降级为发虚、单薄、毛糙的灰度抗锯齿；
-  - 必须 100% 保持操作系统与浏览器默认的纯原生次像素排版机制（`scripts/lint.mjs` 门禁会自动进行静态拦截与拦截校验）。
-
----
-
-### 10. 🔴 书签副标题双轨排版与防膨胀铁律 (Bookmark CJK Typography Guard)
-- **铁律**：严禁在编写/维护书签简介（`desc`）时将纯中文文案膨胀到 11~15 字，也严禁破坏已有的中英混排半角空格！
+### 5. 🔴 书签副标题双轨排版与防膨胀铁律 (Bookmark CJK Typography Guard)
+- **铁律**：严禁在编写/维护书签简介（`desc`）时将纯中文文案膨胀到 11~13 字，也严禁破坏已有的中英混排半角空格！
 - **执行准则**：
   - **纯中文简介**：移动端双列卡片仅能容纳 10 个全角汉字字模（10.0em），必须**严格控制在 6 ~ 10 字以内**（第 11 个汉字在手机屏幕上必被截断成 `...` 省略号）；
-  - **中英混排简介**：仅当描述包含半角英文字母/数字（如 `AI`、`Linux`、`GIF`、`PPT`、`UI`）及标准分词空格时，依托半角字符物理等宽特性（0.5em），允许字符串长度在 **$\le 15$ 字符** 以内；
+  - **中英混排简介**：仅当描述包含半角英文字母/数字（如 `AI`、`Linux`、`GIF`、`PPT`、`UI`）及标准分词空格时，依托半角字符物理等宽特性（0.5em），允许字符串长度在 **$\le 13$ 字符** 以内；
   - 严禁 AI 产生“为了读起来顺畅而滥加修饰词凑字数”的膨胀本能，改动后必须运行 `npm run lint` 验证双轨门禁。
+
+---
+
+### 6. 🔴 版本发布与 3 大核心文档强一致性 (SemVer & Tri-Document Coherence)
+- **铁律**：发布新版本或执行重大架构变更时，必须同步交叉对齐 4 处版本号与 3 大核心 Markdown 文档，严禁只改代码而遗留文档陈旧或自相矛盾。
+- **执行准则**：
+  - **SemVer 4 处版本号强一致**：同步对齐 `package.json`、`package-lock.json`（根与 package 节点）、`index.html`（设置弹窗徽章）与 `README.md`（依赖清单表格）；
+  - **3 大 MD 文档说辞强一致**：交付前交叉统一 [**AGENTS.md**](./AGENTS.md)、[**ARCHITECTURE.md**](./ARCHITECTURE.md) 与 [**README.md**](./README.md) 中的命令参数（如 `--no-build`）、文件路径、版本号与专业术语。
+
+---
+
+### 7. 🔴 Git 权限安全与分级测试执行纪律 (Git Safety & Testing Protocol)
+- **铁律**：**严禁未经人类明确指令擅自执行 `git push`，严禁在日常任务中滥用 `--force` 启动全量重测！**
+- **执行准则**：
+  - **Git 远程推送安全边界**：AI 可在本地执行 `git add` 和 `git commit` 保存进度，所有的远程推送（`git push`）必须由人类明确指示后方可执行；
+  - **日常敏捷自愈流**：书签与配置微调只跑 `npm run lint`（<10ms），局部功能修改只跑模块免构建单测（如 `node test/run.mjs <ui|data|infra> --no-build`，<50ms），常规提交前跑增量 `npm test`（<1s）；
+  - **`--force` 唯一合法场景**：仅在人类明确指示“全量测试”、“准备发布版本”或跨编译器重大重构时，才允许执行 `node test/run.mjs --force`。
 
 ---
 
@@ -121,14 +95,17 @@ npm run lint
 node test/run.mjs ui --no-build      # 修改 UI/切屏/弹窗时
 node test/run.mjs data --no-build    # 修改天气/书签搜索时
 node test/run.mjs infra --no-build   # 修改 SW缓存/安全标头时
+
+# 步骤 3：常规提交前验证（利用 MD5 增量缓存，< 1s）
+npm test
 ```
 
-### 2. 🚀 发布级全量验证流（重大改动或提交前执行）
+### 2. 🚀 发布级全量验证流（仅在人类明确要求或版本发布前执行）
 ```bash
 # 1. 生产环境构建打包 (验证 Tailwind v4 编译、CSP 优化与 esbuild AST 压缩)
 npm run build
 
-# 2. 全量端到端自动化测试套件 (必须 4 大套件 24 项高密度断言全绿)
+# 2. 全量端到端自动化测试套件 (4 大套件 24 项断言全跑)
 node test/run.mjs --force
 
 # 3. 如涉及关键 UI / 动画 / 视口变动，执行多视口全景视觉回归测试 (11 大场景断言)
@@ -192,7 +169,7 @@ node test/visual-regression.mjs
 ```markdown
 【目标】：优化天气卡片的风速显示布局
 【涉及模块】：index.html 6100~7200 行 (initWeather)
-【约束要求】：遵守 10 大工程红线，不破坏现有的 9 阶动态形态演化
+【约束要求】：遵守 7 大工程红线，不破坏现有的 9 阶动态形态演化
 【自愈验证】：修改后请执行 npm run lint 及 node test/run.mjs data --no-build 确保全绿
 ```
 

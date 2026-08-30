@@ -695,6 +695,12 @@
                     "desc": "全球数字游戏发行平台"
                 },
                 {
+                    "name": "SteamDB",
+                    "url": "https://steamdb.info",
+                    "icon": "https://a.favicon.im/steamdb.info",
+                    "desc": "Steam 游戏史低查询"
+                },
+                {
                     "name": "Twitch",
                     "url": "https://www.twitch.tv",
                     "icon": "https://a.favicon.im/twitch.tv",
