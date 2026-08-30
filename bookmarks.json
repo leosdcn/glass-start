@@ -260,7 +260,7 @@
                     "name": "DeepL",
                     "url": "https://www.deepl.com/zh/translator",
                     "icon": "https://a.favicon.im/deepl.com",
-                    "desc": "精准自然 AI 翻译"
+                    "desc": "高质量 AI 智能翻译"
                 },
                 {
                     "name": "draw.io",
@@ -356,7 +356,7 @@
                     "name": "Duolingo",
                     "url": "https://www.duolingo.com",
                     "icon": "https://a.favicon.im/duolingo.com",
-                    "desc": "游戏化外语学习平台"
+                    "desc": "趣味游戏化外语学习"
                 },
                 {
                     "name": "Google Arts & Culture",
@@ -476,7 +476,7 @@
                     "name": "Poly Haven",
                     "url": "https://polyhaven.com",
                     "icon": "https://a.favicon.im/polyhaven.com",
-                    "desc": "免费3D材质与模型"
+                    "desc": "免费 3D 材质与模型"
                 },
                 {
                     "name": "Tenor",
@@ -515,6 +515,12 @@
             "icon": "🎨",
             "bookmarks": [
                 {
+                    "name": "BgSub",
+                    "url": "https://bgsub.cn",
+                    "icon": "https://a.favicon.im/bgsub.cn",
+                    "desc": "本地一键智能抠图"
+                },
+                {
                     "name": "Canva",
                     "url": "https://www.canva.cn",
                     "icon": "https://a.favicon.im/canva.cn",
@@ -525,12 +531,6 @@
                     "url": "https://coolors.co",
                     "icon": "https://a.favicon.im/coolors.co",
                     "desc": "极速配色方案在线生成"
-                },
-                {
-                    "name": "LocalConvert",
-                    "url": "https://localconvert.com",
-                    "icon": "https://a.favicon.im/localconvert.com",
-                    "desc": "本地全格式文件转换"
                 },
                 {
                     "name": "Photopea",
@@ -649,7 +649,7 @@
             ]
         },
         {
-            "name": "影音娱乐",
+            "name": "影视音乐",
             "icon": "🎬",
             "bookmarks": [
                 {
@@ -687,18 +687,6 @@
                     "url": "https://open.spotify.com",
                     "icon": "https://a.favicon.im/spotify.com",
                     "desc": "全球流行音乐流媒体"
-                },
-                {
-                    "name": "Steam",
-                    "url": "https://store.steampowered.com",
-                    "icon": "https://a.favicon.im/store.steampowered.com",
-                    "desc": "全球数字游戏发行平台"
-                },
-                {
-                    "name": "SteamDB",
-                    "url": "https://steamdb.info",
-                    "icon": "https://a.favicon.im/steamdb.info",
-                    "desc": "Steam 游戏史低查询"
                 },
                 {
                     "name": "Twitch",
@@ -739,6 +727,36 @@
             ]
         },
         {
+            "name": "游戏娱乐",
+            "icon": "🎮",
+            "bookmarks": [
+                {
+                    "name": "PlayOK",
+                    "url": "https://www.playok.com",
+                    "icon": "https://a.favicon.im/www.playok.com",
+                    "desc": "经典多棋种在线下棋"
+                },
+                {
+                    "name": "PyChess",
+                    "url": "https://www.pychess.org",
+                    "icon": "https://a.favicon.im/www.pychess.org",
+                    "desc": "现代多棋种在线下棋"
+                },
+                {
+                    "name": "Steam",
+                    "url": "https://store.steampowered.com",
+                    "icon": "https://a.favicon.im/store.steampowered.com",
+                    "desc": "全球数字游戏发行平台"
+                },
+                {
+                    "name": "SteamDB",
+                    "url": "https://steamdb.info",
+                    "icon": "https://a.favicon.im/steamdb.info",
+                    "desc": "Steam 游戏史低查询"
+                }
+            ]
+        },
+        {
             "name": "趣味探索",
             "icon": "🧪",
             "bookmarks": [
@@ -758,13 +776,13 @@
                     "name": "Pointer Pointer",
                     "url": "https://pointerpointer.com",
                     "icon": "https://a.favicon.im/pointerpointer.com",
-                    "desc": "经典光标指向创意实验"
+                    "desc": "趣味鼠标指针定位实验"
                 },
                 {
                     "name": "Quick, Draw!",
                     "url": "https://quickdraw.withgoogle.com",
                     "icon": "https://a.favicon.im/quickdraw.withgoogle.com",
-                    "desc": "谷歌 AI 你画我猜实验"
+                    "desc": "谷歌 AI 你画我猜"
                 },
                 {
                     "name": "Radio Garden",

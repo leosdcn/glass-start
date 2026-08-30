@@ -300,15 +300,15 @@ glass-start/
 │
 ├── ⚙️ 根目录工程配置与文档体系 (6 个)
 │   ├── package.json          # Node 项目配置（0 运行时依赖，仅 devDependencies 构建工具）
-│   ├── package-lock.json     # 依赖锁定清单（严格锁定 SemVer v3.7.5）
+│   ├── package-lock.json     # 依赖锁定清单（严格锁定 SemVer v3.8.0）
 │   ├── .gitignore            # Git 忽略规则（已严格隔离 dist/、node_modules/、test 产物）
 │   ├── README.md             # 全站功能特性、使用手册、架构表与部署指南
 │   ├── ARCHITECTURE.md       # 系统分层、双屏状态机、OverlayStack 等 5 大 Mermaid 白皮书
-│   └── AGENTS.md             # AI 编程行为宪法（10 大红线、局部手术地图、自愈流水线）
+│   └── AGENTS.md             # AI 编程行为宪法（7 大红线、局部手术地图、自愈流水线）
 │
 ├── 🛠️ scripts/ 自动化工程工具目录 (4 个)
 │   ├── build.js              # 生产环境编译打包流水线（Tailwind CLI + esbuild AST 压缩）
-│   ├── lint.mjs              # 零依赖静态语法与 10 大红线规范门禁（<80ms 极速自愈）
+│   ├── lint.mjs              # 零依赖静态语法与 7 大红线规范门禁（<80ms 极速自愈）
 │   ├── server.js             # 原生 Node.js 零依赖本地开发与局域网预览服务器
 │   └── start.command         # macOS 访达一键双击启动快捷指令
 │
@@ -478,7 +478,7 @@ add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsaf
 | **Service Worker** | 项目内组件 | `v11` | `sw.js` 头部注释；三池隔离 + FIFO 容量限额缓存架构 |
 | **CORE_CACHE** | 缓存池版本 | `app-core-v<时间戳>` | `sw.js`；每次 `npm run build` 自动更新，强制客户端刷新旧缓存 |
 | **FAVICON_CACHE / IMG_CACHE** | 缓存池版本 | `v1` | `sw.js`；图标 / 本地图片独立缓存池 |
-| **Glass Start 站点版本** | 项目发布版本 | `v3.7.5` | `package.json` + `index.html` 设置面板徽章 |
+| **Glass Start 站点版本** | 项目发布版本 | `v3.8.0` | `package.json` + `index.html` 设置面板徽章 |
 
 **无版本号的外部服务**（非框架，版本由服务商维护，升级无需本项目介入）：
 - `a.favicon.im` — Favicon 图标 API
