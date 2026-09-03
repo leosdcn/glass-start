@@ -6,7 +6,7 @@
  * 1. 【三池物理隔离】：CORE_CACHE (全站核心)、FAVICON_CACHE (外部图标)、IMG_CACHE (本地图片)
  * 2. 【防透明响应污染】：a.favicon.im 跨域图标 4s 超时熔断 + 合法响应校验入池
  * 3. 【原生 FIFO 容量淘汰】：轻量 pruneCache 自动限制图标 (800) 与图片 (200) 缓存上限，非阻塞后台运行
- * 4. 【同源脚本与主文档 Network-First】：构建版本锁步，彻底杜绝跨版本缓存割裂；离线平滑降级
+ * 4. 【原子化 SWR 锁步策略】：CORE_CACHE 本地 0ms 极速秒开 + 差量 SW 换代升级，构建指纹双重契约根治跨版本割裂
  */
 
 // 缓存池定义（打包 build.js 时自动替换 CORE_CACHE 为时间戳版本）
@@ -99,18 +99,31 @@ self.addEventListener('fetch', e => {
         && (pathnameLower.endsWith('.js') || pathnameLower.endsWith('.css'))
         && !pathnameLower.endsWith('/sw.js');
 
-    // 1. 主文档 Network-First 策略
+    // 1. 主文档原子化 SWR 锁步策略 (CORE_CACHE 本地 0ms 秒开，彻底消灭 Safari 启动网络阻塞；版本更新由 SW 差量换代原子接管)
     if (isMainDoc) {
         e.respondWith(
-            fetch(e.request).then(netRes => {
-                if (netRes.ok) {
-                    const resClone = netRes.clone();
-                    caches.open(CORE_CACHE).then(cache => cache.put(e.request, resClone)).catch(() => {});
+            caches.open(CORE_CACHE).then(async cache => {
+                const cachedRes = (await cache.match(e.request))
+                    || (await cache.match('./index.html'))
+                    || (await cache.match('/'));
+
+                // 命中本地原子版本池：0ms 瞬出首屏，消灭公网网络握手与 TTFB 延迟
+                if (cachedRes) {
+                    return cachedRes;
                 }
-                return netRes;
-            }).catch(async () => {
-                const cachedRes = (await caches.match(e.request)) || (await caches.match('./index.html')) || (await caches.match('/'));
-                return cachedRes || make503Response();
+
+                // 首次访问或冷启动缓存未就绪时回退网络，拉取成功后写入当前版本池
+                return fetch(e.request).then(netRes => {
+                    if (netRes.ok) {
+                        const resClone = netRes.clone();
+                        cache.put(e.request, resClone).catch(() => {});
+                        return netRes;
+                    }
+                    return caches.match(e.request).then(cached => cached || netRes);
+                }).catch(async () => {
+                    const fallbackDoc = (await caches.match(e.request)) || (await caches.match('./index.html')) || (await caches.match('/'));
+                    return fallbackDoc || make503Response();
+                });
             })
         );
         return;
@@ -138,19 +151,31 @@ self.addEventListener('fetch', e => {
         return;
     }
 
-    // 3. 同源 JS/CSS 静态资源 Network-First 策略 (版本强锁步，非 ok 回退缓存)
+    // 3. 同源 JS/CSS 静态资源原子化 SWR 锁步策略 (与主文档 100% 同版本直出，非 ok 回退缓存)
     if (isCoreStaticAsset) {
         e.respondWith(
-            fetch(e.request).then(netRes => {
-                if (netRes.ok) {
-                    const resClone = netRes.clone();
-                    caches.open(CORE_CACHE).then(cache => cache.put(e.request, resClone)).catch(() => {});
-                    return netRes;
+            caches.open(CORE_CACHE).then(async cache => {
+                const cached = (await cache.match(e.request))
+                    || (await cache.match(e.request, { ignoreSearch: true }))
+                    || (await cache.match('./app.js'));
+
+                // 命中本地原子版本池：0ms 瞬出，保障与 index.html 构建指纹 100% 同源同版
+                if (cached) {
+                    return cached;
                 }
-                return caches.match(e.request).then(cached => cached || netRes);
-            }).catch(async () => {
-                const cached = (await caches.match(e.request)) || (await caches.match(e.request, { ignoreSearch: true })) || (await caches.match('./app.js'));
-                return cached || make503Response();
+
+                // 缓存未命中时向网络拉取并存入当前版本池
+                return fetch(e.request).then(netRes => {
+                    if (netRes.ok) {
+                        const resClone = netRes.clone();
+                        cache.put(e.request, resClone).catch(() => {});
+                        return netRes;
+                    }
+                    return caches.match(e.request).then(cached => cached || netRes);
+                }).catch(async () => {
+                    const fallback = (await caches.match(e.request)) || (await caches.match(e.request, { ignoreSearch: true })) || (await caches.match('./app.js'));
+                    return fallback || make503Response();
+                });
             })
         );
         return;

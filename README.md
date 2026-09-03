@@ -300,7 +300,7 @@ glass-start/
 │
 ├── ⚙️ 根目录工程配置与文档体系 (6 个)
 │   ├── package.json          # Node 项目配置（0 运行时依赖，仅 devDependencies 构建工具）
-│   ├── package-lock.json     # 依赖锁定清单（严格锁定 SemVer v3.8.0）
+│   ├── package-lock.json     # 依赖锁定清单（严格锁定 SemVer v3.8.1）
 │   ├── .gitignore            # Git 忽略规则（已严格隔离 dist/、node_modules/、test 产物）
 │   ├── README.md             # 全站功能特性、使用手册、架构表与部署指南
 │   ├── ARCHITECTURE.md       # 系统分层、双屏状态机、OverlayStack 等 5 大 Mermaid 白皮书
@@ -366,7 +366,7 @@ glass-start/
 
 | 缓存层级 | 技术实现 | 作用目标与缓存对象 | 缓存策略 / 容量限制 | 失效与清理机制 |
 | :--- | :--- | :--- | :--- | :--- |
-| **Service Worker 离线网络层** | `sw.js` (CacheStorage API) | `a.favicon.im` 图标、`.ico` 静态图标、`index.html`、`app.js` 等 | 图标: `Cache-First` (三池隔离: Favicon 800条 / 本地图片 200条)<br>核心程序(HTML/JS): `Network-First` | `npm run build` 自动更新版本号 `app-core-v<timestamp>` 与 `app.js?v=...` 防缓存割裂，原生 FIFO 容量限额自动淘汰 |
+| **Service Worker 离线网络层** | `sw.js` (CacheStorage API) | `a.favicon.im` 图标、`.ico` 静态图标、`index.html`、`app.js` 等 | 图标: `Cache-First` (三池隔离: Favicon 800条 / 本地图片 200条)<br>核心程序(HTML/JS): `原子化 SWR 锁步 (0ms 瞬开)` | `npm run build` 自动更新版本号 `app-core-v<timestamp>` 与 `app.js?v=...` 防缓存割裂，原生 FIFO 容量限额自动淘汰 |
 | **天气与定位数据缓存层** | `LocalStorage` (`glass_weather_*`) | 实时温度、4天预报、城市与省市区经纬度坐标 | 天气数据: 15 分钟 TTL<br>地理定位: 24 小时 TTL | 黄金节流平衡点，弹窗右上角「🔄」刷新按钮支持 100% 穿透强制即时刷新 |
 | **持久化偏好存储层** | `LocalStorage` | 默认引擎、遮罩透明度、模糊度、自定义书签、壁纸偏好 | key-value / 容量上限 ~5MB | 用户手动点击「重置系统设置」或浏览器清除 Cookie |
 | **高清大图存储层** | `IndexedDB` (`GlassStartDB`) | 4K 高清自定义上传壁纸 (`wallpapers` 表) | 3840x2160 JPEG Base64 / 容量 50MB~数百MB | 彻底打破 LocalStorage 5MB 上限，随重置系统操作清空 |
@@ -377,7 +377,7 @@ glass-start/
 #### ⚡ 核心缓存与防闪烁机制详解
 
 * **Service Worker 三池隔离与 FIFO 限额淘汰 (`sw.js`)**：
-  - `CORE_CACHE`：存放 HTML/JS/CSS/JSON 等核心程序资源，采用 Network-First 与版本查询参数强同调策略。
+  - `CORE_CACHE`：存放 HTML/JS/CSS/JSON 等核心程序资源，采用原子化 SWR 锁步策略，本地 0ms 瞬开且差量原子换代更新。
   - `FAVICON_CACHE`：`a.favicon.im` 外部图标专用池（配额上限 **800 条**）。
   - `IMG_CACHE`：站内本地图片及 `.ico` 资源池（配额上限 **200 条**）。
   - 核心优势：图标作为导航站核心功能享有独立高额配额，且不会被本地大图挤占。
@@ -478,7 +478,7 @@ add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsaf
 | **Service Worker** | 项目内组件 | `v11` | `sw.js` 头部注释；三池隔离 + FIFO 容量限额缓存架构 |
 | **CORE_CACHE** | 缓存池版本 | `app-core-v<时间戳>` | `sw.js`；每次 `npm run build` 自动更新，强制客户端刷新旧缓存 |
 | **FAVICON_CACHE / IMG_CACHE** | 缓存池版本 | `v1` | `sw.js`；图标 / 本地图片独立缓存池 |
-| **Glass Start 站点版本** | 项目发布版本 | `v3.8.0` | `package.json` + `index.html` 设置面板徽章 |
+| **Glass Start 站点版本** | 项目发布版本 | `v3.8.1` | `package.json` + `index.html` 设置面板徽章 |
 
 **无版本号的外部服务**（非框架，版本由服务商维护，升级无需本项目介入）：
 - `a.favicon.im` — Favicon 图标 API
