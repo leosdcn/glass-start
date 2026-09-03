@@ -103,13 +103,14 @@ const validInstall = distSw.includes('cache.add(') && distSw.includes('.catch(()
 const validStrategy = distSw.includes('isCoreStaticAsset') && distSw.includes('fetch(e.request).then(') && distSw.includes('if (cached) return cached;');
 const distIndexContent = existsSync(join(DIST, 'index.html')) ? readFileSync(join(DIST, 'index.html'), 'utf-8') : '';
 const validScriptVersion = /<script\s+src=["']\.\/app\.js\?v=app-core-v\d+["']\s+defer><\/script>/.test(distIndexContent);
+const validPreloadScript = /<link\s+rel=["']preload["']\s+as=["']script["']\s+href=["']\.\/app\.js\?v=app-core-v\d+["']>/.test(distIndexContent);
 const distAppContent = existsSync(join(DIST, 'app.js')) ? readFileSync(join(DIST, 'app.js'), 'utf-8') : '';
 const validFingerprints = distIndexContent.includes('__GLASS_BUILD_HTML__') && distAppContent.includes('__GLASS_BUILD_APP__');
 const validNonOkFallback = /return caches\.match\(e\.request\)\.then\(cached => cached \|\| netRes\)/.test(distSw);
 
-pass('Service Worker 核心预缓存清单与容错安装 (CORE_ASSETS真实存在/逐项reload容错/原子化SWR锁步版本对齐/指纹契约/非ok回退)',
-  validAssets && validInstall && validStrategy && validScriptVersion && validFingerprints && validNonOkFallback,
-  `包含 ${distAssets.length} 项有效资源，原子化 SWR 锁步策略、双端构建指纹与非 ok 缓存回退 100% 对齐`);
+pass('Service Worker 核心预缓存清单与容错安装 (CORE_ASSETS真实存在/逐项reload容错/原子化SWR锁步版本对齐/指纹契约/非ok回退/Head预加载)',
+  validAssets && validInstall && validStrategy && validScriptVersion && validPreloadScript && validFingerprints && validNonOkFallback,
+  `包含 ${distAssets.length} 项有效资源，原子化 SWR 锁步策略、双端构建指纹、Head 预加载与非 ok 缓存回退 100% 对齐`);
 
 // ══════════════════════════════════════════════════════════════════════
 // 3. Service Worker 内存池 FIFO 自动限额淘汰与防污染

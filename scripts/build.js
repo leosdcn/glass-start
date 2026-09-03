@@ -350,11 +350,11 @@ function processProductionHtml() {
         `<script src="./app.js?v=${currentBuildVersion}" defer></script>`
     );
 
-    // 5.0.1 双端构建指纹注入 (HTML 侧)：在 <head> 起始处内联指纹脚本，与 app.js 头部 __GLASS_BUILD_APP__
-    //       构成版本契约对；deferred 外链脚本必然晚于本内联脚本执行，运行时黑匣子可安全比对
+    // 5.0.1 双端构建指纹与预加载注入 (HTML 侧)：在 <head> 起始处内联指纹脚本与核心脚本预加载，
+    //       让浏览器 Preload Scanner 在建立 DOM 的瞬间即以最高优先级拉取并预编译 app.js，与 app.js 头部指纹锁步
     prodHtmlContent = prodHtmlContent.replace(
         /<head[^>]*>/i,
-        (m) => `${m}<script>window.__GLASS_BUILD_HTML__="${currentBuildVersion}"</script>`
+        (m) => `${m}<script>window.__GLASS_BUILD_HTML__="${currentBuildVersion}"</script><link rel="preload" as="script" href="./app.js?v=${currentBuildVersion}">`
     );
 
     const distCssPath = path.join(PATHS.dist, 'style.css');
