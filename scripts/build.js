@@ -344,17 +344,17 @@ function processProductionHtml() {
     logSection('5/5', '🔧 处理生产环境页面 (dist/index.html)');
     let prodHtmlContent = fs.readFileSync(PATHS.indexHtml, 'utf-8');
 
-    // 5.0 将 index.html 中的 <script id="main-script"> 替换为带版本参数的外链 <script src="./app.js?v=..." defer></script>
+    // 5.0 彻底移除 <body> 底部历史遗留的 <script id="main-script">
     prodHtmlContent = prodHtmlContent.replace(
         /<script\s+id="main-script"[^>]*>[\s\S]*?<\/script>/i,
-        `<script src="./app.js?v=${currentBuildVersion}" defer></script>`
+        ''
     );
 
-    // 5.0.1 双端构建指纹与预加载注入 (HTML 侧)：在 <head> 起始处内联指纹脚本与核心脚本预加载，
-    //       让浏览器 Preload Scanner 在建立 DOM 的瞬间即以最高优先级拉取并预编译 app.js，与 app.js 头部指纹锁步
+    // 5.0.1 在 <head> 顶部按标准原生声明双端构建指纹与核心脚本 (<script defer>)：
+    //       让浏览器在读取 <head> 第 5 行时原生并行拉取 app.js，完全无需额外 preload 补丁，100% 杜绝 Double Fetch 风险与预加载警告
     prodHtmlContent = prodHtmlContent.replace(
         /<head[^>]*>/i,
-        (m) => `${m}<script>window.__GLASS_BUILD_HTML__="${currentBuildVersion}"</script><link rel="preload" as="script" href="./app.js?v=${currentBuildVersion}">`
+        (m) => `${m}<script>window.__GLASS_BUILD_HTML__="${currentBuildVersion}"</script><script src="./app.js?v=${currentBuildVersion}" defer></script>`
     );
 
     const distCssPath = path.join(PATHS.dist, 'style.css');
