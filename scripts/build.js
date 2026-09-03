@@ -350,11 +350,12 @@ function processProductionHtml() {
         ''
     );
 
-    // 5.0.1 在 <head> 顶部按标准原生声明双端构建指纹与核心脚本 (<script defer>)：
-    //       让浏览器在读取 <head> 第 5 行时原生并行拉取 app.js，完全无需额外 preload 补丁，100% 杜绝 Double Fetch 风险与预加载警告
+    // 5.0.1 在 <meta charset="UTF-8"> 之后按标准原生声明双端构建指纹与核心脚本 (<script defer>)：
+    //       严格遵循 W3C/WHATWG HTML5 规范（charset 声明必须位于任何 script 之前且在首 1024 字节内）；
+    //       让浏览器在读取 <head> 早期时原生并行拉取 app.js，完全无需额外 preload 补丁，100% 杜绝 Double Fetch
     prodHtmlContent = prodHtmlContent.replace(
-        /<head[^>]*>/i,
-        (m) => `${m}<script>window.__GLASS_BUILD_HTML__="${currentBuildVersion}"</script><script src="./app.js?v=${currentBuildVersion}" defer></script>`
+        /(<meta\s+charset=["']?utf-8["']?[^>]*>)/i,
+        `$1<script>window.__GLASS_BUILD_HTML__="${currentBuildVersion}"</script><script src="./app.js?v=${currentBuildVersion}" defer></script>`
     );
 
     const distCssPath = path.join(PATHS.dist, 'style.css');
