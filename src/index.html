@@ -58,7 +58,7 @@
 
 
     <title>Glass Start</title>
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🪐%3C/text%3E%3C/svg%3E">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20100%20100'%3E%3Ctext%20y='.9em'%20font-size='90'%3E🪐%3C/text%3E%3C/svg%3E">
     <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png">
     <link rel="manifest" href="./manifest.json">
     <!-- 外部核心资源预连接与 DNS 极速预解析 -->
@@ -277,13 +277,13 @@
         </script>
         <!-- 时钟 -->
         <div class="text-center fade-in clock-text mb-10 md:mb-14 select-none">
-            <time id="clock" datetime="00:00" aria-label="当前时间" class="text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-light tracking-tight tabular-nums block">00<span class="clock-colon mx-0.5 sm:mx-1">:</span>00</time>
+            <time id="clock" datetime="00:00" class="text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-light tracking-tight tabular-nums block">00<span class="clock-colon mx-0.5 sm:mx-1">:</span>00</time>
             <div id="date" class="text-xs sm:text-sm md:text-base mt-3.5 sm:mt-4 md:mt-5 text-white/85 font-medium tracking-[0.06em] sm:tracking-[0.08em] pl-[0.06em] sm:pl-[0.08em] uppercase drop-shadow-sm min-h-[1.5em]">&nbsp;</div>
             <script>(function(){const n=new Date();const c=document.getElementById('clock');const d=document.getElementById('date');if(c){const h=String(n.getHours()).padStart(2,'0');const m=String(n.getMinutes()).padStart(2,'0');c.innerHTML=`${h}<span class="clock-colon mx-0.5 sm:mx-1">:</span>${m}`;c.setAttribute('datetime',`${h}:${m}`);}if(d){const w=['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];d.textContent=`${n.getMonth()+1}月${n.getDate()}日 ${w[n.getDay()]}`;}})()</script>
         </div>
 
         <!-- 搜索框 -->
-        <div class="w-full max-w-2xl lg:max-w-3xl mx-auto relative mb-8 md:mb-10">
+        <div role="search" aria-label="站内与网络搜索" class="w-full max-w-2xl lg:max-w-3xl mx-auto relative mb-8 md:mb-10">
             <div class="glass-strong apple-radius p-2 flex items-center gap-3 border fade-in search-box-wrapper delay-100 select-none">
                 <div class="relative shrink-0 flex items-center justify-center size-9 ml-1 select-none">
                     <button id="engineBtn" type="button" aria-label="选择搜索引擎（当前：Bing）" aria-haspopup="menu" aria-expanded="false" aria-controls="dropdownMenu" class="p-2 apple-radius hover:bg-white/10 glass-interactive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed absolute inset-0 flex items-center justify-center select-none touch-manipulation">
@@ -295,7 +295,7 @@
                     <script>(function(){if(window.__PRE_ENGINE__){const b=document.getElementById('engineBtn');const i=document.getElementById('engineIcon');const n=document.getElementById('engineName');if(b)b.setAttribute('aria-label','选择搜索引擎（当前：'+window.__PRE_ENGINE__.name+'）');if(i){const key=window.__PRE_ENGINE__.name.toLowerCase();if(window.__ENGINE_SVGS__&&window.__ENGINE_SVGS__[key])i.innerHTML=window.__ENGINE_SVGS__[key];}if(n)n.textContent=window.__PRE_ENGINE__.name;}})()</script>
                 </div>
                 <label for="searchInput" class="sr-only">搜索</label>
-                <input type="text" id="searchInput" name="q" role="combobox" enterkeyhint="search" aria-label="搜索输入框" aria-autocomplete="list" aria-controls="suggestionMenu" aria-expanded="false" class="flex-1 bg-transparent border-none outline-none text-lg search-input text-white h-12 pl-0 pr-2.5 min-w-0 focus-visible:ring-0" placeholder="搜索..." autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
+                <input type="text" id="searchInput" name="q" role="combobox" enterkeyhint="search" aria-haspopup="listbox" aria-label="搜索输入框" aria-autocomplete="list" aria-controls="suggestionMenu" aria-expanded="false" class="flex-1 bg-transparent border-none outline-none text-lg search-input text-white h-12 pl-0 pr-2.5 min-w-0 focus-visible:ring-0" placeholder="搜索..." autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
                 <div class="relative shrink-0 flex items-center justify-center size-9 mr-1 select-none">
                     <button id="randomBookmarkBtn" type="button" aria-label="随机访问书签" class="p-2 apple-radius hover:bg-white/10 text-white/40 hover:text-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 absolute inset-0 flex items-center justify-center select-none touch-manipulation">
                         <svg class="size-5 pointer-events-none select-none" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 20 20">
@@ -366,16 +366,16 @@
                         </nav>
                     </aside>
                     <!-- 主书签内容区 (使用 CSS clamp 响应式控制底部 padding) -->
-                    <main id="navContent" tabindex="-1" aria-label="书签内容" class="flex-1 min-h-0 p-3 md:p-4 lg:p-5 overflow-y-auto relative scroll-smooth focus:outline-none">
+                    <div id="navContent" role="region" tabindex="-1" aria-label="书签内容" class="flex-1 min-h-0 p-3 md:p-4 lg:p-5 overflow-y-auto relative scroll-smooth focus:outline-none">
                         <div id="navCategories" class="space-y-6 md:space-y-8"></div>
-                    </main>
+                    </div>
                 </div>
             </div>
         </div>
     </section><!-- /#navSection -->
 
     <!-- 编辑与设置弹窗 (Apple 风格 Tab 分栏设置面板) -->
-    <div id="editModal" role="dialog" aria-modal="true" aria-hidden="true" hidden aria-label="设置与偏好" class="edit-overlay fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-[var(--z-modal)] overscroll-contain">
+    <div id="editModal" role="dialog" aria-modal="true" hidden aria-label="设置与偏好" class="edit-overlay fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-[var(--z-modal)] overscroll-contain">
         <div class="glass-strong apple-radius w-full max-w-xl sm:max-w-2xl md:max-w-3xl lg:max-w-4xl mx-4 min-h-[60dvh] max-h-[90dvh] sm:h-[40rem] flex flex-col p-4 sm:p-6 shadow-2xl overflow-hidden">
             <!-- 弹窗 Header -->
             <div class="flex items-center justify-between mb-3 pb-2 border-b border-white/10 shrink-0">
@@ -456,7 +456,7 @@
                                     <span>暗色遮罩</span>
                                     <span id="maskOpacityVal" class="font-mono text-white/90">15%</span>
                                 </div>
-                                <input type="range" id="maskOpacityInput" name="maskOpacityInput" min="5" max="80" value="15" aria-label="背景暗色遮罩透明度" aria-valuemin="5" aria-valuemax="80" aria-valuenow="15" aria-valuetext="15%" class="w-full h-1.5 bg-white/20 rounded-lg appearance-none cursor-pointer accent-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 disabled:opacity-40 disabled:cursor-not-allowed">
+                                <input type="range" id="maskOpacityInput" name="maskOpacityInput" min="5" max="80" value="15" aria-label="背景暗色遮罩透明度" aria-valuenow="15" aria-valuetext="15%" class="w-full h-1.5 bg-white/20 rounded-lg appearance-none cursor-pointer accent-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 disabled:opacity-40 disabled:cursor-not-allowed">
                             </div>
                             <!-- 高斯模糊度 -->
                             <div class="space-y-1">
@@ -464,7 +464,7 @@
                                     <span>高斯模糊</span>
                                     <span id="bgBlurVal" class="font-mono text-white/90">0px</span>
                                 </div>
-                                <input type="range" id="bgBlurInput" name="bgBlurInput" min="0" max="20" value="0" aria-label="背景高斯模糊度" aria-valuemin="0" aria-valuemax="20" aria-valuenow="0" aria-valuetext="0px" class="w-full h-1.5 bg-white/20 rounded-lg appearance-none cursor-pointer accent-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 disabled:opacity-40 disabled:cursor-not-allowed">
+                                <input type="range" id="bgBlurInput" name="bgBlurInput" min="0" max="20" value="0" aria-label="背景高斯模糊度" aria-valuenow="0" aria-valuetext="0px" class="w-full h-1.5 bg-white/20 rounded-lg appearance-none cursor-pointer accent-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 disabled:opacity-40 disabled:cursor-not-allowed">
                             </div>
                         </div>
                     </div>
@@ -522,8 +522,8 @@
                             <svg class="size-6 sm:size-7 text-white/70 shrink-0" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5"/></svg>
                             <p class="text-xs text-white/80 font-medium">点击或将 JSON 备份文件拖入此处</p>
                             <p class="text-2xs text-white/40">自动解析恢复快捷书签与系统偏好配置</p>
-                            <input type="file" id="importJsonInput" name="importJsonInput" accept=".json,application/json" class="hidden" aria-label="导入书签配置文件">
                         </div>
+                        <input type="file" id="importJsonInput" name="importJsonInput" accept=".json,application/json" class="hidden" aria-label="导入书签配置文件">
                     </div>
 
                     <!-- 右侧栏：系统维护与危险区域 -->
@@ -577,7 +577,7 @@
     </div><!-- /#editModal -->
 
     <!-- 从导航页选择弹窗 -->
-    <div id="bookmarkPicker" role="dialog" aria-modal="true" aria-hidden="true" hidden aria-label="从导航页选择书签" class="edit-overlay fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-[var(--z-picker)] overscroll-contain">
+    <div id="bookmarkPicker" role="dialog" aria-modal="true" hidden aria-label="从导航页选择书签" class="edit-overlay fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-[var(--z-picker)] overscroll-contain">
         <div class="glass-strong apple-radius pt-4 pb-3 px-4 w-full max-w-2xl xl:max-w-3xl 2xl:max-w-4xl mx-4 max-h-[85dvh] flex flex-col shadow-2xl">
             <div class="flex items-center justify-between mb-2 pb-1.5 border-b border-white/10 shrink-0">
                 <h3 class="text-base font-medium tracking-wide text-white/80">从导航页选择</h3>
@@ -591,7 +591,7 @@
     </div><!-- /#bookmarkPicker -->
 
     <!-- 自定义确认弹窗（替代原生 confirm()，保持玻璃风格一致） -->
-    <div id="confirmModal" role="alertdialog" aria-modal="true" aria-hidden="true" hidden aria-labelledby="confirmTitle"
+    <div id="confirmModal" role="alertdialog" aria-modal="true" hidden aria-labelledby="confirmTitle"
          class="edit-overlay fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-[var(--z-alert)] overscroll-contain">
         <div class="confirm-dialog-card">
             <div class="size-11 rounded-full bg-red-500/15 border border-red-500/30 flex items-center justify-center mb-3 text-red-400 shrink-0">
@@ -609,7 +609,7 @@
     </div><!-- /#confirmModal -->
 
     <!-- 快捷键速查面板弹窗 (Cmd/Ctrl + /) -->
-    <div id="shortcutModal" role="dialog" aria-modal="true" aria-hidden="true" hidden aria-label="快捷键速查" class="edit-overlay fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-[var(--z-picker)] overscroll-contain">
+    <div id="shortcutModal" role="dialog" aria-modal="true" hidden aria-label="快捷键速查" class="edit-overlay fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-[var(--z-picker)] overscroll-contain">
         <div class="glass-strong apple-radius w-full max-w-md mx-4 min-h-[60dvh] max-h-[90dvh] sm:h-[40rem] flex flex-col p-5 sm:p-6 shadow-2xl overflow-hidden">
             <!-- 弹窗 Header -->
             <div class="flex items-center justify-between mb-3 pb-2 border-b border-white/10 shrink-0">
@@ -630,7 +630,7 @@
     </div><!-- /#shortcutModal -->
 
     <!-- 开源与数据鸣谢弹窗 (Credits & Attribution Modal) -->
-    <div id="creditsModal" role="dialog" aria-modal="true" aria-hidden="true" hidden aria-label="开源与数据鸣谢" class="edit-overlay fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-[var(--z-picker)] overscroll-contain">
+    <div id="creditsModal" role="dialog" aria-modal="true" hidden aria-label="开源与数据鸣谢" class="edit-overlay fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-[var(--z-picker)] overscroll-contain">
         <div class="glass-strong apple-radius w-full max-w-md mx-4 flex flex-col p-5 sm:p-6 shadow-2xl overflow-hidden">
             <!-- 弹窗 Header -->
             <div class="flex items-center justify-between mb-3 pb-2 border-b border-white/10 shrink-0">
