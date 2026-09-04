@@ -240,7 +240,7 @@ npm run build
 3. **修改搜索引擎**：可在 `src/js/config/constants.js` 中的 `engines` 引擎配置对象中新增或定制新的搜索引擎（Google、Bing 等）。
 
 ### 3. 静态检查、Git 规范与自动化测试指南 (Agent / Dev Guidelines)
-- ⚡ **静态代码检查 (`npm run lint`)**：耗时约 0.01 秒（全量 26 项机器级语法与工程红线门禁守门）。自动完成 `src/index.html` 内联 JS、`src/js/` 业务模块、`scripts/build.js`/`sw.js`/`scripts/server.js` 语法预检及 `bookmarks.json`/`manifest.json`/`package.json` 的 JSON 合法性校验，并强校验生命周期与 BFCache 防退化守卫。修改代码后运行此命令做轻量校验。
+- ⚡ **静态代码检查 (`npm run lint` / `npm run lint:fix`)**：耗时约 0.01 秒（全量 26 项机器级语法与工程红线门禁守门）。自动完成 `src/index.html` 内联 JS、`src/js/` 业务模块、`scripts/build.js`/`sw.js`/`scripts/server.js` 语法预检及 `bookmarks.json`/`manifest.json`/`package.json` 的 JSON 合法性校验，报错精确到 `文件名:行号:列号`；支持 `npm run lint:fix` 针对 `<button>` 与 `<svg>` 机械性无障碍属性一键就地自愈。修改代码后运行此命令做轻量校验。
 - 🚀 **生产构建打包 (`npm run build`)**：耗时约 0.5 秒（Tailwind v4 CLI + esbuild 引擎）。编译 Tailwind CSS 并同步书签数据，自动校验产物完整性。
 - 🧪 **自动化测试套件 (`npm test` 或 `node test/run.mjs`)**：
   - 内置 **4 大核心领域端到端与架构综合测试套件（覆盖 24 项高密度全景断言）**。
@@ -351,7 +351,7 @@ glass-start/
 | **`manifest.json`** | Web App 应用配置 | PWA 应用清单文件。配置应用名称、图标、启动 URL、主题颜色，支持添加至手机主屏幕与独立 Web App 运行。 | PWA 必需 |
 | **`_headers`** | 部署响应头配置 | Cloudflare Pages HTTP 安全响应头与静态资源缓存控制配置文件。 | 部署配置 |
 | **`test/`** | **测试目录** | 自动化测试目录。内含 4 大领域 CDP 自动化端到端测试套件（24 项高密度全景断言）与 MD5 增量缓存运行器。 | 测试框架 |
-| **`package.json`** | 项目配置 | Node 项目配置文件，提供 `npm run dev`、`npm run watch`、`npm run build`、`npm run lint` 与 `npm test` 命令。 | 配置文件 |
+| **`package.json`** | 项目配置 | Node 项目配置文件，提供 `npm run dev`、`npm run watch`、`npm run build`、`npm run lint`、`npm run lint:fix` 与 `npm test` 命令。 | 配置文件 |
 | **`dist/`** | **生产输出** | `npm run build` 自动生成的生产构建目录（⚠️ 严禁直接编辑）。包含剥离 v4 Browser CDN、内嵌 CSS 及外链 `app.js` 的上线资源。 | 生产部署产物 |
 | **`wrangler.jsonc`** | 部署配置 | Cloudflare Workers / Pages 部署配置，声明 `assets.directory = "dist"` 指定静态资源上传目录。 | Cloudflare 部署必需 |
 | `.gitignore` | 配置文档 | Git 版本控制忽略配置。 | 运维配置 |

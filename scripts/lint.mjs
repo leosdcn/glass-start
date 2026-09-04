@@ -5,12 +5,13 @@
  * 3. 对根目录 JSON 配置文件 (bookmarks.json, manifest.json, package.json) 做合法性校验
  * 4. 全站 12 项工程宪法规范静态门禁扫描 (iOS 16px, WAI-ARIA, !important, DOM ID, BFCache 等)
  */
-import { readFileSync, statSync, existsSync, readdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, statSync, existsSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import vm from 'node:vm';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+const isFixMode = process.argv.includes('--fix');
 
 const isTTY = process.stdout.isTTY && !process.env.NO_COLOR;
 const c = {
@@ -40,6 +41,14 @@ function getVisualWidth(str) {
     return width;
 }
 
+function getLineCol(content, index) {
+    const prefix = content.slice(0, index);
+    const line = prefix.split('\n').length;
+    const lastNewline = prefix.lastIndexOf('\n');
+    const col = lastNewline === -1 ? index + 1 : index - lastNewline;
+    return { line, col };
+}
+
 function logSection(step, title) {
     const prefix = `─── [${step}] ${title} `;
     const visualLen = getVisualWidth(prefix);
@@ -67,12 +76,36 @@ let passCount = 0;
 let failCount = 0;
 
 console.log(`\n${c.cyan}${HR_DOUBLE}${c.reset}`);
-console.log(`${c.bold}${c.cyan}🔍 Glass Start — 零依赖静态语法与格式检查 (Static Lint)${c.reset}`);
+console.log(`${c.bold}${c.cyan}🔍 Glass Start — 零依赖静态语法与格式检查 (Static Lint)${isFixMode ? ' [🔧 FIX MODE]' : ''}${c.reset}`);
 console.log(`${c.cyan}${HR_DOUBLE}${c.reset}`);
 
 // 全局单次读取核心文件，彻底消除多次读盘 I/O
 const htmlPath = join(root, 'src', 'index.html');
-const indexHtml = readFileSync(htmlPath, 'utf-8');
+let indexHtml = readFileSync(htmlPath, 'utf-8');
+
+// 🔧 --fix 自动修复模式：针对机械性规则就地自愈
+if (isFixMode) {
+    let fixedHtml = indexHtml;
+    let fixCount = 0;
+
+    // 1. 自动为缺少 type 的 <button> 补齐 type="button"
+    fixedHtml = fixedHtml.replace(/<button\b(?![^>]*\btype=)/gi, () => {
+        fixCount++;
+        return '<button type="button"';
+    });
+
+    // 2. 自动为缺少 ARIA 属性的 <svg> 补齐 aria-hidden="true"
+    fixedHtml = fixedHtml.replace(/<svg\b(?![^>]*\b(aria-hidden|aria-label|role)=)/gi, () => {
+        fixCount++;
+        return '<svg aria-hidden="true"';
+    });
+
+    if (fixCount > 0) {
+        writeFileSync(htmlPath, fixedHtml, 'utf-8');
+        indexHtml = fixedHtml;
+        console.log(`  ${c.green}⚡ [Auto-Fix] 已自动修复 src/index.html 中 ${fixCount} 处机械性无障碍属性规范！${c.reset}`);
+    }
+}
 
 function getAllJsInDir(dir) {
     let results = [];
@@ -201,8 +234,10 @@ try {
         const has16pxPlus = /text-(base|lg|xl|2xl|3xl)/.test(tag);
         if (!has16pxPlus) {
             allInputsCompliant = false;
+            const { line, col } = getLineCol(indexHtml, match.index);
             const idMatch = tag.match(/id=["']([^"']+)["']/);
-            nonCompliant.push(idMatch ? idMatch[1] : tag.slice(0, 40));
+            const idDesc = idMatch ? `#${idMatch[1]}` : tag.slice(0, 30);
+            nonCompliant.push(`src/index.html:${line}:${col} (<input ${idDesc}> 缺少 text-base)`);
         }
     }
 
@@ -211,7 +246,7 @@ try {
         logItem(`全站 ${inputMatches.length} 处文本输入框均符合 iOS >=16px 防自动放大规范`);
     } else {
         failCount++;
-        logItem(`发现未适配 16px 的输入框: ${nonCompliant.join(', ')}`, 'error');
+        logItem(`发现未适配 16px 的输入框:\n    ${nonCompliant.join('\n    ')}`, 'error');
     }
 } catch (e) {
     failCount++;
@@ -228,8 +263,10 @@ try {
         const attrs = match[1];
         if (!/\btype=["'](button|submit|reset)["']/i.test(attrs)) {
             allButtonsCompliant = false;
+            const { line, col } = getLineCol(indexHtml, match.index);
             const idMatch = attrs.match(/id=["']([^"']+)["']/i);
-            nonCompliantButtons.push(idMatch ? idMatch[1] : match[0].slice(0, 40));
+            const idDesc = idMatch ? `#${idMatch[1]}` : match[0].slice(0, 30);
+            nonCompliantButtons.push(`src/index.html:${line}:${col} (<button ${idDesc}>)`);
         }
     }
 
@@ -238,7 +275,7 @@ try {
         logItem(`全站 ${buttonMatches.length} 处 <button> 标签均 100% 显式声明 type="button" 规范`);
     } else {
         failCount++;
-        logItem(`发现缺少显式 type 属性的按钮: ${nonCompliantButtons.join(', ')}`, 'error');
+        logItem(`发现缺少显式 type 属性的按钮 (可运行 npm run lint:fix 自动修复):\n    ${nonCompliantButtons.join('\n    ')}`, 'error');
     }
 } catch (e) {
     failCount++;
@@ -256,8 +293,10 @@ try {
         const hasA11y = /\baria-hidden=["']true["']/i.test(attrs) || /\baria-label=["'][^"']+["']/i.test(attrs) || /\brole=["']img["']/i.test(attrs);
         if (!hasA11y) {
             allSvgsCompliant = false;
+            const { line, col } = getLineCol(indexHtml, match.index);
             const classMatch = attrs.match(/class=["']([^"']+)["']/i);
-            nonCompliantSvgs.push(classMatch ? classMatch[1] : match[0].slice(0, 40));
+            const clsDesc = classMatch ? `.${classMatch[1].split(' ')[0]}` : match[0].slice(0, 30);
+            nonCompliantSvgs.push(`src/index.html:${line}:${col} (<svg ${clsDesc}>)`);
         }
     }
 
@@ -392,7 +431,8 @@ try {
                         const maxLen = hasAlpha ? 13 : 9;
                         if (bm.desc.length > maxLen) {
                             const typeDesc = hasAlpha ? '中英混排上限13字符' : '纯中文上限9字符';
-                            errors.push(`${prefix} desc 简介过长 (${bm.desc.length}字, ${typeDesc}): "${bm.desc}"`);
+                            const excess = bm.desc.length - maxLen;
+                            errors.push(`bookmarks.json [${cat.name} ➔ ${bm.name}]: desc 溢出 ${excess} 字符 (当前 ${bm.desc.length}/${maxLen} 字符, ${typeDesc}): "${bm.desc}"`);
                         }
                     }
                 });

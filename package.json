@@ -14,6 +14,7 @@
     "test:all": "node test/run.mjs --force",
     "test:visual": "node test/visual-regression.mjs",
     "lint": "node scripts/lint.mjs",
+    "lint:fix": "node scripts/lint.mjs --fix",
     "dev": "npm run build && node scripts/server.js",
     "watch": "node scripts/build.js --watch",
     "preview": "npm run build && node scripts/server.js"

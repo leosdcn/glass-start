@@ -88,8 +88,8 @@ flowchart TD
 
 ### 1. ⚡ 日常敏捷自愈流（< 50ms，每次代码改动后必跑）
 ```bash
-# 步骤 1：静态规范与语法极速门禁 (< 10ms)
-npm run lint
+# 步骤 1：静态规范与语法极速门禁 (< 10ms，支持 --fix 一键就地自愈)
+npm run lint            # 校验规范 (如遇 A11y 缺失可运行 npm run lint:fix 自动修复)
 
 # 步骤 2：针对修改模块的免构建极速单测 (< 50ms)
 npm run test:ui         # 修改 UI/切屏/弹窗时 (或 node test/run.mjs ui --no-build)
