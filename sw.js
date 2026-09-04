@@ -194,7 +194,7 @@ self.addEventListener('fetch', e => {
                         const netRes = await fetch(e.request, { cache: 'no-cache', signal: controller.signal });
                         if (netRes && (netRes.ok || netRes.type === 'opaque')) {
                             await cache.put(e.request, netRes.clone());
-                            pruneCache(cache, MAX_FAVICON_ENTRIES);
+                            await pruneCache(cache, MAX_FAVICON_ENTRIES);
                             return netRes;
                         }
                     } catch {} finally {

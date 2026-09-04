@@ -11,6 +11,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="theme-color" content="#0b0f19">
     <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Glass Start">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://api.bing.com https://suggestqueries.google.com https://zh.wikipedia.org https://static.cloudflareinsights.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https://api.open-meteo.com https://geocoding-api.open-meteo.com https://myip.ipip.net https://ipwho.is https://a.favicon.im https://cloudflareinsights.com https://zh.wikipedia.org; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'self'">
     <meta name="description" content="灵动优雅、极简纯净的玻璃拟态浏览器起始页与分类导航。">
@@ -1537,7 +1539,7 @@
                     <script>(function(){if(window.__PRE_ENGINE__){const b=document.getElementById('engineBtn');const i=document.getElementById('engineIcon');const n=document.getElementById('engineName');if(b)b.setAttribute('aria-label','选择搜索引擎（当前：'+window.__PRE_ENGINE__.name+'）');if(i){if(window.__PRE_ENGINE__.isSvg){const key=window.__PRE_ENGINE__.name.toLowerCase();if(window.__ENGINE_SVGS__&&window.__ENGINE_SVGS__[key])i.innerHTML=window.__ENGINE_SVGS__[key];}else{i.innerHTML='<img src="'+window.__PRE_ENGINE__.icon+'" width="20" height="20" decoding="async" class="size-full aspect-square rounded pointer-events-none select-none" alt="" draggable="false">';}}if(n)n.textContent=window.__PRE_ENGINE__.name;}})()</script>
                 </div>
                 <label for="searchInput" class="sr-only">搜索</label>
-                <input type="text" id="searchInput" name="q" role="combobox" aria-label="搜索输入框" aria-autocomplete="list" aria-controls="suggestionMenu" aria-expanded="false" class="flex-1 bg-transparent border-none outline-none text-lg search-input text-white h-12 pl-0 pr-2.5 min-w-0 focus-visible:ring-0" placeholder="搜索..." autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
+                <input type="text" id="searchInput" name="q" role="combobox" enterkeyhint="search" aria-label="搜索输入框" aria-autocomplete="list" aria-controls="suggestionMenu" aria-expanded="false" class="flex-1 bg-transparent border-none outline-none text-lg search-input text-white h-12 pl-0 pr-2.5 min-w-0 focus-visible:ring-0" placeholder="搜索..." autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
                 <div class="relative shrink-0 flex items-center justify-center size-9 mr-1 select-none">
                     <button id="randomBookmarkBtn" type="button" aria-label="随机访问书签" class="p-2 apple-radius hover:bg-white/10 text-white/40 hover:text-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 absolute inset-0 flex items-center justify-center select-none touch-manipulation">
                         <svg class="size-5 pointer-events-none select-none" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 20 20">
@@ -1603,7 +1605,7 @@
             <!-- 主体：一体化 Liquid Glass 窗口框架 -->
             <div class="flex-1 glass apple-radius flex flex-col overflow-hidden min-h-0 border border-white/20 shadow-2xl">
                 <!-- 窗口顶部 Header 栏 -->
-                <header id="navHeader" role="button" tabindex="0" aria-label="返回起始页" class="flex items-center justify-between px-4 py-2.5 border-b border-white/10 bg-transparent shrink-0 cursor-pointer select-none hover:bg-white/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" title="点击返回起始页">
+                <header id="navHeader" class="flex items-center justify-between px-4 py-2.5 border-b border-white/10 bg-transparent shrink-0 cursor-pointer select-none hover:bg-white/10 transition-colors" title="点击返回起始页">
                     <div class="flex items-center gap-2 pointer-events-none">
                         <span class="text-base" aria-hidden="true">🪐</span>
                         <h2 class="text-xs sm:text-sm font-semibold tracking-wide text-white">导航</h2>
@@ -3087,8 +3089,14 @@
          * @returns {boolean} 写入成功返回 true，被沙盒阻断或磁盘超限时返回 false
          */
         function storageSet(key, value) {
-            storageCache.set(key, value);
-            try { localStorage.setItem(key, JSON.stringify(value)); return true; } catch { return false; }
+            try {
+                localStorage.setItem(key, JSON.stringify(value));
+                storageCache.set(key, value);
+                return true;
+            } catch {
+                storageCache.delete(key);
+                return false;
+            }
         }
 
         /**
@@ -3097,8 +3105,14 @@
          * @returns {boolean} 移除成功返回 true，抛出安全异常时返回 false
          */
         function storageRemove(key) {
-            storageCache.delete(key);
-            try { localStorage.removeItem(key); return true; } catch { return false; }
+            try {
+                localStorage.removeItem(key);
+                storageCache.delete(key);
+                return true;
+            } catch {
+                storageCache.delete(key);
+                return false;
+            }
         }
 
         // ==================== 统一 UI 状态与弹窗响应栈 (Overlay Priority Stack) ====================
@@ -5083,7 +5097,6 @@
             let isComposing = false;
             let justEndedComposition = false;
             let compositionEndTimer = null;
-            let suggestDebounceTimer = null;
 
             dom.searchInput.addEventListener('compositionstart', () => {
                 isComposing = true;
@@ -5444,21 +5457,21 @@
                 // 屏间切换快捷键（无组合键、非输入状态；搜索框聚焦但联想未激活时也放行，避免方向键死键）
                 const suggestionActive = dom.suggestionMenu && dom.suggestionMenu.classList.contains('active');
                 if (!isInputActive || (document.activeElement === dom.searchInput && !suggestionActive)) {
-                    const isNavKey = e.key === 'PageDown' || e.key === 'PageUp' || e.key === 'Home'
-                        || (e.key === 'ArrowDown' && state.currentSection === 'start')
-                        || (e.key === 'ArrowUp' && state.currentSection === 'nav' && dom.navContent?.scrollTop <= 0);
+                    const isNavAtTop = dom.navContent ? dom.navContent.scrollTop <= 0 : true;
+                    const isNavKey = ((e.key === 'PageDown' || e.key === 'ArrowDown') && state.currentSection === 'start')
+                        || ((e.key === 'PageUp' || e.key === 'Home' || e.key === 'ArrowUp') && state.currentSection === 'nav' && isNavAtTop);
                     // 与滚轮/触屏路径保持一致：切屏动画进行中忽略新的触发（含按键连发场景），
                     // 避免中途反复打断导致 transitionTimer 被无限重置、页面状态与视觉脱节
                     if (isNavKey && window.isScreenTransitioning && window.isScreenTransitioning()) {
                         e.preventDefault();
                         return;
                     }
-                    if (e.key === 'PageDown' || (e.key === 'ArrowDown' && state.currentSection === 'start')) {
+                    if ((e.key === 'PageDown' || e.key === 'ArrowDown') && state.currentSection === 'start') {
                         e.preventDefault();
                         if (window.switchToNav) window.switchToNav();
                         return;
                     }
-                    if (e.key === 'PageUp' || e.key === 'Home' || (e.key === 'ArrowUp' && state.currentSection === 'nav' && dom.navContent?.scrollTop <= 0)) {
+                    if ((e.key === 'PageUp' || e.key === 'Home' || e.key === 'ArrowUp') && state.currentSection === 'nav' && isNavAtTop) {
                         e.preventDefault();
                         if (window.switchToStart) window.switchToStart();
                         return;
@@ -5639,7 +5652,7 @@
                     } else if (draft) {
                         // 真·自定义壁纸（上传 data:URL 或 http(s) 外网图）（previewDraftWallpaper 已视觉切好）
                         state.customWallpaper = draft;
-                        setWallpaperDB(draft);
+                        await setWallpaperDB(draft);
                         // 大体积 DataURL（4K 壁纸可达数 MB）超出 localStorage 配额时跳过双写并清除残留旧记录，
                         // 避免 head 预加载到过期壁纸（loadUserData 以 IndexedDB 为最高优先回退源，功能不受影响）
                         if (draft.length <= CONFIG.APPEARANCE.MAX_LS_WALLPAPER_BYTES) {
@@ -5850,6 +5863,7 @@
         let suggestionScriptTag = null;
         let selectedSuggestionIdx = -1;
         let originalQuery = '';
+        let suggestDebounceTimer = null;
 
         /**
          * 切换搜索引擎下拉菜单的展开/收起状态并同步 OverlayStack
@@ -6094,14 +6108,18 @@
          * @param {number} [limit=2] - 最多返回匹配条数（最多 2 条特色书签）
          * @returns {Array<{type: string, name: string, url: string, icon: string, desc: string, category: string}>}
          */
-        function getLocalBookmarkSuggestions(query, limit = 2) {
-            const q = (query || '').trim().toLowerCase();
-            // 纯标点查询（如“/”会被 https:// 的斜杠误命中所有书签）不触发本地书签检索
-            if (!q || !/[a-z0-9\u4e00-\u9fff]/.test(q)) return [];
-            const toNormUrl = u => (u || '').trim().toLowerCase().replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '');
-            const isFuzzyEligible = q.length >= 3;
+        let cachedSearchCandidates = null;
+        let lastSearchCategoriesRef = null;
+        let lastSearchBookmarksRef = null;
 
-            // 预先建立 URL -> 分类名称 映射表
+        function getSearchCandidates() {
+            if (cachedSearchCandidates && pageData && pageData.categories === lastSearchCategoriesRef && pageData.bookmarks === lastSearchBookmarksRef) {
+                return cachedSearchCandidates;
+            }
+            lastSearchCategoriesRef = pageData ? pageData.categories : null;
+            lastSearchBookmarksRef = pageData ? pageData.bookmarks : null;
+
+            const toNormUrl = u => (u || '').trim().toLowerCase().replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '');
             const urlToCategoryMap = new Map();
             if (pageData && Array.isArray(pageData.categories)) {
                 for (const cat of pageData.categories) {
@@ -6117,17 +6135,15 @@
                 }
             }
 
-            // 统一单次遍历序列：快捷书签优先，导航分类书签随后
-            const allCandidates = [];
+            const candidates = [];
             const seenNormUrls = new Set();
-
             if (pageData && Array.isArray(pageData.bookmarks)) {
                 for (const bm of pageData.bookmarks) {
                     if (bm && bm.url) {
                         const normUrl = toNormUrl(bm.url);
                         if (!seenNormUrls.has(normUrl)) {
                             seenNormUrls.add(normUrl);
-                            allCandidates.push({ bm, normUrl, defaultCat: '快捷书签' });
+                            candidates.push({ bm, normUrl, defaultCat: '快捷书签' });
                         }
                     }
                 }
@@ -6140,12 +6156,24 @@
                             const normUrl = toNormUrl(bm.url);
                             if (!seenNormUrls.has(normUrl)) {
                                 seenNormUrls.add(normUrl);
-                                allCandidates.push({ bm, normUrl, defaultCat: cat.name || '分类书签' });
+                                candidates.push({ bm, normUrl, defaultCat: cat.name || '分类书签' });
                             }
                         }
                     }
                 }
             }
+
+            cachedSearchCandidates = { candidates, urlToCategoryMap };
+            return cachedSearchCandidates;
+        }
+
+        function getLocalBookmarkSuggestions(query, limit = 2) {
+            const q = (query || '').trim().toLowerCase();
+            // 纯标点查询（如“/”会被 https:// 的斜杠误命中所有书签）不触发本地书签检索
+            if (!q || !/[a-z0-9\u4e00-\u9fff]/.test(q)) return [];
+            const isFuzzyEligible = q.length >= 3;
+
+            const { candidates: allCandidates, urlToCategoryMap } = getSearchCandidates();
 
             const matches = [];
 
@@ -6437,6 +6465,10 @@
          * @returns {void}
          */
         function hideSuggestions() {
+            if (suggestDebounceTimer) {
+                clearTimeout(suggestDebounceTimer);
+                suggestDebounceTimer = null;
+            }
             activeSuggestReqId++; // 作废所有挂起的联想网络请求，防止 Escape/失焦后联想下拉意外"复活"
             if (suggestionScriptTag) {
                 suggestionScriptTag.onerror = null;
@@ -7637,8 +7669,14 @@
 
             document.addEventListener('touchstart', (e) => {
                 if (isTransitioning || !OverlayStack.isEmpty()) return;
-                if (e.target && typeof e.target.closest === 'function' && (e.target.closest('#sidebar') || e.target.closest('#weatherWidget') || e.target.closest('#editBookmarksBtn'))) return;
-                if (!e.touches || e.touches.length === 0) return;
+                if (!e.touches || e.touches.length !== 1) {
+                    isTouchHandled = true;
+                    return;
+                }
+                if (e.target && typeof e.target.closest === 'function' && (e.target.closest('#sidebar') || e.target.closest('#weatherWidget') || e.target.closest('#editBookmarksBtn'))) {
+                    isTouchHandled = true;
+                    return;
+                }
                 startTouchX = e.touches[0].clientX;
                 startTouchY = e.touches[0].clientY;
                 touchStartTime = performance.now();
