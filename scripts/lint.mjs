@@ -348,6 +348,54 @@ try {
     logItem(`CSS !important 规范扫描异常: ${e.message}`, 'error');
 }
 
+// 4.5.1 CSS 前缀层叠顺序门禁（-webkit-backdrop-filter 必须置于标准 backdrop-filter 之前，防止 Tailwind/Lightning CSS 编译器优化时剔除标准属性导致 Chrome 毛玻璃失效）
+try {
+    const cssDir = join(root, 'src', 'styles');
+    const cssFiles = ['main.css', 'glass.css', 'animations.css'];
+    const invalidPrefixErrors = [];
+    for (const f of cssFiles) {
+        const p = join(cssDir, f);
+        if (existsSync(p)) {
+            const content = readFileSync(p, 'utf-8');
+            const lines = content.split('\n');
+            let currentSelector = '';
+            let inBlock = false;
+            let seenStandardBackdrop = false;
+            let standardLine = 0;
+            lines.forEach((line, idx) => {
+                if (line.includes('{')) {
+                    inBlock = true;
+                    currentSelector = line.split('{')[0].trim();
+                    seenStandardBackdrop = false;
+                }
+                if (inBlock) {
+                    if (/backdrop-filter\s*:/i.test(line) && !/-webkit-backdrop-filter/i.test(line)) {
+                        seenStandardBackdrop = true;
+                        standardLine = idx + 1;
+                    }
+                    if (/-webkit-backdrop-filter\s*:/i.test(line) && seenStandardBackdrop) {
+                        invalidPrefixErrors.push(`${f}:${idx + 1} (${currentSelector}): -webkit-backdrop-filter 位于标准 backdrop-filter (第 ${standardLine} 行) 之后，会导致编译器误杀标准属性致使 Chrome 毛玻璃失效`);
+                    }
+                }
+                if (line.includes('}')) {
+                    inBlock = false;
+                    seenStandardBackdrop = false;
+                }
+            });
+        }
+    }
+    if (invalidPrefixErrors.length === 0) {
+        passCount++;
+        logItem(`CSS 厂商前缀层叠顺序 100% 规范（-webkit- 前缀均先于标准属性声明，确保跨浏览器编译不丢属性）`);
+    } else {
+        failCount++;
+        logItem(`CSS 前缀层叠顺序异常 (${invalidPrefixErrors.length} 处):\n    ${invalidPrefixErrors.join('\n    ')}`, 'error');
+    }
+} catch (e) {
+    failCount++;
+    logItem(`CSS 前缀层叠顺序扫描异常: ${e.message}`, 'error');
+}
+
 // 4.6 DOM ID 唯一性与 cacheDOM() 引用健康门禁
 try {
     const bodyMatch = indexHtml.match(/<body\b[^>]*>([\s\S]*?)<\/body>/i);

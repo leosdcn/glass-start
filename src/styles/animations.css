@@ -9,7 +9,7 @@
         transition: none !important;
         scroll-behavior: auto !important;
     }
-    .glass, .glass-strong { backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+    .glass, .glass-strong { -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
 }
 
 /* 入场淡入动画 */

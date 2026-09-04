@@ -4,8 +4,8 @@
 
 .glass {
     background: var(--glass-bg);
-    backdrop-filter: blur(var(--blur));
     -webkit-backdrop-filter: blur(var(--blur));
+    backdrop-filter: blur(var(--blur));
     border: 1px solid var(--glass-border);
     box-shadow: inset 0 1px 0 0 rgba(255,255,255,0.22), inset 0 -1px 0 0 rgba(255,255,255,0.05), 0 8px 32px rgba(0,0,0,0.2); /* Liquid Glass 1px 物理折射高光 */
     isolation: isolate;
@@ -13,8 +13,8 @@
 
 .glass-strong {
     background: var(--tint-12);
-    backdrop-filter: blur(var(--blur-lg));
     -webkit-backdrop-filter: blur(var(--blur-lg));
+    backdrop-filter: blur(var(--blur-lg));
     border: 1px solid rgba(255,255,255,0.2);
     box-shadow: inset 0 1px 0 0 rgba(255,255,255,0.32), inset 0 -1px 0 0 rgba(255,255,255,0.08), 0 8px 32px rgba(0,0,0,0.3); /* Liquid Glass 强物理折射高光 */
     isolation: isolate;
@@ -159,8 +159,8 @@
     border-bottom-left-radius: calc(0.75rem - 1px);
     border-bottom-right-radius: calc(0.75rem - 1px);
     background: rgba(0, 0, 0, 0.65);
-    backdrop-filter: blur(var(--blur-sm));
     -webkit-backdrop-filter: blur(var(--blur-sm));
+    backdrop-filter: blur(var(--blur-sm));
     border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 @media (hover: hover) and (pointer: fine) {
@@ -304,12 +304,12 @@
 @media (prefers-reduced-transparency: reduce) {
     .glass {
         background: rgba(15, 23, 42, 0.92);
-        backdrop-filter: none;
         -webkit-backdrop-filter: none;
+        backdrop-filter: none;
     }
     .glass-strong {
         background: rgba(15, 23, 42, 0.96);
-        backdrop-filter: none;
         -webkit-backdrop-filter: none;
+        backdrop-filter: none;
     }
 }
