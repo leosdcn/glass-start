@@ -202,7 +202,6 @@ const btnA11yCheck = await evalJS(`(() => {
   renderEditList();
   const delBtn = document.querySelector('.del-btn');
   const delHasAria = delBtn ? delBtn.getAttribute('aria-label') === '删除书签' : false;
-  const delHasNoTitle = delBtn ? !delBtn.hasAttribute('title') : false;
 
   renderWeatherPopover({
     location: { name: '北京', fullName: '中国 · 北京市' },
@@ -212,9 +211,9 @@ const btnA11yCheck = await evalJS(`(() => {
   const refBtn = document.getElementById('weatherRefreshBtn');
   const refHasAria = refBtn ? refBtn.getAttribute('aria-label') === '立即刷新天气' : false;
 
-  return { delHasAria, delHasNoTitle, refHasAria };
+  return { delHasAria, refHasAria };
 })()`);
-const btnA11yOk = btnA11yCheck && btnA11yCheck.delHasAria && btnA11yCheck.delHasNoTitle && btnA11yCheck.refHasAria;
+const btnA11yOk = btnA11yCheck && btnA11yCheck.delHasAria && btnA11yCheck.refHasAria;
 
 await evalJS(`localStorage.clear()`);
 

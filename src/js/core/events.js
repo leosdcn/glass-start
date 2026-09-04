@@ -681,12 +681,10 @@ export function bindEditEvents() {
     dom.togglePickerBtn?.addEventListener('click', e => { e.stopPropagation(); openBookmarkPicker(dom.togglePickerBtn); });
     dom.donePickerBtn?.addEventListener('click', closeBookmarkPicker);
     dom.bookmarkPicker?.addEventListener('click', closeBookmarkPicker);
-    dom.closeShortcutBtn?.addEventListener('click', closeShortcutModal);
     dom.doneShortcutBtn?.addEventListener('click', closeShortcutModal);
     dom.shortcutModal?.addEventListener('click', closeShortcutModal);
     dom.openShortcutFromSettingsBtn?.addEventListener('click', openShortcutModal);
     dom.openCreditsFromSettingsBtn?.addEventListener('click', openCreditsModal);
-    dom.closeCreditsBtn?.addEventListener('click', closeCreditsModal);
     dom.doneCreditsBtn?.addEventListener('click', closeCreditsModal);
     dom.creditsModal?.addEventListener('click', closeCreditsModal);
 
