@@ -89,6 +89,15 @@ function createStaticServer() {
                 let targetPath = filePath;
                 let isFallback = false;
                 if (err || !stats.isFile()) {
+                    // 🛡️ SPA 回退仅服务无扩展路由与 HTML 文档；缺失的静态资源必须如实 404，
+                    // 严禁以 200 返回 index.html（否则浏览器会把 HTML 当 JS/CSS 解析报错，
+                    // 且 Service Worker 可能以请求 URL 为键缓存错误实体）。
+                    const reqExt = path.extname(reqPath).toLowerCase();
+                    if (reqExt && reqExt !== '.html') {
+                        res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+                        res.end('404 Not Found');
+                        return;
+                    }
                     targetPath = path.join(DIST_DIR, 'index.html');
                     isFallback = true;
                 }

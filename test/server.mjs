@@ -1,6 +1,6 @@
 import { createServer } from 'node:http';
 import { readFileSync } from 'node:fs';
-import { extname, join, normalize } from 'node:path';
+import { extname, join, normalize, relative, isAbsolute } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
@@ -33,6 +33,13 @@ export function startServer(port = 0, root = DEFAULT_ROOT, customRoutes = {}) {
         }
         if (p === '/') p = '/index.html';
         const file = join(root, p);
+        // 🛡️ 防目录遍历：禁止越过 root 服务任意本地文件（与 scripts/server.js 同等守卫）
+        const rel = relative(root, file);
+        if (rel.startsWith('..') || isAbsolute(rel)) {
+          res.writeHead(403);
+          res.end('403');
+          return;
+        }
         const data = readFileSync(file);
         res.writeHead(200, { 'Content-Type': MIME[extname(file)] || 'application/octet-stream', 'Cache-Control': 'no-cache' });
         res.end(data);
