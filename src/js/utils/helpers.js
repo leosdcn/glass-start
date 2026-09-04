@@ -1,0 +1,169 @@
+/**
+ * ==============================================================================
+ * Glass Start — 工具函数集 (src/js/utils/helpers.js)
+ * ==============================================================================
+ */
+
+/**
+ * 将字符串中的 HTML 特殊字符转义为实体，防止 XSS
+ * @param {string} str
+ * @returns {string} HTML 转义后的安全字符串
+ */
+const htmlEscapes = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+const htmlEscapeRegex = /[&<>"']/g;
+export function escapeHtml(str) {
+    return String(str ?? '').replace(htmlEscapeRegex, ch => htmlEscapes[ch]);
+}
+
+/**
+ * 协议白名单校验与 URL 安全过滤函数
+ * 仅放行 http://, https:// 及 data:image/ 格式协议，彻底阻断伪协议 XSS 注入
+ * @param {string} url - 待校验的原始 URL 字符串
+ * @returns {string} 校验通过返回经过 HTML 实体转义的 URL，校验失败时返回 '#' 安全占位符
+ */
+export function safeUrl(url) {
+    const u = (url || '').trim();
+    return (/^https?:\/\//i.test(u) || /^data:image\//i.test(u)) ? escapeHtml(u) : '#';
+}
+
+/**
+ * 规范化用户输入的 URL：去除首尾空格，若缺少协议头则自动补 https://
+ * @param {string} url
+ * @returns {string} 规范化后的 URL，空输入返回 ''
+ */
+export function normalizeUrl(url) {
+    url = String(url || '').trim();
+    if (!url) return '';
+    if (!/^https?:\/\//i.test(url)) {
+        return 'https://' + url;
+    }
+    return url;
+}
+
+/**
+ * 从给定的 URL 字符串中安全提取规范化 Hostname 并剥离前缀 www.
+ * @param {string} url
+ * @returns {string} 规范化 Hostname 或 ''
+ */
+export function getHostname(url) {
+    try {
+        return new URL(normalizeUrl(url)).hostname.replace(/^www\./, '');
+    } catch {
+        return '';
+    }
+}
+
+/**
+ * 从 URL 域名或路径中提取用于兜底展示的站点名称
+ * @param {string} url - 站点 URL 字符串
+ * @returns {string} 提取到的站点名称或'书签'兜底文本
+ */
+export function deriveNameFromUrl(url) {
+    const host = getHostname(url);
+    return (host ? host.split('.')[0] : '') || '书签';
+}
+
+/**
+ * 根据书签 URL 自动推断其 favicon 地址（通过 a.favicon.im 服务）
+ * @param {string} url - 书签的目标 URL
+ * @returns {string} a.favicon.im 代理地址，URL 解析失败时返回 ''
+ */
+export function faviconFromUrl(url) {
+    const host = getHostname(url);
+    return host ? 'https://a.favicon.im/' + host : '';
+}
+
+/**
+ * 生成书签加载失败或无图标时的首字母徽标 HTML（纯函数，零副作用）
+ * @param {string} initial - 首字母字符
+ * @param {string} [sizeClass='icon-box-sm'] - 容器尺寸样式类
+ * @param {string} [textClass='text-2xs font-semibold'] - 文字排版样式类
+ * @returns {string} HTML 字符串
+ */
+export function createLetterBadgeHtml(initial, sizeClass = 'icon-box-sm', textClass = 'text-2xs font-semibold') {
+    return `<div class="icon-box ${sizeClass} bg-white/15 border border-white/20 text-white/90 ${textClass} pointer-events-none select-none">${escapeHtml(initial)}</div>`;
+}
+
+/**
+ * 数值区间限制 clamp
+ * @param {number} val
+ * @param {number} min
+ * @param {number} max
+ * @returns {number}
+ */
+export function clamp(val, min, max) {
+    return Math.min(Math.max(val, min), max);
+}
+
+/**
+ * 防抖调度函数
+ * @param {Function} fn
+ * @param {number} delay
+ * @returns {Function}
+ */
+export function debounce(fn, delay) {
+    let timer = null;
+    return function (...args) {
+        if (timer) clearTimeout(timer);
+        timer = setTimeout(() => {
+            fn.apply(this, args);
+            timer = null;
+        }, delay);
+    };
+}
+
+// LocalStorage 一级 RAM 内存缓存池，彻底消除重复 Disk I/O 与 JSON.parse 开销
+const storageCache = new Map();
+
+/**
+ * 安全读取 localStorage 中的配置项并反序列化为 JSON
+ * @param {string} key - 存储的键名
+ * @param {*} [fallback=null] - 当键名不存在或读取抛出异常时的默认返回值
+ * @returns {*} 解析后的对象/数组或 fallback 默认值
+ */
+export function storageGet(key, fallback = null) {
+    if (storageCache.has(key)) {
+        return storageCache.get(key);
+    }
+    try {
+        const raw = localStorage.getItem(key);
+        const val = raw ? JSON.parse(raw) : fallback;
+        storageCache.set(key, val);
+        return val;
+    } catch {
+        return fallback;
+    }
+}
+
+/**
+ * 安全写入 JSON 序列化数据至 localStorage
+ * @param {string} key - 存储的键名
+ * @param {*} value - 需要存储的数据对象/数组/值
+ * @returns {boolean} 写入成功返回 true，被沙盒阻断或磁盘超限时返回 false
+ */
+export function storageSet(key, value) {
+    try {
+        localStorage.setItem(key, JSON.stringify(value));
+        storageCache.set(key, value);
+        return true;
+    } catch {
+        storageCache.delete(key);
+        return false;
+    }
+}
+
+/**
+ * 安全删除 localStorage 中的指定键名记录
+ * @param {string} key - 需移除的键名
+ * @returns {boolean} 移除成功返回 true，抛出安全异常时返回 false
+ */
+export function storageRemove(key) {
+    try {
+        localStorage.removeItem(key);
+        storageCache.delete(key);
+        return true;
+    } catch {
+        storageCache.delete(key);
+        return false;
+    }
+}
