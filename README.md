@@ -288,8 +288,21 @@ npm run build
 
 ```text
 glass-start/
+├── 📁 src/ 原生 ES 模块化源码目录 (人类与 AI 高频维护区)
+│   ├── index.html            # 纯语义 DOM 骨架与 HTML 结构
+│   ├── styles/               # 纯原生与原子化 CSS (main.css / glass.css / animations.css)
+│   ├── svg/sprite.svg        # 全局 SVG Symbol 矢量图标池 (47+ 图标)
+│   └── js/                   # 纯原生 ES Module 业务代码目录
+│       ├── config/           # CONFIG 配置常量 (constants.js) 与主题色彩表 (themes.js)
+│       ├── utils/            # 通用工具函数 (helpers.js) 与 IndexedDB 存储 (idb.js)
+│       ├── state/            # 响应式状态单例 (store.js) 与 DOM 节点映射缓存池 (dom.js)
+│       ├── core/             # 核心系统底座 (overlay-stack / theme-engine / screen-state / gestures / lifecycle / events)
+│       ├── modules/          # 独立高内聚业务模块 (clock / search / weather / bookmarks / settings / wallpaper)
+│       ├── init.js           # DOMContentLoaded 应用生命周期总装初始化
+│       └── main.js           # ES Module 主入口 (统一挂载与双向响应式绑定)
+│
 ├── 📄 根目录核心生产文件 (8 个)
-│   ├── index.html            # 源码主入口（开发模式直开，内置 Tailwind v4 Browser CDN）
+│   ├── index.html            # 源码单文件直开入口（开发模式直开，内置 Tailwind v4 Browser CDN）
 │   ├── bookmarks.json        # 全站唯一书签数据真源（构建时自动注入 HTML）
 │   ├── sw.js                 # Service Worker 离线网络拦截与三池隔离缓存底座
 │   ├── manifest.json         # PWA Web App 应用程序清单
