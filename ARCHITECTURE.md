@@ -121,7 +121,7 @@ flowchart TD
         W2["滚轮向上 Wheel Up<br/>(navContent.scrollTop <= 0 且累积 >= 阈值)"]
         T2["触屏向下滑动 Touch Move / End<br/>(navContent.scrollTop <= 0 且 deltaY <= -40px)"]
         K2["键盘操作 Keyboard<br/>(ArrowUp / PageUp / Home 且 scrollTop <= 0)"]
-        H2["点击返回 Header / Hint<br/>(点击顶栏 navHeader 或 顶部提示图标)"]
+        H2["点击返回 Header / Hint<br/>(点击顶栏 navHeader 或 右侧「起始页」胶囊按钮)"]
     end
 
     %% ======================= BFCACHE & LIFECYCLE =======================

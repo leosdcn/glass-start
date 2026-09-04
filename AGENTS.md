@@ -57,7 +57,7 @@
 ### 6. 🔴 版本发布与 3 大核心文档强一致性 (SemVer & Tri-Document Coherence)
 - **铁律**：发布新版本或执行重大架构变更时，必须同步交叉对齐 4 处版本号与 3 大核心 Markdown 文档，严禁只改代码而遗留文档陈旧或自相矛盾。
 - **执行准则**：
-  - **SemVer 4 处版本号强一致**：同步对齐 `package.json`、`package-lock.json`（根与 package 节点）、`index.html`（设置弹窗徽章）与 `README.md`（依赖清单表格）；
+  - **SemVer 4 处版本号强一致**：同步对齐 `package.json`、`package-lock.json`（根与 package 节点）、`index.html` / `src/index.html`（设置弹窗徽章）与 `README.md`（依赖清单表格）；
   - **3 大 MD 文档说辞强一致**：交付前交叉统一 [**AGENTS.md**](./AGENTS.md)、[**ARCHITECTURE.md**](./ARCHITECTURE.md) 与 [**README.md**](./README.md) 中的命令参数（如 `--no-build`）、文件路径、版本号与专业术语。
 
 ---
@@ -132,7 +132,7 @@ node test/visual-regression.mjs
 | **设置弹窗草稿状态机** | `@region [MODAL_STATE]` | `src/js/state/store.js` | `modalState` | **[图 3](./ARCHITECTURE.md#3--overlaystack-多层弹窗层叠栈与-escape-统一退栈决策-overlaystack--modal-flow)**：壁纸/特效快照隔离 |
 | **壁纸持久化与即选即存** | `@region [WALLPAPER_SELECTION]` | `src/js/modules/wallpaper.js` | `commitWallpaperSelection()`, `previewDraftWallpaper()` | **[§6](./ARCHITECTURE.md#6--精确符号索引地图与代码区域导航-symbol-index--region-map)**：即选即存、IDB 双写与预设高亮 |
 | **设置弹窗生命周期管理** | `@region [SETTINGS_MODAL_LIFECYCLE]` | `src/js/modules/settings.js`<br/>`src/js/core/overlay-stack.js` | `openEditModal()`, `closeEditModal()`, `cancelEditModal()` | **[图 3](./ARCHITECTURE.md#3--overlaystack-多层弹窗层叠栈与-escape-统一退栈决策-overlaystack--modal-flow)**：`OverlayStack` LIFO 栈模型、Focus Trap 焦点锁定 |
-| **弹窗底部操作与落盘入口** | `@region [SETTINGS_MODAL_COMMIT]` | `src/js/core/events.js`<br/>`src/js/modules/settings.js` | `dom.saveEditBtn`, `collectEditData()`, `saveUserBookmarks()` | **[§6](./ARCHITECTURE.md#6--精确符号索引地图与代码区域导航-symbol-index--region-map)**：保存并关闭、书签固化与特效落盘 |
+| **弹窗底部操作与落盘入口** | `@region [SETTINGS_MODAL_COMMIT]` | `src/js/core/events.js`<br/>`src/js/modules/settings.js` | `dom.saveEditBtn`, `collectEditData()`, `saveUserBookmarks()` | **[§6](./ARCHITECTURE.md#6--精确符号索引地图与代码区域导航-symbol-index--region-map)**：完成操作、书签固化与特效落盘 |
 | **搜索联想与防竞态调度** | `@region [SEARCH_SUGGESTIONS]` | `src/js/modules/search.js` | `renderSuggestions()`, `fetchSuggestions()`, `activeSuggestReqId` | **[图 5](./ARCHITECTURE.md#5--智能搜索三级模糊匹配与气象-9-阶动态演化决策-search--weather-decision-engine)**：搜索联想防竞态、零 CLS 骨架 |
 | **气象数据清洗与动态演化** | `@region [WEATHER_ENGINE]` | `src/js/modules/weather.js` | `initWeather()`, `weatherNum()`, `WMO_WEATHER_MAP` | **[图 5](./ARCHITECTURE.md#5--智能搜索三级模糊匹配与气象-9-阶动态演化决策-search--weather-decision-engine)**：9 阶气象形态、数值化信任边界防御 |
 | **外壳主题与底色动态管理** | `@region [THEME_COLOR_ENGINE]` | `src/js/core/theme-engine.js` | `APP_THEME_DARK`, `APP_THEME_LIGHT`, `updateThemeColor()` | **[§6](./ARCHITECTURE.md#6--精确符号索引地图与代码区域导航-symbol-index--region-map)**：Safari 顶栏、`--bg-base` 与 `#bgLayer` 联动 |
@@ -168,7 +168,7 @@ node test/visual-regression.mjs
    - **黑匣子契约**：`window.__GLASS_DIAG__`（verify/probe/dump/log）承载指纹校验、纯内存生命周期环形日志（≤40 条，零存储写入，BFCache 往返不灭）、白屏异常三级阶梯（L1 幂等校准 → L2 合成层磁贴重建 → L3 冷却守卫刷新）；严禁复活任何 UI 诊断面板（取证仅走控制台 `dump()`）；L3 触发瞬间仅允许一次性写 `gs_last_heal` 面包屑；
    - **刷新纪律**：任何自动 `location.reload()` 必须经 `gs_build_reload_at` 冷却期（60s）守卫，严禁裸调用；自动化测试环境（`navigator.webdriver`）下自动探针必须静默。
 7. **防本地开发服务与生产缓存脱节 (Dev Server Watch & Cache-Busting Guard)**：
-   - **自动增量监听**：`scripts/server.js` 默认内置 Watch 增量构建机制（50ms 极速防抖），编辑 `index.html`、`bookmarks.json`、`sw.js` 即时增量编译至 `dist/` 并无条件滚动构建版本指纹（`currentBuildVersion = 'app-core-v' + Date.now()`）；
+   - **自动增量监听**：`scripts/server.js` 默认内置 Watch 增量构建机制（50ms 极速防抖），编辑 `src/` 源码目录、`index.html`、`bookmarks.json`、`sw.js` 即时增量编译至 `dist/` 并无条件滚动构建版本指纹（`currentBuildVersion = 'app-core-v' + Date.now()`）；
    - **开发防滞后标头**：本地开发服务静态响应头强制注入 `Service-Worker-Allowed: /` 与 `no-cache, no-store, must-revalidate, max-age=0`，本地非壁纸代码资源跳过 304 协商缓存，确保本地测试 100% 拉取最新构建代码，根除开发期 SW 缓存滞后导致的切屏错位。
 
 ---
