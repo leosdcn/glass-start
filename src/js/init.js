@@ -16,9 +16,10 @@ import {
     renderNavCategories,
     preloadFavicons,
     refreshSidebarNavCache,
-    initFaviconObserver
+    initFaviconObserver,
+    handleIconError
 } from './modules/bookmarks.js';
-import { applyBgEffects } from './modules/settings.js';
+import { applyBgEffects, handleEditIconError } from './modules/settings.js';
 import { preloadNextBg } from './modules/wallpaper.js';
 import { initScreenGestures, reconcileScreenState } from './core/screen-state.js';
 import { bindEvents, bindEditEvents } from './core/events.js';
@@ -34,9 +35,25 @@ export function init() {
     renderPresetWallpapers();
     initWeather();
 
-    document.addEventListener('error', e => {
-        if (e.target && e.target.tagName === 'IMG' && e.target.classList.contains('engine-icon')) {
-            e.target.style.display = 'none';
+    // 全局捕获阶段图片加载错误处理器，彻底代替 HTML 模板行内 onerror 绑定
+    document.addEventListener('error', (e) => {
+        const target = e.target;
+        if (target && target.tagName === 'IMG') {
+            if (target.classList.contains('edit-favicon-img')) {
+                handleEditIconError(target);
+            } else if (target.dataset.initial !== undefined || target.closest('.icon-box')) {
+                handleIconError(target);
+            } else if (target.classList.contains('engine-icon') || target.dataset.hideOnError === '1') {
+                target.style.display = 'none';
+            }
+        }
+    }, true);
+
+    // 全局捕获阶段图片加载成功处理器，代替 HTML 模板行内 onload 绑定（为 CSP 收紧铺路）
+    document.addEventListener('load', (e) => {
+        const target = e.target;
+        if (target && target.tagName === 'IMG' && (target.classList.contains('lazy-icon') || target.classList.contains('edit-favicon-img'))) {
+            target.classList.add('loaded');
         }
     }, true);
 

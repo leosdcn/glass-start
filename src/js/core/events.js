@@ -71,7 +71,8 @@ import {
     importBookmarksJSON,
     exportBookmarksJSON,
     updatePickerCount,
-    getExistingUrls
+    getExistingUrls,
+    handleEditIconError
 } from '../modules/settings.js';
 import {
     saveUserBookmarks,
@@ -651,10 +652,20 @@ export function initDragSort() {
             clearTimeout(editFaviconDebounceTimer);
             editFaviconDebounceTimer = setTimeout(() => {
                 faviconBox.innerHTML = getEditFaviconInner(nameVal, urlVal);
+                const newImg = faviconBox.querySelector('.edit-favicon-img');
+                if (newImg && newImg.complete) {
+                    if (newImg.naturalWidth > 0) newImg.classList.add('loaded');
+                    else handleEditIconError(newImg);
+                }
             }, 180);
         } else if (target.classList.contains('edit-name')) {
             if (!existingImg || existingImg.dataset.failed === '1') {
                 faviconBox.innerHTML = getEditFaviconInner(nameVal, urlVal);
+                const newImg = faviconBox.querySelector('.edit-favicon-img');
+                if (newImg && newImg.complete) {
+                    if (newImg.naturalWidth > 0) newImg.classList.add('loaded');
+                    else handleEditIconError(newImg);
+                }
             }
         }
     });
@@ -747,6 +758,11 @@ export function bindEditEvents() {
             div.classList.add('animate-item-in');
             div.addEventListener('animationend', () => div.classList.remove('animate-item-in'), { once: true });
             dom.editList?.appendChild(div);
+            const newImg = div.querySelector('.edit-favicon-img');
+            if (newImg && newImg.complete) {
+                if (newImg.naturalWidth > 0) newImg.classList.add('loaded');
+                else handleEditIconError(newImg);
+            }
             item.classList.add('opacity-40', 'pointer-events-none');
             item.disabled = true;
             item.setAttribute('aria-disabled', 'true');
@@ -769,6 +785,11 @@ export function bindEditEvents() {
             div.classList.add('animate-item-in');
             div.addEventListener('animationend', () => div.classList.remove('animate-item-in'), { once: true });
             dom.editList?.appendChild(div);
+            const newImg = div.querySelector('.edit-favicon-img');
+            if (newImg && newImg.complete) {
+                if (newImg.naturalWidth > 0) newImg.classList.add('loaded');
+                else handleEditIconError(newImg);
+            }
             div.querySelector('.edit-name')?.focus();
             modalState.bookmarksChanged = true;
             updateBookmarkCountBadge();

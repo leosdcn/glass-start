@@ -27,6 +27,12 @@ import {
     clearCustomWallpaper,
     findPresetBgIndex
 } from './wallpaper.js';
+import {
+    getSortedCategories,
+    getFaviconHTML,
+    initPickerFaviconObserver,
+    handleIconError
+} from './bookmarks.js';
 
 let cachedSettingsTabs = null;
 let cachedSettingsPanels = null;
@@ -240,6 +246,16 @@ export function renderEditList(listToRender) {
     editList.innerHTML = '<div id="dragDropIndicator" class="drag-drop-line"></div>' + list.map((bm, i) => getEditRowHTML(bm.name, bm.url, i, bm.icon)).join('');
     dom.dragDropIndicator = editList.querySelector('#dragDropIndicator');
     updateBookmarkCountBadge();
+
+    editList.querySelectorAll('img.edit-favicon-img').forEach(img => {
+        if (img.complete) {
+            if (img.naturalWidth > 0) {
+                img.classList.add('loaded');
+            } else {
+                handleEditIconError(img);
+            }
+        }
+    });
 }
 
 export function collectEditData() {
@@ -636,7 +652,7 @@ export function renderPickerCategories() {
     const pickerContent = dom.pickerContent || $('pickerContent');
     if (!pickerContent) return;
     const urls = getExistingUrls();
-    const sortedCats = typeof window.getSortedCategories === 'function' ? window.getSortedCategories() : [];
+    const sortedCats = typeof getSortedCategories === 'function' ? getSortedCategories() : (typeof window.getSortedCategories === 'function' ? window.getSortedCategories() : []);
 
     pickerContent.innerHTML = sortedCats.map(cat => {
         const sortedBookmarks = cat.sortedBookmarks || [];
@@ -650,7 +666,7 @@ export function renderPickerCategories() {
             <div class="grid grid-cols-2 sm:grid-cols-3 gap-1">
                 ${sortedBookmarks.map(bm => {
                     const exists = urls.has(bm.url);
-                    const faviconHtml = typeof window.getFaviconHTML === 'function' ? window.getFaviconHTML(bm, 'sm') : '';
+                    const faviconHtml = typeof getFaviconHTML === 'function' ? getFaviconHTML(bm, 'sm') : (typeof window.getFaviconHTML === 'function' ? window.getFaviconHTML(bm, 'sm') : '');
                     return `
                         <button type="button" class="w-full flex items-center gap-2 px-2 py-1.5 apple-radius picker-item text-left select-none ${exists ? 'opacity-40 cursor-not-allowed' : 'hover:bg-white/10 cursor-pointer'}" ${exists ? 'disabled aria-disabled="true"' : ''} aria-label="${exists ? `${escapeHtml(bm.name)}（已添加）` : `添加快捷书签：${escapeHtml(bm.name)}`}" ${!exists ? `data-name="${escapeHtml(bm.name)}" data-url="${escapeHtml(bm.url)}"` : ''}>
                             ${faviconHtml}
@@ -667,5 +683,9 @@ export function renderPickerCategories() {
     `;
     }).join('');
     updatePickerCount();
-    if (typeof window.initPickerFaviconObserver === 'function') window.initPickerFaviconObserver();
+    if (typeof initPickerFaviconObserver === 'function') {
+        initPickerFaviconObserver();
+    } else if (typeof window.initPickerFaviconObserver === 'function') {
+        window.initPickerFaviconObserver();
+    }
 }

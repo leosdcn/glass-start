@@ -233,8 +233,12 @@ export function initPickerFaviconObserver() {
     const container = dom.pickerContent || $('pickerContent');
     if (!container) return;
     container.querySelectorAll('img.lazy-icon').forEach(img => {
-        if (img.complete && img.naturalWidth > 0) {
-            img.classList.add('loaded');
+        if (img.complete) {
+            if (img.naturalWidth > 0) {
+                img.classList.add('loaded');
+            } else {
+                handleIconError(img);
+            }
         }
     });
 }
