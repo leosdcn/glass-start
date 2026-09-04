@@ -311,7 +311,7 @@ glass-start/
 ├── ⚙️ 根目录工程配置与文档体系 (7 个)
 │   ├── start.command         # macOS 访达一键双击启动快捷指令（默认深度净化启动）
 │   ├── package.json          # Node 项目配置（0 运行时依赖，仅 devDependencies 构建工具）
-│   ├── package-lock.json     # 依赖锁定清单（严格锁定 SemVer v4.1.0）
+│   ├── package-lock.json     # 依赖锁定清单（严格锁定 SemVer v4.2.0）
 │   ├── .gitignore            # Git 忽略规则（已严格隔离 dist/、node_modules/、test 产物）
 │   ├── README.md             # 全站功能特性、使用手册、架构表与部署指南
 │   ├── ARCHITECTURE.md       # 系统分层、双屏状态机、OverlayStack 等 5 大 Mermaid 白皮书
@@ -491,7 +491,7 @@ add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsaf
 | **Service Worker** | 项目内组件 | `v11` | `sw.js` 头部注释；三池隔离 + FIFO 容量限额缓存架构 |
 | **CORE_CACHE** | 缓存池版本 | `app-core-v<时间戳>` | `sw.js`；每次 `npm run build` 自动更新，强制客户端刷新旧缓存 |
 | **FAVICON_CACHE / IMG_CACHE** | 缓存池版本 | `v1` | `sw.js`；图标 / 本地图片独立缓存池 |
-| **Glass Start 站点版本** | 项目发布版本 | `v4.1.0` | `package.json` + `index.html` 设置面板徽章 |
+| **Glass Start 站点版本** | 项目发布版本 | `v4.2.0` | `package.json` + `index.html` 设置面板徽章 |
 
 **无版本号的外部服务**（非框架，版本由服务商维护，升级无需本项目介入）：
 - `a.favicon.im` — Favicon 图标 API
@@ -510,7 +510,7 @@ add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsaf
 | 升级类型 | 版本演进示例 | 触发条件与适用场景 | 典型变更内容与规则 |
 | :--- | :--- | :--- | :--- |
 | **小修小补（Patch）** | `v3.1.4` ➔ **`v3.1.5`**<br>`v3.1.9` ➔ **`v3.1.10`** | **Bug 修复、细节微调、依赖升级** | 仅递增末位修订号。用于修复机型兼容问题、微调动画参数、更新书签数据或升级构建依赖，不改变既有功能架构与 DOM 交互契约。 |
-| **功能新增（Minor）** | `v3.1.4` ➔ **`v3.2.0`**<br>`v4.0.0` ➔ **`v4.1.0`** | **新增功能模块、向下兼容特性上线** | 递增中间次版本号，**末位修订号强制重置归零**。用于新增独立功能（如待办/便签小组件、主题色彩切换、新搜索引擎添加器）或重大性能体验重构。 |
+| **功能新增（Minor）** | `v3.1.4` ➔ **`v3.2.0`**<br>`v4.1.0` ➔ **`v4.2.0`** | **新增功能模块、向下兼容特性上线** | 递增中间次版本号，**末位修订号强制重置归零**。用于新增独立功能（如待办/便签小组件、主题色彩切换、新搜索引擎添加器）或重大性能体验重构。 |
 | **重大重构（Major）** | `v3.x.x` ➔ **`v4.0.0`** | **颠覆性架构升级、破坏性重构** | 递增首位主版本号，**后两位次版本与修订号全部强制归零**。用于底层渲染引擎颠覆、核心视觉形态根本性改变或不向下兼容的存储模型迁移。 |
 
 #### 🛠️ 版本升级操作清单（4 处文件对齐）
