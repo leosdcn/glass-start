@@ -120,9 +120,6 @@ export function switchSettingsTab(targetTabId) {
     if (targetTabId === 'tabAppearance') {
         loadPresetBgCardImages();
     }
-    if (targetTabId === 'tabData') {
-        updateDataTabStats();
-    }
 }
 
 export function applyBgEffects(opacity, blur, save = false) {
@@ -161,19 +158,6 @@ export function applyBgEffects(opacity, blur, save = false) {
     if (save) {
         storageSet(CONFIG.KEYS.MASK_OPACITY, op);
         storageSet(CONFIG.KEYS.BG_BLUR, bl);
-    }
-}
-
-export function updateDataTabStats() {
-    const storageSizeBadge = dom.storageSizeBadge || $('storageSizeBadge');
-    if (!storageSizeBadge) return;
-    try {
-        const raw = JSON.stringify(localStorage);
-        const bytes = new TextEncoder().encode(raw).length;
-        const kb = (bytes / 1024).toFixed(1);
-        storageSizeBadge.textContent = `已用 ${kb} KB`;
-    } catch {
-        storageSizeBadge.textContent = '读取中...';
     }
 }
 
