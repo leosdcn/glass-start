@@ -146,11 +146,12 @@ node test/visual-regression.mjs
    - 所有的动态书签渲染必须经过 `escapeHtml()` 与 `safeUrl()` 白名单过滤；
    - 气象数据入库必须经过 `weatherNum()` 强制数值化清洗；
    - 外部搜索联想必须配备 `activeSuggestReqId` 防竞态乱序。
-4. **防 BFCache 与生命周期失步 4 大暗坑 (BFCache & Lifecycle State Machine Guards)**：
+4. **防 BFCache 与生命周期失步 5 大暗坑 (BFCache & Lifecycle State Machine Guards)**：
    - **坑点 1：类名语义污染** ➔ 严禁将布局推屏类（如 `.nr`）误作通用动画禁用类；任何切屏/自愈入口必须首行同步 `classList.remove('nr')`，并在 `<head>` 中配备 1.5s 超时防卡死兜底；
    - **坑点 2：异步跨帧竞态** ➔ 严禁使用 `el.style.transition = 'none'` + `rAF` 清理的异步反模式（后台标签页会冻结 `rAF`）；全量收敛至声明式 CSS 状态类并由 `reconcileScreenState()` 同步清空内联脏样式；
-   - **坑点 3：生命周期模型割裂** ➔ 唤醒自愈必须同时挂载 `visibilitychange`（多标签页切回）与 `pageshow`（BFCache 后退）双通道，统一收敛至 `handleAppWakeUp()`，并同步触发 SW 差量更新探活；
-   - **坑点 4：CSS 动画时间穿越** ➔ 带有 `animation-fill-mode: backwards` 的入场动画类（如 `.fade-in`、`.animate-item-in`、`.category-title-pulse`）播放完后必须立即卸载（通过 `animationend` 或定时器脱壳），防止 WebKit 从 BFCache 唤醒时重置动画导致永久回滚至 `opacity:0`。
+   - **坑点 3：生命周期模型割裂与 WebKit 离屏磁贴丢弃** ➔ 唤醒自愈必须同时挂载 `visibilitychange`（多标签页切回）与 `pageshow`（BFCache 后退）双通道，统一收敛至 `handleAppWakeUp()`。**严禁对磁贴重绘添加 `wasPersisted` 狭隘门控**；必须通过瞬态重置（`display: none` ➔ `void offsetHeight` ➔ `display: ''`）强制让 WebKit 重新分配 GPU Backing Store 磁贴，根绝切回时图层空白未渲染；
+   - **坑点 4：CSS 动画时间穿越** ➔ 带有 `animation-fill-mode: backwards` 的入场动画类（如 `.fade-in`、`.animate-item-in`、`.category-title-pulse`）播放完后必须立即卸载（通过 `animationend` 或定时器脱壳），防止 WebKit 从 BFCache 唤醒时重置动画导致永久回滚至 `opacity:0`；
+   - **坑点 5：状态机变量与黑匣子探针脱节** ➔ 全局 `state` 必须挂载至 `window.state`，健全性探针 `snapshotHealth()` 必须实行 `window.state.currentSection` 与 `.screen-pushed-in` 物理 DOM 双重校验，确保导航页与首屏异常均能被探针即时捕捉并由 L2 自动触发重栅格化。
 5. **防 Service Worker 跨版本缓存割裂与原子锁步 (SW Version Lockstep & Atomic Cache Guard)**：
    - **铁律**：主文档 `index.html` 与同源核心脚本 `app.js` 必须 100% 保持同调的**原子化 SWR 锁步**策略（CORE_CACHE 本地 0ms 秒开 + 差量 SW 换代升级）；
    - **构建防穿透**：生产环境构建时必须为 `app.js` 自动注入版本查询参数（`?v=app-core-v<timestamp>`），并维持双端构建指纹契约，彻底击穿旧版 SW 缓存池残留，根绝“HTML 是新版但 JS 执行旧版”的跨版本白屏死锁。
@@ -158,6 +159,9 @@ node test/visual-regression.mjs
    - **指纹对铁律**：`scripts/build.js` 必须向 `dist/index.html` 内联注入 `__GLASS_BUILD_HTML__`、向 `dist/app.js` 头部注入 `__GLASS_BUILD_APP__`，两键同源同版并由构建断言强制校验；严禁绕过 build.js 手工篡改 dist 产物；
    - **黑匣子契约**：`window.__GLASS_DIAG__`（verify/probe/dump/log）承载指纹校验、纯内存生命周期环形日志（≤40 条，零存储写入，BFCache 往返不灭）、白屏异常三级阶梯（L1 幂等校准 → L2 合成层磁贴重建 → L3 冷却守卫刷新）；严禁复活任何 UI 诊断面板（取证仅走控制台 `dump()`）；L3 触发瞬间仅允许一次性写 `gs_last_heal` 面包屑；
    - **刷新纪律**：任何自动 `location.reload()` 必须经 `gs_build_reload_at` 冷却期（60s）守卫，严禁裸调用；自动化测试环境（`navigator.webdriver`）下自动探针必须静默。
+7. **防本地开发服务与生产缓存脱节 (Dev Server Watch & Cache-Busting Guard)**：
+   - **自动增量监听**：`scripts/server.js` 默认内置 Watch 增量构建机制（50ms 极速防抖），编辑 `index.html`、`bookmarks.json`、`sw.js` 即时增量编译至 `dist/` 并无条件滚动构建版本指纹（`currentBuildVersion = 'app-core-v' + Date.now()`）；
+   - **开发防滞后标头**：本地开发服务静态响应头强制注入 `Service-Worker-Allowed: /` 与 `no-cache, no-store, must-revalidate, max-age=0`，本地非壁纸代码资源跳过 304 协商缓存，确保本地测试 100% 拉取最新构建代码，根除开发期 SW 缓存滞后导致的切屏错位。
 
 ---
 
@@ -181,11 +185,12 @@ node test/visual-regression.mjs
 涉及切屏交互、动画或页面唤醒逻辑时，推荐直接使用此模板：
 ```markdown
 【双屏切屏与生命周期自愈架构专项排查指令】
-在阅读与修改代码时，必须严格遵守以下 4 条历史致命暗坑的防御铁律，坚决杜绝“点击书签返回后两屏只剩一屏/划过去空白”：
+在阅读与修改代码时，必须严格遵守以下 5 条历史致命暗坑的防御铁律，坚决杜绝“点击书签返回后两屏只剩一屏/划过去空白”：
 1. 🔴 严禁在运行期滥加 .nr 类名（.nr 仅用于 HEAD 脚本刷新预水合，具有强制推飞首屏副作用）；
 2. 🔴 严禁内联 style.transition = 'none' + 异步 rAF 清除（后台冻结 rAF 导致过渡失效，必须 100% 依赖 CSS 类名）；
 3. 🔴 严禁仅监听 pageshow，必须保持 visibilitychange + pageshow 双通道自愈（覆盖多标签页切回盲区）；
-4. 🔴 严禁元素长期常驻 .fade-in 动画类名（入场 800ms 后自动脱壳卸载，防止 Safari BFCache 重置回滚至 opacity:0）。
+4. 🔴 严禁元素长期常驻 .fade-in 动画类名（入场 800ms 后自动脱壳卸载，防止 Safari BFCache 重置回滚至 opacity:0）；
+5. 🔴 严禁对 WebKit 磁贴重栅格化设置 wasPersisted 门控，且必须通过 display 瞬态重置强制唤醒 GPU 磁贴（单纯 willChange 无法挽救已丢弃的离屏图层）。
 修改后请执行 npm run lint 及 node test/run.mjs ui --no-build 确保全绿通过。
 ```
 

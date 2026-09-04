@@ -265,7 +265,7 @@ npm run build
   - **防跨帧竞态**：严禁 `style.transition = 'none'` + `rAF` 异步反模式，100% 依赖声明式状态类，唤醒自愈同步清除内联脏样式；
   - **防模型割裂**：`visibilitychange` 与 `pageshow` 双通道收敛至 `handleAppWakeUp()` 单点自愈；
   - **防动画时间穿越**：入场动画（`.fade-in` / `.animate-item-in`）播放完后必须立即卸载，避免 WebKit BFCache 解冻回滚至 `opacity:0`；
-  - **防磁贴失栅格化**：离屏 `fixed` 图层在 BFCache 恢复后可能出现合成层磁贴丢失（白屏），磁贴重建抖动仅在 `persisted=true` 时间窗内执行。
+  - **防磁贴失栅格化**：离屏 `fixed` 图层在多标签页切回 (`visibilitychange`) 或 BFCache 恢复 (`pageshow`) 时，WebKit 会主动释放 GPU 离屏磁贴，必须通过双通道 `display: none` 瞬态重置强制 WebKit 重新分配 Backing Store 栅格化磁贴，彻底杜绝第二屏/首屏空白。
 - 🩺 **运行时诊断黑匣子 (Runtime Diagnostic Blackbox)**：
   - 构建产物内置双端指纹契约：`__GLASS_BUILD_HTML__`（HTML 内联）与 `__GLASS_BUILD_APP__`（app.js 头部）由 build.js 同源注入并断言校验；运行时不一致即判定跨版本缓存割裂，按 60s 冷却期执行单次守卫刷新；
   - 纯内存环形日志（≤40 条，零存储写入；BFCache 恢复不重置 JS 堆）被动记录 pageshow(persisted)/visibilitychange/reconcile/controllerchange/js-error 与白屏异常三级阶梯（L1 校准 → L2 磁贴重建 → L3 守卫刷新）全过程；L3 自刷新瞬间仅在 sessionStorage 落一条 `gs_last_heal` 面包屑解释自刷原因；
@@ -309,7 +309,7 @@ glass-start/
 ├── 🛠️ scripts/ 自动化工程工具目录 (4 个)
 │   ├── build.js              # 生产环境编译打包流水线（Tailwind CLI + esbuild AST 压缩）
 │   ├── lint.mjs              # 零依赖静态语法与 7 大红线规范门禁（<80ms 极速自愈）
-│   ├── server.js             # 原生 Node.js 零依赖本地开发与局域网预览服务器
+│   ├── server.js             # 原生 Node.js 零依赖本地开发与局域网预览服务器（内置自动增量构建监听）
 │   └── start.command         # macOS 访达一键双击启动快捷指令
 │
 ├── 🧪 test/ 自动化测试与质量保障目录 (9 个源码文件)
