@@ -261,15 +261,15 @@ function startListening(port) {
         console.log(`  💻 ${c.bold}本机访问:${c.reset}    ${c.cyan}http://localhost:${port}/${c.reset}`);
         console.log(`  🔗 ${c.bold}本地回环:${c.reset}    ${c.cyan}http://127.0.0.1:${port}/${c.reset}`);
         if (lanIps.length > 0) {
-            console.log(`  📱 ${c.bold}局域网访问:${c.reset}  ${c.green}${c.bold}http://${lanIps[0]}:${port}/${c.reset}`);
+            console.log(`  📱 ${c.bold}局域网访问:${c.reset}  ${c.cyan}http://${lanIps[0]}:${port}/${c.reset}`);
             if (lanIps.length > 1) {
                 console.log(`  🌐 ${c.bold}其它网卡:${c.reset}    ${lanIps.slice(1).map(ip => `${c.cyan}http://${ip}:${port}/${c.reset}`).join(', ')}`);
             }
         }
         if (enableWatch) {
-            console.log(`  👀 ${c.bold}增量监听:${c.reset}    ${c.green}已开启源码改动即时编译 (index.html, bookmarks.json, sw.js)${c.reset}`);
+            console.log(`  👀 ${c.bold}增量监听:${c.reset}    ${c.green}已开启 (改动即时编译)${c.reset}`);
         } else {
-            console.log(`  👀 ${c.bold}增量监听:${c.reset}    ${c.yellow}已关闭 (运行参数包含 --no-watch)${c.reset}`);
+            console.log(`  👀 ${c.bold}增量监听:${c.reset}    ${c.yellow}已关闭 (参数包含 --no-watch)${c.reset}`);
         }
 
         console.log(`\n${c.gray}─── 💡 快速提示 ${'─'.repeat(LINE_WIDTH - 16)}${c.reset}`);
