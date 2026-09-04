@@ -82,10 +82,10 @@ const PATHS = {
     srcCss: path.join(ROOT_DIR, 'src', 'styles', 'main.css'),
     srcSvg: path.join(ROOT_DIR, 'src', 'svg', 'sprite.svg'),
     srcMainJs: path.join(ROOT_DIR, 'src', 'js', 'main.js'),
+    srcConstants: path.join(ROOT_DIR, 'src', 'js', 'config', 'constants.js'),
     dist: path.join(ROOT_DIR, 'dist'),
     tempCss: path.join(ROOT_DIR, '.temp_input.css'),
     bookmarksJson: path.join(ROOT_DIR, 'bookmarks.json'),
-    indexHtml: path.join(ROOT_DIR, 'index.html'),
     sw: path.join(ROOT_DIR, 'sw.js'),
     wallpapers: path.join(ROOT_DIR, 'wallpapers'),
     headers: path.join(ROOT_DIR, '_headers')
@@ -97,7 +97,7 @@ let currentBuildVersion = 'app-core-v' + Date.now();
 // 顶层 JS 变量正则替换工具函数 (单次遍历替换，消除冗余的 test() 预扫描)
 function safeReplaceJsVariable(code, varName, replacementJs) {
     const regex = new RegExp(`(?:export\\s+)?(?:const|let|var)\\s+${varName}(?:\\s*:\\s*[^=]+)?\\s*=\\s*\\[[\\s\\S]*?\\];`);
-    return code.replace(regex, () => `const ${varName} = ${replacementJs};`);
+    return code.replace(regex, () => `export const ${varName} = ${replacementJs};`);
 }
 
 // 自动资源清理 Hook：保障遇到 Ctrl+C 或中途报错时无残存临时文件
@@ -254,50 +254,41 @@ function buildServiceWorkerAndAssets() {
     logItem('PWA manifest.json、Apple Touch Icon 与 robots.txt 已同步至 dist/');
 }
 
-// 4. 自动数据双向同步机制 (Auto-Sync bookmarks.json -> src/index.html & index.html)
+// 4. 自动数据双向同步机制 (Auto-Sync bookmarks.json -> src/js/config/constants.js)
 function syncBookmarksData() {
     logSection('3/5', '🔄 同步书签默认数据 (bookmarks.json -> 源码)');
 
-    if (fs.existsSync(PATHS.bookmarksJson)) {
+    if (fs.existsSync(PATHS.bookmarksJson) && fs.existsSync(PATHS.srcConstants)) {
         try {
             const bookmarksData = JSON.parse(fs.readFileSync(PATHS.bookmarksJson, 'utf-8'));
-            const targetFiles = [PATHS.srcIndexHtml, PATHS.indexHtml].filter(f => fs.existsSync(f));
-            let totalUpdated = 0;
+            let content = fs.readFileSync(PATHS.srcConstants, 'utf-8');
+            let updatedCount = 0;
 
-            for (const file of targetFiles) {
-                let content = fs.readFileSync(file, 'utf-8');
-                let updatedCount = 0;
-
-                // 4.1 自动同步常用顶栏 DEFAULT_BOOKMARKS
-                if (bookmarksData.bookmarks && Array.isArray(bookmarksData.bookmarks)) {
-                    const formattedBookmarks = formatJsObject(bookmarksData.bookmarks, 8);
-                    const nextContent = safeReplaceJsVariable(content, 'DEFAULT_BOOKMARKS', formattedBookmarks);
-                    if (nextContent !== content) {
-                        content = nextContent;
-                        updatedCount++;
-                    }
-                }
-
-                // 4.2 自动同步分类书签 DEFAULT_CATEGORIES
-                if (bookmarksData.categories && Array.isArray(bookmarksData.categories)) {
-                    const formattedCategories = formatJsObject(bookmarksData.categories, 8);
-                    const nextContent = safeReplaceJsVariable(content, 'DEFAULT_CATEGORIES', formattedCategories);
-                    if (nextContent !== content) {
-                        content = nextContent;
-                        updatedCount++;
-                    }
-                }
-
-                if (updatedCount > 0) {
-                    fs.writeFileSync(file, content, 'utf-8');
-                    totalUpdated += updatedCount;
+            // 4.1 自动同步常用顶栏 DEFAULT_BOOKMARKS
+            if (bookmarksData.bookmarks && Array.isArray(bookmarksData.bookmarks)) {
+                const formattedBookmarks = formatJsObject(bookmarksData.bookmarks, 4);
+                const nextContent = safeReplaceJsVariable(content, 'DEFAULT_BOOKMARKS', formattedBookmarks);
+                if (nextContent !== content) {
+                    content = nextContent;
+                    updatedCount++;
                 }
             }
 
-            if (totalUpdated > 0) {
-                logItem(`源码模板内置默认数据已更新并与 bookmarks.json 保持同步`);
+            // 4.2 自动同步分类书签 DEFAULT_CATEGORIES
+            if (bookmarksData.categories && Array.isArray(bookmarksData.categories)) {
+                const formattedCategories = formatJsObject(bookmarksData.categories, 4);
+                const nextContent = safeReplaceJsVariable(content, 'DEFAULT_CATEGORIES', formattedCategories);
+                if (nextContent !== content) {
+                    content = nextContent;
+                    updatedCount++;
+                }
+            }
+
+            if (updatedCount > 0) {
+                fs.writeFileSync(PATHS.srcConstants, content, 'utf-8');
+                logItem(`源码 src/js/config/constants.js 默认数据已更新并与 bookmarks.json 保持同步`);
             } else {
-                logItem(`源码模板内置默认数据已是最新 (与 bookmarks.json 保持 100% 同步)`);
+                logItem(`源码 src/js/config/constants.js 默认数据已是最新 (与 bookmarks.json 保持 100% 同步)`);
             }
         } catch (e) {
             logItem(`自动同步默认书签时出现警告: ${e.message}`, 'warn');
@@ -305,82 +296,50 @@ function syncBookmarksData() {
     }
 }
 
-// 4.9 处理生成生产环境 dist/app.js (ESM 打包或单行无损紧凑压缩)
+// 4.9 处理生成生产环境 dist/app.js (ESM 打包与 AST 压缩)
 function processProductionAppJs() {
     logSection('4/5', '⚡ 提取并压缩生产脚本 (dist/app.js)');
 
-    // 优先：通过 esbuild 构建 ESM 模块树 (Phase 2 & Phase 3)
-    if (fs.existsSync(PATHS.srcMainJs) && esbuild) {
-        try {
-            esbuild.buildSync({
-                entryPoints: [PATHS.srcMainJs],
-                bundle: true,
-                format: 'iife',
-                minify: true,
-                target: ['es2022'],
-                banner: {
-                    js: `window.__GLASS_BUILD_APP__="${currentBuildVersion}";\n`
-                },
-                outfile: path.join(PATHS.dist, 'app.js')
-            });
-            const appJsContent = fs.readFileSync(path.join(PATHS.dist, 'app.js'), 'utf-8');
-            const appJsKb = (Buffer.byteLength(appJsContent, 'utf-8') / 1024).toFixed(2);
-            logItem(`生产环境 dist/app.js ESM 模块依赖 AST 编译完成 (${appJsKb} KB)`);
-            return;
-        } catch (e) {
-            logItem(`esbuild 打包 src/js/main.js 失败，回退至从 HTML 提取: ${e.message}`, 'warn');
-        }
-    }
-
-    const htmlSourceFile = fs.existsSync(PATHS.srcIndexHtml) ? PATHS.srcIndexHtml : PATHS.indexHtml;
-    if (!fs.existsSync(htmlSourceFile)) return;
-    const htmlContent = fs.readFileSync(htmlSourceFile, 'utf-8');
-    const mainScriptMatch = htmlContent.match(/<script\s+id="main-script"[^>]*>([\s\S]*?)<\/script>/i);
-    
-    if (!mainScriptMatch) {
-        console.error(`❌ 未能在 ${htmlSourceFile} 中找到 <script id="main-script"> 标签`);
+    if (!fs.existsSync(PATHS.srcMainJs)) {
+        console.error(`❌ 未能在 ${PATHS.srcMainJs} 中找到主入口模块`);
         process.exit(1);
     }
 
-    let appJsContent = mainScriptMatch[1].trim();
-
-    // 🛡️ 双端构建指纹注入 (app 侧)：与 dist/index.html 内联的 __GLASS_BUILD_HTML__ 构成版本契约对，
-    //    供页面运行时黑匣子校验跨版本缓存割裂（HTML 新版 + JS 旧版等半更新死态）
-    appJsContent = `window.__GLASS_BUILD_APP__="${currentBuildVersion}";\n` + appJsContent;
-
-    if (fs.existsSync(PATHS.bookmarksJson)) {
-        try {
-            const bookmarksData = JSON.parse(fs.readFileSync(PATHS.bookmarksJson, 'utf-8'));
-            if (bookmarksData.bookmarks) {
-                const minBm = JSON.stringify(bookmarksData.bookmarks);
-                appJsContent = safeReplaceJsVariable(appJsContent, 'DEFAULT_BOOKMARKS', minBm);
-            }
-            if (bookmarksData.categories) {
-                const minCat = JSON.stringify(bookmarksData.categories);
-                appJsContent = safeReplaceJsVariable(appJsContent, 'DEFAULT_CATEGORIES', minCat);
-            }
-            logItem('已完成生产环境 dist/app.js 默认书签数据紧凑压缩');
-        } catch {}
-    }
-
-    appJsContent = minifyJsCode(appJsContent, 'app.js');
-    if (!appJsContent.includes('__GLASS_BUILD_APP__')) {
-        console.error('❌ 构建断言失败: dist/app.js 未注入构建指纹 (__GLASS_BUILD_APP__)，运行时版本契约将失效');
+    try {
+        esbuild.buildSync({
+            entryPoints: [PATHS.srcMainJs],
+            bundle: true,
+            format: 'iife',
+            minify: true,
+            target: ['es2022'],
+            banner: {
+                js: `window.__GLASS_BUILD_APP__="${currentBuildVersion}";\n`
+            },
+            outfile: path.join(PATHS.dist, 'app.js')
+        });
+        const appJsContent = fs.readFileSync(path.join(PATHS.dist, 'app.js'), 'utf-8');
+        const appJsKb = (Buffer.byteLength(appJsContent, 'utf-8') / 1024).toFixed(2);
+        logItem(`生产环境 dist/app.js ESM 模块依赖 AST 编译完成 (${appJsKb} KB)`);
+    } catch (e) {
+        console.error(`❌ esbuild 打包 src/js/main.js 失败: ${e.message}`);
         process.exit(1);
     }
-    const appJsKb = (Buffer.byteLength(appJsContent, 'utf-8') / 1024).toFixed(2);
-    logItem(`生产环境 dist/app.js AST 安全压缩完成 (${appJsKb} KB)`);
-
-    fs.writeFileSync(path.join(PATHS.dist, 'app.js'), appJsContent, 'utf-8');
 }
 
 // 5. 处理生产环境 index.html (替换内联 JS 为外链 dist/app.js，全量内嵌静态编译 Tailwind CSS 与 SVG 精灵)
 function processProductionHtml() {
     logSection('5/5', '🔧 处理生产环境页面 (dist/index.html)');
-    const htmlSourceFile = fs.existsSync(PATHS.srcIndexHtml) ? PATHS.srcIndexHtml : PATHS.indexHtml;
-    let prodHtmlContent = fs.readFileSync(htmlSourceFile, 'utf-8');
+    let prodHtmlContent = fs.readFileSync(PATHS.srcIndexHtml, 'utf-8');
 
-    // 5.0 彻底移除 <body> 底部历史遗留的 <script id="main-script">
+    // 5.0 彻底移除开发模式下的原生 ESM 模块入口及历史遗留 script
+    prodHtmlContent = prodHtmlContent.replace(
+        /<!--\s*引入原生 ES Module 主应用入口\s*-->\s*<script\s+type="module"\s+src="[^"]*"><\/script>/i,
+        ''
+    );
+    prodHtmlContent = prodHtmlContent.replace(
+        /<script\s+type="module"\s+src="[^"]*"><\/script>/i,
+        ''
+    );
     prodHtmlContent = prodHtmlContent.replace(
         /<script\s+id="main-script"[^>]*>[\s\S]*?<\/script>/i,
         ''

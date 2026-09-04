@@ -187,7 +187,8 @@ pass('Service Worker 图标预缓存安全白名单校验 (仅Bing&Google&Wikipe
 // 5. 防 <iframe> 恶意嵌套点击劫持 (Frame-Busting) 安全破局
 // ══════════════════════════════════════════════════════════════════════
 
-const indexHtml = readFileSync(join(ROOT, 'index.html'), 'utf-8');
+const srcHtmlFile = join(ROOT, 'src', 'index.html');
+const indexHtml = readFileSync(srcHtmlFile, 'utf-8');
 const distHtml = existsSync(join(DIST, 'index.html')) ? readFileSync(join(DIST, 'index.html'), 'utf-8') : '';
 
 // 校验源文件与构建产物头部是否均包含顶层防嵌破局与白屏防御逻辑

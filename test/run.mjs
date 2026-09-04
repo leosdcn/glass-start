@@ -82,7 +82,7 @@ function getFileHash(filepath) {
 // 核心依赖文件的哈希组合（任意源文件修改都会触发依赖它的测试重新运行）
 const sharedFiles = [
   join(rootDir, 'dist', 'app.js'),
-  join(rootDir, 'index.html'),
+  join(rootDir, 'src', 'index.html'),
   join(rootDir, 'sw.js'),
   join(rootDir, 'scripts', 'build.js'),
   join(rootDir, 'bookmarks.json'),

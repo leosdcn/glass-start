@@ -2,7 +2,7 @@
   "name": "glass-start",
   "version": "4.1.0",
   "description": "Glass Start - 现代极简、毛玻璃质感、灵动动画的起始页与分类导航",
-  "main": "index.html",
+  "main": "dist/index.html",
   "scripts": {
     "build": "node scripts/build.js",
     "test": "node test/run.mjs",

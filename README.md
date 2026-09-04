@@ -187,18 +187,16 @@ flowchart TB
 - **一键双击启动 (macOS)**：在访达（Finder）中直接双击根目录 `start.command` 快捷指令，自动完成构建同步并在局域网启动 `dist/` 网页服务，秒级打开默认浏览器。
 - **命令行启动**：运行 `npm run dev` 会自动构建打包并通过原生 `scripts/server.js` 启动 `dist/` 局域网开发服务 (`http://localhost:3000`)。服务默认内置 **Watch 增量监听** 与防陈旧缓存标头（`no-store` + `Service-Worker-Allowed: /`），在编辑源码 `src/` 目录、`index.html`、`bookmarks.json` 或 `sw.js` 时保存即自动毫秒级增量编译至 `dist/` 并滚动双端指纹，直接刷新浏览器即可调试最新改动。
 - **纯预览与独立监听**：若仅需预览已有产物无需监听源码，可附加 `--no-watch` 参数（如 `node scripts/server.js --no-watch`）；亦可独立运行 `npm run watch` 单独开启增量构建监听。
-- **免构建直开模式**：若直接双击根目录 `index.html`（`file://` 协议），页面仍内置 **Tailwind v4 Browser CDN** 运行时脚本，保持零环境开箱即用。
-
 #### 生产环境打包上线 (Production)
 在需要部署到生产服务器或 GitHub Pages / Cloudflare Pages 时，运行打包命令：
 ```bash
 npm run build
 ```
 构建过程会自动执行：
-1. **自动数据双向同步**：解析 `bookmarks.json` 最新数据，自动同步注入更新源码 `index.html` 的 `DEFAULT_BOOKMARKS` 与 `DEFAULT_CATEGORIES` 数组（解决本地 `file://` 协议双击打开时因 CORS 拦截导致的降级书签不一致问题）。
-2. **Tailwind 静态编译与 CSS 压缩**：调用 Tailwind CLI (`-m`) 扫描 `index.html` 编译并输出极致 Minify 压缩的 CSS 样式。
-3. **JS 逻辑提取与零依赖压缩**：从 `index.html` 提取 `<script id="main-script">` 主体逻辑，对默认书签 JSON 数据做紧凑序列化，并剥离注释与缩进（`minifyJsCode`）后独立输出为 `dist/app.js`。
-4. **HTML 结构精简与 CSS 全量内嵌**：自动处理 `dist/index.html`，移除 v4 Browser CDN 运行时脚本，将压缩好的 CSS 全量安全转义后内嵌至 `<style>` 标签（消除 `style.css` 渲染阻塞与网络 RTT 请求），替换内联脚本为外链 `app.js`，并执行零依赖 HTML 体积压缩（`minifyHtml`，剥离非功能性注释与冗余空白）。
+1. **自动数据双向同步**：解析 `bookmarks.json` 最新数据，自动同步注入更新源码 `src/js/config/constants.js` 的 `DEFAULT_BOOKMARKS` 与 `DEFAULT_CATEGORIES` 数组。
+2. **Tailwind 静态编译与 CSS 压缩**：调用 Tailwind CLI (`-m`) 扫描 `src/index.html` 与 `src/js/` 编译并输出极致 Minify 压缩的 CSS 样式。
+3. **ESM 模块依赖打包与 AST 压缩**：以 `src/js/main.js` 为入口，调用 `esbuild` 执行 ESM 依赖树静态分析、Tree-Shaking 与 AST 深度压缩，独立输出生产脚本 `dist/app.js`。
+4. **HTML 结构精简与 CSS 全量内嵌**：自动处理 `dist/index.html`，将压缩好的 CSS 全量安全转义后内嵌至 `<style>` 标签（消除渲染阻塞与网络 RTT 请求），将模块入口替换为外链 `app.js`（附带版本缓存指纹），并执行零依赖 HTML 体积压缩（剥离非功能性注释与冗余空白）。
 5. **静态资源全量复制**：将 `sw.js` 缓存脚本（自动更新版本号 `app-core-v<timestamp>`）、`wallpapers/` 壁纸资源目录及 `_headers` 配置文件全量复制至 `dist/` 目录（实现极简打包部署与 100% 离线支持）。
 
 **上线发布**：只需将生成的 **`dist/` 文件夹下的全部内容** 上传部署至 GitHub Pages、Cloudflare Pages、Vercel 或 Nginx 即可。
@@ -239,10 +237,10 @@ npm run build
    * **规则纯粹性与严禁具象举例（Pure Principles & Anti-Bias Rules）**：
      - **严禁在规范中添加具象举例**：所有文档规则、设计准则与维护规范必须始终保持高度抽象、普适与纯粹，**严禁在规则正文中添加“例如：……”等具象案例**；确保所有审核与决策均基于通用技术原理与实时客观现状进行独立审查与判断，坚决杜绝因特定示例产生先入为主的思维定势或认知偏差。
 2. **执行自动同步**：修改完成后，运行 `npm run build` 自动同步注入源码与 `dist/` 产物。
-3. **修改搜索引擎**：可在 `index.html` 中的 `engines` 引擎配置对象中新增或定制新的搜索引擎（Google、Bing 等）。
+3. **修改搜索引擎**：可在 `src/js/config/constants.js` 中的 `engines` 引擎配置对象中新增或定制新的搜索引擎（Google、Bing 等）。
 
 ### 3. 静态检查、Git 规范与自动化测试指南 (Agent / Dev Guidelines)
-- ⚡ **静态代码检查 (`npm run lint`)**：耗时约 0.08 秒（全量 27 项机器级语法与工程红线门禁守门）。自动完成 `index.html` 内嵌 JS、`scripts/build.js`/`sw.js`/`scripts/server.js` 语法预检及 `bookmarks.json`/`manifest.json`/`package.json` 的 JSON 合法性校验，并强校验生命周期与 BFCache 防退化守卫。修改代码后运行此命令做轻量校验。
+- ⚡ **静态代码检查 (`npm run lint`)**：耗时约 0.01 秒（全量 26 项机器级语法与工程红线门禁守门）。自动完成 `src/index.html` 内联 JS、`src/js/` 业务模块、`scripts/build.js`/`sw.js`/`scripts/server.js` 语法预检及 `bookmarks.json`/`manifest.json`/`package.json` 的 JSON 合法性校验，并强校验生命周期与 BFCache 防退化守卫。修改代码后运行此命令做轻量校验。
 - 🚀 **生产构建打包 (`npm run build`)**：耗时约 0.5 秒（Tailwind v4 CLI + esbuild 引擎）。编译 Tailwind CSS 并同步书签数据，自动校验产物完整性。
 - 🧪 **自动化测试套件 (`npm test` 或 `node test/run.mjs`)**：
   - 内置 **4 大核心领域端到端与架构综合测试套件（覆盖 24 项高密度全景断言）**。
@@ -301,9 +299,8 @@ glass-start/
 │       ├── init.js           # DOMContentLoaded 应用生命周期总装初始化
 │       └── main.js           # ES Module 主入口 (统一挂载与双向响应式绑定)
 │
-├── 📄 根目录核心生产文件 (8 个)
-│   ├── index.html            # 源码单文件直开入口（开发模式直开，内置 Tailwind v4 Browser CDN）
-│   ├── bookmarks.json        # 全站唯一书签数据真源（构建时自动注入 HTML）
+├── 📄 根目录核心配置文件 (7 个)
+│   ├── bookmarks.json        # 全站唯一书签数据真源（构建时自动注入源码与产物）
 │   ├── sw.js                 # Service Worker 离线网络拦截与三池隔离缓存底座
 │   ├── manifest.json         # PWA Web App 应用程序清单
 │   ├── apple-touch-icon.png  # iOS Safari 主屏幕 180x180 图标
@@ -344,8 +341,9 @@ glass-start/
 
 | 文件 / 目录名 | 属性 | 文件作用描述 | 必选性 |
 | :--- | :--- | :--- | :--- |
-| **`index.html`** | **源码主入口** | 开发模式页面主入口。内置 Tailwind v4 Browser CDN，AI/开发者修改代码立即可见，零编译开销。 | **必须** |
-| **`bookmarks.json`** | **唯一数据源** | 唯一数据维护源。修改书签只需编辑此文件，运行 `npm run build` 会自动将书签同步注入 HTML。 | **必须（数据真源）** |
+| **`src/index.html`** | **源码 DOM 骨架** | 全站唯一的纯语义 HTML 页面骨架（~670 行），加载 `src/js/main.js` 原生模块。 | **必须** |
+| **`src/js/`** | **业务逻辑模块** | 纯原生 ES Module 业务代码目录，分层解耦状态、配置、事件与独立模块。 | **必须** |
+| **`bookmarks.json`** | **唯一数据源** | 唯一数据维护源。修改书签只需编辑此文件，运行 `npm run build` 会自动将书签同步注入源码与产物。 | **必须（数据真源）** |
 | **`sw.js`** | 缓存脚本 | Service Worker 独立脚本。专门用于在 HTTPS/localhost 环境下本地缓存 Favicon 网站图标与壁纸，提升加载速度。 | 推荐（缺失时不影响主流程运行） |
 | **`wallpapers/`** | **本地壁纸库** | 高清预设 AVIF 壁纸目录（包含 bg1.avif ~ bg8.avif），由构建脚本自动打包至 `dist/` 实现全量离线可用。 | **必须** |
 | **`start.command`** | **macOS 双击启动** | 根目录快捷启动指令。自动补齐 Node 环境变量、生产构建同步并在开启深度缓存清理后启动开发服务。 | 开发辅助 |
@@ -364,11 +362,11 @@ glass-start/
 ### 2. 核心运行与数据同步机制
 
 ```
-[ 开发者维护 bookmarks.json ] ──(运行 npm run build)──> 自动注入更新 index.html 默认数组
-                                                                     │
-[ 用户访问网页 / 打开 index.html ] <──────────────────────────────────┘
+[ 开发者维护 bookmarks.json ] ──(运行 npm run build)──> 自动同步注入 src/js/config/constants.js
+                                                                      │
+[ 访问构建产物 dist/index.html ] <─────────────────────────────────────┘
          │
-         └── 100% 内存同步加载: 读取 HTML 内置 DEFAULT_* 默认数组 (零 HTTP 额外请求，消除 404 隐患)
+         └── 100% 内存同步加载: 读取打包内置 DEFAULT_* 默认数组 (零 HTTP 额外请求，消除 404 隐患)
 ```
 
 ---

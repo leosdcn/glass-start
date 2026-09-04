@@ -57,7 +57,7 @@
 ### 6. 🔴 版本发布与 3 大核心文档强一致性 (SemVer & Tri-Document Coherence)
 - **铁律**：发布新版本或执行重大架构变更时，必须同步交叉对齐 4 处版本号与 3 大核心 Markdown 文档，严禁只改代码而遗留文档陈旧或自相矛盾。
 - **执行准则**：
-  - **SemVer 4 处版本号强一致**：同步对齐 `package.json`、`package-lock.json`（根与 package 节点）、`index.html` / `src/index.html`（设置弹窗徽章）与 `README.md`（依赖清单表格）；
+  - **SemVer 4 处版本号强一致**：同步对齐 `package.json`、`package-lock.json`（根与 package 节点）、`src/index.html`（设置弹窗徽章）与 `README.md`（依赖清单表格）；
   - **3 大 MD 文档说辞强一致**：交付前交叉统一 [**AGENTS.md**](./AGENTS.md)、[**ARCHITECTURE.md**](./ARCHITECTURE.md) 与 [**README.md**](./README.md) 中的命令参数（如 `--no-build`）、文件路径、版本号与专业术语。
 
 ---
@@ -80,7 +80,7 @@ flowchart TD
     A[AI 编写 / 修改局部代码] --> B[第一道门禁: npm run lint <10ms>]
     B -- 发现规范或语法报错 --> C[AI 读取报错并在本轮自动修复]
     C --> B
-    B -- 27/27 项静态全绿 --> D[第二道门禁: node test/run.mjs <模块名> --no-build <50ms>]
+    B -- 26/26 项静态全绿 --> D[第二道门禁: node test/run.mjs <模块名> --no-build <50ms>]
     D -- CDP 端到端断言失败 --> E[AI 根据断言差异定位修复]
     E --> D
     D -- 模块单测通过 --> F[极速闭环完成，向用户交付]
@@ -115,14 +115,14 @@ node test/visual-regression.mjs
 
 ---
 
-## 🗺️ 三、系统架构导读与 440KB 局部手术准则 (Surgical Editing & System Map)
+## 🗺️ 三、系统架构导读与 ES 模块精准开发准则 (ES Modules & System Map)
 
 在修改任何核心业务逻辑前，请先查阅 [**ARCHITECTURE.md**](./ARCHITECTURE.md) 系统架构设计白皮书与决策图谱：
 
-### ⚠️ 单文件局部手术铁律 (The Surgical Editing Law)
-`index.html` 单文件体积达 450KB+（8,250+ 行代码）。**严禁让 AI 重新输出整份 `index.html`，严禁无目的扫描通读代码！**
-- **优先按 `@region` 定位**：通过 `grep_search` 直接搜索对应的唯一 `@region [...]` 锚点，1 秒直达核心逻辑；
-- **只切片读取**：根据下表精准圈定 Symbol 或 `@region` 进行局部读取（每次最多 30~50 行）；
+### ⚠️ 原生 ES 模块化高内聚规范 (Modular Development Standards)
+项目全面采用原生模块化单源码架构（`src/index.html` 纯语义骨架 ~670 行 + `src/js/` 高内聚业务子模块，构建自动产出 `dist/`）：
+- **优先按模块定位**：直接定位至 `src/js/` 下对应业务模块文件（如 `modules/weather.js`、`core/screen-state.js`），拒绝巨石单文件扫描；
+- **只切片读取**：圈定具体函数或 Symbol 进行局部读取与修改；
 - **只局部替换**：使用精确文本替换，单次改动控制在最小代码块（Diff），杜绝截断风险。
 
 | 业务领域与核心意图 | 唯一的 `@region` 索引锚点 | 对应 ES 模块 (`src/`) | 核心函数/DOM 锚点 | 关联 [ARCHITECTURE.md](./ARCHITECTURE.md) 白皮书机制 |
@@ -168,7 +168,7 @@ node test/visual-regression.mjs
    - **黑匣子契约**：`window.__GLASS_DIAG__`（verify/probe/dump/log）承载指纹校验、纯内存生命周期环形日志（≤40 条，零存储写入，BFCache 往返不灭）、白屏异常三级阶梯（L1 幂等校准 → L2 合成层磁贴重建 → L3 冷却守卫刷新）；严禁复活任何 UI 诊断面板（取证仅走控制台 `dump()`）；L3 触发瞬间仅允许一次性写 `gs_last_heal` 面包屑；
    - **刷新纪律**：任何自动 `location.reload()` 必须经 `gs_build_reload_at` 冷却期（60s）守卫，严禁裸调用；自动化测试环境（`navigator.webdriver`）下自动探针必须静默。
 7. **防本地开发服务与生产缓存脱节 (Dev Server Watch & Cache-Busting Guard)**：
-   - **自动增量监听**：`scripts/server.js` 默认内置 Watch 增量构建机制（50ms 极速防抖），编辑 `src/` 源码目录、`index.html`、`bookmarks.json`、`sw.js` 即时增量编译至 `dist/` 并无条件滚动构建版本指纹（`currentBuildVersion = 'app-core-v' + Date.now()`）；
+   - **自动增量监听**：`scripts/server.js` 默认内置 Watch 增量构建机制（50ms 极速防抖），编辑 `src/` 源码目录、`bookmarks.json`、`sw.js` 即时增量编译至 `dist/` 并无条件滚动构建版本指纹（`currentBuildVersion = 'app-core-v' + Date.now()`）；
    - **开发防滞后标头**：本地开发服务静态响应头强制注入 `Service-Worker-Allowed: /` 与 `no-cache, no-store, must-revalidate, max-age=0`，本地非壁纸代码资源跳过 304 协商缓存，确保本地测试 100% 拉取最新构建代码，根除开发期 SW 缓存滞后导致的切屏错位。
 
 ---
@@ -180,7 +180,7 @@ node test/visual-regression.mjs
 ### 1. 结构化指令模板
 ```markdown
 【目标】：优化天气卡片的风速显示布局
-【涉及模块】：index.html 6100~7200 行 (initWeather)
+【涉及模块】：src/js/modules/weather.js (initWeather)
 【约束要求】：遵守 7 大工程红线，不破坏现有的 9 阶动态形态演化
 【自愈验证】：修改后请执行 npm run lint 及 node test/run.mjs data --no-build 确保全绿
 ```

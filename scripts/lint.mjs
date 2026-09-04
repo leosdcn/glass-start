@@ -5,7 +5,7 @@
  * 3. 对根目录 JSON 配置文件 (bookmarks.json, manifest.json, package.json) 做合法性校验
  * 4. 全站 12 项工程宪法规范静态门禁扫描 (iOS 16px, WAI-ARIA, !important, DOM ID, BFCache 等)
  */
-import { readFileSync, statSync } from 'node:fs';
+import { readFileSync, statSync, existsSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import vm from 'node:vm';
@@ -71,11 +71,26 @@ console.log(`${c.bold}${c.cyan}🔍 Glass Start — 零依赖静态语法与格�
 console.log(`${c.cyan}${HR_DOUBLE}${c.reset}`);
 
 // 全局单次读取核心文件，彻底消除多次读盘 I/O
-const htmlPath = join(root, 'index.html');
+const htmlPath = join(root, 'src', 'index.html');
 const indexHtml = readFileSync(htmlPath, 'utf-8');
 
-// ---- 1. index.html 内联 <script> 语法校验 ----
-logSection('1/4', '📄 校验 index.html 内联脚本语法');
+function getAllJsInDir(dir) {
+    let results = [];
+    if (!existsSync(dir)) return results;
+    readdirSync(dir, { withFileTypes: true }).forEach(entry => {
+        const full = join(dir, entry.name);
+        if (entry.isDirectory()) results.push(...getAllJsInDir(full));
+        else if (entry.name.endsWith('.js')) results.push(full);
+    });
+    return results;
+}
+const allSrcJsFiles = getAllJsInDir(join(root, 'src', 'js'));
+const allSrcJsContent = allSrcJsFiles.map(f => readFileSync(f, 'utf-8')).join('\n');
+const screenStateFile = join(root, 'src', 'js', 'core', 'screen-state.js');
+const screenStateContent = existsSync(screenStateFile) ? readFileSync(screenStateFile, 'utf-8') : '';
+
+// ---- 1. src/index.html 内联 <script> 语法校验 ----
+logSection('1/4', '📄 校验 src/index.html 内联脚本语法');
 const scripts = [...indexHtml.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi)];
 scripts.forEach((m, i) => {
     const fullTag = m[0];
@@ -262,21 +277,27 @@ try {
 
 // 4.5 CSS 样式表 !important 污染静态扫描门禁 (仅放行 prefers-reduced-motion 国际无障碍白名单)
 try {
+    const cssDir = join(root, 'src', 'styles');
+    const cssFiles = ['main.css', 'glass.css', 'animations.css'];
+    let allCssContent = '';
+    for (const f of cssFiles) {
+        const p = join(cssDir, f);
+        if (existsSync(p)) allCssContent += '\n' + readFileSync(p, 'utf-8');
+    }
     const styleBlocks = [...indexHtml.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style>/gi)];
+    for (const block of styleBlocks) allCssContent += '\n' + block[1];
+
     let unauthorizedImportantCount = 0;
     const violations = [];
 
-    for (const block of styleBlocks) {
-        const css = block[1];
-        const sanitizedCss = css.replace(/@media\s*\(\s*prefers-reduced-motion\s*:\s*reduce\s*\)\s*\{[\s\S]*?\}/gi, '/* a11y-reduced-motion-cleared */');
-        const lines = sanitizedCss.split('\n');
-        lines.forEach((line, lineIdx) => {
-            if (/!important/i.test(line)) {
-                unauthorizedImportantCount++;
-                violations.push(`第 ${lineIdx + 1} 行: ${line.trim()}`);
-            }
-        });
-    }
+    const sanitizedCss = allCssContent.replace(/@media\s*\(\s*prefers-reduced-motion\s*:\s*reduce\s*\)\s*\{[\s\S]*?\}/gi, '/* a11y-reduced-motion-cleared */');
+    const lines = sanitizedCss.split('\n');
+    lines.forEach((line, lineIdx) => {
+        if (/!important/i.test(line)) {
+            unauthorizedImportantCount++;
+            violations.push(`第 ${lineIdx + 1} 行: ${line.trim()}`);
+        }
+    });
 
     if (unauthorizedImportantCount === 0) {
         passCount++;
@@ -295,7 +316,9 @@ try {
     const bodyMatch = indexHtml.match(/<body\b[^>]*>([\s\S]*?)<\/body>/i);
     const bodyHtml = bodyMatch ? bodyMatch[1] : indexHtml;
     const noScriptBody = bodyHtml.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '');
-    const idMatches = [...noScriptBody.matchAll(/\bid=["']([^"']+)["']/gi)];
+    const spriteSvgPath = join(root, 'src', 'svg', 'sprite.svg');
+    const spriteSvg = existsSync(spriteSvgPath) ? readFileSync(spriteSvgPath, 'utf-8') : '';
+    const idMatches = [...(noScriptBody + '\n' + spriteSvg).matchAll(/\bid=["']([^"']+)["']/gi)];
     
     const idCounts = new Map();
     const duplicateIds = [];
@@ -311,7 +334,9 @@ try {
         }
     }
 
-    const cacheDomMatch = indexHtml.match(/function\s+cacheDOM\s*\(\)\s*\{[\s\S]*?const\s+ids\s*=\s*['"]([^'"]+)['"]/i);
+    const domJsPath = join(root, 'src', 'js', 'state', 'dom.js');
+    const domJsContent = existsSync(domJsPath) ? readFileSync(domJsPath, 'utf-8') : '';
+    const cacheDomMatch = domJsContent.match(/const\s+ids\s*=\s*['"]([^'"]+)['"]/i);
     const cachedIds = cacheDomMatch ? cacheDomMatch[1].trim().split(/\s+/) : [];
     const missingCachedIds = cachedIds.filter(id => !domIdSet.has(id));
 
@@ -395,9 +420,7 @@ try {
 
 // 4.8 🚫 严禁主应用脚本在运行期滥加 .nr 类名（防止首屏被推飞）
 try {
-    const mainScriptMatch = indexHtml.match(/<script\b(?=[^>]*id=["']main-script["'])[^>]*>([\s\S]*?)<\/script>/i);
-    const mainScript = mainScriptMatch ? mainScriptMatch[1] : '';
-    const hasNrAdd = /\.classList\.add\(\s*['"]nr['"]\s*\)/.test(mainScript);
+    const hasNrAdd = /\.classList\.add\(\s*['"]nr['"]\s*\)/.test(allSrcJsContent);
     if (!hasNrAdd) {
         passCount++;
         logItem(`运行期 .nr 布局类名零污染（仅保留 HEAD 脚本刷新预水合通道）`);
@@ -412,7 +435,8 @@ try {
 
 // 4.9 🚫 严禁 reconcileScreenState 注入内联 transition:none（防止后台冻结 rAF 导致卡死）
 try {
-    const reconcileMatch = indexHtml.match(/function\s+reconcileScreenState\s*\([^)]*\)\s*\{([\s\S]*?)\n\s*(?:function|window\.)/i);
+    const reconcileMatch = screenStateContent.match(/function\s+reconcileScreenState\s*\([^)]*\)\s*\{([\s\S]*?)\nexport/i) ||
+                          screenStateContent.match(/function\s+reconcileScreenState\s*\([^)]*\)\s*\{([\s\S]*?)\n\}/i);
     const reconcileBody = reconcileMatch ? reconcileMatch[1] : '';
     const hasInlineTransitionNone = /\.style\.transition\s*=\s*['"]none['"]/i.test(reconcileBody);
     if (!hasInlineTransitionNone && reconcileBody.length > 0) {
@@ -429,12 +453,10 @@ try {
 
 // 4.10 🛡️ 全局多标签与 BFCache 双通道唤醒自愈闭环门禁
 try {
-    const mainScriptMatch = indexHtml.match(/<script\b(?=[^>]*id=["']main-script["'])[^>]*>([\s\S]*?)<\/script>/i);
-    const mainScript = mainScriptMatch ? mainScriptMatch[1] : '';
-    const hasVisibilityListener = /addEventListener\(\s*['"]visibilitychange['"][\s\S]*?handleAppWakeUp/i.test(mainScript) ||
-                                  /addEventListener\(\s*['"]visibilitychange['"][\s\S]*?reconcileScreenState/i.test(mainScript);
-    const hasPageshowListener = /addEventListener\(\s*['"]pageshow['"][\s\S]*?handleAppWakeUp/i.test(mainScript) ||
-                                /addEventListener\(\s*['"]pageshow['"][\s\S]*?reconcileScreenState/i.test(mainScript);
+    const hasVisibilityListener = /addEventListener\(\s*['"]visibilitychange['"][\s\S]*?handleAppWakeUp/i.test(screenStateContent) ||
+                                  /addEventListener\(\s*['"]visibilitychange['"][\s\S]*?reconcileScreenState/i.test(screenStateContent);
+    const hasPageshowListener = /addEventListener\(\s*['"]pageshow['"][\s\S]*?handleAppWakeUp/i.test(screenStateContent) ||
+                                /addEventListener\(\s*['"]pageshow['"][\s\S]*?reconcileScreenState/i.test(screenStateContent);
 
     if (hasVisibilityListener && hasPageshowListener) {
         passCount++;
@@ -450,7 +472,7 @@ try {
 
 // 4.11 🛡️ fade-in 入场动效自动脱壳卸载门禁
 try {
-    const hasFadeInUnload = /classList\.remove\(\s*['"]fade-in['"]\s*\)/.test(indexHtml);
+    const hasFadeInUnload = /classList\.remove\(\s*['"]fade-in['"]\s*\)/.test(allSrcJsContent);
     if (hasFadeInUnload) {
         passCount++;
         logItem(`入场动画包含自动脱壳机制（fade-in 播完即卸载，根绝 Safari BFCache 回退 opacity:0）`);
@@ -465,8 +487,15 @@ try {
 
 // 4.12 🚫 严禁滥加全局字体抗锯齿属性（-webkit-font-smoothing / -moz-osx-font-smoothing）
 try {
-    const hasFontSmoothing = /font-smoothing\s*:\s*antialiased/i.test(indexHtml) ||
-                             /-moz-osx-font-smoothing\s*:\s*grayscale/i.test(indexHtml);
+    const cssDir = join(root, 'src', 'styles');
+    const cssFiles = ['main.css', 'glass.css', 'animations.css'];
+    let allCss = '';
+    for (const f of cssFiles) {
+        const p = join(cssDir, f);
+        if (existsSync(p)) allCss += '\n' + readFileSync(p, 'utf-8');
+    }
+    const hasFontSmoothing = /font-smoothing\s*:\s*antialiased/i.test(allCss + '\n' + indexHtml) ||
+                             /-moz-osx-font-smoothing\s*:\s*grayscale/i.test(allCss + '\n' + indexHtml);
     if (!hasFontSmoothing) {
         passCount++;
         logItem(`全站字体排版纯净合规（严禁人为添加 -webkit-font-smoothing 降级抗锯齿）`);

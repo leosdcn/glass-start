@@ -204,7 +204,6 @@ function setupWatchMode() {
     };
 
     const filesToWatch = [
-        { path: PATHS.indexHtml, name: 'index.html' },
         { path: PATHS.src, name: 'src/' },
         { path: PATHS.bookmarksJson, name: 'bookmarks.json' },
         { path: PATHS.sw, name: 'sw.js' },
