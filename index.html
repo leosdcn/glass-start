@@ -5313,12 +5313,6 @@
             };
             dom.navHint?.addEventListener('click', handleBackToStart);
             dom.navHeader?.addEventListener('click', handleBackToStart);
-            dom.navHeader?.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    handleBackToStart();
-                }
-            });
 
             // 键盘快捷键：
             // Web 无障碍 Focus Trap 锁：防 Tab 键焦点逃逸出弹窗
