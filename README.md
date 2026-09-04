@@ -253,7 +253,7 @@ npm run build
     - `helpers.mjs` — 共享工具函数库（随机空闲端口探测、键盘事件模拟、测试会话一键拉起等）。
     - `data-features.test.mjs` / `infra-security.test.mjs` / `ui-interaction.test.mjs` / `lifecycle-diag.test.mjs` — 数据功能、基础安全、UI 交互、构建指纹与生命周期自愈四大领域断言套件。
     - `visual-regression.mjs` — 独立运行的视觉回归脚本（对标 **MacBook Air 1470×956** 桌面端与 **iPhone 17 402×874** 移动端 11 场景全页截图与关键组件几何校验），产物输出至项目内 `test/artifacts/` 目录（已加入 `.gitignore`）。手动执行：`node test/visual-regression.mjs`。
-    - `preview.html` — 天气组件独立「演练场」页面，供浏览器直接打开隔离调试 UI，不参与自动化测试流水线。
+    - `fixtures/` — 视觉演练场与对比实验室工件目录（包含天气组件独立演练场 `preview.html` 及图标方案对比页面，供直接打开隔离调试 UI，不参与自动化测试流水线）。
   - **智能增量 MD5 缓存加速**：未变动模块在测试运行时自动秒级命中缓存（`<10ms`），源码或依赖修改后精准触发对应套件重跑；亦可通过 `node test/run.mjs --force` 强制全量重跑。
   - **独立套件调试**：支持单独运行特定领域测试文件，例如 `node test/data-features.test.mjs`。
 - 🎨 **CSS 样式级联与 `!important` 禁入规范 (CSS Specificity & Anti-Pollution Rules)**：
@@ -312,16 +312,17 @@ glass-start/
 │   ├── lint.mjs              # 零依赖静态语法与 7 大红线规范门禁（<80ms 极速自愈）
 │   └── server.js             # 原生 Node.js 零依赖本地开发与局域网预览服务器（内置自动增量构建监听）
 │
-├── 🧪 test/ 自动化测试与质量保障目录 (9 个源码文件)
+├── 🧪 test/ 自动化测试与质量保障目录 (9 个核心测试脚本与工件目录)
 │   ├── run.mjs               # MD5 增量缓存测试运行器（支持 --force / --no-build）
 │   ├── cdp.mjs               # 无头 Chrome 启动器与 CDP WebSocket 通信管理
 │   ├── server.mjs            # 面向自动化测试的随机空闲端口静态服务器
 │   ├── helpers.mjs           # 测试共享辅助函数库（键盘模拟、端口探测等）
 │   ├── infra-security.test.mjs # 基础架构、安全标头与 SW 离线缓存领域断言套件 (5项)
 │   ├── data-features.test.mjs  # 搜索匹配、轻量存储、气象 9 阶演化领域断言套件 (7项)
+│   ├── lifecycle-diag.test.mjs # 构建指纹契约、黑匣子探针与自愈阶梯断言套件 (5项)
 │   ├── ui-interaction.test.mjs # 双屏状态机、手势、BFCache、OverlayStack 领域断言套件 (7项)
 │   ├── visual-regression.mjs   # 桌面端 + 移动端 11 大场景视觉几何与截图回归套件
-│   └── preview.html          # 天气小组件独立隔离演练场（已在 README.md 明确职责）
+│   └── fixtures/             # 视觉演练场与图标对比实验室工件目录
 │
 └── 🖼️ wallpapers/ 预设高清壁纸资产库 (16 个文件)
     ├── bg1.avif ~ bg8.avif   # 8 款精选 2.5K AVIF 极清风光壁纸（支持 10-bit 色深）
