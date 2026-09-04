@@ -62,7 +62,7 @@
                     "name": "ChatGPT",
                     "url": "https://chatgpt.com",
                     "icon": "https://a.favicon.im/chatgpt.com",
-                    "desc": "旗舰 AI 对话助手"
+                    "desc": "旗舰 AI 聊天助手"
                 },
                 {
                     "name": "Civitai",
@@ -86,7 +86,7 @@
                     "name": "Duck.ai",
                     "url": "https://duck.ai",
                     "icon": "https://a.favicon.im/duck.ai",
-                    "desc": "免登录多模型隐私对话"
+                    "desc": "多模型隐私对话"
                 },
                 {
                     "name": "Gamma",
@@ -140,7 +140,7 @@
                     "name": "Suno",
                     "url": "https://suno.com",
                     "icon": "https://a.favicon.im/suno.com",
-                    "desc": "AI 音乐与歌曲创作"
+                    "desc": "AI 歌曲创作平台"
                 },
                 {
                     "name": "豆包",
@@ -164,7 +164,7 @@
                     "name": "Cloudflare",
                     "url": "https://dash.cloudflare.com",
                     "icon": "https://a.favicon.im/cloudflare.com",
-                    "desc": "网站与域名管理控制台"
+                    "desc": "域名管理控制台"
                 },
                 {
                     "name": "DistroSea",
@@ -176,13 +176,13 @@
                     "name": "GitHub",
                     "url": "https://github.com",
                     "icon": "https://a.favicon.im/github.com",
-                    "desc": "开源代码托管与协作"
+                    "desc": "开源编程托管协作"
                 },
                 {
                     "name": "Google Colab",
                     "url": "https://colab.research.google.com",
                     "icon": "https://a.favicon.im/colab.research.google.com",
-                    "desc": "免费机器学习实验平台"
+                    "desc": "免费机器学习平台"
                 },
                 {
                     "name": "IT Tools",
@@ -218,7 +218,7 @@
                     "name": "BrowserLeaks",
                     "url": "https://browserleaks.com/ip",
                     "icon": "https://a.favicon.im/browserleaks.com",
-                    "desc": "浏览器指纹与隐私检测"
+                    "desc": "浏览器隐私检测"
                 },
                 {
                     "name": "ip.skk.moe",
@@ -260,7 +260,7 @@
                     "name": "DeepL",
                     "url": "https://www.deepl.com/zh/translator",
                     "icon": "https://a.favicon.im/deepl.com",
-                    "desc": "高质量 AI 智能翻译"
+                    "desc": "高质量 AI 翻译"
                 },
                 {
                     "name": "draw.io",
@@ -272,7 +272,7 @@
                     "name": "Excalidraw",
                     "url": "https://excalidraw.com",
                     "icon": "https://a.favicon.im/excalidraw.com",
-                    "desc": "手绘风格在线协作白板"
+                    "desc": "手绘在线协作白板"
                 },
                 {
                     "name": "Gmail",
@@ -344,7 +344,7 @@
                     "name": "微信文件传输助手",
                     "url": "https://filehelper.weixin.qq.com",
                     "icon": "https://a.favicon.im/filehelper.weixin.qq.com",
-                    "desc": "微信官方跨端文件传输"
+                    "desc": "官方跨端文件传输"
                 }
             ]
         },
@@ -410,7 +410,7 @@
                     "name": "默沙东诊疗手册",
                     "url": "https://www.msdmanuals.cn/home",
                     "icon": "https://a.favicon.im/www.msdmanuals.cn",
-                    "desc": "权威大众医学健康指南"
+                    "desc": "大众医学健康指南"
                 },
                 {
                     "name": "鸟哥的 Linux 私房菜",
@@ -422,7 +422,7 @@
                     "name": "食用手册",
                     "url": "https://cook.yunyoujun.cn",
                     "icon": "https://a.favicon.im/cook.yunyoujun.cn",
-                    "desc": "精准量化家庭烹饪指南"
+                    "desc": "家庭菜谱烹饪指南"
                 }
             ]
         },
@@ -434,7 +434,7 @@
                     "name": "Behance",
                     "url": "https://www.behance.net",
                     "icon": "https://a.favicon.im/behance.net",
-                    "desc": "全球设计作品展示社区"
+                    "desc": "设计作品展示社区"
                 },
                 {
                     "name": "EmojiAll",
@@ -536,7 +536,7 @@
                     "name": "Coolors",
                     "url": "https://coolors.co",
                     "icon": "https://a.favicon.im/coolors.co",
-                    "desc": "极速配色方案在线生成"
+                    "desc": "配色方案在线生成"
                 },
                 {
                     "name": "Photopea",
@@ -554,13 +554,13 @@
                     "name": "Squoosh",
                     "url": "https://squoosh.app",
                     "icon": "https://a.favicon.im/squoosh.app",
-                    "desc": "谷歌开源本地图片压缩"
+                    "desc": "开源本地图片压缩"
                 },
                 {
                     "name": "Trace.moe",
                     "url": "https://trace.moe",
                     "icon": "https://a.favicon.im/trace.moe",
-                    "desc": "动画截图出处秒级识别"
+                    "desc": "截图出处秒级识别"
                 },
                 {
                     "name": "waifu2x",
@@ -590,7 +590,7 @@
                     "name": "Instagram",
                     "url": "https://www.instagram.com",
                     "icon": "https://a.favicon.im/instagram.com",
-                    "desc": "全球照片视频分享社区"
+                    "desc": "照片视频分享社区"
                 },
                 {
                     "name": "LinkedIn",
@@ -614,7 +614,7 @@
                     "name": "Reddit",
                     "url": "https://www.reddit.com",
                     "icon": "https://a.favicon.im/reddit.com",
-                    "desc": "互联网的头版头条"
+                    "desc": "全球论坛头版头条"
                 },
                 {
                     "name": "Telegram",
@@ -638,7 +638,7 @@
                     "name": "豆瓣",
                     "url": "https://www.douban.com",
                     "icon": "https://a.favicon.im/douban.com",
-                    "desc": "图书电影音乐评分社区"
+                    "desc": "电影音乐评分社区"
                 },
                 {
                     "name": "少数派",
@@ -680,7 +680,7 @@
                     "name": "Rate Your Music",
                     "url": "https://rateyourmusic.com",
                     "icon": "https://a.favicon.im/rateyourmusic.com",
-                    "desc": "音乐评分与唱片数据库"
+                    "desc": "音乐唱片数据库"
                 },
                 {
                     "name": "SoundCloud",
@@ -704,7 +704,7 @@
                     "name": "YouTube",
                     "url": "https://www.youtube.com",
                     "icon": "https://a.favicon.im/youtube.com",
-                    "desc": "全球最大视频分享平台"
+                    "desc": "最大视频分享平台"
                 },
                 {
                     "name": "YouTube Music",
@@ -722,7 +722,7 @@
                     "name": "抖音",
                     "url": "https://www.douyin.com",
                     "icon": "https://a.favicon.im/douyin.com",
-                    "desc": "记录美好生活"
+                    "desc": "记录生活短视频"
                 },
                 {
                     "name": "网易云音乐",
@@ -752,7 +752,7 @@
                     "name": "Steam",
                     "url": "https://store.steampowered.com",
                     "icon": "https://a.favicon.im/store.steampowered.com",
-                    "desc": "全球数字游戏发行平台"
+                    "desc": "数字游戏发行平台"
                 },
                 {
                     "name": "SteamDB",
@@ -782,7 +782,7 @@
                     "name": "Pointer Pointer",
                     "url": "https://pointerpointer.com",
                     "icon": "https://a.favicon.im/pointerpointer.com",
-                    "desc": "趣味鼠标指针定位实验"
+                    "desc": "鼠标指针定位实验"
                 },
                 {
                     "name": "Quick, Draw!",
@@ -794,7 +794,7 @@
                     "name": "Radio Garden",
                     "url": "https://radio.garden",
                     "icon": "https://a.favicon.im/radio.garden",
-                    "desc": "转动地球收听全球电台"
+                    "desc": "转动地球收听电台"
                 }
             ]
         },

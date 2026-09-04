@@ -366,9 +366,9 @@ try {
                         errors.push(`${prefix} 缺少有效 desc 简介`);
                     } else {
                         const hasAlpha = /[a-zA-Z0-9]/.test(bm.desc);
-                        const maxLen = hasAlpha ? 13 : 10;
+                        const maxLen = hasAlpha ? 13 : 9;
                         if (bm.desc.length > maxLen) {
-                            const typeDesc = hasAlpha ? '中英混排上限13字符' : '纯中文上限10字符';
+                            const typeDesc = hasAlpha ? '中英混排上限13字符' : '纯中文上限9字符';
                             errors.push(`${prefix} desc 简介过长 (${bm.desc.length}字, ${typeDesc}): "${bm.desc}"`);
                         }
                     }
