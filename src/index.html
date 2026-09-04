@@ -391,7 +391,7 @@
                     </button>
                     <button id="openShortcutFromSettingsBtn" type="button" aria-expanded="false" aria-controls="shortcutModal" aria-haspopup="dialog" class="glass-pill-btn" title="查看全站键盘快捷键速查">
                         <svg class="size-3.5 opacity-80 shrink-0" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect width="20" height="13" x="2" y="5.5" rx="2.5"/><path d="M6 9.5h.01M10 9.5h.01M14 9.5h.01M18 9.5h.01M6 13.5h.01M18 13.5h.01M9.5 13.5h5"/></svg>
-                        <span>快捷键速查</span> <span id="settingsKbdHint" class="font-mono text-2xs text-white/40 ml-0.5">⌘ /</span>
+                        <span>快捷键速查</span>
                     </button>
                 </div>
             </div>
@@ -662,8 +662,7 @@
             <div id="creditsList" class="flex-1 overflow-y-auto min-h-0 space-y-2.5 pr-0.5 text-xs"></div>
 
             <!-- 底部操作与提示 -->
-            <div class="flex items-center justify-between mt-3 pt-3 border-t border-white/10 shrink-0">
-                <span class="text-2xs text-white/45">致谢开源创作者与社区支持</span>
+            <div class="flex items-center justify-end mt-3 pt-3 border-t border-white/10 shrink-0">
                 <button id="doneCreditsBtn" type="button" class="glass-btn-primary py-2 px-5 text-xs sm:text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:opacity-50 disabled:cursor-not-allowed">知道了</button>
             </div>
         </div>
@@ -1709,8 +1708,6 @@
             if (elNewTab) elNewTab.textContent = KBD.newTab;
             const elTab = $('kbd-tab');
             if (elTab) elTab.textContent = KBD.tabTrap;
-            const elHint = $('settingsKbdHint');
-            if (elHint) elHint.textContent = KBD.hintBadge;
         }
 
         /**

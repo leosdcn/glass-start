@@ -30,8 +30,6 @@ export function applyPlatformShortcuts() {
     if (elNewTab) elNewTab.textContent = KBD.newTab;
     const elTab = $('kbd-tab');
     if (elTab) elTab.textContent = KBD.tabTrap;
-    const elHint = $('settingsKbdHint');
-    if (elHint) elHint.textContent = KBD.hintBadge;
 }
 
 export function renderShortcutModalList() {
