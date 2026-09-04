@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" dir="ltr">
 <head>
     <meta charset="UTF-8">
     <script>
@@ -15,6 +15,7 @@
     <meta name="apple-mobile-web-app-title" content="Glass Start">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://api.bing.com https://suggestqueries.google.com https://zh.wikipedia.org https://static.cloudflareinsights.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https://api.open-meteo.com https://geocoding-api.open-meteo.com https://myip.ipip.net https://ipwho.is https://a.favicon.im https://cloudflareinsights.com https://zh.wikipedia.org; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'self'">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
     <meta name="description" content="灵动优雅、极简纯净的玻璃拟态浏览器起始页与分类导航。">
     <meta name="keywords" content="起始页, 浏览器导航, 玻璃拟态, 个人主页, Glassmorphism, Startpage">
     <link rel="canonical" href="https://goldcoast.dpdns.org/">
@@ -1493,7 +1494,7 @@
                 <span id="weatherCity" class="text-white/80 max-w-22 sm:max-w-30 truncate text-2xs sm:text-xs">天气</span>
             </button>
             <!-- 下拉天气预报卡片 -->
-            <div id="weatherPopover" role="region" aria-label="实时天气预报卡片" aria-hidden="true" class="dropdown-menu absolute p-3.5 sm:p-4 glass-strong apple-radius border border-white/20 shadow-2xl z-[var(--z-dropdown)] select-none"></div>
+            <div id="weatherPopover" role="dialog" aria-modal="false" aria-label="实时天气详细预报" aria-hidden="true" class="dropdown-menu absolute p-3.5 sm:p-4 glass-strong apple-radius border border-white/20 shadow-2xl z-[var(--z-dropdown)] select-none"></div>
         </div>
         <script>
             // 天气小组件首帧 0ms 极速水合（消灭 CLS 布局抖动）
@@ -1536,7 +1537,7 @@
                         </span>
                         <span id="engineName" class="sr-only">Bing</span>
                     </button>
-                    <script>(function(){if(window.__PRE_ENGINE__){const b=document.getElementById('engineBtn');const i=document.getElementById('engineIcon');const n=document.getElementById('engineName');if(b)b.setAttribute('aria-label','选择搜索引擎（当前：'+window.__PRE_ENGINE__.name+'）');if(i){if(window.__PRE_ENGINE__.isSvg){const key=window.__PRE_ENGINE__.name.toLowerCase();if(window.__ENGINE_SVGS__&&window.__ENGINE_SVGS__[key])i.innerHTML=window.__ENGINE_SVGS__[key];}else{i.innerHTML='<img src="'+window.__PRE_ENGINE__.icon+'" width="20" height="20" decoding="async" class="size-full aspect-square rounded pointer-events-none select-none" alt="" draggable="false">';}}if(n)n.textContent=window.__PRE_ENGINE__.name;}})()</script>
+                    <script>(function(){if(window.__PRE_ENGINE__){const b=document.getElementById('engineBtn');const i=document.getElementById('engineIcon');const n=document.getElementById('engineName');if(b)b.setAttribute('aria-label','选择搜索引擎（当前：'+window.__PRE_ENGINE__.name+'）');if(i){const key=window.__PRE_ENGINE__.name.toLowerCase();if(window.__ENGINE_SVGS__&&window.__ENGINE_SVGS__[key])i.innerHTML=window.__ENGINE_SVGS__[key];}if(n)n.textContent=window.__PRE_ENGINE__.name;}})()</script>
                 </div>
                 <label for="searchInput" class="sr-only">搜索</label>
                 <input type="text" id="searchInput" name="q" role="combobox" enterkeyhint="search" aria-label="搜索输入框" aria-autocomplete="list" aria-controls="suggestionMenu" aria-expanded="false" class="flex-1 bg-transparent border-none outline-none text-lg search-input text-white h-12 pl-0 pr-2.5 min-w-0 focus-visible:ring-0" placeholder="搜索..." autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
@@ -1556,23 +1557,7 @@
                     </button>
                 </div>
             </div>
-            <div id="dropdownMenu" role="menu" aria-label="搜索引擎选项" aria-hidden="true" class="dropdown-menu absolute top-full left-0 glass-strong apple-radius p-2 border border-white/20 shadow-2xl min-w-35 z-[var(--z-dropdown)] select-none">
-                <button type="button" data-engine="bing" role="menuitemradio" aria-checked="true" class="w-full flex items-center gap-3 px-3 py-2.5 apple-radius hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 glass-interactive text-left text-sm select-none">
-                    <span class="engine-icon size-5 aspect-square shrink-0 rounded pointer-events-none select-none flex items-center justify-center">
-                        <svg viewBox="0 0 512 512" class="size-full pointer-events-none select-none" aria-hidden="true"><radialGradient id="bing_drop_ga" cx="-98.708" cy=".861" r=".5" gradientTransform="matrix(-346.4626 -399.8405 287.7029 -249.2952 -34032.355 -38891.656)" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#00cacc"/><stop offset="1" stop-color="#048fce"/></radialGradient><path d="M257.9 161.5c-9.4 1.1-16.6 8.8-17.3 18.4-.3 4.2-.2 4.4 9.2 28.7 21.5 55.3 26.7 68.6 27.6 70.4 2.1 4.5 5.1 8.8 8.8 12.6 2.9 2.9 4.7 4.5 7.9 6.6 5.6 3.7 8.4 4.8 30.2 11.2 21.2 6.3 32.8 10.5 42.8 15.4 13 6.4 22 13.7 27.7 22.4 4.1 6.2 7.7 17.4 9.3 28.6.6 4.4.6 14.1 0 18.1-1.3 8.6-4 15.8-8.1 21.9-2.2 3.2-1.4 2.7 1.7-1.2 8.9-11.1 18-30 22.6-47.2 5.6-20.8 6.4-43.1 2.2-64.3-8.1-41.2-34.1-76.7-70.7-96.7-2.3-1.3-11.1-5.8-22.9-12-1.8-.9-4.3-2.2-5.5-2.9-1.2-.6-3.7-1.9-5.5-2.9-1.8-.9-7-3.6-11.5-6s-9.6-5-11.3-5.9c-5.1-2.7-8.5-4.4-11-5.8-11.8-6.2-16.7-8.6-18.2-9.1s-5.3-1-6.2-1c0 .5-.9.6-1.8.7" fill-rule="evenodd" clip-rule="evenodd" fill="url(#bing_drop_ga)"/><radialGradient id="bing_drop_gb" cx="-98.65" cy=".886" r=".5" gradientTransform="matrix(526.0025 -225.395 375.6281 876.6003 51688.402 -22554.525)" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#00bbec"/><stop offset="1" stop-color="#2756a9"/></radialGradient><path d="M283.5 367.8c-.7.4-1.6.9-2 1.2-.5.3-1.5.9-2.3 1.4-2.9 1.8-10.8 6.6-17.5 10.8-4.4 2.7-5.1 3.1-10.7 6.6-2 1.2-4.1 2.6-4.7 2.9-.6.4-3.2 1.9-5.7 3.5s-7 4.3-9.8 6.1c-2.9 1.8-8 4.9-11.4 7s-7.9 4.9-9.9 6.1c-2.1 1.3-4 2.5-4.2 2.7-.4.3-18.8 11.7-28 17.4-7 4.3-15.1 7.1-23.4 8.2-3.9.5-11.2.5-15 0-10.5-1.4-20.1-5.3-28.3-11.5-3.2-2.4-9.3-8.5-11.7-11.6-5.5-7.4-9-15.3-10.9-24.3-.4-2.1-.8-3.8-.9-3.9-.2-.2.1 3 .7 7 .6 4.2 1.8 10.4 3.2 15.6 10.3 40.7 39.8 73.8 79.6 89.5 11.5 4.5 23 7.4 35.6 8.8 4.7.5 18.1.7 23.1.4 22.6-1.7 42.4-8.4 62.6-21.2 1.8-1.1 5.2-3.3 7.5-4.7 2.3-1.5 5.3-3.3 6.6-4.2 1.3-.8 2.8-1.8 3.4-2.1.6-.4 1.8-1.1 2.7-1.7s4.6-2.9 8.2-5.2l14.7-9.3 5-3.2.2-.1.6-.4.3-.2 3.7-2.3 12.8-8.1c16.3-10.3 21.2-13.9 28.8-21.3 3.2-3.1 7.9-8.4 8.2-9.1 0-.1.9-1.4 1.9-2.9 4-5.9 6.7-13.2 8-21.8.6-4 .6-13.7 0-18.1-1.2-8.5-3.9-18.1-6.8-24.3-4.8-10.1-15-19.2-29.7-26.6-4.1-2-8.2-3.9-8.7-3.9-.2 0-13.9 8.4-30.4 18.6s-30.8 19-31.8 19.7c-1 .6-2.7 1.7-3.8 2.3z" fill="url(#bing_drop_gb)"/><linearGradient id="bing_drop_gc" x1="145.85" x2="145.85" y1="280" y2="722.454" gradientTransform="translate(0 -280)" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#00bbec"/><stop offset="1" stop-color="#2756a9"/></linearGradient><path d="m86.7 318.8.1 71 .9 4.1c2.9 12.9 7.9 22.2 16.5 30.8 4.1 4.1 7.2 6.5 11.6 9.1 9.3 5.5 19.4 8.3 30.4 8.2 11.5 0 21.5-2.9 31.8-9.2 1.7-1.1 8.5-5.2 15.1-9.3l11.9-7.4V170.4c0-49.2-.1-78.4-.2-80.7-1-14.4-7-27.6-17.1-37.7-3.1-3.1-5.8-5.1-13.7-10.6-3.9-2.7-11.1-7.7-16-11-4.9-3.4-12.9-8.9-17.8-12.3s-12-8.3-15.6-10.8C117 2 116.4 1.7 114 .8c-3-1.1-6.2-1.5-9.2-1.1-8.8 1-15.9 7.3-17.7 16-.3 1.3-.3 19.3-.3 116.7v115.1z" fill="url(#bing_drop_gc)"/></svg>
-                    </span> Bing
-                </button>
-                <button type="button" data-engine="google" role="menuitemradio" aria-checked="false" class="w-full flex items-center gap-3 px-3 py-2.5 apple-radius hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 glass-interactive text-left text-sm select-none">
-                    <span class="engine-icon size-5 aspect-square shrink-0 rounded pointer-events-none select-none flex items-center justify-center">
-                        <svg viewBox="0 0 512 512" class="size-full pointer-events-none select-none" aria-hidden="true"><path d="M502.2 209.5H261.1v99.1h137.8c-6.1 31.9-24.2 58.9-51.4 77-22.8 15.4-51.9 24.7-86.3 24.7-66.6 0-123.1-44.9-143.4-105.4h-.3l.3-.2c-5.1-15.4-8.1-31.7-8.1-48.6s3-33.3 8.1-48.6C138 147 194.6 102.1 261.2 102.1c37.7 0 71.2 13 98 38.2L432.5 67C388 25.4 330.2 0 261.1 0 161 0 74.7 57.5 32.6 141.3 15.1 175.7 5.1 214.6 5.1 256s10 80.3 27.5 114.7v.2C74.7 454.5 161 512 261.1 512c69.1 0 127.1-22.8 169.4-61.9 48.4-44.7 76.3-110.3 76.3-188.3.1-18.1-1.5-35.6-4.6-52.3" fill="#fc4c53"/><radialGradient id="google_drop_ga" cx="91.998" cy="254.653" r="224.709" gradientTransform="matrix(.8032 0 0 -1.0842 -7.184 568.69)" gradientUnits="userSpaceOnUse"><stop offset=".368" stop-color="#ffcf09"/><stop offset=".718" stop-color="#ffcf09" stop-opacity=".7"/><stop offset="1" stop-color="#ffcf09" stop-opacity="0"/></radialGradient><path d="M117.8 304.9h-.3l.3-.2c-5.1-15.4-8.1-31.7-8.1-48.6 0-17 3-33.3 8.1-48.6 12.8-38.3 40.2-70.2 75.3-88.6C169 86.9 138.3 64 104 54.2c-29.7 23.3-54.3 52.9-71.5 87C15.1 175.7 5.1 214.6 5.1 256s10 80.3 27.5 114.7v.2c28.3 56 76.5 100.3 135.3 123.4 24.6-22.5 44.7-53 58.6-88.7-50.9-12.4-92.1-51.1-108.7-100.7" fill="url(#google_drop_ga)"/><radialGradient id="google_drop_gb" cx="188.9" cy="-30.673" r="276.436" gradientTransform="matrix(1.317 -.1645 -.1248 -.9995 90.861 507.496)" gradientUnits="userSpaceOnUse"><stop offset=".383" stop-color="#34a853"/><stop offset=".706" stop-color="#34a853" stop-opacity=".7"/><stop offset="1" stop-color="#34a853" stop-opacity="0"/></radialGradient><path d="M34.5 374.4C77.2 456.1 162.4 512 261.1 512c69.1 0 127.1-22.8 169.4-61.9 48.4-44.7 76.3-110.3 76.3-188.3 0-4.5-.4-8.7-.6-13.1-59-19.4-126.6-26.7-197.2-17.9-16.4 2-32.2 5.1-47.8 8.7v69.1H399c-6.1 31.9-24.2 58.9-51.4 77-22.8 15.4-51.9 24.7-86.3 24.7-66.6 0-123.1-44.9-143.4-105.4h-.3l.3-.2c-.5-1.5-.7-3.1-1.2-4.6-32.5 21.3-60.2 46.5-82.2 74.3" fill="url(#google_drop_gb)"/><linearGradient id="google_drop_gc" x1="521.402" x2="255.847" y1="398.065" y2="71.945" gradientTransform="matrix(1 0 0 -1 0 514)" gradientUnits="userSpaceOnUse"><stop offset=".671" stop-color="#4285f4"/><stop offset=".885" stop-color="#4285f4" stop-opacity="0"/></linearGradient><path d="M430.5 450.1c48.4-44.7 76.3-110.3 76.3-188.3 0-18.2-1.6-35.6-4.7-52.4h-241v99.1h137.8c-6.1 31.9-24.2 58.9-51.4 77-16.4 11-36.1 18.8-58.6 22.3l85.7 79.7c20.8-9.7 39.6-22.3 55.9-37.4" fill="url(#google_drop_gc)"/></svg>
-                    </span> Google
-                </button>
-                <button type="button" data-engine="wikipedia" role="menuitemradio" aria-checked="false" class="w-full flex items-center gap-3 px-3 py-2.5 apple-radius hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 glass-interactive text-left text-sm select-none">
-                    <span class="engine-icon size-5 aspect-square shrink-0 rounded pointer-events-none select-none flex items-center justify-center">
-                        <svg viewBox="0 3.6 24 16.8" class="size-full pointer-events-none select-none" aria-hidden="true" fill="currentColor"><path d="M12.09 13.119c-.936 1.932-2.217 4.548-2.853 5.728-.616 1.074-1.127.931-1.532.029-1.406-3.321-4.293-9.144-5.651-12.409-.251-.601-.441-.987-.619-1.139-.181-.15-.554-.24-1.122-.271C.103 5.033 0 4.982 0 4.898v-.455l.052-.045c.924-.005 5.401 0 5.401 0l.051.045v.434c0 .119-.075.176-.225.176l-.564.031c-.485.029-.727.164-.727.436 0 .135.053.33.166.601 1.082 2.646 4.818 10.521 4.818 10.521l.136.046 2.411-4.81-.482-1.067-1.658-3.264s-.318-.654-.428-.872c-.728-1.443-.712-1.518-1.447-1.617-.207-.023-.313-.05-.313-.149v-.468l.06-.045h4.292l.113.037v.451c0 .105-.076.15-.227.15l-.308.047c-.792.061-.661.381-.136 1.422l1.582 3.252 1.758-3.504c.293-.64.233-.801.111-.947-.07-.084-.305-.22-.812-.24l-.201-.021c-.052 0-.098-.015-.145-.051-.045-.031-.067-.076-.067-.129v-.427l.061-.045c1.247-.008 4.043 0 4.043 0l.059.045v.436c0 .121-.059.178-.193.178-.646.03-.782.095-1.023.439-.12.186-.375.589-.646 1.039l-2.301 4.273-.065.135 2.792 5.712.17.048 4.396-10.438c.154-.422.129-.722-.064-.895-.197-.172-.346-.273-.857-.295l-.42-.016c-.061 0-.105-.014-.152-.045-.043-.029-.072-.075-.072-.119v-.436l.059-.045h4.961l.041.045v.437c0 .119-.074.18-.209.18-.648.03-1.127.18-1.443.421-.314.255-.557.616-.736 1.067 0 0-4.043 9.258-5.426 12.339-.525 1.007-1.053.917-1.503-.031-.571-1.171-1.773-3.786-2.646-5.71l.053-.036z"/></svg>
-                    </span> Wikipedia
-                </button>
-            </div>
+            <div id="dropdownMenu" role="menu" aria-label="搜索引擎选项" aria-hidden="true" class="dropdown-menu absolute top-full left-0 glass-strong apple-radius p-2 border border-white/20 shadow-2xl min-w-35 z-[var(--z-dropdown)] select-none"></div>
             <!-- 搜索实时建议联想下拉框 (Spotlight 风格全宽下拉面板) -->
             <div id="suggestionMenu" role="listbox" aria-label="搜索建议" aria-hidden="true" class="dropdown-menu absolute top-full left-0 right-0 w-full mt-3.5 sm:mt-4 glass-strong apple-radius p-2 border border-white/20 shadow-2xl z-[var(--z-dropdown)] max-h-[60vh] overflow-y-auto overscroll-contain select-none"></div>
         </div>
@@ -2814,12 +2799,31 @@
                 WEATHER_LOC: 'glass_weather_loc_cache',
                 WEATHER_SETTINGS: 'glass_weather_settings'
             }),
+            IDB: Object.freeze({
+                DB_NAME: 'GlassStartDB',
+                VERSION: 1,
+                STORES: Object.freeze({ WALLPAPERS: 'wallpapers' }),
+                KEYS: Object.freeze({ CUSTOM_WALLPAPER: 'customWallpaper' })
+            }),
             GESTURE: Object.freeze({
                 TRANSITION_MS: 580,          // 双屏推移过渡动画时长 (ms)
                 WHEEL_THRESHOLD: 100,        // 滚轮累积触发切屏阈值
+                FAST_WHEEL_STEP: 100,        // 快速滚轮单步位移门限 (px)
+                FAST_WHEEL_VELOCITY: 1.2,    // 快速滚轮甩动速度门限 (px/ms)
+                FAST_WHEEL_THRESHOLD: 60,    // 快速手势敏捷触发阈值 (px)
                 SWIPE_THRESHOLD: 40,         // 触屏轻扫触发切屏阈值 (px)
+                FLICK_MIN_DISTANCE: 25,      // 快速轻扫最小触发位移 (px)
+                FLICK_MIN_VELOCITY: 0.25,    // 快速轻扫最小瞬时速度 (px/ms)
                 MOMENTUM_QUIET_MS: 70,       // 切屏后 wheel 事件静默间隔阈值：≥ 此值判定触控板惯性已自然衰减
                 MOMENTUM_MAX_MS: 1500        // 动量吸收硬上限兜底，防止病态事件流导致永久锁滚
+            }),
+            PHYSICS: Object.freeze({
+                TILT_MAX_ROTATION_DEG: 2.5,  // 3D 陀螺仪最大倾角 (deg)
+                TILT_PERSPECTIVE_PX: 800,    // 3D 透视视距 (px)
+                TILT_HOVER_SCALE: 1.025,     // 悬停缩放比
+                TILT_PRESSED_SCALE: 0.975,   // 按压缩放比
+                DRAG_HYSTERESIS_HIGH: 0.58,  // 拖拽排序迟滞阻尼上限 (50% + 8%)
+                DRAG_HYSTERESIS_LOW: 0.42    // 拖拽排序迟滞阻尼下限 (50% - 8%)
             }),
             WEATHER: Object.freeze({
                 CACHE_TTL: 15 * 60 * 1000,    // 气象数据本地缓存有效期 (15分钟)
@@ -2838,7 +2842,22 @@
                 DEBOUNCE_MS: 180,             // 搜索输入防抖延时 (ms)
                 JSONP_TIMEOUT: 4000,          // 建议词 JSONP 请求熔断超时 (ms)
                 MAX_LOCAL_ITEMS: 2,           // 混排时最多呈现的本地书签数
-                MAX_TOTAL_ITEMS: 4            // 下拉菜单最大呈现总行数
+                MAX_TOTAL_ITEMS: 4,           // 下拉菜单最大呈现总行数
+                TIERS: Object.freeze({
+                    EXACT_NAME: 10,
+                    PREFIX_NAME: 20,
+                    SUBSTRING_NAME: 30,
+                    URL_MATCH: 40,
+                    DESC_MATCH: 50,
+                    FUZZY_NAME_BASE: 60,
+                    FUZZY_OTHER_BASE: 70
+                }),
+                FUZZY: Object.freeze({
+                    MIN_QUERY_LEN: 3,
+                    SHORT_QUERY_LEN: 5,
+                    MAX_DIST_SHORT: 1,
+                    MAX_DIST_LONG: 2
+                })
             }),
             NAV: Object.freeze({
                 TOP_THRESHOLD: 15,            // 顶部激活首项判定阈值 (px)
@@ -2862,7 +2881,11 @@
             TIMERS: Object.freeze({
                 STAGGER_OPEN: 260,            // 随机书签跳转延时 (ms) - 0.24s 灵动翻转 + 20ms 从容停靠
                 SCROLL_RESET: 400,            // 滚轮累积阈值重置延时 (ms)
+                MODAL_HIDE_DELAY: 220,        // 弹窗退出隐藏延迟 (ms)
+                BG_CROSSFADE: 450,            // 壁纸跨图层淡入时长 (ms)
                 HINT_FADE: 600,               // 下滑提示淡出延时 (ms)
+                CLICK_FEEDBACK_CLEAR: 600,    // 触感反馈类清除延时 (ms)
+                FADE_IN_UNLOAD: 800,          // 入场动画自动脱壳延时 (ms)
                 OBJECT_REVOKE: 1000,          // 临时 Blob/URL 释放安全延时 (ms)
                 PWA_SCHEDULE: 5000            // 后台静默调度延时 (ms)
             }),
@@ -3012,7 +3035,7 @@
          * @returns {void}
          */
         function cacheDOM() {
-            const ids = 'clock date searchInput searchClearBtn randomBookmarkBtn engineBtn engineIcon engineName dropdownMenu suggestionMenu bookmarks sidebar sidebarList navCategories navContent editModal editList editBookmarksBtn addBookmarkBtn saveEditBtn cancelEditBtn resetEditBtn togglePickerBtn bookmarkPicker pickerContent pickerCount closePickerBtn donePickerBtn exportJsonBtn importJsonInput uploadBgBtn urlBgBtn urlBgInputRow urlBgInput urlBgConfirmBtn urlBgCancelBtn resetBgBtn uploadBgInput wallpaperStatus bookmarkCountBadge jsonDropzone maskOpacityInput maskOpacityVal bgBlurInput bgBlurVal storageSizeBadge statBookmarkCount statWallpaperType statPwaStatus clearCacheBtn bgOverlay startSection navSection navHint navHeader presetWallpaperGrid shortcutModal shortcutModalList closeShortcutBtn doneShortcutBtn openShortcutFromSettingsBtn openCreditsFromSettingsBtn scrollDownHint weatherWidget weatherBtn weatherIcon weatherTemp weatherCity weatherPopover creditsModal creditsList closeCreditsBtn doneCreditsBtn confirmModal confirmTitle confirmMsg confirmCancelBtn confirmOkBtn'.split(' ');
+            const ids = 'clock date searchInput searchClearBtn randomBookmarkBtn engineBtn engineIcon engineName dropdownMenu suggestionMenu bookmarks sidebar sidebarList navCategories navContent editModal editList editBookmarksBtn addBookmarkBtn saveEditBtn cancelEditBtn resetEditBtn togglePickerBtn bookmarkPicker pickerContent pickerCount closePickerBtn donePickerBtn exportJsonBtn importJsonInput uploadBgBtn urlBgBtn urlBgInputRow urlBgInput urlBgConfirmBtn urlBgCancelBtn resetBgBtn uploadBgInput wallpaperStatus bookmarkCountBadge jsonDropzone maskOpacityInput maskOpacityVal bgBlurInput bgBlurVal storageSizeBadge statBookmarkCount statWallpaperType statPwaStatus clearCacheBtn bgLayer bgLayerNext bgOverlay startSection navSection navHint navHeader presetWallpaperGrid shortcutModal shortcutModalList closeShortcutBtn doneShortcutBtn openShortcutFromSettingsBtn openCreditsFromSettingsBtn scrollDownHint weatherWidget weatherBtn weatherIcon weatherTemp weatherCity weatherPopover creditsModal creditsList closeCreditsBtn doneCreditsBtn confirmModal confirmTitle confirmMsg confirmCancelBtn confirmOkBtn'.split(' ');
             ids.forEach(id => dom[id] = $(id));
         }
 
@@ -3028,9 +3051,7 @@
                 const eng = engines[key];
                 if (!eng) return '';
                 const isChecked = key === curEngine;
-                const iconHtml = eng.isSvg
-                    ? `<span class="engine-icon size-5 aspect-square shrink-0 rounded pointer-events-none select-none flex items-center justify-center">${eng.svg}</span>`
-                    : `<img src="${eng.icon}" width="20" height="20" decoding="async" data-hide-on-error="1" class="engine-icon size-5 aspect-square shrink-0 rounded pointer-events-none select-none" alt="" draggable="false">`;
+                const iconHtml = `<span class="engine-icon size-5 aspect-square shrink-0 rounded pointer-events-none select-none flex items-center justify-center">${eng.svg}</span>`;
                 return `<button type="button" data-engine="${key}" role="menuitemradio" aria-checked="${isChecked}" class="w-full flex items-center gap-3 px-3 py-2.5 apple-radius hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 glass-interactive text-left text-sm select-none">
                     ${iconHtml} ${eng.name}
                 </button>`;
@@ -3333,11 +3354,11 @@
         const dbPromise = new Promise(resolve => {
             if (!('indexedDB' in window)) { resolve(null); return; }
             try {
-                const req = indexedDB.open('GlassStartDB', 1);
+                const req = indexedDB.open(CONFIG.IDB.DB_NAME, CONFIG.IDB.VERSION);
                 req.onupgradeneeded = e => {
                     const db = e.target.result;
-                    if (!db.objectStoreNames.contains('wallpapers')) {
-                        db.createObjectStore('wallpapers');
+                    if (!db.objectStoreNames.contains(CONFIG.IDB.STORES.WALLPAPERS)) {
+                        db.createObjectStore(CONFIG.IDB.STORES.WALLPAPERS);
                     }
                 };
                 req.onsuccess = e => resolve(e.target.result);
@@ -3354,9 +3375,9 @@
                 const db = await dbPromise;
                 if (!db) return null;
                 return new Promise(resolve => {
-                    const tx = db.transaction('wallpapers', 'readonly');
-                    const store = tx.objectStore('wallpapers');
-                    const req = store.get('customWallpaper');
+                    const tx = db.transaction(CONFIG.IDB.STORES.WALLPAPERS, 'readonly');
+                    const store = tx.objectStore(CONFIG.IDB.STORES.WALLPAPERS);
+                    const req = store.get(CONFIG.IDB.KEYS.CUSTOM_WALLPAPER);
                     req.onsuccess = () => resolve(req.result || null);
                     req.onerror = () => resolve(null);
                 });
@@ -3373,9 +3394,9 @@
                 const db = await dbPromise;
                 if (!db) return false;
                 return new Promise(resolve => {
-                    const tx = db.transaction('wallpapers', 'readwrite');
-                    const store = tx.objectStore('wallpapers');
-                    const req = store.put(dataUrl, 'customWallpaper');
+                    const tx = db.transaction(CONFIG.IDB.STORES.WALLPAPERS, 'readwrite');
+                    const store = tx.objectStore(CONFIG.IDB.STORES.WALLPAPERS);
+                    const req = store.put(dataUrl, CONFIG.IDB.KEYS.CUSTOM_WALLPAPER);
                     req.onsuccess = () => resolve(true);
                     req.onerror = () => resolve(false);
                 });
@@ -3390,9 +3411,17 @@
             try {
                 const db = await dbPromise;
                 if (!db) return;
-                const tx = db.transaction('wallpapers', 'readwrite');
-                tx.objectStore('wallpapers').delete('customWallpaper');
+                const tx = db.transaction(CONFIG.IDB.STORES.WALLPAPERS, 'readwrite');
+                tx.objectStore(CONFIG.IDB.STORES.WALLPAPERS).delete(CONFIG.IDB.KEYS.CUSTOM_WALLPAPER);
             } catch {}
+        }
+
+        /**
+         * 获取当前生效的自定义壁纸（三通道回退：内存缓存 -> IndexedDB -> localStorage）
+         * @returns {Promise<string|null>}
+         */
+        async function getEffectiveCustomWallpaper() {
+            return state.customWallpaper || await getWallpaperDB() || storageGet(CONFIG.KEYS.USER_WALLPAPER, null);
         }
 
         /**
@@ -3463,8 +3492,7 @@
 
             // 读取自定义壁纸：兼容旧版本残留数据（若历史版本将预设路径误写入了自定义存储），
             // 启动时自动迁移并还原对应索引 state.bg，清除冗余的自定义记录。
-            let customBg = await getWallpaperDB();
-            if (!customBg) customBg = storageGet(CONFIG.KEYS.USER_WALLPAPER);
+            let customBg = await getEffectiveCustomWallpaper();
             const legacyPresetIdx = findPresetBgIndex(customBg);
             if (legacyPresetIdx >= 0) {
                 // 旧数据迁移：还原 bg 索引，清除误写入的自定义通道
@@ -3731,7 +3759,7 @@
                 ? customWallpaperOverride
                 : (modalState.draftWallpaper !== null && modalState.draftWallpaper !== undefined
                     ? modalState.draftWallpaper
-                    : (state.customWallpaper || await getWallpaperDB() || storageGet(CONFIG.KEYS.USER_WALLPAPER)));
+                    : (await getEffectiveCustomWallpaper()));
             // 命中预设 backgrounds[] 的 URL 不属于"自定义"，只有 data:/http(s): 以及非预设字符串才算自定义
             const isCustom = !!resolveBg && findPresetBgIndex(resolveBg) === -1;
             if (!dom.wallpaperStatus || !dom.resetBgBtn) return;
@@ -3826,9 +3854,9 @@
             return `
                 <div role="listitem" class="edit-row-card flex items-center gap-1.5 sm:gap-2 p-1.5 sm:p-2 bg-white/5 border border-white/10 apple-radius hover:border-white/25 glass-interactive group mb-1.5 shadow-xs" data-idx="${idx}" data-icon="${escapeHtml(icon || '')}" data-orig-url="${escapeHtml(url || '')}" draggable="false">
                     <div class="flex items-center gap-1 shrink-0">
-                        <div class="drag-handle touch-none p-1 size-7 flex items-center justify-center shrink-0 text-white/30 group-hover:text-white/70 hover:!text-white cursor-grab active:cursor-grabbing glass-interactive" title="按住拖拽排序" role="button" tabindex="0" aria-label="按住拖拽或使用键盘排序">
+                        <button type="button" class="drag-handle touch-none p-1 size-7 flex items-center justify-center shrink-0 text-white/30 group-hover:text-white/70 hover:text-white cursor-grab active:cursor-grabbing glass-interactive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40" title="按住拖拽排序" aria-label="按住拖拽或使用键盘排序">
                             <svg class="size-3.5 pointer-events-none" aria-hidden="true"><use href="#icon-drag"/></svg>
-                        </div>
+                        </button>
                         <div class="edit-favicon-box shrink-0 flex items-center justify-center text-white/90 select-none pointer-events-none">
                             ${getEditFaviconInner(name, url, icon)}
                         </div>
@@ -3902,7 +3930,7 @@
             // 备份打开前的初始配置：自定义壁纸持久化于 IndexedDB（小体积额外双写 localStorage 供
             // head 预加载），因此必须优先取 state.customWallpaper / IDB，localStorage 仅作历史兜底；
             // 否则“取消”回滚会错误地丢失当前生效的自定义壁纸
-            modalState.initialWallpaper = state.customWallpaper || await getWallpaperDB() || storageGet(CONFIG.KEYS.USER_WALLPAPER);
+            modalState.initialWallpaper = await getEffectiveCustomWallpaper();
             if (!state.editOpen) return; // 若在读取 IDB 期间用户按 Esc 取消了弹窗，中断后续渲染逻辑
             modalState.initialMaskOpacity = storageGet(CONFIG.KEYS.MASK_OPACITY, 15);
             modalState.initialBgBlur = storageGet(CONFIG.KEYS.BG_BLUR, 0);
@@ -4392,7 +4420,7 @@
                     // 15% 中点门限死区 (Hysteresis Buffer)
                     let isTop = true;
                     if (lastOverTarget === target && lastIsTop !== null) {
-                        isTop = lastIsTop ? (relY <= 0.58) : (relY < 0.42);
+                        isTop = lastIsTop ? (relY <= CONFIG.PHYSICS.DRAG_HYSTERESIS_HIGH) : (relY < CONFIG.PHYSICS.DRAG_HYSTERESIS_LOW);
                     } else {
                         isTop = relY < 0.5;
                     }
@@ -4677,7 +4705,7 @@
                 navigator.serviceWorker.register('sw.js').catch(() => {});
                 navigator.serviceWorker.addEventListener('controllerchange', () => {
                     if (typeof window.reconcileScreenState === 'function') {
-                        window.reconcileScreenState(undefined, true);
+                        window.reconcileScreenState();
                     }
                 });
             }
@@ -5904,11 +5932,7 @@
             }
             if (dom.engineIcon) {
                 dom.engineIcon.style.display = '';
-                if (engineObj.isSvg) {
-                    dom.engineIcon.innerHTML = engineObj.svg;
-                } else {
-                    dom.engineIcon.innerHTML = `<img src="${engineObj.icon}" width="16" height="16" decoding="async" data-hide-on-error="1" class="size-full aspect-square rounded pointer-events-none select-none" alt="当前引擎：${engineObj.name}" draggable="false">`;
-                }
+                dom.engineIcon.innerHTML = engineObj.svg;
             }
             if (dom.dropdownMenu) {
                 dom.dropdownMenu.querySelectorAll('[role="menuitemradio"]').forEach(btn => {
@@ -6052,7 +6076,7 @@
          */
         function getFuzzyScore(q, target) {
             const query = (q || '').trim().toLowerCase();
-            if (query.length < 3) return Infinity;
+            if (query.length < CONFIG.SUGGEST.FUZZY.MIN_QUERY_LEN) return Infinity;
             const rawText = (typeof target === 'string' ? target : `${target?.name || ''} ${target?.url || ''} ${target?.desc || ''}`).toLowerCase();
             if (!rawText.trim()) return Infinity;
             const rawTokens = rawText.split(/\s+/);
@@ -6066,7 +6090,7 @@
 
             for (const sq of subQueries) {
                 if (sq.length < 2) continue;
-                const maxDist = sq.length <= 5 ? 1 : 2;
+                const maxDist = sq.length <= CONFIG.SUGGEST.FUZZY.SHORT_QUERY_LEN ? CONFIG.SUGGEST.FUZZY.MAX_DIST_SHORT : CONFIG.SUGGEST.FUZZY.MAX_DIST_LONG;
                 let minSubDist = Infinity;
 
                 for (const token of tokens) {
@@ -6090,7 +6114,7 @@
                 totalDist += minSubDist;
             }
 
-            const maxTotalDist = query.length <= 5 ? 1 : 2;
+            const maxTotalDist = query.length <= CONFIG.SUGGEST.FUZZY.SHORT_QUERY_LEN ? CONFIG.SUGGEST.FUZZY.MAX_DIST_SHORT : CONFIG.SUGGEST.FUZZY.MAX_DIST_LONG;
             return totalDist <= maxTotalDist ? totalDist : Infinity;
         }
 
@@ -6188,24 +6212,24 @@
 
                 // 优先层级判定：书签名绝对优先于 URL 与简介
                 if (bmName === q) {
-                    tier = 10; // 书签名完全一致
+                    tier = CONFIG.SUGGEST.TIERS.EXACT_NAME; // 书签名完全一致
                 } else if (bmName.startsWith(q)) {
-                    tier = 20; // 书签名以查询词开头
+                    tier = CONFIG.SUGGEST.TIERS.PREFIX_NAME; // 书签名以查询词开头
                 } else if (bmName.includes(q)) {
-                    tier = 30; // 书签名包含查询词
+                    tier = CONFIG.SUGGEST.TIERS.SUBSTRING_NAME; // 书签名包含查询词
                 } else if (bmUrl.includes(q) || normUrl.includes(q)) {
-                    tier = 40; // URL 命中
+                    tier = CONFIG.SUGGEST.TIERS.URL_MATCH; // URL 命中
                 } else if (bmDesc.includes(q)) {
-                    tier = 50; // 书签简介命中
+                    tier = CONFIG.SUGGEST.TIERS.DESC_MATCH; // 书签简介命中
                 } else if (isFuzzyEligible) {
                     // 模糊容错匹配也优先书签名
                     const nameFuzzyScore = getFuzzyScore(q, bm.name || '');
                     if (nameFuzzyScore !== Infinity) {
-                        tier = 60 + nameFuzzyScore;
+                        tier = CONFIG.SUGGEST.TIERS.FUZZY_NAME_BASE + nameFuzzyScore;
                     } else {
                         const otherFuzzyScore = getFuzzyScore(q, `${normUrl} ${bm.desc || ''}`);
                         if (otherFuzzyScore !== Infinity) {
-                            tier = 70 + otherFuzzyScore;
+                            tier = CONFIG.SUGGEST.TIERS.FUZZY_OTHER_BASE + otherFuzzyScore;
                         }
                     }
                 }
@@ -6416,7 +6440,7 @@
                 for (let k = 0; k < skeletonCount; k++) {
                     const widthClass = k % 2 === 0 ? 'w-44' : 'w-28';
                     html += `
-                        <div class="px-3.5 py-2.5 my-0.5 apple-radius flex items-center gap-3 select-none pointer-events-none skeleton-pulse">
+                        <div class="px-3.5 py-2.5 my-0.5 apple-radius flex items-center gap-3 select-none pointer-events-none animate-pulse">
                             <svg class="w-5 h-5 text-white/20 shrink-0 pointer-events-none select-none" aria-hidden="true"><use href="#icon-search"/></svg>
                             <div class="h-5 bg-white/15 apple-radius ${widthClass}"></div>
                         </div>
@@ -6635,6 +6659,20 @@
             return result.join(' · ');
         }
 
+        /**
+         * 剔除行政区划后缀（省/市/区/县/特别行政区/自治区），便于向地理编码 API 发起消歧检索
+         * @param {string} name
+         * @param {boolean} [includeProvince=false] - 是否同时剥离「省」字后缀
+         * @returns {string}
+         */
+        function stripAdminSuffix(name, includeProvince = false) {
+            if (!name || typeof name !== 'string') return '';
+            const pattern = includeProvince
+                ? /(省|市|区|县|特别行政区|壮族自治区|回族自治区|维吾尔自治区|自治区)$/
+                : /(市|区|县|特别行政区|壮族自治区|回族自治区|维吾尔自治区|自治区)$/;
+            return name.replace(pattern, '') || name;
+        }
+
         async function resolveWeatherLocation(force = false) {
             // 自动 IP 定位优先：读取本地 24 小时位置缓存，彻底杜绝重复请求 IP 接口（手动强刷时跳过缓存）
             const locCache = storageGet(CONFIG.KEYS.WEATHER_LOC, null);
@@ -6654,8 +6692,8 @@
                         const country = locArr[0] || '中国';
                         const province = locArr[1] || '';
                         const rawCity = locArr[2] || locArr[3] || province;
-                        const cleanCity = rawCity.replace(/(市|区|县|特别行政区|壮族自治区|回族自治区|维吾尔自治区|自治区)$/, '') || rawCity;
-                        const cleanProv = province.replace(/(省|市|特别行政区|壮族自治区|回族自治区|维吾尔自治区|自治区)$/, '') || province;
+                        const cleanCity = stripAdminSuffix(rawCity);
+                        const cleanProv = stripAdminSuffix(province, true);
 
                         if (cleanCity) {
                             try {
@@ -7168,8 +7206,8 @@
          * @returns {void}
          */
         function applyWallpaper(urlStr, animate = true) {
-            const bgBase = $('bgLayer');
-            const bgNext = $('bgLayerNext');
+            const bgBase = dom.bgLayer || $('bgLayer');
+            const bgNext = dom.bgLayerNext || $('bgLayerNext');
             if (!bgBase || !bgNext || !urlStr || typeof urlStr !== 'string') return;
 
             activeWallpaperReqId++;
@@ -7212,7 +7250,7 @@
                             bgNext.style.transition = 'none';
                             bgNext.style.opacity = '0';
                             bgSwitchTimer = null;
-                        }, 450);
+                        }, CONFIG.TIMERS.BG_CROSSFADE);
                     });
                 } else {
                     bgNext.style.transition = 'none';
@@ -7232,7 +7270,7 @@
             updateWallpaperStatusUI().catch(() => {});
         }
         async function switchBg() {
-            let customBg = state.customWallpaper || await getWallpaperDB() || storageGet(CONFIG.KEYS.USER_WALLPAPER);
+            let customBg = await getEffectiveCustomWallpaper();
             // 防御：若拿到的是预设壁纸路径（旧数据 / 其他路径误写），当作预设处理而非"自定义"
             const legacyPresetIdx = findPresetBgIndex(customBg);
             if (legacyPresetIdx >= 0) {
@@ -7351,7 +7389,7 @@
             let isTouchHandled = false;
 
             // 幂等式全屏状态与 DOM 样式强制对齐校准器（专用于冷启动、BFCache 恢复、快速跳转自愈）
-            function reconcileScreenState(targetSection, immediate = true) {
+            function reconcileScreenState(targetSection) {
                 if (transitionTimer) {
                     clearTimeout(transitionTimer);
                     transitionTimer = null;
@@ -7552,7 +7590,7 @@
             window.isScreenTransitioning = () => isTransitioning;
 
             // 依据 sessionStorage 精准同步页面状态与位置
-            reconcileScreenState(getSavedSection() === 'nav' ? 'nav' : 'start', true);
+            reconcileScreenState(getSavedSection() === 'nav' ? 'nav' : 'start');
 
             // 归一化 deltaY，兼容 Safari / Windows 的 LINE / PAGE 模式
             function normDelta(e) {
@@ -7608,8 +7646,8 @@
                 const velocity = dt > 0 ? absDelta / dt : 0; // px/ms
 
                 // 动态有效阈值：若单次滚动步幅 >= 100px 或快速甩动 (velocity > 1.2)，降低切屏门槛至 60px
-                const isFastGesture = absDelta >= 100 || velocity > 1.2;
-                const effectiveThreshold = isFastGesture ? 60 : SCROLL_THRESHOLD;
+                const isFastGesture = absDelta >= CONFIG.GESTURE.FAST_WHEEL_STEP || velocity > CONFIG.GESTURE.FAST_WHEEL_VELOCITY;
+                const effectiveThreshold = isFastGesture ? CONFIG.GESTURE.FAST_WHEEL_THRESHOLD : SCROLL_THRESHOLD;
 
                 if (state.currentSection === 'start') {
                     if (!down) {
@@ -7709,7 +7747,7 @@
                 const velocity = Math.abs(deltaY) / dt; // px/ms
 
                 // 快速轻扫 (Flick)：位移 >= 25px 且速度 > 0.25 px/ms
-                const isFlick = Math.abs(deltaY) >= 25 && velocity > 0.25;
+                const isFlick = Math.abs(deltaY) >= CONFIG.GESTURE.FLICK_MIN_DISTANCE && velocity > CONFIG.GESTURE.FLICK_MIN_VELOCITY;
 
                 if (state.currentSection === 'start') {
                     if (deltaY >= SWIPE_THRESHOLD || (deltaY > 0 && isFlick)) {
@@ -7740,7 +7778,6 @@
                 // 3. 清理拖拽锁与旋转态图标，复位 3D 悬浮高光
                 document.body.classList.remove('bookmark-dragging');
                 document.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
-                if (dom.randomBookmarkBtn) dom.randomBookmarkBtn.classList.remove('rolling');
                 if (typeof window.resetActiveTiltCard === 'function') {
                     window.resetActiveTiltCard();
                 }
@@ -7750,7 +7787,7 @@
                 }
                 // 5. 幂等校准双屏状态机与 DOM 样式
                 if (typeof window.reconcileScreenState === 'function') {
-                    window.reconcileScreenState(undefined, true);
+                    window.reconcileScreenState();
                 }
                 // 6. 后台静默检查 Service Worker 差量版本更新
                 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
@@ -7841,13 +7878,14 @@
 
                     const centerX = rect.width / 2;
                     const centerY = rect.height / 2;
-                    const rotateX = -((y - centerY) / centerY) * 2.5;
-                    const rotateY = ((x - centerX) / centerX) * 2.5;
+                    const maxDeg = CONFIG.PHYSICS.TILT_MAX_ROTATION_DEG;
+                    const rotateX = -((y - centerY) / centerY) * maxDeg;
+                    const rotateY = ((x - centerX) / centerX) * maxDeg;
 
                     const isPressed = (typeof activeCard.matches === 'function' && activeCard.matches(':active')) || (pendingEvent.buttons === 1);
-                    const targetScale = isPressed ? 0.975 : 1.025;
+                    const targetScale = isPressed ? CONFIG.PHYSICS.TILT_PRESSED_SCALE : CONFIG.PHYSICS.TILT_HOVER_SCALE;
 
-                    activeCard.style.transform = `perspective(800px) rotateX(${rotateX.toFixed(2)}deg) rotateY(${rotateY.toFixed(2)}deg) scale(${targetScale})`;
+                    activeCard.style.transform = `perspective(${CONFIG.PHYSICS.TILT_PERSPECTIVE_PX}px) rotateX(${rotateX.toFixed(2)}deg) rotateY(${rotateY.toFixed(2)}deg) scale(${targetScale})`;
                     rafId = null;
                 }
 
@@ -7960,13 +7998,13 @@
 
             // 健全性快照：首屏应在位时断言变换矩阵 ≈ 单位阵且哨兵元素真实可见
             function snapshotHealth() {
-                const s = document.getElementById('startSection');
+                const s = dom.startSection || document.getElementById('startSection');
                 if (!s || s.classList.contains('screen-pushed-up')) return { ok: true };
                 let t = 'none';
                 try { t = getComputedStyle(s).transform; } catch {}
                 const identityOk = !t || t === 'none' || t === 'matrix(1, 0, 0, 1, 0, 0)';
-                const clock = document.getElementById('clock');
-                const search = document.getElementById('searchInput');
+                const clock = dom.clock || document.getElementById('clock');
+                const search = dom.searchInput || document.getElementById('searchInput');
                 const sentinelsOk = !!clock && clock.offsetWidth > 0 && !!search && search.offsetWidth > 0;
                 return { ok: identityOk && sentinelsOk, identityOk, sentinelsOk };
             }
@@ -7982,9 +8020,9 @@
                 unhealthyStreak++;
                 bbLog('anomaly-' + unhealthyStreak, null);
                 if (unhealthyStreak === 1) {
-                    if (typeof window.reconcileScreenState === 'function') window.reconcileScreenState(undefined, true);
+                    if (typeof window.reconcileScreenState === 'function') window.reconcileScreenState();
                 } else if (unhealthyStreak === 2) {
-                    const s = document.getElementById('startSection');
+                    const s = dom.startSection || document.getElementById('startSection');
                     if (s) {
                         s.style.willChange = 'auto';
                         void s.offsetHeight;
