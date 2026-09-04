@@ -107,9 +107,6 @@ export async function commitWallpaperSelection(targetWallpaper) {
         storageSet(CONFIG.KEYS.BG, 0);
     }
     modalState.initialWallpaper = targetWallpaper;
-    if (dom.statWallpaperType) {
-        dom.statWallpaperType.textContent = state.customWallpaper ? '自定义' : '系统';
-    }
 }
 
 /**

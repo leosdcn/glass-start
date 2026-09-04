@@ -175,23 +175,6 @@ export function updateDataTabStats() {
     } catch {
         storageSizeBadge.textContent = '读取中...';
     }
-
-    const statBookmarkCount = dom.statBookmarkCount || $('statBookmarkCount');
-    const statWallpaperType = dom.statWallpaperType || $('statWallpaperType');
-    const statPwaStatus = dom.statPwaStatus || $('statPwaStatus');
-
-    if (statBookmarkCount) {
-        const editList = dom.editList || $('editList');
-        const editRows = editList ? editList.querySelectorAll('[data-idx]') : null;
-        const count = (editRows && editRows.length > 0) ? editRows.length : pageData.bookmarks.length;
-        statBookmarkCount.textContent = count;
-    }
-    if (statWallpaperType) {
-        statWallpaperType.textContent = state.customWallpaper ? '自定义' : '系统';
-    }
-    if (statPwaStatus) {
-        statPwaStatus.textContent = ('serviceWorker' in navigator) ? '就绪' : '未开启';
-    }
 }
 
 export function getEditFaviconInner(name = '', url = '', icon = '') {
