@@ -90,6 +90,9 @@ self.addEventListener('fetch', e => {
     }
 
     const pathnameLower = urlObj.pathname.toLowerCase();
+    // 过滤本地开发服务器清理通道，直接穿透网络，严禁 SW 拦截
+    if (pathnameLower.startsWith('/_clear_cache')) return;
+
     const isSameOrigin = urlObj.origin === self.location.origin;
     const isMainDoc = e.request.mode === 'navigate' || pathnameLower === '/' || pathnameLower.endsWith('/index.html');
     const isCoreData = isSameOrigin && (pathnameLower.endsWith('/manifest.json') || pathnameLower.endsWith('/bookmarks.json'));

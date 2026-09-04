@@ -65,7 +65,7 @@ function createStaticServer() {
                     'Clear-Site-Data': '"cache", "storage"',
                     'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0'
                 });
-                res.end(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>本地缓存深度重置</title></head><body style="font-family:system-ui;background:#0b0f19;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;"><div style="text-align:center;max-width:420px;padding:24px;"><h2 style="margin-bottom:8px;font-size:18px;">🧹 正在深度净化 Safari 本地缓存...</h2><p id="msg" style="opacity:0.7;font-size:13px;line-height:1.6;">正在注销 Service Worker 并清空 CacheStorage / Storage...</p></div><script>(async function(){try{if('serviceWorker' in navigator){const regs=await navigator.serviceWorker.getRegistrations();for(const r of regs)await r.unregister();}if('caches' in window){const keys=await caches.keys();for(const k of keys)await caches.delete(k);}try{localStorage.clear();}catch(e){}try{sessionStorage.clear();}catch(e){}if('indexedDB' in window){try{indexedDB.deleteDatabase('GlassStartDB');}catch(e){}}document.getElementById('msg').textContent='✨ 清理完成！正在重新加载纯净起始页...';}catch(err){console.error('Purge error:',err);}finally{setTimeout(()=>{location.href='/?_purge='+Date.now();},500);}})();</script></body></html>`);
+                res.end(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>本地缓存深度重置</title></head><body style="font-family:system-ui;background:#0b0f19;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;"><div style="text-align:center;max-width:420px;padding:24px;"><h2 style="margin-bottom:8px;font-size:18px;">🧹 正在深度净化 Safari 本地缓存...</h2><p id="msg" style="opacity:0.7;font-size:13px;line-height:1.6;">正在注销 Service Worker 并清空 CacheStorage / Storage...</p></div><script>(async function(){try{if('serviceWorker' in navigator){const regs=await navigator.serviceWorker.getRegistrations();for(const r of regs)await r.unregister();}if('caches' in window){const keys=await caches.keys();for(const k of keys)await caches.delete(k);}try{localStorage.clear();}catch(e){}try{sessionStorage.clear();}catch(e){}if('indexedDB' in window){try{indexedDB.deleteDatabase('GlassStartDB');}catch(e){}}document.getElementById('msg').textContent='✨ 清理完成！正在重新加载纯净起始页...';}catch(err){console.error('Purge error:',err);}finally{setTimeout(()=>{location.replace('/');},100);}})();</script></body></html>`);
                 return;
             }
 
@@ -282,7 +282,7 @@ function startListening(port) {
         // 仅在服务确已 listen 成功并能接收请求时，才自动唤起浏览器
         if (process.env.AUTO_OPEN !== '0') {
             const isCleanMode = process.env.CLEAR_CACHE === '1' || process.argv.includes('--clear-cache');
-            const openPath = isCleanMode ? '/_clear_cache' : '';
+            const openPath = isCleanMode ? '/_clear_cache' : '/';
             const url = `http://localhost:${port}${openPath}`;
             if (process.platform === 'darwin') {
                 exec(`open "${url}"`);
