@@ -1603,7 +1603,7 @@
             <!-- 主体：一体化 Liquid Glass 窗口框架 -->
             <div class="flex-1 glass apple-radius flex flex-col overflow-hidden min-h-0 border border-white/20 shadow-2xl">
                 <!-- 窗口顶部 Header 栏 -->
-                <header id="navHeader" class="flex items-center justify-between px-4 py-2.5 border-b border-white/10 bg-transparent shrink-0 cursor-pointer select-none hover:bg-white/10 transition-colors" title="点击返回起始页">
+                <header id="navHeader" role="button" tabindex="0" aria-label="返回起始页" class="flex items-center justify-between px-4 py-2.5 border-b border-white/10 bg-transparent shrink-0 cursor-pointer select-none hover:bg-white/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" title="点击返回起始页">
                     <div class="flex items-center gap-2 pointer-events-none">
                         <span class="text-base" aria-hidden="true">🪐</span>
                         <h2 class="text-xs sm:text-sm font-semibold tracking-wide text-white">导航</h2>
@@ -2996,7 +2996,6 @@
             editOpen: false,         // 编辑书签弹窗是否打开（用于屏蔽滚轮切屏与键盘快捷键）
             currentSection: 'start'  // 当前可见屏：'start'（起始页）或 'nav'（导航页）
         };
-        window.state = state;
 
         /**
          * DOM 快速查找助手函数 (document.getElementById 封装)
@@ -5084,6 +5083,7 @@
             let isComposing = false;
             let justEndedComposition = false;
             let compositionEndTimer = null;
+            let suggestDebounceTimer = null;
 
             dom.searchInput.addEventListener('compositionstart', () => {
                 isComposing = true;
@@ -5274,6 +5274,12 @@
             };
             dom.navHint?.addEventListener('click', handleBackToStart);
             dom.navHeader?.addEventListener('click', handleBackToStart);
+            dom.navHeader?.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleBackToStart();
+                }
+            });
 
             // 键盘快捷键：
             // Web 无障碍 Focus Trap 锁：防 Tab 键焦点逃逸出弹窗
@@ -5438,22 +5444,21 @@
                 // 屏间切换快捷键（无组合键、非输入状态；搜索框聚焦但联想未激活时也放行，避免方向键死键）
                 const suggestionActive = dom.suggestionMenu && dom.suggestionMenu.classList.contains('active');
                 if (!isInputActive || (document.activeElement === dom.searchInput && !suggestionActive)) {
-                    const isNavAtTop = dom.navContent ? dom.navContent.scrollTop <= 0 : true;
-                    const isNavDownKey = (e.key === 'PageDown' || e.key === 'ArrowDown') && state.currentSection === 'start';
-                    const isNavUpKey = (e.key === 'PageUp' || e.key === 'Home' || e.key === 'ArrowUp') && state.currentSection === 'nav' && isNavAtTop;
-                    const isNavKey = isNavDownKey || isNavUpKey;
+                    const isNavKey = e.key === 'PageDown' || e.key === 'PageUp' || e.key === 'Home'
+                        || (e.key === 'ArrowDown' && state.currentSection === 'start')
+                        || (e.key === 'ArrowUp' && state.currentSection === 'nav' && dom.navContent?.scrollTop <= 0);
                     // 与滚轮/触屏路径保持一致：切屏动画进行中忽略新的触发（含按键连发场景），
                     // 避免中途反复打断导致 transitionTimer 被无限重置、页面状态与视觉脱节
                     if (isNavKey && window.isScreenTransitioning && window.isScreenTransitioning()) {
                         e.preventDefault();
                         return;
                     }
-                    if (isNavDownKey) {
+                    if (e.key === 'PageDown' || (e.key === 'ArrowDown' && state.currentSection === 'start')) {
                         e.preventDefault();
                         if (window.switchToNav) window.switchToNav();
                         return;
                     }
-                    if (isNavUpKey) {
+                    if (e.key === 'PageUp' || e.key === 'Home' || (e.key === 'ArrowUp' && state.currentSection === 'nav' && dom.navContent?.scrollTop <= 0)) {
                         e.preventDefault();
                         if (window.switchToStart) window.switchToStart();
                         return;
@@ -5845,7 +5850,6 @@
         let suggestionScriptTag = null;
         let selectedSuggestionIdx = -1;
         let originalQuery = '';
-        let suggestDebounceTimer = null;
 
         /**
          * 切换搜索引擎下拉菜单的展开/收起状态并同步 OverlayStack
@@ -6434,10 +6438,6 @@
          */
         function hideSuggestions() {
             activeSuggestReqId++; // 作废所有挂起的联想网络请求，防止 Escape/失焦后联想下拉意外"复活"
-            if (suggestDebounceTimer) {
-                clearTimeout(suggestDebounceTimer);
-                suggestDebounceTimer = null;
-            }
             if (suggestionScriptTag) {
                 suggestionScriptTag.onerror = null;
                 suggestionScriptTag.remove();
@@ -7364,14 +7364,17 @@
                     }
                     if (nav) {
                         nav.classList.remove('nav-hidden');
-                        nav.classList.add('nav-visible');
-                        nav.classList.add('screen-pushed-in');
+                        nav.classList.add('nav-visible', 'screen-pushed-in');
                     }
                     refreshSidebarNavCache();
                     updateSidebarActive();
                     initFaviconObserver();
                 } else {
                     if (startSection) {
+                        // 🛡️ WebKit 图层重栅格化防御：无条件触发合成层重绘，确保离屏图层磁贴永不丢失
+                        startSection.style.willChange = 'auto';
+                        void startSection.offsetHeight;
+                        startSection.style.willChange = 'transform';
                         startSection.classList.remove('screen-pushed-up');
                     }
                     if (nav) {
@@ -7438,9 +7441,11 @@
                 if (nav) {
                     nav.style.transform = '';
                     nav.style.transition = '';
+                    nav.style.willChange = 'auto';
+                    void nav.offsetHeight;
+                    nav.style.willChange = 'transform';
                     nav.classList.remove('nav-hidden');
-                    nav.classList.add('nav-visible');
-                    nav.classList.add('screen-pushed-in');
+                    nav.classList.add('nav-visible', 'screen-pushed-in');
                 }
 
                 // 异步延后非关键 DOM 几何计算与 Icon 观察器绑定，避免在 CSS 动画首帧触发同步布局重排 (Reflow)
@@ -7490,6 +7495,10 @@
                 if (startSection) {
                     startSection.style.transform = '';
                     startSection.style.transition = '';
+                    // 🛡️ WebKit 图层重栅格化防御：无条件触发合成层重绘，确保离屏图层磁贴永不丢失
+                    startSection.style.willChange = 'auto';
+                    void startSection.offsetHeight;
+                    startSection.style.willChange = 'transform';
                     startSection.classList.remove('screen-pushed-up');
                 }
                 if (nav) {
@@ -7628,14 +7637,8 @@
 
             document.addEventListener('touchstart', (e) => {
                 if (isTransitioning || !OverlayStack.isEmpty()) return;
-                if (!e.touches || e.touches.length !== 1) {
-                    isTouchHandled = true;
-                    return;
-                }
-                if (e.target && typeof e.target.closest === 'function' && (e.target.closest('#sidebar') || e.target.closest('#weatherWidget') || e.target.closest('#editBookmarksBtn'))) {
-                    isTouchHandled = true;
-                    return;
-                }
+                if (e.target && typeof e.target.closest === 'function' && (e.target.closest('#sidebar') || e.target.closest('#weatherWidget') || e.target.closest('#editBookmarksBtn'))) return;
+                if (!e.touches || e.touches.length === 0) return;
                 startTouchX = e.touches[0].clientX;
                 startTouchY = e.touches[0].clientY;
                 touchStartTime = performance.now();
@@ -7728,17 +7731,12 @@
                         if (reg) reg.update().catch(() => {});
                     }).catch(() => {});
                 }
-                // 7. 🛡️ 强制刷新 WebKit 合成层磁贴 (BFCache / Tab Switch Tile Invalidation Guard)
-                // 覆盖 visibilitychange（标签页切回）与 pageshow（BFCache 后退）双通道
-                // WebKit 在后台或多标签页切走时会释放 GPU 离屏磁贴，切回唤醒时必须无条件强制重栅格化
-                const activeSection = state.currentSection === 'nav' ? dom.navSection : dom.startSection;
-                if (activeSection) {
-                    activeSection.style.display = 'none';
-                    void activeSection.offsetHeight;
-                    activeSection.style.display = '';
-                    activeSection.style.willChange = 'auto';
-                    void activeSection.offsetHeight;
-                    activeSection.style.willChange = 'transform';
+                // 7. 🛡️ 强制刷新 WebKit 合成层磁贴 (BFCache Tile Invalidation Guard)
+                // 门控：仅在真实 BFCache 恢复（persisted=true）时执行，常规唤醒零开销
+                if (dom.startSection && wasPersisted) {
+                    dom.startSection.style.willChange = 'auto';
+                    void dom.startSection.offsetHeight;
+                    dom.startSection.style.willChange = 'transform';
                 }
                 // 8. 标签页与 BFCache 唤醒时静默校验气象缓存有效期并按需刷新
                 if (typeof updateWeather === 'function') {
@@ -7926,31 +7924,17 @@
                 return { mismatch: true, mayReload };
             }
 
-            // 健全性快照：当前屏应在位时断言变换矩阵有效且哨兵元素真实可见
+            // 健全性快照：首屏应在位时断言变换矩阵 ≈ 单位阵且哨兵元素真实可见
             function snapshotHealth() {
-                const isNav = (window.state && window.state.currentSection === 'nav') || 
-                              (document.getElementById('navSection') && document.getElementById('navSection').classList.contains('screen-pushed-in'));
-                if (isNav) {
-                    const n = document.getElementById('navSection');
-                    if (!n || n.classList.contains('nav-hidden')) return { ok: true };
-                    let t = 'none';
-                    try { t = getComputedStyle(n).transform; } catch {}
-                    const identityOk = !t || t === 'none' || t === 'matrix(1, 0, 0, 1, 0, 0)';
-                    const navHeader = document.getElementById('navHeader');
-                    const navCategories = document.getElementById('navCategories');
-                    const sentinelsOk = !!navHeader && navHeader.offsetWidth > 0 && !!navCategories && navCategories.offsetWidth > 0;
-                    return { ok: identityOk && sentinelsOk, identityOk, sentinelsOk };
-                } else {
-                    const s = document.getElementById('startSection');
-                    if (!s || s.classList.contains('screen-pushed-up')) return { ok: true };
-                    let t = 'none';
-                    try { t = getComputedStyle(s).transform; } catch {}
-                    const identityOk = !t || t === 'none' || t === 'matrix(1, 0, 0, 1, 0, 0)';
-                    const clock = document.getElementById('clock');
-                    const search = document.getElementById('searchInput');
-                    const sentinelsOk = !!clock && clock.offsetWidth > 0 && !!search && search.offsetWidth > 0;
-                    return { ok: identityOk && sentinelsOk, identityOk, sentinelsOk };
-                }
+                const s = document.getElementById('startSection');
+                if (!s || s.classList.contains('screen-pushed-up')) return { ok: true };
+                let t = 'none';
+                try { t = getComputedStyle(s).transform; } catch {}
+                const identityOk = !t || t === 'none' || t === 'matrix(1, 0, 0, 1, 0, 0)';
+                const clock = document.getElementById('clock');
+                const search = document.getElementById('searchInput');
+                const sentinelsOk = !!clock && clock.offsetWidth > 0 && !!search && search.offsetWidth > 0;
+                return { ok: identityOk && sentinelsOk, identityOk, sentinelsOk };
             }
 
             let unhealthyStreak = 0;
@@ -7966,16 +7950,11 @@
                 if (unhealthyStreak === 1) {
                     if (typeof window.reconcileScreenState === 'function') window.reconcileScreenState(undefined, true);
                 } else if (unhealthyStreak === 2) {
-                    const isNav = (window.state && window.state.currentSection === 'nav') || 
-                                  (document.getElementById('navSection') && document.getElementById('navSection').classList.contains('screen-pushed-in'));
-                    const el = isNav ? document.getElementById('navSection') : document.getElementById('startSection');
-                    if (el) {
-                        el.style.display = 'none';
-                        void el.offsetHeight;
-                        el.style.display = '';
-                        el.style.willChange = 'auto';
-                        void el.offsetHeight;
-                        el.style.willChange = 'transform';
+                    const s = document.getElementById('startSection');
+                    if (s) {
+                        s.style.willChange = 'auto';
+                        void s.offsetHeight;
+                        s.style.willChange = 'transform';
                     }
                 } else {
                     let lastReloadAt = 0;
