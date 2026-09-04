@@ -120,17 +120,24 @@ node test/visual-regression.mjs
 在修改任何核心业务逻辑前，请先查阅 [**ARCHITECTURE.md**](./ARCHITECTURE.md) 系统架构设计白皮书与决策图谱：
 
 ### ⚠️ 单文件局部手术铁律 (The Surgical Editing Law)
-`index.html` 单文件体积达 440KB+（8,079+ 行代码）。**严禁让 AI 重新输出整份 `index.html`！**
-- **只切片读取**：根据下表精准圈定行号区间或函数名进行局部读取；
+`index.html` 单文件体积达 450KB+（8,250+ 行代码）。**严禁让 AI 重新输出整份 `index.html`，严禁无目的扫描通读代码！**
+- **优先按 `@region` 定位**：通过 `grep_search` 直接搜索对应的唯一 `@region [...]` 锚点，1 秒直达核心逻辑；
+- **只切片读取**：根据下表精准圈定 Symbol 或 `@region` 进行局部读取（每次最多 30~50 行）；
 - **只局部替换**：使用精确文本替换，单次改动控制在最小代码块（Diff），杜绝截断风险。
 
-| 业务领域 | 核心逻辑位置 (`index.html`) | 核心函数/DOM 锚点 | 关联 [ARCHITECTURE.md](./ARCHITECTURE.md) 白皮书机制 |
+| 业务领域与核心意图 | 唯一的 `@region` 索引锚点 | 核心函数/DOM 锚点 | 关联 [ARCHITECTURE.md](./ARCHITECTURE.md) 白皮书机制 |
 | :--- | :--- | :--- | :--- |
-| **UI 表现与 3D 光影** | `Lines 1~3045, 7770~7870` | `cacheDOM()`, `updateCardTransform`, `motionGating` | **[图 1](./ARCHITECTURE.md#1-️-系统全景分层与模块拓扑架构-high-level-layer-architecture)**：Liquid Glass、Tailwind v4、光影守卫、3D 陀螺仪 |
-| **弹窗与覆盖层** | `Lines 1520~3040, 3137~4600` | `OverlayStack.push()`, `OverlayStack.pop()`, `openEditModal()` | **[图 3](./ARCHITECTURE.md#3--overlaystack-多层弹窗层叠栈与-escape-统一退栈决策-overlaystack--modal-flow)**：`OverlayStack` LIFO 栈模型、Focus Trap 焦点锁定 |
-| **搜索联想与气象演化** | `Lines 6100~7200` | `fetchSuggestions()`, `initWeather()`, `weatherNum()` | **[图 5](./ARCHITECTURE.md#5--智能搜索三级模糊匹配与气象-9-阶动态演化决策-search--weather-decision-engine)**：搜索联想防竞态、零 CLS 骨架、9 阶气象形态 |
-| **双屏切换与 BFCache** | `Lines 7200~8052` | `switchToNav()`, `switchToStart()`, `reconcileScreenState()`, `__GLASS_DIAG__` | **[图 2](./ARCHITECTURE.md#2--双屏切屏状态机手势与-bfcache-全生命周期流转-screen-state--bfcache-lifecycle)**：双屏状态机、纯内存自愈器、滚轮动量吞咽、构建指纹黑匣子三级自愈阶梯 |
-| **离线与缓存底座** | `sw.js` (全量 240 行) | `CORE_CACHE`, `FAVICON_CACHE`, `IMG_CACHE` | **[图 4](./ARCHITECTURE.md#4--service-worker-三池隔离与离线数据流向-storage--cache-topology)**：三池物理隔离、FIFO 限额淘汰 |
+| **首屏主题与 Safari 外壳预渲染** | `@region [HEAD_THEME_HYDRATION]` | `PRESET_THEMES`, `targetColor` | **[§6](./ARCHITECTURE.md#6--精确符号索引地图与代码区域导航-symbol-index--region-map)**：0ms 闪电对齐，黑白二元流 |
+| **全局状态与高频 DOM 缓存池** | `@region [STATE_AND_DOM_CACHE]` | `dom`, `state`, `cacheDOM()`, `$` | **[图 1](./ARCHITECTURE.md#1-️-系统全景分层与模块拓扑架构-high-level-layer-architecture)**：80+ 节点映射与响应式全局状态 |
+| **设置弹窗草稿状态机** | `@region [MODAL_STATE]` | `modalState` | **[图 3](./ARCHITECTURE.md#3--overlaystack-多层弹窗层叠栈与-escape-统一退栈决策-overlaystack--modal-flow)**：壁纸/特效快照隔离 |
+| **壁纸持久化与即选即存** | `@region [WALLPAPER_SELECTION]` | `commitWallpaperSelection()`, `previewDraftWallpaper()` | **[§6](./ARCHITECTURE.md#6--精确符号索引地图与代码区域导航-symbol-index--region-map)**：即选即存、IDB 双写与预设高亮 |
+| **设置弹窗生命周期管理** | `@region [SETTINGS_MODAL_LIFECYCLE]` | `openEditModal()`, `closeEditModal()`, `cancelEditModal()` | **[图 3](./ARCHITECTURE.md#3--overlaystack-多层弹窗层叠栈与-escape-统一退栈决策-overlaystack--modal-flow)**：`OverlayStack` LIFO 栈模型、Focus Trap 焦点锁定 |
+| **弹窗底部操作与落盘入口** | `@region [SETTINGS_MODAL_COMMIT]` | `dom.saveEditBtn`, `collectEditData()`, `saveUserBookmarks()` | **[§6](./ARCHITECTURE.md#6--精确符号索引地图与代码区域导航-symbol-index--region-map)**：保存并关闭、书签固化与特效落盘 |
+| **搜索联想与防竞态调度** | `@region [SEARCH_SUGGESTIONS]` | `renderSuggestions()`, `fetchSuggestions()`, `activeSuggestReqId` | **[图 5](./ARCHITECTURE.md#5--智能搜索三级模糊匹配与气象-9-阶动态演化决策-search--weather-decision-engine)**：搜索联想防竞态、零 CLS 骨架 |
+| **气象数据清洗与动态演化** | `@region [WEATHER_ENGINE]` | `initWeather()`, `weatherNum()`, `WMO_WEATHER_MAP` | **[图 5](./ARCHITECTURE.md#5--智能搜索三级模糊匹配与气象-9-阶动态演化决策-search--weather-decision-engine)**：9 阶气象形态、数值化信任边界防御 |
+| **外壳主题与底色动态管理** | `@region [THEME_COLOR_ENGINE]` | `APP_THEME_DARK`, `APP_THEME_LIGHT`, `updateThemeColor()` | **[§6](./ARCHITECTURE.md#6--精确符号索引地图与代码区域导航-symbol-index--region-map)**：Safari 顶栏、`--bg-base` 与 `#bgLayer` 联动 |
+| **双屏有限状态机与唤醒自愈** | `@region [SCREEN_TRANSITION_AND_BFCACHE]` | `switchToNav()`, `switchToStart()`, `reconcileScreenState()` | **[图 2](./ARCHITECTURE.md#2--双屏切屏状态机手势与-bfcache-全生命周期流转-screen-state--bfcache-lifecycle)**：双屏状态机、滚轮吞咽、WebKit 磁贴重栅格化 |
+| **离线底座与三池物理隔离** | `sw.js` (全量 240 行) | `CORE_CACHE`, `FAVICON_CACHE`, `IMG_CACHE` | **[图 4](./ARCHITECTURE.md#4--service-worker-三池隔离与离线数据流向-storage--cache-topology)**：三池物理隔离、FIFO 限额淘汰 |
 
 ---
 

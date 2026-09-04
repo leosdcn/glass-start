@@ -143,7 +143,7 @@
               }
             }
             window.__PRELOADED_BG__ = preloadUrl;
-            // 预设壁纸与自适应主题色 0ms 闪电对齐：纯净黑白二元流（深色壁纸深空黑，浅色壁纸纯净白）
+            // @region [HEAD_THEME_HYDRATION] 预设壁纸与自适应主题色 0ms 闪电对齐：纯净黑白二元流（深色壁纸深空黑，浅色壁纸纯净白）
             const THEME_DARK = { color: '#0b0f19', isLight: false };
             const THEME_LIGHT = { color: '#ffffff', isLight: true };
             const PRESET_THEMES = [
@@ -3049,6 +3049,7 @@
         }
 
         // ==================== 状态与 DOM 缓存 ====================
+        // @region [STATE_AND_DOM_CACHE] 全局响应式状态与 DOM 元素高频缓存表
         const dom = {};
         const state = {
             engine: 'bing',          // 当前激活的搜索引擎 key，对应 engines 对象的键名
@@ -3722,6 +3723,7 @@
             }
         }
 
+        // @region [MODAL_STATE] 设置弹窗内部草稿状态机与快照备份
         const modalState = {
             initialWallpaper: null,
             initialMaskOpacity: 15,
@@ -3808,6 +3810,7 @@
             }
         }
 
+        // @region [WALLPAPER_SELECTION] 壁纸即选即存持久化、草稿实时预览与预设卡片联动
         /**
          * 立即持久化选中的壁纸（无需按「保存并关闭」即刻生效并存储）
          * @param {string|null} targetWallpaper - 目标壁纸（预设 URL、自定义 DataURL/URL，或 null 恢复默认）
@@ -3987,6 +3990,7 @@
         let editModalTriggerEl = null;
         let editFaviconDebounceTimer = null;
 
+        // @region [SETTINGS_MODAL_LIFECYCLE] 设置与偏好弹窗生命周期管理 (打开备份/关闭清理/返回回滚)
         /**
          * 打开设置与偏好弹窗，备份打开前的初始配置以备取消时回滚
          * @returns {void}
@@ -5720,6 +5724,7 @@
                 }
             });
 
+            // @region [SETTINGS_MODAL_COMMIT] 设置弹窗底部「保存并关闭」落盘入口 (书签固化与特效存储)
             // 点击「保存并关闭」按钮提交草稿中的全部修改
             dom.saveEditBtn.addEventListener('click', () => runWithLoading(dom.saveEditBtn, async () => {
                 const data = collectEditData();
@@ -6421,6 +6426,7 @@
             document.body.appendChild(script);
         }
 
+        // @region [SEARCH_SUGGESTIONS] 智能搜索三级模糊匹配、联想词混排与防竞态调度
         /**
          * 渲染搜索联想下拉面板（包含本地书签精准命中 + 搜索引擎网络建议词 + 骨架屏加载占位）
          * @param {Array<Object>} [localList=[]] - 命中的本地书签数组
@@ -6617,6 +6623,7 @@
             };
         }
 
+        // @region [WEATHER_ENGINE] 实时气象数据获取、数值净化清洗与 9 阶形态演化
         // ==================== 天气数据净化工具（本地缓存信任边界防御） ====================
         /**
          * 将任意来源（实时 API / 本地缓存）的天气数值字段强制收敛为有限数字
@@ -7271,6 +7278,7 @@
          * @param {boolean} [animate=true] - 是否启用跨图层渐变淡入动画
          * @returns {void}
          */
+        // @region [THEME_COLOR_ENGINE] 浏览器外壳主题管理引擎（黑白二元流、Safari 顶栏、--bg-base 底色动态同步）
         // 🧱 浏览器外壳主题管理引擎：纯净黑白二元流（深色壁纸沉浸黑 #0b0f19，浅色壁纸纯净白 #ffffff）
         const APP_THEME_DARK = { color: '#0b0f19', isLight: false };
         const APP_THEME_LIGHT = { color: '#ffffff', isLight: true };
@@ -7543,6 +7551,7 @@
             let swallowDir = null; // 'down' | 'up' | null — 仅吸收同向残余惯性，反向手势立即打断
             let isTouchHandled = false;
 
+            // @region [SCREEN_TRANSITION_AND_BFCACHE] 双屏切屏有限状态机、手势与 BFCache 全生命周期自愈
             // 幂等式全屏状态与 DOM 样式强制对齐校准器（专用于冷启动、BFCache 恢复、快速跳转自愈）
             function reconcileScreenState(targetSection) {
                 if (transitionTimer) {
