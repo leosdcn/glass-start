@@ -205,6 +205,7 @@ function setupWatchMode() {
 
     const filesToWatch = [
         { path: PATHS.indexHtml, name: 'index.html' },
+        { path: PATHS.src, name: 'src/' },
         { path: PATHS.bookmarksJson, name: 'bookmarks.json' },
         { path: PATHS.sw, name: 'sw.js' },
         { path: path.join(PATHS.root, 'manifest.json'), name: 'manifest.json' }
@@ -214,7 +215,8 @@ function setupWatchMode() {
     filesToWatch.forEach(({ path: filePath, name }) => {
         if (fs.existsSync(filePath)) {
             try {
-                const watcher = fs.watch(filePath, () => triggerRebuild(name));
+                const isDir = fs.statSync(filePath).isDirectory();
+                const watcher = fs.watch(filePath, { recursive: isDir }, () => triggerRebuild(name));
                 watchers.push(watcher);
             } catch (err) {
                 console.warn(`  ${c.yellow}⚠ 无法监听 ${name}: ${err.message}${c.reset}`);
