@@ -185,8 +185,8 @@ flowchart TB
 
 #### 本地开发模式 (Development)
 - **一键双击启动 (macOS)**：在访达（Finder）中直接双击 `scripts/start.command` 快捷指令，自动完成构建同步并在局域网启动 `dist/` 网页服务，秒级打开默认浏览器。
-- **命令行启动**：运行 `npm run dev`（或 `npm run preview`）会自动构建打包并通过原生 `scripts/server.js` 启动 `dist/` 局域网预览服务 (`http://localhost:3000`)。
-- **文件增量监听**：在编辑源码 `index.html` 或 `bookmarks.json` 时，可在另一终端开启 `npm run watch` 文件修改监听，保存时自动秒级重建 `dist/` 产物。
+- **命令行启动**：运行 `npm run dev` 会自动构建打包并通过原生 `scripts/server.js` 启动 `dist/` 局域网开发服务 (`http://localhost:3000`)。服务默认内置 **Watch 增量监听** 与防陈旧缓存标头（`no-store` + `Service-Worker-Allowed: /`），在编辑源码 `index.html`、`bookmarks.json` 或 `sw.js` 时保存即自动毫秒级增量编译至 `dist/` 并滚动双端指纹，直接刷新浏览器即可调试最新改动。
+- **纯预览与独立监听**：若仅需预览已有产物无需监听源码，可附加 `--no-watch` 参数（如 `node scripts/server.js --no-watch`）；亦可独立运行 `npm run watch` 单独开启增量构建监听。
 - **免构建直开模式**：若直接双击根目录 `index.html`（`file://` 协议），页面仍内置 **Tailwind v4 Browser CDN** 运行时脚本，保持零环境开箱即用。
 
 #### 生产环境打包上线 (Production)

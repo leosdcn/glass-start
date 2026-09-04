@@ -4,6 +4,7 @@ const path = require('path');
 const { exec } = require('child_process');
 const os = require('os');
 const zlib = require('zlib');
+const { main: runFullBuild, rebuild: runRebuild, PATHS } = require('./build');
 
 // 终端格式化排版与 ANSI 彩色工具
 const isTTY = process.stdout.isTTY && !process.env.NO_COLOR;
@@ -25,11 +26,12 @@ const HR_SINGLE = '─'.repeat(LINE_WIDTH);
 
 let targetPort = parseInt(process.env.PORT || '3000', 10);
 const DIST_DIR = path.join(__dirname, '..', 'dist');
+const enableWatch = !process.argv.includes('--no-watch') && process.env.NO_WATCH !== '1';
 
-if (!fs.existsSync(DIST_DIR)) {
-    console.error(`\n${c.red}${c.bold}❌ 错误: dist 目录不存在${c.reset}`);
-    console.error(`   请先在项目根目录运行 ${c.cyan}npm run build${c.reset} 完成生产编译。\n`);
-    process.exit(1);
+// 若 dist 产物不存在，自动执行首次全量构建
+if (!fs.existsSync(DIST_DIR) || !fs.existsSync(path.join(DIST_DIR, 'index.html'))) {
+    console.log(`\n${c.cyan}📦 未检测到 dist/ 生产产物，正在自动执行首次全量编译...${c.reset}`);
+    runFullBuild();
 }
 
 const MIME_TYPES = {
@@ -79,9 +81,11 @@ function createStaticServer() {
                     isFallback = true;
                 }
 
-                // 304 协商缓存 (基于 mtime)
+                const isWallpaper = rel.startsWith('wallpapers' + path.sep) || rel.startsWith('wallpapers/');
+
+                // 304 协商缓存 (仅对壁纸类不可变强缓存生效；开发环境下代码/脚本永远提供最新实体)
                 const ifModifiedSince = req.headers['if-modified-since'];
-                if (!isFallback && stats && ifModifiedSince) {
+                if (!isFallback && stats && ifModifiedSince && isWallpaper) {
                     const reqMtime = new Date(ifModifiedSince).getTime();
                     if (Math.floor(stats.mtimeMs / 1000) <= Math.floor(reqMtime / 1000)) {
                         res.writeHead(304, 'Not Modified');
@@ -98,11 +102,16 @@ function createStaticServer() {
                     res.setHeader('Last-Modified', stats.mtime.toUTCString());
                 }
 
-                const isWallpaper = rel.startsWith('wallpapers' + path.sep) || rel.startsWith('wallpapers/');
+                // 🛡️ 本地开发服务防滞后与 Service Worker 强管辖响应头
+                res.setHeader('Service-Worker-Allowed', '/');
+
                 if (isWallpaper) {
                     res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
                 } else {
-                    res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+                    // 本地开发调试防御：彻底禁用代码与文档 HTTP 缓存，配合增量编译杜绝跨版本旧缓存错配
+                    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
+                    res.setHeader('Pragma', 'no-cache');
+                    res.setHeader('Expires', '0');
                 }
 
                 // 仅对非文档类静态资产开放跨域读取；HTML 文档不设置 CORS
@@ -139,6 +148,78 @@ function createStaticServer() {
     });
 }
 
+function setupWatchMode() {
+    let rebuildTimer = null;
+    let isRebuilding = false;
+    let pendingChangedFile = null;
+
+    const doRebuild = () => {
+        if (isRebuilding) return;
+        isRebuilding = true;
+        const filename = pendingChangedFile || 'source';
+        pendingChangedFile = null;
+
+        console.log(`\n${c.magenta}📝 [Dev Server] 检测到源码修改: ${filename}，正在增量同步编译 dist/ ...${c.reset}`);
+        const start = Date.now();
+        try {
+            const res = runRebuild(filename);
+            const duration = res && res.duration ? res.duration : (Date.now() - start);
+            const ver = res && res.version ? res.version : '';
+            console.log(`  ${c.green}✔ [Dev Server] 增量编译完成！版本: ${c.cyan}${ver}${c.reset}${c.green} (耗时: ${duration}ms)${c.reset}\n`);
+        } catch (err) {
+            console.error(`  ${c.yellow}❌ [Dev Server] 增量编译失败:${c.reset}`, err.message || err);
+        } finally {
+            isRebuilding = false;
+            if (pendingChangedFile) {
+                rebuildTimer = setTimeout(doRebuild, 50);
+            }
+        }
+    };
+
+    const triggerRebuild = (name) => {
+        pendingChangedFile = name;
+        if (rebuildTimer) clearTimeout(rebuildTimer);
+        rebuildTimer = setTimeout(doRebuild, 50); // 50ms 极速防抖
+    };
+
+    const filesToWatch = [
+        { path: PATHS.indexHtml, name: 'index.html' },
+        { path: PATHS.bookmarksJson, name: 'bookmarks.json' },
+        { path: PATHS.sw, name: 'sw.js' },
+        { path: path.join(PATHS.root, 'manifest.json'), name: 'manifest.json' }
+    ];
+
+    const watchers = [];
+    filesToWatch.forEach(({ path: filePath, name }) => {
+        if (fs.existsSync(filePath)) {
+            try {
+                const watcher = fs.watch(filePath, () => triggerRebuild(name));
+                watchers.push(watcher);
+            } catch (err) {
+                console.warn(`  ${c.yellow}⚠ 无法监听 ${name}: ${err.message}${c.reset}`);
+            }
+        }
+    });
+
+    return () => {
+        if (rebuildTimer) clearTimeout(rebuildTimer);
+        watchers.forEach(w => {
+            try { w.close(); } catch {}
+        });
+    };
+}
+
+let watchCleanup = null;
+function cleanupAndExit() {
+    if (watchCleanup) {
+        watchCleanup();
+        watchCleanup = null;
+    }
+    process.exit(0);
+}
+process.on('SIGINT', cleanupAndExit);
+process.on('SIGTERM', cleanupAndExit);
+
 function getLanIps() {
     const interfaces = os.networkInterfaces();
     const ips = [];
@@ -156,6 +237,10 @@ function startListening(port) {
     const server = createStaticServer();
 
     server.listen(port, '0.0.0.0', () => {
+        if (enableWatch && !watchCleanup) {
+            watchCleanup = setupWatchMode();
+        }
+
         const lanIps = getLanIps();
         console.log(`\n${c.cyan}${HR_DOUBLE}${c.reset}`);
         console.log(`${c.bold}${c.cyan}🚀 Glass Start — 本地开发与局域网预览服务${c.reset}`);
@@ -169,8 +254,14 @@ function startListening(port) {
                 console.log(`  🌐 ${c.bold}其它网卡:${c.reset}    ${lanIps.slice(1).map(ip => `${c.cyan}http://${ip}:${port}/${c.reset}`).join(', ')}`);
             }
         }
+        if (enableWatch) {
+            console.log(`  👀 ${c.bold}增量监听:${c.reset}    ${c.green}已开启源码改动即时编译 (index.html, bookmarks.json, sw.js)${c.reset}`);
+        } else {
+            console.log(`  👀 ${c.bold}增量监听:${c.reset}    ${c.yellow}已关闭 (运行参数包含 --no-watch)${c.reset}`);
+        }
 
         console.log(`\n${c.gray}─── 💡 快速提示 ${'─'.repeat(LINE_WIDTH - 16)}${c.reset}`);
+        console.log(`  • 源码修改时服务将自动增量编译至 dist/ 并滚动版本指纹，直接刷新浏览器即可预览`);
         console.log(`  • 局域网设备 (手机 / 平板) 连接同一 Wi-Fi 后即可直接访问上述局域网地址`);
         console.log(`  • 停止本地服务请按: ${c.yellow}Ctrl + C${c.reset}`);
         console.log(`${c.gray}${HR_DOUBLE}${c.reset}\n`);
@@ -200,3 +291,4 @@ function startListening(port) {
 }
 
 startListening(targetPort);
+

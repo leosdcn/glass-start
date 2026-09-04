@@ -539,36 +539,82 @@ function main() {
     printDistSummary(startTime);
 }
 
-main();
+// 增量构建流程 (供 Watch Mode 与外部服务器调用)
+function rebuild(changedFile = 'source') {
+    const startTime = Date.now();
+    currentBuildVersion = 'app-core-v' + startTime;
+    compileTailwindCss();
+    buildServiceWorkerAndAssets();
+    syncBookmarksData();
+    processProductionAppJs();
+    processProductionHtml();
+    return {
+        version: currentBuildVersion,
+        duration: Date.now() - startTime
+    };
+}
 
-// 监听模式 (--watch)
-if (process.argv.includes('--watch')) {
+// 独立监听模式
+function startWatch(onRebuildSuccess) {
     console.log(`\n${c.yellow}👀 开启文件修改自动构建监听模式 (Watch Mode)...${c.reset}`);
-    console.log(`   ${c.dim}正在监听 index.html 与 bookmarks.json 的修改...${c.reset}\n`);
+    console.log(`   ${c.dim}正在监听 index.html, bookmarks.json, sw.js, manifest.json 等修改...${c.reset}\n`);
     let watchTimer = null;
     const triggerRebuild = (filename) => {
         if (watchTimer) clearTimeout(watchTimer);
         watchTimer = setTimeout(() => {
             console.log(`\n${c.magenta}📝 [Watch] 检测到文件修改: ${filename}，正在重新增量编译 dist/ ...${c.reset}`);
             try {
-                const rebuildStart = Date.now();
-                compileTailwindCss();
-                buildServiceWorkerAndAssets();
-                syncBookmarksData();
-                processProductionAppJs();
-                processProductionHtml();
-                const rebuildDuration = Date.now() - rebuildStart;
-                console.log(`  ${c.green}✔ [Watch] 增量编译完成！(耗时: ${rebuildDuration}ms)${c.reset}\n`);
+                const result = rebuild(filename);
+                console.log(`  ${c.green}✔ [Watch] 增量编译完成！版本: ${c.cyan}${result.version}${c.reset}${c.green} (耗时: ${result.duration}ms)${c.reset}\n`);
+                if (typeof onRebuildSuccess === 'function') {
+                    onRebuildSuccess(result);
+                }
             } catch (err) {
                 console.error(`  ${c.yellow}❌ [Watch] 增量编译失败:${c.reset}`, err.message || err);
             }
-        }, 120);
+        }, 80);
     };
 
-    if (fs.existsSync(PATHS.indexHtml)) {
-        fs.watch(PATHS.indexHtml, () => triggerRebuild('index.html'));
-    }
-    if (fs.existsSync(PATHS.bookmarksJson)) {
-        fs.watch(PATHS.bookmarksJson, () => triggerRebuild('bookmarks.json'));
+    const watchers = [];
+    const files = [
+        { path: PATHS.indexHtml, name: 'index.html' },
+        { path: PATHS.bookmarksJson, name: 'bookmarks.json' },
+        { path: PATHS.sw, name: 'sw.js' },
+        { path: path.join(PATHS.root, 'manifest.json'), name: 'manifest.json' }
+    ];
+
+    files.forEach(({ path: filePath, name }) => {
+        if (fs.existsSync(filePath)) {
+            try {
+                const w = fs.watch(filePath, () => triggerRebuild(name));
+                watchers.push(w);
+            } catch (e) {
+                console.warn(`  ${c.yellow}⚠ 无法监听文件 ${name}: ${e.message}${c.reset}`);
+            }
+        }
+    });
+
+    return () => {
+        watchers.forEach(w => {
+            try { w.close(); } catch {}
+        });
+    };
+}
+
+if (require.main === module) {
+    main();
+
+    // 监听模式 (--watch)
+    if (process.argv.includes('--watch')) {
+        startWatch();
     }
 }
+
+module.exports = {
+    main,
+    rebuild,
+    startWatch,
+    checkTailwindInstalled,
+    PATHS
+};
+
