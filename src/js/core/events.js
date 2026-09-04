@@ -952,11 +952,13 @@ export function bindEditEvents() {
         const openUrlInput = () => {
             const current = modalState.draftWallpaper || storageGet(CONFIG.KEYS.USER_WALLPAPER) || '';
             if (dom.urlBgInput) dom.urlBgInput.value = current.startsWith('http') ? current : '';
+            dom.urlBgBtnGroup?.classList.add('hidden');
             dom.urlBgInputRow?.classList.remove('hidden');
             dom.urlBgInput?.focus();
         };
         const closeUrlInput = () => {
             dom.urlBgInputRow?.classList.add('hidden');
+            dom.urlBgBtnGroup?.classList.remove('hidden');
             if (dom.urlBgInput) dom.urlBgInput.value = '';
         };
         const submitUrl = () => {

@@ -334,6 +334,15 @@ export function closeEditModal() {
     }
     animateHideModal(editModal);
 
+    const inputRow = dom.urlBgInputRow || $('urlBgInputRow');
+    if (inputRow && !inputRow.classList.contains('hidden')) {
+        inputRow.classList.add('hidden');
+        const btnGroup = dom.urlBgBtnGroup || $('urlBgBtnGroup');
+        btnGroup?.classList.remove('hidden');
+        const urlInput = dom.urlBgInput || $('urlBgInput');
+        if (urlInput) urlInput.value = '';
+    }
+
     if (editModalTriggerEl && typeof editModalTriggerEl.focus === 'function') {
         const opener = editModalTriggerEl;
         editModalTriggerEl = null;
