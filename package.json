@@ -6,6 +6,13 @@
   "scripts": {
     "build": "node scripts/build.js",
     "test": "node test/run.mjs",
+    "test:fast": "node test/run.mjs --no-build",
+    "test:ui": "node test/run.mjs ui --no-build",
+    "test:data": "node test/run.mjs data --no-build",
+    "test:infra": "node test/run.mjs infra --no-build",
+    "test:lifecycle": "node test/run.mjs lifecycle --no-build",
+    "test:all": "node test/run.mjs --force",
+    "test:visual": "node test/visual-regression.mjs",
     "lint": "node scripts/lint.mjs",
     "dev": "npm run build && node scripts/server.js",
     "watch": "node scripts/build.js --watch",

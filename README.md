@@ -524,7 +524,7 @@ add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsaf
 npm run lint && npm run build
 
 # 2. 全量端到端自动化测试验证 (4 大核心领域套件 24 项高密度断言)
-node test/run.mjs --force
+npm run test:all  # 或 node test/run.mjs --force
 
 # 3. 提交并打本地 Git Tag
 git add .

@@ -66,8 +66,8 @@
 - **铁律**：**严禁未经人类明确指令擅自执行 `git push`，严禁在日常任务中滥用 `--force` 启动全量重测！**
 - **执行准则**：
   - **Git 远程推送安全边界**：AI 可在本地执行 `git add` 和 `git commit` 保存进度，所有的远程推送（`git push`）必须由人类明确指示后方可执行；
-  - **日常敏捷自愈流**：书签与配置微调只跑 `npm run lint`（<10ms），局部功能修改只跑模块免构建单测（如 `node test/run.mjs <ui|data|infra> --no-build`，<50ms），常规提交前跑增量 `npm test`（<1s）；
-  - **`--force` 唯一合法场景**：仅在人类明确指示“全量测试”、“准备发布版本”或跨编译器重大重构时，才允许执行 `node test/run.mjs --force`。
+  - **日常敏捷自愈流**：书签与配置微调只跑 `npm run lint`（<10ms），局部功能修改只跑模块免构建单测（如 `npm run test:ui` / `npm run test:data` 或带 `--no-build` 单测，<50ms），常规提交前跑增量 `npm test`（<1s）；
+  - **`--force` 唯一合法场景**：仅在人类明确指示“全量测试”、“准备发布版本”或跨编译器重大重构时，才允许执行 `npm run test:all`（或 `node test/run.mjs --force`）。
 
 ---
 
@@ -92,10 +92,10 @@ flowchart TD
 npm run lint
 
 # 步骤 2：针对修改模块的免构建极速单测 (< 50ms)
-node test/run.mjs ui --no-build      # 修改 UI/切屏/弹窗时
-node test/run.mjs data --no-build    # 修改天气/书签搜索时
-node test/run.mjs infra --no-build   # 修改 SW缓存/安全标头时
-node test/run.mjs lifecycle --no-build # 修改黑匣子/生命周期/自愈阶梯时
+npm run test:ui         # 修改 UI/切屏/弹窗时 (或 node test/run.mjs ui --no-build)
+npm run test:data       # 修改天气/书签搜索时 (或 node test/run.mjs data --no-build)
+npm run test:infra      # 修改 SW缓存/安全标头时 (或 node test/run.mjs infra --no-build)
+npm run test:lifecycle  # 修改黑匣子/生命周期/自愈阶梯时 (或 node test/run.mjs lifecycle --no-build)
 
 # 步骤 3：常规提交前验证（利用 MD5 增量缓存，< 1s）
 npm test
@@ -107,10 +107,10 @@ npm test
 npm run build
 
 # 2. 全量端到端自动化测试套件 (4 大套件 24 项断言全跑)
-node test/run.mjs --force
+npm run test:all        # 或 node test/run.mjs --force
 
 # 3. 如涉及关键 UI / 动画 / 视口变动，执行多视口全景视觉回归测试 (11 大场景断言)
-node test/visual-regression.mjs
+npm run test:visual     # 或 node test/visual-regression.mjs
 ```
 
 ---
