@@ -281,7 +281,9 @@ function startListening(port) {
 
         // 仅在服务确已 listen 成功并能接收请求时，才自动唤起浏览器
         if (process.env.AUTO_OPEN !== '0') {
-            const url = `http://localhost:${port}`;
+            const isCleanMode = process.env.CLEAR_CACHE === '1' || process.argv.includes('--clear-cache');
+            const openPath = isCleanMode ? '/_clear_cache' : '';
+            const url = `http://localhost:${port}${openPath}`;
             if (process.platform === 'darwin') {
                 exec(`open "${url}"`);
             } else if (process.platform === 'win32') {
