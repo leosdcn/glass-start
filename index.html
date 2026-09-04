@@ -7197,6 +7197,24 @@
          * @param {boolean} [animate=true] - 是否启用跨图层渐变淡入动画
          * @returns {void}
          */
+        // 🧱 浏览器外壳保持静态双色：iOS 经深色模式半透明系统层渲染 chrome，
+        //    动态跟随壁纸在真机实测中人眼不可辨（已验证后回退），此处刻意不做采样
+        let cachedThemeColorMeta = null;
+        function updateThemeColor(color) {
+            if (!color) return;
+            if (!cachedThemeColorMeta || !cachedThemeColorMeta.parentNode) {
+                cachedThemeColorMeta = document.querySelector('meta[name="theme-color"]');
+                if (!cachedThemeColorMeta) {
+                    cachedThemeColorMeta = document.createElement('meta');
+                    cachedThemeColorMeta.name = 'theme-color';
+                    document.head.appendChild(cachedThemeColorMeta);
+                }
+            }
+            if (cachedThemeColorMeta.content !== color) {
+                cachedThemeColorMeta.content = color;
+            }
+        }
+
         function applyWallpaper(urlStr, animate = true) {
             const bgBase = dom.bgLayer || $('bgLayer');
             const bgNext = dom.bgLayerNext || $('bgLayerNext');
@@ -7354,22 +7372,6 @@
             function updateGearVisibility() {
                 if (dom.editBookmarksBtn) {
                     dom.editBookmarksBtn.classList.toggle('hidden-on-nav', state.currentSection === 'nav');
-                }
-            }
-
-            let cachedThemeColorMeta = null;
-            function updateThemeColor(color) {
-                if (!color) return;
-                if (!cachedThemeColorMeta || !cachedThemeColorMeta.parentNode) {
-                    cachedThemeColorMeta = document.querySelector('meta[name="theme-color"]');
-                    if (!cachedThemeColorMeta) {
-                        cachedThemeColorMeta = document.createElement('meta');
-                        cachedThemeColorMeta.name = 'theme-color';
-                        document.head.appendChild(cachedThemeColorMeta);
-                    }
-                }
-                if (cachedThemeColorMeta.content !== color) {
-                    cachedThemeColorMeta.content = color;
                 }
             }
 
@@ -7545,6 +7547,7 @@
                 if (navContent) navContent.scrollTop = 0;
                 saveSection('start');
                 updateSectionAccessibility('start');
+                updateGearVisibility();
                 updateThemeColor('#0b0f19');
 
                 if (startSection) {
