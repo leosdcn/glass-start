@@ -233,7 +233,7 @@ export function getEditRowHTML(name = '', url = '', idx = '', icon = '') {
                 <input type="text" id="bm-url-${rowId}" name="bookmark_url_${rowId}" inputmode="url" autocapitalize="off" class="edit-url w-full sm:w-2/3 bg-black/25 border border-white/10 rounded-lg px-2.5 py-1 sm:py-1.5 text-base sm:text-xs text-white/60 focus:border-white/40 focus:bg-black/40 focus:text-white focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:outline-none outline-none transition font-mono" value="${escapeHtml(url)}" placeholder="https://..." aria-label="书签网址">
             </div>
             <button type="button" class="del-btn shrink-0 size-7 sm:size-8 p-1 hover:bg-red-500/20 rounded-full text-white/30 hover:text-red-400 flex items-center justify-center transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-1 focus-visible:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed" aria-label="删除书签">
-                <svg class="size-4 pointer-events-none" aria-hidden="true"><use href="#icon-trash"/></svg>
+                <svg class="size-4 pointer-events-none translate-y-px" aria-hidden="true"><use href="#icon-trash"/></svg>
             </button>
         </div>
     `;
