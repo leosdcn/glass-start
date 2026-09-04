@@ -7403,10 +7403,6 @@
                     initFaviconObserver();
                 } else {
                     if (startSection) {
-                        // 🛡️ WebKit 图层重栅格化防御：无条件触发合成层重绘，确保离屏图层磁贴永不丢失
-                        startSection.style.willChange = 'auto';
-                        void startSection.offsetHeight;
-                        startSection.style.willChange = 'transform';
                         startSection.classList.remove('screen-pushed-up');
                     }
                     if (nav) {
@@ -7473,9 +7469,6 @@
                 if (nav) {
                     nav.style.transform = '';
                     nav.style.transition = '';
-                    nav.style.willChange = 'auto';
-                    void nav.offsetHeight;
-                    nav.style.willChange = 'transform';
                     nav.classList.remove('nav-hidden');
                     nav.classList.add('nav-visible', 'screen-pushed-in');
                 }
@@ -7527,10 +7520,6 @@
                 if (startSection) {
                     startSection.style.transform = '';
                     startSection.style.transition = '';
-                    // 🛡️ WebKit 图层重栅格化防御：无条件触发合成层重绘，确保离屏图层磁贴永不丢失
-                    startSection.style.willChange = 'auto';
-                    void startSection.offsetHeight;
-                    startSection.style.willChange = 'transform';
                     startSection.classList.remove('screen-pushed-up');
                 }
                 if (nav) {
@@ -7769,15 +7758,20 @@
                         if (reg) reg.update().catch(() => {});
                     }).catch(() => {});
                 }
-                // 7. 🛡️ 强制刷新 WebKit 合成层磁贴 (BFCache & Tab Switch Tile Invalidation Guard)
+                // 7. 🛡️ 强制刷新 WebKit 合成层磁贴与 Backdrop 缓存 (BFCache & Tab Switch Guard)
                 // 覆盖 visibilitychange（多标签切回）与 pageshow（BFCache 后退）双通道
-                // WebKit 在后台休眠时会释放离屏磁贴，唤醒静止时刻触发一次重绘，完全不破坏切屏动画 120fps 丝滑度
-                const activeSec = (state && state.currentSection === 'nav') ? dom.navSection : dom.startSection;
-                if (activeSec) {
-                    activeSec.style.willChange = 'auto';
-                    void activeSec.offsetHeight;
-                    activeSec.style.willChange = 'transform';
-                }
+                // WebKit 在后台休眠时会主动释放离屏图层的 GPU Backing Store 与 -webkit-backdrop-filter 缓冲区
+                // 唤醒静止帧对首屏与导航屏双向触发 display 瞬态重置，强制 WebKit 重新分配合成层磁贴，
+                // 彻底杜绝从书签/后台标签切回后再切第二屏只剩壁纸内容空白的 WebKit 渲染缺陷
+                [dom.startSection, dom.navSection].forEach(sec => {
+                    if (sec) {
+                        sec.style.willChange = 'auto';
+                        sec.style.display = 'none';
+                        void sec.offsetHeight;
+                        sec.style.display = '';
+                        sec.style.willChange = 'transform';
+                    }
+                });
                 // 8. 标签页与 BFCache 唤醒时静默校验气象缓存有效期并按需刷新
                 if (typeof updateWeather === 'function') {
                     updateWeather(false).catch(() => {});

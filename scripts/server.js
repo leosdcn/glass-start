@@ -58,14 +58,14 @@ function createStaticServer() {
     return http.createServer((req, res) => {
         try {
             const urlRaw = req.url || '/';
-            // 🛡️ 本地开发环境旧缓存与状态污染一键清除通道 (Clear-Site-Data Guard)
+            // 🛡️ 本地开发环境旧缓存与状态污染一键清除通道 (Clear-Site-Data & Active Client-Side Purge)
             if (urlRaw.startsWith('/_clear_cache') || urlRaw.includes('clear-cache=1')) {
                 res.writeHead(200, {
                     'Content-Type': 'text/html; charset=utf-8',
                     'Clear-Site-Data': '"cache", "storage"',
                     'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0'
                 });
-                res.end(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>缓存已重置</title></head><body style="font-family:system-ui;background:#0b0f19;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;"><div style="text-align:center;"><h2 style="margin-bottom:8px;">✨ 本地站点缓存与存储数据已全部清空！</h2><p style="opacity:0.7;font-size:14px;">正在自动返回起始页...</p><script>setTimeout(()=>{location.href='/'},1200);</script></div></body></html>`);
+                res.end(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>本地缓存深度重置</title></head><body style="font-family:system-ui;background:#0b0f19;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;"><div style="text-align:center;max-width:420px;padding:24px;"><h2 style="margin-bottom:8px;font-size:18px;">🧹 正在深度净化 Safari 本地缓存...</h2><p id="msg" style="opacity:0.7;font-size:13px;line-height:1.6;">正在注销 Service Worker 并清空 CacheStorage / Storage...</p></div><script>(async function(){try{if('serviceWorker' in navigator){const regs=await navigator.serviceWorker.getRegistrations();for(const r of regs)await r.unregister();}if('caches' in window){const keys=await caches.keys();for(const k of keys)await caches.delete(k);}try{localStorage.clear();}catch(e){}try{sessionStorage.clear();}catch(e){}if('indexedDB' in window){try{indexedDB.deleteDatabase('GlassStartDB');}catch(e){}}document.getElementById('msg').textContent='✨ 清理完成！正在重新加载纯净起始页...';}catch(err){console.error('Purge error:',err);}finally{setTimeout(()=>{location.href='/?_purge='+Date.now();},500);}})();</script></body></html>`);
                 return;
             }
 
