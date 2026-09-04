@@ -7731,12 +7731,14 @@
                         if (reg) reg.update().catch(() => {});
                     }).catch(() => {});
                 }
-                // 7. 🛡️ 强制刷新 WebKit 合成层磁贴 (BFCache Tile Invalidation Guard)
-                // 门控：仅在真实 BFCache 恢复（persisted=true）时执行，常规唤醒零开销
-                if (dom.startSection && wasPersisted) {
-                    dom.startSection.style.willChange = 'auto';
-                    void dom.startSection.offsetHeight;
-                    dom.startSection.style.willChange = 'transform';
+                // 7. 🛡️ 强制刷新 WebKit 合成层磁贴 (BFCache & Tab Switch Tile Invalidation Guard)
+                // 覆盖 visibilitychange（多标签切回）与 pageshow（BFCache 后退）双通道
+                // WebKit 在后台休眠时会释放离屏磁贴，唤醒静止时刻触发一次重绘，完全不破坏切屏动画 120fps 丝滑度
+                const activeSec = (state && state.currentSection === 'nav') ? dom.navSection : dom.startSection;
+                if (activeSec) {
+                    activeSec.style.willChange = 'auto';
+                    void activeSec.offsetHeight;
+                    activeSec.style.willChange = 'transform';
                 }
                 // 8. 标签页与 BFCache 唤醒时静默校验气象缓存有效期并按需刷新
                 if (typeof updateWeather === 'function') {

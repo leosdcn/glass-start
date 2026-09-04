@@ -57,7 +57,19 @@ const MIME_TYPES = {
 function createStaticServer() {
     return http.createServer((req, res) => {
         try {
-            let reqPath = decodeURIComponent((req.url || '/').split('?')[0]);
+            const urlRaw = req.url || '/';
+            // 🛡️ 本地开发环境旧缓存与状态污染一键清除通道 (Clear-Site-Data Guard)
+            if (urlRaw.startsWith('/_clear_cache') || urlRaw.includes('clear-cache=1')) {
+                res.writeHead(200, {
+                    'Content-Type': 'text/html; charset=utf-8',
+                    'Clear-Site-Data': '"cache", "storage"',
+                    'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0'
+                });
+                res.end(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>缓存已重置</title></head><body style="font-family:system-ui;background:#0b0f19;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;"><div style="text-align:center;"><h2 style="margin-bottom:8px;">✨ 本地站点缓存与存储数据已全部清空！</h2><p style="opacity:0.7;font-size:14px;">正在自动返回起始页...</p><script>setTimeout(()=>{location.href='/'},1200);</script></div></body></html>`);
+                return;
+            }
+
+            let reqPath = decodeURIComponent(urlRaw.split('?')[0]);
             if (reqPath === '/' || reqPath === '') {
                 reqPath = '/index.html';
             }
@@ -262,6 +274,7 @@ function startListening(port) {
 
         console.log(`\n${c.gray}─── 💡 快速提示 ${'─'.repeat(LINE_WIDTH - 16)}${c.reset}`);
         console.log(`  • 源码修改时服务将自动增量编译至 dist/ 并滚动版本指纹，直接刷新浏览器即可预览`);
+        console.log(`  • 如遇本地缓存污染或状态异常，直接访问: ${c.yellow}http://localhost:${port}/_clear_cache${c.reset} 即可一键抹除重置`);
         console.log(`  • 局域网设备 (手机 / 平板) 连接同一 Wi-Fi 后即可直接访问上述局域网地址`);
         console.log(`  • 停止本地服务请按: ${c.yellow}Ctrl + C${c.reset}`);
         console.log(`${c.gray}${HR_DOUBLE}${c.reset}\n`);
