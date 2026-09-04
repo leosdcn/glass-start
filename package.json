@@ -1,6 +1,6 @@
 {
   "name": "glass-start",
-  "version": "3.9.0",
+  "version": "3.10.0",
   "description": "Glass Start - 现代极简、毛玻璃质感、灵动动画的起始页与分类导航",
   "main": "index.html",
   "scripts": {

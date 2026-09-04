@@ -143,6 +143,38 @@
               }
             }
             window.__PRELOADED_BG__ = preloadUrl;
+            // 预设壁纸与自适应主题色 0ms 闪电对齐：消除 Safari 模式闪烁
+            const PRESET_THEMES = [
+              { color: '#0b0f19', isLight: false }, // bg1: 山峦夜空 (默认)
+              { color: '#889baa', isLight: true },  // bg2: 湖光山色
+              { color: '#16241b', isLight: false }, // bg3: 森林瀑布
+              { color: '#0b101c', isLight: false }, // bg4: 星空雪山
+              { color: '#2e2b25', isLight: false }, // bg5: 壮丽旷野
+              { color: '#8daaa3', isLight: true },  // bg6: 静谧海岸
+              { color: '#9c9690', isLight: true },  // bg7: 迷雾古堡
+              { color: '#caa45a', isLight: true }   // bg8: 梦幻流彩
+            ];
+            let initTheme = null;
+            const isCustom = preloadUrl && !preloadUrl.startsWith('./wallpapers/');
+            if (isCustom) {
+              try {
+                const cached = JSON.parse(localStorage.getItem('glass_theme_cache'));
+                if (cached && cached.color) initTheme = cached;
+              } catch(e) {}
+            } else {
+              const pIdx = backgrounds.indexOf(preloadUrl);
+              initTheme = (pIdx >= 0 && PRESET_THEMES[pIdx]) ? PRESET_THEMES[pIdx] : PRESET_THEMES[0];
+            }
+            if (initTheme && initTheme.color) {
+              const targetColor = initTheme.color;
+              const metaTheme = document.querySelector('meta[name="theme-color"]');
+              if (metaTheme) metaTheme.content = targetColor;
+              document.documentElement.style.colorScheme = initTheme.isLight ? 'light' : 'dark';
+              document.documentElement.style.backgroundColor = targetColor;
+              document.documentElement.style.setProperty('--bg-base', targetColor);
+              document.documentElement.style.setProperty('--bg-start', targetColor);
+              window.__INITIAL_THEME__ = initTheme;
+            }
             if (preloadUrl && !preloadUrl.startsWith('data:')) {
               const newLink = document.createElement('link');
               newLink.id = 'preloadWallpaper';
@@ -204,7 +236,7 @@
         .text-2xs { font-size: 0.625rem; letter-spacing: -0.012em; }
         .text-2xs-plus { font-size: 0.6875rem; letter-spacing: -0.012em; }
         :root {
-            color-scheme: dark;
+            color-scheme: dark light;
             --bg-base: #0f172a;
             --bg-start: #0b0f19;
             --danger: 239 68 68;
@@ -1744,7 +1776,7 @@
                         <div>
                             <div class="flex items-center gap-2">
                                 <span class="text-sm font-semibold text-white/95 tracking-tight leading-none">Glass Start</span>
-                                <span class="text-2xs px-2 h-4.5 rounded-full bg-white/10 border border-white/15 text-white/75 font-medium inline-flex items-center justify-center select-none">v3.9.0</span>
+                                <span class="text-2xs px-2 h-4.5 rounded-full bg-white/10 border border-white/15 text-white/75 font-medium inline-flex items-center justify-center select-none">v3.10.0</span>
                             </div>
                             <div class="text-2xs text-white/50 leading-none mt-1.5">极简 Liquid Glass 拟态导航 • Build 2026.08</div>
                         </div>
@@ -7197,10 +7229,21 @@
          * @param {boolean} [animate=true] - 是否启用跨图层渐变淡入动画
          * @returns {void}
          */
-        // 🧱 浏览器外壳保持静态双色：iOS 经深色模式半透明系统层渲染 chrome，
-        //    动态跟随壁纸在真机实测中人眼不可辨（已验证后回退），此处刻意不做采样
+        // 🧱 浏览器外壳主题管理引擎：基于壁纸感知亮度动态裁决 Safari 顶栏外观与 color-scheme
+        const PRESET_WALLPAPER_THEMES = [
+            { color: '#0b0f19', isLight: false }, // bg1: 山峦夜空 (默认)
+            { color: '#889baa', isLight: true },  // bg2: 湖光山色
+            { color: '#16241b', isLight: false }, // bg3: 森林瀑布
+            { color: '#0b101c', isLight: false }, // bg4: 星空雪山
+            { color: '#2e2b25', isLight: false }, // bg5: 壮丽旷野
+            { color: '#8daaa3', isLight: true },  // bg6: 静谧海岸
+            { color: '#9c9690', isLight: true },  // bg7: 迷雾古堡
+            { color: '#caa45a', isLight: true }   // bg8: 梦幻流彩
+        ];
+        let currentWallpaperTheme = window.__INITIAL_THEME__ || { color: '#0b0f19', isLight: false };
         let cachedThemeColorMeta = null;
-        function updateThemeColor(color) {
+
+        function updateThemeColor(color, isLight) {
             if (!color) return;
             if (!cachedThemeColorMeta || !cachedThemeColorMeta.parentNode) {
                 cachedThemeColorMeta = document.querySelector('meta[name="theme-color"]');
@@ -7213,6 +7256,71 @@
             if (cachedThemeColorMeta.content !== color) {
                 cachedThemeColorMeta.content = color;
             }
+            if (typeof isLight === 'boolean') {
+                const scheme = isLight ? 'light' : 'dark';
+                if (document.documentElement.style.colorScheme !== scheme) {
+                    document.documentElement.style.colorScheme = scheme;
+                }
+            }
+            if (document.documentElement) {
+                document.documentElement.style.backgroundColor = color;
+                document.documentElement.style.setProperty('--bg-base', color);
+                document.documentElement.style.setProperty('--bg-start', color);
+            }
+            if (document.body) {
+                document.body.style.backgroundColor = color;
+            }
+            const bgBase = dom.bgLayer || $('bgLayer');
+            const bgNext = dom.bgLayerNext || $('bgLayerNext');
+            if (bgBase) bgBase.style.backgroundColor = color;
+            if (bgNext) bgNext.style.backgroundColor = color;
+        }
+
+        function syncThemeForSection() {
+            if (currentWallpaperTheme && currentWallpaperTheme.color) {
+                updateThemeColor(currentWallpaperTheme.color, currentWallpaperTheme.isLight);
+            } else {
+                updateThemeColor('#0b0f19', false);
+            }
+        }
+
+        function setWallpaperTheme(theme) {
+            if (!theme || !theme.color) return;
+            currentWallpaperTheme = theme;
+            syncThemeForSection(state.currentSection || 'start');
+        }
+
+        function sampleCustomWallpaperTheme(img) {
+            try {
+                const canvas = document.createElement('canvas');
+                canvas.width = 16;
+                canvas.height = 4;
+                const ctx = canvas.getContext('2d', { willReadFrequently: true });
+                if (!ctx) return;
+                const srcH = Math.max(1, Math.floor(img.naturalHeight * 0.15));
+                ctx.drawImage(img, 0, 0, img.naturalWidth, srcH, 0, 0, 16, 4);
+                const data = ctx.getImageData(0, 0, 16, 4).data;
+                let rTotal = 0, gTotal = 0, bTotal = 0, count = 0;
+                for (let i = 0; i < data.length; i += 4) {
+                    rTotal += data[i];
+                    gTotal += data[i + 1];
+                    bTotal += data[i + 2];
+                    count++;
+                }
+                if (count === 0) return;
+                const maskOp = (storageGet(CONFIG.KEYS.MASK_OPACITY, 15) || 15) / 100;
+                const r = Math.round((rTotal / count) * (1 - maskOp));
+                const g = Math.round((gTotal / count) * (1 - maskOp));
+                const b = Math.round((bTotal / count) * (1 - maskOp));
+                const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+                const isLight = lum > 128;
+                const hex = '#' + [r, g, b].map(x => Math.min(255, Math.max(0, x)).toString(16).padStart(2, '0')).join('');
+                const theme = { color: hex, isLight };
+                storageSet('glass_theme_cache', theme);
+                setWallpaperTheme(theme);
+            } catch {
+                setWallpaperTheme({ color: '#0b0f19', isLight: false });
+            }
         }
 
         function applyWallpaper(urlStr, animate = true) {
@@ -7222,6 +7330,12 @@
 
             activeWallpaperReqId++;
             const reqId = activeWallpaperReqId;
+
+            // 匹配预设或离线采样壁纸主题色，动态自适应 Safari 顶栏外观
+            const presetIdx = backgrounds.indexOf(urlStr);
+            if (presetIdx >= 0 && PRESET_WALLPAPER_THEMES[presetIdx]) {
+                setWallpaperTheme(PRESET_WALLPAPER_THEMES[presetIdx]);
+            }
 
             // 过滤 URL 中可能破坏 CSS url() 语法的引号、反斜杠、右括号与换行符
             const safeCssUrl = urlStr.replace(/["'\\\r\n)]/g, '\\$&');
@@ -7236,6 +7350,10 @@
                 if (bgSwitchTimer) {
                     clearTimeout(bgSwitchTimer);
                     bgSwitchTimer = null;
+                }
+
+                if (presetIdx < 0 && img.naturalWidth > 0) {
+                    sampleCustomWallpaperTheme(img);
                 }
 
                 if (animate) {
@@ -7402,7 +7520,7 @@
                 saveSection(sec);
                 updateSectionAccessibility(sec);
                 updateGearVisibility();
-                updateThemeColor(sec === 'nav' ? '#12141a' : '#0b0f19');
+                syncThemeForSection(sec);
 
                 // 确保全局滚动偏移归零
                 window.scrollTo(0, 0);
@@ -7478,7 +7596,7 @@
                 saveSection('nav');
                 updateSectionAccessibility('nav');
                 updateGearVisibility();
-                updateThemeColor('#12141a');
+                syncThemeForSection('nav');
 
                 // 首次触发切屏时持久化并优雅淡出下滑提示
                 try {
@@ -7548,7 +7666,7 @@
                 saveSection('start');
                 updateSectionAccessibility('start');
                 updateGearVisibility();
-                updateThemeColor('#0b0f19');
+                syncThemeForSection('start');
 
                 if (startSection) {
                     startSection.style.transform = '';
