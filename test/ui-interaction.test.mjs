@@ -482,7 +482,7 @@ const focusTrapCheck = await evalJS(`(async () => {
   pickerBtn.click();
   await new Promise(r => setTimeout(r, 300));
   const pickerOpenExpanded = pickerBtn ? pickerBtn.getAttribute('aria-expanded') : null;
-  document.getElementById('closePickerBtn').click();
+  document.getElementById('donePickerBtn').click();
   await new Promise(r => setTimeout(r, 300));
   const pickerClosedExpanded = pickerBtn ? pickerBtn.getAttribute('aria-expanded') : null;
   const pickerTriggerRestoredOk = document.activeElement && document.activeElement.id === 'togglePickerBtn';

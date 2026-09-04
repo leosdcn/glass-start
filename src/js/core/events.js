@@ -679,7 +679,6 @@ export function bindEditEvents() {
     dom.cancelEditBtn?.addEventListener('click', cancelEditModal);
     dom.editModal?.addEventListener('click', cancelEditModal);
     dom.togglePickerBtn?.addEventListener('click', e => { e.stopPropagation(); openBookmarkPicker(dom.togglePickerBtn); });
-    dom.closePickerBtn?.addEventListener('click', closeBookmarkPicker);
     dom.donePickerBtn?.addEventListener('click', closeBookmarkPicker);
     dom.bookmarkPicker?.addEventListener('click', closeBookmarkPicker);
     dom.closeShortcutBtn?.addEventListener('click', closeShortcutModal);
