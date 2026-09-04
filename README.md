@@ -311,7 +311,7 @@ glass-start/
 ├── ⚙️ 根目录工程配置与文档体系 (7 个)
 │   ├── start.command         # macOS 访达一键双击启动快捷指令（默认深度净化启动）
 │   ├── package.json          # Node 项目配置（0 运行时依赖，仅 devDependencies 构建工具）
-│   ├── package-lock.json     # 依赖锁定清单（严格锁定 SemVer v4.2.0）
+│   ├── package-lock.json     # 依赖锁定清单（严格锁定 npm 依赖与版本规范）
 │   ├── .gitignore            # Git 忽略规则（已严格隔离 dist/、node_modules/、test 产物）
 │   ├── README.md             # 全站功能特性、使用手册、架构表与部署指南
 │   ├── ARCHITECTURE.md       # 系统分层、双屏状态机、OverlayStack 等 5 大 Mermaid 白皮书
@@ -491,7 +491,7 @@ add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsaf
 | **Service Worker** | 项目内组件 | `v11` | `sw.js` 头部注释；三池隔离 + FIFO 容量限额缓存架构 |
 | **CORE_CACHE** | 缓存池版本 | `app-core-v<时间戳>` | `sw.js`；每次 `npm run build` 自动更新，强制客户端刷新旧缓存 |
 | **FAVICON_CACHE / IMG_CACHE** | 缓存池版本 | `v1` | `sw.js`；图标 / 本地图片独立缓存池 |
-| **Glass Start 站点版本** | 项目发布版本 | `v4.2.0` | `package.json` + `index.html` 设置面板徽章 |
+| **Glass Start 站点版本** | 项目发布版本 | `package.json` | 遵循 SemVer 规范；构建时自动向 `dist/index.html` 徽章注入 |
 
 **无版本号的外部服务**（非框架，版本由服务商维护，升级无需本项目介入）：
 - `a.favicon.im` — Favicon 图标 API
@@ -513,12 +513,10 @@ add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsaf
 | **功能新增（Minor）** | `v3.1.4` ➔ **`v3.2.0`**<br>`v4.1.0` ➔ **`v4.2.0`** | **新增功能模块、向下兼容特性上线** | 递增中间次版本号，**末位修订号强制重置归零**。用于新增独立功能（如待办/便签小组件、主题色彩切换、新搜索引擎添加器）或重大性能体验重构。 |
 | **重大重构（Major）** | `v3.x.x` ➔ **`v4.0.0`** | **颠覆性架构升级、破坏性重构** | 递增首位主版本号，**后两位次版本与修订号全部强制归零**。用于底层渲染引擎颠覆、核心视觉形态根本性改变或不向下兼容的存储模型迁移。 |
 
-#### 🛠️ 版本升级操作清单（4 处文件对齐）
-每次发布新版本时，需同步对齐以下 4 处文件中的版本号字符串：
-1. `package.json`：`"version": "x.y.z"`
-2. `package-lock.json`：第 3 行与第 9 行 `"version": "x.y.z"`
-3. `index.html` / `src/index.html`：设置弹窗中的数据仪表盘版本徽章 `<span ...>vx.y.z</span>`
-4. `README.md`：第 6 节依赖清单表格中的 `Glass Start 站点版本`
+#### 🛠️ 版本升级操作清单（单一真理源模式）
+本项目采用以 `package.json` 为**唯一真理源（Single Source of Truth）**的版本发布架构。每次发布新版本只需更新 `package.json`：
+1. **修改版本号**：修改 `package.json` 中的 `"version": "x.y.z"`（或执行 `npm version <x.y.z> --no-git-tag-version` 自动联动 `package-lock.json`）；
+2. **构建自动注入**：执行 `npm run build`，流水线将自动将最新版本号注入到 `dist/index.html` 品牌卡片版本徽章中，无需手动在源码或文档中重复修改。
 
 #### 🚀 标准发布构建与测试流水线
 ```bash

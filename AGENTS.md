@@ -54,11 +54,11 @@
 
 ---
 
-### 6. 🔴 版本发布与 3 大核心文档强一致性 (SemVer & Tri-Document Coherence)
-- **铁律**：发布新版本或执行重大架构变更时，必须同步交叉对齐 4 处版本号与 3 大核心 Markdown 文档，严禁只改代码而遗留文档陈旧或自相矛盾。
+### 6. 🔴 单一真理源版本发布与核心文档强一致性 (SemVer & Tri-Document Coherence)
+- **铁律**：发布新版本或执行重大架构变更时，版本号以 `package.json` 为唯一真理源（构建时自动注入 `dist/` 产物徽章），并保持 3 大核心 Markdown 文档说辞同步，严禁文档陈旧或自相矛盾。
 - **执行准则**：
-  - **SemVer 4 处版本号强一致**：同步对齐 `package.json`、`package-lock.json`（根与 package 节点）、`src/index.html`（设置弹窗徽章）与 `README.md`（依赖清单表格）；
-  - **3 大 MD 文档说辞强一致**：交付前交叉统一 [**AGENTS.md**](./AGENTS.md)、[**ARCHITECTURE.md**](./ARCHITECTURE.md) 与 [**README.md**](./README.md) 中的命令参数（如 `--no-build`）、文件路径、版本号与专业术语。
+  - **SemVer 单一真理源**：版本号以 `package.json`（及 npm 自动联动的 `package-lock.json`）为唯一源头，由 `scripts/build.js` 自动将最新版本号注入生产 HTML 徽章，杜绝人工多处重复修改；
+  - **3 大 MD 文档说辞强一致**：交付前交叉统一 [**AGENTS.md**](./AGENTS.md)、[**ARCHITECTURE.md**](./ARCHITECTURE.md) 与 [**README.md**](./README.md) 中的命令参数（如 `--no-build`）、文件路径与专业术语。
 
 ---
 

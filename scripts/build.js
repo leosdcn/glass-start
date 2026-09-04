@@ -86,6 +86,7 @@ const PATHS = {
     dist: path.join(ROOT_DIR, 'dist'),
     tempCss: path.join(ROOT_DIR, '.temp_input.css'),
     bookmarksJson: path.join(ROOT_DIR, 'bookmarks.json'),
+    pkgJson: path.join(ROOT_DIR, 'package.json'),
     sw: path.join(ROOT_DIR, 'sw.js'),
     wallpapers: path.join(ROOT_DIR, 'wallpapers'),
     headers: path.join(ROOT_DIR, '_headers')
@@ -351,7 +352,18 @@ function processProductionHtml() {
         `$1<script>window.__GLASS_BUILD_HTML__="${currentBuildVersion}"</script><script src="./app.js?v=${currentBuildVersion}" defer></script>`
     );
 
-    // 5.0.2 注入全局 SVG 精灵池 (若存在 src/svg/sprite.svg)
+    // 5.0.2 单一真理源：自动将 package.json 中的版本号注入到 index.html 品牌卡片徽章中
+    try {
+        const pkgData = JSON.parse(fs.readFileSync(PATHS.pkgJson, 'utf-8'));
+        if (pkgData && pkgData.version) {
+            prodHtmlContent = prodHtmlContent.replace(
+                /(<span[^>]*class="[^"]*rounded-full[^"]*"[^>]*>)v?[0-9]+\.[0-9]+\.[0-9]+(<\/span>)/i,
+                `$1v${pkgData.version}$2`
+            );
+        }
+    } catch {}
+
+    // 5.0.3 注入全局 SVG 精灵池 (若存在 src/svg/sprite.svg)
     if (fs.existsSync(PATHS.srcSvg)) {
         const svgSprite = fs.readFileSync(PATHS.srcSvg, 'utf-8');
         if (prodHtmlContent.includes('<!-- INJECT_SVG_SPRITE -->')) {

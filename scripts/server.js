@@ -206,6 +206,7 @@ function setupWatchMode() {
     const filesToWatch = [
         { path: PATHS.src, name: 'src/' },
         { path: PATHS.bookmarksJson, name: 'bookmarks.json' },
+        { path: PATHS.pkgJson, name: 'package.json' },
         { path: PATHS.sw, name: 'sw.js' },
         { path: path.join(PATHS.root, 'manifest.json'), name: 'manifest.json' }
     ];

@@ -170,26 +170,24 @@ logSection('4/4', '🛡️  校验版本号全量对齐与移动端输入规范'
 try {
     const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf-8'));
     const lock = JSON.parse(readFileSync(join(root, 'package-lock.json'), 'utf-8'));
-    const readmeContent = readFileSync(join(root, 'README.md'), 'utf-8');
 
     const expectedVersion = pkg.version;
     const lockVersion = lock.version;
     const lockPkgVersion = lock.packages?.['']?.version;
-    const htmlMatch = indexHtml.match(/<span[^>]*class="[^"]*rounded-full[^"]*"[^>]*>v?([0-9]+\.[0-9]+\.[0-9]+)<\/span>/i);
-    const htmlVersion = htmlMatch ? htmlMatch[1] : null;
-    const readmeMatch = readmeContent.match(/\|\s*\*\*Glass Start 站点版本\*\*\s*\|\s*项目发布版本\s*\|\s*`v?([0-9]+\.[0-9]+\.[0-9]+)`/i);
-    const readmeVersion = readmeMatch ? readmeMatch[1] : null;
 
-    if (expectedVersion && lockVersion === expectedVersion && lockPkgVersion === expectedVersion && htmlVersion === expectedVersion && readmeVersion === expectedVersion) {
+    // 单一真理源校验：package.json 与 package-lock.json 保持同步
+    const isLockSynced = lockVersion === expectedVersion && lockPkgVersion === expectedVersion;
+
+    if (expectedVersion && isLockSynced) {
         passCount++;
-        logItem(`版本号一致性 (v${expectedVersion}) 4 处文件 100% 对齐`);
+        logItem(`版本号单一真理源 (v${expectedVersion}) package.json 与 package-lock.json 100% 对齐`);
     } else {
         failCount++;
-        logItem(`版本号不一致: pkg=${expectedVersion}, lock=${lockVersion}, html=${htmlVersion}, readme=${readmeVersion}`, 'error');
+        logItem(`版本号未对齐: pkg=${expectedVersion}, lock=${lockVersion}, lockPkg=${lockPkgVersion}`, 'error');
     }
 } catch (e) {
     failCount++;
-    logItem(`版本号一致性检查异常: ${e.message}`, 'error');
+    logItem(`版本号单一真理源检查异常: ${e.message}`, 'error');
 }
 
 // 4.2 移动端 iOS 16px 防放大输入框规范静态扫描
