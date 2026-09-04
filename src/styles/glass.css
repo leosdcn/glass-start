@@ -278,7 +278,7 @@
     }
 }
 
-/* 危险区域 (Danger Zone) 玻璃风红框样式 */
+/* 还原初始设置 玻璃风红框样式 */
 .danger-zone-card {
     background: rgb(var(--danger) / 0.08);
     border: 1px solid rgb(var(--danger) / 0.25);
