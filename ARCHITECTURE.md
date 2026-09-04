@@ -428,18 +428,18 @@ flowchart TD
 
 ### 6. 📍 精确符号索引地图与代码区域导航 (Symbol Index & Region Map)
 
-为彻底杜绝 AI 开发过程中的“盲目通读大量代码”，下表提供了 `index.html` 核心业务逻辑的微观精确路标。AI 代理**必须优先通过唯一的 `@region` 标识符或核心函数名精准直达目标代码**，严禁进行大范围无目的代码切片。
+为彻底杜绝 AI 开发过程中的“盲目通读大量代码”，下表提供了核心业务逻辑的微观精确路标。工程现已全面完成 `src/` 原生 ES 模块化解耦，AI 代理**必须优先通过唯一的 `@region` 标识符或对应的 `src/` 模块文件直接定位目标代码**，严禁进行大范围无目的代码切片。
 
-| 业务意图 / 领域 | 核心 `@region` 锚点 | 核心函数 / 关键 Symbol | 精确参考位置 | 关联职责与技术细节 |
-| :--- | :--- | :--- | :--- | :--- |
-| **首屏主题与 Safari 外壳预渲染** | `@region [HEAD_THEME_HYDRATION]` | `PRESET_THEMES`, `targetColor` | `index.html ~145` | `<head>` 内 0ms 闪电对齐：纯净黑白二元流（深色壁纸深空黑 `#0b0f19`，浅色壁纸纯净白 `#ffffff`），同步 `html/body` 底色 |
-| **全局状态与高频 DOM 缓存池** | `@region [STATE_AND_DOM_CACHE]` | `dom`, `state`, `cacheDOM()`, `$` | `index.html ~3050` | 80+ DOM 元素高频映射，`state.currentSection` / `state.bg` 单一数据源 |
-| **设置弹窗内部草稿状态机** | `@region [MODAL_STATE]` | `modalState` | `index.html ~3725` | 弹窗草稿快照：备份打开前的壁纸与特效状态，隔离草稿修改与运行时全局状态 |
-| **壁纸持久化与即选即存引擎** | `@region [WALLPAPER_SELECTION]` | `commitWallpaperSelection()`, `previewDraftWallpaper()`, `resetDraftWallpaper()` | `index.html ~3810` | 选中预设、上传图片或输入 URL 后立即完成持久化（IndexedDB + localStorage 双写），无需按保存即刻生效 |
-| **设置弹窗全生命周期管理** | `@region [SETTINGS_MODAL_LIFECYCLE]` | `openEditModal()`, `closeEditModal()`, `cancelEditModal()` | `index.html ~3990` | 弹窗打开备份、动画进出场、关闭清理聚焦、LIFO `OverlayStack` 压退栈管理 |
-| **弹窗底部操作与落盘入口** | `@region [SETTINGS_MODAL_COMMIT]` | `dom.saveEditBtn`, `collectEditData()`, `saveUserBookmarks()` | `index.html ~5725` | 弹窗底部操作栏响应；快捷书签真正落盘与视觉特效保存入口 |
-| **智能搜索与联想防竞态调度** | `@region [SEARCH_SUGGESTIONS]` | `renderSuggestions()`, `fetchSuggestions()`, `activeSuggestReqId` | `index.html ~6425` | 三级本地模糊匹配 + 网络建议词混排，骨架屏防 CLS，自增 reqId 防乱序 |
-| **气象演化与数据数值净化** | `@region [WEATHER_ENGINE]` | `initWeather()`, `weatherNum()`, `weatherTime()`, `WMO_WEATHER_MAP` | `index.html ~6625` | 气象 API 拉取、缓存信任边界防御（强制数值化清洗）、9 阶动态形态演化 |
-| **外壳主题与底色动态管理** | `@region [THEME_COLOR_ENGINE]` | `APP_THEME_DARK`, `APP_THEME_LIGHT`, `updateThemeColor()`, `syncThemeForSection()` | `index.html ~7280` | 运行时壁纸主题裁决、双屏外壳色恒定同步、`--bg-base` 与 `#bgLayer` 联动 |
-| **双屏有限状态机与唤醒自愈** | `@region [SCREEN_TRANSITION_AND_BFCACHE]` | `switchToNav()`, `switchToStart()`, `reconcileScreenState()`, `handleAppWakeUp()` | `index.html ~7550` | 状态机流转、手势/滚轮惯性吞咽拦截、WebKit 离屏磁贴强制重栅格化 |
+| 业务意图 / 领域 | 核心 `@region` 锚点 | 对应 ES 模块文件 (`src/`) | 核心函数 / 关键 Symbol | 单文件对照参考 | 关联职责与技术细节 |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **首屏主题与 Safari 外壳预渲染** | `@region [HEAD_THEME_HYDRATION]` | `src/js/config/themes.js` | `PRESET_THEMES`, `targetColor` | `index.html ~145` | `<head>` 内 0ms 闪电对齐：纯净黑白二元流（深色壁纸深空黑 `#0b0f19`，浅色壁纸纯净白 `#ffffff`），同步 `html/body` 底色 |
+| **全局状态与高频 DOM 缓存池** | `@region [STATE_AND_DOM_CACHE]` | `src/js/state/store.js`<br/>`src/js/state/dom.js` | `dom`, `state`, `cacheDOM()`, `$` | `index.html ~3050` | 80+ DOM 元素高频映射，`state.currentSection` / `state.bg` 单一数据源 |
+| **设置弹窗内部草稿状态机** | `@region [MODAL_STATE]` | `src/js/state/store.js` | `modalState` | `index.html ~3725` | 弹窗草稿快照：备份打开前的壁纸与特效状态，隔离草稿修改与运行时全局状态 |
+| **壁纸持久化与即选即存引擎** | `@region [WALLPAPER_SELECTION]` | `src/js/modules/wallpaper.js` | `commitWallpaperSelection()`, `previewDraftWallpaper()`, `resetDraftWallpaper()` | `index.html ~3810` | 选中预设、上传图片或输入 URL 后立即完成持久化（IndexedDB + localStorage 双写），无需按保存即刻生效 |
+| **设置弹窗全生命周期管理** | `@region [SETTINGS_MODAL_LIFECYCLE]` | `src/js/modules/settings.js`<br/>`src/js/core/overlay-stack.js` | `openEditModal()`, `closeEditModal()`, `cancelEditModal()` | `index.html ~3990` | 弹窗打开备份、动画进出场、关闭清理聚焦、LIFO `OverlayStack` 压退栈管理 |
+| **弹窗底部操作与落盘入口** | `@region [SETTINGS_MODAL_COMMIT]` | `src/js/core/events.js`<br/>`src/js/modules/settings.js` | `dom.saveEditBtn`, `collectEditData()`, `saveUserBookmarks()` | `index.html ~5725` | 弹窗底部操作栏响应；快捷书签真正落盘与视觉特效保存入口 |
+| **智能搜索与联想防竞态调度** | `@region [SEARCH_SUGGESTIONS]` | `src/js/modules/search.js` | `renderSuggestions()`, `fetchSuggestions()`, `activeSuggestReqId` | `index.html ~6425` | 三级本地模糊匹配 + 网络建议词混排，骨架屏防 CLS，自增 reqId 防乱序 |
+| **气象演化与数据数值净化** | `@region [WEATHER_ENGINE]` | `src/js/modules/weather.js` | `initWeather()`, `weatherNum()`, `weatherTime()`, `WMO_WEATHER_MAP` | `index.html ~6625` | 气象 API 拉取、缓存信任边界防御（强制数值化清洗）、9 阶动态形态演化 |
+| **外壳主题与底色动态管理** | `@region [THEME_COLOR_ENGINE]` | `src/js/core/theme-engine.js` | `APP_THEME_DARK`, `APP_THEME_LIGHT`, `updateThemeColor()`, `syncThemeForSection()` | `index.html ~7280` | 运行时壁纸主题裁决、双屏外壳色恒定同步、`--bg-base` 与 `#bgLayer` 联动 |
+| **双屏有限状态机与唤醒自愈** | `@region [SCREEN_TRANSITION_AND_BFCACHE]` | `src/js/core/screen-state.js`<br/>`src/js/core/lifecycle.js` | `switchToNav()`, `switchToStart()`, `reconcileScreenState()`, `handleAppWakeUp()` | `index.html ~7550` | 状态机流转、手势/滚轮惯性吞咽拦截、WebKit 离屏磁贴强制重栅格化 |
 
