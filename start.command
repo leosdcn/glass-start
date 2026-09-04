@@ -14,12 +14,13 @@ elif [ -f "$HOME/.bash_profile" ]; then
 fi
 
 # 设置终端窗口标题
-echo -ne "\033]0;Glass Start - 本地局域网服务\007"
+echo -ne "\033]0;Glass Start - 本地服务 (深度净化启动)\007"
 
 clear
 echo -e "\033[36m════════════════════════════════════════════════════════════════════════\033[0m"
-echo -e "\033[1;36m🌟 Glass Start — 本地局域网服务一键启动 (One-Click Launcher)\033[0m"
+echo -e "\033[1;36m🌟 Glass Start — 本地开发与测试一键启动 (One-Click Launcher)\033[0m"
 echo -e "\033[36m════════════════════════════════════════════════════════════════════════\033[0m"
+echo -e "\033[35m🧹 默认开启深度净化模式：自动清理 Safari / Chrome 历史缓存与 Service Worker\033[0m"
 echo ""
 
 # 检查 Node.js
@@ -39,5 +40,5 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-# 启动静态服务器（原生 Node.js 零依赖快速启动，服务就绪后自动打开浏览器）
-node scripts/server.js
+# 启动静态服务器（默认开启深度清缓存模式，彻底抹除旧 SW/缓存碎片后自动唤醒纯净首页）
+CLEAR_CACHE=1 node scripts/server.js --clear-cache
