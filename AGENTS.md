@@ -120,24 +120,22 @@ node test/visual-regression.mjs
 在修改任何核心业务逻辑前，请先查阅 [**ARCHITECTURE.md**](./ARCHITECTURE.md) 系统架构设计白皮书与决策图谱：
 
 ### ⚠️ 原生 ES 模块化高内聚规范 (Modular Development Standards)
-项目全面采用原生模块化单源码架构（`src/index.html` 纯语义骨架 ~670 行 + `src/js/` 高内聚业务子模块，构建自动产出 `dist/`）：
-- **优先按模块定位**：直接定位至 `src/js/` 下对应业务模块文件（如 `modules/weather.js`、`core/screen-state.js`），拒绝巨石单文件扫描；
+项目全面采用原生模块化单源码架构（`src/index.html` 纯语义骨架 ~650 行 + `src/js/` 高内聚业务子模块，构建自动产出 `dist/`）：
+- **优先按模块定位**：直接定位至 `src/js/` 下对应业务模块文件，拒绝巨石单文件扫描；
 - **只切片读取**：圈定具体函数或 Symbol 进行局部读取与修改；
 - **只局部替换**：使用精确文本替换，单次改动控制在最小代码块（Diff），杜绝截断风险。
 
-| 业务领域与核心意图 | 唯一的 `@region` 索引锚点 | 对应 ES 模块 (`src/`) | 核心函数/DOM 锚点 | 关联 [ARCHITECTURE.md](./ARCHITECTURE.md) 白皮书机制 |
-| :--- | :--- | :--- | :--- | :--- |
-| **首屏主题与 Safari 外壳预渲染** | `@region [HEAD_THEME_HYDRATION]` | `src/js/config/themes.js` | `PRESET_THEMES`, `targetColor` | **[§6](./ARCHITECTURE.md#6--精确符号索引地图与代码区域导航-symbol-index--region-map)**：0ms 闪电对齐，黑白二元流 |
-| **全局状态与高频 DOM 缓存池** | `@region [STATE_AND_DOM_CACHE]` | `src/js/state/store.js`<br/>`src/js/state/dom.js` | `dom`, `state`, `cacheDOM()`, `$` | **[图 1](./ARCHITECTURE.md#1-️-系统全景分层与模块拓扑架构-high-level-layer-architecture)**：80+ 节点映射与响应式全局状态 |
-| **设置弹窗草稿状态机** | `@region [MODAL_STATE]` | `src/js/state/store.js` | `modalState` | **[图 3](./ARCHITECTURE.md#3--overlaystack-多层弹窗层叠栈与-escape-统一退栈决策-overlaystack--modal-flow)**：壁纸/特效快照隔离 |
-| **壁纸持久化与即选即存** | `@region [WALLPAPER_SELECTION]` | `src/js/modules/wallpaper.js` | `commitWallpaperSelection()`, `previewDraftWallpaper()` | **[§6](./ARCHITECTURE.md#6--精确符号索引地图与代码区域导航-symbol-index--region-map)**：即选即存、IDB 双写与预设高亮 |
-| **设置弹窗生命周期管理** | `@region [SETTINGS_MODAL_LIFECYCLE]` | `src/js/modules/settings.js`<br/>`src/js/core/overlay-stack.js` | `openEditModal()`, `closeEditModal()`, `cancelEditModal()` | **[图 3](./ARCHITECTURE.md#3--overlaystack-多层弹窗层叠栈与-escape-统一退栈决策-overlaystack--modal-flow)**：`OverlayStack` LIFO 栈模型、Focus Trap 焦点锁定 |
-| **弹窗底部操作与落盘入口** | `@region [SETTINGS_MODAL_COMMIT]` | `src/js/core/events.js`<br/>`src/js/modules/settings.js` | `dom.saveEditBtn`, `collectEditData()`, `saveUserBookmarks()` | **[§6](./ARCHITECTURE.md#6--精确符号索引地图与代码区域导航-symbol-index--region-map)**：完成操作、书签固化与特效落盘 |
-| **搜索联想与防竞态调度** | `@region [SEARCH_SUGGESTIONS]` | `src/js/modules/search.js` | `renderSuggestions()`, `fetchSuggestions()`, `activeSuggestReqId` | **[图 5](./ARCHITECTURE.md#5--智能搜索三级模糊匹配与气象-9-阶动态演化决策-search--weather-decision-engine)**：搜索联想防竞态、零 CLS 骨架 |
-| **气象数据清洗与动态演化** | `@region [WEATHER_ENGINE]` | `src/js/modules/weather.js` | `initWeather()`, `weatherNum()`, `WMO_WEATHER_MAP` | **[图 5](./ARCHITECTURE.md#5--智能搜索三级模糊匹配与气象-9-阶动态演化决策-search--weather-decision-engine)**：9 阶气象形态、数值化信任边界防御 |
-| **外壳主题与底色动态管理** | `@region [THEME_COLOR_ENGINE]` | `src/js/core/theme-engine.js` | `APP_THEME_DARK`, `APP_THEME_LIGHT`, `updateThemeColor()` | **[§6](./ARCHITECTURE.md#6--精确符号索引地图与代码区域导航-symbol-index--region-map)**：Safari 顶栏、`--bg-base` 与 `#bgLayer` 联动 |
-| **双屏有限状态机与唤醒自愈** | `@region [SCREEN_TRANSITION_AND_BFCACHE]` | `src/js/core/screen-state.js`<br/>`src/js/core/lifecycle.js` | `switchToNav()`, `switchToStart()`, `reconcileScreenState()` | **[图 2](./ARCHITECTURE.md#2--双屏切屏状态机手势与-bfcache-全生命周期流转-screen-state--bfcache-lifecycle)**：双屏状态机、滚轮吞咽、WebKit 磁贴重栅格化 |
-| **离线底座与三池物理隔离** | `sw.js` (全量 240 行) | `sw.js` | `CORE_CACHE`, `FAVICON_CACHE`, `IMG_CACHE` | **[图 4](./ARCHITECTURE.md#4--service-worker-三池隔离与离线数据流向-storage--cache-topology)**：三池物理隔离、FIFO 限额淘汰 |
+| 业务领域与核心意图 | 对应 ES 模块 (`src/`) | 核心函数 / DOM 锚点 | 关联 [ARCHITECTURE.md](./ARCHITECTURE.md) 机制 |
+| :--- | :--- | :--- | :--- |
+| **首屏主题与 Safari 外壳预渲染** | `src/js/config/themes.js` | `PRESET_THEMES`, `targetColor` | **[§6](./ARCHITECTURE.md#6--精确符号索引地图与代码区域导航-symbol-index--region-map)**：0ms 闪电对齐，黑白二元流 |
+| **全局状态与高频 DOM 缓存池** | `src/js/state/store.js`<br/>`src/js/state/dom.js` | `dom`, `state`, `cacheDOM()`, `$` | **[图 1](./ARCHITECTURE.md#1-️-系统全景分层与模块拓扑架构-high-level-layer-architecture)**：80+ 节点映射与单一数据源 |
+| **壁纸持久化与即选即存** | `src/js/modules/wallpaper.js` | `commitWallpaperSelection()`, `previewDraftWallpaper()` | **[§6](./ARCHITECTURE.md#6--精确符号索引地图与代码区域导航-symbol-index--region-map)**：即选即存、IDB 双写与预设高亮 |
+| **设置弹窗与生命周期管理** | `src/js/modules/settings.js`<br/>`src/js/core/overlay-stack.js` | `openEditModal()`, `closeEditModal()`, `OverlayStack` | **[图 3](./ARCHITECTURE.md#3--overlaystack-多层弹窗层叠栈与-escape-统一退栈决策-overlaystack--modal-flow)**：LIFO 栈模型、Focus Trap 焦点锁定 |
+| **搜索联想与防竞态调度** | `src/js/modules/search.js` | `renderSuggestions()`, `fetchSuggestions()`, `activeSuggestReqId` | **[图 5](./ARCHITECTURE.md#5--智能搜索三级模糊匹配与气象-9-阶动态演化决策-search--weather-decision-engine)**：本地三级模糊 + 网络混排，零 CLS 骨架 |
+| **气象数据清洗与动态演化** | `src/js/modules/weather.js` | `initWeather()`, `weatherNum()`, `WMO_WEATHER_MAP` | **[图 5](./ARCHITECTURE.md#5--智能搜索三级模糊匹配与气象-9-阶动态演化决策-search--weather-decision-engine)**：9 阶动态感知形态、强制数值化信任边界防御 |
+| **外壳主题与底色动态管理** | `src/js/core/theme-engine.js` | `APP_THEME_DARK`, `APP_THEME_LIGHT`, `updateThemeColor()` | **[§6](./ARCHITECTURE.md#6--精确符号索引地图与代码区域导航-symbol-index--region-map)**：Safari 顶栏、`--bg-base` 与 `#bgLayer` 联动 |
+| **双屏有限状态机与唤醒自愈** | `src/js/core/screen-state.js`<br/>`src/js/core/lifecycle.js` | `switchToNav()`, `switchToStart()`, `reconcileScreenState()` | **[图 2](./ARCHITECTURE.md#2--双屏切屏状态机手势与-bfcache-全生命周期流转-screen-state--bfcache-lifecycle)**：双屏状态机、滚轮吞咽、WebKit 磁贴重栅格化 |
+| **离线底座与三池物理隔离** | `sw.js` (全量 ~240 行) | `CORE_CACHE`, `FAVICON_CACHE`, `IMG_CACHE` | **[图 4](./ARCHITECTURE.md#4--service-worker-三池隔离与离线数据流向-storage--cache-topology)**：三池物理隔离、FIFO 限额淘汰 |
 
 ---
 
@@ -173,11 +171,10 @@ node test/visual-regression.mjs
 
 ---
 
-## 🤝 五、人机高效协同与 Prompt 最佳实践 (Interaction Protocols)
+## 🤝 五、人机高效协同范式 (Interaction Protocols)
 
-为了获得最高质量的 AI 产出，推荐采用以下标准指令模板：
+为了获得最高质量的 AI 产出，推荐采用以下标准指令模式：
 
-### 1. 结构化指令模板
 ```markdown
 【目标】：优化天气卡片的风速显示布局
 【涉及模块】：src/js/modules/weather.js (initWeather)
@@ -185,17 +182,8 @@ node test/visual-regression.mjs
 【自愈验证】：修改后请执行 npm run lint 及 node test/run.mjs data --no-build 确保全绿
 ```
 
-### 2. 遇错自愈指令
-遇到测试或运行时报错时，直接投喂完整的报错日志即可：
-> *“测试报错如下：`[粘贴 terminal 输出]`，请分析原因并定位到具体行进行最小化补丁修复，修复后重新运行验证至全绿。”*
-
-### 3. 双屏切屏与生命周期自愈专项审查指令模板
-涉及切屏交互、动画或页面唤醒逻辑时，推荐直接使用此模板：
-```markdown
-【双屏切屏与生命周期自愈架构专项排查指令】
-在阅读与修改代码时，必须严格遵守本文档 §四、4“防 BFCache 与生命周期失步 5 大暗坑”的全部 5 条防御铁律（①类名语义污染 ②异步跨帧竞态 ③生命周期模型割裂与 WebKit 离屏磁贴丢弃 ④CSS 动画时间穿越 ⑤状态机变量与黑匣子探针脱节），坚决杜绝“点击书签返回后两屏只剩一屏/划过去空白”。
-修改后请执行 npm run lint 及 node test/run.mjs ui --no-build 确保全绿通过。
-```
+- **遇错自愈**：遇到测试或运行时报错，直接粘贴完整终端报错，AI 自动定位最小补丁修复直至全绿；
+- **双屏与生命周期审查**：涉及切屏交互、动画或唤醒逻辑时，必须严格遵守 §四、4 防 BFCache 与生命周期失步 5 大暗坑，杜绝“返回后两屏只剩一屏/划过去空白”。
 
 ---
 

@@ -14,6 +14,7 @@
 - [3. 📚 OverlayStack 多层弹窗层叠栈与 Escape 统一退栈决策 (OverlayStack & Modal Flow)](#3--overlaystack-多层弹窗层叠栈与-escape-统一退栈决策-overlaystack--modal-flow)
 - [4. 📴 Service Worker 三池隔离与离线数据流向 (Storage & Cache Topology)](#4--service-worker-三池隔离与离线数据流向-storage--cache-topology)
 - [5. 🔍 智能搜索三级模糊匹配与气象 9 阶动态演化决策 (Search & Weather Decision Engine)](#5--智能搜索三级模糊匹配与气象-9-阶动态演化决策-search--weather-decision-engine)
+- [6. 📍 精确符号索引地图与代码区域导航 (Symbol Index & Region Map)](#6--精确符号索引地图与代码区域导航-symbol-index--region-map)
 
 ---
 
