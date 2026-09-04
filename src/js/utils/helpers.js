@@ -167,3 +167,26 @@ export function storageRemove(key) {
         return false;
     }
 }
+
+/**
+ * 异步按钮操作通用包装函数，防重复点击并呈现 loading state
+ * @param {HTMLButtonElement} btn - 目标按钮
+ * @param {() => Promise<void>} fn - 异步回调
+ */
+export async function runWithLoading(btn, fn) {
+    if (!btn || btn.disabled) return;
+    const spin = btn.querySelector('.spinner');
+    const label = btn.querySelector('.btn-label');
+    const origText = label ? label.textContent : '';
+    btn.disabled = true;
+    if (spin) spin.classList.remove('hidden');
+    if (label) label.textContent = '处理中…';
+    try {
+        await fn();
+    } finally {
+        btn.disabled = false;
+        if (spin) spin.classList.add('hidden');
+        if (label) label.textContent = origText;
+    }
+}
+
