@@ -95,6 +95,7 @@ npm run lint
 node test/run.mjs ui --no-build      # 修改 UI/切屏/弹窗时
 node test/run.mjs data --no-build    # 修改天气/书签搜索时
 node test/run.mjs infra --no-build   # 修改 SW缓存/安全标头时
+node test/run.mjs lifecycle --no-build # 修改黑匣子/生命周期/自愈阶梯时
 
 # 步骤 3：常规提交前验证（利用 MD5 增量缓存，< 1s）
 npm test
@@ -119,7 +120,7 @@ node test/visual-regression.mjs
 在修改任何核心业务逻辑前，请先查阅 [**ARCHITECTURE.md**](./ARCHITECTURE.md) 系统架构设计白皮书与决策图谱：
 
 ### ⚠️ 单文件局部手术铁律 (The Surgical Editing Law)
-`index.html` 单文件体积达 423KB+（7,900+ 行代码）。**严禁让 AI 重新输出整份 `index.html`！**
+`index.html` 单文件体积达 451KB+（8,086+ 行代码）。**严禁让 AI 重新输出整份 `index.html`！**
 - **只切片读取**：根据下表精准圈定行号区间或函数名进行局部读取；
 - **只局部替换**：使用精确文本替换，单次改动控制在最小代码块（Diff），杜绝截断风险。
 
@@ -129,7 +130,7 @@ node test/visual-regression.mjs
 | **弹窗与覆盖层** | `Lines 1520~3040, 3137~4600` | `OverlayStack.push()`, `OverlayStack.pop()`, `openEditModal()` | **[图 3](./ARCHITECTURE.md#3--overlaystack-多层弹窗层叠栈与-escape-统一退栈决策-overlaystack--modal-flow)**：`OverlayStack` LIFO 栈模型、Focus Trap 焦点锁定 |
 | **搜索联想与气象演化** | `Lines 6100~7200` | `fetchSuggestions()`, `initWeather()`, `weatherNum()` | **[图 5](./ARCHITECTURE.md#5--智能搜索三级模糊匹配与气象-9-阶动态演化决策-search--weather-decision-engine)**：搜索联想防竞态、零 CLS 骨架、9 阶气象形态 |
 | **双屏切换与 BFCache** | `Lines 7200~8052` | `switchToNav()`, `switchToStart()`, `reconcileScreenState()`, `__GLASS_DIAG__` | **[图 2](./ARCHITECTURE.md#2--双屏切屏状态机手势与-bfcache-全生命周期流转-screen-state--bfcache-lifecycle)**：双屏状态机、纯内存自愈器、滚轮动量吞咽、构建指纹黑匣子三级自愈阶梯 |
-| **离线与缓存底座** | `sw.js` (全量 185 行) | `CORE_CACHE`, `FAVICON_CACHE`, `IMG_CACHE` | **[图 4](./ARCHITECTURE.md#4--service-worker-三池隔离与离线数据流向-storage--cache-topology)**：三池物理隔离、FIFO 限额淘汰 |
+| **离线与缓存底座** | `sw.js` (全量 241 行) | `CORE_CACHE`, `FAVICON_CACHE`, `IMG_CACHE` | **[图 4](./ARCHITECTURE.md#4--service-worker-三池隔离与离线数据流向-storage--cache-topology)**：三池物理隔离、FIFO 限额淘汰 |
 
 ---
 

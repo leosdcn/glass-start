@@ -301,7 +301,7 @@ glass-start/
 ├── ⚙️ 根目录工程配置与文档体系 (7 个)
 │   ├── start.command         # macOS 访达一键双击启动快捷指令（默认深度净化启动）
 │   ├── package.json          # Node 项目配置（0 运行时依赖，仅 devDependencies 构建工具）
-│   ├── package-lock.json     # 依赖锁定清单（严格锁定 SemVer v3.8.2）
+│   ├── package-lock.json     # 依赖锁定清单（严格锁定 SemVer v3.9.0）
 │   ├── .gitignore            # Git 忽略规则（已严格隔离 dist/、node_modules/、test 产物）
 │   ├── README.md             # 全站功能特性、使用手册、架构表与部署指南
 │   ├── ARCHITECTURE.md       # 系统分层、双屏状态机、OverlayStack 等 5 大 Mermaid 白皮书
@@ -480,7 +480,7 @@ add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsaf
 | **Service Worker** | 项目内组件 | `v11` | `sw.js` 头部注释；三池隔离 + FIFO 容量限额缓存架构 |
 | **CORE_CACHE** | 缓存池版本 | `app-core-v<时间戳>` | `sw.js`；每次 `npm run build` 自动更新，强制客户端刷新旧缓存 |
 | **FAVICON_CACHE / IMG_CACHE** | 缓存池版本 | `v1` | `sw.js`；图标 / 本地图片独立缓存池 |
-| **Glass Start 站点版本** | 项目发布版本 | `v3.8.2` | `package.json` + `index.html` 设置面板徽章 |
+| **Glass Start 站点版本** | 项目发布版本 | `v3.9.0` | `package.json` + `index.html` 设置面板徽章 |
 
 **无版本号的外部服务**（非框架，版本由服务商维护，升级无需本项目介入）：
 - `a.favicon.im` — Favicon 图标 API
@@ -525,4 +525,53 @@ git tag -a vx.y.z -m "release: Glass Start vx.y.z"
 # 4. 推送至远程私有仓库（⚠️ 仅限人类用户手动执行，Agent 严禁未经指令自动推送）
 git push origin main --tags
 ```
+
+---
+
+### 8. 版本更新日志 (Changelog)
+
+#### v3.9.0 — 2026-09-04
+> 全站审计巡检深度加固：P0 ~ P3 级 25 项缺陷修复与架构精炼，启动器体验重塑，目录结构规范化整理。
+
+**🔴 P0 — 运行时安全与交互正确性修复**
+- `PageDown` / `PageUp` 翻页作用域收窄至首屏顶端与导航页内，彻底杜绝长内容页面误触切屏
+- `touchstart` 快速切屏防漂移：命中白名单阻断目标时立即置 `isTouchHandled = true` 截断后续手势
+- 联想防抖定时器 `suggestDebounceTimer` 上提至闭包级，`hideSuggestions()` 与切屏入口均正确 `clearTimeout` 释放
+- 导航页 Header `role="button"` + `tabindex="0"` 错误无障碍语义已剥离，恢复为静态区域
+
+**🟠 P1 — 性能保障与移动端体验**
+- `getSearchCandidates()` 建立记忆化候选池索引，消除每次按键全量重建开销
+- `setWallpaperDB` 补齐 `await`，大图写入完成后再流转状态，消除异步竞态
+- `storageSet` 调整为磁盘写穿优先，落盘成功后再更新内存镜像
+- `sw.js` `pruneCache` 补齐 `await`，FIFO 淘汰完整原子执行
+- iOS PWA 独立窗口支持：补全 `apple-mobile-web-app-capable` 与 `apple-mobile-web-app-title` Meta 标签
+- 搜索框 `enterkeyhint="search"`；`#urlBgInput` 与 `.edit-url` 书签 URL 输入框新增 `inputmode="url" autocapitalize="off"`
+
+**🟡 P2 — 魔法数字常量化与 DOM 缓存优化**
+- `CONFIG` 统一收纳 `IDB`、`GESTURE`、`PHYSICS`、`SUGGEST.TIERS/FUZZY`、`TIMERS` 等 40+ 魔法数字常量
+- `bgLayer` / `bgLayerNext` 双壁纸图层加入 `cacheDOM()` 缓存池
+- `snapshotHealth` 与 `probe` 探针全量复用 `dom.*` 缓存，消灭运行时重复查询
+- 清理搜索引擎切换与预水合脚本中永不触发的 dead `else` 分支
+- 清理 `#dropdownMenu` 内 16 行预渲染重复静态骨架与重复 SVG `id`
+- 移除 `reconcileScreenState` 未被使用的 `immediate` 参数及所有调用方的无效传参
+- 移除孤儿 `randomBookmarkBtn.classList.remove('rolling')`；骨架屏类名修正为标准 `animate-pulse`
+- 抽象提炼 `getEffectiveCustomWallpaper()` 统一 4 处分散的壁纸 URL 解析逻辑
+- 抽象提炼 `stripAdminSuffix()` 统一行政区划名称消歧工具函数
+
+**🔵 P3 — 无障碍、安全标头与代码卫生**
+- 补全顶层 `<meta name="referrer" content="strict-origin-when-cross-origin">`
+- 天气弹窗挂载 `role="dialog" aria-modal="false"` 标准无障碍属性
+- 拖拽手柄重构为语义化 `<button type="button" class="drag-handle">`
+- 顶层 `<html>` 补齐 `dir="ltr"` 文字方向声明
+- `renderPickerCategories()` 复用 `getSortedCategories()` 记忆化缓存，消除重复排序
+- `saveUserBookmarks()` 清除只写不读的死变量 `catUrls = new Set()`
+
+**🚀 本地开发体验重塑**
+- 修复 `/_clear_cache` 被 Service Worker 误拦截为首页的根本缺陷，在 `sw.js` 加入白名单穿透规则
+- `start.command` 默认直接打开纯净的 `http://localhost:3000/`，消除每次启动的中转黑屏体验
+- 清理通道 `location.href` 改为 `location.replace('/')`，清理完成后无痕归位，消灭地址栏尾巴
+- 终端启动横幅：所有访问网址统一为青蓝色，增量监听说明精简为「已开启 (改动即时编译)」
+
+**🗂️ 目录结构规范化**
+- 历史视觉对比工件（`preview.html`、`*-comparison.html`、`*-selfhst.svg`）统一归拢至 `test/fixtures/`，`test/` 根目录恢复为纯粹的自动化测试脚本集合
 
