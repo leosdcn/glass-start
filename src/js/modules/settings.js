@@ -562,7 +562,7 @@ export function importBookmarksJSON(file) {
                 return;
             }
 
-            showConfirm(`检测到合规书签 ${validBookmarks.length} 项，确定导入并填入草稿列表中吗？需点击『保存并关闭』后生效。`, () => {
+            showConfirm(`检测到合规书签 ${validBookmarks.length} 项，确定导入并填入草稿列表中吗？需点击『完成』后生效。`, () => {
                 modalState.bookmarksChanged = true;
                 renderEditList(validBookmarks);
                 closeBookmarkPicker();

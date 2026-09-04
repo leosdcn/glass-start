@@ -1862,12 +1862,12 @@
                 </div>
             </div>
 
-            <!-- 底部操作栏 (保存 / 返回响应式布局) -->
+            <!-- 底部操作栏 (完成 / 取消响应式布局) -->
             <div class="flex items-center justify-end gap-3 mt-3 pt-3 border-t border-white/10 shrink-0">
-                <button id="cancelEditBtn" type="button" class="flex-1 sm:flex-initial py-2.5 px-5 rounded-xl text-xs sm:text-sm font-normal text-white/50 hover:text-white/80 hover:bg-white/5 glass-interactive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 disabled:opacity-50 disabled:cursor-not-allowed">返回</button>
+                <button id="cancelEditBtn" type="button" class="flex-1 sm:flex-initial py-2.5 px-5 rounded-xl text-xs sm:text-sm font-normal text-white/50 hover:text-white/80 hover:bg-white/5 glass-interactive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 disabled:opacity-50 disabled:cursor-not-allowed">取消</button>
                 <button id="saveEditBtn" type="button" class="glass-btn-primary flex-1 sm:flex-initial py-2.5 px-6 text-xs sm:text-sm gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:opacity-50 disabled:cursor-not-allowed">
                     <svg class="spinner size-4 animate-spin hidden" aria-hidden="true"><use href="#icon-spinner"/></svg>
-                    <span class="btn-label">保存并关闭</span>
+                    <span class="btn-label">完成</span>
                 </button>
             </div>
         </div>
@@ -4200,7 +4200,7 @@
                         return;
                     }
 
-                    showConfirm(`检测到合规书签 ${validBookmarks.length} 项，确定导入并填入草稿列表中吗？需点击『保存并关闭』后生效。`, () => {
+                    showConfirm(`检测到合规书签 ${validBookmarks.length} 项，确定导入并填入草稿列表中吗？需点击『完成』后生效。`, () => {
                         modalState.bookmarksChanged = true;
                         renderEditList(validBookmarks);
                         closeBookmarkPicker();
