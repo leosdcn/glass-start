@@ -300,7 +300,6 @@ export function bindEvents() {
         switchToStart();
     };
     dom.navHint?.addEventListener('click', handleBackToStart);
-    dom.navHeader?.addEventListener('click', handleBackToStart);
 
     document.addEventListener('keydown', e => {
         if (e.key === 'Tab' && !OverlayStack.isEmpty()) {
