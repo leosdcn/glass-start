@@ -115,7 +115,7 @@ node test/visual-regression.mjs
 
 ---
 
-## 🗺️ 三、系统架构导读与 423KB 局部手术准则 (Surgical Editing & System Map)
+## 🗺️ 三、系统架构导读与 451KB 局部手术准则 (Surgical Editing & System Map)
 
 在修改任何核心业务逻辑前，请先查阅 [**ARCHITECTURE.md**](./ARCHITECTURE.md) 系统架构设计白皮书与决策图谱：
 
@@ -186,12 +186,7 @@ node test/visual-regression.mjs
 涉及切屏交互、动画或页面唤醒逻辑时，推荐直接使用此模板：
 ```markdown
 【双屏切屏与生命周期自愈架构专项排查指令】
-在阅读与修改代码时，必须严格遵守以下 5 条历史致命暗坑的防御铁律，坚决杜绝“点击书签返回后两屏只剩一屏/划过去空白”：
-1. 🔴 严禁在运行期滥加 .nr 类名（.nr 仅用于 HEAD 脚本刷新预水合，具有强制推飞首屏副作用）；
-2. 🔴 严禁内联 style.transition = 'none' + 异步 rAF 清除（后台冻结 rAF 导致过渡失效，必须 100% 依赖 CSS 类名）；
-3. 🔴 严禁仅监听 pageshow，必须保持 visibilitychange + pageshow 双通道自愈（覆盖多标签页切回盲区）；
-4. 🔴 严禁元素长期常驻 .fade-in 动画类名（入场 800ms 后自动脱壳卸载，防止 Safari BFCache 重置回滚至 opacity:0）；
-5. 🔴 严禁对 WebKit 磁贴重栅格化设置 wasPersisted 门控，且必须通过 display 瞬态重置强制唤醒 GPU 磁贴（单纯 willChange 无法挽救已丢弃的离屏图层）。
+在阅读与修改代码时，必须严格遵守本文档 §四、4“防 BFCache 与生命周期失步 5 大暗坑”的全部 5 条防御铁律（①类名语义污染 ②异步跨帧竞态 ③生命周期模型割裂与 WebKit 离屏磁贴丢弃 ④CSS 动画时间穿越 ⑤状态机变量与黑匣子探针脱节），坚决杜绝“点击书签返回后两屏只剩一屏/划过去空白”。
 修改后请执行 npm run lint 及 node test/run.mjs ui --no-build 确保全绿通过。
 ```
 
