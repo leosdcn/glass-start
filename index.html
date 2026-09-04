@@ -2996,6 +2996,7 @@
             editOpen: false,         // 编辑书签弹窗是否打开（用于屏蔽滚轮切屏与键盘快捷键）
             currentSection: 'start'  // 当前可见屏：'start'（起始页）或 'nav'（导航页）
         };
+        window.state = state;
 
         /**
          * DOM 快速查找助手函数 (document.getElementById 封装)
@@ -7364,7 +7365,10 @@
                     if (nav) {
                         nav.classList.remove('nav-hidden');
                         nav.classList.add('nav-visible');
-                        // 🛡️ WebKit 图层重栅格化防御：无条件触发合成层重绘，确保离屏图层磁贴永不丢失
+                        // 🛡️ WebKit 磁贴重栅格化防御：display 瞬态重置强制重绘合成层，根绝 Safari 离屏/切屏空白未渲染
+                        nav.style.display = 'none';
+                        void nav.offsetHeight;
+                        nav.style.display = '';
                         nav.style.willChange = 'auto';
                         void nav.offsetHeight;
                         nav.style.willChange = 'transform';
@@ -7375,7 +7379,10 @@
                     initFaviconObserver();
                 } else {
                     if (startSection) {
-                        // 🛡️ WebKit 图层重栅格化防御：无条件触发合成层重绘，确保离屏图层磁贴永不丢失
+                        // 🛡️ WebKit 磁贴重栅格化防御：display 瞬态重置强制重绘合成层，根绝 Safari 离屏/切屏空白未渲染
+                        startSection.style.display = 'none';
+                        void startSection.offsetHeight;
+                        startSection.style.display = '';
                         startSection.style.willChange = 'auto';
                         void startSection.offsetHeight;
                         startSection.style.willChange = 'transform';
@@ -7743,15 +7750,17 @@
                         if (reg) reg.update().catch(() => {});
                     }).catch(() => {});
                 }
-                // 7. 🛡️ 强制刷新 WebKit 合成层磁贴 (BFCache Tile Invalidation Guard)
-                // 门控：仅在真实 BFCache 恢复（persisted=true）时执行，常规唤醒零开销
-                if (wasPersisted) {
-                    const activeSection = state.currentSection === 'nav' ? dom.navSection : dom.startSection;
-                    if (activeSection) {
-                        activeSection.style.willChange = 'auto';
-                        void activeSection.offsetHeight;
-                        activeSection.style.willChange = 'transform';
-                    }
+                // 7. 🛡️ 强制刷新 WebKit 合成层磁贴 (BFCache / Tab Switch Tile Invalidation Guard)
+                // 覆盖 visibilitychange（标签页切回）与 pageshow（BFCache 后退）双通道
+                // WebKit 在后台或多标签页切走时会释放 GPU 离屏磁贴，切回唤醒时必须无条件强制重栅格化
+                const activeSection = state.currentSection === 'nav' ? dom.navSection : dom.startSection;
+                if (activeSection) {
+                    activeSection.style.display = 'none';
+                    void activeSection.offsetHeight;
+                    activeSection.style.display = '';
+                    activeSection.style.willChange = 'auto';
+                    void activeSection.offsetHeight;
+                    activeSection.style.willChange = 'transform';
                 }
                 // 8. 标签页与 BFCache 唤醒时静默校验气象缓存有效期并按需刷新
                 if (typeof updateWeather === 'function') {
@@ -7941,7 +7950,8 @@
 
             // 健全性快照：当前屏应在位时断言变换矩阵有效且哨兵元素真实可见
             function snapshotHealth() {
-                const isNav = window.state ? window.state.currentSection === 'nav' : false;
+                const isNav = (window.state && window.state.currentSection === 'nav') || 
+                              (document.getElementById('navSection') && document.getElementById('navSection').classList.contains('screen-pushed-in'));
                 if (isNav) {
                     const n = document.getElementById('navSection');
                     if (!n || n.classList.contains('nav-hidden')) return { ok: true };
@@ -7978,9 +7988,13 @@
                 if (unhealthyStreak === 1) {
                     if (typeof window.reconcileScreenState === 'function') window.reconcileScreenState(undefined, true);
                 } else if (unhealthyStreak === 2) {
-                    const isNav = window.state ? window.state.currentSection === 'nav' : false;
+                    const isNav = (window.state && window.state.currentSection === 'nav') || 
+                                  (document.getElementById('navSection') && document.getElementById('navSection').classList.contains('screen-pushed-in'));
                     const el = isNav ? document.getElementById('navSection') : document.getElementById('startSection');
                     if (el) {
+                        el.style.display = 'none';
+                        void el.offsetHeight;
+                        el.style.display = '';
                         el.style.willChange = 'auto';
                         void el.offsetHeight;
                         el.style.willChange = 'transform';
