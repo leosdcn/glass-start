@@ -184,7 +184,7 @@ flowchart TB
 ### 1. 本地开发与生产部署 (Dev vs Prod)
 
 #### 本地开发模式 (Development)
-- **一键双击启动 (macOS)**：在访达（Finder）中直接双击 `scripts/start.command` 快捷指令，自动完成构建同步并在局域网启动 `dist/` 网页服务，秒级打开默认浏览器。
+- **一键双击启动 (macOS)**：在访达（Finder）中直接双击根目录 `start.command` 快捷指令，自动完成构建同步并在局域网启动 `dist/` 网页服务，秒级打开默认浏览器。
 - **命令行启动**：运行 `npm run dev` 会自动构建打包并通过原生 `scripts/server.js` 启动 `dist/` 局域网开发服务 (`http://localhost:3000`)。服务默认内置 **Watch 增量监听** 与防陈旧缓存标头（`no-store` + `Service-Worker-Allowed: /`），在编辑源码 `index.html`、`bookmarks.json` 或 `sw.js` 时保存即自动毫秒级增量编译至 `dist/` 并滚动双端指纹，直接刷新浏览器即可调试最新改动。
 - **纯预览与独立监听**：若仅需预览已有产物无需监听源码，可附加 `--no-watch` 参数（如 `node scripts/server.js --no-watch`）；亦可独立运行 `npm run watch` 单独开启增量构建监听。
 - **免构建直开模式**：若直接双击根目录 `index.html`（`file://` 协议），页面仍内置 **Tailwind v4 Browser CDN** 运行时脚本，保持零环境开箱即用。
@@ -298,7 +298,8 @@ glass-start/
 │   ├── _headers              # Cloudflare Pages 生产环境 HTTP 安全响应头配置
 │   └── wrangler.jsonc        # Cloudflare Pages / Workers 自动构建与部署配置
 │
-├── ⚙️ 根目录工程配置与文档体系 (6 个)
+├── ⚙️ 根目录工程配置与文档体系 (7 个)
+│   ├── start.command         # macOS 访达一键双击启动快捷指令（默认深度净化启动）
 │   ├── package.json          # Node 项目配置（0 运行时依赖，仅 devDependencies 构建工具）
 │   ├── package-lock.json     # 依赖锁定清单（严格锁定 SemVer v3.8.2）
 │   ├── .gitignore            # Git 忽略规则（已严格隔离 dist/、node_modules/、test 产物）
@@ -306,11 +307,10 @@ glass-start/
 │   ├── ARCHITECTURE.md       # 系统分层、双屏状态机、OverlayStack 等 5 大 Mermaid 白皮书
 │   └── AGENTS.md             # AI 编程行为宪法（7 大红线、局部手术地图、自愈流水线）
 │
-├── 🛠️ scripts/ 自动化工程工具目录 (4 个)
+├── 🛠️ scripts/ 自动化工程工具目录 (3 个)
 │   ├── build.js              # 生产环境编译打包流水线（Tailwind CLI + esbuild AST 压缩）
 │   ├── lint.mjs              # 零依赖静态语法与 7 大红线规范门禁（<80ms 极速自愈）
-│   ├── server.js             # 原生 Node.js 零依赖本地开发与局域网预览服务器（内置自动增量构建监听）
-│   └── start.command         # macOS 访达一键双击启动快捷指令
+│   └── server.js             # 原生 Node.js 零依赖本地开发与局域网预览服务器（内置自动增量构建监听）
 │
 ├── 🧪 test/ 自动化测试与质量保障目录 (9 个源码文件)
 │   ├── run.mjs               # MD5 增量缓存测试运行器（支持 --force / --no-build）
@@ -334,7 +334,8 @@ glass-start/
 | **`bookmarks.json`** | **唯一数据源** | 唯一数据维护源。修改书签只需编辑此文件，运行 `npm run build` 会自动将书签同步注入 HTML。 | **必须（数据真源）** |
 | **`sw.js`** | 缓存脚本 | Service Worker 独立脚本。专门用于在 HTTPS/localhost 环境下本地缓存 Favicon 网站图标与壁纸，提升加载速度。 | 推荐（缺失时不影响主流程运行） |
 | **`wallpapers/`** | **本地壁纸库** | 高清预设 AVIF 壁纸目录（包含 bg1.avif ~ bg8.avif），由构建脚本自动打包至 `dist/` 实现全量离线可用。 | **必须** |
-| **`scripts/`** | **工具与脚本目录** | 包含生产构建打包 (`build.js`)、零依赖静态检查 (`lint.mjs`)、本地开发服务 (`server.js`) 与 macOS 双击启动 (`start.command`)。 | 工具目录 |
+| **`start.command`** | **macOS 双击启动** | 根目录快捷启动指令。自动补齐 Node 环境变量、生产构建同步并在开启深度缓存清理后启动开发服务。 | 开发辅助 |
+| **`scripts/`** | **工具与脚本目录** | 包含生产构建打包 (`build.js`)、零依赖静态检查 (`lint.mjs`) 与本地开发服务 (`server.js`)。 | 工具目录 |
 | **`manifest.json`** | Web App 应用配置 | PWA 应用清单文件。配置应用名称、图标、启动 URL、主题颜色，支持添加至手机主屏幕与独立 Web App 运行。 | PWA 必需 |
 | **`_headers`** | 部署响应头配置 | Cloudflare Pages HTTP 安全响应头与静态资源缓存控制配置文件。 | 部署配置 |
 | **`test/`** | **测试目录** | 自动化测试目录。内含 4 大领域 CDP 自动化端到端测试套件（24 项高密度全景断言）与 MD5 增量缓存运行器。 | 测试框架 |
@@ -486,7 +487,7 @@ add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsaf
 - `myip.ipip.net` / `ipwho.is` — 高精度 IP 归属地定位解析 API
 - Bing / Google / Wikipedia — 搜索联想建议 API
 - `wallpapers/` — 本地预设 2.5K AVIF 高清壁纸库（支持 10-bit 色深与全量预缓存）
-- `scripts/server.js` / `scripts/start.command` — 原生 Node.js 零依赖本地与局域网开发静态服务器 (0ms 秒级启动)
+- `scripts/server.js` / `start.command` — 原生 Node.js 零依赖本地与局域网开发静态服务器 (0ms 秒级启动)
 
 ---
 
