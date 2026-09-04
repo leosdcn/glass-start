@@ -77,6 +77,11 @@ function logItem(msg, status = 'ok') {
 const ROOT_DIR = path.resolve(__dirname, '..');
 const PATHS = {
     root: ROOT_DIR,
+    src: path.join(ROOT_DIR, 'src'),
+    srcIndexHtml: path.join(ROOT_DIR, 'src', 'index.html'),
+    srcCss: path.join(ROOT_DIR, 'src', 'styles', 'main.css'),
+    srcSvg: path.join(ROOT_DIR, 'src', 'svg', 'sprite.svg'),
+    srcMainJs: path.join(ROOT_DIR, 'src', 'js', 'main.js'),
     dist: path.join(ROOT_DIR, 'dist'),
     tempCss: path.join(ROOT_DIR, '.temp_input.css'),
     bookmarksJson: path.join(ROOT_DIR, 'bookmarks.json'),
@@ -187,17 +192,22 @@ function initDistDir() {
 // 2. 编译 Tailwind CSS (v4 CLI)
 function compileTailwindCss() {
     logSection('1/5', '📦 编译 Tailwind CSS 样式表 (v4 CLI)');
-    fs.writeFileSync(PATHS.tempCss, '@import "tailwindcss";\n@source "./index.html";\n', 'utf-8');
+    const hasSrcCss = fs.existsSync(PATHS.srcCss);
+    const inputCss = hasSrcCss ? PATHS.srcCss : PATHS.tempCss;
+    if (!hasSrcCss) {
+        fs.writeFileSync(PATHS.tempCss, '@import "tailwindcss";\n@source "./index.html";\n', 'utf-8');
+    }
     const distStyleCss = path.join(PATHS.dist, 'style.css');
 
     try {
         const cssStart = Date.now();
-        execSync(`npx -y @tailwindcss/cli@4 -i "${PATHS.tempCss}" -o "${distStyleCss}" -m`, {
+        execSync(`npx -y @tailwindcss/cli@4 -i "${inputCss}" -o "${distStyleCss}" -m`, {
             stdio: 'pipe'
         });
         const cssDuration = Date.now() - cssStart;
         const cssKb = (fs.statSync(distStyleCss).size / 1024).toFixed(2);
-        logItem(`扫描 index.html 完成，原子化 CSS 静态编译就绪 (${cssKb} KB, 耗时 ${cssDuration}ms)`);
+        const sourceLabel = hasSrcCss ? 'src/styles/main.css 与组件模板' : 'index.html';
+        logItem(`扫描 ${sourceLabel} 完成，原子化 CSS 静态编译就绪 (${cssKb} KB, 耗时 ${cssDuration}ms)`);
     } catch (err) {
         console.error(`\n  ${c.yellow}❌ Tailwind CSS 编译失败:${c.reset}`, err.message || err);
         if (/can't resolve 'tailwindcss'|cannot find module 'tailwindcss'|module not found/i.test(String(err.message || ''))) {
@@ -244,14 +254,14 @@ function buildServiceWorkerAndAssets() {
     logItem('PWA manifest.json、Apple Touch Icon 与 robots.txt 已同步至 dist/');
 }
 
-// 4. 自动数据双向同步机制 (Auto-Sync bookmarks.json -> index.html DEFAULT_CATEGORIES / DEFAULT_BOOKMARKS)
+// 4. 自动数据双向同步机制 (Auto-Sync bookmarks.json -> src/index.html & index.html)
 function syncBookmarksData() {
-    logSection('3/5', '🔄 同步书签默认数据 (bookmarks.json -> index.html)');
+    logSection('3/5', '🔄 同步书签默认数据 (bookmarks.json -> 源码)');
 
     if (fs.existsSync(PATHS.bookmarksJson)) {
         try {
             const bookmarksData = JSON.parse(fs.readFileSync(PATHS.bookmarksJson, 'utf-8'));
-            const targetFiles = [PATHS.indexHtml].filter(f => fs.existsSync(f));
+            const targetFiles = [PATHS.srcIndexHtml, PATHS.indexHtml].filter(f => fs.existsSync(f));
             let totalUpdated = 0;
 
             for (const file of targetFiles) {
@@ -285,9 +295,9 @@ function syncBookmarksData() {
             }
 
             if (totalUpdated > 0) {
-                logItem(`源码 index.html 内置默认数据已更新并与 bookmarks.json 保持同步`);
+                logItem(`源码模板内置默认数据已更新并与 bookmarks.json 保持同步`);
             } else {
-                logItem(`源码 index.html 内置默认数据已是最新 (与 bookmarks.json 保持 100% 同步)`);
+                logItem(`源码模板内置默认数据已是最新 (与 bookmarks.json 保持 100% 同步)`);
             }
         } catch (e) {
             logItem(`自动同步默认书签时出现警告: ${e.message}`, 'warn');
@@ -295,15 +305,40 @@ function syncBookmarksData() {
     }
 }
 
-// 4.9 从 index.html 提取主体 JS 并处理生成生产环境 dist/app.js (单行无损紧凑压缩默认数据)
+// 4.9 处理生成生产环境 dist/app.js (ESM 打包或单行无损紧凑压缩)
 function processProductionAppJs() {
-    if (!fs.existsSync(PATHS.indexHtml)) return;
     logSection('4/5', '⚡ 提取并压缩生产脚本 (dist/app.js)');
-    const htmlContent = fs.readFileSync(PATHS.indexHtml, 'utf-8');
+
+    // 优先：通过 esbuild 构建 ESM 模块树 (Phase 2 & Phase 3)
+    if (fs.existsSync(PATHS.srcMainJs) && esbuild) {
+        try {
+            esbuild.buildSync({
+                entryPoints: [PATHS.srcMainJs],
+                bundle: true,
+                format: 'iife',
+                minify: true,
+                target: ['es2022'],
+                banner: {
+                    js: `window.__GLASS_BUILD_APP__="${currentBuildVersion}";\n`
+                },
+                outfile: path.join(PATHS.dist, 'app.js')
+            });
+            const appJsContent = fs.readFileSync(path.join(PATHS.dist, 'app.js'), 'utf-8');
+            const appJsKb = (Buffer.byteLength(appJsContent, 'utf-8') / 1024).toFixed(2);
+            logItem(`生产环境 dist/app.js ESM 模块依赖 AST 编译完成 (${appJsKb} KB)`);
+            return;
+        } catch (e) {
+            logItem(`esbuild 打包 src/js/main.js 失败，回退至从 HTML 提取: ${e.message}`, 'warn');
+        }
+    }
+
+    const htmlSourceFile = fs.existsSync(PATHS.srcIndexHtml) ? PATHS.srcIndexHtml : PATHS.indexHtml;
+    if (!fs.existsSync(htmlSourceFile)) return;
+    const htmlContent = fs.readFileSync(htmlSourceFile, 'utf-8');
     const mainScriptMatch = htmlContent.match(/<script\s+id="main-script"[^>]*>([\s\S]*?)<\/script>/i);
     
     if (!mainScriptMatch) {
-        console.error('❌ 未能在 index.html 中找到 <script id="main-script"> 标签');
+        console.error(`❌ 未能在 ${htmlSourceFile} 中找到 <script id="main-script"> 标签`);
         process.exit(1);
     }
 
@@ -339,10 +374,11 @@ function processProductionAppJs() {
     fs.writeFileSync(path.join(PATHS.dist, 'app.js'), appJsContent, 'utf-8');
 }
 
-// 5. 处理生产环境 index.html (替换内联 JS 为外链 dist/app.js，全量内嵌静态编译 Tailwind CSS)
+// 5. 处理生产环境 index.html (替换内联 JS 为外链 dist/app.js，全量内嵌静态编译 Tailwind CSS 与 SVG 精灵)
 function processProductionHtml() {
     logSection('5/5', '🔧 处理生产环境页面 (dist/index.html)');
-    let prodHtmlContent = fs.readFileSync(PATHS.indexHtml, 'utf-8');
+    const htmlSourceFile = fs.existsSync(PATHS.srcIndexHtml) ? PATHS.srcIndexHtml : PATHS.indexHtml;
+    let prodHtmlContent = fs.readFileSync(htmlSourceFile, 'utf-8');
 
     // 5.0 彻底移除 <body> 底部历史遗留的 <script id="main-script">
     prodHtmlContent = prodHtmlContent.replace(
@@ -351,12 +387,20 @@ function processProductionHtml() {
     );
 
     // 5.0.1 在 <meta charset="UTF-8"> 之后按标准原生声明双端构建指纹与核心脚本 (<script defer>)：
-    //       严格遵循 W3C/WHATWG HTML5 规范（charset 声明必须位于任何 script 之前且在首 1024 字节内）；
-    //       让浏览器在读取 <head> 早期时原生并行拉取 app.js，完全无需额外 preload 补丁，100% 杜绝 Double Fetch
     prodHtmlContent = prodHtmlContent.replace(
         /(<meta\s+charset=["']?utf-8["']?[^>]*>)/i,
         `$1<script>window.__GLASS_BUILD_HTML__="${currentBuildVersion}"</script><script src="./app.js?v=${currentBuildVersion}" defer></script>`
     );
+
+    // 5.0.2 注入全局 SVG 精灵池 (若存在 src/svg/sprite.svg)
+    if (fs.existsSync(PATHS.srcSvg)) {
+        const svgSprite = fs.readFileSync(PATHS.srcSvg, 'utf-8');
+        if (prodHtmlContent.includes('<!-- INJECT_SVG_SPRITE -->')) {
+            prodHtmlContent = prodHtmlContent.replace('<!-- INJECT_SVG_SPRITE -->', svgSprite);
+        } else if (!prodHtmlContent.includes('id="svg-sprite"')) {
+            prodHtmlContent = prodHtmlContent.replace(/<body\b[^>]*>/i, (m) => `${m}\n    ${svgSprite}`);
+        }
+    }
 
     const distCssPath = path.join(PATHS.dist, 'style.css');
     let cssContent = '';
@@ -370,14 +414,18 @@ function processProductionHtml() {
     }
 
     const cdnPattern = /<!--\s*Tailwind[\s\S]*?CDN[\s\S]*?<\/script>(?:\s*<script[\s\S]*?<\/script>)?/i;
+    const linkStylePattern = /<link\s+[^>]*rel=["']stylesheet["'][^>]*href=["'][^"']*styles\/main\.css["'][^>]*>/i;
     const replaceTarget = `<!-- 内嵌静态编译 Tailwind CSS 样式表 (零网络 RTT 请求，消除渲染阻塞，极速秒开 & 100% 离线支持) -->\n    <style>${cssContent}</style>`;
 
-    if (cdnPattern.test(prodHtmlContent)) {
+    if (linkStylePattern.test(prodHtmlContent)) {
+        prodHtmlContent = prodHtmlContent.replace(linkStylePattern, () => replaceTarget);
+    } else if (cdnPattern.test(prodHtmlContent)) {
         prodHtmlContent = prodHtmlContent.replace(cdnPattern, () => replaceTarget);
     } else {
         // 容错回退：注释锚点缺失时按脚本特征匹配（兼容带 defer/async 等任意属性形态）
         prodHtmlContent = prodHtmlContent.replace(/<script[^>]*@tailwindcss\/browser@4[^>]*><\/script>/i, () => replaceTarget);
     }
+    prodHtmlContent = prodHtmlContent.replace(/<script[^>]*@tailwindcss\/browser@4[^>]*><\/script>/gi, '');
 
     // 5.1 对 HTML 中所有的 <style> 和 <script> 标签内容进行全面压缩
     function minifyInlineStylesAndScripts(html) {
@@ -593,6 +641,15 @@ function startWatch(onRebuildSuccess) {
             }
         }
     });
+
+    if (fs.existsSync(PATHS.src)) {
+        try {
+            const w = fs.watch(PATHS.src, { recursive: true }, (eventType, filename) => triggerRebuild(`src/${filename}`));
+            watchers.push(w);
+        } catch (e) {
+            console.warn(`  ${c.yellow}⚠ 无法监听 src 目录: ${e.message}${c.reset}`);
+        }
+    }
 
     return () => {
         watchers.forEach(w => {

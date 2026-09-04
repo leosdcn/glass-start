@@ -1,0 +1,147 @@
+/* ==========================================================================
+   入场动画、关键帧与动态感知降级 (animations.css)
+   ========================================================================== */
+
+/* 国际无障碍减弱动效白名单 (prefers-reduced-motion) */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation: none !important;
+        transition: none !important;
+        scroll-behavior: auto !important;
+    }
+    .glass, .glass-strong { backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+}
+
+/* 入场淡入动画 */
+.fade-in {
+    animation: fadeIn var(--duration-entrance) var(--ease-smooth) backwards;
+}
+.nr .fade-in { animation: none; }
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translate3d(0, var(--entrance-offset, 1.25rem), 0); }
+    to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+@keyframes fadeInSubtle {
+    from { opacity: 0; transform: translate3d(0, var(--entrance-offset, 1.25rem), 0); }
+    to { opacity: var(--opacity-subtle, 0.6); transform: translate3d(0, 0, 0); }
+}
+
+/* 阶梯延迟工具类 */
+.delay-100 { animation-delay: var(--delay-stagger-1); }
+.delay-200 { animation-delay: var(--delay-stagger-2); }
+
+/* 下拉菜单动画 */
+.dropdown-menu {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.97) translateZ(0);
+    pointer-events: none;
+    visibility: hidden;
+    transition: opacity var(--duration-fast) var(--ease-exit), transform var(--duration-fast) var(--ease-exit), visibility var(--duration-fast) step-end;
+    transform-origin: top left;
+}
+.dropdown-menu.active {
+    opacity: 1;
+    transform: translateY(0) scale(1) translateZ(0);
+    pointer-events: auto;
+    visibility: visible;
+    transition: opacity var(--duration-normal) var(--ease-spring), transform var(--duration-normal) var(--ease-spring), visibility 0s;
+}
+
+#dropdownMenu { transform-origin: top left; }
+#suggestionMenu { transform-origin: top center; }
+
+/* 时钟冒号心跳动画 */
+.clock-colon {
+    display: inline-block;
+    position: relative;
+    top: -0.06em;
+    animation: colonPulse 6s ease-in-out infinite;
+    will-change: opacity;
+}
+@keyframes colonPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+.nr .clock-colon { animation: none; opacity: 1; }
+
+/* 导航分类微光脉冲提醒 */
+.category-title-pulse::after {
+    animation: catLinePulse 1.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@keyframes catLinePulse {
+    0%   { opacity: 1; }
+    35%  { opacity: 1; }
+    100% { opacity: 0.28; }
+}
+
+/* 上下滚动指示器动画 */
+.scroll-hint, .scroll-up-hint {
+    will-change: transform;
+    transform: translateZ(0);
+}
+.scroll-hint { animation: bounceDown 2s ease-in-out infinite; }
+#startSection.screen-pushed-up .scroll-hint { animation-play-state: paused; }
+.scroll-up-hint { animation: bounceUp 1.8s ease-in-out infinite; }
+
+@keyframes bounceDown {
+    0%, 100% { transform: translateY(0); opacity: 0.6; }
+    50% { transform: translateY(0.5rem); opacity: 1; }
+}
+@keyframes bounceUp {
+    0%, 100% { transform: translateY(0); opacity: 0.7; }
+    50% { transform: translateY(-0.1875rem); opacity: 1; }
+}
+
+/* 弹窗遮罩与内容缩放过渡 */
+.edit-overlay {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--duration-normal) var(--ease-exit), -webkit-backdrop-filter var(--duration-normal) var(--ease-exit), backdrop-filter var(--duration-normal) var(--ease-exit);
+    -webkit-backdrop-filter: blur(0px);
+    backdrop-filter: blur(0px);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    -webkit-mask-image: -webkit-radial-gradient(white, black);
+}
+.edit-overlay.active {
+    opacity: 1;
+    pointer-events: auto;
+    -webkit-backdrop-filter: blur(var(--blur-sm));
+    backdrop-filter: blur(var(--blur-sm));
+    transition: opacity var(--duration-modal) var(--ease-spring), -webkit-backdrop-filter var(--duration-modal) var(--ease-spring), backdrop-filter var(--duration-modal) var(--ease-spring);
+}
+.edit-overlay > div {
+    opacity: 0;
+    transform: scale(0.95) translateZ(0);
+    transition: opacity var(--duration-normal) var(--ease-exit), transform var(--duration-normal) var(--ease-exit);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+}
+.edit-overlay.active > div {
+    opacity: 1;
+    transform: scale(1) translateZ(0);
+    transition: opacity var(--duration-modal) var(--ease-spring), transform var(--duration-modal) var(--ease-spring);
+}
+.nr .edit-overlay, .nr .edit-overlay > div { transition: none; opacity: 1; transform: none; }
+
+/* 书签编辑新增动画 */
+.edit-row-card.animate-item-in {
+    animation: itemFadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+@keyframes itemFadeIn {
+    from { opacity: 0; transform: translateY(-8px) scale(0.97); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.nr .edit-row-card { animation: none; }
+
+/* 天气旋转动画 */
+.weather-spin {
+    animation: weatherSpin 0.6s linear infinite;
+    transform-origin: center;
+}
+@keyframes weatherSpin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
