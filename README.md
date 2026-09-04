@@ -29,7 +29,7 @@
 - ⚡ **`<head>` 零闪烁预加载恢复 (Pre-hydration)**：在 DOM 挂载前通过 `<head>` 内联脚本瞬间还原上次屏间位置、背景壁纸与遮罩模糊滤镜，消除刷新闪烁 (FOUC)。
 - 🛡️ **严格安全防护**：内置严格 Content Security Policy (CSP)、全面 XSS HTML 实体转义、`safeUrl` 协议白名单拦截（防 `javascript:` 注入）、JSONP 超时悬挂防爆防护。
 - ♿ **UI 弹窗栈管理与无障碍 Focus Trap**：基于 `OverlayStack` 管理全局弹窗与下拉菜单，弹窗激活时自动锁定 `Tab` 键焦点循环，按 `Esc` 键依后进先出 (LIFO) 顺序平滑逐层关闭。
-- 🚀 **图标高性能缓存**：内置 Service Worker (v10)，三池隔离（800+200配额）与原生 CacheStorage FIFO 容量限额自动淘汰，结合 no-cors 隔离与自愈机制彻底消除 Chrome 存储配额膨胀问题。
+- 🚀 **图标高性能缓存**：内置 Service Worker (v11)，三池隔离（800+200配额）与原生 CacheStorage FIFO 容量限额自动淘汰，结合 no-cors 隔离与自愈机制彻底消除 Chrome 存储配额膨胀问题。
 
 ---
 
@@ -373,7 +373,7 @@ glass-start/
 | **持久化偏好存储层** | `LocalStorage` | 默认引擎、遮罩透明度、模糊度、自定义书签、壁纸偏好 | key-value / 容量上限 ~5MB | 用户手动点击「重置系统设置」或浏览器清除 Cookie |
 | **高清大图存储层** | `IndexedDB` (`GlassStartDB`) | 4K 高清自定义上传壁纸 (`wallpapers` 表) | 3840x2160 JPEG Base64 / 容量 50MB~数百MB | 彻底打破 LocalStorage 5MB 上限，随重置系统操作清空 |
 | **会话状态防闪烁层** | `SessionStorage` + `<head>` 脚本 | 页面屏间位置 (`startpage_section`: `start` / `nav`) | 仅在当前会话生命周期内有效 | 渲染前 Head 内联脚本检测并同步添加 `.nr` 类 (带1.5s自愈兜底)，防止刷新首屏闪烁 |
-| **运行时内存缓存层** | JS 全局变量 (`dom` / 侧边栏 Cache) | 68 个常用 DOM 节点引用、导航分类与 Section 映射 | 内存映射，零 DOM 树二次查询开销 | 页面卸载或重新载入时自动释放与重新建立 |
+| **运行时内存缓存层** | JS 全局变量 (`dom` / 侧边栏 Cache) | 80 个常用 DOM 节点引用、导航分类与 Section 映射 | 内存映射，零 DOM 树二次查询开销 | 页面卸载或重新载入时自动释放与重新建立 |
 | **静态回退与离线数据层** | HTML 内联 `DEFAULT_*` 数组 | `bookmarks.json` 最新镜像数据 | 内存直接加载 / 零 HTTP 请求开销 | `npm run build` 时通过 `scripts/build.js` 自动双向同步 `bookmarks.json` 数据 |
 
 #### ⚡ 核心缓存与防闪烁机制详解
