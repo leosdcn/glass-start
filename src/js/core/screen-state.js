@@ -276,7 +276,7 @@ export function switchToNav() {
 
     if (typeof document !== 'undefined') {
         const onEnd = (e) => {
-            if ((e.target === nav || e.target === startSection) && e.propertyName === 'transform') {
+            if (e.target === nav && e.propertyName === 'transform') {
                 finishSwitchToNav();
             }
         };
@@ -362,7 +362,7 @@ export function switchToStart() {
 
     if (typeof document !== 'undefined') {
         const onEnd = (e) => {
-            if ((e.target === nav || e.target === startSection) && e.propertyName === 'transform') {
+            if (e.target === nav && e.propertyName === 'transform') {
                 finishSwitchToStart();
             }
         };
