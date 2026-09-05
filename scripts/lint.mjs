@@ -518,7 +518,7 @@ try {
 
 // 4.8 🚫 严禁主应用脚本在运行期滥加 .nr 类名（防止首屏被推飞）
 try {
-    const hasNrAdd = /\.classList\.add\(\s*['"]nr['"]\s*\)/.test(allSrcJsContent);
+    const hasNrAdd = /\.classList\.add\([^)]*['"]nr['"][^)]*\)/.test(allSrcJsContent);
     if (!hasNrAdd) {
         passCount++;
         logItem(`运行期 .nr 布局类名零污染（仅保留 HEAD 脚本刷新预水合通道）`);
@@ -570,7 +570,7 @@ try {
 
 // 4.11 🛡️ fade-in 入场动效自动脱壳卸载门禁
 try {
-    const hasFadeInUnload = /classList\.remove\(\s*['"]fade-in['"]\s*\)/.test(allSrcJsContent);
+    const hasFadeInUnload = /\.classList\.remove\([^)]*['"]fade-in['"][^)]*\)/.test(allSrcJsContent);
     if (hasFadeInUnload) {
         passCount++;
         logItem(`入场动画包含自动脱壳机制（fade-in 播完即卸载，根绝 Safari BFCache 回退 opacity:0）`);

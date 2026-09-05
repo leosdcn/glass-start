@@ -42,16 +42,16 @@
     --ease-snappy: cubic-bezier(0.2, 0, 0, 1);
     --ease-exit: cubic-bezier(0.4, 0, 0.2, 1);
     --ease-smooth: cubic-bezier(0.22, 1, 0.36, 1);
-    --duration-entrance: 0.52s;
+    --duration-entrance: 0.54s;
     --duration-fast: 0.16s;
     --duration-normal: 0.2s;
     --duration-popover: 0.26s;
     --duration-popover-exit: 0.18s;
     --duration-modal: 0.3s;
     --duration-slide: 0.58s;
-    --delay-stagger-1: 0.08s;
-    --delay-stagger-2: 0.16s;
-    --entrance-offset: 1.25rem;
+    --delay-stagger-1: 0.05s;
+    --delay-stagger-2: 0.09s;
+    --entrance-offset: 6px;
     --opacity-subtle: 0.6;
 }
 
@@ -160,7 +160,7 @@ img, a, button, .nav-bookmark, .bookmark-item {
 
 .clock-text { font-family: 'SF Pro Rounded', 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif; text-shadow: 0 2px 14px rgba(0,0,0,0.4), 0 8px 32px rgba(0,0,0,0.25); }
 #clock { font-variant-numeric: tabular-nums; -webkit-font-feature-settings: "tnum"; font-feature-settings: "tnum"; letter-spacing: -0.035em; }
-#date { font-variant-numeric: normal; -webkit-font-feature-settings: "normal"; font-feature-settings: "normal"; }
+#date { font-variant-numeric: normal; -webkit-font-feature-settings: normal; font-feature-settings: normal; }
 
 .bookmark-title {
     font-size: 0.72rem;

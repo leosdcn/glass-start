@@ -26,13 +26,14 @@
 
 ---
 
-### 3. 🔴 W3C WAI-ARIA 无障碍全量合规 (A11y Standard)
-- **铁律**：全站所有交互与装饰元素必须 100% 符合 W3C WAI-ARIA 无障碍标准。
+### 3. 🔴 W3C WAI-ARIA 无障碍与官方 Nu 验证全量合规 (A11y & W3C Standard)
+- **铁律**：全站所有交互与装饰元素必须 100% 符合 W3C WAI-ARIA 无障碍标准，**上线与发布前必须通过 W3C 官方 Nu 验证器检查（`npm run test:w3c`）确保 0 语法错误与 0 属性违规！**
 - **执行准则**：
   - **所有 `<button>` 标签**：必须 100% 显式声明 `type="button"`（防止在 form 上下文中被意外触发为 submit）；
   - **所有装饰性 `<svg>` 图标**：必须显式标注 `aria-hidden="true"`；
   - **所有交互性图标按钮**：必须显式标注 `aria-label` 描述其可访问名称；
-  - **焦点环规范**：必须遵循 Apple HIG 规范，键盘导航时呈现 `:focus-visible` 白色半透明描边与外发光，鼠标点击时 `:focus:not(:focus-visible)` 保持干净无圈。
+  - **焦点环规范**：必须遵循 Apple HIG 规范，键盘导航时呈现 `:focus-visible` 白色半透明描边与外发光，鼠标点击时 `:focus:not(:focus-visible)` 保持干净无圈；
+  - **发布前 W3C 官方在线门禁**：版本发布前强制执行 `npm run test:w3c`，直连 W3C 官方 Nu Html Checker 审计，确保 HTML5 语义化标签、属性契约与 ARIA 规范全量合规。
 
 ---
 
@@ -110,7 +111,10 @@ npm run build
 # 2. 全量端到端自动化测试套件 (5 大套件 24 项断言全跑)
 npm run test:all        # 或 node test/run.mjs --force
 
-# 3. 如涉及关键 UI / 动画 / 视口变动，执行多视口全景视觉回归测试 (11 大场景断言)
+# 3. W3C 官方 Nu 验证器全量合规门禁 (直连 W3C 官方 API，确保 0 语法错误与 0 属性违规)
+npm run test:w3c        # 或 node scripts/validate-w3c.mjs
+
+# 4. 如涉及关键 UI / 动画 / 视口变动，执行多视口全景视觉回归测试 (11 大场景断言)
 npm run test:visual     # 或 node test/visual-regression.mjs
 ```
 
