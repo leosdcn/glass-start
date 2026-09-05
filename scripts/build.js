@@ -84,7 +84,6 @@ const PATHS = {
     srcMainJs: path.join(ROOT_DIR, 'src', 'js', 'main.js'),
     srcConstants: path.join(ROOT_DIR, 'src', 'js', 'config', 'constants.js'),
     dist: path.join(ROOT_DIR, 'dist'),
-    tempCss: path.join(ROOT_DIR, '.temp_input.css'),
     bookmarksJson: path.join(ROOT_DIR, 'bookmarks.json'),
     pkgJson: path.join(ROOT_DIR, 'package.json'),
     sw: path.join(ROOT_DIR, 'sw.js'),
@@ -98,17 +97,10 @@ let currentBuildVersion = 'app-core-v' + Date.now();
 // 顶层 JS 变量正则替换工具函数 (单次遍历替换，消除冗余的 test() 预扫描)
 function safeReplaceJsVariable(code, varName, replacementJs) {
     const regex = new RegExp(`(?:export\\s+)?(?:const|let|var)\\s+${varName}(?:\\s*:\\s*[^=]+)?\\s*=\\s*\\[[\\s\\S]*?\\];`);
-    return code.replace(regex, () => `export const ${varName} = ${replacementJs};`);
+    return code.replace(regex, (match) => {
+        return match.replace(/\[[\s\S]*?\];/, `${replacementJs};`);
+    });
 }
-
-// 自动资源清理 Hook：保障遇到 Ctrl+C 或中途报错时无残存临时文件
-function cleanupTempFiles() {
-    if (fs.existsSync(PATHS.tempCss)) {
-        try { fs.unlinkSync(PATHS.tempCss); } catch {}
-    }
-}
-process.on('exit', cleanupTempFiles);
-process.on('SIGINT', () => { cleanupTempFiles(); process.exit(1); });
 
 // 引入 esbuild 编译器（具备优雅降级能力）
 let esbuild;
@@ -193,22 +185,16 @@ function initDistDir() {
 // 2. 编译 Tailwind CSS (v4 CLI)
 function compileTailwindCss() {
     logSection('1/5', '📦 编译 Tailwind CSS 样式表 (v4 CLI)');
-    const hasSrcCss = fs.existsSync(PATHS.srcCss);
-    const inputCss = hasSrcCss ? PATHS.srcCss : PATHS.tempCss;
-    if (!hasSrcCss) {
-        fs.writeFileSync(PATHS.tempCss, '@import "tailwindcss";\n@source "./index.html";\n', 'utf-8');
-    }
     const distStyleCss = path.join(PATHS.dist, 'style.css');
 
     try {
         const cssStart = Date.now();
-        execSync(`npx -y @tailwindcss/cli@4 -i "${inputCss}" -o "${distStyleCss}" -m`, {
+        execSync(`npx -y @tailwindcss/cli@4 -i "${PATHS.srcCss}" -o "${distStyleCss}" -m`, {
             stdio: 'pipe'
         });
         const cssDuration = Date.now() - cssStart;
         const cssKb = (fs.statSync(distStyleCss).size / 1024).toFixed(2);
-        const sourceLabel = hasSrcCss ? 'src/styles/main.css 与组件模板' : 'index.html';
-        logItem(`扫描 ${sourceLabel} 完成，原子化 CSS 静态编译就绪 (${cssKb} KB, 耗时 ${cssDuration}ms)`);
+        logItem(`扫描 src/styles/main.css 与组件模板 完成，原子化 CSS 静态编译就绪 (${cssKb} KB, 耗时 ${cssDuration}ms)`);
     } catch (err) {
         console.error(`\n  ${c.yellow}❌ Tailwind CSS 编译失败:${c.reset}`, err.message || err);
         if (/can't resolve 'tailwindcss'|cannot find module 'tailwindcss'|module not found/i.test(String(err.message || ''))) {
@@ -216,10 +202,7 @@ function compileTailwindCss() {
             console.error('   💡 提示：未能从项目目录解析到 tailwindcss 依赖包。');
             console.error('      请先在项目根目录执行 `npm install`，或删除 node_modules 后重新安装再试。');
         }
-        cleanupTempFiles();
         process.exit(1);
-    } finally {
-        cleanupTempFiles();
     }
 }
 
@@ -332,17 +315,13 @@ function processProductionHtml() {
     logSection('5/5', '🔧 处理生产环境页面 (dist/index.html)');
     let prodHtmlContent = fs.readFileSync(PATHS.srcIndexHtml, 'utf-8');
 
-    // 5.0 彻底移除开发模式下的原生 ESM 模块入口及历史遗留 script
+    // 5.0 彻底移除开发模式下的原生 ESM 模块入口
     prodHtmlContent = prodHtmlContent.replace(
         /<!--\s*引入原生 ES Module 主应用入口\s*-->\s*<script\s+type="module"\s+src="[^"]*"><\/script>/i,
         ''
     );
     prodHtmlContent = prodHtmlContent.replace(
         /<script\s+type="module"\s+src="[^"]*"><\/script>/i,
-        ''
-    );
-    prodHtmlContent = prodHtmlContent.replace(
-        /<script\s+id="main-script"[^>]*>[\s\S]*?<\/script>/i,
         ''
     );
 
@@ -384,19 +363,9 @@ function processProductionHtml() {
         fs.unlinkSync(distCssPath);
     }
 
-    const cdnPattern = /<!--\s*Tailwind[\s\S]*?CDN[\s\S]*?<\/script>(?:\s*<script[\s\S]*?<\/script>)?/i;
     const linkStylePattern = /<link\s+[^>]*rel=["']stylesheet["'][^>]*href=["'][^"']*styles\/main\.css["'][^>]*>/i;
     const replaceTarget = `<!-- 内嵌静态编译 Tailwind CSS 样式表 (零网络 RTT 请求，消除渲染阻塞，极速秒开 & 100% 离线支持) -->\n    <style>${cssContent}</style>`;
-
-    if (linkStylePattern.test(prodHtmlContent)) {
-        prodHtmlContent = prodHtmlContent.replace(linkStylePattern, () => replaceTarget);
-    } else if (cdnPattern.test(prodHtmlContent)) {
-        prodHtmlContent = prodHtmlContent.replace(cdnPattern, () => replaceTarget);
-    } else {
-        // 容错回退：注释锚点缺失时按脚本特征匹配（兼容带 defer/async 等任意属性形态）
-        prodHtmlContent = prodHtmlContent.replace(/<script[^>]*@tailwindcss\/browser@4[^>]*><\/script>/i, () => replaceTarget);
-    }
-    prodHtmlContent = prodHtmlContent.replace(/<script[^>]*@tailwindcss\/browser@4[^>]*><\/script>/gi, '');
+    prodHtmlContent = prodHtmlContent.replace(linkStylePattern, () => replaceTarget);
 
     // 5.1 对 HTML 中所有的 <style> 和 <script> 标签内容进行全面压缩
     function minifyInlineStylesAndScripts(html) {
@@ -406,9 +375,8 @@ function processProductionHtml() {
             return `<style${attrs}>${minified}</style>`;
         });
 
-        // 压缩所有 <script> 块（跳过 main-script 避免二次处理）
+        // 压缩所有 <script> 块
         html = html.replace(/<script([^>]*)>([\s\S]*?)<\/script>/gi, (match, attrs, content) => {
-            if (/id=["']main-script["']/i.test(attrs)) return match;
             if (/type=["']application\/ld\+json["']/i.test(attrs)) {
                 try {
                     return `<script${attrs}>${JSON.stringify(JSON.parse(content))}</script>`;
@@ -425,10 +393,10 @@ function processProductionHtml() {
     prodHtmlContent = minifyInlineStylesAndScripts(prodHtmlContent);
 
     // 注入 AI/开发者防误删警告注释（放在 DOCTYPE 之后，避免触发浏览器 quirks 模式）
-    const autoGenWarning = `<!-- ⚠️ DO NOT EDIT THIS FILE DIRECTLY! This is a production build output auto-generated by build.js. Please edit the source file /index.html in project root. 自动生成的生产构建产物，请勿直接编辑此文件，修改源码请编辑根目录 index.html -->\n`;
+    const autoGenWarning = `<!-- ⚠️ DO NOT EDIT THIS FILE DIRECTLY! This is a production build output auto-generated by build.js. Please edit the source file /src/index.html. 自动生成的生产构建产物，请勿直接编辑此文件，修改源码请编辑 src/index.html -->\n`;
     prodHtmlContent = prodHtmlContent.replace(/(<!DOCTYPE\s+html[^>]*>)/i, (match, p1) => p1 + '\n' + autoGenWarning);
 
-    // 5.2 生产环境 CSP 优化：清理已剔除的 Tailwind v4 Browser CDN 域名，确保在 CDN 自动压缩/多平台部署下 100% 高可用
+    // 5.2 生产环境 CSP 优化：确保剔除任何冗余 CDN 域名
     prodHtmlContent = prodHtmlContent.replace(
         /script-src\s+([^;]+);/i,
         (match, domains) => {
@@ -544,7 +512,6 @@ function main() {
         console.error(`       ${c.bold}rm -rf node_modules && npm install${c.reset}`);
         console.error('');
         console.error('   💡 提示：从 GitHub 下载的 ZIP 或新克隆的仓库不包含 node_modules，需先执行上述安装步骤。');
-        cleanupTempFiles();
         process.exit(1);
     }
 

@@ -240,7 +240,7 @@ npm run build
 3. **修改搜索引擎**：可在 `src/js/config/constants.js` 中的 `engines` 引擎配置对象中新增或定制新的搜索引擎（Google、Bing 等）。
 
 ### 3. 静态检查、Git 规范与自动化测试指南 (Agent / Dev Guidelines)
-- ⚡ **静态代码检查 (`npm run lint` / `npm run lint:fix`)**：耗时约 0.01 秒（全量 27 项机器级语法与工程红线门禁守门）。自动完成 `src/index.html` 内联 JS、`src/js/` 业务模块、`scripts/build.js`/`sw.js`/`scripts/server.js` 语法预检及 `bookmarks.json`/`manifest.json`/`package.json` 的 JSON 合法性校验，报错精确到 `文件名:行号:列号`；支持 `npm run lint:fix` 针对 `<button>` 与 `<svg>` 机械性无障碍属性一键就地自愈。修改代码后运行此命令做轻量校验。
+- ⚡ **静态代码检查 (`npm run lint` / `npm run lint:fix`)**：耗时约 0.03 秒（全量 28 项机器级语法与工程红线门禁守门）。自动完成 `src/index.html` 内联 JS、`src/js/` 业务模块、`scripts/build.js`/`sw.js`/`scripts/server.js` 语法预检及 `bookmarks.json`/`manifest.json`/`package.json` 的 JSON 合法性校验，报错精确到 `文件名:行号:列号`；支持 `npm run lint:fix` 针对 `<button>` 与 `<svg>` 机械性无障碍属性一键就地自愈。修改代码后运行此命令做轻量校验。
 - 🚀 **生产构建打包 (`npm run build`)**：耗时约 0.5 秒（Tailwind v4 CLI + esbuild 引擎）。编译 Tailwind CSS 并同步书签数据，自动校验产物完整性。
 - 🧪 **自动化测试套件 (`npm test` 或 `node test/run.mjs`)**：
   - 内置 **4 大核心领域端到端与架构综合测试套件（覆盖 24 项高密度全景断言）**。

@@ -8,6 +8,7 @@
 import { readFileSync, writeFileSync, statSync, existsSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { spawnSync } from 'node:child_process';
 import vm from 'node:vm';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -129,9 +130,7 @@ scripts.forEach((m, i) => {
     const fullTag = m[0];
     const code = m[1];
     let tagDesc = '';
-    if (fullTag.includes('id="main-script"')) {
-        tagDesc = ' (主应用逻辑)';
-    } else if (fullTag.includes('application/ld+json')) {
+    if (fullTag.includes('application/ld+json')) {
         tagDesc = ' (结构化数据 JSON-LD)';
     }
     const label = `内联 script #${i}${tagDesc} [${formatSize(code.length)}]`;
@@ -149,7 +148,7 @@ scripts.forEach((m, i) => {
     }
 });
 
-// ---- 2. 核心 JS 脚本 (scripts/build.js, sw.js, scripts/server.js) 用 node:vm 纯内存校验 ----
+// ---- 2. 核心 JS 脚本与 src/js 业务模块语法校验 (node --check) ----
 logSection('2/4', '⚙️  校验核心 JavaScript 语法 (node --check)');
 const jsFiles = [
     { name: 'scripts/build.js', desc: '打包构建脚本' },
@@ -170,6 +169,19 @@ for (const item of jsFiles) {
     } catch (e) {
         failCount++;
         logItem(`${label} 语法错误:\n${e.message}`, 'error');
+    }
+}
+
+// 校验 src/js/ 下全部 ESM 业务模块
+if (allSrcJsFiles.length > 0) {
+    const checkRes = spawnSync(process.execPath, ['--check', ...allSrcJsFiles], { encoding: 'utf-8' });
+    const label = `src/js/            (${allSrcJsFiles.length} 个 ESM 核心业务子模块)`;
+    if (checkRes.status === 0) {
+        passCount++;
+        logItem(`${label} 语法全部通过`);
+    } else {
+        failCount++;
+        logItem(`${label} 语法错误:\n${checkRes.stderr}`, 'error');
     }
 }
 
