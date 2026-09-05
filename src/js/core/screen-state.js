@@ -20,6 +20,7 @@ let scrollAccum = 0;
 let resetAccumTimer = null;
 let isTransitioning = false;
 let transitionTimer = null;
+let navTransitionCleanup = null;
 let lastTransitionEndTime = 0;
 let swallowMomentum = false;
 let swallowStartTs = 0;
@@ -102,6 +103,10 @@ export function reconcileScreenState(targetSection) {
         clearTimeout(transitionTimer);
         transitionTimer = null;
     }
+    if (typeof navTransitionCleanup === 'function') {
+        navTransitionCleanup();
+        navTransitionCleanup = null;
+    }
     isTransitioning = false;
     swallowMomentum = false;
     swallowDir = null;
@@ -183,6 +188,10 @@ export function switchToNav() {
         clearTimeout(transitionTimer);
         transitionTimer = null;
     }
+    if (typeof navTransitionCleanup === 'function') {
+        navTransitionCleanup();
+        navTransitionCleanup = null;
+    }
     if (typeof window.closeDropdown === 'function') window.closeDropdown();
     if (typeof window.hideSuggestions === 'function') window.hideSuggestions();
 
@@ -243,8 +252,15 @@ export function switchToNav() {
         if (typeof window.initFaviconObserver === 'function') window.initFaviconObserver();
     });
 
-    transitionTimer = setTimeout(() => {
-        transitionTimer = null;
+    const finishSwitchToNav = () => {
+        if (transitionTimer) {
+            clearTimeout(transitionTimer);
+            transitionTimer = null;
+        }
+        if (typeof navTransitionCleanup === 'function') {
+            navTransitionCleanup();
+            navTransitionCleanup = null;
+        }
         if (state.currentSection === 'nav') {
             isTransitioning = false;
             lastTransitionEndTime = performance.now();
@@ -256,7 +272,19 @@ export function switchToNav() {
                 }
             }
         }
-    }, CONFIG.GESTURE.TRANSITION_MS);
+    };
+
+    if (typeof document !== 'undefined') {
+        const onEnd = (e) => {
+            if ((e.target === nav || e.target === startSection) && e.propertyName === 'transform') {
+                finishSwitchToNav();
+            }
+        };
+        document.addEventListener('transitionend', onEnd);
+        navTransitionCleanup = () => document.removeEventListener('transitionend', onEnd);
+    }
+
+    transitionTimer = setTimeout(finishSwitchToNav, CONFIG.GESTURE.TRANSITION_MS + 40);
 }
 
 export function switchToStart() {
@@ -272,6 +300,10 @@ export function switchToStart() {
     if (transitionTimer) {
         clearTimeout(transitionTimer);
         transitionTimer = null;
+    }
+    if (typeof navTransitionCleanup === 'function') {
+        navTransitionCleanup();
+        navTransitionCleanup = null;
     }
     state.currentSection = 'start';
     isTransitioning = true;
@@ -304,8 +336,15 @@ export function switchToStart() {
         nav.classList.remove('screen-pushed-in');
     }
 
-    transitionTimer = setTimeout(() => {
-        transitionTimer = null;
+    const finishSwitchToStart = () => {
+        if (transitionTimer) {
+            clearTimeout(transitionTimer);
+            transitionTimer = null;
+        }
+        if (typeof navTransitionCleanup === 'function') {
+            navTransitionCleanup();
+            navTransitionCleanup = null;
+        }
         if (state.currentSection === 'start') {
             isTransitioning = false;
             lastTransitionEndTime = performance.now();
@@ -319,7 +358,19 @@ export function switchToStart() {
                 nav.classList.add('nav-hidden');
             }
         }
-    }, CONFIG.GESTURE.TRANSITION_MS);
+    };
+
+    if (typeof document !== 'undefined') {
+        const onEnd = (e) => {
+            if ((e.target === nav || e.target === startSection) && e.propertyName === 'transform') {
+                finishSwitchToStart();
+            }
+        };
+        document.addEventListener('transitionend', onEnd);
+        navTransitionCleanup = () => document.removeEventListener('transitionend', onEnd);
+    }
+
+    transitionTimer = setTimeout(finishSwitchToStart, CONFIG.GESTURE.TRANSITION_MS + 40);
 }
 
 export function normDelta(e) {

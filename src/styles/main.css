@@ -9,8 +9,8 @@
    1. SETTINGS & DESIGN TOKENS (设计令牌与基础配置)
    ========================================================================== */
 /* .nr 模式：直达导航页预渲染，与 HEAD inline script 配合消除刷新抖动 */
-.nr #startSection { transform: translateY(-100vh); transform: translateY(-100dvh); transition: none; }
-.nr #navSection { visibility: visible; transform: translateY(0); transition: none; }
+.nr #startSection { -webkit-transform: translate3d(0, -100vh, 0); -webkit-transform: translate3d(0, -100dvh, 0); transform: translate3d(0, -100vh, 0); transform: translate3d(0, -100dvh, 0); transition: none; }
+.nr #navSection { visibility: visible; -webkit-transform: translate3d(0, 0, 0); transform: translate3d(0, 0, 0); transition: none; }
 .nr #editBookmarksBtn, .nr #weatherWidget { opacity: 0; pointer-events: none; transition: none; }
 .nr *, .nr *::before, .nr *::after { animation: none; transition: none; }
 
@@ -122,13 +122,18 @@ img, a, button, .nav-bookmark, .bookmark-item {
     height: 100vh;
     height: 100dvh;
     z-index: 10;
-    transform: translateY(0);
+    -webkit-transform: translate3d(0, 0, 0);
+    transform: translate3d(0, 0, 0);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
     will-change: transform;
     transition: transform var(--duration-slide) cubic-bezier(0.5, 0, 0.2, 1);
 }
 #startSection.screen-pushed-up {
-    transform: translateY(-100vh);
-    transform: translateY(-100dvh);
+    -webkit-transform: translate3d(0, -100vh, 0);
+    -webkit-transform: translate3d(0, -100dvh, 0);
+    transform: translate3d(0, -100vh, 0);
+    transform: translate3d(0, -100dvh, 0);
 }
 #navSection {
     position: fixed;
@@ -137,13 +142,18 @@ img, a, button, .nav-bookmark, .bookmark-item {
     height: 100vh;
     height: 100dvh;
     z-index: 20;
-    transform: translateY(100vh);
-    transform: translateY(100dvh);
+    -webkit-transform: translate3d(0, 100vh, 0);
+    -webkit-transform: translate3d(0, 100dvh, 0);
+    transform: translate3d(0, 100vh, 0);
+    transform: translate3d(0, 100dvh, 0);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
     will-change: transform;
     transition: transform var(--duration-slide) cubic-bezier(0.5, 0, 0.2, 1);
 }
 #navSection.screen-pushed-in {
-    transform: translateY(0);
+    -webkit-transform: translate3d(0, 0, 0);
+    transform: translate3d(0, 0, 0);
 }
 
 @media (hover: hover) and (pointer: fine) {
