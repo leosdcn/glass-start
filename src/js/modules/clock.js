@@ -97,8 +97,10 @@ export function updateClock() {
         }
     }
     const day = n.getDate();
-    if (day !== lastDateDay) {
+    const effectiveLastDateDay = (typeof window !== 'undefined' && typeof window.lastDateDay === 'number') ? window.lastDateDay : lastDateDay;
+    if (day !== effectiveLastDateDay) {
         lastDateDay = day;
+        if (typeof window !== 'undefined') window.lastDateDay = day;
         if (dateEl) {
             const weekdays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
             dateEl.textContent = `${n.getMonth() + 1}月${n.getDate()}日 ${weekdays[n.getDay()]}`;
