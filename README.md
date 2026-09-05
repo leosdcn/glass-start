@@ -1,11 +1,9 @@
-# Glass Start - 灵动起始页与分类导航
+# Glass Start - 流光起始页
 
-> 灵动优雅、极简纯净的毛玻璃拟态浏览器起始页与分类导航。
+> 极简纯净的毛玻璃浏览器起始页。
 
-[![Version](https://img.shields.io/badge/Version-v4.4.0-blue)](package.json)
+[![Version](https://img.shields.io/badge/version-v4.4.1-blue.svg)](package.json)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-v4-38bdf8?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
-[![Zero Dependencies](https://img.shields.io/badge/Runtime_Deps-0-brightgreen)](#-零运行时依赖与极速首屏)
-[![PWA Ready](https://img.shields.io/badge/PWA-Ready-orange?logo=pwa&logoColor=white)](#-pwa-离线优先支持)
 
 ---
 

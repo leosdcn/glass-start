@@ -97,7 +97,7 @@ flowchart TD
 2. **状态与交互路由层**：通过双屏有限状态机解耦第一屏（Start）与第二屏（Nav），辅以滚轮动量吞咽器与触屏滑动引擎。针对 Mac 触控板高频惯性与跨屏误触，设立速度门控与反向打断机制。
 3. **数据管理与派生架构**：采用单向数据流与派生式架构（Derived Bookmark Architecture），快捷书签仅存储 URL 索引，其标题、图标与分类均由 `bookmarks.json` 全量数据库动态派生，兼顾了用户自定义灵活性与全局数据实时同步能力。
 4. **离线基座与安全屏障**：Service Worker 实施三池物理隔离，配合 `_headers` 的严格 CSP 与 HSTS，既保证离线可用性，又防范跨域数据投毒与 CSS/JS 缓存穿透。
-5. **单一真理源与双端构建指纹**：版本发布以 `package.json` 为唯一真理源，`scripts/build.js` 自动将版本号注入 `dist/index.html` 徽章，同时生成同步的 `__GLASS_BUILD_HTML__` 与 `__GLASS_BUILD_APP__` 双端构建指纹对，确保客户端 HTML 与 JS 逻辑同版锁步运行。
+5. **单一真理源与双端构建指纹**：版本发布以 `package.json` 为唯一真理源，`scripts/build.js` 自动将版本号同步注入 `README.md` 与 `dist/index.html` 徽章，同时生成同步的 `__GLASS_BUILD_HTML__` 与 `__GLASS_BUILD_APP__` 双端构建指纹对，确保客户端 HTML 与 JS 逻辑同版锁步运行。
 
 ---
 

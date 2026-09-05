@@ -86,6 +86,7 @@ const PATHS = {
     dist: path.join(ROOT_DIR, 'dist'),
     bookmarksJson: path.join(ROOT_DIR, 'bookmarks.json'),
     pkgJson: path.join(ROOT_DIR, 'package.json'),
+    readme: path.join(ROOT_DIR, 'README.md'),
     sw: path.join(ROOT_DIR, 'sw.js'),
     wallpapers: path.join(ROOT_DIR, 'wallpapers'),
     headers: path.join(ROOT_DIR, '_headers')
@@ -332,7 +333,7 @@ function processProductionHtml() {
         `$1<script>window.__GLASS_BUILD_HTML__="${currentBuildVersion}"</script><script src="./app.js?v=${currentBuildVersion}" defer></script>`
     );
 
-    // 5.0.2 单一真理源：自动将 package.json 中的版本号注入到 index.html 品牌卡片徽章中
+    // 5.0.2 单一真理源：自动将 package.json 中的版本号注入到 index.html 品牌卡片徽章与 README.md 版本徽章中
     try {
         const pkgData = JSON.parse(fs.readFileSync(PATHS.pkgJson, 'utf-8'));
         if (pkgData && pkgData.version) {
@@ -340,6 +341,19 @@ function processProductionHtml() {
                 /(<span[^>]*class="[^"]*rounded-full[^"]*"[^>]*>)v?[0-9]+\.[0-9]+\.[0-9]+(<\/span>)/i,
                 `$1v${pkgData.version}$2`
             );
+
+            // 同步对齐 README.md 顶部版本号徽章 (Shields.io 徽章单一真理源自动同步)
+            if (fs.existsSync(PATHS.readme)) {
+                let readmeContent = fs.readFileSync(PATHS.readme, 'utf-8');
+                const nextReadme = readmeContent.replace(
+                    /(badge\/version-v)[0-9]+\.[0-9]+\.[0-9]+(-blue\.svg)/i,
+                    `$1${pkgData.version}$2`
+                );
+                if (nextReadme !== readmeContent) {
+                    fs.writeFileSync(PATHS.readme, nextReadme, 'utf-8');
+                    logItem(`README.md 版本号徽章已自动同步对齐: ${c.cyan}v${pkgData.version}${c.reset}`);
+                }
+            }
         }
     } catch {}
 

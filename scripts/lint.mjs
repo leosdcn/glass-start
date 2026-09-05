@@ -223,12 +223,22 @@ try {
     // 单一真理源校验：package.json 与 package-lock.json 保持同步
     const isLockSynced = lockVersion === expectedVersion && lockPkgVersion === expectedVersion;
 
-    if (expectedVersion && isLockSynced) {
+    // 校验 README.md 顶部版本号徽章同步状态
+    let isReadmeSynced = true;
+    try {
+        const readme = readFileSync(join(root, 'README.md'), 'utf-8');
+        const readmeMatch = readme.match(/badge\/version-v([0-9]+\.[0-9]+\.[0-9]+)-blue\.svg/i);
+        if (readmeMatch && readmeMatch[1] !== expectedVersion) {
+            isReadmeSynced = false;
+        }
+    } catch {}
+
+    if (expectedVersion && isLockSynced && isReadmeSynced) {
         passCount++;
-        logItem(`版本号单一真理源 (v${expectedVersion}) package.json 与 package-lock.json 100% 对齐`);
+        logItem(`版本号单一真理源 (v${expectedVersion}) package.json、package-lock.json 与 README.md 100% 对齐`);
     } else {
         failCount++;
-        logItem(`版本号未对齐: pkg=${expectedVersion}, lock=${lockVersion}, lockPkg=${lockPkgVersion}`, 'error');
+        logItem(`版本号未对齐: pkg=${expectedVersion}, lock=${lockVersion}, lockPkg=${lockPkgVersion}, readmeSynced=${isReadmeSynced}`, 'error');
     }
 } catch (e) {
     failCount++;
