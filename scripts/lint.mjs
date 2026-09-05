@@ -101,10 +101,25 @@ if (isFixMode) {
         return '<svg aria-hidden="true"';
     });
 
+    // 3. 自动同步 src/index.html 品牌卡片版本号徽章 (对齐 package.json)
+    try {
+        const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf-8'));
+        if (pkg.version) {
+            const nextFixedHtml = fixedHtml.replace(
+                /(<span[^>]*class="[^"]*rounded-full[^"]*"[^>]*>)v?[0-9]+\.[0-9]+\.[0-9]+(<\/span>)/i,
+                `$1v${pkg.version}$2`
+            );
+            if (nextFixedHtml !== fixedHtml) {
+                fixCount++;
+                fixedHtml = nextFixedHtml;
+            }
+        }
+    } catch {}
+
     if (fixCount > 0) {
         writeFileSync(htmlPath, fixedHtml, 'utf-8');
         indexHtml = fixedHtml;
-        console.log(`  ${c.green}⚡ [Auto-Fix] 已自动修复 src/index.html 中 ${fixCount} 处机械性无障碍属性规范！${c.reset}`);
+        console.log(`  ${c.green}⚡ [Auto-Fix] 已自动修复 src/index.html 中 ${fixCount} 处机械性无障碍属性与版本徽章规范！${c.reset}`);
     }
 }
 
@@ -233,12 +248,19 @@ try {
         }
     } catch {}
 
-    if (expectedVersion && isLockSynced && isReadmeSynced) {
+    // 校验 src/index.html 品牌卡片版本号徽章同步状态
+    let isHtmlSynced = true;
+    const htmlBadgeMatch = indexHtml.match(/<span[^>]*class="[^"]*rounded-full[^"]*"[^>]*>v?([0-9]+\.[0-9]+\.[0-9]+)<\/span>/i);
+    if (!htmlBadgeMatch || htmlBadgeMatch[1] !== expectedVersion) {
+        isHtmlSynced = false;
+    }
+
+    if (expectedVersion && isLockSynced && isReadmeSynced && isHtmlSynced) {
         passCount++;
-        logItem(`版本号单一真理源 (v${expectedVersion}) package.json、package-lock.json 与 README.md 100% 对齐`);
+        logItem(`版本号单一真理源 (v${expectedVersion}) package.json、package-lock.json、README.md 与 src/index.html 100% 对齐`);
     } else {
         failCount++;
-        logItem(`版本号未对齐: pkg=${expectedVersion}, lock=${lockVersion}, lockPkg=${lockPkgVersion}, readmeSynced=${isReadmeSynced}`, 'error');
+        logItem(`版本号未对齐: pkg=${expectedVersion}, lock=${lockVersion}, lockPkg=${lockPkgVersion}, readmeSynced=${isReadmeSynced}, htmlSynced=${isHtmlSynced}`, 'error');
     }
 } catch (e) {
     failCount++;
