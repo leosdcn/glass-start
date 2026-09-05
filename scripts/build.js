@@ -411,7 +411,7 @@ function processProductionHtml() {
     logItem('已完成生产环境 CSP 策略优化 (剔除冗余 CDN 域名)');
 
     // 5.3 自动转译应用图标（现代浏览器使用原生 🪐 SVG Data URI，Safari/iOS 使用标准 180x180 PNG）
-    const iconDataUrl = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🪐%3C/text%3E%3C/svg%3E";
+    const iconDataUrl = "data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20100%20100'%3E%3Ctext%20y='.9em'%20font-size='90'%3E🪐%3C/text%3E%3C/svg%3E";
     prodHtmlContent = prodHtmlContent.replace(/<link\s+[^>]*rel=["']icon["'][^>]*>/i, () => `<link rel="icon" type="image/svg+xml" href="${iconDataUrl}">`);
     prodHtmlContent = prodHtmlContent.replace(/<link\s+[^>]*rel=["']apple-touch-icon["'][^>]*>/i, () => `<link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png">`);
 
