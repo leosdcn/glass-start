@@ -296,6 +296,7 @@ function processProductionAppJs() {
             format: 'iife',
             minify: true,
             target: ['es2022'],
+            charset: 'utf8',
             banner: {
                 js: `window.__GLASS_BUILD_APP__="${currentBuildVersion}";\n`
             },
