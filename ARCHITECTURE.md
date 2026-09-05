@@ -54,8 +54,8 @@ flowchart TD
     subgraph L3 [" 3. 响应式数据管理与本地持久化层 (Data Management & Local Persistence) "]
         direction LR
         RUNTIME["pageData 响应式内存模型<br/>{ bookmarks, categories, customMeta }"]:::activeBox
-        MIGRATION["LocalStorage 迁移与写入<br/>SCHEMA_VERSION 校验 / 脏数据收敛清洗"]:::nodeBox
-        ASSET_STORE["自定义壁纸与图标持久化<br/>DataURL Base64 / LocalStorage"]:::nodeBox
+        MIGRATION["旧版存储平滑迁移 (migrateBookmarksStorage)<br/>LEGACY_BOOKMARKS ➔ 派生索引 (keys + customMeta)"]:::nodeBox
+        ASSET_STORE["自定义壁纸与数据持久化 (idb.js)<br/>IndexedDB (4K壁纸) / LocalStorage (轻量配置)"]:::nodeBox
         FALLBACK_JSON["静态数据库默认回退<br/>bookmarks.json 派生式元数据生成"]:::nodeBox
         SSOT["单一真理源发布体系<br/>package.json ➔ 构建注入徽章与指纹"]:::activeBox
 
@@ -130,7 +130,7 @@ flowchart TD
         PAGE_SUSPEND["页面挂起: 点击外链跳转 / 切换后台标签页<br/>(触发 window.pagehide 与 window.blur)"]:::actionNode
         TAB_BLUR["防悬停残留: 挂载 body.tab-blurred 标志类<br/>(强制解除一切 card:hover 与 :active 假性悬停微动)"]:::actionNode
         PAGE_WAKE["双通道唤醒: window.pageshow 与 document.visibilitychange<br/>(完整覆盖 BFCache 后退恢复与多标签页切回两种场景)"]:::actionNode
-        RECONCILE["纯内存瞬时自愈: reconcileScreenState(undefined, true)<br/>1. 强置 isTransitioning = false 并清除残留定时器<br/>2. 瞬态重排重置 (display:none ➔ void ➔ '') 强制 WebKit 重新分配 GPU 离屏磁贴<br/>3. 重置动量吞咽器状态并剥离 .is-clicked / .nr 等临时推屏类<br/>4. 同步校准 scrollTop = 0 与 transform 单位矩阵"]:::activeNode
+        RECONCILE["纯内存声明式自愈: reconcileScreenState(targetSection)<br/>1. 强置 isTransitioning = false 并清除残留定时器<br/>2. 瞬态重排重置 (display:none ➔ void ➔ '') 强制 WebKit 重新分配 GPU 离屏磁贴<br/>3. 重置动量吞咽器状态并剥离 .is-clicked / .nr 等临时推屏类<br/>4. 同步校准 scrollTop = 0 与 transform 单位矩阵"]:::activeNode
 
         PAGE_SUSPEND --> TAB_BLUR --> PAGE_WAKE --> RECONCILE
     end
@@ -184,7 +184,7 @@ flowchart TD
 #### 💡 技术原理解析
 1. **滚轮动量吞咽与反向熔断**：在从 Start 屏快速滑动进入 Nav 屏后，触控板产生的物理动量会持续 1~3 秒。系统开启 `swallowMomentum = true`，吞掉持续的同向事件，防止动量直接穿透导致导航页书签被意外跳滚；一旦检测到用户反向滚动（`curDir !== swallowDir`）或静默间隔超过 70ms（`MOMENTUM_QUIET_MS`），吞咽器立即熔断放行。
 2. **零 Reflow 触屏手势引擎**：触摸事件通过对比 $X/Y$ 轴位移比率（`deltaX > absDeltaY` 则判定为侧边栏横滑并放行原生滚动），在垂直滑动达到 40px 阈值或满足 Flick 轻扫（位移 $\ge 25\text{px}$ 且速度 $> 0.25\text{px/ms}$）时瞬间触发切换。
-3. **BFCache 与多标签唤醒幂等自愈**：当用户点击书签跳转后退或在多标签页之间切回时，页面经 BFCache 或后台唤醒恢复。双通道捕获（`pageshow` + `visibilitychange`）后调用 `reconcileScreenState(undefined, true)`，无视过渡动画直接在单帧内清空互斥锁、消除定时器、校准 `scrollTop` 与 DOM 类名，并无条件通过 `display` 瞬态重置（`display: none` ➔ `void offsetHeight` ➔ `display: ''`）强制 WebKit 重新分配 GPU Backing Store 磁贴，根绝离屏图层白屏。
+3. **BFCache 与多标签唤醒幂等自愈**：当用户点击书签跳转后退或在多标签页之间切回时，页面经 BFCache 或后台唤醒恢复。双通道捕获（`pageshow` + `visibilitychange`）后调用 `reconcileScreenState()`，无视过渡动画直接在单帧内清空互斥锁、消除定时器、校准 `scrollTop` 与 DOM 类名，并无条件通过 `display` 瞬态重置（`display: none` ➔ `void offsetHeight` ➔ `display: ''`）强制 WebKit 重新分配 GPU Backing Store 磁贴，根绝离屏图层白屏。
 4. **构建指纹黑匣子与三级自愈阶梯**：`window.__GLASS_DIAG__`（verify/probe/dump/log）在启动时校验 HTML 内联指纹 `__GLASS_BUILD_HTML__` 与 app.js 头部指纹 `__GLASS_BUILD_APP__` 的同版契约（不一致 → 60s 冷却期守卫单次刷新）；双屏 transform 过渡结束后执行健全性探测（当前在位屏变换矩阵 ≈ 单位阵 + 哨兵元素可见，支持 `window.state` 与 DOM 类名双重校验），连续异常按 L1 幂等校准 → L2 合成层磁贴强制重栅格化 → L3 冷却守卫刷新升级。全过程记录于**纯内存环形日志**（≤40 条，零存储写入；BFCache 恢复不重置 JS 堆，天然覆盖偶发白屏的被动取证窗口）；无任何 UI 诊断面板，现场经控制台 `dump()` 导出，L3 自刷新瞬间一次性落 `gs_last_heal` 面包屑跨刷新留痕。
 
 #### 🛡️ BFCache 与页面生命周期失步 5 大暗坑防线 (Lifecycle Anti-Patterns & Defenses)
@@ -490,28 +490,28 @@ flowchart TD
 
 ---
 
-### 6. 📍 精确符号索引地图与代码区域导航 (Symbol Index & Region Map)
+### 6. 📍 精确符号索引地图与代码区域导航 (Symbol Index & Module Map)
 
-为彻底杜绝 AI 开发过程中的“盲目通读大量代码”，下表提供了核心业务逻辑的微观精确路标。工程现已全面完成 `src/` 原生 ES 模块化解耦，AI 代理**必须优先通过唯一的 `@region` 标识符或对应的 `src/` 模块文件直接定位目标代码**，严禁进行大范围无目的代码切片。
+为彻底杜绝开发过程中的“盲目通读大量代码”，下表提供了核心业务逻辑的微观精确路标。工程现已全面完成 `src/` 原生 ES 模块化高内聚解耦（20 个业务子模块），**开发者与 AI 代理应优先直接通过对应的 `src/js/` 模块文件与导出 Symbol 进行精准切片定位**，严禁进行大范围无目的代码扫读。
 
-| 业务意图 / 领域 | 核心 `@region` 锚点 | 对应 ES 模块文件 (`src/`) | 核心函数 / 关键 Symbol | 关联职责与技术细节 |
-| :--- | :--- | :--- | :--- | :--- |
-| **首屏主题与 Safari 外壳预渲染** | `@region [HEAD_THEME_HYDRATION]` | `src/js/config/themes.js` | `PRESET_THEMES`, `targetColor` | `<head>` 内 0ms 闪电对齐：纯净黑白二元流（深色壁纸深空黑 `#0b0f19`，浅色壁纸纯净白 `#ffffff`），同步 `html/body` 底色 |
-| **全局状态与高频 DOM 缓存池** | `@region [STATE_AND_DOM_CACHE]` | `src/js/state/store.js`<br/>`src/js/state/dom.js` | `dom`, `state`, `cacheDOM()`, `$` | 80+ DOM 元素高频映射，`state.currentSection` / `state.bg` 单一数据源 |
-| **书签体系与双栏分类导航** | `@region [BOOKMARKS_ENGINE]` | `src/js/modules/bookmarks.js` | `getDerivedBookmarks()`, `renderBookmarks()`, `renderNavCategories()`, `getFaviconHTML()` | 派生书签架构（Derived BM）、双栏拼音排序、首字母徽章兜底与 Favicon 懒加载观察器 |
-| **时钟引擎、快捷键与鸣谢** | `@region [CLOCK_AND_SHORTCUTS]` | `src/js/modules/clock.js` | `updateClock()`, `applyPlatformShortcuts()`, `renderShortcutModalList()` | 实时时钟节流更新、休眠唤醒即时对齐、Mac/Win 跨平台快捷键适配与开源数据鸣谢 |
-| **设置弹窗内部草稿状态机** | `@region [MODAL_STATE]` | `src/js/state/store.js` | `modalState` | 弹窗草稿快照：备份打开前的壁纸与特效状态，隔离草稿修改与运行时全局状态 |
-| **壁纸持久化与即选即存引擎** | `@region [WALLPAPER_SELECTION]` | `src/js/modules/wallpaper.js` | `commitWallpaperSelection()`, `previewDraftWallpaper()`, `resetDraftWallpaper()` | 选中预设、上传图片或输入 URL 后立即完成持久化（IndexedDB + localStorage 双写），无需按保存即刻生效 |
-| **设置弹窗全生命周期管理** | `@region [SETTINGS_MODAL_LIFECYCLE]` | `src/js/modules/settings.js`<br/>`src/js/core/overlay-stack.js` | `openEditModal()`, `closeEditModal()`, `cancelEditModal()` | 弹窗打开备份、动画进出场、关闭清理聚焦、LIFO `OverlayStack` 压退栈管理 |
-| **弹窗底部操作与落盘入口** | `@region [SETTINGS_MODAL_COMMIT]` | `src/js/core/events.js`<br/>`src/js/modules/settings.js` | `dom.saveEditBtn`, `collectEditData()`, `saveUserBookmarks()` | 弹窗底部操作栏响应；快捷书签真正落盘与视觉特效保存入口 |
-| **智能搜索与联想防竞态调度** | `@region [SEARCH_SUGGESTIONS]` | `src/js/modules/search.js` | `renderSuggestions()`, `fetchSuggestions()`, `activeSuggestReqId` | 三级本地模糊匹配 + 网络建议词混排，骨架屏防 CLS，自增 reqId 防乱序 |
-| **气象演化与数据数值净化** | `@region [WEATHER_ENGINE]` | `src/js/modules/weather.js` | `initWeather()`, `weatherNum()`, `weatherTime()`, `WMO_WEATHER_MAP` | 气象 API 拉取、缓存信任边界防御（强制数值化清洗）、9 阶动态形态演化 |
-| **外壳主题与底色动态管理** | `@region [THEME_COLOR_ENGINE]` | `src/js/core/theme-engine.js` | `APP_THEME_DARK`, `APP_THEME_LIGHT`, `updateThemeColor()`, `syncThemeForSection()` | 运行时壁纸主题裁决、双屏外壳色恒定同步、`--bg-base` 与 `#bgLayer` 联动 |
-| **双屏有限状态机与唤醒自愈** | `@region [SCREEN_TRANSITION_AND_BFCACHE]` | `src/js/core/screen-state.js`<br/>`src/js/core/lifecycle.js` | `switchToNav()`, `switchToStart()`, `reconcileScreenState()`, `handleAppWakeUp()` | 状态机流转、手势/滚轮惯性吞咽拦截、WebKit 离屏磁贴强制重栅格化 |
-| **VisionOS 3D 倾斜与折射高光** | `@region [VISIONOS_SPOTLIGHT_AND_TILT]` | `src/js/core/gestures.js` | `initGlassSpotlightAndTilt()`, `resetActiveCard()` | VisionOS 风格玻璃物理光斑折射（`--mouse-x/y`）、3D 陀螺仪矩阵倾斜（`perspective(800px) rotateX/Y scale`）、RAF 帧合并 |
-| **全局事件中枢与拖拽重排** | `@region [GLOBAL_EVENTS_AND_DRAG]` | `src/js/core/events.js` | `bindEvents()`, `bindEditEvents()`, `initDragSort()`, `handleModalTabFocus()` | 全局键盘/点击事件委托、搜索框 IME 拼音输入防冲突、书签 HTML5 DnD 吸附重排 |
-| **XSS 安全防线与字符纠错** | `@region [SECURITY_AND_HELPERS]` | `src/js/utils/helpers.js` | `escapeHtml()`, `safeUrl()`, `normalizeUrl()`, `damerauLevenshtein()` | HTML 实体转义、`safeUrl` 协议白名单过滤、Damerau-Levenshtein 容错 |
-| **IndexedDB 4K 壁纸持久化** | `@region [IDB_STORAGE_BASE]` | `src/js/utils/idb.js` | `getWallpaperDB()`, `setWallpaperDB()`, `clearWallpaperDB()` | 异步 IDB 4K 壁纸存取底座，防范 LocalStorage 配额爆仓 |
-| **启动装配与生命周期入口** | `@region [APP_BOOTSTRAP_ENTRY]` | `src/js/init.js`<br/>`src/js/main.js` | `initApp()`, `initPreHydration()` | 双动效预水合闪电恢复、20 个 ES 业务子模块流水线装配与异常边界捕获 |
-| **运行时黑匣子与指纹契约** | `@region [DIAGNOSTICS_AND_BLACKBOX]` | `src/js/core/lifecycle.js` | `window.__GLASS_DIAG__`, `snapshotHealth()`, `probeScreenState()` | 双端构建指纹同版校验、白屏异常三级自愈阶梯（L1~L3）、纯内存环形日志（≤40条） |
+| 业务领域与核心意图 | 对应 ES 模块文件 (`src/`) | 核心函数 / 关键 Symbol | 架构职责与技术细节 |
+| :--- | :--- | :--- | :--- |
+| **首屏主题与 Safari 外壳预渲染** | `src/js/config/themes.js` | `PRESET_THEMES`, `targetColor` | `<head>` 内 0ms 闪电对齐：纯净黑白二元流（深色壁纸深空黑 `#0b0f19`，浅色壁纸纯净白 `#ffffff`），同步 `html/body` 底色 |
+| **全局状态与高频 DOM 缓存池** | `src/js/state/store.js`<br/>`src/js/state/dom.js` | `dom`, `state`, `cacheDOM()`, `$` | 80+ DOM 元素高频映射，`state.currentSection` / `state.bg` 单一数据源 |
+| **书签体系与双栏分类导航** | `src/js/modules/bookmarks.js` | `getDerivedBookmarks()`, `renderBookmarks()`, `renderNavCategories()`, `getFaviconHTML()` | 派生书签架构（Derived BM）、双栏拼音排序、首字母徽章兜底与 Favicon 懒加载观察器 |
+| **时钟引擎、快捷键与鸣谢** | `src/js/modules/clock.js` | `updateClock()`, `applyPlatformShortcuts()`, `renderShortcutModalList()` | 实时时钟节流更新、休眠唤醒即时对齐、Mac/Win 跨平台快捷键适配与开源数据鸣谢 |
+| **设置弹窗内部草稿状态机** | `src/js/state/store.js` | `modalState` | 弹窗草稿快照：备份打开前的壁纸与特效状态，隔离草稿修改与运行时全局状态 |
+| **壁纸持久化与即选即存引擎** | `src/js/modules/wallpaper.js` | `commitWallpaperSelection()`, `previewDraftWallpaper()`, `resetDraftWallpaper()` | 选中预设、上传图片或输入 URL 后立即完成持久化（IndexedDB + localStorage 双写），无需按保存即刻生效 |
+| **设置弹窗全生命周期管理** | `src/js/modules/settings.js`<br/>`src/js/core/overlay-stack.js` | `openEditModal()`, `closeEditModal()`, `cancelEditModal()` | 弹窗打开备份、动画进出场、关闭清理聚焦、LIFO `OverlayStack` 压退栈管理 |
+| **弹窗底部操作与落盘入口** | `src/js/core/events.js`<br/>`src/js/modules/settings.js` | `dom.saveEditBtn`, `collectEditData()`, `saveUserBookmarks()` | 弹窗底部操作栏响应；快捷书签真正落盘与视觉特效保存入口 |
+| **智能搜索与联想防竞态调度** | `src/js/modules/search.js` | `renderSuggestions()`, `fetchSuggestions()`, `activeSuggestReqId` | 三级本地模糊匹配 + 网络建议词混排，骨架屏防 CLS，自增 reqId 防乱序 |
+| **气象演化与数据数值净化** | `src/js/modules/weather.js` | `initWeather()`, `weatherNum()`, `weatherTime()`, `WMO_WEATHER_MAP` | 气象 API 拉取、缓存信任边界防御（强制数值化清洗）、9 阶动态形态演化 |
+| **外壳主题与底色动态管理** | `src/js/core/theme-engine.js` | `APP_THEME_DARK`, `APP_THEME_LIGHT`, `updateThemeColor()`, `syncThemeForSection()` | 运行时壁纸主题裁决、双屏外壳色恒定同步、`--bg-base` 与 `#bgLayer` 联动 |
+| **双屏有限状态机与唤醒自愈** | `src/js/core/screen-state.js`<br/>`src/js/core/lifecycle.js` | `switchToNav()`, `switchToStart()`, `reconcileScreenState()`, `handleAppWakeUp()` | 状态机流转、手势/滚轮惯性吞咽拦截、WebKit 离屏磁贴强制重栅格化 |
+| **VisionOS 3D 倾斜与折射高光** | `src/js/core/gestures.js` | `initGlassSpotlightAndTilt()`, `resetActiveCard()` | VisionOS 风格玻璃物理光斑折射（`--mouse-x/y`）、3D 陀螺仪矩阵倾斜（`perspective(800px) rotateX/Y scale`）、RAF 帧合并 |
+| **全局事件中枢与拖拽重排** | `src/js/core/events.js` | `bindEvents()`, `bindEditEvents()`, `initDragSort()`, `handleModalTabFocus()` | 全局键盘/点击事件委托、搜索框 IME 拼音输入防冲突、书签 HTML5 DnD 吸附重排 |
+| **XSS 安全防线与字符纠错** | `src/js/utils/helpers.js` | `escapeHtml()`, `safeUrl()`, `normalizeUrl()`, `damerauLevenshtein()` | HTML 实体转义、`safeUrl` 协议白名单过滤、Damerau-Levenshtein 容错 |
+| **IndexedDB 4K 壁纸持久化** | `src/js/utils/idb.js` | `getWallpaperDB()`, `setWallpaperDB()`, `clearWallpaperDB()` | 异步 IDB 4K 壁纸存取底座，防范 LocalStorage 配额爆仓 |
+| **启动装配与生命周期入口** | `src/js/init.js`<br/>`src/js/main.js` | `initApp()`, `initPreHydration()` | 双动效预水合闪电恢复、20 个 ES 业务子模块流水线装配与异常边界捕获 |
+| **运行时黑匣子与指纹契约** | `src/js/core/lifecycle.js` | `window.__GLASS_DIAG__`, `snapshotHealth()`, `probeScreenState()` | 双端构建指纹同版校验、白屏异常三级自愈阶梯（L1~L3）、纯内存环形日志（≤40条） |
 
