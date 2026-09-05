@@ -2,10 +2,10 @@
 
 > 灵动优雅、极简纯净的毛玻璃拟态浏览器起始页与分类导航。
 
+[![Version](https://img.shields.io/badge/Version-v4.4.0-blue)](package.json)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-v4-38bdf8?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
-[![Zero Dependencies](https://img.shields.io/badge/Runtime_Deps-0-brightgreen)](#-零运行时依赖与极速)
-[![PWA Ready](https://img.shields.io/badge/PWA-Ready-orange?logo=pwa&logoColor=white)](#-离线优先与-pwa)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Zero Dependencies](https://img.shields.io/badge/Runtime_Deps-0-brightgreen)](#-零运行时依赖与极速首屏)
+[![PWA Ready](https://img.shields.io/badge/PWA-Ready-orange?logo=pwa&logoColor=white)](#-pwa-离线优先支持)
 
 ---
 
@@ -140,9 +140,3 @@ npm run build
 
 - 🏛️ **[ARCHITECTURE.md (架构设计与技术白皮书)](./ARCHITECTURE.md)**：系统分层模型、双屏状态机、OverlayStack 弹窗逆序退栈、Service Worker 三池物理隔离缓存、BFCache 唤醒防护等核心技术设计。
 - 🤖 **[AGENTS.md (AI 编程宪法与工程准则)](./AGENTS.md)**：不可触碰的 7 大工程红线、Tiered QA 自愈流水线、全模块精准文件定位索引与避坑守则。
-
----
-
-## 📄 开源许可证
-
-本项目基于 [MIT License](./LICENSE) 协议开源。
