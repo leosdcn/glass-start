@@ -83,7 +83,7 @@
 
 /* 导航分类微光脉冲提醒 */
 .category-title-pulse::after {
-    animation: catLinePulse 1.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+    animation: catLinePulse 1.2s var(--ease-pulse);
 }
 @keyframes catLinePulse {
     0%   { opacity: 1; }

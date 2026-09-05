@@ -131,7 +131,7 @@
 .glass-interactive {
     transition-property: background-color, color, border-color, transform, box-shadow;
     transition-duration: var(--duration-fast, 0.16s);
-    transition-timing-function: var(--ease-spring, cubic-bezier(0.16, 1, 0.3, 1));
+    transition-timing-function: var(--ease-spring);
 }
 
 .preset-bg-card {
@@ -189,7 +189,7 @@
     -webkit-backface-visibility: hidden;
     backface-visibility: hidden;
     transform: translateZ(0);
-    transition: transform 0.38s var(--ease-tactile), background-color 0.32s ease, border-color 0.32s ease, box-shadow 0.38s var(--ease-tactile);
+    transition: transform var(--duration-tactile) var(--ease-tactile), background-color 0.32s ease, border-color 0.32s ease, box-shadow var(--duration-tactile) var(--ease-tactile);
 }
 .bookmark-item::before {
     content: '';

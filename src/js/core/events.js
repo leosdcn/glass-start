@@ -608,7 +608,7 @@ export function initDragSort() {
                 card.style.transform = `translate3d(${deltaX}px, ${deltaY}px, 0)`;
 
                 requestAnimationFrame(() => {
-                    card.style.transition = 'transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)';
+                    card.style.transition = 'transform 0.35s var(--ease-overshoot)';
                     card.style.transform = 'translate3d(0, 0, 0)';
                 });
 
@@ -808,7 +808,7 @@ export function bindEditEvents() {
                         updatePickerCount();
                         updateBookmarkCountBadge();
                     } else {
-                        item.style.transition = 'all 0.18s cubic-bezier(0.16, 1, 0.3, 1)';
+                        item.style.transition = 'all 0.18s var(--ease-spring)';
                         item.style.opacity = '0';
                         item.style.transform = 'scale(0.92) translateY(-6px)';
                         item.addEventListener('transitionend', () => {

@@ -75,7 +75,7 @@ export function initGlassSpotlightAndTilt() {
             if (activeCard) resetActiveCard();
             activeCard = card;
             activeCardRect = card.getBoundingClientRect();
-            activeCard.style.transition = 'transform 0.08s ease-out, background-color 0.32s ease, border-color 0.32s ease, box-shadow 0.38s cubic-bezier(0.2, 0.9, 0.2, 1)';
+            activeCard.style.transition = 'transform 0.08s ease-out, background-color 0.32s ease, border-color 0.32s ease, box-shadow var(--duration-tactile) var(--ease-tactile)';
         }
         pendingEvent = e;
         if (!rafId) {

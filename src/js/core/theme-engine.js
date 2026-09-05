@@ -150,7 +150,7 @@ export function applyWallpaper(urlStr, animate = true) {
             void bgNext.offsetHeight;
 
             requestAnimationFrame(() => {
-                bgNext.style.transition = 'opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1)';
+                bgNext.style.transition = 'opacity 0.45s var(--ease-exit)';
                 bgNext.style.opacity = '1';
                 bgSwitchTimer = setTimeout(() => {
                     bgBase.style.backgroundImage = newStyleUrl;
