@@ -240,12 +240,12 @@ npm run build
 3. **修改搜索引擎**：可在 `src/js/config/constants.js` 中的 `engines` 引擎配置对象中新增或定制新的搜索引擎（Google、Bing 等）。
 
 ### 3. 静态检查、Git 规范与自动化测试指南 (Agent / Dev Guidelines)
-- ⚡ **静态代码检查 (`npm run lint` / `npm run lint:fix`)**：耗时约 0.01 秒（全量 26 项机器级语法与工程红线门禁守门）。自动完成 `src/index.html` 内联 JS、`src/js/` 业务模块、`scripts/build.js`/`sw.js`/`scripts/server.js` 语法预检及 `bookmarks.json`/`manifest.json`/`package.json` 的 JSON 合法性校验，报错精确到 `文件名:行号:列号`；支持 `npm run lint:fix` 针对 `<button>` 与 `<svg>` 机械性无障碍属性一键就地自愈。修改代码后运行此命令做轻量校验。
+- ⚡ **静态代码检查 (`npm run lint` / `npm run lint:fix`)**：耗时约 0.01 秒（全量 27 项机器级语法与工程红线门禁守门）。自动完成 `src/index.html` 内联 JS、`src/js/` 业务模块、`scripts/build.js`/`sw.js`/`scripts/server.js` 语法预检及 `bookmarks.json`/`manifest.json`/`package.json` 的 JSON 合法性校验，报错精确到 `文件名:行号:列号`；支持 `npm run lint:fix` 针对 `<button>` 与 `<svg>` 机械性无障碍属性一键就地自愈。修改代码后运行此命令做轻量校验。
 - 🚀 **生产构建打包 (`npm run build`)**：耗时约 0.5 秒（Tailwind v4 CLI + esbuild 引擎）。编译 Tailwind CSS 并同步书签数据，自动校验产物完整性。
 - 🧪 **自动化测试套件 (`npm test` 或 `node test/run.mjs`)**：
   - 内置 **4 大核心领域端到端与架构综合测试套件（覆盖 24 项高密度全景断言）**。
   - **测试目录文件职责明细 (`test/`)**：
-    - `run.mjs` — MD5 增量缓存测试运行器。未改动套件自动秒级跳过；支持 `--force` 强制全量重跑、指定单套件名精准调试与 `--no-build` 跳过构建极速测试。
+    - `run.mjs` — 智能增量构建与 MD5 缓存测试运行器。内置智能源码哈希感知（`dist/` 最新时 0ms 秒级放行，源码变动时自动增量补建），未改动套件自动秒级跳过；支持 `--force` 强制全量重跑与指定单套件名精准调试。
     - `cdp.mjs` — 无头 Chrome 启动器与 CDP (Chrome DevTools Protocol) WebSocket 连接管理（临时独立用户配置目录，跑完自动清理）。
     - `server.mjs` — 面向自动化测试的零依赖静态服务器，负责在随机空闲端口服务 `dist/` 构建产物。
     - `helpers.mjs` — 共享工具函数库（随机空闲端口探测、键盘事件模拟、测试会话一键拉起等）。
@@ -323,7 +323,7 @@ glass-start/
 │   └── server.js             # 原生 Node.js 零依赖本地开发与局域网预览服务器（内置自动增量构建监听）
 │
 ├── 🧪 test/ 自动化测试与质量保障目录 (9 个核心测试脚本与工件目录)
-│   ├── run.mjs               # MD5 增量缓存测试运行器（支持 --force / --no-build）
+│   ├── run.mjs               # 智能增量构建与 MD5 缓存测试运行器（支持 --force / 模块单测）
 │   ├── cdp.mjs               # 无头 Chrome 启动器与 CDP WebSocket 通信管理
 │   ├── server.mjs            # 面向自动化测试的随机空闲端口静态服务器
 │   ├── helpers.mjs           # 测试共享辅助函数库（键盘模拟、端口探测等）

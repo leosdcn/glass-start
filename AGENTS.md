@@ -58,15 +58,16 @@
 - **铁律**：发布新版本或执行重大架构变更时，版本号以 `package.json` 为唯一真理源（构建时自动注入 `dist/` 产物徽章），并保持 3 大核心 Markdown 文档说辞同步，严禁文档陈旧或自相矛盾。
 - **执行准则**：
   - **SemVer 单一真理源**：版本号以 `package.json`（及 npm 自动联动的 `package-lock.json`）为唯一源头，由 `scripts/build.js` 自动将最新版本号注入生产 HTML 徽章，杜绝人工多处重复修改；
-  - **3 大 MD 文档说辞强一致**：交付前交叉统一 [**AGENTS.md**](./AGENTS.md)、[**ARCHITECTURE.md**](./ARCHITECTURE.md) 与 [**README.md**](./README.md) 中的命令参数（如 `--no-build`）、文件路径与专业术语。
+  - **3 大 MD 文档说辞强一致**：交付前交叉统一 [**AGENTS.md**](./AGENTS.md)、[**ARCHITECTURE.md**](./ARCHITECTURE.md) 与 [**README.md**](./README.md) 中的命令参数、文件路径与专业术语。
 
 ---
 
 ### 7. 🔴 Git 权限安全与分级测试执行纪律 (Git Safety & Testing Protocol)
-- **铁律**：**严禁未经人类明确指令擅自执行 `git push`，严禁在日常任务中滥用 `--force` 启动全量重测！**
+- **铁律**：**严禁未经人类明确指令擅自执行 `git push`，严禁在日常开发中滥用 `--force` 启动全量重测！**
 - **执行准则**：
   - **Git 远程推送安全边界**：AI 可在本地执行 `git add` 和 `git commit` 保存进度，所有的远程推送（`git push`）必须由人类明确指示后方可执行；
-  - **日常敏捷自愈流**：书签与配置微调只跑 `npm run lint`（<10ms），局部功能修改只跑模块免构建单测（如 `npm run test:ui` / `npm run test:data` 或带 `--no-build` 单测，<50ms），常规提交前跑增量 `npm test`（<1s）；
+  - **智能增量构建感知**：测试运行器已内置智能源码哈希感知。`dist/` 产物有效时自动 0ms 跳过构建，仅在源码变动时自动增量补建；日常开发直接运行模块测试（如 `npm run test:ui`、`npm run test:data`、`npm run test:infra`、`npm run test:lifecycle`）；
+  - **日常敏捷自愈流**：书签与配置微调只跑 `npm run lint`（<10ms），局部功能修改只跑指定模块单测（<50ms），常规提交前跑增量 `npm test`（利用 MD5 缓存，<1s）；
   - **`--force` 唯一合法场景**：仅在人类明确指示“全量测试”、“准备发布版本”或跨编译器重大重构时，才允许执行 `npm run test:all`（或 `node test/run.mjs --force`）。
 
 ---
@@ -80,7 +81,7 @@ flowchart TD
     A[AI 编写 / 修改局部代码] --> B[第一道门禁: npm run lint <10ms>]
     B -- 发现规范或语法报错 --> C[AI 读取报错并在本轮自动修复]
     C --> B
-    B -- 26/26 项静态全绿 --> D[第二道门禁: node test/run.mjs <模块名> --no-build <50ms>]
+    B -- 27/27 项静态全绿 --> D[第二道门禁: node test/run.mjs <模块名> <50ms>]
     D -- CDP 端到端断言失败 --> E[AI 根据断言差异定位修复]
     E --> D
     D -- 模块单测通过 --> F[极速闭环完成，向用户交付]
@@ -91,11 +92,11 @@ flowchart TD
 # 步骤 1：静态规范与语法极速门禁 (< 10ms，支持 --fix 一键就地自愈)
 npm run lint            # 校验规范 (如遇 A11y 缺失可运行 npm run lint:fix 自动修复)
 
-# 步骤 2：针对修改模块的免构建极速单测 (< 50ms)
-npm run test:ui         # 修改 UI/切屏/弹窗时 (或 node test/run.mjs ui --no-build)
-npm run test:data       # 修改天气/书签搜索时 (或 node test/run.mjs data --no-build)
-npm run test:infra      # 修改 SW缓存/安全标头时 (或 node test/run.mjs infra --no-build)
-npm run test:lifecycle  # 修改黑匣子/生命周期/自愈阶梯时 (或 node test/run.mjs lifecycle --no-build)
+# 步骤 2：针对修改模块的精准单测 (< 50ms，智能构建感知无需手动跳过)
+npm run test:ui         # 修改 UI/切屏/弹窗时 (或 node test/run.mjs ui)
+npm run test:data       # 修改天气/书签搜索时 (或 node test/run.mjs data)
+npm run test:infra      # 修改 SW缓存/安全标头时 (或 node test/run.mjs infra)
+npm run test:lifecycle  # 修改黑匣子/生命周期/自愈阶梯时 (或 node test/run.mjs lifecycle)
 
 # 步骤 3：常规提交前验证（利用 MD5 增量缓存，< 1s）
 npm test
@@ -180,7 +181,7 @@ npm run test:visual     # 或 node test/visual-regression.mjs
 【目标】：优化天气卡片的风速显示布局
 【涉及模块】：src/js/modules/weather.js (initWeather)
 【约束要求】：遵守 7 大工程红线，不破坏现有的 9 阶动态形态演化
-【自愈验证】：修改后请执行 npm run lint 及 node test/run.mjs data --no-build 确保全绿
+【自愈验证】：修改后请执行 npm run lint 及 npm run test:data (或 node test/run.mjs data) 确保全绿
 ```
 
 - **遇错自愈**：遇到测试或运行时报错，直接粘贴完整终端报错，AI 自动定位最小补丁修复直至全绿；

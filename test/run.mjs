@@ -66,7 +66,6 @@ const cacheFile = join(__dirname, '.cache.json');
 // 解析命令行参数
 const args = process.argv.slice(2);
 const force = args.includes('--force') || args.includes('-f');
-const skipBuildArg = args.includes('--no-build');
 const pattern = args.find(a => !a.startsWith('-'));
 
 // 计算指定文件的 MD5
@@ -77,6 +76,48 @@ function getFileHash(filepath) {
   } catch {
     return '';
   }
+}
+
+// 递归计算源码目录的文件签名映射
+function getDirHash(dirPath) {
+  let hashStr = '';
+  try {
+    const entries = readdirSync(dirPath, { withFileTypes: true, recursive: true });
+    for (const ent of entries) {
+      if (ent.isFile() && !ent.name.startsWith('.')) {
+        const fullPath = join(ent.parentPath || ent.path, ent.name);
+        hashStr += ent.name + ':' + getFileHash(fullPath) + ';';
+      }
+    }
+  } catch {}
+  return createHash('md5').update(hashStr).digest('hex');
+}
+
+// 核心源码输入指纹（用于智能感知 dist/ 产物是否滞后）
+function getSrcBuildFingerprint() {
+  const parts = [
+    getDirHash(join(rootDir, 'src')),
+    getFileHash(join(rootDir, 'bookmarks.json')),
+    getFileHash(join(rootDir, 'manifest.json')),
+    getFileHash(join(rootDir, 'package.json')),
+    getFileHash(join(rootDir, 'scripts', 'build.js')),
+    getFileHash(join(rootDir, 'sw.js')),
+  ];
+  return createHash('md5').update(parts.join(':')).digest('hex');
+}
+
+// 检查 dist 产物是否存在且与源码保持同步
+function isDistOutOfDate(currentSrcFingerprint, cacheData) {
+  const requiredDist = [
+    join(rootDir, 'dist', 'index.html'),
+    join(rootDir, 'dist', 'app.js'),
+    join(rootDir, 'dist', 'sw.js'),
+    join(rootDir, 'dist', '_headers'),
+  ];
+  for (const f of requiredDist) {
+    if (!existsSync(f)) return true;
+  }
+  return cacheData.__srcBuildFingerprint !== currentSrcFingerprint;
 }
 
 // 核心依赖文件的哈希组合（任意源文件修改都会触发依赖它的测试重新运行）
@@ -91,7 +132,7 @@ const sharedFiles = [
   join(__dirname, 'server.mjs'),
 ];
 
-const sharedHash = sharedFiles.map(f => getFileHash(f)).join(':');
+let sharedHash = sharedFiles.map(f => getFileHash(f)).join(':');
 
 // 读取缓存
 let cache = {};
@@ -101,6 +142,24 @@ if (!force && existsSync(cacheFile)) {
   } catch {
     cache = {};
   }
+}
+
+// 智能构建感知：源码有变动则自动补建，产物有效则 0ms 免构建放行
+const currentSrcFp = getSrcBuildFingerprint();
+const needsBuild = force || isDistOutOfDate(currentSrcFp, cache);
+
+if (needsBuild) {
+  console.log(`${c.cyan}⚡ 检测到源码变动或首次运行，自动执行预构建 (npm run build)...${c.reset}`);
+  const buildResult = spawnSync('npm', ['run', 'build'], { cwd: rootDir, stdio: 'inherit' });
+  if (buildResult.status !== 0) {
+    console.error(`\n${c.red}❌ 构建失败，已终止测试套件执行${c.reset}\n`);
+    process.exit(1);
+  }
+  cache.__srcBuildFingerprint = currentSrcFp;
+  // 构建后更新 sharedHash
+  sharedHash = sharedFiles.map(f => getFileHash(f)).join(':');
+} else {
+  console.log(`${c.dim}⏩ [构建感知] dist/ 产物已是最新，自动跳过重复构建 (0ms)${c.reset}`);
 }
 
 console.log(`\n${c.cyan}${HR_DOUBLE}${c.reset}`);
@@ -148,17 +207,8 @@ if (toRun.length === 0) {
   console.log(`${c.gray}${HR_DOUBLE}${c.reset}`);
   console.log(`${c.green}${c.bold}✨ 全部 ${files.length} 个测试文件均命中缓存通过！${c.reset}${c.dim} (耗时: <10ms)${c.reset}`);
   console.log(`${c.gray}${HR_DOUBLE}${c.reset}\n`);
+  saveCache();
   process.exit(0);
-}
-
-// 执行预构建
-if (!skipBuildArg) {
-  console.log(`${c.cyan}▶ 执行生产预构建 (npm run build)...${c.reset}`);
-  const buildResult = spawnSync('npm', ['run', 'build'], { cwd: rootDir, stdio: 'inherit' });
-  if (buildResult.status !== 0) {
-    console.error(`\n${c.red}❌ 构建失败，已终止测试套件执行${c.reset}\n`);
-    process.exit(1);
-  }
 }
 
 // 写入缓存文件辅助函数
