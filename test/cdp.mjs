@@ -81,14 +81,14 @@ export async function launchChrome({ port, url }) {
   let target;
   try {
     target = await (async function wait() {
-      for (let i = 0; i < 50; i++) {
+      for (let i = 0; i < 100; i++) {
         try {
           const res = await fetch(`http://127.0.0.1:${port}/json`);
           const list = await res.json();
           const page = list.find(t => t.type === 'page' && /^https?:\/\//.test(t.url) && !t.url.includes('chrome://'));
           if (page) return page;
         } catch {}
-        await new Promise(r => setTimeout(r, 200));
+        await new Promise(r => setTimeout(r, 30));
       }
       throw new Error('Chrome CDP page not found');
     })();

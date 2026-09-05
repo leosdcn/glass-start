@@ -107,7 +107,7 @@ npm test
 # 1. 生产环境构建打包 (验证 Tailwind v4 编译、CSP 优化与 esbuild AST 压缩)
 npm run build
 
-# 2. 全量端到端自动化测试套件 (4 大套件 24 项断言全跑)
+# 2. 全量端到端自动化测试套件 (5 大套件 24 项断言全跑)
 npm run test:all        # 或 node test/run.mjs --force
 
 # 3. 如涉及关键 UI / 动画 / 视口变动，执行多视口全景视觉回归测试 (11 大场景断言)

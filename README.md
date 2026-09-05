@@ -243,13 +243,13 @@ npm run build
 - ⚡ **静态代码检查 (`npm run lint` / `npm run lint:fix`)**：耗时约 0.03 秒（全量 28 项机器级语法与工程红线门禁守门）。自动完成 `src/index.html` 内联 JS、`src/js/` 业务模块、`scripts/build.js`/`sw.js`/`scripts/server.js` 语法预检及 `bookmarks.json`/`manifest.json`/`package.json` 的 JSON 合法性校验，报错精确到 `文件名:行号:列号`；支持 `npm run lint:fix` 针对 `<button>` 与 `<svg>` 机械性无障碍属性一键就地自愈。修改代码后运行此命令做轻量校验。
 - 🚀 **生产构建打包 (`npm run build`)**：耗时约 0.5 秒（Tailwind v4 CLI + esbuild 引擎）。编译 Tailwind CSS 并同步书签数据，自动校验产物完整性。
 - 🧪 **自动化测试套件 (`npm test` 或 `node test/run.mjs`)**：
-  - 内置 **4 大核心领域端到端与架构综合测试套件（覆盖 24 项高密度全景断言）**。
+  - 内置 **5 大核心领域端到端与架构综合测试套件（覆盖 24 项高密度全景断言）**。
   - **测试目录文件职责明细 (`test/`)**：
     - `run.mjs` — 智能增量构建与 MD5 缓存测试运行器。内置智能源码哈希感知（`dist/` 最新时 0ms 秒级放行，源码变动时自动增量补建），未改动套件自动秒级跳过；支持 `--force` 强制全量重跑与指定单套件名精准调试。
     - `cdp.mjs` — 无头 Chrome 启动器与 CDP (Chrome DevTools Protocol) WebSocket 连接管理（临时独立用户配置目录，跑完自动清理）。
     - `server.mjs` — 面向自动化测试的零依赖静态服务器，负责在随机空闲端口服务 `dist/` 构建产物。
     - `helpers.mjs` — 共享工具函数库（随机空闲端口探测、键盘事件模拟、测试会话一键拉起等）。
-    - `data-features.test.mjs` / `infra-security.test.mjs` / `ui-interaction.test.mjs` / `lifecycle-diag.test.mjs` — 数据功能、基础安全、UI 交互、构建指纹与生命周期自愈四大领域断言套件。
+    - `ui-screen-gestures.test.mjs` / `ui-overlay-modals.test.mjs` / `data-features.test.mjs` / `infra-security.test.mjs` / `lifecycle-diag.test.mjs` — 双屏手势、弹窗自愈、数据功能、基础安全与构建生命周期五大领域断言套件。
     - `visual-regression.mjs` — 独立运行的视觉回归脚本（对标 **MacBook Air 1470×956** 桌面端与 **iPhone 17 402×874** 移动端 11 场景全页截图与关键组件几何校验），产物输出至项目内 `test/artifacts/` 目录（已加入 `.gitignore`）。手动执行：`node test/visual-regression.mjs`。
     - `fixtures/` — 视觉演练场与对比实验室工件目录（包含天气组件独立演练场 `preview.html` 及图标方案对比页面，供直接打开隔离调试 UI，不参与自动化测试流水线）。
   - **智能增量 MD5 缓存加速**：未变动模块在测试运行时自动秒级命中缓存（`<10ms`），源码或依赖修改后精准触发对应套件重跑；亦可通过 `node test/run.mjs --force` 强制全量重跑。
@@ -322,7 +322,7 @@ glass-start/
 │   ├── lint.mjs              # 零依赖静态语法与 7 大红线规范门禁（<80ms 极速自愈）
 │   └── server.js             # 原生 Node.js 零依赖本地开发与局域网预览服务器（内置自动增量构建监听）
 │
-├── 🧪 test/ 自动化测试与质量保障目录 (9 个核心测试脚本与工件目录)
+├── 🧪 test/ 自动化测试与质量保障目录 (10 个核心测试脚本与工件目录)
 │   ├── run.mjs               # 智能增量构建与 MD5 缓存测试运行器（支持 --force / 模块单测）
 │   ├── cdp.mjs               # 无头 Chrome 启动器与 CDP WebSocket 通信管理
 │   ├── server.mjs            # 面向自动化测试的随机空闲端口静态服务器
@@ -330,7 +330,8 @@ glass-start/
 │   ├── infra-security.test.mjs # 基础架构、安全标头与 SW 离线缓存领域断言套件 (5项)
 │   ├── data-features.test.mjs  # 搜索匹配、轻量存储、气象 9 阶演化领域断言套件 (7项)
 │   ├── lifecycle-diag.test.mjs # 构建指纹契约、黑匣子探针与自愈阶梯断言套件 (5项)
-│   ├── ui-interaction.test.mjs # 双屏状态机、手势、BFCache、OverlayStack 领域断言套件 (7项)
+│   ├── ui-screen-gestures.test.mjs # 双屏状态机、键盘导航防抖与触控滚轮手势断言套件 (3项)
+│   ├── ui-overlay-modals.test.mjs  # 唤醒自愈、搜索联想与 OverlayStack 层叠弹窗断言套件 (4项)
 │   ├── visual-regression.mjs   # 桌面端 + 移动端 11 大场景视觉几何与截图回归套件
 │   └── fixtures/             # 视觉演练场与图标对比实验室工件目录
 │

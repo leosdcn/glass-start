@@ -3,7 +3,7 @@ import { readdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
-import { tmpdir } from 'node:os';
+import { tmpdir, cpus } from 'node:os';
 
 // 终极进程清理器：强杀任意残留的无头 Chrome 实例、Node 测试子进程与清除临时目录
 function cleanupLingeringTestProcesses() {
@@ -220,8 +220,19 @@ function saveCache() {
   }
 }
 
-// 运行测试队列（限制并发数，防止很多 CDP/Puppeteer 实例同时拉起耗尽系统资源）
-const CONCURRENCY = 3;
+// 最长处理时间优先调度 (LPT): 优先将重型 UI 套件分发给并发 Worker，杜绝末尾长尾阻塞
+const ESTIMATED_WEIGHTS = {
+  'ui-overlay-modals.test.mjs': 100,
+  'ui-screen-gestures.test.mjs': 90,
+  'lifecycle-diag.test.mjs': 50,
+  'data-features.test.mjs': 40,
+  'infra-security.test.mjs': 10
+};
+toRun.sort((a, b) => (ESTIMATED_WEIGHTS[b.filename] || 50) - (ESTIMATED_WEIGHTS[a.filename] || 50));
+
+// 运行测试队列（动态并发支持，兼顾系统 CPU 核心数与 Chrome 进程承载）
+const cpuCount = cpus()?.length || 4;
+const CONCURRENCY = Math.min(Math.max(cpuCount, 4), 6);
 let failedCount = 0;
 
 async function runQueue() {
@@ -234,6 +245,7 @@ async function runQueue() {
       const item = toRun[index++];
       console.log(`\n${c.bold}${c.cyan}▸ [Running] ${item.filename}${c.reset}`);
       
+      const startSuiteTime = Date.now();
       const code = await new Promise((resolve) => {
         const child = spawn('node', [join(__dirname, item.filename)], {
           cwd: rootDir,
@@ -245,16 +257,17 @@ async function runQueue() {
           resolve(res);
         });
       });
+      const suiteDuration = ((Date.now() - startSuiteTime) / 1000).toFixed(2);
 
       if (code === 0) {
         cache[item.filename] = item.hash;
         saveCache();
-        console.log(`  ${c.green}✅ ${item.filename} 通过${c.reset}`);
+        console.log(`  ${c.green}✅ ${item.filename} 通过${c.reset}${c.dim} (耗时: ${suiteDuration}s)${c.reset}`);
       } else {
         failedCount++;
         delete cache[item.filename];
         saveCache();
-        console.error(`  ${c.red}❌ ${item.filename} 失败 (exit ${code})${c.reset}`);
+        console.error(`  ${c.red}❌ ${item.filename} 失败 (exit ${code})${c.reset}${c.dim} (耗时: ${suiteDuration}s)${c.reset}`);
       }
     }
   }
