@@ -351,7 +351,8 @@ export function renderWeatherCapsule(data) {
     if (weatherBtn) {
         const cityName = data.location ? data.location.name : '天气';
         const weatherDesc = data.current.weatherText ? ` ${data.current.weatherText}` : '';
-        const newLabel = `${data.current.temp}° · ${cityName} 实时天气${weatherDesc}，点击查看详细预报`;
+        const iconStr = data.current.icon ? `${data.current.icon} ` : '';
+        const newLabel = `${iconStr}${data.current.temp}°·${cityName} 实时天气${weatherDesc}，点击查看详细预报`;
         if (weatherBtn.getAttribute('aria-label') !== newLabel) weatherBtn.setAttribute('aria-label', newLabel);
     }
 }
