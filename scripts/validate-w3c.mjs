@@ -38,13 +38,19 @@ const rawHtml = readFileSync(targetPath, 'utf-8');
 
 console.log(`  ${c.dim}正在连接 W3C 官方在线验证 API (https://validator.w3.org/nu/)...${c.reset}`);
 
+let auditorVersion = '4.4.2';
+try {
+    const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf-8'));
+    if (pkg.version) auditorVersion = pkg.version;
+} catch {}
+
 try {
     const startTime = Date.now();
     const res = await fetch('https://validator.w3.org/nu/?out=json', {
         method: 'POST',
         headers: {
             'Content-Type': 'text/html; charset=utf-8',
-            'User-Agent': 'Glass-Start-W3C-Auditor/4.4.0 (Node.js)'
+            'User-Agent': `Glass-Start-W3C-Auditor/${auditorVersion} (Node.js)`
         },
         body: rawHtml
     });
