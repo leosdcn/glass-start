@@ -268,6 +268,39 @@ const hoverGatingOk = hoverGatingTest.ok;
 
 // 4.5 模拟“导航页点击标签跳出 -> 外部页面唤醒/切回 -> 滚轮切回首屏”全链路自愈与防白屏深度校验
 await evalJS('window.switchToNav()'); await sleep(650);
+// 4.45 导航页书签 3D 倾斜与 VisionOS 折射光斑 (mousemove / RAF 帧合并 / resetActiveCard 还原)
+const tiltTest = await evalJS(`(async () => {
+  const navBm = document.querySelector('.nav-bookmark');
+  if (!navBm) return { ok: false, reason: 'no-nav-bm' };
+  if (typeof window.resetActiveTiltCard !== 'function') return { ok: false, reason: 'no-reset-fn' };
+
+  const rect = navBm.getBoundingClientRect();
+  const clientX = rect.left + rect.width * 0.8;
+  const clientY = rect.top + rect.height * 0.8;
+
+  navBm.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX, clientY }));
+  await new Promise(r => requestAnimationFrame(r));
+  await new Promise(r => requestAnimationFrame(r));
+
+  const transform = navBm.style.transform;
+  const mouseX = navBm.style.getPropertyValue('--mouse-x');
+  const mouseY = navBm.style.getPropertyValue('--mouse-y');
+  const hasTilt = transform.includes('perspective(') && transform.includes('rotateX(') && transform.includes('rotateY(');
+  const hasSpotlight = !!mouseX && !!mouseY;
+
+  window.resetActiveTiltCard();
+  const resetOk = navBm.style.transform === '';
+
+  return {
+    ok: hasTilt && hasSpotlight && resetOk,
+    hasTilt,
+    hasSpotlight,
+    resetOk,
+    transform
+  };
+})()`);
+const tiltOk = tiltTest.ok;
+
 const navJumpBackTest = await evalJS(`(async () => {
   const navBm = document.querySelector('.nav-bookmark');
   if (!navBm) return { ok: false, reason: 'no-nav-bm' };
@@ -317,9 +350,9 @@ const navJumpBackTest = await evalJS(`(async () => {
 })()`);
 const navJumpBackOk = navJumpBackTest.ok;
 
-pass('sessionStorage 刷新保持、BFCache 自愈、导航页跳出返回滚动防白屏及无残留', 
-  restored === true && startRestoredValid && bfCacheHealed && bookmarkTactileOk && hoverGatingOk && navJumpBackOk,
-  `restored=${restored}, startRestored=${startRestoredValid}, bfCacheHealed=${bfCacheHealed}, bookmarkTactile=${bookmarkTactileOk}, hoverGating=${hoverGatingOk}, navJumpBack=${navJumpBackOk}`);
+pass('sessionStorage 刷新保持、BFCache 自愈、导航页书签3D倾斜与跳出返回滚动防白屏及无残留', 
+  restored === true && startRestoredValid && bfCacheHealed && bookmarkTactileOk && hoverGatingOk && tiltOk && navJumpBackOk,
+  `restored=${restored}, startRestored=${startRestoredValid}, bfCacheHealed=${bfCacheHealed}, bookmarkTactile=${bookmarkTactileOk}, hoverGating=${hoverGatingOk}, tilt=${tiltOk}, navJumpBack=${navJumpBackOk}`);
 
 // ══════════════════════════════════════════════════════════════════════
 // 5. 搜索联想键盘选中项保持与 Escape 优雅清退

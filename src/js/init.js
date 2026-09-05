@@ -22,6 +22,7 @@ import {
 import { applyBgEffects, handleEditIconError } from './modules/settings.js';
 import { preloadNextBg } from './modules/wallpaper.js';
 import { initScreenGestures, reconcileScreenState } from './core/screen-state.js';
+import { initGlassSpotlightAndTilt } from './core/gestures.js';
 import { bindEvents, bindEditEvents } from './core/events.js';
 
 let isAppInitialized = false;
@@ -62,6 +63,7 @@ export function init() {
     renderBookmarks();
     renderNavCategories();
     initScreenGestures();
+    initGlassSpotlightAndTilt();
 
     const saved = storageGet(CONFIG.KEYS.PREFERRED_ENGINE);
     if (saved && engines[saved]) setEngine(saved, false);

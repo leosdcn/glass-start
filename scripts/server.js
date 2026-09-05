@@ -282,10 +282,16 @@ function startListening(port) {
         } else {
             console.log(`  👀 ${c.bold}增量监听:${c.reset}    ${c.yellow}已关闭 (参数包含 --no-watch)${c.reset}`);
         }
+        const isCleanMode = process.env.CLEAR_CACHE === '1' || process.argv.includes('--clear-cache');
+        if (isCleanMode) {
+            console.log(`  🧹 ${c.bold}缓存净化:${c.reset}    ${c.yellow}已启用 (自动唤起 /_clear_cache 深度重置)${c.reset}`);
+        }
 
         console.log(`\n${c.gray}─── 💡 快速提示 ${'─'.repeat(LINE_WIDTH - 16)}${c.reset}`);
         console.log(`  • 源码修改时服务将自动增量编译至 dist/ 并滚动版本指纹，直接刷新浏览器即可预览`);
-        console.log(`  • 如遇本地缓存污染或状态异常，直接访问: ${c.yellow}http://localhost:${port}/_clear_cache${c.reset} 即可一键抹除重置`);
+        if (!isCleanMode) {
+            console.log(`  • 如遇本地缓存污染或状态异常，直接访问: ${c.yellow}http://localhost:${port}/_clear_cache${c.reset} 即可一键抹除重置`);
+        }
         console.log(`  • 局域网设备 (手机 / 平板) 连接同一 Wi-Fi 后即可直接访问上述局域网地址`);
         console.log(`  • 停止本地服务请按: ${c.yellow}Ctrl + C${c.reset}`);
         console.log(`${c.gray}${HR_DOUBLE}${c.reset}\n`);

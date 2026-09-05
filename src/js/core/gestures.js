@@ -5,14 +5,19 @@
  */
 import { CONFIG } from '../config/constants.js';
 
+let isGlassSpotlightAndTiltInitialized = false;
+
 export function initGlassSpotlightAndTilt() {
     if (typeof window === 'undefined') return;
+    if (isGlassSpotlightAndTiltInitialized) return;
 
     const mediaHover = window.matchMedia && window.matchMedia('(hover: hover)');
     const mediaMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)');
 
     if (!mediaHover || !mediaHover.matches) return;
     if (mediaMotion && mediaMotion.matches) return;
+
+    isGlassSpotlightAndTiltInitialized = true;
 
     let activeCard = null;
     let activeCardRect = null;

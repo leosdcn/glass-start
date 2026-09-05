@@ -39,5 +39,5 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-# 启动静态服务器（原生 Node.js 零依赖快速启动，服务就绪后自动打开纯净首页）
-node scripts/server.js
+# 启动静态服务器（原生 Node.js 零依赖快速启动，自动通过 /_clear_cache 深度净化本地缓存并秒开）
+node scripts/server.js --clear-cache

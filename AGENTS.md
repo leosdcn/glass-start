@@ -135,6 +135,7 @@ npm run test:visual     # 或 node test/visual-regression.mjs
 | **气象数据清洗与动态演化** | `src/js/modules/weather.js` | `initWeather()`, `weatherNum()`, `WMO_WEATHER_MAP` | **[图 5](./ARCHITECTURE.md#5--智能搜索三级模糊匹配与气象-9-阶动态演化决策-search--weather-decision-engine)**：9 阶动态感知形态、强制数值化信任边界防御 |
 | **外壳主题与底色动态管理** | `src/js/core/theme-engine.js` | `APP_THEME_DARK`, `APP_THEME_LIGHT`, `updateThemeColor()` | **[§6](./ARCHITECTURE.md#6--精确符号索引地图与代码区域导航-symbol-index--region-map)**：Safari 顶栏、`--bg-base` 与 `#bgLayer` 联动 |
 | **双屏有限状态机与唤醒自愈** | `src/js/core/screen-state.js`<br/>`src/js/core/lifecycle.js` | `switchToNav()`, `switchToStart()`, `reconcileScreenState()` | **[图 2](./ARCHITECTURE.md#2--双屏切屏状态机手势与-bfcache-全生命周期流转-screen-state--bfcache-lifecycle)**：双屏状态机、滚轮吞咽、WebKit 磁贴重栅格化 |
+| **VisionOS 3D 倾斜与折射高光** | `src/js/core/gestures.js` | `initGlassSpotlightAndTilt()`, `resetActiveCard()` | **[§6](./ARCHITECTURE.md#6--精确符号索引地图与代码区域导航-symbol-index--region-map)**：VisionOS 风格玻璃高光、3D 陀螺仪矩阵倾斜、RAF 帧合并 |
 | **离线底座与三池物理隔离** | `sw.js` (全量 ~240 行) | `CORE_CACHE`, `FAVICON_CACHE`, `IMG_CACHE` | **[图 4](./ARCHITECTURE.md#4--service-worker-三池隔离与离线数据流向-storage--cache-topology)**：三池物理隔离、FIFO 限额淘汰 |
 
 ---

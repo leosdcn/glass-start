@@ -21,80 +21,75 @@
 ### 1. 🏗️ 系统全景分层与模块拓扑架构 (High-Level Layer Architecture)
 
 ```mermaid
-flowchart TB
+flowchart TD
     %% ======================= LAYER 1: UI & HARDWARE RENDERING =======================
-    subgraph L1 [" 1. UI 表现与硬件渲染层 (Presentation & Hardware Rendering) "]
-        direction TB
-        TW4["Tailwind CSS v4 编译管道<br/>@theme 原生 CSS 变量"]
-        LG["Liquid Glass 毛玻璃拟态引擎<br/>backdrop-blur / glass-strong / CSS Mask"]
-        PMG["Pointer Motion Gating 光影守卫<br/>--mouse-x / --mouse-y / RAF 帧合并"]
-        T3D["3D Perspective 陀螺仪矩阵<br/>perspective(800px) rotateX/Y scale(1.025)"]
-        A11Y_MOT["动态感知降级门控<br/>prefers-reduced-motion / (hover: hover)"]
+    subgraph L1 [" 1. UI 表现与硬件加速渲染层 (Presentation & Hardware Accelerated Rendering) "]
+        direction LR
+        TW4["Tailwind CSS v4<br/>@theme 原生变量编译"]:::nodeBox
+        LG["Liquid Glass 毛玻璃拟态<br/>backdrop-blur / CSS Mask"]:::activeBox
+        PMG["Pointer Motion 光影守卫<br/>--mouse-x/y / RAF 帧合并"]:::nodeBox
+        T3D["3D Perspective 陀螺仪矩阵<br/>perspective(800px) rotateX/Y"]:::nodeBox
+        A11Y_MOT["动态感知降级门控<br/>prefers-reduced-motion"]:::nodeBox
+
+        TW4 --> LG --> PMG --> T3D
+        A11Y_MOT -.->|"无障碍降级"| T3D
     end
 
     %% ======================= LAYER 2: STATE MACHINE & INTERACTION =======================
-    subgraph L2 [" 2. 状态机与交互路由层 (State Machine & Interaction Routing) "]
-        direction TB
-        SM["双屏状态机 (Dual-Screen SM)<br/>state.currentSection: 'start' ↔ 'nav'"]
-        WHEEL["滚轮动量吞咽器 (Momentum Swallower)<br/>normDelta / 速度门控 / 反向手势即时熔断"]
-        TOUCH["触屏手势处理器 (Touch Engine)<br/>40px 阈值 / 25px+0.25px/ms 快速轻扫 (Flick)"]
-        ROUTER["修饰键分流器 (Modifier Dispatcher)<br/>Cmd / Ctrl / 鼠标中键 (button: 1) 新标签分流"]
-        FOCUS_TRAP["无障碍焦点循环陷阱 (Focus Trap)<br/>Tab / Shift+Tab 循环锁定"]
+    subgraph L2 [" 2. 状态机与手势交互路由层 (State Machine & Interaction Routing) "]
+        direction LR
+        SM["双屏状态机 (Dual-Screen SM)<br/>state.currentSection: 'start' ↔ 'nav'"]:::activeBox
+        WHEEL["滚轮动量吞咽器<br/>速度门控 / 反向手势即时熔断"]:::nodeBox
+        TOUCH["触屏手势处理器<br/>40px 阈值 / 25px Flick 轻扫"]:::nodeBox
+        ROUTER["修饰键分流器<br/>Cmd / Ctrl / 鼠标中键新标签打开"]:::nodeBox
+        FOCUS_TRAP["无障碍焦点锁 (Focus Trap)<br/>Tab / Shift+Tab 循环锁定"]:::nodeBox
+
+        SM <--> WHEEL
+        SM <--> TOUCH
+        SM --> ROUTER
+        SM --> FOCUS_TRAP
     end
 
-    %% ======================= LAYER 3: DATA MANAGEMENT & STORAGE =======================
-    subgraph L3 [" 3. 数据管理与本地持久化层 (Data Management & Local Persistence) "]
-        direction TB
-        RUNTIME["pageData 响应式内存模型<br/>{ bookmarks, categories, customMeta }"]
-        MIGRATION["LocalStorage 迁移与写入<br/>SCHEMA_VERSION 校验 / 脏数据收敛清洗"]
-        ASSET_STORE["自定义壁纸与图标持久化<br/>DataURL Base64 / LocalStorage / 预设壁纸"]
-        FALLBACK_JSON["静态数据库默认回退<br/>bookmarks.json 派生式元数据生成 (Derived BM)"]
-        SSOT["单一真理源发布体系 (Single Source of Truth)<br/>package.json ➔ build.js 自动注入徽章与指纹"]
+    %% ======================= LAYER 3: DATA PERSISTENCE =======================
+    subgraph L3 [" 3. 响应式数据管理与本地持久化层 (Data Management & Local Persistence) "]
+        direction LR
+        RUNTIME["pageData 响应式内存模型<br/>{ bookmarks, categories, customMeta }"]:::activeBox
+        MIGRATION["LocalStorage 迁移与写入<br/>SCHEMA_VERSION 校验 / 脏数据收敛清洗"]:::nodeBox
+        ASSET_STORE["自定义壁纸与图标持久化<br/>DataURL Base64 / LocalStorage"]:::nodeBox
+        FALLBACK_JSON["静态数据库默认回退<br/>bookmarks.json 派生式元数据生成"]:::nodeBox
+        SSOT["单一真理源发布体系<br/>package.json ➔ 构建注入徽章与指纹"]:::activeBox
+
+        RUNTIME <--> MIGRATION
+        RUNTIME <--> ASSET_STORE
+        MIGRATION -.->|"缺省回退"| FALLBACK_JSON
+        RUNTIME --> SSOT
     end
 
     %% ======================= LAYER 4: SERVICE WORKER & SECURITY =======================
     subgraph L4 [" 4. 离线运行与网络服务底座 (Offline Runtime & Service Worker Base) "]
-        direction TB
-        SW_THREAD["Service Worker 独立线程 (sw.js)<br/>skipWaiting / clients.claim"]
-        THREE_CACHE["三池隔离缓存模型 (Three-Pool Isolation)<br/>CORE_CACHE | FAVICON_CACHE | IMG_CACHE"]
-        FIFO_PRUNE["FIFO 自动容量淘汰引擎<br/>MAX_FAVICON(800) | MAX_IMG(200)"]
-        CSP_SEC["Edge / CSP 安全隔离标头<br/>connect-src / img-src 通配 / Strict-Transport-Security"]
-        BUILD_FP["双端构建指纹契约对 (Build Fingerprints)<br/>__GLASS_BUILD_HTML__ ⟷ __GLASS_BUILD_APP__"]
+        direction LR
+        SW_THREAD["Service Worker 独立线程 (sw.js)<br/>skipWaiting / clients.claim"]:::nodeBox
+        THREE_CACHE["三池隔离缓存模型 (Three-Pool Isolation)<br/>CORE_CACHE | FAVICON_CACHE | IMG_CACHE"]:::activeBox
+        FIFO_PRUNE["FIFO 自动容量淘汰引擎<br/>MAX_FAVICON(800) | MAX_IMG(200)"]:::nodeBox
+        CSP_SEC["Edge / CSP 安全隔离标头<br/>connect-src / img-src 通配"]:::nodeBox
+        BUILD_FP["双端构建指纹契约对<br/>__GLASS_BUILD_HTML__ ⟷ __GLASS_BUILD_APP__"]:::activeBox
+
+        SW_THREAD --> THREE_CACHE --> FIFO_PRUNE
+        THREE_CACHE --- CSP_SEC
+        BUILD_FP --- THREE_CACHE
     end
 
-    %% ======================= RELATIONSHIPS =======================
-    L1 <-->|"DOM 事件监听 / CSS 变量绑定"| L2
-    L2 <-->|"状态同步 / 派生数据驱动"| L3
-    L3 <-->|"静态资源与数据预存"| L4
-
-    TW4 -.-> LG
-    LG -.-> PMG
-    PMG -.-> T3D
-    A11Y_MOT ==>|禁用动效| T3D
-
-    SM <--> WHEEL
-    SM <--> TOUCH
-    SM --- ROUTER
-    L2 --- FOCUS_TRAP
-
-    RUNTIME <--> MIGRATION
-    RUNTIME <--> ASSET_STORE
-    MIGRATION -.->|缺省回退| FALLBACK_JSON
-    SSOT -.->|构建期注入| BUILD_FP
-
-    SW_THREAD --> THREE_CACHE
-    THREE_CACHE --> FIFO_PRUNE
-    SW_THREAD --- CSP_SEC
-    BUILD_FP --- THREE_CACHE
+    %% ======================= LAYER INTERCONNECTIONS =======================
+    L1 ==>|"DOM 事件监听 / CSS 变量动态绑定"| L2
+    L2 ==>|"状态同步驱动 / 派生数据单向流"| L3
+    L3 ==>|"静态资源离线预存 / 双端构建指纹同版契约"| L4
 
     %% ======================= STYLES =======================
-    classDef layerBox fill:#1e293b,stroke:#3b82f6,stroke-width:2px,color:#f8fafc,rx:8px
+    classDef layerBox fill:#111827,stroke:#38bdf8,stroke-width:1.5px,color:#f8fafc,rx:8px
     classDef nodeBox fill:#0f172a,stroke:#64748b,stroke-width:1px,color:#e2e8f0,rx:5px
-    classDef activeBox fill:#1e3a8a,stroke:#60a5fa,stroke-width:1px,color:#ffffff,rx:5px
+    classDef activeBox fill:#1e3a8a,stroke:#60a5fa,stroke-width:1.5px,color:#ffffff,rx:5px
 
     class L1,L2,L3,L4 layerBox
-    class TW4,LG,PMG,T3D,A11Y_MOT,SM,WHEEL,TOUCH,ROUTER,FOCUS_TRAP,RUNTIME,MIGRATION,ASSET_STORE,FALLBACK_JSON,SSOT,SW_THREAD,THREE_CACHE,FIFO_PRUNE,CSP_SEC,BUILD_FP nodeBox
-    class SM,THREE_CACHE,RUNTIME,LG,SSOT,BUILD_FP activeBox
 ```
 
 #### 💡 技术原理解析
@@ -110,88 +105,80 @@ flowchart TB
 
 ```mermaid
 flowchart TD
-    %% ======================= NODES & STATES =======================
-    START_STATE(["🟢 首屏态 (Start Section)<br/>-- Section: 'start' / #startSection 居中展示 --"]):::stateNode
-    NAV_STATE(["🔵 导航页态 (Nav Section)<br/>-- Section: 'nav' / #navSection 激活展示 --"]):::stateNode
-    TRANS_STATE{"🟡 过渡互斥态 (isTransitioning)<br/>-- 动画耗时 580ms 锁定操作 --"}:::transNode
-
-    %% ======================= TRIGGERS START -> NAV =======================
-    subgraph T_DOWN [" ⬇️ 切换至导航页触发条件 (To Nav Triggers) "]
-        W1["滚轮向下 Wheel Down<br/>(单步 >= 100px 或 velocity > 1.2 ➔ 阈值降至 60px<br/>常规累积 >= 120px)"]
-        T1["触屏向上滑动 Touch Move / End<br/>(deltaY >= 40px 或 Flick 快速轻扫)"]
-        K1["键盘操作 Keyboard<br/>(ArrowDown / PageDown 且非输入态)"]
-    end
-
-    %% ======================= TRIGGERS NAV -> START =======================
-    subgraph T_UP [" ⬆️ 切换回首屏触发条件 (To Start Triggers) "]
-        W2["滚轮向上 Wheel Up<br/>(navContent.scrollTop <= 0 且累积 >= 阈值)"]
-        T2["触屏向下滑动 Touch Move / End<br/>(navContent.scrollTop <= 0 且 deltaY <= -40px)"]
-        K2["键盘操作 Keyboard<br/>(ArrowUp / PageUp / Home 且 scrollTop <= 0)"]
-        H2["点击返回 Header / Hint<br/>(点击顶栏 navHeader 或 右侧「起始页」胶囊按钮)"]
-    end
-
-    %% ======================= BFCACHE & LIFECYCLE =======================
-    subgraph BF_CYCLE [" 🛡️ BFCache 与生命周期双通道唤醒 (Lifecycle Wake-Up) "]
-        PAGEHIDE["页面挂起 pagehide / blur<br/>(跳转外链 / 切换标签页)"]
-        TAB_BLUR["设置 body.tab-blurred 状态<br/>(失焦并解除一切 hover / active 伪类)"]
-        PAGESHOW["双通道唤醒 pageshow / visibilitychange<br/>(BFCache 恢复 / 标签页重新聚焦)"]
-        RECONCILE["纯内存瞬时自愈 reconcileScreenState()<br/>1. 清空 transitionTimer 定时器<br/>2. 强置 isTransitioning = false<br/>3. 重置 swallowMomentum / swallowDir<br/>4. 移除所有 .is-clicked / nr 标志<br/>5. 对齐 scrollTop = 0 与 transform 矩阵"]
-    end
-
-    %% ======================= BLACKBOX DIAGNOSTICS & HEALING LADDER =======================
-    subgraph DIAG_LADDER [" 🪜 运行时黑匣子探针与三级自愈阶梯 (3-Tier Healing Pipeline) "]
+    %% ======================= 1. DUAL SCREEN STATE MACHINE =======================
+    subgraph SM_STAGE [" 🔄 1. 双屏有限状态机与手势交互流转 (Screen State Machine) "]
         direction TB
-        FP_CHECK{"双端指纹校验<br/>BUILD_HTML === BUILD_APP ?"}:::diagDecision
-        FP_FAIL["指纹不一致 ➔ 60s 冷却守卫刷新<br/>gs_build_reload_at 拦截刷新风暴"]:::diagWarn
-        PROBE{"健全性探针 snapshotHealth()<br/>矩阵 ≈ 单位阵 + 哨兵可见 ?"}:::diagDecision
+        START_STATE(["🟢 首屏态 (Start Section)<br/>state.currentSection: 'start' / #startSection 居中展示"]):::stateNode
         
-        L1["L1: 幂等状态校准<br/>reconcileScreenState(undefined, true)"]:::l1Heal
-        L2["L2: WebKit 合成层强制重栅格化<br/>display: none ➔ void offsetHeight ➔ display: ''"]:::l2Heal
-        L3["L3: 冷却守卫安全刷新 (60s 冷却)<br/>一次性写入 gs_last_heal 面包屑"]:::l3Heal
+        TRIG_DOWN["⬇️ 切换至导航页触发条件 (To Nav Triggers)<br/>• 滚轮向下: 瞬时 >= 100px 或速度 > 1.2px/ms 降至 60px (常规累积 >= 120px)<br/>• 触屏轻扫: deltaY >= 40px 或 Flick 快速轻扫 (>= 25px & > 0.25px/ms)<br/>• 键盘快捷: ArrowDown / PageDown (且非输入/编辑聚焦态)"]:::triggerBox
+        
+        TRANS_STATE{{"🟡 过渡互斥态 (isTransitioning)<br/>耗时 580ms 动画锁定 / 滚轮动量吞咽器 (swallowMomentum 吞咽同向事件)"}}:::transNode
+        
+        NAV_STATE(["🔵 导航页态 (Nav Section)<br/>state.currentSection: 'nav' / #navSection 激活展示"]):::stateNode
 
-        RING_BUF["纯内存环形日志 (≤40 条，零存储写入)<br/>window.__GLASS_DIAG__.dump() 取证"]:::diagInfo
+        TRIG_UP["⬆️ 切换回首屏触发条件 (To Start Triggers)<br/>• 滚轮向上: navContent.scrollTop <= 0 且向上累积 >= 阈值<br/>• 触屏轻扫: navContent.scrollTop <= 0 且向上滑动 deltaY <= -40px<br/>• 键盘快捷: ArrowUp / PageUp / Home 且 scrollTop <= 0<br/>• 按钮返回: 点击顶部导航条 navHeader 或「起始页」返回胶囊按钮"]:::triggerBox
+
+        START_STATE --> TRIG_DOWN --> TRANS_STATE
+        TRANS_STATE -->|"动画就绪 (580ms) / 延后 rAF 执行"| NAV_STATE
+        NAV_STATE --> TRIG_UP --> TRANS_STATE
+        TRANS_STATE -->|"动画结束 / 移除 nav-visible"| START_STATE
     end
 
-    %% ======================= FLOW PATHS =======================
-    START_STATE --> T_DOWN
-    T_DOWN -->|触发切屏 switchToNav| TRANS_STATE
-    TRANS_STATE -->|动画就绪 / 延后 RAF 执行| NAV_STATE
+    %% ======================= 2. BFCACHE & LIFECYCLE =======================
+    subgraph LC_STAGE [" 🛡️ 2. BFCache 挂起与双通道唤醒自愈 (Lifecycle & BFCache Healing) "]
+        direction TB
+        PAGE_SUSPEND["页面挂起: 点击外链跳转 / 切换后台标签页<br/>(触发 window.pagehide 与 window.blur)"]:::actionNode
+        TAB_BLUR["防悬停残留: 挂载 body.tab-blurred 标志类<br/>(强制解除一切 card:hover 与 :active 假性悬停微动)"]:::actionNode
+        PAGE_WAKE["双通道唤醒: window.pageshow 与 document.visibilitychange<br/>(完整覆盖 BFCache 后退恢复与多标签页切回两种场景)"]:::actionNode
+        RECONCILE["纯内存瞬时自愈: reconcileScreenState(undefined, true)<br/>1. 强置 isTransitioning = false 并清除残留定时器<br/>2. 瞬态重排重置 (display:none ➔ void ➔ '') 强制 WebKit 重新分配 GPU 离屏磁贴<br/>3. 重置动量吞咽器状态并剥离 .is-clicked / .nr 等临时推屏类<br/>4. 同步校准 scrollTop = 0 与 transform 单位矩阵"]:::activeNode
 
-    NAV_STATE --> T_UP
-    T_UP -->|触发切屏 switchToStart| TRANS_STATE
-    TRANS_STATE -->|动画结束 / 移除 nav-visible| START_STATE
+        PAGE_SUSPEND --> TAB_BLUR --> PAGE_WAKE --> RECONCILE
+    end
 
-    NAV_STATE -.->|"外链跳转"| PAGEHIDE
-    START_STATE -.->|"外链跳转"| PAGEHIDE
-    PAGEHIDE --> TAB_BLUR
-    TAB_BLUR --> PAGESHOW
-    PAGESHOW --> RECONCILE
-    RECONCILE ==>|"瞬时对齐状态 (immediate=true)"| START_STATE
-    RECONCILE ==>|"瞬时对齐状态 (immediate=true)"| NAV_STATE
+    %% ======================= 3. DIAGNOSTICS & HEALING LADDER =======================
+    subgraph DIAG_STAGE [" 🪜 3. 运行时黑匣子探针与三级自愈阶梯 (Diagnostics & 3-Tier Ladder) "]
+        direction TB
+        FP_CHECK{"双端构建指纹契约校验<br/>BUILD_HTML === BUILD_APP ?"}:::diagDecision
+        FP_FAIL["指纹不一致 ➔ 60s 冷却守卫刷新<br/>(sessionStorage 记录 gs_build_reload_at 防刷新风暴)"]:::diagWarn
+        
+        PROBE{"健全性探针 snapshotHealth()<br/>首屏矩阵 ≈ 单位阵 且 哨兵真实可见 ?"}:::diagDecision
+        
+        subgraph HEAL_STEPS [" 连续异常自动升级修复阶梯 "]
+            direction LR
+            L1["L1: 幂等状态校准<br/>reconcileScreenState"]:::l1Heal
+            L2["L2: WebKit 合成层重排<br/>瞬态重排强制分配磁贴"]:::l2Heal
+            L3["L3: 冷却守卫安全刷新<br/>一次性写 gs_last_heal 面包屑"]:::l3Heal
+            L1 -.->|连续异常| L2 -.->|再次异常| L3
+        end
 
-    %% Diagnostics connections
-    TRANS_STATE -.->|"过渡结束探测"| PROBE
-    PAGESHOW -.->|"启动/唤醒指纹契约"| FP_CHECK
-    FP_CHECK -- "不一致" --> FP_FAIL
-    FP_CHECK -- "契约对齐" --> PROBE
+        RING_BUF["纯内存环形日志 (≤40 条，零存储写入)<br/>控制台 window.__GLASS_DIAG__.dump() 现场取证"]:::diagInfo
 
-    PROBE -- "探测异常 (持续)" --> L1
-    L1 -.->|"仍未对齐"| L2
-    L2 -.->|"连续异常升级"| L3
-    PROBE -.->|"事件上报"| RING_BUF
+        FP_CHECK -- "契约对齐" --> PROBE
+        FP_CHECK -- "不一致" --> FP_FAIL
+        PROBE -- "健康正常" --> RING_BUF
+        PROBE -- "探测异常 (升级制)" --> L1
+    end
+
+    %% ======================= VERTICAL PIPELINE LINKAGE =======================
+    SM_STAGE ==>|"用户点击外链或切换标签页"| LC_STAGE
+    LC_STAGE ==>|"唤醒自愈完成，驱动指纹契约与健全性探针"| DIAG_STAGE
 
     %% ======================= STYLES =======================
     classDef stateNode fill:#0f172a,stroke:#3b82f6,stroke-width:2px,color:#ffffff,rx:8px
-    classDef transNode fill:#1e293b,stroke:#eab308,stroke-width:2px,color:#fef08a,rx:8px
-    classDef triggerBox fill:#1e293b,stroke:#64748b,stroke-width:1px,color:#cbd5e1,rx:6px
+    classDef transNode fill:#1e293b,stroke:#eab308,stroke-width:1.5px,color:#fef08a,rx:6px
+    classDef triggerBox fill:#1e293b,stroke:#475569,stroke-width:1px,color:#e2e8f0,rx:6px
+    classDef actionNode fill:#0f172a,stroke:#64748b,stroke-width:1px,color:#cbd5e1,rx:5px
+    classDef activeNode fill:#1e3a8a,stroke:#60a5fa,stroke-width:1.5px,color:#ffffff,rx:6px
     classDef diagDecision fill:#1e293b,stroke:#f59e0b,stroke-width:1.5px,color:#fef3c7,rx:6px
     classDef diagWarn fill:#450a0a,stroke:#ef4444,stroke-width:1px,color:#fee2e2,rx:4px
     classDef l1Heal fill:#1e3a8a,stroke:#60a5fa,stroke-width:1px,color:#ffffff,rx:4px
     classDef l2Heal fill:#581c87,stroke:#c084fc,stroke-width:1px,color:#ffffff,rx:4px
     classDef l3Heal fill:#7f1d1d,stroke:#f87171,stroke-width:1px,color:#ffffff,rx:4px
     classDef diagInfo fill:#0f172a,stroke:#10b981,stroke-width:1px,color:#a7f3d0,rx:4px
+    classDef stageBox fill:#111827,stroke:#38bdf8,stroke-width:1.5px,color:#f8fafc,rx:8px
 
-    class T_DOWN,T_UP,BF_CYCLE,DIAG_LADDER triggerBox
+    class SM_STAGE,LC_STAGE,DIAG_STAGE stageBox
+    class HEAL_STEPS triggerBox
 ```
 
 #### 💡 技术原理解析
@@ -216,62 +203,72 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    %% ======================= LAYERS STACK =======================
-    subgraph Z_INDEX [" 📐 严格 z-index 层叠模型体系 (Layer Hierarchy) "]
-        direction TB
-        L4["Layer 4 (z-9999 / var(--z-alert))<br/>• confirmModal (高危操作二次确认对话框)"]:::l4
-        L3["Layer 3 (z-2000 / var(--z-picker))<br/>• bookmarkPicker (从导航页提取快捷书签)<br/>• shortcutModal (快捷键速查面板)<br/>• creditsModal (开源与数据鸣谢面板)"]:::l3
-        L2["Layer 2 (z-1000 / var(--z-modal))<br/>• editModal (全功能设置与书签管理弹窗)"]:::l2
-        L1["Layer 1 (z-150 / var(--z-dropdown))<br/>• dropdownMenu (搜索引擎切换菜单)<br/>• suggestionMenu (实时搜索联想面板)<br/>• weatherPopover (实时气象预报详情卡片)"]:::l1
+    %% ======================= STAGE 1: LAYER HIERARCHY & EVENT =======================
+    subgraph S1 [" 📐 一、4 级严格 z-index 层叠模型体系与退栈触发 (Layer Hierarchy & Event) "]
+        direction LR
+        subgraph Z_INDEX [" 4 级 z-index 体系 "]
+            direction TB
+            L4["Layer 4 (z-9999 / var(--z-alert))<br/>• confirmModal (高危操作二次确认对话框)"]:::l4
+            L3["Layer 3 (z-2000 / var(--z-picker))<br/>• bookmarkPicker / shortcut / credits"]:::l3
+            L2["Layer 2 (z-1000 / var(--z-modal))<br/>• editModal (全功能设置与书签管理弹窗)"]:::l2
+            L1["Layer 1 (z-150 / var(--z-dropdown))<br/>• dropdownMenu / suggestions / weather"]:::l1
+        end
+
+        EVT_ENTRY["🔘 捕获用户退栈触发动作<br/>(按下 Escape 键 或 点击遮罩暗色背景)"]:::eventNode
     end
 
-    %% ======================= EVENT ENTRY =======================
-    EVT_ENTRY{"🔘 捕获用户退栈触发动作<br/>(按下 Escape 键 或 点击 Modal 遮罩暗色背景)"}:::eventNode
+    %% ======================= STAGE 2: DECISION TREE =======================
+    subgraph S2 [" 🔄 二、OverlayStack LIFO 栈决策与逐层退栈管道 (LIFO Decision Pipeline) "]
+        direction TB
+        
+        STACK_CHECK{"OverlayStack.isEmpty() ?<br/>(当前栈内是否存在打开的浮层)"}:::decisionNode
+        NO_STACK["栈为空保底分支<br/>主动关闭 dropdown / suggestions 并使输入框失焦"]:::actionNode
 
-    %% ======================= STACK DECISION TREE =======================
-    STACK_CHECK{"OverlayStack.isEmpty() ?<br/>(当前栈内是否存在打开的浮层)"}:::decisionNode
-    GET_TOP["获取栈顶元素<br/>topOverlay = OverlayStack.top()"]:::actionNode
+        GET_TOP["获取当前栈顶元素<br/>topOverlay = OverlayStack.top()"]:::actionNode
 
-    IS_SUGGEST{"topOverlay.id === 'suggestions' ?"}:::decisionNode
-    RESTORE_QUERY["还原输入框内容为原始 query<br/>(撤销键盘 ↑↓ 选中的联想词)"]:::actionNode
-    EXEC_SUGGEST_CLOSE["执行 hideSuggestions()<br/>作废未决 JSONP 请求并出栈"]:::actionNode
+        IS_SUGGEST{"topOverlay.id === 'suggestions' ?"}:::decisionNode
+        BRANCH_SUGGEST["还原输入框内容为原始 query (撤销键盘选中项)<br/>➔ 执行 hideSuggestions() 并出栈"]:::actionNode
 
-    IS_MODAL{"topOverlay.id 属于 MODAL_OVERLAY_IDS ?<br/>(editModal / picker / shortcut 等)"}:::decisionNode
-    EXEC_MODAL_CLOSE["调用注册的 closeFn()<br/>触发淡出动画并从栈顶移除"]:::actionNode
-    RESTORE_FOCUS["归还键盘焦点至 opener 触发源元素<br/>(避免焦点丢失到 body)"]:::actionNode
+        IS_MODAL{"topOverlay.id 属于 MODAL_OVERLAY_IDS ?<br/>(editModal / picker / shortcut / confirm 等)"}:::decisionNode
+        BRANCH_MODAL["调用注册的 closeFn() 触发淡出出栈<br/>➔ 归还键盘焦点至 opener 触发源 (Focus Trap 闭环)"]:::actionNode
+        BRANCH_OTHER["轻量浮层出栈<br/>直接执行 topOverlay.close() (如 dropdown / weather)"]:::actionNode
 
-    CHECK_REMAINING{"栈内是否仍有其余 Modal ?<br/>stack.some(MODAL_OVERLAY_IDS.has)"}:::decisionNode
-    UNLOCK_BODY["移除 body 锁定类名<br/>classList.remove('overflow-hidden', 'touch-none')"]:::actionNode
-    KEEP_BODY["保持 body 滚动锁定状态"]:::actionNode
+        CHECK_REMAINING{"栈内是否仍有活动 Modal ?<br/>stack.some(MODAL_OVERLAY_IDS.has)"}:::decisionNode
+        UNLOCK_BODY["全部 Modal 已出栈<br/>移除 body 锁定 (释放 touch-none / 恢复页面滚动)"]:::successNode
+        KEEP_BODY["仍有下层活动 Modal<br/>保持 body 滚动锁定状态"]:::actionNode
 
-    NO_STACK["栈为空保底分支<br/>主动关闭 dropdown / suggestions 并使输入框失焦"]:::actionNode
+        STACK_CHECK -- "是 (栈空)" --> NO_STACK
+        STACK_CHECK -- "否 (栈非空)" --> GET_TOP --> IS_SUGGEST
 
-    %% ======================= FLOW WIRES =======================
+        IS_SUGGEST -- "是" --> BRANCH_SUGGEST
+        IS_SUGGEST -- "否" --> IS_MODAL
+
+        IS_MODAL -- "是" --> BRANCH_MODAL --> CHECK_REMAINING
+        IS_MODAL -- "否 (轻量浮层)" --> BRANCH_OTHER
+
+        CHECK_REMAINING -- "无剩余 Modal" --> UNLOCK_BODY
+        CHECK_REMAINING -- "仍有 Modal" --> KEEP_BODY
+    end
+
+    %% 阶段级联管道
     Z_INDEX -.->|"运行态压栈托管"| STACK_CHECK
-    EVT_ENTRY --> STACK_CHECK
-
-    STACK_CHECK -- "否 (栈非空)" --> GET_TOP
-    STACK_CHECK -- "是 (栈空)" --> NO_STACK
-
-    GET_TOP --> IS_SUGGEST
-    IS_SUGGEST -- "是" --> RESTORE_QUERY --> EXEC_SUGGEST_CLOSE
-    IS_SUGGEST -- "否" --> IS_MODAL
-
-    IS_MODAL -- "是" --> EXEC_MODAL_CLOSE --> RESTORE_FOCUS --> CHECK_REMAINING
-    IS_MODAL -- "否 (如 dropdown/weather)" --> EXEC_OTHER["直接执行 topOverlay.close() 出栈"]:::actionNode
-
-    CHECK_REMAINING -- "无剩余 Modal" --> UNLOCK_BODY
-    CHECK_REMAINING -- "仍有上层 Modal" --> KEEP_BODY
+    EVT_ENTRY ==>|"驱动退栈裁决"| STACK_CHECK
 
     %% ======================= STYLES =======================
+    classDef stageBox fill:#111827,stroke:#38bdf8,stroke-width:1.5px,color:#f8fafc,rx:8px
+    classDef subBox fill:#0f172a,stroke:#334155,stroke-width:1.2px,color:#f1f5f9,rx:6px
+    classDef eventNode fill:#581c87,stroke:#c084fc,stroke-width:2px,color:#ffffff,rx:8px
+    classDef decisionNode fill:#1e293b,stroke:#facc15,stroke-width:1.5px,color:#fef08a,rx:6px
+    classDef actionNode fill:#0f172a,stroke:#64748b,stroke-width:1px,color:#e2e8f0,rx:4px
+    classDef successNode fill:#064e3b,stroke:#10b981,stroke-width:1.5px,color:#d1fae5,rx:4px
+
     classDef l4 fill:#7f1d1d,stroke:#f87171,stroke-width:1px,color:#ffffff,rx:4px
     classDef l3 fill:#7c2d12,stroke:#fb923c,stroke-width:1px,color:#ffffff,rx:4px
     classDef l2 fill:#1e3a8a,stroke:#60a5fa,stroke-width:1px,color:#ffffff,rx:4px
     classDef l1 fill:#14532d,stroke:#4ade80,stroke-width:1px,color:#ffffff,rx:4px
 
-    classDef eventNode fill:#581c87,stroke:#c084fc,stroke-width:2px,color:#ffffff,rx:8px
-    classDef decisionNode fill:#1e293b,stroke:#facc15,stroke-width:1.5px,color:#fef08a,rx:6px
-    classDef actionNode fill:#0f172a,stroke:#94a3b8,stroke-width:1px,color:#f1f5f9,rx:4px
+    class S1,S2 stageBox
+    class Z_INDEX subBox
 ```
 
 #### 💡 技术原理解析
@@ -286,69 +283,78 @@ flowchart TD
 ```mermaid
 flowchart LR
     %% ======================= REQUEST INTERCEPT =======================
-    subgraph REQ [" 🌐 请求拦截判定 (Fetch Interceptor) "]
+    subgraph REQ [" 🌐 请求拦截与路由分发 (Fetch Interceptor) "]
         direction TB
-        METHOD{"Request Method === 'GET' ?"}
-        ROUTER{"URL 路由与特征分类"}
+        METHOD{"Request Method === 'GET' ?"}:::decisionNode
+        ROUTER{"URL 路由与类型特征分类"}:::routerNode
+        PASS_NET["放行原生网络请求<br/>(POST / 非 GET)"]:::passNode
+
+        METHOD -- "是" --> ROUTER
+        METHOD -- "否" --> PASS_NET
     end
 
-    %% ======================= THREE POOLS =======================
-    subgraph THREE_POOLS [" 📦 Service Worker 三池物理隔离架构 "]
+    %% ======================= THREE POOLS ARCHITECTURE =======================
+    subgraph THREE_POOLS [" 📦 Service Worker 三池物理隔离与降级流水线 "]
         direction TB
         
-        subgraph P1 [" 1. CORE_CACHE (app-core-v*) "]
-            C_HTML["主文档 HTML (原子化 SWR)<br/>index.html / '/'"]
-            C_DATA["静态数据 (Stale-While-Revalidate)<br/>manifest.json / bookmarks.json"]
-            C_STATIC["核心静态脚本 (原子化 SWR)<br/>app.js / 本地壁纸 (排除 sw.js)"]
+        subgraph P1 [" 1. CORE_CACHE (app-core-v*) · 核心脚本与文档 (原子化 SWR 锁步) "]
+            direction LR
+            subgraph P1_CORE [" 核心预缓存资源 "]
+                direction TB
+                C_HTML["主文档 HTML (0ms 本地瞬出 / 差量更新)<br/>index.html / '/'"]:::coreNode
+                C_DATA["静态元数据 (Stale-While-Revalidate)<br/>manifest.json / bookmarks.json"]:::coreNode
+                C_STATIC["核心静态脚本与预设壁纸 (原子化 SWR)<br/>app.js / wallpapers (排除 sw.js)"]:::coreNode
+            end
+            E_503["HTTP 503 离线兜底响应<br/>('离线且无本地缓存')"]:::errNode
+            C_HTML -.->|"离线且无缓存"| E_503
         end
 
-        subgraph P2 [" 2. FAVICON_CACHE (app-favicons-v1) "]
-            F_CACHE["跨域图标池 (a.favicon.im)<br/>Bing / Google / Wikipedia 核心预缓存<br/>+ SWR 防污染重验 (4s 超时截断)"]
-            F_FIFO["FIFO 容量淘汰限制: MAX = 800 条"]
+        subgraph P2 [" 2. FAVICON_CACHE (app-favicons-v1) · 高清图标池 "]
+            direction LR
+            F_CACHE["跨域高清图标 (a.favicon.im)<br/>Bing / Google / Wikipedia 核心预存<br/>+ SWR 防污染重验 (4s 超时熔断)"]:::favNode
+            F_FIFO["FIFO 容量限额淘汰<br/>MAX = 800 条"]:::limitNode
+            E_404["HTTP 404 图标缺失"]:::errNode
+            E_BADGE["前端 <img> onerror 自动降级<br/>(提取站点首字母生成彩色矢量徽标)"]:::badgeNode
+            
+            F_CACHE --> F_FIFO
+            F_CACHE -.->|"网络超时 / 离线 / 404"| E_404 --> E_BADGE
         end
 
-        subgraph P3 [" 3. IMG_CACHE (app-images-v1) "]
-            I_CACHE["同源站内图片池 (Cache-First)<br/>ico / png / jpg / webp / avif"]
-            I_FIFO["FIFO 容量淘汰限制: MAX = 200 条"]
+        subgraph P3 [" 3. IMG_CACHE (app-images-v1) · 站内图库池 "]
+            direction LR
+            I_CACHE["同源站内图片池 (Cache-First)<br/>ico / png / jpg / webp / avif"]:::imgNode
+            I_FIFO["FIFO 容量限额淘汰<br/>MAX = 200 条"]:::limitNode
+            I_CACHE --> I_FIFO
         end
-    end
 
-    %% ======================= FALLBACK & ERROR HANDLERS =======================
-    subgraph ERR_HANDLER [" 🚨 异常捕获与终极降级 (Fallback Pipeline) "]
-        direction TB
-        E_503["HTTP 503 离线纯文本兜底<br/>('离线且无本地缓存')"]
-        E_404["HTTP 404 图标缺失响应"]
-        E_BADGE["前端 <img> onerror 自动降级<br/>(提取站点首字母生成彩色矢量徽标)"]
+        PASS_WALLPAPER["放行原生跨域网络请求<br/>(跨域用户自定义壁纸 / 受页面 CSP img-src 管辖)"]:::passNode
     end
 
     %% ======================= FLOW WIRES =======================
-    METHOD -- "是" --> ROUTER
-    METHOD -- "否 (POST等)" --> PASS_NET["放行原生网络请求"]:::actionNode
-
-    ROUTER -- "主文档 HTML" --> C_HTML
-    ROUTER -- "JSON 数据" --> C_DATA
-    ROUTER -- "同源 JS/CSS/壁纸" --> C_STATIC
-    ROUTER -- "a.favicon.im 跨域图标" --> F_CACHE
-    ROUTER -- "同源静态图片" --> I_CACHE
-    ROUTER -- "跨域用户自定义壁纸" --> PASS_NET
-
-    F_CACHE --> F_FIFO
-    I_CACHE --> I_FIFO
-
-    C_HTML -.->|"离线且无缓存"| E_503
-    C_DATA -.->|"离线且无缓存"| E_503
-    C_STATIC -.->|"离线且无缓存"| E_503
-    F_CACHE -.->|"网络超时/离线/404"| E_404
-    E_404 --> E_BADGE
+    ROUTER -->|"主文档 HTML"| C_HTML
+    ROUTER -->|"JSON 数据"| C_DATA
+    ROUTER -->|"同源 JS/CSS/壁纸"| C_STATIC
+    ROUTER -->|"a.favicon.im 跨域图标"| F_CACHE
+    ROUTER -->|"同源静态图片"| I_CACHE
+    ROUTER -->|"跨域自定义壁纸"| PASS_WALLPAPER
 
     %% ======================= STYLES =======================
-    classDef poolBox fill:#0f172a,stroke:#38bdf8,stroke-width:1.5px,color:#f0f9ff,rx:6px
-    classDef actionNode fill:#1e293b,stroke:#64748b,stroke-width:1px,color:#e2e8f0,rx:4px
-    classDef errNode fill:#450a0a,stroke:#f87171,stroke-width:1px,color:#fef2f2,rx:4px
+    classDef stageBox fill:#111827,stroke:#38bdf8,stroke-width:1.5px,color:#f8fafc,rx:8px
+    classDef poolBox fill:#0f172a,stroke:#0284c7,stroke-width:1.2px,color:#f0f9ff,rx:6px
+    classDef subPoolBox fill:#1e293b,stroke:#334155,stroke-width:1px,color:#f1f5f9,rx:4px
+    classDef decisionNode fill:#1e293b,stroke:#facc15,stroke-width:1.5px,color:#fef08a,rx:6px
+    classDef routerNode fill:#1e293b,stroke:#38bdf8,stroke-width:1.5px,color:#e0f2fe,rx:6px
+    classDef passNode fill:#1e293b,stroke:#64748b,stroke-width:1px,color:#94a3b8,rx:4px
+    classDef coreNode fill:#0f172a,stroke:#38bdf8,stroke-width:1px,color:#e0f2fe,rx:4px
+    classDef favNode fill:#0f172a,stroke:#a855f7,stroke-width:1px,color:#f3e8ff,rx:4px
+    classDef imgNode fill:#0f172a,stroke:#10b981,stroke-width:1px,color:#d1fae5,rx:4px
+    classDef limitNode fill:#1e293b,stroke:#eab308,stroke-width:1px,color:#fef08a,rx:4px
+    classDef errNode fill:#450a0a,stroke:#ef4444,stroke-width:1px,color:#fee2e2,rx:4px
+    classDef badgeNode fill:#581c87,stroke:#c084fc,stroke-width:1px,color:#ffffff,rx:4px
 
+    class THREE_POOLS,REQ stageBox
     class P1,P2,P3 poolBox
-    class E_503,E_404,E_BADGE errNode
-    class METHOD,ROUTER actionNode
+    class P1_CORE subPoolBox
 ```
 
 #### 💡 技术原理解析
@@ -365,87 +371,108 @@ flowchart LR
 
 ```mermaid
 flowchart TD
-    %% ======================= SEARCH SYSTEM =======================
-    subgraph ENGINE_SEARCH [" 🔍 A. 本地书签检索与网络联想决策引擎 (Search & Suggestion Engine) "]
+    %% ======================= SECTION A: SEARCH =======================
+    subgraph S_SEARCH [" 🔍 模块 A：本地书签三级检索与网络联想调度决策管道 (Search & Suggestion Engine) "]
         direction TB
-        Q_IN["用户输入 Query 词条<br/>(过滤纯标点与空字符)"]
-        
-        subgraph LOCAL_MATCH [" 本地书签 7 级优先级决策管道 (Local Priority Pipeline) "]
-            T10["Tier 10: 书签名完全匹配 (bmName === q)"]:::tTier
-            T20["Tier 20: 书签名以关键词开头 (bmName.startsWith(q))"]:::tTier
-            T30["Tier 30: 书签名包含关键词 (bmName.includes(q))"]:::tTier
-            T40["Tier 40: URL 域名/路径匹配 (bmUrl.includes(q))"]:::tTier
-            T50["Tier 50: 书签简介描述命中 (bmDesc.includes(q))"]:::tTier
-            T60["Tier 60+: 关键词模糊拼写纠错 (Damerau-Levenshtein 距离 <= 2)"]:::tTier
-            T70["Tier 70+: URL/简介模糊纠错 (Fuzzy Other Match)"]:::tTier
+        Q_IN["用户输入搜索 Query 词条<br/>(前端自动过滤空白符与首尾标点)"]:::actionNode
+
+        subgraph S_TIER [" 本地书签多阶检索流水线 (Local Priority Pipeline) "]
+            direction TB
+            subgraph T_EXACT [" ⚡ 精确命中层 (Exact & Prefix Match) "]
+                direction LR
+                T10["Tier 10: 标题全字匹配<br/>(bmName === q)"]:::tTier
+                T20["Tier 20: 标题前缀匹配<br/>(startsWith)"]:::tTier
+                T30["Tier 30: 标题子串包含<br/>(includes)"]:::tTier
+            end
+            subgraph T_FUZZY [" 🎯 模糊容错与描述层 (Fuzzy & Description Match) "]
+                direction LR
+                T40["Tier 40: 域名/URL 匹配<br/>(bmUrl.includes)"]:::tTier
+                T50["Tier 50: 简介描述命中<br/>(bmDesc.includes)"]:::tTier
+                T60["Tier 60+: Damerau-Levenshtein 拼写纠错<br/>(编辑距离 <= 2)"]:::tTier
+            end
+            T_EXACT --> T_FUZZY
         end
 
-        SORT_LOCAL["排序并截取 Top 2 本地书签<br/>matches.sort((a,b) => a.tier - b.tier)"]
-        RENDER_0MS["⚡ 0ms 瞬间渲染本地书签 + 骨架屏占位<br/>(消除 Cumulative Layout Shift 布局抖动)"]
-        
-        JSONP_DISPATCH{"分配唯一回调 __glassSuggestCb_[id]<br/>并发调度对应引擎 JSONP 接口"}
-        ENG_BING["Bing JSONP API<br/>api.bing.com"]
-        ENG_GOOGLE["Google JSONP API<br/>suggestqueries.google.com"]
-        ENG_WIKI["Wikipedia OpenSearch<br/>zh.wikipedia.org"]
+        SORT_LOCAL["排序并截取 Top 2 本地匹配项<br/>matches.sort((a,b) => a.tier - b.tier)"]:::actionNode
+        RENDER_0MS["⚡ 0ms 瞬间渲染本地书签 + 网络骨架屏预占位<br/>(彻底消除 CLS 视口高度突变与布局抖动)"]:::accentNode
 
-        MERGE_LIST["动态容量混排与渲染<br/>(本地书签数 + 网络建议数 <= 4 条)"]
+        JSONP_DISPATCH{"并发请求分配<br/>__glassSuggestCb_[id]"}:::decisionNode
+        
+        subgraph S_ENGINES [" 并发 JSONP 搜索引擎集群 "]
+            direction LR
+            ENG_BING["Bing JSONP API<br/>api.bing.com"]:::engNode
+            ENG_GOOGLE["Google JSONP API<br/>suggestqueries.google.com"]:::engNode
+            ENG_WIKI["Wikipedia OpenSearch<br/>zh.wikipedia.org"]:::engNode
+        end
+
+        MERGE_LIST["动态容量混排与去重渲染<br/>(本地书签数 + 网络建议数 <= 4 条)"]:::resultNode
+
+        Q_IN --> S_TIER --> SORT_LOCAL --> RENDER_0MS --> JSONP_DISPATCH
+        JSONP_DISPATCH --> S_ENGINES --> MERGE_LIST
     end
 
-    %% ======================= WEATHER SYSTEM =======================
-    subgraph ENGINE_WEATHER [" 🌤️ B. 气象 9 阶动态感知演化决策引擎 (Weather 9-Stage Evolution Engine) "]
+    %% ======================= SECTION B: WEATHER =======================
+    subgraph S_WEATHER [" 🌤️ 模块 B：气象 9 阶动态感知演化决策引擎 (Weather 9-Stage Evolution Engine) "]
         direction TB
-        W_DATA["摄取 Open-Meteo 气象数据<br/>(经过 weatherNum 信任边界净化)"]
+        W_DATA["摄取 Open-Meteo 实时气象数据<br/>(经 weatherNum 信任边界防注入清洗)"]:::actionNode
 
-        subgraph HUMIDITY_STAGE [" 💧 相对湿度 (Humidity) 3 阶形态演化 "]
-            H1["🌵 干燥 (Desert Dry)<br/>humidity < 35%"]:::wDry
-            H2["💧 舒适 (Comfortable)<br/>35% <= humidity <= 75%"]:::wComfort
-            H3["💦 潮湿 (Humid)<br/>humidity > 75%"]:::wWet
+        subgraph W_STAGES [" 气象 3 维度 × 3 阶形态演化矩阵 "]
+            direction LR
+            subgraph HUMIDITY_STAGE [" 💧 相对湿度 (Humidity) "]
+                direction TB
+                H1["🌵 干燥 (Desert Dry)<br/>humidity < 35%"]:::wDry
+                H2["💧 舒适 (Comfortable)<br/>35% <= humidity <= 75%"]:::wComfort
+                H3["💦 潮湿 (Humid)<br/>humidity > 75%"]:::wWet
+            end
+
+            subgraph WIND_STAGE [" 🍃 实时风速 (Wind Speed) "]
+                direction TB
+                W1_S["🍃 微风拂面 (Light Breeze)<br/>windSpeed < 15 km/h"]:::wLight
+                W2_S["🎏 清风疾风 (Moderate Wind)<br/>15 <= windSpeed < 35 km/h"]:::wMod
+                W3_S["🌪️ 强风狂风 (Gale Warning)<br/>windSpeed >= 35 km/h"]:::wGale
+            end
+
+            subgraph POP_STAGE [" ☂️ 降水概率与雨具 (Precipitation) "]
+                direction TB
+                P1["🌂 折叠收伞 (Safe / No Rain)<br/>pop < 30%"]:::pSafe
+                P2["☂️ 撑开备伞 (Standby / Moderate)<br/>30% <= pop < 70%"]:::pWarn
+                P3["☔️ 暴雨倾盆 (Heavy Rain / Warning)<br/>pop >= 70%"]:::pAlert
+            end
         end
 
-        subgraph WIND_STAGE [" 🍃 实时风速 (Wind Speed) 3 阶形态演化 "]
-            W1_S["🍃 微风拂面 (Light Breeze)<br/>windSpeed < 15 km/h"]:::wLight
-            W2_S["🎏 清风疾风 (Moderate Wind)<br/>15 km/h <= windSpeed < 35 km/h"]:::wMod
-            W3_S["🌪️ 强风狂风 (Gale / Strong Wind)<br/>windSpeed >= 35 km/h"]:::wGale
-        end
+        W_RENDER["渲染气象胶囊卡片与昼夜交替演化<br/>(🌅 今日日落 vs 🌄 明日日出 智能时间窗切换)"]:::resultNode
 
-        subgraph POP_STAGE [" ☂️ 降水概率与雨具 (Precipitation) 3 阶形态演化 "]
-            P1["🌂 折叠收伞 (Safe / No Rain)<br/>pop < 30%"]:::pSafe
-            P2["☂️ 撑开备伞 (Standby / Moderate)<br/>30% <= pop < 70%"]:::pWarn
-            P3["☔️ 暴雨倾盆 (Heavy Rain / Warning)<br/>pop >= 70%"]:::pAlert
-        end
-
-        W_RENDER["渲染气象胶囊卡片与动态日出/日落时间<br/>(🌅 今日日落 vs 🌄 明日日出 智能切换)"]
+        W_DATA --> W_STAGES --> W_RENDER
     end
 
-    %% ======================= CONNECTIONS =======================
-    Q_IN --> T10 --> T20 --> T30 --> T40 --> T50 --> T60 --> T70 --> SORT_LOCAL
-    SORT_LOCAL --> RENDER_0MS
-    RENDER_0MS --> JSONP_DISPATCH
-
-    JSONP_DISPATCH --> ENG_BING --> MERGE_LIST
-    JSONP_DISPATCH --> ENG_GOOGLE --> MERGE_LIST
-    JSONP_DISPATCH --> ENG_WIKI --> MERGE_LIST
-
-    W_DATA --> HUMIDITY_STAGE
-    W_DATA --> WIND_STAGE
-    W_DATA --> POP_STAGE
-    HUMIDITY_STAGE --> W_RENDER
-    WIND_STAGE --> W_RENDER
-    POP_STAGE --> W_RENDER
+    %% 模块上下串联
+    S_SEARCH === S_WEATHER
 
     %% ======================= STYLES =======================
-    classDef tTier fill:#1e293b,stroke:#64748b,stroke-width:1px,color:#f8fafc,rx:4px
+    classDef sectionBox fill:#111827,stroke:#38bdf8,stroke-width:1.5px,color:#f8fafc,rx:8px
+    classDef subBox fill:#0f172a,stroke:#334155,stroke-width:1.2px,color:#f1f5f9,rx:6px
+    classDef actionNode fill:#1e293b,stroke:#64748b,stroke-width:1px,color:#f1f5f9,rx:4px
+    classDef tTier fill:#0f172a,stroke:#475569,stroke-width:1px,color:#e2e8f0,rx:4px
+    classDef accentNode fill:#1e3a8a,stroke:#60a5fa,stroke-width:1.5px,color:#ffffff,rx:6px
+    classDef decisionNode fill:#1e293b,stroke:#facc15,stroke-width:1.5px,color:#fef08a,rx:6px
+    classDef engNode fill:#0f172a,stroke:#60a5fa,stroke-width:1px,color:#bfdbfe,rx:4px
+    classDef resultNode fill:#064e3b,stroke:#34d399,stroke-width:1.5px,color:#ffffff,rx:6px
+
     classDef wDry fill:#451a03,stroke:#f59e0b,stroke-width:1px,color:#fef3c7,rx:4px
     classDef wComfort fill:#064e3b,stroke:#10b981,stroke-width:1px,color:#d1fae5,rx:4px
     classDef wWet fill:#1e3a8a,stroke:#3b82f6,stroke-width:1px,color:#dbeafe,rx:4px
 
     classDef wLight fill:#064e3b,stroke:#34d399,stroke-width:1px,color:#d1fae5,rx:4px
     classDef wMod fill:#78350f,stroke:#fbbf24,stroke-width:1px,color:#fef3c7,rx:4px
-    classDef wGale fill:#4c0519,stroke:#f43f5e,stroke-width:1px,color:#ffe4e6,rx:4px
+    classDef galeAlert fill:#4c0519,stroke:#f43f5e,stroke-width:1px,color:#ffe4e6,rx:4px
 
     classDef pSafe fill:#1e293b,stroke:#94a3b8,stroke-width:1px,color:#f1f5f9,rx:4px
     classDef pWarn fill:#713f12,stroke:#eab308,stroke-width:1px,color:#fef08a,rx:4px
     classDef pAlert fill:#450a0a,stroke:#ef4444,stroke-width:1px,color:#fee2e2,rx:4px
+
+    class S_SEARCH,S_WEATHER sectionBox
+    class S_TIER,T_EXACT,T_FUZZY,S_ENGINES,W_STAGES,HUMIDITY_STAGE,WIND_STAGE,POP_STAGE subBox
+    class W3_S galeAlert
 ```
 
 #### 💡 技术原理解析
@@ -479,5 +506,6 @@ flowchart TD
 | **气象演化与数据数值净化** | `@region [WEATHER_ENGINE]` | `src/js/modules/weather.js` | `initWeather()`, `weatherNum()`, `weatherTime()`, `WMO_WEATHER_MAP` | 气象 API 拉取、缓存信任边界防御（强制数值化清洗）、9 阶动态形态演化 |
 | **外壳主题与底色动态管理** | `@region [THEME_COLOR_ENGINE]` | `src/js/core/theme-engine.js` | `APP_THEME_DARK`, `APP_THEME_LIGHT`, `updateThemeColor()`, `syncThemeForSection()` | 运行时壁纸主题裁决、双屏外壳色恒定同步、`--bg-base` 与 `#bgLayer` 联动 |
 | **双屏有限状态机与唤醒自愈** | `@region [SCREEN_TRANSITION_AND_BFCACHE]` | `src/js/core/screen-state.js`<br/>`src/js/core/lifecycle.js` | `switchToNav()`, `switchToStart()`, `reconcileScreenState()`, `handleAppWakeUp()` | 状态机流转、手势/滚轮惯性吞咽拦截、WebKit 离屏磁贴强制重栅格化 |
+| **VisionOS 3D 倾斜与折射高光** | `@region [VISIONOS_SPOTLIGHT_AND_TILT]` | `src/js/core/gestures.js` | `initGlassSpotlightAndTilt()`, `resetActiveCard()` | VisionOS 风格玻璃物理光斑折射（`--mouse-x/y`）、3D 陀螺仪矩阵倾斜（`perspective(800px) rotateX/Y scale`）、RAF 帧合并 |
 | **运行时黑匣子与指纹契约** | `@region [DIAGNOSTICS_AND_BLACKBOX]` | `src/js/core/lifecycle.js` | `window.__GLASS_DIAG__`, `snapshotHealth()`, `probeScreenState()` | 双端构建指纹同版校验、白屏异常三级自愈阶梯（L1~L3）、纯内存环形日志（≤40条） |
 
