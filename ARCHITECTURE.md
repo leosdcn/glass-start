@@ -498,6 +498,8 @@ flowchart TD
 | :--- | :--- | :--- | :--- | :--- |
 | **首屏主题与 Safari 外壳预渲染** | `@region [HEAD_THEME_HYDRATION]` | `src/js/config/themes.js` | `PRESET_THEMES`, `targetColor` | `<head>` 内 0ms 闪电对齐：纯净黑白二元流（深色壁纸深空黑 `#0b0f19`，浅色壁纸纯净白 `#ffffff`），同步 `html/body` 底色 |
 | **全局状态与高频 DOM 缓存池** | `@region [STATE_AND_DOM_CACHE]` | `src/js/state/store.js`<br/>`src/js/state/dom.js` | `dom`, `state`, `cacheDOM()`, `$` | 80+ DOM 元素高频映射，`state.currentSection` / `state.bg` 单一数据源 |
+| **书签体系与双栏分类导航** | `@region [BOOKMARKS_ENGINE]` | `src/js/modules/bookmarks.js` | `getDerivedBookmarks()`, `renderBookmarks()`, `renderNavCategories()`, `getFaviconHTML()` | 派生书签架构（Derived BM）、双栏拼音排序、首字母徽章兜底与 Favicon 懒加载观察器 |
+| **时钟引擎、快捷键与鸣谢** | `@region [CLOCK_AND_SHORTCUTS]` | `src/js/modules/clock.js` | `updateClock()`, `applyPlatformShortcuts()`, `renderShortcutModalList()` | 实时时钟节流更新、休眠唤醒即时对齐、Mac/Win 跨平台快捷键适配与开源数据鸣谢 |
 | **设置弹窗内部草稿状态机** | `@region [MODAL_STATE]` | `src/js/state/store.js` | `modalState` | 弹窗草稿快照：备份打开前的壁纸与特效状态，隔离草稿修改与运行时全局状态 |
 | **壁纸持久化与即选即存引擎** | `@region [WALLPAPER_SELECTION]` | `src/js/modules/wallpaper.js` | `commitWallpaperSelection()`, `previewDraftWallpaper()`, `resetDraftWallpaper()` | 选中预设、上传图片或输入 URL 后立即完成持久化（IndexedDB + localStorage 双写），无需按保存即刻生效 |
 | **设置弹窗全生命周期管理** | `@region [SETTINGS_MODAL_LIFECYCLE]` | `src/js/modules/settings.js`<br/>`src/js/core/overlay-stack.js` | `openEditModal()`, `closeEditModal()`, `cancelEditModal()` | 弹窗打开备份、动画进出场、关闭清理聚焦、LIFO `OverlayStack` 压退栈管理 |
@@ -507,5 +509,9 @@ flowchart TD
 | **外壳主题与底色动态管理** | `@region [THEME_COLOR_ENGINE]` | `src/js/core/theme-engine.js` | `APP_THEME_DARK`, `APP_THEME_LIGHT`, `updateThemeColor()`, `syncThemeForSection()` | 运行时壁纸主题裁决、双屏外壳色恒定同步、`--bg-base` 与 `#bgLayer` 联动 |
 | **双屏有限状态机与唤醒自愈** | `@region [SCREEN_TRANSITION_AND_BFCACHE]` | `src/js/core/screen-state.js`<br/>`src/js/core/lifecycle.js` | `switchToNav()`, `switchToStart()`, `reconcileScreenState()`, `handleAppWakeUp()` | 状态机流转、手势/滚轮惯性吞咽拦截、WebKit 离屏磁贴强制重栅格化 |
 | **VisionOS 3D 倾斜与折射高光** | `@region [VISIONOS_SPOTLIGHT_AND_TILT]` | `src/js/core/gestures.js` | `initGlassSpotlightAndTilt()`, `resetActiveCard()` | VisionOS 风格玻璃物理光斑折射（`--mouse-x/y`）、3D 陀螺仪矩阵倾斜（`perspective(800px) rotateX/Y scale`）、RAF 帧合并 |
+| **全局事件中枢与拖拽重排** | `@region [GLOBAL_EVENTS_AND_DRAG]` | `src/js/core/events.js` | `bindEvents()`, `bindEditEvents()`, `initDragSort()`, `handleModalTabFocus()` | 全局键盘/点击事件委托、搜索框 IME 拼音输入防冲突、书签 HTML5 DnD 吸附重排 |
+| **XSS 安全防线与字符纠错** | `@region [SECURITY_AND_HELPERS]` | `src/js/utils/helpers.js` | `escapeHtml()`, `safeUrl()`, `normalizeUrl()`, `damerauLevenshtein()` | HTML 实体转义、`safeUrl` 协议白名单过滤、Damerau-Levenshtein 容错 |
+| **IndexedDB 4K 壁纸持久化** | `@region [IDB_STORAGE_BASE]` | `src/js/utils/idb.js` | `getWallpaperDB()`, `setWallpaperDB()`, `clearWallpaperDB()` | 异步 IDB 4K 壁纸存取底座，防范 LocalStorage 配额爆仓 |
+| **启动装配与生命周期入口** | `@region [APP_BOOTSTRAP_ENTRY]` | `src/js/init.js`<br/>`src/js/main.js` | `initApp()`, `initPreHydration()` | 双动效预水合闪电恢复、20 个 ES 业务子模块流水线装配与异常边界捕获 |
 | **运行时黑匣子与指纹契约** | `@region [DIAGNOSTICS_AND_BLACKBOX]` | `src/js/core/lifecycle.js` | `window.__GLASS_DIAG__`, `snapshotHealth()`, `probeScreenState()` | 双端构建指纹同版校验、白屏异常三级自愈阶梯（L1~L3）、纯内存环形日志（≤40条） |
 
