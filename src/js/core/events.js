@@ -15,7 +15,6 @@ import {
     faviconFromUrl,
     safeUrl,
     escapeHtml,
-    runWithLoading,
     storageSet,
     storageRemove
 } from '../utils/helpers.js';
@@ -648,56 +647,72 @@ export function bindEditEvents() {
 
     // @region [SETTINGS_MODAL_COMMIT] 设置弹窗底部「保存并关闭」落盘入口
     if (dom.saveEditBtn) {
-        dom.saveEditBtn.addEventListener('click', () => runWithLoading(dom.saveEditBtn, async () => {
-            const data = collectEditData();
-            if (data.length === 0) {
-                showConfirm('至少需要保留一个名称和 URL 均已填写的书签才能保存。', null, '无法保存');
-                return;
-            }
-
-            // 1. 提交书签
-            if (modalState.bookmarksChanged) {
-                saveUserBookmarks(data);
-            }
-
-            // 2. 提交壁纸
-            if (modalState.wallpaperChanged) {
-                const draft = modalState.draftWallpaper;
-                const presetIdx = findPresetBgIndex(draft);
-                if (presetIdx >= 0) {
-                    await clearCustomWallpaper();
-                    state.bg = presetIdx;
-                    storageSet(CONFIG.KEYS.BG, presetIdx);
-                } else if (draft) {
-                    state.customWallpaper = draft;
-                    await setWallpaperDB(draft);
-                    if (draft.length <= CONFIG.APPEARANCE.MAX_LS_WALLPAPER_BYTES) {
-                        storageSet(CONFIG.KEYS.USER_WALLPAPER, draft);
-                    } else {
-                        storageRemove(CONFIG.KEYS.USER_WALLPAPER);
-                    }
-                    state.bg = 0;
-                    storageSet(CONFIG.KEYS.BG, 0);
-                } else {
-                    await clearCustomWallpaper();
-                    state.bg = 0;
-                    storageSet(CONFIG.KEYS.BG, 0);
+        dom.saveEditBtn.addEventListener('click', async () => {
+            if (dom.saveEditBtn.disabled) return;
+            dom.saveEditBtn.disabled = true;
+            try {
+                const data = collectEditData();
+                if (data.length === 0) {
+                    showConfirm('至少需要保留一个名称和 URL 均已填写的书签才能保存。', null, '无法保存');
+                    return;
                 }
-                updatePresetBgCardsUI(draft !== null && draft !== undefined ? draft : backgrounds[0]);
-            }
 
-            // 3. 提交特效
-            if (modalState.draftMaskOpacity !== null && modalState.draftBgBlur !== null) {
-                storageSet(CONFIG.KEYS.MASK_OPACITY, modalState.draftMaskOpacity);
-                storageSet(CONFIG.KEYS.BG_BLUR, modalState.draftBgBlur);
-            }
+                // 1. 提交书签
+                if (modalState.bookmarksChanged) {
+                    saveUserBookmarks(data);
+                }
 
-            closeEditModal();
-        }));
+                // 2. 提交壁纸
+                if (modalState.wallpaperChanged) {
+                    const draft = modalState.draftWallpaper;
+                    const presetIdx = findPresetBgIndex(draft);
+                    if (presetIdx >= 0) {
+                        await clearCustomWallpaper();
+                        state.bg = presetIdx;
+                        storageSet(CONFIG.KEYS.BG, presetIdx);
+                    } else if (draft) {
+                        state.customWallpaper = draft;
+                        await setWallpaperDB(draft);
+                        if (draft.length <= CONFIG.APPEARANCE.MAX_LS_WALLPAPER_BYTES) {
+                            storageSet(CONFIG.KEYS.USER_WALLPAPER, draft);
+                        } else {
+                            storageRemove(CONFIG.KEYS.USER_WALLPAPER);
+                        }
+                        state.bg = 0;
+                        storageSet(CONFIG.KEYS.BG, 0);
+                    } else {
+                        await clearCustomWallpaper();
+                        state.bg = 0;
+                        storageSet(CONFIG.KEYS.BG, 0);
+                    }
+                    updatePresetBgCardsUI(draft !== null && draft !== undefined ? draft : backgrounds[0]);
+                }
+
+                // 3. 提交特效
+                if (modalState.draftMaskOpacity !== null && modalState.draftBgBlur !== null) {
+                    storageSet(CONFIG.KEYS.MASK_OPACITY, modalState.draftMaskOpacity);
+                    storageSet(CONFIG.KEYS.BG_BLUR, modalState.draftBgBlur);
+                }
+
+                closeEditModal();
+            } finally {
+                dom.saveEditBtn.disabled = false;
+            }
+        });
     }
 
     // JSON 导入导出事件绑定
-    if (dom.exportJsonBtn) dom.exportJsonBtn.addEventListener('click', () => runWithLoading(dom.exportJsonBtn, async () => exportBookmarksJSON()));
+    if (dom.exportJsonBtn) {
+        dom.exportJsonBtn.addEventListener('click', async () => {
+            if (dom.exportJsonBtn.disabled) return;
+            dom.exportJsonBtn.disabled = true;
+            try {
+                await exportBookmarksJSON();
+            } finally {
+                dom.exportJsonBtn.disabled = false;
+            }
+        });
+    }
     if (dom.importJsonInput) {
         dom.importJsonInput.addEventListener('change', e => {
             const file = e.target.files[0];
@@ -822,26 +837,44 @@ export function bindEditEvents() {
 
     // 清理缓存事件绑定
     if (dom.clearCacheBtn) {
-        dom.clearCacheBtn.addEventListener('click', () => runWithLoading(dom.clearCacheBtn, async () => {
-            if ('caches' in window) {
-                try {
-                    const keys = await caches.keys();
-                    await Promise.all(keys.map(key => caches.delete(key)));
-                    if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
-                        try {
-                            const regs = await navigator.serviceWorker.getRegistrations();
-                            await Promise.all(regs.map(r => r.unregister()));
-                            await navigator.serviceWorker.register('sw.js');
-                        } catch {}
+        dom.clearCacheBtn.addEventListener('click', async () => {
+            if (dom.clearCacheBtn.disabled) return;
+            dom.clearCacheBtn.disabled = true;
+            try {
+                if ('caches' in window) {
+                    try {
+                        const keys = await caches.keys();
+                        await Promise.all(keys.map(key => caches.delete(key)));
+                        if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+                            try {
+                                const regs = await navigator.serviceWorker.getRegistrations();
+                                await Promise.all(regs.map(r => r.unregister()));
+                                await navigator.serviceWorker.register('sw.js');
+                            } catch {}
+                        }
+                        showConfirm(
+                            'Service Worker 离线缓存已清理成功！是否立即刷新页面以载入最新资源？',
+                            () => { location.reload(); },
+                            '离线缓存已重置',
+                            dom.clearCacheBtn,
+                            '立即刷新'
+                        );
+                    } catch {
+                        showConfirm(
+                            '缓存清理完成或无需清理。是否立即刷新页面？',
+                            () => { location.reload(); },
+                            '清理提示',
+                            dom.clearCacheBtn,
+                            '立即刷新'
+                        );
                     }
-                    showConfirm('Service Worker 离线资源与页面缓存已成功刷新清理！', null, '离线缓存已重置');
-                } catch {
-                    showConfirm('缓存清理完成或无需清理。', null, '清理提示');
+                } else {
+                    showConfirm('当前浏览器不支持 Service Worker 缓存，或已是最新状态。', null, '提示', dom.clearCacheBtn);
                 }
-            } else {
-                showConfirm('当前浏览器不支持 Service Worker 缓存，或已是最新状态。', null, '提示');
+            } finally {
+                dom.clearCacheBtn.disabled = false;
             }
-        }));
+        });
     }
 
     initDragSort();

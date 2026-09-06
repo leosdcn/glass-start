@@ -408,7 +408,7 @@ export function closeCreditsModal() {
     }
 }
 
-export function showConfirm(message, onConfirm, title = '重置确认', triggerEl = null) {
+export function showConfirm(message, onConfirm, title = '重置确认', triggerEl = null, okText = '') {
     const modal = dom.confirmModal || $('confirmModal');
     const titleEl = dom.confirmTitle || $('confirmTitle');
     const msgEl = dom.confirmMsg || $('confirmMsg');
@@ -426,7 +426,7 @@ export function showConfirm(message, onConfirm, title = '重置确认', triggerE
     }
 
     const isNotify = onConfirm == null;
-    okBtn.textContent = isNotify ? '知道了' : '确认';
+    okBtn.textContent = isNotify ? '知道了' : (okText || '确认');
     cancelBtn.style.display = isNotify ? 'none' : '';
 
     if (titleEl) titleEl.textContent = title;

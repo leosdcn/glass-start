@@ -375,7 +375,7 @@ export function renderWeatherError() {
         retryBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             retryBtn.disabled = true;
-            retryBtn.innerHTML = '<div class="inline-block size-3 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> 正在重试...';
+            retryBtn.innerHTML = '<span>🔄</span> 正在重试...';
             updateWeather(true);
         });
     }

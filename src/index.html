@@ -521,8 +521,7 @@
                             </span>
                         </div>
                         <button id="exportJsonBtn" type="button" class="w-full py-2 px-3.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs text-white/80 hover:text-white glass-interactive flex items-center justify-center gap-2 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 disabled:opacity-50 disabled:cursor-not-allowed">
-                            <svg class="spinner size-4 animate-spin hidden" aria-hidden="true"><use href="#icon-spinner"/></svg>
-                            <svg class="size-3.5 shrink-0 opacity-80" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg> <span class="btn-label">导出 JSON 配置文件备份</span>
+                            <svg class="size-3.5 shrink-0 opacity-80" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg> <span>导出 JSON 配置文件备份</span>
                         </button>
                         <!-- Dropzone 导入框 (flex-1 自适应拉伸填充) -->
                         <div id="jsonDropzone" role="button" aria-label="点击或将 JSON 备份文件拖入此处上传" class="json-dropzone flex-1 border-2 border-dashed border-white/15 hover:border-white/35 rounded-2xl p-4 text-center glass-interactive cursor-pointer bg-white/5 hover:bg-white/10 flex flex-col items-center justify-center gap-1.5 min-h-24 sm:min-h-28 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" tabindex="0">
@@ -545,9 +544,8 @@
                                      若离线资源异常或更新未及时应用，可手动刷新 Service Worker 离线缓存。
                                 </p>
                             </div>
-                            <button id="clearCacheBtn" type="button" class="w-full py-2 px-3.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs text-white/75 hover:text-white glass-interactive flex items-center justify-center gap-1.5 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 disabled:opacity-50 disabled:cursor-not-allowed">
-                                <svg class="spinner size-4 animate-spin hidden" aria-hidden="true"><use href="#icon-spinner"/></svg>
-                                <svg class="size-3.5 shrink-0 opacity-80" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/></svg> <span class="btn-label">一键刷新 Service Worker 离线缓存</span>
+                            <button id="clearCacheBtn" type="button" aria-expanded="false" aria-controls="confirmModal" aria-haspopup="dialog" class="w-full py-2 px-3.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs text-white/75 hover:text-white glass-interactive flex items-center justify-center gap-1.5 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 disabled:opacity-50 disabled:cursor-not-allowed">
+                                <svg class="size-3.5 shrink-0 opacity-80" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/></svg> <span>一键刷新 Service Worker 离线缓存</span>
                             </button>
                         </div>
 
@@ -564,8 +562,7 @@
                                 </p>
                             </div>
                             <button id="resetEditBtn" type="button" aria-expanded="false" aria-controls="confirmModal" aria-haspopup="dialog" class="danger-zone-btn w-full py-2 text-xs font-medium glass-interactive flex items-center justify-center gap-1.5 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 disabled:opacity-50 disabled:cursor-not-allowed">
-                                <svg class="spinner size-4 animate-spin hidden" aria-hidden="true"><use href="#icon-spinner"/></svg>
-                                <svg class="size-3.5 shrink-0 opacity-80" aria-hidden="true"><use href="#icon-warning"/></svg> <span class="btn-label">重置所有系统设置</span>
+                                <svg class="size-3.5 shrink-0 opacity-80" aria-hidden="true"><use href="#icon-warning"/></svg> <span>重置所有系统设置</span>
                             </button>
                         </div>
                     </div>
@@ -576,8 +573,7 @@
             <div class="flex items-center justify-end gap-3 mt-3 pt-3 border-t border-white/10 shrink-0">
                 <button id="cancelEditBtn" type="button" class="flex-1 sm:flex-initial py-2.5 px-5 rounded-xl text-xs sm:text-sm font-normal text-white/50 hover:text-white/80 hover:bg-white/5 glass-interactive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 disabled:opacity-50 disabled:cursor-not-allowed">取消</button>
                 <button id="saveEditBtn" type="button" class="glass-btn-primary flex-1 sm:flex-initial py-2.5 px-6 text-xs sm:text-sm gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:opacity-50 disabled:cursor-not-allowed">
-                    <svg class="spinner size-4 animate-spin hidden" aria-hidden="true"><use href="#icon-spinner"/></svg>
-                    <span class="btn-label">完成</span>
+                    <span>完成</span>
                 </button>
             </div>
         </div>
@@ -599,7 +595,7 @@
 
     <!-- 自定义确认弹窗（替代原生 confirm()，保持玻璃风格一致） -->
     <div id="confirmModal" role="alertdialog" aria-modal="true" hidden aria-labelledby="confirmTitle"
-         class="edit-overlay fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-[var(--z-alert)] overscroll-contain">
+         class="edit-overlay fixed inset-0 flex items-center justify-center bg-black/75 z-[var(--z-alert)] overscroll-contain">
         <div class="confirm-dialog-card">
             <div class="size-11 rounded-full bg-red-500/15 border border-red-500/30 flex items-center justify-center mb-3 text-red-400 shrink-0">
                 <svg class="size-5.5" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">

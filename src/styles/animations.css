@@ -113,30 +113,23 @@
 .edit-overlay {
     opacity: 0;
     pointer-events: none;
-    transition: opacity var(--duration-normal) var(--ease-exit), -webkit-backdrop-filter var(--duration-normal) var(--ease-exit), backdrop-filter var(--duration-normal) var(--ease-exit);
-    -webkit-backdrop-filter: blur(0px);
-    backdrop-filter: blur(0px);
-    -webkit-backface-visibility: hidden;
-    backface-visibility: hidden;
-    -webkit-mask-image: -webkit-radial-gradient(white, black);
+    transition: opacity var(--duration-normal) var(--ease-exit);
+    -webkit-backdrop-filter: blur(var(--blur-sm));
+    backdrop-filter: blur(var(--blur-sm));
 }
 .edit-overlay.active {
     opacity: 1;
     pointer-events: auto;
-    -webkit-backdrop-filter: blur(var(--blur-sm));
-    backdrop-filter: blur(var(--blur-sm));
-    transition: opacity var(--duration-modal) var(--ease-spring), -webkit-backdrop-filter var(--duration-modal) var(--ease-spring), backdrop-filter var(--duration-modal) var(--ease-spring);
+    transition: opacity var(--duration-modal) var(--ease-spring);
 }
 .edit-overlay > div {
     opacity: 0;
-    transform: scale(0.95) translateZ(0);
+    transform: scale(0.95);
     transition: opacity var(--duration-normal) var(--ease-exit), transform var(--duration-normal) var(--ease-exit);
-    -webkit-backface-visibility: hidden;
-    backface-visibility: hidden;
 }
 .edit-overlay.active > div {
     opacity: 1;
-    transform: scale(1) translateZ(0);
+    transform: scale(1);
     transition: opacity var(--duration-modal) var(--ease-spring), transform var(--duration-modal) var(--ease-spring);
 }
 .nr .edit-overlay, .nr .edit-overlay > div { transition: none; opacity: 1; transform: none; }
