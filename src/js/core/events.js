@@ -835,45 +835,42 @@ export function bindEditEvents() {
         });
     }
 
-    // 清理缓存事件绑定
+    // 清理缓存事件绑定 (BUG-08 防时序割裂：确认后再执行物理清空与刷新)
     if (dom.clearCacheBtn) {
-        dom.clearCacheBtn.addEventListener('click', async () => {
+        dom.clearCacheBtn.addEventListener('click', () => {
             if (dom.clearCacheBtn.disabled) return;
-            dom.clearCacheBtn.disabled = true;
-            try {
-                if ('caches' in window) {
+            if (typeof window.showConfirm !== 'function') return;
+
+            if (!('caches' in window)) {
+                showConfirm('当前浏览器不支持 Service Worker 缓存，或已是最新状态。', null, '提示', dom.clearCacheBtn);
+                return;
+            }
+
+            showConfirm(
+                '确定要清理并重置 Service Worker 离线缓存吗？此操作将清除本地缓存的静态资源并在刷新后重新载入。',
+                async () => {
+                    if (dom.clearCacheBtn) dom.clearCacheBtn.disabled = true;
                     try {
-                        const keys = await caches.keys();
-                        await Promise.all(keys.map(key => caches.delete(key)));
+                        if ('caches' in window) {
+                            try {
+                                const keys = await caches.keys();
+                                await Promise.all(keys.map(key => caches.delete(key)));
+                            } catch {}
+                        }
                         if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
                             try {
                                 const regs = await navigator.serviceWorker.getRegistrations();
                                 await Promise.all(regs.map(r => r.unregister()));
-                                await navigator.serviceWorker.register('sw.js');
                             } catch {}
                         }
-                        showConfirm(
-                            'Service Worker 离线缓存已清理成功！是否立即刷新页面以载入最新资源？',
-                            () => { location.reload(); },
-                            '离线缓存已重置',
-                            dom.clearCacheBtn,
-                            '立即刷新'
-                        );
-                    } catch {
-                        showConfirm(
-                            '缓存清理完成或无需清理。是否立即刷新页面？',
-                            () => { location.reload(); },
-                            '清理提示',
-                            dom.clearCacheBtn,
-                            '立即刷新'
-                        );
+                    } finally {
+                        location.reload();
                     }
-                } else {
-                    showConfirm('当前浏览器不支持 Service Worker 缓存，或已是最新状态。', null, '提示', dom.clearCacheBtn);
-                }
-            } finally {
-                dom.clearCacheBtn.disabled = false;
-            }
+                },
+                '清理离线缓存',
+                dom.clearCacheBtn,
+                '立即清理并刷新'
+            );
         });
     }
 

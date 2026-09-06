@@ -33,13 +33,19 @@ const CORE_FAVICONS = [
     'https://a.favicon.im/wikipedia.org'
 ];
 
-// 简单 CacheStorage 数量限额清理 (FIFO 超限自动淘汰)
+// 简单 CacheStorage 数量限额清理 (FIFO 超限自动淘汰，保护核心搜索引擎图标)
 async function pruneCache(cache, maxEntries) {
     try {
         const keys = await cache.keys();
         if (keys.length > maxEntries) {
+            const protectedUrls = (typeof CORE_FAVICONS !== 'undefined' && Array.isArray(CORE_FAVICONS)) ? CORE_FAVICONS : [];
+            const evictableKeys = keys.filter(k => {
+                const url = typeof k === 'string' ? k : (k && k.url ? k.url : '');
+                return !protectedUrls.includes(url);
+            });
             const overflow = keys.length - maxEntries;
-            await Promise.all(keys.slice(0, overflow).map(k => cache.delete(k)));
+            const toDelete = evictableKeys.slice(0, overflow);
+            await Promise.all(toDelete.map(k => cache.delete(k)));
         }
     } catch {}
 }
@@ -71,11 +77,20 @@ self.addEventListener('install', e => {
     );
 });
 
-// 激活阶段：清理废弃版本 CORE_CACHE 并接管客户端
+// 激活阶段：校验核心资产健康度后清理废弃版本 CORE_CACHE 并接管客户端
 self.addEventListener('activate', e => e.waitUntil(
-    caches.keys().then(keys =>
-        Promise.all(keys.filter(k => k !== CORE_CACHE && k !== FAVICON_CACHE && k !== IMG_CACHE).map(k => caches.delete(k)))
-    ).then(() => clients.claim())
+    caches.open(CORE_CACHE).then(async coreCache => {
+        const hasIndex = (await coreCache.match('./index.html')) || (await coreCache.match('./'));
+        const hasApp = await coreCache.match('./app.js');
+        if (hasIndex && hasApp) {
+            const keys = await caches.keys();
+            await Promise.all(keys.filter(k => k !== CORE_CACHE && k !== FAVICON_CACHE && k !== IMG_CACHE).map(k => caches.delete(k)));
+            await clients.claim();
+        } else {
+            // 若新版本核心资产残缺（弱网安装不完整），销毁残缺版本池以防指纹割裂，严禁残缺接管客户端
+            await caches.delete(CORE_CACHE);
+        }
+    })
 ));
 
 // 拦截 Fetch 请求阶段
@@ -94,7 +109,13 @@ self.addEventListener('fetch', e => {
     if (pathnameLower.startsWith('/_clear_cache')) return;
 
     const isSameOrigin = urlObj.origin === self.location.origin;
-    const isMainDoc = e.request.mode === 'navigate' || pathnameLower === '/' || pathnameLower.endsWith('/index.html');
+    const scopePath = new URL(self.registration ? self.registration.scope : self.location.href).pathname.toLowerCase();
+    const isMainDoc = isSameOrigin && (
+        e.request.mode === 'navigate'
+        || pathnameLower === '/'
+        || pathnameLower === scopePath
+        || pathnameLower.endsWith('/index.html')
+    );
     const isCoreData = isSameOrigin && (pathnameLower.endsWith('/manifest.json') || pathnameLower.endsWith('/bookmarks.json'));
     const isFaviconDomain = urlObj.origin === 'https://a.favicon.im';
     const isImgAsset = isSameOrigin && /\.(ico|png|jpg|jpeg|svg|webp|avif)$/.test(pathnameLower);
@@ -108,6 +129,7 @@ self.addEventListener('fetch', e => {
             caches.open(CORE_CACHE).then(async cache => {
                 const cachedRes = (await cache.match(e.request))
                     || (await cache.match('./index.html'))
+                    || (await cache.match('./'))
                     || (await cache.match('/'));
 
                 // 命中本地原子版本池：0ms 瞬出首屏，消灭公网网络握手与 TTFB 延迟
@@ -116,15 +138,22 @@ self.addEventListener('fetch', e => {
                 }
 
                 // 首次访问或冷启动缓存未就绪时回退网络，拉取成功后写入当前版本池
-                return fetch(e.request).then(netRes => {
+                return fetch(e.request).then(async netRes => {
                     if (netRes.ok) {
                         const resClone = netRes.clone();
                         cache.put(e.request, resClone).catch(() => {});
                         return netRes;
                     }
-                    return caches.match(e.request).then(cached => cached || netRes);
+                    const fallback = (await caches.match(e.request))
+                        || (await caches.match('./index.html'))
+                        || (await caches.match('./'))
+                        || (await caches.match('/'));
+                    return fallback || netRes;
                 }).catch(async () => {
-                    const fallbackDoc = (await caches.match(e.request)) || (await caches.match('./index.html')) || (await caches.match('/'));
+                    const fallbackDoc = (await caches.match(e.request))
+                        || (await caches.match('./index.html'))
+                        || (await caches.match('./'))
+                        || (await caches.match('/'));
                     return fallbackDoc || make503Response();
                 });
             })
@@ -148,7 +177,7 @@ self.addEventListener('fetch', e => {
                 }
 
                 const netRes = await fetchPromise;
-                return netRes || make503Response();
+                return netRes || (await caches.match(e.request)) || make503Response();
             })
         );
         return;
@@ -158,9 +187,10 @@ self.addEventListener('fetch', e => {
     if (isCoreStaticAsset) {
         e.respondWith(
             caches.open(CORE_CACHE).then(async cache => {
+                const isAppJs = pathnameLower.endsWith('/app.js');
                 const cached = (await cache.match(e.request))
                     || (await cache.match(e.request, { ignoreSearch: true }))
-                    || (await cache.match('./app.js'));
+                    || (isAppJs ? await cache.match('./app.js') : null);
 
                 // 命中本地原子版本池：0ms 瞬出，保障与 index.html 构建指纹 100% 同源同版
                 if (cached) {
@@ -176,7 +206,9 @@ self.addEventListener('fetch', e => {
                     }
                     return caches.match(e.request).then(cached => cached || netRes);
                 }).catch(async () => {
-                    const fallback = (await caches.match(e.request)) || (await caches.match(e.request, { ignoreSearch: true })) || (await caches.match('./app.js'));
+                    const fallback = (await caches.match(e.request))
+                        || (await caches.match(e.request, { ignoreSearch: true }))
+                        || (isAppJs ? await caches.match('./app.js') : null);
                     return fallback || make503Response();
                 });
             })
@@ -184,11 +216,12 @@ self.addEventListener('fetch', e => {
         return;
     }
 
-    // 4. 跨域 Favicon 防污染 Stale-While-Revalidate + 4s 超时熔断
+    // 4. 跨域 Favicon 防污染 Cache-First + 4s 超时熔断
     if (isFaviconDomain) {
         e.respondWith(
             caches.open(FAVICON_CACHE).then(async cache => {
                 const cached = await cache.match(e.request);
+                if (cached) return cached;
 
                 const fetchWithTimeout = async () => {
                     const controller = new AbortController();
@@ -196,8 +229,10 @@ self.addEventListener('fetch', e => {
                     try {
                         const netRes = await fetch(e.request, { cache: 'no-cache', signal: controller.signal });
                         if (netRes && (netRes.ok || netRes.type === 'opaque')) {
-                            await cache.put(e.request, netRes.clone());
-                            await pruneCache(cache, MAX_FAVICON_ENTRIES);
+                            try {
+                                await cache.put(e.request, netRes.clone());
+                                await pruneCache(cache, MAX_FAVICON_ENTRIES);
+                            } catch {}
                             return netRes;
                         }
                     } catch {} finally {
@@ -206,11 +241,6 @@ self.addEventListener('fetch', e => {
                     return null;
                 };
 
-                if (cached) {
-                    e.waitUntil(fetchWithTimeout());
-                    return cached;
-                }
-
                 const netRes = await fetchWithTimeout();
                 return netRes || new Response('', { status: 404, statusText: 'Favicon Unavailable' });
             })
@@ -218,23 +248,36 @@ self.addEventListener('fetch', e => {
         return;
     }
 
-    // 5. 同源本地图片 Cache-First 策略
+    // 5. 同源本地图片 Cache-First 策略 (支持 CORE_CACHE 预存底座与优雅降级)
     if (isImgAsset) {
         e.respondWith(
             caches.open(IMG_CACHE).then(async cache => {
-                const cached = await cache.match(e.request);
+                const cached = (await cache.match(e.request))
+                    || (await cache.match(e.request, { ignoreSearch: true }))
+                    || (await caches.open(CORE_CACHE).then(c => c.match(e.request)))
+                    || (await caches.open(CORE_CACHE).then(c => c.match(e.request, { ignoreSearch: true })));
                 if (cached) return cached;
 
                 try {
                     const res = await fetch(e.request);
                     if (res.ok) {
-                        e.waitUntil(cache.put(e.request, res.clone()).then(() => pruneCache(cache, MAX_IMG_ENTRIES)));
+                        e.waitUntil(
+                            cache.put(e.request, res.clone())
+                                .then(() => pruneCache(cache, MAX_IMG_ENTRIES))
+                                .catch(() => {})
+                        );
+                        return res;
                     }
-                    return res;
+                    const fallback = (await caches.match(e.request))
+                        || (await caches.match(e.request, { ignoreSearch: true }));
+                    return fallback || res;
                 } catch {
-                    return new Response('', { status: 404 });
+                    const fallback = (await caches.match(e.request))
+                        || (await caches.match(e.request, { ignoreSearch: true }));
+                    return fallback || new Response('', { status: 404 });
                 }
             })
         );
+        return;
     }
 });

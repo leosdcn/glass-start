@@ -197,7 +197,7 @@ export function preloadNextBg() {
 export function renderPresetWallpapers() {
     const grid = dom.presetWallpaperGrid || $('presetWallpaperGrid');
     if (!grid) return;
-    const titles = ['山峦夜空', '湖光山色', '星空雪山', '壮丽旷野', '天际立面', '极简回廊', '暗夜流体', '梦幻流彩'];
+    const titles = ['暮色山峦', '溪谷晨曦', '星空雪山', '峰峦破晓', '天际立面', '极简回廊', '紫韵流光', '梦幻流彩'];
     grid.innerHTML = titles.map((title, i) => {
         const bg = `./wallpapers/bg${i + 1}.avif`;
         const thumb = `./wallpapers/bg${i + 1}-thumb.avif`;

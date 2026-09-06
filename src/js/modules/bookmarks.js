@@ -192,6 +192,12 @@ export async function loadUserData() {
 export function handleIconError(img) {
     if (!img || img.dataset.failed) return;
     img.dataset.failed = '1';
+    const failedSrc = img.src;
+    if (failedSrc && typeof caches !== 'undefined') {
+        try {
+            caches.open('app-favicons-v1').then(cache => cache.delete(failedSrc)).catch(() => {});
+        } catch {}
+    }
     const initial = img.dataset.initial || '?';
     const parent = img.parentElement;
     if (parent) {

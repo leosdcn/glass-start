@@ -174,6 +174,12 @@ export function getEditFaviconInner(name = '', url = '', icon = '') {
 export function handleEditIconError(img) {
     if (!img || img.dataset.failed) return;
     img.dataset.failed = '1';
+    const failedSrc = img.src;
+    if (failedSrc && typeof caches !== 'undefined') {
+        try {
+            caches.open('app-favicons-v1').then(cache => cache.delete(failedSrc)).catch(() => {});
+        } catch {}
+    }
     const initial = img.dataset.initial || '?';
     const box = img.closest('.edit-favicon-box');
     if (box) {
