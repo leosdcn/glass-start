@@ -45,6 +45,12 @@ export function init() {
             } else if (target.dataset.initial !== undefined || target.closest('.icon-box')) {
                 handleIconError(target);
             } else if (target.classList.contains('engine-icon') || target.dataset.hideOnError === '1') {
+                const failedSrc = target.src;
+                if (failedSrc && typeof caches !== 'undefined') {
+                    try {
+                        caches.open('app-favicons-v1').then(cache => cache.delete(failedSrc)).catch(() => {});
+                    } catch {}
+                }
                 target.style.display = 'none';
             }
         }

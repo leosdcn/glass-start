@@ -87,8 +87,9 @@ self.addEventListener('activate', e => e.waitUntil(
             await Promise.all(keys.filter(k => k !== CORE_CACHE && k !== FAVICON_CACHE && k !== IMG_CACHE).map(k => caches.delete(k)));
             await clients.claim();
         } else {
-            // 若新版本核心资产残缺（弱网安装不完整），销毁残缺版本池以防指纹割裂，严禁残缺接管客户端
+            // 若新版本核心资产残缺（弱网安装不完整），销毁残缺版本池以防指纹割裂，阻断激活使健全旧版 SW 继续服役
             await caches.delete(CORE_CACHE);
+            throw new Error('SW Activation aborted: core assets incomplete in ' + CORE_CACHE);
         }
     })
 ));
@@ -110,10 +111,12 @@ self.addEventListener('fetch', e => {
 
     const isSameOrigin = urlObj.origin === self.location.origin;
     const scopePath = new URL(self.registration ? self.registration.scope : self.location.href).pathname.toLowerCase();
+    const scopePathClean = scopePath.endsWith('/') && scopePath.length > 1 ? scopePath.slice(0, -1) : scopePath;
     const isMainDoc = isSameOrigin && (
         e.request.mode === 'navigate'
         || pathnameLower === '/'
         || pathnameLower === scopePath
+        || pathnameLower === scopePathClean
         || pathnameLower.endsWith('/index.html')
     );
     const isCoreData = isSameOrigin && (pathnameLower.endsWith('/manifest.json') || pathnameLower.endsWith('/bookmarks.json'));
@@ -128,6 +131,7 @@ self.addEventListener('fetch', e => {
         e.respondWith(
             caches.open(CORE_CACHE).then(async cache => {
                 const cachedRes = (await cache.match(e.request))
+                    || (await cache.match(e.request, { ignoreSearch: true }))
                     || (await cache.match('./index.html'))
                     || (await cache.match('./'))
                     || (await cache.match('/'));
@@ -144,13 +148,25 @@ self.addEventListener('fetch', e => {
                         cache.put(e.request, resClone).catch(() => {});
                         return netRes;
                     }
-                    const fallback = (await caches.match(e.request))
+                    const fallback = (await cache.match(e.request))
+                        || (await cache.match(e.request, { ignoreSearch: true }))
+                        || (await cache.match('./index.html'))
+                        || (await cache.match('./'))
+                        || (await cache.match('/'))
+                        || (await caches.match(e.request))
+                        || (await caches.match(e.request, { ignoreSearch: true }))
                         || (await caches.match('./index.html'))
                         || (await caches.match('./'))
                         || (await caches.match('/'));
                     return fallback || netRes;
                 }).catch(async () => {
-                    const fallbackDoc = (await caches.match(e.request))
+                    const fallbackDoc = (await cache.match(e.request))
+                        || (await cache.match(e.request, { ignoreSearch: true }))
+                        || (await cache.match('./index.html'))
+                        || (await cache.match('./'))
+                        || (await cache.match('/'))
+                        || (await caches.match(e.request))
+                        || (await caches.match(e.request, { ignoreSearch: true }))
                         || (await caches.match('./index.html'))
                         || (await caches.match('./'))
                         || (await caches.match('/'));
@@ -165,7 +181,8 @@ self.addEventListener('fetch', e => {
     if (isCoreData) {
         e.respondWith(
             caches.open(CORE_CACHE).then(async cache => {
-                const cachedRes = await cache.match(e.request);
+                const cachedRes = (await cache.match(e.request))
+                    || (await cache.match(e.request, { ignoreSearch: true }));
                 const fetchPromise = fetch(new Request(e.request, { cache: 'no-cache' })).then(netRes => {
                     if (netRes.ok) cache.put(e.request, netRes.clone()).catch(() => {});
                     return netRes;
@@ -177,7 +194,12 @@ self.addEventListener('fetch', e => {
                 }
 
                 const netRes = await fetchPromise;
-                return netRes || (await caches.match(e.request)) || make503Response();
+                return netRes
+                    || (await cache.match(e.request))
+                    || (await cache.match(e.request, { ignoreSearch: true }))
+                    || (await caches.match(e.request))
+                    || (await caches.match(e.request, { ignoreSearch: true }))
+                    || make503Response();
             })
         );
         return;
@@ -206,7 +228,10 @@ self.addEventListener('fetch', e => {
                     }
                     return caches.match(e.request).then(cached => cached || netRes);
                 }).catch(async () => {
-                    const fallback = (await caches.match(e.request))
+                    const fallback = (await cache.match(e.request))
+                        || (await cache.match(e.request, { ignoreSearch: true }))
+                        || (isAppJs ? await cache.match('./app.js') : null)
+                        || (await caches.match(e.request))
                         || (await caches.match(e.request, { ignoreSearch: true }))
                         || (isAppJs ? await caches.match('./app.js') : null);
                     return fallback || make503Response();
@@ -231,7 +256,7 @@ self.addEventListener('fetch', e => {
                         if (netRes && (netRes.ok || netRes.type === 'opaque')) {
                             try {
                                 await cache.put(e.request, netRes.clone());
-                                await pruneCache(cache, MAX_FAVICON_ENTRIES);
+                                e.waitUntil(pruneCache(cache, MAX_FAVICON_ENTRIES));
                             } catch {}
                             return netRes;
                         }

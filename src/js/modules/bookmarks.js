@@ -528,7 +528,15 @@ export function preloadFavicons() {
     pageData.bookmarks.forEach(bm => { if (bm.icon) urls.add(bm.icon); });
     urls.forEach(url => {
         const img = new Image();
-        img.onload = img.onerror = () => { img.onload = img.onerror = null; };
+        img.onload = () => { img.onload = img.onerror = null; };
+        img.onerror = () => {
+            img.onload = img.onerror = null;
+            if (typeof caches !== 'undefined') {
+                try {
+                    caches.open('app-favicons-v1').then(cache => cache.delete(url)).catch(() => {});
+                } catch {}
+            }
+        };
         img.src = url;
     });
 }
