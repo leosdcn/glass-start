@@ -5,7 +5,7 @@
 
 ---
 
-## 🚫 一、不可触碰的 7 大工程红线 (The 7 Non-Negotiable Red Lines)
+## 🚫 一、不可触碰的 8 大工程红线 (The 8 Non-Negotiable Red Lines)
 
 1. **零运行时依赖**：严禁在 `package.json` 添加任何运行时 `dependencies`；仅允许使用原生 Web API 与现有 `devDependencies`（Tailwind CLI/esbuild）。
 2. **源码单向流动**：所有业务修改仅限 `src/`、`bookmarks.json` 与 `sw.js`，严禁直接修改 `dist/` 构建产物；Tailwind v4 采用原生 `@theme` 配置，严禁创建 `tailwind.config.js`。
@@ -14,6 +14,7 @@
 5. **弹窗层叠栈**：严禁直接修改 DOM `style.display` 或 `hidden`；统一通过 `OverlayStack.push(id, closeFn)` 与 `.pop(id)` 压退栈，遵循 4 级 z-index 体系（150/1000/2000/9999）。
 6. **书签双轨字数**：纯中文 `desc` 必须 $\le 9$ 字；含英数混排 `desc` 必须 $\le 13$ 字符。改动后必须运行 `npm run lint` 验证。
 7. **Git 权限与真理源**：版本号以 `package.json` 为唯一真理源；严禁未经明确授权擅自执行 `git push`；日常验证严禁滥用 `--force`。
+8. **工具调用与重试硬边界**：严禁在未做任何代码修改或环境变化的前提下重复读取同一文件或重复执行同一命令；针对同一报错或问题，最多尝试 2 种不同修复方案，若连续 2 次尝试未取得实质突破，必须立即停止盲试，如实向用户陈述受阻现状、已排除方案与关键疑点，请求介入对齐。
 
 ---
 

@@ -137,4 +137,4 @@ npm run build
 本项目建立了清晰的规范与文档分工体系，深入研究请参阅专项文档：
 
 - 🏛️ **[ARCHITECTURE.md (架构设计与技术白皮书)](./ARCHITECTURE.md)**：系统分层模型、双屏状态机、OverlayStack 弹窗逆序退栈、Service Worker 三池物理隔离缓存、BFCache 唤醒防护等核心技术设计。
-- 🤖 **[AGENTS.md (AI 编程宪法与工程准则)](./AGENTS.md)**：不可触碰的 7 大工程红线、Tiered QA 自愈流水线、全模块精准文件定位索引与避坑守则。
+- 🤖 **[AGENTS.md (AI 编程宪法与工程准则)](./AGENTS.md)**：不可触碰的 8 大工程红线、Tiered QA 自愈流水线、全模块精准文件定位索引与避坑守则。
