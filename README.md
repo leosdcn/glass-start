@@ -23,7 +23,7 @@
 - 🎬 **原生双屏无缝联动**：起始页（极简时钟与搜索）与导航页（双栏分类书签）全屏平滑推移，视口底部具备 `mask-image` 72px 真实 Alpha 透光渐隐；
 - 🌤️ **免 Key 实时气象与全球预报**：国内高精度 IP 定位 + 国际测站逆解析，首帧 0ms 水合秒开，支持 2×2 动态气象指标与未来 4 天天气预报；
 - ⚡ **零运行时依赖与极速首屏**：生产产物 0 npm 运行时依赖；`<head>` 内联极速预渲染消除刷新闪烁 (FOUC)，静态单页毫秒级瞬间呈现；
-- 🖼️ **壁纸即选即存与 4K 支持**：精选 8 款高清内置壁纸在线轮播，支持自定义图片（自动压缩写入 IndexedDB，打破 5MB 限制）与高斯模糊/遮罩调节；
+- 🖼️ **壁纸即选即存与 4K 支持**：精选系列高清内置壁纸在线轮播，支持自定义图片（自动压缩写入 IndexedDB，打破 5MB 限制）与高斯模糊/遮罩调节；
 - 🛡️ **企业级安全防护**：内置 A+ 评级 Content Security Policy (CSP)、全面 HTML 实体安全转义与 `safeUrl` 协议白名单拦截；
 - 📱 **PWA 离线优先支持**：原生 Service Worker 三池物理隔离缓存，支持断网离线浏览与无缝添加到手机/电脑桌面。
 
@@ -74,18 +74,31 @@ npm run build
 **修改/添加导航书签只需编辑根目录 `bookmarks.json` 一个文件**：
 ```json
 {
-  "title": "常用工具",
-  "icon": "tool",
-  "items": [
+  "bookmarks": [
     {
-      "name": "GitHub",
-      "url": "https://github.com",
-      "desc": "代码托管与协作",
-      "icon": "https://a.favicon.im/github.com"
+      "name": "LocalSend",
+      "url": "https://web.localsend.org",
+      "icon": "https://a.favicon.im/web.localsend.org"
+    }
+  ],
+  "categories": [
+    {
+      "name": "常用工具",
+      "icon": "🛠️",
+      "bookmarks": [
+        {
+          "name": "GitHub",
+          "url": "https://github.com",
+          "desc": "代码托管与协作",
+          "icon": "https://a.favicon.im/github.com"
+        }
+      ]
     }
   ]
 }
 ```
+- **`bookmarks`**：首屏快捷书签列表（包含 `name`、`url`、`icon`）。
+- **`categories`**：导航页分类列表，包含分类名 `name`、Emoji 图标 `icon` 及分类书签 `bookmarks`。
 - **`name`**：中文服务使用标准官方中文名，国际服务使用官方英文名。
 - **`desc`**：精简的副标题。纯中文 $\le 9$ 字，中英混排 $\le 13$ 字符。
 - **`url`**：直连官方标准主域（避免多重跳转耗时）。
@@ -137,4 +150,4 @@ npm run build
 本项目建立了清晰的规范与文档分工体系，深入研究请参阅专项文档：
 
 - 🏛️ **[ARCHITECTURE.md (架构设计与技术白皮书)](./ARCHITECTURE.md)**：系统分层模型、双屏状态机、OverlayStack 弹窗逆序退栈、Service Worker 三池物理隔离缓存、BFCache 唤醒防护等核心技术设计。
-- 🤖 **[AGENTS.md (AI 编程宪法与工程准则)](./AGENTS.md)**：不可触碰的 8 大工程红线、Tiered QA 自愈流水线、全模块精准文件定位索引与避坑守则。
+- 🤖 **[AGENTS.md (AI 编程宪法与工程准则)](./AGENTS.md)**：不可触碰的核心工程红线、Tiered QA 自愈流水线、全模块精准文件定位索引与避坑守则。
