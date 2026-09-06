@@ -71,8 +71,9 @@ export function animateHideModal(modalEl) {
 export function updateBookmarkCountBadge() {
     const badge = dom.bookmarkCountBadge || $('bookmarkCountBadge');
     if (!badge) return;
-    const editList = dom.editList || $('editList');
-    const count = editList ? editList.querySelectorAll('[data-idx]').length : pageData.bookmarks.length;
+    const count = (modalState.draftBookmarks && modalState.draftBookmarks.length > 0)
+        ? modalState.draftBookmarks.length
+        : (dom.editList ? dom.editList.querySelectorAll('.edit-row-card').length : pageData.bookmarks.length);
     badge.textContent = `已添加 ${count} 项`;
 }
 
@@ -183,10 +184,10 @@ if (typeof window !== 'undefined') {
     window.handleEditIconError = handleEditIconError;
 }
 
-export function getEditRowHTML(name = '', url = '', idx = '', icon = '') {
-    const rowId = (idx !== '' && idx !== undefined) ? idx : Date.now();
+export function getEditRowHTML(name = '', url = '', idx = '', icon = '', rowId = '') {
+    const id = rowId || (idx !== '' && idx !== undefined ? `bm_${idx}` : `bm_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`);
     return `
-        <div role="listitem" class="edit-row-card flex items-center gap-1.5 sm:gap-2 p-1.5 sm:p-2 bg-white/5 border border-white/10 apple-radius hover:border-white/25 glass-interactive group mb-1.5 shadow-xs" data-idx="${idx}" data-icon="${escapeHtml(icon || '')}" data-orig-url="${escapeHtml(url || '')}" draggable="false">
+        <div role="listitem" class="edit-row-card flex items-center gap-1.5 sm:gap-2 p-1.5 sm:p-2 bg-white/5 border border-white/10 apple-radius hover:border-white/25 glass-interactive group mb-1.5 shadow-xs" data-id="${escapeHtml(id)}" data-idx="${idx}" draggable="false">
             <div class="flex items-center gap-1 shrink-0">
                 <button type="button" class="drag-handle touch-none p-1 size-7 flex items-center justify-center shrink-0 text-white/30 group-hover:text-white/70 hover:text-white cursor-grab active:cursor-grabbing glass-interactive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40" title="按住拖拽排序" aria-label="按住拖拽或使用键盘排序">
                     <svg class="size-3.5 pointer-events-none" aria-hidden="true"><use href="#icon-drag"/></svg>
@@ -196,8 +197,8 @@ export function getEditRowHTML(name = '', url = '', idx = '', icon = '') {
                 </div>
             </div>
             <div class="flex-1 flex flex-col sm:flex-row items-stretch sm:items-center gap-1 sm:gap-1.5 min-w-0">
-                <input type="text" id="bm-name-${rowId}" name="bookmark_name_${rowId}" class="edit-name w-full sm:w-1/3 bg-black/25 border border-white/10 rounded-lg px-2.5 py-1 sm:py-1.5 text-base sm:text-xs text-white/90 focus:border-white/40 focus:bg-black/40 focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:outline-none outline-none transition font-medium" value="${escapeHtml(name)}" placeholder="书签名称" aria-label="书签名称">
-                <input type="text" id="bm-url-${rowId}" name="bookmark_url_${rowId}" inputmode="url" autocapitalize="off" class="edit-url w-full sm:w-2/3 bg-black/25 border border-white/10 rounded-lg px-2.5 py-1 sm:py-1.5 text-base sm:text-xs text-white/60 focus:border-white/40 focus:bg-black/40 focus:text-white focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:outline-none outline-none transition font-mono" value="${escapeHtml(url)}" placeholder="https://..." aria-label="书签网址">
+                <input type="text" id="bm-name-${id}" name="bookmark_name_${id}" class="edit-name w-full sm:w-1/3 bg-black/25 border border-white/10 rounded-lg px-2.5 py-1 sm:py-1.5 text-base sm:text-xs text-white/90 focus:border-white/40 focus:bg-black/40 focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:outline-none outline-none transition font-medium" value="${escapeHtml(name)}" placeholder="书签名称" aria-label="书签名称">
+                <input type="text" id="bm-url-${id}" name="bookmark_url_${id}" inputmode="url" autocapitalize="off" class="edit-url w-full sm:w-2/3 bg-black/25 border border-white/10 rounded-lg px-2.5 py-1 sm:py-1.5 text-base sm:text-xs text-white/60 focus:border-white/40 focus:bg-black/40 focus:text-white focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:outline-none outline-none transition font-mono" value="${escapeHtml(url)}" placeholder="https://..." aria-label="书签网址">
             </div>
             <button type="button" class="del-btn shrink-0 size-7 sm:size-8 p-1 hover:bg-red-500/20 rounded-full text-white/30 hover:text-red-400 flex items-center justify-center transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-1 focus-visible:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed" title="删除书签" aria-label="删除书签">
                 <svg class="size-4 pointer-events-none" aria-hidden="true"><use href="#icon-trash"/></svg>
@@ -207,10 +208,29 @@ export function getEditRowHTML(name = '', url = '', idx = '', icon = '') {
 }
 
 export function renderEditList(listToRender) {
-    const list = listToRender || pageData.bookmarks;
+    if (Array.isArray(listToRender)) {
+        modalState.draftBookmarks = listToRender.map((bm, i) => ({
+            id: bm.id || `bm_${Date.now()}_${i}`,
+            name: bm.name || '',
+            url: bm.url || '',
+            icon: bm.icon || '',
+            origUrl: bm.origUrl || bm.url || '',
+            desc: bm.desc || ''
+        }));
+    } else if (!modalState.draftBookmarks || modalState.draftBookmarks.length === 0) {
+        modalState.draftBookmarks = pageData.bookmarks.map((bm, i) => ({
+            id: `bm_${i}`,
+            name: bm.name || '',
+            url: bm.url || '',
+            icon: bm.icon || '',
+            origUrl: bm.url || '',
+            desc: bm.desc || ''
+        }));
+    }
+
     const editList = dom.editList || $('editList');
     if (!editList) return;
-    editList.innerHTML = '<div id="dragDropIndicator" class="drag-drop-line"></div>' + list.map((bm, i) => getEditRowHTML(bm.name, bm.url, i, bm.icon)).join('');
+    editList.innerHTML = '<div id="dragDropIndicator" class="drag-drop-line"></div>' + modalState.draftBookmarks.map((bm, i) => getEditRowHTML(bm.name, bm.url, i, bm.icon, bm.id)).join('');
     dom.dragDropIndicator = editList.querySelector('#dragDropIndicator');
     updateBookmarkCountBadge();
 
@@ -225,17 +245,23 @@ export function renderEditList(listToRender) {
     });
 }
 
+/**
+ * 纯内存收集与清洗草稿书签数据（彻底告别 DOM 遍历反向收割）
+ * @returns {Array<{name: string, url: string, icon: string, desc?: string}>}
+ */
 export function collectEditData() {
-    const editList = dom.editList || $('editList');
-    if (!editList) return [];
-    const items = editList.querySelectorAll('[data-idx]');
+    const sourceList = (modalState.draftBookmarks && modalState.draftBookmarks.length > 0)
+        ? modalState.draftBookmarks
+        : (pageData.bookmarks || []);
+
     const bookmarks = [];
-    items.forEach(el => {
-        const name = (el.querySelector('.edit-name')?.value || '').trim();
-        let url = (el.querySelector('.edit-url')?.value || '').trim();
+    for (let i = 0; i < sourceList.length; i++) {
+        const item = sourceList[i];
+        const name = (item.name || '').trim();
+        let url = (item.url || '').trim();
         url = normalizeUrl(url);
-        const origIcon = el.dataset.icon || '';
-        const origUrl = normalizeUrl(el.dataset.origUrl || '');
+        const origIcon = item.icon || '';
+        const origUrl = normalizeUrl(item.origUrl || '');
         if (name && url) {
             let icon = '';
             if (origIcon && (url === origUrl || !origUrl)) {
@@ -243,9 +269,11 @@ export function collectEditData() {
             } else {
                 icon = faviconFromUrl(url);
             }
-            bookmarks.push({ name, url, icon });
+            const cleanItem = { name, url, icon };
+            if (item.desc) cleanItem.desc = item.desc;
+            bookmarks.push(cleanItem);
         }
-    });
+    }
     return bookmarks;
 }
 
@@ -268,6 +296,16 @@ export async function openEditModal() {
     modalState.draftBgBlur = modalState.initialBgBlur;
     modalState.wallpaperChanged = false;
     modalState.bookmarksChanged = false;
+
+    // 初始化内存草稿真理源
+    modalState.draftBookmarks = pageData.bookmarks.map((bm, i) => ({
+        id: `bm_${i}`,
+        name: bm.name || '',
+        url: bm.url || '',
+        icon: bm.icon || '',
+        origUrl: bm.url || '',
+        desc: bm.desc || ''
+    }));
 
     switchSettingsTab('tabBookmarks');
     renderEditList();
@@ -573,7 +611,9 @@ export function resetBookmarks() {
         modalState.draftWallpaper = undefined;
         modalState.draftMaskOpacity = null;
         modalState.draftBgBlur = null;
+        modalState.draftBookmarks = [];
         modalState.wallpaperChanged = false;
+        modalState.bookmarksChanged = false;
 
         if (typeof window.setEngine === 'function') window.setEngine('bing', false);
         state.bg = 0;
@@ -593,10 +633,11 @@ export function resetBookmarks() {
  * @returns {void}
  */
 export function updatePickerCount() {
-    const editList = dom.editList || $('editList');
     const pickerCount = dom.pickerCount || $('pickerCount');
-    if (!editList || !pickerCount) return;
-    const count = editList.querySelectorAll('[data-idx]').length;
+    if (!pickerCount) return;
+    const count = (modalState.draftBookmarks && modalState.draftBookmarks.length > 0)
+        ? modalState.draftBookmarks.length
+        : (dom.editList ? dom.editList.querySelectorAll('.edit-row-card').length : pageData.bookmarks.length);
     pickerCount.textContent = `已添加 ${count} 项`;
 }
 
@@ -606,14 +647,11 @@ export function updatePickerCount() {
  */
 export function getExistingUrls() {
     const urls = new Set();
-    const editList = dom.editList || $('editList');
-    if (editList) {
-        editList.querySelectorAll('.edit-url').forEach(inp => {
-            const norm = normalizeUrl(inp.value);
-            if (norm) urls.add(norm);
-        });
-    }
-    pageData.bookmarks.forEach(bm => {
+    const sourceList = (modalState.draftBookmarks && modalState.draftBookmarks.length > 0)
+        ? modalState.draftBookmarks
+        : pageData.bookmarks;
+
+    sourceList.forEach(bm => {
         const norm = normalizeUrl(bm.url);
         if (norm) urls.add(norm);
     });

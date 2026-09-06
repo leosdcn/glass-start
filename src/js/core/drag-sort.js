@@ -154,6 +154,20 @@ export function initDragSort() {
         }
         modalState.bookmarksChanged = true;
 
+        // 同步重新排列内存草稿数组顺序
+        if (modalState.draftBookmarks && modalState.draftBookmarks.length > 0) {
+            const currentRows = Array.from(editList.querySelectorAll('.edit-row-card'));
+            const orderMap = new Map();
+            currentRows.forEach((r, idx) => {
+                if (r.dataset.id) orderMap.set(r.dataset.id, idx);
+            });
+            modalState.draftBookmarks.sort((a, b) => {
+                const posA = orderMap.has(a.id) ? orderMap.get(a.id) : 9999;
+                const posB = orderMap.has(b.id) ? orderMap.get(b.id) : 9999;
+                return posA - posB;
+            });
+        }
+
         cards.forEach(card => {
             const first = firstPositions.get(card);
             const last = card.getBoundingClientRect();

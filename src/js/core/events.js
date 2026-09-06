@@ -532,8 +532,20 @@ export function bindEditEvents() {
             const urls = getExistingUrls();
             if (urls.has(url)) return;
 
+            const rowId = `bm_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+            const newBm = {
+                id: rowId,
+                name,
+                url,
+                icon: '',
+                origUrl: url,
+                desc: ''
+            };
+            if (!modalState.draftBookmarks) modalState.draftBookmarks = [];
+            modalState.draftBookmarks.push(newBm);
+
             const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = getEditRowHTML(name, url, Date.now()).trim();
+            tempDiv.innerHTML = getEditRowHTML(name, url, modalState.draftBookmarks.length - 1, '', rowId).trim();
             const div = tempDiv.firstElementChild;
             div.classList.add('animate-item-in');
             div.addEventListener('animationend', () => div.classList.remove('animate-item-in'), { once: true });
@@ -559,8 +571,20 @@ export function bindEditEvents() {
 
     if (dom.addBookmarkBtn) {
         dom.addBookmarkBtn.addEventListener('click', () => {
+            const rowId = `bm_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+            const newBm = {
+                id: rowId,
+                name: '',
+                url: '',
+                icon: '',
+                origUrl: '',
+                desc: ''
+            };
+            if (!modalState.draftBookmarks) modalState.draftBookmarks = [];
+            modalState.draftBookmarks.push(newBm);
+
             const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = getEditRowHTML('', '', Date.now()).trim();
+            tempDiv.innerHTML = getEditRowHTML('', '', modalState.draftBookmarks.length - 1, '', rowId).trim();
             const div = tempDiv.firstElementChild;
             div.classList.add('animate-item-in');
             div.addEventListener('animationend', () => div.classList.remove('animate-item-in'), { once: true });
@@ -577,16 +601,32 @@ export function bindEditEvents() {
     }
 
     if (dom.editList) {
-        dom.editList.addEventListener('input', () => {
+        dom.editList.addEventListener('input', (e) => {
             modalState.bookmarksChanged = true;
+            const target = e.target;
+            const row = target?.closest('.edit-row-card');
+            if (!row || !modalState.draftBookmarks) return;
+            const id = row.dataset.id;
+            const item = modalState.draftBookmarks.find(b => b.id === id);
+            if (!item) return;
+
+            if (target.classList.contains('edit-name')) {
+                item.name = target.value;
+            } else if (target.classList.contains('edit-url')) {
+                item.url = target.value;
+            }
         });
 
         dom.editList.addEventListener('click', e => {
             const del = e.target.closest('.del-btn');
             if (del) {
-                const item = del.closest('[data-idx]');
+                const item = del.closest('.edit-row-card');
                 if (item) {
                     modalState.bookmarksChanged = true;
+                    const rowId = item.dataset.id;
+                    if (rowId && modalState.draftBookmarks) {
+                        modalState.draftBookmarks = modalState.draftBookmarks.filter(b => b.id !== rowId);
+                    }
                     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
                         item.remove();
                         updatePickerCount();
