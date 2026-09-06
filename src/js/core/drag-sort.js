@@ -51,6 +51,29 @@ export function initDragSort() {
     }
 
     let isDragHandleActive = false;
+    let dragSettlingRaf = null;
+
+    function blurActiveHandle() {
+        if (document.activeElement && document.activeElement.closest('.drag-handle')) {
+            document.activeElement.blur();
+        }
+    }
+
+    function settleDragHover() {
+        if (dragSettlingRaf) cancelAnimationFrame(dragSettlingRaf);
+        document.body.classList.add('drag-settling');
+        const clear = () => {
+            document.body.classList.remove('drag-settling');
+            document.removeEventListener('pointermove', clear, { capture: true });
+            dragSettlingRaf = null;
+        };
+        // 在下一帧后注册 pointermove 监听，避免当前帧立即触发
+        dragSettlingRaf = requestAnimationFrame(() => {
+            dragSettlingRaf = requestAnimationFrame(() => {
+                document.addEventListener('pointermove', clear, { capture: true, once: true, passive: true });
+            });
+        });
+    }
 
     editList.addEventListener('mousedown', e => {
         const handle = e.target.closest('.drag-handle');
@@ -58,9 +81,6 @@ export function initDragSort() {
         if (handle && card) {
             isDragHandleActive = true;
             card.setAttribute('draggable', 'true');
-            e.preventDefault();
-            try { window.getSelection()?.removeAllRanges(); } catch (_) {}
-            document.body.classList.add('bookmark-dragging');
         } else if (card) {
             isDragHandleActive = false;
             card.setAttribute('draggable', 'false');
@@ -73,6 +93,7 @@ export function initDragSort() {
         editList.querySelectorAll('.edit-row-card[draggable="true"]').forEach(card => {
             card.setAttribute('draggable', 'false');
         });
+        blurActiveHandle();
     }, { passive: true });
 
     editList.addEventListener('dragstart', e => {
@@ -85,11 +106,14 @@ export function initDragSort() {
             e.preventDefault();
             return;
         }
+        blurActiveHandle();
+        try { window.getSelection()?.removeAllRanges(); } catch (_) {}
+        document.body.classList.add('bookmark-dragging');
         dragSrc = item;
         item.classList.add('dragging');
         e.dataTransfer.effectAllowed = 'move';
         try {
-            e.dataTransfer.setData('text/plain', item.dataset.idx || '');
+            e.dataTransfer.setData('text/plain', item.dataset.id || item.dataset.idx || '');
         } catch (_) {}
     });
 
@@ -101,6 +125,8 @@ export function initDragSort() {
         });
         clearDragClasses();
         dragSrc = null;
+        blurActiveHandle();
+        settleDragHover();
     });
 
     editList.addEventListener('dragover', e => {
@@ -110,21 +136,26 @@ export function initDragSort() {
         const target = e.target.closest('.edit-row-card');
         if (!target || target === dragSrc) return;
 
-        if (dragOverRafId) return;
-        dragOverRafId = requestAnimationFrame(() => {
-            dragOverRafId = null;
-            const rect = target.getBoundingClientRect();
-            const relY = (e.clientY - rect.top) / rect.height;
+        const rect = target.getBoundingClientRect();
+        const relY = rect.height > 0 ? (e.clientY - rect.top) / rect.height : 0.5;
+        let isTop = true;
+        if (lastOverTarget === target && lastIsTop !== null) {
+            isTop = lastIsTop ? (relY <= CONFIG.PHYSICS.DRAG_HYSTERESIS_HIGH) : (relY < CONFIG.PHYSICS.DRAG_HYSTERESIS_LOW);
+        } else {
+            isTop = relY < 0.5;
+        }
 
-            let isTop = true;
-            if (lastOverTarget === target && lastIsTop !== null) {
-                isTop = lastIsTop ? (relY <= CONFIG.PHYSICS.DRAG_HYSTERESIS_HIGH) : (relY < CONFIG.PHYSICS.DRAG_HYSTERESIS_LOW);
-            } else {
-                isTop = relY < 0.5;
-            }
+        lastOverTarget = target;
+        lastIsTop = isTop;
 
-            updateDragIndicator(target, isTop);
-        });
+        if (!dragOverRafId) {
+            dragOverRafId = requestAnimationFrame(() => {
+                dragOverRafId = null;
+                if (lastOverTarget && lastIsTop !== null) {
+                    updateDragIndicator(lastOverTarget, lastIsTop);
+                }
+            });
+        }
     });
 
     editList.addEventListener('dragleave', e => {
@@ -135,9 +166,19 @@ export function initDragSort() {
 
     editList.addEventListener('drop', e => {
         e.preventDefault();
-        const target = lastOverTarget || e.target.closest('.edit-row-card');
-        const isTop = lastIsTop !== null ? lastIsTop : true;
+        let target = lastOverTarget || e.target.closest('.edit-row-card');
+        let isTop = lastIsTop;
+
+        if (target && isTop === null) {
+            const rect = target.getBoundingClientRect();
+            const relY = rect.height > 0 ? (e.clientY - rect.top) / rect.height : 0.5;
+            isTop = relY < 0.5;
+        } else if (isTop === null) {
+            isTop = true;
+        }
+
         clearDragClasses();
+        blurActiveHandle();
 
         if (!target || !dragSrc || target === dragSrc) return;
 

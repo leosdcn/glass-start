@@ -373,6 +373,11 @@ textarea::placeholder {
     background-color: rgba(255, 255, 255, 0.04);
     box-shadow: none;
 }
+/* 拖拽放置瞬间冻结所有 :hover 高亮，等鼠标真实移动后才解除 */
+body.drag-settling .edit-row-card,
+body.drag-settling .drag-handle {
+    pointer-events: none;
+}
 .drag-drop-line {
     position: absolute;
     top: 0;
@@ -623,7 +628,8 @@ section:first-of-type {
 .category-block {
     position: relative;
 }
-body.bookmark-dragging .nav-bookmark {
+body.bookmark-dragging .nav-bookmark,
+body.bookmark-dragging .drag-handle {
     pointer-events: none;
 }
 

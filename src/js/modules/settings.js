@@ -189,7 +189,7 @@ export function getEditRowHTML(name = '', url = '', idx = '', icon = '', rowId =
     return `
         <div role="listitem" class="edit-row-card flex items-center gap-1.5 sm:gap-2 p-1.5 sm:p-2 bg-white/5 border border-white/10 apple-radius hover:border-white/25 glass-interactive group mb-1.5 shadow-xs" data-id="${escapeHtml(id)}" data-idx="${idx}" draggable="false">
             <div class="flex items-center gap-1 shrink-0">
-                <button type="button" class="drag-handle touch-none p-1 size-7 flex items-center justify-center shrink-0 text-white/30 group-hover:text-white/70 hover:text-white cursor-grab active:cursor-grabbing glass-interactive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40" title="按住拖拽排序" aria-label="按住拖拽或使用键盘排序">
+                <button type="button" class="drag-handle touch-none p-1 size-7 flex items-center justify-center shrink-0 text-white/30 group-hover:text-white/70 hover:text-white cursor-grab active:cursor-grabbing rounded-lg glass-interactive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40" title="按住拖拽排序" aria-label="按住拖拽或使用键盘排序">
                     <svg class="size-3.5 pointer-events-none" aria-hidden="true"><use href="#icon-drag"/></svg>
                 </button>
                 <div class="edit-favicon-box shrink-0 flex items-center justify-center text-white/90 select-none pointer-events-none">
