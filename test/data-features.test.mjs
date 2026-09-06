@@ -215,10 +215,22 @@ const btnA11yCheck = await evalJS(`(() => {
 })()`);
 const btnA11yOk = btnA11yCheck && btnA11yCheck.delHasAria && btnA11yCheck.refHasAria;
 
+// 2.8 预设 8 张壁纸矩阵与黑白二元流主题契约校验 (8张完整映射 / 深浅二元对偶 / 模式标识同步)
+const wallpaperThemeCheck = await evalJS(`(() => {
+  const themes = PRESET_WALLPAPER_THEMES;
+  const bgs = backgrounds;
+  const countOk = Array.isArray(themes) && themes.length === 8 && Array.isArray(bgs) && bgs.length === 8;
+  const isAlternating = themes.every((t, i) => i % 2 === 0 ? !t.isLight : t.isLight);
+  const colorsOk = themes.every((t, i) => i % 2 === 0 ? t.color === '#0b0f19' : t.color === '#ffffff');
+  return { countOk, isAlternating, colorsOk };
+})()`);
+const wallpaperThemeOk = wallpaperThemeCheck && wallpaperThemeCheck.countOk && wallpaperThemeCheck.isAlternating && wallpaperThemeCheck.colorsOk;
+
 await evalJS(`localStorage.clear()`);
 
-pass('书签轻量存储模型、旧版数据迁移、自定义图标持久化与 XSS/气象数值安全清洗 (keys+customMeta/迁移/图标持久化/首屏防空白/XSS防注入/weatherNum清洗/图标按钮Aria-Label)',
-  bmClean && migrationOk && customMetaOk && saveModelOk && xssOk && weatherSanitizeOk && btnA11yOk);
+pass('书签轻量存储模型、旧版数据迁移、自定义图标持久化与 XSS/气象数值安全清洗 (keys+customMeta/迁移/图标持久化/首屏防空白/XSS防注入/weatherNum清洗/图标按钮Aria-Label/壁纸深浅二元契约)',
+  bmClean && migrationOk && customMetaOk && saveModelOk && xssOk && weatherSanitizeOk && btnA11yOk && wallpaperThemeOk,
+  JSON.stringify({ ...saveModel, xssFired: xssCheck.xssFired, weatherSanitizeOk, btnA11yOk, wallpaperThemeOk }));
 
 // ══════════════════════════════════════════════════════════════════════
 // 3. 天气组件胶囊交互、OverlayStack 层叠栈响应与搜索联想防竞态

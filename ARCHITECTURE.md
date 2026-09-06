@@ -323,7 +323,7 @@ flowchart LR
             F_CACHE -.->|"网络超时 / 离线 / 404"| E_404 --> E_BADGE
         end
 
-        subgraph P3 [" 3. IMG_CACHE (app-images-v1) · 站内图库池 "]
+        subgraph P3 [" 3. IMG_CACHE (app-images-v2) · 站内图库池 "]
             direction LR
             I_CACHE["同源站内图片池 (Cache-First)<br/>ico / png / jpg / webp / avif"]:::imgNode
             I_FIFO["FIFO 容量限额淘汰<br/>MAX = 200 条"]:::limitNode

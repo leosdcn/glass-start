@@ -82,15 +82,15 @@
        */
       (function() {
         /**
-         * 预设 2.5K AVIF 本地壁纸及 Unsplash 原图追溯出处（100% 原生零裁切 2.5K 母带分辨率）：
-         * bg1.avif - 山峦夜空 (2560x1708 3:2 横屏) https://images.unsplash.com/photo-1477346611705-65d1883cee1e
-         * bg2.avif - 湖光山色 (2560x1709 3:2 横屏) https://images.unsplash.com/photo-1506744038136-46273834b3fb
-         * bg3.avif - 森林瀑布 (1707x2560 2:3 竖屏) https://images.unsplash.com/photo-1433086966358-54859d0ed716
-         * bg4.avif - 星空雪山 (2560x1708 3:2 横屏) https://images.unsplash.com/photo-1519681393784-d120267933ba
-         * bg5.avif - 壮丽旷野 (2560x1701 16:10.6 横屏) https://images.unsplash.com/photo-1469474968028-56623f02e42e
-         * bg6.avif - 静谧海岸 (2560x1707 3:2 横屏) https://images.unsplash.com/photo-1501785888041-af3ef285b470
-         * bg7.avif - 迷雾古堡 (1692x2560 2:3 竖屏) https://images.unsplash.com/photo-1518709268805-4e9042af9f23
-         * bg8.avif - 梦幻流彩 (2560x1707 3:2 横屏) https://images.unsplash.com/photo-1550684848-fac1c5b4e853
+         * 预设 4K 原生横屏 AVIF 本地壁纸矩阵（4 组深浅严谨对偶 · 纯净毛玻璃通透底座）：
+         * bg1.avif - 山峦夜空 (3840x2560 16:10 自然深)
+         * bg2.avif - 湖光山色 (3840x2560 16:10 自然浅)
+         * bg3.avif - 星空雪山 (3840x2560 16:10 自然深)
+         * bg4.avif - 壮丽旷野 (3840x2560 16:10 自然浅)
+         * bg5.avif - 天际立面 (3840x2560 16:10 建筑深)
+         * bg6.avif - 极简回廊 (3840x2560 16:10 建筑浅)
+         * bg7.avif - 暗夜流体 (3840x2560 16:10 艺术深)
+         * bg8.avif - 梦幻流彩 (3840x2560 16:10 艺术浅)
          *
          * 💡 4K 视网膜级 AVIF 编码参数与无损保真调优规范：
          *    工具：libavif / avifenc (AOMedia libaom v3.14.1 内核)
@@ -98,7 +98,7 @@
          *    微缩缩略：avifenc -s 4 -q 70 --yuv 420 -a sharpness=2 -a aq-mode=2 thumb.png bgX-thumb.avif
          *    特点：
          *      1. 大图全色度 1:1 采样（YUV 4:4:4），99.15% 极高保真，杜绝 4K 视网膜屏高反差边缘色溢与暗部夜空色带断层；
-         *      2. 缩略图统一采用 -q 70 配合自适应量化深度压缩，8 张缩略图总池由 183.5KB 降至 105.6KB（净省 42.5%）；
+         *      2. 缩略图统一采用 -q 70 配合自适应量化深度压缩，8 张缩略图总池极速瞬开；
          *      3. -a aq-mode=2 与 -a sharpness=2~3 全链路保驾护航，确保小图卡片清爽立体、大图全景晶莹剔透。
          */
         const backgrounds = [
@@ -156,14 +156,14 @@
             const THEME_DARK = { color: '#0b0f19', isLight: false };
             const THEME_LIGHT = { color: '#ffffff', isLight: true };
             const PRESET_THEMES = [
-              THEME_DARK,  // bg1: 山峦夜空 (默认深色)
-              THEME_LIGHT, // bg2: 湖光山色 (浅色)
-              THEME_DARK,  // bg3: 森林瀑布 (深色)
-              THEME_DARK,  // bg4: 星空雪山 (深色)
-              THEME_DARK,  // bg5: 壮丽旷野 (深色)
-              THEME_LIGHT, // bg6: 静谧海岸 (浅色)
-              THEME_LIGHT, // bg7: 迷雾古堡 (浅色)
-              THEME_LIGHT  // bg8: 梦幻流彩 (浅色)
+              THEME_DARK,  // bg1: 山峦夜空 (自然深 · 默认深色)
+              THEME_LIGHT, // bg2: 湖光山色 (自然浅 · 浅色)
+              THEME_DARK,  // bg3: 星空雪山 (自然深 · 深色)
+              THEME_LIGHT, // bg4: 壮丽旷野 (自然浅 · 浅色)
+              THEME_DARK,  // bg5: 天际立面 (建筑深 · 深色)
+              THEME_LIGHT, // bg6: 极简回廊 (建筑浅 · 浅色)
+              THEME_DARK,  // bg7: 暗夜流体 (艺术深 · 深色)
+              THEME_LIGHT  // bg8: 梦幻流彩 (艺术浅 · 浅色)
             ];
             let initTheme = null;
             const isCustom = preloadUrl && !preloadUrl.startsWith('./wallpapers/');
@@ -496,7 +496,7 @@
                         <div class="size-9 rounded-xl bg-white/10 flex items-center justify-center text-base border border-white/15 shadow-inner shrink-0">🪐</div>
                         <div class="flex items-center gap-2">
                             <span class="text-sm font-semibold text-white/95 tracking-tight leading-none">Glass Start</span>
-                            <span class="text-2xs px-2 h-4.5 rounded-full bg-white/10 border border-white/15 text-white/75 font-medium inline-flex items-center justify-center">v4.5.1</span>
+                            <span class="text-2xs px-2 h-4.5 rounded-full bg-white/10 border border-white/15 text-white/75 font-medium inline-flex items-center justify-center">v4.6.0</span>
                         </div>
                     </div>
                     <div class="flex items-center gap-2 shrink-0">

@@ -161,7 +161,7 @@ const maxFaviconMatch = srcSw.match(/MAX_FAVICON_ENTRIES\s*=\s*(\d+)/);
 const maxImgMatch = srcSw.match(/MAX_IMG_ENTRIES\s*=\s*(\d+)/);
 const faviconLimitOk = maxFaviconMatch && Number(maxFaviconMatch[1]) === 800;
 const imgLimitOk = maxImgMatch && Number(maxImgMatch[1]) === 200;
-const poolNamesOk = srcSw.includes("const FAVICON_CACHE = 'app-favicons-v1'") && srcSw.includes("const IMG_CACHE = 'app-images-v1'");
+const poolNamesOk = srcSw.includes("const FAVICON_CACHE = 'app-favicons-v1'") && srcSw.includes("const IMG_CACHE = 'app-images-v2'");
 const activateCleansOldCachesOnly = srcSw.includes('k !== CORE_CACHE && k !== FAVICON_CACHE && k !== IMG_CACHE');
 
 pass('Service Worker 内存池 FIFO 自动限额淘汰与防污染 (真实FIFO执行断言/800与200配额/三池激活保护白名单)',

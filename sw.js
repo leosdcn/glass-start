@@ -12,7 +12,7 @@
 // 缓存池定义（打包 build.js 时自动替换 CORE_CACHE 为时间戳版本）
 const CORE_CACHE = 'app-core-v1786255428688';
 const FAVICON_CACHE = 'app-favicons-v1';
-const IMG_CACHE = 'app-images-v1';
+const IMG_CACHE = 'app-images-v2';
 
 // 图标与图片容量上限配置
 const MAX_FAVICON_ENTRIES = 800;

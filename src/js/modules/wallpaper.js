@@ -7,7 +7,7 @@ import { CONFIG, backgrounds } from '../config/constants.js';
 import { storageGet, storageSet, storageRemove } from '../utils/helpers.js';
 import { getWallpaperDB, setWallpaperDB, removeWallpaperDB } from '../utils/idb.js';
 import { state, modalState } from '../state/store.js';
-import { dom } from '../state/dom.js';
+import { dom, $ } from '../state/dom.js';
 import { applyWallpaper } from '../core/theme-engine.js';
 
 /**
@@ -197,7 +197,7 @@ export function preloadNextBg() {
 export function renderPresetWallpapers() {
     const grid = dom.presetWallpaperGrid || $('presetWallpaperGrid');
     if (!grid) return;
-    const titles = ['山峦夜空', '湖光山色', '森林瀑布', '星空雪山', '壮丽旷野', '静谧海岸', '迷雾古堡', '梦幻流彩'];
+    const titles = ['山峦夜空', '湖光山色', '星空雪山', '壮丽旷野', '天际立面', '极简回廊', '暗夜流体', '梦幻流彩'];
     grid.innerHTML = titles.map((title, i) => {
         const bg = `./wallpapers/bg${i + 1}.avif`;
         const thumb = `./wallpapers/bg${i + 1}-thumb.avif`;
