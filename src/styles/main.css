@@ -378,15 +378,21 @@ body.drag-settling .edit-row-card,
 body.drag-settling .drag-handle {
     pointer-events: none;
 }
+/* 拖拽期间及放置冻结期内：强制把手颜色回到静止态，防止 hover 残留 */
+body.bookmark-dragging .drag-handle,
+body.drag-settling .drag-handle {
+    color: rgba(255, 255, 255, 0.3);
+}
 .drag-drop-line {
     position: absolute;
     top: 0;
     left: 2.5rem;
     right: 2.5rem;
     height: 2px;
-    background: rgba(255, 255, 255, 0.75);
+    background: rgba(255, 255, 255, 0.55);
     border-radius: 9999px;
-    box-shadow: 0 0 8px rgba(255, 255, 255, 0.4);
+    box-shadow: 0 0 6px 1px rgba(255, 255, 255, 0.22),
+                0 0 14px rgba(255, 255, 255, 0.1);
     pointer-events: none;
     z-index: 50;
     opacity: 0;
