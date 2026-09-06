@@ -3,7 +3,7 @@
  * Glass Start — 设置面板与弹窗管理系统 (src/js/modules/settings.js)
  * ==============================================================================
  */
-import { CONFIG, backgrounds } from '../config/constants.js';
+import { CONFIG, DEFAULT_BOOKMARKS, backgrounds } from '../config/constants.js';
 import {
     escapeHtml,
     safeUrl,
@@ -28,6 +28,8 @@ import {
     findPresetBgIndex
 } from './wallpaper.js';
 import {
+    getDerivedBookmarks,
+    renderBookmarks,
     getSortedCategories,
     getFaviconHTML,
     initPickerFaviconObserver,
@@ -625,10 +627,8 @@ export function resetBookmarks() {
         state.bg = 0;
         applyWallpaper(backgrounds[0], false);
         applyBgEffects(15, 0, false);
-        if (typeof window.getDerivedBookmarks === 'function') {
-            pageData.bookmarks = window.getDerivedBookmarks(window.DEFAULT_BOOKMARKS ? window.DEFAULT_BOOKMARKS.map(b => b.url) : [], pageData.categories);
-        }
-        if (typeof window.renderBookmarks === 'function') window.renderBookmarks();
+        pageData.bookmarks = getDerivedBookmarks(DEFAULT_BOOKMARKS.map(b => b.url), pageData.categories);
+        renderBookmarks();
         closeBookmarkPicker();
         closeEditModal();
     }, '重置所有系统设置');

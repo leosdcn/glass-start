@@ -226,11 +226,52 @@ const wallpaperThemeCheck = await evalJS(`(() => {
 })()`);
 const wallpaperThemeOk = wallpaperThemeCheck && wallpaperThemeCheck.countOk && wallpaperThemeCheck.isAlternating && wallpaperThemeCheck.colorsOk;
 
+// 2.9 系统重置与书签默认模型纯 ESM 闭环断言 (不依赖 window 全局挂载 / 内存与存储同步恢复)
+const resetBookmarksCheck = await evalJS(`(() => {
+  pageData.categories = DEFAULT_CATEGORIES;
+  localStorage.setItem('userBookmarkKeys', JSON.stringify(['https://custom-only.test']));
+  localStorage.setItem('userCustomMeta', JSON.stringify({ 'https://custom-only.test': { name: '临时测试' } }));
+  localStorage.setItem('preferredEngine', 'google');
+  localStorage.setItem('userWallpaper', 'https://custom.test/bg.jpg');
+  pageData.bookmarks = [{ name: '临时测试', url: 'https://custom-only.test' }];
+  renderBookmarks();
+
+  const origWinDerived = window.getDerivedBookmarks;
+  const origWinDefault = window.DEFAULT_BOOKMARKS;
+  delete window.getDerivedBookmarks;
+  delete window.DEFAULT_BOOKMARKS;
+
+  try {
+    resetBookmarks();
+    const okBtn = dom.confirmOkBtn || $('confirmOkBtn');
+    if (okBtn) okBtn.click();
+
+    const countOk = Array.isArray(pageData.bookmarks) && pageData.bookmarks.length === 8;
+    const names = pageData.bookmarks.map(b => b.name);
+    const hasDefaultNames = names.includes('LocalSend') && names.includes('DeepSeek') && names.includes('Gemini');
+
+    const storageClean = localStorage.getItem('userBookmarkKeys') === null
+      && localStorage.getItem('userCustomMeta') === null
+      && localStorage.getItem('preferredEngine') === null
+      && localStorage.getItem('userWallpaper') === null;
+
+    const domTitles = [...document.querySelectorAll('#bookmarks .bookmark-title')].map(e => e.textContent.trim());
+    const domOk = domTitles.includes('LocalSend') && domTitles.includes('DeepSeek');
+
+    const resetSuccess = countOk && hasDefaultNames && storageClean && domOk;
+    return { resetSuccess, countOk, hasDefaultNames, storageClean, domOk };
+  } finally {
+    window.getDerivedBookmarks = origWinDerived;
+    window.DEFAULT_BOOKMARKS = origWinDefault;
+  }
+})()`);
+const resetBookmarksOk = resetBookmarksCheck && resetBookmarksCheck.resetSuccess;
+
 await evalJS(`localStorage.clear()`);
 
-pass('书签轻量存储模型、旧版数据迁移、自定义图标持久化与 XSS/气象数值安全清洗 (keys+customMeta/迁移/图标持久化/首屏防空白/XSS防注入/weatherNum清洗/图标按钮Aria-Label/壁纸深浅二元契约)',
-  bmClean && migrationOk && customMetaOk && saveModelOk && xssOk && weatherSanitizeOk && btnA11yOk && wallpaperThemeOk,
-  JSON.stringify({ ...saveModel, xssFired: xssCheck.xssFired, weatherSanitizeOk, btnA11yOk, wallpaperThemeOk }));
+pass('书签轻量存储模型、旧版数据迁移、自定义图标持久化、XSS清洗与纯ESM系统重置 (keys+customMeta/迁移/图标持久化/首屏防空白/XSS防注入/weatherNum清洗/图标按钮Aria-Label/壁纸深浅二元契约/纯ESM重置自闭环)',
+  bmClean && migrationOk && customMetaOk && saveModelOk && xssOk && weatherSanitizeOk && btnA11yOk && wallpaperThemeOk && resetBookmarksOk,
+  JSON.stringify({ ...saveModel, resetBookmarksOk: resetBookmarksCheck.resetSuccess }));
 
 // ══════════════════════════════════════════════════════════════════════
 // 3. 天气组件胶囊交互、OverlayStack 层叠栈响应与搜索联想防竞态

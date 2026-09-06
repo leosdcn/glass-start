@@ -578,7 +578,7 @@ function startWatch(onRebuildSuccess) {
 
     const watchers = [];
     const files = [
-        { path: PATHS.indexHtml, name: 'index.html' },
+        { path: PATHS.srcIndexHtml, name: 'index.html' },
         { path: PATHS.bookmarksJson, name: 'bookmarks.json' },
         { path: PATHS.sw, name: 'sw.js' },
         { path: path.join(PATHS.root, 'manifest.json'), name: 'manifest.json' }
