@@ -1,13 +1,13 @@
 /**
  * ==============================================================================
- * Glass Start — 双屏有限状态机与手势导航调度引擎 (src/js/core/screen-state.js)
+ * Glass Start — 双屏有限状态机与手势调度引擎 (src/js/core/screen-state.js)
  * ==============================================================================
  * 遵循 5 大防 BFCache 与生命周期失步铁律：
- * 1. 类名语义零污染（切屏入口首行清理 .nr）；
- * 2. 状态自愈 100% 声明式（零内联 transition:none 异步竞态）；
- * 3. 页面唤醒覆盖 visibilitychange 与 pageshow 双通道；
- * 4. 入场动画自动脱壳；
- * 5. 健全性双重校验。
+ * 1. 状态自愈 100% 声明式（零内联 transition:none 异步竞态）；
+ * 2. 纯 GPU 硬件加速 (translate3d)，零全站滚动，零 Backdrop-filter 重绘闪烁；
+ * 3. 状态锁 (isTransitioning) 天然无感吞咽触控板与滚轮动量余震；
+ * 4. 页面唤醒覆盖 visibilitychange 与 pageshow 双通道；
+ * 5. Safari 冷启动首帧同步 Layout 对齐，杜绝过渡提前截断。
  */
 import { CONFIG } from '../config/constants.js';
 import { storageGet, storageSet } from '../utils/helpers.js';
@@ -16,26 +16,22 @@ import { dom, $ } from '../state/dom.js';
 import { OverlayStack } from './overlay-stack.js';
 import { syncThemeForSection } from './theme-engine.js';
 
-let scrollAccum = 0;
-let resetAccumTimer = null;
 let isTransitioning = false;
 let transitionTimer = null;
 let navTransitionCleanup = null;
-let lastTransitionEndTime = 0;
-let swallowMomentum = false;
-let swallowStartTs = 0;
-let swallowDir = null; // 'down' | 'up' | null
 let isTouchHandled = false;
 
-// 动态有效滚动阈值支持
-let baseThreshold = CONFIG.GESTURE.WHEEL_THRESHOLD;
-if (typeof window !== 'undefined') {
-    try {
-        const urlParam = new URLSearchParams(window.location.search).get('threshold');
-        if (urlParam && !isNaN(Number(urlParam))) baseThreshold = Number(urlParam);
-    } catch {}
+// 兼容性辅助导出（为历史模块调用提供平稳存根）
+export const getScrollThreshold = () => (typeof window !== 'undefined' && window.__SCROLL_THRESHOLD__) ?? CONFIG.GESTURE.WHEEL_THRESHOLD;
+export function resetAccumAfterDelay() {}
+export function clearAccum() {}
+
+export function normDelta(e) {
+    let d = e.deltaY;
+    if (e.deltaMode === 1) d *= 16;
+    else if (e.deltaMode === 2) d *= 400;
+    return d;
 }
-export const getScrollThreshold = () => (typeof window !== 'undefined' && window.__SCROLL_THRESHOLD__) ?? baseThreshold;
 
 export function updateSectionAccessibility(sec) {
     const startSection = dom.startSection || $('startSection');
@@ -58,19 +54,6 @@ export function updateSectionAccessibility(sec) {
             nav.setAttribute('aria-hidden', 'true');
             nav.setAttribute('inert', '');
         }
-    }
-}
-
-export function resetAccumAfterDelay() {
-    if (resetAccumTimer) clearTimeout(resetAccumTimer);
-    resetAccumTimer = setTimeout(() => { scrollAccum = 0; }, CONFIG.TIMERS.SCROLL_RESET);
-}
-
-export function clearAccum() {
-    scrollAccum = 0;
-    if (resetAccumTimer) {
-        clearTimeout(resetAccumTimer);
-        resetAccumTimer = null;
     }
 }
 
@@ -97,6 +80,7 @@ export function isScreenTransitioning() {
 /**
  * 幂等式全屏状态与 DOM 样式强制对齐校准器
  * @param {'nav'|'start'} [targetSection]
+ * @param {boolean} [force=false]
  */
 export function reconcileScreenState(targetSection, force = false) {
     if (!targetSection && !force && isTransitioning) {
@@ -111,10 +95,7 @@ export function reconcileScreenState(targetSection, force = false) {
         navTransitionCleanup = null;
     }
     isTransitioning = false;
-    swallowMomentum = false;
-    swallowDir = null;
     isTouchHandled = false;
-    clearAccum();
 
     const sec = (targetSection === 'nav' || targetSection === 'start')
         ? targetSection
@@ -140,7 +121,7 @@ export function reconcileScreenState(targetSection, force = false) {
     const startSection = dom.startSection || $('startSection');
     const nav = dom.navSection || $('navSection');
 
-    // 严禁内联 transition:none，清空内联样式 100% 交由 CSS 状态类管理
+    // 清空可能残留的内联样式，100% 声明式交给 CSS 状态类管理
     if (startSection) {
         startSection.style.transform = '';
         startSection.style.transition = '';
@@ -151,6 +132,7 @@ export function reconcileScreenState(targetSection, force = false) {
     }
 
     if (sec === 'nav') {
+        document.body.classList.add('in-nav-mode');
         if (startSection) {
             startSection.classList.add('screen-pushed-up');
         }
@@ -162,6 +144,7 @@ export function reconcileScreenState(targetSection, force = false) {
         if (typeof window.updateSidebarActive === 'function') window.updateSidebarActive();
         if (typeof window.initFaviconObserver === 'function') window.initFaviconObserver();
     } else {
+        document.body.classList.remove('in-nav-mode');
         if (startSection) {
             startSection.classList.remove('screen-pushed-up');
         }
@@ -171,7 +154,7 @@ export function reconcileScreenState(targetSection, force = false) {
         }
     }
 
-    // 首行与尾部清除 nr 预水合类
+    // 预水合类清理
     if (typeof document !== 'undefined') {
         document.documentElement.classList.remove('nr');
     }
@@ -201,7 +184,6 @@ export function switchToNav() {
 
     state.currentSection = 'nav';
     isTransitioning = true;
-    clearAccum();
 
     if (typeof window !== 'undefined') {
         window.scrollTo(0, 0);
@@ -238,6 +220,9 @@ export function switchToNav() {
 
     const startSection = dom.startSection || $('startSection');
     const nav = dom.navSection || $('navSection');
+
+    document.body.classList.add('in-nav-mode');
+
     if (startSection) {
         startSection.style.transform = '';
         startSection.style.transition = '';
@@ -247,7 +232,10 @@ export function switchToNav() {
         nav.style.transform = '';
         nav.style.transition = '';
         nav.classList.remove('nav-hidden');
-        nav.classList.add('nav-visible', 'screen-pushed-in');
+        nav.classList.add('nav-visible');
+        // Safari 关键对齐：强制触发一次同步 Layout，消除首帧离屏优化导致的动画截断
+        void nav.offsetHeight;
+        nav.classList.add('screen-pushed-in');
     }
 
     requestAnimationFrame(() => {
@@ -267,8 +255,6 @@ export function switchToNav() {
         }
         if (state.currentSection === 'nav') {
             isTransitioning = false;
-            lastTransitionEndTime = performance.now();
-            clearAccum();
             if (typeof window !== 'undefined') {
                 window.scrollTo(0, 0);
                 if (document.activeElement && typeof document.activeElement.blur === 'function') {
@@ -288,7 +274,7 @@ export function switchToNav() {
         navTransitionCleanup = () => nav.removeEventListener('transitionend', onEnd);
     }
 
-    transitionTimer = setTimeout(finishSwitchToNav, CONFIG.GESTURE.TRANSITION_MS + 250);
+    transitionTimer = setTimeout(finishSwitchToNav, (CONFIG.GESTURE.TRANSITION_MS || 580) + 150);
 }
 
 export function switchToStart() {
@@ -312,7 +298,6 @@ export function switchToStart() {
     }
     state.currentSection = 'start';
     isTransitioning = true;
-    clearAccum();
 
     if (typeof window !== 'undefined') {
         window.scrollTo(0, 0);
@@ -330,14 +315,19 @@ export function switchToStart() {
 
     const startSection = dom.startSection || $('startSection');
     const nav = dom.navSection || $('navSection');
+
+    document.body.classList.remove('in-nav-mode');
+
     if (startSection) {
         startSection.style.transform = '';
         startSection.style.transition = '';
+        void startSection.offsetHeight;
         startSection.classList.remove('screen-pushed-up');
     }
     if (nav) {
         nav.style.transform = '';
         nav.style.transition = '';
+        void nav.offsetHeight;
         nav.classList.remove('screen-pushed-in');
     }
 
@@ -352,8 +342,6 @@ export function switchToStart() {
         }
         if (state.currentSection === 'start') {
             isTransitioning = false;
-            lastTransitionEndTime = performance.now();
-            clearAccum();
             if (typeof window !== 'undefined') {
                 window.scrollTo(0, 0);
                 updateGearVisibility();
@@ -375,14 +363,7 @@ export function switchToStart() {
         navTransitionCleanup = () => nav.removeEventListener('transitionend', onEnd);
     }
 
-    transitionTimer = setTimeout(finishSwitchToStart, CONFIG.GESTURE.TRANSITION_MS + 250);
-}
-
-export function normDelta(e) {
-    let d = e.deltaY;
-    if (e.deltaMode === 1) d *= 16;
-    else if (e.deltaMode === 2) d *= 400;
-    return d;
+    transitionTimer = setTimeout(finishSwitchToStart, (CONFIG.GESTURE.TRANSITION_MS || 580) + 150);
 }
 
 export function handleAppWakeUp(wasPersisted = false) {
@@ -436,85 +417,33 @@ export function initScreenGestures() {
 
     reconcileScreenState(getSavedSection() === 'nav' ? 'nav' : 'start');
 
-    let lastWheelTime = 0;
-    const SCROLL_THRESHOLD = getScrollThreshold();
-
+    // 1. 鼠标滚轮调度：离散意图直接触发，状态锁 (isTransitioning) 天然吞咽余震
     document.addEventListener('wheel', (e) => {
-        const now = performance.now();
-        const dt = now - lastWheelTime;
-        lastWheelTime = now;
-        const delta = normDelta(e);
-        const absDelta = Math.abs(delta);
-        const vertical = absDelta >= Math.abs(e.deltaX || 0);
-
-        if (swallowMomentum) {
-            if (!vertical || !OverlayStack.isEmpty()) return;
-            const curDir = delta > 0 ? 'down' : delta < 0 ? 'up' : null;
-            if (curDir && curDir !== swallowDir) {
-                swallowMomentum = false;
-                swallowDir = null;
-            } else if (dt >= CONFIG.GESTURE.MOMENTUM_QUIET_MS || now - swallowStartTs >= CONFIG.GESTURE.MOMENTUM_MAX_MS) {
-                swallowMomentum = false;
-                swallowDir = null;
-            } else {
-                if (vertical && e.cancelable) e.preventDefault();
-                return;
-            }
-        }
-
         if (isTransitioning || !OverlayStack.isEmpty()) {
             if (isTransitioning && e.cancelable) e.preventDefault();
             return;
         }
-        if (now - lastTransitionEndTime < 100) {
-            if (e.cancelable) e.preventDefault();
-            return;
-        }
 
-        const down = delta > 0;
-        const velocity = dt > 0 ? absDelta / dt : 0;
-        const isFastGesture = absDelta >= CONFIG.GESTURE.FAST_WHEEL_STEP || velocity > CONFIG.GESTURE.FAST_WHEEL_VELOCITY;
-        const effectiveThreshold = isFastGesture ? CONFIG.GESTURE.FAST_WHEEL_THRESHOLD : SCROLL_THRESHOLD;
+        const delta = normDelta(e);
+        const absDelta = Math.abs(delta);
+        if (absDelta < Math.abs(e.deltaX || 0)) return;
 
         const navContent = dom.navContent || $('navContent');
 
         if (state.currentSection === 'start') {
-            if (!down) {
-                scrollAccum = Math.max(0, scrollAccum + delta);
-                resetAccumAfterDelay();
-                return;
-            }
-            e.preventDefault();
-            scrollAccum += delta;
-            resetAccumAfterDelay();
-            if (scrollAccum >= effectiveThreshold) {
+            if (delta >= 40) {
+                if (e.cancelable) e.preventDefault();
                 switchToNav();
-                if (isFastGesture) {
-                    swallowMomentum = true;
-                    swallowStartTs = now;
-                    swallowDir = 'down';
-                }
             }
-        } else {
-            if (!down && navContent && navContent.scrollTop <= 0) {
-                e.preventDefault();
-                scrollAccum += absDelta;
-                resetAccumAfterDelay();
-                if (scrollAccum >= effectiveThreshold) {
-                    switchToStart();
-                    if (isFastGesture) {
-                        swallowMomentum = true;
-                        swallowStartTs = now;
-                        swallowDir = 'up';
-                    }
-                }
-            } else {
-                clearAccum();
+        } else if (state.currentSection === 'nav') {
+            if (delta <= -40 && (!navContent || navContent.scrollTop <= 0)) {
+                if (e.cancelable) e.preventDefault();
+                switchToStart();
             }
         }
     }, { passive: false });
 
-    // 触屏滑动监听
+    // 2. 移动端触屏手势调度
     let startTouchX = 0;
     let startTouchY = 0;
     let touchStartTime = 0;
@@ -544,9 +473,8 @@ export function initScreenGestures() {
         const currentY = e.touches[0].clientY;
         const deltaX = Math.abs(startTouchX - currentX);
         const deltaY = startTouchY - currentY;
-        const absDeltaY = Math.abs(deltaY);
 
-        if (deltaX > absDeltaY) return;
+        if (deltaX > Math.abs(deltaY)) return;
 
         const navContent = dom.navContent || $('navContent');
 
@@ -572,7 +500,7 @@ export function initScreenGestures() {
         const dt = Math.max(1, performance.now() - touchStartTime);
         const velocity = Math.abs(deltaY) / dt;
 
-        const isFlick = Math.abs(deltaY) >= CONFIG.GESTURE.FLICK_MIN_DISTANCE && velocity > CONFIG.GESTURE.FLICK_MIN_VELOCITY;
+        const isFlick = Math.abs(deltaY) >= (CONFIG.GESTURE.FLICK_MIN_DISTANCE || 25) && velocity > (CONFIG.GESTURE.FLICK_MIN_VELOCITY || 0.25);
         const navContent = dom.navContent || $('navContent');
 
         if (state.currentSection === 'start') {
@@ -592,7 +520,7 @@ export function initScreenGestures() {
         isTouchHandled = false;
     }, { passive: true });
 
-    // 唤醒自愈多通道监听
+    // 3. 页面唤醒自愈多通道
     document.addEventListener('visibilitychange', () => {
         if (!document.hidden) {
             handleAppWakeUp();
