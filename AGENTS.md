@@ -5,27 +5,35 @@
 
 ---
 
-## 🚫 一、不可触碰的 8 大工程红线 (The 8 Non-Negotiable Red Lines)
+## 🚫 一、核心工程红线 (Non-Negotiable Red Lines)
 
-1. **零运行时依赖**：严禁在 `package.json` 添加任何运行时 `dependencies`；仅允许使用原生 Web API 与现有 `devDependencies`（Tailwind CLI/esbuild）。
-2. **源码单向流动**：所有业务修改仅限 `src/`、`bookmarks.json` 与 `sw.js`，严禁直接修改 `dist/` 构建产物；Tailwind v4 采用原生 `@theme` 配置，严禁创建 `tailwind.config.js`。
-3. **CSS 纯净与视口守卫**：CSS 零 `!important`（仅放行 `prefers-reduced-motion` 白名单）；严禁添加 `-webkit-font-smoothing`；所有单行文本输入框字体必须 $\ge 16\text{px}$（包含 `text-base`）。
-4. **W3C A11y 合规**：所有 `<button>` 显式声明 `type="button"`；所有装饰 `<svg>` 标注 `aria-hidden="true"`；所有交互图标声明 `aria-label`；发布前 `npm run test:w3c` 必须 0 报错。
-5. **弹窗层叠栈**：严禁直接修改 DOM `style.display` 或 `hidden`；统一通过 `OverlayStack.push(id, closeFn)` 与 `.pop(id)` 压退栈，遵循 4 级 z-index 体系（150/1000/2000/9999）。
-6. **书签双轨字数**：纯中文 `desc` 必须 $\le 9$ 字；含英数混排 `desc` 必须 $\le 13$ 字符。改动后必须运行 `npm run lint` 验证。
-7. **Git 权限与真理源**：版本号以 `package.json` 为唯一真理源；严禁未经明确授权擅自执行 `git push`；日常验证严禁滥用 `--force`。
-8. **工具调用与重试硬边界**：同一工具相同参数最多调用 2 次；严禁在无新信息下重复检查同一文件或重新运行相同命令；若连续 2 次调用无实质进展，立即停止且严禁尝试其他变体；一旦无法确定根因或需要猜测，立刻停止所有工具调用，直接向用户汇报当前发现并请示下一步。
+### 1. 架构纯净与生命周期
+- **零运行时依赖**：严禁在 `package.json` 添加任何 `dependencies`；仅允许原生 Web API 与现有 `devDependencies`。
+- **源码单向流动**：修改仅限 `src/`、`bookmarks.json`、`sw.js`，严禁触碰 `dist/`；Tailwind v4 仅使用 `@theme`，严禁创建 `tailwind.config.js`。
+- **壁纸物理隔离**：大图/Base64 壁纸必须存入 IndexedDB (`src/js/utils/idb.js`)，严禁写入 LocalStorage。
+- **书签字数双轨门禁**：纯中文 `desc` 必须 $\le 9$ 字；含英数混排 `desc` 必须 $\le 13$ 字符。改动后必须执行 `npm run lint` 验证。
+
+### 2. 状态驱动与 DOM/CSS 守卫
+- **严禁逆向搜刮 DOM (Zero DOM Harvesting)**：弹窗书签编辑/添加/删除/拖拽重排必须 100% 依托 `modalState.draftBookmarks` 纯内存响应式草稿单向驱动；保存与导出直接消费内存模型，做到 0 次 DOM 查询逆向解析与零 Reflow。
+- **DOM 缓存池同步**：HTML 中新增/修改具名 ID 时，必须同步在 `src/js/state/dom.js` 的 `cacheDOM()` 注册。
+- **弹窗层叠栈**：严禁直接修改 DOM `style.display` 或 `hidden`；统一通过 `OverlayStack.push(id, closeFn)` 与 `.pop(id)` 压退栈（遵循 150/1000/2000/9999 4 级 z-index）。
+- **CSS 纯净与视口**：零 `!important`（仅放行 `prefers-reduced-motion`）；严禁 `-webkit-font-smoothing`；单行输入框字体必须 $\ge 16\text{px}$；卡片 `:hover` 必须加 `body:not(.tab-blurred)` 前缀防失焦残留。
+- **安全防线与 A11y**：动态文本必经 `escapeHtml()` / `safeUrl()`；气象数据必经 `weatherNum()`；所有 `<button>` 显式声明 `type="button"`，所有装饰 `<svg>` 标注 `aria-hidden="true"`，交互图标声明 `aria-label`；发布前 `npm run test:w3c` 必须 0 报错。
+
+### 3. 工具调用与 Git 权限边界
+- **工具调用硬熔断**：同一工具同参数最多调用 2 次；严禁在无新信息下重复检查同一文件或重复执行命令；连续 2 次无实质进展，**立即停止且严禁尝试猜测性变体**；一旦无法定位根因，立即停用所有工具，向用户汇报并请示。
+- **Git 权限真理源**：版本号以 `package.json` 为唯一真理源；未经明确授权严禁 `git push`；日常验证严禁滥用 `--force`。
 
 ---
 
 ## 🛠️ 二、极速自愈与验证流水线 (Tiered QA Pipeline)
 
-| 开发阶段 | 核心执行命令 | 作用与耗时预期 |
+| 开发阶段 | 核心执行命令 | 作用与预期 |
 | :--- | :--- | :--- |
-| **代码修改后必跑** | `npm run lint` | 静态规范 28 项门禁（<30ms，支持 `--fix` 一键自愈） |
-| **局部功能修改后** | `npm run test:ui` / `data` / `infra` / `lifecycle` | 精准模块单测（极速通过） |
-| **常规提交前验证** | `npm test` | 5 大套件增量回归验证 |
-| **版本发布前全量** | `npm run build && npm run test:all && npm run test:w3c` | 生产打包、24 项全量断言与 W3C 0 语法错误合规 |
+| **代码修改后必跑** | `npm run lint` | 静态规范门禁（支持 `--fix` 一键自愈） |
+| **局部功能修改后** | `npm run test:ui` / `data` / `infra` / `lifecycle` | 模块切片单测 |
+| **常规提交前验证** | `npm test` | 核心增量回归套件 |
+| **版本发布前全量** | `npm run build && npm run test:all && npm run test:w3c` | 生产打包与全量合规断言 |
 
 ---
 
@@ -51,13 +59,3 @@
 | **IndexedDB 大图壁纸持久化** | `src/js/utils/idb.js` | `getWallpaperDB()`, `setWallpaperDB()`, `clearWallpaperDB()` |
 | **启动装配与生命周期入口** | `src/js/init.js`<br/>`src/js/main.js` | `initApp()`, `initPreHydration()` |
 | **离线底座与三池物理隔离** | `sw.js` | `CORE_CACHE`, `FAVICON_CACHE`, `IMG_CACHE` |
-
----
-
-## 💡 四、高频避坑守则 (Key Practices)
-
-1. **DOM 缓存池同步**：HTML 中新增/修改具名 ID 时，必须同步在 `src/js/state/dom.js` 的 `cacheDOM()` 中注册。
-2. **大图壁纸持久化**：大尺寸 Base64 壁纸必须存入 IndexedDB (`idb.js`)，严禁写入 LocalStorage。
-3. **数据清洗与防 XSS**：动态文本必须经 `escapeHtml()` / `safeUrl()` 过滤；气象数据必须经 `weatherNum()` 强制数值化。
-4. **防假性悬停残留**：卡片 `:hover` 规则必须加 `body:not(.tab-blurred)` 前缀，防止页面切回时残留悬停高亮。
-5. **严禁 DOM Harvesting**：严禁通过 `querySelectorAll`、`dataset` 逆向从 DOM 中搜刮业务状态；设置弹窗内书签编辑、添加、删除与拖拽重排必须 100% 依托 `modalState.draftBookmarks` 纯内存响应式草稿单向驱动，保存与导出直接消费内存模型，做到 0 次 DOM 查询与零 Reflow 重排。
