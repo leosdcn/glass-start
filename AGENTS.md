@@ -11,13 +11,13 @@
 - **零运行时依赖**：严禁在 `package.json` 添加任何 `dependencies`；仅允许原生 Web API 与现有 `devDependencies`。
 - **源码单向流动**：修改仅限 `src/`、`bookmarks.json`、`sw.js`，严禁触碰 `dist/`；Tailwind v4 仅使用 `@theme`，严禁创建 `tailwind.config.js`。
 - **壁纸物理隔离**：大图/Base64 壁纸必须存入 IndexedDB (`src/js/utils/idb.js`)，严禁写入 LocalStorage。
-- **书签字数双轨门禁**：纯中文 `desc` 必须 $\le 9$ 字；含英数混排 `desc` 必须 $\le 13$ 字符。改动后必须执行 `npm run lint` 验证。
+- **书签字数双轨门禁**：纯中文 `desc` 必须 <= 9 字；含英数混排 `desc` 必须 <= 13 字符。改动后必须执行 `npm run lint` 验证。
 
 ### 2. 状态驱动与 DOM/CSS 守卫
 - **严禁逆向搜刮 DOM (Zero DOM Harvesting)**：弹窗书签编辑/添加/删除/拖拽重排必须 100% 依托 `modalState.draftBookmarks` 纯内存响应式草稿单向驱动；保存与导出直接消费内存模型，做到 0 次 DOM 查询逆向解析与零 Reflow。
 - **DOM 缓存池同步**：HTML 中新增/修改具名 ID 时，必须同步在 `src/js/state/dom.js` 的 `cacheDOM()` 注册。
 - **弹窗层叠栈**：严禁直接修改 DOM `style.display` 或 `hidden`；统一通过 `OverlayStack.push(id, closeFn)` 与 `.pop(id)` 压退栈（遵循 150/1000/2000/9999 4 级 z-index）。
-- **CSS 纯净与视口**：零 `!important`（仅放行 `prefers-reduced-motion`）；严禁 `-webkit-font-smoothing`；单行输入框字体必须 $\ge 16\text{px}$；卡片 `:hover` 必须加 `body:not(.tab-blurred)` 前缀防失焦残留。
+- **CSS 纯净与视口**：零 `!important`（仅放行 `prefers-reduced-motion`）；严禁 `-webkit-font-smoothing`；单行输入框字体必须 >= 16px；卡片 `:hover` 必须加 `body:not(.tab-blurred)` 前缀防失焦残留。
 - **安全防线与 A11y**：动态文本必经 `escapeHtml()` / `safeUrl()`；气象数据必经 `weatherNum()`；所有 `<button>` 显式声明 `type="button"`，所有装饰 `<svg>` 标注 `aria-hidden="true"`，交互图标声明 `aria-label`；发布前 `npm run test:w3c` 必须 0 报错。
 
 ### 3. 工具调用与 Git 权限边界
