@@ -8,7 +8,6 @@
 import { dom } from '../state/dom.js';
 
 const RELOAD_GUARD_KEY = 'gs_build_reload_at';
-const HEAL_BREADCRUMB_KEY = 'gs_last_heal';
 const BB_MAX_ENTRIES = 40;
 const RELOAD_COOLDOWN_MS = 60000;
 const PROBE_DELAY_MS = 700;
@@ -80,16 +79,7 @@ export function probe() {
             s.style.willChange = 'transform';
         }
     } else {
-        let lastReloadAt = 0;
-        try { lastReloadAt = Number(sessionStorage.getItem(RELOAD_GUARD_KEY)) || 0; } catch {}
-        if (Date.now() - lastReloadAt > RELOAD_COOLDOWN_MS) {
-            try { sessionStorage.setItem(RELOAD_GUARD_KEY, String(Date.now())); } catch {}
-            try { sessionStorage.setItem(HEAL_BREADCRUMB_KEY, JSON.stringify({ t: Date.now(), trail: bbDump().slice(-6) })); } catch {}
-            bbLog('heal-reload', null);
-            if (typeof location !== 'undefined') location.reload();
-        } else {
-            bbLog('heal-reload-blocked', null);
-        }
+        bbLog('heal-reload-blocked', null);
         unhealthyStreak = 0;
         return;
     }
