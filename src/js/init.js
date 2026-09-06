@@ -82,6 +82,9 @@ export function init() {
     if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
         navigator.serviceWorker.register('sw.js').catch(() => {});
         navigator.serviceWorker.addEventListener('controllerchange', () => {
+            if (typeof window.isScreenTransitioning === 'function' && window.isScreenTransitioning()) {
+                return;
+            }
             if (typeof window.reconcileScreenState === 'function') {
                 window.reconcileScreenState();
             }

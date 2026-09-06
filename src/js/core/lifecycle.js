@@ -41,6 +41,9 @@ export function verifyFingerprint(htmlBuild, jsBuild) {
 
 // 健全性快照：首屏应在位时断言变换矩阵 ≈ 单位阵且哨兵元素真实可见
 export function snapshotHealth() {
+    if (typeof window !== 'undefined' && typeof window.isScreenTransitioning === 'function' && window.isScreenTransitioning()) {
+        return { ok: true, identityOk: true, sentinelsOk: true };
+    }
     const s = dom.startSection || (typeof document !== 'undefined' ? document.getElementById('startSection') : null);
     if (!s || s.classList.contains('screen-pushed-up')) return { ok: true };
     let t = 'none';
@@ -56,6 +59,9 @@ let unhealthyStreak = 0;
 // 三级修复阶梯：
 // L1 幂等状态校准 → L2 合成层磁贴强制重栅格化 → L3 冷却期守卫软刷新
 export function probe() {
+    if (typeof window !== 'undefined' && typeof window.isScreenTransitioning === 'function' && window.isScreenTransitioning()) {
+        return;
+    }
     if (snapshotHealth().ok) {
         unhealthyStreak = 0;
         return;
@@ -115,11 +121,4 @@ export function initLifecycleAndBlackbox() {
     if ('serviceWorker' in navigator) {
         try { navigator.serviceWorker.addEventListener('controllerchange', () => bbLog('controllerchange', null)); } catch {}
     }
-
-    // 3. 异常探针触发点：双屏 transform 过渡结束
-    document.addEventListener('transitionend', (e) => {
-        if (e && e.propertyName === 'transform' && e.target && (e.target.id === 'startSection' || e.target.id === 'navSection')) {
-            if (!(navigator.webdriver)) setTimeout(probe, PROBE_DELAY_MS);
-        }
-    }, { passive: true });
 }

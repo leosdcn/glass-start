@@ -98,7 +98,10 @@ export function isScreenTransitioning() {
  * 幂等式全屏状态与 DOM 样式强制对齐校准器
  * @param {'nav'|'start'} [targetSection]
  */
-export function reconcileScreenState(targetSection) {
+export function reconcileScreenState(targetSection, force = false) {
+    if (!targetSection && !force && isTransitioning) {
+        return;
+    }
     if (transitionTimer) {
         clearTimeout(transitionTimer);
         transitionTimer = null;
@@ -175,6 +178,7 @@ export function reconcileScreenState(targetSection) {
 }
 
 export function switchToNav() {
+    if (state.currentSection === 'nav' && !isTransitioning) return;
     if (typeof document !== 'undefined') {
         document.documentElement.classList.remove('nr');
         if (document.body.classList.contains('tab-blurred')) {
@@ -274,20 +278,21 @@ export function switchToNav() {
         }
     };
 
-    if (typeof document !== 'undefined') {
+    if (typeof document !== 'undefined' && nav) {
         const onEnd = (e) => {
-            if (e.target === nav && e.propertyName === 'transform') {
+            if (e.target === nav && (e.propertyName === 'transform' || e.propertyName === '-webkit-transform')) {
                 finishSwitchToNav();
             }
         };
-        document.addEventListener('transitionend', onEnd);
-        navTransitionCleanup = () => document.removeEventListener('transitionend', onEnd);
+        nav.addEventListener('transitionend', onEnd);
+        navTransitionCleanup = () => nav.removeEventListener('transitionend', onEnd);
     }
 
-    transitionTimer = setTimeout(finishSwitchToNav, CONFIG.GESTURE.TRANSITION_MS + 40);
+    transitionTimer = setTimeout(finishSwitchToNav, CONFIG.GESTURE.TRANSITION_MS + 250);
 }
 
 export function switchToStart() {
+    if (state.currentSection === 'start' && !isTransitioning) return;
     if (typeof document !== 'undefined') {
         document.documentElement.classList.remove('nr');
         if (document.body.classList.contains('tab-blurred')) {
@@ -360,17 +365,17 @@ export function switchToStart() {
         }
     };
 
-    if (typeof document !== 'undefined') {
+    if (typeof document !== 'undefined' && nav) {
         const onEnd = (e) => {
-            if (e.target === nav && e.propertyName === 'transform') {
+            if (e.target === nav && (e.propertyName === 'transform' || e.propertyName === '-webkit-transform')) {
                 finishSwitchToStart();
             }
         };
-        document.addEventListener('transitionend', onEnd);
-        navTransitionCleanup = () => document.removeEventListener('transitionend', onEnd);
+        nav.addEventListener('transitionend', onEnd);
+        navTransitionCleanup = () => nav.removeEventListener('transitionend', onEnd);
     }
 
-    transitionTimer = setTimeout(finishSwitchToStart, CONFIG.GESTURE.TRANSITION_MS + 40);
+    transitionTimer = setTimeout(finishSwitchToStart, CONFIG.GESTURE.TRANSITION_MS + 250);
 }
 
 export function normDelta(e) {
@@ -396,7 +401,7 @@ export function handleAppWakeUp(wasPersisted = false) {
     if (document.activeElement && typeof document.activeElement.blur === 'function' && document.activeElement !== document.body && document.activeElement !== (dom.searchInput || $('searchInput'))) {
         document.activeElement.blur();
     }
-    reconcileScreenState();
+    reconcileScreenState(undefined, true);
 
     if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
         navigator.serviceWorker.getRegistration().then(reg => {
