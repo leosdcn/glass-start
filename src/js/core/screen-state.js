@@ -21,11 +21,6 @@ let transitionTimer = null;
 let navTransitionCleanup = null;
 let isTouchHandled = false;
 
-// 兼容性辅助导出（为历史模块调用提供平稳存根）
-export const getScrollThreshold = () => (typeof window !== 'undefined' && window.__SCROLL_THRESHOLD__) ?? CONFIG.GESTURE.WHEEL_THRESHOLD;
-export function resetAccumAfterDelay() {}
-export function clearAccum() {}
-
 export function normDelta(e) {
     let d = e.deltaY;
     if (e.deltaMode === 1) d *= 16;

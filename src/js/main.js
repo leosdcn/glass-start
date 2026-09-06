@@ -87,10 +87,7 @@ Object.assign(window, {
 
 // 6. 双屏切屏有限状态机与手势调度
 import {
-    getScrollThreshold,
     updateSectionAccessibility,
-    resetAccumAfterDelay,
-    clearAccum,
     getSavedSection,
     saveSection,
     updateGearVisibility,
@@ -137,10 +134,7 @@ import {
 
 // 挂载核心方法至 window
 Object.assign(window, {
-    getScrollThreshold,
     updateSectionAccessibility,
-    resetAccumAfterDelay,
-    clearAccum,
     getSavedSection,
     saveSection,
     updateGearVisibility,

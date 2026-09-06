@@ -855,15 +855,9 @@ export const CONFIG = Object.freeze({
             }),
             GESTURE: Object.freeze({
                 TRANSITION_MS: 580,          // 双屏推移过渡动画时长 (ms)
-                WHEEL_THRESHOLD: 100,        // 滚轮累积触发切屏阈值
-                FAST_WHEEL_STEP: 100,        // 快速滚轮单步位移门限 (px)
-                FAST_WHEEL_VELOCITY: 1.2,    // 快速滚轮甩动速度门限 (px/ms)
-                FAST_WHEEL_THRESHOLD: 60,    // 快速手势敏捷触发阈值 (px)
                 SWIPE_THRESHOLD: 40,         // 触屏轻扫触发切屏阈值 (px)
                 FLICK_MIN_DISTANCE: 25,      // 快速轻扫最小触发位移 (px)
-                FLICK_MIN_VELOCITY: 0.25,    // 快速轻扫最小瞬时速度 (px/ms)
-                MOMENTUM_QUIET_MS: 70,       // 切屏后 wheel 事件静默间隔阈值：≥ 此值判定触控板惯性已自然衰减
-                MOMENTUM_MAX_MS: 1500        // 动量吸收硬上限兜底，防止病态事件流导致永久锁滚
+                FLICK_MIN_VELOCITY: 0.25     // 快速轻扫最小瞬时速度 (px/ms)
             }),
             PHYSICS: Object.freeze({
                 TILT_MAX_ROTATION_DEG: 2.5,  // 3D 陀螺仪最大倾角 (deg)
