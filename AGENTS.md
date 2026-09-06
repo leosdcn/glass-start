@@ -39,7 +39,7 @@
 | **书签体系与双栏分类导航** | `src/js/modules/bookmarks.js` | `getDerivedBookmarks()`, `renderBookmarks()`, `renderNavCategories()` |
 | **时钟引擎、快捷键与鸣谢** | `src/js/modules/clock.js` | `updateClock()`, `applyPlatformShortcuts()`, `renderShortcutModalList()` |
 | **壁纸持久化与即选即存** | `src/js/modules/wallpaper.js` | `commitWallpaperSelection()`, `previewDraftWallpaper()` |
-| **设置弹窗与生命周期管理** | `src/js/modules/settings.js`<br/>`src/js/core/overlay-stack.js` | `openEditModal()`, `closeEditModal()`, `OverlayStack` |
+| **设置弹窗与生命周期管理** | `src/js/modules/settings.js`<br/>`src/js/core/overlay-stack.js` | `openEditModal()`, `closeEditModal()`, `OverlayStack`, `modalState.draftBookmarks`, `collectEditData()` |
 | **搜索联想与防竞态调度** | `src/js/modules/search.js` | `renderSuggestions()`, `fetchSuggestions()`, `activeSuggestReqId` |
 | **气象数据清洗与动态演化** | `src/js/modules/weather.js` | `initWeather()`, `weatherNum()`, `WMO_WEATHER_MAP` |
 | **外壳主题与底色动态管理** | `src/js/core/theme-engine.js` | `APP_THEME_DARK`, `APP_THEME_LIGHT`, `updateThemeColor()` |
@@ -59,3 +59,4 @@
 2. **大图壁纸持久化**：大尺寸 Base64 壁纸必须存入 IndexedDB (`idb.js`)，严禁写入 LocalStorage。
 3. **数据清洗与防 XSS**：动态文本必须经 `escapeHtml()` / `safeUrl()` 过滤；气象数据必须经 `weatherNum()` 强制数值化。
 4. **防假性悬停残留**：卡片 `:hover` 规则必须加 `body:not(.tab-blurred)` 前缀，防止页面切回时残留悬停高亮。
+5. **严禁 DOM Harvesting**：严禁通过 `querySelectorAll`、`dataset` 逆向从 DOM 中搜刮业务状态；设置弹窗内书签编辑、添加、删除与拖拽重排必须 100% 依托 `modalState.draftBookmarks` 纯内存响应式草稿单向驱动，保存与导出直接消费内存模型，做到 0 次 DOM 查询与零 Reflow 重排。

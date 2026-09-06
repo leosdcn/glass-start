@@ -54,11 +54,13 @@ flowchart TD
     subgraph L3 [" 3. 响应式数据管理与本地持久化层 (Data Management & Local Persistence) "]
         direction LR
         RUNTIME["pageData 响应式内存模型<br/>{ bookmarks, categories, customMeta }"]:::activeBox
+        DRAFT_STORE["In-Memory Draft Store (modalState.draftBookmarks)<br/>纯内存草稿真理源 ➔ 彻底根除 DOM Harvesting"]:::activeBox
         MIGRATION["旧版存储平滑迁移 (migrateBookmarksStorage)<br/>LEGACY_BOOKMARKS ➔ 派生索引 (keys + customMeta)"]:::nodeBox
         ASSET_STORE["自定义壁纸与数据持久化 (idb.js)<br/>IndexedDB (4K壁纸) / LocalStorage (轻量配置)"]:::nodeBox
         FALLBACK_JSON["静态数据库默认回退<br/>bookmarks.json 派生式元数据生成"]:::nodeBox
         SSOT["单一真理源发布体系<br/>package.json ➔ 构建注入徽章与指纹"]:::activeBox
 
+        RUNTIME <--> DRAFT_STORE
         RUNTIME <--> MIGRATION
         RUNTIME <--> ASSET_STORE
         MIGRATION -.->|"缺省回退"| FALLBACK_JSON
@@ -95,7 +97,7 @@ flowchart TD
 #### 💡 技术原理解析
 1. **表现层与 GPU 硬件加速**：系统采用 Tailwind CSS v4 原子化引擎配合 CSS 变量进行纯 GPU 复合图层渲染。通过 Pointer Motion Gating 与 `requestAnimationFrame` 合并帧计算，仅在指针接近卡片边界（$\pm 4\text{px}$）时激活 3D 矩阵视差变换；搜索框仅应用光斑高光而不做 3D 倾斜，避免输入打字时光标抖动。
 2. **状态与交互路由层**：通过双屏有限状态机解耦第一屏（Start）与第二屏（Nav），辅以滚轮动量吞咽器与触屏滑动引擎。针对 Mac 触控板高频惯性与跨屏误触，设立速度门控与反向打断机制。
-3. **数据管理与派生架构**：采用单向数据流与派生式架构（Derived Bookmark Architecture），快捷书签仅存储 URL 索引，其标题、图标与分类均由 `bookmarks.json` 全量数据库动态派生，兼顾了用户自定义灵活性与全局数据实时同步能力。
+3. **数据管理与派生架构**：采用单向数据流与派生式架构（Derived Bookmark Architecture），快捷书签仅存储 URL 索引，其标题、图标与分类均由 `bookmarks.json` 全量数据库动态派生，兼顾了用户自定义灵活性与全局数据实时同步能力。在设置弹窗中全面确立 **In-Memory Draft Store（`modalState.draftBookmarks`）** 纯内存响应式草稿真理源，彻底废除 2010 年代基于 DOM dataset 与 `querySelectorAll` 逆向提取数据的 DOM Harvesting 反模式，实现编辑、增删、拖拽重排与落盘导出 100% 纯内存驱动与 0 次 Reflow 重排。
 4. **离线基座与安全屏障**：Service Worker 实施三池物理隔离，配合 `_headers` 的严格 CSP 与 HSTS，既保证离线可用性，又防范跨域数据投毒与 CSS/JS 缓存穿透。
 5. **单一真理源与双端构建指纹**：版本发布以 `package.json` 为唯一真理源，`scripts/build.js` 自动将版本号同步注入 `README.md` 与 `dist/index.html` 徽章，同时生成同步的 `__GLASS_BUILD_HTML__` 与 `__GLASS_BUILD_APP__` 双端构建指纹对，确保客户端 HTML 与 JS 逻辑同版锁步运行。
 
@@ -275,6 +277,7 @@ flowchart TD
 1. **LIFO 后进先出退栈模型**：`OverlayStack` 维护一个响应优先级栈。当用户在“设置弹窗”之上唤起“书签提取器”并进一步触发“删除确认对话框”时，弹窗依次压栈。按 `Escape` 键或点击遮罩将严格按照后进先出顺序逐层剥离，绝不发生跨层全关的穿透现象。
 2. **滚动穿透锁定与引用计数**：栈内通过 `MODAL_OVERLAY_IDS` 集合监测活动弹窗。当第一个 Modal 入栈时，立即向 `document.body` 注入 `overflow-hidden touch-none`；退栈时仅当所有 Modal 全部出栈后才释放锁定，避免底层页面意外发生滚动穿透。
 3. **焦点归还与 Focus Trap**：弹窗展开时记录 `editModalTriggerEl = document.activeElement`，并在弹窗内使用 `handleModalTabFocus` 拦截 `Tab` / `Shift+Tab` 键实现焦点循环锁定；弹窗销毁后平滑归还焦点到触发按钮，保证键盘纯盲操的无障碍闭环。
+4. **In-Memory Draft Store 与单向数据流闭环**：设置弹窗内所有书签修改、新增、删除与 HTML5 拖拽重排直接同步至纯内存草稿 `modalState.draftBookmarks`，保存（`collectEditData`）与导出直接消费内存数组，彻底消灭 DOM 搜刮与布局抖动，并在保存后原子化同步更新 `pageData.bookmarks`。
 
 ---
 
@@ -500,10 +503,10 @@ flowchart TD
 | **全局状态与高频 DOM 缓存池** | `src/js/state/store.js`<br/>`src/js/state/dom.js` | `dom`, `state`, `cacheDOM()`, `$` | 80+ DOM 元素高频映射，`state.currentSection` / `state.bg` 单一数据源 |
 | **书签体系与双栏分类导航** | `src/js/modules/bookmarks.js` | `getDerivedBookmarks()`, `renderBookmarks()`, `renderNavCategories()`, `getFaviconHTML()` | 派生书签架构（Derived BM）、双栏拼音排序、首字母徽章兜底与 Favicon 懒加载观察器 |
 | **时钟引擎、快捷键与鸣谢** | `src/js/modules/clock.js` | `updateClock()`, `applyPlatformShortcuts()`, `renderShortcutModalList()` | 实时时钟节流更新、休眠唤醒即时对齐、Mac/Win 跨平台快捷键适配与开源数据鸣谢 |
-| **设置弹窗内部草稿状态机** | `src/js/state/store.js` | `modalState` | 弹窗草稿快照：备份打开前的壁纸与特效状态，隔离草稿修改与运行时全局状态 |
+| **设置弹窗内部草稿状态机** | `src/js/state/store.js` | `modalState`, `modalState.draftBookmarks` | 弹窗纯内存草稿真理源 (In-Memory Draft Store)：备份打开前的壁纸与特效状态，接管书签编辑/增删/拖拽排序，彻底终结 DOM Harvesting |
 | **壁纸持久化与即选即存引擎** | `src/js/modules/wallpaper.js` | `commitWallpaperSelection()`, `previewDraftWallpaper()`, `resetDraftWallpaper()` | 选中预设、上传图片或输入 URL 后立即完成持久化（IndexedDB + localStorage 双写），无需按保存即刻生效 |
 | **设置弹窗全生命周期管理** | `src/js/modules/settings.js`<br/>`src/js/core/overlay-stack.js` | `openEditModal()`, `closeEditModal()`, `cancelEditModal()` | 弹窗打开备份、动画进出场、关闭清理聚焦、LIFO `OverlayStack` 压退栈管理 |
-| **弹窗底部操作与落盘入口** | `src/js/core/events.js`<br/>`src/js/modules/settings.js` | `dom.saveEditBtn`, `collectEditData()`, `saveUserBookmarks()` | 弹窗底部操作栏响应；快捷书签真正落盘与视觉特效保存入口 |
+| **弹窗底部操作与落盘入口** | `src/js/core/events.js`<br/>`src/js/modules/settings.js` | `dom.saveEditBtn`, `collectEditData()`, `saveUserBookmarks()` | 弹窗底部操作栏响应；直接消费内存草稿纯数据落盘（0 次 DOM 节点查询与 0 次 Reflow），快捷书签真正落盘与视觉特效保存入口 |
 | **智能搜索与联想防竞态调度** | `src/js/modules/search.js` | `renderSuggestions()`, `fetchSuggestions()`, `activeSuggestReqId` | 三级本地模糊匹配 + 网络建议词混排，骨架屏防 CLS，自增 reqId 防乱序 |
 | **气象演化与数据数值净化** | `src/js/modules/weather.js` | `initWeather()`, `weatherNum()`, `weatherTime()`, `WMO_WEATHER_MAP` | 气象 API 拉取、缓存信任边界防御（强制数值化清洗）、9 阶动态形态演化 |
 | **外壳主题与底色动态管理** | `src/js/core/theme-engine.js` | `APP_THEME_DARK`, `APP_THEME_LIGHT`, `updateThemeColor()`, `syncThemeForSection()` | 运行时壁纸主题裁决、双屏外壳色恒定同步、`--bg-base` 与 `#bgLayer` 联动 |
