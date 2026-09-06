@@ -14,7 +14,7 @@
 - [3. 📚 OverlayStack 多层弹窗层叠栈与 Escape 统一退栈决策 (OverlayStack & Modal Flow)](#3--overlaystack-多层弹窗层叠栈与-escape-统一退栈决策-overlaystack--modal-flow)
 - [4. 📴 Service Worker 三池隔离与离线数据流向 (Storage & Cache Topology)](#4--service-worker-三池隔离与离线数据流向-storage--cache-topology)
 - [5. 🔍 智能搜索多阶模糊匹配与气象 9 阶动态演化决策 (Search & Weather Decision Engine)](#5--智能搜索多阶模糊匹配与气象-9-阶动态演化决策-search--weather-decision-engine)
-- [6. 📍 精确符号索引地图与代码区域导航 (Symbol Index & Region Map)](#6--精确符号索引地图与代码区域导航-symbol-index--region-map)
+- [6. 📍 精确符号索引地图与代码区域导航 (Symbol Index & Module Map)](#6--精确符号索引地图与代码区域导航-symbol-index--module-map)
 
 ---
 
@@ -95,7 +95,7 @@ flowchart TD
 ```
 
 #### 💡 技术原理解析
-1. **表现层与 GPU 硬件加速**：系统采用 Tailwind CSS v4 原子化引擎配合 CSS 变量进行纯 GPU 复合图层渲染。通过 Pointer Motion Gating 与 `requestAnimationFrame` 合并帧计算，仅在指针接近卡片边界（$\pm 4\text{px}$）时激活 3D 矩阵视差变换；搜索框仅应用光斑高光而不做 3D 倾斜，避免输入打字时光标抖动。
+1. **表现层与 GPU 硬件加速**：系统采用 Tailwind CSS v4 原子化引擎配合 CSS 变量进行纯 GPU 复合图层渲染。通过 Pointer Motion Gating 与 `requestAnimationFrame` 合并帧计算，仅在指针接近卡片边界（±4px）时激活 3D 矩阵视差变换；搜索框仅应用光斑高光而不做 3D 倾斜，避免输入打字时光标抖动。
 2. **状态与交互路由层**：通过双屏有限状态机解耦第一屏（Start）与第二屏（Nav），辅以滚轮动量吞咽器与触屏滑动引擎。针对 Mac 触控板高频惯性与跨屏误触，设立速度门控与反向打断机制。
 3. **数据管理与派生架构**：采用单向数据流与派生式架构（Derived Bookmark Architecture），快捷书签仅存储 URL 索引，其标题、图标与分类均由 `bookmarks.json` 全量数据库动态派生，兼顾用户自定义灵活性与全局数据实时同步能力。在设置弹窗中全面确立 **In-Memory Draft Store（`modalState.draftBookmarks`）** 纯内存响应式草稿单向数据源，所有书签编辑、增删、拖拽重排与落盘导出 100% 直接读写内存数据模型，实现 0 次 DOM 逆向查询与 0 次 Reflow 重排。
 4. **离线基座与安全屏障**：Service Worker 实施三池物理隔离，配合 `_headers` 的严格 CSP 与 HSTS，既保证离线可用性，又防范跨域数据投毒与 CSS/JS 缓存穿透。
@@ -185,7 +185,7 @@ flowchart TD
 
 #### 💡 技术原理解析
 1. **滚轮动量吞咽与反向熔断**：在从 Start 屏快速滑动进入 Nav 屏后，触控板产生的物理动量会持续 1~3 秒。系统开启 `swallowMomentum = true`，吞掉持续的同向事件，防止动量直接穿透导致导航页书签被意外跳滚；一旦检测到用户反向滚动（`curDir !== swallowDir`）或静默间隔超过 70ms（`MOMENTUM_QUIET_MS`），吞咽器立即熔断放行。
-2. **零 Reflow 触屏手势引擎**：触摸事件通过对比 $X/Y$ 轴位移比率（`deltaX > absDeltaY` 则判定为侧边栏横滑并放行原生滚动），在垂直滑动达到 40px 阈值或满足 Flick 轻扫（位移 $\ge 25\text{px}$ 且速度 $> 0.25\text{px/ms}$）时瞬间触发切换。
+2. **零 Reflow 触屏手势引擎**：触摸事件通过对比 X/Y 轴位移比率（`deltaX > absDeltaY` 则判定为侧边栏横滑并放行原生滚动），在垂直滑动达到 40px 阈值或满足 Flick 轻扫（位移 ≥ 25px 且速度 > 0.25px/ms）时瞬间触发切换。
 3. **BFCache 与多标签唤醒幂等自愈**：当用户点击书签跳转后退或在多标签页之间切回时，页面经 BFCache 或后台唤醒恢复。双通道捕获（`pageshow` + `visibilitychange`）后调用 `reconcileScreenState()`，无视过渡动画直接在单帧内清空互斥锁、消除定时器、校准 `scrollTop` 与 DOM 类名，并无条件通过 `display` 瞬态重置（`display: none` ➔ `void offsetHeight` ➔ `display: ''`）强制 WebKit 重新分配 GPU Backing Store 磁贴，根绝离屏图层白屏。
 4. **构建指纹黑匣子与三级自愈阶梯**：`window.__GLASS_DIAG__`（verify/probe/dump/log）在启动时校验 HTML 内联指纹 `__GLASS_BUILD_HTML__` 与 app.js 头部指纹 `__GLASS_BUILD_APP__` 的同版契约（不一致 → 60s 冷却期守卫单次刷新）；双屏 transform 过渡结束后执行健全性探测（当前在位屏变换矩阵 ≈ 单位阵 + 哨兵元素可见，支持 `window.state` 与 DOM 类名双重校验），连续异常按 L1 幂等校准 → L2 合成层磁贴强制重栅格化 → L3 冷却拦截安全熔断（`bbLog` 记录 `heal-reload-blocked` 拦截刷新死循环，零存储写入保活页面）。全过程记录于**纯内存环形日志**（≤40 条，零存储写入；BFCache 恢复不重置 JS 堆，天然覆盖偶发白屏的被动取证窗口）；无任何 UI 诊断面板，现场经控制台 `dump()` 导出现场取证。
 
@@ -480,15 +480,15 @@ flowchart TD
 
 #### 💡 技术原理解析
 1. **本地多阶精准/容错匹配引擎**：
-   - 匹配管道分为 7 个优先级梯队：书签名完全相等（Tier 10） $\to$ 前缀匹配（Tier 20） $\to$ 包含匹配（Tier 30） $\to$ URL 包含（Tier 40） $\to$ 描述命中（Tier 50） $\to$ Damerau-Levenshtein 拼写容错（Tier 60/70）。
+   - 匹配管道分为 7 个优先级梯队：书签名完全相等（Tier 10） ➔ 前缀匹配（Tier 20） ➔ 包含匹配（Tier 30） ➔ URL 包含（Tier 40） ➔ 描述命中（Tier 50） ➔ Damerau-Levenshtein 拼写容错（Tier 60/70）。
    - 模糊容错支持字符邻近对调与单字符增删改，在用户敲错 1~2 个字母时仍能精准命中目标书签。
 2. **零 CLS 混排与防竞态调度**：
    - 输入瞬间以 0ms 延迟渲染本地书签，同时为网络建议词预留带动画的骨架屏槽位（Skeleton Pulse），彻底杜绝网络返回时下拉框高度突变引起的视觉抖动（CLS）。
    - 每次网络请求分配递增的 `activeSuggestReqId` 与独立 `<script>` 节点，废弃过期的慢网络响应，彻底解决网络竞态乱序（Race Condition）。
 3. **气象 9 阶动态感知演化算法**：
-   - **湿度感知**：划分为 $<35\%$（沙漠干燥 🌵）、$35\%\sim 75\%$（适宜舒适 💧）、$>75\%$（潮湿多水 💦）。
-   - **风速感知**：划分为 $<15\text{km/h}$（微风 🍃）、$15\sim 35\text{km/h}$（清风 🎏）、$\ge 35\text{km/h}$（大风狂风 🌪️）。
-   - **降水与雨具演化**：划分为 $<30\%$（折叠收伞 🌂）、$30\%\sim 69\%$（撑开备伞 ☂️）、$\ge 70\%$（暴雨必带 ☔️）。
+   - **湿度感知**：划分为 < 35%（沙漠干燥 🌵）、35% ~ 75%（适宜舒适 💧）、> 75%（潮湿多水 💦）。
+   - **风速感知**：划分为 < 15 km/h（微风 🍃）、15 ~ 35 km/h（清风 🎏）、≥ 35 km/h（大风狂风 🌪️）。
+   - **降水与雨具演化**：划分为 < 30%（折叠收伞 🌂）、30% ~ 69%（撑开备伞 ☂️）、≥ 70%（暴雨必带 ☔️）。
    - **时间与日照感知**：动态比对当前系统时间与日出/日落时间，白昼展示“今日日落 🌅”，日落后自适应切换为“明日日出 🌄”，全部气象字段均经过 `weatherNum` 强制数值化清洗，杜绝来自本地缓存的 XSS/HTML 注入风险。
 
 ---
@@ -519,4 +519,5 @@ flowchart TD
 | **IndexedDB 4K 壁纸持久化** | `src/js/utils/idb.js` | `getWallpaperDB()`, `setWallpaperDB()`, `clearWallpaperDB()` | 异步 IDB 4K 壁纸存取底座，防范 LocalStorage 配额爆仓 |
 | **启动装配与生命周期入口** | `src/js/init.js`<br/>`src/js/main.js` | `initApp()`, `initPreHydration()` | 双动效预水合即时对齐恢复、全量 ES 业务子模块流水线装配与异常边界捕获 |
 | **运行时黑匣子与指纹契约** | `src/js/core/lifecycle.js` | `window.__GLASS_DIAG__`, `snapshotHealth()`, `probeScreenState()` | 双端构建指纹同版校验、白屏异常三级自愈阶梯（L1~L3）、纯内存环形日志（≤40条） |
+| **离线底座与三池物理隔离** | `sw.js` | `CORE_CACHE`, `FAVICON_CACHE`, `IMG_CACHE`, `pruneCache()` | Service Worker 独立线程：原子化 SWR 锁步预缓存、跨域高清图标与站内图片三池物理隔离及 FIFO 容量淘汰 |
 

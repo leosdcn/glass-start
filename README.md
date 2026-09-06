@@ -1,4 +1,4 @@
-# Glass Start - 流光起始页
+# Glass Start — 流光起始页
 
 > 极简纯净的毛玻璃浏览器起始页。
 
@@ -100,7 +100,7 @@ npm run build
 - **`bookmarks`**：首屏快捷书签列表（包含 `name`、`url`、`icon`）。
 - **`categories`**：导航页分类列表，包含分类名 `name`、Emoji 图标 `icon` 及分类书签 `bookmarks`。
 - **`name`**：中文服务使用标准官方中文名，国际服务使用官方英文名。
-- **`desc`**：精简的副标题。纯中文 $\le 9$ 字，中英混排 $\le 13$ 字符。
+- **`desc`**：精简的副标题。纯中文 <= 9 字，含英数混排 <= 13 字符。
 - **`url`**：直连官方标准主域（避免多重跳转耗时）。
 - **`icon`**：推荐使用 `https://a.favicon.im/<domain>` 自动抓取高清图标。
 - **生效方式**：保存 `bookmarks.json` 后运行 `npm run build`，脚本会自动将数据双向注入源码与部署产物。
