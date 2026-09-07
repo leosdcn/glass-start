@@ -272,7 +272,7 @@ export async function fetchWeatherForecast(loc) {
     const days = [];
     const weekDays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
     if (daily.time && Array.isArray(daily.time)) {
-        for (let i = 0; i < Math.min(daily.time.length, 5); i++) {
+        for (let i = 0; i < Math.min(daily.time.length, CONFIG.WEATHER.FORECAST_FETCH_DAYS); i++) {
             const timeStr = daily.time[i] || '';
             const parts = timeStr.split('-').map(Number);
             const dDate = parts.length === 3 ? new Date(parts[0], parts[1] - 1, parts[2]) : new Date(timeStr);
@@ -280,9 +280,9 @@ export async function fetchWeatherForecast(loc) {
 
             if (i === 0) {
                 const todayPop = (daily.precipitation_probability_max && daily.precipitation_probability_max[0] != null) ? daily.precipitation_probability_max[0] : 0;
-                const isPrecipCode = dayCode >= 51;
-                const isCurRaining = (cur.precipitation && cur.precipitation > 0) || (cur.weather_code >= 51);
-                if (isPrecipCode && !isCurRaining && todayPop < 40) {
+                const isPrecipCode = dayCode >= CONFIG.WEATHER.PRECIP_CODE_START;
+                const isCurRaining = (cur.precipitation && cur.precipitation > 0) || (cur.weather_code >= CONFIG.WEATHER.PRECIP_CODE_START);
+                if (isPrecipCode && !isCurRaining && todayPop < CONFIG.WEATHER.POP_CLEAR_CONFLICT_THRESHOLD) {
                     dayCode = (cur.weather_code != null) ? cur.weather_code : 1;
                 }
             }
@@ -309,13 +309,13 @@ export async function fetchWeatherForecast(loc) {
         timestamp: Date.now(),
         location: loc,
         current: {
-            temp: Math.round(cur.temperature_2m ?? 25),
-            apparent: Math.round(cur.apparent_temperature ?? cur.temperature_2m ?? 25),
+            temp: Math.round(cur.temperature_2m ?? CONFIG.WEATHER.DEFAULT_TEMPERATURE),
+            apparent: Math.round(cur.apparent_temperature ?? cur.temperature_2m ?? CONFIG.WEATHER.DEFAULT_TEMPERATURE),
             weatherCode: cur.weather_code ?? 0,
             weatherText: wInfo.text,
             icon: wInfo.icon,
             isDay: isDay,
-            humidity: Math.round(cur.relative_humidity_2m ?? 50),
+            humidity: Math.round(cur.relative_humidity_2m ?? CONFIG.WEATHER.DEFAULT_HUMIDITY),
             windSpeed: Math.round((cur.wind_speed_10m ?? 0) * 10) / 10,
             precipitation: cur.precipitation ?? 0,
             pop: (daily.precipitation_probability_max && daily.precipitation_probability_max[0] != null) ? Math.round(daily.precipitation_probability_max[0]) : 0,
@@ -402,7 +402,7 @@ export function renderWeatherPopover(data) {
         ...raw,
         temp: Math.round(weatherNum(raw.temp, 0)),
         apparent: Math.round(weatherNum(raw.apparent, weatherNum(raw.temp, 0))),
-        humidity: Math.round(weatherNum(raw.humidity, 50)),
+        humidity: Math.round(weatherNum(raw.humidity, CONFIG.WEATHER.DEFAULT_HUMIDITY)),
         windSpeed: Math.round(weatherNum(raw.windSpeed, 0) * 10) / 10,
         icon: (typeof raw.icon === 'string' && raw.icon) ? raw.icon : '⛅',
         weatherText: (typeof raw.weatherText === 'string') ? raw.weatherText : ''
@@ -412,7 +412,7 @@ export function renderWeatherPopover(data) {
         ...d,
         label: (typeof d.label === 'string') ? d.label.slice(0, 12) : '',
         icon: (typeof d.icon === 'string' && d.icon) ? d.icon : '⛅',
-        text: (typeof d.text === 'string') ? d.text.slice(0, 40) : '',
+        text: (typeof d.text === 'string') ? d.text.slice(0, CONFIG.SECURITY.MAX_DESC_CHARS) : '',
         tempMax: Math.round(weatherNum(d.tempMax, 0)),
         tempMin: Math.round(weatherNum(d.tempMin, 0))
     }));
@@ -455,7 +455,7 @@ export function renderWeatherPopover(data) {
         popIcon = '☂️';
     }
 
-    const humVal = c.humidity !== undefined ? c.humidity : 50;
+    const humVal = c.humidity !== undefined ? c.humidity : CONFIG.WEATHER.DEFAULT_HUMIDITY;
     let humIcon = '💧';
     if (humVal < CONFIG.WEATHER.HUMIDITY_LOW_THRESHOLD) {
         humIcon = '🌵';
@@ -512,7 +512,7 @@ export function renderWeatherPopover(data) {
 
         <div class="space-y-1.5 pt-2 border-t border-white/10">
             <div class="text-2xs text-white/50 font-medium px-1 mb-1">未来几天预报</div>
-            ${days.slice(0, 4).map(d => `
+            ${days.slice(0, CONFIG.WEATHER.FORECAST_DISPLAY_DAYS).map(d => `
                 <div class="flex items-center justify-between text-xs py-1 px-1.5 apple-radius hover:bg-white/5 transition-colors">
                     <span class="w-10 text-white/70 font-medium shrink-0">${escapeHtml(d.label)}</span>
                     <div class="flex items-center gap-2 flex-1 min-w-0 pl-7 sm:pl-8">
@@ -584,7 +584,7 @@ export async function updateWeather(force = false) {
             renderWeatherPopover(freshData);
 
             locationPromise.then(async (newLoc) => {
-                if (newLoc && (Math.abs(newLoc.lat - knownLoc.lat) > 0.08 || Math.abs(newLoc.lon - knownLoc.lon) > 0.08)) {
+                if (newLoc && (Math.abs(newLoc.lat - knownLoc.lat) > CONFIG.WEATHER.LOCATION_DRIFT_THRESHOLD || Math.abs(newLoc.lon - knownLoc.lon) > CONFIG.WEATHER.LOCATION_DRIFT_THRESHOLD)) {
                     try {
                         const relocatedData = await fetchWeatherForecast(newLoc);
                         storageSet(CONFIG.KEYS.WEATHER_CACHE, relocatedData);

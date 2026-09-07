@@ -3,7 +3,7 @@
  * Glass Start — 全局响应式状态与数据存储 (src/js/state/store.js)
  * ==============================================================================
  */
-import { DEFAULT_BOOKMARKS, DEFAULT_CATEGORIES } from '../config/constants.js';
+import { CONFIG, DEFAULT_BOOKMARKS, DEFAULT_CATEGORIES } from '../config/constants.js';
 
 // 全局响应式运行时状态
 export const state = {
@@ -18,8 +18,8 @@ export const state = {
 // 设置弹窗内部草稿状态机与快照备份
 export const modalState = {
     initialWallpaper: null,
-    initialMaskOpacity: 15,
-    initialBgBlur: 0,
+    initialMaskOpacity: CONFIG.APPEARANCE.DEFAULT_MASK_OPACITY,
+    initialBgBlur: CONFIG.APPEARANCE.DEFAULT_BG_BLUR,
 
     draftWallpaper: undefined,
     draftMaskOpacity: null,

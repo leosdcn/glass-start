@@ -66,7 +66,7 @@ export function animateHideModal(modalEl) {
             if (!modalEl.classList.contains('active')) {
                 modalEl.setAttribute('hidden', '');
             }
-        }, 220);
+        }, CONFIG.TIMERS.MODAL_HIDE_DELAY);
     }
 }
 
@@ -168,7 +168,7 @@ export function getEditFaviconInner(name = '', url = '', icon = '') {
     const initial = (name || '?').trim().charAt(0).toUpperCase() || '?';
     const faviconUrl = icon || faviconFromUrl(url);
     if (faviconUrl) {
-        return `<div class="icon-box icon-box-sm edit-favicon-img-wrapper pointer-events-none select-none"><img src="${escapeHtml(faviconUrl)}" width="24" height="24" data-initial="${escapeHtml(initial)}" class="edit-favicon-img pointer-events-none select-none" alt="" loading="lazy" decoding="async" draggable="false"></div>`;
+        return `<div class="icon-box icon-box-sm edit-favicon-img-wrapper pointer-events-none select-none"><img src="${escapeHtml(faviconUrl)}" width="${CONFIG.UI.ICON_SIZE_SM}" height="${CONFIG.UI.ICON_SIZE_SM}" data-initial="${escapeHtml(initial)}" class="edit-favicon-img pointer-events-none select-none" alt="" loading="lazy" decoding="async" draggable="false"></div>`;
     }
     return createLetterBadgeHtml(initial, 'icon-box-sm edit-favicon-initial', 'text-2xs font-semibold');
 }
@@ -296,8 +296,8 @@ export async function openEditModal() {
 
     modalState.initialWallpaper = await getEffectiveCustomWallpaper();
     if (!state.editOpen) return;
-    modalState.initialMaskOpacity = storageGet(CONFIG.KEYS.MASK_OPACITY, 15);
-    modalState.initialBgBlur = storageGet(CONFIG.KEYS.BG_BLUR, 0);
+    modalState.initialMaskOpacity = storageGet(CONFIG.KEYS.MASK_OPACITY, CONFIG.APPEARANCE.DEFAULT_MASK_OPACITY);
+    modalState.initialBgBlur = storageGet(CONFIG.KEYS.BG_BLUR, CONFIG.APPEARANCE.DEFAULT_BG_BLUR);
 
     modalState.draftWallpaper = modalState.initialWallpaper;
     modalState.draftMaskOpacity = modalState.initialMaskOpacity;
@@ -558,13 +558,13 @@ export function importBookmarksJSON(file) {
             const validBookmarks = [];
             importedList.forEach(item => {
                 if (item && typeof item === 'object' && (item.name || item.url)) {
-                    const name = String(item.name || '未命名').trim().slice(0, 60);
+                    const name = String(item.name || '未命名').trim().slice(0, CONFIG.SECURITY.MAX_NAME_CHARS);
                     const rawUrl = String(item.url || '').trim();
                     const url = normalizeUrl(rawUrl);
                     if (name && url && (/^https?:\/\//i.test(url) || /^data:image\//i.test(url))) {
                         const rawIcon = typeof item.icon === 'string' && item.icon.trim() ? item.icon.trim() : faviconFromUrl(url);
                         const icon = safeUrl(rawIcon) !== '#' ? rawIcon : faviconFromUrl(url);
-                        const desc = typeof item.desc === 'string' ? item.desc.trim().slice(0, 40) : '';
+                        const desc = typeof item.desc === 'string' ? item.desc.trim().slice(0, CONFIG.SECURITY.MAX_DESC_CHARS) : '';
                         validBookmarks.push({ name, url, icon, desc });
                     }
                 }
@@ -626,7 +626,7 @@ export function resetBookmarks() {
         if (typeof window.setEngine === 'function') window.setEngine('bing', false);
         state.bg = 0;
         applyWallpaper(backgrounds[0], false);
-        applyBgEffects(15, 0, false);
+        applyBgEffects(CONFIG.APPEARANCE.DEFAULT_MASK_OPACITY, CONFIG.APPEARANCE.DEFAULT_BG_BLUR, false);
         pageData.bookmarks = getDerivedBookmarks(DEFAULT_BOOKMARKS.map(b => b.url), pageData.categories);
         renderBookmarks();
         closeBookmarkPicker();

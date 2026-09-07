@@ -21,10 +21,13 @@ let transitionTimer = null;
 let navTransitionCleanup = null;
 let isTouchHandled = false;
 
+const LINE_HEIGHT_PX = 16;
+const PAGE_HEIGHT_PX = 400;
+
 export function normDelta(e) {
     let d = e.deltaY;
-    if (e.deltaMode === 1) d *= 16;
-    else if (e.deltaMode === 2) d *= 400;
+    if (e.deltaMode === 1) d *= LINE_HEIGHT_PX;
+    else if (e.deltaMode === 2) d *= PAGE_HEIGHT_PX;
     return d;
 }
 
@@ -269,7 +272,7 @@ export function switchToNav() {
         navTransitionCleanup = () => nav.removeEventListener('transitionend', onEnd);
     }
 
-    transitionTimer = setTimeout(finishSwitchToNav, (CONFIG.GESTURE.TRANSITION_MS || 580) + 150);
+    transitionTimer = setTimeout(finishSwitchToNav, CONFIG.GESTURE.TRANSITION_MS + CONFIG.GESTURE.TIMEOUT_BUFFER_MS);
 }
 
 export function switchToStart() {
@@ -358,7 +361,7 @@ export function switchToStart() {
         navTransitionCleanup = () => nav.removeEventListener('transitionend', onEnd);
     }
 
-    transitionTimer = setTimeout(finishSwitchToStart, (CONFIG.GESTURE.TRANSITION_MS || 580) + 150);
+    transitionTimer = setTimeout(finishSwitchToStart, CONFIG.GESTURE.TRANSITION_MS + CONFIG.GESTURE.TIMEOUT_BUFFER_MS);
 }
 
 export function handleAppWakeUp(wasPersisted = false) {
@@ -426,12 +429,12 @@ export function initScreenGestures() {
         const navContent = dom.navContent || $('navContent');
 
         if (state.currentSection === 'start') {
-            if (delta >= 40) {
+            if (delta >= CONFIG.GESTURE.SWIPE_THRESHOLD) {
                 if (e.cancelable) e.preventDefault();
                 switchToNav();
             }
         } else if (state.currentSection === 'nav') {
-            if (delta <= -40 && (!navContent || navContent.scrollTop <= 0)) {
+            if (delta <= -CONFIG.GESTURE.SWIPE_THRESHOLD && (!navContent || navContent.scrollTop <= 0)) {
                 if (e.cancelable) e.preventDefault();
                 switchToStart();
             }
@@ -442,7 +445,7 @@ export function initScreenGestures() {
     let startTouchX = 0;
     let startTouchY = 0;
     let touchStartTime = 0;
-    const SWIPE_THRESHOLD = CONFIG.GESTURE.SWIPE_THRESHOLD || 40;
+    const SWIPE_THRESHOLD = CONFIG.GESTURE.SWIPE_THRESHOLD;
 
     document.addEventListener('touchstart', (e) => {
         if (isTransitioning || !OverlayStack.isEmpty()) return;

@@ -222,7 +222,7 @@ export function getFaviconHTML(bm, sizeType = 'sm') {
     if (!bm.icon || safeIcon === '#') {
         return createLetterBadgeHtml(initial, sizeClass, textClass);
     }
-    const imgSize = isMd ? '32' : '24';
+    const imgSize = isMd ? String(CONFIG.UI.ICON_SIZE_MD) : String(CONFIG.UI.ICON_SIZE_SM);
     const loadingAttr = 'loading="lazy" fetchpriority="low"';
     return `<div class="icon-box ${sizeClass}"><img src="${safeIcon}" width="${imgSize}" height="${imgSize}" data-initial="${escapeHtml(initial)}" data-md="${isMd ? '1' : '0'}" class="lazy-icon pointer-events-none select-none" alt="" ${loadingAttr} decoding="async" draggable="false"></div>`;
 }

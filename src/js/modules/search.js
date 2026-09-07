@@ -354,10 +354,10 @@ export function getSearchCandidates() {
  * @param {number} [limit=2] - 最多返回匹配条数
  * @returns {Array<{type: string, name: string, url: string, icon: string, desc: string, category: string}>}
  */
-export function getLocalBookmarkSuggestions(query, limit = 2) {
+export function getLocalBookmarkSuggestions(query, limit = CONFIG.SUGGEST.MAX_LOCAL_ITEMS) {
     const q = (query || '').trim().toLowerCase();
     if (!q || !/[a-z0-9\u4e00-\u9fff]/.test(q)) return [];
-    const isFuzzyEligible = q.length >= 3;
+    const isFuzzyEligible = q.length >= CONFIG.SUGGEST.FUZZY.MIN_QUERY_LEN;
 
     const { candidates: allCandidates, urlToCategoryMap } = getSearchCandidates();
     const matches = [];
@@ -471,7 +471,7 @@ export function renderSuggestions(localList = [], netList = [], preserveSelectio
     }
 
     // 网络建议分组
-    const maxNetCount = Math.max(0, 4 - (localList ? localList.length : 0));
+    const maxNetCount = Math.max(0, CONFIG.SUGGEST.MAX_TOTAL_ITEMS - (localList ? localList.length : 0));
     const safeNetList = (netList || []).slice(0, maxNetCount);
 
     if (safeNetList.length > 0) {
@@ -496,7 +496,7 @@ export function renderSuggestions(localList = [], netList = [], preserveSelectio
         if (localList && localList.length > 0) {
             html += renderSectionHeader('搜索', false);
         }
-        const skeletonCount = Math.max(1, 4 - (localList ? localList.length : 0));
+        const skeletonCount = Math.max(1, CONFIG.SUGGEST.MAX_TOTAL_ITEMS - (localList ? localList.length : 0));
         for (let k = 0; k < skeletonCount; k++) {
             const widthClass = k % 2 === 0 ? 'w-44' : 'w-28';
             html += `

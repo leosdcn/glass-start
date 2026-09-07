@@ -203,8 +203,8 @@ export function initDragSort() {
                 if (r.dataset.id) orderMap.set(r.dataset.id, idx);
             });
             modalState.draftBookmarks.sort((a, b) => {
-                const posA = orderMap.has(a.id) ? orderMap.get(a.id) : 9999;
-                const posB = orderMap.has(b.id) ? orderMap.get(b.id) : 9999;
+                const posA = orderMap.has(a.id) ? orderMap.get(a.id) : CONFIG.PHYSICS.SORT_FALLBACK_INDEX;
+                const posB = orderMap.has(b.id) ? orderMap.get(b.id) : CONFIG.PHYSICS.SORT_FALLBACK_INDEX;
                 return posA - posB;
             });
         }
@@ -270,7 +270,7 @@ export function initDragSort() {
                     if (newImg.naturalWidth > 0) newImg.classList.add('loaded');
                     else handleEditIconError(newImg);
                 }
-            }, 180);
+            }, CONFIG.SUGGEST.DEBOUNCE_MS);
         } else if (target.classList.contains('edit-name')) {
             if (!existingImg || existingImg.dataset.failed === '1') {
                 faviconBox.innerHTML = getEditFaviconInner(nameVal, urlVal);

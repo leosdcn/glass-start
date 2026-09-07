@@ -136,7 +136,7 @@ export function bindEvents() {
             if (compositionEndTimer) clearTimeout(compositionEndTimer);
             compositionEndTimer = setTimeout(() => {
                 justEndedComposition = false;
-            }, 100);
+            }, CONFIG.TIMERS.COMPOSITION_END_RESET);
 
             const val = searchInput.value;
             originalQuery = val;
@@ -270,7 +270,7 @@ export function bindEvents() {
                 };
                 link.addEventListener('mouseleave', clearClicked, { once: true });
                 link.addEventListener('pointerleave', clearClicked, { once: true });
-                setTimeout(clearClicked, 600);
+                setTimeout(clearClicked, CONFIG.TIMERS.CLICK_FEEDBACK_CLEAR);
             }
         }
     };
@@ -831,7 +831,7 @@ export function bindEditEvents() {
     if (dom.bgBlurInput) {
         dom.bgBlurInput.addEventListener('input', e => {
             modalState.draftBgBlur = parseInt(e.target.value, 10) || 0;
-            applyBgEffects(modalState.draftMaskOpacity !== null ? modalState.draftMaskOpacity : 15, modalState.draftBgBlur, false);
+            applyBgEffects(modalState.draftMaskOpacity !== null ? modalState.draftMaskOpacity : CONFIG.APPEARANCE.DEFAULT_MASK_OPACITY, modalState.draftBgBlur, false);
         });
     }
 

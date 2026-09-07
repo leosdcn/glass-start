@@ -102,7 +102,7 @@ export function sampleCustomWallpaperTheme(img) {
             count++;
         }
         if (count === 0) return;
-        const maskOp = (storageGet(CONFIG.KEYS.MASK_OPACITY, 15) || 15) / 100;
+        const maskOp = (storageGet(CONFIG.KEYS.MASK_OPACITY, CONFIG.APPEARANCE.DEFAULT_MASK_OPACITY) || CONFIG.APPEARANCE.DEFAULT_MASK_OPACITY) / 100;
         const r = Math.round((rTotal / count) * (1 - maskOp));
         const g = Math.round((gTotal / count) * (1 - maskOp));
         const b = Math.round((bTotal / count) * (1 - maskOp));
@@ -174,7 +174,7 @@ export function applyWallpaper(urlStr, animate = true) {
             void bgNext.offsetHeight;
 
             requestAnimationFrame(() => {
-                bgNext.style.transition = 'opacity 0.45s var(--ease-exit)';
+                bgNext.style.transition = `opacity ${CONFIG.TIMERS.BG_CROSSFADE / 1000}s var(--ease-exit)`;
                 bgNext.style.opacity = '1';
                 bgSwitchTimer = setTimeout(() => {
                     bgBase.style.backgroundImage = newStyleUrl;

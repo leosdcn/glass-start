@@ -855,7 +855,8 @@ export const CONFIG = Object.freeze({
             }),
             GESTURE: Object.freeze({
                 TRANSITION_MS: 580,          // 双屏推移过渡动画时长 (ms)
-                SWIPE_THRESHOLD: 40,         // 触屏轻扫触发切屏阈值 (px)
+                TIMEOUT_BUFFER_MS: 150,      // 双屏推移超时保护冗余缓冲 (ms)
+                SWIPE_THRESHOLD: 40,         // 触屏轻扫与滚轮触发切屏阈值 (px)
                 FLICK_MIN_DISTANCE: 25,      // 快速轻扫最小触发位移 (px)
                 FLICK_MIN_VELOCITY: 0.25     // 快速轻扫最小瞬时速度 (px/ms)
             }),
@@ -865,7 +866,8 @@ export const CONFIG = Object.freeze({
                 TILT_HOVER_SCALE: 1.025,     // 悬停缩放比
                 TILT_PRESSED_SCALE: 0.975,   // 按压缩放比
                 DRAG_HYSTERESIS_HIGH: 0.58,  // 拖拽排序迟滞阻尼上限 (50% + 8%)
-                DRAG_HYSTERESIS_LOW: 0.42    // 拖拽排序迟滞阻尼下限 (50% - 8%)
+                DRAG_HYSTERESIS_LOW: 0.42,   // 拖拽排序迟滞阻尼下限 (50% - 8%)
+                SORT_FALLBACK_INDEX: 9999    // 拖拽排序未匹配到 DOM 时的极大回退序号
             }),
             WEATHER: Object.freeze({
                 CACHE_TTL: 15 * 60 * 1000,    // 气象数据本地缓存有效期 (15分钟)
@@ -878,7 +880,14 @@ export const CONFIG = Object.freeze({
                 HUMIDITY_HIGH_THRESHOLD: 75,  // 相对湿度高湿阈值 (75%)
                 WIND_MID_THRESHOLD: 15,       // 实时风速清风/疾风阈值 (15 km/h)
                 WIND_HIGH_THRESHOLD: 35,      // 实时风速大风/龙卷阈值 (35 km/h)
-                MIN_SPIN_DURATION: 200        // 气象刷新防闪最小视觉动效门槛 (ms)
+                MIN_SPIN_DURATION: 200,       // 气象刷新防闪最小视觉动效门槛 (ms)
+                PRECIP_CODE_START: 51,        // WMO 降水天气代码起点阈值
+                POP_CLEAR_CONFLICT_THRESHOLD: 40, // 降水概率与晴天冲突纠偏阈值 (%)
+                DEFAULT_TEMPERATURE: 25,      // 兜底室温 (°C)
+                DEFAULT_HUMIDITY: 50,         // 兜底相对湿度 (%)
+                LOCATION_DRIFT_THRESHOLD: 0.08, // 静默定位更新漂移容差 (经纬度度数, 约8.8km)
+                FORECAST_FETCH_DAYS: 5,       // 气象接口拉取预报最大天数
+                FORECAST_DISPLAY_DAYS: 4      // 弹窗实际呈现预报天数
             }),
             SUGGEST: Object.freeze({
                 DEBOUNCE_MS: 180,             // 搜索输入防抖延时 (ms)
@@ -913,7 +922,10 @@ export const CONFIG = Object.freeze({
                 TAB_SCROLL_MARGIN: 8          // 侧边栏横向/纵向对齐边界安全内距 (px)
             }),
             APPEARANCE: Object.freeze({
-                MAX_MASK_OPACITY: 80,         // 遮罩透明度最大百分比
+                DEFAULT_MASK_OPACITY: 15,     // 默认遮罩暗度百分比 (%)
+                MIN_MASK_OPACITY: 5,          // 遮罩透明度最小百分比 (%)
+                MAX_MASK_OPACITY: 80,         // 遮罩透明度最大百分比 (%)
+                DEFAULT_BG_BLUR: 0,           // 默认背景高斯模糊 (px)
                 MAX_BG_BLUR: 20,              // 背景高斯模糊最大像素值 (px)
                 MAX_UPLOAD_WIDTH: 3840,       // 自定义壁纸最大宽度 (4K UHD)
                 MAX_UPLOAD_HEIGHT: 2160,      // 自定义壁纸最大高度
@@ -929,7 +941,18 @@ export const CONFIG = Object.freeze({
                 CLICK_FEEDBACK_CLEAR: 600,    // 触感反馈类清除延时 (ms)
                 FADE_IN_UNLOAD: 800,          // 入场动画自动脱壳延时 (ms)
                 OBJECT_REVOKE: 1000,          // 临时 Blob/URL 释放安全延时 (ms)
-                PWA_SCHEDULE: 5000            // 后台静默调度延时 (ms)
+                PWA_SCHEDULE: 5000,           // 后台静默调度延时 (ms)
+                FALLBACK_IDLE_DELAY: 1500,    // 空闲调度降级回退延时 (ms)
+                IDLE_TIMEOUT: 3000,           // 空闲调度最大超时上限 (ms)
+                COMPOSITION_END_RESET: 100    // 输入法组合结束复位延迟 (ms)
+            }),
+            UI: Object.freeze({
+                ICON_SIZE_SM: 24,             // 导航卡片小图标渲染基准尺寸 (px)
+                ICON_SIZE_MD: 32              // 首屏快捷书签图标渲染基准尺寸 (px)
+            }),
+            SECURITY: Object.freeze({
+                MAX_NAME_CHARS: 60,           // 导入书签名称截断字符上限
+                MAX_DESC_CHARS: 40            // 导入书签描述截断字符上限
             }),
             SHORTCUTS: Object.freeze([
                 {

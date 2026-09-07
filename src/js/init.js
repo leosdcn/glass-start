@@ -78,8 +78,8 @@ export function init() {
     bindEvents();
     bindEditEvents();
 
-    const savedOpacity = storageGet(CONFIG.KEYS.MASK_OPACITY, 15);
-    const savedBlur = storageGet(CONFIG.KEYS.BG_BLUR, 0);
+    const savedOpacity = storageGet(CONFIG.KEYS.MASK_OPACITY, CONFIG.APPEARANCE.DEFAULT_MASK_OPACITY);
+    const savedBlur = storageGet(CONFIG.KEYS.BG_BLUR, CONFIG.APPEARANCE.DEFAULT_BG_BLUR);
     applyBgEffects(savedOpacity, savedBlur);
 
     preloadNextBg();
@@ -97,9 +97,9 @@ export function init() {
         });
     }
 
-    const scheduleIdleTask = (fn, fallbackDelay = 1500) => {
+    const scheduleIdleTask = (fn, fallbackDelay = CONFIG.TIMERS.FALLBACK_IDLE_DELAY) => {
         if ('requestIdleCallback' in window) {
-            requestIdleCallback(fn, { timeout: 3000 });
+            requestIdleCallback(fn, { timeout: CONFIG.TIMERS.IDLE_TIMEOUT });
         } else {
             setTimeout(fn, fallbackDelay);
         }
@@ -112,5 +112,5 @@ export function init() {
 
     setTimeout(() => {
         document.querySelectorAll('.fade-in').forEach(el => el.classList.remove('fade-in'));
-    }, 800);
+    }, CONFIG.TIMERS.FADE_IN_UNLOAD);
 }
