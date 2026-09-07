@@ -255,7 +255,10 @@ import {
 import {
     animateShowModal,
     animateHideModal,
+    getDraftBookmarkCount,
     updateBookmarkCountBadge,
+    updatePickerCount,
+    updateAllBookmarkCounters,
     loadPresetBgCardImages,
     switchSettingsTab,
     applyBgEffects,
@@ -277,7 +280,6 @@ import {
     exportBookmarksJSON,
     importBookmarksJSON,
     resetBookmarks,
-    updatePickerCount,
     getExistingUrls,
     renderPickerCategories
 } from './modules/settings.js';
@@ -358,7 +360,10 @@ Object.assign(window, {
     updateClock,
     animateShowModal,
     animateHideModal,
+    getDraftBookmarkCount,
     updateBookmarkCountBadge,
+    updatePickerCount,
+    updateAllBookmarkCounters,
     loadPresetBgCardImages,
     switchSettingsTab,
     applyBgEffects,

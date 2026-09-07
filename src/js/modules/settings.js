@@ -40,7 +40,6 @@ let cachedSettingsTabs = null;
 let cachedSettingsPanels = null;
 let isPresetBgImagesLoaded = false;
 let editModalTriggerEl = null;
-let editFaviconDebounceTimer = null;
 let shortcutModalTriggerEl = null;
 let creditsModalTriggerEl = null;
 let activeConfirmCleanup = null;
@@ -70,13 +69,15 @@ export function animateHideModal(modalEl) {
     }
 }
 
-export function updateBookmarkCountBadge() {
-    const badge = dom.bookmarkCountBadge || $('bookmarkCountBadge');
-    if (!badge) return;
-    const count = (modalState.draftBookmarks && modalState.draftBookmarks.length > 0)
+export function getDraftBookmarkCount() {
+    return (modalState.draftBookmarks && modalState.draftBookmarks.length > 0)
         ? modalState.draftBookmarks.length
         : (dom.editList ? dom.editList.querySelectorAll('.edit-row-card').length : pageData.bookmarks.length);
-    badge.textContent = `已添加 ${count} 项`;
+}
+
+export function updateBookmarkCountBadge() {
+    const badge = dom.bookmarkCountBadge || $('bookmarkCountBadge');
+    if (badge) badge.textContent = `已添加 ${getDraftBookmarkCount()} 项`;
 }
 
 export function loadPresetBgCardImages() {
@@ -337,10 +338,6 @@ export function closeEditModal() {
     OverlayStack.pop('editModal');
     const editBtn = dom.editBookmarksBtn || $('editBookmarksBtn');
     editBtn?.setAttribute('aria-expanded', 'false');
-    if (editFaviconDebounceTimer) {
-        clearTimeout(editFaviconDebounceTimer);
-        editFaviconDebounceTimer = null;
-    }
     const editModal = dom.editModal || $('editModal');
     if (document.activeElement && editModal && editModal.contains(document.activeElement)) {
         document.activeElement.blur();
@@ -640,11 +637,15 @@ export function resetBookmarks() {
  */
 export function updatePickerCount() {
     const pickerCount = dom.pickerCount || $('pickerCount');
-    if (!pickerCount) return;
-    const count = (modalState.draftBookmarks && modalState.draftBookmarks.length > 0)
-        ? modalState.draftBookmarks.length
-        : (dom.editList ? dom.editList.querySelectorAll('.edit-row-card').length : pageData.bookmarks.length);
-    pickerCount.textContent = `已添加 ${count} 项`;
+    if (pickerCount) pickerCount.textContent = `已添加 ${getDraftBookmarkCount()} 项`;
+}
+
+export function updateAllBookmarkCounters() {
+    const text = `已添加 ${getDraftBookmarkCount()} 项`;
+    const badge = dom.bookmarkCountBadge || $('bookmarkCountBadge');
+    const pickerCount = dom.pickerCount || $('pickerCount');
+    if (badge) badge.textContent = text;
+    if (pickerCount) pickerCount.textContent = text;
 }
 
 /**
@@ -672,7 +673,7 @@ export function renderPickerCategories() {
     const pickerContent = dom.pickerContent || $('pickerContent');
     if (!pickerContent) return;
     const urls = getExistingUrls();
-    const sortedCats = typeof getSortedCategories === 'function' ? getSortedCategories() : (typeof window.getSortedCategories === 'function' ? window.getSortedCategories() : []);
+    const sortedCats = getSortedCategories();
 
     pickerContent.innerHTML = sortedCats.map(cat => {
         const sortedBookmarks = cat.sortedBookmarks || [];
@@ -686,7 +687,7 @@ export function renderPickerCategories() {
             <div class="grid grid-cols-2 sm:grid-cols-3 gap-1">
                 ${sortedBookmarks.map(bm => {
                     const exists = urls.has(bm.url);
-                    const faviconHtml = typeof getFaviconHTML === 'function' ? getFaviconHTML(bm, 'sm') : (typeof window.getFaviconHTML === 'function' ? window.getFaviconHTML(bm, 'sm') : '');
+                    const faviconHtml = getFaviconHTML(bm, 'sm');
                     return `
                         <button type="button" class="w-full flex items-center gap-2 px-2 py-1.5 apple-radius picker-item text-left select-none ${exists ? 'opacity-40 cursor-not-allowed' : 'hover:bg-white/10 cursor-pointer'}" ${exists ? 'disabled aria-disabled="true"' : ''} aria-label="${exists ? `${escapeHtml(bm.name)}（已添加）` : `添加快捷书签：${escapeHtml(bm.name)}`}" ${!exists ? `data-name="${escapeHtml(bm.name)}" data-url="${escapeHtml(bm.url)}"` : ''}>
                             ${faviconHtml}
@@ -703,9 +704,5 @@ export function renderPickerCategories() {
     `;
     }).join('');
     updatePickerCount();
-    if (typeof initPickerFaviconObserver === 'function') {
-        initPickerFaviconObserver();
-    } else if (typeof window.initPickerFaviconObserver === 'function') {
-        window.initPickerFaviconObserver();
-    }
+    initPickerFaviconObserver();
 }

@@ -47,8 +47,7 @@ import {
     previewDraftWallpaper,
     resetDraftWallpaper,
     updatePresetBgCardsUI,
-    findPresetBgIndex,
-    clearCustomWallpaper
+    commitWallpaperSelection
 } from '../modules/wallpaper.js';
 import {
     openEditModal,
@@ -63,6 +62,8 @@ import {
     switchSettingsTab,
     applyBgEffects,
     updateBookmarkCountBadge,
+    updatePickerCount,
+    updateAllBookmarkCounters,
     getEditRowHTML,
     getEditFaviconInner,
     collectEditData,
@@ -70,7 +71,6 @@ import {
     resetBookmarks,
     importBookmarksJSON,
     exportBookmarksJSON,
-    updatePickerCount,
     getExistingUrls,
     handleEditIconError
 } from '../modules/settings.js';
@@ -563,8 +563,7 @@ export function bindEditEvents() {
             const lastSpan = item.querySelector('span:last-child');
             if (lastSpan) lastSpan.textContent = '✓';
             modalState.bookmarksChanged = true;
-            updatePickerCount();
-            updateBookmarkCountBadge();
+            updateAllBookmarkCounters();
         });
     }
 
@@ -628,16 +627,14 @@ export function bindEditEvents() {
                     }
                     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
                         item.remove();
-                        updatePickerCount();
-                        updateBookmarkCountBadge();
+                        updateAllBookmarkCounters();
                     } else {
                         item.style.transition = 'all 0.18s var(--ease-spring)';
                         item.style.opacity = '0';
                         item.style.transform = 'scale(0.92) translateY(-6px)';
                         item.addEventListener('transitionend', () => {
                             item.remove();
-                            updatePickerCount();
-                            updateBookmarkCountBadge();
+                            updateAllBookmarkCounters();
                         }, { once: true });
                     }
                 }
@@ -665,26 +662,7 @@ export function bindEditEvents() {
                 // 2. 提交壁纸
                 if (modalState.wallpaperChanged) {
                     const draft = modalState.draftWallpaper;
-                    const presetIdx = findPresetBgIndex(draft);
-                    if (presetIdx >= 0) {
-                        await clearCustomWallpaper();
-                        state.bg = presetIdx;
-                        storageSet(CONFIG.KEYS.BG, presetIdx);
-                    } else if (draft) {
-                        state.customWallpaper = draft;
-                        await setWallpaperDB(draft);
-                        if (draft.length <= CONFIG.APPEARANCE.MAX_LS_WALLPAPER_BYTES) {
-                            storageSet(CONFIG.KEYS.USER_WALLPAPER, draft);
-                        } else {
-                            storageRemove(CONFIG.KEYS.USER_WALLPAPER);
-                        }
-                        state.bg = 0;
-                        storageSet(CONFIG.KEYS.BG, 0);
-                    } else {
-                        await clearCustomWallpaper();
-                        state.bg = 0;
-                        storageSet(CONFIG.KEYS.BG, 0);
-                    }
+                    await commitWallpaperSelection(draft);
                     updatePresetBgCardsUI(draft !== null && draft !== undefined ? draft : backgrounds[0]);
                 }
 
