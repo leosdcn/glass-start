@@ -44,6 +44,11 @@ export function updateThemeColor(color, isLight) {
         if (document.documentElement.style.colorScheme !== scheme) {
             document.documentElement.style.colorScheme = scheme;
         }
+        if (isLight) {
+            document.documentElement.classList.add('wallpaper-bright');
+        } else {
+            document.documentElement.classList.remove('wallpaper-bright');
+        }
     }
     if (document.documentElement) {
         document.documentElement.style.backgroundColor = color;

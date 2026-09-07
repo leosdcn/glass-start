@@ -170,8 +170,25 @@ img, a, button, .nav-bookmark, .bookmark-item {
 /* ==========================================================================
    4. COMPONENTS - SCREEN 1: STARTPAGE (第一屏组件：时钟/搜索/快捷书签)
    ========================================================================== */
-.search-input::placeholder { color: rgba(255,255,255,0.6); text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45); }
-.text-white\/40, .text-white\/60 { text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45); }
+.search-input::placeholder { color: rgba(255,255,255,0.6); }
+
+/* 浅色高光壁纸模式下的自适应文字防眩光保护 (macOS 27 规范) */
+html.wallpaper-bright .bookmark-title,
+html.wallpaper-bright #weatherBtn,
+html.wallpaper-bright #scrollDownHint,
+html.wallpaper-bright .search-input::placeholder,
+html.wallpaper-bright .nav-bookmark,
+html.wallpaper-bright .sidebar-item,
+html.wallpaper-bright .category-header h3,
+html.wallpaper-bright #navHeader {
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+/* 副标题简介单独去除阴影并提升辨识度，根除黑圈糊墨现象 */
+html.wallpaper-bright .nav-bookmark .text-2xs {
+    text-shadow: none;
+    color: rgba(255, 255, 255, 0.55);
+}
 
 .clock-text { font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif; text-shadow: 0 2px 16px rgba(0,0,0,0.35), 0 8px 32px rgba(0,0,0,0.20); }
 #clock { font-variant-numeric: tabular-nums; -webkit-font-feature-settings: "tnum" 1; font-feature-settings: "tnum" 1; letter-spacing: -0.04em; font-weight: 250; }

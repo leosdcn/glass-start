@@ -198,6 +198,7 @@
               const metaTheme = document.querySelector('meta[name="theme-color"]');
               if (metaTheme) metaTheme.content = targetColor;
               document.documentElement.style.colorScheme = initTheme.isLight ? 'light' : 'dark';
+              if (initTheme.isLight) document.documentElement.classList.add('wallpaper-bright');
               document.documentElement.style.backgroundColor = targetColor;
               document.documentElement.style.setProperty('--bg-base', targetColor);
               document.documentElement.style.setProperty('--bg-start', targetColor);
