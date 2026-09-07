@@ -136,7 +136,7 @@
 
 .preset-bg-card {
     position: relative;
-    aspect-ratio: 16 / 9;
+    aspect-ratio: 16 / 10;
     border-radius: 0.75rem;
     overflow: hidden;
     isolation: isolate;
