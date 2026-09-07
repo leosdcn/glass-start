@@ -17,6 +17,7 @@ import {
     APP_THEME_DARK,
     APP_THEME_LIGHT,
     PRESET_WALLPAPER_THEMES,
+    PRESET_WALLPAPER_TINTS,
     PRESET_THEMES
 } from './config/themes.js';
 
@@ -58,6 +59,7 @@ Object.assign(window, {
     APP_THEME_DARK,
     APP_THEME_LIGHT,
     PRESET_WALLPAPER_THEMES,
+    PRESET_WALLPAPER_TINTS,
     PRESET_THEMES,
     escapeHtml,
     safeUrl,

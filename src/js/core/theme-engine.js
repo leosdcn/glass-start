@@ -8,7 +8,8 @@ import { CONFIG, backgrounds } from '../config/constants.js';
 import {
     APP_THEME_DARK,
     APP_THEME_LIGHT,
-    PRESET_WALLPAPER_THEMES
+    PRESET_WALLPAPER_THEMES,
+    PRESET_WALLPAPER_TINTS
 } from '../config/themes.js';
 import { storageGet, storageSet, storageRemove } from '../utils/helpers.js';
 import { state } from '../state/store.js';
@@ -58,6 +59,11 @@ export function updateThemeColor(color, isLight) {
     if (bgNext) bgNext.style.backgroundColor = color;
 }
 
+export function updateGlassTint(tintRgbStr) {
+    if (!tintRgbStr || typeof document === 'undefined' || !document.documentElement) return;
+    document.documentElement.style.setProperty('--glass-tint', tintRgbStr);
+}
+
 export function syncThemeForSection() {
     if (currentWallpaperTheme && currentWallpaperTheme.color) {
         updateThemeColor(currentWallpaperTheme.color, currentWallpaperTheme.isLight);
@@ -100,6 +106,16 @@ export function sampleCustomWallpaperTheme(img) {
         const theme = isLight ? APP_THEME_LIGHT : APP_THEME_DARK;
         storageSet('glass_theme_cache', theme);
         setWallpaperTheme(theme);
+
+        // 动态环境光 Specular Tint：对采样色彩进行适度提亮与区间保护，避免暗色壁纸造成暗沉
+        const maxVal = Math.max(r, g, b);
+        const boost = maxVal > 0 && maxVal < 140 ? 140 / maxVal : 1;
+        const tintR = Math.min(245, Math.round(Math.max(60, r * boost)));
+        const tintG = Math.min(245, Math.round(Math.max(60, g * boost)));
+        const tintB = Math.min(245, Math.round(Math.max(60, b * boost)));
+        const tintStr = `${tintR}, ${tintG}, ${tintB}`;
+        storageSet('glass_tint_cache', tintStr);
+        updateGlassTint(tintStr);
     } catch {
         setWallpaperTheme(APP_THEME_DARK);
     }
@@ -113,10 +129,13 @@ export function applyWallpaper(urlStr, animate = true) {
     activeWallpaperReqId++;
     const reqId = activeWallpaperReqId;
 
-    // 匹配预设或离线采样壁纸主题色，动态自适应 Safari 顶栏外观
+    // 匹配预设或离线采样壁纸主题色，动态自适应 Safari 顶栏外观与环境光折射
     const presetIdx = backgrounds.indexOf(urlStr);
     if (presetIdx >= 0 && PRESET_WALLPAPER_THEMES[presetIdx]) {
         setWallpaperTheme(PRESET_WALLPAPER_THEMES[presetIdx]);
+        if (PRESET_WALLPAPER_TINTS && PRESET_WALLPAPER_TINTS[presetIdx]) {
+            updateGlassTint(PRESET_WALLPAPER_TINTS[presetIdx]);
+        }
     }
 
     // 过滤 URL 中可能破坏 CSS url() 语法的引号、反斜杠、右括号与换行符

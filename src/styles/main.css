@@ -23,6 +23,7 @@
     --bg-base: #0f172a;
     --bg-start: #0b0f19;
     --danger: 239 68 68;
+    --glass-tint: 255, 255, 255;
     --glass-bg: rgba(255, 255, 255, 0.08);
     --glass-border: rgba(255, 255, 255, 0.15);
     --tint-10: rgba(255, 255, 255, 0.10);
