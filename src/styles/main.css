@@ -215,6 +215,9 @@ html.wallpaper-bright .nav-bookmark .text-2xs {
     -webkit-box-orient: vertical;
     overflow: hidden;
     max-width: 100%;
+    padding: 1px 4px 3px;
+    margin: -1px -4px -3px;
+    box-sizing: border-box;
 }
 @media (min-width: 640px) {
     .bookmark-title { font-size: 0.75rem; }
