@@ -390,7 +390,6 @@ Object.assign(window, {
     exportBookmarksJSON,
     importBookmarksJSON,
     resetBookmarks,
-    updatePickerCount,
     getExistingUrls,
     appendDraftBookmarkRow,
     renderPickerCategories,
