@@ -172,9 +172,9 @@ img, a, button, .nav-bookmark, .bookmark-item {
 .search-input::placeholder { color: rgba(255,255,255,0.6); text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45); }
 .text-white\/40, .text-white\/60 { text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45); }
 
-.clock-text { font-family: 'SF Pro Rounded', 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif; text-shadow: 0 2px 14px rgba(0,0,0,0.4), 0 8px 32px rgba(0,0,0,0.25); }
-#clock { font-variant-numeric: tabular-nums; -webkit-font-feature-settings: "tnum"; font-feature-settings: "tnum"; letter-spacing: -0.035em; }
-#date { font-variant-numeric: normal; -webkit-font-feature-settings: normal; font-feature-settings: normal; }
+.clock-text { font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif; text-shadow: 0 2px 16px rgba(0,0,0,0.35), 0 8px 32px rgba(0,0,0,0.20); }
+#clock { font-variant-numeric: tabular-nums; -webkit-font-feature-settings: "tnum" 1; font-feature-settings: "tnum" 1; letter-spacing: -0.04em; font-weight: 250; }
+#date { font-variant-numeric: normal; -webkit-font-feature-settings: normal; font-feature-settings: normal; letter-spacing: 0.18em; padding-left: 0.18em; font-weight: 400; color: rgba(255, 255, 255, 0.75); }
 
 .bookmark-title {
     font-size: 0.72rem;
