@@ -32,6 +32,8 @@ import {
     createLetterBadgeHtml,
     clamp,
     debounce,
+    evictFaviconCache,
+    checkImageReady,
     storageGet,
     storageSet,
     storageRemove
@@ -70,6 +72,8 @@ Object.assign(window, {
     createLetterBadgeHtml,
     clamp,
     debounce,
+    evictFaviconCache,
+    checkImageReady,
     storageGet,
     storageSet,
     storageRemove,
@@ -281,6 +285,7 @@ import {
     importBookmarksJSON,
     resetBookmarks,
     getExistingUrls,
+    appendDraftBookmarkRow,
     renderPickerCategories
 } from './modules/settings.js';
 
@@ -387,6 +392,7 @@ Object.assign(window, {
     resetBookmarks,
     updatePickerCount,
     getExistingUrls,
+    appendDraftBookmarkRow,
     renderPickerCategories,
     renderPresetWallpapers,
     handleModalTabFocus,

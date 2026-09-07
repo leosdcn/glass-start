@@ -72,7 +72,8 @@ import {
     importBookmarksJSON,
     exportBookmarksJSON,
     getExistingUrls,
-    handleEditIconError
+    handleEditIconError,
+    appendDraftBookmarkRow
 } from '../modules/settings.js';
 import {
     saveUserBookmarks,
@@ -531,29 +532,7 @@ export function bindEditEvents() {
             const urls = getExistingUrls();
             if (urls.has(url)) return;
 
-            const rowId = `bm_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
-            const newBm = {
-                id: rowId,
-                name,
-                url,
-                icon: '',
-                origUrl: url,
-                desc: ''
-            };
-            if (!modalState.draftBookmarks) modalState.draftBookmarks = [];
-            modalState.draftBookmarks.push(newBm);
-
-            const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = getEditRowHTML(name, url, modalState.draftBookmarks.length - 1, '', rowId).trim();
-            const div = tempDiv.firstElementChild;
-            div.classList.add('animate-item-in');
-            div.addEventListener('animationend', () => div.classList.remove('animate-item-in'), { once: true });
-            dom.editList?.appendChild(div);
-            const newImg = div.querySelector('.edit-favicon-img');
-            if (newImg && newImg.complete) {
-                if (newImg.naturalWidth > 0) newImg.classList.add('loaded');
-                else handleEditIconError(newImg);
-            }
+            appendDraftBookmarkRow({ name, url });
             item.classList.add('opacity-40', 'pointer-events-none');
             item.disabled = true;
             item.setAttribute('aria-disabled', 'true');
@@ -562,39 +541,12 @@ export function bindEditEvents() {
             item.dataset.url = '';
             const lastSpan = item.querySelector('span:last-child');
             if (lastSpan) lastSpan.textContent = '✓';
-            modalState.bookmarksChanged = true;
-            updateAllBookmarkCounters();
         });
     }
 
     if (dom.addBookmarkBtn) {
         dom.addBookmarkBtn.addEventListener('click', () => {
-            const rowId = `bm_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
-            const newBm = {
-                id: rowId,
-                name: '',
-                url: '',
-                icon: '',
-                origUrl: '',
-                desc: ''
-            };
-            if (!modalState.draftBookmarks) modalState.draftBookmarks = [];
-            modalState.draftBookmarks.push(newBm);
-
-            const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = getEditRowHTML('', '', modalState.draftBookmarks.length - 1, '', rowId).trim();
-            const div = tempDiv.firstElementChild;
-            div.classList.add('animate-item-in');
-            div.addEventListener('animationend', () => div.classList.remove('animate-item-in'), { once: true });
-            dom.editList?.appendChild(div);
-            const newImg = div.querySelector('.edit-favicon-img');
-            if (newImg && newImg.complete) {
-                if (newImg.naturalWidth > 0) newImg.classList.add('loaded');
-                else handleEditIconError(newImg);
-            }
-            div.querySelector('.edit-name')?.focus();
-            modalState.bookmarksChanged = true;
-            updateBookmarkCountBadge();
+            appendDraftBookmarkRow({ focus: true });
         });
     }
 

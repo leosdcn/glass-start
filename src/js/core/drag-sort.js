@@ -6,6 +6,7 @@
 import { CONFIG } from '../config/constants.js';
 import { dom, $ } from '../state/dom.js';
 import { modalState } from '../state/store.js';
+import { checkImageReady } from '../utils/helpers.js';
 import {
     updateBookmarkCountBadge,
     getEditFaviconInner,
@@ -266,19 +267,13 @@ export function initDragSort() {
             editFaviconDebounceTimer = setTimeout(() => {
                 faviconBox.innerHTML = getEditFaviconInner(nameVal, urlVal);
                 const newImg = faviconBox.querySelector('.edit-favicon-img');
-                if (newImg && newImg.complete) {
-                    if (newImg.naturalWidth > 0) newImg.classList.add('loaded');
-                    else handleEditIconError(newImg);
-                }
+                if (newImg) checkImageReady(newImg, handleEditIconError);
             }, CONFIG.SUGGEST.DEBOUNCE_MS);
         } else if (target.classList.contains('edit-name')) {
             if (!existingImg || existingImg.dataset.failed === '1') {
                 faviconBox.innerHTML = getEditFaviconInner(nameVal, urlVal);
                 const newImg = faviconBox.querySelector('.edit-favicon-img');
-                if (newImg && newImg.complete) {
-                    if (newImg.naturalWidth > 0) newImg.classList.add('loaded');
-                    else handleEditIconError(newImg);
-                }
+                if (newImg) checkImageReady(newImg, handleEditIconError);
             }
         }
     });

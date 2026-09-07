@@ -4,7 +4,7 @@
  * ==============================================================================
  */
 import { CONFIG, engines } from './config/constants.js';
-import { storageGet } from './utils/helpers.js';
+import { storageGet, evictFaviconCache } from './utils/helpers.js';
 import { cacheDOM, dom } from './state/dom.js';
 import { renderShortcutModalList, updateClock } from './modules/clock.js';
 import { renderEngineDropdown, setEngine } from './modules/search.js';
@@ -45,12 +45,7 @@ export function init() {
             } else if (target.dataset.initial !== undefined || target.closest('.icon-box')) {
                 handleIconError(target);
             } else if (target.classList.contains('engine-icon') || target.dataset.hideOnError === '1') {
-                const failedSrc = target.src;
-                if (failedSrc && typeof caches !== 'undefined') {
-                    try {
-                        caches.open('app-favicons-v1').then(cache => cache.delete(failedSrc)).catch(() => {});
-                    } catch {}
-                }
+                evictFaviconCache(target.src);
                 target.style.display = 'none';
             }
         }

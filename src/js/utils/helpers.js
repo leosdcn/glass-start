@@ -190,3 +190,38 @@ export async function runWithLoading(btn, fn) {
     }
 }
 
+/**
+ * 安全淘汰 Service Worker Favicon 离线缓存
+ * @param {string} url - 需失效的图标 URL
+ * @returns {void}
+ */
+export function evictFaviconCache(url) {
+    if (url && typeof caches !== 'undefined') {
+        try {
+            caches.open('app-favicons-v1').then(cache => cache.delete(url)).catch(() => {});
+        } catch {}
+    }
+}
+
+/**
+ * 检测图片是否已从缓存就绪并同步状态类，未就绪或破损时调用回调
+ * @param {HTMLImageElement} img - 目标图片元素
+ * @param {((img: HTMLImageElement) => void)|null} [onFallback=null] - 图片损坏时的兜底回调
+ * @returns {boolean} 若图片已就绪则返回 true，破损或未完成返回 false
+ */
+export function checkImageReady(img, onFallback = null) {
+    if (!img) return false;
+    if (img.complete) {
+        if (img.naturalWidth > 0) {
+            img.classList.add('loaded');
+            return true;
+        }
+        if (typeof onFallback === 'function') {
+            onFallback(img);
+        }
+        return false;
+    }
+    return false;
+}
+
+

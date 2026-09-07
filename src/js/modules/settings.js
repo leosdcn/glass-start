@@ -10,6 +10,8 @@ import {
     normalizeUrl,
     faviconFromUrl,
     createLetterBadgeHtml,
+    evictFaviconCache,
+    checkImageReady,
     storageGet,
     storageSet,
     storageRemove
@@ -177,12 +179,7 @@ export function getEditFaviconInner(name = '', url = '', icon = '') {
 export function handleEditIconError(img) {
     if (!img || img.dataset.failed) return;
     img.dataset.failed = '1';
-    const failedSrc = img.src;
-    if (failedSrc && typeof caches !== 'undefined') {
-        try {
-            caches.open('app-favicons-v1').then(cache => cache.delete(failedSrc)).catch(() => {});
-        } catch {}
-    }
+    evictFaviconCache(img.src);
     const initial = img.dataset.initial || '?';
     const box = img.closest('.edit-favicon-box');
     if (box) {
@@ -216,6 +213,50 @@ export function getEditRowHTML(name = '', url = '', idx = '', icon = '', rowId =
     `;
 }
 
+/**
+ * 创建并追加一条草稿书签行到编辑列表
+ * @param {{ name?: string, url?: string, icon?: string, desc?: string, focus?: boolean }} [options]
+ * @returns {HTMLElement|null} 创建的 DOM 节点
+ */
+export function appendDraftBookmarkRow({ name = '', url = '', icon = '', desc = '', focus = false } = {}) {
+    const rowId = `bm_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+    const newBm = {
+        id: rowId,
+        name,
+        url,
+        icon: icon || '',
+        origUrl: url || '',
+        desc: desc || ''
+    };
+    if (!modalState.draftBookmarks) modalState.draftBookmarks = [];
+    modalState.draftBookmarks.push(newBm);
+
+    const editList = dom.editList || $('editList');
+    if (!editList) return null;
+
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = getEditRowHTML(name, url, modalState.draftBookmarks.length - 1, icon, rowId).trim();
+    const div = tempDiv.firstElementChild;
+    if (!div) return null;
+
+    div.classList.add('animate-item-in');
+    div.addEventListener('animationend', () => div.classList.remove('animate-item-in'), { once: true });
+    editList.appendChild(div);
+
+    const newImg = div.querySelector('.edit-favicon-img');
+    if (newImg) {
+        checkImageReady(newImg, handleEditIconError);
+    }
+
+    if (focus) {
+        div.querySelector('.edit-name')?.focus();
+    }
+
+    modalState.bookmarksChanged = true;
+    updateAllBookmarkCounters();
+    return div;
+}
+
 export function renderEditList(listToRender) {
     if (Array.isArray(listToRender)) {
         modalState.draftBookmarks = listToRender.map((bm, i) => ({
@@ -244,13 +285,7 @@ export function renderEditList(listToRender) {
     updateBookmarkCountBadge();
 
     editList.querySelectorAll('img.edit-favicon-img').forEach(img => {
-        if (img.complete) {
-            if (img.naturalWidth > 0) {
-                img.classList.add('loaded');
-            } else {
-                handleEditIconError(img);
-            }
-        }
+        checkImageReady(img, handleEditIconError);
     });
 }
 

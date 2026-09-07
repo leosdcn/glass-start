@@ -17,6 +17,8 @@ import {
     deriveNameFromUrl,
     faviconFromUrl,
     createLetterBadgeHtml,
+    evictFaviconCache,
+    checkImageReady,
     storageGet,
     storageSet,
     storageRemove
@@ -192,12 +194,7 @@ export async function loadUserData() {
 export function handleIconError(img) {
     if (!img || img.dataset.failed) return;
     img.dataset.failed = '1';
-    const failedSrc = img.src;
-    if (failedSrc && typeof caches !== 'undefined') {
-        try {
-            caches.open('app-favicons-v1').then(cache => cache.delete(failedSrc)).catch(() => {});
-        } catch {}
-    }
+    evictFaviconCache(img.src);
     const initial = img.dataset.initial || '?';
     const parent = img.parentElement;
     if (parent) {
@@ -229,9 +226,7 @@ export function getFaviconHTML(bm, sizeType = 'sm') {
 
 export function initFaviconObserver() {
     document.querySelectorAll('img.lazy-icon').forEach(img => {
-        if (img.complete && img.naturalWidth > 0) {
-            img.classList.add('loaded');
-        }
+        checkImageReady(img);
     });
 }
 
@@ -239,13 +234,7 @@ export function initPickerFaviconObserver() {
     const container = dom.pickerContent || $('pickerContent');
     if (!container) return;
     container.querySelectorAll('img.lazy-icon').forEach(img => {
-        if (img.complete) {
-            if (img.naturalWidth > 0) {
-                img.classList.add('loaded');
-            } else {
-                handleIconError(img);
-            }
-        }
+        checkImageReady(img, handleIconError);
     });
 }
 
@@ -531,11 +520,7 @@ export function preloadFavicons() {
         img.onload = () => { img.onload = img.onerror = null; };
         img.onerror = () => {
             img.onload = img.onerror = null;
-            if (typeof caches !== 'undefined') {
-                try {
-                    caches.open('app-favicons-v1').then(cache => cache.delete(url)).catch(() => {});
-                } catch {}
-            }
+            evictFaviconCache(url);
         };
         img.src = url;
     });
