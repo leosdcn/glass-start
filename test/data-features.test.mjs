@@ -594,6 +594,68 @@ const wakeupAllOk = wakeupSyncCheck &&
 pass('标签页休眠唤醒感知与天气/时钟即时对齐 (有效缓存0请求/超期自动静默刷新/时钟即时同步/BFCache双通道气象刷新)',
   wakeupAllOk, JSON.stringify(wakeupSyncCheck));
 
+// ══════════════════════════════════════════════════════════════════════
+// 8. Favicon 多级容灾降级引擎 (Google S2 备用源自动回退/首字母文字徽章兜底/状态机防死循环)
+// ══════════════════════════════════════════════════════════════════════
+
+const faviconFallbackCheck = await evalJS(`(() => {
+  // 8.1 faviconFallbackFromUrl 提取算法
+  const urlFallback = faviconFallbackFromUrl('https://github.com');
+  const wwwFallback = faviconFallbackFromUrl('https://www.google.com');
+  const imFallback = faviconFallbackFromUrl('https://a.favicon.im/bilibili.com');
+  const emptyFallback = faviconFallbackFromUrl('');
+
+  const urlFallbackOk = urlFallback === 'https://www.google.com/s2/favicons?domain=github.com&sz=128';
+  const wwwFallbackOk = wwwFallback === 'https://www.google.com/s2/favicons?domain=google.com&sz=128';
+  const imFallbackOk = imFallback === 'https://www.google.com/s2/favicons?domain=bilibili.com&sz=128';
+  const emptyFallbackOk = emptyFallback === '';
+
+  // 8.2 handleIconError 双轨降级状态机 (主源失败切换备用源 -> 备用源失败降级文字徽章)
+  const container = document.createElement('div');
+  container.className = 'icon-box icon-box-md';
+  const img = document.createElement('img');
+  img.src = 'https://a.favicon.im/example.com';
+  img.dataset.initial = 'E';
+  img.dataset.md = '1';
+  img.dataset.url = 'https://example.com';
+  container.appendChild(img);
+  document.body.appendChild(container);
+
+  // 首次触发：切换为 Google S2 备用源，图片未被移除
+  handleIconError(img);
+  const firstFallbackOk = img.dataset.fallback === '1'
+    && img.src === 'https://www.google.com/s2/favicons?domain=example.com&sz=128'
+    && container.contains(img);
+
+  // 二次触发：备用源依然加载失败，图片被移除，父容器变为首字母文字徽章
+  handleIconError(img);
+  const secondFallbackOk = !container.contains(img)
+    && container.textContent === 'E'
+    && container.classList.contains('font-semibold');
+
+  container.remove();
+
+  return {
+    urlFallbackOk,
+    wwwFallbackOk,
+    imFallbackOk,
+    emptyFallbackOk,
+    firstFallbackOk,
+    secondFallbackOk
+  };
+})()`);
+
+const faviconFallbackAllOk = faviconFallbackCheck &&
+  faviconFallbackCheck.urlFallbackOk &&
+  faviconFallbackCheck.wwwFallbackOk &&
+  faviconFallbackCheck.imFallbackOk &&
+  faviconFallbackCheck.emptyFallbackOk &&
+  faviconFallbackCheck.firstFallbackOk &&
+  faviconFallbackCheck.secondFallbackOk;
+
+pass('Favicon 多级容灾降级引擎 (Google S2 备用源自动回退/首字母文字徽章兜底/状态机防死循环)',
+  faviconFallbackAllOk, JSON.stringify(faviconFallbackCheck));
+
 await press('Escape');
 await sleep(200);
 
@@ -601,3 +663,4 @@ const code = finish();
 await chrome.close();
 await server.close();
 process.exit(code);
+

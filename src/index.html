@@ -14,7 +14,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="Glass Start">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://api.bing.com https://suggestqueries.google.com https://zh.wikipedia.org https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https://api.open-meteo.com https://geocoding-api.open-meteo.com https://myip.ipip.net https://ipwho.is https://a.favicon.im https://cloudflareinsights.com https://zh.wikipedia.org; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'self'">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://api.bing.com https://suggestqueries.google.com https://zh.wikipedia.org https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https://api.open-meteo.com https://geocoding-api.open-meteo.com https://myip.ipip.net https://ipwho.is https://a.favicon.im https://www.google.com https://*.gstatic.com https://cloudflareinsights.com https://zh.wikipedia.org; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'self'">
     <meta name="referrer" content="strict-origin-when-cross-origin">
     <meta name="description" content="极简纯净的毛玻璃浏览器起始页。">
     <meta name="keywords" content="起始页, 浏览器导航, 玻璃拟态, 个人主页, Glassmorphism, Startpage">
@@ -63,6 +63,8 @@
     <link rel="manifest" href="./manifest.json">
     <!-- 外部核心资源预连接与 DNS 极速预解析 -->
     <link rel="dns-prefetch" href="https://a.favicon.im">
+    <link rel="dns-prefetch" href="https://www.google.com">
+    <link rel="dns-prefetch" href="https://t3.gstatic.com">
     <link rel="dns-prefetch" href="https://myip.ipip.net">
     <link rel="dns-prefetch" href="https://geocoding-api.open-meteo.com">
     <link rel="dns-prefetch" href="https://api.open-meteo.com">

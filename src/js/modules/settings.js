@@ -9,6 +9,7 @@ import {
     safeUrl,
     normalizeUrl,
     faviconFromUrl,
+    faviconFallbackFromUrl,
     createLetterBadgeHtml,
     evictFaviconCache,
     checkImageReady,
@@ -171,13 +172,23 @@ export function getEditFaviconInner(name = '', url = '', icon = '') {
     const initial = (name || '?').trim().charAt(0).toUpperCase() || '?';
     const faviconUrl = icon || faviconFromUrl(url);
     if (faviconUrl) {
-        return `<div class="icon-box icon-box-sm edit-favicon-img-wrapper pointer-events-none select-none"><img src="${escapeHtml(faviconUrl)}" width="${CONFIG.UI.ICON_SIZE_SM}" height="${CONFIG.UI.ICON_SIZE_SM}" data-initial="${escapeHtml(initial)}" class="edit-favicon-img pointer-events-none select-none" alt="" loading="lazy" decoding="async" draggable="false"></div>`;
+        return `<div class="icon-box icon-box-sm edit-favicon-img-wrapper pointer-events-none select-none"><img src="${escapeHtml(faviconUrl)}" width="${CONFIG.UI.ICON_SIZE_SM}" height="${CONFIG.UI.ICON_SIZE_SM}" data-initial="${escapeHtml(initial)}" data-url="${safeUrl(url)}" class="edit-favicon-img pointer-events-none select-none" alt="" loading="lazy" decoding="async" draggable="false"></div>`;
     }
     return createLetterBadgeHtml(initial, 'icon-box-sm edit-favicon-initial', 'text-2xs font-semibold');
 }
 
 export function handleEditIconError(img) {
     if (!img || img.dataset.failed) return;
+    const url = img.dataset.url || img.src;
+    const fallback = faviconFallbackFromUrl(url, 128);
+
+    if (!img.dataset.fallback && fallback && img.src !== fallback) {
+        img.dataset.fallback = '1';
+        evictFaviconCache(img.src);
+        img.src = fallback;
+        return;
+    }
+
     img.dataset.failed = '1';
     evictFaviconCache(img.src);
     const initial = img.dataset.initial || '?';

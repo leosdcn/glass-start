@@ -74,6 +74,29 @@ export function faviconFromUrl(url) {
 }
 
 /**
+ * 根据站点 URL 或原图标 URL 推断备用 Favicon 地址（通过 Google S2 服务）
+ * @param {string} url - 书签目标 URL 或失效的图标 URL
+ * @param {number} [size=128] - 图标切片分辨率 (默认 128)
+ * @returns {string} Google S2 图标代理地址，无法推断时返回 ''
+ */
+export function faviconFallbackFromUrl(url, size = 128) {
+    if (!url) return '';
+    let host = getHostname(url);
+    if (!host || host === 'a.favicon.im') {
+        try {
+            const u = new URL(normalizeUrl(url));
+            if (u.hostname === 'a.favicon.im' || u.hostname === 'www.a.favicon.im') {
+                host = u.pathname.replace(/^\/+/, '').split('/')[0];
+            }
+        } catch {
+            // ignore
+        }
+    }
+    return host ? `https://www.google.com/s2/favicons?domain=${encodeURIComponent(host)}&sz=${size}` : '';
+}
+
+
+/**
  * 生成书签加载失败或无图标时的首字母徽标 HTML（纯函数，零副作用）
  * @param {string} initial - 首字母字符
  * @param {string} [sizeClass='icon-box-sm'] - 容器尺寸样式类

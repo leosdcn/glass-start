@@ -16,6 +16,7 @@ import {
     normalizeUrl,
     deriveNameFromUrl,
     faviconFromUrl,
+    faviconFallbackFromUrl,
     createLetterBadgeHtml,
     evictFaviconCache,
     checkImageReady,
@@ -193,6 +194,16 @@ export async function loadUserData() {
 
 export function handleIconError(img) {
     if (!img || img.dataset.failed) return;
+    const url = img.dataset.url || img.src;
+    const fallback = faviconFallbackFromUrl(url, 128);
+
+    if (!img.dataset.fallback && fallback && img.src !== fallback) {
+        img.dataset.fallback = '1';
+        evictFaviconCache(img.src);
+        img.src = fallback;
+        return;
+    }
+
     img.dataset.failed = '1';
     evictFaviconCache(img.src);
     const initial = img.dataset.initial || '?';
@@ -221,7 +232,7 @@ export function getFaviconHTML(bm, sizeType = 'sm') {
     }
     const imgSize = isMd ? String(CONFIG.UI.ICON_SIZE_MD) : String(CONFIG.UI.ICON_SIZE_SM);
     const loadingAttr = 'loading="lazy" fetchpriority="low"';
-    return `<div class="icon-box ${sizeClass}"><img src="${safeIcon}" width="${imgSize}" height="${imgSize}" data-initial="${escapeHtml(initial)}" data-md="${isMd ? '1' : '0'}" class="lazy-icon pointer-events-none select-none" alt="" ${loadingAttr} decoding="async" draggable="false"></div>`;
+    return `<div class="icon-box ${sizeClass}"><img src="${safeIcon}" width="${imgSize}" height="${imgSize}" data-initial="${escapeHtml(initial)}" data-md="${isMd ? '1' : '0'}" data-url="${safeUrl(bm.url)}" class="lazy-icon pointer-events-none select-none" alt="" ${loadingAttr} decoding="async" draggable="false"></div>`;
 }
 
 export function initFaviconObserver() {

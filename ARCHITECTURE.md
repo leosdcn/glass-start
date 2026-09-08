@@ -314,13 +314,15 @@ flowchart LR
 
         subgraph P2 [" 2. FAVICON_CACHE (app-favicons-v1) · 高清图标池 "]
             direction LR
-            F_CACHE["跨域高清图标 (a.favicon.im)<br/>Bing / Google / Wikipedia 核心预存<br/>+ SWR 防污染重验 (7s 超时熔断)"]:::favNode
+            F_CACHE["跨域高清图标 (a.favicon.im 主源 + Google S2 容灾源)<br/>Bing / Google / Wikipedia 核心预存<br/>+ SWR 防污染重验 (7s 超时熔断)"]:::favNode
             F_FIFO["FIFO 容量限额淘汰<br/>MAX = 800 条"]:::limitNode
-            E_404["HTTP 404 图标缺失"]:::errNode
+            E_404["HTTP 404 / 网络超时"]:::errNode
+            E_FALLBACK["Google S2 (sz=128) 自动回退"]:::activeBox
             E_BADGE["前端 <img> onerror 自动降级<br/>(提取站点首字母生成彩色矢量徽标)"]:::badgeNode
             
             F_CACHE --> F_FIFO
-            F_CACHE -.->|"网络超时 / 离线 / 404"| E_404 --> E_BADGE
+            F_CACHE -.->|"主源网络超时 / 404"| E_FALLBACK
+            E_FALLBACK -.->|"备用源也超时 / 失败"| E_BADGE
         end
 
         subgraph P3 [" 3. IMG_CACHE (app-images-v2) · 站内图库池 "]
@@ -337,7 +339,7 @@ flowchart LR
     ROUTER -->|"主文档 HTML"| C_HTML
     ROUTER -->|"JSON 数据"| C_DATA
     ROUTER -->|"同源 JS/CSS/壁纸"| C_STATIC
-    ROUTER -->|"a.favicon.im 跨域图标"| F_CACHE
+    ROUTER -->|"a.favicon.im / Google S2 图标"| F_CACHE
     ROUTER -->|"同源静态图片"| I_CACHE
     ROUTER -->|"跨域自定义壁纸"| PASS_WALLPAPER
 
@@ -363,7 +365,7 @@ flowchart LR
 #### 💡 技术原理解析
 1. **三池物理隔离与版本强同调 (Version Lockstep)**：
    - `CORE_CACHE`：打包时基于构建时间戳命名（如 `app-core-v1786255428688`），主文档 `index.html` 与同源脚本 `app.js` 统一采用 **原子化 SWR 锁步** 策略，本地 0ms 瞬出秒开（彻底消除 Safari 冷启动网络阻塞与 TTFB 延迟）；由构建管线自动在 HTML 注入 `app.js?v=app-core-v<timestamp>` 版本查询参数，配合 `window.__GLASS_BUILD_HTML__` 与 `__GLASS_BUILD_APP__` 双端构建指纹契约对，确保 HTML 结构与 JS 逻辑 100% 同池直出，彻底杜绝“旧 JS 执行于新 HTML”导致的切屏/BFCache 白屏死锁；版本换代由 SW 差量更新原子接管。
-   - `FAVICON_CACHE`：独立存储 `a.favicon.im` 外部图标，与核心脚本完全隔离，防止外部网络动荡影响核心预缓存。
+   - `FAVICON_CACHE`：独立存储 `a.favicon.im` 与 Google S2 (`www.google.com/s2/favicons` 及其 `*.gstatic.com`) 外部图标，与核心脚本完全隔离。前端通过 `handleIconError` 与 `faviconFallbackFromUrl` 建立双轨容灾状态机，主源失败时无缝切换 Google S2 备用源，若均失败才降级为彩色字母徽标。
    - `IMG_CACHE`：独立存储站内高分辨率壁纸与图片，通过 Cache-First 策略减少重复带宽消耗。
 2. **防透明响应污染 (Anti-Opaque Poisoning)**：请求跨域图标时产生 `status = 0` 的 `opaque` 响应。若直接缓存可能存入被 DNS 劫持或损坏的数据。系统引入二次网络校验与 4 秒超时熔断（`AbortController`），确保仅有合法的 `opaque` 或 `200 OK` 响应才被允许写入，并由轻量 `pruneCache` 原生实现先进先出（FIFO）淘汰，杜绝 IndexedDB 膨胀与崩溃隐患。
 3. **同源/跨域壁纸的 CSP 与缓存解耦**：同源静态图片进 `IMG_CACHE`；用户填写的任意跨域自定义壁纸直连网络，由页面的 CSP `img-src 'self' data: blob: https:` 进行安全管辖，避免因 Service Worker 上下文受 `connect-src` 严格白名单限制而拦截合法的用户壁纸主机。
