@@ -314,7 +314,7 @@ flowchart LR
 
         subgraph P2 [" 2. FAVICON_CACHE (app-favicons-v1) · 高清图标池 "]
             direction LR
-            F_CACHE["跨域高清图标 (a.favicon.im)<br/>Bing / Google / Wikipedia 核心预存<br/>+ SWR 防污染重验 (4s 超时熔断)"]:::favNode
+            F_CACHE["跨域高清图标 (a.favicon.im)<br/>Bing / Google / Wikipedia 核心预存<br/>+ SWR 防污染重验 (7s 超时熔断)"]:::favNode
             F_FIFO["FIFO 容量限额淘汰<br/>MAX = 800 条"]:::limitNode
             E_404["HTTP 404 图标缺失"]:::errNode
             E_BADGE["前端 <img> onerror 自动降级<br/>(提取站点首字母生成彩色矢量徽标)"]:::badgeNode

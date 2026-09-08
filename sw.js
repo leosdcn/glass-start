@@ -4,7 +4,7 @@
  * ==============================================================================
  * 核心架构特性:
  * 1. 【三池物理隔离】：CORE_CACHE (全站核心)、FAVICON_CACHE (外部图标)、IMG_CACHE (本地图片)
- * 2. 【防透明响应污染】：a.favicon.im 跨域图标 4s 超时熔断 + 合法响应校验入池
+ * 2. 【防透明响应污染】：a.favicon.im 跨域图标 7s 超时熔断 + 合法响应校验入池
  * 3. 【原生 FIFO 容量淘汰】：轻量 pruneCache 自动限制图标 (800) 与图片 (200) 缓存上限，非阻塞后台运行
  * 4. 【原子化 SWR 锁步策略】：CORE_CACHE 本地 0ms 极速秒开 + 差量 SW 换代升级，构建指纹双重契约根治跨版本割裂
  */
@@ -241,7 +241,7 @@ self.addEventListener('fetch', e => {
         return;
     }
 
-    // 4. 跨域 Favicon 防污染 Cache-First + 4s 超时熔断
+    // 4. 跨域 Favicon 防污染 Cache-First + 7s 超时熔断
     if (isFaviconDomain) {
         e.respondWith(
             caches.open(FAVICON_CACHE).then(async cache => {
@@ -250,7 +250,7 @@ self.addEventListener('fetch', e => {
 
                 const fetchWithTimeout = async () => {
                     const controller = new AbortController();
-                    const timeoutId = setTimeout(() => controller.abort(), 4000);
+                    const timeoutId = setTimeout(() => controller.abort(), 7000);
                     try {
                         const netRes = await fetch(e.request, { cache: 'no-cache', signal: controller.signal });
                         if (netRes && (netRes.ok || netRes.type === 'opaque')) {
