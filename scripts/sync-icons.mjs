@@ -147,24 +147,49 @@ async function main() {
     const totalHosts = hostMap.size;
     console.log(`  ${c.cyan}ℹ${c.reset} 扫描到 ${c.bold}${totalHosts}${c.reset} 个唯一站点域名，开始从 ${c.bold}https://a.favicon.im/{domain}${c.reset} 1:1 抓取...`);
 
+function isPlaceholder(buf) {
+    if (!buf || buf.length === 0) return true;
+    const str = buf.toString('utf-8', 0, Math.min(300, buf.length));
+    return str.includes('circle cx="50" cy="50" r="40" fill="#808080"') || str.includes('>f</text>');
+}
+
     let completed = 0;
     const tasks = Array.from(hostMap.entries()).map(([host, destPath]) => async () => {
-        const url = `https://a.favicon.im/${host}`;
+        let buf = null;
+        let source = 'a.favicon.im';
+
         try {
-            const buf = await fetchBuffer(url, 8000);
-            const ok = saveAsPng(buf, destPath);
-            return { host, success: ok, source: 'a.favicon.im' };
-        } catch (errFavim) {
-            // 唯一容灾兜底：Google S2
+            buf = await fetchBuffer(`https://a.favicon.im/${host}`, 8000);
+            if (isPlaceholder(buf)) {
+                // 若 bare domain 命中 favicon.im 的灰色 'f' 兜底标，尝试带 www. 请求
+                try {
+                    const wwwBuf = await fetchBuffer(`https://a.favicon.im/www.${host}`, 7000);
+                    if (!isPlaceholder(wwwBuf)) {
+                        buf = wwwBuf;
+                        source = 'a.favicon.im (www)';
+                    }
+                } catch {}
+            }
+        } catch {}
+
+        // 若 a.favicon.im 失败或仍为兜底占位标，平滑走 Google S2
+        if (!buf || isPlaceholder(buf)) {
             try {
                 const s2Url = `https://www.google.com/s2/favicons?domain=${encodeURIComponent(host)}`;
-                const buf = await fetchBuffer(s2Url, 7000);
-                const ok = saveAsPng(buf, destPath);
-                return { host, success: ok, source: 'Google S2 (fallback)' };
-            } catch (errS2) {
-                return { host, success: false, error: `${errFavim.message}; S2: ${errS2.message}` };
-            }
+                const s2Buf = await fetchBuffer(s2Url, 7000);
+                if (s2Buf && s2Buf.length > 0) {
+                    buf = s2Buf;
+                    source = 'Google S2 (fallback)';
+                }
+            } catch {}
         }
+
+        if (buf && !isPlaceholder(buf)) {
+            const ok = saveAsPng(buf, destPath);
+            return { host, success: ok, source };
+        }
+
+        return { host, success: false, error: 'No valid icon found' };
     });
 
     const results = await runConcurrent(tasks, 8, (idx, total, res) => {
