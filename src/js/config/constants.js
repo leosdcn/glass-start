@@ -32,7 +32,7 @@ export const DEFAULT_BOOKMARKS = [
         },
         {
             "name": "豆包",
-            "url": "https://www.doubao.com",
+            "url": "https://www.doubao.com/chat/",
             "icon": "./icons/doubao.com.png"
         },
         {
@@ -103,7 +103,7 @@ export const DEFAULT_CATEGORIES = [
                 },
                 {
                     "name": "Google AI Studio",
-                    "url": "https://aistudio.google.com",
+                    "url": "https://aistudio.google.com/welcome",
                     "icon": "./icons/aistudio.google.com.png",
                     "desc": "谷歌 AI 原型工作台"
                 },
@@ -145,7 +145,7 @@ export const DEFAULT_CATEGORIES = [
                 },
                 {
                     "name": "豆包",
-                    "url": "https://www.doubao.com",
+                    "url": "https://www.doubao.com/chat/",
                     "icon": "./icons/doubao.com.png",
                     "desc": "字节跳动 AI 助手"
                 },
@@ -247,7 +247,7 @@ export const DEFAULT_CATEGORIES = [
                 },
                 {
                     "name": "VirusTotal",
-                    "url": "https://www.virustotal.com",
+                    "url": "https://www.virustotal.com/gui/",
                     "icon": "./icons/virustotal.com.png",
                     "desc": "多引擎在线病毒检测"
                 }
@@ -385,13 +385,13 @@ export const DEFAULT_CATEGORIES = [
                 },
                 {
                     "name": "wikiHow",
-                    "url": "https://zh.wikihow.com",
+                    "url": "https://zh.wikihow.com/首页",
                     "icon": "./icons/zh.wikihow.com.png",
                     "desc": "万物生活与实操指南"
                 },
                 {
                     "name": "Wikipedia",
-                    "url": "https://zh.wikipedia.org",
+                    "url": "https://zh.wikipedia.org/wiki/Wikipedia:首页",
                     "icon": "./icons/zh.wikipedia.org.png",
                     "desc": "自由的百科全书"
                 },
