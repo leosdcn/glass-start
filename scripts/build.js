@@ -88,6 +88,7 @@ const PATHS = {
     pkgJson: path.join(ROOT_DIR, 'package.json'),
     readme: path.join(ROOT_DIR, 'README.md'),
     sw: path.join(ROOT_DIR, 'sw.js'),
+    icons: path.join(ROOT_DIR, 'icons'),
     wallpapers: path.join(ROOT_DIR, 'wallpapers'),
     headers: path.join(ROOT_DIR, '_headers')
 };
@@ -220,6 +221,11 @@ function buildServiceWorkerAndAssets() {
     }
 
     // 3.2 静态资产同步
+    if (fs.existsSync(PATHS.icons)) {
+        fs.cpSync(PATHS.icons, path.join(PATHS.dist, 'icons'), { recursive: true });
+        const iconCount = fs.readdirSync(PATHS.icons).filter(f => f.endsWith('.png')).length;
+        logItem(`本地图标资源目录已全量复制 (${iconCount} 个文件) 至 dist/icons/`);
+    }
     if (fs.existsSync(PATHS.wallpapers)) {
         fs.cpSync(PATHS.wallpapers, path.join(PATHS.dist, 'wallpapers'), { recursive: true });
         const wpCount = fs.readdirSync(PATHS.wallpapers).length;
