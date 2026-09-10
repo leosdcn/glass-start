@@ -78,7 +78,7 @@ npm run build
     {
       "name": "LocalSend",
       "url": "https://web.localsend.org",
-      "icon": "https://a.favicon.im/web.localsend.org"
+      "icon": "./icons/web.localsend.org.png"
     }
   ],
   "categories": [
@@ -90,7 +90,7 @@ npm run build
           "name": "GitHub",
           "url": "https://github.com",
           "desc": "代码托管与协作",
-          "icon": "https://a.favicon.im/github.com"
+          "icon": "./icons/github.com.png"
         }
       ]
     }
@@ -102,8 +102,8 @@ npm run build
 - **`name`**：中文服务使用标准官方中文名，国际服务使用官方英文名。
 - **`desc`**：精简的副标题。纯中文 <= 9 字，含英数混排 <= 13 字符。
 - **`url`**：直连官方标准主域（避免多重跳转耗时）。
-- **`icon`**：推荐使用 `https://a.favicon.im/<domain>` 自动抓取高清图标。
-- **生效方式**：保存 `bookmarks.json` 后运行 `npm run build`，脚本会自动将数据双向注入源码与部署产物。
+- **`icon`**：推荐使用本地同源相对路径 `./icons/<domain>.png`（实现零网络请求秒开）；亦兼容外链 CDN 地址（如 `https://a.favicon.im/<domain>`）。
+- **生效方式**：编辑 `bookmarks.json` 后，可执行 `npm run sync:icons` 自动下载缺失图标至本地 `icons/` 目录；随后运行 `npm run build`，打包流水线会自动完成数据双向注入与本地图标静态产物同步。
 
 ### 4. 键盘快捷键速查（按 `Cmd/Ctrl + /` 唤起）
 
@@ -137,8 +137,11 @@ npm run lint
 # 4. 运行端到端自动化测试验证
 npm test
 
-# 5. 生产构建打包 (产物位于 dist/)
+# 5. 生产构建打包 (产物位于 dist/，包含 icons/ 本地图标同步)
 npm run build
+
+# 6. (可选) 自动化同步全站书签图标至本地 icons/ 静态资源目录
+npm run sync:icons
 ```
 
 > 💡 **macOS 便捷启动**：macOS 用户可直接双击根目录的 `start.command` 脚本，自动一键装配环境并在浏览器中拉起预览。

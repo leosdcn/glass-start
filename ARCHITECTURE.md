@@ -366,8 +366,8 @@ flowchart LR
 1. **三池物理隔离与版本强同调 (Version Lockstep)**：
    - `CORE_CACHE`：打包时基于构建时间戳命名（如 `app-core-v1786255428688`），主文档 `index.html` 与同源脚本 `app.js` 统一采用 **原子化 SWR 锁步** 策略，本地 0ms 瞬出秒开（彻底消除 Safari 冷启动网络阻塞与 TTFB 延迟）；由构建管线自动在 HTML 注入 `app.js?v=app-core-v<timestamp>` 版本查询参数，配合 `window.__GLASS_BUILD_HTML__` 与 `__GLASS_BUILD_APP__` 双端构建指纹契约对，确保 HTML 结构与 JS 逻辑 100% 同池直出，彻底杜绝“旧 JS 执行于新 HTML”导致的切屏/BFCache 白屏死锁；版本换代由 SW 差量更新原子接管。
    - `FAVICON_CACHE`：独立存储 `a.favicon.im` 与 Google S2 (`www.google.com/s2/favicons` 及其 `*.gstatic.com`) 外部图标，与核心脚本完全隔离。前端通过 `handleIconError` 与 `faviconFallbackFromUrl` 建立双轨容灾状态机，主源失败时无缝切换 Google S2 备用源，若均失败才降级为彩色字母徽标。
-   - `IMG_CACHE`：独立存储站内高分辨率壁纸与图片，通过 Cache-First 策略减少重复带宽消耗。
-2. **防透明响应污染 (Anti-Opaque Poisoning)**：请求跨域图标时产生 `status = 0` 的 `opaque` 响应。若直接缓存可能存入被 DNS 劫持或损坏的数据。系统引入二次网络校验与 4 秒超时熔断（`AbortController`），确保仅有合法的 `opaque` 或 `200 OK` 响应才被允许写入，并由轻量 `pruneCache` 原生实现先进先出（FIFO）淘汰，杜绝 IndexedDB 膨胀与崩溃隐患。
+   - `IMG_CACHE`：独立存储站内高分辨率壁纸与本地同源书签图标（`dist/icons/*.png`），通过 Cache-First 策略实现本地同源 0ms 秒开并减少重复带宽消耗。
+2. **防透明响应污染 (Anti-Opaque Poisoning)**：请求跨域图标时产生 `status = 0` 的 `opaque` 响应。若直接缓存可能存入被 DNS 劫持或损坏的数据。系统引入二次网络校验与 7 秒超时熔断（`AbortController`），确保仅有合法的 `opaque` 或 `200 OK` 响应才被允许写入，并由轻量 `pruneCache` 原生实现先进先出（FIFO）淘汰，杜绝 IndexedDB 膨胀与崩溃隐患。
 3. **同源/跨域壁纸的 CSP 与缓存解耦**：同源静态图片进 `IMG_CACHE`；用户填写的任意跨域自定义壁纸直连网络，由页面的 CSP `img-src 'self' data: blob: https:` 进行安全管辖，避免因 Service Worker 上下文受 `connect-src` 严格白名单限制而拦截合法的用户壁纸主机。
 
 ---
