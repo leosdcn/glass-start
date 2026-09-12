@@ -11,7 +11,7 @@
 - **零运行时依赖**：严禁在 `package.json` 添加任何 `dependencies`；仅允许原生 Web API 与现有 `devDependencies`。
 - **源码单向流动**：修改仅限 `src/`、`bookmarks.json`、`sw.js`，严禁触碰 `dist/`；Tailwind v4 仅使用 `@theme`，严禁创建 `tailwind.config.js`。
 - **壁纸物理隔离**：大图/Base64 壁纸必须存入 IndexedDB (`src/js/utils/idb.js`)，严禁写入 LocalStorage。
-- **书签字数双轨门禁**：纯中文 `desc` 必须 <= 9 字；含英数混排 `desc` 必须 <= 13 字符。改动后必须执行 `npm run lint` 验证。
+- **书签数据与本地图标流水线门禁**：纯中文 `desc` 必须 <= 9 字；含英数混排 `desc` 必须 <= 13 字符；全量预设书签必须 100% 采用本地同源相对路径 `./icons/{domain}.png`（严禁外链或留空）。**变动触发契约**：新增或修改 `bookmarks.json` 中的书签后，必须依次执行 `npm run sync:icons`（自动抓取、清洗占位标并经 macOS 原生 `sips` 标准化转写为 1:1 本地 PNG 图标）与 `npm run lint` 静态门禁断言。
 
 ### 2. 状态驱动与 DOM/CSS 守卫
 - **严禁逆向搜刮 DOM (Zero DOM Harvesting)**：弹窗书签编辑/添加/删除/拖拽重排必须 100% 依托 `modalState.draftBookmarks` 纯内存响应式草稿单向驱动；保存与导出直接消费内存模型，做到 0 次 DOM 查询逆向解析与零 Reflow。
@@ -30,6 +30,7 @@
 
 | 开发阶段 | 核心执行命令 | 作用与预期 |
 | :--- | :--- | :--- |
+| **书签增删改动后** | `npm run sync:icons && npm run lint` | 自动抓取转写 1:1 本地图标并执行全量门禁校验 |
 | **代码修改后必跑** | `npm run lint` | 静态规范门禁（支持 `--fix` 一键自愈） |
 | **局部功能修改后** | `npm run test:ui` / `data` / `infra` / `lifecycle` | 模块切片单测 |
 | **常规提交前验证** | `npm test` | 核心增量回归套件 |
@@ -59,5 +60,6 @@
 | **全局事件中枢与焦点捕获** | `src/js/core/events.js` | `bindEvents()`, `bindEditEvents()`, `handleModalTabFocus()` |
 | **XSS 安全防线与字符纠错** | `src/js/utils/helpers.js` | `escapeHtml()`, `safeUrl()`, `normalizeUrl()`, `damerauLevenshtein()` |
 | **IndexedDB 大图壁纸持久化** | `src/js/utils/idb.js` | `getWallpaperDB()`, `setWallpaperDB()`, `clearWallpaperDB()` |
+| **本地图标同步与清洗流水线** | `scripts/sync-icons.mjs`<br/>`icons/` | `main()`, `isPlaceholder()`, `saveAsPng()`, `npm run sync:icons` |
 | **启动装配与生命周期入口** | `src/js/init.js`<br/>`src/js/main.js` | `initApp()`, `initPreHydration()` |
 | **离线底座与三池物理隔离** | `sw.js` | `CORE_CACHE`, `FAVICON_CACHE`, `IMG_CACHE` |

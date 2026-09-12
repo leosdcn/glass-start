@@ -102,8 +102,8 @@ npm run build
 - **`name`**：中文服务使用标准官方中文名，国际服务使用官方英文名。
 - **`desc`**：精简的副标题。纯中文 <= 9 字，含英数混排 <= 13 字符。
 - **`url`**：直连官方标准主域（避免多重跳转耗时）。
-- **`icon`**：推荐使用本地同源相对路径 `./icons/<domain>.png`（实现零网络请求秒开）；亦兼容外链 CDN 地址（如 `https://a.favicon.im/<domain>`）。
-- **生效方式**：编辑 `bookmarks.json` 后，可执行 `npm run sync:icons` 自动下载缺失图标至本地 `icons/` 目录；随后运行 `npm run build`，打包流水线会自动完成数据双向注入与本地图标静态产物同步。
+- **`icon`**：全量预设书签统一采用本地同源相对路径 `./icons/<domain>.png`（实现首屏零网络请求与瞬间解码）。新增或编辑书签时，亦可先填写外部 CDN 地址或域名，执行 `npm run sync:icons` 即可自动完成抓取清洗、`sips` 标准化转写并规范回写为本地相对路径。
+- **生效方式**：编辑 `bookmarks.json` 后，先执行 `npm run sync:icons` 自动化同步图标，随后通过 `npm run lint` 验证静态门禁；打包时运行 `npm run build`，流水线会自动完成数据双向注入与本地图标静态产物同步。
 
 ### 4. 键盘快捷键速查（按 `Cmd/Ctrl + /` 唤起）
 
@@ -131,17 +131,17 @@ npm install
 # 2. 启动本地开发服务 (支持增量编译热重载与局域网调试)
 npm run dev
 
-# 3. 执行全量静态规范与工程红线校验 (<30ms)
+# 3. (若修改/新增书签) 自动化同步全站书签图标至本地 icons/ 目录
+npm run sync:icons
+
+# 4. 执行全量静态规范与工程红线校验 (<50ms)
 npm run lint
 
-# 4. 运行端到端自动化测试验证
+# 5. 运行端到端自动化测试验证
 npm test
 
-# 5. 生产构建打包 (产物位于 dist/，包含 icons/ 本地图标同步)
+# 6. 生产构建打包 (产物位于 dist/，包含数据注入与 icons/ 本地图标同步)
 npm run build
-
-# 6. (可选) 自动化同步全站书签图标至本地 icons/ 静态资源目录
-npm run sync:icons
 ```
 
 > 💡 **macOS 便捷启动**：macOS 用户可直接双击根目录的 `start.command` 脚本，自动一键装配环境并在浏览器中拉起预览。

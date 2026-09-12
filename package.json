@@ -15,6 +15,7 @@
     "lint": "node scripts/lint.mjs",
     "lint:fix": "node scripts/lint.mjs --fix",
     "test:w3c": "node scripts/validate-w3c.mjs",
+    "test:icons": "node test/verify-local-icons.mjs",
     "sync:icons": "node scripts/sync-icons.mjs",
     "dev": "node scripts/server.js",
     "preview": "npm run build && node scripts/server.js --no-watch"

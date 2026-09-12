@@ -484,19 +484,45 @@ try {
     logItem(`DOM ID 唯一性与引用检查异常: ${e.message}`, 'error');
 }
 
-// 4.7 书签 Schema 结构、HTTPS 协议安全与 desc 排版规范门禁
+// 4.7 书签 Schema 结构、本地图标物理就绪、HTTPS 协议安全与 desc 排版规范门禁
 try {
     const rawBookmarks = readFileSync(join(root, 'bookmarks.json'), 'utf-8');
     const data = JSON.parse(rawBookmarks);
     let totalBookmarks = 0;
     const errors = [];
+    const PNG_HEADER = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+
+    function checkBookmarkItem(bm, prefix) {
+        totalBookmarks++;
+        if (!bm.name || typeof bm.name !== 'string') errors.push(`${prefix} 缺少有效 name`);
+        if (!bm.url || !bm.url.startsWith('https://')) errors.push(`${prefix} URL 必须以 https:// 开头 (当前: ${bm.url})`);
+        
+        // 本地图标格式与物理磁盘存在性硬性门禁
+        if (!bm.icon || typeof bm.icon !== 'string') {
+            errors.push(`${prefix} 缺少有效 icon`);
+        } else if (!bm.icon.startsWith('./icons/') || !bm.icon.endsWith('.png')) {
+            errors.push(`${prefix} 图标路径必须采用规范的本地相对路径 "./icons/{domain}.png" (当前: "${bm.icon}")，请运行 "npm run sync:icons" 自动同步！`);
+        } else {
+            const iconFileName = bm.icon.replace(/^\.\/icons\//, '');
+            const iconPath = join(root, 'icons', iconFileName);
+            if (!existsSync(iconPath)) {
+                errors.push(`${prefix} 本地图标物理文件缺失: "icons/${iconFileName}"，请运行 "npm run sync:icons" 自动下载转写！`);
+            } else {
+                try {
+                    const buf = readFileSync(iconPath);
+                    if (buf.length < 8 || !buf.subarray(0, 8).equals(PNG_HEADER)) {
+                        errors.push(`${prefix} 本地图标 "icons/${iconFileName}" 非有效二进制 PNG 文件 (魔数校验失败)，请运行 "npm run sync:icons" 重新生成！`);
+                    }
+                } catch (readErr) {
+                    errors.push(`${prefix} 本地图标读取失败: ${readErr.message}`);
+                }
+            }
+        }
+    }
 
     if (Array.isArray(data.bookmarks)) {
         data.bookmarks.forEach((bm, i) => {
-            totalBookmarks++;
-            if (!bm.name || typeof bm.name !== 'string') errors.push(`常用书签 #${i} 缺少有效 name`);
-            if (!bm.url || !bm.url.startsWith('https://')) errors.push(`常用书签 [${bm.name || i}] URL 必须以 https:// 开头 (当前: ${bm.url})`);
-            if (!bm.icon || typeof bm.icon !== 'string') errors.push(`常用书签 [${bm.name || i}] 缺少有效 icon`);
+            checkBookmarkItem(bm, `常用书签 [${bm.name || '#' + i}]`);
         });
     } else {
         errors.push('缺少顶层 bookmarks 数组');
@@ -511,11 +537,8 @@ try {
 
             if (Array.isArray(cat.bookmarks)) {
                 cat.bookmarks.forEach((bm, bmIdx) => {
-                    totalBookmarks++;
                     const prefix = `[${cat.name}] ${bm.name || '#' + bmIdx}`;
-                    if (!bm.name || typeof bm.name !== 'string') errors.push(`${prefix} 缺少有效 name`);
-                    if (!bm.url || !bm.url.startsWith('https://')) errors.push(`${prefix} URL 必须以 https:// 开头 (当前: ${bm.url})`);
-                    if (!bm.icon || typeof bm.icon !== 'string') errors.push(`${prefix} 缺少有效 icon`);
+                    checkBookmarkItem(bm, prefix);
                     if (!bm.desc || typeof bm.desc !== 'string' || bm.desc.trim().length === 0) {
                         errors.push(`${prefix} 缺少有效 desc 简介`);
                     } else {
@@ -538,10 +561,10 @@ try {
 
     if (errors.length === 0) {
         passCount++;
-        logItem(`全站 ${totalBookmarks} 个书签数据 Schema 规范、100% HTTPS 安全协议且 desc 简介无溢出`);
+        logItem(`全站 ${totalBookmarks} 个书签数据 Schema 规范、100% 本地图标就绪、HTTPS 安全协议且 desc 简介无溢出`);
     } else {
         failCount++;
-        logItem(`书签 Schema 校验失败 (${errors.length} 处):\n    ${errors.slice(0, 5).join('\n    ')}`, 'error');
+        logItem(`书签 Schema 与本地图标校验失败 (${errors.length} 处):\n    ${errors.slice(0, 5).join('\n    ')}`, 'error');
     }
 } catch (e) {
     failCount++;
