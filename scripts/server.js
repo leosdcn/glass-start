@@ -103,10 +103,12 @@ function createStaticServer() {
                 }
 
                 const isWallpaper = rel.startsWith('wallpapers' + path.sep) || rel.startsWith('wallpapers/');
+                const isIcon = rel.startsWith('icons' + path.sep) || rel.startsWith('icons/');
+                const isImmutableAsset = isWallpaper || isIcon;
 
-                // 304 协商缓存 (仅对壁纸类不可变强缓存生效；开发环境下代码/脚本永远提供最新实体)
+                // 304 协商缓存 (仅对壁纸与图标等不可变强缓存生效；开发环境下代码/脚本永远提供最新实体)
                 const ifModifiedSince = req.headers['if-modified-since'];
-                if (!isFallback && stats && ifModifiedSince && isWallpaper) {
+                if (!isFallback && stats && ifModifiedSince && isImmutableAsset) {
                     const reqMtime = new Date(ifModifiedSince).getTime();
                     if (Math.floor(stats.mtimeMs / 1000) <= Math.floor(reqMtime / 1000)) {
                         res.writeHead(304, 'Not Modified');
@@ -126,7 +128,7 @@ function createStaticServer() {
                 // 🛡️ 本地开发服务防滞后与 Service Worker 强管辖响应头
                 res.setHeader('Service-Worker-Allowed', '/');
 
-                if (isWallpaper) {
+                if (isImmutableAsset) {
                     res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
                 } else {
                     // 本地开发调试防御：彻底禁用代码与文档 HTTP 缓存，配合增量编译杜绝跨版本旧缓存错配
