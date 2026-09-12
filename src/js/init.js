@@ -77,9 +77,6 @@ export function init() {
     const savedBlur = storageGet(CONFIG.KEYS.BG_BLUR, CONFIG.APPEARANCE.DEFAULT_BG_BLUR);
     applyBgEffects(savedOpacity, savedBlur);
 
-    preloadNextBg();
-    preloadFavicons();
-
     if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
         navigator.serviceWorker.register('sw.js').catch(() => {});
         navigator.serviceWorker.addEventListener('controllerchange', () => {
@@ -103,6 +100,8 @@ export function init() {
     scheduleIdleTask(() => {
         refreshSidebarNavCache();
         initFaviconObserver(true);
+        preloadFavicons();
+        preloadNextBg();
     });
 
     setTimeout(() => {

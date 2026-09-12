@@ -182,6 +182,12 @@ export async function switchBg() {
  * @returns {void}
  */
 export function preloadNextBg() {
+    if (typeof navigator !== 'undefined' && (navigator.connection?.saveData || navigator.connection?.effectiveType === '2g')) {
+        return;
+    }
+    if (typeof window !== 'undefined' && window.innerWidth <= 768) {
+        return;
+    }
     const nextIdx = (state.bg + 1) % backgrounds.length;
     const nextBgUrl = backgrounds[nextIdx];
     if (nextBgUrl) {
