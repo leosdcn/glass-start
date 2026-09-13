@@ -447,9 +447,9 @@
                         <div class="flex items-center justify-between">
                             <span class="text-xs font-semibold text-white/80 flex items-center gap-1.5">
                                 <svg class="size-4 text-white/60" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z"/></svg>
-                                自定义壁纸来源
+                                自定义壁纸
                             </span>
-                            <span id="wallpaperStatus" class="glass-badge">默认壁纸</span>
+                            <span id="wallpaperStatus" class="hidden text-2xs text-emerald-400/90 font-medium">已使用自定义壁纸</span>
                         </div>
                         <div class="mt-1">
                             <div id="urlBgBtnGroup" class="flex gap-2">
@@ -589,7 +589,7 @@
             <!-- 底部操作栏 (完成 / 取消响应式布局) -->
             <div class="flex items-center justify-end gap-3 mt-3 pt-3 border-t border-white/10 shrink-0">
                 <button id="cancelEditBtn" type="button" class="flex-1 sm:flex-initial py-2.5 px-5 rounded-xl text-xs sm:text-sm font-normal text-white/50 hover:text-white/80 hover:bg-white/5 glass-interactive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 disabled:opacity-50 disabled:cursor-not-allowed">取消</button>
-                <button id="saveEditBtn" type="button" class="glass-btn-primary flex-1 sm:flex-initial py-2.5 px-6 text-xs sm:text-sm gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:opacity-50 disabled:cursor-not-allowed">
+                <button id="saveEditBtn" type="button" title="保存快捷书签与视觉特效修改" class="glass-btn-primary flex-1 sm:flex-initial py-2.5 px-6 text-xs sm:text-sm gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:opacity-50 disabled:cursor-not-allowed">
                     <span>完成</span>
                 </button>
             </div>

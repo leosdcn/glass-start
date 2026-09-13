@@ -35,8 +35,8 @@ export function findPresetBgIndex(url) {
  */
 export async function clearCustomWallpaper() {
     state.customWallpaper = null;
-    await removeWallpaperDB();
     storageRemove(CONFIG.KEYS.USER_WALLPAPER);
+    await removeWallpaperDB();
 }
 
 /**
@@ -47,7 +47,7 @@ export async function clearCustomWallpaper() {
 export async function updateWallpaperStatusUI(customWallpaperOverride) {
     const resolveBg = customWallpaperOverride !== undefined
         ? customWallpaperOverride
-        : (modalState.draftWallpaper !== null && modalState.draftWallpaper !== undefined
+        : (modalState.draftWallpaper !== undefined
             ? modalState.draftWallpaper
             : (await getEffectiveCustomWallpaper()));
     const isCustom = !!resolveBg && findPresetBgIndex(resolveBg) === -1;
@@ -57,8 +57,8 @@ export async function updateWallpaperStatusUI(customWallpaperOverride) {
         dom.wallpaperStatus.className = 'text-2xs text-emerald-400/90 font-medium';
         dom.resetBgBtn.classList.remove('hidden');
     } else {
-        dom.wallpaperStatus.textContent = '当前使用默认壁纸';
-        dom.wallpaperStatus.className = 'text-2xs text-white/35';
+        dom.wallpaperStatus.textContent = '';
+        dom.wallpaperStatus.className = 'hidden';
         dom.resetBgBtn.classList.add('hidden');
     }
 }
@@ -116,7 +116,6 @@ export async function commitWallpaperSelection(targetWallpaper) {
  */
 export function previewDraftWallpaper(urlStr) {
     modalState.draftWallpaper = urlStr;
-    modalState.wallpaperChanged = false;
     if (urlStr && /^https?:\/\//i.test(urlStr)) {
         const testImg = new Image();
         testImg.onload = () => {
@@ -143,12 +142,11 @@ export function previewDraftWallpaper(urlStr) {
  * 重置为默认系统壁纸并自动持久化保存
  * @returns {void}
  */
-export function resetDraftWallpaper() {
+export async function resetDraftWallpaper() {
     modalState.draftWallpaper = null;
-    modalState.wallpaperChanged = false;
+    await commitWallpaperSelection(null);
     applyWallpaper(backgrounds[0], true);
-    commitWallpaperSelection(null);
-    updateWallpaperStatusUI(null);
+    await updateWallpaperStatusUI(null);
     updatePresetBgCardsUI(backgrounds[0]);
 }
 

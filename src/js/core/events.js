@@ -9,7 +9,7 @@
  * 3. 书签编辑列表 HTML5 Drag & Drop 与 FLIP 物理吸附平滑重排 (initDragSort)
  * 4. 设置弹窗内部各类按钮与文件拖拽 (bindEditEvents)
  */
-import { CONFIG, backgrounds } from '../config/constants.js';
+import { CONFIG } from '../config/constants.js';
 import {
     normalizeUrl,
     faviconFromUrl,
@@ -45,9 +45,7 @@ import {
 import {
     switchBg,
     previewDraftWallpaper,
-    resetDraftWallpaper,
-    updatePresetBgCardsUI,
-    commitWallpaperSelection
+    resetDraftWallpaper
 } from '../modules/wallpaper.js';
 import {
     openEditModal,
@@ -611,14 +609,7 @@ export function bindEditEvents() {
                     saveUserBookmarks(data);
                 }
 
-                // 2. 提交壁纸
-                if (modalState.wallpaperChanged) {
-                    const draft = modalState.draftWallpaper;
-                    await commitWallpaperSelection(draft);
-                    updatePresetBgCardsUI(draft !== null && draft !== undefined ? draft : backgrounds[0]);
-                }
-
-                // 3. 提交特效
+                // 2. 提交特效（壁纸已于用户选择时即选即存，无需重复落盘）
                 if (modalState.draftMaskOpacity !== null && modalState.draftBgBlur !== null) {
                     storageSet(CONFIG.KEYS.MASK_OPACITY, modalState.draftMaskOpacity);
                     storageSet(CONFIG.KEYS.BG_BLUR, modalState.draftBgBlur);
@@ -746,8 +737,8 @@ export function bindEditEvents() {
     }
 
     if (dom.resetBgBtn) {
-        dom.resetBgBtn.addEventListener('click', () => {
-            resetDraftWallpaper();
+        dom.resetBgBtn.addEventListener('click', async () => {
+            await resetDraftWallpaper();
         });
     }
 

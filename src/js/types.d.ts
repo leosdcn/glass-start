@@ -62,7 +62,6 @@ export interface ModalState {
     draftWallpaper: string | null | undefined;
     draftMaskOpacity: number | null;
     draftBgBlur: number | null;
-    wallpaperChanged: boolean;
     bookmarksChanged: boolean;
 }
 

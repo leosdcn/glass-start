@@ -25,7 +25,6 @@ export const modalState = {
     draftMaskOpacity: null,
     draftBgBlur: null,
     draftBookmarks: [],
-    wallpaperChanged: false,
     bookmarksChanged: false
 };
 

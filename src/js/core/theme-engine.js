@@ -200,6 +200,6 @@ export function applyWallpaper(urlStr, animate = true) {
         img.onerror = () => { img.onload = img.onerror = null; };
     }
     if (typeof updateWallpaperStatusUI === 'function') {
-        updateWallpaperStatusUI().catch(() => {});
+        updateWallpaperStatusUI(urlStr).catch(() => {});
     }
 }

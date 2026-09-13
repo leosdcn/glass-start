@@ -78,10 +78,15 @@ export function getDraftBookmarkCount() {
         : (dom.editList ? dom.editList.querySelectorAll('.edit-row-card').length : pageData.bookmarks.length);
 }
 
-export function updateBookmarkCountBadge() {
+export function updateAllBookmarkCounters() {
+    const text = `已添加 ${getDraftBookmarkCount()} 项`;
     const badge = dom.bookmarkCountBadge || $('bookmarkCountBadge');
-    if (badge) badge.textContent = `已添加 ${getDraftBookmarkCount()} 项`;
+    const pickerCount = dom.pickerCount || $('pickerCount');
+    if (badge) badge.textContent = text;
+    if (pickerCount) pickerCount.textContent = text;
 }
+
+export const updateBookmarkCountBadge = updateAllBookmarkCounters;
 
 export function loadPresetBgCardImages() {
     if (isPresetBgImagesLoaded) return;
@@ -349,7 +354,6 @@ export async function openEditModal() {
     modalState.draftWallpaper = modalState.initialWallpaper;
     modalState.draftMaskOpacity = modalState.initialMaskOpacity;
     modalState.draftBgBlur = modalState.initialBgBlur;
-    modalState.wallpaperChanged = false;
     modalState.bookmarksChanged = false;
 
     // 初始化内存草稿真理源
@@ -371,10 +375,6 @@ export async function openEditModal() {
 }
 
 export function cancelEditModal() {
-    if (modalState.wallpaperChanged) {
-        const bgToRestore = modalState.initialWallpaper || backgrounds[state.bg];
-        applyWallpaper(bgToRestore, false);
-    }
     applyBgEffects(modalState.initialMaskOpacity, modalState.initialBgBlur, false);
     closeEditModal();
 }
@@ -663,7 +663,6 @@ export function resetBookmarks() {
         modalState.draftMaskOpacity = null;
         modalState.draftBgBlur = null;
         modalState.draftBookmarks = [];
-        modalState.wallpaperChanged = false;
         modalState.bookmarksChanged = false;
 
         if (typeof window.setEngine === 'function') window.setEngine('bing', false);
@@ -677,22 +676,7 @@ export function resetBookmarks() {
     }, '重置所有系统设置');
 }
 
-/**
- * 刷新挑选弹窗底部的已选择书签计数
- * @returns {void}
- */
-export function updatePickerCount() {
-    const pickerCount = dom.pickerCount || $('pickerCount');
-    if (pickerCount) pickerCount.textContent = `已添加 ${getDraftBookmarkCount()} 项`;
-}
-
-export function updateAllBookmarkCounters() {
-    const text = `已添加 ${getDraftBookmarkCount()} 项`;
-    const badge = dom.bookmarkCountBadge || $('bookmarkCountBadge');
-    const pickerCount = dom.pickerCount || $('pickerCount');
-    if (badge) badge.textContent = text;
-    if (pickerCount) pickerCount.textContent = text;
-}
+export const updatePickerCount = updateAllBookmarkCounters;
 
 /**
  * 获取当前已存在于编辑列表或已添加的 URL 集合
