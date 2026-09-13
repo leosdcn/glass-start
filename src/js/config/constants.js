@@ -103,7 +103,7 @@ export const DEFAULT_CATEGORIES = [
                 },
                 {
                     "name": "Google AI Studio",
-                    "url": "https://aistudio.google.com/welcome",
+                    "url": "https://aistudio.google.com",
                     "icon": "./icons/aistudio.google.com.png",
                     "desc": "谷歌 AI 原型工作台"
                 },
@@ -805,14 +805,14 @@ export const DEFAULT_CATEGORIES = [
             "bookmarks": [
                 {
                     "name": "Google Earth",
-                    "url": "https://earth.google.com/web/",
+                    "url": "https://earth.google.com",
                     "icon": "./icons/earth.google.com.png",
                     "desc": "三维地球探索工具"
                 },
                 {
                     "name": "Google Maps",
-                    "url": "https://www.google.com/maps",
-                    "icon": "./icons/google.com.png",
+                    "url": "https://maps.google.com",
+                    "icon": "./icons/maps.google.com.png",
                     "desc": "全球地图导航服务"
                 },
                 {

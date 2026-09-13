@@ -84,6 +84,14 @@ function saveAsPng(inputBuffer, destPath) {
             stdio: ['pipe', 'pipe', 'ignore'],
             timeout: 5000
         });
+        // 若产物超过 128px，等比缩放到 128px 兼顾高清与极致体积
+        try {
+            const dimStr = execSync(`sips -g pixelWidth "${destPath}"`, { encoding: 'utf-8', stdio: ['ignore', 'pipe', 'ignore'] });
+            const match = dimStr.match(/pixelWidth:\s*(\d+)/);
+            if (match && parseInt(match[1], 10) > 128) {
+                execSync(`sips -Z 128 "${destPath}"`, { stdio: ['ignore', 'ignore', 'ignore'] });
+            }
+        } catch {}
         try { unlinkSync(tmpFile); } catch {}
         return true;
     } catch {
@@ -175,7 +183,7 @@ function isPlaceholder(buf) {
         // 若 a.favicon.im 失败或仍为兜底占位标，平滑走 Google S2
         if (!buf || isPlaceholder(buf)) {
             try {
-                const s2Url = `https://www.google.com/s2/favicons?domain=${encodeURIComponent(host)}`;
+                const s2Url = `https://www.google.com/s2/favicons?domain=${encodeURIComponent(host)}&sz=128`;
                 const s2Buf = await fetchBuffer(s2Url, 7000);
                 if (s2Buf && s2Buf.length > 0) {
                     buf = s2Buf;
@@ -232,14 +240,14 @@ function isPlaceholder(buf) {
     }
 
     // 自动双向同步源码配置 (bookmarks.json -> src/js/config/constants.js)
-    const CONSTANTS_PATH = join(ROOT, 'src', 'js', 'config', 'constants.js');
+    const CONSTANTS_PATH = join(ROOT_DIR, 'src', 'js', 'config', 'constants.js');
     if (existsSync(CONSTANTS_PATH)) {
         try {
             let constantsContent = readFileSync(CONSTANTS_PATH, 'utf-8');
             let constantsUpdated = false;
 
             const safeReplaceJsVariable = (code, varName, replacementJs) => {
-                const reg = new RegExp(`(export\\s+const\\s+${varName}\\s*=\\s*)([\\[\\{][\\s\\S]*?\\n\\s*[\\]\\}];?)`, 'm');
+                const reg = new RegExp(`(export\\s+const\\s+${varName}\\s*=\\s*)\\[[\\s\\S]*?\\n\\s*\\];`, 'm');
                 return code.replace(reg, `$1${replacementJs};`);
             };
             const formatJsObject = (obj, indent = 4) => {
