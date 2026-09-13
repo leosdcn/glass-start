@@ -5,6 +5,7 @@
  * 零依赖零网络零轮询零存储写入：双端构建指纹校验、纯内存生命周期环形日志（≤40 条）、
  * 白屏异常连续探测 + 守卫软刷新阶梯。
  */
+import { CONFIG } from '../config/constants.js';
 import { dom } from '../state/dom.js';
 
 const RELOAD_GUARD_KEY = 'gs_build_reload_at';
@@ -106,7 +107,7 @@ export function initLifecycleAndBlackbox() {
     // 2. 黑匣子被动生命周期事件监听
     window.addEventListener('pageshow', (e) => { bbLog('pageshow', { persisted: !!(e && e.persisted) }); }, { passive: true });
     document.addEventListener('visibilitychange', () => { bbLog('visibility', { hidden: document.hidden }); }, { passive: true });
-    window.addEventListener('error', (e) => { bbLog('js-error', { msg: String((e && e.message) || 'unknown').slice(0, 120) }); });
+    window.addEventListener('error', (e) => { bbLog('js-error', { msg: String((e && e.message) || 'unknown').slice(0, CONFIG.SECURITY.LOG_MSG_MAX_CHARS) }); });
     window.addEventListener('unhandledrejection', () => { bbLog('unhandled-rejection', null); });
     if ('serviceWorker' in navigator) {
         try { navigator.serviceWorker.addEventListener('controllerchange', () => bbLog('controllerchange', null)); } catch {}

@@ -114,7 +114,7 @@ flowchart TD
         
         TRIG_DOWN["⬇️ 切换至导航页触发条件 (To Nav Triggers)<br/>• 滚轮向下: 瞬时 >= 100px 或速度 > 1.2px/ms 降至 60px (常规累积 >= 120px)<br/>• 触屏轻扫: deltaY >= 40px 或 Flick 快速轻扫 (>= 25px & > 0.25px/ms)<br/>• 键盘快捷: ArrowDown / PageDown (且非输入/编辑聚焦态)"]:::triggerBox
         
-        TRANS_STATE{{"🟡 过渡互斥态 (isTransitioning)<br/>耗时 580ms 动画锁定 / 滚轮动量吞咽器 (swallowMomentum 吞咽同向事件)"}}:::transNode
+        TRANS_STATE{{"🟡 过渡互斥态 (isTransitioning)<br/>耗时 580ms 动画锁定 / 天然无感吞咽触控板与滚轮动量余震"}}:::transNode
         
         NAV_STATE(["🔵 导航页态 (Nav Section)<br/>state.currentSection: 'nav' / #navSection 激活展示"]):::stateNode
 
@@ -132,7 +132,7 @@ flowchart TD
         PAGE_SUSPEND["页面挂起: 点击外链跳转 / 切换后台标签页<br/>(触发 window.pagehide 与 window.blur)"]:::actionNode
         TAB_BLUR["防悬停残留: 挂载 body.tab-blurred 标志类<br/>(强制解除一切 card:hover 与 :active 假性悬停微动)"]:::actionNode
         PAGE_WAKE["双通道唤醒: window.pageshow 与 document.visibilitychange<br/>(完整覆盖 BFCache 后退恢复与多标签页切回两种场景)"]:::actionNode
-        RECONCILE["纯内存声明式自愈: reconcileScreenState(targetSection)<br/>1. 强置 isTransitioning = false 并清除残留定时器<br/>2. 瞬态重排重置 (display:none ➔ void ➔ '') 强制 WebKit 重新分配 GPU 离屏磁贴<br/>3. 重置动量吞咽器状态并剥离 .is-clicked / .nr 等临时推屏类<br/>4. 同步校准 scrollTop = 0 与 transform 单位矩阵"]:::activeNode
+        RECONCILE["纯内存声明式自愈: reconcileScreenState(targetSection)<br/>1. 强置 isTransitioning = false 并清除残留定时器<br/>2. 瞬态重排重置 (display:none ➔ void ➔ '') 强制 WebKit 重新分配 GPU 离屏磁贴<br/>3. 剥离 .is-clicked / .dragging / .fade-in 等临时类名与手势高光<br/>4. 同步校准 scrollTop = 0 与 transform 单位矩阵"]:::activeNode
 
         PAGE_SUSPEND --> TAB_BLUR --> PAGE_WAKE --> RECONCILE
     end

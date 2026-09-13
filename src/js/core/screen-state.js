@@ -15,6 +15,9 @@ import { state } from '../state/store.js';
 import { dom, $ } from '../state/dom.js';
 import { OverlayStack } from './overlay-stack.js';
 import { syncThemeForSection } from './theme-engine.js';
+import { resetActiveCard } from './gestures.js';
+import { closeDropdown, hideSuggestions } from '../modules/search.js';
+import { refreshSidebarNavCache, updateSidebarActive, initFaviconObserver } from '../modules/bookmarks.js';
 
 let isTransitioning = false;
 let transitionTimer = null;
@@ -138,9 +141,9 @@ export function reconcileScreenState(targetSection, force = false) {
             nav.classList.remove('nav-hidden');
             nav.classList.add('nav-visible', 'screen-pushed-in');
         }
-        if (typeof window.refreshSidebarNavCache === 'function') window.refreshSidebarNavCache();
-        if (typeof window.updateSidebarActive === 'function') window.updateSidebarActive();
-        if (typeof window.initFaviconObserver === 'function') window.initFaviconObserver();
+        refreshSidebarNavCache();
+        updateSidebarActive();
+        initFaviconObserver();
     } else {
         document.body.classList.remove('in-nav-mode');
         if (startSection) {
@@ -177,8 +180,8 @@ export function switchToNav() {
         navTransitionCleanup();
         navTransitionCleanup = null;
     }
-    if (typeof window.closeDropdown === 'function') window.closeDropdown();
-    if (typeof window.hideSuggestions === 'function') window.hideSuggestions();
+    closeDropdown();
+    hideSuggestions();
 
     state.currentSection = 'nav';
     isTransitioning = true;
@@ -237,9 +240,9 @@ export function switchToNav() {
     }
 
     requestAnimationFrame(() => {
-        if (typeof window.refreshSidebarNavCache === 'function') window.refreshSidebarNavCache();
-        if (typeof window.updateSidebarActive === 'function') window.updateSidebarActive();
-        if (typeof window.initFaviconObserver === 'function') window.initFaviconObserver();
+        refreshSidebarNavCache();
+        updateSidebarActive();
+        initFaviconObserver();
     });
 
     const finishSwitchToNav = () => {
@@ -374,9 +377,7 @@ export function handleAppWakeUp(wasPersisted = false) {
     document.body.classList.remove('bookmark-dragging');
     document.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
 
-    if (typeof window.resetActiveTiltCard === 'function') {
-        window.resetActiveTiltCard();
-    }
+    resetActiveCard();
     if (document.activeElement && typeof document.activeElement.blur === 'function' && document.activeElement !== document.body && document.activeElement !== (dom.searchInput || $('searchInput'))) {
         document.activeElement.blur();
     }

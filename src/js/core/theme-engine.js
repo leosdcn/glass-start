@@ -87,13 +87,13 @@ export function sampleCustomWallpaperTheme(img) {
     if (typeof document === 'undefined') return;
     try {
         const canvas = document.createElement('canvas');
-        canvas.width = 16;
-        canvas.height = 4;
+        canvas.width = CONFIG.APPEARANCE.THEME_SAMPLE_WIDTH;
+        canvas.height = CONFIG.APPEARANCE.THEME_SAMPLE_HEIGHT;
         const ctx = canvas.getContext('2d', { willReadFrequently: true });
         if (!ctx) return;
-        const srcH = Math.max(1, Math.floor(img.naturalHeight * 0.15));
-        ctx.drawImage(img, 0, 0, img.naturalWidth, srcH, 0, 0, 16, 4);
-        const data = ctx.getImageData(0, 0, 16, 4).data;
+        const srcH = Math.max(1, Math.floor(img.naturalHeight * CONFIG.APPEARANCE.THEME_SAMPLE_AREA_RATIO));
+        ctx.drawImage(img, 0, 0, img.naturalWidth, srcH, 0, 0, CONFIG.APPEARANCE.THEME_SAMPLE_WIDTH, CONFIG.APPEARANCE.THEME_SAMPLE_HEIGHT);
+        const data = ctx.getImageData(0, 0, CONFIG.APPEARANCE.THEME_SAMPLE_WIDTH, CONFIG.APPEARANCE.THEME_SAMPLE_HEIGHT).data;
         let rTotal = 0, gTotal = 0, bTotal = 0, count = 0;
         for (let i = 0; i < data.length; i += 4) {
             rTotal += data[i];
@@ -107,17 +107,18 @@ export function sampleCustomWallpaperTheme(img) {
         const g = Math.round((gTotal / count) * (1 - maskOp));
         const b = Math.round((bTotal / count) * (1 - maskOp));
         const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-        const isLight = lum > 128;
+        const isLight = lum > CONFIG.APPEARANCE.LUMINANCE_THRESHOLD;
         const theme = isLight ? APP_THEME_LIGHT : APP_THEME_DARK;
         storageSet('glass_theme_cache', theme);
         setWallpaperTheme(theme);
 
         // 动态环境光 Specular Tint：对采样色彩进行适度提亮与区间保护，避免暗色壁纸造成暗沉
+        const clamp = CONFIG.APPEARANCE.TINT_CLAMP;
         const maxVal = Math.max(r, g, b);
-        const boost = maxVal > 0 && maxVal < 140 ? 140 / maxVal : 1;
-        const tintR = Math.min(245, Math.round(Math.max(60, r * boost)));
-        const tintG = Math.min(245, Math.round(Math.max(60, g * boost)));
-        const tintB = Math.min(245, Math.round(Math.max(60, b * boost)));
+        const boost = maxVal > 0 && maxVal < clamp.BOOST_THRESHOLD ? clamp.BOOST_THRESHOLD / maxVal : 1;
+        const tintR = Math.min(clamp.MAX, Math.round(Math.max(clamp.MIN, r * boost)));
+        const tintG = Math.min(clamp.MAX, Math.round(Math.max(clamp.MIN, g * boost)));
+        const tintB = Math.min(clamp.MAX, Math.round(Math.max(clamp.MIN, b * boost)));
         const tintStr = `${tintR}, ${tintG}, ${tintB}`;
         storageSet('glass_tint_cache', tintStr);
         updateGlassTint(tintStr);

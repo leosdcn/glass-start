@@ -199,7 +199,7 @@ export function openRandomBookmark(newTab = true) {
 
     const randomBtn = dom.randomBookmarkBtn || $('randomBookmarkBtn');
     if (randomBtn) {
-        diceAngle += 180;
+        diceAngle += CONFIG.PHYSICS.DICE_ROTATION_STEP;
         const svg = randomBtn.querySelector('svg');
         if (svg) svg.style.transform = `rotate(${diceAngle}deg)`;
     }

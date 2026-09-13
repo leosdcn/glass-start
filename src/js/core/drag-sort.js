@@ -6,12 +6,7 @@
 import { CONFIG } from '../config/constants.js';
 import { dom, $ } from '../state/dom.js';
 import { modalState } from '../state/store.js';
-import { checkImageReady } from '../utils/helpers.js';
-import {
-    updateBookmarkCountBadge,
-    getEditFaviconInner,
-    handleEditIconError
-} from '../modules/settings.js';
+import { updateBookmarkCountBadge } from '../modules/settings.js';
 
 export function initDragSort() {
     let dragSrc = null;
@@ -25,7 +20,9 @@ export function initDragSort() {
     function updateDragIndicator(target, isTop) {
         lastOverTarget = target;
         lastIsTop = isTop;
-        const lineY = isTop ? (target.offsetTop - 4.5) : (target.offsetTop + target.offsetHeight + 1.5);
+        const lineY = isTop
+            ? (target.offsetTop + CONFIG.PHYSICS.DRAG_INDICATOR_OFFSET_TOP)
+            : (target.offsetTop + target.offsetHeight + CONFIG.PHYSICS.DRAG_INDICATOR_OFFSET_BOTTOM);
         if (dom.dragDropIndicator) {
             dom.dragDropIndicator.style.transform = `translate3d(0, ${lineY}px, 0)`;
             dom.dragDropIndicator.style.opacity = '1';
@@ -196,18 +193,21 @@ export function initDragSort() {
         }
         modalState.bookmarksChanged = true;
 
-        // 同步重新排列内存草稿数组顺序
-        if (modalState.draftBookmarks && modalState.draftBookmarks.length > 0) {
-            const currentRows = Array.from(editList.querySelectorAll('.edit-row-card'));
-            const orderMap = new Map();
-            currentRows.forEach((r, idx) => {
-                if (r.dataset.id) orderMap.set(r.dataset.id, idx);
-            });
-            modalState.draftBookmarks.sort((a, b) => {
-                const posA = orderMap.has(a.id) ? orderMap.get(a.id) : CONFIG.PHYSICS.SORT_FALLBACK_INDEX;
-                const posB = orderMap.has(b.id) ? orderMap.get(b.id) : CONFIG.PHYSICS.SORT_FALLBACK_INDEX;
-                return posA - posB;
-            });
+        // 同步重新排列内存草稿数组顺序 (基于内存索引移位，杜绝 DOM 搜刮)
+        if (modalState.draftBookmarks && modalState.draftBookmarks.length > 0 && dragSrc.dataset.id && target.dataset.id) {
+            const dragId = dragSrc.dataset.id;
+            const targetId = target.dataset.id;
+            const srcIdx = modalState.draftBookmarks.findIndex(b => b.id === dragId);
+            if (srcIdx !== -1) {
+                const [moved] = modalState.draftBookmarks.splice(srcIdx, 1);
+                const destIdx = modalState.draftBookmarks.findIndex(b => b.id === targetId);
+                if (destIdx !== -1) {
+                    const insertIdx = isTop ? destIdx : destIdx + 1;
+                    modalState.draftBookmarks.splice(insertIdx, 0, moved);
+                } else {
+                    modalState.draftBookmarks.push(moved);
+                }
+            }
         }
 
         cards.forEach(card => {
@@ -223,7 +223,8 @@ export function initDragSort() {
                 card.style.transform = `translate3d(${deltaX}px, ${deltaY}px, 0)`;
 
                 requestAnimationFrame(() => {
-                    card.style.transition = 'transform 0.35s var(--ease-overshoot)';
+                    const flipSec = `${CONFIG.TIMERS.FLIP_DURATION_MS / 1000}s`;
+                    card.style.transition = `transform ${flipSec} var(--ease-overshoot)`;
                     card.style.transform = 'translate3d(0, 0, 0)';
                 });
 
@@ -236,45 +237,5 @@ export function initDragSort() {
         });
 
         updateBookmarkCountBadge();
-    });
-
-    let editFaviconDebounceTimer = null;
-    editList.addEventListener('input', e => {
-        const target = e.target;
-        const row = target.closest('.edit-row-card');
-        if (!row) return;
-
-        const nameInput = row.querySelector('.edit-name');
-        const urlInput = row.querySelector('.edit-url');
-        const faviconBox = row.querySelector('.edit-favicon-box');
-        if (!faviconBox) return;
-
-        const nameVal = nameInput ? nameInput.value : '';
-        const urlVal = urlInput ? urlInput.value : '';
-        const initial = (nameVal || '?').trim().charAt(0).toUpperCase() || '?';
-
-        const existingImg = faviconBox.querySelector('.edit-favicon-img');
-        const existingInitial = faviconBox.querySelector('.edit-favicon-initial');
-        if (existingImg) {
-            existingImg.dataset.initial = initial;
-        }
-        if (existingInitial) {
-            existingInitial.textContent = initial;
-        }
-
-        if (target.classList.contains('edit-url')) {
-            clearTimeout(editFaviconDebounceTimer);
-            editFaviconDebounceTimer = setTimeout(() => {
-                faviconBox.innerHTML = getEditFaviconInner(nameVal, urlVal);
-                const newImg = faviconBox.querySelector('.edit-favicon-img');
-                if (newImg) checkImageReady(newImg, handleEditIconError);
-            }, CONFIG.SUGGEST.DEBOUNCE_MS);
-        } else if (target.classList.contains('edit-name')) {
-            if (!existingImg || existingImg.dataset.failed === '1') {
-                faviconBox.innerHTML = getEditFaviconInner(nameVal, urlVal);
-                const newImg = faviconBox.querySelector('.edit-favicon-img');
-                if (newImg) checkImageReady(newImg, handleEditIconError);
-            }
-        }
     });
 }

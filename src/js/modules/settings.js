@@ -38,6 +38,8 @@ import {
     initPickerFaviconObserver,
     handleIconError
 } from './bookmarks.js';
+import { closeDropdown, hideSuggestions, setEngine } from './search.js';
+import { renderCreditsModalList } from './clock.js';
 
 let cachedSettingsTabs = null;
 let cachedSettingsPanels = null;
@@ -106,7 +108,7 @@ export function loadPresetBgCardImages() {
                 requestAnimationFrame(() => {
                     setTimeout(() => {
                         img.classList.add('loaded');
-                    }, idx * 20);
+                    }, idx * CONFIG.TIMERS.PRESET_CARD_STAGGER);
                 });
             });
         };
@@ -139,14 +141,14 @@ export function applyBgEffects(opacity, blur, save = false) {
     const bl = Math.max(0, Math.min(CONFIG.APPEARANCE.MAX_BG_BLUR, parseInt(blur, 10) || 0));
     const bgOverlay = dom.bgOverlay || $('bgOverlay');
     if (bgOverlay) {
-        if (!save) bgOverlay.style.transition = 'none';
-        bgOverlay.style.backgroundColor = `rgba(0, 0, 0, ${op / 100})`;
+        bgOverlay.style.backgroundColor = `rgba(0,0,0,${op / 100})`;
         const blurStyle = bl > 0 ? `blur(${bl}px)` : 'none';
         bgOverlay.style.backdropFilter = blurStyle;
         bgOverlay.style.webkitBackdropFilter = blurStyle;
         if (!save) {
             requestAnimationFrame(() => {
-                bgOverlay.style.transition = 'background-color 0.2s ease, opacity 0.2s ease';
+                const trSec = `${CONFIG.TIMERS.BG_OVERLAY_TRANSITION / 1000}s`;
+                bgOverlay.style.transition = `background-color ${trSec} ease, opacity ${trSec} ease`;
             });
         }
     }
@@ -185,7 +187,7 @@ export function getEditFaviconInner(name = '', url = '', icon = '') {
 export function handleEditIconError(img) {
     if (!img || img.dataset.failed) return;
     const url = img.dataset.url || img.src;
-    const fallback = faviconFallbackFromUrl(url, 128);
+    const fallback = faviconFallbackFromUrl(url, CONFIG.UI.FAVICON_FALLBACK_SIZE);
 
     if (!img.dataset.fallback && fallback && img.src !== fallback) {
         img.dataset.fallback = '1';
@@ -338,8 +340,8 @@ export function collectEditData() {
 }
 
 export async function openEditModal() {
-    if (typeof window.closeDropdown === 'function') window.closeDropdown();
-    if (typeof window.hideSuggestions === 'function') window.hideSuggestions();
+    closeDropdown();
+    hideSuggestions();
     editModalTriggerEl = document.activeElement;
     const editBtn = dom.editBookmarksBtn || $('editBookmarksBtn');
     editBtn?.setAttribute('aria-expanded', 'true');
@@ -409,8 +411,8 @@ export function closeEditModal() {
 export function openShortcutModal() {
     const modal = dom.shortcutModal || $('shortcutModal');
     if (!modal) return;
-    if (typeof window.closeDropdown === 'function') window.closeDropdown();
-    if (typeof window.hideSuggestions === 'function') window.hideSuggestions();
+    closeDropdown();
+    hideSuggestions();
     shortcutModalTriggerEl = document.activeElement;
     dom.openShortcutFromSettingsBtn?.setAttribute('aria-expanded', 'true');
     OverlayStack.push('shortcutModal', closeShortcutModal);
@@ -436,7 +438,7 @@ export function closeShortcutModal() {
 export function openCreditsModal() {
     const modal = dom.creditsModal || $('creditsModal');
     if (!modal) return;
-    if (typeof window.renderCreditsModalList === 'function') window.renderCreditsModalList();
+    renderCreditsModalList();
     creditsModalTriggerEl = document.activeElement;
     dom.openCreditsFromSettingsBtn?.setAttribute('aria-expanded', 'true');
     OverlayStack.push('creditsModal', closeCreditsModal);
@@ -529,7 +531,7 @@ export function openBookmarkPicker(triggerEl = null) {
     dom.togglePickerBtn?.setAttribute('aria-expanded', 'true');
     OverlayStack.push('bookmarkPicker', closeBookmarkPicker);
     animateShowModal(dom.bookmarkPicker || $('bookmarkPicker'));
-    if (typeof window.renderPickerCategories === 'function') window.renderPickerCategories();
+    renderPickerCategories();
 }
 
 export function closeBookmarkPicker() {
@@ -665,7 +667,7 @@ export function resetBookmarks() {
         modalState.draftBookmarks = [];
         modalState.bookmarksChanged = false;
 
-        if (typeof window.setEngine === 'function') window.setEngine('bing', false);
+        setEngine('bing', false);
         state.bg = 0;
         applyWallpaper(backgrounds[0], false);
         applyBgEffects(CONFIG.APPEARANCE.DEFAULT_MASK_OPACITY, CONFIG.APPEARANCE.DEFAULT_BG_BLUR, false);

@@ -7,6 +7,27 @@ import { CONFIG } from '../config/constants.js';
 
 let isGlassSpotlightAndTiltInitialized = false;
 
+let activeCard = null;
+let activeCardRect = null;
+let rafId = null;
+let pendingEvent = null;
+
+export function resetActiveCard() {
+    if (rafId) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+    }
+    if (activeCard) {
+        activeCard.style.transition = '';
+        activeCard.style.transform = '';
+        activeCard = null;
+        activeCardRect = null;
+    }
+}
+if (typeof window !== 'undefined') {
+    window.resetActiveTiltCard = resetActiveCard;
+}
+
 export function initGlassSpotlightAndTilt() {
     if (typeof window === 'undefined') return;
     if (isGlassSpotlightAndTiltInitialized) return;
@@ -18,25 +39,6 @@ export function initGlassSpotlightAndTilt() {
     if (mediaMotion && mediaMotion.matches) return;
 
     isGlassSpotlightAndTiltInitialized = true;
-
-    let activeCard = null;
-    let activeCardRect = null;
-    let rafId = null;
-    let pendingEvent = null;
-
-    const resetActiveCard = () => {
-        if (rafId) {
-            cancelAnimationFrame(rafId);
-            rafId = null;
-        }
-        if (activeCard) {
-            activeCard.style.transition = '';
-            activeCard.style.transform = '';
-            activeCard = null;
-            activeCardRect = null;
-        }
-    };
-    window.resetActiveTiltCard = resetActiveCard;
 
     if (mediaMotion && mediaMotion.addEventListener) {
         mediaMotion.addEventListener('change', (e) => {
@@ -75,7 +77,9 @@ export function initGlassSpotlightAndTilt() {
             if (activeCard) resetActiveCard();
             activeCard = card;
             activeCardRect = card.getBoundingClientRect();
-            activeCard.style.transition = 'transform 0.08s ease-out, background-color 0.32s ease, border-color 0.32s ease, box-shadow var(--duration-tactile) var(--ease-tactile)';
+            const tiltSec = `${CONFIG.TIMERS.TILT_TRANSITION_MS / 1000}s`;
+            const bgSec = `${CONFIG.TIMERS.TILT_BG_TRANSITION_MS / 1000}s`;
+            activeCard.style.transition = `transform ${tiltSec} ease-out, background-color ${bgSec} ease, border-color ${bgSec} ease, box-shadow var(--duration-tactile) var(--ease-tactile)`;
         }
         pendingEvent = e;
         if (!rafId) {

@@ -17,6 +17,7 @@ const IMG_CACHE = 'app-images-v2';
 // 图标与图片容量上限配置
 const MAX_FAVICON_ENTRIES = 800;
 const MAX_IMG_ENTRIES = 200;
+const FAVICON_TIMEOUT_MS = 7000;
 
 // 核心预缓存静态资源列表
 const CORE_ASSETS = [
@@ -252,7 +253,7 @@ self.addEventListener('fetch', e => {
 
                 const fetchWithTimeout = async () => {
                     const controller = new AbortController();
-                    const timeoutId = setTimeout(() => controller.abort(), 7000);
+                    const timeoutId = setTimeout(() => controller.abort(), FAVICON_TIMEOUT_MS);
                     try {
                         const netRes = await fetch(e.request, { cache: 'no-cache', signal: controller.signal });
                         if (netRes && (netRes.ok || netRes.type === 'opaque')) {

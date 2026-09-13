@@ -16,7 +16,8 @@ import {
     safeUrl,
     escapeHtml,
     storageSet,
-    storageRemove
+    storageRemove,
+    checkImageReady
 } from '../utils/helpers.js';
 import { setWallpaperDB } from '../utils/idb.js';
 import { state, modalState, pageData } from '../state/store.js';
@@ -355,7 +356,7 @@ export function bindEvents() {
         }
 
         if (document.activeElement === searchInput) {
-            if (e.isComposing || e.keyCode === 229 || isComposing || justEndedComposition) return;
+            if (e.isComposing || e.keyCode === CONFIG.SECURITY.IME_COMPOSITION_KEY_CODE || isComposing || justEndedComposition) return;
 
             const isSuggestActive = suggestionMenu && suggestionMenu.classList.contains('active');
             const items = isSuggestActive ? Array.from(suggestionMenu.querySelectorAll('.suggestion-item')) : [];
@@ -549,6 +550,7 @@ export function bindEditEvents() {
     }
 
     if (dom.editList) {
+        let editFaviconDebounceTimer = null;
         dom.editList.addEventListener('input', (e) => {
             modalState.bookmarksChanged = true;
             const target = e.target;
@@ -562,6 +564,40 @@ export function bindEditEvents() {
                 item.name = target.value;
             } else if (target.classList.contains('edit-url')) {
                 item.url = target.value;
+            }
+
+            // 同步实时 Favicon 预览
+            const nameInput = row.querySelector('.edit-name');
+            const urlInput = row.querySelector('.edit-url');
+            const faviconBox = row.querySelector('.edit-favicon-box');
+            if (faviconBox) {
+                const nameVal = nameInput ? nameInput.value : '';
+                const urlVal = urlInput ? urlInput.value : '';
+                const initial = (nameVal || '?').trim().charAt(0).toUpperCase() || '?';
+
+                const existingImg = faviconBox.querySelector('.edit-favicon-img');
+                const existingInitial = faviconBox.querySelector('.edit-favicon-initial');
+                if (existingImg) {
+                    existingImg.dataset.initial = initial;
+                }
+                if (existingInitial) {
+                    existingInitial.textContent = initial;
+                }
+
+                if (target.classList.contains('edit-url')) {
+                    clearTimeout(editFaviconDebounceTimer);
+                    editFaviconDebounceTimer = setTimeout(() => {
+                        faviconBox.innerHTML = getEditFaviconInner(nameVal, urlVal);
+                        const newImg = faviconBox.querySelector('.edit-favicon-img');
+                        if (newImg) checkImageReady(newImg, handleEditIconError);
+                    }, CONFIG.SUGGEST.DEBOUNCE_MS);
+                } else if (target.classList.contains('edit-name')) {
+                    if (!existingImg || existingImg.dataset.failed === '1') {
+                        faviconBox.innerHTML = getEditFaviconInner(nameVal, urlVal);
+                        const newImg = faviconBox.querySelector('.edit-favicon-img');
+                        if (newImg) checkImageReady(newImg, handleEditIconError);
+                    }
+                }
             }
         });
 
@@ -579,9 +615,10 @@ export function bindEditEvents() {
                         item.remove();
                         updateAllBookmarkCounters();
                     } else {
-                        item.style.transition = 'all 0.18s var(--ease-spring)';
+                        const durSec = `${CONFIG.TIMERS.BOOKMARK_DELETE_DURATION / 1000}s`;
+                        item.style.transition = `all ${durSec} var(--ease-spring)`;
                         item.style.opacity = '0';
-                        item.style.transform = 'scale(0.92) translateY(-6px)';
+                        item.style.transform = `scale(${CONFIG.PHYSICS.BOOKMARK_DELETE_SCALE}) translateY(${CONFIG.PHYSICS.BOOKMARK_DELETE_OFFSET_Y}px)`;
                         item.addEventListener('transitionend', () => {
                             item.remove();
                             updateAllBookmarkCounters();

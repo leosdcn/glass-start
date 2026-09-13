@@ -847,6 +847,9 @@ export const CONFIG = Object.freeze({
                 WEATHER_LOC: 'glass_weather_loc_cache',
                 WEATHER_SETTINGS: 'glass_weather_settings'
             }),
+            CACHE: Object.freeze({
+                FAVICON: 'app-favicons-v1'
+            }),
             IDB: Object.freeze({
                 DB_NAME: 'GlassStartDB',
                 VERSION: 1,
@@ -867,7 +870,12 @@ export const CONFIG = Object.freeze({
                 TILT_PRESSED_SCALE: 0.975,   // 按压缩放比
                 DRAG_HYSTERESIS_HIGH: 0.58,  // 拖拽排序迟滞阻尼上限 (50% + 8%)
                 DRAG_HYSTERESIS_LOW: 0.42,   // 拖拽排序迟滞阻尼下限 (50% - 8%)
-                SORT_FALLBACK_INDEX: 9999    // 拖拽排序未匹配到 DOM 时的极大回退序号
+                DRAG_INDICATOR_OFFSET_TOP: -4.5, // 放置指示线上边界偏移 (px)
+                DRAG_INDICATOR_OFFSET_BOTTOM: 1.5, // 放置指示线下边界偏移 (px)
+                SORT_FALLBACK_INDEX: 9999,   // 拖拽排序未匹配到 DOM 时的极大回退序号
+                DICE_ROTATION_STEP: 180,     // 随机书签按钮旋转角度步长 (deg)
+                BOOKMARK_DELETE_SCALE: 0.92, // 书签删除动效缩放比
+                BOOKMARK_DELETE_OFFSET_Y: -6 // 书签删除动效垂直位移 (px)
             }),
             WEATHER: Object.freeze({
                 CACHE_TTL: 15 * 60 * 1000,    // 气象数据本地缓存有效期 (15分钟)
@@ -887,7 +895,14 @@ export const CONFIG = Object.freeze({
                 DEFAULT_HUMIDITY: 50,         // 兜底相对湿度 (%)
                 LOCATION_DRIFT_THRESHOLD: 0.08, // 静默定位更新漂移容差 (经纬度度数, 约8.8km)
                 FORECAST_FETCH_DAYS: 5,       // 气象接口拉取预报最大天数
-                FORECAST_DISPLAY_DAYS: 4      // 弹窗实际呈现预报天数
+                FORECAST_DISPLAY_DAYS: 4,     // 弹窗实际呈现预报天数
+                FALLBACK_LOCATION: Object.freeze({
+                    name: '上海',
+                    fullName: '中国 · 上海市',
+                    lat: 31.230,
+                    lon: 121.473
+                }),
+                LABEL_MAX_CHARS: 12           // 预报日期标签截断字符上限
             }),
             SUGGEST: Object.freeze({
                 DEBOUNCE_MS: 180,             // 搜索输入防抖延时 (ms)
@@ -919,6 +934,7 @@ export const CONFIG = Object.freeze({
                 MANUAL_LOCK_MAX_MS: 800,      // 点击跳转平滑滚动最大锁定硬上限 (ms)
                 RESIZE_DEBOUNCE: 120,         // 视口尺寸变化防抖延时 (ms)
                 MOBILE_BREAKPOINT: 640,       // 移动端/桌面端分界断点 (px)
+                TABLET_BREAKPOINT: 768,       // 平板端分界断点 (px)
                 TAB_SCROLL_MARGIN: 8          // 侧边栏横向/纵向对齐边界安全内距 (px)
             }),
             APPEARANCE: Object.freeze({
@@ -930,7 +946,16 @@ export const CONFIG = Object.freeze({
                 MAX_UPLOAD_WIDTH: 3840,       // 自定义壁纸最大宽度 (4K UHD)
                 MAX_UPLOAD_HEIGHT: 2160,      // 自定义壁纸最大高度
                 JPEG_QUALITY: 0.95,           // Canvas 壁纸压缩质量
-                MAX_LS_WALLPAPER_BYTES: 2000000 // 自定义壁纸双写 localStorage 的体积上限（超出仅存 IndexedDB）
+                MAX_LS_WALLPAPER_BYTES: 2000000, // 自定义壁纸双写 localStorage 的体积上限（超出仅存 IndexedDB）
+                THEME_SAMPLE_WIDTH: 16,       // 壁纸取色采样宽度 (px)
+                THEME_SAMPLE_HEIGHT: 4,       // 壁纸取色采样高度 (px)
+                THEME_SAMPLE_AREA_RATIO: 0.15, // 仅采样壁纸顶部高度比例 (15%)
+                LUMINANCE_THRESHOLD: 128,     // 深浅主题亮度判别门限
+                TINT_CLAMP: Object.freeze({   // 环境光折射动态区间与提亮保护
+                    MIN: 60,
+                    MAX: 245,
+                    BOOST_THRESHOLD: 140
+                })
             }),
             TIMERS: Object.freeze({
                 STAGGER_OPEN: 260,            // 随机书签跳转延时 (ms) - 0.24s 灵动翻转 + 20ms 从容停靠
@@ -944,15 +969,27 @@ export const CONFIG = Object.freeze({
                 PWA_SCHEDULE: 5000,           // 后台静默调度延时 (ms)
                 FALLBACK_IDLE_DELAY: 1500,    // 空闲调度降级回退延时 (ms)
                 IDLE_TIMEOUT: 3000,           // 空闲调度最大超时上限 (ms)
-                COMPOSITION_END_RESET: 100    // 输入法组合结束复位延迟 (ms)
+                COMPOSITION_END_RESET: 100,   // 输入法组合结束复位延迟 (ms)
+                FLIP_DURATION_MS: 350,        // FLIP 物理吸附动效时长 (ms)
+                BOOKMARK_DELETE_DURATION: 180, // 书签删除动效时长 (ms)
+                BG_OVERLAY_TRANSITION: 200,   // 遮罩滑块平滑过渡时长 (ms)
+                PRESET_CARD_STAGGER: 20,      // 壁纸缩略图交错渐入步长延时 (ms)
+                NR_PREHYDRATION_TIMEOUT: 1500, // HEAD 预水合防闪类安全卸载延时 (ms)
+                TILT_TRANSITION_MS: 80,       // 3D 悬停倾斜过渡时长 (ms)
+                TILT_BG_TRANSITION_MS: 320    // 3D 悬停背景过渡时长 (ms)
             }),
             UI: Object.freeze({
                 ICON_SIZE_SM: 24,             // 导航卡片小图标渲染基准尺寸 (px)
-                ICON_SIZE_MD: 32              // 首屏快捷书签图标渲染基准尺寸 (px)
+                ICON_SIZE_MD: 32,             // 首屏快捷书签图标渲染基准尺寸 (px)
+                FAVICON_FALLBACK_SIZE: 128,   // Google S2 备用图标切片分辨率 (px)
+                WALLPAPER_CARD_WIDTH: 160,    // 壁纸网格卡片基准宽度 (px)
+                WALLPAPER_CARD_HEIGHT: 100    // 壁纸网格卡片基准高度 (px)
             }),
             SECURITY: Object.freeze({
                 MAX_NAME_CHARS: 60,           // 导入书签名称截断字符上限
-                MAX_DESC_CHARS: 40            // 导入书签描述截断字符上限
+                MAX_DESC_CHARS: 40,           // 导入书签描述截断字符上限
+                LOG_MSG_MAX_CHARS: 120,       // 黑匣子日志单条错误信息截断上限
+                IME_COMPOSITION_KEY_CODE: 229 // Android Chrome 虚拟键盘 IME 组合态 keyCode 兼容防护
             }),
             SHORTCUTS: Object.freeze([
                 {

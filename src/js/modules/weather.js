@@ -244,10 +244,10 @@ export async function resolveWeatherLocation(force = false) {
     } catch {}
 
     const fallbackLoc = {
-        name: '上海',
-        fullName: '中国 · 上海市',
-        lat: 31.230,
-        lon: 121.473,
+        name: CONFIG.WEATHER.FALLBACK_LOCATION.name,
+        fullName: CONFIG.WEATHER.FALLBACK_LOCATION.fullName,
+        lat: CONFIG.WEATHER.FALLBACK_LOCATION.lat,
+        lon: CONFIG.WEATHER.FALLBACK_LOCATION.lon,
         isAuto: true,
         isFallback: true,
         timestamp: now
@@ -410,7 +410,7 @@ export function renderWeatherPopover(data) {
     const loc = data.location || {};
     const days = (Array.isArray(data.daily) ? data.daily : []).map(d => ({
         ...d,
-        label: (typeof d.label === 'string') ? d.label.slice(0, 12) : '',
+        label: (typeof d.label === 'string') ? d.label.slice(0, CONFIG.WEATHER.LABEL_MAX_CHARS) : '',
         icon: (typeof d.icon === 'string' && d.icon) ? d.icon : '⛅',
         text: (typeof d.text === 'string') ? d.text.slice(0, CONFIG.SECURITY.MAX_DESC_CHARS) : '',
         tempMax: Math.round(weatherNum(d.tempMax, 0)),

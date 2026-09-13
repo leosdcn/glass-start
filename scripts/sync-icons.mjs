@@ -20,6 +20,7 @@ const __dirname = dirname(__filename);
 const ROOT_DIR = join(__dirname, '..');
 const ICONS_DIR = join(ROOT_DIR, 'icons');
 const BOOKMARKS_PATH = join(ROOT_DIR, 'bookmarks.json');
+const HTTP_TIMEOUT_MS = 8000;
 
 // 终端排版色彩
 const isTTY = process.stdout.isTTY && !process.env.NO_COLOR;
@@ -44,7 +45,7 @@ function getHostname(url) {
     }
 }
 
-function fetchBuffer(url, timeoutMs = 8000) {
+function fetchBuffer(url, timeoutMs = HTTP_TIMEOUT_MS) {
     return new Promise((resolve, reject) => {
         const req = https.get(url, {
             headers: {

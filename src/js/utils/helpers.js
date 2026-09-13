@@ -4,6 +4,8 @@
  * ==============================================================================
  */
 
+import { CONFIG } from '../config/constants.js';
+
 /**
  * 将字符串中的 HTML 特殊字符转义为实体，防止 XSS
  * @param {string} str
@@ -79,7 +81,7 @@ export function faviconFromUrl(url) {
  * @param {number} [size=128] - 图标切片分辨率 (默认 128)
  * @returns {string} Google S2 图标代理地址，无法推断时返回 ''
  */
-export function faviconFallbackFromUrl(url, size = 128) {
+export function faviconFallbackFromUrl(url, size = CONFIG.UI.FAVICON_FALLBACK_SIZE) {
     if (!url) return '';
     let host = getHostname(url);
     if (!host || host === 'a.favicon.im') {
@@ -221,7 +223,7 @@ export async function runWithLoading(btn, fn) {
 export function evictFaviconCache(url) {
     if (url && typeof caches !== 'undefined') {
         try {
-            caches.open('app-favicons-v1').then(cache => cache.delete(url)).catch(() => {});
+            caches.open(CONFIG.CACHE.FAVICON).then(cache => cache.delete(url)).catch(() => {});
         } catch {}
     }
 }

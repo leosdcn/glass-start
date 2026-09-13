@@ -9,6 +9,7 @@ import { getWallpaperDB, setWallpaperDB, removeWallpaperDB } from '../utils/idb.
 import { state, modalState } from '../state/store.js';
 import { dom, $ } from '../state/dom.js';
 import { applyWallpaper } from '../core/theme-engine.js';
+import { showConfirm } from './settings.js';
 
 /**
  * 获取当前生效的自定义壁纸（三通道回退：内存缓存 -> IndexedDB -> localStorage）
@@ -124,9 +125,7 @@ export function previewDraftWallpaper(urlStr) {
             testImg.onload = testImg.onerror = null;
         };
         testImg.onerror = () => {
-            if (typeof window.showConfirm === 'function') {
-                window.showConfirm('无法加载该网络图片，请检查图片 URL 是否有效。', null, '图片无法加载');
-            }
+            showConfirm('无法加载该网络图片，请检查图片 URL 是否有效。', null, '图片无法加载');
             testImg.onload = testImg.onerror = null;
         };
         testImg.src = urlStr;
@@ -183,7 +182,7 @@ export function preloadNextBg() {
     if (typeof navigator !== 'undefined' && (navigator.connection?.saveData || navigator.connection?.effectiveType === '2g')) {
         return;
     }
-    if (typeof window !== 'undefined' && window.innerWidth <= 768) {
+    if (typeof window !== 'undefined' && window.innerWidth <= CONFIG.NAV.TABLET_BREAKPOINT) {
         return;
     }
     const nextIdx = (state.bg + 1) % backgrounds.length;
@@ -207,7 +206,7 @@ export function renderPresetWallpapers() {
         const thumb = `./wallpapers/bg${i + 1}-thumb.avif`;
         const fullTitle = i === 0 ? `${title}（系统默认）` : title;
         return `<button type="button" class="preset-bg-card group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70" data-bg="${bg}" data-title="${title}" title="${fullTitle}">
-            <img data-src="${thumb}" src="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2016%2010'%3E%3C/svg%3E" width="160" height="100" alt="${title}" class="w-full h-full object-cover pointer-events-none" loading="lazy" decoding="async" draggable="false">
+            <img data-src="${thumb}" src="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2016%2010'%3E%3C/svg%3E" width="${CONFIG.UI.WALLPAPER_CARD_WIDTH}" height="${CONFIG.UI.WALLPAPER_CARD_HEIGHT}" alt="${title}" class="w-full h-full object-cover pointer-events-none" loading="lazy" decoding="async" draggable="false">
             <span class="absolute inset-x-0 bottom-0 py-1.5 px-1 bg-black/65 backdrop-blur-sm border-t border-white/10 text-xs text-white/90 text-center font-medium tracking-tight pointer-events-none flex items-center justify-center">${title}</span>
         </button>`;
     }).join('');
