@@ -60,8 +60,6 @@ import {
     closeBookmarkPicker,
     switchSettingsTab,
     applyBgEffects,
-    updateBookmarkCountBadge,
-    updatePickerCount,
     updateAllBookmarkCounters,
     getEditRowHTML,
     getEditFaviconInner,
@@ -109,14 +107,14 @@ export function bindEvents() {
     let originalQuery = '';
     let suggestDebounceTimer = null;
 
-    const searchInput = dom.searchInput || $('searchInput');
-    const searchClearBtn = dom.searchClearBtn || $('searchClearBtn');
-    const randomBookmarkBtn = dom.randomBookmarkBtn || $('randomBookmarkBtn');
-    const suggestionMenu = dom.suggestionMenu || $('suggestionMenu');
-    const engineBtn = dom.engineBtn || $('engineBtn');
-    const dropdownMenu = dom.dropdownMenu || $('dropdownMenu');
-    const weatherBtn = dom.weatherBtn || $('weatherBtn');
-    const weatherPopover = dom.weatherPopover || $('weatherPopover');
+    const searchInput = dom.searchInput;
+    const searchClearBtn = dom.searchClearBtn;
+    const randomBookmarkBtn = dom.randomBookmarkBtn;
+    const suggestionMenu = dom.suggestionMenu;
+    const engineBtn = dom.engineBtn;
+    const dropdownMenu = dom.dropdownMenu;
+    const weatherBtn = dom.weatherBtn;
+    const weatherPopover = dom.weatherPopover;
 
     const updateSearchActionButtons = (hasVal) => {
         if (searchClearBtn) searchClearBtn.classList.toggle('hidden', !hasVal);
@@ -332,7 +330,7 @@ export function bindEvents() {
 
         if ((e.key === '/' || e.code === 'Slash') && (e.metaKey || e.ctrlKey)) {
             e.preventDefault();
-            const shortcutModal = dom.shortcutModal || $('shortcutModal');
+            const shortcutModal = dom.shortcutModal;
             if (shortcutModal && !shortcutModal.hasAttribute('hidden') && shortcutModal.classList.contains('active')) {
                 closeShortcutModal();
             } else {

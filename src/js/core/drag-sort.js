@@ -6,7 +6,7 @@
 import { CONFIG } from '../config/constants.js';
 import { dom, $ } from '../state/dom.js';
 import { modalState } from '../state/store.js';
-import { updateBookmarkCountBadge } from '../modules/settings.js';
+import { updateAllBookmarkCounters } from '../modules/settings.js';
 
 export function initDragSort() {
     let dragSrc = null;
@@ -14,7 +14,7 @@ export function initDragSort() {
     let touchMoveRafId = null;
     let lastOverTarget = null;
     let lastIsTop = null;
-    const editList = dom.editList || $('editList');
+    const editList = dom.editList;
     if (!editList) return;
 
     function updateDragIndicator(target, isTop) {
@@ -236,6 +236,6 @@ export function initDragSort() {
             }
         });
 
-        updateBookmarkCountBadge();
+        updateAllBookmarkCounters();
     });
 }

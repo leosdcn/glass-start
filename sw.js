@@ -120,7 +120,7 @@ self.addEventListener('fetch', e => {
         || pathnameLower === scopePathClean
         || pathnameLower.endsWith('/index.html')
     );
-    const isCoreData = isSameOrigin && (pathnameLower.endsWith('/manifest.json') || pathnameLower.endsWith('/bookmarks.json'));
+    const isCoreData = isSameOrigin && pathnameLower.endsWith('/manifest.json');
     const isFaviconDomain = urlObj.origin === 'https://a.favicon.im'
         || (urlObj.origin === 'https://www.google.com' && pathnameLower.startsWith('/s2/favicons'))
         || urlObj.hostname.endsWith('.gstatic.com');

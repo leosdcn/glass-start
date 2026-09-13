@@ -88,9 +88,7 @@ const PATHS = {
     pkgJson: path.join(ROOT_DIR, 'package.json'),
     readme: path.join(ROOT_DIR, 'README.md'),
     sw: path.join(ROOT_DIR, 'sw.js'),
-    icons: path.join(ROOT_DIR, 'icons'),
-    wallpapers: path.join(ROOT_DIR, 'wallpapers'),
-    headers: path.join(ROOT_DIR, '_headers')
+    public: path.join(ROOT_DIR, 'public')
 };
 
 // 生产构建全链路统一版本戳（用于 Service Worker 缓存池与 HTML 外链脚本防穿透对齐）
@@ -220,69 +218,28 @@ function buildServiceWorkerAndAssets() {
         logItem(`Service Worker 缓存版本已更新: ${c.cyan}${currentBuildVersion}${c.reset}`);
     }
 
-    // 3.2 静态资产同步
-    if (fs.existsSync(PATHS.icons)) {
-        fs.cpSync(PATHS.icons, path.join(PATHS.dist, 'icons'), { recursive: true });
-        const iconCount = fs.readdirSync(PATHS.icons).filter(f => f.endsWith('.png')).length;
-        logItem(`本地图标资源目录已全量复制 (${iconCount} 个文件) 至 dist/icons/`);
+    // 3.2 纯静态资产镜像同步 (public/ -> dist/)
+    if (fs.existsSync(PATHS.public)) {
+        fs.cpSync(PATHS.public, PATHS.dist, { recursive: true });
+        const iconCount = fs.existsSync(path.join(PATHS.public, 'icons')) ? fs.readdirSync(path.join(PATHS.public, 'icons')).filter(f => f.endsWith('.png')).length : 0;
+        const wpCount = fs.existsSync(path.join(PATHS.public, 'wallpapers')) ? fs.readdirSync(path.join(PATHS.public, 'wallpapers')).length : 0;
+        logItem(`纯静态资源目录 public/ 已全量镜像同步至 dist/ (包含 ${iconCount} 个本地图标, ${wpCount} 个壁纸与 PWA/安全元数据)`);
     }
-    if (fs.existsSync(PATHS.wallpapers)) {
-        fs.cpSync(PATHS.wallpapers, path.join(PATHS.dist, 'wallpapers'), { recursive: true });
-        const wpCount = fs.readdirSync(PATHS.wallpapers).length;
-        logItem(`壁纸资源目录已全量复制 (${wpCount} 个文件) 至 dist/wallpapers/`);
-    }
-    if (fs.existsSync(PATHS.headers)) {
-        fs.copyFileSync(PATHS.headers, path.join(PATHS.dist, '_headers'));
-        logItem('Cloudflare Pages _headers 配置文件已复制至 dist/_headers');
-    }
-    const rootAssets = ['manifest.json', 'apple-touch-icon.png', 'robots.txt'];
-    rootAssets.forEach(asset => {
-        const srcPath = path.join(PATHS.root, asset);
-        if (fs.existsSync(srcPath)) {
-            fs.copyFileSync(srcPath, path.join(PATHS.dist, asset));
-        }
-    });
-    logItem('PWA manifest.json、Apple Touch Icon 与 robots.txt 已同步至 dist/');
 }
 
-// 4. 自动数据双向同步机制 (Auto-Sync bookmarks.json -> src/js/config/constants.js)
+// 4. 自动数据校验机制 (bookmarks.json 作为单一真理源直接被 constants.js 导入)
 function syncBookmarksData() {
-    logSection('3/5', '🔄 同步书签默认数据 (bookmarks.json -> 源码)');
+    logSection('3/5', '🔄 校验书签默认数据 (bookmarks.json 单一真理源)');
 
     if (fs.existsSync(PATHS.bookmarksJson) && fs.existsSync(PATHS.srcConstants)) {
         try {
             const bookmarksData = JSON.parse(fs.readFileSync(PATHS.bookmarksJson, 'utf-8'));
-            let content = fs.readFileSync(PATHS.srcConstants, 'utf-8');
-            let updatedCount = 0;
-
-            // 4.1 自动同步常用顶栏 DEFAULT_BOOKMARKS
-            if (bookmarksData.bookmarks && Array.isArray(bookmarksData.bookmarks)) {
-                const formattedBookmarks = formatJsObject(bookmarksData.bookmarks, 4);
-                const nextContent = safeReplaceJsVariable(content, 'DEFAULT_BOOKMARKS', formattedBookmarks);
-                if (nextContent !== content) {
-                    content = nextContent;
-                    updatedCount++;
-                }
-            }
-
-            // 4.2 自动同步分类书签 DEFAULT_CATEGORIES
-            if (bookmarksData.categories && Array.isArray(bookmarksData.categories)) {
-                const formattedCategories = formatJsObject(bookmarksData.categories, 4);
-                const nextContent = safeReplaceJsVariable(content, 'DEFAULT_CATEGORIES', formattedCategories);
-                if (nextContent !== content) {
-                    content = nextContent;
-                    updatedCount++;
-                }
-            }
-
-            if (updatedCount > 0) {
-                fs.writeFileSync(PATHS.srcConstants, content, 'utf-8');
-                logItem(`源码 src/js/config/constants.js 默认数据已更新并与 bookmarks.json 保持同步`);
-            } else {
-                logItem(`源码 src/js/config/constants.js 默认数据已是最新 (与 bookmarks.json 保持 100% 同步)`);
-            }
+            const bmCount = Array.isArray(bookmarksData.bookmarks) ? bookmarksData.bookmarks.length : 0;
+            const catCount = Array.isArray(bookmarksData.categories) ? bookmarksData.categories.length : 0;
+            logItem(`根目录 bookmarks.json 格式合法 (${bmCount} 个常用书签, ${catCount} 个导航分类)`);
+            logItem(`源码 src/js/config/constants.js 已原生引入 bookmarks.json，单一真理源自动生效`);
         } catch (e) {
-            logItem(`自动同步默认书签时出现警告: ${e.message}`, 'warn');
+            logItem(`校验默认书签时出现警告: ${e.message}`, 'warn');
         }
     }
 }
@@ -586,8 +543,7 @@ function startWatch(onRebuildSuccess) {
     const files = [
         { path: PATHS.srcIndexHtml, name: 'index.html' },
         { path: PATHS.bookmarksJson, name: 'bookmarks.json' },
-        { path: PATHS.sw, name: 'sw.js' },
-        { path: path.join(PATHS.root, 'manifest.json'), name: 'manifest.json' }
+        { path: PATHS.sw, name: 'sw.js' }
     ];
 
     files.forEach(({ path: filePath, name }) => {
@@ -600,6 +556,15 @@ function startWatch(onRebuildSuccess) {
             }
         }
     });
+
+    if (fs.existsSync(PATHS.public)) {
+        try {
+            const w = fs.watch(PATHS.public, { recursive: true }, (eventType, filename) => triggerRebuild(`public/${filename}`));
+            watchers.push(w);
+        } catch (e) {
+            console.warn(`  ${c.yellow}⚠ 无法监听 public 目录: ${e.message}${c.reset}`);
+        }
+    }
 
     if (fs.existsSync(PATHS.src)) {
         try {

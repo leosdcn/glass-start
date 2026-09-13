@@ -18,7 +18,7 @@ import https from 'node:https';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const ROOT_DIR = join(__dirname, '..');
-const ICONS_DIR = join(ROOT_DIR, 'icons');
+const ICONS_DIR = join(ROOT_DIR, 'public', 'icons');
 const BOOKMARKS_PATH = join(ROOT_DIR, 'bookmarks.json');
 const HTTP_TIMEOUT_MS = 8000;
 
@@ -240,47 +240,8 @@ function isPlaceholder(buf) {
         console.log(`  ${c.green}✔${c.reset} 已规范 bookmarks.json 中 ${c.bold}${updatedIconCount}${c.reset} 处图标路径为 ./icons/{host}.png`);
     }
 
-    // 自动双向同步源码配置 (bookmarks.json -> src/js/config/constants.js)
-    const CONSTANTS_PATH = join(ROOT_DIR, 'src', 'js', 'config', 'constants.js');
-    if (existsSync(CONSTANTS_PATH)) {
-        try {
-            let constantsContent = readFileSync(CONSTANTS_PATH, 'utf-8');
-            let constantsUpdated = false;
-
-            const safeReplaceJsVariable = (code, varName, replacementJs) => {
-                const reg = new RegExp(`(export\\s+const\\s+${varName}\\s*=\\s*)\\[[\\s\\S]*?\\n\\s*\\];`, 'm');
-                return code.replace(reg, `$1${replacementJs};`);
-            };
-            const formatJsObject = (obj, indent = 4) => {
-                return JSON.stringify(obj, null, 4)
-                    .split('\n')
-                    .map((line, idx) => (idx === 0 ? line : ' '.repeat(indent) + line))
-                    .join('\n');
-            };
-
-            if (data.bookmarks && Array.isArray(data.bookmarks)) {
-                const next = safeReplaceJsVariable(constantsContent, 'DEFAULT_BOOKMARKS', formatJsObject(data.bookmarks, 4));
-                if (next !== constantsContent) {
-                    constantsContent = next;
-                    constantsUpdated = true;
-                }
-            }
-            if (data.categories && Array.isArray(data.categories)) {
-                const next = safeReplaceJsVariable(constantsContent, 'DEFAULT_CATEGORIES', formatJsObject(data.categories, 4));
-                if (next !== constantsContent) {
-                    constantsContent = next;
-                    constantsUpdated = true;
-                }
-            }
-
-            if (constantsUpdated) {
-                writeFileSync(CONSTANTS_PATH, constantsContent, 'utf-8');
-                console.log(`  ${c.green}✔${c.reset} 已自动同步更新源码 src/js/config/constants.js 默认书签数据与本地图标路径`);
-            }
-        } catch (syncErr) {
-            console.warn(`  ${c.yellow}⚠ 同步 constants.js 提示: ${syncErr.message}${c.reset}`);
-        }
-    }
+    // 校验与源码配置 (bookmarks.json 单一真理源已被 src/js/config/constants.js 自动引入)
+    console.log(`  ${c.green}✔${c.reset} bookmarks.json 单一真理源已生效，源码 src/js/config/constants.js 自动共享最新书签与图标`);
 
     console.log(`\n${c.cyan}${HR_DOUBLE}${c.reset}\n`);
 }

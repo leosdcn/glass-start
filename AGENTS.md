@@ -60,6 +60,6 @@
 | **全局事件中枢与焦点捕获** | `src/js/core/events.js` | `bindEvents()`, `bindEditEvents()`, `handleModalTabFocus()` |
 | **XSS 安全防线与字符纠错** | `src/js/utils/helpers.js` | `escapeHtml()`, `safeUrl()`, `normalizeUrl()`, `damerauLevenshtein()` |
 | **IndexedDB 大图壁纸持久化** | `src/js/utils/idb.js` | `getWallpaperDB()`, `setWallpaperDB()`, `clearWallpaperDB()` |
-| **本地图标同步与清洗流水线** | `scripts/sync-icons.mjs`<br/>`icons/` | `main()`, `isPlaceholder()`, `saveAsPng()`, `npm run sync:icons` |
+| **本地图标同步与清洗流水线** | `scripts/sync-icons.mjs`<br/>`public/icons/` | `main()`, `isPlaceholder()`, `saveAsPng()`, `npm run sync:icons` |
 | **启动装配与生命周期入口** | `src/js/init.js`<br/>`src/js/main.js` | `initApp()`, `initPreHydration()` |
 | **离线底座与三池物理隔离** | `sw.js` | `CORE_CACHE`, `FAVICON_CACHE`, `IMG_CACHE` |

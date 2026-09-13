@@ -68,7 +68,7 @@ if (existsSync(headersPath)) {
   const validNoCache = indexCc.includes('max-age=0') && rootCc.includes('max-age=0') && swCc.includes('max-age=0') && appCc.includes('max-age=0') && manifestCc.includes('max-age=0') && !appCc.includes('immutable');
   const validWp = wpCc.includes('max-age=31536000') && wpCc.includes('immutable');
   const validIcon = iconCc.includes('max-age=604800');
-  const srcHeadersContent = readFileSync(join(ROOT, '_headers'), 'utf-8');
+  const srcHeadersContent = readFileSync(join(ROOT, 'public', '_headers'), 'utf-8');
   const syncOk = srcHeadersContent.trim() === headersContent.trim();
   headersOk = validNoCache && validWp && validIcon && syncOk;
 }

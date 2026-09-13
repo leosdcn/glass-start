@@ -33,7 +33,7 @@ export function applyPlatformShortcuts() {
 }
 
 export function renderShortcutModalList() {
-    const container = dom.shortcutModalList || $('shortcutModalList');
+    const container = dom.shortcutModalList;
     if (!container) return;
     container.innerHTML = CONFIG.SHORTCUTS.map(sec => `
         <div>
@@ -52,7 +52,7 @@ export function renderShortcutModalList() {
 }
 
 export function renderCreditsModalList() {
-    const container = dom.creditsList || $('creditsList');
+    const container = dom.creditsList;
     if (!container || container.hasChildNodes()) return;
     container.innerHTML = CONFIG.CREDITS.map(item => `
         <div class="p-2.5 rounded-xl bg-white/5 border border-white/8 hover:bg-white/8 hover:border-white/15 transition-colors duration-150 flex items-center justify-between gap-2">
@@ -83,8 +83,8 @@ export function updateClock() {
     const hh = String(n.getHours()).padStart(2, '0');
     const mm = String(n.getMinutes()).padStart(2, '0');
     const curTimeStr = `${hh}:${mm}`;
-    const clockEl = dom.clock || $('clock');
-    const dateEl = dom.date || $('date');
+    const clockEl = dom.clock;
+    const dateEl = dom.date;
 
     const effectiveLastTimeStr = (typeof window !== 'undefined' && typeof window.lastTimeStr === 'string') ? window.lastTimeStr : lastTimeStr;
 

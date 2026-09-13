@@ -82,18 +82,16 @@ export function getDraftBookmarkCount() {
 
 export function updateAllBookmarkCounters() {
     const text = `已添加 ${getDraftBookmarkCount()} 项`;
-    const badge = dom.bookmarkCountBadge || $('bookmarkCountBadge');
-    const pickerCount = dom.pickerCount || $('pickerCount');
+    const badge = dom.bookmarkCountBadge;
+    const pickerCount = dom.pickerCount;
     if (badge) badge.textContent = text;
     if (pickerCount) pickerCount.textContent = text;
 }
 
-export const updateBookmarkCountBadge = updateAllBookmarkCounters;
-
 export function loadPresetBgCardImages() {
     if (isPresetBgImagesLoaded) return;
     isPresetBgImagesLoaded = true;
-    const container = dom.presetWallpaperGrid || $('presetWallpaperGrid');
+    const container = dom.presetWallpaperGrid;
     if (!container) return;
     container.querySelectorAll('img[data-src]').forEach((img, idx) => {
         const src = img.dataset.src;
@@ -139,7 +137,7 @@ export function switchSettingsTab(targetTabId) {
 export function applyBgEffects(opacity, blur, save = false) {
     const op = Math.max(0, Math.min(CONFIG.APPEARANCE.MAX_MASK_OPACITY, parseInt(opacity, 10) || 0));
     const bl = Math.max(0, Math.min(CONFIG.APPEARANCE.MAX_BG_BLUR, parseInt(blur, 10) || 0));
-    const bgOverlay = dom.bgOverlay || $('bgOverlay');
+    const bgOverlay = dom.bgOverlay;
     if (bgOverlay) {
         bgOverlay.style.backgroundColor = `rgba(0,0,0,${op / 100})`;
         const blurStyle = bl > 0 ? `blur(${bl}px)` : 'none';
@@ -152,10 +150,10 @@ export function applyBgEffects(opacity, blur, save = false) {
             });
         }
     }
-    const maskOpacityVal = dom.maskOpacityVal || $('maskOpacityVal');
-    const bgBlurVal = dom.bgBlurVal || $('bgBlurVal');
-    const maskOpacityInput = dom.maskOpacityInput || $('maskOpacityInput');
-    const bgBlurInput = dom.bgBlurInput || $('bgBlurInput');
+    const maskOpacityVal = dom.maskOpacityVal;
+    const bgBlurVal = dom.bgBlurVal;
+    const maskOpacityInput = dom.maskOpacityInput;
+    const bgBlurInput = dom.bgBlurInput;
 
     if (maskOpacityVal) maskOpacityVal.textContent = `${op}%`;
     if (bgBlurVal) bgBlurVal.textContent = `${bl}px`;
@@ -249,7 +247,7 @@ export function appendDraftBookmarkRow({ name = '', url = '', icon = '', desc = 
     if (!modalState.draftBookmarks) modalState.draftBookmarks = [];
     modalState.draftBookmarks.push(newBm);
 
-    const editList = dom.editList || $('editList');
+    const editList = dom.editList;
     if (!editList) return null;
 
     const tempDiv = document.createElement('div');
@@ -296,11 +294,11 @@ export function renderEditList(listToRender) {
         }));
     }
 
-    const editList = dom.editList || $('editList');
+    const editList = dom.editList;
     if (!editList) return;
     editList.innerHTML = '<div id="dragDropIndicator" class="drag-drop-line"></div>' + modalState.draftBookmarks.map((bm, i) => getEditRowHTML(bm.name, bm.url, i, bm.icon, bm.id)).join('');
     dom.dragDropIndicator = editList.querySelector('#dragDropIndicator');
-    updateBookmarkCountBadge();
+    updateAllBookmarkCounters();
 
     editList.querySelectorAll('img.edit-favicon-img').forEach(img => {
         checkImageReady(img, handleEditIconError);
@@ -343,7 +341,7 @@ export async function openEditModal() {
     closeDropdown();
     hideSuggestions();
     editModalTriggerEl = document.activeElement;
-    const editBtn = dom.editBookmarksBtn || $('editBookmarksBtn');
+    const editBtn = dom.editBookmarksBtn;
     editBtn?.setAttribute('aria-expanded', 'true');
     state.editOpen = true;
     OverlayStack.push('editModal', cancelEditModal);
@@ -373,7 +371,7 @@ export async function openEditModal() {
     updateWallpaperStatusUI(modalState.draftWallpaper);
     updatePresetBgCardsUI(modalState.draftWallpaper);
     applyBgEffects(modalState.draftMaskOpacity, modalState.draftBgBlur, false);
-    animateShowModal(dom.editModal || $('editModal'));
+    animateShowModal(dom.editModal);
 }
 
 export function cancelEditModal() {
@@ -384,20 +382,20 @@ export function cancelEditModal() {
 export function closeEditModal() {
     state.editOpen = false;
     OverlayStack.pop('editModal');
-    const editBtn = dom.editBookmarksBtn || $('editBookmarksBtn');
+    const editBtn = dom.editBookmarksBtn;
     editBtn?.setAttribute('aria-expanded', 'false');
-    const editModal = dom.editModal || $('editModal');
+    const editModal = dom.editModal;
     if (document.activeElement && editModal && editModal.contains(document.activeElement)) {
         document.activeElement.blur();
     }
     animateHideModal(editModal);
 
-    const inputRow = dom.urlBgInputRow || $('urlBgInputRow');
+    const inputRow = dom.urlBgInputRow;
     if (inputRow && !inputRow.classList.contains('hidden')) {
         inputRow.classList.add('hidden');
-        const btnGroup = dom.urlBgBtnGroup || $('urlBgBtnGroup');
+        const btnGroup = dom.urlBgBtnGroup;
         btnGroup?.classList.remove('hidden');
-        const urlInput = dom.urlBgInput || $('urlBgInput');
+        const urlInput = dom.urlBgInput;
         if (urlInput) urlInput.value = '';
     }
 
@@ -409,7 +407,7 @@ export function closeEditModal() {
 }
 
 export function openShortcutModal() {
-    const modal = dom.shortcutModal || $('shortcutModal');
+    const modal = dom.shortcutModal;
     if (!modal) return;
     closeDropdown();
     hideSuggestions();
@@ -420,7 +418,7 @@ export function openShortcutModal() {
 }
 
 export function closeShortcutModal() {
-    const modal = dom.shortcutModal || $('shortcutModal');
+    const modal = dom.shortcutModal;
     if (!modal) return;
     OverlayStack.pop('shortcutModal');
     dom.openShortcutFromSettingsBtn?.setAttribute('aria-expanded', 'false');
@@ -436,7 +434,7 @@ export function closeShortcutModal() {
 }
 
 export function openCreditsModal() {
-    const modal = dom.creditsModal || $('creditsModal');
+    const modal = dom.creditsModal;
     if (!modal) return;
     renderCreditsModalList();
     creditsModalTriggerEl = document.activeElement;
@@ -446,7 +444,7 @@ export function openCreditsModal() {
 }
 
 export function closeCreditsModal() {
-    const modal = dom.creditsModal || $('creditsModal');
+    const modal = dom.creditsModal;
     if (!modal) return;
     OverlayStack.pop('creditsModal');
     dom.openCreditsFromSettingsBtn?.setAttribute('aria-expanded', 'false');
@@ -462,11 +460,11 @@ export function closeCreditsModal() {
 }
 
 export function showConfirm(message, onConfirm, title = '重置确认', triggerEl = null, okText = '') {
-    const modal = dom.confirmModal || $('confirmModal');
-    const titleEl = dom.confirmTitle || $('confirmTitle');
-    const msgEl = dom.confirmMsg || $('confirmMsg');
-    const okBtn = dom.confirmOkBtn || $('confirmOkBtn');
-    const cancelBtn = dom.confirmCancelBtn || $('confirmCancelBtn');
+    const modal = dom.confirmModal;
+    const titleEl = dom.confirmTitle;
+    const msgEl = dom.confirmMsg;
+    const okBtn = dom.confirmOkBtn;
+    const cancelBtn = dom.confirmCancelBtn;
 
     if (!modal || !okBtn || !cancelBtn || !msgEl) {
         if (typeof window !== 'undefined' && window.confirm(message)) onConfirm?.();
@@ -530,14 +528,14 @@ export function openBookmarkPicker(triggerEl = null) {
     bookmarkPickerTriggerEl = triggerEl || document.activeElement || dom.togglePickerBtn;
     dom.togglePickerBtn?.setAttribute('aria-expanded', 'true');
     OverlayStack.push('bookmarkPicker', closeBookmarkPicker);
-    animateShowModal(dom.bookmarkPicker || $('bookmarkPicker'));
+    animateShowModal(dom.bookmarkPicker);
     renderPickerCategories();
 }
 
 export function closeBookmarkPicker() {
     OverlayStack.pop('bookmarkPicker');
     dom.togglePickerBtn?.setAttribute('aria-expanded', 'false');
-    const picker = dom.bookmarkPicker || $('bookmarkPicker');
+    const picker = dom.bookmarkPicker;
     if (document.activeElement && picker && picker.contains(document.activeElement)) {
         document.activeElement.blur();
     }
@@ -678,8 +676,6 @@ export function resetBookmarks() {
     }, '重置所有系统设置');
 }
 
-export const updatePickerCount = updateAllBookmarkCounters;
-
 /**
  * 获取当前已存在于编辑列表或已添加的 URL 集合
  * @returns {Set<string>}
@@ -702,7 +698,7 @@ export function getExistingUrls() {
  * @returns {void}
  */
 export function renderPickerCategories() {
-    const pickerContent = dom.pickerContent || $('pickerContent');
+    const pickerContent = dom.pickerContent;
     if (!pickerContent) return;
     const urls = getExistingUrls();
     const sortedCats = getSortedCategories();
@@ -735,6 +731,6 @@ export function renderPickerCategories() {
         </div>
     `;
     }).join('');
-    updatePickerCount();
+    updateAllBookmarkCounters();
     initPickerFaviconObserver();
 }

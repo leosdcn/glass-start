@@ -13,7 +13,7 @@ import { launchSession, sleep } from './helpers.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
-const ICONS_DIR = join(ROOT, 'icons');
+const ICONS_DIR = join(ROOT, 'public', 'icons');
 const DIST_ICONS_DIR = join(ROOT, 'dist', 'icons');
 const BOOKMARKS_PATH = join(ROOT, 'bookmarks.json');
 
@@ -71,7 +71,7 @@ async function run() {
     console.log(`\n${c.bold}─── [2/3] 💾 磁盘图标物理存在性与 PNG 二进制签名合法性检验 ──────────────${c.reset}`);
     
     const sourceIconsExist = existsSync(ICONS_DIR);
-    assert('源码 icons/ 目录物理存在', sourceIconsExist);
+    assert('源码 public/icons/ 目录物理存在', sourceIconsExist);
 
     const distIconsExist = existsSync(DIST_ICONS_DIR);
     assert('构建产物 dist/icons/ 目录物理存在', distIconsExist);

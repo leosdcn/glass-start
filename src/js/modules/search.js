@@ -35,7 +35,7 @@ export function setOriginalQuery(val) {
  * @returns {void}
  */
 export function renderEngineDropdown() {
-    const dropdownMenu = dom.dropdownMenu || $('dropdownMenu');
+    const dropdownMenu = dom.dropdownMenu;
     if (!dropdownMenu) return;
     const curEngine = state.engine || 'bing';
     const order = ['bing', 'google', 'wikipedia'];
@@ -56,8 +56,8 @@ export function renderEngineDropdown() {
  */
 export function toggleDropdown() {
     state.open = !state.open;
-    const dropdownMenu = dom.dropdownMenu || $('dropdownMenu');
-    const engineBtn = dom.engineBtn || $('engineBtn');
+    const dropdownMenu = dom.dropdownMenu;
+    const engineBtn = dom.engineBtn;
     dropdownMenu?.classList.toggle('active', state.open);
     dropdownMenu?.setAttribute('aria-hidden', (!state.open).toString());
     engineBtn?.setAttribute('aria-expanded', state.open.toString());
@@ -75,8 +75,8 @@ export function toggleDropdown() {
 export function closeDropdown() {
     state.open = false;
     OverlayStack.pop('dropdown');
-    const dropdownMenu = dom.dropdownMenu || $('dropdownMenu');
-    const engineBtn = dom.engineBtn || $('engineBtn');
+    const dropdownMenu = dom.dropdownMenu;
+    const engineBtn = dom.engineBtn;
     dropdownMenu?.classList.remove('active');
     dropdownMenu?.setAttribute('aria-hidden', 'true');
     engineBtn?.setAttribute('aria-expanded', 'false');
@@ -91,11 +91,11 @@ export function setEngine(key, save = true) {
     const validEngine = engines[key] ? key : 'bing';
     state.engine = validEngine;
     const engineObj = engines[validEngine] || engines.bing;
-    const engineName = dom.engineName || $('engineName');
-    const engineBtn = dom.engineBtn || $('engineBtn');
-    const engineIcon = dom.engineIcon || $('engineIcon');
-    const dropdownMenu = dom.dropdownMenu || $('dropdownMenu');
-    const searchInput = dom.searchInput || $('searchInput');
+    const engineName = dom.engineName;
+    const engineBtn = dom.engineBtn;
+    const engineIcon = dom.engineIcon;
+    const dropdownMenu = dom.dropdownMenu;
+    const searchInput = dom.searchInput;
 
     if (engineName) engineName.textContent = engineObj.name;
     if (engineBtn) {
@@ -123,7 +123,7 @@ export function setEngine(key, save = true) {
  * @param {boolean} [newTab=false] - 是否在新标签页中打开
  */
 export function doSearch(queryOverride, newTab = false) {
-    const searchInput = dom.searchInput || $('searchInput');
+    const searchInput = dom.searchInput;
     const q = (queryOverride !== undefined ? queryOverride : (searchInput ? searchInput.value : '')).trim();
     if (!q) return;
     hideSuggestions();
@@ -197,7 +197,7 @@ export function openRandomBookmark(newTab = true) {
     if (list.length === 0) return;
     const randomBm = list[Math.floor(Math.random() * list.length)];
 
-    const randomBtn = dom.randomBookmarkBtn || $('randomBookmarkBtn');
+    const randomBtn = dom.randomBookmarkBtn;
     if (randomBtn) {
         diceAngle += CONFIG.PHYSICS.DICE_ROTATION_STEP;
         const svg = randomBtn.querySelector('svg');
@@ -422,8 +422,8 @@ export function getLocalBookmarkSuggestions(query, limit = CONFIG.SUGGEST.MAX_LO
  * @returns {void}
  */
 export function renderSuggestions(localList = [], netList = [], preserveSelection = false, isNetLoading = false) {
-    const suggestionMenu = dom.suggestionMenu || $('suggestionMenu');
-    const searchInput = dom.searchInput || $('searchInput');
+    const suggestionMenu = dom.suggestionMenu;
+    const searchInput = dom.searchInput;
     if (!suggestionMenu) return;
     const prevIdx = preserveSelection ? selectedSuggestionIdx : -1;
     selectedSuggestionIdx = -1;
@@ -559,8 +559,8 @@ export function hideSuggestions() {
         suggestionScriptTag = null;
     }
     OverlayStack.pop('suggestions');
-    const suggestionMenu = dom.suggestionMenu || $('suggestionMenu');
-    const searchInput = dom.searchInput || $('searchInput');
+    const suggestionMenu = dom.suggestionMenu;
+    const searchInput = dom.searchInput;
     if (suggestionMenu) {
         suggestionMenu.classList.remove('active', 'keyboard-nav');
         suggestionMenu.setAttribute('aria-hidden', 'true');

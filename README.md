@@ -2,7 +2,7 @@
 
 > 极简纯净的毛玻璃浏览器起始页。
 
-[![Version](https://img.shields.io/badge/version-v4.9.2-blue.svg)](package.json)
+[![Version](https://img.shields.io/badge/version-v4.9.3-blue.svg)](package.json)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-v4-38bdf8?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
 
 ---
@@ -131,7 +131,7 @@ npm install
 # 2. 启动本地开发服务 (支持增量编译热重载与局域网调试)
 npm run dev
 
-# 3. (若修改/新增书签) 自动化同步全站书签图标至本地 icons/ 目录
+# 3. (若修改/新增书签) 自动化同步全站书签图标至 public/icons/ 目录
 npm run sync:icons
 
 # 4. 执行全量静态规范与工程红线校验 (<50ms)
@@ -140,7 +140,7 @@ npm run lint
 # 5. 运行端到端自动化测试验证
 npm test
 
-# 6. 生产构建打包 (产物位于 dist/，包含数据注入与 icons/ 本地图标同步)
+# 6. 生产构建打包 (产物位于 dist/，包含数据校验与 public/ 静态资产同步)
 npm run build
 ```
 

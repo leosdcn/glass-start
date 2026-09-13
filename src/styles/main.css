@@ -9,7 +9,7 @@
    1. SETTINGS & DESIGN TOKENS (设计令牌与基础配置)
    ========================================================================== */
 /* .nr 模式：直达导航页预渲染，与 HEAD inline script 配合消除刷新抖动 */
-.nr #startSection { -webkit-transform: translate3d(0, -100vh, 0); -webkit-transform: translate3d(0, -100dvh, 0); transform: translate3d(0, -100vh, 0); transform: translate3d(0, -100dvh, 0); transition: none; }
+.nr #startSection { -webkit-transform: translate3d(0, -100dvh, 0); transform: translate3d(0, -100dvh, 0); transition: none; }
 .nr #navSection { visibility: visible; -webkit-transform: translate3d(0, 0, 0); transform: translate3d(0, 0, 0); transition: none; }
 .nr #editBookmarksBtn, .nr #weatherWidget { opacity: 0; pointer-events: none; transition: none; }
 .nr *, .nr *::before, .nr *::after { animation: none; transition: none; }

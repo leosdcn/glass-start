@@ -166,7 +166,7 @@ export async function loadUserData() {
     } else {
         pageData.bookmarks = getDerivedBookmarks(DEFAULT_BOOKMARKS.map(b => b.url), pageData.categories, customMeta);
     }
-    const bookmarksEl = dom.bookmarks || $('bookmarks');
+    const bookmarksEl = dom.bookmarks;
     if (bookmarksEl) {
         renderBookmarks();
     }
@@ -242,7 +242,7 @@ export function initFaviconObserver() {
 }
 
 export function initPickerFaviconObserver() {
-    const container = dom.pickerContent || $('pickerContent');
+    const container = dom.pickerContent;
     if (!container) return;
     container.querySelectorAll('img.lazy-icon').forEach(img => {
         checkImageReady(img, handleIconError);
@@ -251,7 +251,7 @@ export function initPickerFaviconObserver() {
 
 let lastBookmarksSignature = '';
 export function renderBookmarks(force = false) {
-    const bookmarksEl = dom.bookmarks || $('bookmarks');
+    const bookmarksEl = dom.bookmarks;
     if (!bookmarksEl) return;
     const currentSig = JSON.stringify(pageData.bookmarks);
     if (!force && lastBookmarksSignature && currentSig === lastBookmarksSignature) return;
@@ -298,8 +298,8 @@ let cachedSidebarSections = [];
 let cachedSectionOffsets = [];
 
 export function refreshSidebarNavCache() {
-    const sidebarList = dom.sidebarList || $('sidebarList');
-    const navContent = dom.navContent || $('navContent');
+    const sidebarList = dom.sidebarList;
+    const navContent = dom.navContent;
     if (!sidebarList || !navContent) return;
     cachedSidebarItems = Array.from(sidebarList.querySelectorAll('[data-target]'));
     cachedSidebarSections = cachedSidebarItems.map(item => document.getElementById(item.dataset.target)).filter(Boolean);
@@ -328,9 +328,9 @@ export function scrollTabIntoView(item, container) {
 }
 
 export function updateSidebarActive() {
-    const sidebarContainer = dom.sidebar || $('sidebar');
-    const sidebarList = dom.sidebarList || $('sidebarList');
-    const content = dom.navContent || $('navContent');
+    const sidebarContainer = dom.sidebar;
+    const sidebarList = dom.sidebarList;
+    const content = dom.navContent;
     if (!sidebarList || !content || isManualScrolling) return;
 
     if (!cachedSidebarItems.length || !cachedSectionOffsets.length) refreshSidebarNavCache();
@@ -376,15 +376,15 @@ export function updateSidebarActive() {
 }
 
 export function renderNavCategories(force = false) {
-    const sidebarList = dom.sidebarList || $('sidebarList');
-    const navCategories = dom.navCategories || $('navCategories');
+    const sidebarList = dom.sidebarList;
+    const navCategories = dom.navCategories;
     if (!sidebarList || !navCategories) return;
 
     const currentSig = JSON.stringify(pageData.categories);
     if (!force && lastNavCategoriesSignature && currentSig === lastNavCategoriesSignature) return;
     lastNavCategoriesSignature = currentSig;
 
-    const navContent = dom.navContent || $('navContent');
+    const navContent = dom.navContent;
     const savedScrollTop = navContent ? navContent.scrollTop : 0;
     const sortedCats = getSortedCategories();
 
@@ -436,8 +436,8 @@ export function renderNavCategories(force = false) {
 }
 
 export function initSidebarNav() {
-    const sidebarList = dom.sidebarList || $('sidebarList');
-    const content = dom.navContent || $('navContent');
+    const sidebarList = dom.sidebarList;
+    const content = dom.navContent;
     if (!sidebarList || !content) return;
 
     updateSidebarActive();
@@ -473,7 +473,7 @@ export function initSidebarNav() {
             const allItems = Array.from(sidebarList.querySelectorAll('[data-target]'));
             allItems.forEach(item => item.classList.remove('active'));
             btn.classList.add('active');
-            const sidebarContainer = dom.sidebar || $('sidebar');
+            const sidebarContainer = dom.sidebar;
             scrollTabIntoView(btn, sidebarContainer);
 
             const cat0 = document.getElementById('cat-0');

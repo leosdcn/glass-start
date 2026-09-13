@@ -203,17 +203,17 @@ if (allSrcJsFiles.length > 0) {
 // ---- 3. 根目录 JSON 配置文件合法性校验 ----
 logSection('3/4', '📦 校验 JSON 配置文件格式');
 const jsonFiles = [
-    { name: 'bookmarks.json', desc: '书签与分类数据源' },
-    { name: 'manifest.json', desc: 'PWA Web 应用程序清单' },
-    { name: 'package.json', desc: 'NPM 依赖与指令配置' }
+    { name: 'bookmarks.json', path: join(root, 'bookmarks.json'), desc: '书签与分类数据源' },
+    { name: 'manifest.json', path: join(root, 'public', 'manifest.json'), desc: 'PWA Web 应用程序清单' },
+    { name: 'package.json', path: join(root, 'package.json'), desc: 'NPM 依赖与指令配置' }
 ].filter(f => {
-    try { return statSync(join(root, f.name)).isFile(); } catch { return false; }
+    try { return statSync(f.path).isFile(); } catch { return false; }
 });
 
 for (const item of jsonFiles) {
     const label = `${item.name.padEnd(15, ' ')} (${item.desc})`;
     try {
-        const content = readFileSync(join(root, item.name), 'utf-8');
+        const content = readFileSync(item.path, 'utf-8');
         JSON.parse(content);
         passCount++;
         logItem(`${label} 格式合法`);
@@ -504,14 +504,14 @@ try {
             errors.push(`${prefix} 图标路径必须采用规范的本地相对路径 "./icons/{domain}.png" (当前: "${bm.icon}")，请运行 "npm run sync:icons" 自动同步！`);
         } else {
             const iconFileName = bm.icon.replace(/^\.\/icons\//, '');
-            const iconPath = join(root, 'icons', iconFileName);
+            const iconPath = join(root, 'public', 'icons', iconFileName);
             if (!existsSync(iconPath)) {
-                errors.push(`${prefix} 本地图标物理文件缺失: "icons/${iconFileName}"，请运行 "npm run sync:icons" 自动下载转写！`);
+                errors.push(`${prefix} 本地图标物理文件缺失: "public/icons/${iconFileName}"，请运行 "npm run sync:icons" 自动下载转写！`);
             } else {
                 try {
                     const buf = readFileSync(iconPath);
                     if (buf.length < 8 || !buf.subarray(0, 8).equals(PNG_HEADER)) {
-                        errors.push(`${prefix} 本地图标 "icons/${iconFileName}" 非有效二进制 PNG 文件 (魔数校验失败)，请运行 "npm run sync:icons" 重新生成！`);
+                        errors.push(`${prefix} 本地图标 "public/icons/${iconFileName}" 非有效二进制 PNG 文件 (魔数校验失败)，请运行 "npm run sync:icons" 重新生成！`);
                     }
                 } catch (readErr) {
                     errors.push(`${prefix} 本地图标读取失败: ${readErr.message}`);

@@ -97,8 +97,8 @@ function getDirHash(dirPath) {
 function getSrcBuildFingerprint() {
   const parts = [
     getDirHash(join(rootDir, 'src')),
+    getDirHash(join(rootDir, 'public')),
     getFileHash(join(rootDir, 'bookmarks.json')),
-    getFileHash(join(rootDir, 'manifest.json')),
     getFileHash(join(rootDir, 'package.json')),
     getFileHash(join(rootDir, 'scripts', 'build.js')),
     getFileHash(join(rootDir, 'sw.js')),
