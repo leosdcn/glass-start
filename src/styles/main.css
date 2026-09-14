@@ -475,10 +475,6 @@ body.drag-settling .drag-handle {
     background-color: rgba(255, 255, 255, 0.22);
     transition: transform var(--duration-press) var(--ease-snappy), background-color var(--duration-press) ease;
 }
-#navHeader:active {
-    background-color: rgba(255, 255, 255, 0.16);
-    transition: background-color var(--duration-press) ease;
-}
 .json-dropzone:active {
     transform: scale(0.985);
     background-color: rgba(255, 255, 255, 0.12);
