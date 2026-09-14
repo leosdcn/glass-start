@@ -413,21 +413,21 @@ body.bookmark-dragging .drag-handle,
 body.drag-settling .drag-handle {
     color: rgba(255, 255, 255, 0.3);
 }
-.drag-drop-line {
-    position: absolute;
-    top: 0;
-    left: 2.5rem;
-    right: 2.5rem;
-    height: 2px;
-    background: rgba(255, 255, 255, 0.55);
-    border-radius: 9999px;
-    box-shadow: 0 0 6px 1px rgba(255, 255, 255, 0.22),
-                0 0 14px rgba(255, 255, 255, 0.1);
-    pointer-events: none;
-    z-index: 50;
-    opacity: 0;
-    transition: transform 0.12s var(--ease-spring), opacity 0.12s ease;
-    will-change: transform, opacity;
+/* 方案C：整行高亮替代插入线（原绝对定位线条不再使用） */
+.drag-drop-line { display: none; }
+/* 插入目标上方：顶部边缘亮起 */
+.edit-row-card.drop-target-above {
+    background-color: rgba(99, 102, 241, 0.12);
+    border-color: rgba(99, 102, 241, 0.4);
+    box-shadow: 0 -2px 0 0 rgba(99, 102, 241, 0.65),
+                inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+/* 插入目标下方：底部边缘亮起 */
+.edit-row-card.drop-target-below {
+    background-color: rgba(99, 102, 241, 0.12);
+    border-color: rgba(99, 102, 241, 0.4);
+    box-shadow: 0 2px 0 0 rgba(99, 102, 241, 0.65),
+                inset 0 -1px 0 rgba(255, 255, 255, 0.04);
 }
 .edit-favicon-box {
     position: relative;

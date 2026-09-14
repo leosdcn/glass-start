@@ -21,13 +21,11 @@ export function initDragSort() {
     function updateDragIndicator(target, isTop) {
         lastOverTarget = target;
         lastIsTop = isTop;
-        const lineY = isTop
-            ? (target.offsetTop + CONFIG.PHYSICS.DRAG_INDICATOR_OFFSET_TOP)
-            : (target.offsetTop + target.offsetHeight + CONFIG.PHYSICS.DRAG_INDICATOR_OFFSET_BOTTOM);
-        if (dom.dragDropIndicator) {
-            dom.dragDropIndicator.style.transform = `translate3d(0, ${lineY}px, 0)`;
-            dom.dragDropIndicator.style.opacity = '1';
-        }
+        // 方案C：切换目标行高亮类，清除其它行残留
+        editList.querySelectorAll('.edit-row-card').forEach(el => {
+            el.classList.remove('drop-target-above', 'drop-target-below');
+        });
+        target.classList.add(isTop ? 'drop-target-above' : 'drop-target-below');
     }
 
     function clearDragClasses() {
@@ -40,11 +38,8 @@ export function initDragSort() {
             touchMoveRafId = null;
         }
         editList.querySelectorAll('.edit-row-card').forEach(el => {
-            el.classList.remove('dragging');
+            el.classList.remove('dragging', 'drop-target-above', 'drop-target-below');
         });
-        if (dom.dragDropIndicator) {
-            dom.dragDropIndicator.style.opacity = '0';
-        }
         lastOverTarget = null;
         lastIsTop = null;
     }
