@@ -191,6 +191,12 @@
                     "desc": "开发者在线工具箱"
                 },
                 {
+                    "name": "Key-Test",
+                    "url": "https://key-test.com",
+                    "icon": "./icons/key-test.com.png",
+                    "desc": "在线键盘按键测试"
+                },
+                {
                     "name": "JSFiddle",
                     "url": "https://jsfiddle.net",
                     "icon": "./icons/jsfiddle.net.png",
