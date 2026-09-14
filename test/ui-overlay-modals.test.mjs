@@ -7,7 +7,7 @@
  * 6. OverlayStack 多层弹窗嵌套压退栈、安全白名单与 Focus Trap 焦点锁
  * 7. 移动端视口 (iPhone 17) 与侧边栏 Tab 滚动联动及 44px 触控规范
  */
-import { launchSession, sleep, makeTester, pressKey } from './helpers.mjs';
+import { launchSession, sleep, makeTester, pressKey, waitFor } from './helpers.mjs';
 
 const { pass, finish } = makeTester();
 const { server, chrome, send, evalJS } = await launchSession();
@@ -21,13 +21,14 @@ const stackTop = () => evalJS(`OverlayStack.top() ? OverlayStack.top().id : null
 // ══════════════════════════════════════════════════════════════════════
 
 await evalJS('sessionStorage.setItem("startpage_section", "nav")');
-await evalJS('setTimeout(() => location.reload(), 10)'); await sleep(800);
+await evalJS('setTimeout(() => location.reload(), 10)'); await sleep(1200);
 const restored = await evalJS(`(() => {
   const n = document.getElementById('navSection');
   return n.className.includes('screen-pushed-in') && !n.className.includes('nav-hidden');
 })()`);
 
-await evalJS('window.switchToStart()'); await sleep(650);
+await evalJS('window.switchToStart()');
+await waitFor(evalJS, 'Math.abs(document.getElementById("startSection").getBoundingClientRect().top) < 0.1');
 const backFromReloadedNav = await evalJS(`(() => {
   const s = document.getElementById('startSection');
   const clock = document.getElementById('clock');
@@ -166,7 +167,11 @@ const navJumpBackTest = await evalJS(`(async () => {
   document.dispatchEvent(new WheelEvent('wheel', { deltaY: -60, cancelable: true }));
   await new Promise(r => setTimeout(r, 30));
   document.dispatchEvent(new WheelEvent('wheel', { deltaY: -60, cancelable: true }));
-  await new Promise(r => setTimeout(r, 650));
+  for (let i = 0; i < 30; i++) {
+    await new Promise(r => setTimeout(r, 50));
+    const rect = document.getElementById('startSection')?.getBoundingClientRect();
+    if (rect && Math.abs(rect.top) < 0.1) break;
+  }
   
   const s = document.getElementById('startSection');
   const n = document.getElementById('navSection');
