@@ -66,8 +66,8 @@
     line-height: 1.25;
     white-space: nowrap;
     font-variant-numeric: tabular-nums;
-    user-select: none;
     -webkit-user-select: none;
+    user-select: none;
 }
 
 .glass-btn-primary {
@@ -112,6 +112,7 @@
     transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
     cursor: pointer;
     white-space: nowrap;
+    -webkit-user-select: none;
     user-select: none;
 }
 

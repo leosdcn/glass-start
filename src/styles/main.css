@@ -112,6 +112,7 @@ button, [role="button"] {
 /* 全局禁用所有图片、普通链接与卡片的原生拖拽，防止意外拖动触发浏览器 Ghost Drag 导致 :hover / 3D 状态卡死 */
 img, a, button, .nav-bookmark, .bookmark-item {
     -webkit-user-drag: none;
+    -webkit-user-select: none;
     user-select: none;
 }
 
@@ -579,6 +580,7 @@ section:first-of-type {
 }
 #navCategories {
     padding-bottom: calc(100vh - 12rem);
+    padding-bottom: calc(100dvh - 12rem);
 }
 #editBookmarksBtn.hidden-on-nav {
     pointer-events: none;
