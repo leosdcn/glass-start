@@ -28,16 +28,16 @@ let bgSwitchTimer = null;
 
 export function updateThemeColor(color, isLight) {
     if (!color || typeof document === 'undefined') return;
-    if (!cachedThemeColorMeta || !cachedThemeColorMeta.parentNode) {
-        cachedThemeColorMeta = document.querySelector('meta[name="theme-color"]');
-        if (!cachedThemeColorMeta) {
-            cachedThemeColorMeta = document.createElement('meta');
-            cachedThemeColorMeta.name = 'theme-color';
-            document.head.appendChild(cachedThemeColorMeta);
-        }
-    }
-    if (cachedThemeColorMeta.content !== color) {
-        cachedThemeColorMeta.content = color;
+    const themeMetas = document.querySelectorAll('meta[name="theme-color"]');
+    if (themeMetas.length > 0) {
+        themeMetas.forEach(meta => {
+            if (meta.content !== color) meta.content = color;
+        });
+    } else {
+        const meta = document.createElement('meta');
+        meta.name = 'theme-color';
+        meta.content = color;
+        document.head.appendChild(meta);
     }
     if (typeof isLight === 'boolean') {
         const scheme = isLight ? 'light' : 'dark';

@@ -329,4 +329,32 @@
         -webkit-backdrop-filter: none;
         backdrop-filter: none;
     }
+    .wallpaper-bright .glass {
+        background: rgba(255, 255, 255, 0.94);
+        color: #0f172a;
+        border-color: rgba(0, 0, 0, 0.12);
+    }
+    .wallpaper-bright .glass-strong {
+        background: rgba(255, 255, 255, 0.98);
+        color: #0f172a;
+        border-color: rgba(0, 0, 0, 0.16);
+    }
+}
+
+/* 兼容性兜底：不支持 backdrop-filter 或节能降级环境下的安全实色底板 */
+@supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+    .glass {
+        background: rgba(15, 23, 42, 0.88);
+    }
+    .glass-strong {
+        background: rgba(15, 23, 42, 0.94);
+    }
+    .wallpaper-bright .glass {
+        background: rgba(255, 255, 255, 0.92);
+        color: #0f172a;
+    }
+    .wallpaper-bright .glass-strong {
+        background: rgba(255, 255, 255, 0.96);
+        color: #0f172a;
+    }
 }
