@@ -317,7 +317,7 @@ html.wallpaper-bright .nav-bookmark .text-2xs {
         border-left: none;
         white-space: nowrap;
         padding: 0.5rem 0.75rem;
-        min-height: 2.25rem;
+        min-height: 2.75rem;
         display: inline-flex;
         align-items: center;
         flex-shrink: 0;
@@ -372,7 +372,7 @@ textarea::placeholder {
     outline: none;
 }
 
-#navHint { white-space: nowrap; flex-shrink: 0; border-radius: var(--radius); }
+#navHint { position: relative; white-space: nowrap; flex-shrink: 0; border-radius: var(--radius); }
 #navHint svg {
     width: 0.75rem;
     height: 0.75rem;
@@ -605,6 +605,7 @@ section:first-of-type {
     }
 }
 #weatherBtn {
+    position: relative;
     font-variant-numeric: tabular-nums;
     transition: background-color var(--duration-normal) ease, border-color var(--duration-normal) ease, box-shadow var(--duration-normal) ease, color var(--duration-normal) ease, transform 0.12s ease;
 }
@@ -910,4 +911,31 @@ input:focus-visible {
 .json-dropzone.drag-over {
     background: var(--tint-12);
     border-color: rgba(255, 255, 255, 0.45);
+}
+
+/* ==========================================================================
+   7. TOUCH TARGET EXPANSION (Apple HIG 触控热区扩展 >= 44pt)
+   ========================================================================== */
+@media (pointer: coarse) {
+    #engineBtn::after,
+    #randomBookmarkBtn::after,
+    #searchClearBtn::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        min-width: 44px;
+        min-height: 44px;
+    }
+    #weatherBtn::after,
+    #navHint::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        min-width: 100%;
+        min-height: 44px;
+    }
 }
