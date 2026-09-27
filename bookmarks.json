@@ -131,6 +131,12 @@
                     "desc": "AI 图像生成与艺术"
                 },
                 {
+                    "name": "Mistral",
+                    "url": "https://chat.mistral.ai",
+                    "icon": "./icons/chat.mistral.ai.png",
+                    "desc": "欧洲前沿开源大模型"
+                },
+                {
                     "name": "Perplexity",
                     "url": "https://www.perplexity.ai",
                     "icon": "./icons/perplexity.ai.png",

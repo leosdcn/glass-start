@@ -2,7 +2,7 @@
 
 > 极简纯净的毛玻璃浏览器起始页。
 
-[![Version](https://img.shields.io/badge/version-v4.9.5-blue.svg)](package.json)
+[![Version](https://img.shields.io/badge/version-v4.9.6-blue.svg)](package.json)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-v4-38bdf8?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
 
 ---
