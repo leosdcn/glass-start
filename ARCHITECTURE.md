@@ -523,3 +523,14 @@ flowchart TD
 | **运行时黑匣子与指纹契约** | `src/js/core/lifecycle.js` | `window.__GLASS_DIAG__`, `snapshotHealth()`, `probeScreenState()` | 双端构建指纹同版校验、白屏异常三级自愈阶梯（L1~L3）、纯内存环形日志（≤40条） |
 | **离线底座与三池物理隔离** | `sw.js` | `CORE_CACHE`, `FAVICON_CACHE`, `IMG_CACHE`, `pruneCache()` | Service Worker 独立线程：原子化 SWR 锁步预缓存、跨域高清图标与站内图片三池物理隔离及 FIFO 容量淘汰 |
 
+
+### 模块边界补充
+
+生产入口 `main.js` 只装配初始化与生命周期，业务调用通过 ES 模块导入。历史测试接口集中在 `src/js/testing/bridge.js`，仅在测试预先设置 `window.__GLASS_TEST__ = true` 时挂载；可变状态使用实时访问器。适配代码仍会参与打包，正常页面不挂载这些接口。
+
+- `core/settings-events.js`：设置按钮、草稿编辑事件与拖拽装配。
+- `modules/bookmark-editor.js`：书签草稿渲染、计数与数据收集；`settings.js` 保留兼容导出。
+- `core/dialogs.js`：确认框交互；不依赖设置或壁纸业务。
+- `core/wallpaper-renderer.js`：壁纸视觉切换；`theme-engine.js` 专注主题采样与外壳颜色。
+
+静态导入图由 `test/infra-module-boundaries.test.mjs` 检查无环，并通过关闭测试接口的真实页面验证生产启动和设置操作。

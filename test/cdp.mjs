@@ -60,7 +60,7 @@ function registerExitHooks() {
 
 registerExitHooks();
 
-export async function launchChrome({ port, url }) {
+export async function launchChrome({ port, url, testMode = true }) {
   const profileDir = process.env.CHROME_PROFILE_DIR || join(process.env.GLASS_TEST_TMPDIR || tmpdir(), `glass-start-test-${port}-${randomUUID()}`);
   const args = [
     '--headless=new',
@@ -131,6 +131,12 @@ export async function launchChrome({ port, url }) {
       rej(err);
     }
   });
+
+  if (testMode) {
+    await send('Page.enable');
+    await send('Page.addScriptToEvaluateOnNewDocument', { source: 'window.__GLASS_TEST__ = true;' });
+    await send('Page.reload');
+  }
 
   return {
     send,

@@ -1,86 +1,26 @@
+import { updateAllBookmarkCounters, renderEditList, collectEditData, getExistingUrls } from './bookmark-editor.js';
+export { getDraftBookmarkCount, updateAllBookmarkCounters, getEditFaviconInner, handleEditIconError, getEditRowHTML, appendDraftBookmarkRow, renderEditList, collectEditData, getExistingUrls } from './bookmark-editor.js';
+import { animateShowModal, animateHideModal, showConfirm } from '../core/dialogs.js';
+export { animateShowModal, animateHideModal, showConfirm } from '../core/dialogs.js';
 /**
  * ==============================================================================
  * Glass Start — 设置面板与弹窗管理系统 (src/js/modules/settings.js)
  * ==============================================================================
  */
 import { CONFIG, DEFAULT_BOOKMARKS, backgrounds } from '../config/constants.js';
-import {
-    escapeHtml,
-    safeUrl,
-    normalizeUrl,
-    faviconFromUrl,
-    handleFaviconFailure,
-    createLetterBadgeHtml,
-    checkImageReady,
-    storageGet,
-    storageSet,
-    storageRemove
-} from '../utils/helpers.js';
+import { escapeHtml, safeUrl, normalizeUrl, faviconFromUrl, storageGet, storageSet, storageRemove } from '../utils/helpers.js';
 import { state, modalState, pageData } from '../state/store.js';
-import { dom, $ } from '../state/dom.js';
+import { dom } from '../state/dom.js';
 import { OverlayStack } from '../core/overlay-stack.js';
-import { applyWallpaper } from '../core/theme-engine.js';
-import {
-    getEffectiveCustomWallpaper,
-    updateWallpaperStatusUI,
-    updatePresetBgCardsUI,
-    commitWallpaperSelection,
-    clearCustomWallpaper,
-    findPresetBgIndex
-} from './wallpaper.js';
-import {
-    getDerivedBookmarks,
-    renderBookmarks,
-    getSortedCategories,
-    getFaviconHTML,
-    initPickerFaviconObserver,
-    handleIconError
-} from './bookmarks.js';
+import { applyWallpaper } from '../core/wallpaper-renderer.js';
+import { getEffectiveCustomWallpaper, updateWallpaperStatusUI, updatePresetBgCardsUI, clearCustomWallpaper } from './wallpaper.js';
+import { getDerivedBookmarks, renderBookmarks, getSortedCategories, getFaviconHTML, initPickerFaviconObserver } from './bookmarks.js';
 import { closeDropdown, hideSuggestions, setEngine } from './search.js';
 import { renderCreditsModalList } from './clock.js';
 
 let cachedSettingsTabs = null;
 let cachedSettingsPanels = null;
 let isPresetBgImagesLoaded = false;
-let activeConfirmCleanup = null;
-
-export function animateShowModal(modalEl) {
-    if (!modalEl) return;
-    modalEl.removeAttribute('aria-hidden');
-    modalEl.removeAttribute('hidden');
-    requestAnimationFrame(() => {
-        if (!OverlayStack.stack.some(entry => entry.id === modalEl.id)) return;
-        modalEl.classList.add('active');
-        if (OverlayStack.topModal() === modalEl) OverlayStack.focusTop();
-    });
-}
-
-export function animateHideModal(modalEl) {
-    if (!modalEl) return;
-    modalEl.setAttribute('aria-hidden', 'true');
-    modalEl.classList.remove('active');
-    if (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-        modalEl.setAttribute('hidden', '');
-    } else {
-        setTimeout(() => {
-            if (!modalEl.classList.contains('active')) {
-                modalEl.setAttribute('hidden', '');
-            }
-        }, CONFIG.TIMERS.MODAL_HIDE_DELAY);
-    }
-}
-
-export function getDraftBookmarkCount() {
-    return modalState.draftBookmarks.length;
-}
-
-export function updateAllBookmarkCounters() {
-    const text = `已添加 ${getDraftBookmarkCount()} 项`;
-    const badge = dom.bookmarkCountBadge;
-    const pickerCount = dom.pickerCount;
-    if (badge) badge.textContent = text;
-    if (pickerCount) pickerCount.textContent = text;
-}
 
 export function loadPresetBgCardImages() {
     if (isPresetBgImagesLoaded) return;
@@ -165,148 +105,6 @@ export function applyBgEffects(opacity, blur, save = false) {
         storageSet(CONFIG.KEYS.MASK_OPACITY, op);
         storageSet(CONFIG.KEYS.BG_BLUR, bl);
     }
-}
-
-export function getEditFaviconInner(name = '', url = '', icon = '') {
-    const initial = (name || '?').trim().charAt(0).toUpperCase() || '?';
-    const faviconUrl = icon || faviconFromUrl(url);
-    if (faviconUrl) {
-        return `<div class="icon-box icon-box-sm edit-favicon-img-wrapper pointer-events-none select-none"><img src="${escapeHtml(faviconUrl)}" width="${CONFIG.UI.ICON_SIZE_SM}" height="${CONFIG.UI.ICON_SIZE_SM}" data-initial="${escapeHtml(initial)}" data-url="${safeUrl(url)}" class="edit-favicon-img pointer-events-none select-none" alt="" decoding="async" draggable="false"></div>`;
-    }
-    return createLetterBadgeHtml(initial, 'icon-box-sm edit-favicon-initial', 'text-2xs font-semibold');
-}
-
-export function handleEditIconError(img) {
-    handleFaviconFailure(img, img => {
-        const initial = img.dataset.initial || '?';
-        const box = img.closest('.edit-favicon-box');
-        if (box) {
-            box.innerHTML = createLetterBadgeHtml(initial, 'icon-box-sm edit-favicon-initial', 'text-2xs font-semibold');
-        }
-    });
-}
-if (typeof window !== 'undefined') {
-    window.handleEditIconError = handleEditIconError;
-}
-
-export function getEditRowHTML(name = '', url = '', idx = '', icon = '', rowId = '') {
-    const id = rowId || (idx !== '' && idx !== undefined ? `bm_${idx}` : `bm_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`);
-    return `
-        <div role="listitem" class="edit-row-card flex items-center gap-1.5 sm:gap-2 p-1.5 sm:p-2 bg-white/5 border border-white/10 apple-radius hover:border-white/25 glass-interactive group mb-1.5 shadow-xs" data-id="${escapeHtml(id)}" data-idx="${idx}" draggable="false">
-            <div class="flex items-center gap-1 shrink-0">
-                <button type="button" class="drag-handle touch-none p-1 size-7 flex items-center justify-center shrink-0 text-white/30 group-hover:text-white/70 hover:text-white cursor-grab active:cursor-grabbing rounded-lg glass-interactive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40" title="拖拽或按 Alt + ↑/↓ 排序" aria-label="排序书签：${escapeHtml(name)}，按 Alt 加上或下方向键移动">
-                    <svg class="size-3.5 pointer-events-none" aria-hidden="true"><use href="#icon-drag"/></svg>
-                </button>
-                <div class="edit-favicon-box shrink-0 flex items-center justify-center text-white/90 select-none pointer-events-none">
-                    ${getEditFaviconInner(name, url, icon)}
-                </div>
-            </div>
-            <div class="flex-1 flex flex-col sm:flex-row items-stretch sm:items-center gap-1 sm:gap-1.5 min-w-0">
-                <input type="text" id="bm-name-${id}" name="bookmark_name_${id}" class="edit-name w-full sm:w-1/3 bg-black/25 border border-white/10 rounded-lg px-2.5 py-1 sm:py-1.5 text-base text-white/90 focus:border-white/40 focus:bg-black/40 focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:outline-none outline-none transition font-medium" value="${escapeHtml(name)}" placeholder="书签名称" aria-label="书签名称">
-                <input type="text" id="bm-url-${id}" name="bookmark_url_${id}" inputmode="url" autocapitalize="off" class="edit-url w-full sm:w-2/3 bg-black/25 border border-white/10 rounded-lg px-2.5 py-1 sm:py-1.5 text-base text-white/60 focus:border-white/40 focus:bg-black/40 focus:text-white focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:outline-none outline-none transition font-mono" value="${escapeHtml(url)}" placeholder="https://..." aria-label="书签网址">
-            </div>
-            <button type="button" class="del-btn shrink-0 size-7 sm:size-8 p-1 hover:bg-red-500/20 rounded-full text-white/30 hover:text-red-400 flex items-center justify-center transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-1 focus-visible:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed" title="删除书签" aria-label="删除书签">
-                <svg class="size-4 pointer-events-none" aria-hidden="true"><use href="#icon-trash"/></svg>
-            </button>
-        </div>
-    `;
-}
-
-/**
- * 创建并追加一条草稿书签行到编辑列表
- * @param {{ name?: string, url?: string, icon?: string, desc?: string, focus?: boolean }} [options]
- * @returns {HTMLElement|null} 创建的 DOM 节点
- */
-export function appendDraftBookmarkRow({ name = '', url = '', icon = '', desc = '', focus = false } = {}) {
-    const rowId = `bm_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
-    const newBm = {
-        id: rowId,
-        name,
-        url,
-        icon: icon || '',
-        origUrl: url || '',
-        desc: desc || ''
-    };
-    if (!modalState.draftBookmarks) modalState.draftBookmarks = [];
-    modalState.draftBookmarks.push(newBm);
-
-    const editList = dom.editList;
-    if (!editList) return null;
-
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = getEditRowHTML(name, url, modalState.draftBookmarks.length - 1, icon, rowId).trim();
-    const div = tempDiv.firstElementChild;
-    if (!div) return null;
-
-    div.classList.add('animate-item-in');
-    div.addEventListener('animationend', () => div.classList.remove('animate-item-in'), { once: true });
-    editList.appendChild(div);
-
-    const newImg = div.querySelector('.edit-favicon-img');
-    if (newImg) {
-        checkImageReady(newImg, handleEditIconError);
-    }
-
-    if (focus) {
-        div.querySelector('.edit-name')?.focus();
-    }
-
-    modalState.bookmarksChanged = true;
-    updateAllBookmarkCounters();
-    return div;
-}
-
-export function renderEditList(listToRender) {
-    if (Array.isArray(listToRender)) {
-        modalState.draftBookmarks = listToRender.map((bm, i) => ({
-            id: bm.id || `bm_${Date.now()}_${i}`,
-            name: bm.name || '',
-            url: bm.url || '',
-            icon: bm.icon || '',
-            origUrl: bm.origUrl || bm.url || '',
-            desc: bm.desc || ''
-        }));
-    }
-
-    const editList = dom.editList;
-    if (!editList) return;
-    editList.innerHTML = '<div id="dragDropIndicator" class="drag-drop-line"></div><span class="bookmark-sort-status sr-only" role="status" aria-live="polite"></span>' + modalState.draftBookmarks.map((bm, i) => getEditRowHTML(bm.name, bm.url, i, bm.icon, bm.id)).join('');
-    dom.dragDropIndicator = editList.querySelector('#dragDropIndicator');
-    updateAllBookmarkCounters();
-
-    editList.querySelectorAll('img.edit-favicon-img').forEach(img => {
-        checkImageReady(img, handleEditIconError);
-    });
-}
-
-/**
- * 纯内存收集与清洗草稿书签数据（彻底告别 DOM 遍历反向收割）
- * @returns {Array<{name: string, url: string, icon: string, desc?: string}>}
- */
-export function collectEditData() {
-    const sourceList = modalState.draftBookmarks;
-
-    const bookmarks = [];
-    for (let i = 0; i < sourceList.length; i++) {
-        const item = sourceList[i];
-        const name = (item.name || '').trim();
-        let url = (item.url || '').trim();
-        url = normalizeUrl(url);
-        const origIcon = item.icon || '';
-        const origUrl = normalizeUrl(item.origUrl || '');
-        if (name && url) {
-            let icon = '';
-            if (origIcon && (url === origUrl || !origUrl)) {
-                icon = origIcon;
-            } else {
-                icon = faviconFromUrl(url);
-            }
-            const cleanItem = { name, url, icon };
-            if (item.desc) cleanItem.desc = item.desc;
-            bookmarks.push(cleanItem);
-        }
-    }
-    return bookmarks;
 }
 
 export async function openEditModal() {
@@ -412,69 +210,6 @@ export function closeCreditsModal() {
         document.activeElement.blur();
     }
     animateHideModal(modal);
-}
-
-export function showConfirm(message, onConfirm, title = '重置确认', triggerEl = null, okText = '') {
-    const modal = dom.confirmModal;
-    const titleEl = dom.confirmTitle;
-    const msgEl = dom.confirmMsg;
-    const okBtn = dom.confirmOkBtn;
-    const cancelBtn = dom.confirmCancelBtn;
-
-    if (!modal || !okBtn || !cancelBtn || !msgEl) {
-        if (typeof window !== 'undefined' && window.confirm(message)) onConfirm?.();
-        return;
-    }
-
-    if (activeConfirmCleanup) {
-        activeConfirmCleanup();
-        activeConfirmCleanup = null;
-    }
-
-    const isNotify = onConfirm == null;
-    okBtn.textContent = isNotify ? '知道了' : (okText || '确认');
-    cancelBtn.classList.toggle('hidden', isNotify);
-
-    if (titleEl) titleEl.textContent = title;
-    msgEl.textContent = message;
-    let confirmTriggerEl = triggerEl || document.activeElement || dom.resetEditBtn;
-    animateShowModal(modal);
-    OverlayStack.push('confirmModal', cleanup, confirmTriggerEl);
-    if (confirmTriggerEl && typeof confirmTriggerEl.setAttribute === 'function') {
-        confirmTriggerEl.setAttribute('aria-expanded', 'true');
-    }
-
-    function cleanup() {
-        activeConfirmCleanup = null;
-        OverlayStack.pop('confirmModal');
-        if (document.activeElement && modal.contains(document.activeElement)) {
-            document.activeElement.blur();
-        }
-        animateHideModal(modal);
-        cancelBtn.classList.remove('hidden');
-        okBtn.removeEventListener('click', handleOk);
-        cancelBtn.removeEventListener('click', handleCancel);
-        modal.removeEventListener('click', handleBackdropClick);
-        if (confirmTriggerEl && typeof confirmTriggerEl.focus === 'function') {
-            const opener = confirmTriggerEl;
-            confirmTriggerEl = null;
-            opener.setAttribute('aria-expanded', 'false');
-        }
-    }
-
-    function handleOk() { cleanup(); onConfirm?.(); }
-    function handleCancel() { cleanup(); }
-    function handleBackdropClick(e) {
-        if (e.target === modal) cleanup();
-    }
-
-    okBtn.addEventListener('click', handleOk);
-    if (!isNotify) cancelBtn.addEventListener('click', handleCancel);
-    modal.addEventListener('click', handleBackdropClick);
-    activeConfirmCleanup = cleanup;
-}
-if (typeof window !== 'undefined') {
-    window.showConfirm = showConfirm;
 }
 
 export function openBookmarkPicker(triggerEl = null) {
@@ -629,21 +364,6 @@ export function resetBookmarks() {
 /**
  * 获取当前已存在于编辑列表或已添加的 URL 集合
  * @returns {Set<string>}
- */
-export function getExistingUrls() {
-    const urls = new Set();
-    const sourceList = modalState.draftBookmarks;
-
-    sourceList.forEach(bm => {
-        const norm = normalizeUrl(bm.url);
-        if (norm) urls.add(norm);
-    });
-    return urls;
-}
-
-/**
- * 渲染导航页所有分类及其包含的书签列表至挑选弹窗中
- * @returns {void}
  */
 export function renderPickerCategories() {
     const pickerContent = dom.pickerContent;

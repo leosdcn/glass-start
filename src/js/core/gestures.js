@@ -27,7 +27,6 @@ export function resetActiveCard() {
     }
 }
 if (typeof window !== 'undefined') {
-    window.resetActiveTiltCard = resetActiveCard;
 }
 
 export function initGlassSpotlightAndTilt() {

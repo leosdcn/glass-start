@@ -21,7 +21,7 @@ import {
 } from './modules/bookmarks.js';
 import { applyBgEffects, handleEditIconError } from './modules/settings.js';
 import { preloadNextBg } from './modules/wallpaper.js';
-import { initScreenGestures, reconcileScreenState } from './core/screen-state.js';
+import { initScreenGestures, reconcileScreenState, isScreenTransitioning } from './core/screen-state.js';
 import { initGlassSpotlightAndTilt } from './core/gestures.js';
 import { bindEvents, bindEditEvents } from './core/events.js';
 
@@ -83,12 +83,10 @@ export function init() {
     if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
         navigator.serviceWorker.register('sw.js').catch(() => {});
         navigator.serviceWorker.addEventListener('controllerchange', () => {
-            if (typeof window.isScreenTransitioning === 'function' && window.isScreenTransitioning()) {
+            if (isScreenTransitioning()) {
                 return;
             }
-            if (typeof window.reconcileScreenState === 'function') {
-                window.reconcileScreenState();
-            }
+            reconcileScreenState();
         });
     }
 

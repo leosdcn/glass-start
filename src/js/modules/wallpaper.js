@@ -8,8 +8,8 @@ import { storageGet, storageSet, storageRemove } from '../utils/helpers.js';
 import { getWallpaperDB, getWallpaperSelectionDB, setWallpaperSelectionDB, migrateLegacyWallpaperDB } from '../utils/idb.js';
 import { state, modalState } from '../state/store.js';
 import { dom, $ } from '../state/dom.js';
-import { applyWallpaper } from '../core/theme-engine.js';
-import { showConfirm } from './settings.js';
+import { applyWallpaper } from '../core/wallpaper-renderer.js';
+import { showConfirm } from '../core/dialogs.js';
 
 let wallpaperSelectionId = 0;
 let pendingPreviewImage = null;

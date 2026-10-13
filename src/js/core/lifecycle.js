@@ -1,3 +1,4 @@
+import { isScreenTransitioning, reconcileScreenState } from './screen-state.js';
 /**
  * ==============================================================================
  * Glass Start — 构建指纹契约与运行时黑匣子自愈闭环 (src/js/core/lifecycle.js)
@@ -41,7 +42,7 @@ export function verifyFingerprint(htmlBuild, jsBuild) {
 
 // 健全性快照：首屏应在位时断言变换矩阵 ≈ 单位阵且哨兵元素真实可见
 export function snapshotHealth() {
-    if (typeof window !== 'undefined' && typeof window.isScreenTransitioning === 'function' && window.isScreenTransitioning()) {
+    if (isScreenTransitioning()) {
         return { ok: true, identityOk: true, sentinelsOk: true };
     }
     const s = dom.startSection || (typeof document !== 'undefined' ? document.getElementById('startSection') : null);
@@ -59,7 +60,7 @@ let unhealthyStreak = 0;
 // 三级修复阶梯：
 // L1 幂等状态校准 → L2 合成层磁贴强制重栅格化 → L3 冷却期守卫软刷新
 export function probe() {
-    if (typeof window !== 'undefined' && typeof window.isScreenTransitioning === 'function' && window.isScreenTransitioning()) {
+    if (isScreenTransitioning()) {
         return;
     }
     if (snapshotHealth().ok) {
@@ -69,9 +70,7 @@ export function probe() {
     unhealthyStreak++;
     bbLog('anomaly-' + unhealthyStreak, null);
     if (unhealthyStreak === 1) {
-        if (typeof window !== 'undefined' && typeof window.reconcileScreenState === 'function') {
-            window.reconcileScreenState();
-        }
+        reconcileScreenState();
     } else if (unhealthyStreak === 2) {
         const s = dom.startSection || (typeof document !== 'undefined' ? document.getElementById('startSection') : null);
         if (s) {

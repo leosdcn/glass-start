@@ -27,7 +27,7 @@ import {
 import { getWallpaperSelectionDB } from '../utils/idb.js';
 import { state, pageData } from '../state/store.js';
 import { dom, $ } from '../state/dom.js';
-import { applyWallpaper } from '../core/theme-engine.js';
+import { applyWallpaper } from '../core/wallpaper-renderer.js';
 import { getEffectiveCustomWallpaper, findPresetBgIndex, clearCustomWallpaper, migrateLegacyWallpaper } from './wallpaper.js';
 
 export const zhCollator = new Intl.Collator('zh-CN', { numeric: true, sensitivity: 'base' });
@@ -207,9 +207,6 @@ export function handleIconError(img) {
             parent.textContent = initial;
         }
     });
-}
-if (typeof window !== 'undefined') {
-    window.handleIconError = handleIconError;
 }
 
 export function getFaviconHTML(bm, sizeType = 'sm') {

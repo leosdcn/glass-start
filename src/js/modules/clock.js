@@ -109,21 +109,17 @@ export function updateClock() {
     const clockEl = dom.clock;
     const dateEl = dom.date;
 
-    const effectiveLastTimeStr = (typeof window !== 'undefined' && typeof window.lastTimeStr === 'string') ? window.lastTimeStr : lastTimeStr;
 
-    if (curTimeStr !== effectiveLastTimeStr) {
+    if (curTimeStr !== lastTimeStr) {
         lastTimeStr = curTimeStr;
-        if (typeof window !== 'undefined') window.lastTimeStr = curTimeStr;
         if (clockEl) {
             clockEl.innerHTML = `${hh}<span class="clock-colon mx-0.5 sm:mx-1">:</span>${mm}`;
             clockEl.setAttribute('datetime', curTimeStr);
         }
     }
     const day = n.getDate();
-    const effectiveLastDateDay = (typeof window !== 'undefined' && typeof window.lastDateDay === 'number') ? window.lastDateDay : lastDateDay;
-    if (day !== effectiveLastDateDay) {
+    if (day !== lastDateDay) {
         lastDateDay = day;
-        if (typeof window !== 'undefined') window.lastDateDay = day;
         if (dateEl) {
             const weekdays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
             dateEl.textContent = `${n.getMonth() + 1}月${n.getDate()}日 ${weekdays[n.getDay()]}`;
@@ -142,3 +138,5 @@ if (typeof document !== 'undefined') {
     }, { passive: true });
 }
 
+
+export function setLastDateDay(value) { lastDateDay = value; }

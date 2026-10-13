@@ -1,3 +1,5 @@
+import { updateClock } from '../modules/clock.js';
+import { updateWeather } from '../modules/weather.js';
 /**
  * ==============================================================================
  * Glass Start — 双屏有限状态机与手势调度引擎 (src/js/core/screen-state.js)
@@ -368,7 +370,7 @@ export function switchToStart() {
 }
 
 export function handleAppWakeUp(wasPersisted = false) {
-    if (typeof window.updateClock === 'function') window.updateClock();
+    updateClock();
 
     document.querySelectorAll('.is-clicked').forEach(el => el.classList.remove('is-clicked'));
     document.querySelectorAll('.fade-in, .animate-item-in, .category-title-pulse').forEach(el => {
@@ -401,18 +403,12 @@ export function handleAppWakeUp(wasPersisted = false) {
         }
     });
 
-    if (typeof window.updateWeather === 'function') {
-        window.updateWeather(false).catch(() => {});
-    }
+    updateWeather(false).catch(() => {});
 }
 
 export function initScreenGestures() {
     if (typeof document === 'undefined') return;
 
-    window.switchToNav = switchToNav;
-    window.switchToStart = switchToStart;
-    window.reconcileScreenState = reconcileScreenState;
-    window.isScreenTransitioning = isScreenTransitioning;
 
     reconcileScreenState(getSavedSection() === 'nav' ? 'nav' : 'start');
 
