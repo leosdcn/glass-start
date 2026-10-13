@@ -16,7 +16,7 @@ import {
     normalizeUrl,
     deriveNameFromUrl,
     faviconFromUrl,
-    faviconFallbackFromUrl,
+    handleFaviconFailure,
     createLetterBadgeHtml,
     evictFaviconCache,
     checkImageReady,
@@ -193,28 +193,17 @@ export async function loadUserData() {
 }
 
 export function handleIconError(img) {
-    if (!img || img.dataset.failed) return;
-    const url = img.dataset.url || img.src;
-    const fallback = faviconFallbackFromUrl(url, 128);
-
-    if (!img.dataset.fallback && fallback && img.src !== fallback) {
-        img.dataset.fallback = '1';
-        evictFaviconCache(img.src);
-        img.src = fallback;
-        return;
-    }
-
-    img.dataset.failed = '1';
-    evictFaviconCache(img.src);
-    const initial = img.dataset.initial || '?';
-    const parent = img.parentElement;
-    if (parent) {
-        img.remove();
-        const isMd = img.dataset.md === '1';
-        const textClass = isMd ? 'text-xs' : 'text-2xs';
-        parent.classList.add('bg-white/15', 'border', 'border-white/20', 'text-white/90', textClass, 'font-semibold');
-        parent.textContent = initial;
-    }
+    handleFaviconFailure(img, img => {
+        const initial = img.dataset.initial || '?';
+        const parent = img.parentElement;
+        if (parent) {
+            img.remove();
+            const isMd = img.dataset.md === '1';
+            const textClass = isMd ? 'text-xs' : 'text-2xs';
+            parent.classList.add('bg-white/15', 'border', 'border-white/20', 'text-white/90', textClass, 'font-semibold');
+            parent.textContent = initial;
+        }
+    });
 }
 if (typeof window !== 'undefined') {
     window.handleIconError = handleIconError;

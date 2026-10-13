@@ -148,29 +148,8 @@
               }
             }
             window.__PRELOADED_BG__ = preloadUrl;
-            // @region [HEAD_THEME_HYDRATION] 预设壁纸与自适应主题色 0ms 闪电对齐：纯净黑白二元流（深色壁纸深空黑，浅色壁纸纯净白）
-            const THEME_DARK = { color: '#0b0f19', isLight: false };
-            const THEME_LIGHT = { color: '#ffffff', isLight: true };
-            const PRESET_THEMES = [
-              THEME_DARK,  // bg1: 暮色山峦 (自然深 · 默认深色)
-              THEME_LIGHT, // bg2: 溪谷晨曦 (自然浅 · 浅色)
-              THEME_DARK,  // bg3: 星空雪山 (自然深 · 深色)
-              THEME_LIGHT, // bg4: 峰峦破晓 (自然浅 · 浅色)
-              THEME_DARK,  // bg5: 天际立面 (建筑深 · 深色)
-              THEME_LIGHT, // bg6: 极简回廊 (建筑浅 · 浅色)
-              THEME_DARK,  // bg7: 紫韵流光 (艺术深 · 深色)
-              THEME_LIGHT  // bg8: 梦幻流彩 (艺术浅 · 浅色)
-            ];
-            const PRESET_TINTS = [
-              '125, 140, 165', // bg1: 暮色山峦
-              '230, 215, 185', // bg2: 溪谷晨曦
-              '95, 120, 155',  // bg3: 星空雪山
-              '225, 195, 165', // bg4: 峰峦破晓
-              '130, 145, 160', // bg5: 天际立面
-              '215, 218, 222', // bg6: 极简回廊
-              '150, 115, 175', // bg7: 紫韵流光
-              '205, 160, 195'  // bg8: 梦幻流彩
-            ];
+            // 构建时从 config/themes.js 注入同步首屏配置，不单独维护主题副本。
+            /* INJECT_THEME_CONFIG */
             let initTheme = null;
             let initTint = '255, 255, 255';
             const isCustom = preloadUrl && !preloadUrl.startsWith('./wallpapers/');

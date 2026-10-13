@@ -254,10 +254,34 @@ function processProductionAppJs() {
     }
 }
 
+// 同步首屏与运行时共用 themes.js；每次构建重新读取，避免 Watch 模式缓存旧配置。
+function injectThemeConfig(html, themePath = path.join(PATHS.src, 'js', 'config', 'themes.js')) {
+    const marker = '/* INJECT_THEME_CONFIG */';
+    if (html.split(marker).length !== 2) {
+        throw new Error('首屏主题配置注入标记必须出现一次');
+    }
+    const result = esbuild.buildSync({
+        entryPoints: [themePath],
+        bundle: true,
+        write: false,
+        format: 'iife',
+        globalName: '__headThemes',
+        target: 'es2020',
+        minify: true,
+        charset: 'utf8'
+    });
+    const code = result.outputFiles[0].text + `
+        const { APP_THEME_DARK: THEME_DARK, APP_THEME_LIGHT: THEME_LIGHT,
+            PRESET_THEMES, PRESET_TINTS } = __headThemes;
+    `;
+    // 保护 HTML script 边界，同时保留字符串运行时值。
+    return html.replace(marker, () => code.replace(/<\/script/gi, '<\\/script'));
+}
+
 // 5. 处理生产环境 index.html (替换内联 JS 为外链 dist/app.js，全量内嵌静态编译 Tailwind CSS 与 SVG 精灵)
 function processProductionHtml() {
     logSection('5/5', '🔧 处理生产环境页面 (dist/index.html)');
-    let prodHtmlContent = fs.readFileSync(PATHS.srcIndexHtml, 'utf-8');
+    let prodHtmlContent = injectThemeConfig(fs.readFileSync(PATHS.srcIndexHtml, 'utf-8'));
 
     // 5.0 彻底移除开发模式下的原生 ESM 模块入口
     prodHtmlContent = prodHtmlContent.replace(
@@ -567,6 +591,7 @@ module.exports = {
     rebuild,
     startWatch,
     checkTailwindInstalled,
+    injectThemeConfig,
     PATHS
 };
 

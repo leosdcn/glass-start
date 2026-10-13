@@ -208,6 +208,27 @@ export function evictFaviconCache(url) {
 }
 
 /**
+ * 统一图标失败策略：备用地址只尝试一次，最终失败交给对应界面渲染。
+ * @param {HTMLImageElement|null} img
+ * @param {(img: HTMLImageElement) => void} renderFailure
+ * @param {number} [size=128]
+ * @returns {void}
+ */
+export function handleFaviconFailure(img, renderFailure, size = CONFIG.UI.FAVICON_FALLBACK_SIZE) {
+    if (!img || img.dataset.failed) return;
+    const fallback = faviconFallbackFromUrl(img.dataset.url || img.src, size);
+    if (!img.dataset.fallback && fallback && img.src !== fallback) {
+        img.dataset.fallback = '1';
+        evictFaviconCache(img.src);
+        img.src = fallback;
+        return;
+    }
+    img.dataset.failed = '1';
+    evictFaviconCache(img.src);
+    renderFailure(img);
+}
+
+/**
  * 检测图片是否已从缓存就绪并同步状态类，未就绪或破损时调用回调
  * @param {HTMLImageElement} img - 目标图片元素
  * @param {((img: HTMLImageElement) => void)|null} [onFallback=null] - 图片损坏时的兜底回调

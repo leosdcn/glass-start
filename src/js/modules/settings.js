@@ -9,9 +9,8 @@ import {
     safeUrl,
     normalizeUrl,
     faviconFromUrl,
-    faviconFallbackFromUrl,
+    handleFaviconFailure,
     createLetterBadgeHtml,
-    evictFaviconCache,
     checkImageReady,
     storageGet,
     storageSet,
@@ -181,24 +180,13 @@ export function getEditFaviconInner(name = '', url = '', icon = '') {
 }
 
 export function handleEditIconError(img) {
-    if (!img || img.dataset.failed) return;
-    const url = img.dataset.url || img.src;
-    const fallback = faviconFallbackFromUrl(url, CONFIG.UI.FAVICON_FALLBACK_SIZE);
-
-    if (!img.dataset.fallback && fallback && img.src !== fallback) {
-        img.dataset.fallback = '1';
-        evictFaviconCache(img.src);
-        img.src = fallback;
-        return;
-    }
-
-    img.dataset.failed = '1';
-    evictFaviconCache(img.src);
-    const initial = img.dataset.initial || '?';
-    const box = img.closest('.edit-favicon-box');
-    if (box) {
-        box.innerHTML = createLetterBadgeHtml(initial, 'icon-box-sm edit-favicon-initial', 'text-2xs font-semibold');
-    }
+    handleFaviconFailure(img, img => {
+        const initial = img.dataset.initial || '?';
+        const box = img.closest('.edit-favicon-box');
+        if (box) {
+            box.innerHTML = createLetterBadgeHtml(initial, 'icon-box-sm edit-favicon-initial', 'text-2xs font-semibold');
+        }
+    });
 }
 if (typeof window !== 'undefined') {
     window.handleEditIconError = handleEditIconError;

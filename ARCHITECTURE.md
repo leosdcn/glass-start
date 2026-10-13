@@ -502,7 +502,7 @@ flowchart TD
 | 业务领域与核心意图 | 对应 ES 模块文件 (`src/`) | 核心函数 / 关键 Symbol | 架构职责与技术细节 |
 | :--- | :--- | :--- | :--- |
 | **全站配置与常量真理源** | `src/js/config/constants.js` | `CONFIG`, `DEFAULT_BOOKMARKS`, `DEFAULT_CATEGORIES` | 统一管理全站键名、手势阈值、气象/搜索常量配置与默认书签回退池 |
-| **首屏主题与 Safari 外壳预渲染** | `src/js/config/themes.js` | `PRESET_THEMES`, `targetColor` | `<head>` 内 0ms 同步即时对齐：纯净黑白二元流（深色壁纸深空黑 `#0b0f19`，浅色壁纸纯净白 `#ffffff`），同步 `html/body` 底色 |
+| **首屏主题与 Safari 外壳预渲染** | `src/js/config/themes.js` | `PRESET_THEMES`, `targetColor` | `<head>` 内由构建从 themes.js 注入配置并同步对齐：纯净黑白二元流（深色壁纸深空黑 `#0b0f19`，浅色壁纸纯净白 `#ffffff`），同步 `html/body` 底色 |
 | **全局状态与高频 DOM 缓存池** | `src/js/state/store.js`<br/>`src/js/state/dom.js` | `dom`, `state`, `cacheDOM()`, `$` | 核心高频 DOM 节点集中映射缓存，`state.currentSection` / `state.bg` 单一数据源 |
 | **书签体系与双栏分类导航** | `src/js/modules/bookmarks.js` | `getDerivedBookmarks()`, `renderBookmarks()`, `renderNavCategories()`, `getFaviconHTML()` | 派生书签架构（Derived BM）、双栏拼音排序、首字母徽章兜底与 Favicon 懒加载观察器 |
 | **时钟引擎、快捷键与鸣谢** | `src/js/modules/clock.js` | `updateClock()`, `applyPlatformShortcuts()`, `renderShortcutModalList()` | 实时时钟节流更新、休眠唤醒即时对齐、Mac/Win 跨平台快捷键适配与开源数据鸣谢 |

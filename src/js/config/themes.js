@@ -1,4 +1,4 @@
-// @region [HEAD_THEME_HYDRATION] 预设壁纸与自适应主题色 0ms 闪电对齐：纯净黑白二元流
+// 首屏构建注入与运行时共用的预设主题及色调配置
 export const APP_THEME_DARK = Object.freeze({ color: '#0b0f19', isLight: false });
 export const APP_THEME_LIGHT = Object.freeze({ color: '#ffffff', isLight: true });
 

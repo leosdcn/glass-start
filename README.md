@@ -122,6 +122,8 @@ npm run build
 
 ## 🛠️ 开发者与贡献者指南
 
+首屏与运行时主题统一维护在 `src/js/config/themes.js`。构建会将配置同步内联到 HTML；`npm run dev` 的增量构建也会重新读取配置。`src/index.html` 是构建模板，请使用开发服务预览或部署 `dist/` 产物。
+
 ### 本地开发工作流
 
 ```bash
