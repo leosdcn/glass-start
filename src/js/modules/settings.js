@@ -42,18 +42,16 @@ import { renderCreditsModalList } from './clock.js';
 let cachedSettingsTabs = null;
 let cachedSettingsPanels = null;
 let isPresetBgImagesLoaded = false;
-let editModalTriggerEl = null;
-let shortcutModalTriggerEl = null;
-let creditsModalTriggerEl = null;
 let activeConfirmCleanup = null;
-let bookmarkPickerTriggerEl = null;
 
 export function animateShowModal(modalEl) {
     if (!modalEl) return;
     modalEl.removeAttribute('aria-hidden');
     modalEl.removeAttribute('hidden');
     requestAnimationFrame(() => {
+        if (!OverlayStack.stack.some(entry => entry.id === modalEl.id)) return;
         modalEl.classList.add('active');
+        if (OverlayStack.topModal() === modalEl) OverlayStack.focusTop();
     });
 }
 
@@ -312,9 +310,9 @@ export function collectEditData() {
 }
 
 export async function openEditModal() {
+    if (state.editOpen) return;
     closeDropdown();
     hideSuggestions();
-    editModalTriggerEl = document.activeElement;
     const editBtn = dom.editBookmarksBtn;
     editBtn?.setAttribute('aria-expanded', 'true');
     state.editOpen = true;
@@ -373,12 +371,6 @@ export function closeEditModal() {
         const urlInput = dom.urlBgInput;
         if (urlInput) urlInput.value = '';
     }
-
-    if (editModalTriggerEl && typeof editModalTriggerEl.focus === 'function') {
-        const opener = editModalTriggerEl;
-        editModalTriggerEl = null;
-        requestAnimationFrame(() => opener.focus());
-    }
 }
 
 export function openShortcutModal() {
@@ -386,7 +378,6 @@ export function openShortcutModal() {
     if (!modal) return;
     closeDropdown();
     hideSuggestions();
-    shortcutModalTriggerEl = document.activeElement;
     dom.openShortcutFromSettingsBtn?.setAttribute('aria-expanded', 'true');
     OverlayStack.push('shortcutModal', closeShortcutModal);
     animateShowModal(modal);
@@ -401,18 +392,12 @@ export function closeShortcutModal() {
         document.activeElement.blur();
     }
     animateHideModal(modal);
-    if (shortcutModalTriggerEl && typeof shortcutModalTriggerEl.focus === 'function') {
-        const opener = shortcutModalTriggerEl;
-        shortcutModalTriggerEl = null;
-        requestAnimationFrame(() => opener.focus());
-    }
 }
 
 export function openCreditsModal() {
     const modal = dom.creditsModal;
     if (!modal) return;
     renderCreditsModalList();
-    creditsModalTriggerEl = document.activeElement;
     dom.openCreditsFromSettingsBtn?.setAttribute('aria-expanded', 'true');
     OverlayStack.push('creditsModal', closeCreditsModal);
     animateShowModal(modal);
@@ -427,11 +412,6 @@ export function closeCreditsModal() {
         document.activeElement.blur();
     }
     animateHideModal(modal);
-    if (creditsModalTriggerEl && typeof creditsModalTriggerEl.focus === 'function') {
-        const opener = creditsModalTriggerEl;
-        creditsModalTriggerEl = null;
-        requestAnimationFrame(() => opener.focus());
-    }
 }
 
 export function showConfirm(message, onConfirm, title = '重置确认', triggerEl = null, okText = '') {
@@ -453,14 +433,13 @@ export function showConfirm(message, onConfirm, title = '重置确认', triggerE
 
     const isNotify = onConfirm == null;
     okBtn.textContent = isNotify ? '知道了' : (okText || '确认');
-    cancelBtn.style.display = isNotify ? 'none' : '';
+    cancelBtn.classList.toggle('hidden', isNotify);
 
     if (titleEl) titleEl.textContent = title;
     msgEl.textContent = message;
-    animateShowModal(modal);
-    OverlayStack.push('confirmModal', cleanup);
-
     let confirmTriggerEl = triggerEl || document.activeElement || dom.resetEditBtn;
+    animateShowModal(modal);
+    OverlayStack.push('confirmModal', cleanup, confirmTriggerEl);
     if (confirmTriggerEl && typeof confirmTriggerEl.setAttribute === 'function') {
         confirmTriggerEl.setAttribute('aria-expanded', 'true');
     }
@@ -472,7 +451,7 @@ export function showConfirm(message, onConfirm, title = '重置确认', triggerE
             document.activeElement.blur();
         }
         animateHideModal(modal);
-        cancelBtn.style.display = '';
+        cancelBtn.classList.remove('hidden');
         okBtn.removeEventListener('click', handleOk);
         cancelBtn.removeEventListener('click', handleCancel);
         modal.removeEventListener('click', handleBackdropClick);
@@ -480,7 +459,6 @@ export function showConfirm(message, onConfirm, title = '重置确认', triggerE
             const opener = confirmTriggerEl;
             confirmTriggerEl = null;
             opener.setAttribute('aria-expanded', 'false');
-            requestAnimationFrame(() => opener.focus());
         }
     }
 
@@ -500,9 +478,9 @@ if (typeof window !== 'undefined') {
 }
 
 export function openBookmarkPicker(triggerEl = null) {
-    bookmarkPickerTriggerEl = triggerEl || document.activeElement || dom.togglePickerBtn;
+    const opener = triggerEl || document.activeElement || dom.togglePickerBtn;
     dom.togglePickerBtn?.setAttribute('aria-expanded', 'true');
-    OverlayStack.push('bookmarkPicker', closeBookmarkPicker);
+    OverlayStack.push('bookmarkPicker', closeBookmarkPicker, opener);
     animateShowModal(dom.bookmarkPicker);
     renderPickerCategories();
 }
@@ -515,11 +493,6 @@ export function closeBookmarkPicker() {
         document.activeElement.blur();
     }
     animateHideModal(picker);
-    if (bookmarkPickerTriggerEl && typeof bookmarkPickerTriggerEl.focus === 'function') {
-        const opener = bookmarkPickerTriggerEl;
-        bookmarkPickerTriggerEl = null;
-        requestAnimationFrame(() => opener.focus());
-    }
 }
 
 /**

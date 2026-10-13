@@ -40,20 +40,20 @@ export function updateSectionAccessibility(sec) {
     if (sec === 'nav') {
         if (startSection) {
             startSection.setAttribute('aria-hidden', 'true');
-            startSection.setAttribute('inert', '');
+            OverlayStack.setBaseInert(startSection, true);
         }
         if (nav) {
             nav.removeAttribute('aria-hidden');
-            nav.removeAttribute('inert');
+            OverlayStack.setBaseInert(nav, false);
         }
     } else {
         if (startSection) {
             startSection.removeAttribute('aria-hidden');
-            startSection.removeAttribute('inert');
+            OverlayStack.setBaseInert(startSection, false);
         }
         if (nav) {
             nav.setAttribute('aria-hidden', 'true');
-            nav.setAttribute('inert', '');
+            OverlayStack.setBaseInert(nav, true);
         }
     }
 }

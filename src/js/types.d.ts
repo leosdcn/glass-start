@@ -77,13 +77,19 @@ export interface ModalState {
 export interface OverlayItem {
     id: string;
     close: () => void;
+    trigger?: Element | null;
 }
 
 /** 多层弹窗层叠栈管理器 */
 export interface IOverlayStack {
     stack: OverlayItem[];
-    push(id: string, closeFn: () => void): void;
+    push(id: string, closeFn: () => void, trigger?: Element | null): void;
     pop(id?: string): OverlayItem | null;
+    topModal(): HTMLElement | null;
+    focusTop(): void;
+    restoreFocus(trigger?: Element | null): void;
+    syncModalAccessibility(): void;
+    setBaseInert(element: HTMLElement, value: boolean): void;
     top(): OverlayItem | null;
     isEmpty(): boolean;
 }
