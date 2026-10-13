@@ -4,6 +4,7 @@
  * ==============================================================================
  */
 import { CONFIG } from '../config/constants.js';
+import { state } from '../state/store.js';
 
 let isGlassSpotlightAndTiltInitialized = false;
 
@@ -106,6 +107,7 @@ export function initGlassSpotlightAndTilt() {
     }, { passive: true });
 
     document.addEventListener('mousemove', (e) => {
+        if (!activeCard && typeof state !== 'undefined' && state.currentSection !== 'nav') return;
         const card = e.target?.closest?.('.nav-bookmark');
         if (card) {
             setActiveCardAndSchedule(card, e);

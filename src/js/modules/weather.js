@@ -557,6 +557,7 @@ export function renderWeatherPopover(data) {
 export let isFetchingWeather = false;
 
 export async function updateWeather(force = false) {
+    if (!force && typeof document !== 'undefined' && document.hidden) return;
     const cache = storageGet(CONFIG.KEYS.WEATHER_CACHE, null);
     const now = Date.now();
     const CACHE_TTL = CONFIG.WEATHER.CACHE_TTL;

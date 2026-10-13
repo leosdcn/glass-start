@@ -80,6 +80,7 @@
     50% { opacity: 0.5; }
 }
 .nr .clock-colon { animation: none; opacity: 1; }
+#startSection.screen-pushed-up .clock-colon { animation-play-state: paused; }
 
 /* 导航分类微光脉冲提醒 */
 .category-title-pulse::after {
@@ -99,6 +100,8 @@
 .scroll-hint { animation: bounceDown 3s ease-in-out infinite; }
 #startSection.screen-pushed-up .scroll-hint { animation-play-state: paused; }
 .scroll-up-hint { animation: bounceUp 1.8s ease-in-out infinite; }
+#navSection:not(.screen-pushed-in) .scroll-up-hint { animation-play-state: paused; }
+.nr #navSection .scroll-up-hint { animation-play-state: running; }
 
 @keyframes bounceDown {
     0%, 100% { transform: translateY(0); opacity: 0.45; }
