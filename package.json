@@ -32,5 +32,8 @@
   ],
   "author": "",
   "license": "UNLICENSED",
-  "private": true
+  "private": true,
+  "overrides": {
+    "@parcel/watcher": "2.6.0"
+  }
 }
