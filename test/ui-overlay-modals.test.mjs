@@ -203,7 +203,7 @@ const navJumpBackOk = navJumpBackTest.ok;
 
 pass('sessionStorage 刷新保持、BFCache 自愈、导航页书签3D倾斜与跳出返回滚动防白屏及无残留', 
   restored === true && startRestoredValid && bfCacheHealed && bookmarkTactileOk && hoverGatingOk && tiltOk && navJumpBackOk,
-  `restored=${restored}, startRestored=${startRestoredValid}, bfCacheHealed=${bfCacheHealed}, bookmarkTactile=${bookmarkTactileOk}, hoverGating=${hoverGatingOk}, tilt=${tiltOk}, navJumpBack=${navJumpBackOk}`);
+  `restored=${restored}, startRestored=${startRestoredValid}, bfCacheHealed=${bfCacheHealed}, bookmarkTactile=${bookmarkTactileOk}, hoverGating=${hoverGatingOk}, tilt=${tiltOk}, navJumpBack=${JSON.stringify(navJumpBackTest)}`);
 
 // ══════════════════════════════════════════════════════════════════════
 // 5. 搜索联想键盘选中项保持与 Escape 优雅清退

@@ -38,34 +38,57 @@ export async function getWallpaperDB() {
     } catch { return null; }
 }
 
-/**
- * 将用户自定义 4K 壁纸 DataURL 异步持久化写入 IndexedDB
- * @param {string} dataUrl - 4K 分辨率优化后的图片 DataURL 字符串
- * @returns {Promise<boolean>} 成功写入返回 true，失败返回 false
- */
-export async function setWallpaperDB(dataUrl) {
+/** @returns {Promise<{wallpaper: string|null, bg: number}|null>} */
+export async function getWallpaperSelectionDB() {
+    try {
+        const db = await dbPromise;
+        if (!db) return null;
+        return await new Promise(resolve => {
+            const tx = db.transaction(CONFIG.IDB.STORES.WALLPAPERS, 'readonly');
+            const req = tx.objectStore(CONFIG.IDB.STORES.WALLPAPERS).get(CONFIG.IDB.KEYS.SELECTION);
+            req.onsuccess = () => {
+                const value = req.result;
+                resolve(value && Number.isInteger(value.bg) && value.bg >= 0 &&
+                    (value.wallpaper === null || typeof value.wallpaper === 'string') ? value : null);
+            };
+            req.onerror = tx.onabort = () => resolve(null);
+        });
+    } catch { return null; }
+}
+
+// 请求成功不等于事务提交成功；全部写入或删除均等待 complete。
+async function mutateWallpaperDB(mutate) {
     try {
         const db = await dbPromise;
         if (!db) return false;
-        return new Promise(resolve => {
+        return await new Promise(resolve => {
             const tx = db.transaction(CONFIG.IDB.STORES.WALLPAPERS, 'readwrite');
-            const store = tx.objectStore(CONFIG.IDB.STORES.WALLPAPERS);
-            const req = store.put(dataUrl, CONFIG.IDB.KEYS.CUSTOM_WALLPAPER);
-            req.onsuccess = () => resolve(true);
-            req.onerror = () => resolve(false);
+            tx.oncomplete = () => resolve(true);
+            tx.onabort = tx.onerror = () => resolve(false);
+            try { mutate(tx.objectStore(CONFIG.IDB.STORES.WALLPAPERS)); }
+            catch { tx.abort(); resolve(false); }
         });
     } catch { return false; }
 }
 
-/**
- * 从 IndexedDB 中异步彻底清除用户自定义壁纸
- * @returns {Promise<void>}
- */
-export async function removeWallpaperDB() {
-    try {
-        const db = await dbPromise;
-        if (!db) return;
-        const tx = db.transaction(CONFIG.IDB.STORES.WALLPAPERS, 'readwrite');
-        tx.objectStore(CONFIG.IDB.STORES.WALLPAPERS).delete(CONFIG.IDB.KEYS.CUSTOM_WALLPAPER);
-    } catch {}
+/** 原子提交壁纸内容及预设索引；失败时两者均保持原值。 */
+export function setWallpaperSelectionDB(selection) {
+    return mutateWallpaperDB(store => {
+        store.put(selection, CONFIG.IDB.KEYS.SELECTION);
+        if (selection.wallpaper) store.put(selection.wallpaper, CONFIG.IDB.KEYS.CUSTOM_WALLPAPER);
+        else store.delete(CONFIG.IDB.KEYS.CUSTOM_WALLPAPER);
+    });
+}
+
+/** @param {string} dataUrl @returns {Promise<boolean>} */
+export function setWallpaperDB(dataUrl) {
+    return setWallpaperSelectionDB({ wallpaper: dataUrl, bg: 0 });
+}
+
+/** @returns {Promise<boolean>} 删除事务提交成功返回 true。 */
+export function removeWallpaperDB() {
+    return mutateWallpaperDB(store => {
+        store.delete(CONFIG.IDB.KEYS.CUSTOM_WALLPAPER);
+        store.delete(CONFIG.IDB.KEYS.SELECTION);
+    });
 }

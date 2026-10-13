@@ -16,7 +16,6 @@ import {
     storageSet,
     storageRemove
 } from '../utils/helpers.js';
-import { removeWallpaperDB } from '../utils/idb.js';
 import { state, modalState, pageData } from '../state/store.js';
 import { dom, $ } from '../state/dom.js';
 import { OverlayStack } from '../core/overlay-stack.js';
@@ -330,6 +329,7 @@ export async function openEditModal() {
     modalState.draftMaskOpacity = modalState.initialMaskOpacity;
     modalState.draftBgBlur = modalState.initialBgBlur;
     modalState.bookmarksChanged = false;
+    modalState.wallpaperSaveFailed = false;
 
     // 初始化内存草稿真理源
     modalState.draftBookmarks = pageData.bookmarks.map((bm, i) => ({
@@ -611,7 +611,11 @@ export function importBookmarksJSON(file) {
  * @returns {void}
  */
 export function resetBookmarks() {
-    showConfirm('确定要恢复系统初始默认状态吗？此操作将立即清除您自定义的所有快捷书签、背景壁纸与偏好设置。', () => {
+    showConfirm('确定要恢复系统初始默认状态吗？此操作将立即清除您自定义的所有快捷书签、背景壁纸与偏好设置。', async () => {
+        if (!await clearCustomWallpaper()) {
+            showConfirm('无法清除壁纸存储，原有设置已保留。', null, '重置失败');
+            return;
+        }
         storageRemove(CONFIG.KEYS.LEGACY_BOOKMARKS);
         storageRemove(CONFIG.KEYS.BOOKMARK_KEYS);
         storageRemove(CONFIG.KEYS.CUSTOM_META);
@@ -630,7 +634,6 @@ export function resetBookmarks() {
             dom.scrollDownHint.style.opacity = '';
         }
 
-        removeWallpaperDB();
         state.customWallpaper = null;
 
         modalState.draftWallpaper = undefined;

@@ -27,7 +27,7 @@ export const CONFIG = Object.freeze({
                 DB_NAME: 'GlassStartDB',
                 VERSION: 1,
                 STORES: Object.freeze({ WALLPAPERS: 'wallpapers' }),
-                KEYS: Object.freeze({ CUSTOM_WALLPAPER: 'customWallpaper' })
+                KEYS: Object.freeze({ CUSTOM_WALLPAPER: 'customWallpaper', SELECTION: 'wallpaperSelection' })
             }),
             GESTURE: Object.freeze({
                 TRANSITION_MS: 580,          // 双屏推移过渡动画时长 (ms)

@@ -24,6 +24,7 @@ import {
     storageSet,
     storageRemove
 } from '../utils/helpers.js';
+import { getWallpaperSelectionDB } from '../utils/idb.js';
 import { state, pageData } from '../state/store.js';
 import { dom, $ } from '../state/dom.js';
 import { applyWallpaper } from '../core/theme-engine.js';
@@ -171,7 +172,8 @@ export async function loadUserData() {
         renderBookmarks();
     }
 
-    const savedBg = storageGet(CONFIG.KEYS.BG);
+    const selection = await getWallpaperSelectionDB();
+    const savedBg = selection ? selection.bg : storageGet(CONFIG.KEYS.BG);
     if (savedBg !== null && typeof savedBg === 'number' && savedBg >= 0 && savedBg < backgrounds.length) {
         state.bg = savedBg;
     }

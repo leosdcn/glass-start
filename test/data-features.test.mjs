@@ -227,7 +227,7 @@ const wallpaperThemeCheck = await evalJS(`(() => {
 const wallpaperThemeOk = wallpaperThemeCheck && wallpaperThemeCheck.countOk && wallpaperThemeCheck.isAlternating && wallpaperThemeCheck.colorsOk;
 
 // 2.9 系统重置与书签默认模型纯 ESM 闭环断言 (不依赖 window 全局挂载 / 内存与存储同步恢复)
-const resetBookmarksCheck = await evalJS(`(() => {
+const resetBookmarksCheck = await evalJS(`(async () => {
   pageData.categories = DEFAULT_CATEGORIES;
   localStorage.setItem('userBookmarkKeys', JSON.stringify(['https://custom-only.test']));
   localStorage.setItem('userCustomMeta', JSON.stringify({ 'https://custom-only.test': { name: '临时测试' } }));
@@ -245,6 +245,10 @@ const resetBookmarksCheck = await evalJS(`(() => {
     resetBookmarks();
     const okBtn = dom.confirmOkBtn || $('confirmOkBtn');
     if (okBtn) okBtn.click();
+    const deadline = Date.now() + 3000;
+    while (localStorage.getItem('userBookmarkKeys') !== null && Date.now() < deadline) {
+      await new Promise(resolve => setTimeout(resolve, 20));
+    }
 
     const countOk = Array.isArray(pageData.bookmarks) && pageData.bookmarks.length === 8;
     const names = pageData.bookmarks.map(b => b.name);

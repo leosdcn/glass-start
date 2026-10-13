@@ -1,3 +1,4 @@
+import { flushWallpaperSelection } from '../modules/wallpaper.js';
 /**
  * ==============================================================================
  * Glass Start — 全局事件中枢与拖拽排序 (src/js/core/events.js)
@@ -634,6 +635,11 @@ export function bindEditEvents() {
                 const data = collectEditData();
                 if (data.length === 0) {
                     showConfirm('至少需要保留一个名称和 URL 均已填写的书签才能保存。', null, '无法保存');
+                    return;
+                }
+
+                if (!await flushWallpaperSelection()) {
+                    showConfirm('壁纸尚未保存成功，请重新选择后再保存。', null, '无法保存');
                     return;
                 }
 
