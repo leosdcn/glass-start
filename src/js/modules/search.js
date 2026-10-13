@@ -20,6 +20,7 @@ export let selectedSuggestionIdx = -1;
 export let originalQuery = '';
 export let suggestDebounceTimer = null;
 export let activeSuggestReqId = 0;
+let activeSuggestCleanup = null;
 export function setActiveSuggestReqId(val) {
     activeSuggestReqId = val;
 }
@@ -572,11 +573,7 @@ export function hideSuggestions() {
         suggestDebounceTimer = null;
     }
     activeSuggestReqId++;
-    if (suggestionScriptTag) {
-        suggestionScriptTag.onerror = null;
-        suggestionScriptTag.remove();
-        suggestionScriptTag = null;
-    }
+    activeSuggestCleanup?.();
     OverlayStack.pop('suggestions');
     const suggestionMenu = dom.suggestionMenu;
     const searchInput = dom.searchInput;
@@ -603,19 +600,15 @@ export function fetchSuggestions(engineKey, query) {
         return;
     }
 
+    activeSuggestCleanup?.();
     const localList = getLocalBookmarkSuggestions(query, CONFIG.SUGGEST.MAX_LOCAL_ITEMS);
     renderSuggestions(localList, [], false, true);
 
     activeSuggestReqId++;
     const reqId = activeSuggestReqId;
 
-    if (suggestionScriptTag) {
-        suggestionScriptTag.onerror = null;
-        suggestionScriptTag.remove();
-        suggestionScriptTag = null;
-    }
-
     const cbName = `__glassSuggestCb_${reqId}`;
+    const script = document.createElement('script');
     let timeoutTimer = null;
 
     const cleanup = () => {
@@ -624,15 +617,15 @@ export function fetchSuggestions(engineKey, query) {
             timeoutTimer = null;
         }
         try { delete window[cbName]; } catch {}
-        if (suggestionScriptTag) {
-            suggestionScriptTag.onerror = null;
-            suggestionScriptTag.remove();
-            suggestionScriptTag = null;
-        }
+        script.onerror = null;
+        script.remove();
+        if (suggestionScriptTag === script) suggestionScriptTag = null;
+        if (activeSuggestCleanup === cleanup) activeSuggestCleanup = null;
     };
 
     const handleSuggestFallback = () => {
         cleanup();
+        if (reqId !== activeSuggestReqId) return;
         if (localList && localList.length > 0) {
             renderSuggestions(localList, [], true, false);
         } else {
@@ -640,11 +633,8 @@ export function fetchSuggestions(engineKey, query) {
         }
     };
 
-    timeoutTimer = setTimeout(() => {
-        if (reqId === activeSuggestReqId) {
-            handleSuggestFallback();
-        }
-    }, CONFIG.SUGGEST.JSONP_TIMEOUT);
+    activeSuggestCleanup = cleanup;
+    timeoutTimer = setTimeout(handleSuggestFallback, CONFIG.SUGGEST.JSONP_TIMEOUT);
 
     window[cbName] = function(data) {
         cleanup();
@@ -663,7 +653,6 @@ export function fetchSuggestions(engineKey, query) {
         }
     };
 
-    const script = document.createElement('script');
     suggestionScriptTag = script;
     script.onerror = handleSuggestFallback;
 

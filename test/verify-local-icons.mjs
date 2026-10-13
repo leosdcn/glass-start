@@ -81,6 +81,7 @@ async function run() {
     let missingInSource = 0;
     let missingInDist = 0;
     let corruptedPngs = 0;
+    let nonSquarePngs = 0;
 
     for (const bm of allBookmarks) {
         const filename = bm.icon.replace(/^\.\/icons\//, '');
@@ -97,14 +98,18 @@ async function run() {
         }
 
         const buf = readFileSync(srcPath);
-        if (buf.length < 8 || !buf.subarray(0, 8).equals(PNG_HEADER)) {
+        if (buf.length < 24 || !buf.subarray(0, 8).equals(PNG_HEADER)) {
             corruptedPngs++;
+        } else if (buf.readUInt32BE(16) !== buf.readUInt32BE(20) || buf.readUInt32BE(16) === 0) {
+            nonSquarePngs++;
         }
     }
 
     assert('全量书签对应之源码 icons/ 图标文件 0 缺失', missingInSource === 0, `缺失: ${missingInSource}`);
     assert('全量书签对应之 dist/icons/ 构建产物 0 缺失', missingInDist === 0, `缺失: ${missingInDist}`);
     assert('全量本地图标均为合规二进制 PNG (魔数 0x89504E47)', corruptedPngs === 0, `损坏: ${corruptedPngs}`);
+
+    assert('全量本地图标均为非空 1:1 PNG', nonSquarePngs === 0, `非正方形: ${nonSquarePngs}`);
 
     // ─────────────────────────────────────────────────────────────
     // 阶段 3: 无头 Chrome 真实环境网络拦截与 DOM 渲染断言

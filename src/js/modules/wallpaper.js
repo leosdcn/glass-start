@@ -11,6 +11,26 @@ import { dom, $ } from '../state/dom.js';
 import { applyWallpaper } from '../core/theme-engine.js';
 import { showConfirm } from './settings.js';
 
+let wallpaperSelectionId = 0;
+let pendingPreviewImage = null;
+let wallpaperCommitQueue = Promise.resolve();
+
+function beginWallpaperSelection() {
+    wallpaperSelectionId++;
+    if (pendingPreviewImage) {
+        pendingPreviewImage.onload = pendingPreviewImage.onerror = null;
+        pendingPreviewImage = null;
+    }
+    return wallpaperSelectionId;
+}
+
+function commitCurrentSelection(targetWallpaper, selectionId) {
+    wallpaperCommitQueue = wallpaperCommitQueue.catch(() => {}).then(() => {
+        if (selectionId === wallpaperSelectionId) return commitWallpaperSelection(targetWallpaper);
+    });
+    return wallpaperCommitQueue;
+}
+
 /**
  * 获取当前生效的自定义壁纸（三通道回退：内存缓存 -> IndexedDB -> localStorage）
  * @returns {Promise<string|null>}
@@ -116,22 +136,28 @@ export async function commitWallpaperSelection(targetWallpaper) {
  * @returns {void}
  */
 export function previewDraftWallpaper(urlStr) {
+    const selectionId = beginWallpaperSelection();
     modalState.draftWallpaper = urlStr;
     if (urlStr && /^https?:\/\//i.test(urlStr)) {
         const testImg = new Image();
+        pendingPreviewImage = testImg;
         testImg.onload = () => {
+            if (selectionId !== wallpaperSelectionId) return;
+            pendingPreviewImage = null;
             applyWallpaper(urlStr, true);
-            commitWallpaperSelection(urlStr);
+            commitCurrentSelection(urlStr, selectionId);
             testImg.onload = testImg.onerror = null;
         };
         testImg.onerror = () => {
+            if (selectionId !== wallpaperSelectionId) return;
+            pendingPreviewImage = null;
             showConfirm('无法加载该网络图片，请检查图片 URL 是否有效。', null, '图片无法加载');
             testImg.onload = testImg.onerror = null;
         };
         testImg.src = urlStr;
     } else {
         applyWallpaper(urlStr || backgrounds[state.bg], true);
-        commitWallpaperSelection(urlStr);
+        commitCurrentSelection(urlStr, selectionId);
     }
     updateWallpaperStatusUI(urlStr);
     updatePresetBgCardsUI(urlStr);
@@ -142,8 +168,10 @@ export function previewDraftWallpaper(urlStr) {
  * @returns {void}
  */
 export async function resetDraftWallpaper() {
+    const selectionId = beginWallpaperSelection();
     modalState.draftWallpaper = null;
-    await commitWallpaperSelection(null);
+    await commitCurrentSelection(null, selectionId);
+    if (selectionId !== wallpaperSelectionId) return;
     applyWallpaper(backgrounds[0], true);
     await updateWallpaperStatusUI(null);
     updatePresetBgCardsUI(backgrounds[0]);
@@ -154,7 +182,11 @@ export async function resetDraftWallpaper() {
  * @returns {Promise<void>}
  */
 export async function switchBg() {
+    const selectionId = beginWallpaperSelection();
+    await wallpaperCommitQueue.catch(() => {});
+    if (selectionId !== wallpaperSelectionId) return;
     let customBg = await getEffectiveCustomWallpaper();
+    if (selectionId !== wallpaperSelectionId) return;
     const legacyPresetIdx = findPresetBgIndex(customBg);
     if (legacyPresetIdx >= 0) {
         await clearCustomWallpaper();

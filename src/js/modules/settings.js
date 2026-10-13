@@ -75,9 +75,7 @@ export function animateHideModal(modalEl) {
 }
 
 export function getDraftBookmarkCount() {
-    return (modalState.draftBookmarks && modalState.draftBookmarks.length > 0)
-        ? modalState.draftBookmarks.length
-        : (dom.editList ? dom.editList.querySelectorAll('.edit-row-card').length : pageData.bookmarks.length);
+    return modalState.draftBookmarks.length;
 }
 
 export function updateAllBookmarkCounters() {
@@ -211,7 +209,7 @@ export function getEditRowHTML(name = '', url = '', idx = '', icon = '', rowId =
     return `
         <div role="listitem" class="edit-row-card flex items-center gap-1.5 sm:gap-2 p-1.5 sm:p-2 bg-white/5 border border-white/10 apple-radius hover:border-white/25 glass-interactive group mb-1.5 shadow-xs" data-id="${escapeHtml(id)}" data-idx="${idx}" draggable="false">
             <div class="flex items-center gap-1 shrink-0">
-                <button type="button" class="drag-handle touch-none p-1 size-7 flex items-center justify-center shrink-0 text-white/30 group-hover:text-white/70 hover:text-white cursor-grab active:cursor-grabbing rounded-lg glass-interactive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40" title="按住拖拽排序" aria-label="按住拖拽或使用键盘排序">
+                <button type="button" class="drag-handle touch-none p-1 size-7 flex items-center justify-center shrink-0 text-white/30 group-hover:text-white/70 hover:text-white cursor-grab active:cursor-grabbing rounded-lg glass-interactive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40" title="拖拽或按 Alt + ↑/↓ 排序" aria-label="排序书签：${escapeHtml(name)}，按 Alt 加上或下方向键移动">
                     <svg class="size-3.5 pointer-events-none" aria-hidden="true"><use href="#icon-drag"/></svg>
                 </button>
                 <div class="edit-favicon-box shrink-0 flex items-center justify-center text-white/90 select-none pointer-events-none">
@@ -219,8 +217,8 @@ export function getEditRowHTML(name = '', url = '', idx = '', icon = '', rowId =
                 </div>
             </div>
             <div class="flex-1 flex flex-col sm:flex-row items-stretch sm:items-center gap-1 sm:gap-1.5 min-w-0">
-                <input type="text" id="bm-name-${id}" name="bookmark_name_${id}" class="edit-name w-full sm:w-1/3 bg-black/25 border border-white/10 rounded-lg px-2.5 py-1 sm:py-1.5 text-base sm:text-xs text-white/90 focus:border-white/40 focus:bg-black/40 focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:outline-none outline-none transition font-medium" value="${escapeHtml(name)}" placeholder="书签名称" aria-label="书签名称">
-                <input type="text" id="bm-url-${id}" name="bookmark_url_${id}" inputmode="url" autocapitalize="off" class="edit-url w-full sm:w-2/3 bg-black/25 border border-white/10 rounded-lg px-2.5 py-1 sm:py-1.5 text-base sm:text-xs text-white/60 focus:border-white/40 focus:bg-black/40 focus:text-white focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:outline-none outline-none transition font-mono" value="${escapeHtml(url)}" placeholder="https://..." aria-label="书签网址">
+                <input type="text" id="bm-name-${id}" name="bookmark_name_${id}" class="edit-name w-full sm:w-1/3 bg-black/25 border border-white/10 rounded-lg px-2.5 py-1 sm:py-1.5 text-base text-white/90 focus:border-white/40 focus:bg-black/40 focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:outline-none outline-none transition font-medium" value="${escapeHtml(name)}" placeholder="书签名称" aria-label="书签名称">
+                <input type="text" id="bm-url-${id}" name="bookmark_url_${id}" inputmode="url" autocapitalize="off" class="edit-url w-full sm:w-2/3 bg-black/25 border border-white/10 rounded-lg px-2.5 py-1 sm:py-1.5 text-base text-white/60 focus:border-white/40 focus:bg-black/40 focus:text-white focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:outline-none outline-none transition font-mono" value="${escapeHtml(url)}" placeholder="https://..." aria-label="书签网址">
             </div>
             <button type="button" class="del-btn shrink-0 size-7 sm:size-8 p-1 hover:bg-red-500/20 rounded-full text-white/30 hover:text-red-400 flex items-center justify-center transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-1 focus-visible:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed" title="删除书签" aria-label="删除书签">
                 <svg class="size-4 pointer-events-none" aria-hidden="true"><use href="#icon-trash"/></svg>
@@ -283,20 +281,11 @@ export function renderEditList(listToRender) {
             origUrl: bm.origUrl || bm.url || '',
             desc: bm.desc || ''
         }));
-    } else if (!modalState.draftBookmarks || modalState.draftBookmarks.length === 0) {
-        modalState.draftBookmarks = pageData.bookmarks.map((bm, i) => ({
-            id: `bm_${i}`,
-            name: bm.name || '',
-            url: bm.url || '',
-            icon: bm.icon || '',
-            origUrl: bm.url || '',
-            desc: bm.desc || ''
-        }));
     }
 
     const editList = dom.editList;
     if (!editList) return;
-    editList.innerHTML = '<div id="dragDropIndicator" class="drag-drop-line"></div>' + modalState.draftBookmarks.map((bm, i) => getEditRowHTML(bm.name, bm.url, i, bm.icon, bm.id)).join('');
+    editList.innerHTML = '<div id="dragDropIndicator" class="drag-drop-line"></div><span class="bookmark-sort-status sr-only" role="status" aria-live="polite"></span>' + modalState.draftBookmarks.map((bm, i) => getEditRowHTML(bm.name, bm.url, i, bm.icon, bm.id)).join('');
     dom.dragDropIndicator = editList.querySelector('#dragDropIndicator');
     updateAllBookmarkCounters();
 
@@ -310,9 +299,7 @@ export function renderEditList(listToRender) {
  * @returns {Array<{name: string, url: string, icon: string, desc?: string}>}
  */
 export function collectEditData() {
-    const sourceList = (modalState.draftBookmarks && modalState.draftBookmarks.length > 0)
-        ? modalState.draftBookmarks
-        : (pageData.bookmarks || []);
+    const sourceList = modalState.draftBookmarks;
 
     const bookmarks = [];
     for (let i = 0; i < sourceList.length; i++) {
@@ -553,11 +540,10 @@ export function closeBookmarkPicker() {
  */
 export function exportBookmarksJSON() {
     const data = collectEditData();
-    const bookmarksToExport = data.length ? data : pageData.bookmarks;
     const exportData = {
         version: '1.0',
         exportDate: new Date().toISOString(),
-        bookmarks: bookmarksToExport
+        bookmarks: data
     };
     const jsonStr = JSON.stringify(exportData, null, 2);
     const blob = new Blob([jsonStr], { type: 'application/json' });
@@ -682,9 +668,7 @@ export function resetBookmarks() {
  */
 export function getExistingUrls() {
     const urls = new Set();
-    const sourceList = (modalState.draftBookmarks && modalState.draftBookmarks.length > 0)
-        ? modalState.draftBookmarks
-        : pageData.bookmarks;
+    const sourceList = modalState.draftBookmarks;
 
     sourceList.forEach(bm => {
         const norm = normalizeUrl(bm.url);

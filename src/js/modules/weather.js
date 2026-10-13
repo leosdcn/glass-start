@@ -12,7 +12,7 @@
  * 6. 缓存有效性校验与生命周期对齐 (updateWeather, initWeather)
  */
 import { CONFIG } from '../config/constants.js';
-import { escapeHtml, storageGet, storageSet } from '../utils/helpers.js';
+import { escapeHtml, storageGet, storageSet, storageRemove } from '../utils/helpers.js';
 import { dom, $ } from '../state/dom.js';
 import { OverlayStack } from '../core/overlay-stack.js';
 
@@ -408,7 +408,7 @@ export function renderWeatherPopover(data) {
         weatherText: (typeof raw.weatherText === 'string') ? raw.weatherText : ''
     };
     const loc = data.location || {};
-    const days = (Array.isArray(data.daily) ? data.daily : []).map(d => ({
+    const days = (Array.isArray(data.daily) ? data.daily : []).filter(isWeatherRecord).map(d => ({
         ...d,
         label: (typeof d.label === 'string') ? d.label.slice(0, CONFIG.WEATHER.LABEL_MAX_CHARS) : '',
         icon: (typeof d.icon === 'string' && d.icon) ? d.icon : '⛅',
@@ -556,9 +556,22 @@ export function renderWeatherPopover(data) {
 
 export let isFetchingWeather = false;
 
+const isWeatherRecord = value => value !== null && typeof value === 'object' && !Array.isArray(value);
+
+function readWeatherCache() {
+    const cache = storageGet(CONFIG.KEYS.WEATHER_CACHE, null);
+    if (!cache) return null;
+    if (!isWeatherRecord(cache) || !isWeatherRecord(cache.current)
+        || (cache.daily !== undefined && (!Array.isArray(cache.daily) || !cache.daily.every(isWeatherRecord)))) {
+        storageRemove(CONFIG.KEYS.WEATHER_CACHE);
+        return null;
+    }
+    return cache;
+}
+
 export async function updateWeather(force = false) {
     if (!force && typeof document !== 'undefined' && document.hidden) return;
-    const cache = storageGet(CONFIG.KEYS.WEATHER_CACHE, null);
+    const cache = readWeatherCache();
     const now = Date.now();
     const CACHE_TTL = CONFIG.WEATHER.CACHE_TTL;
 
@@ -616,7 +629,7 @@ export async function updateWeather(force = false) {
 }
 
 export function initWeather() {
-    const cache = storageGet(CONFIG.KEYS.WEATHER_CACHE, null);
+    const cache = readWeatherCache();
     if (cache) {
         renderWeatherCapsule(cache);
         renderWeatherPopover(cache);

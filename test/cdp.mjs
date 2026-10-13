@@ -61,7 +61,7 @@ function registerExitHooks() {
 registerExitHooks();
 
 export async function launchChrome({ port, url }) {
-  const profileDir = process.env.CHROME_PROFILE_DIR || join(tmpdir(), `glass-start-test-${port}-${randomUUID()}`);
+  const profileDir = process.env.CHROME_PROFILE_DIR || join(process.env.GLASS_TEST_TMPDIR || tmpdir(), `glass-start-test-${port}-${randomUUID()}`);
   const args = [
     '--headless=new',
     '--disable-gpu',

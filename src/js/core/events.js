@@ -565,12 +565,10 @@ export function bindEditEvents() {
             }
 
             // 同步实时 Favicon 预览
-            const nameInput = row.querySelector('.edit-name');
-            const urlInput = row.querySelector('.edit-url');
             const faviconBox = row.querySelector('.edit-favicon-box');
             if (faviconBox) {
-                const nameVal = nameInput ? nameInput.value : '';
-                const urlVal = urlInput ? urlInput.value : '';
+                const nameVal = item.name;
+                const urlVal = item.url;
                 const initial = (nameVal || '?').trim().charAt(0).toUpperCase() || '?';
 
                 const existingImg = faviconBox.querySelector('.edit-favicon-img');

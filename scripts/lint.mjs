@@ -269,19 +269,21 @@ try {
 
 // 4.2 移动端 iOS 16px 防放大输入框规范静态扫描
 try {
-    const inputMatches = [...indexHtml.matchAll(/<input[^>]*type=["']text["'][^>]*>/gi)];
+    const inputSources = [{ file: 'src/index.html', content: indexHtml }, ...allSrcJsFiles.map(file => ({ file, content: readFileSync(file, 'utf-8') }))];
+    const inputMatches = inputSources.flatMap(source => [...source.content.matchAll(/<input[^>]*type=["']text["'][^>]*>/gi)].map(match => ({ match, ...source })));
     let allInputsCompliant = true;
     const nonCompliant = [];
 
-    for (const match of inputMatches) {
+    for (const { match, file, content } of inputMatches) {
         const tag = match[0];
         const has16pxPlus = /text-(base|lg|xl|2xl|3xl)/.test(tag);
-        if (!has16pxPlus) {
+        const hasSmallerOverride = /(?:^|[\s"'])(?:[\w-]+:)*text-(?:xs|sm|2xs)(?=[\s"'])/.test(tag);
+        if (!has16pxPlus || hasSmallerOverride) {
             allInputsCompliant = false;
-            const { line, col } = getLineCol(indexHtml, match.index);
+            const { line, col } = getLineCol(content, match.index);
             const idMatch = tag.match(/id=["']([^"']+)["']/);
             const idDesc = idMatch ? `#${idMatch[1]}` : tag.slice(0, 30);
-            nonCompliant.push(`src/index.html:${line}:${col} (<input ${idDesc}> 缺少 text-base)`);
+            nonCompliant.push(`${file}:${line}:${col} (<input ${idDesc}> 字号必须始终 >=16px)`);
         }
     }
 
@@ -468,8 +470,12 @@ try {
     const cacheDomMatch = domJsContent.match(/const\s+ids\s*=\s*['"]([^'"]+)['"]/i);
     const cachedIds = cacheDomMatch ? cacheDomMatch[1].trim().split(/\s+/) : [];
     const missingCachedIds = cachedIds.filter(id => !domIdSet.has(id));
+    const settingsIds = [...noScriptBody.matchAll(/<(?:button|div)\b[^>]*>/gi)]
+        .filter(match => /settings-tab-(?:btn|panel)/.test(match[0]))
+        .map(match => match[0].match(/\bid=["']([^"']+)["']/)?.[1]).filter(Boolean);
+    const uncachedSettingsIds = settingsIds.filter(id => !cachedIds.includes(id));
 
-    if (duplicateIds.length === 0 && missingCachedIds.length === 0 && domIdSet.size > 0) {
+    if (duplicateIds.length === 0 && missingCachedIds.length === 0 && uncachedSettingsIds.length === 0 && domIdSet.size > 0) {
         passCount++;
         logItem(`全站 ${domIdSet.size} 个 DOM ID 100% 全局唯一，且 cacheDOM() ${cachedIds.length} 个缓存映射健康无死引用`);
     } else {
@@ -477,6 +483,7 @@ try {
         const errors = [];
         if (duplicateIds.length > 0) errors.push(`重复 ID: ${duplicateIds.join(', ')}`);
         if (missingCachedIds.length > 0) errors.push(`cacheDOM 丢失引用 ID: ${missingCachedIds.join(', ')}`);
+        if (uncachedSettingsIds.length > 0) errors.push(`设置面板 ID 未注册缓存: ${uncachedSettingsIds.join(', ')}`);
         logItem(`DOM ID 校验失败: ${errors.join(' | ')}`, 'error');
     }
 } catch (e) {
@@ -510,8 +517,10 @@ try {
             } else {
                 try {
                     const buf = readFileSync(iconPath);
-                    if (buf.length < 8 || !buf.subarray(0, 8).equals(PNG_HEADER)) {
+                    if (buf.length < 24 || !buf.subarray(0, 8).equals(PNG_HEADER)) {
                         errors.push(`${prefix} 本地图标 "public/icons/${iconFileName}" 非有效二进制 PNG 文件 (魔数校验失败)，请运行 "npm run sync:icons" 重新生成！`);
+                    } else if (buf.readUInt32BE(16) !== buf.readUInt32BE(20) || buf.readUInt32BE(16) === 0) {
+                        errors.push(`${prefix} 本地图标必须为非空 1:1 PNG: ${iconFileName}`);
                     }
                 } catch (readErr) {
                     errors.push(`${prefix} 本地图标读取失败: ${readErr.message}`);

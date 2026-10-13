@@ -73,7 +73,12 @@ export function initDragSort() {
     function commitReorder(src, target, isTop) {
         if (!src || !target || src === target) return;
 
-        const cards = Array.from(editList.querySelectorAll('.edit-row-card'));
+        const srcIdx = modalState.draftBookmarks.findIndex(b => b.id === src.dataset.id);
+        const targetIdx = modalState.draftBookmarks.findIndex(b => b.id === target.dataset.id);
+        if (srcIdx < 0 || targetIdx < 0) return;
+
+        const cards = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+            ? [] : Array.from(editList.querySelectorAll('.edit-row-card'));
         const firstPositions = new Map();
         cards.forEach(card => firstPositions.set(card, card.getBoundingClientRect()));
 
@@ -85,18 +90,9 @@ export function initDragSort() {
         modalState.bookmarksChanged = true;
 
         // 同步重新排列内存草稿数组顺序 (基于内存索引移位，杜绝 DOM 搜刮)
-        if (modalState.draftBookmarks?.length > 0 && src.dataset.id && target.dataset.id) {
-            const srcIdx = modalState.draftBookmarks.findIndex(b => b.id === src.dataset.id);
-            if (srcIdx !== -1) {
-                const [moved] = modalState.draftBookmarks.splice(srcIdx, 1);
-                const destIdx = modalState.draftBookmarks.findIndex(b => b.id === target.dataset.id);
-                if (destIdx !== -1) {
-                    modalState.draftBookmarks.splice(isTop ? destIdx : destIdx + 1, 0, moved);
-                } else {
-                    modalState.draftBookmarks.push(moved);
-                }
-            }
-        }
+        const [moved] = modalState.draftBookmarks.splice(srcIdx, 1);
+        const destIdx = modalState.draftBookmarks.findIndex(b => b.id === target.dataset.id);
+        modalState.draftBookmarks.splice(isTop ? destIdx : destIdx + 1, 0, moved);
 
         cards.forEach(card => {
             const first = firstPositions.get(card);
@@ -122,6 +118,25 @@ export function initDragSort() {
 
         updateAllBookmarkCounters();
     }
+
+    editList.addEventListener('keydown', e => {
+        const handle = e.target.closest('.drag-handle');
+        if (!handle || !e.altKey || e.ctrlKey || e.metaKey || e.shiftKey
+            || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return;
+        e.preventDefault();
+        e.stopPropagation();
+        const src = handle.closest('.edit-row-card');
+        const index = modalState.draftBookmarks.findIndex(b => b.id === src?.dataset.id);
+        const nextIndex = index + (e.key === 'ArrowUp' ? -1 : 1);
+        if (index < 0 || nextIndex < 0 || nextIndex >= modalState.draftBookmarks.length) return;
+        const next = modalState.draftBookmarks[nextIndex];
+        const target = editList.querySelector(`.edit-row-card[data-id="${CSS.escape(next.id)}"]`);
+        if (!target) return;
+        commitReorder(src, target, nextIndex < index);
+        handle.focus();
+        const status = editList.querySelector('.bookmark-sort-status');
+        if (status) status.textContent = `${modalState.draftBookmarks[nextIndex].name} 已移至第 ${nextIndex + 1} 项，共 ${modalState.draftBookmarks.length} 项`;
+    });
 
     // ── 鼠标路径：mousedown 控制 draggable ───────────────────────────────────
     editList.addEventListener('mousedown', e => {

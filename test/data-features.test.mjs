@@ -199,7 +199,7 @@ const weatherSanitizeOk = weatherSanitizeCheck && weatherSanitizeCheck.n1 && wea
 
 // 2.7 关键交互图标按钮 (del-btn / weatherRefreshBtn) 显式声明 aria-label 规范
 const btnA11yCheck = await evalJS(`(() => {
-  renderEditList();
+  renderEditList(pageData.bookmarks);
   const delBtn = document.querySelector('.del-btn');
   const delHasAria = delBtn ? delBtn.getAttribute('aria-label') === '删除书签' : false;
 

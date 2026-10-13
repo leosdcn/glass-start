@@ -34,7 +34,11 @@ export function init() {
     renderShortcutModalList();
     renderEngineDropdown();
     renderPresetWallpapers();
-    initWeather();
+    try {
+        initWeather();
+    } catch (err) {
+        console.warn('天气组件初始化失败', err);
+    }
 
     // 全局捕获阶段图片加载错误处理器，彻底代替 HTML 模板行内 onerror 绑定
     document.addEventListener('error', (e) => {

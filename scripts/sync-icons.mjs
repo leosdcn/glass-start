@@ -9,10 +9,10 @@
  * 3. 映射单一化：bookmarks.json 中所有书签统一指向相对路径 ./icons/{host}.png；
  * 4. 零外部依赖：纯原生 Node.js + 原生 sips，不引入任何 npm dependencies。
  */
-import { existsSync, mkdirSync, writeFileSync, readFileSync, unlinkSync, readdirSync } from 'node:fs';
+import { existsSync, mkdirSync, writeFileSync, readFileSync, mkdtempSync, rmSync, renameSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { execSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import https from 'node:https';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -74,36 +74,40 @@ function fetchBuffer(url, timeoutMs = HTTP_TIMEOUT_MS) {
 }
 
 function saveAsPng(inputBuffer, destPath) {
+    const workDir = mkdtempSync(join(dirname(destPath), '.icon-sync-'));
     const isSvg = inputBuffer.toString('utf-8', 0, Math.min(200, inputBuffer.length)).includes('<svg');
-    const ext = isSvg ? '.svg' : '.bin';
-    const tmpFile = join('/tmp', `favim_sync_${Date.now()}_${Math.random().toString(36).slice(2, 6)}${ext}`);
-
+    const inputPath = join(workDir, isSvg ? 'input.svg' : 'input.bin');
+    const outputPath = join(workDir, 'output.png');
+    const pngHeader = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+    const runSips = args => execFileSync('sips', args, { stdio: 'ignore', timeout: 5000 });
+    const dimensions = () => {
+        const png = readFileSync(outputPath);
+        if (png.length < 24 || !png.subarray(0, 8).equals(pngHeader)
+            || png.toString('ascii', 12, 16) !== 'IHDR') throw new Error('Invalid PNG');
+        const width = png.readUInt32BE(16), height = png.readUInt32BE(20);
+        if (!width || !height) throw new Error('Invalid PNG dimensions');
+        return { width, height };
+    };
     try {
-        writeFileSync(tmpFile, inputBuffer);
-        // 使用原生 sips 将 SVG/ICO/PNG 统一标准化转写为规范的 PNG 文件
-        execSync(`sips -s format png "${tmpFile}" --out "${destPath}"`, {
-            stdio: ['pipe', 'pipe', 'ignore'],
-            timeout: 5000
-        });
-        // 若产物超过 128px，等比缩放到 128px 兼顾高清与极致体积
-        try {
-            const dimStr = execSync(`sips -g pixelWidth "${destPath}"`, { encoding: 'utf-8', stdio: ['ignore', 'pipe', 'ignore'] });
-            const match = dimStr.match(/pixelWidth:\s*(\d+)/);
-            if (match && parseInt(match[1], 10) > 128) {
-                execSync(`sips -Z 128 "${destPath}"`, { stdio: ['ignore', 'ignore', 'ignore'] });
-            }
-        } catch {}
-        try { unlinkSync(tmpFile); } catch {}
+        writeFileSync(inputPath, inputBuffer);
+        runSips(['-s', 'format', 'png', inputPath, '--out', outputPath]);
+        let { width, height } = dimensions();
+        if (Math.max(width, height) > 128) {
+            runSips(['-Z', '128', outputPath]);
+            ({ width, height } = dimensions());
+        }
+        if (width !== height) {
+            const side = String(Math.max(width, height));
+            runSips(['--padToHeightWidth', side, side, outputPath]);
+        }
+        ({ width, height } = dimensions());
+        if (width !== height || width > 128) throw new Error('Icon must be square');
+        renameSync(outputPath, destPath);
         return true;
     } catch {
-        try { unlinkSync(tmpFile); } catch {}
-        // 若 sips 处理异常，作为兜底直接写入二进制 Buffer
-        try {
-            writeFileSync(destPath, inputBuffer);
-            return true;
-        } catch {
-            return false;
-        }
+        return false;
+    } finally {
+        rmSync(workDir, { recursive: true, force: true });
     }
 }
 
@@ -212,7 +216,8 @@ function isPlaceholder(buf) {
     const failed = results.filter(r => !r.success);
     if (failed.length > 0) {
         console.log(`  ${c.yellow}⚠ 注意：有 ${failed.length} 个图标未能成功下载：${c.reset}`);
-        failed.forEach(f => console.log(`    - ${f.host}: ${f.error}`));
+        failed.forEach(f => console.log(`    - ${f.host}: ${f.error || 'PNG normalization failed'}`));
+        process.exitCode = 1;
     } else {
         console.log(`  ${c.green}✨ 全站 ${totalHosts} 个书签图标已 100% 成功从 a.favicon.im 抓取并存入本地 icons/ 目录！${c.reset}`);
     }

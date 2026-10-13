@@ -1,28 +1,24 @@
-import { spawn, spawnSync, execSync } from 'node:child_process';
-import { readdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { spawn, spawnSync } from 'node:child_process';
+import { readdirSync, readFileSync, writeFileSync, existsSync, mkdtempSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
 import { tmpdir, cpus } from 'node:os';
 
-// 终极进程清理器：强杀任意残留的无头 Chrome 实例、Node 测试子进程与清除临时目录
+// 仅清理本次测试持有的进程组和独占临时目录。
+const runTempDir = mkdtempSync(join(tmpdir(), 'glass-start-run-'));
+const runningChildProcesses = new Set();
 function cleanupLingeringTestProcesses() {
-  try {
-    execSync('pkill -9 -f "glass-start-test"', { stdio: 'ignore' });
-  } catch {}
-  try {
-    execSync('pkill -9 -f "node.*test/.*\\.test\\.mjs"', { stdio: 'ignore' });
-  } catch {}
-  try {
-    execSync(`rm -rf "${tmpdir()}"/glass-start-test-* /tmp/glass-start-test-* 2>/dev/null || true`, { stdio: 'ignore' });
-  } catch {}
+  for (const child of runningChildProcesses) {
+    try {
+      if (process.platform === 'win32') child.kill('SIGKILL');
+      else process.kill(-child.pid, 'SIGKILL');
+    } catch {}
+  }
+  try { rmSync(runTempDir, { recursive: true, force: true }); } catch {}
 }
 
-// 启动前先扫清既往残留
-cleanupLingeringTestProcesses();
-
 // 注册退出信号保护
-const runningChildProcesses = new Set();
 process.on('SIGINT', () => {
   for (const child of runningChildProcesses) {
     try { child.kill('SIGKILL'); } catch {}
@@ -249,7 +245,9 @@ async function runQueue() {
       const code = await new Promise((resolve) => {
         const child = spawn('node', [join(__dirname, item.filename)], {
           cwd: rootDir,
-          stdio: 'inherit'
+          stdio: 'inherit',
+          detached: process.platform !== 'win32',
+          env: { ...process.env, GLASS_TEST_TMPDIR: runTempDir }
         });
         runningChildProcesses.add(child);
         child.on('close', (res) => {
