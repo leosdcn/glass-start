@@ -5,8 +5,9 @@ import { launchChrome } from './cdp.mjs';
 import { getFreePort, waitFor } from './helpers.mjs';
 
 const source = readFileSync(new URL('../sw.js', import.meta.url), 'utf8');
-let version = 101, failApp = false, mismatch = false;
+let version = 101, failApp = false, mismatch = false, offline = false;
 const route = (kind) => (req, res) => {
+  if (offline) { req.socket.destroy(); return; }
   const stamp = `app-core-v${version}`;
   let body;
   if (kind === 'worker') body = source.replace(/const CORE_CACHE = '[^']+';/, `const CORE_CACHE = '${stamp}';`)
@@ -14,16 +15,18 @@ const route = (kind) => (req, res) => {
     + "\nself.addEventListener('message', e => e.waitUntil(clients.matchAll({type:'window'}).then(list => e.ports[0].postMessage(list.length))));";
   if (kind === 'html') body = `<!doctype html><html><head><script>window.__GLASS_BUILD_HTML__="${stamp}";</script><script src="./app.js" defer></script></head><body>version ${version}</body></html>`;
   if (kind === 'app') body = `window.__GLASS_BUILD_APP__="${mismatch ? 'app-core-v999' : stamp}";window.appVersion=${version};navigator.serviceWorker.register('./sw.js').then(reg=>window.reg=reg);`;
-  if (kind === 'image') body = 'image fixture';
+  if (kind === 'image') body = `image-${version}-${req.url}`;
   res.writeHead(kind === 'app' && failApp ? 503 : 200, {
     'Content-Type': kind === 'html' ? 'text/html' : kind === 'image' ? 'image/avif' : 'application/javascript',
-    'Cache-Control': 'no-store'
+    'Cache-Control': kind === 'image' ? 'public, max-age=31536000, immutable' : 'no-store'
   });
   res.end(body);
 };
 const server = await startServer(0, undefined, {
   '/app/': route('html'), '/app/index.html': route('html'), '/app/app.js': route('app'),
   '/app/sw.js': route('worker'), '/app/wallpapers/bg1.avif': route('image'),
+  '/app/icons/test.png': route('image'),
+  '/app/icons/offline.png': route('image'),
   '/status.html': '<!doctype html><html><head></head><body>uncontrolled status</body></html>'
 });
 const origin = `http://127.0.0.1:${server.port}`;
@@ -49,6 +52,8 @@ try {
   await send('Page.reload');
   await waitFor(evalJS, '!!navigator.serviceWorker.controller && window.appVersion === 101 && !!window.reg');
   await evalJS("Promise.all([caches.open('app-images-v2'), caches.open('unrelated-cache')])");
+  assert.match(await evalJS("fetch('./icons/test.png').then(r => r.text())"), /image-101/);
+  await evalJS("fetch('./icons/offline.png').then(r => r.text())");
   version = 102; failApp = true;
   const failed = await update();
   assert.equal(failed.waiting, false);
@@ -82,16 +87,23 @@ try {
   const keys = await evalJS('caches.keys()');
   assert.equal(keys.includes('app-core-v104'), true);
   assert.equal(keys.includes('app-core-v101'), false);
-  assert.equal(keys.includes('app-images-v2'), true);
+  assert.equal(keys.includes('app-images-v2'), false);
+  assert.equal(keys.includes('app-images-app-core-v101'), true);
+  assert.equal(keys.includes('app-images-app-core-v104'), true);
   assert.equal(keys.includes('app-favicons-v1'), true);
   assert.equal(keys.includes('unrelated-cache'), true);
   await send('Page.navigate', { url: origin + '/app/' });
   await waitFor(evalJS, 'window.appVersion === 104 && !!navigator.serviceWorker.controller');
+  assert.match(await evalJS("fetch('./icons/test.png').then(r => r.text())"), /image-104/);
+  console.log('✅ 同 URL 图片跨版本获取新内容，旧 HTTP immutable 缓存不覆盖新版');
   await send('Network.enable');
+  offline = true;
   await send('Network.emulateNetworkConditions', { offline:true, latency:0, downloadThroughput:0, uploadThroughput:0 });
   await send('Page.addScriptToEvaluateOnNewDocument', { source:'window.__offlineUpgradeProbe = true;' });
   await send('Page.reload');
   await waitFor(evalJS, 'window.__offlineUpgradeProbe && window.appVersion === 104 && !!navigator.serviceWorker.controller');
+  assert.match(await evalJS("fetch('./icons/offline.png').then(r => r.text())"), /image-101/);
+  console.log('✅ 新版离线首次使用图片可回退上一版缓存');
   console.log('✅ 最后一个旧客户端退出后新版激活，旧核心池清理，新版断网重载可用');
 } finally {
   await chrome.close();

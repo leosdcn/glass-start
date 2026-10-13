@@ -66,7 +66,7 @@ if (existsSync(headersPath)) {
   const iconCc = rules['/apple-touch-icon.png']?.['cache-control'] || '';
   const wpCc = rules['/wallpapers/*']?.['cache-control'] || '';
   const validNoCache = indexCc.includes('max-age=0') && rootCc.includes('max-age=0') && swCc.includes('max-age=0') && appCc.includes('max-age=0') && manifestCc.includes('max-age=0') && !appCc.includes('immutable');
-  const validWp = wpCc.includes('max-age=31536000') && wpCc.includes('immutable');
+  const validWp = ['wallpapers', 'icons'].every(dir => { const cc = rules['/' + dir + '/*']?.['cache-control'] || ''; return cc.includes('max-age=0') && cc.includes('must-revalidate') && !cc.includes('immutable'); });
   const validIcon = iconCc.includes('max-age=604800');
   const srcHeadersContent = readFileSync(join(ROOT, 'public', '_headers'), 'utf-8');
   const syncOk = srcHeadersContent.trim() === headersContent.trim();
@@ -168,11 +168,11 @@ const maxFaviconMatch = srcSw.match(/MAX_FAVICON_ENTRIES\s*=\s*(\d+)/);
 const maxImgMatch = srcSw.match(/MAX_IMG_ENTRIES\s*=\s*(\d+)/);
 const faviconLimitOk = maxFaviconMatch && Number(maxFaviconMatch[1]) === 800;
 const imgLimitOk = maxImgMatch && Number(maxImgMatch[1]) === 200;
-const poolNamesOk = srcSw.includes("const FAVICON_CACHE = 'app-favicons-v1'") && srcSw.includes("const IMG_CACHE = 'app-images-v2'");
-const cleanupMatch = srcSw.match(/keys\.filter\((key => .+?)\)\.map/);
-const cleanupPredicate = cleanupMatch ? new Function('CORE_CACHE', `return (${cleanupMatch[1]})`)('app-core-current') : null;
-const cleanupInputs = ['app-core-old', 'app-core-current', 'app-favicons-v1', 'app-images-v2', 'unrelated-cache'];
-const activateCleansOldCachesOnly = cleanupPredicate && JSON.stringify(cleanupInputs.filter(cleanupPredicate)) === '["app-core-old"]';
+const poolNamesOk = srcSw.includes("const FAVICON_CACHE = 'app-favicons-v1'") && srcSw.includes("const IMG_CACHE = 'app-images-' + CORE_CACHE;");
+const cleanupMatch = srcSw.match(/Promise\.all\(keys\.filter\(([\s\S]*?)\)\.map/);
+const cleanupPredicate = cleanupMatch ? new Function('CORE_CACHE', 'IMG_CACHE', 'previousImages', `return (${cleanupMatch[1]})`)('app-core-current', 'app-images-current', 'app-images-previous') : null;
+const cleanupInputs = ['app-core-old', 'app-core-current', 'app-favicons-v1', 'app-images-current', 'app-images-previous', 'app-images-old', 'unrelated-cache'];
+const activateCleansOldCachesOnly = cleanupPredicate && JSON.stringify(cleanupInputs.filter(cleanupPredicate)) === '["app-core-old","app-images-old"]';
 
 pass('Service Worker 内存池 FIFO 自动限额淘汰与防污染 (真实FIFO执行断言/800与200配额/三池激活保护白名单)',
   pruneAlgorithmOk && faviconLimitOk && imgLimitOk && poolNamesOk && activateCleansOldCachesOnly,

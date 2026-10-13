@@ -129,7 +129,7 @@ function createStaticServer() {
                 res.setHeader('Service-Worker-Allowed', '/');
 
                 if (isImmutableAsset) {
-                    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+                    res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
                 } else {
                     // 本地开发调试防御：彻底禁用代码与文档 HTTP 缓存，配合增量编译杜绝跨版本旧缓存错配
                     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');

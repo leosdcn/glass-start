@@ -12,7 +12,7 @@
 // 缓存池定义（打包 build.js 时自动替换 CORE_CACHE 为时间戳版本）
 const CORE_CACHE = 'app-core-v1786255428688';
 const FAVICON_CACHE = 'app-favicons-v1';
-const IMG_CACHE = 'app-images-v2';
+const IMG_CACHE = 'app-images-' + CORE_CACHE;
 
 // 图标与图片容量上限配置
 const MAX_FAVICON_ENTRIES = 800;
@@ -102,9 +102,30 @@ self.addEventListener('install', e => {
 self.addEventListener('activate', e => e.waitUntil((async () => {
     const cache = await caches.open(CORE_CACHE);
     await validateCoreCache(cache);
+    await caches.open(IMG_CACHE);
     const keys = await caches.keys();
-    await Promise.all(keys.filter(key => key.startsWith('app-core-') && key !== CORE_CACHE).map(key => caches.delete(key)));
+    const previousImages = keys.filter(key => key.startsWith('app-images-') && key !== IMG_CACHE)
+        .sort((a, b) => imageCacheVersion(b) - imageCacheVersion(a))[0];
+    await Promise.all(keys.filter(key =>
+        (key.startsWith('app-core-') && key !== CORE_CACHE) ||
+        (key.startsWith('app-images-') && key !== IMG_CACHE && key !== previousImages)
+    ).map(key => caches.delete(key)));
 })()));
+
+function imageCacheVersion(key) {
+    return Number(key.match(/app-core-v(\d+)$/)?.[1] || 0);
+}
+
+// 仅在网络失败时读取上一版图片，避免在线更新继续使用旧内容。
+async function previousImageResponse(request) {
+    const keys = (await caches.keys()).filter(key => key.startsWith('app-images-') && key !== IMG_CACHE)
+        .sort((a, b) => imageCacheVersion(b) - imageCacheVersion(a));
+    for (const key of keys) {
+        const cached = await (await caches.open(key)).match(request);
+        if (cached) return cached;
+    }
+    return null;
+}
 
 // 拦截 Fetch 请求阶段
 self.addEventListener('fetch', e => {
@@ -287,33 +308,23 @@ self.addEventListener('fetch', e => {
         return;
     }
 
-    // 5. 同源本地图片 Cache-First 策略 (支持 CORE_CACHE 预存底座与优雅降级)
+    // 5. 本地图片按构建分池；每版首次请求绕过旧 HTTP 缓存，离线可回退上一版。
     if (isImgAsset) {
         e.respondWith(
             caches.open(IMG_CACHE).then(async cache => {
                 const cached = (await cache.match(e.request))
-                    || (await cache.match(e.request, { ignoreSearch: true }))
-                    || (await caches.open(CORE_CACHE).then(c => c.match(e.request)))
-                    || (await caches.open(CORE_CACHE).then(c => c.match(e.request, { ignoreSearch: true })));
+                    || (await caches.open(CORE_CACHE).then(core => core.match(e.request)));
                 if (cached) return cached;
-
                 try {
-                    const res = await fetch(e.request);
+                    const res = await fetch(new Request(e.request, { cache: 'reload' }));
                     if (res.ok) {
-                        e.waitUntil(
-                            cache.put(e.request, res.clone())
-                                .then(() => pruneCache(cache, MAX_IMG_ENTRIES))
-                                .catch(() => {})
-                        );
+                        e.waitUntil(cache.put(e.request, res.clone()).then(() => pruneCache(cache, MAX_IMG_ENTRIES)).catch(() => {}));
                         return res;
                     }
-                    const fallback = (await caches.match(e.request))
-                        || (await caches.match(e.request, { ignoreSearch: true }));
-                    return fallback || res;
+                    if (res.status >= 500) return (await previousImageResponse(e.request)) || res;
+                    return res;
                 } catch {
-                    const fallback = (await caches.match(e.request))
-                        || (await caches.match(e.request, { ignoreSearch: true }));
-                    return fallback || new Response('', { status: 404 });
+                    return (await previousImageResponse(e.request)) || new Response('', { status: 404 });
                 }
             })
         );
