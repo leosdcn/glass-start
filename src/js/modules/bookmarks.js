@@ -378,7 +378,7 @@ export function renderNavCategories(force = false) {
     const sortedCats = getSortedCategories();
 
     sidebarList.innerHTML = pageData.categories.map((cat, i) => `
-        <button type="button" role="tab" id="cat-tab-${i}" aria-selected="${i === 0 ? 'true' : 'false'}" aria-controls="cat-${i}" class="sidebar-item w-full text-left text-xs md:text-sm px-2.5 py-[7px] min-h-9 text-white/70 flex items-center gap-2 ${i === 0 ? 'active' : ''}"
+        <button type="button" role="tab" id="cat-tab-${i}" aria-selected="${i === 0 ? 'true' : 'false'}" aria-controls="cat-${i}" class="sidebar-item w-full text-left text-xs md:text-sm px-2.5 py-1.75 min-h-9 text-white/70 flex items-center gap-2 ${i === 0 ? 'active' : ''}"
                 data-target="cat-${i}" data-idx="${i}">
             <span class="text-sm shrink-0 sidebar-icon">${escapeHtml(cat.icon)}</span>
             <span class="truncate sidebar-label">${escapeHtml(cat.name)}</span>
@@ -460,8 +460,11 @@ export function initSidebarNav() {
             if (manualScrollTimer) clearTimeout(manualScrollTimer);
 
             const allItems = Array.from(sidebarList.querySelectorAll('[data-target]'));
-            allItems.forEach(item => item.classList.remove('active'));
-            btn.classList.add('active');
+            allItems.forEach(item => {
+                const selected = item === btn;
+                item.classList.toggle('active', selected);
+                item.setAttribute('aria-selected', String(selected));
+            });
             const sidebarContainer = dom.sidebar;
             scrollTabIntoView(btn, sidebarContainer);
 

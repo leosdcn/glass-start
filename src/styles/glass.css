@@ -85,14 +85,14 @@
 }
 
 @media (hover: hover) and (pointer: fine) {
-    .glass-btn-primary:hover {
+    body:not(.tab-blurred) .glass-btn-primary:hover:not(:disabled) {
         background: rgba(255, 255, 255, 0.15);
         border-color: rgba(255, 255, 255, 0.25);
         color: #ffffff;
     }
 }
 
-.glass-btn-primary:active {
+.glass-btn-primary:active:not(:disabled) {
     transform: scale(0.98);
 }
 

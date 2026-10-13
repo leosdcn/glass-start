@@ -506,7 +506,7 @@ export function renderSuggestions(localList = [], netList = [], preserveSelectio
                      data-suggestion="${escapeHtml(item)}" 
                      data-idx="${globalIdx}"
                      class="suggestion-item group px-3.5 py-2.5 my-0.5 apple-radius text-sm text-white/85 flex items-center gap-3 glass-interactive cursor-pointer hover:text-white">
-                    <svg class="w-5 h-5 text-white/40 group-hover:text-white/80 shrink-0 pointer-events-none select-none transition" aria-hidden="true"><use href="#icon-search"/></svg>
+                    <svg class="w-5 h-5 text-white/40 group-hover:text-white/80 shrink-0 pointer-events-none select-none transition-colors" aria-hidden="true"><use href="#icon-search"/></svg>
                     <span class="truncate flex-1 min-w-0 font-normal tracking-wide">${escapeHtml(item)}</span>
                 </div>
             `;

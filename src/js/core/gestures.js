@@ -14,6 +14,7 @@ let rafId = null;
 let pendingEvent = null;
 
 export function resetActiveCard() {
+    pendingEvent = null;
     if (rafId) {
         cancelAnimationFrame(rafId);
         rafId = null;
@@ -26,9 +27,6 @@ export function resetActiveCard() {
         activeCardRect = null;
     }
 }
-if (typeof window !== 'undefined') {
-}
-
 export function initGlassSpotlightAndTilt() {
     if (typeof window === 'undefined') return;
     if (isGlassSpotlightAndTiltInitialized) return;
@@ -37,9 +35,10 @@ export function initGlassSpotlightAndTilt() {
     const mediaMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)');
 
     if (!mediaHover || !mediaHover.matches) return;
-    if (mediaMotion && mediaMotion.matches) return;
-
     isGlassSpotlightAndTiltInitialized = true;
+
+    const canAnimate = () => mediaHover.matches && !mediaMotion?.matches && !document.hidden
+        && !document.body.classList.contains('tab-blurred') && state.currentSection === 'nav';
 
     if (mediaMotion && mediaMotion.addEventListener) {
         mediaMotion.addEventListener('change', (e) => {
@@ -48,6 +47,10 @@ export function initGlassSpotlightAndTilt() {
     }
 
     function updateCardTransform() {
+        if (!canAnimate()) {
+            resetActiveCard();
+            return;
+        }
         if (!activeCard || !pendingEvent) {
             rafId = null;
             return;
@@ -74,6 +77,10 @@ export function initGlassSpotlightAndTilt() {
     }
 
     function setActiveCardAndSchedule(card, e) {
+        if (!canAnimate()) {
+            resetActiveCard();
+            return;
+        }
         if (activeCard !== card) {
             if (activeCard) resetActiveCard();
             activeCard = card;
@@ -129,6 +136,7 @@ export function initGlassSpotlightAndTilt() {
     }, { capture: true });
 
     window.addEventListener('blur', () => { resetActiveCard(); }, { passive: true });
+    window.addEventListener('resize', () => { resetActiveCard(); }, { passive: true });
     window.addEventListener('scroll', () => { resetActiveCard(); }, { passive: true, capture: true });
     window.addEventListener('dragend', () => { resetActiveCard(); }, { passive: true });
     window.addEventListener('drop', () => { resetActiveCard(); }, { passive: true });

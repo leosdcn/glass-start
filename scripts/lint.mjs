@@ -273,17 +273,26 @@ try {
     const inputMatches = inputSources.flatMap(source => [...source.content.matchAll(/<input[^>]*type=["']text["'][^>]*>/gi)].map(match => ({ match, ...source })));
     let allInputsCompliant = true;
     const nonCompliant = [];
+    const mainCss = readFileSync(join(root, 'src', 'styles', 'main.css'), 'utf-8');
+    const hasMouseDesktopGuard = /@custom-variant\s+mouse-desktop\s*\{\s*@media\s*\(min-width:\s*640px\)\s*and\s*\(hover:\s*hover\)\s*and\s*\(pointer:\s*fine\)\s*\{\s*@media\s+not\s+all\s+and\s*\(any-pointer:\s*coarse\)\s*\{\s*@slot;\s*\}\s*\}\s*\}/.test(mainCss);
 
     for (const { match, file, content } of inputMatches) {
         const tag = match[0];
         const has16pxPlus = /text-(base|lg|xl|2xl|3xl)/.test(tag);
-        const hasSmallerOverride = /(?:^|[\s"'])(?:[\w-]+:)*text-(?:xs|sm|2xs)(?=[\s"'])/.test(tag);
+        const classes = tag.match(/class=["']([^"']*)["']/)?.[1] || '';
+        const smallerOverrides = [...classes.matchAll(/(?:^|\s)((?:[\w-]+:)*text-(?:xs|sm|2xs))(?=\s|$)/g)].map(match => match[1]);
+        // 只放行书签编辑器与壁纸直链中经鼠标/无触屏媒体守卫保护的原版 12px 字号。
+        const isBookmarkEditorInput = file === join(root, 'src', 'js', 'modules', 'bookmark-editor.js')
+            && /(?:^|\s)edit-(?:name|url)(?=\s|$)/.test(classes);
+        const isWallpaperUrlInput = file === 'src/index.html' && /\bid=["']urlBgInput["']/.test(tag);
+        const hasSmallerOverride = smallerOverrides.some(token =>
+            token !== 'mouse-desktop:text-xs' || !(isBookmarkEditorInput || isWallpaperUrlInput) || !hasMouseDesktopGuard);
         if (!has16pxPlus || hasSmallerOverride) {
             allInputsCompliant = false;
             const { line, col } = getLineCol(content, match.index);
             const idMatch = tag.match(/id=["']([^"']+)["']/);
             const idDesc = idMatch ? `#${idMatch[1]}` : tag.slice(0, 30);
-            nonCompliant.push(`${file}:${line}:${col} (<input ${idDesc}> 字号必须始终 >=16px)`);
+            nonCompliant.push(`${file}:${line}:${col} (<input ${idDesc}> 触屏字号必须 >=16px；仅书签编辑器与壁纸直链允许 mouse-desktop:text-xs)`);
         }
     }
 

@@ -7,7 +7,7 @@ import { flushWallpaperSelection } from '../modules/wallpaper.js';
  * 设置按钮、书签草稿编辑与拖拽排序的事件装配。
  */
 import { CONFIG } from '../config/constants.js';
-import { escapeHtml, storageSet, checkImageReady } from '../utils/helpers.js';
+import { escapeHtml, storageGet, storageSet, checkImageReady } from '../utils/helpers.js';
 
 import { modalState } from '../state/store.js';
 import { dom } from '../state/dom.js';
@@ -197,6 +197,7 @@ export function bindEditEvents() {
         dom.saveEditBtn.addEventListener('click', async () => {
             if (dom.saveEditBtn.disabled) return;
             dom.saveEditBtn.disabled = true;
+            dom.saveEditBtn.setAttribute('aria-busy', 'true');
             try {
                 const data = collectEditData();
                 if (data.length === 0) {
@@ -223,6 +224,7 @@ export function bindEditEvents() {
                 closeEditModal();
             } finally {
                 dom.saveEditBtn.disabled = false;
+                dom.saveEditBtn.removeAttribute('aria-busy');
             }
         });
     }
@@ -326,11 +328,19 @@ export function bindEditEvents() {
             const trimmed = (dom.urlBgInput?.value || '').trim();
             closeUrlInput();
             if (!trimmed) return;
-            if (!/^https?:\/\//i.test(trimmed)) {
+            let imageUrl;
+            try {
+                if (!/^https?:\/\//i.test(trimmed)) throw new Error('Invalid image URL');
+                imageUrl = new URL(trimmed);
+                // 外部图片遵循 img-src https:；同源本地 HTTP 图片仍允许加载。
+                if (imageUrl.protocol === 'http:' && imageUrl.origin !== location.origin) {
+                    imageUrl.protocol = 'https:';
+                }
+            } catch {
                 showConfirm('请输入以 http:// 或 https:// 开头的有效图片链接。', null, '地址错误');
                 return;
             }
-            previewDraftWallpaper(trimmed);
+            previewDraftWallpaper(imageUrl.href);
         };
         dom.urlBgBtn.addEventListener('click', openUrlInput);
         dom.urlBgConfirmBtn?.addEventListener('click', submitUrl);

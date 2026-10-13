@@ -61,9 +61,15 @@ export function bindEvents() {
     const weatherPopover = dom.weatherPopover;
 
     const updateSearchActionButtons = (hasVal) => {
-        if (searchClearBtn) searchClearBtn.classList.toggle('hidden', !hasVal);
-        if (randomBookmarkBtn) randomBookmarkBtn.classList.toggle('hidden', !!hasVal);
+        for (const [button, visible] of [[searchClearBtn, !!hasVal], [randomBookmarkBtn, !hasVal]]) {
+            if (!button) continue;
+            button.classList.toggle('hidden', !visible);
+            button.inert = !visible;
+            button.setAttribute('aria-hidden', String(!visible));
+            if (!visible && document.activeElement === button) searchInput?.focus();
+        }
     };
+    updateSearchActionButtons(!!searchInput?.value);
 
     if (searchInput) {
         searchInput.addEventListener('compositionstart', () => {

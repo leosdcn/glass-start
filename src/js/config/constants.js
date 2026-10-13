@@ -112,7 +112,7 @@ export const CONFIG = Object.freeze({
                 TAB_SCROLL_MARGIN: 8          // 侧边栏横向/纵向对齐边界安全内距 (px)
             }),
             APPEARANCE: Object.freeze({
-                DEFAULT_MASK_OPACITY: 15,     // 默认遮罩暗度百分比 (%)
+                DEFAULT_MASK_OPACITY: 20,     // 默认遮罩暗度百分比 (%)
                 MIN_MASK_OPACITY: 5,          // 遮罩透明度最小百分比 (%)
                 MAX_MASK_OPACITY: 80,         // 遮罩透明度最大百分比 (%)
                 DEFAULT_BG_BLUR: 0,           // 默认背景高斯模糊 (px)

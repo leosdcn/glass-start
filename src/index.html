@@ -224,7 +224,7 @@
         const rawOp = localStorage.getItem('maskOpacity');
         const rawBlur = localStorage.getItem('bgBlur');
         if (rawOp !== null || rawBlur !== null) {
-          const op = rawOp !== null ? JSON.parse(rawOp) : 15;
+          const op = rawOp !== null ? JSON.parse(rawOp) : 20;
           const bl = rawBlur !== null ? JSON.parse(rawBlur) : 0;
           window.__PRE_BG_EFFECTS__ = { op, bl };
         }
@@ -238,7 +238,7 @@
     <!-- 固定定位背景图层（双层叠加 opacity 过渡，解决 background-image 不可 CSS 插值的问题；配合 bg-fullscreen 延伸至移动端安全区与过滚动区域） -->
     <div id="bgLayer" class="bg-fullscreen bg-cover bg-center bg-no-repeat z-0 bg-slate-900 bg-layer"></div>
     <div id="bgLayerNext" class="bg-fullscreen bg-cover bg-center bg-no-repeat z-0 opacity-0 bg-slate-900 bg-layer"></div>
-    <div id="bgOverlay" class="bg-fullscreen bg-black/15 pointer-events-none z-0"></div>
+    <div id="bgOverlay" class="bg-fullscreen bg-black/20 pointer-events-none z-0"></div>
     <script>(function(){const bg=document.getElementById('bgLayer');const url=window.__PRELOADED_BG__||'./wallpapers/bg1.avif';if(bg){bg.style.backgroundImage="url(\""+url.replace(/["'\\]/g,'\\$&')+"\")";bg.style.opacity='1';}if(window.__PRE_BG_EFFECTS__){const o=document.getElementById('bgOverlay');if(o){o.style.backgroundColor='rgba(0, 0, 0, '+(window.__PRE_BG_EFFECTS__.op/100)+')';if(window.__PRE_BG_EFFECTS__.bl>0){const b='blur('+window.__PRE_BG_EFFECTS__.bl+'px)';o.style.backdropFilter=b;o.style.webkitBackdropFilter=b;}}}})()</script>
 
     <!-- ========== 第一屏：起始页 ========== -->
@@ -283,7 +283,7 @@
         </script>
         <!-- 时钟 -->
         <div class="text-center clock-text mb-10 md:mb-14 select-none">
-            <time id="clock" datetime="00:00" class="text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-[250] tracking-tight tabular-nums block">00<span class="clock-colon mx-0.5 sm:mx-1">:</span>00</time>
+            <time id="clock" datetime="00:00" class="text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-clock tracking-tight tabular-nums block">00<span class="clock-colon mx-0.5 sm:mx-1">:</span>00</time>
             <div id="date" class="text-xs sm:text-sm md:text-base mt-3.5 sm:mt-4 md:mt-5 text-white/75 font-normal uppercase drop-shadow-sm min-h-[1.5em]">&nbsp;</div>
             <script>(function(){const n=new Date();const c=document.getElementById('clock');const d=document.getElementById('date');if(c){const h=String(n.getHours()).padStart(2,'0');const m=String(n.getMinutes()).padStart(2,'0');c.innerHTML=`${h}<span class="clock-colon mx-0.5 sm:mx-1">:</span>${m}`;c.setAttribute('datetime',`${h}:${m}`);}if(d){const w=['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];d.textContent=`${n.getMonth()+1}月${n.getDate()}日 ${w[n.getDay()]}`;}})()</script>
         </div>
@@ -313,14 +313,14 @@
                             <circle cx="13" cy="13" r="1.4" fill="currentColor" stroke="none"/>
                         </svg>
                     </button>
-                    <button id="searchClearBtn" type="button" aria-label="清空搜索框" class="hidden p-2 apple-radius hover:bg-white/10 text-white/40 hover:text-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 absolute inset-0 flex items-center justify-center select-none touch-manipulation">
+                    <button id="searchClearBtn" type="button" inert aria-hidden="true" aria-label="清空搜索框" class="hidden p-2 apple-radius hover:bg-white/10 text-white/40 hover:text-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 absolute inset-0 flex items-center justify-center select-none touch-manipulation">
                         <svg class="size-5 pointer-events-none select-none" aria-hidden="true"><use href="#icon-clear"/></svg>
                     </button>
                 </div>
             </div>
             <div id="dropdownMenu" role="menu" aria-label="搜索引擎选项" aria-hidden="true" class="dropdown-menu absolute top-full left-0 glass-strong apple-radius p-2 border border-white/20 shadow-2xl min-w-35 z-[var(--z-dropdown)] select-none"></div>
             <!-- 搜索实时建议联想下拉框 (Spotlight 风格全宽下拉面板) -->
-            <div id="suggestionMenu" role="listbox" aria-label="搜索建议" aria-hidden="true" class="dropdown-menu absolute top-full left-0 right-0 w-full mt-3.5 sm:mt-4 glass-strong apple-radius p-2 border border-white/20 shadow-2xl z-[var(--z-dropdown)] max-h-[60vh] overflow-y-auto overscroll-contain select-none"></div>
+            <div id="suggestionMenu" role="listbox" aria-label="搜索建议" aria-hidden="true" class="dropdown-menu absolute top-full left-0 right-0 w-full mt-3.5 sm:mt-4 glass-strong apple-radius p-2 border border-white/20 shadow-2xl z-[var(--z-dropdown)] max-h-suggestions-max overflow-y-auto overscroll-contain select-none"></div>
         </div>
 
         <!-- 快捷书签 -->
@@ -379,7 +379,7 @@
 
     <!-- 编辑与设置弹窗 (Apple 风格 Tab 分栏设置面板) -->
     <div id="editModal" role="dialog" aria-modal="true" hidden aria-label="设置与偏好" class="edit-overlay fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-[var(--z-modal)] overscroll-contain">
-        <div class="glass-strong apple-radius w-full max-w-xl sm:max-w-2xl md:max-w-3xl lg:max-w-4xl mx-4 min-h-[60dvh] max-h-[90dvh] sm:h-[40rem] flex flex-col p-4 sm:p-6 shadow-2xl overflow-hidden">
+        <div class="glass-strong apple-radius w-full max-w-xl sm:max-w-2xl md:max-w-3xl lg:max-w-4xl mx-4 min-h-panel-min max-h-panel-max sm:h-panel-desktop flex flex-col p-4 sm:p-6 shadow-2xl overflow-hidden">
             <!-- 弹窗 Header -->
             <div class="flex items-center justify-between mb-3 pb-2 border-b border-white/10 shrink-0">
                 <div class="flex items-center gap-2">
@@ -439,7 +439,7 @@
                             </div>
                             <div id="urlBgInputRow" class="hidden flex items-center gap-1.5">
                                 <input type="text" id="urlBgInput" name="urlBgInput" inputmode="url" autocapitalize="off" autocomplete="off" spellcheck="false"
-                                    class="flex-1 h-9 min-w-0 bg-black/35 hover:bg-black/45 focus:bg-black/55 border border-white/15 focus:border-white/40 rounded-xl px-3 text-base text-white/90 focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:outline-none outline-none transition font-mono placeholder:text-white/30"
+                                    class="flex-1 h-9 min-w-0 bg-black/35 hover:bg-black/45 focus:bg-black/55 border border-white/15 focus:border-white/40 rounded-xl px-3 text-base mouse-desktop:text-xs text-white/90 focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:outline-none outline-none transition-colors font-mono placeholder:text-white/30"
                                     placeholder="粘贴 https://... 图片直链" aria-label="图片 URL 地址">
                                 <button type="button" id="urlBgConfirmBtn" class="shrink-0 h-9 px-3.5 bg-white/15 hover:bg-white/25 active:scale-95 border border-white/20 rounded-xl text-xs font-medium text-white glass-interactive flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 disabled:opacity-50 disabled:cursor-not-allowed" aria-label="应用图片 URL">应用</button>
                                 <button type="button" id="urlBgCancelBtn" class="shrink-0 h-9 px-2.5 text-xs text-white/50 hover:text-white/90 hover:bg-white/10 active:scale-95 rounded-xl glass-interactive flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" aria-label="取消输入图片 URL">取消</button>
@@ -457,9 +457,9 @@
                             <div class="space-y-1">
                                 <div class="flex items-center justify-between text-2xs-plus text-white/70">
                                     <span>暗色遮罩</span>
-                                    <span id="maskOpacityVal" class="font-mono text-white/90">15%</span>
+                                    <span id="maskOpacityVal" class="font-mono text-white/90">20%</span>
                                 </div>
-                                <input type="range" id="maskOpacityInput" name="maskOpacityInput" min="5" max="80" value="15" aria-label="背景暗色遮罩透明度" aria-valuenow="15" aria-valuetext="15%" class="w-full h-1.5 bg-white/20 rounded-lg appearance-none cursor-pointer accent-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 disabled:opacity-40 disabled:cursor-not-allowed">
+                                <input type="range" id="maskOpacityInput" name="maskOpacityInput" min="5" max="80" value="20" aria-label="背景暗色遮罩透明度" aria-valuenow="20" aria-valuetext="20%" class="w-full h-1.5 bg-white/20 rounded-lg appearance-none cursor-pointer accent-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 disabled:opacity-40 disabled:cursor-not-allowed">
                             </div>
                             <!-- 高斯模糊度 -->
                             <div class="space-y-1">
@@ -492,7 +492,7 @@
                         <div class="size-9 rounded-xl bg-white/10 flex items-center justify-center text-base border border-white/15 shadow-inner shrink-0">🪐</div>
                         <div class="flex items-center gap-2">
                             <span class="text-sm font-semibold text-white/95 tracking-tight leading-none">Glass Start</span>
-                            <span class="text-2xs px-2 h-4.5 rounded-full bg-white/10 border border-white/15 text-white/75 font-medium inline-flex items-center justify-center">v4.10.0</span>
+                            <span class="text-2xs px-2 h-4.5 rounded-full bg-white/10 border border-white/15 text-white/75 font-medium inline-flex items-center justify-center">v4.10.1</span>
                         </div>
                     </div>
                     <div class="flex items-center gap-2 shrink-0">
@@ -577,7 +577,7 @@
 
     <!-- 从导航页选择弹窗 -->
     <div id="bookmarkPicker" role="dialog" aria-modal="true" hidden aria-label="从导航页选择书签" class="edit-overlay fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-[var(--z-picker)] overscroll-contain">
-        <div class="glass-strong apple-radius pt-4 pb-3 px-4 w-full max-w-2xl xl:max-w-3xl 2xl:max-w-4xl mx-4 max-h-[85dvh] flex flex-col shadow-2xl">
+        <div class="glass-strong apple-radius pt-4 pb-3 px-4 w-full max-w-2xl xl:max-w-3xl 2xl:max-w-4xl mx-4 max-h-picker-max flex flex-col shadow-2xl">
             <div class="flex items-center justify-between mb-2 pb-1.5 border-b border-white/10 shrink-0">
                 <h3 class="text-base font-medium tracking-wide text-white/80">从导航页选择</h3>
                 <span id="pickerCount" class="glass-badge">已添加 0 项</span>
@@ -609,7 +609,7 @@
 
     <!-- 快捷键速查面板弹窗 (Cmd/Ctrl + /) -->
     <div id="shortcutModal" role="dialog" aria-modal="true" hidden aria-label="快捷键速查" class="edit-overlay fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-[var(--z-picker)] overscroll-contain">
-        <div class="glass-strong apple-radius w-full max-w-md mx-4 min-h-[60dvh] max-h-[90dvh] sm:h-[40rem] flex flex-col p-5 sm:p-6 shadow-2xl overflow-hidden">
+        <div class="glass-strong apple-radius w-full max-w-md mx-4 min-h-panel-min max-h-panel-max sm:h-panel-desktop flex flex-col p-5 sm:p-6 shadow-2xl overflow-hidden">
             <!-- 弹窗 Header -->
             <div class="flex items-center justify-between mb-3 pb-2 border-b border-white/10 shrink-0">
                 <div class="flex items-center gap-2">

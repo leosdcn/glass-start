@@ -94,9 +94,11 @@ export function initDragSort() {
         const destIdx = modalState.draftBookmarks.findIndex(b => b.id === target.dataset.id);
         modalState.draftBookmarks.splice(isTop ? destIdx : destIdx + 1, 0, moved);
 
+        // 先批量读取重排后的坐标，再写入 FLIP 样式，避免逐行交错读写。
+        const lastPositions = new Map(cards.map(card => [card, card.getBoundingClientRect()]));
         cards.forEach(card => {
             const first = firstPositions.get(card);
-            const last = card.getBoundingClientRect();
+            const last = lastPositions.get(card);
             if (!first || !last) return;
             const deltaY = first.top - last.top;
             const deltaX = first.left - last.left;
