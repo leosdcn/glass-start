@@ -109,7 +109,13 @@
         ];
         window.__BACKGROUNDS__ = backgrounds;
         try {
-          const rawUserWp = localStorage.getItem('userWallpaper');
+          let wallpaperMeta = null;
+          try {
+            const value = JSON.parse(localStorage.getItem('glass_wallpaper_meta'));
+            if (value && typeof value.custom === 'boolean' && Number.isInteger(value.bg) && value.bg >= 0 && value.bg < backgrounds.length) wallpaperMeta = value;
+          } catch(e) {}
+          // 现代元信息优先；IDB 大图由应用异步恢复，head 只恢复底色并避免盲发默认图片。
+          const rawUserWp = wallpaperMeta ? null : localStorage.getItem('userWallpaper');
           let preloadUrl = '';
           if (rawUserWp) {
             const parsed = JSON.parse(rawUserWp);
@@ -130,13 +136,13 @@
               try { localStorage.removeItem('userWallpaper'); } catch(e) {}
             }
           }
-          if (!preloadUrl) {
+          if (!preloadUrl && !wallpaperMeta?.custom) {
             const rawBg = localStorage.getItem('bg');
             let bgIdx = 0;
-            try { bgIdx = rawBg !== null ? JSON.parse(rawBg) : 0; } catch(e) { bgIdx = 0; }
+            try { bgIdx = wallpaperMeta ? wallpaperMeta.bg : rawBg !== null ? JSON.parse(rawBg) : 0; } catch(e) { bgIdx = 0; }
             preloadUrl = (typeof bgIdx === 'number' && backgrounds[bgIdx]) ? backgrounds[bgIdx] : backgrounds[0];
           }
-          if (preloadUrl && typeof preloadUrl === 'string') {
+          if ((preloadUrl && typeof preloadUrl === 'string') || wallpaperMeta?.custom) {
             // 根据设备物理像素 (宽度 * DPR) 动态调优 Unsplash 尺寸参数 (阶梯以 200px 递增，普通屏上限 2560px，4K/Retina 屏上限 3840px，强制使用 WebP 格式)
             const dpr = window.devicePixelRatio || 1;
             const maxCap = (window.innerWidth * dpr > 2560) ? 3840 : 2560;
@@ -152,7 +158,7 @@
             /* INJECT_THEME_CONFIG */
             let initTheme = null;
             let initTint = '255, 255, 255';
-            const isCustom = preloadUrl && !preloadUrl.startsWith('./wallpapers/');
+            const isCustom = wallpaperMeta?.custom || (preloadUrl && !preloadUrl.startsWith('./wallpapers/'));
             if (isCustom) {
               try {
                 const cached = JSON.parse(localStorage.getItem('glass_theme_cache'));

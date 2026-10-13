@@ -78,6 +78,24 @@ try {
   }
   console.log('✅ 八张预设冷启动及有历史缓存启动，应用执行前底色、色调与运行时一致');
 
+  const { identifier: customProbe } = await send('Page.addScriptToEvaluateOnNewDocument', { source: `
+    localStorage.clear();
+    localStorage.setItem('glass_wallpaper_meta', JSON.stringify({custom:true,bg:0}));
+    localStorage.setItem('glass_theme_cache', JSON.stringify({isLight:true}));
+    localStorage.setItem('glass_tint_cache', '1, 2, 3');
+  ` });
+  await send('Page.navigate', { url:`http://127.0.0.1:${server.port}/theme-probe.html?probe=custom-meta` });
+  await waitFor(evalJS, "location.search === '?probe=custom-meta' && !!window.__headThemeProbe");
+  const custom = await evalJS('({head:__headThemeProbe, preload:__PRELOADED_BG__, hasLink:!!document.getElementById("preloadWallpaper")})');
+  assert.equal(custom.head.theme.isLight, true);
+  assert.equal(custom.head.color, 'rgb(255, 255, 255)');
+  assert.equal(custom.head.tint, '1, 2, 3');
+  assert.equal(custom.preload, '');
+  assert.equal(custom.hasLink, false);
+  await send('Page.removeScriptToEvaluateOnNewDocument', { identifier:customProbe });
+  await waitFor(evalJS, 'typeof handleIconError === "function"');
+  console.log('✅ IDB 自定义壁纸首屏恢复主题提示，不预加载默认壁纸或空 URL');
+
   const icons = await evalJS(`(async () => {
     const descriptor = Object.getOwnPropertyDescriptor(window, 'caches');
     const deleted = [];

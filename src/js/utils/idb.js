@@ -3,7 +3,7 @@
  * Glass Start — IndexedDB 4K 壁纸存储工具 (src/js/utils/idb.js)
  * ==============================================================================
  */
-import { CONFIG } from '../config/constants.js';
+import { CONFIG, backgrounds } from '../config/constants.js';
 
 export const dbPromise = new Promise(resolve => {
     if (typeof window === 'undefined' || !('indexedDB' in window)) { resolve(null); return; }
@@ -91,4 +91,40 @@ export function removeWallpaperDB() {
         store.delete(CONFIG.IDB.KEYS.CUSTOM_WALLPAPER);
         store.delete(CONFIG.IDB.KEYS.SELECTION);
     });
+}
+
+/** 仅在没有现代选择记录时迁移；同一事务读取并写入，保护并发的新选择。 */
+export async function migrateLegacyWallpaperDB(legacyWallpaper) {
+    try {
+        const db = await dbPromise;
+        if (!db) return { status: 'failed' };
+        return await new Promise(resolve => {
+            const tx = db.transaction(CONFIG.IDB.STORES.WALLPAPERS, 'readwrite');
+            const store = tx.objectStore(CONFIG.IDB.STORES.WALLPAPERS);
+            let result = { status: 'failed' };
+            tx.oncomplete = () => resolve(result);
+            tx.onerror = tx.onabort = () => resolve({ status: 'failed' });
+            const selected = store.get(CONFIG.IDB.KEYS.SELECTION);
+            selected.onsuccess = () => {
+                if (selected.result !== undefined) {
+                    const value = selected.result;
+                    if (value && Number.isInteger(value.bg) && value.bg >= 0 && value.bg < backgrounds.length &&
+                        (value.wallpaper === null || typeof value.wallpaper === 'string')) {
+                        result = { status: 'existing', selection: value };
+                    }
+                    return;
+                }
+                const previous = store.get(CONFIG.IDB.KEYS.CUSTOM_WALLPAPER);
+                previous.onsuccess = () => {
+                    const wallpaper = typeof previous.result === 'string' && previous.result ? previous.result : legacyWallpaper;
+                    const preset = backgrounds.indexOf(wallpaper);
+                    const selection = { wallpaper: preset >= 0 ? null : wallpaper, bg: Math.max(0, preset) };
+                    store.put(selection, CONFIG.IDB.KEYS.SELECTION);
+                    if (selection.wallpaper) store.put(selection.wallpaper, CONFIG.IDB.KEYS.CUSTOM_WALLPAPER);
+                    else store.delete(CONFIG.IDB.KEYS.CUSTOM_WALLPAPER);
+                    result = { status: 'migrated', selection };
+                };
+            };
+        });
+    } catch { return { status: 'failed' }; }
 }

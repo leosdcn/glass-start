@@ -5,7 +5,7 @@
  */
 import { CONFIG, backgrounds } from '../config/constants.js';
 import { storageGet, storageSet, storageRemove } from '../utils/helpers.js';
-import { getWallpaperDB, getWallpaperSelectionDB, setWallpaperSelectionDB, removeWallpaperDB } from '../utils/idb.js';
+import { getWallpaperDB, getWallpaperSelectionDB, setWallpaperSelectionDB, migrateLegacyWallpaperDB } from '../utils/idb.js';
 import { state, modalState } from '../state/store.js';
 import { dom, $ } from '../state/dom.js';
 import { applyWallpaper } from '../core/theme-engine.js';
@@ -35,11 +35,42 @@ function commitCurrentSelection(targetWallpaper, selectionId) {
     return wallpaperCommitQueue;
 }
 
+let migrationPromise = null;
+function saveWallpaperHints(selection) {
+    storageSet(CONFIG.KEYS.BG, selection.bg);
+    storageSet(CONFIG.KEYS.WALLPAPER_META, { custom: !!selection.wallpaper, bg: selection.bg });
+}
+
+/** 迁移失败保留原键；只删除本次读取的版本，不删除其他标签的新写入。 */
+export function migrateLegacyWallpaper() {
+    if (migrationPromise) return migrationPromise;
+    const startedAt = wallpaperSelectionId;
+    migrationPromise = (async () => {
+        let raw, legacy;
+        try {
+            raw = localStorage.getItem(CONFIG.KEYS.USER_WALLPAPER);
+            legacy = raw ? JSON.parse(raw) : null;
+        } catch { return false; }
+        if (typeof legacy !== 'string') return false;
+        const dataImage = /^data:image\//i.test(legacy) && legacy.includes(',');
+        let remoteImage = false;
+        try { remoteImage = ['http:', 'https:'].includes(new URL(legacy).protocol); } catch {}
+        if (!dataImage && !remoteImage && !backgrounds.includes(legacy)) return false;
+        const result = await migrateLegacyWallpaperDB(legacy);
+        if (result.status === 'failed') return false;
+        if (localStorage.getItem(CONFIG.KEYS.USER_WALLPAPER) === raw) storageRemove(CONFIG.KEYS.USER_WALLPAPER);
+        if (startedAt === wallpaperSelectionId) saveWallpaperHints(result.selection);
+        return true;
+    })().catch(() => false).finally(() => { migrationPromise = null; });
+    return migrationPromise;
+}
+
 /**
  * 获取当前生效的自定义壁纸（三通道回退：内存缓存 -> IndexedDB -> localStorage）
  * @returns {Promise<string|null>}
  */
 export async function getEffectiveCustomWallpaper() {
+    await migrateLegacyWallpaper();
     const selection = await getWallpaperSelectionDB();
     if (selection) return selection.wallpaper;
     return state.customWallpaper || await getWallpaperDB() || storageGet(CONFIG.KEYS.USER_WALLPAPER, null);
@@ -58,14 +89,17 @@ export function findPresetBgIndex(url) {
 
 /**
  * 彻底清除"自定义壁纸"三通道（内存 / IDB / localStorage），不触碰 state.bg。
- * @returns {Promise<void>}
+ * @returns {Promise<boolean>}
  */
-export async function clearCustomWallpaper() {
+export async function clearCustomWallpaper(bg = state.bg) {
     beginWallpaperSelection();
     await wallpaperCommitQueue.catch(() => {});
-    if (!await removeWallpaperDB()) return false;
+    const selection = { wallpaper: null, bg };
+    if (!await setWallpaperSelectionDB(selection)) return false;
     state.customWallpaper = null;
+    state.bg = bg;
     storageRemove(CONFIG.KEYS.USER_WALLPAPER);
+    saveWallpaperHints(selection);
     return true;
 }
 
@@ -121,7 +155,7 @@ export async function commitWallpaperSelection(targetWallpaper) {
     if (!await setWallpaperSelectionDB(selection)) return false;
     // IDB 是选择结果的持久化真理源；LocalStorage 仅保留轻量首屏提示。
     storageRemove(CONFIG.KEYS.USER_WALLPAPER);
-    storageSet(CONFIG.KEYS.BG, selection.bg);
+    saveWallpaperHints(selection);
     state.customWallpaper = selection.wallpaper;
     state.bg = selection.bg;
     modalState.initialWallpaper = targetWallpaper;

@@ -12,6 +12,7 @@ export const CONFIG = Object.freeze({
                 CUSTOM_META: 'userCustomMeta',
                 BG: 'bg',
                 USER_WALLPAPER: 'userWallpaper',
+                WALLPAPER_META: 'glass_wallpaper_meta',
                 MASK_OPACITY: 'maskOpacity',
                 BG_BLUR: 'bgBlur',
                 PREFERRED_ENGINE: 'preferredEngine',

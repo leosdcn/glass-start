@@ -585,7 +585,7 @@ export function importBookmarksJSON(file) {
  */
 export function resetBookmarks() {
     showConfirm('确定要恢复系统初始默认状态吗？此操作将立即清除您自定义的所有快捷书签、背景壁纸与偏好设置。', async () => {
-        if (!await clearCustomWallpaper()) {
+        if (!await clearCustomWallpaper(0)) {
             showConfirm('无法清除壁纸存储，原有设置已保留。', null, '重置失败');
             return;
         }

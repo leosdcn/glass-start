@@ -28,7 +28,7 @@ import { getWallpaperSelectionDB } from '../utils/idb.js';
 import { state, pageData } from '../state/store.js';
 import { dom, $ } from '../state/dom.js';
 import { applyWallpaper } from '../core/theme-engine.js';
-import { getEffectiveCustomWallpaper, findPresetBgIndex, clearCustomWallpaper } from './wallpaper.js';
+import { getEffectiveCustomWallpaper, findPresetBgIndex, clearCustomWallpaper, migrateLegacyWallpaper } from './wallpaper.js';
 
 export const zhCollator = new Intl.Collator('zh-CN', { numeric: true, sensitivity: 'base' });
 
@@ -172,6 +172,7 @@ export async function loadUserData() {
         renderBookmarks();
     }
 
+    await migrateLegacyWallpaper();
     const selection = await getWallpaperSelectionDB();
     const savedBg = selection ? selection.bg : storageGet(CONFIG.KEYS.BG);
     if (savedBg !== null && typeof savedBg === 'number' && savedBg >= 0 && savedBg < backgrounds.length) {
