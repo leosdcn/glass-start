@@ -534,3 +534,5 @@ flowchart TD
 - `core/wallpaper-renderer.js`：壁纸视觉切换；`theme-engine.js` 专注主题采样与外壳颜色。
 
 静态导入图由 `test/infra-module-boundaries.test.mjs` 检查无环，并通过关闭测试接口的真实页面验证生产启动和设置操作。
+
+弹窗显示生命周期统一由 `OverlayStack.push()` / `.pop()` 驱动；`overlay-stack.js` 独占弹窗的 `hidden`、`aria-hidden`、入场动画和延迟隐藏操作，切换时取消上一轮任务。业务模块仅管理草稿与交互，设置打开的异步恢复使用请求序号防止旧请求污染重新打开的窗口。

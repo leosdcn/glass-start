@@ -263,8 +263,6 @@ import {
 
 // 13. 设置与弹窗
 import {
-    animateShowModal,
-    animateHideModal,
     getDraftBookmarkCount,
     updateAllBookmarkCounters,
     loadPresetBgCardImages,
@@ -369,8 +367,6 @@ Object.assign(window, {
     updateClock,
     scheduleClockTick,
     stopClockTimer,
-    animateShowModal,
-    animateHideModal,
     getDraftBookmarkCount,
     updateAllBookmarkCounters,
     loadPresetBgCardImages,

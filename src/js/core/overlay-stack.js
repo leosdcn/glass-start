@@ -5,6 +5,8 @@
  * 遵循 4 级 z-index 体系与 LIFO 退栈原则，管理全局 Escape 键与 Body 滚动穿透锁定。
  */
 
+import { CONFIG } from '../config/constants.js';
+
 export const MODAL_OVERLAY_IDS = new Set([
     'editModal',
     'shortcutModal',
@@ -12,6 +14,49 @@ export const MODAL_OVERLAY_IDS = new Set([
     'confirmModal',
     'bookmarkPicker'
 ]);
+
+// 只有层叠栈拥有弹窗可见性；每次切换取消上一轮动画和延迟隐藏。
+const visibilityOperations = new Map();
+function beginVisibilityOperation(id) {
+    const previous = visibilityOperations.get(id);
+    if (previous) {
+        cancelAnimationFrame(previous.frame);
+        clearTimeout(previous.timer);
+    }
+    const operation = { frame: 0, timer: 0 };
+    visibilityOperations.set(id, operation);
+    return operation;
+}
+
+function showModal(id) {
+    const modal = document.getElementById(id);
+    if (!modal) return;
+    const operation = beginVisibilityOperation(id);
+    modal.removeAttribute('hidden');
+    modal.removeAttribute('aria-hidden');
+    operation.frame = requestAnimationFrame(() => {
+        if (visibilityOperations.get(id) !== operation || !OverlayStack.stack.some(entry => entry.id === id)) return;
+        modal.classList.add('active');
+        if (OverlayStack.topModal() === modal) OverlayStack.focusTop();
+        visibilityOperations.delete(id);
+    });
+}
+
+function hideModal(id) {
+    const modal = document.getElementById(id);
+    if (!modal) return;
+    const operation = beginVisibilityOperation(id);
+    if (modal.contains(document.activeElement)) document.activeElement.blur();
+    modal.setAttribute('aria-hidden', 'true');
+    modal.classList.remove('active');
+    const finish = () => {
+        if (visibilityOperations.get(id) !== operation || OverlayStack.stack.some(entry => entry.id === id)) return;
+        modal.setAttribute('hidden', '');
+        visibilityOperations.delete(id);
+    };
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) finish();
+    else operation.timer = setTimeout(finish, CONFIG.TIMERS.MODAL_HIDE_DELAY);
+}
 
 // 暂存原始 inert 状态，退栈时恢复，保留屏幕切换和既有禁用区域的状态。
 const isolatedElements = new Map();
@@ -29,6 +74,7 @@ export const OverlayStack = {
     push(id, closeFn, trigger = document.activeElement) {
         this.pop(id);
         this.stack.push({ id, close: closeFn, trigger });
+        if (MODAL_OVERLAY_IDS.has(id)) showModal(id);
         this.syncModalAccessibility();
         if (MODAL_OVERLAY_IDS.has(id)) {
             document.body.classList.add('overflow-hidden', 'touch-none');
@@ -45,6 +91,7 @@ export const OverlayStack = {
         } else {
             removed = this.stack.pop() || null;
         }
+        if (removed && MODAL_OVERLAY_IDS.has(removed.id)) hideModal(removed.id);
         const hasOpenModal = this.stack.some(item => MODAL_OVERLAY_IDS.has(item.id));
         if (!hasOpenModal) {
             document.body.classList.remove('overflow-hidden', 'touch-none');

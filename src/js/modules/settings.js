@@ -1,7 +1,7 @@
 import { updateAllBookmarkCounters, renderEditList, collectEditData, getExistingUrls } from './bookmark-editor.js';
 export { getDraftBookmarkCount, updateAllBookmarkCounters, getEditFaviconInner, handleEditIconError, getEditRowHTML, appendDraftBookmarkRow, renderEditList, collectEditData, getExistingUrls } from './bookmark-editor.js';
-import { animateShowModal, animateHideModal, showConfirm } from '../core/dialogs.js';
-export { animateShowModal, animateHideModal, showConfirm } from '../core/dialogs.js';
+import { showConfirm } from '../core/dialogs.js';
+export { showConfirm } from '../core/dialogs.js';
 /**
  * ==============================================================================
  * Glass Start — 设置面板与弹窗管理系统 (src/js/modules/settings.js)
@@ -18,6 +18,7 @@ import { getDerivedBookmarks, renderBookmarks, getSortedCategories, getFaviconHT
 import { closeDropdown, hideSuggestions, setEngine } from './search.js';
 import { renderCreditsModalList } from './clock.js';
 
+let editOpenRequestId = 0;
 let cachedSettingsTabs = null;
 let cachedSettingsPanels = null;
 let isPresetBgImagesLoaded = false;
@@ -114,10 +115,11 @@ export async function openEditModal() {
     const editBtn = dom.editBookmarksBtn;
     editBtn?.setAttribute('aria-expanded', 'true');
     state.editOpen = true;
-    OverlayStack.push('editModal', cancelEditModal);
-
-    modalState.initialWallpaper = await getEffectiveCustomWallpaper();
-    if (!state.editOpen) return;
+    const requestId = ++editOpenRequestId;
+    const trigger = document.activeElement;
+    const initialWallpaper = await getEffectiveCustomWallpaper();
+    if (!state.editOpen || requestId !== editOpenRequestId) return;
+    modalState.initialWallpaper = initialWallpaper;
     modalState.initialMaskOpacity = storageGet(CONFIG.KEYS.MASK_OPACITY, CONFIG.APPEARANCE.DEFAULT_MASK_OPACITY);
     modalState.initialBgBlur = storageGet(CONFIG.KEYS.BG_BLUR, CONFIG.APPEARANCE.DEFAULT_BG_BLUR);
 
@@ -142,7 +144,7 @@ export async function openEditModal() {
     updateWallpaperStatusUI(modalState.draftWallpaper);
     updatePresetBgCardsUI(modalState.draftWallpaper);
     applyBgEffects(modalState.draftMaskOpacity, modalState.draftBgBlur, false);
-    animateShowModal(dom.editModal);
+    OverlayStack.push('editModal', cancelEditModal, trigger);
 }
 
 export function cancelEditModal() {
@@ -152,14 +154,10 @@ export function cancelEditModal() {
 
 export function closeEditModal() {
     state.editOpen = false;
+    editOpenRequestId++;
     OverlayStack.pop('editModal');
     const editBtn = dom.editBookmarksBtn;
     editBtn?.setAttribute('aria-expanded', 'false');
-    const editModal = dom.editModal;
-    if (document.activeElement && editModal && editModal.contains(document.activeElement)) {
-        document.activeElement.blur();
-    }
-    animateHideModal(editModal);
 
     const inputRow = dom.urlBgInputRow;
     if (inputRow && !inputRow.classList.contains('hidden')) {
@@ -178,7 +176,6 @@ export function openShortcutModal() {
     hideSuggestions();
     dom.openShortcutFromSettingsBtn?.setAttribute('aria-expanded', 'true');
     OverlayStack.push('shortcutModal', closeShortcutModal);
-    animateShowModal(modal);
 }
 
 export function closeShortcutModal() {
@@ -186,10 +183,6 @@ export function closeShortcutModal() {
     if (!modal) return;
     OverlayStack.pop('shortcutModal');
     dom.openShortcutFromSettingsBtn?.setAttribute('aria-expanded', 'false');
-    if (document.activeElement && modal.contains(document.activeElement)) {
-        document.activeElement.blur();
-    }
-    animateHideModal(modal);
 }
 
 export function openCreditsModal() {
@@ -198,7 +191,6 @@ export function openCreditsModal() {
     renderCreditsModalList();
     dom.openCreditsFromSettingsBtn?.setAttribute('aria-expanded', 'true');
     OverlayStack.push('creditsModal', closeCreditsModal);
-    animateShowModal(modal);
 }
 
 export function closeCreditsModal() {
@@ -206,28 +198,18 @@ export function closeCreditsModal() {
     if (!modal) return;
     OverlayStack.pop('creditsModal');
     dom.openCreditsFromSettingsBtn?.setAttribute('aria-expanded', 'false');
-    if (document.activeElement && modal.contains(document.activeElement)) {
-        document.activeElement.blur();
-    }
-    animateHideModal(modal);
 }
 
 export function openBookmarkPicker(triggerEl = null) {
     const opener = triggerEl || document.activeElement || dom.togglePickerBtn;
     dom.togglePickerBtn?.setAttribute('aria-expanded', 'true');
     OverlayStack.push('bookmarkPicker', closeBookmarkPicker, opener);
-    animateShowModal(dom.bookmarkPicker);
     renderPickerCategories();
 }
 
 export function closeBookmarkPicker() {
     OverlayStack.pop('bookmarkPicker');
     dom.togglePickerBtn?.setAttribute('aria-expanded', 'false');
-    const picker = dom.bookmarkPicker;
-    if (document.activeElement && picker && picker.contains(document.activeElement)) {
-        document.activeElement.blur();
-    }
-    animateHideModal(picker);
 }
 
 /**

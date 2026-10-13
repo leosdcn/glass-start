@@ -670,6 +670,22 @@ try {
     logItem(`字体抗锯齿门禁扫描异常: ${e.message}`, 'error');
 }
 
+// 弹窗隐藏属性只允许统一层叠栈持有，业务层不能另建显示生命周期。
+try {
+    const owner = join(root, 'src', 'js', 'core', 'overlay-stack.js');
+    const violations = allSrcJsFiles.filter(file => file !== owner).filter(file => {
+        const source = readFileSync(file, 'utf-8');
+        return /\.(?:setAttribute|removeAttribute|toggleAttribute)\(\s*['"]hidden['"]|\.hidden\s*=/.test(source) ||
+            /(?:modal(?:El)?|editModal|shortcutModal|creditsModal|confirmModal|bookmarkPicker|picker)\.style\.display\s*=/i.test(source);
+    });
+    if (violations.length) throw new Error(violations.map(file => file.slice(root.length + 1)).join(', '));
+    passCount++;
+    logItem('弹窗显示生命周期统一由 OverlayStack 管理，业务模块不直接修改 hidden 或弹窗 display');
+} catch (e) {
+    failCount++;
+    logItem(`弹窗显示生命周期门禁失败: ${e.message}`, 'error');
+}
+
 const elapsed = Date.now() - startTime;
 console.log(`\n${c.gray}${HR_DOUBLE}${c.reset}`);
 if (failCount === 0) {

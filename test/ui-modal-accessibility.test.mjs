@@ -66,6 +66,26 @@ try {
   })()`);
   assert.equal(Object.values(edge).every(Boolean), true, JSON.stringify(edge));
   console.log('✅ 快速关闭不被迟到动画重开，重新打开正常，既有 inert 和触发元素移除均正确处理');
+  assert.equal(await evalJS('dom.editModal.hidden && dom.shortcutModal.hidden && dom.creditsModal.hidden'), true);
+  await send('Emulation.setEmulatedMedia', { features:[{name:'prefers-reduced-motion', value:'no-preference'}] });
+  const animated = await evalJS(`(async () => {
+    openShortcutModal(); closeShortcutModal();
+    await new Promise(resolve => setTimeout(resolve, CONFIG.TIMERS.MODAL_HIDE_DELAY + 60));
+    const closed = dom.shortcutModal.hidden && !dom.shortcutModal.classList.contains('active');
+    openShortcutModal(); await new Promise(requestAnimationFrame);
+    closeShortcutModal(); openShortcutModal();
+    await new Promise(resolve => setTimeout(resolve, CONFIG.TIMERS.MODAL_HIDE_DELAY + 60));
+    const reopened = !dom.shortcutModal.hidden && dom.shortcutModal.classList.contains('active') &&
+      dom.shortcutModal.contains(document.activeElement);
+    closeShortcutModal();
+    const exitStarted = !dom.shortcutModal.hidden && dom.shortcutModal.getAttribute('aria-hidden') === 'true' &&
+      !dom.shortcutModal.contains(document.activeElement);
+    await new Promise(resolve => setTimeout(resolve, CONFIG.TIMERS.MODAL_HIDE_DELAY + 60));
+    const exitFinished = dom.shortcutModal.hidden && OverlayStack.isEmpty() && !dom.startSection.inert;
+    return {closed, reopened, exitStarted, exitFinished};
+  })()`);
+  assert.equal(Object.values(animated).every(Boolean), true, JSON.stringify(animated));
+  console.log('✅ 普通动效下取消迟到入场／隐藏，重开保持可见和焦点，退栈后完成延迟隐藏');
 } finally {
   await chrome.close();
   await server.close();
