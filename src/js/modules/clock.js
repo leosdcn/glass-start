@@ -77,8 +77,31 @@ export function setLastTimeStr(val) {
     lastTimeStr = val;
 }
 
-export function updateClock() {
+let clockTimerId = null;
+
+export function stopClockTimer() {
+    if (clockTimerId) {
+        clearTimeout(clockTimerId);
+        clockTimerId = null;
+    }
+}
+
+export function scheduleClockTick() {
+    stopClockTimer();
     if (typeof document !== 'undefined' && document.hidden) return;
+    const now = Date.now();
+    // 距下一整分钟 00.000 秒的毫秒差 + 50ms 缓冲，确保 Date() 绝对进入新的一分钟
+    const delay = Math.max(50, 60000 - (now % 60000) + 50);
+    clockTimerId = setTimeout(() => {
+        updateClock();
+    }, delay);
+}
+
+export function updateClock() {
+    if (typeof document !== 'undefined' && document.hidden) {
+        stopClockTimer();
+        return;
+    }
     const n = new Date();
     const hh = String(n.getHours()).padStart(2, '0');
     const mm = String(n.getMinutes()).padStart(2, '0');
@@ -106,4 +129,16 @@ export function updateClock() {
             dateEl.textContent = `${n.getMonth() + 1}月${n.getDate()}日 ${weekdays[n.getDay()]}`;
         }
     }
+    scheduleClockTick();
 }
+
+if (typeof document !== 'undefined') {
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            stopClockTimer();
+        } else {
+            updateClock();
+        }
+    }, { passive: true });
+}
+

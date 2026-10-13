@@ -253,6 +253,8 @@ import {
     renderShortcutModalList,
     renderCreditsModalList,
     updateClock,
+    scheduleClockTick,
+    stopClockTimer,
     lastTimeStr,
     setLastTimeStr
 } from './modules/clock.js';
@@ -363,6 +365,8 @@ Object.assign(window, {
     renderShortcutModalList,
     renderCreditsModalList,
     updateClock,
+    scheduleClockTick,
+    stopClockTimer,
     animateShowModal,
     animateHideModal,
     getDraftBookmarkCount,

@@ -68,7 +68,6 @@ export function init() {
 
     const saved = storageGet(CONFIG.KEYS.PREFERRED_ENGINE);
     if (saved && engines[saved]) setEngine(saved, false);
-    setInterval(updateClock, 1000);
 
     bindEvents();
     bindEditEvents();
