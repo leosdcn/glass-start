@@ -22,7 +22,6 @@ import {
 } from '../modules/wallpaper.js';
 
 let currentWallpaperTheme = (typeof window !== 'undefined' && window.__INITIAL_THEME__) || APP_THEME_DARK;
-let cachedThemeColorMeta = null;
 let activeWallpaperReqId = 0;
 let bgSwitchTimer = null;
 

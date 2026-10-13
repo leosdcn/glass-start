@@ -15,7 +15,7 @@ export const state = {
     customWallpaper: null    // 当前生效的自定义壁纸 DataURL
 };
 
-// 设置弹窗内部草稿状态机与快照备份
+/** @type {import('../types').ModalState} 设置弹窗草稿与快照备份 */
 export const modalState = {
     initialWallpaper: null,
     initialMaskOpacity: CONFIG.APPEARANCE.DEFAULT_MASK_OPACITY,

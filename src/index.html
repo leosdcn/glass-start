@@ -72,15 +72,9 @@
     <!-- 动态壁纸 Preload：根据设备物理 DPI 与用户历史偏好动态计算，单次精准预加载消灭带宽争抢与 LCP 延迟 -->
     <script>
       /**
-       * 动态壁纸预加载自执行函数 (DPI 响应式优化)
-       * 📌 设计原理与性能开销说明：
-       *    1. 在 <head> 中同步读取 window.innerWidth 与 window.devicePixelRatio 属于纯粹内存属性查询，执行耗时 < 0.001ms，零 Reflow 开销。
-       *    2. 根据物理像素宽度 (innerWidth * dpr) 动态匹配 Unsplash 请求宽度 w=... (如 13" MacBook Air 匹配 w=3000)，
-       *       既避免移动端/1080P 屏幕加载 4K 原图浪费带宽，又保障 2K / 4K / Mac Retina 屏 100% 物理点对点像素级清晰度。
-       *    3. 动态一次性注入 <link rel="preload">，彻底消除静态 Preload 盲发导致的重复下载与连接竞争。
-       *    4. ⚠️ 严禁在此处硬编码静态 <link rel="preload" href="bg1.avif">：
-       *       若硬编码默认壁纸，当用户偏好设置为 bg2~bg8 或自定义壁纸时，浏览器会在开屏无条件重复下载两张壁纸（浪费 600KB+ 带宽），
-       *       造成严重的网络连接阻塞并拖慢真实壁纸的 LCP 渲染速度。
+       * 根据用户偏好预加载壁纸。默认使用本地 AVIF；历史远程 Unsplash URL
+       * 按视口宽度与 DPR 调整请求参数。只预加载当前选择，避免同时请求默认壁纸。
+       * 执行时间和首屏效果取决于设备、缓存与网络，不作固定耗时保证。
        */
       (function() {
         /**
@@ -99,7 +93,7 @@
          *    大图母版：avifenc -s 4 -q 75 --yuv 444 -a sharpness=3 -a aq-mode=2 input.png bgX.avif
          *    微缩缩略：avifenc -s 4 -q 70 --yuv 420 -a sharpness=2 -a aq-mode=2 thumb.png bgX-thumb.avif
          *    特点：
-         *      1. 大图全色度 1:1 采样（YUV 4:4:4），99.15% 极高保真，杜绝 4K 视网膜屏高反差边缘色溢与暗部夜空色带断层；
+         *      1. 大图使用 YUV 4:4:4，保留色度分辨率；实际质量应通过编码结果与原图对比检查；
          *      2. 缩略图统一采用 -q 70 配合自适应量化深度压缩，8 张缩略图总池极速瞬开；
          *      3. -a aq-mode=2 与 -a sharpness=2~3 全链路保驾护航，确保小图卡片清爽立体、大图全景晶莹剔透。
          */

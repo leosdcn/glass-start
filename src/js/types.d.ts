@@ -3,7 +3,7 @@
  * Glass Start — 全局 TypeScript 纯类型声明文件 (src/js/types.d.ts)
  * ==============================================================================
  * 零运行时 NPM 依赖。仅用于编辑器、LSP 与 AI 编程助手精准推导状态与对象签名，
- * 彻底杜绝属性名拼写幻觉与未定义调用。
+ * 声明需通过 JSDoc 引用；此文件本身不提供全项目静态类型检查。
  */
 
 /** 书签条目结构定义 */
@@ -12,6 +12,12 @@ export interface BookmarkItem {
     url: string;
     icon: string;
     desc?: string;
+}
+
+/** 设置弹窗中的书签草稿，包含排序标识与原始 URL */
+export interface DraftBookmarkItem extends BookmarkItem {
+    id: string;
+    origUrl: string;
 }
 
 /** 分类目录结构定义 */
@@ -62,6 +68,7 @@ export interface ModalState {
     draftWallpaper: string | null | undefined;
     draftMaskOpacity: number | null;
     draftBgBlur: number | null;
+    draftBookmarks: DraftBookmarkItem[];
     bookmarksChanged: boolean;
 }
 

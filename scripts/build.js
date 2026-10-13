@@ -6,12 +6,8 @@ const { execSync } = require('child_process');
  * ==============================================================================
  * Glass Start — 生产环境构建打包脚本 (build.js)
  * ==============================================================================
- * 📌 设计原理与架构改进 (Senior Architect Refactoring):
- * 1. 【模块化管线封装】：拆分为自检、样式编译、SW更新、数据同步与HTML终化等高内聚模块。
- * 2. 【现代化控制台排版】：提供分步横向分隔线、ANSI 彩色高亮、清晰树形产物清单与毫秒级耗时统计。
- * 3. 【进程退出清理钩子】：注册 process exit / SIGINT 钩子，确保临时输入文件 100% 擦除。
- * 4. 【强壮正则匹配】：提升 DEFAULT_* 默认书签数组替换正则的格式容错度（支持单行/多行/极简压缩）。
- * 5. 【优雅降级压缩】：JS 压缩优先调用 esbuild AST 编译器，未安装时平滑降级至零依赖正则压缩。
+ * 从源码编译样式和 ES 模块，生成带版本指纹的 HTML、Service Worker 与静态资源。
+ * 应用打包需要 esbuild；内联脚本和样式压缩失败时会记录警告并使用基础压缩。
  */
 
 // 终端格式化排版与 ANSI 彩色工具
@@ -94,14 +90,6 @@ const PATHS = {
 // 生产构建全链路统一版本戳（用于 Service Worker 缓存池与 HTML 外链脚本防穿透对齐）
 let currentBuildVersion = 'app-core-v' + Date.now();
 
-// 顶层 JS 变量正则替换工具函数 (单次遍历替换，消除冗余的 test() 预扫描)
-function safeReplaceJsVariable(code, varName, replacementJs) {
-    const regex = new RegExp(`(?:export\\s+)?(?:const|let|var)\\s+${varName}(?:\\s*:\\s*[^=]+)?\\s*=\\s*\\[[\\s\\S]*?\\];`);
-    return code.replace(regex, (match) => {
-        return match.replace(/\[[\s\S]*?\];/, `${replacementJs};`);
-    });
-}
-
 // 引入 esbuild 编译器（具备优雅降级能力）
 let esbuild;
 try {
@@ -153,15 +141,6 @@ function minifyCssCode(cssCode) {
         .replace(/\s*([\{\}\:\;\,\>\+\~])\s*/g, '$1')
         .replace(/;}/g, '}')
         .trim();
-}
-
-// 格式化 JS 数组对象供源码替换
-function formatJsObject(obj, indent = 8) {
-    const jsonStr = JSON.stringify(obj, null, 4);
-    return jsonStr
-        .split('\n')
-        .map((line, idx) => (idx === 0 ? line : ' '.repeat(indent) + line))
-        .join('\n');
 }
 
 // 1.1 构建前依赖自检
