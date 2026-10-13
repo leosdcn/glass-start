@@ -106,7 +106,7 @@ for (const asset of distAssets) {
   }
 }
 const validAssets = missingAssets.length === 0 && !distAssets.includes('./icon.svg') && !distAssets.includes('./manifest.json') && distAssets.includes('./index.html');
-const validInstall = distSw.includes('cache.add(') && distSw.includes('.catch(() => {}))') && !/cache\.addAll\s*\(/.test(distSw);
+const validInstall = distSw.includes('cache.add(') && distSw.includes('validateCoreCache(cache)') && distSw.includes('Promise.allSettled(CORE_ASSETS') && !distSw.includes('self.skipWaiting()') && !distSw.includes('clients.claim()');
 const validStrategy = distSw.includes('isCoreStaticAsset') && distSw.includes('fetch(e.request).then(') && distSw.includes('if (cached) return cached;');
 const distIndexContent = existsSync(join(DIST, 'index.html')) ? readFileSync(join(DIST, 'index.html'), 'utf-8') : '';
 const validScriptVersion = /<head[^>]*>[\s\S]*?<script\s+src=["']\.\/app\.js\?v=app-core-v\d+["']\s+defer><\/script>/.test(distIndexContent);
@@ -115,7 +115,7 @@ const distAppContent = existsSync(join(DIST, 'app.js')) ? readFileSync(join(DIST
 const validFingerprints = distIndexContent.includes('__GLASS_BUILD_HTML__') && distAppContent.includes('__GLASS_BUILD_APP__');
 const validNonOkFallback = /return caches\.match\(e\.request\)\.then\(cached => cached \|\| netRes\)/.test(distSw);
 
-pass('Service Worker 核心预缓存清单与容错安装 (CORE_ASSETS真实存在/逐项reload容错/原子化SWR锁步版本对齐/指纹契约/非ok回退/Head原生Defer)',
+pass('Service Worker 核心预缓存清单与容错安装 (CORE_ASSETS真实存在/核心reload完整校验/失败拒绝安装/等待旧页面退出/原子化SWR锁步版本对齐/指纹契约/非ok回退/Head原生Defer)',
   validAssets && validInstall && validStrategy && validScriptVersion && noBodyMainScript && validFingerprints && validNonOkFallback,
   `包含 ${distAssets.length} 项有效资源，原子化 SWR 锁步策略、双端构建指纹、Head 原生 Defer 与非 ok 缓存回退 100% 对齐`);
 
@@ -169,7 +169,10 @@ const maxImgMatch = srcSw.match(/MAX_IMG_ENTRIES\s*=\s*(\d+)/);
 const faviconLimitOk = maxFaviconMatch && Number(maxFaviconMatch[1]) === 800;
 const imgLimitOk = maxImgMatch && Number(maxImgMatch[1]) === 200;
 const poolNamesOk = srcSw.includes("const FAVICON_CACHE = 'app-favicons-v1'") && srcSw.includes("const IMG_CACHE = 'app-images-v2'");
-const activateCleansOldCachesOnly = srcSw.includes('k !== CORE_CACHE && k !== FAVICON_CACHE && k !== IMG_CACHE');
+const cleanupMatch = srcSw.match(/keys\.filter\((key => .+?)\)\.map/);
+const cleanupPredicate = cleanupMatch ? new Function('CORE_CACHE', `return (${cleanupMatch[1]})`)('app-core-current') : null;
+const cleanupInputs = ['app-core-old', 'app-core-current', 'app-favicons-v1', 'app-images-v2', 'unrelated-cache'];
+const activateCleansOldCachesOnly = cleanupPredicate && JSON.stringify(cleanupInputs.filter(cleanupPredicate)) === '["app-core-old"]';
 
 pass('Service Worker 内存池 FIFO 自动限额淘汰与防污染 (真实FIFO执行断言/800与200配额/三池激活保护白名单)',
   pruneAlgorithmOk && faviconLimitOk && imgLimitOk && poolNamesOk && activateCleansOldCachesOnly,

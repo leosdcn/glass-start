@@ -59,41 +59,52 @@ function make503Response() {
     });
 }
 
-// 安装阶段：并发预缓存核心资源与图标，容错单项失败
+// 核心资源不仅需存在，还必须与当前 worker 的构建指纹一致。
+async function validateCoreCache(cache) {
+    for (const asset of CORE_ASSETS) {
+        const response = await cache.match(asset);
+        if (!response || !response.ok) throw new Error('Missing core asset: ' + asset);
+    }
+    for (const [asset, property] of [
+        ['./', '__GLASS_BUILD_HTML__'],
+        ['./index.html', '__GLASS_BUILD_HTML__'],
+        ['./app.js', '__GLASS_BUILD_APP__']
+    ]) {
+        const response = await cache.match(asset);
+        const text = await response.text();
+        const fingerprint = text.match(new RegExp(property + `\\s*=\\s*["']([^"']+)`));
+        if (fingerprint?.[1] !== CORE_CACHE) throw new Error('Core version mismatch: ' + asset);
+    }
+}
+
+// 核心失败必须拒绝 install；等待所有请求结束再删除残缺池，防止迟到写入。
 self.addEventListener('install', e => {
-    self.skipWaiting();
-    e.waitUntil(
-        Promise.all([
-            caches.open(CORE_CACHE).then(cache =>
-                Promise.all(CORE_ASSETS.map(asset => cache.add(new Request(asset, { cache: 'reload' })).catch(() => {})))
-            ),
-            caches.open(FAVICON_CACHE).then(cache =>
-                Promise.all(CORE_FAVICONS.map(url =>
-                    fetch(url, { mode: 'no-cors' })
-                        .then(res => cache.put(url, res))
-                        .catch(() => {})
-                ))
-            )
-        ])
-    );
+    e.waitUntil((async () => {
+        try {
+            const cache = await caches.open(CORE_CACHE);
+            const results = await Promise.allSettled(CORE_ASSETS.map(asset => cache.add(new Request(asset, { cache: 'reload' }))));
+            if (results.some(result => result.status === 'rejected')) throw new Error('Core installation incomplete');
+            await validateCoreCache(cache);
+        } catch (error) {
+            await caches.delete(CORE_CACHE);
+            throw error;
+        }
+        // 不强制接管旧页面。更新保持 waiting，旧客户端全部退出后由浏览器激活。
+    })());
+    // 外部图标失败不影响核心安装，也不改变旧 worker 的控制权。
+    e.waitUntil(caches.open(FAVICON_CACHE).then(cache => Promise.allSettled(CORE_FAVICONS.map(url =>
+        fetch(url, { mode: 'no-cors', signal: AbortSignal.timeout(FAVICON_TIMEOUT_MS) })
+            .then(res => cache.put(url, res))
+    ))).catch(() => {}));
 });
 
-// 激活阶段：校验核心资产健康度后清理废弃版本 CORE_CACHE 并接管客户端
-self.addEventListener('activate', e => e.waitUntil(
-    caches.open(CORE_CACHE).then(async coreCache => {
-        const hasIndex = (await coreCache.match('./index.html')) || (await coreCache.match('./'));
-        const hasApp = await coreCache.match('./app.js');
-        if (hasIndex && hasApp) {
-            const keys = await caches.keys();
-            await Promise.all(keys.filter(k => k !== CORE_CACHE && k !== FAVICON_CACHE && k !== IMG_CACHE).map(k => caches.delete(k)));
-            await clients.claim();
-        } else {
-            // 若新版本核心资产残缺（弱网安装不完整），销毁残缺版本池以防指纹割裂，阻断激活使健全旧版 SW 继续服役
-            await caches.delete(CORE_CACHE);
-            throw new Error('SW Activation aborted: core assets incomplete in ' + CORE_CACHE);
-        }
-    })
-));
+// 激活仅发生于旧客户端退出后；不 claim 未受控页面，避免旧 HTML 混用新脚本。
+self.addEventListener('activate', e => e.waitUntil((async () => {
+    const cache = await caches.open(CORE_CACHE);
+    await validateCoreCache(cache);
+    const keys = await caches.keys();
+    await Promise.all(keys.filter(key => key.startsWith('app-core-') && key !== CORE_CACHE).map(key => caches.delete(key)));
+})()));
 
 // 拦截 Fetch 请求阶段
 self.addEventListener('fetch', e => {
