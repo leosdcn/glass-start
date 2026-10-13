@@ -46,10 +46,20 @@ try {
       await loadUserData();
       restored = state.bg === 3 && await getWallpaperDB() === null;
     } finally { Storage.prototype.setItem = setItem; }
+    const NativeImage = window.Image;
+    let pending;
+    window.Image = class { constructor() { pending = this; } };
+    let resetCancelsPending;
+    try {
+      const stopped = previewDraftWallpaper('https://pending.example.com/image.png');
+      const cleared = await clearCustomWallpaper();
+      resetCancelsPending = cleared && await stopped === false && pending.onload === null &&
+        await getWallpaperDB() === null && state.customWallpaper === null;
+    } finally { window.Image = NativeImage; }
     await commitWallpaperSelection(next);
     const noBase64InLS = localStorage.getItem(CONFIG.KEYS.USER_WALLPAPER) === null;
     cancelEditModal();
-    return {writeFalse, commitFalse, unchanged, previewFalse, blocked, deleteFalse, saved, restored, noBase64InLS};
+    return {writeFalse, commitFalse, unchanged, previewFalse, blocked, deleteFalse, saved, restored, resetCancelsPending, noBase64InLS};
   })()`);
   assert.equal(Object.values(result).every(Boolean), true, JSON.stringify(result));
   console.log('✅ 写请求成功后事务中止仍判失败，删除中止保留旧数据，保存按钮阻止失败关闭');

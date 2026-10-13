@@ -61,6 +61,8 @@ export function findPresetBgIndex(url) {
  * @returns {Promise<void>}
  */
 export async function clearCustomWallpaper() {
+    beginWallpaperSelection();
+    await wallpaperCommitQueue.catch(() => {});
     if (!await removeWallpaperDB()) return false;
     state.customWallpaper = null;
     storageRemove(CONFIG.KEYS.USER_WALLPAPER);
