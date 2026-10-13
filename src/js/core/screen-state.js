@@ -26,6 +26,47 @@ let transitionTimer = null;
 let navTransitionCleanup = null;
 let isTouchHandled = false;
 
+// 普通切屏与唤醒校准共用任务清理，防止旧动画回调干扰下一次切换。
+function clearTransitionTasks() {
+    if (transitionTimer) clearTimeout(transitionTimer);
+    transitionTimer = null;
+    navTransitionCleanup?.();
+    navTransitionCleanup = null;
+}
+
+function resetPageScroll() {
+    if (typeof window === 'undefined') return;
+    window.scrollTo(0, 0);
+    if (document.documentElement.scrollTop !== 0) document.documentElement.scrollTop = 0;
+    if (document.body.scrollTop !== 0) document.body.scrollTop = 0;
+}
+
+function prepareScreenTransition() {
+    if (typeof document !== 'undefined') {
+        document.documentElement.classList.remove('nr');
+        document.body.classList.remove('tab-blurred');
+        document.activeElement?.blur?.();
+    }
+    clearTransitionTasks();
+}
+
+function waitForScreenTransition(nav, targetSection, onComplete) {
+    const finish = () => {
+        clearTransitionTasks();
+        if (state.currentSection !== targetSection) return;
+        isTransitioning = false;
+        onComplete();
+    };
+    if (typeof document !== 'undefined' && nav) {
+        const onEnd = e => {
+            if (e.target === nav && (e.propertyName === 'transform' || e.propertyName === '-webkit-transform')) finish();
+        };
+        nav.addEventListener('transitionend', onEnd);
+        navTransitionCleanup = () => nav.removeEventListener('transitionend', onEnd);
+    }
+    transitionTimer = setTimeout(finish, CONFIG.GESTURE.TRANSITION_MS + CONFIG.GESTURE.TIMEOUT_BUFFER_MS);
+}
+
 const LINE_HEIGHT_PX = 16;
 const PAGE_HEIGHT_PX = 400;
 
@@ -89,14 +130,7 @@ export function reconcileScreenState(targetSection, force = false) {
     if (!targetSection && !force && isTransitioning) {
         return;
     }
-    if (transitionTimer) {
-        clearTimeout(transitionTimer);
-        transitionTimer = null;
-    }
-    if (typeof navTransitionCleanup === 'function') {
-        navTransitionCleanup();
-        navTransitionCleanup = null;
-    }
+    clearTransitionTasks();
     isTransitioning = false;
     isTouchHandled = false;
 
@@ -110,11 +144,7 @@ export function reconcileScreenState(targetSection, force = false) {
     updateGearVisibility();
     syncThemeForSection(sec);
 
-    if (typeof window !== 'undefined') {
-        window.scrollTo(0, 0);
-        if (document.documentElement.scrollTop !== 0) document.documentElement.scrollTop = 0;
-        if (document.body.scrollTop !== 0) document.body.scrollTop = 0;
-    }
+    resetPageScroll();
 
     const navContent = dom.navContent || $('navContent');
     if (navContent && sec === 'start') {
@@ -165,34 +195,14 @@ export function reconcileScreenState(targetSection, force = false) {
 
 export function switchToNav() {
     if (state.currentSection === 'nav' && !isTransitioning) return;
-    if (typeof document !== 'undefined') {
-        document.documentElement.classList.remove('nr');
-        if (document.body.classList.contains('tab-blurred')) {
-            document.body.classList.remove('tab-blurred');
-        }
-        if (document.activeElement && typeof document.activeElement.blur === 'function') {
-            document.activeElement.blur();
-        }
-    }
-    if (transitionTimer) {
-        clearTimeout(transitionTimer);
-        transitionTimer = null;
-    }
-    if (typeof navTransitionCleanup === 'function') {
-        navTransitionCleanup();
-        navTransitionCleanup = null;
-    }
+    prepareScreenTransition();
     closeDropdown();
     hideSuggestions();
 
     state.currentSection = 'nav';
     isTransitioning = true;
 
-    if (typeof window !== 'undefined') {
-        window.scrollTo(0, 0);
-        if (document.documentElement.scrollTop !== 0) document.documentElement.scrollTop = 0;
-        if (document.body.scrollTop !== 0) document.body.scrollTop = 0;
-    }
+    resetPageScroll();
 
     const navContent = dom.navContent || $('navContent');
     if (navContent) {
@@ -247,66 +257,21 @@ export function switchToNav() {
         initFaviconObserver();
     });
 
-    const finishSwitchToNav = () => {
-        if (transitionTimer) {
-            clearTimeout(transitionTimer);
-            transitionTimer = null;
+    waitForScreenTransition(nav, 'nav', () => {
+        if (typeof window !== 'undefined') {
+            window.scrollTo(0, 0);
+            document.activeElement?.blur?.();
         }
-        if (typeof navTransitionCleanup === 'function') {
-            navTransitionCleanup();
-            navTransitionCleanup = null;
-        }
-        if (state.currentSection === 'nav') {
-            isTransitioning = false;
-            if (typeof window !== 'undefined') {
-                window.scrollTo(0, 0);
-                if (document.activeElement && typeof document.activeElement.blur === 'function') {
-                    document.activeElement.blur();
-                }
-            }
-        }
-    };
-
-    if (typeof document !== 'undefined' && nav) {
-        const onEnd = (e) => {
-            if (e.target === nav && (e.propertyName === 'transform' || e.propertyName === '-webkit-transform')) {
-                finishSwitchToNav();
-            }
-        };
-        nav.addEventListener('transitionend', onEnd);
-        navTransitionCleanup = () => nav.removeEventListener('transitionend', onEnd);
-    }
-
-    transitionTimer = setTimeout(finishSwitchToNav, CONFIG.GESTURE.TRANSITION_MS + CONFIG.GESTURE.TIMEOUT_BUFFER_MS);
+    });
 }
 
 export function switchToStart() {
     if (state.currentSection === 'start' && !isTransitioning) return;
-    if (typeof document !== 'undefined') {
-        document.documentElement.classList.remove('nr');
-        if (document.body.classList.contains('tab-blurred')) {
-            document.body.classList.remove('tab-blurred');
-        }
-        if (document.activeElement && typeof document.activeElement.blur === 'function') {
-            document.activeElement.blur();
-        }
-    }
-    if (transitionTimer) {
-        clearTimeout(transitionTimer);
-        transitionTimer = null;
-    }
-    if (typeof navTransitionCleanup === 'function') {
-        navTransitionCleanup();
-        navTransitionCleanup = null;
-    }
+    prepareScreenTransition();
     state.currentSection = 'start';
     isTransitioning = true;
 
-    if (typeof window !== 'undefined') {
-        window.scrollTo(0, 0);
-        if (document.documentElement.scrollTop !== 0) document.documentElement.scrollTop = 0;
-        if (document.body.scrollTop !== 0) document.body.scrollTop = 0;
-    }
+    resetPageScroll();
 
     const navContent = dom.navContent || $('navContent');
     if (navContent) navContent.scrollTop = 0;
@@ -334,39 +299,16 @@ export function switchToStart() {
         nav.classList.remove('screen-pushed-in');
     }
 
-    const finishSwitchToStart = () => {
-        if (transitionTimer) {
-            clearTimeout(transitionTimer);
-            transitionTimer = null;
+    waitForScreenTransition(nav, 'start', () => {
+        if (typeof window !== 'undefined') {
+            window.scrollTo(0, 0);
+            updateGearVisibility();
         }
-        if (typeof navTransitionCleanup === 'function') {
-            navTransitionCleanup();
-            navTransitionCleanup = null;
+        if (nav) {
+            nav.classList.remove('nav-visible');
+            nav.classList.add('nav-hidden');
         }
-        if (state.currentSection === 'start') {
-            isTransitioning = false;
-            if (typeof window !== 'undefined') {
-                window.scrollTo(0, 0);
-                updateGearVisibility();
-            }
-            if (nav) {
-                nav.classList.remove('nav-visible');
-                nav.classList.add('nav-hidden');
-            }
-        }
-    };
-
-    if (typeof document !== 'undefined' && nav) {
-        const onEnd = (e) => {
-            if (e.target === nav && (e.propertyName === 'transform' || e.propertyName === '-webkit-transform')) {
-                finishSwitchToStart();
-            }
-        };
-        nav.addEventListener('transitionend', onEnd);
-        navTransitionCleanup = () => nav.removeEventListener('transitionend', onEnd);
-    }
-
-    transitionTimer = setTimeout(finishSwitchToStart, CONFIG.GESTURE.TRANSITION_MS + CONFIG.GESTURE.TIMEOUT_BUFFER_MS);
+    });
 }
 
 export function handleAppWakeUp(wasPersisted = false) {

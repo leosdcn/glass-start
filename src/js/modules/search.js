@@ -31,6 +31,15 @@ export function setOriginalQuery(val) {
     originalQuery = val;
 }
 
+/** 输入防抖与关闭清理共用同一个计时器；执行时读取当前搜索引擎。 */
+export function scheduleSuggestions(query) {
+    clearTimeout(suggestDebounceTimer);
+    suggestDebounceTimer = setTimeout(() => {
+        suggestDebounceTimer = null;
+        fetchSuggestions(state.engine, query);
+    }, CONFIG.SUGGEST.DEBOUNCE_MS);
+}
+
 /**
  * 渲染搜索引擎下拉切换菜单项 HTML
  * @returns {void}
@@ -322,44 +331,27 @@ export function getSearchCandidates() {
 
     const toNormUrl = u => (u || '').trim().toLowerCase().replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '');
     const urlToCategoryMap = new Map();
-    if (pageData && Array.isArray(pageData.categories)) {
-        for (const cat of pageData.categories) {
-            if (!cat || !Array.isArray(cat.bookmarks)) continue;
-            for (const bm of cat.bookmarks) {
-                if (bm && bm.url) {
-                    const normUrl = toNormUrl(bm.url);
-                    if (!urlToCategoryMap.has(normUrl)) {
-                        urlToCategoryMap.set(normUrl, cat.name);
-                    }
-                }
-            }
-        }
-    }
-
     const candidates = [];
     const seenNormUrls = new Set();
+    const addCandidate = (bm, normUrl, defaultCat) => {
+        if (seenNormUrls.has(normUrl)) return;
+        seenNormUrls.add(normUrl);
+        candidates.push({ bm, normUrl, defaultCat });
+    };
     if (pageData && Array.isArray(pageData.bookmarks)) {
         for (const bm of pageData.bookmarks) {
-            if (bm && bm.url) {
-                const normUrl = toNormUrl(bm.url);
-                if (!seenNormUrls.has(normUrl)) {
-                    seenNormUrls.add(normUrl);
-                    candidates.push({ bm, normUrl, defaultCat: '快捷书签' });
-                }
-            }
+            if (bm && bm.url) addCandidate(bm, toNormUrl(bm.url), '快捷书签');
         }
     }
     if (pageData && Array.isArray(pageData.categories)) {
         for (const cat of pageData.categories) {
             if (!cat || !Array.isArray(cat.bookmarks)) continue;
             for (const bm of cat.bookmarks) {
-                if (bm && bm.url) {
-                    const normUrl = toNormUrl(bm.url);
-                    if (!seenNormUrls.has(normUrl)) {
-                        seenNormUrls.add(normUrl);
-                        candidates.push({ bm, normUrl, defaultCat: cat.name || '分类书签' });
-                    }
-                }
+                if (!bm || !bm.url) continue;
+                const normUrl = toNormUrl(bm.url);
+                // 分类归属取第一项；快捷书签仍优先保留自己的名称和元数据。
+                if (!urlToCategoryMap.has(normUrl)) urlToCategoryMap.set(normUrl, cat.name);
+                addCandidate(bm, normUrl, cat.name || '分类书签');
             }
         }
     }
@@ -568,10 +560,8 @@ export function renderSuggestions(localList = [], netList = [], preserveSelectio
  * @returns {void}
  */
 export function hideSuggestions() {
-    if (suggestDebounceTimer) {
-        clearTimeout(suggestDebounceTimer);
-        suggestDebounceTimer = null;
-    }
+    clearTimeout(suggestDebounceTimer);
+    suggestDebounceTimer = null;
     activeSuggestReqId++;
     activeSuggestCleanup?.();
     OverlayStack.pop('suggestions');
@@ -594,6 +584,8 @@ export function hideSuggestions() {
  * @param {string} query
  */
 export function fetchSuggestions(engineKey, query) {
+    clearTimeout(suggestDebounceTimer);
+    suggestDebounceTimer = null;
     query = (query || '').trim();
     if (!query) {
         hideSuggestions();

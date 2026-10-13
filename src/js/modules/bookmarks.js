@@ -254,13 +254,7 @@ export function renderBookmarks(force = false) {
         </a>
     `).join('');
 
-    bookmarksEl.querySelectorAll('img.lazy-icon').forEach(img => {
-        if (img.complete && img.naturalWidth > 0) {
-            img.classList.add('loaded');
-        } else {
-            img.addEventListener('load', () => img.classList.add('loaded'), { once: true });
-        }
-    });
+    bookmarksEl.querySelectorAll('img.lazy-icon').forEach(img => checkImageReady(img));
 }
 
 let lastNavCategoriesSignature = '';

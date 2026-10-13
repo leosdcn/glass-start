@@ -18,6 +18,15 @@ export function initDragSort() {
     const editList = dom.editList;
     if (!editList) return;
 
+    // 两条输入路径共享迟滞判定，各自保留坐标兜底和帧调度。
+    function updateDropTarget(target, relY) {
+        const isTop = lastOverTarget === target && lastIsTop !== null
+            ? (lastIsTop ? relY <= CONFIG.PHYSICS.DRAG_HYSTERESIS_HIGH : relY < CONFIG.PHYSICS.DRAG_HYSTERESIS_LOW)
+            : relY < 0.5;
+        lastOverTarget = target;
+        lastIsTop = isTop;
+    }
+
     function updateDragIndicator(target, isTop) {
         lastOverTarget = target;
         lastIsTop = isTop;
@@ -202,14 +211,7 @@ export function initDragSort() {
         if (!target || target === dragSrc) return;
         const rect = target.getBoundingClientRect();
         const relY = rect.height > 0 ? (e.clientY - rect.top) / rect.height : 0.5;
-        let isTop = true;
-        if (lastOverTarget === target && lastIsTop !== null) {
-            isTop = lastIsTop ? (relY <= CONFIG.PHYSICS.DRAG_HYSTERESIS_HIGH) : (relY < CONFIG.PHYSICS.DRAG_HYSTERESIS_LOW);
-        } else {
-            isTop = relY < 0.5;
-        }
-        lastOverTarget = target;
-        lastIsTop = isTop;
+        updateDropTarget(target, relY);
         if (!dragOverRafId) {
             dragOverRafId = requestAnimationFrame(() => {
                 dragOverRafId = null;
@@ -276,14 +278,7 @@ export function initDragSort() {
 
         const rect = target.getBoundingClientRect();
         const relY = (touch.clientY - rect.top) / (rect.height || 1);
-        let isTop;
-        if (lastOverTarget === target && lastIsTop !== null) {
-            isTop = lastIsTop ? (relY <= CONFIG.PHYSICS.DRAG_HYSTERESIS_HIGH) : (relY < CONFIG.PHYSICS.DRAG_HYSTERESIS_LOW);
-        } else {
-            isTop = relY < 0.5;
-        }
-        lastOverTarget = target;
-        lastIsTop = isTop;
+        updateDropTarget(target, relY);
         if (!touchMoveRafId) {
             touchMoveRafId = requestAnimationFrame(() => {
                 touchMoveRafId = null;

@@ -18,7 +18,7 @@ import { dom } from '../state/dom.js';
 import { OverlayStack, MODAL_OVERLAY_IDS } from '../core/overlay-stack.js';
 import { switchToStart, switchToNav, isScreenTransitioning } from './screen-state.js';
 export { initDragSort } from './drag-sort.js';
-import { doSearch, fetchSuggestions, hideSuggestions, closeDropdown, toggleDropdown, setEngine, openBookmarkUrl, openRandomBookmark, selectedSuggestionIdx, setSelectedSuggestionIdx, setOriginalQuery } from '../modules/search.js';
+import { doSearch, fetchSuggestions, hideSuggestions, closeDropdown, toggleDropdown, setEngine, openBookmarkUrl, openRandomBookmark, selectedSuggestionIdx, setSelectedSuggestionIdx, originalQuery, setOriginalQuery, scheduleSuggestions } from '../modules/search.js';
 import { toggleWeatherPopover, closeWeatherPopover } from '../modules/weather.js';
 import { switchBg } from '../modules/wallpaper.js';
 import { openShortcutModal, closeShortcutModal } from '../modules/settings.js';
@@ -48,8 +48,6 @@ export function bindEvents() {
     let isComposing = false;
     let justEndedComposition = false;
     let compositionEndTimer = null;
-    let originalQuery = '';
-    let suggestDebounceTimer = null;
 
     const searchInput = dom.searchInput;
     const searchClearBtn = dom.searchClearBtn;
@@ -87,7 +85,7 @@ export function bindEvents() {
             }, CONFIG.TIMERS.COMPOSITION_END_RESET);
 
             const val = searchInput.value;
-            originalQuery = val;
+            setOriginalQuery(val);
             updateSearchActionButtons(!!val);
             fetchSuggestions(state.engine, val);
         });
@@ -103,13 +101,10 @@ export function bindEvents() {
 
         searchInput.addEventListener('input', () => {
             const val = searchInput.value;
-            originalQuery = val;
+            setOriginalQuery(val);
             updateSearchActionButtons(!!val);
             if (isComposing) return;
-            if (suggestDebounceTimer) clearTimeout(suggestDebounceTimer);
-            suggestDebounceTimer = setTimeout(() => {
-                fetchSuggestions(state.engine, val);
-            }, CONFIG.SUGGEST.DEBOUNCE_MS);
+            scheduleSuggestions(val);
         });
     }
 
@@ -118,7 +113,7 @@ export function bindEvents() {
             e.stopPropagation();
             e.preventDefault();
             if (searchInput) searchInput.value = '';
-            originalQuery = '';
+            setOriginalQuery('');
             updateSearchActionButtons(false);
             hideSuggestions();
             searchInput?.focus();
