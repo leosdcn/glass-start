@@ -196,10 +196,8 @@
 .bookmark-item, .nav-bookmark {
     position: relative;
     overflow: hidden;
-    will-change: transform;
     -webkit-backface-visibility: hidden;
     backface-visibility: hidden;
-    transform: translateZ(0);
     transition: transform var(--duration-tactile) var(--ease-tactile), background-color 0.32s ease, border-color 0.32s ease, box-shadow var(--duration-tactile) var(--ease-tactile);
 }
 .bookmark-item::before {
@@ -236,7 +234,15 @@
     position: relative;
     z-index: 2;
 }
+body:not(.tab-blurred) .bookmark-item:not(.is-clicked):active,
+body:not(.tab-blurred) .nav-bookmark:not(.is-clicked):active {
+    will-change: transform;
+}
 @media (hover: hover) and (pointer: fine) {
+    body:not(.tab-blurred) .bookmark-item:not(.is-clicked):hover,
+    body:not(.tab-blurred) .nav-bookmark:not(.is-clicked):hover {
+        will-change: transform;
+    }
     body:not(.tab-blurred) .bookmark-item:not(.is-clicked):hover::before,
     body:not(.tab-blurred) .nav-bookmark:not(.is-clicked):hover::before {
         opacity: 1;

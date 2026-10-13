@@ -20,6 +20,7 @@ export function resetActiveCard() {
     if (activeCard) {
         activeCard.style.transition = '';
         activeCard.style.transform = '';
+        activeCard.style.willChange = '';
         activeCard = null;
         activeCardRect = null;
     }
@@ -77,6 +78,7 @@ export function initGlassSpotlightAndTilt() {
             if (activeCard) resetActiveCard();
             activeCard = card;
             activeCardRect = card.getBoundingClientRect();
+            activeCard.style.willChange = 'transform';
             const tiltSec = `${CONFIG.TIMERS.TILT_TRANSITION_MS / 1000}s`;
             const bgSec = `${CONFIG.TIMERS.TILT_BG_TRANSITION_MS / 1000}s`;
             activeCard.style.transition = `transform ${tiltSec} ease-out, background-color ${bgSec} ease, border-color ${bgSec} ease, box-shadow var(--duration-tactile) var(--ease-tactile)`;
