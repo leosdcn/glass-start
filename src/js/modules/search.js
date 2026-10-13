@@ -209,8 +209,12 @@ export function openRandomBookmark(newTab = true) {
     }, CONFIG.TIMERS.STAGGER_OPEN);
 }
 
+// 模块级单例平坦 TypedArray 缓存池，彻底消除高频模糊搜索下的大量堆内存分配与 GC 抖动
+let dLevBuffer = typeof Int32Array !== 'undefined' ? new Int32Array(1024) : null;
+
 /**
  * 计算 Damerau-Levenshtein 编辑距离（支持插入、删除、替换与相邻字符易位/拼错容错）
+ * 采用模块级复用平坦 Int32Array 缓冲区，达到 0 次瞬态堆内存分配 (Zero Allocation)
  * @param {string} a - 源字符串
  * @param {string} b - 目标字符串
  * @returns {number} 最小编辑距离步数
@@ -219,24 +223,39 @@ export function damerauLevenshteinDistance(a, b) {
     const al = a.length, bl = b.length;
     if (al === 0) return bl;
     if (bl === 0) return al;
-    const dp = Array.from({ length: al + 1 }, () => typeof Int32Array !== 'undefined' ? new Int32Array(bl + 1) : new Array(bl + 1).fill(0));
-    for (let i = 0; i <= al; i++) dp[i][0] = i;
-    for (let j = 0; j <= bl; j++) dp[0][j] = j;
+
+    const cols = bl + 1;
+    const requiredSize = (al + 1) * cols;
+    if (!dLevBuffer || dLevBuffer.length < requiredSize) {
+        dLevBuffer = new Int32Array(Math.max(requiredSize, dLevBuffer ? dLevBuffer.length * 2 : 1024));
+    }
+    const dp = dLevBuffer;
+
+    for (let i = 0; i <= al; i++) dp[i * cols] = i;
+    for (let j = 0; j <= bl; j++) dp[j] = j;
 
     for (let i = 1; i <= al; i++) {
+        const iOffset = i * cols;
+        const prevIOffset = (i - 1) * cols;
+        const charA = a[i - 1];
+        const prevCharA = i > 1 ? a[i - 2] : '';
+
         for (let j = 1; j <= bl; j++) {
-            const cost = a[i - 1] === b[j - 1] ? 0 : 1;
-            dp[i][j] = Math.min(
-                dp[i - 1][j] + 1,       // deletion
-                dp[i][j - 1] + 1,       // insertion
-                dp[i - 1][j - 1] + cost // substitution
-            );
-            if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) {
-                dp[i][j] = Math.min(dp[i][j], dp[i - 2][j - 2] + cost); // transposition
+            const cost = charA === b[j - 1] ? 0 : 1;
+            let minVal = dp[prevIOffset + j] + 1; // deletion
+            const insertCost = dp[iOffset + j - 1] + 1; // insertion
+            if (insertCost < minVal) minVal = insertCost;
+            const subCost = dp[prevIOffset + j - 1] + cost; // substitution
+            if (subCost < minVal) minVal = subCost;
+
+            if (i > 1 && j > 1 && charA === b[j - 2] && prevCharA === b[j - 1]) {
+                const transCost = dp[(i - 2) * cols + j - 2] + cost; // transposition
+                if (transCost < minVal) minVal = transCost;
             }
+            dp[iOffset + j] = minVal;
         }
     }
-    return dp[al][bl];
+    return dp[al * cols + bl];
 }
 
 /**

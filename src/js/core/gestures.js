@@ -91,6 +91,7 @@ export function initGlassSpotlightAndTilt() {
     }
 
     document.addEventListener('pointerdown', (e) => {
+        if (typeof state !== 'undefined' && state.currentSection !== 'nav') return;
         const card = e.target?.closest?.('.nav-bookmark');
         if (card) {
             setActiveCardAndSchedule(card, e);
