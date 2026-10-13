@@ -1,3 +1,4 @@
+const { watchFiles } = require('./watch.cjs');
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
@@ -11,63 +12,7 @@ const { execSync } = require('child_process');
  */
 
 // 终端格式化排版与 ANSI 彩色工具
-const isTTY = process.stdout.isTTY && !process.env.NO_COLOR;
-const c = {
-    reset: isTTY ? '\x1b[0m' : '',
-    bold: isTTY ? '\x1b[1m' : '',
-    dim: isTTY ? '\x1b[2m' : '',
-    cyan: isTTY ? '\x1b[36m' : '',
-    green: isTTY ? '\x1b[32m' : '',
-    yellow: isTTY ? '\x1b[33m' : '',
-    blue: isTTY ? '\x1b[34m' : '',
-    magenta: isTTY ? '\x1b[35m' : '',
-    gray: isTTY ? '\x1b[90m' : '',
-};
-
-const LINE_WIDTH = 72;
-const HR_DOUBLE = '═'.repeat(LINE_WIDTH);
-const HR_SINGLE = '─'.repeat(LINE_WIDTH);
-
-/**
- * 计算终端文本实际视觉展示宽度（兼容中文字符与 Emoji 占位）
- */
-function getVisualWidth(str) {
-    const clean = str.replace(/\x1b\[[0-9;]*m/g, '');
-    let width = 0;
-    for (const ch of clean) {
-        const code = ch.codePointAt(0);
-        if (code >= 0xFE00 && code <= 0xFE0F) continue; // Variation Selectors
-        if (code === 0x200D) continue; // Zero-width Joiner
-        if (code > 0x7f) {
-            width += 2;
-        } else {
-            width += 1;
-        }
-    }
-    return width;
-}
-
-/**
- * 打印带横行分隔符的构建阶段标题
- */
-function logSection(step, title) {
-    const prefix = `─── [${step}] ${title} `;
-    const visualLen = getVisualWidth(prefix);
-    const fillLen = Math.max(4, LINE_WIDTH - visualLen);
-    const trailingLine = '─'.repeat(fillLen);
-    console.log(`\n${c.cyan}─── [${step}] ${title} ${c.gray}${trailingLine}${c.reset}`);
-}
-
-/**
- * 打印阶段子步骤项
- */
-function logItem(msg, status = 'ok') {
-    const icon = status === 'ok' ? `${c.green}✔${c.reset}`
-               : status === 'warn' ? `${c.yellow}⚠${c.reset}`
-               : status === 'info' ? `${c.cyan}ℹ${c.reset}`
-               : `${c.green}✅${c.reset}`;
-    console.log(`  ${icon} ${msg}`);
-}
+const { c, HR_DOUBLE, logSection, logItem, LINE_WIDTH } = require('./terminal.cjs');
 
 // 路径常量定义
 const ROOT_DIR = path.resolve(__dirname, '..');
@@ -514,67 +459,18 @@ function rebuild(changedFile = 'source') {
 }
 
 // 独立监听模式
-function startWatch(onRebuildSuccess) {
-    console.log(`\n${c.yellow}👀 开启文件修改自动构建监听模式 (Watch Mode)...${c.reset}`);
-    console.log(`   ${c.dim}正在监听 index.html, bookmarks.json, sw.js, manifest.json 等修改...${c.reset}\n`);
-    let watchTimer = null;
-    const triggerRebuild = (filename) => {
-        if (watchTimer) clearTimeout(watchTimer);
-        watchTimer = setTimeout(() => {
-            console.log(`\n${c.magenta}📝 [Watch] 检测到文件修改: ${filename}，正在重新增量编译 dist/ ...${c.reset}`);
-            try {
-                const result = rebuild(filename);
-                console.log(`  ${c.green}✔ [Watch] 增量编译完成！版本: ${c.cyan}${result.version}${c.reset}${c.green} (耗时: ${result.duration}ms)${c.reset}\n`);
-                if (typeof onRebuildSuccess === 'function') {
-                    onRebuildSuccess(result);
-                }
-            } catch (err) {
-                console.error(`  ${c.yellow}❌ [Watch] 增量编译失败:${c.reset}`, err.message || err);
-            }
-        }, 80);
-    };
-
-    const watchers = [];
-    const files = [
-        { path: PATHS.srcIndexHtml, name: 'index.html' },
+function startWatch(onRebuildSuccess, { label = 'Watch', delay = 80 } = {}) {
+    if (label === 'Watch') {
+        console.log(`\n${c.yellow}👀 开启文件修改自动构建监听模式 (Watch Mode)...${c.reset}`);
+        console.log(`   ${c.dim}正在监听 src/, public/, bookmarks.json, package.json, sw.js ...${c.reset}\n`);
+    }
+    return watchFiles([
+        { path: PATHS.src, name: 'src/' },
+        { path: PATHS.public, name: 'public/' },
         { path: PATHS.bookmarksJson, name: 'bookmarks.json' },
+        { path: PATHS.pkgJson, name: 'package.json' },
         { path: PATHS.sw, name: 'sw.js' }
-    ];
-
-    files.forEach(({ path: filePath, name }) => {
-        if (fs.existsSync(filePath)) {
-            try {
-                const w = fs.watch(filePath, () => triggerRebuild(name));
-                watchers.push(w);
-            } catch (e) {
-                console.warn(`  ${c.yellow}⚠ 无法监听文件 ${name}: ${e.message}${c.reset}`);
-            }
-        }
-    });
-
-    if (fs.existsSync(PATHS.public)) {
-        try {
-            const w = fs.watch(PATHS.public, { recursive: true }, (eventType, filename) => triggerRebuild(`public/${filename}`));
-            watchers.push(w);
-        } catch (e) {
-            console.warn(`  ${c.yellow}⚠ 无法监听 public 目录: ${e.message}${c.reset}`);
-        }
-    }
-
-    if (fs.existsSync(PATHS.src)) {
-        try {
-            const w = fs.watch(PATHS.src, { recursive: true }, (eventType, filename) => triggerRebuild(`src/${filename}`));
-            watchers.push(w);
-        } catch (e) {
-            console.warn(`  ${c.yellow}⚠ 无法监听 src 目录: ${e.message}${c.reset}`);
-        }
-    }
-
-    return () => {
-        watchers.forEach(w => {
-            try { w.close(); } catch {}
-        });
-    };
+    ], { rebuild, onSuccess: onRebuildSuccess, label, delay });
 }
 
 if (require.main === module) {

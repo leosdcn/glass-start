@@ -14,33 +14,7 @@ import vm from 'node:vm';
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const isFixMode = process.argv.includes('--fix');
 
-const isTTY = process.stdout.isTTY && !process.env.NO_COLOR;
-const c = {
-    reset: isTTY ? '\x1b[0m' : '',
-    bold: isTTY ? '\x1b[1m' : '',
-    dim: isTTY ? '\x1b[2m' : '',
-    cyan: isTTY ? '\x1b[36m' : '',
-    green: isTTY ? '\x1b[32m' : '',
-    yellow: isTTY ? '\x1b[33m' : '',
-    red: isTTY ? '\x1b[31m' : '',
-    gray: isTTY ? '\x1b[90m' : '',
-};
-
-const LINE_WIDTH = 72;
-const HR_DOUBLE = '═'.repeat(LINE_WIDTH);
-
-function getVisualWidth(str) {
-    const clean = str.replace(/\x1b\[[0-9;]*m/g, '');
-    let width = 0;
-    for (const ch of clean) {
-        const code = ch.codePointAt(0);
-        if (code >= 0xFE00 && code <= 0xFE0F) continue;
-        if (code === 0x200D) continue;
-        if (code > 0x7f) width += 2;
-        else width += 1;
-    }
-    return width;
-}
+import { c, HR_DOUBLE, logSection, logItem } from './terminal.cjs';
 
 function getLineCol(content, index) {
     const prefix = content.slice(0, index);
@@ -48,21 +22,6 @@ function getLineCol(content, index) {
     const lastNewline = prefix.lastIndexOf('\n');
     const col = lastNewline === -1 ? index + 1 : index - lastNewline;
     return { line, col };
-}
-
-function logSection(step, title) {
-    const prefix = `─── [${step}] ${title} `;
-    const visualLen = getVisualWidth(prefix);
-    const fillLen = Math.max(4, LINE_WIDTH - visualLen);
-    const trailingLine = '─'.repeat(fillLen);
-    console.log(`\n${c.cyan}─── [${step}] ${title} ${c.gray}${trailingLine}${c.reset}`);
-}
-
-function logItem(msg, status = 'ok') {
-    const icon = status === 'ok' ? `${c.green}✔${c.reset}`
-               : status === 'warn' ? `${c.yellow}⚠${c.reset}`
-               : `${c.red}❌${c.reset}`;
-    console.log(`  ${icon} ${msg}`);
 }
 
 function formatSize(bytes) {
@@ -168,7 +127,9 @@ logSection('2/4', '⚙️  校验核心 JavaScript 语法 (node --check)');
 const jsFiles = [
     { name: 'scripts/build.js', desc: '打包构建脚本' },
     { name: 'sw.js', desc: 'Service Worker 底座' },
-    { name: 'scripts/server.js', desc: '本地开发/预览服务' }
+    { name: 'scripts/server.js', desc: '本地开发/预览服务' },
+    { name: 'scripts/terminal.cjs', desc: '共享终端输出' },
+    { name: 'scripts/watch.cjs', desc: '共享文件监听' }
 ].filter(f => {
     try { return statSync(join(root, f.name)).isFile(); } catch { return false; }
 });

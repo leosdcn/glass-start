@@ -11,6 +11,7 @@
 import { readFileSync, existsSync, statSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createRequire } from 'node:module';
 import { makeTester } from './helpers.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -76,9 +77,24 @@ if (existsSync(headersPath)) {
 // 1.3 构建脚本 PATHS 常量映射与 Watcher 监听目标有效性校验
 const buildScriptContent = readFileSync(join(ROOT, 'scripts', 'build.js'), 'utf-8');
 const buildPathsHasSrcIndexHtml = /srcIndexHtml\s*:\s*path\.join/.test(buildScriptContent);
-const buildWatchHasCorrectKey = /path\s*:\s*PATHS\.srcIndexHtml\s*,\s*name\s*:\s*['"]index\.html['"]/.test(buildScriptContent);
-const buildWatchHasNoUndefinedProp = !/PATHS\.indexHtml\b/.test(buildScriptContent);
-const buildWatcherPathsOk = buildPathsHasSrcIndexHtml && buildWatchHasCorrectKey && buildWatchHasNoUndefinedProp;
+const require = createRequire(import.meta.url);
+const fs = require('node:fs');
+const { startWatch, PATHS } = require('../scripts/build.js');
+const subscriptions = [];
+const originalWatch = fs.watch;
+try {
+  fs.watch = (path, options) => {
+    subscriptions.push({ path, recursive: options.recursive });
+    return { close() {} };
+  };
+  startWatch(undefined, { label: 'Test' })();
+} finally {
+  fs.watch = originalWatch;
+}
+const expectedWatchPaths = [PATHS.src, PATHS.public, PATHS.bookmarksJson, PATHS.pkgJson, PATHS.sw];
+const buildWatcherPathsOk = buildPathsHasSrcIndexHtml && subscriptions.length === expectedWatchPaths.length
+  && expectedWatchPaths.every(path => subscriptions.filter(item => item.path === path).length === 1)
+  && subscriptions.every(item => item.recursive === statSync(item.path).isDirectory());
 
 pass('dist/ 产物完整性与 Cache-Control 标头规则 (产物齐全/全链路协商缓存/壁纸强缓存/同步/构建Watcher路径合规)',
   filesExistOk && headersOk && buildWatcherPathsOk,

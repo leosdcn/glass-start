@@ -4,25 +4,10 @@ const path = require('path');
 const { exec } = require('child_process');
 const os = require('os');
 const zlib = require('zlib');
-const { main: runFullBuild, rebuild: runRebuild, PATHS } = require('./build');
+const { main: runFullBuild, startWatch, PATHS } = require('./build');
 
 // 终端格式化排版与 ANSI 彩色工具
-const isTTY = process.stdout.isTTY && !process.env.NO_COLOR;
-const c = {
-    reset: isTTY ? '\x1b[0m' : '',
-    bold: isTTY ? '\x1b[1m' : '',
-    dim: isTTY ? '\x1b[2m' : '',
-    cyan: isTTY ? '\x1b[36m' : '',
-    green: isTTY ? '\x1b[32m' : '',
-    yellow: isTTY ? '\x1b[33m' : '',
-    red: isTTY ? '\x1b[31m' : '',
-    gray: isTTY ? '\x1b[90m' : '',
-    magenta: isTTY ? '\x1b[35m' : '',
-};
-
-const LINE_WIDTH = 72;
-const HR_DOUBLE = '═'.repeat(LINE_WIDTH);
-const HR_SINGLE = '─'.repeat(LINE_WIDTH);
+const { c, LINE_WIDTH, HR_DOUBLE } = require('./terminal.cjs');
 
 let targetPort = parseInt(process.env.PORT || '3000', 10);
 const DIST_DIR = path.join(__dirname, '..', 'dist');
@@ -171,68 +156,6 @@ function createStaticServer() {
     });
 }
 
-function setupWatchMode() {
-    let rebuildTimer = null;
-    let isRebuilding = false;
-    let pendingChangedFile = null;
-
-    const doRebuild = () => {
-        if (isRebuilding) return;
-        isRebuilding = true;
-        const filename = pendingChangedFile || 'source';
-        pendingChangedFile = null;
-
-        console.log(`\n${c.magenta}📝 [Dev Server] 检测到源码修改: ${filename}，正在增量同步编译 dist/ ...${c.reset}`);
-        const start = Date.now();
-        try {
-            const res = runRebuild(filename);
-            const duration = res && res.duration ? res.duration : (Date.now() - start);
-            const ver = res && res.version ? res.version : '';
-            console.log(`  ${c.green}✔ [Dev Server] 增量编译完成！版本: ${c.cyan}${ver}${c.reset}${c.green} (耗时: ${duration}ms)${c.reset}\n`);
-        } catch (err) {
-            console.error(`  ${c.yellow}❌ [Dev Server] 增量编译失败:${c.reset}`, err.message || err);
-        } finally {
-            isRebuilding = false;
-            if (pendingChangedFile) {
-                rebuildTimer = setTimeout(doRebuild, 50);
-            }
-        }
-    };
-
-    const triggerRebuild = (name) => {
-        pendingChangedFile = name;
-        if (rebuildTimer) clearTimeout(rebuildTimer);
-        rebuildTimer = setTimeout(doRebuild, 50); // 50ms 极速防抖
-    };
-
-    const filesToWatch = [
-        { path: PATHS.src, name: 'src/' },
-        { path: PATHS.public, name: 'public/' },
-        { path: PATHS.bookmarksJson, name: 'bookmarks.json' },
-        { path: PATHS.pkgJson, name: 'package.json' },
-        { path: PATHS.sw, name: 'sw.js' }
-    ];
-
-    const watchers = [];
-    filesToWatch.forEach(({ path: filePath, name }) => {
-        if (fs.existsSync(filePath)) {
-            try {
-                const isDir = fs.statSync(filePath).isDirectory();
-                const watcher = fs.watch(filePath, { recursive: isDir }, () => triggerRebuild(name));
-                watchers.push(watcher);
-            } catch (err) {
-                console.warn(`  ${c.yellow}⚠ 无法监听 ${name}: ${err.message}${c.reset}`);
-            }
-        }
-    });
-
-    return () => {
-        if (rebuildTimer) clearTimeout(rebuildTimer);
-        watchers.forEach(w => {
-            try { w.close(); } catch {}
-        });
-    };
-}
 
 let watchCleanup = null;
 function cleanupAndExit() {
@@ -263,7 +186,7 @@ function startListening(port) {
 
     server.listen(port, '0.0.0.0', () => {
         if (enableWatch && !watchCleanup) {
-            watchCleanup = setupWatchMode();
+            watchCleanup = startWatch(undefined, { label: 'Dev Server', delay: 50 });
         }
 
         const lanIps = getLanIps();

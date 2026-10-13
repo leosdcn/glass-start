@@ -38,21 +38,7 @@ process.on('exit', () => {
 });
 
 // 终端格式化排版与 ANSI 彩色工具
-const isTTY = process.stdout.isTTY && !process.env.NO_COLOR;
-const c = {
-    reset: isTTY ? '\x1b[0m' : '',
-    bold: isTTY ? '\x1b[1m' : '',
-    dim: isTTY ? '\x1b[2m' : '',
-    cyan: isTTY ? '\x1b[36m' : '',
-    green: isTTY ? '\x1b[32m' : '',
-    yellow: isTTY ? '\x1b[33m' : '',
-    red: isTTY ? '\x1b[31m' : '',
-    gray: isTTY ? '\x1b[90m' : '',
-};
-
-const LINE_WIDTH = 72;
-const HR_DOUBLE = '═'.repeat(LINE_WIDTH);
-const HR_SINGLE = '─'.repeat(LINE_WIDTH);
+import { c, LINE_WIDTH, HR_DOUBLE } from '../scripts/terminal.cjs';
 
 const startTime = Date.now();
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
@@ -97,6 +83,8 @@ function getSrcBuildFingerprint() {
     getFileHash(join(rootDir, 'bookmarks.json')),
     getFileHash(join(rootDir, 'package.json')),
     getFileHash(join(rootDir, 'scripts', 'build.js')),
+    getFileHash(join(rootDir, 'scripts', 'terminal.cjs')),
+    getFileHash(join(rootDir, 'scripts', 'watch.cjs')),
     getFileHash(join(rootDir, 'sw.js')),
   ];
   return createHash('md5').update(parts.join(':')).digest('hex');
@@ -122,6 +110,8 @@ const sharedFiles = [
   join(rootDir, 'src', 'index.html'),
   join(rootDir, 'sw.js'),
   join(rootDir, 'scripts', 'build.js'),
+  join(rootDir, 'scripts', 'terminal.cjs'),
+  join(rootDir, 'scripts', 'watch.cjs'),
   join(rootDir, 'bookmarks.json'),
   join(__dirname, 'helpers.mjs'),
   join(__dirname, 'cdp.mjs'),

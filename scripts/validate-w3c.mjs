@@ -9,20 +9,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-const isTTY = process.stdout.isTTY && !process.env.NO_COLOR;
-const c = {
-    reset: isTTY ? '\x1b[0m' : '',
-    bold: isTTY ? '\x1b[1m' : '',
-    dim: isTTY ? '\x1b[2m' : '',
-    cyan: isTTY ? '\x1b[36m' : '',
-    green: isTTY ? '\x1b[32m' : '',
-    yellow: isTTY ? '\x1b[33m' : '',
-    red: isTTY ? '\x1b[31m' : '',
-    gray: isTTY ? '\x1b[90m' : '',
-};
-
-const LINE_WIDTH = 72;
-const HR_DOUBLE = '═'.repeat(LINE_WIDTH);
+import { c, HR_DOUBLE } from './terminal.cjs';
 
 console.log(`\n${c.cyan}${HR_DOUBLE}${c.reset}`);
 console.log(`${c.bold}${c.cyan}🌐 Glass Start — W3C 官方语法与结构验证器 (W3C Nu Validator)${c.reset}`);
