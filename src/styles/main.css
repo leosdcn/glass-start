@@ -589,11 +589,27 @@ section:first-of-type {
 
 /* 玻璃底板延伸到视口边缘，安全区留白放在材质内部，保护刘海与底部手势区域。 */
 #navSection .nav-surface {
+    position: relative;
     border: none;
-    border-radius: 0;
+    border-radius: var(--radius) var(--radius) 0 0;
     box-shadow: none;
     padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px)
         env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+}
+
+/* 顶部细高光沿圆角渐隐；不增加布局边框或外阴影，也不拦截标题栏点击。 */
+#navSection .nav-surface::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto;
+    height: calc(var(--radius) + 1px);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    border-bottom: none;
+    border-radius: inherit;
+    -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 40%, transparent 100%);
+    mask-image: linear-gradient(to bottom, #000 0%, #000 40%, transparent 100%);
+    pointer-events: none;
+    z-index: 1;
 }
 
 /* 下滑指示器安全区偏移与状态驱动 */
