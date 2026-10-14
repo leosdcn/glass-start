@@ -57,4 +57,3 @@ export function showConfirm(message, onConfirm, title = '重置确认', triggerE
     modal.addEventListener('click', handleBackdropClick);
     activeConfirmCleanup = cleanup;
 }
-

@@ -109,16 +109,17 @@ function initDistDir() {
 // 2. 编译 Tailwind CSS (v4 CLI)
 function compileTailwindCss() {
     logSection('1/5', '📦 编译 Tailwind CSS 样式表 (v4 CLI)');
-    const distStyleCss = path.join(PATHS.dist, 'style.css');
 
     try {
         const cssStart = Date.now();
-        execSync(`npx -y @tailwindcss/cli@4 -i "${PATHS.srcCss}" -o "${distStyleCss}" -m`, {
-            stdio: 'pipe'
+        const cssContent = execSync(`npx -y @tailwindcss/cli@4 -i "${PATHS.srcCss}" -m`, {
+            stdio: 'pipe', encoding: 'utf-8'
         });
+        if (!cssContent.trim()) throw new Error('Tailwind returned empty CSS');
         const cssDuration = Date.now() - cssStart;
-        const cssKb = (fs.statSync(distStyleCss).size / 1024).toFixed(2);
+        const cssKb = (Buffer.byteLength(cssContent, 'utf-8') / 1024).toFixed(2);
         logItem(`扫描 src/styles/main.css 与组件模板 完成，原子化 CSS 静态编译就绪 (${cssKb} KB, 耗时 ${cssDuration}ms)`);
+        return cssContent;
     } catch (err) {
         console.error(`\n  ${c.yellow}❌ Tailwind CSS 编译失败:${c.reset}`, err.message || err);
         if (/can't resolve 'tailwindcss'|cannot find module 'tailwindcss'|module not found/i.test(String(err.message || ''))) {
@@ -224,7 +225,7 @@ function injectThemeConfig(html, themePath = path.join(PATHS.src, 'js', 'config'
 }
 
 // 5. 处理生产环境 index.html (替换内联 JS 为外链 dist/app.js，全量内嵌静态编译 Tailwind CSS 与 SVG 精灵)
-function processProductionHtml() {
+function processProductionHtml(compiledCss) {
     logSection('5/5', '🔧 处理生产环境页面 (dist/index.html)');
     let prodHtmlContent = injectThemeConfig(fs.readFileSync(PATHS.srcIndexHtml, 'utf-8'));
 
@@ -278,16 +279,13 @@ function processProductionHtml() {
         }
     }
 
-    const distCssPath = path.join(PATHS.dist, 'style.css');
-    let cssContent = '';
-    if (fs.existsSync(distCssPath)) {
-        cssContent = fs.readFileSync(distCssPath, 'utf-8');
-        // 🛡️ 安全防御：避免 CSS 内容（如 content: "</style>"）意外转义提前闭合 HTML <style> 标签引发 XSS/页面崩溃
-        cssContent = cssContent.replace(/<\/style>/gi, '\\3c/style>');
-        const cssKb = (fs.statSync(distCssPath).size / 1024).toFixed(2);
-        logItem(`全量内嵌静态 Tailwind CSS (${cssKb} KB，已完成防注入安全转义)`);
-        fs.unlinkSync(distCssPath);
+    // 每次构建持有自己的 CSS，避免开发服务与测试预构建抢占同一个中间文件。
+    if (typeof compiledCss !== 'string' || !compiledCss.trim()) {
+        throw new Error('Refusing to generate HTML without compiled CSS');
     }
+    const cssContent = compiledCss.replace(/<\/style>/gi, '\\3c/style>');
+    const cssKb = (Buffer.byteLength(cssContent, 'utf-8') / 1024).toFixed(2);
+    logItem(`全量内嵌静态 Tailwind CSS (${cssKb} KB，已完成防注入安全转义)`);
 
     const linkStylePattern = /<link\s+[^>]*rel=["']stylesheet["'][^>]*href=["'][^"']*styles\/main\.css["'][^>]*>/i;
     const replaceTarget = `<!-- 内嵌静态编译 Tailwind CSS 样式表 (零网络 RTT 请求，消除渲染阻塞，极速秒开 & 100% 离线支持) -->\n    <style>${cssContent}</style>`;
@@ -434,11 +432,11 @@ function main() {
     }
 
     initDistDir();
-    compileTailwindCss();
+    const compiledCss = compileTailwindCss();
     buildServiceWorkerAndAssets();
     syncBookmarksData();
     processProductionAppJs();
-    processProductionHtml();
+    processProductionHtml(compiledCss);
 
     printDistSummary(startTime);
 }
@@ -447,11 +445,11 @@ function main() {
 function rebuild(changedFile = 'source') {
     const startTime = Date.now();
     currentBuildVersion = 'app-core-v' + startTime;
-    compileTailwindCss();
+    const compiledCss = compileTailwindCss();
     buildServiceWorkerAndAssets();
     syncBookmarksData();
     processProductionAppJs();
-    processProductionHtml();
+    processProductionHtml(compiledCss);
     return {
         version: currentBuildVersion,
         duration: Date.now() - startTime

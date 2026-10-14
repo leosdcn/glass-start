@@ -34,6 +34,14 @@ const requiredFiles = ['index.html', 'sw.js', 'app.js', '_headers', 'robots.txt'
 const missingFiles = requiredFiles.filter(f => !existsSync(join(DIST, f)));
 const filesExistOk = missingFiles.length === 0;
 
+// HTML 语法合法不代表样式存在；禁止发布构建竞争产生的空样式页面。
+const builtHtml = readFileSync(join(DIST, 'index.html'), 'utf-8');
+const inlineCss = [...builtHtml.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/gi)]
+  .map(match => match[1]).join('\n');
+pass('生产页面包含双屏布局与输入字号样式',
+  inlineCss.includes('#startSection') && inlineCss.includes('#navSection') && inlineCss.includes('.text-base'),
+  `内嵌 CSS: ${Buffer.byteLength(inlineCss)} bytes`);
+
 // 1.2 响应头解析
 function parseHeadersFile(content) {
   const rules = {};

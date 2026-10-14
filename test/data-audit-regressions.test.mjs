@@ -98,6 +98,37 @@ try {
   assert.deepEqual(jsonp, { preserved: true, current: true, released: true });
   console.log('✅ 旧 JSONP 回调/错误不影响新请求，完成和取消均释放回调');
 
+  const wikipedia = await evalJS(`(async () => {
+    const originalFetch = window.fetch, requests = [];
+    // 即使传输层忽略 abort 并迟到返回，旧结果也不能重开或覆盖建议列表。
+    window.fetch = (url, options) => String(url).includes('zh.wikipedia.org/w/api.php')
+      ? new Promise(resolve => requests.push({url, options, resolve}))
+      : originalFetch(url, options);
+    const drain = () => new Promise(resolve => setTimeout(resolve, 0));
+    try {
+      fetchSuggestions('wikipedia', 'old'); fetchSuggestions('wikipedia', 'new');
+      const aborted = requests[0].options.signal.aborted;
+      requests[0].resolve({ok:true, json:async () => ['old', ['stale-result']]});
+      await drain();
+      const staleAbsent = !dom.suggestionMenu.textContent.includes('stale-result');
+      requests[1].resolve({ok:true, json:async () => ['new', ['current-result']]});
+      await drain();
+      const current = dom.suggestionMenu.textContent.includes('current-result');
+      fetchSuggestions('wikipedia', 'cancel'); hideSuggestions();
+      requests[2].resolve({ok:true, json:async () => ['cancel', ['cancelled-result']]});
+      await drain();
+      const cancelled = requests[2].options.signal.aborted && !dom.suggestionMenu.classList.contains('active');
+      fetchSuggestions('wikipedia', 'GitHub'); requests[3].resolve({ok:false});
+      await drain();
+      const fallback = dom.suggestionMenu.textContent.includes('GitHub');
+      return {aborted, staleAbsent, current, cancelled, fallback,
+        cors:requests.every(request => new URL(request.url).searchParams.get('origin') === '*' && request.options.credentials === 'omit'),
+        noJsonp:!document.querySelector('script[src*="w/api.php"]')};
+    } finally { hideSuggestions(); window.fetch = originalFetch; }
+  })()`);
+  assert.equal(Object.values(wikipedia).every(Boolean), true, JSON.stringify(wikipedia));
+  console.log('✅ Wikipedia CORS 建议正常返回、替换及关闭取消、迟到响应隔离与 HTTP 错误本地回退');
+
   await evalJS(`previewDraftWallpaper(location.origin + '/audit-slow.png'); previewDraftWallpaper(backgrounds[2]);`);
   await waitFor(evalJS, 'state.bg === 2 && !state.customWallpaper');
   await new Promise(resolve => setTimeout(resolve, 550));
@@ -109,8 +140,12 @@ try {
   console.log('✅ 真实慢图片和旧图片错误不覆盖新选择或重置，不弹过期提示');
 
   await send('Emulation.setDeviceMetricsOverride', { width: 820, height: 1180, deviceScaleFactor: 1, mobile: true });
+  await send('Emulation.setTouchEmulationEnabled', { enabled: true });
+  await waitFor(evalJS, 'matchMedia("(any-pointer: coarse)").matches');
   await evalJS('openEditModal()');
-  assert.equal(await evalJS("getComputedStyle(dom.editList.querySelector('.edit-name')).fontSize === '16px' && getComputedStyle(dom.urlBgInput).fontSize === '16px'"), true);
+  await waitFor(evalJS, 'dom.editModal.classList.contains("active")');
+  const inputFonts = await evalJS("({name:getComputedStyle(dom.editList.querySelector('.edit-name')).fontSize, url:getComputedStyle(dom.urlBgInput).fontSize})");
+  assert.deepEqual(inputFonts, {name:'16px', url:'16px'});
   await evalJS('cancelEditModal()');
   console.log('✅ 820px 视口书签和网络壁纸单行输入均为 16px');
 

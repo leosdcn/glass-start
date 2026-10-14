@@ -105,7 +105,7 @@ export async function launchChrome({ port, url, testMode = true }) {
   ws.onmessage = (ev) => {
     const msg = JSON.parse(ev.data);
     if (msg.id && pending.has(msg.id)) {
-      pending.get(msg.id)(msg.result);
+      pending.get(msg.id)(msg.result, msg.error);
       pending.delete(msg.id);
     }
   };
@@ -119,8 +119,12 @@ export async function launchChrome({ port, url, testMode = true }) {
         rej(new Error(`CDP command ${method} timed out after ${timeoutMs}ms`));
       }
     }, timeoutMs);
-    pending.set(mid, (result) => {
+    pending.set(mid, (result, error) => {
       clearTimeout(timer);
+      if (error) {
+        rej(new Error(`CDP command ${method} failed (${error.code}): ${error.message}`));
+        return;
+      }
       res(result);
     });
     try {
@@ -136,6 +140,28 @@ export async function launchChrome({ port, url, testMode = true }) {
     await send('Page.enable');
     await send('Page.addScriptToEvaluateOnNewDocument', { source: 'window.__GLASS_TEST__ = true;' });
     await send('Page.reload');
+  }
+
+  // 首次导航和测试模式重载期间执行上下文会被替换；会话就绪后再交给测试。
+  try {
+    const deadline = Date.now() + 10000;
+    let ready = false;
+    while (Date.now() < deadline) {
+      try {
+        const response = await send('Runtime.evaluate', {
+          expression: `location.href === ${JSON.stringify(url)} && document.readyState === 'complete'${testMode ? ' && window.__GLASS_TEST__ === true' : ''}`,
+          returnByValue: true
+        });
+        if (response.result?.value === true) { ready = true; break; }
+      } catch (error) {
+        if (!/Cannot find context|Execution context was destroyed/i.test(error.message)) throw error;
+      }
+      await new Promise(resolve => setTimeout(resolve, 30));
+    }
+    if (!ready) throw new Error('Chrome page did not finish navigation within 10000ms');
+  } catch (error) {
+    cleanupInstance(instance);
+    throw error;
   }
 
   return {
