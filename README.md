@@ -124,6 +124,8 @@ npm run build
 
 首屏与运行时主题统一维护在 `src/js/config/themes.js`。构建会将配置同步内联到 HTML；`npm run dev` 的增量构建也会重新读取配置。`src/index.html` 是构建模板，请使用开发服务预览或部署 `dist/` 产物。
 
+Tailwind 编译结果在本次构建的内存中传递并内嵌到 HTML，不再共用 `dist/style.css` 中间文件，避免多个构建进程抢占或删除 CSS。空 CSS 会阻断构建。修改 `scripts/build.js` 或其加载的辅助脚本后，请重启开发服务以加载新逻辑。
+
 壁纸内容与预设索引在同一个 IndexedDB 事务中保存，事务提交完成后才更新已保存状态；失败会保留原数据并提示重试。LocalStorage 只保存轻量首屏提示，新选择不再向其中写入 Base64 图片。
 
 Service Worker 更新先校验核心资源和构建指纹；新版保持等待，直到所有受旧版控制的页面退出后才激活。刷新一个仍打开的标签不保证立即升级。弹窗打开后自动移入焦点，并隔离背景交互；嵌套关闭时逐层恢复焦点。
@@ -140,7 +142,7 @@ npm run dev
 # 3. (若修改/新增书签) 自动化同步全站书签图标至 public/icons/ 目录
 npm run sync:icons
 
-# 4. 执行全量静态规范与工程红线校验 (<50ms)
+# 4. 执行全量静态规范与工程红线校验
 npm run lint
 
 # 5. 运行端到端自动化测试验证
@@ -149,6 +151,8 @@ npm test
 # 6. 生产构建打包 (产物位于 dist/，包含数据校验与 public/ 静态资产同步)
 npm run build
 ```
+
+`npm test` 会按源码和测试指纹复用通过记录；输出会分别列出实际运行与缓存跳过的套件。发布前使用 `npm run build && npm run test:all && npm run test:w3c` 执行完整验证。W3C 校验通过不代表页面样式完整；基础架构测试还会检查 HTML 中包含双屏布局与输入字号样式。
 
 > 💡 **macOS 便捷启动**：macOS 用户可直接双击根目录的 `start.command` 脚本，自动一键装配环境并在浏览器中拉起预览。
 

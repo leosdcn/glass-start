@@ -101,6 +101,8 @@ flowchart TD
 4. **离线基座与安全屏障**：Service Worker 实施三池物理隔离，配合 `public/_headers` 的严格 CSP 与 HSTS，既保证离线可用性，又防范跨域数据投毒与 CSS/JS 缓存穿透。静态资产全面收拢于 `public/` 纯静态公开层，构建时镜像同步至 `dist/`。
 5. **单一真理源与双端构建指纹**：版本发布以 `package.json` 为唯一真理源，`scripts/build.js` 自动将版本号同步注入 `README.md` 与 `dist/index.html` 徽章，同时生成同步的 `__GLASS_BUILD_HTML__` 与 `__GLASS_BUILD_APP__` 双端构建指纹对，确保客户端 HTML 与 JS 逻辑同版锁步运行。
 
+CSS 构建由 `compileTailwindCss()` 捕获 Tailwind CLI 的标准输出，再将字符串传给 `processProductionHtml(compiledCss)` 内嵌。每次构建独立持有 CSS，不读写共享的 `dist/style.css` 中间文件；编译结果为空或 HTML 处理缺少 CSS 时拒绝生成页面。该隔离解决 CSS 中间文件竞争，不代表整个 `dist/` 目录的并发写入具有事务性。
+
 ---
 
 ### 2. 🔄 双屏切屏状态机、手势与 BFCache 全生命周期流转 (Screen State & BFCache Lifecycle)
@@ -534,5 +536,11 @@ flowchart TD
 - `core/wallpaper-renderer.js`：壁纸视觉切换；`theme-engine.js` 专注主题采样与外壳颜色。
 
 静态导入图由 `test/infra-module-boundaries.test.mjs` 检查无环，并通过关闭测试接口的真实页面验证生产启动和设置操作。
+
+浏览器测试会等待首次导航或测试模式重载完成后再交出会话；CDP 协议错误直接报告，导航期间已知的执行上下文替换错误只在就绪等待中重试。触屏字号测试需同时模拟设备视口和触摸输入，等待粗指针媒体查询生效以及弹窗打开，不能只凭视口宽度判断设备类型。
+
+切屏测试通过 `waitFor()` 等待目标屏幕及 `!isScreenTransitioning()`，再检查实际布局。动画结束事件缺失时，应用按 `CONFIG.GESTURE.TRANSITION_MS + TIMEOUT_BUFFER_MS` 兜底完成，当前为 580 + 150 = 730ms；固定等待 650ms 可能在解锁前发送下一次按键。Flick 测试在 Node 侧解析真实 transform，避免浏览器上下文缺少解析函数时误判通过。
+
+`test/infra-security.test.mjs` 检查生产 HTML 的内嵌 CSS 包含双屏布局和输入字号样式，补充 W3C 语法校验无法发现空样式页面的缺口。Wikipedia CORS 回归覆盖正常返回、替换及关闭时取消、迟到响应隔离与 HTTP 错误本地回退；通过测试时需区分实际运行和缓存命中，不将一次验证结果视为长期保证。
 
 弹窗显示生命周期统一由 `OverlayStack.push()` / `.pop()` 驱动；`overlay-stack.js` 独占弹窗的 `hidden`、`aria-hidden`、入场动画和延迟隐藏操作，切换时取消上一轮任务。业务模块仅管理草稿与交互，设置打开的异步恢复使用请求序号防止旧请求污染重新打开的窗口。
