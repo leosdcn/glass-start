@@ -69,21 +69,56 @@ export function switchSettingsTab(targetTabId) {
     }
 }
 
-export function applyBgEffects(opacity, blur, save = false) {
-    const op = Math.max(0, Math.min(CONFIG.APPEARANCE.MAX_MASK_OPACITY, parseInt(opacity, 10) || 0));
-    const bl = Math.max(0, Math.min(CONFIG.APPEARANCE.MAX_BG_BLUR, parseInt(blur, 10) || 0));
+let bgEffectsRafId = null;
+let pendingBgEffects = null;
+let lastBgEffects = null;
+
+function renderBgEffects(op, bl) {
     const bgOverlay = dom.bgOverlay;
-    if (bgOverlay) {
+    if (!bgOverlay) return;
+    const sameOverlay = lastBgEffects?.element === bgOverlay;
+    if (!sameOverlay) {
+        const trSec = `${CONFIG.TIMERS.BG_OVERLAY_TRANSITION / 1000}s`;
+        bgOverlay.style.transition = `background-color ${trSec} ease, opacity ${trSec} ease`;
+    }
+    if (!sameOverlay || lastBgEffects.opacity !== op) {
         bgOverlay.style.backgroundColor = `rgba(0,0,0,${op / 100})`;
+    }
+    if (!sameOverlay || lastBgEffects.blur !== bl) {
         const blurStyle = bl > 0 ? `blur(${bl}px)` : 'none';
         bgOverlay.style.backdropFilter = blurStyle;
         bgOverlay.style.webkitBackdropFilter = blurStyle;
-        if (!save) {
-            requestAnimationFrame(() => {
-                const trSec = `${CONFIG.TIMERS.BG_OVERLAY_TRANSITION / 1000}s`;
-                bgOverlay.style.transition = `background-color ${trSec} ease, opacity ${trSec} ease`;
+    }
+    lastBgEffects = { element: bgOverlay, opacity: op, blur: bl };
+}
+
+export function applyBgEffects(opacity, blur, save = false) {
+    updateBgEffects(opacity, blur, save, false);
+}
+
+/** 滑块草稿与无障碍读数即时更新，全屏视觉每帧只消费最后一次输入。 */
+export function scheduleBgEffects(opacity, blur) {
+    updateBgEffects(opacity, blur, false, true);
+}
+
+function updateBgEffects(opacity, blur, save, defer) {
+    const op = Math.max(0, Math.min(CONFIG.APPEARANCE.MAX_MASK_OPACITY, parseInt(opacity, 10) || 0));
+    const bl = Math.max(0, Math.min(CONFIG.APPEARANCE.MAX_BG_BLUR, parseInt(blur, 10) || 0));
+    if (defer) {
+        pendingBgEffects = { opacity: op, blur: bl };
+        if (bgEffectsRafId === null) {
+            bgEffectsRafId = requestAnimationFrame(() => {
+                bgEffectsRafId = null;
+                const effects = pendingBgEffects;
+                pendingBgEffects = null;
+                if (effects) renderBgEffects(effects.opacity, effects.blur);
             });
         }
+    } else {
+        if (bgEffectsRafId !== null) cancelAnimationFrame(bgEffectsRafId);
+        bgEffectsRafId = null;
+        pendingBgEffects = null;
+        renderBgEffects(op, bl);
     }
     const maskOpacityVal = dom.maskOpacityVal;
     const bgBlurVal = dom.bgBlurVal;
@@ -153,6 +188,8 @@ export function cancelEditModal() {
 }
 
 export function closeEditModal() {
+    // 保存关闭时即使后台暂停了 rAF，也同步落定最后的预览；取消已先覆盖并清队列。
+    if (pendingBgEffects) applyBgEffects(pendingBgEffects.opacity, pendingBgEffects.blur);
     state.editOpen = false;
     editOpenRequestId++;
     OverlayStack.pop('editModal');

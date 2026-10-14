@@ -15,7 +15,7 @@ import { dom } from '../state/dom.js';
 import { initDragSort } from './drag-sort.js';
 
 import { previewDraftWallpaper, resetDraftWallpaper } from '../modules/wallpaper.js';
-import { openEditModal, closeEditModal, cancelEditModal, openShortcutModal, closeShortcutModal, openCreditsModal, closeCreditsModal, openBookmarkPicker, closeBookmarkPicker, switchSettingsTab, applyBgEffects, updateAllBookmarkCounters, getEditFaviconInner, collectEditData, showConfirm, resetBookmarks, importBookmarksJSON, exportBookmarksJSON, getExistingUrls, handleEditIconError, appendDraftBookmarkRow } from '../modules/settings.js';
+import { openEditModal, closeEditModal, cancelEditModal, openShortcutModal, closeShortcutModal, openCreditsModal, closeCreditsModal, openBookmarkPicker, closeBookmarkPicker, switchSettingsTab, scheduleBgEffects, updateAllBookmarkCounters, getEditFaviconInner, collectEditData, showConfirm, resetBookmarks, importBookmarksJSON, exportBookmarksJSON, getExistingUrls, handleEditIconError, appendDraftBookmarkRow } from '../modules/settings.js';
 import { saveUserBookmarks } from '../modules/bookmarks.js';
 
 export function bindEditEvents() {
@@ -361,13 +361,13 @@ export function bindEditEvents() {
     if (dom.maskOpacityInput) {
         dom.maskOpacityInput.addEventListener('input', e => {
             modalState.draftMaskOpacity = parseInt(e.target.value, 10) || 0;
-            applyBgEffects(modalState.draftMaskOpacity, modalState.draftBgBlur !== null ? modalState.draftBgBlur : 0, false);
+            scheduleBgEffects(modalState.draftMaskOpacity, modalState.draftBgBlur !== null ? modalState.draftBgBlur : 0);
         });
     }
     if (dom.bgBlurInput) {
         dom.bgBlurInput.addEventListener('input', e => {
             modalState.draftBgBlur = parseInt(e.target.value, 10) || 0;
-            applyBgEffects(modalState.draftMaskOpacity !== null ? modalState.draftMaskOpacity : CONFIG.APPEARANCE.DEFAULT_MASK_OPACITY, modalState.draftBgBlur, false);
+            scheduleBgEffects(modalState.draftMaskOpacity !== null ? modalState.draftMaskOpacity : CONFIG.APPEARANCE.DEFAULT_MASK_OPACITY, modalState.draftBgBlur);
         });
     }
 
