@@ -40,10 +40,27 @@ export function bindEditEvents() {
         dom.resetEditBtn.addEventListener('click', resetBookmarks);
     }
 
-    document.querySelectorAll('.settings-tab-btn').forEach(btn => {
+    const settingsTabs = Array.from(document.querySelectorAll('.settings-tab-btn'));
+    settingsTabs.forEach((btn, index) => {
         btn.addEventListener('click', e => {
             e.stopPropagation();
             switchSettingsTab(btn.dataset.tab);
+        });
+        btn.addEventListener('keydown', e => {
+            if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey || e.isComposing) return;
+            let nextIndex;
+            switch (e.key) {
+                case 'ArrowRight': nextIndex = (index + 1) % settingsTabs.length; break;
+                case 'ArrowLeft': nextIndex = (index - 1 + settingsTabs.length) % settingsTabs.length; break;
+                case 'Home': nextIndex = 0; break;
+                case 'End': nextIndex = settingsTabs.length - 1; break;
+                default: return;
+            }
+            e.preventDefault();
+            e.stopPropagation();
+            const nextTab = settingsTabs[nextIndex];
+            switchSettingsTab(nextTab.dataset.tab);
+            nextTab.focus();
         });
     });
 

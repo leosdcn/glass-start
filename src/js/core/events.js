@@ -26,7 +26,7 @@ import { openShortcutModal, closeShortcutModal } from '../modules/settings.js';
 export function handleModalTabFocus(e, modalEl) {
     if (!modalEl) return;
     const focusables = Array.from(modalEl.querySelectorAll('button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])')).filter(el => {
-        return el.offsetWidth > 0 || el.offsetHeight > 0 || el === document.activeElement;
+        return el.tabIndex >= 0 && (el.offsetWidth > 0 || el.offsetHeight > 0 || el === document.activeElement);
     });
     if (focusables.length === 0) return;
     const first = focusables[0];

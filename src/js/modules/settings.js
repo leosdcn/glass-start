@@ -60,6 +60,7 @@ export function switchSettingsTab(targetTabId) {
         const isTarget = tab.dataset.tab === targetTabId;
         tab.classList.toggle('active', isTarget);
         tab.setAttribute('aria-selected', isTarget ? 'true' : 'false');
+        tab.tabIndex = isTarget ? 0 : -1;
     });
     cachedSettingsPanels.forEach(panel => {
         panel.classList.toggle('hidden', panel.id !== targetTabId);
@@ -385,7 +386,7 @@ export function renderPickerCategories() {
                     const exists = urls.has(bm.url);
                     const faviconHtml = getFaviconHTML(bm, 'sm');
                     return `
-                        <button type="button" class="w-full flex items-center gap-2 px-2 py-1.5 apple-radius picker-item text-left select-none ${exists ? 'opacity-40 cursor-not-allowed' : 'hover:bg-white/10 cursor-pointer'}" ${exists ? 'disabled aria-disabled="true"' : ''} aria-label="${exists ? `${escapeHtml(bm.name)}（已添加）` : `添加快捷书签：${escapeHtml(bm.name)}`}" ${!exists ? `data-name="${escapeHtml(bm.name)}" data-url="${escapeHtml(bm.url)}"` : ''}>
+                        <button type="button" class="w-full flex items-center gap-2 px-2 py-1.5 apple-radius picker-item text-left select-none ${exists ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}" ${exists ? 'disabled aria-disabled="true"' : ''} aria-label="${exists ? `${escapeHtml(bm.name)}（已添加）` : `添加快捷书签：${escapeHtml(bm.name)}`}" ${!exists ? `data-name="${escapeHtml(bm.name)}" data-url="${escapeHtml(bm.url)}"` : ''}>
                             ${faviconHtml}
                             <span class="text-xs text-white/70 truncate flex-1 min-w-0">${escapeHtml(bm.name)}</span>
                             ${exists

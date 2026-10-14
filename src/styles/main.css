@@ -22,6 +22,11 @@
     --spacing-picker-max: 85dvh;
     --spacing-suggestions-max: 60vh;
     --font-weight-clock: 250;
+    --radius-control: 0.75rem;
+    --radius-dialog: 1.25rem;
+    --color-surface-dialog: #1c1c23;
+    --shadow-tab-active: 0 2px 8px rgba(0, 0, 0, 0.25);
+    --shadow-dialog: inset 0 0 0 1px rgba(255, 255, 255, 0.12), 0 20px 45px rgba(0, 0, 0, 0.6);
 }
 
 /* ==========================================================================
@@ -42,6 +47,7 @@
     --bg-base: #0f172a;
     --bg-start: #0b0f19;
     --danger: 239 68 68;
+    --danger-highlight: 248 113 113;
     --glass-tint: 255, 255, 255;
     --glass-bg: rgba(255, 255, 255, 0.08);
     --glass-border: rgba(255, 255, 255, 0.15);
@@ -205,7 +211,7 @@ img, a, button, .nav-bookmark, .bookmark-item {
 }
 
 @media (hover: hover) and (pointer: fine) {
-    #suggestionMenu:not(.keyboard-nav) .suggestion-item:hover {
+    body:not(.tab-blurred) #suggestionMenu:not(.keyboard-nav) .suggestion-item:hover {
         background: rgba(255, 255, 255, 0.12);
     }
 }
@@ -366,7 +372,7 @@ html.wallpaper-bright .nav-bookmark .text-2xs {
         flex-shrink: 0;
         width: auto;
     }
-    .sidebar-item:hover .sidebar-label {
+    body:not(.tab-blurred) .sidebar-item:hover .sidebar-label {
         transform: none;
     }
 }
@@ -439,6 +445,26 @@ textarea::placeholder {
 .edit-row-card {
     position: relative;
     transition: background-color 0.15s ease, border-color 0.15s ease, opacity 0.2s ease, transform 0.2s ease, box-shadow 0.15s ease;
+}
+@media (hover: hover) and (pointer: fine) {
+    body:not(.tab-blurred) .edit-row-card:hover {
+        border-color: rgba(255, 255, 255, 0.25);
+    }
+    body:not(.tab-blurred) .edit-row-card:hover .drag-handle:not(:disabled) {
+        color: rgba(255, 255, 255, 0.7);
+    }
+    body:not(.tab-blurred) .edit-row-card .drag-handle:hover:not(:disabled) {
+        color: #ffffff;
+    }
+    body:not(.tab-blurred) :is(.bookmark-item, .nav-bookmark):hover {
+        color: #ffffff;
+    }
+    body:not(.tab-blurred) .nav-bookmark:hover .bookmark-description {
+        color: rgba(255, 255, 255, 0.6);
+    }
+    body:not(.tab-blurred) .picker-item:hover:not(:disabled) {
+        background-color: var(--tint-10);
+    }
 }
 .edit-row-card.dragging {
     opacity: 0.35;
@@ -616,8 +642,8 @@ section:first-of-type {
     transition: transform 0.45s var(--ease-overshoot);
 }
 @media (hover: hover) and (pointer: fine) {
-    #editBookmarksBtn:hover { opacity: 1; }
-    #editBookmarksBtn:hover svg {
+    body:not(.tab-blurred) #editBookmarksBtn:hover:not(:disabled) { opacity: 1; }
+    body:not(.tab-blurred) #editBookmarksBtn:hover:not(:disabled) svg {
         transform: rotate(90deg);
     }
 }
@@ -653,7 +679,7 @@ section:first-of-type {
     transition: background-color var(--duration-normal) ease, border-color var(--duration-normal) ease, box-shadow var(--duration-normal) ease, color var(--duration-normal) ease, transform 0.12s ease;
 }
 @media (hover: hover) and (pointer: fine) {
-    #weatherBtn:hover {
+    body:not(.tab-blurred) #weatherBtn:hover:not(:disabled) {
         background-color: rgba(255, 255, 255, 0.14);
         border-color: rgba(255, 255, 255, 0.22);
     }
@@ -712,14 +738,14 @@ body.bookmark-dragging .drag-handle {
 }
 
 /* ===== 键盘焦点环 ===== */
-:focus-visible {
-    outline: 2px solid rgba(255, 255, 255, 0.55);
-    outline-offset: 3px;
-    box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.08);
-}
-:focus:not(:focus-visible) {
-    outline: none;
-    box-shadow: none;
+@layer base {
+    :focus-visible {
+        outline: 2px solid rgba(255, 255, 255, 0.55);
+        outline-offset: 3px;
+    }
+    :focus:not(:focus-visible) {
+        outline: none;
+    }
 }
 input:focus-visible {
     outline: none;
@@ -736,7 +762,6 @@ input:focus-visible {
 .search-box-wrapper {
     position: relative;
 }
-
 #engineBtn {
     transition: background-color 0.15s ease, color 0.15s ease, transform 0.08s var(--ease-snappy);
 }
@@ -744,7 +769,7 @@ input:focus-visible {
     transition: transform 0.2s var(--ease-spring), opacity 0.15s ease;
 }
 @media (hover: hover) and (pointer: fine) {
-    #engineBtn:hover {
+    body:not(.tab-blurred) #engineBtn:hover:not(:disabled) {
         background-color: rgba(255, 255, 255, 0.12);
         color: #ffffff;
     }
@@ -791,7 +816,7 @@ input:focus-visible {
     transition: transform 0.24s var(--ease-overshoot);
 }
 @media (hover: hover) and (pointer: fine) {
-    #randomBookmarkBtn:hover {
+    body:not(.tab-blurred) #randomBookmarkBtn:hover:not(:disabled) {
         transform: scale(1.06) rotate(12deg);
         background-color: rgba(255, 255, 255, 0.15);
         color: rgba(255, 255, 255, 0.95);
@@ -801,12 +826,12 @@ input:focus-visible {
     transition: transform var(--duration-popover-exit) var(--ease-spring);
 }
 @media (hover: hover) and (pointer: fine) {
-    #searchClearBtn:hover {
+    body:not(.tab-blurred) #searchClearBtn:hover:not(:disabled) {
         transform: scale(1.05);
         background-color: rgba(255, 255, 255, 0.15);
         color: rgba(255, 255, 255, 0.95);
     }
-    #searchClearBtn:hover svg {
+    body:not(.tab-blurred) #searchClearBtn:hover:not(:disabled) svg {
         transform: scale(1.15);
     }
 }
@@ -856,12 +881,12 @@ input:focus-visible {
 .confirm-dialog-card {
     width: 90%;
     max-width: 22.5rem;
-    background: #1c1c23;
+    background: var(--color-surface-dialog);
     border: none;
-    border-radius: 1.25rem;
+    border-radius: var(--radius-dialog);
     overflow: hidden;
     padding: 1.5rem 1.25rem 1.25rem 1.25rem;
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12), 0 20px 45px rgba(0, 0, 0, 0.6);
+    box-shadow: var(--shadow-dialog);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -871,7 +896,7 @@ input:focus-visible {
 .confirm-dialog-btn-cancel {
     flex: 1;
     padding: 0.625rem 1rem;
-    border-radius: 0.75rem;
+    border-radius: var(--radius-control);
     background: rgba(255, 255, 255, 0.08);
     border: 1px solid rgba(255, 255, 255, 0.12);
     color: rgba(255, 255, 255, 0.75);
@@ -880,26 +905,30 @@ input:focus-visible {
     cursor: pointer;
     transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
-.confirm-dialog-btn-cancel:hover {
-    background: rgba(255, 255, 255, 0.15);
-    color: #ffffff;
+@media (hover: hover) and (pointer: fine) {
+    body:not(.tab-blurred) .confirm-dialog-btn-cancel:hover:not(:disabled) {
+        background: rgba(255, 255, 255, 0.15);
+        color: #ffffff;
+    }
 }
 .confirm-dialog-btn-ok {
     flex: 1;
     padding: 0.625rem 1rem;
-    border-radius: 0.75rem;
-    background: rgba(239, 68, 68, 0.85);
-    border: 1px solid rgba(248, 113, 113, 0.4);
+    border-radius: var(--radius-control);
+    background: rgb(var(--danger) / 0.85);
+    border: 1px solid rgb(var(--danger-highlight) / 0.4);
     color: #ffffff;
     font-size: 0.8125rem;
     font-weight: 600;
     cursor: pointer;
     transition: background-color 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
-    box-shadow: 0 4px 14px rgba(239, 68, 68, 0.35);
+    box-shadow: 0 4px 14px rgb(var(--danger) / 0.35);
 }
-.confirm-dialog-btn-ok:hover {
-    background: rgba(239, 68, 68, 1);
-    box-shadow: 0 6px 20px rgba(239, 68, 68, 0.5);
+@media (hover: hover) and (pointer: fine) {
+    body:not(.tab-blurred) .confirm-dialog-btn-ok:hover:not(:disabled) {
+        background: rgb(var(--danger));
+        box-shadow: 0 6px 20px rgb(var(--danger) / 0.5);
+    }
 }
 
 /* 高分辨率大屏缩放适配 */
@@ -910,12 +939,12 @@ input:focus-visible {
 /* 导航页书签网格自适应流式排版 */
 .nav-bookmark-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(13.5rem, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 13.5rem), 1fr));
     gap: 0.625rem;
 }
 @media (min-width: 768px) {
     .nav-bookmark-grid {
-        grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(min(100%, 14rem), 1fr));
         gap: 0.75rem;
     }
 }
@@ -927,28 +956,45 @@ input:focus-visible {
 }
 
 /* 设置 Tab 样式 */
-.settings-tab-btn {
-    background: transparent;
-    color: rgba(255, 255, 255, 0.6);
-    border: 1px solid transparent;
-}
-@media (hover: hover) and (pointer: fine) {
-    .settings-tab-btn:hover {
-        color: rgba(255, 255, 255, 0.9);
-        background: var(--tint-10);
+@layer components {
+    .settings-tab-btn {
+        background: transparent;
+        color: rgba(255, 255, 255, 0.6);
+        border: 1px solid transparent;
     }
-}
-.settings-tab-btn.active {
-    background: var(--tint-18);
-    color: #ffffff;
-    border-color: rgba(255, 255, 255, 0.25);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+    @media (hover: hover) and (pointer: fine) {
+        body:not(.tab-blurred) .settings-tab-btn:hover:not(:disabled):not(.active) {
+            color: rgba(255, 255, 255, 0.9);
+            background: var(--tint-10);
+        }
+    }
+    .settings-tab-btn.active {
+        background: var(--tint-18);
+        color: #ffffff;
+        border-color: rgba(255, 255, 255, 0.25);
+        @apply shadow-tab-active;
+    }
+    .settings-action {
+        @apply bg-white/5 border border-white/10 rounded-control text-white/80;
+    }
+    .settings-action-muted {
+        @apply text-white/75;
+    }
+    .settings-action:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+    @media (hover: hover) and (pointer: fine) {
+        body:not(.tab-blurred) .settings-action:hover:not(:disabled) {
+            @apply bg-white/10 text-white;
+        }
+    }
 }
 
 .picker-item {
     transition: background-color 0.15s ease, opacity 0.2s ease, transform 0.1s var(--ease-snappy);
 }
-.picker-item:active {
+.picker-item:active:not(:disabled) {
     transform: scale(0.97);
 }
 

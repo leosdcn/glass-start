@@ -248,7 +248,7 @@ export function renderBookmarks(force = false) {
 
     bookmarksEl.innerHTML = pageData.bookmarks.map(bm => `
         <a href="${safeUrl(bm.url)}" target="_blank" rel="noopener noreferrer" 
-           class="bookmark-item flex flex-col items-center justify-center gap-2 py-3 px-1 sm:px-1.5 apple-radius text-white/90 hover:text-white">
+           class="bookmark-item flex flex-col items-center justify-center gap-2 py-3 px-1 sm:px-1.5 apple-radius text-white/90">
             ${getFaviconHTML(bm, 'md')}
             <span class="bookmark-title text-white/90">${escapeHtml(bm.name)}</span>
         </a>
@@ -393,12 +393,12 @@ export function renderNavCategories(force = false) {
             <div class="nav-bookmark-grid">
                 ${sortedBookmarks.map(bm => `
                     <a href="${safeUrl(bm.url)}" target="_blank" rel="noopener noreferrer"
-                       class="nav-bookmark group flex items-center gap-2.5 px-3 py-2.5 md:px-3.5 md:py-2.5 apple-radius text-white/80 hover:text-white">
+                       class="nav-bookmark group flex items-center gap-2.5 px-3 py-2.5 md:px-3.5 md:py-2.5 apple-radius text-white/80">
                         ${getFaviconHTML(bm, 'sm')}
                         ${bm.desc ? `
                             <div class="flex-1 min-w-0 flex flex-col justify-center">
                                 <span class="text-xs md:text-sm font-semibold truncate leading-tight">${escapeHtml(bm.name)}</span>
-                                <span class="text-2xs text-white/35 group-hover:text-white/60 truncate leading-none mt-1 transition-colors duration-150">${escapeHtml(bm.desc)}</span>
+                                <span class="bookmark-description text-2xs text-white/35 truncate leading-none mt-1 transition-colors duration-150">${escapeHtml(bm.desc)}</span>
                             </div>
                         ` : `
                             <span class="flex-1 min-w-0 text-xs md:text-sm font-semibold truncate leading-tight text-white/90">${escapeHtml(bm.name)}</span>

@@ -37,20 +37,20 @@ export function handleEditIconError(img) {
 export function getEditRowHTML(name = '', url = '', idx = '', icon = '', rowId = '') {
     const id = rowId || (idx !== '' && idx !== undefined ? `bm_${idx}` : `bm_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`);
     return `
-        <div role="listitem" class="edit-row-card flex items-center gap-1.5 sm:gap-2 p-1.5 sm:p-2 bg-white/5 border border-white/10 apple-radius hover:border-white/25 glass-interactive group mb-1.5 shadow-xs" data-id="${escapeHtml(id)}" data-idx="${idx}" draggable="false">
+        <div role="listitem" class="edit-row-card flex items-center gap-1.5 sm:gap-2 p-1.5 sm:p-2 bg-white/5 border border-white/10 apple-radius glass-interactive group mb-1.5 shadow-xs" data-id="${escapeHtml(id)}" data-idx="${idx}" draggable="false">
             <div class="flex items-center gap-1 shrink-0">
-                <button type="button" class="drag-handle touch-none p-1 size-7 flex items-center justify-center shrink-0 text-white/30 group-hover:text-white/70 hover:text-white cursor-grab active:cursor-grabbing rounded-lg glass-interactive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40" title="拖拽或按 Alt + ↑/↓ 排序" aria-label="排序书签：${escapeHtml(name)}，按 Alt 加上或下方向键移动">
+                <button type="button" class="drag-handle touch-none p-1 size-7 flex items-center justify-center shrink-0 text-white/30 cursor-grab active:cursor-grabbing rounded-lg glass-interactive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40" title="拖拽或按 Alt + ↑/↓ 排序" aria-label="排序书签：${escapeHtml(name)}，按 Alt 加上或下方向键移动">
                     <svg class="size-3.5 pointer-events-none" aria-hidden="true"><use href="#icon-drag"/></svg>
                 </button>
                 <div class="edit-favicon-box shrink-0 flex items-center justify-center text-white/90 select-none pointer-events-none">
                     ${getEditFaviconInner(name, url, icon)}
                 </div>
             </div>
-            <div class="flex-1 flex flex-col sm:flex-row items-stretch sm:items-center gap-1 sm:gap-1.5 min-w-0">
-                <input type="text" id="bm-name-${id}" name="bookmark_name_${id}" class="edit-name w-full sm:w-1/3 bg-black/25 border border-white/10 rounded-lg px-2.5 py-1 sm:py-1.5 text-base mouse-desktop:text-xs text-white/90 focus:border-white/40 focus:bg-black/40 focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:outline-none outline-none transition-colors font-medium" value="${escapeHtml(name)}" placeholder="书签名称" aria-label="书签名称">
-                <input type="text" id="bm-url-${id}" name="bookmark_url_${id}" inputmode="url" autocapitalize="off" class="edit-url w-full sm:w-2/3 bg-black/25 border border-white/10 rounded-lg px-2.5 py-1 sm:py-1.5 text-base mouse-desktop:text-xs text-white/60 focus:border-white/40 focus:bg-black/40 focus:text-white focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:outline-none outline-none transition-colors font-mono" value="${escapeHtml(url)}" placeholder="https://..." aria-label="书签网址">
+            <div class="flex-1 min-w-0 grid grid-cols-1 sm:grid-cols-3 items-center gap-1 sm:gap-1.5">
+                <input type="text" id="bm-name-${id}" name="bookmark_name_${id}" class="edit-name w-full min-w-0 bg-black/25 border border-white/10 rounded-lg px-2.5 py-1 sm:py-1.5 text-base mouse-desktop:text-xs text-white/90 focus:border-white/40 focus:bg-black/40 focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:outline-none outline-none transition-colors font-medium" value="${escapeHtml(name)}" placeholder="书签名称" aria-label="书签名称">
+                <input type="text" id="bm-url-${id}" name="bookmark_url_${id}" inputmode="url" autocapitalize="off" class="edit-url w-full min-w-0 sm:col-span-2 bg-black/25 border border-white/10 rounded-lg px-2.5 py-1 sm:py-1.5 text-base mouse-desktop:text-xs text-white/60 focus:border-white/40 focus:bg-black/40 focus:text-white focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:outline-none outline-none transition-colors font-mono" value="${escapeHtml(url)}" placeholder="https://..." aria-label="书签网址">
             </div>
-            <button type="button" class="del-btn shrink-0 size-7 sm:size-8 p-1 hover:bg-red-500/20 rounded-full text-white/30 hover:text-red-400 flex items-center justify-center transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-1 focus-visible:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed" title="删除书签" aria-label="删除书签">
+            <button type="button" class="del-btn shrink-0 size-7 sm:size-8 p-1 enabled:hover:bg-red-500/20 rounded-full text-white/30 enabled:hover:text-red-400 flex items-center justify-center transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-1 focus-visible:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed" title="删除书签" aria-label="删除书签">
                 <svg class="size-4 pointer-events-none" aria-hidden="true"><use href="#icon-trash"/></svg>
             </button>
         </div>
