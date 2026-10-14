@@ -78,24 +78,27 @@
        */
       (function() {
         /**
-         * 预设 4K 原生横屏 AVIF 本地壁纸矩阵及 Unsplash 原图追溯出处（4 组深浅严谨对偶 · 纯净毛玻璃通透底座）：
-         * bg1.avif - 暮色山峦 (3840x2560 16:10 自然深) https://images.unsplash.com/photo-1477346611705-65d1883cee1e
-         * bg2.avif - 溪谷晨曦 (3840x2560 16:10 自然浅) https://images.unsplash.com/photo-1506744038136-46273834b3fb
-         * bg3.avif - 星空雪山 (3840x2560 16:10 自然深) https://images.unsplash.com/photo-1519681393784-d120267933ba
-         * bg4.avif - 峰峦破晓 (3840x2560 16:10 自然浅) https://images.unsplash.com/photo-1469474968028-56623f02e42e
-         * bg5.avif - 天际立面 (3840x2560 16:10 建筑深) https://images.unsplash.com/photo-1486406146926-c627a92ad1ab
-         * bg6.avif - 极简回廊 (3840x2560 16:10 建筑浅) https://images.unsplash.com/photo-1497366754035-f200968a6e72
-         * bg7.avif - 紫韵流光 (3840x2560 16:10 艺术深) https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe
-         * bg8.avif - 梦幻流彩 (3840x2560 16:10 艺术浅) https://images.unsplash.com/photo-1550684848-fac1c5b4e853
+         * 预设最大 2560px 宽 AVIF 本地壁纸矩阵及 Unsplash 原图追溯出处（4 组深浅严谨对偶 · 纯净毛玻璃通透底座）：
+         * bg1.avif - 暮色山峦 (2560x1708 源图比例 自然深) https://images.unsplash.com/photo-1477346611705-65d1883cee1e
+         * bg2.avif - 溪谷晨曦 (2560x1709 源图比例 自然浅) https://images.unsplash.com/photo-1506744038136-46273834b3fb
+         * bg3.avif - 星空雪山 (2560x1708 源图比例 自然深) https://images.unsplash.com/photo-1519681393784-d120267933ba
+         * bg4.avif - 峰峦破晓 (2560x1701 源图比例 自然浅) https://images.unsplash.com/photo-1469474968028-56623f02e42e
+         * bg5.avif - 天际立面 (2560x1707 源图比例 建筑深) https://images.unsplash.com/photo-1486406146926-c627a92ad1ab
+         * bg6.avif - 极简回廊 (2301x1536 源图比例 建筑浅) https://images.unsplash.com/photo-1497366754035-f200968a6e72
+         * bg7.avif - 紫韵流光 (2560x1945 源图比例 艺术深) https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe
+         * bg8.avif - 梦幻流彩 (2560x1707 源图比例 艺术浅) https://images.unsplash.com/photo-1550684848-fac1c5b4e853
          *
-         * 💡 4K 视网膜级 AVIF 编码参数与无损保真调优规范：
-         *    工具：libavif / avifenc (AOMedia libaom v3.14.1 内核)
-         *    大图母版：avifenc -s 4 -q 75 --yuv 444 -a sharpness=3 -a aq-mode=2 input.png bgX.avif
-         *    微缩缩略：avifenc -s 4 -q 70 --yuv 420 -a sharpness=2 -a aq-mode=2 thumb.png bgX-thumb.avif
+         * 💡 源图等比缩放与 AVIF 编码规范：
+         *    工具：libavif / avifenc 1.4.2 (AOMedia libaom v3.15.2 内核)
+         *    源图：上述链接附加 ?fm=jpg&q=100 获取高质量 JPEG；使用 sips 等比缩放为 PNG 中间文件。
+         *    尺寸：大图宽度上限 2560px、缩略图宽度上限 320px，高度按源图比例四舍五入；不裁切、不放大。
+         *    bg6 源图为 2301x1536，保留原尺寸。
+         *    大图母版：avifenc -s 4 -q 75 --yuv 444 input.png bgX.avif
+         *    微缩缩略：avifenc -s 4 -q 70 --yuv 420 thumb.png bgX-thumb.avif
          *    特点：
          *      1. 大图使用 YUV 4:4:4，保留色度分辨率；实际质量应通过编码结果与原图对比检查；
-         *      2. 缩略图统一采用 -q 70 配合自适应量化深度压缩，8 张缩略图总池极速瞬开；
-         *      3. -a aq-mode=2 与 -a sharpness=2~3 全链路保驾护航，确保小图卡片清爽立体、大图全景晶莹剔透。
+         *      2. 缩略图使用 -q 70 与 YUV 4:2:0，控制预览资源体积；
+         *      3. 使用编码器默认锐度与自适应量化设置，不额外指定 sharpness 或 aq-mode。
          */
         const backgrounds = [
           './wallpapers/bg1.avif',
@@ -492,7 +495,7 @@
                         <div class="size-9 rounded-xl bg-white/10 flex items-center justify-center text-base border border-white/15 shadow-inner shrink-0">🪐</div>
                         <div class="flex items-center gap-2">
                             <span class="text-sm font-semibold text-white/95 tracking-tight leading-none">Glass Start</span>
-                            <span class="text-2xs px-2 h-4.5 rounded-full bg-white/10 border border-white/15 text-white/75 font-medium inline-flex items-center justify-center">v4.10.2</span>
+                            <span class="text-2xs px-2 h-4.5 rounded-full bg-white/10 border border-white/15 text-white/75 font-medium inline-flex items-center justify-center">v4.10.3</span>
                         </div>
                     </div>
                     <div class="flex items-center gap-2 shrink-0">
