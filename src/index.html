@@ -349,7 +349,7 @@
             <!-- 主体：铺满视口的玻璃页面，分类与内容融入同一层 -->
             <div class="nav-surface flex-1 glass flex flex-col overflow-hidden min-h-0">
                 <!-- 页面顶部导航栏 -->
-                <header id="navHeader" class="flex items-center justify-between px-4 py-2.5 border-b border-white/10 bg-transparent shrink-0 select-none">
+                <header id="navHeader" class="flex items-center justify-between px-5 py-2.5 border-b border-white/10 bg-transparent shrink-0 select-none">
                     <div class="flex items-center gap-2 pointer-events-none select-none">
                         <svg class="size-4 text-white/85 shrink-0" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z"/></svg>
                         <h2 class="text-xs sm:text-sm font-semibold tracking-wide text-white/95">分类导航</h2>
@@ -370,7 +370,7 @@
                         </nav>
                     </aside>
                     <!-- 主书签内容区 (使用 CSS clamp 响应式控制底部 padding) -->
-                    <div id="navContent" role="region" tabindex="-1" aria-label="书签内容" class="flex-1 min-w-0 min-h-0 p-3 md:p-4 lg:p-5 overflow-y-auto relative scroll-smooth focus:outline-none">
+                    <div id="navContent" role="region" tabindex="-1" aria-label="书签内容" class="flex-1 min-w-0 min-h-0 p-3 px-3.5 sm:px-3 md:p-4 lg:p-5 overflow-y-auto relative scroll-smooth focus:outline-none">
                         <div id="navCategories" class="space-y-6 md:space-y-8"></div>
                     </div>
                 </div>
