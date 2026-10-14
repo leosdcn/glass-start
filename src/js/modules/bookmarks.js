@@ -392,7 +392,7 @@ export function renderNavCategories(force = false) {
             <div class="nav-bookmark-grid">
                 ${sortedBookmarks.map(bm => `
                     <a href="${safeUrl(bm.url)}" target="_blank" rel="noopener noreferrer"
-                       class="nav-bookmark group flex items-center gap-2.5 px-3 py-2.5 md:px-3.5 md:py-2.5 apple-radius text-white/80">
+                       class="nav-bookmark group flex items-center gap-2.5 px-3 py-2.5 md:px-3.5 md:py-2.5 text-white/80">
                         ${getFaviconHTML(bm, 'sm')}
                         ${bm.desc ? `
                             <div class="flex-1 min-w-0 flex flex-col justify-center">
