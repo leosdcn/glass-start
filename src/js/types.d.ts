@@ -63,11 +63,9 @@ export interface AppState {
 export interface ModalState {
     initialWallpaper: string | null;
     initialMaskOpacity: number;
-    initialBgBlur: number;
 
     draftWallpaper: string | null | undefined;
     draftMaskOpacity: number | null;
-    draftBgBlur: number | null;
     draftBookmarks: DraftBookmarkItem[];
     wallpaperSaveFailed: boolean;
     bookmarksChanged: boolean;
@@ -139,8 +137,6 @@ export interface DOMCache {
     jsonDropzone: HTMLElement | null;
     maskOpacityInput: HTMLInputElement | null;
     maskOpacityVal: HTMLElement | null;
-    bgBlurInput: HTMLInputElement | null;
-    bgBlurVal: HTMLElement | null;
     clearCacheBtn: HTMLButtonElement | null;
     bgLayer: HTMLElement | null;
     bgLayerNext: HTMLElement | null;

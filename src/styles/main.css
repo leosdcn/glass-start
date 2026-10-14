@@ -849,6 +849,7 @@ input:focus-visible {
 
 /* 确认弹窗 */
 #confirmModal {
+    --modal-backdrop-opacity: 0.75;
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
 }

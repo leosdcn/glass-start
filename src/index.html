@@ -225,11 +225,9 @@
           if (engineMap[engine]) window.__PRE_ENGINE__ = engineMap[engine];
         }
         const rawOp = localStorage.getItem('maskOpacity');
-        const rawBlur = localStorage.getItem('bgBlur');
-        if (rawOp !== null || rawBlur !== null) {
-          const op = rawOp !== null ? JSON.parse(rawOp) : 20;
-          const bl = rawBlur !== null ? JSON.parse(rawBlur) : 0;
-          window.__PRE_BG_EFFECTS__ = { op, bl };
+        if (rawOp !== null) {
+          const op = JSON.parse(rawOp);
+          window.__PRE_BG_EFFECTS__ = { op };
         }
       }catch(e){}
     </script>
@@ -242,7 +240,7 @@
     <div id="bgLayer" class="bg-fullscreen bg-cover bg-center bg-no-repeat z-0 bg-slate-900 bg-layer"></div>
     <div id="bgLayerNext" class="bg-fullscreen bg-cover bg-center bg-no-repeat z-0 opacity-0 bg-slate-900 bg-layer"></div>
     <div id="bgOverlay" class="bg-fullscreen bg-black/20 pointer-events-none z-0"></div>
-    <script>(function(){const bg=document.getElementById('bgLayer');const url=window.__PRELOADED_BG__||'./wallpapers/bg1.avif';if(bg){bg.style.backgroundImage="url(\""+url.replace(/["'\\]/g,'\\$&')+"\")";bg.style.opacity='1';}if(window.__PRE_BG_EFFECTS__){const o=document.getElementById('bgOverlay');if(o){o.style.backgroundColor='rgba(0, 0, 0, '+(window.__PRE_BG_EFFECTS__.op/100)+')';if(window.__PRE_BG_EFFECTS__.bl>0){const b='blur('+window.__PRE_BG_EFFECTS__.bl+'px)';o.style.backdropFilter=b;o.style.webkitBackdropFilter=b;}}}})()</script>
+    <script>(function(){const bg=document.getElementById('bgLayer');const url=window.__PRELOADED_BG__||'./wallpapers/bg1.avif';if(bg){bg.style.backgroundImage="url(\""+url.replace(/["'\\]/g,'\\$&')+"\")";bg.style.opacity='1';}if(window.__PRE_BG_EFFECTS__){const o=document.getElementById('bgOverlay');if(o){o.style.backgroundColor='rgba(0, 0, 0, '+(window.__PRE_BG_EFFECTS__.op/100)+')';}}})()</script>
 
     <!-- ========== 第一屏：起始页 ========== -->
     <section id="startSection" aria-label="起始页" class="relative z-10 min-h-dvh flex flex-col items-center justify-center px-4 py-12">
@@ -381,7 +379,7 @@
     </section><!-- /#navSection -->
 
     <!-- 编辑与设置弹窗 (Apple 风格 Tab 分栏设置面板) -->
-    <div id="editModal" role="dialog" aria-modal="true" hidden aria-label="设置与偏好" class="edit-overlay fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-[var(--z-modal)] overscroll-contain">
+    <div id="editModal" role="dialog" aria-modal="true" hidden aria-label="设置与偏好" class="edit-overlay fixed inset-0 flex items-center justify-center z-[var(--z-modal)] overscroll-contain">
         <div class="glass-strong apple-radius w-full max-w-xl sm:max-w-2xl md:max-w-3xl lg:max-w-4xl mx-4 min-h-panel-min max-h-panel-max sm:h-panel-desktop flex flex-col p-4 sm:p-6 shadow-2xl overflow-hidden">
             <!-- 弹窗 Header -->
             <div class="flex items-center justify-between mb-3 pb-2 border-b border-white/10 shrink-0">
@@ -422,7 +420,7 @@
 
             <!-- Tab 内容 2: 外观与壁纸 (tabAppearance) -->
             <div id="tabAppearance" role="tabpanel" aria-labelledby="tab-btn-appearance" class="settings-tab-panel flex-1 flex flex-col min-h-0 overflow-y-auto hidden space-y-3 pr-0.5">
-                <!-- 上半部分：自定义壁纸 与 壁纸特效 左右双列布局 -->
+                <!-- 上半部分：自定义壁纸与背景暗度左右双列布局 -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3 shrink-0">
                     <!-- 自定义壁纸 -->
                     <div class="p-3.5 glass-subcard space-y-2 flex flex-col justify-between">
@@ -450,12 +448,12 @@
                         </div>
                     </div>
 
-                    <!-- 背景视觉特效调节 -->
+                    <!-- 背景暗度调节 -->
                     <div class="p-3.5 glass-subcard space-y-2 flex flex-col justify-between">
                         <span class="text-xs font-semibold text-white/80 flex items-center gap-1.5">
-                            <svg class="size-4 text-white/60 shrink-0" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M6 13.5V3.75m0 9.75a1.5 1.5 0 0 1 0 3m0-3a1.5 1.5 0 0 0 0 3m0 3.75V16.5m12-3V3.75m0 9.75a1.5 1.5 0 0 1 0 3m0-3a1.5 1.5 0 0 0 0 3m0 3.75V16.5m-6-9V3.75m0 3.75a1.5 1.5 0 0 1 0 3m0-3a1.5 1.5 0 0 0 0 3m0 9.75V10.5"/></svg> 背景视觉特效
+                            <svg class="size-4 text-white/60 shrink-0" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M6 13.5V3.75m0 9.75a1.5 1.5 0 0 1 0 3m0-3a1.5 1.5 0 0 0 0 3m0 3.75V16.5m12-3V3.75m0 9.75a1.5 1.5 0 0 1 0 3m0-3a1.5 1.5 0 0 0 0 3m0 3.75V16.5m-6-9V3.75m0 3.75a1.5 1.5 0 0 1 0 3m0-3a1.5 1.5 0 0 0 0 3m0 9.75V10.5"/></svg> 背景暗度
                         </span>
-                        <div class="grid grid-cols-2 gap-3">
+                        <div>
                             <!-- 遮罩透明度 -->
                             <div class="space-y-1">
                                 <div class="flex items-center justify-between text-2xs-plus text-white/70">
@@ -463,14 +461,6 @@
                                     <span id="maskOpacityVal" class="font-mono text-white/90">20%</span>
                                 </div>
                                 <input type="range" id="maskOpacityInput" name="maskOpacityInput" min="5" max="80" value="20" aria-label="背景暗色遮罩透明度" aria-valuenow="20" aria-valuetext="20%" class="w-full h-1.5 bg-white/20 rounded-lg appearance-none cursor-pointer accent-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 disabled:opacity-40 disabled:cursor-not-allowed">
-                            </div>
-                            <!-- 高斯模糊度 -->
-                            <div class="space-y-1">
-                                <div class="flex items-center justify-between text-2xs-plus text-white/70">
-                                    <span>高斯模糊</span>
-                                    <span id="bgBlurVal" class="font-mono text-white/90">0px</span>
-                                </div>
-                                <input type="range" id="bgBlurInput" name="bgBlurInput" min="0" max="20" value="0" aria-label="背景高斯模糊度" aria-valuenow="0" aria-valuetext="0px" class="w-full h-1.5 bg-white/20 rounded-lg appearance-none cursor-pointer accent-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 disabled:opacity-40 disabled:cursor-not-allowed">
                             </div>
                         </div>
                     </div>
@@ -571,7 +561,7 @@
             <!-- 底部操作栏 (完成 / 取消响应式布局) -->
             <div class="flex items-center justify-end gap-3 mt-3 pt-3 border-t border-white/10 shrink-0">
                 <button id="cancelEditBtn" type="button" class="flex-1 sm:flex-initial py-2.5 px-5 rounded-xl text-xs sm:text-sm font-normal text-white/50 hover:text-white/80 hover:bg-white/5 glass-interactive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 disabled:opacity-50 disabled:cursor-not-allowed">取消</button>
-                <button id="saveEditBtn" type="button" title="保存快捷书签与视觉特效修改" class="glass-btn-primary flex-1 sm:flex-initial py-2.5 px-6 text-xs sm:text-sm gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:opacity-50 disabled:cursor-not-allowed">
+                <button id="saveEditBtn" type="button" title="保存快捷书签与背景暗度修改" class="glass-btn-primary flex-1 sm:flex-initial py-2.5 px-6 text-xs sm:text-sm gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:opacity-50 disabled:cursor-not-allowed">
                     <span>完成</span>
                 </button>
             </div>
@@ -579,7 +569,7 @@
     </div><!-- /#editModal -->
 
     <!-- 从导航页选择弹窗 -->
-    <div id="bookmarkPicker" role="dialog" aria-modal="true" hidden aria-label="从导航页选择书签" class="edit-overlay fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-[var(--z-picker)] overscroll-contain">
+    <div id="bookmarkPicker" role="dialog" aria-modal="true" hidden aria-label="从导航页选择书签" class="edit-overlay fixed inset-0 flex items-center justify-center z-[var(--z-picker)] overscroll-contain">
         <div class="glass-strong apple-radius pt-4 pb-3 px-4 w-full max-w-2xl xl:max-w-3xl 2xl:max-w-4xl mx-4 max-h-picker-max flex flex-col shadow-2xl">
             <div class="flex items-center justify-between mb-2 pb-1.5 border-b border-white/10 shrink-0">
                 <h3 class="text-base font-medium tracking-wide text-white/80">从导航页选择</h3>
@@ -594,7 +584,7 @@
 
     <!-- 自定义确认弹窗（替代原生 confirm()，保持玻璃风格一致） -->
     <div id="confirmModal" role="alertdialog" aria-modal="true" hidden aria-labelledby="confirmTitle"
-         class="edit-overlay fixed inset-0 flex items-center justify-center bg-black/75 z-[var(--z-alert)] overscroll-contain">
+         class="edit-overlay fixed inset-0 flex items-center justify-center z-[var(--z-alert)] overscroll-contain">
         <div class="confirm-dialog-card">
             <div class="size-11 rounded-full bg-red-500/15 border border-red-500/30 flex items-center justify-center mb-3 text-red-400 shrink-0">
                 <svg class="size-5.5" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
@@ -611,7 +601,7 @@
     </div><!-- /#confirmModal -->
 
     <!-- 快捷键速查面板弹窗 (Cmd/Ctrl + /) -->
-    <div id="shortcutModal" role="dialog" aria-modal="true" hidden aria-label="快捷键速查" class="edit-overlay fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-[var(--z-picker)] overscroll-contain">
+    <div id="shortcutModal" role="dialog" aria-modal="true" hidden aria-label="快捷键速查" class="edit-overlay fixed inset-0 flex items-center justify-center z-[var(--z-picker)] overscroll-contain">
         <div class="glass-strong apple-radius w-full max-w-md mx-4 min-h-panel-min max-h-panel-max sm:h-panel-desktop flex flex-col p-5 sm:p-6 shadow-2xl overflow-hidden">
             <!-- 弹窗 Header -->
             <div class="flex items-center justify-between mb-3 pb-2 border-b border-white/10 shrink-0">
@@ -632,7 +622,7 @@
     </div><!-- /#shortcutModal -->
 
     <!-- 开源与数据鸣谢弹窗 (Credits & Attribution Modal) -->
-    <div id="creditsModal" role="dialog" aria-modal="true" hidden aria-label="开源与数据鸣谢" class="edit-overlay fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-[var(--z-picker)] overscroll-contain">
+    <div id="creditsModal" role="dialog" aria-modal="true" hidden aria-label="开源与数据鸣谢" class="edit-overlay fixed inset-0 flex items-center justify-center z-[var(--z-picker)] overscroll-contain">
         <div class="glass-strong apple-radius w-full max-w-md mx-4 flex flex-col p-5 sm:p-6 shadow-2xl overflow-hidden">
             <!-- 弹窗 Header -->
             <div class="flex items-center justify-between mb-3 pb-2 border-b border-white/10 shrink-0">

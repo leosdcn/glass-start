@@ -14,7 +14,6 @@ export const CONFIG = Object.freeze({
                 USER_WALLPAPER: 'userWallpaper',
                 WALLPAPER_META: 'glass_wallpaper_meta',
                 MASK_OPACITY: 'maskOpacity',
-                BG_BLUR: 'bgBlur',
                 PREFERRED_ENGINE: 'preferredEngine',
                 NAV_DISCOVERED: 'hasDiscoveredNav',
                 WEATHER_CACHE: 'glass_weather_cache',
@@ -115,8 +114,6 @@ export const CONFIG = Object.freeze({
                 DEFAULT_MASK_OPACITY: 20,     // 默认遮罩暗度百分比 (%)
                 MIN_MASK_OPACITY: 5,          // 遮罩透明度最小百分比 (%)
                 MAX_MASK_OPACITY: 80,         // 遮罩透明度最大百分比 (%)
-                DEFAULT_BG_BLUR: 0,           // 默认背景高斯模糊 (px)
-                MAX_BG_BLUR: 20,              // 背景高斯模糊最大像素值 (px)
                 MAX_UPLOAD_WIDTH: 3840,       // 自定义壁纸最大宽度 (4K UHD)
                 MAX_UPLOAD_HEIGHT: 2160,      // 自定义壁纸最大高度
                 JPEG_QUALITY: 0.95,           // Canvas 壁纸压缩质量

@@ -112,18 +112,17 @@
     50% { transform: translateY(-0.1875rem); opacity: 1; }
 }
 
-/* 弹窗遮罩与内容缩放过渡 */
+/* 遮罩只渐变底色，保持祖先 opacity 为 1，避免面板玻璃采样边界在入场末尾改变。 */
 .edit-overlay {
-    opacity: 0;
+    --modal-backdrop-opacity: 0.6;
+    background-color: rgba(0, 0, 0, 0);
     pointer-events: none;
-    transition: opacity var(--duration-normal) var(--ease-exit);
-    -webkit-backdrop-filter: blur(var(--blur-sm));
-    backdrop-filter: blur(var(--blur-sm));
+    transition: background-color var(--duration-normal) var(--ease-exit);
 }
 .edit-overlay.active {
-    opacity: 1;
+    background-color: rgba(0, 0, 0, var(--modal-backdrop-opacity));
     pointer-events: auto;
-    transition: opacity var(--duration-modal) var(--ease-spring);
+    transition: background-color var(--duration-modal) var(--ease-spring);
 }
 .edit-overlay > div {
     opacity: 0;

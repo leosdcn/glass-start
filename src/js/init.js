@@ -77,8 +77,7 @@ export function init() {
     bindEditEvents();
 
     const savedOpacity = storageGet(CONFIG.KEYS.MASK_OPACITY, CONFIG.APPEARANCE.DEFAULT_MASK_OPACITY);
-    const savedBlur = storageGet(CONFIG.KEYS.BG_BLUR, CONFIG.APPEARANCE.DEFAULT_BG_BLUR);
-    applyBgEffects(savedOpacity, savedBlur);
+    applyBgEffects(savedOpacity);
 
     if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
         navigator.serviceWorker.register('sw.js').catch(() => {});

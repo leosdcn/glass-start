@@ -21,6 +21,26 @@ export async function waitFor(evalJS, predicateJs, timeout = 3000, interval = 20
   throw new Error(`Timeout after ${timeout}ms waiting for: ${predicateJs}`);
 }
 
+/** 仅导航就绪等待允许上下文替换；其他协议错误和页面异常直接报告。 */
+export async function navigateAndWait(send, evalJS, url, predicateJs = 'true', timeout = 10000) {
+  const navigation = await send('Page.navigate', { url });
+  if (navigation.errorText) throw new Error(`Navigation failed: ${navigation.errorText}`);
+  let contextError;
+  try {
+    return await waitFor(async expression => {
+      try { return await evalJS(expression); }
+      catch (error) {
+        if (!/CDP command Runtime.evaluate failed \(-32000\): (?:Cannot find context|Execution context was destroyed|Inspected target navigated or closed)/i.test(error.message)) throw error;
+        contextError = error;
+        return false;
+      }
+    }, `location.href === ${JSON.stringify(url)} && document.readyState === 'complete' && (${predicateJs})`, timeout);
+  } catch (error) {
+    if (contextError && error.message.startsWith('Timeout')) throw new Error(error.message, { cause: contextError });
+    throw error;
+  }
+}
+
 /** 模拟输入框输入事件并触发 input/change 事件 */
 export async function typeInput(evalJS, selector, value) {
   return evalJS(`(() => {

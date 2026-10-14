@@ -28,7 +28,7 @@ const restored = await evalJS(`(() => {
 })()`);
 
 await evalJS('window.switchToStart()');
-await waitFor(evalJS, 'Math.abs(document.getElementById("startSection").getBoundingClientRect().top) < 0.1');
+await waitFor(evalJS, 'state.currentSection === "start" && !isScreenTransitioning() && Math.abs(document.getElementById("startSection").getBoundingClientRect().top) < 0.1');
 const backFromReloadedNav = await evalJS(`(() => {
   const s = document.getElementById('startSection');
   const clock = document.getElementById('clock');
@@ -170,7 +170,7 @@ const navJumpBackTest = await evalJS(`(async () => {
   for (let i = 0; i < 30; i++) {
     await new Promise(r => setTimeout(r, 50));
     const rect = document.getElementById('startSection')?.getBoundingClientRect();
-    if (rect && Math.abs(rect.top) < 0.1) break;
+    if (state.currentSection === 'start' && !isScreenTransitioning() && rect && Math.abs(rect.top) < 0.1) break;
   }
   
   const s = document.getElementById('startSection');

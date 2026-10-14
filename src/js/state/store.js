@@ -19,11 +19,9 @@ export const state = {
 export const modalState = {
     initialWallpaper: null,
     initialMaskOpacity: CONFIG.APPEARANCE.DEFAULT_MASK_OPACITY,
-    initialBgBlur: CONFIG.APPEARANCE.DEFAULT_BG_BLUR,
 
     draftWallpaper: undefined,
     draftMaskOpacity: null,
-    draftBgBlur: null,
     draftBookmarks: [],
     wallpaperSaveFailed: false,
     bookmarksChanged: false

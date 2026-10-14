@@ -73,7 +73,7 @@ let bgEffectsRafId = null;
 let pendingBgEffects = null;
 let lastBgEffects = null;
 
-function renderBgEffects(op, bl) {
+function renderBgEffects(op) {
     const bgOverlay = dom.bgOverlay;
     if (!bgOverlay) return;
     const sameOverlay = lastBgEffects?.element === bgOverlay;
@@ -84,62 +84,47 @@ function renderBgEffects(op, bl) {
     if (!sameOverlay || lastBgEffects.opacity !== op) {
         bgOverlay.style.backgroundColor = `rgba(0,0,0,${op / 100})`;
     }
-    if (!sameOverlay || lastBgEffects.blur !== bl) {
-        const blurStyle = bl > 0 ? `blur(${bl}px)` : 'none';
-        bgOverlay.style.backdropFilter = blurStyle;
-        bgOverlay.style.webkitBackdropFilter = blurStyle;
-    }
-    lastBgEffects = { element: bgOverlay, opacity: op, blur: bl };
+    lastBgEffects = { element: bgOverlay, opacity: op };
 }
 
-export function applyBgEffects(opacity, blur, save = false) {
-    updateBgEffects(opacity, blur, save, false);
+export function applyBgEffects(opacity, save = false) {
+    updateBgEffects(opacity, save, false);
 }
 
 /** 滑块草稿与无障碍读数即时更新，全屏视觉每帧只消费最后一次输入。 */
-export function scheduleBgEffects(opacity, blur) {
-    updateBgEffects(opacity, blur, false, true);
+export function scheduleBgEffects(opacity) {
+    updateBgEffects(opacity, false, true);
 }
 
-function updateBgEffects(opacity, blur, save, defer) {
+function updateBgEffects(opacity, save, defer) {
     const op = Math.max(0, Math.min(CONFIG.APPEARANCE.MAX_MASK_OPACITY, parseInt(opacity, 10) || 0));
-    const bl = Math.max(0, Math.min(CONFIG.APPEARANCE.MAX_BG_BLUR, parseInt(blur, 10) || 0));
     if (defer) {
-        pendingBgEffects = { opacity: op, blur: bl };
+        pendingBgEffects = { opacity: op };
         if (bgEffectsRafId === null) {
             bgEffectsRafId = requestAnimationFrame(() => {
                 bgEffectsRafId = null;
                 const effects = pendingBgEffects;
                 pendingBgEffects = null;
-                if (effects) renderBgEffects(effects.opacity, effects.blur);
+                if (effects) renderBgEffects(effects.opacity);
             });
         }
     } else {
         if (bgEffectsRafId !== null) cancelAnimationFrame(bgEffectsRafId);
         bgEffectsRafId = null;
         pendingBgEffects = null;
-        renderBgEffects(op, bl);
+        renderBgEffects(op);
     }
     const maskOpacityVal = dom.maskOpacityVal;
-    const bgBlurVal = dom.bgBlurVal;
     const maskOpacityInput = dom.maskOpacityInput;
-    const bgBlurInput = dom.bgBlurInput;
 
     if (maskOpacityVal) maskOpacityVal.textContent = `${op}%`;
-    if (bgBlurVal) bgBlurVal.textContent = `${bl}px`;
     if (maskOpacityInput) {
         if (maskOpacityInput.value != op) maskOpacityInput.value = op;
         maskOpacityInput.setAttribute('aria-valuenow', op);
         maskOpacityInput.setAttribute('aria-valuetext', `${op}%`);
     }
-    if (bgBlurInput) {
-        if (bgBlurInput.value != bl) bgBlurInput.value = bl;
-        bgBlurInput.setAttribute('aria-valuenow', bl);
-        bgBlurInput.setAttribute('aria-valuetext', `${bl}px`);
-    }
     if (save) {
         storageSet(CONFIG.KEYS.MASK_OPACITY, op);
-        storageSet(CONFIG.KEYS.BG_BLUR, bl);
     }
 }
 
@@ -156,11 +141,9 @@ export async function openEditModal() {
     if (!state.editOpen || requestId !== editOpenRequestId) return;
     modalState.initialWallpaper = initialWallpaper;
     modalState.initialMaskOpacity = storageGet(CONFIG.KEYS.MASK_OPACITY, CONFIG.APPEARANCE.DEFAULT_MASK_OPACITY);
-    modalState.initialBgBlur = storageGet(CONFIG.KEYS.BG_BLUR, CONFIG.APPEARANCE.DEFAULT_BG_BLUR);
 
     modalState.draftWallpaper = modalState.initialWallpaper;
     modalState.draftMaskOpacity = modalState.initialMaskOpacity;
-    modalState.draftBgBlur = modalState.initialBgBlur;
     modalState.bookmarksChanged = false;
     modalState.wallpaperSaveFailed = false;
 
@@ -178,18 +161,18 @@ export async function openEditModal() {
     renderEditList();
     updateWallpaperStatusUI(modalState.draftWallpaper);
     updatePresetBgCardsUI(modalState.draftWallpaper);
-    applyBgEffects(modalState.draftMaskOpacity, modalState.draftBgBlur, false);
+    applyBgEffects(modalState.draftMaskOpacity);
     OverlayStack.push('editModal', cancelEditModal, trigger);
 }
 
 export function cancelEditModal() {
-    applyBgEffects(modalState.initialMaskOpacity, modalState.initialBgBlur, false);
+    applyBgEffects(modalState.initialMaskOpacity);
     closeEditModal();
 }
 
 export function closeEditModal() {
     // 保存关闭时即使后台暂停了 rAF，也同步落定最后的预览；取消已先覆盖并清队列。
-    if (pendingBgEffects) applyBgEffects(pendingBgEffects.opacity, pendingBgEffects.blur);
+    if (pendingBgEffects) applyBgEffects(pendingBgEffects.opacity);
     state.editOpen = false;
     editOpenRequestId++;
     OverlayStack.pop('editModal');
@@ -349,7 +332,6 @@ export function resetBookmarks() {
         storageRemove(CONFIG.KEYS.PREFERRED_ENGINE);
         storageRemove(CONFIG.KEYS.USER_WALLPAPER);
         storageRemove(CONFIG.KEYS.MASK_OPACITY);
-        storageRemove(CONFIG.KEYS.BG_BLUR);
         storageRemove(CONFIG.KEYS.BG);
         storageRemove(CONFIG.KEYS.NAV_DISCOVERED);
         storageRemove(CONFIG.KEYS.WEATHER_CACHE);
@@ -365,14 +347,13 @@ export function resetBookmarks() {
 
         modalState.draftWallpaper = undefined;
         modalState.draftMaskOpacity = null;
-        modalState.draftBgBlur = null;
         modalState.draftBookmarks = [];
         modalState.bookmarksChanged = false;
 
         setEngine('bing', false);
         state.bg = 0;
         applyWallpaper(backgrounds[0], false);
-        applyBgEffects(CONFIG.APPEARANCE.DEFAULT_MASK_OPACITY, CONFIG.APPEARANCE.DEFAULT_BG_BLUR, false);
+        applyBgEffects(CONFIG.APPEARANCE.DEFAULT_MASK_OPACITY);
         pageData.bookmarks = getDerivedBookmarks(DEFAULT_BOOKMARKS.map(b => b.url), pageData.categories);
         renderBookmarks();
         closeBookmarkPicker();

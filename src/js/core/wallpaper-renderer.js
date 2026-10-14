@@ -54,14 +54,16 @@ export function applyWallpaper(urlStr, animate = true) {
             void bgNext.offsetHeight;
 
             requestAnimationFrame(() => {
+                if (reqId !== activeWallpaperReqId) return;
                 bgNext.style.transition = `opacity ${CONFIG.TIMERS.BG_CROSSFADE / 1000}s var(--ease-exit)`;
                 bgNext.style.opacity = '1';
                 bgSwitchTimer = setTimeout(() => {
+                    bgSwitchTimer = null;
+                    if (reqId !== activeWallpaperReqId) return;
                     bgBase.style.backgroundImage = newStyleUrl;
                     bgBase.style.opacity = '1';
                     bgNext.style.transition = 'none';
                     bgNext.style.opacity = '0';
-                    bgSwitchTimer = null;
                 }, CONFIG.TIMERS.BG_CROSSFADE);
             });
         } else {
@@ -72,11 +74,24 @@ export function applyWallpaper(urlStr, animate = true) {
         }
     };
 
+    const prepareTransition = async () => {
+        img.onload = img.onerror = null;
+        if (reqId !== activeWallpaperReqId || !img.naturalWidth) return;
+        if (typeof img.decode === 'function') {
+            try {
+                await img.decode();
+            } catch {
+                // 解码失败保留当前壁纸，不启动不完整图片的交叉淡入。
+                return;
+            }
+        }
+        executeTransition();
+    };
+
+    img.onload = prepareTransition;
+    img.onerror = () => { img.onload = img.onerror = null; };
     img.src = urlStr;
     if (img.complete && img.naturalWidth > 0) {
-        executeTransition();
-    } else {
-        img.onload = executeTransition;
-        img.onerror = () => { img.onload = img.onerror = null; };
+        prepareTransition();
     }
 }

@@ -215,10 +215,9 @@ export function bindEditEvents() {
                     saveUserBookmarks(data);
                 }
 
-                // 2. 提交特效（壁纸已于用户选择时即选即存，无需重复落盘）
-                if (modalState.draftMaskOpacity !== null && modalState.draftBgBlur !== null) {
+                // 2. 提交背景暗度（壁纸已于用户选择时即选即存，无需重复落盘）
+                if (modalState.draftMaskOpacity !== null) {
                     storageSet(CONFIG.KEYS.MASK_OPACITY, modalState.draftMaskOpacity);
-                    storageSet(CONFIG.KEYS.BG_BLUR, modalState.draftBgBlur);
                 }
 
                 closeEditModal();
@@ -357,17 +356,11 @@ export function bindEditEvents() {
         });
     }
 
-    // 壁纸视觉特效事件绑定（草稿实时预览）
+    // 背景暗度事件绑定（草稿实时预览）
     if (dom.maskOpacityInput) {
         dom.maskOpacityInput.addEventListener('input', e => {
             modalState.draftMaskOpacity = parseInt(e.target.value, 10) || 0;
-            scheduleBgEffects(modalState.draftMaskOpacity, modalState.draftBgBlur !== null ? modalState.draftBgBlur : 0);
-        });
-    }
-    if (dom.bgBlurInput) {
-        dom.bgBlurInput.addEventListener('input', e => {
-            modalState.draftBgBlur = parseInt(e.target.value, 10) || 0;
-            scheduleBgEffects(modalState.draftMaskOpacity !== null ? modalState.draftMaskOpacity : CONFIG.APPEARANCE.DEFAULT_MASK_OPACITY, modalState.draftBgBlur);
+            scheduleBgEffects(modalState.draftMaskOpacity);
         });
     }
 

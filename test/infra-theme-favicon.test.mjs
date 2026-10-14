@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import vm from 'node:vm';
 import { startServer } from './server.mjs';
 import { launchChrome } from './cdp.mjs';
-import { getFreePort, waitFor } from './helpers.mjs';
+import { getFreePort, waitFor, navigateAndWait } from './helpers.mjs';
 
 const require = createRequire(import.meta.url);
 const { injectThemeConfig } = require('../scripts/build.js');
@@ -64,8 +64,8 @@ try {
         localStorage.clear(); localStorage.setItem('bg', '${index}');
         ${warm ? "localStorage.setItem('glass_theme_cache', JSON.stringify({isLight:false})); localStorage.setItem('glass_tint_cache', '1, 2, 3');" : ''}
       ` });
-      await send('Page.navigate', { url: `http://127.0.0.1:${server.port}/theme-probe.html?probe=${token}` });
-      await waitFor(evalJS, `location.search === '?probe=${token}' && !!window.__headThemeProbe && typeof window.handleIconError === 'function'`);
+      await navigateAndWait(send, evalJS, `http://127.0.0.1:${server.port}/theme-probe.html?probe=${token}`,
+        "!!window.__headThemeProbe && typeof window.handleIconError === 'function'");
       const actual = await evalJS(`({ head: __headThemeProbe, runtimeTheme: PRESET_THEMES[${index}], runtimeTint: PRESET_WALLPAPER_TINTS[${index}] })`);
       assert.deepEqual(actual.head.theme, expected.themes[index]);
       assert.deepEqual(actual.runtimeTheme, expected.themes[index]);
@@ -84,8 +84,8 @@ try {
     localStorage.setItem('glass_theme_cache', JSON.stringify({isLight:true}));
     localStorage.setItem('glass_tint_cache', '1, 2, 3');
   ` });
-  await send('Page.navigate', { url:`http://127.0.0.1:${server.port}/theme-probe.html?probe=custom-meta` });
-  await waitFor(evalJS, "location.search === '?probe=custom-meta' && !!window.__headThemeProbe");
+  await navigateAndWait(send, evalJS, `http://127.0.0.1:${server.port}/theme-probe.html?probe=custom-meta`,
+    "!!window.__headThemeProbe && typeof window.handleIconError === 'function'");
   const custom = await evalJS('({head:__headThemeProbe, preload:__PRELOADED_BG__, hasLink:!!document.getElementById("preloadWallpaper")})');
   assert.equal(custom.head.theme.isLight, true);
   assert.equal(custom.head.color, 'rgb(255, 255, 255)');
