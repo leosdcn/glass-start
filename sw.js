@@ -6,7 +6,7 @@
  * 1. 【三池物理隔离】：CORE_CACHE (全站核心)、FAVICON_CACHE (外部图标)、IMG_CACHE (本地图片)
  * 2. 【防透明响应污染】：a.favicon.im 跨域图标 7s 超时熔断 + 合法响应校验入池
  * 3. 【原生 FIFO 容量淘汰】：轻量 pruneCache 自动限制图标 (800) 与图片 (200) 缓存上限，非阻塞后台运行
- * 4. 【原子化 SWR 锁步策略】：CORE_CACHE 本地 0ms 极速秒开 + 差量 SW 换代升级，构建指纹双重契约根治跨版本割裂
+ * 4. 【版本隔离 Cache-First】：CORE_CACHE 缓存优先，安装验证构建指纹，新版等待旧客户端退出后激活
  */
 
 // 缓存池定义（打包 build.js 时自动替换 CORE_CACHE 为时间戳版本）
@@ -161,7 +161,7 @@ self.addEventListener('fetch', e => {
         && (pathnameLower.endsWith('.js') || pathnameLower.endsWith('.css'))
         && !pathnameLower.endsWith('/sw.js');
 
-    // 1. 主文档原子化 SWR 锁步策略 (CORE_CACHE 本地 0ms 秒开，彻底消灭 Safari 启动网络阻塞；版本更新由 SW 差量换代原子接管)
+    // 1. 主文档版本隔离 Cache-First；缓存命中不重验证，新版通过 worker 生命周期换代
     if (isMainDoc) {
         e.respondWith(
             caches.open(CORE_CACHE).then(async cache => {
@@ -240,7 +240,7 @@ self.addEventListener('fetch', e => {
         return;
     }
 
-    // 3. 同源 JS/CSS 静态资源原子化 SWR 锁步策略 (与主文档 100% 同版本直出，非 ok 回退缓存)
+    // 3. 同源 JS/CSS 版本隔离 Cache-First；缓存命中不重验证，非 ok 回退缓存
     if (isCoreStaticAsset) {
         e.respondWith(
             caches.open(CORE_CACHE).then(async cache => {

@@ -600,7 +600,8 @@ export function fetchSuggestions(engineKey, query) {
     const reqId = activeSuggestReqId;
 
     const cbName = `__glassSuggestCb_${reqId}`;
-    const script = document.createElement('script');
+    const controller = engineKey === 'wikipedia' ? new AbortController() : null;
+    const script = controller ? null : document.createElement('script');
     let timeoutTimer = null;
 
     const cleanup = () => {
@@ -608,9 +609,12 @@ export function fetchSuggestions(engineKey, query) {
             clearTimeout(timeoutTimer);
             timeoutTimer = null;
         }
-        try { delete window[cbName]; } catch {}
-        script.onerror = null;
-        script.remove();
+        controller?.abort();
+        if (script) {
+            try { delete window[cbName]; } catch {}
+            script.onerror = null;
+            script.remove();
+        }
         if (suggestionScriptTag === script) suggestionScriptTag = null;
         if (activeSuggestCleanup === cleanup) activeSuggestCleanup = null;
     };
@@ -628,7 +632,7 @@ export function fetchSuggestions(engineKey, query) {
     activeSuggestCleanup = cleanup;
     timeoutTimer = setTimeout(handleSuggestFallback, CONFIG.SUGGEST.JSONP_TIMEOUT);
 
-    window[cbName] = function(data) {
+    const handleSuggestData = data => {
         cleanup();
         if (reqId !== activeSuggestReqId) return;
         let list = [];
@@ -645,6 +649,21 @@ export function fetchSuggestions(engineKey, query) {
         }
     };
 
+    if (controller) {
+        // Wikipedia 支持 CORS；复用现有超时、清理和请求序号守卫。
+        fetch(`https://zh.wikipedia.org/w/api.php?action=opensearch&format=json&search=${encodeURIComponent(query)}&origin=*`, {
+            signal: controller.signal,
+            credentials: 'omit'
+        }).then(response => {
+            if (!response.ok) throw new Error('Suggestion request failed');
+            return response.json();
+        }).then(handleSuggestData).catch(() => {
+            if (!controller.signal.aborted) handleSuggestFallback();
+        });
+        return;
+    }
+
+    window[cbName] = handleSuggestData;
     suggestionScriptTag = script;
     script.onerror = handleSuggestFallback;
 
@@ -652,8 +671,6 @@ export function fetchSuggestions(engineKey, query) {
         script.src = `https://api.bing.com/osjson.aspx?query=${encodeURIComponent(query)}&JsonType=callback&JsonCallback=${cbName}`;
     } else if (engineKey === 'google') {
         script.src = `https://suggestqueries.google.com/complete/search?client=chrome&q=${encodeURIComponent(query)}&callback=${cbName}`;
-    } else if (engineKey === 'wikipedia') {
-        script.src = `https://zh.wikipedia.org/w/api.php?action=opensearch&format=json&search=${encodeURIComponent(query)}&callback=${cbName}`;
     }
 
     document.body.appendChild(script);

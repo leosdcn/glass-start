@@ -70,7 +70,7 @@ flowchart TD
     %% ======================= LAYER 4: SERVICE WORKER & SECURITY =======================
     subgraph L4 [" 4. 离线运行与网络服务底座 (Offline Runtime & Service Worker Base) "]
         direction LR
-        SW_THREAD["Service Worker 独立线程 (sw.js)<br/>skipWaiting / clients.claim"]:::nodeBox
+        SW_THREAD["Service Worker 独立线程 (sw.js)<br/>安装校验 / waiting 后激活"]:::nodeBox
         THREE_CACHE["三池隔离缓存模型 (Three-Pool Isolation)<br/>CORE_CACHE | FAVICON_CACHE | IMG_CACHE"]:::activeBox
         FIFO_PRUNE["FIFO 自动容量淘汰引擎<br/>MAX_FAVICON(800) | MAX_IMG(200)"]:::nodeBox
         CSP_SEC["Edge / CSP 安全隔离标头<br/>connect-src / img-src 通配"]:::nodeBox
@@ -300,13 +300,13 @@ flowchart LR
     subgraph THREE_POOLS [" 📦 Service Worker 三池物理隔离与降级流水线 "]
         direction TB
         
-        subgraph P1 [" 1. CORE_CACHE (app-core-v*) · 核心脚本与文档 (原子化 SWR 锁步) "]
+        subgraph P1 [" 1. CORE_CACHE (app-core-v*) · 核心脚本与文档 (版本隔离 Cache-First) "]
             direction LR
             subgraph P1_CORE [" 核心预缓存资源 "]
                 direction TB
-                C_HTML["主文档 HTML (0ms 本地瞬出 / 差量更新)<br/>index.html / '/'"]:::coreNode
-                C_DATA["静态元数据 (Stale-While-Revalidate)<br/>manifest.json / bookmarks.json"]:::coreNode
-                C_STATIC["核心静态脚本与预设壁纸 (原子化 SWR)<br/>app.js / wallpapers (排除 sw.js)"]:::coreNode
+                C_HTML["主文档 HTML (缓存优先 / 新版等待激活)<br/>index.html / '/'"]:::coreNode
+                C_DATA["静态元数据 (Stale-While-Revalidate)<br/>manifest.json"]:::coreNode
+                C_STATIC["核心静态脚本与预设壁纸 (Cache-First)<br/>app.js / wallpapers (排除 sw.js)"]:::coreNode
             end
             E_503["HTTP 503 离线兜底响应<br/>('离线且无本地缓存')"]:::errNode
             C_HTML -.->|"离线且无缓存"| E_503
@@ -314,7 +314,7 @@ flowchart LR
 
         subgraph P2 [" 2. FAVICON_CACHE (app-favicons-v1) · 高清图标池 "]
             direction LR
-            F_CACHE["跨域高清图标 (a.favicon.im 主源 + Google S2 容灾源)<br/>Bing / Google / Wikipedia 核心预存<br/>+ SWR 防污染重验 (7s 超时熔断)"]:::favNode
+            F_CACHE["跨域高清图标 (a.favicon.im 主源 + Google S2 容灾源)<br/>Bing / Google / Wikipedia 核心预存<br/>+ Cache-First (未命中时 7s 超时熔断)"]:::favNode
             F_FIFO["FIFO 容量限额淘汰<br/>MAX = 800 条"]:::limitNode
             E_404["HTTP 404 / 网络超时"]:::errNode
             E_FALLBACK["Google S2 (sz=128) 自动回退"]:::activeBox
@@ -325,7 +325,7 @@ flowchart LR
             E_FALLBACK -.->|"备用源也超时 / 失败"| E_BADGE
         end
 
-        subgraph P3 [" 3. IMG_CACHE (app-images-v2) · 站内图库池 "]
+        subgraph P3 [" 3. IMG_CACHE (app-images-app-core-v*) · 站内图库池 "]
             direction LR
             I_CACHE["同源站内图片池 (Cache-First)<br/>ico / png / jpg / webp / avif"]:::imgNode
             I_FIFO["FIFO 容量限额淘汰<br/>MAX = 200 条"]:::limitNode
@@ -364,7 +364,7 @@ flowchart LR
 
 #### 💡 技术原理解析
 1. **三池物理隔离与版本强同调 (Version Lockstep)**：
-   - `CORE_CACHE`：打包时基于构建时间戳命名（如 `app-core-v1786255428688`），主文档 `index.html` 与同源脚本 `app.js` 统一采用 **原子化 SWR 锁步** 策略，本地 0ms 瞬出秒开（彻底消除 Safari 冷启动网络阻塞与 TTFB 延迟）；由构建管线自动在 HTML 注入 `app.js?v=app-core-v<timestamp>` 版本查询参数，配合 `window.__GLASS_BUILD_HTML__` 与 `__GLASS_BUILD_APP__` 双端构建指纹契约对，确保 HTML 结构与 JS 逻辑 100% 同池直出，彻底杜绝“旧 JS 执行于新 HTML”导致的切屏/BFCache 白屏死锁；版本换代由 SW 差量更新原子接管。
+   - `CORE_CACHE`：打包时基于构建时间戳命名（如 `app-core-v1786255428688`），主文档 `index.html` 与同源脚本 `app.js` 采用 **版本隔离的 Cache-First** 策略，缓存命中时直接返回，不在后台重验证；缓存未命中时回退网络；由构建管线自动在 HTML 注入 `app.js?v=app-core-v<timestamp>` 版本查询参数，配合 `window.__GLASS_BUILD_HTML__` 与 `__GLASS_BUILD_APP__` 双端构建指纹契约对，确保 HTML 结构与 JS 逻辑 100% 同池直出，彻底杜绝“旧 JS 执行于新 HTML”导致的切屏/BFCache 白屏死锁；新版安装时预缓存并校验核心资源与构建指纹，失败则拒绝安装；安装成功后保持 waiting，直到旧客户端全部退出才激活，不调用 `skipWaiting()` 或 `clients.claim()`。
    - `FAVICON_CACHE`：独立存储 `a.favicon.im` 与 Google S2 (`www.google.com/s2/favicons` 及其 `*.gstatic.com`) 外部图标，与核心脚本完全隔离。前端通过 `handleIconError` 与 `faviconFallbackFromUrl` 建立双轨容灾状态机，主源失败时无缝切换 Google S2 备用源，若均失败才降级为彩色字母徽标。
    - `IMG_CACHE`：独立存储站内高分辨率壁纸与本地同源书签图标（`dist/icons/*.png`），通过 Cache-First 策略实现本地同源 0ms 秒开并减少重复带宽消耗。
 2. **防透明响应污染 (Anti-Opaque Poisoning)**：请求跨域图标时产生 `status = 0` 的 `opaque` 响应。若直接缓存可能存入被 DNS 劫持或损坏的数据。系统引入二次网络校验与 7 秒超时熔断（`AbortController`），确保仅有合法的 `opaque` 或 `200 OK` 响应才被允许写入，并由轻量 `pruneCache` 原生实现先进先出（FIFO）淘汰，杜绝 IndexedDB 膨胀与崩溃隐患。
@@ -401,13 +401,13 @@ flowchart TD
         SORT_LOCAL["排序并截取 Top 2 本地匹配项<br/>matches.sort((a,b) => a.tier - b.tier)"]:::actionNode
         RENDER_0MS["⚡ 0ms 瞬间渲染本地书签 + 网络骨架屏预占位<br/>(彻底消除 CLS 视口高度突变与布局抖动)"]:::accentNode
 
-        JSONP_DISPATCH{"并发请求分配<br/>__glassSuggestCb_[id]"}:::decisionNode
+        JSONP_DISPATCH{"请求序号分配<br/>activeSuggestReqId"}:::decisionNode
         
-        subgraph S_ENGINES [" 并发 JSONP 搜索引擎集群 "]
+        subgraph S_ENGINES [" 联想请求按当前引擎分流 "]
             direction LR
             ENG_BING["Bing JSONP API<br/>api.bing.com"]:::engNode
             ENG_GOOGLE["Google JSONP API<br/>suggestqueries.google.com"]:::engNode
-            ENG_WIKI["Wikipedia OpenSearch<br/>zh.wikipedia.org"]:::engNode
+            ENG_WIKI["Wikipedia OpenSearch (CORS fetch)<br/>zh.wikipedia.org"]:::engNode
         end
 
         MERGE_LIST["动态容量混排与去重渲染<br/>(本地书签数 + 网络建议数 <= 4 条)"]:::resultNode
@@ -486,7 +486,7 @@ flowchart TD
    - 模糊容错支持字符邻近对调与单字符增删改，在用户敲错 1~2 个字母时仍能精准命中目标书签。
 2. **零 CLS 混排与防竞态调度**：
    - 输入瞬间以 0ms 延迟渲染本地书签，同时为网络建议词预留带动画的骨架屏槽位（Skeleton Pulse），彻底杜绝网络返回时下拉框高度突变引起的视觉抖动（CLS）。
-   - 每次网络请求分配递增的 `activeSuggestReqId` 与独立 `<script>` 节点，废弃过期的慢网络响应，彻底解决网络竞态乱序（Race Condition）。
+   - 每次网络请求分配递增的 `activeSuggestReqId`；Bing/Google 使用独立 JSONP `<script>`，Wikipedia 使用 CORS `fetch` 与 `AbortController`，复用超时和关闭清理，废弃过期的慢网络响应，防止网络竞态乱序（Race Condition）。
 3. **气象 9 阶动态感知演化算法**：
    - **湿度感知**：划分为 < 35%（沙漠干燥 🌵）、35% ~ 75%（适宜舒适 💧）、> 75%（潮湿多水 💦）。
    - **风速感知**：划分为 < 15 km/h（微风 🍃）、15 ~ 35 km/h（清风 🎏）、≥ 35 km/h（大风狂风 🌪️）。
@@ -521,7 +521,7 @@ flowchart TD
 | **IndexedDB 4K 壁纸持久化** | `src/js/utils/idb.js` | `getWallpaperDB()`, `setWallpaperDB()`, `clearWallpaperDB()` | 异步 IDB 4K 壁纸存取底座，防范 LocalStorage 配额爆仓 |
 | **启动装配与生命周期入口** | `src/js/init.js`<br/>`src/js/main.js` | `initApp()`, `initPreHydration()` | 双动效预水合即时对齐恢复、全量 ES 业务子模块流水线装配与异常边界捕获 |
 | **运行时黑匣子与指纹契约** | `src/js/core/lifecycle.js` | `window.__GLASS_DIAG__`, `snapshotHealth()`, `probeScreenState()` | 双端构建指纹同版校验、白屏异常三级自愈阶梯（L1~L3）、纯内存环形日志（≤40条） |
-| **离线底座与三池物理隔离** | `sw.js` | `CORE_CACHE`, `FAVICON_CACHE`, `IMG_CACHE`, `pruneCache()` | Service Worker 独立线程：原子化 SWR 锁步预缓存、跨域高清图标与站内图片三池物理隔离及 FIFO 容量淘汰 |
+| **离线底座与三池物理隔离** | `sw.js` | `CORE_CACHE`, `FAVICON_CACHE`, `IMG_CACHE`, `pruneCache()` | Service Worker 独立线程：核心资源版本隔离预缓存、跨域高清图标与站内图片三池物理隔离及 FIFO 容量淘汰 |
 
 
 ### 模块边界补充
