@@ -388,7 +388,6 @@ export function renderNavCategories(force = false) {
                     <span class="text-sm sm:text-base shrink-0 select-none">${escapeHtml(cat.icon)}</span>
                     <h3 class="text-xs sm:text-sm font-semibold tracking-wide text-white/90 select-none">${escapeHtml(cat.name)}</h3>
                 </div>
-                <span class="glass-badge shrink-0 select-none">${cat.bookmarks.length} 项</span>
             </div>
             <div class="nav-bookmark-grid">
                 ${sortedBookmarks.map(bm => `
