@@ -1006,7 +1006,16 @@ input:focus-visible {
 /* ==========================================================================
    7. TOUCH TARGET EXPANSION (Apple HIG 触控热区扩展 >= 44pt)
    ========================================================================== */
-@media (pointer: coarse) {
+/* 手机窄屏与含触屏的混合设备都保留独立的 44px 控件，避免扩大伪元素后互相重叠。 */
+@media (max-width: 639.98px), (any-pointer: coarse) {
+    :is(#editModal, #bookmarkPicker, #shortcutModal, #creditsModal, #confirmModal) button {
+        min-width: 44px;
+        min-height: 44px;
+    }
+    #editModal :is(.edit-name, .edit-url) {
+        min-height: 44px;
+    }
+
     #engineBtn::after,
     #randomBookmarkBtn::after,
     #searchClearBtn::after {
@@ -1027,5 +1036,12 @@ input:focus-visible {
         transform: translate(-50%, -50%);
         min-width: 100%;
         min-height: 44px;
+    }
+}
+
+/* 小尺寸手机保留完整 Tab 文案，装饰图标不占用文字与触控空间。 */
+@media (max-width: 359.98px) {
+    #editModal .settings-tab-btn svg {
+        display: none;
     }
 }

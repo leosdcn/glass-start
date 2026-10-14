@@ -391,15 +391,15 @@
 
             <!-- Tab 导航栏 -->
             <div role="tablist" aria-label="设置偏好选项卡" class="flex items-center gap-1.5 sm:gap-2 p-1 bg-black/20 border border-white/10 apple-radius mb-3 shrink-0">
-                <button type="button" role="tab" id="tab-btn-bookmarks" tabindex="0" aria-selected="true" aria-controls="tabBookmarks" class="settings-tab-btn active flex-1 py-2 px-3 sm:px-4 apple-radius text-xs sm:text-sm font-medium whitespace-nowrap glass-interactive flex items-center justify-center gap-1.5 sm:gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" data-tab="tabBookmarks">
+                <button type="button" role="tab" id="tab-btn-bookmarks" tabindex="0" aria-selected="true" aria-controls="tabBookmarks" class="settings-tab-btn active flex-1 py-2 px-1.5 sm:px-4 apple-radius text-xs sm:text-sm font-medium whitespace-nowrap glass-interactive flex items-center justify-center gap-1.5 sm:gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" data-tab="tabBookmarks">
                     <svg class="size-4 shrink-0 opacity-80" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0 1 11.186 0Z"/></svg>
                     <span class="whitespace-nowrap shrink-0">快捷书签</span>
                 </button>
-                <button type="button" role="tab" id="tab-btn-appearance" tabindex="-1" aria-selected="false" aria-controls="tabAppearance" class="settings-tab-btn flex-1 py-2 px-3 sm:px-4 apple-radius text-xs sm:text-sm font-medium whitespace-nowrap glass-interactive flex items-center justify-center gap-1.5 sm:gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" data-tab="tabAppearance">
+                <button type="button" role="tab" id="tab-btn-appearance" tabindex="-1" aria-selected="false" aria-controls="tabAppearance" class="settings-tab-btn flex-1 py-2 px-1.5 sm:px-4 apple-radius text-xs sm:text-sm font-medium whitespace-nowrap glass-interactive flex items-center justify-center gap-1.5 sm:gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" data-tab="tabAppearance">
                     <svg class="size-4 shrink-0 opacity-80" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M9.53 16.122a3 3 0 0 0-5.78 1.128 2.25 2.25 0 0 1-2.4 2.245 4.5 4.5 0 0 0 8.4-2.245c0-.399-.078-.78-.22-1.128Zm0 0a15.998 15.998 0 0 0 3.388-1.62m-5.043-.025a15.994 15.994 0 0 1 1.622-3.39m3.42 3.42a15.995 15.995 0 0 0 4.764-4.648l3.876-5.814a1.151 1.151 0 0 0-1.597-1.597L14.146 6.32a15.996 15.996 0 0 0-4.649 4.763m3.42 3.42a6.776 6.776 0 0 0-3.42-3.42"/></svg>
                     <span class="whitespace-nowrap shrink-0">外观壁纸</span>
                 </button>
-                <button type="button" role="tab" id="tab-btn-data" tabindex="-1" aria-selected="false" aria-controls="tabData" class="settings-tab-btn flex-1 py-2 px-3 sm:px-4 apple-radius text-xs sm:text-sm font-medium whitespace-nowrap glass-interactive flex items-center justify-center gap-1.5 sm:gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" data-tab="tabData">
+                <button type="button" role="tab" id="tab-btn-data" tabindex="-1" aria-selected="false" aria-controls="tabData" class="settings-tab-btn flex-1 py-2 px-1.5 sm:px-4 apple-radius text-xs sm:text-sm font-medium whitespace-nowrap glass-interactive flex items-center justify-center gap-1.5 sm:gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" data-tab="tabData">
                     <svg class="size-4 shrink-0 opacity-80" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 5.625c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125"/></svg>
                     <span class="whitespace-nowrap shrink-0">数据与备份</span>
                 </button>
@@ -414,7 +414,7 @@
                 <div id="editList" role="list" aria-label="书签列表" class="flex-1 overflow-y-auto space-y-1.5 mb-2.5 min-h-0 pr-1"></div>
                 <div class="grid grid-cols-2 gap-2 sm:gap-2.5 shrink-0">
                     <button id="addBookmarkBtn" type="button" class="settings-action h-9 px-3 glass-interactive text-xs flex items-center justify-center gap-1.5 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 truncate"><svg class="size-3.5 shrink-0 opacity-80" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M12 4.5v15m7.5-7.5h-15"/></svg> 手动添加书签</button>
-                    <button id="togglePickerBtn" type="button" aria-expanded="false" aria-controls="bookmarkPicker" aria-haspopup="dialog" class="settings-action h-9 px-3 text-xs glass-interactive flex items-center justify-center gap-1.5 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 truncate"><svg class="size-3.5 shrink-0 opacity-80" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M12 9v6m3-3H9m12 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg> 从导航页批量选择</button>
+                    <button id="togglePickerBtn" type="button" aria-expanded="false" aria-controls="bookmarkPicker" aria-haspopup="dialog" class="settings-action h-9 px-3 text-xs glass-interactive flex items-center justify-center gap-1.5 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"><svg class="size-3.5 shrink-0 opacity-80" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M12 9v6m3-3H9m12 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg> <span class="min-w-0 whitespace-normal">从导航页批量选择</span></button>
                 </div>
             </div>
 
@@ -480,20 +480,20 @@
             <!-- Tab 内容 3: 数据与备份 (tabData) -->
             <div id="tabData" role="tabpanel" aria-labelledby="tab-btn-data" class="settings-tab-panel flex-1 flex flex-col min-h-0 overflow-y-auto hidden space-y-3 pr-0.5">
                 <!-- 顶部系统品牌卡片 (Apple Standard System Brand Card) -->
-                <div class="p-3.5 glass-subcard flex items-center justify-between gap-3 shrink-0 select-none">
+                <div class="p-3.5 glass-subcard flex flex-col items-stretch sm:flex-row sm:items-center justify-between gap-3 shrink-0 select-none">
                     <div class="flex items-center gap-3">
                         <div class="size-9 rounded-control bg-white/10 flex items-center justify-center text-base border border-white/15 shadow-inner shrink-0">🪐</div>
                         <div class="flex items-center gap-2">
-                            <span class="text-sm font-semibold text-white/95 tracking-tight leading-none">Glass Start</span>
+                            <span class="text-sm font-semibold text-white/95 tracking-tight leading-none whitespace-nowrap">Glass Start</span>
                             <span class="text-2xs px-2 h-4.5 rounded-full bg-white/10 border border-white/15 text-white/75 font-medium inline-flex items-center justify-center">v4.10.4</span>
                         </div>
                     </div>
-                    <div class="flex items-center gap-2 shrink-0">
-                        <button id="openShortcutFromSettingsBtn" type="button" aria-expanded="false" aria-controls="shortcutModal" aria-haspopup="dialog" class="px-3 py-1.5 bg-white/10 enabled:hover:bg-white/20 border border-white/15 rounded-control text-xs font-medium text-white/90 enabled:hover:text-white glass-interactive inline-flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 enabled:active:scale-95" title="查看全站键盘快捷键速查">
+                    <div class="grid grid-cols-2 sm:flex items-center gap-2 shrink-0">
+                        <button id="openShortcutFromSettingsBtn" type="button" aria-expanded="false" aria-controls="shortcutModal" aria-haspopup="dialog" class="px-3 py-1.5 bg-white/10 enabled:hover:bg-white/20 border border-white/15 rounded-control text-xs font-medium text-white/90 enabled:hover:text-white glass-interactive inline-flex items-center justify-center whitespace-nowrap gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 enabled:active:scale-95" title="查看全站键盘快捷键速查">
                             <svg class="size-3.5 opacity-85 shrink-0" aria-hidden="true"><use href="#icon-keyboard"/></svg>
                             <span>快捷键速查</span>
                         </button>
-                        <button id="openCreditsFromSettingsBtn" type="button" aria-expanded="false" aria-controls="creditsModal" aria-haspopup="dialog" class="px-3 py-1.5 bg-white/10 enabled:hover:bg-white/20 border border-white/15 rounded-control text-xs font-medium text-white/90 enabled:hover:text-white glass-interactive inline-flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 enabled:active:scale-95" title="查看开源与数据鸣谢">
+                        <button id="openCreditsFromSettingsBtn" type="button" aria-expanded="false" aria-controls="creditsModal" aria-haspopup="dialog" class="px-3 py-1.5 bg-white/10 enabled:hover:bg-white/20 border border-white/15 rounded-control text-xs font-medium text-white/90 enabled:hover:text-white glass-interactive inline-flex items-center justify-center whitespace-nowrap gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 enabled:active:scale-95" title="查看开源与数据鸣谢">
                             <svg class="size-3.5 opacity-85 shrink-0" aria-hidden="true"><use href="#icon-sparkles"/></svg>
                             <span>开源致谢</span>
                         </button>
