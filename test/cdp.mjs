@@ -102,39 +102,56 @@ export async function launchChrome({ port, url, testMode = true }) {
   let id = 0;
   const pending = new Map();
 
+  const eventListeners = new Map();
+
   ws.onmessage = (ev) => {
     const msg = JSON.parse(ev.data);
     if (msg.id && pending.has(msg.id)) {
       pending.get(msg.id)(msg.result, msg.error);
       pending.delete(msg.id);
+    } else if (msg.method && eventListeners.has(msg.method)) {
+      for (const listener of eventListeners.get(msg.method)) {
+        try { listener(msg.params); } catch {}
+      }
     }
   };
   await new Promise((res, rej) => { ws.onopen = res; ws.onerror = rej; });
 
-  const send = (method, params = {}, timeoutMs = 15000) => new Promise((res, rej) => {
-    const mid = ++id;
-    const timer = setTimeout(() => {
-      if (pending.has(mid)) {
-        pending.delete(mid);
-        rej(new Error(`CDP command ${method} timed out after ${timeoutMs}ms`));
-      }
-    }, timeoutMs);
-    pending.set(mid, (result, error) => {
-      clearTimeout(timer);
-      if (error) {
-        rej(new Error(`CDP command ${method} failed (${error.code}): ${error.message}`));
-        return;
-      }
-      res(result);
-    });
-    try {
-      ws.send(JSON.stringify({ id: mid, method, params }));
-    } catch (err) {
-      clearTimeout(timer);
-      pending.delete(mid);
-      rej(err);
+  const on = (method, handler) => {
+    if (!eventListeners.has(method)) eventListeners.set(method, new Set());
+    eventListeners.get(method).add(handler);
+    return () => eventListeners.get(method).delete(handler);
+  };
+
+  const send = (method, params = {}, timeoutMs = 15000) => {
+    if (typeof params === 'function') {
+      return on(method, params);
     }
-  });
+    return new Promise((res, rej) => {
+      const mid = ++id;
+      const timer = setTimeout(() => {
+        if (pending.has(mid)) {
+          pending.delete(mid);
+          rej(new Error(`CDP command ${method} timed out after ${timeoutMs}ms`));
+        }
+      }, timeoutMs);
+      pending.set(mid, (result, error) => {
+        clearTimeout(timer);
+        if (error) {
+          rej(new Error(`CDP command ${method} failed (${error.code}): ${error.message}`));
+          return;
+        }
+        res(result);
+      });
+      try {
+        ws.send(JSON.stringify({ id: mid, method, params }));
+      } catch (err) {
+        clearTimeout(timer);
+        pending.delete(mid);
+        rej(err);
+      }
+    });
+  };
 
   if (testMode) {
     await send('Page.enable');
