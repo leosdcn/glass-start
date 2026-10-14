@@ -1,4 +1,3 @@
-import { flushWallpaperSelection } from '../modules/wallpaper.js';
 /**
  * ==============================================================================
  * Glass Start — 设置事件装配 (src/js/core/settings-events.js)
@@ -7,16 +6,17 @@ import { flushWallpaperSelection } from '../modules/wallpaper.js';
  * 设置按钮、书签草稿编辑与拖拽排序的事件装配。
  */
 import { CONFIG } from '../config/constants.js';
-import { escapeHtml, storageGet, storageSet, checkImageReady } from '../utils/helpers.js';
+import { escapeHtml, storageGet, checkImageReady } from '../utils/helpers.js';
 
 import { modalState } from '../state/store.js';
 import { dom } from '../state/dom.js';
 
 import { initDragSort } from './drag-sort.js';
 
-import { previewDraftWallpaper, resetDraftWallpaper } from '../modules/wallpaper.js';
-import { openEditModal, closeEditModal, cancelEditModal, openShortcutModal, closeShortcutModal, openCreditsModal, closeCreditsModal, openBookmarkPicker, closeBookmarkPicker, switchSettingsTab, scheduleBgEffects, updateAllBookmarkCounters, getEditFaviconInner, collectEditData, showConfirm, resetBookmarks, importBookmarksJSON, exportBookmarksJSON, getExistingUrls, handleEditIconError, appendDraftBookmarkRow } from '../modules/settings.js';
-import { saveUserBookmarks } from '../modules/bookmarks.js';
+import { uploadWallpaper, previewDraftWallpaper, resetDraftWallpaper } from '../modules/wallpaper.js';
+import { openEditModal, saveEditModal, cancelEditModal, openShortcutModal, closeShortcutModal, openCreditsModal, closeCreditsModal, openBookmarkPicker, closeBookmarkPicker, switchSettingsTab, scheduleBgEffects, resetBookmarks, importBookmarksJSON, exportBookmarksJSON } from '../modules/settings.js';
+import { updateAllBookmarkCounters, getEditFaviconInner, getExistingUrls, handleEditIconError, appendDraftBookmarkRow } from '../modules/bookmark-editor.js';
+import { showConfirm } from './dialogs.js';
 
 export function bindEditEvents() {
     document.querySelectorAll('#editModal > div, #bookmarkPicker > div, #confirmModal > div, #shortcutModal > div, #creditsModal > div').forEach(el => {
@@ -209,40 +209,9 @@ export function bindEditEvents() {
         });
     }
 
-    // @region [SETTINGS_MODAL_COMMIT] 设置弹窗底部「保存并关闭」落盘入口
+    // 保存流程由设置模块统一管理。
     if (dom.saveEditBtn) {
-        dom.saveEditBtn.addEventListener('click', async () => {
-            if (dom.saveEditBtn.disabled) return;
-            dom.saveEditBtn.disabled = true;
-            dom.saveEditBtn.setAttribute('aria-busy', 'true');
-            try {
-                const data = collectEditData();
-                if (data.length === 0) {
-                    showConfirm('至少需要保留一个名称和 URL 均已填写的书签才能保存。', null, '无法保存');
-                    return;
-                }
-
-                if (!await flushWallpaperSelection()) {
-                    showConfirm('壁纸尚未保存成功，请重新选择后再保存。', null, '无法保存');
-                    return;
-                }
-
-                // 1. 提交书签
-                if (modalState.bookmarksChanged) {
-                    saveUserBookmarks(data);
-                }
-
-                // 2. 提交背景暗度（壁纸已于用户选择时即选即存，无需重复落盘）
-                if (modalState.draftMaskOpacity !== null) {
-                    storageSet(CONFIG.KEYS.MASK_OPACITY, modalState.draftMaskOpacity);
-                }
-
-                closeEditModal();
-            } finally {
-                dom.saveEditBtn.disabled = false;
-                dom.saveEditBtn.removeAttribute('aria-busy');
-            }
-        });
+        dom.saveEditBtn.addEventListener('click', saveEditModal);
     }
 
     // JSON 导入导出事件绑定
@@ -271,57 +240,7 @@ export function bindEditEvents() {
         dom.uploadBgInput.addEventListener('change', e => {
             const file = e.target.files[0];
             if (file) {
-                if (!file.type.startsWith('image/')) {
-                    showConfirm('请选择有效的图片文件（JPG / PNG / WebP 等）。', null, '格式错误');
-                    return;
-                }
-                const reader = new FileReader();
-                reader.onload = ev => {
-                    const dataUrl = ev.target.result;
-                    const img = new Image();
-                    img.onload = () => {
-                        const MAX_WIDTH = CONFIG.APPEARANCE.MAX_UPLOAD_WIDTH;
-                        const MAX_HEIGHT = CONFIG.APPEARANCE.MAX_UPLOAD_HEIGHT;
-                        let width = img.width;
-                        let height = img.height;
-
-                        if (width > MAX_WIDTH || height > MAX_HEIGHT) {
-                            if (width / height > MAX_WIDTH / MAX_HEIGHT) {
-                                height = Math.round((height * MAX_WIDTH) / width);
-                                width = MAX_WIDTH;
-                            } else {
-                                width = Math.round((width * MAX_HEIGHT) / height);
-                                height = MAX_HEIGHT;
-                            }
-                        }
-
-                        const canvas = document.createElement('canvas');
-                        canvas.width = width;
-                        canvas.height = height;
-                        const ctx = canvas.getContext('2d');
-                        ctx.drawImage(img, 0, 0, width, height);
-
-                        const compressedDataUrl = canvas.toDataURL('image/jpeg', CONFIG.APPEARANCE.JPEG_QUALITY);
-                        previewDraftWallpaper(compressedDataUrl);
-
-                        ctx.clearRect(0, 0, width, height);
-                        canvas.width = 0;
-                        canvas.height = 0;
-                        img.onload = null;
-                        img.onerror = null;
-                        img.src = '';
-                        reader.onload = null;
-                    };
-                    img.onerror = () => {
-                        previewDraftWallpaper(dataUrl);
-                        img.onload = null;
-                        img.onerror = null;
-                        img.src = '';
-                        reader.onload = null;
-                    };
-                    img.src = dataUrl;
-                };
-                reader.readAsDataURL(file);
+                if (uploadWallpaper(file) === false) return;
             }
             e.target.value = '';
         });

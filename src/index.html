@@ -258,8 +258,9 @@
             <div id="weatherPopover" role="dialog" aria-modal="false" aria-label="实时天气详细预报" aria-hidden="true" class="dropdown-menu absolute p-3.5 sm:p-4 glass-strong apple-radius border border-white/20 shadow-2xl z-[var(--z-dropdown)] select-none"></div>
         </div>
         <script>
-            // 天气小组件首帧 0ms 极速水合（消灭 CLS 布局抖动）
+            // 使用缓存预渲染天气；数值规则与运行时来自同一模块。
             (function(){
+                /* INJECT_WEATHER_NUM */
                 try {
                     const s = JSON.parse(localStorage.getItem('glass_weather_settings') || '{}');
                     const w = document.getElementById('weatherWidget');
@@ -270,7 +271,7 @@
                         const t = document.getElementById('weatherTemp');
                         const ct = document.getElementById('weatherCity');
                         if (i && c.current.icon) i.textContent = c.current.icon;
-                        if (t && c.current.temp !== undefined) t.textContent = c.current.temp + '°';
+                        if (t) t.textContent = Math.round(weatherNum(c.current.temp, 0)) + '°';
                         if (ct && c.location && c.location.name) ct.textContent = c.location.name;
                         const btn = document.getElementById('weatherBtn');
                         if (btn && t && ct) {
@@ -485,7 +486,7 @@
                         <div class="size-9 rounded-control bg-white/10 flex items-center justify-center text-base border border-white/15 shadow-inner shrink-0">🪐</div>
                         <div class="flex items-center gap-2">
                             <span class="text-sm font-semibold text-white/95 tracking-tight leading-none whitespace-nowrap">Glass Start</span>
-                            <span class="text-2xs px-2 h-4.5 rounded-full bg-white/10 border border-white/15 text-white/75 font-medium inline-flex items-center justify-center">v4.11.0</span>
+                            <span class="text-2xs px-2 h-4.5 rounded-full bg-white/10 border border-white/15 text-white/75 font-medium inline-flex items-center justify-center">v5.0.0</span>
                         </div>
                     </div>
                     <div class="grid grid-cols-2 sm:flex items-center gap-2 shrink-0">

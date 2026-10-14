@@ -6,7 +6,7 @@
  * 4. 全站 12 项工程宪法规范静态门禁扫描 (iOS 16px, WAI-ARIA, !important, DOM ID, BFCache 等)
  */
 import { readFileSync, writeFileSync, statSync, existsSync, readdirSync } from 'node:fs';
-import { join, dirname } from 'node:path';
+import { join, dirname, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import vm from 'node:vm';
@@ -150,14 +150,20 @@ for (const item of jsFiles) {
 
 // 校验 src/js/ 下全部 ESM 业务模块
 if (allSrcJsFiles.length > 0) {
-    const checkRes = spawnSync(process.execPath, ['--check', ...allSrcJsFiles], { encoding: 'utf-8' });
+    const failures = [];
+    for (const file of allSrcJsFiles) {
+        const checkRes = spawnSync(process.execPath, ['--check', file], { encoding: 'utf-8' });
+        if (checkRes.status !== 0) {
+            failures.push(`${relative(root, file)}:\n${checkRes.stderr || checkRes.error?.message || '语法检查进程异常退出'}`);
+        }
+    }
     const label = `src/js/            (${allSrcJsFiles.length} 个 ESM 核心业务子模块)`;
-    if (checkRes.status === 0) {
+    if (failures.length === 0) {
         passCount++;
         logItem(`${label} 语法全部通过`);
     } else {
         failCount++;
-        logItem(`${label} 语法错误:\n${checkRes.stderr}`, 'error');
+        logItem(`${label} 语法错误:\n${failures.join('\n')}`, 'error');
     }
 }
 

@@ -51,9 +51,9 @@ flowchart TD
     end
 
     %% ======================= LAYER 3: DATA PERSISTENCE =======================
-    subgraph L3 [" 3. 响应式数据管理与本地持久化层 (Data Management & Local Persistence) "]
+    subgraph L3 [" 3. 内存状态管理与本地持久化层 (Data Management & Local Persistence) "]
         direction LR
-        RUNTIME["pageData 响应式内存模型<br/>{ bookmarks, categories, customMeta }"]:::activeBox
+        RUNTIME["pageData 内存数据模型<br/>{ bookmarks, categories, customMeta }"]:::activeBox
         DRAFT_STORE["In-Memory Draft Store (modalState.draftBookmarks)<br/>纯内存草稿真理源 ➔ 彻底根除 DOM Harvesting"]:::activeBox
         MIGRATION["旧版存储平滑迁移 (migrateBookmarksStorage)<br/>LEGACY_BOOKMARKS ➔ 派生索引 (keys + customMeta)"]:::nodeBox
         ASSET_STORE["自定义壁纸与数据持久化 (idb.js)<br/>IndexedDB (4K壁纸) / LocalStorage (轻量配置)"]:::nodeBox
@@ -95,9 +95,9 @@ flowchart TD
 ```
 
 #### 💡 技术原理解析
-1. **表现层与 GPU 硬件加速**：系统采用 Tailwind CSS v4 原子化引擎配合 CSS 变量进行纯 GPU 复合图层渲染。通过 Pointer Motion Gating 与 `requestAnimationFrame` 合并帧计算，仅在指针接近卡片边界（±4px）时激活 3D 矩阵视差变换；搜索框仅应用光斑高光而不做 3D 倾斜，避免输入打字时光标抖动。
+1. **表现层与 GPU 硬件加速**：系统采用 Tailwind CSS v4 原子化引擎配合 CSS 变量实现有利于浏览器合成的样式与动效；具体绘制和合成路径由浏览器决定。通过 Pointer Motion Gating 与 `requestAnimationFrame` 合并帧计算，仅在指针接近卡片边界（±4px）时激活 3D 矩阵视差变换；搜索框仅应用光斑高光而不做 3D 倾斜，避免输入打字时光标抖动。
 2. **状态与交互路由层**：通过双屏有限状态机解耦第一屏（Start）与第二屏（Nav），辅以滚轮动量吞咽器与触屏滑动引擎。针对 Mac 触控板高频惯性与跨屏误触，设立速度门控与反向打断机制。
-3. **数据管理与派生架构**：采用单向数据流与派生式架构（Derived Bookmark Architecture），快捷书签仅存储 URL 索引，其标题、图标与分类均由 `bookmarks.json` 全量数据库动态派生，兼顾用户自定义灵活性与全局数据实时同步能力。在设置弹窗中全面确立 **In-Memory Draft Store（`modalState.draftBookmarks`）** 纯内存响应式草稿单向数据源，所有书签编辑、增删、拖拽重排与落盘导出 100% 直接读写内存数据模型，实现 0 次 DOM 逆向查询与 0 次 Reflow 重排。
+3. **数据管理与派生架构**：采用单向数据流与派生式架构（Derived Bookmark Architecture），快捷书签仅存储 URL 索引，其标题、图标与分类均由 `bookmarks.json` 全量数据库动态派生，兼顾用户自定义灵活性与全局数据实时同步能力。在设置弹窗中全面确立 **In-Memory Draft Store（`modalState.draftBookmarks`）** 纯内存草稿单向数据源，所有书签编辑、增删、拖拽重排与落盘导出 100% 直接读写内存数据模型，保存与导出不从 DOM 反向解析书签数据；编辑、渲染和拖拽过程仍可能触发布局计算。
 4. **离线基座与安全屏障**：Service Worker 实施三池物理隔离，配合 `public/_headers` 的严格 CSP 与 HSTS，既保证离线可用性，又防范跨域数据投毒与 CSS/JS 缓存穿透。静态资产全面收拢于 `public/` 纯静态公开层，构建时镜像同步至 `dist/`。
 5. **单一真理源与双端构建指纹**：版本发布以 `package.json` 为唯一真理源，`scripts/build.js` 自动将版本号同步注入 `README.md` 与 `dist/index.html` 徽章，同时生成同步的 `__GLASS_BUILD_HTML__` 与 `__GLASS_BUILD_APP__` 双端构建指纹对，确保客户端 HTML 与 JS 逻辑同版锁步运行。
 
@@ -187,8 +187,8 @@ flowchart TD
 
 #### 💡 技术原理解析
 1. **滚轮动量吞咽与反向熔断**：在从 Start 屏快速滑动进入 Nav 屏后，触控板产生的物理动量会持续 1~3 秒。系统开启 `swallowMomentum = true`，吞掉持续的同向事件，防止动量直接穿透导致导航页书签被意外跳滚；一旦检测到用户反向滚动（`curDir !== swallowDir`）或静默间隔超过 70ms（`MOMENTUM_QUIET_MS`），吞咽器立即熔断放行。
-2. **零 Reflow 触屏手势引擎**：触摸事件通过对比 X/Y 轴位移比率（`deltaX > absDeltaY` 则判定为侧边栏横滑并放行原生滚动），在垂直滑动达到 40px 阈值或满足 Flick 轻扫（位移 ≥ 25px 且速度 > 0.25px/ms）时瞬间触发切换。
-3. **BFCache 与多标签唤醒幂等自愈**：当用户点击书签跳转后退或在多标签页之间切回时，页面经 BFCache 或后台唤醒恢复。双通道捕获（`pageshow` + `visibilitychange`）后调用 `reconcileScreenState()`，无视过渡动画直接在单帧内清空互斥锁、消除定时器、校准 `scrollTop` 与 DOM 类名，并无条件通过 `display` 瞬态重置（`display: none` ➔ `void offsetHeight` ➔ `display: ''`）强制 WebKit 重新分配 GPU Backing Store 磁贴，根绝离屏图层白屏。
+2. **触屏手势引擎**：触摸事件通过对比 X/Y 轴位移比率（`deltaX > absDeltaY` 则判定为侧边栏横滑并放行原生滚动），在垂直滑动达到 40px 阈值或满足 Flick 轻扫（位移 ≥ 25px 且速度 > 0.25px/ms）时瞬间触发切换。
+3. **BFCache 与多标签唤醒幂等自愈**：当用户点击书签跳转后退或在多标签页之间切回时，页面经 BFCache 或后台唤醒恢复。双通道捕获（`pageshow` + `visibilitychange`）后调用 `reconcileScreenState()`，无视过渡动画直接在单帧内清空互斥锁、消除定时器、校准 `scrollTop` 与 DOM 类名，并无条件通过 `display` 瞬态重置（`display: none` ➔ `void offsetHeight` ➔ `display: ''`）强制 WebKit 重新分配 GPU Backing Store 磁贴，降低离屏图层恢复异常的风险。
 4. **构建指纹黑匣子与三级自愈阶梯**：`window.__GLASS_DIAG__`（verify/probe/dump/log）在启动时校验 HTML 内联指纹 `__GLASS_BUILD_HTML__` 与 app.js 头部指纹 `__GLASS_BUILD_APP__` 的同版契约（不一致 → 60s 冷却期守卫单次刷新）；双屏 transform 过渡结束后执行健全性探测（当前在位屏变换矩阵 ≈ 单位阵 + 哨兵元素可见，支持 `window.state` 与 DOM 类名双重校验），连续异常按 L1 幂等校准 → L2 合成层磁贴强制重栅格化 → L3 冷却拦截安全熔断（`bbLog` 记录 `heal-reload-blocked` 拦截刷新死循环，零存储写入保活页面）。全过程记录于**纯内存环形日志**（≤40 条，零存储写入；BFCache 恢复不重置 JS 堆，天然覆盖偶发白屏的被动取证窗口）；无任何 UI 诊断面板，现场经控制台 `dump()` 导出现场取证。
 
 #### 🛡️ BFCache 与页面生命周期失步关键防线与避坑规范 (Lifecycle Anti-Patterns & Defenses)
@@ -199,7 +199,7 @@ flowchart TD
 | **2. 异步跨帧竞态反模式**<br>*(Async Inter-Frame Race Condition)* | 采用 `el.style.transition = 'none'` + `rAF` 异步清除；后台标签页被浏览器完全冻结 `rAF` 时，残留内联样式在唤醒瞬间破坏 CSS 动画，导致屏幕卡死。 | **纯声明式状态类**：绝不常驻内联样式修改，100% 依托 `.screen-pushed-up` 等状态类驱动，唤醒自愈时同步清空 `startSection` / `nav` 内联脏样式。 |
 | **3. 生命周期事件模型割裂**<br>*(Lifecycle Fragmentation)* | 混淆 BFCache 唤醒（仅触发 `pageshow`）与多标签页切回（仅触发 `visibilitychange`）；若仅监听单边事件，另一侧唤醒即成为无监管死锁盲区。 | **双保险全量收敛**：统一提炼 `handleAppWakeUp()`，同时向 `visibilitychange` (`!document.hidden`) 与 `pageshow` 注册，单点实现多标签与 BFCache 统一自愈。 |
 | **4. CSS 动画时间穿越隐患**<br>*(CSS Animation Rewind Issue)* | 让带有 `animation-fill-mode: backwards` 的入场动画类（`.fade-in`、`.animate-item-in`）常驻 DOM；WebKit 从 BFCache 解冻唤醒时重估动画并回滚至 `opacity:0` 造成页面不可见。 | **入场后主动脱壳卸载**：页面首屏入场后 800ms 自动卸载 `.fade-in`，新增条目通过 `animationend` 同步卸载 `.animate-item-in`，唤醒时全局扫除动画类，保持静态 DOM。 |
-| **5. 离屏图层磁贴失栅格化**<br>*(Stale Tile Rasterization)* | 长期离屏或后台挂起的 `fixed` 双屏图层（`-100dvh` 推移 + `will-change: transform`）在多标签页切回 (`visibilitychange`) 或 BFCache 唤醒时，WebKit 会主动丢弃 GPU 离屏磁贴，导致首屏或导航屏整片空白。单纯修改 `willChange` 无法触发重绘。 | **双通道瞬态重排重栅格化 + 探针双断言闭环**：`handleAppWakeUp()` 彻底移除单边 `wasPersisted` 限制，全量覆盖 `visibilitychange` 与 `pageshow`，通过 `display: none` ➔ `void offsetHeight` ➔ `display: ''` 瞬态重置强制 WebKit 重新分配 GPU Backing Store 磁贴；黑匣子挂载 `window.state` 并联动 `.screen-pushed-in` 物理 DOM 双断言，异常时由 L2 自动触发重栅格化。 |
+| **5. 离屏图层磁贴失栅格化**<br>*(Stale Tile Rasterization)* | 长期离屏或后台挂起的 `fixed` 双屏图层（`-100dvh` 推移 + `will-change: transform`）在多标签页切回 (`visibilitychange`) 或 BFCache 唤醒时，WebKit 会主动丢弃 GPU 离屏磁贴，导致首屏或导航屏整片空白。单纯修改 `willChange` 无法触发重绘。 | **双通道瞬态重排重栅格化 + 探针双断言闭环**：`handleAppWakeUp()` 覆盖 `visibilitychange` 与 `pageshow`，每次唤醒校准状态，并通过 `display: none` ➔ `void offsetHeight` ➔ `display: ''` 瞬态重置强制 WebKit 重新分配 GPU Backing Store 磁贴；黑匣子结合过渡状态、首屏 DOM 类名、变换矩阵与哨兵布局进行检查；正常页面不挂载 `window.state`，异常时由 L2 自动触发重栅格化。 |
 
 ---
 
@@ -279,7 +279,7 @@ flowchart TD
 1. **LIFO 后进先出退栈模型**：`OverlayStack` 维护一个响应优先级栈。当用户在“设置弹窗”之上唤起“书签提取器”并进一步触发“删除确认对话框”时，弹窗依次压栈。按 `Escape` 键或点击遮罩将严格按照后进先出顺序逐层剥离，绝不发生跨层全关的穿透现象。
 2. **滚动穿透锁定与引用计数**：栈内通过 `MODAL_OVERLAY_IDS` 集合监测活动弹窗。当第一个 Modal 入栈时，立即向 `document.body` 注入 `overflow-hidden touch-none`；退栈时仅当所有 Modal 全部出栈后才释放锁定，避免底层页面意外发生滚动穿透。
 3. **焦点归还与 Focus Trap**：弹窗展开时记录 `editModalTriggerEl = document.activeElement`，并在弹窗内使用 `handleModalTabFocus` 拦截 `Tab` / `Shift+Tab` 键实现焦点循环锁定；弹窗销毁后平滑归还焦点到触发按钮，保证键盘纯盲操的无障碍闭环。
-4. **In-Memory Draft Store 与单向数据流闭环**：设置弹窗内所有书签修改、新增、删除与 HTML5 拖拽重排直接同步至纯内存草稿 `modalState.draftBookmarks`，保存（`collectEditData`）与导出直接消费内存数组，彻底消灭 DOM 搜刮与布局抖动，并在保存后原子化同步更新 `pageData.bookmarks`。
+4. **In-Memory Draft Store 与单向数据流闭环**：设置弹窗内所有书签修改、新增、删除与 HTML5 拖拽重排直接同步至纯内存草稿 `modalState.draftBookmarks`，保存（`collectEditData`）与导出直接消费内存数组，避免从 DOM 反向解析书签数据，并在保存后同步更新 `pageData.bookmarks`。
 
 ---
 
@@ -504,34 +504,37 @@ flowchart TD
 | 业务领域与核心意图 | 对应 ES 模块文件 (`src/`) | 核心函数 / 关键 Symbol | 架构职责与技术细节 |
 | :--- | :--- | :--- | :--- |
 | **全站配置与常量真理源** | `src/js/config/constants.js` | `CONFIG`, `DEFAULT_BOOKMARKS`, `DEFAULT_CATEGORIES` | 统一管理全站键名、手势阈值、气象/搜索常量配置与默认书签回退池 |
-| **首屏主题与 Safari 外壳预渲染** | `src/js/config/themes.js` | `PRESET_THEMES`, `targetColor` | `<head>` 内由构建从 themes.js 注入配置并同步对齐：纯净黑白二元流（深色壁纸深空黑 `#0b0f19`，浅色壁纸纯净白 `#ffffff`），同步 `html/body` 底色 |
+| **首屏主题与 Safari 外壳预渲染** | `src/js/config/themes.js` | `PRESET_THEMES`, `APP_THEME_DARK`, `APP_THEME_LIGHT` | `<head>` 内由构建从 themes.js 注入配置并同步对齐：纯净黑白二元流（深色壁纸深空黑 `#0b0f19`，浅色壁纸纯净白 `#ffffff`），同步 `html/body` 底色 |
 | **全局状态与高频 DOM 缓存池** | `src/js/state/store.js`<br/>`src/js/state/dom.js` | `dom`, `state`, `cacheDOM()`, `$` | 核心高频 DOM 节点集中映射缓存，`state.currentSection` / `state.bg` 单一数据源 |
 | **书签体系与双栏分类导航** | `src/js/modules/bookmarks.js` | `getDerivedBookmarks()`, `renderBookmarks()`, `renderNavCategories()`, `getFaviconHTML()` | 派生书签架构（Derived BM）、双栏拼音排序、首字母徽章兜底与 Favicon 懒加载观察器 |
 | **时钟引擎、快捷键与鸣谢** | `src/js/modules/clock.js` | `updateClock()`, `applyPlatformShortcuts()`, `renderShortcutModalList()` | 实时时钟节流更新、休眠唤醒即时对齐、Mac/Win 跨平台快捷键适配与开源数据鸣谢 |
 | **设置弹窗内部草稿状态机** | `src/js/state/store.js` | `modalState`, `modalState.draftBookmarks` | 弹窗纯内存草稿真理源 (In-Memory Draft Store)：备份打开前的壁纸与特效状态，接管书签编辑/增删/拖拽排序，纯内存单向驱动 |
-| **壁纸持久化与即选即存引擎** | `src/js/modules/wallpaper.js` | `commitWallpaperSelection()`, `previewDraftWallpaper()`, `resetDraftWallpaper()` | 选中预设、上传图片或输入 URL 后立即完成持久化（IndexedDB + localStorage 双写），无需按保存即刻生效 |
+| **壁纸持久化与即选即存引擎** | `src/js/modules/wallpaper.js` | `commitWallpaperSelection()`, `previewDraftWallpaper()`, `resetDraftWallpaper()` | 选中预设、上传图片或输入 URL 后立即完成持久化（图片与预设索引保存到 IndexedDB，LocalStorage 仅保存轻量首屏提示），无需按保存即刻生效 |
 | **设置弹窗全生命周期管理** | `src/js/modules/settings.js`<br/>`src/js/core/overlay-stack.js` | `openEditModal()`, `closeEditModal()`, `cancelEditModal()` | 弹窗打开备份、动画进出场、关闭清理聚焦、LIFO `OverlayStack` 压退栈管理 |
-| **弹窗底部操作与落盘入口** | `src/js/core/events.js`<br/>`src/js/modules/settings.js` | `dom.saveEditBtn`, `collectEditData()`, `saveUserBookmarks()` | 弹窗底部操作栏响应；直接消费内存草稿纯数据落盘（0 次 DOM 节点查询与 0 次 Reflow），快捷书签真正落盘与视觉特效保存入口 |
-| **智能搜索与联想防竞态调度** | `src/js/modules/search.js` | `renderSuggestions()`, `fetchSuggestions()`, `activeSuggestReqId` | 多阶本地模糊匹配 + 网络建议词混排，骨架屏防 CLS，自增 reqId 防乱序 |
+| **弹窗底部操作与落盘入口** | `src/js/modules/settings.js`<br/>`src/js/modules/bookmark-editor.js`<br/>`src/js/modules/bookmarks.js` | `saveEditModal()`, `collectEditData()`, `saveUserBookmarks()` | 弹窗底部操作栏响应；直接消费内存草稿纯数据落盘（不从 DOM 反向收集书签数据），快捷书签真正落盘与视觉特效保存入口 |
+| **智能搜索与联想防竞态调度** | `src/js/modules/search.js` | `renderSuggestions()`, `fetchSuggestions()`, `activeSuggestReqId`, `damerauLevenshteinDistance()` | 多阶本地模糊匹配 + 网络建议词混排，骨架屏防 CLS，自增 reqId 防乱序 |
 | **气象演化与数据数值净化** | `src/js/modules/weather.js` | `initWeather()`, `weatherNum()`, `weatherTime()`, `WMO_WEATHER_MAP` | 气象 API 拉取、缓存信任边界防御（强制数值化清洗）、9 阶动态形态演化 |
 | **外壳主题与底色动态管理** | `src/js/core/theme-engine.js` | `APP_THEME_DARK`, `APP_THEME_LIGHT`, `updateThemeColor()`, `syncThemeForSection()` | 运行时壁纸主题裁决、双屏外壳色恒定同步、`--bg-base` 与 `#bgLayer` 联动 |
 | **双屏有限状态机与唤醒自愈** | `src/js/core/screen-state.js`<br/>`src/js/core/lifecycle.js` | `switchToNav()`, `switchToStart()`, `reconcileScreenState()`, `handleAppWakeUp()` | 状态机流转、手势/滚轮惯性吞咽拦截、WebKit 离屏磁贴强制重栅格化 |
 | **VisionOS 3D 倾斜与折射高光** | `src/js/core/gestures.js` | `initGlassSpotlightAndTilt()`, `resetActiveCard()` | VisionOS 风格玻璃物理光斑折射（`--mouse-x/y`）、3D 陀螺仪矩阵倾斜（`perspective(800px) rotateX/Y scale`）、RAF 帧合并 |
 | **拖拽重排与 FLIP 物理吸附** | `src/js/core/drag-sort.js` | `initDragSort()` | HTML5 Drag & Drop 拖拽重排、FLIP 物理吸附微动效与占位指示线渲染 |
-| **全局事件中枢与焦点捕获** | `src/js/core/events.js` | `bindEvents()`, `bindEditEvents()`, `handleModalTabFocus()` | 全局键盘/点击事件委托、搜索框 IME 拼音输入防冲突与弹窗焦点循环捕获 |
-| **XSS 安全防线与字符纠错** | `src/js/utils/helpers.js` | `escapeHtml()`, `safeUrl()`, `normalizeUrl()`, `damerauLevenshtein()` | HTML 实体转义、`safeUrl` 协议白名单过滤、Damerau-Levenshtein 容错 |
-| **IndexedDB 4K 壁纸持久化** | `src/js/utils/idb.js` | `getWallpaperDB()`, `setWallpaperDB()`, `clearWallpaperDB()` | 异步 IDB 4K 壁纸存取底座，防范 LocalStorage 配额爆仓 |
-| **启动装配与生命周期入口** | `src/js/init.js`<br/>`src/js/main.js` | `initApp()`, `initPreHydration()` | 双动效预水合即时对齐恢复、全量 ES 业务子模块流水线装配与异常边界捕获 |
-| **运行时黑匣子与指纹契约** | `src/js/core/lifecycle.js` | `window.__GLASS_DIAG__`, `snapshotHealth()`, `probeScreenState()` | 双端构建指纹同版校验、白屏异常三级自愈阶梯（L1~L3）、纯内存环形日志（≤40条） |
+| **全局事件中枢与焦点捕获** | `src/js/core/events.js` | `bindEvents()`, `handleModalTabFocus()` | 全局键盘/点击事件委托、搜索框 IME 拼音输入防冲突与弹窗焦点循环捕获 |
+| **XSS 安全防线与字符纠错** | `src/js/utils/helpers.js` | `escapeHtml()`, `safeUrl()`, `normalizeUrl()` | HTML 实体转义、`safeUrl` 协议白名单过滤、容错算法位于 `modules/search.js` 的 `damerauLevenshteinDistance()` |
+| **IndexedDB 4K 壁纸持久化** | `src/js/utils/idb.js` | `getWallpaperDB()`, `setWallpaperDB()`, `removeWallpaperDB()` | 异步 IDB 4K 壁纸存取底座，防范 LocalStorage 配额爆仓 |
+| **启动装配与生命周期入口** | `src/js/init.js`<br/>`src/js/main.js` | `init()`, `bootstrap()` | 双动效预水合即时对齐恢复、全量 ES 业务子模块流水线装配与异常边界捕获 |
+| **运行时黑匣子与指纹契约** | `src/js/core/lifecycle.js` | `window.__GLASS_DIAG__`, `snapshotHealth()`, `probe()` | 双端构建指纹同版校验、白屏异常三级自愈阶梯（L1~L3）、纯内存环形日志（≤40条） |
 | **离线底座与三池物理隔离** | `sw.js` | `CORE_CACHE`, `FAVICON_CACHE`, `IMG_CACHE`, `pruneCache()` | Service Worker 独立线程：核心资源版本隔离预缓存、跨域高清图标与站内图片三池物理隔离及 FIFO 容量淘汰 |
 
 
 ### 模块边界补充
 
-生产入口 `main.js` 只装配初始化与生命周期，业务调用通过 ES 模块导入。历史测试接口集中在 `src/js/testing/bridge.js`，仅在测试预先设置 `window.__GLASS_TEST__ = true` 时挂载；可变状态使用实时访问器。适配代码仍会参与打包，正常页面不挂载这些接口。
+生产入口 `main.js` 只装配初始化与生命周期，业务调用通过 ES 模块导入。当前回归测试所需接口集中在 `src/js/testing/bridge.js`，仅在测试预先设置 `window.__GLASS_TEST__ = true` 时挂载；可变状态使用实时访问器。生产构建在编译时将测试标记定义为 `false`，测试适配层不进入生产依赖图或产物。测试服务器使用同一编译函数按需在内存生成测试脚本，并沿用生产 HTML 的构建指纹；不覆盖 `dist/app.js`。
 
-- `core/settings-events.js`：设置按钮、草稿编辑事件与拖拽装配。
-- `modules/bookmark-editor.js`：书签草稿渲染、计数与数据收集；`settings.js` 保留兼容导出。
+- `core/settings-events.js`：设置按钮、草稿编辑事件与拖拽装配；保存与图片上传调用业务模块。
+- `modules/settings.js`：设置弹窗生命周期与 `saveEditModal()` 保存流程。
+- `modules/bookmarks.js`：`loadBookmarks()` 恢复书签；不依赖壁纸模块或 IndexedDB。
+- `modules/wallpaper.js`：`restoreWallpaper()` 恢复壁纸，`uploadWallpaper()` 读取与压缩上传图片；启动入口协调书签和壁纸恢复。
+- `modules/bookmark-editor.js`：书签草稿渲染、计数与数据收集；调用方直接导入，不再经 `settings.js` 转导出。
 - `core/dialogs.js`：确认框交互；不依赖设置或壁纸业务。
 - `core/wallpaper-renderer.js`：壁纸视觉切换；`theme-engine.js` 专注主题采样与外壳颜色。
 
@@ -541,6 +544,14 @@ flowchart TD
 
 切屏测试通过 `waitFor()` 等待目标屏幕及 `!isScreenTransitioning()`，再检查实际布局。动画结束事件缺失时，应用按 `CONFIG.GESTURE.TRANSITION_MS + TIMEOUT_BUFFER_MS` 兜底完成，当前为 580 + 150 = 730ms；固定等待 650ms 可能在解锁前发送下一次按键。Flick 测试在 Node 侧解析真实 transform，避免浏览器上下文缺少解析函数时误判通过。
 
-`test/infra-security.test.mjs` 检查生产 HTML 的内嵌 CSS 包含双屏布局和输入字号样式，补充 W3C 语法校验无法发现空样式页面的缺口。Wikipedia CORS 回归覆盖正常返回、替换及关闭时取消、迟到响应隔离与 HTTP 错误本地回退；通过测试时需区分实际运行和缓存命中，不将一次验证结果视为长期保证。
+`test/infra-security.test.mjs` 检查生产 HTML 的内嵌 CSS 包含双屏布局和输入字号样式，补充 W3C 语法校验无法发现空样式页面的缺口。Wikipedia CORS 回归覆盖正常返回、替换及关闭时取消、迟到响应隔离与 HTTP 错误本地回退；各套件每次实际运行，不将一次验证结果视为长期保证。
 
 弹窗显示生命周期统一由 `OverlayStack.push()` / `.pop()` 驱动；`overlay-stack.js` 独占弹窗的 `hidden`、`aria-hidden`、入场动画和延迟隐藏操作，切换时取消上一轮任务。业务模块仅管理草稿与交互，设置打开的异步恢复使用请求序号防止旧请求污染重新打开的窗口。
+
+运行时 `state`、`modalState` 与 `pageData` 是普通可变对象，调用方显式更新状态并调用渲染函数，不具备自动订阅或响应式更新机制。`core` 同时包含基础设施与业务协调入口，事件装配和切屏模块依赖业务模块；无循环依赖不等同于严格的分层隔离。
+
+天气数值清洗函数 `weatherNum()` 维护在 `src/js/utils/weather-data.js`，`modules/weather.js` 导入并保留兼容导出；构建通过 `injectWeatherNum()` 将同一实现内联到首帧缓存恢复脚本。天气胶囊与无障碍标签统一使用舍入后的有效数值，损坏温度按既有弹窗约定回退为 `0°`。
+
+配置读写直接访问 LocalStorage，不维护额外的永久内存缓存。书签导入、草稿收集与保存共用 `utils/helpers.js` 的 `normalizeBookmark()`；草稿标识与修改 URL 后的图标替换仍由编辑器管理。普通浏览器测试使用 `launchSession()`，特殊页面或多连接测试复用 `createEvaluator()`；求值异常统一报告。构建压缩统一使用 esbuild，失败终止，不再使用正则降级。
+
+测试入口只维护预构建、文件切片及本次进程组与临时目录的清理，执行并发和结果汇总交给 Node 原生测试运行器。目录派生、保存、分类排序和搜索共用 `utils/category-catalog.js`；存储键与搜索去重键保持不同语义，目录内容变化统一使索引失效。简介缺省继承目录，显式空字符串保留为清空覆盖。联想结果与选中项由搜索模块持有，点击和键盘激活直接消费内存数据，DOM 只负责展示和传递索引。

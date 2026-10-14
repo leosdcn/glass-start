@@ -1,5 +1,5 @@
 import { CONFIG } from '../config/constants.js';
-import { escapeHtml, safeUrl, normalizeUrl, faviconFromUrl, createLetterBadgeHtml, handleFaviconFailure, checkImageReady } from '../utils/helpers.js';
+import { escapeHtml, safeUrl, normalizeUrl, normalizeBookmark, faviconFromUrl, createLetterBadgeHtml, handleFaviconFailure, checkImageReady } from '../utils/helpers.js';
 import { modalState } from '../state/store.js';
 import { dom } from '../state/dom.js';
 
@@ -62,7 +62,7 @@ export function getEditRowHTML(name = '', url = '', idx = '', icon = '', rowId =
  * @param {{ name?: string, url?: string, icon?: string, desc?: string, focus?: boolean }} [options]
  * @returns {HTMLElement|null} 创建的 DOM 节点
  */
-export function appendDraftBookmarkRow({ name = '', url = '', icon = '', desc = '', focus = false } = {}) {
+export function appendDraftBookmarkRow({ name = '', url = '', icon = '', desc, focus = false } = {}) {
     const rowId = `bm_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
     const newBm = {
         id: rowId,
@@ -70,7 +70,7 @@ export function appendDraftBookmarkRow({ name = '', url = '', icon = '', desc = 
         url,
         icon: icon || '',
         origUrl: url || '',
-        desc: desc || ''
+        desc
     };
     if (!modalState.draftBookmarks) modalState.draftBookmarks = [];
     modalState.draftBookmarks.push(newBm);
@@ -109,7 +109,7 @@ export function renderEditList(listToRender) {
             url: bm.url || '',
             icon: bm.icon || '',
             origUrl: bm.origUrl || bm.url || '',
-            desc: bm.desc || ''
+            desc: bm.desc
         }));
     }
 
@@ -134,22 +134,12 @@ export function collectEditData() {
     const bookmarks = [];
     for (let i = 0; i < sourceList.length; i++) {
         const item = sourceList[i];
-        const name = (item.name || '').trim();
-        let url = (item.url || '').trim();
-        url = normalizeUrl(url);
-        const origIcon = item.icon || '';
+        const bookmark = normalizeBookmark(item);
+        if (!bookmark) continue;
+        const { url } = bookmark;
         const origUrl = normalizeUrl(item.origUrl || '');
-        if (name && url) {
-            let icon = '';
-            if (origIcon && (url === origUrl || !origUrl)) {
-                icon = origIcon;
-            } else {
-                icon = faviconFromUrl(url);
-            }
-            const cleanItem = { name, url, icon };
-            if (item.desc) cleanItem.desc = item.desc;
-            bookmarks.push(cleanItem);
-        }
+        if (origUrl && url !== origUrl) bookmark.icon = faviconFromUrl(url);
+        bookmarks.push(bookmark);
     }
     return bookmarks;
 }

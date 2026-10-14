@@ -8,10 +8,10 @@ import { storageGet, evictFaviconCache } from './utils/helpers.js';
 import { cacheDOM, dom } from './state/dom.js';
 import { renderShortcutModalList, updateClock } from './modules/clock.js';
 import { renderEngineDropdown, setEngine } from './modules/search.js';
-import { renderPresetWallpapers } from './modules/wallpaper.js';
+import { renderPresetWallpapers, restoreWallpaper } from './modules/wallpaper.js';
 import { initWeather } from './modules/weather.js';
 import {
-    loadUserData,
+    loadBookmarks,
     renderBookmarks,
     renderNavCategories,
     preloadFavicons,
@@ -19,11 +19,13 @@ import {
     initFaviconObserver,
     handleIconError
 } from './modules/bookmarks.js';
-import { applyBgEffects, handleEditIconError } from './modules/settings.js';
+import { applyBgEffects } from './modules/settings.js';
+import { handleEditIconError } from './modules/bookmark-editor.js';
 import { preloadNextBg } from './modules/wallpaper.js';
 import { initScreenGestures, reconcileScreenState, isScreenTransitioning } from './core/screen-state.js';
 import { initGlassSpotlightAndTilt } from './core/gestures.js';
-import { bindEvents, bindEditEvents } from './core/events.js';
+import { bindEvents } from './core/events.js';
+import { bindEditEvents } from './core/settings-events.js';
 
 let isAppInitialized = false;
 
@@ -64,7 +66,8 @@ export function init() {
     }, true);
 
     updateClock();
-    loadUserData().catch(() => {});
+    loadBookmarks();
+    restoreWallpaper().catch(() => {});
     renderBookmarks();
     renderNavCategories();
     initScreenGestures();

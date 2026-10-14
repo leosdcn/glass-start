@@ -1,20 +1,18 @@
 import { updateAllBookmarkCounters, renderEditList, collectEditData, getExistingUrls } from './bookmark-editor.js';
-export { getDraftBookmarkCount, updateAllBookmarkCounters, getEditFaviconInner, handleEditIconError, getEditRowHTML, appendDraftBookmarkRow, renderEditList, collectEditData, getExistingUrls } from './bookmark-editor.js';
 import { showConfirm } from '../core/dialogs.js';
-export { showConfirm } from '../core/dialogs.js';
 /**
  * ==============================================================================
  * Glass Start — 设置面板与弹窗管理系统 (src/js/modules/settings.js)
  * ==============================================================================
  */
 import { CONFIG, DEFAULT_BOOKMARKS, backgrounds } from '../config/constants.js';
-import { escapeHtml, safeUrl, normalizeUrl, faviconFromUrl, storageGet, storageSet, storageRemove } from '../utils/helpers.js';
+import { escapeHtml, safeUrl, normalizeBookmark, storageGet, storageSet, storageRemove } from '../utils/helpers.js';
 import { state, modalState, pageData } from '../state/store.js';
 import { dom } from '../state/dom.js';
 import { OverlayStack } from '../core/overlay-stack.js';
 import { applyWallpaper } from '../core/wallpaper-renderer.js';
-import { getEffectiveCustomWallpaper, updateWallpaperStatusUI, updatePresetBgCardsUI, clearCustomWallpaper } from './wallpaper.js';
-import { getDerivedBookmarks, renderBookmarks, getSortedCategories, getFaviconHTML, initPickerFaviconObserver } from './bookmarks.js';
+import { flushWallpaperSelection, getEffectiveCustomWallpaper, updateWallpaperStatusUI, updatePresetBgCardsUI, clearCustomWallpaper } from './wallpaper.js';
+import { saveUserBookmarks, getDerivedBookmarks, renderBookmarks, getSortedCategories, getFaviconHTML, initPickerFaviconObserver } from './bookmarks.js';
 import { closeDropdown, hideSuggestions, setEngine } from './search.js';
 import { renderCreditsModalList } from './clock.js';
 
@@ -283,20 +281,7 @@ export function importBookmarksJSON(file) {
                 return;
             }
 
-            const validBookmarks = [];
-            importedList.forEach(item => {
-                if (item && typeof item === 'object' && (item.name || item.url)) {
-                    const name = String(item.name || '未命名').trim().slice(0, CONFIG.SECURITY.MAX_NAME_CHARS);
-                    const rawUrl = String(item.url || '').trim();
-                    const url = normalizeUrl(rawUrl);
-                    if (name && url && (/^https?:\/\//i.test(url) || /^data:image\//i.test(url))) {
-                        const rawIcon = typeof item.icon === 'string' && item.icon.trim() ? item.icon.trim() : faviconFromUrl(url);
-                        const icon = safeUrl(rawIcon) !== '#' ? rawIcon : faviconFromUrl(url);
-                        const desc = typeof item.desc === 'string' ? item.desc.trim().slice(0, CONFIG.SECURITY.MAX_DESC_CHARS) : '';
-                        validBookmarks.push({ name, url, icon, desc });
-                    }
-                }
-            });
+            const validBookmarks = importedList.map(item => normalizeBookmark(item, '未命名')).filter(Boolean);
 
             if (validBookmarks.length === 0) {
                 showConfirm('配置文件中没有提取到有效的书签条目。', null, '导入失败');
@@ -402,4 +387,37 @@ export function renderPickerCategories() {
     }).join('');
     updateAllBookmarkCounters();
     initPickerFaviconObserver();
+}
+
+export async function saveEditModal() {
+    if (dom.saveEditBtn.disabled) return;
+    dom.saveEditBtn.disabled = true;
+    dom.saveEditBtn.setAttribute('aria-busy', 'true');
+    try {
+        const data = collectEditData();
+        if (data.length === 0) {
+            showConfirm('至少需要保留一个名称和 URL 均已填写的书签才能保存。', null, '无法保存');
+            return;
+        }
+
+        if (!await flushWallpaperSelection()) {
+            showConfirm('壁纸尚未保存成功，请重新选择后再保存。', null, '无法保存');
+            return;
+        }
+
+        // 1. 提交书签
+        if (modalState.bookmarksChanged) {
+            saveUserBookmarks(data);
+        }
+
+        // 2. 提交背景暗度（壁纸已于用户选择时即选即存，无需重复落盘）
+        if (modalState.draftMaskOpacity !== null) {
+            storageSet(CONFIG.KEYS.MASK_OPACITY, modalState.draftMaskOpacity);
+        }
+
+        closeEditModal();
+    } finally {
+        dom.saveEditBtn.disabled = false;
+        dom.saveEditBtn.removeAttribute('aria-busy');
+    }
 }

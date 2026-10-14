@@ -1,6 +1,6 @@
 {
   "name": "glass-start",
-  "version": "4.11.0",
+  "version": "5.0.0",
   "description": "Glass Start — 极简纯净的毛玻璃浏览器起始页。",
   "main": "dist/index.html",
   "scripts": {
@@ -10,7 +10,7 @@
     "test:data": "node test/run.mjs data",
     "test:infra": "node test/run.mjs infra",
     "test:lifecycle": "node test/run.mjs lifecycle",
-    "test:all": "node test/run.mjs --force",
+    "test:all": "node test/run.mjs",
     "test:visual": "node test/visual-regression.mjs",
     "lint": "node scripts/lint.mjs",
     "lint:fix": "node scripts/lint.mjs --fix",

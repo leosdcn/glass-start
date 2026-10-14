@@ -1,18 +1,10 @@
 import assert from 'node:assert/strict';
-import { startServer } from './server.mjs';
-import { launchChrome } from './cdp.mjs';
-import { getFreePort, waitFor } from './helpers.mjs';
+import { launchSession, waitFor } from './helpers.mjs';
 
 const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+j1ioAAAAASUVORK5CYII=', 'base64');
-const server = await startServer(0, undefined, { '/decode.png': (req, res) => {
+const { server, chrome, send, evalJS } = await launchSession(0, { '/decode.png': (req, res) => {
   res.writeHead(200, { 'Content-Type': 'image/png' }); res.end(png);
 } });
-const chrome = await launchChrome({ port: await getFreePort(), url: `http://127.0.0.1:${server.port}/` });
-const evalJS = async expression => {
-  const response = await chrome.send('Runtime.evaluate', { expression, returnByValue: true, awaitPromise: true });
-  assert.equal(response.exceptionDetails, undefined, JSON.stringify(response.exceptionDetails));
-  return response.result?.value;
-};
 try {
   await waitFor(evalJS, 'typeof applyWallpaper === "function"');
   const result = await evalJS(`(async () => {
@@ -58,4 +50,30 @@ try {
   })()`);
   assert.equal(Object.values(result).every(Boolean), true, JSON.stringify(result));
   console.log('✅ 解码完成前保留旧壁纸、迟到解码隔离、失败保留当前图片、无 decode 时回退加载事件');
+  const uploadResult=await evalJS(`(async () => {
+    const wait = async predicate => {
+      const deadline=Date.now()+5000;
+      while (!predicate()) { if(Date.now()>deadline) throw new Error('Upload timeout'); await new Promise(r=>setTimeout(r,20)); }
+    };
+    const input=dom.uploadBgInput;
+    const put=file=>{const dt=new DataTransfer();dt.items.add(file);input.files=dt.files;input.dispatchEvent(new Event('change',{bubbles:true}));};
+    put(new File(['x'],'bad.txt',{type:'text/plain'}));
+    const invalidBlocked=OverlayStack.top()?.id==='confirmModal';
+    dom.confirmOkBtn.click();
+    const source=document.createElement('canvas');source.width=3000;source.height=2000;
+    source.getContext('2d').fillRect(0,0,3000,2000);
+    const blob=await new Promise(resolve=>source.toBlob(resolve,'image/png'));
+    const original=HTMLCanvasElement.prototype.toDataURL;
+    let compressed;
+    HTMLCanvasElement.prototype.toDataURL=function(type,quality){ compressed={width:this.width,height:this.height,type,quality};return original.call(this,type,quality); };
+    const before=state.customWallpaper;
+    try {
+      put(new File([blob],'large.png',{type:'image/png'}));
+      await wait(()=>state.customWallpaper!==before && state.customWallpaper?.startsWith('data:image/jpeg'));
+      const fit=compressed.width<=CONFIG.APPEARANCE.MAX_UPLOAD_WIDTH && compressed.height<=CONFIG.APPEARANCE.MAX_UPLOAD_HEIGHT && Math.abs(compressed.width/compressed.height-1.5)<0.01;
+      return {invalidBlocked,fit,jpeg:compressed.type==='image/jpeg',quality:compressed.quality===CONFIG.APPEARANCE.JPEG_QUALITY,persisted:await getWallpaperDB()===state.customWallpaper,inputCleared:input.value===''};
+    } finally {HTMLCanvasElement.prototype.toDataURL=original;}
+  })()`);
+  assert.equal(Object.values(uploadResult).every(Boolean),true,JSON.stringify(uploadResult));
+  console.log('✅ 上传拒绝无效文件，大图等比例压缩为 JPEG，保存至 IndexedDB 并清空文件输入');
 } finally { await chrome.close(); await server.close(); }

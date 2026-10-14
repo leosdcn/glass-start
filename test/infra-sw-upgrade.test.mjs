@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { startServer } from './server.mjs';
 import { launchChrome } from './cdp.mjs';
-import { getFreePort, waitFor } from './helpers.mjs';
+import { getFreePort, createEvaluator, waitFor } from './helpers.mjs';
 
 const source = readFileSync(new URL('../sw.js', import.meta.url), 'utf8');
 let version = 101, failApp = false, mismatch = false, offline = false;
@@ -32,11 +32,7 @@ const server = await startServer(0, undefined, {
 const origin = `http://127.0.0.1:${server.port}`;
 const chrome = await launchChrome({ port: await getFreePort(), url: origin + '/app/' });
 const { send } = chrome;
-const evalJS = async expression => {
-  const response = await send('Runtime.evaluate', { expression, returnByValue: true, awaitPromise: true });
-  assert.equal(response.exceptionDetails, undefined, JSON.stringify(response.exceptionDetails));
-  return response.result?.value;
-};
+const evalJS = createEvaluator(send);
 const update = async () => evalJS(`(async () => {
   await reg.update();
   const worker = reg.installing;

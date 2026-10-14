@@ -2,11 +2,14 @@ import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import { startServer } from './server.mjs';
 import { launchChrome } from './cdp.mjs';
-import { getFreePort, waitFor } from './helpers.mjs';
+import { getFreePort, createEvaluator, waitFor } from './helpers.mjs';
 
 const require = createRequire(import.meta.url);
-const { buildSync } = require('esbuild');
-const built = buildSync({entryPoints:['src/js/main.js'], bundle:true, write:false, metafile:true, format:'iife', target:'es2022'});
+const { buildAppJavaScript } = require('../scripts/build.js');
+const built = buildAppJavaScript({ testMode: true });
+const productionBuild = buildAppJavaScript();
+assert.equal('src/js/testing/bridge.js' in productionBuild.metafile.inputs, false);
+assert.equal('src/js/testing/bridge.js' in built.metafile.inputs, true);
 const graph = new Map(Object.entries(built.metafile.inputs).map(([name, value]) => [name,
   value.imports.filter(edge => !edge.external && edge.kind !== 'dynamic-import').map(edge => edge.path)]));
 const visited = new Set(), active = new Set();
@@ -21,14 +24,11 @@ for (const name of graph.keys()) visit(name);
 console.log('✅ 应用及测试适配模块的静态导入图无循环依赖');
 
 const server = await startServer();
+const productionServer = await startServer(0, undefined, {}, { testMode: false });
 let chrome;
 const connect = async testMode => {
-  chrome = await launchChrome({port:await getFreePort(), url:`http://127.0.0.1:${server.port}/`, testMode});
-  return async expression => {
-    const reply = await chrome.send('Runtime.evaluate', {expression, returnByValue:true, awaitPromise:true});
-    assert.equal(reply.exceptionDetails, undefined, JSON.stringify(reply.exceptionDetails));
-    return reply.result?.value;
-  };
+  chrome = await launchChrome({port:await getFreePort(), url:`http://127.0.0.1:${testMode ? server.port : productionServer.port}/`, testMode});
+  return createEvaluator(chrome.send);
 };
 try {
   let evalJS = await connect(false);
@@ -46,6 +46,12 @@ try {
   await waitFor(evalJS, "document.getElementById('dropdownMenu').classList.contains('active')");
   assert.equal(await evalJS("__GLASS_DIAG__.dump().every(entry => entry.ev !== 'js-error' && entry.ev !== 'unhandled-rejection')"), true);
   console.log('✅ 未启用测试接口的生产页面可正常启动、编辑及操作搜索引擎，业务不依赖 window 接口');
+  await chrome.send('Page.enable');
+  await chrome.send('Page.addScriptToEvaluateOnNewDocument', { source: 'window.__GLASS_TEST__ = true;' });
+  await chrome.send('Page.reload');
+  await waitFor(evalJS, 'window.__GLASS_TEST__ === true && !!document.querySelector(".bookmark-item")');
+  assert.equal(await evalJS("['state','modalState','fetchSuggestions','collectEditData'].every(key => !(key in window))"), true);
+  console.log('✅ 生产依赖图不含测试适配层，外部设置测试标记也不挂载接口');
   await chrome.close();
   evalJS = await connect(true);
   await waitFor(evalJS, 'typeof fetchSuggestions === "function"');
@@ -66,4 +72,5 @@ try {
 } finally {
   if (chrome) await chrome.close();
   await server.close();
+  await productionServer.close();
 }

@@ -269,3 +269,81 @@ export function renderPresetWallpapers() {
         </button>`;
     }).join('');
 }
+
+export async function restoreWallpaper() {
+    await migrateLegacyWallpaper();
+    const selection = await getWallpaperSelectionDB();
+    const savedBg = selection ? selection.bg : storageGet(CONFIG.KEYS.BG);
+    if (savedBg !== null && typeof savedBg === 'number' && savedBg >= 0 && savedBg < backgrounds.length) {
+        state.bg = savedBg;
+    }
+
+    let customBg = await getEffectiveCustomWallpaper();
+    const legacyPresetIdx = findPresetBgIndex(customBg);
+    if (legacyPresetIdx >= 0) {
+        state.bg = legacyPresetIdx;
+        storageSet(CONFIG.KEYS.BG, legacyPresetIdx);
+        await clearCustomWallpaper();
+        customBg = null;
+    }
+    if (customBg) {
+        state.customWallpaper = customBg;
+        applyWallpaper(customBg, false);
+    } else {
+        applyWallpaper(backgrounds[state.bg] || backgrounds[0], false);
+    }
+}
+
+export function uploadWallpaper(file) {
+    if (!file.type.startsWith('image/')) {
+        showConfirm('请选择有效的图片文件（JPG / PNG / WebP 等）。', null, '格式错误');
+        return false;
+    }
+    const reader = new FileReader();
+    reader.onload = ev => {
+        const dataUrl = ev.target.result;
+        const img = new Image();
+        img.onload = () => {
+            const MAX_WIDTH = CONFIG.APPEARANCE.MAX_UPLOAD_WIDTH;
+            const MAX_HEIGHT = CONFIG.APPEARANCE.MAX_UPLOAD_HEIGHT;
+            let width = img.width;
+            let height = img.height;
+
+            if (width > MAX_WIDTH || height > MAX_HEIGHT) {
+                if (width / height > MAX_WIDTH / MAX_HEIGHT) {
+                    height = Math.round((height * MAX_WIDTH) / width);
+                    width = MAX_WIDTH;
+                } else {
+                    width = Math.round((width * MAX_HEIGHT) / height);
+                    height = MAX_HEIGHT;
+                }
+            }
+
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+
+            const compressedDataUrl = canvas.toDataURL('image/jpeg', CONFIG.APPEARANCE.JPEG_QUALITY);
+            previewDraftWallpaper(compressedDataUrl);
+
+            ctx.clearRect(0, 0, width, height);
+            canvas.width = 0;
+            canvas.height = 0;
+            img.onload = null;
+            img.onerror = null;
+            img.src = '';
+            reader.onload = null;
+        };
+        img.onerror = () => {
+            previewDraftWallpaper(dataUrl);
+            img.onload = null;
+            img.onerror = null;
+            img.src = '';
+            reader.onload = null;
+        };
+        img.src = dataUrl;
+    };
+    reader.readAsDataURL(file);
+}

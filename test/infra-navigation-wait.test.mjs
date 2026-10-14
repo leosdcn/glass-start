@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict';
-import { navigateAndWait } from './helpers.mjs';
+import { createEvaluator, navigateAndWait } from './helpers.mjs';
+
+assert.equal(await createEvaluator(async () => ({result:{value:42}}))('42'), 42);
+await assert.rejects(createEvaluator(async () => ({exceptionDetails:{text:'page failure'}})), /page failure/);
 
 const url = 'http://localhost/navigation-test';
 const send = async () => ({});

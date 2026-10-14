@@ -4,9 +4,7 @@ import { readFileSync, writeFileSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import vm from 'node:vm';
-import { startServer } from './server.mjs';
-import { launchChrome } from './cdp.mjs';
-import { getFreePort, waitFor, navigateAndWait } from './helpers.mjs';
+import { launchSession, waitFor, navigateAndWait } from './helpers.mjs';
 
 const require = createRequire(import.meta.url);
 const { injectThemeConfig } = require('../scripts/build.js');
@@ -43,17 +41,8 @@ const probe = `<script>window.__headThemeProbe = {
   color: document.documentElement.style.backgroundColor,
   bright: document.documentElement.classList.contains('wallpaper-bright')
 };</script>`;
-const server = await startServer(0, undefined, { '/theme-probe.html': built.replace('</head>', probe + '</head>') });
-const chrome = await launchChrome({ port: await getFreePort(), url: `http://127.0.0.1:${server.port}/` });
-const { send } = chrome;
-const evalJS = async expression => {
-  const response = await send('Runtime.evaluate', { expression, returnByValue: true, awaitPromise: true });
-  assert.equal(response.exceptionDetails, undefined, JSON.stringify(response.exceptionDetails));
-  return response.result?.value;
-};
+const { server, chrome, send, evalJS } = await launchSession(0, { '/theme-probe.html': built.replace('</head>', probe + '</head>') });
 try {
-  await send('Page.enable');
-  await send('Runtime.enable');
   // 首屏探针使用独立 HTML 路由；绕过 SW 导航回退，确保每次读取探针页面。
   await send('Network.enable');
   await send('Network.setBypassServiceWorker', { bypass: true });

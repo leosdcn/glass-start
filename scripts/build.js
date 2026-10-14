@@ -8,7 +8,7 @@ const { execSync } = require('child_process');
  * Glass Start — 生产环境构建打包脚本 (build.js)
  * ==============================================================================
  * 从源码编译样式和 ES 模块，生成带版本指纹的 HTML、Service Worker 与静态资源。
- * 应用打包需要 esbuild；内联脚本和样式压缩失败时会记录警告并使用基础压缩。
+ * 应用、内联脚本和样式统一使用 esbuild；编译或压缩失败即终止构建。
  */
 
 // 终端格式化排版与 ANSI 彩色工具
@@ -35,57 +35,23 @@ const PATHS = {
 // 生产构建全链路统一版本戳（用于 Service Worker 缓存池与 HTML 外链脚本防穿透对齐）
 let currentBuildVersion = 'app-core-v' + Date.now();
 
-// 引入 esbuild 编译器（具备优雅降级能力）
-let esbuild;
-try {
-    esbuild = require('esbuild');
-} catch {
-    esbuild = null;
+// 构建统一使用 esbuild；编译或压缩失败直接报告，不使用正则降级。
+const esbuild = require('esbuild');
+
+function minifyJsCode(jsCode) {
+    return esbuild.transformSync(jsCode, {
+        minify: true,
+        target: 'es2020',
+        legalComments: 'none'
+    }).code;
 }
 
-// 生产环境 JS 标准安全压缩（优先使用 esbuild AST 编译，未安装时自动回退至零依赖正则压缩）
-function minifyJsCode(jsCode, filename = 'script.js') {
-    if (esbuild && typeof esbuild.transformSync === 'function') {
-        try {
-            const result = esbuild.transformSync(jsCode, {
-                minify: true,
-                target: 'es2020',
-                legalComments: 'none'
-            });
-            return result.code;
-        } catch (e) {
-            logItem(`esbuild 压缩 ${filename} 时出现警告，自动回退到基础正则压缩: ${e.message}`, 'warn');
-        }
-    }
-    return jsCode
-        .replace(/^\s*\/\/[^\n]*/gm, '')
-        .replace(/\/\*[\s\S]*?\*\//g, '')
-        .split('\n')
-        .map(line => line.trim())
-        .filter(Boolean)
-        .join('\n');
-}
-
-// 生产环境 CSS 极致安全压缩（优先使用 esbuild CSS 编译器，未安装时自动回退至高精度正则压缩）
 function minifyCssCode(cssCode) {
-    if (esbuild && typeof esbuild.transformSync === 'function') {
-        try {
-            const result = esbuild.transformSync(cssCode, {
-                loader: 'css',
-                minify: true,
-                legalComments: 'none'
-            });
-            return result.code;
-        } catch (e) {
-            logItem(`esbuild 压缩 CSS 时出现警告，自动回退到基础正则压缩: ${e.message}`, 'warn');
-        }
-    }
-    return cssCode
-        .replace(/\/\*[\s\S]*?\*\//g, '')
-        .replace(/\s+/g, ' ')
-        .replace(/\s*([\{\}\:\;\,\>\+\~])\s*/g, '$1')
-        .replace(/;}/g, '}')
-        .trim();
+    return esbuild.transformSync(cssCode, {
+        loader: 'css',
+        minify: true,
+        legalComments: 'none'
+    }).code;
 }
 
 // 1.1 构建前依赖自检
@@ -169,6 +135,23 @@ function syncBookmarksData() {
     }
 }
 
+// 两种构建共用编译选项；生产在编译时裁掉测试入口，测试脚本只由测试服务器持有。
+function buildAppJavaScript({ testMode = false, version = currentBuildVersion, outfile } = {}) {
+    return esbuild.buildSync({
+        entryPoints: [PATHS.srcMainJs],
+        bundle: true,
+        format: 'iife',
+        minify: true,
+        target: ['es2022'],
+        charset: 'utf8',
+        define: testMode ? {} : { 'window.__GLASS_TEST__': 'false' },
+        banner: { js: `window.__GLASS_BUILD_APP__="${version}";\n` },
+        metafile: true,
+        write: !!outfile,
+        ...(outfile ? { outfile } : {})
+    });
+}
+
 // 4.9 处理生成生产环境 dist/app.js (ESM 打包与 AST 压缩)
 function processProductionAppJs() {
     logSection('4/5', '⚡ 提取并压缩生产脚本 (dist/app.js)');
@@ -179,18 +162,7 @@ function processProductionAppJs() {
     }
 
     try {
-        esbuild.buildSync({
-            entryPoints: [PATHS.srcMainJs],
-            bundle: true,
-            format: 'iife',
-            minify: true,
-            target: ['es2022'],
-            charset: 'utf8',
-            banner: {
-                js: `window.__GLASS_BUILD_APP__="${currentBuildVersion}";\n`
-            },
-            outfile: path.join(PATHS.dist, 'app.js')
-        });
+        buildAppJavaScript({ outfile: path.join(PATHS.dist, 'app.js') });
         const appJsContent = fs.readFileSync(path.join(PATHS.dist, 'app.js'), 'utf-8');
         const appJsKb = (Buffer.byteLength(appJsContent, 'utf-8') / 1024).toFixed(2);
         logItem(`生产环境 dist/app.js ESM 模块依赖 AST 编译完成 (${appJsKb} KB)`);
@@ -224,10 +196,28 @@ function injectThemeConfig(html, themePath = path.join(PATHS.src, 'js', 'config'
     return html.replace(marker, () => code.replace(/<\/script/gi, '<\\/script'));
 }
 
+// 预渲染内联同一数值清洗模块，避免复制 weatherNum 规则。
+function injectWeatherNum(html) {
+    const marker = '/* INJECT_WEATHER_NUM */';
+    if (html.split(marker).length !== 2) throw new Error('首屏天气数值注入标记必须出现一次');
+    const result = esbuild.buildSync({
+        entryPoints: [path.join(PATHS.src, 'js', 'utils', 'weather-data.js')],
+        bundle: true,
+        write: false,
+        format: 'iife',
+        globalName: '__headWeather',
+        target: 'es2020',
+        minify: true,
+        charset: 'utf8'
+    });
+    const code = result.outputFiles[0].text + '\nconst { weatherNum } = __headWeather;';
+    return html.replace(marker, () => code.replace(/<\/script/gi, '<\\/script'));
+}
+
 // 5. 处理生产环境 index.html (替换内联 JS 为外链 dist/app.js，全量内嵌静态编译 Tailwind CSS 与 SVG 精灵)
 function processProductionHtml(compiledCss) {
     logSection('5/5', '🔧 处理生产环境页面 (dist/index.html)');
-    let prodHtmlContent = injectThemeConfig(fs.readFileSync(PATHS.srcIndexHtml, 'utf-8'));
+    let prodHtmlContent = injectWeatherNum(injectThemeConfig(fs.readFileSync(PATHS.srcIndexHtml, 'utf-8')));
 
     // 5.0 彻底移除开发模式下的原生 ESM 模块入口
     prodHtmlContent = prodHtmlContent.replace(
@@ -308,7 +298,7 @@ function processProductionHtml(compiledCss) {
                     return match;
                 }
             }
-            const minified = minifyJsCode(content, 'inline.js');
+            const minified = minifyJsCode(content);
             return `<script${attrs}>${minified}</script>`;
         });
 
@@ -486,6 +476,8 @@ module.exports = {
     startWatch,
     checkTailwindInstalled,
     injectThemeConfig,
+    injectWeatherNum,
+    buildAppJavaScript,
     PATHS
 };
 

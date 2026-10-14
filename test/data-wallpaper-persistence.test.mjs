@@ -43,7 +43,7 @@ try {
       saved = await previewDraftWallpaper(next) === true && !modalState.wallpaperSaveFailed && await getWallpaperDB() === next;
       await commitWallpaperSelection(backgrounds[3]);
       state.bg = 0; state.customWallpaper = null;
-      await loadUserData();
+      await restoreWallpaper();
       restored = state.bg === 3 && await getWallpaperDB() === null;
     } finally { Storage.prototype.setItem = setItem; }
     const NativeImage = window.Image;

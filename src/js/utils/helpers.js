@@ -75,6 +75,23 @@ export function faviconFromUrl(url) {
     return host ? 'https://a.favicon.im/' + host : '';
 }
 
+/** 书签入口共用的字段清洗；草稿标识、图标随 URL 变更等编辑行为由调用方管理。 */
+export function normalizeBookmark(item, fallbackName = '') {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) return null;
+    const name = String(item.name || fallbackName).trim().slice(0, CONFIG.SECURITY.MAX_NAME_CHARS);
+    const rawUrl = String(item.url || '').trim();
+    if (/^[a-z][a-z\d+.-]*:(?!\d+(?:[/?#]|$))/i.test(rawUrl) && !/^https?:\/\//i.test(rawUrl)) return null;
+    const url = normalizeUrl(rawUrl);
+    if (!name || !url) return null;
+    try { if (!new URL(url).hostname) return null; } catch { return null; }
+    const rawIcon = typeof item.icon === 'string' ? item.icon.trim() : '';
+    const icon = rawIcon && safeUrl(rawIcon) !== '#' ? rawIcon : faviconFromUrl(url);
+    const bookmark = { name, url, icon };
+    // 缺省继承目录简介，空字符串是明确清空；不能将两者归并。
+    if (typeof item.desc === 'string') bookmark.desc = item.desc.trim().slice(0, CONFIG.SECURITY.MAX_DESC_CHARS);
+    return bookmark;
+}
+
 /**
  * 根据站点 URL 或原图标 URL 推断备用 Favicon 地址（通过 Google S2 服务）
  * @param {string} url - 书签目标 URL 或失效的图标 URL
@@ -121,40 +138,15 @@ export function clamp(val, min, max) {
 }
 
 /**
- * 防抖调度函数
- * @param {Function} fn
- * @param {number} delay
- * @returns {Function}
- */
-export function debounce(fn, delay) {
-    let timer = null;
-    return function (...args) {
-        if (timer) clearTimeout(timer);
-        timer = setTimeout(() => {
-            fn.apply(this, args);
-            timer = null;
-        }, delay);
-    };
-}
-
-// LocalStorage 一级 RAM 内存缓存池，彻底消除重复 Disk I/O 与 JSON.parse 开销
-const storageCache = new Map();
-
-/**
  * 安全读取 localStorage 中的配置项并反序列化为 JSON
  * @param {string} key - 存储的键名
  * @param {*} [fallback=null] - 当键名不存在或读取抛出异常时的默认返回值
  * @returns {*} 解析后的对象/数组或 fallback 默认值
  */
 export function storageGet(key, fallback = null) {
-    if (storageCache.has(key)) {
-        return storageCache.get(key);
-    }
     try {
         const raw = localStorage.getItem(key);
-        const val = raw ? JSON.parse(raw) : fallback;
-        storageCache.set(key, val);
-        return val;
+        return raw ? JSON.parse(raw) : fallback;
     } catch {
         return fallback;
     }
@@ -169,10 +161,8 @@ export function storageGet(key, fallback = null) {
 export function storageSet(key, value) {
     try {
         localStorage.setItem(key, JSON.stringify(value));
-        storageCache.set(key, value);
         return true;
     } catch {
-        storageCache.delete(key);
         return false;
     }
 }
@@ -185,10 +175,8 @@ export function storageSet(key, value) {
 export function storageRemove(key) {
     try {
         localStorage.removeItem(key);
-        storageCache.delete(key);
         return true;
     } catch {
-        storageCache.delete(key);
         return false;
     }
 }

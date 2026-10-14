@@ -4,16 +4,17 @@
  * ==============================================================================
  *
  * 核心功能：
- * 1. 派生书签数据恢复、持久化与迁移 (getDerivedBookmarks, saveUserBookmarks, migrateBookmarksStorage, loadUserData)
+ * 1. 派生书签数据恢复、持久化与迁移 (getDerivedBookmarks, saveUserBookmarks, migrateBookmarksStorage, loadBookmarks)
  * 2. 首屏快捷书签网格渲染 (renderBookmarks)
  * 3. 导航页双栏分类与 A-Z 拼音排序 (renderNavCategories, getSortedCategories, initSidebarNav)
  * 4. Favicon 懒加载观察器与首字母徽章兜底 (getFaviconHTML, handleIconError, initFaviconObserver, preloadFavicons)
  */
-import { CONFIG, DEFAULT_BOOKMARKS, DEFAULT_CATEGORIES, backgrounds } from '../config/constants.js';
+import { CONFIG, DEFAULT_BOOKMARKS, DEFAULT_CATEGORIES } from '../config/constants.js';
 import {
     escapeHtml,
     safeUrl,
     normalizeUrl,
+    normalizeBookmark,
     deriveNameFromUrl,
     faviconFromUrl,
     handleFaviconFailure,
@@ -24,29 +25,15 @@ import {
     storageSet,
     storageRemove
 } from '../utils/helpers.js';
-import { getWallpaperSelectionDB } from '../utils/idb.js';
-import { state, pageData } from '../state/store.js';
+import { pageData } from '../state/store.js';
 import { dom, $ } from '../state/dom.js';
-import { applyWallpaper } from '../core/wallpaper-renderer.js';
-import { getEffectiveCustomWallpaper, findPresetBgIndex, clearCustomWallpaper, migrateLegacyWallpaper } from './wallpaper.js';
 
-export const zhCollator = new Intl.Collator('zh-CN', { numeric: true, sensitivity: 'base' });
+import { getCategoryCatalog } from '../utils/category-catalog.js';
 
 export function getDerivedBookmarks(keys, categories, customMeta = {}) {
     if (!Array.isArray(keys)) return [];
 
-    const catMap = new Map();
-    if (Array.isArray(categories)) {
-        categories.forEach(cat => {
-            if (Array.isArray(cat.bookmarks)) {
-                cat.bookmarks.forEach(bm => {
-                    if (bm.url && !catMap.has(normalizeUrl(bm.url))) {
-                        catMap.set(normalizeUrl(bm.url), bm);
-                    }
-                });
-            }
-        });
-    }
+    const catMap = getCategoryCatalog(categories).byUrl;
 
     return keys.map(url => {
         const normalized = normalizeUrl(url);
@@ -87,12 +74,7 @@ export function migrateBookmarksStorage() {
         const keys = [];
         const customMeta = storageGet(CONFIG.KEYS.CUSTOM_META) || {};
 
-        const existingCatUrls = new Set();
-        (DEFAULT_CATEGORIES || []).forEach(cat => {
-            (cat.bookmarks || []).forEach(bm => {
-                if (bm.url) existingCatUrls.add(normalizeUrl(bm.url));
-            });
-        });
+        const existingCatUrls = getCategoryCatalog(DEFAULT_CATEGORIES).byUrl;
 
         rawLegacy.forEach(bm => {
             if (!bm || !bm.url) return;
@@ -116,29 +98,22 @@ export function migrateBookmarksStorage() {
 export function saveUserBookmarks(list) {
     const keys = [];
     const customMeta = storageGet(CONFIG.KEYS.CUSTOM_META) || {};
-    const catMetaMap = new Map();
-    (pageData.categories || []).forEach(cat => {
-        (cat.bookmarks || []).forEach(bm => {
-            if (bm.url) {
-                const nUrl = normalizeUrl(bm.url);
-                if (!catMetaMap.has(nUrl)) catMetaMap.set(nUrl, bm);
-            }
-        });
-    });
+    const catMetaMap = getCategoryCatalog(pageData.categories).byUrl;
 
     const newKeysSet = new Set();
-    list.forEach(bm => {
-        const normUrl = normalizeUrl(bm.url);
-        if (!normUrl) return;
+    list.forEach(item => {
+        const bm = normalizeBookmark(item, deriveNameFromUrl(item?.url));
+        if (!bm) return;
+        const normUrl = bm.url;
         keys.push(normUrl);
         newKeysSet.add(normUrl);
         const catBm = catMetaMap.get(normUrl);
-        const isCustomized = !catBm || (bm.name && bm.name !== catBm.name) || (bm.icon && bm.icon !== (catBm.icon || faviconFromUrl(catBm.url))) || (bm.desc && bm.desc !== (catBm.desc || ''));
+        const isCustomized = !catBm || (bm.name && bm.name !== catBm.name) || (bm.icon && bm.icon !== (catBm.icon || faviconFromUrl(catBm.url))) || (bm.desc !== undefined && bm.desc !== (catBm.desc || ''));
         if (isCustomized) {
             customMeta[normUrl] = {
                 name: bm.name,
                 icon: bm.icon,
-                desc: bm.desc || ''
+                ...(bm.desc !== undefined ? { desc: bm.desc } : {})
             };
         } else {
             delete customMeta[normUrl];
@@ -157,7 +132,7 @@ export function saveUserBookmarks(list) {
     renderBookmarks();
 }
 
-export async function loadUserData() {
+export function loadBookmarks() {
     migrateBookmarksStorage();
     const userKeys = storageGet(CONFIG.KEYS.BOOKMARK_KEYS);
     const customMeta = storageGet(CONFIG.KEYS.CUSTOM_META) || {};
@@ -170,28 +145,6 @@ export async function loadUserData() {
     const bookmarksEl = dom.bookmarks;
     if (bookmarksEl) {
         renderBookmarks();
-    }
-
-    await migrateLegacyWallpaper();
-    const selection = await getWallpaperSelectionDB();
-    const savedBg = selection ? selection.bg : storageGet(CONFIG.KEYS.BG);
-    if (savedBg !== null && typeof savedBg === 'number' && savedBg >= 0 && savedBg < backgrounds.length) {
-        state.bg = savedBg;
-    }
-
-    let customBg = await getEffectiveCustomWallpaper();
-    const legacyPresetIdx = findPresetBgIndex(customBg);
-    if (legacyPresetIdx >= 0) {
-        state.bg = legacyPresetIdx;
-        storageSet(CONFIG.KEYS.BG, legacyPresetIdx);
-        await clearCustomWallpaper();
-        customBg = null;
-    }
-    if (customBg) {
-        state.customWallpaper = customBg;
-        applyWallpaper(customBg, false);
-    } else {
-        applyWallpaper(backgrounds[state.bg] || backgrounds[0], false);
     }
 }
 
@@ -266,20 +219,10 @@ export function renderBookmarks(force = false) {
     bookmarksEl.querySelectorAll('img.lazy-icon').forEach(img => checkImageReady(img));
 }
 
-let lastNavCategoriesSignature = '';
-let cachedSortedCategories = null;
-let lastCategoriesRef = null;
+let lastNavCatalog;
 
 export function getSortedCategories() {
-    if (cachedSortedCategories && pageData.categories === lastCategoriesRef) {
-        return cachedSortedCategories;
-    }
-    lastCategoriesRef = pageData.categories;
-    cachedSortedCategories = pageData.categories.map(cat => ({
-        ...cat,
-        sortedBookmarks: [...cat.bookmarks].sort((a, b) => zhCollator.compare(a.name, b.name))
-    }));
-    return cachedSortedCategories;
+    return getCategoryCatalog(pageData.categories).sorted;
 }
 
 let isSidebarNavInitialized = false;
@@ -372,9 +315,9 @@ export function renderNavCategories(force = false) {
     const navCategories = dom.navCategories;
     if (!sidebarList || !navCategories) return;
 
-    const currentSig = JSON.stringify(pageData.categories);
-    if (!force && lastNavCategoriesSignature && currentSig === lastNavCategoriesSignature) return;
-    lastNavCategoriesSignature = currentSig;
+    const catalog = getCategoryCatalog(pageData.categories);
+    if (!force && catalog === lastNavCatalog) return;
+    lastNavCatalog = catalog;
 
     const navContent = dom.navContent;
     const savedScrollTop = navContent ? navContent.scrollTop : 0;

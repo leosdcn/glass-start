@@ -17,8 +17,7 @@ import { state } from '../state/store.js';
 import { dom } from '../state/dom.js';
 import { OverlayStack, MODAL_OVERLAY_IDS } from '../core/overlay-stack.js';
 import { switchToStart, switchToNav, isScreenTransitioning } from './screen-state.js';
-export { initDragSort } from './drag-sort.js';
-import { doSearch, fetchSuggestions, hideSuggestions, closeDropdown, toggleDropdown, setEngine, openBookmarkUrl, openRandomBookmark, selectedSuggestionIdx, setSelectedSuggestionIdx, originalQuery, setOriginalQuery, scheduleSuggestions } from '../modules/search.js';
+import { doSearch, activateSuggestion, selectSuggestion, getSuggestionCount, fetchSuggestions, hideSuggestions, closeDropdown, toggleDropdown, setEngine, openBookmarkUrl, openRandomBookmark, selectedSuggestionIdx, setSelectedSuggestionIdx, originalQuery, setOriginalQuery, scheduleSuggestions } from '../modules/search.js';
 import { toggleWeatherPopover, closeWeatherPopover } from '../modules/weather.js';
 import { switchBg } from '../modules/wallpaper.js';
 import { openShortcutModal, closeShortcutModal } from '../modules/settings.js';
@@ -134,21 +133,13 @@ export function bindEvents() {
             if (!item) return;
             e.stopPropagation();
             const isNewTab = e.altKey || e.metaKey || e.ctrlKey;
-            if (item.dataset.type === 'bookmark' && item.dataset.url) {
-                openBookmarkUrl(item.dataset.url, isNewTab);
-            } else {
-                const query = item.dataset.suggestion;
-                if (searchInput) searchInput.value = query;
-                doSearch(query, isNewTab);
-            }
+            activateSuggestion(Number(item.dataset.idx), isNewTab);
         });
         suggestionMenu.addEventListener('mouseover', e => {
             suggestionMenu.classList.remove('keyboard-nav');
             const item = e.target.closest('.suggestion-item');
             if (!item) return;
-            const prevActive = suggestionMenu.querySelector('.suggestion-item.active');
-            if (prevActive) prevActive.classList.remove('active');
-            item.classList.add('active');
+            selectSuggestion(Number(item.dataset.idx), { updateInput: false });
         }, { passive: true });
     }
 
@@ -300,61 +291,39 @@ export function bindEvents() {
             if (e.isComposing || e.keyCode === CONFIG.SECURITY.IME_COMPOSITION_KEY_CODE || isComposing || justEndedComposition) return;
 
             const isSuggestActive = suggestionMenu && suggestionMenu.classList.contains('active');
-            const items = isSuggestActive ? Array.from(suggestionMenu.querySelectorAll('.suggestion-item')) : [];
+            const suggestionCount = isSuggestActive ? getSuggestionCount() : 0;
 
             if (e.key === 'Enter') {
                 e.preventDefault();
                 const isNewTab = e.altKey || e.metaKey || e.ctrlKey;
-                if (selectedSuggestionIdx >= 0 && items[selectedSuggestionIdx]) {
-                    const selectedEl = items[selectedSuggestionIdx];
-                    if (selectedEl.dataset.type === 'bookmark' && selectedEl.dataset.url) {
-                        openBookmarkUrl(selectedEl.dataset.url, isNewTab);
-                    } else {
-                        doSearch(selectedEl.dataset.suggestion, isNewTab);
-                    }
-                } else {
-                    doSearch(undefined, isNewTab);
-                }
+                activateSuggestion(selectedSuggestionIdx, isNewTab);
                 return;
             }
 
             const updateActiveSuggestion = () => {
-                if (suggestionMenu) suggestionMenu.classList.add('keyboard-nav');
-                items.forEach((el, idx) => {
-                    const isSel = idx === selectedSuggestionIdx;
-                    el.classList.toggle('active', isSel);
-                    el.setAttribute('aria-selected', isSel ? 'true' : 'false');
-                });
-                if (selectedSuggestionIdx >= 0 && items[selectedSuggestionIdx]) {
-                    searchInput.value = items[selectedSuggestionIdx].dataset.suggestion;
-                    searchInput.setAttribute('aria-activedescendant', `sug-opt-${selectedSuggestionIdx}`);
-                    items[selectedSuggestionIdx].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-                } else {
-                    searchInput.value = originalQuery;
-                    searchInput.removeAttribute('aria-activedescendant');
-                }
+                selectSuggestion(selectedSuggestionIdx, { keyboard: true });
                 updateSearchActionButtons(!!searchInput.value);
             };
 
             if (!e.ctrlKey && !e.metaKey && !e.altKey) {
-                if (e.key === 'ArrowDown' && items.length > 0) {
+                if (e.key === 'ArrowDown' && suggestionCount > 0) {
                     e.preventDefault();
                     if (selectedSuggestionIdx === -1) {
                         setOriginalQuery(searchInput.value);
                     }
                     let nextIdx = selectedSuggestionIdx + 1;
-                    if (nextIdx >= items.length) {
+                    if (nextIdx >= suggestionCount) {
                         nextIdx = -1;
                     }
                     setSelectedSuggestionIdx(nextIdx);
                     updateActiveSuggestion();
                     return;
                 }
-                if (e.key === 'ArrowUp' && items.length > 0) {
+                if (e.key === 'ArrowUp' && suggestionCount > 0) {
                     e.preventDefault();
                     if (selectedSuggestionIdx === -1) {
                         setOriginalQuery(searchInput.value);
-                        setSelectedSuggestionIdx(items.length - 1);
+                        setSelectedSuggestionIdx(suggestionCount - 1);
                     } else {
                         setSelectedSuggestionIdx(selectedSuggestionIdx - 1);
                     }
@@ -393,5 +362,3 @@ export function bindEvents() {
         }
     });
 }
-
-export { bindEditEvents } from './settings-events.js';

@@ -33,7 +33,7 @@
 | **书签增删改动后** | `npm run sync:icons && npm run lint` | 自动抓取转写 1:1 本地图标并执行全量门禁校验 |
 | **代码修改后必跑** | `npm run lint` | 静态规范门禁（支持 `--fix` 一键自愈） |
 | **局部功能修改后** | `npm run test:ui` / `data` / `infra` / `lifecycle` | 模块切片单测 |
-| **常规提交前验证** | `npm test` | 核心增量回归套件 |
+| **常规提交前验证** | `npm test` | 核心回归套件（每次实际运行） |
 | **版本发布前全量** | `npm run build && npm run test:all && npm run test:w3c` | 生产打包与全量合规断言 |
 
 ---
@@ -45,21 +45,26 @@
 | 业务领域与核心意图 | 对应 ES 模块 (`src/`) | 核心函数 / DOM 锚点 |
 | :--- | :--- | :--- |
 | **全站配置与常量真理源** | `src/js/config/constants.js` | `CONFIG`, `DEFAULT_BOOKMARKS`, `DEFAULT_CATEGORIES` |
-| **首屏主题与 Safari 预渲染** | `src/js/config/themes.js` | `PRESET_THEMES`, `targetColor` |
+| **首屏主题与 Safari 预渲染** | `src/js/config/themes.js` | `PRESET_THEMES`, `APP_THEME_DARK`, `APP_THEME_LIGHT` |
 | **全局状态与 DOM 缓存池** | `src/js/state/store.js`<br/>`src/js/state/dom.js` | `dom`, `state`, `cacheDOM()`, `$` |
 | **书签体系与双栏分类导航** | `src/js/modules/bookmarks.js` | `getDerivedBookmarks()`, `renderBookmarks()`, `renderNavCategories()` |
 | **时钟引擎、快捷键与鸣谢** | `src/js/modules/clock.js` | `updateClock()`, `applyPlatformShortcuts()`, `renderShortcutModalList()` |
 | **壁纸持久化与即选即存** | `src/js/modules/wallpaper.js` | `commitWallpaperSelection()`, `previewDraftWallpaper()` |
-| **设置弹窗与生命周期管理** | `src/js/modules/settings.js`<br/>`src/js/core/overlay-stack.js` | `openEditModal()`, `closeEditModal()`, `OverlayStack`, `modalState.draftBookmarks`, `collectEditData()` |
-| **搜索联想与防竞态调度** | `src/js/modules/search.js` | `renderSuggestions()`, `fetchSuggestions()`, `activeSuggestReqId` |
+| **设置弹窗与生命周期管理** | `src/js/modules/settings.js`<br/>`src/js/core/overlay-stack.js` | `openEditModal()`, `closeEditModal()`, `OverlayStack`, `modalState.draftBookmarks` |
+| **搜索联想与防竞态调度** | `src/js/modules/search.js` | `renderSuggestions()`, `fetchSuggestions()`, `activeSuggestReqId`, `damerauLevenshteinDistance()` |
 | **气象数据清洗与动态演化** | `src/js/modules/weather.js` | `initWeather()`, `weatherNum()`, `WMO_WEATHER_MAP` |
 | **外壳主题与底色动态管理** | `src/js/core/theme-engine.js` | `APP_THEME_DARK`, `APP_THEME_LIGHT`, `updateThemeColor()` |
 | **双屏有限状态机与唤醒自愈** | `src/js/core/screen-state.js`<br/>`src/js/core/lifecycle.js` | `switchToNav()`, `switchToStart()`, `reconcileScreenState()` |
 | **VisionOS 3D 倾斜与高光** | `src/js/core/gestures.js` | `initGlassSpotlightAndTilt()`, `resetActiveCard()` |
 | **拖拽重排与 FLIP 物理吸附** | `src/js/core/drag-sort.js` | `initDragSort()` |
-| **全局事件中枢与焦点捕获** | `src/js/core/events.js` | `bindEvents()`, `bindEditEvents()`, `handleModalTabFocus()` |
-| **XSS 安全防线与字符纠错** | `src/js/utils/helpers.js` | `escapeHtml()`, `safeUrl()`, `normalizeUrl()`, `damerauLevenshtein()` |
-| **IndexedDB 大图壁纸持久化** | `src/js/utils/idb.js` | `getWallpaperDB()`, `setWallpaperDB()`, `clearWallpaperDB()` |
+| **全局事件中枢与焦点捕获** | `src/js/core/events.js` | `bindEvents()`, `handleModalTabFocus()` |
+| **XSS 安全防线与 URL 处理** | `src/js/utils/helpers.js` | `escapeHtml()`, `safeUrl()`, `normalizeUrl()`, `normalizeBookmark()` |
+| **IndexedDB 大图壁纸持久化** | `src/js/utils/idb.js` | `getWallpaperDB()`, `setWallpaperDB()`, `removeWallpaperDB()` |
 | **本地图标同步与清洗流水线** | `scripts/sync-icons.mjs`<br/>`public/icons/` | `main()`, `isPlaceholder()`, `saveAsPng()`, `npm run sync:icons` |
-| **启动装配与生命周期入口** | `src/js/init.js`<br/>`src/js/main.js` | `initApp()`, `initPreHydration()` |
+| **启动装配与生命周期入口** | `src/js/init.js`<br/>`src/js/main.js` | `init()`, `bootstrap()` |
+| **天气共用数值清洗** | `src/js/utils/weather-data.js` | `weatherNum()`（构建注入首帧，运行时共用） |
+| **目录共用索引** | `src/js/utils/category-catalog.js` | `getCategoryCatalog()`, `searchUrlKey()` |
+| **书签草稿编辑** | `src/js/modules/bookmark-editor.js` | `renderEditList()`, `collectEditData()` |
+| **设置事件装配** | `src/js/core/settings-events.js` | `bindEditEvents()` |
+| **确认框与壁纸渲染** | `src/js/core/dialogs.js`<br/>`src/js/core/wallpaper-renderer.js` | `showConfirm()`, `applyWallpaper()` |
 | **离线底座与三池物理隔离** | `sw.js` | `CORE_CACHE`, `FAVICON_CACHE`, `IMG_CACHE` |

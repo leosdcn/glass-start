@@ -9,12 +9,38 @@
  * 3. Damerau-Levenshtein 编辑距离与书签三级模糊检索匹配 (damerauLevenshteinDistance / getFuzzyScore / getLocalBookmarkSuggestions)
  * 4. 实时搜索联想与防竞态调度 (fetchSuggestions / renderSuggestions / hideSuggestions)
  */
+import { getCategoryCatalog, searchUrlKey } from '../utils/category-catalog.js';
 import { CONFIG, engines } from '../config/constants.js';
 import { escapeHtml, safeUrl, normalizeUrl, storageSet } from '../utils/helpers.js';
 import { state, pageData } from '../state/store.js';
 import { dom, $ } from '../state/dom.js';
 import { OverlayStack } from '../core/overlay-stack.js';
 
+let suggestionItems = [];
+export function getSuggestionCount() { return suggestionItems.length; }
+export function activateSuggestion(index, newTab) {
+    const item = suggestionItems[index];
+    if (item?.type === 'bookmark') openBookmarkUrl(item.url, newTab);
+    else doSearch(item?.text, newTab);
+}
+export function selectSuggestion(index, { keyboard = false, updateInput = true } = {}) {
+    const menu = dom.suggestionMenu;
+    const input = dom.searchInput;
+    selectedSuggestionIdx = suggestionItems[index] ? index : -1;
+    const nodes = menu?.querySelectorAll('.suggestion-item') || [];
+    nodes.forEach((node, i) => {
+        node.classList.toggle('active', i === selectedSuggestionIdx);
+        node.setAttribute('aria-selected', String(i === selectedSuggestionIdx));
+    });
+    if (keyboard) menu?.classList.add('keyboard-nav');
+    const item = suggestionItems[selectedSuggestionIdx];
+    if (input) {
+        if (updateInput) input.value = item?.text ?? originalQuery;
+        if (item) input.setAttribute('aria-activedescendant', 'sug-opt-' + selectedSuggestionIdx);
+        else input.removeAttribute('aria-activedescendant');
+    }
+    if (keyboard && item) nodes[selectedSuggestionIdx]?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+}
 export let suggestionScriptTag = null;
 export let selectedSuggestionIdx = -1;
 export let originalQuery = '';
@@ -318,19 +344,9 @@ export function getFuzzyScore(q, target) {
     return totalDist <= maxTotalDist ? totalDist : Infinity;
 }
 
-let cachedSearchCandidates = null;
-let lastSearchCategoriesRef = null;
-let lastSearchBookmarksRef = null;
-
 export function getSearchCandidates() {
-    if (cachedSearchCandidates && pageData && pageData.categories === lastSearchCategoriesRef && pageData.bookmarks === lastSearchBookmarksRef) {
-        return cachedSearchCandidates;
-    }
-    lastSearchCategoriesRef = pageData ? pageData.categories : null;
-    lastSearchBookmarksRef = pageData ? pageData.bookmarks : null;
-
-    const toNormUrl = u => (u || '').trim().toLowerCase().replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '');
-    const urlToCategoryMap = new Map();
+    const catalog = getCategoryCatalog(pageData.categories);
+    const urlToCategoryMap = catalog.searchCategories;
     const candidates = [];
     const seenNormUrls = new Set();
     const addCandidate = (bm, normUrl, defaultCat) => {
@@ -340,24 +356,12 @@ export function getSearchCandidates() {
     };
     if (pageData && Array.isArray(pageData.bookmarks)) {
         for (const bm of pageData.bookmarks) {
-            if (bm && bm.url) addCandidate(bm, toNormUrl(bm.url), '快捷书签');
+            if (bm && bm.url) addCandidate(bm, searchUrlKey(bm.url), '快捷书签');
         }
     }
-    if (pageData && Array.isArray(pageData.categories)) {
-        for (const cat of pageData.categories) {
-            if (!cat || !Array.isArray(cat.bookmarks)) continue;
-            for (const bm of cat.bookmarks) {
-                if (!bm || !bm.url) continue;
-                const normUrl = toNormUrl(bm.url);
-                // 分类归属取第一项；快捷书签仍优先保留自己的名称和元数据。
-                if (!urlToCategoryMap.has(normUrl)) urlToCategoryMap.set(normUrl, cat.name);
-                addCandidate(bm, normUrl, cat.name || '分类书签');
-            }
-        }
-    }
+    for (const {bm, normUrl, defaultCat} of catalog.entries) addCandidate(bm, normUrl, defaultCat);
 
-    cachedSearchCandidates = { candidates, urlToCategoryMap };
-    return cachedSearchCandidates;
+    return { candidates, urlToCategoryMap };
 }
 
 /**
@@ -438,6 +442,10 @@ export function renderSuggestions(localList = [], netList = [], preserveSelectio
     const searchInput = dom.searchInput;
     if (!suggestionMenu) return;
     const prevIdx = preserveSelection ? selectedSuggestionIdx : -1;
+    const maxNetCount = Math.max(0, CONFIG.SUGGEST.MAX_TOTAL_ITEMS - (localList ? localList.length : 0));
+    const safeNetList = (netList || []).slice(0, maxNetCount);
+    suggestionItems = [...(localList || []).map(bm => ({type: 'bookmark', text: bm.name, url: bm.url})),
+        ...safeNetList.map(text => ({type: 'query', text}))];
     selectedSuggestionIdx = -1;
 
     if ((!localList || localList.length === 0) && (!netList || netList.length === 0) && !isNetLoading) {
@@ -483,8 +491,6 @@ export function renderSuggestions(localList = [], netList = [], preserveSelectio
     }
 
     // 网络建议分组
-    const maxNetCount = Math.max(0, CONFIG.SUGGEST.MAX_TOTAL_ITEMS - (localList ? localList.length : 0));
-    const safeNetList = (netList || []).slice(0, maxNetCount);
 
     if (safeNetList.length > 0) {
         if (localList && localList.length > 0) {
@@ -528,31 +534,8 @@ export function renderSuggestions(localList = [], netList = [], preserveSelectio
     if (searchInput) searchInput.setAttribute('aria-expanded', 'true');
     OverlayStack.push('suggestions', hideSuggestions);
 
-    if (prevIdx >= 0) {
-        const items = suggestionMenu.querySelectorAll('.suggestion-item');
-        if (items.length > 0) {
-            const validIdx = Math.min(prevIdx, items.length - 1);
-            selectedSuggestionIdx = validIdx;
-            items[validIdx].classList.add('active');
-            items[validIdx].setAttribute('aria-selected', 'true');
-            if (searchInput) {
-                searchInput.setAttribute('aria-activedescendant', `sug-opt-${validIdx}`);
-                if (items[validIdx].dataset.suggestion) {
-                    searchInput.value = items[validIdx].dataset.suggestion;
-                }
-            }
-        } else {
-            selectedSuggestionIdx = -1;
-            if (searchInput) {
-                searchInput.removeAttribute('aria-activedescendant');
-                if (typeof originalQuery === 'string') {
-                    searchInput.value = originalQuery;
-                }
-            }
-        }
-    } else if (searchInput) {
-        searchInput.removeAttribute('aria-activedescendant');
-    }
+    if (prevIdx >= 0) selectSuggestion(Math.min(prevIdx, suggestionItems.length - 1));
+    else searchInput?.removeAttribute('aria-activedescendant');
 }
 
 /**
@@ -560,6 +543,7 @@ export function renderSuggestions(localList = [], netList = [], preserveSelectio
  * @returns {void}
  */
 export function hideSuggestions() {
+    suggestionItems = [];
     clearTimeout(suggestDebounceTimer);
     suggestDebounceTimer = null;
     activeSuggestReqId++;

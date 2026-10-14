@@ -33,7 +33,7 @@ try {
     await prepare(); localStorage.setItem(CONFIG.KEYS.USER_WALLPAPER, JSON.stringify('https://example.com/legacy.png'));
     const remote = await getEffectiveCustomWallpaper() === 'https://example.com/legacy.png' && localStorage.getItem(CONFIG.KEYS.USER_WALLPAPER) === null;
     await prepare(); localStorage.setItem(CONFIG.KEYS.USER_WALLPAPER, JSON.stringify(backgrounds[2]));
-    await loadUserData();
+    await restoreWallpaper();
     const preset = state.bg === 2 && await getEffectiveCustomWallpaper() === null && localStorage.getItem(CONFIG.KEYS.USER_WALLPAPER) === null;
     await prepare();
     const migrating = getEffectiveCustomWallpaper();

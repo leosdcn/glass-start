@@ -7,7 +7,7 @@
 import { CONFIG } from '../config/constants.js';
 import { dom, $ } from '../state/dom.js';
 import { modalState } from '../state/store.js';
-import { updateAllBookmarkCounters } from '../modules/settings.js';
+import { updateAllBookmarkCounters } from '../modules/bookmark-editor.js';
 
 export function initDragSort() {
     let dragSrc = null;

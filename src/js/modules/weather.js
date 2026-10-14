@@ -12,6 +12,8 @@
  * 6. 缓存有效性校验与生命周期对齐 (updateWeather, initWeather)
  */
 import { CONFIG } from '../config/constants.js';
+import { weatherNum } from '../utils/weather-data.js';
+export { weatherNum } from '../utils/weather-data.js';
 import { escapeHtml, storageGet, storageSet, storageRemove } from '../utils/helpers.js';
 import { dom, $ } from '../state/dom.js';
 import { OverlayStack } from '../core/overlay-stack.js';
@@ -53,12 +55,6 @@ export function getWeatherInfo(code, isDay = true) {
         text: item.text,
         icon: isDay ? item.dayIcon : item.nightIcon
     };
-}
-
-export function weatherNum(v, fallback) {
-    if (v === null || v === undefined || v === '' || typeof v === 'boolean') return fallback;
-    const n = Number(v);
-    return Number.isFinite(n) ? n : fallback;
 }
 
 export function weatherTime(v) {
@@ -337,10 +333,11 @@ export function renderWeatherCapsule(data) {
     const weatherTemp = dom.weatherTemp || $('weatherTemp');
     const weatherCity = dom.weatherCity || $('weatherCity');
     const weatherBtn = dom.weatherBtn || $('weatherBtn');
+    const temperature = Math.round(weatherNum(data.current.temp, 0));
 
     if (weatherIcon && weatherIcon.textContent !== data.current.icon) weatherIcon.textContent = data.current.icon;
     if (weatherTemp) {
-        const tempStr = `${data.current.temp}°`;
+        const tempStr = `${temperature}°`;
         if (weatherTemp.textContent !== tempStr) weatherTemp.textContent = tempStr;
     }
     if (weatherCity) {
@@ -352,7 +349,7 @@ export function renderWeatherCapsule(data) {
         const cityName = data.location ? data.location.name : '天气';
         const weatherDesc = data.current.weatherText ? ` ${data.current.weatherText}` : '';
         const iconStr = data.current.icon ? `${data.current.icon} ` : '';
-        const newLabel = `${iconStr}${data.current.temp}°·${cityName} 实时天气${weatherDesc}，点击查看详细预报`;
+        const newLabel = `${iconStr}${temperature}°·${cityName} 实时天气${weatherDesc}，点击查看详细预报`;
         if (weatherBtn.getAttribute('aria-label') !== newLabel) weatherBtn.setAttribute('aria-label', newLabel);
     }
 }

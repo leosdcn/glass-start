@@ -1,10 +1,8 @@
 import assert from 'node:assert/strict';
-import { startServer } from './server.mjs';
-import { launchChrome } from './cdp.mjs';
-import { getFreePort, waitFor } from './helpers.mjs';
+import { launchSession, waitFor } from './helpers.mjs';
 
 const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+j1ioAAAAASUVORK5CYII=', 'base64');
-const server = await startServer(0, undefined, {
+const { server, chrome, send, evalJS } = await launchSession(0, {
   '/audit-slow.png': (req, res) => setTimeout(() => {
     res.writeHead(200, { 'Content-Type': 'image/png', 'Cache-Control': 'no-store' });
     res.end(png);
@@ -13,19 +11,74 @@ const server = await startServer(0, undefined, {
     res.writeHead(404); res.end('missing');
   }, 350)
 });
-const chrome = await launchChrome({ port: await getFreePort(), url: `http://127.0.0.1:${server.port}/` });
-const { send } = chrome;
-const evalJS = async expression => {
-  const response = await send('Runtime.evaluate', { expression, returnByValue: true, awaitPromise: true });
-  assert.equal(response.exceptionDetails, undefined, JSON.stringify(response.exceptionDetails));
-  return response.result?.value;
-};
 
 try {
-  await send('Page.enable');
-  await send('Runtime.enable');
   await waitFor(evalJS, 'typeof openEditModal === "function"');
   await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] });
+
+  const storage = await evalJS(`(() => {
+    const key = 'audit-storage';
+    storageRemove(key);
+    const missing = [storageGet(key, null), storageGet(key, 42)];
+    storageSet(key, 1); localStorage.setItem(key, '2');
+    const external = storageGet(key);
+    localStorage.setItem(key, '{broken');
+    const corrupt = storageGet(key, 7);
+    storageRemove(key);
+    return {missing, external, corrupt};
+  })()`);
+  assert.deepEqual(storage, {missing:[null, 42], external:2, corrupt:7});
+  await assert.rejects(() => evalJS('throw new Error("audit-page-error")'), /audit-page-error/);
+  console.log('✅ 配置读取使用本次默认值并看到外部写入，损坏 JSON 回退；页面求值异常直接报告');
+
+  const activation = await evalJS(`(() => {
+    const append=document.body.appendChild, open=window.open; let opened='';
+    document.body.appendChild=function(node){if(node.tagName==='SCRIPT')node.type='application/x-audit';return append.call(this,node)};
+    window.open=url=>{opened=url};
+    try {
+      dom.searchInput.value='audit-unmatched-query'; dom.searchInput.focus();
+      fetchSuggestions('bing','audit-unmatched-query');
+      window['__glassSuggestCb_'+activeSuggestReqId](['query',['first-result','second-result']]);
+      const item=dom.suggestionMenu.querySelector('[data-idx="1"]');
+      item.dispatchEvent(new MouseEvent('mouseover',{bubbles:true}));
+      const selected=selectedSuggestionIdx;
+      item.dataset.suggestion='tampered-result';
+      dom.searchInput.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',ctrlKey:true,bubbles:true,cancelable:true}));
+      return {selected, usesModel:opened.includes('second-result')&&!opened.includes('tampered-result')};
+    } finally {document.body.appendChild=append;window.open=open;hideSuggestions()}
+  })()`);
+  assert.deepEqual(activation,{selected:1,usesModel:true});
+  console.log('✅ 鼠标与键盘选中状态一致，Enter 使用内存结果，不反向读取 DOM 文本');
+
+
+  await evalJS(`(async () => {
+    await openEditModal();
+    window.auditBookmarks = [
+      {name:'长'.repeat(80),url:'example.com:8443/path',icon:'javascript:alert(1)',desc:'述'.repeat(80)},
+      {name:'危险',url:'javascript:alert(1)'}, {name:'空',url:''}
+    ];
+    renderEditList(auditBookmarks);
+    window.auditCollected = collectEditData();
+    const files = new DataTransfer();
+    files.items.add(new File([JSON.stringify(auditBookmarks)], 'bookmarks.json', {type:'application/json'}));
+    dom.importJsonInput.files = files.files;
+    dom.importJsonInput.dispatchEvent(new Event('change', {bubbles:true}));
+  })()`);
+  await waitFor(evalJS, 'OverlayStack.top()?.id === "confirmModal"');
+  const bookmarks = await evalJS(`(() => {
+    dom.confirmOkBtn.click();
+    const imported = collectEditData();
+    const original = pageData.bookmarks;
+    saveUserBookmarks(imported);
+    const persisted = pageData.bookmarks;
+    pageData.bookmarks = original; renderBookmarks(); cancelEditModal();
+    const result = {edited:auditCollected, imported, persisted};
+    delete window.auditBookmarks; delete window.auditCollected;
+    return result;
+  })()`);
+  const clean = [{name:'长'.repeat(60), url:'https://example.com:8443/path', icon:'https://a.favicon.im/example.com', desc:'述'.repeat(40)}];
+  assert.deepEqual(bookmarks, {edited:clean, imported:clean, persisted:clean});
+  console.log('✅ 导入、草稿收集和持久化统一截断、URL 与图标过滤，保留裸域名端口');
 
   const empty = await evalJS(`(async () => {
     await openEditModal();

@@ -1,6 +1,14 @@
 import { createServer as createNetServer } from 'node:net';
 import { startServer } from './server.mjs';
 import { launchChrome } from './cdp.mjs';
+import assert from 'node:assert/strict';
+
+/** CDP 协议错误由 send 报告，页面求值异常统一在此抛出。 */
+export const createEvaluator = send => async expression => {
+  const response = await send('Runtime.evaluate', { expression, returnByValue: true, awaitPromise: true });
+  assert.equal(response.exceptionDetails, undefined, JSON.stringify(response.exceptionDetails));
+  return response.result?.value;
+};
 
 export const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 export const pressKey = (evalJS, key) => evalJS(`document.dispatchEvent(new KeyboardEvent('keydown', { key: '${key}', bubbles: true, cancelable: true }))`);
@@ -74,24 +82,22 @@ export function getFreePort() {
  * 启动一次完整测试会话：本地静态服务 + 无头 Chrome CDP。
  * @param {number} [preferredPort=0] - 静态服务首选端口（默认 0 使用内核动态分配，杜绝 EADDRINUSE）
  */
-export async function launchSession(preferredPort = 0) {
-  let server = await startServer(preferredPort);
-  let port = server.port;
-  let cdpPort = await getFreePort();
-
-  const chrome = await launchChrome({ port: cdpPort, url: `http://127.0.0.1:${port}/` });
-  const { send } = chrome;
-  await send('Page.enable');
-  await send('Runtime.enable');
-
-  const evalJS = async (expr) => {
-    const r = await send('Runtime.evaluate', { expression: expr, returnByValue: true, awaitPromise: true });
-    return r.result?.value;
-  };
-
-  await sleep(100);
-
-  return { server, chrome, send, evalJS, port, cdpPort };
+export async function launchSession(preferredPort = 0, customRoutes = {}) {
+  const server = await startServer(preferredPort, undefined, customRoutes);
+  let chrome;
+  try {
+    const cdpPort = await getFreePort();
+    chrome = await launchChrome({ port: cdpPort, url: `http://127.0.0.1:${server.port}/` });
+    const { send } = chrome;
+    await send('Page.enable');
+    await send('Runtime.enable');
+    const evalJS = createEvaluator(send);
+    await waitFor(evalJS, 'typeof openEditModal === "function" && !!document.querySelector(".bookmark-item")');
+    return { server, chrome, send, evalJS, port: server.port, cdpPort };
+  } catch (error) {
+    try { if (chrome) await chrome.close(); } finally { await server.close(); }
+    throw error;
+  }
 }
 
 /** 创建一个收集断言结果的测试器，finish() 返回进程退出码 */

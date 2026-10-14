@@ -1,11 +1,11 @@
 /**
  * ==============================================================================
- * Glass Start — 全局响应式状态与数据存储 (src/js/state/store.js)
+ * Glass Start — 全局内存状态与数据存储 (src/js/state/store.js)
  * ==============================================================================
  */
 import { CONFIG, DEFAULT_BOOKMARKS, DEFAULT_CATEGORIES } from '../config/constants.js';
 
-// 全局响应式运行时状态
+// 运行时状态：由调用方显式更新并触发渲染
 export const state = {
     engine: 'bing',          // 当前激活的搜索引擎 key，对应 engines 对象的键名
     bg: 0,                   // 当前壁纸在 backgrounds 数组中的索引
