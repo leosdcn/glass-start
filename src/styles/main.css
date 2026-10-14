@@ -305,7 +305,8 @@ html.wallpaper-bright .nav-bookmark .text-2xs {
 /* ==========================================================================
    5. COMPONENTS - SCREEN 2: NAV (第二屏组件：分类导航/侧边栏)
    ========================================================================== */
-.nav-hidden { visibility: hidden; pointer-events: none; }
+/* 离屏位置与 inert 隔离第二屏；保留可见性，避免每次入场重建整屏绘制内容。 */
+.nav-hidden { pointer-events: none; }
 .nav-visible { visibility: visible; pointer-events: auto; }
 #sidebarList {
     position: relative;

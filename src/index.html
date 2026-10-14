@@ -331,7 +331,7 @@
         <!-- 向下滚动提示（保持纯净竖排原样，首次常驻直至初次下滑） -->
         <div id="scrollDownHint" class="absolute bottom-4 md:bottom-7 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5 text-white/50 text-xs font-medium tracking-[0.25em] pointer-events-none hint-down select-none fade-in delay-200">
             <span>向下探索</span>
-            <svg class="size-5 scroll-hint" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="m19.5 8.25-7.5 7.5-7.5-7.5"/></svg>
+            <span class="scroll-hint inline-flex" aria-hidden="true"><svg class="size-5" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="m19.5 8.25-7.5 7.5-7.5-7.5"/></svg></span>
         </div>
         <script>(function(){try{if(localStorage.getItem('hasDiscoveredNav')==='1'){const h=document.getElementById('scrollDownHint');if(h)h.style.display='none';}}catch(e){}})()</script>
 
@@ -355,7 +355,7 @@
                     </div>
                     <!-- 右侧返回操作药丸 -->
                     <button id="navHint" type="button" aria-label="返回起始页" class="flex items-center gap-1.5 text-white/80 text-2xs tracking-wider bg-white/10 border border-white/15 px-2.5 py-1 apple-radius whitespace-nowrap shrink-0 cursor-pointer hover:bg-white/20 hover:text-white active:scale-95 glass-interactive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" title="点击或向上滚动返回起始页">
-                        <svg class="size-3 scroll-up-hint shrink-0 text-white/60" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="m4.5 15.75 7.5-7.5 7.5 7.5"/></svg>
+                        <span class="scroll-up-hint inline-flex shrink-0 text-white/60" aria-hidden="true"><svg class="size-3" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="m4.5 15.75 7.5-7.5 7.5 7.5"/></svg></span>
                         <span class="whitespace-nowrap">起始页</span>
                     </button>
                 </header>

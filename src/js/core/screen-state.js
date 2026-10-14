@@ -246,18 +246,14 @@ export function switchToNav() {
         nav.style.transition = '';
         nav.classList.remove('nav-hidden');
         nav.classList.add('nav-visible');
-        // Safari 关键对齐：强制触发一次同步 Layout，消除首帧离屏优化导致的动画截断
-        void nav.offsetHeight;
         nav.classList.add('screen-pushed-in');
     }
 
-    requestAnimationFrame(() => {
+    waitForScreenTransition(nav, 'nav', () => {
+        // 分类与图标检查留到切屏结束，避免与入场首帧的栅格化争用主线程。
         refreshSidebarNavCache();
         updateSidebarActive();
         initFaviconObserver();
-    });
-
-    waitForScreenTransition(nav, 'nav', () => {
         if (typeof window !== 'undefined') {
             window.scrollTo(0, 0);
             document.activeElement?.blur?.();
@@ -289,13 +285,11 @@ export function switchToStart() {
     if (startSection) {
         startSection.style.transform = '';
         startSection.style.transition = '';
-        void startSection.offsetHeight;
         startSection.classList.remove('screen-pushed-up');
     }
     if (nav) {
         nav.style.transform = '';
         nav.style.transition = '';
-        void nav.offsetHeight;
         nav.classList.remove('screen-pushed-in');
     }
 
@@ -353,6 +347,9 @@ export function initScreenGestures() {
 
 
     reconcileScreenState(getSavedSection() === 'nav' ? 'nav' : 'start');
+    // Safari 冷启动只在装配时同步确定离屏起点；日常切屏不再强制刷新布局。
+    const nav = dom.navSection || $('navSection');
+    if (nav) void nav.offsetHeight;
 
     // 1. 鼠标滚轮调度：离散意图直接触发，状态锁 (isTransitioning) 天然吞咽余震
     document.addEventListener('wheel', (e) => {
