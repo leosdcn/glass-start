@@ -587,20 +587,13 @@ section:first-of-type {
     padding-right: max(1rem, calc(1rem + env(safe-area-inset-right, 0px)));
 }
 
-/* 导航页第二屏 padding 安全区适配 */
-#navSection > div {
-    padding-top: max(0.375rem, calc(0.375rem + env(safe-area-inset-top, 0px)));
-    padding-bottom: max(0.375rem, calc(0.375rem + env(safe-area-inset-bottom, 0px)));
-    padding-left: max(0.375rem, calc(0.375rem + env(safe-area-inset-left, 0px)));
-    padding-right: max(0.375rem, calc(0.375rem + env(safe-area-inset-right, 0px)));
-}
-@media (min-width: 768px) {
-    #navSection > div {
-        padding-top: max(0.5rem, calc(0.5rem + env(safe-area-inset-top, 0px)));
-        padding-bottom: max(0.5rem, calc(0.5rem + env(safe-area-inset-bottom, 0px)));
-        padding-left: max(0.5rem, calc(0.5rem + env(safe-area-inset-left, 0px)));
-        padding-right: max(0.5rem, calc(0.5rem + env(safe-area-inset-right, 0px)));
-    }
+/* 玻璃底板延伸到视口边缘，安全区留白放在材质内部，保护刘海与底部手势区域。 */
+#navSection .nav-surface {
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px)
+        env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
 }
 
 /* 下滑指示器安全区偏移与状态驱动 */
