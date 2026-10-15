@@ -22,6 +22,11 @@ const ICONS_DIR = join(ROOT_DIR, 'public', 'icons');
 const BOOKMARKS_PATH = join(ROOT_DIR, 'bookmarks.json');
 const HTTP_TIMEOUT_MS = 8000;
 
+// 锁定图标集合：保留本地定制/经典设计版本，避免被上游变更覆盖
+const PINNED_HOSTS = new Set([
+    'qianwen.com' // 阿里千问：官方新版为蓝色实心底，保持本项目经典透明底纯白款
+]);
+
 // 终端排版色彩
 const isTTY = process.stdout.isTTY && !process.env.NO_COLOR;
 const c = {
@@ -168,6 +173,11 @@ function isPlaceholder(buf) {
 
     let completed = 0;
     const tasks = Array.from(hostMap.entries()).map(([host, destPath]) => async () => {
+        // 若命中锁定白名单且本地已存在有效图标，直接保留，跳过网络抓取
+        if (PINNED_HOSTS.has(host) && existsSync(destPath)) {
+            return { host, success: true, source: 'pinned' };
+        }
+
         let buf = null;
         let source = 'a.favicon.im';
 
@@ -213,6 +223,10 @@ function isPlaceholder(buf) {
     });
 
     console.log('\n');
+    const pinned = results.filter(r => r.source === 'pinned');
+    if (pinned.length > 0) {
+        console.log(`  ${c.cyan}📌 已保留 ${pinned.length} 个本地锁定图标: ${pinned.map(p => p.host).join(', ')}${c.reset}`);
+    }
     const failed = results.filter(r => !r.success);
     if (failed.length > 0) {
         console.log(`  ${c.yellow}⚠ 注意：有 ${failed.length} 个图标未能成功下载：${c.reset}`);
