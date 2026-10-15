@@ -1,12 +1,10 @@
 /**
- * ==============================================================================
- * Glass Start — 书签编辑列表 HTML5 拖拽与 FLIP 物理吸附重排 (src/js/core/drag-sort.js)
- * 触屏（iOS/Android）通过 touchstart/touchmove/touchend 共享同一套提交逻辑。
- * ==============================================================================
+ * 书签重排：鼠标使用 HTML5 拖拽，触屏使用 touch 事件，共用草稿提交与 FLIP 动画。
  */
 import { CONFIG } from '../config/constants.js';
 import { dom, $ } from '../state/dom.js';
 import { modalState } from '../state/store.js';
+import { reorderBookmarkDraft } from '../state/bookmark-draft.js';
 import { updateAllBookmarkCounters } from '../modules/bookmark-editor.js';
 
 export function initDragSort() {
@@ -30,7 +28,7 @@ export function initDragSort() {
     function updateDragIndicator(target, isTop) {
         lastOverTarget = target;
         lastIsTop = isTop;
-        // 方案C：切换目标行高亮类，清除其它行残留
+        // 切换目标行高亮，清除其他行残留。
         editList.querySelectorAll('.edit-row-card').forEach(el => {
             el.classList.remove('drop-target-above', 'drop-target-below');
         });
@@ -96,12 +94,7 @@ export function initDragSort() {
         } else {
             target.parentNode.insertBefore(src, target.nextSibling);
         }
-        modalState.bookmarksChanged = true;
-
-        // 同步重新排列内存草稿数组顺序 (基于内存索引移位，杜绝 DOM 搜刮)
-        const [moved] = modalState.draftBookmarks.splice(srcIdx, 1);
-        const destIdx = modalState.draftBookmarks.findIndex(b => b.id === target.dataset.id);
-        modalState.draftBookmarks.splice(isTop ? destIdx : destIdx + 1, 0, moved);
+        reorderBookmarkDraft(src.dataset.id, target.dataset.id, isTop);
 
         // 先批量读取重排后的坐标，再写入 FLIP 样式，避免逐行交错读写。
         const lastPositions = new Map(cards.map(card => [card, card.getBoundingClientRect()]));

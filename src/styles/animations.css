@@ -12,7 +12,7 @@
     .glass, .glass-strong { -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
 }
 
-/* 入场淡入动画：Apple 满血版微过冲物理弹簧 + 晶莹高光渐显 */
+/* 入场淡入与缩放动画。 */
 .fade-in {
     animation: appleSpringOvershoot var(--duration-entrance) var(--ease-spring) both;
     transform-origin: center 40%;
@@ -20,7 +20,7 @@
 }
 .nr .fade-in { animation: none; }
 
-/* 苹果物理弹簧关键帧：无过冲纯净临界阻尼 (0.975 -> 1.0 单向平滑收敛，彻底杜绝像素抖动) */
+/* 缩放收敛到原尺寸，不设过冲关键帧。 */
 @keyframes appleSpringOvershoot {
     0% {
         opacity: 0;

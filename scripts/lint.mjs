@@ -1,9 +1,9 @@
 /**
  * 根目录零依赖静态语法与格式检查 (scripts/lint.mjs)
- * 1. 提取 index.html 内所有内联 <script> 做纯内存 AST 语法校验
- * 2. 对核心 JavaScript 脚本 (scripts/build.js, sw.js, scripts/server.js) 做纯内存语法校验
- * 3. 对根目录 JSON 配置文件 (bookmarks.json, manifest.json, package.json) 做合法性校验
- * 4. 全站 12 项工程宪法规范静态门禁扫描 (iOS 16px, WAI-ARIA, !important, DOM ID, BFCache 等)
+ * 1. 提取 src/index.html 内联脚本并校验语法
+ * 2. 使用 node --check 校验核心脚本及 src/js 业务模块
+ * 3. 校验 bookmarks.json、public/manifest.json 等 JSON 配置
+ * 4. 静态检查输入字号、ARIA、CSS、DOM ID、书签及生命周期等工程约束
  */
 import { readFileSync, writeFileSync, statSync, existsSync, readdirSync } from 'node:fs';
 import { join, dirname, relative } from 'node:path';
@@ -39,7 +39,7 @@ console.log(`\n${c.cyan}${HR_DOUBLE}${c.reset}`);
 console.log(`${c.bold}${c.cyan}🔍 Glass Start — 零依赖静态语法与格式检查 (Static Lint)${isFixMode ? ' [🔧 FIX MODE]' : ''}${c.reset}`);
 console.log(`${c.cyan}${HR_DOUBLE}${c.reset}`);
 
-// 全局单次读取核心文件，彻底消除多次读盘 I/O
+// 缓存共用核心文件内容，供多项检查复用。
 const htmlPath = join(root, 'src', 'index.html');
 let indexHtml = readFileSync(htmlPath, 'utf-8');
 
@@ -93,10 +93,6 @@ function getAllJsInDir(dir) {
     return results;
 }
 const allSrcJsFiles = getAllJsInDir(join(root, 'src', 'js'));
-const allSrcJsContent = allSrcJsFiles.map(f => readFileSync(f, 'utf-8')).join('\n');
-const screenStateFile = join(root, 'src', 'js', 'core', 'screen-state.js');
-const screenStateContent = existsSync(screenStateFile) ? readFileSync(screenStateFile, 'utf-8') : '';
-
 // ---- 1. src/index.html 内联 <script> 语法校验 ----
 logSection('1/4', '📄 校验 src/index.html 内联脚本语法');
 const scripts = [...indexHtml.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi)];
@@ -248,7 +244,7 @@ try {
         const has16pxPlus = /text-(base|lg|xl|2xl|3xl)/.test(tag);
         const classes = tag.match(/class=["']([^"']*)["']/)?.[1] || '';
         const smallerOverrides = [...classes.matchAll(/(?:^|\s)((?:[\w-]+:)*text-(?:xs|sm|2xs))(?=\s|$)/g)].map(match => match[1]);
-        // 只放行书签编辑器与壁纸直链中经鼠标/无触屏媒体守卫保护的原版 12px 字号。
+        // 紧凑输入字号仅放行书签编辑器与壁纸直链，且必须受纯鼠标桌面媒体条件保护。
         const isBookmarkEditorInput = file === join(root, 'src', 'js', 'modules', 'bookmark-editor.js')
             && /(?:^|\s)edit-(?:name|url)(?=\s|$)/.test(classes);
         const isWallpaperUrlInput = file === 'src/index.html' && /\bid=["']urlBgInput["']/.test(tag);
@@ -556,72 +552,7 @@ try {
     logItem(`书签 Schema 规范检查异常: ${e.message}`, 'error');
 }
 
-// 4.8 🚫 严禁主应用脚本在运行期滥加 .nr 类名（防止首屏被推飞）
-try {
-    const hasNrAdd = /\.classList\.add\([^)]*['"]nr['"][^)]*\)/.test(allSrcJsContent);
-    if (!hasNrAdd) {
-        passCount++;
-        logItem(`运行期 .nr 布局类名零污染（仅保留 HEAD 脚本刷新预水合通道）`);
-    } else {
-        failCount++;
-        logItem(`主脚本发现运行期滥加 .nr 类名（会导致首屏在唤醒时被推飞），必须立即移除`, 'error');
-    }
-} catch (e) {
-    failCount++;
-    logItem(`运行期 .nr 规范扫描异常: ${e.message}`, 'error');
-}
-
-// 4.9 🚫 严禁 reconcileScreenState 注入内联 transition:none（防止后台冻结 rAF 导致卡死）
-try {
-    const reconcileMatch = screenStateContent.match(/function\s+reconcileScreenState\s*\([^)]*\)\s*\{([\s\S]*?)\nexport/i) ||
-                          screenStateContent.match(/function\s+reconcileScreenState\s*\([^)]*\)\s*\{([\s\S]*?)\n\}/i);
-    const reconcileBody = reconcileMatch ? reconcileMatch[1] : '';
-    const hasInlineTransitionNone = /\.style\.transition\s*=\s*['"]none['"]/i.test(reconcileBody);
-    if (!hasInlineTransitionNone && reconcileBody.length > 0) {
-        passCount++;
-        logItem(`reconcileScreenState 双屏状态自愈 100% 声明式（零内联 transition:none 竞态隐患）`);
-    } else {
-        failCount++;
-        logItem(`reconcileScreenState 中发现内联 style.transition='none'（在后台挂起时会导致切屏过渡失效），必须改为纯 CSS 类名控制`, 'error');
-    }
-} catch (e) {
-    failCount++;
-    logItem(`reconcileScreenState 样式纯净度扫描异常: ${e.message}`, 'error');
-}
-
-// 4.10 🛡️ 全局多标签与 BFCache 双通道唤醒自愈闭环门禁
-try {
-    const hasVisibilityListener = /addEventListener\(\s*['"]visibilitychange['"][\s\S]*?handleAppWakeUp/i.test(screenStateContent) ||
-                                  /addEventListener\(\s*['"]visibilitychange['"][\s\S]*?reconcileScreenState/i.test(screenStateContent);
-    const hasPageshowListener = /addEventListener\(\s*['"]pageshow['"][\s\S]*?handleAppWakeUp/i.test(screenStateContent) ||
-                                /addEventListener\(\s*['"]pageshow['"][\s\S]*?reconcileScreenState/i.test(screenStateContent);
-
-    if (hasVisibilityListener && hasPageshowListener) {
-        passCount++;
-        logItem(`页面唤醒自愈机制 100% 覆盖 visibilitychange（多标签切回）与 pageshow（BFCache后退）双通道`);
-    } else {
-        failCount++;
-        logItem(`页面唤醒自愈通道缺失: visibilitychange=${hasVisibilityListener}, pageshow=${hasPageshowListener}`, 'error');
-    }
-} catch (e) {
-    failCount++;
-    logItem(`唤醒自愈双通道扫描异常: ${e.message}`, 'error');
-}
-
-// 4.11 🛡️ fade-in 入场动效自动脱壳卸载门禁
-try {
-    const hasFadeInUnload = /\.classList\.remove\([^)]*['"]fade-in['"][^)]*\)/.test(allSrcJsContent);
-    if (hasFadeInUnload) {
-        passCount++;
-        logItem(`入场动画包含自动脱壳机制（fade-in 播完即卸载，根绝 Safari BFCache 回退 opacity:0）`);
-    } else {
-        failCount++;
-        logItem(`未检测到 fade-in 自动脱壳卸载逻辑（会导致 Safari 从快照恢复时动画重置回滚至透明）`, 'error');
-    }
-} catch (e) {
-    failCount++;
-    logItem(`fade-in 脱壳机制扫描异常: ${e.message}`, 'error');
-}
+// 切屏恢复、双通道唤醒和动画清理由 lifecycle-behavior.test.mjs 验证实际行为。
 
 // 4.12 🚫 严禁滥加全局字体抗锯齿属性（-webkit-font-smoothing / -moz-osx-font-smoothing）
 try {

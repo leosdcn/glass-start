@@ -91,7 +91,7 @@ function createStaticServer() {
                 const isIcon = rel.startsWith('icons' + path.sep) || rel.startsWith('icons/');
                 const isImmutableAsset = isWallpaper || isIcon;
 
-                // 304 协商缓存 (仅对壁纸与图标等不可变强缓存生效；开发环境下代码/脚本永远提供最新实体)
+                // 对壁纸与图标处理 If-Modified-Since，命中时返回 304。
                 const ifModifiedSince = req.headers['if-modified-since'];
                 if (!isFallback && stats && ifModifiedSince && isImmutableAsset) {
                     const reqMtime = new Date(ifModifiedSince).getTime();
@@ -116,7 +116,7 @@ function createStaticServer() {
                 if (isImmutableAsset) {
                     res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
                 } else {
-                    // 本地开发调试防御：彻底禁用代码与文档 HTTP 缓存，配合增量编译杜绝跨版本旧缓存错配
+                    // 禁用代码与文档 HTTP 缓存；已受 Service Worker 控制的页面仍可能命中其缓存。
                     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
                     res.setHeader('Pragma', 'no-cache');
                     res.setHeader('Expires', '0');

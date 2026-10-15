@@ -1,12 +1,7 @@
 /**
- * ==============================================================================
- * Service Worker: 高性能全站离线与图标 FIFO 缓存器 (v11 - Modern Edition)
- * ==============================================================================
- * 核心架构特性:
- * 1. 【三池物理隔离】：CORE_CACHE (全站核心)、FAVICON_CACHE (外部图标)、IMG_CACHE (本地图片)
- * 2. 【防透明响应污染】：a.favicon.im 跨域图标 7s 超时熔断 + 合法响应校验入池
- * 3. 【原生 FIFO 容量淘汰】：轻量 pruneCache 自动限制图标 (800) 与图片 (200) 缓存上限，非阻塞后台运行
- * 4. 【版本隔离 Cache-First】：CORE_CACHE 缓存优先，安装验证构建指纹，新版等待旧客户端退出后激活
+ * 核心、外部图标与同源图片分池缓存，图标和图片按容量限额淘汰。
+ * 核心安装校验构建指纹；新版等待旧客户端退出后激活。
+ * 外部图标允许 opaque 响应入池，无法读取其正文进行校验。
  */
 
 // 缓存池定义（打包 build.js 时自动替换 CORE_CACHE 为时间戳版本）
@@ -174,7 +169,7 @@ self.addEventListener('fetch', e => {
                     || (await cache.match('./'))
                     || (await cache.match('/'));
 
-                // 命中本地原子版本池：0ms 瞬出首屏，消灭公网网络握手与 TTFB 延迟
+                // 命中当前核心池，直接返回缓存文档。
                 if (cachedRes) {
                     return cachedRes;
                 }
@@ -215,7 +210,7 @@ self.addEventListener('fetch', e => {
         return;
     }
 
-    // 2. 数据 JSON Stale-While-Revalidate 策略 (同源限制防污染)
+    // 2. manifest.json 使用同源 Stale-While-Revalidate。
     if (isCoreData) {
         e.respondWith(
             caches.open(CORE_CACHE).then(async cache => {
@@ -252,7 +247,7 @@ self.addEventListener('fetch', e => {
                     || (await cache.match(e.request, { ignoreSearch: true }))
                     || (isAppJs ? await cache.match('./app.js') : null);
 
-                // 命中本地原子版本池：0ms 瞬出，保障与 index.html 构建指纹 100% 同源同版
+                // 命中当前核心池，返回安装时已校验的应用脚本。
                 if (cached) {
                     return cached;
                 }
@@ -279,7 +274,7 @@ self.addEventListener('fetch', e => {
         return;
     }
 
-    // 4. 跨域 Favicon 防污染 Cache-First + 7s 超时熔断
+    // 跨域图标缓存优先，未命中时使用带超时的网络请求。
     if (isFaviconDomain) {
         e.respondWith(
             caches.open(FAVICON_CACHE).then(async cache => {

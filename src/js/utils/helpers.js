@@ -1,25 +1,23 @@
 /**
- * ==============================================================================
- * Glass Start — 工具函数集 (src/js/utils/helpers.js)
- * ==============================================================================
+ * 工具函数集
  */
 
 import { CONFIG } from '../config/constants.js';
 
+const htmlEscapes = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+const htmlEscapeRegex = /[&<>"']/g;
 /**
  * 将字符串中的 HTML 特殊字符转义为实体，防止 XSS
  * @param {string} str
  * @returns {string} HTML 转义后的安全字符串
  */
-const htmlEscapes = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
-const htmlEscapeRegex = /[&<>"']/g;
 export function escapeHtml(str) {
     return String(str ?? '').replace(htmlEscapeRegex, ch => htmlEscapes[ch]);
 }
 
 /**
  * 协议白名单校验与 URL 安全过滤函数
- * 仅放行 http://, https:// 及 data:image/ 格式协议，彻底阻断伪协议 XSS 注入
+ * 允许 HTTP(S)、图片 Data URL 及本地 icons/*.png 路径，返回 HTML 属性用转义值。
  * @param {string} url - 待校验的原始 URL 字符串
  * @returns {string} 校验通过返回经过 HTML 实体转义的 URL，校验失败时返回 '#' 安全占位符
  */
@@ -95,7 +93,7 @@ export function normalizeBookmark(item, fallbackName = '') {
 /**
  * 根据站点 URL 或原图标 URL 推断备用 Favicon 地址（通过 Google S2 服务）
  * @param {string} url - 书签目标 URL 或失效的图标 URL
- * @param {number} [size=128] - 图标切片分辨率 (默认 128)
+ * @param {number} [size] - 图标分辨率，默认取配置
  * @returns {string} Google S2 图标代理地址，无法推断时返回 ''
  */
 export function faviconFallbackFromUrl(url, size = CONFIG.UI.FAVICON_FALLBACK_SIZE) {
@@ -116,7 +114,7 @@ export function faviconFallbackFromUrl(url, size = CONFIG.UI.FAVICON_FALLBACK_SI
 
 
 /**
- * 生成书签加载失败或无图标时的首字母徽标 HTML（纯函数，零副作用）
+ * 生成缺失图标的首字母徽标 HTML。
  * @param {string} initial - 首字母字符
  * @param {string} [sizeClass='icon-box-sm'] - 容器尺寸样式类
  * @param {string} [textClass='text-2xs font-semibold'] - 文字排版样式类
@@ -199,7 +197,7 @@ export function evictFaviconCache(url) {
  * 统一图标失败策略：备用地址只尝试一次，最终失败交给对应界面渲染。
  * @param {HTMLImageElement|null} img
  * @param {(img: HTMLImageElement) => void} renderFailure
- * @param {number} [size=128]
+ * @param {number} [size] - 图标分辨率，默认取配置
  * @returns {void}
  */
 export function handleFaviconFailure(img, renderFailure, size = CONFIG.UI.FAVICON_FALLBACK_SIZE) {
@@ -217,7 +215,7 @@ export function handleFaviconFailure(img, renderFailure, size = CONFIG.UI.FAVICO
 }
 
 /**
- * 检测图片是否已从缓存就绪并同步状态类，未就绪或破损时调用回调
+ * 检测图片是否已从缓存就绪并同步状态类，已完成但破损时调用回调
  * @param {HTMLImageElement} img - 目标图片元素
  * @param {((img: HTMLImageElement) => void)|null} [onFallback=null] - 图片损坏时的兜底回调
  * @returns {boolean} 若图片已就绪则返回 true，破损或未完成返回 false

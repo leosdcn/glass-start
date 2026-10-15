@@ -1,12 +1,4 @@
-/**
- * 弹窗层叠栈、BFCache 自愈、搜索联想与移动视口测试套件 (ui-overlay-modals.test.mjs)
- *
- * 核心断言：
- * 4. sessionStorage 刷新保持、BFCache 自愈、导航页书签3D倾斜与跳出返回滚动防白屏及无残留
- * 5. 搜索联想键盘选中项保持与 Escape 优雅清退
- * 6. OverlayStack 多层弹窗嵌套压退栈、安全白名单与 Focus Trap 焦点锁
- * 7. 移动端视口 (iPhone 17) 与侧边栏 Tab 滚动联动及 44px 触控规范
- */
+/** 验证弹窗栈、唤醒恢复、联想交互及移动视口可访问性。 */
 import { launchSession, sleep, makeTester, pressKey, waitFor } from './helpers.mjs';
 
 const { pass, finish } = makeTester();
@@ -245,7 +237,7 @@ pass('搜索联想键盘选中项保持与 Escape 优雅清退 (高亮选中/还
 // 6.1 clock
 const clockOk = (await evalJS(`document.getElementById('clock').style.willChange`)) === '';
 
-// 6.2 多层 Modal FIFO/LIFO
+// 6.2 多层 Modal LIFO 退栈
 await evalJS(`document.getElementById('editBookmarksBtn').click()`); await sleep(300);
 await evalJS(`document.getElementById('togglePickerBtn').click()`); await sleep(300);
 const topPicker = await stackTop();
@@ -412,7 +404,7 @@ pass('OverlayStack 多层弹窗嵌套压退栈、安全白名单与 Focus Trap �
   JSON.stringify({ clockOk, modalStackOk, dropdownOk, lockOk, confirmOk, dropzoneOk, maskOk, isClean: engineDropdownCheck.isClean, focusTrapCheck }));
 
 // ══════════════════════════════════════════════════════════════════════
-// 7. 移动端视口 (iPhone 17 402x874) 与侧边栏 Tab 滚动联动
+// 移动视口与侧边栏滚动联动
 // ══════════════════════════════════════════════════════════════════════
 
 await send('Emulation.setDeviceMetricsOverride', {

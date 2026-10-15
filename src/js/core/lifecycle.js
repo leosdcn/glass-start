@@ -1,10 +1,8 @@
 import { isScreenTransitioning, reconcileScreenState } from './screen-state.js';
 /**
- * ==============================================================================
- * Glass Start — 构建指纹契约与运行时黑匣子自愈闭环 (src/js/core/lifecycle.js)
- * ==============================================================================
- * 零依赖零网络零轮询零存储写入：双端构建指纹校验、纯内存生命周期环形日志（≤40 条）、
- * 白屏异常连续探测 + 守卫软刷新阶梯。
+ * 构建指纹契约与运行时黑匣子自愈闭环
+ * 启动时校验构建指纹；日志使用有容量上限的内存缓冲。指纹不一致时用 SessionStorage
+ * 尝试限制刷新频率；异常探针依次校准状态、提示重绘、记录后停止。
  */
 import { CONFIG } from '../config/constants.js';
 import { dom } from '../state/dom.js';
@@ -14,7 +12,7 @@ const BB_MAX_ENTRIES = 40;
 const RELOAD_COOLDOWN_MS = 60000;
 const PROBE_DELAY_MS = 700;
 
-// 纯内存环形缓冲：零存储写入；BFCache 往返不丢，仅真实 reload 清空
+// 内存日志：BFCache 恢复可保留，重新加载清空。
 const bbBuffer = [];
 
 export function bbLog(ev, detail) {
@@ -26,7 +24,7 @@ export function bbDump() {
     return bbBuffer.slice();
 }
 
-// 指纹契约裁决：双端构建指纹不一致时执行守卫软刷新（每分钟至多一次）
+// 指纹不一致时返回刷新许可；SessionStorage 可用时按配置的冷却期限制。
 export function verifyFingerprint(htmlBuild, jsBuild) {
     if (!htmlBuild || !jsBuild) return { mismatch: false, mayReload: false };
     if (htmlBuild === jsBuild) return { mismatch: false, mayReload: false };
@@ -40,7 +38,7 @@ export function verifyFingerprint(htmlBuild, jsBuild) {
     return { mismatch: true, mayReload };
 }
 
-// 健全性快照：首屏应在位时断言变换矩阵 ≈ 单位阵且哨兵元素真实可见
+// 首屏未离屏且无过渡时检查矩阵与哨兵宽度，不检测真实像素可见性。
 export function snapshotHealth() {
     if (isScreenTransitioning()) {
         return { ok: true, identityOk: true, sentinelsOk: true };
@@ -58,7 +56,7 @@ export function snapshotHealth() {
 
 let unhealthyStreak = 0;
 // 三级修复阶梯：
-// L1 幂等状态校准 → L2 合成层磁贴强制重栅格化 → L3 冷却期守卫软刷新
+// L1 校准状态 → L2 切换 will-change 并读取布局 → L3 记录异常并停止，不刷新。
 export function probe() {
     if (isScreenTransitioning()) {
         return;

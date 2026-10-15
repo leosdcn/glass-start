@@ -1,7 +1,5 @@
 /**
- * ==============================================================================
- * Glass Start — 全局内存状态与数据存储 (src/js/state/store.js)
- * ==============================================================================
+ * 全局内存状态与数据存储
  */
 import { CONFIG, DEFAULT_BOOKMARKS, DEFAULT_CATEGORIES } from '../config/constants.js';
 
@@ -12,7 +10,7 @@ export const state = {
     open: false,             // 搜索引擎下拉菜单是否展开
     editOpen: false,         // 编辑书签弹窗是否打开（用于屏蔽滚轮切屏与键盘快捷键）
     currentSection: 'start', // 当前可见屏：'start'（起始页）或 'nav'（导航页）
-    customWallpaper: null    // 当前生效的自定义壁纸 DataURL
+    customWallpaper: null    // 当前生效的自定义壁纸 Data URL 或图片 URL
 };
 
 /** @type {import('../types').ModalState} 设置弹窗草稿与快照备份 */

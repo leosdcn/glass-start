@@ -2,7 +2,7 @@
  * W3C 官方在线校验器门禁 (scripts/validate-w3c.mjs)
  * 1. 优先校验生产构建产物 dist/index.html (零依赖极简架构)
  * 2. 自动调用 W3C 官方 Nu Html Checker (https://validator.w3.org/nu/?out=json)
- * 3. 剥离 CSS @property (Tailwind v4 前沿标准规范) 与本地 file:// CSP 误报，严格校验所有 HTML/DOM 标签、属性与 WAI-ARIA
+ * 3. 提交原始 HTML；过滤指定 CSS 消息与 CSP 警告后，将剩余消息作为失败。
  */
 import { readFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
@@ -52,7 +52,7 @@ try {
 
     // 过滤策略：
     // 1. 过滤 W3C Nu 尚未完全同步 CSS3/CSS4 新特性的误报（Tailwind v4 产出的 @property, margin-trim, line-clamp 等现代规范）
-    // 2. 过滤本地验证 context 下因缺少同源 server 导致的 CSP 误警
+    // 2. 过滤 CSP 警告；此在线语法检查不验证托管响应头或完整无障碍行为。
     const realErrors = messages.filter(m => {
         const msg = m.message || '';
         if (msg.includes('CSS: Unrecognized at-rule “@property”')) return false;

@@ -1,4 +1,5 @@
 const { watchFiles } = require('./watch.cjs');
+const { replaceOnce, injectDocumentShell } = require('./html-template.cjs');
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
@@ -152,7 +153,7 @@ function buildAppJavaScript({ testMode = false, version = currentBuildVersion, o
     });
 }
 
-// 4.9 处理生成生产环境 dist/app.js (ESM 打包与 AST 压缩)
+// 生成生产应用脚本。
 function processProductionAppJs() {
     logSection('4/5', '⚡ 提取并压缩生产脚本 (dist/app.js)');
 
@@ -175,9 +176,6 @@ function processProductionAppJs() {
 // 同步首屏与运行时共用 themes.js；每次构建重新读取，避免 Watch 模式缓存旧配置。
 function injectThemeConfig(html, themePath = path.join(PATHS.src, 'js', 'config', 'themes.js')) {
     const marker = '/* INJECT_THEME_CONFIG */';
-    if (html.split(marker).length !== 2) {
-        throw new Error('首屏主题配置注入标记必须出现一次');
-    }
     const result = esbuild.buildSync({
         entryPoints: [themePath],
         bundle: true,
@@ -193,13 +191,12 @@ function injectThemeConfig(html, themePath = path.join(PATHS.src, 'js', 'config'
             PRESET_THEMES, PRESET_TINTS } = __headThemes;
     `;
     // 保护 HTML script 边界，同时保留字符串运行时值。
-    return html.replace(marker, () => code.replace(/<\/script/gi, '<\\/script'));
+    return replaceOnce(html, marker, code.replace(/<\/script/gi, '<\\/script'));
 }
 
 // 预渲染内联同一数值清洗模块，避免复制 weatherNum 规则。
 function injectWeatherNum(html) {
     const marker = '/* INJECT_WEATHER_NUM */';
-    if (html.split(marker).length !== 2) throw new Error('首屏天气数值注入标记必须出现一次');
     const result = esbuild.buildSync({
         entryPoints: [path.join(PATHS.src, 'js', 'utils', 'weather-data.js')],
         bundle: true,
@@ -211,7 +208,7 @@ function injectWeatherNum(html) {
         charset: 'utf8'
     });
     const code = result.outputFiles[0].text + '\nconst { weatherNum } = __headWeather;';
-    return html.replace(marker, () => code.replace(/<\/script/gi, '<\\/script'));
+    return replaceOnce(html, marker, code.replace(/<\/script/gi, '<\\/script'));
 }
 
 // 5. 处理生产环境 index.html (替换内联 JS 为外链 dist/app.js，全量内嵌静态编译 Tailwind CSS 与 SVG 精灵)
@@ -219,21 +216,11 @@ function processProductionHtml(compiledCss) {
     logSection('5/5', '🔧 处理生产环境页面 (dist/index.html)');
     let prodHtmlContent = injectWeatherNum(injectThemeConfig(fs.readFileSync(PATHS.srcIndexHtml, 'utf-8')));
 
-    // 5.0 彻底移除开发模式下的原生 ESM 模块入口
-    prodHtmlContent = prodHtmlContent.replace(
-        /<!--\s*引入原生 ES Module 主应用入口\s*-->\s*<script\s+type="module"\s+src="[^"]*"><\/script>/i,
-        ''
-    );
-    prodHtmlContent = prodHtmlContent.replace(
-        /<script\s+type="module"\s+src="[^"]*"><\/script>/i,
-        ''
-    );
-
-    // 5.0.1 在 <meta charset="UTF-8"> 之后按标准原生声明双端构建指纹与核心脚本 (<script defer>)：
-    prodHtmlContent = prodHtmlContent.replace(
-        /(<meta\s+charset=["']?utf-8["']?[^>]*>)/i,
-        `$1<script>window.__GLASS_BUILD_HTML__="${currentBuildVersion}"</script><script src="./app.js?v=${currentBuildVersion}" defer></script>`
-    );
+    prodHtmlContent = injectDocumentShell(prodHtmlContent, {
+        css: compiledCss,
+        svg: fs.readFileSync(PATHS.srcSvg, 'utf-8'),
+        version: currentBuildVersion
+    });
 
     // 5.0.2 单一真理源：自动将 package.json 中的版本号注入到 index.html 品牌卡片徽章与 README.md 版本徽章中
     try {
@@ -258,28 +245,6 @@ function processProductionHtml(compiledCss) {
             }
         }
     } catch {}
-
-    // 5.0.3 注入全局 SVG 精灵池 (若存在 src/svg/sprite.svg)
-    if (fs.existsSync(PATHS.srcSvg)) {
-        const svgSprite = fs.readFileSync(PATHS.srcSvg, 'utf-8');
-        if (prodHtmlContent.includes('<!-- INJECT_SVG_SPRITE -->')) {
-            prodHtmlContent = prodHtmlContent.replace('<!-- INJECT_SVG_SPRITE -->', svgSprite);
-        } else if (!prodHtmlContent.includes('id="svg-sprite"')) {
-            prodHtmlContent = prodHtmlContent.replace(/<body\b[^>]*>/i, (m) => `${m}\n    ${svgSprite}`);
-        }
-    }
-
-    // 每次构建持有自己的 CSS，避免开发服务与测试预构建抢占同一个中间文件。
-    if (typeof compiledCss !== 'string' || !compiledCss.trim()) {
-        throw new Error('Refusing to generate HTML without compiled CSS');
-    }
-    const cssContent = compiledCss.replace(/<\/style>/gi, '\\3c/style>');
-    const cssKb = (Buffer.byteLength(cssContent, 'utf-8') / 1024).toFixed(2);
-    logItem(`全量内嵌静态 Tailwind CSS (${cssKb} KB，已完成防注入安全转义)`);
-
-    const linkStylePattern = /<link\s+[^>]*rel=["']stylesheet["'][^>]*href=["'][^"']*styles\/main\.css["'][^>]*>/i;
-    const replaceTarget = `<!-- 内嵌静态编译 Tailwind CSS 样式表 (零网络 RTT 请求，消除渲染阻塞，极速秒开 & 100% 离线支持) -->\n    <style>${cssContent}</style>`;
-    prodHtmlContent = prodHtmlContent.replace(linkStylePattern, () => replaceTarget);
 
     // 5.1 对 HTML 中所有的 <style> 和 <script> 标签内容进行全面压缩
     function minifyInlineStylesAndScripts(html) {
@@ -306,25 +271,12 @@ function processProductionHtml(compiledCss) {
     }
     prodHtmlContent = minifyInlineStylesAndScripts(prodHtmlContent);
 
-    // 5.2 生产环境 CSP 优化：确保剔除任何冗余 CDN 域名
-    prodHtmlContent = prodHtmlContent.replace(
-        /script-src\s+([^;]+);/i,
-        (match, domains) => {
-            const cleanDomains = domains
-                .split(/\s+/)
-                .filter(d => d && !d.includes('cdn.tailwindcss.com') && !d.includes('cdn.jsdelivr.net'))
-                .join(' ');
-            return `script-src ${cleanDomains};`;
-        }
-    );
-    logItem('已完成生产环境 CSP 策略优化 (剔除冗余 CDN 域名)');
-
-    // 5.3 自动转译应用图标（现代浏览器使用原生 🪐 SVG Data URI，Safari/iOS 使用标准 180x180 PNG）
+    // 配置 SVG 站点图标与 PNG Apple touch icon。
     const iconDataUrl = "data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20100%20100'%3E%3Ctext%20y='.9em'%20font-size='90'%3E🪐%3C/text%3E%3C/svg%3E";
     prodHtmlContent = prodHtmlContent.replace(/<link\s+[^>]*rel=["']icon["'][^>]*>/i, () => `<link rel="icon" type="image/svg+xml" href="${iconDataUrl}">`);
     prodHtmlContent = prodHtmlContent.replace(/<link\s+[^>]*rel=["']apple-touch-icon["'][^>]*>/i, () => `<link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png">`);
 
-    // 5.4 生产环境 HTML 零依赖极致压缩（全量清除 HTML 注释与多余空白缩进，保护 <style> 与 <script> 块）
+    // 压缩 HTML 注释与空白，保留 style / script 内容边界。
     function minifyHtml(htmlStr) {
         htmlStr = htmlStr.replace(/<!--(?!\[if)[\s\S]*?-->/g, '');
         const parts = htmlStr.split(/(<(?:style|script)[\s\S]*?<\/(?:style|script)>)/i);

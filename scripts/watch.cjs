@@ -1,7 +1,7 @@
 const fs = require('node:fs');
 const { c } = require('./terminal.cjs');
 
-// 两个入口共用监听、防抖与关闭流程；重建期间的新变化合并到下一轮。
+// 监听入口共用防抖与关闭流程；重建期间的新变化合并到下一轮。
 function watchFiles(files, { rebuild, onSuccess, label = 'Watch', delay = 80 }) {
     let timer = null, pending = null, rebuilding = false, closed = false;
     const run = async () => {

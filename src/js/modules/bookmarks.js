@@ -1,14 +1,4 @@
-/**
- * ==============================================================================
- * Glass Start — 书签体系、双栏导航与 Favicon 流式管理 (src/js/modules/bookmarks.js)
- * ==============================================================================
- *
- * 核心功能：
- * 1. 派生书签数据恢复、持久化与迁移 (getDerivedBookmarks, saveUserBookmarks, migrateBookmarksStorage, loadBookmarks)
- * 2. 首屏快捷书签网格渲染 (renderBookmarks)
- * 3. 导航页双栏分类与 A-Z 拼音排序 (renderNavCategories, getSortedCategories, initSidebarNav)
- * 4. Favicon 懒加载观察器与首字母徽章兜底 (getFaviconHTML, handleIconError, initFaviconObserver, preloadFavicons)
- */
+/** 书签派生与迁移、快捷书签和分类导航渲染、图标加载与回退。 */
 import { CONFIG, DEFAULT_BOOKMARKS, DEFAULT_CATEGORIES } from '../config/constants.js';
 import {
     escapeHtml,
@@ -130,6 +120,14 @@ export function saveUserBookmarks(list) {
     storageSet(CONFIG.KEYS.CUSTOM_META, customMeta);
     pageData.bookmarks = getDerivedBookmarks(keys, pageData.categories, customMeta);
     renderBookmarks();
+}
+
+/** 重置书签存储并通过同一恢复入口同步内存和视图。 */
+export function resetUserBookmarks() {
+    storageRemove(CONFIG.KEYS.LEGACY_BOOKMARKS);
+    storageRemove(CONFIG.KEYS.BOOKMARK_KEYS);
+    storageRemove(CONFIG.KEYS.CUSTOM_META);
+    loadBookmarks();
 }
 
 export function loadBookmarks() {

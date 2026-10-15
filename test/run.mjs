@@ -14,6 +14,10 @@ if (!files.length) {
   process.exit(1);
 }
 
+// 类型契约先行；失败不启动构建或浏览器。
+const types = spawnSync(process.execPath, [join(rootDir, 'node_modules/typescript/bin/tsc'), '--project', join(rootDir, 'tsconfig.json')], { cwd: rootDir, stdio: 'inherit' });
+if (types.status !== 0) process.exit(types.status || 1);
+
 // 每次验证先构建，测试均实际运行；不再维护通过记录或源码指纹缓存。
 const build = spawnSync(process.execPath, [join(rootDir, 'scripts/build.js')], { cwd: rootDir, stdio: 'inherit' });
 if (build.status !== 0) process.exit(build.status || 1);

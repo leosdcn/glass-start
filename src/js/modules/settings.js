@@ -1,18 +1,17 @@
 import { updateAllBookmarkCounters, renderEditList, collectEditData, getExistingUrls } from './bookmark-editor.js';
 import { showConfirm } from '../core/dialogs.js';
 /**
- * ==============================================================================
- * Glass Start — 设置面板与弹窗管理系统 (src/js/modules/settings.js)
- * ==============================================================================
+ * 设置面板与弹窗管理系统
  */
-import { CONFIG, DEFAULT_BOOKMARKS, backgrounds } from '../config/constants.js';
+import { CONFIG, backgrounds } from '../config/constants.js';
 import { escapeHtml, safeUrl, normalizeBookmark, storageGet, storageSet, storageRemove } from '../utils/helpers.js';
 import { state, modalState, pageData } from '../state/store.js';
+import { replaceBookmarkDraft } from '../state/bookmark-draft.js';
 import { dom } from '../state/dom.js';
 import { OverlayStack } from '../core/overlay-stack.js';
 import { applyWallpaper } from '../core/wallpaper-renderer.js';
 import { flushWallpaperSelection, getEffectiveCustomWallpaper, updateWallpaperStatusUI, updatePresetBgCardsUI, clearCustomWallpaper } from './wallpaper.js';
-import { saveUserBookmarks, getDerivedBookmarks, renderBookmarks, getSortedCategories, getFaviconHTML, initPickerFaviconObserver } from './bookmarks.js';
+import { saveUserBookmarks, resetUserBookmarks, getSortedCategories, getFaviconHTML, initPickerFaviconObserver } from './bookmarks.js';
 import { closeDropdown, hideSuggestions, setEngine } from './search.js';
 import { renderCreditsModalList } from './clock.js';
 
@@ -95,6 +94,11 @@ export function scheduleBgEffects(opacity) {
     updateBgEffects(opacity, false, true);
 }
 
+export function previewDraftMaskOpacity(value) {
+    modalState.draftMaskOpacity = parseInt(value, 10) || 0;
+    scheduleBgEffects(modalState.draftMaskOpacity);
+}
+
 function updateBgEffects(opacity, save, defer) {
     const op = Math.max(0, Math.min(CONFIG.APPEARANCE.MAX_MASK_OPACITY, parseInt(opacity, 10) || 0));
     if (defer) {
@@ -143,18 +147,11 @@ export async function openEditModal() {
 
     modalState.draftWallpaper = modalState.initialWallpaper;
     modalState.draftMaskOpacity = modalState.initialMaskOpacity;
-    modalState.bookmarksChanged = false;
     modalState.wallpaperSaveFailed = false;
 
     // 初始化内存草稿真理源
-    modalState.draftBookmarks = pageData.bookmarks.map((bm, i) => ({
-        id: `bm_${i}`,
-        name: bm.name || '',
-        url: bm.url || '',
-        icon: bm.icon || '',
-        origUrl: bm.url || '',
-        desc: bm.desc || ''
-    }));
+    replaceBookmarkDraft(pageData.bookmarks.map((bm, i) => ({ ...bm, id: `bm_${i}`, desc: bm.desc || '' })));
+
 
     switchSettingsTab('tabBookmarks');
     renderEditList();
@@ -232,7 +229,7 @@ export function closeBookmarkPicker() {
 }
 
 /**
- * 导出当前快捷书签为 JSON 格式备份文件
+ * 导出当前快捷书签草稿，不包含壁纸和偏好设置。
  * @returns {void}
  */
 export function exportBookmarksJSON() {
@@ -289,8 +286,8 @@ export function importBookmarksJSON(file) {
             }
 
             showConfirm(`检测到合规书签 ${validBookmarks.length} 项，确定导入并填入草稿列表中吗？需点击『完成』后生效。`, () => {
-                modalState.bookmarksChanged = true;
-                renderEditList(validBookmarks);
+                replaceBookmarkDraft(validBookmarks, true);
+                renderEditList();
                 closeBookmarkPicker();
             }, '导入草稿确认');
         } catch (err) {
@@ -312,9 +309,6 @@ export function resetBookmarks() {
             showConfirm('无法清除壁纸存储，原有设置已保留。', null, '重置失败');
             return;
         }
-        storageRemove(CONFIG.KEYS.LEGACY_BOOKMARKS);
-        storageRemove(CONFIG.KEYS.BOOKMARK_KEYS);
-        storageRemove(CONFIG.KEYS.CUSTOM_META);
         storageRemove(CONFIG.KEYS.PREFERRED_ENGINE);
         storageRemove(CONFIG.KEYS.USER_WALLPAPER);
         storageRemove(CONFIG.KEYS.MASK_OPACITY);
@@ -329,19 +323,15 @@ export function resetBookmarks() {
             dom.scrollDownHint.style.opacity = '';
         }
 
-        state.customWallpaper = null;
 
         modalState.draftWallpaper = undefined;
         modalState.draftMaskOpacity = null;
-        modalState.draftBookmarks = [];
-        modalState.bookmarksChanged = false;
+        replaceBookmarkDraft([]);
 
         setEngine('bing', false);
-        state.bg = 0;
         applyWallpaper(backgrounds[0], false);
         applyBgEffects(CONFIG.APPEARANCE.DEFAULT_MASK_OPACITY);
-        pageData.bookmarks = getDerivedBookmarks(DEFAULT_BOOKMARKS.map(b => b.url), pageData.categories);
-        renderBookmarks();
+        resetUserBookmarks();
         closeBookmarkPicker();
         closeEditModal();
     }, '重置所有系统设置');

@@ -1,14 +1,6 @@
-/**
- * ==============================================================================
- * Glass Start — 智能搜索与建议词引擎 (src/js/modules/search.js)
- * ==============================================================================
- * 
- * 核心功能：
- * 1. 搜索引擎切换与下拉面板 (toggleDropdown / closeDropdown / setEngine / renderEngineDropdown)
- * 2. 搜索执行与本站书签安全打开 (doSearch / openBookmarkUrl / openRandomBookmark)
- * 3. Damerau-Levenshtein 编辑距离与书签三级模糊检索匹配 (damerauLevenshteinDistance / getFuzzyScore / getLocalBookmarkSuggestions)
- * 4. 实时搜索联想与防竞态调度 (fetchSuggestions / renderSuggestions / hideSuggestions)
- */
+/** 搜索引擎切换、书签分级匹配与网络联想；请求序号隔离迟到响应。 */
+import { rankBookmarkSuggestions, getFuzzyScore as scoreBookmarkQuery } from '../utils/bookmark-search.js';
+export { damerauLevenshteinDistance } from '../utils/bookmark-search.js';
 import { getCategoryCatalog, searchUrlKey } from '../utils/category-catalog.js';
 import { CONFIG, engines } from '../config/constants.js';
 import { escapeHtml, safeUrl, normalizeUrl, storageSet } from '../utils/helpers.js';
@@ -120,7 +112,7 @@ export function closeDropdown() {
 
 /**
  * 设置当前搜索引擎
- * @param {string} key - 引擎标识（bing/google/wikipedia）
+ * @param {string} key - engines 中的引擎标识
  * @param {boolean} [save=true] - 是否持久化到 localStorage
  */
 export function setEngine(key, save = true) {
@@ -245,105 +237,6 @@ export function openRandomBookmark(newTab = true) {
     }, CONFIG.TIMERS.STAGGER_OPEN);
 }
 
-// 模块级单例平坦 TypedArray 缓存池，彻底消除高频模糊搜索下的大量堆内存分配与 GC 抖动
-let dLevBuffer = typeof Int32Array !== 'undefined' ? new Int32Array(1024) : null;
-
-/**
- * 计算 Damerau-Levenshtein 编辑距离（支持插入、删除、替换与相邻字符易位/拼错容错）
- * 采用模块级复用平坦 Int32Array 缓冲区，达到 0 次瞬态堆内存分配 (Zero Allocation)
- * @param {string} a - 源字符串
- * @param {string} b - 目标字符串
- * @returns {number} 最小编辑距离步数
- */
-export function damerauLevenshteinDistance(a, b) {
-    const al = a.length, bl = b.length;
-    if (al === 0) return bl;
-    if (bl === 0) return al;
-
-    const cols = bl + 1;
-    const requiredSize = (al + 1) * cols;
-    if (!dLevBuffer || dLevBuffer.length < requiredSize) {
-        dLevBuffer = new Int32Array(Math.max(requiredSize, dLevBuffer ? dLevBuffer.length * 2 : 1024));
-    }
-    const dp = dLevBuffer;
-
-    for (let i = 0; i <= al; i++) dp[i * cols] = i;
-    for (let j = 0; j <= bl; j++) dp[j] = j;
-
-    for (let i = 1; i <= al; i++) {
-        const iOffset = i * cols;
-        const prevIOffset = (i - 1) * cols;
-        const charA = a[i - 1];
-        const prevCharA = i > 1 ? a[i - 2] : '';
-
-        for (let j = 1; j <= bl; j++) {
-            const cost = charA === b[j - 1] ? 0 : 1;
-            let minVal = dp[prevIOffset + j] + 1; // deletion
-            const insertCost = dp[iOffset + j - 1] + 1; // insertion
-            if (insertCost < minVal) minVal = insertCost;
-            const subCost = dp[prevIOffset + j - 1] + cost; // substitution
-            if (subCost < minVal) minVal = subCost;
-
-            if (i > 1 && j > 1 && charA === b[j - 2] && prevCharA === b[j - 1]) {
-                const transCost = dp[(i - 2) * cols + j - 2] + cost; // transposition
-                if (transCost < minVal) minVal = transCost;
-            }
-            dp[iOffset + j] = minVal;
-        }
-    }
-    return dp[al * cols + bl];
-}
-
-/**
- * 计算关键词 q 与目标文本（或书签）的前缀拼写容错 / 模糊匹配得分 (Token Prefix Fuzzy Score)
- * @param {string} q - 用户输入的查询关键词
- * @param {string|Object} target - 目标字符串或书签对象
- * @returns {number} 匹配惩罚得分（越小越精确，未匹配返回 Infinity）
- */
-export function getFuzzyScore(q, target) {
-    const query = (q || '').trim().toLowerCase();
-    if (query.length < CONFIG.SUGGEST.FUZZY.MIN_QUERY_LEN) return Infinity;
-    const rawText = (typeof target === 'string' ? target : `${target?.name || ''} ${target?.url || ''} ${target?.desc || ''}`).toLowerCase();
-    if (!rawText.trim()) return Infinity;
-    const rawTokens = rawText.split(/\s+/);
-    const wordTokens = rawText.split(/[^a-z0-9\u4e00-\u9fff]+/);
-    const tokens = Array.from(new Set([...rawTokens, ...wordTokens].filter(t => t.length > 0)));
-
-    const subQueries = query.split(/\s+/).filter(sq => sq.length > 0);
-    if (subQueries.length === 0) return Infinity;
-
-    let totalDist = 0;
-
-    for (const sq of subQueries) {
-        if (sq.length < 2) continue;
-        const maxDist = sq.length <= CONFIG.SUGGEST.FUZZY.SHORT_QUERY_LEN ? CONFIG.SUGGEST.FUZZY.MAX_DIST_SHORT : CONFIG.SUGGEST.FUZZY.MAX_DIST_LONG;
-        let minSubDist = Infinity;
-
-        for (const token of tokens) {
-            if (token.length < Math.max(2, sq.length - 1)) continue;
-            const minLen = Math.max(2, sq.length - 1);
-            const maxLen = Math.min(token.length, sq.length + 1);
-            for (let len = minLen; len <= maxLen; len++) {
-                const prefix = token.substring(0, len);
-                const dist = damerauLevenshteinDistance(sq, prefix);
-                if (dist < minSubDist) {
-                    minSubDist = dist;
-                    if (minSubDist === 0) break;
-                }
-            }
-            if (minSubDist === 0) break;
-        }
-
-        if (minSubDist > maxDist) {
-            return Infinity;
-        }
-        totalDist += minSubDist;
-    }
-
-    const maxTotalDist = query.length <= CONFIG.SUGGEST.FUZZY.SHORT_QUERY_LEN ? CONFIG.SUGGEST.FUZZY.MAX_DIST_SHORT : CONFIG.SUGGEST.FUZZY.MAX_DIST_LONG;
-    return totalDist <= maxTotalDist ? totalDist : Infinity;
-}
-
 export function getSearchCandidates() {
     const catalog = getCategoryCatalog(pageData.categories);
     const urlToCategoryMap = catalog.searchCategories;
@@ -364,69 +257,12 @@ export function getSearchCandidates() {
     return { candidates, urlToCategoryMap };
 }
 
-/**
- * 在本地全站书签中根据关键词检索匹配项（包含快捷书签与分类书签）
- * @param {string} query - 搜索关键词
- * @param {number} [limit=2] - 最多返回匹配条数
- * @returns {Array<{type: string, name: string, url: string, icon: string, desc: string, category: string}>}
- */
 export function getLocalBookmarkSuggestions(query, limit = CONFIG.SUGGEST.MAX_LOCAL_ITEMS) {
-    const q = (query || '').trim().toLowerCase();
-    if (!q || !/[a-z0-9\u4e00-\u9fff]/.test(q)) return [];
-    const isFuzzyEligible = q.length >= CONFIG.SUGGEST.FUZZY.MIN_QUERY_LEN;
+    return rankBookmarkSuggestions(query, getSearchCandidates(), CONFIG.SUGGEST, limit);
+}
 
-    const { candidates: allCandidates, urlToCategoryMap } = getSearchCandidates();
-    const matches = [];
-
-    for (let idx = 0; idx < allCandidates.length; idx++) {
-        const { bm, normUrl, defaultCat } = allCandidates[idx];
-        const bmName = (bm.name || '').toLowerCase();
-        const bmDesc = (bm.desc || '').toLowerCase();
-        const bmUrl = (bm.url || '').toLowerCase();
-        const realCat = urlToCategoryMap.get(normUrl) || defaultCat;
-
-        let tier = Infinity;
-
-        if (bmName === q) {
-            tier = CONFIG.SUGGEST.TIERS.EXACT_NAME;
-        } else if (bmName.startsWith(q)) {
-            tier = CONFIG.SUGGEST.TIERS.PREFIX_NAME;
-        } else if (bmName.includes(q)) {
-            tier = CONFIG.SUGGEST.TIERS.SUBSTRING_NAME;
-        } else if (bmUrl.includes(q) || normUrl.includes(q)) {
-            tier = CONFIG.SUGGEST.TIERS.URL_MATCH;
-        } else if (bmDesc.includes(q)) {
-            tier = CONFIG.SUGGEST.TIERS.DESC_MATCH;
-        } else if (isFuzzyEligible) {
-            const nameFuzzyScore = getFuzzyScore(q, bm.name || '');
-            if (nameFuzzyScore !== Infinity) {
-                tier = CONFIG.SUGGEST.TIERS.FUZZY_NAME_BASE + nameFuzzyScore;
-            } else {
-                const otherFuzzyScore = getFuzzyScore(q, `${normUrl} ${bm.desc || ''}`);
-                if (otherFuzzyScore !== Infinity) {
-                    tier = CONFIG.SUGGEST.TIERS.FUZZY_OTHER_BASE + otherFuzzyScore;
-                }
-            }
-        }
-
-        if (tier !== Infinity) {
-            matches.push({
-                tier,
-                idx,
-                item: {
-                    type: 'bookmark',
-                    name: bm.name || '未命名书签',
-                    url: bm.url,
-                    icon: bm.icon || '',
-                    desc: bm.desc || '',
-                    category: realCat
-                }
-            });
-        }
-    }
-
-    matches.sort((a, b) => (a.tier - b.tier) || (a.idx - b.idx));
-    return matches.slice(0, limit).map(m => m.item);
+export function getFuzzyScore(query, target) {
+    return scoreBookmarkQuery(query, target, CONFIG.SUGGEST.FUZZY);
 }
 
 /**
@@ -462,7 +298,7 @@ export function renderSuggestions(localList = [], netList = [], preserveSelectio
         </div>
     `;
 
-    // 书签分组（最多 2 条）
+    // 本地书签分组
     if (localList && localList.length > 0) {
         html += renderSectionHeader('书签', true);
         localList.forEach(bm => {

@@ -32,17 +32,17 @@ export const CONFIG = Object.freeze({
             GESTURE: Object.freeze({
                 TRANSITION_MS: 580,          // 双屏推移过渡动画时长 (ms)
                 TIMEOUT_BUFFER_MS: 150,      // 双屏推移超时保护冗余缓冲 (ms)
-                SWIPE_THRESHOLD: 40,         // 触屏轻扫与滚轮触发切屏阈值 (px)
+                SWIPE_THRESHOLD: 40,         // 常规触屏切屏位移阈值 (px)
                 FLICK_MIN_DISTANCE: 25,      // 快速轻扫最小触发位移 (px)
                 FLICK_MIN_VELOCITY: 0.25     // 快速轻扫最小瞬时速度 (px/ms)
             }),
             PHYSICS: Object.freeze({
-                TILT_MAX_ROTATION_DEG: 2.5,  // 3D 陀螺仪最大倾角 (deg)
+                TILT_MAX_ROTATION_DEG: 2.5,  // 指针交互最大倾角 (deg)
                 TILT_PERSPECTIVE_PX: 800,    // 3D 透视视距 (px)
                 TILT_HOVER_SCALE: 1.025,     // 悬停缩放比
                 TILT_PRESSED_SCALE: 0.975,   // 按压缩放比
-                DRAG_HYSTERESIS_HIGH: 0.58,  // 拖拽排序迟滞阻尼上限 (50% + 8%)
-                DRAG_HYSTERESIS_LOW: 0.42,   // 拖拽排序迟滞阻尼下限 (50% - 8%)
+                DRAG_HYSTERESIS_HIGH: 0.58,  // 拖拽排序迟滞阻尼上限（相对行高比例）
+                DRAG_HYSTERESIS_LOW: 0.42,   // 拖拽排序迟滞阻尼下限（相对行高比例）
                 DRAG_INDICATOR_OFFSET_TOP: -4.5, // 放置指示线上边界偏移 (px)
                 DRAG_INDICATOR_OFFSET_BOTTOM: 1.5, // 放置指示线下边界偏移 (px)
                 SORT_FALLBACK_INDEX: 9999,   // 拖拽排序未匹配到 DOM 时的极大回退序号
@@ -51,22 +51,22 @@ export const CONFIG = Object.freeze({
                 BOOKMARK_DELETE_OFFSET_Y: -6 // 书签删除动效垂直位移 (px)
             }),
             WEATHER: Object.freeze({
-                CACHE_TTL: 15 * 60 * 1000,    // 气象数据本地缓存有效期 (15分钟)
-                LOC_TTL: 24 * 60 * 60 * 1000, // 地理定位本地缓存有效期 (24小时)
+                CACHE_TTL: 15 * 60 * 1000,    // 气象数据本地缓存有效期 (ms)
+                LOC_TTL: 24 * 60 * 60 * 1000, // 地理定位本地缓存有效期 (ms)
                 TIMEOUT_IP: 3000,             // IP 定位接口超时限制 (ms)
                 TIMEOUT_WEATHER: 6000,        // Open-Meteo 预报接口超时限制 (ms)
-                POP_MID_THRESHOLD: 30,        // 降水概率备伞阈值 (30%)
-                POP_HIGH_THRESHOLD: 70,       // 降水概率必带伞阈值 (70%)
-                HUMIDITY_LOW_THRESHOLD: 35,   // 相对湿度干燥阈值 (35%)
-                HUMIDITY_HIGH_THRESHOLD: 75,  // 相对湿度高湿阈值 (75%)
-                WIND_MID_THRESHOLD: 15,       // 实时风速清风/疾风阈值 (15 km/h)
-                WIND_HIGH_THRESHOLD: 35,      // 实时风速大风/龙卷阈值 (35 km/h)
+                POP_MID_THRESHOLD: 30,        // 降水概率备伞阈值 (%)
+                POP_HIGH_THRESHOLD: 70,       // 降水概率高档图标阈值 (%)
+                HUMIDITY_LOW_THRESHOLD: 35,   // 相对湿度干燥阈值 (%)
+                HUMIDITY_HIGH_THRESHOLD: 75,  // 相对湿度高湿阈值 (%)
+                WIND_MID_THRESHOLD: 15,       // 实时风速清风/疾风阈值 (km/h)
+                WIND_HIGH_THRESHOLD: 35,      // 风速高档图标阈值 (km/h)
                 MIN_SPIN_DURATION: 200,       // 气象刷新防闪最小视觉动效门槛 (ms)
                 PRECIP_CODE_START: 51,        // WMO 降水天气代码起点阈值
                 POP_CLEAR_CONFLICT_THRESHOLD: 40, // 降水概率与晴天冲突纠偏阈值 (%)
                 DEFAULT_TEMPERATURE: 25,      // 兜底室温 (°C)
                 DEFAULT_HUMIDITY: 50,         // 兜底相对湿度 (%)
-                LOCATION_DRIFT_THRESHOLD: 0.08, // 静默定位更新漂移容差 (经纬度度数, 约8.8km)
+                LOCATION_DRIFT_THRESHOLD: 0.08, // 静默定位更新漂移容差（经纬度度数）
                 FORECAST_FETCH_DAYS: 5,       // 气象接口拉取预报最大天数
                 FORECAST_DISPLAY_DAYS: 4,     // 弹窗实际呈现预报天数
                 FALLBACK_LOCATION: Object.freeze({
@@ -114,13 +114,13 @@ export const CONFIG = Object.freeze({
                 DEFAULT_MASK_OPACITY: 20,     // 默认遮罩暗度百分比 (%)
                 MIN_MASK_OPACITY: 5,          // 遮罩透明度最小百分比 (%)
                 MAX_MASK_OPACITY: 80,         // 遮罩透明度最大百分比 (%)
-                MAX_UPLOAD_WIDTH: 3840,       // 自定义壁纸最大宽度 (4K UHD)
+                MAX_UPLOAD_WIDTH: 3840,       // 自定义壁纸最大宽度 (px)
                 MAX_UPLOAD_HEIGHT: 2160,      // 自定义壁纸最大高度
                 JPEG_QUALITY: 0.95,           // Canvas 壁纸压缩质量
-                MAX_LS_WALLPAPER_BYTES: 2000000, // 自定义壁纸双写 localStorage 的体积上限（超出仅存 IndexedDB）
+                MAX_LS_WALLPAPER_BYTES: 2000000, // 旧版兼容常量；当前壁纸不再双写 LocalStorage
                 THEME_SAMPLE_WIDTH: 16,       // 壁纸取色采样宽度 (px)
                 THEME_SAMPLE_HEIGHT: 4,       // 壁纸取色采样高度 (px)
-                THEME_SAMPLE_AREA_RATIO: 0.15, // 仅采样壁纸顶部高度比例 (15%)
+                THEME_SAMPLE_AREA_RATIO: 0.15, // 壁纸顶部采样区域占总高度的比例
                 LUMINANCE_THRESHOLD: 128,     // 深浅主题亮度判别门限
                 TINT_CLAMP: Object.freeze({   // 环境光折射动态区间与提亮保护
                     MIN: 60,
@@ -129,7 +129,7 @@ export const CONFIG = Object.freeze({
                 })
             }),
             TIMERS: Object.freeze({
-                STAGGER_OPEN: 260,            // 随机书签跳转延时 (ms) - 0.24s 灵动翻转 + 20ms 从容停靠
+                STAGGER_OPEN: 260,            // 随机书签跳转延时 (ms)
                 SCROLL_RESET: 400,            // 滚轮累积阈值重置延时 (ms)
                 MODAL_HIDE_DELAY: 220,        // 弹窗退出隐藏延迟 (ms)
                 BG_CROSSFADE: 450,            // 壁纸跨图层淡入时长 (ms)
@@ -141,7 +141,7 @@ export const CONFIG = Object.freeze({
                 FALLBACK_IDLE_DELAY: 1500,    // 空闲调度降级回退延时 (ms)
                 IDLE_TIMEOUT: 3000,           // 空闲调度最大超时上限 (ms)
                 COMPOSITION_END_RESET: 100,   // 输入法组合结束复位延迟 (ms)
-                FLIP_DURATION_MS: 350,        // FLIP 物理吸附动效时长 (ms)
+                FLIP_DURATION_MS: 350,        // FLIP 动画时长 (ms)
                 BOOKMARK_DELETE_DURATION: 180, // 书签删除动效时长 (ms)
                 BG_OVERLAY_TRANSITION: 200,   // 遮罩滑块平滑过渡时长 (ms)
                 PRESET_CARD_STAGGER: 20,      // 壁纸缩略图交错渐入步长延时 (ms)

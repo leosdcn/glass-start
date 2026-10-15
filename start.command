@@ -30,7 +30,7 @@ if ! command -v node &> /dev/null; then
     exit 1
 fi
 
-# 自动构建 dist 目录产物（确保书签与样式已同步更新）
+# 构建 dist 产物；首次运行前需自行执行 npm ci。
 echo -e "\033[36m📦 正在执行增量同步与生产打包...\033[0m"
 npm run build
 if [ $? -ne 0 ]; then
@@ -39,5 +39,5 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-# 启动静态服务器（原生 Node.js 零依赖快速启动，自动通过 /_clear_cache 深度净化本地缓存并秒开）
+# 启动服务器并打开清理地址；会清除该站点的书签、壁纸与偏好。
 node scripts/server.js --clear-cache

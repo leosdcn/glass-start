@@ -1,19 +1,4 @@
-/**
- * 视觉回归与真实渲染 CDP 自动化测试脚本 (test/visual-regression.mjs)
- *
- * 覆盖场景：
- * - 场景 A (Desktop 1470x956 MacBook Air): 首屏正常初始态 (时钟, 搜索框, 快捷书签, 天气胶囊, 齿轮按钮)
- * - 场景 B (Desktop 1470x956 MacBook Air): 平滑切换至导航页 (导航主体卡片, 分类侧边栏, Header, 返回提示)
- * - 场景 C (Desktop 1470x956 MacBook Air): 导航页刷新水合 (sessionStorage['startpage_section'] = 'nav')
- * - 场景 D (Desktop 1470x956 MacBook Air): 从刷新后的导航页平滑切回搜索页 (全量组件100%可见性与几何检验)
- * - 场景 E1/E2 (Desktop 1470x956 MacBook Air): 搜索框联想输入激活与 Escape 退栈还原状态
- * - 场景 F (Mobile 402x874 iPhone 17): 移动端视口起始页
- * - 场景 G (Mobile 402x874 iPhone 17): 移动端导航页 (水平分类 Tab 与卡片流)
- * - 场景 H (Mobile 402x874 iPhone 17): 移动端从导航页返回起始页全量渲染
- * - 场景 I (Desktop 1470x956 MacBook Air): 设置与偏好弹窗完整渲染 (毛玻璃容器/Tab 导航/书签列表/保存取消)
- * - 场景 J (Desktop 1470x956 MacBook Air): 天气预报详情展开卡片 (2×2 指标/多日预报/日落感知)
- * - 场景 K (Desktop 1470x956 MacBook Air): 快捷键速查面板 (⌘/ 触发与键位指引)
- */
+/** 生成场景截图并断言布局，不做基准图像差分；视口与场景在各测试处定义。 */
 
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
@@ -116,7 +101,7 @@ const NAV_COMPONENTS = {
 console.log('🚀 开始执行 Glass Start 视觉渲染与切屏回归测试...\n');
 
 // ══════════════════════════════════════════════════════════════════════
-// 场景 A (Desktop 1470x956 MacBook Air): 首屏正常初始态
+// 场景 A：首屏正常初始态
 // ══════════════════════════════════════════════════════════════════════
 await send('Emulation.setDeviceMetricsOverride', {
   width: 1470,
@@ -147,7 +132,7 @@ pass('场景 A [Desktop 1470x956 (MacBook Air)]: 首屏初始态完整渲染 (�
   }));
 
 // ══════════════════════════════════════════════════════════════════════
-// 场景 B (Desktop 1470x956 MacBook Air): 平滑切换至导航页
+// 场景 B：平滑切换至导航页
 // ══════════════════════════════════════════════════════════════════════
 await evalJS('window.switchToNav()');
 await sleep(700);
@@ -176,7 +161,7 @@ pass('场景 B [Desktop 1470x956 (MacBook Air)]: 切换至导航页 (分类侧�
   }));
 
 // ══════════════════════════════════════════════════════════════════════
-// 场景 C (Desktop 1470x956 MacBook Air): 在导航页刷新页面 (sessionStorage='nav')
+// 场景 C：在导航页刷新页面 (sessionStorage='nav')
 // ══════════════════════════════════════════════════════════════════════
 await evalJS('sessionStorage.setItem("startpage_section", "nav")');
 await evalJS('location.reload()');
@@ -198,7 +183,7 @@ pass('场景 C [Desktop 1470x956 (MacBook Air)]: 导航页刷新水合态 (sessi
   }));
 
 // ══════════════════════════════════════════════════════════════════════
-// 场景 D (Desktop 1470x956 MacBook Air): 从刷新后的导航页平滑切回搜索页 (重点验证组件消失问题)
+// 场景 D：从刷新后的导航页平滑切回搜索页 (重点验证组件消失问题)
 // ══════════════════════════════════════════════════════════════════════
 await evalJS('window.switchToStart()');
 await sleep(700);
@@ -226,7 +211,7 @@ pass('场景 D [Desktop 1470x956 (MacBook Air)]: 从刷新后的导航页切回�
   }));
 
 // ══════════════════════════════════════════════════════════════════════
-// 场景 E (Desktop 1470x956 MacBook Air): 搜索框联想输入与退栈还原状态
+// 场景 E：搜索框联想输入与退栈还原状态
 // ══════════════════════════════════════════════════════════════════════
 await evalJS(`(() => {
   const i = document.getElementById('searchInput');
@@ -273,7 +258,7 @@ pass('场景 E [Desktop 1470x956 (MacBook Air)]: 搜索框联想输入激活与�
   }));
 
 // ══════════════════════════════════════════════════════════════════════
-// 场景 F (Mobile iPhone 17 402x874): 移动端起始页
+// 场景 F：移动端起始页
 // ══════════════════════════════════════════════════════════════════════
 await send('Emulation.setDeviceMetricsOverride', {
   width: 402,
@@ -303,7 +288,7 @@ pass('场景 F [Mobile 402x874 (iPhone 17)]: 移动端起始页响应式渲染 (
   }));
 
 // ══════════════════════════════════════════════════════════════════════
-// 场景 G (Mobile 402x874 iPhone 17): 移动端导航页 (顶部水平 Tab 与卡片流)
+// 场景 G：移动端导航页 (顶部水平 Tab 与卡片流)
 // ══════════════════════════════════════════════════════════════════════
 await evalJS('window.switchToNav()');
 await sleep(700);
@@ -324,7 +309,7 @@ pass('场景 G [Mobile 402x874 (iPhone 17)]: 移动端导航页响应式渲染 (
   }));
 
 // ══════════════════════════════════════════════════════════════════════
-// 场景 H (Mobile 402x874 iPhone 17): 移动端在导航页刷新并切回搜索页
+// 场景 H：移动端在导航页刷新并切回搜索页
 // ══════════════════════════════════════════════════════════════════════
 await evalJS('sessionStorage.setItem("startpage_section", "nav")');
 await evalJS('location.reload()');
@@ -353,7 +338,7 @@ pass('场景 H [Mobile 402x874 (iPhone 17)]: 移动端刷新后切回搜索页�
   }));
 
 // ══════════════════════════════════════════════════════════════════════
-// 场景 I (Desktop 1470x956 MacBook Air): 设置与偏好弹窗完整渲染 (外观/书签/数据面板)
+// 场景 I：设置与偏好弹窗完整渲染 (外观/书签/数据面板)
 // ══════════════════════════════════════════════════════════════════════
 await send('Emulation.setDeviceMetricsOverride', { width: 1470, height: 956, deviceScaleFactor: 2, mobile: false });
 await evalJS('window.switchToStart()');
@@ -383,7 +368,7 @@ pass('场景 I [Desktop 1470x956 (MacBook Air)]: 设置与偏好弹窗渲染 (�
   }));
 
 // ══════════════════════════════════════════════════════════════════════
-// 场景 J (Desktop 1470x956 MacBook Air): 天气预报详情卡片展开
+// 场景 J：天气预报详情卡片展开
 // ══════════════════════════════════════════════════════════════════════
 await press('Escape');
 await sleep(400);
@@ -410,7 +395,7 @@ pass('场景 J [Desktop 1470x956 (MacBook Air)]: 天气预报详情展开卡片 
   }));
 
 // ══════════════════════════════════════════════════════════════════════
-// 场景 K (Desktop 1470x956 MacBook Air): 全站快捷键速查面板 (Cmd/Ctrl + /)
+// 场景 K：全站快捷键速查面板 (Cmd/Ctrl + /)
 // ══════════════════════════════════════════════════════════════════════
 await press('Escape');
 await sleep(400);

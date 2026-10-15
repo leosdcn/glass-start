@@ -1,15 +1,9 @@
 import { updateClock } from '../modules/clock.js';
 import { updateWeather } from '../modules/weather.js';
 /**
- * ==============================================================================
- * Glass Start — 双屏有限状态机与手势调度引擎 (src/js/core/screen-state.js)
- * ==============================================================================
- * 遵循 5 大防 BFCache 与生命周期失步铁律：
- * 1. 状态自愈 100% 声明式（零内联 transition:none 异步竞态）；
- * 2. 纯 GPU 硬件加速 (translate3d)，零全站滚动，零 Backdrop-filter 重绘闪烁；
- * 3. 状态锁 (isTransitioning) 天然无感吞咽触控板与滚轮动量余震；
- * 4. 页面唤醒覆盖 visibilitychange 与 pageshow 双通道；
- * 5. Safari 冷启动首帧同步 Layout 对齐，杜绝过渡提前截断。
+ * 双屏有限状态机与手势调度引擎
+ * CSS 状态类控制屏幕位置，过渡锁与惯性门控协调切屏。
+ * pageshow / visibilitychange 共用唤醒校准；装配时同步确定离屏起点。
  */
 import { CONFIG } from '../config/constants.js';
 import { storageGet, storageSet } from '../utils/helpers.js';
@@ -122,7 +116,7 @@ export function isScreenTransitioning() {
 }
 
 /**
- * 幂等式全屏状态与 DOM 样式强制对齐校准器
+ * 校准屏幕状态与样式；无明确目标且处于过渡时默认跳过，force 可强制执行。
  * @param {'nav'|'start'} [targetSection]
  * @param {boolean} [force=false]
  */
@@ -138,7 +132,6 @@ export function reconcileScreenState(targetSection, force = false) {
         ? targetSection
         : (getSavedSection() || 'start');
 
-    state.currentSection = sec;
     saveSection(sec);
     updateSectionAccessibility(sec);
     updateGearVisibility();
@@ -154,7 +147,7 @@ export function reconcileScreenState(targetSection, force = false) {
     const startSection = dom.startSection || $('startSection');
     const nav = dom.navSection || $('navSection');
 
-    // 清空可能残留的内联样式，100% 声明式交给 CSS 状态类管理
+    // 清除残留 transform / transition，由 CSS 状态类决定屏幕位置。
     if (startSection) {
         startSection.style.transform = '';
         startSection.style.transition = '';
@@ -347,7 +340,7 @@ export function initScreenGestures() {
 
 
     reconcileScreenState(getSavedSection() === 'nav' ? 'nav' : 'start');
-    // Safari 冷启动只在装配时同步确定离屏起点；日常切屏不再强制刷新布局。
+    // Safari 装配时同步确定离屏起点，避免首次切屏缺少过渡起点。
     const nav = dom.navSection || $('navSection');
     if (nav) void nav.offsetHeight;
 

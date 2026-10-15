@@ -1,8 +1,6 @@
 /**
- * ==============================================================================
- * Glass Start — 浏览器外壳主题管理引擎 (src/js/core/theme-engine.js)
- * ==============================================================================
- * 遵循黑白二元流、Safari 顶栏自适应与 --bg-base 底色动态同步规范。
+ * 浏览器外壳主题管理引擎
+ * 同步深浅主题、浏览器顶栏与 --bg-base 底色。
  */
 import { CONFIG } from '../config/constants.js';
 import { APP_THEME_DARK, APP_THEME_LIGHT } from '../config/themes.js';

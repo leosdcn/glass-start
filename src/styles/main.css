@@ -5,7 +5,7 @@
 @source "../index.html";
 @source "../js/**/*.js";
 
-/* 桌面鼠标保持线上原版密度；带触屏的混合设备也保留 16px 输入字号。 */
+/* 紧凑输入样式只用于纯鼠标桌面；混合触屏设备保留触屏字号。 */
 @custom-variant mouse-desktop {
     @media (min-width: 640px) and (hover: hover) and (pointer: fine) {
         @media not all and (any-pointer: coarse) {
@@ -14,7 +14,7 @@
     }
 }
 
-/* 保留原版尺寸；重复的视口约束与时钟字重使用 Tailwind v4 语义令牌。 */
+/* 共用视口约束、字重和外观令牌。 */
 @theme {
     --spacing-panel-min: 60dvh;
     --spacing-panel-max: 90dvh;
@@ -38,7 +38,7 @@
 .nr #editBookmarksBtn, .nr #weatherWidget { opacity: 0; pointer-events: none; transition: none; }
 .nr *, .nr *::before, .nr *::after { animation: none; transition: none; }
 
-/* Standard Font Size Utility Classes with Apple Optical Tracking */
+/* 字号与字距工具类 */
 .text-2xs { font-size: 0.625rem; letter-spacing: -0.012em; }
 .text-2xs-plus { font-size: 0.6875rem; letter-spacing: -0.012em; }
 
@@ -113,7 +113,7 @@ html.is-chrome body {
     font-family: 'ChromeScaledEmoji', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
 }
 
-/* 彻底压制 Chromium 自动填充注入的实心底色，保护毛玻璃透明质感 */
+/* 抑制 Chromium 自动填充底色，保留玻璃背景。 */
 input:-webkit-autofill,
 input:-webkit-autofill:hover, 
 input:-webkit-autofill:focus,
@@ -128,7 +128,7 @@ textarea:-webkit-autofill:focus {
 * { scrollbar-width:none; }
 *::-webkit-scrollbar { display:none; }
 
-/* Tailwind v4 preflight 不再默认给按钮 pointer 光标，此处恢复并清除移动端高亮 */
+/* 显式设置按钮光标，并清除移动端点击高亮。 */
 button, [role="button"] {
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
@@ -221,7 +221,7 @@ img, a, button, .nav-bookmark, .bookmark-item {
    ========================================================================== */
 .search-input::placeholder { color: rgba(255,255,255,0.6); }
 
-/* 浅色高光壁纸模式下的自适应文字防眩光保护 (macOS 27 规范) */
+/* 浅色壁纸下的文字对比度调整 */
 html.wallpaper-bright .bookmark-title,
 html.wallpaper-bright #weatherBtn,
 html.wallpaper-bright #scrollDownHint,
@@ -344,7 +344,7 @@ html.wallpaper-bright .nav-bookmark .text-2xs {
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
-/* 移动端侧边栏改为顶部水平滚动 (639.98px 边界精确防竞态) */
+/* 窄屏侧边栏使用顶部水平滚动。 */
 @media (max-width: 639.98px) {
     #sidebar {
         width: 100%;
@@ -486,7 +486,7 @@ body.bookmark-dragging .drag-handle,
 body.drag-settling .drag-handle {
     color: rgba(255, 255, 255, 0.3);
 }
-/* 方案C：整行高亮替代插入线（原绝对定位线条不再使用） */
+/* 拖拽目标行通过上下边缘高亮指示插入位置。 */
 .drag-drop-line { display: none; }
 /* 插入目标上方：顶部边缘亮起（白色玻璃风格） */
 .edit-row-card.drop-target-above {
@@ -523,7 +523,7 @@ body.drag-settling .drag-handle {
     border: 0;
 }
 
-/* ===== 苹果风格物理按压触感微反馈 (iOS 18 Active Press-down Feedback) ===== */
+/* ===== 按压缩放反馈 ===== */
 .bookmark-item:active,
 .nav-bookmark:active {
     transform: scale(0.975) translateY(0) translateZ(0);
@@ -1018,7 +1018,7 @@ input:focus-visible {
 /* ==========================================================================
    7. TOUCH TARGET EXPANSION (Apple HIG 触控热区扩展 >= 44pt)
    ========================================================================== */
-/* 手机窄屏与含触屏的混合设备都保留独立的 44px 控件，避免扩大伪元素后互相重叠。 */
+/* 窄屏与混合触屏设备使用独立触控区域，避免用伪元素扩展后互相重叠。 */
 @media (max-width: 639.98px), (any-pointer: coarse) {
     :is(#editModal, #bookmarkPicker, #shortcutModal, #creditsModal, #confirmModal) button {
         min-width: 44px;

@@ -1,7 +1,5 @@
 /**
- * ==============================================================================
- * Glass Start — 壁纸状态管理与即选即存持久化 (src/js/modules/wallpaper.js)
- * ==============================================================================
+ * 壁纸状态管理与即选即存持久化
  */
 import { CONFIG, backgrounds } from '../config/constants.js';
 import { storageGet, storageSet, storageRemove } from '../utils/helpers.js';
@@ -66,7 +64,7 @@ export function migrateLegacyWallpaper() {
 }
 
 /**
- * 获取当前生效的自定义壁纸（三通道回退：内存缓存 -> IndexedDB -> localStorage）
+ * 迁移旧数据后优先读取 IDB 选择记录，缺失时兼容内存与旧存储键。
  * @returns {Promise<string|null>}
  */
 export async function getEffectiveCustomWallpaper() {
@@ -88,7 +86,8 @@ export function findPresetBgIndex(url) {
 }
 
 /**
- * 彻底清除"自定义壁纸"三通道（内存 / IDB / localStorage），不触碰 state.bg。
+ * 原子保存无自定义图片的选择，成功后同步内存与首帧提示。
+ * @param {number} [bg=state.bg] - 保留或切换到的预设索引
  * @returns {Promise<boolean>}
  */
 export async function clearCustomWallpaper(bg = state.bg) {
@@ -145,7 +144,7 @@ export function updatePresetBgCardsUI(customWallpaperOverride) {
 }
 
 /**
- * 立即持久化选中的壁纸（无需按「保存并关闭」即刻生效并存储）
+ * 提交壁纸与预设索引，等待 IDB 事务完成后更新已保存状态。
  * @param {string|null} targetWallpaper
  * @returns {Promise<boolean>}
  */
@@ -233,7 +232,7 @@ export async function switchBg() {
 }
 
 /**
- * 预加载下一张壁纸以实现零延迟秒切
+ * 预加载下一张预设壁纸，减少切换时等待。
  * @returns {void}
  */
 export function preloadNextBg() {

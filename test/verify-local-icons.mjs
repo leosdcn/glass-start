@@ -1,11 +1,4 @@
-/**
- * 针对性专项测试：验证本地书签图标是否全面起效 (verify-local-icons.mjs)
- * 
- * 校验维度：
- * 1. 静态数据真理源检验 (bookmarks.json 与 constants.js 相对路径对齐)
- * 2. 磁盘文件与 PNG 二进制签名合法性 (icons/ 与 dist/icons/ 100% 存在且有效)
- * 3. 生产环境浏览器真实渲染与零外部请求断言 (无头 Chrome CDP)
- */
+/** 验证预设图标路径、磁盘 PNG 和浏览器加载。 */
 import { readFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';

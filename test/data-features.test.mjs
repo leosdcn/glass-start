@@ -1,15 +1,4 @@
-/**
- * 数据持久化、书签搜索算法与天气组件功能测试套件 (data-features.test.mjs)
- *
- * 精炼架构：7 大高密度全景断言
- * 1. 书签三级模糊搜索与优先级排序算法
- * 2. 书签轻量存储模型、旧版数据迁移与自定义图标持久化
- * 3. 天气组件胶囊交互与 OverlayStack 层叠栈响应
- * 4. 天气弹窗 2×2 网格布局与工位优先级规范
- * 5. 相对湿度、实时风速与降水雨伞 9 阶形态动态演化
- * 6. 预报等宽排版、多日平滑对齐与多级行政区划消歧
- * 7. 标签页休眠唤醒感知与天气/时钟即时对齐测试
- */
+/** 验证书签搜索与持久化、天气呈现及生命周期恢复。 */
 import { launchSession, sleep, makeTester, pressKey } from './helpers.mjs';
 
 const { pass, finish } = makeTester();
@@ -23,7 +12,7 @@ await evalJS(`
 const press = (key) => pressKey(evalJS, key);
 
 // ══════════════════════════════════════════════════════════════════════
-// 1. 书签三级模糊搜索与优先级排序算法
+// 1. 书签分级匹配、模糊容错与排序
 // ══════════════════════════════════════════════════════════════════════
 
 const searchAlgoCheck = await evalJS(`(() => {
@@ -215,7 +204,7 @@ const btnA11yCheck = await evalJS(`(() => {
 })()`);
 const btnA11yOk = btnA11yCheck && btnA11yCheck.delHasAria && btnA11yCheck.refHasAria;
 
-// 2.8 预设 8 张壁纸矩阵与黑白二元流主题契约校验 (8张完整映射 / 深浅二元对偶 / 模式标识同步)
+// 预设壁纸与深浅主题映射、模式标识保持一致。
 const wallpaperThemeCheck = await evalJS(`(() => {
   const themes = PRESET_WALLPAPER_THEMES;
   const bgs = backgrounds;
@@ -382,7 +371,7 @@ pass('天气弹窗 2×2 网格布局与工位优先级规范 (湿度/风速/降�
   gridOrderOk, `cards: [${domCheck?.card0}] [${domCheck?.card1}] [${domCheck?.card2}] [${domCheck?.card3}]`);
 
 // ══════════════════════════════════════════════════════════════════════
-// 5. 相对湿度、实时风速与降水雨伞 9 阶形态动态演化
+// 湿度、风速与降水概率的分档图标。
 // ══════════════════════════════════════════════════════════════════════
 
 const dynamicIconsCheck = await evalJS(`(() => {

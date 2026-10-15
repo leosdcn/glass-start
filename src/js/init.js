@@ -1,7 +1,5 @@
 /**
- * ==============================================================================
- * Glass Start — 应用初始化与生命周期挂载 (src/js/init.js)
- * ==============================================================================
+ * 应用初始化与生命周期挂载
  */
 import { CONFIG, engines } from './config/constants.js';
 import { storageGet, evictFaviconCache } from './utils/helpers.js';
@@ -42,7 +40,7 @@ export function init() {
         console.warn('天气组件初始化失败', err);
     }
 
-    // 全局捕获阶段图片加载错误处理器，彻底代替 HTML 模板行内 onerror 绑定
+    // 在捕获阶段处理图片加载失败，避免模板行内 onerror。
     document.addEventListener('error', (e) => {
         const target = e.target;
         if (target && target.tagName === 'IMG') {
@@ -57,7 +55,7 @@ export function init() {
         }
     }, true);
 
-    // 全局捕获阶段图片加载成功处理器，代替 HTML 模板行内 onload 绑定（为 CSP 收紧铺路）
+    // 在捕获阶段处理图片加载成功，避免模板行内 onload。
     document.addEventListener('load', (e) => {
         const target = e.target;
         if (target && target.tagName === 'IMG' && (target.classList.contains('lazy-icon') || target.classList.contains('edit-favicon-img'))) {

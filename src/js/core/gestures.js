@@ -1,7 +1,5 @@
 /**
- * ==============================================================================
- * Glass Start — VisionOS 玻璃材质 3D 倾斜与光标折射高光代理 (src/js/core/gestures.js)
- * ==============================================================================
+ * 指针高光与卡片 3D 倾斜，使用 requestAnimationFrame 合并更新。
  */
 import { CONFIG } from '../config/constants.js';
 import { state } from '../state/store.js';

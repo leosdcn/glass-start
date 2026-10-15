@@ -1,14 +1,4 @@
-/**
- * ==============================================================================
- * Glass Start — 时钟引擎、快捷键与鸣谢列表 (src/js/modules/clock.js)
- * ==============================================================================
- *
- * 核心功能：
- * 1. 实时时钟与日期更新 (updateClock)
- * 2. 平台按键映射与提示 (KBD, applyPlatformShortcuts)
- * 3. 快捷键弹窗列表渲染 (renderShortcutModalList)
- * 4. 鸣谢开源数据弹窗列表渲染 (renderCreditsModalList)
- */
+/** 按分钟更新时间与日期，渲染平台快捷键提示和鸣谢列表。 */
 import { CONFIG, IS_MAC } from '../config/constants.js';
 import { escapeHtml, safeUrl } from '../utils/helpers.js';
 import { dom, $ } from '../state/dom.js';
@@ -90,7 +80,7 @@ export function scheduleClockTick() {
     stopClockTimer();
     if (typeof document !== 'undefined' && document.hidden) return;
     const now = Date.now();
-    // 距下一整分钟 00.000 秒的毫秒差 + 50ms 缓冲，确保 Date() 绝对进入新的一分钟
+    // 按下一整分钟加缓冲安排更新，避免读到上一分钟；后台计时器仍可能延迟。
     const delay = Math.max(50, 60000 - (now % 60000) + 50);
     clockTimerId = setTimeout(() => {
         updateClock();

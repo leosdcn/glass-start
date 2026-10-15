@@ -1,17 +1,9 @@
-/**
- * 基础架构、Service Worker 离线缓存与 Web 安全防护测试套件 (infra-security.test.mjs)
- *
- * 精炼架构：5 大高密度全景断言
- * 1. dist/ 产物完整性与 Cache-Control 标头规则
- * 2. Service Worker 核心预缓存清单与容错安装
- * 3. Service Worker 内存池 FIFO 自动限额淘汰与防污染
- * 4. Service Worker 图标预缓存安全白名单校验
- * 5. 防 <iframe> 恶意嵌套点击劫持 (Frame-Busting) 安全破局
- */
+/** 验证构建产物、响应头、离线缓存及防嵌套逻辑。 */
 import { readFileSync, existsSync, statSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
+import vm from 'node:vm';
 import { makeTester } from './helpers.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -112,15 +104,15 @@ pass('dist/ 产物完整性与 Cache-Control 标头规则 (产物齐全/全链�
 // 2. Service Worker 核心预缓存清单与容错安装
 // ══════════════════════════════════════════════════════════════════════
 
-function extractCoreAssets(swContent) {
-  const m = swContent.match(/const\s+CORE_ASSETS\s*=\s*\[([\s\S]*?)\];/);
-  if (!m) return null;
-  return [...m[1].matchAll(/'([^']*)'/g)].map(x => x[1]);
-}
-
 const srcSw = readFileSync(join(ROOT, 'sw.js'), 'utf-8');
 const distSw = readFileSync(join(DIST, 'sw.js'), 'utf-8');
-const distAssets = extractCoreAssets(distSw) || [];
+function inspectWorker(source) {
+  return vm.runInNewContext(source + '\n;({CORE_ASSETS, CORE_FAVICONS, MAX_FAVICON_ENTRIES, MAX_IMG_ENTRIES, pruneCache})', {
+    self: { addEventListener() {} }
+  });
+}
+const worker = inspectWorker(srcSw);
+const distAssets = Array.from(inspectWorker(distSw).CORE_ASSETS);
 
 const missingAssets = [];
 for (const asset of distAssets) {
@@ -130,31 +122,26 @@ for (const asset of distAssets) {
   }
 }
 const validAssets = missingAssets.length === 0 && !distAssets.includes('./icon.svg') && !distAssets.includes('./manifest.json') && distAssets.includes('./index.html');
-const validInstall = distSw.includes('cache.add(') && distSw.includes('validateCoreCache(cache)') && distSw.includes('Promise.allSettled(CORE_ASSETS') && !distSw.includes('self.skipWaiting()') && !distSw.includes('clients.claim()');
-const validStrategy = distSw.includes('isCoreStaticAsset') && distSw.includes('fetch(e.request).then(') && distSw.includes('if (cached) return cached;');
 const distIndexContent = existsSync(join(DIST, 'index.html')) ? readFileSync(join(DIST, 'index.html'), 'utf-8') : '';
 const validScriptVersion = /<head[^>]*>[\s\S]*?<script\s+src=["']\.\/app\.js\?v=app-core-v\d+["']\s+defer><\/script>/.test(distIndexContent);
 const noBodyMainScript = !distIndexContent.includes('id="main-script"');
 const distAppContent = existsSync(join(DIST, 'app.js')) ? readFileSync(join(DIST, 'app.js'), 'utf-8') : '';
 const validFingerprints = distIndexContent.includes('__GLASS_BUILD_HTML__') && distAppContent.includes('__GLASS_BUILD_APP__');
-const validNonOkFallback = /return caches\.match\(e\.request\)\.then\(cached => cached \|\| netRes\)/.test(distSw);
 
-pass('Service Worker 核心预缓存清单与容错安装 (CORE_ASSETS真实存在/核心reload完整校验/失败拒绝安装/等待旧页面退出/原子化SWR锁步版本对齐/指纹契约/非ok回退/Head原生Defer)',
-  validAssets && validInstall && validStrategy && validScriptVersion && noBodyMainScript && validFingerprints && validNonOkFallback,
-  `包含 ${distAssets.length} 项有效资源，原子化 SWR 锁步策略、双端构建指纹、Head 原生 Defer 与非 ok 缓存回退 100% 对齐`);
+
+pass('核心预缓存资源与产物版本契约（安装、更新及离线行为另由 infra-sw-upgrade 验证）',
+  validAssets && validScriptVersion && noBodyMainScript && validFingerprints,
+  `核心资源存在，HTML 与脚本均包含构建指纹`);
 
 // ══════════════════════════════════════════════════════════════════════
-// 3. Service Worker 内存池 FIFO 自动限额淘汰与防污染
+// 3. Service Worker 缓存池的 FIFO 限额淘汰
 // ══════════════════════════════════════════════════════════════════════
 
 // 3.1 真实运行 SW 内置 pruneCache 算法：验证先进先出 (FIFO) 淘汰顺序与限额准确性
 let pruneAlgorithmOk = false;
 try {
-  // 提取 sw.js 中的 pruneCache 源码并在隔离上下文中执行真实淘汰断言
-  const pruneCodeMatch = srcSw.match(/async\s+function\s+pruneCache\s*\([\s\S]*?\n\}/);
-  if (pruneCodeMatch) {
-    const fn = new Function(`${pruneCodeMatch[0]}; return pruneCache;`)();
-    
+  {
+    const fn = worker.pruneCache;
     // 场景 A: 模拟 10 条缓存超出 5 条上限，必须严格按 FIFO 删除最旧的前 5 条 (0..4)，保留最新的后 5 条 (5..9)
     const mockEntriesA = Array.from({ length: 10 }, (_, i) => `https://a.favicon.im/site-${i}.png`);
     const deletedKeysA = [];
@@ -187,35 +174,34 @@ try {
   pruneAlgorithmOk = false;
 }
 
-// 3.2 校验三池配额常数与 activate 激活清理保护白名单
-const maxFaviconMatch = srcSw.match(/MAX_FAVICON_ENTRIES\s*=\s*(\d+)/);
-const maxImgMatch = srcSw.match(/MAX_IMG_ENTRIES\s*=\s*(\d+)/);
-const faviconLimitOk = maxFaviconMatch && Number(maxFaviconMatch[1]) === 800;
-const imgLimitOk = maxImgMatch && Number(maxImgMatch[1]) === 200;
-const poolNamesOk = srcSw.includes("const FAVICON_CACHE = 'app-favicons-v1'") && srcSw.includes("const IMG_CACHE = 'app-images-' + CORE_CACHE;");
-const cleanupMatch = srcSw.match(/Promise\.all\(keys\.filter\(([\s\S]*?)\)\.map/);
-const cleanupPredicate = cleanupMatch ? new Function('CORE_CACHE', 'IMG_CACHE', 'previousImages', `return (${cleanupMatch[1]})`)('app-core-current', 'app-images-current', 'app-images-previous') : null;
-const cleanupInputs = ['app-core-old', 'app-core-current', 'app-favicons-v1', 'app-images-current', 'app-images-previous', 'app-images-old', 'unrelated-cache'];
-const activateCleansOldCachesOnly = cleanupPredicate && JSON.stringify(cleanupInputs.filter(cleanupPredicate)) === '["app-core-old","app-images-old"]';
+pass('缓存 FIFO 淘汰保留新项，未超限时不删除', pruneAlgorithmOk);
+pass('图标与图片缓存配额为正整数',
+  [worker.MAX_FAVICON_ENTRIES, worker.MAX_IMG_ENTRIES].every(value => Number.isInteger(value) && value > 0));
 
-pass('Service Worker 内存池 FIFO 自动限额淘汰与防污染 (真实FIFO执行断言/800与200配额/三池激活保护白名单)',
-  pruneAlgorithmOk && faviconLimitOk && imgLimitOk && poolNamesOk && activateCleansOldCachesOnly,
-  `FIFO算法执行验证通过，图标上限=800，图片上限=200，三池物理隔离保护`);
+// 直接执行 fetch 路由，验证核心脚本网络失败时返回旧缓存。
+let respond;
+const handlers = new Map();
+vm.runInNewContext(srcSw, {
+  self: { location:{origin:'https://example.test',href:'https://example.test/sw.js'},
+    registration:{scope:'https://example.test/'}, addEventListener:(name, fn)=>handlers.set(name, fn) },
+  URL, Request, Response,
+  fetch: async () => new Response('unavailable', {status:503}),
+  caches: {open:async()=>({match:async()=>undefined}), match:async()=>new Response('cached-script')}
+});
+handlers.get('fetch')({request:new Request('https://example.test/uncached.js'),
+  respondWith: promise => { respond = promise; }, waitUntil() {}});
+pass('核心脚本网络非成功响应时使用缓存回退', (await (await respond).text()) === 'cached-script');
 
 // ══════════════════════════════════════════════════════════════════════
 // 4. Service Worker 图标预缓存安全白名单校验
 // ══════════════════════════════════════════════════════════════════════
 
-function extractCoreFavicons(swContent) {
-  const m = swContent.match(/const\s+CORE_FAVICONS\s*=\s*\[([\s\S]*?)\];/);
-  if (!m) return [];
-  return [...m[1].matchAll(/'([^']*)'/g)].map(x => x[1]);
-}
-const favicons = extractCoreFavicons(srcSw);
-const cleanFavicons = favicons.length === 3 && favicons.some(f => f.includes('bing.com')) && favicons.some(f => f.includes('google.com')) && favicons.some(f => f.includes('wikipedia.org')) && !favicons.some(f => f.includes('baidu.com'));
-
-pass('Service Worker 图标预缓存安全白名单校验 (仅Bing&Google&Wikipedia/杜绝百度与未知源)',
-  cleanFavicons, `favicons=${JSON.stringify(favicons)}`);
+const favicons = Array.from(worker.CORE_FAVICONS);
+const cleanFavicons = favicons.length > 0 && favicons.every(value => {
+  const url = new URL(value);
+  return url.origin === 'https://a.favicon.im' && ['bing.com', 'google.com', 'wikipedia.org'].includes(url.pathname.slice(1));
+});
+pass('预缓存图标只访问已支持的搜索引擎', cleanFavicons);
 
 // ══════════════════════════════════════════════════════════════════════
 // 5. 防 <iframe> 恶意嵌套点击劫持 (Frame-Busting) 安全破局

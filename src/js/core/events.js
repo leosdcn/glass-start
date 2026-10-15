@@ -1,16 +1,6 @@
 import { resetActiveCard } from './gestures.js';
 
-/**
- * ==============================================================================
- * Glass Start — 全局事件中枢与拖拽排序 (src/js/core/events.js)
- * ==============================================================================
- *
- * 核心功能：
- * 1. 弹窗焦点捕获与 Escape 键盘事件总线 (handleModalTabFocus, bindEvents)
- * 2. 搜索框实时拼音输入法防冲突与联想键盘 ↑↓ 导航
- * 3. 书签编辑列表 HTML5 Drag & Drop 与 FLIP 物理吸附平滑重排 (initDragSort)
- * 4. 设置弹窗内部各类按钮与文件拖拽 (bindEditEvents)
- */
+/** 装配搜索、键盘与页面交互事件，协调输入法、联想选择和弹窗焦点。 */
 import { CONFIG } from '../config/constants.js';
 
 import { state } from '../state/store.js';

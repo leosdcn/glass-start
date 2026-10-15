@@ -1,6 +1,7 @@
 import { CONFIG } from '../config/constants.js';
 import { escapeHtml, safeUrl, normalizeUrl, normalizeBookmark, faviconFromUrl, createLetterBadgeHtml, handleFaviconFailure, checkImageReady } from '../utils/helpers.js';
 import { modalState } from '../state/store.js';
+import { appendBookmarkDraft, replaceBookmarkDraft } from '../state/bookmark-draft.js';
 import { dom } from '../state/dom.js';
 
 export function getDraftBookmarkCount() {
@@ -72,8 +73,7 @@ export function appendDraftBookmarkRow({ name = '', url = '', icon = '', desc, f
         origUrl: url || '',
         desc
     };
-    if (!modalState.draftBookmarks) modalState.draftBookmarks = [];
-    modalState.draftBookmarks.push(newBm);
+    appendBookmarkDraft(newBm);
 
     const editList = dom.editList;
     if (!editList) return null;
@@ -96,21 +96,13 @@ export function appendDraftBookmarkRow({ name = '', url = '', icon = '', desc, f
         div.querySelector('.edit-name')?.focus();
     }
 
-    modalState.bookmarksChanged = true;
     updateAllBookmarkCounters();
     return div;
 }
 
 export function renderEditList(listToRender) {
     if (Array.isArray(listToRender)) {
-        modalState.draftBookmarks = listToRender.map((bm, i) => ({
-            id: bm.id || `bm_${Date.now()}_${i}`,
-            name: bm.name || '',
-            url: bm.url || '',
-            icon: bm.icon || '',
-            origUrl: bm.origUrl || bm.url || '',
-            desc: bm.desc
-        }));
+        replaceBookmarkDraft(listToRender, modalState.bookmarksChanged);
     }
 
     const editList = dom.editList;
@@ -125,7 +117,7 @@ export function renderEditList(listToRender) {
 }
 
 /**
- * 纯内存收集与清洗草稿书签数据（彻底告别 DOM 遍历反向收割）
+ * 从内存草稿收集并清洗书签，不反向解析 DOM。
  * @returns {Array<{name: string, url: string, icon: string, desc?: string}>}
  */
 export function collectEditData() {

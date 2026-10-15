@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": true,
+    "noEmit": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "resolveJsonModule": true,
+    "lib": [
+      "ES2022",
+      "DOM"
+    ]
+  },
+  "files": [
+    "src/js/utils/bookmark-search.js",
+    "src/js/utils/weather-model.js",
+    "src/js/utils/weather-data.js",
+    "src/js/state/bookmark-draft.js",
+    "test/types/contracts.js"
+  ]
+}

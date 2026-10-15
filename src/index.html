@@ -2,6 +2,7 @@
 <html lang="zh-CN" dir="ltr">
 <head>
     <meta charset="UTF-8">
+    <!-- INJECT_APP_HEAD -->
     <script>
         // 防 iframe 点击劫持与恶意嵌套：若检测出页面处于 iframe 中，自动强行跳出；沙箱受限时安全隐藏页面
         if (window.top !== window.self) { try { window.top.location.replace(window.location.href); } catch { document.documentElement.style.display = 'none'; } }
@@ -62,14 +63,14 @@
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20100%20100'%3E%3Ctext%20y='.9em'%20font-size='90'%3E🪐%3C/text%3E%3C/svg%3E">
     <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png">
     <link rel="manifest" href="./manifest.json">
-    <!-- 外部核心资源 DNS 极速预解析（后台空闲解析 IP，零握手流量开销） -->
+    <!-- 外部服务 DNS 预解析提示，是否执行由浏览器决定。 -->
     <link rel="dns-prefetch" href="https://a.favicon.im">
     <link rel="dns-prefetch" href="https://www.google.com">
     <link rel="dns-prefetch" href="https://t3.gstatic.com">
     <link rel="dns-prefetch" href="https://myip.ipip.net">
     <link rel="dns-prefetch" href="https://geocoding-api.open-meteo.com">
     <link rel="dns-prefetch" href="https://api.open-meteo.com">
-    <!-- 动态壁纸 Preload：根据设备物理 DPI 与用户历史偏好动态计算，单次精准预加载消灭带宽争抢与 LCP 延迟 -->
+    <!-- 根据视口、DPR 与保存的偏好预加载壁纸；IDB 图片等待应用恢复。 -->
     <script>
       /**
        * 根据用户偏好预加载壁纸。默认使用本地 AVIF；历史远程 Unsplash URL
@@ -78,27 +79,20 @@
        */
       (function() {
         /**
-         * 预设最大 2560px 宽 AVIF 本地壁纸矩阵及 Unsplash 原图追溯出处（4 组深浅严谨对偶 · 纯净毛玻璃通透底座）：
-         * bg1.avif - 暮色山峦 (2560x1708 源图比例 自然深) https://images.unsplash.com/photo-1477346611705-65d1883cee1e
-         * bg2.avif - 溪谷晨曦 (2560x1709 源图比例 自然浅) https://images.unsplash.com/photo-1506744038136-46273834b3fb
-         * bg3.avif - 星空雪山 (2560x1708 源图比例 自然深) https://images.unsplash.com/photo-1519681393784-d120267933ba
-         * bg4.avif - 峰峦破晓 (2560x1701 源图比例 自然浅) https://images.unsplash.com/photo-1469474968028-56623f02e42e
-         * bg5.avif - 天际立面 (2560x1707 源图比例 建筑深) https://images.unsplash.com/photo-1486406146926-c627a92ad1ab
-         * bg6.avif - 极简回廊 (2301x1536 源图比例 建筑浅) https://images.unsplash.com/photo-1497366754035-f200968a6e72
-         * bg7.avif - 紫韵流光 (2560x1945 源图比例 艺术深) https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe
-         * bg8.avif - 梦幻流彩 (2560x1707 源图比例 艺术浅) https://images.unsplash.com/photo-1550684848-fac1c5b4e853
+         * 本地 AVIF 预设的 Unsplash 原图来源：
+         * bg1.avif - 暮色山峦 https://images.unsplash.com/photo-1477346611705-65d1883cee1e
+         * bg2.avif - 溪谷晨曦 https://images.unsplash.com/photo-1506744038136-46273834b3fb
+         * bg3.avif - 星空雪山 https://images.unsplash.com/photo-1519681393784-d120267933ba
+         * bg4.avif - 峰峦破晓 https://images.unsplash.com/photo-1469474968028-56623f02e42e
+         * bg5.avif - 天际立面 https://images.unsplash.com/photo-1486406146926-c627a92ad1ab
+         * bg6.avif - 极简回廊 https://images.unsplash.com/photo-1497366754035-f200968a6e72
+         * bg7.avif - 紫韵流光 https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe
+         * bg8.avif - 梦幻流彩 https://images.unsplash.com/photo-1550684848-fac1c5b4e853
          *
-         * 💡 源图等比缩放与 AVIF 编码规范：
-         *    工具：libavif / avifenc 1.4.2 (AOMedia libaom v3.15.2 内核)
-         *    源图：上述链接附加 ?fm=jpg&q=100 获取高质量 JPEG；使用 sips 等比缩放为 PNG 中间文件。
-         *    尺寸：大图宽度上限 2560px、缩略图宽度上限 320px，高度按源图比例四舍五入；不裁切、不放大。
-         *    bg6 源图为 2301x1536，保留原尺寸。
-         *    大图母版：avifenc -s 4 -q 75 --yuv 444 input.png bgX.avif
-         *    微缩缩略：avifenc -s 4 -q 70 --yuv 420 thumb.png bgX-thumb.avif
-         *    特点：
-         *      1. 大图使用 YUV 4:4:4，保留色度分辨率；实际质量应通过编码结果与原图对比检查；
-         *      2. 缩略图使用 -q 70 与 YUV 4:2:0，控制预览资源体积；
-         *      3. 使用编码器默认锐度与自适应量化设置，不额外指定 sharpness 或 aq-mode。
+         * 重建方式：获取原图，经 sips 等比缩放生成 PNG 中间文件，不裁切、不放大。
+         * 大图保留色度分辨率，缩略图使用色度采样控制体积；编码后需对比原图检查质量。
+         * 大图：avifenc -s 4 -q 75 --yuv 444 input.png bgX.avif
+         * 缩略图：avifenc -s 4 -q 70 --yuv 420 thumb.png bgX-thumb.avif
          */
         const backgrounds = [
           './wallpapers/bg1.avif',
@@ -146,7 +140,7 @@
             preloadUrl = (typeof bgIdx === 'number' && backgrounds[bgIdx]) ? backgrounds[bgIdx] : backgrounds[0];
           }
           if ((preloadUrl && typeof preloadUrl === 'string') || wallpaperMeta?.custom) {
-            // 根据设备物理像素 (宽度 * DPR) 动态调优 Unsplash 尺寸参数 (阶梯以 200px 递增，普通屏上限 2560px，4K/Retina 屏上限 3840px，强制使用 WebP 格式)
+            // 按视口宽度与 DPR 选择 Unsplash 请求尺寸，并限制最大宽度。
             const dpr = window.devicePixelRatio || 1;
             const maxCap = (window.innerWidth * dpr > 2560) ? 3840 : 2560;
             const targetW = Math.min(Math.ceil((window.innerWidth * dpr) / 200) * 200, maxCap);
@@ -231,10 +225,12 @@
         }
       }catch(e){}
     </script>
+    <!-- BUILD_STYLES_START -->
     <link rel="stylesheet" href="./styles/main.css">
+    <!-- BUILD_STYLES_END -->
 </head>
 <body class="text-white relative" style="background-color: var(--bg-start);">
-    <!-- 全局 SVG 矢量图标精灵池 (零运行时 JS 开销, 0 CLS, 支持 Tailwind currentColor) -->
+    <!-- 构建时注入 SVG 图标精灵，通过 currentColor 继承颜色。 -->
     <!-- INJECT_SVG_SPRITE -->
     <!-- 固定定位背景图层（双层叠加 opacity 过渡，解决 background-image 不可 CSS 插值的问题；配合 bg-fullscreen 延伸至移动端安全区与过滚动区域） -->
     <div id="bgLayer" class="bg-fullscreen bg-cover bg-center bg-no-repeat z-0 bg-slate-900 bg-layer"></div>
@@ -246,7 +242,7 @@
     <section id="startSection" aria-label="起始页" class="relative z-10 min-h-dvh flex flex-col items-center justify-center px-4 py-12">
         <h1 class="sr-only">Glass Start — 流光起始页</h1>
 
-        <!-- 全屏右上角悬浮天气胶囊（置于起始页内，随起始页物理滑屏，全生命周期保持 100% 毛玻璃常驻） -->
+        <!-- 右上角天气胶囊，随起始页一起切屏。 -->
         <div id="weatherWidget" class="select-none">
             <button id="weatherBtn" type="button" aria-expanded="false" aria-controls="weatherPopover" aria-haspopup="dialog" aria-label="🌤️ --°·天气，点击查看实时天气与详细预报" class="glass apple-radius px-3 py-1.5 sm:px-3.5 sm:py-2 text-white/80 enabled:hover:text-white border border-white/12 flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-medium glass-interactive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 fade-in">
                 <span id="weatherIcon" aria-hidden="true" class="text-sm sm:text-base leading-none select-none">🌤️</span>
@@ -330,7 +326,7 @@
             <div id="bookmarks" class="grid grid-cols-4 md:grid-cols-8 gap-2 min-h-43 md:min-h-22"></div>
         </nav>
 
-        <!-- 向下滚动提示（保持纯净竖排原样，首次常驻直至初次下滑） -->
+        <!-- 向下滚动提示，首次进入导航页后隐藏。 -->
         <div id="scrollDownHint" class="absolute bottom-4 md:bottom-7 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5 text-white/50 text-xs font-medium tracking-[0.25em] pointer-events-none hint-down select-none fade-in delay-200">
             <span>向下探索</span>
             <span class="scroll-hint inline-flex" aria-hidden="true"><svg class="size-5" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="m19.5 8.25-7.5 7.5-7.5-7.5"/></svg></span>
@@ -486,7 +482,7 @@
                         <div class="size-9 rounded-control bg-white/10 flex items-center justify-center text-base border border-white/15 shadow-inner shrink-0">🪐</div>
                         <div class="flex items-center gap-2">
                             <span class="text-sm font-semibold text-white/95 tracking-tight leading-none whitespace-nowrap">Glass Start</span>
-                            <span class="text-2xs px-2 h-4.5 rounded-full bg-white/10 border border-white/15 text-white/75 font-medium inline-flex items-center justify-center">v5.0.1</span>
+                            <span class="text-2xs px-2 h-4.5 rounded-full bg-white/10 border border-white/15 text-white/75 font-medium inline-flex items-center justify-center">v5.0.2</span>
                         </div>
                     </div>
                     <div class="grid grid-cols-2 sm:flex items-center gap-2 shrink-0">
@@ -644,7 +640,8 @@
         </div>
     </div><!-- /#creditsModal -->
 
-    <!-- 引入原生 ES Module 主应用入口 -->
+    <!-- BUILD_APP_ENTRY_START -->
     <script type="module" src="./js/main.js"></script>
+    <!-- BUILD_APP_ENTRY_END -->
 </body>
 </html>

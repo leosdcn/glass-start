@@ -1,7 +1,5 @@
 /**
- * ==============================================================================
- * Glass Start — 设置事件装配 (src/js/core/settings-events.js)
- * ==============================================================================
+ * 设置事件装配
  *
  * 设置按钮、书签草稿编辑与拖拽排序的事件装配。
  */
@@ -9,12 +7,13 @@ import { CONFIG } from '../config/constants.js';
 import { escapeHtml, storageGet, checkImageReady } from '../utils/helpers.js';
 
 import { modalState } from '../state/store.js';
+import { updateBookmarkDraft, removeBookmarkDraft } from '../state/bookmark-draft.js';
 import { dom } from '../state/dom.js';
 
 import { initDragSort } from './drag-sort.js';
 
 import { uploadWallpaper, previewDraftWallpaper, resetDraftWallpaper } from '../modules/wallpaper.js';
-import { openEditModal, saveEditModal, cancelEditModal, openShortcutModal, closeShortcutModal, openCreditsModal, closeCreditsModal, openBookmarkPicker, closeBookmarkPicker, switchSettingsTab, scheduleBgEffects, resetBookmarks, importBookmarksJSON, exportBookmarksJSON } from '../modules/settings.js';
+import { openEditModal, saveEditModal, cancelEditModal, openShortcutModal, closeShortcutModal, openCreditsModal, closeCreditsModal, openBookmarkPicker, closeBookmarkPicker, switchSettingsTab, previewDraftMaskOpacity, resetBookmarks, importBookmarksJSON, exportBookmarksJSON } from '../modules/settings.js';
 import { updateAllBookmarkCounters, getEditFaviconInner, getExistingUrls, handleEditIconError, appendDraftBookmarkRow } from '../modules/bookmark-editor.js';
 import { showConfirm } from './dialogs.js';
 
@@ -134,19 +133,14 @@ export function bindEditEvents() {
     if (dom.editList) {
         let editFaviconDebounceTimer = null;
         dom.editList.addEventListener('input', (e) => {
-            modalState.bookmarksChanged = true;
             const target = e.target;
             const row = target?.closest('.edit-row-card');
-            if (!row || !modalState.draftBookmarks) return;
-            const id = row.dataset.id;
-            const item = modalState.draftBookmarks.find(b => b.id === id);
+            if (!row) return;
+            const fields = target.classList.contains('edit-name') ? { name: target.value }
+                : target.classList.contains('edit-url') ? { url: target.value } : null;
+            if (!fields) return;
+            const item = updateBookmarkDraft(row.dataset.id, fields);
             if (!item) return;
-
-            if (target.classList.contains('edit-name')) {
-                item.name = target.value;
-            } else if (target.classList.contains('edit-url')) {
-                item.url = target.value;
-            }
 
             // 同步实时 Favicon 预览
             const faviconBox = row.querySelector('.edit-favicon-box');
@@ -186,11 +180,7 @@ export function bindEditEvents() {
             if (del) {
                 const item = del.closest('.edit-row-card');
                 if (item) {
-                    modalState.bookmarksChanged = true;
-                    const rowId = item.dataset.id;
-                    if (rowId && modalState.draftBookmarks) {
-                        modalState.draftBookmarks = modalState.draftBookmarks.filter(b => b.id !== rowId);
-                    }
+                    removeBookmarkDraft(item.dataset.id);
                     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
                         item.remove();
                         updateAllBookmarkCounters();
@@ -295,12 +285,11 @@ export function bindEditEvents() {
     // 背景暗度事件绑定（草稿实时预览）
     if (dom.maskOpacityInput) {
         dom.maskOpacityInput.addEventListener('input', e => {
-            modalState.draftMaskOpacity = parseInt(e.target.value, 10) || 0;
-            scheduleBgEffects(modalState.draftMaskOpacity);
+            previewDraftMaskOpacity(e.target.value);
         });
     }
 
-    // 清理缓存事件绑定 (BUG-08 防时序割裂：确认后再执行物理清空与刷新)
+    // 清理缓存：确认后再清空并刷新。
     if (dom.clearCacheBtn) {
         dom.clearCacheBtn.addEventListener('click', () => {
             if (dom.clearCacheBtn.disabled) return;

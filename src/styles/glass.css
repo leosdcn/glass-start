@@ -155,7 +155,7 @@
     box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.4);
 }
 
-/* ===== 玻璃材质物理高光折射与 3D 视差倾斜 (VisionOS / Apple HIG 规范) ===== */
+/* ===== 玻璃高光与指针 3D 倾斜 ===== */
 .bookmark-item, .nav-bookmark {
     position: relative;
     overflow: hidden;
@@ -311,7 +311,7 @@ body:not(.tab-blurred) .nav-bookmark:not(.is-clicked):active {
     }
 }
 
-/* 兼容性兜底：不支持 backdrop-filter 或节能降级环境下的安全实色底板 */
+/* 不支持 backdrop-filter 时使用高不透明度底色。 */
 @supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
     .glass {
         background: rgba(15, 23, 42, 0.88);

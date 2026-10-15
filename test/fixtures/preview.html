@@ -116,7 +116,7 @@
             gap: 0.4rem;
         }
 
-        /* 5 等宽场景预设卡片 */
+        /* 等宽场景预设卡片 */
         .preset-grid {
             display: grid;
             grid-template-columns: repeat(5, 1fr);
@@ -210,7 +210,7 @@
             transition: opacity 0.2s ease;
         }
 
-        /* 规则速查卡片 (三列网格) */
+        /* 规则速查卡片 */
         .rules-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -251,7 +251,7 @@
             font-weight: 600;
         }
 
-        /* 右侧：天气组件视图 (像素级对齐 Glass Start 原版) */
+        /* 右侧：天气组件预览 */
         .weather-card-container {
             display: flex;
             flex-direction: column;
@@ -468,7 +468,7 @@
         <div class="studio-body">
             <!-- 左侧：控制调控面板 -->
             <div class="studio-controls">
-                <!-- 1. 快速场景预设 (5 列对齐) -->
+                <!-- 1. 场景预设 -->
                 <div>
                     <div class="control-section-title">⚡ 快速场景预设</div>
                     <div class="preset-grid">
@@ -544,7 +544,7 @@
                     </div>
                 </div>
 
-                <!-- 3. 规则速查卡片 (三列网格) -->
+                <!-- 3. 规则速查卡片 -->
                 <div>
                     <div class="control-section-title">📋 动态气象形态规则</div>
                     <div class="rules-grid">
@@ -686,21 +686,21 @@
             popBadge.textContent = pop + '%';
             tempBadge.textContent = temp + '°C';
 
-            // 1. 实时风速 (🍃 < 15, 🎏 15~35, 🌪️ >= 35)
+            // 实时风速分档
             let windIcon = '🍃';
             if (wind >= 35) windIcon = '🌪️';
             else if (wind >= 15) windIcon = '🎏';
             document.getElementById('windIcon').textContent = windIcon;
             document.getElementById('windVal').textContent = wind.toFixed(1) + ' km/h';
 
-            // 2. 相对湿度 (🌵 < 35, 💧 35~75, 💦 > 75)
+            // 相对湿度分档
             let humIcon = '💧';
             if (hum < 35) humIcon = '🌵';
             else if (hum > 75) humIcon = '💦';
             document.getElementById('humIcon').textContent = humIcon;
             document.getElementById('humVal').textContent = hum + '%';
 
-            // 3. 降水概率 (🌂 0~29, ☂️ 30~69, ☔️ >= 70)
+            // 降水概率分档
             let popIcon = '🌂';
             if (pop >= 70) popIcon = '☔️';
             else if (pop >= 30) popIcon = '☂️';

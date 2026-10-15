@@ -1,11 +1,4 @@
-/**
- * 双屏状态机、键盘导航与手势调度测试套件 (ui-screen-gestures.test.mjs)
- *
- * 核心断言：
- * 1. 双屏切屏状态机与键盘导航完整闭环 (初始态/API/ArrowDown/盲打/PageDown)
- * 2. 键盘方向键在联想/弹窗与顶端的输入保护 (联想防误切/弹窗防误切/顶端ArrowUp返回)
- * 3. 滚轮与触屏手势切屏及内部滚动拦截机制 (滚轮下切/内容滚动拦截/滚轮上切/触屏阈值滑屏/Flick快速轻扫)
- */
+/** 验证双屏切换、输入保护、滚轮与触屏手势。 */
 import { launchSession, sleep, tyOf, makeTester, pressKey, waitFor } from './helpers.mjs';
 
 const { pass, finish } = makeTester();
@@ -139,7 +132,7 @@ await evalJS(`(function(){
 })()`); await waitForScreen('nav');
 const touchInNav = tyOf(await evalJS('getComputedStyle(document.getElementById("navSection")).transform')) === 0;
 
-// 3.5 触屏快速轻扫 (Flick Gesture: 位移 >= 25px 且速度 > 0.25px/ms 快速切屏)
+// 触屏快速轻扫：位移与速度共同决定是否切屏。
 await evalJS('window.switchToStart()'); await waitForScreen('start');
 const flick = async (from, to, target) => {
   await evalJS(`(async () => {

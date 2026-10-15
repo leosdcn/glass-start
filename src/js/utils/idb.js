@@ -1,7 +1,5 @@
 /**
- * ==============================================================================
- * Glass Start — IndexedDB 4K 壁纸存储工具 (src/js/utils/idb.js)
- * ==============================================================================
+ * IndexedDB 壁纸选择与旧数据迁移
  */
 import { CONFIG, backgrounds } from '../config/constants.js';
 
@@ -21,8 +19,8 @@ export const dbPromise = new Promise(resolve => {
 });
 
 /**
- * 从 IndexedDB 异步读取用户自定义 4K 壁纸 DataURL
- * @returns {Promise<string|null>} 返回壁纸 DataURL 字符串，不存在或异常时返回 null
+ * 读取自定义壁纸兼容键（Data URL 或图片 URL）。
+ * @returns {Promise<string|null>} 返回壁纸字符串，不存在或异常时返回 null
  */
 export async function getWallpaperDB() {
     try {

@@ -3,9 +3,9 @@
  * Glass Start — a.favicon.im 1:1 本地化同步引擎 (scripts/sync-icons.mjs)
  * ==============================================================================
  * 📌 设计规范与原则：
- * 1. 纯净真理源：100% 严格对齐 https://a.favicon.im/{host}，不冒风险引入任何第三方/外部覆盖源；
+ * 1. 下载顺序：a.favicon.im，必要时尝试 www 主机，失败或占位标时回退 Google S2；
  * 2. 格式规范化：由于 a.favicon.im 可能返回 SVG/ICO/PNG，统一使用 macOS 原生 sips 转录为
- *    合规的 PNG 格式存入 icons/{host}.png，保障浏览器与 Service Worker 本地零解析开销；
+ *    合规的 PNG 格式存入 icons/{host}.png，供浏览器及 Service Worker 从本站加载与缓存；
  * 3. 映射单一化：bookmarks.json 中所有书签统一指向相对路径 ./icons/{host}.png；
  * 4. 零外部依赖：纯原生 Node.js + 原生 sips，不引入任何 npm dependencies。
  */
@@ -245,7 +245,7 @@ function isPlaceholder(buf) {
         console.log(`  ${c.green}✔${c.reset} 已规范 bookmarks.json 中 ${c.bold}${updatedIconCount}${c.reset} 处图标路径为 ./icons/{host}.png`);
     }
 
-    // 校验与源码配置 (bookmarks.json 单一真理源已被 src/js/config/constants.js 自动引入)
+    // 写回图标路径；运行时默认数据由 constants.js 导入 bookmarks.json。
     console.log(`  ${c.green}✔${c.reset} bookmarks.json 单一真理源已生效，源码 src/js/config/constants.js 自动共享最新书签与图标`);
 
     console.log(`\n${c.cyan}${HR_DOUBLE}${c.reset}\n`);
