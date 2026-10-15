@@ -2,7 +2,7 @@
 
 > 极简纯净的毛玻璃浏览器起始页。
 
-[![Version](https://img.shields.io/badge/version-v5.0.2-blue.svg)](package.json)
+[![Version](https://img.shields.io/badge/version-v5.0.3-blue.svg)](package.json)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-v4-38bdf8?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
 
 ---
@@ -163,7 +163,7 @@ npm run build
 
 `npm test` 先检查类型、构建，再实际执行回归测试；`test:all` 为同一全套入口。可用 `test:ui`、`test:data`、`test:infra`、`test:lifecycle` 按模块筛选。发布前验证顺序见 [AGENTS.md](./AGENTS.md#二分级验证)，可用命令以 `package.json` 为准。
 
-`npm run typecheck` 对核心数据与草稿模型执行渐进式 JavaScript 类型检查；范围以 `tsconfig.json` 为准。`npm run test:unit` 独立验证搜索、天气转换与草稿逻辑，无需 Chrome。
+`npm run typecheck` 对核心数据、草稿、DOM 缓存与状态执行渐进式 JavaScript 类型检查；范围以 `tsconfig.json` 为准。`npm run test:unit` 独立验证搜索、天气转换与草稿逻辑，无需 Chrome。
 
 `npm run test:icons` 与 `npm run test:visual` 是独立入口，需先构建再按需运行。视觉脚本输出截图和布局指标，不自动与基准图逐像素比较。`npm run lint:fix` 仅修复脚本支持的机械规则。
 

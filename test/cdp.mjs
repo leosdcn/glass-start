@@ -10,7 +10,8 @@ const activeInstances = new Set();
 
 function cleanupInstance(instance) {
   try {
-    if (instance.ws && instance.ws.readyState === WebSocket.OPEN) {
+    if (instance.connection) instance.connection.close();
+    else if (instance.ws && instance.ws.readyState === WebSocket.OPEN) {
       instance.ws.close();
     }
   } catch {}
@@ -60,6 +61,77 @@ function registerExitHooks() {
 
 registerExitHooks();
 
+/** 断线、协议错误和主动关闭均立即结束待决请求并清理计时器。 */
+export async function connectCDP(ws, { openTimeoutMs = 15000 } = {}) {
+  let id = 0, failure = null;
+  const pending = new Map(), listeners = new Map();
+  let resolveOpen, rejectOpen;
+  const opened = new Promise((resolve, reject) => { resolveOpen = resolve; rejectOpen = reject; });
+  const openTimer = setTimeout(() => fail(new Error('CDP connection opening timed out')), openTimeoutMs);
+  function fail(error) {
+    if (failure) return;
+    failure = error;
+    clearTimeout(openTimer);
+    rejectOpen(error);
+    for (const entry of pending.values()) {
+      clearTimeout(entry.timer);
+      entry.reject(new Error(`CDP command ${entry.method} failed: ${error.message}`, { cause:error }));
+    }
+    pending.clear();
+    listeners.clear();
+    for (const [name, handler] of Object.entries(handlers)) ws.removeEventListener(name, handler);
+    try { ws.close(); } catch {}
+  }
+  const handlers = {
+    open() { clearTimeout(openTimer); resolveOpen(); },
+    error() { fail(new Error('CDP connection error')); },
+    close(event) { fail(new Error(`CDP connection closed (${event.code || 'unknown'}): ${event.reason || 'no reason'}`)); },
+    message(event) {
+      let message;
+      try { message = JSON.parse(event.data); }
+      catch (error) { fail(new Error('CDP received invalid JSON', { cause:error })); return; }
+      const entry = pending.get(message.id);
+      if (entry) {
+        pending.delete(message.id);
+        clearTimeout(entry.timer);
+        if (message.error) entry.reject(new Error(`CDP command ${entry.method} failed (${message.error.code}): ${message.error.message}`));
+        else entry.resolve(message.result);
+      } else {
+        for (const listener of listeners.get(message.method) || []) {
+          try { listener(message.params); } catch {}
+        }
+      }
+    }
+  };
+  for (const [name, handler] of Object.entries(handlers)) ws.addEventListener(name, handler);
+  if (ws.readyState === WebSocket.OPEN) handlers.open();
+  else if (ws.readyState > WebSocket.OPEN) fail(new Error('CDP connection already closed'));
+  await opened;
+  return {
+    send(method, params = {}, timeoutMs = 15000) {
+      if (typeof params === 'function') {
+        if (failure) throw failure;
+        if (!listeners.has(method)) listeners.set(method, new Set());
+        listeners.get(method).add(params);
+        return () => listeners.get(method)?.delete(params);
+      }
+      if (!failure && ws.readyState !== WebSocket.OPEN) fail(new Error('CDP connection is not open'));
+      if (failure) return Promise.reject(failure);
+      return new Promise((resolve, reject) => {
+        const mid = ++id;
+        const timer = setTimeout(() => {
+          pending.delete(mid);
+          reject(new Error(`CDP command ${method} timed out after ${timeoutMs}ms`));
+        }, timeoutMs);
+        pending.set(mid, { resolve, reject, timer, method });
+        try { ws.send(JSON.stringify({ id:mid, method, params })); }
+        catch (error) { fail(new Error('CDP send failed', { cause:error })); }
+      });
+    },
+    close() { fail(new Error('CDP connection closed by client')); }
+  };
+}
+
 export async function launchChrome({ port, url, testMode = true }) {
   const profileDir = process.env.CHROME_PROFILE_DIR || join(process.env.GLASS_TEST_TMPDIR || tmpdir(), `glass-start-test-${port}-${randomUUID()}`);
   const args = [
@@ -99,68 +171,20 @@ export async function launchChrome({ port, url, testMode = true }) {
 
   const ws = new WebSocket(target.webSocketDebuggerUrl);
   instance.ws = ws;
-  let id = 0;
-  const pending = new Map();
+  let connection;
+  try { connection = await connectCDP(ws); }
+  catch (error) { cleanupInstance(instance); throw error; }
+  instance.connection = connection;
+  const { send } = connection;
 
-  const eventListeners = new Map();
-
-  ws.onmessage = (ev) => {
-    const msg = JSON.parse(ev.data);
-    if (msg.id && pending.has(msg.id)) {
-      pending.get(msg.id)(msg.result, msg.error);
-      pending.delete(msg.id);
-    } else if (msg.method && eventListeners.has(msg.method)) {
-      for (const listener of eventListeners.get(msg.method)) {
-        try { listener(msg.params); } catch {}
-      }
-    }
-  };
-  await new Promise((res, rej) => { ws.onopen = res; ws.onerror = rej; });
-
-  const on = (method, handler) => {
-    if (!eventListeners.has(method)) eventListeners.set(method, new Set());
-    eventListeners.get(method).add(handler);
-    return () => eventListeners.get(method).delete(handler);
-  };
-
-  const send = (method, params = {}, timeoutMs = 15000) => {
-    if (typeof params === 'function') {
-      return on(method, params);
-    }
-    return new Promise((res, rej) => {
-      const mid = ++id;
-      const timer = setTimeout(() => {
-        if (pending.has(mid)) {
-          pending.delete(mid);
-          rej(new Error(`CDP command ${method} timed out after ${timeoutMs}ms`));
-        }
-      }, timeoutMs);
-      pending.set(mid, (result, error) => {
-        clearTimeout(timer);
-        if (error) {
-          rej(new Error(`CDP command ${method} failed (${error.code}): ${error.message}`));
-          return;
-        }
-        res(result);
-      });
-      try {
-        ws.send(JSON.stringify({ id: mid, method, params }));
-      } catch (err) {
-        clearTimeout(timer);
-        pending.delete(mid);
-        rej(err);
-      }
-    });
-  };
-
-  if (testMode) {
-    await send('Page.enable');
-    await send('Page.addScriptToEvaluateOnNewDocument', { source: 'window.__GLASS_TEST__ = true;' });
-    await send('Page.reload');
-  }
-
-  // 首次导航和测试模式重载期间执行上下文会被替换；会话就绪后再交给测试。
   try {
+    if (testMode) {
+      await send('Page.enable');
+      await send('Page.addScriptToEvaluateOnNewDocument', { source: 'window.__GLASS_TEST__ = true;' });
+      await send('Page.reload');
+    }
+
+    // 首次导航和测试模式重载期间执行上下文会被替换；会话就绪后再交给测试。
     const deadline = Date.now() + 10000;
     let ready = false;
     while (Date.now() < deadline) {

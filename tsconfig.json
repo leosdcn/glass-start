@@ -19,6 +19,8 @@
     "src/js/utils/weather-model.js",
     "src/js/utils/weather-data.js",
     "src/js/state/bookmark-draft.js",
-    "test/types/contracts.js"
+    "test/types/contracts.js",
+    "src/js/state/dom.js",
+    "src/js/state/store.js"
   ]
 }

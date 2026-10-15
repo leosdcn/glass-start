@@ -12,6 +12,7 @@ export function $(id) {
 }
 
 // 高频 DOM 节点底层存储表
+/** @type {Partial<import('../types').DOMCache>} */
 const _domStore = {};
 
 /**
@@ -20,7 +21,7 @@ const _domStore = {};
  */
 export const dom = new Proxy(_domStore, {
     get(target, prop) {
-        if (typeof prop !== 'string') return target[prop];
+        if (typeof prop !== 'string') return Reflect.get(target, prop);
         let el = target[prop];
         // 若缓存中不存在，或节点已脱离 DOM 树（且非特定隐藏场景），尝试动态自愈获取
         if (!el || (el instanceof Element && !el.isConnected)) {
@@ -33,8 +34,7 @@ export const dom = new Proxy(_domStore, {
         return el;
     },
     set(target, prop, value) {
-        target[prop] = value;
-        return true;
+        return Reflect.set(target, prop, value);
     }
 });
 

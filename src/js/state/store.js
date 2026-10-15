@@ -4,6 +4,7 @@
 import { CONFIG, DEFAULT_BOOKMARKS, DEFAULT_CATEGORIES } from '../config/constants.js';
 
 // 运行时状态：由调用方显式更新并触发渲染
+/** @type {import('../types').AppState} */
 export const state = {
     engine: 'bing',          // 当前激活的搜索引擎 key，对应 engines 对象的键名
     bg: 0,                   // 当前壁纸在 backgrounds 数组中的索引
@@ -26,6 +27,7 @@ export const modalState = {
 };
 
 // 当前运行时的书签与分类数据集
+/** @type {import('../types').PageData} */
 export const pageData = {
     bookmarks: DEFAULT_BOOKMARKS.map(bm => ({ ...bm })),
     categories: DEFAULT_CATEGORIES
