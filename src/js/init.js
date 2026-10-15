@@ -67,7 +67,7 @@ export function init() {
 
     updateClock();
     loadBookmarks();
-    restoreWallpaper().catch(() => {});
+    const wallpaperRestored = restoreWallpaper().then(() => true, () => false);
     renderBookmarks();
     renderNavCategories();
     initScreenGestures();
@@ -104,7 +104,8 @@ export function init() {
         refreshSidebarNavCache();
         initFaviconObserver(true);
         preloadFavicons();
-        preloadNextBg();
+        // 恢复后再判断当前选择，避免在 IDB 返回前预加载默认预设。
+        wallpaperRestored.then(restored => { if (restored) preloadNextBg(); });
     });
 
     setTimeout(() => {

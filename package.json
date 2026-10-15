@@ -1,6 +1,6 @@
 {
   "name": "glass-start",
-  "version": "5.0.0",
+  "version": "5.0.1",
   "description": "Glass Start — 极简纯净的毛玻璃浏览器起始页。",
   "main": "dist/index.html",
   "scripts": {

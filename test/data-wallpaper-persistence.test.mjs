@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { launchSession, waitFor } from './helpers.mjs';
+import { launchSession, waitFor, navigateAndWait } from './helpers.mjs';
 
 const { server, chrome, send, evalJS } = await launchSession();
 try {
@@ -78,6 +78,39 @@ try {
   await waitFor(evalJS, '!window.__blockedIDBProbe && typeof commitWallpaperSelection === "function" && !!state.customWallpaper');
   assert.equal(await evalJS('(async () => (await getWallpaperDB()) === state.customWallpaper)()'), true);
   console.log('✅ IDB 不可用明确失败，恢复权限并重载后原壁纸仍可读取');
+
+  await send('Network.enable');
+  const requestedPresets = [];
+  const stopRequests = send('Network.requestWillBeSent', ({ request }) => {
+    if (/\/wallpapers\/bg\d+\.avif(?:\?|$)/.test(request.url)) requestedPresets.push(request.url);
+  });
+  const { identifier: delayedOpen } = await send('Page.addScriptToEvaluateOnNewDocument', { source: `
+    const open = IDBFactory.prototype.open;
+    IDBFactory.prototype.open = function(...args) {
+      const request = open.apply(this, args);
+      Object.defineProperty(request, 'onsuccess', { set(callback) {
+        request.addEventListener('success', event => setTimeout(() => callback(event), 350));
+      } });
+      return request;
+    };
+  ` });
+  try {
+    await navigateAndWait(send, evalJS, `http://127.0.0.1:${server.port}/?preload=custom`,
+      'typeof commitWallpaperSelection === "function" && !!state.customWallpaper');
+    await evalJS('new Promise(resolve => setTimeout(resolve, 300))');
+    assert.equal(requestedPresets.some(url => /\/bg2\.avif(?:\?|$)/.test(url)), false);
+
+    await evalJS('commitWallpaperSelection(backgrounds[3])');
+    requestedPresets.length = 0;
+    await navigateAndWait(send, evalJS, `http://127.0.0.1:${server.port}/?preload=preset`,
+      'typeof commitWallpaperSelection === "function" && state.bg === 3 && !state.customWallpaper');
+    await waitFor(async () => requestedPresets.some(url => /\/bg5\.avif(?:\?|$)/.test(url)), 'true');
+    assert.equal(requestedPresets.some(url => /\/bg2\.avif(?:\?|$)/.test(url)), false);
+    console.log('✅ IDB 延迟恢复时自定义壁纸跳过下一张预设，预设选择按恢复后的索引预加载');
+  } finally {
+    stopRequests();
+    await send('Page.removeScriptToEvaluateOnNewDocument', { identifier: delayedOpen });
+  }
 } finally {
   await chrome.close();
   await server.close();

@@ -5,7 +5,8 @@ import { launchChrome } from './cdp.mjs';
 import { getFreePort, createEvaluator, waitFor } from './helpers.mjs';
 
 const source = readFileSync(new URL('../sw.js', import.meta.url), 'utf8');
-let version = 101, failApp = false, mismatch = false, offline = false;
+let version = 101, failApp = false, failWallpaper = false, mismatch = false, offline = false;
+let wallpaperBodies = 0, wallpaperValidations = 0;
 const route = (kind) => (req, res) => {
   if (offline) { req.socket.destroy(); return; }
   const stamp = `app-core-v${version}`;
@@ -14,11 +15,21 @@ const route = (kind) => (req, res) => {
     .replace(/const CORE_FAVICONS = \[[\s\S]*?\];/, "const CORE_FAVICONS = ['https://127.0.0.1:1/optional'];")
     + "\nself.addEventListener('message', e => e.waitUntil(clients.matchAll({type:'window'}).then(list => e.ports[0].postMessage(list.length))));";
   if (kind === 'html') body = `<!doctype html><html><head><script>window.__GLASS_BUILD_HTML__="${stamp}";</script><script src="./app.js" defer></script></head><body>version ${version}</body></html>`;
-  if (kind === 'app') body = `window.__GLASS_BUILD_APP__="${mismatch ? 'app-core-v999' : stamp}";window.appVersion=${version};navigator.serviceWorker.register('./sw.js').then(reg=>window.reg=reg);`;
+  if (kind === 'app') body = `window.__GLASS_BUILD_APP__="${mismatch ? 'app-core-v999' : stamp}";window.appVersion=${version};fetch('./wallpapers/bg1.avif').then(r=>r.text()).then(()=>navigator.serviceWorker.register('./sw.js')).then(reg=>window.reg=reg);`;
   if (kind === 'image') body = `image-${version}-${req.url}`;
+  const wallpaper = kind === 'image' && req.url === '/app/wallpapers/bg1.avif';
+  const etag = `"wallpaper-${version}"`;
+  if (wallpaper && failWallpaper) { res.writeHead(503); res.end('wallpaper unavailable'); return; }
+  if (wallpaper && req.headers['if-none-match'] === etag) {
+    wallpaperValidations++;
+    res.writeHead(304, { ETag: etag, 'Cache-Control': 'public, max-age=31536000, immutable' });
+    res.end(); return;
+  }
+  if (wallpaper) wallpaperBodies++;
   res.writeHead(kind === 'app' && failApp ? 503 : 200, {
     'Content-Type': kind === 'html' ? 'text/html' : kind === 'image' ? 'image/avif' : 'application/javascript',
-    'Cache-Control': kind === 'image' ? 'public, max-age=31536000, immutable' : 'no-store'
+    'Cache-Control': kind === 'image' ? 'public, max-age=31536000, immutable' : 'no-store',
+    ...(wallpaper ? { ETag: etag } : {})
   });
   res.end(body);
 };
@@ -45,6 +56,9 @@ const update = async () => evalJS(`(async () => {
 try {
   await send('Page.enable');
   await waitFor(evalJS, 'window.reg && reg.active?.state === "activated"', 15000);
+  assert.equal(wallpaperBodies, 1);
+  assert.ok(wallpaperValidations >= 1);
+  console.log('✅ 已下载壁纸在 SW 首次安装时使用 ETag 条件验证，正文只传输一次');
   await send('Page.reload');
   await waitFor(evalJS, '!!navigator.serviceWorker.controller && window.appVersion === 101 && !!window.reg');
   await evalJS("Promise.all([caches.open('app-images-v2'), caches.open('unrelated-cache')])");
@@ -62,9 +76,18 @@ try {
   assert.equal(mixed.caches.includes('app-core-v103'), false);
   console.log('✅ 核心资源 503 或 HTML/JS 指纹不一致时拒绝安装，残缺池删除，旧版继续服务');
 
+  version = 1031; mismatch = false; failWallpaper = true;
+  const missingWallpaper = await update();
+  assert.equal(missingWallpaper.waiting, false);
+  assert.equal(missingWallpaper.caches.includes('app-core-v1031'), false);
+  assert.match(missingWallpaper.app, /appVersion=101/);
+  failWallpaper = false;
+  console.log('✅ 壁纸重验证失败拒绝新版安装，不使用旧 HTTP 图片冒充完整新版');
+
   version = 104; mismatch = false;
   const waiting = await update();
   assert.equal(waiting.waiting, true);
+  assert.match(await evalJS("caches.open('app-core-v104').then(c=>c.match('./wallpapers/bg1.avif')).then(r=>r.text())"), /image-104/);
   assert.match(waiting.app, /appVersion=101/);
   const { targetId } = await send('Target.createTarget', { url: origin + '/app/' });
   await waitFor(evalJS, `(async () => {

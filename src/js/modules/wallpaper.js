@@ -237,6 +237,7 @@ export async function switchBg() {
  * @returns {void}
  */
 export function preloadNextBg() {
+    if (state.customWallpaper) return;
     if (typeof navigator !== 'undefined' && (navigator.connection?.saveData || navigator.connection?.effectiveType === '2g')) {
         return;
     }

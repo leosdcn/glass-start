@@ -366,7 +366,7 @@ flowchart LR
 
 #### 💡 技术原理解析
 1. **三池物理隔离与版本强同调 (Version Lockstep)**：
-   - `CORE_CACHE`：打包时基于构建时间戳命名（如 `app-core-v1786255428688`），主文档 `index.html` 与同源脚本 `app.js` 采用 **版本隔离的 Cache-First** 策略，缓存命中时直接返回，不在后台重验证；缓存未命中时回退网络；由构建管线自动在 HTML 注入 `app.js?v=app-core-v<timestamp>` 版本查询参数，配合 `window.__GLASS_BUILD_HTML__` 与 `__GLASS_BUILD_APP__` 双端构建指纹契约对，确保 HTML 结构与 JS 逻辑 100% 同池直出，彻底杜绝“旧 JS 执行于新 HTML”导致的切屏/BFCache 白屏死锁；新版安装时预缓存并校验核心资源与构建指纹，失败则拒绝安装；安装成功后保持 waiting，直到旧客户端全部退出才激活，不调用 `skipWaiting()` 或 `clients.claim()`。
+   - `CORE_CACHE`：打包时基于构建时间戳命名（如 `app-core-v1786255428688`），主文档 `index.html` 与同源脚本 `app.js` 采用 **版本隔离的 Cache-First** 策略，缓存命中时直接返回，不在后台重验证；缓存未命中时回退网络；由构建管线自动在 HTML 注入 `app.js?v=app-core-v<timestamp>` 版本查询参数，配合 `window.__GLASS_BUILD_HTML__` 与 `__GLASS_BUILD_APP__` 双端构建指纹契约对，确保 HTML 结构与 JS 逻辑 100% 同池直出，彻底杜绝“旧 JS 执行于新 HTML”导致的切屏/BFCache 白屏死锁；新版安装时预缓存并校验核心资源与构建指纹，失败则拒绝安装；安装成功后保持 waiting，直到旧客户端全部退出才激活，不调用 `skipWaiting()` 或 `clients.claim()`。 安装时 HTML、JS 等核心资源使用 `reload`；预设壁纸使用 `no-cache` 条件重验证，ETag 未变化时复用 HTTP 缓存正文，变化时下载新图，不直接沿用旧版本图片。
    - `FAVICON_CACHE`：独立存储 `a.favicon.im` 与 Google S2 (`www.google.com/s2/favicons` 及其 `*.gstatic.com`) 外部图标，与核心脚本完全隔离。前端通过 `handleIconError` 与 `faviconFallbackFromUrl` 建立双轨容灾状态机，主源失败时无缝切换 Google S2 备用源，若均失败才降级为彩色字母徽标。
    - `IMG_CACHE`：独立存储站内高分辨率壁纸与本地同源书签图标（`dist/icons/*.png`），通过 Cache-First 策略实现本地同源 0ms 秒开并减少重复带宽消耗。
 2. **防透明响应污染 (Anti-Opaque Poisoning)**：请求跨域图标时产生 `status = 0` 的 `opaque` 响应。若直接缓存可能存入被 DNS 劫持或损坏的数据。系统引入二次网络校验与 7 秒超时熔断（`AbortController`），确保仅有合法的 `opaque` 或 `200 OK` 响应才被允许写入，并由轻量 `pruneCache` 原生实现先进先出（FIFO）淘汰，杜绝 IndexedDB 膨胀与崩溃隐患。

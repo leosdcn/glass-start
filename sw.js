@@ -82,7 +82,10 @@ self.addEventListener('install', e => {
     e.waitUntil((async () => {
         try {
             const cache = await caches.open(CORE_CACHE);
-            const results = await Promise.allSettled(CORE_ASSETS.map(asset => cache.add(new Request(asset, { cache: 'reload' }))));
+            // 壁纸用条件重验证复用 HTTP 缓存正文；更新时仍检查服务器，不能 force-cache 读取旧图。
+            const results = await Promise.allSettled(CORE_ASSETS.map(asset => cache.add(new Request(asset, {
+                cache: asset.startsWith('./wallpapers/') ? 'no-cache' : 'reload'
+            }))));
             if (results.some(result => result.status === 'rejected')) throw new Error('Core installation incomplete');
             await validateCoreCache(cache);
         } catch (error) {
