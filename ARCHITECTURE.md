@@ -133,7 +133,7 @@ LocalStorage 仅保存背景索引和轻量首屏提示，新选择不写入 Bas
 
 外部图标请求允许成功或 `opaque` 响应入池；`opaque` 的状态与正文不可读，因此这不是内容安全校验。图标显示失败由前端捕获阶段监听处理，尝试 Google S2，最终回退首字母徽标。
 
-同源预设书签图标使用 `./icons/<host>.png`。`scripts/sync-icons.mjs` 优先请求 a.favicon.im，遇到占位标可尝试 `www`，再回退 Google S2，经 macOS `sips` 转换为正方形 PNG。跨域自定义壁纸不进入上述图片池，由页面 CSP 与浏览器网络处理；其 URL 可保存到 IndexedDB，远程图片正文不因此保证离线可用。
+同源预设书签图标使用 `./icons/<host>.png`。`scripts/sync-icons.mjs` 优先请求 a.favicon.im，遇到占位标可尝试 `www`，再回退 Google S2，经 macOS `sips` 转换为正方形 PNG；支持在 `PINNED_HOSTS` 集合中声明锁定名单，以保护经典定制图标免遭上游网络拉取覆盖。跨域自定义壁纸不进入上述图片池，由页面 CSP 与浏览器网络处理；其 URL 可保存到 IndexedDB，远程图片正文不因此保证离线可用。
 
 ## 搜索与天气
 
