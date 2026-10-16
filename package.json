@@ -17,6 +17,7 @@
     "test:w3c": "node scripts/validate-w3c.mjs",
     "test:icons": "node test/verify-local-icons.mjs",
     "sync:icons": "node scripts/sync-icons.mjs",
+    "sync:icons:refresh": "node scripts/sync-icons.mjs --refresh",
     "dev": "node scripts/server.js",
     "preview": "npm run build && node scripts/server.js --no-watch",
     "typecheck": "tsc --project tsconfig.json",

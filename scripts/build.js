@@ -28,7 +28,6 @@ const PATHS = {
     dist: path.join(ROOT_DIR, 'dist'),
     bookmarksJson: path.join(ROOT_DIR, 'bookmarks.json'),
     pkgJson: path.join(ROOT_DIR, 'package.json'),
-    readme: path.join(ROOT_DIR, 'README.md'),
     sw: path.join(ROOT_DIR, 'sw.js'),
     public: path.join(ROOT_DIR, 'public')
 };
@@ -222,7 +221,7 @@ function processProductionHtml(compiledCss) {
         version: currentBuildVersion
     });
 
-    // 5.0.2 单一真理源：自动将 package.json 中的版本号注入到 index.html 品牌卡片徽章与 README.md 版本徽章中
+    // 从 package.json 注入页面品牌卡片版本号。
     try {
         const pkgData = JSON.parse(fs.readFileSync(PATHS.pkgJson, 'utf-8'));
         if (pkgData && pkgData.version) {
@@ -230,19 +229,6 @@ function processProductionHtml(compiledCss) {
                 /(<span[^>]*class="[^"]*rounded-full[^"]*"[^>]*>)v?[0-9]+\.[0-9]+\.[0-9]+(<\/span>)/i,
                 `$1v${pkgData.version}$2`
             );
-
-            // 同步对齐 README.md 顶部版本号徽章 (Shields.io 徽章单一真理源自动同步)
-            if (fs.existsSync(PATHS.readme)) {
-                let readmeContent = fs.readFileSync(PATHS.readme, 'utf-8');
-                const nextReadme = readmeContent.replace(
-                    /(badge\/version-v)[0-9]+\.[0-9]+\.[0-9]+(-blue\.svg)/i,
-                    `$1${pkgData.version}$2`
-                );
-                if (nextReadme !== readmeContent) {
-                    fs.writeFileSync(PATHS.readme, nextReadme, 'utf-8');
-                    logItem(`README.md 版本号徽章已自动同步对齐: ${c.cyan}v${pkgData.version}${c.reset}`);
-                }
-            }
         }
     } catch {}
 
@@ -270,11 +256,6 @@ function processProductionHtml(compiledCss) {
         return html;
     }
     prodHtmlContent = minifyInlineStylesAndScripts(prodHtmlContent);
-
-    // 配置 SVG 站点图标与 PNG Apple touch icon。
-    const iconDataUrl = "data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20100%20100'%3E%3Ctext%20y='.9em'%20font-size='90'%3E🪐%3C/text%3E%3C/svg%3E";
-    prodHtmlContent = prodHtmlContent.replace(/<link\s+[^>]*rel=["']icon["'][^>]*>/i, () => `<link rel="icon" type="image/svg+xml" href="${iconDataUrl}">`);
-    prodHtmlContent = prodHtmlContent.replace(/<link\s+[^>]*rel=["']apple-touch-icon["'][^>]*>/i, () => `<link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png">`);
 
     // 压缩 HTML 注释与空白，保留 style / script 内容边界。
     function minifyHtml(htmlStr) {

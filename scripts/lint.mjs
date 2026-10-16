@@ -189,7 +189,7 @@ for (const item of jsonFiles) {
 // ---- 4. 架构规范守门检查 (版本号全量对齐 & iOS 16px 规范) ----
 logSection('4/4', '🛡️  校验版本号全量对齐与移动端输入规范');
 
-// 4.1 版本号一致性检查 (package.json / package-lock.json / index.html / README.md)
+// 4.1 版本号一致性检查 (package.json / package-lock.json / index.html)
 try {
     const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf-8'));
     const lock = JSON.parse(readFileSync(join(root, 'package-lock.json'), 'utf-8'));
@@ -201,16 +201,6 @@ try {
     // 单一真理源校验：package.json 与 package-lock.json 保持同步
     const isLockSynced = lockVersion === expectedVersion && lockPkgVersion === expectedVersion;
 
-    // 校验 README.md 顶部版本号徽章同步状态
-    let isReadmeSynced = true;
-    try {
-        const readme = readFileSync(join(root, 'README.md'), 'utf-8');
-        const readmeMatch = readme.match(/badge\/version-v([0-9]+\.[0-9]+\.[0-9]+)-blue\.svg/i);
-        if (readmeMatch && readmeMatch[1] !== expectedVersion) {
-            isReadmeSynced = false;
-        }
-    } catch {}
-
     // 校验 src/index.html 品牌卡片版本号徽章同步状态
     let isHtmlSynced = true;
     const htmlBadgeMatch = indexHtml.match(/<span[^>]*class="[^"]*rounded-full[^"]*"[^>]*>v?([0-9]+\.[0-9]+\.[0-9]+)<\/span>/i);
@@ -218,12 +208,12 @@ try {
         isHtmlSynced = false;
     }
 
-    if (expectedVersion && isLockSynced && isReadmeSynced && isHtmlSynced) {
+    if (expectedVersion && isLockSynced && isHtmlSynced) {
         passCount++;
-        logItem(`版本号单一真理源 (v${expectedVersion}) package.json、package-lock.json、README.md 与 src/index.html 100% 对齐`);
+        logItem(`版本号单一真理源 (v${expectedVersion}) package.json、package-lock.json 与 src/index.html 100% 对齐`);
     } else {
         failCount++;
-        logItem(`版本号未对齐: pkg=${expectedVersion}, lock=${lockVersion}, lockPkg=${lockPkgVersion}, readmeSynced=${isReadmeSynced}, htmlSynced=${isHtmlSynced}`, 'error');
+        logItem(`版本号未对齐: pkg=${expectedVersion}, lock=${lockVersion}, lockPkg=${lockPkgVersion}, htmlSynced=${isHtmlSynced}`, 'error');
     }
 } catch (e) {
     failCount++;

@@ -12,7 +12,6 @@ const route = (kind) => (req, res) => {
   const stamp = `app-core-v${version}`;
   let body;
   if (kind === 'worker') body = source.replace(/const CORE_CACHE = '[^']+';/, `const CORE_CACHE = '${stamp}';`)
-    .replace(/const CORE_FAVICONS = \[[\s\S]*?\];/, "const CORE_FAVICONS = ['https://127.0.0.1:1/optional'];")
     + "\nself.addEventListener('message', e => e.waitUntil(clients.matchAll({type:'window'}).then(list => e.ports[0].postMessage(list.length))));";
   if (kind === 'html') body = `<!doctype html><html><head><script>window.__GLASS_BUILD_HTML__="${stamp}";</script><script src="./app.js" defer></script></head><body>version ${version}</body></html>`;
   if (kind === 'app') body = `window.__GLASS_BUILD_APP__="${mismatch ? 'app-core-v999' : stamp}";window.appVersion=${version};fetch('./wallpapers/bg1.avif').then(r=>r.text()).then(()=>navigator.serviceWorker.register('./sw.js')).then(reg=>window.reg=reg);`;
@@ -61,7 +60,8 @@ try {
   console.log('✅ 已下载壁纸在 SW 首次安装时使用 ETag 条件验证，正文只传输一次');
   await send('Page.reload');
   await waitFor(evalJS, '!!navigator.serviceWorker.controller && window.appVersion === 101 && !!window.reg');
-  await evalJS("Promise.all([caches.open('app-images-v2'), caches.open('unrelated-cache')])");
+  assert.equal(await evalJS("caches.keys().then(keys => keys.includes('app-favicons-v1'))"), false);
+  await evalJS("Promise.all([caches.open('app-images-v2'), caches.open('unrelated-cache'), caches.open('app-favicons-v1').then(cache => cache.put('https://a.favicon.im/custom.test', new Response('custom-icon')))])");
   assert.match(await evalJS("fetch('./icons/test.png').then(r => r.text())"), /image-101/);
   await evalJS("fetch('./icons/offline.png').then(r => r.text())");
   version = 102; failApp = true;
@@ -110,6 +110,7 @@ try {
   assert.equal(keys.includes('app-images-app-core-v101'), true);
   assert.equal(keys.includes('app-images-app-core-v104'), true);
   assert.equal(keys.includes('app-favicons-v1'), true);
+  assert.equal(await evalJS("caches.open('app-favicons-v1').then(cache => cache.match('https://a.favicon.im/custom.test')).then(response => response.text())"), 'custom-icon');
   assert.equal(keys.includes('unrelated-cache'), true);
   await send('Page.navigate', { url: origin + '/app/' });
   await waitFor(evalJS, 'window.appVersion === 104 && !!navigator.serviceWorker.controller');

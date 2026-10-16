@@ -1,9 +1,10 @@
 # Glass Start 架构说明
 
-本文说明源码组织、状态流、缓存策略和验证边界。使用与部署见 [README.md](./README.md)，工程约束及源码入口索引见 [AGENTS.md](./AGENTS.md)。实现细节以对应源码为准，配置值统一维护在 `src/js/config/constants.js`。
+本文说明源码组织、状态流、缓存策略和验证边界。使用与部署见 [README.md](./README.md)，工程约束见 [AGENTS.md](./AGENTS.md)。实现细节以对应源码为准，配置值统一维护在 `src/js/config/constants.js`。
 
 ## 目录
 
+- [模块索引](#模块索引)
 - [模块与构建](#模块与构建)
 - [书签与设置状态](#书签与设置状态)
 - [壁纸与主题](#壁纸与主题)
@@ -12,6 +13,37 @@
 - [离线缓存与更新](#离线缓存与更新)
 - [搜索与天气](#搜索与天气)
 - [安全与验证边界](#安全与验证边界)
+
+## 模块索引
+
+按功能定位下列模块，避免无目的通读。函数与导出以源码为准；业务配置值不在文档重复维护。
+
+| 功能 | 源码入口 |
+| :--- | :--- |
+| **全站配置与常量真理源** | `src/js/config/constants.js` |
+| **首屏主题与 Safari 预渲染** | `src/js/config/themes.js` |
+| **全局状态与 DOM 缓存池** | `src/js/state/store.js`<br/>`src/js/state/dom.js` |
+| **书签体系与双栏分类导航** | `src/js/modules/bookmarks.js` |
+| **时钟引擎、快捷键与鸣谢** | `src/js/modules/clock.js` |
+| **壁纸持久化与即选即存** | `src/js/modules/wallpaper.js` |
+| **设置弹窗与生命周期管理** | `src/js/modules/settings.js`<br/>`src/js/core/overlay-stack.js` |
+| **搜索联想与匹配** | `src/js/modules/search.js`<br/>`src/js/utils/bookmark-search.js` |
+| **气象数据与显示** | `src/js/modules/weather.js`<br/>`src/js/utils/weather-model.js` |
+| **外壳主题与底色动态管理** | `src/js/core/theme-engine.js` |
+| **双屏有限状态机与唤醒自愈** | `src/js/core/screen-state.js`<br/>`src/js/core/lifecycle.js` |
+| **指针 3D 倾斜与高光** | `src/js/core/gestures.js` |
+| **拖拽重排与 FLIP 动画** | `src/js/core/drag-sort.js` |
+| **全局事件中枢与焦点捕获** | `src/js/core/events.js` |
+| **XSS 安全防线与 URL 处理** | `src/js/utils/helpers.js` |
+| **IndexedDB 大图壁纸持久化** | `src/js/utils/idb.js` |
+| **本地图标同步与清洗流水线** | `scripts/sync-icons.mjs`<br/>`public/icons/` |
+| **启动装配与生命周期入口** | `src/js/init.js`<br/>`src/js/main.js` |
+| **天气共用数值清洗** | `src/js/utils/weather-data.js` |
+| **目录共用索引** | `src/js/utils/category-catalog.js` |
+| **书签草稿编辑** | `src/js/modules/bookmark-editor.js`<br/>`src/js/state/bookmark-draft.js` |
+| **设置事件装配** | `src/js/core/settings-events.js` |
+| **确认框与壁纸渲染** | `src/js/core/dialogs.js`<br/>`src/js/core/wallpaper-renderer.js` |
+| **离线底座与三池物理隔离** | `sw.js` |
 
 ## 模块与构建
 
@@ -36,7 +68,7 @@ flowchart TD
 - `core/`：包含浮层、手势等基础设施，也包含事件装配和切屏等业务协调入口；不是严格独立的底层。
 - `utils/`：提供 URL 与文本清洗、目录索引、IndexedDB 存储等共用能力。
 
-构建以 `package.json` 为版本来源，同步 README 与产物徽章；每次构建生成统一指纹，注入 HTML、应用脚本与 Service Worker。HTML 引用的 `app.js` 同时携带版本查询参数。
+构建以 `package.json` 为版本来源，注入产物徽章；每次构建生成统一指纹，注入 HTML、应用脚本与 Service Worker。HTML 引用的 `app.js` 同时携带版本查询参数。
 
 构建在内存中传递并内嵌本次编译的 CSS，不共享磁盘中间文件。空 CSS、编译或压缩失败会阻断构建；这不保证整个 `dist/` 的并发写入具有事务性。HTML 使用唯一构建插槽注入入口、样式和 SVG；标记缺失、重复或顺序错误会阻断构建。主题与天气清洗脚本分别从 `config/themes.js`、`utils/weather-data.js` 注入，避免维护副本。
 
@@ -109,7 +141,7 @@ LocalStorage 仅保存背景索引和轻量首屏提示，新选择不写入 Bas
 
 `OverlayStack` 维护 LIFO 栈，Escape 由 `core/events.js` 调用栈顶关闭函数；遮罩点击交给对应浮层处理。
 
-浮层由低到高分为下拉、设置、辅助弹窗和确认层；层级约束见 AGENTS.md，具体样式由源码定义。
+浮层由低到高分为下拉、设置、辅助弹窗和确认层，对应 z-index 为 150 / 1000 / 2000 / 9999；具体样式由源码定义。
 
 弹窗可见性只由 `OverlayStack.push()` / `.pop()` 驱动。层叠栈内部统一设置 `hidden`、`aria-hidden`、入场动画及延迟隐藏，切换前取消旧任务。下拉组件仍使用自己的状态类展示，但同样注册关闭回调。
 
@@ -122,18 +154,18 @@ LocalStorage 仅保存背景索引和轻量首屏提示，新选择不写入 Bas
 | 缓存 | 内容与策略 |
 | :--- | :--- |
 | `CORE_CACHE` | 按构建版本隔离；HTML、JS/CSS 缓存优先，清单后台重验证；安装时预存核心资源 |
-| `FAVICON_CACHE` | 外部图标缓存优先；网络请求有超时，按容量限额淘汰并保护核心引擎图标 |
+| `FAVICON_CACHE` | 外部图标缓存优先；网络请求有超时，按容量限额 FIFO 淘汰 |
 | `IMG_CACHE` | 同源图片按构建分池，先查缓存再请求网络；保留上一版供网络失败或服务端错误时回退 |
 
 缓存命名、配额、超时及预缓存清单统一以 `sw.js` 为准。
 
-安装时校验核心资源存在且响应成功，并核对 HTML 与应用指纹；失败则删除残缺核心池并拒绝安装。核心文档和脚本请求使用 `reload`，首张预设壁纸使用 `no-cache` 条件重验证。外部引擎图标的预存失败不阻断核心安装。
+安装时校验核心资源存在且响应成功，并核对 HTML 与应用指纹；失败则删除残缺核心池并拒绝安装。核心文档和脚本请求使用 `reload`，首张预设壁纸使用 `no-cache` 条件重验证。安装时不预取外部引擎图标；自定义书签的外部图标按实际请求缓存。
 
 新版安装成功后保持 waiting，不调用 `skipWaiting()` 或 `clients.claim()`；旧客户端全部退出后才激活。普通刷新不保证立即升级。核心缓存命中时不后台重验证；缓存丢失后的网络回退不逐次校验指纹，启动指纹检查补充检测 HTML/JS 不一致。
 
 外部图标请求允许成功或 `opaque` 响应入池；`opaque` 的状态与正文不可读，因此这不是内容安全校验。图标显示失败由前端捕获阶段监听处理，尝试 Google S2，最终回退首字母徽标。
 
-同源预设书签图标使用 `./icons/<host>.png`。`scripts/sync-icons.mjs` 优先请求 a.favicon.im，遇到占位标可尝试 `www`，再回退 Google S2，经 macOS `sips` 转换为正方形 PNG；支持在 `PINNED_HOSTS` 集合中声明锁定名单，以保护经典定制图标免遭上游网络拉取覆盖。跨域自定义壁纸不进入上述图片池，由页面 CSP 与浏览器网络处理；其 URL 可保存到 IndexedDB，远程图片正文不因此保证离线可用。
+同源预设书签图标使用 `./icons/<host>.png`。`scripts/sync-icons.mjs` 默认复用可解码且尺寸合规的本地 PNG，仅补齐缺失或损坏项；`npm run sync:icons:refresh` 刷新未锁定图标。下载时优先请求 a.favicon.im，遇到占位标可尝试 `www`，再回退 Google S2，经 macOS `sips` 转换为正方形 PNG；支持在 `PINNED_HOSTS` 集合中声明锁定名单，以保护经典定制图标免遭上游网络拉取覆盖。跨域自定义壁纸不进入上述图片池，由页面 CSP 与浏览器网络处理；其 URL 可保存到 IndexedDB，远程图片正文不因此保证离线可用。
 
 ## 搜索与天气
 

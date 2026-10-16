@@ -107,7 +107,7 @@ pass('dist/ 产物完整性与 Cache-Control 标头规则 (产物齐全/全链�
 const srcSw = readFileSync(join(ROOT, 'sw.js'), 'utf-8');
 const distSw = readFileSync(join(DIST, 'sw.js'), 'utf-8');
 function inspectWorker(source) {
-  return vm.runInNewContext(source + '\n;({CORE_ASSETS, CORE_FAVICONS, MAX_FAVICON_ENTRIES, MAX_IMG_ENTRIES, pruneCache})', {
+  return vm.runInNewContext(source + '\n;({CORE_ASSETS, MAX_FAVICON_ENTRIES, MAX_IMG_ENTRIES, pruneCache})', {
     self: { addEventListener() {} }
   });
 }
@@ -193,15 +193,33 @@ handlers.get('fetch')({request:new Request('https://example.test/uncached.js'),
 pass('核心脚本网络非成功响应时使用缓存回退', (await (await respond).text()) === 'cached-script');
 
 // ══════════════════════════════════════════════════════════════════════
-// 4. Service Worker 图标预缓存安全白名单校验
+// 4. 安装过程只请求同源核心资源，不预取外部引擎图标。
 // ══════════════════════════════════════════════════════════════════════
-
-const favicons = Array.from(worker.CORE_FAVICONS);
-const cleanFavicons = favicons.length > 0 && favicons.every(value => {
-  const url = new URL(value);
-  return url.origin === 'https://a.favicon.im' && ['bing.com', 'google.com', 'wikipedia.org'].includes(url.pathname.slice(1));
+const installHandlers = new Map(), installTasks = [], installUrls = [];
+const version = srcSw.match(/const CORE_CACHE = '([^']+)'/)[1];
+class InstallRequest extends Request {
+  constructor(url, options) { super(new URL(url, 'https://example.test/'), options); }
+}
+vm.runInNewContext(srcSw, {
+  self: { addEventListener: (name, handler) => installHandlers.set(name, handler) },
+  Request: InstallRequest, Response, AbortSignal,
+  fetch: async url => { installUrls.push(String(url)); return new Response('external'); },
+  caches: {
+    open: async () => ({
+      add: async request => { installUrls.push(request.url); },
+      put: async () => {},
+      match: async asset => new Response(String(asset).includes('app.js')
+        ? `window.__GLASS_BUILD_APP__="${version}"`
+        : `window.__GLASS_BUILD_HTML__="${version}"`)
+    }),
+    delete: async () => true
+  }
 });
-pass('预缓存图标只访问已支持的搜索引擎', cleanFavicons);
+installHandlers.get('install')({ waitUntil: task => installTasks.push(task) });
+await Promise.all(installTasks);
+pass('安装仅预取同源核心资源，无外部引擎图标请求',
+  installUrls.length === worker.CORE_ASSETS.length &&
+  installUrls.every(url => new URL(url).origin === 'https://example.test'));
 
 // ══════════════════════════════════════════════════════════════════════
 // 5. 防 <iframe> 恶意嵌套点击劫持 (Frame-Busting) 安全破局

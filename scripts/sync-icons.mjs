@@ -3,6 +3,7 @@
  * Glass Start — a.favicon.im 1:1 本地化同步引擎 (scripts/sync-icons.mjs)
  * ==============================================================================
  * 📌 设计规范与原则：
+ * 默认复用可解码的本地正方形 PNG；--refresh 刷新未锁定图标。
  * 1. 下载顺序：a.favicon.im，必要时尝试 www 主机，失败或占位标时回退 Google S2；
  * 2. 格式规范化：由于 a.favicon.im 可能返回 SVG/ICO/PNG，统一使用 macOS 原生 sips 转录为
  *    合规的 PNG 格式存入 icons/{host}.png，供浏览器及 Service Worker 从本站加载与缓存；
@@ -14,6 +15,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
 import https from 'node:https';
+import { tmpdir } from 'node:os';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -21,6 +23,7 @@ const ROOT_DIR = join(__dirname, '..');
 const ICONS_DIR = join(ROOT_DIR, 'public', 'icons');
 const BOOKMARKS_PATH = join(ROOT_DIR, 'bookmarks.json');
 const HTTP_TIMEOUT_MS = 8000;
+const refresh = process.argv.includes('--refresh');
 
 // 锁定图标集合：保留本地定制/经典设计版本，避免被上游变更覆盖
 const PINNED_HOSTS = new Set([
@@ -76,6 +79,26 @@ function fetchBuffer(url, timeoutMs = HTTP_TIMEOUT_MS) {
         req.on('error', reject);
         req.setTimeout(timeoutMs, () => req.destroy(new Error(`Timeout after ${timeoutMs}ms`)));
     });
+}
+
+/** 文件头和尺寸合规后实际解码，避免把截断或损坏的 PNG 当作可复用图标。 */
+function isReusableIcon(path) {
+    let workDir;
+    try {
+        const png = readFileSync(path);
+        if (png.length < 24 || !png.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])) ||
+            png.toString('ascii', 12, 16) !== 'IHDR') return false;
+        const width = png.readUInt32BE(16), height = png.readUInt32BE(20);
+        if (!width || width !== height || width > 128) return false;
+        workDir = mkdtempSync(join(tmpdir(), 'glass-icon-check-'));
+        execFileSync('sips', ['-s', 'format', 'png', path, '--out', join(workDir, 'decoded.png')],
+            { stdio: 'ignore', timeout: 5000 });
+        return true;
+    } catch {
+        return false;
+    } finally {
+        if (workDir) rmSync(workDir, { recursive: true, force: true });
+    }
 }
 
 function saveAsPng(inputBuffer, destPath) {
@@ -163,7 +186,7 @@ async function main() {
     });
 
     const totalHosts = hostMap.size;
-    console.log(`  ${c.cyan}ℹ${c.reset} 扫描到 ${c.bold}${totalHosts}${c.reset} 个唯一站点域名，开始从 ${c.bold}https://a.favicon.im/{domain}${c.reset} 1:1 抓取...`);
+    console.log(`  ${c.cyan}ℹ${c.reset} 扫描到 ${c.bold}${totalHosts}${c.reset} 个唯一站点域名，${refresh ? '刷新未锁定图标' : '复用有效本地图标，仅补齐缺失或损坏项'}...`);
 
 function isPlaceholder(buf) {
     if (!buf || buf.length === 0) return true;
@@ -173,9 +196,9 @@ function isPlaceholder(buf) {
 
     let completed = 0;
     const tasks = Array.from(hostMap.entries()).map(([host, destPath]) => async () => {
-        // 若命中锁定白名单且本地已存在有效图标，直接保留，跳过网络抓取
-        if (PINNED_HOSTS.has(host) && existsSync(destPath)) {
-            return { host, success: true, source: 'pinned' };
+        // 主动刷新也保护有效的锁定图标；缺失或损坏的锁定项仍需修复。
+        if ((!refresh || PINNED_HOSTS.has(host)) && isReusableIcon(destPath)) {
+            return { host, success: true, source: PINNED_HOSTS.has(host) ? 'pinned' : 'local' };
         }
 
         let buf = null;
@@ -233,7 +256,7 @@ function isPlaceholder(buf) {
         failed.forEach(f => console.log(`    - ${f.host}: ${f.error || 'PNG normalization failed'}`));
         process.exitCode = 1;
     } else {
-        console.log(`  ${c.green}✨ 全站 ${totalHosts} 个书签图标已 100% 成功从 a.favicon.im 抓取并存入本地 icons/ 目录！${c.reset}`);
+        console.log(`  ${c.green}✨ 全站 ${totalHosts} 个书签图标已就绪（复用 ${results.filter(r => r.source === 'local' || r.source === 'pinned').length} 个，下载 ${results.filter(r => r.source !== 'local' && r.source !== 'pinned').length} 个）！${c.reset}`);
     }
 
     // 统一将 bookmarks.json 的 icon 规范为 ./icons/{host}.png

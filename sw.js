@@ -22,25 +22,12 @@ const CORE_ASSETS = [
     './wallpapers/bg1.avif'
 ];
 
-// 核心搜索引擎跨域图标预存列表
-const CORE_FAVICONS = [
-    'https://a.favicon.im/bing.com',
-    'https://a.favicon.im/google.com',
-    'https://a.favicon.im/wikipedia.org'
-];
-
-// 简单 CacheStorage 数量限额清理 (FIFO 超限自动淘汰，保护核心搜索引擎图标)
+// CacheStorage 超限时按 FIFO 删除最旧条目。
 async function pruneCache(cache, maxEntries) {
     try {
         const keys = await cache.keys();
         if (keys.length > maxEntries) {
-            const protectedUrls = (typeof CORE_FAVICONS !== 'undefined' && Array.isArray(CORE_FAVICONS)) ? CORE_FAVICONS : [];
-            const evictableKeys = keys.filter(k => {
-                const url = typeof k === 'string' ? k : (k && k.url ? k.url : '');
-                return !protectedUrls.includes(url);
-            });
-            const overflow = keys.length - maxEntries;
-            const toDelete = evictableKeys.slice(0, overflow);
+            const toDelete = keys.slice(0, keys.length - maxEntries);
             await Promise.all(toDelete.map(k => cache.delete(k)));
         }
     } catch {}
@@ -89,11 +76,6 @@ self.addEventListener('install', e => {
         }
         // 不强制接管旧页面。更新保持 waiting，旧客户端全部退出后由浏览器激活。
     })());
-    // 外部图标失败不影响核心安装，也不改变旧 worker 的控制权。
-    e.waitUntil(caches.open(FAVICON_CACHE).then(cache => Promise.allSettled(CORE_FAVICONS.map(url =>
-        fetch(url, { mode: 'no-cors', signal: AbortSignal.timeout(FAVICON_TIMEOUT_MS) })
-            .then(res => cache.put(url, res))
-    ))).catch(() => {}));
 });
 
 // 激活仅发生于旧客户端退出后；不 claim 未受控页面，避免旧 HTML 混用新脚本。

@@ -2,7 +2,6 @@
 
 > 极简纯净的毛玻璃浏览器起始页。
 
-[![Version](https://img.shields.io/badge/version-v5.0.3-blue.svg)](package.json)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-v4-38bdf8?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
 
 ---
@@ -103,7 +102,7 @@ npm run preview
 - **`desc`**：精简的副标题。纯中文 <= 9 字，含英数混排 <= 13 字符。
 - **`url`**：使用官方 HTTPS 地址，优先直达目标页面并减少不必要的跳转。
 - **`icon`**：全量预设书签统一采用本地同源相对路径 `./icons/<domain>.png`（避免访问外部图标服务，资源仍需从本站加载或读取缓存）。同步脚本根据书签 URL 的主机名抓取图标，使用 `sips` 转换为正方形 PNG，并回写本地路径；`icon` 字段不是自定义下载源。
-- **生效方式**：编辑 `bookmarks.json` 后，先执行 `npm run sync:icons` 自动化同步图标，随后通过 `npm run lint` 验证静态门禁；打包时运行 `npm run build`，流水线会自动完成数据打包与本地图标静态产物同步。
+- **生效方式**：编辑 `bookmarks.json` 后，先执行 `npm run sync:icons` 复用可解码的本地正方形 PNG，仅下载缺失或损坏项，随后通过 `npm run lint` 验证静态门禁；打包时运行 `npm run build`，流水线会自动完成数据打包与本地图标静态产物同步。
 
 #### 预设书签筛选标准
 
@@ -113,6 +112,8 @@ npm run preview
 - **使用门槛**：优先打开就能用、减少登录和下载门槛、普通人无需专业背景即可理解的工具。
 - **实用价值**：免费部分应能完整解决一个问题，相比现有书签有明确的新用途，广告克制且不打断主要操作。
 - **维护方式**：不为扩充数量而新增；留意反复搜索的需求，某个工具多次解决实际问题后，再考虑收录。
+
+需要主动更新已有图标时运行 `npm run sync:icons:refresh`；有效的锁定图标仍保留，缺失或损坏的锁定项会重新下载。
 
 ### 4. 设置与备份
 
@@ -137,7 +138,7 @@ npm run preview
 - 建议使用 Node.js 24 或更新版本及随附的 npm。测试驱动使用 Node 原生 `fetch` 和 `WebSocket`，不适合旧版 Node。首次安装和依赖恢复使用 `npm ci`。
 - 浏览器回归测试需要 Google Chrome。可通过 `CHROME_PATH` 指定安装路径，例如 `CHROME_PATH="/path/to/chrome" npm test`。当前自动化主要验证 Chromium，不能替代 Safari、Firefox 的实测。
 - `npm run sync:icons` 及图标转换回归测试依赖 macOS 原生 `sips`；完整验证建议在 macOS 上执行。构建与静态托管本身不调用 `sips`，其他系统可使用仓库中已同步的图标构建。
-- 安装依赖、同步图标和 W3C 在线校验需要网络；图标同步会请求外部图标服务。
+- 安装依赖、下载或刷新图标和 W3C 在线校验需要网络；仅复用本地图标时不请求外部图标服务。
 
 ### 本地开发工作流
 
@@ -161,7 +162,7 @@ npm test
 npm run build
 ```
 
-`npm test` 先检查类型、构建，再实际执行回归测试；`test:all` 为同一全套入口。可用 `test:ui`、`test:data`、`test:infra`、`test:lifecycle` 按模块筛选。发布前验证顺序见 [AGENTS.md](./AGENTS.md#二分级验证)，可用命令以 `package.json` 为准。
+`npm test` 先检查类型、构建，再实际执行回归测试；`test:all` 为同一全套入口。可用 `test:ui`、`test:data`、`test:infra`、`test:lifecycle` 按模块筛选。发布前验证顺序见 [AGENTS.md](./AGENTS.md#验证)，可用命令以 `package.json` 为准。
 
 `npm run typecheck` 对核心数据、草稿、DOM 缓存与状态执行渐进式 JavaScript 类型检查；范围以 `tsconfig.json` 为准。`npm run test:unit` 独立验证搜索、天气转换与草稿逻辑，无需 Chrome。
 
@@ -176,4 +177,4 @@ npm run build
 文档职责如下：
 
 - 🏛️ **[ARCHITECTURE.md (架构说明)](./ARCHITECTURE.md)**：系统分层模型、双屏状态机、OverlayStack 弹窗逆序退栈、Service Worker 三池物理隔离缓存、BFCache 唤醒防护等核心技术设计。
-- 🤖 **[AGENTS.md (AI 编程工程准则)](./AGENTS.md)**：不可触碰的核心工程红线、分级验证流程、按功能组织的源码入口。
+- 🤖 **[AGENTS.md (AI 编程工程准则)](./AGENTS.md)**：项目修改边界、实现约束与分级验证流程。
