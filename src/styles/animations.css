@@ -9,6 +9,10 @@
         transition: none !important;
         scroll-behavior: auto !important;
     }
+}
+
+/* 降低透明度优先，不能被减弱动效的模糊降级重新覆盖。 */
+@media (prefers-reduced-motion: reduce) and (prefers-reduced-transparency: no-preference) {
     .glass, .glass-strong { -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
 }
 

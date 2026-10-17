@@ -30,6 +30,9 @@
     isolation: isolate;
 }
 
+/* 弹窗底色稍实；保持低优先级，让下方无障碍及兼容降级覆盖。 */
+:where(.edit-overlay) .glass-strong { background: rgba(255, 255, 255, 0.2); }
+
 .glass-subcard {
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.10);

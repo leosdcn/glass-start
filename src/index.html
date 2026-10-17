@@ -242,6 +242,14 @@
     <section id="startSection" aria-label="起始页" class="relative z-10 min-h-dvh flex flex-col items-center justify-center px-4 py-12">
         <h1 class="sr-only">Glass Start — 流光起始页</h1>
 
+        <!-- 左上角版本状态，与右侧天气胶囊对齐，随起始页一起切屏。 -->
+        <div id="updateNotice" class="hidden select-none max-w-[calc(50%-1.5rem)] w-max">
+            <button id="updateReloadBtn" type="button" aria-expanded="false" aria-controls="confirmModal" aria-haspopup="dialog" class="glass apple-radius px-3 py-1.5 sm:px-3.5 sm:py-2 text-white/80 enabled:hover:text-white border border-white/12 flex items-center justify-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-medium cursor-pointer glass-interactive max-w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:opacity-50 disabled:cursor-wait">
+                <svg class="size-3.5 sm:size-4 shrink-0" aria-hidden="true"><use href="#icon-arrow-up-circle"/></svg>
+                <span id="updateNoticeText" role="status" aria-live="polite" class="truncate font-semibold tracking-tight">有新版本</span>
+            </button>
+        </div>
+
         <!-- 右上角天气胶囊，随起始页一起切屏。 -->
         <div id="weatherWidget" class="select-none">
             <button id="weatherBtn" type="button" aria-expanded="false" aria-controls="weatherPopover" aria-haspopup="dialog" aria-label="🌤️ --°·天气，点击查看实时天气与详细预报" class="glass apple-radius px-3 py-1.5 sm:px-3.5 sm:py-2 text-white/80 enabled:hover:text-white border border-white/12 flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-medium glass-interactive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 fade-in">
@@ -584,7 +592,7 @@
     <div id="confirmModal" role="alertdialog" aria-modal="true" hidden aria-labelledby="confirmTitle"
          class="edit-overlay fixed inset-0 flex items-center justify-center z-[var(--z-alert)] overscroll-contain">
         <div class="confirm-dialog-card">
-            <div class="size-11 rounded-full bg-red-500/15 border border-red-500/30 flex items-center justify-center mb-3 text-red-400 shrink-0">
+            <div class="confirm-dialog-warning size-11 rounded-full bg-red-500/15 border border-red-500/30 flex items-center justify-center mb-3 text-red-400 shrink-0">
                 <svg class="size-5.5" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
                     <path d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"/>
                 </svg>
@@ -639,6 +647,7 @@
             </div>
         </div>
     </div><!-- /#creditsModal -->
+
 
     <!-- BUILD_APP_ENTRY_START -->
     <script type="module" src="./js/main.js"></script>

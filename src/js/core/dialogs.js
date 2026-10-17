@@ -3,7 +3,7 @@ import { OverlayStack } from './overlay-stack.js';
 
 let activeConfirmCleanup = null;
 
-export function showConfirm(message, onConfirm, title = '重置确认', triggerEl = null, okText = '') {
+export function showConfirm(message, onConfirm, title = '重置确认', triggerEl = null, okText = '', tone = 'danger', cancelText = '取消') {
     const modal = dom.confirmModal;
     const titleEl = dom.confirmTitle;
     const msgEl = dom.confirmMsg;
@@ -21,7 +21,10 @@ export function showConfirm(message, onConfirm, title = '重置确认', triggerE
     }
 
     const isNotify = onConfirm == null;
+    modal.classList.toggle('confirm-neutral', tone === 'neutral');
+    modal.setAttribute('role', tone === 'neutral' ? 'dialog' : 'alertdialog');
     okBtn.textContent = isNotify ? '知道了' : (okText || '确认');
+    cancelBtn.textContent = cancelText;
     cancelBtn.classList.toggle('hidden', isNotify);
 
     if (titleEl) titleEl.textContent = title;

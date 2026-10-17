@@ -166,6 +166,9 @@ export interface DOMCache {
     confirmMsg: HTMLElement | null;
     confirmCancelBtn: HTMLButtonElement | null;
     confirmOkBtn: HTMLButtonElement | null;
+    updateNotice: HTMLElement | null;
+    updateNoticeText: HTMLElement | null;
+    updateReloadBtn: HTMLButtonElement | null;
     [key: string]: HTMLElement | null;
 }
 

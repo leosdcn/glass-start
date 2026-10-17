@@ -443,7 +443,6 @@ textarea::placeholder {
 /* ==========================================================================
    6. OVERLAYS & MODALS (弹窗/抽屉/挑选器/气泡层叠系统)
    ========================================================================== */
-.edit-overlay .glass-strong { background: rgba(255,255,255,0.2); }
 
 .edit-row-card {
     position: relative;
@@ -673,29 +672,44 @@ section:first-of-type {
     }
 }
 
+#updateNotice,
 #weatherWidget {
     position: absolute;
     top: calc(1.25rem + env(safe-area-inset-top, 0px));
-    right: calc(1.25rem + env(safe-area-inset-right, 0px));
     z-index: 40;
 }
+#updateNotice {
+    left: calc(1.25rem + env(safe-area-inset-left, 0px));
+}
+#weatherWidget {
+    right: calc(1.25rem + env(safe-area-inset-right, 0px));
+}
 @media (min-width: 768px) {
+    #updateNotice,
     #weatherWidget {
         top: calc(1.75rem + env(safe-area-inset-top, 0px));
+    }
+    #updateNotice {
+        left: calc(2rem + env(safe-area-inset-left, 0px));
+    }
+    #weatherWidget {
         right: calc(2rem + env(safe-area-inset-right, 0px));
     }
 }
+#updateReloadBtn,
 #weatherBtn {
     position: relative;
     font-variant-numeric: tabular-nums;
     transition: background-color var(--duration-normal) ease, border-color var(--duration-normal) ease, box-shadow var(--duration-normal) ease, color var(--duration-normal) ease, transform 0.12s ease;
 }
 @media (hover: hover) and (pointer: fine) {
+    body:not(.tab-blurred) #updateReloadBtn:hover:not(:disabled),
     body:not(.tab-blurred) #weatherBtn:hover:not(:disabled) {
         background-color: rgba(255, 255, 255, 0.14);
         border-color: rgba(255, 255, 255, 0.22);
     }
 }
+#updateReloadBtn[aria-expanded="true"],
 #weatherBtn[aria-expanded="true"] {
     background-color: rgba(255, 255, 255, 0.18);
     border-color: rgba(255, 255, 255, 0.25);
@@ -921,6 +935,23 @@ input:focus-visible {
     body:not(.tab-blurred) .confirm-dialog-btn-cancel:hover:not(:disabled) {
         background: rgba(255, 255, 255, 0.15);
         color: #ffffff;
+    }
+}
+.confirm-neutral .confirm-dialog-warning {
+    display: none;
+}
+.confirm-neutral .confirm-dialog-btn-ok {
+    background: rgba(255, 255, 255, 0.18);
+    border-color: rgba(255, 255, 255, 0.3);
+    box-shadow: none;
+}
+.confirm-neutral .confirm-dialog-btn-ok:focus-visible {
+    --tw-ring-color: rgba(255, 255, 255, 0.6);
+}
+@media (hover: hover) {
+    body:not(.tab-blurred) .confirm-neutral .confirm-dialog-btn-ok:hover:not(:disabled) {
+        background: rgba(255, 255, 255, 0.26);
+        box-shadow: none;
     }
 }
 .confirm-dialog-btn-ok {

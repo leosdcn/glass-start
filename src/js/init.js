@@ -24,6 +24,7 @@ import { initScreenGestures, reconcileScreenState, isScreenTransitioning } from 
 import { initGlassSpotlightAndTilt } from './core/gestures.js';
 import { bindEvents } from './core/events.js';
 import { bindEditEvents } from './core/settings-events.js';
+import { initServiceWorkerUpdates } from './core/service-worker-updates.js';
 
 let isAppInitialized = false;
 
@@ -81,7 +82,7 @@ export function init() {
     applyBgEffects(savedOpacity);
 
     if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
-        navigator.serviceWorker.register('sw.js').catch(() => {});
+        initServiceWorkerUpdates();
         navigator.serviceWorker.addEventListener('controllerchange', () => {
             if (isScreenTransitioning()) {
                 return;

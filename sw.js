@@ -1,6 +1,6 @@
 /**
  * 核心、外部图标与同源图片分池缓存，图标和图片按容量限额淘汰。
- * 核心安装校验构建指纹；新版等待旧客户端退出后激活。
+ * 核心安装校验构建指纹；新版等待用户确认或旧客户端退出后激活。
  * 外部图标允许 opaque 响应入池，无法读取其正文进行校验。
  */
 
@@ -74,11 +74,11 @@ self.addEventListener('install', e => {
             await caches.delete(CORE_CACHE);
             throw error;
         }
-        // 不强制接管旧页面。更新保持 waiting，旧客户端全部退出后由浏览器激活。
+        // 默认保持 waiting；只有用户确认更新才提前激活。
     })());
 });
 
-// 激活仅发生于旧客户端退出后；不 claim 未受控页面，避免旧 HTML 混用新脚本。
+// 用户确认后允许提前激活；不 claim 未受控页面，避免旧 HTML 混用新脚本。
 self.addEventListener('activate', e => e.waitUntil((async () => {
     const cache = await caches.open(CORE_CACHE);
     await validateCoreCache(cache);
@@ -91,6 +91,16 @@ self.addEventListener('activate', e => e.waitUntil((async () => {
         (key.startsWith('app-images-') && key !== IMG_CACHE && key !== previousImages)
     ).map(key => caches.delete(key)));
 })()));
+
+// 仅接受同源窗口的确认；重新校验已下载资源后再跳过等待。
+self.addEventListener('message', e => {
+    if (e.data?.type !== 'ACTIVATE_UPDATE' || e.source?.type !== 'window' ||
+        new URL(e.source.url).origin !== self.location.origin) return;
+    e.waitUntil((async () => {
+        await validateCoreCache(await caches.open(CORE_CACHE));
+        await self.skipWaiting();
+    })());
+});
 
 function imageCacheVersion(key) {
     return Number(key.match(/app-core-v(\d+)$/)?.[1] || 0);

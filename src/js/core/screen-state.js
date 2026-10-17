@@ -6,6 +6,7 @@ import { updateWeather } from '../modules/weather.js';
  * pageshow / visibilitychange 共用唤醒校准；装配时同步确定离屏起点。
  */
 import { CONFIG } from '../config/constants.js';
+import { checkServiceWorkerUpdate } from './service-worker-updates.js';
 import { storageGet, storageSet } from '../utils/helpers.js';
 import { state } from '../state/store.js';
 import { dom, $ } from '../state/dom.js';
@@ -314,11 +315,7 @@ export function handleAppWakeUp(wasPersisted = false) {
     }
     reconcileScreenState(undefined, true);
 
-    if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
-        navigator.serviceWorker.getRegistration().then(reg => {
-            if (reg) reg.update().catch(() => {});
-        }).catch(() => {});
-    }
+    checkServiceWorkerUpdate();
 
     const startSec = dom.startSection || $('startSection');
     const navSec = dom.navSection || $('navSection');

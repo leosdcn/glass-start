@@ -49,6 +49,27 @@ try {
   await evalJS("document.getElementById('contract-probe').remove(); dom.shortcutModal.style.display = ''; closeShortcutModal()");
   await verify('还原并关闭');
   console.log('✅ 动态按钮显式声明类型；弹窗可见性与层叠栈一致，别名修改 display 也能检出');
+
+  // 同时启用两个系统偏好时，降低透明度仍必须关闭模糊；弹窗不能覆盖实色降级。
+  await evalJS('openEditModal()');
+  const wasBright = await evalJS("document.documentElement.classList.contains('wallpaper-bright')");
+  for (const motion of ['no-preference', 'reduce']) {
+    await chrome.send('Emulation.setEmulatedMedia', { features: [
+      { name:'prefers-reduced-motion', value:motion },
+      { name:'prefers-reduced-transparency', value:'reduce' }
+    ] });
+    for (const bright of [false, true]) {
+      await evalJS(`document.documentElement.classList.toggle('wallpaper-bright', ${bright})`);
+      await waitFor(evalJS, `['#weatherBtn', '#editModal .glass-strong'].every(selector => {
+        const s = getComputedStyle(document.querySelector(selector));
+        const alpha = Number(s.backgroundColor.match(/rgba?\\([^)]*, ([\\d.]+)\\)$/)?.[1] || 1);
+        return s.backdropFilter === 'none' && alpha >= 0.9;
+      })`);
+    }
+  }
+  await chrome.send('Emulation.setEmulatedMedia', { features: [] });
+  await evalJS(`document.documentElement.classList.toggle('wallpaper-bright', ${wasBright}); closeEditModal()`);
+  console.log('✅ 深浅背景下降低透明度保持实色底；叠加减弱动效也不重新启用模糊');
 } finally {
   await chrome.close();
   await server.close();
