@@ -11,7 +11,7 @@ import { dom } from '../state/dom.js';
 import { OverlayStack } from '../core/overlay-stack.js';
 import { applyWallpaper } from '../core/wallpaper-renderer.js';
 import { flushWallpaperSelection, getEffectiveCustomWallpaper, updateWallpaperStatusUI, updatePresetBgCardsUI, clearCustomWallpaper } from './wallpaper.js';
-import { saveUserBookmarks, resetUserBookmarks, getSortedCategories, getFaviconHTML, initPickerFaviconObserver } from './bookmarks.js';
+import { saveUserBookmarks, resetUserBookmarks, getSortedCategories, getFaviconHTML, getCategoryIconHTML, initPickerFaviconObserver } from './bookmarks.js';
 import { closeDropdown, hideSuggestions, setEngine } from './search.js';
 import { renderCreditsModalList } from './clock.js';
 
@@ -352,7 +352,7 @@ export function renderPickerCategories() {
         return `
         <div>
             <div class="flex items-center gap-1.5 mb-1.5 pb-1 border-b border-white/5">
-                <span class="text-sm">${escapeHtml(cat.icon)}</span>
+                <span class="text-sm shrink-0 flex items-center justify-center">${getCategoryIconHTML(cat.icon, 'size-3.5')}</span>
                 <h4 class="text-xs font-medium text-white/70">${escapeHtml(cat.name)}</h4>
                 <span class="ml-auto text-2xs text-white/20">${cat.bookmarks.length}</span>
             </div>

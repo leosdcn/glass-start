@@ -253,7 +253,7 @@
         <!-- 右上角天气胶囊，随起始页一起切屏。 -->
         <div id="weatherWidget" class="select-none">
             <button id="weatherBtn" type="button" aria-expanded="false" aria-controls="weatherPopover" aria-haspopup="dialog" aria-label="🌤️ --°·天气，点击查看实时天气与详细预报" class="glass apple-radius px-3 py-1.5 sm:px-3.5 sm:py-2 text-white/80 enabled:hover:text-white border border-white/12 flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-medium glass-interactive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 fade-in">
-                <span id="weatherIcon" aria-hidden="true" class="text-sm sm:text-base leading-none select-none">🌤️</span>
+                <span id="weatherIcon" aria-hidden="true" class="text-sm sm:text-base leading-none select-none flex items-center justify-center"><img src="./icons/weather/sun_cloud.svg" class="size-4 sm:size-4.5 shrink-0 object-contain select-none inline-block align-middle pointer-events-none" alt="" aria-hidden="true"></span>
                 <span id="weatherTemp" class="tabular-nums font-semibold tracking-tight leading-none">--°</span>
                 <span aria-hidden="true" class="text-white/30 font-light select-none">·</span>
                 <span id="weatherCity" class="text-white/80 max-w-22 sm:max-w-30 truncate text-2xs sm:text-xs">天气</span>
@@ -274,13 +274,18 @@
                         const i = document.getElementById('weatherIcon');
                         const t = document.getElementById('weatherTemp');
                         const ct = document.getElementById('weatherCity');
-                        if (i && c.current.icon) i.textContent = c.current.icon;
+                        if (i && c.current.icon) {
+                            const m = {'☀️':'./icons/weather/sun.svg','🌙':'./icons/weather/moon.svg','🌤️':'./icons/weather/sun_cloud.svg','🌤':'./icons/weather/sun_cloud.svg','⛅':'./icons/weather/partly_cloudy.svg','☁️':'./icons/weather/cloud.svg','☁':'./icons/weather/cloud.svg','🌫️':'./icons/weather/fog.svg','🌫':'./icons/weather/fog.svg','🌦️':'./icons/weather/drizzle.svg','🌦':'./icons/weather/drizzle.svg','🌧️':'./icons/weather/rain.svg','🌧':'./icons/weather/rain.svg','⛈️':'./icons/weather/thunder.svg','⛈':'./icons/weather/thunder.svg','🌨️':'./icons/weather/snow.svg','🌨':'./icons/weather/snow.svg','❄️':'./icons/weather/snowflake.svg','❄':'./icons/weather/snowflake.svg'};
+                            const p = m[c.current.icon] || (typeof c.current.icon === 'string' && c.current.icon.endsWith('.svg') ? c.current.icon : null);
+                            if (p) i.innerHTML = '<img src="' + p + '" class="size-4 sm:size-4.5 shrink-0 object-contain select-none inline-block align-middle pointer-events-none" alt="" aria-hidden="true">';
+                            else i.textContent = c.current.icon;
+                        }
                         if (t) t.textContent = Math.round(weatherNum(c.current.temp, 0)) + '°';
                         if (ct && c.location && c.location.name) ct.textContent = c.location.name;
                         const btn = document.getElementById('weatherBtn');
                         if (btn && t && ct) {
                             const desc = c.current.weatherText ? ' ' + c.current.weatherText : '';
-                            const icon = (i && i.textContent) ? i.textContent + ' ' : '';
+                            const icon = (c.current && c.current.icon) ? c.current.icon + ' ' : '';
                             btn.setAttribute('aria-label', `${icon}${t.textContent}·${ct.textContent} 实时天气${desc}，点击查看详细预报`);
                         }
                     }

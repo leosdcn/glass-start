@@ -4,9 +4,62 @@ export { WMO_WEATHER_MAP, weatherTime, formatLocationFullName, stripAdminSuffix 
 import { CONFIG } from '../config/constants.js';
 import { weatherNum } from '../utils/weather-data.js';
 export { weatherNum } from '../utils/weather-data.js';
-import { escapeHtml, storageGet, storageSet, storageRemove } from '../utils/helpers.js';
+import { escapeHtml, safeUrl, storageGet, storageSet, storageRemove } from '../utils/helpers.js';
 import { dom, $ } from '../state/dom.js';
 import { OverlayStack } from '../core/overlay-stack.js';
+
+export const WEATHER_EMOJI_MAP = {
+    '☀️': './icons/weather/sun.svg',
+    '🌙': './icons/weather/moon.svg',
+    '🌤️': './icons/weather/sun_cloud.svg',
+    '🌤': './icons/weather/sun_cloud.svg',
+    '⛅': './icons/weather/partly_cloudy.svg',
+    '☁️': './icons/weather/cloud.svg',
+    '☁': './icons/weather/cloud.svg',
+    '🌫️': './icons/weather/fog.svg',
+    '🌫': './icons/weather/fog.svg',
+    '🌦️': './icons/weather/drizzle.svg',
+    '🌦': './icons/weather/drizzle.svg',
+    '🌧️': './icons/weather/rain.svg',
+    '🌧': './icons/weather/rain.svg',
+    '⛈️': './icons/weather/thunder.svg',
+    '⛈': './icons/weather/thunder.svg',
+    '🌨️': './icons/weather/snow.svg',
+    '🌨': './icons/weather/snow.svg',
+    '❄️': './icons/weather/snowflake.svg',
+    '❄': './icons/weather/snowflake.svg',
+    '📍': './icons/weather/pin.svg',
+    '💦': './icons/weather/humidity_high.svg',
+    '💧': './icons/weather/humidity_mid.svg',
+    '🌵': './icons/weather/humidity_low.svg',
+    '🍃': './icons/weather/wind_low.svg',
+    '🌪️': './icons/weather/wind_high.svg',
+    '🌪': './icons/weather/wind_high.svg',
+    '🎏': './icons/weather/wind_mid.svg',
+    '🌂': './icons/weather/umbrella.svg',
+    '☔️': './icons/weather/umbrella_rain.svg',
+    '☔': './icons/weather/umbrella_rain.svg',
+    '☂️': './icons/weather/umbrella_open.svg',
+    '☂': './icons/weather/umbrella_open.svg',
+    '🌅': './icons/weather/sunset.svg',
+    '🌄': './icons/weather/sunrise_mountains.svg'
+};
+
+/**
+ * 将天气 Emoji 或本地图片映射为渲染用 HTML
+ * @param {string} icon - Emoji 符号或图片路径
+ * @param {string} [className='size-4'] - CSS 尺寸与样式类
+ * @returns {string} 渲染的安全 HTML 字符串
+ */
+export function getWeatherIconHTML(icon, className = 'size-4') {
+    if (!icon) return '';
+    const clean = typeof icon === 'string' ? icon.trim() : '';
+    const path = WEATHER_EMOJI_MAP[clean] || (clean.startsWith('./') || clean.startsWith('/') || clean.endsWith('.svg') ? clean : null);
+    if (path) {
+        return `<img src="${safeUrl(path)}" class="${className} shrink-0 object-contain select-none inline-block align-middle pointer-events-none" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="sr-only">${escapeHtml(clean)}</span>`;
+    }
+    return escapeHtml(icon);
+}
 
 export async function fetchWithTimeout(url, timeoutMs) {
     const controller = new AbortController();
@@ -177,7 +230,14 @@ export function renderWeatherCapsule(data) {
     const weatherBtn = dom.weatherBtn || $('weatherBtn');
     const temperature = Math.round(weatherNum(data.current.temp, 0));
 
-    if (weatherIcon && weatherIcon.textContent !== data.current.icon) weatherIcon.textContent = data.current.icon;
+    if (weatherIcon) {
+        if (weatherIcon.dataset && (weatherIcon.dataset.icon !== data.current.icon || !weatherIcon.querySelector('img'))) {
+            weatherIcon.dataset.icon = data.current.icon;
+            weatherIcon.innerHTML = getWeatherIconHTML(data.current.icon, 'size-4 sm:size-4.5');
+        } else if (!weatherIcon.dataset && weatherIcon.textContent !== data.current.icon) {
+            weatherIcon.textContent = data.current.icon;
+        }
+    }
     if (weatherTemp) {
         const tempStr = `${temperature}°`;
         if (weatherTemp.textContent !== tempStr) weatherTemp.textContent = tempStr;
@@ -323,7 +383,7 @@ export function renderWeatherPopover(data) {
     weatherPopover.innerHTML = `
         <div class="flex items-center justify-between pb-2.5 mb-3 border-b border-white/10">
             <div class="flex items-center gap-1.5 min-w-0 pr-2">
-                <span class="text-xs text-white/50 shrink-0">📍</span>
+                <span class="text-xs text-white/50 shrink-0 flex items-center justify-center">${getWeatherIconHTML('📍', 'size-3.5')}</span>
                 <span class="text-xs font-semibold text-white/90 truncate" title="${escapeHtml(loc.fullName || loc.name)}">${escapeHtml(loc.fullName || loc.name)}</span>
             </div>
             <button id="weatherRefreshBtn" type="button" class="size-7 apple-radius bg-white/5 hover:bg-white/15 text-white flex items-center justify-center glass-interactive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 shrink-0 disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none" title="立即刷新天气" aria-label="立即刷新天气">
@@ -333,7 +393,7 @@ export function renderWeatherPopover(data) {
 
         <div class="flex items-center justify-between mb-3 px-1">
             <div class="flex items-center gap-3">
-                <span class="text-3xl sm:text-4xl leading-none select-none">${escapeHtml(c.icon)}</span>
+                <span class="text-3xl sm:text-4xl leading-none select-none shrink-0 flex items-center justify-center">${getWeatherIconHTML(c.icon, 'size-10 sm:size-12')}</span>
                 <div>
                     <div class="text-2xl font-bold tracking-tight text-white leading-none">${c.temp}<span class="text-base font-normal text-white/70">°C</span></div>
                     <div class="text-xs text-white/75 mt-1">${escapeHtml(c.weatherText)} · 体感 ${c.apparent}°C</div>
@@ -343,10 +403,10 @@ export function renderWeatherPopover(data) {
         </div>
 
         <div class="grid grid-cols-2 gap-2 mb-3">
-            ${weatherCard(humIcon, '相对湿度', c.humidity + '%')}
-            ${weatherCard(windIcon, '实时风速', c.windSpeed + ' km/h')}
-            ${weatherCard(popIcon, '降水概率', popVal + '%')}
-            ${weatherCard(sunIcon, sunLabel, sunTime)}
+            ${weatherCard(getWeatherIconHTML(humIcon, 'size-4'), '相对湿度', c.humidity + '%')}
+            ${weatherCard(getWeatherIconHTML(windIcon, 'size-4'), '实时风速', c.windSpeed + ' km/h')}
+            ${weatherCard(getWeatherIconHTML(popIcon, 'size-4'), '降水概率', popVal + '%')}
+            ${weatherCard(getWeatherIconHTML(sunIcon, 'size-4'), sunLabel, sunTime)}
         </div>
 
         <div class="space-y-1.5 pt-2 border-t border-white/10">
@@ -355,7 +415,7 @@ export function renderWeatherPopover(data) {
                 <div class="flex items-center justify-between text-xs py-1 px-1.5 apple-radius hover:bg-white/5 transition-colors">
                     <span class="w-10 text-white/70 font-medium shrink-0">${escapeHtml(d.label)}</span>
                     <div class="flex items-center gap-2 flex-1 min-w-0 pl-7 sm:pl-8">
-                        <span class="w-5 text-center select-none shrink-0">${escapeHtml(d.icon)}</span>
+                        <span class="w-5 text-center select-none shrink-0 flex items-center justify-center">${getWeatherIconHTML(d.icon, 'size-4')}</span>
                         <span class="text-2xs text-white/60 truncate">${escapeHtml(d.text)}</span>
                     </div>
                     <span class="w-16 text-right tabular-nums text-white/80 shrink-0">${d.tempMin}° ~ ${d.tempMax}°</span>

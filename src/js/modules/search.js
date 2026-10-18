@@ -266,10 +266,26 @@ export function openRandomBookmark(newTab = true) {
     }, CONFIG.TIMERS.STAGGER_OPEN);
 }
 
+/** @type {import('../types').SearchCandidateModel | null} */
+let cachedSearchCandidates = null;
+/** @type {import('../types').BookmarkItem[] | null} */
+let lastCandidatesBookmarksRef = null;
+/** @type {import('../types').CategoryCatalog | null} */
+let lastCandidatesCatalogRef = null;
+
+export function invalidateSearchCandidates() {
+    cachedSearchCandidates = null;
+    lastCandidatesBookmarksRef = null;
+    lastCandidatesCatalogRef = null;
+}
+
 export function getSearchCandidates() {
     const catalog = getCategoryCatalog(pageData.categories);
+    if (cachedSearchCandidates && lastCandidatesBookmarksRef === pageData.bookmarks && lastCandidatesCatalogRef === catalog) {
+        return cachedSearchCandidates;
+    }
     const urlToCategoryMap = catalog.searchCategories;
-    /** @type {Array<{ bm: import('../types').BookmarkItem; normUrl: string; defaultCat: string }>} */
+    /** @type {import('../types').SearchCandidateItem[]} */
     const candidates = [];
     const seenNormUrls = new Set();
     /**
@@ -280,7 +296,14 @@ export function getSearchCandidates() {
     const addCandidate = (bm, normUrl, defaultCat) => {
         if (seenNormUrls.has(normUrl)) return;
         seenNormUrls.add(normUrl);
-        candidates.push({ bm, normUrl, defaultCat });
+        candidates.push({
+            bm,
+            normUrl,
+            defaultCat,
+            nameLower: (bm.name || '').toLowerCase(),
+            descLower: (bm.desc || '').toLowerCase(),
+            urlLower: (bm.url || '').toLowerCase()
+        });
     };
     if (pageData && Array.isArray(pageData.bookmarks)) {
         for (const bm of pageData.bookmarks) {
@@ -289,7 +312,11 @@ export function getSearchCandidates() {
     }
     for (const {bm, normUrl, defaultCat} of catalog.entries) addCandidate(bm, normUrl, defaultCat);
 
-    return { candidates, urlToCategoryMap };
+    cachedSearchCandidates = { candidates, urlToCategoryMap };
+    lastCandidatesBookmarksRef = pageData.bookmarks;
+    lastCandidatesCatalogRef = catalog;
+
+    return cachedSearchCandidates;
 }
 
 /**

@@ -24,7 +24,7 @@ export function escapeHtml(str) {
  */
 export function safeUrl(url) {
     const u = (url || '').trim();
-    return (/^https?:\/\//i.test(u) || /^data:image\//i.test(u) || /^(\.\/|\/)?icons\/[a-zA-Z0-9_\-.]+\.png$/i.test(u)) ? escapeHtml(u) : '#';
+    return (/^https?:\/\//i.test(u) || /^data:image\//i.test(u) || /^(\.\/|\/)?icons\/[a-zA-Z0-9_\-\/.]+\.(png|svg|webp|ico)$/i.test(u)) ? escapeHtml(u) : '#';
 }
 
 /**

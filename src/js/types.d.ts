@@ -234,8 +234,16 @@ export interface SearchOptions {
     FUZZY: FuzzyOptions;
     TIERS: Record<string, number>;
 }
+export interface SearchCandidateItem {
+    bm: BookmarkItem;
+    normUrl: string;
+    defaultCat: string;
+    nameLower?: string;
+    descLower?: string;
+    urlLower?: string;
+}
 export interface SearchCandidateModel {
-    candidates: Array<{ bm: BookmarkItem; normUrl: string; defaultCat: string }>;
+    candidates: SearchCandidateItem[];
     urlToCategoryMap: Map<string, string>;
 }
 export interface WeatherLocation {

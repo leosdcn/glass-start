@@ -59,6 +59,7 @@ Object.assign(window, {
     DEFAULT_BOOKMARKS: constants.DEFAULT_BOOKMARKS,
     DEFAULT_CATEGORIES: constants.DEFAULT_CATEGORIES,
     getLocalBookmarkSuggestions: search.getLocalBookmarkSuggestions,
+    invalidateSearchCandidates: search.invalidateSearchCandidates,
     hideSuggestions: search.hideSuggestions,
     fetchSuggestions: search.fetchSuggestions,
     weatherNum: weather.weatherNum,

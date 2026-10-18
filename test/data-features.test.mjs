@@ -365,7 +365,7 @@ const domCheck = await evalJS(`(() => {
 
 const gridOrderOk = domCheck && domCheck.hasLocation && domCheck.hasTemp && domCheck.cardCount === 4 && domCheck.hasUmbrella
   && domCheck.card0.includes('相对湿度') && domCheck.card1.includes('实时风速') && domCheck.card2.includes('降水概率')
-  && (domCheck.card3.includes('今日日落') || domCheck.card3.includes('明日日出'));
+  && (domCheck.card3.includes('今日日落') || domCheck.card3.includes('明日日出') || domCheck.card3.includes('今日日出'));
 
 pass('天气弹窗 2×2 网格布局与工位优先级规范 (湿度/风速/降水/日出日落 四大指标与排版)',
   gridOrderOk, `cards: [${domCheck?.card0}] [${domCheck?.card1}] [${domCheck?.card2}] [${domCheck?.card3}]`);
