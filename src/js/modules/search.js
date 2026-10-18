@@ -8,13 +8,22 @@ import { state, pageData } from '../state/store.js';
 import { dom, $ } from '../state/dom.js';
 import { OverlayStack } from '../core/overlay-stack.js';
 
+/** @type {import('../types').SuggestionItem[]} */
 let suggestionItems = [];
 export function getSuggestionCount() { return suggestionItems.length; }
+/**
+ * @param {number} index
+ * @param {boolean} [newTab]
+ */
 export function activateSuggestion(index, newTab) {
     const item = suggestionItems[index];
     if (item?.type === 'bookmark') openBookmarkUrl(item.url, newTab);
     else doSearch(item?.text, newTab);
 }
+/**
+ * @param {number} index
+ * @param {{ keyboard?: boolean; updateInput?: boolean }} [options]
+ */
 export function selectSuggestion(index, { keyboard = false, updateInput = true } = {}) {
     const menu = dom.suggestionMenu;
     const input = dom.searchInput;
@@ -33,25 +42,36 @@ export function selectSuggestion(index, { keyboard = false, updateInput = true }
     }
     if (keyboard && item) nodes[selectedSuggestionIdx]?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
 }
+/** @type {HTMLScriptElement | null} */
 export let suggestionScriptTag = null;
 export let selectedSuggestionIdx = -1;
 export let originalQuery = '';
+/** @type {ReturnType<typeof setTimeout> | null} */
 export let suggestDebounceTimer = null;
 export let activeSuggestReqId = 0;
+/** @type {(() => void) | null} */
 let activeSuggestCleanup = null;
+/** @param {number} val */
 export function setActiveSuggestReqId(val) {
     activeSuggestReqId = val;
 }
+/** @param {number} val */
 export function setSelectedSuggestionIdx(val) {
     selectedSuggestionIdx = val;
 }
+/** @param {string} val */
 export function setOriginalQuery(val) {
     originalQuery = val;
 }
 
-/** 输入防抖与关闭清理共用同一个计时器；执行时读取当前搜索引擎。 */
+/**
+ * 输入防抖与关闭清理共用同一个计时器；执行时读取当前搜索引擎。
+ * @param {string} query
+ */
 export function scheduleSuggestions(query) {
-    clearTimeout(suggestDebounceTimer);
+    if (suggestDebounceTimer !== null) {
+        clearTimeout(suggestDebounceTimer);
+    }
     suggestDebounceTimer = setTimeout(() => {
         suggestDebounceTimer = null;
         fetchSuggestions(state.engine, query);
@@ -67,8 +87,10 @@ export function renderEngineDropdown() {
     if (!dropdownMenu) return;
     const curEngine = state.engine || 'bing';
     const order = ['bing', 'google', 'wikipedia'];
+    /** @type {Record<string, { name: string; isSvg: boolean; svg: string; url: string }>} */
+    const engineMap = engines;
     dropdownMenu.innerHTML = order.map(key => {
-        const eng = engines[key];
+        const eng = engineMap[key];
         if (!eng) return '';
         const isChecked = key === curEngine;
         const iconHtml = `<span class="engine-icon size-5 aspect-square shrink-0 rounded pointer-events-none select-none flex items-center justify-center">${eng.svg}</span>`;
@@ -116,9 +138,11 @@ export function closeDropdown() {
  * @param {boolean} [save=true] - 是否持久化到 localStorage
  */
 export function setEngine(key, save = true) {
-    const validEngine = engines[key] ? key : 'bing';
+    /** @type {Record<string, { name: string; isSvg: boolean; svg: string; url: string }>} */
+    const engineMap = engines;
+    const validEngine = engineMap[key] ? key : 'bing';
     state.engine = validEngine;
-    const engineObj = engines[validEngine] || engines.bing;
+    const engineObj = engineMap[validEngine] || engineMap.bing;
     const engineName = dom.engineName;
     const engineBtn = dom.engineBtn;
     const engineIcon = dom.engineIcon;
@@ -135,7 +159,9 @@ export function setEngine(key, save = true) {
     }
     if (dropdownMenu) {
         dropdownMenu.querySelectorAll('[role="menuitemradio"]').forEach(btn => {
-            btn.setAttribute('aria-checked', btn.dataset.engine === validEngine ? 'true' : 'false');
+            if (btn instanceof HTMLElement) {
+                btn.setAttribute('aria-checked', btn.dataset.engine === validEngine ? 'true' : 'false');
+            }
         });
     }
     closeDropdown();
@@ -156,7 +182,9 @@ export function doSearch(queryOverride, newTab = false) {
     if (!q) return;
     hideSuggestions();
     closeDropdown();
-    const engineObj = engines[state.engine] || engines.bing;
+    /** @type {Record<string, { name: string; isSvg: boolean; svg: string; url: string }>} */
+    const engineMap = engines;
+    const engineObj = engineMap[state.engine] || engineMap.bing;
     const targetUrl = engineObj.url + encodeURIComponent(q);
     if (newTab) {
         window.open(targetUrl, '_blank', 'noopener,noreferrer');
@@ -200,6 +228,7 @@ export function openBookmarkUrl(url, newTab = false) {
  */
 let diceAngle = 0;
 export function openRandomBookmark(newTab = true) {
+    /** @type {import('../types').BookmarkItem[]} */
     const list = [];
     const seen = new Set();
     if (pageData && Array.isArray(pageData.categories)) {
@@ -240,8 +269,14 @@ export function openRandomBookmark(newTab = true) {
 export function getSearchCandidates() {
     const catalog = getCategoryCatalog(pageData.categories);
     const urlToCategoryMap = catalog.searchCategories;
+    /** @type {Array<{ bm: import('../types').BookmarkItem; normUrl: string; defaultCat: string }>} */
     const candidates = [];
     const seenNormUrls = new Set();
+    /**
+     * @param {import('../types').BookmarkItem} bm
+     * @param {string} normUrl
+     * @param {string} defaultCat
+     */
     const addCandidate = (bm, normUrl, defaultCat) => {
         if (seenNormUrls.has(normUrl)) return;
         seenNormUrls.add(normUrl);
@@ -257,18 +292,28 @@ export function getSearchCandidates() {
     return { candidates, urlToCategoryMap };
 }
 
+/**
+ * @param {string} query
+ * @param {number} [limit]
+ * @returns {import('../types').BookmarkSuggestion[]}
+ */
 export function getLocalBookmarkSuggestions(query, limit = CONFIG.SUGGEST.MAX_LOCAL_ITEMS) {
     return rankBookmarkSuggestions(query, getSearchCandidates(), CONFIG.SUGGEST, limit);
 }
 
+/**
+ * @param {string} query
+ * @param {string} target
+ * @returns {number}
+ */
 export function getFuzzyScore(query, target) {
     return scoreBookmarkQuery(query, target, CONFIG.SUGGEST.FUZZY);
 }
 
 /**
  * 渲染搜索联想下拉面板
- * @param {Array<Object>} [localList=[]]
- * @param {Array<string>} [netList=[]]
+ * @param {import('../types').BookmarkSuggestion[]} [localList]
+ * @param {string[]} [netList]
  * @param {boolean} [preserveSelection=false]
  * @param {boolean} [isNetLoading=false]
  * @returns {void}
@@ -280,8 +325,10 @@ export function renderSuggestions(localList = [], netList = [], preserveSelectio
     const prevIdx = preserveSelection ? selectedSuggestionIdx : -1;
     const maxNetCount = Math.max(0, CONFIG.SUGGEST.MAX_TOTAL_ITEMS - (localList ? localList.length : 0));
     const safeNetList = (netList || []).slice(0, maxNetCount);
-    suggestionItems = [...(localList || []).map(bm => ({type: 'bookmark', text: bm.name, url: bm.url})),
-        ...safeNetList.map(text => ({type: 'query', text}))];
+    suggestionItems = [
+        ...(localList || []).map(bm => (/** @type {import('../types').SuggestionBookmarkItem} */ ({type: 'bookmark', text: bm.name, url: bm.url}))),
+        ...safeNetList.map(text => (/** @type {import('../types').SuggestionQueryItem} */ ({type: 'query', text})))
+    ];
     selectedSuggestionIdx = -1;
 
     if ((!localList || localList.length === 0) && (!netList || netList.length === 0) && !isNetLoading) {
@@ -292,6 +339,10 @@ export function renderSuggestions(localList = [], netList = [], preserveSelectio
     let html = '';
     let globalIdx = 0;
 
+    /**
+     * @param {string} title
+     * @param {boolean} [isFirst=false]
+     */
     const renderSectionHeader = (title, isFirst = false) => `
         <div class="suggestion-section-header mx-3.5 px-0 ${isFirst ? 'pt-1.5' : 'pt-2'} pb-1.5 mb-1 text-2xs font-medium tracking-wider text-white/40 uppercase select-none">
             <span class="inline-block pb-0.5">${title}</span>
@@ -319,7 +370,7 @@ export function renderSuggestions(localList = [], netList = [], preserveSelectio
                         <span class="truncate font-medium text-white/95">${escapeHtml(bm.name)}</span>
                         ${bm.desc ? `<span class="truncate text-xs text-white/45 hidden sm:inline">${escapeHtml(bm.desc)}</span>` : ''}
                     </div>
-                    <span class="text-2xs px-2 py-0.5 apple-radius bg-white/10 border border-white/15 text-white/60 shrink-0">${escapeHtml(bm.category)}</span>
+                    <span class="text-2xs px-2 py-0.5 apple-radius bg-white/10 border border-white/15 text-white/60 shrink-0">${escapeHtml(bm.category || '')}</span>
                 </div>
             `;
             globalIdx++;
@@ -380,8 +431,10 @@ export function renderSuggestions(localList = [], netList = [], preserveSelectio
  */
 export function hideSuggestions() {
     suggestionItems = [];
-    clearTimeout(suggestDebounceTimer);
-    suggestDebounceTimer = null;
+    if (suggestDebounceTimer !== null) {
+        clearTimeout(suggestDebounceTimer);
+        suggestDebounceTimer = null;
+    }
     activeSuggestReqId++;
     activeSuggestCleanup?.();
     OverlayStack.pop('suggestions');
@@ -404,8 +457,10 @@ export function hideSuggestions() {
  * @param {string} query
  */
 export function fetchSuggestions(engineKey, query) {
-    clearTimeout(suggestDebounceTimer);
-    suggestDebounceTimer = null;
+    if (suggestDebounceTimer !== null) {
+        clearTimeout(suggestDebounceTimer);
+        suggestDebounceTimer = null;
+    }
     query = (query || '').trim();
     if (!query) {
         hideSuggestions();
@@ -422,16 +477,18 @@ export function fetchSuggestions(engineKey, query) {
     const cbName = `__glassSuggestCb_${reqId}`;
     const controller = engineKey === 'wikipedia' ? new AbortController() : null;
     const script = controller ? null : document.createElement('script');
+    /** @type {ReturnType<typeof setTimeout> | null} */
     let timeoutTimer = null;
 
     const cleanup = () => {
-        if (timeoutTimer) {
+        if (timeoutTimer !== null) {
             clearTimeout(timeoutTimer);
             timeoutTimer = null;
         }
         controller?.abort();
         if (script) {
-            try { delete window[cbName]; } catch {}
+            try { delete /** @type {any} */ (window)[cbName]; } catch {}
+            script.onload = null;
             script.onerror = null;
             script.remove();
         }
@@ -452,6 +509,7 @@ export function fetchSuggestions(engineKey, query) {
     activeSuggestCleanup = cleanup;
     timeoutTimer = setTimeout(handleSuggestFallback, CONFIG.SUGGEST.JSONP_TIMEOUT);
 
+    /** @param {any} data */
     const handleSuggestData = data => {
         cleanup();
         if (reqId !== activeSuggestReqId) return;
@@ -483,15 +541,17 @@ export function fetchSuggestions(engineKey, query) {
         return;
     }
 
-    window[cbName] = handleSuggestData;
+    /** @type {any} */ (window)[cbName] = handleSuggestData;
     suggestionScriptTag = script;
-    script.onerror = handleSuggestFallback;
+    if (script) {
+        script.onerror = handleSuggestFallback;
 
-    if (engineKey === 'bing') {
-        script.src = `https://api.bing.com/osjson.aspx?query=${encodeURIComponent(query)}&JsonType=callback&JsonCallback=${cbName}`;
-    } else if (engineKey === 'google') {
-        script.src = `https://suggestqueries.google.com/complete/search?client=chrome&q=${encodeURIComponent(query)}&callback=${cbName}`;
+        if (engineKey === 'bing') {
+            script.src = `https://api.bing.com/osjson.aspx?query=${encodeURIComponent(query)}&JsonType=callback&JsonCallback=${cbName}`;
+        } else if (engineKey === 'google') {
+            script.src = `https://suggestqueries.google.com/complete/search?client=chrome&q=${encodeURIComponent(query)}&callback=${cbName}`;
+        }
+
+        document.body.appendChild(script);
     }
-
-    document.body.appendChild(script);
 }

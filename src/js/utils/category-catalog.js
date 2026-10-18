@@ -2,14 +2,30 @@ import { normalizeUrl } from './helpers.js';
 
 const collator = new Intl.Collator('zh-CN', { numeric: true, sensitivity: 'base' });
 // 搜索去重键与持久化键语义不同；持久化使用完整的 normalizeUrl() 键。
+/**
+ * @param {string} url
+ * @returns {string}
+ */
 export const searchUrlKey = url => (url || '').trim().toLowerCase().replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '');
-let previousSignature, cached;
+/** @type {string | undefined} */
+let previousSignature;
+/** @type {import('../types').CategoryCatalog | undefined} */
+let cached;
 
-/** 派生、保存、排序和搜索共用目录视图，内容变化时统一重建。 */
+/**
+ * 派生、保存、排序和搜索共用目录视图，内容变化时统一重建。
+ * @param {import('../types').BookmarkCategory[]} [categories]
+ * @returns {import('../types').CategoryCatalog}
+ */
 export function getCategoryCatalog(categories) {
     const signature = JSON.stringify(categories || []);
     if (signature === previousSignature && cached) return cached;
-    const byUrl = new Map(), searchCategories = new Map(), entries = [];
+    /** @type {Map<string, import('../types').BookmarkItem>} */
+    const byUrl = new Map();
+    /** @type {Map<string, string>} */
+    const searchCategories = new Map();
+    /** @type {import('../types').CategoryCatalogEntry[]} */
+    const entries = [];
     const sorted = (Array.isArray(categories) ? categories : []).map(cat => {
         for (const bm of cat.bookmarks || []) {
             if (!bm.url) continue;

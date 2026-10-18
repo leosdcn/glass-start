@@ -206,13 +206,61 @@ export function renderBookmarks(force = false) {
     if (!force && lastBookmarksSignature && currentSig === lastBookmarksSignature) return;
     lastBookmarksSignature = currentSig;
 
-    bookmarksEl.innerHTML = pageData.bookmarks.map(bm => `
+    const existingMap = new Map();
+    bookmarksEl.querySelectorAll(':scope > .bookmark-item').forEach(el => {
+        const u = el.getAttribute('data-url') || el.getAttribute('href');
+        if (u) existingMap.set(u, el);
+    });
+
+    if (existingMap.size === 0) {
+        bookmarksEl.innerHTML = pageData.bookmarks.map(bm => `
         <a href="${safeUrl(bm.url)}" target="_blank" rel="noopener noreferrer" 
+           data-url="${safeUrl(bm.url)}"
+           data-icon="${safeUrl(bm.icon || '')}"
            class="bookmark-item flex flex-col items-center justify-center gap-2 py-3 px-1 sm:px-1.5 apple-radius text-white/90">
             ${getFaviconHTML(bm, 'md')}
             <span class="bookmark-title text-white/90">${escapeHtml(bm.name)}</span>
         </a>
     `).join('');
+    } else {
+        const fragment = document.createDocumentFragment();
+        pageData.bookmarks.forEach(bm => {
+            const safeU = safeUrl(bm.url);
+            const safeIcon = safeUrl(bm.icon || '');
+            let node = existingMap.get(safeU) || existingMap.get(bm.url);
+            if (node) {
+                existingMap.delete(safeU);
+                existingMap.delete(bm.url);
+                const titleSpan = node.querySelector('.bookmark-title');
+                if (titleSpan && titleSpan.textContent !== bm.name) {
+                    titleSpan.textContent = bm.name;
+                }
+                if (node.getAttribute('data-icon') !== safeIcon) {
+                    node.setAttribute('data-icon', safeIcon);
+                    const oldIconBox = node.querySelector('.icon-box');
+                    if (oldIconBox) {
+                        const newIconFrag = document.createRange().createContextualFragment(getFaviconHTML(bm, 'md'));
+                        oldIconBox.replaceWith(newIconFrag);
+                    }
+                }
+                fragment.appendChild(node);
+            } else {
+                const range = document.createRange();
+                const newFrag = range.createContextualFragment(`
+                    <a href="${safeU}" target="_blank" rel="noopener noreferrer" 
+                       data-url="${safeU}"
+                       data-icon="${safeIcon}"
+                       class="bookmark-item flex flex-col items-center justify-center gap-2 py-3 px-1 sm:px-1.5 apple-radius text-white/90">
+                        ${getFaviconHTML(bm, 'md')}
+                        <span class="bookmark-title text-white/90">${escapeHtml(bm.name)}</span>
+                    </a>
+                `);
+                fragment.appendChild(newFrag);
+            }
+        });
+        existingMap.forEach(staleNode => staleNode.remove());
+        bookmarksEl.appendChild(fragment);
+    }
 
     bookmarksEl.querySelectorAll('img.lazy-icon').forEach(img => checkImageReady(img));
 }

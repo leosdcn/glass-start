@@ -4,6 +4,7 @@
 
 import { CONFIG } from '../config/constants.js';
 
+/** @type {Record<string, string>} */
 const htmlEscapes = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
 const htmlEscapeRegex = /[&<>"']/g;
 /**
@@ -12,7 +13,7 @@ const htmlEscapeRegex = /[&<>"']/g;
  * @returns {string} HTML 转义后的安全字符串
  */
 export function escapeHtml(str) {
-    return String(str ?? '').replace(htmlEscapeRegex, ch => htmlEscapes[ch]);
+    return String(str ?? '').replace(htmlEscapeRegex, ch => htmlEscapes[ch] || ch);
 }
 
 /**
@@ -73,7 +74,12 @@ export function faviconFromUrl(url) {
     return host ? 'https://a.favicon.im/' + host : '';
 }
 
-/** 书签入口共用的字段清洗；草稿标识、图标随 URL 变更等编辑行为由调用方管理。 */
+/**
+ * 书签入口共用的字段清洗；草稿标识、图标随 URL 变更等编辑行为由调用方管理。
+ * @param {any} item
+ * @param {string} [fallbackName]
+ * @returns {import('../types').BookmarkItem | null}
+ */
 export function normalizeBookmark(item, fallbackName = '') {
     if (!item || typeof item !== 'object' || Array.isArray(item)) return null;
     const name = String(item.name || fallbackName).trim().slice(0, CONFIG.SECURITY.MAX_NAME_CHARS);
@@ -84,6 +90,7 @@ export function normalizeBookmark(item, fallbackName = '') {
     try { if (!new URL(url).hostname) return null; } catch { return null; }
     const rawIcon = typeof item.icon === 'string' ? item.icon.trim() : '';
     const icon = rawIcon && safeUrl(rawIcon) !== '#' ? rawIcon : faviconFromUrl(url);
+    /** @type {import('../types').BookmarkItem} */
     const bookmark = { name, url, icon };
     // 缺省继承目录简介，空字符串是明确清空；不能将两者归并。
     if (typeof item.desc === 'string') bookmark.desc = item.desc.trim().slice(0, CONFIG.SECURITY.MAX_DESC_CHARS);

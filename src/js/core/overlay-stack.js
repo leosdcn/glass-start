@@ -14,7 +14,9 @@ export const MODAL_OVERLAY_IDS = new Set([
 ]);
 
 // 只有层叠栈拥有弹窗可见性；每次切换取消上一轮动画和延迟隐藏。
+/** @type {Map<string, { frame: number; timer: ReturnType<typeof setTimeout> | number }>} */
 const visibilityOperations = new Map();
+/** @param {string} id */
 function beginVisibilityOperation(id) {
     const previous = visibilityOperations.get(id);
     if (previous) {
@@ -26,6 +28,7 @@ function beginVisibilityOperation(id) {
     return operation;
 }
 
+/** @param {string} id */
 function showModal(id) {
     const modal = document.getElementById(id);
     if (!modal) return;
@@ -40,11 +43,14 @@ function showModal(id) {
     });
 }
 
+/** @param {string} id */
 function hideModal(id) {
     const modal = document.getElementById(id);
     if (!modal) return;
     const operation = beginVisibilityOperation(id);
-    if (modal.contains(document.activeElement)) document.activeElement.blur();
+    if (document.activeElement && modal.contains(document.activeElement) && 'blur' in document.activeElement && typeof document.activeElement.blur === 'function') {
+        document.activeElement.blur();
+    }
     modal.setAttribute('aria-hidden', 'true');
     modal.classList.remove('active');
     const finish = () => {
@@ -57,15 +63,21 @@ function hideModal(id) {
 }
 
 // 暂存原始 inert 状态，退栈时恢复，保留屏幕切换和既有禁用区域的状态。
+/** @type {Map<HTMLElement, boolean>} */
 const isolatedElements = new Map();
+/**
+ * @param {Element | null | undefined} element
+ * @returns {element is HTMLElement}
+ */
 function visibleFocusTarget(element) {
-    return element?.isConnected && element !== document.body && element !== document.documentElement &&
+    return !!(element && element instanceof HTMLElement && element.isConnected && element !== document.body && element !== document.documentElement &&
         typeof element.focus === 'function' &&
         !element.closest('[inert], [hidden], [aria-hidden="true"]') &&
         (element.offsetWidth > 0 || element.offsetHeight > 0) &&
-        getComputedStyle(element).visibility === 'visible';
+        getComputedStyle(element).visibility === 'visible');
 }
 
+/** @type {import('../types').IOverlayStack} */
 export const OverlayStack = {
     stack: [],
 
@@ -120,7 +132,7 @@ export const OverlayStack = {
             const parent = active.parentElement;
             if (!parent) break;
             for (const sibling of parent.children) {
-                if (sibling === active || ['SCRIPT', 'STYLE', 'LINK'].includes(sibling.tagName)) continue;
+                if (sibling === active || ['SCRIPT', 'STYLE', 'LINK'].includes(sibling.tagName) || !(sibling instanceof HTMLElement)) continue;
                 isolatedElements.set(sibling, sibling.inert);
                 sibling.inert = true;
             }
@@ -142,7 +154,7 @@ export const OverlayStack = {
 
     restoreFocus(trigger) {
         const modal = this.topModal();
-        if (visibleFocusTarget(trigger) && (!modal || modal.contains(trigger))) {
+        if (visibleFocusTarget(trigger) && (!modal || (trigger && modal.contains(trigger)))) {
             trigger.focus({ preventScroll: true });
         } else if (modal) {
             if (!modal.contains(document.activeElement)) this.focusTop();

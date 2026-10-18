@@ -28,6 +28,26 @@ export interface BookmarkCategory {
     bookmarks: BookmarkItem[];
 }
 
+/** 目录共用索引条目 */
+export interface CategoryCatalogEntry {
+    bm: BookmarkItem;
+    normUrl: string;
+    defaultCat: string;
+}
+
+/** 附带排序书签列表的分类结构 */
+export interface SortedBookmarkCategory extends BookmarkCategory {
+    sortedBookmarks: BookmarkItem[];
+}
+
+/** 目录共用索引数据视图 */
+export interface CategoryCatalog {
+    byUrl: Map<string, BookmarkItem>;
+    searchCategories: Map<string, string>;
+    entries: CategoryCatalogEntry[];
+    sorted: SortedBookmarkCategory[];
+}
+
 /** 用户自定义书签元数据结构 */
 export interface CustomMetaItem {
     name?: string;
@@ -230,4 +250,23 @@ export interface ForecastOptions {
     POP_CLEAR_CONFLICT_THRESHOLD: number;
     DEFAULT_TEMPERATURE: number;
     DEFAULT_HUMIDITY: number;
+}
+
+export interface SuggestionBookmarkItem {
+    type: 'bookmark';
+    text: string;
+    url: string;
+}
+export interface SuggestionQueryItem {
+    type: 'query';
+    text: string;
+}
+export type SuggestionItem = SuggestionBookmarkItem | SuggestionQueryItem;
+
+export interface BookmarkSuggestion {
+    name: string;
+    url: string;
+    icon?: string;
+    desc?: string;
+    category?: string;
 }

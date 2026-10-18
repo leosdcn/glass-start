@@ -8,12 +8,13 @@ let isGlassSpotlightAndTiltInitialized = false;
 
 let activeCard = null;
 let activeCardRect = null;
+/** @type {number | null} */
 let rafId = null;
 let pendingEvent = null;
 
 export function resetActiveCard() {
     pendingEvent = null;
-    if (rafId) {
+    if (rafId !== null) {
         cancelAnimationFrame(rafId);
         rafId = null;
     }
@@ -89,7 +90,7 @@ export function initGlassSpotlightAndTilt() {
             activeCard.style.transition = `transform ${tiltSec} ease-out, background-color ${bgSec} ease, border-color ${bgSec} ease, box-shadow var(--duration-tactile) var(--ease-tactile)`;
         }
         pendingEvent = e;
-        if (!rafId) {
+        if (rafId === null) {
             rafId = requestAnimationFrame(updateCardTransform);
         }
     }
@@ -105,7 +106,7 @@ export function initGlassSpotlightAndTilt() {
     document.addEventListener('pointerup', (e) => {
         if (activeCard) {
             pendingEvent = e;
-            if (!rafId) {
+            if (rafId === null) {
                 rafId = requestAnimationFrame(updateCardTransform);
             }
         }
