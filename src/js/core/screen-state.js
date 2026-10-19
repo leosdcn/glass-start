@@ -340,9 +340,6 @@ export function initScreenGestures() {
 
 
     reconcileScreenState(getSavedSection() === 'nav' ? 'nav' : 'start');
-    // Safari 装配时同步确定离屏起点，避免首次切屏缺少过渡起点。
-    const nav = dom.navSection || $('navSection');
-    if (nav) void nav.offsetHeight;
 
     // 1. 鼠标滚轮调度：离散意图直接触发，状态锁 (isTransitioning) 天然吞咽余震
     document.addEventListener('wheel', (e) => {

@@ -78,6 +78,7 @@
     --duration-popover-exit: 0.18s;
     --duration-modal: 0.3s;
     --duration-slide: 0.58s;
+    --duration-bg-crossfade: 0.45s;
     --duration-tactile: 0.38s;
     --duration-press: 0.08s;
     --delay-stagger-1: 0.05s;
@@ -439,8 +440,9 @@ textarea::placeholder {
     transform: translateY(-2px);
 }
 
-.bg-layer { transition: opacity 0.8s var(--ease-exit); transform: translateZ(0); will-change: opacity; pointer-events: none; }
-#bgOverlay { transition: background-color 0.2s ease, opacity 0.2s ease; transform: translateZ(0); will-change: opacity; pointer-events: none; }
+.bg-layer { transition: opacity var(--duration-bg-crossfade) var(--ease-exit); transform: translateZ(0); pointer-events: none; }
+.bg-layer.is-crossfading { will-change: opacity; }
+#bgOverlay { transition: background-color 0.2s ease; pointer-events: none; }
 
 /* ==========================================================================
    6. OVERLAYS & MODALS (弹窗/抽屉/挑选器/气泡层叠系统)
@@ -615,8 +617,6 @@ section:first-of-type {
 
 /* 下滑指示器安全区偏移与状态驱动 */
 .hint-down {
-    transform-style: preserve-3d;
-    backface-visibility: hidden;
     bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
     transition: opacity 0.6s ease;
 }
@@ -627,8 +627,10 @@ section:first-of-type {
 }
 
 #dropdownMenu, #suggestionMenu {
-    will-change: transform, opacity;
     margin-top: 0.375rem;
+}
+#dropdownMenu.active, #suggestionMenu.active {
+    will-change: transform, opacity;
 }
 @media (min-width: 640px) {
     #dropdownMenu, #suggestionMenu {
@@ -725,7 +727,6 @@ section:first-of-type {
     transform: translateY(-2px) scale(0.96) translateZ(0);
     pointer-events: none;
     visibility: hidden;
-    will-change: transform, opacity;
     transition: opacity var(--duration-popover-exit) var(--ease-exit), transform var(--duration-popover-exit) var(--ease-exit), visibility var(--duration-popover-exit) step-end;
 }
 #weatherPopover.active {
@@ -733,6 +734,7 @@ section:first-of-type {
     transform: translateY(0) scale(1) translateZ(0);
     pointer-events: auto;
     visibility: visible;
+    will-change: transform, opacity;
     transition: opacity var(--duration-popover) var(--ease-spring), transform var(--duration-popover) var(--ease-spring), visibility 0s;
 }
 #weatherPopover::before {

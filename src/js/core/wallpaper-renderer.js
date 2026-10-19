@@ -36,6 +36,7 @@ export function applyWallpaper(urlStr, animate = true) {
         if (bgSwitchTimer) {
             clearTimeout(bgSwitchTimer);
             bgSwitchTimer = null;
+            bgNext.classList.remove('is-crossfading');
         }
 
         if (presetIdx < 0 && img.naturalWidth > 0) {
@@ -50,8 +51,7 @@ export function applyWallpaper(urlStr, animate = true) {
             bgNext.style.transition = 'none';
             bgNext.style.opacity = '0';
             bgNext.style.backgroundImage = newStyleUrl;
-
-            void bgNext.offsetHeight;
+            bgNext.classList.add('is-crossfading');
 
             requestAnimationFrame(() => {
                 if (reqId !== activeWallpaperReqId) return;
@@ -64,9 +64,11 @@ export function applyWallpaper(urlStr, animate = true) {
                     bgBase.style.opacity = '1';
                     bgNext.style.transition = 'none';
                     bgNext.style.opacity = '0';
+                    bgNext.classList.remove('is-crossfading');
                 }, CONFIG.TIMERS.BG_CROSSFADE);
             });
         } else {
+            bgNext.classList.remove('is-crossfading');
             bgNext.style.transition = 'none';
             bgNext.style.opacity = '0';
             bgBase.style.backgroundImage = newStyleUrl;

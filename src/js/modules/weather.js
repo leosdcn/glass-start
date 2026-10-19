@@ -540,9 +540,4 @@ export function initWeather() {
 
     updateWeather(false).catch(() => {});
     setInterval(() => updateWeather(false), CONFIG.WEATHER.CACHE_TTL);
-    document.addEventListener('visibilitychange', () => {
-        if (!document.hidden) {
-            updateWeather(false).catch(() => {});
-        }
-    }, { passive: true });
 }

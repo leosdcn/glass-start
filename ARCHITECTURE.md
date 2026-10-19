@@ -127,7 +127,7 @@ LocalStorage 仅保存背景索引和轻量首屏提示，新选择不写入 Bas
 
 `reconcileScreenState()` 清理过渡任务、恢复保存的目标屏、校准状态类及可访问性，并移除预渲染类 `.nr`。它本身不执行 `display` 重置；默认无明确目标且仍在过渡时会跳过，唤醒调用传入 `force=true`。
 
-`handleAppWakeUp()` 统一处理 `pageshow` 和恢复可见的 `visibilitychange`：清理残留交互状态，强制校准屏幕与时钟，尝试检查 Service Worker 更新；BFCache 恢复时校准首屏合成层 `willChange`，不在唤醒期重置 DOM 或强制回流，保证前台画面稳定不闪烁。切屏时通过 `body.is-screen-transitioning` 动态分配 `willChange`，避免离屏常驻导致 WebKit 磁贴提前回收。`blur` / `pagehide` 添加 `body.tab-blurred`，收到下一次用户交互后解除，防止悬停残留。
+`handleAppWakeUp()` 统一处理 `pageshow` 和恢复可见的 `visibilitychange`：清理残留交互状态，强制校准屏幕、时钟与气象刷新，尝试检查 Service Worker 更新；BFCache 恢复时校准首屏合成层 `willChange`，不在唤醒期重置 DOM 或强制回流，保证前台画面稳定不闪烁。切屏与壁纸切换时通过 `body.is-screen-transitioning` 与 `.is-crossfading` 动态分配 `willChange`，避免常驻闲置导致 WebKit 磁贴提前回收或显存浪费。`blur` / `pagehide` 添加 `body.tab-blurred`，收到下一次用户交互后解除，防止悬停残留。
 
 `core/lifecycle.js` 提供 `window.__GLASS_DIAG__`（`verify`、`probe`、`dump`、`log`）：
 

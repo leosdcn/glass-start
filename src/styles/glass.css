@@ -127,7 +127,9 @@
 .preset-bg-card img {
     opacity: 0;
     transition: opacity 0.25s var(--ease-exit), transform 0.4s var(--ease-spring);
-    will-change: transform, opacity;
+}
+.preset-bg-card img:not(.loaded) {
+    will-change: opacity;
 }
 .preset-bg-card img.loaded {
     opacity: 1;
@@ -146,6 +148,7 @@
         box-shadow: 0 8px 16px -2px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.15);
     }
     body:not(.tab-blurred) .preset-bg-card:hover:not(:disabled) img {
+        will-change: transform;
         transform: scale(1.06);
     }
 }
