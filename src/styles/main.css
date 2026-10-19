@@ -23,10 +23,7 @@
     --spacing-suggestions-max: 60vh;
     --font-weight-clock: 250;
     --radius-control: 0.75rem;
-    --radius-dialog: 1.25rem;
-    --color-surface-dialog: #1c1c23;
     --shadow-tab-active: 0 2px 8px rgba(0, 0, 0, 0.25);
-    --shadow-dialog: inset 0 0 0 1px rgba(255, 255, 255, 0.12), 0 20px 45px rgba(0, 0, 0, 0.6);
 }
 
 /* ==========================================================================
@@ -43,7 +40,7 @@
 .text-2xs-plus { font-size: 0.6875rem; letter-spacing: -0.012em; }
 
 :root {
-    color-scheme: dark light;
+    color-scheme: dark;
     --bg-base: #0f172a;
     --bg-start: #0b0f19;
     --danger: 239 68 68;
@@ -184,7 +181,6 @@ img, a, button, .nav-bookmark, .bookmark-item {
     transform: translate3d(0, 0, 0);
     -webkit-backface-visibility: hidden;
     backface-visibility: hidden;
-    will-change: transform;
     transition: transform var(--duration-slide) var(--ease-slide);
 }
 #startSection.screen-pushed-up {
@@ -206,12 +202,14 @@ img, a, button, .nav-bookmark, .bookmark-item {
     transform: translate3d(0, 100dvh, 0);
     -webkit-backface-visibility: hidden;
     backface-visibility: hidden;
-    will-change: transform;
     transition: transform var(--duration-slide) var(--ease-slide);
 }
 #navSection.screen-pushed-in {
     -webkit-transform: translate3d(0, 0, 0);
     transform: translate3d(0, 0, 0);
+}
+body.is-screen-transitioning :is(#startSection, #navSection) {
+    will-change: transform;
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -945,79 +943,83 @@ input:focus-visible {
 }
 
 /* 确认弹窗 */
-#confirmModal {
-    --modal-backdrop-opacity: 0.75;
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
-}
 .confirm-dialog-card {
-    width: 90%;
+    width: calc(100% - 2rem);
     max-width: 22.5rem;
-    background: var(--color-surface-dialog);
-    border: none;
-    border-radius: var(--radius-dialog);
     overflow: hidden;
     padding: 1.5rem 1.25rem 1.25rem 1.25rem;
-    box-shadow: var(--shadow-dialog);
     display: flex;
     flex-direction: column;
     align-items: center;
     text-align: center;
-    isolation: isolate;
 }
 .confirm-dialog-btn-cancel {
     flex: 1;
     padding: 0.625rem 1rem;
     border-radius: var(--radius-control);
     background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    color: rgba(255, 255, 255, 0.75);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.85);
     font-size: 0.8125rem;
     font-weight: 500;
     cursor: pointer;
-    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, transform 0.1s var(--ease-snappy);
 }
 @media (hover: hover) and (pointer: fine) {
     body:not(.tab-blurred) .confirm-dialog-btn-cancel:hover:not(:disabled) {
-        background: rgba(255, 255, 255, 0.15);
+        background: rgba(255, 255, 255, 0.16);
+        border-color: rgba(255, 255, 255, 0.25);
         color: #ffffff;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.18);
     }
+}
+.confirm-dialog-btn-cancel:active:not(:disabled) {
+    transform: scale(0.98);
 }
 .confirm-neutral .confirm-dialog-warning {
     display: none;
 }
 .confirm-neutral .confirm-dialog-btn-ok {
-    background: rgba(255, 255, 255, 0.18);
-    border-color: rgba(255, 255, 255, 0.3);
-    box-shadow: none;
+    background: rgba(255, 255, 255, 0.16);
+    border: 1px solid rgba(255, 255, 255, 0.24);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+    color: #ffffff;
+    font-weight: 500;
 }
 .confirm-neutral .confirm-dialog-btn-ok:focus-visible {
     --tw-ring-color: rgba(255, 255, 255, 0.6);
 }
 @media (hover: hover) {
     body:not(.tab-blurred) .confirm-neutral .confirm-dialog-btn-ok:hover:not(:disabled) {
-        background: rgba(255, 255, 255, 0.26);
-        box-shadow: none;
+        background: rgba(255, 255, 255, 0.25);
+        border-color: rgba(255, 255, 255, 0.36);
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.24);
     }
 }
 .confirm-dialog-btn-ok {
     flex: 1;
     padding: 0.625rem 1rem;
     border-radius: var(--radius-control);
-    background: rgb(var(--danger) / 0.85);
-    border: 1px solid rgb(var(--danger-highlight) / 0.4);
-    color: #ffffff;
+    background: rgb(var(--danger) / 0.22);
+    border: 1px solid rgb(var(--danger) / 0.3);
+    color: rgba(254, 226, 226, 0.95);
     font-size: 0.8125rem;
-    font-weight: 600;
+    font-weight: 500;
     cursor: pointer;
-    transition: background-color 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
-    box-shadow: 0 4px 14px rgb(var(--danger) / 0.35);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    transition: background-color 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.1s var(--ease-snappy);
 }
 @media (hover: hover) and (pointer: fine) {
     body:not(.tab-blurred) .confirm-dialog-btn-ok:hover:not(:disabled) {
-        background: rgb(var(--danger));
-        box-shadow: 0 6px 20px rgb(var(--danger) / 0.5);
+        background: rgb(var(--danger) / 0.45);
+        border-color: rgb(var(--danger) / 0.55);
+        color: #ffffff;
+        box-shadow: 0 4px 12px rgb(var(--danger) / 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.18);
     }
+}
+.confirm-dialog-btn-ok:active:not(:disabled) {
+    transform: scale(0.98);
 }
 
 /* 高分辨率大屏缩放适配 */

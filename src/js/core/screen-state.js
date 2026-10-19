@@ -27,6 +27,9 @@ function clearTransitionTasks() {
     transitionTimer = null;
     navTransitionCleanup?.();
     navTransitionCleanup = null;
+    if (typeof document !== 'undefined') {
+        document.body.classList.remove('is-screen-transitioning');
+    }
 }
 
 function resetPageScroll() {
@@ -40,6 +43,7 @@ function prepareScreenTransition() {
     if (typeof document !== 'undefined') {
         document.documentElement.classList.remove('nr');
         document.body.classList.remove('tab-blurred');
+        document.body.classList.add('is-screen-transitioning');
         document.activeElement?.blur?.();
     }
     clearTransitionTasks();
@@ -150,11 +154,15 @@ export function reconcileScreenState(targetSection, force = false) {
 
     // 清除残留 transform / transition，由 CSS 状态类决定屏幕位置。
     if (startSection) {
+        startSection.style.transition = 'none';
         startSection.style.transform = '';
+        void startSection.offsetHeight;
         startSection.style.transition = '';
     }
     if (nav) {
+        nav.style.transition = 'none';
         nav.style.transform = '';
+        void nav.offsetHeight;
         nav.style.transition = '';
     }
 
@@ -181,9 +189,10 @@ export function reconcileScreenState(targetSection, force = false) {
         }
     }
 
-    // 预水合类清理
+    // 预水合类与切屏过渡类清理
     if (typeof document !== 'undefined') {
         document.documentElement.classList.remove('nr');
+        document.body.classList.remove('is-screen-transitioning');
     }
 }
 
@@ -240,6 +249,7 @@ export function switchToNav() {
         nav.style.transition = '';
         nav.classList.remove('nav-hidden');
         nav.classList.add('nav-visible');
+        void nav.offsetHeight;
         nav.classList.add('screen-pushed-in');
     }
 
@@ -317,17 +327,10 @@ export function handleAppWakeUp(wasPersisted = false) {
 
     checkServiceWorkerUpdate();
 
-    const startSec = dom.startSection || $('startSection');
-    const navSec = dom.navSection || $('navSection');
-    [startSec, navSec].forEach(sec => {
-        if (sec) {
-            sec.style.willChange = 'auto';
-            sec.style.display = 'none';
-            void sec.offsetHeight;
-            sec.style.display = '';
-            sec.style.willChange = 'transform';
-        }
-    });
+    if (wasPersisted) {
+        const startSec = dom.startSection || $('startSection');
+        if (startSec) startSec.style.willChange = 'transform';
+    }
 
     updateWeather(false).catch(() => {});
 }
