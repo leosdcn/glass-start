@@ -1,10 +1,9 @@
 /** 验证书签搜索与持久化、天气呈现及生命周期恢复。 */
-import { launchSession, sleep, makeTester, pressKey } from './helpers.mjs';
+import { launchSession, makeTester, pressKey, waitFor } from './helpers.mjs';
 
 const { pass, finish } = makeTester();
 const { server, chrome, evalJS } = await launchSession();
 
-await sleep(300);
 await evalJS(`
   window.fetch = async () => ({ ok: true, json: async () => ({}) });
   isFetchingWeather = true;
@@ -104,7 +103,8 @@ await evalJS(`localStorage.setItem('userBookmarks', JSON.stringify([
   { name: 'Gitee', url: 'https://gitee.com', icon: '' },
   { name: '自建站', url: 'https://custom.example.dev', icon: 'https://custom.example.dev/icon.png', desc: '个人站点' }
 ]))`);
-await evalJS('setTimeout(() => location.reload(), 10)'); await sleep(1200);
+await evalJS('setTimeout(() => location.reload(), 10)');
+await waitFor(evalJS, 'document.readyState === "complete" && typeof openEditModal === "function" && localStorage.getItem("userBookmarks") === null');
 await evalJS(`
   window.fetch = async () => ({ ok: true, json: async () => ({}) });
   isFetchingWeather = true;
@@ -272,7 +272,8 @@ pass('书签轻量存储模型、旧版数据迁移、自定义图标持久化�
 
 const widgetExists = await evalJS(`!!document.getElementById('weatherWidget') && !!document.getElementById('weatherBtn')`);
 
-await evalJS(`document.getElementById('weatherBtn').click()`); await sleep(300);
+await evalJS(`document.getElementById('weatherBtn').click()`);
+await waitFor(evalJS, `document.getElementById('weatherPopover')?.classList.contains('active') && OverlayStack.top()?.id === 'weatherPopover'`);
 const popoverOpened = await evalJS(`({
   active: document.getElementById('weatherPopover').classList.contains('active'),
   ariaHidden: document.getElementById('weatherPopover').getAttribute('aria-hidden') === 'false',
@@ -281,7 +282,8 @@ const popoverOpened = await evalJS(`({
 })`);
 const openOk = popoverOpened.active && popoverOpened.ariaHidden && popoverOpened.expanded && popoverOpened.stackTop === 'weatherPopover';
 
-await press('Escape'); await sleep(300);
+await press('Escape');
+await waitFor(evalJS, `!document.getElementById('weatherPopover')?.classList.contains('active') && OverlayStack.isEmpty()`);
 const popoverClosed = await evalJS(`({
   active: document.getElementById('weatherPopover').classList.contains('active'),
   expanded: document.getElementById('weatherBtn').getAttribute('aria-expanded') === 'false',
@@ -344,7 +346,7 @@ await evalJS(`(() => {
   renderWeatherPopover(mockData);
   openWeatherPopover();
 })()`);
-await sleep(300);
+await waitFor(evalJS, `document.getElementById('weatherPopover')?.classList.contains('active') && (document.getElementById('weatherPopover')?.innerText || '').includes('31°C')`);
 
 const domCheck = await evalJS(`(() => {
   const pop = document.getElementById('weatherPopover');
@@ -650,7 +652,7 @@ pass('Favicon 多级容灾降级引擎 (Google S2 备用源自动回退/首字�
   faviconFallbackAllOk, JSON.stringify(faviconFallbackCheck));
 
 await press('Escape');
-await sleep(200);
+await waitFor(evalJS, `OverlayStack.isEmpty()`);
 
 const code = finish();
 await chrome.close();

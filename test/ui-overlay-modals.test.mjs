@@ -1,10 +1,10 @@
 /** 验证弹窗栈、唤醒恢复、联想交互及移动视口可访问性。 */
-import { launchSession, sleep, makeTester, pressKey, waitFor } from './helpers.mjs';
+import { launchSession, makeTester, pressKey, waitFor } from './helpers.mjs';
 
 const { pass, finish } = makeTester();
 const { server, chrome, send, evalJS } = await launchSession();
 
-await sleep(300);
+await waitFor(evalJS, 'document.readyState === "complete" && !!window.OverlayStack && !!window.state');
 
 const press = (key) => pressKey(evalJS, key);
 const stackTop = () => evalJS(`OverlayStack.top() ? OverlayStack.top().id : null`);
@@ -12,8 +12,11 @@ const stackTop = () => evalJS(`OverlayStack.top() ? OverlayStack.top().id : null
 // 4. sessionStorage 刷新状态保持无闪烁及切回 Start 屏组件全量可见
 // ══════════════════════════════════════════════════════════════════════
 
-await evalJS('sessionStorage.setItem("startpage_section", "nav")');
-await evalJS('setTimeout(() => location.reload(), 10)'); await sleep(1200);
+await evalJS('window.__pre_reload_nav = true; sessionStorage.setItem("startpage_section", "nav"); setTimeout(() => location.reload(), 10);');
+await waitFor(evalJS, `document.readyState === "complete" && !window.__pre_reload_nav && !!window.state && state.currentSection === "nav" && (() => {
+  const n = document.getElementById("navSection");
+  return n && n.className.includes("screen-pushed-in") && !n.className.includes("nav-hidden");
+})()`);
 const restored = await evalJS(`(() => {
   const n = document.getElementById('navSection');
   return n.className.includes('screen-pushed-in') && !n.className.includes('nav-hidden');
@@ -48,8 +51,13 @@ const startRestoredValid = backFromReloadedNav.sTop === 0 && backFromReloadedNav
 
 // 4.2 BFCache / pageshow 生命周期切屏锁自愈与防白屏校验
 await evalJS('window.switchToNav()');
-await sleep(100); // 切屏进行中（isTransitioning === true 且定时器挂起）
+await waitFor(evalJS, 'typeof isScreenTransitioning === "function" && isScreenTransitioning()', 1000, 10);
 await evalJS('window.dispatchEvent(new Event("pageshow"))'); // 模拟外部返回触发 pageshow 唤醒
+await waitFor(evalJS, `!isScreenTransitioning() && (() => {
+  const n = document.getElementById("navSection");
+  const s = document.getElementById("startSection");
+  return n && n.classList.contains("screen-pushed-in") && !n.classList.contains("nav-hidden") && s && s.classList.contains("screen-pushed-up");
+})()`);
 const bfCacheHealed = await evalJS(`(() => {
   const isTrans = typeof window.isScreenTransitioning === 'function' ? window.isScreenTransitioning() : false;
   const n = document.getElementById('navSection');
@@ -58,7 +66,8 @@ const bfCacheHealed = await evalJS(`(() => {
 })()`);
 
 // 4.3 Command+左键 / 鼠标中键后台打开防 is-clicked 下沉迟滞与普通点击分流校验
-await evalJS('window.switchToStart()'); await sleep(350);
+await evalJS('window.switchToStart()');
+await waitFor(evalJS, 'state.currentSection === "start" && !isScreenTransitioning() && Math.abs(document.getElementById("startSection").getBoundingClientRect().top) < 0.1');
 const bookmarkClickTest = await evalJS(`(() => {
   const bm = document.querySelector('.bookmark-item');
   if (!bm) return { hasBm: false };
@@ -202,7 +211,8 @@ pass('sessionStorage 刷新保持、BFCache 自愈、导航页书签3D倾斜与�
 // 5. 搜索联想键盘选中项保持与 Escape 优雅清退
 // ══════════════════════════════════════════════════════════════════════
 
-await evalJS('window.switchToStart()'); await sleep(350);
+await evalJS('window.switchToStart()');
+await waitFor(evalJS, 'state.currentSection === "start" && !isScreenTransitioning()');
 await evalJS(`(() => {
   const i = document.getElementById('searchInput');
   i.focus();
@@ -210,8 +220,9 @@ await evalJS(`(() => {
   setter.call(i, 'git');
   i.dispatchEvent(new Event('input', { bubbles: true }));
 })()`);
-await sleep(500);
-await press('ArrowDown'); await sleep(150);
+await waitFor(evalJS, 'document.querySelectorAll("#suggestionMenu .suggestion-item").length > 0');
+await press('ArrowDown');
+await waitFor(evalJS, 'document.querySelector("#suggestionMenu .suggestion-item.active") !== null');
 const suggestSelectionCheck = await evalJS(`(() => {
   const menu = document.getElementById('suggestionMenu');
   const items = menu ? menu.querySelectorAll('.suggestion-item') : [];
@@ -219,7 +230,8 @@ const suggestSelectionCheck = await evalJS(`(() => {
   return { hasItems: items.length > 0, isSelected: selected !== null };
 })()`);
 
-await press('Escape'); await sleep(200);
+await press('Escape');
+await waitFor(evalJS, '!document.getElementById("suggestionMenu").classList.contains("active") && OverlayStack.isEmpty()');
 const escResult = await evalJS(`({
   val: document.getElementById('searchInput').value,
   menuActive: document.getElementById('suggestionMenu').classList.contains('active'),
@@ -256,9 +268,11 @@ const dropdownOk = topDropdown === 'dropdown' && (await stackTop()) === null;
 
 // 6.4 活动 Modal 拦截滚轮与快捷键
 await evalJS(`document.getElementById('editBookmarksBtn').click()`); await waitFor(evalJS, `OverlayStack.top()?.id === "editModal"`);
-await evalJS(`window.dispatchEvent(new WheelEvent('wheel', { deltaY: 120, bubbles: true, cancelable: true }))`); await sleep(100);
+await evalJS(`window.dispatchEvent(new WheelEvent('wheel', { deltaY: 120, bubbles: true, cancelable: true }))`);
+await waitFor(evalJS, 'state.currentSection === "start" && !isScreenTransitioning()');
 const wheelSec = await evalJS(`state.currentSection`);
-await press('PageDown'); await sleep(100);
+await press('PageDown');
+await waitFor(evalJS, 'state.currentSection === "start" && !isScreenTransitioning()');
 const keySec = await evalJS(`state.currentSection`);
 await press('Escape'); await waitFor(evalJS, `OverlayStack.isEmpty()`);
 const lockOk = wheelSec === 'start' && keySec === 'start';
@@ -280,9 +294,11 @@ const dropzoneOk = await evalJS(`(() => {
 
 // 6.7 遮罩透明度设置记忆
 await evalJS(`localStorage.setItem('maskOpacity', 50)`);
-await evalJS('setTimeout(() => location.reload(), 10)'); await sleep(1200);
+await evalJS('window.__pre_reload_mask = true; setTimeout(() => location.reload(), 10);');
+await waitFor(evalJS, 'document.readyState === "complete" && !window.__pre_reload_mask && !!window.OverlayStack && window.__PRE_BG_EFFECTS__?.op === 50');
 const beforeOverlay = await evalJS(`getComputedStyle(document.getElementById('bgOverlay')).backgroundColor`);
-await press('Escape'); await sleep(300);
+await press('Escape');
+await waitFor(evalJS, 'OverlayStack.isEmpty()');
 const afterOverlay = await evalJS(`getComputedStyle(document.getElementById('bgOverlay')).backgroundColor`);
 const maskOk = beforeOverlay === afterOverlay;
 await evalJS(`localStorage.removeItem('maskOpacity')`);
@@ -419,9 +435,10 @@ await send('Emulation.setDeviceMetricsOverride', {
   deviceScaleFactor: 3,
   mobile: true
 });
-await sleep(300);
+await waitFor(evalJS, 'window.innerWidth === 402');
 
-await evalJS('window.switchToNav()'); await sleep(600);
+await evalJS('window.switchToNav()');
+await waitFor(evalJS, 'state.currentSection === "nav" && !isScreenTransitioning()');
 
 const tab0Info = await evalJS(`(() => {
   const tab0 = document.getElementById('cat-tab-0'), sidebar = document.getElementById('sidebar');
@@ -438,8 +455,11 @@ const tab0Info = await evalJS(`(() => {
 const tab0Ok = tab0Info?.active && tab0Info?.text.includes('人工智能') && tab0Info?.visible && tab0Info?.scrollLeft === 0;
 const touchTargetOk = (tab0Info?.tabHeight || 0) >= 35;
 
-await evalJS('document.getElementById("navContent").scrollTop = 800'); await sleep(300);
-await evalJS('document.getElementById("navContent").dispatchEvent(new Event("scroll"))'); await sleep(500);
+await evalJS('(() => { const n = document.getElementById("navContent"); n.scrollTop = 800; n.dispatchEvent(new Event("scroll")); })()');
+await waitFor(evalJS, `(() => {
+  const activeTab = document.getElementById("sidebar")?.querySelector(".sidebar-item.active");
+  return activeTab && activeTab.id !== "cat-tab-0";
+})()`);
 
 const scrolledInfo = await evalJS(`(() => {
   const activeTab = document.getElementById('sidebar').querySelector('.sidebar-item.active');
@@ -447,8 +467,11 @@ const scrolledInfo = await evalJS(`(() => {
 })()`);
 const scrollSwitchOk = scrolledInfo !== 'cat-tab-0';
 
-await evalJS('document.getElementById("navContent").scrollTop = 0'); await sleep(300);
-await evalJS('document.getElementById("navContent").dispatchEvent(new Event("scroll"))'); await sleep(600);
+await evalJS('(() => { const n = document.getElementById("navContent"); n.scrollTop = 0; n.dispatchEvent(new Event("scroll")); })()');
+await waitFor(evalJS, `(() => {
+  const tab0 = document.getElementById("cat-tab-0"), sidebar = document.getElementById("sidebar");
+  return tab0 && tab0.classList.contains("active") && sidebar && sidebar.scrollLeft === 0;
+})()`);
 
 const restoredInfo = await evalJS(`(() => {
   const tab0 = document.getElementById('cat-tab-0'), sidebar = document.getElementById('sidebar');

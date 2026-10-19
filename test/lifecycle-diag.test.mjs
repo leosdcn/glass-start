@@ -1,10 +1,8 @@
 /** 验证指纹刷新冷却、内存日志与连续异常处理；模拟事件不验证真实 GPU 绘制。 */
-import { launchSession, sleep, makeTester } from './helpers.mjs';
+import { launchSession, makeTester, waitFor } from './helpers.mjs';
 
 const { pass, finish } = makeTester();
 const { server, chrome, evalJS } = await launchSession();
-
-await sleep(300);
 
 // ══════════════════════════════════════════════════════════════════════
 // 1. 指纹校验与刷新冷却；函数会读写 SessionStorage 并记录日志。
@@ -39,7 +37,7 @@ await evalJS(`
   document.dispatchEvent(new Event('visibilitychange'));
   window.dispatchEvent(new ErrorEvent('error', { message: 'diag-unit-test' }));
 `);
-await sleep(150);
+await waitFor(evalJS, `window.__GLASS_DIAG__.dump().some(e => e.ev === 'js-error')`);
 const bb = await evalJS(`(() => {
   const dump = window.__GLASS_DIAG__.dump();
   const evs = dump.map(e => e.ev);
@@ -114,7 +112,7 @@ pass('白屏异常三级修复阶梯 (L1校准/L2磁贴/L3冷却拦截连续升�
 // ══════════════════════════════════════════════════════════════════════
 
 await evalJS(`location.href = location.origin + '/?diag=1'`);
-await sleep(1300);
+await waitFor(evalJS, `location.search === '?diag=1' && document.readyState === 'complete' && typeof window.__GLASS_DIAG__ === 'object'`);
 const panel = await evalJS(`(() => {
   const noPanel = !document.getElementById('glassDiagPanel');
   const dump = typeof window.__GLASS_DIAG__ === 'object'
@@ -125,7 +123,7 @@ const panel = await evalJS(`(() => {
   return { noPanel, diagAlive };
 })()`);
 await evalJS(`location.href = location.origin + '/'`);
-await sleep(700);
+await waitFor(evalJS, `location.search === '' && document.readyState === 'complete'`);
 pass('诊断面板负向锁定 (?diag=1 零 UI 复活/控制台 dump 取证通道存活且结构合规)',
   panel.noPanel && panel.diagAlive,
   JSON.stringify(panel));

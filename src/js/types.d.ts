@@ -268,10 +268,12 @@ export interface WeatherLocation {
 export interface WeatherCurrent {
     temp: number;
     apparent?: number;
+    weatherCode?: number;
+    weatherText?: string;
+    icon?: string;
+    isDay?: boolean;
     humidity?: number;
     windSpeed?: number;
-    icon?: string;
-    weatherText?: string;
     precipitation?: number;
     pop?: number;
     sunrise?: string;
@@ -279,15 +281,15 @@ export interface WeatherCurrent {
     sunriseToday?: string;
     sunsetToday?: string;
     sunriseTomorrow?: string;
-    [key: string]: any;
+    sunsetTomorrow?: string;
 }
 export interface WeatherDailyItem {
+    date?: string;
     label?: string;
     icon?: string;
     text?: string;
     tempMax?: number;
     tempMin?: number;
-    [key: string]: any;
 }
 export interface WeatherData {
     current: WeatherCurrent;

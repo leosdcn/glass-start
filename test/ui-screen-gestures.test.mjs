@@ -1,5 +1,5 @@
 /** 验证双屏切换、输入保护、滚轮与触屏手势。 */
-import { launchSession, sleep, tyOf, makeTester, pressKey, waitFor } from './helpers.mjs';
+import { launchSession, tyOf, makeTester, pressKey, waitFor } from './helpers.mjs';
 
 const { pass, finish } = makeTester();
 const { server, chrome, send, evalJS } = await launchSession();
@@ -59,7 +59,8 @@ const arrowDownToNav = (await section()) === 'nav';
 
 // 1.4 盲打自动聚焦
 await evalJS('window.switchToStart()'); await waitForScreen('start');
-await press('g'); await sleep(150);
+await press('g');
+await waitFor(evalJS, 'document.activeElement?.id === "searchInput"');
 const blindTypeFocus = (await focus()) === 'searchInput';
 
 // 1.5 PageDown 按键切屏
@@ -88,21 +89,28 @@ await evalJS(`(function(){
   const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
   setter.call(i, 'git');
   i.dispatchEvent(new Event('input', { bubbles: true }));
-})()`); await sleep(500);
-await press('ArrowDown'); await sleep(150);
+})()`);
+await waitFor(evalJS, 'document.querySelectorAll("#suggestionMenu .suggestion-item").length > 0');
+await press('ArrowDown');
+await waitFor(evalJS, 'document.querySelector("#suggestionMenu .suggestion-item.active") !== null');
 const suggestProtect = (await section()) === 'start';
-await press('Escape'); await sleep(200);
+await press('Escape');
+await waitFor(evalJS, '!document.getElementById("suggestionMenu").classList.contains("active") && OverlayStack.isEmpty()');
 
 await evalJS('window.switchToNav()'); await waitForScreen('nav');
 await evalJS('window.switchToStart()'); await waitForScreen('start');
-await evalJS('document.getElementById("editBookmarksBtn").click()'); await sleep(300);
+await evalJS('document.getElementById("editBookmarksBtn").click()');
+await waitFor(evalJS, 'OverlayStack.top()?.id === "editModal"');
 await evalJS(`document.querySelector('.edit-row-card input').focus()`);
-await press('ArrowDown'); await sleep(150);
+await press('ArrowDown');
+await waitFor(evalJS, '!isScreenTransitioning() && state.currentSection === "start"');
 const modalProtect = (await section()) === 'start';
-await evalJS('document.getElementById("cancelEditBtn").click()'); await sleep(200);
+await evalJS('document.getElementById("cancelEditBtn").click()');
+await waitFor(evalJS, 'document.getElementById("editModal").hasAttribute("hidden") && OverlayStack.isEmpty()');
 
 await evalJS('window.switchToNav()'); await waitForScreen('nav');
-await evalJS('document.getElementById("navContent").scrollTop = 0'); await sleep(150);
+await evalJS('document.getElementById("navContent").scrollTop = 0');
+await waitFor(evalJS, 'document.getElementById("navContent").scrollTop === 0');
 await evalJS('document.activeElement && document.activeElement.blur()');
 await press('ArrowUp'); await waitForScreen('start');
 const topArrowUpBack = (await section()) === 'start';
@@ -115,20 +123,23 @@ pass('键盘方向键在联想/弹窗与顶端的输入保护 (联想防误切/�
 // 3. 滚轮与触屏手势切屏及内部滚动拦截机制
 // ══════════════════════════════════════════════════════════════════════
 
-await sleep(300);
+await waitFor(evalJS, '!isScreenTransitioning() && OverlayStack.isEmpty()');
 await evalJS(`(function(){
   document.dispatchEvent(new WheelEvent('wheel', { deltaY: 60, cancelable: true }));
   setTimeout(() => document.dispatchEvent(new WheelEvent('wheel', { deltaY: 60, cancelable: true })), 30);
 })()`); await waitForScreen('nav');
 const wheelInNav = nearZero(tyOf(await evalJS('getComputedStyle(document.getElementById("navSection")).transform')));
 
-await evalJS(`document.getElementById('navContent').scrollTo({ top: 400 })`); await sleep(150);
-await evalJS(`document.dispatchEvent(new WheelEvent('wheel', { deltaY: -60, cancelable: true }))`); await sleep(250);
+await evalJS(`document.getElementById('navContent').scrollTop = 400`);
+await waitFor(evalJS, 'document.getElementById("navContent").scrollTop === 400');
+await evalJS(`document.dispatchEvent(new WheelEvent('wheel', { deltaY: -60, cancelable: true }))`);
+await waitFor(evalJS, '!isScreenTransitioning() && state.currentSection === "nav"');
 const scrollBlocked = await evalJS('document.getElementById("startSection").getAttribute("aria-hidden") === "true"');
 
-await evalJS(`document.getElementById('navContent').scrollTo({ top: 0 })`); await sleep(150);
-await evalJS(`document.dispatchEvent(new WheelEvent('wheel', { deltaY: -60, cancelable: true }))`); await sleep(200);
-await evalJS(`document.dispatchEvent(new WheelEvent('wheel', { deltaY: -60, cancelable: true }))`); await waitForScreen('start');
+await evalJS(`document.getElementById('navContent').scrollTop = 0`);
+await waitFor(evalJS, 'document.getElementById("navContent").scrollTop === 0');
+await evalJS(`document.dispatchEvent(new WheelEvent('wheel', { deltaY: -60, cancelable: true }))`);
+await waitForScreen('start');
 const wheelBackStart = await evalJS('document.getElementById("startSection").getAttribute("aria-hidden") !== "true"');
 
 await evalJS(`(function(){

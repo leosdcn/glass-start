@@ -23,12 +23,21 @@ export const tyOf = (m) => {
 /** 响应式状态轮询器：等待表达式求值为真即刻放行，彻底消除盲等 sleep */
 export async function waitFor(evalJS, predicateJs, timeout = defaultWaitTimeout, interval = 20) {
   const start = Date.now();
+  let lastError;
   while (Date.now() - start < timeout) {
-    const res = await evalJS(predicateJs);
-    if (res) return res;
+    try {
+      const res = await evalJS(predicateJs);
+      if (res) return res;
+    } catch (error) {
+      if (!/Cannot find context|Execution context was destroyed|Inspected target navigated or closed/i.test(error?.message || '')) {
+        throw error;
+      }
+      lastError = error;
+    }
     await new Promise(r => setTimeout(r, interval));
   }
-  throw new Error(`Timeout after ${timeout}ms waiting for: ${predicateJs}`);
+  const causeMsg = lastError ? ` (last error: ${lastError.message})` : '';
+  throw new Error(`Timeout after ${timeout}ms waiting for: ${predicateJs}${causeMsg}`);
 }
 
 /** 仅导航就绪等待允许上下文替换；其他协议错误和页面异常直接报告。 */
