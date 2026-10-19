@@ -1,0 +1,70 @@
+name: Release Gate
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  linux-release-gate:
+    name: Full Quality Gate & W3C Validation (Ubuntu)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run lint
+        run: npm run lint
+
+      - name: Run typecheck
+        run: npm run typecheck
+
+      - name: Run build
+        run: npm run build
+
+      - name: Run unit tests
+        run: npm run test:unit
+
+      - name: Run full test suite (headless Chrome)
+        run: npm test
+
+      - name: Run W3C Nu HTML/CSS validation
+        run: npm run test:w3c
+
+  macos-release-gate:
+    name: Full Test Suite with native sips (macOS)
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run full test suite
+        run: npm test

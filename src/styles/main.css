@@ -583,7 +583,7 @@ button:active {
 }
 
 /* 起始页首屏 padding 安全区适配 */
-section:first-of-type {
+:is(main, section):first-of-type {
     padding-top: max(3rem, calc(3rem + env(safe-area-inset-top, 0px)));
     padding-bottom: max(3rem, calc(3rem + env(safe-area-inset-bottom, 0px)));
     padding-left: max(1rem, calc(1rem + env(safe-area-inset-left, 0px)));

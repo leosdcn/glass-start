@@ -2,7 +2,7 @@ const { watchFiles } = require('./watch.cjs');
 const { replaceOnce, injectDocumentShell } = require('./html-template.cjs');
 const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
+const { execSync, execFileSync } = require('child_process');
 
 /**
  * ==============================================================================
@@ -78,10 +78,25 @@ function compileTailwindCss() {
 
     try {
         const cssStart = Date.now();
-        const cssContent = execSync(`npx -y @tailwindcss/cli@4 -i "${PATHS.srcCss}" -m`, {
-            stdio: 'pipe', encoding: 'utf-8'
-        });
-        if (!cssContent.trim()) throw new Error('Tailwind returned empty CSS');
+        let cssContent;
+        try {
+            // 优先直接调用本地 node_modules 编译脚本，消除远程网络依赖与 npx 启动损耗
+            const cliPkg = require.resolve('@tailwindcss/cli/package.json', { paths: [ROOT_DIR] });
+            const cliBin = path.resolve(path.dirname(cliPkg), 'dist', 'index.mjs');
+            cssContent = execFileSync(process.execPath, [cliBin, '-i', PATHS.srcCss, '-m'], {
+                cwd: ROOT_DIR,
+                encoding: 'utf-8',
+                stdio: ['pipe', 'pipe', 'pipe']
+            });
+        } catch {
+            // 若本地未查找到，回退为 npx
+            cssContent = execSync(`npx -y @tailwindcss/cli@4 -i "${PATHS.srcCss}" -m`, {
+                cwd: ROOT_DIR,
+                stdio: 'pipe',
+                encoding: 'utf-8'
+            });
+        }
+        if (!cssContent || !cssContent.trim()) throw new Error('Tailwind returned empty CSS');
         const cssDuration = Date.now() - cssStart;
         const cssKb = (Buffer.byteLength(cssContent, 'utf-8') / 1024).toFixed(2);
         logItem(`扫描 src/styles/main.css 与组件模板 完成，原子化 CSS 静态编译就绪 (${cssKb} KB, 耗时 ${cssDuration}ms)`);

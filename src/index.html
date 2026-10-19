@@ -210,7 +210,7 @@
     <script>(function(){const bg=document.getElementById('bgLayer');const url=window.__PRELOADED_BG__||'./wallpapers/bg1.avif';if(bg){bg.style.backgroundImage="url(\""+url.replace(/["'\\]/g,'\\$&')+"\")";bg.style.opacity='1';}if(window.__PRE_BG_EFFECTS__){const o=document.getElementById('bgOverlay');if(o){o.style.backgroundColor='rgba(0, 0, 0, '+(window.__PRE_BG_EFFECTS__.op/100)+')';}}})()</script>
 
     <!-- ========== 第一屏：起始页 ========== -->
-    <section id="startSection" aria-label="起始页" class="relative z-10 min-h-dvh flex flex-col items-center justify-center px-4 py-12">
+    <main id="startSection" aria-label="起始页" class="relative z-10 min-h-dvh flex flex-col items-center justify-center px-4 py-12">
         <h1 class="sr-only">Glass Start — 流光起始页</h1>
 
         <!-- 左上角版本状态，与右侧天气胶囊对齐，随起始页一起切屏。 -->
@@ -322,7 +322,7 @@
             <svg class="size-5" aria-hidden="true"><use href="#icon-cog"/></svg>
         </button>
 
-    </section><!-- /#startSection -->
+    </main><!-- /#startSection -->
 
     <!-- ========== 第二屏：导航页 ========== -->
     <section id="navSection" aria-label="分类导航页" class="relative z-10 h-dvh nav-hidden overflow-hidden">
