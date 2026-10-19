@@ -165,6 +165,8 @@ export async function launchChrome({ port, url, testMode = true }) {
     '--no-sandbox',
     '--disable-setuid-sandbox',
     '--disable-dev-shm-usage',
+    // 让 Linux headless 与桌面浏览器一致地声明 hover/pointer 能力，避免倾斜测试被媒体查询提前关闭。
+    '--blink-settings=primaryHoverType=2,availableHoverTypes=2,primaryPointerType=4,availablePointerTypes=4',
     '--no-first-run',
     '--no-default-browser-check',
     '--window-size=1470,956',

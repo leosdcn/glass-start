@@ -10,6 +10,8 @@ const press = (key) => pressKey(evalJS, key);
 const section = async () => evalJS(`document.getElementById('startSection').getAttribute('aria-hidden') === 'true' ? 'nav' : 'start'`);
 const focus = async () => evalJS(`document.activeElement ? (document.activeElement.id || document.activeElement.tagName) : 'none'`);
 const waitForScreen = target => waitFor(evalJS, `state.currentSection === '${target}' && !isScreenTransitioning()`);
+// 过渡结束后允许亚像素误差，避免 Linux/CI 的 matrix 尾数导致严格等于 0 失败。
+const nearZero = value => value !== null && Math.abs(value) < 1;
 
 // ══════════════════════════════════════════════════════════════════════
 // 1. 双屏切屏状态机与键盘导航完整闭环
@@ -28,7 +30,7 @@ const init = await evalJS(`(() => {
   };
 })()`);
 const initValid = init.scrollY === 0 && (init.startTransform === 'none' || init.startTransform === 'matrix(1, 0, 0, 1, 0, 0)')
-  && tyOf(init.navTransform) > 600 && init.navAria === 'true' && init.startAria !== 'true' && !init.gearClass.includes('hidden-on-nav');
+  && tyOf(init.navTransform) > 599 && init.navAria === 'true' && init.startAria !== 'true' && !init.gearClass.includes('hidden-on-nav');
 
 // 1.2 JS API 切换到 Nav
 await evalJS('window.switchToNav()'); await waitForScreen('nav');
@@ -42,7 +44,7 @@ const navState = await evalJS(`(() => {
     gearClass: document.getElementById('editBookmarksBtn').className,
   };
 })()`);
-const navValid = tyOf(navState.navTransform) === 0 && navState.scrollY === 0 && tyOf(navState.startTransform) < -600
+const navValid = nearZero(tyOf(navState.navTransform)) && navState.scrollY === 0 && tyOf(navState.startTransform) < -599
   && navState.navAria !== 'true' && navState.gearClass.includes('hidden-on-nav');
 
 // 1.3 切回 Start + ArrowDown 切屏
@@ -64,11 +66,12 @@ await evalJS(`(async () => {
 })()`);
 await waitForScreen('nav');
 const pagedownTy = tyOf(await evalJS('getComputedStyle(document.getElementById("startSection")).transform'));
-const pagedownValid = pagedownTy !== null && pagedownTy < -600;
+const pagedownValid = pagedownTy !== null && pagedownTy < -599;
 
+const navDetail = navValid ? '' : ` navState=${JSON.stringify(navState)}`;
 pass('双屏切屏状态机与键盘导航完整闭环 (初始态/API/ArrowDown/盲打/PageDown)',
   initValid && navValid && focusAfterStart === 'BODY' && arrowDownToNav && blindTypeFocus && pagedownValid,
-  `init=${initValid}, nav=${navValid}, focus=${focusAfterStart}, arrow=${arrowDownToNav}, blind=${blindTypeFocus}, pagedown=${pagedownValid}`);
+  `init=${initValid}, nav=${navValid}${navDetail}, focus=${focusAfterStart}, arrow=${arrowDownToNav}, blind=${blindTypeFocus}, pagedown=${pagedownValid}`);
 
 // ══════════════════════════════════════════════════════════════════════
 // 2. 键盘方向键在联想/弹窗与顶端的输入保护
@@ -113,7 +116,7 @@ await evalJS(`(function(){
   document.dispatchEvent(new WheelEvent('wheel', { deltaY: 60, cancelable: true }));
   setTimeout(() => document.dispatchEvent(new WheelEvent('wheel', { deltaY: 60, cancelable: true })), 30);
 })()`); await waitForScreen('nav');
-const wheelInNav = tyOf(await evalJS('getComputedStyle(document.getElementById("navSection")).transform')) === 0;
+const wheelInNav = nearZero(tyOf(await evalJS('getComputedStyle(document.getElementById("navSection")).transform')));
 
 await evalJS(`document.getElementById('navContent').scrollTo({ top: 400 })`); await sleep(150);
 await evalJS(`document.dispatchEvent(new WheelEvent('wheel', { deltaY: -60, cancelable: true }))`); await sleep(250);
@@ -130,7 +133,7 @@ await evalJS(`(function(){
   document.dispatchEvent(new TouchEvent('touchmove', { touches: [tc(260)], cancelable: true }));
   document.dispatchEvent(new TouchEvent('touchend', { changedTouches: [tc(260)], cancelable: true }));
 })()`); await waitForScreen('nav');
-const touchInNav = tyOf(await evalJS('getComputedStyle(document.getElementById("navSection")).transform')) === 0;
+const touchInNav = nearZero(tyOf(await evalJS('getComputedStyle(document.getElementById("navSection")).transform')));
 
 // 触屏快速轻扫：位移与速度共同决定是否切屏。
 await evalJS('window.switchToStart()'); await waitForScreen('start');
@@ -145,9 +148,9 @@ const flick = async (from, to, target) => {
   await waitForScreen(target);
 };
 await flick(300, 270, 'nav');
-const flickInNav = tyOf(await evalJS('getComputedStyle(dom.navSection).transform')) === 0;
+const flickInNav = nearZero(tyOf(await evalJS('getComputedStyle(dom.navSection).transform')));
 await flick(270, 300, 'start');
-const flickBackStart = tyOf(await evalJS('getComputedStyle(dom.startSection).transform')) === 0;
+const flickBackStart = nearZero(tyOf(await evalJS('getComputedStyle(dom.startSection).transform')));
 const flickOk = flickInNav && flickBackStart;
 
 pass('滚轮与触屏手势切屏及内部滚动拦截机制 (滚轮下切/内容滚动拦截/滚轮上切/触屏阈值滑屏/Flick快速轻扫)',
