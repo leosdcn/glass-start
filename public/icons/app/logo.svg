@@ -1,78 +1,61 @@
 <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <!-- 1. 球体温润渐变 -->
-    <radialGradient id="gs_sphere" cx="35%" cy="28%" r="65%">
+    <radialGradient id="gs_sphere" cx="34%" cy="26%" r="76%">
       <stop offset="0%" stop-color="#FFF2C6"/>
-      <stop offset="28%" stop-color="#F8C66A"/>
-      <stop offset="62%" stop-color="#E28935"/>
-      <stop offset="88%" stop-color="#8E3C12"/>
-      <stop offset="100%" stop-color="#552208"/>
+      <stop offset="30%" stop-color="#F8C66A"/>
+      <stop offset="64%" stop-color="#E49A48"/>
+      <stop offset="88%" stop-color="#B46A30"/>
+      <stop offset="100%" stop-color="#79401F"/>
     </radialGradient>
-    <!-- 2. 球面羽化高光 (柔和弥散球面漫反射) -->
-    <radialGradient id="gs_specular" cx="40%" cy="35%" r="55%">
-      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.45"/>
-      <stop offset="50%" stop-color="#FFFFFF" stop-opacity="0.15"/>
+    <radialGradient id="gs_specular">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.24"/>
       <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
     </radialGradient>
-    <!-- 整环共用渐变，避免前后半环接缝处重复叠色 -->
-    <linearGradient id="gs_ra_front" gradientUnits="userSpaceOnUse" x1="2" y1="66" x2="98" y2="34">
-      <stop offset="0%" stop-color="#B8D3EC" stop-opacity="0.85"/>
-      <stop offset="50%" stop-color="#7B9FB8" stop-opacity="0.7"/>
-      <stop offset="100%" stop-color="#4D6B82" stop-opacity="0.8"/>
+    <linearGradient id="gs_outer_ring" gradientUnits="userSpaceOnUse" x1="5" y1="65" x2="95" y2="35">
+      <stop offset="0%" stop-color="#BDD6E9"/>
+      <stop offset="50%" stop-color="#9DB9CC"/>
+      <stop offset="100%" stop-color="#718FA4"/>
     </linearGradient>
-    <linearGradient id="gs_rb_front" gradientUnits="userSpaceOnUse" x1="6" y1="65" x2="94" y2="35">
-      <stop offset="0%" stop-color="#DCEBFA" stop-opacity="0.94"/>
-      <stop offset="35%" stop-color="#B0CEE6" stop-opacity="0.84"/>
-      <stop offset="70%" stop-color="#7F9EB5" stop-opacity="0.74"/>
-      <stop offset="100%" stop-color="#557896" stop-opacity="0.84"/>
+    <linearGradient id="gs_inner_ring" gradientUnits="userSpaceOnUse" x1="7" y1="65" x2="93" y2="35">
+      <stop offset="0%" stop-color="#DFECF4"/>
+      <stop offset="35%" stop-color="#C5DAE8"/>
+      <stop offset="70%" stop-color="#AAC4D6"/>
+      <stop offset="100%" stop-color="#87A7BD"/>
     </linearGradient>
-    <!-- 5. 严格跟随 -25° 倾角投影的阴影渐变 -->
-    <linearGradient id="gs_ring_shadow" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#2D1103" stop-opacity="0.8"/>
-      <stop offset="100%" stop-color="#2D1103" stop-opacity="0"/>
+    <linearGradient id="gs_ring_shadow" gradientUnits="userSpaceOnUse" x1="50" y1="58" x2="50" y2="66">
+      <stop offset="0%" stop-color="#593B23" stop-opacity="0"/>
+      <stop offset="45%" stop-color="#593B23" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#593B23" stop-opacity="0"/>
     </linearGradient>
-    <!-- 在星环自身坐标系中遮住球体后方；两侧始终是同一条完整椭圆 -->
-    <mask id="gs_ring_visibility" maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="100" style="mask-type:luminance">
-      <rect width="100" height="100" fill="#FFFFFF"/>
-      <path d="M 25 50 A 25 25 0 0 1 75 50 Z" fill="#000000"/>
-    </mask>
     <clipPath id="gs_sphere_clip">
       <circle cx="50" cy="50" r="25"/>
     </clipPath>
     <clipPath id="gs_ring_front_half">
       <rect x="0" y="50" width="100" height="50"/>
     </clipPath>
-    <linearGradient id="gs_ring_glint" gradientUnits="userSpaceOnUse" x1="8.5" y1="50" x2="91.5" y2="50">
-      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0"/>
-      <stop offset="25%" stop-color="#FFFFFF" stop-opacity="0.3"/>
-      <stop offset="75%" stop-color="#FFFFFF" stop-opacity="0.3"/>
-      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
-    </linearGradient>
+    <!-- 整环只绘制一次，遮住位于球体后方的上半部，消除两侧接缝 -->
+    <mask id="gs_ring_visibility" maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="100" style="mask-type:luminance">
+      <rect width="100" height="100" fill="#FFFFFF"/>
+      <path d="M 25 50 A 25 25 0 0 1 75 50 Z" fill="#000000"/>
+    </mask>
   </defs>
-  <!-- 2. 主球体 -->
   <circle cx="50" cy="50" r="25" fill="url(#gs_sphere)"/>
-  <!-- 球面细节统一裁切，避免反光及大气纹理越出球体 -->
   <g clip-path="url(#gs_sphere_clip)">
-    <!-- 3. 大气层微结构 -->
-    <g opacity="0.85">
-      <path d="M26 43 C 34 46.8, 66 46.8, 74 43 C 73 45.2, 67 48, 27 48 Z" fill="#D47322" fill-opacity="0.35"/>
-      <path d="M26.5 53 C 35 56.2, 65 56.2, 73.5 53 C 72.5 55.6, 62 58.8, 27.5 58.8 Z" fill="#9C4413" fill-opacity="0.42"/>
-    </g>
-    <!-- 4. 物理倾角 -25° 星环投影 -->
+    <!-- 云带与星环共用赤道方向，边界延伸至裁切区外 -->
     <g transform="rotate(-25 50 50)">
-      <path d="M 25 50 A 25 25 0 0 0 75 50 C 65 56, 35 56, 25 50 Z" fill="url(#gs_ring_shadow)"/>
+      <path d="M 20 38 Q 50 44 80 38 L 80 41 Q 50 47 20 41 Z" fill="#FFEDB8" fill-opacity="0.2"/>
+      <path d="M 20 47 Q 50 53 80 47 L 80 50 Q 50 56 20 50 Z" fill="#B97936" fill-opacity="0.2"/>
+      <path d="M 20 57 Q 50 63 80 57 L 80 59 Q 50 65 20 59 Z" fill="#FFE0A1" fill-opacity="0.16"/>
+      <!-- 窄幅渐隐投影沿前侧环盘下缘分布，不再横切整个球面 -->
+      <g clip-path="url(#gs_ring_front_half)">
+        <ellipse cx="50" cy="52" rx="36.5" ry="12.8" stroke="url(#gs_ring_shadow)" stroke-width="3"/>
+      </g>
     </g>
-    <!-- 5. 暗部微反光 (右下角星环对暗部的冷调漫反射) -->
-    <path d="M50 75 A 25 25 0 0 0 74 58 C 70 65, 60 72, 50 75 Z" fill="#93B8D9" fill-opacity="0.28"/>
-    <!-- 6. 球面高光 (柔和高斯弥散光晕) -->
-    <ellipse cx="43" cy="33" rx="14" ry="8" transform="rotate(-20 43 33)" fill="url(#gs_specular)"/>
+    <ellipse cx="41" cy="34" rx="16" ry="12" transform="rotate(-25 41 34)" fill="url(#gs_specular)"/>
   </g>
-  <!-- 完整星环只绘制一次，遮罩决定与球体的前后关系 -->
   <g transform="rotate(-25 50 50)" mask="url(#gs_ring_visibility)">
-    <ellipse cx="50" cy="50" rx="46.5" ry="14.5" stroke="url(#gs_ra_front)" stroke-width="3"/>
-    <!-- 半轴间距均为 5，大于描边半宽之和 3.75，避免内外环相交 -->
-    <ellipse cx="50" cy="50" rx="41.5" ry="9.5" stroke="url(#gs_rb_front)" stroke-width="4.5"/>
-    <!-- 高光与内环共用轨迹，两端透明淡出 -->
-    <ellipse cx="50" cy="50" rx="41.5" ry="9.5" stroke="url(#gs_ring_glint)" stroke-width="0.75" clip-path="url(#gs_ring_front_half)"/>
+    <!-- 各边界保持相同比例的椭圆投影，形成共面宽环盘及一道细环缝 -->
+    <path fill-rule="evenodd" d="M 2 50 A 48 16.8 0 1 0 98 50 A 48 16.8 0 1 0 2 50 Z M 6 50 A 44 15.4 0 1 0 94 50 A 44 15.4 0 1 0 6 50 Z" fill="url(#gs_outer_ring)"/>
+    <path fill-rule="evenodd" d="M 7.2 50 A 42.8 14.98 0 1 0 92.8 50 A 42.8 14.98 0 1 0 7.2 50 Z M 19 50 A 31 10.85 0 1 0 81 50 A 31 10.85 0 1 0 19 50 Z" fill="url(#gs_inner_ring)"/>
   </g>
 </svg>
