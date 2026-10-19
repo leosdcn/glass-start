@@ -190,10 +190,10 @@ export function getFaviconHTML(bm, sizeType = 'sm', useNavBacking = false) {
  * @param {string} [extraClass=''] - 附加样式类
  * @returns {string} 渲染的安全 HTML 字符串
  */
-export function getCategoryIconHTML(icon, extraClass = '') {
+export function getCategoryIconHTML(icon, sizeClass = 'size-4') {
     if (!icon) return '';
     if (typeof icon === 'string' && (icon.startsWith('./') || icon.startsWith('/') || icon.endsWith('.svg') || icon.endsWith('.png') || icon.endsWith('.webp'))) {
-        return `<img src="${safeUrl(icon)}" class="size-4 shrink-0 object-contain select-none inline-block align-middle pointer-events-none ${extraClass}" alt="" aria-hidden="true" loading="lazy" decoding="async">`;
+        return `<img src="${safeUrl(icon)}" class="${sizeClass} shrink-0 object-contain select-none pointer-events-none inline-block align-middle" alt="" aria-hidden="true" loading="lazy" decoding="async">`;
     }
     return escapeHtml(icon);
 }
@@ -386,7 +386,7 @@ export function renderNavCategories(force = false) {
     sidebarList.innerHTML = pageData.categories.map((cat, i) => `
         <button type="button" role="tab" id="cat-tab-${i}" aria-selected="${i === 0 ? 'true' : 'false'}" aria-controls="cat-${i}" class="sidebar-item w-full text-left text-xs md:text-sm px-2.5 py-1.75 min-h-9 text-white/70 flex items-center gap-2 ${i === 0 ? 'active' : ''}"
                 data-target="cat-${i}" data-idx="${i}">
-            <span class="text-sm shrink-0 sidebar-icon flex items-center justify-center">${getCategoryIconHTML(cat.icon, 'size-4')}</span>
+            <span class="size-5 shrink-0 sidebar-icon flex items-center justify-center">${getCategoryIconHTML(cat.icon, 'size-4')}</span>
             <span class="truncate sidebar-label">${escapeHtml(cat.name)}</span>
         </button>
     `).join('');
@@ -396,8 +396,8 @@ export function renderNavCategories(force = false) {
         return `
         <div id="cat-${i}" role="tabpanel" aria-labelledby="cat-tab-${i}" class="category-block ${i > 0 ? 'scroll-mt-6' : ''}">
             <div class="category-header flex items-center justify-between pb-2.5 mb-3.5 transition-colors duration-300 select-none">
-                <div class="flex items-center gap-2 select-none">
-                    <span class="text-sm sm:text-base shrink-0 select-none flex items-center justify-center">${getCategoryIconHTML(cat.icon, 'size-4 sm:size-5')}</span>
+                <div class="flex items-center gap-2.5 select-none">
+                    <span class="size-6 shrink-0 select-none flex items-center justify-center">${getCategoryIconHTML(cat.icon, 'size-5')}</span>
                     <h3 class="text-xs sm:text-sm font-semibold tracking-wide text-white/90 select-none">${escapeHtml(cat.name)}</h3>
                 </div>
             </div>
