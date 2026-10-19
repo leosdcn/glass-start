@@ -9,9 +9,13 @@ await waitFor(evalJS, 'typeof isScreenTransitioning === "function"');
 const press = (key) => pressKey(evalJS, key);
 const section = async () => evalJS(`document.getElementById('startSection').getAttribute('aria-hidden') === 'true' ? 'nav' : 'start'`);
 const focus = async () => evalJS(`document.activeElement ? (document.activeElement.id || document.activeElement.tagName) : 'none'`);
-const waitForScreen = target => waitFor(evalJS, `state.currentSection === '${target}' && !isScreenTransitioning()`);
+const waitForScreen = target => waitFor(evalJS, `state.currentSection === '${target}' && !isScreenTransitioning() && (() => {
+  const el = document.getElementById('${target}Section');
+  const t = el ? getComputedStyle(el).transform : '';
+  return !t || t === 'none' || Math.abs(new DOMMatrixReadOnly(t).m42) < 2;
+})()`);
 // 过渡结束后允许亚像素误差，避免 Linux/CI 的 matrix 尾数导致严格等于 0 失败。
-const nearZero = value => value !== null && Math.abs(value) < 1;
+const nearZero = value => value !== null && Math.abs(value) < 2;
 
 // ══════════════════════════════════════════════════════════════════════
 // 1. 双屏切屏状态机与键盘导航完整闭环

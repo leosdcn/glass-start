@@ -298,6 +298,14 @@ const engineDropdownCheck = await evalJS(`(() => {
 
 // 6.9 无障碍 Focus Trap 焦点循环锁定与焦点平滑归还 (Tab 从末尾回绕首项 / Shift+Tab 从首项回绕末尾 / 外部焦点强制回捕 / 多层嵌套栈顶隔离 / 弹窗关闭归还焦点到触发按钮)
 const focusTrapCheck = await evalJS(`(async () => {
+  const waitForFocus = async (id, timeout = 4000) => {
+    const start = Date.now();
+    while (Date.now() - start < timeout) {
+      if (document.activeElement && document.activeElement.id === id) return true;
+      await new Promise(r => setTimeout(r, 50));
+    }
+    return false;
+  };
   // 1. 打开设置弹窗
   const editBtn = document.getElementById('editBookmarksBtn');
   const editInitExpanded = editBtn ? editBtn.getAttribute('aria-expanded') : null;
@@ -345,9 +353,8 @@ const focusTrapCheck = await evalJS(`(async () => {
   const stackedTabWrapOk = document.activeElement === confirmFirst;
   
   document.getElementById('confirmCancelBtn').click();
-  await new Promise(r => setTimeout(r, 300));
+  const confirmTriggerRestoredOk = await waitForFocus('resetEditBtn');
   const confirmClosedExpanded = resetBtn ? resetBtn.getAttribute('aria-expanded') : null;
-  const confirmTriggerRestoredOk = document.activeElement && document.activeElement.id === 'resetEditBtn';
   const confirmAriaOk = confirmInitExpanded === 'false' && confirmOpenExpanded === 'true' && confirmClosedExpanded === 'false';
 
   // 6. 书签提取子弹窗 (bookmarkPicker) 焦点归还测试 (位于 tabBookmarks 选项卡)
@@ -360,9 +367,8 @@ const focusTrapCheck = await evalJS(`(async () => {
   await new Promise(r => setTimeout(r, 300));
   const pickerOpenExpanded = pickerBtn ? pickerBtn.getAttribute('aria-expanded') : null;
   document.getElementById('donePickerBtn').click();
-  await new Promise(r => setTimeout(r, 300));
+  const pickerTriggerRestoredOk = await waitForFocus('togglePickerBtn');
   const pickerClosedExpanded = pickerBtn ? pickerBtn.getAttribute('aria-expanded') : null;
-  const pickerTriggerRestoredOk = document.activeElement && document.activeElement.id === 'togglePickerBtn';
   const pickerAriaOk = pickerInitExpanded === 'false' && pickerOpenExpanded === 'true' && pickerClosedExpanded === 'false';
 
   // 7. 设置弹窗内快捷键与鸣谢按钮 aria-expanded 联动测试
@@ -390,10 +396,9 @@ const focusTrapCheck = await evalJS(`(async () => {
 
   // 8. 关闭设置弹窗并验证焦点平滑归还至触发源 (editBookmarksBtn)
   document.getElementById('cancelEditBtn').click();
-  await new Promise(r => setTimeout(r, 300));
+  const focusRestoredOk = await waitForFocus('editBookmarksBtn');
   const editClosedExpanded = editBtn ? editBtn.getAttribute('aria-expanded') : null;
   const editAriaOk = editInitExpanded === 'false' && editOpenExpanded === 'true' && editClosedExpanded === 'false';
-  const focusRestoredOk = document.activeElement && document.activeElement.id === 'editBookmarksBtn';
   const bodyLockReleased = !document.body.classList.contains('overflow-hidden') && !document.body.classList.contains('touch-none');
 
   return { tabWrapOk, shiftTabWrapOk, outsideTrapOk, stackedTabWrapOk, confirmTriggerRestoredOk, confirmAriaOk, pickerTriggerRestoredOk, pickerAriaOk, shortcutAriaOk, creditsAriaOk, editAriaOk, focusRestoredOk, bodyLockReleased };
