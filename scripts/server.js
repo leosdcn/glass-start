@@ -88,7 +88,8 @@ function createStaticServer() {
                 }
 
                 const isWallpaper = rel.startsWith('wallpapers' + path.sep) || rel.startsWith('wallpapers/');
-                const isIcon = rel.startsWith('icons' + path.sep) || rel.startsWith('icons/');
+                const isIcon = rel.startsWith('icons' + path.sep) || rel.startsWith('icons/')
+                    || rel === 'apple-touch-icon.png' || rel === 'apple-touch-icon-precomposed.png' || rel === 'favicon.ico';
                 const isImmutableAsset = isWallpaper || isIcon;
 
                 // 对壁纸与图标处理 If-Modified-Since，命中时返回 304。

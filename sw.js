@@ -135,7 +135,9 @@ self.addEventListener('fetch', e => {
     const isSameOrigin = urlObj.origin === self.location.origin;
     const scopePath = new URL(self.registration ? self.registration.scope : self.location.href).pathname.toLowerCase();
     const scopePathClean = scopePath.endsWith('/') && scopePath.length > 1 ? scopePath.slice(0, -1) : scopePath;
-    const isMainDoc = isSameOrigin && (
+    const isImgAsset = isSameOrigin && /\.(ico|png|jpg|jpeg|svg|webp|avif)$/.test(pathnameLower);
+    // 直接打开图片时仍须返回图片，不能被主文档的离线回退替换成 HTML。
+    const isMainDoc = isSameOrigin && !isImgAsset && (
         e.request.mode === 'navigate'
         || pathnameLower === '/'
         || pathnameLower === scopePath
@@ -146,7 +148,6 @@ self.addEventListener('fetch', e => {
     const isFaviconDomain = urlObj.origin === 'https://a.favicon.im'
         || (urlObj.origin === 'https://www.google.com' && pathnameLower.startsWith('/s2/favicons'))
         || urlObj.hostname.endsWith('.gstatic.com');
-    const isImgAsset = isSameOrigin && /\.(ico|png|jpg|jpeg|svg|webp|avif)$/.test(pathnameLower);
     const isCoreStaticAsset = isSameOrigin
         && (pathnameLower.endsWith('.js') || pathnameLower.endsWith('.css'))
         && !pathnameLower.endsWith('/sw.js');
