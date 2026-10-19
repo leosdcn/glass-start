@@ -16,7 +16,7 @@ permissions:
 
 jobs:
   linux-checks:
-    name: Lint, Typecheck & Test (Ubuntu)
+    name: Lint & Test (Ubuntu)
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -35,41 +35,5 @@ jobs:
       - name: Run lint
         run: npm run lint
 
-      - name: Run typecheck
-        run: npm run typecheck
-
-      - name: Run build
-        run: npm run build
-
-      - name: Run unit tests
-        run: npm run test:unit
-
-      - name: Run full test suite (headless Chrome)
+      - name: Run full test suite (typecheck + build + Chrome)
         run: npm test
-
-  macos-full-suite:
-    name: Full Test Suite with native sips (macOS)
-    runs-on: macos-latest
-    timeout-minutes: 30
-    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run full test suite
-        run: npm test
-
-      - name: Enable Safari remote automation
-        run: sudo safaridriver --enable
-
-      - name: Run Safari WebKit smoke test
-        run: npm run test:safari

@@ -30,6 +30,6 @@
 | 代码修改 | `npm run lint && npm run typecheck` |
 | 局部功能修改 | 按模块运行 `npm run test:ui` / `npm run test:data` / `npm run test:infra` / `npm run test:lifecycle` |
 | 常规提交前 | `npm test` |
-| 版本发布前 | `npm test && npm run test:w3c`，W3C 校验须 0 报错；macOS / CI 环境执行 `npm run test:safari` |
+| 版本发布前 | `npm test && npm run test:w3c`，W3C 校验须 0 报错；Safari/iOS 按 `docs/SAFARI_SMOKE_CHECKLIST.md` 手动走查 |
 
 验证失败时修复本次改动引入的问题，并重跑受影响检查；如有环境阻塞或既有失败，明确报告。
