@@ -77,7 +77,7 @@ function renderBgEffects(op) {
     const sameOverlay = lastBgEffects?.element === bgOverlay;
     if (!sameOverlay) {
         const trSec = `${CONFIG.TIMERS.BG_OVERLAY_TRANSITION / 1000}s`;
-        bgOverlay.style.transition = `background-color ${trSec} ease, opacity ${trSec} ease`;
+        bgOverlay.style.transition = `background-color ${trSec} ease`;
     }
     if (!sameOverlay || lastBgEffects.opacity !== op) {
         bgOverlay.style.backgroundColor = `rgba(0,0,0,${op / 100})`;
