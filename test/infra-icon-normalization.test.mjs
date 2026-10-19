@@ -3,7 +3,20 @@ import vm from 'node:vm';
 import { mkdtempSync, readFileSync, writeFileSync, rmSync, renameSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { tmpdir } from 'node:os';
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
+
+let hasSips = false;
+try {
+  const check = spawnSync('sips', ['--version'], { stdio: 'ignore' });
+  hasSips = check.status === 0;
+} catch {
+  hasSips = false;
+}
+
+if (!hasSips) {
+  console.log('⚠️ 当前环境未检测到 sips（通常仅 macOS 支持），跳过图标正方形规范化测试');
+  process.exit(0);
+}
 
 const source = readFileSync(new URL('../scripts/sync-icons.mjs', import.meta.url), 'utf8');
 const implementation = source.slice(source.indexOf('function saveAsPng('), source.indexOf('\nasync function runConcurrent'));

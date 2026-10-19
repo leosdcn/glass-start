@@ -8,12 +8,13 @@ export const dbPromise = new Promise(resolve => {
     try {
         const req = indexedDB.open(CONFIG.IDB.DB_NAME, CONFIG.IDB.VERSION);
         req.onupgradeneeded = e => {
-            const db = e.target.result;
+            const openReq = /** @type {IDBOpenDBRequest} */ (e.target);
+            const db = openReq.result;
             if (!db.objectStoreNames.contains(CONFIG.IDB.STORES.WALLPAPERS)) {
                 db.createObjectStore(CONFIG.IDB.STORES.WALLPAPERS);
             }
         };
-        req.onsuccess = e => resolve(e.target.result);
+        req.onsuccess = () => resolve(req.result);
         req.onerror = () => resolve(null);
     } catch { resolve(null); }
 });
@@ -55,6 +56,7 @@ export async function getWallpaperSelectionDB() {
 }
 
 // 请求成功不等于事务提交成功；全部写入或删除均等待 complete。
+/** @param {(store: IDBObjectStore) => void} mutate */
 async function mutateWallpaperDB(mutate) {
     try {
         const db = await dbPromise;
@@ -69,7 +71,10 @@ async function mutateWallpaperDB(mutate) {
     } catch { return false; }
 }
 
-/** 原子提交壁纸内容及预设索引；失败时两者均保持原值。 */
+/** 
+ * 原子提交壁纸内容及预设索引；失败时两者均保持原值。
+ * @param {{ wallpaper: string | null; bg: number }} selection
+ */
 export function setWallpaperSelectionDB(selection) {
     return mutateWallpaperDB(store => {
         store.put(selection, CONFIG.IDB.KEYS.SELECTION);
@@ -91,7 +96,11 @@ export function removeWallpaperDB() {
     });
 }
 
-/** 仅在没有现代选择记录时迁移；同一事务读取并写入，保护并发的新选择。 */
+/** 
+ * 仅在没有现代选择记录时迁移；同一事务读取并写入，保护并发的新选择。
+ * @param {string} legacyWallpaper
+ * @returns {Promise<{ status: string; selection?: { wallpaper: string | null; bg: number } }>}
+ */
 export async function migrateLegacyWallpaperDB(legacyWallpaper) {
     try {
         const db = await dbPromise;
@@ -99,6 +108,7 @@ export async function migrateLegacyWallpaperDB(legacyWallpaper) {
         return await new Promise(resolve => {
             const tx = db.transaction(CONFIG.IDB.STORES.WALLPAPERS, 'readwrite');
             const store = tx.objectStore(CONFIG.IDB.STORES.WALLPAPERS);
+            /** @type {{ status: string; selection?: { wallpaper: string | null; bg: number } }} */
             let result = { status: 'failed' };
             tx.oncomplete = () => resolve(result);
             tx.onerror = tx.onabort = () => resolve({ status: 'failed' });

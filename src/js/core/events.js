@@ -12,14 +12,19 @@ import { toggleWeatherPopover, closeWeatherPopover } from '../modules/weather.js
 import { switchBg } from '../modules/wallpaper.js';
 import { openShortcutModal, closeShortcutModal } from '../modules/settings.js';
 
+/**
+ * @param {KeyboardEvent} e
+ * @param {HTMLElement | null} modalEl
+ */
 export function handleModalTabFocus(e, modalEl) {
     if (!modalEl) return;
     const focusables = Array.from(modalEl.querySelectorAll('button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])')).filter(el => {
-        return el.tabIndex >= 0 && (el.offsetWidth > 0 || el.offsetHeight > 0 || el === document.activeElement);
+        const hEl = /** @type {HTMLElement} */ (el);
+        return hEl.tabIndex >= 0 && (hEl.offsetWidth > 0 || hEl.offsetHeight > 0 || hEl === document.activeElement);
     });
     if (focusables.length === 0) return;
-    const first = focusables[0];
-    const last = focusables[focusables.length - 1];
+    const first = /** @type {HTMLElement} */ (focusables[0]);
+    const last = /** @type {HTMLElement} */ (focusables[focusables.length - 1]);
     if (e.shiftKey) {
         if (document.activeElement === first || !modalEl.contains(document.activeElement)) {
             last.focus();
@@ -36,6 +41,7 @@ export function handleModalTabFocus(e, modalEl) {
 export function bindEvents() {
     let isComposing = false;
     let justEndedComposition = false;
+    /** @type {ReturnType<typeof setTimeout>|null} */
     let compositionEndTimer = null;
 
     const searchInput = dom.searchInput;
@@ -47,13 +53,18 @@ export function bindEvents() {
     const weatherBtn = dom.weatherBtn;
     const weatherPopover = dom.weatherPopover;
 
+    /** @param {boolean} hasVal */
     const updateSearchActionButtons = (hasVal) => {
-        for (const [button, visible] of [[searchClearBtn, !!hasVal], [randomBookmarkBtn, !hasVal]]) {
-            if (!button) continue;
-            button.classList.toggle('hidden', !visible);
-            button.inert = !visible;
-            button.setAttribute('aria-hidden', String(!visible));
-            if (!visible && document.activeElement === button) searchInput?.focus();
+        const actionButtons = [
+            { btn: searchClearBtn, visible: !!hasVal },
+            { btn: randomBookmarkBtn, visible: !hasVal }
+        ];
+        for (const { btn, visible } of actionButtons) {
+            if (!btn) continue;
+            btn.classList.toggle('hidden', !visible);
+            btn.inert = !visible;
+            btn.setAttribute('aria-hidden', String(!visible));
+            if (!visible && document.activeElement === btn) searchInput?.focus();
         }
     };
     updateSearchActionButtons(!!searchInput?.value);
@@ -119,16 +130,18 @@ export function bindEvents() {
 
     if (suggestionMenu) {
         suggestionMenu.addEventListener('click', e => {
-            const item = e.target.closest('[data-suggestion]');
-            if (!item) return;
+            const targetEl = e.target instanceof Element ? e.target : null;
+            const item = /** @type {HTMLElement|null} */ (targetEl?.closest('[data-suggestion]'));
+            if (!item || !item.dataset.idx) return;
             e.stopPropagation();
             const isNewTab = e.altKey || e.metaKey || e.ctrlKey;
             activateSuggestion(Number(item.dataset.idx), isNewTab);
         });
         suggestionMenu.addEventListener('mouseover', e => {
             suggestionMenu.classList.remove('keyboard-nav');
-            const item = e.target.closest('.suggestion-item');
-            if (!item) return;
+            const targetEl = e.target instanceof Element ? e.target : null;
+            const item = /** @type {HTMLElement|null} */ (targetEl?.closest('.suggestion-item'));
+            if (!item || !item.dataset.idx) return;
             selectSuggestion(Number(item.dataset.idx), { updateInput: false });
         }, { passive: true });
     }
@@ -144,8 +157,9 @@ export function bindEvents() {
 
     if (dropdownMenu) {
         dropdownMenu.addEventListener('click', e => {
-            const btn = e.target.closest('[data-engine]');
-            if (btn) { e.stopPropagation(); setEngine(btn.dataset.engine); }
+            const targetEl = e.target instanceof Element ? e.target : null;
+            const btn = /** @type {HTMLElement|null} */ (targetEl?.closest('[data-engine]'));
+            if (btn && btn.dataset.engine) { e.stopPropagation(); setEngine(btn.dataset.engine); }
         });
     }
 
@@ -172,13 +186,16 @@ export function bindEvents() {
     document.addEventListener('click', handleCloseMenus);
     window.addEventListener('blur', handleCloseMenus);
 
+    /** @param {MouseEvent} e */
     const handleLinkClickFeedback = (e) => {
-        const link = e.target && e.target.closest && e.target.closest('a[target="_blank"], .bookmark-item, .nav-bookmark');
+        const targetEl = e.target instanceof Element ? e.target : null;
+        const link = /** @type {HTMLElement|null} */ (targetEl?.closest('a[target="_blank"], .bookmark-item, .nav-bookmark'));
         if (link) {
             resetActiveCard();
             if (typeof link.blur === 'function') link.blur();
-            if (document.activeElement && typeof document.activeElement.blur === 'function' && document.activeElement !== document.body && document.activeElement !== searchInput) {
-                document.activeElement.blur();
+            const activeEl = /** @type {HTMLElement|null} */ (document.activeElement);
+            if (activeEl && typeof activeEl.blur === 'function' && activeEl !== document.body && activeEl !== searchInput) {
+                activeEl.blur();
             }
             const isBackgroundOpen = e.metaKey || e.ctrlKey || e.button === 1;
             if (!isBackgroundOpen) {
@@ -201,8 +218,9 @@ export function bindEvents() {
 
     const handleTabBlur = () => {
         document.body.classList.add('tab-blurred');
-        if (document.activeElement && typeof document.activeElement.blur === 'function' && document.activeElement !== document.body && document.activeElement !== searchInput) {
-            document.activeElement.blur();
+        const activeEl = /** @type {HTMLElement|null} */ (document.activeElement);
+        if (activeEl && typeof activeEl.blur === 'function' && activeEl !== document.body && activeEl !== searchInput) {
+            activeEl.blur();
         }
     };
     const clearTabBlurOnInteraction = () => {
@@ -268,8 +286,9 @@ export function bindEvents() {
             if (!onlySuggestions) return;
         }
 
-        const activeTag = document.activeElement?.tagName;
-        const isInputActive = activeTag === 'INPUT' || activeTag === 'TEXTAREA' || document.activeElement?.isContentEditable;
+        const activeEl = /** @type {HTMLElement|null} */ (document.activeElement);
+        const activeTag = activeEl?.tagName;
+        const isInputActive = activeTag === 'INPUT' || activeTag === 'TEXTAREA' || !!activeEl?.isContentEditable;
 
         if ((e.key === 'b' || e.key === 'B') && (e.metaKey || e.ctrlKey) && !isInputActive) {
             e.preventDefault();
@@ -292,13 +311,13 @@ export function bindEvents() {
 
             const updateActiveSuggestion = () => {
                 selectSuggestion(selectedSuggestionIdx, { keyboard: true });
-                updateSearchActionButtons(!!searchInput.value);
+                if (searchInput) updateSearchActionButtons(!!searchInput.value);
             };
 
             if (!e.ctrlKey && !e.metaKey && !e.altKey) {
                 if (e.key === 'ArrowDown' && suggestionCount > 0) {
                     e.preventDefault();
-                    if (selectedSuggestionIdx === -1) {
+                    if (selectedSuggestionIdx === -1 && searchInput) {
                         setOriginalQuery(searchInput.value);
                     }
                     let nextIdx = selectedSuggestionIdx + 1;
@@ -311,7 +330,7 @@ export function bindEvents() {
                 }
                 if (e.key === 'ArrowUp' && suggestionCount > 0) {
                     e.preventDefault();
-                    if (selectedSuggestionIdx === -1) {
+                    if (selectedSuggestionIdx === -1 && searchInput) {
                         setOriginalQuery(searchInput.value);
                         setSelectedSuggestionIdx(suggestionCount - 1);
                     } else {

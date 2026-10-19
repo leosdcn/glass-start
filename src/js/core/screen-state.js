@@ -17,7 +17,9 @@ import { closeDropdown, hideSuggestions } from '../modules/search.js';
 import { refreshSidebarNavCache, updateSidebarActive, initFaviconObserver } from '../modules/bookmarks.js';
 
 let isTransitioning = false;
+/** @type {ReturnType<typeof setTimeout>|null} */
 let transitionTimer = null;
+/** @type {(() => void)|null} */
 let navTransitionCleanup = null;
 let isTouchHandled = false;
 
@@ -44,11 +46,17 @@ function prepareScreenTransition() {
         document.documentElement.classList.remove('nr');
         document.body.classList.remove('tab-blurred');
         document.body.classList.add('is-screen-transitioning');
-        document.activeElement?.blur?.();
+        const active = /** @type {HTMLElement|null} */ (document.activeElement);
+        active?.blur?.();
     }
     clearTransitionTasks();
 }
 
+/**
+ * @param {HTMLElement|null} nav
+ * @param {'start'|'nav'} targetSection
+ * @param {() => void} onComplete
+ */
 function waitForScreenTransition(nav, targetSection, onComplete) {
     const finish = () => {
         clearTransitionTasks();
@@ -57,6 +65,7 @@ function waitForScreenTransition(nav, targetSection, onComplete) {
         onComplete();
     };
     if (typeof document !== 'undefined' && nav) {
+        /** @param {TransitionEvent} e */
         const onEnd = e => {
             if (e.target === nav && (e.propertyName === 'transform' || e.propertyName === '-webkit-transform')) finish();
         };
@@ -69,6 +78,9 @@ function waitForScreenTransition(nav, targetSection, onComplete) {
 const LINE_HEIGHT_PX = 16;
 const PAGE_HEIGHT_PX = 400;
 
+/**
+ * @param {WheelEvent} e
+ */
 export function normDelta(e) {
     let d = e.deltaY;
     if (e.deltaMode === 1) d *= LINE_HEIGHT_PX;
@@ -76,6 +88,9 @@ export function normDelta(e) {
     return d;
 }
 
+/**
+ * @param {'start'|'nav'|string} sec
+ */
 export function updateSectionAccessibility(sec) {
     const startSection = dom.startSection || $('startSection');
     const nav = dom.navSection || $('navSection');
@@ -100,10 +115,21 @@ export function updateSectionAccessibility(sec) {
     }
 }
 
+/**
+ * @returns {'start'|'nav'|null}
+ */
 export function getSavedSection() {
-    try { return sessionStorage.getItem('startpage_section'); } catch { return null; }
+    try {
+        const val = sessionStorage.getItem('startpage_section');
+        return val === 'nav' || val === 'start' ? val : null;
+    } catch {
+        return null;
+    }
 }
 
+/**
+ * @param {'start'|'nav'} s
+ */
 export function saveSection(s) {
     state.currentSection = s;
     try { sessionStorage.setItem('startpage_section', s); } catch {}
@@ -260,7 +286,8 @@ export function switchToNav() {
         initFaviconObserver();
         if (typeof window !== 'undefined') {
             window.scrollTo(0, 0);
-            document.activeElement?.blur?.();
+            const active = /** @type {HTMLElement|null} */ (document.activeElement);
+            active?.blur?.();
         }
     });
 }
@@ -309,6 +336,9 @@ export function switchToStart() {
     });
 }
 
+/**
+ * @param {boolean} [wasPersisted]
+ */
 export function handleAppWakeUp(wasPersisted = false) {
     updateClock();
 
@@ -320,8 +350,9 @@ export function handleAppWakeUp(wasPersisted = false) {
     document.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
 
     resetActiveCard();
-    if (document.activeElement && typeof document.activeElement.blur === 'function' && document.activeElement !== document.body && document.activeElement !== (dom.searchInput || $('searchInput'))) {
-        document.activeElement.blur();
+    const active = /** @type {HTMLElement|null} */ (document.activeElement);
+    if (active && typeof active.blur === 'function' && active !== document.body && active !== (dom.searchInput || $('searchInput'))) {
+        active.blur();
     }
     reconcileScreenState(undefined, true);
 
@@ -337,7 +368,6 @@ export function handleAppWakeUp(wasPersisted = false) {
 
 export function initScreenGestures() {
     if (typeof document === 'undefined') return;
-
 
     reconcileScreenState(getSavedSection() === 'nav' ? 'nav' : 'start');
 
@@ -379,7 +409,8 @@ export function initScreenGestures() {
             isTouchHandled = true;
             return;
         }
-        if (e.target && typeof e.target.closest === 'function' && (e.target.closest('#sidebar') || e.target.closest('#weatherWidget') || e.target.closest('#editBookmarksBtn'))) {
+        const targetEl = e.target instanceof Element ? e.target : null;
+        if (targetEl && typeof targetEl.closest === 'function' && (targetEl.closest('#sidebar') || targetEl.closest('#weatherWidget') || targetEl.closest('#editBookmarksBtn'))) {
             isTouchHandled = true;
             return;
         }
@@ -452,6 +483,7 @@ export function initScreenGestures() {
     }, { passive: true });
 
     window.addEventListener('pageshow', (e) => {
-        handleAppWakeUp(!!(e && e.persisted));
+        const pe = /** @type {PageTransitionEvent} */ (e);
+        handleAppWakeUp(!!(pe && pe.persisted));
     }, { passive: true });
 }

@@ -13,8 +13,13 @@ const RELOAD_COOLDOWN_MS = 60000;
 const PROBE_DELAY_MS = 700;
 
 // 内存日志：BFCache 恢复可保留，重新加载清空。
+/** @type {import('../types.js').GlassDiagEntry[]} */
 const bbBuffer = [];
 
+/**
+ * @param {string} ev
+ * @param {unknown} [detail]
+ */
 export function bbLog(ev, detail) {
     bbBuffer.push({ t: Date.now(), ev, d: detail === undefined ? null : detail });
     while (bbBuffer.length > BB_MAX_ENTRIES) bbBuffer.shift();
@@ -24,7 +29,11 @@ export function bbDump() {
     return bbBuffer.slice();
 }
 
-// 指纹不一致时返回刷新许可；SessionStorage 可用时按配置的冷却期限制。
+/**
+ * 指纹不一致时返回刷新许可；SessionStorage 可用时按配置的冷却期限制。
+ * @param {string} [htmlBuild]
+ * @param {string} [jsBuild]
+ */
 export function verifyFingerprint(htmlBuild, jsBuild) {
     if (!htmlBuild || !jsBuild) return { mismatch: false, mayReload: false };
     if (htmlBuild === jsBuild) return { mismatch: false, mayReload: false };
@@ -102,9 +111,15 @@ export function initLifecycleAndBlackbox() {
     }
 
     // 2. 黑匣子被动生命周期事件监听
-    window.addEventListener('pageshow', (e) => { bbLog('pageshow', { persisted: !!(e && e.persisted) }); }, { passive: true });
+    window.addEventListener('pageshow', (e) => {
+        const pe = /** @type {PageTransitionEvent} */ (e);
+        bbLog('pageshow', { persisted: !!(pe && pe.persisted) });
+    }, { passive: true });
     document.addEventListener('visibilitychange', () => { bbLog('visibility', { hidden: document.hidden }); }, { passive: true });
-    window.addEventListener('error', (e) => { bbLog('js-error', { msg: String((e && e.message) || 'unknown').slice(0, CONFIG.SECURITY.LOG_MSG_MAX_CHARS) }); });
+    window.addEventListener('error', (e) => {
+        const ee = /** @type {ErrorEvent} */ (e);
+        bbLog('js-error', { msg: String((ee && ee.message) || 'unknown').slice(0, CONFIG.SECURITY.LOG_MSG_MAX_CHARS) });
+    });
     window.addEventListener('unhandledrejection', () => { bbLog('unhandled-rejection', null); });
     if ('serviceWorker' in navigator) {
         try { navigator.serviceWorker.addEventListener('controllerchange', () => bbLog('controllerchange', null)); } catch {}

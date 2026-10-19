@@ -25,6 +25,9 @@ export function getEditFaviconInner(name = '', url = '', icon = '') {
     return createLetterBadgeHtml(initial, 'icon-box-sm edit-favicon-initial', 'text-2xs font-semibold');
 }
 
+/**
+ * @param {HTMLImageElement} img
+ */
 export function handleEditIconError(img) {
     handleFaviconFailure(img, img => {
         const initial = img.dataset.initial || '?';
@@ -35,6 +38,13 @@ export function handleEditIconError(img) {
     });
 }
 
+/**
+ * @param {string} [name]
+ * @param {string} [url]
+ * @param {string | number} [idx]
+ * @param {string} [icon]
+ * @param {string} [rowId]
+ */
 export function getEditRowHTML(name = '', url = '', idx = '', icon = '', rowId = '') {
     const id = rowId || (idx !== '' && idx !== undefined ? `bm_${idx}` : `bm_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`);
     return `
@@ -80,26 +90,30 @@ export function appendDraftBookmarkRow({ name = '', url = '', icon = '', desc, f
 
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = getEditRowHTML(name, url, modalState.draftBookmarks.length - 1, icon, rowId).trim();
-    const div = tempDiv.firstElementChild;
+    const div = /** @type {HTMLElement|null} */ (tempDiv.firstElementChild);
     if (!div) return null;
 
     div.classList.add('animate-item-in');
     div.addEventListener('animationend', () => div.classList.remove('animate-item-in'), { once: true });
     editList.appendChild(div);
 
-    const newImg = div.querySelector('.edit-favicon-img');
+    const newImg = /** @type {HTMLImageElement|null} */ (div.querySelector('.edit-favicon-img'));
     if (newImg) {
         checkImageReady(newImg, handleEditIconError);
     }
 
     if (focus) {
-        div.querySelector('.edit-name')?.focus();
+        const input = /** @type {HTMLInputElement|null} */ (div.querySelector('.edit-name'));
+        input?.focus();
     }
 
     updateAllBookmarkCounters();
     return div;
 }
 
+/**
+ * @param {import('../types.js').DraftBookmarkItem[] | import('../types.js').BookmarkItem[]} [listToRender]
+ */
 export function renderEditList(listToRender) {
     if (Array.isArray(listToRender)) {
         replaceBookmarkDraft(listToRender, modalState.bookmarksChanged);
@@ -112,7 +126,7 @@ export function renderEditList(listToRender) {
     updateAllBookmarkCounters();
 
     editList.querySelectorAll('img.edit-favicon-img').forEach(img => {
-        checkImageReady(img, handleEditIconError);
+        checkImageReady(/** @type {HTMLImageElement} */ (img), handleEditIconError);
     });
 }
 

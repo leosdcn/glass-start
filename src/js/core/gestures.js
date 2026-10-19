@@ -6,10 +6,13 @@ import { state } from '../state/store.js';
 
 let isGlassSpotlightAndTiltInitialized = false;
 
+/** @type {HTMLElement | null} */
 let activeCard = null;
+/** @type {DOMRect | null} */
 let activeCardRect = null;
 /** @type {number | null} */
 let rafId = null;
+/** @type {MouseEvent | PointerEvent | null} */
 let pendingEvent = null;
 
 export function resetActiveCard() {
@@ -75,6 +78,10 @@ export function initGlassSpotlightAndTilt() {
         rafId = null;
     }
 
+    /**
+     * @param {HTMLElement} card
+     * @param {MouseEvent | PointerEvent} e
+     */
     function setActiveCardAndSchedule(card, e) {
         if (!canAnimate()) {
             resetActiveCard();
@@ -97,7 +104,8 @@ export function initGlassSpotlightAndTilt() {
 
     document.addEventListener('pointerdown', (e) => {
         if (typeof state !== 'undefined' && state.currentSection !== 'nav') return;
-        const card = e.target?.closest?.('.nav-bookmark');
+        const targetEl = e.target instanceof Element ? e.target : null;
+        const card = /** @type {HTMLElement|null} */ (targetEl?.closest?.('.nav-bookmark'));
         if (card) {
             setActiveCardAndSchedule(card, e);
         }
@@ -114,7 +122,8 @@ export function initGlassSpotlightAndTilt() {
 
     document.addEventListener('mousemove', (e) => {
         if (!activeCard && typeof state !== 'undefined' && state.currentSection !== 'nav') return;
-        const card = e.target?.closest?.('.nav-bookmark');
+        const targetEl = e.target instanceof Element ? e.target : null;
+        const card = /** @type {HTMLElement|null} */ (targetEl?.closest?.('.nav-bookmark'));
         if (card) {
             setActiveCardAndSchedule(card, e);
         } else if (activeCard) {
@@ -127,7 +136,8 @@ export function initGlassSpotlightAndTilt() {
     }, { passive: true });
 
     window.addEventListener('dragstart', (e) => {
-        const validDragTarget = e.target && e.target.closest && e.target.closest('.edit-row-card[draggable="true"], .drag-handle');
+        const targetEl = e.target instanceof Element ? e.target : null;
+        const validDragTarget = targetEl && targetEl.closest && targetEl.closest('.edit-row-card[draggable="true"], .drag-handle');
         if (!validDragTarget) {
             e.preventDefault();
         }

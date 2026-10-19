@@ -8,15 +8,24 @@ import { reorderBookmarkDraft } from '../state/bookmark-draft.js';
 import { updateAllBookmarkCounters } from '../modules/bookmark-editor.js';
 
 export function initDragSort() {
+    /** @type {HTMLElement | null} */
     let dragSrc = null;
+    /** @type {number | null} */
     let dragOverRafId = null;
+    /** @type {number | null} */
     let touchMoveRafId = null;
+    /** @type {HTMLElement | null} */
     let lastOverTarget = null;
+    /** @type {boolean | null} */
     let lastIsTop = null;
     const editList = dom.editList;
     if (!editList) return;
+    const currentEditList = editList;
 
-    // 两条输入路径共享迟滞判定，各自保留坐标兜底和帧调度。
+    /**
+     * @param {HTMLElement} target
+     * @param {number} relY
+     */
     function updateDropTarget(target, relY) {
         const isTop = lastOverTarget === target && lastIsTop !== null
             ? (lastIsTop ? relY <= CONFIG.PHYSICS.DRAG_HYSTERESIS_HIGH : relY < CONFIG.PHYSICS.DRAG_HYSTERESIS_LOW)
@@ -25,11 +34,15 @@ export function initDragSort() {
         lastIsTop = isTop;
     }
 
+    /**
+     * @param {HTMLElement} target
+     * @param {boolean} isTop
+     */
     function updateDragIndicator(target, isTop) {
         lastOverTarget = target;
         lastIsTop = isTop;
         // 切换目标行高亮，清除其他行残留。
-        editList.querySelectorAll('.edit-row-card').forEach(el => {
+        currentEditList.querySelectorAll('.edit-row-card').forEach(el => {
             el.classList.remove('drop-target-above', 'drop-target-below');
         });
         target.classList.add(isTop ? 'drop-target-above' : 'drop-target-below');
@@ -44,7 +57,7 @@ export function initDragSort() {
             cancelAnimationFrame(touchMoveRafId);
             touchMoveRafId = null;
         }
-        editList.querySelectorAll('.edit-row-card').forEach(el => {
+        currentEditList.querySelectorAll('.edit-row-card').forEach(el => {
             el.classList.remove('dragging', 'drop-target-above', 'drop-target-below');
         });
         lastOverTarget = null;
@@ -52,11 +65,13 @@ export function initDragSort() {
     }
 
     let isDragHandleActive = false;
+    /** @type {number | null} */
     let dragSettlingRaf = null;
 
     function blurActiveHandle() {
-        if (document.activeElement && document.activeElement.closest('.drag-handle')) {
-            document.activeElement.blur();
+        const active = /** @type {HTMLElement|null} */ (document.activeElement);
+        if (active && active.closest('.drag-handle')) {
+            active.blur();
         }
     }
 
@@ -77,6 +92,11 @@ export function initDragSort() {
     }
 
     // ── 共享：DOM 重排 + draftBookmarks 同步 + FLIP 动画 ─────────────────────
+    /**
+     * @param {HTMLElement | null} src
+     * @param {HTMLElement | null} target
+     * @param {boolean} isTop
+     */
     function commitReorder(src, target, isTop) {
         if (!src || !target || src === target) return;
 
@@ -84,17 +104,18 @@ export function initDragSort() {
         const targetIdx = modalState.draftBookmarks.findIndex(b => b.id === target.dataset.id);
         if (srcIdx < 0 || targetIdx < 0) return;
 
+        /** @type {HTMLElement[]} */
         const cards = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-            ? [] : Array.from(editList.querySelectorAll('.edit-row-card'));
+            ? [] : Array.from(currentEditList.querySelectorAll('.edit-row-card'));
         const firstPositions = new Map();
         cards.forEach(card => firstPositions.set(card, card.getBoundingClientRect()));
 
         if (isTop) {
-            target.parentNode.insertBefore(src, target);
+            target.parentNode?.insertBefore(src, target);
         } else {
-            target.parentNode.insertBefore(src, target.nextSibling);
+            target.parentNode?.insertBefore(src, target.nextSibling);
         }
-        reorderBookmarkDraft(src.dataset.id, target.dataset.id, isTop);
+        reorderBookmarkDraft(src.dataset.id || '', target.dataset.id || '', isTop);
 
         // 先批量读取重排后的坐标，再写入 FLIP 样式，避免逐行交错读写。
         const lastPositions = new Map(cards.map(card => [card, card.getBoundingClientRect()]));
@@ -113,7 +134,8 @@ export function initDragSort() {
                     card.style.transform = 'translate3d(0, 0, 0)';
                 });
                 card.addEventListener('transitionend', ev => {
-                    if (ev.propertyName !== 'transform') return;
+                    const te = /** @type {TransitionEvent} */ (ev);
+                    if (te.propertyName !== 'transform') return;
                     card.style.transition = '';
                     card.style.transform = '';
                 }, { once: true });
@@ -123,29 +145,32 @@ export function initDragSort() {
         updateAllBookmarkCounters();
     }
 
-    editList.addEventListener('keydown', e => {
-        const handle = e.target.closest('.drag-handle');
+    currentEditList.addEventListener('keydown', e => {
+        const targetEl = e.target instanceof Element ? e.target : null;
+        const handle = targetEl?.closest('.drag-handle');
         if (!handle || !e.altKey || e.ctrlKey || e.metaKey || e.shiftKey
             || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return;
         e.preventDefault();
         e.stopPropagation();
-        const src = handle.closest('.edit-row-card');
+        const src = /** @type {HTMLElement|null} */ (handle.closest('.edit-row-card'));
         const index = modalState.draftBookmarks.findIndex(b => b.id === src?.dataset.id);
         const nextIndex = index + (e.key === 'ArrowUp' ? -1 : 1);
         if (index < 0 || nextIndex < 0 || nextIndex >= modalState.draftBookmarks.length) return;
         const next = modalState.draftBookmarks[nextIndex];
-        const target = editList.querySelector(`.edit-row-card[data-id="${CSS.escape(next.id)}"]`);
+        const target = /** @type {HTMLElement|null} */ (currentEditList.querySelector(`.edit-row-card[data-id="${CSS.escape(next.id)}"]`));
         if (!target) return;
         commitReorder(src, target, nextIndex < index);
-        handle.focus();
-        const status = editList.querySelector('.bookmark-sort-status');
+        const focusable = /** @type {HTMLElement} */ (handle);
+        focusable.focus();
+        const status = currentEditList.querySelector('.bookmark-sort-status');
         if (status) status.textContent = `${modalState.draftBookmarks[nextIndex].name} 已移至第 ${nextIndex + 1} 项，共 ${modalState.draftBookmarks.length} 项`;
     });
 
     // ── 鼠标路径：mousedown 控制 draggable ───────────────────────────────────
-    editList.addEventListener('mousedown', e => {
-        const handle = e.target.closest('.drag-handle');
-        const card = e.target.closest('.edit-row-card');
+    currentEditList.addEventListener('mousedown', e => {
+        const targetEl = e.target instanceof Element ? e.target : null;
+        const handle = targetEl?.closest('.drag-handle');
+        const card = targetEl?.closest('.edit-row-card');
         if (handle && card) {
             isDragHandleActive = true;
             card.setAttribute('draggable', 'true');
@@ -158,18 +183,19 @@ export function initDragSort() {
     document.addEventListener('mouseup', () => {
         isDragHandleActive = false;
         document.body.classList.remove('bookmark-dragging');
-        editList.querySelectorAll('.edit-row-card[draggable="true"]').forEach(card => {
+        currentEditList.querySelectorAll('.edit-row-card[draggable="true"]').forEach(card => {
             card.setAttribute('draggable', 'false');
         });
         blurActiveHandle();
     }, { passive: true });
 
-    editList.addEventListener('dragstart', e => {
+    currentEditList.addEventListener('dragstart', e => {
         if (!isDragHandleActive) {
             e.preventDefault();
             return;
         }
-        const item = e.target.closest('.edit-row-card');
+        const targetEl = e.target instanceof Element ? e.target : null;
+        const item = /** @type {HTMLElement|null} */ (targetEl?.closest('.edit-row-card'));
         if (!item) {
             e.preventDefault();
             return;
@@ -179,16 +205,18 @@ export function initDragSort() {
         document.body.classList.add('bookmark-dragging');
         dragSrc = item;
         item.classList.add('dragging');
-        e.dataTransfer.effectAllowed = 'move';
-        try {
-            e.dataTransfer.setData('text/plain', item.dataset.id || item.dataset.idx || '');
-        } catch (_) {}
+        if (e.dataTransfer) {
+            e.dataTransfer.effectAllowed = 'move';
+            try {
+                e.dataTransfer.setData('text/plain', item.dataset.id || item.dataset.idx || '');
+            } catch (_) {}
+        }
     });
 
-    editList.addEventListener('dragend', () => {
+    currentEditList.addEventListener('dragend', () => {
         isDragHandleActive = false;
         document.body.classList.remove('bookmark-dragging');
-        editList.querySelectorAll('.edit-row-card[draggable="true"]').forEach(card => {
+        currentEditList.querySelectorAll('.edit-row-card[draggable="true"]').forEach(card => {
             card.setAttribute('draggable', 'false');
         });
         clearDragClasses();
@@ -197,10 +225,11 @@ export function initDragSort() {
         settleDragHover();
     });
 
-    editList.addEventListener('dragover', e => {
+    currentEditList.addEventListener('dragover', e => {
         e.preventDefault();
-        e.dataTransfer.dropEffect = 'move';
-        const target = e.target.closest('.edit-row-card');
+        if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+        const targetEl = e.target instanceof Element ? e.target : null;
+        const target = /** @type {HTMLElement|null} */ (targetEl?.closest('.edit-row-card'));
         if (!target || target === dragSrc) return;
         const rect = target.getBoundingClientRect();
         const relY = rect.height > 0 ? (e.clientY - rect.top) / rect.height : 0.5;
@@ -213,13 +242,14 @@ export function initDragSort() {
         }
     });
 
-    editList.addEventListener('dragleave', e => {
-        if (e.target === editList || !editList.contains(e.relatedTarget)) clearDragClasses();
+    currentEditList.addEventListener('dragleave', e => {
+        if (e.target === currentEditList || !(e.relatedTarget instanceof Node && currentEditList.contains(e.relatedTarget))) clearDragClasses();
     });
 
-    editList.addEventListener('drop', e => {
+    currentEditList.addEventListener('drop', e => {
         e.preventDefault();
-        let target = lastOverTarget || e.target.closest('.edit-row-card');
+        const targetEl = e.target instanceof Element ? e.target : null;
+        let target = lastOverTarget || /** @type {HTMLElement|null} */ (targetEl?.closest('.edit-row-card'));
         let isTop = lastIsTop;
         if (target && isTop === null) {
             const rect = target.getBoundingClientRect();
@@ -236,9 +266,10 @@ export function initDragSort() {
     });
 
     // ── 触屏路径：.drag-handle 上有 touch-none（touch-action:none），无需 preventDefault ──
-    editList.addEventListener('touchstart', e => {
-        const handle = e.target.closest('.drag-handle');
-        const card = handle && handle.closest('.edit-row-card');
+    currentEditList.addEventListener('touchstart', e => {
+        const targetEl = e.target instanceof Element ? e.target : null;
+        const handle = targetEl?.closest('.drag-handle');
+        const card = /** @type {HTMLElement|null} */ (handle && handle.closest('.edit-row-card'));
         if (!handle || !card) return;
         blurActiveHandle();
         dragSrc = card;
@@ -246,22 +277,22 @@ export function initDragSort() {
         document.body.classList.add('bookmark-dragging');
     }, { passive: true });
 
-    editList.addEventListener('touchmove', e => {
+    currentEditList.addEventListener('touchmove', e => {
         if (!dragSrc) return;
         const touch = e.touches[0];
         if (!touch) return;
 
         // 容器上下边缘自适应平滑滚动 (应对长列表场景)
-        const listRect = editList.getBoundingClientRect();
+        const listRect = currentEditList.getBoundingClientRect();
         const edgeZone = 36;
         if (touch.clientY < listRect.top + edgeZone) {
-            editList.scrollTop -= 6;
+            currentEditList.scrollTop -= 6;
         } else if (touch.clientY > listRect.bottom - edgeZone) {
-            editList.scrollTop += 6;
+            currentEditList.scrollTop += 6;
         }
 
         const el = document.elementFromPoint(touch.clientX, touch.clientY);
-        const target = el && el.closest('.edit-row-card');
+        const target = /** @type {HTMLElement|null} */ (el && el.closest('.edit-row-card'));
 
         // 滑回自身或移出列表卡片区时，隐藏指示线并重置目标，防止松手误重排
         if (!target || target === dragSrc) {
@@ -280,7 +311,7 @@ export function initDragSort() {
         }
     }, { passive: true });
 
-    editList.addEventListener('touchend', () => {
+    currentEditList.addEventListener('touchend', () => {
         if (!dragSrc) return;
         const src = dragSrc;
         const target = lastOverTarget;
@@ -295,7 +326,7 @@ export function initDragSort() {
     }, { passive: true });
 
     // 系统手势、来电或弹窗中断：纯重置，严禁触发重排
-    editList.addEventListener('touchcancel', () => {
+    currentEditList.addEventListener('touchcancel', () => {
         if (!dragSrc) return;
         dragSrc = null;
         clearDragClasses();

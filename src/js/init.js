@@ -43,8 +43,8 @@ export function init() {
 
     // 在捕获阶段处理图片加载失败，避免模板行内 onerror。
     document.addEventListener('error', (e) => {
-        const target = e.target;
-        if (target && target.tagName === 'IMG') {
+        const target = /** @type {HTMLImageElement | null} */ (e.target instanceof HTMLImageElement ? e.target : null);
+        if (target) {
             if (target.classList.contains('edit-favicon-img')) {
                 handleEditIconError(target);
             } else if (target.dataset.initial !== undefined || target.closest('.icon-box')) {
@@ -58,8 +58,8 @@ export function init() {
 
     // 在捕获阶段处理图片加载成功，避免模板行内 onload。
     document.addEventListener('load', (e) => {
-        const target = e.target;
-        if (target && target.tagName === 'IMG' && (target.classList.contains('lazy-icon') || target.classList.contains('edit-favicon-img'))) {
+        const target = /** @type {HTMLImageElement | null} */ (e.target instanceof HTMLImageElement ? e.target : null);
+        if (target && (target.classList.contains('lazy-icon') || target.classList.contains('edit-favicon-img'))) {
             target.classList.add('loaded');
         }
     }, true);
@@ -91,6 +91,7 @@ export function init() {
         });
     }
 
+    /** @type {(fn: () => void, fallbackDelay?: number) => void} */
     const scheduleIdleTask = (fn, fallbackDelay = CONFIG.TIMERS.FALLBACK_IDLE_DELAY) => {
         if ('requestIdleCallback' in window) {
             requestIdleCallback(fn, { timeout: CONFIG.TIMERS.IDLE_TIMEOUT });
@@ -101,7 +102,7 @@ export function init() {
 
     scheduleIdleTask(() => {
         refreshSidebarNavCache();
-        initFaviconObserver(true);
+        initFaviconObserver();
         preloadFavicons();
         // 恢复后再判断当前选择，避免在 IDB 返回前预加载默认预设。
         wallpaperRestored.then(restored => { if (restored) preloadNextBg(); });

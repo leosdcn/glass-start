@@ -1,10 +1,35 @@
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
-import { rmSync } from 'node:fs';
+import { rmSync, existsSync } from 'node:fs';
 
-const CHROME_BIN = process.env.CHROME_PATH || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+function findChromeBin() {
+  if (process.env.CHROME_PATH) return process.env.CHROME_PATH;
+  const candidates = [
+    '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+    '/usr/bin/google-chrome',
+    '/usr/bin/google-chrome-stable',
+    '/usr/bin/chromium-browser',
+    '/usr/bin/chromium',
+    'google-chrome',
+    'google-chrome-stable',
+    'chromium',
+  ];
+  for (const c of candidates) {
+    if (c.startsWith('/')) {
+      if (existsSync(c)) return c;
+    } else {
+      try {
+        const check = spawnSync('which', [c], { stdio: 'ignore' });
+        if (check.status === 0) return c;
+      } catch {}
+    }
+  }
+  return candidates[0];
+}
+
+const CHROME_BIN = findChromeBin();
 
 const activeInstances = new Set();
 
@@ -137,6 +162,9 @@ export async function launchChrome({ port, url, testMode = true }) {
   const args = [
     '--headless=new',
     '--disable-gpu',
+    '--no-sandbox',
+    '--disable-setuid-sandbox',
+    '--disable-dev-shm-usage',
     '--no-first-run',
     '--no-default-browser-check',
     '--window-size=1470,956',
@@ -153,14 +181,15 @@ export async function launchChrome({ port, url, testMode = true }) {
   let target;
   try {
     target = await (async function wait() {
-      for (let i = 0; i < 100; i++) {
+      for (let i = 0; i < 200; i++) {
         try {
           const res = await fetch(`http://127.0.0.1:${port}/json`);
           const list = await res.json();
-          const page = list.find(t => t.type === 'page' && /^https?:\/\//.test(t.url) && !t.url.includes('chrome://'));
+          const page = list.find(t => t.type === 'page' && /^https?:\/\//.test(t.url) && !t.url.includes('chrome://')) ||
+                       list.find(t => t.type === 'page' && !t.url.includes('chrome://'));
           if (page) return page;
         } catch {}
-        await new Promise(r => setTimeout(r, 30));
+        await new Promise(r => setTimeout(r, 50));
       }
       throw new Error('Chrome CDP page not found');
     })();

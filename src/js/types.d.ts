@@ -91,6 +91,12 @@ export interface ModalState {
     bookmarksChanged: boolean;
 }
 
+/** 壁纸深浅主题契约 */
+export interface WallpaperTheme {
+    color: string;
+    isLight: boolean;
+}
+
 /** OverlayStack 栈内单层元素 */
 export interface OverlayItem {
     id: string;
@@ -210,15 +216,19 @@ export interface GlassDiag {
 declare global {
     interface Navigator {
         readonly userAgentData?: { readonly platform: string };
+        readonly connection?: { readonly saveData?: boolean; readonly effectiveType?: string };
     }
     interface Window {
         /** 仅测试适配层挂载，生产页面不提供。 */
         state?: AppState;
         __ENGINE_SVGS__?: Record<string, string>;
         __BACKGROUNDS__?: string[];
+        __INITIAL_THEME__?: { color: string; isLight: boolean };
         __GLASS_BUILD_HTML__?: string;
         __GLASS_BUILD_APP__?: string;
         __GLASS_DIAG__?: GlassDiag;
+        __GLASS_TEST__?: boolean;
+        resetActiveTiltCard?: () => void;
     }
 }
 
@@ -251,6 +261,39 @@ export interface WeatherLocation {
     lon: number;
     name?: string;
     fullName?: string;
+    isAuto?: boolean;
+    isFallback?: boolean;
+    timestamp?: number;
+}
+export interface WeatherCurrent {
+    temp: number;
+    apparent?: number;
+    humidity?: number;
+    windSpeed?: number;
+    icon?: string;
+    weatherText?: string;
+    precipitation?: number;
+    pop?: number;
+    sunrise?: string;
+    sunset?: string;
+    sunriseToday?: string;
+    sunsetToday?: string;
+    sunriseTomorrow?: string;
+    [key: string]: any;
+}
+export interface WeatherDailyItem {
+    label?: string;
+    icon?: string;
+    text?: string;
+    tempMax?: number;
+    tempMin?: number;
+    [key: string]: any;
+}
+export interface WeatherData {
+    current: WeatherCurrent;
+    daily?: WeatherDailyItem[];
+    location?: WeatherLocation;
+    timestamp?: number;
 }
 export interface ForecastOptions {
     FORECAST_FETCH_DAYS: number;

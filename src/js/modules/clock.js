@@ -69,10 +69,14 @@ export function renderCreditsModalList() {
 
 export let lastDateDay = -1;
 export let lastTimeStr = '';
+/**
+ * @param {string} val
+ */
 export function setLastTimeStr(val) {
     lastTimeStr = val;
 }
 
+/** @type {ReturnType<typeof setTimeout>|null} */
 let clockTimerId = null;
 
 export function stopClockTimer() {
@@ -139,4 +143,7 @@ if (typeof document !== 'undefined') {
 }
 
 
+/**
+ * @param {number} value
+ */
 export function setLastDateDay(value) { lastDateDay = value; }

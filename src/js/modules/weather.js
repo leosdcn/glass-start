@@ -27,6 +27,10 @@ export function getWeatherIconHTML(icon, className = 'size-4') {
     return escapeHtml(icon);
 }
 
+/**
+ * @param {string} url
+ * @param {number} timeoutMs
+ */
 export async function fetchWithTimeout(url, timeoutMs) {
     const controller = new AbortController();
     const timer = setTimeout(() => { try { controller.abort(); } catch {} }, timeoutMs);
@@ -98,7 +102,7 @@ export async function resolveWeatherLocation(force = false) {
                         if (geoRes.ok) {
                             const geoData = await geoRes.json();
                             const results = geoData.results || [];
-                            let matched = results.find(r => {
+                            let matched = results.find((/** @type {any} */ r) => {
                                 const matchCountry = !country || (r.country && (r.country.includes(country) || country.includes(r.country)));
                                 const matchProv = !cleanProv || (r.admin1 && (r.admin1.includes(cleanProv) || cleanProv.includes(r.admin1))) || (r.name && r.name.includes(cleanProv));
                                 return matchCountry && matchProv;
@@ -176,6 +180,7 @@ export async function resolveWeatherLocation(force = false) {
     return fallbackLoc;
 }
 
+/** @param {import('../types').WeatherLocation} loc */
 export async function fetchWeatherForecast(loc) {
     const lat = loc.lat;
     const lon = loc.lon;
@@ -187,6 +192,7 @@ export async function fetchWeatherForecast(loc) {
     return normalizeWeatherForecast(data, loc, CONFIG.WEATHER, Date.now());
 }
 
+/** @param {import('../types').WeatherData | null | undefined} data */
 export function renderWeatherCapsule(data) {
     const weatherWidget = dom.weatherWidget || $('weatherWidget');
     if (!weatherWidget || !data || !data.current) return;
@@ -197,11 +203,12 @@ export function renderWeatherCapsule(data) {
     const temperature = Math.round(weatherNum(data.current.temp, 0));
 
     if (weatherIcon) {
-        if (weatherIcon.dataset && (weatherIcon.dataset.icon !== data.current.icon || !weatherIcon.querySelector('img'))) {
-            weatherIcon.dataset.icon = data.current.icon;
-            weatherIcon.innerHTML = getWeatherIconHTML(data.current.icon, 'size-4 sm:size-4.5');
-        } else if (!weatherIcon.dataset && weatherIcon.textContent !== data.current.icon) {
-            weatherIcon.textContent = data.current.icon;
+        const iconStr = data.current.icon || '';
+        if (weatherIcon.dataset && (weatherIcon.dataset.icon !== iconStr || !weatherIcon.querySelector('img'))) {
+            weatherIcon.dataset.icon = iconStr;
+            weatherIcon.innerHTML = getWeatherIconHTML(iconStr, 'size-4 sm:size-4.5');
+        } else if (!weatherIcon.dataset && weatherIcon.textContent !== iconStr) {
+            weatherIcon.textContent = iconStr;
         }
     }
     if (weatherTemp) {
@@ -209,9 +216,9 @@ export function renderWeatherCapsule(data) {
         if (weatherTemp.textContent !== tempStr) weatherTemp.textContent = tempStr;
     }
     if (weatherCity) {
-        const cityName = data.location ? data.location.name : '天气';
+        const cityName = data.location?.name || '天气';
         if (weatherCity.textContent !== cityName) weatherCity.textContent = cityName;
-        weatherCity.title = data.location ? data.location.fullName : '';
+        weatherCity.title = data.location?.fullName || '';
     }
     if (weatherBtn) {
         const cityName = data.location ? data.location.name : '天气';
@@ -235,7 +242,7 @@ export function renderWeatherError() {
             </button>
         </div>
     `;
-    const retryBtn = weatherPopover.querySelector('#weatherErrorRetryBtn');
+    const retryBtn = /** @type {HTMLButtonElement | null} */ (weatherPopover.querySelector('#weatherErrorRetryBtn'));
     if (retryBtn) {
         retryBtn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -246,6 +253,7 @@ export function renderWeatherError() {
     }
 }
 
+/** @param {import('../types').WeatherData | null | undefined} data */
 export function renderWeatherPopover(data) {
     const weatherPopover = dom.weatherPopover || $('weatherPopover');
     if (!weatherPopover) return;
@@ -272,8 +280,8 @@ export function renderWeatherPopover(data) {
         icon: (typeof raw.icon === 'string' && raw.icon) ? raw.icon : '⛅',
         weatherText: (typeof raw.weatherText === 'string') ? raw.weatherText : ''
     };
-    const loc = data.location || {};
-    const days = (Array.isArray(data.daily) ? data.daily : []).filter(isWeatherRecord).map(d => ({
+    const loc = /** @type {import('../types').WeatherLocation} */ (data.location || {});
+    const days = (Array.isArray(data.daily) ? data.daily : []).filter(isWeatherRecord).map((/** @type {any} */ d) => ({
         ...d,
         label: (typeof d.label === 'string') ? d.label.slice(0, CONFIG.WEATHER.LABEL_MAX_CHARS) : '',
         icon: (typeof d.icon === 'string' && d.icon) ? d.icon : '⛅',
@@ -288,7 +296,7 @@ export function renderWeatherPopover(data) {
     try {
         const now = new Date();
         const nowMins = now.getHours() * 60 + now.getMinutes();
-        const parseMins = (str) => {
+        const parseMins = (/** @type {unknown} */ str) => {
             if (!str || typeof str !== 'string' || !str.includes(':')) return null;
             const [h, m] = str.split(':').map(Number);
             return isNaN(h) || isNaN(m) ? null : h * 60 + m;
@@ -336,6 +344,7 @@ export function renderWeatherPopover(data) {
         windIcon = '🎏';
     }
 
+    /** @type {(icon: string, label: string, val: string | number) => string} */
     const weatherCard = (icon, label, val) => `
         <div class="p-2 glass-subcard flex items-center gap-2">
             <span class="text-sm select-none">${icon}</span>
@@ -350,7 +359,7 @@ export function renderWeatherPopover(data) {
         <div class="flex items-center justify-between pb-2.5 mb-3 border-b border-white/10">
             <div class="flex items-center gap-1.5 min-w-0 pr-2">
                 <span class="text-xs text-white/50 shrink-0 flex items-center justify-center">${getWeatherIconHTML('📍', 'size-3.5')}</span>
-                <span class="text-xs font-semibold text-white/90 truncate" title="${escapeHtml(loc.fullName || loc.name)}">${escapeHtml(loc.fullName || loc.name)}</span>
+                <span class="text-xs font-semibold text-white/90 truncate" title="${escapeHtml(loc.fullName || loc.name || '')}">${escapeHtml(loc.fullName || loc.name || '')}</span>
             </div>
             <button id="weatherRefreshBtn" type="button" class="size-7 apple-radius bg-white/5 hover:bg-white/15 text-white flex items-center justify-center glass-interactive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 shrink-0 disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none" title="立即刷新天气" aria-label="立即刷新天气">
                 <svg class="size-3.5 opacity-70 hover:opacity-100 transition-opacity" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>
@@ -377,7 +386,7 @@ export function renderWeatherPopover(data) {
 
         <div class="space-y-1.5 pt-2 border-t border-white/10">
             <div class="text-2xs text-white/50 font-medium px-1 mb-1">未来几天预报</div>
-            ${days.slice(0, CONFIG.WEATHER.FORECAST_DISPLAY_DAYS).map(d => `
+            ${days.slice(0, CONFIG.WEATHER.FORECAST_DISPLAY_DAYS).map((/** @type {any} */ d) => `
                 <div class="flex items-center justify-between text-xs py-1 px-1.5 apple-radius hover:bg-white/5 transition-colors">
                     <span class="w-10 text-white/70 font-medium shrink-0">${escapeHtml(d.label)}</span>
                     <div class="flex items-center gap-2 flex-1 min-w-0 pl-7 sm:pl-8">
@@ -390,7 +399,7 @@ export function renderWeatherPopover(data) {
         </div>
     `;
 
-    const refBtn = weatherPopover.querySelector('#weatherRefreshBtn');
+    const refBtn = /** @type {HTMLButtonElement | null} */ (weatherPopover.querySelector('#weatherRefreshBtn'));
     if (refBtn) {
         refBtn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -406,7 +415,7 @@ export function renderWeatherPopover(data) {
                 const remaining = Math.max(0, MIN_SPIN_DURATION - elapsed);
                 setTimeout(() => {
                     const currentPop = dom.weatherPopover || $('weatherPopover');
-                    const currentRefBtn = currentPop ? currentPop.querySelector('#weatherRefreshBtn') : null;
+                    const currentRefBtn = /** @type {HTMLButtonElement | null} */ (currentPop ? currentPop.querySelector('#weatherRefreshBtn') : null);
                     const currentSvg = currentRefBtn ? currentRefBtn.querySelector('svg') : null;
                     if (currentSvg) currentSvg.classList.remove('weather-spin');
                     if (currentRefBtn) {
@@ -421,7 +430,7 @@ export function renderWeatherPopover(data) {
 
 export let isFetchingWeather = false;
 
-const isWeatherRecord = value => value !== null && typeof value === 'object' && !Array.isArray(value);
+const isWeatherRecord = (/** @type {any} */ value) => value !== null && typeof value === 'object' && !Array.isArray(value);
 
 function readWeatherCache() {
     const cache = storageGet(CONFIG.KEYS.WEATHER_CACHE, null);

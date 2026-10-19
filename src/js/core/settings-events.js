@@ -39,11 +39,12 @@ export function bindEditEvents() {
         dom.resetEditBtn.addEventListener('click', resetBookmarks);
     }
 
+    /** @type {HTMLElement[]} */
     const settingsTabs = Array.from(document.querySelectorAll('.settings-tab-btn'));
     settingsTabs.forEach((btn, index) => {
         btn.addEventListener('click', e => {
             e.stopPropagation();
-            switchSettingsTab(btn.dataset.tab);
+            if (btn.dataset.tab) switchSettingsTab(btn.dataset.tab);
         });
         btn.addEventListener('keydown', e => {
             if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey || e.isComposing) return;
@@ -58,15 +59,18 @@ export function bindEditEvents() {
             e.preventDefault();
             e.stopPropagation();
             const nextTab = settingsTabs[nextIndex];
-            switchSettingsTab(nextTab.dataset.tab);
-            nextTab.focus();
+            if (nextTab && nextTab.dataset.tab) {
+                switchSettingsTab(nextTab.dataset.tab);
+                nextTab.focus();
+            }
         });
     });
 
     document.querySelectorAll('.preset-bg-card').forEach(card => {
         card.addEventListener('click', e => {
             e.stopPropagation();
-            const url = card.dataset.bg;
+            const cardEl = card instanceof HTMLElement ? card : null;
+            const url = cardEl?.dataset.bg;
             if (url) {
                 previewDraftWallpaper(url);
             }
@@ -85,19 +89,19 @@ export function bindEditEvents() {
         dom.jsonDropzone.addEventListener('dragover', e => {
             e.preventDefault();
             e.stopPropagation();
-            dom.jsonDropzone.classList.add('drag-over');
+            dom.jsonDropzone?.classList.add('drag-over');
         });
         dom.jsonDropzone.addEventListener('dragleave', e => {
             e.preventDefault();
             e.stopPropagation();
-            if (e.relatedTarget && dom.jsonDropzone.contains(e.relatedTarget)) return;
-            dom.jsonDropzone.classList.remove('drag-over');
+            if (e.relatedTarget instanceof Node && dom.jsonDropzone?.contains(e.relatedTarget)) return;
+            dom.jsonDropzone?.classList.remove('drag-over');
         });
         dom.jsonDropzone.addEventListener('drop', e => {
             e.preventDefault();
             e.stopPropagation();
-            dom.jsonDropzone.classList.remove('drag-over');
-            const file = e.dataTransfer.files[0];
+            dom.jsonDropzone?.classList.remove('drag-over');
+            const file = e.dataTransfer?.files[0];
             if (file) importBookmarksJSON(file);
         });
     }
@@ -105,7 +109,8 @@ export function bindEditEvents() {
     // 备选池书签一键添加绑定
     if (dom.pickerContent) {
         dom.pickerContent.addEventListener('click', e => {
-            const item = e.target.closest('.picker-item');
+            const targetEl = e.target instanceof Element ? e.target : null;
+            const item = /** @type {HTMLButtonElement|null} */ (targetEl?.closest('.picker-item'));
             if (!item || !item.dataset.name || !item.dataset.url) return;
             const name = item.dataset.name;
             const url = item.dataset.url;
@@ -131,14 +136,15 @@ export function bindEditEvents() {
     }
 
     if (dom.editList) {
+        /** @type {ReturnType<typeof setTimeout>|null} */
         let editFaviconDebounceTimer = null;
         dom.editList.addEventListener('input', (e) => {
-            const target = e.target;
-            const row = target?.closest('.edit-row-card');
-            if (!row) return;
+            const target = e.target instanceof HTMLInputElement ? e.target : null;
+            const row = /** @type {HTMLElement|null} */ (target?.closest('.edit-row-card'));
+            if (!row || !target) return;
             const fields = target.classList.contains('edit-name') ? { name: target.value }
                 : target.classList.contains('edit-url') ? { url: target.value } : null;
-            if (!fields) return;
+            if (!fields || !row.dataset.id) return;
             const item = updateBookmarkDraft(row.dataset.id, fields);
             if (!item) return;
 
@@ -149,7 +155,7 @@ export function bindEditEvents() {
                 const urlVal = item.url;
                 const initial = (nameVal || '?').trim().charAt(0).toUpperCase() || '?';
 
-                const existingImg = faviconBox.querySelector('.edit-favicon-img');
+                const existingImg = /** @type {HTMLElement|null} */ (faviconBox.querySelector('.edit-favicon-img'));
                 const existingInitial = faviconBox.querySelector('.edit-favicon-initial');
                 if (existingImg) {
                     existingImg.dataset.initial = initial;
@@ -159,16 +165,16 @@ export function bindEditEvents() {
                 }
 
                 if (target.classList.contains('edit-url')) {
-                    clearTimeout(editFaviconDebounceTimer);
+                    if (editFaviconDebounceTimer) clearTimeout(editFaviconDebounceTimer);
                     editFaviconDebounceTimer = setTimeout(() => {
                         faviconBox.innerHTML = getEditFaviconInner(nameVal, urlVal);
-                        const newImg = faviconBox.querySelector('.edit-favicon-img');
+                        const newImg = /** @type {HTMLImageElement|null} */ (faviconBox.querySelector('.edit-favicon-img'));
                         if (newImg) checkImageReady(newImg, handleEditIconError);
                     }, CONFIG.SUGGEST.DEBOUNCE_MS);
                 } else if (target.classList.contains('edit-name')) {
                     if (!existingImg || existingImg.dataset.failed === '1') {
                         faviconBox.innerHTML = getEditFaviconInner(nameVal, urlVal);
-                        const newImg = faviconBox.querySelector('.edit-favicon-img');
+                        const newImg = /** @type {HTMLImageElement|null} */ (faviconBox.querySelector('.edit-favicon-img'));
                         if (newImg) checkImageReady(newImg, handleEditIconError);
                     }
                 }
@@ -176,11 +182,12 @@ export function bindEditEvents() {
         });
 
         dom.editList.addEventListener('click', e => {
-            const del = e.target.closest('.del-btn');
+            const targetEl = e.target instanceof Element ? e.target : null;
+            const del = targetEl?.closest('.del-btn');
             if (del) {
-                const item = del.closest('.edit-row-card');
+                const item = /** @type {HTMLElement|null} */ (del.closest('.edit-row-card'));
                 if (item) {
-                    removeBookmarkDraft(item.dataset.id);
+                    if (item.dataset.id) removeBookmarkDraft(item.dataset.id);
                     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
                         item.remove();
                         updateAllBookmarkCounters();
@@ -207,20 +214,21 @@ export function bindEditEvents() {
     // JSON 导入导出事件绑定
     if (dom.exportJsonBtn) {
         dom.exportJsonBtn.addEventListener('click', async () => {
-            if (dom.exportJsonBtn.disabled) return;
-            dom.exportJsonBtn.disabled = true;
+            if (dom.exportJsonBtn?.disabled) return;
+            if (dom.exportJsonBtn) dom.exportJsonBtn.disabled = true;
             try {
                 await exportBookmarksJSON();
             } finally {
-                dom.exportJsonBtn.disabled = false;
+                if (dom.exportJsonBtn) dom.exportJsonBtn.disabled = false;
             }
         });
     }
     if (dom.importJsonInput) {
         dom.importJsonInput.addEventListener('change', e => {
-            const file = e.target.files[0];
+            const targetInput = e.target instanceof HTMLInputElement ? e.target : null;
+            const file = targetInput?.files?.[0];
             if (file) importBookmarksJSON(file);
-            e.target.value = '';
+            if (targetInput) targetInput.value = '';
         });
     }
 
@@ -228,18 +236,19 @@ export function bindEditEvents() {
     if (dom.uploadBgBtn) dom.uploadBgBtn.addEventListener('click', () => dom.uploadBgInput?.click());
     if (dom.uploadBgInput) {
         dom.uploadBgInput.addEventListener('change', e => {
-            const file = e.target.files[0];
+            const targetInput = e.target instanceof HTMLInputElement ? e.target : null;
+            const file = targetInput?.files?.[0];
             if (file) {
                 if (uploadWallpaper(file) === false) return;
             }
-            e.target.value = '';
+            if (targetInput) targetInput.value = '';
         });
     }
 
     if (dom.urlBgBtn) {
         const openUrlInput = () => {
             const current = modalState.draftWallpaper || storageGet(CONFIG.KEYS.USER_WALLPAPER) || '';
-            if (dom.urlBgInput) dom.urlBgInput.value = current.startsWith('http') ? current : '';
+            if (dom.urlBgInput) dom.urlBgInput.value = typeof current === 'string' && current.startsWith('http') ? current : '';
             dom.urlBgBtnGroup?.classList.add('hidden');
             dom.urlBgInputRow?.classList.remove('hidden');
             dom.urlBgInput?.focus();
@@ -285,19 +294,21 @@ export function bindEditEvents() {
     // 背景暗度事件绑定（草稿实时预览）
     if (dom.maskOpacityInput) {
         dom.maskOpacityInput.addEventListener('input', e => {
-            previewDraftMaskOpacity(e.target.value);
+            const targetInput = e.target instanceof HTMLInputElement ? e.target : null;
+            if (targetInput) previewDraftMaskOpacity(targetInput.value);
         });
     }
 
     // 清理缓存：确认后再清空并刷新。
-    if (dom.clearCacheBtn) {
-        dom.clearCacheBtn.addEventListener('click', () => {
-            if (dom.clearCacheBtn.disabled) return;
+    const clearBtn = dom.clearCacheBtn;
+    if (clearBtn) {
+        clearBtn.addEventListener('click', () => {
+            if (clearBtn.disabled) return;
             const confirmFn = showConfirm;
             if (typeof confirmFn !== 'function') return;
 
             if (!('caches' in window)) {
-                confirmFn('当前浏览器不支持 Service Worker 缓存，或已是最新状态。', null, '提示', dom.clearCacheBtn);
+                confirmFn('当前浏览器不支持 Service Worker 缓存，或已是最新状态。', null, '提示', clearBtn);
                 return;
             }
 
@@ -309,7 +320,7 @@ export function bindEditEvents() {
             confirmFn(
                 msg,
                 async () => {
-                    if (dom.clearCacheBtn) dom.clearCacheBtn.disabled = true;
+                    clearBtn.disabled = true;
                     try {
                         if ('caches' in window) {
                             try {
@@ -328,7 +339,7 @@ export function bindEditEvents() {
                     }
                 },
                 '清理离线缓存',
-                dom.clearCacheBtn,
+                clearBtn,
                 '立即清理并刷新'
             );
         });

@@ -16,7 +16,9 @@ import { closeDropdown, hideSuggestions, setEngine } from './search.js';
 import { renderCreditsModalList } from './clock.js';
 
 let editOpenRequestId = 0;
+/** @type {NodeListOf<HTMLElement> | null} */
 let cachedSettingsTabs = null;
+/** @type {NodeListOf<HTMLElement> | null} */
 let cachedSettingsPanels = null;
 let isPresetBgImagesLoaded = false;
 
@@ -25,7 +27,8 @@ export function loadPresetBgCardImages() {
     isPresetBgImagesLoaded = true;
     const container = dom.presetWallpaperGrid;
     if (!container) return;
-    container.querySelectorAll('img[data-src]').forEach((img, idx) => {
+    container.querySelectorAll('img[data-src]').forEach((el, idx) => {
+        const img = /** @type {HTMLImageElement} */ (el);
         const src = img.dataset.src;
         if (!src) return;
         delete img.dataset.src;
@@ -50,6 +53,7 @@ export function loadPresetBgCardImages() {
     });
 }
 
+/** @param {string} targetTabId */
 export function switchSettingsTab(targetTabId) {
     if (!cachedSettingsTabs) cachedSettingsTabs = document.querySelectorAll('.settings-tab-btn');
     if (!cachedSettingsPanels) cachedSettingsPanels = document.querySelectorAll('.settings-tab-panel');
@@ -67,10 +71,14 @@ export function switchSettingsTab(targetTabId) {
     }
 }
 
+/** @type {number | null} */
 let bgEffectsRafId = null;
+/** @type {{ opacity: number } | null} */
 let pendingBgEffects = null;
+/** @type {{ element: HTMLElement, opacity: number } | null} */
 let lastBgEffects = null;
 
+/** @param {number} op */
 function renderBgEffects(op) {
     const bgOverlay = dom.bgOverlay;
     if (!bgOverlay) return;
@@ -79,28 +87,38 @@ function renderBgEffects(op) {
         const trSec = `${CONFIG.TIMERS.BG_OVERLAY_TRANSITION / 1000}s`;
         bgOverlay.style.transition = `background-color ${trSec} ease`;
     }
-    if (!sameOverlay || lastBgEffects.opacity !== op) {
+    if (!sameOverlay || lastBgEffects?.opacity !== op) {
         bgOverlay.style.backgroundColor = `rgba(0,0,0,${op / 100})`;
     }
     lastBgEffects = { element: bgOverlay, opacity: op };
 }
 
+/** @param {number | string} opacity @param {boolean} [save] */
 export function applyBgEffects(opacity, save = false) {
     updateBgEffects(opacity, save, false);
 }
 
-/** 滑块草稿与无障碍读数即时更新，全屏视觉每帧只消费最后一次输入。 */
+/** 
+ * 滑块草稿与无障碍读数即时更新，全屏视觉每帧只消费最后一次输入。
+ * @param {number | string} opacity
+ */
 export function scheduleBgEffects(opacity) {
     updateBgEffects(opacity, false, true);
 }
 
+/** @param {string | number} value */
 export function previewDraftMaskOpacity(value) {
-    modalState.draftMaskOpacity = parseInt(value, 10) || 0;
+    modalState.draftMaskOpacity = parseInt(String(value), 10) || 0;
     scheduleBgEffects(modalState.draftMaskOpacity);
 }
 
-function updateBgEffects(opacity, save, defer) {
-    const op = Math.max(0, Math.min(CONFIG.APPEARANCE.MAX_MASK_OPACITY, parseInt(opacity, 10) || 0));
+/**
+ * @param {number | string} opacity
+ * @param {boolean} [save]
+ * @param {boolean} [defer]
+ */
+function updateBgEffects(opacity, save = false, defer = false) {
+    const op = Math.max(0, Math.min(CONFIG.APPEARANCE.MAX_MASK_OPACITY, parseInt(String(opacity), 10) || 0));
     if (defer) {
         pendingBgEffects = { opacity: op };
         if (bgEffectsRafId === null) {
@@ -122,8 +140,8 @@ function updateBgEffects(opacity, save, defer) {
 
     if (maskOpacityVal) maskOpacityVal.textContent = `${op}%`;
     if (maskOpacityInput) {
-        if (maskOpacityInput.value != op) maskOpacityInput.value = op;
-        maskOpacityInput.setAttribute('aria-valuenow', op);
+        if (maskOpacityInput.value !== String(op)) maskOpacityInput.value = String(op);
+        maskOpacityInput.setAttribute('aria-valuenow', String(op));
         maskOpacityInput.setAttribute('aria-valuetext', `${op}%`);
     }
     if (save) {
@@ -216,6 +234,9 @@ export function closeCreditsModal() {
     dom.openCreditsFromSettingsBtn?.setAttribute('aria-expanded', 'false');
 }
 
+/**
+ * @param {Element | null} [triggerEl]
+ */
 export function openBookmarkPicker(triggerEl = null) {
     const opener = triggerEl || document.activeElement || dom.togglePickerBtn;
     dom.togglePickerBtn?.setAttribute('aria-expanded', 'true');
@@ -263,6 +284,7 @@ export function importBookmarksJSON(file) {
     const reader = new FileReader();
     reader.onload = (e) => {
         try {
+            if (!e.target || typeof e.target.result !== 'string') return;
             const parsed = JSON.parse(e.target.result);
             let importedList = [];
             if (Array.isArray(parsed)) {
@@ -270,7 +292,7 @@ export function importBookmarksJSON(file) {
             } else if (parsed && Array.isArray(parsed.bookmarks)) {
                 importedList = parsed.bookmarks;
             } else if (parsed && Array.isArray(parsed.categories)) {
-                parsed.categories.forEach(cat => {
+                parsed.categories.forEach((/** @type {any} */ cat) => {
                     if (cat && Array.isArray(cat.bookmarks)) importedList.push(...cat.bookmarks);
                 });
             } else {
@@ -278,7 +300,7 @@ export function importBookmarksJSON(file) {
                 return;
             }
 
-            const validBookmarks = importedList.map(item => normalizeBookmark(item, '未命名')).filter(Boolean);
+            const validBookmarks = importedList.map((/** @type {any} */ item) => normalizeBookmark(item, '未命名')).filter(Boolean);
 
             if (validBookmarks.length === 0) {
                 showConfirm('配置文件中没有提取到有效的书签条目。', null, '导入失败');
@@ -338,8 +360,8 @@ export function resetBookmarks() {
 }
 
 /**
- * 获取当前已存在于编辑列表或已添加的 URL 集合
- * @returns {Set<string>}
+ * 获取当前已存在于编辑列表或已添加的 URL 集合并渲染备选卡片
+ * @returns {void}
  */
 export function renderPickerCategories() {
     const pickerContent = dom.pickerContent;
@@ -380,9 +402,10 @@ export function renderPickerCategories() {
 }
 
 export async function saveEditModal() {
-    if (dom.saveEditBtn.disabled) return;
-    dom.saveEditBtn.disabled = true;
-    dom.saveEditBtn.setAttribute('aria-busy', 'true');
+    const saveBtn = dom.saveEditBtn;
+    if (!saveBtn || saveBtn.disabled) return;
+    saveBtn.disabled = true;
+    saveBtn.setAttribute('aria-busy', 'true');
     try {
         const data = collectEditData();
         if (data.length === 0) {
@@ -407,7 +430,7 @@ export async function saveEditModal() {
 
         closeEditModal();
     } finally {
-        dom.saveEditBtn.disabled = false;
-        dom.saveEditBtn.removeAttribute('aria-busy');
+        saveBtn.disabled = false;
+        saveBtn.removeAttribute('aria-busy');
     }
 }

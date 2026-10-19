@@ -4,8 +4,13 @@ import { dom, $ } from '../state/dom.js';
 import { setWallpaperTheme, updateGlassTint, sampleCustomWallpaperTheme } from './theme-engine.js';
 
 let activeWallpaperReqId = 0;
+/** @type {ReturnType<typeof setTimeout>|null} */
 let bgSwitchTimer = null;
 
+/**
+ * @param {string} urlStr
+ * @param {boolean} [animate]
+ */
 export function applyWallpaper(urlStr, animate = true) {
     const bgBase = dom.bgLayer || $('bgLayer');
     const bgNext = dom.bgLayerNext || $('bgLayerNext');

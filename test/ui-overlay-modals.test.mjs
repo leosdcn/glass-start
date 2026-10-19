@@ -238,34 +238,34 @@ pass('搜索联想键盘选中项保持与 Escape 优雅清退 (高亮选中/还
 const clockOk = (await evalJS(`document.getElementById('clock').style.willChange`)) === '';
 
 // 6.2 多层 Modal LIFO 退栈
-await evalJS(`document.getElementById('editBookmarksBtn').click()`); await sleep(300);
-await evalJS(`document.getElementById('togglePickerBtn').click()`); await sleep(300);
+await evalJS(`document.getElementById('editBookmarksBtn').click()`); await waitFor(evalJS, `state.editOpen === true`);
+await evalJS(`document.getElementById('togglePickerBtn').click()`); await waitFor(evalJS, `OverlayStack.top()?.id === "bookmarkPicker"`);
 const topPicker = await stackTop();
-await press('Escape'); await sleep(350);
+await press('Escape'); await waitFor(evalJS, `document.getElementById('bookmarkPicker').hasAttribute('hidden')`);
 const afterEsc1 = await evalJS(`({ pickerHidden: document.getElementById('bookmarkPicker').hasAttribute('hidden'), editOpen: !document.getElementById('editModal').hasAttribute('hidden') })`);
-await press('Escape'); await sleep(350);
+await press('Escape'); await waitFor(evalJS, `document.getElementById('editModal').hasAttribute('hidden')`);
 const topNull = await stackTop();
 const modalStackOk = topPicker === 'bookmarkPicker' && afterEsc1.pickerHidden && afterEsc1.editOpen && topNull === null;
 
 // 6.3 引擎下拉框
-await evalJS(`document.getElementById('engineBtn').click()`); await sleep(300);
+await evalJS(`document.getElementById('engineBtn').click()`); await waitFor(evalJS, `OverlayStack.top()?.id === "dropdown"`);
 const topDropdown = await stackTop();
-await press('Escape'); await sleep(300);
+await press('Escape'); await waitFor(evalJS, `OverlayStack.isEmpty()`);
 const dropdownOk = topDropdown === 'dropdown' && (await stackTop()) === null;
 
 // 6.4 活动 Modal 拦截滚轮与快捷键
-await evalJS(`document.getElementById('editBookmarksBtn').click()`); await sleep(300);
-await evalJS(`window.dispatchEvent(new WheelEvent('wheel', { deltaY: 120, bubbles: true, cancelable: true }))`); await sleep(300);
+await evalJS(`document.getElementById('editBookmarksBtn').click()`); await waitFor(evalJS, `state.editOpen === true`);
+await evalJS(`window.dispatchEvent(new WheelEvent('wheel', { deltaY: 120, bubbles: true, cancelable: true }))`); await sleep(100);
 const wheelSec = await evalJS(`state.currentSection`);
-await press('PageDown'); await sleep(300);
+await press('PageDown'); await sleep(100);
 const keySec = await evalJS(`state.currentSection`);
-await press('Escape'); await sleep(300);
+await press('Escape'); await waitFor(evalJS, `OverlayStack.isEmpty()`);
 const lockOk = wheelSec === 'start' && keySec === 'start';
 
 // 6.5 重置确认弹窗
-await evalJS(`document.getElementById('resetEditBtn').click()`); await sleep(300);
+await evalJS(`document.getElementById('resetEditBtn').click()`); await waitFor(evalJS, `OverlayStack.top()?.id === "confirmModal"`);
 const topConfirm = await stackTop();
-await press('Escape'); await sleep(300);
+await press('Escape'); await waitFor(evalJS, `OverlayStack.isEmpty()`);
 const confirmOk = topConfirm === 'confirmModal' && (await stackTop()) === null;
 
 // 6.6 jsonDropzone

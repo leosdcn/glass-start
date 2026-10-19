@@ -10,8 +10,13 @@ import { dom, $ } from '../state/dom.js';
 
 let currentWallpaperTheme = (typeof window !== 'undefined' && window.__INITIAL_THEME__) || APP_THEME_DARK;
 
+/**
+ * @param {string} color
+ * @param {boolean} [isLight]
+ */
 export function updateThemeColor(color, isLight) {
     if (!color || typeof document === 'undefined') return;
+    /** @type {NodeListOf<HTMLMetaElement>} */
     const themeMetas = document.querySelectorAll('meta[name="theme-color"]');
     if (themeMetas.length > 0) {
         themeMetas.forEach(meta => {
@@ -48,12 +53,18 @@ export function updateThemeColor(color, isLight) {
     if (bgNext) bgNext.style.backgroundColor = color;
 }
 
+/**
+ * @param {string} tintRgbStr
+ */
 export function updateGlassTint(tintRgbStr) {
     if (!tintRgbStr || typeof document === 'undefined' || !document.documentElement) return;
     document.documentElement.style.setProperty('--glass-tint', tintRgbStr);
 }
 
-export function syncThemeForSection() {
+/**
+ * @param {'start'|'nav'|string} [_sec]
+ */
+export function syncThemeForSection(_sec) {
     if (currentWallpaperTheme && currentWallpaperTheme.color) {
         updateThemeColor(currentWallpaperTheme.color, currentWallpaperTheme.isLight);
     } else {
@@ -61,12 +72,18 @@ export function syncThemeForSection() {
     }
 }
 
+/**
+ * @param {import('../types.js').WallpaperTheme} theme
+ */
 export function setWallpaperTheme(theme) {
     if (!theme || !theme.color) return;
     currentWallpaperTheme = theme;
     syncThemeForSection();
 }
 
+/**
+ * @param {HTMLImageElement} img
+ */
 export function sampleCustomWallpaperTheme(img) {
     if (typeof document === 'undefined') return;
     try {
@@ -87,6 +104,7 @@ export function sampleCustomWallpaperTheme(img) {
         const maskOp = (Number.isFinite(savedMask)
             ? Math.max(0, Math.min(CONFIG.APPEARANCE.MAX_MASK_OPACITY, savedMask))
             : CONFIG.APPEARANCE.DEFAULT_MASK_OPACITY) / 100;
+        /** @param {number} areaHeight */
         const sample = areaHeight => {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.drawImage(img, srcX, srcY, srcW, areaHeight, 0, 0, canvas.width, canvas.height);

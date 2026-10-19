@@ -3,12 +3,14 @@ import { dom } from '../state/dom.js';
 import { OverlayStack } from './overlay-stack.js';
 import { showConfirm } from './dialogs.js';
 
+/** @type {ServiceWorkerRegistration | null} */
 let registration = null;
 let initialized = false;
 let checking = false;
 let lastCheckAt = 0;
 let updateAvailable = false;
 let reloadRequested = false;
+/** @type {ReturnType<typeof setTimeout> | null} */
 let reloadTimer = null;
 
 function showUpdateNotice(message = '有新版本') {
@@ -19,7 +21,8 @@ function showUpdateNotice(message = '有新版本') {
 
 function resetUpdateAttempt() {
     reloadRequested = false;
-    clearTimeout(reloadTimer);
+    if (reloadTimer) clearTimeout(reloadTimer);
+    reloadTimer = null;
     if (dom.updateReloadBtn) {
         dom.updateReloadBtn.disabled = false;
     }
@@ -44,6 +47,9 @@ function applyUpdate() {
     catch { resetUpdateAttempt(); }
 }
 
+/**
+ * @param {ServiceWorkerRegistration} reg
+ */
 function watchRegistration(reg) {
     registration = reg;
     const inspectWaiting = () => {
@@ -75,6 +81,7 @@ export async function checkServiceWorkerUpdate(force = false) {
 export function initServiceWorkerUpdates() {
     if (initialized || !('serviceWorker' in navigator) || !location.protocol.startsWith('http')) return;
     initialized = true;
+    /** @type {ServiceWorker | null} */
     let previousController = navigator.serviceWorker.controller;
     navigator.serviceWorker.addEventListener('controllerchange', () => {
         const controller = navigator.serviceWorker.controller;
@@ -82,7 +89,8 @@ export function initServiceWorkerUpdates() {
         const hadController = !!previousController;
         previousController = controller;
         if (reloadRequested) {
-            clearTimeout(reloadTimer);
+            if (reloadTimer) clearTimeout(reloadTimer);
+            reloadTimer = null;
             location.reload();
         } else if (hadController) {
             showUpdateNotice();

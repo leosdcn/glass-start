@@ -10,9 +10,11 @@ import { applyWallpaper } from '../core/wallpaper-renderer.js';
 import { showConfirm } from '../core/dialogs.js';
 
 let wallpaperSelectionId = 0;
+/** @type {HTMLImageElement | null} */
 let pendingPreviewImage = null;
 let wallpaperCommitQueue = Promise.resolve();
 let latestSelectionPromise = Promise.resolve(true);
+/** @type {(() => void) | null} */
 let cancelPendingPreview = null;
 
 function beginWallpaperSelection() {
@@ -26,14 +28,24 @@ function beginWallpaperSelection() {
     return wallpaperSelectionId;
 }
 
+/**
+ * @param {string | null} targetWallpaper
+ * @param {number} selectionId
+ * @returns {Promise<boolean>}
+ */
 function commitCurrentSelection(targetWallpaper, selectionId) {
-    wallpaperCommitQueue = wallpaperCommitQueue.catch(() => {}).then(() => {
-        if (selectionId === wallpaperSelectionId) return commitWallpaperSelection(targetWallpaper);
+    let result = false;
+    wallpaperCommitQueue = wallpaperCommitQueue.catch(() => {}).then(async () => {
+        if (selectionId === wallpaperSelectionId) {
+            result = await commitWallpaperSelection(targetWallpaper);
+        }
     });
-    return wallpaperCommitQueue;
+    return wallpaperCommitQueue.then(() => result);
 }
 
+/** @type {Promise<unknown> | null} */
 let migrationPromise = null;
+/** @param {{ bg: number, wallpaper?: string | null }} selection */
 function saveWallpaperHints(selection) {
     storageSet(CONFIG.KEYS.BG, selection.bg);
     storageSet(CONFIG.KEYS.WALLPAPER_META, { custom: !!selection.wallpaper, bg: selection.bg });
@@ -57,7 +69,7 @@ export function migrateLegacyWallpaper() {
         const result = await migrateLegacyWallpaperDB(legacy);
         if (result.status === 'failed') return false;
         if (localStorage.getItem(CONFIG.KEYS.USER_WALLPAPER) === raw) storageRemove(CONFIG.KEYS.USER_WALLPAPER);
-        if (startedAt === wallpaperSelectionId) saveWallpaperHints(result.selection);
+        if (startedAt === wallpaperSelectionId && result.selection) saveWallpaperHints(result.selection);
         return true;
     })().catch(() => false).finally(() => { migrationPromise = null; });
     return migrationPromise;
@@ -128,7 +140,7 @@ export async function updateWallpaperStatusUI(customWallpaperOverride) {
 
 /**
  * 刷新预设壁纸库卡片的激活（Active）高亮选中状态
- * @param {string} [customWallpaperOverride]
+ * @param {string|null} [customWallpaperOverride]
  * @returns {void}
  */
 export function updatePresetBgCardsUI(customWallpaperOverride) {
@@ -138,7 +150,8 @@ export function updatePresetBgCardsUI(customWallpaperOverride) {
     const container = dom.presetWallpaperGrid;
     if (!container) return;
     container.querySelectorAll('.preset-bg-card').forEach(card => {
-        const bg = card.dataset.bg;
+        const cardEl = card instanceof HTMLElement ? card : null;
+        const bg = cardEl?.dataset.bg;
         card.classList.toggle('active', bg === currentBg);
     });
 }
@@ -171,7 +184,10 @@ export async function flushWallpaperSelection() {
     return !modalState.wallpaperSaveFailed;
 }
 
-/** 即选即存；失败恢复此前已提交的壁纸，草稿可重新选择重试。 */
+/** 
+ * 即选即存；失败恢复此前已提交的壁纸，草稿可重新选择重试。
+ * @param {string | null} urlStr
+ */
 export function previewDraftWallpaper(urlStr) {
     const selectionId = beginWallpaperSelection();
     modalState.draftWallpaper = urlStr;
@@ -187,8 +203,10 @@ export function previewDraftWallpaper(urlStr) {
                 img.src = urlStr;
             });
             if (selectionId !== wallpaperSelectionId) return false;
-            pendingPreviewImage.onload = pendingPreviewImage.onerror = null;
-            pendingPreviewImage = null;
+            if (pendingPreviewImage) {
+                pendingPreviewImage.onload = pendingPreviewImage.onerror = null;
+                pendingPreviewImage = null;
+            }
             cancelPendingPreview = null;
             if (!loaded) {
                 modalState.wallpaperSaveFailed = true;
@@ -294,6 +312,9 @@ export async function restoreWallpaper() {
     }
 }
 
+/**
+ * @param {File} file
+ */
 export function uploadWallpaper(file) {
     if (!file.type.startsWith('image/')) {
         showConfirm('请选择有效的图片文件（JPG / PNG / WebP 等）。', null, '格式错误');
@@ -301,7 +322,9 @@ export function uploadWallpaper(file) {
     }
     const reader = new FileReader();
     reader.onload = ev => {
-        const dataUrl = ev.target.result;
+        const target = /** @type {FileReader|null} */ (ev.target);
+        const dataUrl = typeof target?.result === 'string' ? target.result : '';
+        if (!dataUrl) return;
         const img = new Image();
         img.onload = () => {
             const MAX_WIDTH = CONFIG.APPEARANCE.MAX_UPLOAD_WIDTH;
@@ -323,12 +346,13 @@ export function uploadWallpaper(file) {
             canvas.width = width;
             canvas.height = height;
             const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0, width, height);
+            if (ctx) {
+                ctx.drawImage(img, 0, 0, width, height);
+                const compressedDataUrl = canvas.toDataURL('image/jpeg', CONFIG.APPEARANCE.JPEG_QUALITY);
+                previewDraftWallpaper(compressedDataUrl);
+                ctx.clearRect(0, 0, width, height);
+            }
 
-            const compressedDataUrl = canvas.toDataURL('image/jpeg', CONFIG.APPEARANCE.JPEG_QUALITY);
-            previewDraftWallpaper(compressedDataUrl);
-
-            ctx.clearRect(0, 0, width, height);
             canvas.width = 0;
             canvas.height = 0;
             img.onload = null;

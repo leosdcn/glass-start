@@ -1,6 +1,7 @@
 /**
  * 天气 Emoji / 本地 SVG 图标映射：首屏预渲染与运行时共用，由构建注入 index.html。
  * 新增映射时 lint 会校验本地图标文件存在。
+ * @type {Readonly<Record<string, string>>}
  */
 export const WEATHER_EMOJI_MAP = Object.freeze({
   "☀️": "./icons/weather/sun.svg",

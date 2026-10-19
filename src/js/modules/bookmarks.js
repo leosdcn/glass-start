@@ -20,6 +20,12 @@ import { dom, $ } from '../state/dom.js';
 
 import { getCategoryCatalog } from '../utils/category-catalog.js';
 
+/**
+ * @param {string[]} keys
+ * @param {import('../types').BookmarkCategory[]} categories
+ * @param {Record<string, import('../types').CustomMetaItem>} [customMeta]
+ * @returns {import('../types').BookmarkItem[]}
+ */
 export function getDerivedBookmarks(keys, categories, customMeta = {}) {
     if (!Array.isArray(keys)) return [];
 
@@ -39,12 +45,14 @@ export function getDerivedBookmarks(keys, categories, customMeta = {}) {
         }
         if (catMap.has(normalized)) {
             const catBm = catMap.get(normalized);
-            return {
-                name: catBm.name,
-                url: catBm.url,
-                icon: catBm.icon || faviconFromUrl(catBm.url),
-                desc: catBm.desc || ''
-            };
+            if (catBm) {
+                return {
+                    name: catBm.name,
+                    url: catBm.url,
+                    icon: catBm.icon || faviconFromUrl(catBm.url),
+                    desc: catBm.desc || ''
+                };
+            }
         }
         return {
             name: deriveNameFromUrl(normalized),
@@ -61,6 +69,7 @@ export function migrateBookmarksStorage() {
     if (rawUserKeys && Array.isArray(rawUserKeys)) return;
 
     if (rawLegacy && Array.isArray(rawLegacy) && rawLegacy.length > 0) {
+        /** @type {string[]} */
         const keys = [];
         const customMeta = storageGet(CONFIG.KEYS.CUSTOM_META) || {};
 
@@ -85,7 +94,9 @@ export function migrateBookmarksStorage() {
     }
 }
 
+/** @param {import('../types').BookmarkItem[]} list */
 export function saveUserBookmarks(list) {
+    /** @type {string[]} */
     const keys = [];
     const customMeta = storageGet(CONFIG.KEYS.CUSTOM_META) || {};
     const catMetaMap = getCategoryCatalog(pageData.categories).byUrl;
@@ -146,6 +157,7 @@ export function loadBookmarks() {
     }
 }
 
+/** @param {HTMLImageElement} img */
 export function handleIconError(img) {
     handleFaviconFailure(img, img => {
         const initial = img.dataset.initial || '?';
@@ -162,6 +174,11 @@ export function handleIconError(img) {
 
 const LIGHT_BACKING_HOSTS = new Set(['github.com', 'key-test.com', 'browserleaks.com', 'ip.skk.moe', 'unsplash.com', 'it-tools.tech']);
 
+/**
+ * @param {import('../types').BookmarkItem} bm
+ * @param {string} [sizeType]
+ * @param {boolean} [useNavBacking]
+ */
 export function getFaviconHTML(bm, sizeType = 'sm', useNavBacking = false) {
     const initial = (bm.name || '?').trim().charAt(0).toUpperCase();
     const isMd = sizeType === 'md';
@@ -187,7 +204,7 @@ export function getFaviconHTML(bm, sizeType = 'sm', useNavBacking = false) {
 /**
  * 渲染分类图标 HTML：兼容 SVG/图片相对路径与 Emoji 字符
  * @param {string} icon - 图标路径或 Emoji 字符
- * @param {string} [extraClass=''] - 附加样式类
+ * @param {string} [sizeClass='size-4'] - 尺寸与样式类
  * @returns {string} 渲染的安全 HTML 字符串
  */
 export function getCategoryIconHTML(icon, sizeClass = 'size-4') {
@@ -200,7 +217,7 @@ export function getCategoryIconHTML(icon, sizeClass = 'size-4') {
 
 export function initFaviconObserver() {
     document.querySelectorAll('img.lazy-icon').forEach(img => {
-        checkImageReady(img);
+        checkImageReady(/** @type {HTMLImageElement} */ (img));
     });
 }
 
@@ -208,7 +225,7 @@ export function initPickerFaviconObserver() {
     const container = dom.pickerContent;
     if (!container) return;
     container.querySelectorAll('img.lazy-icon').forEach(img => {
-        checkImageReady(img, handleIconError);
+        checkImageReady(/** @type {HTMLImageElement} */ (img), handleIconError);
     });
 }
 
@@ -276,9 +293,10 @@ export function renderBookmarks(force = false) {
         bookmarksEl.appendChild(fragment);
     }
 
-    bookmarksEl.querySelectorAll('img.lazy-icon').forEach(img => checkImageReady(img));
+    bookmarksEl.querySelectorAll('img.lazy-icon').forEach(img => checkImageReady(/** @type {HTMLImageElement} */ (img)));
 }
 
+/** @type {import('../types').CategoryCatalog | undefined} */
 let lastNavCatalog;
 
 export function getSortedCategories() {
@@ -287,20 +305,28 @@ export function getSortedCategories() {
 
 let isSidebarNavInitialized = false;
 let isManualScrolling = false;
+/** @type {ReturnType<typeof setTimeout> | null} */
 let manualScrollTimer = null;
+/** @type {HTMLElement[]} */
 let cachedSidebarItems = [];
+/** @type {HTMLElement[]} */
 let cachedSidebarSections = [];
+/** @type {number[]} */
 let cachedSectionOffsets = [];
 
 export function refreshSidebarNavCache() {
     const sidebarList = dom.sidebarList;
     const navContent = dom.navContent;
     if (!sidebarList || !navContent) return;
-    cachedSidebarItems = Array.from(sidebarList.querySelectorAll('[data-target]'));
-    cachedSidebarSections = cachedSidebarItems.map(item => document.getElementById(item.dataset.target)).filter(Boolean);
+    cachedSidebarItems = /** @type {HTMLElement[]} */ (Array.from(sidebarList.querySelectorAll('[data-target]')));
+    cachedSidebarSections = /** @type {HTMLElement[]} */ (cachedSidebarItems.map(item => item.dataset.target ? document.getElementById(item.dataset.target) : null).filter(Boolean));
     cachedSectionOffsets = cachedSidebarSections.map(s => s.offsetTop);
 }
 
+/**
+ * @param {HTMLElement | null | undefined} item
+ * @param {HTMLElement | null | undefined} container
+ */
 export function scrollTabIntoView(item, container) {
     if (!item || !container) return;
     const isMobile = window.innerWidth <= CONFIG.NAV.MOBILE_BREAKPOINT;
@@ -437,6 +463,7 @@ export function initSidebarNav() {
     updateSidebarActive();
 
     if (!isSidebarNavInitialized) {
+        /** @type {ReturnType<typeof setTimeout> | null} */
         let resizeTimer = null;
         const handleResizeOrRotate = () => {
             if (resizeTimer) clearTimeout(resizeTimer);
@@ -455,10 +482,11 @@ export function initSidebarNav() {
         }
 
         sidebarList.addEventListener('click', (e) => {
-            const btn = e.target.closest('[data-target]');
+            const targetEl = /** @type {Element | null} */ (e.target);
+            const btn = /** @type {HTMLElement | null} */ (targetEl ? targetEl.closest('[data-target]') : null);
             if (!btn) return;
             const targetId = btn.dataset.target;
-            const target = document.getElementById(targetId);
+            const target = targetId ? document.getElementById(targetId) : null;
             if (!target) return;
 
             isManualScrolling = true;
@@ -497,6 +525,7 @@ export function initSidebarNav() {
         });
 
         let ticking = false;
+        /** @type {ReturnType<typeof setTimeout> | null} */
         let scrollEndTimer = null;
         content.addEventListener('scroll', () => {
             if (isManualScrolling) {

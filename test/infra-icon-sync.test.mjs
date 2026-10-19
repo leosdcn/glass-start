@@ -4,6 +4,19 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 
+let hasSips = false;
+try {
+  const check = spawnSync('sips', ['--version'], { stdio: 'ignore' });
+  hasSips = check.status === 0;
+} catch {
+  hasSips = false;
+}
+
+if (!hasSips) {
+  console.log('⚠️ 当前环境未检测到 sips（通常仅 macOS 支持），跳过图标 CLI 同步测试');
+  process.exit(0);
+}
+
 // 执行完整 CLI，仅替换 HTTPS 传输边界；实际校验和 sips 转换均运行。
 const root = mkdtempSync(join(tmpdir(), 'glass-icon-sync-'));
 const png = readFileSync(new URL('../public/icons/github.com.png', import.meta.url));
