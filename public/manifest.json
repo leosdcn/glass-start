@@ -21,13 +21,13 @@
     "theme_color": "#0b0f19",
     "icons": [
         {
-            "src": "./apple-touch-icon.png?v=2184a21a09",
+            "src": "./apple-touch-icon.png?v=16a3bbb7e3",
             "sizes": "180x180",
             "type": "image/png",
             "purpose": "any"
         },
         {
-            "src": "./icons/app/favicon.svg?v=2b76264e9a",
+            "src": "./icons/app/favicon.svg?v=609b1c5a3f",
             "sizes": "any 192x192 512x512",
             "type": "image/svg+xml",
             "purpose": "any maskable"
