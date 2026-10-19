@@ -4,7 +4,7 @@
   "description": "Glass Start — 极简纯净的毛玻璃浏览器起始页。",
   "main": "dist/index.html",
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=24.0.0"
   },
   "scripts": {
     "build": "node scripts/build.js",
