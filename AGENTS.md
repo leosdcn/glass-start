@@ -1,6 +1,6 @@
 # Glass Start — 开发约束
 
-架构、状态流及模块索引按需查阅 [ARCHITECTURE.md](./ARCHITECTURE.md)；使用、书签格式及测试环境见 [README.md](./README.md)。实现以源码为准，业务配置统一维护在 `src/js/config/constants.js`。
+架构、状态流及模块索引按需查阅 [ARCHITECTURE.md](./ARCHITECTURE.md)；使用、书签格式及测试环境见 [README.md](./README.md)。实现以源码为准，业务配置统一维护在 `src/js/config/`：通用常量与运行时配置在 `constants.js`，首屏共享的预设壁纸、引擎元数据/图标、天气图标分别见 `backgrounds.js`、`engines.js` / `engine-icons.js`、`weather-icons.js`。
 
 ## 修改边界
 
@@ -20,6 +20,7 @@
 - 保持 lint 约束：按钮声明 `type="button"`，装饰 SVG 标注 `aria-hidden="true"`，交互图标提供 `aria-label`；禁止 `-webkit-font-smoothing` 和非 `prefers-reduced-motion` 内的 `!important`。
 - 单行输入框默认及触屏字号 >= 16px；仅书签编辑器和壁纸直链输入允许 `mouse-desktop:text-xs`，其变体须同时满足宽度 >= 640px、hover、精细指针且无粗指针设备。卡片 `:hover` 加 `body:not(.tab-blurred)` 前缀。
 - 预设书签图标统一使用 `./icons/{domain}.png`；`desc` 纯中文 <= 9 字、含英数 <= 13 字符，由 lint 校验。
+- 首屏共享配置只修改 `src/js/config/` 下的对应模块，由构建注入 `src/index.html` 插槽；不要在 HTML 内联壁纸、引擎图标或天气图标副本。
 
 ## 验证
 

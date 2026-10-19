@@ -7,7 +7,7 @@
  */
 import { readFileSync, writeFileSync, statSync, existsSync, readdirSync } from 'node:fs';
 import { join, dirname, relative } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import vm from 'node:vm';
 
@@ -581,6 +581,67 @@ try {
 } catch (e) {
     failCount++;
     logItem(`弹窗显示生命周期门禁失败: ${e.message}`, 'error');
+}
+
+// 首屏共享配置单一真理源：模块长度/键集合/本地资源/构建插槽必须一致。
+try {
+    const loadConfig = relativePath => import(pathToFileURL(join(root, relativePath)).href);
+    const [
+        { PRESET_BACKGROUNDS },
+        { PRESET_WALLPAPER_THEMES, PRESET_WALLPAPER_TINTS },
+        { ENGINE_META },
+        { ENGINE_SVGS },
+        { WEATHER_EMOJI_MAP }
+    ] = await Promise.all([
+        loadConfig('src/js/config/backgrounds.js'),
+        loadConfig('src/js/config/themes.js'),
+        loadConfig('src/js/config/engines.js'),
+        loadConfig('src/js/config/engine-icons.js'),
+        loadConfig('src/js/config/weather-icons.js')
+    ]);
+    const errors = [];
+    if (PRESET_BACKGROUNDS.length !== PRESET_WALLPAPER_THEMES.length) {
+        errors.push(`壁纸 ${PRESET_BACKGROUNDS.length} 张 vs 主题 ${PRESET_WALLPAPER_THEMES.length} 个`);
+    }
+    if (PRESET_BACKGROUNDS.length !== PRESET_WALLPAPER_TINTS.length) {
+        errors.push(`壁纸 ${PRESET_BACKGROUNDS.length} 张 vs 色调 ${PRESET_WALLPAPER_TINTS.length} 个`);
+    }
+    const engineMetaKeys = Object.keys(ENGINE_META).sort();
+    const engineSvgKeys = Object.keys(ENGINE_SVGS).sort();
+    if (engineMetaKeys.join(',') !== engineSvgKeys.join(',')) {
+        errors.push(`引擎元数据键 [${engineMetaKeys.join(',')}] vs 图标键 [${engineSvgKeys.join(',')}]`);
+    }
+    for (const [key, meta] of Object.entries(ENGINE_META)) {
+        if (!meta.name || !/^https:\/\//.test(meta.url || '')) errors.push(`引擎 ${key} 缺少名称或 HTTPS 地址`);
+        if (!ENGINE_SVGS[key]?.includes('<svg')) errors.push(`引擎 ${key} 缺少 SVG 图标`);
+    }
+    for (const [emoji, rel] of Object.entries(WEATHER_EMOJI_MAP)) {
+        if (!/^\.\/icons\/weather\/[a-z0-9_-]+\.svg$/i.test(rel)) {
+            errors.push(`天气图标 ${emoji} 路径非法: ${rel}`);
+        } else if (!existsSync(join(root, 'public', rel.slice(2)))) {
+            errors.push(`天气图标 ${emoji} 文件缺失: ${rel}`);
+        }
+    }
+    for (const bg of PRESET_BACKGROUNDS) {
+        if (!/^\.\/wallpapers\/[a-z0-9-]+\.avif$/i.test(bg)) {
+            errors.push(`壁纸路径非法: ${bg}`);
+        } else if (!existsSync(join(root, 'public', bg.slice(2)))) {
+            errors.push(`壁纸文件缺失: ${bg}`);
+        }
+    }
+    for (const marker of ['/* INJECT_BACKGROUNDS */', '/* INJECT_ENGINE_ICONS */', '/* INJECT_WEATHER_ICONS */']) {
+        const count = indexHtml.split(marker).length - 1;
+        if (count !== 1) errors.push(`构建插槽 ${marker} 出现 ${count} 次`);
+    }
+    if (/const\s+backgrounds\s*=\s*\[/.test(indexHtml)) errors.push('index.html 仍内联壁纸数组');
+    if (/const\s+ENGINE_SVGS\s*=\s*\{/.test(indexHtml)) errors.push('index.html 仍内联引擎图标');
+    if (/const\s+m\s*=\s*\{\s*'☀️'/.test(indexHtml)) errors.push('index.html 仍内联天气图标');
+    if (errors.length) throw new Error(errors.join(' | '));
+    passCount++;
+    logItem(`首屏共享配置单一真理源：${PRESET_BACKGROUNDS.length} 张壁纸、${engineMetaKeys.length} 个引擎、${Object.keys(WEATHER_EMOJI_MAP).length} 个天气图标，注入插槽与本地资源一致`);
+} catch (e) {
+    failCount++;
+    logItem(`首屏共享配置一致性检查失败: ${e.message}`, 'error');
 }
 
 const elapsed = Date.now() - startTime;

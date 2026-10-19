@@ -210,10 +210,45 @@ function injectWeatherNum(html) {
     return replaceOnce(html, marker, code.replace(/<\/script/gi, '<\\/script'));
 }
 
+// 首屏共享配置（壁纸、引擎、天气图标）从单一模块注入，避免内联副本与运行时漂移。
+function injectHeadConfig(html, { marker, entryPath, globalName, binding }) {
+    const result = esbuild.buildSync({
+        entryPoints: [entryPath],
+        bundle: true,
+        write: false,
+        format: 'iife',
+        globalName,
+        target: 'es2020',
+        minify: true,
+        charset: 'utf8'
+    });
+    const code = result.outputFiles[0].text + '\n' + binding;
+    return replaceOnce(html, marker, code.replace(/<\/script/gi, '<\\/script'));
+}
+
 // 5. 处理生产环境 index.html (替换内联 JS 为外链 dist/app.js，全量内嵌静态编译 Tailwind CSS 与 SVG 精灵)
 function processProductionHtml(compiledCss) {
     logSection('5/5', '🔧 处理生产环境页面 (dist/index.html)');
-    let prodHtmlContent = injectWeatherNum(injectThemeConfig(fs.readFileSync(PATHS.srcIndexHtml, 'utf-8')));
+    let prodHtmlContent = fs.readFileSync(PATHS.srcIndexHtml, 'utf-8');
+    prodHtmlContent = injectHeadConfig(prodHtmlContent, {
+        marker: '/* INJECT_BACKGROUNDS */',
+        entryPath: path.join(PATHS.src, 'js', 'config', 'backgrounds.js'),
+        globalName: '__headBackgrounds',
+        binding: 'const { PRESET_BACKGROUNDS: backgrounds } = __headBackgrounds;'
+    });
+    prodHtmlContent = injectHeadConfig(prodHtmlContent, {
+        marker: '/* INJECT_ENGINE_ICONS */',
+        entryPath: path.join(PATHS.src, 'js', 'config', 'engine-head.js'),
+        globalName: '__headEngines',
+        binding: 'const { ENGINE_SVGS, ENGINE_META } = __headEngines;'
+    });
+    prodHtmlContent = injectHeadConfig(prodHtmlContent, {
+        marker: '/* INJECT_WEATHER_ICONS */',
+        entryPath: path.join(PATHS.src, 'js', 'config', 'weather-icons.js'),
+        globalName: '__headWeatherIcons',
+        binding: 'const { WEATHER_EMOJI_MAP: m } = __headWeatherIcons;'
+    });
+    prodHtmlContent = injectWeatherNum(injectThemeConfig(prodHtmlContent));
 
     prodHtmlContent = injectDocumentShell(prodHtmlContent, {
         css: compiledCss,
@@ -410,6 +445,7 @@ module.exports = {
     checkTailwindInstalled,
     injectThemeConfig,
     injectWeatherNum,
+    injectHeadConfig,
     buildAppJavaScript,
     PATHS
 };

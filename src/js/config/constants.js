@@ -1,4 +1,6 @@
 import bookmarksData from '../../../bookmarks.json';
+import { PRESET_BACKGROUNDS } from './backgrounds.js';
+import { ENGINE_META } from './engines.js';
 
 // ==================== 默认书签（根目录 bookmarks.json 单一真理源）====================
 export const DEFAULT_BOOKMARKS = bookmarksData.bookmarks || [];
@@ -187,15 +189,18 @@ export const CONFIG = Object.freeze({
             ])
         });
 
-export const engines = {
-    bing: { name: 'Bing', isSvg: true, svg: (typeof window !== 'undefined' && window.__ENGINE_SVGS__?.bing) || '', url: 'https://www.bing.com/search?q=' },
-    google: { name: 'Google', isSvg: true, svg: (typeof window !== 'undefined' && window.__ENGINE_SVGS__?.google) || '', url: 'https://www.google.com/search?q=' },
-    wikipedia: { name: 'Wikipedia', isSvg: true, svg: (typeof window !== 'undefined' && window.__ENGINE_SVGS__?.wikipedia) || '', url: 'https://zh.wikipedia.org/w/index.php?search=' }
-};
+// 引擎名称、协议与 SVG 首屏注入共用同一份元数据；运行时只补首屏注入的 SVG。
+export const engines = Object.fromEntries(
+    Object.entries(ENGINE_META).map(([key, meta]) => [key, {
+        ...meta,
+        svg: (typeof window !== 'undefined' && window.__ENGINE_SVGS__?.[key]) || ''
+    }])
+);
 
+// 首屏构建会把同一份清单注入 window.__BACKGROUNDS__；模块是唯一真理源。
 export const backgrounds = (typeof window !== 'undefined' && Array.isArray(window.__BACKGROUNDS__) && window.__BACKGROUNDS__.length)
     ? window.__BACKGROUNDS__
-    : ['./wallpapers/bg1.avif'];
+    : PRESET_BACKGROUNDS;
 
 // ==================== 平台按键与快捷键适配 ====================
 export const IS_MAC = (() => {

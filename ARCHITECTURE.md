@@ -22,6 +22,9 @@
 | :--- | :--- |
 | **全站配置与常量真理源** | `src/js/config/constants.js` |
 | **首屏主题与 Safari 预渲染** | `src/js/config/themes.js` |
+| **首屏预设壁纸清单** | `src/js/config/backgrounds.js` |
+| **搜索引擎元数据与图标** | `src/js/config/engines.js`<br/>`src/js/config/engine-icons.js` |
+| **天气图标映射** | `src/js/config/weather-icons.js` |
 | **全局状态与 DOM 缓存池** | `src/js/state/store.js`<br/>`src/js/state/dom.js` |
 | **书签体系与双栏分类导航** | `src/js/modules/bookmarks.js` |
 | **时钟引擎、快捷键与鸣谢** | `src/js/modules/clock.js` |
@@ -70,7 +73,9 @@ flowchart TD
 
 构建以 `package.json` 为版本来源，注入产物徽章；每次构建生成统一指纹，注入 HTML、应用脚本与 Service Worker。HTML 引用的 `app.js` 同时携带版本查询参数。
 
-构建在内存中传递并内嵌本次编译的 CSS，不共享磁盘中间文件。空 CSS、编译或压缩失败会阻断构建；这不保证整个 `dist/` 的并发写入具有事务性。HTML 使用唯一构建插槽注入入口、样式和 SVG；标记缺失、重复或顺序错误会阻断构建。主题与天气清洗脚本分别从 `config/themes.js`、`utils/weather-data.js` 注入，避免维护副本。
+构建在内存中传递并内嵌本次编译的 CSS，不共享磁盘中间文件。空 CSS、编译或压缩失败会阻断构建；这不保证整个 `dist/` 的并发写入具有事务性。HTML 使用唯一构建插槽注入入口、样式和 SVG；标记缺失、重复或顺序错误会阻断构建。主题、壁纸清单、引擎元数据/图标、天气图标与天气清洗脚本分别从 `config/`、`utils/weather-data.js` 注入，避免维护副本。
+
+首屏共享配置的单一真理源为 `config/backgrounds.js`、`config/engines.js`、`config/engine-icons.js`、`config/weather-icons.js`；`src/index.html` 只保留注入插槽。lint 校验壁纸与主题/色调数组长度、引擎键集合、本地图标文件存在性及插槽唯一性；`test/infra-config-injection.test.mjs` 校验构建产物确实包含注入值与无残留插槽。
 
 `public/` 在构建时复制到 `dist/`；`src/index.html` 是构建模板。修改构建脚本或其加载的辅助脚本后需重启开发服务。
 

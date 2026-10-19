@@ -8,44 +8,8 @@ import { escapeHtml, safeUrl, storageGet, storageSet, storageRemove } from '../u
 import { dom, $ } from '../state/dom.js';
 import { OverlayStack } from '../core/overlay-stack.js';
 
-export const WEATHER_EMOJI_MAP = {
-    '☀️': './icons/weather/sun.svg',
-    '🌙': './icons/weather/moon.svg',
-    '🌤️': './icons/weather/sun_cloud.svg',
-    '🌤': './icons/weather/sun_cloud.svg',
-    '⛅': './icons/weather/partly_cloudy.svg',
-    '☁️': './icons/weather/cloud.svg',
-    '☁': './icons/weather/cloud.svg',
-    '🌫️': './icons/weather/fog.svg',
-    '🌫': './icons/weather/fog.svg',
-    '🌦️': './icons/weather/drizzle.svg',
-    '🌦': './icons/weather/drizzle.svg',
-    '🌧️': './icons/weather/rain.svg',
-    '🌧': './icons/weather/rain.svg',
-    '⛈️': './icons/weather/thunder.svg',
-    '⛈': './icons/weather/thunder.svg',
-    '🌨️': './icons/weather/snow.svg',
-    '🌨': './icons/weather/snow.svg',
-    '❄️': './icons/weather/snowflake.svg',
-    '❄': './icons/weather/snowflake.svg',
-    '📍': './icons/weather/pin.svg',
-    '💦': './icons/weather/humidity_high.svg',
-    '💧': './icons/weather/humidity_mid.svg',
-    '🌵': './icons/weather/humidity_low.svg',
-    '🍃': './icons/weather/wind_low.svg',
-    '🌪️': './icons/weather/wind_high.svg',
-    '🌪': './icons/weather/wind_high.svg',
-    '🎏': './icons/weather/wind_mid.svg',
-    '🌂': './icons/weather/umbrella.svg',
-    '☔️': './icons/weather/umbrella_rain.svg',
-    '☔': './icons/weather/umbrella_rain.svg',
-    '☂️': './icons/weather/umbrella_open.svg',
-    '☂': './icons/weather/umbrella_open.svg',
-    '🌅': './icons/weather/sunset.svg',
-    '🌄': './icons/weather/sunrise_mountains.svg',
-    '📡': './icons/weather/satellite.svg',
-    '🔄': './icons/weather/reload.svg'
-};
+import { WEATHER_EMOJI_MAP } from '../config/weather-icons.js';
+export { WEATHER_EMOJI_MAP };
 
 /**
  * 将天气 Emoji 或本地图片映射为渲染用 HTML
