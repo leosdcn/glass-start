@@ -68,3 +68,9 @@ jobs:
 
       - name: Run full test suite
         run: npm test
+
+      - name: Enable Safari remote automation
+        run: sudo safaridriver --enable
+
+      - name: Run Safari WebKit smoke test
+        run: npm run test:safari

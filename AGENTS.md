@@ -1,6 +1,6 @@
 # Glass Start — 开发约束
 
-架构、状态流及模块索引按需查阅 [ARCHITECTURE.md](./ARCHITECTURE.md)；使用、书签格式及测试环境见 [README.md](./README.md)。实现以源码为准，业务配置统一维护在 `src/js/config/`：通用常量与运行时配置在 `constants.js`，首屏共享的预设壁纸、引擎元数据/图标、天气图标分别见 `backgrounds.js`、`engines.js` / `engine-icons.js`、`weather-icons.js`。
+架构、状态流及模块索引按需查阅 [ARCHITECTURE.md](./ARCHITECTURE.md)；使用、书签格式及测试环境见 [README.md](./README.md)；WebKit/iOS 兼容性走查见 [docs/SAFARI_SMOKE_CHECKLIST.md](./docs/SAFARI_SMOKE_CHECKLIST.md)。实现以源码为准，业务配置统一维护在 `src/js/config/`：通用常量与运行时配置在 `constants.js`，首屏共享的预设壁纸、引擎元数据/图标、天气图标分别见 `backgrounds.js`、`engines.js` / `engine-icons.js`、`weather-icons.js`。
 
 ## 修改边界
 
@@ -30,6 +30,6 @@
 | 代码修改 | `npm run lint && npm run typecheck` |
 | 局部功能修改 | 按模块运行 `npm run test:ui` / `npm run test:data` / `npm run test:infra` / `npm run test:lifecycle` |
 | 常规提交前 | `npm test` |
-| 版本发布前 | `npm test && npm run test:w3c`，W3C 校验须 0 报错 |
+| 版本发布前 | `npm test && npm run test:w3c`，W3C 校验须 0 报错；macOS / CI 环境执行 `npm run test:safari` |
 
 验证失败时修复本次改动引入的问题，并重跑受影响检查；如有环境阻塞或既有失败，明确报告。
