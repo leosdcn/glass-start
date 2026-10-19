@@ -115,7 +115,7 @@ export const CONFIG = Object.freeze({
                 JPEG_QUALITY: 0.95,           // Canvas 壁纸压缩质量
                 THEME_SAMPLE_WIDTH: 16,       // 壁纸取色采样宽度 (px)
                 THEME_SAMPLE_HEIGHT: 4,       // 壁纸取色采样高度 (px)
-                THEME_SAMPLE_AREA_RATIO: 0.15, // 壁纸顶部采样区域占总高度的比例
+                THEME_SAMPLE_AREA_RATIO: 0.15, // 可见壁纸顶部的主题采样比例；环境色采样完整可见区域
                 LUMINANCE_THRESHOLD: 128,     // 深浅主题亮度判别门限
                 TINT_CLAMP: Object.freeze({   // 环境光折射动态区间与提亮保护
                     MIN: 60,

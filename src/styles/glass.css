@@ -5,10 +5,10 @@
 .glass {
     background: 
         linear-gradient(135deg, rgba(var(--glass-tint, 255, 255, 255), 0.08) 0%, rgba(var(--glass-tint, 255, 255, 255), 0.02) 100%),
-        rgba(255, 255, 255, 0.05);
+        var(--glass-bg);
     -webkit-backdrop-filter: blur(var(--blur));
     backdrop-filter: blur(var(--blur));
-    border: 1px solid rgba(var(--glass-tint, 255, 255, 255), 0.16);
+    border: 1px solid var(--glass-border);
     box-shadow: 
         inset 0 1px 0 0 rgba(255, 255, 255, 0.22),
         inset 0 0 0 1px rgba(var(--glass-tint, 255, 255, 255), 0.04),
@@ -19,10 +19,10 @@
 .glass-strong {
     background: 
         linear-gradient(135deg, rgba(var(--glass-tint, 255, 255, 255), 0.09) 0%, rgba(var(--glass-tint, 255, 255, 255), 0.025) 100%),
-        rgba(255, 255, 255, 0.10);
+        var(--glass-strong-bg);
     -webkit-backdrop-filter: blur(var(--blur-lg));
     backdrop-filter: blur(var(--blur-lg));
-    border: 1px solid rgba(var(--glass-tint, 255, 255, 255), 0.22);
+    border: 1px solid var(--glass-strong-border);
     box-shadow: 
         inset 0 1px 0 0 rgba(255, 255, 255, 0.34),
         inset 0 0 0 1px rgba(var(--glass-tint, 255, 255, 255), 0.055),
@@ -30,8 +30,8 @@
     isolation: isolate;
 }
 
-/* 弹窗底色稍实；保持低优先级，让下方无障碍及兼容降级覆盖。 */
-:where(.edit-overlay) .glass-strong { background: rgba(255, 255, 255, 0.2); }
+/* 弹窗仅加厚底色，保留共用环境色渐变；实色降级仍由下方 background 覆盖。 */
+:where(.edit-overlay) .glass-strong { --glass-strong-bg: var(--glass-modal-bg); }
 
 .glass-subcard {
     background: rgba(255, 255, 255, 0.05);
@@ -290,6 +290,7 @@ body:not(.tab-blurred) .nav-bookmark:not(.is-clicked):active {
     }
 }
 
+/* 降级统一使用深色实底，与组件内显式声明的白色文字及控件保持一致。 */
 /* 无障碍：降低透明度 (Prefers Reduced Transparency) */
 @media (prefers-reduced-transparency: reduce) {
     .glass {
@@ -302,16 +303,6 @@ body:not(.tab-blurred) .nav-bookmark:not(.is-clicked):active {
         -webkit-backdrop-filter: none;
         backdrop-filter: none;
     }
-    .wallpaper-bright .glass {
-        background: rgba(255, 255, 255, 0.94);
-        color: #0f172a;
-        border-color: rgba(0, 0, 0, 0.12);
-    }
-    .wallpaper-bright .glass-strong {
-        background: rgba(255, 255, 255, 0.98);
-        color: #0f172a;
-        border-color: rgba(0, 0, 0, 0.16);
-    }
 }
 
 /* 不支持 backdrop-filter 时使用高不透明度底色。 */
@@ -321,13 +312,5 @@ body:not(.tab-blurred) .nav-bookmark:not(.is-clicked):active {
     }
     .glass-strong {
         background: rgba(15, 23, 42, 0.94);
-    }
-    .wallpaper-bright .glass {
-        background: rgba(255, 255, 255, 0.92);
-        color: #0f172a;
-    }
-    .wallpaper-bright .glass-strong {
-        background: rgba(255, 255, 255, 0.96);
-        color: #0f172a;
     }
 }

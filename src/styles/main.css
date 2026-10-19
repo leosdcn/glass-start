@@ -49,8 +49,11 @@
     --danger: 239 68 68;
     --danger-highlight: 248 113 113;
     --glass-tint: 255, 255, 255;
-    --glass-bg: rgba(255, 255, 255, 0.08);
-    --glass-border: rgba(255, 255, 255, 0.15);
+    --glass-bg: rgba(255, 255, 255, 0.05);
+    --glass-strong-bg: rgba(255, 255, 255, 0.10);
+    --glass-modal-bg: rgba(255, 255, 255, 0.20);
+    --glass-border: rgba(var(--glass-tint), 0.16);
+    --glass-strong-border: rgba(var(--glass-tint), 0.22);
     --tint-10: rgba(255, 255, 255, 0.10);
     --tint-12: rgba(255, 255, 255, 0.12);
     --tint-18: rgba(255, 255, 255, 0.18);
@@ -224,6 +227,7 @@ img, a, button, .nav-bookmark, .bookmark-item {
 /* 浅色壁纸下的文字对比度调整 */
 html.wallpaper-bright .bookmark-title,
 html.wallpaper-bright #weatherBtn,
+html.wallpaper-bright #updateReloadBtn,
 html.wallpaper-bright #scrollDownHint,
 html.wallpaper-bright .search-input::placeholder,
 html.wallpaper-bright .nav-bookmark,
@@ -533,7 +537,7 @@ body.drag-settling .drag-handle {
     transform: scale(0.975) translateZ(0);
     transition: transform var(--duration-press) var(--ease-snappy);
 }
-#editBookmarksBtn:active, #weatherBtn:active, #randomBookmarkBtn:active, #searchClearBtn:active {
+#editBookmarksBtn:active, #weatherBtn:active, #updateReloadBtn:active, #randomBookmarkBtn:active, #searchClearBtn:active {
     transform: scale(0.94) translateZ(0);
     background-color: rgba(255, 255, 255, 0.22);
     transition: transform var(--duration-press) var(--ease-snappy), background-color var(--duration-press) ease;
@@ -1071,6 +1075,7 @@ input:focus-visible {
         min-height: 44px;
     }
     #weatherBtn::after,
+    #updateReloadBtn::after,
     #navHint::after {
         content: '';
         position: absolute;
