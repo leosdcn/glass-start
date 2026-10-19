@@ -239,7 +239,7 @@ pass('搜索联想键盘选中项保持与 Escape 优雅清退 (高亮选中/还
 const clockOk = (await evalJS(`document.getElementById('clock').style.willChange`)) === '';
 
 // 6.2 多层 Modal LIFO 退栈
-await evalJS(`document.getElementById('editBookmarksBtn').click()`); await waitFor(evalJS, `state.editOpen === true`);
+await evalJS(`document.getElementById('editBookmarksBtn').click()`); await waitFor(evalJS, `OverlayStack.top()?.id === "editModal"`);
 await evalJS(`document.getElementById('togglePickerBtn').click()`); await waitFor(evalJS, `OverlayStack.top()?.id === "bookmarkPicker"`);
 const topPicker = await stackTop();
 await press('Escape'); await waitFor(evalJS, `document.getElementById('bookmarkPicker').hasAttribute('hidden')`);
@@ -255,7 +255,7 @@ await press('Escape'); await waitFor(evalJS, `OverlayStack.isEmpty()`);
 const dropdownOk = topDropdown === 'dropdown' && (await stackTop()) === null;
 
 // 6.4 活动 Modal 拦截滚轮与快捷键
-await evalJS(`document.getElementById('editBookmarksBtn').click()`); await waitFor(evalJS, `state.editOpen === true`);
+await evalJS(`document.getElementById('editBookmarksBtn').click()`); await waitFor(evalJS, `OverlayStack.top()?.id === "editModal"`);
 await evalJS(`window.dispatchEvent(new WheelEvent('wheel', { deltaY: 120, bubbles: true, cancelable: true }))`); await sleep(100);
 const wheelSec = await evalJS(`state.currentSection`);
 await press('PageDown'); await sleep(100);
