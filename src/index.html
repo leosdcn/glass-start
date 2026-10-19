@@ -60,7 +60,7 @@
 
 
     <title>Glass Start</title>
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20100%20100'%3E%3Ctext%20y='.9em'%20font-size='90'%3E🪐%3C/text%3E%3C/svg%3E">
+    <link rel="icon" type="image/svg+xml" href="./icons/app/favicon.svg">
     <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png">
     <link rel="manifest" href="./manifest.json">
     <!-- 外部服务 DNS 预解析提示，是否执行由浏览器决定。 -->
@@ -492,7 +492,9 @@
                 <!-- 顶部系统品牌卡片 (Apple Standard System Brand Card) -->
                 <div class="p-3.5 glass-subcard flex flex-col items-stretch sm:flex-row sm:items-center justify-between gap-3 shrink-0 select-none">
                     <div class="flex items-center gap-3">
-                        <div class="size-9 rounded-control bg-white/10 flex items-center justify-center text-base border border-white/15 shadow-inner shrink-0">🪐</div>
+                        <div class="size-9 rounded-control bg-white/10 flex items-center justify-center border border-white/15 shadow-inner shrink-0 overflow-hidden">
+                            <img src="./icons/app/logo.svg" class="size-6 object-contain select-none pointer-events-none" alt="" aria-hidden="true" loading="lazy" decoding="async">
+                        </div>
                         <div class="flex items-center gap-2">
                             <span class="text-sm font-semibold text-white/95 tracking-tight leading-none whitespace-nowrap">Glass Start</span>
                             <span class="text-2xs px-2 h-4.5 rounded-full bg-white/10 border border-white/15 text-white/75 font-medium inline-flex items-center justify-center">v5.0.4</span>

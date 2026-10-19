@@ -42,7 +42,9 @@ export const WEATHER_EMOJI_MAP = {
     '☂️': './icons/weather/umbrella_open.svg',
     '☂': './icons/weather/umbrella_open.svg',
     '🌅': './icons/weather/sunset.svg',
-    '🌄': './icons/weather/sunrise_mountains.svg'
+    '🌄': './icons/weather/sunrise_mountains.svg',
+    '📡': './icons/weather/satellite.svg',
+    '🔄': './icons/weather/reload.svg'
 };
 
 /**
@@ -261,11 +263,11 @@ export function renderWeatherError() {
     if (!weatherPopover) return;
     weatherPopover.innerHTML = `
         <div class="p-4 text-center space-y-2 flex flex-col items-center justify-center select-none">
-            <div class="text-base">📡</div>
+            <div class="flex items-center justify-center">${getWeatherIconHTML('📡', 'size-7')}</div>
             <div class="text-xs text-white/80 font-medium">天气获取失败</div>
             <div class="text-2xs text-white/50 leading-relaxed">网络异常或定位受阻，请检查网络后重试</div>
             <button id="weatherErrorRetryBtn" type="button" class="mt-1 px-3.5 py-1.5 bg-white/10 hover:bg-white/20 border border-white/15 text-xs rounded-xl text-white transition flex items-center justify-center gap-1.5 mx-auto active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50">
-                <span>🔄</span> 重新加载
+                ${getWeatherIconHTML('🔄', 'size-3.5')} <span>重新加载</span>
             </button>
         </div>
     `;
@@ -274,7 +276,7 @@ export function renderWeatherError() {
         retryBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             retryBtn.disabled = true;
-            retryBtn.innerHTML = '<span>🔄</span> 正在重试...';
+            retryBtn.innerHTML = `${getWeatherIconHTML('🔄', 'size-3.5')} <span>正在重试...</span>`;
             updateWeather(true);
         });
     }

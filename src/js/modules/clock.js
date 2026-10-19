@@ -44,10 +44,15 @@ export function renderShortcutModalList() {
 export function renderCreditsModalList() {
     const container = dom.creditsList;
     if (!container || container.hasChildNodes()) return;
-    container.innerHTML = CONFIG.CREDITS.map(item => `
+    container.innerHTML = CONFIG.CREDITS.map(item => {
+        const isIconPath = typeof item.icon === 'string' && (item.icon.startsWith('./') || item.icon.startsWith('/') || item.icon.endsWith('.svg'));
+        const iconHtml = isIconPath
+            ? `<img src="${safeUrl(item.icon)}" class="size-4.5 shrink-0 object-contain select-none inline-block align-middle pointer-events-none" alt="" aria-hidden="true" loading="lazy" decoding="async">`
+            : escapeHtml(item.icon);
+        return `
         <div class="p-2.5 rounded-xl bg-white/5 border border-white/8 hover:bg-white/8 hover:border-white/15 transition-colors duration-150 flex items-center justify-between gap-2">
             <div class="flex items-center gap-2.5 min-w-0">
-                <span class="text-base shrink-0 select-none">${escapeHtml(item.icon)}</span>
+                <span class="size-5 shrink-0 select-none flex items-center justify-center">${iconHtml}</span>
                 <div class="truncate">
                     <div class="font-medium text-white/90 truncate">${escapeHtml(item.name)}</div>
                     <div class="text-2xs text-white/50 truncate">${escapeHtml(item.desc)}</div>
@@ -58,7 +63,8 @@ export function renderCreditsModalList() {
                 <svg class="size-2.5 opacity-70" aria-hidden="true"><use href="#icon-external"/></svg>
             </a>
         </div>
-    `).join('');
+    `;
+    }).join('');
 }
 
 export let lastDateDay = -1;
