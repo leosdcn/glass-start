@@ -179,11 +179,11 @@ export const CONFIG = Object.freeze({
                 }
             ]),
             CREDITS: Object.freeze([
-                { icon: './icons/credits/weather.svg', name: '气象数据底座', desc: 'Open-Meteo 全球气象与逆地理编码', url: 'https://open-meteo.com', license: 'CC-BY 4.0' },
                 { icon: './icons/credits/wallpaper.svg', name: '预设高清壁纸', desc: 'Unsplash 精选 2.5K 摄影作品', url: 'https://unsplash.com/license', license: 'Unsplash 协议' },
+                { icon: './icons/credits/twemoji.svg', name: '开源矢量表情', desc: 'Twemoji 跨平台统一高保真 Emoji', url: 'https://github.com/jdecked/twemoji', license: 'CC-BY 4.0' },
+                { icon: './icons/credits/weather.svg', name: '气象数据底座', desc: 'Open-Meteo 全球气象与逆地理编码', url: 'https://open-meteo.com', license: 'CC-BY 4.0' },
                 { icon: './icons/credits/tailwind.svg', name: '样式与设计系统', desc: 'Tailwind CSS 现代化原子工具集', url: 'https://tailwindcss.com', license: 'MIT 协议' },
-                { icon: './icons/credits/esbuild.svg', name: '极速构建内核', desc: 'esbuild AST 高效压缩与编译器', url: 'https://esbuild.github.io', license: 'MIT 协议' },
-                { icon: './icons/credits/twemoji.svg', name: '开源矢量表情', desc: 'Twemoji 跨平台统一高保真 Emoji', url: 'https://github.com/jdecked/twemoji', license: 'CC-BY 4.0' }
+                { icon: './icons/credits/esbuild.svg', name: '极速构建内核', desc: 'esbuild AST 高效压缩与编译器', url: 'https://esbuild.github.io', license: 'MIT 协议' }
             ])
         });
 
