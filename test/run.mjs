@@ -24,7 +24,8 @@ if (build.status !== 0) process.exit(build.status || 1);
 
 const runTempDir = mkdtempSync(join(tmpdir(), 'glass-start-run-'));
 const grouped = process.platform !== 'win32';
-const child = spawn(process.execPath, ['--test', '--test-concurrency=6', ...files.map(name => join(testDir, name))], {
+const concurrency = process.env.GLASS_TEST_CONCURRENCY || (process.env.CI ? '2' : '6');
+const child = spawn(process.execPath, ['--test', `--test-concurrency=${concurrency}`, ...files.map(name => join(testDir, name))], {
   cwd: rootDir, stdio: 'inherit', detached: grouped,
   env: { ...process.env, GLASS_TEST_TMPDIR: runTempDir }
 });

@@ -12,6 +12,8 @@ export const createEvaluator = send => async expression => {
 
 export const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 export const pressKey = (evalJS, key) => evalJS(`document.dispatchEvent(new KeyboardEvent('keydown', { key: '${key}', bubbles: true, cancelable: true }))`);
+// CI runner 更慢且可能默认开启减少动效/透明度；给状态轮询更宽裕的窗口。
+const defaultWaitTimeout = process.env.CI ? 8000 : 3000;
 
 export const tyOf = (m) => {
   const r = /matrix\(1, 0, 0, 1, 0, (-?\d+(?:\.\d+)?)\)/.exec(m);
@@ -19,7 +21,7 @@ export const tyOf = (m) => {
 };
 
 /** 响应式状态轮询器：等待表达式求值为真即刻放行，彻底消除盲等 sleep */
-export async function waitFor(evalJS, predicateJs, timeout = 3000, interval = 20) {
+export async function waitFor(evalJS, predicateJs, timeout = defaultWaitTimeout, interval = 20) {
   const start = Date.now();
   while (Date.now() - start < timeout) {
     const res = await evalJS(predicateJs);
@@ -91,6 +93,13 @@ export async function launchSession(preferredPort = 0, customRoutes = {}) {
     const { send } = chrome;
     await send('Page.enable');
     await send('Runtime.enable');
+    // 默认关闭系统级减少动效/透明度，避免 CI runner 的无障碍偏好改变玻璃与倾斜断言。
+    try {
+      await send('Emulation.setEmulatedMedia', { features: [
+        { name: 'prefers-reduced-motion', value: 'no-preference' },
+        { name: 'prefers-reduced-transparency', value: 'no-preference' }
+      ] });
+    } catch {}
     const evalJS = createEvaluator(send);
     await waitFor(evalJS, 'typeof openEditModal === "function" && !!document.querySelector(".bookmark-item")');
     return { server, chrome, send, evalJS, port: server.port, cdpPort };

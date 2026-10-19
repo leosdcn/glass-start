@@ -106,7 +106,7 @@ const hoverGatingTest = await evalJS(`(() => {
 const hoverGatingOk = hoverGatingTest.ok;
 
 // 4.5 模拟“导航页点击标签跳出 -> 外部页面唤醒/切回 -> 滚轮切回首屏”全链路自愈与防白屏深度校验
-await evalJS('window.switchToNav()'); await sleep(650);
+await evalJS('window.switchToNav()'); await waitFor(evalJS, 'state.currentSection === "nav" && !isScreenTransitioning()');
 // 4.45 导航页书签 3D 倾斜与 VisionOS 折射光斑 (mousemove / RAF 帧合并 / resetActiveCard 还原)
 const tiltTest = await evalJS(`(async () => {
   const navBm = document.querySelector('.nav-bookmark');
@@ -192,10 +192,11 @@ const navJumpBackTest = await evalJS(`(async () => {
   };
 })()`);
 const navJumpBackOk = navJumpBackTest.ok;
+const tiltDetail = tiltOk ? '' : ` tiltDetail=${JSON.stringify(tiltTest)}`;
 
 pass('sessionStorage 刷新保持、BFCache 自愈、导航页书签3D倾斜与跳出返回滚动防白屏及无残留', 
   restored === true && startRestoredValid && bfCacheHealed && bookmarkTactileOk && hoverGatingOk && tiltOk && navJumpBackOk,
-  `restored=${restored}, startRestored=${startRestoredValid}, bfCacheHealed=${bfCacheHealed}, bookmarkTactile=${bookmarkTactileOk}, hoverGating=${hoverGatingOk}, tilt=${tiltOk}, navJumpBack=${JSON.stringify(navJumpBackTest)}`);
+  `restored=${restored}, startRestored=${startRestoredValid}, bfCacheHealed=${bfCacheHealed}, bookmarkTactile=${bookmarkTactileOk}, hoverGating=${hoverGatingOk}, tilt=${tiltOk}${tiltDetail}, navJumpBack=${JSON.stringify(navJumpBackTest)}`);
 
 // ══════════════════════════════════════════════════════════════════════
 // 5. 搜索联想键盘选中项保持与 Escape 优雅清退
