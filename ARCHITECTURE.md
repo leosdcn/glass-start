@@ -50,7 +50,7 @@
 
 ## 模块与构建
 
-应用使用原生 ES 模块与 Web API，无 npm 运行时依赖。Tailwind CSS v4 和 esbuild 仅参与开发与构建。
+应用使用原生 ES 模块与 Web API，无 npm 运行时依赖。Tailwind CSS v4 和 esbuild 仅参与开发与构建，TypeScript 与 Acorn 分别用于类型检查和 DOM 静态校验，不进入生产页面。
 
 ```mermaid
 flowchart TD
@@ -67,7 +67,7 @@ flowchart TD
 
 - `main.js`：启动初始化与生命周期诊断；业务之间通过模块导入调用。
 - `state/store.js`：持有 `state`、`modalState`、`pageData`，均为普通可变对象；调用方显式更新并触发渲染，不自动订阅变化。
-- `state/dom.js`：集中缓存具名 DOM 节点。新增或更名 HTML ID 时同步更新 `cacheDOM()`。
+- `state/dom.js`：集中缓存通过 `dom.xxx` 或静态键访问的节点，新增或更名此类节点时同步更新 `cacheDOM()` 与 `types.d.ts` 的 `DOMCache` 类型。仅用于标签关联、无障碍描述或锚点等用途的 ID 无须缓存。
 - `core/`：包含浮层、手势等基础设施，也包含事件装配和切屏等业务协调入口；不是严格独立的底层。
 - `utils/`：提供 URL 与文本清洗、目录索引、IndexedDB 存储等共用能力。
 
@@ -148,7 +148,7 @@ LocalStorage 仅保存背景索引和轻量首屏提示，新选择不写入 Bas
 
 浮层由低到高分为下拉、设置、辅助弹窗和确认层，对应 z-index 为 150 / 1000 / 2000 / 9999；具体样式由源码定义。
 
-弹窗可见性只由 `OverlayStack.push()` / `.pop()` 驱动。层叠栈内部统一设置 `hidden`、`aria-hidden`、入场动画及延迟隐藏，切换前取消旧任务。下拉组件仍使用自己的状态类展示，但同样注册关闭回调。
+受管理的弹窗可见性只由 `OverlayStack.push()` / `.pop()` 驱动。层叠栈内部统一设置 `hidden`、`aria-hidden`、入场动画及延迟隐藏，切换前取消旧任务。普通提示区、折叠内容可独立使用 `hidden`；下拉组件仍使用自己的状态类展示，但同样注册关闭回调。
 
 栈内存在 Modal 时锁定 body 滚动；全部 Modal 关闭后解锁。栈顶弹窗打开时移入焦点，通过 `inert` 隔离沿祖先路径的兄弟区域；Tab / Shift+Tab 在弹窗内循环。关闭后优先恢复下层弹窗或有效触发元素的焦点，并恢复原有 `inert` 状态。
 
@@ -193,6 +193,6 @@ Bing / Google 使用 JSONP，Wikipedia 使用 CORS `fetch`。请求序号 `activ
 - 生产构建编译时裁掉 `testing/bridge.js`；测试服务器按需在内存编译带接口的脚本，仍需预先设置 `window.__GLASS_TEST__ = true` 才挂载接口，不覆盖生产 `dist/app.js`。
 - `infra-module-boundaries.test.mjs` 检查静态导入无环并验证关闭测试接口的页面启动；无环不等于严格分层。
 - 浏览器测试使用 Chrome CDP，模拟移动视口和触摸输入不等于真机 Safari / iOS 验证。导航完成与切屏完成分别等待，避免固定延时掩盖竞态。
-- W3C 脚本提交 HTML 给在线 Nu 校验器，过滤代码中列出的现代 CSS 消息及 CSP 警告；通过表示过滤后无剩余消息，不代表完整无障碍、视觉或功能合规。样式完整性由基础架构测试另行检查。
+- W3C 脚本提交 HTML 给在线 Nu 校验器，错误阻断发布；警告、信息及已列明的现代 CSS 兼容性消息分类展示，CSP 警告提示另行核对托管响应头。退出码 0 表示无阻断错误，1 表示页面校验错误，2 表示服务或响应异常导致校验未完成；未完成时需恢复后重试。通过不代表完整无障碍、视觉或功能合规，样式完整性由基础架构测试另行检查。
 - `typecheck` 使用 JSDoc 与 `types.d.ts` 检查核心模型，包含负向类型契约；覆盖范围以 `tsconfig.json` 为准，尚未覆盖全项目。
 - 生命周期约束通过页面行为测试验证；Service Worker 测试执行完整脚本及真实升级流程，不通过截取函数体判断实现是否正确。

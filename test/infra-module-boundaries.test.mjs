@@ -9,6 +9,7 @@ const { buildAppJavaScript } = require('../scripts/build.js');
 const built = buildAppJavaScript({ testMode: true });
 const productionBuild = buildAppJavaScript();
 assert.equal('src/js/testing/bridge.js' in productionBuild.metafile.inputs, false);
+assert.equal(Object.keys(productionBuild.metafile.inputs).some(path => path.includes('node_modules/acorn/')), false);
 assert.equal('src/js/testing/bridge.js' in built.metafile.inputs, true);
 const graph = new Map(Object.entries(built.metafile.inputs).map(([name, value]) => [name,
   value.imports.filter(edge => !edge.external && edge.kind !== 'dynamic-import').map(edge => edge.path)]));

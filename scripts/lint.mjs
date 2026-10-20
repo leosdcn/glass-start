@@ -1,5 +1,5 @@
 /**
- * 根目录零依赖静态语法与格式检查 (scripts/lint.mjs)
+ * 静态语法与格式检查 (scripts/lint.mjs)，DOM 引用通过开发依赖 Acorn 解析。
  * 1. 提取 src/index.html 内联脚本并校验语法
  * 2. 使用 node --check 校验核心脚本及 src/js 业务模块
  * 3. 校验 bookmarks.json、public/manifest.json 等 JSON 配置
@@ -10,6 +10,7 @@ import { join, dirname, relative } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import vm from 'node:vm';
+import { inspectDOMSources } from './lint-dom.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const isFixMode = process.argv.includes('--fix');
@@ -36,7 +37,7 @@ let passCount = 0;
 let failCount = 0;
 
 console.log(`\n${c.cyan}${HR_DOUBLE}${c.reset}`);
-console.log(`${c.bold}${c.cyan}🔍 Glass Start — 零依赖静态语法与格式检查 (Static Lint)${isFixMode ? ' [🔧 FIX MODE]' : ''}${c.reset}`);
+console.log(`${c.bold}${c.cyan}🔍 Glass Start — 静态语法与格式检查 (Static Lint)${isFixMode ? ' [🔧 FIX MODE]' : ''}${c.reset}`);
 console.log(`${c.cyan}${HR_DOUBLE}${c.reset}`);
 
 // 缓存共用核心文件内容，供多项检查复用。
@@ -405,7 +406,10 @@ try {
 }
 
 // 4.6 DOM ID 唯一性与 cacheDOM() 引用健康门禁
+let domInspection;
 try {
+    domInspection = inspectDOMSources(allSrcJsFiles.map(file => ({ file, content: readFileSync(file, 'utf-8') })),
+        join(root, 'src', 'js', 'core', 'overlay-stack.js'), readFileSync(join(root, 'src', 'js', 'types.d.ts'), 'utf-8'));
     const bodyMatch = indexHtml.match(/<body\b[^>]*>([\s\S]*?)<\/body>/i);
     const bodyHtml = bodyMatch ? bodyMatch[1] : indexHtml;
     const noScriptBody = bodyHtml.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '');
@@ -432,12 +436,10 @@ try {
     const cacheDomMatch = domJsContent.match(/const\s+ids\s*=\s*['"]([^'"]+)['"]/i);
     const cachedIds = cacheDomMatch ? cacheDomMatch[1].trim().split(/\s+/) : [];
     const missingCachedIds = cachedIds.filter(id => !domIdSet.has(id));
-    const settingsIds = [...noScriptBody.matchAll(/<(?:button|div)\b[^>]*>/gi)]
-        .filter(match => /settings-tab-(?:btn|panel)/.test(match[0]))
-        .map(match => match[0].match(/\bid=["']([^"']+)["']/)?.[1]).filter(Boolean);
-    const uncachedSettingsIds = settingsIds.filter(id => !cachedIds.includes(id));
+    const uncachedIds = [...domInspection.cachedReferences].filter(id => !cachedIds.includes(id));
+    const untypedIds = [...domInspection.cachedReferences].filter(id => !domInspection.typedIds.has(id));
 
-    if (duplicateIds.length === 0 && missingCachedIds.length === 0 && uncachedSettingsIds.length === 0 && domIdSet.size > 0) {
+    if (duplicateIds.length === 0 && missingCachedIds.length === 0 && uncachedIds.length === 0 && untypedIds.length === 0 && domIdSet.size > 0) {
         passCount++;
         logItem(`全站 ${domIdSet.size} 个 DOM ID 100% 全局唯一，且 cacheDOM() ${cachedIds.length} 个缓存映射健康无死引用`);
     } else {
@@ -445,7 +447,8 @@ try {
         const errors = [];
         if (duplicateIds.length > 0) errors.push(`重复 ID: ${duplicateIds.join(', ')}`);
         if (missingCachedIds.length > 0) errors.push(`cacheDOM 丢失引用 ID: ${missingCachedIds.join(', ')}`);
-        if (uncachedSettingsIds.length > 0) errors.push(`设置面板 ID 未注册缓存: ${uncachedSettingsIds.join(', ')}`);
+        if (uncachedIds.length > 0) errors.push(`dom 访问的 ID 未注册缓存: ${uncachedIds.join(', ')}`);
+        if (untypedIds.length > 0) errors.push(`dom 访问的 ID 未声明 DOMCache 类型: ${untypedIds.join(', ')}`);
         logItem(`DOM ID 校验失败: ${errors.join(' | ')}`, 'error');
     }
 } catch (e) {
@@ -567,17 +570,13 @@ try {
     logItem(`字体抗锯齿门禁扫描异常: ${e.message}`, 'error');
 }
 
-// 弹窗隐藏属性只允许统一层叠栈持有，业务层不能另建显示生命周期。
+// 仅检查静态可识别的受管理弹窗；普通元素可独立修改 hidden/display。
 try {
-    const owner = join(root, 'src', 'js', 'core', 'overlay-stack.js');
-    const violations = allSrcJsFiles.filter(file => file !== owner).filter(file => {
-        const source = readFileSync(file, 'utf-8');
-        return /\.(?:setAttribute|removeAttribute|toggleAttribute)\(\s*['"]hidden['"]|\.hidden\s*=/.test(source) ||
-            /(?:modal(?:El)?|editModal|shortcutModal|creditsModal|confirmModal|bookmarkPicker|picker)\.style\.display\s*=/i.test(source);
-    });
+    if (!domInspection) throw new Error('DOM 语法分析未完成');
+    const violations = domInspection.visibilityViolations;
     if (violations.length) throw new Error(violations.map(file => file.slice(root.length + 1)).join(', '));
     passCount++;
-    logItem('弹窗显示生命周期统一由 OverlayStack 管理，业务模块不直接修改 hidden 或弹窗 display');
+    logItem('受管理弹窗的显示生命周期由 OverlayStack 持有，普通元素可独立使用 hidden/display');
 } catch (e) {
     failCount++;
     logItem(`弹窗显示生命周期门禁失败: ${e.message}`, 'error');

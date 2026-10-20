@@ -123,7 +123,6 @@ export function renderEditList(listToRender) {
     const editList = dom.editList;
     if (!editList) return;
     editList.innerHTML = '<div id="dragDropIndicator" class="drag-drop-line"></div><span class="bookmark-sort-status sr-only" role="status" aria-live="polite"></span>' + modalState.draftBookmarks.map((bm, i) => getEditRowHTML(bm.name, bm.url, i, bm.icon, bm.id)).join('');
-    dom.dragDropIndicator = editList.querySelector('#dragDropIndicator');
     updateAllBookmarkCounters();
 
     editList.querySelectorAll('img.edit-favicon-img').forEach(img => {

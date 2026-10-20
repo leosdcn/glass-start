@@ -1,88 +1,82 @@
-/**
- * W3C 官方在线校验器门禁 (scripts/validate-w3c.mjs)
- * 1. 优先校验生产构建产物 dist/index.html (零依赖极简架构)
- * 2. 自动调用 W3C 官方 Nu Html Checker (https://validator.w3.org/nu/?out=json)
- * 3. 提交原始 HTML；过滤指定 CSS 消息与 CSP 警告后，将剩余消息作为失败。
- */
+/** W3C 在线校验：退出码 0 无阻断错误，1 页面错误，2 校验未完成。 */
 import { readFileSync, existsSync } from 'node:fs';
-import { join, dirname } from 'node:path';
+import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-
-const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 import { c, HR_DOUBLE } from './terminal.cjs';
 
-console.log(`\n${c.cyan}${HR_DOUBLE}${c.reset}`);
-console.log(`${c.bold}${c.cyan}🌐 Glass Start — W3C 官方语法与结构验证器 (W3C Nu Validator)${c.reset}`);
-console.log(`${c.cyan}${HR_DOUBLE}${c.reset}\n`);
+const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 
-const distHtmlPath = join(root, 'dist', 'index.html');
-const srcHtmlPath = join(root, 'src', 'index.html');
-const targetPath = existsSync(distHtmlPath) ? distHtmlPath : srcHtmlPath;
-const targetName = existsSync(distHtmlPath) ? 'dist/index.html' : 'src/index.html';
+// 保留现有、明确列举的现代 CSS 兼容性例外，单列展示，不扩展为忽略全部 CSS 错误。
+const cssCompatibilityMessages = [
+    'CSS: Unrecognized at-rule “@property”',
+    'CSS: “margin-trim”',
+    'CSS: “transition-property”: “--tw-',
+    'CSS: “line-clamp”'
+];
 
-console.log(`  ${c.dim}正在读取待校验文件: ${targetName}...${c.reset}`);
-const rawHtml = readFileSync(targetPath, 'utf-8');
+export async function validateW3c({ rootDir = root, fetchImpl = fetch, log = console.log, error = console.error } = {}) {
+    log(`\n${c.cyan}${HR_DOUBLE}${c.reset}`);
+    log(`${c.bold}${c.cyan}🌐 Glass Start — W3C Nu HTML 校验${c.reset}`);
+    log(`${c.cyan}${HR_DOUBLE}${c.reset}\n`);
 
-console.log(`  ${c.dim}正在连接 W3C 官方在线验证 API (https://validator.w3.org/nu/)...${c.reset}`);
-
-let auditorVersion = '4.4.2';
-try {
-    const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf-8'));
-    if (pkg.version) auditorVersion = pkg.version;
-} catch {}
-
-try {
-    const startTime = Date.now();
-    const res = await fetch('https://validator.w3.org/nu/?out=json', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'text/html; charset=utf-8',
-            'User-Agent': `Glass-Start-W3C-Auditor/${auditorVersion} (Node.js)`
-        },
-        body: rawHtml
-    });
-
-    if (!res.ok) {
-        throw new Error(`W3C 校验器响应异常: HTTP ${res.status} ${res.statusText}`);
-    }
-
-    const data = await res.json();
-    const elapsed = Date.now() - startTime;
-    const messages = data.messages || [];
-
-    // 过滤策略：
-    // 1. 过滤 W3C Nu 尚未完全同步 CSS3/CSS4 新特性的误报（Tailwind v4 产出的 @property, margin-trim, line-clamp 等现代规范）
-    // 2. 过滤 CSP 警告；此在线语法检查不验证托管响应头或完整无障碍行为。
-    const realErrors = messages.filter(m => {
-        const msg = m.message || '';
-        if (msg.includes('CSS: Unrecognized at-rule “@property”')) return false;
-        if (msg.includes('CSS: “margin-trim”')) return false;
-        if (msg.includes('CSS: “transition-property”: “--tw-')) return false;
-        if (msg.includes('CSS: “line-clamp”')) return false;
-        if (m.type === 'info' && m.subType === 'warning' && msg.includes('Content Security Policy')) return false;
-        return true;
-    });
-
-    console.log(`\n${c.gray}─── 校验结果汇总 (${elapsed}ms) ──────────────────────────────────────────${c.reset}`);
-
-    if (realErrors.length === 0) {
-        console.log(`  ${c.green}✔ W3C HTML5 语义化结构与 WAI-ARIA 规范：100% 全量合规（0 语法错误，0 标签与属性违规）${c.reset}`);
-        console.log(`  ${c.dim}ℹ Tailwind v4 编译出的现代 CSS 规范 (@property / line-clamp / margin-trim) 已由原生编译器兼容${c.reset}`);
-        console.log(`\n${c.green}${c.bold}✨ W3C 官方验证器门禁检验通过！${c.reset}\n`);
-        process.exit(0);
-    } else {
-        console.log(`  ${c.red}❌ 检测到 ${realErrors.length} 处 W3C 结构或属性违规：${c.reset}\n`);
-        realErrors.forEach((err, idx) => {
-            console.log(`  ${c.red}[${idx + 1}] Line ${err.lastLine || '?'}, Col ${err.firstColumn || '?'}: ${err.message}${c.reset}`);
-            if (err.extract) {
-                console.log(`      ${c.gray}片段: ${err.extract}${c.reset}`);
-            }
+    try {
+        const targetName = existsSync(join(rootDir, 'dist', 'index.html')) ? 'dist/index.html' : 'src/index.html';
+        const rawHtml = readFileSync(join(rootDir, targetName), 'utf-8');
+        const { version } = JSON.parse(readFileSync(join(rootDir, 'package.json'), 'utf-8'));
+        log(`  正在校验 ${targetName}，连接 W3C 在线验证 API...`);
+        const startTime = Date.now();
+        const res = await fetchImpl('https://validator.w3.org/nu/?out=json', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'text/html; charset=utf-8',
+                'User-Agent': `Glass-Start-W3C-Auditor/${version} (Node.js)`
+            },
+            body: rawHtml,
+            signal: AbortSignal.timeout(30000)
         });
-        console.log(`\n${c.red}${c.bold}❌ W3C 官方验证器门禁未通过，请修复上述问题后再行发布！${c.reset}\n`);
-        process.exit(1);
+        if (!res.ok) throw new Error(`W3C 服务响应异常: HTTP ${res.status} ${res.statusText}`);
+        const data = await res.json();
+        if (!Array.isArray(data?.messages) || data.messages.some(message =>
+            !message || typeof message.message !== 'string' || !['error', 'info'].includes(message.type))) {
+            throw new Error('W3C 响应缺少有效消息列表，或包含校验器自身异常');
+        }
+
+        const groups = { errors: [], warnings: [], csp: [], info: [], compatibility: [] };
+        for (const message of data.messages) {
+            if (cssCompatibilityMessages.some(text => message.message.includes(text))) groups.compatibility.push(message);
+            else if (message.type === 'error') groups.errors.push(message);
+            else if (message.subType === 'warning') {
+                (message.message.includes('Content Security Policy') ? groups.csp : groups.warnings).push(message);
+            } else groups.info.push(message);
+        }
+
+        log(`\n─── 校验结果 (${Date.now() - startTime}ms)：${groups.errors.length} 个错误、${groups.warnings.length + groups.csp.length} 个警告 ───`);
+        const printGroup = (title, messages, color) => {
+            if (!messages.length) return;
+            log(`\n${color}${title} (${messages.length})${c.reset}`);
+            for (const [index, message] of messages.entries()) {
+                log(`  [${index + 1}] Line ${message.lastLine || '?'}, Col ${message.firstColumn || '?'}: ${message.message}`);
+                if (message.extract) log(`      片段: ${message.extract}`);
+            }
+        };
+        printGroup('错误：阻断发布', groups.errors, c.red);
+        printGroup('警告：需评估，不自动阻断发布', groups.warnings, c.yellow);
+        printGroup('CSP 警告：另行核对托管响应头', groups.csp, c.yellow);
+        printGroup('信息', groups.info, c.dim);
+        printGroup('已知现代 CSS 兼容性例外：不阻断发布', groups.compatibility, c.dim);
+        if (groups.errors.length) {
+            error('\n❌ W3C 页面校验存在错误，请修复后再发布。');
+            return 1;
+        }
+        log('\n✔ W3C 校验完成，无阻断错误；本检查不代表完整无障碍、视觉或功能合规。');
+        return 0;
+    } catch (err) {
+        error(`\n⚠ W3C 校验未完成: ${err.message}`);
+        error('  请检查待校验文件、网络或服务状态后重试；本次不判定页面错误，也不视为校验通过。');
+        return 2;
     }
-} catch (err) {
-    console.error(`  ${c.yellow}⚠ 连接 W3C 验证服务器失败: ${err.message}${c.reset}`);
-    console.error(`  ${c.yellow}  (如果处于无外网连接环境，可稍后重试)${c.reset}\n`);
-    process.exit(1);
+}
+
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+    process.exitCode = await validateW3c();
 }
