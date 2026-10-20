@@ -6,7 +6,7 @@ import { CONFIG } from '../config/constants.js';
 import { APP_THEME_DARK, APP_THEME_LIGHT } from '../config/themes.js';
 import { storageGet, storageSet } from '../utils/helpers.js';
 
-import { dom, $ } from '../state/dom.js';
+import { dom } from '../state/dom.js';
 
 let currentWallpaperTheme = (typeof window !== 'undefined' && window.__INITIAL_THEME__) || APP_THEME_DARK;
 
@@ -14,7 +14,7 @@ let currentWallpaperTheme = (typeof window !== 'undefined' && window.__INITIAL_T
  * @param {string} color
  * @param {boolean} [isLight]
  */
-export function updateThemeColor(color, isLight) {
+function updateThemeColor(color, isLight) {
     if (!color || typeof document === 'undefined') return;
     /** @type {NodeListOf<HTMLMetaElement>} */
     const themeMetas = document.querySelectorAll('meta[name="theme-color"]');
@@ -47,8 +47,8 @@ export function updateThemeColor(color, isLight) {
     if (document.body) {
         document.body.style.backgroundColor = color;
     }
-    const bgBase = dom.bgLayer || $('bgLayer');
-    const bgNext = dom.bgLayerNext || $('bgLayerNext');
+    const bgBase = dom.bgLayer;
+    const bgNext = dom.bgLayerNext;
     if (bgBase) bgBase.style.backgroundColor = color;
     if (bgNext) bgNext.style.backgroundColor = color;
 }
@@ -94,7 +94,7 @@ export function sampleCustomWallpaperTheme(img) {
         if (!ctx) return;
         if (!(img.naturalWidth > 0 && img.naturalHeight > 0)) return;
         // 对齐壁纸的 background-size: cover / background-position: center，仅在加载时采样。
-        const bgLayer = dom.bgLayer || $('bgLayer');
+        const bgLayer = dom.bgLayer;
         const width = bgLayer?.clientWidth || window.innerWidth || img.naturalWidth;
         const height = bgLayer?.clientHeight || window.innerHeight || img.naturalHeight;
         const scale = Math.max(width / img.naturalWidth, height / img.naturalHeight);

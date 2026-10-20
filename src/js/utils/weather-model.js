@@ -33,7 +33,7 @@ export const WMO_WEATHER_MAP = {
 };
 
 /** @param {number} code @param {boolean} [isDay] */
-export function getWeatherInfo(code, isDay = true) {
+function getWeatherInfo(code, isDay = true) {
     const item = WMO_WEATHER_MAP[code] || { text: '多云', dayIcon: '⛅', nightIcon: '☁️' };
     return {
         text: item.text,

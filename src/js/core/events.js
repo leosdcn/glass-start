@@ -7,7 +7,7 @@ import { state } from '../state/store.js';
 import { dom } from '../state/dom.js';
 import { OverlayStack, MODAL_OVERLAY_IDS } from '../core/overlay-stack.js';
 import { switchToStart, switchToNav, isScreenTransitioning } from './screen-state.js';
-import { doSearch, activateSuggestion, selectSuggestion, getSuggestionCount, fetchSuggestions, hideSuggestions, closeDropdown, toggleDropdown, setEngine, openBookmarkUrl, openRandomBookmark, selectedSuggestionIdx, setSelectedSuggestionIdx, originalQuery, setOriginalQuery, scheduleSuggestions } from '../modules/search.js';
+import { activateSuggestion, selectSuggestion, getSuggestionCount, fetchSuggestions, hideSuggestions, closeDropdown, toggleDropdown, setEngine, openRandomBookmark, selectedSuggestionIdx, setSelectedSuggestionIdx, originalQuery, setOriginalQuery, scheduleSuggestions } from '../modules/search.js';
 import { toggleWeatherPopover, closeWeatherPopover } from '../modules/weather.js';
 import { switchBg } from '../modules/wallpaper.js';
 import { openShortcutModal, closeShortcutModal } from '../modules/settings.js';
@@ -16,7 +16,7 @@ import { openShortcutModal, closeShortcutModal } from '../modules/settings.js';
  * @param {KeyboardEvent} e
  * @param {HTMLElement | null} modalEl
  */
-export function handleModalTabFocus(e, modalEl) {
+function handleModalTabFocus(e, modalEl) {
     if (!modalEl) return;
     const focusables = Array.from(modalEl.querySelectorAll('button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])')).filter(el => {
         const hEl = /** @type {HTMLElement} */ (el);

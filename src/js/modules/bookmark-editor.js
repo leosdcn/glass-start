@@ -4,7 +4,7 @@ import { modalState } from '../state/store.js';
 import { appendBookmarkDraft, replaceBookmarkDraft } from '../state/bookmark-draft.js';
 import { dom } from '../state/dom.js';
 
-export function getDraftBookmarkCount() {
+function getDraftBookmarkCount() {
     return modalState.draftBookmarks.length;
 }
 
@@ -46,7 +46,7 @@ export function handleEditIconError(img) {
  * @param {string} [icon]
  * @param {string} [rowId]
  */
-export function getEditRowHTML(name = '', url = '', idx = '', icon = '', rowId = '') {
+function getEditRowHTML(name = '', url = '', idx = '', icon = '', rowId = '') {
     const id = rowId || (idx !== '' && idx !== undefined ? `bm_${idx}` : `bm_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`);
     return `
         <div role="listitem" class="edit-row-card flex items-center gap-1.5 sm:gap-2 p-1.5 sm:p-2 bg-white/5 border border-white/10 apple-radius glass-interactive group mb-1.5 shadow-xs" data-id="${escapeHtml(id)}" data-idx="${idx}" draggable="false">

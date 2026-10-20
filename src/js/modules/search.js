@@ -1,11 +1,10 @@
 /** 搜索引擎切换、书签分级匹配与网络联想；请求序号隔离迟到响应。 */
 import { rankBookmarkSuggestions, getFuzzyScore as scoreBookmarkQuery } from '../utils/bookmark-search.js';
-export { damerauLevenshteinDistance } from '../utils/bookmark-search.js';
 import { getCategoryCatalog, searchUrlKey } from '../utils/category-catalog.js';
 import { CONFIG, engines } from '../config/constants.js';
-import { escapeHtml, safeUrl, normalizeUrl, storageSet } from '../utils/helpers.js';
+import { escapeHtml, safeUrl, storageSet } from '../utils/helpers.js';
 import { state, pageData } from '../state/store.js';
-import { dom, $ } from '../state/dom.js';
+import { dom } from '../state/dom.js';
 import { OverlayStack } from '../core/overlay-stack.js';
 
 /** @type {import('../types').SuggestionItem[]} */
@@ -279,7 +278,7 @@ export function invalidateSearchCandidates() {
     lastCandidatesCatalogRef = null;
 }
 
-export function getSearchCandidates() {
+function getSearchCandidates() {
     const catalog = getCategoryCatalog(pageData.categories);
     if (cachedSearchCandidates && lastCandidatesBookmarksRef === pageData.bookmarks && lastCandidatesCatalogRef === catalog) {
         return cachedSearchCandidates;
@@ -345,7 +344,7 @@ export function getFuzzyScore(query, target) {
  * @param {boolean} [isNetLoading=false]
  * @returns {void}
  */
-export function renderSuggestions(localList = [], netList = [], preserveSelection = false, isNetLoading = false) {
+function renderSuggestions(localList = [], netList = [], preserveSelection = false, isNetLoading = false) {
     const suggestionMenu = dom.suggestionMenu;
     const searchInput = dom.searchInput;
     if (!suggestionMenu) return;

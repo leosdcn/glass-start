@@ -2,7 +2,7 @@
  * 书签重排：鼠标使用 HTML5 拖拽，触屏使用 touch 事件，共用草稿提交与 FLIP 动画。
  */
 import { CONFIG } from '../config/constants.js';
-import { dom, $ } from '../state/dom.js';
+import { dom } from '../state/dom.js';
 import { modalState } from '../state/store.js';
 import { reorderBookmarkDraft } from '../state/bookmark-draft.js';
 import { updateAllBookmarkCounters } from '../modules/bookmark-editor.js';

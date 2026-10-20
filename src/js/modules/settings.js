@@ -4,7 +4,7 @@ import { showConfirm } from '../core/dialogs.js';
  * 设置面板与弹窗管理系统
  */
 import { CONFIG, backgrounds } from '../config/constants.js';
-import { escapeHtml, safeUrl, normalizeUrl, normalizeBookmark, storageGet, storageSet, storageRemove } from '../utils/helpers.js';
+import { escapeHtml, normalizeUrl, normalizeBookmark, storageGet, storageSet, storageRemove } from '../utils/helpers.js';
 import { state, modalState, pageData } from '../state/store.js';
 import { replaceBookmarkDraft } from '../state/bookmark-draft.js';
 import { dom } from '../state/dom.js';
@@ -22,7 +22,7 @@ let cachedSettingsTabs = null;
 let cachedSettingsPanels = null;
 let isPresetBgImagesLoaded = false;
 
-export function loadPresetBgCardImages() {
+function loadPresetBgCardImages() {
     if (isPresetBgImagesLoaded) return;
     isPresetBgImagesLoaded = true;
     const container = dom.presetWallpaperGrid;
@@ -102,7 +102,7 @@ export function applyBgEffects(opacity, save = false) {
  * 滑块草稿与无障碍读数即时更新，全屏视觉每帧只消费最后一次输入。
  * @param {number | string} opacity
  */
-export function scheduleBgEffects(opacity) {
+function scheduleBgEffects(opacity) {
     updateBgEffects(opacity, false, true);
 }
 
@@ -370,7 +370,7 @@ export function resetBookmarks() {
  * 获取当前已存在于编辑列表或已添加的 URL 集合并渲染备选卡片
  * @returns {void}
  */
-export function renderPickerCategories() {
+function renderPickerCategories() {
     const pickerContent = dom.pickerContent;
     if (!pickerContent) return;
     const urls = getExistingUrls();

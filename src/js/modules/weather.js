@@ -1,15 +1,13 @@
-/** IP 定位与天气请求、缓存恢复、指标图标及预报渲染。 */
 import { weatherTime, formatLocationFullName, stripAdminSuffix, normalizeWeatherForecast } from '../utils/weather-model.js';
-export { WMO_WEATHER_MAP, weatherTime, formatLocationFullName, stripAdminSuffix } from '../utils/weather-model.js';
+export { weatherTime, formatLocationFullName } from '../utils/weather-model.js';
 import { CONFIG } from '../config/constants.js';
 import { weatherNum } from '../utils/weather-data.js';
 export { weatherNum } from '../utils/weather-data.js';
 import { escapeHtml, safeUrl, storageGet, storageSet, storageRemove } from '../utils/helpers.js';
-import { dom, $ } from '../state/dom.js';
+import { dom } from '../state/dom.js';
 import { OverlayStack } from '../core/overlay-stack.js';
 
 import { WEATHER_EMOJI_MAP } from '../config/weather-icons.js';
-export { WEATHER_EMOJI_MAP };
 
 /**
  * 将天气 Emoji 或本地图片映射为渲染用 HTML
@@ -17,7 +15,7 @@ export { WEATHER_EMOJI_MAP };
  * @param {string} [className='size-4'] - CSS 尺寸与样式类
  * @returns {string} 渲染的安全 HTML 字符串
  */
-export function getWeatherIconHTML(icon, className = 'size-4') {
+function getWeatherIconHTML(icon, className = 'size-4') {
     if (!icon) return '';
     const clean = typeof icon === 'string' ? icon.trim() : '';
     const path = WEATHER_EMOJI_MAP[clean] || (clean.startsWith('./') || clean.startsWith('/') || clean.endsWith('.svg') ? clean : null);
@@ -42,8 +40,8 @@ export async function fetchWithTimeout(url, timeoutMs) {
 }
 
 export function openWeatherPopover() {
-    const popover = dom.weatherPopover || $('weatherPopover');
-    const btn = dom.weatherBtn || $('weatherBtn');
+    const popover = dom.weatherPopover;
+    const btn = dom.weatherBtn;
     if (!popover || !btn) return;
     if (!popover.innerHTML.trim()) {
         renderWeatherPopover(null);
@@ -55,8 +53,8 @@ export function openWeatherPopover() {
 }
 
 export function closeWeatherPopover() {
-    const popover = dom.weatherPopover || $('weatherPopover');
-    const btn = dom.weatherBtn || $('weatherBtn');
+    const popover = dom.weatherPopover;
+    const btn = dom.weatherBtn;
     if (!popover || !btn) return;
     OverlayStack.pop('weatherPopover');
     popover.classList.remove('active');
@@ -65,7 +63,7 @@ export function closeWeatherPopover() {
 }
 
 export function toggleWeatherPopover() {
-    const popover = dom.weatherPopover || $('weatherPopover');
+    const popover = dom.weatherPopover;
     if (!popover) return;
     if (popover.classList.contains('active')) {
         closeWeatherPopover();
@@ -77,7 +75,7 @@ export function toggleWeatherPopover() {
 /** @type {Promise<import('../types').WeatherLocation> | null} */
 let inFlightLocationPromise = null;
 
-export async function resolveWeatherLocation(force = false) {
+async function resolveWeatherLocation(force = false) {
     const locCache = storageGet(CONFIG.KEYS.WEATHER_LOC, null);
     const now = Date.now();
     const LOC_TTL = CONFIG.WEATHER.LOC_TTL;
@@ -87,7 +85,7 @@ export async function resolveWeatherLocation(force = false) {
     if (inFlightLocationPromise) return inFlightLocationPromise;
     inFlightLocationPromise = (async () => {
         try {
-            return await executeResolveWeatherLocation(force, now);
+            return await executeResolveWeatherLocation(now);
         } finally {
             inFlightLocationPromise = null;
         }
@@ -96,11 +94,10 @@ export async function resolveWeatherLocation(force = false) {
 }
 
 /**
- * @param {boolean} force
  * @param {number} now
  * @returns {Promise<import('../types').WeatherLocation>}
  */
-async function executeResolveWeatherLocation(force, now) {
+async function executeResolveWeatherLocation(now) {
 
     try {
         const ipRes = await fetchWithTimeout('https://myip.ipip.net/json', CONFIG.WEATHER.TIMEOUT_IP);
@@ -214,12 +211,12 @@ export async function fetchWeatherForecast(loc) {
 
 /** @param {import('../types').WeatherData | null | undefined} data */
 export function renderWeatherCapsule(data) {
-    const weatherWidget = dom.weatherWidget || $('weatherWidget');
+    const weatherWidget = dom.weatherWidget;
     if (!weatherWidget || !data || !data.current) return;
-    const weatherIcon = dom.weatherIcon || $('weatherIcon');
-    const weatherTemp = dom.weatherTemp || $('weatherTemp');
-    const weatherCity = dom.weatherCity || $('weatherCity');
-    const weatherBtn = dom.weatherBtn || $('weatherBtn');
+    const weatherIcon = dom.weatherIcon;
+    const weatherTemp = dom.weatherTemp;
+    const weatherCity = dom.weatherCity;
+    const weatherBtn = dom.weatherBtn;
     const temperature = Math.round(weatherNum(data.current.temp, 0));
 
     if (weatherIcon) {
@@ -251,9 +248,9 @@ export function renderWeatherCapsule(data) {
 
 let lastRenderedPopoverSignature = '';
 
-export function renderWeatherError() {
+function renderWeatherError() {
     lastRenderedPopoverSignature = 'error';
-    const weatherPopover = dom.weatherPopover || $('weatherPopover');
+    const weatherPopover = dom.weatherPopover;
     if (!weatherPopover) return;
     weatherPopover.innerHTML = `
         <div class="p-4 text-center space-y-2 flex flex-col items-center justify-center select-none">
@@ -278,7 +275,7 @@ export function renderWeatherError() {
 
 /** @param {import('../types').WeatherData | null | undefined} data */
 export function renderWeatherPopover(data) {
-    const weatherPopover = dom.weatherPopover || $('weatherPopover');
+    const weatherPopover = dom.weatherPopover;
     if (!weatherPopover) return;
     if (!data || !data.current) {
         if (lastRenderedPopoverSignature === 'loading' && weatherPopover.innerHTML.trim()) return;
@@ -443,7 +440,7 @@ export function renderWeatherPopover(data) {
                 const elapsed = Date.now() - startTime;
                 const remaining = Math.max(0, MIN_SPIN_DURATION - elapsed);
                 setTimeout(() => {
-                    const currentPop = dom.weatherPopover || $('weatherPopover');
+                    const currentPop = dom.weatherPopover;
                     const currentRefBtn = /** @type {HTMLButtonElement | null} */ (currentPop ? currentPop.querySelector('#weatherRefreshBtn') : null);
                     const currentSvg = currentRefBtn ? currentRefBtn.querySelector('svg') : null;
                     if (currentSvg) currentSvg.classList.remove('weather-spin');
@@ -522,7 +519,7 @@ export async function updateWeather(force = false) {
             renderWeatherCapsule(cache);
             renderWeatherPopover(cache);
         } else {
-            const weatherCity = dom.weatherCity || $('weatherCity');
+            const weatherCity = dom.weatherCity;
             if (weatherCity) weatherCity.textContent = '暂无数据';
             renderWeatherError();
         }

@@ -16,7 +16,7 @@ import {
     storageRemove
 } from '../utils/helpers.js';
 import { pageData } from '../state/store.js';
-import { dom, $ } from '../state/dom.js';
+import { dom } from '../state/dom.js';
 
 import { getCategoryCatalog } from '../utils/category-catalog.js';
 
@@ -62,7 +62,7 @@ export function getDerivedBookmarks(keys, categories, customMeta = {}) {
     });
 }
 
-export function migrateBookmarksStorage() {
+function migrateBookmarksStorage() {
     const rawUserKeys = storageGet(CONFIG.KEYS.BOOKMARK_KEYS);
     const rawLegacy = storageGet(CONFIG.KEYS.LEGACY_BOOKMARKS);
 
@@ -338,7 +338,7 @@ export function refreshSidebarNavCache() {
  * @param {HTMLElement | null | undefined} item
  * @param {HTMLElement | null | undefined} container
  */
-export function scrollTabIntoView(item, container) {
+function scrollTabIntoView(item, container) {
     if (!item || !container) return;
     const isMobile = window.innerWidth <= CONFIG.NAV.MOBILE_BREAKPOINT;
     const margin = CONFIG.NAV.TAB_SCROLL_MARGIN;
@@ -464,7 +464,7 @@ export function renderNavCategories(force = false) {
     }
 }
 
-export function initSidebarNav() {
+function initSidebarNav() {
     const sidebarList = dom.sidebarList;
     const content = dom.navContent;
     if (!sidebarList || !content) return;

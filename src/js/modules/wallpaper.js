@@ -5,7 +5,7 @@ import { CONFIG, backgrounds } from '../config/constants.js';
 import { storageGet, storageSet, storageRemove } from '../utils/helpers.js';
 import { getWallpaperDB, getWallpaperSelectionDB, setWallpaperSelectionDB, migrateLegacyWallpaperDB } from '../utils/idb.js';
 import { state, modalState } from '../state/store.js';
-import { dom, $ } from '../state/dom.js';
+import { dom } from '../state/dom.js';
 import { applyWallpaper } from '../core/wallpaper-renderer.js';
 import { showConfirm } from '../core/dialogs.js';
 
@@ -52,7 +52,7 @@ function saveWallpaperHints(selection) {
 }
 
 /** 迁移失败保留原键；只删除本次读取的版本，不删除其他标签的新写入。 */
-export function migrateLegacyWallpaper() {
+function migrateLegacyWallpaper() {
     if (migrationPromise) return migrationPromise;
     const startedAt = wallpaperSelectionId;
     migrationPromise = (async () => {
@@ -91,7 +91,7 @@ export async function getEffectiveCustomWallpaper() {
  * @param {string|null|undefined} url
  * @returns {number}
  */
-export function findPresetBgIndex(url) {
+function findPresetBgIndex(url) {
     if (!url || typeof url !== 'string') return -1;
     if (/^(data:|https?:)/i.test(url)) return -1;
     return backgrounds.indexOf(url);
@@ -274,7 +274,7 @@ export function preloadNextBg() {
  * @returns {void}
  */
 export function renderPresetWallpapers() {
-    const grid = dom.presetWallpaperGrid || $('presetWallpaperGrid');
+    const grid = dom.presetWallpaperGrid;
     if (!grid) return;
     const titles = ['暮色山峦', '溪谷晨曦', '星空雪山', '峰峦破晓', '天际立面', '极简回廊', '紫韵流光', '梦幻流彩'];
     grid.innerHTML = titles.map((title, i) => {

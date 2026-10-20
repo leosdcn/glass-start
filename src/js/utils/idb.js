@@ -3,7 +3,7 @@
  */
 import { CONFIG, backgrounds } from '../config/constants.js';
 
-export const dbPromise = new Promise(resolve => {
+const dbPromise = new Promise(resolve => {
     if (typeof window === 'undefined' || !('indexedDB' in window)) { resolve(null); return; }
     try {
         const req = indexedDB.open(CONFIG.IDB.DB_NAME, CONFIG.IDB.VERSION);

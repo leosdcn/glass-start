@@ -3,7 +3,7 @@
  */
 import { CONFIG, engines } from './config/constants.js';
 import { storageGet, evictFaviconCache } from './utils/helpers.js';
-import { cacheDOM, dom } from './state/dom.js';
+import { cacheDOM } from './state/dom.js';
 import { renderShortcutModalList, updateClock } from './modules/clock.js';
 import { renderEngineDropdown, setEngine } from './modules/search.js';
 import { renderPresetWallpapers, restoreWallpaper } from './modules/wallpaper.js';

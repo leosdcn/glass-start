@@ -1,6 +1,6 @@
 import { CONFIG, backgrounds } from '../config/constants.js';
 import { PRESET_WALLPAPER_THEMES, PRESET_WALLPAPER_TINTS } from '../config/themes.js';
-import { dom, $ } from '../state/dom.js';
+import { dom } from '../state/dom.js';
 import { setWallpaperTheme, updateGlassTint, sampleCustomWallpaperTheme } from './theme-engine.js';
 
 let activeWallpaperReqId = 0;
@@ -12,8 +12,8 @@ let bgSwitchTimer = null;
  * @param {boolean} [animate]
  */
 export function applyWallpaper(urlStr, animate = true) {
-    const bgBase = dom.bgLayer || $('bgLayer');
-    const bgNext = dom.bgLayerNext || $('bgLayerNext');
+    const bgBase = dom.bgLayer;
+    const bgNext = dom.bgLayerNext;
     if (!bgBase || !bgNext || !urlStr || typeof urlStr !== 'string') return;
 
     activeWallpaperReqId++;

@@ -131,16 +131,6 @@ export function createLetterBadgeHtml(initial, sizeClass = 'icon-box-sm', textCl
     return `<div class="icon-box ${sizeClass} bg-white/15 border border-white/20 text-white/90 ${textClass} pointer-events-none select-none">${escapeHtml(initial)}</div>`;
 }
 
-/**
- * 数值区间限制 clamp
- * @param {number} val
- * @param {number} min
- * @param {number} max
- * @returns {number}
- */
-export function clamp(val, min, max) {
-    return Math.min(Math.max(val, min), max);
-}
 
 /**
  * 安全读取 localStorage 中的配置项并反序列化为 JSON

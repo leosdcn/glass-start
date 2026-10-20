@@ -9,7 +9,7 @@ import { CONFIG } from '../config/constants.js';
 import { checkServiceWorkerUpdate } from './service-worker-updates.js';
 import { storageGet, storageSet } from '../utils/helpers.js';
 import { state } from '../state/store.js';
-import { dom, $ } from '../state/dom.js';
+import { dom } from '../state/dom.js';
 import { OverlayStack } from './overlay-stack.js';
 import { syncThemeForSection } from './theme-engine.js';
 import { resetActiveCard } from './gestures.js';
@@ -54,7 +54,7 @@ function prepareScreenTransition() {
 }
 
 /**
- * @param {HTMLElement|null} nav
+ * @param {HTMLElement|null|undefined} nav
  * @param {'start'|'nav'} targetSection
  * @param {() => void} onComplete
  */
@@ -82,7 +82,7 @@ const PAGE_HEIGHT_PX = 400;
 /**
  * @param {WheelEvent} e
  */
-export function normDelta(e) {
+function normDelta(e) {
     let d = e.deltaY;
     if (e.deltaMode === 1) d *= LINE_HEIGHT_PX;
     else if (e.deltaMode === 2) d *= PAGE_HEIGHT_PX;
@@ -92,9 +92,9 @@ export function normDelta(e) {
 /**
  * @param {'start'|'nav'|string} sec
  */
-export function updateSectionAccessibility(sec) {
-    const startSection = dom.startSection || $('startSection');
-    const nav = dom.navSection || $('navSection');
+function updateSectionAccessibility(sec) {
+    const startSection = dom.startSection;
+    const nav = dom.navSection;
     if (sec === 'nav') {
         if (startSection) {
             startSection.setAttribute('aria-hidden', 'true');
@@ -119,7 +119,7 @@ export function updateSectionAccessibility(sec) {
 /**
  * @returns {'start'|'nav'|null}
  */
-export function getSavedSection() {
+function getSavedSection() {
     try {
         const val = sessionStorage.getItem('startpage_section');
         return val === 'nav' || val === 'start' ? val : null;
@@ -131,13 +131,13 @@ export function getSavedSection() {
 /**
  * @param {'start'|'nav'} s
  */
-export function saveSection(s) {
+function saveSection(s) {
     state.currentSection = s;
     try { sessionStorage.setItem('startpage_section', s); } catch {}
 }
 
-export function updateGearVisibility() {
-    const editBtn = dom.editBookmarksBtn || $('editBookmarksBtn');
+function updateGearVisibility() {
+    const editBtn = dom.editBookmarksBtn;
     if (editBtn) {
         editBtn.classList.toggle('hidden-on-nav', state.currentSection === 'nav');
     }
@@ -171,13 +171,13 @@ export function reconcileScreenState(targetSection, force = false) {
 
     resetPageScroll();
 
-    const navContent = dom.navContent || $('navContent');
+    const navContent = dom.navContent;
     if (navContent && sec === 'start') {
         navContent.scrollTop = 0;
     }
 
-    const startSection = dom.startSection || $('startSection');
-    const nav = dom.navSection || $('navSection');
+    const startSection = dom.startSection;
+    const nav = dom.navSection;
 
     // 清除残留 transform / transition，由 CSS 状态类决定屏幕位置。
     if (startSection) {
@@ -234,7 +234,7 @@ export function switchToNav() {
 
     resetPageScroll();
 
-    const navContent = dom.navContent || $('navContent');
+    const navContent = dom.navContent;
     if (navContent) {
         navContent.style.scrollBehavior = 'auto';
         navContent.scrollTop = 0;
@@ -252,7 +252,7 @@ export function switchToNav() {
     try {
         if (!storageGet(CONFIG.KEYS.NAV_DISCOVERED)) {
             storageSet(CONFIG.KEYS.NAV_DISCOVERED, 1);
-            const hint = dom.scrollDownHint || $('scrollDownHint');
+            const hint = dom.scrollDownHint;
             if (hint) {
                 hint.style.transition = 'opacity 0.6s ease';
                 hint.style.opacity = '0';
@@ -261,8 +261,8 @@ export function switchToNav() {
         }
     } catch {}
 
-    const startSection = dom.startSection || $('startSection');
-    const nav = dom.navSection || $('navSection');
+    const startSection = dom.startSection;
+    const nav = dom.navSection;
 
     document.body.classList.add('in-nav-mode');
 
@@ -301,7 +301,7 @@ export function switchToStart() {
 
     resetPageScroll();
 
-    const navContent = dom.navContent || $('navContent');
+    const navContent = dom.navContent;
     if (navContent) navContent.scrollTop = 0;
 
     saveSection('start');
@@ -309,8 +309,8 @@ export function switchToStart() {
     updateGearVisibility();
     syncThemeForSection('start');
 
-    const startSection = dom.startSection || $('startSection');
-    const nav = dom.navSection || $('navSection');
+    const startSection = dom.startSection;
+    const nav = dom.navSection;
 
     document.body.classList.remove('in-nav-mode');
 
@@ -352,7 +352,7 @@ export function handleAppWakeUp(wasPersisted = false) {
 
     resetActiveCard();
     const active = /** @type {HTMLElement|null} */ (document.activeElement);
-    if (active && typeof active.blur === 'function' && active !== document.body && active !== (dom.searchInput || $('searchInput'))) {
+    if (active && typeof active.blur === 'function' && active !== document.body && active !== dom.searchInput) {
         active.blur();
     }
     reconcileScreenState(undefined, true);
@@ -360,7 +360,7 @@ export function handleAppWakeUp(wasPersisted = false) {
     checkServiceWorkerUpdate();
 
     if (wasPersisted) {
-        const startSec = dom.startSection || $('startSection');
+        const startSec = dom.startSection;
         if (startSec) startSec.style.willChange = 'transform';
     }
 
@@ -383,7 +383,7 @@ export function initScreenGestures() {
         const absDelta = Math.abs(delta);
         if (absDelta < Math.abs(e.deltaX || 0)) return;
 
-        const navContent = dom.navContent || $('navContent');
+        const navContent = dom.navContent;
 
         if (state.currentSection === 'start') {
             if (delta >= CONFIG.GESTURE.SWIPE_THRESHOLD) {
@@ -432,7 +432,7 @@ export function initScreenGestures() {
 
         if (deltaX > Math.abs(deltaY)) return;
 
-        const navContent = dom.navContent || $('navContent');
+        const navContent = dom.navContent;
 
         if (state.currentSection === 'start') {
             if (deltaY >= SWIPE_THRESHOLD) {
@@ -459,7 +459,7 @@ export function initScreenGestures() {
         const velocity = Math.abs(deltaY) / dt;
 
         const isFlick = Math.abs(deltaY) >= (CONFIG.GESTURE.FLICK_MIN_DISTANCE || 25) && velocity > (CONFIG.GESTURE.FLICK_MIN_VELOCITY || 0.25);
-        const navContent = dom.navContent || $('navContent');
+        const navContent = dom.navContent;
 
         if (state.currentSection === 'start') {
             if (deltaY >= SWIPE_THRESHOLD || (deltaY > 0 && isFlick)) {

@@ -3,15 +3,14 @@ import { CONFIG, IS_MAC } from '../config/constants.js';
 import { escapeHtml, safeUrl } from '../utils/helpers.js';
 import { dom, $ } from '../state/dom.js';
 
-export const KBD = {
+const KBD = {
     slash: IS_MAC ? '⌘ /' : 'Ctrl + /',
     bg: IS_MAC ? '⌘ B' : 'Ctrl + B',
     newTab: IS_MAC ? '⌘ ↵' : 'Alt + ↵',
-    tabTrap: IS_MAC ? 'Tab / ⇧ Tab' : 'Tab / Shift + Tab',
-    hintBadge: IS_MAC ? '⌘ /' : 'Ctrl+/'
+    tabTrap: IS_MAC ? 'Tab / ⇧ Tab' : 'Tab / Shift + Tab'
 };
 
-export function applyPlatformShortcuts() {
+function applyPlatformShortcuts() {
     const elSlash = $('kbd-slash');
     if (elSlash) elSlash.textContent = KBD.slash;
     const elBg = $('kbd-bg');
@@ -79,14 +78,14 @@ export function setLastTimeStr(val) {
 /** @type {ReturnType<typeof setTimeout>|null} */
 let clockTimerId = null;
 
-export function stopClockTimer() {
+function stopClockTimer() {
     if (clockTimerId) {
         clearTimeout(clockTimerId);
         clockTimerId = null;
     }
 }
 
-export function scheduleClockTick() {
+function scheduleClockTick() {
     stopClockTimer();
     if (typeof document !== 'undefined' && document.hidden) return;
     const now = Date.now();
