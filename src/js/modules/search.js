@@ -447,7 +447,9 @@ export function renderSuggestions(localList = [], netList = [], preserveSelectio
     suggestionMenu.classList.add('active');
     suggestionMenu.setAttribute('aria-hidden', 'false');
     if (searchInput) searchInput.setAttribute('aria-expanded', 'true');
-    OverlayStack.push('suggestions', hideSuggestions);
+    if (!OverlayStack.stack.some(entry => entry.id === 'suggestions')) {
+        OverlayStack.push('suggestions', hideSuggestions);
+    }
 
     if (prevIdx >= 0) selectSuggestion(Math.min(prevIdx, suggestionItems.length - 1));
     else searchInput?.removeAttribute('aria-activedescendant');
@@ -479,6 +481,11 @@ export function hideSuggestions() {
     selectedSuggestionIdx = -1;
 }
 
+/** @type {Map<string, { list: string[]; timestamp: number }>} */
+const suggestCache = new Map();
+const SUGGEST_CACHE_TTL = 60000;
+const MAX_SUGGEST_CACHE_SIZE = 50;
+
 /**
  * 核心实时建议拉取函数
  * @param {string} engineKey
@@ -497,6 +504,20 @@ export function fetchSuggestions(engineKey, query) {
 
     activeSuggestCleanup?.();
     const localList = getLocalBookmarkSuggestions(query, CONFIG.SUGGEST.MAX_LOCAL_ITEMS);
+
+    const cacheKey = `${engineKey}:${query}`;
+    const cachedEntry = suggestCache.get(cacheKey);
+    if (cachedEntry && (Date.now() - cachedEntry.timestamp < SUGGEST_CACHE_TTL)) {
+        const maxNetCount = Math.max(0, CONFIG.SUGGEST.MAX_TOTAL_ITEMS - localList.length);
+        const netList = cachedEntry.list.slice(0, maxNetCount);
+        if (localList.length > 0 || netList.length > 0) {
+            renderSuggestions(localList, netList, false);
+        } else {
+            hideSuggestions();
+        }
+        return;
+    }
+
     renderSuggestions(localList, [], false, true);
 
     activeSuggestReqId++;
@@ -547,6 +568,13 @@ export function fetchSuggestions(engineKey, query) {
         }
         const maxNetCount = Math.max(0, CONFIG.SUGGEST.MAX_TOTAL_ITEMS - localList.length);
         const safeList = (Array.isArray(list) ? list : []).filter(item => typeof item === 'string' && item.trim().length > 0);
+        if (safeList.length > 0) {
+            if (suggestCache.size >= MAX_SUGGEST_CACHE_SIZE) {
+                const oldest = suggestCache.keys().next().value;
+                if (oldest) suggestCache.delete(oldest);
+            }
+            suggestCache.set(cacheKey, { list: safeList, timestamp: Date.now() });
+        }
         const netList = safeList.slice(0, maxNetCount);
         if (localList.length > 0 || netList.length > 0) {
             renderSuggestions(localList, netList, true);

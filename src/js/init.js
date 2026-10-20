@@ -10,7 +10,6 @@ import { renderPresetWallpapers, restoreWallpaper } from './modules/wallpaper.js
 import { initWeather } from './modules/weather.js';
 import {
     loadBookmarks,
-    renderBookmarks,
     renderNavCategories,
     preloadFavicons,
     refreshSidebarNavCache,
@@ -67,7 +66,6 @@ export function init() {
     updateClock();
     loadBookmarks();
     const wallpaperRestored = restoreWallpaper().then(() => true, () => false);
-    renderBookmarks();
     renderNavCategories();
     initScreenGestures();
     initGlassSpotlightAndTilt();

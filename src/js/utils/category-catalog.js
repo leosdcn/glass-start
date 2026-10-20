@@ -13,12 +13,33 @@ let previousSignature;
 let cached;
 
 /**
+ * @param {import('../types').BookmarkCategory[] | undefined} categories
+ * @returns {string}
+ */
+function getCatalogSignature(categories) {
+    if (!categories || !Array.isArray(categories)) return '';
+    let sig = '';
+    for (let i = 0; i < categories.length; i++) {
+        const cat = categories[i];
+        if (!cat) continue;
+        const bms = cat.bookmarks || [];
+        sig += `[${cat.name || ''}:${bms.length}`;
+        for (let j = 0; j < bms.length; j++) {
+            const b = bms[j];
+            if (b) sig += `;${b.name || ''},${b.url || ''},${b.desc || ''}`;
+        }
+        sig += ']';
+    }
+    return sig;
+}
+
+/**
  * 派生、保存、排序和搜索共用目录视图，内容变化时统一重建。
  * @param {import('../types').BookmarkCategory[]} [categories]
  * @returns {import('../types').CategoryCatalog}
  */
 export function getCategoryCatalog(categories) {
-    const signature = JSON.stringify(categories || []);
+    const signature = getCatalogSignature(categories);
     if (signature === previousSignature && cached) return cached;
     /** @type {Map<string, import('../types').BookmarkItem>} */
     const byUrl = new Map();

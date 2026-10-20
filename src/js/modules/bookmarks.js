@@ -561,7 +561,18 @@ export function initSidebarNav() {
 export function preloadFavicons() {
     const urls = new Set();
     pageData.bookmarks.forEach(bm => { if (bm.icon) urls.add(bm.icon); });
+    const readySources = new Set();
+    if (dom.bookmarks) {
+        dom.bookmarks.querySelectorAll('img').forEach(img => {
+            if (img.complete) {
+                if (img.src) readySources.add(img.src);
+                const attrSrc = img.getAttribute('src');
+                if (attrSrc) readySources.add(attrSrc);
+            }
+        });
+    }
     urls.forEach(url => {
+        if (readySources.has(url)) return;
         const img = new Image();
         img.onload = () => { img.onload = img.onerror = null; };
         img.onerror = () => {

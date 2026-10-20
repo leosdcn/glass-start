@@ -186,6 +186,29 @@ export function bindEvents() {
     document.addEventListener('click', handleCloseMenus);
     window.addEventListener('blur', handleCloseMenus);
 
+    let tabBlurListenersAttached = false;
+    const clearTabBlurOnInteraction = () => {
+        if (document.body.classList.contains('tab-blurred')) {
+            document.body.classList.remove('tab-blurred');
+        }
+        if (tabBlurListenersAttached) {
+            tabBlurListenersAttached = false;
+            window.removeEventListener('mousemove', clearTabBlurOnInteraction);
+            window.removeEventListener('keydown', clearTabBlurOnInteraction);
+            window.removeEventListener('touchstart', clearTabBlurOnInteraction);
+            window.removeEventListener('wheel', clearTabBlurOnInteraction);
+        }
+    };
+    const attachTabBlurListeners = () => {
+        if (!tabBlurListenersAttached) {
+            tabBlurListenersAttached = true;
+            window.addEventListener('mousemove', clearTabBlurOnInteraction, { passive: true });
+            window.addEventListener('keydown', clearTabBlurOnInteraction, { passive: true });
+            window.addEventListener('touchstart', clearTabBlurOnInteraction, { passive: true });
+            window.addEventListener('wheel', clearTabBlurOnInteraction, { passive: true });
+        }
+    };
+
     /** @param {MouseEvent} e */
     const handleLinkClickFeedback = (e) => {
         const targetEl = e.target instanceof Element ? e.target : null;
@@ -202,6 +225,7 @@ export function bindEvents() {
                 link.classList.add('is-clicked');
                 link.style.transform = '';
                 document.body.classList.add('tab-blurred');
+                attachTabBlurListeners();
                 const clearClicked = () => {
                     link.classList.remove('is-clicked');
                     link.removeEventListener('mouseleave', clearClicked);
@@ -218,22 +242,14 @@ export function bindEvents() {
 
     const handleTabBlur = () => {
         document.body.classList.add('tab-blurred');
+        attachTabBlurListeners();
         const activeEl = /** @type {HTMLElement|null} */ (document.activeElement);
         if (activeEl && typeof activeEl.blur === 'function' && activeEl !== document.body && activeEl !== searchInput) {
             activeEl.blur();
         }
     };
-    const clearTabBlurOnInteraction = () => {
-        if (document.body.classList.contains('tab-blurred')) {
-            document.body.classList.remove('tab-blurred');
-        }
-    };
     window.addEventListener('blur', handleTabBlur, { passive: true });
     window.addEventListener('pagehide', handleTabBlur, { passive: true });
-    window.addEventListener('mousemove', clearTabBlurOnInteraction, { passive: true });
-    window.addEventListener('keydown', clearTabBlurOnInteraction, { passive: true });
-    window.addEventListener('touchstart', clearTabBlurOnInteraction, { passive: true });
-    window.addEventListener('wheel', clearTabBlurOnInteraction, { passive: true });
 
     const handleBackToStart = () => {
         if (isScreenTransitioning()) return;

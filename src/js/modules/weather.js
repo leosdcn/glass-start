@@ -74,6 +74,9 @@ export function toggleWeatherPopover() {
     }
 }
 
+/** @type {Promise<import('../types').WeatherLocation> | null} */
+let inFlightLocationPromise = null;
+
 export async function resolveWeatherLocation(force = false) {
     const locCache = storageGet(CONFIG.KEYS.WEATHER_LOC, null);
     const now = Date.now();
@@ -81,6 +84,23 @@ export async function resolveWeatherLocation(force = false) {
     if (!force && locCache && locCache.timestamp && (now - locCache.timestamp < LOC_TTL) && locCache.lat) {
         return locCache;
     }
+    if (inFlightLocationPromise) return inFlightLocationPromise;
+    inFlightLocationPromise = (async () => {
+        try {
+            return await executeResolveWeatherLocation(force, now);
+        } finally {
+            inFlightLocationPromise = null;
+        }
+    })();
+    return inFlightLocationPromise;
+}
+
+/**
+ * @param {boolean} force
+ * @param {number} now
+ * @returns {Promise<import('../types').WeatherLocation>}
+ */
+async function executeResolveWeatherLocation(force, now) {
 
     try {
         const ipRes = await fetchWithTimeout('https://myip.ipip.net/json', CONFIG.WEATHER.TIMEOUT_IP);
@@ -229,7 +249,10 @@ export function renderWeatherCapsule(data) {
     }
 }
 
+let lastRenderedPopoverSignature = '';
+
 export function renderWeatherError() {
+    lastRenderedPopoverSignature = 'error';
     const weatherPopover = dom.weatherPopover || $('weatherPopover');
     if (!weatherPopover) return;
     weatherPopover.innerHTML = `
@@ -258,6 +281,8 @@ export function renderWeatherPopover(data) {
     const weatherPopover = dom.weatherPopover || $('weatherPopover');
     if (!weatherPopover) return;
     if (!data || !data.current) {
+        if (lastRenderedPopoverSignature === 'loading' && weatherPopover.innerHTML.trim()) return;
+        lastRenderedPopoverSignature = 'loading';
         weatherPopover.innerHTML = `
             <div class="p-4 text-center flex flex-col items-center justify-center gap-2.5 select-none w-full">
                 <div class="size-5 border-2 border-white/25 border-t-white rounded-full animate-spin"></div>
@@ -354,6 +379,10 @@ export function renderWeatherPopover(data) {
             </div>
         </div>
     `;
+
+    const sig = `${loc.fullName || loc.name || ''}_${c.temp}_${c.apparent}_${c.humidity}_${c.windSpeed}_${c.icon}_${c.weatherText}_${sunLabel}_${sunTime}_${popVal}_${days.map(d => `${d.label}${d.tempMin}${d.tempMax}`).join('|')}`;
+    if (sig === lastRenderedPopoverSignature && weatherPopover.innerHTML.trim()) return;
+    lastRenderedPopoverSignature = sig;
 
     weatherPopover.innerHTML = `
         <div class="flex items-center justify-between pb-2.5 mb-3 border-b border-white/10">
