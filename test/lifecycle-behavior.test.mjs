@@ -32,6 +32,23 @@ try {
       assert.equal(result.section, section);
       assert.ok(result.unlocked && result.clean && result.isolated, JSON.stringify(result));
       assert.ok(Math.abs(result.layout) < 2, JSON.stringify(result));
+
+      // 新标签页切回走 visibilitychange；返回后再次切屏仍须保留临时合成层。
+      const nextSection = section === 'start' ? 'nav' : 'start';
+      const transition = await evalJS(`(() => {
+        ${nextSection === 'nav' ? 'switchToNav()' : 'switchToStart()'};
+        return {
+          active: document.body.classList.contains('is-screen-transitioning'),
+          startLayer: getComputedStyle(dom.startSection).willChange,
+          navLayer: getComputedStyle(dom.navSection).willChange
+        };
+      })()`);
+      assert.ok(transition.active, JSON.stringify(transition));
+      assert.equal(transition.startLayer, 'transform');
+      assert.equal(transition.navLayer, 'transform');
+      await waitFor(evalJS, `state.currentSection === '${nextSection}' && !isScreenTransitioning()`);
+      assert.equal(await evalJS('document.body.classList.contains("is-screen-transitioning")'), false);
+      assert.equal(await evalJS('getComputedStyle(dom.navSection).willChange'), 'auto');
     }
   }
   assert.equal(await evalJS('__nrChanges.length'), 0);

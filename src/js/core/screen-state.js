@@ -42,6 +42,8 @@ function resetPageScroll() {
 }
 
 function prepareScreenTransition() {
+    // 先撤销旧过渡，再启用新合成层；反过来会立即清掉刚添加的状态类。
+    clearTransitionTasks();
     if (typeof document !== 'undefined') {
         document.documentElement.classList.remove('nr');
         document.body.classList.remove('tab-blurred');
@@ -49,7 +51,6 @@ function prepareScreenTransition() {
         const active = /** @type {HTMLElement|null} */ (document.activeElement);
         active?.blur?.();
     }
-    clearTransitionTasks();
 }
 
 /**
