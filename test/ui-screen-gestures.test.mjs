@@ -168,6 +168,22 @@ await flick(270, 300, 'start');
 const flickBackStart = nearZero(tyOf(await evalJS('getComputedStyle(dom.startSection).transform')));
 const flickOk = flickInNav && flickBackStart;
 
+// 横向轻扫即使带有足够的纵向位移，松手时也不能触发切屏。
+for (const target of ['start', 'nav']) {
+  if (target === 'nav') { await evalJS('switchToNav()'); await waitForScreen('nav'); }
+  const horizontal = await evalJS(`(() => {
+    const from = ${target === 'start' ? 400 : 360};
+    const to = ${target === 'start' ? 360 : 400};
+    const touch = (x, y) => new Touch({ identifier: 3, target: document.body, clientX: x, clientY: y });
+    dom.navContent.scrollTop = 0;
+    document.dispatchEvent(new TouchEvent('touchstart', { touches: [touch(10, from)], cancelable: true }));
+    document.dispatchEvent(new TouchEvent('touchmove', { touches: [touch(310, to)], cancelable: true }));
+    document.dispatchEvent(new TouchEvent('touchend', { changedTouches: [touch(310, to)], cancelable: true }));
+    return { section: state.currentSection, transitioning: isScreenTransitioning() };
+  })()`);
+  pass(`${target} 屏横向轻扫不误切屏`, horizontal.section === target && !horizontal.transitioning, JSON.stringify(horizontal));
+}
+
 pass('滚轮与触屏手势切屏及内部滚动拦截机制 (滚轮下切/内容滚动拦截/滚轮上切/触屏阈值滑屏/Flick快速轻扫)',
   wheelInNav && scrollBlocked && wheelBackStart && touchInNav && flickOk);
 

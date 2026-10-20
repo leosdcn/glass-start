@@ -94,7 +94,7 @@ export function migrateBookmarksStorage() {
     }
 }
 
-/** @param {import('../types').BookmarkItem[]} list */
+/** @param {import('../types').BookmarkItem[]} list @returns {boolean} */
 export function saveUserBookmarks(list) {
     /** @type {string[]} */
     const keys = [];
@@ -127,10 +127,21 @@ export function saveUserBookmarks(list) {
         }
     });
 
-    storageSet(CONFIG.KEYS.BOOKMARK_KEYS, keys);
-    storageSet(CONFIG.KEYS.CUSTOM_META, customMeta);
+    // 两个键均写入成功后才更新视图；元数据写入失败时恢复先前的 URL 列表。
+    let previousKeys;
+    try { previousKeys = localStorage.getItem(CONFIG.KEYS.BOOKMARK_KEYS); }
+    catch { return false; }
+    if (!storageSet(CONFIG.KEYS.BOOKMARK_KEYS, keys)) return false;
+    if (!storageSet(CONFIG.KEYS.CUSTOM_META, customMeta)) {
+        try {
+            if (previousKeys === null) localStorage.removeItem(CONFIG.KEYS.BOOKMARK_KEYS);
+            else localStorage.setItem(CONFIG.KEYS.BOOKMARK_KEYS, previousKeys);
+        } catch {}
+        return false;
+    }
     pageData.bookmarks = getDerivedBookmarks(keys, pageData.categories, customMeta);
     renderBookmarks();
+    return true;
 }
 
 /** 重置书签存储并通过同一恢复入口同步内存和视图。 */

@@ -451,8 +451,10 @@ export function initScreenGestures() {
 
     document.addEventListener('touchend', (e) => {
         if (isTransitioning || isTouchHandled || !OverlayStack.isEmpty()) return;
+        const endTouchX = (e.changedTouches && e.changedTouches.length > 0) ? e.changedTouches[0].clientX : startTouchX;
         const endTouchY = (e.changedTouches && e.changedTouches.length > 0) ? e.changedTouches[0].clientY : startTouchY;
         const deltaY = startTouchY - endTouchY;
+        if (Math.abs(startTouchX - endTouchX) > Math.abs(deltaY)) return;
         const dt = Math.max(1, performance.now() - touchStartTime);
         const velocity = Math.abs(deltaY) / dt;
 

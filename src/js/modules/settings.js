@@ -189,6 +189,10 @@ export function closeEditModal() {
     if (pendingBgEffects) applyBgEffects(pendingBgEffects.opacity);
     state.editOpen = false;
     editOpenRequestId++;
+    if (dom.saveEditBtn) {
+        dom.saveEditBtn.disabled = false;
+        dom.saveEditBtn.removeAttribute('aria-busy');
+    }
     OverlayStack.pop('editModal');
     const editBtn = dom.editBookmarksBtn;
     editBtn?.setAttribute('aria-expanded', 'false');
@@ -403,24 +407,33 @@ export function renderPickerCategories() {
 
 export async function saveEditModal() {
     const saveBtn = dom.saveEditBtn;
-    if (!saveBtn || saveBtn.disabled) return;
+    if (!state.editOpen || !saveBtn || saveBtn.disabled) return;
+    const requestId = editOpenRequestId;
     saveBtn.disabled = true;
     saveBtn.setAttribute('aria-busy', 'true');
     try {
+        if (collectEditData().length === 0) {
+            showConfirm('至少需要保留一个名称和 URL 均已填写的书签才能保存。', null, '无法保存');
+            return;
+        }
+        const wallpaperSaved = await flushWallpaperSelection();
+        // 取消或重新打开设置后，旧保存任务不得提交草稿、弹提示或关闭新窗口。
+        if (!state.editOpen || requestId !== editOpenRequestId) return;
+        if (!wallpaperSaved) {
+            showConfirm('壁纸尚未保存成功，请重新选择后再保存。', null, '无法保存');
+            return;
+        }
+
         const data = collectEditData();
         if (data.length === 0) {
             showConfirm('至少需要保留一个名称和 URL 均已填写的书签才能保存。', null, '无法保存');
             return;
         }
 
-        if (!await flushWallpaperSelection()) {
-            showConfirm('壁纸尚未保存成功，请重新选择后再保存。', null, '无法保存');
-            return;
-        }
-
         // 1. 提交书签
-        if (modalState.bookmarksChanged) {
-            saveUserBookmarks(data);
+        if (modalState.bookmarksChanged && !saveUserBookmarks(data)) {
+            showConfirm('书签未能保存，草稿已保留。请检查浏览器存储空间或权限后重试。', null, '无法保存');
+            return;
         }
 
         // 2. 提交背景暗度（壁纸已于用户选择时即选即存，无需重复落盘）
@@ -430,7 +443,9 @@ export async function saveEditModal() {
 
         closeEditModal();
     } finally {
-        saveBtn.disabled = false;
-        saveBtn.removeAttribute('aria-busy');
+        if (requestId === editOpenRequestId) {
+            saveBtn.disabled = false;
+            saveBtn.removeAttribute('aria-busy');
+        }
     }
 }
