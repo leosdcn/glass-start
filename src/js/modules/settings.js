@@ -4,7 +4,7 @@ import { showConfirm } from '../core/dialogs.js';
  * 设置面板与弹窗管理系统
  */
 import { CONFIG, backgrounds } from '../config/constants.js';
-import { escapeHtml, safeUrl, normalizeBookmark, storageGet, storageSet, storageRemove } from '../utils/helpers.js';
+import { escapeHtml, safeUrl, normalizeUrl, normalizeBookmark, storageGet, storageSet, storageRemove } from '../utils/helpers.js';
 import { state, modalState, pageData } from '../state/store.js';
 import { replaceBookmarkDraft } from '../state/bookmark-draft.js';
 import { dom } from '../state/dom.js';
@@ -337,12 +337,15 @@ export function resetBookmarks() {
         }
         storageRemove(CONFIG.KEYS.PREFERRED_ENGINE);
         storageRemove(CONFIG.KEYS.USER_WALLPAPER);
+        storageRemove(CONFIG.KEYS.WALLPAPER_META);
         storageRemove(CONFIG.KEYS.MASK_OPACITY);
         storageRemove(CONFIG.KEYS.BG);
         storageRemove(CONFIG.KEYS.NAV_DISCOVERED);
         storageRemove(CONFIG.KEYS.WEATHER_CACHE);
         storageRemove(CONFIG.KEYS.WEATHER_LOC);
         storageRemove(CONFIG.KEYS.WEATHER_SETTINGS);
+        storageRemove(CONFIG.KEYS.THEME_CACHE);
+        storageRemove(CONFIG.KEYS.TINT_CACHE);
 
         if (dom.scrollDownHint) {
             dom.scrollDownHint.style.display = '';
@@ -384,7 +387,7 @@ export function renderPickerCategories() {
             </div>
             <div class="grid grid-cols-2 sm:grid-cols-3 gap-1">
                 ${sortedBookmarks.map(bm => {
-                    const exists = urls.has(bm.url);
+                    const exists = urls.has(normalizeUrl(bm.url));
                     const faviconHtml = getFaviconHTML(bm, 'sm');
                     return `
                         <button type="button" class="w-full flex items-center gap-2 px-2 py-1.5 apple-radius picker-item text-left select-none ${exists ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}" ${exists ? 'disabled aria-disabled="true"' : ''} aria-label="${exists ? `${escapeHtml(bm.name)}（已添加）` : `添加快捷书签：${escapeHtml(bm.name)}`}" ${!exists ? `data-name="${escapeHtml(bm.name)}" data-url="${escapeHtml(bm.url)}"` : ''}>

@@ -4,7 +4,7 @@
  * 设置按钮、书签草稿编辑与拖拽排序的事件装配。
  */
 import { CONFIG } from '../config/constants.js';
-import { escapeHtml, storageGet, checkImageReady } from '../utils/helpers.js';
+import { normalizeUrl, storageGet, checkImageReady } from '../utils/helpers.js';
 
 import { modalState } from '../state/store.js';
 import { updateBookmarkDraft, removeBookmarkDraft } from '../state/bookmark-draft.js';
@@ -115,13 +115,13 @@ export function bindEditEvents() {
             const name = item.dataset.name;
             const url = item.dataset.url;
             const urls = getExistingUrls();
-            if (urls.has(url)) return;
+            if (urls.has(normalizeUrl(url))) return;
 
             appendDraftBookmarkRow({ name, url });
             item.classList.add('opacity-40', 'pointer-events-none');
             item.disabled = true;
             item.setAttribute('aria-disabled', 'true');
-            item.setAttribute('aria-label', `${escapeHtml(name)}（已添加）`);
+            item.setAttribute('aria-label', `${name}（已添加）`);
             item.dataset.name = '';
             item.dataset.url = '';
             const lastSpan = item.querySelector('span:last-child');

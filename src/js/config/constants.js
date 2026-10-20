@@ -20,7 +20,9 @@ export const CONFIG = Object.freeze({
                 NAV_DISCOVERED: 'hasDiscoveredNav',
                 WEATHER_CACHE: 'glass_weather_cache',
                 WEATHER_LOC: 'glass_weather_loc_cache',
-                WEATHER_SETTINGS: 'glass_weather_settings'
+                WEATHER_SETTINGS: 'glass_weather_settings',
+                THEME_CACHE: 'glass_theme_cache',
+                TINT_CACHE: 'glass_tint_cache'
             }),
             CACHE: Object.freeze({
                 FAVICON: 'app-favicons-v1'

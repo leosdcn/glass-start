@@ -191,7 +191,7 @@ const LIGHT_BACKING_HOSTS = new Set(['github.com', 'key-test.com', 'browserleaks
  * @param {boolean} [useNavBacking]
  */
 export function getFaviconHTML(bm, sizeType = 'sm', useNavBacking = false) {
-    const initial = (bm.name || '?').trim().charAt(0).toUpperCase();
+    const initial = (bm.name || '?').trim().charAt(0).toUpperCase() || '?';
     const isMd = sizeType === 'md';
     const sizeClass = isMd ? 'icon-box-md' : 'icon-box-sm';
     const textClass = isMd ? 'text-xs font-semibold' : 'text-2xs font-semibold';
@@ -342,18 +342,16 @@ export function scrollTabIntoView(item, container) {
     if (!item || !container) return;
     const isMobile = window.innerWidth <= CONFIG.NAV.MOBILE_BREAKPOINT;
     const margin = CONFIG.NAV.TAB_SCROLL_MARGIN;
+    const cRect = container.getBoundingClientRect();
+    const iRect = item.getBoundingClientRect();
     if (isMobile) {
-        const cRect = container.getBoundingClientRect();
-        const iRect = item.getBoundingClientRect();
         if (iRect.left < cRect.left + margin || iRect.right > cRect.right - margin) {
-            const targetLeft = item.offsetLeft - (container.clientWidth / 2) + (item.offsetWidth / 2);
+            const targetLeft = container.scrollLeft + (iRect.left - cRect.left) - (container.clientWidth / 2) + (item.offsetWidth / 2);
             container.scrollTo({ left: Math.max(0, targetLeft), behavior: 'smooth' });
         }
     } else {
-        const cRect = container.getBoundingClientRect();
-        const iRect = item.getBoundingClientRect();
         if (iRect.top < cRect.top + margin || iRect.bottom > cRect.bottom - margin) {
-            const targetTop = item.offsetTop - (container.clientHeight / 2) + (item.offsetHeight / 2);
+            const targetTop = container.scrollTop + (iRect.top - cRect.top) - (container.clientHeight / 2) + (item.offsetHeight / 2);
             container.scrollTo({ top: Math.max(0, targetTop), behavior: 'smooth' });
         }
     }

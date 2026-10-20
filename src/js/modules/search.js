@@ -380,8 +380,9 @@ export function renderSuggestions(localList = [], netList = [], preserveSelectio
     if (localList && localList.length > 0) {
         html += renderSectionHeader('书签', true);
         localList.forEach(bm => {
-            const iconHtml = bm.icon 
-                ? `<img src="${safeUrl(bm.icon)}" width="20" height="20" decoding="async" class="w-5 h-5 rounded-md object-cover shrink-0 pointer-events-none select-none" alt="" data-hide-on-error="1" draggable="false">`
+            const safeIcon = bm.icon ? safeUrl(bm.icon) : '';
+            const iconHtml = (safeIcon && safeIcon !== '#')
+                ? `<img src="${safeIcon}" width="20" height="20" decoding="async" class="w-5 h-5 rounded-md object-cover shrink-0 pointer-events-none select-none" alt="" data-hide-on-error="1" draggable="false">`
                 : `<svg class="w-5 h-5 text-white/40 shrink-0 pointer-events-none select-none" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0 1 11.186 0Z"/></svg>`;
             
             html += `

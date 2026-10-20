@@ -119,7 +119,7 @@ export function sampleCustomWallpaperTheme(img) {
         const lum = 0.2126 * topR + 0.7152 * topG + 0.0722 * topB;
         const isLight = lum > CONFIG.APPEARANCE.LUMINANCE_THRESHOLD;
         const theme = isLight ? APP_THEME_LIGHT : APP_THEME_DARK;
-        storageSet('glass_theme_cache', theme);
+        storageSet(CONFIG.KEYS.THEME_CACHE, theme);
         setWallpaperTheme(theme);
 
         // 动态环境光 Specular Tint：对采样色彩进行适度提亮与区间保护，避免暗色壁纸造成暗沉
@@ -131,7 +131,7 @@ export function sampleCustomWallpaperTheme(img) {
         const tintG = Math.min(clamp.MAX, Math.round(Math.max(clamp.MIN, g * boost)));
         const tintB = Math.min(clamp.MAX, Math.round(Math.max(clamp.MIN, b * boost)));
         const tintStr = `${tintR}, ${tintG}, ${tintB}`;
-        storageSet('glass_tint_cache', tintStr);
+        storageSet(CONFIG.KEYS.TINT_CACHE, tintStr);
         updateGlassTint(tintStr);
     } catch {
         setWallpaperTheme(APP_THEME_DARK);

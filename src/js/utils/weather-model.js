@@ -129,8 +129,8 @@ export function normalizeWeatherForecast(data, loc, config, now) {
                 label: wLabel,
                 icon: dwInfo.icon,
                 text: dwInfo.text,
-                tempMax: Math.round(daily.temperature_2m_max[i]),
-                tempMin: Math.round(daily.temperature_2m_min[i])
+                tempMax: Math.round(daily.temperature_2m_max?.[i] ?? cur.temperature_2m ?? config.DEFAULT_TEMPERATURE),
+                tempMin: Math.round(daily.temperature_2m_min?.[i] ?? cur.temperature_2m ?? config.DEFAULT_TEMPERATURE)
             });
         }
     }
