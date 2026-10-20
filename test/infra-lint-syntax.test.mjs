@@ -15,6 +15,23 @@ try {
     const lint = () => spawnSync(process.execPath, ['scripts/lint.mjs'], { cwd: fixture, encoding: 'utf8' });
     const clean = lint();
     assert.equal(clean.status, 0, clean.stdout + clean.stderr);
+    const cssPath = join(fixture, 'src/styles/main.css');
+    const originalCss = readFileSync(cssPath, 'utf8');
+    const validCss = originalCss + `\n/* !important in comment */
+@media (prefers-reduced-motion: reduce) {
+    .lint-first { animation: none !important; }
+    .lint-second { transition: none !important; }
+}`;
+    writeFileSync(cssPath, validCss);
+    const reducedMotion = lint();
+    assert.equal(reducedMotion.status, 0, reducedMotion.stdout + reducedMotion.stderr);
+    writeFileSync(cssPath, validCss + '\n.lint-bad { color: red !important; backdrop-filter: none; -webkit-backdrop-filter: none; }');
+    const invalidCss = lint();
+    assert.equal(invalidCss.status, 1);
+    assert.match(invalidCss.stdout, /1 处白名单外 !important/);
+    assert.match(invalidCss.stdout, /CSS 前缀层叠顺序异常 \(1 处\)/);
+    assert.match(invalidCss.stdout, /src\/styles\/main\.css:\d+:\d+/);
+    writeFileSync(cssPath, originalCss);
     const htmlPath = join(fixture, 'src/index.html');
     writeFileSync(htmlPath, readFileSync(htmlPath, 'utf8').replace('</body>',
         '<div id="uncached-description" class="settings-tab-panel"></div></body>'));

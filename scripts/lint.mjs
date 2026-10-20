@@ -1,5 +1,5 @@
 /**
- * 静态语法与格式检查 (scripts/lint.mjs)，DOM 引用通过开发依赖 Acorn 解析。
+ * 静态语法与格式检查 (scripts/lint.mjs)，DOM/CSS 通过开发依赖 Acorn/PostCSS 解析。
  * 1. 提取 src/index.html 内联脚本并校验语法
  * 2. 使用 node --check 校验核心脚本及 src/js 业务模块
  * 3. 校验 bookmarks.json、public/manifest.json 等 JSON 配置
@@ -11,6 +11,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import vm from 'node:vm';
 import { inspectDOMSources } from './lint-dom.mjs';
+import { inspectCSSSources } from './lint-css.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const isFixMode = process.argv.includes('--fix');
@@ -321,78 +322,37 @@ try {
     logItem(`SVG 无障碍规范扫描异常: ${e.message}`, 'error');
 }
 
-// 4.5 CSS 样式表 !important 污染静态扫描门禁 (仅放行 prefers-reduced-motion 国际无障碍白名单)
+// 4.5 CSS !important 门禁：按语法树查找减弱动效祖先，保留文件及行列位置。
+let cssInspection;
 try {
     const cssDir = join(root, 'src', 'styles');
     const cssFiles = ['main.css', 'glass.css', 'animations.css'];
-    let allCssContent = '';
-    for (const f of cssFiles) {
-        const p = join(cssDir, f);
-        if (existsSync(p)) allCssContent += '\n' + readFileSync(p, 'utf-8');
-    }
+    const sources = cssFiles.map(file => join(cssDir, file)).filter(file => existsSync(file))
+        .map(file => ({ file: relative(root, file), content: readFileSync(file, 'utf-8') }));
     const styleBlocks = [...indexHtml.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style>/gi)];
-    for (const block of styleBlocks) allCssContent += '\n' + block[1];
-
-    let unauthorizedImportantCount = 0;
-    const violations = [];
-
-    const sanitizedCss = allCssContent.replace(/@media\s*\(\s*prefers-reduced-motion\s*:\s*reduce\s*\)\s*\{[\s\S]*?\}/gi, '/* a11y-reduced-motion-cleared */');
-    const lines = sanitizedCss.split('\n');
-    lines.forEach((line, lineIdx) => {
-        if (/!important/i.test(line)) {
-            unauthorizedImportantCount++;
-            violations.push(`第 ${lineIdx + 1} 行: ${line.trim()}`);
-        }
-    });
-
-    if (unauthorizedImportantCount === 0) {
+    for (const block of styleBlocks) {
+        const start = block.index + block[0].indexOf('>') + 1;
+        const { line, col } = getLineCol(indexHtml, start);
+        sources.push({ file: 'src/index.html', content: block[1], lineOffset: line - 1, columnOffset: col - 1 });
+    }
+    cssInspection = inspectCSSSources(sources);
+    const violations = cssInspection.importantViolations;
+    if (violations.length === 0) {
         passCount++;
-        logItem(`全站 CSS 样式表 100% 纯净（零非标准 !important 污染，仅保留 A11y 减弱动效白名单）`);
+        logItem('CSS !important 校验通过，仅放行减弱动效媒体查询中的声明');
     } else {
         failCount++;
-        logItem(`发现 ${unauthorizedImportantCount} 处非标准 !important 污染:\n    ${violations.slice(0, 5).join('\n    ')}`, 'error');
+        logItem(`发现 ${violations.length} 处白名单外 !important:\n    ${violations.slice(0, 5).join('\n    ')}`, 'error');
     }
 } catch (e) {
     failCount++;
     logItem(`CSS !important 规范扫描异常: ${e.message}`, 'error');
 }
 
-// 4.5.1 CSS 前缀层叠顺序门禁（-webkit-backdrop-filter 必须置于标准 backdrop-filter 之前，防止 Tailwind/Lightning CSS 编译器优化时剔除标准属性导致 Chrome 毛玻璃失效）
+// 4.5.1 同一声明块内，-webkit-backdrop-filter 须在标准属性之前。
 try {
-    const cssDir = join(root, 'src', 'styles');
-    const cssFiles = ['main.css', 'glass.css', 'animations.css'];
-    const invalidPrefixErrors = [];
-    for (const f of cssFiles) {
-        const p = join(cssDir, f);
-        if (existsSync(p)) {
-            const content = readFileSync(p, 'utf-8');
-            const lines = content.split('\n');
-            let currentSelector = '';
-            let inBlock = false;
-            let seenStandardBackdrop = false;
-            let standardLine = 0;
-            lines.forEach((line, idx) => {
-                if (line.includes('{')) {
-                    inBlock = true;
-                    currentSelector = line.split('{')[0].trim();
-                    seenStandardBackdrop = false;
-                }
-                if (inBlock) {
-                    if (/backdrop-filter\s*:/i.test(line) && !/-webkit-backdrop-filter/i.test(line)) {
-                        seenStandardBackdrop = true;
-                        standardLine = idx + 1;
-                    }
-                    if (/-webkit-backdrop-filter\s*:/i.test(line) && seenStandardBackdrop) {
-                        invalidPrefixErrors.push(`${f}:${idx + 1} (${currentSelector}): -webkit-backdrop-filter 位于标准 backdrop-filter (第 ${standardLine} 行) 之后，会导致编译器误杀标准属性致使 Chrome 毛玻璃失效`);
-                    }
-                }
-                if (line.includes('}')) {
-                    inBlock = false;
-                    seenStandardBackdrop = false;
-                }
-            });
-        }
-    }
+    if (!cssInspection) throw new Error('CSS 语法分析未完成');
+    const invalidPrefixErrors = cssInspection.prefixViolations;
     if (invalidPrefixErrors.length === 0) {
         passCount++;
         logItem(`CSS 厂商前缀层叠顺序 100% 规范（-webkit- 前缀均先于标准属性声明，确保跨浏览器编译不丢属性）`);

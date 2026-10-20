@@ -50,7 +50,7 @@
 
 ## 模块与构建
 
-应用使用原生 ES 模块与 Web API，无 npm 运行时依赖。Tailwind CSS v4 和 esbuild 仅参与开发与构建，TypeScript 与 Acorn 分别用于类型检查和 DOM 静态校验，不进入生产页面。
+应用使用原生 ES 模块与 Web API，无 npm 运行时依赖。Tailwind CSS v4 和 esbuild 仅参与开发与构建；TypeScript 用于类型检查，Acorn 和 PostCSS 分别用于 DOM 与 CSS 静态校验，不进入生产页面。
 
 ```mermaid
 flowchart TD
