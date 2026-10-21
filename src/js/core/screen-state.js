@@ -57,6 +57,10 @@ function prepareScreenTransition() {
     }
 }
 
+function isReducedMotion() {
+    return typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
 /**
  * @param {HTMLElement|null|undefined} nav
  * @param {'start'|'nav'} targetSection
@@ -64,10 +68,17 @@ function prepareScreenTransition() {
  */
 function waitForScreenTransition(nav, targetSection, onComplete) {
     const finish = () => {
-        clearTransitionTasks();
-        if (state.currentSection !== targetSection) return;
+        if (state.currentSection !== targetSection) {
+            clearTransitionTasks();
+            return;
+        }
         isTransitioning = false;
-        onComplete();
+        // 先完成收尾读取再撤销临时合成层：反过来会在离场帧触发一次强制样式重算。
+        try {
+            onComplete();
+        } finally {
+            clearTransitionTasks();
+        }
     };
     if (typeof document !== 'undefined' && nav) {
         /** @param {TransitionEvent} e */
@@ -77,8 +88,9 @@ function waitForScreenTransition(nav, targetSection, onComplete) {
         nav.addEventListener('transitionend', onEnd);
         navTransitionCleanup = () => nav.removeEventListener('transitionend', onEnd);
     }
-    if (!nav || window.matchMedia('(prefers-reduced-motion: reduce)').matches
-        || getComputedStyle(nav).transitionDuration.split(',').every(value => parseFloat(value) === 0)) {
+    // 切屏前已提交过样式，这里再读 transitionDuration 会让浏览器同步重算整棵树；
+    // 动画是否生效只取决于减弱动效与首屏 .nr 直达模式，时长本身由 transitionend/兜底计时器驱动。
+    if (!nav || isReducedMotion() || document.documentElement.classList.contains('nr')) {
         finish();
         return;
     }
@@ -256,13 +268,16 @@ function switchSection(section) {
     }
     applySection(section, false);
     waitForScreenTransition(dom.navSection, section, () => {
-        if (section === 'nav') refreshNav();
-        else {
-            finishNavExit();
-            // 返回按钮允许从内容中间离开；整屏退场后再归零，避免入场前重绘列表。
+        if (section === 'nav') {
+            refreshNav();
+            resetPageScroll();
+        } else {
+            // 返回按钮允许从内容中间离开；先归零再隐藏整屏，
+            // 避免读取 scrollTop 时刚被 nav-hidden 弄脏样式而强制重算，也避免入场前重绘列表。
             resetNavScroll();
+            resetPageScroll();
+            finishNavExit();
         }
-        resetPageScroll();
     });
 }
 
