@@ -190,6 +190,9 @@ img, a, button, .nav-bookmark, .bookmark-item {
     transform: scale(0.96) translate3d(0, -2vh, 0);
     transform: scale(0.96) translate3d(0, -2dvh, 0);
 }
+body.in-nav-mode:not(.is-screen-transitioning) #startSection {
+    visibility: hidden;
+}
 #navSection {
     position: fixed;
     inset: 0;
@@ -209,7 +212,7 @@ img, a, button, .nav-bookmark, .bookmark-item {
     -webkit-transform: translate3d(0, 0, 0);
     transform: translate3d(0, 0, 0);
 }
-body.is-screen-transitioning :is(#startSection, #navSection) {
+body.is-screen-transitioning :is(#startSection, #navSection, .bg-layer) {
     will-change: transform;
 }
 
@@ -440,7 +443,19 @@ textarea::placeholder {
     transform: translateY(-2px);
 }
 
-.bg-layer { transition: opacity var(--duration-bg-crossfade) var(--ease-exit); transform: translateZ(0); pointer-events: none; }
+.bg-layer {
+    transition: opacity var(--duration-bg-crossfade) var(--ease-exit),
+                transform var(--duration-slide) var(--ease-slide);
+    -webkit-transform: translate3d(0, 0, 0);
+    transform: translate3d(0, 0, 0);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    pointer-events: none;
+}
+body.in-nav-mode .bg-layer {
+    -webkit-transform: scale(1.04) translate3d(0, -1.5%, 0);
+    transform: scale(1.04) translate3d(0, -1.5%, 0);
+}
 .bg-layer.is-crossfading { will-change: opacity; }
 #bgOverlay { transition: background-color 0.2s ease; pointer-events: none; }
 
