@@ -209,9 +209,6 @@ img, a, button, .nav-bookmark, .bookmark-item {
     -webkit-transform: translate3d(0, 0, 0);
     transform: translate3d(0, 0, 0);
 }
-body.is-screen-transitioning {
-    pointer-events: none;
-}
 body.is-screen-transitioning :is(#startSection, #navSection) {
     will-change: transform;
 }
