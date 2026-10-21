@@ -43,12 +43,13 @@ const navState = await evalJS(`(() => {
   return {
     scrollY: window.scrollY,
     startTransform: getComputedStyle(s).transform,
+    isPushedUp: s.classList.contains('screen-pushed-up'),
     navTransform: getComputedStyle(n).transform,
     navAria: n.getAttribute('aria-hidden'),
     gearClass: document.getElementById('editBookmarksBtn').className,
   };
 })()`);
-const navValid = nearZero(tyOf(navState.navTransform)) && navState.scrollY === 0 && tyOf(navState.startTransform) < -599
+const navValid = nearZero(tyOf(navState.navTransform)) && navState.scrollY === 0 && navState.isPushedUp
   && navState.navAria !== 'true' && navState.gearClass.includes('hidden-on-nav');
 
 // 1.3 切回 Start + ArrowDown 切屏
@@ -70,8 +71,8 @@ await evalJS(`(async () => {
   document.dispatchEvent(new KeyboardEvent('keydown', { key: 'PageDown', bubbles: true, cancelable: true }));
 })()`);
 await waitForScreen('nav');
-const pagedownTy = tyOf(await evalJS('getComputedStyle(document.getElementById("startSection")).transform'));
-const pagedownValid = pagedownTy !== null && pagedownTy < -599;
+const pagedownPushed = await evalJS('document.getElementById("startSection").classList.contains("screen-pushed-up")');
+const pagedownValid = pagedownPushed === true;
 
 const navDetail = navValid ? '' : ` navState=${JSON.stringify(navState)}`;
 pass('双屏切屏状态机与键盘导航完整闭环 (初始态/API/ArrowDown/盲打/PageDown)',
