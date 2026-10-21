@@ -1,12 +1,8 @@
-import { updateClock } from '../modules/clock.js';
-import { updateWeather } from '../modules/weather.js';
 /**
- * 双屏有限状态机与手势调度引擎
- * CSS 状态类控制屏幕位置，过渡锁与惯性门控协调切屏。
- * pageshow / visibilitychange 共用唤醒校准；装配时同步确定离屏起点。
+ * 双屏状态与过渡生命周期。
+ * CSS 状态类控制位置，所有切屏入口共享过渡锁；唤醒显式强制校准。
  */
 import { CONFIG } from '../config/constants.js';
-import { checkServiceWorkerUpdate } from './service-worker-updates.js';
 import { storageGet, storageSet } from '../utils/helpers.js';
 import { state } from '../state/store.js';
 import { dom } from '../state/dom.js';
@@ -21,7 +17,12 @@ let isTransitioning = false;
 let transitionTimer = null;
 /** @type {(() => void)|null} */
 let navTransitionCleanup = null;
-let isTouchHandled = false;
+
+/** @param {WheelEvent} e */
+function preventTransitionScroll(e) {
+    if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey || !OverlayStack.isEmpty()) return;
+    if (e.cancelable) e.preventDefault();
+}
 
 // 普通切屏与唤醒校准共用任务清理，防止旧动画回调干扰下一次切换。
 function clearTransitionTasks() {
@@ -30,12 +31,14 @@ function clearTransitionTasks() {
     navTransitionCleanup?.();
     navTransitionCleanup = null;
     if (typeof document !== 'undefined') {
+        document.removeEventListener('wheel', preventTransitionScroll);
         document.body.classList.remove('is-screen-transitioning');
     }
 }
 
 function resetPageScroll() {
     if (typeof window === 'undefined') return;
+    if (window.scrollX === 0 && window.scrollY === 0) return;
     window.scrollTo(0, 0);
     if (document.documentElement.scrollTop !== 0) document.documentElement.scrollTop = 0;
     if (document.body.scrollTop !== 0) document.body.scrollTop = 0;
@@ -48,6 +51,7 @@ function prepareScreenTransition() {
         document.documentElement.classList.remove('nr');
         document.body.classList.remove('tab-blurred');
         document.body.classList.add('is-screen-transitioning');
+        document.addEventListener('wheel', preventTransitionScroll, { passive: false });
         const active = /** @type {HTMLElement|null} */ (document.activeElement);
         active?.blur?.();
     }
@@ -73,20 +77,20 @@ function waitForScreenTransition(nav, targetSection, onComplete) {
         nav.addEventListener('transitionend', onEnd);
         navTransitionCleanup = () => nav.removeEventListener('transitionend', onEnd);
     }
+    if (!nav || window.matchMedia('(prefers-reduced-motion: reduce)').matches
+        || getComputedStyle(nav).transitionDuration.split(',').every(value => parseFloat(value) === 0)) {
+        finish();
+        return;
+    }
+    const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const onMotionChange = () => { if (motion.matches) finish(); };
+    motion.addEventListener('change', onMotionChange);
+    const cleanup = navTransitionCleanup;
+    navTransitionCleanup = () => {
+        cleanup?.();
+        motion.removeEventListener('change', onMotionChange);
+    };
     transitionTimer = setTimeout(finish, CONFIG.GESTURE.TRANSITION_MS + CONFIG.GESTURE.TIMEOUT_BUFFER_MS);
-}
-
-const LINE_HEIGHT_PX = 16;
-const PAGE_HEIGHT_PX = 400;
-
-/**
- * @param {WheelEvent} e
- */
-function normDelta(e) {
-    let d = e.deltaY;
-    if (e.deltaMode === 1) d *= LINE_HEIGHT_PX;
-    else if (e.deltaMode === 2) d *= PAGE_HEIGHT_PX;
-    return d;
 }
 
 /**
@@ -147,346 +151,125 @@ export function isScreenTransitioning() {
     return isTransitioning;
 }
 
+/** 清零内部滚动时禁用平滑，避免异步滚动影响下一轮手势。 */
+function resetNavScroll() {
+    const content = dom.navContent;
+    if (!content || content.scrollTop === 0) return;
+    const behavior = content.style.scrollBehavior;
+    content.style.scrollBehavior = 'auto';
+    content.scrollTop = 0;
+    content.style.scrollBehavior = behavior;
+}
+
+function refreshNav() {
+    refreshSidebarNavCache();
+    updateSidebarActive();
+    initFaviconObserver();
+}
+
 /**
- * 校准屏幕状态与样式；无明确目标且处于过渡时默认跳过，force 可强制执行。
+ * 正常切换与唤醒共用目标状态；退出时等动画结束再关闭指针入口。
+ * @param {'start'|'nav'} section
+ * @param {boolean} immediate
+ */
+function applySection(section, immediate) {
+    const inNav = section === 'nav';
+    const start = dom.startSection;
+    const nav = dom.navSection;
+    saveSection(section);
+    updateSectionAccessibility(section);
+    updateGearVisibility();
+    syncThemeForSection(section);
+    document.body.classList.toggle('in-nav-mode', inNav);
+
+    for (const el of [start, nav]) {
+        if (!el) continue;
+        el.style.transform = '';
+        el.style.transition = immediate ? 'none' : '';
+    }
+    start?.classList.toggle('screen-pushed-up', inNav);
+    if (nav) {
+        if (inNav) {
+            nav.classList.remove('nav-hidden');
+            nav.classList.add('nav-visible');
+        }
+        nav.classList.toggle('screen-pushed-in', inNav);
+        if (!inNav && immediate) finishNavExit();
+    }
+    if (immediate) {
+        // 先应用目标，再提交无动画布局，恢复 transition 后不会补播切屏。
+        for (const el of [start, nav]) {
+            if (!el) continue;
+            void el.offsetHeight;
+            el.style.transition = '';
+        }
+    }
+}
+
+function finishNavExit() {
+    dom.navSection?.classList.remove('nav-visible');
+    dom.navSection?.classList.add('nav-hidden');
+}
+
+/**
+ * 无明确目标且仍在过渡时默认跳过；唤醒可强制立即恢复。
  * @param {'nav'|'start'} [targetSection]
  * @param {boolean} [force=false]
  */
 export function reconcileScreenState(targetSection, force = false) {
-    if (!targetSection && !force && isTransitioning) {
-        return;
-    }
+    if (!targetSection && !force && isTransitioning) return;
     clearTransitionTasks();
     isTransitioning = false;
-    isTouchHandled = false;
-
-    const sec = (targetSection === 'nav' || targetSection === 'start')
-        ? targetSection
-        : (getSavedSection() || 'start');
-
-    saveSection(sec);
-    updateSectionAccessibility(sec);
-    updateGearVisibility();
-    syncThemeForSection(sec);
-
+    const section = targetSection || getSavedSection() || 'start';
     resetPageScroll();
+    if (section === 'start') resetNavScroll();
+    applySection(section, true);
+    document.documentElement.classList.remove('nr');
+    if (section === 'nav') refreshNav();
+}
 
-    const navContent = dom.navContent;
-    if (navContent && sec === 'start') {
-        navContent.scrollTop = 0;
+function discoverNav() {
+    if (storageGet(CONFIG.KEYS.NAV_DISCOVERED)) return;
+    storageSet(CONFIG.KEYS.NAV_DISCOVERED, 1);
+    const hint = dom.scrollDownHint;
+    if (hint) {
+        hint.style.transition = 'opacity 0.6s ease';
+        hint.style.opacity = '0';
+        setTimeout(() => { hint.style.display = 'none'; }, CONFIG.TIMERS.HINT_FADE);
     }
+}
 
-    const startSection = dom.startSection;
-    const nav = dom.navSection;
-
-    // 清除残留 transform / transition，由 CSS 状态类决定屏幕位置。
-    if (startSection) {
-        startSection.style.transition = 'none';
-        startSection.style.transform = '';
-        void startSection.offsetHeight;
-        startSection.style.transition = '';
+/** @param {'start'|'nav'} section */
+function switchSection(section) {
+    // 所有入口共用同一条规则：动画期间不反转、不重启、不排队。
+    if (isTransitioning || state.currentSection === section) return;
+    // 滚动校准放在改变样式之前，避免切屏首帧交错写样式、读滚动布局。
+    resetPageScroll();
+    if (section === 'nav') resetNavScroll();
+    resetActiveCard();
+    prepareScreenTransition();
+    isTransitioning = true;
+    if (section === 'nav') {
+        closeDropdown();
+        hideSuggestions();
+        discoverNav();
     }
-    if (nav) {
-        nav.style.transition = 'none';
-        nav.style.transform = '';
-        void nav.offsetHeight;
-        nav.style.transition = '';
-    }
-
-    if (sec === 'nav') {
-        document.body.classList.add('in-nav-mode');
-        if (startSection) {
-            startSection.classList.add('screen-pushed-up');
+    applySection(section, false);
+    waitForScreenTransition(dom.navSection, section, () => {
+        if (section === 'nav') refreshNav();
+        else {
+            finishNavExit();
+            // 返回按钮允许从内容中间离开；整屏退场后再归零，避免入场前重绘列表。
+            resetNavScroll();
         }
-        if (nav) {
-            nav.classList.remove('nav-hidden');
-            nav.classList.add('nav-visible', 'screen-pushed-in');
-        }
-        refreshSidebarNavCache();
-        updateSidebarActive();
-        initFaviconObserver();
-    } else {
-        document.body.classList.remove('in-nav-mode');
-        if (startSection) {
-            startSection.classList.remove('screen-pushed-up');
-        }
-        if (nav) {
-            nav.classList.remove('screen-pushed-in', 'nav-visible');
-            nav.classList.add('nav-hidden');
-        }
-    }
-
-    // 预水合类与切屏过渡类清理
-    if (typeof document !== 'undefined') {
-        document.documentElement.classList.remove('nr');
-        document.body.classList.remove('is-screen-transitioning');
-    }
+        resetPageScroll();
+    });
 }
 
 export function switchToNav() {
-    if (state.currentSection === 'nav' && !isTransitioning) return;
-    prepareScreenTransition();
-    closeDropdown();
-    hideSuggestions();
-
-    state.currentSection = 'nav';
-    isTransitioning = true;
-
-    resetPageScroll();
-
-    const navContent = dom.navContent;
-    if (navContent) {
-        navContent.style.scrollBehavior = 'auto';
-        navContent.scrollTop = 0;
-        requestAnimationFrame(() => {
-            navContent.style.scrollBehavior = '';
-        });
-    }
-
-    saveSection('nav');
-    updateSectionAccessibility('nav');
-    updateGearVisibility();
-    syncThemeForSection('nav');
-
-    // 下滑提示淡出
-    try {
-        if (!storageGet(CONFIG.KEYS.NAV_DISCOVERED)) {
-            storageSet(CONFIG.KEYS.NAV_DISCOVERED, 1);
-            const hint = dom.scrollDownHint;
-            if (hint) {
-                hint.style.transition = 'opacity 0.6s ease';
-                hint.style.opacity = '0';
-                setTimeout(() => { hint.style.display = 'none'; }, CONFIG.TIMERS.HINT_FADE);
-            }
-        }
-    } catch {}
-
-    const startSection = dom.startSection;
-    const nav = dom.navSection;
-
-    document.body.classList.add('in-nav-mode');
-
-    if (startSection) {
-        startSection.style.transform = '';
-        startSection.style.transition = '';
-        startSection.classList.add('screen-pushed-up');
-    }
-    if (nav) {
-        nav.style.transform = '';
-        nav.style.transition = '';
-        nav.classList.remove('nav-hidden');
-        nav.classList.add('nav-visible');
-        void nav.offsetHeight;
-        nav.classList.add('screen-pushed-in');
-    }
-
-    waitForScreenTransition(nav, 'nav', () => {
-        // 分类与图标检查留到切屏结束，避免与入场首帧的栅格化争用主线程。
-        refreshSidebarNavCache();
-        updateSidebarActive();
-        initFaviconObserver();
-        if (typeof window !== 'undefined') {
-            window.scrollTo(0, 0);
-            const active = /** @type {HTMLElement|null} */ (document.activeElement);
-            active?.blur?.();
-        }
-    });
+    switchSection('nav');
 }
 
 export function switchToStart() {
-    if (state.currentSection === 'start' && !isTransitioning) return;
-    prepareScreenTransition();
-    state.currentSection = 'start';
-    isTransitioning = true;
-
-    resetPageScroll();
-
-    const navContent = dom.navContent;
-    if (navContent) navContent.scrollTop = 0;
-
-    saveSection('start');
-    updateSectionAccessibility('start');
-    updateGearVisibility();
-    syncThemeForSection('start');
-
-    const startSection = dom.startSection;
-    const nav = dom.navSection;
-
-    document.body.classList.remove('in-nav-mode');
-
-    if (startSection) {
-        startSection.style.transform = '';
-        startSection.style.transition = '';
-        startSection.classList.remove('screen-pushed-up');
-    }
-    if (nav) {
-        nav.style.transform = '';
-        nav.style.transition = '';
-        nav.classList.remove('screen-pushed-in');
-    }
-
-    waitForScreenTransition(nav, 'start', () => {
-        if (typeof window !== 'undefined') {
-            window.scrollTo(0, 0);
-            updateGearVisibility();
-        }
-        if (nav) {
-            nav.classList.remove('nav-visible');
-            nav.classList.add('nav-hidden');
-        }
-    });
-}
-
-/**
- * @param {boolean} [wasPersisted]
- */
-export function handleAppWakeUp(wasPersisted = false) {
-    updateClock();
-
-    document.querySelectorAll('.is-clicked').forEach(el => el.classList.remove('is-clicked'));
-    document.querySelectorAll('.fade-in, .animate-item-in, .category-title-pulse').forEach(el => {
-        el.classList.remove('fade-in', 'animate-item-in', 'category-title-pulse');
-    });
-    document.body.classList.remove('bookmark-dragging');
-    document.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
-
-    resetActiveCard();
-    const active = /** @type {HTMLElement|null} */ (document.activeElement);
-    if (active && typeof active.blur === 'function' && active !== document.body && active !== dom.searchInput) {
-        active.blur();
-    }
-    reconcileScreenState(undefined, true);
-
-    checkServiceWorkerUpdate();
-
-    if (wasPersisted) {
-        const startSec = dom.startSection;
-        if (startSec) startSec.style.willChange = 'transform';
-    }
-
-    updateWeather(false).catch(() => {});
-}
-
-export function initScreenGestures() {
-    if (typeof document === 'undefined') return;
-
-    reconcileScreenState(getSavedSection() === 'nav' ? 'nav' : 'start');
-
-    // 1. 鼠标滚轮调度：离散意图直接触发，状态锁 (isTransitioning) 天然吞咽余震
-    document.addEventListener('wheel', (e) => {
-        if (isTransitioning || !OverlayStack.isEmpty()) {
-            if (isTransitioning && e.cancelable) e.preventDefault();
-            return;
-        }
-
-        const delta = normDelta(e);
-        const absDelta = Math.abs(delta);
-        if (absDelta < Math.abs(e.deltaX || 0)) return;
-
-        const navContent = dom.navContent;
-
-        if (state.currentSection === 'start') {
-            if (delta >= CONFIG.GESTURE.SWIPE_THRESHOLD) {
-                if (e.cancelable) e.preventDefault();
-                switchToNav();
-            }
-        } else if (state.currentSection === 'nav') {
-            if (delta <= -CONFIG.GESTURE.SWIPE_THRESHOLD && (!navContent || navContent.scrollTop <= 0)) {
-                if (e.cancelable) e.preventDefault();
-                switchToStart();
-            }
-        }
-    }, { passive: false });
-
-    // 2. 移动端触屏手势调度
-    let startTouchX = 0;
-    let startTouchY = 0;
-    let touchStartTime = 0;
-    const SWIPE_THRESHOLD = CONFIG.GESTURE.SWIPE_THRESHOLD;
-
-    document.addEventListener('touchstart', (e) => {
-        if (isTransitioning || !OverlayStack.isEmpty()) return;
-        if (!e.touches || e.touches.length !== 1) {
-            isTouchHandled = true;
-            return;
-        }
-        const targetEl = e.target instanceof Element ? e.target : null;
-        if (targetEl && typeof targetEl.closest === 'function' && (targetEl.closest('#sidebar') || targetEl.closest('#weatherWidget') || targetEl.closest('#editBookmarksBtn'))) {
-            isTouchHandled = true;
-            return;
-        }
-        startTouchX = e.touches[0].clientX;
-        startTouchY = e.touches[0].clientY;
-        touchStartTime = performance.now();
-        isTouchHandled = false;
-    }, { passive: true });
-
-    document.addEventListener('touchmove', (e) => {
-        if (isTransitioning || isTouchHandled || !OverlayStack.isEmpty()) return;
-        if (!e.touches || e.touches.length === 0) return;
-
-        const currentX = e.touches[0].clientX;
-        const currentY = e.touches[0].clientY;
-        const deltaX = Math.abs(startTouchX - currentX);
-        const deltaY = startTouchY - currentY;
-
-        if (deltaX > Math.abs(deltaY)) return;
-
-        const navContent = dom.navContent;
-
-        if (state.currentSection === 'start') {
-            if (deltaY >= SWIPE_THRESHOLD) {
-                isTouchHandled = true;
-                if (e.cancelable) e.preventDefault();
-                switchToNav();
-            }
-        } else if (state.currentSection === 'nav') {
-            if (deltaY <= -SWIPE_THRESHOLD && navContent && navContent.scrollTop <= 0) {
-                isTouchHandled = true;
-                if (e.cancelable) e.preventDefault();
-                switchToStart();
-            }
-        }
-    }, { passive: false });
-
-    document.addEventListener('touchend', (e) => {
-        if (isTransitioning || isTouchHandled || !OverlayStack.isEmpty()) return;
-        const endTouchX = (e.changedTouches && e.changedTouches.length > 0) ? e.changedTouches[0].clientX : startTouchX;
-        const endTouchY = (e.changedTouches && e.changedTouches.length > 0) ? e.changedTouches[0].clientY : startTouchY;
-        const deltaY = startTouchY - endTouchY;
-        if (Math.abs(startTouchX - endTouchX) > Math.abs(deltaY)) return;
-        const dt = Math.max(1, performance.now() - touchStartTime);
-        const velocity = Math.abs(deltaY) / dt;
-
-        const isFlick = Math.abs(deltaY) >= (CONFIG.GESTURE.FLICK_MIN_DISTANCE || 25) && velocity > (CONFIG.GESTURE.FLICK_MIN_VELOCITY || 0.25);
-        const navContent = dom.navContent;
-
-        if (state.currentSection === 'start') {
-            if (deltaY >= SWIPE_THRESHOLD || (deltaY > 0 && isFlick)) {
-                isTouchHandled = true;
-                switchToNav();
-            }
-        } else if (state.currentSection === 'nav') {
-            if ((deltaY <= -SWIPE_THRESHOLD || (deltaY < 0 && isFlick)) && navContent && navContent.scrollTop <= 0) {
-                isTouchHandled = true;
-                switchToStart();
-            }
-        }
-    }, { passive: true });
-
-    document.addEventListener('touchcancel', () => {
-        isTouchHandled = false;
-    }, { passive: true });
-
-    // 3. 页面唤醒自愈多通道
-    document.addEventListener('visibilitychange', () => {
-        if (!document.hidden) {
-            handleAppWakeUp();
-        }
-    }, { passive: true });
-
-    window.addEventListener('pageshow', (e) => {
-        const pe = /** @type {PageTransitionEvent} */ (e);
-        handleAppWakeUp(!!(pe && pe.persisted));
-    }, { passive: true });
+    switchSection('start');
 }

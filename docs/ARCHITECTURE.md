@@ -1,6 +1,6 @@
 # Glass Start 架构说明
 
-本文说明源码组织、状态流、缓存策略和验证边界。使用与部署见 [README.md](./README.md)，工程约束见 [AGENTS.md](./AGENTS.md)。实现细节以对应源码为准，配置值统一维护在 `src/js/config/constants.js`。
+本文说明源码组织、状态流、缓存策略和验证边界。使用与部署见 [README.md](../README.md)，工程约束见 [AGENTS.md](../AGENTS.md)。实现细节以对应源码为准，配置值统一维护在 `src/js/config/constants.js`。
 
 ## 目录
 
@@ -33,7 +33,7 @@
 | **搜索联想与匹配** | `src/js/modules/search.js`<br/>`src/js/utils/bookmark-search.js` |
 | **气象数据与显示** | `src/js/modules/weather.js`<br/>`src/js/utils/weather-model.js` |
 | **外壳主题与底色动态管理** | `src/js/core/theme-engine.js` |
-| **双屏有限状态机与唤醒自愈** | `src/js/core/screen-state.js`<br/>`src/js/core/lifecycle.js` |
+| **双屏状态、输入与唤醒协调** | `src/js/core/screen-state.js`<br/>`src/js/core/screen-input.js`<br/>`src/js/core/app-wake.js`<br/>`src/js/core/lifecycle.js` |
 | **指针 3D 倾斜与高光** | `src/js/core/gestures.js` |
 | **拖拽重排与 FLIP 动画** | `src/js/core/drag-sort.js` |
 | **全局事件中枢与焦点捕获** | `src/js/core/events.js` |
@@ -125,14 +125,17 @@ LocalStorage 仅保存背景索引和轻量首屏提示，新选择不写入 Bas
 
 `core/screen-state.js` 管理 `state.currentSection`（`start` / `nav`）和过渡锁。CSS 状态类决定两屏位置，`inert` 与无障碍属性隔离离屏内容。
 
-- 滚轮按瞬时位移、速度及累计位移识别切屏意图；切屏后吞掉同向惯性，反向输入或静默间隔后放行。
-- 触屏按方向、位移和速度区分普通滑动与快速轻扫。
+- `core/screen-input.js` 将滚轮在短时间窗口内的同向位移累计到原切屏阈值；反向输入或至少 `WHEEL_IDLE_MS`（180ms）静默开始新一轮。切屏后及动画期间的同向尾部输入不再触发切屏。滚轮事件没有可靠的跨浏览器手势结束标志，静默间隔是近似边界，并非物理惯性检测。
+- 内容尚未到顶时，该轮滚轮输入只滚内容；到顶后须新一轮向上意图才能返回。侧边栏、天气、编辑按钮及输入控件的手势不参与切屏；带修饰键的滚轮和横向滚动交给浏览器。
+- 正常滚轮识别使用被动监听，不在导航内容区常驻同步滚轮拦截；利用上次观察到的内容位置和到顶事件时间，避免合成线程先滚到顶后误判为返回手势。仅在切屏动画期间临时阻止原生滚动，完成、超时、减弱动效或唤醒校准均移除拦截。分类联动先读取侧栏几何信息，再更新高亮，避免写后立即读布局。
+- 触屏沿用原方向、位移和平均速度阈值；手指落下时记录内容是否在顶部，同一次滑动滚到顶部不会接着返回。多指、取消或唤醒会清除本轮触屏状态。
 - 导航页返回首屏须在内容顶部；顶部返回按钮不受此滚动位置限制。键盘输入及浮层状态由事件中枢协调。
-- 过渡通常在 `transitionend` 完成；事件缺失时以配置的动画时长加缓冲兜底。
+- 所有切屏入口在动画期间不反转、不重启、不排队；原 CSS 时长及曲线保持不变。过渡通常在 `transitionend` 完成；事件缺失时以配置的动画时长加缓冲兜底。零时长或减弱动效立即完成，过渡中开启减弱动效也会解除锁定。
+- 切屏前清除卡片 3D 倾斜，动画期间不重新启用倾斜；已归零的滚动位置不重复写样式。从内容中间返回时，导航列表退场后才归零，避免首帧重绘列表及可见内容跳动；进入导航前仍确保列表位于顶部。
 
-`reconcileScreenState()` 清理过渡任务、恢复保存的目标屏、校准状态类及可访问性，并移除预渲染类 `.nr`。它本身不执行 `display` 重置；默认无明确目标且仍在过渡时会跳过，唤醒调用传入 `force=true`。
+`reconcileScreenState()` 清理过渡任务、恢复保存的目标屏、校准状态类及可访问性，并移除预渲染类 `.nr`。正常进入、退出与校准共用目标状态应用逻辑。它本身不执行 `display` 重置；默认无明确目标且仍在过渡时会跳过，唤醒调用传入 `force=true`。
 
-`handleAppWakeUp()` 统一处理 `pageshow` 和恢复可见的 `visibilitychange`：清理残留交互状态，强制校准屏幕、时钟与气象刷新，尝试检查 Service Worker 更新；BFCache 恢复时校准首屏合成层 `willChange`，不在唤醒期重置 DOM 或强制回流，保证前台画面稳定不闪烁。切屏与壁纸切换时通过 `body.is-screen-transitioning` 与 `.is-crossfading` 动态分配 `willChange`，避免常驻闲置导致 WebKit 磁贴提前回收或显存浪费。`blur` / `pagehide` 添加 `body.tab-blurred`，收到下一次用户交互后解除，防止悬停残留。
+`core/app-wake.js` 的 `handleAppWakeUp()` 统一处理 `pageshow` 和恢复可见的 `visibilitychange`：清理残留交互及手势状态，强制校准屏幕、时钟与气象刷新，尝试检查 Service Worker 更新；BFCache 恢复时校准首屏合成层 `willChange`。校准时在禁用过渡的情况下提交目标布局，再恢复过渡，避免补播动画；不重建 DOM。切屏与壁纸切换时通过 `body.is-screen-transitioning` 与 `.is-crossfading` 动态分配 `willChange`，避免常驻闲置导致 WebKit 磁贴提前回收或显存浪费。`blur` / `pagehide` 添加 `body.tab-blurred`，收到下一次用户交互后解除，防止悬停残留。
 
 `core/lifecycle.js` 提供 `window.__GLASS_DIAG__`（`verify`、`probe`、`dump`、`log`）：
 

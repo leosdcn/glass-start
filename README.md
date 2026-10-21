@@ -131,7 +131,7 @@ npm run preview
 
 ## 🛠️ 开发者与贡献者指南
 
-`src/index.html` 是构建模板，请通过开发服务预览或部署 `dist/` 产物。修改构建脚本或其加载的辅助脚本后，需重启开发服务。模块职责、状态流和缓存策略见 [ARCHITECTURE.md](./ARCHITECTURE.md)。
+`src/index.html` 是构建模板，请通过开发服务预览或部署 `dist/` 产物。修改构建脚本或其加载的辅助脚本后，需重启开发服务。模块职责、状态流和缓存策略见 [ARCHITECTURE.md](./docs/ARCHITECTURE.md)。
 
 ### 开发环境要求
 
@@ -178,6 +178,6 @@ npm run build
 
 文档职责如下：
 
-- 🏛️ **[ARCHITECTURE.md (架构说明)](./ARCHITECTURE.md)**：系统分层模型、双屏状态机、OverlayStack 弹窗逆序退栈、Service Worker 三池物理隔离缓存、BFCache 唤醒防护等核心技术设计。
+- 🏛️ **[docs/ARCHITECTURE.md (架构说明)](./docs/ARCHITECTURE.md)**：系统分层模型、双屏状态机、OverlayStack 弹窗逆序退栈、Service Worker 三池物理隔离缓存、BFCache 唤醒防护等核心技术设计。
 - 🤖 **[AGENTS.md (AI 编程工程准则)](./AGENTS.md)**：项目修改边界、实现约束与分级验证流程。
 - 🧭 **[docs/SAFARI_SMOKE_CHECKLIST.md (Safari 专项冒烟清单)](./docs/SAFARI_SMOKE_CHECKLIST.md)**：针对 macOS 与 iOS WebKit 的 6 大专项验证用例、移动端防放大与过滚动规范，以及发布前 5 分钟极速走查表。

@@ -40,7 +40,8 @@ export function initGlassSpotlightAndTilt() {
     isGlassSpotlightAndTiltInitialized = true;
 
     const canAnimate = () => mediaHover.matches && !mediaMotion?.matches && !document.hidden
-        && !document.body.classList.contains('tab-blurred') && state.currentSection === 'nav';
+        && !document.body.classList.contains('tab-blurred')
+        && !document.body.classList.contains('is-screen-transitioning') && state.currentSection === 'nav';
 
     if (mediaMotion && mediaMotion.addEventListener) {
         mediaMotion.addEventListener('change', (e) => {

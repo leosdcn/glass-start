@@ -392,15 +392,17 @@ export function updateSidebarActive() {
         }
     }
 
+    // 先读取侧栏几何信息，再更新高亮；避免 active 字重变更后立即强制布局。
+    const nextActive = items[activeIdx];
+    if (nextActive && !nextActive.classList.contains('active')) {
+        scrollTabIntoView(nextActive, sidebarContainer);
+    }
     items.forEach((item, i) => {
         const isActive = i === activeIdx;
         const wasActive = item.classList.contains('active');
         if (isActive !== wasActive) {
             item.classList.toggle('active', isActive);
             item.setAttribute('aria-selected', isActive ? 'true' : 'false');
-        }
-        if (isActive && !wasActive && !isManualScrolling) {
-            scrollTabIntoView(item, sidebarContainer);
         }
     });
 }

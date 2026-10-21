@@ -1,6 +1,6 @@
 # Glass Start — 开发约束
 
-架构、状态流及模块索引按需查阅 [ARCHITECTURE.md](./ARCHITECTURE.md)；使用、书签格式及测试环境见 [README.md](./README.md)；WebKit/iOS 兼容性走查见 [docs/SAFARI_SMOKE_CHECKLIST.md](./docs/SAFARI_SMOKE_CHECKLIST.md)。实现以源码为准，业务配置统一维护在 `src/js/config/`：通用常量与运行时配置在 `constants.js`，首屏共享的预设壁纸、引擎元数据/图标、天气图标分别见 `backgrounds.js`、`engines.js` / `engine-icons.js`、`weather-icons.js`。
+架构、状态流及模块索引按需查阅 [ARCHITECTURE.md](./docs/ARCHITECTURE.md)；使用、书签格式及测试环境见 [README.md](./README.md)；WebKit/iOS 兼容性走查见 [docs/SAFARI_SMOKE_CHECKLIST.md](./docs/SAFARI_SMOKE_CHECKLIST.md)。实现以源码为准，业务配置统一维护在 `src/js/config/`：通用常量与运行时配置在 `constants.js`，首屏共享的预设壁纸、引擎元数据/图标、天气图标分别见 `backgrounds.js`、`engines.js` / `engine-icons.js`、`weather-icons.js`。
 
 ## 修改边界
 

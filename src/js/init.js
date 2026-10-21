@@ -19,7 +19,9 @@ import {
 import { applyBgEffects } from './modules/settings.js';
 import { handleEditIconError } from './modules/bookmark-editor.js';
 import { preloadNextBg } from './modules/wallpaper.js';
-import { initScreenGestures, reconcileScreenState, isScreenTransitioning } from './core/screen-state.js';
+import { reconcileScreenState, isScreenTransitioning } from './core/screen-state.js';
+import { initScreenGestures } from './core/screen-input.js';
+import { initAppWakeEvents } from './core/app-wake.js';
 import { initGlassSpotlightAndTilt } from './core/gestures.js';
 import { bindEvents } from './core/events.js';
 import { bindEditEvents } from './core/settings-events.js';
@@ -67,7 +69,9 @@ export function init() {
     loadBookmarks();
     const wallpaperRestored = restoreWallpaper().then(() => true, () => false);
     renderNavCategories();
+    reconcileScreenState();
     initScreenGestures();
+    initAppWakeEvents();
     initGlassSpotlightAndTilt();
 
     const saved = storageGet(CONFIG.KEYS.PREFERRED_ENGINE);

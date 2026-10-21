@@ -36,6 +36,8 @@
     "src/js/core/service-worker-updates.js",
     "src/js/core/lifecycle.js",
     "src/js/core/screen-state.js",
+    "src/js/core/screen-input.js",
+    "src/js/core/app-wake.js",
     "src/js/core/drag-sort.js",
     "src/js/core/events.js",
     "src/js/core/settings-events.js",

@@ -138,6 +138,8 @@ const scrollBlocked = await evalJS('document.getElementById("startSection").getA
 
 await evalJS(`document.getElementById('navContent').scrollTop = 0`);
 await waitFor(evalJS, 'document.getElementById("navContent").scrollTop === 0');
+// 同一轮滚内容到顶不能直接返回；静默后才开始新一轮向上意图。
+await evalJS(`new Promise(resolve => setTimeout(resolve, CONFIG.GESTURE.WHEEL_IDLE_MS + 30))`);
 await evalJS(`document.dispatchEvent(new WheelEvent('wheel', { deltaY: -60, cancelable: true }))`);
 await waitForScreen('start');
 const wheelBackStart = await evalJS('document.getElementById("startSection").getAttribute("aria-hidden") !== "true"');

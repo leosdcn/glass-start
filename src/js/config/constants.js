@@ -34,6 +34,7 @@ export const CONFIG = Object.freeze({
                 KEYS: Object.freeze({ CUSTOM_WALLPAPER: 'customWallpaper', SELECTION: 'wallpaperSelection' })
             }),
             GESTURE: Object.freeze({
+                WHEEL_IDLE_MS: 180,         // 无滚轮输入后视为新一轮手势
                 TRANSITION_MS: 580,          // 双屏推移过渡动画时长 (ms)
                 TIMEOUT_BUFFER_MS: 150,      // 双屏推移超时保护冗余缓冲 (ms)
                 SWIPE_THRESHOLD: 40,         // 常规触屏切屏位移阈值 (px)
