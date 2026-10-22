@@ -78,6 +78,14 @@ try {
   assert.equal(corrupt.status, 0, corrupt.stdout + corrupt.stderr);
   assert.deepEqual(corrupt.requests, [s2Url]);
 
+  // 合法头尾和尺寸不能替代解码：缺少有效图像数据时仍须重新下载。
+  const repairedPng = readFileSync(normal);
+  writeFileSync(normal, Buffer.concat([png.subarray(0, 33), Buffer.alloc(12), png.subarray(-12)]));
+  const invalidData = run();
+  assert.equal(invalidData.status, 0, invalidData.stdout + invalidData.stderr);
+  assert.deepEqual(invalidData.requests, [s2Url]);
+  assert.deepEqual(readFileSync(normal), repairedPng);
+
   const refresh = run(['--refresh']);
   assert.equal(refresh.status, 0, refresh.stdout + refresh.stderr);
   assert.deepEqual(refresh.requests.sort(), [officialUrl, s2Url].sort());

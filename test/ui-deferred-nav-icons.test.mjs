@@ -1,4 +1,4 @@
-/** 首屏不下载导航专用图标，进入、滚动和会话恢复仍使用原生图片懒加载。 */
+/** 分类图标提前准备；导航书签图标在进入、滚动和会话恢复时按需加载。 */
 import assert from 'node:assert/strict';
 import { launchSession, waitFor } from './helpers.mjs';
 
@@ -19,7 +19,20 @@ try {
         return deferred.length > 100 && deferred.every(img=>!img.hasAttribute('src') &&
             (firstScreen.has(new URL(img.dataset.navSrc,location.href).href) || !resources.includes(new URL(img.dataset.navSrc,location.href).href)));
     })()`), true);
-    console.log('✅ 首屏超过 100 个导航图片节点保持延迟状态，导航专用图标无网络请求');
+    console.log('✅ 首屏超过 100 个导航书签图片节点保持延迟状态，专用书签图标无网络请求');
+
+    assert.equal(await evalJS(`(() => {
+        const icons = [...dom.sidebarList.querySelectorAll('img'),
+            ...dom.navCategories.querySelectorAll('.category-header img')];
+        return icons.length > 0 && icons.every(img=>img.hasAttribute('src') && !img.hasAttribute('data-nav-src'));
+    })()`), true);
+    await waitFor(evalJS, `(() => {
+        const resources = new Set(performance.getEntriesByType('resource').map(entry=>entry.name));
+        const icons = pageData.categories.map(cat=>cat.icon).filter(icon=>icon?.startsWith('./'));
+        return icons.length > 0 && icons.every(icon=>resources.has(new URL(icon,location.href).href));
+    })()`);
+    assert.equal(await evalJS('state.currentSection'), 'start');
+    console.log('✅ 分类图标直接设置地址，停留首屏时已请求预加载，不必等待进入导航');
 
     await evalJS('switchToNav()');
     await waitFor(evalJS, '!isScreenTransitioning() && dom.navCategories.querySelector("img").naturalWidth > 0');

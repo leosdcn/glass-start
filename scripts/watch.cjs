@@ -48,8 +48,16 @@ function watchFiles(files, { rebuild, onSuccess, label = 'Watch', delay = 80 }) 
         if (!fs.existsSync(path)) continue;
         try {
             const isDir = fs.statSync(path).isDirectory();
+            let previousContent = isDir ? null : fs.readFileSync(path);
             watchers.push(fs.watch(path, { recursive: isDir }, (_, filename) => {
                 if (filename && shouldIgnore(filename)) return;
+                // 单文件可能收到重复或仅元数据变化的通知，内容未变时不重建。
+                if (!isDir) {
+                    let content = null;
+                    try { content = fs.readFileSync(path); } catch {}
+                    if (content === previousContent || (content && previousContent && content.equals(previousContent))) return;
+                    previousContent = content;
+                }
                 trigger(isDir && filename ? `${name}${filename}` : name);
             }));
         } catch (err) {

@@ -7,8 +7,57 @@ import { fileURLToPath } from 'node:url';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { requiresBuild } from './test-selection.mjs';
+import fs from 'node:fs';
+import { setTimeout as delay } from 'node:timers/promises';
 
 const { injectHeadConfig } = createRequire(import.meta.url)('../scripts/build.js');
+const { watchFiles } = createRequire(import.meta.url)('../scripts/watch.cjs');
+
+test('单文件重复通知不触发重建，真实修改及删除恢复仍触发', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'glass-watch-content-'));
+  const file = join(dir, 'sw.js');
+  const originalWatch = fs.watch;
+  let notify;
+  let builds = 0;
+  let close;
+  try {
+    writeFileSync(file, 'before');
+    fs.watch = (_path, _options, callback) => {
+      notify = () => callback('change', 'sw.js');
+      return { close() {} };
+    };
+    close = watchFiles([{ path: file, name: 'sw.js' }], {
+      delay: 1,
+      rebuild() {
+        builds++;
+        // 构建期间再次收到同内容通知，不应排入下一轮。
+        notify();
+      }
+    });
+    fs.watch = originalWatch;
+    notify();
+    writeFileSync(file, 'before');
+    notify();
+    await delay(30);
+    assert.equal(builds, 0);
+    writeFileSync(file, 'after');
+    notify();
+    await delay(30);
+    assert.equal(builds, 1);
+    rmSync(file);
+    notify();
+    await delay(30);
+    assert.equal(builds, 2);
+    writeFileSync(file, 'restored');
+    notify();
+    await delay(30);
+    assert.equal(builds, 3);
+  } finally {
+    fs.watch = originalWatch;
+    close?.();
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
 
 test('浏览器、未知及混合测试均要求构建，明确的纯单元测试可以跳过', () => {
   assert.equal(requiresBuild(['ui-rendering-performance.test.mjs']), true);

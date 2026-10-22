@@ -204,13 +204,12 @@ export function getFaviconHTML(bm, sizeType = 'sm', deferLoad = false) {
  * 渲染分类图标 HTML：兼容 SVG/图片相对路径与 Emoji 字符
  * @param {string} icon - 图标路径或 Emoji 字符
  * @param {string} [sizeClass='size-4'] - 尺寸与样式类
- * @param {boolean} [deferLoad]
  * @returns {string} 渲染的安全 HTML 字符串
  */
-export function getCategoryIconHTML(icon, sizeClass = 'size-4', deferLoad = false) {
+export function getCategoryIconHTML(icon, sizeClass = 'size-4') {
     if (!icon) return '';
     if (typeof icon === 'string' && (icon.startsWith('./') || icon.startsWith('/') || icon.endsWith('.svg') || icon.endsWith('.png') || icon.endsWith('.webp'))) {
-        return `<img ${deferLoad ? 'data-nav-src' : 'src'}="${safeUrl(icon)}" class="${sizeClass} shrink-0 object-contain select-none pointer-events-none inline-block align-middle" alt="" aria-hidden="true" loading="lazy" decoding="async">`;
+        return `<img src="${safeUrl(icon)}" class="${sizeClass} shrink-0 object-contain select-none pointer-events-none inline-block align-middle" alt="" aria-hidden="true" loading="lazy" decoding="async">`;
     }
     return escapeHtml(icon);
 }
@@ -422,7 +421,7 @@ export function renderNavCategories(force = false) {
     sidebarList.innerHTML = pageData.categories.map((cat, i) => `
         <button type="button" role="tab" id="cat-tab-${i}" aria-selected="${i === 0 ? 'true' : 'false'}" aria-controls="cat-${i}" class="sidebar-item w-full text-left text-xs md:text-sm px-2.5 py-1.75 min-h-9 text-white/70 flex items-center gap-2 ${i === 0 ? 'active' : ''}"
                 data-target="cat-${i}" data-idx="${i}">
-            <span class="size-5 shrink-0 sidebar-icon flex items-center justify-center">${getCategoryIconHTML(cat.icon, 'size-4', !navIconsActivated)}</span>
+            <span class="size-5 shrink-0 sidebar-icon flex items-center justify-center">${getCategoryIconHTML(cat.icon, 'size-4')}</span>
             <span class="truncate sidebar-label">${escapeHtml(cat.name)}</span>
         </button>
     `).join('');
@@ -433,7 +432,7 @@ export function renderNavCategories(force = false) {
         <div id="cat-${i}" role="tabpanel" aria-labelledby="cat-tab-${i}" class="category-block ${i > 0 ? 'scroll-mt-6' : ''}">
             <div class="category-header flex items-center justify-between pb-2.5 mb-3.5 transition-colors duration-300 select-none">
                 <div class="flex items-center gap-2.5 select-none">
-                    <span class="size-6 shrink-0 select-none flex items-center justify-center">${getCategoryIconHTML(cat.icon, 'size-5', !navIconsActivated)}</span>
+                    <span class="size-6 shrink-0 select-none flex items-center justify-center">${getCategoryIconHTML(cat.icon, 'size-5')}</span>
                     <h3 class="text-xs sm:text-sm font-semibold tracking-wide text-white/90 select-none">${escapeHtml(cat.name)}</h3>
                 </div>
             </div>
@@ -568,6 +567,7 @@ function initSidebarNav(measureActive = true) {
 export function preloadFavicons() {
     const urls = new Set();
     pageData.bookmarks.forEach(bm => { if (bm.icon) urls.add(bm.icon); });
+    pageData.categories.forEach(cat => { if (cat.icon) urls.add(cat.icon); });
     const readySources = new Set();
     if (dom.bookmarks) {
         dom.bookmarks.querySelectorAll('img').forEach(img => {

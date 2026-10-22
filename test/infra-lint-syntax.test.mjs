@@ -15,6 +15,13 @@ try {
     const lint = () => spawnSync(process.execPath, ['scripts/lint.mjs'], { cwd: fixture, encoding: 'utf8' });
     const clean = lint();
     assert.equal(clean.status, 0, clean.stdout + clean.stderr);
+    const templatePath = join(fixture, 'scripts/html-template.cjs');
+    const originalTemplate = readFileSync(templatePath, 'utf8');
+    writeFileSync(templatePath, 'const broken = ;\n');
+    const invalidTemplate = lint();
+    assert.equal(invalidTemplate.status, 1, invalidTemplate.stdout + invalidTemplate.stderr);
+    assert.match(invalidTemplate.stdout, /scripts\/html-template\.cjs[^\n]*语法错误/);
+    writeFileSync(templatePath, originalTemplate);
     const cssPath = join(fixture, 'src/styles/main.css');
     const originalCss = readFileSync(cssPath, 'utf8');
     const validCss = originalCss + `\n/* !important in comment */
