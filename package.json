@@ -8,6 +8,7 @@
   },
   "scripts": {
     "build": "node scripts/build.js",
+    "benchmark": "npm run build && node test/benchmark-transition.mjs",
     "test": "node test/run.mjs",
     "test:ui": "node test/run.mjs ui",
     "test:data": "node test/run.mjs data",
