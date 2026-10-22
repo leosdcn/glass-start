@@ -27,7 +27,7 @@
             "purpose": "any"
         },
         {
-            "src": "./icons/app/favicon.svg?v=609b1c5a3f",
+            "src": "./icons/app/favicon.svg?v=3781722418",
             "sizes": "any 192x192 512x512",
             "type": "image/svg+xml",
             "purpose": "any maskable"
