@@ -1,6 +1,18 @@
 const fs = require('node:fs');
 const { c } = require('./terminal.cjs');
 
+const IGNORED_NAMES = new Set(['.DS_Store', 'Thumbs.db', 'desktop.ini']);
+
+function shouldIgnore(filename) {
+    if (!filename) return false;
+    const base = filename.split(/[/\\]/).pop();
+    if (!base) return true;
+    if (IGNORED_NAMES.has(base)) return true;
+    // 忽略 macOS 伴生资源分支、编辑器临时文件与备份文件
+    if (base.startsWith('._') || base.endsWith('~') || base.endsWith('.tmp') || base.startsWith('.#')) return true;
+    return false;
+}
+
 // 监听入口共用防抖与关闭流程；重建期间的新变化合并到下一轮。
 function watchFiles(files, { rebuild, onSuccess, label = 'Watch', delay = 80 }) {
     let timer = null, pending = null, rebuilding = false, closed = false;
@@ -37,6 +49,7 @@ function watchFiles(files, { rebuild, onSuccess, label = 'Watch', delay = 80 }) 
         try {
             const isDir = fs.statSync(path).isDirectory();
             watchers.push(fs.watch(path, { recursive: isDir }, (_, filename) => {
+                if (filename && shouldIgnore(filename)) return;
                 trigger(isDir && filename ? `${name}${filename}` : name);
             }));
         } catch (err) {

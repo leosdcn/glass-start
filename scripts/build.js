@@ -157,9 +157,12 @@ function buildServiceWorkerAndAssets(targetDir = PATHS.dist) {
         logItem(`Service Worker 缓存版本已更新: ${c.cyan}${currentBuildVersion}${c.reset}`);
     }
 
-    // 3.2 纯静态资产镜像同步 (public/ -> dist/)
+    // 3.2 纯静态资产镜像同步 (public/ -> dist/，过滤系统与临时文件)
     if (fs.existsSync(PATHS.public)) {
-        fs.cpSync(PATHS.public, targetDir, { recursive: true });
+        fs.cpSync(PATHS.public, targetDir, {
+            recursive: true,
+            filter: src => !src.endsWith('.DS_Store') && !src.endsWith('Thumbs.db')
+        });
         const iconCount = fs.existsSync(path.join(PATHS.public, 'icons')) ? fs.readdirSync(path.join(PATHS.public, 'icons')).filter(f => f.endsWith('.png')).length : 0;
         const wpCount = fs.existsSync(path.join(PATHS.public, 'wallpapers')) ? fs.readdirSync(path.join(PATHS.public, 'wallpapers')).length : 0;
         logItem(`纯静态资源目录 public/ 已全量镜像同步至 dist/ (包含 ${iconCount} 个本地图标, ${wpCount} 个壁纸与 PWA/安全元数据)`);
