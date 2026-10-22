@@ -170,7 +170,7 @@
     transition: transform var(--duration-tactile) var(--ease-tactile), background-color 0.32s ease, border-color 0.32s ease, box-shadow var(--duration-tactile) var(--ease-tactile);
 }
 .bookmark-item::before {
-    content: '';
+    content: none;
     position: absolute;
     inset: 0;
     border-radius: inherit;
@@ -185,7 +185,7 @@
     z-index: 1;
 }
 .nav-bookmark::before {
-    content: '';
+    content: none;
     position: absolute;
     left: 50%;
     top: 50%;
@@ -214,6 +214,10 @@ body:not(.tab-blurred) .nav-bookmark:not(.is-clicked):active {
     will-change: transform;
 }
 @media (hover: hover) and (pointer: fine) {
+    .bookmark-item::before,
+    .nav-bookmark::before {
+        content: '';
+    }
     body:not(.tab-blurred) .bookmark-item:not(.is-clicked):hover,
     body:not(.tab-blurred) .nav-bookmark:not(.is-clicked):hover {
         will-change: transform;
