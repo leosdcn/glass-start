@@ -6,6 +6,7 @@ import { dom } from '../state/dom.js';
 import { modalState } from '../state/store.js';
 import { reorderBookmarkDraft } from '../state/bookmark-draft.js';
 import { updateAllBookmarkCounters } from '../modules/bookmark-editor.js';
+import { finishPendingTransition, onTransitionSettled } from '../utils/transition-cleanup.js';
 
 export function initDragSort() {
     /** @type {HTMLElement | null} */
@@ -18,6 +19,10 @@ export function initDragSort() {
     let lastOverTarget = null;
     /** @type {boolean | null} */
     let lastIsTop = null;
+    /** @type {HTMLElement | null} */
+    let indicatorTarget = null;
+    /** @type {boolean | null} */
+    let indicatorIsTop = null;
     const editList = dom.editList;
     if (!editList) return;
     const currentEditList = editList;
@@ -41,11 +46,11 @@ export function initDragSort() {
     function updateDragIndicator(target, isTop) {
         lastOverTarget = target;
         lastIsTop = isTop;
-        // 切换目标行高亮，清除其他行残留。
-        currentEditList.querySelectorAll('.edit-row-card').forEach(el => {
-            el.classList.remove('drop-target-above', 'drop-target-below');
-        });
+        if (indicatorTarget === target && indicatorIsTop === isTop) return;
+        indicatorTarget?.classList.remove('drop-target-above', 'drop-target-below');
         target.classList.add(isTop ? 'drop-target-above' : 'drop-target-below');
+        indicatorTarget = target;
+        indicatorIsTop = isTop;
     }
 
     function clearDragClasses() {
@@ -62,6 +67,8 @@ export function initDragSort() {
         });
         lastOverTarget = null;
         lastIsTop = null;
+        indicatorTarget = null;
+        indicatorIsTop = null;
     }
 
     let isDragHandleActive = false;
@@ -104,9 +111,12 @@ export function initDragSort() {
         const targetIdx = modalState.draftBookmarks.findIndex(b => b.id === target.dataset.id);
         if (srcIdx < 0 || targetIdx < 0) return;
 
+        // 清除旧 FLIP（包括尚未执行的 rAF），再测量本次布局。
+        const rows = /** @type {HTMLElement[]} */ (Array.from(currentEditList.querySelectorAll('.edit-row-card')));
+        rows.forEach(finishPendingTransition);
         /** @type {HTMLElement[]} */
         const cards = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-            ? [] : Array.from(currentEditList.querySelectorAll('.edit-row-card'));
+            ? [] : rows.filter(card => card.isConnected);
         const firstPositions = new Map();
         cards.forEach(card => firstPositions.set(card, card.getBoundingClientRect()));
 
@@ -128,17 +138,16 @@ export function initDragSort() {
             if (deltaY !== 0 || deltaX !== 0) {
                 card.style.transition = 'none';
                 card.style.transform = `translate3d(${deltaX}px, ${deltaY}px, 0)`;
-                requestAnimationFrame(() => {
+                const frame = requestAnimationFrame(() => {
                     const flipSec = `${CONFIG.TIMERS.FLIP_DURATION_MS / 1000}s`;
                     card.style.transition = `transform ${flipSec} var(--ease-overshoot)`;
                     card.style.transform = 'translate3d(0, 0, 0)';
                 });
-                card.addEventListener('transitionend', ev => {
-                    const te = /** @type {TransitionEvent} */ (ev);
-                    if (te.propertyName !== 'transform') return;
+                onTransitionSettled(card, 'transform', CONFIG.TIMERS.FLIP_DURATION_MS, () => {
+                    cancelAnimationFrame(frame);
                     card.style.transition = '';
                     card.style.transform = '';
-                }, { once: true });
+                });
             }
         });
 

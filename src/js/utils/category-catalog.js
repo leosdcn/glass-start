@@ -18,19 +18,8 @@ let cached;
  */
 function getCatalogSignature(categories) {
     if (!categories || !Array.isArray(categories)) return '';
-    let sig = '';
-    for (let i = 0; i < categories.length; i++) {
-        const cat = categories[i];
-        if (!cat) continue;
-        const bms = cat.bookmarks || [];
-        sig += `[${cat.name || ''}:${bms.length}`;
-        for (let j = 0; j < bms.length; j++) {
-            const b = bms[j];
-            if (b) sig += `;${b.name || ''},${b.url || ''},${b.desc || ''}`;
-        }
-        sig += ']';
-    }
-    return sig;
+    return JSON.stringify(categories.map(cat => [cat.name, cat.icon,
+        (cat.bookmarks || []).map(b => [b.name, b.url, b.desc, b.icon])]));
 }
 
 /**

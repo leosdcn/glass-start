@@ -142,6 +142,7 @@ export const CONFIG = Object.freeze({
                 IDLE_TIMEOUT: 3000,           // 空闲调度最大超时上限 (ms)
                 COMPOSITION_END_RESET: 100,   // 输入法组合结束复位延迟 (ms)
                 FLIP_DURATION_MS: 350,        // FLIP 动画时长 (ms)
+                TRANSITION_CLEANUP_BUFFER: 50, // 动画结束事件丢失时的收尾缓冲 (ms)
                 BOOKMARK_DELETE_DURATION: 180, // 书签删除动效时长 (ms)
                 BG_OVERLAY_TRANSITION: 200,   // 遮罩滑块平滑过渡时长 (ms)
                 PRESET_CARD_STAGGER: 20,      // 壁纸缩略图交错渐入步长延时 (ms)

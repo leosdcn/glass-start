@@ -29,11 +29,14 @@ function getWeatherIconHTML(icon, className = 'size-4') {
  * @param {string} url
  * @param {number} timeoutMs
  */
-export async function fetchWithTimeout(url, timeoutMs) {
+async function fetchJsonWithTimeout(url, timeoutMs) {
     const controller = new AbortController();
     const timer = setTimeout(() => { try { controller.abort(); } catch {} }, timeoutMs);
     try {
-        return await fetch(url, { signal: controller.signal });
+        const response = await fetch(url, { signal: controller.signal });
+        if (!response.ok) throw new Error(`Weather request failed: HTTP ${response.status}`);
+        // 超时覆盖正文读取；收到响应头后仍可能停在 json()。
+        return await response.json();
     } finally {
         clearTimeout(timer);
     }
@@ -100,9 +103,8 @@ async function resolveWeatherLocation(force = false) {
 async function executeResolveWeatherLocation(now) {
 
     try {
-        const ipRes = await fetchWithTimeout('https://myip.ipip.net/json', CONFIG.WEATHER.TIMEOUT_IP);
-        if (ipRes.ok) {
-            const ipData = await ipRes.json();
+        const ipData = await fetchJsonWithTimeout('https://myip.ipip.net/json', CONFIG.WEATHER.TIMEOUT_IP);
+        if (ipData) {
             if (ipData && ipData.ret === 'ok' && Array.isArray(ipData?.data?.location)) {
                 const locArr = ipData.data.location;
                 const country = locArr[0] || '中国';
@@ -115,9 +117,8 @@ async function executeResolveWeatherLocation(now) {
                     try {
                         const queryName = (cleanCity === cleanProv && !rawCity.endsWith('省')) ? `${cleanCity}市` : cleanCity;
                         const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(queryName)}&language=zh&count=10`;
-                        const geoRes = await fetchWithTimeout(geoUrl, CONFIG.WEATHER.TIMEOUT_IP);
-                        if (geoRes.ok) {
-                            const geoData = await geoRes.json();
+                        const geoData = await fetchJsonWithTimeout(geoUrl, CONFIG.WEATHER.TIMEOUT_IP);
+                        if (geoData) {
                             const results = geoData.results || [];
                             let matched = results.find((/** @type {any} */ r) => {
                                 const matchCountry = !country || (r.country && (r.country.includes(country) || country.includes(r.country)));
@@ -128,9 +129,8 @@ async function executeResolveWeatherLocation(now) {
                             if (!matched && cleanProv && cleanProv !== cleanCity) {
                                 try {
                                     const provUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cleanProv)}&language=zh&count=5`;
-                                    const provRes = await fetchWithTimeout(provUrl, CONFIG.WEATHER.TIMEOUT_IP);
-                                    if (provRes.ok) {
-                                        const provData = await provRes.json();
+                                    const provData = await fetchJsonWithTimeout(provUrl, CONFIG.WEATHER.TIMEOUT_IP);
+                                    if (provData) {
                                         if (provData.results && provData.results[0]) {
                                             matched = provData.results[0];
                                         }
@@ -162,9 +162,8 @@ async function executeResolveWeatherLocation(now) {
     } catch {}
 
     try {
-        const res = await fetchWithTimeout('https://ipwho.is/?lang=zh-CN', CONFIG.WEATHER.TIMEOUT_IP);
-        if (res.ok) {
-            const data = await res.json();
+        const data = await fetchJsonWithTimeout('https://ipwho.is/?lang=zh-CN', CONFIG.WEATHER.TIMEOUT_IP);
+        if (data) {
             if (data && data.success && data.latitude) {
                 const rawCity = data.city || '';
                 const rawRegion = data.region || '';
@@ -202,9 +201,7 @@ export async function fetchWeatherForecast(loc) {
     const lat = loc.lat;
     const lon = loc.lon;
     const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,precipitation_probability_max&timezone=auto`;
-    const res = await fetchWithTimeout(url, CONFIG.WEATHER.TIMEOUT_WEATHER);
-    if (!res.ok) throw new Error('Open-Meteo request failed');
-    const data = await res.json();
+    const data = await fetchJsonWithTimeout(url, CONFIG.WEATHER.TIMEOUT_WEATHER);
 
     return normalizeWeatherForecast(data, loc, CONFIG.WEATHER, Date.now());
 }
@@ -377,7 +374,10 @@ export function renderWeatherPopover(data) {
         </div>
     `;
 
-    const sig = `${loc.fullName || loc.name || ''}_${c.temp}_${c.apparent}_${c.humidity}_${c.windSpeed}_${c.icon}_${c.weatherText}_${sunLabel}_${sunTime}_${popVal}_${days.map(d => `${d.label}${d.tempMin}${d.tempMax}`).join('|')}`;
+    const sig = JSON.stringify([loc.fullName || loc.name || '', c.temp, c.apparent,
+        c.humidity, c.windSpeed, c.icon, c.weatherText, sunLabel, sunTime, popVal,
+        days.slice(0, CONFIG.WEATHER.FORECAST_DISPLAY_DAYS)
+            .map(d => [d.label, d.tempMin, d.tempMax, d.icon, d.text])]);
     if (sig === lastRenderedPopoverSignature && weatherPopover.innerHTML.trim()) return;
     lastRenderedPopoverSignature = sig;
 
@@ -455,6 +455,8 @@ export function renderWeatherPopover(data) {
 }
 
 export let isFetchingWeather = false;
+/** @type {Promise<void> | null} */
+let inFlightWeatherPromise = null;
 
 const isWeatherRecord = (/** @type {any} */ value) => value !== null && typeof value === 'object' && !Array.isArray(value);
 
@@ -469,8 +471,9 @@ function readWeatherCache() {
     return cache;
 }
 
-export async function updateWeather(force = false) {
-    if (!force && typeof document !== 'undefined' && document.hidden) return;
+export function updateWeather(force = false) {
+    if (!force && typeof document !== 'undefined' && document.hidden) return Promise.resolve();
+    if (inFlightWeatherPromise) return inFlightWeatherPromise;
     const cache = readWeatherCache();
     const now = Date.now();
     const CACHE_TTL = CONFIG.WEATHER.CACHE_TTL;
@@ -478,12 +481,21 @@ export async function updateWeather(force = false) {
     if (!force && cache && cache.timestamp && (now - cache.timestamp < CACHE_TTL)) {
         renderWeatherCapsule(cache);
         renderWeatherPopover(cache);
-        return;
+        return Promise.resolve();
     }
 
-    if (isFetchingWeather) return;
     isFetchingWeather = true;
+    inFlightWeatherPromise = executeWeatherUpdate(cache, force).finally(() => {
+        isFetchingWeather = false;
+        inFlightWeatherPromise = null;
+    });
+    return inFlightWeatherPromise;
+}
 
+/** @param {import('../types').WeatherData | null} cache
+ * @param {boolean} force
+ */
+async function executeWeatherUpdate(cache, force) {
     try {
         const locCache = storageGet(CONFIG.KEYS.WEATHER_LOC, null);
         const knownLoc = (locCache && locCache.lat) ? locCache : (cache && cache.location && cache.location.lat ? cache.location : null);
@@ -497,16 +509,17 @@ export async function updateWeather(force = false) {
             renderWeatherCapsule(freshData);
             renderWeatherPopover(freshData);
 
-            locationPromise.then(async (newLoc) => {
-                if (newLoc && (Math.abs(newLoc.lat - knownLoc.lat) > CONFIG.WEATHER.LOCATION_DRIFT_THRESHOLD || Math.abs(newLoc.lon - knownLoc.lon) > CONFIG.WEATHER.LOCATION_DRIFT_THRESHOLD)) {
-                    try {
-                        const relocatedData = await fetchWeatherForecast(newLoc);
-                        storageSet(CONFIG.KEYS.WEATHER_CACHE, relocatedData);
-                        renderWeatherCapsule(relocatedData);
-                        renderWeatherPopover(relocatedData);
-                    } catch {}
-                }
-            }).catch(() => {});
+            // 先显示已知地点的预报，同时让整个重新定位过程保留在同一刷新任务中。
+            // 否则唤醒或手动刷新会与游离的重新定位回调重复请求、交错覆盖结果。
+            const newLoc = await locationPromise;
+            if (newLoc && (Math.abs(newLoc.lat - knownLoc.lat) > CONFIG.WEATHER.LOCATION_DRIFT_THRESHOLD || Math.abs(newLoc.lon - knownLoc.lon) > CONFIG.WEATHER.LOCATION_DRIFT_THRESHOLD)) {
+                try {
+                    const relocatedData = await fetchWeatherForecast(newLoc);
+                    storageSet(CONFIG.KEYS.WEATHER_CACHE, relocatedData);
+                    renderWeatherCapsule(relocatedData);
+                    renderWeatherPopover(relocatedData);
+                } catch {}
+            }
         } else {
             const loc = await resolveWeatherLocation(force);
             const freshData = await fetchWeatherForecast(loc);
@@ -523,8 +536,6 @@ export async function updateWeather(force = false) {
             if (weatherCity) weatherCity.textContent = '暂无数据';
             renderWeatherError();
         }
-    } finally {
-        isFetchingWeather = false;
     }
 }
 

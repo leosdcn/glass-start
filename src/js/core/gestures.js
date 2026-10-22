@@ -63,11 +63,11 @@ export function initGlassSpotlightAndTilt() {
         const x = pendingEvent.clientX - rect.left;
         const y = pendingEvent.clientY - rect.top;
 
-        activeCard.style.setProperty('--mouse-x', `${x}px`);
-        activeCard.style.setProperty('--mouse-y', `${y}px`);
-
         const centerX = rect.width / 2;
         const centerY = rect.height / 2;
+        // 光斑纹理固定在卡片中心，更新位移而不是重绘渐变背景。
+        activeCard.style.setProperty('--mouse-x', `${x - centerX}px`);
+        activeCard.style.setProperty('--mouse-y', `${y - centerY}px`);
         const maxDeg = CONFIG.PHYSICS.TILT_MAX_ROTATION_DEG;
         const rotateX = -((y - centerY) / centerY) * maxDeg;
         const rotateY = ((x - centerX) / centerX) * maxDeg;

@@ -12,8 +12,8 @@ export function updateAllBookmarkCounters() {
     const text = `已添加 ${getDraftBookmarkCount()} 项`;
     const badge = dom.bookmarkCountBadge;
     const pickerCount = dom.pickerCount;
-    if (badge) badge.textContent = text;
-    if (pickerCount) pickerCount.textContent = text;
+    if (badge && badge.textContent !== text) badge.textContent = text;
+    if (pickerCount && pickerCount.textContent !== text) pickerCount.textContent = text;
 }
 
 export function getEditFaviconInner(name = '', url = '', icon = '') {

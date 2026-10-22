@@ -14,6 +14,33 @@ const MAX_FAVICON_ENTRIES = 800;
 const MAX_IMG_ENTRIES = 200;
 const FAVICON_TIMEOUT_MS = 7000;
 
+// CacheStorage 不会合并同时未命中的请求；多标签或多个图片节点可能重复下载。
+const pendingImageResponses = new Map();
+
+function shareImageResponse(event, loadResponse) {
+    const request = event.request;
+    // 保留请求模式、凭据及响应变体的边界，不将同 URL 的不同请求混在一起。
+    const key = JSON.stringify([request.url, request.mode, request.credentials, request.cache,
+        request.redirect, request.referrer, request.referrerPolicy, request.integrity,
+        request.destination, [...request.headers]]);
+    let pending = pendingImageResponses.get(key);
+    if (!pending) {
+        const cacheTasks = [];
+        const waitForCache = task => {
+            cacheTasks.push(task);
+            event.waitUntil(task);
+        };
+        pending = Promise.resolve().then(() => loadResponse(waitForCache));
+        pendingImageResponses.set(key, pending);
+        // 响应可以先返回；写缓存完成前继续合并请求，避免写入窗口重复下载。
+        event.waitUntil(pending.then(() => Promise.allSettled(cacheTasks), () => {}).finally(() => {
+            if (pendingImageResponses.get(key) === pending) pendingImageResponses.delete(key);
+        }));
+    }
+    // Response 的正文只能消费一次，每个调用者获得独立副本。
+    return pending.then(response => response.clone());
+}
+
 // 核心预缓存静态资源列表
 const CORE_ASSETS = [
     './',
@@ -270,7 +297,7 @@ self.addEventListener('fetch', e => {
     // 跨域图标缓存优先，未命中时使用带超时的网络请求。
     if (isFaviconDomain) {
         e.respondWith(
-            caches.open(FAVICON_CACHE).then(async cache => {
+            shareImageResponse(e, waitForCache => caches.open(FAVICON_CACHE).then(async cache => {
                 const cached = await cache.match(e.request);
                 if (cached) return cached;
 
@@ -282,7 +309,7 @@ self.addEventListener('fetch', e => {
                         if (netRes && (netRes.ok || netRes.type === 'opaque')) {
                             try {
                                 await cache.put(e.request, netRes.clone());
-                                e.waitUntil(pruneCache(cache, MAX_FAVICON_ENTRIES));
+                                waitForCache(pruneCache(cache, MAX_FAVICON_ENTRIES));
                             } catch {}
                             return netRes;
                         }
@@ -294,7 +321,7 @@ self.addEventListener('fetch', e => {
 
                 const netRes = await fetchWithTimeout();
                 return netRes || new Response('', { status: 404, statusText: 'Favicon Unavailable' });
-            })
+            }))
         );
         return;
     }
@@ -302,14 +329,15 @@ self.addEventListener('fetch', e => {
     // 5. 本地图片按构建分池；每版首次请求绕过旧 HTTP 缓存，离线可回退上一版。
     if (isImgAsset) {
         e.respondWith(
-            caches.open(IMG_CACHE).then(async cache => {
+            shareImageResponse(e, waitForCache => caches.open(IMG_CACHE).then(async cache => {
                 const cached = (await cache.match(e.request))
                     || (await caches.open(CORE_CACHE).then(core => core.match(e.request)));
                 if (cached) return cached;
                 try {
-                    const res = await fetch(new Request(e.request, { cache: 'reload' }));
+                    // 单个消费者取消不能中止其他消费者共用的下载。
+                    const res = await fetch(new Request(e.request, { cache: 'reload', signal: new AbortController().signal }));
                     if (res.ok) {
-                        e.waitUntil(cache.put(e.request, res.clone()).then(() => pruneCache(cache, MAX_IMG_ENTRIES)).catch(() => {}));
+                        waitForCache(cache.put(e.request, res.clone()).then(() => pruneCache(cache, MAX_IMG_ENTRIES)).catch(() => {}));
                         return res;
                     }
                     if (res.status >= 500) return (await previousImageResponse(e.request)) || res;
@@ -317,7 +345,7 @@ self.addEventListener('fetch', e => {
                 } catch {
                     return (await previousImageResponse(e.request)) || new Response('', { status: 404 });
                 }
-            })
+            }))
         );
         return;
     }

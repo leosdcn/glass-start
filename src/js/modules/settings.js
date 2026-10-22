@@ -11,9 +11,10 @@ import { dom } from '../state/dom.js';
 import { OverlayStack } from '../core/overlay-stack.js';
 import { applyWallpaper } from '../core/wallpaper-renderer.js';
 import { flushWallpaperSelection, getEffectiveCustomWallpaper, updateWallpaperStatusUI, updatePresetBgCardsUI, clearCustomWallpaper } from './wallpaper.js';
-import { saveUserBookmarks, resetUserBookmarks, getSortedCategories, getFaviconHTML, getCategoryIconHTML, initPickerFaviconObserver } from './bookmarks.js';
+import { saveUserBookmarks, resetUserBookmarks, getFaviconHTML, getCategoryIconHTML, initPickerFaviconObserver } from './bookmarks.js';
 import { closeDropdown, hideSuggestions, setEngine } from './search.js';
 import { renderCreditsModalList } from './clock.js';
+import { getCategoryCatalog } from '../utils/category-catalog.js';
 
 let editOpenRequestId = 0;
 /** @type {NodeListOf<HTMLElement> | null} */
@@ -21,6 +22,13 @@ let cachedSettingsTabs = null;
 /** @type {NodeListOf<HTMLElement> | null} */
 let cachedSettingsPanels = null;
 let isPresetBgImagesLoaded = false;
+/** @type {import('../types').CategoryCatalog | null} */
+let pickerCatalog = null;
+/** @type {Element | null} */
+let pickerRoot = null;
+/** @type {{ button: HTMLButtonElement, bookmark: import('../types').BookmarkItem }[]} */
+let pickerEntries = [];
+let pickerSelectionSignature = '';
 
 function loadPresetBgCardImages() {
     if (isPresetBgImagesLoaded) return;
@@ -373,8 +381,14 @@ export function resetBookmarks() {
 function renderPickerCategories() {
     const pickerContent = dom.pickerContent;
     if (!pickerContent) return;
+    const catalog = getCategoryCatalog(pageData.categories);
+    if (pickerCatalog === catalog && pickerContent.firstElementChild === pickerRoot) {
+        updatePickerAvailability();
+        updateAllBookmarkCounters();
+        return;
+    }
     const urls = getExistingUrls();
-    const sortedCats = getSortedCategories();
+    const sortedCats = catalog.sorted;
 
     pickerContent.innerHTML = sortedCats.map(cat => {
         const sortedBookmarks = cat.sortedBookmarks || [];
@@ -390,7 +404,7 @@ function renderPickerCategories() {
                     const exists = urls.has(normalizeUrl(bm.url));
                     const faviconHtml = getFaviconHTML(bm, 'sm');
                     return `
-                        <button type="button" class="w-full flex items-center gap-2 px-2 py-1.5 apple-radius picker-item text-left select-none ${exists ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}" ${exists ? 'disabled aria-disabled="true"' : ''} aria-label="${exists ? `${escapeHtml(bm.name)}（已添加）` : `添加快捷书签：${escapeHtml(bm.name)}`}" ${!exists ? `data-name="${escapeHtml(bm.name)}" data-url="${escapeHtml(bm.url)}"` : ''}>
+                        <button type="button" class="w-full flex items-center gap-2 px-2 py-1.5 apple-radius picker-item text-left select-none ${exists ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}" ${exists ? 'disabled aria-disabled="true"' : ''} aria-label="${exists ? `${escapeHtml(bm.name)}（已添加）` : `添加快捷书签：${escapeHtml(bm.name)}`}" data-url="${escapeHtml(bm.url)}">
                             ${faviconHtml}
                             <span class="text-xs text-white/70 truncate flex-1 min-w-0">${escapeHtml(bm.name)}</span>
                             ${exists
@@ -404,8 +418,39 @@ function renderPickerCategories() {
         </div>
     `;
     }).join('');
+    pickerCatalog = catalog;
+    pickerRoot = pickerContent.firstElementChild;
+    const bookmarks = sortedCats.flatMap(cat => cat.sortedBookmarks);
+    pickerEntries = Array.from(pickerContent.querySelectorAll('.picker-item'), (node, i) => ({
+        button: /** @type {HTMLButtonElement} */ (node), bookmark: bookmarks[i]
+    }));
+    pickerSelectionSignature = JSON.stringify([...urls].sort());
     updateAllBookmarkCounters();
     initPickerFaviconObserver();
+}
+
+/** 草稿成员变化只更新受影响的卡片，保留已经加载的图片及滚动位置。 */
+export function updatePickerAvailability() {
+    const urls = getExistingUrls();
+    const signature = JSON.stringify([...urls].sort());
+    if (signature === pickerSelectionSignature) return;
+    pickerSelectionSignature = signature;
+    for (const { button, bookmark } of pickerEntries) {
+        const exists = urls.has(normalizeUrl(bookmark.url));
+        if (button.disabled === exists) continue;
+        button.disabled = exists;
+        button.classList.toggle('opacity-40', exists);
+        button.classList.toggle('cursor-not-allowed', exists);
+        button.classList.toggle('cursor-pointer', !exists);
+        if (exists) button.setAttribute('aria-disabled', 'true');
+        else button.removeAttribute('aria-disabled');
+        button.setAttribute('aria-label', exists ? `${bookmark.name}（已添加）` : `添加快捷书签：${bookmark.name}`);
+        const status = button.lastElementChild;
+        if (status) {
+            status.textContent = exists ? '已存在' : '+';
+            status.className = exists ? 'text-2xs text-white/20 shrink-0' : 'text-white/40 shrink-0 text-sm';
+        }
+    }
 }
 
 export async function saveEditModal() {

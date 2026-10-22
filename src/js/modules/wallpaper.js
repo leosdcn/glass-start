@@ -6,7 +6,7 @@ import { storageGet, storageSet, storageRemove } from '../utils/helpers.js';
 import { getWallpaperDB, getWallpaperSelectionDB, setWallpaperSelectionDB, migrateLegacyWallpaperDB } from '../utils/idb.js';
 import { state, modalState } from '../state/store.js';
 import { dom } from '../state/dom.js';
-import { applyWallpaper } from '../core/wallpaper-renderer.js';
+import { applyWallpaper, getPreparedWallpaperImage } from '../core/wallpaper-renderer.js';
 import { showConfirm } from '../core/dialogs.js';
 
 let wallpaperSelectionId = 0;
@@ -16,6 +16,8 @@ let wallpaperCommitQueue = Promise.resolve();
 let latestSelectionPromise = Promise.resolve(true);
 /** @type {(() => void) | null} */
 let cancelPendingPreview = null;
+/** @type {{ url: string | null, id: number, promise: Promise<boolean> } | null} */
+let pendingSelection = null;
 
 function beginWallpaperSelection() {
     wallpaperSelectionId++;
@@ -47,8 +49,11 @@ function commitCurrentSelection(targetWallpaper, selectionId) {
 let migrationPromise = null;
 /** @param {{ bg: number, wallpaper?: string | null }} selection */
 function saveWallpaperHints(selection) {
-    storageSet(CONFIG.KEYS.BG, selection.bg);
-    storageSet(CONFIG.KEYS.WALLPAPER_META, { custom: !!selection.wallpaper, bg: selection.bg });
+    if (storageGet(CONFIG.KEYS.BG) !== selection.bg) storageSet(CONFIG.KEYS.BG, selection.bg);
+    const meta = storageGet(CONFIG.KEYS.WALLPAPER_META);
+    if (!meta || meta.custom !== !!selection.wallpaper || meta.bg !== selection.bg) {
+        storageSet(CONFIG.KEYS.WALLPAPER_META, { custom: !!selection.wallpaper, bg: selection.bg });
+    }
 }
 
 /** 迁移失败保留原键；只删除本次读取的版本，不删除其他标签的新写入。 */
@@ -83,6 +88,10 @@ export async function getEffectiveCustomWallpaper() {
     await migrateLegacyWallpaper();
     const selection = await getWallpaperSelectionDB();
     if (selection) return selection.wallpaper;
+    return getLegacyCustomWallpaper();
+}
+
+async function getLegacyCustomWallpaper() {
     return state.customWallpaper || await getWallpaperDB() || storageGet(CONFIG.KEYS.USER_WALLPAPER, null);
 }
 
@@ -164,9 +173,14 @@ export function updatePresetBgCardsUI(customWallpaperOverride) {
 export async function commitWallpaperSelection(targetWallpaper) {
     const presetIdx = findPresetBgIndex(targetWallpaper);
     const selection = { wallpaper: presetIdx >= 0 ? null : (targetWallpaper || null), bg: Math.max(0, presetIdx) };
-    if (!await setWallpaperSelectionDB(selection)) return false;
+    // 以实际持久化记录判定相同选择，避免内存默认值或其他标签的写入造成误判。
+    const existing = await getWallpaperSelectionDB();
+    if ((!existing || existing.wallpaper !== selection.wallpaper || existing.bg !== selection.bg)
+        && !await setWallpaperSelectionDB(selection)) return false;
     // IDB 是选择结果的持久化真理源；LocalStorage 仅保留轻量首屏提示。
-    storageRemove(CONFIG.KEYS.USER_WALLPAPER);
+    try {
+        if (localStorage.getItem(CONFIG.KEYS.USER_WALLPAPER) !== null) storageRemove(CONFIG.KEYS.USER_WALLPAPER);
+    } catch {}
     saveWallpaperHints(selection);
     state.customWallpaper = selection.wallpaper;
     state.bg = selection.bg;
@@ -189,17 +203,33 @@ export async function flushWallpaperSelection() {
  * @param {string | null} urlStr
  */
 export function previewDraftWallpaper(urlStr) {
+    if (pendingSelection?.id === wallpaperSelectionId && pendingSelection.url === urlStr) {
+        return pendingSelection.promise;
+    }
     const selectionId = beginWallpaperSelection();
+    return previewWallpaperSelection(urlStr, selectionId);
+}
+
+/** @param {string | null} urlStr @param {number} selectionId */
+function previewWallpaperSelection(urlStr, selectionId) {
     modalState.draftWallpaper = urlStr;
     modalState.wallpaperSaveFailed = false;
-    latestSelectionPromise = (async () => {
+    const selection = { url: urlStr, id: selectionId, promise: Promise.resolve(false) };
+    pendingSelection = selection;
+    latestSelectionPromise = selection.promise = (async () => {
+        let preparedImage = urlStr ? getPreparedWallpaperImage(urlStr) : null;
         if (urlStr && /^https?:\/\//i.test(urlStr)) {
-            const loaded = await new Promise(resolve => {
+            preparedImage = preparedImage || await new Promise(resolve => {
                 const img = new Image();
                 pendingPreviewImage = img;
-                cancelPendingPreview = () => resolve(false);
-                img.onload = () => resolve(true);
-                img.onerror = () => resolve(false);
+                cancelPendingPreview = () => resolve(null);
+                img.onload = async () => {
+                    try {
+                        if (typeof img.decode === 'function') await img.decode();
+                        resolve(img);
+                    } catch { resolve(null); }
+                };
+                img.onerror = () => resolve(null);
                 img.src = urlStr;
             });
             if (selectionId !== wallpaperSelectionId) return false;
@@ -208,14 +238,14 @@ export function previewDraftWallpaper(urlStr) {
                 pendingPreviewImage = null;
             }
             cancelPendingPreview = null;
-            if (!loaded) {
+            if (!preparedImage) {
                 modalState.wallpaperSaveFailed = true;
                 showConfirm('无法加载该网络图片，请检查图片 URL 是否有效。', null, '图片无法加载');
                 return false;
             }
         }
         if (selectionId !== wallpaperSelectionId) return false;
-        applyWallpaper(urlStr || backgrounds[0], true);
+        applyWallpaper(urlStr || backgrounds[0], true, preparedImage);
         updateWallpaperStatusUI(urlStr);
         updatePresetBgCardsUI(urlStr);
         const saved = await commitCurrentSelection(urlStr, selectionId);
@@ -229,7 +259,9 @@ export function previewDraftWallpaper(urlStr) {
             showConfirm('壁纸未能保存，原有壁纸已保留。请检查浏览器存储空间或权限后重新选择。', null, '壁纸保存失败');
         }
         return saved;
-    })();
+    })().finally(() => {
+        if (pendingSelection === selection) pendingSelection = null;
+    });
     return latestSelectionPromise;
 }
 
@@ -296,7 +328,7 @@ export async function restoreWallpaper() {
         state.bg = savedBg;
     }
 
-    let customBg = await getEffectiveCustomWallpaper();
+    let customBg = selection ? selection.wallpaper : await getLegacyCustomWallpaper();
     const legacyPresetIdx = findPresetBgIndex(customBg);
     if (legacyPresetIdx >= 0) {
         state.bg = legacyPresetIdx;
@@ -320,54 +352,86 @@ export function uploadWallpaper(file) {
         showConfirm('请选择有效的图片文件（JPG / PNG / WebP 等）。', null, '格式错误');
         return false;
     }
+    // 选择文件时就占用版本，不能等读取／压缩完成后再把旧上传当成新选择。
+    const selectionId = beginWallpaperSelection();
+    modalState.wallpaperSaveFailed = false;
     const reader = new FileReader();
-    reader.onload = ev => {
-        const target = /** @type {FileReader|null} */ (ev.target);
-        const dataUrl = typeof target?.result === 'string' ? target.result : '';
-        if (!dataUrl) return;
-        const img = new Image();
-        img.onload = () => {
-            const MAX_WIDTH = CONFIG.APPEARANCE.MAX_UPLOAD_WIDTH;
-            const MAX_HEIGHT = CONFIG.APPEARANCE.MAX_UPLOAD_HEIGHT;
-            let width = img.width;
-            let height = img.height;
+    /** @type {HTMLImageElement | null} */
+    let image = null;
+    /** @type {Promise<string | null>} */
+    const prepared = new Promise(resolve => {
+        /** @param {string | null} value */
+        const finish = value => {
+            reader.onload = reader.onerror = reader.onabort = null;
+            if (image) {
+                image.onload = image.onerror = null;
+                image.src = '';
+                image = null;
+            }
+            resolve(value);
+        };
+        cancelPendingPreview = () => {
+            finish(null);
+            if (reader.readyState === FileReader.LOADING) reader.abort();
+        };
+        const fail = () => {
+            if (selectionId === wallpaperSelectionId) {
+                modalState.wallpaperSaveFailed = true;
+                showConfirm('无法读取或处理该图片，请重新选择。', null, '图片处理失败');
+            }
+            finish(null);
+        };
+        reader.onerror = reader.onabort = fail;
+        reader.onload = ev => {
+            if (selectionId !== wallpaperSelectionId) { finish(null); return; }
+            const target = /** @type {FileReader|null} */ (ev.target);
+            const dataUrl = typeof target?.result === 'string' ? target.result : '';
+            if (!dataUrl) { fail(); return; }
+            const img = new Image();
+            image = img;
+            img.onload = () => {
+                if (selectionId !== wallpaperSelectionId) { finish(null); return; }
+                let canvas;
+                try {
+                    const MAX_WIDTH = CONFIG.APPEARANCE.MAX_UPLOAD_WIDTH;
+                    const MAX_HEIGHT = CONFIG.APPEARANCE.MAX_UPLOAD_HEIGHT;
+                    let width = img.width;
+                    let height = img.height;
 
-            if (width > MAX_WIDTH || height > MAX_HEIGHT) {
-                if (width / height > MAX_WIDTH / MAX_HEIGHT) {
-                    height = Math.round((height * MAX_WIDTH) / width);
-                    width = MAX_WIDTH;
-                } else {
-                    width = Math.round((width * MAX_HEIGHT) / height);
-                    height = MAX_HEIGHT;
+                    if (width > MAX_WIDTH || height > MAX_HEIGHT) {
+                        if (width / height > MAX_WIDTH / MAX_HEIGHT) {
+                            height = Math.round((height * MAX_WIDTH) / width);
+                            width = MAX_WIDTH;
+                        } else {
+                            width = Math.round((width * MAX_HEIGHT) / height);
+                            height = MAX_HEIGHT;
+                        }
+                    }
+
+                    canvas = document.createElement('canvas');
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    if (ctx) {
+                        ctx.drawImage(img, 0, 0, width, height);
+                        const compressedDataUrl = canvas.toDataURL('image/jpeg', CONFIG.APPEARANCE.JPEG_QUALITY);
+                        finish(compressedDataUrl);
+                    } else fail();
+                } catch { fail(); }
+                finally {
+                    if (canvas) canvas.width = canvas.height = 0;
                 }
-            }
-
-            const canvas = document.createElement('canvas');
-            canvas.width = width;
-            canvas.height = height;
-            const ctx = canvas.getContext('2d');
-            if (ctx) {
-                ctx.drawImage(img, 0, 0, width, height);
-                const compressedDataUrl = canvas.toDataURL('image/jpeg', CONFIG.APPEARANCE.JPEG_QUALITY);
-                previewDraftWallpaper(compressedDataUrl);
-                ctx.clearRect(0, 0, width, height);
-            }
-
-            canvas.width = 0;
-            canvas.height = 0;
-            img.onload = null;
-            img.onerror = null;
-            img.src = '';
-            reader.onload = null;
+            };
+            img.onerror = () => {
+                finish(selectionId === wallpaperSelectionId ? dataUrl : null);
+            };
+            img.src = dataUrl;
         };
-        img.onerror = () => {
-            previewDraftWallpaper(dataUrl);
-            img.onload = null;
-            img.onerror = null;
-            img.src = '';
-            reader.onload = null;
-        };
-        img.src = dataUrl;
-    };
-    reader.readAsDataURL(file);
+        try { reader.readAsDataURL(file); } catch { fail(); }
+    });
+    latestSelectionPromise = prepared.then(url => {
+        if (selectionId !== wallpaperSelectionId) return false;
+        cancelPendingPreview = null;
+        return url ? previewWallpaperSelection(url, selectionId) : false;
+    });
 }

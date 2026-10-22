@@ -187,13 +187,19 @@
 .nav-bookmark::before {
     content: '';
     position: absolute;
-    inset: 0;
-    border-radius: inherit;
+    left: 50%;
+    top: 50%;
+    /* 380px 渐变在 65%（247px）处已透明，只保留有效光斑区域。 */
+    width: 494px;
+    height: 494px;
+    margin-left: -247px;
+    margin-top: -247px;
     background: radial-gradient(
-        380px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+        380px circle at center,
         rgba(255, 255, 255, 0.2),
         transparent 65%
     );
+    transform: translate(var(--mouse-x, 0px), var(--mouse-y, 0px));
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.3s ease;
@@ -215,6 +221,12 @@ body:not(.tab-blurred) .nav-bookmark:not(.is-clicked):active {
     body:not(.tab-blurred) .bookmark-item:not(.is-clicked):hover::before,
     body:not(.tab-blurred) .nav-bookmark:not(.is-clicked):hover::before {
         opacity: 1;
+    }
+    @media (prefers-reduced-motion: no-preference) {
+        /* 光斑只移动静态纹理；离开卡片后交由浏览器回收临时合成层。 */
+        body:not(.tab-blurred) .nav-bookmark:not(.is-clicked):hover::before {
+            will-change: transform, opacity;
+        }
     }
     body:not(.tab-blurred) .bookmark-item:not(.is-clicked):hover:not(:active) {
         background: rgba(255, 255, 255, 0.08);

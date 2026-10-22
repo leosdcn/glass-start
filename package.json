@@ -24,7 +24,7 @@
     "dev": "node scripts/server.js",
     "preview": "npm run build && node scripts/server.js --no-watch",
     "typecheck": "tsc --project tsconfig.json",
-    "test:unit": "node --test test/data-pure-models.test.mjs"
+    "test:unit": "node --test test/data-pure-models.test.mjs test/data-priority-fixes-unit.test.mjs test/data-animation-cleanup-unit.test.mjs test/data-wallpaper-selection-unit.test.mjs"
   },
   "devDependencies": {
     "@tailwindcss/cli": "^4.3.3",

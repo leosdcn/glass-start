@@ -9,6 +9,7 @@ import { OverlayStack } from '../core/overlay-stack.js';
 
 /** @type {import('../types').SuggestionItem[]} */
 let suggestionItems = [];
+let lastSuggestionsSignature = '';
 export function getSuggestionCount() { return suggestionItems.length; }
 /**
  * @param {number} index
@@ -50,6 +51,8 @@ export let suggestDebounceTimer = null;
 export let activeSuggestReqId = 0;
 /** @type {(() => void) | null} */
 let activeSuggestCleanup = null;
+/** @type {string | null} */
+let activeSuggestKey = null;
 /** @param {number} val */
 export function setActiveSuggestReqId(val) {
     activeSuggestReqId = val;
@@ -70,6 +73,15 @@ export function setOriginalQuery(val) {
 export function scheduleSuggestions(query) {
     if (suggestDebounceTimer !== null) {
         clearTimeout(suggestDebounceTimer);
+    }
+    // 输入已经变化，防抖等待期间也不能让上一次请求写回旧结果。
+    if (activeSuggestKey !== `${state.engine}:${query.trim()}`) {
+        activeSuggestReqId++;
+        activeSuggestCleanup?.();
+    }
+    if (!query.trim()) {
+        hideSuggestions();
+        return;
     }
     suggestDebounceTimer = setTimeout(() => {
         suggestDebounceTimer = null;
@@ -351,6 +363,11 @@ function renderSuggestions(localList = [], netList = [], preserveSelection = fal
     const prevIdx = preserveSelection ? selectedSuggestionIdx : -1;
     const maxNetCount = Math.max(0, CONFIG.SUGGEST.MAX_TOTAL_ITEMS - (localList ? localList.length : 0));
     const safeNetList = (netList || []).slice(0, maxNetCount);
+    const signature = JSON.stringify([localList, safeNetList, isNetLoading]);
+    if (signature === lastSuggestionsSignature && suggestionMenu.classList.contains('active')) {
+        if (!preserveSelection && selectedSuggestionIdx >= 0) selectSuggestion(-1, { updateInput: false });
+        return;
+    }
     suggestionItems = [
         ...(localList || []).map(bm => (/** @type {import('../types').SuggestionBookmarkItem} */ ({type: 'bookmark', text: bm.name, url: bm.url}))),
         ...safeNetList.map(text => (/** @type {import('../types').SuggestionQueryItem} */ ({type: 'query', text})))
@@ -443,6 +460,7 @@ function renderSuggestions(localList = [], netList = [], preserveSelection = fal
     const range = document.createRange();
     const fragment = range.createContextualFragment(html);
     suggestionMenu.replaceChildren(fragment);
+    lastSuggestionsSignature = signature;
     suggestionMenu.classList.add('active');
     suggestionMenu.setAttribute('aria-hidden', 'false');
     if (searchInput) searchInput.setAttribute('aria-expanded', 'true');
@@ -460,6 +478,7 @@ function renderSuggestions(localList = [], netList = [], preserveSelection = fal
  */
 export function hideSuggestions() {
     suggestionItems = [];
+    lastSuggestionsSignature = '';
     if (suggestDebounceTimer !== null) {
         clearTimeout(suggestDebounceTimer);
         suggestDebounceTimer = null;
@@ -501,10 +520,13 @@ export function fetchSuggestions(engineKey, query) {
         return;
     }
 
+    const cacheKey = `${engineKey}:${query}`;
+    // compositionend 后的 input、重复选择当前引擎等入口共享正在进行的请求和列表。
+    if (activeSuggestKey === cacheKey) return;
     activeSuggestCleanup?.();
+    activeSuggestReqId++;
     const localList = getLocalBookmarkSuggestions(query, CONFIG.SUGGEST.MAX_LOCAL_ITEMS);
 
-    const cacheKey = `${engineKey}:${query}`;
     const cachedEntry = suggestCache.get(cacheKey);
     if (cachedEntry && (Date.now() - cachedEntry.timestamp < SUGGEST_CACHE_TTL)) {
         const maxNetCount = Math.max(0, CONFIG.SUGGEST.MAX_TOTAL_ITEMS - localList.length);
@@ -519,7 +541,6 @@ export function fetchSuggestions(engineKey, query) {
 
     renderSuggestions(localList, [], false, true);
 
-    activeSuggestReqId++;
     const reqId = activeSuggestReqId;
 
     const cbName = `__glassSuggestCb_${reqId}`;
@@ -541,7 +562,10 @@ export function fetchSuggestions(engineKey, query) {
             script.remove();
         }
         if (suggestionScriptTag === script) suggestionScriptTag = null;
-        if (activeSuggestCleanup === cleanup) activeSuggestCleanup = null;
+        if (activeSuggestCleanup === cleanup) {
+            activeSuggestCleanup = null;
+            activeSuggestKey = null;
+        }
     };
 
     const handleSuggestFallback = () => {
@@ -555,6 +579,7 @@ export function fetchSuggestions(engineKey, query) {
     };
 
     activeSuggestCleanup = cleanup;
+    activeSuggestKey = cacheKey;
     timeoutTimer = setTimeout(handleSuggestFallback, CONFIG.SUGGEST.JSONP_TIMEOUT);
 
     /** @param {any} data */
@@ -567,13 +592,11 @@ export function fetchSuggestions(engineKey, query) {
         }
         const maxNetCount = Math.max(0, CONFIG.SUGGEST.MAX_TOTAL_ITEMS - localList.length);
         const safeList = (Array.isArray(list) ? list : []).filter(item => typeof item === 'string' && item.trim().length > 0);
-        if (safeList.length > 0) {
-            if (suggestCache.size >= MAX_SUGGEST_CACHE_SIZE) {
-                const oldest = suggestCache.keys().next().value;
-                if (oldest) suggestCache.delete(oldest);
-            }
-            suggestCache.set(cacheKey, { list: safeList, timestamp: Date.now() });
+        if (suggestCache.size >= MAX_SUGGEST_CACHE_SIZE) {
+            const oldest = suggestCache.keys().next().value;
+            if (oldest) suggestCache.delete(oldest);
         }
+        suggestCache.set(cacheKey, { list: safeList, timestamp: Date.now() });
         const netList = safeList.slice(0, maxNetCount);
         if (localList.length > 0 || netList.length > 0) {
             renderSuggestions(localList, netList, true);

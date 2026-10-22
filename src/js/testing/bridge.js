@@ -68,6 +68,7 @@ Object.assign(window, {
     openWeatherPopover: weather.openWeatherPopover,
     formatLocationFullName: weather.formatLocationFullName,
     fetchWeatherForecast: weather.fetchWeatherForecast,
+    updateWeather: weather.updateWeather,
     renderWeatherCapsule: weather.renderWeatherCapsule,
     renderWeatherPopover: weather.renderWeatherPopover,
     getDerivedBookmarks: bookmarks.getDerivedBookmarks,

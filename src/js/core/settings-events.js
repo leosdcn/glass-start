@@ -5,17 +5,19 @@
  */
 import { CONFIG } from '../config/constants.js';
 import { normalizeUrl, storageGet, checkImageReady } from '../utils/helpers.js';
+import { getCategoryCatalog } from '../utils/category-catalog.js';
 
-import { modalState } from '../state/store.js';
+import { modalState, pageData, state } from '../state/store.js';
 import { updateBookmarkDraft, removeBookmarkDraft } from '../state/bookmark-draft.js';
 import { dom } from '../state/dom.js';
 
 import { initDragSort } from './drag-sort.js';
 
 import { uploadWallpaper, previewDraftWallpaper, resetDraftWallpaper } from '../modules/wallpaper.js';
-import { openEditModal, saveEditModal, cancelEditModal, openShortcutModal, closeShortcutModal, openCreditsModal, closeCreditsModal, openBookmarkPicker, closeBookmarkPicker, switchSettingsTab, previewDraftMaskOpacity, resetBookmarks, importBookmarksJSON, exportBookmarksJSON } from '../modules/settings.js';
+import { openEditModal, saveEditModal, cancelEditModal, openShortcutModal, closeShortcutModal, openCreditsModal, closeCreditsModal, openBookmarkPicker, closeBookmarkPicker, updatePickerAvailability, switchSettingsTab, previewDraftMaskOpacity, resetBookmarks, importBookmarksJSON, exportBookmarksJSON } from '../modules/settings.js';
 import { updateAllBookmarkCounters, getEditFaviconInner, getExistingUrls, handleEditIconError, appendDraftBookmarkRow } from '../modules/bookmark-editor.js';
 import { showConfirm } from './dialogs.js';
+import { finishPendingTransition, onTransitionSettled } from '../utils/transition-cleanup.js';
 
 export function bindEditEvents() {
     document.querySelectorAll('#editModal > div, #bookmarkPicker > div, #confirmModal > div, #shortcutModal > div, #creditsModal > div').forEach(el => {
@@ -111,21 +113,15 @@ export function bindEditEvents() {
         dom.pickerContent.addEventListener('click', e => {
             const targetEl = e.target instanceof Element ? e.target : null;
             const item = /** @type {HTMLButtonElement|null} */ (targetEl?.closest('.picker-item'));
-            if (!item || !item.dataset.name || !item.dataset.url) return;
-            const name = item.dataset.name;
-            const url = item.dataset.url;
+            if (!item || item.disabled || !item.dataset.url) return;
+            const bookmark = getCategoryCatalog(pageData.categories).byUrl.get(normalizeUrl(item.dataset.url));
+            if (!bookmark) return;
+            const { name, url, icon, desc } = bookmark;
             const urls = getExistingUrls();
             if (urls.has(normalizeUrl(url))) return;
 
-            appendDraftBookmarkRow({ name, url });
-            item.classList.add('opacity-40', 'pointer-events-none');
-            item.disabled = true;
-            item.setAttribute('aria-disabled', 'true');
-            item.setAttribute('aria-label', `${name}（已添加）`);
-            item.dataset.name = '';
-            item.dataset.url = '';
-            const lastSpan = item.querySelector('span:last-child');
-            if (lastSpan) lastSpan.textContent = '✓';
+            appendDraftBookmarkRow({ name, url, icon, desc });
+            updatePickerAvailability();
         });
     }
 
@@ -152,7 +148,6 @@ export function bindEditEvents() {
             const faviconBox = row.querySelector('.edit-favicon-box');
             if (faviconBox) {
                 const nameVal = item.name;
-                const urlVal = item.url;
                 const initial = (nameVal || '?').trim().charAt(0).toUpperCase() || '?';
 
                 const existingImg = /** @type {HTMLElement|null} */ (faviconBox.querySelector('.edit-favicon-img'));
@@ -167,16 +162,11 @@ export function bindEditEvents() {
                 if (target.classList.contains('edit-url')) {
                     if (editFaviconDebounceTimer) clearTimeout(editFaviconDebounceTimer);
                     editFaviconDebounceTimer = setTimeout(() => {
-                        faviconBox.innerHTML = getEditFaviconInner(nameVal, urlVal);
+                        if (!state.editOpen || !row.isConnected || !modalState.draftBookmarks.includes(item)) return;
+                        faviconBox.innerHTML = getEditFaviconInner(item.name, item.url);
                         const newImg = /** @type {HTMLImageElement|null} */ (faviconBox.querySelector('.edit-favicon-img'));
                         if (newImg) checkImageReady(newImg, handleEditIconError);
                     }, CONFIG.SUGGEST.DEBOUNCE_MS);
-                } else if (target.classList.contains('edit-name')) {
-                    if (!existingImg || existingImg.dataset.failed === '1') {
-                        faviconBox.innerHTML = getEditFaviconInner(nameVal, urlVal);
-                        const newImg = /** @type {HTMLImageElement|null} */ (faviconBox.querySelector('.edit-favicon-img'));
-                        if (newImg) checkImageReady(newImg, handleEditIconError);
-                    }
                 }
             }
         });
@@ -187,19 +177,20 @@ export function bindEditEvents() {
             if (del) {
                 const item = /** @type {HTMLElement|null} */ (del.closest('.edit-row-card'));
                 if (item) {
+                    finishPendingTransition(item);
                     if (item.dataset.id) removeBookmarkDraft(item.dataset.id);
-                    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                    const remove = () => {
                         item.remove();
                         updateAllBookmarkCounters();
+                    };
+                    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                        remove();
                     } else {
                         const durSec = `${CONFIG.TIMERS.BOOKMARK_DELETE_DURATION / 1000}s`;
                         item.style.transition = `all ${durSec} var(--ease-spring)`;
                         item.style.opacity = '0';
                         item.style.transform = `scale(${CONFIG.PHYSICS.BOOKMARK_DELETE_SCALE}) translateY(${CONFIG.PHYSICS.BOOKMARK_DELETE_OFFSET_Y}px)`;
-                        item.addEventListener('transitionend', () => {
-                            item.remove();
-                            updateAllBookmarkCounters();
-                        }, { once: true });
+                        onTransitionSettled(item, 'opacity', CONFIG.TIMERS.BOOKMARK_DELETE_DURATION, remove);
                     }
                 }
             }

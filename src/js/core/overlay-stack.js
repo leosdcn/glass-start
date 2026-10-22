@@ -101,6 +101,7 @@ export const OverlayStack = {
         } else {
             removed = this.stack.pop() || null;
         }
+        if (!removed) return null;
         if (removed && MODAL_OVERLAY_IDS.has(removed.id)) hideModal(removed.id);
         const hasOpenModal = this.stack.some(item => MODAL_OVERLAY_IDS.has(item.id));
         if (!hasOpenModal) {
@@ -124,8 +125,8 @@ export const OverlayStack = {
     },
 
     syncModalAccessibility() {
-        for (const [element, previous] of isolatedElements) element.inert = previous;
-        isolatedElements.clear();
+        /** @type {Set<HTMLElement>} */
+        const nextIsolated = new Set();
         let active = this.topModal();
         // 沿当前弹窗到 body 的路径隔离兄弟区域，绝不隔离包含弹窗的祖先。
         while (active && active !== document.body) {
@@ -133,10 +134,19 @@ export const OverlayStack = {
             if (!parent) break;
             for (const sibling of parent.children) {
                 if (sibling === active || ['SCRIPT', 'STYLE', 'LINK'].includes(sibling.tagName) || !(sibling instanceof HTMLElement)) continue;
-                isolatedElements.set(sibling, sibling.inert);
-                sibling.inert = true;
+                nextIsolated.add(sibling);
             }
             active = parent;
+        }
+        // 保持仍需隔离的区域，不反复解除再隔离；原值只在首次接管时记录。
+        for (const [element, previous] of isolatedElements) {
+            if (nextIsolated.has(element)) continue;
+            if (element.inert !== previous) element.inert = previous;
+            isolatedElements.delete(element);
+        }
+        for (const element of nextIsolated) {
+            if (!isolatedElements.has(element)) isolatedElements.set(element, element.inert);
+            if (!element.inert) element.inert = true;
         }
     },
 

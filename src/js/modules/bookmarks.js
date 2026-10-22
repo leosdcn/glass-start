@@ -189,8 +189,9 @@ const LIGHT_BACKING_HOSTS = new Set(['github.com', 'key-test.com', 'browserleaks
  * @param {import('../types').BookmarkItem} bm
  * @param {string} [sizeType]
  * @param {boolean} [useNavBacking]
+ * @param {boolean} [deferLoad]
  */
-export function getFaviconHTML(bm, sizeType = 'sm', useNavBacking = false) {
+export function getFaviconHTML(bm, sizeType = 'sm', useNavBacking = false, deferLoad = false) {
     const initial = (bm.name || '?').trim().charAt(0).toUpperCase() || '?';
     const isMd = sizeType === 'md';
     const sizeClass = isMd ? 'icon-box-md' : 'icon-box-sm';
@@ -209,19 +210,20 @@ export function getFaviconHTML(bm, sizeType = 'sm', useNavBacking = false) {
             if (LIGHT_BACKING_HOSTS.has(hostname)) backingClass = ' icon-light-backing';
         } catch { /* 无效网址不启用底衬。 */ }
     }
-    return `<div class="icon-box ${sizeClass}${backingClass}"><img src="${safeIcon}" width="${imgSize}" height="${imgSize}" data-initial="${escapeHtml(initial)}" data-md="${isMd ? '1' : '0'}" data-url="${safeUrl(bm.url)}" class="lazy-icon pointer-events-none select-none" alt="" ${loadingAttr} decoding="async" draggable="false"></div>`;
+    return `<div class="icon-box ${sizeClass}${backingClass}"><img ${deferLoad ? 'data-nav-src' : 'src'}="${safeIcon}" width="${imgSize}" height="${imgSize}" data-initial="${escapeHtml(initial)}" data-md="${isMd ? '1' : '0'}" data-url="${safeUrl(bm.url)}" class="lazy-icon pointer-events-none select-none" alt="" ${loadingAttr} decoding="async" draggable="false"></div>`;
 }
 
 /**
  * 渲染分类图标 HTML：兼容 SVG/图片相对路径与 Emoji 字符
  * @param {string} icon - 图标路径或 Emoji 字符
  * @param {string} [sizeClass='size-4'] - 尺寸与样式类
+ * @param {boolean} [deferLoad]
  * @returns {string} 渲染的安全 HTML 字符串
  */
-export function getCategoryIconHTML(icon, sizeClass = 'size-4') {
+export function getCategoryIconHTML(icon, sizeClass = 'size-4', deferLoad = false) {
     if (!icon) return '';
     if (typeof icon === 'string' && (icon.startsWith('./') || icon.startsWith('/') || icon.endsWith('.svg') || icon.endsWith('.png') || icon.endsWith('.webp'))) {
-        return `<img src="${safeUrl(icon)}" class="${sizeClass} shrink-0 object-contain select-none pointer-events-none inline-block align-middle" alt="" aria-hidden="true" loading="lazy" decoding="async">`;
+        return `<img ${deferLoad ? 'data-nav-src' : 'src'}="${safeUrl(icon)}" class="${sizeClass} shrink-0 object-contain select-none pointer-events-none inline-block align-middle" alt="" aria-hidden="true" loading="lazy" decoding="async">`;
     }
     return escapeHtml(icon);
 }
@@ -309,6 +311,19 @@ export function renderBookmarks(force = false) {
 
 /** @type {import('../types').CategoryCatalog | undefined} */
 let lastNavCatalog;
+let navIconsActivated = false;
+
+// 导航屏仅通过 transform 移出视口，原生 lazy 仍会提前下载其中的图片。
+// 首次进入（包括会话恢复）时才交给浏览器按可见距离加载。
+export function activateNavIcons() {
+    if (navIconsActivated) return;
+    navIconsActivated = true;
+    dom.navSection?.querySelectorAll('img[data-nav-src]').forEach(node => {
+        const img = /** @type {HTMLImageElement} */ (node);
+        img.src = img.dataset.navSrc || '';
+        delete img.dataset.navSrc;
+    });
+}
 
 export function getSortedCategories() {
     return getCategoryCatalog(pageData.categories).sorted;
@@ -423,7 +438,7 @@ export function renderNavCategories(force = false) {
     sidebarList.innerHTML = pageData.categories.map((cat, i) => `
         <button type="button" role="tab" id="cat-tab-${i}" aria-selected="${i === 0 ? 'true' : 'false'}" aria-controls="cat-${i}" class="sidebar-item w-full text-left text-xs md:text-sm px-2.5 py-1.75 min-h-9 text-white/70 flex items-center gap-2 ${i === 0 ? 'active' : ''}"
                 data-target="cat-${i}" data-idx="${i}">
-            <span class="size-5 shrink-0 sidebar-icon flex items-center justify-center">${getCategoryIconHTML(cat.icon, 'size-4')}</span>
+            <span class="size-5 shrink-0 sidebar-icon flex items-center justify-center">${getCategoryIconHTML(cat.icon, 'size-4', !navIconsActivated)}</span>
             <span class="truncate sidebar-label">${escapeHtml(cat.name)}</span>
         </button>
     `).join('');
@@ -434,7 +449,7 @@ export function renderNavCategories(force = false) {
         <div id="cat-${i}" role="tabpanel" aria-labelledby="cat-tab-${i}" class="category-block ${i > 0 ? 'scroll-mt-6' : ''}">
             <div class="category-header flex items-center justify-between pb-2.5 mb-3.5 transition-colors duration-300 select-none">
                 <div class="flex items-center gap-2.5 select-none">
-                    <span class="size-6 shrink-0 select-none flex items-center justify-center">${getCategoryIconHTML(cat.icon, 'size-5')}</span>
+                    <span class="size-6 shrink-0 select-none flex items-center justify-center">${getCategoryIconHTML(cat.icon, 'size-5', !navIconsActivated)}</span>
                     <h3 class="text-xs sm:text-sm font-semibold tracking-wide text-white/90 select-none">${escapeHtml(cat.name)}</h3>
                 </div>
             </div>
@@ -442,7 +457,7 @@ export function renderNavCategories(force = false) {
                 ${sortedBookmarks.map(bm => `
                     <a href="${safeUrl(bm.url)}" target="_blank" rel="noopener noreferrer"
                        class="nav-bookmark group flex items-center gap-2.5 px-3 py-2.5 md:px-3.5 md:py-2.5 text-white/80">
-                        ${getFaviconHTML(bm, 'sm', true)}
+                        ${getFaviconHTML(bm, 'sm', true, !navIconsActivated)}
                         ${bm.desc ? `
                             <div class="flex-1 min-w-0 flex flex-col justify-center">
                                 <span class="text-xs md:text-sm font-semibold truncate leading-tight">${escapeHtml(bm.name)}</span>
