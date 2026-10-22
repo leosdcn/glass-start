@@ -98,23 +98,20 @@ function fetchRedirectBuffer(url, timeoutMs = HTTP_TIMEOUT_MS, redirectCount = 0
     });
 }
 
-/** 校验本地 PNG 文件头与尺寸合规性 */
+const PNG_HEADER = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
+const IEND_CHUNK = Buffer.from([0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4e, 0x44, 0xae, 0x42, 0x60, 0x82]);
+
+/** 校验本地 PNG 文件头、IHDR 尺寸与 IEND 尾部合规性（快速路径零子进程与磁盘 IO） */
 function isReusableIcon(path) {
-    let workDir;
     try {
         const png = readFileSync(path);
-        if (png.length < 24 || !png.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])) ||
+        if (png.length < 57 || !png.subarray(0, 8).equals(PNG_HEADER) ||
             png.toString('ascii', 12, 16) !== 'IHDR') return false;
         const width = png.readUInt32BE(16), height = png.readUInt32BE(20);
         if (!width || width !== height || width > 128) return false;
-        workDir = mkdtempSync(join(tmpdir(), 'glass-icon-check-'));
-        execFileSync('sips', ['-s', 'format', 'png', path, '--out', join(workDir, 'decoded.png')],
-            { stdio: 'ignore', timeout: 5000 });
-        return true;
+        return png.subarray(-12).equals(IEND_CHUNK);
     } catch {
         return false;
-    } finally {
-        if (workDir) rmSync(workDir, { recursive: true, force: true });
     }
 }
 
