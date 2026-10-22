@@ -158,6 +158,7 @@ export function updatePresetBgCardsUI(customWallpaperOverride) {
         : (storageGet(CONFIG.KEYS.USER_WALLPAPER) || backgrounds[state.bg] || '');
     const container = dom.presetWallpaperGrid;
     if (!container) return;
+    renderPresetWallpapers();
     container.querySelectorAll('.preset-bg-card').forEach(card => {
         const cardEl = card instanceof HTMLElement ? card : null;
         const bg = cardEl?.dataset.bg;
@@ -307,7 +308,7 @@ export function preloadNextBg() {
  */
 export function renderPresetWallpapers() {
     const grid = dom.presetWallpaperGrid;
-    if (!grid) return;
+    if (!grid || grid.hasChildNodes()) return;
     const titles = ['暮色山峦', '溪谷晨曦', '星空雪山', '峰峦破晓', '天际立面', '极简回廊', '紫韵流光', '梦幻流彩'];
     grid.innerHTML = titles.map((title, i) => {
         const bg = `./wallpapers/bg${i + 1}.avif`;

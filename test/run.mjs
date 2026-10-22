@@ -15,29 +15,46 @@ if (!files.length) {
   process.exit(1);
 }
 
-// 类型契约先行；失败不启动构建或浏览器。
-const types = spawnSync(process.execPath, [join(rootDir, 'node_modules/typescript/bin/tsc'), '--project', join(rootDir, 'tsconfig.json')], { cwd: rootDir, stdio: 'inherit' });
-if (types.status !== 0) process.exit(types.status || 1);
+// 类型契约与构建并行执行；纯单元测试自动跳过构建
+const needsBuild = files.some(file => {
+  const content = readFileSync(join(testDir, file), 'utf-8');
+  return content.includes('launchChrome') || content.includes('startServer') || content.includes('dist/');
+});
 
-// 每次验证先构建，测试均实际运行；不再维护通过记录或源码指纹缓存。
-const build = spawnSync(process.execPath, [join(rootDir, 'scripts/build.js')], { cwd: rootDir, stdio: 'inherit' });
-if (build.status !== 0) process.exit(build.status || 1);
+const runProcess = (cmd, args) => new Promise((resolve, reject) => {
+  const p = spawn(cmd, args, { cwd: rootDir, stdio: 'inherit' });
+  p.on('close', code => resolve(code ?? 0));
+  p.on('error', reject);
+});
+
+const tasks = [
+  runProcess(process.execPath, [join(rootDir, 'node_modules/typescript/bin/tsc'), '--project', join(rootDir, 'tsconfig.json')])
+];
+if (needsBuild) {
+  tasks.push(runProcess(process.execPath, [join(rootDir, 'scripts/build.js')]));
+}
+
+const [typeCode, buildCode = 0] = await Promise.all(tasks);
+if (typeCode !== 0) process.exit(typeCode);
+if (buildCode !== 0) process.exit(buildCode);
 
 const runTempDir = mkdtempSync(join(tmpdir(), 'glass-start-run-'));
 
 // 为测试会话预先编译共享测试脚本，消除各测试服务器重复 AST 编译开销。
-try {
-  const appJs = readFileSync(join(rootDir, 'dist/app.js'), 'utf-8');
-  const versionMatch = appJs.match(/window\.__GLASS_BUILD_APP__="([^"]+)";/);
-  if (versionMatch) {
-    const { buildAppJavaScript } = createRequire(import.meta.url)('../scripts/build.js');
-    buildAppJavaScript({
-      testMode: true,
-      version: versionMatch[1],
-      outfile: join(runTempDir, 'app.test.js')
-    });
-  }
-} catch {}
+if (needsBuild) {
+  try {
+    const appJs = readFileSync(join(rootDir, 'dist/app.js'), 'utf-8');
+    const versionMatch = appJs.match(/window\.__GLASS_BUILD_APP__="([^"]+)";/);
+    if (versionMatch) {
+      const { buildAppJavaScript } = createRequire(import.meta.url)('../scripts/build.js');
+      buildAppJavaScript({
+        testMode: true,
+        version: versionMatch[1],
+        outfile: join(runTempDir, 'app.test.js')
+      });
+    }
+  } catch {}
+}
 const grouped = process.platform !== 'win32';
 const concurrency = process.env.GLASS_TEST_CONCURRENCY || (process.env.CI ? '2' : '6');
 const child = spawn(process.execPath, ['--test', `--test-concurrency=${concurrency}`, ...files.map(name => join(testDir, name))], {

@@ -10,7 +10,7 @@ import { replaceBookmarkDraft } from '../state/bookmark-draft.js';
 import { dom } from '../state/dom.js';
 import { OverlayStack } from '../core/overlay-stack.js';
 import { applyWallpaper } from '../core/wallpaper-renderer.js';
-import { flushWallpaperSelection, getEffectiveCustomWallpaper, updateWallpaperStatusUI, updatePresetBgCardsUI, clearCustomWallpaper } from './wallpaper.js';
+import { flushWallpaperSelection, getEffectiveCustomWallpaper, updateWallpaperStatusUI, updatePresetBgCardsUI, clearCustomWallpaper, renderPresetWallpapers } from './wallpaper.js';
 import { saveUserBookmarks, resetUserBookmarks, getFaviconHTML, getCategoryIconHTML, initPickerFaviconObserver } from './bookmarks.js';
 import { closeDropdown, hideSuggestions, setEngine } from './search.js';
 import { renderCreditsModalList, renderShortcutModalList } from './clock.js';
@@ -75,6 +75,7 @@ export function switchSettingsTab(targetTabId) {
         panel.classList.toggle('hidden', panel.id !== targetTabId);
     });
     if (targetTabId === 'tabAppearance') {
+        renderPresetWallpapers();
         loadPresetBgCardImages();
     }
 }

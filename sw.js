@@ -49,15 +49,28 @@ const CORE_ASSETS = [
     './wallpapers/bg1.avif'
 ];
 
-// CacheStorage 超限时按 FIFO 删除最旧条目。
-async function pruneCache(cache, maxEntries) {
-    try {
-        const keys = await cache.keys();
-        if (keys.length > maxEntries) {
-            const toDelete = keys.slice(0, keys.length - maxEntries);
-            await Promise.all(toDelete.map(k => cache.delete(k)));
-        }
-    } catch {}
+const pendingPrunes = new Map();
+
+// CacheStorage 超限时按 FIFO 删除最旧条目；同一缓存池并发写入时微任务合并，避免冗余 keys() 扫描。
+function pruneCache(cache, maxEntries, poolKey = '') {
+    const key = poolKey || String(maxEntries);
+    let pending = pendingPrunes.get(key);
+    if (!pending) {
+        pending = (async () => {
+            try {
+                await Promise.resolve();
+                const keys = await cache.keys();
+                if (keys.length > maxEntries) {
+                    const toDelete = keys.slice(0, keys.length - maxEntries);
+                    await Promise.all(toDelete.map(k => cache.delete(k)));
+                }
+            } catch {}
+        })().finally(() => {
+            if (pendingPrunes.get(key) === pending) pendingPrunes.delete(key);
+        });
+        pendingPrunes.set(key, pending);
+    }
+    return pending;
 }
 
 function make503Response() {
@@ -68,21 +81,22 @@ function make503Response() {
     });
 }
 
-// 核心资源不仅需存在，还必须与当前 worker 的构建指纹一致。
+// 核心资源不仅需存在，还必须与当前 worker 的构建指纹一致（单次循环校验存在性与指纹）。
 async function validateCoreCache(cache) {
+    const fingerprints = {
+        './': '__GLASS_BUILD_HTML__',
+        './index.html': '__GLASS_BUILD_HTML__',
+        './app.js': '__GLASS_BUILD_APP__'
+    };
     for (const asset of CORE_ASSETS) {
         const response = await cache.match(asset);
         if (!response || !response.ok) throw new Error('Missing core asset: ' + asset);
-    }
-    for (const [asset, property] of [
-        ['./', '__GLASS_BUILD_HTML__'],
-        ['./index.html', '__GLASS_BUILD_HTML__'],
-        ['./app.js', '__GLASS_BUILD_APP__']
-    ]) {
-        const response = await cache.match(asset);
-        const text = await response.text();
-        const fingerprint = text.match(new RegExp(property + `\\s*=\\s*["']([^"']+)`));
-        if (fingerprint?.[1] !== CORE_CACHE) throw new Error('Core version mismatch: ' + asset);
+        const property = fingerprints[asset];
+        if (property) {
+            const text = await response.text();
+            const fingerprint = text.match(new RegExp(property + `\\s*=\\s*["']([^"']+)`));
+            if (fingerprint?.[1] !== CORE_CACHE) throw new Error('Core version mismatch: ' + asset);
+        }
     }
 }
 
@@ -309,7 +323,7 @@ self.addEventListener('fetch', e => {
                         if (netRes && (netRes.ok || netRes.type === 'opaque')) {
                             try {
                                 await cache.put(e.request, netRes.clone());
-                                waitForCache(pruneCache(cache, MAX_FAVICON_ENTRIES));
+                                waitForCache(pruneCache(cache, MAX_FAVICON_ENTRIES, FAVICON_CACHE));
                             } catch {}
                             return netRes;
                         }
@@ -337,7 +351,7 @@ self.addEventListener('fetch', e => {
                     // 单个消费者取消不能中止其他消费者共用的下载。
                     const res = await fetch(new Request(e.request, { cache: 'reload', signal: new AbortController().signal }));
                     if (res.ok) {
-                        waitForCache(cache.put(e.request, res.clone()).then(() => pruneCache(cache, MAX_IMG_ENTRIES)).catch(() => {}));
+                        waitForCache(cache.put(e.request, res.clone()).then(() => pruneCache(cache, MAX_IMG_ENTRIES, IMG_CACHE)).catch(() => {}));
                         return res;
                     }
                     if (res.status >= 500) return (await previousImageResponse(e.request)) || res;

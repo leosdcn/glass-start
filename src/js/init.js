@@ -6,7 +6,7 @@ import { storageGet, evictFaviconCache } from './utils/helpers.js';
 import { cacheDOM } from './state/dom.js';
 import { updateClock } from './modules/clock.js';
 import { renderEngineDropdown, setEngine } from './modules/search.js';
-import { renderPresetWallpapers, restoreWallpaper, preloadNextBg } from './modules/wallpaper.js';
+import { restoreWallpaper, preloadNextBg } from './modules/wallpaper.js';
 import { initWeather } from './modules/weather.js';
 import {
     loadBookmarks,
@@ -33,7 +33,6 @@ export function init() {
     isAppInitialized = true;
     cacheDOM();
     renderEngineDropdown();
-    renderPresetWallpapers();
     try {
         initWeather();
     } catch (err) {

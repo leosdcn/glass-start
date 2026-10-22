@@ -173,7 +173,7 @@ export async function launchChrome({ port, url, testMode = true }) {
     '--hide-scrollbars',
     `--remote-debugging-port=${port}`,
     `--user-data-dir=${profileDir}`,
-    url,
+    'about:blank',
   ];
   const proc = spawn(CHROME_BIN, args, { stdio: 'ignore' });
 
@@ -209,13 +209,13 @@ export async function launchChrome({ port, url, testMode = true }) {
   const { send } = connection;
 
   try {
+    await send('Page.enable');
     if (testMode) {
-      await send('Page.enable');
       await send('Page.addScriptToEvaluateOnNewDocument', { source: 'window.__GLASS_TEST__ = true;' });
-      await send('Page.reload');
     }
+    await send('Page.navigate', { url });
 
-    // 首次导航和测试模式重载期间执行上下文会被替换；会话就绪后再交给测试。
+    // 首次导航期间执行上下文会被建立；会话就绪后再交给测试。
     const deadline = Date.now() + 10000;
     let ready = false;
     while (Date.now() < deadline) {
@@ -226,7 +226,7 @@ export async function launchChrome({ port, url, testMode = true }) {
         });
         if (response.result?.value === true) { ready = true; break; }
       } catch (error) {
-        if (!/Cannot find context|Execution context was destroyed/i.test(error.message)) throw error;
+        if (!/Cannot find context|Execution context was destroyed|Inspected target navigated or closed/i.test(error.message)) throw error;
       }
       await new Promise(resolve => setTimeout(resolve, 30));
     }

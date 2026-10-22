@@ -15,7 +15,7 @@ import {
     storageSet,
     storageRemove
 } from '../utils/helpers.js';
-import { pageData } from '../state/store.js';
+import { pageData, state } from '../state/store.js';
 import { dom } from '../state/dom.js';
 
 import { getCategoryCatalog } from '../utils/category-catalog.js';
@@ -215,8 +215,9 @@ export function getCategoryIconHTML(icon, sizeClass = 'size-4', deferLoad = fals
     return escapeHtml(icon);
 }
 
-export function initFaviconObserver() {
-    document.querySelectorAll('img.lazy-icon').forEach(img => {
+export function initFaviconObserver(container = null) {
+    const scope = container || (navIconsActivated ? document : (dom.bookmarks || document));
+    scope.querySelectorAll('img.lazy-icon').forEach(img => {
         checkImageReady(/** @type {HTMLImageElement} */ (img));
     });
 }
@@ -456,20 +457,26 @@ export function renderNavCategories(force = false) {
     `;
     }).join('');
 
-    refreshSidebarNavCache();
-    initSidebarNav();
-    initFaviconObserver();
+    const shouldMeasure = navIconsActivated || state.currentSection === 'nav';
+    initSidebarNav(shouldMeasure);
+    if (shouldMeasure) {
+        refreshSidebarNavCache();
+        updateSidebarActive();
+        initFaviconObserver();
+    }
     if (navContent && savedScrollTop > 0) {
         navContent.scrollTop = savedScrollTop;
     }
 }
 
-function initSidebarNav() {
+function initSidebarNav(measureActive = true) {
     const sidebarList = dom.sidebarList;
     const content = dom.navContent;
     if (!sidebarList || !content) return;
 
-    updateSidebarActive();
+    if (measureActive) {
+        updateSidebarActive();
+    }
 
     if (!isSidebarNavInitialized) {
         /** @type {ReturnType<typeof setTimeout> | null} */
