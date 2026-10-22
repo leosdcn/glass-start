@@ -16,18 +16,6 @@ let currentWallpaperTheme = (typeof window !== 'undefined' && window.__INITIAL_T
  */
 function updateThemeColor(color, isLight) {
     if (!color || typeof document === 'undefined') return;
-    /** @type {NodeListOf<HTMLMetaElement>} */
-    const themeMetas = document.querySelectorAll('meta[name="theme-color"]');
-    if (themeMetas.length > 0) {
-        themeMetas.forEach(meta => {
-            if (meta.content !== color) meta.content = color;
-        });
-    } else {
-        const meta = document.createElement('meta');
-        meta.name = 'theme-color';
-        meta.content = color;
-        document.head.appendChild(meta);
-    }
     if (typeof isLight === 'boolean') {
         const scheme = isLight ? 'light' : 'dark';
         if (document.documentElement.style.colorScheme !== scheme) {
