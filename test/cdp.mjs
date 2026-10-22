@@ -157,11 +157,11 @@ export async function connectCDP(ws, { openTimeoutMs = 15000 } = {}) {
   };
 }
 
-export async function launchChrome({ port, url, testMode = true }) {
+export async function launchChrome({ port, url, testMode = true, disableGPU = true }) {
   const profileDir = process.env.CHROME_PROFILE_DIR || join(process.env.GLASS_TEST_TMPDIR || tmpdir(), `glass-start-test-${port}-${randomUUID()}`);
   const args = [
     '--headless=new',
-    '--disable-gpu',
+    ...(disableGPU ? ['--disable-gpu'] : []),
     '--no-sandbox',
     '--disable-setuid-sandbox',
     '--disable-dev-shm-usage',

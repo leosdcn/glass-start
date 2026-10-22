@@ -8,7 +8,7 @@ import { launchChrome } from './cdp.mjs';
 import { createEvaluator, getFreePort, navigateAndWait, sleep } from './helpers.mjs';
 
 export function parseOptions(args) {
-    const options = { rounds:5, throttle:4, compare:null, json:null, help:false };
+    const options = { rounds:5, throttle:1, compare:null, json:null, help:false };
     for (let i = 0; i < args.length; i++) {
         const arg = args[i];
         if (arg === '--help') options.help = true;
@@ -68,13 +68,15 @@ export async function measureTransition(direction, timeoutMs = 10000) {
         const tick = now => {
             frames.push(now-last);
             last = now;
-            // 读取样式确保解除切屏类后新生成的内容淡入已被识别。
-            const opacity = Number(getComputedStyle(content).opacity);
-            const moving = [startSection, navSection].some(node => node.getAnimations({ subtree:true }).some(animation =>
-                animation instanceof CSSTransition && (animation.pending || animation.playState === 'running')));
             const reached = startSection.classList.contains('screen-pushed-up') === targetNav;
-            const settled = reached && !document.body.classList.contains('is-screen-transitioning') &&
-                !moving && (!targetNav || opacity >= 0.999);
+            let settled = false;
+            if (reached && !document.body.classList.contains('is-screen-transitioning')) {
+                // 只在收尾检查三个切屏节点，避免逐帧遍历全部书签及强制读取样式。
+                const opacity = Number(getComputedStyle(content).opacity);
+                const moving = nodes.some(node => node.getAnimations().some(animation =>
+                    animation instanceof CSSTransition && (animation.pending || animation.playState === 'running')));
+                settled = !moving && (!targetNav || opacity >= 0.999);
+            }
             quiet = settled ? quiet+1 : 0;
             if (quiet >= 3) finish();
             else frameId = requestAnimationFrame(tick);
@@ -92,7 +94,7 @@ export async function measureTransition(direction, timeoutMs = 10000) {
 
 async function benchmarkSite(url, options) {
     // 每个站点使用新的临时浏览器配置；不复用上一个版本的缓存与会话。
-    const chrome = await launchChrome({ port:await getFreePort(), url:'about:blank', testMode:false });
+    const chrome = await launchChrome({ port:await getFreePort(), url:'about:blank', testMode:false, disableGPU:false });
     const { send } = chrome;
     const evalJS = createEvaluator(send);
     try {
@@ -130,7 +132,7 @@ async function benchmarkSite(url, options) {
 async function main() {
     const options = parseOptions(process.argv.slice(2));
     if (options.help) {
-        console.log('npm run benchmark -- [--rounds 5] [--native | --throttle 4] [--compare URL] [--json PATH]');
+        console.log('npm run benchmark -- [--rounds 5] [--throttle 4] [--compare URL] [--json PATH]（默认原速 CPU）');
         return;
     }
     const server = await startServer(0, undefined, {}, { testMode:false });
@@ -147,7 +149,7 @@ async function main() {
             ])));
         }
         const report = { timestamp:new Date().toISOString(), options,
-            environment:'Headless Chrome --disable-gpu; rAF intervals, not physical presentation FPS; Service Worker bypassed', results };
+            environment:'Headless Chrome with GPU allowed (actual acceleration not verified); rAF intervals, not physical presentation FPS; Service Worker bypassed', results };
         if (options.json) writeFileSync(options.json, JSON.stringify(report,null,2)+'\n');
         console.log('时长包含末尾连续 3 帧稳定确认；帧间隔与估算漏帧仅供同环境对照，不代表真实屏幕 FPS。');
     } finally { await server.close(); }

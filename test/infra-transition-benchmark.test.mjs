@@ -5,6 +5,7 @@ import { launchChrome } from './cdp.mjs';
 import { createEvaluator, getFreePort } from './helpers.mjs';
 
 assert.equal(parseOptions([]).compare, null, '默认不访问线上');
+assert.equal(parseOptions([]).throttle, 1, '默认使用原速 CPU，压力测试须显式选择');
 assert.equal(parseOptions(['--native']).throttle, 1);
 assert.throws(()=>parseOptions(['--rounds','0']));
 assert.throws(()=>parseOptions(['--throttle','NaN']));
