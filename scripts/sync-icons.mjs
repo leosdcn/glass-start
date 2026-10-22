@@ -29,10 +29,12 @@ const refresh = process.argv.includes('--refresh');
 const OFFICIAL_HOST_SOURCES = new Map([
     ['colab.research.google.com', 'https://ssl.gstatic.com/colaboratory-static/common/7e9bfd7c9345c7972401c42c04bf40a9/img/favicon.ico'],
     ['drive.google.com', 'https://www.gstatic.com/images/branding/productlogos/drive_2026/v2/web-64dp/logo_drive_2026_color_2x_web_64dp.png'],
+    ['earth.google.com', 'https://www.gstatic.com/images/branding/product/2x/earth_96dp.png'],
     ['mail.google.com', 'https://www.gstatic.com/images/branding/productlogos/gmail_2026/v2/web-64dp/logo_gmail_2026_color_2x_web_64dp.png'],
     ['maps.google.com', 'https://www.gstatic.com/images/branding/productlogos/maps_2025/v1/web-64dp/logo_maps_2025_color_2x_web_64dp.png'],
     ['onedrive.live.com', 'https://res-1.cdn.office.net/files/fabric-cdn-prod_20230815.002/assets/brand-icons/product/png/onedrive_96x2.png'],
-    ['qianwen.com', 'https://img.alicdn.com/imgextra/i4/O1CN01OXv3EM1FN8t9W4P79_!!6000000000474-2-tps-80-80.png']
+    ['qianwen.com', 'https://img.alicdn.com/imgextra/i4/O1CN01OXv3EM1FN8t9W4P79_!!6000000000474-2-tps-80-80.png'],
+    ['translate.google.com', 'https://www.gstatic.com/images/branding/product/2x/translate_96dp.png']
 ]);
 
 // 终端排版色彩
