@@ -17,13 +17,12 @@ const _domStore = {};
 
 /**
  * 高频 DOM 节点全局缓存映射表（带 Proxy 动态自愈机制）
- * 访问未显式注册或由于 DOM 替换重构导致失效的节点时，自动通过 $(prop) 寻址并自愈回填
+ * 节点尚未挂载或被替换时，通过 ID 重新查找并回填缓存。
  */
 export const dom = new Proxy(_domStore, {
     get(target, prop) {
         if (typeof prop !== 'string') return Reflect.get(target, prop);
         let el = target[prop];
-        // 若缓存中不存在，或节点已脱离 DOM 树（且非特定隐藏场景），尝试动态自愈获取
         if (!el || (el instanceof Element && !el.isConnected)) {
             const fresh = $(prop);
             if (fresh) {
@@ -32,9 +31,6 @@ export const dom = new Proxy(_domStore, {
             }
         }
         return el;
-    },
-    set(target, prop, value) {
-        return Reflect.set(target, prop, value);
     }
 });
 

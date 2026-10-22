@@ -61,10 +61,7 @@ export function updateGlassTint(tintRgbStr) {
     document.documentElement.style.setProperty('--glass-tint', tintRgbStr);
 }
 
-/**
- * @param {'start'|'nav'|string} [_sec]
- */
-export function syncThemeForSection(_sec) {
+export function syncWallpaperTheme() {
     if (currentWallpaperTheme && currentWallpaperTheme.color) {
         updateThemeColor(currentWallpaperTheme.color, currentWallpaperTheme.isLight);
     } else {
@@ -78,7 +75,7 @@ export function syncThemeForSection(_sec) {
 export function setWallpaperTheme(theme) {
     if (!theme || !theme.color) return;
     currentWallpaperTheme = theme;
-    syncThemeForSection();
+    syncWallpaperTheme();
 }
 
 /**

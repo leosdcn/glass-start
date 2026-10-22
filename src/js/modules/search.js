@@ -1,5 +1,5 @@
 /** 搜索引擎切换、书签分级匹配与网络联想；请求序号隔离迟到响应。 */
-import { rankBookmarkSuggestions, getFuzzyScore as scoreBookmarkQuery } from '../utils/bookmark-search.js';
+import { rankBookmarkSuggestions } from '../utils/bookmark-search.js';
 import { getCategoryCatalog, searchUrlKey } from '../utils/category-catalog.js';
 import { CONFIG, engines } from '../config/constants.js';
 import { escapeHtml, safeUrl, storageSet } from '../utils/helpers.js';
@@ -337,15 +337,6 @@ function getSearchCandidates() {
  */
 export function getLocalBookmarkSuggestions(query, limit = CONFIG.SUGGEST.MAX_LOCAL_ITEMS) {
     return rankBookmarkSuggestions(query, getSearchCandidates(), CONFIG.SUGGEST, limit);
-}
-
-/**
- * @param {string} query
- * @param {string} target
- * @returns {number}
- */
-export function getFuzzyScore(query, target) {
-    return scoreBookmarkQuery(query, target, CONFIG.SUGGEST.FUZZY);
 }
 
 /**

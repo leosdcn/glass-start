@@ -7,7 +7,7 @@ import { storageGet, storageSet } from '../utils/helpers.js';
 import { state } from '../state/store.js';
 import { dom } from '../state/dom.js';
 import { OverlayStack } from './overlay-stack.js';
-import { syncThemeForSection } from './theme-engine.js';
+import { syncWallpaperTheme } from './theme-engine.js';
 import { resetActiveCard } from './gestures.js';
 import { closeDropdown, hideSuggestions } from '../modules/search.js';
 import { refreshSidebarNavCache, updateSidebarActive, initFaviconObserver, activateNavIcons } from '../modules/bookmarks.js';
@@ -192,7 +192,7 @@ function applySection(section, immediate) {
     saveSection(section);
     updateSectionAccessibility(section);
     updateGearVisibility();
-    syncThemeForSection(section);
+    syncWallpaperTheme();
     document.body.classList.toggle('in-nav-mode', inNav);
 
     for (const el of [start, nav]) {

@@ -43,16 +43,14 @@ export function getDerivedBookmarks(keys, categories, customMeta = {}) {
                 desc: custom.desc !== undefined ? custom.desc : (catBm?.desc || '')
             };
         }
-        if (catMap.has(normalized)) {
-            const catBm = catMap.get(normalized);
-            if (catBm) {
-                return {
-                    name: catBm.name,
-                    url: catBm.url,
-                    icon: catBm.icon || faviconFromUrl(catBm.url),
-                    desc: catBm.desc || ''
-                };
-            }
+        const catBm = catMap.get(normalized);
+        if (catBm) {
+            return {
+                name: catBm.name,
+                url: catBm.url,
+                icon: catBm.icon || faviconFromUrl(catBm.url),
+                desc: catBm.desc || ''
+            };
         }
         return {
             name: deriveNameFromUrl(normalized),
@@ -199,8 +197,7 @@ export function getFaviconHTML(bm, sizeType = 'sm', deferLoad = false) {
         return createLetterBadgeHtml(initial, sizeClass, textClass);
     }
     const imgSize = isMd ? String(CONFIG.UI.ICON_SIZE_MD) : String(CONFIG.UI.ICON_SIZE_SM);
-    const loadingAttr = 'loading="lazy"';
-    return `<div class="icon-box ${sizeClass}"><img ${deferLoad ? 'data-nav-src' : 'src'}="${safeIcon}" width="${imgSize}" height="${imgSize}" data-initial="${escapeHtml(initial)}" data-md="${isMd ? '1' : '0'}" data-url="${safeUrl(bm.url)}" class="lazy-icon pointer-events-none select-none" alt="" ${loadingAttr} decoding="async" draggable="false"></div>`;
+    return `<div class="icon-box ${sizeClass}"><img ${deferLoad ? 'data-nav-src' : 'src'}="${safeIcon}" width="${imgSize}" height="${imgSize}" data-initial="${escapeHtml(initial)}" data-md="${isMd ? '1' : '0'}" data-url="${safeUrl(bm.url)}" class="lazy-icon pointer-events-none select-none" alt="" loading="lazy" decoding="async" draggable="false"></div>`;
 }
 
 /**
@@ -315,10 +312,6 @@ export function activateNavIcons() {
     });
 }
 
-export function getSortedCategories() {
-    return getCategoryCatalog(pageData.categories).sorted;
-}
-
 let isSidebarNavInitialized = false;
 let isManualScrolling = false;
 /** @type {ReturnType<typeof setTimeout> | null} */
@@ -423,7 +416,7 @@ export function renderNavCategories(force = false) {
 
     const navContent = dom.navContent;
     const savedScrollTop = navContent ? navContent.scrollTop : 0;
-    const sortedCats = getSortedCategories();
+    const sortedCats = catalog.sorted;
 
     sidebarList.innerHTML = pageData.categories.map((cat, i) => `
         <button type="button" role="tab" id="cat-tab-${i}" aria-selected="${i === 0 ? 'true' : 'false'}" aria-controls="cat-${i}" class="sidebar-item w-full text-left text-xs md:text-sm px-2.5 py-1.75 min-h-9 text-white/70 flex items-center gap-2 ${i === 0 ? 'active' : ''}"

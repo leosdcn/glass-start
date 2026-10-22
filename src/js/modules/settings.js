@@ -101,31 +101,23 @@ function renderBgEffects(op) {
     lastBgEffects = { element: bgOverlay, opacity: op };
 }
 
-/** @param {number | string} opacity @param {boolean} [save] */
-export function applyBgEffects(opacity, save = false) {
-    updateBgEffects(opacity, save, false);
+/** @param {number | string} opacity */
+export function applyBgEffects(opacity) {
+    updateBgEffects(opacity);
 }
 
-/** 
- * 滑块草稿与无障碍读数即时更新，全屏视觉每帧只消费最后一次输入。
- * @param {number | string} opacity
- */
-function scheduleBgEffects(opacity) {
-    updateBgEffects(opacity, false, true);
-}
-
+/** 滑块草稿与无障碍读数即时更新，全屏视觉每帧只消费最后一次输入。 */
 /** @param {string | number} value */
 export function previewDraftMaskOpacity(value) {
     modalState.draftMaskOpacity = parseInt(String(value), 10) || 0;
-    scheduleBgEffects(modalState.draftMaskOpacity);
+    updateBgEffects(modalState.draftMaskOpacity, true);
 }
 
 /**
  * @param {number | string} opacity
- * @param {boolean} [save]
  * @param {boolean} [defer]
  */
-function updateBgEffects(opacity, save = false, defer = false) {
+function updateBgEffects(opacity, defer = false) {
     const op = Math.max(0, Math.min(CONFIG.APPEARANCE.MAX_MASK_OPACITY, parseInt(String(opacity), 10) || 0));
     if (defer) {
         pendingBgEffects = { opacity: op };
@@ -152,9 +144,6 @@ function updateBgEffects(opacity, save = false, defer = false) {
         maskOpacityInput.setAttribute('aria-valuenow', String(op));
         maskOpacityInput.setAttribute('aria-valuetext', `${op}%`);
     }
-    if (save) {
-        storageSet(CONFIG.KEYS.MASK_OPACITY, op);
-    }
 }
 
 export async function openEditModal() {
@@ -175,10 +164,7 @@ export async function openEditModal() {
     modalState.draftMaskOpacity = modalState.initialMaskOpacity;
     modalState.wallpaperSaveFailed = false;
 
-    // 初始化内存草稿真理源
     replaceBookmarkDraft(pageData.bookmarks.map((bm, i) => ({ ...bm, id: `bm_${i}`, desc: bm.desc || '' })));
-
-
     switchSettingsTab('tabBookmarks');
     renderEditList();
     updateWallpaperStatusUI(modalState.draftWallpaper);
@@ -391,7 +377,7 @@ function renderPickerCategories() {
     const sortedCats = catalog.sorted;
 
     pickerContent.innerHTML = sortedCats.map(cat => {
-        const sortedBookmarks = cat.sortedBookmarks || [];
+        const sortedBookmarks = cat.sortedBookmarks;
         return `
         <div>
             <div class="flex items-center gap-1.5 mb-1.5 pb-1 border-b border-white/5">

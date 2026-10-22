@@ -102,13 +102,13 @@ export const OverlayStack = {
             removed = this.stack.pop() || null;
         }
         if (!removed) return null;
-        if (removed && MODAL_OVERLAY_IDS.has(removed.id)) hideModal(removed.id);
+        if (MODAL_OVERLAY_IDS.has(removed.id)) hideModal(removed.id);
         const hasOpenModal = this.stack.some(item => MODAL_OVERLAY_IDS.has(item.id));
         if (!hasOpenModal) {
             document.body.classList.remove('overflow-hidden', 'touch-none');
         }
         this.syncModalAccessibility();
-        if (removed && MODAL_OVERLAY_IDS.has(removed.id)) {
+        if (MODAL_OVERLAY_IDS.has(removed.id)) {
             requestAnimationFrame(() => this.restoreFocus(removed.trigger));
         }
         return removed;

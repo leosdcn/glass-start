@@ -6,7 +6,7 @@ import { storageGet, evictFaviconCache } from './utils/helpers.js';
 import { cacheDOM } from './state/dom.js';
 import { renderShortcutModalList, updateClock } from './modules/clock.js';
 import { renderEngineDropdown, setEngine } from './modules/search.js';
-import { renderPresetWallpapers, restoreWallpaper } from './modules/wallpaper.js';
+import { renderPresetWallpapers, restoreWallpaper, preloadNextBg } from './modules/wallpaper.js';
 import { initWeather } from './modules/weather.js';
 import {
     loadBookmarks,
@@ -18,7 +18,6 @@ import {
 } from './modules/bookmarks.js';
 import { applyBgEffects } from './modules/settings.js';
 import { handleEditIconError } from './modules/bookmark-editor.js';
-import { preloadNextBg } from './modules/wallpaper.js';
 import { reconcileScreenState, isScreenTransitioning } from './core/screen-state.js';
 import { initScreenGestures } from './core/screen-input.js';
 import { initAppWakeEvents } from './core/app-wake.js';

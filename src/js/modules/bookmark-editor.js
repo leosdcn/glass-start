@@ -4,12 +4,8 @@ import { modalState } from '../state/store.js';
 import { appendBookmarkDraft, replaceBookmarkDraft } from '../state/bookmark-draft.js';
 import { dom } from '../state/dom.js';
 
-function getDraftBookmarkCount() {
-    return modalState.draftBookmarks.length;
-}
-
 export function updateAllBookmarkCounters() {
-    const text = `已添加 ${getDraftBookmarkCount()} 项`;
+    const text = `已添加 ${modalState.draftBookmarks.length} 项`;
     const badge = dom.bookmarkCountBadge;
     const pickerCount = dom.pickerCount;
     if (badge && badge.textContent !== text) badge.textContent = text;
@@ -40,14 +36,13 @@ export function handleEditIconError(img) {
 }
 
 /**
- * @param {string} [name]
- * @param {string} [url]
- * @param {string | number} [idx]
- * @param {string} [icon]
- * @param {string} [rowId]
+ * @param {string} name
+ * @param {string} url
+ * @param {number} idx
+ * @param {string} icon
+ * @param {string} id - 由草稿模型分配的行标识
  */
-function getEditRowHTML(name = '', url = '', idx = '', icon = '', rowId = '') {
-    const id = rowId || (idx !== '' && idx !== undefined ? `bm_${idx}` : `bm_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`);
+function getEditRowHTML(name, url, idx, icon, id) {
     return `
         <div role="listitem" class="edit-row-card flex items-center gap-1.5 sm:gap-2 p-1.5 sm:p-2 bg-white/5 border border-white/10 apple-radius glass-interactive group mb-1.5 shadow-xs" data-id="${escapeHtml(id)}" data-idx="${idx}" draggable="false">
             <div class="flex items-center gap-1 shrink-0">
@@ -135,11 +130,8 @@ export function renderEditList(listToRender) {
  * @returns {Array<{name: string, url: string, icon: string, desc?: string}>}
  */
 export function collectEditData() {
-    const sourceList = modalState.draftBookmarks;
-
     const bookmarks = [];
-    for (let i = 0; i < sourceList.length; i++) {
-        const item = sourceList[i];
+    for (const item of modalState.draftBookmarks) {
         const bookmark = normalizeBookmark(item);
         if (!bookmark) continue;
         const { url } = bookmark;
@@ -152,11 +144,9 @@ export function collectEditData() {
 
 export function getExistingUrls() {
     const urls = new Set();
-    const sourceList = modalState.draftBookmarks;
-
-    sourceList.forEach(bm => {
+    for (const bm of modalState.draftBookmarks) {
         const norm = normalizeUrl(bm.url);
         if (norm) urls.add(norm);
-    });
+    }
     return urls;
 }

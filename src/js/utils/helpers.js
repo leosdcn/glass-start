@@ -13,7 +13,7 @@ const htmlEscapeRegex = /[&<>"']/g;
  * @returns {string} HTML 转义后的安全字符串
  */
 export function escapeHtml(str) {
-    return String(str ?? '').replace(htmlEscapeRegex, ch => htmlEscapes[ch] || ch);
+    return String(str ?? '').replace(htmlEscapeRegex, ch => htmlEscapes[ch]);
 }
 
 /**
@@ -55,7 +55,7 @@ export function getHostname(url) {
 }
 
 /**
- * 从 URL 域名或路径中提取用于兜底展示的站点名称
+ * 从 URL 域名中提取用于兜底展示的站点名称
  * @param {string} url - 站点 URL 字符串
  * @returns {string} 提取到的站点名称或'书签'兜底文本
  */
@@ -218,17 +218,12 @@ export function handleFaviconFailure(img, renderFailure, size = CONFIG.UI.FAVICO
  * @returns {boolean} 若图片已就绪则返回 true，破损或未完成返回 false
  */
 export function checkImageReady(img, onFallback = null) {
-    if (!img) return false;
-    if (img.complete) {
-        if (img.naturalWidth > 0) {
-            img.classList.add('loaded');
-            return true;
-        }
-        if (typeof onFallback === 'function') {
-            onFallback(img);
-        }
-        return false;
+    if (!img || !img.complete) return false;
+    if (img.naturalWidth > 0) {
+        img.classList.add('loaded');
+        return true;
     }
+    if (typeof onFallback === 'function') onFallback(img);
     return false;
 }
 
