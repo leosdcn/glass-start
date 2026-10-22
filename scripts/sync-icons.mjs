@@ -27,7 +27,7 @@ const refresh = process.argv.includes('--refresh');
 
 // 针对 Google S2 索引为母公司通用标或暂无索引的站点，提供官方高清图标直链
 const OFFICIAL_HOST_SOURCES = new Map([
-    ['colab.research.google.com', 'https://ssl.gstatic.com/colaboratory-static/common/7e9bfd7c9345c7972401c42c04bf40a9/img/favicon.ico'],
+    ['colab.research.google.com', 'https://www.gstatic.com/colaboratory-static/common/7e9bfd7c9345c7972401c42c04bf40a9/img/favicon.ico'],
     ['drive.google.com', 'https://www.gstatic.com/images/branding/productlogos/drive_2026/v2/web-64dp/logo_drive_2026_color_2x_web_64dp.png'],
     ['earth.google.com', 'https://www.gstatic.com/images/branding/product/2x/earth_64dp.png'],
     ['mail.google.com', 'https://www.gstatic.com/images/branding/productlogos/gmail_2026/v2/web-64dp/logo_gmail_2026_color_2x_web_64dp.png'],
