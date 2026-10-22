@@ -291,9 +291,6 @@ html.wallpaper-bright .nav-bookmark .text-2xs {
     height: 1.5rem;
     border-radius: 0.375rem;
 }
-.nav-bookmark .icon-light-backing {
-    background-color: rgba(255, 255, 255, 0.9);
-}
 .icon-box-md {
     width: 2rem;
     height: 2rem;

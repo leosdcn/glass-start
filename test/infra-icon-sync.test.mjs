@@ -40,7 +40,9 @@ const script = readFileSync(new URL('../scripts/sync-icons.mjs', import.meta.url
   .replace("import https from 'node:https';", `import https from 'data:text/javascript;base64,${Buffer.from(transport).toString('base64')}';`);
 const log = join(root, 'requests.log');
 const icons = join(root, 'public/icons');
-const normal = join(icons, 'example.test.png'), pinned = join(icons, 'qianwen.com.png');
+const normal = join(icons, 'example.test.png'), official = join(icons, 'qianwen.com.png');
+const s2Url = 'https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https%3A%2F%2Fexample.test&size=128';
+const officialUrl = 'https://img.alicdn.com/imgextra/i4/O1CN01OXv3EM1FN8t9W4P79_!!6000000000474-2-tps-80-80.png';
 function run(args = [], fail = false) {
   writeFileSync(log, '');
   const result = spawnSync(process.execPath, [join(root, 'scripts/sync-icons.mjs'), ...args], {
@@ -56,9 +58,9 @@ try {
   writeFileSync(join(root, 'scripts/sync-icons.mjs'), script);
   writeFileSync(join(root, 'bookmarks.json'), JSON.stringify({ bookmarks: [
     { name: 'Normal', url: 'https://example.test', icon: './icons/example.test.png' },
-    { name: 'Pinned', url: 'https://qianwen.com', icon: './icons/qianwen.com.png' }
+    { name: 'Official', url: 'https://qianwen.com', icon: './icons/qianwen.com.png' }
   ], categories: [] }));
-  writeFileSync(normal, png); writeFileSync(pinned, png);
+  writeFileSync(normal, png); writeFileSync(official, png);
   const reuse = run();
   assert.equal(reuse.status, 0, reuse.stdout + reuse.stderr);
   assert.deepEqual(reuse.requests, []);
@@ -67,32 +69,34 @@ try {
   rmSync(normal);
   const missing = run();
   assert.equal(missing.status, 0, missing.stdout + missing.stderr);
-  assert.deepEqual(missing.requests, ['https://a.favicon.im/example.test']);
+  assert.deepEqual(missing.requests, [s2Url]);
   assert.equal(existsSync(normal), true);
 
   // 保留合法文件头的截断 PNG 也必须修复，不能只检查魔数和尺寸。
   writeFileSync(normal, png.subarray(0, 24));
   const corrupt = run();
   assert.equal(corrupt.status, 0, corrupt.stdout + corrupt.stderr);
-  assert.deepEqual(corrupt.requests, ['https://a.favicon.im/example.test']);
+  assert.deepEqual(corrupt.requests, [s2Url]);
 
   const refresh = run(['--refresh']);
   assert.equal(refresh.status, 0, refresh.stdout + refresh.stderr);
-  assert.deepEqual(refresh.requests, ['https://a.favicon.im/example.test']);
-  assert.deepEqual(readFileSync(pinned), png);
+  assert.deepEqual(refresh.requests.sort(), [officialUrl, s2Url].sort());
+  assert.equal(existsSync(normal), true);
+  assert.equal(existsSync(official), true);
 
-  const original = readFileSync(normal);
+  const originalNormal = readFileSync(normal);
+  const originalOfficial = readFileSync(official);
   const failed = run(['--refresh'], true);
   assert.equal(failed.status, 1, failed.stdout + failed.stderr);
-  assert.deepEqual(readFileSync(normal), original);
-  assert.deepEqual(readFileSync(pinned), png);
+  assert.deepEqual(readFileSync(normal), originalNormal);
+  assert.deepEqual(readFileSync(official), originalOfficial);
 
-  writeFileSync(pinned, Buffer.from('broken'));
-  const repairPinned = run();
-  assert.equal(repairPinned.status, 0, repairPinned.stdout + repairPinned.stderr);
-  assert.deepEqual(repairPinned.requests, ['https://a.favicon.im/qianwen.com']);
+  writeFileSync(official, Buffer.from('broken'));
+  const repairOfficial = run();
+  assert.equal(repairOfficial.status, 0, repairOfficial.stdout + repairOfficial.stderr);
+  assert.deepEqual(repairOfficial.requests, [officialUrl]);
   assert.equal(readdirSync(icons).some(name => name.startsWith('.icon-sync-')), false);
-  console.log('✅ 图标 CLI 复用有效 PNG、补齐缺失及损坏项；刷新保护锁定项，失败保留原图并清理临时文件');
+  console.log('✅ 图标 CLI 复用有效 PNG、补齐缺失及损坏项；支持官方直链与 Google S2，失败保留原图并清理临时文件');
 } finally {
   rmSync(root, { recursive: true, force: true });
 }

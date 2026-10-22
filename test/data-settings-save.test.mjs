@@ -19,7 +19,7 @@ try {
       };
       try {
         editName('本次取消');
-        const selection = previewDraftWallpaper(location.origin + '/pending-save.png');
+        const selection = previewDraftWallpaper(location.origin + '/pending-save-' + (${reopen} ? '2' : '1') + '.png');
         dom.saveEditBtn.click();
         const waiting = dom.saveEditBtn.disabled;
         dom.cancelEditBtn.click();

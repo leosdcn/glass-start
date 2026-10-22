@@ -113,7 +113,7 @@ npm run preview
 - **实用价值**：免费部分应能完整解决一个问题，相比现有书签有明确的新用途，广告克制且不打断主要操作。
 - **维护方式**：不为扩充数量而新增；留意反复搜索的需求，某个工具多次解决实际问题后，再考虑收录。
 
-需要主动更新已有图标时运行 `npm run sync:icons:refresh`；有效的锁定图标仍保留，缺失或损坏的锁定项会重新下载。
+需要主动更新已有图标时运行 `npm run sync:icons:refresh`；所有图标将重新抓取并经由 macOS `sips` 规范化转录。
 
 ### 4. 设置与备份
 
@@ -152,17 +152,16 @@ npm run dev
 # 3. (仅新增书签或修改 URL、图标来源时) 同步书签图标至 public/icons/ 目录
 npm run sync:icons
 
-# 4. 执行全量静态规范与工程红线校验
+# 4. 按改动范围验证，具体规则见 AGENTS.md；文档修改无需运行测试
+# 以下是局部逻辑修改的示例，筛选片段应替换为实际相关测试
 npm run lint
+npm test -- data-settings-save
 
-# 5. 运行端到端自动化测试验证
-npm test
-
-# 6. 生产构建打包 (产物位于 dist/，包含数据校验与 public/ 静态资产同步)
+# 5. 需要部署或检查生产产物时构建 (测试运行器已构建时无需重复)
 npm run build
 ```
 
-`npm test` 先检查类型、构建，再实际执行回归测试；`test:all` 为同一全套入口。可用 `test:ui`、`test:data`、`test:infra`、`test:lifecycle` 按模块筛选。发布前验证顺序见 [AGENTS.md](./AGENTS.md#验证)，可用命令以 `package.json` 为准。
+验证范围以 [AGENTS.md](./AGENTS.md#验证) 为准，局部修改优先运行直接相关测试。`npm test -- <文件名片段>` 先检查类型、构建，再执行匹配的测试文件；无需重复手动检查类型或构建。无参数的 `npm test` 与 `test:all` 执行全套，用于高风险跨模块改造、发布或明确要求全量验证的场景。`test:ui`、`test:data`、`test:infra`、`test:lifecycle` 可按模块扩大范围，可用命令以 `package.json` 为准。
 
 `npm run typecheck` 对核心数据、草稿、DOM 缓存与状态执行渐进式 JavaScript 类型检查；范围以 `tsconfig.json` 为准。`npm run test:unit` 独立验证搜索、天气转换与草稿逻辑，无需 Chrome。
 
@@ -180,4 +179,4 @@ npm run build
 
 - 🏛️ **[docs/ARCHITECTURE.md (架构说明)](./docs/ARCHITECTURE.md)**：系统分层模型、双屏状态机、OverlayStack 弹窗逆序退栈、Service Worker 三池物理隔离缓存、BFCache 唤醒防护等核心技术设计。
 - 🤖 **[AGENTS.md (AI 编程工程准则)](./AGENTS.md)**：项目修改边界、实现约束与分级验证流程。
-- 🧭 **[docs/SAFARI_SMOKE_CHECKLIST.md (Safari 专项冒烟清单)](./docs/SAFARI_SMOKE_CHECKLIST.md)**：针对 macOS 与 iOS WebKit 的 6 大专项验证用例、移动端防放大与过滚动规范，以及发布前 5 分钟极速走查表。
+- 🧭 **[docs/SAFARI_SMOKE_CHECKLIST.md (Safari 专项冒烟清单)](./docs/SAFARI_SMOKE_CHECKLIST.md)**：macOS 与 iOS WebKit 的界面、手势、生命周期、离线与更新专项，以及发布前约 5 分钟快速冒烟；局部修改按影响选择相关用例。

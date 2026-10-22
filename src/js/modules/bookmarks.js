@@ -183,15 +183,12 @@ export function handleIconError(img) {
     });
 }
 
-const LIGHT_BACKING_HOSTS = new Set(['github.com', 'key-test.com', 'browserleaks.com', 'ip.skk.moe', 'unsplash.com', 'it-tools.tech']);
-
 /**
  * @param {import('../types').BookmarkItem} bm
  * @param {string} [sizeType]
- * @param {boolean} [useNavBacking]
  * @param {boolean} [deferLoad]
  */
-export function getFaviconHTML(bm, sizeType = 'sm', useNavBacking = false, deferLoad = false) {
+export function getFaviconHTML(bm, sizeType = 'sm', deferLoad = false) {
     const initial = (bm.name || '?').trim().charAt(0).toUpperCase() || '?';
     const isMd = sizeType === 'md';
     const sizeClass = isMd ? 'icon-box-md' : 'icon-box-sm';
@@ -203,14 +200,7 @@ export function getFaviconHTML(bm, sizeType = 'sm', useNavBacking = false, defer
     }
     const imgSize = isMd ? String(CONFIG.UI.ICON_SIZE_MD) : String(CONFIG.UI.ICON_SIZE_SM);
     const loadingAttr = 'loading="lazy"';
-    let backingClass = '';
-    if (useNavBacking) {
-        try {
-            const hostname = new URL(safeUrl(bm.url)).hostname.toLowerCase().replace(/^www\./, '');
-            if (LIGHT_BACKING_HOSTS.has(hostname)) backingClass = ' icon-light-backing';
-        } catch { /* 无效网址不启用底衬。 */ }
-    }
-    return `<div class="icon-box ${sizeClass}${backingClass}"><img ${deferLoad ? 'data-nav-src' : 'src'}="${safeIcon}" width="${imgSize}" height="${imgSize}" data-initial="${escapeHtml(initial)}" data-md="${isMd ? '1' : '0'}" data-url="${safeUrl(bm.url)}" class="lazy-icon pointer-events-none select-none" alt="" ${loadingAttr} decoding="async" draggable="false"></div>`;
+    return `<div class="icon-box ${sizeClass}"><img ${deferLoad ? 'data-nav-src' : 'src'}="${safeIcon}" width="${imgSize}" height="${imgSize}" data-initial="${escapeHtml(initial)}" data-md="${isMd ? '1' : '0'}" data-url="${safeUrl(bm.url)}" class="lazy-icon pointer-events-none select-none" alt="" ${loadingAttr} decoding="async" draggable="false"></div>`;
 }
 
 /**
@@ -457,7 +447,7 @@ export function renderNavCategories(force = false) {
                 ${sortedBookmarks.map(bm => `
                     <a href="${safeUrl(bm.url)}" target="_blank" rel="noopener noreferrer"
                        class="nav-bookmark group flex items-center gap-2.5 px-3 py-2.5 md:px-3.5 md:py-2.5 text-white/80">
-                        ${getFaviconHTML(bm, 'sm', true, !navIconsActivated)}
+                        ${getFaviconHTML(bm, 'sm', !navIconsActivated)}
                         ${bm.desc ? `
                             <div class="flex-1 min-w-0 flex flex-col justify-center">
                                 <span class="text-xs md:text-sm font-semibold truncate leading-tight">${escapeHtml(bm.name)}</span>

@@ -1,14 +1,14 @@
 /**
  * ==============================================================================
- * Glass Start — a.favicon.im 1:1 本地化同步引擎 (scripts/sync-icons.mjs)
+ * Glass Start — Google S2 1:1 本地化同步引擎 (scripts/sync-icons.mjs)
  * ==============================================================================
  * 📌 设计规范与原则：
- * 默认复用可解码的本地正方形 PNG；--refresh 刷新未锁定图标。
- * 1. 下载顺序：a.favicon.im，必要时尝试 www 主机，失败或占位标时回退 Google S2；
- * 2. 格式规范化：由于 a.favicon.im 可能返回 SVG/ICO/PNG，统一使用 macOS 原生 sips 转录为
- *    合规的 PNG 格式存入 icons/{host}.png，供浏览器及 Service Worker 从本站加载与缓存；
- * 3. 映射单一化：bookmarks.json 中所有书签统一指向相对路径 ./icons/{host}.png；
- * 4. 零外部依赖：纯原生 Node.js + 原生 sips，不引入任何 npm dependencies。
+ * 默认复用可解码的本地正方形 PNG；--refresh 全量刷新本地图标。
+ * 1. 统一接口：全量采用 Google S2 (sz=128) 高保真接口拉取，智能跟随重定向；
+ * 2. 官方直链：针对 Google S2 索引为母公司通用标或暂无索引的站点，支持配置官方直链；
+ * 3. 域名自愈：优先采用书签原始主机，遇到 404 自动追加/去除 www. 二次探测；
+ * 4. 格式规范化：统一使用 macOS 原生 sips 转录为 128x128 1:1 PNG 存入 icons/{host}.png；
+ * 5. 零外部依赖：纯原生 Node.js + 原生 sips，不引入任何 npm dependencies。
  */
 import { existsSync, mkdirSync, writeFileSync, readFileSync, mkdtempSync, rmSync, renameSync } from 'node:fs';
 import { join, dirname } from 'node:path';
@@ -25,9 +25,13 @@ const BOOKMARKS_PATH = join(ROOT_DIR, 'bookmarks.json');
 const HTTP_TIMEOUT_MS = 8000;
 const refresh = process.argv.includes('--refresh');
 
-// 锁定图标集合：保留本地定制/经典设计版本，避免被上游变更覆盖
-const PINNED_HOSTS = new Set([
-    'qianwen.com' // 阿里千问：官方新版为蓝色实心底，保持本项目经典透明底纯白款
+// 针对 Google S2 索引为母公司通用标或暂无索引的站点，提供官方高清图标直链
+const OFFICIAL_HOST_SOURCES = new Map([
+    ['colab.research.google.com', 'https://ssl.gstatic.com/colaboratory-static/common/7e9bfd7c9345c7972401c42c04bf40a9/img/favicon.ico'],
+    ['drive.google.com', 'https://ssl.gstatic.com/images/branding/product/2x/drive_2020q4_96dp.png'],
+    ['mail.google.com', 'https://ssl.gstatic.com/images/branding/product/2x/gmail_2020q4_96dp.png'],
+    ['onedrive.live.com', 'https://res-1.cdn.office.net/files/fabric-cdn-prod_20230815.002/assets/brand-icons/product/png/onedrive_96x2.png'],
+    ['qianwen.com', 'https://img.alicdn.com/imgextra/i4/O1CN01OXv3EM1FN8t9W4P79_!!6000000000474-2-tps-80-80.png']
 ]);
 
 // 终端排版色彩
@@ -44,7 +48,7 @@ const c = {
 
 const HR_DOUBLE = '═'.repeat(72);
 
-function getHostname(url) {
+function getBareHostname(url) {
     try {
         const u = new URL(url.startsWith('http') ? url : `https://${url}`);
         return u.hostname.replace(/^www\./, '').toLowerCase();
@@ -53,8 +57,18 @@ function getHostname(url) {
     }
 }
 
-function fetchBuffer(url, timeoutMs = HTTP_TIMEOUT_MS) {
+function getRawHostname(url) {
+    try {
+        const u = new URL(url.startsWith('http') ? url : `https://${url}`);
+        return u.hostname.toLowerCase();
+    } catch {
+        return '';
+    }
+}
+
+function fetchRedirectBuffer(url, timeoutMs = HTTP_TIMEOUT_MS, redirectCount = 0) {
     return new Promise((resolve, reject) => {
+        if (redirectCount > 5) return reject(new Error('Too many redirects'));
         const req = https.get(url, {
             headers: {
                 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
@@ -62,7 +76,8 @@ function fetchBuffer(url, timeoutMs = HTTP_TIMEOUT_MS) {
             }
         }, (res) => {
             if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-                return resolve(fetchBuffer(res.headers.location, timeoutMs));
+                const nextUrl = new URL(res.headers.location, url).href;
+                return resolve(fetchRedirectBuffer(nextUrl, timeoutMs, redirectCount + 1));
             }
             if (res.statusCode !== 200) {
                 return reject(new Error(`HTTP ${res.statusCode}`));
@@ -81,7 +96,7 @@ function fetchBuffer(url, timeoutMs = HTTP_TIMEOUT_MS) {
     });
 }
 
-/** 文件头和尺寸合规后实际解码，避免把截断或损坏的 PNG 当作可复用图标。 */
+/** 校验本地 PNG 文件头与尺寸合规性 */
 function isReusableIcon(path) {
     let workDir;
     try {
@@ -101,10 +116,10 @@ function isReusableIcon(path) {
     }
 }
 
+/** 使用 macOS 原生 sips 转录规范化为 128x128 1:1 PNG */
 function saveAsPng(inputBuffer, destPath) {
     const workDir = mkdtempSync(join(dirname(destPath), '.icon-sync-'));
-    const isSvg = inputBuffer.toString('utf-8', 0, Math.min(200, inputBuffer.length)).includes('<svg');
-    const inputPath = join(workDir, isSvg ? 'input.svg' : 'input.bin');
+    const inputPath = join(workDir, 'input.bin');
     const outputPath = join(workDir, 'output.png');
     const pngHeader = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
     const runSips = args => execFileSync('sips', args, { stdio: 'ignore', timeout: 5000 });
@@ -139,7 +154,7 @@ function saveAsPng(inputBuffer, destPath) {
     }
 }
 
-async function runConcurrent(tasks, concurrency = 8, onProgress = null) {
+async function runConcurrent(tasks, concurrency = 10, onProgress = null) {
     let index = 0;
     const results = new Array(tasks.length);
     async function worker() {
@@ -155,12 +170,12 @@ async function runConcurrent(tasks, concurrency = 8, onProgress = null) {
 
 async function main() {
     console.log(`\n${c.cyan}${HR_DOUBLE}${c.reset}`);
-    console.log(`${c.bold}${c.cyan}📦 Glass Start — a.favicon.im 1:1 本地图标纯净抓取与同步${c.reset}`);
+    console.log(`${c.bold}${c.cyan}📦 Glass Start — Google S2 (sz=128) 本地图标纯净同步引擎${c.reset}`);
     console.log(`${c.cyan}${HR_DOUBLE}${c.reset}\n`);
 
     if (!existsSync(ICONS_DIR)) {
         mkdirSync(ICONS_DIR, { recursive: true });
-        console.log(`  ${c.green}✔${c.reset} 创建本地图标目录: ${c.dim}icons/${c.reset}`);
+        console.log(`  ${c.green}✔${c.reset} 创建本地图标目录: ${c.dim}public/icons/${c.reset}`);
     }
 
     if (!existsSync(BOOKMARKS_PATH)) {
@@ -171,12 +186,18 @@ async function main() {
     const rawData = readFileSync(BOOKMARKS_PATH, 'utf-8');
     const data = JSON.parse(rawData);
 
-    const hostMap = new Map();
+    // 收集唯一裸域名及其原始 URL 偏好
+    const siteMap = new Map();
     function collectBookmark(bm) {
         if (!bm || !bm.url) return;
-        const host = getHostname(bm.url);
-        if (host && !hostMap.has(host)) {
-            hostMap.set(host, join(ICONS_DIR, `${host}.png`));
+        const bareHost = getBareHostname(bm.url);
+        const rawHost = getRawHostname(bm.url);
+        if (bareHost && !siteMap.has(bareHost)) {
+            siteMap.set(bareHost, {
+                bareHost,
+                preferredHost: rawHost || bareHost,
+                destPath: join(ICONS_DIR, `${bareHost}.png`)
+            });
         }
     }
 
@@ -185,60 +206,63 @@ async function main() {
         (cat.bookmarks || []).forEach(collectBookmark);
     });
 
-    const totalHosts = hostMap.size;
-    console.log(`  ${c.cyan}ℹ${c.reset} 扫描到 ${c.bold}${totalHosts}${c.reset} 个唯一站点域名，${refresh ? '刷新未锁定图标' : '复用有效本地图标，仅补齐缺失或损坏项'}...`);
-
-function isPlaceholder(buf) {
-    if (!buf || buf.length === 0) return true;
-    const str = buf.toString('utf-8', 0, Math.min(300, buf.length));
-    return str.includes('circle cx="50" cy="50" r="40" fill="#808080"') || str.includes('>f</text>');
-}
+    const totalHosts = siteMap.size;
+    console.log(`  ${c.cyan}ℹ${c.reset} 扫描到 ${c.bold}${totalHosts}${c.reset} 个唯一站点域名，${refresh ? '全量刷新本地图标' : '复用有效本地图标，仅补齐缺失或损坏项'}...`);
 
     let completed = 0;
-    const tasks = Array.from(hostMap.entries()).map(([host, destPath]) => async () => {
-        // 主动刷新也保护有效的锁定图标；缺失或损坏的锁定项仍需修复。
-        if ((!refresh || PINNED_HOSTS.has(host)) && isReusableIcon(destPath)) {
-            return { host, success: true, source: PINNED_HOSTS.has(host) ? 'pinned' : 'local' };
+    const tasks = Array.from(siteMap.values()).map(site => async () => {
+        const { bareHost, preferredHost, destPath } = site;
+
+        // 默认复用已合规本地图标；--refresh 时全量重新拉取
+        if (!refresh && isReusableIcon(destPath)) {
+            return { host: bareHost, success: true, source: 'local' };
+        }
+
+        // 构建候选请求主机：优先使用原始书签中自带的 hostname，若失败自动反向尝试（裸域 ➔ www. 或 www. ➔ 裸域）
+        const candidates = [preferredHost];
+        if (preferredHost.startsWith('www.')) {
+            candidates.push(preferredHost.replace(/^www\./, ''));
+        } else if (!preferredHost.includes('.' + bareHost)) {
+            candidates.push('www.' + bareHost);
         }
 
         let buf = null;
-        let source = 'a.favicon.im';
+        let source = '';
 
-        try {
-            buf = await fetchBuffer(`https://a.favicon.im/${host}`, 8000);
-            if (isPlaceholder(buf)) {
-                // 若 bare domain 命中 favicon.im 的灰色 'f' 兜底标，尝试带 www. 请求
-                try {
-                    const wwwBuf = await fetchBuffer(`https://a.favicon.im/www.${host}`, 7000);
-                    if (!isPlaceholder(wwwBuf)) {
-                        buf = wwwBuf;
-                        source = 'a.favicon.im (www)';
-                    }
-                } catch {}
-            }
-        } catch {}
-
-        // 若 a.favicon.im 失败或仍为兜底占位标，平滑走 Google S2
-        if (!buf || isPlaceholder(buf)) {
+        if (OFFICIAL_HOST_SOURCES.has(bareHost)) {
             try {
-                const s2Url = `https://www.google.com/s2/favicons?domain=${encodeURIComponent(host)}&sz=128`;
-                const s2Buf = await fetchBuffer(s2Url, 7000);
-                if (s2Buf && s2Buf.length > 0) {
-                    buf = s2Buf;
-                    source = 'Google S2 (fallback)';
+                const officialUrl = OFFICIAL_HOST_SOURCES.get(bareHost);
+                const offBuf = await fetchRedirectBuffer(officialUrl, 7000);
+                if (offBuf && offBuf.length > 0) {
+                    buf = offBuf;
+                    source = `Official Source (${bareHost})`;
                 }
             } catch {}
         }
 
-        if (buf && !isPlaceholder(buf)) {
-            const ok = saveAsPng(buf, destPath);
-            return { host, success: ok, source };
+        if (!buf) {
+            for (const candidate of candidates) {
+                try {
+                    const s2Url = `https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=${encodeURIComponent('https://' + candidate)}&size=128`;
+                    const s2Buf = await fetchRedirectBuffer(s2Url, 7000);
+                    if (s2Buf && s2Buf.length > 0) {
+                        buf = s2Buf;
+                        source = `Google S2 (${candidate})`;
+                        break;
+                    }
+                } catch {}
+            }
         }
 
-        return { host, success: false, error: 'No valid icon found' };
+        if (buf) {
+            const ok = saveAsPng(buf, destPath);
+            return { host: bareHost, success: ok, source };
+        }
+
+        return { host: bareHost, success: false, error: 'Google S2 404 / fetch error' };
     });
 
-    const results = await runConcurrent(tasks, 8, (idx, total, res) => {
+    const results = await runConcurrent(tasks, 12, (idx, total, res) => {
         completed++;
         const pct = Math.round((completed / total) * 100);
         const statusIcon = res.success ? `${c.green}✔${c.reset}` : `${c.red}❌${c.reset}`;
@@ -246,24 +270,20 @@ function isPlaceholder(buf) {
     });
 
     console.log('\n');
-    const pinned = results.filter(r => r.source === 'pinned');
-    if (pinned.length > 0) {
-        console.log(`  ${c.cyan}📌 已保留 ${pinned.length} 个本地锁定图标: ${pinned.map(p => p.host).join(', ')}${c.reset}`);
-    }
     const failed = results.filter(r => !r.success);
     if (failed.length > 0) {
         console.log(`  ${c.yellow}⚠ 注意：有 ${failed.length} 个图标未能成功下载：${c.reset}`);
         failed.forEach(f => console.log(`    - ${f.host}: ${f.error || 'PNG normalization failed'}`));
         process.exitCode = 1;
     } else {
-        console.log(`  ${c.green}✨ 全站 ${totalHosts} 个书签图标已就绪（复用 ${results.filter(r => r.source === 'local' || r.source === 'pinned').length} 个，下载 ${results.filter(r => r.source !== 'local' && r.source !== 'pinned').length} 个）！${c.reset}`);
+        console.log(`  ${c.green}✨ 全站 ${totalHosts} 个书签图标已就绪（复用 ${results.filter(r => r.source === 'local').length} 个，下载 ${results.filter(r => r.source !== 'local').length} 个）！${c.reset}`);
     }
 
     // 统一将 bookmarks.json 的 icon 规范为 ./icons/{host}.png
     let updatedIconCount = 0;
     function updateIconField(bm) {
         if (!bm || !bm.url) return;
-        const host = getHostname(bm.url);
+        const host = getBareHostname(bm.url);
         if (!host) return;
         const iconPath = `./icons/${host}.png`;
         if (bm.icon !== iconPath) {
@@ -282,9 +302,7 @@ function isPlaceholder(buf) {
         console.log(`  ${c.green}✔${c.reset} 已规范 bookmarks.json 中 ${c.bold}${updatedIconCount}${c.reset} 处图标路径为 ./icons/{host}.png`);
     }
 
-    // 写回图标路径；运行时默认数据由 constants.js 导入 bookmarks.json。
     console.log(`  ${c.green}✔${c.reset} bookmarks.json 单一真理源已生效，源码 src/js/config/constants.js 自动共享最新书签与图标`);
-
     console.log(`\n${c.cyan}${HR_DOUBLE}${c.reset}\n`);
 }
 

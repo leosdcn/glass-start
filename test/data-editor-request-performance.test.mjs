@@ -5,7 +5,7 @@ import { launchSession, waitFor } from './helpers.mjs';
 const {server,chrome,send,evalJS} = await launchSession();
 try {
     const external = [];
-    await send('Fetch.enable', {patterns:[{urlPattern:'https://a.favicon.im/*'}, {urlPattern:'https://www.google.com/s2/favicons*'}, {urlPattern:'https://*.invalid/favicon.ico'}]});
+    await send('Fetch.enable', {patterns:[{urlPattern:'https://a.favicon.im/*'}, {urlPattern:'https://www.google.com/s2/favicons*'}]});
     send('Fetch.requestPaused', event => {
         external.push(event.request.url);
         send('Fetch.failRequest', {requestId:event.requestId,errorReason:'Failed'}).catch(()=>{});

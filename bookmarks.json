@@ -215,12 +215,6 @@
                     "desc": "开发者成长路线图"
                 },
                 {
-                    "name": "v0",
-                    "url": "https://v0.app",
-                    "icon": "./icons/v0.app.png",
-                    "desc": "AI 代码与生成式 UI"
-                },
-                {
                     "name": "Vercel",
                     "url": "https://vercel.com",
                     "icon": "./icons/vercel.com.png",
@@ -425,6 +419,12 @@
                     "desc": "大众医学健康指南"
                 },
                 {
+                    "name": "维基导游",
+                    "url": "https://zh.wikivoyage.org/zh-hans/首页",
+                    "icon": "./icons/zh.wikivoyage.org.png",
+                    "desc": "自由的世界旅行指南"
+                },
+                {
                     "name": "食用手册",
                     "url": "https://cook.yunyoujun.cn",
                     "icon": "./icons/cook.yunyoujun.cn.png",
@@ -546,8 +546,8 @@
                 },
                 {
                     "name": "Canva",
-                    "url": "https://www.canva.cn",
-                    "icon": "./icons/canva.cn.png",
+                    "url": "https://www.canva.com",
+                    "icon": "./icons/canva.com.png",
                     "desc": "全能在线设计与排版"
                 },
                 {
@@ -743,10 +743,22 @@
             "icon": "./icons/category/game.svg",
             "bookmarks": [
                 {
+                    "name": "Lichess",
+                    "url": "https://lichess.org",
+                    "icon": "./icons/lichess.org.png",
+                    "desc": "开源国际象棋平台"
+                },
+                {
                     "name": "PlayOK",
                     "url": "https://www.playok.com",
                     "icon": "./icons/playok.com.png",
                     "desc": "经典多棋种在线下棋"
+                },
+                {
+                    "name": "Poki",
+                    "url": "https://poki.com",
+                    "icon": "./icons/poki.com.png",
+                    "desc": "在线网页休闲小游戏"
                 },
                 {
                     "name": "PyChess",
@@ -765,6 +777,12 @@
                     "url": "https://steamdb.info",
                     "icon": "./icons/steamdb.info.png",
                     "desc": "Steam 游戏史低查询"
+                },
+                {
+                    "name": "将棋ウォーズ",
+                    "url": "https://shogiwars.heroz.jp",
+                    "icon": "./icons/shogiwars.heroz.jp.png",
+                    "desc": "日本将棋官方对弈"
                 }
             ]
         },
@@ -785,10 +803,10 @@
                     "desc": "趣味网页互动实验室"
                 },
                 {
-                    "name": "Pointer Pointer",
-                    "url": "https://pointerpointer.com",
-                    "icon": "./icons/pointerpointer.com.png",
-                    "desc": "鼠标指针定位实验"
+                    "name": "Personality Database",
+                    "url": "https://www.personality-database.com/zh-CN/",
+                    "icon": "./icons/personality-database.com.png",
+                    "desc": "人物角色性格数据库"
                 },
                 {
                     "name": "Quick, Draw!",
@@ -819,6 +837,18 @@
                     "url": "https://maps.google.com",
                     "icon": "./icons/maps.google.com.png",
                     "desc": "全球地图导航服务"
+                },
+                {
+                    "name": "Time.is",
+                    "url": "https://time.is/zh/",
+                    "icon": "./icons/time.is.png",
+                    "desc": "世界时间与时区查询"
+                },
+                {
+                    "name": "Windy",
+                    "url": "https://www.windy.com",
+                    "icon": "./icons/windy.com.png",
+                    "desc": "全球气象与风场预报"
                 },
                 {
                     "name": "高德地图",
