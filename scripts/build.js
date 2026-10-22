@@ -94,21 +94,28 @@ function initDistDir(dir = PATHS.dist) {
 function publishStagingToDist(stagingDir) {
     cleanDir(PATHS.backup);
     let distRenamed = false;
+    let rollbackFailed = false;
     try {
         if (fs.existsSync(PATHS.dist)) {
             fs.renameSync(PATHS.dist, PATHS.backup);
             distRenamed = true;
         }
         fs.renameSync(stagingDir, PATHS.dist);
-        cleanDir(PATHS.backup);
     } catch (err) {
         if (distRenamed && fs.existsSync(PATHS.backup) && !fs.existsSync(PATHS.dist)) {
-            try { fs.renameSync(PATHS.backup, PATHS.dist); } catch {}
+            try {
+                fs.renameSync(PATHS.backup, PATHS.dist);
+            } catch (rollbackErr) {
+                rollbackFailed = true;
+                console.error(`\n  ${c.yellow}⚠️ 恢复上一版本产物失败，备份保留在: ${PATHS.backup}${c.reset}`, rollbackErr.message || rollbackErr);
+            }
         }
         throw err;
     } finally {
         cleanDir(stagingDir);
-        cleanDir(PATHS.backup);
+        if (!rollbackFailed) {
+            cleanDir(PATHS.backup);
+        }
     }
 }
 
@@ -498,8 +505,7 @@ function rebuild(changedFile = 'source') {
         };
     } catch (err) {
         cleanDir(PATHS.staging);
-        console.error(`\n  ${c.yellow}❌ 增量构建失败（已保留上一版本正常产物）:${c.reset}\n`, err.message || err);
-        return null;
+        throw err;
     }
 }
 

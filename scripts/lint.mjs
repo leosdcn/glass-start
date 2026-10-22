@@ -10,6 +10,7 @@ import { join, dirname, relative } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import vm from 'node:vm';
+import { parse as parseJs } from 'acorn';
 import { inspectDOMSources } from './lint-dom.mjs';
 import { inspectCSSSources } from './lint-css.mjs';
 
@@ -95,6 +96,7 @@ function getAllJsInDir(dir) {
     return results;
 }
 const allSrcJsFiles = getAllJsInDir(join(root, 'src', 'js'));
+const srcJsSources = allSrcJsFiles.map(file => ({ file, content: readFileSync(file, 'utf-8') }));
 // ---- 1. src/index.html 内联 <script> 语法校验 ----
 logSection('1/4', '📄 校验 src/index.html 内联脚本语法');
 const scripts = [...indexHtml.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi)];
@@ -146,16 +148,18 @@ for (const item of jsFiles) {
     }
 }
 
-// 校验 src/js/ 下全部 ESM 业务模块
-if (allSrcJsFiles.length > 0) {
+// 校验 src/js/ 下全部 ESM 业务模块 (单进程 Acorn 快速 AST 语法分析)
+if (srcJsSources.length > 0) {
     const failures = [];
-    for (const file of allSrcJsFiles) {
-        const checkRes = spawnSync(process.execPath, ['--check', file], { encoding: 'utf-8' });
-        if (checkRes.status !== 0) {
-            failures.push(`${relative(root, file)}:\n${checkRes.stderr || checkRes.error?.message || '语法检查进程异常退出'}`);
+    for (const { file, content } of srcJsSources) {
+        try {
+            parseJs(content, { ecmaVersion: 'latest', sourceType: 'module', locations: true });
+        } catch (err) {
+            const loc = err.loc ? `:${err.loc.line}:${err.loc.column}` : '';
+            failures.push(`${relative(root, file)}${loc}:\n${err.message}`);
         }
     }
-    const label = `src/js/            (${allSrcJsFiles.length} 个 ESM 核心业务子模块)`;
+    const label = `src/js/            (${srcJsSources.length} 个 ESM 核心业务子模块)`;
     if (failures.length === 0) {
         passCount++;
         logItem(`${label} 语法全部通过`);
@@ -368,7 +372,7 @@ try {
 // 4.6 DOM ID 唯一性与 cacheDOM() 引用健康门禁
 let domInspection;
 try {
-    domInspection = inspectDOMSources(allSrcJsFiles.map(file => ({ file, content: readFileSync(file, 'utf-8') })),
+    domInspection = inspectDOMSources(srcJsSources,
         join(root, 'src', 'js', 'core', 'overlay-stack.js'), readFileSync(join(root, 'src', 'js', 'types.d.ts'), 'utf-8'));
     const bodyMatch = indexHtml.match(/<body\b[^>]*>([\s\S]*?)<\/body>/i);
     const bodyHtml = bodyMatch ? bodyMatch[1] : indexHtml;
