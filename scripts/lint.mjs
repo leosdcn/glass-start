@@ -148,15 +148,15 @@ for (const item of jsFiles) {
     }
 }
 
-// 校验 src/js/ 下全部 ESM 业务模块 (单进程 Acorn 快速 AST 语法分析)
+// 校验 src/js/ 下全部 ESM 业务模块 (单进程 Acorn 快速 AST 语法分析，并缓存 AST 供后续 DOM 规则复用)
 if (srcJsSources.length > 0) {
     const failures = [];
-    for (const { file, content } of srcJsSources) {
+    for (const source of srcJsSources) {
         try {
-            parseJs(content, { ecmaVersion: 'latest', sourceType: 'module', locations: true });
+            source.ast = parseJs(source.content, { ecmaVersion: 'latest', sourceType: 'module', locations: true });
         } catch (err) {
             const loc = err.loc ? `:${err.loc.line}:${err.loc.column}` : '';
-            failures.push(`${relative(root, file)}${loc}:\n${err.message}`);
+            failures.push(`${relative(root, source.file)}${loc}:\n${err.message}`);
         }
     }
     const label = `src/js/            (${srcJsSources.length} 个 ESM 核心业务子模块)`;
@@ -228,7 +228,7 @@ try {
 
 // 4.2 移动端 iOS 16px 防放大输入框规范静态扫描
 try {
-    const inputSources = [{ file: 'src/index.html', content: indexHtml }, ...allSrcJsFiles.map(file => ({ file, content: readFileSync(file, 'utf-8') }))];
+    const inputSources = [{ file: 'src/index.html', content: indexHtml }, ...srcJsSources];
     const inputMatches = inputSources.flatMap(source => [...source.content.matchAll(/<input[^>]*type=["']text["'][^>]*>/gi)].map(match => ({ match, ...source })));
     let allInputsCompliant = true;
     const nonCompliant = [];

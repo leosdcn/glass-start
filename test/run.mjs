@@ -1,9 +1,10 @@
-import { spawn, spawnSync } from 'node:child_process';
+import { spawn } from 'node:child_process';
 import { readdirSync, mkdtempSync, rmSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { tmpdir } from 'node:os';
 import { createRequire } from 'node:module';
+import { requiresBuild } from './test-selection.mjs';
 
 const testDir = fileURLToPath(new URL('.', import.meta.url));
 const rootDir = join(testDir, '..');
@@ -15,11 +16,8 @@ if (!files.length) {
   process.exit(1);
 }
 
-// 类型契约与构建并行执行；纯单元测试自动跳过构建
-const needsBuild = files.some(file => {
-  const content = readFileSync(join(testDir, file), 'utf-8');
-  return content.includes('launchChrome') || content.includes('startServer') || content.includes('dist/');
-});
+// 仅明确列出的纯单元测试可跳过构建；未知测试默认验证新产物。
+const needsBuild = requiresBuild(files);
 
 const runProcess = (cmd, args) => new Promise((resolve, reject) => {
   const p = spawn(cmd, args, { cwd: rootDir, stdio: 'inherit' });

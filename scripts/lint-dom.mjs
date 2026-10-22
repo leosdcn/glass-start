@@ -6,8 +6,8 @@ const walk = (node, visit) => { visit(node); children(node).forEach(child => wal
 
 /** 静态检查可识别的 DOM 引用；变量按词法作用域解析，注释及字符串不会被当成代码。 */
 export function inspectDOMSources(sources, overlayPath, typesSource) {
-    const trees = new Map(sources.map(({ file, content }) => [file,
-        parse(content, { ecmaVersion: 'latest', sourceType: 'module', locations: true })]));
+    const trees = new Map(sources.map(({ file, content, ast }) => [file,
+        ast || parse(content, { ecmaVersion: 'latest', sourceType: 'module', locations: true })]));
     const modalIds = new Set();
     walk(trees.get(overlayPath), node => {
         if (node.type === 'VariableDeclarator' && node.id.name === 'MODAL_OVERLAY_IDS') {

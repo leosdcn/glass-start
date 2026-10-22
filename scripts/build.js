@@ -119,36 +119,8 @@ function publishStagingToDist(stagingDir) {
     }
 }
 
-// 首屏配置注入编译内存缓存 (基于文件修改时间 mtime)
-const headConfigCache = new Map();
-
-function getCachedOrBuildSnippet(cacheKey, filePath, buildFn) {
-    try {
-        const mtime = fs.statSync(filePath).mtimeMs;
-        const cached = headConfigCache.get(cacheKey);
-        if (cached && cached.mtime === mtime) {
-            return cached.code;
-        }
-        const code = buildFn();
-        headConfigCache.set(cacheKey, { mtime, code });
-        return code;
-    } catch {
-        return buildFn();
-    }
-}
-
-// 2. 编译 Tailwind CSS (v4 CLI)
-let cachedCompiledCss = null;
-
-function compileTailwindCss(force = true) {
-    if (!force && cachedCompiledCss) {
-        logSection('1/5', '📦 编译 Tailwind CSS 样式表 (复用缓存)');
-        buildMetrics.stages.css = 0;
-        buildMetrics.sizes.cssKb = (Buffer.byteLength(cachedCompiledCss, 'utf-8') / 1024).toFixed(2);
-        logItem(`复用未变更的 Tailwind CSS 编译缓存 (${buildMetrics.sizes.cssKb} KB)`);
-        return cachedCompiledCss;
-    }
-
+// Tailwind 扫描 HTML、JS 及导入的样式；Watch 事件可能合并，不能只凭最后一个路径跳过编译。
+function compileTailwindCss() {
     logSection('1/5', '📦 编译 Tailwind CSS 样式表 (v4 CLI)');
 
     const cssStart = Date.now();
@@ -171,7 +143,6 @@ function compileTailwindCss(force = true) {
         const cssKb = (Buffer.byteLength(cssContent, 'utf-8') / 1024).toFixed(2);
         buildMetrics.stages.css = cssDuration;
         buildMetrics.sizes.cssKb = cssKb;
-        cachedCompiledCss = cssContent;
         logItem(`扫描 src/styles/main.css 与组件模板 完成，原子化 CSS 静态编译就绪 (${cssKb} KB, 耗时 ${cssDuration}ms)`);
         return cssContent;
     } catch (err) {
@@ -268,10 +239,10 @@ function processProductionAppJs(targetDir = PATHS.dist) {
     }
 }
 
-// 同步首屏与运行时共用 themes.js；按需重新读取或命中缓存。
+// 每轮解析配置及其间接依赖，保持首屏注入与运行时配置一致。
 function injectThemeConfig(html, themePath = path.join(PATHS.src, 'js', 'config', 'themes.js')) {
     const marker = '/* INJECT_THEME_CONFIG */';
-    const code = getCachedOrBuildSnippet(`theme:${themePath}`, themePath, () => {
+    const code = (() => {
         const result = esbuild.buildSync({
             entryPoints: [themePath],
             bundle: true,
@@ -286,7 +257,7 @@ function injectThemeConfig(html, themePath = path.join(PATHS.src, 'js', 'config'
             const { APP_THEME_DARK: THEME_DARK, APP_THEME_LIGHT: THEME_LIGHT,
                 PRESET_THEMES, PRESET_TINTS } = __headThemes;
         `;
-    });
+    })();
     // 保护 HTML script 边界，同时保留字符串运行时值。
     return replaceOnce(html, marker, code.replace(/<\/script/gi, '<\\/script'));
 }
@@ -295,7 +266,7 @@ function injectThemeConfig(html, themePath = path.join(PATHS.src, 'js', 'config'
 function injectWeatherNum(html) {
     const marker = '/* INJECT_WEATHER_NUM */';
     const entryPath = path.join(PATHS.src, 'js', 'utils', 'weather-data.js');
-    const code = getCachedOrBuildSnippet(`weather:${entryPath}`, entryPath, () => {
+    const code = (() => {
         const result = esbuild.buildSync({
             entryPoints: [entryPath],
             bundle: true,
@@ -307,13 +278,13 @@ function injectWeatherNum(html) {
             charset: 'utf8'
         });
         return result.outputFiles[0].text + '\nconst { weatherNum } = __headWeather;';
-    });
+    })();
     return replaceOnce(html, marker, code.replace(/<\/script/gi, '<\\/script'));
 }
 
 // 首屏共享配置（壁纸、引擎、天气图标）从单一模块注入，避免内联副本与运行时漂移。
 function injectHeadConfig(html, { marker, entryPath, globalName, binding }) {
-    const code = getCachedOrBuildSnippet(`head:${entryPath}:${globalName}`, entryPath, () => {
+    const code = (() => {
         const result = esbuild.buildSync({
             entryPoints: [entryPath],
             bundle: true,
@@ -325,7 +296,7 @@ function injectHeadConfig(html, { marker, entryPath, globalName, binding }) {
             charset: 'utf8'
         });
         return result.outputFiles[0].text + '\n' + binding;
-    });
+    })();
     return replaceOnce(html, marker, code.replace(/<\/script/gi, '<\\/script'));
 }
 
@@ -485,8 +456,8 @@ function printDistSummary(startTime) {
     console.log(`${c.gray}${HR_DOUBLE}${c.reset}\n`);
 }
 
-function executeBuild(targetDir, { forceCss = true } = {}) {
-    const compiledCss = compileTailwindCss(forceCss);
+function executeBuild(targetDir) {
+    const compiledCss = compileTailwindCss();
     buildServiceWorkerAndAssets(targetDir);
     syncBookmarksData();
     processProductionAppJs(targetDir);
@@ -522,7 +493,7 @@ function main() {
     fs.mkdirSync(PATHS.staging, { recursive: true });
 
     try {
-        executeBuild(PATHS.staging, { forceCss: true });
+        executeBuild(PATHS.staging);
         publishStagingToDist(PATHS.staging);
         printDistSummary(startTime);
     } catch (err) {
@@ -541,13 +512,8 @@ function rebuild(changedFile = 'source') {
     cleanDir(PATHS.staging);
     fs.mkdirSync(PATHS.staging, { recursive: true });
 
-    const isCssChange = !cachedCompiledCss ||
-        changedFile.includes('styles') ||
-        changedFile.endsWith('.html') ||
-        changedFile.includes('main.css');
-
     try {
-        executeBuild(PATHS.staging, { forceCss: isCssChange });
+        executeBuild(PATHS.staging);
         publishStagingToDist(PATHS.staging);
         return {
             version: currentBuildVersion,
