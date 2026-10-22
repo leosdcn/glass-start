@@ -137,7 +137,7 @@ LocalStorage 仅保存背景索引和轻量首屏提示，新选择不写入 Bas
 
 `core/screen-state.js` 管理 `state.currentSection`（`start` / `nav`）和过渡锁。CSS 状态类决定两屏位置，`inert` 与无障碍属性隔离离屏内容。
 
-- `core/screen-input.js` 将滚轮在短时间窗口内的同向位移累计到 `CONFIG.GESTURE.SWIPE_THRESHOLD`；反向输入或连续 `WHEEL_IDLE_MS`（180ms）没有输入后开始新一轮。切屏后及动画期间的同向尾部输入不再触发切屏。滚轮事件没有可靠的跨浏览器手势结束标志，静默间隔是近似边界，并非物理惯性检测。
+- `core/screen-input.js` 将滚轮在短时间窗口内的同向位移累计到 `CONFIG.GESTURE.SWIPE_THRESHOLD`；反向输入或连续 `WHEEL_IDLE_MS`（180ms）无输入时，开始新一轮。切屏后及动画期间的同向尾部输入不再触发切屏。滚轮事件没有可靠的跨浏览器手势结束标志，静默间隔是近似边界，并非物理惯性检测。
 - 内容尚未到顶时，该轮滚轮输入只滚内容；到顶后须重新向上滚动才能返回。侧边栏、天气、编辑按钮及输入控件的手势不参与切屏；带修饰键的滚轮和横向滚动交给浏览器。
 - 滚轮识别使用被动监听，不持续拦截导航内容区的滚轮事件；利用上次观察到的内容位置和到顶事件时间，避免合成线程先滚到顶后误判为返回手势。仅在切屏动画期间临时阻止原生滚动，完成、超时、减弱动效或唤醒校准均移除拦截。分类联动先读取侧栏几何信息，再更新高亮，避免写后立即读布局。
 - 触屏按滑动方向及 `CONFIG.GESTURE` 中的位移、平均速度阈值识别切屏；手指落下时记录内容是否在顶部，同一次滑动滚到顶部不会接着返回。多指、取消或唤醒会清除本轮触屏状态。
@@ -147,7 +147,9 @@ LocalStorage 仅保存背景索引和轻量首屏提示，新选择不写入 Bas
 
 `reconcileScreenState()` 清理过渡任务、恢复保存的目标屏、校准状态类及可访问性，并移除预渲染类 `.nr`。正常进入、退出与校准共用目标状态应用逻辑。它本身不执行 `display` 重置；默认无明确目标且仍在过渡时会跳过，唤醒调用传入 `force=true`。
 
-`core/app-wake.js` 的 `handleAppWakeUp()` 统一处理 `pageshow` 和恢复可见的 `visibilitychange`：清理残留交互及手势状态，强制校准屏幕、时钟与气象刷新，尝试检查 Service Worker 更新；BFCache 恢复时校准首屏合成层 `willChange`。校准时在禁用过渡的情况下提交目标布局，再恢复过渡，避免补播动画；不重建 DOM。切屏与壁纸切换时通过 `body.is-screen-transitioning` 与 `.is-crossfading` 动态分配 `willChange`，避免常驻闲置导致 WebKit 磁贴提前回收或显存浪费。`blur` / `pagehide` 添加 `body.tab-blurred`，收到下一次用户交互后解除，防止悬停残留。
+`core/app-wake.js` 的 `handleAppWakeUp()` 统一处理 `pageshow` 和恢复可见的 `visibilitychange`：清理残留交互及手势状态，强制校准屏幕、时钟与天气刷新，并检查 Service Worker 更新；BFCache 恢复时校准首屏合成层 `willChange`。校准时在禁用过渡的情况下提交目标布局，再恢复过渡，避免补播动画；不重建 DOM。
+
+切屏与壁纸切换时通过 `body.is-screen-transitioning` 与 `.is-crossfading` 动态分配 `willChange`，避免常驻闲置导致 WebKit 磁贴提前回收或显存浪费。`blur` / `pagehide` 添加 `body.tab-blurred`，收到下一次用户交互后解除，防止悬停残留。
 
 导航卡片高光使用固定渐变纹理，指针每帧只改变相对卡片中心的位移与倾斜，不逐帧重建渐变背景。高光伪元素保留渐变实际可见的区域并由卡片裁切；悬停且允许动效时才设置合成提示，离开或启用减弱动效后释放提示。
 
@@ -185,7 +187,9 @@ LocalStorage 仅保存背景索引和轻量首屏提示，新选择不写入 Bas
 
 安装时校验核心资源存在且响应成功，并核对 HTML 与应用指纹；失败则删除残缺核心池并拒绝安装。核心文档和脚本请求使用 `reload`，首张预设壁纸使用 `no-cache` 条件重验证。安装时不预取外部引擎图标；自定义书签的外部图标按实际请求缓存。
 
-`src/js/core/service-worker-updates.js` 在启动、页面唤醒、恢复联网及前台每五分钟检查更新，使用 `updateViaCache: 'none'`，唤醒检查按五分钟节流。新版安装成功后默认保持 waiting，起始页左上角显示“有新版本”，与天气胶囊对称；用户点击并确认后发送 `ACTIVATE_UPDATE`，worker 重新校验核心缓存并调用 `skipWaiting()`，发起页在接管后刷新。其他已受控标签页只显示提示，各自确认后才刷新；编辑弹窗打开时背景更新按钮不可交互。不调用 `clients.claim()`，避免接管未受控页面。超时可重试，不清空缓存或注销 worker；旧客户端全部退出后仍可自然激活。核心缓存命中时不后台重验证；缓存丢失后的网络回退不逐次校验指纹，启动指纹检查补充检测 HTML/JS 不一致。
+`src/js/core/service-worker-updates.js` 在启动、页面唤醒、恢复联网及前台每五分钟检查更新，使用 `updateViaCache: 'none'`，唤醒检查按五分钟节流。新版安装成功后默认保持 waiting，起始页左上角显示“有新版本”；用户点击并确认后发送 `ACTIVATE_UPDATE`，worker 重新校验核心缓存并调用 `skipWaiting()`，发起页在接管后刷新。其他已受控标签页只显示提示，各自确认后才刷新；编辑弹窗打开时背景更新按钮不可交互。不调用 `clients.claim()`，避免接管未受控页面。超时可重试，不清空缓存或注销 worker；旧客户端全部退出后仍可自然激活。
+
+核心缓存命中时不后台重验证；缓存丢失后的网络回退不逐次校验指纹，由启动检查补充检测 HTML/JS 不一致。
 
 外部图标请求可缓存成功或 `opaque` 响应；`opaque` 的状态与正文不可读，因此这不是内容安全校验。图标显示失败由前端捕获阶段监听处理，尝试 Google S2，最终回退首字母徽标。
 
