@@ -37,9 +37,6 @@
 /apple-touch-icon.png
   Cache-Control: public, max-age=604800, must-revalidate
 
-/apple-touch-icon-precomposed.png
-  Cache-Control: public, max-age=604800, must-revalidate
-
 /favicon.ico
   Cache-Control: public, max-age=604800, must-revalidate
 
