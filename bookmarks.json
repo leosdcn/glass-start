@@ -203,12 +203,6 @@
                     "desc": "前端在线代码沙盒"
                 },
                 {
-                    "name": "Key-Test",
-                    "url": "https://key-test.com/cn/",
-                    "icon": "./icons/key-test.com.png",
-                    "desc": "在线键盘按键测试"
-                },
-                {
                     "name": "roadmap.sh",
                     "url": "https://roadmap.sh",
                     "icon": "./icons/roadmap.sh.png",
@@ -433,7 +427,7 @@
             ]
         },
         {
-            "name": "视听素材",
+            "name": "素材灵感",
             "icon": "./icons/category/media.svg",
             "bookmarks": [
                 {
@@ -577,7 +571,7 @@
             ]
         },
         {
-            "name": "社区论坛",
+            "name": "社区社交",
             "icon": "./icons/category/community.svg",
             "bookmarks": [
                 {
