@@ -77,6 +77,8 @@ Object.assign(window, {
     restoreWallpaper: wallpaper.restoreWallpaper,
     handleIconError: bookmarks.handleIconError,
     renderBookmarks: bookmarks.renderBookmarks,
+    renderNavCategories: bookmarks.renderNavCategories,
+    updateSidebarActive: bookmarks.updateSidebarActive,
     updateClock: clock.updateClock,
     handleEditIconError: editor.handleEditIconError,
     renderEditList: editor.renderEditList,

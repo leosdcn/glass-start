@@ -322,14 +322,20 @@ let cachedSidebarItems = [];
 let cachedSidebarSections = [];
 /** @type {number[]} */
 let cachedSectionOffsets = [];
+let sidebarCacheDirty = true;
+/** @type {ResizeObserver | null} */
+let sidebarLayoutObserver = null;
 
 export function refreshSidebarNavCache() {
+    // 无尺寸观察器时沿用实时测量，避免无法可靠失效的缓存。
+    if (sidebarLayoutObserver && !sidebarCacheDirty) return;
     const sidebarList = dom.sidebarList;
     const navContent = dom.navContent;
     if (!sidebarList || !navContent) return;
     cachedSidebarItems = /** @type {HTMLElement[]} */ (Array.from(sidebarList.querySelectorAll('[data-target]')));
     cachedSidebarSections = /** @type {HTMLElement[]} */ (cachedSidebarItems.map(item => item.dataset.target ? document.getElementById(item.dataset.target) : null).filter(Boolean));
     cachedSectionOffsets = cachedSidebarSections.map(s => s.offsetTop);
+    sidebarCacheDirty = false;
 }
 
 /**
@@ -361,7 +367,7 @@ export function updateSidebarActive() {
     const content = dom.navContent;
     if (!sidebarList || !content || isManualScrolling) return;
 
-    if (!cachedSidebarItems.length || !cachedSectionOffsets.length) refreshSidebarNavCache();
+    refreshSidebarNavCache();
     const items = cachedSidebarItems;
     const sections = cachedSidebarSections;
     if (!items.length || !sections.length) return;
@@ -456,8 +462,16 @@ export function renderNavCategories(force = false) {
     `;
     }).join('');
 
+    sidebarCacheDirty = true;
     const shouldMeasure = navIconsActivated || state.currentSection === 'nav';
     initSidebarNav(shouldMeasure);
+    if (sidebarLayoutObserver && navContent) {
+        const observer = sidebarLayoutObserver;
+        observer.disconnect();
+        observer.observe(navContent);
+        // 位置取决于完整外框，包含内边距及边框变化。
+        navCategories.querySelectorAll('.category-block').forEach(section => observer.observe(section, { box: 'border-box' }));
+    }
     if (shouldMeasure) {
         refreshSidebarNavCache();
         updateSidebarActive();
@@ -481,6 +495,7 @@ function initSidebarNav(measureActive = true) {
         /** @type {ReturnType<typeof setTimeout> | null} */
         let resizeTimer = null;
         const handleResizeOrRotate = () => {
+            sidebarCacheDirty = true;
             if (resizeTimer) clearTimeout(resizeTimer);
             resizeTimer = setTimeout(() => {
                 refreshSidebarNavCache();
@@ -491,8 +506,7 @@ function initSidebarNav(measureActive = true) {
         window.addEventListener('orientationchange', handleResizeOrRotate, { passive: true });
         if ('ResizeObserver' in window && content) {
             try {
-                const ro = new ResizeObserver(() => handleResizeOrRotate());
-                ro.observe(content);
+                sidebarLayoutObserver = new ResizeObserver(() => handleResizeOrRotate());
             } catch {}
         }
 
