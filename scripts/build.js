@@ -390,6 +390,20 @@ function processProductionHtml(compiledCss, targetDir = PATHS.dist) {
     fs.writeFileSync(path.join(targetDir, 'index.html'), prodHtmlContent, 'utf-8');
 }
 
+function getPathByteSize(itemPath) {
+    try {
+        const stat = fs.statSync(itemPath);
+        if (stat.isDirectory()) {
+            return fs.readdirSync(itemPath).reduce((acc, child) => {
+                return acc + getPathByteSize(path.join(itemPath, child));
+            }, 0);
+        }
+        return stat.size;
+    } catch {
+        return 0;
+    }
+}
+
 // 6. 打印构建成功产物清单与耗时汇总
 function printDistSummary(startTime) {
     const elapsed = Date.now() - startTime;
@@ -411,13 +425,7 @@ function printDistSummary(startTime) {
         const fullPath = path.join(PATHS.dist, file);
         const stat = fs.statSync(fullPath);
         const isDir = stat.isDirectory();
-        let size = stat.size;
-        if (isDir) {
-            try {
-                const subFiles = fs.readdirSync(fullPath);
-                size = subFiles.reduce((acc, sub) => acc + fs.statSync(path.join(fullPath, sub)).size, 0);
-            } catch {}
-        }
+        const size = isDir ? getPathByteSize(fullPath) : stat.size;
         totalBytes += size;
         const kbStr = (size / 1024).toFixed(2) + ' KB';
         const displayName = isDir ? `${file}/ (目录)` : file;
