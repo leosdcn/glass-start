@@ -23,7 +23,7 @@ function applyPlatformShortcuts() {
 
 export function renderShortcutModalList() {
     const container = dom.shortcutModalList;
-    if (!container) return;
+    if (!container || container.hasChildNodes()) return;
     container.innerHTML = CONFIG.SHORTCUTS.map(sec => `
         <div>
             <h4 class="text-2xs font-semibold uppercase tracking-wider text-white/40 mb-1.5 px-0.5">${escapeHtml(sec.group)}</h4>

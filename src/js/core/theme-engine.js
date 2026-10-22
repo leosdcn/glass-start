@@ -40,24 +40,34 @@ function updateThemeColor(color, isLight) {
         }
     }
     if (document.documentElement) {
-        document.documentElement.style.backgroundColor = color;
-        document.documentElement.style.setProperty('--bg-base', color);
-        document.documentElement.style.setProperty('--bg-start', color);
+        if (document.documentElement.style.backgroundColor !== color) {
+            document.documentElement.style.backgroundColor = color;
+        }
+        if (document.documentElement.style.getPropertyValue('--bg-base') !== color) {
+            document.documentElement.style.setProperty('--bg-base', color);
+        }
+        if (document.documentElement.style.getPropertyValue('--bg-start') !== color) {
+            document.documentElement.style.setProperty('--bg-start', color);
+        }
     }
-    if (document.body) {
+    if (document.body && document.body.style.backgroundColor !== color) {
         document.body.style.backgroundColor = color;
     }
     const bgBase = dom.bgLayer;
     const bgNext = dom.bgLayerNext;
-    if (bgBase) bgBase.style.backgroundColor = color;
-    if (bgNext) bgNext.style.backgroundColor = color;
+    if (bgBase && bgBase.style.backgroundColor !== color) bgBase.style.backgroundColor = color;
+    if (bgNext && bgNext.style.backgroundColor !== color) bgNext.style.backgroundColor = color;
 }
+
+let currentGlassTint = '';
 
 /**
  * @param {string} tintRgbStr
  */
 export function updateGlassTint(tintRgbStr) {
     if (!tintRgbStr || typeof document === 'undefined' || !document.documentElement) return;
+    if (tintRgbStr === currentGlassTint) return;
+    currentGlassTint = tintRgbStr;
     document.documentElement.style.setProperty('--glass-tint', tintRgbStr);
 }
 

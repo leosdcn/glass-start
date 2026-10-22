@@ -1,5 +1,5 @@
 import { createServer } from 'node:http';
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { extname, join, normalize, relative, isAbsolute } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
@@ -47,9 +47,14 @@ export function startServer(port = 0, root = DEFAULT_ROOT, customRoutes = {}, { 
         let data = readFileSync(file);
         if (testMode && root === DEFAULT_ROOT && p === '/app.js') {
           if (!testApp) {
-            const version = data.toString().match(/window\.__GLASS_BUILD_APP__="([^"]+)";/)?.[1];
-            if (!version) throw new Error('Production build fingerprint missing');
-            testApp = buildAppJavaScript({ testMode: true, version }).outputFiles[0].contents;
+            const prebuiltPath = process.env.GLASS_TEST_TMPDIR && join(process.env.GLASS_TEST_TMPDIR, 'app.test.js');
+            if (prebuiltPath && existsSync(prebuiltPath)) {
+              testApp = readFileSync(prebuiltPath);
+            } else {
+              const version = data.toString().match(/window\.__GLASS_BUILD_APP__="([^"]+)";/)?.[1];
+              if (!version) throw new Error('Production build fingerprint missing');
+              testApp = buildAppJavaScript({ testMode: true, version }).outputFiles[0].contents;
+            }
           }
           data = testApp;
         }

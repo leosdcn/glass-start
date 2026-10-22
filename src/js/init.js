@@ -4,7 +4,7 @@
 import { CONFIG, engines } from './config/constants.js';
 import { storageGet, evictFaviconCache } from './utils/helpers.js';
 import { cacheDOM } from './state/dom.js';
-import { renderShortcutModalList, updateClock } from './modules/clock.js';
+import { updateClock } from './modules/clock.js';
 import { renderEngineDropdown, setEngine } from './modules/search.js';
 import { renderPresetWallpapers, restoreWallpaper, preloadNextBg } from './modules/wallpaper.js';
 import { initWeather } from './modules/weather.js';
@@ -32,7 +32,6 @@ export function init() {
     if (isAppInitialized) return;
     isAppInitialized = true;
     cacheDOM();
-    renderShortcutModalList();
     renderEngineDropdown();
     renderPresetWallpapers();
     try {

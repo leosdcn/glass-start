@@ -1,6 +1,8 @@
 .DS_Store
 node_modules/
 dist/
+.dist_staging/
+.dist_backup/
 .temp_input.css
 .claude/
 test/.cache.json

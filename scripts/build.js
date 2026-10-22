@@ -26,6 +26,8 @@ const PATHS = {
     srcMainJs: path.join(ROOT_DIR, 'src', 'js', 'main.js'),
     srcConstants: path.join(ROOT_DIR, 'src', 'js', 'config', 'constants.js'),
     dist: path.join(ROOT_DIR, 'dist'),
+    staging: path.join(ROOT_DIR, '.dist_staging'),
+    backup: path.join(ROOT_DIR, '.dist_backup'),
     bookmarksJson: path.join(ROOT_DIR, 'bookmarks.json'),
     pkgJson: path.join(ROOT_DIR, 'package.json'),
     sw: path.join(ROOT_DIR, 'sw.js'),
@@ -34,6 +36,19 @@ const PATHS = {
 
 // 生产构建全链路统一版本戳（用于 Service Worker 缓存池与 HTML 外链脚本防穿透对齐）
 let currentBuildVersion = 'app-core-v' + Date.now();
+
+// 构建性能与产物体积基线观测指标
+let buildMetrics = {
+    stages: { css: 0, assets: 0, js: 0, html: 0 },
+    sizes: { cssKb: '0', jsKb: '0', htmlKb: '0', modules: 0 }
+};
+
+function resetBuildMetrics() {
+    buildMetrics = {
+        stages: { css: 0, assets: 0, js: 0, html: 0 },
+        sizes: { cssKb: '0', jsKb: '0', htmlKb: '0', modules: 0 }
+    };
+}
 
 // 构建统一使用 esbuild；编译或压缩失败直接报告，不使用正则降级。
 const esbuild = require('esbuild');
@@ -64,73 +79,93 @@ function checkTailwindInstalled() {
     }
 }
 
-// 1.2 准备 dist 目录
-function initDistDir() {
-    if (fs.existsSync(PATHS.dist)) {
-        fs.rmSync(PATHS.dist, { recursive: true, force: true });
+// 1.2 目录与原子发布管理
+function cleanDir(dir) {
+    if (fs.existsSync(dir)) {
+        fs.rmSync(dir, { recursive: true, force: true });
     }
-    fs.mkdirSync(PATHS.dist, { recursive: true });
+}
+
+function initDistDir(dir = PATHS.dist) {
+    cleanDir(dir);
+    fs.mkdirSync(dir, { recursive: true });
+}
+
+function publishStagingToDist(stagingDir) {
+    cleanDir(PATHS.backup);
+    let distRenamed = false;
+    try {
+        if (fs.existsSync(PATHS.dist)) {
+            fs.renameSync(PATHS.dist, PATHS.backup);
+            distRenamed = true;
+        }
+        fs.renameSync(stagingDir, PATHS.dist);
+        cleanDir(PATHS.backup);
+    } catch (err) {
+        if (distRenamed && fs.existsSync(PATHS.backup) && !fs.existsSync(PATHS.dist)) {
+            try { fs.renameSync(PATHS.backup, PATHS.dist); } catch {}
+        }
+        throw err;
+    } finally {
+        cleanDir(stagingDir);
+        cleanDir(PATHS.backup);
+    }
 }
 
 // 2. 编译 Tailwind CSS (v4 CLI)
 function compileTailwindCss() {
     logSection('1/5', '📦 编译 Tailwind CSS 样式表 (v4 CLI)');
 
+    const cssStart = Date.now();
+    let cliBin;
     try {
-        const cssStart = Date.now();
-        let cssContent;
-        try {
-            // 优先直接调用本地 node_modules 编译脚本，消除远程网络依赖与 npx 启动损耗
-            const cliPkg = require.resolve('@tailwindcss/cli/package.json', { paths: [ROOT_DIR] });
-            const cliBin = path.resolve(path.dirname(cliPkg), 'dist', 'index.mjs');
-            cssContent = execFileSync(process.execPath, [cliBin, '-i', PATHS.srcCss, '-m'], {
-                cwd: ROOT_DIR,
-                encoding: 'utf-8',
-                stdio: ['pipe', 'pipe', 'pipe']
-            });
-        } catch {
-            // 若本地未查找到，回退为 npx
-            cssContent = execSync(`npx -y @tailwindcss/cli@4 -i "${PATHS.srcCss}" -m`, {
-                cwd: ROOT_DIR,
-                stdio: 'pipe',
-                encoding: 'utf-8'
-            });
-        }
-        if (!cssContent || !cssContent.trim()) throw new Error('Tailwind returned empty CSS');
+        const cliPkg = require.resolve('@tailwindcss/cli/package.json', { paths: [ROOT_DIR] });
+        cliBin = path.resolve(path.dirname(cliPkg), 'dist', 'index.mjs');
+    } catch (e) {
+        throw new Error(`未能找到本地 @tailwindcss/cli 依赖包，请先执行 npm install。\n(${e.message})`);
+    }
+
+    try {
+        const cssContent = execFileSync(process.execPath, [cliBin, '-i', PATHS.srcCss, '-m'], {
+            cwd: ROOT_DIR,
+            encoding: 'utf-8',
+            stdio: ['pipe', 'pipe', 'pipe']
+        });
+        if (!cssContent || !cssContent.trim()) throw new Error('Tailwind 编译输出为空样式');
         const cssDuration = Date.now() - cssStart;
         const cssKb = (Buffer.byteLength(cssContent, 'utf-8') / 1024).toFixed(2);
+        buildMetrics.stages.css = cssDuration;
+        buildMetrics.sizes.cssKb = cssKb;
         logItem(`扫描 src/styles/main.css 与组件模板 完成，原子化 CSS 静态编译就绪 (${cssKb} KB, 耗时 ${cssDuration}ms)`);
         return cssContent;
     } catch (err) {
-        console.error(`\n  ${c.yellow}❌ Tailwind CSS 编译失败:${c.reset}`, err.message || err);
-        if (/can't resolve 'tailwindcss'|cannot find module 'tailwindcss'|module not found/i.test(String(err.message || ''))) {
-            console.error('');
-            console.error('   💡 提示：未能从项目目录解析到 tailwindcss 依赖包。');
-            console.error('      请先在项目根目录执行 `npm install`，或删除 node_modules 后重新安装再试。');
-        }
-        process.exit(1);
+        const errMsg = err.stderr ? String(err.stderr).trim() : (err.message || String(err));
+        throw new Error(`Tailwind CSS 编译失败: ${errMsg}`);
     }
 }
 
 // 3. 处理并复制 Service Worker 底座脚本与静态资产
-function buildServiceWorkerAndAssets() {
+function buildServiceWorkerAndAssets(targetDir = PATHS.dist) {
     logSection('2/5', '📑 构建 Service Worker 与静态资产 (sw.js & assets)');
+    const assetsStart = Date.now();
     
     // 3.1 Service Worker
     if (fs.existsSync(PATHS.sw)) {
         let swContent = fs.readFileSync(PATHS.sw, 'utf-8');
         swContent = swContent.replace(/const\s+(CORE_CACHE|CACHE)\s*=\s*['"][^'"]+['"];/, `const CORE_CACHE = '${currentBuildVersion}';`);
-        fs.writeFileSync(path.join(PATHS.dist, 'sw.js'), swContent, 'utf-8');
+        fs.writeFileSync(path.join(targetDir, 'sw.js'), swContent, 'utf-8');
         logItem(`Service Worker 缓存版本已更新: ${c.cyan}${currentBuildVersion}${c.reset}`);
     }
 
     // 3.2 纯静态资产镜像同步 (public/ -> dist/)
     if (fs.existsSync(PATHS.public)) {
-        fs.cpSync(PATHS.public, PATHS.dist, { recursive: true });
+        fs.cpSync(PATHS.public, targetDir, { recursive: true });
         const iconCount = fs.existsSync(path.join(PATHS.public, 'icons')) ? fs.readdirSync(path.join(PATHS.public, 'icons')).filter(f => f.endsWith('.png')).length : 0;
         const wpCount = fs.existsSync(path.join(PATHS.public, 'wallpapers')) ? fs.readdirSync(path.join(PATHS.public, 'wallpapers')).length : 0;
         logItem(`纯静态资源目录 public/ 已全量镜像同步至 dist/ (包含 ${iconCount} 个本地图标, ${wpCount} 个壁纸与 PWA/安全元数据)`);
     }
+
+    buildMetrics.stages.assets = Date.now() - assetsStart;
 }
 
 // 4. 自动数据校验机制 (bookmarks.json 作为单一真理源直接被 constants.js 导入)
@@ -168,22 +203,28 @@ function buildAppJavaScript({ testMode = false, version = currentBuildVersion, o
 }
 
 // 生成生产应用脚本。
-function processProductionAppJs() {
+function processProductionAppJs(targetDir = PATHS.dist) {
     logSection('4/5', '⚡ 提取并压缩生产脚本 (dist/app.js)');
 
     if (!fs.existsSync(PATHS.srcMainJs)) {
-        console.error(`❌ 未能在 ${PATHS.srcMainJs} 中找到主入口模块`);
-        process.exit(1);
+        throw new Error(`未能在 ${PATHS.srcMainJs} 中找到主入口模块`);
     }
 
+    const jsStart = Date.now();
     try {
-        buildAppJavaScript({ outfile: path.join(PATHS.dist, 'app.js') });
-        const appJsContent = fs.readFileSync(path.join(PATHS.dist, 'app.js'), 'utf-8');
-        const appJsKb = (Buffer.byteLength(appJsContent, 'utf-8') / 1024).toFixed(2);
-        logItem(`生产环境 dist/app.js ESM 模块依赖 AST 编译完成 (${appJsKb} KB)`);
+        const appJsFile = path.join(targetDir, 'app.js');
+        const result = buildAppJavaScript({ outfile: appJsFile });
+        const appJsContent = fs.readFileSync(appJsFile, 'utf-8');
+        const jsDuration = Date.now() - jsStart;
+        const appJsBytes = Buffer.byteLength(appJsContent, 'utf-8');
+        const appJsKb = (appJsBytes / 1024).toFixed(2);
+        const moduleCount = result.metafile ? Object.keys(result.metafile.inputs).length : 0;
+        buildMetrics.stages.js = jsDuration;
+        buildMetrics.sizes.jsKb = appJsKb;
+        buildMetrics.sizes.modules = moduleCount;
+        logItem(`生产环境 dist/app.js ESM 模块依赖 AST 编译完成 (${appJsKb} KB, ${moduleCount} 个模块, 耗时 ${jsDuration}ms)`);
     } catch (e) {
-        console.error(`❌ esbuild 打包 src/js/main.js 失败: ${e.message}`);
-        process.exit(1);
+        throw new Error(`esbuild 打包 src/js/main.js 失败: ${e.message}`);
     }
 }
 
@@ -242,8 +283,9 @@ function injectHeadConfig(html, { marker, entryPath, globalName, binding }) {
 }
 
 // 5. 处理生产环境 index.html (替换内联 JS 为外链 dist/app.js，全量内嵌静态编译 Tailwind CSS 与 SVG 精灵)
-function processProductionHtml(compiledCss) {
+function processProductionHtml(compiledCss, targetDir = PATHS.dist) {
     logSection('5/5', '🔧 处理生产环境页面 (dist/index.html)');
+    const htmlStart = Date.now();
     let prodHtmlContent = fs.readFileSync(PATHS.srcIndexHtml, 'utf-8');
     prodHtmlContent = injectHeadConfig(prodHtmlContent, {
         marker: '/* INJECT_BACKGROUNDS */',
@@ -318,23 +360,24 @@ function processProductionHtml(compiledCss) {
         return minified.trim();
     }
     prodHtmlContent = minifyHtml(prodHtmlContent);
+    const htmlDuration = Date.now() - htmlStart;
     const htmlKb = (Buffer.byteLength(prodHtmlContent, 'utf-8') / 1024).toFixed(2);
-    logItem(`生产环境 dist/index.html 零依赖压缩完成 (${htmlKb} KB)`);
+    buildMetrics.stages.html = htmlDuration;
+    buildMetrics.sizes.htmlKb = htmlKb;
+    logItem(`生产环境 dist/index.html 零依赖压缩完成 (${htmlKb} KB, 耗时 ${htmlDuration}ms)`);
 
     // 🛡️ 构建断言（最终产物写盘前）：严禁残留任何 jsdelivr CDN 引用 ——
     // 生产 CSP 已剔除该域名，脚本或 CSP 白名单任一残留都会导致线上样式全挂且难以察觉，必须 fail build 阻断部署
     if (/jsdelivr/i.test(prodHtmlContent)) {
-        console.error('❌ 构建断言失败: dist/index.html 最终产物中仍残留 jsdelivr CDN 引用，请检查 Tailwind CDN 替换（5.0）与 CSP 清理（5.2）逻辑');
-        process.exit(1);
+        throw new Error('构建断言失败: dist/index.html 最终产物中仍残留 jsdelivr CDN 引用，请检查 Tailwind CDN 替换（5.0）与 CSP 清理（5.2）逻辑');
     }
 
     // 🛡️ 构建断言（最终产物写盘前）：HTML 侧构建指纹必须存在且与 app.js 侧同源同版
     if (!prodHtmlContent.includes('__GLASS_BUILD_HTML__') || !prodHtmlContent.includes(`"${currentBuildVersion}"`)) {
-        console.error('❌ 构建断言失败: dist/index.html 未注入构建指纹 (__GLASS_BUILD_HTML__)，运行时版本契约将失效');
-        process.exit(1);
+        throw new Error('构建断言失败: dist/index.html 未注入构建指纹 (__GLASS_BUILD_HTML__)，运行时版本契约将失效');
     }
 
-    fs.writeFileSync(path.join(PATHS.dist, 'index.html'), prodHtmlContent, 'utf-8');
+    fs.writeFileSync(path.join(targetDir, 'index.html'), prodHtmlContent, 'utf-8');
 }
 
 // 6. 打印构建成功产物清单与耗时汇总
@@ -342,6 +385,13 @@ function printDistSummary(startTime) {
     const elapsed = Date.now() - startTime;
     console.log(`\n${c.gray}${HR_DOUBLE}${c.reset}`);
     console.log(`${c.green}${c.bold}✨ 生产打包成功！${c.reset}${c.dim} (总耗时: ${elapsed}ms)${c.reset}\n`);
+
+    const { css, assets, js, html } = buildMetrics.stages;
+    const { cssKb, jsKb, htmlKb, modules } = buildMetrics.sizes;
+    console.log(`${c.cyan}⏱️  构建耗时与体积基线:${c.reset}`);
+    console.log(`  阶段耗时: CSS ${css}ms · 资产同步 ${assets}ms · JS AST ${js}ms · HTML生成 ${html}ms`);
+    console.log(`  核心体积: JS ${jsKb} KB (${modules} 个依赖模块) · CSS ${cssKb} KB (内联) · HTML ${htmlKb} KB\n`);
+
     console.log(`${c.cyan}📁 dist/ 构建产物清单:${c.reset}`);
 
     const files = fs.readdirSync(PATHS.dist).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
@@ -380,10 +430,19 @@ function printDistSummary(startTime) {
     console.log(`${c.gray}${HR_DOUBLE}${c.reset}\n`);
 }
 
+function executeBuild(targetDir) {
+    const compiledCss = compileTailwindCss();
+    buildServiceWorkerAndAssets(targetDir);
+    syncBookmarksData();
+    processProductionAppJs(targetDir);
+    processProductionHtml(compiledCss, targetDir);
+}
+
 // 主构建入口流程
 function main() {
     const startTime = Date.now();
     currentBuildVersion = 'app-core-v' + startTime;
+    resetBuildMetrics();
 
     console.log(`\n${c.cyan}${HR_DOUBLE}${c.reset}`);
     console.log(`${c.bold}${c.cyan}🚀 Glass Start — 生产环境构建打包 (Production Build)${c.reset}`);
@@ -404,29 +463,41 @@ function main() {
         process.exit(1);
     }
 
-    initDistDir();
-    const compiledCss = compileTailwindCss();
-    buildServiceWorkerAndAssets();
-    syncBookmarksData();
-    processProductionAppJs();
-    processProductionHtml(compiledCss);
+    cleanDir(PATHS.staging);
+    fs.mkdirSync(PATHS.staging, { recursive: true });
 
-    printDistSummary(startTime);
+    try {
+        executeBuild(PATHS.staging);
+        publishStagingToDist(PATHS.staging);
+        printDistSummary(startTime);
+    } catch (err) {
+        cleanDir(PATHS.staging);
+        console.error(`\n  ${c.yellow}❌ 构建失败（已保留上一版本正常产物）:${c.reset}\n`, err.message || err);
+        process.exit(1);
+    }
 }
 
 // 增量构建流程 (供 Watch Mode 与外部服务器调用)
 function rebuild(changedFile = 'source') {
     const startTime = Date.now();
     currentBuildVersion = 'app-core-v' + startTime;
-    const compiledCss = compileTailwindCss();
-    buildServiceWorkerAndAssets();
-    syncBookmarksData();
-    processProductionAppJs();
-    processProductionHtml(compiledCss);
-    return {
-        version: currentBuildVersion,
-        duration: Date.now() - startTime
-    };
+    resetBuildMetrics();
+
+    cleanDir(PATHS.staging);
+    fs.mkdirSync(PATHS.staging, { recursive: true });
+
+    try {
+        executeBuild(PATHS.staging);
+        publishStagingToDist(PATHS.staging);
+        return {
+            version: currentBuildVersion,
+            duration: Date.now() - startTime
+        };
+    } catch (err) {
+        cleanDir(PATHS.staging);
+        console.error(`\n  ${c.yellow}❌ 增量构建失败（已保留上一版本正常产物）:${c.reset}\n`, err.message || err);
+        return null;
+    }
 }
 
 // 独立监听模式

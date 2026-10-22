@@ -13,7 +13,7 @@ import { applyWallpaper } from '../core/wallpaper-renderer.js';
 import { flushWallpaperSelection, getEffectiveCustomWallpaper, updateWallpaperStatusUI, updatePresetBgCardsUI, clearCustomWallpaper } from './wallpaper.js';
 import { saveUserBookmarks, resetUserBookmarks, getFaviconHTML, getCategoryIconHTML, initPickerFaviconObserver } from './bookmarks.js';
 import { closeDropdown, hideSuggestions, setEngine } from './search.js';
-import { renderCreditsModalList } from './clock.js';
+import { renderCreditsModalList, renderShortcutModalList } from './clock.js';
 import { getCategoryCatalog } from '../utils/category-catalog.js';
 
 let editOpenRequestId = 0;
@@ -204,6 +204,7 @@ export function closeEditModal() {
 export function openShortcutModal() {
     const modal = dom.shortcutModal;
     if (!modal) return;
+    renderShortcutModalList();
     closeDropdown();
     hideSuggestions();
     dom.openShortcutFromSettingsBtn?.setAttribute('aria-expanded', 'true');

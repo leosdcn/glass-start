@@ -15,6 +15,9 @@ export function initDragSort() {
     let dragOverRafId = null;
     /** @type {number | null} */
     let touchMoveRafId = null;
+    let touchClientX = 0;
+    let touchClientY = 0;
+    let hasPendingTouch = false;
     /** @type {HTMLElement | null} */
     let lastOverTarget = null;
     /** @type {boolean | null} */
@@ -62,6 +65,7 @@ export function initDragSort() {
             cancelAnimationFrame(touchMoveRafId);
             touchMoveRafId = null;
         }
+        hasPendingTouch = false;
         currentEditList.querySelectorAll('.edit-row-card').forEach(el => {
             el.classList.remove('dragging', 'drop-target-above', 'drop-target-below');
         });
@@ -286,21 +290,21 @@ export function initDragSort() {
         document.body.classList.add('bookmark-dragging');
     }, { passive: true });
 
-    currentEditList.addEventListener('touchmove', e => {
-        if (!dragSrc) return;
-        const touch = e.touches[0];
-        if (!touch) return;
+    function processTouchMove() {
+        touchMoveRafId = null;
+        if (!dragSrc || !hasPendingTouch) return;
+        hasPendingTouch = false;
 
         // 容器上下边缘自适应平滑滚动 (应对长列表场景)
         const listRect = currentEditList.getBoundingClientRect();
         const edgeZone = 36;
-        if (touch.clientY < listRect.top + edgeZone) {
+        if (touchClientY < listRect.top + edgeZone) {
             currentEditList.scrollTop -= 6;
-        } else if (touch.clientY > listRect.bottom - edgeZone) {
+        } else if (touchClientY > listRect.bottom - edgeZone) {
             currentEditList.scrollTop += 6;
         }
 
-        const el = document.elementFromPoint(touch.clientX, touch.clientY);
+        const el = document.elementFromPoint(touchClientX, touchClientY);
         const target = /** @type {HTMLElement|null} */ (el && el.closest('.edit-row-card'));
 
         // 滑回自身或移出列表卡片区时，隐藏指示线并重置目标，防止松手误重排
@@ -310,22 +314,40 @@ export function initDragSort() {
         }
 
         const rect = target.getBoundingClientRect();
-        const relY = (touch.clientY - rect.top) / (rect.height || 1);
+        const relY = (touchClientY - rect.top) / (rect.height || 1);
         updateDropTarget(target, relY);
+        if (lastOverTarget && lastIsTop !== null) {
+            updateDragIndicator(lastOverTarget, lastIsTop);
+        }
+    }
+
+    currentEditList.addEventListener('touchmove', e => {
+        if (!dragSrc) return;
+        const touch = e.touches[0];
+        if (!touch) return;
+
+        touchClientX = touch.clientX;
+        touchClientY = touch.clientY;
+        hasPendingTouch = true;
         if (!touchMoveRafId) {
-            touchMoveRafId = requestAnimationFrame(() => {
-                touchMoveRafId = null;
-                if (lastOverTarget && lastIsTop !== null) updateDragIndicator(lastOverTarget, lastIsTop);
-            });
+            touchMoveRafId = requestAnimationFrame(processTouchMove);
         }
     }, { passive: true });
 
     currentEditList.addEventListener('touchend', () => {
         if (!dragSrc) return;
+        if (touchMoveRafId) {
+            cancelAnimationFrame(touchMoveRafId);
+            touchMoveRafId = null;
+        }
+        if (hasPendingTouch) {
+            processTouchMove();
+        }
         const src = dragSrc;
         const target = lastOverTarget;
         const isTop = lastIsTop ?? true;
         dragSrc = null;
+        hasPendingTouch = false;
         clearDragClasses();
         blurActiveHandle();
         document.body.classList.remove('bookmark-dragging');
@@ -337,7 +359,12 @@ export function initDragSort() {
     // 系统手势、来电或弹窗中断：纯重置，严禁触发重排
     currentEditList.addEventListener('touchcancel', () => {
         if (!dragSrc) return;
+        if (touchMoveRafId) {
+            cancelAnimationFrame(touchMoveRafId);
+            touchMoveRafId = null;
+        }
         dragSrc = null;
+        hasPendingTouch = false;
         clearDragClasses();
         blurActiveHandle();
         document.body.classList.remove('bookmark-dragging');

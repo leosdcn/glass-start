@@ -1,8 +1,9 @@
 import { spawn, spawnSync } from 'node:child_process';
-import { readdirSync, mkdtempSync, rmSync } from 'node:fs';
+import { readdirSync, mkdtempSync, rmSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { tmpdir } from 'node:os';
+import { createRequire } from 'node:module';
 
 const testDir = fileURLToPath(new URL('.', import.meta.url));
 const rootDir = join(testDir, '..');
@@ -23,6 +24,20 @@ const build = spawnSync(process.execPath, [join(rootDir, 'scripts/build.js')], {
 if (build.status !== 0) process.exit(build.status || 1);
 
 const runTempDir = mkdtempSync(join(tmpdir(), 'glass-start-run-'));
+
+// 为测试会话预先编译共享测试脚本，消除各测试服务器重复 AST 编译开销。
+try {
+  const appJs = readFileSync(join(rootDir, 'dist/app.js'), 'utf-8');
+  const versionMatch = appJs.match(/window\.__GLASS_BUILD_APP__="([^"]+)";/);
+  if (versionMatch) {
+    const { buildAppJavaScript } = createRequire(import.meta.url)('../scripts/build.js');
+    buildAppJavaScript({
+      testMode: true,
+      version: versionMatch[1],
+      outfile: join(runTempDir, 'app.test.js')
+    });
+  }
+} catch {}
 const grouped = process.platform !== 'win32';
 const concurrency = process.env.GLASS_TEST_CONCURRENCY || (process.env.CI ? '2' : '6');
 const child = spawn(process.execPath, ['--test', `--test-concurrency=${concurrency}`, ...files.map(name => join(testDir, name))], {
