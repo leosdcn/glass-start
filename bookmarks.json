@@ -236,7 +236,7 @@
                     "name": "ip.skk.moe",
                     "url": "https://ip.skk.moe",
                     "icon": "./icons/ip.skk.moe.png",
-                    "desc": "全方位 IP 与网络检测"
+                    "desc": "出口地址连通检测"
                 },
                 {
                     "name": "IPCheck.ing",
@@ -500,7 +500,7 @@
                     "name": "Trace.moe",
                     "url": "https://trace.moe",
                     "icon": "./icons/trace.moe.png",
-                    "desc": "截图出处秒级识别"
+                    "desc": "动画截图出处查询"
                 },
                 {
                     "name": "Unsplash",
