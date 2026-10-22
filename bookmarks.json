@@ -450,7 +450,7 @@
                 },
                 {
                     "name": "Kenney",
-                    "url": "https://kenney.nl",
+                    "url": "https://kenney.nl/assets",
                     "icon": "./icons/kenney.nl.png",
                     "desc": "免费开源游戏素材库"
                 },
@@ -572,7 +572,7 @@
                     "name": "waifu2x",
                     "url": "https://www.waifu2x.net",
                     "icon": "./icons/waifu2x.net.png",
-                    "desc": "开源图片无损放大"
+                    "desc": "图片降噪智能放大"
                 }
             ]
         },
@@ -626,7 +626,7 @@
                     "name": "Telegram",
                     "url": "https://web.telegram.org",
                     "icon": "./icons/web.telegram.org.png",
-                    "desc": "高隐私加密即时通讯"
+                    "desc": "跨端通讯与频道订阅"
                 },
                 {
                     "name": "V2EX",
@@ -764,7 +764,7 @@
                     "name": "PyChess",
                     "url": "https://www.pychess.org",
                     "icon": "./icons/pychess.org.png",
-                    "desc": "现代多棋种在线下棋"
+                    "desc": "多变体棋类在线对弈"
                 },
                 {
                     "name": "Steam",
@@ -782,7 +782,7 @@
                     "name": "将棋ウォーズ",
                     "url": "https://shogiwars.heroz.jp",
                     "icon": "./icons/shogiwars.heroz.jp.png",
-                    "desc": "日本将棋官方对弈"
+                    "desc": "日本将棋在线对弈"
                 }
             ]
         },
