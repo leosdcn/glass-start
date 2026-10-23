@@ -111,20 +111,105 @@
     transition-timing-function: var(--ease-spring);
 }
 
+.appearance-controls {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1rem;
+    padding: 0.25rem 0 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+.appearance-field { min-width: 0; }
+.appearance-field-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    min-height: 1.25rem;
+    margin-bottom: 0.625rem;
+}
+.appearance-dim-control {
+    display: flex;
+    align-items: center;
+    min-height: 2.25rem;
+}
+.appearance-mode-picker {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.25rem;
+    padding: 0.1875rem;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius-control);
+    background: rgba(0, 0, 0, 0.2);
+}
+@media (min-width: 640px) {
+    .appearance-controls {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        column-gap: 1rem;
+    }
+    .appearance-field { position: relative; }
+    .appearance-dim::before, .appearance-motion::before {
+        content: '';
+        position: absolute;
+        left: -0.5rem;
+        top: 0;
+        bottom: 0;
+        width: 1px;
+        background: rgba(255, 255, 255, 0.1);
+        pointer-events: none;
+    }
+}
+@media (min-width: 640px) and (max-width: 767px) {
+    .appearance-source #urlBgBtnGroup svg { display: none; }
+}
+@media (max-width: 639px) {
+    .appearance-controls { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .appearance-source { grid-column: 1 / -1; }
+    .appearance-motion {
+        padding-left: 0.75rem;
+        border-left: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .appearance-mode-picker { gap: 0.125rem; }
+    .appearance-mode-picker .settings-transition-btn { padding-inline: 0.25rem; }
+}
+@media (pointer: coarse) {
+    .appearance-controls :is(.settings-action, .settings-transition-btn) { min-height: 2.75rem; }
+    .appearance-url-row :is(input, button) { min-height: 2.75rem; }
+}
+
+/* 网格行高由完整卡片决定，图片本身不参与最小内容高度计算。 */
 .preset-bg-card {
     position: relative;
-    aspect-ratio: 16 / 10;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    min-width: 0;
+    align-self: start;
+    padding: 0;
+    border: 0;
     border-radius: var(--radius-control);
+    background: transparent;
+    color: rgba(255, 255, 255, 0.7);
+    text-align: left;
+    transition: transform 0.12s var(--ease-snappy), color 0.16s ease;
+}
+.preset-bg-image {
+    position: relative;
+    display: block;
+    width: 100%;
+    aspect-ratio: 16 / 10;
     overflow: hidden;
-    isolation: isolate;
-    contain: paint;
+    border-radius: var(--radius-control);
     background-color: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.15);
-    transition: border-color 0.25s var(--ease-spring), box-shadow 0.25s var(--ease-spring), transform 0.12s var(--ease-snappy);
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.15);
-    transform: translateZ(0);
+    transition: border-color 0.16s ease, box-shadow 0.16s ease;
 }
 .preset-bg-card img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    pointer-events: none;
     opacity: 0;
     transition: opacity 0.25s var(--ease-exit), transform 0.4s var(--ease-spring);
 }
@@ -134,22 +219,44 @@
 .preset-bg-card img.loaded {
     opacity: 1;
 }
-.preset-bg-card span {
-    border-bottom-left-radius: calc(var(--radius-control) - 1px);
-    border-bottom-right-radius: calc(var(--radius-control) - 1px);
+.preset-bg-title {
+    position: absolute;
+    inset-inline: 1px;
+    bottom: 1px;
+    z-index: 1;
+    padding: 0.375rem 0.25rem;
+    font-size: 0.75rem;
+    line-height: 1rem;
+    font-weight: 500;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.9);
     background: rgba(0, 0, 0, 0.65);
     -webkit-backdrop-filter: blur(var(--blur-sm));
     backdrop-filter: blur(var(--blur-sm));
     border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 0 0 calc(var(--radius-control) - 1px) calc(var(--radius-control) - 1px);
+    pointer-events: none;
 }
+.preset-bg-check {
+    position: absolute;
+    right: 0.5rem;
+    top: 0.5rem;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.25rem;
+    height: 1.25rem;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.95);
+    color: #30343b;
+    opacity: 0;
+    pointer-events: none;
+}
+.preset-bg-check svg { width: 0.8125rem; height: 0.8125rem; }
 @media (hover: hover) and (pointer: fine) {
-    body:not(.tab-blurred) .preset-bg-card:hover:not(:disabled) {
+    body:not(.tab-blurred) .preset-bg-card:hover:not(:disabled) .preset-bg-image {
         border-color: rgba(255, 255, 255, 0.55);
-        box-shadow: 0 8px 16px -2px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.15);
-    }
-    body:not(.tab-blurred) .preset-bg-card:hover:not(:disabled) img {
-        will-change: transform;
-        transform: scale(1.06);
     }
 }
 .preset-bg-card:active:not(:disabled) {
@@ -157,9 +264,14 @@
     transition: transform 0.08s var(--ease-snappy);
 }
 .preset-bg-card.active {
-    border-color: rgba(255, 255, 255, 0.9);
-    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.4);
+    color: #ffffff;
 }
+.preset-bg-card.active .preset-bg-image {
+    border-color: rgba(255, 255, 255, 0.9);
+    outline: 2px solid rgba(255, 255, 255, 0.85);
+    outline-offset: -2px;
+}
+.preset-bg-card.active .preset-bg-check { opacity: 1; }
 
 /* ===== 玻璃高光与指针 3D 倾斜 ===== */
 .bookmark-item, .nav-bookmark {

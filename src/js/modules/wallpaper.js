@@ -163,6 +163,7 @@ export function updatePresetBgCardsUI(customWallpaperOverride) {
         const cardEl = card instanceof HTMLElement ? card : null;
         const bg = cardEl?.dataset.bg;
         card.classList.toggle('active', bg === currentBg);
+        card.setAttribute('aria-pressed', String(bg === currentBg));
     });
 }
 
@@ -314,9 +315,12 @@ export function renderPresetWallpapers() {
         const bg = `./wallpapers/bg${i + 1}.avif`;
         const thumb = `./wallpapers/bg${i + 1}-thumb.avif`;
         const fullTitle = i === 0 ? `${title}（系统默认）` : title;
-        return `<button type="button" class="preset-bg-card group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70" data-bg="${bg}" data-title="${title}" title="${fullTitle}">
-            <img data-src="${thumb}" src="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2016%2010'%3E%3C/svg%3E" width="${CONFIG.UI.WALLPAPER_CARD_WIDTH}" height="${CONFIG.UI.WALLPAPER_CARD_HEIGHT}" alt="${title}" class="w-full h-full object-cover pointer-events-none" loading="lazy" decoding="async" draggable="false">
-            <span class="absolute inset-x-0 bottom-0 py-1.5 px-1 bg-black/65 backdrop-blur-sm border-t border-white/10 text-xs text-white/90 text-center font-medium tracking-tight pointer-events-none flex items-center justify-center">${title}</span>
+        return `<button type="button" class="preset-bg-card group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70" data-bg="${bg}" data-title="${title}" title="${fullTitle}" aria-pressed="false">
+            <span class="preset-bg-image">
+                <img data-src="${thumb}" src="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2016%2010'%3E%3C/svg%3E" width="${CONFIG.UI.WALLPAPER_CARD_WIDTH}" height="${CONFIG.UI.WALLPAPER_CARD_HEIGHT}" alt="" loading="lazy" decoding="async" draggable="false">
+                <span class="preset-bg-check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></span>
+            </span>
+            <span class="preset-bg-title">${title}</span>
         </button>`;
     }).join('');
 }

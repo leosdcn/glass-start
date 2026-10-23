@@ -84,6 +84,69 @@ try {
   await verify('还原并关闭');
   console.log('✅ 动态按钮显式声明类型；弹窗可见性与层叠栈一致，别名修改 display 也能检出');
 
+  // 外观页不能靠压缩网格行高塞进弹窗；窄屏改由内容区滚动，底部操作仍固定。
+  await evalJS('openEditModal()');
+  await evalJS('Promise.all(dom.editModal.getAnimations({subtree:true}).map(a=>a.finished.catch(()=>{})))');
+  for (const [width, height] of [[1920,1080], [1000,800], [768,800], [640,800], [390,844], [320,740]]) {
+    await chrome.send('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor:2, mobile:false });
+    await evalJS("document.getElementById('tab-btn-bookmarks').click()");
+    const panelHeight = await evalJS("parseFloat(getComputedStyle(dom.editModal.querySelector('.glass-strong')).height)");
+    await evalJS("document.getElementById('tab-btn-appearance').click(); new Promise(requestAnimationFrame)");
+    const layout = await evalJS(`(() => {
+      const panel = dom.tabAppearance, grid = dom.presetWallpaperGrid;
+      const cards = [...grid.querySelectorAll('.preset-bg-card')];
+      const rects = cards.map(card=>card.getBoundingClientRect());
+      const controls = [...panel.querySelectorAll('.appearance-field')].map(el=>el.getBoundingClientRect());
+      const noOverlap = rects.every((r,i)=>rects.slice(i+1).every(other=>
+        Math.min(r.right,other.right)-Math.max(r.left,other.left)<1 ||
+        Math.min(r.bottom,other.bottom)-Math.max(r.top,other.top)<1));
+      return {
+        count:cards.length, noOverlap,
+        height:parseFloat(getComputedStyle(dom.editModal.querySelector('.glass-strong')).height),
+        horizontalOverflow:panel.scrollWidth>panel.clientWidth+1,
+        fullGallery:panel.scrollHeight<=panel.clientHeight+1,
+        aligned:Math.max(...controls.map(r=>r.top))-Math.min(...controls.map(r=>r.top))<1,
+        framed:cards.every(card=>{
+          const image=card.querySelector('.preset-bg-image').getBoundingClientRect();
+          const title=card.querySelector('.preset-bg-title').getBoundingClientRect();
+          return Math.abs(image.width/image.height-16/10)<0.02 &&
+            title.top>image.top && title.bottom<=image.bottom &&
+            title.left>=image.left && title.right<=image.right;
+        })
+      };
+    })()`);
+    assert.equal(layout.count, 8);
+    assert.equal(layout.height, panelHeight, `${width}px 切换外观页不能撑高弹窗`);
+    assert.ok(layout.noOverlap && layout.framed && !layout.horizontalOverflow, `${width}px: ${JSON.stringify(layout)}`);
+    if (width>=640) assert.ok(layout.aligned, `${width}px 三组设置保持横排`);
+    if (width===1920) assert.ok(layout.fullGallery, '桌面两排壁纸完整可见');
+    const beforeLink = await evalJS(`({
+      controlsHeight:dom.tabAppearance.querySelector('.appearance-controls').clientHeight,
+      galleryTop:dom.tabAppearance.querySelector('.appearance-gallery').offsetTop
+    })`);
+    await evalJS('dom.urlBgBtn.click()');
+    assert.equal(await evalJS(`document.activeElement===dom.urlBgInput &&
+      !dom.urlBgInputRow.classList.contains('hidden') &&
+      dom.urlBgInputRow.closest('.appearance-source')!==null &&
+      Math.abs(dom.urlBgInputRow.getBoundingClientRect().width-dom.urlBgBtn.closest('.appearance-source').getBoundingClientRect().width)<1`), true,
+      `${width}px 网络直链输入在自定义壁纸列原位展开并获得焦点`);
+    assert.deepEqual(await evalJS(`({
+      controlsHeight:dom.tabAppearance.querySelector('.appearance-controls').clientHeight,
+      galleryTop:dom.tabAppearance.querySelector('.appearance-gallery').offsetTop
+    })`), beforeLink, `${width}px 展开直链输入不增高设置区或推移壁纸`);
+    await evalJS('dom.urlBgCancelBtn.click()');
+    assert.equal(await evalJS("dom.urlBgInputRow.classList.contains('hidden') && !dom.urlBgBtnGroup.classList.contains('hidden')"), true);
+  }
+  await chrome.send('Emulation.setDeviceMetricsOverride', {width:1920,height:1080,deviceScaleFactor:2,mobile:false});
+  await evalJS("document.querySelector('#settingsTransitionGrid [data-mode=sheet]').click()");
+  assert.equal(await evalJS("document.documentElement.dataset.transitionMode==='sheet' && document.querySelector('#settingsTransitionGrid [data-mode=sheet]').getAttribute('aria-pressed')==='true'"), true);
+  await evalJS('dom.presetWallpaperGrid.querySelectorAll("button")[2].querySelector("svg").dispatchEvent(new MouseEvent("click",{bubbles:true}))');
+  await waitFor(evalJS, 'state.bg===2 && dom.presetWallpaperGrid.querySelectorAll("button")[2].getAttribute("aria-pressed")==="true"');
+  assert.equal(await evalJS('dom.presetWallpaperGrid.querySelectorAll("button[aria-pressed=true]").length'), 1);
+  await evalJS("document.querySelector('#settingsTransitionGrid [data-mode=classic]').click(); cancelEditModal()");
+  assert.equal(await evalJS('state.bg'), 2, '取消设置仍保留已经保存的壁纸');
+  console.log('✅ 外观横排保留弹窗高度；六种视口下缩略图无重叠，直链原位展开不推移壁纸，选中态同步');
+
   // 同时启用两个系统偏好时，降低透明度仍必须关闭模糊；弹窗不能覆盖实色降级。
   await evalJS('openEditModal()');
   const wasBright = await evalJS("document.documentElement.classList.contains('wallpaper-bright')");

@@ -68,15 +68,13 @@ export function bindEditEvents() {
         });
     });
 
-    document.querySelectorAll('.preset-bg-card').forEach(card => {
-        card.addEventListener('click', e => {
-            e.stopPropagation();
-            const cardEl = card instanceof HTMLElement ? card : null;
-            const url = cardEl?.dataset.bg;
-            if (url) {
-                previewDraftWallpaper(url);
-            }
-        });
+    // 卡片在首次打开外观页时生成，监听稳定的网格容器。
+    dom.presetWallpaperGrid?.addEventListener('click', e => {
+        const card = e.target instanceof Element ? e.target.closest('.preset-bg-card') : null;
+        if (!(card instanceof HTMLElement) || !dom.presetWallpaperGrid?.contains(card)) return;
+        e.stopPropagation();
+        const url = card.dataset.bg;
+        if (url) previewDraftWallpaper(url);
     });
 
     // JSON 拖拽 Dropzone 交互绑定

@@ -397,75 +397,71 @@
             </div>
 
             <!-- Tab 内容 2: 外观与壁纸 (tabAppearance) -->
-            <div id="tabAppearance" role="tabpanel" aria-labelledby="tab-btn-appearance" class="settings-tab-panel flex-1 flex flex-col min-h-0 overflow-y-auto hidden space-y-3 pr-0.5">
-                <!-- 上半部分：自定义壁纸与背景暗度左右双列布局 -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 shrink-0">
+            <div id="tabAppearance" role="tabpanel" aria-labelledby="tab-btn-appearance" class="settings-tab-panel flex-1 flex flex-col min-h-0 overflow-y-auto hidden gap-4 pr-0.5">
+                <!-- 桌面横排三组设置；直链输入原位替换，窄屏自然换行。 -->
+                <div class="appearance-controls shrink-0">
                     <!-- 自定义壁纸 -->
-                    <div class="p-3.5 glass-subcard space-y-2 flex flex-col justify-between">
-                        <div class="flex items-center justify-between">
+                    <div class="appearance-field appearance-source">
+                        <div class="appearance-field-heading">
                             <span class="text-xs font-semibold text-white/80 flex items-center gap-1.5">
                                 <svg class="size-4 text-white/60" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z"/></svg>
                                 自定义壁纸
                             </span>
-                            <span id="wallpaperStatus" class="hidden text-2xs text-emerald-400/90 font-medium">已使用自定义壁纸</span>
+                            <button id="resetBgBtn" type="button" class="hidden text-2xs text-white/65 enabled:hover:text-white glass-interactive rounded-control px-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50">恢复默认</button>
                         </div>
-                        <div class="mt-1">
+                        <div>
                             <div id="urlBgBtnGroup" class="flex gap-2">
-                                <button id="uploadBgBtn" type="button" class="settings-action flex-1 h-9 px-3 text-xs glass-interactive flex items-center justify-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"><svg class="size-3.5 shrink-0 opacity-80" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M2.25 12.75V12A2.25 2.25 0 0 1 4.5 9.75h15A2.25 2.25 0 0 1 21.75 12v.75m-8.69-6.44-2.12-2.12a1.5 1.5 0 0 0-1.061-.44H4.5A2.25 2.25 0 0 0 2.25 6v12a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9a2.25 2.25 0 0 0-2.25-2.25h-5.379a1.5 1.5 0 0 1-1.06-.44Z"/></svg> 本地图片</button>
-                                <button id="urlBgBtn" type="button" class="settings-action flex-1 h-9 px-3 text-xs glass-interactive flex items-center justify-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"><svg class="size-3.5 shrink-0 opacity-80" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244"/></svg> 网络直链</button>
-                                <button id="resetBgBtn" type="button" class="h-9 px-3 bg-white/5 enabled:hover:bg-white/10 border border-white/10 rounded-control text-xs text-white/50 enabled:hover:text-red-400 glass-interactive hidden flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50">恢复默认</button>
+                                <button id="uploadBgBtn" type="button" class="settings-action flex-1 min-w-0 h-9 px-2 text-xs glass-interactive flex items-center justify-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"><svg class="size-3.5 shrink-0 opacity-80" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M2.25 12.75V12A2.25 2.25 0 0 1 4.5 9.75h15A2.25 2.25 0 0 1 21.75 12v.75m-8.69-6.44-2.12-2.12a1.5 1.5 0 0 0-1.061-.44H4.5A2.25 2.25 0 0 0 2.25 6v12a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9a2.25 2.25 0 0 0-2.25-2.25h-5.379a1.5 1.5 0 0 1-1.06-.44Z"/></svg> 本地图片</button>
+                                <button id="urlBgBtn" type="button" class="settings-action flex-1 min-w-0 h-9 px-2 text-xs glass-interactive flex items-center justify-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"><svg class="size-3.5 shrink-0 opacity-80" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244"/></svg> 网络直链</button>
                                 <input type="file" id="uploadBgInput" name="uploadBgInput" accept="image/*" class="hidden" aria-label="上传自定义壁纸">
                             </div>
-                            <div id="urlBgInputRow" class="hidden flex items-center gap-1.5">
+                            <div id="urlBgInputRow" class="appearance-url-row hidden flex items-center gap-1.5">
                                 <input type="text" id="urlBgInput" name="urlBgInput" inputmode="url" autocapitalize="off" autocomplete="off" spellcheck="false"
                                     class="flex-1 h-9 min-w-0 bg-black/35 hover:bg-black/45 focus:bg-black/55 border border-white/15 focus:border-white/40 rounded-control px-3 text-base mouse-desktop:text-xs text-white/90 focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:outline-none outline-none transition-colors font-mono placeholder:text-white/30"
-                                    placeholder="粘贴 https://... 图片直链" aria-label="图片 URL 地址">
+                                    placeholder="粘贴 https://..." aria-label="图片 URL 地址">
                                 <button type="button" id="urlBgConfirmBtn" class="shrink-0 h-9 px-3.5 bg-white/15 enabled:hover:bg-white/25 enabled:active:scale-95 border border-white/20 rounded-control text-xs font-medium text-white glass-interactive flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 disabled:opacity-50 disabled:cursor-not-allowed" aria-label="应用图片 URL">应用</button>
                                 <button type="button" id="urlBgCancelBtn" class="shrink-0 h-9 px-2.5 text-xs text-white/50 enabled:hover:text-white/90 enabled:hover:bg-white/10 enabled:active:scale-95 rounded-control glass-interactive flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" aria-label="取消输入图片 URL">取消</button>
                             </div>
                         </div>
                     </div>
 
-                    <!-- 背景暗度调节 -->
-                    <div class="p-3.5 glass-subcard space-y-2 flex flex-col justify-between">
-                        <span class="text-xs font-semibold text-white/80 flex items-center gap-1.5">
-                            <svg class="size-4 text-white/60 shrink-0" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M6 13.5V3.75m0 9.75a1.5 1.5 0 0 1 0 3m0-3a1.5 1.5 0 0 0 0 3m0 3.75V16.5m12-3V3.75m0 9.75a1.5 1.5 0 0 1 0 3m0-3a1.5 1.5 0 0 0 0 3m0 3.75V16.5m-6-9V3.75m0 3.75a1.5 1.5 0 0 1 0 3m0-3a1.5 1.5 0 0 0 0 3m0 9.75V10.5"/></svg> 背景暗度
-                        </span>
-                        <div>
-                            <!-- 遮罩透明度 -->
-                            <div class="space-y-1">
-                                <div class="flex items-center justify-between text-2xs-plus text-white/70">
-                                    <span>暗色遮罩</span>
-                                    <span id="maskOpacityVal" class="font-mono text-white/90">20%</span>
-                                </div>
-                                <input type="range" id="maskOpacityInput" name="maskOpacityInput" min="5" max="80" value="20" aria-label="背景暗色遮罩透明度" aria-valuenow="20" aria-valuetext="20%" class="w-full h-1.5 bg-white/20 rounded-lg appearance-none cursor-pointer accent-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 disabled:opacity-40 disabled:cursor-not-allowed">
-                            </div>
+                    <div class="appearance-field appearance-dim">
+                        <div class="appearance-field-heading">
+                            <label for="maskOpacityInput" class="text-xs font-semibold text-white/80 flex items-center gap-1.5">
+                                <svg class="size-4 text-white/60 shrink-0" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M6 13.5V3.75m0 9.75a1.5 1.5 0 0 1 0 3m0-3a1.5 1.5 0 0 0 0 3m0 3.75V16.5m12-3V3.75m0 9.75a1.5 1.5 0 0 1 0 3m0-3a1.5 1.5 0 0 0 0 3m0 3.75V16.5m-6-9V3.75m0 3.75a1.5 1.5 0 0 1 0 3m0-3a1.5 1.5 0 0 0 0 3m0 9.75V10.5"/></svg> 背景暗度
+                            </label>
+                            <span id="maskOpacityVal" class="text-xs font-mono text-white/90">20%</span>
+                        </div>
+                        <div class="appearance-dim-control">
+                            <input type="range" id="maskOpacityInput" name="maskOpacityInput" min="5" max="80" value="20" aria-label="背景暗色遮罩透明度" aria-valuenow="20" aria-valuetext="20%" class="w-full h-1.5 bg-white/20 rounded-lg appearance-none cursor-pointer accent-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 disabled:opacity-40 disabled:cursor-not-allowed">
+                        </div>
+                    </div>
+                    <!-- 切屏动效：按钮直接表达当前选项 -->
+                    <div class="appearance-field appearance-motion">
+                        <div class="appearance-field-heading">
+                            <span class="text-xs font-semibold text-white/80 flex items-center gap-1.5">
+                                <svg class="size-4 text-white/60 shrink-0" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M3 7.5 7.5 3m0 0L12 7.5M7.5 3v13.5m13.5 0L16.5 21m0 0L12 16.5m4.5 4.5V7.5"/></svg> 切屏动效
+                            </span>
+                        </div>
+                        <div class="appearance-mode-picker" id="settingsTransitionGrid" role="group" aria-label="切屏动效选项">
+                            <button type="button" data-mode="sheet" class="settings-transition-btn min-w-0 px-2 py-2 glass-interactive rounded-control text-xs font-medium border border-transparent text-center transition-colors" aria-label="卡片层叠切屏动效">卡片层叠</button>
+                            <button type="button" data-mode="classic" class="settings-transition-btn min-w-0 px-2 py-2 glass-interactive rounded-control text-xs font-medium border border-transparent text-center transition-colors" aria-label="经典推移切屏动效">经典推移</button>
                         </div>
                     </div>
                 </div>
-                <!-- 双屏切屏动效风格 (Apple 风格多模式选择) -->
-                <div class="p-3.5 glass-subcard space-y-2 shrink-0">
-                    <div class="flex items-center justify-between">
-                        <span class="text-xs font-semibold text-white/80 flex items-center gap-1.5">
-                            <svg class="size-4 text-white/60 shrink-0" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456Z"/></svg> 切屏动效风格 (Apple 风格)
-                        </span>
-                        <span id="currentTransitionBadge" class="glass-badge">当前：卡片层叠</span>
-                    </div>
-                    <div class="grid grid-cols-2 gap-1.5" id="settingsTransitionGrid" role="group" aria-label="切屏动效选项">
-                        <button type="button" data-mode="sheet" class="settings-transition-btn px-2 py-2 glass-interactive rounded-control text-2xs font-medium border border-white/10 text-center transition-colors">卡片层叠</button>
-                        <button type="button" data-mode="classic" class="settings-transition-btn px-2 py-2 glass-interactive rounded-control text-2xs font-medium border border-white/10 text-center transition-colors">经典推移</button>
-                    </div>
-                </div>
 
-                <!-- 下半部分：官方精选壁纸 (移动端自然展开防堆叠，桌面端 sm:flex-1 自动撑满) -->
-                <div class="p-3.5 glass-subcard shrink-0 sm:flex-1 flex flex-col justify-between sm:min-h-0 space-y-2.5">
+                <!-- 卡片保留完整比例，名称叠在底部；网格不足时由面板滚动，不能压缩行高。 -->
+                <div class="appearance-gallery flex flex-col gap-2.5 shrink-0">
                     <div class="flex items-center justify-between shrink-0">
                         <span class="text-xs font-semibold text-white/80 flex items-center gap-1.5">
-                            <svg class="size-4 text-white/60 shrink-0" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z"/></svg> 官方精选壁纸
+                            <svg class="size-4 text-white/60 shrink-0" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z"/></svg> 精选壁纸
                         </span>
-                        <span class="text-2xs text-white/55">即选即存</span>
+                        <div class="flex flex-wrap items-center justify-end gap-x-3 gap-y-1">
+                            <span id="wallpaperStatus" class="hidden text-2xs text-emerald-400/90 font-medium">已使用自定义壁纸</span>
+                            <span class="text-2xs text-white/55">即选即存</span>
+                        </div>
                     </div>
-                    <div id="presetWallpaperGrid" class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 shrink-0 sm:flex-1 sm:min-h-0"></div>
+                    <div id="presetWallpaperGrid" class="grid grid-cols-2 sm:grid-cols-4 gap-3"></div>
                 </div>
             </div>
 
