@@ -26,7 +26,7 @@ try {
     await send('Tracing.start',{categories:'devtools.timeline',transferMode:'ReportEvents'});
     await evalJS(`(async () => {
         for(let i=0;i<30;i++){
-            renderCard.dispatchEvent(new MouseEvent('mousemove',{bubbles:true,
+            renderCard.dispatchEvent(new PointerEvent('pointermove',{bubbles:true,pointerType:'mouse',
                 clientX:renderPoint.x+(i%10),clientY:renderPoint.y+(i%4)}));
             await new Promise(requestAnimationFrame);
         }

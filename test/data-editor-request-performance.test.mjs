@@ -65,6 +65,21 @@ try {
     })()`),true);
     assert.equal(external.length,before);
     console.log('✅ 关闭设置后未执行的图标预览不会继续创建图片和联网请求');
+
+    await evalJS(`(async () => {
+        await openEditModal();
+        renderEditList(pageData.bookmarks.slice(0,2));
+        const rows = [...dom.editList.querySelectorAll('.edit-row-card')];
+        rows.forEach((row,i) => {
+            const input = row.querySelector('.edit-url');
+            input.value = 'https://row-' + i + '.example/';
+            input.dispatchEvent(new Event('input',{bubbles:true}));
+        });
+    })()`);
+    await waitFor(async () => external.some(url=>url.includes('row-0.example')) && external.some(url=>url.includes('row-1.example')), 'true');
+    assert.deepEqual(await evalJS('modalState.draftBookmarks.map(bm=>bm.url)'), ['https://row-0.example/','https://row-1.example/']);
+    await evalJS('cancelEditModal()');
+    console.log('✅ 两行快速修改 URL 均独立更新图标预览，草稿地址正确');
 } finally {
     await chrome.close();
     await server.close();

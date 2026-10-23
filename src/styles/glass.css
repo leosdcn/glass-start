@@ -259,9 +259,9 @@ body:not(.tab-blurred) .nav-bookmark:not(.is-clicked):active {
     contain: layout style;
 }
 
-/* 导航页书签行悬停时显示右箭头并微移 */
+/* 仅悬停设备生成右箭头，避免触屏上的透明箭头占据文字空间。 */
 .nav-bookmark::after {
-    content: '';
+    content: none;
     width: 0.875rem;
     height: 0.875rem;
     background-color: currentColor;
@@ -280,6 +280,9 @@ body:not(.tab-blurred) .nav-bookmark:not(.is-clicked):active {
     color: rgba(255, 255, 255, 0.25);
 }
 @media (hover: hover) and (pointer: fine) {
+    .nav-bookmark::after {
+        content: '';
+    }
     body:not(.tab-blurred) .nav-bookmark:hover::after {
         opacity: 1;
         transform: translateX(0.125rem);

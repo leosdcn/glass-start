@@ -132,8 +132,8 @@ export function bindEditEvents() {
     }
 
     if (dom.editList) {
-        /** @type {ReturnType<typeof setTimeout>|null} */
-        let editFaviconDebounceTimer = null;
+        /** 每行独立防抖，避免编辑下一行时取消上一行的预览。 @type {WeakMap<HTMLElement, ReturnType<typeof setTimeout>>} */
+        const editFaviconTimers = new WeakMap();
         dom.editList.addEventListener('input', (e) => {
             const target = e.target instanceof HTMLInputElement ? e.target : null;
             const row = /** @type {HTMLElement|null} */ (target?.closest('.edit-row-card'));
@@ -160,13 +160,15 @@ export function bindEditEvents() {
                 }
 
                 if (target.classList.contains('edit-url')) {
-                    if (editFaviconDebounceTimer) clearTimeout(editFaviconDebounceTimer);
-                    editFaviconDebounceTimer = setTimeout(() => {
+                    const previousTimer = editFaviconTimers.get(row);
+                    if (previousTimer !== undefined) clearTimeout(previousTimer);
+                    editFaviconTimers.set(row, setTimeout(() => {
+                        editFaviconTimers.delete(row);
                         if (!state.editOpen || !row.isConnected || !modalState.draftBookmarks.includes(item)) return;
                         faviconBox.innerHTML = getEditFaviconInner(item.name, item.url);
                         const newImg = /** @type {HTMLImageElement|null} */ (faviconBox.querySelector('.edit-favicon-img'));
                         if (newImg) checkImageReady(newImg, handleEditIconError);
-                    }, CONFIG.SUGGEST.DEBOUNCE_MS);
+                    }, CONFIG.SUGGEST.DEBOUNCE_MS));
                 }
             }
         });

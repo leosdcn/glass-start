@@ -16,6 +16,24 @@ let navWasAtTop = true;
 let navTopArrivalTime = -Infinity;
 /** @type {{ id: number, x: number, y: number, time: number, canReturn: boolean }|null} */
 let touch = null;
+let navTouchMoveBlocked = false;
+
+function clearTouchGesture() {
+    touch = null;
+}
+
+/** 局部监听必须在手指落下前安装，才能可靠取消真实浏览器滚动。 @param {Event} event */
+function handleActiveTouchMove(event) {
+    handleTouch(/** @type {TouchEvent} */ (event), false, true);
+}
+
+function syncNavTouchMove() {
+    const block = isNavAtTop();
+    if (block === navTouchMoveBlocked || !dom.navContent) return;
+    navTouchMoveBlocked = block;
+    if (block) dom.navContent.addEventListener('touchmove', handleActiveTouchMove, { passive: false });
+    else dom.navContent.removeEventListener('touchmove', handleActiveTouchMove);
+}
 
 export function resetScreenInput() {
     wheelTime = -Infinity;
@@ -24,7 +42,8 @@ export function resetScreenInput() {
     wheelConsumed = false;
     navWasAtTop = isNavAtTop();
     navTopArrivalTime = -Infinity;
-    touch = null;
+    clearTouchGesture();
+    syncNavTouchMove();
 }
 
 /** @param {EventTarget|null} target */
@@ -39,6 +58,8 @@ function isNavAtTop() {
 /** @param {Event} e */
 function recordNavScroll(e) {
     const atTop = isNavAtTop();
+    syncNavTouchMove();
+    if (!atTop && state.currentSection === 'nav') clearTouchGesture();
     if (atTop && !navWasAtTop) navTopArrivalTime = e.timeStamp;
     navWasAtTop = atTop;
 }
@@ -91,8 +112,9 @@ function handleWheel(e) {
 
 /** @param {TouchEvent} e */
 function handleTouchStart(e) {
-    touch = null;
+    clearTouchGesture();
     if (isScreenTransitioning() || !OverlayStack.isEmpty() || isExcluded(e.target) || e.touches.length !== 1) return;
+    if (state.currentSection === 'nav' && !isNavAtTop()) return;
     const point = e.touches[0];
     touch = { id: point.identifier, x: point.clientX, y: point.clientY, time: performance.now(), canReturn: isNavAtTop() };
 }
@@ -102,21 +124,25 @@ function handleTouchStart(e) {
  * 是否允许返回在手指落下时确定，滑动中滚到顶部不会改成切屏。
  * @param {TouchEvent} e
  * @param {boolean} ending
+ * @param {boolean} [cancelScroll]
  */
-function handleTouch(e, ending) {
+function handleTouch(e, ending, cancelScroll = false) {
     const gesture = touch;
     if (!gesture) return;
     if (isScreenTransitioning() || !OverlayStack.isEmpty() || (!ending && e.touches.length !== 1)) {
-        touch = null;
+        clearTouchGesture();
         return;
     }
-    if (state.currentSection === 'nav' && !isNavAtTop()) gesture.canReturn = false;
+    if (state.currentSection === 'nav' && !isNavAtTop()) {
+        clearTouchGesture();
+        return;
+    }
     const points = ending ? e.changedTouches : e.touches;
     const point = Array.from(points).find(item => item.identifier === gesture.id);
     if (!point) return;
     const dy = gesture.y - point.clientY;
     const dx = gesture.x - point.clientX;
-    if (ending) touch = null;
+    if (ending) clearTouchGesture();
     if (Math.abs(dx) > Math.abs(dy)) return;
     const distance = Math.abs(dy);
     const flick = ending && distance >= CONFIG.GESTURE.FLICK_MIN_DISTANCE
@@ -125,8 +151,8 @@ function handleTouch(e, ending) {
     const entering = state.currentSection === 'start' && dy > 0;
     const leaving = state.currentSection === 'nav' && dy < 0 && gesture.canReturn && isNavAtTop();
     if (!entering && !leaving) return;
-    touch = null;
-    if (!ending && e.cancelable) e.preventDefault();
+    clearTouchGesture();
+    if (!ending && cancelScroll && e.cancelable) e.preventDefault();
     if (entering) switchToNav();
     else switchToStart();
 }
@@ -137,7 +163,12 @@ export function initScreenGestures() {
     // 平时仅观察意图，允许浏览器独立滚动；切屏期的临时阻止由屏幕模块管理。
     document.addEventListener('wheel', handleWheel, { passive: true });
     document.addEventListener('touchstart', handleTouchStart, { passive: true });
-    document.addEventListener('touchmove', e => handleTouch(e, false), { passive: false });
+    // 首屏没有原生内容滚动；导航列表仅在顶部准备下滑返回，中间滚动不拦截。
+    dom.startSection?.addEventListener('touchmove', handleActiveTouchMove, { passive: false });
+    document.addEventListener('touchmove', e => handleTouch(e, false), { passive: true });
     document.addEventListener('touchend', e => handleTouch(e, true), { passive: true });
-    document.addEventListener('touchcancel', () => { touch = null; }, { passive: true });
+    document.addEventListener('touchcancel', clearTouchGesture, { passive: true });
+    window.addEventListener('blur', clearTouchGesture, { passive: true });
+    window.addEventListener('pagehide', clearTouchGesture, { passive: true });
+    document.addEventListener('visibilitychange', () => { if (document.hidden) clearTouchGesture(); }, { passive: true });
 }

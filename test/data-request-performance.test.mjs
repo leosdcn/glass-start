@@ -48,6 +48,49 @@ try {
     assert.deepEqual(jsonp, {shared:true, staleDiscarded:true, cachedEmpty:true, cacheRaceDiscarded:true});
     console.log('✅ JSONP 同查询只请求／渲染一次，输入防抖期间丢弃旧响应，空结果复用缓存');
 
+    const selection = await evalJS(`(() => {
+        const append = document.body.appendChild;
+        document.body.appendChild = function(node) {
+            if (node.tagName === 'SCRIPT') node.type = 'application/x-test';
+            return append.call(this, node);
+        };
+        try {
+            const begin = query => {
+                dom.searchInput.value = query;
+                dom.searchInput.dispatchEvent(new Event('input', {bubbles:true}));
+                fetchSuggestions('bing', query);
+            };
+            begin('chat');
+            dom.suggestionMenu.querySelector('.suggestion-item').dispatchEvent(new MouseEvent('mouseover', {bubbles:true}));
+            const before = dom.searchInput.value;
+            window['__glassSuggestCb_' + activeSuggestReqId](['chat',['chat result','chat other']]);
+            const hoverPreserved = before === 'chat' && dom.searchInput.value === 'chat' &&
+                dom.suggestionMenu.querySelector('[data-idx="0"]').classList.contains('active');
+            const observer = new MutationObserver(()=>{});
+            observer.observe(dom.suggestionMenu, {attributes:true, subtree:true});
+            const item = dom.suggestionMenu.querySelector('[data-idx="0"]');
+            for (let i=0; i<30; i++) item.dispatchEvent(new MouseEvent('mouseover',{bubbles:true}));
+            const repeatedWrites = observer.takeRecords().length;
+            dom.suggestionMenu.querySelector('[data-idx="1"]').dispatchEvent(new MouseEvent('mouseover',{bubbles:true}));
+            const changedWrites = observer.takeRecords().length;
+            observer.disconnect();
+            const uniqueSelection = dom.suggestionMenu.querySelectorAll('[aria-selected="true"]').length === 1;
+            hideSuggestions();
+
+            begin('chatg');
+            dom.searchInput.focus();
+            dom.searchInput.dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowDown',bubbles:true,cancelable:true}));
+            const keyboardValue = dom.searchInput.value;
+            window['__glassSuggestCb_' + activeSuggestReqId](['chatg',['chatg result']]);
+            const keyboardPreserved = keyboardValue !== 'chatg' && dom.searchInput.value === keyboardValue &&
+                dom.suggestionMenu.querySelector('[data-idx="0"]').classList.contains('active');
+            dom.searchInput.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}));
+            return {hoverPreserved,repeatedWrites,changedWrites,uniqueSelection,keyboardPreserved,escaped:dom.searchInput.value === 'chatg'};
+        } finally { hideSuggestions(); document.body.appendChild = append; }
+    })()`);
+    assert.deepEqual(selection, {hoverPreserved:true,repeatedWrites:0,changedWrites:4,uniqueSelection:true,keyboardPreserved:true,escaped:true});
+    console.log('✅ 网络返回保留鼠标原查询与键盘填词；同项重复悬停零写入，换项只更新两个节点');
+
     const cors = await evalJS(`(async () => {
         const original = window.fetch;
         const requests = [];

@@ -33,15 +33,19 @@ export function initGlassSpotlightAndTilt() {
     if (typeof window === 'undefined') return;
     if (isGlassSpotlightAndTiltInitialized) return;
 
-    const mediaHover = window.matchMedia && window.matchMedia('(hover: hover)');
+    const mediaHover = window.matchMedia && window.matchMedia('(hover: hover) and (pointer: fine)');
     const mediaMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)');
 
-    if (!mediaHover || !mediaHover.matches) return;
+    if (!mediaHover) return;
     isGlassSpotlightAndTiltInitialized = true;
 
     const canAnimate = () => mediaHover.matches && !mediaMotion?.matches && !document.hidden
         && !document.body.classList.contains('tab-blurred')
         && !document.body.classList.contains('is-screen-transitioning') && state.currentSection === 'nav';
+
+    mediaHover.addEventListener('change', e => {
+        if (!e.matches) resetActiveCard();
+    });
 
     if (mediaMotion && mediaMotion.addEventListener) {
         mediaMotion.addEventListener('change', (e) => {
@@ -104,6 +108,7 @@ export function initGlassSpotlightAndTilt() {
     }
 
     document.addEventListener('pointerdown', (e) => {
+        if (e.pointerType !== 'mouse') { resetActiveCard(); return; }
         if (typeof state !== 'undefined' && state.currentSection !== 'nav') return;
         const targetEl = e.target instanceof Element ? e.target : null;
         const card = /** @type {HTMLElement|null} */ (targetEl?.closest?.('.nav-bookmark'));
@@ -113,6 +118,7 @@ export function initGlassSpotlightAndTilt() {
     }, { passive: true });
 
     document.addEventListener('pointerup', (e) => {
+        if (e.pointerType !== 'mouse') { resetActiveCard(); return; }
         if (activeCard) {
             pendingEvent = e;
             if (rafId === null) {
@@ -121,8 +127,11 @@ export function initGlassSpotlightAndTilt() {
         }
     }, { passive: true });
 
-    document.addEventListener('mousemove', (e) => {
-        if (!activeCard && typeof state !== 'undefined' && state.currentSection !== 'nav') return;
+    document.addEventListener('pointermove', (e) => {
+        if (e.pointerType !== 'mouse' || !canAnimate()) {
+            if (activeCard) resetActiveCard();
+            return;
+        }
         const targetEl = e.target instanceof Element ? e.target : null;
         const card = /** @type {HTMLElement|null} */ (targetEl?.closest?.('.nav-bookmark'));
         if (card) {

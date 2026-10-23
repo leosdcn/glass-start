@@ -138,7 +138,7 @@ export function bindEvents() {
             activateSuggestion(Number(item.dataset.idx), isNewTab);
         });
         suggestionMenu.addEventListener('mouseover', e => {
-            suggestionMenu.classList.remove('keyboard-nav');
+            if (suggestionMenu.classList.contains('keyboard-nav')) suggestionMenu.classList.remove('keyboard-nav');
             const targetEl = e.target instanceof Element ? e.target : null;
             const item = /** @type {HTMLElement|null} */ (targetEl?.closest('.suggestion-item'));
             if (!item || !item.dataset.idx) return;

@@ -40,7 +40,7 @@ try {
             return rect.top > box.top && rect.bottom < box.bottom;
         });
         const rect = __hoveredNavCard.getBoundingClientRect();
-        __hoveredNavCard.dispatchEvent(new MouseEvent('mousemove',{bubbles:true,clientX:rect.x+10,clientY:rect.y+10}));
+        __hoveredNavCard.dispatchEvent(new PointerEvent('pointermove',{bubbles:true,pointerType:'mouse',clientX:rect.x+10,clientY:rect.y+10}));
     })()`);
     await waitFor(evalJS, '__hoveredNavCard.style.transform.includes("perspective")');
 
@@ -63,7 +63,7 @@ try {
         switchToNav();
         const card = document.querySelector('.nav-bookmark');
         const rect = card.getBoundingClientRect();
-        card.dispatchEvent(new MouseEvent('mousemove',{bubbles:true,clientX:rect.x+10,clientY:rect.y+10}));
+        card.dispatchEvent(new PointerEvent('pointermove',{bubbles:true,pointerType:'mouse',clientX:rect.x+10,clientY:rect.y+10}));
     })()`);
     await evalJS('(async () => { await new Promise(requestAnimationFrame); await new Promise(requestAnimationFrame); })()');
     assert.equal(await evalJS('document.querySelector(".nav-bookmark").style.transform'), '');

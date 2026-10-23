@@ -10,6 +10,11 @@ import { OverlayStack } from '../core/overlay-stack.js';
 /** @type {import('../types').SuggestionItem[]} */
 let suggestionItems = [];
 let lastSuggestionsSignature = '';
+/** @type {NodeListOf<HTMLElement> | HTMLElement[]} */
+let suggestionNodes = [];
+/** @type {HTMLElement | null} */
+let selectedSuggestionNode = null;
+let selectionUpdatesInput = false;
 export function getSuggestionCount() { return suggestionItems.length; }
 /**
  * @param {number} index
@@ -28,19 +33,27 @@ export function selectSuggestion(index, { keyboard = false, updateInput = true }
     const menu = dom.suggestionMenu;
     const input = dom.searchInput;
     selectedSuggestionIdx = suggestionItems[index] ? index : -1;
-    const nodes = menu?.querySelectorAll('.suggestion-item') || [];
-    nodes.forEach((node, i) => {
-        node.classList.toggle('active', i === selectedSuggestionIdx);
-        node.setAttribute('aria-selected', String(i === selectedSuggestionIdx));
-    });
-    if (keyboard) menu?.classList.add('keyboard-nav');
+    selectionUpdatesInput = updateInput;
+    const node = suggestionNodes[selectedSuggestionIdx] || null;
+    const changed = node !== selectedSuggestionNode;
+    if (changed) {
+        selectedSuggestionNode?.classList.remove('active');
+        selectedSuggestionNode?.setAttribute('aria-selected', 'false');
+        node?.classList.add('active');
+        node?.setAttribute('aria-selected', 'true');
+        selectedSuggestionNode = node;
+    }
+    if (keyboard && !menu?.classList.contains('keyboard-nav')) menu?.classList.add('keyboard-nav');
     const item = suggestionItems[selectedSuggestionIdx];
     if (input) {
-        if (updateInput) input.value = item?.text ?? originalQuery;
-        if (item) input.setAttribute('aria-activedescendant', 'sug-opt-' + selectedSuggestionIdx);
-        else input.removeAttribute('aria-activedescendant');
+        if (updateInput && input.value !== (item?.text ?? originalQuery)) input.value = item?.text ?? originalQuery;
+        const activeId = item ? 'sug-opt-' + selectedSuggestionIdx : null;
+        if (input.getAttribute('aria-activedescendant') !== activeId) {
+            if (activeId) input.setAttribute('aria-activedescendant', activeId);
+            else input.removeAttribute('aria-activedescendant');
+        }
     }
-    if (keyboard && item) nodes[selectedSuggestionIdx]?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    if (keyboard && changed && item) node?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
 }
 /** @type {HTMLScriptElement | null} */
 export let suggestionScriptTag = null;
@@ -352,6 +365,7 @@ function renderSuggestions(localList = [], netList = [], preserveSelection = fal
     const searchInput = dom.searchInput;
     if (!suggestionMenu) return;
     const prevIdx = preserveSelection ? selectedSuggestionIdx : -1;
+    const restoreInput = selectionUpdatesInput;
     const maxNetCount = Math.max(0, CONFIG.SUGGEST.MAX_TOTAL_ITEMS - (localList ? localList.length : 0));
     const safeNetList = (netList || []).slice(0, maxNetCount);
     const signature = JSON.stringify([localList, safeNetList, isNetLoading]);
@@ -451,6 +465,8 @@ function renderSuggestions(localList = [], netList = [], preserveSelection = fal
     const range = document.createRange();
     const fragment = range.createContextualFragment(html);
     suggestionMenu.replaceChildren(fragment);
+    suggestionNodes = suggestionMenu.querySelectorAll('.suggestion-item');
+    selectedSuggestionNode = null;
     lastSuggestionsSignature = signature;
     suggestionMenu.classList.add('active');
     suggestionMenu.setAttribute('aria-hidden', 'false');
@@ -459,7 +475,7 @@ function renderSuggestions(localList = [], netList = [], preserveSelection = fal
         OverlayStack.push('suggestions', hideSuggestions);
     }
 
-    if (prevIdx >= 0) selectSuggestion(Math.min(prevIdx, suggestionItems.length - 1));
+    if (prevIdx >= 0) selectSuggestion(Math.min(prevIdx, suggestionItems.length - 1), { updateInput: restoreInput });
     else searchInput?.removeAttribute('aria-activedescendant');
 }
 
@@ -469,6 +485,9 @@ function renderSuggestions(localList = [], netList = [], preserveSelection = fal
  */
 export function hideSuggestions() {
     suggestionItems = [];
+    suggestionNodes = [];
+    selectedSuggestionNode = null;
+    selectionUpdatesInput = false;
     lastSuggestionsSignature = '';
     if (suggestDebounceTimer !== null) {
         clearTimeout(suggestDebounceTimer);
