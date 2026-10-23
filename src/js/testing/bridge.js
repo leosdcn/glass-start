@@ -78,6 +78,7 @@ Object.assign(window, {
     handleIconError: bookmarks.handleIconError,
     renderBookmarks: bookmarks.renderBookmarks,
     renderNavCategories: bookmarks.renderNavCategories,
+    preloadVisibleNavIcons: bookmarks.preloadVisibleNavIcons,
     updateSidebarActive: bookmarks.updateSidebarActive,
     updateClock: clock.updateClock,
     handleEditIconError: editor.handleEditIconError,

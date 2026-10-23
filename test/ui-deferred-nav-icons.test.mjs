@@ -1,4 +1,4 @@
-/** 分类图标提前准备；导航书签图标在进入、滚动和会话恢复时按需加载。 */
+/** 首批本地图标空闲准备；其余图标在进入、滚动和会话恢复时按需加载。 */
 import assert from 'node:assert/strict';
 import { launchSession, waitFor } from './helpers.mjs';
 
@@ -12,14 +12,48 @@ try {
     ` });
     await send('Page.reload');
     await waitFor(evalJS, 'typeof switchToNav === "function" && dom.navCategories.querySelector("img[data-nav-src]")');
+    await waitFor(evalJS, `dom.navCategories.querySelector('.category-block:nth-child(-n+3) img.lazy-icon[src]')?.fetchPriority === 'low'`);
     assert.equal(await evalJS(`(() => {
         const firstScreen = new Set([...dom.bookmarks.querySelectorAll('img')].map(img=>img.src));
         const resources = performance.getEntriesByType('resource').map(entry=>entry.name);
         const deferred = [...dom.navSection.querySelectorAll('img[data-nav-src]')];
-        return deferred.length > 100 && deferred.every(img=>!img.hasAttribute('src') &&
+        const prepared = [...dom.navCategories.querySelectorAll('.category-block:nth-child(-n+3) img.lazy-icon[src]')];
+        return prepared.length > 0 && prepared.every(img=>img.getAttribute('src').startsWith('./icons/') &&
+            img.loading === 'eager' && img.fetchPriority === 'low') &&
+            deferred.length > 75 && deferred.every(img=>!img.hasAttribute('src') &&
             (firstScreen.has(new URL(img.dataset.navSrc,location.href).href) || !resources.includes(new URL(img.dataset.navSrc,location.href).href)));
     })()`), true);
-    console.log('✅ 首屏超过 100 个导航书签图片节点保持延迟状态，专用书签图标无网络请求');
+    console.log('✅ 首批本地图标以低优先级空闲准备，其余超过 75 个图标仍保持延迟加载');
+
+    assert.deepEqual(await evalJS(`(() => {
+        const parent = dom.navCategories.querySelector('.category-block');
+        const local = document.createElement('img');
+        const remote = document.createElement('img');
+        local.dataset.navSrc = parent.querySelector('img.lazy-icon[src]').getAttribute('src');
+        remote.dataset.navSrc = 'https://example.com/idle-preload-probe.png';
+        parent.append(local, remote);
+        try {
+            document.documentElement.classList.remove('is-chrome');
+            preloadVisibleNavIcons();
+            const skippedOtherBrowser = !local.hasAttribute('src');
+            document.documentElement.classList.add('is-chrome');
+            Object.defineProperty(document, 'hidden', {configurable:true,value:true});
+            preloadVisibleNavIcons();
+            const skippedHidden = !local.hasAttribute('src');
+            delete document.hidden;
+            preloadVisibleNavIcons();
+            const sources = [...dom.navSection.querySelectorAll('img')].map(img=>img.getAttribute('src'));
+            preloadVisibleNavIcons();
+            return [skippedOtherBrowser,skippedHidden,local.hasAttribute('src'),
+                !remote.hasAttribute('src') && !!remote.dataset.navSrc,
+                JSON.stringify(sources) === JSON.stringify([...dom.navSection.querySelectorAll('img')].map(img=>img.getAttribute('src')))];
+        } finally {
+            delete document.hidden;
+            document.documentElement.classList.add('is-chrome');
+            local.remove(); remote.remove();
+        }
+    })()`), [true,true,true,true,true]);
+    console.log('✅ 非Chrome、后台页跳过准备；远程图标不提前请求，重复准备不改变图标来源');
 
     assert.equal(await evalJS(`(() => {
         const icons = [...dom.sidebarList.querySelectorAll('img'),
@@ -53,6 +87,26 @@ try {
     await waitFor(evalJS, 'typeof switchToNav === "function" && state.currentSection === "nav" && dom.navCategories.querySelector("img")?.naturalWidth > 0');
     assert.equal(await evalJS('dom.navSection.querySelectorAll("img[data-nav-src]").length'), 0);
     console.log('✅ 会话恢复直接进入导航时自动启用图标加载');
+
+    // 人为延迟空闲回调，确保用户先切屏时不会等待或在动画中补做预加载。
+    await evalJS('switchToStart()');
+    await waitFor(evalJS, '!isScreenTransitioning()');
+    await send('Page.addScriptToEvaluateOnNewDocument', {source:`
+        window.__queuedIdle = [];
+        window.requestIdleCallback = callback => { __queuedIdle.push(callback); return __queuedIdle.length; };
+    `});
+    await send('Page.reload');
+    await waitFor(evalJS, 'typeof switchToNav === "function" && window.__queuedIdle?.length >= 2');
+    assert.deepEqual(await evalJS(`(() => {
+        const pending = dom.navSection.querySelectorAll('img[data-nav-src]').length;
+        switchToNav();
+        const active = isScreenTransitioning();
+        for (const callback of __queuedIdle.splice(0)) callback({didTimeout:false,timeRemaining:()=>50});
+        return [pending > 100, state.currentSection, active,
+            dom.navSection.querySelectorAll('img[fetchpriority="low"]').length];
+    })()`), [true,'nav',true,0]);
+    await waitFor(evalJS, '!isScreenTransitioning()');
+    console.log('✅ 用户先切屏时立即进入，迟到的空闲回调不在动画中准备图标');
 } finally {
     await chrome.close();
     await server.close();
