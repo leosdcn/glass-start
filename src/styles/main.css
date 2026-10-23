@@ -218,6 +218,17 @@ body.is-screen-transitioning :is(#startSection, #navSection) {
 html.is-chrome :is(#startSection, #navSection) {
     will-change: transform;
 }
+/* 移动中的卡片不接收悬停，避免经过光标时反复启动背景、边框与阴影过渡。
+   同时结束旧悬停过渡；切屏完成后恢复原有指针反馈。 */
+html.is-chrome body.is-screen-transitioning :is(.bookmark-item, .nav-bookmark) {
+    pointer-events: none;
+    transition: none;
+}
+html.is-chrome body.is-screen-transitioning :is(.bookmark-item, .nav-bookmark)::before,
+html.is-chrome body.is-screen-transitioning :is(.bookmark-item, .nav-bookmark)::after,
+html.is-chrome body.is-screen-transitioning :is(.bookmark-item, .nav-bookmark) .icon-box {
+    transition: none;
+}
 
 /* ==========================================================================
    切屏动效体系 (Apple 风格分层抽屉适配)

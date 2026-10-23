@@ -53,6 +53,25 @@ try {
     assert.equal(spotlight.clipped,'hidden');
     console.log(`✅ 30 帧光斑移动仅 ${paints.length} 次 Paint，无布局，位置跟随指针并裁切在卡片内`);
 
+    // 从已悬停卡片返回时，结束旧的悬停过渡，移动中的卡片也不能命中指针。
+    await evalJS('switchToStart()');
+    assert.deepEqual(await evalJS(`(() => {
+        const card = getComputedStyle(renderCard);
+        return [document.body.classList.contains('is-screen-transitioning'),card.pointerEvents,
+            card.transitionDuration,getComputedStyle(renderCard,'::before').transitionDuration,
+            getComputedStyle(renderCard.querySelector('.icon-box')).transitionDuration];
+    })()`), [true,'none','0s','0s','0s']);
+    await waitFor(evalJS, '!isScreenTransitioning()');
+    await evalJS('switchToNav()');
+    assert.equal(await evalJS('getComputedStyle(renderCard).pointerEvents'), 'none');
+    await waitFor(evalJS, '!isScreenTransitioning()');
+    await send('Input.dispatchMouseEvent',{type:'mouseMoved',...point});
+    await settleCard();
+    assert.equal(await evalJS(`renderCard.matches(':hover') && getComputedStyle(renderCard).pointerEvents === 'auto' &&
+        Number(getComputedStyle(renderCard,'::before').opacity) > 0.99 &&
+        getComputedStyle(renderCard).transitionDuration.split(',').some(value=>parseFloat(value)>0)`), true);
+    console.log('✅ Chrome切屏中暂停卡片命中及悬停过渡，完成后恢复原有光斑和悬停反馈');
+
     await send('Input.dispatchMouseEvent',{type:'mouseMoved',x:1,y:1});
     await waitFor(evalJS, 'getComputedStyle(renderCard,"::before").willChange === "auto"');
     await send('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'reduce'}]});
