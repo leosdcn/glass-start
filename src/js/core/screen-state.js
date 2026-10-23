@@ -157,10 +157,6 @@ function updateGearVisibility() {
     if (editBtn) {
         editBtn.classList.toggle('hidden-on-nav', state.currentSection === 'nav');
     }
-    const switcher = dom.transitionSwitcher;
-    if (switcher) {
-        switcher.classList.toggle('hidden-on-nav', state.currentSection === 'nav');
-    }
 }
 
 export function isScreenTransitioning() {
@@ -335,16 +331,12 @@ export function setTransitionMode(mode) {
  */
 export function syncTransitionSwitcherActive(mode) {
     const targetMode = mode || getTransitionMode();
-    document.querySelectorAll('.transition-mode-btn, .settings-transition-btn').forEach(btn => {
+    document.querySelectorAll('.settings-transition-btn').forEach(btn => {
         const el = /** @type {HTMLElement} */ (btn);
         const isActive = el.dataset.mode === targetMode;
         el.classList.toggle('active', isActive);
         el.setAttribute('aria-pressed', isActive ? 'true' : 'false');
     });
-    const badge = document.getElementById('currentTransitionBadge');
-    if (badge) {
-        badge.textContent = `当前：${TRANSITION_MODES[targetMode] || 'iOS 分层抽屉'}`;
-    }
 }
 
 export function initTransitionSwitcher() {
@@ -353,28 +345,12 @@ export function initTransitionSwitcher() {
         document.documentElement.dataset.transitionMode = mode;
         syncTransitionSwitcherActive(mode);
     }
-    const switcher = dom.transitionSwitcher;
-    if (switcher) {
-        switcher.addEventListener('click', e => {
-            const btn = /** @type {HTMLElement|null} */ (e.target instanceof HTMLElement ? e.target.closest('.transition-mode-btn') : null);
-            if (!btn || !btn.dataset.mode) return;
-            const targetMode = btn.dataset.mode;
-            setTransitionMode(targetMode);
-        });
-    }
     const settingsGrid = document.getElementById('settingsTransitionGrid');
     if (settingsGrid) {
         settingsGrid.addEventListener('click', e => {
             const btn = /** @type {HTMLElement|null} */ (e.target instanceof HTMLElement ? e.target.closest('.settings-transition-btn') : null);
             if (!btn || !btn.dataset.mode) return;
             setTransitionMode(btn.dataset.mode);
-        });
-    }
-    const previewBtn = document.getElementById('transitionPreviewBtn');
-    if (previewBtn) {
-        previewBtn.addEventListener('click', () => {
-            if (state.currentSection === 'start') switchToNav();
-            else switchToStart();
         });
     }
 }
