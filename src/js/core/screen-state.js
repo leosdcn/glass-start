@@ -296,8 +296,8 @@ export function switchToStart() {
 
 /** @type {Record<string, string>} */
 export const TRANSITION_MODES = Object.freeze({
-    sheet: 'iOS 分层抽屉',
-    classic: '经典垂直推移'
+    sheet: '卡片层叠',
+    classic: '经典推移'
 });
 
 /**

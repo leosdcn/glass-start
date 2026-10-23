@@ -231,10 +231,10 @@ html.is-chrome body.is-screen-transitioning :is(.bookmark-item, .nav-bookmark) .
 }
 
 /* ==========================================================================
-   切屏动效体系 (Apple 风格分层抽屉适配)
+   切屏动效体系 (Apple 风格卡片层叠适配)
    保持毛玻璃 (backdrop-filter) 全程 100% 活跃，不使用破坏背景采样的父级 opacity 过滤
    ========================================================================== */
-/* iOS 分层抽屉栈模式 (Layered Sheet Stacking) */
+/* iOS 卡片层叠栈模式 (Layered Sheet Stacking) */
 html[data-transition-mode="sheet"] #startSection {
     -webkit-transform: scale(1) translate3d(0, 0, 0);
     transform: scale(1) translate3d(0, 0, 0);
