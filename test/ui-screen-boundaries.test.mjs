@@ -33,7 +33,7 @@ try {
     assert.deepEqual(await evalJS(`(() => {
         const style = getComputedStyle(dom.navSection);
         return [style.transitionDuration, style.transitionTimingFunction];
-    })()`), ['0.58s', 'cubic-bezier(0.28, 0.11, 0.32, 1)']);
+    })()`), ['0.52s, 0.52s', 'cubic-bezier(0.28, 0.11, 0.32, 1), cubic-bezier(0.28, 0.11, 0.32, 1)']);
     assert.equal(await evalJS(`(() => {
         const original = document.documentElement.dataset.transitionMode;
         try {

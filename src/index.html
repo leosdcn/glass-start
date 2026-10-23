@@ -176,7 +176,7 @@
 
       if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
       try{sessionStorage.getItem('startpage_section')==='nav'&&document.documentElement.classList.add('nr');setTimeout(function(){document.documentElement.classList.remove('nr')},1500);}catch(e){}
-      try{let m=localStorage.getItem('glass_transition_mode')||'classic';if(m!=='sheet'&&m!=='classic')m='classic';document.documentElement.dataset.transitionMode=m;}catch(e){}
+      try{let m=localStorage.getItem('glass_transition_mode')||'sheet';if(m!=='sheet'&&m!=='classic')m='sheet';document.documentElement.dataset.transitionMode=m;}catch(e){}
       try{
         const rawEngine = localStorage.getItem('preferredEngine');
         /* 引擎图标与元数据由 config/engine-head.js 注入。 */

@@ -306,9 +306,9 @@ export const TRANSITION_MODES = Object.freeze({
 export function getTransitionMode() {
     try {
         const saved = localStorage.getItem(CONFIG.KEYS.TRANSITION_MODE);
-        return (saved && TRANSITION_MODES[saved]) ? saved : 'classic';
+        return (saved && TRANSITION_MODES[saved]) ? saved : 'sheet';
     } catch {
-        return 'classic';
+        return 'sheet';
     }
 }
 
