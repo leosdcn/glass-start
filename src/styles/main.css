@@ -68,9 +68,8 @@
     --ease-snappy: cubic-bezier(0.2, 0, 0, 1);
     --ease-exit: cubic-bezier(0.4, 0, 0.2, 1);
     --ease-tactile: cubic-bezier(0.2, 0.9, 0.2, 1);
-    --ease-slide: cubic-bezier(0.5, 0, 0.2, 1);
-    --ease-spring-apple: cubic-bezier(0.28, 0.11, 0.32, 1);
-    --ease-smooth-apple: cubic-bezier(0.32, 0.72, 0, 1);
+    /* 两种切屏共用较平缓的速度曲线，避免经典推移在中段集中加速。 */
+    --ease-slide: cubic-bezier(0.28, 0.11, 0.32, 1);
     --ease-pulse: cubic-bezier(0.2, 0.8, 0.2, 1);
     --duration-entrance: 0.54s;
     --duration-fast: 0.16s;
@@ -214,6 +213,11 @@ img, a, button, .nav-bookmark, .bookmark-item {
 body.is-screen-transitioning :is(#startSection, #navSection) {
     will-change: transform;
 }
+/* Chrome 保留离屏结构供下一次切屏复用，避免每次进入都重建玻璃绘制。
+   其他浏览器继续只在过渡期间申请合成提示。 */
+html.is-chrome :is(#startSection, #navSection) {
+    will-change: transform;
+}
 
 /* ==========================================================================
    切屏动效体系 (Apple 风格分层抽屉适配)
@@ -223,7 +227,7 @@ body.is-screen-transitioning :is(#startSection, #navSection) {
 html[data-transition-mode="sheet"] #startSection {
     -webkit-transform: scale(1) translate3d(0, 0, 0);
     transform: scale(1) translate3d(0, 0, 0);
-    transition: -webkit-transform 0.52s var(--ease-spring-apple), transform 0.52s var(--ease-spring-apple);
+    transition: -webkit-transform 0.52s var(--ease-slide), transform 0.52s var(--ease-slide);
 }
 html[data-transition-mode="sheet"] #startSection.screen-pushed-up {
     -webkit-transform: scale(0.94) translate3d(0, -16px, 0);
@@ -235,7 +239,7 @@ html[data-transition-mode="sheet"] #navSection {
     -webkit-transform: translate3d(0, 100dvh, 0);
     transform: translate3d(0, 100vh, 0);
     transform: translate3d(0, 100dvh, 0);
-    transition: -webkit-transform 0.52s var(--ease-spring-apple), transform 0.52s var(--ease-spring-apple);
+    transition: -webkit-transform 0.52s var(--ease-slide), transform 0.52s var(--ease-slide);
 }
 html[data-transition-mode="sheet"] #navSection.screen-pushed-in {
     -webkit-transform: translate3d(0, 0, 0);
@@ -376,12 +380,15 @@ html.wallpaper-bright .nav-bookmark .text-2xs {
 /* ==========================================================================
    5. COMPONENTS - SCREEN 2: NAV (第二屏组件：分类导航/侧边栏)
    ========================================================================== */
-/* 离屏位置、硬件休眠与 inert 隔离第二屏：离场时卸载全屏毛玻璃着色器，杜绝后台 GPU 持续模糊开销 */
+/* 第二屏通过离屏位置、pointer-events 与 inert 隔离。
+   Chrome 保留离屏玻璃结构，避免下次进入重新绘制；其他浏览器保留隐藏/卸载策略。 */
 #navSection.nav-hidden {
-    visibility: hidden;
     pointer-events: none;
 }
-#navSection.nav-hidden .nav-surface {
+html:not(.is-chrome) #navSection.nav-hidden {
+    visibility: hidden;
+}
+html:not(.is-chrome) #navSection.nav-hidden .nav-surface {
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
 }

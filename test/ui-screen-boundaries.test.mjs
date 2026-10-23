@@ -8,11 +8,47 @@ const idle = () => evalJS('new Promise(resolve => setTimeout(resolve, CONFIG.GES
 const wheel = (delta, extra = '') => evalJS(`document.dispatchEvent(new WheelEvent('wheel', { deltaY:${delta}, cancelable:true, ${extra} }))`);
 const section = () => evalJS('state.currentSection');
 try {
-    // 固定原动画契约，避免整理逻辑时改变观感。
+    // Chrome 保留离屏绘制，但第二屏仍不能命中指针或获得焦点。
+    assert.equal(await evalJS(`(() => {
+        const nav = dom.navSection;
+        const surface = nav.querySelector('.nav-surface');
+        const hit = document.elementFromPoint(innerWidth / 2, innerHeight - 2);
+        return nav.inert && nav.getAttribute('aria-hidden') === 'true' &&
+            nav.getBoundingClientRect().top >= innerHeight - 1 && !nav.contains(hit) &&
+            getComputedStyle(nav).pointerEvents === 'none' &&
+            getComputedStyle(nav).willChange === 'transform' &&
+            getComputedStyle(surface).backdropFilter !== 'none';
+    })()`), true);
+    // 移除 Chrome 标记后仍采用隐藏、卸载玻璃及释放合成提示的原路径。
+    assert.deepEqual(await evalJS(`(() => {
+        document.documentElement.classList.remove('is-chrome');
+        try {
+            return [getComputedStyle(dom.navSection).visibility,
+                getComputedStyle(dom.navSection.querySelector('.nav-surface')).backdropFilter,
+                getComputedStyle(dom.navSection).willChange];
+        } finally { document.documentElement.classList.add('is-chrome'); }
+    })()`), ['hidden', 'none', 'auto']);
+
+    // 恢复两种模式各自的时长，保留调整后的曲线，JS 兜底覆盖最长动画。
     assert.deepEqual(await evalJS(`(() => {
         const style = getComputedStyle(dom.navSection);
         return [style.transitionDuration, style.transitionTimingFunction];
-    })()`), ['0.58s', 'cubic-bezier(0.5, 0, 0.2, 1)']);
+    })()`), ['0.58s', 'cubic-bezier(0.28, 0.11, 0.32, 1)']);
+    assert.equal(await evalJS(`(() => {
+        const original = document.documentElement.dataset.transitionMode;
+        try {
+            return ['classic','sheet'].every(mode => {
+                document.documentElement.dataset.transitionMode = mode;
+                const duration = mode === 'sheet' ? 520 : 580;
+                return [dom.startSection,dom.navSection].every(node => {
+                    const style = getComputedStyle(node);
+                    return duration <= CONFIG.GESTURE.TRANSITION_MS &&
+                        style.transitionDuration.split(',').every(value=>Number.parseFloat(value)*1000===duration) &&
+                        style.transitionTimingFunction.includes('cubic-bezier(0.28, 0.11, 0.32, 1)');
+                });
+            });
+        } finally { document.documentElement.dataset.transitionMode = original; }
+    })()`), true);
 
     // 同一短窗口的小位移累计可进入，动画期间 API/键盘/滚轮均不能反转。
     await wheel(10); await wheel(10); await wheel(10);
@@ -25,7 +61,7 @@ try {
         return [state.currentSection, isScreenTransitioning()];
     })()`), ['nav', true]);
     await settled('nav');
-    console.log('✅ 原动画时长及曲线保留，小幅滚轮累计生效，动画不能被反向输入打断');
+    console.log('✅ 两种模式时长已恢复、曲线保留，兜底覆盖动画，连续输入不能打断切屏');
 
     // 用浏览器真实默认滚动将内容带到顶部，再发同向尾部事件。
     await evalJS("dom.navContent.style.scrollBehavior='auto'; dom.navContent.scrollTop=30");
