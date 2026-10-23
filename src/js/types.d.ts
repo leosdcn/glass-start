@@ -195,6 +195,7 @@ export interface DOMCache {
     updateNotice: HTMLElement | null;
     updateNoticeText: HTMLElement | null;
     updateReloadBtn: HTMLButtonElement | null;
+    transitionSwitcher: HTMLElement | null;
     [key: string]: HTMLElement | null;
 }
 

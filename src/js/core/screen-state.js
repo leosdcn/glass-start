@@ -10,7 +10,7 @@ import { OverlayStack } from './overlay-stack.js';
 import { syncWallpaperTheme } from './theme-engine.js';
 import { resetActiveCard } from './gestures.js';
 import { closeDropdown, hideSuggestions } from '../modules/search.js';
-import { refreshSidebarNavCache, updateSidebarActive, initFaviconObserver, activateNavIcons } from '../modules/bookmarks.js';
+import { refreshSidebarNavCache, updateSidebarActive, initFaviconObserver, activateVisibleNavIcons, activateAllNavIcons } from '../modules/bookmarks.js';
 
 let isTransitioning = false;
 /** @type {ReturnType<typeof setTimeout>|null} */
@@ -83,7 +83,7 @@ function waitForScreenTransition(nav, targetSection, onComplete) {
     if (typeof document !== 'undefined' && nav) {
         /** @param {TransitionEvent} e */
         const onEnd = e => {
-            if (e.target === nav && (e.propertyName === 'transform' || e.propertyName === '-webkit-transform')) finish();
+            if (e.target === nav && (e.propertyName === 'transform' || e.propertyName === '-webkit-transform' || e.propertyName === 'opacity')) finish();
         };
         nav.addEventListener('transitionend', onEnd);
         navTransitionCleanup = () => nav.removeEventListener('transitionend', onEnd);
@@ -157,6 +157,10 @@ function updateGearVisibility() {
     if (editBtn) {
         editBtn.classList.toggle('hidden-on-nav', state.currentSection === 'nav');
     }
+    const switcher = dom.transitionSwitcher;
+    if (switcher) {
+        switcher.classList.toggle('hidden-on-nav', state.currentSection === 'nav');
+    }
 }
 
 export function isScreenTransitioning() {
@@ -174,6 +178,7 @@ function resetNavScroll() {
 }
 
 function refreshNav() {
+    activateAllNavIcons();
     refreshSidebarNavCache();
     updateSidebarActive();
     initFaviconObserver();
@@ -188,7 +193,10 @@ function applySection(section, immediate) {
     const inNav = section === 'nav';
     const start = dom.startSection;
     const nav = dom.navSection;
-    if (inNav) activateNavIcons();
+    if (inNav) {
+        if (immediate) activateAllNavIcons();
+        else activateVisibleNavIcons();
+    }
     saveSection(section);
     updateSectionAccessibility(section);
     updateGearVisibility();
@@ -288,4 +296,85 @@ export function switchToNav() {
 
 export function switchToStart() {
     switchSection('start');
+}
+
+/** @type {Record<string, string>} */
+export const TRANSITION_MODES = Object.freeze({
+    sheet: 'iOS 分层抽屉',
+    classic: '经典垂直推移'
+});
+
+/**
+ * @returns {string}
+ */
+export function getTransitionMode() {
+    try {
+        const saved = localStorage.getItem(CONFIG.KEYS.TRANSITION_MODE);
+        return (saved && TRANSITION_MODES[saved]) ? saved : 'classic';
+    } catch {
+        return 'classic';
+    }
+}
+
+/**
+ * @param {string} mode
+ */
+export function setTransitionMode(mode) {
+    if (!TRANSITION_MODES[mode]) return;
+    try {
+        localStorage.setItem(CONFIG.KEYS.TRANSITION_MODE, mode);
+    } catch {}
+    if (typeof document !== 'undefined' && document.documentElement) {
+        document.documentElement.dataset.transitionMode = mode;
+        syncTransitionSwitcherActive(mode);
+    }
+}
+
+/**
+ * @param {string} [mode]
+ */
+export function syncTransitionSwitcherActive(mode) {
+    const targetMode = mode || getTransitionMode();
+    document.querySelectorAll('.transition-mode-btn, .settings-transition-btn').forEach(btn => {
+        const el = /** @type {HTMLElement} */ (btn);
+        const isActive = el.dataset.mode === targetMode;
+        el.classList.toggle('active', isActive);
+        el.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+    });
+    const badge = document.getElementById('currentTransitionBadge');
+    if (badge) {
+        badge.textContent = `当前：${TRANSITION_MODES[targetMode] || 'iOS 分层抽屉'}`;
+    }
+}
+
+export function initTransitionSwitcher() {
+    const mode = getTransitionMode();
+    if (typeof document !== 'undefined' && document.documentElement) {
+        document.documentElement.dataset.transitionMode = mode;
+        syncTransitionSwitcherActive(mode);
+    }
+    const switcher = dom.transitionSwitcher;
+    if (switcher) {
+        switcher.addEventListener('click', e => {
+            const btn = /** @type {HTMLElement|null} */ (e.target instanceof HTMLElement ? e.target.closest('.transition-mode-btn') : null);
+            if (!btn || !btn.dataset.mode) return;
+            const targetMode = btn.dataset.mode;
+            setTransitionMode(targetMode);
+        });
+    }
+    const settingsGrid = document.getElementById('settingsTransitionGrid');
+    if (settingsGrid) {
+        settingsGrid.addEventListener('click', e => {
+            const btn = /** @type {HTMLElement|null} */ (e.target instanceof HTMLElement ? e.target.closest('.settings-transition-btn') : null);
+            if (!btn || !btn.dataset.mode) return;
+            setTransitionMode(btn.dataset.mode);
+        });
+    }
+    const previewBtn = document.getElementById('transitionPreviewBtn');
+    if (previewBtn) {
+        previewBtn.addEventListener('click', () => {
+            if (state.currentSection === 'start') switchToNav();
+            else switchToStart();
+        });
+    }
 }

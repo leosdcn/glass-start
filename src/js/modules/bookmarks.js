@@ -299,17 +299,50 @@ export function renderBookmarks(force = false) {
 /** @type {import('../types').CategoryCatalog | undefined} */
 let lastNavCatalog;
 let navIconsActivated = false;
+let navAllIconsActivated = false;
 
-// 导航屏仅通过 transform 移出视口，原生 lazy 仍会提前下载其中的图片。
-// 首次进入（包括会话恢复）时才交给浏览器按可见距离加载。
-export function activateNavIcons() {
+/**
+ * 动效期按需激活：优先激活视口内可见分类图标（前 3 个分类，约 34 个图标），
+ * 避免在切屏 Transform 动效首帧同时向 131 个图片发起网络与解码请求。
+ */
+export function activateVisibleNavIcons() {
     if (navIconsActivated) return;
     navIconsActivated = true;
-    dom.navSection?.querySelectorAll('img[data-nav-src]').forEach(node => {
+    const nav = dom.navSection;
+    if (!nav) return;
+    nav.querySelectorAll('.category-block:nth-child(-n+3) img[data-nav-src]').forEach(node => {
         const img = /** @type {HTMLImageElement} */ (node);
         img.src = img.dataset.navSrc || '';
         delete img.dataset.navSrc;
     });
+}
+
+/**
+ * 动效结算或空闲时，平稳激活视口外剩余的离屏图标。
+ */
+export function activateAllNavIcons() {
+    navIconsActivated = true;
+    if (navAllIconsActivated) return;
+    navAllIconsActivated = true;
+    const nav = dom.navSection;
+    if (!nav) return;
+    nav.querySelectorAll('img[data-nav-src]').forEach(node => {
+        const img = /** @type {HTMLImageElement} */ (node);
+        img.src = img.dataset.navSrc || '';
+        delete img.dataset.navSrc;
+    });
+}
+
+/**
+ * 兼容原有入口调用：
+ * @param {boolean} [all=false]
+ */
+export function activateNavIcons(all = false) {
+    if (all) {
+        activateAllNavIcons();
+    } else {
+        activateVisibleNavIcons();
+    }
 }
 
 let isSidebarNavInitialized = false;

@@ -18,7 +18,7 @@ import {
 } from './modules/bookmarks.js';
 import { applyBgEffects } from './modules/settings.js';
 import { handleEditIconError } from './modules/bookmark-editor.js';
-import { reconcileScreenState, isScreenTransitioning } from './core/screen-state.js';
+import { reconcileScreenState, isScreenTransitioning, initTransitionSwitcher } from './core/screen-state.js';
 import { initScreenGestures } from './core/screen-input.js';
 import { initAppWakeEvents } from './core/app-wake.js';
 import { initGlassSpotlightAndTilt } from './core/gestures.js';
@@ -70,6 +70,7 @@ export function init() {
     initScreenGestures();
     initAppWakeEvents();
     initGlassSpotlightAndTilt();
+    initTransitionSwitcher();
 
     const saved = storageGet(CONFIG.KEYS.PREFERRED_ENGINE);
     if (saved && engines[saved]) setEngine(saved, false);

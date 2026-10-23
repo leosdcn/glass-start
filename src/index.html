@@ -176,6 +176,7 @@
 
       if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
       try{sessionStorage.getItem('startpage_section')==='nav'&&document.documentElement.classList.add('nr');setTimeout(function(){document.documentElement.classList.remove('nr')},1500);}catch(e){}
+      try{let m=localStorage.getItem('glass_transition_mode')||'classic';if(m!=='sheet'&&m!=='classic')m='classic';document.documentElement.dataset.transitionMode=m;}catch(e){}
       try{
         const rawEngine = localStorage.getItem('preferredEngine');
         /* 引擎图标与元数据由 config/engine-head.js 注入。 */
@@ -313,6 +314,14 @@
         </div>
         <script>(function(){try{if(localStorage.getItem('hasDiscoveredNav')==='1'){const h=document.getElementById('scrollDownHint');if(h)h.style.display='none';}}catch(e){}})()</script>
 
+        <!-- 左下角切屏动效切换胶囊 (Apple 风格快捷选择器) -->
+        <div id="transitionSwitcher" class="fixed bottom-4 left-4 sm:bottom-6 sm:left-6 z-30 flex items-center gap-1 p-1 glass-strong apple-radius text-xs select-none fade-in delay-200 max-w-[calc(100vw-5.5rem)] overflow-x-auto no-scrollbar" role="toolbar" aria-label="切屏动效模式选择">
+            <span class="px-1.5 py-0.5 text-white/50 text-2xs font-semibold tracking-wide shrink-0"> 动效</span>
+            <button type="button" data-mode="sheet" class="transition-mode-btn text-2xs px-2 py-1 rounded-control font-medium transition-colors text-white/60 enabled:hover:text-white shrink-0 active" aria-pressed="true" title="iOS 分层抽屉栈">分层抽屉</button>
+            <button type="button" data-mode="classic" class="transition-mode-btn text-2xs px-2 py-1 rounded-control font-medium transition-colors text-white/60 enabled:hover:text-white shrink-0" aria-pressed="false" title="经典垂直推移">经典推移</button>
+            <button type="button" id="transitionPreviewBtn" class="text-2xs px-1.5 py-1 rounded-control font-medium text-white/40 enabled:hover:text-white/90 border-l border-white/10 shrink-0 ml-0.5" title="触发预览切换">▶</button>
+        </div>
+
         <!-- 右下角悬浮编辑设置按钮（置于起始页内，随起始页物理滑屏） -->
         <button id="editBookmarksBtn" type="button" aria-expanded="false" aria-controls="editModal" aria-haspopup="dialog" aria-label="编辑与设置" title="编辑书签与设置" class="p-3 glass-strong apple-radius text-white/70 enabled:hover:text-white enabled:hover:bg-white/20 border border-white/20 shadow-2xl flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 fade-in delay-200">
             <svg class="size-5" aria-hidden="true"><use href="#icon-cog"/></svg>
@@ -442,6 +451,20 @@
                         </div>
                     </div>
                 </div>
+                <!-- 双屏切屏动效风格 (Apple 风格多模式选择) -->
+                <div class="p-3.5 glass-subcard space-y-2 shrink-0">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-semibold text-white/80 flex items-center gap-1.5">
+                            <svg class="size-4 text-white/60 shrink-0" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456Z"/></svg> 切屏动效风格 (Apple 风格)
+                        </span>
+                        <span id="currentTransitionBadge" class="glass-badge">当前：iOS 分层抽屉</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-1.5" id="settingsTransitionGrid" role="group" aria-label="切屏动效选项">
+                        <button type="button" data-mode="sheet" class="settings-transition-btn px-2 py-2 glass-interactive rounded-control text-2xs font-medium border border-white/10 text-center transition-colors">iOS 分层抽屉</button>
+                        <button type="button" data-mode="classic" class="settings-transition-btn px-2 py-2 glass-interactive rounded-control text-2xs font-medium border border-white/10 text-center transition-colors">经典垂直推移</button>
+                    </div>
+                </div>
+
                 <!-- 下半部分：官方精选壁纸 (移动端自然展开防堆叠，桌面端 sm:flex-1 自动撑满) -->
                 <div class="p-3.5 glass-subcard shrink-0 sm:flex-1 flex flex-col justify-between sm:min-h-0 space-y-2.5">
                     <div class="flex items-center justify-between shrink-0">

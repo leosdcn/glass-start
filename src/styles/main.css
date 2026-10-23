@@ -69,6 +69,8 @@
     --ease-exit: cubic-bezier(0.4, 0, 0.2, 1);
     --ease-tactile: cubic-bezier(0.2, 0.9, 0.2, 1);
     --ease-slide: cubic-bezier(0.5, 0, 0.2, 1);
+    --ease-spring-apple: cubic-bezier(0.28, 0.11, 0.32, 1);
+    --ease-smooth-apple: cubic-bezier(0.32, 0.72, 0, 1);
     --ease-pulse: cubic-bezier(0.2, 0.8, 0.2, 1);
     --duration-entrance: 0.54s;
     --duration-fast: 0.16s;
@@ -213,6 +215,66 @@ body.is-screen-transitioning :is(#startSection, #navSection) {
     will-change: transform;
 }
 
+/* ==========================================================================
+   切屏动效体系 (Apple 风格分层抽屉适配)
+   保持毛玻璃 (backdrop-filter) 全程 100% 活跃，不使用破坏背景采样的父级 opacity 过滤
+   ========================================================================== */
+/* iOS 分层抽屉栈模式 (Layered Sheet Stacking) */
+html[data-transition-mode="sheet"] #startSection {
+    -webkit-transform: scale(1) translate3d(0, 0, 0);
+    transform: scale(1) translate3d(0, 0, 0);
+    transition: -webkit-transform 0.52s var(--ease-spring-apple), transform 0.52s var(--ease-spring-apple);
+}
+html[data-transition-mode="sheet"] #startSection.screen-pushed-up {
+    -webkit-transform: scale(0.94) translate3d(0, -16px, 0);
+    transform: scale(0.94) translate3d(0, -16px, 0);
+    pointer-events: none;
+}
+html[data-transition-mode="sheet"] #navSection {
+    -webkit-transform: translate3d(0, 100vh, 0);
+    -webkit-transform: translate3d(0, 100dvh, 0);
+    transform: translate3d(0, 100vh, 0);
+    transform: translate3d(0, 100dvh, 0);
+    transition: -webkit-transform 0.52s var(--ease-spring-apple), transform 0.52s var(--ease-spring-apple);
+}
+html[data-transition-mode="sheet"] #navSection.screen-pushed-in {
+    -webkit-transform: translate3d(0, 0, 0);
+    transform: translate3d(0, 0, 0);
+}
+
+/* 动效切换胶囊按钮样式 */
+#transitionSwitcher {
+    position: absolute;
+    bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px));
+    left: calc(1.5rem + env(safe-area-inset-left, 0px));
+    opacity: var(--opacity-subtle);
+    z-index: 50;
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    transition: opacity 0.3s ease, background-color 0.3s ease, border-color 0.3s ease;
+}
+@media (min-width: 768px) {
+    #transitionSwitcher {
+        bottom: calc(2rem + env(safe-area-inset-bottom, 0px));
+        left: calc(2rem + env(safe-area-inset-left, 0px));
+    }
+}
+@media (hover: hover) and (pointer: fine) {
+    body:not(.tab-blurred) #transitionSwitcher:hover {
+        opacity: 1;
+    }
+}
+#transitionSwitcher.hidden-on-nav {
+    pointer-events: none;
+    opacity: 0;
+}
+.transition-mode-btn.active, .settings-transition-btn.active {
+    background: rgba(255, 255, 255, 0.22);
+    color: #ffffff;
+    border-color: rgba(255, 255, 255, 0.35);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+
 @media (hover: hover) and (pointer: fine) {
     body:not(.tab-blurred) #suggestionMenu:not(.keyboard-nav) .suggestion-item:hover {
         background: rgba(255, 255, 255, 0.12);
@@ -314,9 +376,19 @@ html.wallpaper-bright .nav-bookmark .text-2xs {
 /* ==========================================================================
    5. COMPONENTS - SCREEN 2: NAV (第二屏组件：分类导航/侧边栏)
    ========================================================================== */
-/* 离屏位置与 inert 隔离第二屏；保留可见性，避免每次入场重建整屏绘制内容。 */
-.nav-hidden { pointer-events: none; }
-.nav-visible { visibility: visible; pointer-events: auto; }
+/* 离屏位置、硬件休眠与 inert 隔离第二屏：离场时卸载全屏毛玻璃着色器，杜绝后台 GPU 持续模糊开销 */
+#navSection.nav-hidden {
+    visibility: hidden;
+    pointer-events: none;
+}
+#navSection.nav-hidden .nav-surface {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+}
+#navSection.nav-visible {
+    visibility: visible;
+    pointer-events: auto;
+}
 #sidebarList {
     position: relative;
 }
