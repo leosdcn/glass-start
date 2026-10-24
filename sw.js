@@ -7,7 +7,12 @@
 // 缓存池定义（打包 build.js 时自动替换 CORE_CACHE 为时间戳版本）
 const CORE_CACHE = 'app-core-v1786255428688';
 const FAVICON_CACHE = 'app-favicons-v1';
-const IMG_CACHE = 'app-images-' + CORE_CACHE;
+const SCOPE_URL = self.registration.scope;
+const CACHE_PREFIX = 'glass-scope-' + encodeURIComponent(new URL(SCOPE_URL).pathname) + '-';
+const CORE_STORAGE = CACHE_PREFIX + CORE_CACHE;
+const IMG_CACHE = CACHE_PREFIX + 'app-images-' + CORE_CACHE;
+const IMAGE_PREFIX = CACHE_PREFIX + 'app-images-';
+const CORE_PREFIX = CACHE_PREFIX + 'app-core-';
 
 // 图标与图片容量上限配置
 const MAX_FAVICON_ENTRIES = 800;
@@ -100,11 +105,85 @@ async function validateCoreCache(cache) {
     }
 }
 
+// 只补缺失或指纹不符的资源；所有响应在写入前校验，不污染仍可用的旧构建。
+async function validCoreResponse(asset, response) {
+    if (!response?.ok) return false;
+    const property = asset === './app.js' ? '__GLASS_BUILD_APP__'
+        : (asset === './' || asset === './index.html') ? '__GLASS_BUILD_HTML__' : null;
+    if (!property) return true;
+    const text = await response.clone().text();
+    return text.match(new RegExp(property + `\\s*=\\s*["']([^"']+)`))?.[1] === CORE_CACHE;
+}
+
+async function repairCoreCache(cache) {
+    for (const asset of CORE_ASSETS) {
+        if (await validCoreResponse(asset, await cache.match(asset))) continue;
+        const response = await fetch(new Request(new URL(asset, SCOPE_URL), { cache: 'reload' }));
+        if (!await validCoreResponse(asset, response)) throw new Error('Cannot repair core asset: ' + asset);
+        await cache.put(asset, response);
+    }
+    await validateCoreCache(cache);
+}
+
+// 旧池只在资源路径能明确归属本实例时迁移；父 scope 不能据 URL 前缀接管子部署。
+async function migrateLegacyImages() {
+    const keys = (await caches.keys()).filter(key => /^(app-core-|app-images-)/.test(key));
+    for (const key of keys) {
+        const cache = await caches.open(key);
+        const requests = await cache.keys();
+        const corePaths = [...CORE_ASSETS, './manifest.json'].map(asset => new URL(asset, SCOPE_URL).href);
+        const owned = requests.length > 0 && requests.every(request => {
+            const url = new URL(request.url);
+            url.search = '';
+            return key.startsWith('app-core-') ? corePaths.includes(url.href)
+                : ['./icons/', './wallpapers/'].some(path => url.href.startsWith(new URL(path, SCOPE_URL).href));
+        });
+        if (!owned) continue;
+        if (key.startsWith('app-images-')) {
+            const target = await caches.open(CACHE_PREFIX + key);
+            for (const request of requests) {
+                const response = await cache.match(request);
+                if (response) await target.put(request, response);
+            }
+        }
+        await caches.delete(key);
+    }
+}
+
+// 当前版本已不可补齐时返回独立恢复页，避免把新脚本交给旧 HTML。
+// 用户点击后安装并校验新版，控制器切换完成才重载；失败或离线可重试。
+function recoveryResponse() {
+    const script = `document.querySelector('button').onclick=async function(){
+        this.disabled=true;const status=document.querySelector('p');
+        try{
+            const reg=await navigator.serviceWorker.getRegistration();
+            await reg.update();
+            const worker=reg.installing;
+            if(worker&&!['installed','redundant'].includes(worker.state))await new Promise(resolve=>{
+                worker.addEventListener('statechange',()=>{if(['installed','redundant'].includes(worker.state))resolve()});
+            });
+            if(!reg.waiting)throw Error('新版暂不可用');
+            const activated=new Promise((resolve,reject)=>{
+                const timer=setTimeout(()=>{navigator.serviceWorker.removeEventListener('controllerchange',changed);reject(Error('修复超时'))},15000);
+                function changed(){clearTimeout(timer);resolve()}
+                navigator.serviceWorker.addEventListener('controllerchange',changed,{once:true});
+            });
+            reg.waiting.postMessage({type:'ACTIVATE_UPDATE'});
+            await activated;location.reload();
+        }catch(error){status.textContent='暂时无法修复，请恢复网络后重试。';this.disabled=false}
+    };`;
+    return new Response('<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>修复本地缓存</title><body><h1>本地应用缓存不完整</h1><p>请连接网络，修复后重新加载。已保存的设置会保留。</p><button type="button">修复并重新加载</button><script nonce="glass-recovery">' + script + '</script></body></html>', {
+        status: 503,
+        headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store',
+            'Content-Security-Policy': "default-src 'self'; script-src 'nonce-glass-recovery'; worker-src 'self'; object-src 'none'; base-uri 'none'" }
+    });
+}
+
 // 核心失败必须拒绝 install；等待所有请求结束再删除残缺池，防止迟到写入。
 self.addEventListener('install', e => {
     e.waitUntil((async () => {
         try {
-            const cache = await caches.open(CORE_CACHE);
+            const cache = await caches.open(CORE_STORAGE);
             // 壁纸用条件重验证复用 HTTP 缓存正文；更新时仍检查服务器，不能 force-cache 读取旧图。
             const results = await Promise.allSettled(CORE_ASSETS.map(asset => cache.add(new Request(asset, {
                 cache: asset.startsWith('./wallpapers/') ? 'no-cache' : 'reload'
@@ -112,7 +191,7 @@ self.addEventListener('install', e => {
             if (results.some(result => result.status === 'rejected')) throw new Error('Core installation incomplete');
             await validateCoreCache(cache);
         } catch (error) {
-            await caches.delete(CORE_CACHE);
+            await caches.delete(CORE_STORAGE);
             throw error;
         }
         // 默认保持 waiting；只有用户确认更新才提前激活。
@@ -121,24 +200,25 @@ self.addEventListener('install', e => {
 
 // 用户确认后允许提前激活；不 claim 未受控页面，避免旧 HTML 混用新脚本。
 self.addEventListener('activate', e => e.waitUntil((async () => {
-    const cache = await caches.open(CORE_CACHE);
+    const cache = await caches.open(CORE_STORAGE);
     await validateCoreCache(cache);
+    await migrateLegacyImages();
     await caches.open(IMG_CACHE);
     const keys = await caches.keys();
-    const previousImages = keys.filter(key => key.startsWith('app-images-') && key !== IMG_CACHE)
+    const previousImages = keys.filter(key => key.startsWith(IMAGE_PREFIX) && key !== IMG_CACHE)
         .sort((a, b) => imageCacheVersion(b) - imageCacheVersion(a))[0];
     await Promise.all(keys.filter(key =>
-        (key.startsWith('app-core-') && key !== CORE_CACHE) ||
-        (key.startsWith('app-images-') && key !== IMG_CACHE && key !== previousImages)
+        (key.startsWith(CORE_PREFIX) && key !== CORE_STORAGE) ||
+        (key.startsWith(IMAGE_PREFIX) && key !== IMG_CACHE && key !== previousImages)
     ).map(key => caches.delete(key)));
 })()));
 
 // 仅接受同源窗口的确认；重新校验已下载资源后再跳过等待。
 self.addEventListener('message', e => {
     if (e.data?.type !== 'ACTIVATE_UPDATE' || e.source?.type !== 'window' ||
-        new URL(e.source.url).origin !== self.location.origin) return;
+        !e.source.url.startsWith(SCOPE_URL)) return;
     e.waitUntil((async () => {
-        await validateCoreCache(await caches.open(CORE_CACHE));
+        await repairCoreCache(await caches.open(CORE_STORAGE));
         await self.skipWaiting();
     })());
 });
@@ -149,7 +229,7 @@ function imageCacheVersion(key) {
 
 // 仅在网络失败时读取上一版图片，避免在线更新继续使用旧内容。
 async function previousImageResponse(request) {
-    const keys = (await caches.keys()).filter(key => key.startsWith('app-images-') && key !== IMG_CACHE)
+    const keys = (await caches.keys()).filter(key => key.startsWith(IMAGE_PREFIX) && key !== IMG_CACHE)
         .sort((a, b) => imageCacheVersion(b) - imageCacheVersion(a));
     for (const key of keys) {
         const cached = await (await caches.open(key)).match(request);
@@ -196,49 +276,23 @@ self.addEventListener('fetch', e => {
     // 1. 主文档版本隔离 Cache-First；缓存命中不重验证，新版通过 worker 生命周期换代
     if (isMainDoc) {
         e.respondWith(
-            caches.open(CORE_CACHE).then(async cache => {
+            caches.open(CORE_STORAGE).then(async cache => {
                 const cachedRes = (await cache.match(e.request))
                     || (await cache.match(e.request, { ignoreSearch: true }))
                     || (await cache.match('./index.html'))
                     || (await cache.match('./'))
                     || (await cache.match('/'));
 
-                // 命中当前核心池，直接返回缓存文档。
-                if (cachedRes) {
-                    return cachedRes;
+                // 导航先检查核心资源存在性；仅异常时执行完整修复和指纹校验。
+                const complete = (await Promise.all(CORE_ASSETS.map(asset => cache.match(asset))))
+                    .every(response => response?.ok);
+                if (cachedRes && complete) return cachedRes;
+                try {
+                    await repairCoreCache(cache);
+                    return (await cache.match('./index.html')) || make503Response();
+                } catch {
+                    return recoveryResponse();
                 }
-
-                // 首次访问或冷启动缓存未就绪时回退网络，拉取成功后写入当前版本池
-                return fetch(e.request).then(async netRes => {
-                    if (netRes.ok) {
-                        const resClone = netRes.clone();
-                        cache.put(e.request, resClone).catch(() => {});
-                        return netRes;
-                    }
-                    const fallback = (await cache.match(e.request))
-                        || (await cache.match(e.request, { ignoreSearch: true }))
-                        || (await cache.match('./index.html'))
-                        || (await cache.match('./'))
-                        || (await cache.match('/'))
-                        || (await caches.match(e.request))
-                        || (await caches.match(e.request, { ignoreSearch: true }))
-                        || (await caches.match('./index.html'))
-                        || (await caches.match('./'))
-                        || (await caches.match('/'));
-                    return fallback || netRes;
-                }).catch(async () => {
-                    const fallbackDoc = (await cache.match(e.request))
-                        || (await cache.match(e.request, { ignoreSearch: true }))
-                        || (await cache.match('./index.html'))
-                        || (await cache.match('./'))
-                        || (await cache.match('/'))
-                        || (await caches.match(e.request))
-                        || (await caches.match(e.request, { ignoreSearch: true }))
-                        || (await caches.match('./index.html'))
-                        || (await caches.match('./'))
-                        || (await caches.match('/'));
-                    return fallbackDoc || make503Response();
-                });
             })
         );
         return;
@@ -247,7 +301,7 @@ self.addEventListener('fetch', e => {
     // 2. manifest.json 使用同源 Stale-While-Revalidate。
     if (isCoreData) {
         e.respondWith(
-            caches.open(CORE_CACHE).then(async cache => {
+            caches.open(CORE_STORAGE).then(async cache => {
                 const cachedRes = (await cache.match(e.request))
                     || (await cache.match(e.request, { ignoreSearch: true }));
                 const fetchPromise = fetch(new Request(e.request, { cache: 'no-cache' })).then(netRes => {
@@ -275,7 +329,7 @@ self.addEventListener('fetch', e => {
     // 3. 同源 JS/CSS 版本隔离 Cache-First；缓存命中不重验证，非 ok 回退缓存
     if (isCoreStaticAsset) {
         e.respondWith(
-            caches.open(CORE_CACHE).then(async cache => {
+            caches.open(CORE_STORAGE).then(async cache => {
                 const isAppJs = pathnameLower.endsWith('/app.js');
                 const cached = (await cache.match(e.request))
                     || (await cache.match(e.request, { ignoreSearch: true }))
@@ -286,23 +340,16 @@ self.addEventListener('fetch', e => {
                     return cached;
                 }
 
-                // 缓存未命中时向网络拉取并存入当前版本池
-                return fetch(e.request).then(netRes => {
-                    if (netRes.ok) {
-                        const resClone = netRes.clone();
-                        cache.put(e.request, resClone).catch(() => {});
-                        return netRes;
+                try {
+                    const response = await fetch(new Request(e.request, { cache: 'reload' }));
+                    if (!response.ok || (isAppJs && !await validCoreResponse('./app.js', response))) {
+                        return make503Response();
                     }
-                    return caches.match(e.request).then(cached => cached || netRes);
-                }).catch(async () => {
-                    const fallback = (await cache.match(e.request))
-                        || (await cache.match(e.request, { ignoreSearch: true }))
-                        || (isAppJs ? await cache.match('./app.js') : null)
-                        || (await caches.match(e.request))
-                        || (await caches.match(e.request, { ignoreSearch: true }))
-                        || (isAppJs ? await caches.match('./app.js') : null);
-                    return fallback || make503Response();
-                });
+                    await cache.put(e.request, response.clone());
+                    return response;
+                } catch {
+                    return make503Response();
+                }
             })
         );
         return;
@@ -345,7 +392,7 @@ self.addEventListener('fetch', e => {
         e.respondWith(
             shareImageResponse(e, waitForCache => caches.open(IMG_CACHE).then(async cache => {
                 const cached = (await cache.match(e.request))
-                    || (await caches.open(CORE_CACHE).then(core => core.match(e.request)));
+                    || (await caches.open(CORE_STORAGE).then(core => core.match(e.request)));
                 if (cached) return cached;
                 try {
                     // 单个消费者取消不能中止其他消费者共用的下载。

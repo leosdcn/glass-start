@@ -45,7 +45,14 @@ function fixture() {
     const context = vm.createContext({
         module: { exports: {} }, console, URL, AbortController, DOMException,
         Element: class {}, FileReader: Reader,
-        Image: class { constructor() { images.push(this); this.width = 100; this.height = 80; } },
+        Image: class {
+            constructor() { this.width = 100; this.height = 80; }
+            set src(value) {
+                if (value.startsWith('./') || value.startsWith('data:image/jpeg')) {
+                    Promise.resolve().then(() => this.onload?.());
+                } else if (value) images.push(this);
+            }
+        },
         localStorage: { getItem: key => storage.get(key) ?? null,
             setItem: (key, value) => storage.set(key, value), removeItem: key => storage.delete(key) },
         document: {

@@ -108,7 +108,7 @@ const srcSw = readFileSync(join(ROOT, 'sw.js'), 'utf-8');
 const distSw = readFileSync(join(DIST, 'sw.js'), 'utf-8');
 function inspectWorker(source) {
   return vm.runInNewContext(source + '\n;({CORE_ASSETS, MAX_FAVICON_ENTRIES, MAX_IMG_ENTRIES, pruneCache})', {
-    self: { addEventListener() {} }
+    self: { registration:{scope:'https://example.test/'}, addEventListener() {} }, URL
   });
 }
 const worker = inspectWorker(srcSw);
@@ -190,7 +190,7 @@ vm.runInNewContext(srcSw, {
 });
 handlers.get('fetch')({request:new Request('https://example.test/uncached.js'),
   respondWith: promise => { respond = promise; }, waitUntil() {}});
-pass('核心脚本网络非成功响应时使用缓存回退', (await (await respond).text()) === 'cached-script');
+pass('核心脚本网络失败不跨构建回填', (await respond).status === 503);
 
 // ══════════════════════════════════════════════════════════════════════
 // 4. 安装过程只请求同源核心资源，不预取外部引擎图标。
@@ -201,7 +201,8 @@ class InstallRequest extends Request {
   constructor(url, options) { super(new URL(url, 'https://example.test/'), options); }
 }
 vm.runInNewContext(srcSw, {
-  self: { addEventListener: (name, handler) => installHandlers.set(name, handler) },
+  self: { registration:{scope:'https://example.test/'}, addEventListener: (name, handler) => installHandlers.set(name, handler) },
+  URL,
   Request: InstallRequest, Response, AbortSignal,
   fetch: async url => { installUrls.push(String(url)); return new Response('external'); },
   caches: {

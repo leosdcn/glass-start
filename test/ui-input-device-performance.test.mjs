@@ -1,6 +1,6 @@
 /** 真实触摸滚动、临时拦截释放，以及触摸/鼠标能力切换回归。 */
 import assert from 'node:assert/strict';
-import { launchSession, waitFor, sleep } from './helpers.mjs';
+import { launchSession, waitFor } from './helpers.mjs';
 
 const {server,chrome,send,evalJS} = await launchSession();
 try {
@@ -25,15 +25,18 @@ try {
     await waitFor(evalJS,'dom.navContent.scrollTop===400');
     await waitFor(async()=>await blockingMoves('dom.navContent')===0,'true');
     await touch('touchStart',450);
+    await evalJS(`window.__nativeScrollEnded=false;dom.navContent.addEventListener('scrollend',()=>{__nativeScrollEnded=true},{once:true})`);
     await touch('touchMove',520);
     await touch('touchMove',580);
     await touch('touchEnd');
     await waitFor(evalJS,'dom.navContent.scrollTop<380');
     assert.equal(await evalJS('state.currentSection'),'nav');
     // 等待原生惯性结束，再验证新一轮顶部下滑。
-    await sleep(400);
+    await waitFor(evalJS,'window.__nativeScrollEnded');
     await evalJS('dom.navContent.scrollTop=0');
     await waitFor(evalJS,'dom.navContent.scrollTop===0');
+    // scrollTop 写入先于异步 scroll 事件，落指前须确认顶部取消滚动的监听已恢复。
+    await waitFor(async()=>await blockingMoves('dom.navContent')===1,'true');
     await evalJS(`window.__preventedTouch=false;document.addEventListener('touchmove',e=>{if(e.defaultPrevented)__preventedTouch=true},{passive:true})`);
     await touch('touchStart',350);
     await touch('touchMove',480);

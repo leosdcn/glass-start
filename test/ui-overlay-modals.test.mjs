@@ -50,9 +50,14 @@ const startRestoredValid = backFromReloadedNav.sTop === 0 && backFromReloadedNav
   && !backFromReloadedNav.nrPresent && !backFromReloadedNav.gearHidden && backFromReloadedNav.startAria !== 'true';
 
 // 4.2 BFCache / pageshow 生命周期切屏锁自愈与防白屏校验
-await evalJS('window.switchToNav()');
-await waitFor(evalJS, 'typeof isScreenTransitioning === "function" && isScreenTransitioning()', 1000, 10);
-await evalJS('window.dispatchEvent(new Event("pageshow"))'); // 模拟外部返回触发 pageshow 唤醒
+// 同一浏览器任务内确认切屏锁并唤醒，避免跨 CDP 调用时动画已自然结束。
+const interruptedTransition = await evalJS(`(() => {
+  switchToNav();
+  const active = isScreenTransitioning();
+  window.dispatchEvent(new Event('pageshow'));
+  return active;
+})()`);
+pass('pageshow 确实中断进行中的切屏', interruptedTransition);
 await waitFor(evalJS, `!isScreenTransitioning() && (() => {
   const n = document.getElementById("navSection");
   const s = document.getElementById("startSection");

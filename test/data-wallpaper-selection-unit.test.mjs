@@ -58,6 +58,12 @@ function fixture() {
     });
     vm.runInContext(outputFiles[0].text, context);
     return { app: context.module.exports, images, db, metrics, messages, base, next,
+        async selectPreset(url) {
+            const before = images.length;
+            const pending = context.module.exports.previewDraftWallpaper(url);
+            if (images.length > before) await images.at(-1).onload();
+            return pending;
+        },
         settleFade() {
             for (const [key, fn] of [...frames]) { frames.delete(key); fn(); }
             for (const [key, fn] of [...timers]) { timers.delete(key); fn(); }
@@ -93,23 +99,23 @@ test('同一网络壁纸只创建和解码一张图片，预览、渲染及并�
 
 test('重复预设选择跳过 IDB 与轻量提示写入，首次默认选择仍会落盘', async () => {
     const f = fixture();
-    assert.equal(await f.app.previewDraftWallpaper(f.app.backgrounds[0]), true);
+    assert.equal(await f.selectPreset(f.app.backgrounds[0]), true);
     assert.equal(f.db.writes, 1, '内存默认值不能冒充已保存记录');
     const storageWrites = f.metrics.storageWrites;
-    assert.equal(await f.app.previewDraftWallpaper(f.app.backgrounds[0]), true);
-    assert.equal(await f.app.previewDraftWallpaper(null), true);
+    assert.equal(await f.selectPreset(f.app.backgrounds[0]), true);
+    assert.equal(await f.selectPreset(null), true);
     assert.equal(f.db.attempts, 1);
     assert.equal(f.metrics.storageWrites, storageWrites);
-    await f.app.previewDraftWallpaper(f.app.backgrounds[3]);
+    await f.selectPreset(f.app.backgrounds[3]);
     assert.equal(f.db.writes, 2);
     assert.equal(f.db.value.bg, 3);
 });
 
 test('其他标签改写后再次选择会重新保存，不错误命中内存去重', async () => {
     const f = fixture();
-    await f.app.previewDraftWallpaper(f.app.backgrounds[2]);
+    await f.selectPreset(f.app.backgrounds[2]);
     f.db.value = { wallpaper: null, bg: 4 };
-    await f.app.previewDraftWallpaper(f.app.backgrounds[2]);
+    await f.selectPreset(f.app.backgrounds[2]);
     assert.equal(f.db.writes, 2);
     assert.equal(f.db.value.bg, 2);
 });
@@ -149,10 +155,10 @@ test('旧网络图片解码迟到或被重置，不触发渲染或持久化', as
     const first = f.app.previewDraftWallpaper(url);
     f.images[0].decodeGate = new Promise(resolve => { release = resolve; });
     const loading = f.images[0].onload();
-    await f.app.previewDraftWallpaper(f.app.backgrounds[2]);
+    await f.selectPreset(f.app.backgrounds[2]);
     assert.equal(await first, false);
     release(); await loading; await drain();
-    await f.images[1].onload(); f.settleFade();
+    f.settleFade();
     assert.equal(f.db.value.bg, 2);
     assert.equal(f.db.writes, 1);
     assert.match(f.base.style.backgroundImage, /bg3\.avif/);
@@ -160,4 +166,17 @@ test('旧网络图片解码迟到或被重置，不触发渲染或持久化', as
     await f.app.clearCustomWallpaper();
     assert.equal(await cancelled, false);
     assert.equal(f.messages.length, 0);
+});
+
+test('预设加载失败保留此前记录，恢复后可以重试', async () => {
+    const f = fixture();
+    await f.selectPreset(f.app.backgrounds[1]);
+    const before = JSON.stringify(f.db.value);
+    const failed = f.app.previewDraftWallpaper(f.app.backgrounds[7]);
+    f.images.at(-1).onerror();
+    assert.equal(await failed, false);
+    assert.equal(JSON.stringify(f.db.value), before);
+    assert.equal(f.app.state.bg, 1);
+    assert.equal(await f.selectPreset(f.app.backgrounds[7]), true);
+    assert.equal(f.db.value.bg, 7);
 });

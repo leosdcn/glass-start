@@ -1,10 +1,20 @@
 /** 用真实 Chrome trace 验证高频光斑更新不触发重绘，拖拽标记不重复更新节点。 */
 import assert from 'node:assert/strict';
-import { launchSession, waitFor } from './helpers.mjs';
+import { launchSession, waitFor, navigateAndWait } from './helpers.mjs';
 
 const {server,chrome,send,evalJS} = await launchSession();
 const settleCard = () => waitFor(evalJS, `renderCard.getAnimations({subtree:true}).every(a=>a.playState!=='running')`);
 try {
+    // 该用例测量指针更新；真实天气响应会在任意时刻重建天气 DOM，污染全页 trace。
+    // 在重新启动应用前准备有效缓存，天气网络与刷新行为由对应数据回归覆盖。
+    await send('Page.addScriptToEvaluateOnNewDocument', {source:`
+        localStorage.setItem('glass_weather_cache', JSON.stringify({
+            timestamp:Date.now(), current:{temp:20,icon:'☀️',weatherText:'晴'},
+            location:{name:'测试地点'}, daily:[]
+        }));
+    `});
+    await navigateAndWait(send, evalJS, 'http://127.0.0.1:' + server.port + '/',
+        `typeof switchToNav === 'function' && !!document.querySelector('.bookmark-item')`);
     await evalJS('switchToNav()');
     await waitFor(evalJS, '!isScreenTransitioning()');
     const point = await evalJS(`(() => {
@@ -19,7 +29,7 @@ try {
     await waitFor(evalJS, `[...dom.navContent.querySelectorAll('img')].filter(img=>{
         const r=img.getBoundingClientRect();return r.top<innerHeight && r.bottom>0;
     }).every(img=>img.complete)`);
-    await settleCard();
+    await waitFor(evalJS, `dom.navContent.getAnimations({subtree:true}).every(a=>a.playState!=='running')`);
 
     const events=[];
     const unsubscribe=send('Tracing.dataCollected',event=>events.push(...event.value));

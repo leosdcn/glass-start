@@ -98,6 +98,8 @@ try {
     await send('Page.reload');
     await waitFor(evalJS, 'typeof switchToNav === "function" && window.__queuedIdle?.length >= 2');
     assert.deepEqual(await evalJS(`(() => {
+        // 目录渲染本身也在被扣住的空闲任务中；先建立本用例要测量的延迟图标。
+        renderNavCategories();
         const pending = dom.navSection.querySelectorAll('img[data-nav-src]').length;
         switchToNav();
         const active = isScreenTransitioning();

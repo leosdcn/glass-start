@@ -14,9 +14,12 @@ import { flushWallpaperSelection, getEffectiveCustomWallpaper, updateWallpaperSt
 import { saveUserBookmarks, resetUserBookmarks, getFaviconHTML, getCategoryIconHTML, initPickerFaviconObserver } from './bookmarks.js';
 import { closeDropdown, hideSuggestions, setEngine } from './search.js';
 import { renderCreditsModalList, renderShortcutModalList } from './clock.js';
+import { getTransitionMode, syncTransitionSwitcherActive } from '../core/screen-state.js';
+import { cancelDragSort } from '../core/drag-sort.js';
 import { getCategoryCatalog } from '../utils/category-catalog.js';
 
 let editOpenRequestId = 0;
+let importRequestId = 0;
 /** @type {NodeListOf<HTMLElement> | null} */
 let cachedSettingsTabs = null;
 /** @type {NodeListOf<HTMLElement> | null} */
@@ -180,6 +183,7 @@ export function cancelEditModal() {
 export function closeEditModal() {
     // 保存关闭时即使后台暂停了 rAF，也同步落定最后的预览；取消已先覆盖并清队列。
     if (pendingBgEffects) applyBgEffects(pendingBgEffects.opacity);
+    cancelDragSort();
     state.editOpen = false;
     editOpenRequestId++;
     if (dom.saveEditBtn) {
@@ -278,9 +282,13 @@ export function exportBookmarksJSON() {
  * @returns {void}
  */
 export function importBookmarksJSON(file) {
-    if (!file) return;
+    if (!file || !state.editOpen) return;
+    const sessionId = editOpenRequestId;
+    const requestId = ++importRequestId;
+    const isCurrent = () => state.editOpen && sessionId === editOpenRequestId && requestId === importRequestId;
     const reader = new FileReader();
     reader.onload = (e) => {
+        if (!isCurrent()) return;
         try {
             if (!e.target || typeof e.target.result !== 'string') return;
             const parsed = JSON.parse(e.target.result);
@@ -306,6 +314,7 @@ export function importBookmarksJSON(file) {
             }
 
             showConfirm(`检测到合规书签 ${validBookmarks.length} 项，确定导入并填入草稿列表中吗？需点击『完成』后生效。`, () => {
+                if (!isCurrent()) return;
                 replaceBookmarkDraft(validBookmarks, true);
                 renderEditList();
                 closeBookmarkPicker();
@@ -315,6 +324,9 @@ export function importBookmarksJSON(file) {
         } finally {
             reader.onload = null;
         }
+    };
+    reader.onerror = () => {
+        if (isCurrent()) showConfirm('无法读取配置文件，请重新选择。', null, '导入失败');
     };
     reader.readAsText(file, 'UTF-8');
 }
@@ -329,17 +341,30 @@ export function resetBookmarks() {
             showConfirm('无法清除壁纸存储，原有设置已保留。', null, '重置失败');
             return;
         }
-        storageRemove(CONFIG.KEYS.PREFERRED_ENGINE);
-        storageRemove(CONFIG.KEYS.USER_WALLPAPER);
-        storageRemove(CONFIG.KEYS.WALLPAPER_META);
-        storageRemove(CONFIG.KEYS.MASK_OPACITY);
-        storageRemove(CONFIG.KEYS.BG);
-        storageRemove(CONFIG.KEYS.NAV_DISCOVERED);
-        storageRemove(CONFIG.KEYS.WEATHER_CACHE);
-        storageRemove(CONFIG.KEYS.WEATHER_LOC);
-        storageRemove(CONFIG.KEYS.WEATHER_SETTINGS);
-        storageRemove(CONFIG.KEYS.THEME_CACHE);
-        storageRemove(CONFIG.KEYS.TINT_CACHE);
+        /** @type {(keyof typeof CONFIG.KEYS)[]} */
+        const keys = ['PREFERRED_ENGINE', 'USER_WALLPAPER', 'WALLPAPER_META', 'MASK_OPACITY',
+            'BG', 'NAV_DISCOVERED', 'WEATHER_CACHE', 'WEATHER_LOC', 'WEATHER_SETTINGS',
+            'THEME_CACHE', 'TINT_CACHE', 'TRANSITION_MODE'];
+        const removed = keys.map(key => storageRemove(CONFIG.KEYS[key]));
+        const bookmarksReset = resetUserBookmarks();
+        const mode = getTransitionMode();
+        document.documentElement.dataset.transitionMode = mode;
+        syncTransitionSwitcherActive(mode);
+        const opacity = storageGet(CONFIG.KEYS.MASK_OPACITY, CONFIG.APPEARANCE.DEFAULT_MASK_OPACITY);
+        modalState.initialMaskOpacity = opacity;
+        modalState.draftMaskOpacity = opacity;
+        applyBgEffects(opacity);
+        setEngine(storageGet(CONFIG.KEYS.PREFERRED_ENGINE, 'bing'), false);
+        applyWallpaper(backgrounds[0], false);
+        if (!bookmarksReset || removed.some(result => !result)) {
+            replaceBookmarkDraft(pageData.bookmarks.map((bm, i) => ({ ...bm, id: `bm_${i}` })));
+            renderEditList();
+            modalState.draftWallpaper = null;
+            updateWallpaperStatusUI(null);
+            updatePresetBgCardsUI(null);
+            showConfirm('部分设置未能清除，已按当前存储同步显示。请检查浏览器存储权限后重试。', null, '重置未完成');
+            return;
+        }
 
         if (dom.scrollDownHint) {
             dom.scrollDownHint.style.display = '';
@@ -351,10 +376,6 @@ export function resetBookmarks() {
         modalState.draftMaskOpacity = null;
         replaceBookmarkDraft([]);
 
-        setEngine('bing', false);
-        applyWallpaper(backgrounds[0], false);
-        applyBgEffects(CONFIG.APPEARANCE.DEFAULT_MASK_OPACITY);
-        resetUserBookmarks();
         closeBookmarkPicker();
         closeEditModal();
     }, '重置所有系统设置');
@@ -472,7 +493,10 @@ export async function saveEditModal() {
 
         // 2. 提交背景暗度（壁纸已于用户选择时即选即存，无需重复落盘）
         if (modalState.draftMaskOpacity !== null) {
-            storageSet(CONFIG.KEYS.MASK_OPACITY, modalState.draftMaskOpacity);
+            if (!storageSet(CONFIG.KEYS.MASK_OPACITY, modalState.draftMaskOpacity)) {
+                showConfirm('背景暗度未能保存，草稿已保留；书签和壁纸已保存的更改仍然生效。请检查存储权限后重试。', null, '无法保存');
+                return;
+            }
         }
 
         closeEditModal();

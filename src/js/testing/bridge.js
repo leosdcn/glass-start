@@ -18,12 +18,24 @@ import * as weather from '../modules/weather.js';
 import * as bookmarks from '../modules/bookmarks.js';
 import * as settings from '../modules/settings.js';
 import * as editor from '../modules/bookmark-editor.js';
+import { replaceBookmarkDraft } from '../state/bookmark-draft.js';
 import * as dialogs from '../core/dialogs.js';
 import * as settingsEvents from '../core/settings-events.js';
 import * as app from '../init.js';
 
 // 只暴露现有测试接口，不自动展开模块的其他导出。
 Object.assign(window, {
+    replaceBookmarkDraft,
+    resetUserBookmarks: bookmarks.resetUserBookmarks,
+    reconcileScreenState: screen_state.reconcileScreenState,
+    setTransitionMode: screen_state.setTransitionMode,
+    getTransitionMode: screen_state.getTransitionMode,
+    getWallpaperSelectionDB: idb.getWallpaperSelectionDB,
+    importBookmarksJSON: settings.importBookmarksJSON,
+    previewDraftMaskOpacity: settings.previewDraftMaskOpacity,
+    saveEditModal: settings.saveEditModal,
+    uploadWallpaper: wallpaper.uploadWallpaper,
+    flushWallpaperSelection: wallpaper.flushWallpaperSelection,
     CONFIG: constants.CONFIG,
     backgrounds: constants.backgrounds,
     PRESET_WALLPAPER_THEMES: themes.PRESET_WALLPAPER_THEMES,

@@ -128,17 +128,22 @@ try {
   }, `window.__GLASS_BUILD_APP__ === 'app-core-v203' && document.readyState === 'complete'`, 15000);
   console.log('✅ 其他标签在新版已经激活后，可各自确认刷新');
 
-  // 等待中的资源被驱逐时，不允许切换到残缺版本；超时后保留旧版并恢复按钮。
+  // 补下载暂时失败时保留旧版；恢复服务后同一个 waiting worker 可重试。
   version = 204;
   await update();
   await waitFor(evalJS, installed);
-  await evalJS(`caches.open('app-core-v204').then(c => c.delete('./app.js'))`);
+  await evalJS(`caches.open('glass-scope-%2F-app-core-v204').then(c => c.delete('./app.js'))`);
+  failApp = true;
   await evalJS(`document.getElementById('updateReloadBtn').click(); document.getElementById('confirmOkBtn').click()`);
-  await waitFor(evalJS, `document.getElementById('updateNoticeText').textContent === '更新暂未完成，请重试'`, 18000);
-  assert.equal(await evalJS(`document.getElementById('updateReloadBtn').disabled`), false);
-  assert.equal(await evalJS(`window.__GLASS_BUILD_APP__`), 'app-core-v203');
-  assert.equal(await evalJS(installed), true);
-  console.log('✅ 残缺的等待版本拒绝接管；超时恢复重试按钮，当前页面和缓存保持可用');
+  await waitFor(evalJS, `document.getElementById('updateNoticeText').textContent === '更新暂未完成，请重试'`,18000);
+  assert.equal(await evalJS(`window.__GLASS_BUILD_APP__`),'app-core-v203');
+  assert.equal(await evalJS(`document.getElementById('updateReloadBtn').disabled`),false);
+  failApp = false;
+  await evalJS(`document.getElementById('updateReloadBtn').click(); document.getElementById('confirmOkBtn').click()`);
+  await waitFor(evalJS, `window.__GLASS_BUILD_APP__ === 'app-core-v204' && document.readyState === 'complete'`, 18000);
+  assert.equal(await evalJS(`caches.open('glass-scope-%2F-app-core-v204').then(c=>c.match('./app.js')).then(r=>!!r)`), true);
+  console.log('✅ 损坏的等待版本补下载、重新校验后完成升级');
+
 } finally {
   other?.close();
   await chrome.close();

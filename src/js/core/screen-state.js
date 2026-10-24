@@ -13,6 +13,7 @@ import { closeDropdown, hideSuggestions } from '../modules/search.js';
 import { renderNavCategories, refreshSidebarNavCache, updateSidebarActive, initFaviconObserver, activateVisibleNavIcons, activateAllNavIcons } from '../modules/bookmarks.js';
 
 let isTransitioning = false;
+let sectionInitialized = false;
 /** @type {ReturnType<typeof setTimeout>|null} */
 let transitionTimer = null;
 /** @type {(() => void)|null} */
@@ -148,6 +149,7 @@ function getSavedSection() {
  * @param {'start'|'nav'} s
  */
 function saveSection(s) {
+    sectionInitialized = true;
     state.currentSection = s;
     try { sessionStorage.setItem('startpage_section', s); } catch {}
 }
@@ -238,7 +240,7 @@ export function reconcileScreenState(targetSection, force = false) {
     if (!targetSection && !force && isTransitioning) return;
     clearTransitionTasks();
     isTransitioning = false;
-    const section = targetSection || getSavedSection() || 'start';
+    const section = targetSection || (sectionInitialized ? state.currentSection : getSavedSection()) || 'start';
     resetPageScroll();
     if (section === 'start') resetNavScroll();
     applySection(section, true);

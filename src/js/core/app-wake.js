@@ -1,3 +1,4 @@
+import { cancelDragSort } from './drag-sort.js';
 /** 页面唤醒协调；屏幕模块只负责屏幕状态。 */
 import { updateClock } from '../modules/clock.js';
 import { updateWeather } from '../modules/weather.js';
@@ -17,12 +18,12 @@ export function handleAppWakeUp(wasPersisted = false) {
     document.querySelectorAll('.fade-in, .animate-item-in, .category-title-pulse').forEach(el => {
         el.classList.remove('fade-in', 'animate-item-in', 'category-title-pulse');
     });
-    document.body.classList.remove('bookmark-dragging');
+    cancelDragSort();
     document.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
 
     resetActiveCard();
     const active = /** @type {HTMLElement|null} */ (document.activeElement);
-    if (active && typeof active.blur === 'function' && active !== document.body && active !== dom.searchInput) {
+    if (active && typeof active.blur === 'function' && active !== document.body && active !== dom.searchInput && !active.matches('input, textarea, select, [contenteditable]:not([contenteditable=\"false\"])')) {
         active.blur();
     }
     resetScreenInput();

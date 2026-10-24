@@ -220,7 +220,7 @@ function previewWallpaperSelection(urlStr, selectionId) {
     pendingSelection = selection;
     latestSelectionPromise = selection.promise = (async () => {
         let preparedImage = urlStr ? getPreparedWallpaperImage(urlStr) : null;
-        if (urlStr && /^https?:\/\//i.test(urlStr)) {
+        if (urlStr || !getPreparedWallpaperImage(backgrounds[0])) {
             preparedImage = preparedImage || await new Promise(resolve => {
                 const img = new Image();
                 pendingPreviewImage = img;
@@ -232,7 +232,7 @@ function previewWallpaperSelection(urlStr, selectionId) {
                     } catch { resolve(null); }
                 };
                 img.onerror = () => resolve(null);
-                img.src = urlStr;
+                img.src = urlStr || backgrounds[0];
             });
             if (selectionId !== wallpaperSelectionId) return false;
             if (pendingPreviewImage) {
@@ -242,7 +242,8 @@ function previewWallpaperSelection(urlStr, selectionId) {
             cancelPendingPreview = null;
             if (!preparedImage) {
                 modalState.wallpaperSaveFailed = true;
-                showConfirm('无法加载该网络图片，请检查图片 URL 是否有效。', null, '图片无法加载');
+                modalState.draftWallpaper = state.customWallpaper || backgrounds[state.bg];
+                showConfirm('无法加载该图片，请检查图片是否有效或恢复网络后重试。', null, '图片无法加载');
                 return false;
             }
         }
@@ -255,6 +256,7 @@ function previewWallpaperSelection(urlStr, selectionId) {
         modalState.wallpaperSaveFailed = !saved;
         if (!saved) {
             const previous = state.customWallpaper || backgrounds[state.bg];
+            modalState.draftWallpaper = previous;
             applyWallpaper(previous, true);
             updateWallpaperStatusUI(previous);
             updatePresetBgCardsUI(previous);
@@ -427,9 +429,7 @@ export function uploadWallpaper(file) {
                     if (canvas) canvas.width = canvas.height = 0;
                 }
             };
-            img.onerror = () => {
-                finish(selectionId === wallpaperSelectionId ? dataUrl : null);
-            };
+            img.onerror = fail;
             img.src = dataUrl;
         };
         try { reader.readAsDataURL(file); } catch { fail(); }
