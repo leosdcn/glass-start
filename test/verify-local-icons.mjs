@@ -140,7 +140,7 @@ async function run() {
         const domResult = await evalJS(`new Promise(async (resolve) => {
             const imgs = Array.from(document.querySelectorAll('.bookmark-card img, .category-item img, .nav-item img, .lazy-icon'));
             const total = imgs.length;
-            const relativeLocalCount = imgs.filter(img => img.src.includes('/icons/')).length;
+            const relativeLocalCount = imgs.filter(img => (img.src || img.dataset.navSrc || '').includes('/icons/')).length;
             const initialLazyLoaded = imgs.filter(img => img.complete && img.naturalWidth > 0).length;
 
             // 模拟用户平滑滚动浏览所有分类卡片，唤醒所有懒加载图标

@@ -315,6 +315,12 @@
                     "url": "https://publishmarkdown.com",
                     "icon": "./icons/publishmarkdown.com.png",
                     "desc": "MD 笔记一键发布"
+                },
+                {
+                    "name": "TinyURL",
+                    "url": "https://tinyurl.com",
+                    "icon": "./icons/tinyurl.com.png",
+                    "desc": "经典短链接生成工具"
                 }
             ]
         },
