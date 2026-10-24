@@ -342,11 +342,22 @@ export function activateVisibleNavIcons() {
     });
 }
 
+/** @type {number | null} */
+let offscreenIconsIdleId = null;
+
 /**
  * 动效结算或空闲时，平稳激活视口外剩余的离屏图标。
  */
 export function activateAllNavIcons() {
     navIconsActivated = true;
+    if (offscreenIconsIdleId !== null) {
+        if (typeof window !== 'undefined' && 'cancelIdleCallback' in window) {
+            window.cancelIdleCallback(offscreenIconsIdleId);
+        } else {
+            clearTimeout(offscreenIconsIdleId);
+        }
+        offscreenIconsIdleId = null;
+    }
     if (navAllIconsActivated) return;
     navAllIconsActivated = true;
     const nav = dom.navSection;
@@ -356,6 +367,24 @@ export function activateAllNavIcons() {
         img.src = img.dataset.navSrc || '';
         delete img.dataset.navSrc;
     });
+}
+
+/**
+ * 切屏收尾后在浏览器空闲调度激活离屏图标，避免在过渡帧引发同步布局与图片解码峰值。
+ */
+export function scheduleOffscreenNavIcons() {
+    if (navAllIconsActivated) return;
+    if (offscreenIconsIdleId !== null) return;
+    if (typeof window === 'undefined') return;
+    const run = () => {
+        offscreenIconsIdleId = null;
+        activateAllNavIcons();
+    };
+    if ('requestIdleCallback' in window) {
+        offscreenIconsIdleId = window.requestIdleCallback(run, { timeout: 1500 });
+    } else {
+        offscreenIconsIdleId = /** @type {number} */ (/** @type {unknown} */ (setTimeout(run, 120)));
+    }
 }
 
 /**
@@ -616,6 +645,7 @@ function initSidebarNav(measureActive = true) {
         /** @type {ReturnType<typeof setTimeout> | null} */
         let scrollEndTimer = null;
         content.addEventListener('scroll', () => {
+            if (!navAllIconsActivated) activateAllNavIcons();
             if (isManualScrolling) {
                 if (scrollEndTimer) clearTimeout(scrollEndTimer);
                 scrollEndTimer = setTimeout(() => {

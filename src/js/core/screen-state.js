@@ -10,7 +10,7 @@ import { OverlayStack } from './overlay-stack.js';
 import { syncWallpaperTheme } from './theme-engine.js';
 import { resetActiveCard } from './gestures.js';
 import { closeDropdown, hideSuggestions } from '../modules/search.js';
-import { renderNavCategories, refreshSidebarNavCache, updateSidebarActive, initFaviconObserver, activateVisibleNavIcons, activateAllNavIcons } from '../modules/bookmarks.js';
+import { renderNavCategories, refreshSidebarNavCache, updateSidebarActive, initFaviconObserver, activateVisibleNavIcons, activateAllNavIcons, scheduleOffscreenNavIcons } from '../modules/bookmarks.js';
 
 let isTransitioning = false;
 let sectionInitialized = false;
@@ -176,11 +176,10 @@ function resetNavScroll() {
 }
 
 function refreshNav() {
-    // 严格遵循读写分离：先完成侧栏几何测量与滚动高亮读取，再批量激活图标写 DOM，杜绝强制同步重排。
     refreshSidebarNavCache();
     updateSidebarActive();
     initFaviconObserver();
-    activateAllNavIcons();
+    scheduleOffscreenNavIcons();
 }
 
 /**

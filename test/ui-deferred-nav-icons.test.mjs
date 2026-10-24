@@ -70,7 +70,7 @@ try {
 
     await evalJS('switchToNav()');
     await waitFor(evalJS, '!isScreenTransitioning() && dom.navCategories.querySelector("img").naturalWidth > 0');
-    assert.equal(await evalJS(`dom.navSection.querySelectorAll('img[data-nav-src]').length`), 0);
+    await waitFor(evalJS, 'dom.navSection.querySelectorAll("img[data-nav-src]").length === 0', 2500);
     await evalJS(`(() => {
         window.lastNavIcon = dom.navCategories.querySelector('.category-block:last-child img.lazy-icon');
         lastNavIcon.scrollIntoView({block:'center',behavior:'instant'});
