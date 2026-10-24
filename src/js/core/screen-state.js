@@ -193,8 +193,7 @@ function applySection(section, immediate) {
     const nav = dom.navSection;
     if (inNav) {
         renderNavCategories();
-        if (immediate) activateAllNavIcons();
-        else activateVisibleNavIcons();
+        activateVisibleNavIcons();
     }
     saveSection(section);
     updateSectionAccessibility(section);

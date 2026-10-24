@@ -85,7 +85,7 @@ try {
 
     await send('Page.reload');
     await waitFor(evalJS, 'typeof switchToNav === "function" && state.currentSection === "nav" && dom.navCategories.querySelector("img")?.naturalWidth > 0');
-    assert.equal(await evalJS('dom.navSection.querySelectorAll("img[data-nav-src]").length'), 0);
+    await waitFor(evalJS, 'dom.navSection.querySelectorAll("img[data-nav-src]").length === 0', 2500);
     console.log('✅ 会话恢复直接进入导航时自动启用图标加载');
 
     // 人为延迟空闲回调，确保用户先切屏时不会等待或在动画中补做预加载。
