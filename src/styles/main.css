@@ -212,6 +212,7 @@ img, a, button, .nav-bookmark, .bookmark-item {
 }
 body.is-screen-transitioning :is(#startSection, #navSection) {
     will-change: transform;
+    pointer-events: none;
 }
 /* Chrome 保留离屏结构供下一次切屏复用，避免每次进入都重建玻璃绘制。
    其他浏览器继续只在过渡期间申请合成提示。 */

@@ -176,10 +176,11 @@ function resetNavScroll() {
 }
 
 function refreshNav() {
-    activateAllNavIcons();
+    // 严格遵循读写分离：先完成侧栏几何测量与滚动高亮读取，再批量激活图标写 DOM，杜绝强制同步重排。
     refreshSidebarNavCache();
     updateSidebarActive();
     initFaviconObserver();
+    activateAllNavIcons();
 }
 
 /**
@@ -204,8 +205,9 @@ function applySection(section, immediate) {
 
     for (const el of [start, nav]) {
         if (!el) continue;
-        el.style.transform = '';
-        el.style.transition = immediate ? 'none' : '';
+        if (el.style.transform) el.style.transform = '';
+        const targetTransition = immediate ? 'none' : '';
+        if (el.style.transition !== targetTransition) el.style.transition = targetTransition;
     }
     start?.classList.toggle('screen-pushed-up', inNav);
     if (nav) {
