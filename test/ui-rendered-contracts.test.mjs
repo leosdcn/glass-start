@@ -52,6 +52,26 @@ const verifyFallbackText = async () => {
 };
 try {
   await verify('首屏、导航与预设动态按钮');
+  // 在相邻帧快速往返切换尺寸，避免等待过渡结束掩盖容器与内部网格不同步。
+  for (const [width, height] of [[2560,1440], [1920,1080], [1280,720], [1000,800], [390,844], [2560,1440], [1920,1080]]) {
+    await chrome.send('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor:1, mobile:false });
+    const layout = await evalJS(`new Promise(resolve => requestAnimationFrame(() => {
+      const search = document.querySelector('[role="search"]').getBoundingClientRect();
+      const grid = dom.bookmarks, nav = grid.parentElement;
+      const rect = nav.getBoundingClientRect();
+      resolve({ width:rect.width, searchWidth:search.width, left:rect.left, searchLeft:search.left,
+        delay:getComputedStyle(nav).transitionDelay,
+        layoutTransitions:nav.getAnimations().flatMap(a => a.effect.getKeyframes())
+          .some(frame => ['maxWidth', 'paddingLeft', 'paddingRight', 'marginBottom'].some(key => key in frame)),
+        columns:getComputedStyle(grid).gridTemplateColumns.split(' ').length });
+    }))`);
+    assert.ok(Math.abs(layout.width-layout.searchWidth)<1 && Math.abs(layout.left-layout.searchLeft)<1,
+      `${width}px 快捷书签应即时与搜索条对齐：${JSON.stringify(layout)}`);
+    assert.equal(layout.delay, '0s', '入场动画延迟不能触发容器布局过渡延迟');
+    assert.equal(layout.layoutTransitions, false, '响应式布局不能生成延迟过渡');
+    assert.equal(layout.columns, width>=768 ? 8 : 4);
+  }
+  console.log('✅ 2K、1K 与手机尺寸快速往返切换，快捷书签即时对齐搜索条且无布局延迟');
   await evalJS('openEditModal()');
   await waitFor(evalJS, 'dom.editModal.classList.contains("active")');
   await evalJS('dom.addBookmarkBtn.click()');

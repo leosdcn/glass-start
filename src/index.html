@@ -269,7 +269,7 @@
 
         <!-- 搜索框 -->
         <div role="search" aria-label="站内与网络搜索" class="w-full max-w-2xl lg:max-w-3xl mx-auto relative mb-8 md:mb-10">
-            <div class="glass-strong apple-radius p-2 flex items-center gap-3 border fade-in search-box-wrapper delay-100 select-none">
+            <div class="glass-strong apple-radius p-2 flex items-center gap-3 border fade-in search-box-wrapper entrance-delay-1 select-none">
                 <div class="relative shrink-0 flex items-center justify-center size-9 ml-1 select-none">
                     <button id="engineBtn" type="button" aria-label="选择搜索引擎（当前：Bing）" aria-haspopup="menu" aria-expanded="false" aria-controls="dropdownMenu" class="p-2 apple-radius enabled:hover:bg-white/10 glass-interactive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed absolute inset-0 flex items-center justify-center select-none touch-manipulation">
                         <span id="engineIcon" class="engine-icon size-5 aspect-square shrink-0 rounded select-none pointer-events-none flex items-center justify-center">
@@ -303,19 +303,19 @@
         </div>
 
         <!-- 快捷书签 -->
-        <nav aria-label="快捷书签" class="w-full max-w-2xl lg:max-w-3xl mx-auto glass apple-radius p-3 sm:p-4 fade-in mb-6 md:mb-8 relative group delay-200">
+        <nav aria-label="快捷书签" class="w-full max-w-2xl lg:max-w-3xl mx-auto glass apple-radius p-3 sm:p-4 fade-in mb-6 md:mb-8 relative group entrance-delay-2">
             <div id="bookmarks" class="grid grid-cols-4 md:grid-cols-8 gap-2 min-h-43 md:min-h-22"></div>
         </nav>
 
         <!-- 向下滚动提示，首次进入导航页后隐藏。 -->
-        <div id="scrollDownHint" class="absolute bottom-4 md:bottom-7 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5 text-white/50 text-xs font-medium tracking-[0.25em] pointer-events-none hint-down select-none fade-in delay-200">
+        <div id="scrollDownHint" class="absolute bottom-4 md:bottom-7 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5 text-white/50 text-xs font-medium tracking-[0.25em] pointer-events-none hint-down select-none fade-in entrance-delay-2">
             <span>向下探索</span>
             <span class="scroll-hint inline-flex" aria-hidden="true"><svg class="size-5" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="m19.5 8.25-7.5 7.5-7.5-7.5"/></svg></span>
         </div>
         <script>(function(){try{if(localStorage.getItem('hasDiscoveredNav')==='1'){const h=document.getElementById('scrollDownHint');if(h)h.style.display='none';}}catch(e){}})()</script>
 
         <!-- 右下角悬浮编辑设置按钮（置于起始页内，随起始页物理滑屏） -->
-        <button id="editBookmarksBtn" type="button" aria-expanded="false" aria-controls="editModal" aria-haspopup="dialog" aria-label="编辑与设置" title="编辑书签与设置" class="p-3 glass-strong apple-radius text-white/70 enabled:hover:text-white enabled:hover:bg-white/20 border border-white/20 shadow-2xl flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 fade-in delay-200">
+        <button id="editBookmarksBtn" type="button" aria-expanded="false" aria-controls="editModal" aria-haspopup="dialog" aria-label="编辑与设置" title="编辑书签与设置" class="p-3 glass-strong apple-radius text-white/70 enabled:hover:text-white enabled:hover:bg-white/20 border border-white/20 shadow-2xl flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 fade-in entrance-delay-2">
             <svg class="size-5" aria-hidden="true"><use href="#icon-cog"/></svg>
         </button>
 

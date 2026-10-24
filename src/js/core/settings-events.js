@@ -187,7 +187,7 @@ export function bindEditEvents() {
                         remove();
                     } else {
                         const durSec = `${CONFIG.TIMERS.BOOKMARK_DELETE_DURATION / 1000}s`;
-                        item.style.transition = `all ${durSec} var(--ease-spring)`;
+                        item.style.transition = `opacity ${durSec} var(--ease-spring), transform ${durSec} var(--ease-spring)`;
                         item.style.opacity = '0';
                         item.style.transform = `scale(${CONFIG.PHYSICS.BOOKMARK_DELETE_SCALE}) translateY(${CONFIG.PHYSICS.BOOKMARK_DELETE_OFFSET_Y}px)`;
                         onTransitionSettled(item, 'opacity', CONFIG.TIMERS.BOOKMARK_DELETE_DURATION, remove);

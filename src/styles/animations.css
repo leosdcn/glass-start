@@ -42,9 +42,9 @@
     }
 }
 
-/* 阶梯视差延迟工具类 */
-.delay-100 { animation-delay: var(--delay-stagger-1); }
-.delay-200 { animation-delay: var(--delay-stagger-2); }
+/* 入场动画延迟独立命名，避免触发 Tailwind delay-* 的 transition-delay。 */
+.entrance-delay-1 { animation-delay: var(--delay-stagger-1); }
+.entrance-delay-2 { animation-delay: var(--delay-stagger-2); }
 
 /* 下拉菜单动画 */
 .dropdown-menu {
