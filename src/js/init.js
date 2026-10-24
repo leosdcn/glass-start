@@ -66,7 +66,6 @@ export function init() {
     updateClock();
     loadBookmarks();
     const wallpaperRestored = restoreWallpaper().then(() => true, () => false);
-    renderNavCategories();
     reconcileScreenState();
     initScreenGestures();
     initAppWakeEvents();
@@ -102,6 +101,7 @@ export function init() {
     };
 
     scheduleIdleTask(() => {
+        renderNavCategories();
         refreshSidebarNavCache();
         initFaviconObserver();
         preloadFavicons();

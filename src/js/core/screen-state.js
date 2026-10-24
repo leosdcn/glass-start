@@ -10,7 +10,7 @@ import { OverlayStack } from './overlay-stack.js';
 import { syncWallpaperTheme } from './theme-engine.js';
 import { resetActiveCard } from './gestures.js';
 import { closeDropdown, hideSuggestions } from '../modules/search.js';
-import { refreshSidebarNavCache, updateSidebarActive, initFaviconObserver, activateVisibleNavIcons, activateAllNavIcons } from '../modules/bookmarks.js';
+import { renderNavCategories, refreshSidebarNavCache, updateSidebarActive, initFaviconObserver, activateVisibleNavIcons, activateAllNavIcons } from '../modules/bookmarks.js';
 
 let isTransitioning = false;
 /** @type {ReturnType<typeof setTimeout>|null} */
@@ -190,6 +190,7 @@ function applySection(section, immediate) {
     const start = dom.startSection;
     const nav = dom.navSection;
     if (inNav) {
+        renderNavCategories();
         if (immediate) activateAllNavIcons();
         else activateVisibleNavIcons();
     }

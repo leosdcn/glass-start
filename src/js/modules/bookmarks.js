@@ -521,8 +521,7 @@ export function renderNavCategories(force = false) {
         const observer = sidebarLayoutObserver;
         observer.disconnect();
         observer.observe(navContent);
-        // 位置取决于完整外框，包含内边距及边框变化。
-        navCategories.querySelectorAll('.category-block').forEach(section => observer.observe(section, { box: 'border-box' }));
+        if (navCategories) observer.observe(navCategories, { box: 'border-box' });
     }
     if (shouldMeasure) {
         refreshSidebarNavCache();
@@ -550,8 +549,10 @@ function initSidebarNav(measureActive = true) {
             sidebarCacheDirty = true;
             if (resizeTimer) clearTimeout(resizeTimer);
             resizeTimer = setTimeout(() => {
-                refreshSidebarNavCache();
-                requestAnimationFrame(updateSidebarActive);
+                if (state.currentSection === 'nav') {
+                    refreshSidebarNavCache();
+                    requestAnimationFrame(updateSidebarActive);
+                }
             }, CONFIG.NAV.RESIZE_DEBOUNCE);
         };
         window.addEventListener('resize', handleResizeOrRotate, { passive: true });

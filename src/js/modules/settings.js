@@ -46,11 +46,9 @@ function loadPresetBgCardImages() {
             handled = true;
             img.onload = null;
             requestAnimationFrame(() => {
-                requestAnimationFrame(() => {
-                    setTimeout(() => {
-                        img.classList.add('loaded');
-                    }, idx * CONFIG.TIMERS.PRESET_CARD_STAGGER);
-                });
+                setTimeout(() => {
+                    img.classList.add('loaded');
+                }, idx * CONFIG.TIMERS.PRESET_CARD_STAGGER);
             });
         };
         img.onload = handleLoaded;
@@ -76,6 +74,7 @@ export function switchSettingsTab(targetTabId) {
     });
     if (targetTabId === 'tabAppearance') {
         renderPresetWallpapers();
+        updatePresetBgCardsUI(modalState.draftWallpaper);
         loadPresetBgCardImages();
     }
 }
@@ -169,7 +168,6 @@ export async function openEditModal() {
     switchSettingsTab('tabBookmarks');
     renderEditList();
     updateWallpaperStatusUI(modalState.draftWallpaper);
-    updatePresetBgCardsUI(modalState.draftWallpaper);
     applyBgEffects(modalState.draftMaskOpacity);
     OverlayStack.push('editModal', cancelEditModal, trigger);
 }
