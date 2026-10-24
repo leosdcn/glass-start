@@ -46,6 +46,8 @@
 | **书签草稿编辑** | `src/js/modules/bookmark-editor.js`<br/>`src/js/state/bookmark-draft.js` |
 | **设置事件装配** | `src/js/core/settings-events.js` |
 | **确认框与壁纸渲染** | `src/js/core/dialogs.js`<br/>`src/js/core/wallpaper-renderer.js` |
+| **Service Worker 更新与前台协调** | `src/js/core/service-worker-updates.js` |
+| **节点动效收尾与安全清理** | `src/js/utils/transition-cleanup.js` |
 | **Service Worker 与缓存分池** | `sw.js` |
 
 ## 模块与构建
