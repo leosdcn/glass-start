@@ -44,7 +44,7 @@
     "categories": [
         {
             "name": "人工智能",
-            "icon": "./icons/category/ai.svg",
+            "icon": "./icons/emoji/robot.svg",
             "bookmarks": [
                 {
                     "name": "Arena",
@@ -164,7 +164,7 @@
         },
         {
             "name": "开发编程",
-            "icon": "./icons/category/dev.svg",
+            "icon": "./icons/emoji/zap.svg",
             "bookmarks": [
                 {
                     "name": "Cloudflare",
@@ -224,7 +224,7 @@
         },
         {
             "name": "网络诊断",
-            "icon": "./icons/category/network.svg",
+            "icon": "./icons/emoji/satellite_orbital.svg",
             "bookmarks": [
                 {
                     "name": "BrowserLeaks",
@@ -266,7 +266,7 @@
         },
         {
             "name": "办公协作",
-            "icon": "./icons/category/office.svg",
+            "icon": "./icons/emoji/memo.svg",
             "bookmarks": [
                 {
                     "name": "DeepL",
@@ -326,7 +326,7 @@
         },
         {
             "name": "云盘传输",
-            "icon": "./icons/category/cloud.svg",
+            "icon": "./icons/emoji/cloud.svg",
             "bookmarks": [
                 {
                     "name": "Google Drive",
@@ -368,7 +368,7 @@
         },
         {
             "name": "知识百科",
-            "icon": "./icons/category/wiki.svg",
+            "icon": "./icons/emoji/books.svg",
             "bookmarks": [
                 {
                     "name": "Duolingo",
@@ -434,7 +434,7 @@
         },
         {
             "name": "素材灵感",
-            "icon": "./icons/category/media.svg",
+            "icon": "./icons/emoji/framed_picture.svg",
             "bookmarks": [
                 {
                     "name": "Behance",
@@ -536,7 +536,7 @@
         },
         {
             "name": "创意设计",
-            "icon": "./icons/category/design.svg",
+            "icon": "./icons/emoji/palette.svg",
             "bookmarks": [
                 {
                     "name": "BgSub",
@@ -578,7 +578,7 @@
         },
         {
             "name": "社区社交",
-            "icon": "./icons/category/community.svg",
+            "icon": "./icons/emoji/speech_balloon.svg",
             "bookmarks": [
                 {
                     "name": "Discord",
@@ -662,7 +662,7 @@
         },
         {
             "name": "影视音乐",
-            "icon": "./icons/category/video.svg",
+            "icon": "./icons/emoji/clapper.svg",
             "bookmarks": [
                 {
                     "name": "Bandcamp",
@@ -740,7 +740,7 @@
         },
         {
             "name": "游戏娱乐",
-            "icon": "./icons/category/game.svg",
+            "icon": "./icons/emoji/gamepad.svg",
             "bookmarks": [
                 {
                     "name": "Lichess",
@@ -788,7 +788,7 @@
         },
         {
             "name": "趣味探索",
-            "icon": "./icons/category/explore.svg",
+            "icon": "./icons/emoji/test_tube.svg",
             "bookmarks": [
                 {
                     "name": "16Personalities",
@@ -824,7 +824,7 @@
         },
         {
             "name": "地图气象",
-            "icon": "./icons/category/map.svg",
+            "icon": "./icons/emoji/world_map.svg",
             "bookmarks": [
                 {
                     "name": "Google Earth",

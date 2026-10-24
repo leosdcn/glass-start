@@ -580,7 +580,7 @@ try {
         if (!ENGINE_SVGS[key]?.includes('<svg')) errors.push(`引擎 ${key} 缺少 SVG 图标`);
     }
     for (const [emoji, rel] of Object.entries(WEATHER_EMOJI_MAP)) {
-        if (!/^\.\/icons\/weather\/[a-z0-9_-]+\.svg$/i.test(rel)) {
+        if (!/^\.\/icons\/emoji\/[a-z0-9_-]+\.svg$/i.test(rel)) {
             errors.push(`天气图标 ${emoji} 路径非法: ${rel}`);
         } else if (!existsSync(join(root, 'public', rel.slice(2)))) {
             errors.push(`天气图标 ${emoji} 文件缺失: ${rel}`);

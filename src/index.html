@@ -221,7 +221,7 @@
         <!-- 右上角天气胶囊，随起始页一起切屏。 -->
         <div id="weatherWidget" class="select-none">
             <button id="weatherBtn" type="button" aria-expanded="false" aria-controls="weatherPopover" aria-haspopup="dialog" aria-label="🌤️ --°·天气，点击查看实时天气与详细预报" class="glass apple-radius px-3 py-1.5 sm:px-3.5 sm:py-2 text-white/80 enabled:hover:text-white border border-white/12 flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-medium glass-interactive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 fade-in">
-                <span id="weatherIcon" aria-hidden="true" class="text-sm sm:text-base leading-none select-none flex items-center justify-center"><img src="./icons/weather/sun_cloud.svg" class="size-4 sm:size-4.5 shrink-0 object-contain select-none inline-block align-middle pointer-events-none" alt="" aria-hidden="true"></span>
+                <span id="weatherIcon" aria-hidden="true" class="text-sm sm:text-base leading-none select-none flex items-center justify-center"><img src="./icons/emoji/sun_behind_small_cloud.svg" class="size-4 sm:size-4.5 shrink-0 object-contain select-none inline-block align-middle pointer-events-none" alt="" aria-hidden="true"></span>
                 <span id="weatherTemp" class="tabular-nums font-semibold tracking-tight leading-none">--°</span>
                 <span aria-hidden="true" class="text-white/30 font-light select-none">·</span>
                 <span id="weatherCity" class="text-white/80 max-w-22 sm:max-w-30 truncate text-2xs sm:text-xs">天气</span>
@@ -597,7 +597,7 @@
 
     <!-- 快捷键速查面板弹窗 (Cmd/Ctrl + /) -->
     <div id="shortcutModal" role="dialog" aria-modal="true" hidden aria-label="快捷键速查" class="edit-overlay fixed inset-0 flex items-center justify-center z-[var(--z-picker)] overscroll-contain">
-        <div class="glass-strong apple-radius w-full max-w-md mx-4 min-h-panel-min max-h-panel-max sm:h-panel-desktop flex flex-col p-5 sm:p-6 shadow-2xl overflow-hidden">
+        <div class="glass-strong apple-radius w-full max-w-md mx-4 max-h-panel-max flex flex-col p-5 sm:p-6 shadow-2xl overflow-hidden">
             <!-- 弹窗 Header -->
             <div class="flex items-center justify-between mb-3 pb-2 border-b border-white/10 shrink-0">
                 <div class="flex items-center gap-2">
@@ -606,8 +606,8 @@
                 </div>
             </div>
 
-            <!-- 快捷键列表内容 (单列纵向分类流式布局) -->
-            <div id="shortcutModalList" class="flex-1 overflow-y-auto min-h-0 space-y-3 pr-1 text-xs"></div>
+            <!-- 快捷键列表内容 (无框细分割线纵向分类流式布局) -->
+            <div id="shortcutModalList" class="flex-1 overflow-y-auto min-h-0 space-y-4 pr-0.5 text-xs"></div>
 
             <!-- 底部操作与提示 -->
             <div class="flex items-center justify-end mt-3 pt-3 border-t border-white/10 shrink-0">
@@ -618,7 +618,7 @@
 
     <!-- 开源与数据鸣谢弹窗 (Credits & Attribution Modal) -->
     <div id="creditsModal" role="dialog" aria-modal="true" hidden aria-label="开源与数据鸣谢" class="edit-overlay fixed inset-0 flex items-center justify-center z-[var(--z-picker)] overscroll-contain">
-        <div class="glass-strong apple-radius w-full max-w-md mx-4 flex flex-col p-5 sm:p-6 shadow-2xl overflow-hidden">
+        <div class="glass-strong apple-radius w-full max-w-md mx-4 max-h-panel-max flex flex-col p-5 sm:p-6 shadow-2xl overflow-hidden">
             <!-- 弹窗 Header -->
             <div class="flex items-center justify-between mb-3 pb-2 border-b border-white/10 shrink-0">
                 <div class="flex items-center gap-2">
@@ -627,12 +627,12 @@
                 </div>
             </div>
 
-            <!-- 致谢条目列表 (由 JS 数据驱动渲染) -->
-            <div id="creditsList" class="flex-1 overflow-y-auto min-h-0 space-y-2.5 pr-0.5 text-xs"></div>
+            <!-- 致谢条目列表 (由 JS 数据驱动渲染，无框细分割线列表) -->
+            <div id="creditsList" class="flex-1 overflow-y-auto min-h-0 divide-y divide-white/10 pr-0.5 text-xs"></div>
 
             <!-- 底部操作与提示 -->
             <div class="flex items-center justify-end mt-3 pt-3 border-t border-white/10 shrink-0">
-                <button id="doneCreditsBtn" type="button" class="glass-btn-primary py-2 px-5 text-xs sm:text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:opacity-50 disabled:cursor-not-allowed">知道了</button>
+                <button id="doneCreditsBtn" type="button" class="glass-btn-primary py-2.5 px-6 text-xs sm:text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:opacity-50 disabled:cursor-not-allowed">知道了</button>
             </div>
         </div>
     </div><!-- /#creditsModal -->
