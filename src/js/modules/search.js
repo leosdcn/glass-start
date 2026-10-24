@@ -368,7 +368,8 @@ function renderSuggestions(localList = [], netList = [], preserveSelection = fal
     const restoreInput = selectionUpdatesInput;
     const maxNetCount = Math.max(0, CONFIG.SUGGEST.MAX_TOTAL_ITEMS - (localList ? localList.length : 0));
     const safeNetList = (netList || []).slice(0, maxNetCount);
-    const signature = JSON.stringify([localList, safeNetList, isNetLoading]);
+    const localSig = (localList || []).map(bm => `${bm.url}|${bm.name}|${bm.desc || ''}|${bm.category || ''}`).join(';');
+    const signature = `${isNetLoading ? 1 : 0}:${localSig}:${safeNetList.join(';')}`;
     if (signature === lastSuggestionsSignature && suggestionMenu.classList.contains('active')) {
         if (!preserveSelection && selectedSuggestionIdx >= 0) selectSuggestion(-1, { updateInput: false });
         return;

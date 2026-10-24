@@ -14,9 +14,15 @@ let activeCardRect = null;
 let rafId = null;
 /** @type {MouseEvent | PointerEvent | null} */
 let pendingEvent = null;
+let lastRenderedX = -9999;
+let lastRenderedY = -9999;
+let lastRenderedPressed = false;
 
 export function resetActiveCard() {
     pendingEvent = null;
+    lastRenderedX = -9999;
+    lastRenderedY = -9999;
+    lastRenderedPressed = false;
     if (rafId !== null) {
         cancelAnimationFrame(rafId);
         rafId = null;
@@ -67,6 +73,20 @@ export function initGlassSpotlightAndTilt() {
         const x = pendingEvent.clientX - rect.left;
         const y = pendingEvent.clientY - rect.top;
 
+        const isPressed = (typeof activeCard.matches === 'function' && activeCard.matches(':active')) || (pendingEvent.buttons === 1);
+
+        // 死区过滤：微小位移 (< 0.75px) 且按压状态无变化时，跳过无意义的 DOM 样式与 CSS 变量写入
+        const dx = x - lastRenderedX;
+        const dy = y - lastRenderedY;
+        if (lastRenderedX !== -9999 && isPressed === lastRenderedPressed && (dx * dx + dy * dy < 0.5625)) {
+            rafId = null;
+            return;
+        }
+
+        lastRenderedX = x;
+        lastRenderedY = y;
+        lastRenderedPressed = isPressed;
+
         const centerX = rect.width / 2;
         const centerY = rect.height / 2;
         // 光斑纹理固定在卡片中心，更新位移而不是重绘渐变背景。
@@ -76,7 +96,6 @@ export function initGlassSpotlightAndTilt() {
         const rotateX = -((y - centerY) / centerY) * maxDeg;
         const rotateY = ((x - centerX) / centerX) * maxDeg;
 
-        const isPressed = (typeof activeCard.matches === 'function' && activeCard.matches(':active')) || (pendingEvent.buttons === 1);
         const targetScale = isPressed ? CONFIG.PHYSICS.TILT_PRESSED_SCALE : CONFIG.PHYSICS.TILT_HOVER_SCALE;
 
         activeCard.style.transform = `perspective(${CONFIG.PHYSICS.TILT_PERSPECTIVE_PX}px) rotateX(${rotateX.toFixed(2)}deg) rotateY(${rotateY.toFixed(2)}deg) scale(${targetScale})`;
