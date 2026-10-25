@@ -125,12 +125,6 @@
                     "desc": "月之暗面长文本 AI"
                 },
                 {
-                    "name": "Midjourney",
-                    "url": "https://www.midjourney.com",
-                    "icon": "./icons/midjourney.com.png",
-                    "desc": "AI 图像生成与艺术"
-                },
-                {
                     "name": "Mistral",
                     "url": "https://chat.mistral.ai",
                     "icon": "./icons/chat.mistral.ai.png",
@@ -315,12 +309,6 @@
                     "url": "https://publishmarkdown.com",
                     "icon": "./icons/publishmarkdown.com.png",
                     "desc": "MD 笔记一键发布"
-                },
-                {
-                    "name": "TinyURL",
-                    "url": "https://tinyurl.com",
-                    "icon": "./icons/tinyurl.com.png",
-                    "desc": "经典短链接生成工具"
                 }
             ]
         },
@@ -370,6 +358,12 @@
             "name": "知识百科",
             "icon": "./icons/emoji/books.svg",
             "bookmarks": [
+                {
+                    "name": "Desmos",
+                    "url": "https://www.desmos.com/calculator",
+                    "icon": "./icons/desmos.com.png",
+                    "desc": "免费在线函数绘图"
+                },
                 {
                     "name": "Duolingo",
                     "url": "https://www.duolingo.com",
@@ -567,6 +561,12 @@
                     "url": "https://squoosh.app",
                     "icon": "./icons/squoosh.app.png",
                     "desc": "开源本地图片压缩"
+                },
+                {
+                    "name": "Vocal Remover",
+                    "url": "https://vocalremover.org",
+                    "icon": "./icons/vocalremover.org.png",
+                    "desc": "免费人声伴奏分离"
                 },
                 {
                     "name": "waifu2x",
@@ -827,6 +827,12 @@
             "icon": "./icons/emoji/world_map.svg",
             "bookmarks": [
                 {
+                    "name": "Flightradar24",
+                    "url": "https://www.flightradar24.com",
+                    "icon": "./icons/flightradar24.com.png",
+                    "desc": "全球航班实时雷达"
+                },
+                {
                     "name": "Google Earth",
                     "url": "https://earth.google.com",
                     "icon": "./icons/earth.google.com.png",
@@ -837,6 +843,12 @@
                     "url": "https://maps.google.com",
                     "icon": "./icons/maps.google.com.png",
                     "desc": "全球地图导航服务"
+                },
+                {
+                    "name": "Stellarium Web",
+                    "url": "https://stellarium-web.org",
+                    "icon": "./icons/stellarium-web.org.png",
+                    "desc": "网页端实景在线星图"
                 },
                 {
                     "name": "Time.is",
