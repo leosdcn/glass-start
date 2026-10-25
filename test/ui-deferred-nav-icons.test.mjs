@@ -12,18 +12,18 @@ try {
     ` });
     await send('Page.reload');
     await waitFor(evalJS, 'typeof switchToNav === "function" && dom.navCategories.querySelector("img[data-nav-src]")');
-    await waitFor(evalJS, `dom.navCategories.querySelector('.category-block:nth-child(-n+3) img.lazy-icon[src]')?.fetchPriority === 'low'`);
+    await waitFor(evalJS, `dom.navCategories.querySelector('.category-block:nth-child(-n+5) img.lazy-icon[src]')?.fetchPriority === 'low'`);
     assert.equal(await evalJS(`(() => {
         const firstScreen = new Set([...dom.bookmarks.querySelectorAll('img')].map(img=>img.src));
         const resources = performance.getEntriesByType('resource').map(entry=>entry.name);
         const deferred = [...dom.navSection.querySelectorAll('img[data-nav-src]')];
-        const prepared = [...dom.navCategories.querySelectorAll('.category-block:nth-child(-n+3) img.lazy-icon[src]')];
+        const prepared = [...dom.navCategories.querySelectorAll('.category-block:nth-child(-n+5) img.lazy-icon[src]')];
         return prepared.length > 0 && prepared.every(img=>img.getAttribute('src').startsWith('./icons/') &&
             img.loading === 'eager' && img.fetchPriority === 'low') &&
-            deferred.length > 75 && deferred.every(img=>!img.hasAttribute('src') &&
+            deferred.length >= 75 && deferred.every(img=>!img.hasAttribute('src') &&
             (firstScreen.has(new URL(img.dataset.navSrc,location.href).href) || !resources.includes(new URL(img.dataset.navSrc,location.href).href)));
     })()`), true);
-    console.log('✅ 首批本地图标以低优先级空闲准备，其余超过 75 个图标仍保持延迟加载');
+    console.log('✅ 首批本地图标以低优先级空闲准备，其余 75 个图标仍保持延迟加载');
 
     assert.deepEqual(await evalJS(`(() => {
         const parent = dom.navCategories.querySelector('.category-block');

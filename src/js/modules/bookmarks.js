@@ -307,13 +307,13 @@ let lastNavCatalog;
 let navIconsActivated = false;
 let navAllIconsActivated = false;
 
-/** 首屏空闲时仅准备首批本地图标，让加载和淡入尽量在首次切屏前完成。 */
+/** 首屏空闲时仅准备首批本地图标，让加载和淡入尽量在首次切屏前完成（覆盖 1080p 至 2K 屏首屏可见的前 5 个分类）。 */
 export function preloadVisibleNavIcons() {
     if (navIconsActivated || state.currentSection !== 'start' || document.hidden ||
         !document.documentElement.classList.contains('is-chrome')) return;
     const nav = dom.navSection;
     if (!nav) return;
-    nav.querySelectorAll('.category-block:nth-child(-n+3) img[data-nav-src]').forEach(node => {
+    nav.querySelectorAll('.category-block:nth-child(-n+5) img[data-nav-src]').forEach(node => {
         const img = /** @type {HTMLImageElement} */ (node);
         const source = img.dataset.navSrc || '';
         // 自定义远程图标和其余分类仍等进入导航后按需加载。
@@ -327,15 +327,15 @@ export function preloadVisibleNavIcons() {
 }
 
 /**
- * 动效期按需激活：优先激活视口内可见分类图标（前 3 个分类，约 34 个图标），
- * 避免在切屏 Transform 动效首帧同时向 131 个图片发起网络与解码请求。
+ * 动效期按需激活：优先激活视口内可见分类图标（前 5 个分类，约 49 个图标），
+ * 避免在切屏 Transform 动效首帧同时向 130+ 个图片发起网络与解码请求。
  */
 export function activateVisibleNavIcons() {
     if (navIconsActivated) return;
     navIconsActivated = true;
     const nav = dom.navSection;
     if (!nav) return;
-    nav.querySelectorAll('.category-block:nth-child(-n+3) img[data-nav-src]').forEach(node => {
+    nav.querySelectorAll('.category-block:nth-child(-n+5) img[data-nav-src]').forEach(node => {
         const img = /** @type {HTMLImageElement} */ (node);
         img.src = img.dataset.navSrc || '';
         delete img.dataset.navSrc;
