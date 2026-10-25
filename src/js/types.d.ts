@@ -172,6 +172,7 @@ export interface DOMCache {
     navHint: HTMLElement | null;
     navHeader: HTMLElement | null;
     presetWallpaperGrid: HTMLElement | null;
+    settingsTransitionGrid: HTMLElement | null;
     shortcutModal: HTMLElement | null;
     shortcutModalList: HTMLElement | null;
     doneShortcutBtn: HTMLButtonElement | null;

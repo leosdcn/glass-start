@@ -348,7 +348,7 @@ export function initTransitionSwitcher() {
         document.documentElement.dataset.transitionMode = mode;
         syncTransitionSwitcherActive(mode);
     }
-    const settingsGrid = document.getElementById('settingsTransitionGrid');
+    const settingsGrid = dom.settingsTransitionGrid;
     if (settingsGrid) {
         settingsGrid.addEventListener('click', e => {
             const btn = /** @type {HTMLElement|null} */ (e.target instanceof HTMLElement ? e.target.closest('.settings-transition-btn') : null);

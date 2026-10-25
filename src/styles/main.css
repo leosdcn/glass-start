@@ -556,7 +556,6 @@ body.drag-settling .drag-handle {
     color: rgba(255, 255, 255, 0.3);
 }
 /* 拖拽目标行通过上下边缘高亮指示插入位置。 */
-.drag-drop-line { display: none; }
 /* 插入目标上方：顶部边缘亮起（白色玻璃风格） */
 .edit-row-card.drop-target-above {
     background-color: rgba(255, 255, 255, 0.08);
