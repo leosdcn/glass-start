@@ -263,7 +263,7 @@ export function bindEvents() {
         if (e.key === 'Tab' && !OverlayStack.isEmpty()) {
             const topOverlay = OverlayStack.top();
             if (topOverlay && MODAL_OVERLAY_IDS.has(topOverlay.id)) {
-                const modalEl = dom[topOverlay.id] || document.getElementById(topOverlay.id);
+                const modalEl = dom[topOverlay.id];
                 if (modalEl) {
                     handleModalTabFocus(e, modalEl);
                     return;

@@ -52,13 +52,13 @@ export function snapshotHealth() {
     if (isScreenTransitioning()) {
         return { ok: true, identityOk: true, sentinelsOk: true };
     }
-    const s = dom.startSection || (typeof document !== 'undefined' ? document.getElementById('startSection') : null);
+    const s = dom.startSection;
     if (!s || s.classList.contains('screen-pushed-up')) return { ok: true };
     let t = 'none';
     try { t = getComputedStyle(s).transform; } catch {}
     const identityOk = !t || t === 'none' || t === 'matrix(1, 0, 0, 1, 0, 0)';
-    const clock = dom.clock || (typeof document !== 'undefined' ? document.getElementById('clock') : null);
-    const search = dom.searchInput || (typeof document !== 'undefined' ? document.getElementById('searchInput') : null);
+    const clock = dom.clock;
+    const search = dom.searchInput;
     const sentinelsOk = !!clock && clock.offsetWidth > 0 && !!search && search.offsetWidth > 0;
     return { ok: identityOk && sentinelsOk, identityOk, sentinelsOk };
 }
@@ -79,7 +79,7 @@ export function probe() {
     if (unhealthyStreak === 1) {
         reconcileScreenState();
     } else if (unhealthyStreak === 2) {
-        const s = dom.startSection || (typeof document !== 'undefined' ? document.getElementById('startSection') : null);
+        const s = dom.startSection;
         if (s) {
             s.style.willChange = 'auto';
             void s.offsetHeight;

@@ -1,25 +1,15 @@
 /** 按分钟更新时间与日期，渲染平台快捷键提示和鸣谢列表。 */
 import { CONFIG, IS_MAC } from '../config/constants.js';
 import { escapeHtml, safeUrl } from '../utils/helpers.js';
-import { dom, $ } from '../state/dom.js';
+import { dom } from '../state/dom.js';
 
+/** @type {Record<string, string>} */
 const KBD = {
-    slash: IS_MAC ? '⌘ /' : 'Ctrl + /',
-    bg: IS_MAC ? '⌘ B' : 'Ctrl + B',
-    newTab: IS_MAC ? '⌘ ↵' : 'Alt + ↵',
-    tabTrap: IS_MAC ? 'Tab / ⇧ Tab' : 'Tab / Shift + Tab'
+    'kbd-slash': IS_MAC ? '⌘ /' : 'Ctrl + /',
+    'kbd-bg': IS_MAC ? '⌘ B' : 'Ctrl + B',
+    'kbd-newtab': IS_MAC ? '⌘ ↵' : 'Alt + ↵',
+    'kbd-tab': IS_MAC ? 'Tab / ⇧ Tab' : 'Tab / Shift + Tab'
 };
-
-function applyPlatformShortcuts() {
-    const elSlash = $('kbd-slash');
-    if (elSlash) elSlash.textContent = KBD.slash;
-    const elBg = $('kbd-bg');
-    if (elBg) elBg.textContent = KBD.bg;
-    const elNewTab = $('kbd-newtab');
-    if (elNewTab) elNewTab.textContent = KBD.newTab;
-    const elTab = $('kbd-tab');
-    if (elTab) elTab.textContent = KBD.tabTrap;
-}
 
 export function renderShortcutModalList() {
     const container = dom.shortcutModalList;
@@ -31,13 +21,12 @@ export function renderShortcutModalList() {
                 ${sec.items.map(item => `
                     <div class="flex items-center justify-between gap-3 px-2.5 py-2">
                         <span class="text-white/85 shrink-0 text-xs">${escapeHtml(item.desc)}</span>
-                        <span class="flex items-center gap-1 font-mono text-2xs text-white/90 bg-white/8 px-2.5 py-0.5 rounded-md border border-white/12 shrink-0">${item.kbdId ? `<kbd id="${item.kbdId}">${escapeHtml(item.fallback)}</kbd>` : item.rawHtml}</span>
+                        <span class="flex items-center gap-1 font-mono text-2xs text-white/90 bg-white/8 px-2.5 py-0.5 rounded-md border border-white/12 shrink-0">${item.kbdId ? `<kbd>${escapeHtml(KBD[item.kbdId] || item.fallback)}</kbd>` : item.rawHtml}</span>
                     </div>
                 `).join('')}
             </div>
         </div>
     `).join('');
-    applyPlatformShortcuts();
 }
 
 export function renderCreditsModalList() {
