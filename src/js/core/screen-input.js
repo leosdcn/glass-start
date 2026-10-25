@@ -14,6 +14,8 @@ let wheelConsumed = false;
 // 被动 wheel 可能晚于合成线程的滚动提交；保留上次 scroll 观察到的位置。
 let navWasAtTop = true;
 let navTopArrivalTime = -Infinity;
+let navCoastingToTop = false;
+let lastWheelDelta = 0;
 /** @type {{ id: number, x: number, y: number, time: number, canReturn: boolean }|null} */
 let touch = null;
 let navTouchMoveBlocked = false;
@@ -42,6 +44,8 @@ export function resetScreenInput() {
     wheelConsumed = false;
     navWasAtTop = isNavAtTop();
     navTopArrivalTime = -Infinity;
+    navCoastingToTop = false;
+    lastWheelDelta = 0;
     clearTouchGesture();
     syncNavTouchMove();
 }
@@ -59,8 +63,15 @@ function isNavAtTop() {
 function recordNavScroll(e) {
     const atTop = isNavAtTop();
     syncNavTouchMove();
-    if (!atTop && state.currentSection === 'nav') clearTouchGesture();
-    if (atTop && !navWasAtTop) navTopArrivalTime = e.timeStamp;
+    if (!atTop && state.currentSection === 'nav') {
+        clearTouchGesture();
+        navCoastingToTop = false;
+    }
+    if (atTop && !navWasAtTop) {
+        navTopArrivalTime = e.timeStamp;
+        navCoastingToTop = true;
+        lastWheelDelta = 0;
+    }
     navWasAtTop = atTop;
 }
 
@@ -77,6 +88,8 @@ function handleWheel(e) {
         wheelDistance = 0;
         wheelConsumed = false;
         wheelWindowStart = now;
+        navCoastingToTop = false;
+        lastWheelDelta = 0;
     }
     wheelTime = now;
     wheelDirection = direction;
@@ -91,12 +104,33 @@ function handleWheel(e) {
     }
     if (wheelConsumed) return;
     // 一轮手势中只要还在滚内容，就不能在到顶后被余下事件带回首屏。
-    // 当前坐标可能已到顶，但该 wheel 开始前还在内容里，仍归原生滚动。
-    if (state.currentSection === 'nav'
-        && (!isNavAtTop() || !navWasAtTop || e.timeStamp <= navTopArrivalTime)) {
-        wheelConsumed = true;
-        return;
+    if (state.currentSection === 'nav') {
+        if (!isNavAtTop() || !navWasAtTop) {
+            wheelDistance = 0;
+            wheelWindowStart = now;
+            lastWheelDelta = delta;
+            return;
+        }
+        if (navCoastingToTop) {
+            // 惯性衰减阶段：只要位移持续衰减，就属于滚到顶的同轮余量，不触发切屏；
+            // 出现明显加速（新的物理划动）或静默超时后才视为新一轮切屏手势。
+            const mag = Math.abs(delta);
+            const lastMag = Math.abs(lastWheelDelta);
+            const isNewFlick = (e.timeStamp - navTopArrivalTime > 60)
+                && (mag >= lastMag + 8 && mag >= 12);
+            if (isNewFlick) {
+                navCoastingToTop = false;
+                wheelDistance = 0;
+                wheelWindowStart = now;
+            } else {
+                lastWheelDelta = delta;
+                wheelDistance = 0;
+                wheelWindowStart = now;
+                return;
+            }
+        }
     }
+    lastWheelDelta = delta;
     if (now - wheelWindowStart >= CONFIG.GESTURE.WHEEL_IDLE_MS) {
         wheelDistance = 0;
         wheelWindowStart = now;
@@ -162,13 +196,14 @@ export function initScreenGestures() {
     dom.navContent?.addEventListener('scroll', recordNavScroll, { passive: true });
     // 平时仅观察意图，允许浏览器独立滚动；切屏期的临时阻止由屏幕模块管理。
     document.addEventListener('wheel', handleWheel, { passive: true });
+    document.addEventListener('pointerdown', resetScreenInput, { passive: true });
     document.addEventListener('touchstart', handleTouchStart, { passive: true });
     // 首屏没有原生内容滚动；导航列表仅在顶部准备下滑返回，中间滚动不拦截。
     dom.startSection?.addEventListener('touchmove', handleActiveTouchMove, { passive: false });
     document.addEventListener('touchmove', e => handleTouch(e, false), { passive: true });
     document.addEventListener('touchend', e => handleTouch(e, true), { passive: true });
     document.addEventListener('touchcancel', clearTouchGesture, { passive: true });
-    window.addEventListener('blur', clearTouchGesture, { passive: true });
-    window.addEventListener('pagehide', clearTouchGesture, { passive: true });
-    document.addEventListener('visibilitychange', () => { if (document.hidden) clearTouchGesture(); }, { passive: true });
+    window.addEventListener('blur', resetScreenInput, { passive: true });
+    window.addEventListener('pagehide', resetScreenInput, { passive: true });
+    document.addEventListener('visibilitychange', () => { if (document.hidden) resetScreenInput(); }, { passive: true });
 }

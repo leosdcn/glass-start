@@ -76,6 +76,26 @@ try {
     await settled('start');
     console.log('✅ 内容滚到顶部的同轮尾部输入不返回，静默后新一轮可返回');
 
+    // 滚回顶部的惯性衰减阶段不误切屏，新一轮向上划动直接返回首屏（无需点击页面）。
+    await idle();
+    await wheel(60);
+    await settled('nav');
+    await evalJS("dom.navContent.style.scrollBehavior='auto'; dom.navContent.scrollTop=50");
+    await send('Input.dispatchMouseEvent', { type:'mouseWheel', ...point, deltaX:0, deltaY:-100 });
+    await waitFor(evalJS, 'dom.navContent.scrollTop === 0');
+    await evalJS(`(async () => {
+        let d = -15;
+        for (let i = 0; i < 10; i++) {
+            d *= 0.85;
+            document.dispatchEvent(new WheelEvent('wheel', { deltaY: d, cancelable: true }));
+            await new Promise(r => setTimeout(r, 25));
+        }
+    })()`);
+    assert.equal(await section(), 'nav');
+    await wheel(-60);
+    await settled('start');
+    console.log('✅ 滚回顶部的惯性动量衰减不误切屏，新一轮划动无需点击直接返回首屏');
+
     // 同向惯性跨过动画完成边界，也不能重新启动动画或改变状态。
     await idle();
     await wheel(60);
