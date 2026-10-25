@@ -87,6 +87,9 @@ export function scheduleSuggestions(query) {
     if (suggestDebounceTimer !== null) {
         clearTimeout(suggestDebounceTimer);
     }
+    if (selectedSuggestionIdx >= 0) {
+        selectSuggestion(-1, { updateInput: false });
+    }
     // 输入已经变化，防抖等待期间也不能让上一次请求写回旧结果。
     if (activeSuggestKey !== `${state.engine}:${query.trim()}`) {
         activeSuggestReqId++;
