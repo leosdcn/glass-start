@@ -1,5 +1,7 @@
 # Glass Start 架构说明
 
+> “如无必要，勿增实体。”——保持极简透明，拒绝过度工程。
+
 本文说明源码组织、状态流、缓存策略和验证边界。使用与部署见 [README.md](../README.md)，工程约束见 [AGENTS.md](../AGENTS.md)。实现细节以对应源码为准，业务配置统一维护在 `src/js/config/`：通用常量与运行时配置见 `constants.js`，主题、壁纸、引擎及图标配置见各对应模块。
 
 ## 目录
@@ -23,7 +25,7 @@
 | **通用常量与运行时配置** | `src/js/config/constants.js` |
 | **首屏主题与 Safari 预渲染** | `src/js/config/themes.js` |
 | **首屏预设壁纸清单** | `src/js/config/backgrounds.js` |
-| **搜索引擎元数据与图标** | `src/js/config/engines.js`<br/>`src/js/config/engine-icons.js` |
+| **搜索引擎元数据与图标** | `src/js/config/engines.js`<br/>`src/js/config/engine-icons.js`<br/>`src/js/config/engine-head.js` |
 | **天气图标映射** | `src/js/config/weather-icons.js` |
 | **全局状态与 DOM 缓存** | `src/js/state/store.js`<br/>`src/js/state/dom.js` |
 | **书签体系与双栏分类导航** | `src/js/modules/bookmarks.js` |

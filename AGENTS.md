@@ -1,9 +1,12 @@
 # Glass Start — 开发约束
 
+> “如无必要，勿增实体。”（Entities should not be multiplied beyond necessity.）
+
 架构与模块索引见 [ARCHITECTURE.md](./docs/ARCHITECTURE.md)；使用、书签格式及测试环境见 [README.md](./README.md)；Safari/iOS 走查见 [docs/SAFARI_SMOKE_CHECKLIST.md](./docs/SAFARI_SMOKE_CHECKLIST.md)。实现以源码为准。业务配置位于 `src/js/config/`，各模块职责见架构文档。
 
 ## 修改边界
 
+- 恪守奥卡姆剃刀原则：“如无必要，勿增实体”。严禁过度设计与防御过当；杜绝为了“形式完备”而增设多余抽象、状态包装或自测脚手架，优先最小必要修改与代码就地复用。
 - 优先使用原生 Web API，默认保持零第三方运行时依赖。确需引入时，应说明收益，并验证产物体积、首屏性能和离线兼容性。开发依赖可按需增加，避免无关工具扩张。
 - 应用源码位于 `src/`、`bookmarks.json`、`sw.js`；可按任务需要修改文档、工具及测试，避免无关改动。图标同步可更新 `public/icons/`。
 - 不手工修改 `dist/`，产物由构建生成。Tailwind v4 仅使用 `@theme`，不创建 `tailwind.config.js`。
