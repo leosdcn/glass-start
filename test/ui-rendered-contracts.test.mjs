@@ -181,7 +181,7 @@ try {
   })()`);
   assert.equal(material.bg, 'rgba(255, 255, 255, 0.2)');
   assert.ok(material.gradient.includes('linear-gradient') && material.gradient.includes('70, 120, 200'));
-  assert.equal(material.blur, 'blur(40px)');
+  assert.equal(material.blur, 'blur(36px)');
   assert.equal(material.border, 'rgba(70, 120, 200, 0.22)');
   for (const motion of ['no-preference', 'reduce']) {
     // 减弱动效只关闭动画和过渡，静态玻璃仍保留普通／强两级模糊。
@@ -193,7 +193,7 @@ try {
       const s = getComputedStyle(document.querySelector(selector));
       return { blur:s.backdropFilter, animation:s.animationName, transition:s.transitionDuration };
     })`);
-    assert.deepEqual(glassLevels.map(s => s.blur), ['blur(24px)', 'blur(40px)', 'blur(40px)'],
+    assert.deepEqual(glassLevels.map(s => s.blur), ['blur(22px)', 'blur(36px)', 'blur(36px)'],
       '减弱动效不改变玻璃模糊层级');
     if (motion === 'reduce') {
       for (const s of glassLevels) {
@@ -239,7 +239,7 @@ try {
   }
   await evalJS(`document.documentElement.classList.toggle('wallpaper-bright', ${wasBright}); closeEditModal()`);
   console.log('✅ 深浅背景下减少透明度及滤镜兼容降级的文字保持可读；叠加减弱动效也不重新启用模糊');
-  console.log('✅ 减弱动效关闭动画及过渡，保留普通玻璃 24px 与强玻璃 40px');
+  console.log('✅ 减弱动效关闭动画及过渡，保留普通玻璃 22px 与强玻璃 36px');
 } finally {
   await chrome.close();
   await server.close();

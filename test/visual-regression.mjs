@@ -3,7 +3,7 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { launchSession, sleep, makeTester, pressKey } from './helpers.mjs';
+import { launchSession, sleep, makeTester, pressKey, waitFor, navigateAndWait } from './helpers.mjs';
 
 /** 截图产物输出目录：项目内 test/artifacts/（已 gitignore），相对脚本定位，跨机器可移植 */
 const ARTIFACT_DIR = join(dirname(fileURLToPath(import.meta.url)), 'artifacts');
@@ -17,6 +17,7 @@ const { pass, finish, results } = makeTester();
 const { server, chrome, send, evalJS } = await launchSession();
 
 const press = (key) => pressKey(evalJS, key);
+const settled = section => waitFor(evalJS, `state.currentSection === '${section}' && !isScreenTransitioning()`);
 
 /** 截图并保存到所有指定 Artifact 目录 */
 async function captureScreenshot(filename) {
@@ -65,6 +66,7 @@ async function inspectComponentMetrics(selectors) {
           zIndex: style.zIndex,
         },
         ariaHidden: el.getAttribute('aria-hidden'),
+        inert: el.inert,
         offsetWidth: el.offsetWidth,
         offsetHeight: el.offsetHeight,
       };
@@ -135,21 +137,28 @@ pass('场景 A [Desktop 1470x956 (MacBook Air)]: 首屏初始态完整渲染 (�
 // 场景 B：平滑切换至导航页
 // ══════════════════════════════════════════════════════════════════════
 await evalJS('window.switchToNav()');
-await sleep(700);
+await settled('nav');
 
 const metricsB = await inspectComponentMetrics({ ...START_COMPONENTS, ...NAV_COMPONENTS });
 await captureScreenshot('visual_test_scenario_B_desktop_nav.png');
 
+const transitionMode = await evalJS('document.documentElement.dataset.transitionMode');
+const startPositionValid = transitionMode === 'sheet'
+  ? metricsB.startSection.rect.width > 0 && metricsB.startSection.rect.width < metricsB.navSection.rect.width
+    && metricsB.startSection.rect.height > 0 && metricsB.startSection.rect.height < metricsB.navSection.rect.height
+    && Number(metricsB.startSection.computed.zIndex) < Number(metricsB.navSection.computed.zIndex)
+  : metricsB.startSection.rect.bottom <= 1;
 const navVisibleB = 
   metricsB.navSection.exists && metricsB.navSection.rect.top === 0 && metricsB.navSection.ariaHidden !== 'true' &&
   metricsB.navHeader.exists && metricsB.navHeader.rect.height > 30 &&
   metricsB.sidebar.exists && metricsB.sidebar.rect.width > 80 &&
   metricsB.navContent.exists && metricsB.navContent.rect.width > 500 &&
-  metricsB.startSection.rect.top < -600 && // start section is smoothly pushed out of viewport
+  startPositionValid && // 层叠模式缩小到导航后方，经典模式完整移出视口
+  metricsB.startSection.ariaHidden === 'true' && metricsB.startSection.inert && // 两种切屏模式均隔离首屏
   metricsB.editBookmarksBtn.computed.pointerEvents === 'none' && // gear disabled on nav
   metricsB.editBookmarksBtn.className.includes('hidden-on-nav');
 
-pass('场景 B [Desktop 1470x956 (MacBook Air)]: 切换至导航页 (分类侧边栏/导航Header/卡片流容器 100% 呈现，起始页平滑移出视口，齿轮安全禁用)',
+pass('场景 B [Desktop 1470x956 (MacBook Air)]: 切换至导航页 (分类侧边栏/导航Header/卡片流容器 100% 呈现，起始页安全隔离，齿轮禁用)',
   navVisibleB,
   JSON.stringify({
     navSectionY: metricsB.navSection.rect.y,
@@ -163,9 +172,9 @@ pass('场景 B [Desktop 1470x956 (MacBook Air)]: 切换至导航页 (分类侧�
 // ══════════════════════════════════════════════════════════════════════
 // 场景 C：在导航页刷新页面 (sessionStorage='nav')
 // ══════════════════════════════════════════════════════════════════════
-await evalJS('sessionStorage.setItem("startpage_section", "nav")');
-await evalJS('location.reload()');
-await sleep(1000);
+await evalJS('window.__visualBeforeReload = true; sessionStorage.setItem("startpage_section", "nav")');
+await navigateAndWait(send, evalJS, `http://127.0.0.1:${server.port}/`, `!window.__visualBeforeReload && typeof switchToStart === 'function' && state.currentSection === 'nav'`);
+await settled('nav');
 
 const metricsC = await inspectComponentMetrics({ ...START_COMPONENTS, ...NAV_COMPONENTS });
 await captureScreenshot('visual_test_scenario_C_desktop_nav_reloaded.png');
@@ -186,7 +195,7 @@ pass('场景 C [Desktop 1470x956 (MacBook Air)]: 导航页刷新水合态 (sessi
 // 场景 D：从刷新后的导航页平滑切回搜索页 (重点验证组件消失问题)
 // ══════════════════════════════════════════════════════════════════════
 await evalJS('window.switchToStart()');
-await sleep(700);
+await settled('start');
 
 const metricsD = await inspectComponentMetrics(START_COMPONENTS);
 await captureScreenshot('visual_test_scenario_D_desktop_back_to_start.png');
@@ -291,7 +300,7 @@ pass('场景 F [Mobile 402x874 (iPhone 17)]: 移动端起始页响应式渲染 (
 // 场景 G：移动端导航页 (顶部水平 Tab 与卡片流)
 // ══════════════════════════════════════════════════════════════════════
 await evalJS('window.switchToNav()');
-await sleep(700);
+await settled('nav');
 
 const metricsG = await inspectComponentMetrics({ ...START_COMPONENTS, ...NAV_COMPONENTS });
 await captureScreenshot('visual_test_scenario_G_mobile_nav.png');
@@ -311,11 +320,11 @@ pass('场景 G [Mobile 402x874 (iPhone 17)]: 移动端导航页响应式渲染 (
 // ══════════════════════════════════════════════════════════════════════
 // 场景 H：移动端在导航页刷新并切回搜索页
 // ══════════════════════════════════════════════════════════════════════
-await evalJS('sessionStorage.setItem("startpage_section", "nav")');
-await evalJS('location.reload()');
-await sleep(1000);
+await evalJS('window.__visualBeforeReload = true; sessionStorage.setItem("startpage_section", "nav")');
+await navigateAndWait(send, evalJS, `http://127.0.0.1:${server.port}/`, `!window.__visualBeforeReload && typeof switchToStart === 'function' && state.currentSection === 'nav'`);
+await settled('nav');
 await evalJS('window.switchToStart()');
-await sleep(700);
+await settled('start');
 
 const metricsH = await inspectComponentMetrics(START_COMPONENTS);
 await captureScreenshot('visual_test_scenario_H_mobile_back_to_start.png');
@@ -342,7 +351,7 @@ pass('场景 H [Mobile 402x874 (iPhone 17)]: 移动端刷新后切回搜索页�
 // ══════════════════════════════════════════════════════════════════════
 await send('Emulation.setDeviceMetricsOverride', { width: 1470, height: 956, deviceScaleFactor: 2, mobile: false });
 await evalJS('window.switchToStart()');
-await sleep(600);
+await settled('start');
 await evalJS('document.getElementById("editBookmarksBtn").click()');
 await sleep(500);
 
