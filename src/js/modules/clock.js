@@ -85,18 +85,14 @@ function scheduleClockTick() {
     }, delay);
 }
 
-const PAD2_TABLE = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0'));
-
 export function updateClock() {
     if (typeof document !== 'undefined' && document.hidden) {
         stopClockTimer();
         return;
     }
     const n = new Date();
-    const h = n.getHours();
-    const m = n.getMinutes();
-    const hh = PAD2_TABLE[h] || String(h).padStart(2, '0');
-    const mm = PAD2_TABLE[m] || String(m).padStart(2, '0');
+    const hh = String(n.getHours()).padStart(2, '0');
+    const mm = String(n.getMinutes()).padStart(2, '0');
     const curTimeStr = `${hh}:${mm}`;
     const clockEl = dom.clock;
     const dateEl = dom.date;
