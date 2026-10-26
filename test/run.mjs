@@ -54,7 +54,7 @@ if (needsBuild) {
   } catch {}
 }
 const grouped = process.platform !== 'win32';
-const concurrency = process.env.GLASS_TEST_CONCURRENCY || (process.env.CI ? '2' : '6');
+const concurrency = process.env.GLASS_TEST_CONCURRENCY || (process.env.CI ? '1' : '6');
 const child = spawn(process.execPath, ['--test', `--test-concurrency=${concurrency}`, ...files.map(name => join(testDir, name))], {
   cwd: rootDir, stdio: 'inherit', detached: grouped,
   env: { ...process.env, GLASS_TEST_TMPDIR: runTempDir }

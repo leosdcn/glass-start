@@ -13,7 +13,7 @@
 - **评测环境**: macOS 27.0.1 (Build 26A434), Headless Chrome 156.0.8078.48, DPR 2, 视口 1920 × 1080 CSS px
 - **原始数据存储**:
   - `docs/performance/2026-10-25-transition-benchmark.json` (10 轮原生无降速切屏帧间隔评测)
-  - `docs/performance/glass-start-performance.json` (优化前基线 Chrome CDP Trace 完整追踪)
+  - 优化前基线 Chrome CDP Trace 原始记录已移除（含位置请求参数及页面截图），下文保留汇总测量结果。
 
 ---
 

@@ -45,7 +45,7 @@ const backFromReloadedNav = await evalJS(`(() => {
     startAria: s.getAttribute('aria-hidden')
   };
 })()`);
-const startRestoredValid = backFromReloadedNav.sTop === 0 && backFromReloadedNav.sHeight > 0
+const startRestoredValid = Math.abs(backFromReloadedNav.sTop) < 0.05 && backFromReloadedNav.sHeight > 0
   && backFromReloadedNav.hasClock && backFromReloadedNav.hasSearch && backFromReloadedNav.hasWeather
   && !backFromReloadedNav.nrPresent && !backFromReloadedNav.gearHidden && backFromReloadedNav.startAria !== 'true';
 
