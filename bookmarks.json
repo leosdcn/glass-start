@@ -157,6 +157,540 @@
             ]
         },
         {
+            "name": "办公协作",
+            "icon": "./icons/emoji/memo.svg",
+            "bookmarks": [
+                {
+                    "name": "DeepL",
+                    "url": "https://www.deepl.com/zh/translator",
+                    "icon": "./icons/deepl.com.png",
+                    "desc": "文本与文档翻译"
+                },
+                {
+                    "name": "draw.io",
+                    "url": "https://app.diagrams.net",
+                    "icon": "./icons/app.diagrams.net.png",
+                    "desc": "免费开源流程图绘制"
+                },
+                {
+                    "name": "Excalidraw",
+                    "url": "https://excalidraw.com",
+                    "icon": "./icons/excalidraw.com.png",
+                    "desc": "手绘在线协作白板"
+                },
+                {
+                    "name": "Gmail",
+                    "url": "https://mail.google.com",
+                    "icon": "./icons/mail.google.com.png",
+                    "desc": "谷歌电子邮箱"
+                },
+                {
+                    "name": "Google Translate",
+                    "url": "https://translate.google.com",
+                    "icon": "./icons/translate.google.com.png",
+                    "desc": "全球多语种即时翻译"
+                },
+                {
+                    "name": "Notion",
+                    "url": "https://www.notion.com",
+                    "icon": "./icons/notion.com.png",
+                    "desc": "一体化笔记与知识库"
+                },
+                {
+                    "name": "PDF24 Tools",
+                    "url": "https://tools.pdf24.org/zh",
+                    "icon": "./icons/tools.pdf24.org.png",
+                    "desc": "免费在线 PDF 工具箱"
+                },
+                {
+                    "name": "Publish Markdown",
+                    "url": "https://publishmarkdown.com",
+                    "icon": "./icons/publishmarkdown.com.png",
+                    "desc": "MD 笔记一键发布"
+                },
+                {
+                    "name": "Time.is",
+                    "url": "https://time.is/zh/",
+                    "icon": "./icons/time.is.png",
+                    "desc": "世界时间与时区查询"
+                }
+            ]
+        },
+        {
+            "name": "云盘传输",
+            "icon": "./icons/emoji/cloud.svg",
+            "bookmarks": [
+                {
+                    "name": "Google Drive",
+                    "url": "https://drive.google.com",
+                    "icon": "./icons/drive.google.com.png",
+                    "desc": "谷歌官方云盘与文档"
+                },
+                {
+                    "name": "iCloud",
+                    "url": "https://www.icloud.com",
+                    "icon": "./icons/icloud.com.png",
+                    "desc": "苹果官方云端服务"
+                },
+                {
+                    "name": "LocalSend",
+                    "url": "https://web.localsend.org",
+                    "icon": "./icons/web.localsend.org.png",
+                    "desc": "开源局域网文件传输"
+                },
+                {
+                    "name": "MEGA",
+                    "url": "https://mega.nz",
+                    "icon": "./icons/mega.nz.png",
+                    "desc": "端到端加密安全云盘"
+                },
+                {
+                    "name": "OneDrive",
+                    "url": "https://onedrive.live.com",
+                    "icon": "./icons/onedrive.live.com.png",
+                    "desc": "微软官方云盘与办公"
+                },
+                {
+                    "name": "微信文件传输助手",
+                    "url": "https://filehelper.weixin.qq.com",
+                    "icon": "./icons/filehelper.weixin.qq.com.png",
+                    "desc": "官方跨端文件传输"
+                }
+            ]
+        },
+        {
+            "name": "影视音乐",
+            "icon": "./icons/emoji/clapper.svg",
+            "bookmarks": [
+                {
+                    "name": "Bandcamp",
+                    "url": "https://bandcamp.com",
+                    "icon": "./icons/bandcamp.com.png",
+                    "desc": "独立音乐与数字唱片"
+                },
+                {
+                    "name": "IMDb",
+                    "url": "https://www.imdb.com",
+                    "icon": "./icons/imdb.com.png",
+                    "desc": "影视资料与评分查询"
+                },
+                {
+                    "name": "Netflix",
+                    "url": "https://www.netflix.com",
+                    "icon": "./icons/netflix.com.png",
+                    "desc": "全球流媒体影视平台"
+                },
+                {
+                    "name": "Rate Your Music",
+                    "url": "https://rateyourmusic.com",
+                    "icon": "./icons/rateyourmusic.com.png",
+                    "desc": "音乐唱片数据库"
+                },
+                {
+                    "name": "SoundCloud",
+                    "url": "https://soundcloud.com",
+                    "icon": "./icons/soundcloud.com.png",
+                    "desc": "独立音乐与音频分享"
+                },
+                {
+                    "name": "Spotify",
+                    "url": "https://open.spotify.com",
+                    "icon": "./icons/open.spotify.com.png",
+                    "desc": "全球流行音乐流媒体"
+                },
+                {
+                    "name": "Twitch",
+                    "url": "https://www.twitch.tv",
+                    "icon": "./icons/twitch.tv.png",
+                    "desc": "全球游戏与实况直播"
+                },
+                {
+                    "name": "YouTube",
+                    "url": "https://www.youtube.com",
+                    "icon": "./icons/youtube.com.png",
+                    "desc": "视频分享与观看平台"
+                },
+                {
+                    "name": "YouTube Music",
+                    "url": "https://music.youtube.com",
+                    "icon": "./icons/music.youtube.com.png",
+                    "desc": "谷歌官方音乐流媒体"
+                },
+                {
+                    "name": "哔哩哔哩",
+                    "url": "https://www.bilibili.com",
+                    "icon": "./icons/bilibili.com.png",
+                    "desc": "番剧弹幕视频社区"
+                },
+                {
+                    "name": "抖音",
+                    "url": "https://www.douyin.com",
+                    "icon": "./icons/douyin.com.png",
+                    "desc": "短视频与直播平台"
+                },
+                {
+                    "name": "网易云音乐",
+                    "url": "https://music.163.com/st/webplayer",
+                    "icon": "./icons/music.163.com.png",
+                    "desc": "主流音乐与歌单社区"
+                }
+            ]
+        },
+        {
+            "name": "社区社交",
+            "icon": "./icons/emoji/speech_balloon.svg",
+            "bookmarks": [
+                {
+                    "name": "Discord",
+                    "url": "https://discord.com",
+                    "icon": "./icons/discord.com.png",
+                    "desc": "社群聊天与语音交流"
+                },
+                {
+                    "name": "Facebook",
+                    "url": "https://www.facebook.com",
+                    "icon": "./icons/facebook.com.png",
+                    "desc": "全球社交网络平台"
+                },
+                {
+                    "name": "Instagram",
+                    "url": "https://www.instagram.com",
+                    "icon": "./icons/instagram.com.png",
+                    "desc": "照片视频分享社区"
+                },
+                {
+                    "name": "LinkedIn",
+                    "url": "https://www.linkedin.com",
+                    "icon": "./icons/linkedin.com.png",
+                    "desc": "全球职业社交与人脉"
+                },
+                {
+                    "name": "LINUX DO",
+                    "url": "https://linux.do",
+                    "icon": "./icons/linux.do.png",
+                    "desc": "极客与开发者社区"
+                },
+                {
+                    "name": "Reddit",
+                    "url": "https://www.reddit.com",
+                    "icon": "./icons/reddit.com.png",
+                    "desc": "兴趣话题讨论社区"
+                },
+                {
+                    "name": "Telegram",
+                    "url": "https://web.telegram.org",
+                    "icon": "./icons/web.telegram.org.png",
+                    "desc": "跨端通讯与频道订阅"
+                },
+                {
+                    "name": "V2EX",
+                    "url": "https://www.v2ex.com",
+                    "icon": "./icons/v2ex.com.png",
+                    "desc": "创意工作者的社区"
+                },
+                {
+                    "name": "X (Twitter)",
+                    "url": "https://x.com",
+                    "icon": "./icons/x.com.png",
+                    "desc": "全球实时动态与热点"
+                },
+                {
+                    "name": "豆瓣",
+                    "url": "https://www.douban.com",
+                    "icon": "./icons/douban.com.png",
+                    "desc": "书影音评分与讨论"
+                },
+                {
+                    "name": "少数派",
+                    "url": "https://sspai.com",
+                    "icon": "./icons/sspai.com.png",
+                    "desc": "数字生活效率社区"
+                },
+                {
+                    "name": "微博",
+                    "url": "https://weibo.com",
+                    "icon": "./icons/weibo.com.png",
+                    "desc": "国内热点社交平台"
+                }
+            ]
+        },
+        {
+            "name": "知识学习",
+            "icon": "./icons/emoji/books.svg",
+            "bookmarks": [
+                {
+                    "name": "Desmos",
+                    "url": "https://www.desmos.com/calculator",
+                    "icon": "./icons/desmos.com.png",
+                    "desc": "免费在线函数绘图"
+                },
+                {
+                    "name": "Duolingo",
+                    "url": "https://www.duolingo.com",
+                    "icon": "./icons/duolingo.com.png",
+                    "desc": "趣味游戏化外语学习"
+                },
+                {
+                    "name": "Google Arts & Culture",
+                    "url": "https://artsandculture.google.com",
+                    "icon": "./icons/artsandculture.google.com.png",
+                    "desc": "全球艺术博物馆漫游"
+                },
+                {
+                    "name": "Internet Archive",
+                    "url": "https://archive.org",
+                    "icon": "./icons/archive.org.png",
+                    "desc": "时光机与数字图书馆"
+                },
+                {
+                    "name": "QWERTY Learner",
+                    "url": "https://qwerty.kaiyi.cool",
+                    "icon": "./icons/qwerty.kaiyi.cool.png",
+                    "desc": "键盘肌肉记忆背单词"
+                },
+                {
+                    "name": "wikiHow",
+                    "url": "https://zh.wikihow.com/首页",
+                    "icon": "./icons/zh.wikihow.com.png",
+                    "desc": "万物生活与实操指南"
+                },
+                {
+                    "name": "Wikipedia",
+                    "url": "https://zh.wikipedia.org/wiki/Wikipedia:首页",
+                    "icon": "./icons/zh.wikipedia.org.png",
+                    "desc": "自由的百科全书"
+                },
+                {
+                    "name": "极客湾芯片榜",
+                    "url": "https://socpk.com",
+                    "icon": "./icons/socpk.com.png",
+                    "desc": "手机电脑芯片能效榜"
+                },
+                {
+                    "name": "默沙东诊疗手册",
+                    "url": "https://www.msdmanuals.cn/home",
+                    "icon": "./icons/msdmanuals.cn.png",
+                    "desc": "大众医学健康指南"
+                },
+                {
+                    "name": "维基导游",
+                    "url": "https://zh.wikivoyage.org/zh-hans/首页",
+                    "icon": "./icons/zh.wikivoyage.org.png",
+                    "desc": "自由的世界旅行指南"
+                },
+                {
+                    "name": "食用手册",
+                    "url": "https://cook.yunyoujun.cn",
+                    "icon": "./icons/cook.yunyoujun.cn.png",
+                    "desc": "按食材查找菜谱"
+                }
+            ]
+        },
+        {
+            "name": "地图气象",
+            "icon": "./icons/emoji/world_map.svg",
+            "bookmarks": [
+                {
+                    "name": "Flightradar24",
+                    "url": "https://www.flightradar24.com",
+                    "icon": "./icons/flightradar24.com.png",
+                    "desc": "全球航班实时雷达"
+                },
+                {
+                    "name": "Google Earth",
+                    "url": "https://earth.google.com",
+                    "icon": "./icons/earth.google.com.png",
+                    "desc": "三维地球探索工具"
+                },
+                {
+                    "name": "Google Maps",
+                    "url": "https://maps.google.com",
+                    "icon": "./icons/maps.google.com.png",
+                    "desc": "全球地图导航服务"
+                },
+                {
+                    "name": "Stellarium Web",
+                    "url": "https://stellarium-web.org",
+                    "icon": "./icons/stellarium-web.org.png",
+                    "desc": "网页端实景在线星图"
+                },
+                {
+                    "name": "Windy",
+                    "url": "https://www.windy.com",
+                    "icon": "./icons/windy.com.png",
+                    "desc": "全球气象与风场预报"
+                },
+                {
+                    "name": "高德地图",
+                    "url": "https://www.amap.com",
+                    "icon": "./icons/amap.com.png",
+                    "desc": "国内地图导航应用"
+                },
+                {
+                    "name": "中国天气网",
+                    "url": "https://www.weather.com.cn",
+                    "icon": "./icons/weather.com.cn.png",
+                    "desc": "气象预报查询平台"
+                }
+            ]
+        },
+        {
+            "name": "创意设计",
+            "icon": "./icons/emoji/palette.svg",
+            "bookmarks": [
+                {
+                    "name": "BgSub",
+                    "url": "https://bgsub.cn",
+                    "icon": "./icons/bgsub.cn.png",
+                    "desc": "本地一键智能抠图"
+                },
+                {
+                    "name": "Canva",
+                    "url": "https://www.canva.com",
+                    "icon": "./icons/canva.com.png",
+                    "desc": "在线设计与排版"
+                },
+                {
+                    "name": "Coolors",
+                    "url": "https://coolors.co",
+                    "icon": "./icons/coolors.co.png",
+                    "desc": "配色方案在线生成"
+                },
+                {
+                    "name": "Ezgif",
+                    "url": "https://ezgif.com",
+                    "icon": "./icons/ezgif.com.png",
+                    "desc": "动图制作与格式转换"
+                },
+                {
+                    "name": "Photopea",
+                    "url": "https://www.photopea.com",
+                    "icon": "./icons/photopea.com.png",
+                    "desc": "在线图像编辑工具"
+                },
+                {
+                    "name": "Squoosh",
+                    "url": "https://squoosh.app",
+                    "icon": "./icons/squoosh.app.png",
+                    "desc": "开源本地图片压缩"
+                },
+                {
+                    "name": "Vocal Remover",
+                    "url": "https://vocalremover.org",
+                    "icon": "./icons/vocalremover.org.png",
+                    "desc": "免费人声伴奏分离"
+                },
+                {
+                    "name": "waifu2x",
+                    "url": "https://www.waifu2x.net",
+                    "icon": "./icons/waifu2x.net.png",
+                    "desc": "图片降噪智能放大"
+                }
+            ]
+        },
+        {
+            "name": "素材灵感",
+            "icon": "./icons/emoji/framed_picture.svg",
+            "bookmarks": [
+                {
+                    "name": "Behance",
+                    "url": "https://www.behance.net",
+                    "icon": "./icons/behance.net.png",
+                    "desc": "设计作品展示社区"
+                },
+                {
+                    "name": "EmojiAll",
+                    "url": "https://www.emojiall.com/zh-hans",
+                    "icon": "./icons/emojiall.com.png",
+                    "desc": "Emoji 字典与符号库"
+                },
+                {
+                    "name": "Kenney",
+                    "url": "https://kenney.nl/assets",
+                    "icon": "./icons/kenney.nl.png",
+                    "desc": "免费游戏素材库"
+                },
+                {
+                    "name": "Mixkit",
+                    "url": "https://mixkit.co",
+                    "icon": "./icons/mixkit.co.png",
+                    "desc": "免版税音视频与模板"
+                },
+                {
+                    "name": "Pexels",
+                    "url": "https://www.pexels.com",
+                    "icon": "./icons/pexels.com.png",
+                    "desc": "免费商用摄影图库"
+                },
+                {
+                    "name": "Pinterest",
+                    "url": "https://www.pinterest.com",
+                    "icon": "./icons/pinterest.com.png",
+                    "desc": "视觉灵感与画板收集"
+                },
+                {
+                    "name": "Pixabay",
+                    "url": "https://pixabay.com",
+                    "icon": "./icons/pixabay.com.png",
+                    "desc": "免费商用多媒体素材"
+                },
+                {
+                    "name": "Pixiv",
+                    "url": "https://www.pixiv.net",
+                    "icon": "./icons/pixiv.net.png",
+                    "desc": "二次元插画艺术社区"
+                },
+                {
+                    "name": "Poly Haven",
+                    "url": "https://polyhaven.com",
+                    "icon": "./icons/polyhaven.com.png",
+                    "desc": "免费 3D 材质与模型"
+                },
+                {
+                    "name": "SauceNAO",
+                    "url": "https://saucenao.com",
+                    "icon": "./icons/saucenao.com.png",
+                    "desc": "动漫插画以图搜图"
+                },
+                {
+                    "name": "Tenor",
+                    "url": "https://tenor.com",
+                    "icon": "./icons/tenor.com.png",
+                    "desc": "GIF 动图与表情搜索"
+                },
+                {
+                    "name": "Trace.moe",
+                    "url": "https://trace.moe",
+                    "icon": "./icons/trace.moe.png",
+                    "desc": "动画截图出处查询"
+                },
+                {
+                    "name": "Unsplash",
+                    "url": "https://unsplash.com",
+                    "icon": "./icons/unsplash.com.png",
+                    "desc": "知名免版税摄影图库"
+                },
+                {
+                    "name": "Wallhaven",
+                    "url": "https://wallhaven.cc",
+                    "icon": "./icons/wallhaven.cc.png",
+                    "desc": "高质量桌面壁纸库"
+                },
+                {
+                    "name": "Yesicon",
+                    "url": "https://yesicon.app",
+                    "icon": "./icons/yesicon.app.png",
+                    "desc": "精选全球矢量图标库"
+                },
+                {
+                    "name": "効果音ラボ",
+                    "url": "https://soundeffect-lab.info",
+                    "icon": "./icons/soundeffect-lab.info.png",
+                    "desc": "日本免费商用音效库"
+                }
+            ]
+        },
+        {
             "name": "开发技术",
             "icon": "./icons/emoji/zap.svg",
             "bookmarks": [
@@ -265,486 +799,6 @@
             ]
         },
         {
-            "name": "办公协作",
-            "icon": "./icons/emoji/memo.svg",
-            "bookmarks": [
-                {
-                    "name": "DeepL",
-                    "url": "https://www.deepl.com/zh/translator",
-                    "icon": "./icons/deepl.com.png",
-                    "desc": "文本与文档翻译"
-                },
-                {
-                    "name": "draw.io",
-                    "url": "https://app.diagrams.net",
-                    "icon": "./icons/app.diagrams.net.png",
-                    "desc": "免费开源流程图绘制"
-                },
-                {
-                    "name": "Excalidraw",
-                    "url": "https://excalidraw.com",
-                    "icon": "./icons/excalidraw.com.png",
-                    "desc": "手绘在线协作白板"
-                },
-                {
-                    "name": "Gmail",
-                    "url": "https://mail.google.com",
-                    "icon": "./icons/mail.google.com.png",
-                    "desc": "谷歌电子邮箱"
-                },
-                {
-                    "name": "Google Translate",
-                    "url": "https://translate.google.com",
-                    "icon": "./icons/translate.google.com.png",
-                    "desc": "全球多语种即时翻译"
-                },
-                {
-                    "name": "Notion",
-                    "url": "https://www.notion.com",
-                    "icon": "./icons/notion.com.png",
-                    "desc": "一体化笔记与知识库"
-                },
-                {
-                    "name": "PDF24 Tools",
-                    "url": "https://tools.pdf24.org/zh",
-                    "icon": "./icons/tools.pdf24.org.png",
-                    "desc": "免费在线 PDF 工具箱"
-                },
-                {
-                    "name": "Publish Markdown",
-                    "url": "https://publishmarkdown.com",
-                    "icon": "./icons/publishmarkdown.com.png",
-                    "desc": "MD 笔记一键发布"
-                },
-                {
-                    "name": "Time.is",
-                    "url": "https://time.is/zh/",
-                    "icon": "./icons/time.is.png",
-                    "desc": "世界时间与时区查询"
-                }
-            ]
-        },
-        {
-            "name": "云盘传输",
-            "icon": "./icons/emoji/cloud.svg",
-            "bookmarks": [
-                {
-                    "name": "Google Drive",
-                    "url": "https://drive.google.com",
-                    "icon": "./icons/drive.google.com.png",
-                    "desc": "谷歌官方云盘与文档"
-                },
-                {
-                    "name": "iCloud",
-                    "url": "https://www.icloud.com",
-                    "icon": "./icons/icloud.com.png",
-                    "desc": "苹果官方云端服务"
-                },
-                {
-                    "name": "LocalSend",
-                    "url": "https://web.localsend.org",
-                    "icon": "./icons/web.localsend.org.png",
-                    "desc": "开源局域网文件传输"
-                },
-                {
-                    "name": "MEGA",
-                    "url": "https://mega.nz",
-                    "icon": "./icons/mega.nz.png",
-                    "desc": "端到端加密安全云盘"
-                },
-                {
-                    "name": "OneDrive",
-                    "url": "https://onedrive.live.com",
-                    "icon": "./icons/onedrive.live.com.png",
-                    "desc": "微软官方云盘与办公"
-                },
-                {
-                    "name": "微信文件传输助手",
-                    "url": "https://filehelper.weixin.qq.com",
-                    "icon": "./icons/filehelper.weixin.qq.com.png",
-                    "desc": "官方跨端文件传输"
-                }
-            ]
-        },
-        {
-            "name": "知识学习",
-            "icon": "./icons/emoji/books.svg",
-            "bookmarks": [
-                {
-                    "name": "Desmos",
-                    "url": "https://www.desmos.com/calculator",
-                    "icon": "./icons/desmos.com.png",
-                    "desc": "免费在线函数绘图"
-                },
-                {
-                    "name": "Duolingo",
-                    "url": "https://www.duolingo.com",
-                    "icon": "./icons/duolingo.com.png",
-                    "desc": "趣味游戏化外语学习"
-                },
-                {
-                    "name": "Google Arts & Culture",
-                    "url": "https://artsandculture.google.com",
-                    "icon": "./icons/artsandculture.google.com.png",
-                    "desc": "全球艺术博物馆漫游"
-                },
-                {
-                    "name": "Internet Archive",
-                    "url": "https://archive.org",
-                    "icon": "./icons/archive.org.png",
-                    "desc": "时光机与数字图书馆"
-                },
-                {
-                    "name": "QWERTY Learner",
-                    "url": "https://qwerty.kaiyi.cool",
-                    "icon": "./icons/qwerty.kaiyi.cool.png",
-                    "desc": "键盘肌肉记忆背单词"
-                },
-                {
-                    "name": "wikiHow",
-                    "url": "https://zh.wikihow.com/首页",
-                    "icon": "./icons/zh.wikihow.com.png",
-                    "desc": "万物生活与实操指南"
-                },
-                {
-                    "name": "Wikipedia",
-                    "url": "https://zh.wikipedia.org/wiki/Wikipedia:首页",
-                    "icon": "./icons/zh.wikipedia.org.png",
-                    "desc": "自由的百科全书"
-                },
-                {
-                    "name": "极客湾芯片榜",
-                    "url": "https://socpk.com",
-                    "icon": "./icons/socpk.com.png",
-                    "desc": "手机电脑芯片能效榜"
-                },
-                {
-                    "name": "默沙东诊疗手册",
-                    "url": "https://www.msdmanuals.cn/home",
-                    "icon": "./icons/msdmanuals.cn.png",
-                    "desc": "大众医学健康指南"
-                },
-                {
-                    "name": "维基导游",
-                    "url": "https://zh.wikivoyage.org/zh-hans/首页",
-                    "icon": "./icons/zh.wikivoyage.org.png",
-                    "desc": "自由的世界旅行指南"
-                },
-                {
-                    "name": "食用手册",
-                    "url": "https://cook.yunyoujun.cn",
-                    "icon": "./icons/cook.yunyoujun.cn.png",
-                    "desc": "按食材查找菜谱"
-                }
-            ]
-        },
-        {
-            "name": "素材灵感",
-            "icon": "./icons/emoji/framed_picture.svg",
-            "bookmarks": [
-                {
-                    "name": "Behance",
-                    "url": "https://www.behance.net",
-                    "icon": "./icons/behance.net.png",
-                    "desc": "设计作品展示社区"
-                },
-                {
-                    "name": "EmojiAll",
-                    "url": "https://www.emojiall.com/zh-hans",
-                    "icon": "./icons/emojiall.com.png",
-                    "desc": "Emoji 字典与符号库"
-                },
-                {
-                    "name": "Kenney",
-                    "url": "https://kenney.nl/assets",
-                    "icon": "./icons/kenney.nl.png",
-                    "desc": "免费游戏素材库"
-                },
-                {
-                    "name": "Mixkit",
-                    "url": "https://mixkit.co",
-                    "icon": "./icons/mixkit.co.png",
-                    "desc": "免版税音视频与模板"
-                },
-                {
-                    "name": "Pexels",
-                    "url": "https://www.pexels.com",
-                    "icon": "./icons/pexels.com.png",
-                    "desc": "免费商用摄影图库"
-                },
-                {
-                    "name": "Pinterest",
-                    "url": "https://www.pinterest.com",
-                    "icon": "./icons/pinterest.com.png",
-                    "desc": "视觉灵感与画板收集"
-                },
-                {
-                    "name": "Pixabay",
-                    "url": "https://pixabay.com",
-                    "icon": "./icons/pixabay.com.png",
-                    "desc": "免费商用多媒体素材"
-                },
-                {
-                    "name": "Pixiv",
-                    "url": "https://www.pixiv.net",
-                    "icon": "./icons/pixiv.net.png",
-                    "desc": "二次元插画艺术社区"
-                },
-                {
-                    "name": "Poly Haven",
-                    "url": "https://polyhaven.com",
-                    "icon": "./icons/polyhaven.com.png",
-                    "desc": "免费 3D 材质与模型"
-                },
-                {
-                    "name": "SauceNAO",
-                    "url": "https://saucenao.com",
-                    "icon": "./icons/saucenao.com.png",
-                    "desc": "动漫插画以图搜图"
-                },
-                {
-                    "name": "Tenor",
-                    "url": "https://tenor.com",
-                    "icon": "./icons/tenor.com.png",
-                    "desc": "GIF 动图与表情搜索"
-                },
-                {
-                    "name": "Trace.moe",
-                    "url": "https://trace.moe",
-                    "icon": "./icons/trace.moe.png",
-                    "desc": "动画截图出处查询"
-                },
-                {
-                    "name": "Unsplash",
-                    "url": "https://unsplash.com",
-                    "icon": "./icons/unsplash.com.png",
-                    "desc": "知名免版税摄影图库"
-                },
-                {
-                    "name": "Wallhaven",
-                    "url": "https://wallhaven.cc",
-                    "icon": "./icons/wallhaven.cc.png",
-                    "desc": "高质量桌面壁纸库"
-                },
-                {
-                    "name": "Yesicon",
-                    "url": "https://yesicon.app",
-                    "icon": "./icons/yesicon.app.png",
-                    "desc": "精选全球矢量图标库"
-                },
-                {
-                    "name": "効果音ラボ",
-                    "url": "https://soundeffect-lab.info",
-                    "icon": "./icons/soundeffect-lab.info.png",
-                    "desc": "日本免费商用音效库"
-                }
-            ]
-        },
-        {
-            "name": "创意设计",
-            "icon": "./icons/emoji/palette.svg",
-            "bookmarks": [
-                {
-                    "name": "BgSub",
-                    "url": "https://bgsub.cn",
-                    "icon": "./icons/bgsub.cn.png",
-                    "desc": "本地一键智能抠图"
-                },
-                {
-                    "name": "Canva",
-                    "url": "https://www.canva.com",
-                    "icon": "./icons/canva.com.png",
-                    "desc": "在线设计与排版"
-                },
-                {
-                    "name": "Coolors",
-                    "url": "https://coolors.co",
-                    "icon": "./icons/coolors.co.png",
-                    "desc": "配色方案在线生成"
-                },
-                {
-                    "name": "Photopea",
-                    "url": "https://www.photopea.com",
-                    "icon": "./icons/photopea.com.png",
-                    "desc": "在线图像编辑工具"
-                },
-                {
-                    "name": "Squoosh",
-                    "url": "https://squoosh.app",
-                    "icon": "./icons/squoosh.app.png",
-                    "desc": "开源本地图片压缩"
-                },
-                {
-                    "name": "Vocal Remover",
-                    "url": "https://vocalremover.org",
-                    "icon": "./icons/vocalremover.org.png",
-                    "desc": "免费人声伴奏分离"
-                },
-                {
-                    "name": "waifu2x",
-                    "url": "https://www.waifu2x.net",
-                    "icon": "./icons/waifu2x.net.png",
-                    "desc": "图片降噪智能放大"
-                }
-            ]
-        },
-        {
-            "name": "社区社交",
-            "icon": "./icons/emoji/speech_balloon.svg",
-            "bookmarks": [
-                {
-                    "name": "Discord",
-                    "url": "https://discord.com",
-                    "icon": "./icons/discord.com.png",
-                    "desc": "社群聊天与语音交流"
-                },
-                {
-                    "name": "Facebook",
-                    "url": "https://www.facebook.com",
-                    "icon": "./icons/facebook.com.png",
-                    "desc": "全球社交网络平台"
-                },
-                {
-                    "name": "Instagram",
-                    "url": "https://www.instagram.com",
-                    "icon": "./icons/instagram.com.png",
-                    "desc": "照片视频分享社区"
-                },
-                {
-                    "name": "LinkedIn",
-                    "url": "https://www.linkedin.com",
-                    "icon": "./icons/linkedin.com.png",
-                    "desc": "全球职业社交与人脉"
-                },
-                {
-                    "name": "LINUX DO",
-                    "url": "https://linux.do",
-                    "icon": "./icons/linux.do.png",
-                    "desc": "极客与开发者社区"
-                },
-                {
-                    "name": "Reddit",
-                    "url": "https://www.reddit.com",
-                    "icon": "./icons/reddit.com.png",
-                    "desc": "兴趣话题讨论社区"
-                },
-                {
-                    "name": "Telegram",
-                    "url": "https://web.telegram.org",
-                    "icon": "./icons/web.telegram.org.png",
-                    "desc": "跨端通讯与频道订阅"
-                },
-                {
-                    "name": "V2EX",
-                    "url": "https://www.v2ex.com",
-                    "icon": "./icons/v2ex.com.png",
-                    "desc": "创意工作者的社区"
-                },
-                {
-                    "name": "X (Twitter)",
-                    "url": "https://x.com",
-                    "icon": "./icons/x.com.png",
-                    "desc": "全球实时动态与热点"
-                },
-                {
-                    "name": "豆瓣",
-                    "url": "https://www.douban.com",
-                    "icon": "./icons/douban.com.png",
-                    "desc": "书影音评分与讨论"
-                },
-                {
-                    "name": "少数派",
-                    "url": "https://sspai.com",
-                    "icon": "./icons/sspai.com.png",
-                    "desc": "数字生活效率社区"
-                },
-                {
-                    "name": "微博",
-                    "url": "https://weibo.com",
-                    "icon": "./icons/weibo.com.png",
-                    "desc": "国内热点社交平台"
-                }
-            ]
-        },
-        {
-            "name": "影视音乐",
-            "icon": "./icons/emoji/clapper.svg",
-            "bookmarks": [
-                {
-                    "name": "Bandcamp",
-                    "url": "https://bandcamp.com",
-                    "icon": "./icons/bandcamp.com.png",
-                    "desc": "独立音乐与数字唱片"
-                },
-                {
-                    "name": "IMDb",
-                    "url": "https://www.imdb.com",
-                    "icon": "./icons/imdb.com.png",
-                    "desc": "影视资料与评分查询"
-                },
-                {
-                    "name": "Netflix",
-                    "url": "https://www.netflix.com",
-                    "icon": "./icons/netflix.com.png",
-                    "desc": "全球流媒体影视平台"
-                },
-                {
-                    "name": "Rate Your Music",
-                    "url": "https://rateyourmusic.com",
-                    "icon": "./icons/rateyourmusic.com.png",
-                    "desc": "音乐唱片数据库"
-                },
-                {
-                    "name": "SoundCloud",
-                    "url": "https://soundcloud.com",
-                    "icon": "./icons/soundcloud.com.png",
-                    "desc": "独立音乐与音频分享"
-                },
-                {
-                    "name": "Spotify",
-                    "url": "https://open.spotify.com",
-                    "icon": "./icons/open.spotify.com.png",
-                    "desc": "全球流行音乐流媒体"
-                },
-                {
-                    "name": "Twitch",
-                    "url": "https://www.twitch.tv",
-                    "icon": "./icons/twitch.tv.png",
-                    "desc": "全球游戏与实况直播"
-                },
-                {
-                    "name": "YouTube",
-                    "url": "https://www.youtube.com",
-                    "icon": "./icons/youtube.com.png",
-                    "desc": "视频分享与观看平台"
-                },
-                {
-                    "name": "YouTube Music",
-                    "url": "https://music.youtube.com",
-                    "icon": "./icons/music.youtube.com.png",
-                    "desc": "谷歌官方音乐流媒体"
-                },
-                {
-                    "name": "哔哩哔哩",
-                    "url": "https://www.bilibili.com",
-                    "icon": "./icons/bilibili.com.png",
-                    "desc": "番剧弹幕视频社区"
-                },
-                {
-                    "name": "抖音",
-                    "url": "https://www.douyin.com",
-                    "icon": "./icons/douyin.com.png",
-                    "desc": "短视频与直播平台"
-                },
-                {
-                    "name": "网易云音乐",
-                    "url": "https://music.163.com/st/webplayer",
-                    "icon": "./icons/music.163.com.png",
-                    "desc": "主流音乐与歌单社区"
-                }
-            ]
-        },
-        {
             "name": "游戏娱乐",
             "icon": "./icons/emoji/gamepad.svg",
             "bookmarks": [
@@ -825,54 +879,6 @@
                     "url": "https://radio.garden",
                     "icon": "./icons/radio.garden.png",
                     "desc": "转动地球收听电台"
-                }
-            ]
-        },
-        {
-            "name": "地图气象",
-            "icon": "./icons/emoji/world_map.svg",
-            "bookmarks": [
-                {
-                    "name": "Flightradar24",
-                    "url": "https://www.flightradar24.com",
-                    "icon": "./icons/flightradar24.com.png",
-                    "desc": "全球航班实时雷达"
-                },
-                {
-                    "name": "Google Earth",
-                    "url": "https://earth.google.com",
-                    "icon": "./icons/earth.google.com.png",
-                    "desc": "三维地球探索工具"
-                },
-                {
-                    "name": "Google Maps",
-                    "url": "https://maps.google.com",
-                    "icon": "./icons/maps.google.com.png",
-                    "desc": "全球地图导航服务"
-                },
-                {
-                    "name": "Stellarium Web",
-                    "url": "https://stellarium-web.org",
-                    "icon": "./icons/stellarium-web.org.png",
-                    "desc": "网页端实景在线星图"
-                },
-                {
-                    "name": "Windy",
-                    "url": "https://www.windy.com",
-                    "icon": "./icons/windy.com.png",
-                    "desc": "全球气象与风场预报"
-                },
-                {
-                    "name": "高德地图",
-                    "url": "https://www.amap.com",
-                    "icon": "./icons/amap.com.png",
-                    "desc": "国内地图导航应用"
-                },
-                {
-                    "name": "中国天气网",
-                    "url": "https://www.weather.com.cn",
-                    "icon": "./icons/weather.com.cn.png",
-                    "desc": "气象预报查询平台"
                 }
             ]
         }
