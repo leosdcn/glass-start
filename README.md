@@ -2,7 +2,12 @@
 
 > 极简纯净的毛玻璃浏览器起始页。
 
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](./LICENSE)
+[![CI](https://github.com/leosdcn/glass-start/actions/workflows/ci.yml/badge.svg)](https://github.com/leosdcn/glass-start/actions/workflows/ci.yml)
+[![Live Demo](https://img.shields.io/badge/Live_Demo-在线体验-brightgreen?logo=googlechrome&logoColor=white)](https://leosdcn.github.io/glass-start/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-v4-38bdf8?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
+[![Dependencies](https://img.shields.io/badge/Dependencies-0_Runtime-success.svg)](#-核心特色)
+[![PWA](https://img.shields.io/badge/PWA-Offline_Ready-orange.svg)](#-核心特色)
 
 ---
 
@@ -13,6 +18,7 @@
 - [📖 用户指南与个性化定制](#-用户指南与个性化定制)
 - [🛠️ 开发者与贡献者指南](#️-开发者与贡献者指南)
 - [📚 核心技术文档索引](#-核心技术文档索引)
+- [📄 开源协议与免责声明](#-开源协议与免责声明)
 
 ---
 
@@ -183,3 +189,13 @@ npm run build
 - 🤖 **[AGENTS.md (AI 编程工程准则)](./AGENTS.md)**：项目修改边界、实现约束与分级验证流程。
 - 🧭 **[docs/SAFARI_SMOKE_CHECKLIST.md (Safari 专项冒烟清单)](./docs/SAFARI_SMOKE_CHECKLIST.md)**：Safari/iOS 专项用例与发布前快速冒烟，按改动范围选择。
 - ⏱️ **[docs/TRANSITION_BENCHMARK.md (切屏帧间隔评测)](./docs/TRANSITION_BENCHMARK.md)**：生产产物首次与多轮切屏耗时、rAF 帧间隔与降速压测口径。
+
+---
+
+## 📄 开源协议与免责声明
+
+本项目采用 [GNU General Public License v3.0](./LICENSE) (GPL-3.0-or-later) 协议开源。
+
+- **第三方商标与图标**：预设书签涉及的各网站名称、品牌标识及 Logo（包括但不限于 `public/icons/` 和 `bookmarks.json`）版权归原权利人所有，本项目仅作个人索引与客观展示，不拥有任何商标权利。
+- **壁纸资源**：`public/wallpapers/` 内置壁纸仅供个人浏览美化与学习交流使用。
+- **公共服务**：天气预报、地理逆编码与搜索联想功能依赖第三方公开免费服务，不保证其服务持续可用性与准确性。

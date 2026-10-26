@@ -1,6 +1,6 @@
 {
   "name": "glass-start",
-  "version": "5.2.2",
+  "version": "5.2.3",
   "description": "Glass Start — 极简纯净的毛玻璃浏览器起始页。",
   "main": "dist/index.html",
   "engines": {
@@ -40,8 +40,8 @@
     "glassmorphism",
     "tailwind"
   ],
-  "author": "",
-  "license": "UNLICENSED",
+  "author": "leosdcn",
+  "license": "GPL-3.0-or-later",
   "private": true,
   "overrides": {
     "@parcel/watcher": "2.6.0"

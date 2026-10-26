@@ -1,0 +1,60 @@
+name: 🔖 推荐新书签 / 导航收录
+description: 推荐收录面向大众日常需求的优质实用工具或服务
+title: "[书签收录]: "
+labels: ["bookmark"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢您为 Glass Start 推荐新书签！
+        收录原则遵循 **“面向大众日常需求、打开即用、少而精”**，避免收录购物、网盘、广告密集或强行要求登录/下载的网站。
+  - type: input
+    id: name
+    attributes:
+      label: 网站名称
+      description: 中文服务请使用标准官方中文名，国际服务使用官方英文名。
+      placeholder: 例如：Photopea、Canva
+    validations:
+      required: true
+  - type: input
+    id: url
+    attributes:
+      label: 网站 HTTPS 官方地址
+      description: 必须为直达目标服务且无恶意跳转的 HTTPS 地址。
+      placeholder: https://example.com
+    validations:
+      required: true
+  - type: input
+    id: desc
+    attributes:
+      label: 功能简介（desc）
+      description: 严格限制字数：纯中文 <= 9 字；含英数混排 <= 13 字符。
+      placeholder: 例如：在线图片编辑工具
+    validations:
+      required: true
+  - type: dropdown
+    id: target_category
+    attributes:
+      label: 拟归属分类
+      options:
+        - 常用工具
+        - 影音娱乐
+        - 设计创意
+        - 学习办公
+        - 开发运维
+        - 科技资讯
+        - 其他
+    validations:
+      required: true
+  - type: checkboxes
+    id: criteria
+    attributes:
+      label: 收录标准自查
+      description: 请确认推荐的网站符合以下所有标准：
+      options:
+        - label: 非购物网站，非广告密集、弹窗遮挡或诱导付费/跳转的网站。
+          required: true
+        - label: 具备明确的实用价值，免费部分可完整解决一个实际问题。
+          required: true
+        - label: 门槛较低，普通用户无需专业门槛且尽量免登录/免客户端即可使用。
+          required: true

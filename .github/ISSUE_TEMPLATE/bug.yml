@@ -1,0 +1,48 @@
+name: 🐞 报告问题 (Bug Report)
+description: 提交界面异常、交互缺陷、数据存储或性能异常报告
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢反馈问题！请尽量提供清晰的环境信息与复现步骤，方便快速定位与排查。
+  - type: textarea
+    id: description
+    attributes:
+      label: 问题描述
+      description: 清楚地描述发生了什么问题。
+      placeholder: 在什么场景下发生了什么异常？
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: 复现步骤
+      description: 触发此问题的具体操作步骤。
+      placeholder: |
+        1. 打开 ...
+        2. 点击 ...
+        3. 发现 ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 预期行为
+      description: 您期望的正常效果是什么？
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: 运行环境
+      description: 操作系统、浏览器名称与版本。
+      placeholder: macOS 15.0 / Safari 18.0 或 Chrome 130
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: 控制台日志或截图（可选）
+      description: 开发者工具 Console 报错信息或截图。
