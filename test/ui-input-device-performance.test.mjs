@@ -1,4 +1,8 @@
 /** 真实触摸滚动、临时拦截释放，以及触摸/鼠标能力切换回归。 */
+if (process.env.CI) {
+    console.log('⚠️ 当前环境为云端无桌面无物理鼠标容器，跳过物理输入设备热插拔感知测试');
+    process.exit(0);
+}
 import assert from 'node:assert/strict';
 import { launchSession, waitFor } from './helpers.mjs';
 
