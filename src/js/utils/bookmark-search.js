@@ -55,7 +55,7 @@ export function damerauLevenshteinDistance(a, b) {
  * @param {import('../types').FuzzyOptions} options
  * @returns {number} 匹配惩罚得分（越小越精确，未匹配返回 Infinity）
  */
-export function getFuzzyScore(q, target, options) {
+function getFuzzyScore(q, target, options) {
     const query = (q || '').trim().toLowerCase();
     if (query.length < options.MIN_QUERY_LEN) return Infinity;
     const rawText = (typeof target === 'string' ? target : `${target?.name || ''} ${target?.url || ''} ${target?.desc || ''}`).toLowerCase();

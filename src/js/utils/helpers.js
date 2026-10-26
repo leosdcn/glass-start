@@ -46,7 +46,7 @@ export function normalizeUrl(url) {
  * @param {string} url
  * @returns {string} 规范化 Hostname 或 ''
  */
-export function getHostname(url) {
+function getHostname(url) {
     try {
         return new URL(normalizeUrl(url)).hostname.replace(/^www\./, '');
     } catch {

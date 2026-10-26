@@ -10,7 +10,7 @@ import { OverlayStack } from './overlay-stack.js';
 import { syncWallpaperTheme } from './theme-engine.js';
 import { resetActiveCard } from './gestures.js';
 import { closeDropdown, hideSuggestions } from '../modules/search.js';
-import { renderNavCategories, refreshSidebarNavCache, updateSidebarActive, initFaviconObserver, activateVisibleNavIcons, activateAllNavIcons, scheduleOffscreenNavIcons } from '../modules/bookmarks.js';
+import { renderNavCategories, refreshSidebarNavCache, updateSidebarActive, initFaviconObserver, activateVisibleNavIcons, scheduleOffscreenNavIcons } from '../modules/bookmarks.js';
 
 let isTransitioning = false;
 let sectionInitialized = false;
@@ -298,7 +298,7 @@ export function switchToStart() {
 }
 
 /** @type {Record<string, string>} */
-export const TRANSITION_MODES = Object.freeze({
+const TRANSITION_MODES = Object.freeze({
     sheet: '卡片层叠',
     classic: '经典推移'
 });

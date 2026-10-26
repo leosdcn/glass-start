@@ -48,7 +48,7 @@ export function verifyFingerprint(htmlBuild, jsBuild) {
 }
 
 // 首屏未离屏且无过渡时检查矩阵与哨兵宽度，不检测真实像素可见性。
-export function snapshotHealth() {
+function snapshotHealth() {
     if (isScreenTransitioning()) {
         return { ok: true, identityOk: true, sentinelsOk: true };
     }

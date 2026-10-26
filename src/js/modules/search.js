@@ -203,7 +203,7 @@ export function setEngine(key, save = true) {
  * @param {string} [queryOverride] - 可选直接传入建议词
  * @param {boolean} [newTab=false] - 是否在新标签页中打开
  */
-export function doSearch(queryOverride, newTab = false) {
+function doSearch(queryOverride, newTab = false) {
     const searchInput = dom.searchInput;
     const q = (queryOverride !== undefined ? queryOverride : (searchInput ? searchInput.value : '')).trim();
     if (!q) return;
@@ -225,7 +225,7 @@ export function doSearch(queryOverride, newTab = false) {
  * @param {string} url - 目标网址
  * @param {boolean} [newTab=false] - 是否在新标签页打开
  */
-export function openBookmarkUrl(url, newTab = false) {
+function openBookmarkUrl(url, newTab = false) {
     if (!url) return;
     let trimmed = url.trim();
     if (/^(javascript|data|vbscript|file|blob):/i.test(trimmed)) {

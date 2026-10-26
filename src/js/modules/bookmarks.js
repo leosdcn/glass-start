@@ -346,7 +346,7 @@ let offscreenIconsIdleId = null;
 /**
  * 动效结算或空闲时，平稳激活视口外剩余的离屏图标。
  */
-export function activateAllNavIcons() {
+function activateAllNavIcons() {
     navIconsActivated = true;
     if (offscreenIconsIdleId !== null) {
         if (typeof window !== 'undefined' && 'cancelIdleCallback' in window) {

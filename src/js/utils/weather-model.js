@@ -1,7 +1,7 @@
 // @ts-check
 /** 天气代码、地点名称与预报数据转换，不依赖 DOM、网络或存储。 */
 /** @type {Record<number, {text: string, dayIcon: string, nightIcon: string}>} */
-export const WMO_WEATHER_MAP = {
+const WMO_WEATHER_MAP = {
     0: { text: '晴', dayIcon: '☀️', nightIcon: '🌙' },
     1: { text: '晴间多云', dayIcon: '🌤️', nightIcon: '🌙' },
     2: { text: '多云', dayIcon: '⛅', nightIcon: '☁️' },

@@ -86,11 +86,6 @@ function cleanDir(dir) {
     }
 }
 
-function initDistDir(dir = PATHS.dist) {
-    cleanDir(dir);
-    fs.mkdirSync(dir, { recursive: true });
-}
-
 function publishStagingToDist(stagingDir) {
     cleanDir(PATHS.backup);
     let distRenamed = false;
