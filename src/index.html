@@ -42,7 +42,7 @@
     <meta name="twitter:image:alt" content="Glass Start 极简玻璃拟态起始页预览">
 
     <!-- Schema.org 结构化数据 (JSON-LD 动态自适应 Origin) -->
-    <script id="schemaJsonLd" type="application/ld+json">
+    <script type="application/ld+json">
     {
       "@context": "https://schema.org",
       "@type": "WebSite",
@@ -585,7 +585,7 @@
     </div><!-- /#bookmarkPicker -->
 
     <!-- 自定义确认弹窗（替代原生 confirm()，保持玻璃风格一致） -->
-    <div id="confirmModal" role="alertdialog" aria-modal="true" hidden aria-labelledby="confirmTitle"
+    <div id="confirmModal" role="alertdialog" aria-modal="true" hidden aria-labelledby="confirmTitle" aria-describedby="confirmMsg"
          class="edit-overlay fixed inset-0 flex items-center justify-center z-[var(--z-alert)] overscroll-contain">
         <div class="glass-strong apple-radius confirm-dialog-card shadow-2xl">
             <div class="confirm-dialog-warning size-11 rounded-full bg-red-500/15 border border-red-500/30 flex items-center justify-center mb-3 text-red-400 shrink-0">

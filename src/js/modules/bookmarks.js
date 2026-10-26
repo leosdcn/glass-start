@@ -498,7 +498,7 @@ export function renderNavCategories(force = false) {
     const savedScrollTop = navContent ? navContent.scrollTop : 0;
     const sortedCats = catalog.sorted;
 
-    sidebarList.innerHTML = pageData.categories.map((cat, i) => `
+    sidebarList.innerHTML = sortedCats.map((cat, i) => `
         <button type="button" role="tab" id="cat-tab-${i}" aria-selected="${i === 0 ? 'true' : 'false'}" aria-controls="cat-${i}" class="sidebar-item w-full text-left text-xs md:text-sm px-2.5 py-1.75 min-h-9 text-white/70 flex items-center gap-2 ${i === 0 ? 'active' : ''}"
                 data-target="cat-${i}" data-idx="${i}">
             <span class="size-5 shrink-0 sidebar-icon flex items-center justify-center">${getCategoryIconHTML(cat.icon, 'size-4')}</span>
