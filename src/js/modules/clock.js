@@ -47,7 +47,7 @@ export function renderCreditsModalList() {
                 </div>
             </div>
             <a href="${safeUrl(item.url)}" target="_blank" rel="noopener noreferrer" class="shrink-0 text-2xs px-2.5 py-1 rounded-md bg-white/8 hover:bg-white/15 border border-white/12 hover:border-white/20 text-white/80 hover:text-white glass-interactive flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" title="访问 ${escapeHtml(item.name)} 官网">
-                <span>${escapeHtml(item.license)}</span>
+                ${escapeHtml(item.license)}
                 <svg class="size-2.5 opacity-70" aria-hidden="true"><use href="#icon-external"/></svg>
             </a>
         </div>

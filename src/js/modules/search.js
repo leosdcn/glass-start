@@ -396,9 +396,7 @@ function renderSuggestions(localList = [], netList = [], preserveSelection = fal
      * @param {boolean} [isFirst=false]
      */
     const renderSectionHeader = (title, isFirst = false) => `
-        <div class="suggestion-section-header mx-3.5 px-0 ${isFirst ? 'pt-1.5' : 'pt-2'} pb-1.5 mb-1 text-2xs font-medium tracking-wider text-white/40 uppercase select-none">
-            <span class="inline-block pb-0.5">${title}</span>
-        </div>
+        <div class="suggestion-section-header mx-3.5 px-0 ${isFirst ? 'pt-1.5' : 'pt-2'} pb-2 mb-1 text-2xs font-medium tracking-wider text-white/40 uppercase select-none">${title}</div>
     `;
 
     // 本地书签分组

@@ -255,7 +255,7 @@ function renderWeatherError() {
             <div class="text-xs text-white/80 font-medium">天气获取失败</div>
             <div class="text-2xs text-white/50 leading-relaxed">网络异常或定位受阻，请检查网络后重试</div>
             <button id="weatherErrorRetryBtn" type="button" class="mt-1 px-3.5 py-1.5 bg-white/10 hover:bg-white/20 border border-white/15 text-xs rounded-xl text-white transition flex items-center justify-center gap-1.5 mx-auto active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50">
-                ${getWeatherIconHTML('🔄', 'size-3.5')} <span>重新加载</span>
+                ${getWeatherIconHTML('🔄', 'size-3.5')} 重新加载
             </button>
         </div>
     `;
@@ -264,7 +264,7 @@ function renderWeatherError() {
         retryBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             retryBtn.disabled = true;
-            retryBtn.innerHTML = `${getWeatherIconHTML('🔄', 'size-3.5')} <span>正在重试...</span>`;
+            retryBtn.innerHTML = `${getWeatherIconHTML('🔄', 'size-3.5')} 正在重试...`;
             updateWeather(true);
         });
     }
