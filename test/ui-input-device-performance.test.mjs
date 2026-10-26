@@ -57,6 +57,7 @@ try {
 
     await evalJS('switchToNav()');await waitFor(evalJS,'!isScreenTransitioning()');
     // 页面在纯触屏模式启动，此后接入鼠标，无需刷新即可启用倾斜。
+    await send('Emulation.clearDeviceMetricsOverride');
     await send('Emulation.setTouchEmulationEnabled',{enabled:false});
     await waitFor(evalJS,"matchMedia('(hover:hover) and (pointer:fine)').matches");
     const dispatch = (type,pointerType) => evalJS(`(async()=>{

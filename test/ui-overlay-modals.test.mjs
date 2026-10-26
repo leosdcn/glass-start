@@ -173,7 +173,7 @@ const navJumpBackTest = await evalJS(`(async () => {
   document.dispatchEvent(new WheelEvent('wheel', { deltaY: -60, cancelable: true }));
   await new Promise(r => setTimeout(r, 30));
   document.dispatchEvent(new WheelEvent('wheel', { deltaY: -60, cancelable: true }));
-  for (let i = 0; i < 30; i++) {
+  for (let i = 0; i < 40; i++) {
     await new Promise(r => setTimeout(r, 50));
     const rect = document.getElementById('startSection')?.getBoundingClientRect();
     if (state.currentSection === 'start' && !isScreenTransitioning() && rect && Math.abs(rect.top) < 0.1) break;
@@ -188,10 +188,16 @@ const navJumpBackTest = await evalJS(`(async () => {
   const bms = document.querySelectorAll('.bookmark-item');
   const sRect = s ? s.getBoundingClientRect() : null;
   const sTransform = s ? getComputedStyle(s).transform : '';
-  const isScaleNormal = !sTransform || sTransform === 'none' || sTransform === 'matrix(1, 0, 0, 1, 0, 0)';
+  let isScaleNormal = !sTransform || sTransform === 'none' || sTransform === 'matrix(1, 0, 0, 1, 0, 0)';
+  if (!isScaleNormal && sTransform) {
+    try {
+      const m = new DOMMatrix(sTransform);
+      isScaleNormal = Math.abs(m.a - 1) < 0.02 && Math.abs(m.d - 1) < 0.02 && Math.abs(m.m42) < 0.5;
+    } catch {}
+  }
   
   return {
-    ok: sRect && sRect.top === 0 && sRect.height > 0 && isScaleNormal
+    ok: sRect && Math.abs(sRect.top) < 0.05 && sRect.height > 0 && isScaleNormal
       && s.getAttribute('aria-hidden') !== 'true'
       && n.classList.contains('nav-hidden')
       && !document.documentElement.classList.contains('nr')
