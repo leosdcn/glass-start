@@ -530,7 +530,7 @@
                     "name": "中国天气网",
                     "url": "https://www.weather.com.cn",
                     "icon": "./icons/weather.com.cn.png",
-                    "desc": "气象预报查询平台"
+                    "desc": "国内天气预报与预警"
                 }
             ]
         },
@@ -548,7 +548,7 @@
                     "name": "Canva",
                     "url": "https://www.canva.com",
                     "icon": "./icons/canva.com.png",
-                    "desc": "在线设计与排版"
+                    "desc": "在线平面设计与模板"
                 },
                 {
                     "name": "Coolors",
@@ -566,7 +566,7 @@
                     "name": "Photopea",
                     "url": "https://www.photopea.com",
                     "icon": "./icons/photopea.com.png",
-                    "desc": "在线图像编辑工具"
+                    "desc": "在线图层图像编辑"
                 },
                 {
                     "name": "Squoosh",
