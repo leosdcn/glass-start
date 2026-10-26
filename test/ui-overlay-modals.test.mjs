@@ -23,7 +23,8 @@ const restored = await evalJS(`(() => {
 })()`);
 
 await evalJS('window.switchToStart()');
-await waitFor(evalJS, 'state.currentSection === "start" && !isScreenTransitioning() && Math.abs(document.getElementById("startSection").getBoundingClientRect().top) < 0.1');
+// 切屏锁与两屏的动画末帧可能不同步；先等首屏动画结束，位置精度与下方断言保持一致。
+await waitFor(evalJS, 'state.currentSection === "start" && !isScreenTransitioning() && document.getElementById("startSection").getAnimations().length === 0 && Math.abs(document.getElementById("startSection").getBoundingClientRect().top) < 0.05');
 const backFromReloadedNav = await evalJS(`(() => {
   const s = document.getElementById('startSection');
   const clock = document.getElementById('clock');
@@ -72,7 +73,7 @@ const bfCacheHealed = await evalJS(`(() => {
 
 // 4.3 Command+左键 / 鼠标中键后台打开防 is-clicked 下沉迟滞与普通点击分流校验
 await evalJS('window.switchToStart()');
-await waitFor(evalJS, 'state.currentSection === "start" && !isScreenTransitioning() && Math.abs(document.getElementById("startSection").getBoundingClientRect().top) < 0.1');
+await waitFor(evalJS, 'state.currentSection === "start" && !isScreenTransitioning() && document.getElementById("startSection").getAnimations().length === 0 && Math.abs(document.getElementById("startSection").getBoundingClientRect().top) < 0.05');
 const bookmarkClickTest = await evalJS(`(() => {
   const bm = document.querySelector('.bookmark-item');
   if (!bm) return { hasBm: false };
@@ -176,7 +177,7 @@ const navJumpBackTest = await evalJS(`(async () => {
   for (let i = 0; i < 40; i++) {
     await new Promise(r => setTimeout(r, 50));
     const rect = document.getElementById('startSection')?.getBoundingClientRect();
-    if (state.currentSection === 'start' && !isScreenTransitioning() && rect && Math.abs(rect.top) < 0.1) break;
+    if (state.currentSection === 'start' && !isScreenTransitioning() && rect && document.getElementById('startSection').getAnimations().length === 0 && Math.abs(rect.top) < 0.05) break;
   }
   
   const s = document.getElementById('startSection');
@@ -216,7 +217,7 @@ const tiltDetail = tiltOk ? '' : ` tiltDetail=${JSON.stringify(tiltTest)}`;
 
 pass('sessionStorage 刷新保持、BFCache 自愈、导航页书签3D倾斜与跳出返回滚动防白屏及无残留', 
   restored === true && startRestoredValid && bfCacheHealed && bookmarkTactileOk && hoverGatingOk && tiltOk && navJumpBackOk,
-  `restored=${restored}, startRestored=${startRestoredValid}, bfCacheHealed=${bfCacheHealed}, bookmarkTactile=${bookmarkTactileOk}, hoverGating=${hoverGatingOk}, tilt=${tiltOk}${tiltDetail}, navJumpBack=${JSON.stringify(navJumpBackTest)}`);
+  `restored=${restored}, startRestored=${startRestoredValid}, startDetail=${JSON.stringify(backFromReloadedNav)}, bfCacheHealed=${bfCacheHealed}, bookmarkTactile=${bookmarkTactileOk}, hoverGating=${hoverGatingOk}, tilt=${tiltOk}${tiltDetail}, navJumpBack=${JSON.stringify(navJumpBackTest)}`);
 
 // ══════════════════════════════════════════════════════════════════════
 // 5. 搜索联想键盘选中项保持与 Escape 优雅清退
