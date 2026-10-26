@@ -74,13 +74,13 @@
                     "name": "Claude",
                     "url": "https://claude.ai",
                     "icon": "./icons/claude.ai.png",
-                    "desc": "前沿大语言模型助手"
+                    "desc": "智能对话与写作助手"
                 },
                 {
                     "name": "DeepSeek",
                     "url": "https://chat.deepseek.com",
                     "icon": "./icons/chat.deepseek.com.png",
-                    "desc": "深度求索开源大模型"
+                    "desc": "深度求索对话助手"
                 },
                 {
                     "name": "Duck.ai",
@@ -98,7 +98,7 @@
                     "name": "Gemini",
                     "url": "https://gemini.google.com",
                     "icon": "./icons/gemini.google.com.png",
-                    "desc": "谷歌前沿多模态 AI"
+                    "desc": "谷歌多模态助手"
                 },
                 {
                     "name": "Google AI Studio",
@@ -110,7 +110,7 @@
                     "name": "Grok",
                     "url": "https://grok.com",
                     "icon": "./icons/grok.com.png",
-                    "desc": "xAI 智能对话模型"
+                    "desc": "xAI 智能对话助手"
                 },
                 {
                     "name": "Hugging Face",
@@ -128,7 +128,7 @@
                     "name": "Mistral",
                     "url": "https://chat.mistral.ai",
                     "icon": "./icons/chat.mistral.ai.png",
-                    "desc": "欧洲前沿开源大模型"
+                    "desc": "智能对话助手"
                 },
                 {
                     "name": "Perplexity",
@@ -157,14 +157,14 @@
             ]
         },
         {
-            "name": "开发编程",
+            "name": "开发技术",
             "icon": "./icons/emoji/zap.svg",
             "bookmarks": [
                 {
                     "name": "Cloudflare",
                     "url": "https://dash.cloudflare.com",
                     "icon": "./icons/dash.cloudflare.com.png",
-                    "desc": "域名管理控制台"
+                    "desc": "网站与云服务管理"
                 },
                 {
                     "name": "DistroSea",
@@ -176,13 +176,13 @@
                     "name": "GitHub",
                     "url": "https://github.com",
                     "icon": "./icons/github.com.png",
-                    "desc": "开源编程托管协作"
+                    "desc": "代码托管与协作"
                 },
                 {
                     "name": "Google Colab",
                     "url": "https://colab.research.google.com",
                     "icon": "./icons/colab.research.google.com.png",
-                    "desc": "免费机器学习平台"
+                    "desc": "云端代码笔记本"
                 },
                 {
                     "name": "IT Tools",
@@ -197,6 +197,12 @@
                     "desc": "前端在线代码沙盒"
                 },
                 {
+                    "name": "OMG! Ubuntu",
+                    "url": "https://www.omgubuntu.co.uk",
+                    "icon": "./icons/omgubuntu.co.uk.png",
+                    "desc": "Linux 桌面与开源资讯"
+                },
+                {
                     "name": "roadmap.sh",
                     "url": "https://roadmap.sh",
                     "icon": "./icons/roadmap.sh.png",
@@ -206,7 +212,7 @@
                     "name": "Vercel",
                     "url": "https://vercel.com",
                     "icon": "./icons/vercel.com.png",
-                    "desc": "前端全栈极速部署"
+                    "desc": "网站与应用部署平台"
                 },
                 {
                     "name": "鸟哥的 Linux 私房菜",
@@ -248,7 +254,7 @@
                     "name": "Speedtest",
                     "url": "https://www.speedtest.net",
                     "icon": "./icons/speedtest.net.png",
-                    "desc": "权威网络测速诊断"
+                    "desc": "网络速度与延迟测试"
                 },
                 {
                     "name": "VirusTotal",
@@ -266,7 +272,7 @@
                     "name": "DeepL",
                     "url": "https://www.deepl.com/zh/translator",
                     "icon": "./icons/deepl.com.png",
-                    "desc": "高质量 AI 翻译"
+                    "desc": "文本与文档翻译"
                 },
                 {
                     "name": "draw.io",
@@ -284,7 +290,7 @@
                     "name": "Gmail",
                     "url": "https://mail.google.com",
                     "icon": "./icons/mail.google.com.png",
-                    "desc": "谷歌官方安全邮箱"
+                    "desc": "谷歌电子邮箱"
                 },
                 {
                     "name": "Google Translate",
@@ -309,6 +315,12 @@
                     "url": "https://publishmarkdown.com",
                     "icon": "./icons/publishmarkdown.com.png",
                     "desc": "MD 笔记一键发布"
+                },
+                {
+                    "name": "Time.is",
+                    "url": "https://time.is/zh/",
+                    "icon": "./icons/time.is.png",
+                    "desc": "世界时间与时区查询"
                 }
             ]
         },
@@ -355,7 +367,7 @@
             ]
         },
         {
-            "name": "知识百科",
+            "name": "知识学习",
             "icon": "./icons/emoji/books.svg",
             "bookmarks": [
                 {
@@ -422,7 +434,7 @@
                     "name": "食用手册",
                     "url": "https://cook.yunyoujun.cn",
                     "icon": "./icons/cook.yunyoujun.cn.png",
-                    "desc": "家庭菜谱烹饪指南"
+                    "desc": "按食材查找菜谱"
                 }
             ]
         },
@@ -446,7 +458,7 @@
                     "name": "Kenney",
                     "url": "https://kenney.nl/assets",
                     "icon": "./icons/kenney.nl.png",
-                    "desc": "免费开源游戏素材库"
+                    "desc": "免费游戏素材库"
                 },
                 {
                     "name": "Mixkit",
@@ -542,7 +554,7 @@
                     "name": "Canva",
                     "url": "https://www.canva.com",
                     "icon": "./icons/canva.com.png",
-                    "desc": "全能在线设计与排版"
+                    "desc": "在线设计与排版"
                 },
                 {
                     "name": "Coolors",
@@ -554,7 +566,7 @@
                     "name": "Photopea",
                     "url": "https://www.photopea.com",
                     "icon": "./icons/photopea.com.png",
-                    "desc": "全功能在线图像编辑"
+                    "desc": "在线图像编辑工具"
                 },
                 {
                     "name": "Squoosh",
@@ -584,7 +596,7 @@
                     "name": "Discord",
                     "url": "https://discord.com",
                     "icon": "./icons/discord.com.png",
-                    "desc": "极客与游戏社区频道"
+                    "desc": "社群聊天与语音交流"
                 },
                 {
                     "name": "Facebook",
@@ -611,16 +623,10 @@
                     "desc": "极客与开发者社区"
                 },
                 {
-                    "name": "OMG! Ubuntu",
-                    "url": "https://www.omgubuntu.co.uk",
-                    "icon": "./icons/omgubuntu.co.uk.png",
-                    "desc": "Linux 桌面与开源资讯"
-                },
-                {
                     "name": "Reddit",
                     "url": "https://www.reddit.com",
                     "icon": "./icons/reddit.com.png",
-                    "desc": "全球论坛头版头条"
+                    "desc": "兴趣话题讨论社区"
                 },
                 {
                     "name": "Telegram",
@@ -644,7 +650,7 @@
                     "name": "豆瓣",
                     "url": "https://www.douban.com",
                     "icon": "./icons/douban.com.png",
-                    "desc": "电影音乐评分社区"
+                    "desc": "书影音评分与讨论"
                 },
                 {
                     "name": "少数派",
@@ -674,7 +680,7 @@
                     "name": "IMDb",
                     "url": "https://www.imdb.com",
                     "icon": "./icons/imdb.com.png",
-                    "desc": "全球权威影视数据库"
+                    "desc": "影视资料与评分查询"
                 },
                 {
                     "name": "Netflix",
@@ -710,7 +716,7 @@
                     "name": "YouTube",
                     "url": "https://www.youtube.com",
                     "icon": "./icons/youtube.com.png",
-                    "desc": "最大视频分享平台"
+                    "desc": "视频分享与观看平台"
                 },
                 {
                     "name": "YouTube Music",
@@ -728,7 +734,7 @@
                     "name": "抖音",
                     "url": "https://www.douyin.com",
                     "icon": "./icons/douyin.com.png",
-                    "desc": "记录美好生活"
+                    "desc": "短视频与直播平台"
                 },
                 {
                     "name": "网易云音乐",
@@ -849,12 +855,6 @@
                     "url": "https://stellarium-web.org",
                     "icon": "./icons/stellarium-web.org.png",
                     "desc": "网页端实景在线星图"
-                },
-                {
-                    "name": "Time.is",
-                    "url": "https://time.is/zh/",
-                    "icon": "./icons/time.is.png",
-                    "desc": "世界时间与时区查询"
                 },
                 {
                     "name": "Windy",
