@@ -255,7 +255,7 @@ function injectThemeConfig(html, themePath = path.join(PATHS.src, 'js', 'config'
         });
         return result.outputFiles[0].text + `
             const { APP_THEME_DARK: THEME_DARK, APP_THEME_LIGHT: THEME_LIGHT,
-                PRESET_THEMES, PRESET_TINTS } = __headThemes;
+                PRESET_THEMES, PRESET_TINTS, PRESET_THEME_COLORS } = __headThemes;
         `;
     })();
     // 保护 HTML script 边界，同时保留字符串运行时值。

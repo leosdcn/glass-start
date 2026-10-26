@@ -552,7 +552,7 @@ try {
     const loadConfig = relativePath => import(pathToFileURL(join(root, relativePath)).href);
     const [
         { PRESET_BACKGROUNDS },
-        { PRESET_WALLPAPER_THEMES, PRESET_WALLPAPER_TINTS },
+        { PRESET_WALLPAPER_THEMES, PRESET_WALLPAPER_TINTS, PRESET_WALLPAPER_THEME_COLORS },
         { ENGINE_META },
         { ENGINE_SVGS },
         { WEATHER_EMOJI_MAP }
@@ -569,6 +569,9 @@ try {
     }
     if (PRESET_BACKGROUNDS.length !== PRESET_WALLPAPER_TINTS.length) {
         errors.push(`壁纸 ${PRESET_BACKGROUNDS.length} 张 vs 色调 ${PRESET_WALLPAPER_TINTS.length} 个`);
+    }
+    if (PRESET_BACKGROUNDS.length !== PRESET_WALLPAPER_THEME_COLORS.length) {
+        errors.push(`壁纸 ${PRESET_BACKGROUNDS.length} 张 vs 外壳色 ${PRESET_WALLPAPER_THEME_COLORS.length} 个`);
     }
     const engineMetaKeys = Object.keys(ENGINE_META).sort();
     const engineSvgKeys = Object.keys(ENGINE_SVGS).sort();

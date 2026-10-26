@@ -1,5 +1,5 @@
 import { CONFIG, backgrounds } from '../config/constants.js';
-import { PRESET_WALLPAPER_THEMES, PRESET_WALLPAPER_TINTS } from '../config/themes.js';
+import { PRESET_WALLPAPER_THEMES, PRESET_WALLPAPER_TINTS, PRESET_THEME_COLORS } from '../config/themes.js';
 import { dom } from '../state/dom.js';
 import { setWallpaperTheme, updateGlassTint, sampleCustomWallpaperTheme } from './theme-engine.js';
 
@@ -31,7 +31,8 @@ export function applyWallpaper(urlStr, animate = true, preparedImage = null) {
     // 匹配预设或离线采样壁纸主题色，动态自适应 Safari 顶栏外观与环境光折射
     const presetIdx = backgrounds.indexOf(urlStr);
     if (presetIdx >= 0 && PRESET_WALLPAPER_THEMES[presetIdx]) {
-        setWallpaperTheme(PRESET_WALLPAPER_THEMES[presetIdx]);
+        const themeColor = PRESET_THEME_COLORS && PRESET_THEME_COLORS[presetIdx];
+        setWallpaperTheme(PRESET_WALLPAPER_THEMES[presetIdx], themeColor);
         if (PRESET_WALLPAPER_TINTS && PRESET_WALLPAPER_TINTS[presetIdx]) {
             updateGlassTint(PRESET_WALLPAPER_TINTS[presetIdx]);
         }

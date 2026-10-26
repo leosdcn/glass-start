@@ -95,6 +95,7 @@ export interface ModalState {
 export interface WallpaperTheme {
     color: string;
     isLight: boolean;
+    themeColor?: string;
 }
 
 /** OverlayStack 栈内单层元素 */
@@ -224,7 +225,7 @@ declare global {
         state?: AppState;
         __ENGINE_SVGS__?: Record<string, string>;
         __BACKGROUNDS__?: string[];
-        __INITIAL_THEME__?: { color: string; isLight: boolean };
+        __INITIAL_THEME__?: { color: string; isLight: boolean; themeColor?: string };
         __GLASS_BUILD_HTML__?: string;
         __GLASS_BUILD_APP__?: string;
         __GLASS_DIAG__?: GlassDiag;

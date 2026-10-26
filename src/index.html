@@ -10,6 +10,7 @@
         if (window.chrome) document.documentElement.classList.add('is-chrome');
     </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#546272">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="Glass Start">
@@ -131,12 +132,14 @@
             /* INJECT_THEME_CONFIG */
             let initTheme = null;
             let initTint = '255, 255, 255';
+            let initThemeColor = '';
             const isCustom = wallpaperMeta?.custom || (preloadUrl && !preloadUrl.startsWith('./wallpapers/'));
             if (isCustom) {
               try {
                 const cached = JSON.parse(localStorage.getItem('glass_theme_cache'));
                 if (cached && typeof cached.isLight === 'boolean') {
                   initTheme = cached.isLight ? THEME_LIGHT : THEME_DARK;
+                  if (cached.themeColor) initThemeColor = cached.themeColor;
                 }
                 const cachedTint = localStorage.getItem('glass_tint_cache');
                 if (cachedTint) initTint = cachedTint;
@@ -145,16 +148,20 @@
               const pIdx = backgrounds.indexOf(preloadUrl);
               initTheme = (pIdx >= 0 && PRESET_THEMES[pIdx]) ? PRESET_THEMES[pIdx] : THEME_DARK;
               initTint = (pIdx >= 0 && PRESET_TINTS[pIdx]) ? PRESET_TINTS[pIdx] : '255, 255, 255';
+              initThemeColor = (pIdx >= 0 && PRESET_THEME_COLORS && PRESET_THEME_COLORS[pIdx]) ? PRESET_THEME_COLORS[pIdx] : '';
             }
             document.documentElement.style.setProperty('--glass-tint', initTint);
             if (initTheme && initTheme.color) {
               const targetColor = initTheme.color;
+              const targetThemeColor = initThemeColor || (initTheme.isLight ? '#ffffff' : '#546272');
+              document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){ m.content = targetThemeColor; });
               document.documentElement.style.colorScheme = initTheme.isLight ? 'light' : 'dark';
               if (initTheme.isLight) document.documentElement.classList.add('wallpaper-bright');
               document.documentElement.style.backgroundColor = targetColor;
               document.documentElement.style.setProperty('--bg-base', targetColor);
-              document.documentElement.style.setProperty('--bg-start', targetColor);
+              document.documentElement.style.setProperty('--bg-start', targetThemeColor);
               window.__INITIAL_THEME__ = initTheme;
+              window.__INITIAL_THEME_COLOR__ = targetThemeColor;
             }
             if (preloadUrl && !preloadUrl.startsWith('data:')) {
               const newLink = document.createElement('link');
@@ -204,7 +211,7 @@
     <div id="bgLayer" class="bg-fullscreen bg-cover bg-center bg-no-repeat z-0 bg-slate-900 bg-layer"></div>
     <div id="bgLayerNext" class="bg-fullscreen bg-cover bg-center bg-no-repeat z-0 opacity-0 bg-slate-900 bg-layer"></div>
     <div id="bgOverlay" class="bg-fullscreen bg-black/20 pointer-events-none z-0"></div>
-    <script>(function(){const bg=document.getElementById('bgLayer');const url=(window.__PRELOADED_BG__!==undefined)?window.__PRELOADED_BG__:'./wallpapers/bg1.avif';if(bg&&url){bg.style.backgroundImage="url(\""+url.replace(/["'\\]/g,'\\$&')+"\")";bg.style.opacity='1';}if(window.__PRE_BG_EFFECTS__){const o=document.getElementById('bgOverlay');if(o){o.style.backgroundColor='rgba(0, 0, 0, '+(window.__PRE_BG_EFFECTS__.op/100)+')';}}})()</script>
+    <script>(function(){const bg=document.getElementById('bgLayer');const url=(window.__PRELOADED_BG__!==undefined)?window.__PRELOADED_BG__:'./wallpapers/bg1.avif';if(bg&&url){bg.style.backgroundImage="url(\""+url.replace(/["'\\]/g,'\\$&')+"\")";bg.style.opacity='1';}if(window.__INITIAL_THEME_COLOR__&&bg){bg.style.backgroundColor=window.__INITIAL_THEME_COLOR__;}if(window.__PRE_BG_EFFECTS__){const o=document.getElementById('bgOverlay');if(o){o.style.backgroundColor='rgba(0, 0, 0, '+(window.__PRE_BG_EFFECTS__.op/100)+')';}}})()</script>
 
     <!-- ========== 第一屏：起始页 ========== -->
     <main id="startSection" aria-label="起始页" class="relative z-10 min-h-dvh flex flex-col items-center justify-center px-4 py-12">

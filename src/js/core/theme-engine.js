@@ -8,22 +8,41 @@ import { storageGet, storageSet } from '../utils/helpers.js';
 
 import { dom } from '../state/dom.js';
 
+/** @type {import('../types.js').WallpaperTheme} */
 let currentWallpaperTheme = (typeof window !== 'undefined' && window.__INITIAL_THEME__) || APP_THEME_DARK;
+let currentWallpaperThemeColor = (typeof window !== 'undefined' && window.__INITIAL_THEME__ && window.__INITIAL_THEME__.themeColor) || '';
 
 let currentCommittedColor = '';
 let currentCommittedIsLight = /** @type {boolean | null} */ (null);
+let currentCommittedThemeColor = '';
 
 /**
  * @param {string} color
  * @param {boolean} [isLight]
+ * @param {string} [themeColor]
  */
-function updateThemeColor(color, isLight) {
+function updateThemeColor(color, isLight, themeColor) {
     if (!color || typeof document === 'undefined') return;
     const isLightBool = typeof isLight === 'boolean' ? isLight : null;
-    if (color === currentCommittedColor && (isLightBool === null || isLightBool === currentCommittedIsLight)) {
+    const effectiveThemeColor = themeColor || color;
+    if (color === currentCommittedColor && (isLightBool === null || isLightBool === currentCommittedIsLight) && effectiveThemeColor === currentCommittedThemeColor) {
         return;
     }
     currentCommittedColor = color;
+    currentCommittedThemeColor = effectiveThemeColor;
+    /** @type {NodeListOf<HTMLMetaElement>} */
+    const themeMetas = document.querySelectorAll('meta[name="theme-color"]');
+    if (themeMetas.length > 0) {
+        themeMetas.forEach(meta => {
+            if (meta.content !== effectiveThemeColor) meta.content = effectiveThemeColor;
+            if (meta.hasAttribute('media')) meta.removeAttribute('media');
+        });
+    } else {
+        const meta = document.createElement('meta');
+        meta.name = 'theme-color';
+        meta.content = effectiveThemeColor;
+        document.head.appendChild(meta);
+    }
     if (isLightBool !== null) {
         currentCommittedIsLight = isLightBool;
         const scheme = isLightBool ? 'light' : 'dark';
@@ -39,15 +58,15 @@ function updateThemeColor(color, isLight) {
     if (document.documentElement) {
         document.documentElement.style.backgroundColor = color;
         document.documentElement.style.setProperty('--bg-base', color);
-        document.documentElement.style.setProperty('--bg-start', color);
+        document.documentElement.style.setProperty('--bg-start', effectiveThemeColor);
     }
     if (document.body) {
-        document.body.style.backgroundColor = color;
+        document.body.style.backgroundColor = effectiveThemeColor;
     }
     const bgBase = dom.bgLayer;
     const bgNext = dom.bgLayerNext;
-    if (bgBase) bgBase.style.backgroundColor = color;
-    if (bgNext) bgNext.style.backgroundColor = color;
+    if (bgBase) bgBase.style.backgroundColor = effectiveThemeColor;
+    if (bgNext) bgNext.style.backgroundColor = effectiveThemeColor;
 }
 
 let currentGlassTint = '';
@@ -64,18 +83,26 @@ export function updateGlassTint(tintRgbStr) {
 
 export function syncWallpaperTheme() {
     if (currentWallpaperTheme && currentWallpaperTheme.color) {
-        updateThemeColor(currentWallpaperTheme.color, currentWallpaperTheme.isLight);
+        updateThemeColor(currentWallpaperTheme.color, currentWallpaperTheme.isLight, currentWallpaperThemeColor || currentWallpaperTheme.themeColor);
     } else {
-        updateThemeColor(APP_THEME_DARK.color, false);
+        updateThemeColor(APP_THEME_DARK.color, false, currentWallpaperThemeColor || '#546272');
     }
 }
 
 /**
  * @param {import('../types.js').WallpaperTheme} theme
+ * @param {string} [themeColor]
  */
-export function setWallpaperTheme(theme) {
+export function setWallpaperTheme(theme, themeColor) {
     if (!theme || !theme.color) return;
     currentWallpaperTheme = theme;
+    if (typeof themeColor === 'string') {
+        currentWallpaperThemeColor = themeColor;
+    } else if (theme.themeColor) {
+        currentWallpaperThemeColor = theme.themeColor;
+    } else {
+        currentWallpaperThemeColor = '';
+    }
     syncWallpaperTheme();
 }
 
@@ -136,12 +163,14 @@ export function sampleCustomWallpaperTheme(img) {
         const [topR, topG, topB] = topRaw.map(v => Math.round(v * (1 - maskOp)));
         const lum = 0.2126 * topR + 0.7152 * topG + 0.0722 * topB;
         const isLight = lum > CONFIG.APPEARANCE.LUMINANCE_THRESHOLD;
-        const theme = isLight ? APP_THEME_LIGHT : APP_THEME_DARK;
+        const topHex = '#' + [topR, topG, topB].map(v => Math.max(0, Math.min(255, v)).toString(16).padStart(2, '0')).join('');
+        const baseTheme = isLight ? APP_THEME_LIGHT : APP_THEME_DARK;
+        const theme = { color: baseTheme.color, isLight: baseTheme.isLight, themeColor: topHex };
         const cachedTheme = storageGet(CONFIG.KEYS.THEME_CACHE);
-        if (!cachedTheme || cachedTheme.color !== theme.color || cachedTheme.isLight !== theme.isLight) {
+        if (!cachedTheme || cachedTheme.color !== theme.color || cachedTheme.isLight !== theme.isLight || cachedTheme.themeColor !== theme.themeColor) {
             storageSet(CONFIG.KEYS.THEME_CACHE, theme);
         }
-        setWallpaperTheme(theme);
+        setWallpaperTheme(theme, topHex);
 
         // 动态环境光 Specular Tint：对采样色彩进行适度提亮与区间保护，避免暗色壁纸造成暗沉
         const [r, g, b] = fullRaw.map(v => Math.round(v * (1 - maskOp)));
