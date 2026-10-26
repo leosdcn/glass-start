@@ -510,11 +510,9 @@ export function renderNavCategories(force = false) {
         const sortedBookmarks = cat.sortedBookmarks;
         return `
         <div id="cat-${i}" role="tabpanel" aria-labelledby="cat-tab-${i}" class="category-block ${i > 0 ? 'scroll-mt-6' : ''}">
-            <div class="category-header flex items-center justify-between pb-2.5 mb-3.5 transition-colors duration-300 select-none">
-                <div class="flex items-center gap-2.5 select-none">
-                    <span class="size-6 shrink-0 select-none flex items-center justify-center">${getCategoryIconHTML(cat.icon, 'size-5')}</span>
-                    <h3 class="text-xs sm:text-sm font-semibold tracking-wide text-white/90 select-none">${escapeHtml(cat.name)}</h3>
-                </div>
+            <div class="category-header flex items-center gap-2.5 pb-2.5 mb-3.5 transition-colors duration-300 select-none">
+                <span class="size-6 shrink-0 flex items-center justify-center">${getCategoryIconHTML(cat.icon, 'size-5')}</span>
+                <h3 class="text-xs sm:text-sm font-semibold tracking-wide text-white/90">${escapeHtml(cat.name)}</h3>
             </div>
             <div class="nav-bookmark-grid">
                 ${sortedBookmarks.map(bm => `
