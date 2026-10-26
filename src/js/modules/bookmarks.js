@@ -309,8 +309,7 @@ let navAllIconsActivated = false;
 
 /** 首屏空闲时仅准备首批本地图标，让加载和淡入尽量在首次切屏前完成（覆盖 1080p 至 2K 屏首屏可见的前 5 个分类）。 */
 export function preloadVisibleNavIcons() {
-    if (navIconsActivated || state.currentSection !== 'start' || document.hidden ||
-        !document.documentElement.classList.contains('is-chrome')) return;
+    if (navIconsActivated || state.currentSection !== 'start' || document.hidden) return;
     const nav = dom.navSection;
     if (!nav) return;
     nav.querySelectorAll('.category-block:nth-child(-n+5) img[data-nav-src]').forEach(node => {

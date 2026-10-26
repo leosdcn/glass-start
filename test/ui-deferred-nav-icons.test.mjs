@@ -33,10 +33,6 @@ try {
         remote.dataset.navSrc = 'https://example.com/idle-preload-probe.png';
         parent.append(local, remote);
         try {
-            document.documentElement.classList.remove('is-chrome');
-            preloadVisibleNavIcons();
-            const skippedOtherBrowser = !local.hasAttribute('src');
-            document.documentElement.classList.add('is-chrome');
             Object.defineProperty(document, 'hidden', {configurable:true,value:true});
             preloadVisibleNavIcons();
             const skippedHidden = !local.hasAttribute('src');
@@ -44,16 +40,15 @@ try {
             preloadVisibleNavIcons();
             const sources = [...dom.navSection.querySelectorAll('img')].map(img=>img.getAttribute('src'));
             preloadVisibleNavIcons();
-            return [skippedOtherBrowser,skippedHidden,local.hasAttribute('src'),
+            return [skippedHidden,local.hasAttribute('src'),
                 !remote.hasAttribute('src') && !!remote.dataset.navSrc,
                 JSON.stringify(sources) === JSON.stringify([...dom.navSection.querySelectorAll('img')].map(img=>img.getAttribute('src')))];
         } finally {
             delete document.hidden;
-            document.documentElement.classList.add('is-chrome');
             local.remove(); remote.remove();
         }
-    })()`), [true,true,true,true,true]);
-    console.log('✅ 非Chrome、后台页跳过准备；远程图标不提前请求，重复准备不改变图标来源');
+    })()`), [true,true,true,true]);
+    console.log('✅ 后台页跳过准备；远程图标不提前请求，重复准备不改变图标来源');
 
     assert.equal(await evalJS(`(() => {
         const icons = [...dom.sidebarList.querySelectorAll('img'),
