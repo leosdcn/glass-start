@@ -63,14 +63,14 @@ try {
     const hasMouseMedia = await evalJS("matchMedia('(hover:hover) and (pointer:fine)').matches");
     if (!hasMouseMedia && process.env.CI) {
         await evalJS(`(() => {
-            const orig = window.matchMedia;
-            window.matchMedia = q => {
-                const res = orig.call(window, q);
-                if (q.includes('hover') && q.includes('fine')) {
-                    return { matches: true, addEventListener: () => {}, removeEventListener: () => {} };
+            const desc = Object.getOwnPropertyDescriptor(MediaQueryList.prototype, 'matches');
+            Object.defineProperty(MediaQueryList.prototype, 'matches', {
+                configurable: true,
+                get() {
+                    if (this.media && this.media.includes('hover') && this.media.includes('fine')) return true;
+                    return desc ? desc.get.call(this) : false;
                 }
-                return res;
-            };
+            });
         })()`);
     } else {
         await waitFor(evalJS,"matchMedia('(hover:hover) and (pointer:fine)').matches");
