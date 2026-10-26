@@ -80,7 +80,7 @@ try {
     assert.equal(await evalJS(`renderCard.matches(':hover') && getComputedStyle(renderCard).pointerEvents === 'auto' &&
         Number(getComputedStyle(renderCard,'::before').opacity) > 0.99 &&
         getComputedStyle(renderCard).transitionDuration.split(',').some(value=>parseFloat(value)>0)`), true);
-    console.log('✅ Chrome切屏中暂停卡片命中及悬停过渡，完成后恢复原有光斑和悬停反馈');
+    console.log('✅ 切屏中暂停卡片命中及悬停过渡，完成后恢复原有光斑和悬停反馈');
 
     await send('Input.dispatchMouseEvent',{type:'mouseMoved',x:1,y:1});
     await waitFor(evalJS, 'getComputedStyle(renderCard,"::before").willChange === "auto"');
