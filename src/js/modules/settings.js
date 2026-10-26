@@ -467,7 +467,8 @@ export async function saveEditModal() {
     saveBtn.disabled = true;
     saveBtn.setAttribute('aria-busy', 'true');
     try {
-        if (collectEditData().length === 0) {
+        const data = collectEditData();
+        if (data.length === 0) {
             showConfirm('至少需要保留一个名称和 URL 均已填写的书签才能保存。', null, '无法保存');
             return;
         }
@@ -476,12 +477,6 @@ export async function saveEditModal() {
         if (!state.editOpen || requestId !== editOpenRequestId) return;
         if (!wallpaperSaved) {
             showConfirm('壁纸尚未保存成功，请重新选择后再保存。', null, '无法保存');
-            return;
-        }
-
-        const data = collectEditData();
-        if (data.length === 0) {
-            showConfirm('至少需要保留一个名称和 URL 均已填写的书签才能保存。', null, '无法保存');
             return;
         }
 

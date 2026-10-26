@@ -33,9 +33,9 @@ export function getDerivedBookmarks(keys, categories, customMeta = {}) {
 
     return keys.map(url => {
         const normalized = normalizeUrl(url);
-        if (customMeta && customMeta[normalized]) {
-            const custom = customMeta[normalized];
-            const catBm = catMap.get(normalized);
+        const catBm = catMap.get(normalized);
+        const custom = customMeta?.[normalized];
+        if (custom) {
             return {
                 name: custom.name || catBm?.name || deriveNameFromUrl(normalized),
                 url: normalized,
@@ -43,7 +43,6 @@ export function getDerivedBookmarks(keys, categories, customMeta = {}) {
                 desc: custom.desc !== undefined ? custom.desc : (catBm?.desc || '')
             };
         }
-        const catBm = catMap.get(normalized);
         if (catBm) {
             return {
                 name: catBm.name,

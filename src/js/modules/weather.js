@@ -104,82 +104,74 @@ async function executeResolveWeatherLocation(now) {
 
     try {
         const ipData = await fetchJsonWithTimeout('https://myip.ipip.net/json', CONFIG.WEATHER.TIMEOUT_IP);
-        if (ipData) {
-            if (ipData && ipData.ret === 'ok' && Array.isArray(ipData?.data?.location)) {
-                const locArr = ipData.data.location;
-                const country = locArr[0] || '中国';
-                const province = locArr[1] || '';
-                const rawCity = locArr[2] || locArr[3] || province;
-                const cleanCity = stripAdminSuffix(rawCity);
-                const cleanProv = stripAdminSuffix(province, true);
+        if (ipData?.ret === 'ok' && Array.isArray(ipData.data?.location)) {
+            const locArr = ipData.data.location;
+            const country = locArr[0] || '中国';
+            const province = locArr[1] || '';
+            const rawCity = locArr[2] || locArr[3] || province;
+            const cleanCity = stripAdminSuffix(rawCity);
+            const cleanProv = stripAdminSuffix(province, true);
 
-                if (cleanCity) {
-                    try {
-                        const queryName = (cleanCity === cleanProv && !rawCity.endsWith('省')) ? `${cleanCity}市` : cleanCity;
-                        const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(queryName)}&language=zh&count=10`;
-                        const geoData = await fetchJsonWithTimeout(geoUrl, CONFIG.WEATHER.TIMEOUT_IP);
-                        if (geoData) {
-                            const results = geoData.results || [];
-                            let matched = results.find((/** @type {any} */ r) => {
-                                const matchCountry = !country || (r.country && (r.country.includes(country) || country.includes(r.country)));
-                                const matchProv = !cleanProv || (r.admin1 && (r.admin1.includes(cleanProv) || cleanProv.includes(r.admin1))) || (r.name && r.name.includes(cleanProv));
-                                return matchCountry && matchProv;
-                            });
+            if (cleanCity) {
+                try {
+                    const queryName = (cleanCity === cleanProv && !rawCity.endsWith('省')) ? `${cleanCity}市` : cleanCity;
+                    const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(queryName)}&language=zh&count=10`;
+                    const geoData = await fetchJsonWithTimeout(geoUrl, CONFIG.WEATHER.TIMEOUT_IP);
+                    const results = geoData?.results || [];
+                    let matched = results.find((/** @type {any} */ r) => {
+                        const matchCountry = !country || (r.country && (r.country.includes(country) || country.includes(r.country)));
+                        const matchProv = !cleanProv || (r.admin1 && (r.admin1.includes(cleanProv) || cleanProv.includes(r.admin1))) || (r.name && r.name.includes(cleanProv));
+                        return matchCountry && matchProv;
+                    });
 
-                            if (!matched && cleanProv && cleanProv !== cleanCity) {
-                                try {
-                                    const provUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cleanProv)}&language=zh&count=5`;
-                                    const provData = await fetchJsonWithTimeout(provUrl, CONFIG.WEATHER.TIMEOUT_IP);
-                                    if (provData) {
-                                        if (provData.results && provData.results[0]) {
-                                            matched = provData.results[0];
-                                        }
-                                    }
-                                } catch {}
+                    if (!matched && cleanProv && cleanProv !== cleanCity) {
+                        try {
+                            const provUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cleanProv)}&language=zh&count=5`;
+                            const provData = await fetchJsonWithTimeout(provUrl, CONFIG.WEATHER.TIMEOUT_IP);
+                            if (provData?.results?.[0]) {
+                                matched = provData.results[0];
                             }
+                        } catch {}
+                    }
 
-                            if (!matched && results.length > 0) matched = results[0];
+                    if (!matched && results.length > 0) matched = results[0];
 
-                            if (matched) {
-                                const dispName = (matched.name || cleanCity).replace(/(市|区|县)$/, '') || matched.name || cleanCity;
-                                const fullName = formatLocationFullName([matched.country || country, matched.admin1 || province, matched.admin2, matched.name || cleanCity]);
-                                const resolved = {
-                                    name: dispName,
-                                    fullName: fullName,
-                                    lat: matched.latitude,
-                                    lon: matched.longitude,
-                                    isAuto: true,
-                                    timestamp: now
-                                };
-                                storageSet(CONFIG.KEYS.WEATHER_LOC, resolved);
-                                return resolved;
-                            }
-                        }
-                    } catch {}
-                }
+                    if (matched) {
+                        const dispName = (matched.name || cleanCity).replace(/(市|区|县)$/, '') || matched.name || cleanCity;
+                        const fullName = formatLocationFullName([matched.country || country, matched.admin1 || province, matched.admin2, matched.name || cleanCity]);
+                        const resolved = {
+                            name: dispName,
+                            fullName: fullName,
+                            lat: matched.latitude,
+                            lon: matched.longitude,
+                            isAuto: true,
+                            timestamp: now
+                        };
+                        storageSet(CONFIG.KEYS.WEATHER_LOC, resolved);
+                        return resolved;
+                    }
+                } catch {}
             }
         }
     } catch {}
 
     try {
         const data = await fetchJsonWithTimeout('https://ipwho.is/?lang=zh-CN', CONFIG.WEATHER.TIMEOUT_IP);
-        if (data) {
-            if (data && data.success && data.latitude) {
-                const rawCity = data.city || '';
-                const rawRegion = data.region || '';
-                const dispName = (rawCity || rawRegion || '本地').replace(/(市|区|县)$/, '') || rawCity || rawRegion || '本地';
-                const fullName = formatLocationFullName([data.country, data.region, data.city]);
-                const resolved = {
-                    name: dispName,
-                    fullName: fullName,
-                    lat: data.latitude,
-                    lon: data.longitude,
-                    isAuto: true,
-                    timestamp: now
-                };
-                storageSet(CONFIG.KEYS.WEATHER_LOC, resolved);
-                return resolved;
-            }
+        if (data?.success && data.latitude) {
+            const rawCity = data.city || '';
+            const rawRegion = data.region || '';
+            const dispName = (rawCity || rawRegion || '本地').replace(/(市|区|县)$/, '') || rawCity || rawRegion || '本地';
+            const fullName = formatLocationFullName([data.country, data.region, data.city]);
+            const resolved = {
+                name: dispName,
+                fullName: fullName,
+                lat: data.latitude,
+                lon: data.longitude,
+                isAuto: true,
+                timestamp: now
+            };
+            storageSet(CONFIG.KEYS.WEATHER_LOC, resolved);
+            return resolved;
         }
     } catch {}
 

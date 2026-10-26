@@ -415,6 +415,7 @@ function renderSuggestions(localList = [], netList = [], preserveSelection = fal
                 existing.id = `sug-opt-${globalIdx}`;
                 existing.setAttribute('data-idx', String(globalIdx));
                 existing.setAttribute('aria-selected', 'false');
+                existing.classList.remove('active');
                 fragment.appendChild(existing);
             } else {
                 const safeIcon = bm.icon ? safeUrl(bm.icon) : '';
