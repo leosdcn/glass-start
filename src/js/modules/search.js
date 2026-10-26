@@ -258,6 +258,14 @@ export function openRandomBookmark(newTab = true) {
     /** @type {import('../types').BookmarkItem[]} */
     const list = [];
     const seen = new Set();
+    if (pageData && Array.isArray(pageData.bookmarks)) {
+        pageData.bookmarks.forEach(bm => {
+            if (bm && bm.url && typeof bm.url === 'string' && !seen.has(bm.url)) {
+                seen.add(bm.url);
+                list.push(bm);
+            }
+        });
+    }
     if (pageData && Array.isArray(pageData.categories)) {
         pageData.categories.forEach(cat => {
             if (Array.isArray(cat.bookmarks)) {
@@ -267,14 +275,6 @@ export function openRandomBookmark(newTab = true) {
                         list.push(bm);
                     }
                 });
-            }
-        });
-    }
-    if (list.length === 0 && pageData && Array.isArray(pageData.bookmarks)) {
-        pageData.bookmarks.forEach(bm => {
-            if (bm && bm.url && typeof bm.url === 'string' && !seen.has(bm.url)) {
-                seen.add(bm.url);
-                list.push(bm);
             }
         });
     }

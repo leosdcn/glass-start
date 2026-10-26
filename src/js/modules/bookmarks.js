@@ -386,18 +386,6 @@ export function scheduleOffscreenNavIcons() {
     }
 }
 
-/**
- * 兼容原有入口调用：
- * @param {boolean} [all=false]
- */
-export function activateNavIcons(all = false) {
-    if (all) {
-        activateAllNavIcons();
-    } else {
-        activateVisibleNavIcons();
-    }
-}
-
 let isSidebarNavInitialized = false;
 let isManualScrolling = false;
 /** @type {ReturnType<typeof setTimeout> | null} */

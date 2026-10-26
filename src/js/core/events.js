@@ -307,6 +307,7 @@ export function bindEvents() {
         const activeEl = /** @type {HTMLElement|null} */ (document.activeElement);
         const activeTag = activeEl?.tagName;
         const isInputActive = activeTag === 'INPUT' || activeTag === 'TEXTAREA' || !!activeEl?.isContentEditable;
+        const isInteractiveActive = isInputActive || !!activeEl?.closest('button, [role="button"], a, select');
 
         if ((e.key === 'b' || e.key === 'B') && (e.metaKey || e.ctrlKey) && !isInputActive) {
             e.preventDefault();
@@ -383,7 +384,7 @@ export function bindEvents() {
             }
         }
 
-        if (state.currentSection === 'start' && e.key.length === 1 && !isInputActive) {
+        if (state.currentSection === 'start' && e.key.length === 1 && e.key !== ' ' && !isInteractiveActive) {
             searchInput?.focus();
             return;
         }
