@@ -1,12 +1,20 @@
-# Glass Start — 通透起始页
+<p align="center">
+  <img src="./public/icons/app/logo.svg" width="96" height="96" alt="Glass Start Logo">
+</p>
 
-> 极简纯净的毛玻璃浏览器起始页。
+<h1 align="center">Glass Start — 通透起始页</h1>
 
-[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](./LICENSE)
-[![CI](https://github.com/leosdcn/glass-start/actions/workflows/ci.yml/badge.svg)](https://github.com/leosdcn/glass-start/actions/workflows/ci.yml)
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-v4-38bdf8?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
-[![Dependencies](https://img.shields.io/badge/Dependencies-0_Runtime-success.svg)](#-核心特色)
-[![PWA](https://img.shields.io/badge/PWA-Offline_Ready-orange.svg)](#-核心特色)
+<p align="center">
+  极简纯净的毛玻璃浏览器起始页。
+</p>
+
+<p align="center">
+  <a href="./LICENSE"><img src="https://img.shields.io/badge/License-GPLv3-blue.svg" alt="License: GPL v3"></a>
+  <a href="https://github.com/leosdcn/glass-start/actions/workflows/ci.yml"><img src="https://github.com/leosdcn/glass-start/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://tailwindcss.com/"><img src="https://img.shields.io/badge/Tailwind_CSS-v4-38bdf8?logo=tailwindcss&logoColor=white" alt="Tailwind CSS"></a>
+  <a href="#-核心特色"><img src="https://img.shields.io/badge/Dependencies-0_Runtime-success.svg" alt="Dependencies"></a>
+  <a href="#-核心特色"><img src="https://img.shields.io/badge/PWA-Offline_Ready-orange.svg" alt="PWA"></a>
+</p>
 
 ---
 
@@ -25,6 +33,7 @@
 
 - 🪐 **Liquid Glass 外观**：高光、毛玻璃背景与按压缩放动效；
 - 🎬 **双屏切换**：起始页显示时钟与搜索，导航页显示分类书签；两屏平滑切换，底部内容渐隐；
+- 🕊️ **纯净无干扰**：零广告植入、零推广商业链接、零热搜信息流；无用户行为追踪与数据埋点，注意力只属于你自己；
 - 🌤️ **天气与预报**：无需 API Key，通过 IP 定位与地名解析获取位置，支持缓存展示和多日预报；
 - ⚡ **零运行时依赖**：生产页面不依赖 npm 运行时库；内联预渲染减少刷新闪烁，加载速度取决于设备、缓存与网络；
 - 🖼️ **壁纸即选即存**：内置高清壁纸可循环切换，支持上传图片（压缩后写入 IndexedDB）、图片直链与遮罩暗度调节；
