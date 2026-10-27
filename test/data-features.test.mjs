@@ -390,7 +390,7 @@ const dynamicIconsCheck = await evalJS(`(() => {
 
   // 5.2 舒适湿度 + 清风 + 中降水
   renderWeatherPopover({
-    location: { name: '青岛' },
+    location: { name: '杭州' },
     current: { temp: 24, apparent: 25, weatherText: '多云', icon: '⛅', isDay: true, humidity: 55, windSpeed: 22.0, pop: 35, sunrise: '05:35', sunset: '18:59' },
     daily: []
   });

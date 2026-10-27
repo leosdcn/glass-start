@@ -505,6 +505,11 @@ textarea::placeholder {
     flex-shrink: 0;
     transition: transform 0.15s var(--ease-spring);
 }
+@media (hover: hover) and (pointer: fine) {
+    body:not(.tab-blurred) #navHint:hover svg {
+        transform: translateY(-1.5px);
+    }
+}
 #navHint:active svg {
     transform: translateY(-2px);
 }
