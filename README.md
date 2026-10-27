@@ -18,7 +18,11 @@
 
 <p align="center">
   <a href="https://goldcoast.dpdns.org/" target="_blank" rel="noopener noreferrer">
-    <strong>🌐 访问在线演示 (Live Demo)</strong>
+    <strong>⚡ Cloudflare 在线演示</strong>
+  </a>
+  &nbsp;&nbsp;·&nbsp;&nbsp;
+  <a href="https://leosdcn.github.io/glass-start/" target="_blank" rel="noopener noreferrer">
+    <strong>🌐 GitHub 在线演示</strong>
   </a>
 </p>
 
