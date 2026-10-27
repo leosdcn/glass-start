@@ -441,7 +441,7 @@ const weekdayCheck = await evalJS(`(() => {
       { label: '周五', icon: '☀️', text: '晴', tempMin: 20, tempMax: 31 }
     ]
   });
-  const labels = [...document.querySelectorAll('#weatherPopover [class*="space-y"] > div > span:first-child')].map(s => s.innerText.trim());
+  const labels = [...document.querySelectorAll('#weatherPopover [class*="space-y"] > div > span.w-10:first-child')].map(s => s.innerText.trim());
   return labels.length === 4 && labels.every(l => l.length === 2);
 })()`);
 
