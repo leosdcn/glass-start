@@ -4,7 +4,6 @@
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](./LICENSE)
 [![CI](https://github.com/leosdcn/glass-start/actions/workflows/ci.yml/badge.svg)](https://github.com/leosdcn/glass-start/actions/workflows/ci.yml)
-[![Live Demo](https://img.shields.io/badge/Live_Demo-在线体验-brightgreen?logo=googlechrome&logoColor=white)](https://leosdcn.github.io/glass-start/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-v4-38bdf8?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
 [![Dependencies](https://img.shields.io/badge/Dependencies-0_Runtime-success.svg)](#-核心特色)
 [![PWA](https://img.shields.io/badge/PWA-Offline_Ready-orange.svg)](#-核心特色)
@@ -45,6 +44,7 @@
    - **Framework preset**: `None`
    - **Build command**: `npm run build`
    - **Build output directory**: `dist`
+   - **环境变量**：`NODE_VERSION=24`，满足项目的 Node.js 版本要求；配置方式见[构建环境文档](https://developers.cloudflare.com/pages/configuration/build-image/)。
 4. 保存并部署。后续推送到配置的生产分支会触发更新；生产分支按实际仓库选择，不一定是 `main`。
 
 ### 2. Vercel / Netlify / GitHub Pages
@@ -65,12 +65,12 @@ npm run preview
 
 ### 1. 双屏滚动与屏幕切换
 - **滚轮 / 滑动**：在首屏向下滚动或用手指上滑，进入「导航页」；在导航页顶部向上滚动或下滑即可回到「起始页」。
-- **快捷按钮**：点击导航页顶部或右侧悬浮的「起始页」按钮可返回首屏。
+- **快捷按钮**：点击导航页顶部的「起始页」按钮可返回首屏。
 - **键盘翻页**：无阻断浮层且未在其他输入框编辑时，按 `PageDown` / `↓` 前往导航页；导航内容位于顶部时，按 `PageUp` / `Home` / `↑` 返回首屏。搜索框有联想列表时，方向键优先选择联想。
 
 ### 2. 智能搜索与快捷跳转
 - **盲打即搜**：在首屏直接键入字母或数字，搜索框自动获得焦点并接收输入。
-- **混合联想**：输入关键词后，下拉列表同时呈现**搜索引擎联想词**与**本地书签智能匹配**。
+- **混合联想**：输入关键词后，先展示**本地书签匹配结果**，再补充返回的**搜索引擎联想词**；网络结果取决于服务可用性，已有缓存时可直接展示。
 - **键盘挑选**：通过 `↑` / `↓` 方向键循环挑选结果，按 `Enter` 打开选中项。
 - **新标签打开**：按 `Cmd + Enter`、`Ctrl + Enter` 或 `Alt + Enter` 可在新标签页中打开选中项或执行搜索。
 - **多引擎切换**：点击搜索框左侧图标，可切换 Bing、Google、Wikipedia 等搜索引擎。
@@ -171,7 +171,7 @@ npm test -- data-settings-save
 npm run build
 ```
 
-验证范围以 [AGENTS.md](./AGENTS.md#验证) 为准，局部修改优先运行直接相关测试。`npm test -- <文件名片段>` 先检查类型、构建，再执行匹配的测试文件；无需重复手动检查类型或构建。无参数的 `npm test` 与 `test:all` 执行全套，用于高风险跨模块改造、发布或明确要求全量验证的场景。`test:ui`、`test:data`、`test:infra`、`test:lifecycle` 可按模块扩大范围，可用命令以 `package.json` 为准。
+验证范围以 [AGENTS.md](./AGENTS.md#验证) 为准，局部修改优先运行直接相关测试。`npm test -- <文件名片段>` 执行匹配的测试文件前，会检查类型，并按需构建；需要构建时，两项并行执行，无需重复手动检查类型或构建。仅匹配[运行器明确列出的纯单元测试](./test/test-selection.mjs)时跳过构建。无参数的 `npm test` 与 `test:all` 执行全套，用于高风险跨模块改造、发布或明确要求全量验证的场景。`test:ui`、`test:data`、`test:infra`、`test:lifecycle` 可按模块扩大范围，可用命令以 `package.json` 为准。
 
 `npm run typecheck` 对核心数据、草稿、DOM 缓存与状态执行渐进式 JavaScript 类型检查；范围以 `tsconfig.json` 为准。`npm run test:unit` 独立验证搜索、天气转换与草稿逻辑，无需 Chrome。
 
@@ -207,7 +207,7 @@ Copyright (C) 2026 leosdcn
 - **公共服务**：天气预报、地理逆编码与搜索联想功能依赖第三方公开免费服务，不保证其服务持续可用性与准确性。
 - **数据与隐私**：自定义书签与偏好保存在当前浏览器的 LocalStorage 中，上传壁纸在浏览器内处理并存入 IndexedDB，不上传至服务器。清除浏览器数据可能导致这些内容丢失，请按需备份。搜索联想可能在输入时向当前搜索引擎发送查询内容；天气功能通过 IP 定位服务获取位置，并向 Open-Meteo 发送地名或经纬度。网络壁纸及第三方图标加载会请求相应服务，图标请求可能包含目标网站域名；相关数据处理规则以各服务的隐私政策为准。
 - **自行部署**：部署者应核对第三方素材许可、API 使用条件及托管平台的数据处理规则。默认使用的 Open-Meteo 免费接口限非商业用途，并有请求限额；商业部署需另行选择符合其[服务条款](https://open-meteo.com/en/terms)的方案。其天气数据采用 [CC BY 4.0](https://open-meteo.com/en/licence) 许可，使用时仍须遵守署名等要求；数据许可与接口服务使用条件分别适用。
-- **问题反馈**：如发现链接失效、内容异常，或认为项目涉及您的合法权益，请通过项目 [Issues](https://github.com/leosdcn/glass-start/issues) 反馈相关页面及问题说明。涉及个人信息或其他敏感材料时，请勿公开提交，可通过维护者提供的私密渠道联系。维护者将核实并酌情更正、移除或作出说明。
+- **问题反馈**：如发现链接失效、内容异常，或认为项目涉及您的合法权益，请通过项目 [Issues](https://github.com/leosdcn/glass-start/issues) 反馈相关页面及问题说明。涉及个人信息或其他敏感材料时，请勿公开提交，可先通过 Issues 请求私密联系方式。维护者将核实并酌情更正、移除或作出说明。
 
 ### 内置壁纸来源
 
