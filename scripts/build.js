@@ -30,6 +30,7 @@ const PATHS = {
     backup: path.join(ROOT_DIR, '.dist_backup'),
     bookmarksJson: path.join(ROOT_DIR, 'bookmarks.json'),
     pkgJson: path.join(ROOT_DIR, 'package.json'),
+    license: path.join(ROOT_DIR, 'LICENSE'),
     sw: path.join(ROOT_DIR, 'sw.js'),
     public: path.join(ROOT_DIR, 'public')
 };
@@ -170,6 +171,8 @@ function buildServiceWorkerAndAssets(targetDir = PATHS.dist) {
         const wpCount = fs.existsSync(path.join(PATHS.public, 'wallpapers')) ? fs.readdirSync(path.join(PATHS.public, 'wallpapers')).length : 0;
         logItem(`纯静态资源目录 public/ 已全量镜像同步至 dist/ (包含 ${iconCount} 个本地图标, ${wpCount} 个壁纸与 PWA/安全元数据)`);
     }
+
+    fs.copyFileSync(PATHS.license, path.join(targetDir, 'LICENSE.txt'));
 
     buildMetrics.stages.assets = Date.now() - assetsStart;
 }
@@ -524,13 +527,14 @@ function rebuild(changedFile = 'source') {
 function startWatch(onRebuildSuccess, { label = 'Watch', delay = 80 } = {}) {
     if (label === 'Watch') {
         console.log(`\n${c.yellow}👀 开启文件修改自动构建监听模式 (Watch Mode)...${c.reset}`);
-        console.log(`   ${c.dim}正在监听 src/, public/, bookmarks.json, package.json, sw.js ...${c.reset}\n`);
+        console.log(`   ${c.dim}正在监听 src/, public/, bookmarks.json, package.json, LICENSE, sw.js ...${c.reset}\n`);
     }
     return watchFiles([
         { path: PATHS.src, name: 'src/' },
         { path: PATHS.public, name: 'public/' },
         { path: PATHS.bookmarksJson, name: 'bookmarks.json' },
         { path: PATHS.pkgJson, name: 'package.json' },
+        { path: PATHS.license, name: 'LICENSE' },
         { path: PATHS.sw, name: 'sw.js' }
     ], { rebuild, onSuccess: onRebuildSuccess, label, delay });
 }

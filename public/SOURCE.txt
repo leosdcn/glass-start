@@ -1,0 +1,8 @@
+Glass Start
+Copyright (C) 2026 leosdcn
+
+Project code license: GPL-3.0-or-later (see LICENSE.txt).
+Source code and build instructions: https://github.com/leosdcn/glass-start
+
+Third-party assets retain their respective licenses. See licenses/ and the
+source repository README for attribution and source information.

@@ -22,9 +22,14 @@ if (!existsSync(DIST)) {
 }
 
 // 1.1 文件完整性
-const requiredFiles = ['index.html', 'sw.js', 'app.js', '_headers', 'robots.txt', 'wallpapers/bg1.avif'];
+const requiredFiles = ['index.html', 'sw.js', 'app.js', '_headers', 'robots.txt', 'wallpapers/bg1.avif', 'LICENSE.txt', 'SOURCE.txt'];
 const missingFiles = requiredFiles.filter(f => !existsSync(join(DIST, f)));
 const filesExistOk = missingFiles.length === 0;
+
+pass('产物附带根目录 GPL 原文及源码地址',
+  existsSync(join(DIST, 'LICENSE.txt')) && existsSync(join(DIST, 'SOURCE.txt')) &&
+  readFileSync(join(DIST, 'LICENSE.txt'), 'utf-8') === readFileSync(join(ROOT, 'LICENSE'), 'utf-8') &&
+  readFileSync(join(DIST, 'SOURCE.txt'), 'utf-8').includes('https://github.com/leosdcn/glass-start'));
 
 // HTML 语法合法不代表样式存在；禁止发布构建竞争产生的空样式页面。
 const builtHtml = readFileSync(join(DIST, 'index.html'), 'utf-8');
@@ -91,7 +96,7 @@ try {
 } finally {
   fs.watch = originalWatch;
 }
-const expectedWatchPaths = [PATHS.src, PATHS.public, PATHS.bookmarksJson, PATHS.pkgJson, PATHS.sw];
+const expectedWatchPaths = [PATHS.src, PATHS.public, PATHS.bookmarksJson, PATHS.pkgJson, PATHS.license, PATHS.sw];
 const buildWatcherPathsOk = buildPathsHasSrcIndexHtml && subscriptions.length === expectedWatchPaths.length
   && expectedWatchPaths.every(path => subscriptions.filter(item => item.path === path).length === 1)
   && subscriptions.every(item => item.recursive === statSync(item.path).isDirectory());

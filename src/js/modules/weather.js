@@ -403,7 +403,12 @@ export function renderWeatherPopover(data) {
         </div>
 
         <div class="space-y-1.5 pt-2 border-t border-white/10">
-            <div class="text-2xs text-white/50 font-medium px-1 mb-1">未来几天预报</div>
+            <div class="flex items-center justify-between gap-2 px-1 mb-1">
+                <span class="text-2xs text-white/50 font-medium">未来几天预报</span>
+                <a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer" class="shrink-0 text-2xs text-white/50 hover:text-white/80 transition-colors rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" aria-label="天气数据来源：Open-Meteo（在新标签页打开）">
+                    Open-Meteo
+                </a>
+            </div>
             ${days.slice(0, CONFIG.WEATHER.FORECAST_DISPLAY_DAYS).map((/** @type {any} */ d) => `
                 <div class="flex items-center justify-between text-xs py-1 px-1.5 apple-radius hover:bg-white/5 transition-colors">
                     <span class="w-10 text-white/70 font-medium shrink-0">${escapeHtml(d.label)}</span>

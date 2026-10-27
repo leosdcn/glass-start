@@ -200,6 +200,8 @@ Copyright (C) 2026 leosdcn
 
 本项目代码采用 [GNU General Public License v3.0](./LICENSE) (GPL-3.0-or-later) 协议开源；第三方素材按各自许可与权利声明使用。
 
+构建会将根目录 `LICENSE` 原文复制为 `dist/LICENSE.txt`，并附带 [SOURCE.txt](./public/SOURCE.txt)，提供项目版权、许可标识与源码仓库地址。部署时请保留这些文件；发布修改版本时，请同步提供与该版本对应的源码及构建说明。
+
 - **在线演示**：本项目提供的在线页面用于项目演示与功能体验，可能随开发调整、暂停或停止提供，不承诺持续可用。需要长期使用时，建议自行部署。
 - **第三方商标与图标**：预设书签涉及的各网站名称、品牌标识及 Logo（包括但不限于 `public/icons/` 和 `bookmarks.json`）版权归原权利人所有，本项目仅作个人索引与客观展示，不拥有任何商标权利。收录不代表原权利人认可、关联或赞助本项目，GPL 不授予第三方商标使用权。
 - **外部链接**：预设书签及图标用于网站识别、导航与项目功能展示。外部网站的内容、隐私政策及服务由其运营方负责，请用户自行判断后访问。
@@ -209,17 +211,28 @@ Copyright (C) 2026 leosdcn
 - **自行部署**：部署者应核对第三方素材许可、API 使用条件及托管平台的数据处理规则。默认使用的 Open-Meteo 免费接口限非商业用途，并有请求限额；商业部署需另行选择符合其[服务条款](https://open-meteo.com/en/terms)的方案。其天气数据采用 [CC BY 4.0](https://open-meteo.com/en/licence) 许可，使用时仍须遵守署名等要求；数据许可与接口服务使用条件分别适用。
 - **问题反馈**：如发现链接失效、内容异常，或认为项目涉及您的合法权益，请通过项目 [Issues](https://github.com/leosdcn/glass-start/issues) 反馈相关页面及问题说明。涉及个人信息或其他敏感材料时，请勿公开提交，可先通过 Issues 请求私密联系方式。维护者将核实并酌情更正、移除或作出说明。
 
+### 第三方图标许可
+
+| 素材 | 使用位置 | 来源与许可 |
+| :--- | :--- | :--- |
+| Heroicons | `src/svg/sprite.svg` 中标注的界面图标，部分属性按界面需求调整 | [Tailwind Labs / Heroicons](https://github.com/tailwindlabs/heroicons)，Copyright (c) Tailwind Labs, Inc.；[完整 MIT 许可](./public/licenses/heroicons-MIT.txt) |
+| Twemoji | `public/icons/emoji/` 中的本地表情 SVG，文件名按项目用途命名 | [Twemoji 项目及贡献者](https://github.com/jdecked/twemoji)；图形采用 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)，见[上游图形许可](https://github.com/jdecked/twemoji/blob/main/LICENSE-GRAPHICS) |
+
+Heroicons 与当前使用的 Tailwind CSS 具有相同的版权声明及 MIT 许可文本，共用 `public/licenses/heroicons-MIT.txt`。构建时该文件随静态资源复制到 `dist/licenses/heroicons-MIT.txt`，部署时请保留。上述第三方素材不以本项目的 GPL 协议重新授权；应用内“开源致谢”提供对应许可链接。
+
 ### 内置壁纸来源
 
-以下为[壁纸配置](./src/js/config/backgrounds.js)记录的原图直链，对应同名 AVIF 大图及 `-thumb.avif` 缩略图。作者、作品页及每张图片的许可归属尚未逐项核实；此表仅整理现有来源记录。
+以下壁纸已逐张核对 Unsplash 作品页、作者及原图，对应[壁纸配置](./src/js/config/backgrounds.js)中的来源和同名 AVIF 大图、`-thumb.avif` 缩略图。项目使用的图片经过缩放与 AVIF 压缩；中文名称为项目内展示名称。
 
-| 文件 | 名称 | 原图 |
-| :--- | :--- | :--- |
-| `bg1.avif` | 暮色山峦 | [Unsplash 原图](https://images.unsplash.com/photo-1477346611705-65d1883cee1e) |
-| `bg2.avif` | 溪谷晨曦 | [Unsplash 原图](https://images.unsplash.com/photo-1506744038136-46273834b3fb) |
-| `bg3.avif` | 星空雪山 | [Unsplash 原图](https://images.unsplash.com/photo-1519681393784-d120267933ba) |
-| `bg4.avif` | 峰峦破晓 | [Unsplash 原图](https://images.unsplash.com/photo-1469474968028-56623f02e42e) |
-| `bg5.avif` | 天际立面 | [Unsplash 原图](https://images.unsplash.com/photo-1486406146926-c627a92ad1ab) |
-| `bg6.avif` | 极简回廊 | [Unsplash 原图](https://images.unsplash.com/photo-1497366754035-f200968a6e72) |
-| `bg7.avif` | 紫韵流光 | [Unsplash 原图](https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe) |
-| `bg8.avif` | 梦幻流彩 | [Unsplash 原图](https://images.unsplash.com/photo-1550684848-fac1c5b4e853) |
+| 文件 | 名称 | 作者 | 作品页与原图 |
+| :--- | :--- | :--- | :--- |
+| `bg1.avif` | 暮色山峦 | JOHN TOWNER | [作品页](https://unsplash.com/photos/aerial-photo-of-brown-moutains-JgOeRuGD_Y4) · [原图](https://images.unsplash.com/photo-1477346611705-65d1883cee1e) |
+| `bg2.avif` | 溪谷晨曦 | Bailey Zindel | [作品页](https://unsplash.com/photos/river-in-yosemite-valley-at-low-light-NRQV-hBF10M) · [原图](https://images.unsplash.com/photo-1506744038136-46273834b3fb) |
+| `bg3.avif` | 星空雪山 | Benjamin Voros | [作品页](https://unsplash.com/photos/snow-mountain-under-stars-phIFdC6lA4E) · [原图](https://images.unsplash.com/photo-1519681393784-d120267933ba) |
+| `bg4.avif` | 峰峦破晓 | Urban Vintage | [作品页](https://unsplash.com/photos/landscape-photography-of-mountain-hit-by-sun-rays-78A265wPiO4) · [原图](https://images.unsplash.com/photo-1469474968028-56623f02e42e) |
+| `bg5.avif` | 天际立面 | Sean Pollock | [作品页](https://unsplash.com/photos/low-angle-photo-of-city-high-rise-buildings-during-daytime-PhYq704ffdA) · [原图](https://images.unsplash.com/photo-1486406146926-c627a92ad1ab) |
+| `bg6.avif` | 极简回廊 | Nastuh Abootalebi | [作品页](https://unsplash.com/photos/hallway-between-glass-panel-doors-yWwob8kwOCk) · [原图](https://images.unsplash.com/photo-1497366754035-f200968a6e72) |
+| `bg7.avif` | 紫韵流光 | Milad Fakurian | [作品页](https://unsplash.com/photos/blue-orange-and-yellow-wallpaper-E8Ufcyxz514) · [原图](https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe) |
+| `bg8.avif` | 梦幻流彩 | Rodion Kutsaiev | [作品页](https://unsplash.com/photos/a-close-up-of-water-droplets-on-a-window-pVoEPpLw818) · [原图](https://images.unsplash.com/photo-1550684848-fac1c5b4e853) |
+
+截至 2026 年 10 月 27 日，上述 8 个作品页均标明适用 [Unsplash License](https://unsplash.com/license)，允许免费用于商业及非商业用途，包括复制、修改与分发；不得未经实质性修改直接出售图片，或汇集图片以复制类似、竞争性图片服务。这些壁纸单独适用其素材许可，不以本项目的 GPL 协议重新授权。
