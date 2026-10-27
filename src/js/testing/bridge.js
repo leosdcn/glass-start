@@ -64,6 +64,7 @@ Object.assign(window, {
     verifyFingerprint: lifecycle.verifyFingerprint,
     probe: lifecycle.probe,
     applyWallpaper: wallpaper_renderer.applyWallpaper,
+    getPreparedWallpaperImage: wallpaper_renderer.getPreparedWallpaperImage,
     getEffectiveCustomWallpaper: wallpaper.getEffectiveCustomWallpaper,
     clearCustomWallpaper: wallpaper.clearCustomWallpaper,
     commitWallpaperSelection: wallpaper.commitWallpaperSelection,

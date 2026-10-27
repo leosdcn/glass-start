@@ -27,6 +27,8 @@ async function sample({ width, height, viewportWidth = width, viewportHeight = h
 }
 
 try {
+  // 书签就绪时 IDB 壁纸恢复可能尚未结束，先等初始壁纸解码，避免覆盖测试采样。
+  await waitFor(evalJS, 'getPreparedWallpaperImage(backgrounds[state.bg]) !== null');
   const gray = { width:800, height:800, bands:[{x:0, y:0, width:800, height:800, color:'rgb(150, 150, 150)'}] };
   assert.deepEqual(await sample(gray), {bright:true, tint:[150, 150, 150]}, '零遮罩不应误用默认暗度');
   for (const mask of [20, null, 'invalid']) {
