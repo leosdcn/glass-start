@@ -16,6 +16,20 @@
   <a href="#-核心特色"><img src="https://img.shields.io/badge/PWA-Offline_Ready-orange.svg" alt="PWA"></a>
 </p>
 
+<p align="center">
+  <a href="https://goldcoast.dpdns.org/" target="_blank" rel="noopener noreferrer">
+    <strong>🌐 访问在线演示 (Live Demo)</strong>
+  </a>
+</p>
+
+<p align="center">
+  <img src="./docs/assets/preview-start.png" alt="Glass Start 首屏起始页预览" width="840">
+</p>
+
+<p align="center">
+  <img src="./docs/assets/preview-nav.png" alt="Glass Start 次屏分类书签预览" width="840">
+</p>
+
 ---
 
 ## 目录
