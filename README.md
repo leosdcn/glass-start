@@ -194,8 +194,25 @@ npm run build
 
 ## 📄 开源协议与免责声明
 
-本项目采用 [GNU General Public License v3.0](./LICENSE) (GPL-3.0-or-later) 协议开源。
+Copyright (C) 2026 leosdcn
 
-- **第三方商标与图标**：预设书签涉及的各网站名称、品牌标识及 Logo（包括但不限于 `public/icons/` 和 `bookmarks.json`）版权归原权利人所有，本项目仅作个人索引与客观展示，不拥有任何商标权利。
-- **壁纸资源**：`public/wallpapers/` 内置壁纸仅供个人浏览美化与学习交流使用。
+本项目代码采用 [GNU General Public License v3.0](./LICENSE) (GPL-3.0-or-later) 协议开源；第三方素材按各自许可与权利声明使用。
+
+- **第三方商标与图标**：预设书签涉及的各网站名称、品牌标识及 Logo（包括但不限于 `public/icons/` 和 `bookmarks.json`）版权归原权利人所有，本项目仅作个人索引与客观展示，不拥有任何商标权利。收录不代表原权利人认可、关联或赞助本项目，GPL 不授予第三方商标使用权。
+- **壁纸资源**：`public/wallpapers/` 内置壁纸及缩略图由 Unsplash 图片转换而来，适用 [Unsplash License](https://unsplash.com/license)，不以本项目 GPL 协议重新授权。该许可允许商业及非商业使用，但禁止未经实质修改直接出售图片，或汇集图片以复制类似或竞争服务；具体以原许可为准。
 - **公共服务**：天气预报、地理逆编码与搜索联想功能依赖第三方公开免费服务，不保证其服务持续可用性与准确性。
+
+### 内置壁纸来源
+
+以下为[壁纸配置](./src/js/config/backgrounds.js)记录的原图直链，对应同名 AVIF 大图及 `-thumb.avif` 缩略图。作者、作品页及每张图片的许可归属尚未逐项核实；此表仅整理现有来源记录。
+
+| 文件 | 名称 | 原图 |
+| :--- | :--- | :--- |
+| `bg1.avif` | 暮色山峦 | [Unsplash 原图](https://images.unsplash.com/photo-1477346611705-65d1883cee1e) |
+| `bg2.avif` | 溪谷晨曦 | [Unsplash 原图](https://images.unsplash.com/photo-1506744038136-46273834b3fb) |
+| `bg3.avif` | 星空雪山 | [Unsplash 原图](https://images.unsplash.com/photo-1519681393784-d120267933ba) |
+| `bg4.avif` | 峰峦破晓 | [Unsplash 原图](https://images.unsplash.com/photo-1469474968028-56623f02e42e) |
+| `bg5.avif` | 天际立面 | [Unsplash 原图](https://images.unsplash.com/photo-1486406146926-c627a92ad1ab) |
+| `bg6.avif` | 极简回廊 | [Unsplash 原图](https://images.unsplash.com/photo-1497366754035-f200968a6e72) |
+| `bg7.avif` | 紫韵流光 | [Unsplash 原图](https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe) |
+| `bg8.avif` | 梦幻流彩 | [Unsplash 原图](https://images.unsplash.com/photo-1550684848-fac1c5b4e853) |
