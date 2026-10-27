@@ -503,10 +503,6 @@ textarea::placeholder {
     max-width: 0.75rem;
     max-height: 0.75rem;
     flex-shrink: 0;
-    transition: transform 0.15s var(--ease-spring);
-}
-#navHint:active svg {
-    transform: translateY(-2px);
 }
 
 .bg-layer { transition: opacity var(--duration-bg-crossfade) var(--ease-exit); transform: translateZ(0); pointer-events: none; }
