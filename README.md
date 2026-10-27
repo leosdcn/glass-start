@@ -1,4 +1,4 @@
-# Glass Start — 流光起始页
+# Glass Start — 通透起始页
 
 > 极简纯净的毛玻璃浏览器起始页。
 
