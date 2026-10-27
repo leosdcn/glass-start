@@ -209,7 +209,7 @@
     <!-- 固定定位背景图层（双层叠加 opacity 过渡，解决 background-image 不可 CSS 插值的问题；配合 bg-fullscreen 延伸至移动端安全区与过滚动区域） -->
     <div id="bgLayer" class="bg-fullscreen bg-cover bg-center bg-no-repeat z-0 bg-slate-900 bg-layer"></div>
     <div id="bgLayerNext" class="bg-fullscreen bg-cover bg-center bg-no-repeat z-0 opacity-0 bg-slate-900 bg-layer"></div>
-    <div id="bgOverlay" class="bg-fullscreen bg-black/20 pointer-events-none z-0"></div>
+    <div id="bgOverlay" class="bg-fullscreen bg-black/15 pointer-events-none z-0"></div>
     <script>(function(){const bg=document.getElementById('bgLayer');const url=(window.__PRELOADED_BG__!==undefined)?window.__PRELOADED_BG__:'./wallpapers/bg1.avif';if(bg&&url){bg.style.backgroundImage="url(\""+url.replace(/["'\\]/g,'\\$&')+"\")";bg.style.opacity='1';}if(window.__INITIAL_THEME_COLOR__&&bg){bg.style.backgroundColor=window.__INITIAL_THEME_COLOR__;}if(window.__PRE_BG_EFFECTS__){const o=document.getElementById('bgOverlay');if(o){o.style.backgroundColor='rgba(0, 0, 0, '+(window.__PRE_BG_EFFECTS__.op/100)+')';}}})()</script>
 
     <!-- ========== 第一屏：起始页 ========== -->
@@ -434,10 +434,10 @@
                             <label for="maskOpacityInput" class="text-xs font-semibold text-white/80 flex items-center gap-1.5">
                                 <svg class="size-4 text-white/60 shrink-0" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M6 13.5V3.75m0 9.75a1.5 1.5 0 0 1 0 3m0-3a1.5 1.5 0 0 0 0 3m0 3.75V16.5m12-3V3.75m0 9.75a1.5 1.5 0 0 1 0 3m0-3a1.5 1.5 0 0 0 0 3m0 3.75V16.5m-6-9V3.75m0 3.75a1.5 1.5 0 0 1 0 3m0-3a1.5 1.5 0 0 0 0 3m0 9.75V10.5"/></svg> 背景暗度
                             </label>
-                            <span id="maskOpacityVal" class="text-xs font-mono text-white/90">20%</span>
+                            <span id="maskOpacityVal" class="text-xs font-mono text-white/90">15%</span>
                         </div>
                         <div class="appearance-dim-control">
-                            <input type="range" id="maskOpacityInput" name="maskOpacityInput" min="5" max="80" value="20" aria-label="背景暗色遮罩透明度" aria-valuenow="20" aria-valuetext="20%" class="w-full h-1.5 bg-white/20 rounded-lg appearance-none cursor-pointer accent-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 disabled:opacity-40 disabled:cursor-not-allowed">
+                            <input type="range" id="maskOpacityInput" name="maskOpacityInput" min="5" max="80" value="15" aria-label="背景暗色遮罩透明度" aria-valuenow="15" aria-valuetext="15%" class="w-full h-1.5 bg-white/20 rounded-lg appearance-none cursor-pointer accent-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 disabled:opacity-40 disabled:cursor-not-allowed">
                         </div>
                     </div>
                     <!-- 切屏动效：按钮直接表达当前选项 -->

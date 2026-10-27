@@ -114,7 +114,7 @@ export const CONFIG = Object.freeze({
                 TAB_SCROLL_MARGIN: 8          // 侧边栏横向/纵向对齐边界安全内距 (px)
             }),
             APPEARANCE: Object.freeze({
-                DEFAULT_MASK_OPACITY: 20,     // 默认遮罩暗度百分比 (%)
+                DEFAULT_MASK_OPACITY: 15,     // 默认遮罩暗度百分比 (%)
                 MAX_MASK_OPACITY: 80,         // 遮罩透明度最大百分比 (%)
                 MAX_UPLOAD_WIDTH: 3840,       // 自定义壁纸最大宽度 (px)
                 MAX_UPLOAD_HEIGHT: 2160,      // 自定义壁纸最大高度

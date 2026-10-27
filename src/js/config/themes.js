@@ -13,7 +13,7 @@ export const PRESET_WALLPAPER_THEMES = Object.freeze([
     APP_THEME_LIGHT  // bg8: 梦幻流彩 (艺术浅 · 浅色)
 ]);
 
-// 8 张预设壁纸原图顶部 15% 采样之专属外壳氛围色 (带默认 20% 暗度遮罩实际渲染值)
+// 8 张预设壁纸原图顶部 15% 采样之专属外壳氛围色 (按 20% 暗度遮罩采样，作为固定预设色)
 export const PRESET_WALLPAPER_THEME_COLORS = Object.freeze([
     '#546272', // bg1: 暮色山峦 (原图顶部吸色 · 冷钢青灰)
     '#d7e0e2', // bg2: 溪谷晨曦 (原图顶部吸色 · 晨光天青)
