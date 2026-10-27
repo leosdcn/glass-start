@@ -426,11 +426,10 @@ pass('相对湿度、实时风速与降水雨伞 9 阶形态动态演化 (🌵/�
   dynamicsAllOk, JSON.stringify(dynamicIconsCheck));
 
 // ══════════════════════════════════════════════════════════════════════
-// 6. 预报等宽排版、多日平滑对齐与多级行政区划消歧
+// 6. 预报日期标签
 // ══════════════════════════════════════════════════════════════════════
 
-// 6.1 等宽周几标签
-const weekdayCheck = await evalJS(`(() => {
+const weekdayLabels = await evalJS(`(() => {
   renderWeatherPopover({
     location: { name: '上海市' },
     current: { temp: 28, apparent: 30, weatherText: '多云', icon: '⛅', pop: 10, humidity: 50, windSpeed: 3, sunset: '18:59' },
@@ -442,43 +441,12 @@ const weekdayCheck = await evalJS(`(() => {
     ]
   });
   const labels = [...document.querySelectorAll('#weatherPopover [class*="space-y"] > div > span.w-10:first-child')].map(s => s.innerText.trim());
-  return labels.length === 4 && labels.every(l => l.length === 2);
+  return labels;
 })()`);
 
-// 6.2 预报平滑对齐
-const smoothingCheck = await evalJS(`(() => {
-  const mockFetch = async (mockApiData) => {
-    const origFetch = window.fetch;
-    window.fetch = async () => ({ ok: true, json: async () => mockApiData });
-    try { return await fetchWeatherForecast({ lat: 31.230, lon: 121.473, name: '上海' }); }
-    finally { window.fetch = origFetch; }
-  };
-
-  return (async () => {
-    const resA = await mockFetch({
-      current: { temperature_2m: 31, apparent_temperature: 36, is_day: 1, precipitation: 0, weather_code: 1, wind_speed_10m: 3, relative_humidity_2m: 60 },
-      daily: { time: ['2026-08-18', '2026-08-19'], weather_code: [51, 80], temperature_2m_max: [32, 29], temperature_2m_min: [24, 25], precipitation_probability_max: [16, 45] }
-    });
-    const resB = await mockFetch({
-      current: { temperature_2m: 28, apparent_temperature: 30, is_day: 1, precipitation: 0, weather_code: 1, wind_speed_10m: 3, relative_humidity_2m: 70 },
-      daily: { time: ['2026-08-18', '2026-08-19'], weather_code: [63, 80], temperature_2m_max: [30, 28], temperature_2m_min: [23, 24], precipitation_probability_max: [80, 45] }
-    });
-    return resA.daily[0].text === '晴间多云' && resA.daily[0].icon === '🌤️' && resB.daily[0].text === '中雨' && resB.daily[0].icon === '🌧️';
-  })();
-})()`);
-
-// 6.3 地理消歧
-const geoFormatCheck = await evalJS(`(() => {
-  const c1 = formatLocationFullName(['中国', '上海市', '上海市', '普陀']);
-  const c2 = formatLocationFullName(['中国', '北京市', '北京市', '朝阳']);
-  const c3 = formatLocationFullName(['中国', '吉林省', '吉林市', '吉林市']);
-  const c4 = formatLocationFullName(['中国', '上海市', '黄浦区', '黄浦']);
-  const c5 = formatLocationFullName(['中国', '香港特别行政区', '香港']);
-  return c1 === '中国 · 上海市 · 普陀' && c2 === '中国 · 北京市 · 朝阳' && c3 === '中国 · 吉林省 · 吉林市' && c4 === '中国 · 上海市 · 黄浦区' && c5 === '中国 · 香港特别行政区';
-})()`);
-
-pass('预报等宽排版、多日平滑对齐与多级行政区划消歧 (周几等宽/低POP平滑/多级行政消歧)',
-  weekdayCheck && smoothingCheck && geoFormatCheck);
+pass('预报日期标签按顺序呈现',
+  JSON.stringify(weekdayLabels) === JSON.stringify(['今天', '明天', '周四', '周五']),
+  JSON.stringify(weekdayLabels));
 
 // ══════════════════════════════════════════════════════════════════════
 // 7. 标签页休眠唤醒感知与天气/时钟即时对齐测试
@@ -590,11 +558,11 @@ pass('标签页休眠唤醒感知与天气/时钟即时对齐 (有效缓存0请�
   wakeupAllOk, JSON.stringify(wakeupSyncCheck));
 
 // ══════════════════════════════════════════════════════════════════════
-// 8. Favicon 多级容灾降级引擎 (Google S2 备用源自动回退/首字母文字徽章兜底/状态机防死循环)
+// 8. Favicon 备用地址提取（降级流程由 infra-theme-favicon 覆盖）
 // ══════════════════════════════════════════════════════════════════════
 
 const faviconFallbackCheck = await evalJS(`(() => {
-  // 8.1 faviconFallbackFromUrl 提取算法
+  // faviconFallbackFromUrl 提取算法
   const urlFallback = faviconFallbackFromUrl('https://github.com');
   const wwwFallback = faviconFallbackFromUrl('https://www.google.com');
   const imFallback = faviconFallbackFromUrl('https://a.favicon.im/bilibili.com');
@@ -605,38 +573,11 @@ const faviconFallbackCheck = await evalJS(`(() => {
   const imFallbackOk = imFallback === 'https://www.google.com/s2/favicons?domain=bilibili.com&sz=128';
   const emptyFallbackOk = emptyFallback === '';
 
-  // 8.2 handleIconError 双轨降级状态机 (主源失败切换备用源 -> 备用源失败降级文字徽章)
-  const container = document.createElement('div');
-  container.className = 'icon-box icon-box-md';
-  const img = document.createElement('img');
-  img.src = 'https://a.favicon.im/example.com';
-  img.dataset.initial = 'E';
-  img.dataset.md = '1';
-  img.dataset.url = 'https://example.com';
-  container.appendChild(img);
-  document.body.appendChild(container);
-
-  // 首次触发：切换为 Google S2 备用源，图片未被移除
-  handleIconError(img);
-  const firstFallbackOk = img.dataset.fallback === '1'
-    && img.src === 'https://www.google.com/s2/favicons?domain=example.com&sz=128'
-    && container.contains(img);
-
-  // 二次触发：备用源依然加载失败，图片被移除，父容器变为首字母文字徽章
-  handleIconError(img);
-  const secondFallbackOk = !container.contains(img)
-    && container.textContent === 'E'
-    && container.classList.contains('font-semibold');
-
-  container.remove();
-
   return {
     urlFallbackOk,
     wwwFallbackOk,
     imFallbackOk,
-    emptyFallbackOk,
-    firstFallbackOk,
-    secondFallbackOk
+    emptyFallbackOk
   };
 })()`);
 
@@ -644,11 +585,9 @@ const faviconFallbackAllOk = faviconFallbackCheck &&
   faviconFallbackCheck.urlFallbackOk &&
   faviconFallbackCheck.wwwFallbackOk &&
   faviconFallbackCheck.imFallbackOk &&
-  faviconFallbackCheck.emptyFallbackOk &&
-  faviconFallbackCheck.firstFallbackOk &&
-  faviconFallbackCheck.secondFallbackOk;
+  faviconFallbackCheck.emptyFallbackOk;
 
-pass('Favicon 多级容灾降级引擎 (Google S2 备用源自动回退/首字母文字徽章兜底/状态机防死循环)',
+pass('Favicon 备用地址提取 (普通域名/www/旧图标服务/空地址)',
   faviconFallbackAllOk, JSON.stringify(faviconFallbackCheck));
 
 await press('Escape');

@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { test } from 'node:test';
 import { buildSync } from 'esbuild';
 
 // 与浏览器使用同一配置；此入口无需启动 HTTP 服务或 Chrome。
@@ -24,6 +25,36 @@ assert.equal(forecast.current.temp, 22);
 assert.equal(forecast.current.isDay, false);
 assert.deepEqual(forecast.daily, []);
 assert.equal(forecast.current.sunrise, '--:--');
+
+test('低降水概率且当前无雨时平滑预报，高降水概率保留雨天预报', () => {
+  const location = {lat:31.230, lon:121.473, name:'上海'};
+  for (const [code, pop, expected] of [
+    [51, 16, {text:'晴间多云', icon:'🌤️'}],
+    [63, 80, {text:'中雨', icon:'🌧️'}]
+  ]) {
+    const result = normalizeWeatherForecast({
+      current:{temperature_2m:31, is_day:1, precipitation:0, weather_code:1},
+      daily:{time:['2026-08-18', '2026-08-19'], weather_code:[code, 80],
+        temperature_2m_max:[32, 29], temperature_2m_min:[24, 25],
+        precipitation_probability_max:[pop, 45]}
+    }, location, CONFIG.WEATHER, 123);
+    assert.deepEqual({text:result.daily[0].text, icon:result.daily[0].icon}, expected,
+      `天气代码 ${code}、降水概率 ${pop}%`);
+  }
+});
+
+test('地名合并重复行政区，保留同名省市并消除前缀重复', () => {
+  for (const [parts, expected] of [
+    [['中国', '上海市', '上海市', '普陀'], '中国 · 上海市 · 普陀'],
+    [['中国', '北京市', '北京市', '朝阳'], '中国 · 北京市 · 朝阳'],
+    [['中国', '吉林省', '吉林市', '吉林市'], '中国 · 吉林省 · 吉林市'],
+    [['中国', '上海市', '黄浦区', '黄浦'], '中国 · 上海市 · 黄浦区'],
+    [['中国', '香港特别行政区', '香港'], '中国 · 香港特别行政区']
+  ]) {
+    assert.equal(model.formatLocationFullName(parts), expected, parts.join('/'));
+  }
+});
+
 model.replaceBookmarkDraft([{id:'a',name:'A',url:'https://a.test',icon:''}, {id:'b',name:'B',url:'https://b.test',icon:''}]);
 assert.equal(model.modalState.bookmarksChanged, false);
 model.updateBookmarkDraft('a', {name:'Changed'});
