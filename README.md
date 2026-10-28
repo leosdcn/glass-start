@@ -68,6 +68,10 @@
 
 ### Chrome 新标签页扩展
 
+**下载安装**：前往 [Releases](https://github.com/leosdcn/glass-start/releases/latest) 下载扩展 ZIP，安装与更新方法见发布说明。
+
+**从源码构建**：执行以下命令。
+
 ```bash
 npm ci
 npm run build:extension
@@ -79,7 +83,7 @@ npm run build:extension
 
 扩展依靠随包资源离线打开，不注册网页版的 Service Worker，也不显示网页版本更新提示。设置中的“清理缓存并刷新”只清理临时缓存，不删除已保存的书签、壁纸和设置；远程壁纸、天气与在线联想仍受网络可用性影响。
 
-更新源码后重新执行 `npm run build:extension`，在扩展管理页点击「重新加载」并重新打开新标签页。保持文件夹路径不变并直接重载，可保留本地数据；移除扩展会删除其存储。`npm run build` 仍只生成网页版 `dist/`，两种构建互不覆盖。扩展目前提供本地加载版本，尚未上架 Chrome 应用商店。
+更新源码后重新执行 `npm run build:extension`，在扩展管理页点击「重新加载」并重新打开新标签页。保持文件夹路径不变并直接重载，可保留本地数据；移除扩展会删除其存储。`npm run build` 仍只生成网页版 `dist/`，两种构建互不覆盖。扩展安装包目前仅通过 GitHub Release 分发，尚未上架 Chrome 应用商店。
 
 扩展回归测试：`npm test -- infra-chrome-extension`。测试通过 CDP 在独立临时配置中实际加载扩展，需要支持 `Extensions.loadUnpacked` 的新版 Chrome。覆盖新标签页替换、首屏底色与主题恢复、三引擎联想、设置保存和离线重载；联想响应使用固定数据，不代表真实第三方接口联网验证。
 
