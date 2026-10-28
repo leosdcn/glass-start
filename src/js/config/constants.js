@@ -1,3 +1,5 @@
+import { t } from '../core/i18n.js';
+import { LANGUAGE_KEY } from './language.js';
 import bookmarksData from '../../../bookmarks.json';
 import { PRESET_BACKGROUNDS } from './backgrounds.js';
 import { ENGINE_META } from './engines.js';
@@ -9,6 +11,7 @@ export const DEFAULT_CATEGORIES = bookmarksData.categories || [];
 // ==================== 配置与全局常量 ====================
 export const CONFIG = Object.freeze({
             KEYS: Object.freeze({
+                LANGUAGE: LANGUAGE_KEY,
                 BOOKMARK_KEYS: 'userBookmarkKeys',
                 LEGACY_BOOKMARKS: 'userBookmarks',
                 CUSTOM_META: 'userCustomMeta',
@@ -32,7 +35,8 @@ export const CONFIG = Object.freeze({
                 DB_NAME: 'GlassStartDB',
                 VERSION: 1,
                 STORES: Object.freeze({ WALLPAPERS: 'wallpapers' }),
-                KEYS: Object.freeze({ CUSTOM_WALLPAPER: 'customWallpaper', SELECTION: 'wallpaperSelection' })
+                KEYS: Object.freeze({
+                LANGUAGE: LANGUAGE_KEY, CUSTOM_WALLPAPER: 'customWallpaper', SELECTION: 'wallpaperSelection' })
             }),
             GESTURE: Object.freeze({
                 WHEEL_IDLE_MS: 180,         // 无滚轮输入后视为新一轮手势
@@ -73,8 +77,8 @@ export const CONFIG = Object.freeze({
                 FORECAST_FETCH_DAYS: 5,       // 气象接口拉取预报最大天数
                 FORECAST_DISPLAY_DAYS: 4,     // 弹窗实际呈现预报天数
                 FALLBACK_LOCATION: Object.freeze({
-                    name: '上海',
-                    fullName: '中国 · 上海市',
+                    name: t('ui.shanghai'),
+                    fullName: t('ui.china.shanghai'),
                     lat: 31.230,
                     lon: 121.473
                 }),
@@ -165,33 +169,33 @@ export const CONFIG = Object.freeze({
             }),
             SHORTCUTS: Object.freeze([
                 {
-                    group: '导航与控制',
+                    group: t('ui.navigation.and.controls'),
                     items: [
-                        { desc: '唤起 / 关闭快捷键速查', kbdId: 'kbd-slash', fallback: '⌘ /' },
-                        { desc: '轮播内置高清壁纸', kbdId: 'kbd-bg', fallback: '⌘ B' },
-                        { desc: '滚动至书签导航页', rawHtml: '<kbd>↓</kbd> / <kbd>PageDown</kbd>' },
-                        { desc: '返回顶部起始页', rawHtml: '<kbd>↑</kbd> / <kbd>PageUp</kbd> / <kbd>Home</kbd>' },
-                        { desc: '关闭弹窗 / 取消聚焦', rawHtml: '<kbd>Esc</kbd>' }
+                        { desc: t('ui.open.or.close.keyboard.shortcuts'), kbdId: 'kbd-slash', fallback: '⌘ /' },
+                        { desc: t('ui.cycle.preset.wallpapers'), kbdId: 'kbd-bg', fallback: '⌘ B' },
+                        { desc: t('ui.go.to.bookmark.directory'), rawHtml: '<kbd>↓</kbd> / <kbd>PageDown</kbd>' },
+                        { desc: t('ui.return.to.start.page'), rawHtml: '<kbd>↑</kbd> / <kbd>PageUp</kbd> / <kbd>Home</kbd>' },
+                        { desc: t('ui.close.dialog.or.clear.focus'), rawHtml: '<kbd>Esc</kbd>' }
                     ]
                 },
                 {
-                    group: '搜索与操作',
+                    group: t('ui.search.and.actions'),
                     items: [
-                        { desc: '首屏盲打自动聚焦', rawHtml: '<kbd>任意字符键</kbd>' },
-                        { desc: '选择搜索建议 / 书签', rawHtml: '<kbd>↑</kbd> <kbd>↓</kbd>' },
-                        { desc: '执行搜索 / 打开选中书签', rawHtml: '<kbd>Enter</kbd>' },
-                        { desc: '在新标签页中打开搜索', kbdId: 'kbd-newtab', fallback: '⌘ ↵' },
-                        { desc: '弹窗内焦点循环', kbdId: 'kbd-tab', fallback: 'Tab / ⇧ Tab' }
+                        { desc: t('ui.start.typing.to.search'), kbdId: 'kbd-any', fallback: '' },
+                        { desc: t('ui.select.a.suggestion.or.bookmark'), rawHtml: '<kbd>↑</kbd> <kbd>↓</kbd>' },
+                        { desc: t('ui.search.or.open.selected.bookmark'), rawHtml: '<kbd>Enter</kbd>' },
+                        { desc: t('ui.open.search.in.a.new.tab'), kbdId: 'kbd-newtab', fallback: '⌘ ↵' },
+                        { desc: t('ui.move.focus.within.dialog'), kbdId: 'kbd-tab', fallback: 'Tab / ⇧ Tab' }
                     ]
                 }
             ]),
             CREDITS: Object.freeze([
-                { icon: './icons/emoji/framed_picture.svg', name: '预设高清壁纸', desc: 'Unsplash 精选 2.5K 摄影作品', url: 'https://unsplash.com/license', license: 'Unsplash 协议' },
-                { icon: './icons/emoji/grinning.svg', name: '开源矢量表情', desc: 'Twemoji 跨平台统一高保真 Emoji', url: 'https://github.com/jdecked/twemoji/blob/main/LICENSE-GRAPHICS', license: 'CC-BY 4.0' },
-                { icon: './icons/emoji/sun_behind_small_cloud.svg', name: '气象数据底座', desc: 'Open-Meteo 全球气象与逆地理编码', url: 'https://open-meteo.com/en/licence', license: 'CC-BY 4.0' },
-                { icon: './icons/emoji/jigsaw.svg', name: '界面矢量图标', desc: 'Heroicons · Tailwind Labs 图标库', url: 'https://github.com/tailwindlabs/heroicons/blob/master/LICENSE', license: 'MIT 协议' },
-                { icon: './icons/emoji/palette.svg', name: '样式与设计系统', desc: 'Tailwind CSS 现代化原子工具集', url: 'https://github.com/tailwindlabs/tailwindcss/blob/main/LICENSE', license: 'MIT 协议' },
-                { icon: './icons/emoji/zap.svg', name: '极速构建内核', desc: 'esbuild AST 高效压缩与编译器', url: 'https://github.com/evanw/esbuild/blob/main/LICENSE.md', license: 'MIT 协议' }
+                { icon: './icons/emoji/framed_picture.svg', name: t('ui.preset.wallpapers'), desc: t('ui.selected.2.5k.photography.from.unsplash'), url: 'https://unsplash.com/license', license: t('ui.unsplash.license') },
+                { icon: './icons/emoji/grinning.svg', name: t('ui.open.source.emoji'), desc: t('ui.consistent.vector.emoji.from.twemoji'), url: 'https://github.com/jdecked/twemoji/blob/main/LICENSE-GRAPHICS', license: 'CC-BY 4.0' },
+                { icon: './icons/emoji/sun_behind_small_cloud.svg', name: t('ui.weather.data'), desc: t('ui.global.weather.and.geocoding.by.open'), url: 'https://open-meteo.com/en/licence', license: 'CC-BY 4.0' },
+                { icon: './icons/emoji/jigsaw.svg', name: t('ui.interface.icons'), desc: t('ui.heroicons.by.tailwind.labs'), url: 'https://github.com/tailwindlabs/heroicons/blob/master/LICENSE', license: t('ui.mit.license') },
+                { icon: './icons/emoji/palette.svg', name: t('ui.styles.and.design'), desc: t('ui.utility.first.styling.with.tailwind.css'), url: 'https://github.com/tailwindlabs/tailwindcss/blob/main/LICENSE', license: t('ui.mit.license') },
+                { icon: './icons/emoji/zap.svg', name: t('ui.build.tools'), desc: t('ui.fast.bundling.and.minification.with.esbuild'), url: 'https://github.com/evanw/esbuild/blob/main/LICENSE.md', license: t('ui.mit.license') }
             ])
         });
 

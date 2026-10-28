@@ -1,0 +1,418 @@
+{
+    "categories": {
+        "ai": "Artificial intelligence",
+        "work": "Work and collaboration",
+        "storage": "Storage and sharing",
+        "media": "Video and music",
+        "social": "Communities and social",
+        "learning": "Knowledge and learning",
+        "maps": "Maps and weather",
+        "creative": "Creative tools",
+        "resources": "Resources and inspiration",
+        "development": "Development",
+        "network": "Network tools",
+        "games": "Games",
+        "explore": "Explore and discover"
+    },
+    "bookmarks": {
+        "https://arena.ai": {
+            "desc": "Blind comparisons of AI models"
+        },
+        "https://artificialanalysis.ai/zh": {
+            "desc": "AI model benchmarks"
+        },
+        "https://chatgpt.com": {
+            "desc": "Advanced AI assistant"
+        },
+        "https://civitai.com": {
+            "desc": "AI art models and community"
+        },
+        "https://claude.ai": {
+            "desc": "AI chat and writing assistant"
+        },
+        "https://chat.deepseek.com": {
+            "desc": "DeepSeek AI assistant"
+        },
+        "https://duck.ai": {
+            "desc": "Private chat with multiple AI models"
+        },
+        "https://gamma.app": {
+            "desc": "AI presentations and websites"
+        },
+        "https://gemini.google.com": {
+            "desc": "Google's multimodal AI assistant"
+        },
+        "https://aistudio.google.com": {
+            "desc": "Build prototypes with Google AI"
+        },
+        "https://grok.com": {
+            "desc": "AI assistant by xAI"
+        },
+        "https://huggingface.co": {
+            "desc": "Open source AI models and datasets"
+        },
+        "https://www.kimi.com": {
+            "desc": "Long-context AI by Moonshot"
+        },
+        "https://chat.mistral.ai": {
+            "desc": "AI chat assistant"
+        },
+        "https://www.perplexity.ai": {
+            "desc": "AI answer engine"
+        },
+        "https://suno.com": {
+            "desc": "Create songs with AI"
+        },
+        "https://www.doubao.com/chat/": {
+            "name": "Doubao",
+            "desc": "AI assistant by ByteDance"
+        },
+        "https://www.qianwen.com": {
+            "name": "Qwen",
+            "desc": "AI assistant by Alibaba"
+        },
+        "https://www.deepl.com/zh/translator": {
+            "desc": "Translate text and documents"
+        },
+        "https://app.diagrams.net": {
+            "desc": "Free open source diagram editor"
+        },
+        "https://excalidraw.com": {
+            "desc": "Collaborative hand-drawn whiteboard"
+        },
+        "https://mail.google.com": {
+            "desc": "Email by Google"
+        },
+        "https://translate.google.com": {
+            "desc": "Translate across languages"
+        },
+        "https://www.notion.com": {
+            "desc": "Notes, projects and knowledge"
+        },
+        "https://tools.pdf24.org/zh": {
+            "desc": "Free online PDF tools"
+        },
+        "https://publishmarkdown.com": {
+            "desc": "Publish Markdown notes instantly"
+        },
+        "https://time.is/zh/": {
+            "desc": "World clocks and time zones"
+        },
+        "https://drive.google.com": {
+            "desc": "Cloud storage and documents by Google"
+        },
+        "https://www.icloud.com": {
+            "desc": "Cloud services by Apple"
+        },
+        "https://web.localsend.org": {
+            "desc": "Open source local file sharing"
+        },
+        "https://mega.nz": {
+            "desc": "End-to-end encrypted cloud storage"
+        },
+        "https://onedrive.live.com": {
+            "desc": "Cloud storage and Office by Microsoft"
+        },
+        "https://filehelper.weixin.qq.com": {
+            "name": "WeChat File Transfer",
+            "desc": "Transfer files across devices"
+        },
+        "https://bandcamp.com": {
+            "desc": "Independent music and digital albums"
+        },
+        "https://www.imdb.com": {
+            "desc": "Film and TV information and ratings"
+        },
+        "https://www.netflix.com": {
+            "desc": "Streaming films and TV"
+        },
+        "https://rateyourmusic.com": {
+            "desc": "Music and record database"
+        },
+        "https://soundcloud.com": {
+            "desc": "Discover and share independent music"
+        },
+        "https://open.spotify.com": {
+            "desc": "Stream music from around the world"
+        },
+        "https://www.twitch.tv": {
+            "desc": "Live streams and gaming"
+        },
+        "https://www.youtube.com": {
+            "desc": "Watch and share videos"
+        },
+        "https://music.youtube.com": {
+            "desc": "Music streaming by Google"
+        },
+        "https://www.bilibili.com": {
+            "name": "Bilibili",
+            "desc": "Videos, animation and live comments"
+        },
+        "https://www.douyin.com": {
+            "name": "Douyin",
+            "desc": "Short videos and live streams"
+        },
+        "https://music.163.com/st/webplayer": {
+            "name": "NetEase Cloud Music",
+            "desc": "Music, playlists and community"
+        },
+        "https://discord.com": {
+            "desc": "Community chat and voice calls"
+        },
+        "https://www.facebook.com": {
+            "desc": "Connect with people around the world"
+        },
+        "https://www.instagram.com": {
+            "desc": "Share photos and videos"
+        },
+        "https://www.linkedin.com": {
+            "desc": "Professional networking and careers"
+        },
+        "https://linux.do": {
+            "desc": "Technology and developer community"
+        },
+        "https://www.reddit.com": {
+            "desc": "Communities for every interest"
+        },
+        "https://web.telegram.org": {
+            "desc": "Messaging and channels across devices"
+        },
+        "https://www.v2ex.com": {
+            "desc": "Community for creative professionals"
+        },
+        "https://x.com": {
+            "desc": "Real-time news and conversations"
+        },
+        "https://www.douban.com": {
+            "name": "Douban",
+            "desc": "Books, films and music reviews"
+        },
+        "https://sspai.com": {
+            "name": "SSPAI",
+            "desc": "Digital life and productivity community"
+        },
+        "https://weibo.com": {
+            "name": "Weibo",
+            "desc": "Chinese social trends and conversations"
+        },
+        "https://www.desmos.com/calculator": {
+            "desc": "Free online graphing calculator"
+        },
+        "https://www.duolingo.com": {
+            "desc": "Bite-size language lessons"
+        },
+        "https://artsandculture.google.com": {
+            "desc": "Explore art and museums worldwide"
+        },
+        "https://archive.org": {
+            "desc": "Wayback Machine and digital library"
+        },
+        "https://qwerty.kaiyi.cool": {
+            "desc": "Learn vocabulary through typing"
+        },
+        "https://zh.wikihow.com/首页": {
+            "desc": "Practical how-to guides"
+        },
+        "https://zh.wikipedia.org/wiki/Wikipedia:首页": {
+            "desc": "The free encyclopedia"
+        },
+        "https://socpk.com": {
+            "name": "Geekerwan Chip Rankings",
+            "desc": "Phone and PC chip efficiency rankings"
+        },
+        "https://www.msdmanuals.cn/home": {
+            "name": "MSD Manuals",
+            "desc": "Medical and health information"
+        },
+        "https://zh.wikivoyage.org/zh-hans/首页": {
+            "name": "Wikivoyage",
+            "desc": "The free worldwide travel guide"
+        },
+        "https://cook.yunyoujun.cn": {
+            "name": "Food Guide",
+            "desc": "Find recipes by ingredient"
+        },
+        "https://www.flightradar24.com": {
+            "desc": "Live flight tracking worldwide"
+        },
+        "https://earth.google.com": {
+            "desc": "Explore Earth in 3D"
+        },
+        "https://maps.google.com": {
+            "desc": "Maps and directions worldwide"
+        },
+        "https://stellarium-web.org": {
+            "desc": "Explore the night sky in your browser"
+        },
+        "https://www.windy.com": {
+            "desc": "Weather forecasts and wind maps"
+        },
+        "https://www.amap.com": {
+            "name": "Amap",
+            "desc": "Maps and navigation in China"
+        },
+        "https://www.weather.com.cn": {
+            "name": "China Weather",
+            "desc": "Weather forecasts and alerts for China"
+        },
+        "https://bgsub.cn": {
+            "desc": "Remove image backgrounds locally"
+        },
+        "https://www.canva.com": {
+            "desc": "Online design tools and templates"
+        },
+        "https://coolors.co": {
+            "desc": "Generate color palettes"
+        },
+        "https://ezgif.com": {
+            "desc": "Create GIFs and convert images"
+        },
+        "https://www.photopea.com": {
+            "desc": "Layer-based image editor"
+        },
+        "https://squoosh.app": {
+            "desc": "Open source image compression"
+        },
+        "https://vocalremover.org": {
+            "desc": "Separate vocals and instruments"
+        },
+        "https://www.waifu2x.net": {
+            "desc": "Denoise and upscale images"
+        },
+        "https://www.behance.net": {
+            "desc": "Showcase and discover creative work"
+        },
+        "https://www.emojiall.com/zh-hans": {
+            "desc": "Emoji dictionary and reference"
+        },
+        "https://kenney.nl/assets": {
+            "desc": "Free game assets"
+        },
+        "https://mixkit.co": {
+            "desc": "Royalty-free media and templates"
+        },
+        "https://www.pexels.com": {
+            "desc": "Free photography for commercial use"
+        },
+        "https://www.pinterest.com": {
+            "desc": "Visual inspiration and collections"
+        },
+        "https://pixabay.com": {
+            "desc": "Free stock media for commercial use"
+        },
+        "https://www.pixiv.net": {
+            "desc": "Illustration and anime art community"
+        },
+        "https://polyhaven.com": {
+            "desc": "Free 3D textures and models"
+        },
+        "https://saucenao.com": {
+            "desc": "Reverse image search for illustrations"
+        },
+        "https://tenor.com": {
+            "desc": "Search GIFs and reactions"
+        },
+        "https://trace.moe": {
+            "desc": "Find the source of an anime screenshot"
+        },
+        "https://unsplash.com": {
+            "desc": "Royalty-free stock photography"
+        },
+        "https://wallhaven.cc": {
+            "desc": "High-quality desktop wallpapers"
+        },
+        "https://yesicon.app": {
+            "desc": "Search vector icon collections"
+        },
+        "https://soundeffect-lab.info": {
+            "name": "Sound Effect Lab",
+            "desc": "Free Japanese sound effects"
+        },
+        "https://dash.cloudflare.com": {
+            "desc": "Manage websites and cloud services"
+        },
+        "https://distrosea.com": {
+            "desc": "Try Linux in your browser"
+        },
+        "https://github.com": {
+            "desc": "Code hosting and collaboration"
+        },
+        "https://colab.research.google.com": {
+            "desc": "Cloud-based code notebooks"
+        },
+        "https://it-tools.tech": {
+            "desc": "Online tools for developers"
+        },
+        "https://jsfiddle.net": {
+            "desc": "Online frontend code sandbox"
+        },
+        "https://www.omgubuntu.co.uk": {
+            "desc": "Linux desktop and open source news"
+        },
+        "https://roadmap.sh": {
+            "desc": "Developer learning roadmaps"
+        },
+        "https://vercel.com": {
+            "desc": "Deploy websites and applications"
+        },
+        "https://linux.vbird.org": {
+            "name": "Vbird's Linux Guide",
+            "desc": "Linux administration tutorials"
+        },
+        "https://browserleaks.com/ip": {
+            "desc": "Test browser privacy"
+        },
+        "https://ip.skk.moe": {
+            "desc": "Check network connectivity and IP"
+        },
+        "https://ipcheck.ing": {
+            "desc": "IP information from multiple sources"
+        },
+        "https://www.itdog.cn": {
+            "desc": "Network diagnostics across China"
+        },
+        "https://www.speedtest.net": {
+            "desc": "Test internet speed and latency"
+        },
+        "https://www.virustotal.com/gui/": {
+            "desc": "Multi-engine antivirus scanning"
+        },
+        "https://lichess.org": {
+            "desc": "Open source online chess"
+        },
+        "https://www.playok.com": {
+            "desc": "Play classic board games online"
+        },
+        "https://poki.com": {
+            "desc": "Casual browser games"
+        },
+        "https://www.pychess.org": {
+            "desc": "Play chess variants online"
+        },
+        "https://store.steampowered.com": {
+            "desc": "Digital game store"
+        },
+        "https://steamdb.info": {
+            "desc": "Steam price history and deals"
+        },
+        "https://shogiwars.heroz.jp": {
+            "name": "Shogi Wars",
+            "desc": "Play Japanese shogi online"
+        },
+        "https://www.16personalities.com/ch": {
+            "desc": "Sixteen personality types test"
+        },
+        "https://neal.fun": {
+            "desc": "Interactive experiments for the web"
+        },
+        "https://www.personality-database.com/zh-CN/": {
+            "desc": "Personality types and characters"
+        },
+        "https://quickdraw.withgoogle.com": {
+            "desc": "Drawing game powered by Google AI"
+        },
+        "https://radio.garden": {
+            "desc": "Explore live radio around the globe"
+        }
+    }
+}

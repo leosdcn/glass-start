@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { build } from 'esbuild';
 import vm from 'node:vm';
+import { readFileSync } from 'node:fs';
+const messages = JSON.parse(readFileSync(new URL('../src/js/config/locales/zh-CN.json', import.meta.url), 'utf8'));
 
 const { outputFiles } = await build({
     stdin: { contents: `export {bindEditEvents} from './src/js/modules/settings-events.js';
@@ -73,7 +75,7 @@ function fixture() {
     document.body = new Element('body');
     const timers = new Map(), frames = new Map(), images = []; let id = 0;
     const context = vm.createContext({ module: { exports: {} }, console, document, Element,
-        window: { matchMedia: () => motion }, CSS: { escape: value => value },
+        window: { matchMedia: () => motion, __GLASS_I18N__: { locale: 'zh-CN', messages: { 'zh-CN': messages } } }, CSS: { escape: value => value },
         setTimeout: fn => { timers.set(++id, fn); return id; }, clearTimeout: key => timers.delete(key),
         requestAnimationFrame: fn => { frames.set(++id, fn); return id; }, cancelAnimationFrame: key => frames.delete(key),
         Image: class { constructor() { images.push(this); this.naturalWidth = 100; this.complete = false; } }

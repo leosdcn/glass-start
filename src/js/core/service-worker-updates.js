@@ -1,3 +1,4 @@
+import { t } from './i18n.js';
 import { CONFIG } from '../config/constants.js';
 import { dom } from '../state/dom.js';
 import { OverlayStack } from './overlay-stack.js';
@@ -13,7 +14,7 @@ let reloadRequested = false;
 /** @type {ReturnType<typeof setTimeout> | null} */
 let reloadTimer = null;
 
-function showUpdateNotice(message = '有新版本') {
+function showUpdateNotice(message = t('ui.update.available')) {
     updateAvailable = true;
     if (dom.updateNoticeText) dom.updateNoticeText.textContent = message;
     dom.updateNotice?.classList.remove('hidden');
@@ -26,7 +27,7 @@ function resetUpdateAttempt() {
     if (dom.updateReloadBtn) {
         dom.updateReloadBtn.disabled = false;
     }
-    showUpdateNotice('更新暂未完成，请重试');
+    showUpdateNotice(t('ui.update.incomplete.please.retry'));
 }
 
 function applyUpdate() {
@@ -40,7 +41,7 @@ function applyUpdate() {
     reloadRequested = true;
     if (dom.updateReloadBtn) {
         dom.updateReloadBtn.disabled = true;
-        if (dom.updateNoticeText) dom.updateNoticeText.textContent = '正在更新…';
+        if (dom.updateNoticeText) dom.updateNoticeText.textContent = t('ui.updating');
     }
     reloadTimer = setTimeout(resetUpdateAttempt, CONFIG.TIMERS.SW_UPDATE_TIMEOUT);
     try { waiting.postMessage({ type: 'ACTIVATE_UPDATE' }); }
@@ -99,9 +100,9 @@ export function initServiceWorkerUpdates() {
     dom.updateReloadBtn?.addEventListener('click', () => {
         // 弹窗开启时不打断草稿；背景按钮同时受 OverlayStack 的 inert 保护。
         if (!updateAvailable || reloadRequested || !OverlayStack.isEmpty()) return;
-        const message = '刷新即可使用新版本，书签和偏好设置会保留。' +
-            (dom.searchInput?.value ? '当前搜索内容将清空。' : '');
-        showConfirm(message, applyUpdate, '新版本已就绪', dom.updateReloadBtn, '立即更新', 'neutral', '稍后再说');
+        const message = t('ui.reload.to.use.the.new.version') +
+            (dom.searchInput?.value ? t('ui.your.current.search.will.be.cleared') : '');
+        showConfirm(message, applyUpdate, t('ui.new.version.ready'), dom.updateReloadBtn, t('ui.update.now'), 'neutral', t('ui.later'));
     });
     navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(reg => {
         watchRegistration(reg);

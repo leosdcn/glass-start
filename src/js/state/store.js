@@ -2,6 +2,7 @@
  * 全局内存状态与数据存储
  */
 import { CONFIG, DEFAULT_BOOKMARKS, DEFAULT_CATEGORIES } from '../config/constants.js';
+import { localizeCategories } from '../core/i18n.js';
 
 // 运行时状态：由调用方显式更新并触发渲染
 /** @type {import('../types').AppState} */
@@ -23,12 +24,13 @@ export const modalState = {
     draftMaskOpacity: null,
     draftBookmarks: [],
     wallpaperSaveFailed: false,
-    bookmarksChanged: false
+    bookmarksChanged: false,
+    draftLanguage: 'auto'
 };
 
 // 当前运行时的书签与分类数据集
 /** @type {import('../types').PageData} */
 export const pageData = {
     bookmarks: DEFAULT_BOOKMARKS.map(bm => ({ ...bm })),
-    categories: DEFAULT_CATEGORIES
+    categories: localizeCategories(DEFAULT_CATEGORIES)
 };

@@ -154,7 +154,8 @@
                     "icon": "./icons/qianwen.com.png",
                     "desc": "阿里官方 AI 助手"
                 }
-            ]
+            ],
+            "id": "ai"
         },
         {
             "name": "办公协作",
@@ -214,7 +215,8 @@
                     "icon": "./icons/time.is.png",
                     "desc": "世界时间与时区查询"
                 }
-            ]
+            ],
+            "id": "work"
         },
         {
             "name": "云盘传输",
@@ -256,7 +258,8 @@
                     "icon": "./icons/filehelper.weixin.qq.com.png",
                     "desc": "官方跨端文件传输"
                 }
-            ]
+            ],
+            "id": "storage"
         },
         {
             "name": "影视音乐",
@@ -334,7 +337,8 @@
                     "icon": "./icons/music.163.com.png",
                     "desc": "主流音乐与歌单社区"
                 }
-            ]
+            ],
+            "id": "media"
         },
         {
             "name": "社区社交",
@@ -412,7 +416,8 @@
                     "icon": "./icons/weibo.com.png",
                     "desc": "国内热点社交平台"
                 }
-            ]
+            ],
+            "id": "social"
         },
         {
             "name": "知识学习",
@@ -484,7 +489,8 @@
                     "icon": "./icons/cook.yunyoujun.cn.png",
                     "desc": "按食材查找菜谱"
                 }
-            ]
+            ],
+            "id": "learning"
         },
         {
             "name": "地图气象",
@@ -532,7 +538,8 @@
                     "icon": "./icons/weather.com.cn.png",
                     "desc": "国内天气预报与预警"
                 }
-            ]
+            ],
+            "id": "maps"
         },
         {
             "name": "创意设计",
@@ -586,7 +593,8 @@
                     "icon": "./icons/waifu2x.net.png",
                     "desc": "图片降噪智能放大"
                 }
-            ]
+            ],
+            "id": "creative"
         },
         {
             "name": "素材灵感",
@@ -688,7 +696,8 @@
                     "icon": "./icons/soundeffect-lab.info.png",
                     "desc": "日本免费商用音效库"
                 }
-            ]
+            ],
+            "id": "resources"
         },
         {
             "name": "开发技术",
@@ -754,7 +763,8 @@
                     "icon": "./icons/linux.vbird.org.png",
                     "desc": "经典 Linux 运维教程"
                 }
-            ]
+            ],
+            "id": "development"
         },
         {
             "name": "网络诊断",
@@ -796,7 +806,8 @@
                     "icon": "./icons/virustotal.com.png",
                     "desc": "多引擎在线病毒检测"
                 }
-            ]
+            ],
+            "id": "network"
         },
         {
             "name": "游戏娱乐",
@@ -844,7 +855,8 @@
                     "icon": "./icons/shogiwars.heroz.jp.png",
                     "desc": "日本将棋在线对弈"
                 }
-            ]
+            ],
+            "id": "games"
         },
         {
             "name": "趣味探索",
@@ -880,7 +892,8 @@
                     "icon": "./icons/radio.garden.png",
                     "desc": "转动地球收听电台"
                 }
-            ]
+            ],
+            "id": "explore"
         }
     ]
 }

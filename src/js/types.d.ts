@@ -12,6 +12,8 @@ export interface BookmarkItem {
     url: string;
     icon: string;
     desc?: string;
+    /** Transient import marker; never written into bookmark backups. */
+    customText?: boolean;
 }
 
 /** 设置弹窗中的书签草稿，包含排序标识与原始 URL */
@@ -89,6 +91,7 @@ export interface ModalState {
     draftBookmarks: DraftBookmarkItem[];
     wallpaperSaveFailed: boolean;
     bookmarksChanged: boolean;
+    draftLanguage: string;
 }
 
 /** 壁纸深浅主题契约 */
@@ -141,6 +144,7 @@ export interface DOMCache {
     editBookmarksBtn: HTMLButtonElement | null;
     addBookmarkBtn: HTMLButtonElement | null;
     saveEditBtn: HTMLButtonElement | null;
+    languageSelect: HTMLSelectElement | null;
     cancelEditBtn: HTMLButtonElement | null;
     resetEditBtn: HTMLButtonElement | null;
     togglePickerBtn: HTMLButtonElement | null;
@@ -215,12 +219,24 @@ export interface GlassDiag {
     log(event: string, detail?: unknown): void;
 }
 
+export type TranslationMessage = string | Record<string, string>;
+
 declare global {
     interface Navigator {
         readonly userAgentData?: { readonly platform: string };
         readonly connection?: { readonly saveData?: boolean; readonly effectiveType?: string };
     }
     interface Window {
+        __GLASS_I18N__?: {
+            locale: string;
+            messages: Record<string, Record<string, TranslationMessage>>;
+            catalog?: { categories: Record<string, string>; bookmarks: Record<string, {name?: string; desc?: string}> };
+            t: (key: string, params?: Record<string, string | number>) => string;
+            applyTranslations: (root?: ParentNode) => void;
+            formatDate: (date: Date, options?: Intl.DateTimeFormatOptions) => string;
+            weatherDescription: (code: unknown) => string;
+            pendingTimer?: ReturnType<typeof setTimeout>;
+        };
         /** 仅测试适配层挂载，生产页面不提供。 */
         state?: AppState;
         __ENGINE_SVGS__?: Record<string, string>;
@@ -261,6 +277,7 @@ export interface SearchCandidateModel {
     urlToCategoryMap: Map<string, string>;
 }
 export interface WeatherLocation {
+    language?: string;
     lat: number;
     lon: number;
     name?: string;
@@ -288,6 +305,7 @@ export interface WeatherCurrent {
     sunsetTomorrow?: string;
 }
 export interface WeatherDailyItem {
+    weatherCode?: number;
     date?: string;
     label?: string;
     icon?: string;

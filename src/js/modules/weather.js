@@ -1,3 +1,4 @@
+import { t, getLocale, weatherDescription, forecastLabel } from '../core/i18n.js';
 import { weatherTime, formatLocationFullName, stripAdminSuffix, normalizeWeatherForecast } from '../utils/weather-model.js';
 export { weatherTime, formatLocationFullName } from '../utils/weather-model.js';
 import { CONFIG } from '../config/constants.js';
@@ -82,7 +83,7 @@ async function resolveWeatherLocation(force = false) {
     const locCache = storageGet(CONFIG.KEYS.WEATHER_LOC, null);
     const now = Date.now();
     const LOC_TTL = CONFIG.WEATHER.LOC_TTL;
-    if (!force && locCache && locCache.timestamp && (now - locCache.timestamp < LOC_TTL) && locCache.lat) {
+    if (!force && locCache && locCache.timestamp && (now - locCache.timestamp < LOC_TTL) && locCache.lat && (locCache.language || 'zh-CN') === getLocale()) {
         return locCache;
     }
     if (inFlightLocationPromise) return inFlightLocationPromise;
@@ -102,65 +103,69 @@ async function resolveWeatherLocation(force = false) {
  */
 async function executeResolveWeatherLocation(now) {
 
-    try {
-        const ipData = await fetchJsonWithTimeout('https://myip.ipip.net/json', CONFIG.WEATHER.TIMEOUT_IP);
-        if (ipData?.ret === 'ok' && Array.isArray(ipData.data?.location)) {
-            const locArr = ipData.data.location;
-            const country = locArr[0] || '中国';
-            const province = locArr[1] || '';
-            const rawCity = locArr[2] || locArr[3] || province;
-            const cleanCity = stripAdminSuffix(rawCity);
-            const cleanProv = stripAdminSuffix(province, true);
+    if (getLocale() !== 'en') {
+        try {
+            const ipData = await fetchJsonWithTimeout('https://myip.ipip.net/json', CONFIG.WEATHER.TIMEOUT_IP);
+            if (ipData?.ret === 'ok' && Array.isArray(ipData.data?.location)) {
+                const locArr = ipData.data.location;
+                const country = locArr[0] || '中国';
+                const province = locArr[1] || '';
+                const rawCity = locArr[2] || locArr[3] || province;
+                const cleanCity = stripAdminSuffix(rawCity);
+                const cleanProv = stripAdminSuffix(province, true);
 
-            if (cleanCity) {
-                try {
-                    const queryName = (cleanCity === cleanProv && !rawCity.endsWith('省')) ? `${cleanCity}市` : cleanCity;
-                    const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(queryName)}&language=zh&count=10`;
-                    const geoData = await fetchJsonWithTimeout(geoUrl, CONFIG.WEATHER.TIMEOUT_IP);
-                    const results = geoData?.results || [];
-                    let matched = results.find((/** @type {any} */ r) => {
-                        const matchCountry = !country || (r.country && (r.country.includes(country) || country.includes(r.country)));
-                        const matchProv = !cleanProv || (r.admin1 && (r.admin1.includes(cleanProv) || cleanProv.includes(r.admin1))) || (r.name && r.name.includes(cleanProv));
-                        return matchCountry && matchProv;
-                    });
+                if (cleanCity) {
+                    try {
+                        const queryName = (cleanCity === cleanProv && !rawCity.endsWith('省')) ? `${cleanCity}市` : cleanCity;
+                        const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(queryName)}&language=zh&count=10`;
+                        const geoData = await fetchJsonWithTimeout(geoUrl, CONFIG.WEATHER.TIMEOUT_IP);
+                        const results = geoData?.results || [];
+                        let matched = results.find((/** @type {any} */ r) => {
+                            const matchCountry = !country || (r.country && (r.country.includes(country) || country.includes(r.country)));
+                            const matchProv = !cleanProv || (r.admin1 && (r.admin1.includes(cleanProv) || cleanProv.includes(r.admin1))) || (r.name && r.name.includes(cleanProv));
+                            return matchCountry && matchProv;
+                        });
 
-                    if (!matched && cleanProv && cleanProv !== cleanCity) {
-                        try {
-                            const provUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cleanProv)}&language=zh&count=5`;
-                            const provData = await fetchJsonWithTimeout(provUrl, CONFIG.WEATHER.TIMEOUT_IP);
-                            if (provData?.results?.[0]) {
-                                matched = provData.results[0];
-                            }
-                        } catch {}
-                    }
+                        if (!matched && cleanProv && cleanProv !== cleanCity) {
+                            try {
+                                const provUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cleanProv)}&language=zh&count=5`;
+                                const provData = await fetchJsonWithTimeout(provUrl, CONFIG.WEATHER.TIMEOUT_IP);
+                                if (provData?.results?.[0]) {
+                                    matched = provData.results[0];
+                                }
+                            } catch {}
+                        }
 
-                    if (!matched && results.length > 0) matched = results[0];
+                        if (!matched && results.length > 0) matched = results[0];
 
-                    if (matched) {
-                        const dispName = (matched.name || cleanCity).replace(/(市|区|县)$/, '') || matched.name || cleanCity;
-                        const fullName = formatLocationFullName([matched.country || country, matched.admin1 || province, matched.admin2, matched.name || cleanCity]);
-                        const resolved = {
-                            name: dispName,
-                            fullName: fullName,
-                            lat: matched.latitude,
-                            lon: matched.longitude,
-                            isAuto: true,
-                            timestamp: now
-                        };
-                        storageSet(CONFIG.KEYS.WEATHER_LOC, resolved);
-                        return resolved;
-                    }
-                } catch {}
+                        if (matched) {
+                            const dispName = (matched.name || cleanCity).replace(/(市|区|县)$/, '') || matched.name || cleanCity;
+                            const fullName = formatLocationFullName([matched.country || country, matched.admin1 || province, matched.admin2, matched.name || cleanCity]);
+                            const resolved = {
+                                name: dispName,
+                                fullName: fullName,
+                                lat: matched.latitude,
+                                lon: matched.longitude,
+                                isAuto: true,
+                                language: getLocale(),
+                                timestamp: now
+                            };
+                            storageSet(CONFIG.KEYS.WEATHER_LOC, resolved);
+                            return resolved;
+                        }
+                    } catch {}
+                }
             }
-        }
-    } catch {}
+        } catch {}
+    }
 
     try {
-        const data = await fetchJsonWithTimeout('https://ipwho.is/?lang=zh-CN', CONFIG.WEATHER.TIMEOUT_IP);
+        const data = await fetchJsonWithTimeout(`https://ipwho.is/?lang=${getLocale() === 'en' ? 'en' : 'zh-CN'}`, CONFIG.WEATHER.TIMEOUT_IP);
         if (data?.success && data.latitude) {
             const rawCity = data.city || '';
             const rawRegion = data.region || '';
-            const dispName = (rawCity || rawRegion || '本地').replace(/(市|区|县)$/, '') || rawCity || rawRegion || '本地';
+            const city = rawCity || rawRegion || t('ui.local');
+            const dispName = getLocale() === 'zh-CN' ? city.replace(/(市|区|县)$/, '') || city : city;
             const fullName = formatLocationFullName([data.country, data.region, data.city]);
             const resolved = {
                 name: dispName,
@@ -168,6 +173,7 @@ async function executeResolveWeatherLocation(now) {
                 lat: data.latitude,
                 lon: data.longitude,
                 isAuto: true,
+                language: getLocale(),
                 timestamp: now
             };
             storageSet(CONFIG.KEYS.WEATHER_LOC, resolved);
@@ -182,6 +188,7 @@ async function executeResolveWeatherLocation(now) {
         lon: CONFIG.WEATHER.FALLBACK_LOCATION.lon,
         isAuto: true,
         isFallback: true,
+        language: getLocale(),
         timestamp: now
     };
     storageSet(CONFIG.KEYS.WEATHER_LOC, fallbackLoc);
@@ -222,15 +229,15 @@ export function renderWeatherCapsule(data) {
         if (weatherTemp.textContent !== tempStr) weatherTemp.textContent = tempStr;
     }
     if (weatherCity) {
-        const cityName = data.location?.name || '天气';
+        const cityName = data.location?.name || t('ui.weather');
         if (weatherCity.textContent !== cityName) weatherCity.textContent = cityName;
         weatherCity.title = data.location?.fullName || '';
     }
     if (weatherBtn) {
-        const cityName = data.location ? data.location.name : '天气';
-        const weatherDesc = data.current.weatherText ? ` ${data.current.weatherText}` : '';
+        const cityName = data.location ? data.location.name : t('ui.weather');
+        const weatherDesc = weatherDescription(data.current.weatherCode);
         const iconStr = data.current.icon ? `${data.current.icon} ` : '';
-        const newLabel = `${iconStr}${temperature}°·${cityName} 实时天气${weatherDesc}，点击查看详细预报`;
+        const newLabel = t('weather.capsule', { icon: iconStr, temperature, city: cityName || t('ui.weather'), description: weatherDesc });
         if (weatherBtn.getAttribute('aria-label') !== newLabel) weatherBtn.setAttribute('aria-label', newLabel);
     }
 }
@@ -244,10 +251,10 @@ function renderWeatherError() {
     weatherPopover.innerHTML = `
         <div class="p-4 text-center space-y-2 flex flex-col items-center justify-center select-none">
             <div class="flex items-center justify-center">${getWeatherIconHTML('📡', 'size-7')}</div>
-            <div class="text-xs text-white/80 font-medium">天气获取失败</div>
-            <div class="text-2xs text-white/50 leading-relaxed">网络异常或定位受阻，请检查网络后重试</div>
+            <div class="text-xs text-white/80 font-medium">${escapeHtml(t('ui.weather.unavailable'))}</div>
+            <div class="text-2xs text-white/50 leading-relaxed">${escapeHtml(t('ui.check.your.connection.or.location.access'))}</div>
             <button id="weatherErrorRetryBtn" type="button" class="mt-1 px-3.5 py-1.5 bg-white/10 hover:bg-white/20 border border-white/15 text-xs rounded-xl text-white transition flex items-center justify-center gap-1.5 mx-auto active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50">
-                ${getWeatherIconHTML('🔄', 'size-3.5')} 重新加载
+                ${getWeatherIconHTML('🔄', 'size-3.5')} ${escapeHtml(t('ui.reload'))}
             </button>
         </div>
     `;
@@ -256,7 +263,7 @@ function renderWeatherError() {
         retryBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             retryBtn.disabled = true;
-            retryBtn.innerHTML = `${getWeatherIconHTML('🔄', 'size-3.5')} 正在重试...`;
+            retryBtn.innerHTML = `${getWeatherIconHTML('🔄', 'size-3.5')} ${escapeHtml(t('ui.retrying'))}`;
             updateWeather(true);
         });
     }
@@ -273,8 +280,8 @@ export function renderWeatherPopover(data) {
             <div class="p-4 text-center flex flex-col items-center justify-center gap-2.5 select-none w-full">
                 <div class="size-5 border-2 border-white/25 border-t-white rounded-full animate-spin"></div>
                 <div class="space-y-0.5">
-                    <div class="text-xs text-white/80 font-medium">正在获取实时天气...</div>
-                    <div class="text-2xs text-white/45">正在自动定位并同步气象数据</div>
+                    <div class="text-xs text-white/80 font-medium">${escapeHtml(t('ui.loading.weather'))}</div>
+                    <div class="text-2xs text-white/45">${escapeHtml(t('ui.finding.your.location.and.updating.weather'))}</div>
                 </div>
             </div>
         `;
@@ -289,20 +296,20 @@ export function renderWeatherPopover(data) {
         humidity: Math.round(weatherNum(raw.humidity, CONFIG.WEATHER.DEFAULT_HUMIDITY)),
         windSpeed: Math.round(weatherNum(raw.windSpeed, 0) * 10) / 10,
         icon: (typeof raw.icon === 'string' && raw.icon) ? raw.icon : '⛅',
-        weatherText: (typeof raw.weatherText === 'string') ? raw.weatherText : ''
+        weatherText: raw.weatherCode !== undefined || getLocale() === 'en' ? weatherDescription(raw.weatherCode) : (typeof raw.weatherText === 'string' ? raw.weatherText : '')
     };
     const loc = /** @type {import('../types').WeatherLocation} */ (data.location || {});
-    const days = (Array.isArray(data.daily) ? data.daily : []).filter(isWeatherRecord).map((/** @type {any} */ d) => ({
+    const days = (Array.isArray(data.daily) ? data.daily : []).filter(isWeatherRecord).map((/** @type {any} */ d, /** @type {number} */ index) => ({
         ...d,
-        label: (typeof d.label === 'string') ? d.label.slice(0, CONFIG.WEATHER.LABEL_MAX_CHARS) : '',
+        label: getLocale() === 'en' || d.weatherCode !== undefined ? forecastLabel(d.date, index) : (typeof d.label === 'string' ? d.label.slice(0, CONFIG.WEATHER.LABEL_MAX_CHARS) : ''),
         icon: (typeof d.icon === 'string' && d.icon) ? d.icon : '⛅',
-        text: (typeof d.text === 'string') ? d.text.slice(0, CONFIG.SECURITY.MAX_DESC_CHARS) : '',
+        text: getLocale() === 'en' || d.weatherCode !== undefined ? weatherDescription(d.weatherCode) : (typeof d.text === 'string' ? d.text.slice(0, CONFIG.SECURITY.MAX_DESC_CHARS) : ''),
         tempMax: Math.round(weatherNum(d.tempMax, 0)),
         tempMin: Math.round(weatherNum(d.tempMin, 0))
     }));
 
     let sunIcon = '🌅';
-    let sunLabel = '今日日落';
+    let sunLabel = t('ui.sunset.today');
     let sunTime = c.sunset || '--:--';
     try {
         const now = new Date();
@@ -317,15 +324,15 @@ export function renderWeatherPopover(data) {
 
         if (setTodayMins !== null && nowMins >= setTodayMins) {
             sunIcon = '🌄';
-            sunLabel = '明日日出';
+            sunLabel = t('ui.sunrise.tomorrow');
             sunTime = c.sunriseTomorrow || c.sunriseToday || c.sunrise || '--:--';
         } else if (riseTodayMins !== null && nowMins < riseTodayMins) {
             sunIcon = '🌄';
-            sunLabel = '今日日出';
+            sunLabel = t('ui.sunrise.today');
             sunTime = c.sunriseToday || c.sunrise || '--:--';
         } else {
             sunIcon = '🌅';
-            sunLabel = '今日日落';
+            sunLabel = t('ui.sunset.today');
             sunTime = c.sunsetToday || c.sunset || '--:--';
         }
     } catch (_) {}
@@ -379,7 +386,7 @@ export function renderWeatherPopover(data) {
                 <span class="text-xs text-white/50 shrink-0 flex items-center justify-center">${getWeatherIconHTML('📍', 'size-3.5')}</span>
                 <span class="text-xs font-semibold text-white/90 truncate" title="${escapeHtml(loc.fullName || loc.name || '')}">${escapeHtml(loc.fullName || loc.name || '')}</span>
             </div>
-            <button id="weatherRefreshBtn" type="button" class="size-7 apple-radius bg-white/5 hover:bg-white/15 text-white flex items-center justify-center glass-interactive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 shrink-0 disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none" title="立即刷新天气" aria-label="立即刷新天气">
+            <button id="weatherRefreshBtn" type="button" class="size-7 apple-radius bg-white/5 hover:bg-white/15 text-white flex items-center justify-center glass-interactive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 shrink-0 disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none" title="${escapeHtml(t('ui.refresh.weather'))}" aria-label="${escapeHtml(t('ui.refresh.weather'))}">
                 <svg class="size-3.5 opacity-70 hover:opacity-100 transition-opacity" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>
             </button>
         </div>
@@ -389,23 +396,23 @@ export function renderWeatherPopover(data) {
                 <span class="text-3xl sm:text-4xl leading-none select-none shrink-0 flex items-center justify-center">${getWeatherIconHTML(c.icon, 'size-10 sm:size-12')}</span>
                 <div>
                     <div class="text-2xl font-bold tracking-tight text-white leading-none">${c.temp}<span class="text-base font-normal text-white/70">°C</span></div>
-                    <div class="text-xs text-white/75 mt-1">${escapeHtml(c.weatherText)} · 体感 ${c.apparent}°C</div>
+                    <div class="text-xs text-white/75 mt-1">${escapeHtml(t('weather.summary', { description: c.weatherText, temperature: c.apparent }))}</div>
                 </div>
             </div>
-            ${days[0] ? `<div class="text-right text-xs text-white/60"><div>最高 ${days[0].tempMax}°</div><div class="mt-0.5">最低 ${days[0].tempMin}°</div></div>` : ''}
+            ${days[0] ? `<div class="text-right text-xs text-white/60"><div>${escapeHtml(t('weather.high', { temperature: days[0].tempMax }))}</div><div class="mt-0.5">${escapeHtml(t('weather.low', { temperature: days[0].tempMin }))}</div></div>` : ''}
         </div>
 
         <div class="grid grid-cols-2 gap-2 mb-3">
-            ${weatherCard(getWeatherIconHTML(humIcon, 'size-4'), '相对湿度', c.humidity + '%')}
-            ${weatherCard(getWeatherIconHTML(windIcon, 'size-4'), '实时风速', c.windSpeed + ' km/h')}
-            ${weatherCard(getWeatherIconHTML(popIcon, 'size-4'), '降水概率', popVal + '%')}
+            ${weatherCard(getWeatherIconHTML(humIcon, 'size-4'), t('ui.humidity'), c.humidity + '%')}
+            ${weatherCard(getWeatherIconHTML(windIcon, 'size-4'), t('ui.wind.speed'), c.windSpeed + ' km/h')}
+            ${weatherCard(getWeatherIconHTML(popIcon, 'size-4'), t('ui.rain.chance'), popVal + '%')}
             ${weatherCard(getWeatherIconHTML(sunIcon, 'size-4'), sunLabel, sunTime)}
         </div>
 
         <div class="space-y-1.5 pt-2 border-t border-white/10">
             <div class="flex items-center justify-between gap-2 px-1 mb-1">
-                <span class="text-2xs text-white/50 font-medium">未来几天预报</span>
-                <a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer" class="shrink-0 text-2xs text-white/50 hover:text-white/80 transition-colors rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" aria-label="天气数据来源：Open-Meteo（在新标签页打开）">
+                <span class="text-2xs text-white/50 font-medium">${escapeHtml(t('ui.upcoming.forecast'))}</span>
+                <a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer" class="shrink-0 text-2xs text-white/50 hover:text-white/80 transition-colors rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" aria-label="${escapeHtml(t('ui.weather.data.open.meteo.opens.in'))}">
                     Open-Meteo
                 </a>
             </div>
@@ -457,6 +464,13 @@ let inFlightWeatherPromise = null;
 
 const isWeatherRecord = (/** @type {any} */ value) => value !== null && typeof value === 'object' && !Array.isArray(value);
 
+/** @param {import('../types').WeatherData} data */
+function saveWeatherCache(data) {
+    const { weatherText, ...current } = data.current;
+    const daily = data.daily?.map(({ text, label, ...day }) => day);
+    storageSet(CONFIG.KEYS.WEATHER_CACHE, { schemaVersion: 2, ...data, current, daily });
+}
+
 function readWeatherCache() {
     const cache = storageGet(CONFIG.KEYS.WEATHER_CACHE, null);
     if (!cache) return null;
@@ -475,7 +489,7 @@ export function updateWeather(force = false) {
     const now = Date.now();
     const CACHE_TTL = CONFIG.WEATHER.CACHE_TTL;
 
-    if (!force && cache && cache.timestamp && (now - cache.timestamp < CACHE_TTL)) {
+    if (!force && cache && cache.timestamp && (now - cache.timestamp < CACHE_TTL) && (cache.location?.language || 'zh-CN') === getLocale()) {
         renderWeatherCapsule(cache);
         renderWeatherPopover(cache);
         return Promise.resolve();
@@ -502,17 +516,17 @@ async function executeWeatherUpdate(cache, force) {
             const locationPromise = resolveWeatherLocation(false);
 
             const freshData = await forecastPromise;
-            storageSet(CONFIG.KEYS.WEATHER_CACHE, freshData);
+            saveWeatherCache(freshData);
             renderWeatherCapsule(freshData);
             renderWeatherPopover(freshData);
 
             // 先显示已知地点的预报，同时让整个重新定位过程保留在同一刷新任务中。
             // 否则唤醒或手动刷新会与游离的重新定位回调重复请求、交错覆盖结果。
             const newLoc = await locationPromise;
-            if (newLoc && (Math.abs(newLoc.lat - knownLoc.lat) > CONFIG.WEATHER.LOCATION_DRIFT_THRESHOLD || Math.abs(newLoc.lon - knownLoc.lon) > CONFIG.WEATHER.LOCATION_DRIFT_THRESHOLD)) {
+            if (newLoc && (Math.abs(newLoc.lat - knownLoc.lat) > CONFIG.WEATHER.LOCATION_DRIFT_THRESHOLD || Math.abs(newLoc.lon - knownLoc.lon) > CONFIG.WEATHER.LOCATION_DRIFT_THRESHOLD || newLoc.name !== knownLoc.name || newLoc.fullName !== knownLoc.fullName)) {
                 try {
                     const relocatedData = await fetchWeatherForecast(newLoc);
-                    storageSet(CONFIG.KEYS.WEATHER_CACHE, relocatedData);
+                    saveWeatherCache(relocatedData);
                     renderWeatherCapsule(relocatedData);
                     renderWeatherPopover(relocatedData);
                 } catch {}
@@ -520,7 +534,7 @@ async function executeWeatherUpdate(cache, force) {
         } else {
             const loc = await resolveWeatherLocation(force);
             const freshData = await fetchWeatherForecast(loc);
-            storageSet(CONFIG.KEYS.WEATHER_CACHE, freshData);
+            saveWeatherCache(freshData);
             renderWeatherCapsule(freshData);
             renderWeatherPopover(freshData);
         }
@@ -530,7 +544,7 @@ async function executeWeatherUpdate(cache, force) {
             renderWeatherPopover(cache);
         } else {
             const weatherCity = dom.weatherCity;
-            if (weatherCity) weatherCity.textContent = '暂无数据';
+            if (weatherCity) weatherCity.textContent = t('ui.no.data');
             renderWeatherError();
         }
     }

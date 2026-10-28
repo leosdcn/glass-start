@@ -212,7 +212,7 @@ export async function launchChrome({ port, url, testMode = true, disableGPU = tr
   try {
     await send('Page.enable');
     if (testMode) {
-      await send('Page.addScriptToEvaluateOnNewDocument', { source: 'window.__GLASS_TEST__ = true;' });
+      await send('Page.addScriptToEvaluateOnNewDocument', { source: `window.__GLASS_TEST__ = true; Object.defineProperty(navigator, 'languages', { configurable: true, get: () => ['zh-CN'] });` });
     }
     await send('Page.navigate', { url });
 

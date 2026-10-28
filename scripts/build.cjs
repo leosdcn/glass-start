@@ -306,6 +306,11 @@ function processProductionHtml(compiledCss, targetDir = PATHS.dist) {
     logSection('5/5', '🔧 处理生产环境页面 (dist/index.html)');
     const htmlStart = Date.now();
     let prodHtmlContent = fs.readFileSync(PATHS.srcIndexHtml, 'utf-8');
+    const i18nBootstrap = esbuild.buildSync({
+        stdin: { contents: `import { messages } from './src/js/config/locales/index.js'; import catalog from './src/js/config/locales/catalog-en.json'; import { initializeI18n } from './src/js/core/i18n.js'; initializeI18n(messages); window.__GLASS_I18N__.catalog = catalog;`, resolveDir: ROOT_DIR },
+        bundle: true, write: false, format: 'iife', target: 'es2020', minify: true, charset: 'utf8'
+    }).outputFiles[0].text;
+    prodHtmlContent = replaceOnce(prodHtmlContent, '<!-- INJECT_I18N_HEAD -->', `<script>${i18nBootstrap.replace(/<\/script/gi, '<\\/script')}</script>`);
     prodHtmlContent = injectHeadConfig(prodHtmlContent, {
         marker: '/* INJECT_BACKGROUNDS */',
         entryPath: path.join(PATHS.src, 'js', 'config', 'backgrounds.js'),

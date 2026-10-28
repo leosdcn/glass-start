@@ -13,6 +13,7 @@ import vm from 'node:vm';
 import { parse as parseJs } from 'acorn';
 import { inspectDOMSources } from './lint-dom.mjs';
 import { inspectCSSSources } from './lint-css.mjs';
+import { inspectI18n } from './lint-i18n.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const isFixMode = process.argv.includes('--fix');
@@ -609,6 +610,15 @@ try {
 } catch (e) {
     failCount++;
     logItem(`首屏共享配置一致性检查失败: ${e.message}`, 'error');
+}
+
+try {
+    const summary = await inspectI18n(root, srcJsSources, indexHtml);
+    passCount++;
+    logItem(`多语言键、参数及内置内容：${summary}`);
+} catch (e) {
+    failCount++;
+    logItem(`多语言校验失败: ${e.message}`, 'error');
 }
 
 const elapsed = Date.now() - startTime;

@@ -1,3 +1,4 @@
+import { t, getLocale } from '../core/i18n.js';
 /** 搜索引擎切换、书签分级匹配与网络联想；请求序号隔离迟到响应。 */
 import { rankBookmarkSuggestions } from '../utils/bookmark-search.js';
 import { getCategoryCatalog, searchUrlKey } from '../utils/category-catalog.js';
@@ -178,7 +179,7 @@ export function setEngine(key, save = true) {
 
     if (engineName) engineName.textContent = engineObj.name;
     if (engineBtn) {
-        engineBtn.setAttribute('aria-label', `选择搜索引擎（当前：${engineObj.name}）`);
+        engineBtn.setAttribute('aria-label', t('engine.current', { name: engineObj.name }));
     }
     if (engineIcon) {
         engineIcon.style.display = '';
@@ -334,7 +335,7 @@ function getSearchCandidates() {
     };
     if (pageData && Array.isArray(pageData.bookmarks)) {
         for (const bm of pageData.bookmarks) {
-            if (bm && bm.url) addCandidate(bm, searchUrlKey(bm.url), '快捷书签');
+            if (bm && bm.url) addCandidate(bm, searchUrlKey(bm.url), t('ui.quick.bookmarks'));
         }
     }
     for (const {bm, normUrl, defaultCat} of catalog.entries) addCandidate(bm, normUrl, defaultCat);
@@ -408,7 +409,7 @@ function renderSuggestions(localList = [], netList = [], preserveSelection = fal
 
     // 本地书签分组：就地复用已挂载的 DOM 节点，避免网络联想两阶段重刷时图片销毁与重解码闪烁
     if (localList && localList.length > 0) {
-        fragment.appendChild(range.createContextualFragment(renderSectionHeader('书签', true)));
+        fragment.appendChild(range.createContextualFragment(renderSectionHeader(t('ui.bookmark'), true)));
         localList.forEach(bm => {
             const existing = existingBookmarkMap.get(bm.url);
             if (existing) {
@@ -449,7 +450,7 @@ function renderSuggestions(localList = [], netList = [], preserveSelection = fal
     let netHtml = '';
     if (safeNetList.length > 0) {
         if (localList && localList.length > 0) {
-            netHtml += renderSectionHeader('搜索', false);
+            netHtml += renderSectionHeader(t('ui.search'), false);
         }
         safeNetList.forEach(item => {
             netHtml += `
@@ -467,7 +468,7 @@ function renderSuggestions(localList = [], netList = [], preserveSelection = fal
         });
     } else if (isNetLoading) {
         if (localList && localList.length > 0) {
-            netHtml += renderSectionHeader('搜索', false);
+            netHtml += renderSectionHeader(t('ui.search'), false);
         }
         const skeletonCount = Math.max(1, CONFIG.SUGGEST.MAX_TOTAL_ITEMS - (localList ? localList.length : 0));
         for (let k = 0; k < skeletonCount; k++) {
@@ -551,7 +552,7 @@ export function fetchSuggestions(engineKey, query) {
         return;
     }
 
-    const cacheKey = `${engineKey}:${query}`;
+    const cacheKey = `${getLocale()}:${engineKey}:${query}`;
     // compositionend 后的 input、重复选择当前引擎等入口共享正在进行的请求和列表。
     if (activeSuggestKey === cacheKey) return;
     activeSuggestCleanup?.();
@@ -638,7 +639,7 @@ export function fetchSuggestions(engineKey, query) {
 
     if (controller) {
         // 扩展使用域名权限读取 JSON，禁止把远程响应作为脚本执行。
-        let url = `https://zh.wikipedia.org/w/api.php?action=opensearch&format=json&search=${encodeURIComponent(query)}&origin=*`;
+        let url = `https://${getLocale() === 'en' ? 'en' : 'zh'}.wikipedia.org/w/api.php?action=opensearch&format=json&search=${encodeURIComponent(query)}&origin=*`;
         if (window.__GLASS_EXTENSION__) {
             if (engineKey === 'bing') url = `https://api.bing.com/osjson.aspx?query=${encodeURIComponent(query)}`;
             else if (engineKey === 'google') url = `https://suggestqueries.google.com/complete/search?client=chrome&q=${encodeURIComponent(query)}`;

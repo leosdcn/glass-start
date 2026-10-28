@@ -1,3 +1,4 @@
+import { t } from './i18n.js';
 /**
  * 书签重排：鼠标使用 HTML5 拖拽，触屏使用 touch 事件，共用草稿提交与 FLIP 动画。
  */
@@ -184,7 +185,7 @@ export function initDragSort() {
         const focusable = /** @type {HTMLElement} */ (handle);
         focusable.focus();
         const status = currentEditList.querySelector('.bookmark-sort-status');
-        if (status) status.textContent = `${modalState.draftBookmarks[nextIndex].name} 已移至第 ${nextIndex + 1} 项，共 ${modalState.draftBookmarks.length} 项`;
+        if (status) status.textContent = t('bookmark.moved', { name: modalState.draftBookmarks[nextIndex].name, position: nextIndex + 1, count: modalState.draftBookmarks.length });
     });
 
     // ── 鼠标路径：mousedown 控制 draggable ───────────────────────────────────

@@ -9,7 +9,8 @@ export function replaceBookmarkDraft(bookmarks, changed = false) {
         url: bm.url || '',
         icon: bm.icon || '',
         origUrl: bm.origUrl || bm.url || '',
-        desc: bm.desc
+        desc: bm.desc,
+        customText: bm.customText
     }));
     modalState.bookmarksChanged = changed;
 }

@@ -1,3 +1,4 @@
+import { t, getLanguagePreference } from '../core/i18n.js';
 import { updateAllBookmarkCounters, renderEditList, collectEditData, getExistingUrls } from './bookmark-editor.js';
 import { showConfirm } from '../core/dialogs.js';
 /**
@@ -166,6 +167,8 @@ export async function openEditModal() {
     modalState.draftWallpaper = modalState.initialWallpaper;
     modalState.draftMaskOpacity = modalState.initialMaskOpacity;
     modalState.wallpaperSaveFailed = false;
+    modalState.draftLanguage = getLanguagePreference();
+    if (dom.languageSelect) dom.languageSelect.value = modalState.draftLanguage;
 
     replaceBookmarkDraft(pageData.bookmarks.map((bm, i) => ({ ...bm, id: `bm_${i}`, desc: bm.desc || '' })));
     switchSettingsTab('tabBookmarks');
@@ -302,31 +305,31 @@ export function importBookmarksJSON(file) {
                     if (cat && Array.isArray(cat.bookmarks)) importedList.push(...cat.bookmarks);
                 });
             } else {
-                showConfirm('上传的配置文件结构不匹配，未包含有效的书签数组。', null, '格式错误');
+                showConfirm(t('ui.this.file.does.not.contain.a'), null, t('ui.invalid.format'));
                 return;
             }
 
-            const validBookmarks = importedList.map((/** @type {any} */ item) => normalizeBookmark(item, '未命名')).filter(Boolean);
+            const validBookmarks = importedList.map((/** @type {any} */ item) => normalizeBookmark(item, t('ui.untitled'))).filter(Boolean);
 
             if (validBookmarks.length === 0) {
-                showConfirm('配置文件中没有提取到有效的书签条目。', null, '导入失败');
+                showConfirm(t('ui.no.valid.bookmarks.were.found.in'), null, t('ui.import.failed'));
                 return;
             }
 
-            showConfirm(`检测到合规书签 ${validBookmarks.length} 项，确定导入并填入草稿列表中吗？需点击『完成』后生效。`, () => {
+            showConfirm(t('bookmark.importConfirm', { count: validBookmarks.length }), () => {
                 if (!isCurrent()) return;
-                replaceBookmarkDraft(validBookmarks, true);
+                replaceBookmarkDraft(validBookmarks.map((/** @type {import('../types').BookmarkItem} */ bookmark) => ({ ...bookmark, customText: true })), true);
                 renderEditList();
                 closeBookmarkPicker();
-            }, '导入草稿确认');
+            }, t('ui.confirm.import'));
         } catch (err) {
-            showConfirm('解析 JSON 配置文件失败，请检查文件格式。', null, '解析错误');
+            showConfirm(t('ui.could.not.parse.the.json.file'), null, t('ui.parse.error'));
         } finally {
             reader.onload = null;
         }
     };
     reader.onerror = () => {
-        if (isCurrent()) showConfirm('无法读取配置文件，请重新选择。', null, '导入失败');
+        if (isCurrent()) showConfirm(t('ui.could.not.read.the.file.please'), null, t('ui.import.failed'));
     };
     reader.readAsText(file, 'UTF-8');
 }
@@ -336,15 +339,16 @@ export function importBookmarksJSON(file) {
  * @returns {void}
  */
 export function resetBookmarks() {
-    showConfirm('确定要恢复系统初始默认状态吗？此操作将立即清除您自定义的所有快捷书签、背景壁纸与偏好设置。', async () => {
+    showConfirm(t('ui.restore.all.defaults.this.immediately.removes'), async () => {
         if (!await clearCustomWallpaper(0)) {
-            showConfirm('无法清除壁纸存储，原有设置已保留。', null, '重置失败');
+            showConfirm(t('ui.could.not.clear.wallpaper.storage.your'), null, t('ui.reset.failed'));
             return;
         }
         /** @type {(keyof typeof CONFIG.KEYS)[]} */
         const keys = ['PREFERRED_ENGINE', 'USER_WALLPAPER', 'WALLPAPER_META', 'MASK_OPACITY',
             'BG', 'NAV_DISCOVERED', 'WEATHER_CACHE', 'WEATHER_LOC', 'WEATHER_SETTINGS',
-            'THEME_CACHE', 'TINT_CACHE', 'TRANSITION_MODE'];
+            'THEME_CACHE', 'TINT_CACHE', 'TRANSITION_MODE', 'LANGUAGE'];
+        const previousLanguage = getLanguagePreference();
         const removed = keys.map(key => storageRemove(CONFIG.KEYS[key]));
         const bookmarksReset = resetUserBookmarks();
         const mode = getTransitionMode();
@@ -362,7 +366,7 @@ export function resetBookmarks() {
             modalState.draftWallpaper = null;
             updateWallpaperStatusUI(null);
             updatePresetBgCardsUI(null);
-            showConfirm('部分设置未能清除，已按当前存储同步显示。请检查浏览器存储权限后重试。', null, '重置未完成');
+            showConfirm(t('ui.some.settings.could.not.be.cleared'), null, t('ui.reset.incomplete'));
             return;
         }
 
@@ -378,7 +382,8 @@ export function resetBookmarks() {
 
         closeBookmarkPicker();
         closeEditModal();
-    }, '重置所有系统设置');
+        if (previousLanguage !== 'auto') location.reload();
+    }, t('ui.reset.all.settings'));
 }
 
 /**
@@ -411,11 +416,11 @@ function renderPickerCategories() {
                     const exists = urls.has(normalizeUrl(bm.url));
                     const faviconHtml = getFaviconHTML(bm, 'sm');
                     return `
-                        <button type="button" class="w-full flex items-center gap-2 px-2 py-1.5 apple-radius picker-item text-left select-none ${exists ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}" ${exists ? 'disabled aria-disabled="true"' : ''} aria-label="${exists ? `${escapeHtml(bm.name)}（已添加）` : `添加快捷书签：${escapeHtml(bm.name)}`}" data-url="${escapeHtml(bm.url)}">
+                        <button type="button" class="w-full flex items-center gap-2 px-2 py-1.5 apple-radius picker-item text-left select-none ${exists ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}" ${exists ? 'disabled aria-disabled="true"' : ''} aria-label="${exists ? escapeHtml(t('bookmark.existsLabel', { name: bm.name })) : escapeHtml(t('bookmark.addLabel', { name: bm.name }))}" data-url="${escapeHtml(bm.url)}">
                             ${faviconHtml}
                             <span class="text-xs text-white/70 truncate flex-1 min-w-0">${escapeHtml(bm.name)}</span>
                             ${exists
-                                ? '<span class="text-2xs text-white/20 shrink-0">已存在</span>'
+                                ? `<span class="text-2xs text-white/20 shrink-0">${escapeHtml(t('ui.already.added'))}</span>`
                                 : '<span class="text-white/40 shrink-0 text-sm">+</span>'
                             }
                         </button>
@@ -451,10 +456,10 @@ export function updatePickerAvailability() {
         button.classList.toggle('cursor-pointer', !exists);
         if (exists) button.setAttribute('aria-disabled', 'true');
         else button.removeAttribute('aria-disabled');
-        button.setAttribute('aria-label', exists ? `${bookmark.name}（已添加）` : `添加快捷书签：${bookmark.name}`);
+        button.setAttribute('aria-label', exists ? t('bookmark.existsLabel', { name: bookmark.name }) : t('bookmark.addLabel', { name: bookmark.name }));
         const status = button.lastElementChild;
         if (status) {
-            status.textContent = exists ? '已存在' : '+';
+            status.textContent = exists ? t('ui.already.added') : '+';
             status.className = exists ? 'text-2xs text-white/20 shrink-0' : 'text-white/40 shrink-0 text-sm';
         }
     }
@@ -469,32 +474,38 @@ export async function saveEditModal() {
     try {
         const data = collectEditData();
         if (data.length === 0) {
-            showConfirm('至少需要保留一个名称和 URL 均已填写的书签才能保存。', null, '无法保存');
+            showConfirm(t('ui.keep.at.least.one.bookmark.with'), null, t('ui.could.not.save'));
             return;
         }
         const wallpaperSaved = await flushWallpaperSelection();
         // 取消或重新打开设置后，旧保存任务不得提交草稿、弹提示或关闭新窗口。
         if (!state.editOpen || requestId !== editOpenRequestId) return;
         if (!wallpaperSaved) {
-            showConfirm('壁纸尚未保存成功，请重新选择后再保存。', null, '无法保存');
+            showConfirm(t('ui.the.wallpaper.has.not.been.saved'), null, t('ui.could.not.save'));
             return;
         }
 
         // 1. 提交书签
-        if (modalState.bookmarksChanged && !saveUserBookmarks(data)) {
-            showConfirm('书签未能保存，草稿已保留。请检查浏览器存储空间或权限后重试。', null, '无法保存');
+        if (modalState.bookmarksChanged && !saveUserBookmarks(data, new Set(modalState.draftBookmarks.filter(item => item.customText).map(item => normalizeUrl(item.url))))) {
+            showConfirm(t('ui.could.not.save.bookmarks.your.draft'), null, t('ui.could.not.save'));
             return;
         }
 
         // 2. 提交背景暗度（壁纸已于用户选择时即选即存，无需重复落盘）
         if (modalState.draftMaskOpacity !== null) {
             if (!storageSet(CONFIG.KEYS.MASK_OPACITY, modalState.draftMaskOpacity)) {
-                showConfirm('背景暗度未能保存，草稿已保留；书签和壁纸已保存的更改仍然生效。请检查存储权限后重试。', null, '无法保存');
+                showConfirm(t('ui.could.not.save.background.dimming.your'), null, t('ui.could.not.save'));
                 return;
             }
         }
 
+        const languageChanged = modalState.draftLanguage !== getLanguagePreference();
+        if (languageChanged && !storageSet(CONFIG.KEYS.LANGUAGE, modalState.draftLanguage)) {
+            showConfirm(t('language.saveFailed'), null, t('ui.could.not.save'));
+            return;
+        }
         closeEditModal();
+        if (languageChanged) location.reload();
     } finally {
         if (requestId === editOpenRequestId) {
             saveBtn.disabled = false;

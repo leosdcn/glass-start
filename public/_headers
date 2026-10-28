@@ -11,7 +11,7 @@
   # - img-src 保留 data:/blob:/https: 通配 —— 跨域自定义壁纸仅允许 HTTPS；同源、Data URL 与 Blob 图片亦允许
   # - connect-src 白名单含 a.favicon.im —— Service Worker 上下文内的图标重验证请求同样受其管辖
   # - script-src 保留 'unsafe-inline' 供内联首帧脚本使用；移除前需配套修改
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://api.bing.com https://suggestqueries.google.com https://zh.wikipedia.org https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https://api.open-meteo.com https://geocoding-api.open-meteo.com https://myip.ipip.net https://ipwho.is https://a.favicon.im https://www.google.com https://*.gstatic.com https://cloudflareinsights.com https://zh.wikipedia.org; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'self'; upgrade-insecure-requests
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://api.bing.com https://suggestqueries.google.com https://zh.wikipedia.org https://en.wikipedia.org https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https://api.open-meteo.com https://geocoding-api.open-meteo.com https://myip.ipip.net https://ipwho.is https://a.favicon.im https://www.google.com https://*.gstatic.com https://cloudflareinsights.com https://zh.wikipedia.org https://en.wikipedia.org; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'self'; upgrade-insecure-requests
 
 /icons/*
   Cache-Control: public, max-age=0, must-revalidate

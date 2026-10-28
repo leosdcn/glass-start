@@ -1204,3 +1204,9 @@ input:focus-visible {
         display: none;
     }
 }
+
+/* Reveal translated foreground content after the synchronous local bootstrap. */
+html[data-i18n-pending] body > main,
+html[data-i18n-pending] body > section {
+    visibility: hidden;
+}

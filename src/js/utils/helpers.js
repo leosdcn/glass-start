@@ -1,3 +1,4 @@
+import { t } from '../core/i18n.js';
 /**
  * 工具函数集
  */
@@ -61,7 +62,7 @@ function getHostname(url) {
  */
 export function deriveNameFromUrl(url) {
     const host = getHostname(url);
-    return (host ? host.split('.')[0] : '') || '书签';
+    return (host ? host.split('.')[0] : '') || t('ui.bookmark');
 }
 
 /**

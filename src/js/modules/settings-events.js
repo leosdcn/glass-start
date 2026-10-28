@@ -1,3 +1,4 @@
+import { t } from '../core/i18n.js';
 /**
  * 设置事件装配
  *
@@ -20,6 +21,9 @@ import { showConfirm } from '../core/dialogs.js';
 import { finishPendingTransition, onTransitionSettled } from '../utils/transition-cleanup.js';
 
 export function bindEditEvents() {
+    dom.languageSelect?.addEventListener('change', () => {
+        modalState.draftLanguage = dom.languageSelect?.value || 'auto';
+    });
     document.querySelectorAll('#editModal > div, #bookmarkPicker > div, #confirmModal > div, #shortcutModal > div, #creditsModal > div').forEach(el => {
         el.addEventListener('click', e => e.stopPropagation());
     });
@@ -262,7 +266,7 @@ export function bindEditEvents() {
                     imageUrl.protocol = 'https:';
                 }
             } catch {
-                showConfirm('请输入以 http:// 或 https:// 开头的有效图片链接。', null, '地址错误');
+                showConfirm(t('ui.enter.a.valid.image.url.starting'), null, t('ui.invalid.url'));
                 return;
             }
             previewDraftWallpaper(imageUrl.href);
@@ -298,16 +302,16 @@ export function bindEditEvents() {
             const isExtension = window.__GLASS_EXTENSION__;
 
             if (!('caches' in window)) {
-                showConfirm(isExtension ? '当前浏览器不支持缓存清理。' : '当前浏览器不支持 Service Worker 缓存，或已是最新状态。', null, '提示', clearBtn);
+                showConfirm(isExtension ? t('ui.this.browser.does.not.support.clearing') : t('ui.offline.caching.is.unavailable.or.the'), null, t('ui.notice'), clearBtn);
                 return;
             }
 
             const isOffline = typeof navigator !== 'undefined' && navigator.onLine === false;
             const msg = isExtension
-                ? '将清理临时缓存并刷新页面，不影响已保存的书签、壁纸和设置。'
+                ? t('ui.clear.temporary.caches.and.reload.saved')
                 : isOffline
-                ? '警告：当前处于离线状态！清理 Service Worker 缓存与注销将导致页面在重新联网前无法访问。确定要继续清理并刷新吗？'
-                : '确定要清理并重置 Service Worker 离线缓存吗？此操作将清除本地缓存的静态资源并在刷新后重新载入。';
+                ? t('ui.you.are.offline.clearing.the.offline')
+                : t('ui.clear.the.offline.cache.cached.app');
 
             showConfirm(
                 msg,
@@ -330,9 +334,9 @@ export function bindEditEvents() {
                         location.reload();
                     }
                 },
-                isExtension ? '清理缓存' : '清理离线缓存',
+                isExtension ? t('ui.clear.cache') : t('ui.clear.offline.cache'),
                 clearBtn,
-                isExtension ? '清理并刷新' : '立即清理并刷新'
+                isExtension ? t('ui.clear.and.reload') : t('ui.clear.cache.and.reload')
             );
         });
     }

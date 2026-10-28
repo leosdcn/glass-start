@@ -44,6 +44,7 @@
 | 功能 | 源码入口 |
 | :--- | :--- |
 | **通用常量与运行时配置** | `src/js/config/constants.js` |
+| **语言偏好、翻译与英文目录** | `src/js/config/language.js`、`src/js/config/locales/`、`src/js/core/i18n.js` |
 | **首屏主题与 Safari 预渲染** | `src/js/config/themes.js` |
 | **首屏预设壁纸清单** | `src/js/config/backgrounds.js` |
 | **搜索引擎元数据与图标** | `src/js/config/engines.js`<br/>`src/js/config/engine-icons.js`<br/>`src/js/config/engine-head.js` |
@@ -115,6 +116,18 @@ Chrome 扩展通过 `npm run build:extension` 独立生成 `extension/`。`scrip
 扩展构建将首屏样式移到首个阻塞脚本之前，并声明初始深色画布，避免脚本尚未加载时透出白底；脚本执行后仍按已保存壁纸恢复主题。产物移除 PWA 清单链接、网页 Service Worker 及托管专用文件；设置中的缓存清理文案也切换为扩展说明。开发服务只重建网页版，扩展需单独构建并在 Chrome 中重新加载。
 
 ## 书签与设置状态
+
+### 多语言
+
+中英文消息以 JSON 存放在 `config/locales/`，语言键与支持列表位于 `config/language.js`。构建将字典和英文目录一次性注入 head，`core/i18n.js` 通过 `window.__GLASS_I18N__` 共享上下文，主应用不再次导入字典。有效语言按手选、浏览器偏好、英文回退确定。首屏预渲染和运行时使用同一翻译接口；body 末尾同步处理 `data-i18n` 文本和白名单属性。英文前景在这一步完成前短暂隐藏，超时会解除，壁纸不受影响。
+
+设置弹窗底栏左侧的语言控件使用 `modalState.draftLanguage`，取消不提交，完成时在其他设置保存成功后持久化 `glass_language`，偏好变化后刷新；失败保留草稿。全部重置包括语言。普通数量消息通过原生 `Intl.PluralRules`，日期通过 `Intl.DateTimeFormat`；时制、单位和时区不随语言自动切换。
+
+内置分类使用 `bookmarks.json` 的稳定 `id` 匹配英文分类，书签通过原始 URL 匹配 `catalog-en.json`。`pageData.categories` 是当前语言的目录，原始默认目录用于旧数据迁移。书签保存按名称、简介和图标分别生成用户覆盖，避免只改名称时固化译文简介；既有覆盖文字保留。导入草稿用临时 `customText` 标记保留用户文本，收集与导出仍直接读取草稿，标记不进入备份。
+
+天气新缓存保留代码、日期和数值，删除语言相关描述及日期标签；渲染时按语言生成，旧缓存继续兼容，旧每日记录缺少代码时英文显示未知状态。地点名称带语言标记，失配时异步更新；离线保留现有名称和数值。Wikipedia 的搜索及联想按界面语言选择中文或英文站，权限与 CSP 精确列出两域名。
+
+扩展的 `_locales` 从共用字典生成，管理页元数据跟随 Chrome，页内可另选语言。网页 PWA 安装元数据及爬虫读取的默认静态元数据仍为中文。新增语言时补字典、注册、选择项和服务映射；RTL 需要另行布局验收。设计背景与验收边界见 [多语言方案](./I18N_PLAN.md)。
 
 `bookmarks.json` 提供默认快捷书签和分类目录，构建时由 `config/constants.js` 导入。用户配置保存在 LocalStorage：快捷书签使用 URL 键列表，自定义名称、简介和图标使用元数据覆盖；`getDerivedBookmarks()` 从目录与覆盖数据派生当前条目。旧版完整书签数组由 `migrateBookmarksStorage()` 迁移。
 

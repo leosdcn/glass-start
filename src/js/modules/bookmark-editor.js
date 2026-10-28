@@ -1,3 +1,4 @@
+import { t } from '../core/i18n.js';
 import { CONFIG } from '../config/constants.js';
 import { escapeHtml, safeUrl, normalizeUrl, normalizeBookmark, faviconFromUrl, createLetterBadgeHtml, handleFaviconFailure, checkImageReady } from '../utils/helpers.js';
 import { modalState } from '../state/store.js';
@@ -5,7 +6,7 @@ import { appendBookmarkDraft, replaceBookmarkDraft } from '../state/bookmark-dra
 import { dom } from '../state/dom.js';
 
 export function updateAllBookmarkCounters() {
-    const text = `已添加 ${modalState.draftBookmarks.length} 项`;
+    const text = t('bookmark.count', { count: modalState.draftBookmarks.length });
     const badge = dom.bookmarkCountBadge;
     const pickerCount = dom.pickerCount;
     if (badge && badge.textContent !== text) badge.textContent = text;
@@ -46,7 +47,7 @@ function getEditRowHTML(name, url, idx, icon, id) {
     return `
         <div role="listitem" class="edit-row-card flex items-center gap-1.5 sm:gap-2 p-1.5 sm:p-2 bg-white/5 border border-white/10 apple-radius glass-interactive group mb-1.5 shadow-xs" data-id="${escapeHtml(id)}" data-idx="${idx}" draggable="false">
             <div class="flex items-center gap-1 shrink-0">
-                <button type="button" class="drag-handle touch-none p-1 size-7 flex items-center justify-center shrink-0 text-white/30 cursor-grab active:cursor-grabbing rounded-lg glass-interactive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40" title="拖拽或按 Alt + ↑/↓ 排序" aria-label="排序书签：${escapeHtml(name)}，按 Alt 加上或下方向键移动">
+                <button type="button" class="drag-handle touch-none p-1 size-7 flex items-center justify-center shrink-0 text-white/30 cursor-grab active:cursor-grabbing rounded-lg glass-interactive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40" title="${escapeHtml(t('ui.drag.or.press.alt.to.reorder'))}" aria-label="${escapeHtml(t('bookmark.reorderLabel', { name }))}">
                     <svg class="size-3.5 pointer-events-none" aria-hidden="true"><use href="#icon-drag"/></svg>
                 </button>
                 <div class="edit-favicon-box shrink-0 flex items-center justify-center text-white/90 select-none pointer-events-none">
@@ -54,10 +55,10 @@ function getEditRowHTML(name, url, idx, icon, id) {
                 </div>
             </div>
             <div class="flex-1 min-w-0 grid grid-cols-1 sm:grid-cols-3 items-center gap-1 sm:gap-1.5">
-                <input type="text" id="bm-name-${id}" name="bookmark_name_${id}" class="edit-name w-full min-w-0 bg-black/25 border border-white/10 rounded-lg px-2.5 py-1 sm:py-1.5 text-base mouse-desktop:text-xs text-white/90 focus:border-white/40 focus:bg-black/40 focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:outline-none outline-none transition-colors font-medium" value="${escapeHtml(name)}" placeholder="书签名称" aria-label="书签名称">
-                <input type="text" id="bm-url-${id}" name="bookmark_url_${id}" inputmode="url" autocapitalize="off" class="edit-url w-full min-w-0 sm:col-span-2 bg-black/25 border border-white/10 rounded-lg px-2.5 py-1 sm:py-1.5 text-base mouse-desktop:text-xs text-white/60 focus:border-white/40 focus:bg-black/40 focus:text-white focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:outline-none outline-none transition-colors font-mono" value="${escapeHtml(url)}" placeholder="https://..." aria-label="书签网址">
+                <input type="text" id="bm-name-${id}" name="bookmark_name_${id}" class="edit-name w-full min-w-0 bg-black/25 border border-white/10 rounded-lg px-2.5 py-1 sm:py-1.5 text-base mouse-desktop:text-xs text-white/90 focus:border-white/40 focus:bg-black/40 focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:outline-none outline-none transition-colors font-medium" value="${escapeHtml(name)}" placeholder="${escapeHtml(t('ui.bookmark.name'))}" aria-label="${escapeHtml(t('ui.bookmark.name'))}">
+                <input type="text" id="bm-url-${id}" name="bookmark_url_${id}" inputmode="url" autocapitalize="off" class="edit-url w-full min-w-0 sm:col-span-2 bg-black/25 border border-white/10 rounded-lg px-2.5 py-1 sm:py-1.5 text-base mouse-desktop:text-xs text-white/60 focus:border-white/40 focus:bg-black/40 focus:text-white focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:outline-none outline-none transition-colors font-mono" value="${escapeHtml(url)}" placeholder="https://..." aria-label="${escapeHtml(t('ui.bookmark.url'))}">
             </div>
-            <button type="button" class="del-btn shrink-0 size-7 sm:size-8 p-1 enabled:hover:bg-red-500/20 rounded-full text-white/30 enabled:hover:text-red-400 flex items-center justify-center transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-1 focus-visible:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed" title="删除书签" aria-label="删除书签">
+            <button type="button" class="del-btn shrink-0 size-7 sm:size-8 p-1 enabled:hover:bg-red-500/20 rounded-full text-white/30 enabled:hover:text-red-400 flex items-center justify-center transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-1 focus-visible:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed" title="${escapeHtml(t('ui.delete.bookmark'))}" aria-label="${escapeHtml(t('ui.delete.bookmark'))}">
                 <svg class="size-4 pointer-events-none" aria-hidden="true"><use href="#icon-trash"/></svg>
             </button>
         </div>
@@ -127,7 +128,7 @@ export function renderEditList(listToRender) {
 
 /**
  * 从内存草稿收集并清洗书签，不反向解析 DOM。
- * @returns {Array<{name: string, url: string, icon: string, desc?: string}>}
+ * @returns {import('../types').BookmarkItem[]}
  */
 export function collectEditData() {
     const bookmarks = [];

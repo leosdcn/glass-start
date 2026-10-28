@@ -15,6 +15,12 @@ assert.equal(manifest.version, JSON.parse(readFileSync(join(root, 'package.json'
 assert.equal(manifest.manifest_version, 3);
 assert.equal(manifest.background, undefined);
 assert.equal(manifest.permissions, undefined);
+assert.equal(manifest.default_locale, 'en');
+assert.equal(manifest.name, '__MSG_extensionName__');
+for (const locale of ['en', 'zh_CN']) {
+    const messages = JSON.parse(readFileSync(join(output, '_locales', locale, 'messages.json'), 'utf8'));
+    assert.ok(messages.extensionName.message && messages.extensionDescription.message);
+}
 assert(!/<script\b(?![^>]*\bsrc=)/i.test(html), '扩展中不得存在内联脚本');
 assert(!/JsonCallback|callback=/.test(readFileSync(join(output, 'app.js'), 'utf8')), '扩展编译时裁掉 JSONP');
 assert(!existsSync(join(output, 'sw.js')));
@@ -34,13 +40,14 @@ try {
     send('Runtime.exceptionThrown', event => exceptions.push(event.exceptionDetails.text));
     // 固定远程数据，验证请求和解析，不让第三方服务可用性影响回归测试。
     await send('Page.addScriptToEvaluateOnNewDocument', { source: `
+        Object.defineProperty(navigator, 'languages', { configurable: true, get: () => ['zh-CN'] });
         window.__cspViolations = [];
         document.addEventListener('securitypolicyviolation', e => window.__cspViolations.push(e.violatedDirective));
         window.__suggestRequests = [];
         const originalFetch = window.fetch;
         window.fetch = (url, options) => {
             const value = String(url);
-            if (/api.bing.com|suggestqueries.google.com|zh.wikipedia.org/.test(value)) {
+            if (/api.bing.com|suggestqueries.google.com|(?:zh|en).wikipedia.org/.test(value)) {
                 window.__suggestRequests.push(value);
                 return Promise.resolve(new Response(JSON.stringify(['glass', ['extension suggestion']])));
             }
@@ -100,6 +107,13 @@ try {
     await send('Page.reload');
     await waitFor(evalJS, `document.querySelector('#bgLayer')?.style.backgroundImage.includes('bg2.avif') && !!document.querySelector('.bookmark-item')`, 10000);
     assert.equal(await evalJS('getComputedStyle(document.documentElement).colorScheme'), 'light');
+    await evalJS(`localStorage.setItem('glass_language', JSON.stringify('en'))`);
+    await send('Page.reload');
+    await waitFor(evalJS, `document.documentElement.lang === 'en' && !!document.querySelector('.bookmark-item')`, 10000);
+    assert.equal(await evalJS('document.title'), 'Glass Start — A Clear Start');
+    await evalJS(`document.querySelector('#engineBtn').click(); document.querySelector('[data-engine="wikipedia"]').click()`);
+    await evalJS(`(() => { const input = document.querySelector('#searchInput'); input.value = 'glass english'; input.dispatchEvent(new Event('input', { bubbles: true })); })()`);
+    await waitFor(evalJS, `window.__suggestRequests.some(url => url.includes('en.wikipedia.org')) && document.querySelector('#suggestionMenu').textContent.includes('extension suggestion')`);
     assert.deepEqual(await evalJS('window.__cspViolations'), []);
     assert.deepEqual(exceptions, []);
 

@@ -1,8 +1,9 @@
+import { t } from '../core/i18n.js';
 /**
  * 壁纸状态管理与即选即存持久化
  */
 import { CONFIG, backgrounds } from '../config/constants.js';
-import { storageGet, storageSet, storageRemove } from '../utils/helpers.js';
+import { escapeHtml, storageGet, storageSet, storageRemove } from '../utils/helpers.js';
 import { getWallpaperDB, getWallpaperSelectionDB, setWallpaperSelectionDB, migrateLegacyWallpaperDB } from '../utils/idb.js';
 import { state, modalState } from '../state/store.js';
 import { dom } from '../state/dom.js';
@@ -137,7 +138,7 @@ export async function updateWallpaperStatusUI(customWallpaperOverride) {
     const isCustom = !!resolveBg && findPresetBgIndex(resolveBg) === -1;
     if (!dom.wallpaperStatus || !dom.resetBgBtn) return;
     if (isCustom) {
-        dom.wallpaperStatus.textContent = '已使用自定义壁纸';
+        dom.wallpaperStatus.textContent = t('ui.custom.wallpaper.active');
         dom.wallpaperStatus.className = 'text-2xs text-emerald-400/90 font-medium';
         dom.resetBgBtn.classList.remove('hidden');
     } else {
@@ -243,7 +244,7 @@ function previewWallpaperSelection(urlStr, selectionId) {
             if (!preparedImage) {
                 modalState.wallpaperSaveFailed = true;
                 modalState.draftWallpaper = state.customWallpaper || backgrounds[state.bg];
-                showConfirm('无法加载该图片，请检查图片是否有效或恢复网络后重试。', null, '图片无法加载');
+                showConfirm(t('ui.could.not.load.this.image.check'), null, t('ui.image.unavailable'));
                 return false;
             }
         }
@@ -260,7 +261,7 @@ function previewWallpaperSelection(urlStr, selectionId) {
             applyWallpaper(previous, true);
             updateWallpaperStatusUI(previous);
             updatePresetBgCardsUI(previous);
-            showConfirm('壁纸未能保存，原有壁纸已保留。请检查浏览器存储空间或权限后重新选择。', null, '壁纸保存失败');
+            showConfirm(t('ui.could.not.save.the.wallpaper.your'), null, t('ui.wallpaper.not.saved'));
         }
         return saved;
     })().finally(() => {
@@ -312,17 +313,17 @@ export function preloadNextBg() {
 export function renderPresetWallpapers() {
     const grid = dom.presetWallpaperGrid;
     if (!grid || grid.hasChildNodes()) return;
-    const titles = ['暮色山峦', '溪谷晨曦', '星空雪山', '峰峦破晓', '天际立面', '极简回廊', '紫韵流光', '梦幻流彩'];
+    const titles = [t('ui.mountains.at.dusk'), t('ui.valley.sunrise'), t('ui.peaks.under.stars'), t('ui.mountain.dawn'), t('ui.city.skyline'), t('ui.quiet.corridors'), t('ui.violet.flow'), t('ui.dream.colors')];
     grid.innerHTML = titles.map((title, i) => {
         const bg = `./wallpapers/bg${i + 1}.avif`;
         const thumb = `./wallpapers/bg${i + 1}-thumb.avif`;
-        const fullTitle = i === 0 ? `${title}（系统默认）` : title;
-        return `<button type="button" class="preset-bg-card group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70" data-bg="${bg}" data-title="${title}" title="${fullTitle}" aria-pressed="false">
+        const fullTitle = i === 0 ? t('wallpaper.default', { name: title }) : title;
+        return `<button type="button" class="preset-bg-card group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70" data-bg="${bg}" data-title="${escapeHtml(title)}" title="${escapeHtml(fullTitle)}" aria-pressed="false">
             <span class="preset-bg-image">
                 <img data-src="${thumb}" src="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2016%2010'%3E%3C/svg%3E" width="${CONFIG.UI.WALLPAPER_CARD_WIDTH}" height="${CONFIG.UI.WALLPAPER_CARD_HEIGHT}" alt="" loading="lazy" decoding="async" draggable="false">
                 <span class="preset-bg-check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 13 4 4L19 7"/></svg></span>
             </span>
-            <span class="preset-bg-title">${title}</span>
+            <span class="preset-bg-title">${escapeHtml(title)}</span>
         </button>`;
     }).join('');
 }
@@ -356,7 +357,7 @@ export async function restoreWallpaper() {
  */
 export function uploadWallpaper(file) {
     if (!file.type.startsWith('image/')) {
-        showConfirm('请选择有效的图片文件（JPG / PNG / WebP 等）。', null, '格式错误');
+        showConfirm(t('ui.choose.a.valid.image.file.jpg'), null, t('ui.invalid.format'));
         return false;
     }
     // 选择文件时就占用版本，不能等读取／压缩完成后再把旧上传当成新选择。
@@ -384,7 +385,7 @@ export function uploadWallpaper(file) {
         const fail = () => {
             if (selectionId === wallpaperSelectionId) {
                 modalState.wallpaperSaveFailed = true;
-                showConfirm('无法读取或处理该图片，请重新选择。', null, '图片处理失败');
+                showConfirm(t('ui.could.not.read.or.process.this'), null, t('ui.image.processing.failed'));
             }
             finish(null);
         };

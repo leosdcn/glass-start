@@ -1,3 +1,4 @@
+import { t } from './i18n.js';
 /**
  * 双屏状态与过渡生命周期。
  * CSS 状态类控制位置，所有切屏入口共享过渡锁；唤醒显式强制校准。
@@ -299,8 +300,8 @@ export function switchToStart() {
 
 /** @type {Record<string, string>} */
 const TRANSITION_MODES = Object.freeze({
-    sheet: '卡片层叠',
-    classic: '经典推移'
+    sheet: t('ui.card.stack'),
+    classic: t('ui.classic.slide')
 });
 
 /**

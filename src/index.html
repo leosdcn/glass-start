@@ -2,6 +2,7 @@
 <html lang="zh-CN" dir="ltr">
 <head>
     <meta charset="UTF-8">
+    <!-- INJECT_I18N_HEAD -->
     <!-- INJECT_APP_HEAD -->
     <script>
         // 防 iframe 点击劫持与恶意嵌套：若检测出页面处于 iframe 中，自动强行跳出；沙箱受限时安全隐藏页面
@@ -15,10 +16,10 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="Glass Start">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://api.bing.com https://suggestqueries.google.com https://zh.wikipedia.org https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https://api.open-meteo.com https://geocoding-api.open-meteo.com https://myip.ipip.net https://ipwho.is https://a.favicon.im https://www.google.com https://*.gstatic.com https://cloudflareinsights.com https://zh.wikipedia.org; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'self'">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://api.bing.com https://suggestqueries.google.com https://zh.wikipedia.org https://en.wikipedia.org https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https://api.open-meteo.com https://geocoding-api.open-meteo.com https://myip.ipip.net https://ipwho.is https://a.favicon.im https://www.google.com https://*.gstatic.com https://cloudflareinsights.com https://zh.wikipedia.org https://en.wikipedia.org; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'self'">
     <meta name="referrer" content="strict-origin-when-cross-origin">
-    <meta name="description" content="极简纯净的毛玻璃浏览器起始页。">
-    <meta name="keywords" content="起始页, 浏览器导航, 玻璃拟态, 个人主页, Glassmorphism, Startpage">
+    <meta name="description" content="极简纯净的毛玻璃浏览器起始页。" data-i18n-content="ui.a.clean.minimal.glass.browser.start">
+    <meta name="keywords" content="起始页, 浏览器导航, 玻璃拟态, 个人主页, Glassmorphism, Startpage" data-i18n-content="ui.start.page.bookmarks.glassmorphism.personal.homepage">
     <link rel="canonical" href="https://goldcoast.dpdns.org/">
     <meta name="robots" content="index, follow">
 
@@ -27,19 +28,19 @@
     <meta property="og:url" content="https://goldcoast.dpdns.org/">
     <meta property="og:site_name" content="Glass Start">
     <meta property="og:locale" content="zh_CN">
-    <meta property="og:title" content="Glass Start — 通透起始页">
-    <meta property="og:description" content="极简纯净的毛玻璃浏览器起始页。">
+    <meta property="og:title" content="Glass Start — 通透起始页" data-i18n-content="ui.glass.start.a.clear.start">
+    <meta property="og:description" content="极简纯净的毛玻璃浏览器起始页。" data-i18n-content="ui.a.clean.minimal.glass.browser.start">
     <meta property="og:image" content="https://images.unsplash.com/photo-1477346611705-65d1883cee1e?q=80&w=1200&auto=format&fit=crop">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
-    <meta property="og:image:alt" content="Glass Start 极简玻璃拟态起始页预览">
+    <meta property="og:image:alt" content="Glass Start 极简玻璃拟态起始页预览" data-i18n-content="ui.preview.of.the.glass.start.browser">
 
     <!-- Twitter Card 元数据 -->
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="Glass Start — 通透起始页">
-    <meta name="twitter:description" content="极简纯净的毛玻璃浏览器起始页。">
+    <meta name="twitter:title" content="Glass Start — 通透起始页" data-i18n-content="ui.glass.start.a.clear.start">
+    <meta name="twitter:description" content="极简纯净的毛玻璃浏览器起始页。" data-i18n-content="ui.a.clean.minimal.glass.browser.start">
     <meta name="twitter:image" content="https://images.unsplash.com/photo-1477346611705-65d1883cee1e?q=80&w=1200&auto=format&fit=crop">
-    <meta name="twitter:image:alt" content="Glass Start 极简玻璃拟态起始页预览">
+    <meta name="twitter:image:alt" content="Glass Start 极简玻璃拟态起始页预览" data-i18n-content="ui.preview.of.the.glass.start.browser">
 
     <!-- Schema.org 结构化数据 (JSON-LD 动态自适应 Origin) -->
     <script type="application/ld+json">
@@ -58,7 +59,7 @@
     </script>
 
 
-    <title>Glass Start</title>
+    <title data-i18n="ui.glass.start.a.clear.start">Glass Start</title>
     <link rel="icon" type="image/svg+xml" href="./icons/app/favicon.svg?v=3781722418">
     <link rel="icon" href="./favicon.ico?v=879a62d0ad">
     <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png?v=16a3bbb7e3">
@@ -213,27 +214,27 @@
     <script>(function(){const bg=document.getElementById('bgLayer');const url=(window.__PRELOADED_BG__!==undefined)?window.__PRELOADED_BG__:'./wallpapers/bg1.avif';if(bg&&url){bg.style.backgroundImage="url(\""+url.replace(/["'\\]/g,'\\$&')+"\")";bg.style.opacity='1';}if(window.__INITIAL_THEME_COLOR__&&bg){bg.style.backgroundColor=window.__INITIAL_THEME_COLOR__;}if(window.__PRE_BG_EFFECTS__){const o=document.getElementById('bgOverlay');if(o){o.style.backgroundColor='rgba(0, 0, 0, '+(window.__PRE_BG_EFFECTS__.op/100)+')';}}})()</script>
 
     <!-- ========== 第一屏：起始页 ========== -->
-    <main id="startSection" aria-label="起始页" class="relative z-10 min-h-dvh flex flex-col items-center justify-center px-4 py-12">
-        <h1 class="sr-only">Glass Start — 通透起始页</h1>
+    <main id="startSection" aria-label="起始页" class="relative z-10 min-h-dvh flex flex-col items-center justify-center px-4 py-12" data-i18n-aria-label="ui.start.page">
+        <h1 class="sr-only"><span data-i18n="ui.glass.start.a.clear.start">Glass Start — 通透起始页</span></h1>
 
         <!-- 左上角版本状态，与右侧天气胶囊对齐，随起始页一起切屏。 -->
         <div id="updateNotice" class="hidden select-none max-w-[calc(50%-1.5rem)] w-max">
             <button id="updateReloadBtn" type="button" aria-expanded="false" aria-controls="confirmModal" aria-haspopup="dialog" class="glass apple-radius px-3 py-1.5 sm:px-3.5 sm:py-2 text-white/80 enabled:hover:text-white border border-white/12 flex items-center justify-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-medium cursor-pointer glass-interactive max-w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:opacity-50 disabled:cursor-wait">
                 <svg class="size-4 sm:size-4.5 shrink-0" aria-hidden="true"><use href="#icon-arrow-up-circle"/></svg>
-                <span id="updateNoticeText" role="status" aria-live="polite" class="truncate tracking-tight leading-none">有新版本</span>
+                <span id="updateNoticeText" role="status" aria-live="polite" class="truncate tracking-tight leading-none" data-i18n="ui.update.available">有新版本</span>
             </button>
         </div>
 
         <!-- 右上角天气胶囊，随起始页一起切屏。 -->
         <div id="weatherWidget" class="select-none">
-            <button id="weatherBtn" type="button" aria-expanded="false" aria-controls="weatherPopover" aria-haspopup="dialog" aria-label="🌤️ --°·天气，点击查看实时天气与详细预报" class="glass apple-radius px-3 py-1.5 sm:px-3.5 sm:py-2 text-white/80 enabled:hover:text-white border border-white/12 flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-medium glass-interactive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 fade-in">
+            <button id="weatherBtn" type="button" aria-expanded="false" aria-controls="weatherPopover" aria-haspopup="dialog" aria-label="🌤️ --°·天气，点击查看实时天气与详细预报" class="glass apple-radius px-3 py-1.5 sm:px-3.5 sm:py-2 text-white/80 enabled:hover:text-white border border-white/12 flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-medium glass-interactive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 fade-in" data-i18n-aria-label="ui.weather.open.current.conditions.and.forecast">
                 <span id="weatherIcon" aria-hidden="true" class="text-sm sm:text-base leading-none select-none flex items-center justify-center"><img src="./icons/emoji/sun_behind_small_cloud.svg" class="size-4 sm:size-4.5 shrink-0 object-contain select-none inline-block align-middle pointer-events-none" alt="" aria-hidden="true"></span>
                 <span id="weatherTemp" class="tabular-nums font-semibold tracking-tight leading-none">--°</span>
                 <span aria-hidden="true" class="text-white/30 font-light select-none">·</span>
-                <span id="weatherCity" class="text-white/80 max-w-22 sm:max-w-30 truncate text-2xs sm:text-xs">天气</span>
+                <span id="weatherCity" class="text-white/80 max-w-22 sm:max-w-30 truncate text-2xs sm:text-xs" data-i18n="ui.weather">天气</span>
             </button>
             <!-- 下拉天气预报卡片 -->
-            <div id="weatherPopover" role="dialog" aria-modal="false" aria-label="实时天气详细预报" aria-hidden="true" class="dropdown-menu absolute p-3.5 sm:p-4 glass-strong apple-radius border border-white/20 shadow-2xl z-[var(--z-dropdown)] select-none"></div>
+            <div id="weatherPopover" role="dialog" aria-modal="false" aria-label="实时天气详细预报" aria-hidden="true" class="dropdown-menu absolute p-3.5 sm:p-4 glass-strong apple-radius border border-white/20 shadow-2xl z-[var(--z-dropdown)] select-none" data-i18n-aria-label="ui.current.weather.and.forecast"></div>
         </div>
         <script>
             // 使用缓存预渲染天气；数值规则与运行时来自同一模块。
@@ -260,7 +261,7 @@
                         if (btn && t && ct) {
                             const desc = c.current.weatherText ? ' ' + c.current.weatherText : '';
                             const icon = (c.current && c.current.icon) ? c.current.icon + ' ' : '';
-                            btn.setAttribute('aria-label', `${icon}${t.textContent}·${ct.textContent} 实时天气${desc}，点击查看详细预报`);
+                            btn.setAttribute('aria-label', window.__GLASS_I18N__.t('weather.capsule',{icon,temperature:t.textContent.replace('°',''),city:ct.textContent,description:window.__GLASS_I18N__.weatherDescription(c.current.weatherCode)}));
                         }
                     }
                 } catch(e){}
@@ -270,25 +271,25 @@
         <div class="text-center clock-text mb-10 md:mb-14 select-none">
             <time id="clock" datetime="00:00" class="text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-clock tracking-tight tabular-nums block">00<span class="clock-colon mx-0.5 sm:mx-1">:</span>00</time>
             <div id="date" class="text-xs sm:text-sm md:text-base mt-3.5 sm:mt-4 md:mt-5 text-white/75 font-normal uppercase drop-shadow-sm min-h-[1.5em]">&nbsp;</div>
-            <script>(function(){const n=new Date();const c=document.getElementById('clock');const d=document.getElementById('date');if(c){const h=String(n.getHours()).padStart(2,'0');const m=String(n.getMinutes()).padStart(2,'0');c.innerHTML=`${h}<span class="clock-colon mx-0.5 sm:mx-1">:</span>${m}`;c.setAttribute('datetime',`${h}:${m}`);}if(d){const w=['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];d.textContent=`${n.getMonth()+1}月${n.getDate()}日 ${w[n.getDay()]}`;}})()</script>
+            <script>(function(){const n=new Date();const c=document.getElementById('clock');const d=document.getElementById('date');if(c){const h=String(n.getHours()).padStart(2,'0');const m=String(n.getMinutes()).padStart(2,'0');c.innerHTML=`${h}<span class="clock-colon mx-0.5 sm:mx-1">:</span>${m}`;c.setAttribute('datetime',`${h}:${m}`);}if(d){d.textContent=window.__GLASS_I18N__.formatDate(n);}})()</script>
         </div>
 
         <!-- 搜索框 -->
-        <div role="search" aria-label="站内与网络搜索" class="w-full max-w-2xl lg:max-w-3xl mx-auto relative mb-8 md:mb-10">
+        <div role="search" aria-label="站内与网络搜索" class="w-full max-w-2xl lg:max-w-3xl mx-auto relative mb-8 md:mb-10" data-i18n-aria-label="ui.search.bookmarks.and.the.web">
             <div class="glass-strong apple-radius p-2 flex items-center gap-3 border fade-in search-box-wrapper entrance-delay-1 select-none">
                 <div class="relative shrink-0 flex items-center justify-center size-9 ml-1 select-none">
-                    <button id="engineBtn" type="button" aria-label="选择搜索引擎（当前：Bing）" aria-haspopup="menu" aria-expanded="false" aria-controls="dropdownMenu" class="p-2 apple-radius enabled:hover:bg-white/10 glass-interactive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed absolute inset-0 flex items-center justify-center select-none touch-manipulation">
+                    <button id="engineBtn" type="button" aria-label="选择搜索引擎（当前：Bing）" aria-haspopup="menu" aria-expanded="false" aria-controls="dropdownMenu" class="p-2 apple-radius enabled:hover:bg-white/10 glass-interactive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed absolute inset-0 flex items-center justify-center select-none touch-manipulation" data-i18n-aria-label="ui.choose.search.engine.current.bing">
                         <span id="engineIcon" class="engine-icon size-5 aspect-square shrink-0 rounded select-none pointer-events-none flex items-center justify-center">
                             <svg viewBox="0 0 512 512" class="size-full pointer-events-none select-none" aria-hidden="true"><radialGradient id="bing_ga" cx="-98.708" cy=".861" r=".5" gradientTransform="matrix(-346.4626 -399.8405 287.7029 -249.2952 -34032.355 -38891.656)" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#00cacc"/><stop offset="1" stop-color="#048fce"/></radialGradient><path d="M257.9 161.5c-9.4 1.1-16.6 8.8-17.3 18.4-.3 4.2-.2 4.4 9.2 28.7 21.5 55.3 26.7 68.6 27.6 70.4 2.1 4.5 5.1 8.8 8.8 12.6 2.9 2.9 4.7 4.5 7.9 6.6 5.6 3.7 8.4 4.8 30.2 11.2 21.2 6.3 32.8 10.5 42.8 15.4 13 6.4 22 13.7 27.7 22.4 4.1 6.2 7.7 17.4 9.3 28.6.6 4.4.6 14.1 0 18.1-1.3 8.6-4 15.8-8.1 21.9-2.2 3.2-1.4 2.7 1.7-1.2 8.9-11.1 18-30 22.6-47.2 5.6-20.8 6.4-43.1 2.2-64.3-8.1-41.2-34.1-76.7-70.7-96.7-2.3-1.3-11.1-5.8-22.9-12-1.8-.9-4.3-2.2-5.5-2.9-1.2-.6-3.7-1.9-5.5-2.9-1.8-.9-7-3.6-11.5-6s-9.6-5-11.3-5.9c-5.1-2.7-8.5-4.4-11-5.8-11.8-6.2-16.7-8.6-18.2-9.1s-5.3-1-6.2-1c0 .5-.9.6-1.8.7" fill-rule="evenodd" clip-rule="evenodd" fill="url(#bing_ga)"/><radialGradient id="bing_gb" cx="-98.65" cy=".886" r=".5" gradientTransform="matrix(526.0025 -225.395 375.6281 876.6003 51688.402 -22554.525)" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#00bbec"/><stop offset="1" stop-color="#2756a9"/></radialGradient><path d="M283.5 367.8c-.7.4-1.6.9-2 1.2-.5.3-1.5.9-2.3 1.4-2.9 1.8-10.8 6.6-17.5 10.8-4.4 2.7-5.1 3.1-10.7 6.6-2 1.2-4.1 2.6-4.7 2.9-.6.4-3.2 1.9-5.7 3.5s-7 4.3-9.8 6.1c-2.9 1.8-8 4.9-11.4 7s-7.9 4.9-9.9 6.1c-2.1 1.3-4 2.5-4.2 2.7-.4.3-18.8 11.7-28 17.4-7 4.3-15.1 7.1-23.4 8.2-3.9.5-11.2.5-15 0-10.5-1.4-20.1-5.3-28.3-11.5-3.2-2.4-9.3-8.5-11.7-11.6-5.5-7.4-9-15.3-10.9-24.3-.4-2.1-.8-3.8-.9-3.9-.2-.2.1 3 .7 7 .6 4.2 1.8 10.4 3.2 15.6 10.3 40.7 39.8 73.8 79.6 89.5 11.5 4.5 23 7.4 35.6 8.8 4.7.5 18.1.7 23.1.4 22.6-1.7 42.4-8.4 62.6-21.2 1.8-1.1 5.2-3.3 7.5-4.7 2.3-1.5 5.3-3.3 6.6-4.2 1.3-.8 2.8-1.8 3.4-2.1.6-.4 1.8-1.1 2.7-1.7s4.6-2.9 8.2-5.2l14.7-9.3 5-3.2.2-.1.6-.4.3-.2 3.7-2.3 12.8-8.1c16.3-10.3 21.2-13.9 28.8-21.3 3.2-3.1 7.9-8.4 8.2-9.1 0-.1.9-1.4 1.9-2.9 4-5.9 6.7-13.2 8-21.8.6-4 .6-13.7 0-18.1-1.2-8.5-3.9-18.1-6.8-24.3-4.8-10.1-15-19.2-29.7-26.6-4.1-2-8.2-3.9-8.7-3.9-.2 0-13.9 8.4-30.4 18.6s-30.8 19-31.8 19.7c-1 .6-2.7 1.7-3.8 2.3z" fill="url(#bing_gb)"/><linearGradient id="bing_gc" x1="145.85" x2="145.85" y1="280" y2="722.454" gradientTransform="translate(0 -280)" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#00bbec"/><stop offset="1" stop-color="#2756a9"/></linearGradient><path d="m86.7 318.8.1 71 .9 4.1c2.9 12.9 7.9 22.2 16.5 30.8 4.1 4.1 7.2 6.5 11.6 9.1 9.3 5.5 19.4 8.3 30.4 8.2 11.5 0 21.5-2.9 31.8-9.2 1.7-1.1 8.5-5.2 15.1-9.3l11.9-7.4V170.4c0-49.2-.1-78.4-.2-80.7-1-14.4-7-27.6-17.1-37.7-3.1-3.1-5.8-5.1-13.7-10.6-3.9-2.7-11.1-7.7-16-11-4.9-3.4-12.9-8.9-17.8-12.3s-12-8.3-15.6-10.8C117 2 116.4 1.7 114 .8c-3-1.1-6.2-1.5-9.2-1.1-8.8 1-15.9 7.3-17.7 16-.3 1.3-.3 19.3-.3 116.7v115.1z" fill="url(#bing_gc)"/></svg>
                         </span>
                         <span id="engineName" class="sr-only">Bing</span>
                     </button>
-                    <script>(function(){if(window.__PRE_ENGINE__){const b=document.getElementById('engineBtn');const i=document.getElementById('engineIcon');const n=document.getElementById('engineName');if(b)b.setAttribute('aria-label','选择搜索引擎（当前：'+window.__PRE_ENGINE__.name+'）');if(i){const key=window.__PRE_ENGINE__.name.toLowerCase();if(window.__ENGINE_SVGS__&&window.__ENGINE_SVGS__[key])i.innerHTML=window.__ENGINE_SVGS__[key];}if(n)n.textContent=window.__PRE_ENGINE__.name;}})()</script>
+                    <script>(function(){if(window.__PRE_ENGINE__){const b=document.getElementById('engineBtn');const i=document.getElementById('engineIcon');const n=document.getElementById('engineName');if(b)b.setAttribute('aria-label',window.__GLASS_I18N__.t('engine.current',{name:window.__PRE_ENGINE__.name}));if(i){const key=window.__PRE_ENGINE__.name.toLowerCase();if(window.__ENGINE_SVGS__&&window.__ENGINE_SVGS__[key])i.innerHTML=window.__ENGINE_SVGS__[key];}if(n)n.textContent=window.__PRE_ENGINE__.name;}})()</script>
                 </div>
-                <label for="searchInput" class="sr-only">搜索</label>
-                <input type="text" id="searchInput" name="q" role="combobox" enterkeyhint="search" aria-haspopup="listbox" aria-label="搜索输入框" aria-autocomplete="list" aria-controls="suggestionMenu" aria-expanded="false" class="flex-1 bg-transparent border-none outline-none text-lg search-input text-white h-12 pl-0 pr-2.5 min-w-0 focus-visible:ring-0" placeholder="搜索..." autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
+                <label for="searchInput" class="sr-only"><span data-i18n="ui.search">搜索</span></label>
+                <input type="text" id="searchInput" name="q" role="combobox" enterkeyhint="search" aria-haspopup="listbox" aria-label="搜索输入框" aria-autocomplete="list" aria-controls="suggestionMenu" aria-expanded="false" class="flex-1 bg-transparent border-none outline-none text-lg search-input text-white h-12 pl-0 pr-2.5 min-w-0 focus-visible:ring-0" placeholder="搜索..." autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" data-i18n-aria-label="ui.search.input" data-i18n-placeholder="ui.search.2">
                 <div class="relative shrink-0 flex items-center justify-center size-9 mr-1 select-none">
-                    <button id="randomBookmarkBtn" type="button" aria-label="随机访问书签" class="p-2 apple-radius enabled:hover:bg-white/10 text-white/40 enabled:hover:text-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 absolute inset-0 flex items-center justify-center select-none touch-manipulation">
+                    <button id="randomBookmarkBtn" type="button" aria-label="随机访问书签" class="p-2 apple-radius enabled:hover:bg-white/10 text-white/40 enabled:hover:text-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 absolute inset-0 flex items-center justify-center select-none touch-manipulation" data-i18n-aria-label="ui.open.a.random.bookmark">
                         <svg class="size-5 pointer-events-none select-none" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 20 20">
                             <rect width="15" height="15" x="2.5" y="2.5" rx="3.5"/>
                             <circle cx="7" cy="7" r="1.4" fill="currentColor" stroke="none"/>
@@ -298,37 +299,37 @@
                             <circle cx="13" cy="13" r="1.4" fill="currentColor" stroke="none"/>
                         </svg>
                     </button>
-                    <button id="searchClearBtn" type="button" inert aria-hidden="true" aria-label="清空搜索框" class="hidden p-2 apple-radius enabled:hover:bg-white/10 text-white/40 enabled:hover:text-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 absolute inset-0 flex items-center justify-center select-none touch-manipulation">
+                    <button id="searchClearBtn" type="button" inert aria-hidden="true" aria-label="清空搜索框" class="hidden p-2 apple-radius enabled:hover:bg-white/10 text-white/40 enabled:hover:text-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 absolute inset-0 flex items-center justify-center select-none touch-manipulation" data-i18n-aria-label="ui.clear.search">
                         <svg class="size-5 pointer-events-none select-none" aria-hidden="true"><use href="#icon-clear"/></svg>
                     </button>
                 </div>
             </div>
-            <div id="dropdownMenu" role="menu" aria-label="搜索引擎选项" aria-hidden="true" class="dropdown-menu absolute top-full left-0 glass-strong apple-radius p-2 border border-white/20 shadow-2xl min-w-35 z-[var(--z-dropdown)] select-none"></div>
+            <div id="dropdownMenu" role="menu" aria-label="搜索引擎选项" aria-hidden="true" class="dropdown-menu absolute top-full left-0 glass-strong apple-radius p-2 border border-white/20 shadow-2xl min-w-35 z-[var(--z-dropdown)] select-none" data-i18n-aria-label="ui.search.engines"></div>
             <!-- 搜索实时建议联想下拉框 (Spotlight 风格全宽下拉面板) -->
-            <div id="suggestionMenu" role="listbox" aria-label="搜索建议" aria-hidden="true" class="dropdown-menu absolute top-full left-0 right-0 w-full mt-3.5 sm:mt-4 glass-strong apple-radius p-2 border border-white/20 shadow-2xl z-[var(--z-dropdown)] max-h-suggestions-max overflow-y-auto overscroll-contain select-none"></div>
+            <div id="suggestionMenu" role="listbox" aria-label="搜索建议" aria-hidden="true" class="dropdown-menu absolute top-full left-0 right-0 w-full mt-3.5 sm:mt-4 glass-strong apple-radius p-2 border border-white/20 shadow-2xl z-[var(--z-dropdown)] max-h-suggestions-max overflow-y-auto overscroll-contain select-none" data-i18n-aria-label="ui.search.suggestions"></div>
         </div>
 
         <!-- 快捷书签 -->
-        <nav aria-label="快捷书签" class="w-full max-w-2xl lg:max-w-3xl mx-auto glass apple-radius p-3 sm:p-4 fade-in mb-6 md:mb-8 relative group entrance-delay-2">
+        <nav aria-label="快捷书签" class="w-full max-w-2xl lg:max-w-3xl mx-auto glass apple-radius p-3 sm:p-4 fade-in mb-6 md:mb-8 relative group entrance-delay-2" data-i18n-aria-label="ui.quick.bookmarks">
             <div id="bookmarks" class="grid grid-cols-4 md:grid-cols-8 gap-2 min-h-43 md:min-h-22"></div>
         </nav>
 
         <!-- 向下滚动提示，首次进入导航页后隐藏。 -->
         <div id="scrollDownHint" class="absolute bottom-4 md:bottom-7 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5 text-white/50 text-xs font-medium tracking-[0.25em] pointer-events-none hint-down select-none fade-in entrance-delay-2">
-            <span>向下探索</span>
+            <span data-i18n="ui.explore.below">向下探索</span>
             <span class="scroll-hint inline-flex" aria-hidden="true"><svg class="size-5" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="m19.5 8.25-7.5 7.5-7.5-7.5"/></svg></span>
         </div>
         <script>(function(){try{if(localStorage.getItem('hasDiscoveredNav')==='1'){const h=document.getElementById('scrollDownHint');if(h)h.style.display='none';}}catch(e){}})()</script>
 
         <!-- 右下角悬浮编辑设置按钮（置于起始页内，随起始页物理滑屏） -->
-        <button id="editBookmarksBtn" type="button" aria-expanded="false" aria-controls="editModal" aria-haspopup="dialog" aria-label="编辑与设置" title="编辑书签与设置" class="p-3 glass-strong apple-radius text-white/70 enabled:hover:text-white enabled:hover:bg-white/20 border border-white/20 shadow-2xl flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 fade-in entrance-delay-2">
+        <button id="editBookmarksBtn" type="button" aria-expanded="false" aria-controls="editModal" aria-haspopup="dialog" aria-label="编辑与设置" title="编辑书签与设置" class="p-3 glass-strong apple-radius text-white/70 enabled:hover:text-white enabled:hover:bg-white/20 border border-white/20 shadow-2xl flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 fade-in entrance-delay-2" data-i18n-aria-label="ui.edit.and.settings" data-i18n-title="ui.edit.bookmarks.and.settings">
             <svg class="size-5" aria-hidden="true"><use href="#icon-cog"/></svg>
         </button>
 
     </main><!-- /#startSection -->
 
     <!-- ========== 第二屏：导航页 ========== -->
-    <section id="navSection" aria-label="分类导航页" class="relative z-10 h-dvh nav-hidden overflow-hidden">
+    <section id="navSection" aria-label="分类导航页" class="relative z-10 h-dvh nav-hidden overflow-hidden" data-i18n-aria-label="ui.bookmark.directory.page">
         <div class="h-full flex flex-col w-full">
             <!-- 主体：铺满视口的玻璃页面，分类与内容融入同一层 -->
             <div class="nav-surface flex-1 glass flex flex-col overflow-hidden min-h-0">
@@ -336,12 +337,12 @@
                 <header id="navHeader" class="flex items-center justify-between px-5 py-2.5 border-b border-white/10 bg-transparent shrink-0 select-none">
                     <div class="flex items-center gap-2 pointer-events-none select-none">
                         <svg class="size-4 text-white/85 shrink-0" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z"/></svg>
-                        <h2 class="text-xs sm:text-sm font-semibold tracking-wide text-white/95">分类导航</h2>
+                        <h2 class="text-xs sm:text-sm font-semibold tracking-wide text-white/95"><span data-i18n="ui.bookmark.directory">分类导航</span></h2>
                     </div>
                     <!-- 右侧返回操作药丸 -->
-                    <button id="navHint" type="button" aria-label="返回起始页" class="flex items-center gap-1.5 text-white/80 text-2xs tracking-wider bg-white/10 border border-white/15 px-2.5 py-1 apple-radius whitespace-nowrap shrink-0 cursor-pointer enabled:hover:bg-white/20 enabled:hover:text-white active:scale-95 glass-interactive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" title="点击或向上滚动返回起始页">
+                    <button id="navHint" type="button" aria-label="返回起始页" class="flex items-center gap-1.5 text-white/80 text-2xs tracking-wider bg-white/10 border border-white/15 px-2.5 py-1 apple-radius whitespace-nowrap shrink-0 cursor-pointer enabled:hover:bg-white/20 enabled:hover:text-white active:scale-95 glass-interactive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" title="点击或向上滚动返回起始页" data-i18n-aria-label="ui.back.to.start" data-i18n-title="ui.click.or.scroll.up.to.return">
                         <span class="inline-flex shrink-0 text-white/60" aria-hidden="true"><svg class="size-3" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="m4.5 15.75 7.5-7.5 7.5 7.5"/></svg></span>
-                        <span class="whitespace-nowrap">起始页</span>
+                        <span class="whitespace-nowrap" data-i18n="ui.start.page">起始页</span>
                     </button>
                 </header>
 
@@ -349,12 +350,12 @@
                 <div class="flex-1 flex flex-col sm:flex-row overflow-hidden min-h-0">
                     <!-- 侧边栏（移动端顶部水平滚动，桌面端左侧垂直滚动） -->
                     <aside id="sidebar" class="sm:w-28 md:w-32 lg:w-34 shrink-0 p-2 md:p-2.5 sm:pt-3 md:pt-3 overflow-x-auto sm:overflow-y-auto no-scrollbar overscroll-x-contain sm:border-r border-white/8 bg-black/6 sm:bg-gradient-to-b sm:from-black/5 sm:to-black/9 sm:shadow-[inset_-1px_0_0_0_rgba(255,255,255,0.06)]">
-                        <nav aria-label="导航分类">
-                            <div id="sidebarList" role="tablist" aria-label="分类导航列表" class="flex sm:flex-col gap-1"></div>
+                        <nav aria-label="导航分类" data-i18n-aria-label="ui.bookmark.categories">
+                            <div id="sidebarList" role="tablist" aria-label="分类导航列表" class="flex sm:flex-col gap-1" data-i18n-aria-label="ui.bookmark.category.list"></div>
                         </nav>
                     </aside>
                     <!-- 主书签内容区 (使用 CSS clamp 响应式控制底部 padding) -->
-                    <div id="navContent" role="region" tabindex="-1" aria-label="书签内容" class="flex-1 min-w-0 min-h-0 p-3 px-3.5 sm:px-3 md:p-4 lg:p-5 overflow-y-auto relative scroll-smooth focus:outline-none">
+                    <div id="navContent" role="region" tabindex="-1" aria-label="书签内容" class="flex-1 min-w-0 min-h-0 p-3 px-3.5 sm:px-3 md:p-4 lg:p-5 overflow-y-auto relative scroll-smooth focus:outline-none" data-i18n-aria-label="ui.bookmarks">
                         <div id="navCategories" class="space-y-6 md:space-y-8"></div>
                     </div>
                 </div>
@@ -363,40 +364,40 @@
     </section><!-- /#navSection -->
 
     <!-- 编辑与设置弹窗 (Apple 风格 Tab 分栏设置面板) -->
-    <div id="editModal" role="dialog" aria-modal="true" hidden aria-label="设置与偏好" class="edit-overlay fixed inset-0 flex items-center justify-center z-[var(--z-modal)] overscroll-contain">
+    <div id="editModal" role="dialog" aria-modal="true" hidden aria-label="设置与偏好" class="edit-overlay fixed inset-0 flex items-center justify-center z-[var(--z-modal)] overscroll-contain" data-i18n-aria-label="ui.settings.and.preferences">
         <div class="glass-strong apple-radius w-full max-w-xl sm:max-w-2xl md:max-w-3xl lg:max-w-4xl mx-4 min-h-panel-min max-h-panel-max sm:h-panel-desktop flex flex-col p-4 sm:p-6 shadow-2xl overflow-hidden">
             <!-- 弹窗 Header -->
             <div class="flex items-center gap-2 mb-3 pb-2 border-b border-white/10 shrink-0">
                 <svg class="size-4.5 text-white/80 shrink-0" aria-hidden="true"><use href="#icon-cog"/></svg>
-                <h3 class="text-base font-semibold tracking-wide text-white/90">设置与偏好</h3>
+                <h3 class="text-base font-semibold tracking-wide text-white/90"><span data-i18n="ui.settings.and.preferences">设置与偏好</span></h3>
             </div>
 
             <!-- Tab 导航栏 -->
-            <div role="tablist" aria-label="设置偏好选项卡" class="flex items-center gap-1.5 sm:gap-2 p-1 bg-black/20 border border-white/10 apple-radius mb-3 shrink-0">
+            <div role="tablist" aria-label="设置偏好选项卡" class="flex items-center gap-1.5 sm:gap-2 p-1 bg-black/20 border border-white/10 apple-radius mb-3 shrink-0" data-i18n-aria-label="ui.settings.tabs">
                 <button type="button" role="tab" id="tab-btn-bookmarks" tabindex="0" aria-selected="true" aria-controls="tabBookmarks" class="settings-tab-btn active flex-1 py-2 px-1.5 sm:px-4 apple-radius text-xs sm:text-sm font-medium whitespace-nowrap glass-interactive flex items-center justify-center gap-1.5 sm:gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" data-tab="tabBookmarks">
                     <svg class="size-4 shrink-0 opacity-80" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0 1 11.186 0Z"/></svg>
-                    <span class="whitespace-nowrap shrink-0">快捷书签</span>
+                    <span class="whitespace-nowrap shrink-0" data-i18n="settings.bookmarks">快捷书签</span>
                 </button>
                 <button type="button" role="tab" id="tab-btn-appearance" tabindex="-1" aria-selected="false" aria-controls="tabAppearance" class="settings-tab-btn flex-1 py-2 px-1.5 sm:px-4 apple-radius text-xs sm:text-sm font-medium whitespace-nowrap glass-interactive flex items-center justify-center gap-1.5 sm:gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" data-tab="tabAppearance">
                     <svg class="size-4 shrink-0 opacity-80" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M9.53 16.122a3 3 0 0 0-5.78 1.128 2.25 2.25 0 0 1-2.4 2.245 4.5 4.5 0 0 0 8.4-2.245c0-.399-.078-.78-.22-1.128Zm0 0a15.998 15.998 0 0 0 3.388-1.62m-5.043-.025a15.994 15.994 0 0 1 1.622-3.39m3.42 3.42a15.995 15.995 0 0 0 4.764-4.648l3.876-5.814a1.151 1.151 0 0 0-1.597-1.597L14.146 6.32a15.996 15.996 0 0 0-4.649 4.763m3.42 3.42a6.776 6.776 0 0 0-3.42-3.42"/></svg>
-                    <span class="whitespace-nowrap shrink-0">外观壁纸</span>
+                    <span class="whitespace-nowrap shrink-0" data-i18n="ui.appearance">外观壁纸</span>
                 </button>
                 <button type="button" role="tab" id="tab-btn-data" tabindex="-1" aria-selected="false" aria-controls="tabData" class="settings-tab-btn flex-1 py-2 px-1.5 sm:px-4 apple-radius text-xs sm:text-sm font-medium whitespace-nowrap glass-interactive flex items-center justify-center gap-1.5 sm:gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" data-tab="tabData">
                     <svg class="size-4 shrink-0 opacity-80" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 5.625c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125"/></svg>
-                    <span class="whitespace-nowrap shrink-0">数据管理</span>
+                    <span class="whitespace-nowrap shrink-0" data-i18n="ui.data">数据管理</span>
                 </button>
             </div>
 
             <!-- Tab 内容 1: 快捷书签 (tabBookmarks) -->
             <div id="tabBookmarks" role="tabpanel" aria-labelledby="tab-btn-bookmarks" class="settings-tab-panel flex-1 flex flex-col min-h-0 overflow-hidden">
                 <div class="flex items-center justify-between mb-3 shrink-0">
-                    <span class="text-xs font-semibold text-white/80 select-none">排序与管理</span>
-                    <span id="bookmarkCountBadge" class="glass-badge">已添加 0 项</span>
+                    <span class="text-xs font-semibold text-white/80 select-none" data-i18n="ui.organize.bookmarks">排序与管理</span>
+                    <span id="bookmarkCountBadge" class="glass-badge" data-i18n="ui.0.bookmarks.added">已添加 0 项</span>
                 </div>
-                <div id="editList" role="list" aria-label="书签列表" class="flex-1 overflow-y-auto space-y-1.5 mb-2.5 min-h-0 pr-1"></div>
+                <div id="editList" role="list" aria-label="书签列表" class="flex-1 overflow-y-auto space-y-1.5 mb-2.5 min-h-0 pr-1" data-i18n-aria-label="ui.bookmark.list"></div>
                 <div class="grid grid-cols-2 gap-2 sm:gap-2.5 shrink-0">
-                    <button id="addBookmarkBtn" type="button" class="settings-action h-9 px-3 glass-interactive text-xs flex items-center justify-center gap-1.5 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 truncate"><svg class="size-3.5 shrink-0 opacity-80" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M12 4.5v15m7.5-7.5h-15"/></svg> 手动添加书签</button>
-                    <button id="togglePickerBtn" type="button" aria-expanded="false" aria-controls="bookmarkPicker" aria-haspopup="dialog" class="settings-action h-9 px-3 text-xs glass-interactive flex items-center justify-center gap-1.5 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"><svg class="size-3.5 shrink-0 opacity-80" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M12 9v6m3-3H9m12 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg> <span class="min-w-0 whitespace-normal">从导航页批量选择</span></button>
+                    <button id="addBookmarkBtn" type="button" class="settings-action h-9 px-3 glass-interactive text-xs flex items-center justify-center gap-1.5 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 truncate"><svg class="size-3.5 shrink-0 opacity-80" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M12 4.5v15m7.5-7.5h-15"/></svg> <span data-i18n="ui.add.bookmark">手动添加书签</span></button>
+                    <button id="togglePickerBtn" type="button" aria-expanded="false" aria-controls="bookmarkPicker" aria-haspopup="dialog" class="settings-action h-9 px-3 text-xs glass-interactive flex items-center justify-center gap-1.5 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"><svg class="size-3.5 shrink-0 opacity-80" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M12 9v6m3-3H9m12 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg> <span class="min-w-0 whitespace-normal" data-i18n="ui.choose.from.directory">从导航页批量选择</span></button>
                 </div>
             </div>
 
@@ -409,22 +410,22 @@
                         <div class="appearance-field-heading">
                             <span class="text-xs font-semibold text-white/80 flex items-center gap-1.5">
                                 <svg class="size-4 text-white/60" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z"/></svg>
-                                自定义壁纸
+                                <span data-i18n="ui.custom.wallpaper">自定义壁纸</span>
                             </span>
-                            <button id="resetBgBtn" type="button" class="hidden text-2xs text-white/65 enabled:hover:text-white glass-interactive rounded-control px-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50">恢复默认</button>
+                            <button id="resetBgBtn" type="button" class="hidden text-2xs text-white/65 enabled:hover:text-white glass-interactive rounded-control px-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"><span data-i18n="ui.restore.default">恢复默认</span></button>
                         </div>
                         <div>
                             <div id="urlBgBtnGroup" class="flex gap-2">
-                                <button id="uploadBgBtn" type="button" class="settings-action flex-1 min-w-0 h-9 px-2 text-xs glass-interactive flex items-center justify-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"><svg class="size-3.5 shrink-0 opacity-80" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M2.25 12.75V12A2.25 2.25 0 0 1 4.5 9.75h15A2.25 2.25 0 0 1 21.75 12v.75m-8.69-6.44-2.12-2.12a1.5 1.5 0 0 0-1.061-.44H4.5A2.25 2.25 0 0 0 2.25 6v12a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9a2.25 2.25 0 0 0-2.25-2.25h-5.379a1.5 1.5 0 0 1-1.06-.44Z"/></svg> 本地图片</button>
-                                <button id="urlBgBtn" type="button" class="settings-action flex-1 min-w-0 h-9 px-2 text-xs glass-interactive flex items-center justify-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"><svg class="size-3.5 shrink-0 opacity-80" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244"/></svg> 网络直链</button>
-                                <input type="file" id="uploadBgInput" name="uploadBgInput" accept="image/*" class="hidden" aria-label="上传自定义壁纸">
+                                <button id="uploadBgBtn" type="button" class="settings-action flex-1 min-w-0 h-9 px-2 text-xs glass-interactive flex items-center justify-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"><svg class="size-3.5 shrink-0 opacity-80" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M2.25 12.75V12A2.25 2.25 0 0 1 4.5 9.75h15A2.25 2.25 0 0 1 21.75 12v.75m-8.69-6.44-2.12-2.12a1.5 1.5 0 0 0-1.061-.44H4.5A2.25 2.25 0 0 0 2.25 6v12a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9a2.25 2.25 0 0 0-2.25-2.25h-5.379a1.5 1.5 0 0 1-1.06-.44Z"/></svg> <span data-i18n="ui.upload.image">本地图片</span></button>
+                                <button id="urlBgBtn" type="button" class="settings-action flex-1 min-w-0 h-9 px-2 text-xs glass-interactive flex items-center justify-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"><svg class="size-3.5 shrink-0 opacity-80" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244"/></svg> <span data-i18n="ui.image.url">网络直链</span></button>
+                                <input type="file" id="uploadBgInput" name="uploadBgInput" accept="image/*" class="hidden" aria-label="上传自定义壁纸" data-i18n-aria-label="ui.upload.custom.wallpaper">
                             </div>
                             <div id="urlBgInputRow" class="appearance-url-row hidden flex items-center gap-1.5">
                                 <input type="text" id="urlBgInput" name="urlBgInput" inputmode="url" autocapitalize="off" autocomplete="off" spellcheck="false"
                                     class="flex-1 h-9 min-w-0 bg-black/35 hover:bg-black/45 focus:bg-black/55 border border-white/15 focus:border-white/40 rounded-control px-3 text-base mouse-desktop:text-xs text-white/90 focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:outline-none outline-none transition-colors font-mono placeholder:text-white/30"
-                                    placeholder="粘贴 https://..." aria-label="图片 URL 地址">
-                                <button type="button" id="urlBgConfirmBtn" class="shrink-0 h-9 px-3.5 bg-white/15 enabled:hover:bg-white/25 enabled:active:scale-95 border border-white/20 rounded-control text-xs font-medium text-white glass-interactive flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 disabled:opacity-50 disabled:cursor-not-allowed" aria-label="应用图片 URL">应用</button>
-                                <button type="button" id="urlBgCancelBtn" class="shrink-0 h-9 px-2.5 text-xs text-white/50 enabled:hover:text-white/90 enabled:hover:bg-white/10 enabled:active:scale-95 rounded-control glass-interactive flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" aria-label="取消输入图片 URL">取消</button>
+                                    placeholder="粘贴 https://..." aria-label="图片 URL 地址" data-i18n-placeholder="ui.paste.https" data-i18n-aria-label="ui.image.url.2">
+                                <button type="button" id="urlBgConfirmBtn" class="shrink-0 h-9 px-3.5 bg-white/15 enabled:hover:bg-white/25 enabled:active:scale-95 border border-white/20 rounded-control text-xs font-medium text-white glass-interactive flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 disabled:opacity-50 disabled:cursor-not-allowed" aria-label="应用图片 URL" data-i18n-aria-label="ui.apply.image.url"><span data-i18n="ui.apply">应用</span></button>
+                                <button type="button" id="urlBgCancelBtn" class="shrink-0 h-9 px-2.5 text-xs text-white/50 enabled:hover:text-white/90 enabled:hover:bg-white/10 enabled:active:scale-95 rounded-control glass-interactive flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" aria-label="取消输入图片 URL" data-i18n-aria-label="ui.cancel.image.url"><span data-i18n="ui.cancel">取消</span></button>
                             </div>
                         </div>
                     </div>
@@ -432,24 +433,24 @@
                     <div class="appearance-field appearance-dim">
                         <div class="appearance-field-heading">
                             <label for="maskOpacityInput" class="text-xs font-semibold text-white/80 flex items-center gap-1.5">
-                                <svg class="size-4 text-white/60 shrink-0" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M6 13.5V3.75m0 9.75a1.5 1.5 0 0 1 0 3m0-3a1.5 1.5 0 0 0 0 3m0 3.75V16.5m12-3V3.75m0 9.75a1.5 1.5 0 0 1 0 3m0-3a1.5 1.5 0 0 0 0 3m0 3.75V16.5m-6-9V3.75m0 3.75a1.5 1.5 0 0 1 0 3m0-3a1.5 1.5 0 0 0 0 3m0 9.75V10.5"/></svg> 背景暗度
+                                <svg class="size-4 text-white/60 shrink-0" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M6 13.5V3.75m0 9.75a1.5 1.5 0 0 1 0 3m0-3a1.5 1.5 0 0 0 0 3m0 3.75V16.5m12-3V3.75m0 9.75a1.5 1.5 0 0 1 0 3m0-3a1.5 1.5 0 0 0 0 3m0 3.75V16.5m-6-9V3.75m0 3.75a1.5 1.5 0 0 1 0 3m0-3a1.5 1.5 0 0 0 0 3m0 9.75V10.5"/></svg> <span data-i18n="ui.background.dimming">背景暗度</span>
                             </label>
                             <span id="maskOpacityVal" class="text-xs font-mono text-white/90">15%</span>
                         </div>
                         <div class="appearance-dim-control">
-                            <input type="range" id="maskOpacityInput" name="maskOpacityInput" min="5" max="80" value="15" aria-label="背景暗色遮罩透明度" aria-valuenow="15" aria-valuetext="15%" class="w-full h-1.5 bg-white/20 rounded-lg appearance-none cursor-pointer accent-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 disabled:opacity-40 disabled:cursor-not-allowed">
+                            <input type="range" id="maskOpacityInput" name="maskOpacityInput" min="5" max="80" value="15" aria-label="背景暗色遮罩透明度" aria-valuenow="15" aria-valuetext="15%" class="w-full h-1.5 bg-white/20 rounded-lg appearance-none cursor-pointer accent-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 disabled:opacity-40 disabled:cursor-not-allowed" data-i18n-aria-label="ui.background.dimming.level">
                         </div>
                     </div>
                     <!-- 切屏动效：按钮直接表达当前选项 -->
                     <div class="appearance-field appearance-motion">
                         <div class="appearance-field-heading">
                             <span class="text-xs font-semibold text-white/80 flex items-center gap-1.5">
-                                <svg class="size-4 text-white/60 shrink-0" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M3 7.5 7.5 3m0 0L12 7.5M7.5 3v13.5m13.5 0L16.5 21m0 0L12 16.5m4.5 4.5V7.5"/></svg> 切屏动效
+                                <svg class="size-4 text-white/60 shrink-0" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M3 7.5 7.5 3m0 0L12 7.5M7.5 3v13.5m13.5 0L16.5 21m0 0L12 16.5m4.5 4.5V7.5"/></svg> <span data-i18n="ui.page.transition">切屏动效</span>
                             </span>
                         </div>
-                        <div class="appearance-mode-picker" id="settingsTransitionGrid" role="group" aria-label="切屏动效选项">
-                            <button type="button" data-mode="sheet" class="settings-transition-btn min-w-0 px-2 py-2 glass-interactive text-xs font-medium border border-transparent flex items-center justify-center text-center transition-colors" aria-label="卡片层叠切屏动效">卡片层叠</button>
-                            <button type="button" data-mode="classic" class="settings-transition-btn min-w-0 px-2 py-2 glass-interactive text-xs font-medium border border-transparent flex items-center justify-center text-center transition-colors" aria-label="经典推移切屏动效">经典推移</button>
+                        <div class="appearance-mode-picker" id="settingsTransitionGrid" role="group" aria-label="切屏动效选项" data-i18n-aria-label="ui.page.transition.options">
+                            <button type="button" data-mode="sheet" class="settings-transition-btn min-w-0 px-2 py-2 glass-interactive text-xs font-medium border border-transparent flex items-center justify-center text-center transition-colors" aria-label="卡片层叠切屏动效" data-i18n-aria-label="ui.stacked.card.transition"><span data-i18n="ui.card.stack">卡片层叠</span></button>
+                            <button type="button" data-mode="classic" class="settings-transition-btn min-w-0 px-2 py-2 glass-interactive text-xs font-medium border border-transparent flex items-center justify-center text-center transition-colors" aria-label="经典推移切屏动效" data-i18n-aria-label="ui.classic.slide.transition"><span data-i18n="ui.classic.slide">经典推移</span></button>
                         </div>
                     </div>
                 </div>
@@ -458,11 +459,11 @@
                 <div class="appearance-gallery flex flex-col gap-2.5 shrink-0">
                     <div class="flex items-center justify-between shrink-0">
                         <span class="text-xs font-semibold text-white/80 flex items-center gap-1.5">
-                            <svg class="size-4 text-white/60 shrink-0" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z"/></svg> 精选壁纸
+                            <svg class="size-4 text-white/60 shrink-0" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z"/></svg> <span data-i18n="ui.wallpaper.collection">精选壁纸</span>
                         </span>
                         <div class="flex flex-wrap items-center justify-end gap-x-3 gap-y-1">
-                            <span id="wallpaperStatus" class="hidden text-2xs text-emerald-400/90 font-medium">已使用自定义壁纸</span>
-                            <span class="text-2xs text-white/55">即选即存</span>
+                            <span id="wallpaperStatus" class="hidden text-2xs text-emerald-400/90 font-medium" data-i18n="ui.custom.wallpaper.active">已使用自定义壁纸</span>
+                            <span class="text-2xs text-white/55" data-i18n="ui.saved.on.selection">即选即存</span>
                         </div>
                     </div>
                     <div id="presetWallpaperGrid" class="grid grid-cols-2 sm:grid-cols-4 gap-3"></div>
@@ -483,13 +484,13 @@
                         </div>
                     </div>
                     <div class="grid grid-cols-2 sm:flex items-center gap-2 shrink-0">
-                        <button id="openShortcutFromSettingsBtn" type="button" aria-expanded="false" aria-controls="shortcutModal" aria-haspopup="dialog" class="settings-action h-9 px-3 text-xs font-medium glass-interactive inline-flex items-center justify-center whitespace-nowrap gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 enabled:active:scale-95" title="查看全站键盘快捷键速查">
-                            <svg class="size-3.5 opacity-80 shrink-0" aria-hidden="true"><use href="#icon-keyboard"/></svg> 快捷键速查
+                        <button id="openShortcutFromSettingsBtn" type="button" aria-expanded="false" aria-controls="shortcutModal" aria-haspopup="dialog" class="settings-action h-9 px-3 text-xs font-medium glass-interactive inline-flex items-center justify-center whitespace-nowrap gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 enabled:active:scale-95" title="查看全站键盘快捷键速查" data-i18n-title="ui.view.keyboard.shortcuts">
+                            <svg class="size-3.5 opacity-80 shrink-0" aria-hidden="true"><use href="#icon-keyboard"/></svg> <span data-i18n="ui.keyboard.shortcuts">快捷键速查</span>
                         </button>
-                        <button id="openCreditsFromSettingsBtn" type="button" aria-expanded="false" aria-controls="creditsModal" aria-haspopup="dialog" class="settings-action h-9 px-3 text-xs font-medium glass-interactive inline-flex items-center justify-center whitespace-nowrap gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 enabled:active:scale-95" title="查看开源致谢">
-                            <svg class="size-3.5 opacity-80 shrink-0" aria-hidden="true"><use href="#icon-sparkles"/></svg> 开源致谢
+                        <button id="openCreditsFromSettingsBtn" type="button" aria-expanded="false" aria-controls="creditsModal" aria-haspopup="dialog" class="settings-action h-9 px-3 text-xs font-medium glass-interactive inline-flex items-center justify-center whitespace-nowrap gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 enabled:active:scale-95" title="查看开源致谢" data-i18n-title="ui.view.credits">
+                            <svg class="size-3.5 opacity-80 shrink-0" aria-hidden="true"><use href="#icon-sparkles"/></svg> <span data-i18n="ui.credits">开源致谢</span>
                         </button>
-                        <a href="https://github.com/leosdcn/glass-start" target="_blank" rel="noopener noreferrer" aria-label="GitHub 项目仓库（在新标签页打开）" title="查看 GitHub 项目仓库" class="col-span-2 settings-action min-h-11 sm:min-h-9 px-3 text-xs font-medium glass-interactive inline-flex items-center justify-center whitespace-nowrap gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 active:scale-95">
+                        <a href="https://github.com/leosdcn/glass-start" target="_blank" rel="noopener noreferrer" aria-label="GitHub 项目仓库（在新标签页打开）" title="查看 GitHub 项目仓库" class="col-span-2 settings-action min-h-11 sm:min-h-9 px-3 text-xs font-medium glass-interactive inline-flex items-center justify-center whitespace-nowrap gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 active:scale-95" data-i18n-aria-label="ui.github.repository.opens.in.a.new" data-i18n-title="ui.view.github.repository">
                             <img src="./icons/app/github.svg" class="size-4 object-contain shrink-0" alt="" aria-hidden="true" decoding="async">
                             GitHub
                         </a>
@@ -503,21 +504,21 @@
                     <div class="data-section shrink-0 md:flex-1 flex flex-col gap-2.5 md:min-h-0">
                         <div class="data-section-heading">
                             <span class="text-xs font-semibold text-white/80 flex items-center gap-1.5">
-                                <svg class="size-4 text-white/60 shrink-0" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="m20.25 7.5-.625 10.632a2.25 2.25 0 0 1-2.247 2.118H6.622a2.25 2.25 0 0 1-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z"/></svg> 配置备份与恢复
+                                <svg class="size-4 text-white/60 shrink-0" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="m20.25 7.5-.625 10.632a2.25 2.25 0 0 1-2.247 2.118H6.622a2.25 2.25 0 0 1-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z"/></svg> <span data-i18n="ui.backup.and.restore">配置备份与恢复</span>
                             </span>
                         </div>
                         <button id="exportJsonBtn" type="button" class="settings-action w-full h-9 px-3.5 text-xs font-medium glass-interactive flex items-center justify-center gap-1.5 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50">
-                            <svg class="size-3.5 shrink-0 opacity-80" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg> 导出快捷书签备份
+                            <svg class="size-3.5 shrink-0 opacity-80" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg> <span data-i18n="ui.export.bookmarks">导出快捷书签备份</span>
                         </button>
                         <!-- Dropzone 导入框 (flex-1 自适应拉伸填充) -->
-                        <div id="jsonDropzone" role="button" aria-label="点击或将 JSON 备份文件拖入此处上传" class="json-dropzone flex-1 border border-dashed border-white/18 hover:border-white/35 rounded-2xl p-4 text-center glass-interactive cursor-pointer bg-black/15 hover:bg-white/8 flex flex-col items-center justify-center gap-1.5 min-h-24 sm:min-h-28 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" tabindex="0">
+                        <div id="jsonDropzone" role="button" aria-label="点击或将 JSON 备份文件拖入此处上传" class="json-dropzone flex-1 border border-dashed border-white/18 hover:border-white/35 rounded-2xl p-4 text-center glass-interactive cursor-pointer bg-black/15 hover:bg-white/8 flex flex-col items-center justify-center gap-1.5 min-h-24 sm:min-h-28 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" tabindex="0" data-i18n-aria-label="ui.click.or.drop.a.json.backup">
                             <span class="size-9 rounded-full bg-white/6 border border-white/10 flex items-center justify-center text-white/75 mb-0.5 shrink-0">
                                 <svg class="size-4.5 shrink-0" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5"/></svg>
                             </span>
-                            <p class="text-xs text-white/85 font-medium">点击或将 JSON 备份文件拖入此处</p>
-                            <p class="text-2xs text-white/55">自动解析恢复首屏快捷书签</p>
+                            <p class="text-xs text-white/85 font-medium"><span data-i18n="ui.click.or.drop.a.json.backup2">点击或将 JSON 备份文件拖入此处</span></p>
+                            <p class="text-2xs text-white/55"><span data-i18n="ui.import.quick.bookmarks.from.a.backup">自动解析恢复首屏快捷书签</span></p>
                         </div>
-                        <input type="file" id="importJsonInput" name="importJsonInput" accept=".json,application/json" class="hidden" aria-label="导入书签配置文件">
+                        <input type="file" id="importJsonInput" name="importJsonInput" accept=".json,application/json" class="hidden" aria-label="导入书签配置文件" data-i18n-aria-label="ui.import.bookmark.file">
                     </div>
 
                     <!-- 右侧栏：系统维护与危险区域 -->
@@ -527,15 +528,15 @@
                             <div>
                                 <div class="data-section-heading">
                                     <span class="text-xs font-semibold text-white/80 flex items-center gap-1.5">
-                                        <svg class="size-4 text-white/60 shrink-0" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z"/></svg> 离线 Service Worker 缓存
+                                        <svg class="size-4 text-white/60 shrink-0" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z"/></svg> <span data-i18n="cache.title">离线 Service Worker 缓存</span>
                                     </span>
                                 </div>
                                 <p class="text-2xs-plus text-white/60 leading-relaxed">
-                                     若离线资源异常或更新未及时应用，可手动刷新 Service Worker 离线缓存。
+                                     <span data-i18n="cache.description">若离线资源异常或更新未及时应用，可手动刷新 Service Worker 离线缓存。</span>
                                 </p>
                             </div>
                             <button id="clearCacheBtn" type="button" aria-expanded="false" aria-controls="confirmModal" aria-haspopup="dialog" class="settings-action w-full h-9 px-3.5 text-xs font-medium settings-action-muted glass-interactive flex items-center justify-center gap-1.5 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50">
-                                <svg class="size-3.5 shrink-0 opacity-80" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/></svg> 一键刷新 Service Worker 离线缓存
+                                <svg class="size-3.5 shrink-0 opacity-80" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/></svg> <span data-i18n="cache.action">一键刷新 Service Worker 离线缓存</span>
                             </button>
                         </div>
 
@@ -544,39 +545,50 @@
                             <div>
                                 <div class="data-section-heading">
                                     <span class="text-xs font-semibold text-red-300/90 flex items-center gap-1.5">
-                                        <svg class="size-4 text-red-400 shrink-0" aria-hidden="true"><use href="#icon-warning"/></svg> 还原初始设置
+                                        <svg class="size-4 text-red-400 shrink-0" aria-hidden="true"><use href="#icon-warning"/></svg> <span data-i18n="ui.restore.defaults">还原初始设置</span>
                                     </span>
                                 </div>
                                 <p class="text-2xs-plus text-white/60 leading-relaxed">
-                                    恢复为系统初始默认状态，将永久清除所有自定义书签、壁纸与偏好设置。
+                                    <span data-i18n="ui.permanently.remove.custom.bookmarks.wallpaper.and">恢复为系统初始默认状态，将永久清除所有自定义书签、壁纸与偏好设置。</span>
                                 </p>
                             </div>
                             <button id="resetEditBtn" type="button" aria-expanded="false" aria-controls="confirmModal" aria-haspopup="dialog" class="danger-zone-btn w-full h-9 px-3.5 text-xs font-medium glass-interactive flex items-center justify-center gap-1.5 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 disabled:opacity-50 disabled:cursor-not-allowed">
-                                <svg class="size-3.5 shrink-0 opacity-80" aria-hidden="true"><use href="#icon-warning"/></svg> 重置所有系统设置
+                                <svg class="size-3.5 shrink-0 opacity-80" aria-hidden="true"><use href="#icon-warning"/></svg> <span data-i18n="ui.reset.all.settings">重置所有系统设置</span>
                             </button>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- 底部操作栏 (完成 / 取消响应式布局) -->
-            <div class="flex items-center justify-end gap-3 mt-3 pt-3 border-t border-white/10 shrink-0">
-                <button id="cancelEditBtn" type="button" class="flex-1 sm:flex-initial py-2.5 px-5 rounded-control text-xs sm:text-sm font-normal text-white/50 enabled:hover:text-white/80 enabled:hover:bg-white/5 glass-interactive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 disabled:opacity-50 disabled:cursor-not-allowed">取消</button>
-                <button id="saveEditBtn" type="button" title="保存快捷书签与背景暗度修改" class="glass-btn-primary flex-1 sm:flex-initial py-2.5 px-6 text-xs sm:text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:opacity-50 disabled:cursor-not-allowed">完成</button>
+            <!-- 全局偏好与提交操作：语言位于左侧，取消与完成位于右侧。 -->
+            <div class="flex flex-wrap items-center justify-between gap-3 mt-3 pt-3 border-t border-white/10 shrink-0">
+                <div class="shrink-0">
+                    <label for="languageSelect" class="sr-only" data-i18n="language.label">界面语言</label>
+                    <span id="languageSaveHint" class="sr-only" data-i18n="language.reload">点击完成后刷新生效</span>
+                    <select id="languageSelect" name="language" aria-describedby="languageSaveHint" title="点击完成后刷新生效" data-i18n-title="language.reload" class="settings-action glass-interactive min-h-11 w-40 px-2 sm:px-3 py-2 text-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50">
+                        <option value="auto" data-i18n="language.auto">跟随浏览器</option>
+                        <option value="zh-CN" lang="zh-CN">简体中文</option>
+                        <option value="en" lang="en">English</option>
+                    </select>
+                </div>
+                <div class="flex flex-1 sm:flex-initial items-center justify-end gap-2 sm:gap-3">
+                    <button id="cancelEditBtn" type="button" class="flex-1 sm:flex-initial py-2.5 px-3 sm:px-5 rounded-control text-xs sm:text-sm font-normal text-white/50 enabled:hover:text-white/80 enabled:hover:bg-white/5 glass-interactive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 disabled:opacity-50 disabled:cursor-not-allowed"><span data-i18n="ui.cancel">取消</span></button>
+                    <button id="saveEditBtn" type="button" title="保存快捷书签与背景暗度修改" class="glass-btn-primary flex-1 sm:flex-initial py-2.5 px-4 sm:px-6 text-xs sm:text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:opacity-50 disabled:cursor-not-allowed" data-i18n-title="ui.save.bookmarks.background.dimming.and.language"><span data-i18n="ui.done">完成</span></button>
+                </div>
             </div>
         </div>
     </div><!-- /#editModal -->
 
     <!-- 从导航页选择弹窗 -->
-    <div id="bookmarkPicker" role="dialog" aria-modal="true" hidden aria-label="从导航页选择书签" class="edit-overlay fixed inset-0 flex items-center justify-center z-[var(--z-picker)] overscroll-contain">
+    <div id="bookmarkPicker" role="dialog" aria-modal="true" hidden aria-label="从导航页选择书签" class="edit-overlay fixed inset-0 flex items-center justify-center z-[var(--z-picker)] overscroll-contain" data-i18n-aria-label="ui.choose.bookmarks.from.directory">
         <div class="glass-strong apple-radius pt-4 pb-3 px-4 w-full max-w-2xl xl:max-w-3xl 2xl:max-w-4xl mx-4 max-h-picker-max flex flex-col shadow-2xl">
             <div class="flex items-center justify-between mb-2 pb-1.5 border-b border-white/10 shrink-0">
-                <h3 class="text-base font-medium tracking-wide text-white/80">从导航页选择</h3>
-                <span id="pickerCount" class="glass-badge">已添加 0 项</span>
+                <h3 class="text-base font-medium tracking-wide text-white/80"><span data-i18n="ui.choose.from.directory.2">从导航页选择</span></h3>
+                <span id="pickerCount" class="glass-badge" data-i18n="ui.0.bookmarks.added">已添加 0 项</span>
             </div>
             <div id="pickerContent" class="flex-1 overflow-y-auto min-h-0 space-y-3"></div>
             <div class="flex items-center justify-end mt-3 pt-2 border-t border-white/10 shrink-0">
-                <button id="donePickerBtn" type="button" class="glass-btn-primary py-2 px-6 text-xs sm:text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:opacity-50 disabled:cursor-not-allowed">完成</button>
+                <button id="donePickerBtn" type="button" class="glass-btn-primary py-2 px-6 text-xs sm:text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:opacity-50 disabled:cursor-not-allowed"><span data-i18n="ui.done">完成</span></button>
             </div>
         </div>
     </div><!-- /#bookmarkPicker -->
@@ -590,22 +602,22 @@
                     <path d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"/>
                 </svg>
             </div>
-            <h3 id="confirmTitle" class="text-sm sm:text-base font-semibold text-white/90 mb-1.5">重置快捷书签</h3>
+            <h3 id="confirmTitle" class="text-sm sm:text-base font-semibold text-white/90 mb-1.5"><span data-i18n="ui.reset.bookmarks">重置快捷书签</span></h3>
             <p id="confirmMsg" class="text-xs text-white/65 leading-relaxed mb-5"></p>
             <div class="flex gap-2.5 w-full">
-                <button id="confirmCancelBtn" type="button" class="confirm-dialog-btn-cancel focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50">取消</button>
-                <button id="confirmOkBtn" type="button" class="confirm-dialog-btn-ok focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400">确认重置</button>
+                <button id="confirmCancelBtn" type="button" class="confirm-dialog-btn-cancel focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"><span data-i18n="ui.cancel">取消</span></button>
+                <button id="confirmOkBtn" type="button" class="confirm-dialog-btn-ok focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400"><span data-i18n="ui.confirm.reset">确认重置</span></button>
             </div>
         </div>
     </div><!-- /#confirmModal -->
 
     <!-- 快捷键速查面板弹窗 (Cmd/Ctrl + /) -->
-    <div id="shortcutModal" role="dialog" aria-modal="true" hidden aria-label="快捷键速查" class="edit-overlay fixed inset-0 flex items-center justify-center z-[var(--z-picker)] overscroll-contain">
+    <div id="shortcutModal" role="dialog" aria-modal="true" hidden aria-label="快捷键速查" class="edit-overlay fixed inset-0 flex items-center justify-center z-[var(--z-picker)] overscroll-contain" data-i18n-aria-label="ui.keyboard.shortcuts">
         <div class="glass-strong apple-radius w-full max-w-md mx-4 max-h-panel-max flex flex-col p-5 sm:p-6 shadow-2xl overflow-hidden">
             <!-- 弹窗 Header -->
             <div class="flex items-center gap-2 mb-3 pb-2 border-b border-white/10 shrink-0">
                 <svg class="size-4.5 text-white/80 shrink-0" aria-hidden="true"><use href="#icon-keyboard"/></svg>
-                <h3 class="text-base font-semibold tracking-wide text-white/90">快捷键速查</h3>
+                <h3 class="text-base font-semibold tracking-wide text-white/90"><span data-i18n="ui.keyboard.shortcuts">快捷键速查</span></h3>
             </div>
 
             <!-- 快捷键列表内容 (无框细分割线纵向分类流式布局) -->
@@ -613,18 +625,18 @@
 
             <!-- 底部操作与提示 -->
             <div class="flex items-center justify-end mt-3 pt-3 border-t border-white/10 shrink-0">
-                <button id="doneShortcutBtn" type="button" class="glass-btn-primary py-2.5 px-6 text-xs sm:text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:opacity-50 disabled:cursor-not-allowed">知道了</button>
+                <button id="doneShortcutBtn" type="button" class="glass-btn-primary py-2.5 px-6 text-xs sm:text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:opacity-50 disabled:cursor-not-allowed"><span data-i18n="ui.got.it">知道了</span></button>
             </div>
         </div>
     </div><!-- /#shortcutModal -->
 
     <!-- 开源致谢弹窗 (Credits & Attribution Modal) -->
-    <div id="creditsModal" role="dialog" aria-modal="true" hidden aria-label="开源致谢" class="edit-overlay fixed inset-0 flex items-center justify-center z-[var(--z-picker)] overscroll-contain">
+    <div id="creditsModal" role="dialog" aria-modal="true" hidden aria-label="开源致谢" class="edit-overlay fixed inset-0 flex items-center justify-center z-[var(--z-picker)] overscroll-contain" data-i18n-aria-label="ui.credits">
         <div class="glass-strong apple-radius w-full max-w-md mx-4 max-h-panel-max flex flex-col p-5 sm:p-6 shadow-2xl overflow-hidden">
             <!-- 弹窗 Header -->
             <div class="flex items-center gap-2 mb-3 pb-2 border-b border-white/10 shrink-0">
                 <svg class="size-4.5 text-white/80 shrink-0" aria-hidden="true"><use href="#icon-sparkles"/></svg>
-                <h3 class="text-base font-semibold tracking-wide text-white/90">开源致谢</h3>
+                <h3 class="text-base font-semibold tracking-wide text-white/90"><span data-i18n="ui.credits">开源致谢</span></h3>
             </div>
 
             <!-- 致谢条目列表 (由 JS 数据驱动渲染，无框细分割线列表) -->
@@ -632,12 +644,19 @@
 
             <!-- 底部操作与提示 -->
             <div class="flex items-center justify-end mt-3 pt-3 border-t border-white/10 shrink-0">
-                <button id="doneCreditsBtn" type="button" class="glass-btn-primary py-2.5 px-6 text-xs sm:text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:opacity-50 disabled:cursor-not-allowed">知道了</button>
+                <button id="doneCreditsBtn" type="button" class="glass-btn-primary py-2.5 px-6 text-xs sm:text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:opacity-50 disabled:cursor-not-allowed"><span data-i18n="ui.got.it">知道了</span></button>
             </div>
         </div>
     </div><!-- /#creditsModal -->
 
 
+    <script>
+        try { window.__GLASS_I18N__.applyTranslations(); }
+        finally {
+            clearTimeout(window.__GLASS_I18N__?.pendingTimer);
+            delete document.documentElement.dataset.i18nPending;
+        }
+    </script>
     <!-- BUILD_APP_ENTRY_START -->
     <script type="module" src="./js/main.js"></script>
     <!-- BUILD_APP_ENTRY_END -->

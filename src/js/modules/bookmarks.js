@@ -95,8 +95,8 @@ function migrateBookmarksStorage() {
     }
 }
 
-/** @param {import('../types').BookmarkItem[]} list @returns {boolean} */
-export function saveUserBookmarks(list) {
+/** @param {import('../types').BookmarkItem[]} list @param {Set<string>} [customTextUrls] @returns {boolean} */
+export function saveUserBookmarks(list, customTextUrls = new Set()) {
     /** @type {string[]} */
     const keys = [];
     const customMeta = storageGet(CONFIG.KEYS.CUSTOM_META) || {};
@@ -110,12 +110,13 @@ export function saveUserBookmarks(list) {
         keys.push(normUrl);
         newKeysSet.add(normUrl);
         const catBm = catMetaMap.get(normUrl);
-        const isCustomized = !catBm || (bm.name && bm.name !== catBm.name) || (bm.icon && bm.icon !== (catBm.icon || faviconFromUrl(catBm.url))) || (bm.desc !== undefined && bm.desc !== (catBm.desc || ''));
+        const previous = customMeta[normUrl];
+        const isCustomized = customTextUrls.has(normUrl) || !catBm || previous?.name !== undefined || previous?.desc !== undefined || (bm.name && bm.name !== catBm.name) || (bm.icon && bm.icon !== (catBm.icon || faviconFromUrl(catBm.url))) || (bm.desc !== undefined && bm.desc !== (catBm.desc || ''));
         if (isCustomized) {
             customMeta[normUrl] = {
-                name: bm.name,
-                icon: bm.icon,
-                ...(bm.desc !== undefined ? { desc: bm.desc } : {})
+                ...((customTextUrls.has(normUrl) || !catBm || previous?.name !== undefined || bm.name !== catBm.name) ? { name: bm.name } : {}),
+                ...(bm.icon !== catBm?.icon ? { icon: bm.icon } : {}),
+                ...((bm.desc !== undefined && (customTextUrls.has(normUrl) || !catBm || previous?.desc !== undefined || bm.desc !== (catBm.desc || ''))) ? { desc: bm.desc } : {})
             };
         } else {
             delete customMeta[normUrl];

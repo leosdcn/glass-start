@@ -1,3 +1,4 @@
+import { t } from './i18n.js';
 import { dom } from '../state/dom.js';
 import { OverlayStack } from './overlay-stack.js';
 
@@ -13,7 +14,7 @@ let activeConfirmCleanup = null;
  * @param {'danger' | 'neutral' | string} [tone]
  * @param {string} [cancelText]
  */
-export function showConfirm(message, onConfirm, title = '重置确认', triggerEl = null, okText = '', tone = 'danger', cancelText = '取消') {
+export function showConfirm(message, onConfirm, title = t('ui.confirm.reset.2'), triggerEl = null, okText = '', tone = 'danger', cancelText = t('ui.cancel')) {
     const modal = dom.confirmModal;
     const titleEl = dom.confirmTitle;
     const msgEl = dom.confirmMsg;
@@ -37,7 +38,7 @@ export function showConfirm(message, onConfirm, title = '重置确认', triggerE
     const isNotify = onConfirm == null;
     currentModal.classList.toggle('confirm-neutral', tone === 'neutral');
     currentModal.setAttribute('role', tone === 'neutral' ? 'dialog' : 'alertdialog');
-    currentOkBtn.textContent = isNotify ? '知道了' : (okText || '确认');
+    currentOkBtn.textContent = isNotify ? t('ui.got.it') : (okText || t('ui.confirm'));
     currentCancelBtn.textContent = cancelText;
     currentCancelBtn.classList.toggle('hidden', isNotify);
 

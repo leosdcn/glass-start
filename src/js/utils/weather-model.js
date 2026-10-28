@@ -126,6 +126,7 @@ export function normalizeWeatherForecast(data, loc, config, now) {
             const wLabel = i === 0 ? '今天' : i === 1 ? '明天' : (weekDays[dDate.getDay()] || `${dDate.getMonth() + 1}/${dDate.getDate()}`);
             days.push({
                 date: daily.time[i],
+                weatherCode: dayCode,
                 label: wLabel,
                 icon: dwInfo.icon,
                 text: dwInfo.text,

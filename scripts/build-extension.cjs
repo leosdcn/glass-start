@@ -15,16 +15,21 @@ function buildExtension() {
         const manifest = JSON.parse(fs.readFileSync(path.join(PATHS.src, 'extension/manifest.json'), 'utf8'));
         manifest.version = JSON.parse(fs.readFileSync(PATHS.pkgJson, 'utf8')).version;
         fs.writeFileSync(path.join(staging, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n');
+        for (const [locale, folder] of [['zh-CN', 'zh_CN'], ['en', 'en']]) {
+            const messages = JSON.parse(fs.readFileSync(path.join(PATHS.src, 'js/config/locales', `${locale}.json`), 'utf8'));
+            const directory = path.join(staging, '_locales', folder);
+            fs.mkdirSync(directory, { recursive: true });
+            fs.writeFileSync(path.join(directory, 'messages.json'), JSON.stringify({
+                extensionName: { message: messages['extension.name'] },
+                extensionDescription: { message: messages['extension.description'] }
+            }, null, 2) + '\n');
+        }
         fs.copyFileSync(path.join(PATHS.src, 'extension/icon128.png'), path.join(staging, 'icon128.png'));
 
         let html = fs.readFileSync(path.join(staging, 'index.html'), 'utf8');
         html = html.replace(/<meta\b[^>]*http-equiv="Content-Security-Policy"[^>]*>/i,
             `<meta http-equiv="Content-Security-Policy" content="${manifest.content_security_policy.extension_pages}">`);
         html = html.replace(/<link\b[^>]*rel="manifest"[^>]*>/gi, '');
-        html = replaceOnce(html, '离线 Service Worker 缓存', '临时缓存');
-        html = replaceOnce(html, '若离线资源异常或更新未及时应用，可手动刷新 Service Worker 离线缓存。',
-            '可清理临时缓存并刷新页面，不影响已保存的书签、壁纸和设置。');
-        html = replaceOnce(html, '一键刷新 Service Worker 离线缓存', '清理缓存并刷新');
         // 外置首屏脚本会阻塞解析；先应用现有样式，避免等待脚本时透出白色画布。
         const initialStyle = html.match(/<style\b[^>]*>[\s\S]*?<\/style>/i)?.[0];
         if (!initialStyle) throw new Error('扩展页面缺少首屏样式');

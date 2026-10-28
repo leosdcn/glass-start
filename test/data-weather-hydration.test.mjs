@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
+import { build } from 'esbuild';
+const runtimeBundle = (await build({ entryPoints: ['src/js/core/i18n.js'], bundle: true, write: false, format: 'cjs', platform: 'node' })).outputFiles[0].text;
+const messages = Object.fromEntries(['zh-CN', 'en'].map(locale => [locale, JSON.parse(readFileSync(new URL(`../src/js/config/locales/${locale}.json`, import.meta.url), 'utf8'))]));
 import { launchSession, waitFor } from './support/helpers.mjs';
 
 // 执行真实产物的天气内联脚本，在应用尚未运行时检查首帧结果。
@@ -21,10 +24,14 @@ try {
         const data = { current: { temp: value, icon: '🌤️', weatherText: '晴' }, location: { name: '上海' } };
         const nodes = Object.fromEntries(['weatherWidget', 'weatherIcon', 'weatherTemp', 'weatherCity', 'weatherBtn']
             .map(id => [id, { textContent: '', style: {}, attributes: {}, setAttribute(name, value) { this.attributes[name] = value; } }]));
-        vm.runInNewContext(script, {
+        const context = vm.createContext({
+            module: { exports: {} }, window: { __GLASS_I18N__: { locale: 'zh-CN', messages } },
             document: { getElementById: id => nodes[id] },
             localStorage: { getItem: key => key === 'glass_weather_cache' ? JSON.stringify(data) : '{}' }
         });
+        vm.runInContext(runtimeBundle, context);
+        Object.assign(context.window.__GLASS_I18N__, context.module.exports);
+        vm.runInContext(script, context);
         assert.equal(nodes.weatherTemp.textContent, expected);
         const runtime = await evalJS(`(() => {
             renderWeatherCapsule(${JSON.stringify(data)});
