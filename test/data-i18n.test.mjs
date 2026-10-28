@@ -15,6 +15,7 @@ const chooseEnglish = async () => {
     await ready();
 };
 try {
+    assert.equal(await evalJS(`document.title`), 'Glass Start');
     assert.equal(await evalJS(`state.engine`), 'bing');
     assert.deepEqual(await evalJS(`pageData.bookmarks.map(bookmark => bookmark.name)`),
         ['LocalSend', 'DeepSeek', 'Gemini', 'YouTube', '哔哩哔哩', '抖音', '豆包', '网易云音乐']);
@@ -31,7 +32,7 @@ try {
     assert.equal(await evalJS(`dom.engineName.textContent`), 'Google');
     assert.equal(await evalJS(`localStorage.getItem('preferredEngine')`), null, 'default engine is not saved as a user preference');
     await waitFor(evalJS, `!!document.querySelector('#sidebarList button')`);
-    assert.equal(await evalJS(`document.title`), 'Glass Start — A Clear Start');
+    assert.equal(await evalJS(`document.title`), 'Glass Start');
     assert.equal(await evalJS(`dom.searchInput.placeholder`), 'Search...');
     assert.equal(await evalJS(`document.documentElement.hasAttribute('data-i18n-pending')`), false);
     assert.equal(await evalJS(`pageData.categories[0].name`), 'AI');
@@ -52,7 +53,7 @@ try {
     assert.equal(await evalJS(`typeof openEditModal`), 'undefined', 'app bundle has not executed');
     assert.equal(await evalJS(`document.getElementById('engineName').textContent`), 'Google');
     assert.match(await evalJS(`document.getElementById('engineBtn').getAttribute('aria-label')`), /Google/);
-    assert.equal(await evalJS(`document.title`), 'Glass Start — A Clear Start');
+    assert.equal(await evalJS(`document.title`), 'Glass Start');
     await send('Fetch.continueRequest', { requestId: pausedApp.requestId });
     await send('Fetch.disable');
     stopPausing();
