@@ -253,7 +253,7 @@ const resetBookmarksCheck = await evalJS(`(async () => {
 
     const countOk = Array.isArray(pageData.bookmarks) && pageData.bookmarks.length === 8;
     const names = pageData.bookmarks.map(b => b.name);
-    const hasDefaultNames = names.includes('LocalSend') && names.includes('DeepSeek') && names.includes('Gemini');
+    const hasDefaultNames = names.includes('GitHub') && names.includes('DeepSeek') && names.includes('Gemini');
 
     const storageClean = localStorage.getItem('userBookmarkKeys') === null
       && localStorage.getItem('userCustomMeta') === null
@@ -261,7 +261,7 @@ const resetBookmarksCheck = await evalJS(`(async () => {
       && localStorage.getItem('userWallpaper') === null;
 
     const domTitles = [...document.querySelectorAll('#bookmarks .bookmark-title')].map(e => e.textContent.trim());
-    const domOk = domTitles.includes('LocalSend') && domTitles.includes('DeepSeek');
+    const domOk = domTitles.includes('GitHub') && domTitles.includes('DeepSeek');
 
     const resetSuccess = countOk && hasDefaultNames && storageClean && domOk;
     return { resetSuccess, countOk, hasDefaultNames, storageClean, domOk };

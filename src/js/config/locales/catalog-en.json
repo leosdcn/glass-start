@@ -1,13 +1,13 @@
 {
     "defaultBookmarks": [
-        "https://web.localsend.org",
-        "https://chat.deepseek.com",
-        "https://gemini.google.com",
-        "https://www.youtube.com",
-        "https://www.reddit.com",
-        "https://x.com",
         "https://chatgpt.com",
-        "https://open.spotify.com"
+        "https://gemini.google.com",
+        "https://chat.deepseek.com",
+        "https://github.com",
+        "https://www.youtube.com",
+        "https://open.spotify.com",
+        "https://www.reddit.com",
+        "https://x.com"
     ],
     "categories": {
         "ai": "AI",

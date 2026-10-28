@@ -18,7 +18,7 @@ try {
     assert.equal(await evalJS(`document.title`), 'Glass Start');
     assert.equal(await evalJS(`state.engine`), 'bing');
     assert.deepEqual(await evalJS(`pageData.bookmarks.map(bookmark => bookmark.name)`),
-        ['LocalSend', 'DeepSeek', 'Gemini', 'YouTube', '哔哩哔哩', '抖音', '豆包', '网易云音乐']);
+        ['GitHub', 'DeepSeek', 'Gemini', 'YouTube', '哔哩哔哩', '抖音', '豆包', '网易云音乐']);
     await evalJS(`(async () => {
         await openEditModal();
         dom.languageSelect.value = 'en';
@@ -37,7 +37,7 @@ try {
     assert.equal(await evalJS(`document.documentElement.hasAttribute('data-i18n-pending')`), false);
     assert.equal(await evalJS(`pageData.categories[0].name`), 'AI');
     assert.deepEqual(await evalJS(`pageData.bookmarks.map(bookmark => bookmark.name)`),
-        ['LocalSend', 'DeepSeek', 'Gemini', 'YouTube', 'Reddit', 'X', 'ChatGPT', 'Spotify']);
+        ['ChatGPT', 'Gemini', 'DeepSeek', 'GitHub', 'YouTube', 'Spotify', 'Reddit', 'X']);
     assert.equal(await evalJS(`pageData.categories.every(category => category.bookmarks.every(bookmark => !/[\u4e00-\u9fff]/.test(bookmark.name + bookmark.desc)))`), true);
 
     // Hold the deferred app bundle: the head and body bootstrap must translate independently.

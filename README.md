@@ -9,6 +9,10 @@
 </p>
 
 <p align="center">
+  <strong>简体中文</strong> · <a href="./README.en.md">English</a>
+</p>
+
+<p align="center">
   <a href="./LICENSE"><img src="https://img.shields.io/badge/License-GPLv3-blue.svg" alt="License: GPL v3"></a>
   <a href="https://github.com/leosdcn/glass-start/actions/workflows/ci.yml"><img src="https://github.com/leosdcn/glass-start/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://tailwindcss.com/"><img src="https://img.shields.io/badge/Tailwind_CSS-v4-38bdf8?logo=tailwindcss&logoColor=white" alt="Tailwind CSS"></a>
@@ -124,22 +128,23 @@ npm run preview
 - **混合联想**：输入关键词后，先展示**本地书签匹配结果**，再补充返回的**搜索引擎联想词**；网络结果取决于服务可用性，已有缓存时可直接展示。
 - **键盘挑选**：通过 `↑` / `↓` 方向键循环挑选结果，按 `Enter` 打开选中项。
 - **新标签打开**：按 `Cmd + Enter`、`Ctrl + Enter` 或 `Alt + Enter` 可在新标签页中打开选中项或执行搜索。
-- **多引擎切换**：点击搜索框左侧图标，可切换 Bing、Google、Wikipedia 等搜索引擎。
+- **多引擎切换**：点击搜索框左侧图标，可切换 Bing、Google、Wikipedia 等搜索引擎。没有保存的偏好时，中文默认 Bing，英文默认 Google；用户已保存的选择优先。
 
 ### 3. 默认书签维护
-**默认快捷书签与导航分类统一维护在根目录 `bookmarks.json`**：
+**共享书签目录与中文默认快捷书签维护在根目录 `bookmarks.json`**：
 ```json
 {
   "bookmarks": [
     {
-      "name": "LocalSend",
-      "url": "https://web.localsend.org",
-      "icon": "./icons/web.localsend.org.png"
+      "name": "GitHub",
+      "url": "https://github.com",
+      "icon": "./icons/github.com.png"
     }
   ],
   "categories": [
     {
-      "name": "常用工具",
+      "id": "work",
+      "name": "办公协作",
       "icon": "🛠️",
       "bookmarks": [
         {
@@ -153,12 +158,15 @@ npm run preview
   ]
 }
 ```
-- **`bookmarks`**：首屏快捷书签列表（包含 `name`、`url`、`icon`）。
-- **`categories`**：导航页分类列表，包含分类名 `name`、Emoji 图标 `icon` 及分类书签 `bookmarks`。
+以上为结构示例；英文分类名、书签名与简介维护在 `src/js/config/locales/catalog-en.json`。
+
+- **`bookmarks`**：中文首屏默认快捷书签列表（包含 `name`、`url`、`icon`）。
+- **`categories`**：导航页分类列表，包含稳定标识 `id`、分类名 `name`、图标 `icon` 及分类书签 `bookmarks`；新增或修改分类时，同步英文目录中的分类 ID。
 - **`name`**：中文服务使用标准官方中文名，国际服务使用官方英文名。
-- **`desc`**：精简的副标题。纯中文 <= 9 字，含英数混排 <= 13 字符。
+- **`desc`**：精简的副标题。`bookmarks.json` 中纯中文 <= 9 字，含英数混排 <= 13 字符；英文目录简介 <= 28 字符（含空格、标点），由 lint 校验。字符上限不保证在所有卡片宽度下都完整显示。
 - **`url`**：使用官方 HTTPS 地址，优先直达目标页面并减少不必要的跳转。
 - **`icon`**：预设书签统一使用同源路径 `./icons/<domain>.png`，从本站加载或读取缓存。同步脚本根据书签 URL 的主机名抓取图标，使用 `sips` 转换为正方形 PNG，并回写本地路径；`icon` 字段不是自定义下载源。
+- **英文默认入口**：`src/js/config/locales/catalog-en.json` 的 `defaultBookmarks` 定义英文首屏的 URL 顺序，复用共享目录条目；URL 不重复，数量与中文默认入口一致。未保存快捷书签配置时采用对应语言的默认值；已有保存配置不会因切换语言被替换，重置书签会恢复当前语言的默认入口。
 - **验证与构建**：新增书签或修改 URL、图标来源后，运行 `npm run sync:icons`，再运行 `npm run lint`；同步脚本复用合规图标，仅补齐缺失或损坏项。仅修改名称、简介、排序或删除书签时，只运行 lint。功能改动按 [AGENTS.md](./AGENTS.md#验证) 验证；`npm run build` 将书签数据与本地图标打包到 `dist/`。
 
 #### 预设书签筛选标准

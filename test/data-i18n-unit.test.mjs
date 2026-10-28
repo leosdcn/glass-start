@@ -26,6 +26,8 @@ test('complete messages, singular/plural, one-pass parameters and fallback', () 
         assert.deepEqual(Object.keys(messages.en).sort(), Object.keys(messages['zh-CN']).sort());
         assert.equal(t('bookmark.count', { count: 1 }), '1 bookmark added');
         assert.equal(t('bookmark.count', { count: 3 }), '3 bookmarks added');
+        assert.equal(t('bookmark.importConfirm', { count: 1 }), 'Import 1 bookmark into your draft? Click Done to save it.');
+        assert.equal(t('bookmark.importConfirm', { count: 3 }), 'Import 3 bookmarks into your draft? Click Done to save them.');
         assert.equal(t('bookmark.addLabel', { name: '{count}<img>' }), 'Add quick bookmark: {count}<img>');
         assert.equal(t('unknown.key'), 'unknown.key');
         scope.window.__GLASS_I18N__.locale = 'missing';
