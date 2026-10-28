@@ -48,4 +48,4 @@ Safari 首次进入也存在主线程回调长间隔，本次没有测量实际�
 
 同一源码版本此前已通过 `npm run lint`、类型检查、构建，以及 `ui-rendering-performance`、`ui-screen-boundaries`、`ui-screen-gestures`、`ui-input-device-performance`、`lifecycle-behavior` 五个相关浏览器测试文件。本次只增加性能记录，未重复构建或运行全量测试。
 
-[完整汇总和原始帧间隔](./performance/2026-10-23-safari.json)。
+[完整汇总和原始帧间隔](../performance/2026-10-23-safari.json)。

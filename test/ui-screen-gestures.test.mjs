@@ -1,5 +1,5 @@
 /** 验证双屏切换、输入保护、滚轮与触屏手势。 */
-import { launchSession, tyOf, makeTester, pressKey, waitFor } from './helpers.mjs';
+import { launchSession, tyOf, makeTester, pressKey, waitFor } from './support/helpers.mjs';
 
 const { pass, finish } = makeTester();
 const { server, chrome, send, evalJS } = await launchSession();

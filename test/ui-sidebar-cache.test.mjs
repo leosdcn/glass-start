@@ -1,6 +1,6 @@
 /** 分类位置缓存复用、布局变化与分类重建后的高亮回归。 */
 import assert from 'node:assert/strict';
-import { launchSession, waitFor, sleep } from './helpers.mjs';
+import { launchSession, waitFor, sleep } from './support/helpers.mjs';
 
 const { server, chrome, send, evalJS } = await launchSession();
 try {

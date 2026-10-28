@@ -1,6 +1,6 @@
 const fs = require('node:fs');
 const path = require('node:path');
-const { executeBuild, PATHS } = require('./build.js');
+const { executeBuild, PATHS } = require('./build.cjs');
 const { replaceOnce } = require('./html-template.cjs');
 
 // 复用网页编译与资源注入，独立输出；失败时保留上一份扩展。

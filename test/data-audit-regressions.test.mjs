@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { launchSession, waitFor } from './helpers.mjs';
+import { launchSession, waitFor } from './support/helpers.mjs';
 
 const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+j1ioAAAAASUVORK5CYII=', 'base64');
 const { server, chrome, send, evalJS } = await launchSession(0, {

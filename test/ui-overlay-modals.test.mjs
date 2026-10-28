@@ -1,5 +1,5 @@
 /** 验证弹窗栈、唤醒恢复、联想交互及移动视口可访问性。 */
-import { launchSession, makeTester, pressKey, waitFor } from './helpers.mjs';
+import { launchSession, makeTester, pressKey, waitFor } from './support/helpers.mjs';
 
 const { pass, finish } = makeTester();
 const { server, chrome, send, evalJS } = await launchSession();

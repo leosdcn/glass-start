@@ -1,6 +1,6 @@
 /** 弹窗隔离只更新变化的区域，保留嵌套焦点和屏幕状态恢复。 */
 import assert from 'node:assert/strict';
-import {launchSession,waitFor} from './helpers.mjs';
+import {launchSession,waitFor} from './support/helpers.mjs';
 
 const {server,chrome,send,evalJS}=await launchSession();
 try {

@@ -4,10 +4,10 @@ import { extname, join, normalize, relative, isAbsolute } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 
-const { buildAppJavaScript } = createRequire(import.meta.url)('../scripts/build.js');
+const { buildAppJavaScript } = createRequire(import.meta.url)('../../scripts/build.cjs');
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
-const DEFAULT_ROOT = join(__dirname, '..', 'dist');
+const DEFAULT_ROOT = join(__dirname, '..', '..', 'dist');
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -37,7 +37,7 @@ export function startServer(port = 0, root = DEFAULT_ROOT, customRoutes = {}, { 
         }
         if (p === '/') p = '/index.html';
         const file = join(root, p);
-        // 🛡️ 防目录遍历：禁止越过 root 服务任意本地文件（与 scripts/server.js 同等守卫）
+        // 🛡️ 防目录遍历：禁止越过 root 服务任意本地文件（与 scripts/server.cjs 同等守卫）
         const rel = relative(root, file);
         if (rel.startsWith('..') || isAbsolute(rel)) {
           res.writeHead(403);

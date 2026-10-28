@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import { readFileSync, mkdirSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
-import { startServer } from './server.mjs';
-import { launchChrome, connectCDP } from './cdp.mjs';
-import { getFreePort, createEvaluator, waitFor, navigateAndWait } from './helpers.mjs';
+import { startServer } from './support/server.mjs';
+import { launchChrome, connectCDP } from './support/cdp.mjs';
+import { getFreePort, createEvaluator, waitFor, navigateAndWait } from './support/helpers.mjs';
 
-const { buildAppJavaScript } = createRequire(import.meta.url)('../scripts/build.js');
+const { buildAppJavaScript } = createRequire(import.meta.url)('../scripts/build.cjs');
 const html = readFileSync(new URL('../dist/index.html', import.meta.url), 'utf8');
 const worker = readFileSync(new URL('../sw.js', import.meta.url), 'utf8');
 let version = 201, failApp = false;

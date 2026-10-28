@@ -4,7 +4,7 @@
  * 外部图标允许 opaque 响应入池，无法读取其正文进行校验。
  */
 
-// 缓存池定义（打包 build.js 时自动替换 CORE_CACHE 为时间戳版本）
+// 缓存池定义（打包 build.cjs 时自动替换 CORE_CACHE 为时间戳版本）
 const CORE_CACHE = 'app-core-v1786255428688';
 const FAVICON_CACHE = 'app-favicons-v1';
 const SCOPE_URL = self.registration.scope;

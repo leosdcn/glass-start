@@ -6,6 +6,7 @@
 
 ## 目录
 
+- [目录速查](#目录速查)
 - [模块索引](#模块索引)
 - [模块与构建](#模块与构建)
 - [书签与设置状态](#书签与设置状态)
@@ -15,6 +16,26 @@
 - [离线缓存与更新](#离线缓存与更新)
 - [搜索与天气](#搜索与天气)
 - [安全与验证边界](#安全与验证边界)
+
+## 目录速查
+
+| 路径 | 用途与维护位置 |
+| :--- | :--- |
+| `src/` | 应用源码：`index.html` 为构建模板，`styles/` 为样式，`js/` 为逻辑，`svg/` 为 SVG 精灵，`extension/` 为 Chrome 扩展清单与图标 |
+| `src/js/config/` | 业务配置与首屏共享配置；构建时注入 HTML，避免维护内联副本 |
+| `public/` | 构建时原样复制的静态资源，包括 `icons/`、`wallpapers/`、许可文件、PWA 清单及托管响应头规则 |
+| `bookmarks.json` | 默认快捷书签与分类目录的编辑入口，构建时打包进应用 |
+| `sw.js` | Service Worker 源文件，构建时注入缓存版本后输出到 `dist/sw.js` |
+| `scripts/` | 构建、开发服务、静态检查、图标同步等工程工具；CommonJS 使用 `.cjs`，ES 模块使用 `.mjs` |
+| `test/` | 顶层保留回归用例、运行器及性能评测入口；`support/` 集中 CDP、测试服务器、共用辅助函数和测试选择规则；测试产物位于已忽略的 `test/artifacts/` |
+| `docs/` | 持续维护的架构说明、切屏评测说明及可选 Safari 参考清单 |
+| `docs/reports/` | 历史审计与性能报告，统一命名为 `YYYY-MM-DD-topic.md`；结论以报告所列版本和环境为限 |
+| `docs/performance/`、`docs/assets/` | 性能原始数据与文档图片 |
+| `dist/`、`extension/` | 网页版与 Chrome 扩展的构建产物，由构建生成，不手工修改，不纳入 Git |
+| `.github/` | CI、部署工作流及 Issue / PR 模板 |
+| 根目录工程文件 | `package.json` 与锁文件管理依赖和命令；`tsconfig.json` 管理类型检查；`wrangler.jsonc` 配置 Cloudflare 部署；`start.command` 为 macOS 启动入口 |
+
+历史报告：[2026-10-23 Safari 性能对照](./reports/2026-10-23-safari-performance.md)、[2026-10-24 审计与修复记录](./reports/2026-10-24-audit.md)、[2026-10-25 切屏性能报告](./reports/2026-10-25-transition-performance.md)、[2026-10-28 目录整理与扩展核实](./reports/2026-10-28-structure-verification.md)。
 
 ## 模块索引
 
@@ -38,15 +59,16 @@
 | **双屏状态、输入与唤醒协调** | `src/js/core/screen-state.js`<br/>`src/js/core/screen-input.js`<br/>`src/js/core/app-wake.js`<br/>`src/js/core/lifecycle.js` |
 | **指针 3D 倾斜与高光** | `src/js/core/gestures.js` |
 | **拖拽重排与 FLIP 动画** | `src/js/core/drag-sort.js` |
-| **全局事件与焦点管理** | `src/js/core/events.js` |
+| **全局事件与焦点管理** | `src/js/events.js` |
 | **文本转义与 URL 处理** | `src/js/utils/helpers.js` |
 | **IndexedDB 大图壁纸持久化** | `src/js/utils/idb.js` |
 | **本地图标同步与格式转换** | `scripts/sync-icons.mjs`<br/>`public/icons/` |
 | **启动装配与生命周期入口** | `src/js/init.js`<br/>`src/js/main.js` |
+| **Chrome 新标签页扩展构建与清单** | `scripts/build-extension.cjs`<br/>`src/extension/manifest.json` |
 | **天气共用数值清洗** | `src/js/utils/weather-data.js` |
 | **目录共用索引** | `src/js/utils/category-catalog.js` |
 | **书签草稿编辑** | `src/js/modules/bookmark-editor.js`<br/>`src/js/state/bookmark-draft.js` |
-| **设置事件装配** | `src/js/core/settings-events.js` |
+| **设置事件装配** | `src/js/modules/settings-events.js` |
 | **确认框与壁纸渲染** | `src/js/core/dialogs.js`<br/>`src/js/core/wallpaper-renderer.js` |
 | **Service Worker 更新与前台协调** | `src/js/core/service-worker-updates.js` |
 | **节点动效收尾与安全清理** | `src/js/utils/transition-cleanup.js` |
@@ -58,10 +80,14 @@
 
 ```mermaid
 flowchart TD
-    Source["src/index.html · src/styles · src/js"] --> Build["scripts/build.js"]
+    Source["src/index.html · src/styles · src/js"] --> Build["scripts/build.cjs"]
     Data["bookmarks.json"] --> Build
     Assets["public/ · sw.js"] --> Build
     Build --> Dist["dist/index.html · app.js · sw.js · 静态资源"]
+    Source --> ExtensionBuild["scripts/build-extension.cjs：复用网页编译"]
+    Data --> ExtensionBuild
+    Assets --> ExtensionBuild
+    ExtensionBuild --> Extension["extension/：本地脚本 · MV3 清单 · 静态资源（移除网页 SW）"]
     Main["main.js"] --> Init["init.js：装配业务模块"]
     Main --> Lifecycle["core/lifecycle.js：诊断与指纹校验"]
     Init --> State["state/store.js：内存状态"]
@@ -70,9 +96,10 @@ flowchart TD
 ```
 
 - `main.js`：启动初始化与生命周期诊断；业务之间通过模块导入调用。
+- `init.js` 与 `events.js`：应用装配入口，分别负责初始化和跨业务的全局事件协调。
 - `state/store.js`：持有 `state`、`modalState`、`pageData`，均为普通可变对象；调用方显式更新并触发渲染，不自动订阅变化。
 - `state/dom.js`：集中缓存通过 `dom.xxx` 或静态键访问的节点，新增或更名此类节点时同步更新 `cacheDOM()` 与 `types.d.ts` 的 `DOMCache` 类型。仅用于标签关联、无障碍描述或锚点的 ID 无须缓存。
-- `core/`：包含浮层、手势等基础设施，也包含事件装配和切屏等业务协调入口；不是严格独立的底层。
+- `core/`：页面共用机制，包括浮层、手势、切屏、生命周期、主题与壁纸渲染；切屏和唤醒可协调业务模块，不要求严格单向分层。具体功能及其控件事件放在 `modules/`，跨业务的应用装配放在 `src/js/` 顶层。
 - `utils/`：提供 URL 与文本清洗、目录索引、IndexedDB 存储等共用能力。
 
 构建读取 `package.json` 版本号并生成版本徽章；每次构建生成统一指纹，注入 HTML、应用脚本与 Service Worker。HTML 引用的 `app.js` 同时携带版本查询参数。
@@ -84,6 +111,8 @@ flowchart TD
 `public/` 在构建时复制到 `dist/`；`src/index.html` 是构建模板。修改构建脚本或其加载的辅助脚本后需重启开发服务。
 
 Chrome 扩展通过 `npm run build:extension` 独立生成 `extension/`。`scripts/build-extension.cjs` 复用同一编译入口，在临时目录中把内联脚本按原位置和执行顺序外置，并用 `src/extension/manifest.json` 替换 PWA 清单，版本号仍取自 `package.json`。扩展使用 Manifest V3 覆盖新标签页，不包含后台脚本或网页 Service Worker；本地资源随扩展更新。编译标记 `window.__GLASS_EXTENSION__` 让搜索联想使用 JSON 请求并裁掉 JSONP 分支，其余业务和 LocalStorage / IndexedDB 存储复用网页源码。扩展与网页拥有独立的存储来源。
+
+扩展构建将首屏样式移到首个阻塞脚本之前，并声明初始深色画布，避免脚本尚未加载时透出白底；脚本执行后仍按已保存壁纸恢复主题。产物移除 PWA 清单链接、网页 Service Worker 及托管专用文件；设置中的缓存清理文案也切换为扩展说明。开发服务只重建网页版，扩展需单独构建并在 Chrome 中重新加载。
 
 ## 书签与设置状态
 
@@ -119,7 +148,7 @@ flowchart LR
 | :--- | :--- |
 | `modules/settings.js` | 打开、完成、取消、导入导出与重置 |
 | `modules/bookmark-editor.js` | 草稿行渲染、计数、收集及目录挑选器 |
-| `core/settings-events.js` | 设置控件事件、草稿字段更新和拖拽装配 |
+| `modules/settings-events.js` | 设置控件事件、草稿字段更新和拖拽装配 |
 | `core/drag-sort.js` | 鼠标与触屏重排、迟滞判定和 FLIP 动画 |
 | `core/dialogs.js` | 共用确认框，不依赖设置或壁纸业务 |
 
@@ -149,7 +178,7 @@ LocalStorage 仅保存背景索引和轻量首屏提示，新选择不写入 Bas
 - 内容尚未到顶时，该轮滚轮输入只滚内容；到顶后须重新向上滚动才能返回。侧边栏、天气、编辑按钮及输入控件的手势不参与切屏；带修饰键的滚轮和横向滚动交给浏览器。
 - 滚轮识别使用被动监听，不持续拦截导航内容区的滚轮事件；利用上次观察到的内容位置和到顶事件时间，避免合成线程先滚到顶后误判为返回手势。仅在切屏动画期间临时阻止原生滚动，完成、超时、减弱动效或唤醒校准均移除拦截。分类联动先读取侧栏几何信息，再更新高亮，避免写后立即读布局。
 - 触屏按滑动方向及 `CONFIG.GESTURE` 中的位移、平均速度阈值识别切屏；手指落下时记录内容是否在顶部，同一次滑动滚到顶部不会接着返回。全局触摸监听为被动监听；允许取消默认滚动的 `touchmove` 仅绑定首屏和处于顶部的导航内容区，导航内容滚离顶部即解除局部监听。局部监听在触摸开始前安装，确保浏览器仍允许取消切屏手势的默认滚动。多指、取消、失焦或唤醒会清除本轮触屏状态。
-- 导航页返回首屏须在内容顶部；顶部返回按钮不受此滚动位置限制。键盘输入及浮层状态由 `core/events.js` 协调。
+- 导航页返回首屏须在内容顶部；顶部返回按钮不受此滚动位置限制。键盘输入及浮层状态由 `events.js` 协调。
 - 所有切屏入口在动画期间不反转、不重启、不排队；过渡时长及曲线由 CSS 定义。过渡通常在 `transitionend` 完成；事件缺失时以配置的动画时长加缓冲兜底。零时长或减弱动效立即完成，过渡中开启减弱动效也会解除锁定。
 - 切屏前清除卡片 3D 倾斜，动画期间不重新启用倾斜；已归零的滚动位置不重复写样式。从内容中间返回时，导航列表退场后才归零，避免首帧重绘列表及可见内容跳动；进入导航前仍确保列表位于顶部。
 
@@ -159,7 +188,7 @@ LocalStorage 仅保存背景索引和轻量首屏提示，新选择不写入 Bas
 
 Chrome（首屏已有的 `.is-chrome` 标记）为两屏保留 `will-change: transform`，导航退出后保留离屏玻璃结构，减少重复进入时的绘制与 GPU 进程任务开销；离屏导航仍由位置、`pointer-events: none`、`inert` 与无障碍属性隔离。其他浏览器在导航退出后继续隐藏并关闭离屏毛玻璃，仅在 `body.is-screen-transitioning` 期间申请合成提示，保留 WebKit 原有回收策略。壁纸切换仍通过 `.is-crossfading` 动态分配 `will-change`。`blur` / `pagehide` 添加 `body.tab-blurred`，收到下一次用户交互后解除，防止悬停残留。
 
-导航卡片高光使用固定渐变纹理，指针每帧只改变相对卡片中心的位移与倾斜，不逐帧重建渐变背景。倾斜通过鼠标 Pointer Events 驱动，触摸输入会清除倾斜；支持悬停和精细指针的能力变化无需刷新页面即可生效。高光伪元素保留渐变实际可见的区域并由卡片裁切；悬停且允许动效时才设置合成提示，离开或启用减弱动效后释放提示。切屏期间暂停两屏书签卡片的指针命中和卡片/光斑/图标过渡，避免移动中的卡片经过光标时启动悬停重绘；过渡状态解除后恢复原有反馈。Safari 专项性能对照见 [2026-10-23 测试记录](./SAFARI_PERFORMANCE_2026-10-23.md)。
+导航卡片高光使用固定渐变纹理，指针每帧只改变相对卡片中心的位移与倾斜，不逐帧重建渐变背景。倾斜通过鼠标 Pointer Events 驱动，触摸输入会清除倾斜；支持悬停和精细指针的能力变化无需刷新页面即可生效。高光伪元素保留渐变实际可见的区域并由卡片裁切；悬停且允许动效时才设置合成提示，离开或启用减弱动效后释放提示。切屏期间暂停两屏书签卡片的指针命中和卡片/光斑/图标过渡，避免移动中的卡片经过光标时启动悬停重绘；过渡状态解除后恢复原有反馈。Safari 专项性能对照见 [2026-10-23 测试记录](./reports/2026-10-23-safari-performance.md)。
 
 `core/lifecycle.js` 提供 `window.__GLASS_DIAG__`（`verify`、`probe`、`dump`、`log`）：
 
@@ -171,7 +200,7 @@ Chrome（首屏已有的 `.is-chrome` 标记）为两屏保留 `will-change: tra
 
 ## 浮层与无障碍
 
-`OverlayStack` 维护 LIFO 栈，Escape 由 `core/events.js` 调用栈顶关闭函数；遮罩点击交给对应浮层处理。
+`OverlayStack` 维护 LIFO 栈，Escape 由 `events.js` 调用栈顶关闭函数；遮罩点击交给对应浮层处理。
 
 浮层由低到高分为下拉、设置、辅助弹窗和确认层，对应 z-index 为 150 / 1000 / 2000 / 9999；具体样式见源码。
 
@@ -182,6 +211,8 @@ Chrome（首屏已有的 `.is-chrome` 标记）为两屏保留 `will-change: tra
 关闭不存在的浮层直接返回。隔离同步先计算目标集合，只恢复不再隔离的元素并隔离新进入集合的元素；持续隔离的区域保留原始基础状态，避免重复解除／设置 `inert` 引起 DOM 和无障碍树更新。
 
 ## 离线缓存与更新
+
+本节的 Service Worker 缓存与更新流程适用于网页版。Chrome 扩展使用随包资源离线打开，不注册网页 Service Worker，也不显示网页更新提示；更新需重新构建并在 Chrome 扩展管理页重新加载。扩展设置中的缓存清理仅删除 Cache Storage 临时缓存并刷新页面，保留 LocalStorage / IndexedDB 数据。
 
 `sw.js` 只处理匹配路由的 GET 请求；其他请求交给浏览器。
 
@@ -213,7 +244,7 @@ Chrome（首屏已有的 `.is-chrome` 标记）为两屏保留 `will-change: tra
 
 本地匹配优先级为名称全等、名称前缀、名称包含、URL 包含、简介包含、名称模糊、其他字段模糊。拼写容错采用支持相邻字符交换的受限 Damerau–Levenshtein（OSA）距离，编辑距离容差与最小查询长度由配置控制。距离矩阵复用 `Int32Array`，容量不足时扩容。
 
-Bing / Google 使用 JSONP，Wikipedia 使用 CORS `fetch`。相同引擎与查询共享未完成请求及候选节点，成功的空结果也进入短期缓存。请求序号 `activeSuggestReqId`、超时和关闭清理共同隔离过期响应；输入变化时即作废旧请求，防抖等待期间及关闭列表后，旧结果不能覆盖新状态。选中与打开操作读取内存结果，DOM 仅展示并传递索引。
+网页版的 Bing / Google 使用 JSONP，Wikipedia 使用 CORS `fetch`；Chrome 扩展三种引擎均通过 `fetch` 读取 JSON，域名权限与连接范围由扩展清单声明。相同引擎与查询共享未完成请求及候选节点，成功的空结果也进入短期缓存。请求序号 `activeSuggestReqId`、超时和关闭清理共同隔离过期响应；输入变化时即作废旧请求，防抖等待期间及关闭列表后，旧结果不能覆盖新状态。选中与打开操作读取内存结果，DOM 仅展示并传递索引。
 
 `utils/weather-model.js` 负责天气代码、地点及响应转换，调用方传入配置和时间；`modules/weather.js` 使用 IP 定位与地名解析获取位置，再请求 Open-Meteo。按缓存有效期决定是否更新，唤醒时重新检查。已知地点预报先显示，后台定位及可能发生的地点变更刷新保留在同一个任务中；期间的唤醒和手动刷新共享该任务，完成或失败后释放。
 
@@ -221,13 +252,16 @@ Bing / Google 使用 JSONP，Wikipedia 使用 CORS `fetch`。相同引擎与查�
 
 ## 安全与验证边界
 
-动态 HTML 文本经 `escapeHtml()` 转义；`safeUrl()` 检查 HTTP(S)、图片 Data URL 及本地图标路径后返回适合 HTML 属性的转义值，不应将该返回值直接当作未转义原始 URL 使用。CSP 同时存在于 HTML 与 `public/_headers`，后者需托管平台实际支持。当前内联脚本及样式仍使用 `'unsafe-inline'`；不能据此声称消除了所有 XSS 风险。
+动态 HTML 文本经 `escapeHtml()` 转义；`safeUrl()` 检查 HTTP(S)、图片 Data URL 及本地图标路径后返回适合 HTML 属性的转义值，不应将该返回值直接当作未转义原始 URL 使用。网页版 CSP 同时存在于 HTML 与 `public/_headers`，后者需托管平台实际支持。网页版内联脚本及样式仍使用 `'unsafe-inline'`；不能据此声称消除了所有 XSS 风险。
+
+Chrome 扩展 CSP 由 `src/extension/manifest.json` 定义，构建时同步到页面 meta。脚本仅允许本地来源，内联启动脚本外置为 `bootstrap-*.js`；样式仍允许内联。扩展网络接口变更需同时核对 `host_permissions` 与 `connect-src`。
 
 测试入口、命令和环境要求见 README。以下边界用于解释验证结果：
 
 - 生产构建编译时裁掉 `testing/bridge.js`；测试服务器按需在内存编译带接口的脚本，仍需预先设置 `window.__GLASS_TEST__ = true` 才挂载接口，不覆盖生产 `dist/app.js`。
 - `infra-module-boundaries.test.mjs` 检查静态导入无环并验证关闭测试接口的页面启动；无环不等于严格分层。
-- 浏览器测试使用 Chrome CDP，模拟移动视口和触摸输入不等于真机 Safari / iOS 验证。导航完成与切屏完成分别等待，避免固定延时掩盖竞态。
-- W3C 脚本提交 HTML 给在线 Nu 校验器，错误阻断发布；警告、信息及已列明的现代 CSS 兼容性消息分类展示，CSP 警告提示另行核对托管响应头。退出码 0 表示无阻断错误，1 表示页面校验错误，2 表示服务或响应异常导致校验未完成；未完成时需恢复后重试。通过不代表完整无障碍、视觉或功能合规，样式完整性由基础架构测试另行检查。
+- 浏览器验收以 Chrome 为准，使用 CDP 验证桌面、移动视口及触摸交互；日常开发、全面测试和发布均不要求 Safari/iOS 真机走查，仅在用户明确要求时进行该专项。导航完成与切屏完成分别等待，避免固定延时掩盖竞态。
+- `infra-chrome-extension.test.mjs` 构建并在独立 Chrome 配置中实际加载扩展，验证新标签页、首屏主题、三引擎联想、设置保存、离线重载及 CSP。联想响应使用固定数据，不能替代真实第三方接口联网走查。
+- W3C 脚本提交网页版 HTML 给在线 Nu 校验器，错误阻断发布；警告、信息及已列明的现代 CSS 兼容性消息分类展示，CSP 警告提示另行核对托管响应头。退出码 0 表示无阻断错误，1 表示页面校验错误，2 表示服务或响应异常导致校验未完成；未完成时需恢复后重试。通过不代表完整无障碍、视觉或功能合规，样式完整性由基础架构测试另行检查。
 - `typecheck` 使用 JSDoc 与 `types.d.ts` 检查核心模型，包含负向类型契约；覆盖范围以 `tsconfig.json` 为准，尚未覆盖全项目。
 - 生命周期约束通过页面行为测试验证；Service Worker 测试执行完整脚本及真实升级流程，不通过截取函数体判断实现是否正确。

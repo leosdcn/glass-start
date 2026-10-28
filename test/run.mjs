@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { tmpdir } from 'node:os';
 import { createRequire } from 'node:module';
-import { requiresBuild } from './test-selection.mjs';
+import { requiresBuild } from './support/test-selection.mjs';
 
 const testDir = fileURLToPath(new URL('.', import.meta.url));
 const rootDir = join(testDir, '..');
@@ -29,7 +29,7 @@ const tasks = [
   runProcess(process.execPath, [join(rootDir, 'node_modules/typescript/bin/tsc'), '--project', join(rootDir, 'tsconfig.json')])
 ];
 if (needsBuild) {
-  tasks.push(runProcess(process.execPath, [join(rootDir, 'scripts/build.js')]));
+  tasks.push(runProcess(process.execPath, [join(rootDir, 'scripts/build.cjs')]));
 }
 
 const [typeCode, buildCode = 0] = await Promise.all(tasks);
@@ -44,7 +44,7 @@ if (needsBuild) {
     const appJs = readFileSync(join(rootDir, 'dist/app.js'), 'utf-8');
     const versionMatch = appJs.match(/window\.__GLASS_BUILD_APP__="([^"]+)";/);
     if (versionMatch) {
-      const { buildAppJavaScript } = createRequire(import.meta.url)('../scripts/build.js');
+      const { buildAppJavaScript } = createRequire(import.meta.url)('../scripts/build.cjs');
       buildAppJavaScript({
         testMode: true,
         version: versionMatch[1],

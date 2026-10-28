@@ -4,7 +4,7 @@ if (process.env.CI) {
     process.exit(0);
 }
 import assert from 'node:assert/strict';
-import { launchSession, waitFor, navigateAndWait } from './helpers.mjs';
+import { launchSession, waitFor, navigateAndWait } from './support/helpers.mjs';
 
 const {server,chrome,send,evalJS} = await launchSession();
 const settleCard = () => waitFor(evalJS, `renderCard.getAnimations({subtree:true}).every(a=>a.playState!=='running')`);

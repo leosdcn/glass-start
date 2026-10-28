@@ -1,6 +1,6 @@
 /** 目录添加保留本地图标，失败徽标改名和关闭后的防抖不发起新请求。 */
 import assert from 'node:assert/strict';
-import { launchSession, waitFor } from './helpers.mjs';
+import { launchSession, waitFor } from './support/helpers.mjs';
 
 const {server,chrome,send,evalJS} = await launchSession();
 try {

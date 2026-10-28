@@ -4,7 +4,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 import vm from 'node:vm';
-import { makeTester } from './helpers.mjs';
+import { makeTester } from './support/helpers.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
@@ -80,11 +80,11 @@ if (existsSync(headersPath)) {
 }
 
 // 1.3 构建脚本 PATHS 常量映射与 Watcher 监听目标有效性校验
-const buildScriptContent = readFileSync(join(ROOT, 'scripts', 'build.js'), 'utf-8');
+const buildScriptContent = readFileSync(join(ROOT, 'scripts', 'build.cjs'), 'utf-8');
 const buildPathsHasSrcIndexHtml = /srcIndexHtml\s*:\s*path\.join/.test(buildScriptContent);
 const require = createRequire(import.meta.url);
 const fs = require('node:fs');
-const { startWatch, PATHS } = require('../scripts/build.js');
+const { startWatch, PATHS } = require('../scripts/build.cjs');
 const subscriptions = [];
 const originalWatch = fs.watch;
 try {

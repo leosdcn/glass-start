@@ -1,6 +1,6 @@
 /** 重复打开目录复用节点，草稿成员变化只更新可用性，目录内容变化可靠失效。 */
 import assert from 'node:assert/strict';
-import { launchSession, waitFor } from './helpers.mjs';
+import { launchSession, waitFor } from './support/helpers.mjs';
 
 const {server,chrome,send,evalJS} = await launchSession();
 try {

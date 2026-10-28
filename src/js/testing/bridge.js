@@ -20,7 +20,7 @@ import * as settings from '../modules/settings.js';
 import * as editor from '../modules/bookmark-editor.js';
 import { replaceBookmarkDraft } from '../state/bookmark-draft.js';
 import * as dialogs from '../core/dialogs.js';
-import * as settingsEvents from '../core/settings-events.js';
+import * as settingsEvents from '../modules/settings-events.js';
 import * as app from '../init.js';
 
 // 只暴露现有测试接口，不自动展开模块的其他导出。

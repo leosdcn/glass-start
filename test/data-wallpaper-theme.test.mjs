@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { launchSession, waitFor } from './helpers.mjs';
+import { launchSession, waitFor } from './support/helpers.mjs';
 
 const { server, chrome, send, evalJS } = await launchSession();
 // 通过真实壁纸加载流程采样；生成图只驻留测试页内存，不存入 LocalStorage。

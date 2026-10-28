@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
-import { launchSession, waitFor } from './helpers.mjs';
+import { launchSession, waitFor } from './support/helpers.mjs';
 
 const require = createRequire(import.meta.url);
 const code = require('esbuild').buildSync({ entryPoints:['src/js/utils/category-catalog.js'], bundle:true,

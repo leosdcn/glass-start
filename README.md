@@ -58,7 +58,7 @@
 - ⚡ **零运行时依赖**：生产页面不依赖 npm 运行时库；内联预渲染减少刷新闪烁，加载速度取决于设备、缓存与网络；
 - 🖼️ **壁纸即选即存**：内置高清壁纸可循环切换，支持上传图片（压缩后写入 IndexedDB）、图片直链与遮罩暗度调节；
 - 🛡️ **安全防护**：使用 Content Security Policy (CSP)、动态 HTML 文本转义与 `safeUrl` 协议过滤；部署时需按托管平台要求配置 `public/_headers` 中的响应头规则；
-- 📱 **PWA 离线支持**：Service Worker 使用三个独立缓存池，已缓存资源可离线使用；安装入口与支持程度取决于浏览器。
+- 📱 **网页版 PWA 离线支持**：Service Worker 使用三个独立缓存池，已缓存资源可离线使用；安装入口与支持程度取决于浏览器。
 
 ---
 
@@ -77,9 +77,11 @@ npm run build:extension
 
 扩展使用 Manifest V3，代码、图标和预设壁纸均打包在本地；天气和在线搜索联想需要联网，并仅为相应接口声明域名权限。不读取浏览器书签、历史记录或网页内容。自定义壁纸和设置保存在扩展自己的本地存储中，不自动与网页版共享或跨设备同步。网页版导出的书签 JSON 可以在扩展设置中导入；该备份不包含壁纸和偏好设置。
 
+扩展依靠随包资源离线打开，不注册网页版的 Service Worker，也不显示网页版本更新提示。设置中的“清理缓存并刷新”只清理临时缓存，不删除已保存的书签、壁纸和设置；远程壁纸、天气与在线联想仍受网络可用性影响。
+
 更新源码后重新执行 `npm run build:extension`，在扩展管理页点击「重新加载」并重新打开新标签页。保持文件夹路径不变并直接重载，可保留本地数据；移除扩展会删除其存储。`npm run build` 仍只生成网页版 `dist/`，两种构建互不覆盖。扩展目前提供本地加载版本，尚未上架 Chrome 应用商店。
 
-扩展回归测试：`npm test -- infra-chrome-extension`。测试通过 CDP 在独立临时配置中实际加载扩展，需要支持 `Extensions.loadUnpacked` 的新版 Chrome。
+扩展回归测试：`npm test -- infra-chrome-extension`。测试通过 CDP 在独立临时配置中实际加载扩展，需要支持 `Extensions.loadUnpacked` 的新版 Chrome。覆盖新标签页替换、首屏底色与主题恢复、三引擎联想、设置保存和离线重载；联想响应使用固定数据，不代表真实第三方接口联网验证。
 
 ### Cloudflare Pages 自动部署
 1. Fork 或上传本项目到你的 GitHub 仓库；
@@ -185,12 +187,12 @@ npm run preview
 
 > “如无必要，勿增实体。”——开发与贡献请优先最小必要修改，避免过度设计。
 
-`src/index.html` 是构建模板。本地修改请通过开发服务预览，部署时使用 `dist/` 产物。修改构建脚本或其加载的辅助脚本后，需重启开发服务。模块职责、状态流和缓存策略见 [ARCHITECTURE.md](./docs/ARCHITECTURE.md)。
+`src/index.html` 是两种构建共用的模板。网页版通过开发服务预览，部署时使用 `dist/`；扩展版需构建后在 Chrome 中加载 `extension/`，开发服务不自动重建扩展。修改构建脚本或其加载的辅助脚本后，需重启开发服务。模块职责、状态流和缓存策略见 [ARCHITECTURE.md](./docs/ARCHITECTURE.md)。
 
 ### 开发环境要求
 
 - 需要使用 Node.js 24 或更新版本及随附的 npm。测试驱动使用 Node 原生 `fetch` 和 `WebSocket`，请遵循 `package.json` 的 Node 版本要求。安装或恢复依赖使用 `npm ci`。
-- 浏览器回归测试需要 Google Chrome。可通过 `CHROME_PATH` 指定安装路径，例如 `CHROME_PATH="/path/to/chrome" npm test`。当前自动化主要验证 Chromium，不能替代 Safari、Firefox 的实测。
+- 浏览器回归测试需要 Google Chrome。可通过 `CHROME_PATH` 指定安装路径，例如 `CHROME_PATH="/path/to/chrome" npm test`。项目以 Chrome 为浏览器验收基准，移动视口及触摸交互通过 Chrome CDP 模拟；日常开发、全面测试及发布均不要求 Safari/iOS 真机走查。
 - `npm run sync:icons` 及图标转换回归测试依赖 macOS 原生 `sips`；完整验证建议在 macOS 上执行。构建与静态托管本身不调用 `sips`，其他系统可使用仓库中已同步的图标构建。
 - 安装依赖、下载或刷新图标和 W3C 在线校验需要网络；仅复用本地图标时不请求外部图标服务。
 
@@ -211,11 +213,14 @@ npm run sync:icons
 npm run lint
 npm test -- data-settings-save
 
-# 5. 需要部署或检查生产产物时构建 (测试运行器已构建时无需重复)
+# 5. 需要部署或检查网页生产产物时构建 (测试运行器已构建时无需重复)
 npm run build
+
+# 扩展开发：构建后在 Chrome 扩展管理页重新加载，并重新打开新标签页
+npm run build:extension
 ```
 
-验证范围以 [AGENTS.md](./AGENTS.md#验证) 为准，局部修改优先运行直接相关测试。`npm test -- <文件名片段>` 执行匹配的测试文件前，会检查类型，并按需构建；需要构建时，两项并行执行，无需重复手动检查类型或构建。仅匹配[运行器明确列出的纯单元测试](./test/test-selection.mjs)时跳过构建。无参数的 `npm test` 与 `test:all` 执行全套，用于高风险跨模块改造、发布或明确要求全量验证的场景。`test:ui`、`test:data`、`test:infra`、`test:lifecycle` 可按模块扩大范围，可用命令以 `package.json` 为准。
+验证范围以 [AGENTS.md](./AGENTS.md#验证) 为准，局部修改优先运行直接相关测试。`npm test -- <文件名片段>` 执行匹配的测试文件前，会检查类型，并按需构建；需要构建时，两项并行执行，无需重复手动检查类型或构建。仅匹配[运行器明确列出的纯单元测试](./test/support/test-selection.mjs)时跳过构建。无参数的 `npm test` 与 `test:all` 执行全套，用于高风险跨模块改造、发布或明确要求全量验证的场景。`test:ui`、`test:data`、`test:infra`、`test:lifecycle` 可按模块扩大范围，可用命令以 `package.json` 为准。
 
 `npm run typecheck` 对核心数据、草稿、DOM 缓存与状态执行渐进式 JavaScript 类型检查；范围以 `tsconfig.json` 为准。`npm run test:unit` 独立验证搜索、天气转换与草稿逻辑，无需 Chrome。
 
@@ -223,7 +228,7 @@ npm run build
 
 `npm run lint` 使用 Acorn 检查 DOM 引用，使用 PostCSS 检查 CSS 声明及嵌套关系；同时检查 `!important` 是否仅用于减弱动效规则，以及毛玻璃属性的前缀顺序。这些解析工具仅供开发检查，不进入网站产物。
 
-`npm run test:icons` 与 `npm run test:visual` 是独立入口，需先构建再按需运行。视觉脚本输出截图和布局指标，不自动与基准图逐像素比较。`npm run lint:fix` 仅修复脚本支持的机械规则。Safari/iOS 兼容性按 [Safari 专项冒烟清单](./docs/SAFARI_SMOKE_CHECKLIST.md) 手动走查，不纳入 CI。
+`npm run test:icons` 与 `npm run test:visual` 是独立入口，需先构建再按需运行。视觉脚本输出截图和布局指标，不自动与基准图逐像素比较。`npm run lint:fix` 仅修复脚本支持的机械规则。[Safari 专项冒烟清单](./docs/SAFARI_SMOKE_CHECKLIST.md) 仅保留为可选参考，用户明确要求时才使用，不作为默认验证或发布门槛。
 
 > 💡 **macOS 便捷启动**：macOS 用户可直接双击根目录的 `start.command` 脚本，检查已有 Node 环境、构建并启动浏览器预览；首次运行前仍需执行 `npm ci`。此入口使用清理缓存地址，会清除该本地站点的书签、壁纸与偏好。
 
@@ -233,8 +238,9 @@ npm run build
 
 - 🏛️ **[docs/ARCHITECTURE.md (架构说明)](./docs/ARCHITECTURE.md)**：模块组织、状态流、浮层管理、缓存与页面生命周期。
 - 🤖 **[AGENTS.md (AI 编程工程准则)](./AGENTS.md)**：项目修改边界、实现约束与分级验证流程。
-- 🧭 **[docs/SAFARI_SMOKE_CHECKLIST.md (Safari 专项冒烟清单)](./docs/SAFARI_SMOKE_CHECKLIST.md)**：Safari/iOS 专项用例与发布前快速冒烟，按改动范围选择。
+- 🧭 **[docs/SAFARI_SMOKE_CHECKLIST.md (Safari 专项冒烟清单)](./docs/SAFARI_SMOKE_CHECKLIST.md)**：可选的 Safari/iOS 专项参考，不属于默认验收或发布要求。
 - ⏱️ **[docs/TRANSITION_BENCHMARK.md (切屏帧间隔评测)](./docs/TRANSITION_BENCHMARK.md)**：生产产物首次与多轮切屏耗时、rAF 帧间隔与降速压测口径。
+- 🗂️ **[历史报告](./docs/ARCHITECTURE.md#目录速查)**：审计与性能报告集中存放于 `docs/reports/`，版本和验证环境见各报告。
 
 ---
 
@@ -244,7 +250,7 @@ Copyright (C) 2026 leosdcn
 
 本项目代码采用 [GNU General Public License v3.0](./LICENSE) (GPL-3.0-or-later) 协议开源；第三方素材按各自许可与权利声明使用。
 
-构建会将根目录 `LICENSE` 原文复制为 `dist/LICENSE.txt`，并附带 [SOURCE.txt](./public/SOURCE.txt)，提供项目版权、许可标识与源码仓库地址。部署时请保留这些文件；发布修改版本时，请同步提供与该版本对应的源码及构建说明。
+网页与扩展构建均会将根目录 `LICENSE` 原文复制为产物中的 `LICENSE.txt`，并附带 [SOURCE.txt](./public/SOURCE.txt)，提供项目版权、许可标识与源码仓库地址。部署或分发扩展时请保留这些文件；发布修改版本时，请同步提供与该版本对应的源码及构建说明。
 
 - **在线演示**：本项目提供的在线页面用于项目演示与功能体验，可能随开发调整、暂停或停止提供，不承诺持续可用。需要长期使用时，建议自行部署。
 - **第三方商标与图标**：预设书签涉及的各网站名称、品牌标识及 Logo（包括但不限于 `public/icons/` 和 `bookmarks.json`）版权归原权利人所有，本项目仅作个人索引与客观展示，不拥有任何商标权利。收录不代表原权利人认可、关联或赞助本项目，GPL 不授予第三方商标使用权。
@@ -262,7 +268,7 @@ Copyright (C) 2026 leosdcn
 | Heroicons | `src/svg/sprite.svg` 中标注的界面图标，部分属性按界面需求调整 | [Tailwind Labs / Heroicons](https://github.com/tailwindlabs/heroicons)，Copyright (c) Tailwind Labs, Inc.；[完整 MIT 许可](./public/licenses/heroicons-MIT.txt) |
 | Twemoji | `public/icons/emoji/` 中的本地表情 SVG，文件名按项目用途命名 | [Twemoji 项目及贡献者](https://github.com/jdecked/twemoji)；图形采用 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)，见[上游图形许可](https://github.com/jdecked/twemoji/blob/main/LICENSE-GRAPHICS) |
 
-Heroicons 与当前使用的 Tailwind CSS 具有相同的版权声明及 MIT 许可文本，共用 `public/licenses/heroicons-MIT.txt`。构建时该文件随静态资源复制到 `dist/licenses/heroicons-MIT.txt`，部署时请保留。上述第三方素材不以本项目的 GPL 协议重新授权；应用内“开源致谢”提供对应许可链接。
+Heroicons 与当前使用的 Tailwind CSS 具有相同的版权声明及 MIT 许可文本，共用 `public/licenses/heroicons-MIT.txt`。网页与扩展构建时该文件均随静态资源复制到产物中的 `licenses/heroicons-MIT.txt`，部署或分发扩展时请保留。上述第三方素材不以本项目的 GPL 协议重新授权；应用内“开源致谢”提供对应许可链接。
 
 ### 内置壁纸来源
 

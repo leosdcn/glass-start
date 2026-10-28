@@ -1,6 +1,6 @@
 /** 双屏交互边界：到顶保护、连续输入、动画互斥与零动画完成。 */
 import assert from 'node:assert/strict';
-import { launchSession, waitFor } from './helpers.mjs';
+import { launchSession, waitFor } from './support/helpers.mjs';
 
 const { server, chrome, send, evalJS } = await launchSession();
 const settled = target => waitFor(evalJS, `state.currentSection === '${target}' && !isScreenTransitioning()`);
@@ -67,9 +67,20 @@ try {
     await evalJS("dom.navContent.style.scrollBehavior='auto'; dom.navContent.scrollTop=30");
     await idle();
     const point = await evalJS('(() => {const r=dom.navContent.getBoundingClientRect(); return {x:r.x+r.width/2,y:r.y+r.height/2};})()');
+    // 在实际到顶的 scroll 回调内发送尾部事件，避免 CDP 往返跨过手势静默窗口。
+    await evalJS(`(() => {
+        window.__topWheelTailSection = null;
+        const onTop = () => {
+            if (dom.navContent.scrollTop !== 0) return;
+            dom.navContent.removeEventListener('scroll', onTop);
+            document.dispatchEvent(new WheelEvent('wheel', {deltaY:-60,cancelable:true}));
+            window.__topWheelTailSection = state.currentSection;
+        };
+        dom.navContent.addEventListener('scroll', onTop);
+    })()`);
     await send('Input.dispatchMouseEvent', { type:'mouseWheel', ...point, deltaX:0, deltaY:-60 });
-    await waitFor(evalJS, 'dom.navContent.scrollTop === 0');
-    await wheel(-60);
+    await waitFor(evalJS, 'window.__topWheelTailSection !== null');
+    assert.equal(await evalJS('window.__topWheelTailSection'), 'nav');
     assert.equal(await section(), 'nav');
     await idle();
     await wheel(-60);

@@ -23,8 +23,8 @@ import { reconcileScreenState, isScreenTransitioning, initTransitionSwitcher } f
 import { initScreenGestures } from './core/screen-input.js';
 import { initAppWakeEvents } from './core/app-wake.js';
 import { initGlassSpotlightAndTilt } from './core/gestures.js';
-import { bindEvents } from './core/events.js';
-import { bindEditEvents } from './core/settings-events.js';
+import { bindEvents } from './events.js';
+import { bindEditEvents } from './modules/settings-events.js';
 import { initServiceWorkerUpdates } from './core/service-worker-updates.js';
 
 let isAppInitialized = false;

@@ -2,9 +2,9 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
-import { startServer } from './server.mjs';
-import { launchChrome } from './cdp.mjs';
-import { getFreePort, createEvaluator, waitFor, navigateAndWait } from './helpers.mjs';
+import { startServer } from './support/server.mjs';
+import { launchChrome } from './support/cdp.mjs';
+import { getFreePort, createEvaluator, waitFor, navigateAndWait } from './support/helpers.mjs';
 
 const worker = readFileSync(new URL('../sw.js', import.meta.url), 'utf8');
 const stamp = worker.match(/const CORE_CACHE = '([^']+)'/)[1];

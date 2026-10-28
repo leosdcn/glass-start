@@ -1,5 +1,5 @@
 /** 验证指纹刷新冷却、内存日志与连续异常处理；模拟事件不验证真实 GPU 绘制。 */
-import { launchSession, makeTester, waitFor } from './helpers.mjs';
+import { launchSession, makeTester, waitFor } from './support/helpers.mjs';
 
 const { pass, finish } = makeTester();
 const { server, chrome, evalJS } = await launchSession();

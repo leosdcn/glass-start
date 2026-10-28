@@ -1,9 +1,9 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { startServer } from '../test/server.mjs';
-import { launchChrome } from '../test/cdp.mjs';
-import { createEvaluator, getFreePort, sleep, waitFor } from '../test/helpers.mjs';
+import { startServer } from '../test/support/server.mjs';
+import { launchChrome } from '../test/support/cdp.mjs';
+import { createEvaluator, getFreePort, sleep, waitFor } from '../test/support/helpers.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = join(__dirname, '..');

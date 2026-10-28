@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
-import { launchSession, waitFor } from './helpers.mjs';
+import { launchSession, waitFor } from './support/helpers.mjs';
 
 // 执行真实产物的天气内联脚本，在应用尚未运行时检查首帧结果。
 const html = readFileSync(new URL('../dist/index.html', import.meta.url), 'utf8');

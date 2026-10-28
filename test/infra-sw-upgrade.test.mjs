@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import { readFileSync } from 'node:fs';
-import { startServer } from './server.mjs';
-import { launchChrome } from './cdp.mjs';
-import { getFreePort, createEvaluator, waitFor } from './helpers.mjs';
+import { startServer } from './support/server.mjs';
+import { launchChrome } from './support/cdp.mjs';
+import { getFreePort, createEvaluator, waitFor } from './support/helpers.mjs';
 
 const source = readFileSync(new URL('../sw.js', import.meta.url), 'utf8');
 let version = 101, failApp = false, failWallpaper = false, mismatch = false, offline = false;

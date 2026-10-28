@@ -1,8 +1,20 @@
 /** 验证书签搜索与持久化、天气呈现及生命周期恢复。 */
-import { launchSession, makeTester, pressKey, waitFor } from './helpers.mjs';
+import { readFileSync } from 'node:fs';
+import { launchSession, makeTester, pressKey, waitFor } from './support/helpers.mjs';
 
 const { pass, finish } = makeTester();
-const { server, chrome, evalJS } = await launchSession();
+const { server, chrome, send, evalJS } = await launchSession();
+
+// 保留自定义图标 URL，固定其图片响应，避免虚构域名阻塞重载的 load 事件。
+const iconBody = readFileSync(new URL('../public/icons/github.com.png', import.meta.url)).toString('base64');
+send('Fetch.requestPaused', ({ requestId }) => send('Fetch.fulfillRequest', {
+  requestId, responseCode: 200,
+  responseHeaders: [{ name: 'Content-Type', value: 'image/png' }], body: iconBody
+}));
+await send('Fetch.enable', { patterns: [
+  { urlPattern: 'https://custom.example.dev/*', resourceType: 'Image' },
+  { urlPattern: 'https://aaa.example.com/*', resourceType: 'Image' }
+] });
 
 await evalJS(`
   window.fetch = async () => ({ ok: true, json: async () => ({}) });

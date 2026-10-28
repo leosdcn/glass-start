@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
-import { startServer } from './server.mjs';
-import { launchChrome } from './cdp.mjs';
-import { getFreePort, createEvaluator, waitFor } from './helpers.mjs';
+import { startServer } from './support/server.mjs';
+import { launchChrome } from './support/cdp.mjs';
+import { getFreePort, createEvaluator, waitFor } from './support/helpers.mjs';
 
 const require = createRequire(import.meta.url);
-const { buildAppJavaScript } = require('../scripts/build.js');
+const { buildAppJavaScript } = require('../scripts/build.cjs');
 const built = buildAppJavaScript({ testMode: true });
 const productionBuild = buildAppJavaScript();
 assert.equal('src/js/testing/bridge.js' in productionBuild.metafile.inputs, false);

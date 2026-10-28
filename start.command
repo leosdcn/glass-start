@@ -40,4 +40,4 @@ if [ $? -ne 0 ]; then
 fi
 
 # 启动服务器并打开清理地址；会清除该站点的书签、壁纸与偏好。
-node scripts/server.js --clear-cache
+node scripts/server.cjs --clear-cache

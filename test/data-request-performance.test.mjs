@@ -1,6 +1,6 @@
 /** 重复入口共享请求，输入变化立即作废旧响应，重新定位保持刷新互斥。 */
 import assert from 'node:assert/strict';
-import { launchSession, waitFor } from './helpers.mjs';
+import { launchSession, waitFor } from './support/helpers.mjs';
 
 const { server, chrome, send, evalJS } = await launchSession();
 try {

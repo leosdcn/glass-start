@@ -11,12 +11,12 @@ import { modalState, pageData, state } from '../state/store.js';
 import { updateBookmarkDraft, removeBookmarkDraft } from '../state/bookmark-draft.js';
 import { dom } from '../state/dom.js';
 
-import { initDragSort } from './drag-sort.js';
+import { initDragSort } from '../core/drag-sort.js';
 
-import { uploadWallpaper, previewDraftWallpaper, resetDraftWallpaper } from '../modules/wallpaper.js';
-import { openEditModal, saveEditModal, cancelEditModal, openShortcutModal, closeShortcutModal, openCreditsModal, closeCreditsModal, openBookmarkPicker, closeBookmarkPicker, updatePickerAvailability, switchSettingsTab, previewDraftMaskOpacity, resetBookmarks, importBookmarksJSON, exportBookmarksJSON } from '../modules/settings.js';
-import { updateAllBookmarkCounters, getEditFaviconInner, getExistingUrls, handleEditIconError, appendDraftBookmarkRow } from '../modules/bookmark-editor.js';
-import { showConfirm } from './dialogs.js';
+import { uploadWallpaper, previewDraftWallpaper, resetDraftWallpaper } from './wallpaper.js';
+import { openEditModal, saveEditModal, cancelEditModal, openShortcutModal, closeShortcutModal, openCreditsModal, closeCreditsModal, openBookmarkPicker, closeBookmarkPicker, updatePickerAvailability, switchSettingsTab, previewDraftMaskOpacity, resetBookmarks, importBookmarksJSON, exportBookmarksJSON } from './settings.js';
+import { updateAllBookmarkCounters, getEditFaviconInner, getExistingUrls, handleEditIconError, appendDraftBookmarkRow } from './bookmark-editor.js';
+import { showConfirm } from '../core/dialogs.js';
 import { finishPendingTransition, onTransitionSettled } from '../utils/transition-cleanup.js';
 
 export function bindEditEvents() {

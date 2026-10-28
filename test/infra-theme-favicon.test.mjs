@@ -4,10 +4,10 @@ import { readFileSync, writeFileSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import vm from 'node:vm';
-import { launchSession, waitFor, navigateAndWait } from './helpers.mjs';
+import { launchSession, waitFor, navigateAndWait } from './support/helpers.mjs';
 
 const require = createRequire(import.meta.url);
-const { injectThemeConfig } = require('../scripts/build.js');
+const { injectThemeConfig } = require('../scripts/build.cjs');
 const template = '/* INJECT_THEME_CONFIG */\nglobalThis.result = { themes: PRESET_THEMES, tints: PRESET_TINTS };';
 const readConfig = path => {
   const context = {};

@@ -4,7 +4,7 @@ const path = require('path');
 const { exec } = require('child_process');
 const os = require('os');
 const zlib = require('zlib');
-const { main: runFullBuild, startWatch, PATHS } = require('./build');
+const { main: runFullBuild, startWatch, PATHS } = require('./build.cjs');
 
 // 终端格式化排版与 ANSI 彩色工具
 const { c, LINE_WIDTH, HR_DOUBLE } = require('./terminal.cjs');

@@ -3,7 +3,7 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { launchSession, sleep, makeTester, pressKey, waitFor, navigateAndWait } from './helpers.mjs';
+import { launchSession, sleep, makeTester, pressKey, waitFor, navigateAndWait } from './support/helpers.mjs';
 
 /** 截图产物输出目录：项目内 test/artifacts/（已 gitignore），相对脚本定位，跨机器可移植 */
 const ARTIFACT_DIR = join(dirname(fileURLToPath(import.meta.url)), 'artifacts');

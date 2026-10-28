@@ -125,10 +125,10 @@ scripts.forEach((m, i) => {
 // ---- 2. 核心 JS 脚本与 src/js 业务模块语法校验 (node --check) ----
 logSection('2/4', '⚙️  校验核心 JavaScript 语法 (node --check)');
 const jsFiles = [
-    { name: 'scripts/build.js', desc: '打包构建脚本' },
+    { name: 'scripts/build.cjs', desc: '打包构建脚本' },
     { name: 'scripts/html-template.cjs', desc: '共享 HTML 模板处理' },
     { name: 'sw.js', desc: 'Service Worker 底座' },
-    { name: 'scripts/server.js', desc: '本地开发/预览服务' },
+    { name: 'scripts/server.cjs', desc: '本地开发/预览服务' },
     { name: 'scripts/terminal.cjs', desc: '共享终端输出' },
     { name: 'scripts/watch.cjs', desc: '共享文件监听' }
 ].filter(f => {

@@ -4,7 +4,7 @@ if (process.env.CI) {
     process.exit(0);
 }
 import assert from 'node:assert/strict';
-import { launchSession, waitFor } from './helpers.mjs';
+import { launchSession, waitFor } from './support/helpers.mjs';
 
 const {server,chrome,send,evalJS} = await launchSession();
 try {

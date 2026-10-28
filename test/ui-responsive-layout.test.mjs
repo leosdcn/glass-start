@@ -1,6 +1,6 @@
 /** 尺寸变化应直接重排，不能意外给宽度、间距等布局属性添加过渡。 */
 import assert from 'node:assert/strict';
-import { launchSession, waitFor } from './helpers.mjs';
+import { launchSession, waitFor } from './support/helpers.mjs';
 
 const { chrome, server, send, evalJS } = await launchSession();
 const settle = () => evalJS(`Promise.all(document.getAnimations()

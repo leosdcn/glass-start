@@ -1,6 +1,6 @@
 /** 验证导航页原生滚轮滚动不进入常驻的主线程阻塞区域。 */
 import assert from 'node:assert/strict';
-import { launchSession, waitFor } from './helpers.mjs';
+import { launchSession, waitFor } from './support/helpers.mjs';
 
 const { server, chrome, send, evalJS } = await launchSession();
 let layers = [];

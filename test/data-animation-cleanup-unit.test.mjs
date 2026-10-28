@@ -5,7 +5,7 @@ import { build } from 'esbuild';
 import vm from 'node:vm';
 
 const { outputFiles } = await build({
-    stdin: { contents: `export {bindEditEvents} from './src/js/core/settings-events.js';
+    stdin: { contents: `export {bindEditEvents} from './src/js/modules/settings-events.js';
         export {applyWallpaper} from './src/js/core/wallpaper-renderer.js';
         export {modalState} from './src/js/state/store.js';`, resolveDir: process.cwd() },
     bundle: true, write: false, format: 'cjs', platform: 'node',

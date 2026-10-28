@@ -1,6 +1,6 @@
 /** 相同壁纸合并待决解码、复用最近图片、不重播淡入，失败可重新尝试。 */
 import assert from 'node:assert/strict';
-import { launchSession, waitFor } from './helpers.mjs';
+import { launchSession, waitFor } from './support/helpers.mjs';
 
 const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+j1ioAAAAASUVORK5CYII=','base64');
 const {server,chrome,evalJS}=await launchSession(0,{'/reuse-wallpaper.png':(req,res)=>{

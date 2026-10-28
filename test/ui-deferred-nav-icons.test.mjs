@@ -1,6 +1,6 @@
 /** 首批本地图标空闲准备；其余图标在进入、滚动和会话恢复时按需加载。 */
 import assert from 'node:assert/strict';
-import { launchSession, waitFor } from './helpers.mjs';
+import { launchSession, waitFor } from './support/helpers.mjs';
 
 const { server, chrome, send, evalJS } = await launchSession();
 try {

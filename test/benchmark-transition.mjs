@@ -3,9 +3,9 @@
 import { writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { startServer } from './server.mjs';
-import { launchChrome } from './cdp.mjs';
-import { createEvaluator, getFreePort, navigateAndWait, sleep } from './helpers.mjs';
+import { startServer } from './support/server.mjs';
+import { launchChrome } from './support/cdp.mjs';
+import { createEvaluator, getFreePort, navigateAndWait, sleep } from './support/helpers.mjs';
 
 export function parseOptions(args) {
     const options = { rounds:5, throttle:1, compare:null, json:null, help:false };

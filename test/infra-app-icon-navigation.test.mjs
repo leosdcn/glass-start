@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { launchSession, navigateAndWait, waitFor } from './helpers.mjs';
+import { launchSession, navigateAndWait, waitFor } from './support/helpers.mjs';
 
 const { server, chrome, send, evalJS } = await launchSession();
 const origin = `http://127.0.0.1:${server.port}`;

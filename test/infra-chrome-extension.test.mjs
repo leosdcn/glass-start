@@ -3,8 +3,8 @@ import { createRequire } from 'node:module';
 import { readFileSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
-import { connectCDP, launchChrome } from './cdp.mjs';
-import { createEvaluator, getFreePort, waitFor } from './helpers.mjs';
+import { connectCDP, launchChrome } from './support/cdp.mjs';
+import { createEvaluator, getFreePort, waitFor } from './support/helpers.mjs';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 createRequire(import.meta.url)('../scripts/build-extension.cjs').buildExtension();

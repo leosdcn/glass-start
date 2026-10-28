@@ -1,17 +1,17 @@
-import { cancelDragSort } from './drag-sort.js';
-import { resetActiveCard } from './gestures.js';
+import { cancelDragSort } from './core/drag-sort.js';
+import { resetActiveCard } from './core/gestures.js';
 
 /** 装配搜索、键盘与页面交互事件，协调输入法、联想选择和弹窗焦点。 */
-import { CONFIG } from '../config/constants.js';
+import { CONFIG } from './config/constants.js';
 
-import { state } from '../state/store.js';
-import { dom } from '../state/dom.js';
-import { OverlayStack, MODAL_OVERLAY_IDS } from '../core/overlay-stack.js';
-import { switchToStart, switchToNav, isScreenTransitioning } from './screen-state.js';
-import { activateSuggestion, selectSuggestion, getSuggestionCount, fetchSuggestions, hideSuggestions, closeDropdown, toggleDropdown, setEngine, openRandomBookmark, selectedSuggestionIdx, setSelectedSuggestionIdx, originalQuery, setOriginalQuery, scheduleSuggestions } from '../modules/search.js';
-import { toggleWeatherPopover, closeWeatherPopover } from '../modules/weather.js';
-import { switchBg } from '../modules/wallpaper.js';
-import { openShortcutModal, closeShortcutModal } from '../modules/settings.js';
+import { state } from './state/store.js';
+import { dom } from './state/dom.js';
+import { OverlayStack, MODAL_OVERLAY_IDS } from './core/overlay-stack.js';
+import { switchToStart, switchToNav, isScreenTransitioning } from './core/screen-state.js';
+import { activateSuggestion, selectSuggestion, getSuggestionCount, fetchSuggestions, hideSuggestions, closeDropdown, toggleDropdown, setEngine, openRandomBookmark, selectedSuggestionIdx, setSelectedSuggestionIdx, originalQuery, setOriginalQuery, scheduleSuggestions } from './modules/search.js';
+import { toggleWeatherPopover, closeWeatherPopover } from './modules/weather.js';
+import { switchBg } from './modules/wallpaper.js';
+import { openShortcutModal, closeShortcutModal } from './modules/settings.js';
 
 /**
  * @param {KeyboardEvent} e
