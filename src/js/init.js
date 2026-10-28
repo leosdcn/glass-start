@@ -2,6 +2,7 @@
  * 应用初始化与生命周期挂载
  */
 import { CONFIG, engines } from './config/constants.js';
+import { DEFAULT_ENGINE } from './config/engines.js';
 import { storageGet, evictFaviconCache } from './utils/helpers.js';
 import { cacheDOM } from './state/dom.js';
 import { updateClock } from './modules/clock.js';
@@ -73,7 +74,7 @@ export function init() {
     initTransitionSwitcher();
 
     const saved = storageGet(CONFIG.KEYS.PREFERRED_ENGINE);
-    if (saved && engines[saved]) setEngine(saved, false);
+    setEngine(saved && engines[saved] ? saved : DEFAULT_ENGINE, false);
 
     bindEvents();
     bindEditEvents();

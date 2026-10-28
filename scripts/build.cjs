@@ -321,7 +321,7 @@ function processProductionHtml(compiledCss, targetDir = PATHS.dist) {
         marker: '/* INJECT_ENGINE_ICONS */',
         entryPath: path.join(PATHS.src, 'js', 'config', 'engine-head.js'),
         globalName: '__headEngines',
-        binding: 'const { ENGINE_SVGS, ENGINE_META } = __headEngines;'
+        binding: 'const { ENGINE_SVGS, ENGINE_META, DEFAULT_ENGINE } = __headEngines;'
     });
     prodHtmlContent = injectHeadConfig(prodHtmlContent, {
         marker: '/* INJECT_WEATHER_ICONS */',

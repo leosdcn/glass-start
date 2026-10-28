@@ -3,11 +3,12 @@
  */
 import { CONFIG, DEFAULT_BOOKMARKS, DEFAULT_CATEGORIES } from '../config/constants.js';
 import { localizeCategories } from '../core/i18n.js';
+import { DEFAULT_ENGINE } from '../config/engines.js';
 
 // 运行时状态：由调用方显式更新并触发渲染
 /** @type {import('../types').AppState} */
 export const state = {
-    engine: 'bing',          // 当前激活的搜索引擎 key，对应 engines 对象的键名
+    engine: DEFAULT_ENGINE, // 当前激活的搜索引擎 key，对应 engines 对象的键名
     bg: 0,                   // 当前壁纸在 backgrounds 数组中的索引
     open: false,             // 搜索引擎下拉菜单是否展开
     editOpen: false,         // 编辑书签弹窗是否打开（用于屏蔽滚轮切屏与键盘快捷键）

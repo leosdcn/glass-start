@@ -15,6 +15,7 @@ const chooseEnglish = async () => {
     await ready();
 };
 try {
+    assert.equal(await evalJS(`state.engine`), 'bing');
     assert.deepEqual(await evalJS(`pageData.bookmarks.map(bookmark => bookmark.name)`),
         ['LocalSend', 'DeepSeek', 'Gemini', 'YouTube', '哔哩哔哩', '抖音', '豆包', '网易云音乐']);
     await evalJS(`(async () => {
@@ -26,13 +27,16 @@ try {
     assert.equal(await evalJS(`localStorage.getItem('glass_language')`), null, 'cancel does not save language');
 
     await chooseEnglish();
+    assert.equal(await evalJS(`state.engine`), 'google');
+    assert.equal(await evalJS(`dom.engineName.textContent`), 'Google');
+    assert.equal(await evalJS(`localStorage.getItem('preferredEngine')`), null, 'default engine is not saved as a user preference');
     await waitFor(evalJS, `!!document.querySelector('#sidebarList button')`);
     assert.equal(await evalJS(`document.title`), 'Glass Start — A Clear Start');
     assert.equal(await evalJS(`dom.searchInput.placeholder`), 'Search...');
     assert.equal(await evalJS(`document.documentElement.hasAttribute('data-i18n-pending')`), false);
     assert.equal(await evalJS(`pageData.categories[0].name`), 'AI');
     assert.deepEqual(await evalJS(`pageData.bookmarks.map(bookmark => bookmark.name)`),
-        ['LocalSend', 'DeepSeek', 'Gemini', 'YouTube', 'Reddit', 'Instagram', 'ChatGPT', 'Spotify']);
+        ['LocalSend', 'DeepSeek', 'Gemini', 'YouTube', 'Reddit', 'X', 'ChatGPT', 'Spotify']);
     assert.equal(await evalJS(`pageData.categories.every(category => category.bookmarks.every(bookmark => !/[\u4e00-\u9fff]/.test(bookmark.name + bookmark.desc)))`), true);
 
     // Hold the deferred app bundle: the head and body bootstrap must translate independently.
@@ -46,6 +50,8 @@ try {
     await waitFor(() => Promise.resolve(!!pausedApp), 'deferred app request paused', 10000);
     await waitFor(evalJS, `document.querySelector('#searchInput')?.placeholder === 'Search...' && !document.documentElement.hasAttribute('data-i18n-pending')`);
     assert.equal(await evalJS(`typeof openEditModal`), 'undefined', 'app bundle has not executed');
+    assert.equal(await evalJS(`document.getElementById('engineName').textContent`), 'Google');
+    assert.match(await evalJS(`document.getElementById('engineBtn').getAttribute('aria-label')`), /Google/);
     assert.equal(await evalJS(`document.title`), 'Glass Start — A Clear Start');
     await send('Fetch.continueRequest', { requestId: pausedApp.requestId });
     await send('Fetch.disable');
@@ -54,6 +60,12 @@ try {
     await send('Network.setCacheDisabled', { cacheDisabled: false });
     await send('Page.reload');
     await ready();
+
+    await evalJS(`dom.engineBtn.click(); dom.dropdownMenu.querySelector('[data-engine="bing"]').click()`);
+    await send('Page.reload');
+    await ready();
+    assert.equal(await evalJS(`state.engine`), 'bing', 'saved engine takes priority over the English default');
+    assert.equal(await evalJS(`dom.engineName.textContent`), 'Bing');
 
     // An untouched inherited field must not become custom when only another field changes.
     await evalJS(`(async () => {

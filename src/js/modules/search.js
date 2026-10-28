@@ -3,6 +3,7 @@ import { t, getLocale } from '../core/i18n.js';
 import { rankBookmarkSuggestions } from '../utils/bookmark-search.js';
 import { getCategoryCatalog, searchUrlKey } from '../utils/category-catalog.js';
 import { CONFIG, engines } from '../config/constants.js';
+import { DEFAULT_ENGINE } from '../config/engines.js';
 import { escapeHtml, safeUrl, storageSet } from '../utils/helpers.js';
 import { state, pageData } from '../state/store.js';
 import { dom } from '../state/dom.js';
@@ -113,7 +114,7 @@ export function scheduleSuggestions(query) {
 export function renderEngineDropdown() {
     const dropdownMenu = dom.dropdownMenu;
     if (!dropdownMenu) return;
-    const curEngine = state.engine || 'bing';
+    const curEngine = state.engine || DEFAULT_ENGINE;
     const order = ['bing', 'google', 'wikipedia'];
     /** @type {Record<string, { name: string; isSvg: boolean; svg: string; url: string }>} */
     const engineMap = engines;
@@ -168,9 +169,9 @@ export function closeDropdown() {
 export function setEngine(key, save = true) {
     /** @type {Record<string, { name: string; isSvg: boolean; svg: string; url: string }>} */
     const engineMap = engines;
-    const validEngine = engineMap[key] ? key : 'bing';
+    const validEngine = engineMap[key] ? key : DEFAULT_ENGINE;
     state.engine = validEngine;
-    const engineObj = engineMap[validEngine] || engineMap.bing;
+    const engineObj = engineMap[validEngine] || engineMap[DEFAULT_ENGINE];
     const engineName = dom.engineName;
     const engineBtn = dom.engineBtn;
     const engineIcon = dom.engineIcon;
@@ -212,7 +213,7 @@ function doSearch(queryOverride, newTab = false) {
     closeDropdown();
     /** @type {Record<string, { name: string; isSvg: boolean; svg: string; url: string }>} */
     const engineMap = engines;
-    const engineObj = engineMap[state.engine] || engineMap.bing;
+    const engineObj = engineMap[state.engine] || engineMap[DEFAULT_ENGINE];
     const targetUrl = engineObj.url + encodeURIComponent(q);
     if (newTab) {
         window.open(targetUrl, '_blank', 'noopener,noreferrer');
