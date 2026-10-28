@@ -110,7 +110,7 @@ try {
     await evalJS(`localStorage.setItem('glass_language', JSON.stringify('en'))`);
     await send('Page.reload');
     await waitFor(evalJS, `document.documentElement.lang === 'en' && !!document.querySelector('.bookmark-item')`, 10000);
-    assert.equal(await evalJS('document.title'), 'Glass Start — A Clear Start');
+    assert.equal(await evalJS('document.title'), 'Glass Start');
     await evalJS(`document.querySelector('#engineBtn').click(); document.querySelector('[data-engine="wikipedia"]').click()`);
     await evalJS(`(() => { const input = document.querySelector('#searchInput'); input.value = 'glass english'; input.dispatchEvent(new Event('input', { bubbles: true })); })()`);
     await waitFor(evalJS, `window.__suggestRequests.some(url => url.includes('en.wikipedia.org')) && document.querySelector('#suggestionMenu').textContent.includes('extension suggestion')`);

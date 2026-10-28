@@ -121,9 +121,9 @@ Chrome 扩展通过 `npm run build:extension` 独立生成 `extension/`。`scrip
 
 中英文消息以 JSON 存放在 `config/locales/`，语言键与支持列表位于 `config/language.js`。构建将字典和英文目录一次性注入 head，`core/i18n.js` 通过 `window.__GLASS_I18N__` 共享上下文，主应用不再次导入字典。有效语言按手选、浏览器偏好、英文回退确定。首屏预渲染和运行时使用同一翻译接口；body 末尾同步处理 `data-i18n` 文本和白名单属性。英文前景在这一步完成前短暂隐藏，超时会解除，壁纸不受影响。
 
-设置弹窗底栏左侧的语言控件使用 `modalState.draftLanguage`，取消不提交，完成时在其他设置保存成功后持久化 `glass_language`，偏好变化后刷新；失败保留草稿。全部重置包括语言。普通数量消息通过原生 `Intl.PluralRules`，日期通过 `Intl.DateTimeFormat`；时制、单位和时区不随语言自动切换。
+设置弹窗右上角的语言控件使用 `modalState.draftLanguage`，取消不提交，完成时在其他设置保存成功后持久化 `glass_language`，偏好变化后刷新；失败保留草稿。全部重置包括语言。普通数量消息通过原生 `Intl.PluralRules`，日期通过 `Intl.DateTimeFormat`；时制、单位和时区不随语言自动切换。
 
-内置分类使用 `bookmarks.json` 的稳定 `id` 匹配英文分类，书签通过原始 URL 匹配 `catalog-en.json`。`pageData.categories` 是当前语言的目录，原始默认目录用于旧数据迁移。书签保存按名称、简介和图标分别生成用户覆盖，避免只改名称时固化译文简介；既有覆盖文字保留。导入草稿用临时 `customText` 标记保留用户文本，收集与导出仍直接读取草稿，标记不进入备份。
+内置分类使用 `bookmarks.json` 的稳定 `id` 匹配英文分类，书签通过共享 URL 匹配 `catalog-en.json`。`pageData.categories` 是当前语言的目录，共享默认目录用于旧数据迁移。完整书签只维护在 `bookmarks.json`，URL 使用国际通用入口。`catalog-zh-CN.json` 记录中文入口覆盖及旧链接兼容地址，`catalog-en.json` 提供英文名称、简介及必要的英文入口覆盖；构建统一注入 `catalogs`。支持自动选择语言的网站复用共享入口；已移除的中文入口以 `legacyUrl` 保留，不参与跳转。中文旧入口通过 `canonicalBookmarkUrl()` 对应到共享 URL，`normalizeUrl()` 共用该规则；读取旧快捷书签和元数据时在内存中兼容，去重保留首次位置，下次保存写入共享键。各语言书签可配置 `url` 作为打开链接时的目标地址；`localizeBookmarkUrl()` 在快捷书签、分类导航、搜索与随机打开时统一解析，存储和去重使用共享 URL。书签保存按名称、简介和图标分别生成用户覆盖，避免只改名称时固化译文简介；既有覆盖文字保留。导入草稿用临时 `customText` 标记保留用户文本，收集与导出仍直接读取草稿，标记不进入备份。
 
 没有保存的快捷书签配置时，中文使用 `bookmarks.json` 的默认入口，英文使用 `catalog-en.json` 的 `defaultBookmarks` URL 顺序，并从共享目录复用条目。已保存的快捷书签不随语言切换被替换；重置书签使用当前语言的默认入口。
 

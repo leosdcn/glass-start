@@ -1,3 +1,4 @@
+import { localizeBookmarkUrl } from '../core/i18n.js';
 /** 书签派生与迁移、快捷书签和分类导航渲染、图标加载与回退。 */
 import { CONFIG, DEFAULT_BOOKMARKS, DEFAULT_CATEGORIES } from '../config/constants.js';
 import {
@@ -20,6 +21,12 @@ import { dom } from '../state/dom.js';
 
 import { getCategoryCatalog } from '../utils/category-catalog.js';
 
+// Normalize old metadata keys in memory; persistence uses shared URLs on the next save.
+function getCustomMeta() {
+    return Object.fromEntries(Object.entries(storageGet(CONFIG.KEYS.CUSTOM_META) || {})
+        .map(([url, meta]) => [normalizeUrl(url), meta]));
+}
+
 /**
  * @param {string[]} keys
  * @param {import('../types').BookmarkCategory[]} categories
@@ -31,8 +38,7 @@ export function getDerivedBookmarks(keys, categories, customMeta = {}) {
 
     const catMap = getCategoryCatalog(categories).byUrl;
 
-    return keys.map(url => {
-        const normalized = normalizeUrl(url);
+    return [...new Set(keys.map(normalizeUrl))].map(normalized => {
         const catBm = catMap.get(normalized);
         const custom = customMeta?.[normalized];
         if (custom) {
@@ -68,7 +74,7 @@ function migrateBookmarksStorage() {
     if (rawLegacy && Array.isArray(rawLegacy) && rawLegacy.length > 0) {
         /** @type {string[]} */
         const keys = [];
-        const customMeta = storageGet(CONFIG.KEYS.CUSTOM_META) || {};
+        const customMeta = getCustomMeta();
 
         const existingCatUrls = getCategoryCatalog(DEFAULT_CATEGORIES).byUrl;
 
@@ -99,7 +105,7 @@ function migrateBookmarksStorage() {
 export function saveUserBookmarks(list, customTextUrls = new Set()) {
     /** @type {string[]} */
     const keys = [];
-    const customMeta = storageGet(CONFIG.KEYS.CUSTOM_META) || {};
+    const customMeta = getCustomMeta();
     const catMetaMap = getCategoryCatalog(pageData.categories).byUrl;
 
     const newKeysSet = new Set();
@@ -157,7 +163,7 @@ export function resetUserBookmarks() {
 export function loadBookmarks() {
     const legacy = migrateBookmarksStorage();
     const userKeys = storageGet(CONFIG.KEYS.BOOKMARK_KEYS);
-    const customMeta = storageGet(CONFIG.KEYS.CUSTOM_META) || {};
+    const customMeta = getCustomMeta();
 
     if (legacy) {
         pageData.bookmarks = legacy.map(bm => normalizeBookmark(bm, deriveNameFromUrl(bm?.url))).filter(bm => bm !== null);
@@ -251,7 +257,7 @@ export function renderBookmarks(force = false) {
 
     if (existingMap.size === 0) {
         bookmarksEl.innerHTML = pageData.bookmarks.map(bm => `
-        <a href="${safeUrl(bm.url)}" target="_blank" rel="noopener noreferrer" 
+        <a href="${safeUrl(localizeBookmarkUrl(bm.url))}" target="_blank" rel="noopener noreferrer"
            data-url="${safeUrl(bm.url)}"
            data-icon="${safeUrl(bm.icon || '')}"
            class="bookmark-item flex flex-col items-center justify-center gap-2 py-3 px-1 sm:px-1.5 apple-radius text-white/90">
@@ -266,6 +272,7 @@ export function renderBookmarks(force = false) {
             const safeIcon = safeUrl(bm.icon || '');
             let node = existingMap.get(safeU) || existingMap.get(bm.url);
             if (node) {
+                node.setAttribute('href', safeUrl(localizeBookmarkUrl(bm.url)));
                 existingMap.delete(safeU);
                 existingMap.delete(bm.url);
                 const titleSpan = node.querySelector('.bookmark-title');
@@ -284,7 +291,7 @@ export function renderBookmarks(force = false) {
             } else {
                 const range = document.createRange();
                 const newFrag = range.createContextualFragment(`
-                    <a href="${safeU}" target="_blank" rel="noopener noreferrer" 
+                    <a href="${safeUrl(localizeBookmarkUrl(bm.url))}" target="_blank" rel="noopener noreferrer"
                        data-url="${safeU}"
                        data-icon="${safeIcon}"
                        class="bookmark-item flex flex-col items-center justify-center gap-2 py-3 px-1 sm:px-1.5 apple-radius text-white/90">
@@ -516,7 +523,7 @@ export function renderNavCategories(force = false) {
             </div>
             <div class="nav-bookmark-grid">
                 ${sortedBookmarks.map(bm => `
-                    <a href="${safeUrl(bm.url)}" target="_blank" rel="noopener noreferrer"
+                    <a href="${safeUrl(localizeBookmarkUrl(bm.url))}" target="_blank" rel="noopener noreferrer"
                        class="nav-bookmark group flex items-center gap-2.5 px-3 py-2.5 md:px-3.5 md:py-2.5 text-white/80">
                         ${getFaviconHTML(bm, 'sm', !navIconsActivated)}
                         ${bm.desc ? `

@@ -54,7 +54,7 @@
                 },
                 {
                     "name": "Artificial Analysis",
-                    "url": "https://artificialanalysis.ai/zh",
+                    "url": "https://artificialanalysis.ai",
                     "icon": "./icons/artificialanalysis.ai.png",
                     "desc": "AI 模型基准评测"
                 },
@@ -163,7 +163,7 @@
             "bookmarks": [
                 {
                     "name": "DeepL",
-                    "url": "https://www.deepl.com/zh/translator",
+                    "url": "https://www.deepl.com/translator",
                     "icon": "./icons/deepl.com.png",
                     "desc": "文本与文档翻译"
                 },
@@ -199,7 +199,7 @@
                 },
                 {
                     "name": "PDF24 Tools",
-                    "url": "https://tools.pdf24.org/zh",
+                    "url": "https://tools.pdf24.org",
                     "icon": "./icons/tools.pdf24.org.png",
                     "desc": "免费在线 PDF 工具箱"
                 },
@@ -211,7 +211,7 @@
                 },
                 {
                     "name": "Time.is",
-                    "url": "https://time.is/zh/",
+                    "url": "https://time.is/",
                     "icon": "./icons/time.is.png",
                     "desc": "世界时间与时区查询"
                 }
@@ -455,14 +455,14 @@
                 },
                 {
                     "name": "wikiHow",
-                    "url": "https://zh.wikihow.com/首页",
-                    "icon": "./icons/zh.wikihow.com.png",
+                    "url": "https://www.wikihow.com/Main-Page",
+                    "icon": "./icons/wikihow.com.png",
                     "desc": "万物生活与实操指南"
                 },
                 {
                     "name": "Wikipedia",
-                    "url": "https://zh.wikipedia.org/wiki/Wikipedia:首页",
-                    "icon": "./icons/zh.wikipedia.org.png",
+                    "url": "https://en.wikipedia.org/wiki/Main_Page",
+                    "icon": "./icons/en.wikipedia.org.png",
                     "desc": "自由的百科全书"
                 },
                 {
@@ -473,14 +473,14 @@
                 },
                 {
                     "name": "默沙东诊疗手册",
-                    "url": "https://www.msdmanuals.cn/home",
-                    "icon": "./icons/msdmanuals.cn.png",
+                    "url": "https://www.msdmanuals.com/home",
+                    "icon": "./icons/msdmanuals.com.png",
                     "desc": "大众医学健康指南"
                 },
                 {
                     "name": "维基导游",
-                    "url": "https://zh.wikivoyage.org/zh-hans/首页",
-                    "icon": "./icons/zh.wikivoyage.org.png",
+                    "url": "https://en.wikivoyage.org/wiki/Main_Page",
+                    "icon": "./icons/en.wikivoyage.org.png",
                     "desc": "自由的世界旅行指南"
                 },
                 {
@@ -608,7 +608,7 @@
                 },
                 {
                     "name": "EmojiAll",
-                    "url": "https://www.emojiall.com/zh-hans",
+                    "url": "https://www.emojiall.com",
                     "icon": "./icons/emojiall.com.png",
                     "desc": "Emoji 字典与符号库"
                 },
@@ -864,7 +864,7 @@
             "bookmarks": [
                 {
                     "name": "16Personalities",
-                    "url": "https://www.16personalities.com/ch",
+                    "url": "https://www.16personalities.com",
                     "icon": "./icons/16personalities.com.png",
                     "desc": "经典十六型人格测试"
                 },
@@ -876,7 +876,7 @@
                 },
                 {
                     "name": "Personality Database",
-                    "url": "https://www.personality-database.com/zh-CN/",
+                    "url": "https://www.personality-database.com/",
                     "icon": "./icons/personality-database.com.png",
                     "desc": "人物角色性格数据库"
                 },

@@ -12,6 +12,8 @@
   <a href="./README.md">简体中文</a> · <strong>English</strong>
 </p>
 
+> The [Simplified Chinese documentation](./README.md) is the primary maintained version. This English version is a translation. If anything is unclear or inconsistent, the Chinese version takes precedence. Translation corrections are welcome. The project's open-source license is governed by the original [LICENSE](./LICENSE) file.
+
 <p align="center">
   <a href="./LICENSE"><img src="https://img.shields.io/badge/License-GPLv3-blue.svg" alt="License: GPL v3"></a>
   <a href="https://github.com/leosdcn/glass-start/actions/workflows/ci.yml"><img src="https://github.com/leosdcn/glass-start/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
@@ -50,9 +52,9 @@
 
 ## Features
 
-- 🧩 **Chrome new tab extension**: use Glass Start as your new tab page. Code, icons and preset wallpapers are bundled locally. Currently installed by [loading the unpacked extension](#chrome-new-tab-extension).
+- 🧩 **Chrome new tab extension**: use Glass Start as your new tab page. Code, icons and preset wallpapers are bundled locally. Install it by [loading the unpacked extension](#chrome-new-tab-extension).
 - 🪐 **Liquid Glass appearance**: highlights, frosted backgrounds and press animations.
-- 🎬 **Two connected screens**: a start page for the clock and search, and a second page for categorized bookmarks, with smooth transitions and fading content near the bottom edge.
+- 🎬 **Two connected screens**: a start page for the clock and search, and a second page for categorized bookmarks, with smooth transitions and content that fades near the bottom edge.
 - 🕊️ **No distractions**: no embedded ads, promotional links or trending feeds. The project itself does not track user behavior or add analytics instrumentation.
 - 🌤️ **Weather and forecasts**: no API key required. Uses IP-based location and place-name lookup, with cached conditions and forecasts for the next few days.
 - 🌐 **English and Chinese**: follow your browser language or choose one manually. The interface, weather and built-in bookmark catalog are localized; your custom text is preserved.
@@ -164,7 +166,7 @@ npm run preview
 }
 ```
 
-This is a structural example. Chinese source text is intentional: English names, categories and descriptions are maintained separately in `src/js/config/locales/catalog-en.json`.
+This is a structural example. Chinese source text is intentional: English names, categories and descriptions are maintained separately in `src/js/config/locales/catalog-en.json`. `bookmarks.json` is the single complete bookmark catalog, with international URLs as shared identifiers. Chinese destination overrides live in `catalog-zh-CN.json`; English overrides live in `catalog-en.json`. An optional `url` field controls only the link opened. Saving, exporting and deduplication use the shared URL. Sites that select their language automatically use the shared URL. A `legacyUrl` field retains retired Chinese destinations only for saved-link compatibility. Old Chinese preset URLs resolve to shared URLs when loaded, preserving custom text and order; the stored keys update on the next save.
 
 - **`bookmarks`**: default quick bookmarks on the Chinese start page, with `name`, `url` and `icon`.
 - **`categories`**: categories on the bookmarks page. Each has a stable `id`, a display `name`, an `icon` and a `bookmarks` list. Match category IDs in the English catalog when adding or changing categories.
@@ -179,8 +181,8 @@ This is a structural example. Chinese source text is intentional: English names,
 
 Preset bookmarks should serve common everyday needs. Developer tools and popular commercial platforms are not the main focus for new additions. A smaller, useful catalog is preferable to filling every category.
 
-- **Scope**: exclude shopping sites and cloud storage services with poor usability, payment pressure or excessive restrictions. Avoid sites dominated by ads, obstructive pop-ups, forced redirects or download prompts.
-- **Ease of use**: prefer tools that work immediately, ideally without signing in or downloading software, and that do not require specialist knowledge.
+- **Scope**: exclude shopping sites and cloud storage services with poor usability, aggressive upselling or excessive restrictions. Avoid sites dominated by ads, obstructive pop-ups, forced redirects or download prompts.
+- **Ease of use**: prefer tools that work immediately, ideally without signing in or downloading software, and require no specialist knowledge.
 - **Practical value**: the free offering should solve a complete problem and add a clear use case beyond existing bookmarks. Ads should be limited and should not interrupt the main task.
 - **Maintenance**: do not add bookmarks simply to increase the count. Notice recurring needs and consider a tool after it has repeatedly solved a real problem.
 
@@ -188,10 +190,10 @@ Run `npm run sync:icons:refresh` to download all icons again and convert them to
 
 ### 4. Settings and backups
 
-Open the settings button at the bottom right to edit quick bookmarks, customize appearance and manage data. Categories on the bookmarks page remain defined in `bookmarks.json`.
+Click the settings button at the bottom right to edit quick bookmarks, customize appearance and manage data. Categories on the bookmarks page remain defined in `bookmarks.json`.
 
 - **Done / Cancel**: **Done** saves quick bookmarks, background dimming and language. **Cancel** discards those draft changes. Wallpaper selections save immediately and are not undone by Cancel.
-- **Language**: select **Follow browser**, **简体中文** or **English** at the bottom left of settings, then click **Done** to reload and apply. The interface, weather and built-in catalog follow the selected language; custom and imported text stays as entered. First use follows the browser, with English as the fallback for unsupported languages. The website and extension save their preferences separately, and language changes also work offline. Time remains in 24-hour format and temperature in Celsius. The extension's name on Chrome's management page follows Chrome's language; PWA installation names keep the default metadata.
+- **Language**: select **Follow browser**, **简体中文** or **English** at the top right of settings, then click **Done** to reload and apply. The interface, weather and built-in catalog follow the selected language; custom and imported text stays as entered. On first use, the app follows your browser's language, falling back to English for unsupported languages. The website and extension save their preferences separately, and language changes also work offline. Time remains in 24-hour format and temperature in Celsius. The extension's name on Chrome's management page follows Chrome's language; PWA installation names keep the default metadata.
 - **Export / Import**: export includes the current quick bookmark draft, even before clicking Done. Importing JSON asks you to replace the draft; click Done to save it. Backups do not contain wallpaper images, appearance settings or search preferences.
 - **Refresh offline cache / Restore defaults**: the confirmation dialog specifies what will be cleared. Restoring defaults immediately removes custom quick bookmarks, wallpapers and preferences. Export bookmarks first if you need a backup.
 
@@ -212,7 +214,7 @@ This is my first substantial open-source project, and I am still learning and im
 ### Requirements
 
 - Node.js 24 or newer, with npm. The test driver uses Node's native `fetch` and `WebSocket`; follow the version requirement in `package.json`. Use `npm ci` to install or restore dependencies.
-- Google Chrome for browser regression tests. Set `CHROME_PATH` if needed, for example `CHROME_PATH="/path/to/chrome" npm test`. Chrome is the acceptance baseline; mobile viewports and touch interactions are simulated through Chrome CDP. Physical Safari/iOS testing is not required for routine development, full tests or releases.
+- Google Chrome for browser regression tests. Set `CHROME_PATH` if needed, for example `CHROME_PATH="/path/to/chrome" npm test`. Chrome is the acceptance baseline; mobile viewports and touch interactions are simulated through Chrome CDP. Testing in Safari or on physical iOS devices is not required for routine development, full tests or releases.
 - `npm run sync:icons` and icon-conversion regression tests require macOS `sips`. Use macOS for complete validation. Building and static hosting do not call `sips`; other systems can build using the icons already in the repository.
 - Dependency installation, icon downloads or refreshes, and online W3C validation require a connection. Reusing local icons does not contact external icon services.
 
@@ -244,7 +246,7 @@ npm run build:extension
 
 [AGENTS.md](./AGENTS.md#验证) (Chinese) defines the required validation scope. Prefer directly relevant tests for local changes. `npm test -- <filename-fragment>` checks types and builds as needed before running matching files. When a build is needed, it runs alongside the type check, so do not repeat either manually. The build is skipped only when all matching tests are on the runner's [standalone unit-test list](./test/support/test-selection.mjs). With no arguments, `npm test` and `test:all` run the full suite, intended for high-risk changes across modules, releases or explicitly requested full validation. Use `test:ui`, `test:data`, `test:infra` or `test:lifecycle` to widen the scope by area. Available commands are defined in `package.json`.
 
-`npm run typecheck` applies gradual type checking to JavaScript covering core data, drafts, the DOM cache and state; its scope is defined in `tsconfig.json`. `npm run test:unit` checks search, weather conversion and draft logic without Chrome.
+`npm run typecheck` checks types in selected JavaScript modules for core data, drafts, the DOM cache and state. The scope is defined in `tsconfig.json`. `npm run test:unit` checks search, weather conversion and draft logic without Chrome.
 
 `npm run benchmark` builds and measures frame intervals during initial and repeated screen transitions. By default, it accesses only local resources. See the [transition benchmark guide](./docs/TRANSITION_BENCHMARK.md) (Chinese) for options, metrics and headless-browser limitations.
 

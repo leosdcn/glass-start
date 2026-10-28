@@ -60,8 +60,19 @@ export async function inspectI18n(root, sources, html) {
     });
     for (const [url, translation] of Object.entries(catalog.bookmarks)) {
         if (!urls.has(url)) throw new Error(`Orphaned bookmark translation: ${url}`);
+        if (translation.url && !/^https:\/\//.test(translation.url)) throw new Error(`English bookmark destination must use HTTPS: ${url}`);
         if ((translation.name?.length || 0) > 60) throw new Error(`Bookmark translation exceeds editor name limit: ${url}`);
         if ((translation.desc?.length || 0) > 28) throw new Error(`English bookmark description exceeds 28 characters (${translation.desc.length}): ${url}`);
+    }
+    const chineseCatalog = readJSON('src/js/config/locales/catalog-zh-CN.json');
+    const destinations = new Set();
+    for (const [url, bookmark] of Object.entries(chineseCatalog.bookmarks)) {
+        if (!urls.has(url)) throw new Error(`Orphaned Chinese bookmark destination: ${url}`);
+        const destination = bookmark.url || bookmark.legacyUrl;
+        if (!/^https:\/\//.test(destination) || destination === url || destinations.has(destination) || urls.has(destination)) {
+            throw new Error(`Invalid or ambiguous Chinese bookmark destination: ${url}`);
+        }
+        destinations.add(destination);
     }
     return `${SUPPORTED_LANGUAGES.length} languages, ${keys.length} messages and ${urls.size} built-in bookmarks`;
 }

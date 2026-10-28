@@ -1,4 +1,4 @@
-import { t, getLocale } from '../core/i18n.js';
+import { t, getLocale, localizeBookmarkUrl } from '../core/i18n.js';
 /** 搜索引擎切换、书签分级匹配与网络联想；请求序号隔离迟到响应。 */
 import { rankBookmarkSuggestions } from '../utils/bookmark-search.js';
 import { getCategoryCatalog, searchUrlKey } from '../utils/category-catalog.js';
@@ -229,7 +229,7 @@ function doSearch(queryOverride, newTab = false) {
  */
 function openBookmarkUrl(url, newTab = false) {
     if (!url) return;
-    let trimmed = url.trim();
+    let trimmed = localizeBookmarkUrl(url.trim());
     if (/^(javascript|data|vbscript|file|blob):/i.test(trimmed)) {
         console.warn('⚠️ 拦截高危伪协议书签 URL:', trimmed);
         return;

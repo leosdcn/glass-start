@@ -40,6 +40,44 @@ try {
         ['ChatGPT', 'Gemini', 'DeepSeek', 'GitHub', 'YouTube', 'Spotify', 'Reddit', 'X']);
     assert.equal(await evalJS(`pageData.categories.every(category => category.bookmarks.every(bookmark => !/[\u4e00-\u9fff]/.test(bookmark.name + bookmark.desc)))`), true);
 
+    // Destinations vary by language; stored bookmark identity must remain stable.
+    const destinations = await evalJS(`(() => {
+        const links = [...document.querySelectorAll('.nav-bookmark')].map(link => link.getAttribute('href'));
+        return Object.entries(window.__GLASS_I18N__.catalogs['zh-CN'].bookmarks)
+            .filter(([, bookmark]) => bookmark.url)
+            .map(([source, bookmark]) => {
+                const destination = window.__GLASS_I18N__.catalogs.en.bookmarks[source]?.url || source;
+                return { source, destination, chinese: bookmark.url, rendered: links.includes(destination) };
+            });
+    })()`);
+    assert.equal(destinations.length, 7);
+    assert.ok(destinations.every(item => item.rendered), JSON.stringify(destinations));
+    const quickLink = await evalJS(`(() => {
+        const original = pageData.bookmarks;
+        const originalMeta = storageGet(CONFIG.KEYS.CUSTOM_META) || {};
+        const bookmark = pageData.categories.flatMap(category => category.bookmarks).find(bookmark => bookmark.name === 'DeepL');
+        try {
+            storageSet(CONFIG.KEYS.BOOKMARK_KEYS, ['https://www.deepl.com/zh/translator', bookmark.url]);
+            storageSet(CONFIG.KEYS.CUSTOM_META, { 'https://www.deepl.com/zh/translator': { name: 'My translator', desc: 'My description' } });
+            loadBookmarks();
+            const inherited = pageData.bookmarks.map(bookmark => ({ ...bookmark }));
+            saveUserBookmarks(pageData.bookmarks);
+            loadBookmarks();
+            return { inherited, stored: storageGet(CONFIG.KEYS.BOOKMARK_KEYS), url: pageData.bookmarks[0].url,
+                href: document.querySelector('.bookmark-item').getAttribute('href') };
+        } finally { storageSet(CONFIG.KEYS.CUSTOM_META, originalMeta); saveUserBookmarks(original); }
+    })()`);
+    assert.equal(quickLink.inherited.length, 1, 'old and shared URLs resolve to one bookmark');
+    assert.equal(quickLink.inherited[0].name, 'My translator');
+    assert.equal(quickLink.inherited[0].desc, 'My description');
+    assert.deepEqual(quickLink.stored, ['https://www.deepl.com/translator']);
+    assert.equal(quickLink.url, 'https://www.deepl.com/translator');
+    assert.equal(quickLink.href, 'https://www.deepl.com/translator');
+
+    const autoLanguageLinks = ['https://www.deepl.com/translator', 'https://tools.pdf24.org', 'https://time.is/', 'https://www.emojiall.com'];
+    const englishLinks = await evalJS(`[...document.querySelectorAll('.nav-bookmark')].map(link => link.getAttribute('href'))`);
+    assert.ok(autoLanguageLinks.every(url => englishLinks.includes(url)), 'English uses shared URLs for automatic language selection');
+
     // Hold the deferred app bundle: the head and body bootstrap must translate independently.
     await send('Network.enable');
     await send('Network.setBypassServiceWorker', { bypass: true });
@@ -146,6 +184,10 @@ try {
     await waitFor(evalJS, `document.documentElement.lang === 'zh-CN' && !!document.querySelector('.bookmark-item')`, 10000);
     assert.equal(await evalJS(`pageData.bookmarks.some(bookmark => bookmark.name === 'Reddit')`), true);
     assert.equal(await evalJS(`pageData.bookmarks.some(bookmark => bookmark.name === '我的自定义书签')`), true);
+    await waitFor(evalJS, `!!document.querySelector('.nav-bookmark')`);
+    const chineseLinks = await evalJS(`[...document.querySelectorAll('.nav-bookmark')].map(link => link.getAttribute('href'))`);
+    assert.ok(destinations.every(item => chineseLinks.includes(item.chinese)), 'Chinese catalog retains its remaining localized destinations');
+    assert.ok(autoLanguageLinks.every(url => chineseLinks.includes(url)), 'Chinese also uses shared URLs for automatic language selection');
     console.log('✅ 英文全站、语言草稿与保存失败、书签继承、天气缓存、桌面/触屏布局及离线切换通过');
 } finally {
     await chrome.close();

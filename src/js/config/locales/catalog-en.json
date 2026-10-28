@@ -28,7 +28,7 @@
         "https://arena.ai": {
             "desc": "Blind AI model comparisons"
         },
-        "https://artificialanalysis.ai/zh": {
+        "https://artificialanalysis.ai": {
             "desc": "AI model benchmarks"
         },
         "https://chatgpt.com": {
@@ -50,7 +50,7 @@
             "desc": "AI slides and websites"
         },
         "https://gemini.google.com": {
-            "desc": "Google multimodal AI"
+            "desc": "Google's multimodal AI"
         },
         "https://aistudio.google.com": {
             "desc": "Prototype with Google AI"
@@ -81,14 +81,14 @@
             "name": "Qwen",
             "desc": "AI assistant by Alibaba"
         },
-        "https://www.deepl.com/zh/translator": {
+        "https://www.deepl.com/translator": {
             "desc": "Translate text and documents"
         },
         "https://app.diagrams.net": {
             "desc": "Open-source diagram editor"
         },
         "https://excalidraw.com": {
-            "desc": "Shared sketch whiteboard"
+            "desc": "Collaborative whiteboard"
         },
         "https://mail.google.com": {
             "desc": "Email by Google"
@@ -99,17 +99,17 @@
         "https://www.notion.com": {
             "desc": "Notes and project workspace"
         },
-        "https://tools.pdf24.org/zh": {
+        "https://tools.pdf24.org": {
             "desc": "Free online PDF tools"
         },
         "https://publishmarkdown.com": {
             "desc": "Publish Markdown notes"
         },
-        "https://time.is/zh/": {
+        "https://time.is/": {
             "desc": "World clocks and time zones"
         },
         "https://drive.google.com": {
-            "desc": "Google storage and docs"
+            "desc": "Cloud storage and documents"
         },
         "https://www.icloud.com": {
             "desc": "Cloud services by Apple"
@@ -121,7 +121,7 @@
             "desc": "End-to-end encrypted storage"
         },
         "https://onedrive.live.com": {
-            "desc": "Microsoft storage & Office"
+            "desc": "Cloud storage and Office"
         },
         "https://filehelper.weixin.qq.com": {
             "name": "WeChat File Transfer",
@@ -156,7 +156,7 @@
         },
         "https://www.bilibili.com": {
             "name": "Bilibili",
-            "desc": "Videos and anime community"
+            "desc": "Video and anime community"
         },
         "https://www.douyin.com": {
             "name": "Douyin",
@@ -164,7 +164,7 @@
         },
         "https://music.163.com/st/webplayer": {
             "name": "NetEase Cloud Music",
-            "desc": "Music and playlist community"
+            "desc": "Music, playlists and sharing"
         },
         "https://discord.com": {
             "desc": "Group chat and voice calls"
@@ -176,7 +176,7 @@
             "desc": "Share photos and videos"
         },
         "https://www.linkedin.com": {
-            "desc": "Career networking and jobs"
+            "desc": "Professional networking"
         },
         "https://linux.do": {
             "desc": "Tech and developer community"
@@ -220,21 +220,21 @@
         "https://qwerty.kaiyi.cool": {
             "desc": "Learn words through typing"
         },
-        "https://zh.wikihow.com/首页": {
+        "https://www.wikihow.com/Main-Page": {
             "desc": "Practical how-to guides"
         },
-        "https://zh.wikipedia.org/wiki/Wikipedia:首页": {
+        "https://en.wikipedia.org/wiki/Main_Page": {
             "desc": "The free encyclopedia"
         },
         "https://socpk.com": {
             "name": "Geekerwan Chip Rankings",
             "desc": "Phone and PC chip rankings"
         },
-        "https://www.msdmanuals.cn/home": {
+        "https://www.msdmanuals.com/home": {
             "name": "MSD Manuals",
             "desc": "Medical and health reference"
         },
-        "https://zh.wikivoyage.org/zh-hans/首页": {
+        "https://en.wikivoyage.org/wiki/Main_Page": {
             "name": "Wikivoyage",
             "desc": "Free worldwide travel guide"
         },
@@ -284,7 +284,7 @@
             "desc": "Open-source image compressor"
         },
         "https://vocalremover.org": {
-            "desc": "Vocal and instrumental split"
+            "desc": "Separate vocals from music"
         },
         "https://www.waifu2x.net": {
             "desc": "Denoise and upscale images"
@@ -292,7 +292,7 @@
         "https://www.behance.net": {
             "desc": "Discover and share designs"
         },
-        "https://www.emojiall.com/zh-hans": {
+        "https://www.emojiall.com": {
             "desc": "Emoji dictionary and guide"
         },
         "https://kenney.nl/assets": {
@@ -317,7 +317,7 @@
             "desc": "Free 3D textures and models"
         },
         "https://saucenao.com": {
-            "desc": "Reverse illustration search"
+            "desc": "Reverse image search"
         },
         "https://tenor.com": {
             "desc": "Search GIFs and reactions"
@@ -379,7 +379,7 @@
             "desc": "Multi-source IP information"
         },
         "https://www.itdog.cn": {
-            "desc": "China network diagnostics"
+            "desc": "Network testing across China"
         },
         "https://www.speedtest.net": {
             "desc": "Test network speed & latency"
@@ -388,7 +388,7 @@
             "desc": "Multi-engine malware scanner"
         },
         "https://lichess.org": {
-            "desc": "Open source online chess"
+            "desc": "Open-source online chess"
         },
         "https://www.playok.com": {
             "desc": "Play board games online"
@@ -409,13 +409,13 @@
             "name": "Shogi Wars",
             "desc": "Play Japanese shogi online"
         },
-        "https://www.16personalities.com/ch": {
-            "desc": "16 personality types test"
+        "https://www.16personalities.com": {
+            "desc": "Personality type test"
         },
         "https://neal.fun": {
             "desc": "Interactive web experiments"
         },
-        "https://www.personality-database.com/zh-CN/": {
+        "https://www.personality-database.com/": {
             "desc": "Character personality types"
         },
         "https://quickdraw.withgoogle.com": {

@@ -6,7 +6,7 @@ import { ENGINE_META } from './engines.js';
 
 // 默认条目复用根目录书签；英文目录仅配置快捷入口的 URL 与顺序。
 export const DEFAULT_CATEGORIES = bookmarksData.categories || [];
-const defaultUrls = getLocale() === 'en' ? window.__GLASS_I18N__?.catalog?.defaultBookmarks : undefined;
+const defaultUrls = getLocale() === 'en' ? window.__GLASS_I18N__?.catalogs?.en?.defaultBookmarks : undefined;
 export const DEFAULT_BOOKMARKS = defaultUrls
     ? defaultUrls.map(url => DEFAULT_CATEGORIES.flatMap(category => category.bookmarks).find(bookmark => bookmark.url === url))
         .filter(bookmark => bookmark !== undefined)

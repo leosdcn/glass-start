@@ -12,6 +12,8 @@
   <strong>简体中文</strong> · <a href="./README.en.md">English</a>
 </p>
 
+> 本项目文档以简体中文版为主要维护版本，英文版为翻译。如有歧义或不一致，请以中文版为准，欢迎提交翻译修正。项目开源许可仍以 [LICENSE](./LICENSE) 原文为准。
+
 <p align="center">
   <a href="./LICENSE"><img src="https://img.shields.io/badge/License-GPLv3-blue.svg" alt="License: GPL v3"></a>
   <a href="https://github.com/leosdcn/glass-start/actions/workflows/ci.yml"><img src="https://github.com/leosdcn/glass-start/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
@@ -158,7 +160,7 @@ npm run preview
   ]
 }
 ```
-以上为结构示例；英文分类名、书签名与简介维护在 `src/js/config/locales/catalog-en.json`。
+以上为结构示例；英文分类名、书签名与简介维护在 `src/js/config/locales/catalog-en.json`。`bookmarks.json` 是唯一的完整书签库，URL 使用国际通用入口；中文入口差异维护在 `catalog-zh-CN.json`，英文入口差异维护在 `catalog-en.json`。各语言书签可选的 `url` 字段只决定打开地址，保存、导出和去重统一使用共享 URL。支持自动选择语言的网站直接使用共享入口；不再用于跳转的旧中文地址以 `legacyUrl` 保留，仅用于兼容已保存的链接。旧中文预设链接读取时兼容为共享 URL，保留自定义文字与顺序，下次保存时更新存储。
 
 - **`bookmarks`**：中文首屏默认快捷书签列表（包含 `name`、`url`、`icon`）。
 - **`categories`**：导航页分类列表，包含稳定标识 `id`、分类名 `name`、图标 `icon` 及分类书签 `bookmarks`；新增或修改分类时，同步英文目录中的分类 ID。
@@ -185,7 +187,7 @@ npm run preview
 点击右下角设置按钮，可编辑首屏快捷书签、调整外观并管理数据。导航分类仍由 `bookmarks.json` 维护。
 
 - **完成 / 取消**：「完成」保存快捷书签、背景暗度与语言；「取消」放弃这些草稿修改。选择壁纸会立即保存，取消设置不撤销壁纸。
-- **界面语言**：在设置弹窗底栏左侧选择跟随浏览器、简体中文或 English，点击「完成」后刷新生效。界面、天气、内置分类和书签简介随语言切换，用户改写和导入的文字保留原文。首次使用默认跟随浏览器，不支持的语言回退英文；网页与扩展的选择分别保存，离线也可切换。时间保持 24 小时制，天气保持摄氏度。扩展管理页名称跟随 Chrome 的语言，PWA 安装名称保留默认元数据。
+- **界面语言**：在设置弹窗右上角选择跟随浏览器、简体中文或 English，点击「完成」后刷新生效。界面、天气、内置分类和书签简介随语言切换，用户改写和导入的文字保留原文。首次使用默认跟随浏览器，不支持的语言回退英文；网页与扩展的选择分别保存，离线也可切换。时间保持 24 小时制，天气保持摄氏度。扩展管理页名称跟随 Chrome 的语言，PWA 安装名称保留默认元数据。
 - **导出 / 导入**：导出当前快捷书签草稿，包含尚未点击「完成」的书签修改；导入 JSON 后确认替换草稿，再点击「完成」生效。备份不包含壁纸图片、外观或搜索偏好。
 - **刷新离线缓存 / 还原初始设置**：以界面确认框列出的清理范围为准；还原会立即清除自定义快捷书签、壁纸与偏好，操作前可先导出书签。
 

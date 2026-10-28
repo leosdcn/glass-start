@@ -71,16 +71,33 @@ export function forecastLabel(value, index) {
     return formatDate(new Date(year, month - 1, day), { weekday: 'short' });
 }
 
+/** Resolve old Chinese preset URLs to the shared bookmark identity.
+ * @param {string} url
+ */
+export function canonicalBookmarkUrl(url) {
+    const bookmarks = typeof window !== 'undefined' ? window.__GLASS_I18N__?.catalogs?.['zh-CN']?.bookmarks : undefined;
+    return Object.entries(bookmarks || {}).find(([, bookmark]) => (bookmark.url || bookmark.legacyUrl) === url)?.[0] || url;
+}
+
+/** Resolve a built-in bookmark's destination without changing its saved identity.
+ * @param {string} url
+ */
+export function localizeBookmarkUrl(url) {
+    const catalog = typeof window !== 'undefined' ? window.__GLASS_I18N__?.catalogs?.[getLocale()] : undefined;
+    const canonical = canonicalBookmarkUrl(url);
+    return catalog?.bookmarks[canonical]?.url || canonical;
+}
+
 /** Display-only catalog. Keep the original defaults intact for migrations.
  * @param {import('../types').BookmarkCategory[]} categories
  */
 export function localizeCategories(categories) {
-    const catalog = typeof window !== 'undefined' && getLocale() === 'en' ? window.__GLASS_I18N__?.catalog : undefined;
+    const catalog = typeof window !== 'undefined' && getLocale() === 'en' ? window.__GLASS_I18N__?.catalogs?.en : undefined;
     if (!catalog) return categories;
     return categories.map(category => ({
         ...category,
-        name: catalog.categories[category.id || ''] || category.name,
-        bookmarks: category.bookmarks.map(bookmark => ({ ...bookmark, ...catalog.bookmarks[bookmark.url] }))
+        name: catalog.categories?.[category.id || ''] || category.name,
+        bookmarks: category.bookmarks.map(bookmark => ({ ...bookmark, ...catalog.bookmarks[bookmark.url], url: bookmark.url }))
     }));
 }
 

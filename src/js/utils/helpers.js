@@ -1,4 +1,4 @@
-import { t } from '../core/i18n.js';
+import { t, canonicalBookmarkUrl } from '../core/i18n.js';
 /**
  * 工具函数集
  */
@@ -29,7 +29,7 @@ export function safeUrl(url) {
 }
 
 /**
- * 规范化用户输入的 URL：去除首尾空格，若缺少协议头则自动补 https://
+ * 规范化用户输入的 URL：去除首尾空格、补 https://，旧中文预设入口对应到共享 URL
  * @param {string} url
  * @returns {string} 规范化后的 URL，空输入返回 ''
  */
@@ -37,9 +37,9 @@ export function normalizeUrl(url) {
     url = String(url || '').trim();
     if (!url) return '';
     if (!/^https?:\/\//i.test(url)) {
-        return 'https://' + url;
+        return canonicalBookmarkUrl('https://' + url);
     }
-    return url;
+    return canonicalBookmarkUrl(url);
 }
 
 /**

@@ -1,0 +1,37 @@
+{
+    "bookmarks": {
+        "https://artificialanalysis.ai": {
+            "url": "https://artificialanalysis.ai/zh"
+        },
+        "https://www.deepl.com/translator": {
+            "legacyUrl": "https://www.deepl.com/zh/translator"
+        },
+        "https://tools.pdf24.org": {
+            "legacyUrl": "https://tools.pdf24.org/zh"
+        },
+        "https://time.is/": {
+            "legacyUrl": "https://time.is/zh/"
+        },
+        "https://www.wikihow.com/Main-Page": {
+            "url": "https://zh.wikihow.com/首页"
+        },
+        "https://en.wikipedia.org/wiki/Main_Page": {
+            "url": "https://zh.wikipedia.org/wiki/Wikipedia:首页"
+        },
+        "https://www.msdmanuals.com/home": {
+            "url": "https://www.msdmanuals.cn/home"
+        },
+        "https://en.wikivoyage.org/wiki/Main_Page": {
+            "url": "https://zh.wikivoyage.org/zh-hans/首页"
+        },
+        "https://www.emojiall.com": {
+            "legacyUrl": "https://www.emojiall.com/zh-hans"
+        },
+        "https://www.16personalities.com": {
+            "url": "https://www.16personalities.com/ch"
+        },
+        "https://www.personality-database.com/": {
+            "url": "https://www.personality-database.com/zh-CN/"
+        }
+    }
+}

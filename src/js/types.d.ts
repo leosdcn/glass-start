@@ -230,7 +230,7 @@ declare global {
         __GLASS_I18N__?: {
             locale: string;
             messages: Record<string, Record<string, TranslationMessage>>;
-            catalog?: { defaultBookmarks: string[]; categories: Record<string, string>; bookmarks: Record<string, {name?: string; desc?: string}> };
+            catalogs?: Record<string, { defaultBookmarks?: string[]; categories?: Record<string, string>; bookmarks: Record<string, {name?: string; desc?: string; url?: string; legacyUrl?: string}> }>;
             t: (key: string, params?: Record<string, string | number>) => string;
             applyTranslations: (root?: ParentNode) => void;
             formatDate: (date: Date, options?: Intl.DateTimeFormatOptions) => string;
