@@ -35,7 +35,7 @@ export function renderCreditsModalList() {
     container.innerHTML = CONFIG.CREDITS.map(item => {
         const isIconPath = typeof item.icon === 'string' && (item.icon.startsWith('./') || item.icon.startsWith('/') || item.icon.endsWith('.svg'));
         const iconHtml = isIconPath
-            ? `<img src="${safeUrl(item.icon)}" class="size-4.5 shrink-0 object-contain select-none inline-block align-middle pointer-events-none" alt="" aria-hidden="true" loading="lazy" decoding="async">`
+            ? `<img src="${safeUrl(item.icon)}" class="size-4.5 shrink-0 object-contain select-none inline-block align-middle pointer-events-none" alt="" aria-hidden="true" decoding="async">`
             : escapeHtml(item.icon);
         return `
         <div class="py-3 first:pt-1 last:pb-1 flex items-center justify-between gap-3">

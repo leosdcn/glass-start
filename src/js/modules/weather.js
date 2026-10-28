@@ -20,7 +20,7 @@ function getWeatherIconHTML(icon, className = 'size-4') {
     const clean = typeof icon === 'string' ? icon.trim() : '';
     const path = WEATHER_EMOJI_MAP[clean] || (clean.startsWith('./') || clean.startsWith('/') || clean.endsWith('.svg') ? clean : null);
     if (path) {
-        return `<img src="${safeUrl(path)}" class="${className} shrink-0 object-contain select-none inline-block align-middle pointer-events-none" alt="" aria-hidden="true" loading="lazy" decoding="async"><span class="sr-only">${escapeHtml(clean)}</span>`;
+        return `<img src="${safeUrl(path)}" class="${className} shrink-0 object-contain select-none inline-block align-middle pointer-events-none" alt="" aria-hidden="true" decoding="async"><span class="sr-only">${escapeHtml(clean)}</span>`;
     }
     return escapeHtml(icon);
 }

@@ -12,6 +12,12 @@ try {
     ` });
     await send('Page.reload');
     await waitFor(evalJS, 'typeof switchToNav === "function" && dom.navCategories.querySelector("img[data-nav-src]")');
+    assert.equal(await evalJS(`(() => {
+        const icons = [...dom.bookmarks.querySelectorAll('img'),
+            ...dom.sidebarList.querySelectorAll('img'),
+            ...dom.navCategories.querySelectorAll('.category-header img')];
+        return icons.length > 0 && icons.every(img => !img.hasAttribute('loading'));
+    })()`), true);
     await waitFor(evalJS, `dom.navCategories.querySelector('.category-block:nth-child(-n+5) img.lazy-icon[src]')?.fetchPriority === 'low'`);
     assert.equal(await evalJS(`(() => {
         const firstScreen = new Set([...dom.bookmarks.querySelectorAll('img')].map(img=>img.src));

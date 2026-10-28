@@ -202,7 +202,7 @@ export function getFaviconHTML(bm, sizeType = 'sm', deferLoad = false) {
         return createLetterBadgeHtml(initial, sizeClass, textClass);
     }
     const imgSize = isMd ? String(CONFIG.UI.ICON_SIZE_MD) : String(CONFIG.UI.ICON_SIZE_SM);
-    return `<div class="icon-box ${sizeClass}"><img ${deferLoad ? 'data-nav-src' : 'src'}="${safeIcon}" width="${imgSize}" height="${imgSize}" data-initial="${escapeHtml(initial)}" data-md="${isMd ? '1' : '0'}" data-url="${safeUrl(bm.url)}" class="lazy-icon pointer-events-none select-none" alt="" loading="lazy" decoding="async" draggable="false"></div>`;
+    return `<div class="icon-box ${sizeClass}"><img ${deferLoad ? 'data-nav-src' : 'src'}="${safeIcon}" width="${imgSize}" height="${imgSize}" data-initial="${escapeHtml(initial)}" data-md="${isMd ? '1' : '0'}" data-url="${safeUrl(bm.url)}" class="lazy-icon pointer-events-none select-none" alt=""${isMd ? '' : ' loading="lazy"'} decoding="async" draggable="false"></div>`;
 }
 
 /**
@@ -214,7 +214,7 @@ export function getFaviconHTML(bm, sizeType = 'sm', deferLoad = false) {
 export function getCategoryIconHTML(icon, sizeClass = 'size-4') {
     if (!icon) return '';
     if (typeof icon === 'string' && (icon.startsWith('./') || icon.startsWith('/') || icon.endsWith('.svg') || icon.endsWith('.png') || icon.endsWith('.webp'))) {
-        return `<img src="${safeUrl(icon)}" class="${sizeClass} shrink-0 object-contain select-none pointer-events-none inline-block align-middle" alt="" aria-hidden="true" loading="lazy" decoding="async">`;
+        return `<img src="${safeUrl(icon)}" class="${sizeClass} shrink-0 object-contain select-none pointer-events-none inline-block align-middle" alt="" aria-hidden="true" decoding="async">`;
     }
     return escapeHtml(icon);
 }
