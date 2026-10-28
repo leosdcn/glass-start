@@ -1,12 +1,16 @@
-import { t } from '../core/i18n.js';
+import { getLocale, t } from '../core/i18n.js';
 import { LANGUAGE_KEY } from './language.js';
 import bookmarksData from '../../../bookmarks.json';
 import { PRESET_BACKGROUNDS } from './backgrounds.js';
 import { ENGINE_META } from './engines.js';
 
-// ==================== 默认书签（根目录 bookmarks.json 单一真理源）====================
-export const DEFAULT_BOOKMARKS = bookmarksData.bookmarks || [];
+// 默认条目复用根目录书签；英文目录仅配置快捷入口的 URL 与顺序。
 export const DEFAULT_CATEGORIES = bookmarksData.categories || [];
+const defaultUrls = getLocale() === 'en' ? window.__GLASS_I18N__?.catalog?.defaultBookmarks : undefined;
+export const DEFAULT_BOOKMARKS = defaultUrls
+    ? defaultUrls.map(url => DEFAULT_CATEGORIES.flatMap(category => category.bookmarks).find(bookmark => bookmark.url === url))
+        .filter(bookmark => bookmark !== undefined)
+    : bookmarksData.bookmarks || [];
 
 // ==================== 配置与全局常量 ====================
 export const CONFIG = Object.freeze({

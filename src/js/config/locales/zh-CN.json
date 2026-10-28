@@ -208,7 +208,7 @@
     "wallpaper.default": "{name}（系统默认）",
     "credits.license": "查看{name}许可说明",
     "weather.capsule": "{icon}{temperature}°·{city} 实时天气{description}，点击查看详细预报",
-    "weather.summary": "{description} · 体感 {temperature}°C",
+    "weather.feels.like": "体感 {temperature}°C",
     "weather.high": "最高 {temperature}°",
     "weather.low": "最低 {temperature}°",
     "weather.today": "今天",

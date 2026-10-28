@@ -391,15 +391,16 @@ export function renderWeatherPopover(data) {
             </button>
         </div>
 
-        <div class="flex items-center justify-between mb-3 px-1">
-            <div class="flex items-center gap-3">
+        <div class="flex items-center justify-between gap-3 mb-3 px-1">
+            <div class="flex items-center gap-3 min-w-0">
                 <span class="text-3xl sm:text-4xl leading-none select-none shrink-0 flex items-center justify-center">${getWeatherIconHTML(c.icon, 'size-10 sm:size-12')}</span>
-                <div>
+                <div class="min-w-0">
                     <div class="text-2xl font-bold tracking-tight text-white leading-none">${c.temp}<span class="text-base font-normal text-white/70">°C</span></div>
-                    <div class="text-xs text-white/75 mt-1">${escapeHtml(t('weather.summary', { description: c.weatherText, temperature: c.apparent }))}</div>
+                    <div class="text-xs text-white/75 mt-1">${escapeHtml(c.weatherText)}</div>
+                    <div class="text-xs text-white/75 mt-0.5 whitespace-nowrap">${escapeHtml(t('weather.feels.like', { temperature: c.apparent }))}</div>
                 </div>
             </div>
-            ${days[0] ? `<div class="text-right text-xs text-white/60"><div>${escapeHtml(t('weather.high', { temperature: days[0].tempMax }))}</div><div class="mt-0.5">${escapeHtml(t('weather.low', { temperature: days[0].tempMin }))}</div></div>` : ''}
+            ${days[0] ? `<div class="text-right text-xs text-white/60 shrink-0 whitespace-nowrap"><div>${escapeHtml(t('weather.high', { temperature: days[0].tempMax }))}</div><div class="mt-0.5">${escapeHtml(t('weather.low', { temperature: days[0].tempMin }))}</div></div>` : ''}
         </div>
 
         <div class="grid grid-cols-2 gap-2 mb-3">

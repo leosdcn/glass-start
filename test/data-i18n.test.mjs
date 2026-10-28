@@ -15,6 +15,8 @@ const chooseEnglish = async () => {
     await ready();
 };
 try {
+    assert.deepEqual(await evalJS(`pageData.bookmarks.map(bookmark => bookmark.name)`),
+        ['LocalSend', 'DeepSeek', 'Gemini', 'YouTube', '哔哩哔哩', '抖音', '豆包', '网易云音乐']);
     await evalJS(`(async () => {
         await openEditModal();
         dom.languageSelect.value = 'en';
@@ -28,8 +30,9 @@ try {
     assert.equal(await evalJS(`document.title`), 'Glass Start — A Clear Start');
     assert.equal(await evalJS(`dom.searchInput.placeholder`), 'Search...');
     assert.equal(await evalJS(`document.documentElement.hasAttribute('data-i18n-pending')`), false);
-    assert.equal(await evalJS(`pageData.categories[0].name`), 'Artificial intelligence');
-    assert.equal(await evalJS(`pageData.bookmarks.some(bookmark => bookmark.name === 'Bilibili')`), true);
+    assert.equal(await evalJS(`pageData.categories[0].name`), 'AI');
+    assert.deepEqual(await evalJS(`pageData.bookmarks.map(bookmark => bookmark.name)`),
+        ['LocalSend', 'DeepSeek', 'Gemini', 'YouTube', 'Reddit', 'Instagram', 'ChatGPT', 'Spotify']);
     assert.equal(await evalJS(`pageData.categories.every(category => category.bookmarks.every(bookmark => !/[\u4e00-\u9fff]/.test(bookmark.name + bookmark.desc)))`), true);
 
     // Hold the deferred app bundle: the head and body bootstrap must translate independently.
@@ -128,7 +131,7 @@ try {
     assert.equal(await evalJS(`pageData.bookmarks.some(bookmark => bookmark.name === '我的自定义书签')`), true);
     await evalJS(`(async () => { await openEditModal(); modalState.draftLanguage = 'zh-CN'; dom.saveEditBtn.click(); })()`);
     await waitFor(evalJS, `document.documentElement.lang === 'zh-CN' && !!document.querySelector('.bookmark-item')`, 10000);
-    assert.equal(await evalJS(`pageData.bookmarks.some(bookmark => bookmark.name === '哔哩哔哩')`), true);
+    assert.equal(await evalJS(`pageData.bookmarks.some(bookmark => bookmark.name === 'Reddit')`), true);
     assert.equal(await evalJS(`pageData.bookmarks.some(bookmark => bookmark.name === '我的自定义书签')`), true);
     console.log('✅ 英文全站、语言草稿与保存失败、书签继承、天气缓存、桌面/触屏布局及离线切换通过');
 } finally {

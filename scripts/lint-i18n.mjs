@@ -48,6 +48,8 @@ export async function inspectI18n(root, sources, html) {
     const defaults = readJSON('bookmarks.json');
     const ids = new Set();
     const urls = new Set(defaults.categories.flatMap(category => category.bookmarks.map(bookmark => bookmark.url)));
+    if (catalog.defaultBookmarks.length !== defaults.bookmarks.length || new Set(catalog.defaultBookmarks).size !== catalog.defaultBookmarks.length
+        || catalog.defaultBookmarks.some(url => !urls.has(url))) throw new Error('English default bookmarks must be unique catalog URLs matching the default count');
     defaults.categories.forEach(category => {
         if (!category.id || ids.has(category.id) || !catalog.categories[category.id]) throw new Error(`Missing/duplicate category translation: ${category.id}`);
         ids.add(category.id);

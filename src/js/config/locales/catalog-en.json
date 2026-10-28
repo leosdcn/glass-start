@@ -1,4 +1,14 @@
 {
+    "defaultBookmarks": [
+        "https://web.localsend.org",
+        "https://chat.deepseek.com",
+        "https://gemini.google.com",
+        "https://www.youtube.com",
+        "https://www.reddit.com",
+        "https://www.instagram.com",
+        "https://chatgpt.com",
+        "https://open.spotify.com"
+    ],
     "categories": {
         "ai": "AI",
         "work": "Work",
