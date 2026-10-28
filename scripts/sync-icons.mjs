@@ -30,6 +30,7 @@ const OFFICIAL_HOST_SOURCES = new Map([
     ['colab.research.google.com', 'https://www.gstatic.com/colaboratory-static/common/7e9bfd7c9345c7972401c42c04bf40a9/img/favicon.ico'],
     ['drive.google.com', 'https://www.gstatic.com/images/branding/productlogos/drive_2026/v2/web-64dp/logo_drive_2026_color_2x_web_64dp.png'],
     ['earth.google.com', 'https://www.gstatic.com/images/branding/product/2x/earth_64dp.png'],
+    ['github.com', 'https://github.githubassets.com/favicons/favicon.svg'],
     ['maps.google.com', 'https://www.gstatic.com/images/branding/productlogos/maps_2025/v1/web-64dp/logo_maps_2025_color_2x_web_64dp.png'],
     ['onedrive.live.com', 'https://res-1.cdn.office.net/files/fabric-cdn-prod_20230815.002/assets/brand-icons/product/png/onedrive_96x2.png'],
     ['qianwen.com', 'https://img.alicdn.com/imgextra/i4/O1CN01OXv3EM1FN8t9W4P79_!!6000000000474-2-tps-80-80.png'],
@@ -125,7 +126,8 @@ function isReusableIcon(path) {
 /** 使用 macOS 原生 sips 转录规范化为 128x128 1:1 PNG */
 function saveAsPng(inputBuffer, destPath) {
     const workDir = mkdtempSync(join(dirname(destPath), '.icon-sync-'));
-    const inputPath = join(workDir, 'input.bin');
+    const isSvg = inputBuffer.subarray(0, 200).toString('utf8').includes('<svg');
+    const inputPath = join(workDir, isSvg ? 'input.svg' : 'input.bin');
     const outputPath = join(workDir, 'output.png');
     const pngHeader = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
     const runSips = args => execFileSync('sips', args, { stdio: 'ignore', timeout: 5000 });
@@ -139,7 +141,9 @@ function saveAsPng(inputBuffer, destPath) {
     };
     try {
         writeFileSync(inputPath, inputBuffer);
-        runSips(['-s', 'format', 'png', inputPath, '--out', outputPath]);
+        runSips(isSvg
+            ? ['-s', 'format', 'png', '-Z', '128', inputPath, '--out', outputPath]
+            : ['-s', 'format', 'png', inputPath, '--out', outputPath]);
         let { width, height } = dimensions();
         if (Math.max(width, height) > 128) {
             runSips(['-Z', '128', outputPath]);

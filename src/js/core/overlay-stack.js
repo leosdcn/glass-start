@@ -166,7 +166,12 @@ export const OverlayStack = {
     focusTop() {
         const modal = this.topModal();
         if (!modal || modal.hasAttribute('hidden')) return;
-        const targets = [...modal.querySelectorAll('[autofocus], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])')];
+        const preferred = modal.querySelector('[autofocus], [role="tab"][aria-selected="true"]');
+        if (preferred && visibleFocusTarget(preferred)) {
+            preferred.focus({ preventScroll: true });
+            return;
+        }
+        const targets = [...modal.querySelectorAll('button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])')];
         const target = targets.find(visibleFocusTarget);
         if (target) target.focus({ preventScroll: true });
         else {
