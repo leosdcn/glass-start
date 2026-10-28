@@ -575,7 +575,7 @@ export function fetchSuggestions(engineKey, query) {
     const reqId = activeSuggestReqId;
 
     const cbName = `__glassSuggestCb_${reqId}`;
-    const controller = engineKey === 'wikipedia' ? new AbortController() : null;
+    const controller = window.__GLASS_EXTENSION__ || engineKey === 'wikipedia' ? new AbortController() : null;
     const script = controller ? null : document.createElement('script');
     /** @type {ReturnType<typeof setTimeout> | null} */
     let timeoutTimer = null;
@@ -637,8 +637,13 @@ export function fetchSuggestions(engineKey, query) {
     };
 
     if (controller) {
-        // Wikipedia 支持 CORS；复用现有超时、清理和请求序号守卫。
-        fetch(`https://zh.wikipedia.org/w/api.php?action=opensearch&format=json&search=${encodeURIComponent(query)}&origin=*`, {
+        // 扩展使用域名权限读取 JSON，禁止把远程响应作为脚本执行。
+        let url = `https://zh.wikipedia.org/w/api.php?action=opensearch&format=json&search=${encodeURIComponent(query)}&origin=*`;
+        if (window.__GLASS_EXTENSION__) {
+            if (engineKey === 'bing') url = `https://api.bing.com/osjson.aspx?query=${encodeURIComponent(query)}`;
+            else if (engineKey === 'google') url = `https://suggestqueries.google.com/complete/search?client=chrome&q=${encodeURIComponent(query)}`;
+        }
+        fetch(url, {
             signal: controller.signal,
             credentials: 'omit'
         }).then(response => {
@@ -652,7 +657,7 @@ export function fetchSuggestions(engineKey, query) {
 
     /** @type {any} */ (window)[cbName] = handleSuggestData;
     suggestionScriptTag = script;
-    if (script) {
+    if (!window.__GLASS_EXTENSION__ && script) {
         script.onerror = handleSuggestFallback;
 
         if (engineKey === 'bing') {

@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "Glass Start — 通透起始页",
+  "description": "极简纯净的毛玻璃新标签页，包含搜索、快捷书签、壁纸与天气。",
+  "chrome_url_overrides": { "newtab": "index.html" },
+  "icons": { "128": "icon128.png" },
+  "host_permissions": [
+    "https://api.bing.com/*",
+    "https://suggestqueries.google.com/*",
+    "https://zh.wikipedia.org/*",
+    "https://api.open-meteo.com/*",
+    "https://geocoding-api.open-meteo.com/*",
+    "https://myip.ipip.net/*",
+    "https://ipwho.is/*"
+  ],
+  "content_security_policy": {
+    "extension_pages": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https://api.bing.com https://suggestqueries.google.com https://zh.wikipedia.org https://api.open-meteo.com https://geocoding-api.open-meteo.com https://myip.ipip.net https://ipwho.is; object-src 'none'; base-uri 'none'; form-action 'self'"
+  }
+}

@@ -83,6 +83,8 @@ flowchart TD
 
 `public/` 在构建时复制到 `dist/`；`src/index.html` 是构建模板。修改构建脚本或其加载的辅助脚本后需重启开发服务。
 
+Chrome 扩展通过 `npm run build:extension` 独立生成 `extension/`。`scripts/build-extension.cjs` 复用同一编译入口，在临时目录中把内联脚本按原位置和执行顺序外置，并用 `src/extension/manifest.json` 替换 PWA 清单，版本号仍取自 `package.json`。扩展使用 Manifest V3 覆盖新标签页，不包含后台脚本或网页 Service Worker；本地资源随扩展更新。编译标记 `window.__GLASS_EXTENSION__` 让搜索联想使用 JSON 请求并裁掉 JSONP 分支，其余业务和 LocalStorage / IndexedDB 存储复用网页源码。扩展与网页拥有独立的存储来源。
+
 ## 书签与设置状态
 
 `bookmarks.json` 提供默认快捷书签和分类目录，构建时由 `config/constants.js` 导入。用户配置保存在 LocalStorage：快捷书签使用 URL 键列表，自定义名称、简介和图标使用元数据覆盖；`getDerivedBookmarks()` 从目录与覆盖数据派生当前条目。旧版完整书签数组由 `migrateBookmarksStorage()` 迁移。

@@ -1,6 +1,6 @@
 {
   "name": "glass-start",
-  "version": "5.3.0",
+  "version": "5.3.1",
   "description": "Glass Start — 极简纯净的毛玻璃浏览器起始页。",
   "main": "dist/index.html",
   "engines": {
@@ -8,6 +8,7 @@
   },
   "scripts": {
     "build": "node scripts/build.js",
+    "build:extension": "node scripts/build-extension.cjs",
     "benchmark": "npm run build && node test/benchmark-transition.mjs",
     "test": "node test/run.mjs",
     "test:ui": "node test/run.mjs ui",

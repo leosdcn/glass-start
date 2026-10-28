@@ -230,6 +230,8 @@ declare global {
         __GLASS_BUILD_APP__?: string;
         __GLASS_DIAG__?: GlassDiag;
         __GLASS_TEST__?: boolean;
+        /** 构建时替换，扩展包不包含 JSONP 请求分支。 */
+        __GLASS_EXTENSION__?: boolean;
         resetActiveTiltCard?: () => void;
     }
 }

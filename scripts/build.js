@@ -195,7 +195,7 @@ function syncBookmarksData() {
 }
 
 // 两种构建共用编译选项；生产在编译时裁掉测试入口，测试脚本只由测试服务器持有。
-function buildAppJavaScript({ testMode = false, version = currentBuildVersion, outfile } = {}) {
+function buildAppJavaScript({ testMode = false, extension = false, version = currentBuildVersion, outfile } = {}) {
     return esbuild.buildSync({
         entryPoints: [PATHS.srcMainJs],
         bundle: true,
@@ -203,7 +203,10 @@ function buildAppJavaScript({ testMode = false, version = currentBuildVersion, o
         minify: true,
         target: ['es2022'],
         charset: 'utf8',
-        define: testMode ? {} : { 'window.__GLASS_TEST__': 'false' },
+        define: {
+            'window.__GLASS_EXTENSION__': String(extension),
+            ...(testMode ? {} : { 'window.__GLASS_TEST__': 'false' })
+        },
         banner: { js: `window.__GLASS_BUILD_APP__="${version}";\n` },
         metafile: true,
         write: !!outfile,
@@ -212,7 +215,7 @@ function buildAppJavaScript({ testMode = false, version = currentBuildVersion, o
 }
 
 // 生成生产应用脚本。
-function processProductionAppJs(targetDir = PATHS.dist) {
+function processProductionAppJs(targetDir = PATHS.dist, { extension = false } = {}) {
     logSection('4/5', '⚡ 提取并压缩生产脚本 (dist/app.js)');
 
     if (!fs.existsSync(PATHS.srcMainJs)) {
@@ -222,7 +225,7 @@ function processProductionAppJs(targetDir = PATHS.dist) {
     const jsStart = Date.now();
     try {
         const appJsFile = path.join(targetDir, 'app.js');
-        const result = buildAppJavaScript({ outfile: appJsFile });
+        const result = buildAppJavaScript({ outfile: appJsFile, extension });
         const appJsContent = fs.readFileSync(appJsFile, 'utf-8');
         const jsDuration = Date.now() - jsStart;
         const appJsBytes = Buffer.byteLength(appJsContent, 'utf-8');
@@ -454,11 +457,11 @@ function printDistSummary(startTime) {
     console.log(`${c.gray}${HR_DOUBLE}${c.reset}\n`);
 }
 
-function executeBuild(targetDir) {
+function executeBuild(targetDir, options = {}) {
     const compiledCss = compileTailwindCss();
     buildServiceWorkerAndAssets(targetDir);
     syncBookmarksData();
-    processProductionAppJs(targetDir);
+    processProductionAppJs(targetDir, options);
     processProductionHtml(compiledCss, targetDir);
 }
 
@@ -557,6 +560,7 @@ module.exports = {
     injectWeatherNum,
     injectHeadConfig,
     buildAppJavaScript,
+    executeBuild,
     PATHS
 };
 

@@ -3,16 +3,25 @@ node_modules/
 dist/
 .dist_staging/
 .dist_backup/
+/extension/
+.extension_staging/
 .temp_input.css
 .claude/
 test/.cache.json
 test/artifacts/
 scratch/
+/work/
 .agents/
+
+# 本地打包、调试日志与编辑器临时文件
+/*.crx
+/*.zip
+npm-debug.log*
+*.swp
+*.swo
+*.bak
 
 # 环境变量与安全密钥
 .env*
 *.pem
 *.key
-
-

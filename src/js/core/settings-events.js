@@ -295,14 +295,17 @@ export function bindEditEvents() {
     if (clearBtn) {
         clearBtn.addEventListener('click', () => {
             if (clearBtn.disabled) return;
+            const isExtension = window.__GLASS_EXTENSION__;
 
             if (!('caches' in window)) {
-                showConfirm('当前浏览器不支持 Service Worker 缓存，或已是最新状态。', null, '提示', clearBtn);
+                showConfirm(isExtension ? '当前浏览器不支持缓存清理。' : '当前浏览器不支持 Service Worker 缓存，或已是最新状态。', null, '提示', clearBtn);
                 return;
             }
 
             const isOffline = typeof navigator !== 'undefined' && navigator.onLine === false;
-            const msg = isOffline
+            const msg = isExtension
+                ? '将清理临时缓存并刷新页面，不影响已保存的书签、壁纸和设置。'
+                : isOffline
                 ? '警告：当前处于离线状态！清理 Service Worker 缓存与注销将导致页面在重新联网前无法访问。确定要继续清理并刷新吗？'
                 : '确定要清理并重置 Service Worker 离线缓存吗？此操作将清除本地缓存的静态资源并在刷新后重新载入。';
 
@@ -327,9 +330,9 @@ export function bindEditEvents() {
                         location.reload();
                     }
                 },
-                '清理离线缓存',
+                isExtension ? '清理缓存' : '清理离线缓存',
                 clearBtn,
-                '立即清理并刷新'
+                isExtension ? '清理并刷新' : '立即清理并刷新'
             );
         });
     }

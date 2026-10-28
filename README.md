@@ -51,20 +51,35 @@
 
 - 🪐 **Liquid Glass 外观**：高光、毛玻璃背景与按压缩放动效；
 - 🎬 **双屏切换**：起始页显示时钟与搜索，导航页显示分类书签；两屏平滑切换，底部内容渐隐；
-- 🕊️ **纯净无干扰**：零广告植入、零推广商业链接、零热搜信息流；无用户行为追踪与数据埋点，注意力只属于你自己；
+- 🕊️ **纯净无干扰**：无广告植入、商业推广链接或热搜信息流；项目本身不追踪用户行为，也不设置数据埋点；
 - 🌤️ **天气与预报**：无需 API Key，通过 IP 定位与地名解析获取位置，支持缓存展示和多日预报；
 - ⚡ **零运行时依赖**：生产页面不依赖 npm 运行时库；内联预渲染减少刷新闪烁，加载速度取决于设备、缓存与网络；
 - 🖼️ **壁纸即选即存**：内置高清壁纸可循环切换，支持上传图片（压缩后写入 IndexedDB）、图片直链与遮罩暗度调节；
-- 🛡️ **安全防护**：配置 Content Security Policy (CSP)、动态 HTML 文本转义与 `safeUrl` 协议过滤；托管平台需实际应用 `public/_headers` 中的响应头规则；
+- 🛡️ **安全防护**：使用 Content Security Policy (CSP)、动态 HTML 文本转义与 `safeUrl` 协议过滤；部署时需按托管平台要求配置 `public/_headers` 中的响应头规则；
 - 📱 **PWA 离线支持**：Service Worker 使用三个独立缓存池，已缓存资源可离线使用；安装入口与支持程度取决于浏览器。
 
 ---
 
 ## 🚀 快速开始与部署
 
-本项目为纯前端静态应用，可部署到静态托管平台；响应头与子路径支持需按平台配置：
+本项目可构建为 Chrome 新标签页扩展，也可作为纯前端静态应用部署；网页响应头与子路径部署需按托管平台要求配置。
 
-### 1. Cloudflare Pages 自动部署
+### Chrome 新标签页扩展
+
+```bash
+npm ci
+npm run build:extension
+```
+
+在 Chrome 地址栏打开 `chrome://extensions/`，开启「开发者模式」，点击「加载已解压的扩展程序」，选择项目根目录下生成的 `extension/` 文件夹。新建标签页即可使用 Glass Start；如 Chrome 提示确认新标签页更改，请选择保留。
+
+扩展使用 Manifest V3，代码、图标和预设壁纸均打包在本地；天气和在线搜索联想需要联网，并仅为相应接口声明域名权限。不读取浏览器书签、历史记录或网页内容。自定义壁纸和设置保存在扩展自己的本地存储中，不自动与网页版共享或跨设备同步。网页版导出的书签 JSON 可以在扩展设置中导入；该备份不包含壁纸和偏好设置。
+
+更新源码后重新执行 `npm run build:extension`，在扩展管理页点击「重新加载」并重新打开新标签页。保持文件夹路径不变并直接重载，可保留本地数据；移除扩展会删除其存储。`npm run build` 仍只生成网页版 `dist/`，两种构建互不覆盖。扩展目前提供本地加载版本，尚未上架 Chrome 应用商店。
+
+扩展回归测试：`npm test -- infra-chrome-extension`。测试通过 CDP 在独立临时配置中实际加载扩展，需要支持 `Extensions.loadUnpacked` 的新版 Chrome。
+
+### Cloudflare Pages 自动部署
 1. Fork 或上传本项目到你的 GitHub 仓库；
 2. 在 **[Cloudflare Dashboard](https://dash.cloudflare.com/)** 创建 Pages 项目并连接 Git 仓库（入口以[官方静态站点指南](https://developers.cloudflare.com/pages/framework-guides/deploy-anything/)为准）；
 3. 选择你的仓库，构建配置如下：
@@ -74,11 +89,11 @@
    - **环境变量**：`NODE_VERSION=24`，满足项目的 Node.js 版本要求；配置方式见[构建环境文档](https://developers.cloudflare.com/pages/configuration/build-image/)。
 4. 保存并部署。后续推送到配置的生产分支会触发更新；生产分支按实际仓库选择，不一定是 `main`。
 
-### 2. Vercel / Netlify / GitHub Pages
+### Vercel / Netlify / GitHub Pages
 - **Vercel / Netlify**：导入 Git 仓库，构建命令设为 `npm run build`，输出目录设为 `dist`；响应头规则须按各平台要求配置。
 - **GitHub Pages**：在 Settings ➔ Pages 选择 GitHub Actions，按[官方自定义工作流指南](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages)安装依赖、执行构建并上传 `dist/` 作为 Pages 产物。若从分支发布，需将产物放在发布分支根目录或 `/docs`，不能直接选择 `/dist`。
 
-### 3. 本地预览与离线使用
+### 本地预览与离线使用
 安装锁定的开发依赖后启动本地预览：
 ```bash
 npm ci
@@ -93,7 +108,7 @@ npm run preview
 ### 1. 双屏滚动与屏幕切换
 - **滚轮 / 滑动**：在首屏向下滚动或用手指上滑，进入「导航页」；在导航页顶部向上滚动或下滑即可回到「起始页」。
 - **快捷按钮**：点击导航页顶部的「起始页」按钮可返回首屏。
-- **键盘翻页**：无阻断浮层且未在其他输入框编辑时，按 `PageDown` / `↓` 前往导航页；导航内容位于顶部时，按 `PageUp` / `Home` / `↑` 返回首屏。搜索框有联想列表时，方向键优先选择联想。
+- **键盘翻页**：未打开阻止翻页的弹窗或面板，且未在其他输入框编辑时，按 `PageDown` / `↓` 前往导航页；导航内容位于顶部时，按 `PageUp` / `Home` / `↑` 返回首屏。搜索框有联想列表时，方向键优先选择联想。
 
 ### 2. 智能搜索与快捷跳转
 - **盲打即搜**：在首屏直接键入字母或数字，搜索框自动获得焦点并接收输入。
@@ -144,7 +159,7 @@ npm run preview
 - **收录范围**：不收录购物网站，以及体验差、诱导付费或限制繁多的网盘；避免广告密集、弹窗遮挡、强制跳转和诱导下载的网站。
 - **使用门槛**：优先打开就能用、尽量无需登录或下载、普通人无需专业背景即可理解的工具。
 - **实用价值**：免费部分应能完整解决一个问题，相比现有书签有明确的新用途，广告克制且不打断主要操作。
-- **维护方式**：不为扩充数量而新增；留意反复搜索的需求，某个工具多次解决实际问题后，再考虑收录。
+- **维护方式**：不为凑数而新增书签；留意日常反复搜索的需求，某个工具多次解决实际问题后，再考虑收录。
 
 运行 `npm run sync:icons:refresh` 可重新下载全部图标，并用 macOS `sips` 转换为正方形 PNG。
 
@@ -164,15 +179,15 @@ npm run preview
 
 ## 🛠️ 开发者与贡献者指南
 
-这是我的第一个正式开源项目，仍在持续学习和完善中。欢迎反馈问题、提出建议，也欢迎通过 Pull Request 一起改进。
+这是我的第一个正式开源项目，仍在持续学习和完善中。欢迎反馈问题、提出建议，也欢迎通过 Pull Request 一起改进。参与贡献请先阅读 [贡献指南](./CONTRIBUTING.md)。
 
 > “如无必要，勿增实体。”——开发与贡献请优先最小必要修改，避免过度设计。
 
-`src/index.html` 是构建模板，请通过开发服务预览或部署 `dist/` 产物。修改构建脚本或其加载的辅助脚本后，需重启开发服务。模块职责、状态流和缓存策略见 [ARCHITECTURE.md](./docs/ARCHITECTURE.md)。
+`src/index.html` 是构建模板。本地修改请通过开发服务预览，部署时使用 `dist/` 产物。修改构建脚本或其加载的辅助脚本后，需重启开发服务。模块职责、状态流和缓存策略见 [ARCHITECTURE.md](./docs/ARCHITECTURE.md)。
 
 ### 开发环境要求
 
-- 建议使用 Node.js 24 或更新版本及随附的 npm。测试驱动使用 Node 原生 `fetch` 和 `WebSocket`，请遵循 `package.json` 的 Node 版本要求。安装或恢复依赖使用 `npm ci`。
+- 需要使用 Node.js 24 或更新版本及随附的 npm。测试驱动使用 Node 原生 `fetch` 和 `WebSocket`，请遵循 `package.json` 的 Node 版本要求。安装或恢复依赖使用 `npm ci`。
 - 浏览器回归测试需要 Google Chrome。可通过 `CHROME_PATH` 指定安装路径，例如 `CHROME_PATH="/path/to/chrome" npm test`。当前自动化主要验证 Chromium，不能替代 Safari、Firefox 的实测。
 - `npm run sync:icons` 及图标转换回归测试依赖 macOS 原生 `sips`；完整验证建议在 macOS 上执行。构建与静态托管本身不调用 `sips`，其他系统可使用仓库中已同步的图标构建。
 - 安装依赖、下载或刷新图标和 W3C 在线校验需要网络；仅复用本地图标时不请求外部图标服务。
@@ -180,7 +195,7 @@ npm run preview
 ### 本地开发工作流
 
 ```bash
-# 1. 安装构建开发依赖 (Tailwind CLI & esbuild)
+# 1. 安装开发依赖（含 Tailwind CLI、esbuild 和 TypeScript）
 npm ci
 
 # 2. 启动本地开发服务 (监听修改并自动重建，支持局域网访问；页面需手动刷新)
@@ -204,7 +219,7 @@ npm run build
 
 `npm run benchmark` 构建并评测首次与多轮切屏帧间隔，默认只访问本地。参数、统计口径及无头浏览器限制见 [切屏评测说明](./docs/TRANSITION_BENCHMARK.md)。
 
-`npm run lint` 使用 Acorn 检查 DOM 引用，使用 PostCSS 检查 CSS 声明及嵌套关系；检查范围包括减弱动效的 `!important` 白名单和毛玻璃属性前缀顺序。这些解析工具仅供开发检查，不进入网站产物。
+`npm run lint` 使用 Acorn 检查 DOM 引用，使用 PostCSS 检查 CSS 声明及嵌套关系；同时检查 `!important` 是否仅用于减弱动效规则，以及毛玻璃属性的前缀顺序。这些解析工具仅供开发检查，不进入网站产物。
 
 `npm run test:icons` 与 `npm run test:visual` 是独立入口，需先构建再按需运行。视觉脚本输出截图和布局指标，不自动与基准图逐像素比较。`npm run lint:fix` 仅修复脚本支持的机械规则。Safari/iOS 兼容性按 [Safari 专项冒烟清单](./docs/SAFARI_SMOKE_CHECKLIST.md) 手动走查，不纳入 CI。
 
