@@ -32,14 +32,27 @@ function beginVisibilityOperation(id) {
 function showModal(id) {
     const modal = document.getElementById(id);
     if (!modal) return;
+    const wasHidden = modal.hasAttribute('hidden');
     const operation = beginVisibilityOperation(id);
     modal.removeAttribute('hidden');
     modal.removeAttribute('aria-hidden');
-    operation.frame = requestAnimationFrame(() => {
-        if (visibilityOperations.get(id) !== operation || !OverlayStack.stack.some(entry => entry.id === id)) return;
-        modal.classList.add('active');
+    const isStillValid = () =>
+        visibilityOperations.get(id) === operation &&
+        OverlayStack.stack.some(entry => entry.id === id);
+    const activate = () => {
+        if (!isStillValid()) return;
         if (OverlayStack.topModal() === modal) OverlayStack.focusTop();
+        modal.classList.add('active');
         visibilityOperations.delete(id);
+    };
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    operation.frame = requestAnimationFrame(() => {
+        if (!isStillValid()) return;
+        if (!wasHidden || reducedMotion) {
+            activate();
+            return;
+        }
+        operation.frame = requestAnimationFrame(activate);
     });
 }
 

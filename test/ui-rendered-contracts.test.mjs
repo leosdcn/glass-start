@@ -106,6 +106,7 @@ try {
 
   // 外观页不能靠压缩网格行高塞进弹窗；窄屏改由内容区滚动，底部操作仍固定。
   await evalJS('openEditModal()');
+  await waitFor(evalJS, 'dom.editModal.classList.contains("active")');
   await evalJS('Promise.all(dom.editModal.getAnimations({subtree:true}).map(a=>a.finished.catch(()=>{})))');
   for (const [width, height] of [[1920,1080], [1000,800], [768,800], [640,800], [390,844], [320,740]]) {
     await chrome.send('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor:2, mobile:false });

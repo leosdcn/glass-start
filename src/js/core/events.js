@@ -290,8 +290,7 @@ export function bindEvents() {
 
         if ((e.key === '/' || e.code === 'Slash') && (e.metaKey || e.ctrlKey)) {
             e.preventDefault();
-            const shortcutModal = dom.shortcutModal;
-            if (shortcutModal && !shortcutModal.hasAttribute('hidden') && shortcutModal.classList.contains('active')) {
+            if (OverlayStack.top()?.id === 'shortcutModal') {
                 closeShortcutModal();
             } else {
                 openShortcutModal();

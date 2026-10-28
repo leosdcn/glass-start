@@ -72,20 +72,41 @@ try {
     openShortcutModal(); closeShortcutModal();
     await new Promise(resolve => setTimeout(resolve, CONFIG.TIMERS.MODAL_HIDE_DELAY + 60));
     const closed = dom.shortcutModal.hidden && !dom.shortcutModal.classList.contains('active');
+
+    // 1) 第一帧与第二帧之间取消：不挂载 .active，等待延迟隐藏后干净退栈
     openShortcutModal(); await new Promise(requestAnimationFrame);
-    closeShortcutModal(); openShortcutModal();
+    closeShortcutModal();
+    await new Promise(resolve => setTimeout(resolve, CONFIG.TIMERS.MODAL_HIDE_DELAY + 60));
+    const midFrameCanceled = dom.shortcutModal.hidden && !dom.shortcutModal.classList.contains('active') && OverlayStack.isEmpty();
+
+    // 2) 完全激活后退出途中（<220ms）重开：单帧立即反转接续并恢复焦点
+    openShortcutModal();
+    while (!dom.shortcutModal.classList.contains('active')) await new Promise(requestAnimationFrame);
+    closeShortcutModal();
+    const midExitHidden = !dom.shortcutModal.hasAttribute('hidden');
+    openShortcutModal();
     await new Promise(resolve => setTimeout(resolve, CONFIG.TIMERS.MODAL_HIDE_DELAY + 60));
     const reopened = !dom.shortcutModal.hidden && dom.shortcutModal.classList.contains('active') &&
       dom.shortcutModal.contains(document.activeElement);
+
+    // 3) 双层 rAF 入场期间连按快捷键（⌘/）：识别为已在栈中并关闭而非重复打开
+    closeShortcutModal();
+    await new Promise(resolve => setTimeout(resolve, CONFIG.TIMERS.MODAL_HIDE_DELAY + 60));
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: '/', metaKey: true, bubbles: true }));
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: '/', metaKey: true, bubbles: true }));
+    const rapidKeyHandled = OverlayStack.isEmpty();
+
+    openShortcutModal();
+    while (!dom.shortcutModal.classList.contains('active')) await new Promise(requestAnimationFrame);
     closeShortcutModal();
     const exitStarted = !dom.shortcutModal.hidden && dom.shortcutModal.getAttribute('aria-hidden') === 'true' &&
       !dom.shortcutModal.contains(document.activeElement);
     await new Promise(resolve => setTimeout(resolve, CONFIG.TIMERS.MODAL_HIDE_DELAY + 60));
     const exitFinished = dom.shortcutModal.hidden && OverlayStack.isEmpty() && !dom.startSection.inert;
-    return {closed, reopened, exitStarted, exitFinished};
+    return {closed, midFrameCanceled, midExitHidden, reopened, rapidKeyHandled, exitStarted, exitFinished};
   })()`);
   assert.equal(Object.values(animated).every(Boolean), true, JSON.stringify(animated));
-  console.log('✅ 普通动效下取消迟到入场／隐藏，重开保持可见和焦点，退栈后完成延迟隐藏');
+  console.log('✅ 普通动效下区分两帧间取消与退出重开，连按快捷键正确切换，退栈延迟隐藏');
 } finally {
   await chrome.close();
   await server.close();
