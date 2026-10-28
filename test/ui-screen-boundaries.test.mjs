@@ -92,17 +92,27 @@ try {
     await wheel(60);
     await settled('nav');
     await evalJS("dom.navContent.style.scrollBehavior='auto'; dom.navContent.scrollTop=50");
-    await send('Input.dispatchMouseEvent', { type:'mouseWheel', ...point, deltaX:0, deltaY:-100 });
-    await waitFor(evalJS, 'dom.navContent.scrollTop === 0');
-    await evalJS(`(async () => {
-        let d = -15;
-        for (let i = 0; i < 10; i++) {
-            d *= 0.85;
-            document.dispatchEvent(new WheelEvent('wheel', { deltaY: d, cancelable: true }));
-            await new Promise(r => setTimeout(r, 25));
-        }
+    await evalJS(`(() => {
+        window.__topCoastDone = false;
+        const onTop = () => {
+            if (dom.navContent.scrollTop !== 0) return;
+            dom.navContent.removeEventListener('scroll', onTop);
+            (async () => {
+                let d = -15;
+                for (let i = 0; i < 10; i++) {
+                    d *= 0.85;
+                    document.dispatchEvent(new WheelEvent('wheel', { deltaY: d, cancelable: true }));
+                    await new Promise(r => setTimeout(r, 25));
+                }
+                window.__topCoastDone = true;
+            })();
+        };
+        dom.navContent.addEventListener('scroll', onTop);
     })()`);
+    await send('Input.dispatchMouseEvent', { type:'mouseWheel', ...point, deltaX:0, deltaY:-100 });
+    await waitFor(evalJS, 'window.__topCoastDone === true');
     assert.equal(await section(), 'nav');
+    await idle();
     await wheel(-60);
     await settled('start');
     console.log('✅ 滚回顶部的惯性动量衰减不误切屏，新一轮划动无需点击直接返回首屏');
