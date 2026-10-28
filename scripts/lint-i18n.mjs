@@ -58,7 +58,8 @@ export async function inspectI18n(root, sources, html) {
     });
     for (const [url, translation] of Object.entries(catalog.bookmarks)) {
         if (!urls.has(url)) throw new Error(`Orphaned bookmark translation: ${url}`);
-        if ((translation.name?.length || 0) > 60 || (translation.desc?.length || 0) > 40) throw new Error(`Bookmark translation exceeds editor limits: ${url}`);
+        if ((translation.name?.length || 0) > 60) throw new Error(`Bookmark translation exceeds editor name limit: ${url}`);
+        if ((translation.desc?.length || 0) > 28) throw new Error(`English bookmark description exceeds 28 characters (${translation.desc.length}): ${url}`);
     }
     return `${SUPPORTED_LANGUAGES.length} languages, ${keys.length} messages and ${urls.size} built-in bookmarks`;
 }

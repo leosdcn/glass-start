@@ -1,22 +1,22 @@
 {
     "categories": {
-        "ai": "Artificial intelligence",
-        "work": "Work and collaboration",
-        "storage": "Storage and sharing",
-        "media": "Video and music",
-        "social": "Communities and social",
-        "learning": "Knowledge and learning",
-        "maps": "Maps and weather",
-        "creative": "Creative tools",
-        "resources": "Resources and inspiration",
-        "development": "Development",
-        "network": "Network tools",
+        "ai": "AI",
+        "work": "Work",
+        "storage": "Storage",
+        "media": "Media",
+        "social": "Social",
+        "learning": "Learning",
+        "maps": "Maps",
+        "creative": "Creative",
+        "resources": "Assets",
+        "development": "Dev",
+        "network": "Network",
         "games": "Games",
-        "explore": "Explore and discover"
+        "explore": "Explore"
     },
     "bookmarks": {
         "https://arena.ai": {
-            "desc": "Blind comparisons of AI models"
+            "desc": "Blind AI model comparisons"
         },
         "https://artificialanalysis.ai/zh": {
             "desc": "AI model benchmarks"
@@ -28,28 +28,28 @@
             "desc": "AI art models and community"
         },
         "https://claude.ai": {
-            "desc": "AI chat and writing assistant"
+            "desc": "AI chat and writing help"
         },
         "https://chat.deepseek.com": {
             "desc": "DeepSeek AI assistant"
         },
         "https://duck.ai": {
-            "desc": "Private chat with multiple AI models"
+            "desc": "Private multi-model AI chat"
         },
         "https://gamma.app": {
-            "desc": "AI presentations and websites"
+            "desc": "AI slides and websites"
         },
         "https://gemini.google.com": {
-            "desc": "Google's multimodal AI assistant"
+            "desc": "Google multimodal AI"
         },
         "https://aistudio.google.com": {
-            "desc": "Build prototypes with Google AI"
+            "desc": "Prototype with Google AI"
         },
         "https://grok.com": {
             "desc": "AI assistant by xAI"
         },
         "https://huggingface.co": {
-            "desc": "Open source AI models and datasets"
+            "desc": "Open-source AI models"
         },
         "https://www.kimi.com": {
             "desc": "Long-context AI by Moonshot"
@@ -75,10 +75,10 @@
             "desc": "Translate text and documents"
         },
         "https://app.diagrams.net": {
-            "desc": "Free open source diagram editor"
+            "desc": "Open-source diagram editor"
         },
         "https://excalidraw.com": {
-            "desc": "Collaborative hand-drawn whiteboard"
+            "desc": "Shared sketch whiteboard"
         },
         "https://mail.google.com": {
             "desc": "Email by Google"
@@ -87,41 +87,41 @@
             "desc": "Translate across languages"
         },
         "https://www.notion.com": {
-            "desc": "Notes, projects and knowledge"
+            "desc": "Notes and project workspace"
         },
         "https://tools.pdf24.org/zh": {
             "desc": "Free online PDF tools"
         },
         "https://publishmarkdown.com": {
-            "desc": "Publish Markdown notes instantly"
+            "desc": "Publish Markdown notes"
         },
         "https://time.is/zh/": {
             "desc": "World clocks and time zones"
         },
         "https://drive.google.com": {
-            "desc": "Cloud storage and documents by Google"
+            "desc": "Google storage and docs"
         },
         "https://www.icloud.com": {
             "desc": "Cloud services by Apple"
         },
         "https://web.localsend.org": {
-            "desc": "Open source local file sharing"
+            "desc": "Open-source file sharing"
         },
         "https://mega.nz": {
-            "desc": "End-to-end encrypted cloud storage"
+            "desc": "End-to-end encrypted storage"
         },
         "https://onedrive.live.com": {
-            "desc": "Cloud storage and Office by Microsoft"
+            "desc": "Microsoft storage & Office"
         },
         "https://filehelper.weixin.qq.com": {
             "name": "WeChat File Transfer",
-            "desc": "Transfer files across devices"
+            "desc": "Cross-device file transfer"
         },
         "https://bandcamp.com": {
-            "desc": "Independent music and digital albums"
+            "desc": "Indie music and albums"
         },
         "https://www.imdb.com": {
-            "desc": "Film and TV information and ratings"
+            "desc": "Film and TV info and ratings"
         },
         "https://www.netflix.com": {
             "desc": "Streaming films and TV"
@@ -130,10 +130,10 @@
             "desc": "Music and record database"
         },
         "https://soundcloud.com": {
-            "desc": "Discover and share independent music"
+            "desc": "Discover indie music"
         },
         "https://open.spotify.com": {
-            "desc": "Stream music from around the world"
+            "desc": "Stream music worldwide"
         },
         "https://www.twitch.tv": {
             "desc": "Live streams and gaming"
@@ -146,69 +146,69 @@
         },
         "https://www.bilibili.com": {
             "name": "Bilibili",
-            "desc": "Videos, animation and live comments"
+            "desc": "Videos and anime community"
         },
         "https://www.douyin.com": {
             "name": "Douyin",
-            "desc": "Short videos and live streams"
+            "desc": "Short videos and streaming"
         },
         "https://music.163.com/st/webplayer": {
             "name": "NetEase Cloud Music",
-            "desc": "Music, playlists and community"
+            "desc": "Music and playlist community"
         },
         "https://discord.com": {
-            "desc": "Community chat and voice calls"
+            "desc": "Group chat and voice calls"
         },
         "https://www.facebook.com": {
-            "desc": "Connect with people around the world"
+            "desc": "Connect with people globally"
         },
         "https://www.instagram.com": {
             "desc": "Share photos and videos"
         },
         "https://www.linkedin.com": {
-            "desc": "Professional networking and careers"
+            "desc": "Career networking and jobs"
         },
         "https://linux.do": {
-            "desc": "Technology and developer community"
+            "desc": "Tech and developer community"
         },
         "https://www.reddit.com": {
-            "desc": "Communities for every interest"
+            "desc": "Interest-based communities"
         },
         "https://web.telegram.org": {
-            "desc": "Messaging and channels across devices"
+            "desc": "Messaging and channels"
         },
         "https://www.v2ex.com": {
-            "desc": "Community for creative professionals"
+            "desc": "Creative community"
         },
         "https://x.com": {
-            "desc": "Real-time news and conversations"
+            "desc": "Live news and conversations"
         },
         "https://www.douban.com": {
             "name": "Douban",
-            "desc": "Books, films and music reviews"
+            "desc": "Book, film and music reviews"
         },
         "https://sspai.com": {
             "name": "SSPAI",
-            "desc": "Digital life and productivity community"
+            "desc": "Digital life and work tips"
         },
         "https://weibo.com": {
             "name": "Weibo",
-            "desc": "Chinese social trends and conversations"
+            "desc": "Chinese trends and chat"
         },
         "https://www.desmos.com/calculator": {
-            "desc": "Free online graphing calculator"
+            "desc": "Online graphing calculator"
         },
         "https://www.duolingo.com": {
             "desc": "Bite-size language lessons"
         },
         "https://artsandculture.google.com": {
-            "desc": "Explore art and museums worldwide"
+            "desc": "Explore art and museums"
         },
         "https://archive.org": {
-            "desc": "Wayback Machine and digital library"
+            "desc": "Web archive and library"
         },
         "https://qwerty.kaiyi.cool": {
-            "desc": "Learn vocabulary through typing"
+            "desc": "Learn words through typing"
         },
         "https://zh.wikihow.com/首页": {
             "desc": "Practical how-to guides"
@@ -218,34 +218,34 @@
         },
         "https://socpk.com": {
             "name": "Geekerwan Chip Rankings",
-            "desc": "Phone and PC chip efficiency rankings"
+            "desc": "Phone and PC chip rankings"
         },
         "https://www.msdmanuals.cn/home": {
             "name": "MSD Manuals",
-            "desc": "Medical and health information"
+            "desc": "Medical and health reference"
         },
         "https://zh.wikivoyage.org/zh-hans/首页": {
             "name": "Wikivoyage",
-            "desc": "The free worldwide travel guide"
+            "desc": "Free worldwide travel guide"
         },
         "https://cook.yunyoujun.cn": {
             "name": "Food Guide",
             "desc": "Find recipes by ingredient"
         },
         "https://www.flightradar24.com": {
-            "desc": "Live flight tracking worldwide"
+            "desc": "Live global flight tracking"
         },
         "https://earth.google.com": {
             "desc": "Explore Earth in 3D"
         },
         "https://maps.google.com": {
-            "desc": "Maps and directions worldwide"
+            "desc": "Global maps and directions"
         },
         "https://stellarium-web.org": {
-            "desc": "Explore the night sky in your browser"
+            "desc": "Explore the night sky online"
         },
         "https://www.windy.com": {
-            "desc": "Weather forecasts and wind maps"
+            "desc": "Weather and wind maps"
         },
         "https://www.amap.com": {
             "name": "Amap",
@@ -253,89 +253,89 @@
         },
         "https://www.weather.com.cn": {
             "name": "China Weather",
-            "desc": "Weather forecasts and alerts for China"
+            "desc": "China weather and alerts"
         },
         "https://bgsub.cn": {
-            "desc": "Remove image backgrounds locally"
+            "desc": "Remove backgrounds locally"
         },
         "https://www.canva.com": {
-            "desc": "Online design tools and templates"
+            "desc": "Online design and templates"
         },
         "https://coolors.co": {
             "desc": "Generate color palettes"
         },
         "https://ezgif.com": {
-            "desc": "Create GIFs and convert images"
+            "desc": "GIF maker and image tools"
         },
         "https://www.photopea.com": {
             "desc": "Layer-based image editor"
         },
         "https://squoosh.app": {
-            "desc": "Open source image compression"
+            "desc": "Open-source image compressor"
         },
         "https://vocalremover.org": {
-            "desc": "Separate vocals and instruments"
+            "desc": "Vocal and instrumental split"
         },
         "https://www.waifu2x.net": {
             "desc": "Denoise and upscale images"
         },
         "https://www.behance.net": {
-            "desc": "Showcase and discover creative work"
+            "desc": "Discover and share designs"
         },
         "https://www.emojiall.com/zh-hans": {
-            "desc": "Emoji dictionary and reference"
+            "desc": "Emoji dictionary and guide"
         },
         "https://kenney.nl/assets": {
             "desc": "Free game assets"
         },
         "https://mixkit.co": {
-            "desc": "Royalty-free media and templates"
+            "desc": "Free media and templates"
         },
         "https://www.pexels.com": {
-            "desc": "Free photography for commercial use"
+            "desc": "Free stock photography"
         },
         "https://www.pinterest.com": {
-            "desc": "Visual inspiration and collections"
+            "desc": "Visual ideas and collections"
         },
         "https://pixabay.com": {
-            "desc": "Free stock media for commercial use"
+            "desc": "Free stock photos and media"
         },
         "https://www.pixiv.net": {
-            "desc": "Illustration and anime art community"
+            "desc": "Illustration and anime art"
         },
         "https://polyhaven.com": {
             "desc": "Free 3D textures and models"
         },
         "https://saucenao.com": {
-            "desc": "Reverse image search for illustrations"
+            "desc": "Reverse illustration search"
         },
         "https://tenor.com": {
             "desc": "Search GIFs and reactions"
         },
         "https://trace.moe": {
-            "desc": "Find the source of an anime screenshot"
+            "desc": "Find anime by screenshot"
         },
         "https://unsplash.com": {
-            "desc": "Royalty-free stock photography"
+            "desc": "Free stock photography"
         },
         "https://wallhaven.cc": {
-            "desc": "High-quality desktop wallpapers"
+            "desc": "Desktop wallpapers"
         },
         "https://yesicon.app": {
-            "desc": "Search vector icon collections"
+            "desc": "Search vector icons"
         },
         "https://soundeffect-lab.info": {
             "name": "Sound Effect Lab",
             "desc": "Free Japanese sound effects"
         },
         "https://dash.cloudflare.com": {
-            "desc": "Manage websites and cloud services"
+            "desc": "Website and cloud tools"
         },
         "https://distrosea.com": {
             "desc": "Try Linux in your browser"
         },
         "https://github.com": {
-            "desc": "Code hosting and collaboration"
+            "desc": "Host code and collaborate"
         },
         "https://colab.research.google.com": {
             "desc": "Cloud-based code notebooks"
@@ -347,41 +347,41 @@
             "desc": "Online frontend code sandbox"
         },
         "https://www.omgubuntu.co.uk": {
-            "desc": "Linux desktop and open source news"
+            "desc": "Linux and open source news"
         },
         "https://roadmap.sh": {
             "desc": "Developer learning roadmaps"
         },
         "https://vercel.com": {
-            "desc": "Deploy websites and applications"
+            "desc": "Deploy websites and apps"
         },
         "https://linux.vbird.org": {
             "name": "Vbird's Linux Guide",
-            "desc": "Linux administration tutorials"
+            "desc": "Linux admin tutorials"
         },
         "https://browserleaks.com/ip": {
             "desc": "Test browser privacy"
         },
         "https://ip.skk.moe": {
-            "desc": "Check network connectivity and IP"
+            "desc": "Check connectivity and IP"
         },
         "https://ipcheck.ing": {
-            "desc": "IP information from multiple sources"
+            "desc": "Multi-source IP information"
         },
         "https://www.itdog.cn": {
-            "desc": "Network diagnostics across China"
+            "desc": "China network diagnostics"
         },
         "https://www.speedtest.net": {
-            "desc": "Test internet speed and latency"
+            "desc": "Test network speed & latency"
         },
         "https://www.virustotal.com/gui/": {
-            "desc": "Multi-engine antivirus scanning"
+            "desc": "Multi-engine malware scanner"
         },
         "https://lichess.org": {
             "desc": "Open source online chess"
         },
         "https://www.playok.com": {
-            "desc": "Play classic board games online"
+            "desc": "Play board games online"
         },
         "https://poki.com": {
             "desc": "Casual browser games"
@@ -393,26 +393,26 @@
             "desc": "Digital game store"
         },
         "https://steamdb.info": {
-            "desc": "Steam price history and deals"
+            "desc": "Steam prices and deals"
         },
         "https://shogiwars.heroz.jp": {
             "name": "Shogi Wars",
             "desc": "Play Japanese shogi online"
         },
         "https://www.16personalities.com/ch": {
-            "desc": "Sixteen personality types test"
+            "desc": "16 personality types test"
         },
         "https://neal.fun": {
-            "desc": "Interactive experiments for the web"
+            "desc": "Interactive web experiments"
         },
         "https://www.personality-database.com/zh-CN/": {
-            "desc": "Personality types and characters"
+            "desc": "Character personality types"
         },
         "https://quickdraw.withgoogle.com": {
-            "desc": "Drawing game powered by Google AI"
+            "desc": "Drawing game with Google AI"
         },
         "https://radio.garden": {
-            "desc": "Explore live radio around the globe"
+            "desc": "Explore live radio worldwide"
         }
     }
 }
