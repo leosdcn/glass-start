@@ -495,7 +495,7 @@
                         </div>
                         <div class="flex items-center gap-2">
                             <span class="text-sm font-semibold text-white/95 tracking-tight leading-none whitespace-nowrap">Glass Start</span>
-                            <span class="text-2xs px-2 h-4.5 rounded-full bg-white/10 border border-white/15 text-white/75 font-medium tabular-nums inline-flex items-center justify-center">v5.4.0</span>
+                            <span class="text-2xs px-2 h-4.5 rounded-full bg-white/10 border border-white/15 text-white/75 font-medium tabular-nums inline-flex items-center justify-center">v5.4.1</span>
                         </div>
                     </div>
                     <div class="grid grid-cols-2 sm:flex items-center gap-2 shrink-0">
@@ -663,24 +663,17 @@
             </div>
 
             <!-- 语言选项列表 (采用 Endonym 自称母语显示，具备无限纵向扩展性) -->
-            <div id="languageList" class="flex-1 overflow-y-auto min-h-0 space-y-2 pr-0.5 text-xs select-none">
+            <div id="languageList" role="group" aria-label="界面语言" data-i18n-aria-label="language.label" class="flex-1 overflow-y-auto min-h-0 space-y-2 pr-0.5 text-xs select-none">
                 <button type="button" data-lang="auto" role="menuitemradio" aria-checked="true" class="language-modal-item w-full flex items-center justify-between p-3 rounded-xl glass-subcard text-left transition-all hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50">
-                    <div>
-                        <div class="text-sm font-medium text-white/90" data-i18n="language.autoFollow">自动 (跟随浏览器)</div>
-                        <div class="text-xs text-white/50 mt-0.5" data-i18n="language.autoDesc">根据系统语言自动切换</div>
-                    </div>
+                    <span class="text-sm font-medium text-white/90" data-i18n="language.autoFollow">自动 (跟随浏览器)</span>
                     <svg class="lang-check size-4 text-white shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg>
                 </button>
                 <button type="button" data-lang="zh-CN" role="menuitemradio" aria-checked="false" class="language-modal-item w-full flex items-center justify-between p-3 rounded-xl glass-subcard text-left transition-all hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50">
-                    <div>
-                        <div class="text-sm font-medium text-white/90" lang="zh-CN">简体中文</div>
-                    </div>
+                    <span class="text-sm font-medium text-white/90" lang="zh-CN">简体中文</span>
                     <svg class="lang-check size-4 text-white shrink-0 opacity-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg>
                 </button>
                 <button type="button" data-lang="en" role="menuitemradio" aria-checked="false" class="language-modal-item w-full flex items-center justify-between p-3 rounded-xl glass-subcard text-left transition-all hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50">
-                    <div>
-                        <div class="text-sm font-medium text-white/90" lang="en">English</div>
-                    </div>
+                    <span class="text-sm font-medium text-white/90" lang="en">English</span>
                     <svg class="lang-check size-4 text-white shrink-0 opacity-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg>
                 </button>
             </div>

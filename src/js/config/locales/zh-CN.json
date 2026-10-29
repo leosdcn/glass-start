@@ -198,7 +198,6 @@
     "language.label": "界面语言",
     "language.auto": "自动",
     "language.autoFollow": "自动 (跟随浏览器)",
-    "language.autoDesc": "根据系统语言自动切换",
     "language.reload": "点击完成后刷新生效",
     "language.saveFailed": "语言设置未能保存，草稿已保留；已保存的其他更改仍然生效。请检查存储权限后重试。",
     "bookmark.count": "已添加 {count} 项",

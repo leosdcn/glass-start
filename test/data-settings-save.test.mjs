@@ -68,6 +68,7 @@ try {
       await commitWallpaperSelection(backgrounds[1]);
       await openEditModal();
       await previewDraftWallpaper(backgrounds[2]);
+      document.getElementById('tab-btn-appearance').click();
       const get = IDBObjectStore.prototype.get;
       const put = IDBObjectStore.prototype.put;
       let release;
@@ -108,7 +109,12 @@ try {
       try {
         const saving = saveEditModal();
         while (!release) await new Promise(resolve => setTimeout(resolve, 5));
-        const locked = dom.saveEditBtn.disabled && dom.cancelEditBtn.disabled;
+        const locked = dom.saveEditBtn.disabled && dom.cancelEditBtn.disabled && dom.tabAppearance.inert;
+        dom.presetWallpaperGrid.querySelector('[data-bg="' + backgrounds[3] + '"]').click();
+        const selectionBlocked = await previewDraftWallpaper(backgrounds[3]) === false
+          && await resetDraftWallpaper() === false
+          && uploadWallpaper(new File(['image'], 'blocked.png', {type:'image/png'})) === false
+          && modalState.draftWallpaper === backgrounds[2];
         const attempts = [
           () => dom.cancelEditBtn.click(),
           () => dom.editModal.click(),
@@ -121,8 +127,8 @@ try {
         });
         release(); await saving;
         const persistedBg = (await getWallpaperSelectionDB()).bg;
-        const result = {locked, attempts, persistedBg, runtimeBg:state.bg,
-          enabled:!dom.saveEditBtn.disabled && !dom.cancelEditBtn.disabled,
+        const result = {locked, selectionBlocked, attempts, persistedBg, runtimeBg:state.bg,
+          enabled:!dom.saveEditBtn.disabled && !dom.cancelEditBtn.disabled && !dom.tabAppearance.inert,
           open:state.editOpen};
         if ('${phase}' === 'abort') {
           result.failureShown = OverlayStack.top()?.id === 'confirmModal';
@@ -139,13 +145,13 @@ try {
       }
     })()`);
     assert.deepEqual(committing, {
-      locked:true, attempts:[true,true,true,true],
+      locked:true, selectionBlocked:true, attempts:[true,true,true,true],
       persistedBg:phase === 'abort' ? 1 : 2, runtimeBg:phase === 'abort' ? 1 : 2,
       enabled:true, open:phase === 'abort',
       ...(phase === 'abort' ? {failureShown:true,cancelledAfterFailure:true} : {})
     });
   }
-  console.log('✅ 壁纸提交期间取消按钮、遮罩与 Escape 均被锁定；事务成功或失败后解除锁定');
+  console.log('✅ 壁纸提交期间外观选择、取消按钮、遮罩与 Escape 均被锁定；事务成功或失败后解除锁定');
 
   await evalJS('commitWallpaperSelection(backgrounds[1])');
   const resetDraft = await evalJS(`(async () => {

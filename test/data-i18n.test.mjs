@@ -188,6 +188,30 @@ try {
     const chineseLinks = await evalJS(`[...document.querySelectorAll('.nav-bookmark')].map(link => link.getAttribute('href'))`);
     assert.ok(destinations.every(item => chineseLinks.includes(item.chinese)), 'Chinese catalog retains its remaining localized destinations');
     assert.ok(autoLanguageLinks.every(url => chineseLinks.includes(url)), 'Chinese also uses shared URLs for automatic language selection');
+
+    // Reset must use the same locale default as initialization, without requiring a reload.
+    await send('Network.emulateNetworkConditions', { offline: false, latency: 0, downloadThroughput: -1, uploadThroughput: -1 });
+    await send('Page.addScriptToEvaluateOnNewDocument', { source: `
+        Object.defineProperty(navigator, 'languages', { get: () => ['en-US'] });
+        localStorage.removeItem('glass_language');
+    ` });
+    await send('Page.reload');
+    await ready();
+    await evalJS(`(async () => {
+        dom.engineBtn.click();
+        dom.dropdownMenu.querySelector('[data-engine="bing"]').click();
+        await openEditModal();
+        document.getElementById('tab-btn-data').click();
+        dom.resetEditBtn.click();
+        dom.confirmOkBtn.click();
+    })()`);
+    await waitFor(evalJS, '!state.editOpen');
+    assert.equal(await evalJS('state.engine'), 'google', 'automatic English reset restores Google immediately');
+    assert.equal(await evalJS('dom.engineName.textContent'), 'Google');
+    assert.equal(await evalJS('localStorage.getItem(CONFIG.KEYS.PREFERRED_ENGINE)'), null);
+    await send('Page.reload');
+    await ready();
+    assert.equal(await evalJS('state.engine'), 'google', 'reset and reload agree on the default engine');
     console.log('✅ 英文全站、语言草稿与保存失败、书签继承、天气缓存、桌面/触屏布局及离线切换通过');
 } finally {
     await chrome.close();

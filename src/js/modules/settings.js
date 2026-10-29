@@ -5,6 +5,7 @@ import { showConfirm } from '../core/dialogs.js';
  * 设置面板与弹窗管理系统
  */
 import { CONFIG, backgrounds } from '../config/constants.js';
+import { DEFAULT_ENGINE } from '../config/engines.js';
 import { escapeHtml, normalizeUrl, normalizeBookmark, storageGet, storageSet, storageRemove } from '../utils/helpers.js';
 import { state, modalState, pageData } from '../state/store.js';
 import { replaceBookmarkDraft } from '../state/bookmark-draft.js';
@@ -205,6 +206,7 @@ export function closeEditModal() {
         dom.saveEditBtn.removeAttribute('aria-busy');
     }
     if (dom.cancelEditBtn) dom.cancelEditBtn.disabled = false;
+    if (dom.tabAppearance) dom.tabAppearance.inert = false;
     OverlayStack.pop('editModal');
     const editBtn = dom.editBookmarksBtn;
     editBtn?.setAttribute('aria-expanded', 'false');
@@ -377,7 +379,7 @@ export function resetBookmarks() {
         modalState.initialMaskOpacity = opacity;
         modalState.draftMaskOpacity = opacity;
         applyBgEffects(opacity);
-        setEngine(storageGet(CONFIG.KEYS.PREFERRED_ENGINE, 'bing'), false);
+        setEngine(storageGet(CONFIG.KEYS.PREFERRED_ENGINE, DEFAULT_ENGINE), false);
         applyWallpaper(backgrounds[0], false);
         if (!bookmarksReset || removed.some(result => !result)) {
             replaceBookmarkDraft(pageData.bookmarks.map((bm, i) => ({ ...bm, id: `bm_${i}` })));
@@ -531,6 +533,8 @@ export async function saveEditModal() {
         if (modalState.draftWallpaper !== undefined && modalState.draftWallpaper !== modalState.initialWallpaper) {
             const targetBg = modalState.draftWallpaper;
             if (dom.cancelEditBtn) dom.cancelEditBtn.disabled = true;
+            // 提交快照后停止接受外观修改，避免预览与本次保存结果分离。
+            if (dom.tabAppearance) dom.tabAppearance.inert = true;
             const saved = await commitWallpaperSelection(targetBg, () => state.editOpen && requestId === editOpenRequestId);
             if (!state.editOpen || requestId !== editOpenRequestId) return;
             if (!saved) {
@@ -552,6 +556,7 @@ export async function saveEditModal() {
             saveBtn.disabled = false;
             saveBtn.removeAttribute('aria-busy');
             if (dom.cancelEditBtn) dom.cancelEditBtn.disabled = false;
+            if (dom.tabAppearance) dom.tabAppearance.inert = false;
         }
     }
 }

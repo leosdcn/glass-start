@@ -142,6 +142,7 @@ export interface DOMCache {
     navCategories: HTMLElement | null;
     navContent: HTMLElement | null;
     editModal: HTMLElement | null;
+    tabAppearance: HTMLElement | null;
     editList: HTMLElement | null;
     editBookmarksBtn: HTMLButtonElement | null;
     addBookmarkBtn: HTMLButtonElement | null;
