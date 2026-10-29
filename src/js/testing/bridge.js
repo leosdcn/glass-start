@@ -109,6 +109,7 @@ Object.assign(window, {
     exportBookmarksJSON: settings.exportBookmarksJSON,
     resetBookmarks: settings.resetBookmarks,
     getExistingUrls: editor.getExistingUrls,
+    selectDraftTransitionMode: settings.selectDraftTransitionMode,
     bindEditEvents: settingsEvents.bindEditEvents,
     init: app.init,
 });

@@ -85,6 +85,7 @@ export interface AppState {
 export interface ModalState {
     initialWallpaper: string | null;
     initialMaskOpacity: number;
+    initialTransitionMode: string;
 
     draftWallpaper: string | null | undefined;
     draftMaskOpacity: number | null;
@@ -92,6 +93,7 @@ export interface ModalState {
     wallpaperSaveFailed: boolean;
     bookmarksChanged: boolean;
     draftLanguage: string;
+    draftTransitionMode: string;
 }
 
 /** 壁纸深浅主题契约 */

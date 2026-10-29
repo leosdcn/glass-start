@@ -20,13 +20,15 @@ export const state = {
 export const modalState = {
     initialWallpaper: null,
     initialMaskOpacity: CONFIG.APPEARANCE.DEFAULT_MASK_OPACITY,
+    initialTransitionMode: 'sheet',
 
     draftWallpaper: undefined,
     draftMaskOpacity: null,
     draftBookmarks: [],
     wallpaperSaveFailed: false,
     bookmarksChanged: false,
-    draftLanguage: 'auto'
+    draftLanguage: 'auto',
+    draftTransitionMode: 'sheet'
 };
 
 // 当前运行时的书签与分类数据集

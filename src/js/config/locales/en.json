@@ -126,6 +126,7 @@
     "ui.the.wallpaper.has.not.been.saved": "The wallpaper has not been saved. Select it again before saving.",
     "ui.could.not.save.bookmarks.your.draft": "Could not save bookmarks. Your draft has been kept. Check storage space or permissions and try again.",
     "ui.could.not.save.background.dimming.your": "Could not save background dimming. Your draft has been kept; any bookmark and wallpaper changes already saved still apply. Check storage permissions and try again.",
+    "ui.could.not.save.transition.mode.your": "Could not save the screen transition setting. Your draft has been kept; other saved changes still apply. Check storage permissions and try again.",
     "ui.could.not.load.this.image.check": "Could not load this image. Check the URL or your connection and try again.",
     "ui.image.unavailable": "Image unavailable",
     "ui.could.not.save.the.wallpaper.your": "Could not save the wallpaper. Your previous wallpaper has been kept. Check storage space or permissions and try again.",

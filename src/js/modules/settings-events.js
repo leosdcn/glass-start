@@ -15,7 +15,7 @@ import { dom } from '../state/dom.js';
 import { initDragSort } from '../core/drag-sort.js';
 
 import { uploadWallpaper, previewDraftWallpaper, resetDraftWallpaper } from './wallpaper.js';
-import { openEditModal, saveEditModal, cancelEditModal, openShortcutModal, closeShortcutModal, openCreditsModal, closeCreditsModal, openBookmarkPicker, closeBookmarkPicker, updatePickerAvailability, switchSettingsTab, previewDraftMaskOpacity, resetBookmarks, importBookmarksJSON, exportBookmarksJSON, syncLanguageUI, openLanguageModal, closeLanguageModal, saveLanguageModal, cancelLanguageModal, selectLanguage } from './settings.js';
+import { openEditModal, saveEditModal, cancelEditModal, openShortcutModal, closeShortcutModal, openCreditsModal, closeCreditsModal, openBookmarkPicker, closeBookmarkPicker, updatePickerAvailability, switchSettingsTab, previewDraftMaskOpacity, resetBookmarks, importBookmarksJSON, exportBookmarksJSON, syncLanguageUI, openLanguageModal, closeLanguageModal, saveLanguageModal, cancelLanguageModal, selectLanguage, selectDraftTransitionMode } from './settings.js';
 import { updateAllBookmarkCounters, getEditFaviconInner, getExistingUrls, handleEditIconError, appendDraftBookmarkRow } from './bookmark-editor.js';
 import { showConfirm } from '../core/dialogs.js';
 import { finishPendingTransition, onTransitionSettled } from '../utils/transition-cleanup.js';
@@ -309,6 +309,13 @@ export function bindEditEvents() {
             if (targetInput) previewDraftMaskOpacity(targetInput.value);
         });
     }
+
+    // 切屏动效选择（草稿高亮切换，保存时生效）
+    dom.settingsTransitionGrid?.addEventListener('click', e => {
+        const btn = /** @type {HTMLElement|null} */ (e.target instanceof HTMLElement ? e.target.closest('.settings-transition-btn') : null);
+        if (!btn || !btn.dataset.mode) return;
+        selectDraftTransitionMode(btn.dataset.mode);
+    });
 
     // 清理缓存：确认后再清空并刷新。
     const clearBtn = dom.clearCacheBtn;

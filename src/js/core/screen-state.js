@@ -349,12 +349,4 @@ export function initTransitionSwitcher() {
         document.documentElement.dataset.transitionMode = mode;
         syncTransitionSwitcherActive(mode);
     }
-    const settingsGrid = dom.settingsTransitionGrid;
-    if (settingsGrid) {
-        settingsGrid.addEventListener('click', e => {
-            const btn = /** @type {HTMLElement|null} */ (e.target instanceof HTMLElement ? e.target.closest('.settings-transition-btn') : null);
-            if (!btn || !btn.dataset.mode) return;
-            setTransitionMode(btn.dataset.mode);
-        });
-    }
 }

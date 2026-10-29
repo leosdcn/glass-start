@@ -15,7 +15,7 @@ import { flushWallpaperSelection, getEffectiveCustomWallpaper, updateWallpaperSt
 import { saveUserBookmarks, resetUserBookmarks, getFaviconHTML, getCategoryIconHTML, initPickerFaviconObserver } from './bookmarks.js';
 import { closeDropdown, hideSuggestions, setEngine } from './search.js';
 import { renderCreditsModalList, renderShortcutModalList } from './clock.js';
-import { getTransitionMode, syncTransitionSwitcherActive } from '../core/screen-state.js';
+import { getTransitionMode, syncTransitionSwitcherActive, setTransitionMode } from '../core/screen-state.js';
 import { cancelDragSort } from '../core/drag-sort.js';
 import { getCategoryCatalog } from '../utils/category-catalog.js';
 
@@ -163,13 +163,16 @@ export async function openEditModal() {
     if (!state.editOpen || requestId !== editOpenRequestId) return;
     modalState.initialWallpaper = initialWallpaper;
     modalState.initialMaskOpacity = storageGet(CONFIG.KEYS.MASK_OPACITY, CONFIG.APPEARANCE.DEFAULT_MASK_OPACITY);
+    modalState.initialTransitionMode = getTransitionMode();
 
     modalState.draftWallpaper = modalState.initialWallpaper;
     modalState.draftMaskOpacity = modalState.initialMaskOpacity;
+    modalState.draftTransitionMode = modalState.initialTransitionMode;
     modalState.wallpaperSaveFailed = false;
     modalState.draftLanguage = getLanguagePreference();
     if (dom.languageSelect) dom.languageSelect.value = modalState.draftLanguage;
     syncLanguageUI();
+    syncTransitionSwitcherActive(modalState.draftTransitionMode);
     closeLanguageModal();
 
     replaceBookmarkDraft(pageData.bookmarks.map((bm, i) => ({ ...bm, id: `bm_${i}`, desc: bm.desc || '' })));
@@ -182,6 +185,8 @@ export async function openEditModal() {
 
 export function cancelEditModal() {
     applyBgEffects(modalState.initialMaskOpacity);
+    modalState.draftTransitionMode = modalState.initialTransitionMode;
+    syncTransitionSwitcherActive(modalState.initialTransitionMode);
     closeEditModal();
 }
 
@@ -357,6 +362,8 @@ export function resetBookmarks() {
         const mode = getTransitionMode();
         document.documentElement.dataset.transitionMode = mode;
         syncTransitionSwitcherActive(mode);
+        modalState.initialTransitionMode = mode;
+        modalState.draftTransitionMode = mode;
         const opacity = storageGet(CONFIG.KEYS.MASK_OPACITY, CONFIG.APPEARANCE.DEFAULT_MASK_OPACITY);
         modalState.initialMaskOpacity = opacity;
         modalState.draftMaskOpacity = opacity;
@@ -502,6 +509,15 @@ export async function saveEditModal() {
             }
         }
 
+        // 3. 提交切屏动效
+        if (modalState.draftTransitionMode && modalState.draftTransitionMode !== getTransitionMode()) {
+            if (!storageSet(CONFIG.KEYS.TRANSITION_MODE, modalState.draftTransitionMode)) {
+                showConfirm(t('ui.could.not.save.transition.mode.your'), null, t('ui.could.not.save'));
+                return;
+            }
+            setTransitionMode(modalState.draftTransitionMode);
+        }
+
         const languageChanged = modalState.draftLanguage !== getLanguagePreference();
         if (languageChanged && !storageSet(CONFIG.KEYS.LANGUAGE, modalState.draftLanguage)) {
             showConfirm(t('language.saveFailed'), null, t('ui.could.not.save'));
@@ -564,6 +580,12 @@ export function selectLanguage(lang) {
         dom.languageSelect.value = lang;
     }
     syncLanguageUI();
+}
+
+/** @param {string} mode */
+export function selectDraftTransitionMode(mode) {
+    modalState.draftTransitionMode = mode;
+    syncTransitionSwitcherActive(mode);
 }
 
 export function syncLanguageUI() {
