@@ -75,6 +75,54 @@ function fixture() {
 }
 const drain = async () => { for (let i = 0; i < 12; i++) await Promise.resolve(); };
 
+test('首次定位失败不请求默认城市天气，旧版兜底缓存也不能复用', async () => {
+    for (const legacyFallback of [false, true]) {
+        const f = fixture(), { app } = f;
+        if (legacyFallback) {
+            const location = { name: '上海', lat: 31.230, lon: 121.473, isFallback: true, timestamp: Date.now() };
+            f.context.localStorage.setItem(app.CONFIG.KEYS.WEATHER_LOC, JSON.stringify(location));
+            f.context.localStorage.setItem(app.CONFIG.KEYS.WEATHER_CACHE,
+                JSON.stringify({ location, timestamp: Date.now(), current: { temp: 20 }, daily: [] }));
+        }
+        const requests = [];
+        f.context.fetch = async url => {
+            requests.push(url);
+            return { ok: false, status: 503 };
+        };
+        await app.updateWeather(false);
+        assert.equal(requests.length, 2, '尝试两个定位服务');
+        assert.ok(requests.every(url => !url.includes('/forecast?')));
+        assert.equal(f.context.localStorage.getItem(app.CONFIG.KEYS.WEATHER_LOC), null);
+        assert.equal(f.context.localStorage.getItem(app.CONFIG.KEYS.WEATHER_CACHE), null);
+        assert.match(f.html, /weatherErrorRetryBtn/);
+        assert.equal(app.isFetchingWeather, false);
+    }
+});
+
+test('强制重新定位失败后沿用成功位置，仍可获取新天气，包括真实定位到上海', async () => {
+    for (const source of ['location', 'weather']) {
+        const f = fixture(), { app } = f;
+        const location = { name: '上海', lat: 31.230, lon: 121.473, timestamp: 1 };
+        const key = source === 'location' ? app.CONFIG.KEYS.WEATHER_LOC : app.CONFIG.KEYS.WEATHER_CACHE;
+        f.context.localStorage.setItem(key, JSON.stringify(source === 'location' ? location :
+            { location, timestamp: 1, current: { temp: 20 }, daily: [] }));
+        const requests = [];
+        f.context.fetch = async url => {
+            requests.push(url);
+            return url.includes('/forecast?')
+                ? { ok: true, json: async () => ({ current: { temperature_2m: 25, weather_code: 0 }, daily: {} }) }
+                : { ok: false, status: 503 };
+        };
+        await app.updateWeather(true);
+        const cache = JSON.parse(f.context.localStorage.getItem(app.CONFIG.KEYS.WEATHER_CACHE));
+        assert.equal(requests.filter(url => url.includes('/forecast?')).length, 1);
+        assert.equal(cache.location.lat, location.lat);
+        assert.equal(cache.location.name, '上海');
+        assert.equal(cache.current.temp, 25);
+        assert.equal(app.isFetchingWeather, false);
+    }
+});
+
 test('天气正文超时结束共享刷新任务，随后可重新刷新', async () => {
     const f = fixture(), { app } = f;
     const location = { lat: 31, lon: 121, name: '测试', timestamp: Date.now() };

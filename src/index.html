@@ -247,7 +247,7 @@
                     const w = document.getElementById('weatherWidget');
                     if (s && s.enabled === false) { if (w) w.style.display = 'none'; return; }
                     const c = JSON.parse(localStorage.getItem('glass_weather_cache') || 'null');
-                    if (c && c.current) {
+                    if (c && c.current && !c.location?.isFallback) {
                         const i = document.getElementById('weatherIcon');
                         const t = document.getElementById('weatherTemp');
                         const ct = document.getElementById('weatherCity');

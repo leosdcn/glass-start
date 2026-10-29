@@ -79,8 +79,17 @@ export function toggleWeatherPopover() {
 /** @type {Promise<import('../types').WeatherLocation> | null} */
 let inFlightLocationPromise = null;
 
+function readWeatherLocation() {
+    const location = storageGet(CONFIG.KEYS.WEATHER_LOC, null);
+    if (location?.isFallback) {
+        storageRemove(CONFIG.KEYS.WEATHER_LOC);
+        return null;
+    }
+    return location;
+}
+
 async function resolveWeatherLocation(force = false) {
-    const locCache = storageGet(CONFIG.KEYS.WEATHER_LOC, null);
+    const locCache = readWeatherLocation();
     const now = Date.now();
     const LOC_TTL = CONFIG.WEATHER.LOC_TTL;
     if (!force && locCache && locCache.timestamp && (now - locCache.timestamp < LOC_TTL) && locCache.lat && (locCache.language || 'zh-CN') === getLocale()) {
@@ -90,6 +99,10 @@ async function resolveWeatherLocation(force = false) {
     inFlightLocationPromise = (async () => {
         try {
             return await executeResolveWeatherLocation(now);
+        } catch (error) {
+            const previousLocation = locCache || readWeatherCache()?.location;
+            if (previousLocation?.lat) return previousLocation;
+            throw error;
         } finally {
             inFlightLocationPromise = null;
         }
@@ -181,18 +194,7 @@ async function executeResolveWeatherLocation(now) {
         }
     } catch {}
 
-    const fallbackLoc = {
-        name: CONFIG.WEATHER.FALLBACK_LOCATION.name,
-        fullName: CONFIG.WEATHER.FALLBACK_LOCATION.fullName,
-        lat: CONFIG.WEATHER.FALLBACK_LOCATION.lat,
-        lon: CONFIG.WEATHER.FALLBACK_LOCATION.lon,
-        isAuto: true,
-        isFallback: true,
-        language: getLocale(),
-        timestamp: now
-    };
-    storageSet(CONFIG.KEYS.WEATHER_LOC, fallbackLoc);
-    return fallbackLoc;
+    throw new Error('Weather location unavailable');
 }
 
 /** @param {import('../types').WeatherLocation} loc */
@@ -396,8 +398,11 @@ export function renderWeatherPopover(data) {
                 <span class="text-3xl sm:text-4xl leading-none select-none shrink-0 flex items-center justify-center">${getWeatherIconHTML(c.icon, 'size-10 sm:size-12')}</span>
                 <div class="min-w-0">
                     <div class="text-2xl font-bold tracking-tight text-white leading-none">${c.temp}<span class="text-base font-normal text-white/70">°C</span></div>
-                    <div class="text-xs text-white/75 mt-1">${escapeHtml(c.weatherText)}</div>
-                    <div class="text-xs text-white/75 mt-0.5 whitespace-nowrap">${escapeHtml(t('weather.feels.like', { temperature: c.apparent }))}</div>
+                    <div class="text-xs text-white/75 mt-1${getLocale() === 'zh-CN' ? ' flex flex-wrap items-baseline gap-x-1' : ''}">
+                        <span>${escapeHtml(c.weatherText)}</span>
+                        ${getLocale() === 'zh-CN' ? '<span aria-hidden="true">·</span>' : ''}
+                        <span class="whitespace-nowrap${getLocale() === 'zh-CN' ? '' : ' block mt-0.5'}">${escapeHtml(t('weather.feels.like', { temperature: c.apparent }))}</span>
+                    </div>
                 </div>
             </div>
             ${days[0] ? `<div class="text-right text-xs text-white/60 shrink-0 whitespace-nowrap"><div>${escapeHtml(t('weather.high', { temperature: days[0].tempMax }))}</div><div class="mt-0.5">${escapeHtml(t('weather.low', { temperature: days[0].tempMin }))}</div></div>` : ''}
@@ -475,7 +480,7 @@ function saveWeatherCache(data) {
 function readWeatherCache() {
     const cache = storageGet(CONFIG.KEYS.WEATHER_CACHE, null);
     if (!cache) return null;
-    if (!isWeatherRecord(cache) || !isWeatherRecord(cache.current)
+    if (!isWeatherRecord(cache) || cache.location?.isFallback || !isWeatherRecord(cache.current)
         || (cache.daily !== undefined && (!Array.isArray(cache.daily) || !cache.daily.every(isWeatherRecord)))) {
         storageRemove(CONFIG.KEYS.WEATHER_CACHE);
         return null;
@@ -509,7 +514,7 @@ export function updateWeather(force = false) {
  */
 async function executeWeatherUpdate(cache, force) {
     try {
-        const locCache = storageGet(CONFIG.KEYS.WEATHER_LOC, null);
+        const locCache = readWeatherLocation();
         const knownLoc = (locCache && locCache.lat) ? locCache : (cache && cache.location && cache.location.lat ? cache.location : null);
 
         if (knownLoc && !force) {
