@@ -6,7 +6,7 @@ import { checkServiceWorkerUpdate } from './service-worker-updates.js';
 import { resetActiveCard } from './gestures.js';
 import { dom } from '../state/dom.js';
 import { reconcileScreenState } from './screen-state.js';
-import { resetScreenInput } from './screen-input.js';
+import { resetScreenInput, blurNonEditableActive } from './screen-input.js';
 
 /**
  * @param {boolean} [wasPersisted]
@@ -22,10 +22,7 @@ export function handleAppWakeUp(wasPersisted = false) {
     document.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
 
     resetActiveCard();
-    const active = /** @type {HTMLElement|null} */ (document.activeElement);
-    if (active && typeof active.blur === 'function' && active !== document.body && active !== dom.searchInput && !active.matches('input, textarea, select, [contenteditable]:not([contenteditable=\"false\"])')) {
-        active.blur();
-    }
+    blurNonEditableActive();
     resetScreenInput();
     reconcileScreenState(undefined, true);
 

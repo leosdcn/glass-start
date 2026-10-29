@@ -50,6 +50,16 @@ export function resetScreenInput() {
     syncNavTouchMove();
 }
 
+/**
+ * 失焦非输入型可聚焦元素（如链接、卡片、按钮），避免保持高亮；正在编辑的输入框与搜索栏除外。
+ */
+export function blurNonEditableActive() {
+    const active = /** @type {HTMLElement|null} */ (document.activeElement);
+    if (active && typeof active.blur === 'function' && active !== document.body && active !== dom.searchInput && !active.matches('input, textarea, select, [contenteditable]:not([contenteditable="false"])')) {
+        active.blur();
+    }
+}
+
 /** @param {EventTarget|null} target */
 function isExcluded(target) {
     return target instanceof Element && !!target.closest(EXCLUDED_TARGETS);

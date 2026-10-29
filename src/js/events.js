@@ -1,5 +1,6 @@
 import { cancelDragSort } from './core/drag-sort.js';
 import { resetActiveCard } from './core/gestures.js';
+import { blurNonEditableActive } from './core/screen-input.js';
 
 /** 装配搜索、键盘与页面交互事件，协调输入法、联想选择和弹窗焦点。 */
 import { CONFIG } from './config/constants.js';
@@ -217,10 +218,7 @@ export function bindEvents() {
         if (link) {
             resetActiveCard();
             if (typeof link.blur === 'function') link.blur();
-            const activeEl = /** @type {HTMLElement|null} */ (document.activeElement);
-            if (activeEl && typeof activeEl.blur === 'function' && activeEl !== document.body && activeEl !== searchInput && !activeEl.matches('input, textarea, select, [contenteditable]:not([contenteditable=\"false\"])')) {
-                activeEl.blur();
-            }
+            blurNonEditableActive();
             const isBackgroundOpen = e.metaKey || e.ctrlKey || e.button === 1;
             if (!isBackgroundOpen) {
                 link.classList.add('is-clicked');
@@ -245,10 +243,7 @@ export function bindEvents() {
         cancelDragSort();
         document.body.classList.add('tab-blurred');
         attachTabBlurListeners();
-        const activeEl = /** @type {HTMLElement|null} */ (document.activeElement);
-        if (activeEl && typeof activeEl.blur === 'function' && activeEl !== document.body && activeEl !== searchInput && !activeEl.matches('input, textarea, select, [contenteditable]:not([contenteditable=\"false\"])')) {
-            activeEl.blur();
-        }
+        blurNonEditableActive();
     };
     window.addEventListener('blur', handleTabBlur, { passive: true });
     window.addEventListener('pagehide', handleTabBlur, { passive: true });

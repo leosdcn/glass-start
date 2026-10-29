@@ -206,6 +206,11 @@ export function closeEditModal() {
     const editBtn = dom.editBookmarksBtn;
     editBtn?.setAttribute('aria-expanded', 'false');
 
+    closeWallpaperUrlInput();
+}
+
+/** 关闭并清空壁纸直链输入行，恢复操作按钮组 */
+export function closeWallpaperUrlInput() {
     const inputRow = dom.urlBgInputRow;
     if (inputRow && !inputRow.classList.contains('hidden')) {
         inputRow.classList.add('hidden');

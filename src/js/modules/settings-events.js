@@ -15,7 +15,7 @@ import { dom } from '../state/dom.js';
 import { initDragSort } from '../core/drag-sort.js';
 
 import { uploadWallpaper, previewDraftWallpaper, resetDraftWallpaper } from './wallpaper.js';
-import { openEditModal, saveEditModal, cancelEditModal, openShortcutModal, closeShortcutModal, openCreditsModal, closeCreditsModal, openBookmarkPicker, closeBookmarkPicker, updatePickerAvailability, switchSettingsTab, previewDraftMaskOpacity, resetBookmarks, importBookmarksJSON, exportBookmarksJSON, syncLanguageUI, openLanguageModal, closeLanguageModal, saveLanguageModal, cancelLanguageModal, selectLanguage, selectDraftTransitionMode } from './settings.js';
+import { openEditModal, saveEditModal, cancelEditModal, openShortcutModal, closeShortcutModal, openCreditsModal, closeCreditsModal, openBookmarkPicker, closeBookmarkPicker, updatePickerAvailability, switchSettingsTab, previewDraftMaskOpacity, resetBookmarks, importBookmarksJSON, exportBookmarksJSON, syncLanguageUI, openLanguageModal, closeLanguageModal, saveLanguageModal, cancelLanguageModal, selectLanguage, selectDraftTransitionMode, closeWallpaperUrlInput } from './settings.js';
 import { updateAllBookmarkCounters, getEditFaviconInner, getExistingUrls, handleEditIconError, appendDraftBookmarkRow } from './bookmark-editor.js';
 import { showConfirm } from '../core/dialogs.js';
 import { finishPendingTransition, onTransitionSettled } from '../utils/transition-cleanup.js';
@@ -264,14 +264,9 @@ export function bindEditEvents() {
             dom.urlBgInputRow?.classList.remove('hidden');
             dom.urlBgInput?.focus();
         };
-        const closeUrlInput = () => {
-            dom.urlBgInputRow?.classList.add('hidden');
-            dom.urlBgBtnGroup?.classList.remove('hidden');
-            if (dom.urlBgInput) dom.urlBgInput.value = '';
-        };
         const submitUrl = () => {
             const trimmed = (dom.urlBgInput?.value || '').trim();
-            closeUrlInput();
+            closeWallpaperUrlInput();
             if (!trimmed) return;
             let imageUrl;
             try {
@@ -289,10 +284,10 @@ export function bindEditEvents() {
         };
         dom.urlBgBtn.addEventListener('click', openUrlInput);
         dom.urlBgConfirmBtn?.addEventListener('click', submitUrl);
-        dom.urlBgCancelBtn?.addEventListener('click', closeUrlInput);
+        dom.urlBgCancelBtn?.addEventListener('click', closeWallpaperUrlInput);
         dom.urlBgInput?.addEventListener('keydown', e => {
             if (e.key === 'Enter') { e.preventDefault(); submitUrl(); }
-            if (e.key === 'Escape') { e.preventDefault(); closeUrlInput(); }
+            if (e.key === 'Escape') { e.preventDefault(); closeWallpaperUrlInput(); }
         });
     }
 
