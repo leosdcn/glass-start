@@ -184,6 +184,8 @@ export async function openEditModal() {
 }
 
 export function cancelEditModal() {
+    // 壁纸提交开始后不能再恢复旧预览，否则会与已提交的 IDB 记录不一致。
+    if (dom.cancelEditBtn?.disabled) return;
     applyBgEffects(modalState.initialMaskOpacity);
     modalState.draftTransitionMode = modalState.initialTransitionMode;
     syncTransitionSwitcherActive(modalState.initialTransitionMode);
@@ -202,6 +204,7 @@ export function closeEditModal() {
         dom.saveEditBtn.disabled = false;
         dom.saveEditBtn.removeAttribute('aria-busy');
     }
+    if (dom.cancelEditBtn) dom.cancelEditBtn.disabled = false;
     OverlayStack.pop('editModal');
     const editBtn = dom.editBookmarksBtn;
     editBtn?.setAttribute('aria-expanded', 'false');
@@ -527,6 +530,7 @@ export async function saveEditModal() {
         // 4. 提交壁纸草稿
         if (modalState.draftWallpaper !== undefined && modalState.draftWallpaper !== modalState.initialWallpaper) {
             const targetBg = modalState.draftWallpaper;
+            if (dom.cancelEditBtn) dom.cancelEditBtn.disabled = true;
             const saved = await commitWallpaperSelection(targetBg, () => state.editOpen && requestId === editOpenRequestId);
             if (!state.editOpen || requestId !== editOpenRequestId) return;
             if (!saved) {
@@ -547,6 +551,7 @@ export async function saveEditModal() {
         if (requestId === editOpenRequestId) {
             saveBtn.disabled = false;
             saveBtn.removeAttribute('aria-busy');
+            if (dom.cancelEditBtn) dom.cancelEditBtn.disabled = false;
         }
     }
 }

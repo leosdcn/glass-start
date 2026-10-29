@@ -62,42 +62,92 @@ try {
   }
   console.log('✅ 等待壁纸时取消保存不提交书签；重新打开后的草稿与窗口不受旧任务干扰');
 
-  const cancelledCommit = await evalJS(`(async () => {
-    await commitWallpaperSelection(backgrounds[1]);
-    await openEditModal();
-    await previewDraftWallpaper(backgrounds[2]);
-    const get = IDBObjectStore.prototype.get;
-    let release;
-    IDBObjectStore.prototype.get = function(key) {
-      const req = get.call(this, key);
-      if (key === CONFIG.IDB.KEYS.SELECTION) {
-        IDBObjectStore.prototype.get = get;
-        Object.defineProperty(req, 'onsuccess', {set(callback) {
-          req.addEventListener('success', event => { release = () => callback(event); });
-        }});
-      }
-      return req;
-    };
-    try {
-      const saving = saveEditModal();
-      while (!release) await new Promise(resolve => setTimeout(resolve, 5));
-      cancelEditModal();
+  // 读取或真实写事务仍待决时，取消入口均不能恢复旧预览。
+  for (const phase of ['read', 'write', 'abort']) {
+    const committing = await evalJS(`(async () => {
+      await commitWallpaperSelection(backgrounds[1]);
       await openEditModal();
-      const initial = modalState.initialWallpaper;
-      const name = dom.editList.querySelector('.edit-name');
-      name.value = '新窗口草稿'; name.dispatchEvent(new Event('input', {bubbles:true}));
-      release(); await saving;
-      return {open:state.editOpen, draft:modalState.draftBookmarks[0].name,
-        initialUnchanged:modalState.initialWallpaper === initial,
-        persistedBg:(await getWallpaperSelectionDB()).bg, enabled:!dom.saveEditBtn.disabled};
-    } finally {
-      IDBObjectStore.prototype.get = get;
-      if (state.editOpen) cancelEditModal();
-    }
-  })()`);
-  assert.deepEqual(cancelledCommit, {open:true,draft:'新窗口草稿',initialUnchanged:true,persistedBg:1,enabled:true});
-  console.log('✅ 壁纸提交读取期间取消不写入；旧保存不修改或关闭新窗口');
+      await previewDraftWallpaper(backgrounds[2]);
+      const get = IDBObjectStore.prototype.get;
+      const put = IDBObjectStore.prototype.put;
+      let release;
+      if ('${phase}' === 'read') {
+        IDBObjectStore.prototype.get = function(key) {
+          const req = get.call(this, key);
+          if (key === CONFIG.IDB.KEYS.SELECTION) {
+            IDBObjectStore.prototype.get = get;
+            Object.defineProperty(req, 'onsuccess', {set(callback) {
+              req.addEventListener('success', event => { release = () => callback(event); });
+            }});
+          }
+          return req;
+        };
+      } else {
+        IDBObjectStore.prototype.put = function(value, key) {
+          const req = put.call(this, value, key);
+          if (key === CONFIG.IDB.KEYS.SELECTION) {
+            IDBObjectStore.prototype.put = put;
+            const store = this;
+            req.addEventListener('success', () => {
+              let held = true;
+              release = () => { held = false; };
+              // 连续排队请求，让原生事务保持活动，直到测试释放或中止它。
+              const keepAlive = () => {
+                if (!held) {
+                  if ('${phase}' === 'abort') store.transaction.abort();
+                  return;
+                }
+                get.call(store, key).onsuccess = keepAlive;
+              };
+              keepAlive();
+            });
+          }
+          return req;
+        };
+      }
+      try {
+        const saving = saveEditModal();
+        while (!release) await new Promise(resolve => setTimeout(resolve, 5));
+        const locked = dom.saveEditBtn.disabled && dom.cancelEditBtn.disabled;
+        const attempts = [
+          () => dom.cancelEditBtn.click(),
+          () => dom.editModal.click(),
+          () => document.dispatchEvent(new KeyboardEvent('keydown', {key:'Escape', bubbles:true})),
+          () => cancelEditModal()
+        ].map(cancel => {
+          cancel();
+          return state.editOpen && OverlayStack.top()?.id === 'editModal'
+            && modalState.draftWallpaper === backgrounds[2];
+        });
+        release(); await saving;
+        const persistedBg = (await getWallpaperSelectionDB()).bg;
+        const result = {locked, attempts, persistedBg, runtimeBg:state.bg,
+          enabled:!dom.saveEditBtn.disabled && !dom.cancelEditBtn.disabled,
+          open:state.editOpen};
+        if ('${phase}' === 'abort') {
+          result.failureShown = OverlayStack.top()?.id === 'confirmModal';
+          dom.confirmOkBtn.click();
+          dom.cancelEditBtn.click();
+          result.cancelledAfterFailure = !state.editOpen && modalState.draftWallpaper === backgrounds[1];
+        }
+        return result;
+      } finally {
+        IDBObjectStore.prototype.get = get;
+        IDBObjectStore.prototype.put = put;
+        release?.();
+        if (state.editOpen) cancelEditModal();
+      }
+    })()`);
+    assert.deepEqual(committing, {
+      locked:true, attempts:[true,true,true,true],
+      persistedBg:phase === 'abort' ? 1 : 2, runtimeBg:phase === 'abort' ? 1 : 2,
+      enabled:true, open:phase === 'abort',
+      ...(phase === 'abort' ? {failureShown:true,cancelledAfterFailure:true} : {})
+    });
+  }
+  console.log('✅ 壁纸提交期间取消按钮、遮罩与 Escape 均被锁定；事务成功或失败后解除锁定');
 
+  await evalJS('commitWallpaperSelection(backgrounds[1])');
   const resetDraft = await evalJS(`(async () => {
     await openEditModal();
     await resetDraftWallpaper();
