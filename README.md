@@ -12,8 +12,6 @@
   <strong>简体中文</strong> · <a href="./README.en.md">English</a>
 </p>
 
-> 本项目文档以简体中文版为主要维护版本，英文版为翻译。如有歧义或不一致，请以中文版为准，欢迎提交翻译修正。项目开源许可仍以 [LICENSE](./LICENSE) 原文为准。
-
 <p align="center">
   <a href="./LICENSE"><img src="https://img.shields.io/badge/License-GPLv3-blue.svg" alt="License: GPL v3"></a>
   <a href="https://github.com/leosdcn/glass-start/actions/workflows/ci.yml"><img src="https://github.com/leosdcn/glass-start/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
@@ -257,6 +255,8 @@ npm run build:extension
 - 🧭 **[docs/SAFARI_SMOKE_CHECKLIST.md (Safari 专项冒烟清单)](./docs/SAFARI_SMOKE_CHECKLIST.md)**：可选的 Safari/iOS 专项参考，不属于默认验收或发布要求。
 - ⏱️ **[docs/TRANSITION_BENCHMARK.md (切屏帧间隔评测)](./docs/TRANSITION_BENCHMARK.md)**：生产产物首次与多轮切屏耗时、rAF 帧间隔与降速压测口径。
 - 🗂️ **[历史报告](./docs/ARCHITECTURE.md#目录速查)**：审计与性能报告集中存放于 `docs/reports/`，版本和验证环境见各报告。
+
+本项目文档以简体中文版为主要维护版本，英文版为翻译。如有歧义或不一致，请以中文版为准，欢迎提交翻译修正。项目开源许可仍以 [LICENSE](./LICENSE) 原文为准。
 
 ---
 

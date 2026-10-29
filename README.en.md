@@ -12,8 +12,6 @@
   <a href="./README.md">简体中文</a> · <strong>English</strong>
 </p>
 
-> The [Simplified Chinese documentation](./README.md) is the primary maintained version. This English version is a translation. If anything is unclear or inconsistent, the Chinese version takes precedence. Translation corrections are welcome. The project's open-source license is governed by the original [LICENSE](./LICENSE) file.
-
 <p align="center">
   <a href="./LICENSE"><img src="https://img.shields.io/badge/License-GPLv3-blue.svg" alt="License: GPL v3"></a>
   <a href="https://github.com/leosdcn/glass-start/actions/workflows/ci.yml"><img src="https://github.com/leosdcn/glass-start/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
@@ -267,6 +265,8 @@ The following technical documents are currently in Chinese:
 - [Safari smoke checklist](./docs/SAFARI_SMOKE_CHECKLIST.md): optional Safari/iOS checks, not part of default acceptance or release requirements.
 - [Transition benchmarks](./docs/TRANSITION_BENCHMARK.md): initial and repeated production transitions, rAF frame intervals and CPU-throttling methodology.
 - [Historical reports](./docs/ARCHITECTURE.md#目录速查): audit and performance reports live in `docs/reports/`; each report records its version and validation environment.
+
+The [Simplified Chinese documentation](./README.md) is the primary maintained version. This English version is a translation. If anything is unclear or inconsistent, the Chinese version takes precedence. Translation corrections are welcome. The project's open-source license is governed by the original [LICENSE](./LICENSE) file.
 
 ---
 
