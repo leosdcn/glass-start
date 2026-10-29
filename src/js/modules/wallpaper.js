@@ -1,6 +1,6 @@
 import { t } from '../core/i18n.js';
 /**
- * 壁纸状态管理与即选即存持久化
+ * 壁纸状态管理与草稿持久化
  */
 import { CONFIG, backgrounds } from '../config/constants.js';
 import { escapeHtml, storageGet, storageSet, storageRemove } from '../utils/helpers.js';

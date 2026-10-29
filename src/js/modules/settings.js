@@ -511,7 +511,7 @@ export async function saveEditModal() {
             return;
         }
 
-        // 2. 提交背景暗度（壁纸已于用户选择时即选即存，无需重复落盘）
+        // 2. 提交背景暗度
         if (modalState.draftMaskOpacity !== null) {
             if (!storageSet(CONFIG.KEYS.MASK_OPACITY, modalState.draftMaskOpacity)) {
                 showConfirm(t('ui.could.not.save.background.dimming.your'), null, t('ui.could.not.save'));
