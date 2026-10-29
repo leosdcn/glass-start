@@ -517,10 +517,20 @@ export async function saveEditModal() {
     }
 }
 
+let initialLanguageOnOpen = 'auto';
+
 export function openLanguageModal(trigger = dom.languageBtn) {
+    initialLanguageOnOpen = modalState.draftLanguage || 'auto';
     syncLanguageUI();
     dom.languageBtn?.setAttribute('aria-expanded', 'true');
-    OverlayStack.push('languageModal', closeLanguageModal, trigger);
+    OverlayStack.push('languageModal', cancelLanguageModal, trigger);
+}
+
+export function cancelLanguageModal() {
+    modalState.draftLanguage = initialLanguageOnOpen;
+    if (dom.languageSelect) dom.languageSelect.value = initialLanguageOnOpen;
+    syncLanguageUI();
+    closeLanguageModal();
 }
 
 export function closeLanguageModal() {
@@ -528,15 +538,32 @@ export function closeLanguageModal() {
     dom.languageBtn?.setAttribute('aria-expanded', 'false');
 }
 
+export async function saveLanguageModal() {
+    const targetLang = modalState.draftLanguage || 'auto';
+    const currentPref = getLanguagePreference();
+    if (targetLang === currentPref) {
+        closeLanguageModal();
+        return;
+    }
+    closeLanguageModal();
+    if (state.editOpen) {
+        await saveEditModal();
+    } else {
+        if (!storageSet(CONFIG.KEYS.LANGUAGE, targetLang)) {
+            showConfirm(t('language.saveFailed'), null, t('ui.could.not.save'));
+            return;
+        }
+        location.reload();
+    }
+}
+
 /** @param {string} lang */
 export function selectLanguage(lang) {
     modalState.draftLanguage = lang;
     if (dom.languageSelect) {
         dom.languageSelect.value = lang;
-        dom.languageSelect.dispatchEvent(new Event('change', { bubbles: true }));
     }
     syncLanguageUI();
-    closeLanguageModal();
 }
 
 export function syncLanguageUI() {

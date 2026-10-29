@@ -15,7 +15,7 @@ import { dom } from '../state/dom.js';
 import { initDragSort } from '../core/drag-sort.js';
 
 import { uploadWallpaper, previewDraftWallpaper, resetDraftWallpaper } from './wallpaper.js';
-import { openEditModal, saveEditModal, cancelEditModal, openShortcutModal, closeShortcutModal, openCreditsModal, closeCreditsModal, openBookmarkPicker, closeBookmarkPicker, updatePickerAvailability, switchSettingsTab, previewDraftMaskOpacity, resetBookmarks, importBookmarksJSON, exportBookmarksJSON, syncLanguageUI, openLanguageModal, closeLanguageModal, selectLanguage } from './settings.js';
+import { openEditModal, saveEditModal, cancelEditModal, openShortcutModal, closeShortcutModal, openCreditsModal, closeCreditsModal, openBookmarkPicker, closeBookmarkPicker, updatePickerAvailability, switchSettingsTab, previewDraftMaskOpacity, resetBookmarks, importBookmarksJSON, exportBookmarksJSON, syncLanguageUI, openLanguageModal, closeLanguageModal, saveLanguageModal, cancelLanguageModal, selectLanguage } from './settings.js';
 import { updateAllBookmarkCounters, getEditFaviconInner, getExistingUrls, handleEditIconError, appendDraftBookmarkRow } from './bookmark-editor.js';
 import { showConfirm } from '../core/dialogs.js';
 import { finishPendingTransition, onTransitionSettled } from '../utils/transition-cleanup.js';
@@ -25,8 +25,9 @@ export function bindEditEvents() {
         e.stopPropagation();
         openLanguageModal(dom.languageBtn);
     });
-    dom.doneLanguageBtn?.addEventListener('click', closeLanguageModal);
-    dom.languageModal?.addEventListener('click', closeLanguageModal);
+    dom.doneLanguageBtn?.addEventListener('click', saveLanguageModal);
+    dom.cancelLanguageBtn?.addEventListener('click', cancelLanguageModal);
+    dom.languageModal?.addEventListener('click', cancelLanguageModal);
     dom.languageList?.addEventListener('click', e => {
         e.stopPropagation();
         const targetEl = e.target instanceof Element ? e.target : null;

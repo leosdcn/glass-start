@@ -148,6 +148,7 @@ export interface DOMCache {
     languageModal: HTMLElement | null;
     languageList: HTMLElement | null;
     doneLanguageBtn: HTMLButtonElement | null;
+    cancelLanguageBtn: HTMLButtonElement | null;
     languageSelect: HTMLSelectElement | null;
     cancelEditBtn: HTMLButtonElement | null;
     resetEditBtn: HTMLButtonElement | null;
