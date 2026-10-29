@@ -169,6 +169,7 @@ export async function openEditModal() {
     modalState.wallpaperSaveFailed = false;
     modalState.draftLanguage = getLanguagePreference();
     if (dom.languageSelect) dom.languageSelect.value = modalState.draftLanguage;
+    syncLanguageUI();
 
     replaceBookmarkDraft(pageData.bookmarks.map((bm, i) => ({ ...bm, id: `bm_${i}`, desc: bm.desc || '' })));
     switchSettingsTab('tabBookmarks');
@@ -511,5 +512,13 @@ export async function saveEditModal() {
             saveBtn.disabled = false;
             saveBtn.removeAttribute('aria-busy');
         }
+    }
+}
+
+export function syncLanguageUI() {
+    if (!dom.languageSelect || !dom.languageCurrentText) return;
+    const selected = dom.languageSelect.selectedOptions?.[0];
+    if (selected) {
+        dom.languageCurrentText.textContent = selected.textContent;
     }
 }

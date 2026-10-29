@@ -15,7 +15,7 @@ import { dom } from '../state/dom.js';
 import { initDragSort } from '../core/drag-sort.js';
 
 import { uploadWallpaper, previewDraftWallpaper, resetDraftWallpaper } from './wallpaper.js';
-import { openEditModal, saveEditModal, cancelEditModal, openShortcutModal, closeShortcutModal, openCreditsModal, closeCreditsModal, openBookmarkPicker, closeBookmarkPicker, updatePickerAvailability, switchSettingsTab, previewDraftMaskOpacity, resetBookmarks, importBookmarksJSON, exportBookmarksJSON } from './settings.js';
+import { openEditModal, saveEditModal, cancelEditModal, openShortcutModal, closeShortcutModal, openCreditsModal, closeCreditsModal, openBookmarkPicker, closeBookmarkPicker, updatePickerAvailability, switchSettingsTab, previewDraftMaskOpacity, resetBookmarks, importBookmarksJSON, exportBookmarksJSON, syncLanguageUI } from './settings.js';
 import { updateAllBookmarkCounters, getEditFaviconInner, getExistingUrls, handleEditIconError, appendDraftBookmarkRow } from './bookmark-editor.js';
 import { showConfirm } from '../core/dialogs.js';
 import { finishPendingTransition, onTransitionSettled } from '../utils/transition-cleanup.js';
@@ -23,6 +23,7 @@ import { finishPendingTransition, onTransitionSettled } from '../utils/transitio
 export function bindEditEvents() {
     dom.languageSelect?.addEventListener('change', () => {
         modalState.draftLanguage = dom.languageSelect?.value || 'auto';
+        syncLanguageUI();
     });
     document.querySelectorAll('#editModal > div, #bookmarkPicker > div, #confirmModal > div, #shortcutModal > div, #creditsModal > div').forEach(el => {
         el.addEventListener('click', e => e.stopPropagation());

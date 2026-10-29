@@ -377,14 +377,14 @@
                 <div class="relative shrink-0 flex items-center">
                     <label for="languageSelect" class="sr-only" data-i18n="language.label">界面语言</label>
                     <span id="languageSaveHint" class="sr-only" data-i18n="language.reload">点击完成后刷新生效</span>
-                    <div class="relative flex items-center h-7 rounded-full bg-white/8 hover:bg-white/14 border border-white/12 text-white/85 transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-white/50 has-[:focus-visible]:border-white/30">
-                        <svg class="size-3.5 text-white/70 ml-2.5 mr-1.5 pointer-events-none shrink-0" aria-hidden="true"><use href="#icon-globe"/></svg>
-                        <select id="languageSelect" name="language" aria-describedby="languageSaveHint" title="点击完成后刷新生效" data-i18n-title="language.reload" class="bg-transparent text-xs font-medium text-white/90 focus:outline-none focus-visible:outline-none cursor-pointer h-full leading-none pr-6 pl-0 appearance-none">
+                    <div class="group relative flex items-center justify-center h-7 w-[5.5rem] gap-1.5 rounded-full bg-white/8 hover:bg-white/14 border border-white/12 text-white/85 transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-white/50 has-[:focus-visible]:border-white/30 cursor-pointer">
+                        <svg class="size-3.5 text-white/70 group-hover:text-white/95 pointer-events-none shrink-0 transition-colors" aria-hidden="true"><use href="#icon-globe"/></svg>
+                        <span id="languageCurrentText" class="text-xs font-medium text-white/90 select-none leading-none pointer-events-none" data-i18n="language.auto">自动</span>
+                        <select id="languageSelect" name="language" aria-describedby="languageSaveHint" title="点击完成后刷新生效" data-i18n-title="language.reload" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer text-xs">
                             <option value="auto" class="bg-slate-900 text-white" data-i18n="language.auto">自动</option>
                             <option value="zh-CN" class="bg-slate-900 text-white" lang="zh-CN">简体中文</option>
                             <option value="en" class="bg-slate-900 text-white" lang="en">English</option>
                         </select>
-                        <svg class="size-3 text-white/55 pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 shrink-0" aria-hidden="true"><use href="#icon-chevron-down"/></svg>
                     </div>
                 </div>
             </div>
