@@ -170,6 +170,7 @@ export async function openEditModal() {
     modalState.draftLanguage = getLanguagePreference();
     if (dom.languageSelect) dom.languageSelect.value = modalState.draftLanguage;
     syncLanguageUI();
+    closeLanguageModal();
 
     replaceBookmarkDraft(pageData.bookmarks.map((bm, i) => ({ ...bm, id: `bm_${i}`, desc: bm.desc || '' })));
     switchSettingsTab('tabBookmarks');
@@ -185,6 +186,7 @@ export function cancelEditModal() {
 }
 
 export function closeEditModal() {
+    closeLanguageModal();
     // 保存关闭时即使后台暂停了 rAF，也同步落定最后的预览；取消已先覆盖并清队列。
     if (pendingBgEffects) applyBgEffects(pendingBgEffects.opacity);
     cancelDragSort();
@@ -515,10 +517,46 @@ export async function saveEditModal() {
     }
 }
 
+export function openLanguageModal(trigger = dom.languageBtn) {
+    syncLanguageUI();
+    dom.languageBtn?.setAttribute('aria-expanded', 'true');
+    OverlayStack.push('languageModal', closeLanguageModal, trigger);
+}
+
+export function closeLanguageModal() {
+    OverlayStack.pop('languageModal');
+    dom.languageBtn?.setAttribute('aria-expanded', 'false');
+}
+
+/** @param {string} lang */
+export function selectLanguage(lang) {
+    modalState.draftLanguage = lang;
+    if (dom.languageSelect) {
+        dom.languageSelect.value = lang;
+        dom.languageSelect.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+    syncLanguageUI();
+    closeLanguageModal();
+}
+
 export function syncLanguageUI() {
-    if (!dom.languageSelect || !dom.languageCurrentText) return;
-    const selected = dom.languageSelect.selectedOptions?.[0];
-    if (selected) {
-        dom.languageCurrentText.textContent = selected.textContent;
+    const currentLang = modalState.draftLanguage || 'auto';
+    if (dom.languageSelect && dom.languageSelect.value !== currentLang) {
+        dom.languageSelect.value = currentLang;
+    }
+    if (dom.languageList) {
+        dom.languageList.querySelectorAll('button[data-lang]').forEach(el => {
+            const btn = /** @type {HTMLButtonElement} */ (el);
+            const isSelected = btn.dataset.lang === currentLang;
+            btn.setAttribute('aria-checked', isSelected ? 'true' : 'false');
+            const check = btn.querySelector('.lang-check');
+            if (isSelected) {
+                btn.classList.add('selected');
+                check?.classList.remove('opacity-0');
+            } else {
+                btn.classList.remove('selected');
+                check?.classList.add('opacity-0');
+            }
+        });
     }
 }

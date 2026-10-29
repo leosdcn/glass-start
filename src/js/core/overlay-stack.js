@@ -10,7 +10,8 @@ export const MODAL_OVERLAY_IDS = new Set([
     'shortcutModal',
     'creditsModal',
     'confirmModal',
-    'bookmarkPicker'
+    'bookmarkPicker',
+    'languageModal'
 ]);
 
 // 只有层叠栈拥有弹窗可见性；每次切换取消上一轮动画和延迟隐藏。

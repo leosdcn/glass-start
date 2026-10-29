@@ -193,8 +193,11 @@
     "ui.temporary.cache": "Temporary cache",
     "ui.clear.temporary.caches.and.reload.without": "Clear temporary caches and reload without changing saved bookmarks, wallpaper or settings.",
     "ui.clear.cache.and.reload.2": "Clear cache and reload",
+    "language.btn": "Language",
     "language.label": "Language",
     "language.auto": "Auto",
+    "language.autoFollow": "Auto (Follow browser)",
+    "language.autoDesc": "Automatically match system language",
     "language.reload": "Reloads after you click Done",
     "language.saveFailed": "Could not save the language setting. Your draft has been kept; other saved changes still apply. Check storage permissions and try again.",
     "bookmark.count": {

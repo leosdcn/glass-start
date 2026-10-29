@@ -33,6 +33,13 @@
 /* 弹窗仅加厚底色，保留共用环境色渐变；实色降级仍由下方 background 覆盖。 */
 :where(.edit-overlay) .glass-strong { --glass-strong-bg: var(--glass-modal-bg); }
 
+/* 语言弹窗选项选中态：高亮微光微切面与发光内边框 */
+.language-modal-item.selected {
+    background-color: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.30);
+    box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.25), 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
 .glass-subcard {
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.10);

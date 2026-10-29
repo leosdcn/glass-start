@@ -144,8 +144,11 @@ export interface DOMCache {
     editBookmarksBtn: HTMLButtonElement | null;
     addBookmarkBtn: HTMLButtonElement | null;
     saveEditBtn: HTMLButtonElement | null;
+    languageBtn: HTMLButtonElement | null;
+    languageModal: HTMLElement | null;
+    languageList: HTMLElement | null;
+    doneLanguageBtn: HTMLButtonElement | null;
     languageSelect: HTMLSelectElement | null;
-    languageCurrentText: HTMLElement | null;
     cancelEditBtn: HTMLButtonElement | null;
     resetEditBtn: HTMLButtonElement | null;
     togglePickerBtn: HTMLButtonElement | null;
