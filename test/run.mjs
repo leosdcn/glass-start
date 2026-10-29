@@ -26,14 +26,16 @@ const runProcess = (cmd, args) => new Promise((resolve, reject) => {
 });
 
 const tasks = [
-  runProcess(process.execPath, [join(rootDir, 'node_modules/typescript/bin/tsc'), '--project', join(rootDir, 'tsconfig.json')])
+  runProcess(process.execPath, [join(rootDir, 'node_modules/typescript/bin/tsc'), '--project', join(rootDir, 'tsconfig.json')]),
+  runProcess(process.execPath, [join(rootDir, 'node_modules/typescript/bin/tsc'), '--project', join(rootDir, 'tsconfig.sw.json')])
 ];
 if (needsBuild) {
   tasks.push(runProcess(process.execPath, [join(rootDir, 'scripts/build.cjs')]));
 }
 
-const [typeCode, buildCode = 0] = await Promise.all(tasks);
+const [typeCode, swTypeCode, buildCode = 0] = await Promise.all(tasks);
 if (typeCode !== 0) process.exit(typeCode);
+if (swTypeCode !== 0) process.exit(swTypeCode);
 if (buildCode !== 0) process.exit(buildCode);
 
 const runTempDir = mkdtempSync(join(tmpdir(), 'glass-start-run-'));

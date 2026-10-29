@@ -4,10 +4,12 @@
  * 外部图标允许 opaque 响应入池，无法读取其正文进行校验。
  */
 
+/** @typedef {ServiceWorkerGlobalScope & typeof globalThis} ServiceWorkerContext */
+
 // 缓存池定义（打包 build.cjs 时自动替换 CORE_CACHE 为时间戳版本）
 const CORE_CACHE = 'app-core-v1786255428688';
 const FAVICON_CACHE = 'app-favicons-v1';
-const SCOPE_URL = self.registration.scope;
+const SCOPE_URL = /** @type {ServiceWorkerContext} */ (self).registration.scope;
 const CACHE_PREFIX = 'glass-scope-' + encodeURIComponent(new URL(SCOPE_URL).pathname) + '-';
 const CORE_STORAGE = CACHE_PREFIX + CORE_CACHE;
 const IMG_CACHE = CACHE_PREFIX + 'app-images-' + CORE_CACHE;
@@ -20,8 +22,13 @@ const MAX_IMG_ENTRIES = 200;
 const FAVICON_TIMEOUT_MS = 7000;
 
 // CacheStorage 不会合并同时未命中的请求；多标签或多个图片节点可能重复下载。
+/** @type {Map<string, Promise<Response>>} */
 const pendingImageResponses = new Map();
 
+/**
+ * @param {FetchEvent} event
+ * @param {(waitForCache: (task: Promise<unknown>) => void) => Promise<Response>} loadResponse
+ */
 function shareImageResponse(event, loadResponse) {
     const request = event.request;
     // 保留请求模式、凭据及响应变体的边界，不将同 URL 的不同请求混在一起。
@@ -30,7 +37,9 @@ function shareImageResponse(event, loadResponse) {
         request.destination, [...request.headers]]);
     let pending = pendingImageResponses.get(key);
     if (!pending) {
+        /** @type {Promise<unknown>[]} */
         const cacheTasks = [];
+        /** @param {Promise<unknown>} task */
         const waitForCache = task => {
             cacheTasks.push(task);
             event.waitUntil(task);
@@ -54,9 +63,11 @@ const CORE_ASSETS = [
     './wallpapers/bg1.avif'
 ];
 
+/** @type {Map<string, Promise<void>>} */
 const pendingPrunes = new Map();
 
 // CacheStorage 超限时按 FIFO 删除最旧条目；同一缓存池并发写入时微任务合并，避免冗余 keys() 扫描。
+/** @param {Cache} cache @param {number} maxEntries @param {string} [poolKey] */
 function pruneCache(cache, maxEntries, poolKey = '') {
     const key = poolKey || String(maxEntries);
     let pending = pendingPrunes.get(key);
@@ -87,7 +98,9 @@ function make503Response() {
 }
 
 // 核心资源不仅需存在，还必须与当前 worker 的构建指纹一致（单次循环校验存在性与指纹）。
+/** @param {Cache} cache */
 async function validateCoreCache(cache) {
+    /** @type {Partial<Record<string, string>>} */
     const fingerprints = {
         './': '__GLASS_BUILD_HTML__',
         './index.html': '__GLASS_BUILD_HTML__',
@@ -106,6 +119,7 @@ async function validateCoreCache(cache) {
 }
 
 // 只补缺失或指纹不符的资源；所有响应在写入前校验，不污染仍可用的旧构建。
+/** @param {string} asset @param {Response | undefined} response */
 async function validCoreResponse(asset, response) {
     if (!response?.ok) return false;
     const property = asset === './app.js' ? '__GLASS_BUILD_APP__'
@@ -115,6 +129,7 @@ async function validCoreResponse(asset, response) {
     return text.match(new RegExp(property + `\\s*=\\s*["']([^"']+)`))?.[1] === CORE_CACHE;
 }
 
+/** @param {Cache} cache */
 async function repairCoreCache(cache) {
     for (const asset of CORE_ASSETS) {
         if (await validCoreResponse(asset, await cache.match(asset))) continue;
@@ -180,7 +195,7 @@ function recoveryResponse() {
 }
 
 // 核心失败必须拒绝 install；等待所有请求结束再删除残缺池，防止迟到写入。
-self.addEventListener('install', e => {
+/** @type {ServiceWorkerContext} */ (self).addEventListener('install', e => {
     e.waitUntil((async () => {
         try {
             const cache = await caches.open(CORE_STORAGE);
@@ -199,7 +214,7 @@ self.addEventListener('install', e => {
 });
 
 // 用户确认后允许提前激活；不 claim 未受控页面，避免旧 HTML 混用新脚本。
-self.addEventListener('activate', e => e.waitUntil((async () => {
+/** @type {ServiceWorkerContext} */ (self).addEventListener('activate', e => e.waitUntil((async () => {
     const cache = await caches.open(CORE_STORAGE);
     await validateCoreCache(cache);
     await migrateLegacyImages();
@@ -214,20 +229,22 @@ self.addEventListener('activate', e => e.waitUntil((async () => {
 })()));
 
 // 仅接受同源窗口的确认；重新校验已下载资源后再跳过等待。
-self.addEventListener('message', e => {
-    if (e.data?.type !== 'ACTIVATE_UPDATE' || e.source?.type !== 'window' ||
-        !e.source.url.startsWith(SCOPE_URL)) return;
+/** @type {ServiceWorkerContext} */ (self).addEventListener('message', e => {
+    if (e.data?.type !== 'ACTIVATE_UPDATE' || /** @type {Client | null} */ (e.source)?.type !== 'window' ||
+        !/** @type {Client} */ (e.source).url.startsWith(SCOPE_URL)) return;
     e.waitUntil((async () => {
         await repairCoreCache(await caches.open(CORE_STORAGE));
-        await self.skipWaiting();
+        await /** @type {ServiceWorkerContext} */ (self).skipWaiting();
     })());
 });
 
+/** @param {string} key */
 function imageCacheVersion(key) {
     return Number(key.match(/app-core-v(\d+)$/)?.[1] || 0);
 }
 
 // 仅在网络失败时读取上一版图片，避免在线更新继续使用旧内容。
+/** @param {Request} request */
 async function previousImageResponse(request) {
     const keys = (await caches.keys()).filter(key => key.startsWith(IMAGE_PREFIX) && key !== IMG_CACHE)
         .sort((a, b) => imageCacheVersion(b) - imageCacheVersion(a));
@@ -239,7 +256,7 @@ async function previousImageResponse(request) {
 }
 
 // 拦截 Fetch 请求阶段
-self.addEventListener('fetch', e => {
+/** @type {ServiceWorkerContext} */ (self).addEventListener('fetch', e => {
     if (e.request.method !== 'GET') return;
 
     let urlObj;
@@ -254,7 +271,9 @@ self.addEventListener('fetch', e => {
     if (pathnameLower.startsWith('/_clear_cache')) return;
 
     const isSameOrigin = urlObj.origin === self.location.origin;
-    const scopePath = new URL(self.registration ? self.registration.scope : self.location.href).pathname.toLowerCase();
+    const scopePath = new URL(/** @type {ServiceWorkerContext} */ (self).registration
+        ? /** @type {ServiceWorkerContext} */ (self).registration.scope
+        : self.location.href).pathname.toLowerCase();
     const scopePathClean = scopePath.endsWith('/') && scopePath.length > 1 ? scopePath.slice(0, -1) : scopePath;
     const isImgAsset = isSameOrigin && /\.(ico|png|jpg|jpeg|svg|webp|avif)$/.test(pathnameLower);
     // 直接打开图片时仍须返回图片，不能被主文档的离线回退替换成 HTML。

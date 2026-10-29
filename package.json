@@ -25,7 +25,7 @@
     "sync:icons:refresh": "node scripts/sync-icons.mjs --refresh",
     "dev": "node scripts/server.cjs",
     "preview": "npm run build && node scripts/server.cjs --no-watch",
-    "typecheck": "tsc --project tsconfig.json",
+    "typecheck": "tsc --project tsconfig.json && tsc --project tsconfig.sw.json",
     "test:unit": "node --test test/data-pure-models.test.mjs test/data-priority-fixes-unit.test.mjs test/data-animation-cleanup-unit.test.mjs test/data-wallpaper-selection-unit.test.mjs"
   },
   "devDependencies": {

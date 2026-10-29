@@ -33,7 +33,7 @@
 | `docs/performance/`、`docs/assets/` | 性能原始数据与文档图片 |
 | `dist/`、`extension/` | 网页版与 Chrome 扩展的构建产物，由构建生成，不手工修改，不纳入 Git |
 | `.github/` | CI、部署工作流及 Issue / PR 模板 |
-| 根目录工程文件 | `package.json` 与锁文件管理依赖和命令；`tsconfig.json` 管理类型检查；`wrangler.jsonc` 配置 Cloudflare 部署；`start.command` 为 macOS 启动入口 |
+| 根目录工程文件 | `package.json` 与锁文件管理依赖和命令；`tsconfig.json` 与 `tsconfig.sw.json` 管理页面及 Service Worker 类型检查；`wrangler.jsonc` 配置 Cloudflare 部署；`start.command` 为 macOS 启动入口 |
 
 历史报告：[2026-10-23 Safari 性能对照](./reports/2026-10-23-safari-performance.md)、[2026-10-24 审计与修复记录](./reports/2026-10-24-audit.md)、[2026-10-25 切屏性能报告](./reports/2026-10-25-transition-performance.md)、[2026-10-28 目录整理与扩展核实](./reports/2026-10-28-structure-verification.md)。
 
@@ -284,5 +284,5 @@ Chrome 扩展 CSP 由 `src/extension/manifest.json` 定义，构建时同步到�
 - 浏览器验收以 Chrome 为准，使用 CDP 验证桌面、移动视口及触摸交互；日常开发、全面测试和发布均不要求 Safari/iOS 真机走查，仅在用户明确要求时进行该专项。导航完成与切屏完成分别等待，避免固定延时掩盖竞态。
 - `infra-chrome-extension.test.mjs` 构建并在独立 Chrome 配置中实际加载扩展，验证新标签页、首屏主题、三引擎联想、设置保存、离线重载及 CSP。联想响应使用固定数据，不能替代真实第三方接口联网走查。
 - W3C 脚本提交网页版 HTML 给在线 Nu 校验器，错误阻断发布；警告、信息及已列明的现代 CSS 兼容性消息分类展示，CSP 警告提示另行核对托管响应头。退出码 0 表示无阻断错误，1 表示页面校验错误，2 表示服务或响应异常导致校验未完成；未完成时需恢复后重试。通过不代表完整无障碍、视觉或功能合规，样式完整性由基础架构测试另行检查。
-- `typecheck` 使用 JSDoc 与 `types.d.ts` 检查核心模型，包含负向类型契约；覆盖范围以 `tsconfig.json` 为准，尚未覆盖全项目。
+- `typecheck` 使用 JSDoc 与 `types.d.ts` 检查核心模型，包含负向类型契约；页面与 `sw.js` 分别使用 DOM 和 Worker 类型环境，覆盖范围以 `tsconfig.json` 和 `tsconfig.sw.json` 为准，尚未覆盖全项目。`npm test` 同样执行两套配置。
 - 生命周期约束通过页面行为测试验证；Service Worker 测试执行完整脚本及真实升级流程，不通过截取函数体判断实现是否正确。

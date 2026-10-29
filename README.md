@@ -238,7 +238,7 @@ npm run build:extension
 
 验证范围以 [AGENTS.md](./AGENTS.md#验证) 为准，局部修改优先运行直接相关测试。`npm test -- <文件名片段>` 执行匹配的测试文件前，会检查类型，并按需构建；需要构建时，两项并行执行，无需重复手动检查类型或构建。仅匹配[运行器明确列出的纯单元测试](./test/support/test-selection.mjs)时跳过构建。无参数的 `npm test` 与 `test:all` 执行全套，用于高风险跨模块改造、发布或明确要求全量验证的场景。`test:ui`、`test:data`、`test:infra`、`test:lifecycle` 可按模块扩大范围，可用命令以 `package.json` 为准。
 
-`npm run typecheck` 对核心数据、草稿、DOM 缓存与状态执行渐进式 JavaScript 类型检查；范围以 `tsconfig.json` 为准。`npm run test:unit` 独立验证搜索、天气转换与草稿逻辑，无需 Chrome。
+`npm run typecheck` 对核心数据、草稿、DOM 缓存与状态执行渐进式 JavaScript 类型检查，并在独立 Worker 类型环境中严格检查 `sw.js`；范围以 `tsconfig.json` 和 `tsconfig.sw.json` 为准，`npm test` 同样执行这两项检查。`npm run test:unit` 独立验证搜索、天气转换与草稿逻辑，无需 Chrome。
 
 `npm run benchmark` 构建并评测首次与多轮切屏帧间隔，默认只访问本地。参数、统计口径及无头浏览器限制见 [切屏评测说明](./docs/TRANSITION_BENCHMARK.md)。
 
