@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./public/icons/app/logo.svg" width="96" height="96" alt="Glass Start Logo">
+  <img src="./public/icons/app/logo.svg" width="72" height="72" alt="Glass Start Logo">
 </p>
 
 <h1 align="center">Glass Start — 通透起始页</h1>
