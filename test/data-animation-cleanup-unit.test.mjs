@@ -16,7 +16,9 @@ const { outputFiles } = await build({
             'export const ' + ['openEditModal', 'saveEditModal', 'cancelEditModal', 'openShortcutModal',
                 'closeShortcutModal', 'openCreditsModal', 'closeCreditsModal', 'openBookmarkPicker',
                 'closeBookmarkPicker', 'updatePickerAvailability', 'switchSettingsTab', 'previewDraftMaskOpacity',
-                'resetBookmarks', 'importBookmarksJSON', 'exportBookmarksJSON'].map(name => `${name}=()=>{}`).join(',')
+                'resetBookmarks', 'importBookmarksJSON', 'exportBookmarksJSON', 'syncLanguageUI',
+                'openLanguageModal', 'closeLanguageModal', 'saveLanguageModal', 'cancelLanguageModal',
+                'selectLanguage', 'selectDraftTransitionMode', 'closeWallpaperUrlInput'].map(name => `${name}=()=>{}`).join(',')
         }));
         b.onLoad({ filter: /modules\/wallpaper\.js$/ }, () => ({ contents:
             'export const uploadWallpaper=()=>{},previewDraftWallpaper=()=>{},resetDraftWallpaper=()=>{};' }));

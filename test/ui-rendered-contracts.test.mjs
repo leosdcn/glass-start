@@ -161,11 +161,13 @@ try {
   await chrome.send('Emulation.setDeviceMetricsOverride', {width:1920,height:1080,deviceScaleFactor:2,mobile:false});
   await evalJS("document.querySelector('#settingsTransitionGrid [data-mode=sheet]').click()");
   assert.equal(await evalJS("document.documentElement.dataset.transitionMode==='sheet' && document.querySelector('#settingsTransitionGrid [data-mode=sheet]').getAttribute('aria-pressed')==='true'"), true);
+  const savedBg = await evalJS('state.bg');
   await evalJS('dom.presetWallpaperGrid.querySelectorAll("button")[2].querySelector("svg").dispatchEvent(new MouseEvent("click",{bubbles:true}))');
-  await waitFor(evalJS, 'state.bg===2 && dom.presetWallpaperGrid.querySelectorAll("button")[2].getAttribute("aria-pressed")==="true"');
+  await waitFor(evalJS, 'modalState.draftWallpaper===backgrounds[2] && dom.presetWallpaperGrid.querySelectorAll("button")[2].getAttribute("aria-pressed")==="true"');
   assert.equal(await evalJS('dom.presetWallpaperGrid.querySelectorAll("button[aria-pressed=true]").length'), 1);
+  assert.equal(await evalJS('state.bg'), savedBg, '预览不修改已保存预设');
   await evalJS("document.querySelector('#settingsTransitionGrid [data-mode=classic]').click(); cancelEditModal()");
-  assert.equal(await evalJS('state.bg'), 2, '取消设置仍保留已经保存的壁纸');
+  assert.equal(await evalJS('state.bg'), savedBg, '取消设置保留原壁纸');
   console.log('✅ 外观横排保留弹窗高度；六种视口下缩略图无重叠，直链原位展开不推移壁纸，选中态同步');
 
   // 同时启用两个系统偏好时，降低透明度仍必须关闭模糊；弹窗不能覆盖实色降级。

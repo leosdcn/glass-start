@@ -16,16 +16,14 @@ try {
       request.addEventListener('success', () => request.transaction.abort());
       return request;
     };
-    let writeFalse, commitFalse, unchanged, previewFalse, blocked;
+    let writeFalse, commitFalse, unchanged, previewOnly, blocked;
     try {
       writeFalse = await setWallpaperDB(next) === false;
       commitFalse = await commitWallpaperSelection(next) === false;
       unchanged = await getWallpaperDB() === old && state.customWallpaper === old && modalState.initialWallpaper === old;
-      previewFalse = await previewDraftWallpaper(next) === false;
-      dom.confirmOkBtn.click();
-      dom.saveEditBtn.click();
-      await new Promise(resolve => setTimeout(resolve, 30));
-      blocked = state.editOpen && OverlayStack.top()?.id === 'confirmModal' && modalState.wallpaperSaveFailed;
+      previewOnly = await previewDraftWallpaper(next) === true && await getWallpaperDB() === old;
+      await saveEditModal();
+      blocked = state.editOpen && OverlayStack.top()?.id === 'confirmModal' && await getWallpaperDB() === old;
       dom.confirmOkBtn.click();
     } finally { IDBObjectStore.prototype.put = put; }
     IDBObjectStore.prototype.delete = function(...args) {
@@ -40,7 +38,8 @@ try {
     Storage.prototype.setItem = function() { throw new DOMException('quota', 'QuotaExceededError'); };
     let saved, restored;
     try {
-      saved = await previewDraftWallpaper(next) === true && !modalState.wallpaperSaveFailed && await getWallpaperDB() === next;
+      // 测试 IDB 不受 LocalStorage 配额错误影响；设置保存的其他字段仍可能独立失败。
+      saved = await commitWallpaperSelection(next) === true && await getWallpaperDB() === next;
       await commitWallpaperSelection(backgrounds[3]);
       state.bg = 0; state.customWallpaper = null;
       await restoreWallpaper();
@@ -59,7 +58,7 @@ try {
     await commitWallpaperSelection(next);
     const noBase64InLS = localStorage.getItem(CONFIG.KEYS.USER_WALLPAPER) === null;
     cancelEditModal();
-    return {writeFalse, commitFalse, unchanged, previewFalse, blocked, deleteFalse, saved, restored, resetCancelsPending, noBase64InLS};
+    return {writeFalse, commitFalse, unchanged, previewOnly, blocked, deleteFalse, saved, restored, resetCancelsPending, noBase64InLS};
   })()`);
   assert.equal(Object.values(result).every(Boolean), true, JSON.stringify(result));
   console.log('✅ 写请求成功后事务中止仍判失败，删除中止保留旧数据，保存按钮阻止失败关闭');

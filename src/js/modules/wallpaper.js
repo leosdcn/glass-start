@@ -155,8 +155,8 @@ export async function updateWallpaperStatusUI(customWallpaperOverride) {
  */
 export function updatePresetBgCardsUI(customWallpaperOverride) {
     const currentBg = customWallpaperOverride !== undefined
-        ? (customWallpaperOverride || backgrounds[state.bg] || '')
-        : (storageGet(CONFIG.KEYS.USER_WALLPAPER) || backgrounds[state.bg] || '');
+        ? (customWallpaperOverride || backgrounds[0])
+        : (state.customWallpaper || backgrounds[state.bg] || '');
     const container = dom.presetWallpaperGrid;
     if (!container) return;
     renderPresetWallpapers();
@@ -171,13 +171,15 @@ export function updatePresetBgCardsUI(customWallpaperOverride) {
 /**
  * 提交壁纸与预设索引，等待 IDB 事务完成后更新已保存状态。
  * @param {string|null} targetWallpaper
+ * @param {() => boolean} [isCurrent] - 异步读取后确认设置会话仍有效
  * @returns {Promise<boolean>}
  */
-export async function commitWallpaperSelection(targetWallpaper) {
+export async function commitWallpaperSelection(targetWallpaper, isCurrent = () => true) {
     const presetIdx = findPresetBgIndex(targetWallpaper);
     const selection = { wallpaper: presetIdx >= 0 ? null : (targetWallpaper || null), bg: Math.max(0, presetIdx) };
     // 以实际持久化记录判定相同选择，避免内存默认值或其他标签的写入造成误判。
     const existing = await getWallpaperSelectionDB();
+    if (!isCurrent()) return false;
     if ((!existing || existing.wallpaper !== selection.wallpaper || existing.bg !== selection.bg)
         && !await setWallpaperSelectionDB(selection)) return false;
     // IDB 是选择结果的持久化真理源；LocalStorage 仅保留轻量首屏提示。
@@ -187,7 +189,6 @@ export async function commitWallpaperSelection(targetWallpaper) {
     saveWallpaperHints(selection);
     state.customWallpaper = selection.wallpaper;
     state.bg = selection.bg;
-    modalState.initialWallpaper = targetWallpaper;
     return true;
 }
 
@@ -202,7 +203,7 @@ export async function flushWallpaperSelection() {
 }
 
 /** 
- * 即选即存；失败恢复此前已提交的壁纸，草稿可重新选择重试。
+ * 设置内只预览，设置外即选即存；失败保留已提交壁纸。
  * @param {string | null} urlStr
  */
 export function previewDraftWallpaper(urlStr) {
@@ -213,8 +214,8 @@ export function previewDraftWallpaper(urlStr) {
     return previewWallpaperSelection(urlStr, selectionId);
 }
 
-/** @param {string | null} urlStr @param {number} selectionId */
-function previewWallpaperSelection(urlStr, selectionId) {
+/** @param {string | null} urlStr @param {number} selectionId @param {boolean} [draft] */
+function previewWallpaperSelection(urlStr, selectionId, draft = state.editOpen) {
     modalState.draftWallpaper = urlStr;
     modalState.wallpaperSaveFailed = false;
     const selection = { url: urlStr, id: selectionId, promise: Promise.resolve(false) };
@@ -254,7 +255,7 @@ function previewWallpaperSelection(urlStr, selectionId) {
         updatePresetBgCardsUI(urlStr);
 
         // 设置弹窗打开期间（草稿模式）：仅预览展示并触发切换动画，不即选即存，等待点击「完成」再落盘
-        if (state.editOpen) {
+        if (draft) {
             return true;
         }
 
@@ -276,20 +277,19 @@ function previewWallpaperSelection(urlStr, selectionId) {
     return latestSelectionPromise;
 }
 
-/** 重置为默认系统壁纸，等待持久化结果。 */
+/** 预览默认壁纸；设置内由完成按钮保存。 */
 export function resetDraftWallpaper() {
     return previewDraftWallpaper(null);
 }
 
 /** 取消草稿并平滑回滚至打开设置前的原始壁纸 */
 export function revertDraftWallpaper() {
-    if (modalState.draftWallpaper !== modalState.initialWallpaper) {
-        const revertBg = modalState.initialWallpaper || backgrounds[state.bg] || backgrounds[0];
-        modalState.draftWallpaper = modalState.initialWallpaper;
-        applyWallpaper(revertBg, true);
-        updateWallpaperStatusUI(modalState.initialWallpaper);
-        updatePresetBgCardsUI(modalState.initialWallpaper);
-    }
+    beginWallpaperSelection();
+    const revertBg = modalState.initialWallpaper || backgrounds[state.bg] || backgrounds[0];
+    modalState.draftWallpaper = modalState.initialWallpaper;
+    applyWallpaper(revertBg, true);
+    updateWallpaperStatusUI(revertBg);
+    updatePresetBgCardsUI(revertBg);
 }
 
 /** 快捷键轮播也通过同一事务保存，不提前删除自定义壁纸。 */
@@ -379,6 +379,7 @@ export function uploadWallpaper(file) {
     }
     // 选择文件时就占用版本，不能等读取／压缩完成后再把旧上传当成新选择。
     const selectionId = beginWallpaperSelection();
+    const draft = state.editOpen;
     modalState.wallpaperSaveFailed = false;
     const reader = new FileReader();
     /** @type {HTMLImageElement | null} */
@@ -455,6 +456,6 @@ export function uploadWallpaper(file) {
     latestSelectionPromise = prepared.then(url => {
         if (selectionId !== wallpaperSelectionId) return false;
         cancelPendingPreview = null;
-        return url ? previewWallpaperSelection(url, selectionId) : false;
+        return url ? previewWallpaperSelection(url, selectionId, draft) : false;
     });
 }

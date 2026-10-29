@@ -26,6 +26,10 @@ try {
             const id = activeSuggestReqId;
             fetchSuggestions('bing', ' performance-pending ');
             const shared = requests === 1 && id === activeSuggestReqId && node === dom.suggestionMenu.firstChild;
+            state.engine = 'bing';
+            dom.searchInput.value = ' performance-pending ';
+            dom.searchInput.dispatchEvent(new Event('input', {bubbles:true}));
+            const inputShared = requests === 1 && id === activeSuggestReqId && node === dom.suggestionMenu.firstChild && suggestionScriptTag?.isConnected;
             dom.searchInput.value = 'performance-new';
             dom.searchInput.dispatchEvent(new Event('input', {bubbles:true}));
             oldCallback(['old', ['stale-response']]);
@@ -42,10 +46,10 @@ try {
             const stale = window['__glassSuggestCb_' + activeSuggestReqId];
             fetchSuggestions('bing', 'performance-empty');
             stale(['old', ['late-after-cache']]);
-            return {shared, staleDiscarded, cachedEmpty, cacheRaceDiscarded:!dom.suggestionMenu.classList.contains('active')};
+            return {shared, inputShared, staleDiscarded, cachedEmpty, cacheRaceDiscarded:!dom.suggestionMenu.classList.contains('active')};
         } finally { hideSuggestions(); document.body.appendChild = append; }
     })()`);
-    assert.deepEqual(jsonp, {shared:true, staleDiscarded:true, cachedEmpty:true, cacheRaceDiscarded:true});
+    assert.deepEqual(jsonp, {shared:true, inputShared:true, staleDiscarded:true, cachedEmpty:true, cacheRaceDiscarded:true});
     console.log('✅ JSONP 同查询只请求／渲染一次，输入防抖期间丢弃旧响应，空结果复用缓存');
 
     const selection = await evalJS(`(() => {

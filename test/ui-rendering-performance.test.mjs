@@ -34,6 +34,8 @@ try {
         const r=img.getBoundingClientRect();return r.top<innerHeight && r.bottom>0;
     }).every(img=>img.complete)`);
     await waitFor(evalJS, `dom.navContent.getAnimations({subtree:true}).every(a=>a.playState!=='running')`);
+    // head 的 1.5s 直达模式兜底及入场脱壳也会修改页面样式，不能计入指针更新样本。
+    await waitFor(evalJS, `performance.now() >= 1600 && !document.querySelector('.fade-in')`);
 
     const events=[];
     const unsubscribe=send('Tracing.dataCollected',event=>events.push(...event.value));

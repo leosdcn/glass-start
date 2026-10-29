@@ -19,13 +19,14 @@ export function escapeHtml(str) {
 
 /**
  * 协议白名单校验与 URL 安全过滤函数
- * 允许 HTTP(S)、图片 Data URL 及本地 icons/*.png 路径，返回 HTML 属性用转义值。
+ * 允许 HTTP(S)、图片 Data URL 及本地 icons/*.png 路径，默认返回 HTML 属性用转义值。
  * @param {string} url - 待校验的原始 URL 字符串
- * @returns {string} 校验通过返回经过 HTML 实体转义的 URL，校验失败时返回 '#' 安全占位符
+ * @param {boolean} [html=true] - HTML 模板使用转义值，原生 DOM 属性赋值传 false
+ * @returns {string} 按赋值方式返回安全 URL；校验失败时返回 '#' 安全占位符
  */
-export function safeUrl(url) {
+export function safeUrl(url, html = true) {
     const u = (url || '').trim();
-    return (/^https?:\/\//i.test(u) || /^data:image\//i.test(u) || /^(\.\/|\/)?icons\/[a-zA-Z0-9_\-\/.]+\.(png|svg|webp|ico)$/i.test(u)) ? escapeHtml(u) : '#';
+    return (/^https?:\/\//i.test(u) || /^data:image\//i.test(u) || /^(\.\/|\/)?icons\/[a-zA-Z0-9_\-\/.]+\.(png|svg|webp|ico)$/i.test(u)) ? (html ? escapeHtml(u) : u) : '#';
 }
 
 /**

@@ -268,11 +268,11 @@ export function renderBookmarks(force = false) {
     } else {
         const fragment = document.createDocumentFragment();
         pageData.bookmarks.forEach(bm => {
-            const safeU = safeUrl(bm.url);
-            const safeIcon = safeUrl(bm.icon || '');
+            const safeU = safeUrl(bm.url, false);
+            const safeIcon = safeUrl(bm.icon || '', false);
             let node = existingMap.get(safeU) || existingMap.get(bm.url);
             if (node) {
-                node.setAttribute('href', safeUrl(localizeBookmarkUrl(bm.url)));
+                node.setAttribute('href', safeUrl(localizeBookmarkUrl(bm.url), false));
                 existingMap.delete(safeU);
                 existingMap.delete(bm.url);
                 const titleSpan = node.querySelector('.bookmark-title');
@@ -292,8 +292,8 @@ export function renderBookmarks(force = false) {
                 const range = document.createRange();
                 const newFrag = range.createContextualFragment(`
                     <a href="${safeUrl(localizeBookmarkUrl(bm.url))}" target="_blank" rel="noopener noreferrer"
-                       data-url="${safeU}"
-                       data-icon="${safeIcon}"
+                       data-url="${escapeHtml(safeU)}"
+                       data-icon="${escapeHtml(safeIcon)}"
                        class="bookmark-item flex flex-col items-center justify-center gap-2 py-3 px-1 sm:px-1.5 apple-radius text-white/90">
                         ${getFaviconHTML(bm, 'md')}
                         <span class="bookmark-title text-white/90">${escapeHtml(bm.name)}</span>

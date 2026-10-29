@@ -161,7 +161,7 @@ export async function openEditModal() {
     const trigger = document.activeElement;
     const initialWallpaper = await getEffectiveCustomWallpaper();
     if (!state.editOpen || requestId !== editOpenRequestId) return;
-    modalState.initialWallpaper = initialWallpaper;
+    modalState.initialWallpaper = initialWallpaper || backgrounds[state.bg];
     modalState.initialMaskOpacity = storageGet(CONFIG.KEYS.MASK_OPACITY, CONFIG.APPEARANCE.DEFAULT_MASK_OPACITY);
     modalState.initialTransitionMode = getTransitionMode();
 
@@ -527,7 +527,8 @@ export async function saveEditModal() {
         // 4. 提交壁纸草稿
         if (modalState.draftWallpaper !== undefined && modalState.draftWallpaper !== modalState.initialWallpaper) {
             const targetBg = modalState.draftWallpaper;
-            const saved = await commitWallpaperSelection(targetBg);
+            const saved = await commitWallpaperSelection(targetBg, () => state.editOpen && requestId === editOpenRequestId);
+            if (!state.editOpen || requestId !== editOpenRequestId) return;
             if (!saved) {
                 showConfirm(t('ui.could.not.save.the.wallpaper.your'), null, t('ui.wallpaper.not.saved'));
                 return;

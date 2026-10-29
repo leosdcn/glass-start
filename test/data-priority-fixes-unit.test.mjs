@@ -190,3 +190,29 @@ test('读取或压缩失败结束保存等待，重新选择可恢复', async ()
     assert.equal(await app.flushWallpaperSelection(), true);
     assert.equal(app.state.bg, 1);
 });
+
+test('取消设置终止读取或处理中的上传，迟到回调不渲染或保存', async () => {
+    for (const phase of ['read', 'image']) {
+        const f = fixture(), { app } = f;
+        app.state.editOpen = true;
+        app.state.bg = 2;
+        app.modalState.initialWallpaper = app.backgrounds[2];
+        app.uploadWallpaper({ type:'image/png' });
+        let late;
+        if (phase === 'read') {
+            const callback = f.readers[0].onload;
+            late = () => callback({target:{result:'data:image/png;base64,late'}});
+        } else {
+            f.readers[0].complete('data:image/png;base64,late');
+            late = f.images[0].onload;
+        }
+        app.revertDraftWallpaper();
+        app.state.editOpen = false;
+        late();
+        await app.flushWallpaperSelection();
+        assert.equal(f.writes.length, 0, phase);
+        assert.equal(f.rendered.at(-1), app.backgrounds[2], phase);
+        assert.equal(f.messages.length, 0, phase);
+        assert.equal(f.readers[0].readyState, 2, phase);
+    }
+});
