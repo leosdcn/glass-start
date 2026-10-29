@@ -178,7 +178,7 @@ export const CONFIG = Object.freeze({
                         { desc: t('ui.open.or.close.keyboard.shortcuts'), kbdId: 'kbd-slash', fallback: '⌘ /' },
                         { desc: t('ui.cycle.preset.wallpapers'), kbdId: 'kbd-bg', fallback: '⌘ B' },
                         { desc: t('ui.go.to.bookmark.directory'), rawHtml: '<kbd>↓</kbd><span class="text-white/35 text-2xs select-none">/</span><kbd>PgDn</kbd>' },
-                        { desc: t('ui.return.to.start.page'), rawHtml: '<kbd>↑</kbd><span class="text-white/35 text-2xs select-none">/</span><kbd>Home</kbd>' },
+                        { desc: t('ui.return.to.start.page'), rawHtml: '<kbd>↑</kbd><span class="text-white/35 text-2xs select-none">/</span><kbd>PgUp</kbd><span class="text-white/35 text-2xs select-none">/</span><kbd>Home</kbd>' },
                         { desc: t('ui.close.dialog.or.clear.focus'), rawHtml: '<kbd>Esc</kbd>' }
                     ]
                 },

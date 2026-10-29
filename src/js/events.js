@@ -369,6 +369,8 @@ export function bindEvents() {
             if ((e.key === 'PageDown' || e.key === 'ArrowDown') && state.currentSection === 'start') {
                 e.preventDefault();
                 switchToNav();
+                // 将后续方向键的原生滚动交给导航内容，避免失焦后落在 body。
+                dom.navContent?.focus({ preventScroll: true });
                 return;
             }
             if ((e.key === 'PageUp' || e.key === 'Home' || e.key === 'ArrowUp') && state.currentSection === 'nav' && isNavAtTop) {

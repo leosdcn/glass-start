@@ -79,6 +79,27 @@ pass('双屏切屏状态机与键盘导航完整闭环 (初始态/API/ArrowDown/
   initValid && navValid && focusAfterStart === 'BODY' && arrowDownToNav && blindTypeFocus && pagedownValid,
   `init=${initValid}, nav=${navValid}${navDetail}, focus=${focusAfterStart}, arrow=${arrowDownToNav}, blind=${blindTypeFocus}, pagedown=${pagedownValid}`);
 
+// 合成 KeyboardEvent 不触发浏览器默认滚动；用 CDP 真实按键验证切屏后的连续滚动。
+const nativeKey = async (key, windowsVirtualKeyCode) => {
+  for (const type of ['keyDown', 'keyUp']) {
+    await send('Input.dispatchKeyEvent', { type, key, code: key, windowsVirtualKeyCode });
+  }
+};
+for (const [key, keyCode] of [['ArrowDown', 40], ['PageDown', 34]]) {
+  await evalJS('switchToStart()'); await waitForScreen('start');
+  await evalJS('dom.searchInput.focus()');
+  await nativeKey(key, keyCode); await waitForScreen('nav');
+  const contentFocused = (await focus()) === 'navContent';
+  await nativeKey('ArrowDown', 40);
+  await waitFor(evalJS, 'dom.navContent.scrollTop > 0');
+  // 等待原生平滑滚动稳定，避免将仍在向下的动画误判为向上键失效。
+  await new Promise(resolve => setTimeout(resolve, 250));
+  const scrollTop = await evalJS('dom.navContent.scrollTop');
+  await nativeKey('ArrowUp', 38);
+  await waitFor(evalJS, `dom.navContent.scrollTop < ${scrollTop}`);
+  pass(`${key} 从搜索框切屏后无需点击即可上下滚动`, contentFocused && (await section()) === 'nav');
+}
+
 // ══════════════════════════════════════════════════════════════════════
 // 2. 键盘方向键在联想/弹窗与顶端的输入保护
 // ══════════════════════════════════════════════════════════════════════
