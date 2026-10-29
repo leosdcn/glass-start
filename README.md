@@ -11,10 +11,9 @@
 <p align="center">
   <a href="./README.en.md"><img src="https://img.shields.io/badge/Language-English-blue?style=flat&logo=googletranslate&logoColor=white" alt="English Documentation"></a>
   <a href="./LICENSE"><img src="https://img.shields.io/badge/License-GPLv3-blue.svg" alt="License: GPL v3"></a>
-  <a href="https://github.com/leosdcn/glass-start/actions/workflows/ci.yml"><img src="https://github.com/leosdcn/glass-start/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://tailwindcss.com/"><img src="https://img.shields.io/badge/Tailwind_CSS-v4-38bdf8?logo=tailwindcss&logoColor=white" alt="Tailwind CSS"></a>
-  <a href="#-核心特色"><img src="https://img.shields.io/badge/Dependencies-0_Runtime-success.svg" alt="Dependencies"></a>
-  <a href="#-核心特色"><img src="https://img.shields.io/badge/PWA-Offline_Ready-orange.svg" alt="PWA"></a>
+  <a href="#-核心特色"><img src="https://img.shields.io/badge/Runtime-No_Dependencies-success.svg" alt="Runtime: No Dependencies"></a>
+  <a href="#-核心特色"><img src="https://img.shields.io/badge/PWA-Offline--Capable-orange.svg" alt="PWA: Offline-Capable"></a>
 </p>
 
 <p align="center">
