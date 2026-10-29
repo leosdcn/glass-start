@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./public/icons/app/logo.svg" width="72" height="72" alt="Glass Start logo">
+  <img src="./public/icons/app/logo.svg" width="84" height="84" alt="Glass Start logo">
 </p>
 
 <h1 align="center">Glass Start — A Clear Start</h1>
