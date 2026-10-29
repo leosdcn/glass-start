@@ -252,6 +252,12 @@ function previewWallpaperSelection(urlStr, selectionId) {
         applyWallpaper(urlStr || backgrounds[0], true, preparedImage);
         updateWallpaperStatusUI(urlStr);
         updatePresetBgCardsUI(urlStr);
+
+        // 设置弹窗打开期间（草稿模式）：仅预览展示并触发切换动画，不即选即存，等待点击「完成」再落盘
+        if (state.editOpen) {
+            return true;
+        }
+
         const saved = await commitCurrentSelection(urlStr, selectionId);
         if (selectionId !== wallpaperSelectionId) return false;
         modalState.wallpaperSaveFailed = !saved;

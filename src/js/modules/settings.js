@@ -11,7 +11,7 @@ import { replaceBookmarkDraft } from '../state/bookmark-draft.js';
 import { dom } from '../state/dom.js';
 import { OverlayStack } from '../core/overlay-stack.js';
 import { applyWallpaper } from '../core/wallpaper-renderer.js';
-import { flushWallpaperSelection, getEffectiveCustomWallpaper, updateWallpaperStatusUI, updatePresetBgCardsUI, clearCustomWallpaper, renderPresetWallpapers } from './wallpaper.js';
+import { flushWallpaperSelection, getEffectiveCustomWallpaper, updateWallpaperStatusUI, updatePresetBgCardsUI, clearCustomWallpaper, renderPresetWallpapers, commitWallpaperSelection } from './wallpaper.js';
 import { saveUserBookmarks, resetUserBookmarks, getFaviconHTML, getCategoryIconHTML, initPickerFaviconObserver } from './bookmarks.js';
 import { closeDropdown, hideSuggestions, setEngine } from './search.js';
 import { renderCreditsModalList, renderShortcutModalList } from './clock.js';
@@ -187,6 +187,16 @@ export function cancelEditModal() {
     applyBgEffects(modalState.initialMaskOpacity);
     modalState.draftTransitionMode = modalState.initialTransitionMode;
     syncTransitionSwitcherActive(modalState.initialTransitionMode);
+
+    // 壁纸恢复：如果不点完成而是点取消，自动切换回原来壁纸，使用同款切换动画
+    if (modalState.draftWallpaper !== modalState.initialWallpaper) {
+        const revertBg = modalState.initialWallpaper || backgrounds[state.bg] || backgrounds[0];
+        applyWallpaper(revertBg, true);
+        modalState.draftWallpaper = modalState.initialWallpaper;
+        updateWallpaperStatusUI(modalState.initialWallpaper);
+        updatePresetBgCardsUI(modalState.initialWallpaper);
+    }
+
     closeEditModal();
 }
 
@@ -516,6 +526,17 @@ export async function saveEditModal() {
                 return;
             }
             setTransitionMode(modalState.draftTransitionMode);
+        }
+
+        // 4. 提交壁纸草稿
+        if (modalState.draftWallpaper !== undefined && modalState.draftWallpaper !== modalState.initialWallpaper) {
+            const targetBg = modalState.draftWallpaper;
+            const saved = await commitWallpaperSelection(targetBg);
+            if (!saved) {
+                showConfirm(t('ui.could.not.save.the.wallpaper.your'), null, t('ui.wallpaper.not.saved'));
+                return;
+            }
+            modalState.initialWallpaper = targetBg;
         }
 
         const languageChanged = modalState.draftLanguage !== getLanguagePreference();
