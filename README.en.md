@@ -27,11 +27,11 @@
 </p>
 
 <p align="center">
-  <img src="./docs/assets/preview-start.png" alt="Glass Start start page preview" width="840">
+  <img src="./docs/assets/preview-start-en.png" alt="Glass Start start page preview" width="840">
 </p>
 
 <p align="center">
-  <img src="./docs/assets/preview-nav.png" alt="Glass Start bookmark categories preview" width="840">
+  <img src="./docs/assets/preview-nav-en.png" alt="Glass Start bookmark categories preview" width="840">
 </p>
 
 ---
@@ -251,6 +251,8 @@ npm run build:extension
 `npm run lint` uses Acorn to check DOM references and PostCSS to inspect CSS declarations and nesting. It also checks that `!important` is limited to reduced-motion rules and verifies the prefix order for frosted glass properties. These parsers are development tools and are not included in the website output.
 
 `npm run test:icons` and `npm run test:visual` are separate commands: build first, then run them as needed. The visual script produces screenshots and layout metrics; it does not automatically compare pixels against baseline images. `npm run lint:fix` only fixes mechanical rules supported by the script. The [Safari smoke checklist](./docs/SAFARI_SMOKE_CHECKLIST.md) (Chinese) is optional and used only when explicitly requested, not as a default acceptance or release requirement.
+
+After building, run `node scripts/capture-preview.mjs --lang=en` to regenerate the English README screenshots. Omit `--lang=en` to generate the Chinese screenshots.
 
 > 💡 **macOS launcher**: double-click `start.command` in the project root to check the existing Node environment, build and launch a browser preview. Run `npm ci` before the first launch. This launcher uses the cache-clearing URL, which deletes bookmarks, wallpapers and preferences for that local site.
 
