@@ -281,6 +281,17 @@ export function resetDraftWallpaper() {
     return previewDraftWallpaper(null);
 }
 
+/** 取消草稿并平滑回滚至打开设置前的原始壁纸 */
+export function revertDraftWallpaper() {
+    if (modalState.draftWallpaper !== modalState.initialWallpaper) {
+        const revertBg = modalState.initialWallpaper || backgrounds[state.bg] || backgrounds[0];
+        modalState.draftWallpaper = modalState.initialWallpaper;
+        applyWallpaper(revertBg, true);
+        updateWallpaperStatusUI(modalState.initialWallpaper);
+        updatePresetBgCardsUI(modalState.initialWallpaper);
+    }
+}
+
 /** 快捷键轮播也通过同一事务保存，不提前删除自定义壁纸。 */
 export async function switchBg() {
     const selectionId = wallpaperSelectionId;
