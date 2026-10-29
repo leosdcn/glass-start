@@ -502,7 +502,8 @@ export function renderNavCategories(force = false) {
     lastNavCatalog = catalog;
 
     const navContent = dom.navContent;
-    const savedScrollTop = navContent ? navContent.scrollTop : 0;
+    // 首次构建时目录为空，无需读取滚动布局；重绘已有目录才保留位置。
+    const savedScrollTop = navContent && navCategories.firstElementChild ? navContent.scrollTop : 0;
     const sortedCats = catalog.sorted;
 
     sidebarList.innerHTML = sortedCats.map((cat, i) => `

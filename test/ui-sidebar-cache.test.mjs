@@ -36,7 +36,12 @@ try {
     assert.equal(await evalJS('dom.sidebarList.querySelector(".active").dataset.target'), 'cat-1');
 
     // 分类重建必须丢弃旧节点和尺寸，观察器也要跟随新节点。
-    await evalJS('renderNavCategories(true)');
+    const scrollPreserved = await evalJS(`(() => {
+        const before = dom.navContent.scrollTop;
+        renderNavCategories(true);
+        return before > 0 && dom.navContent.scrollTop === before;
+    })()`);
+    assert.equal(scrollPreserved, true, '重建已有目录应保留当前滚动位置');
     await sleep(400);
     await evalJS(`dom.navContent.scrollTop=document.getElementById('cat-1').offsetTop;
         updateSidebarActive()`);

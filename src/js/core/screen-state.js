@@ -50,12 +50,13 @@ function prepareScreenTransition() {
     // 先撤销旧过渡，再启用新合成层；反过来会立即清掉刚添加的状态类。
     clearTransitionTasks();
     if (typeof document !== 'undefined') {
+        // 先失焦再改变切屏样式，避免 blur() 同步提交一次整屏样式重算。
+        const active = /** @type {HTMLElement|null} */ (document.activeElement);
+        active?.blur?.();
         document.documentElement.classList.remove('nr');
         document.body.classList.remove('tab-blurred');
         document.body.classList.add('is-screen-transitioning');
         document.addEventListener('wheel', preventTransitionScroll, { passive: false });
-        const active = /** @type {HTMLElement|null} */ (document.activeElement);
-        active?.blur?.();
     }
 }
 
@@ -239,11 +240,12 @@ function finishNavExit() {
  */
 export function reconcileScreenState(targetSection, force = false) {
     if (!targetSection && !force && isTransitioning) return;
-    clearTransitionTasks();
-    isTransitioning = false;
     const section = targetSection || (sectionInitialized ? state.currentSection : getSavedSection()) || 'start';
+    // 先读取滚动布局，再清理过渡样式，避免唤醒时提前提交一轮整屏样式重算。
     resetPageScroll();
     if (section === 'start') resetNavScroll();
+    clearTransitionTasks();
+    isTransitioning = false;
     applySection(section, true);
     document.documentElement.classList.remove('nr');
     if (section === 'nav') refreshNav();
