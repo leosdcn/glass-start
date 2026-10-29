@@ -177,8 +177,8 @@ export const CONFIG = Object.freeze({
                     items: [
                         { desc: t('ui.open.or.close.keyboard.shortcuts'), kbdId: 'kbd-slash', fallback: '⌘ /' },
                         { desc: t('ui.cycle.preset.wallpapers'), kbdId: 'kbd-bg', fallback: '⌘ B' },
-                        { desc: t('ui.go.to.bookmark.directory'), rawHtml: '<kbd>↓</kbd> / <kbd>PageDown</kbd>' },
-                        { desc: t('ui.return.to.start.page'), rawHtml: '<kbd>↑</kbd> / <kbd>PageUp</kbd> / <kbd>Home</kbd>' },
+                        { desc: t('ui.go.to.bookmark.directory'), rawHtml: '<kbd>↓</kbd><span class="text-white/35 text-2xs select-none">/</span><kbd>PgDn</kbd>' },
+                        { desc: t('ui.return.to.start.page'), rawHtml: '<kbd>↑</kbd><span class="text-white/35 text-2xs select-none">/</span><kbd>Home</kbd>' },
                         { desc: t('ui.close.dialog.or.clear.focus'), rawHtml: '<kbd>Esc</kbd>' }
                     ]
                 },
@@ -186,7 +186,7 @@ export const CONFIG = Object.freeze({
                     group: t('ui.search.and.actions'),
                     items: [
                         { desc: t('ui.start.typing.to.search'), kbdId: 'kbd-any', fallback: '' },
-                        { desc: t('ui.select.a.suggestion.or.bookmark'), rawHtml: '<kbd>↑</kbd> <kbd>↓</kbd>' },
+                        { desc: t('ui.select.a.suggestion.or.bookmark'), rawHtml: '<kbd>↑</kbd><kbd>↓</kbd>' },
                         { desc: t('ui.search.or.open.selected.bookmark'), rawHtml: '<kbd>Enter</kbd>' },
                         { desc: t('ui.open.search.in.a.new.tab'), kbdId: 'kbd-newtab', fallback: '⌘ ↵' },
                         { desc: t('ui.move.focus.within.dialog'), kbdId: 'kbd-tab', fallback: 'Tab / ⇧ Tab' }

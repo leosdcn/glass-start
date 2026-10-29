@@ -33,11 +33,17 @@
 /* 弹窗仅加厚底色，保留共用环境色渐变；实色降级仍由下方 background 覆盖。 */
 :where(.edit-overlay) .glass-strong { --glass-strong-bg: var(--glass-modal-bg); }
 
-/* 语言弹窗选项选中态：高亮微光微切面与发光内边框 */
+/* 语言弹窗选项：对称微缩触感与选中态 */
+.language-modal-item {
+    transition: background-color var(--duration-fast) var(--ease-spring), border-color var(--duration-fast) var(--ease-spring), box-shadow var(--duration-fast) var(--ease-spring), transform var(--duration-press) var(--ease-snappy);
+}
+.language-modal-item:active {
+    transform: scale(0.985);
+}
 .language-modal-item.selected {
     background-color: rgba(255, 255, 255, 0.12);
     border-color: rgba(255, 255, 255, 0.30);
-    box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.25), 0 4px 12px rgba(0, 0, 0, 0.15);
+    box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.25), 0 2px 6px rgba(0, 0, 0, 0.20);
 }
 
 .glass-subcard {
@@ -78,6 +84,63 @@
     font-variant-numeric: tabular-nums;
     -webkit-user-select: none;
     user-select: none;
+}
+
+/* Inset Card 分组容器与行 */
+.inset-card {
+    background: rgba(0, 0, 0, 0.22);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius-inner, 0.875rem);
+    overflow: hidden;
+}
+.inset-card > * + * {
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+.inset-card-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.625rem 0.75rem;
+    transition: background-color 0.15s ease;
+}
+@media (hover: hover) and (pointer: fine) {
+    body:not(.tab-blurred) .inset-card-row:hover {
+        background-color: rgba(255, 255, 255, 0.035);
+    }
+}
+
+/* 快捷键物理键帽 */
+.keycap {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    -webkit-user-select: none;
+    user-select: none;
+}
+.keycap kbd {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+    font-size: 0.6875rem;
+    font-weight: 500;
+    min-width: 1.375rem;
+    height: 1.375rem;
+    padding: 0 0.35rem;
+    color: rgba(255, 255, 255, 0.95);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.06) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.20);
+    border-bottom: 2px solid rgba(255, 255, 255, 0.32);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 1px 2px rgba(0, 0, 0, 0.25);
+    border-radius: 0.375rem;
+    line-height: 1;
+    box-sizing: border-box;
+}
+.keycap kbd.kbd-text {
+    min-width: auto;
+    padding: 0 0.45rem;
+    font-size: 0.625rem;
 }
 
 .glass-btn-primary {

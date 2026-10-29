@@ -7,11 +7,11 @@ import { getCategoryIconHTML } from './bookmarks.js';
 
 /** @type {Record<string, string>} */
 const KBD = {
-    'kbd-any': t('ui.any.character.key'),
-    'kbd-slash': IS_MAC ? '⌘ /' : 'Ctrl + /',
-    'kbd-bg': IS_MAC ? '⌘ B' : 'Ctrl + B',
-    'kbd-newtab': IS_MAC ? '⌘ ↵' : 'Alt + ↵',
-    'kbd-tab': IS_MAC ? 'Tab / ⇧ Tab' : 'Tab / Shift + Tab'
+    'kbd-any': `<kbd class="kbd-text">${escapeHtml(t('ui.any.character.key'))}</kbd>`,
+    'kbd-slash': IS_MAC ? '<kbd>⌘</kbd><kbd>/</kbd>' : '<kbd>Ctrl</kbd><kbd>/</kbd>',
+    'kbd-bg': IS_MAC ? '<kbd>⌘</kbd><kbd>B</kbd>' : '<kbd>Ctrl</kbd><kbd>B</kbd>',
+    'kbd-newtab': IS_MAC ? '<kbd>⌘</kbd><kbd>↵</kbd>' : '<kbd>Alt</kbd><kbd>↵</kbd>',
+    'kbd-tab': IS_MAC ? '<kbd>Tab</kbd><span class="text-white/35 text-2xs select-none">/</span><kbd>⇧ Tab</kbd>' : '<kbd>Tab</kbd><span class="text-white/35 text-2xs select-none">/</span><kbd>Shift+Tab</kbd>'
 };
 
 export function renderShortcutModalList() {
@@ -19,12 +19,12 @@ export function renderShortcutModalList() {
     if (!container || container.hasChildNodes()) return;
     container.innerHTML = CONFIG.SHORTCUTS.map(sec => `
         <div>
-            <h4 class="text-2xs font-semibold uppercase tracking-wider text-white/45 mb-1 px-1">${escapeHtml(sec.group)}</h4>
-            <div class="divide-y divide-white/8">
+            <h4 class="text-2xs font-semibold uppercase tracking-wider text-white/45 mb-1.5 px-1">${escapeHtml(sec.group)}</h4>
+            <div class="inset-card">
                 ${sec.items.map(item => `
-                    <div class="flex items-center justify-between gap-3 px-2.5 py-2">
-                        <span class="text-white/85 shrink-0 text-xs">${escapeHtml(item.desc)}</span>
-                        <span class="flex items-center gap-1 font-mono text-2xs text-white/90 bg-white/8 px-2.5 py-0.5 rounded-md border border-white/12 shrink-0">${item.kbdId ? `<kbd>${escapeHtml(KBD[item.kbdId] || item.fallback)}</kbd>` : item.rawHtml || ''}</span>
+                    <div class="inset-card-row">
+                        <span class="text-white/85 text-xs">${escapeHtml(item.desc)}</span>
+                        <span class="keycap shrink-0">${item.kbdId ? (KBD[item.kbdId] || `<kbd>${escapeHtml(item.fallback || '')}</kbd>`) : (item.rawHtml || '')}</span>
                     </div>
                 `).join('')}
             </div>

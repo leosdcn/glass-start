@@ -83,6 +83,7 @@
     "ui.reset.bookmarks": "Reset bookmarks",
     "ui.confirm.reset": "Confirm reset",
     "ui.got.it": "Got it",
+    "ui.press.esc.to.exit": "Press Esc to exit",
     "ui.confirm.reset.2": "Confirm reset",
     "ui.confirm": "Confirm",
     "ui.update.incomplete.please.retry": "Update incomplete. Please retry",
