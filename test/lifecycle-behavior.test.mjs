@@ -20,16 +20,19 @@ try {
         dom.startSection.style.transition = 'none';
         dom.startSection.style.transform = 'translateY(123px)';
         dom.clock.classList.add('fade-in', 'is-clicked', 'dragging');
+        ${event === 'pageshow' ? "dom.startSection.style.willChange = 'auto';" : ''}
         ${event === 'pageshow' ? "window.dispatchEvent(new PageTransitionEvent('pageshow', {persisted:true}))" : "document.dispatchEvent(new Event('visibilitychange'))"};
       })()`);
       const result = await evalJS(`({
         section: state.currentSection,
         unlocked: !isScreenTransitioning(),
+        startLayer: dom.startSection.style.willChange,
         clean: !dom.startSection.style.transition && !dom.startSection.style.transform && !dom.clock.matches('.fade-in,.is-clicked,.dragging'),
         isolated: dom.startSection.inert === (state.currentSection === 'nav') && dom.navSection.inert === (state.currentSection === 'start'),
         layout: (state.currentSection === 'start' ? dom.startSection : dom.navSection).getBoundingClientRect().top
       })`);
       assert.equal(result.section, section);
+      if (event === 'pageshow') assert.equal(result.startLayer, 'transform');
       assert.ok(result.unlocked && result.clean && result.isolated, JSON.stringify(result));
       assert.ok(Math.abs(result.layout) < 2, JSON.stringify(result));
 
