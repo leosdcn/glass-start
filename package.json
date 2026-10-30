@@ -1,6 +1,6 @@
 {
   "name": "glass-start",
-  "version": "5.4.2",
+  "version": "5.4.3",
   "description": "Glass Start — 极简纯净的毛玻璃浏览器起始页。",
   "main": "dist/index.html",
   "engines": {
@@ -26,7 +26,7 @@
     "dev": "node scripts/server.cjs",
     "preview": "npm run build && node scripts/server.cjs --no-watch",
     "typecheck": "tsc --project tsconfig.json && tsc --project tsconfig.sw.json",
-    "test:unit": "node --test test/data-pure-models.test.mjs test/data-priority-fixes-unit.test.mjs test/data-animation-cleanup-unit.test.mjs test/data-wallpaper-selection-unit.test.mjs"
+    "test:unit": "node test/run.mjs --unit"
   },
   "devDependencies": {
     "@tailwindcss/cli": "^4.3.3",

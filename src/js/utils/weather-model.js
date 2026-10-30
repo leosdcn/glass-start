@@ -1,44 +1,41 @@
 // @ts-check
 /** 天气代码、地点名称与预报数据转换，不依赖 DOM、网络或存储。 */
-/** @type {Record<number, {text: string, dayIcon: string, nightIcon: string}>} */
-const WMO_WEATHER_MAP = {
-    0: { text: '晴', dayIcon: '☀️', nightIcon: '🌙' },
-    1: { text: '晴间多云', dayIcon: '🌤️', nightIcon: '🌙' },
-    2: { text: '多云', dayIcon: '⛅', nightIcon: '☁️' },
-    3: { text: '阴', dayIcon: '☁️', nightIcon: '☁️' },
-    45: { text: '雾', dayIcon: '🌫️', nightIcon: '🌫️' },
-    48: { text: '雾凇', dayIcon: '🌫️', nightIcon: '🌫️' },
-    51: { text: '毛毛雨', dayIcon: '🌦️', nightIcon: '🌧️' },
-    53: { text: '小雨', dayIcon: '🌧️', nightIcon: '🌧️' },
-    55: { text: '中雨', dayIcon: '🌧️', nightIcon: '🌧️' },
-    56: { text: '冻雨', dayIcon: '🌧️', nightIcon: '🌧️' },
-    57: { text: '强冻雨', dayIcon: '🌧️', nightIcon: '🌧️' },
-    61: { text: '小雨', dayIcon: '🌧️', nightIcon: '🌧️' },
-    63: { text: '中雨', dayIcon: '🌧️', nightIcon: '🌧️' },
-    65: { text: '大雨', dayIcon: '🌧️', nightIcon: '🌧️' },
-    66: { text: '冻雨', dayIcon: '🌧️', nightIcon: '🌧️' },
-    67: { text: '暴雨', dayIcon: '⛈️', nightIcon: '⛈️' },
-    71: { text: '小雪', dayIcon: '🌨️', nightIcon: '🌨️' },
-    73: { text: '中雪', dayIcon: '🌨️', nightIcon: '🌨️' },
-    75: { text: '大雪', dayIcon: '❄️', nightIcon: '❄️' },
-    77: { text: '雪粒', dayIcon: '🌨️', nightIcon: '🌨️' },
-    80: { text: '阵雨', dayIcon: '🌦️', nightIcon: '🌧️' },
-    81: { text: '中度阵雨', dayIcon: '🌧️', nightIcon: '🌧️' },
-    82: { text: '强阵雨', dayIcon: '⛈️', nightIcon: '⛈️' },
-    85: { text: '阵雪', dayIcon: '🌨️', nightIcon: '🌨️' },
-    86: { text: '大阵雪', dayIcon: '❄️', nightIcon: '❄️' },
-    95: { text: '雷阵雨', dayIcon: '⛈️', nightIcon: '⛈️' },
-    96: { text: '雷雨伴冰雹', dayIcon: '⛈️', nightIcon: '⛈️' },
-    99: { text: '强雷雨伴冰雹', dayIcon: '⛈️', nightIcon: '⛈️' }
+/** @type {Record<number, {dayIcon: string, nightIcon: string}>} */
+const WMO_WEATHER_ICONS = {
+    0: { dayIcon: '☀️', nightIcon: '🌙' },
+    1: { dayIcon: '🌤️', nightIcon: '🌙' },
+    2: { dayIcon: '⛅', nightIcon: '☁️' },
+    3: { dayIcon: '☁️', nightIcon: '☁️' },
+    45: { dayIcon: '🌫️', nightIcon: '🌫️' },
+    48: { dayIcon: '🌫️', nightIcon: '🌫️' },
+    51: { dayIcon: '🌦️', nightIcon: '🌧️' },
+    53: { dayIcon: '🌧️', nightIcon: '🌧️' },
+    55: { dayIcon: '🌧️', nightIcon: '🌧️' },
+    56: { dayIcon: '🌧️', nightIcon: '🌧️' },
+    57: { dayIcon: '🌧️', nightIcon: '🌧️' },
+    61: { dayIcon: '🌧️', nightIcon: '🌧️' },
+    63: { dayIcon: '🌧️', nightIcon: '🌧️' },
+    65: { dayIcon: '🌧️', nightIcon: '🌧️' },
+    66: { dayIcon: '🌧️', nightIcon: '🌧️' },
+    67: { dayIcon: '⛈️', nightIcon: '⛈️' },
+    71: { dayIcon: '🌨️', nightIcon: '🌨️' },
+    73: { dayIcon: '🌨️', nightIcon: '🌨️' },
+    75: { dayIcon: '❄️', nightIcon: '❄️' },
+    77: { dayIcon: '🌨️', nightIcon: '🌨️' },
+    80: { dayIcon: '🌦️', nightIcon: '🌧️' },
+    81: { dayIcon: '🌧️', nightIcon: '🌧️' },
+    82: { dayIcon: '⛈️', nightIcon: '⛈️' },
+    85: { dayIcon: '🌨️', nightIcon: '🌨️' },
+    86: { dayIcon: '❄️', nightIcon: '❄️' },
+    95: { dayIcon: '⛈️', nightIcon: '⛈️' },
+    96: { dayIcon: '⛈️', nightIcon: '⛈️' },
+    99: { dayIcon: '⛈️', nightIcon: '⛈️' }
 };
 
 /** @param {number} code @param {boolean} [isDay] */
-function getWeatherInfo(code, isDay = true) {
-    const item = WMO_WEATHER_MAP[code] || { text: '多云', dayIcon: '⛅', nightIcon: '☁️' };
-    return {
-        text: item.text,
-        icon: isDay ? item.dayIcon : item.nightIcon
-    };
+function getWeatherIcon(code, isDay = true) {
+    const item = WMO_WEATHER_ICONS[code] || { dayIcon: '⛅', nightIcon: '☁️' };
+    return isDay ? item.dayIcon : item.nightIcon;
 }
 
 /** @param {unknown} v */
@@ -101,16 +98,11 @@ export function stripAdminSuffix(name, includeProvince = false) {
 export function normalizeWeatherForecast(data, loc, config, now) {
     const cur = data.current || {};
     const isDay = cur.is_day === 1;
-    const wInfo = getWeatherInfo(cur.weather_code, isDay);
     const daily = data.daily || {};
 
     const days = [];
-    const weekDays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
     if (daily.time && Array.isArray(daily.time)) {
         for (let i = 0; i < Math.min(daily.time.length, config.FORECAST_FETCH_DAYS); i++) {
-            const timeStr = daily.time[i] || '';
-            const parts = timeStr.split('-').map(Number);
-            const dDate = parts.length === 3 ? new Date(parts[0], parts[1] - 1, parts[2]) : new Date(timeStr);
             let dayCode = daily.weather_code ? daily.weather_code[i] : 0;
 
             if (i === 0) {
@@ -122,14 +114,10 @@ export function normalizeWeatherForecast(data, loc, config, now) {
                 }
             }
 
-            const dwInfo = getWeatherInfo(dayCode, true);
-            const wLabel = i === 0 ? '今天' : i === 1 ? '明天' : (weekDays[dDate.getDay()] || `${dDate.getMonth() + 1}/${dDate.getDate()}`);
             days.push({
                 date: daily.time[i],
                 weatherCode: dayCode,
-                label: wLabel,
-                icon: dwInfo.icon,
-                text: dwInfo.text,
+                icon: getWeatherIcon(dayCode),
                 tempMax: Math.round(daily.temperature_2m_max?.[i] ?? cur.temperature_2m ?? config.DEFAULT_TEMPERATURE),
                 tempMin: Math.round(daily.temperature_2m_min?.[i] ?? cur.temperature_2m ?? config.DEFAULT_TEMPERATURE)
             });
@@ -148,8 +136,7 @@ export function normalizeWeatherForecast(data, loc, config, now) {
             temp: Math.round(cur.temperature_2m ?? config.DEFAULT_TEMPERATURE),
             apparent: Math.round(cur.apparent_temperature ?? cur.temperature_2m ?? config.DEFAULT_TEMPERATURE),
             weatherCode: cur.weather_code ?? 0,
-            weatherText: wInfo.text,
-            icon: wInfo.icon,
+            icon: getWeatherIcon(cur.weather_code, isDay),
             isDay: isDay,
             humidity: Math.round(cur.relative_humidity_2m ?? config.DEFAULT_HUMIDITY),
             windSpeed: Math.round((cur.wind_speed_10m ?? 0) * 10) / 10,

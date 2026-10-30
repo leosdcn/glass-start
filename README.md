@@ -232,7 +232,18 @@ npm run build:extension
 
 验证范围以 [AGENTS.md](./AGENTS.md#验证) 为准，局部修改优先运行直接相关测试。`npm test -- <文件名片段>` 执行匹配的测试文件前，会检查类型，并按需构建；需要构建时，两项并行执行，无需重复手动检查类型或构建。仅匹配[运行器明确列出的纯单元测试](./test/support/test-selection.mjs)时跳过构建。无参数的 `npm test` 与 `test:all` 执行全套，用于高风险跨模块改造、发布或明确要求全量验证的场景。`test:ui`、`test:data`、`test:infra`、`test:lifecycle` 可按模块扩大范围，可用命令以 `package.json` 为准。
 
-`npm run typecheck` 对核心数据、草稿、DOM 缓存与状态执行渐进式 JavaScript 类型检查，并在独立 Worker 类型环境中严格检查 `sw.js`；范围以 `tsconfig.json` 和 `tsconfig.sw.json` 为准，`npm test` 同样执行这两项检查。`npm run test:unit` 独立验证搜索、天气转换与草稿逻辑，无需 Chrome。
+`npm run typecheck` 对核心数据、草稿、DOM 缓存与状态执行渐进式 JavaScript 类型检查，并在独立 Worker 类型环境中严格检查 `sw.js`；范围以 `tsconfig.json` 和 `tsconfig.sw.json` 为准，`npm test` 同样执行这两项检查。`npm run test:unit` 复用运行器的纯单元测试清单，检查类型并验证搜索、天气转换与草稿等逻辑，无需构建或 Chrome。
+
+相近的浏览器回归按功能集中在以下文件中，各具名场景仍使用独立浏览器会话。后续同类回归优先加入对应文件，避免按每次修复新增文件。
+
+| 文件名筛选片段 | 覆盖范围 |
+| :--- | :--- |
+| `data-wallpaper-rendering` | 图片解码、上传压缩、加载复用与失败重试 |
+| `data-wallpaper-storage` | 选择提交、事务失败、会话隔离与历史迁移 |
+| `data-bookmark-picker` | 挑选器节点复用、目录失效与图标预览请求 |
+| `ui-nav-rendering` | 图标延迟加载、分类位置缓存与原生滚动 |
+| `ui-modal-accessibility` | 焦点、背景隔离与隔离状态增量更新 |
+| `infra-theme-favicon` | 主题配置、图标回退、缓存驱逐与图标直接导航 |
 
 `npm run benchmark` 构建并评测首次与多轮切屏帧间隔，默认只访问本地。参数、统计口径及无头浏览器限制见 [切屏评测说明](./docs/TRANSITION_BENCHMARK.md)。
 
@@ -250,7 +261,7 @@ npm run build:extension
 - 🤖 **[AGENTS.md (AI 编程工程准则)](./AGENTS.md)**：项目修改边界、实现约束与分级验证流程。
 - 🧭 **[docs/SAFARI_SMOKE_CHECKLIST.md (Safari 专项冒烟清单)](./docs/SAFARI_SMOKE_CHECKLIST.md)**：可选的 Safari/iOS 专项参考，不属于默认验收或发布要求。
 - ⏱️ **[docs/TRANSITION_BENCHMARK.md (切屏帧间隔评测)](./docs/TRANSITION_BENCHMARK.md)**：生产产物首次与多轮切屏耗时、rAF 帧间隔与降速压测口径。
-- 🗂️ **[历史报告](./docs/ARCHITECTURE.md#目录速查)**：审计与性能报告集中存放于 `docs/reports/`，版本和验证环境见各报告。
+- 🗂️ **[验证依据](./docs/ARCHITECTURE.md#目录速查)**：必要的修复、验证及性能记录位于 `docs/reports/`；历史结果不代替当前版本验收。
 
 本项目文档以简体中文版为主要维护版本，英文版为翻译。如有歧义或不一致，请以中文版为准，欢迎提交翻译修正。项目开源许可仍以 [LICENSE](./LICENSE) 原文为准。
 

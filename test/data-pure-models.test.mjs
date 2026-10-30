@@ -25,12 +25,13 @@ assert.equal(forecast.current.temp, 22);
 assert.equal(forecast.current.isDay, false);
 assert.deepEqual(forecast.daily, []);
 assert.equal(forecast.current.sunrise, '--:--');
+assert.equal(Object.hasOwn(forecast.current, 'weatherText'), false);
 
 test('低降水概率且当前无雨时平滑预报，高降水概率保留雨天预报', () => {
   const location = {lat:31.230, lon:121.473, name:'上海'};
   for (const [code, pop, expected] of [
-    [51, 16, {text:'晴间多云', icon:'🌤️'}],
-    [63, 80, {text:'中雨', icon:'🌧️'}]
+    [51, 16, {weatherCode:1, icon:'🌤️'}],
+    [63, 80, {weatherCode:63, icon:'🌧️'}]
   ]) {
     const result = normalizeWeatherForecast({
       current:{temperature_2m:31, is_day:1, precipitation:0, weather_code:1},
@@ -38,8 +39,19 @@ test('低降水概率且当前无雨时平滑预报，高降水概率保留雨�
         temperature_2m_max:[32, 29], temperature_2m_min:[24, 25],
         precipitation_probability_max:[pop, 45]}
     }, location, CONFIG.WEATHER, 123);
-    assert.deepEqual({text:result.daily[0].text, icon:result.daily[0].icon}, expected,
+    assert.deepEqual({weatherCode:result.daily[0].weatherCode, icon:result.daily[0].icon}, expected,
       `天气代码 ${code}、降水概率 ${pop}%`);
+    assert.equal(Object.hasOwn(result.daily[0], 'text'), false);
+    assert.equal(Object.hasOwn(result.daily[0], 'label'), false);
+  }
+});
+
+test('昼夜及未知天气代码保留原有图标回退', () => {
+  for (const [code, isDay, icon] of [[0, 1, '☀️'], [0, 0, '🌙'], [999, 1, '⛅'], [999, 0, '☁️']]) {
+    const result = normalizeWeatherForecast({current:{weather_code:code, is_day:isDay}},
+      {lat:1, lon:2}, CONFIG.WEATHER, 123);
+    assert.equal(result.current.icon, icon);
+    assert.equal(result.current.weatherCode, code);
   }
 });
 

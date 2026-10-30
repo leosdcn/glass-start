@@ -4,12 +4,14 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { tmpdir } from 'node:os';
 import { createRequire } from 'node:module';
-import { requiresBuild } from './support/test-selection.mjs';
+import { requiresBuild, standaloneTests } from './support/test-selection.mjs';
 
 const testDir = fileURLToPath(new URL('.', import.meta.url));
 const rootDir = join(testDir, '..');
 const pattern = process.argv.slice(2).find(arg => !arg.startsWith('-'));
+const unitOnly = process.argv.includes('--unit');
 const files = readdirSync(testDir).filter(name => name.endsWith('.test.mjs') &&
+  (!unitOnly || standaloneTests.has(name)) &&
   (!pattern || name.toLowerCase().includes(pattern.toLowerCase()))).sort();
 if (!files.length) {
   console.error(`未找到匹配的测试文件: ${pattern || '*'}`);

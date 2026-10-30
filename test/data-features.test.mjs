@@ -1,6 +1,6 @@
 /** 验证书签搜索与持久化、天气呈现及生命周期恢复。 */
 import { readFileSync } from 'node:fs';
-import { launchSession, makeTester, pressKey, waitFor } from './support/helpers.mjs';
+import { launchSession, makeTester, pressKey, waitFor, navigateAndWait } from './support/helpers.mjs';
 
 const { pass, finish } = makeTester();
 const { server, chrome, send, evalJS } = await launchSession();
@@ -16,10 +16,13 @@ await send('Fetch.enable', { patterns: [
   { urlPattern: 'https://aaa.example.com/*', resourceType: 'Image' }
 ] });
 
-await evalJS(`
+// 在应用启动前固定请求边界，避免真实定位任务占用后续天气唤醒用例。
+// isFetchingWeather 是只读诊断接口，赋值不能取消模块内部的共享请求。
+await send('Page.addScriptToEvaluateOnNewDocument', { source: `
   window.fetch = async () => ({ ok: true, json: async () => ({}) });
-  isFetchingWeather = true;
-`);
+` });
+await navigateAndWait(send, evalJS, `http://127.0.0.1:${server.port}/`,
+  'typeof openEditModal === "function" && !!document.querySelector(".bookmark-item") && !isFetchingWeather');
 const press = (key) => pressKey(evalJS, key);
 
 // ══════════════════════════════════════════════════════════════════════
@@ -116,11 +119,7 @@ await evalJS(`localStorage.setItem('userBookmarks', JSON.stringify([
   { name: '自建站', url: 'https://custom.example.dev', icon: 'https://custom.example.dev/icon.png', desc: '个人站点' }
 ]))`);
 await evalJS('setTimeout(() => location.reload(), 10)');
-await waitFor(evalJS, 'document.readyState === "complete" && typeof openEditModal === "function" && localStorage.getItem("userBookmarks") === null');
-await evalJS(`
-  window.fetch = async () => ({ ok: true, json: async () => ({}) });
-  isFetchingWeather = true;
-`);
+await waitFor(evalJS, 'document.readyState === "complete" && typeof openEditModal === "function" && localStorage.getItem("userBookmarks") === null && !isFetchingWeather');
 
 const migrated = await evalJS(`(() => ({
   keys: JSON.parse(localStorage.getItem('userBookmarkKeys') || 'null'),
@@ -341,7 +340,6 @@ pass('天气组件胶囊交互、OverlayStack 层叠栈响应与搜索联想防�
 // ══════════════════════════════════════════════════════════════════════
 
 await evalJS(`(() => {
-  isFetchingWeather = true;
   const mockData = {
     location: { name: '上海市', fullName: '中国 · 上海市' },
     current: {
@@ -466,7 +464,6 @@ pass('预报日期标签按顺序呈现',
 
 const wakeupSyncCheck = await evalJS(`(() => {
   return (async () => {
-    isFetchingWeather = false;
     let fetchCount = 0;
     const origFetch = window.fetch;
 
@@ -555,7 +552,6 @@ const wakeupSyncCheck = await evalJS(`(() => {
       };
     } finally {
       window.fetch = origFetch;
-      isFetchingWeather = false;
     }
   })();
 })()`);

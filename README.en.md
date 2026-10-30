@@ -240,7 +240,7 @@ npm run build:extension
 
 [AGENTS.md](./AGENTS.md#验证) (Chinese) defines the required validation scope. Prefer directly relevant tests for local changes. `npm test -- <filename-fragment>` checks types and builds as needed before running matching files. When a build is needed, it runs alongside the type check, so do not repeat either manually. The build is skipped only when all matching tests are on the runner's [standalone unit-test list](./test/support/test-selection.mjs). With no arguments, `npm test` and `test:all` run the full suite, intended for high-risk changes across modules, releases or explicitly requested full validation. Use `test:ui`, `test:data`, `test:infra` or `test:lifecycle` to widen the scope by area. Available commands are defined in `package.json`.
 
-`npm run typecheck` checks types in selected JavaScript modules for core data, drafts, the DOM cache and state. The scope is defined in `tsconfig.json`. `npm run test:unit` checks search, weather conversion and draft logic without Chrome.
+`npm run typecheck` checks types in selected JavaScript modules for core data, drafts, the DOM cache and state. The scope is defined in `tsconfig.json`. `npm run test:unit` uses the runner's shared standalone test list, checks types and tests search, weather conversion, drafts and related logic without a build or Chrome.
 
 `npm run benchmark` builds and measures frame intervals during initial and repeated screen transitions. By default, it accesses only local resources. See the [transition benchmark guide](./docs/TRANSITION_BENCHMARK.md) (Chinese) for options, metrics and headless-browser limitations.
 
@@ -262,7 +262,7 @@ The following technical documents are currently in Chinese:
 - [AGENTS.md](./AGENTS.md): change boundaries, implementation constraints and validation by risk.
 - [Safari smoke checklist](./docs/SAFARI_SMOKE_CHECKLIST.md): optional Safari/iOS checks, not part of default acceptance or release requirements.
 - [Transition benchmarks](./docs/TRANSITION_BENCHMARK.md): initial and repeated production transitions, rAF frame intervals and CPU-throttling methodology.
-- [Historical reports](./docs/ARCHITECTURE.md#目录速查): audit and performance reports live in `docs/reports/`; each report records its version and validation environment.
+- [Validation evidence](./docs/ARCHITECTURE.md#目录速查): selected fix, validation and performance records live in `docs/reports/`. Historical results do not replace validation of the current version.
 
 The [Simplified Chinese documentation](./README.md) is the primary maintained version. This English version is a translation. If anything is unclear or inconsistent, the Chinese version takes precedence. Translation corrections are welcome. The project's open-source license is governed by the original [LICENSE](./LICENSE) file.
 

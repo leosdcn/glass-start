@@ -29,13 +29,13 @@
 | `scripts/` | 构建、开发服务、静态检查、图标同步等工程工具；CommonJS 使用 `.cjs`，ES 模块使用 `.mjs` |
 | `test/` | 顶层保留回归用例、运行器及性能评测入口；`support/` 集中 CDP、测试服务器、共用辅助函数和测试选择规则；测试产物位于已忽略的 `test/artifacts/` |
 | `docs/` | 持续维护的架构说明、切屏评测说明及可选 Safari 参考清单 |
-| `docs/reports/` | 历史审计与性能报告，统一命名为 `YYYY-MM-DD-topic.md`；结论以报告所列版本和环境为限 |
+| `docs/reports/` | 必要的历史修复、验证及性能依据，统一命名为 `YYYY-MM-DD-topic.md`；结论以报告所列版本和环境为限，不重复记录当前架构或每轮开发过程 |
 | `docs/performance/`、`docs/assets/` | 性能原始数据与文档图片 |
 | `dist/`、`extension/` | 网页版与 Chrome 扩展的构建产物，由构建生成，不手工修改，不纳入 Git |
 | `.github/` | CI、部署工作流及 Issue / PR 模板 |
 | 根目录工程文件 | `package.json` 与锁文件管理依赖和命令；`tsconfig.json` 与 `tsconfig.sw.json` 管理页面及 Service Worker 类型检查；`wrangler.jsonc` 配置 Cloudflare 部署；`start.command` 为 macOS 启动入口 |
 
-历史报告：[2026-10-23 Safari 性能对照](./reports/2026-10-23-safari-performance.md)、[2026-10-24 审计与修复记录](./reports/2026-10-24-audit.md)、[2026-10-25 切屏性能报告](./reports/2026-10-25-transition-performance.md)、[2026-10-28 目录整理与扩展核实](./reports/2026-10-28-structure-verification.md)。
+验证依据：[2026-10-24 审计修复](./reports/2026-10-24-audit.md)、[2026-10-28 目录与扩展核实](./reports/2026-10-28-structure-verification.md)、[2026-10-28 多语言验证](./reports/2026-10-28-english-localization.md)、[2026-10-29 模块修复](./reports/2026-10-29-module-review.md)。性能对照：[2026-10-23 Safari](./reports/2026-10-23-safari-performance.md)、[2026-10-25 切屏基准](./reports/2026-10-25-transition-performance.md)、[2026-10-29 切屏与恢复](./reports/2026-10-29-transition-audit.md)。这些是历史测量，不是当前版本的验收凭证；原始性能 JSON 随引用报告保留。
 
 ## 模块索引
 
@@ -131,7 +131,9 @@ Chrome 扩展通过 `npm run build:extension` 独立生成 `extension/`。`scrip
 
 天气新缓存保留代码、日期和数值，删除语言相关描述及日期标签；渲染时按语言生成，旧缓存继续兼容，旧每日记录缺少代码时英文显示未知状态。地点名称带语言标记，失配时异步更新；离线保留现有名称和数值。Wikipedia 的搜索及联想按界面语言选择中文或英文站，权限与 CSP 精确列出两域名。
 
-扩展的 `_locales` 从共用字典生成，管理页元数据跟随 Chrome，页内可另选语言。网页 PWA 安装元数据及爬虫读取的默认静态元数据仍为中文。新增语言时补字典、注册、选择项和服务映射；RTL 需要另行布局验收。设计背景与验收边界见 [多语言方案](./I18N_PLAN.md)。
+扩展的 `_locales` 从共用字典生成，管理页元数据跟随 Chrome，页内可另选语言。网页 PWA 安装元数据及爬虫读取的默认静态元数据仍为中文。新增语言时补字典、注册、选择项和服务映射；RTL 需要另行布局验收。新增语言的回归使用 `npm test -- data-i18n`，同时核对扩展元数据与相关接口权限。
+
+翻译消息使用完整句子，不拼接语序片段；参数只替换一次，不递归解释。缺键按英文、键名顺序回退；正式支持的语言仍须通过键和参数完整性校验。字典不存 HTML，动态模板先翻译再 `escapeHtml()`，URL 继续使用 `safeUrl()`。新增语言优先复用现有系统字体、图片和业务流程，不预建语言加载框架；RTL 需另行验证方向、箭头、拖拽及混合文本布局。
 
 `bookmarks.json` 提供默认快捷书签和分类目录，构建时由 `config/constants.js` 导入。用户配置保存在 LocalStorage：快捷书签使用 URL 键列表，自定义名称、简介和图标使用元数据覆盖；`getDerivedBookmarks()` 从目录与覆盖数据派生当前条目。旧版完整书签数组由 `migrateBookmarksStorage()` 迁移。
 
@@ -267,7 +269,7 @@ Chrome（首屏已有的 `.is-chrome` 标记）为两屏保留 `will-change: tra
 
 网页版的 Bing / Google 使用 JSONP，Wikipedia 使用 CORS `fetch`；Chrome 扩展三种引擎均通过 `fetch` 读取 JSON，域名权限与连接范围由扩展清单声明。相同引擎与查询共享未完成请求及候选节点，成功的空结果也进入短期缓存。请求序号 `activeSuggestReqId`、超时和关闭清理共同隔离过期响应；输入变化时即作废旧请求，防抖等待期间及关闭列表后，旧结果不能覆盖新状态。选中与打开操作读取内存结果，DOM 仅展示并传递索引。
 
-`utils/weather-model.js` 负责天气代码、地点及响应转换，调用方传入配置和时间；`modules/weather.js` 使用 IP 定位与地名解析获取位置，再请求 Open-Meteo。按缓存有效期决定是否更新，唤醒时重新检查。已知地点预报先显示，后台定位及可能发生的地点变更刷新保留在同一个任务中；期间的唤醒和手动刷新共享该任务，完成或失败后释放。
+`utils/weather-model.js` 负责天气代码、图标、地点及响应转换，调用方传入配置和时间；新数据不生成天气描述或日期标签，显示层统一按语言生成，旧缓存的文字字段仍兼容读取。`modules/weather.js` 使用 IP 定位与地名解析获取位置，再请求 Open-Meteo。按缓存有效期决定是否更新，唤醒时重新检查。已知地点预报先显示，后台定位及可能发生的地点变更刷新保留在同一个任务中；期间的唤醒和手动刷新共享该任务，完成或失败后释放。
 
 湿度、风速和降水概率分别按配置分档选择图标，不表示降雨强度或气象灾害等级。日出日落显示由当前时间与预报时间选择。数值通过共用的 `weatherNum()` 清洗，时间经 `weatherTime()` 校验，地点等文本在 HTML 输出时转义。
 

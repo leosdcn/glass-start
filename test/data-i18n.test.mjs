@@ -152,6 +152,40 @@ try {
     assert.match(weather.text, /Feels like/);
     assert.doesNotMatch(weather.text, /[\u4e00-\u9fff]/);
 
+    // Fresh forecasts carry codes and dates; both languages render without stored labels.
+    const freshWeather = await evalJS(`(async () => {
+        const originalFetch = window.fetch;
+        const originalLocale = window.__GLASS_I18N__.locale;
+        try {
+            window.fetch = async () => ({ ok: true, json: async () => ({
+                current: { temperature_2m: 22, weather_code: 0, is_day: 1 },
+                daily: { time: ['2026-10-28', '2026-10-29', '2026-10-30'], weather_code: [3, 999, 2] }
+            }) });
+            const data = await fetchWeatherForecast({ lat: 31, lon: 121, name: 'Shanghai' });
+            const result = { data, views: {} };
+            for (const locale of ['zh-CN', 'en']) {
+                window.__GLASS_I18N__.locale = locale;
+                renderWeatherCapsule(data); renderWeatherPopover(data);
+                result.views[locale] = { label: dom.weatherBtn.getAttribute('aria-label'), text: dom.weatherPopover.textContent };
+            }
+            return result;
+        } finally {
+            window.fetch = originalFetch;
+            window.__GLASS_I18N__.locale = originalLocale;
+        }
+    })()`);
+    assert.equal(Object.hasOwn(freshWeather.data.current, 'weatherText'), false);
+    assert.ok(freshWeather.data.daily.every(day => !Object.hasOwn(day, 'text') && !Object.hasOwn(day, 'label')));
+    assert.match(freshWeather.views['zh-CN'].label, /晴/);
+    assert.match(freshWeather.views['zh-CN'].text, /今天/);
+    assert.match(freshWeather.views['zh-CN'].text, /阴/);
+    assert.match(freshWeather.views['zh-CN'].text, /暂无数据/);
+    assert.match(freshWeather.views.en.label, /Clear/);
+    assert.match(freshWeather.views.en.text, /Today/);
+    assert.match(freshWeather.views.en.text, /Overcast/);
+    assert.match(freshWeather.views.en.text, /No data/);
+    assert.doesNotMatch(freshWeather.views.en.text, /[\u4e00-\u9fff]/);
+
     // Mobile layout and screenshots use actual rendered UI.
     mkdirSync(new URL('./artifacts/', import.meta.url), { recursive: true });
     for (const [width, height] of [[1440, 1000], [390, 844]]) {

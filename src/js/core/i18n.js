@@ -52,7 +52,12 @@ export function applyTranslations(root = document) {
 
 /** @param {Date} date @param {Intl.DateTimeFormatOptions} [options] */
 export function formatDate(date, options = { month: 'long', day: 'numeric', weekday: 'long' }) {
-    return new Intl.DateTimeFormat(getLocale(), options).format(date);
+    const locale = getLocale();
+    const formatter = new Intl.DateTimeFormat(locale, options);
+    if (locale === 'zh-CN' && options.month && options.day && options.weekday) {
+        return formatter.formatToParts(date).map(part => part.type === 'weekday' ? ` ${part.value}` : part.value).join('');
+    }
+    return formatter.format(date);
 }
 
 /** @param {unknown} code */

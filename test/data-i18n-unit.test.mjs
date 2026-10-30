@@ -6,7 +6,7 @@ import vm from 'node:vm';
 const scope = vm.createContext({ module: { exports: {} }, Intl });
 const bundled = await build({ entryPoints: ['src/js/core/i18n.js'], bundle: true, write: false, format: 'cjs', platform: 'node' });
 vm.runInContext(bundled.outputFiles[0].text, scope);
-const { resolveLocale, t, forecastLabel, localizeCategories, localizeBookmarkUrl, canonicalBookmarkUrl } = scope.module.exports;
+const { resolveLocale, t, formatDate, forecastLabel, localizeCategories, localizeBookmarkUrl, canonicalBookmarkUrl } = scope.module.exports;
 
 const messages = Object.fromEntries(['zh-CN', 'en'].map(locale =>
     [locale, JSON.parse(readFileSync(new URL(`../src/js/config/locales/${locale}.json`, import.meta.url), 'utf8'))]));
@@ -35,6 +35,17 @@ test('complete messages, singular/plural, one-pass parameters and fallback', () 
         scope.window.__GLASS_I18N__.locale = 'en';
         assert.equal(forecastLabel('2026-10-28', 2), 'Wed');
         assert.equal(forecastLabel('bad date', 2), '');
+    } finally { delete scope.window; }
+});
+
+test('Chinese date separates weekday while English and forecast labels keep native formatting', () => {
+    scope.window = { __GLASS_I18N__: { locale: 'zh-CN', messages } };
+    try {
+        const date = new Date(2026, 9, 30);
+        assert.equal(formatDate(date), '10月30日 星期五');
+        assert.equal(forecastLabel('2026-10-30', 2), '周五');
+        scope.window.__GLASS_I18N__.locale = 'en';
+        assert.equal(formatDate(date), new Intl.DateTimeFormat('en', { month: 'long', day: 'numeric', weekday: 'long' }).format(date));
     } finally { delete scope.window; }
 });
 

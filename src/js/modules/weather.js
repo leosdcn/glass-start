@@ -472,9 +472,7 @@ const isWeatherRecord = (/** @type {any} */ value) => value !== null && typeof v
 
 /** @param {import('../types').WeatherData} data */
 function saveWeatherCache(data) {
-    const { weatherText, ...current } = data.current;
-    const daily = data.daily?.map(({ text, label, ...day }) => day);
-    storageSet(CONFIG.KEYS.WEATHER_CACHE, { schemaVersion: 2, ...data, current, daily });
+    storageSet(CONFIG.KEYS.WEATHER_CACHE, { schemaVersion: 2, ...data });
 }
 
 function readWeatherCache() {
