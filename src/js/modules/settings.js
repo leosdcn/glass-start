@@ -106,23 +106,18 @@ function renderBgEffects(op) {
     lastBgEffects = { element: bgOverlay, opacity: op };
 }
 
-/** @param {number | string} opacity */
-export function applyBgEffects(opacity) {
-    updateBgEffects(opacity);
-}
-
 /** 滑块草稿与无障碍读数即时更新，全屏视觉每帧只消费最后一次输入。 */
 /** @param {string | number} value */
 export function previewDraftMaskOpacity(value) {
     modalState.draftMaskOpacity = parseInt(String(value), 10) || 0;
-    updateBgEffects(modalState.draftMaskOpacity, true);
+    applyBgEffects(modalState.draftMaskOpacity, true);
 }
 
 /**
  * @param {number | string} opacity
  * @param {boolean} [defer]
  */
-function updateBgEffects(opacity, defer = false) {
+export function applyBgEffects(opacity, defer = false) {
     const op = Math.max(0, Math.min(CONFIG.APPEARANCE.MAX_MASK_OPACITY, parseInt(String(opacity), 10) || 0));
     if (defer) {
         pendingBgEffects = { opacity: op };

@@ -1,6 +1,6 @@
 import { cancelDragSort } from './drag-sort.js';
 /** 页面唤醒协调；屏幕模块只负责屏幕状态。 */
-import { updateClock } from '../modules/clock.js';
+import { updateClock, stopClockTimer } from '../modules/clock.js';
 import { updateWeather } from '../modules/weather.js';
 import { checkServiceWorkerUpdate } from './service-worker-updates.js';
 import { resetActiveCard } from './gestures.js';
@@ -38,7 +38,8 @@ export function handleAppWakeUp(wasPersisted = false) {
 
 export function initAppWakeEvents() {
     document.addEventListener('visibilitychange', () => {
-        if (!document.hidden) handleAppWakeUp();
+        if (document.hidden) stopClockTimer();
+        else handleAppWakeUp();
     }, { passive: true });
     window.addEventListener('pageshow', e => handleAppWakeUp(e.persisted), { passive: true });
 }

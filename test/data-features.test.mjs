@@ -243,7 +243,7 @@ const resetBookmarksCheck = await evalJS(`(async () => {
 
   try {
     resetBookmarks();
-    const okBtn = dom.confirmOkBtn || $('confirmOkBtn');
+    const okBtn = dom.confirmOkBtn;
     if (okBtn) okBtn.click();
     const deadline = Date.now() + 3000;
     while (localStorage.getItem('userBookmarkKeys') !== null && Date.now() < deadline) {

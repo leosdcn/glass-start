@@ -64,7 +64,7 @@ export function setLastTimeStr(val) {
 /** @type {ReturnType<typeof setTimeout>|null} */
 let clockTimerId = null;
 
-function stopClockTimer() {
+export function stopClockTimer() {
     if (clockTimerId) {
         clearTimeout(clockTimerId);
         clockTimerId = null;
@@ -111,17 +111,6 @@ export function updateClock() {
     }
     scheduleClockTick();
 }
-
-if (typeof document !== 'undefined') {
-    document.addEventListener('visibilitychange', () => {
-        if (document.hidden) {
-            stopClockTimer();
-        } else {
-            updateClock();
-        }
-    }, { passive: true });
-}
-
 
 /**
  * @param {number} value

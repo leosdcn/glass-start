@@ -2,14 +2,8 @@
  * 高频 DOM 节点缓存池与选择器
  */
 
-/**
- * DOM 快速查找助手函数 (document.getElementById 封装)
- * @param {string} id - 目标 DOM 元素的 ID 字符串
- * @returns {HTMLElement|null} 返回匹配的 DOM 元素节点，未找到时返回 null
- */
-export function $(id) {
-    return document.getElementById(id);
-}
+/** @param {string} id */
+const $ = id => document.getElementById(id);
 
 // 高频 DOM 节点底层存储表
 /** @type {Partial<import('../types').DOMCache>} */

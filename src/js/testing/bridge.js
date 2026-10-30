@@ -55,7 +55,6 @@ Object.assign(window, {
     modalState: store.modalState,
     pageData: store.pageData,
     dom: domState.dom,
-    $: domState.$,
     OverlayStack: overlay_stack.OverlayStack,
     isScreenTransitioning: screen_state.isScreenTransitioning,
     switchToNav: screen_state.switchToNav,
