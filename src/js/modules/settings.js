@@ -577,7 +577,7 @@ export function cancelLanguageModal() {
     closeLanguageModal();
 }
 
-export function closeLanguageModal() {
+function closeLanguageModal() {
     OverlayStack.pop('languageModal');
     dom.languageBtn?.setAttribute('aria-expanded', 'false');
 }

@@ -2,7 +2,7 @@ const { watchFiles } = require('./watch.cjs');
 const { replaceOnce, injectDocumentShell } = require('./html-template.cjs');
 const fs = require('fs');
 const path = require('path');
-const { execSync, execFileSync } = require('child_process');
+const { execFileSync } = require('child_process');
 
 /**
  * ==============================================================================
@@ -13,7 +13,7 @@ const { execSync, execFileSync } = require('child_process');
  */
 
 // 终端格式化排版与 ANSI 彩色工具
-const { c, HR_DOUBLE, logSection, logItem, LINE_WIDTH } = require('./terminal.cjs');
+const { c, HR_DOUBLE, logSection, logItem } = require('./terminal.cjs');
 
 // 路径常量定义
 const ROOT_DIR = path.resolve(__dirname, '..');
@@ -337,16 +337,9 @@ function processProductionHtml(compiledCss, targetDir = PATHS.dist) {
         version: currentBuildVersion
     });
 
-    // 从 package.json 注入页面品牌卡片版本号。
-    try {
-        const pkgData = JSON.parse(fs.readFileSync(PATHS.pkgJson, 'utf-8'));
-        if (pkgData && pkgData.version) {
-            prodHtmlContent = prodHtmlContent.replace(
-                /(<span[^>]*class="[^"]*rounded-full[^"]*"[^>]*>)v?[0-9]+\.[0-9]+\.[0-9]+(<\/span>)/i,
-                `$1v${pkgData.version}$2`
-            );
-        }
-    } catch {}
+    // 品牌卡片版本号只由 package.json 提供。
+    const { version } = JSON.parse(fs.readFileSync(PATHS.pkgJson, 'utf-8'));
+    prodHtmlContent = replaceOnce(prodHtmlContent, '<!-- INJECT_APP_VERSION -->', `v${version}`);
 
     // 5.1 对 HTML 中所有的 <style> 和 <script> 标签内容进行全面压缩
     function minifyInlineStylesAndScripts(html) {
@@ -510,7 +503,7 @@ function main() {
 }
 
 // 增量构建流程 (供 Watch Mode 与外部服务器调用)
-function rebuild(changedFile = 'source') {
+function rebuild() {
     const startTime = Date.now();
     currentBuildVersion = 'app-core-v' + startTime;
     resetBuildMetrics();
@@ -560,10 +553,7 @@ module.exports = {
     main,
     rebuild,
     startWatch,
-    checkTailwindInstalled,
     injectThemeConfig,
-    injectWeatherNum,
-    injectHeadConfig,
     buildAppJavaScript,
     executeBuild,
     PATHS

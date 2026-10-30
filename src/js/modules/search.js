@@ -302,12 +302,6 @@ let lastCandidatesBookmarksRef = null;
 /** @type {import('../types').CategoryCatalog | null} */
 let lastCandidatesCatalogRef = null;
 
-export function invalidateSearchCandidates() {
-    cachedSearchCandidates = null;
-    lastCandidatesBookmarksRef = null;
-    lastCandidatesCatalogRef = null;
-}
-
 function getSearchCandidates() {
     const catalog = getCategoryCatalog(pageData.categories);
     if (cachedSearchCandidates && lastCandidatesBookmarksRef === pageData.bookmarks && lastCandidatesCatalogRef === catalog) {

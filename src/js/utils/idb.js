@@ -83,11 +83,6 @@ export function setWallpaperSelectionDB(selection) {
     });
 }
 
-/** @param {string} dataUrl @returns {Promise<boolean>} */
-export function setWallpaperDB(dataUrl) {
-    return setWallpaperSelectionDB({ wallpaper: dataUrl, bg: 0 });
-}
-
 /** @returns {Promise<boolean>} 删除事务提交成功返回 true。 */
 export function removeWallpaperDB() {
     return mutateWallpaperDB(store => {

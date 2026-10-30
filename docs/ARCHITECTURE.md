@@ -90,13 +90,13 @@ flowchart TD
     Assets --> ExtensionBuild
     ExtensionBuild --> Extension["extension/：本地脚本 · MV3 清单 · 静态资源（移除网页 SW）"]
     Main["main.js"] --> Init["init.js：装配业务模块"]
-    Main --> Lifecycle["core/lifecycle.js：诊断与指纹校验"]
+    Main --> Lifecycle["core/lifecycle.js：构建指纹校验"]
     Init --> State["state/store.js：内存状态"]
     Init --> Modules["modules/：书签、设置、搜索、天气、壁纸"]
     Modules --> Utils["utils/：数据清洗、目录索引、存储"]
 ```
 
-- `main.js`：启动初始化与生命周期诊断；业务之间通过模块导入调用。
+- `main.js`：启动初始化与构建指纹校验；业务之间通过模块导入调用。
 - `init.js` 与 `events.js`：应用装配入口，分别负责初始化和跨业务的全局事件协调。
 - `state/store.js`：持有 `state`、`modalState`、`pageData`，均为普通可变对象；调用方显式更新并触发渲染，不自动订阅变化。
 - `state/dom.js`：集中缓存通过 `dom.xxx` 或静态键访问的节点，新增或更名此类节点时同步更新 `cacheDOM()` 与 `types.d.ts` 的 `DOMCache` 类型。仅用于标签关联、无障碍描述或锚点的 ID 无须缓存。
@@ -211,13 +211,7 @@ Chrome（首屏已有的 `.is-chrome` 标记）为两屏保留 `will-change: tra
 
 导航卡片高光使用固定渐变纹理，指针每帧只改变相对卡片中心的位移与倾斜，不逐帧重建渐变背景。倾斜通过鼠标 Pointer Events 驱动，触摸输入会清除倾斜；支持悬停和精细指针的能力变化无需刷新页面即可生效。高光伪元素保留渐变实际可见的区域并由卡片裁切；悬停且允许动效时才设置合成提示，离开或启用减弱动效后释放提示。切屏期间暂停两屏书签卡片的指针命中和卡片/光斑/图标过渡，避免移动中的卡片经过光标时启动悬停重绘；过渡状态解除后恢复原有反馈。Safari 专项性能对照见 [2026-10-23 测试记录](./reports/2026-10-23-safari-performance.md)。
 
-`core/lifecycle.js` 提供 `window.__GLASS_DIAG__`（`verify`、`probe`、`dump`、`log`）：
-
-1. 启动时比较 HTML 与应用指纹。不一致时尝试以 SessionStorage 记录刷新时间，按冷却期限制刷新；存储不可用时该限制无法跨刷新可靠保留。
-2. `snapshotHealth()` 在首屏应显示且未过渡时检查变换矩阵及哨兵元素的宽度；它不检测真实像素或导航页完整可见性。
-3. 连续异常先校准状态，再切换首屏 `will-change` 并读取布局；第三次仅记录 `heal-reload-blocked` 并结束，不刷新页面。
-
-日志只保存在有容量上限的内存缓冲中；BFCache 恢复可保留，重新加载清空。控制台调用 `window.__GLASS_DIAG__.dump()` 取证，没有诊断 UI。
+`core/lifecycle.js` 在启动时比较 HTML 与应用指纹。不一致时尝试以 SessionStorage 记录刷新时间，按冷却期限制刷新；存储不可用时该限制无法跨刷新可靠保留。
 
 ## 浮层与无障碍
 

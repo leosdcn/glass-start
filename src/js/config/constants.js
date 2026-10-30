@@ -40,7 +40,7 @@ export const CONFIG = Object.freeze({
                 VERSION: 1,
                 STORES: Object.freeze({ WALLPAPERS: 'wallpapers' }),
                 KEYS: Object.freeze({
-                LANGUAGE: LANGUAGE_KEY, CUSTOM_WALLPAPER: 'customWallpaper', SELECTION: 'wallpaperSelection' })
+                    CUSTOM_WALLPAPER: 'customWallpaper', SELECTION: 'wallpaperSelection' })
             }),
             GESTURE: Object.freeze({
                 WHEEL_IDLE_MS: 180,         // 无滚轮输入后视为新一轮手势
@@ -162,7 +162,6 @@ export const CONFIG = Object.freeze({
             SECURITY: Object.freeze({
                 MAX_NAME_CHARS: 60,           // 导入书签名称截断字符上限
                 MAX_DESC_CHARS: 40,           // 导入书签描述截断字符上限
-                LOG_MSG_MAX_CHARS: 120,       // 黑匣子日志单条错误信息截断上限
                 IME_COMPOSITION_KEY_CODE: 229 // Android Chrome 虚拟键盘 IME 组合态 keyCode 兼容防护
             }),
             SHORTCUTS: Object.freeze([

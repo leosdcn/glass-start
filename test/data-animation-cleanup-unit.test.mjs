@@ -17,7 +17,7 @@ const { outputFiles } = await build({
                 'closeShortcutModal', 'openCreditsModal', 'closeCreditsModal', 'openBookmarkPicker',
                 'closeBookmarkPicker', 'updatePickerAvailability', 'switchSettingsTab', 'previewDraftMaskOpacity',
                 'resetBookmarks', 'importBookmarksJSON', 'exportBookmarksJSON', 'syncLanguageUI',
-                'openLanguageModal', 'closeLanguageModal', 'saveLanguageModal', 'cancelLanguageModal',
+                'openLanguageModal', 'saveLanguageModal', 'cancelLanguageModal',
                 'selectLanguage', 'selectDraftTransitionMode', 'closeWallpaperUrlInput'].map(name => `${name}=()=>{}`).join(',')
         }));
         b.onLoad({ filter: /modules\/wallpaper\.js$/ }, () => ({ contents:

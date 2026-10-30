@@ -470,11 +470,6 @@ let inFlightWeatherPromise = null;
 
 const isWeatherRecord = (/** @type {any} */ value) => value !== null && typeof value === 'object' && !Array.isArray(value);
 
-/** @param {import('../types').WeatherData} data */
-function saveWeatherCache(data) {
-    storageSet(CONFIG.KEYS.WEATHER_CACHE, { schemaVersion: 2, ...data });
-}
-
 function readWeatherCache() {
     const cache = storageGet(CONFIG.KEYS.WEATHER_CACHE, null);
     if (!cache) return null;
@@ -520,7 +515,7 @@ async function executeWeatherUpdate(cache, force) {
             const locationPromise = resolveWeatherLocation(false);
 
             const freshData = await forecastPromise;
-            saveWeatherCache(freshData);
+            storageSet(CONFIG.KEYS.WEATHER_CACHE, freshData);
             renderWeatherCapsule(freshData);
             renderWeatherPopover(freshData);
 
@@ -530,7 +525,7 @@ async function executeWeatherUpdate(cache, force) {
             if (newLoc && (Math.abs(newLoc.lat - knownLoc.lat) > CONFIG.WEATHER.LOCATION_DRIFT_THRESHOLD || Math.abs(newLoc.lon - knownLoc.lon) > CONFIG.WEATHER.LOCATION_DRIFT_THRESHOLD || newLoc.name !== knownLoc.name || newLoc.fullName !== knownLoc.fullName)) {
                 try {
                     const relocatedData = await fetchWeatherForecast(newLoc);
-                    saveWeatherCache(relocatedData);
+                    storageSet(CONFIG.KEYS.WEATHER_CACHE, relocatedData);
                     renderWeatherCapsule(relocatedData);
                     renderWeatherPopover(relocatedData);
                 } catch {}
@@ -538,7 +533,7 @@ async function executeWeatherUpdate(cache, force) {
         } else {
             const loc = await resolveWeatherLocation(force);
             const freshData = await fetchWeatherForecast(loc);
-            saveWeatherCache(freshData);
+            storageSet(CONFIG.KEYS.WEATHER_CACHE, freshData);
             renderWeatherCapsule(freshData);
             renderWeatherPopover(freshData);
         }

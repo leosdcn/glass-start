@@ -12,6 +12,9 @@ const { server, chrome, send, evalJS } = await launchSession(0, {
   }, 350)
 });
 
+const exceptions = [];
+send('Runtime.exceptionThrown', event => exceptions.push(event.exceptionDetails));
+
 try {
   await waitFor(evalJS, 'typeof openEditModal === "function"');
   await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] });
@@ -207,7 +210,7 @@ try {
   await waitFor(evalJS, "window.__AUDIT_RELOAD__ && typeof state !== 'undefined' && document.getElementById('bookmarks').children.length > 0");
   await evalJS('dom.editBookmarksBtn.click()');
   await waitFor(evalJS, 'state.editOpen && dom.editModal.classList.contains("active")');
-  assert.equal(await evalJS("__GLASS_DIAG__.dump().every(entry => entry.ev !== 'js-error')"), true);
+  assert.deepEqual(exceptions, []);
   console.log('✅ 损坏天气缓存刷新后书签正常渲染、设置可打开，无未捕获异常');
 } finally {
   await chrome.close();

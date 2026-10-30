@@ -29,4 +29,4 @@ function injectDocumentShell(html, { css, svg, version }) {
     return html;
 }
 
-module.exports = { replaceOnce, replaceRegion, injectDocumentShell };
+module.exports = { replaceOnce, injectDocumentShell };

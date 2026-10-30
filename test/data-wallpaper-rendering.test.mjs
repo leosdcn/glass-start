@@ -4,7 +4,7 @@ import { test } from 'node:test';
 
 await test("解码、迟到结果隔离与上传压缩", async () => {
     const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+j1ioAAAAASUVORK5CYII=', 'base64');
-    const { server, chrome, send, evalJS } = await launchSession(0, { '/decode.png': (req, res) => {
+    const { server, chrome, evalJS } = await launchSession(0, { '/decode.png': (req, res) => {
       res.writeHead(200, { 'Content-Type': 'image/png' }); res.end(png);
     } });
     try {

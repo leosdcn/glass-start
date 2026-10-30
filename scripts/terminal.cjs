@@ -25,4 +25,4 @@ function logItem(msg, status = 'ok') {
     console.log(`  ${icons[status] || icons.error}${c.reset} ${msg}`);
 }
 
-module.exports = { c, LINE_WIDTH, HR_DOUBLE, getVisualWidth, logSection, logItem };
+module.exports = { c, LINE_WIDTH, HR_DOUBLE, logSection, logItem };

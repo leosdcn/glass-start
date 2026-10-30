@@ -16,7 +16,7 @@ const navFilename = language === 'en' ? 'preview-nav-en.png' : 'preview-nav.png'
 
 await mkdir(OUTPUT_DIR, { recursive: true });
 
-console.log('🚀 正在启动具备真实 GPU 硬件加速的 Chrome 会话...');
+console.log('🚀 正在启动允许 GPU 加速的 Chrome 截图会话...');
 const server = await startServer(0, undefined, {}, { testMode: true });
 const cdpPort = await getFreePort();
 const targetUrl = `http://127.0.0.1:${server.port}/index.html`;
@@ -67,7 +67,6 @@ try {
           temp: 21,
           apparent: 21,
           weatherCode: 1,
-          weatherText: '晴间多云',
           icon: '🌤️',
           isDay: true,
           humidity: 55,
@@ -82,13 +81,13 @@ try {
           sunsetTomorrow: '17:14'
         },
         daily: [
-          { date: '2026-10-27', label: '今天', icon: '🌤️', text: '晴间多云', tempMax: 23, tempMin: 15 },
-          { date: '2026-10-28', label: '明天', icon: '☀️', text: '晴', tempMax: 24, tempMin: 16 },
-          { date: '2026-10-29', label: '周四', icon: '⛅', text: '多云', tempMax: 22, tempMin: 15 },
-          { date: '2026-10-30', label: '周五', icon: '☁️', text: '阴', tempMax: 20, tempMin: 14 },
-          { date: '2026-10-31', label: '周六', icon: '🌦️', text: '局部阵雨', tempMax: 19, tempMin: 13 },
-          { date: '2026-11-01', label: '周日', icon: '☀️', text: '晴', tempMax: 21, tempMin: 12 },
-          { date: '2026-11-02', label: '周一', icon: '🌤️', text: '晴间多云', tempMax: 22, tempMin: 13 }
+          { date: '2026-10-27', weatherCode: 1, icon: '🌤️', tempMax: 23, tempMin: 15 },
+          { date: '2026-10-28', weatherCode: 0, icon: '☀️', tempMax: 24, tempMin: 16 },
+          { date: '2026-10-29', weatherCode: 2, icon: '⛅', tempMax: 22, tempMin: 15 },
+          { date: '2026-10-30', weatherCode: 3, icon: '☁️', tempMax: 20, tempMin: 14 },
+          { date: '2026-10-31', weatherCode: 80, icon: '🌦️', tempMax: 19, tempMin: 13 },
+          { date: '2026-11-01', weatherCode: 0, icon: '☀️', tempMax: 21, tempMin: 12 },
+          { date: '2026-11-02', weatherCode: 1, icon: '🌤️', tempMax: 22, tempMin: 13 }
         ]
       };
 
@@ -150,7 +149,7 @@ try {
     execSync(`sips -Z 1440 "${join(OUTPUT_DIR, navFilename)}"`, { stdio: 'ignore' });
   } catch(e) {}
 
-  console.log('✅ 实机截图已成功生成至 docs/assets/ !');
+  console.log('✅ Chrome 截图已成功生成至 docs/assets/ !');
 } finally {
   await chrome.close();
   await server.close();

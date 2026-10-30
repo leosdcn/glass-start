@@ -70,7 +70,6 @@ if (existsSync(headersPath)) {
   const appCc = rules['/app.js']?.['cache-control'] || '';
   const manifestCc = rules['/manifest.json']?.['cache-control'] || '';
   const iconCc = rules['/apple-touch-icon.png']?.['cache-control'] || '';
-  const wpCc = rules['/wallpapers/*']?.['cache-control'] || '';
   const validNoCache = indexCc.includes('max-age=0') && rootCc.includes('max-age=0') && swCc.includes('max-age=0') && appCc.includes('max-age=0') && manifestCc.includes('max-age=0') && !appCc.includes('immutable');
   const validWp = ['wallpapers', 'icons'].every(dir => { const cc = rules['/' + dir + '/*']?.['cache-control'] || ''; return cc.includes('max-age=0') && cc.includes('must-revalidate') && !cc.includes('immutable'); });
   const validIcon = iconCc.includes('max-age=604800');
@@ -101,7 +100,7 @@ const buildWatcherPathsOk = buildPathsHasSrcIndexHtml && subscriptions.length ==
   && expectedWatchPaths.every(path => subscriptions.filter(item => item.path === path).length === 1)
   && subscriptions.every(item => item.recursive === statSync(item.path).isDirectory());
 
-pass('dist/ 产物完整性与 Cache-Control 标头规则 (产物齐全/全链路协商缓存/壁纸强缓存/同步/构建Watcher路径合规)',
+pass('dist/ 产物完整性与 Cache-Control 标头规则 (产物齐全/全链路协商缓存/壁纸协商缓存/同步/构建Watcher路径合规)',
   filesExistOk && headersOk && buildWatcherPathsOk,
   filesExistOk && headersOk && buildWatcherPathsOk ? '产物与响应头100%合规且Watcher监听路径合法' : `缺失: ${missingFiles.join(', ')}, watcherOk: ${buildWatcherPathsOk}`);
 

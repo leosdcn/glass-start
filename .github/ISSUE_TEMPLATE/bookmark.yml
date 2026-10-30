@@ -32,18 +32,12 @@ body:
       placeholder: 例如：在线图片编辑工具
     validations:
       required: true
-  - type: dropdown
+  - type: input
     id: target_category
     attributes:
       label: 拟归属分类
-      options:
-        - 常用工具
-        - 影音娱乐
-        - 设计创意
-        - 学习办公
-        - 开发运维
-        - 科技资讯
-        - 其他
+      description: 请填写项目当前分类名称；没有合适分类时可提出建议。
+      placeholder: 例如：办公协作、创意设计、开发技术
     validations:
       required: true
   - type: checkboxes

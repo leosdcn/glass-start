@@ -8,7 +8,6 @@
 import { readFileSync, writeFileSync, statSync, existsSync, readdirSync } from 'node:fs';
 import { join, dirname, relative } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { spawnSync } from 'node:child_process';
 import vm from 'node:vm';
 import { parse as parseJs } from 'acorn';
 import { inspectDOMSources } from './lint-dom.mjs';
@@ -64,25 +63,10 @@ if (isFixMode) {
         return '<svg aria-hidden="true"';
     });
 
-    // 3. 自动同步 src/index.html 品牌卡片版本号徽章 (对齐 package.json)
-    try {
-        const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf-8'));
-        if (pkg.version) {
-            const nextFixedHtml = fixedHtml.replace(
-                /(<span[^>]*class="[^"]*rounded-full[^"]*"[^>]*>)v?[0-9]+\.[0-9]+\.[0-9]+(<\/span>)/i,
-                `$1v${pkg.version}$2`
-            );
-            if (nextFixedHtml !== fixedHtml) {
-                fixCount++;
-                fixedHtml = nextFixedHtml;
-            }
-        }
-    } catch {}
-
     if (fixCount > 0) {
         writeFileSync(htmlPath, fixedHtml, 'utf-8');
         indexHtml = fixedHtml;
-        console.log(`  ${c.green}⚡ [Auto-Fix] 已自动修复 src/index.html 中 ${fixCount} 处机械性无障碍属性与版本徽章规范！${c.reset}`);
+        console.log(`  ${c.green}⚡ [Auto-Fix] 已自动修复 src/index.html 中 ${fixCount} 处机械性无障碍属性！${c.reset}`);
     }
 }
 
@@ -194,10 +178,10 @@ for (const item of jsonFiles) {
     }
 }
 
-// ---- 4. 架构规范守门检查 (版本号全量对齐 & iOS 16px 规范) ----
-logSection('4/4', '🛡️  校验版本号全量对齐与移动端输入规范');
+// ---- 4. 架构规范守门检查 (版本来源 & iOS 16px 规范) ----
+logSection('4/4', '🛡️  校验版本来源与移动端输入规范');
 
-// 4.1 版本号一致性检查 (package.json / package-lock.json / index.html)
+// 4.1 锁文件版本同步，HTML 只保留唯一构建插槽
 try {
     const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf-8'));
     const lock = JSON.parse(readFileSync(join(root, 'package-lock.json'), 'utf-8'));
@@ -209,19 +193,14 @@ try {
     // 单一真理源校验：package.json 与 package-lock.json 保持同步
     const isLockSynced = lockVersion === expectedVersion && lockPkgVersion === expectedVersion;
 
-    // 校验 src/index.html 品牌卡片版本号徽章同步状态
-    let isHtmlSynced = true;
-    const htmlBadgeMatch = indexHtml.match(/<span[^>]*class="[^"]*rounded-full[^"]*"[^>]*>v?([0-9]+\.[0-9]+\.[0-9]+)<\/span>/i);
-    if (!htmlBadgeMatch || htmlBadgeMatch[1] !== expectedVersion) {
-        isHtmlSynced = false;
-    }
+    const hasVersionSlot = indexHtml.split('<!-- INJECT_APP_VERSION -->').length === 2;
 
-    if (expectedVersion && isLockSynced && isHtmlSynced) {
+    if (expectedVersion && isLockSynced && hasVersionSlot) {
         passCount++;
-        logItem(`版本号单一真理源 (v${expectedVersion}) package.json、package-lock.json 与 src/index.html 100% 对齐`);
+        logItem(`版本号单一真理源 (v${expectedVersion}) 锁文件同步，HTML 由构建注入`);
     } else {
         failCount++;
-        logItem(`版本号未对齐: pkg=${expectedVersion}, lock=${lockVersion}, lockPkg=${lockPkgVersion}, htmlSynced=${isHtmlSynced}`, 'error');
+        logItem(`版本号未对齐: pkg=${expectedVersion}, lock=${lockVersion}, lockPkg=${lockPkgVersion}, htmlSlot=${hasVersionSlot}`, 'error');
     }
 } catch (e) {
     failCount++;

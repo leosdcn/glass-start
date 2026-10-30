@@ -212,21 +212,6 @@ export interface DOMCache {
     [key: string]: HTMLElement | null;
 }
 
-/** 运行时黑匣子环形日志条目 */
-export interface GlassDiagEntry {
-    t: number;
-    ev: string;
-    d: unknown;
-}
-
-/** 运行时黑匣子全局诊断对象 */
-export interface GlassDiag {
-    verify(htmlBuild?: string, jsBuild?: string): { mismatch: boolean; mayReload: boolean };
-    probe(): void;
-    dump(): GlassDiagEntry[];
-    log(event: string, detail?: unknown): void;
-}
-
 export type TranslationMessage = string | Record<string, string>;
 
 declare global {
@@ -252,7 +237,6 @@ declare global {
         __INITIAL_THEME__?: { color: string; isLight: boolean; themeColor?: string };
         __GLASS_BUILD_HTML__?: string;
         __GLASS_BUILD_APP__?: string;
-        __GLASS_DIAG__?: GlassDiag;
         __GLASS_TEST__?: boolean;
         /** 构建时替换，扩展包不包含 JSONP 请求分支。 */
         __GLASS_EXTENSION__?: boolean;

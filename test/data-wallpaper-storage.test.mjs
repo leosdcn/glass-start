@@ -20,7 +20,7 @@ await test("选择提交、事务失败与会话隔离", async () => {
     };
     let writeFalse, commitFalse, unchanged, previewOnly, blocked;
     try {
-      writeFalse = await setWallpaperDB(next) === false;
+      writeFalse = await setWallpaperSelectionDB({ wallpaper: next, bg: 0 }) === false;
       commitFalse = await commitWallpaperSelection(next) === false;
       unchanged = await getWallpaperDB() === old && state.customWallpaper === old && modalState.initialWallpaper === old;
       previewOnly = await previewDraftWallpaper(next) === true && await getWallpaperDB() === old;
