@@ -380,7 +380,7 @@ function renderSuggestions(localList = [], netList = [], preserveSelection = fal
     }
 
     const existingBookmarkMap = new Map();
-    suggestionMenu.querySelectorAll(':scope > .suggestion-item[data-type="bookmark"]').forEach(el => {
+    suggestionMenu.querySelectorAll(':scope > .suggestion-item[data-url]').forEach(el => {
         const u = el.getAttribute('data-url');
         if (u) existingBookmarkMap.set(u, /** @type {HTMLElement} */ (el));
     });
@@ -417,9 +417,7 @@ function renderSuggestions(localList = [], netList = [], preserveSelection = fal
                 const itemFrag = range.createContextualFragment(`
                     <div id="sug-opt-${globalIdx}"
                          role="option" aria-selected="false" 
-                         data-type="bookmark" 
                          data-url="${escapeHtml(bm.url)}" 
-                         data-suggestion="${escapeHtml(bm.name)}" 
                          data-idx="${globalIdx}"
                          class="suggestion-item group px-3.5 py-2.5 my-0.5 apple-radius text-sm text-white/90 flex items-center gap-3 glass-interactive cursor-pointer hover:text-white">
                         ${iconHtml}
@@ -446,8 +444,6 @@ function renderSuggestions(localList = [], netList = [], preserveSelection = fal
             netHtml += `
                 <div id="sug-opt-${globalIdx}"
                      role="option" aria-selected="false" 
-                     data-type="query" 
-                     data-suggestion="${escapeHtml(item)}" 
                      data-idx="${globalIdx}"
                      class="suggestion-item group px-3.5 py-2.5 my-0.5 apple-radius text-sm text-white/85 flex items-center gap-3 glass-interactive cursor-pointer hover:text-white">
                     <svg class="w-5 h-5 text-white/40 group-hover:text-white/80 shrink-0 pointer-events-none select-none transition-colors" aria-hidden="true"><use href="#icon-search"/></svg>

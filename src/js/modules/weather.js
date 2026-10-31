@@ -219,11 +219,9 @@ export function renderWeatherCapsule(data) {
 
     if (weatherIcon) {
         const iconStr = data.current.icon || '';
-        if (weatherIcon.dataset && (weatherIcon.dataset.icon !== iconStr || !weatherIcon.querySelector('img'))) {
+        if (weatherIcon.dataset.icon !== iconStr || !weatherIcon.querySelector('img')) {
             weatherIcon.dataset.icon = iconStr;
             weatherIcon.innerHTML = getWeatherIconHTML(iconStr, 'size-4 sm:size-4.5');
-        } else if (!weatherIcon.dataset && weatherIcon.textContent !== iconStr) {
-            weatherIcon.textContent = iconStr;
         }
     }
     if (weatherTemp) {
@@ -348,19 +346,17 @@ export function renderWeatherPopover(data) {
         popIcon = '☂️';
     }
 
-    const humVal = c.humidity !== undefined ? c.humidity : CONFIG.WEATHER.DEFAULT_HUMIDITY;
     let humIcon = '💧';
-    if (humVal < CONFIG.WEATHER.HUMIDITY_LOW_THRESHOLD) {
+    if (c.humidity < CONFIG.WEATHER.HUMIDITY_LOW_THRESHOLD) {
         humIcon = '🌵';
-    } else if (humVal > CONFIG.WEATHER.HUMIDITY_HIGH_THRESHOLD) {
+    } else if (c.humidity > CONFIG.WEATHER.HUMIDITY_HIGH_THRESHOLD) {
         humIcon = '💦';
     }
 
-    const windVal = c.windSpeed !== undefined ? c.windSpeed : 0;
     let windIcon = '🍃';
-    if (windVal >= CONFIG.WEATHER.WIND_HIGH_THRESHOLD) {
+    if (c.windSpeed >= CONFIG.WEATHER.WIND_HIGH_THRESHOLD) {
         windIcon = '🌪️';
-    } else if (windVal >= CONFIG.WEATHER.WIND_MID_THRESHOLD) {
+    } else if (c.windSpeed >= CONFIG.WEATHER.WIND_MID_THRESHOLD) {
         windIcon = '🎏';
     }
 

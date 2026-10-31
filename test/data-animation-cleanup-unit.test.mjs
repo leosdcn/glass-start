@@ -16,7 +16,7 @@ const { outputFiles } = await build({
             'export const ' + ['openEditModal', 'saveEditModal', 'cancelEditModal', 'openShortcutModal',
                 'closeShortcutModal', 'openCreditsModal', 'closeCreditsModal', 'openBookmarkPicker',
                 'closeBookmarkPicker', 'updatePickerAvailability', 'switchSettingsTab', 'previewDraftMaskOpacity',
-                'resetBookmarks', 'importBookmarksJSON', 'exportBookmarksJSON', 'syncLanguageUI',
+                'resetBookmarks', 'importBookmarksJSON', 'exportBookmarksJSON',
                 'openLanguageModal', 'saveLanguageModal', 'cancelLanguageModal',
                 'selectLanguage', 'selectDraftTransitionMode', 'closeWallpaperUrlInput'].map(name => `${name}=()=>{}`).join(',')
         }));

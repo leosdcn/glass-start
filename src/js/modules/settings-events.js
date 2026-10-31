@@ -15,7 +15,7 @@ import { dom } from '../state/dom.js';
 import { initDragSort } from '../core/drag-sort.js';
 
 import { uploadWallpaper, previewDraftWallpaper, resetDraftWallpaper } from './wallpaper.js';
-import { openEditModal, saveEditModal, cancelEditModal, openShortcutModal, closeShortcutModal, openCreditsModal, closeCreditsModal, openBookmarkPicker, closeBookmarkPicker, updatePickerAvailability, switchSettingsTab, previewDraftMaskOpacity, resetBookmarks, importBookmarksJSON, exportBookmarksJSON, syncLanguageUI, openLanguageModal, saveLanguageModal, cancelLanguageModal, selectLanguage, selectDraftTransitionMode, closeWallpaperUrlInput } from './settings.js';
+import { openEditModal, saveEditModal, cancelEditModal, openShortcutModal, closeShortcutModal, openCreditsModal, closeCreditsModal, openBookmarkPicker, closeBookmarkPicker, updatePickerAvailability, switchSettingsTab, previewDraftMaskOpacity, resetBookmarks, importBookmarksJSON, exportBookmarksJSON, openLanguageModal, saveLanguageModal, cancelLanguageModal, selectLanguage, selectDraftTransitionMode, closeWallpaperUrlInput } from './settings.js';
 import { updateAllBookmarkCounters, getEditFaviconInner, getExistingUrls, handleEditIconError, appendDraftBookmarkRow } from './bookmark-editor.js';
 import { showConfirm } from '../core/dialogs.js';
 import { finishPendingTransition, onTransitionSettled } from '../utils/transition-cleanup.js';
@@ -35,10 +35,6 @@ export function bindEditEvents() {
         if (btn?.dataset.lang) {
             selectLanguage(btn.dataset.lang);
         }
-    });
-    dom.languageSelect?.addEventListener('change', () => {
-        modalState.draftLanguage = dom.languageSelect?.value || 'auto';
-        syncLanguageUI();
     });
     document.querySelectorAll('#editModal > div, #bookmarkPicker > div, #confirmModal > div, #shortcutModal > div, #creditsModal > div, #languageModal > div').forEach(el => {
         el.addEventListener('click', e => e.stopPropagation());
@@ -223,17 +219,7 @@ export function bindEditEvents() {
     }
 
     // JSON 导入导出事件绑定
-    if (dom.exportJsonBtn) {
-        dom.exportJsonBtn.addEventListener('click', async () => {
-            if (dom.exportJsonBtn?.disabled) return;
-            if (dom.exportJsonBtn) dom.exportJsonBtn.disabled = true;
-            try {
-                await exportBookmarksJSON();
-            } finally {
-                if (dom.exportJsonBtn) dom.exportJsonBtn.disabled = false;
-            }
-        });
-    }
+    dom.exportJsonBtn?.addEventListener('click', exportBookmarksJSON);
     if (dom.importJsonInput) {
         dom.importJsonInput.addEventListener('change', e => {
             const targetInput = e.target instanceof HTMLInputElement ? e.target : null;

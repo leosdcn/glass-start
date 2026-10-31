@@ -8,9 +8,9 @@ const chooseEnglish = async () => {
     await evalJS(`(async () => {
         await openEditModal();
         document.getElementById('tab-btn-data').click();
-        dom.languageSelect.value = 'en';
-        dom.languageSelect.dispatchEvent(new Event('change', { bubbles: true }));
-        dom.saveEditBtn.click();
+        dom.languageBtn.click();
+        dom.languageList.querySelector('[data-lang="en"]').click();
+        dom.doneLanguageBtn.click();
     })()`);
     await ready();
 };
@@ -21,8 +21,15 @@ try {
         ['GitHub', 'DeepSeek', 'Gemini', 'YouTube', '哔哩哔哩', '抖音', '豆包', '网易云音乐']);
     await evalJS(`(async () => {
         await openEditModal();
-        dom.languageSelect.value = 'en';
-        dom.languageSelect.dispatchEvent(new Event('change', { bubbles: true }));
+        dom.languageBtn.click();
+        dom.languageList.querySelector('[data-lang="en"]').click();
+        dom.cancelLanguageBtn.click();
+    })()`);
+    assert.equal(await evalJS(`modalState.draftLanguage`), 'auto', 'language dialog cancel restores its initial draft');
+    assert.equal(await evalJS(`dom.languageList.querySelector('[data-lang="auto"]').getAttribute('aria-checked')`), 'true');
+    await evalJS(`(() => {
+        dom.languageBtn.click();
+        dom.languageList.querySelector('[data-lang="en"]').click();
         cancelEditModal();
     })()`);
     assert.equal(await evalJS(`localStorage.getItem('glass_language')`), null, 'cancel does not save language');

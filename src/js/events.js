@@ -133,7 +133,7 @@ export function bindEvents() {
     if (suggestionMenu) {
         suggestionMenu.addEventListener('click', e => {
             const targetEl = e.target instanceof Element ? e.target : null;
-            const item = /** @type {HTMLElement|null} */ (targetEl?.closest('[data-suggestion]'));
+            const item = /** @type {HTMLElement|null} */ (targetEl?.closest('.suggestion-item'));
             if (!item || !item.dataset.idx) return;
             e.stopPropagation();
             const isNewTab = e.altKey || e.metaKey || e.ctrlKey;

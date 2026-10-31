@@ -150,7 +150,6 @@ export interface DOMCache {
     languageList: HTMLElement | null;
     doneLanguageBtn: HTMLButtonElement | null;
     cancelLanguageBtn: HTMLButtonElement | null;
-    languageSelect: HTMLSelectElement | null;
     cancelEditBtn: HTMLButtonElement | null;
     resetEditBtn: HTMLButtonElement | null;
     togglePickerBtn: HTMLButtonElement | null;

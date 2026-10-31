@@ -166,7 +166,6 @@ export async function openEditModal() {
     modalState.draftTransitionMode = modalState.initialTransitionMode;
     modalState.wallpaperSaveFailed = false;
     modalState.draftLanguage = getLanguagePreference();
-    if (dom.languageSelect) dom.languageSelect.value = modalState.draftLanguage;
     syncLanguageUI();
     syncTransitionSwitcherActive(modalState.draftTransitionMode);
     closeLanguageModal();
@@ -567,7 +566,6 @@ export function openLanguageModal(trigger = dom.languageBtn) {
 
 export function cancelLanguageModal() {
     modalState.draftLanguage = initialLanguageOnOpen;
-    if (dom.languageSelect) dom.languageSelect.value = initialLanguageOnOpen;
     syncLanguageUI();
     closeLanguageModal();
 }
@@ -599,9 +597,6 @@ export async function saveLanguageModal() {
 /** @param {string} lang */
 export function selectLanguage(lang) {
     modalState.draftLanguage = lang;
-    if (dom.languageSelect) {
-        dom.languageSelect.value = lang;
-    }
     syncLanguageUI();
 }
 
@@ -611,11 +606,8 @@ export function selectDraftTransitionMode(mode) {
     syncTransitionSwitcherActive(mode);
 }
 
-export function syncLanguageUI() {
+function syncLanguageUI() {
     const currentLang = modalState.draftLanguage || 'auto';
-    if (dom.languageSelect && dom.languageSelect.value !== currentLang) {
-        dom.languageSelect.value = currentLang;
-    }
     if (dom.languageList) {
         dom.languageList.querySelectorAll('button[data-lang]').forEach(el => {
             const btn = /** @type {HTMLButtonElement} */ (el);

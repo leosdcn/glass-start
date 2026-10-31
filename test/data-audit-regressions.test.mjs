@@ -45,13 +45,19 @@ try {
       const item=dom.suggestionMenu.querySelector('[data-idx="1"]');
       item.dispatchEvent(new MouseEvent('mouseover',{bubbles:true}));
       const selected=selectedSuggestionIdx;
-      item.dataset.suggestion='tampered-result';
+      item.textContent='tampered-result';
       dom.searchInput.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',ctrlKey:true,bubbles:true,cancelable:true}));
-      return {selected, usesModel:opened.includes('second-result')&&!opened.includes('tampered-result')};
+      const keyboardUsesModel=opened.includes('second-result')&&!opened.includes('tampered-result');
+      fetchSuggestions('bing','audit-unmatched-query');
+      const clickTarget=dom.suggestionMenu.querySelector('[data-idx="1"] span');
+      clickTarget.textContent='tampered-click';
+      opened='';
+      clickTarget.dispatchEvent(new MouseEvent('click',{ctrlKey:true,bubbles:true}));
+      return {selected, usesModel:keyboardUsesModel&&opened.includes('second-result')&&!opened.includes('tampered-click')};
     } finally {document.body.appendChild=append;window.open=open;hideSuggestions()}
   })()`);
   assert.deepEqual(activation,{selected:1,usesModel:true});
-  console.log('✅ 鼠标与键盘选中状态一致，Enter 使用内存结果，不反向读取 DOM 文本');
+  console.log('✅ 鼠标与键盘选中状态一致，点击和 Enter 使用内存结果，不反向读取 DOM 文本');
 
 
   await evalJS(`(async () => {
