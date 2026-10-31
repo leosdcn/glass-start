@@ -301,16 +301,16 @@ export function renderWeatherPopover(data) {
     const loc = /** @type {import('../types').WeatherLocation} */ (data.location || {});
     const days = (Array.isArray(data.daily) ? data.daily : []).filter(isWeatherRecord).map((/** @type {any} */ d, /** @type {number} */ index) => ({
         ...d,
-        label: getLocale() === 'en' || d.weatherCode !== undefined ? forecastLabel(d.date, index) : (typeof d.label === 'string' ? d.label.slice(0, CONFIG.WEATHER.LABEL_MAX_CHARS) : ''),
+        label: forecastLabel(d.date, index) || (typeof d.label === 'string' ? d.label.slice(0, CONFIG.WEATHER.LABEL_MAX_CHARS) : ''),
         icon: (typeof d.icon === 'string' && d.icon) ? d.icon : '⛅',
-        text: getLocale() === 'en' || d.weatherCode !== undefined ? weatherDescription(d.weatherCode) : (typeof d.text === 'string' ? d.text.slice(0, CONFIG.SECURITY.MAX_DESC_CHARS) : ''),
+        text: (d.weatherCode !== undefined ? weatherDescription(d.weatherCode) : '') || (typeof d.text === 'string' ? d.text.slice(0, CONFIG.SECURITY.MAX_DESC_CHARS) : ''),
         tempMax: Math.round(weatherNum(d.tempMax, 0)),
         tempMin: Math.round(weatherNum(d.tempMin, 0))
     }));
 
     let sunIcon = '🌅';
     let sunLabel = t('ui.sunset.today');
-    let sunTime = c.sunset || '--:--';
+    let sunTime = c.sunsetToday || c.sunset || '--:--';
     try {
         const now = new Date();
         const nowMins = now.getHours() * 60 + now.getMinutes();
@@ -325,15 +325,15 @@ export function renderWeatherPopover(data) {
         if (setTodayMins !== null && nowMins >= setTodayMins) {
             sunIcon = '🌄';
             sunLabel = t('ui.sunrise.tomorrow');
-            sunTime = c.sunriseTomorrow || c.sunriseToday || c.sunrise || '--:--';
+            sunTime = c.sunriseTomorrow || c.sunriseToday || '--:--';
         } else if (riseTodayMins !== null && nowMins < riseTodayMins) {
             sunIcon = '🌄';
             sunLabel = t('ui.sunrise.today');
-            sunTime = c.sunriseToday || c.sunrise || '--:--';
+            sunTime = c.sunriseToday || '--:--';
         } else {
             sunIcon = '🌅';
             sunLabel = t('ui.sunset.today');
-            sunTime = c.sunsetToday || c.sunset || '--:--';
+            sunTime = c.sunsetToday || '--:--';
         }
     } catch (_) {}
     sunTime = weatherTime(sunTime);
@@ -474,6 +474,13 @@ function readWeatherCache() {
         storageRemove(CONFIG.KEYS.WEATHER_CACHE);
         return null;
     }
+    const c = cache.current;
+    c.sunriseToday = c.sunriseToday || c.sunrise || '--:--';
+    c.sunsetToday = c.sunsetToday || c.sunset || '--:--';
+    c.sunriseTomorrow = c.sunriseTomorrow || c.sunriseToday;
+    c.sunsetTomorrow = c.sunsetTomorrow || c.sunsetToday;
+    c.sunrise = c.sunrise || c.sunriseToday;
+    c.sunset = c.sunset || c.sunsetToday;
     return cache;
 }
 

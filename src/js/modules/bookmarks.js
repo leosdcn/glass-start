@@ -255,11 +255,11 @@ function getBookmarkCardHTML(bm) {
 }
 
 let lastBookmarksSignature = '';
-export function renderBookmarks(force = false) {
+export function renderBookmarks() {
     const bookmarksEl = dom.bookmarks;
     if (!bookmarksEl) return;
     const currentSig = JSON.stringify(pageData.bookmarks);
-    if (!force && lastBookmarksSignature && currentSig === lastBookmarksSignature) return;
+    if (lastBookmarksSignature && currentSig === lastBookmarksSignature) return;
     lastBookmarksSignature = currentSig;
 
     const existingMap = new Map();

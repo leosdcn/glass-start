@@ -530,7 +530,7 @@ try {
     const loadConfig = relativePath => import(pathToFileURL(join(root, relativePath)).href);
     const [
         { PRESET_BACKGROUNDS },
-        { PRESET_WALLPAPER_THEMES, PRESET_WALLPAPER_TINTS, PRESET_WALLPAPER_THEME_COLORS },
+        { PRESET_THEMES, PRESET_TINTS, PRESET_THEME_COLORS },
         { ENGINE_META },
         { ENGINE_SVGS },
         { WEATHER_EMOJI_MAP }
@@ -542,14 +542,14 @@ try {
         loadConfig('src/js/config/weather-icons.js')
     ]);
     const errors = [];
-    if (PRESET_BACKGROUNDS.length !== PRESET_WALLPAPER_THEMES.length) {
-        errors.push(`壁纸 ${PRESET_BACKGROUNDS.length} 张 vs 主题 ${PRESET_WALLPAPER_THEMES.length} 个`);
+    if (PRESET_BACKGROUNDS.length !== PRESET_THEMES.length) {
+        errors.push(`壁纸 ${PRESET_BACKGROUNDS.length} 张 vs 主题 ${PRESET_THEMES.length} 个`);
     }
-    if (PRESET_BACKGROUNDS.length !== PRESET_WALLPAPER_TINTS.length) {
-        errors.push(`壁纸 ${PRESET_BACKGROUNDS.length} 张 vs 色调 ${PRESET_WALLPAPER_TINTS.length} 个`);
+    if (PRESET_BACKGROUNDS.length !== PRESET_TINTS.length) {
+        errors.push(`壁纸 ${PRESET_BACKGROUNDS.length} 张 vs 色调 ${PRESET_TINTS.length} 个`);
     }
-    if (PRESET_BACKGROUNDS.length !== PRESET_WALLPAPER_THEME_COLORS.length) {
-        errors.push(`壁纸 ${PRESET_BACKGROUNDS.length} 张 vs 外壳色 ${PRESET_WALLPAPER_THEME_COLORS.length} 个`);
+    if (PRESET_BACKGROUNDS.length !== PRESET_THEME_COLORS.length) {
+        errors.push(`壁纸 ${PRESET_BACKGROUNDS.length} 张 vs 外壳色 ${PRESET_THEME_COLORS.length} 个`);
     }
     const engineMetaKeys = Object.keys(ENGINE_META).sort();
     const engineSvgKeys = Object.keys(ENGINE_SVGS).sort();

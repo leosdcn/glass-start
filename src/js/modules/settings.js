@@ -158,12 +158,10 @@ export async function openEditModal() {
     const initialWallpaper = await getEffectiveCustomWallpaper();
     if (!state.editOpen || requestId !== editOpenRequestId) return;
     modalState.initialWallpaper = initialWallpaper || backgrounds[state.bg];
-    modalState.initialMaskOpacity = storageGet(CONFIG.KEYS.MASK_OPACITY, CONFIG.APPEARANCE.DEFAULT_MASK_OPACITY);
-    modalState.initialTransitionMode = getTransitionMode();
 
     modalState.draftWallpaper = modalState.initialWallpaper;
-    modalState.draftMaskOpacity = modalState.initialMaskOpacity;
-    modalState.draftTransitionMode = modalState.initialTransitionMode;
+    modalState.draftMaskOpacity = storageGet(CONFIG.KEYS.MASK_OPACITY, CONFIG.APPEARANCE.DEFAULT_MASK_OPACITY);
+    modalState.draftTransitionMode = getTransitionMode();
     modalState.wallpaperSaveFailed = false;
     modalState.draftLanguage = getLanguagePreference();
     syncLanguageUI();
@@ -174,16 +172,16 @@ export async function openEditModal() {
     switchSettingsTab('tabBookmarks');
     renderEditList();
     updateWallpaperStatusUI(modalState.draftWallpaper);
-    applyBgEffects(modalState.draftMaskOpacity);
+    applyBgEffects(modalState.draftMaskOpacity ?? CONFIG.APPEARANCE.DEFAULT_MASK_OPACITY);
     OverlayStack.push('editModal', cancelEditModal, trigger);
 }
 
 export function cancelEditModal() {
     // 壁纸提交开始后不能再恢复旧预览，否则会与已提交的 IDB 记录不一致。
     if (dom.cancelEditBtn?.disabled) return;
-    applyBgEffects(modalState.initialMaskOpacity);
-    modalState.draftTransitionMode = modalState.initialTransitionMode;
-    syncTransitionSwitcherActive(modalState.initialTransitionMode);
+    applyBgEffects(storageGet(CONFIG.KEYS.MASK_OPACITY, CONFIG.APPEARANCE.DEFAULT_MASK_OPACITY));
+    modalState.draftTransitionMode = getTransitionMode();
+    syncTransitionSwitcherActive(modalState.draftTransitionMode);
     revertDraftWallpaper();
     closeEditModal();
 }
@@ -367,10 +365,8 @@ export function resetBookmarks() {
         const mode = getTransitionMode();
         document.documentElement.dataset.transitionMode = mode;
         syncTransitionSwitcherActive(mode);
-        modalState.initialTransitionMode = mode;
         modalState.draftTransitionMode = mode;
         const opacity = storageGet(CONFIG.KEYS.MASK_OPACITY, CONFIG.APPEARANCE.DEFAULT_MASK_OPACITY);
-        modalState.initialMaskOpacity = opacity;
         modalState.draftMaskOpacity = opacity;
         applyBgEffects(opacity);
         setEngine(storageGet(CONFIG.KEYS.PREFERRED_ENGINE, DEFAULT_ENGINE), false);
@@ -516,11 +512,10 @@ export async function saveEditModal() {
 
         // 3. 提交切屏动效
         if (modalState.draftTransitionMode && modalState.draftTransitionMode !== getTransitionMode()) {
-            if (!storageSet(CONFIG.KEYS.TRANSITION_MODE, modalState.draftTransitionMode)) {
+            if (!setTransitionMode(modalState.draftTransitionMode)) {
                 showConfirm(t('ui.could.not.save.transition.mode.your'), null, t('ui.could.not.save'));
                 return;
             }
-            setTransitionMode(modalState.draftTransitionMode);
         }
 
         // 4. 提交壁纸草稿

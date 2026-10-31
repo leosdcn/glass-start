@@ -115,7 +115,6 @@ Object.assign(window, {
 Object.defineProperties(window, {
     activeSuggestReqId: {
         get: () => search.activeSuggestReqId,
-        set: value => search.setActiveSuggestReqId(value),
         configurable: true
     },
     lastTimeStr: {

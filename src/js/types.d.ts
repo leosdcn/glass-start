@@ -69,8 +69,6 @@ export interface AppState {
     engine: string;
     /** 当前壁纸在 backgrounds 数组中的索引 */
     bg: number;
-    /** 搜索引擎下拉菜单是否展开 */
-    open: boolean;
     /** 编辑书签弹窗是否打开（用于屏蔽滚轮切屏与键盘快捷键） */
     editOpen: boolean;
     /** 当前可见屏：'start'（起始页）或 'nav'（导航页） */
@@ -82,8 +80,6 @@ export interface AppState {
 /** 设置弹窗内部草稿状态机与快照备份 */
 export interface ModalState {
     initialWallpaper: string | null;
-    initialMaskOpacity: number;
-    initialTransitionMode: string;
 
     draftWallpaper: string | null | undefined;
     draftMaskOpacity: number | null;

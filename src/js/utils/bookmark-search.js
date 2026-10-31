@@ -118,9 +118,9 @@ export function rankBookmarkSuggestions(query, model, config, limit = config.MAX
     for (let idx = 0; idx < allCandidates.length; idx++) {
         const candidate = allCandidates[idx];
         const { bm, normUrl, defaultCat } = candidate;
-        const bmName = candidate.nameLower !== undefined ? candidate.nameLower : (bm.name || '').toLowerCase();
-        const bmDesc = candidate.descLower !== undefined ? candidate.descLower : (bm.desc || '').toLowerCase();
-        const bmUrl = candidate.urlLower !== undefined ? candidate.urlLower : (bm.url || '').toLowerCase();
+        const bmName = candidate.nameLower ?? (bm.name || '').toLowerCase();
+        const bmDesc = candidate.descLower ?? (bm.desc || '').toLowerCase();
+        const bmUrl = candidate.urlLower ?? (bm.url || '').toLowerCase();
         const realCat = urlToCategoryMap.get(normUrl) || defaultCat;
 
         let tier = Infinity;

@@ -10,7 +10,6 @@ import { DEFAULT_ENGINE } from '../config/engines.js';
 export const state = {
     engine: DEFAULT_ENGINE, // 当前激活的搜索引擎 key，对应 engines 对象的键名
     bg: 0,                   // 当前壁纸在 backgrounds 数组中的索引
-    open: false,             // 搜索引擎下拉菜单是否展开
     editOpen: false,         // 编辑书签弹窗是否打开（用于屏蔽滚轮切屏与键盘快捷键）
     currentSection: 'start', // 当前可见屏：'start'（起始页）或 'nav'（导航页）
     customWallpaper: null    // 当前生效的自定义壁纸 Data URL 或图片 URL
@@ -19,8 +18,6 @@ export const state = {
 /** @type {import('../types').ModalState} 设置弹窗草稿与快照备份 */
 export const modalState = {
     initialWallpaper: null,
-    initialMaskOpacity: CONFIG.APPEARANCE.DEFAULT_MASK_OPACITY,
-    initialTransitionMode: 'sheet',
 
     draftWallpaper: undefined,
     draftMaskOpacity: null,

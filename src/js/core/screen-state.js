@@ -315,16 +315,20 @@ export function getTransitionMode() {
 
 /**
  * @param {string} mode
+ * @returns {boolean}
  */
 export function setTransitionMode(mode) {
-    if (!VALID_TRANSITION_MODES.has(mode)) return;
+    if (!VALID_TRANSITION_MODES.has(mode)) return false;
     try {
         localStorage.setItem(CONFIG.KEYS.TRANSITION_MODE, mode);
-    } catch {}
+    } catch {
+        return false;
+    }
     if (typeof document !== 'undefined' && document.documentElement) {
         document.documentElement.dataset.transitionMode = mode;
         syncTransitionSwitcherActive(mode);
     }
+    return true;
 }
 
 /**

@@ -69,10 +69,6 @@ let activeSuggestCleanup = null;
 /** @type {string | null} */
 let activeSuggestKey = null;
 /** @param {number} val */
-export function setActiveSuggestReqId(val) {
-    activeSuggestReqId = val;
-}
-/** @param {number} val */
 export function setSelectedSuggestionIdx(val) {
     selectedSuggestionIdx = val;
 }
@@ -134,13 +130,13 @@ export function renderEngineDropdown() {
  * @returns {void}
  */
 export function toggleDropdown() {
-    state.open = !state.open;
     const dropdownMenu = dom.dropdownMenu;
     const engineBtn = dom.engineBtn;
-    dropdownMenu?.classList.toggle('active', state.open);
-    dropdownMenu?.setAttribute('aria-hidden', (!state.open).toString());
-    engineBtn?.setAttribute('aria-expanded', state.open.toString());
-    if (state.open) {
+    const nextOpen = !dropdownMenu?.classList.contains('active');
+    dropdownMenu?.classList.toggle('active', nextOpen);
+    dropdownMenu?.setAttribute('aria-hidden', (!nextOpen).toString());
+    engineBtn?.setAttribute('aria-expanded', nextOpen.toString());
+    if (nextOpen) {
         OverlayStack.push('dropdown', closeDropdown);
     } else {
         OverlayStack.pop('dropdown');
@@ -152,7 +148,6 @@ export function toggleDropdown() {
  * @returns {void}
  */
 export function closeDropdown() {
-    state.open = false;
     OverlayStack.pop('dropdown');
     const dropdownMenu = dom.dropdownMenu;
     const engineBtn = dom.engineBtn;
@@ -262,19 +257,13 @@ export function openRandomBookmark(newTab = true) {
     const seen = new Set();
     /** @param {import('../types').BookmarkItem} bm */
     const addBookmark = bm => {
-        if (bm && bm.url && typeof bm.url === 'string' && !seen.has(bm.url)) {
+        if (bm?.url && !seen.has(bm.url)) {
             seen.add(bm.url);
             list.push(bm);
         }
     };
-    if (pageData && Array.isArray(pageData.bookmarks)) {
-        pageData.bookmarks.forEach(addBookmark);
-    }
-    if (pageData && Array.isArray(pageData.categories)) {
-        pageData.categories.forEach(cat => {
-            if (Array.isArray(cat.bookmarks)) cat.bookmarks.forEach(addBookmark);
-        });
-    }
+    pageData.bookmarks.forEach(addBookmark);
+    getCategoryCatalog(pageData.categories).entries.forEach(entry => addBookmark(entry.bm));
     if (list.length === 0) return;
     const randomBm = list[Math.floor(Math.random() * list.length)];
 
@@ -323,10 +312,8 @@ function getSearchCandidates() {
             urlLower: (bm.url || '').toLowerCase()
         });
     };
-    if (pageData && Array.isArray(pageData.bookmarks)) {
-        for (const bm of pageData.bookmarks) {
-            if (bm && bm.url) addCandidate(bm, searchUrlKey(bm.url), t('ui.quick.bookmarks'));
-        }
+    for (const bm of pageData.bookmarks) {
+        if (bm.url) addCandidate(bm, searchUrlKey(bm.url), t('ui.quick.bookmarks'));
     }
     for (const {bm, normUrl, defaultCat} of catalog.entries) addCandidate(bm, normUrl, defaultCat);
 

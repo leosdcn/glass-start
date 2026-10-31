@@ -215,8 +215,9 @@ export function previewDraftWallpaper(urlStr) {
     return previewWallpaperSelection(urlStr, selectionId);
 }
 
-/** @param {string | null} urlStr @param {number} selectionId @param {boolean} [draft] */
-function previewWallpaperSelection(urlStr, selectionId, draft = state.editOpen) {
+/** @param {string | null} urlStr @param {number} selectionId */
+function previewWallpaperSelection(urlStr, selectionId) {
+    const draft = state.editOpen;
     modalState.draftWallpaper = urlStr;
     modalState.wallpaperSaveFailed = false;
     const selection = { url: urlStr, id: selectionId, promise: Promise.resolve(false) };
@@ -381,7 +382,6 @@ export function uploadWallpaper(file) {
     }
     // 选择文件时就占用版本，不能等读取／压缩完成后再把旧上传当成新选择。
     const selectionId = beginWallpaperSelection();
-    const draft = state.editOpen;
     modalState.wallpaperSaveFailed = false;
     const reader = new FileReader();
     /** @type {HTMLImageElement | null} */
@@ -458,6 +458,6 @@ export function uploadWallpaper(file) {
     latestSelectionPromise = prepared.then(url => {
         if (selectionId !== wallpaperSelectionId) return false;
         cancelPendingPreview = null;
-        return url ? previewWallpaperSelection(url, selectionId, draft) : false;
+        return url ? previewWallpaperSelection(url, selectionId) : false;
     });
 }

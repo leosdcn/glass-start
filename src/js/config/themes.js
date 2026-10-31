@@ -2,7 +2,7 @@
 export const APP_THEME_DARK = Object.freeze({ color: '#0b0f19', isLight: false });
 export const APP_THEME_LIGHT = Object.freeze({ color: '#ffffff', isLight: true });
 
-export const PRESET_WALLPAPER_THEMES = Object.freeze([
+export const PRESET_THEMES = Object.freeze([
     APP_THEME_DARK,  // bg1: 暮色山峦 (自然深 · 默认深色)
     APP_THEME_LIGHT, // bg2: 溪谷晨曦 (自然浅 · 浅色)
     APP_THEME_DARK,  // bg3: 星空雪山 (自然深 · 深色)
@@ -14,7 +14,7 @@ export const PRESET_WALLPAPER_THEMES = Object.freeze([
 ]);
 
 // 8 张预设壁纸原图顶部 15% 采样之专属外壳氛围色 (按 20% 暗度遮罩采样，作为固定预设色)
-export const PRESET_WALLPAPER_THEME_COLORS = Object.freeze([
+export const PRESET_THEME_COLORS = Object.freeze([
     '#546272', // bg1: 暮色山峦 (原图顶部吸色 · 冷钢青灰)
     '#d7e0e2', // bg2: 溪谷晨曦 (原图顶部吸色 · 晨光天青)
     '#0a1e3a', // bg3: 星空雪山 (原图顶部吸色 · 冰夜深蓝)
@@ -25,7 +25,7 @@ export const PRESET_WALLPAPER_THEME_COLORS = Object.freeze([
     '#c58fba'  // bg8: 梦幻流彩 (原图顶部吸色 · 柔光粉紫)
 ]);
 
-export const PRESET_WALLPAPER_TINTS = Object.freeze([
+export const PRESET_TINTS = Object.freeze([
     '125, 140, 165', // bg1: 暮色山峦 (深邃冷蓝灰)
     '230, 215, 185', // bg2: 溪谷晨曦 (晨光暖米金)
     '95, 120, 155',  // bg3: 星空雪山 (静谧冰晶蓝)
@@ -36,6 +36,6 @@ export const PRESET_WALLPAPER_TINTS = Object.freeze([
     '205, 160, 195'  // bg8: 梦幻流彩 (柔光暖粉紫)
 ]);
 
-export const PRESET_THEMES = PRESET_WALLPAPER_THEMES;
-export const PRESET_TINTS = PRESET_WALLPAPER_TINTS;
-export const PRESET_THEME_COLORS = PRESET_WALLPAPER_THEME_COLORS;
+export const PRESET_WALLPAPER_THEMES = PRESET_THEMES;
+export const PRESET_WALLPAPER_TINTS = PRESET_TINTS;
+export const PRESET_WALLPAPER_THEME_COLORS = PRESET_THEME_COLORS;
