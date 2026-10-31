@@ -66,7 +66,7 @@ try {
       {name:'长'.repeat(80),url:'example.com:8443/path',icon:'javascript:alert(1)',desc:'述'.repeat(80)},
       {name:'危险',url:'javascript:alert(1)'}, {name:'空',url:''}
     ];
-    renderEditList(auditBookmarks);
+    replaceBookmarkDraft(auditBookmarks); renderEditList();
     window.auditCollected = collectEditData();
     const files = new DataTransfer();
     files.items.add(new File([JSON.stringify(auditBookmarks)], 'bookmarks.json', {type:'application/json'}));
@@ -114,7 +114,7 @@ try {
 
   const keyboard = await evalJS(`(async () => {
     await openEditModal();
-    renderEditList(['A','B','C'].map(name => ({name, url: 'https://' + name.toLowerCase() + '.example.com'})));
+    replaceBookmarkDraft(['A','B','C'].map(name => ({name, url: 'https://' + name.toLowerCase() + '.example.com'}))); renderEditList();
     const handle = dom.editList.querySelector('.drag-handle');
     handle.focus();
     const move = (key, target = handle) => target.dispatchEvent(new KeyboardEvent('keydown', {key, altKey:true, bubbles:true, cancelable:true}));

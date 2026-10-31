@@ -34,13 +34,11 @@ function getCustomMeta() {
  * @returns {import('../types').BookmarkItem[]}
  */
 export function getDerivedBookmarks(keys, categories, customMeta = {}) {
-    if (!Array.isArray(keys)) return [];
-
     const catMap = getCategoryCatalog(categories).byUrl;
 
     return [...new Set(keys.map(normalizeUrl))].map(normalized => {
         const catBm = catMap.get(normalized);
-        const custom = customMeta?.[normalized];
+        const custom = customMeta[normalized];
         if (custom) {
             return {
                 name: custom.name || catBm?.name || deriveNameFromUrl(normalized),
@@ -226,8 +224,8 @@ export function getCategoryIconHTML(icon, sizeClass = 'size-4') {
     return escapeHtml(icon);
 }
 
-export function initFaviconObserver(container = null) {
-    const scope = container || (navIconsActivated ? document : (dom.bookmarks || document));
+export function initFaviconObserver() {
+    const scope = navIconsActivated ? document : (dom.bookmarks || document);
     scope.querySelectorAll('img.lazy-icon').forEach(img => {
         checkImageReady(/** @type {HTMLImageElement} */ (img));
     });
@@ -489,13 +487,13 @@ export function updateSidebarActive() {
     });
 }
 
-export function renderNavCategories(force = false) {
+export function renderNavCategories() {
     const sidebarList = dom.sidebarList;
     const navCategories = dom.navCategories;
     if (!sidebarList || !navCategories) return;
 
     const catalog = getCategoryCatalog(pageData.categories);
-    if (!force && catalog === lastNavCatalog) return;
+    if (catalog === lastNavCatalog) return;
     lastNavCatalog = catalog;
 
     const navContent = dom.navContent;

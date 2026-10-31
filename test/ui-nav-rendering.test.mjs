@@ -162,7 +162,8 @@ await test("分类位置缓存与侧栏高亮", async () => {
         // 分类重建必须丢弃旧节点和尺寸，观察器也要跟随新节点。
         const scrollPreserved = await evalJS(`(() => {
         const before = dom.navContent.scrollTop;
-        renderNavCategories(true);
+        pageData.categories[0].name += '更新';
+        renderNavCategories();
         return before > 0 && dom.navContent.scrollTop === before;
     })()`);
         assert.equal(scrollPreserved, true, '重建已有目录应保留当前滚动位置');

@@ -22,9 +22,8 @@ assert.equal(candidates[0].bm.name, 'Tools');
 const forecast = normalizeWeatherForecast({current:{temperature_2m:21.6, is_day:0}, daily:{}}, {lat:1, lon:2}, CONFIG.WEATHER, 123);
 assert.equal(forecast.timestamp, 123);
 assert.equal(forecast.current.temp, 22);
-assert.equal(forecast.current.isDay, false);
 assert.deepEqual(forecast.daily, []);
-assert.equal(forecast.current.sunrise, '--:--');
+assert.equal(forecast.current.sunriseToday, '--:--');
 assert.equal(Object.hasOwn(forecast.current, 'weatherText'), false);
 
 test('低降水概率且当前无雨时平滑预报，高降水概率保留雨天预报', () => {

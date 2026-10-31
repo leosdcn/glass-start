@@ -277,17 +277,13 @@ export interface WeatherCurrent {
     weatherCode?: number;
     weatherText?: string;
     icon?: string;
-    isDay?: boolean;
     humidity?: number;
     windSpeed?: number;
     precipitation?: number;
     pop?: number;
-    sunrise?: string;
-    sunset?: string;
     sunriseToday?: string;
     sunsetToday?: string;
     sunriseTomorrow?: string;
-    sunsetTomorrow?: string;
 }
 export interface WeatherDailyItem {
     weatherCode?: number;

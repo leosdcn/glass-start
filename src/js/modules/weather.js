@@ -1,9 +1,7 @@
 import { t, getLocale, weatherDescription, forecastLabel } from '../core/i18n.js';
 import { weatherTime, formatLocationFullName, stripAdminSuffix, normalizeWeatherForecast } from '../utils/weather-model.js';
-export { weatherTime, formatLocationFullName } from '../utils/weather-model.js';
 import { CONFIG } from '../config/constants.js';
 import { weatherNum } from '../utils/weather-data.js';
-export { weatherNum } from '../utils/weather-data.js';
 import { escapeHtml, safeUrl, storageGet, storageSet, storageRemove } from '../utils/helpers.js';
 import { dom } from '../state/dom.js';
 import { OverlayStack } from '../core/overlay-stack.js';
@@ -310,7 +308,7 @@ export function renderWeatherPopover(data) {
 
     let sunIcon = '🌅';
     let sunLabel = t('ui.sunset.today');
-    let sunTime = c.sunsetToday || c.sunset || '--:--';
+    let sunTime = c.sunsetToday || '--:--';
     try {
         const now = new Date();
         const nowMins = now.getHours() * 60 + now.getMinutes();
@@ -319,8 +317,8 @@ export function renderWeatherPopover(data) {
             const [h, m] = str.split(':').map(Number);
             return isNaN(h) || isNaN(m) ? null : h * 60 + m;
         };
-        const riseTodayMins = parseMins(c.sunriseToday || c.sunrise);
-        const setTodayMins = parseMins(c.sunsetToday || c.sunset);
+        const riseTodayMins = parseMins(c.sunriseToday);
+        const setTodayMins = parseMins(c.sunsetToday);
 
         if (setTodayMins !== null && nowMins >= setTodayMins) {
             sunIcon = '🌄';
@@ -460,9 +458,12 @@ export function renderWeatherPopover(data) {
     }
 }
 
-export let isFetchingWeather = false;
 /** @type {Promise<void> | null} */
 let inFlightWeatherPromise = null;
+
+export function isFetchingWeather() {
+    return inFlightWeatherPromise !== null;
+}
 
 const isWeatherRecord = (/** @type {any} */ value) => value !== null && typeof value === 'object' && !Array.isArray(value);
 
@@ -478,9 +479,6 @@ function readWeatherCache() {
     c.sunriseToday = c.sunriseToday || c.sunrise || '--:--';
     c.sunsetToday = c.sunsetToday || c.sunset || '--:--';
     c.sunriseTomorrow = c.sunriseTomorrow || c.sunriseToday;
-    c.sunsetTomorrow = c.sunsetTomorrow || c.sunsetToday;
-    c.sunrise = c.sunrise || c.sunriseToday;
-    c.sunset = c.sunset || c.sunsetToday;
     return cache;
 }
 
@@ -497,9 +495,7 @@ export function updateWeather(force = false) {
         return Promise.resolve();
     }
 
-    isFetchingWeather = true;
     inFlightWeatherPromise = executeWeatherUpdate(cache, force).finally(() => {
-        isFetchingWeather = false;
         inFlightWeatherPromise = null;
     });
     return inFlightWeatherPromise;

@@ -13,18 +13,17 @@ let previousSignature;
 let cached;
 
 /**
- * @param {import('../types').BookmarkCategory[] | undefined} categories
+ * @param {import('../types').BookmarkCategory[]} categories
  * @returns {string}
  */
 function getCatalogSignature(categories) {
-    if (!categories || !Array.isArray(categories)) return '';
     return JSON.stringify(categories.map(cat => [cat.name, cat.icon,
-        (cat.bookmarks || []).map(b => [b.name, b.url, b.desc, b.icon])]));
+        cat.bookmarks.map(b => [b.name, b.url, b.desc, b.icon])]));
 }
 
 /**
  * 派生、保存、排序和搜索共用目录视图，内容变化时统一重建。
- * @param {import('../types').BookmarkCategory[]} [categories]
+ * @param {import('../types').BookmarkCategory[]} categories
  * @returns {import('../types').CategoryCatalog}
  */
 export function getCategoryCatalog(categories) {
@@ -36,15 +35,15 @@ export function getCategoryCatalog(categories) {
     const searchCategories = new Map();
     /** @type {import('../types').CategoryCatalogEntry[]} */
     const entries = [];
-    const sorted = (Array.isArray(categories) ? categories : []).map(cat => {
-        for (const bm of cat.bookmarks || []) {
+    const sorted = categories.map(cat => {
+        for (const bm of cat.bookmarks) {
             if (!bm.url) continue;
             const url = normalizeUrl(bm.url), key = searchUrlKey(bm.url);
             if (!byUrl.has(url)) byUrl.set(url, bm);
             if (!searchCategories.has(key)) searchCategories.set(key, cat.name);
             entries.push({ bm, normUrl: key, defaultCat: cat.name || '分类书签' });
         }
-        return { ...cat, sortedBookmarks: [...(cat.bookmarks || [])].sort((a, b) => collator.compare(a.name, b.name)) };
+        return { ...cat, sortedBookmarks: [...cat.bookmarks].sort((a, b) => collator.compare(a.name, b.name)) };
     });
     previousSignature = signature;
     return cached = { byUrl, searchCategories, entries, sorted };

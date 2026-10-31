@@ -127,7 +127,6 @@ export function normalizeWeatherForecast(data, loc, config, now) {
     const sunriseStr = daily.sunrise && daily.sunrise[0] ? daily.sunrise[0].split('T')[1] : '--:--';
     const sunsetStr = daily.sunset && daily.sunset[0] ? daily.sunset[0].split('T')[1] : '--:--';
     const sunriseTomStr = daily.sunrise && daily.sunrise[1] ? daily.sunrise[1].split('T')[1] : sunriseStr;
-    const sunsetTomStr = daily.sunset && daily.sunset[1] ? daily.sunset[1].split('T')[1] : sunsetStr;
 
     return {
         timestamp: now,
@@ -137,17 +136,13 @@ export function normalizeWeatherForecast(data, loc, config, now) {
             apparent: Math.round(cur.apparent_temperature ?? cur.temperature_2m ?? config.DEFAULT_TEMPERATURE),
             weatherCode: cur.weather_code ?? 0,
             icon: getWeatherIcon(cur.weather_code, isDay),
-            isDay: isDay,
             humidity: Math.round(cur.relative_humidity_2m ?? config.DEFAULT_HUMIDITY),
             windSpeed: Math.round((cur.wind_speed_10m ?? 0) * 10) / 10,
             precipitation: cur.precipitation ?? 0,
             pop: (daily.precipitation_probability_max && daily.precipitation_probability_max[0] != null) ? Math.round(daily.precipitation_probability_max[0]) : 0,
-            sunrise: sunriseStr,
-            sunset: sunsetStr,
             sunriseToday: sunriseStr,
             sunsetToday: sunsetStr,
-            sunriseTomorrow: sunriseTomStr,
-            sunsetTomorrow: sunsetTomStr
+            sunriseTomorrow: sunriseTomStr
         },
         daily: days
     };

@@ -40,7 +40,7 @@ await test("目录图标复用与过期预览请求", async () => {
 
         await evalJS(`(async () => {
         await openEditModal();
-        renderEditList([{name:'旧名称',url:'https://performance-icon.invalid/',icon:'data:image/png;base64,broken'}]);
+        replaceBookmarkDraft([{name:'旧名称',url:'https://performance-icon.invalid/',icon:'data:image/png;base64,broken'}]); renderEditList();
     })()`);
         await waitFor(evalJS, '!!dom.editList.querySelector(".edit-favicon-initial")');
         const before = external.length;
@@ -73,7 +73,7 @@ await test("目录图标复用与过期预览请求", async () => {
 
         await evalJS(`(async () => {
         await openEditModal();
-        renderEditList(pageData.bookmarks.slice(0,2));
+        replaceBookmarkDraft(pageData.bookmarks.slice(0,2)); renderEditList();
         const rows = [...dom.editList.querySelectorAll('.edit-row-card')];
         rows.forEach((row,i) => {
             const input = row.querySelector('.edit-url');

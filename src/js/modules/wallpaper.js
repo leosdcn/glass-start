@@ -124,18 +124,11 @@ export async function clearCustomWallpaper(bg = state.bg) {
     return true;
 }
 
-/**
- * 刷新外观壁纸 Tab 中的壁纸来源文字提示与「恢复默认」按钮显隐状态
- * @param {string|null} [customWallpaperOverride]
- * @returns {Promise<void>}
+/** 刷新壁纸来源提示；调用方传入当前预览或已恢复的选择。
+ * @param {string|null} wallpaper
  */
-export async function updateWallpaperStatusUI(customWallpaperOverride) {
-    const resolveBg = customWallpaperOverride !== undefined
-        ? customWallpaperOverride
-        : (modalState.draftWallpaper !== undefined
-            ? modalState.draftWallpaper
-            : (await getEffectiveCustomWallpaper()));
-    const isCustom = !!resolveBg && findPresetBgIndex(resolveBg) === -1;
+export function updateWallpaperStatusUI(wallpaper) {
+    const isCustom = !!wallpaper && findPresetBgIndex(wallpaper) === -1;
     if (!dom.wallpaperStatus || !dom.resetBgBtn) return;
     if (isCustom) {
         dom.wallpaperStatus.textContent = t('ui.custom.wallpaper.active');

@@ -199,7 +199,7 @@ const weatherSanitizeOk = weatherSanitizeCheck && weatherSanitizeCheck.n1 && wea
 
 // 2.7 关键交互图标按钮 (del-btn / weatherRefreshBtn) 显式声明 aria-label 规范
 const btnA11yCheck = await evalJS(`(() => {
-  renderEditList(pageData.bookmarks);
+  replaceBookmarkDraft(pageData.bookmarks); renderEditList();
   const delBtn = document.querySelector('.del-btn');
   const delHasAria = delBtn ? delBtn.getAttribute('aria-label') === '删除书签' : false;
 
@@ -342,8 +342,8 @@ await evalJS(`(() => {
   const mockData = {
     location: { name: '上海市', fullName: '中国 · 上海市' },
     current: {
-      temp: 31, apparent: 36, weatherText: '多云', icon: '⛅', isDay: true, humidity: 60, windSpeed: 3.7, pop: 16,
-      sunrise: '05:35', sunset: '18:59', sunriseToday: '05:35', sunsetToday: '18:59', sunriseTomorrow: '05:36', sunsetTomorrow: '18:58'
+      temp: 31, apparent: 36, weatherText: '多云', icon: '⛅', humidity: 60, windSpeed: 3.7, pop: 16,
+      sunriseToday: '05:35', sunsetToday: '18:59', sunriseTomorrow: '05:36'
     },
     daily: [
       { label: '今天', icon: '🌦️', text: '毛毛雨', tempMin: 24, tempMax: 32 },
@@ -389,7 +389,7 @@ const dynamicIconsCheck = await evalJS(`(() => {
   // 5.1 干燥 + 微风 + 低降水
   renderWeatherPopover({
     location: { name: '北京' },
-    current: { temp: 22, apparent: 23, weatherText: '晴', icon: '☀️', isDay: true, humidity: 20, windSpeed: 2.3, pop: 10, sunrise: '05:35', sunset: '18:59' },
+    current: { temp: 22, apparent: 23, weatherText: '晴', icon: '☀️', humidity: 20, windSpeed: 2.3, pop: 10, sunriseToday: '05:35', sunsetToday: '18:59' },
     daily: []
   });
   const htmlDry = document.getElementById('weatherPopover').innerHTML;
@@ -400,7 +400,7 @@ const dynamicIconsCheck = await evalJS(`(() => {
   // 5.2 舒适湿度 + 清风 + 中降水
   renderWeatherPopover({
     location: { name: '杭州' },
-    current: { temp: 24, apparent: 25, weatherText: '多云', icon: '⛅', isDay: true, humidity: 55, windSpeed: 22.0, pop: 35, sunrise: '05:35', sunset: '18:59' },
+    current: { temp: 24, apparent: 25, weatherText: '多云', icon: '⛅', humidity: 55, windSpeed: 22.0, pop: 35, sunriseToday: '05:35', sunsetToday: '18:59' },
     daily: []
   });
   const htmlMid = document.getElementById('weatherPopover').innerHTML;
@@ -411,7 +411,7 @@ const dynamicIconsCheck = await evalJS(`(() => {
   // 5.3 潮湿 + 暴风 + 强降水
   renderWeatherPopover({
     location: { name: '广州' },
-    current: { temp: 30, apparent: 35, weatherText: '雷阵雨', icon: '⛈️', isDay: true, humidity: 85, windSpeed: 45.0, pop: 80, sunrise: '05:35', sunset: '18:59' },
+    current: { temp: 30, apparent: 35, weatherText: '雷阵雨', icon: '⛈️', humidity: 85, windSpeed: 45.0, pop: 80, sunriseToday: '05:35', sunsetToday: '18:59' },
     daily: []
   });
   const htmlWet = document.getElementById('weatherPopover').innerHTML;

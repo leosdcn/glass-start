@@ -15,6 +15,8 @@ import * as lifecycle from '../core/lifecycle.js';
 import * as wallpaper from '../modules/wallpaper.js';
 import * as search from '../modules/search.js';
 import * as weather from '../modules/weather.js';
+import { weatherNum } from '../utils/weather-data.js';
+import { weatherTime, formatLocationFullName } from '../utils/weather-model.js';
 import * as bookmarks from '../modules/bookmarks.js';
 import * as settings from '../modules/settings.js';
 import * as editor from '../modules/bookmark-editor.js';
@@ -73,10 +75,10 @@ Object.assign(window, {
     getLocalBookmarkSuggestions: search.getLocalBookmarkSuggestions,
     hideSuggestions: search.hideSuggestions,
     fetchSuggestions: search.fetchSuggestions,
-    weatherNum: weather.weatherNum,
-    weatherTime: weather.weatherTime,
+    weatherNum,
+    weatherTime,
     openWeatherPopover: weather.openWeatherPopover,
-    formatLocationFullName: weather.formatLocationFullName,
+    formatLocationFullName,
     fetchWeatherForecast: weather.fetchWeatherForecast,
     updateWeather: weather.updateWeather,
     renderWeatherCapsule: weather.renderWeatherCapsule,
@@ -136,7 +138,7 @@ Object.defineProperties(window, {
         configurable: true
     },
     isFetchingWeather: {
-        get: () => weather.isFetchingWeather,
+        get: () => weather.isFetchingWeather(),
         configurable: true
     },
     lastDateDay: {

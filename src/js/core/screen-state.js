@@ -332,13 +332,12 @@ export function setTransitionMode(mode) {
 }
 
 /**
- * @param {string} [mode]
+ * @param {string} mode
  */
 export function syncTransitionSwitcherActive(mode) {
-    const targetMode = mode || getTransitionMode();
     document.querySelectorAll('.settings-transition-btn').forEach(btn => {
         const el = /** @type {HTMLElement} */ (btn);
-        const isActive = el.dataset.mode === targetMode;
+        const isActive = el.dataset.mode === mode;
         el.classList.toggle('active', isActive);
         el.setAttribute('aria-pressed', isActive ? 'true' : 'false');
     });

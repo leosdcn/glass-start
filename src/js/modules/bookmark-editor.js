@@ -2,7 +2,7 @@ import { t } from '../core/i18n.js';
 import { CONFIG } from '../config/constants.js';
 import { escapeHtml, safeUrl, normalizeUrl, normalizeBookmark, faviconFromUrl, createLetterBadgeHtml, handleFaviconFailure, checkImageReady } from '../utils/helpers.js';
 import { modalState } from '../state/store.js';
-import { appendBookmarkDraft, replaceBookmarkDraft } from '../state/bookmark-draft.js';
+import { appendBookmarkDraft } from '../state/bookmark-draft.js';
 import { dom } from '../state/dom.js';
 
 export function updateAllBookmarkCounters() {
@@ -107,14 +107,8 @@ export function appendDraftBookmarkRow({ name = '', url = '', icon = '', desc, f
     return div;
 }
 
-/**
- * @param {import('../types.js').DraftBookmarkItem[] | import('../types.js').BookmarkItem[]} [listToRender]
- */
-export function renderEditList(listToRender) {
-    if (Array.isArray(listToRender)) {
-        replaceBookmarkDraft(listToRender, modalState.bookmarksChanged);
-    }
-
+/** 只渲染当前内存草稿；替换数据由 replaceBookmarkDraft() 负责。 */
+export function renderEditList() {
     const editList = dom.editList;
     if (!editList) return;
     editList.innerHTML = '<span class="bookmark-sort-status sr-only" role="status" aria-live="polite"></span>' + modalState.draftBookmarks.map(bm => getEditRowHTML(bm.name, bm.url, bm.icon, bm.id)).join('');

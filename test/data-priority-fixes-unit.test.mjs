@@ -95,7 +95,7 @@ test('首次定位失败不请求默认城市天气，旧版兜底缓存也不�
         assert.equal(f.context.localStorage.getItem(app.CONFIG.KEYS.WEATHER_LOC), null);
         assert.equal(f.context.localStorage.getItem(app.CONFIG.KEYS.WEATHER_CACHE), null);
         assert.match(f.html, /weatherErrorRetryBtn/);
-        assert.equal(app.isFetchingWeather, false);
+        assert.equal(app.isFetchingWeather(), false);
     }
 });
 
@@ -119,7 +119,7 @@ test('强制重新定位失败后沿用成功位置，仍可获取新天气，�
         assert.equal(cache.location.lat, location.lat);
         assert.equal(cache.location.name, '上海');
         assert.equal(cache.current.temp, 25);
-        assert.equal(app.isFetchingWeather, false);
+        assert.equal(app.isFetchingWeather(), false);
     }
 });
 
@@ -144,16 +144,33 @@ test('天气正文超时结束共享刷新任务，随后可重新刷新', async
     await pending;
     assert.equal(signal.aborted, true);
     assert.equal(f.timers.size, 0);
-    assert.equal(app.isFetchingWeather, false);
+    assert.equal(app.isFetchingWeather(), false);
     f.context.fetch = async () => { calls++; return { ok: true, json: async () => ({ current: { temperature_2m: 27 } }) }; };
     await app.updateWeather();
     assert.equal(calls, 2);
-    assert.equal(app.isFetchingWeather, false);
+    assert.equal(app.isFetchingWeather(), false);
     assert.equal(JSON.parse(f.context.localStorage.getItem(app.CONFIG.KEYS.WEATHER_CACHE)).current.temp, 27);
     assert.equal(f.timers.size, 0);
     f.context.fetch = async () => ({ ok: false, status: 503 });
     await assert.rejects(app.fetchWeatherForecast(location), /HTTP 503/);
     assert.equal(f.timers.size, 0);
+});
+
+test('旧缓存时间字段在读取边界转换，渲染沿用统一字段', async () => {
+    const f = fixture(), { app } = f;
+    const midday = new Date(2026, 9, 31, 12).getTime();
+    f.context.Date = class extends Date {
+        constructor() { super(midday); }
+        static now() { return midday; }
+    };
+    f.context.localStorage.setItem(app.CONFIG.KEYS.WEATHER_CACHE, JSON.stringify({
+        timestamp: midday, location: { name: '测试' },
+        current: { temp: 20, sunrise: '05:35', sunset: '18:59' }, daily: []
+    }));
+    f.context.fetch = () => { throw new Error('有效缓存不应联网'); };
+    await app.updateWeather();
+    assert.match(f.html, /18:59/);
+    assert.equal(app.isFetchingWeather(), false);
 });
 
 test('预报图标或描述独立变化更新界面，相同内容仍复用', () => {
