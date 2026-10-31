@@ -77,9 +77,9 @@ html, body {
 @font-face {
     font-family: 'ChromeScaledEmoji';
     src: local('Apple Color Emoji'), local('Segoe UI Emoji'), local('Noto Color Emoji');
-    unicode-range: 
-        U+1F000-1FAFF, U+1F300-1F5FF, U+1F600-1F64F, 
-        U+1F680-1F6FF, U+1F900-1F9FF, U+2600-27BF, 
+    unicode-range:
+        U+1F000-1FAFF, U+1F300-1F5FF, U+1F600-1F64F,
+        U+1F680-1F6FF, U+1F900-1F9FF, U+2600-27BF,
         U+2300-23FF, U+FE0E-FE0F;
     size-adjust: 125%;
 }
@@ -92,7 +92,7 @@ html.is-chrome body {
 
 /* 抑制 Chromium 自动填充底色，保留玻璃背景。 */
 input:-webkit-autofill,
-input:-webkit-autofill:hover, 
+input:-webkit-autofill:hover,
 input:-webkit-autofill:focus,
 textarea:-webkit-autofill,
 textarea:-webkit-autofill:hover,
