@@ -98,7 +98,7 @@
                     "name": "Gemini",
                     "url": "https://gemini.google.com",
                     "icon": "./icons/gemini.google.com.png",
-                    "desc": "谷歌多模态助手"
+                    "desc": "谷歌多模态 AI 助手"
                 },
                 {
                     "name": "Google AI Studio",
@@ -128,7 +128,7 @@
                     "name": "Mistral",
                     "url": "https://chat.mistral.ai",
                     "icon": "./icons/chat.mistral.ai.png",
-                    "desc": "智能对话助手"
+                    "desc": "欧洲开源 AI 对话助手"
                 },
                 {
                     "name": "Perplexity",
@@ -207,7 +207,7 @@
                     "name": "Publish Markdown",
                     "url": "https://publishmarkdown.com",
                     "icon": "./icons/publishmarkdown.com.png",
-                    "desc": "MD 笔记一键发布"
+                    "desc": "Markdown 笔记一键发布"
                 },
                 {
                     "name": "Time.is",
@@ -287,7 +287,7 @@
                     "name": "Rate Your Music",
                     "url": "https://rateyourmusic.com",
                     "icon": "./icons/rateyourmusic.com.png",
-                    "desc": "音乐唱片数据库"
+                    "desc": "全球音乐评分与唱片数据库"
                 },
                 {
                     "name": "SoundCloud",
@@ -427,7 +427,7 @@
                     "name": "Desmos",
                     "url": "https://www.desmos.com/calculator",
                     "icon": "./icons/desmos.com.png",
-                    "desc": "免费在线函数绘图"
+                    "desc": "在线函数绘图与科学计算"
                 },
                 {
                     "name": "Duolingo",
@@ -463,7 +463,7 @@
                     "name": "Wikipedia",
                     "url": "https://en.wikipedia.org/wiki/Main_Page",
                     "icon": "./icons/en.wikipedia.org.png",
-                    "desc": "自由的百科全书"
+                    "desc": "自由的多语言百科全书"
                 },
                 {
                     "name": "极客湾芯片榜",
@@ -487,7 +487,7 @@
                     "name": "食用手册",
                     "url": "https://cook.yunyoujun.cn",
                     "icon": "./icons/cook.yunyoujun.cn.png",
-                    "desc": "按食材查找菜谱"
+                    "desc": "按现有食材匹配家常菜谱"
                 }
             ],
             "id": "learning"
@@ -616,7 +616,7 @@
                     "name": "Kenney",
                     "url": "https://kenney.nl/assets",
                     "icon": "./icons/kenney.nl.png",
-                    "desc": "免费游戏素材库"
+                    "desc": "免费商用游戏开发素材库"
                 },
                 {
                     "name": "Mixkit",
@@ -719,13 +719,13 @@
                     "name": "GitHub",
                     "url": "https://github.com",
                     "icon": "./icons/github.com.png",
-                    "desc": "代码托管与协作"
+                    "desc": "开源代码托管与协作平台"
                 },
                 {
                     "name": "Google Colab",
                     "url": "https://colab.research.google.com",
                     "icon": "./icons/colab.research.google.com.png",
-                    "desc": "云端代码笔记本"
+                    "desc": "谷歌云端 Python 笔记本"
                 },
                 {
                     "name": "IT Tools",
@@ -774,13 +774,13 @@
                     "name": "BrowserLeaks",
                     "url": "https://browserleaks.com/ip",
                     "icon": "./icons/browserleaks.com.png",
-                    "desc": "浏览器隐私检测"
+                    "desc": "浏览器指纹与隐私泄露检测"
                 },
                 {
                     "name": "ip.skk.moe",
                     "url": "https://ip.skk.moe",
                     "icon": "./icons/ip.skk.moe.png",
-                    "desc": "出口地址连通检测"
+                    "desc": "分流规则与出口 IP 检测"
                 },
                 {
                     "name": "IPCheck.ing",
@@ -866,7 +866,7 @@
                     "name": "16Personalities",
                     "url": "https://www.16personalities.com",
                     "icon": "./icons/16personalities.com.png",
-                    "desc": "经典十六型人格测试"
+                    "desc": "MBTI 十六型人格测试"
                 },
                 {
                     "name": "Neal.fun",
@@ -890,7 +890,7 @@
                     "name": "Radio Garden",
                     "url": "https://radio.garden",
                     "icon": "./icons/radio.garden.png",
-                    "desc": "转动地球收听电台"
+                    "desc": "转动地球收听全球电台"
                 }
             ],
             "id": "explore"
