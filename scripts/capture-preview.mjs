@@ -68,17 +68,13 @@ try {
           apparent: 21,
           weatherCode: 1,
           icon: '🌤️',
-          isDay: true,
           humidity: 55,
           windSpeed: 3.2,
           precipitation: 0,
           pop: 10,
-          sunrise: '06:08',
-          sunset: '17:15',
           sunriseToday: '06:08',
           sunsetToday: '17:15',
-          sunriseTomorrow: '06:09',
-          sunsetTomorrow: '17:14'
+          sunriseTomorrow: '06:09'
         },
         daily: [
           { date: '2026-10-27', weatherCode: 1, icon: '🌤️', tempMax: 23, tempMin: 15 },

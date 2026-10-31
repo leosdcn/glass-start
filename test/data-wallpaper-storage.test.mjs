@@ -22,10 +22,10 @@ await test("选择提交、事务失败与会话隔离", async () => {
     try {
       writeFalse = await setWallpaperSelectionDB({ wallpaper: next, bg: 0 }) === false;
       commitFalse = await commitWallpaperSelection(next) === false;
-      unchanged = await getWallpaperDB() === old && state.customWallpaper === old && modalState.initialWallpaper === old;
-      previewOnly = await previewDraftWallpaper(next) === true && await getWallpaperDB() === old;
+      unchanged = ((await getWallpaperSelectionDB())?.wallpaper ?? null) === old && state.customWallpaper === old && modalState.initialWallpaper === old;
+      previewOnly = await previewDraftWallpaper(next) === true && ((await getWallpaperSelectionDB())?.wallpaper ?? null) === old;
       await saveEditModal();
-      blocked = state.editOpen && OverlayStack.top()?.id === 'confirmModal' && await getWallpaperDB() === old;
+      blocked = state.editOpen && OverlayStack.top()?.id === 'confirmModal' && ((await getWallpaperSelectionDB())?.wallpaper ?? null) === old;
       dom.confirmOkBtn.click();
     } finally { IDBObjectStore.prototype.put = put; }
     IDBObjectStore.prototype.delete = function(...args) {
@@ -34,18 +34,18 @@ await test("选择提交、事务失败与会话隔离", async () => {
       return request;
     };
     let deleteFalse;
-    try { deleteFalse = await removeWallpaperDB() === false && await getWallpaperDB() === old; }
+    try { deleteFalse = await removeWallpaperDB() === false && ((await getWallpaperSelectionDB())?.wallpaper ?? null) === old; }
     finally { IDBObjectStore.prototype.delete = remove; }
     const setItem = Storage.prototype.setItem;
     Storage.prototype.setItem = function() { throw new DOMException('quota', 'QuotaExceededError'); };
     let saved, restored;
     try {
       // 测试 IDB 不受 LocalStorage 配额错误影响；设置保存的其他字段仍可能独立失败。
-      saved = await commitWallpaperSelection(next) === true && await getWallpaperDB() === next;
+      saved = await commitWallpaperSelection(next) === true && ((await getWallpaperSelectionDB())?.wallpaper ?? null) === next;
       await commitWallpaperSelection(backgrounds[3]);
       state.bg = 0; state.customWallpaper = null;
       await restoreWallpaper();
-      restored = state.bg === 3 && await getWallpaperDB() === null;
+      restored = state.bg === 3 && ((await getWallpaperSelectionDB())?.wallpaper ?? null) === null;
     } finally { Storage.prototype.setItem = setItem; }
     const NativeImage = window.Image;
     let pending;
@@ -55,12 +55,13 @@ await test("选择提交、事务失败与会话隔离", async () => {
       const stopped = previewDraftWallpaper('https://pending.example.com/image.png');
       const cleared = await clearCustomWallpaper();
       resetCancelsPending = cleared && await stopped === false && pending.onload === null &&
-        await getWallpaperDB() === null && state.customWallpaper === null;
+        ((await getWallpaperSelectionDB())?.wallpaper ?? null) === null && state.customWallpaper === null;
     } finally { window.Image = NativeImage; }
     await commitWallpaperSelection(next);
     const noBase64InLS = localStorage.getItem(CONFIG.KEYS.USER_WALLPAPER) === null;
+    const noLegacyMirror = await getWallpaperDB() === null;
     cancelEditModal();
-    return {writeFalse, commitFalse, unchanged, previewOnly, blocked, deleteFalse, saved, restored, resetCancelsPending, noBase64InLS};
+    return {writeFalse, commitFalse, unchanged, previewOnly, blocked, deleteFalse, saved, restored, resetCancelsPending, noBase64InLS, noLegacyMirror};
   })()`);
       assert.equal(Object.values(result).every(Boolean), true, JSON.stringify(result));
       console.log('✅ 写请求成功后事务中止仍判失败，删除中止保留旧数据，保存按钮阻止失败关闭');
@@ -77,7 +78,7 @@ await test("选择提交、事务失败与会话隔离", async () => {
       await send('Page.removeScriptToEvaluateOnNewDocument', { identifier });
       await send('Page.reload');
       await waitFor(evalJS, '!window.__blockedIDBProbe && typeof commitWallpaperSelection === "function" && !!state.customWallpaper');
-      assert.equal(await evalJS('(async () => (await getWallpaperDB()) === state.customWallpaper)()'), true);
+      assert.equal(await evalJS('(async () => (((await getWallpaperSelectionDB())?.wallpaper ?? null)) === state.customWallpaper)()'), true);
       console.log('✅ IDB 不可用明确失败，恢复权限并重载后原壁纸仍可读取');
 
       await send('Network.enable');
@@ -131,18 +132,34 @@ await test("历史壁纸迁移与新选择优先级", async () => {
       localStorage.setItem(CONFIG.KEYS.USER_WALLPAPER, JSON.stringify(legacy));
     };
     await prepare();
-    const migrated = await getEffectiveCustomWallpaper() === legacy && await getWallpaperDB() === legacy &&
+    const migrated = await getEffectiveCustomWallpaper() === legacy && ((await getWallpaperSelectionDB())?.wallpaper ?? null) === legacy &&
       localStorage.getItem(CONFIG.KEYS.USER_WALLPAPER) === null && JSON.parse(localStorage.getItem(CONFIG.KEYS.WALLPAPER_META)).custom;
+    // 只有旧 IDB 键、没有 LocalStorage 和新版记录时仍可恢复；提交后收敛到一份记录。
+    await prepare(); storageRemove(CONFIG.KEYS.USER_WALLPAPER);
+    await new Promise((resolve, reject) => {
+      const request = indexedDB.open(CONFIG.IDB.DB_NAME, CONFIG.IDB.VERSION);
+      request.onsuccess = () => {
+        const db = request.result;
+        const tx = db.transaction(CONFIG.IDB.STORES.WALLPAPERS, 'readwrite');
+        tx.oncomplete = () => { db.close(); resolve(); };
+        tx.onerror = tx.onabort = () => { db.close(); reject(new Error('legacy fixture failed')); };
+        tx.objectStore(CONFIG.IDB.STORES.WALLPAPERS).put(legacy, CONFIG.IDB.KEYS.CUSTOM_WALLPAPER);
+      };
+      request.onerror = () => reject(request.error);
+    });
+    const legacyIDB = await getEffectiveCustomWallpaper() === legacy && await getWallpaperSelectionDB() === null;
+    await commitWallpaperSelection(legacy);
+    const consolidated = (await getWallpaperSelectionDB()).wallpaper === legacy && await getWallpaperDB() === null;
     await prepare();
     const put = IDBObjectStore.prototype.put;
     IDBObjectStore.prototype.put = function(...args) {
       const request = put.apply(this,args); request.addEventListener('success', () => request.transaction.abort()); return request;
     };
     let preserved;
-    try { preserved = await getEffectiveCustomWallpaper() === legacy && await getWallpaperDB() === null &&
+    try { preserved = await getEffectiveCustomWallpaper() === legacy && ((await getWallpaperSelectionDB())?.wallpaper ?? null) === null &&
       localStorage.getItem(CONFIG.KEYS.USER_WALLPAPER) === JSON.stringify(legacy); }
     finally { IDBObjectStore.prototype.put = put; }
-    const retried = await getEffectiveCustomWallpaper() === legacy && await getWallpaperDB() === legacy &&
+    const retried = await getEffectiveCustomWallpaper() === legacy && ((await getWallpaperSelectionDB())?.wallpaper ?? null) === legacy &&
       localStorage.getItem(CONFIG.KEYS.USER_WALLPAPER) === null;
     await commitWallpaperSelection(backgrounds[4]);
     localStorage.setItem(CONFIG.KEYS.USER_WALLPAPER, JSON.stringify(legacy));
@@ -166,9 +183,9 @@ await test("历史壁纸迁移与新选择优先级", async () => {
     await removeWallpaperDB(); state.customWallpaper = null; storageRemove(CONFIG.KEYS.USER_WALLPAPER);
     localStorage.setItem(CONFIG.KEYS.USER_WALLPAPER, '{broken');
     await getEffectiveCustomWallpaper();
-    const malformed = localStorage.getItem(CONFIG.KEYS.USER_WALLPAPER) === '{broken' && await getWallpaperDB() === null;
+    const malformed = localStorage.getItem(CONFIG.KEYS.USER_WALLPAPER) === '{broken' && ((await getWallpaperSelectionDB())?.wallpaper ?? null) === null;
     storageRemove(CONFIG.KEYS.USER_WALLPAPER);
-    return {migrated, preserved, retried, modernWins, remote, preset, concurrent, changedKey, malformed};
+    return {migrated, legacyIDB, consolidated, preserved, retried, modernWins, remote, preset, concurrent, changedKey, malformed};
   })()`);
       assert.equal(Object.values(checks).every(Boolean), true, JSON.stringify(checks));
       console.log('✅ 历史图片成功迁移后删旧键，事务中止保留旧数据，可再次迁移');

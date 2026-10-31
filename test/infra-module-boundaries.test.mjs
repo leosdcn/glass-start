@@ -36,7 +36,7 @@ const connect = async testMode => {
 try {
   let evalJS = await connect(false);
   await waitFor(evalJS, '!!document.querySelector(".bookmark-item")');
-  const production = await evalJS(`({private:['__GLASS_DIAG__','state','modalState','pageData','CONFIG','dom','collectEditData','bindEditEvents','isFetchingWeather','lastDateDay','showConfirm'].every(key => !(key in window)), clock:!!document.getElementById('clock').textContent.trim()})`);
+  const production = await evalJS(`({private:['__GLASS_DIAG__','state','modalState','pageData','CONFIG','dom','collectEditData','bindEditEvents','isFetchingWeather','showConfirm'].every(key => !(key in window)), clock:!!document.getElementById('clock').textContent.trim()})`);
   assert.equal(production.private && production.clock, true, JSON.stringify(production));
   await evalJS("document.getElementById('editBookmarksBtn').click()");
   await waitFor(evalJS, "document.getElementById('editModal').classList.contains('active') && document.getElementById('editModal').contains(document.activeElement)");
@@ -59,18 +59,36 @@ try {
   evalJS = await connect(true);
   await waitFor(evalJS, 'typeof fetchSuggestions === "function"');
   const adapter = await evalJS(`(() => {
-    const getters = ['suggestionScriptTag','suggestDebounceTimer','isFetchingWeather','lastDateDay'].every(name => typeof Object.getOwnPropertyDescriptor(window,name).get === 'function');
+    const getters = ['suggestionScriptTag','suggestDebounceTimer','isFetchingWeather'].every(name => typeof Object.getOwnPropertyDescriptor(window,name).get === 'function');
     const append = document.body.appendChild;
     document.body.appendChild = function(node) { if(node.tagName === 'SCRIPT') node.type = 'application/x-test'; return append.call(this,node); };
     try {
       fetchSuggestions('bing', 'boundary-proof');
       const updated = suggestionScriptTag instanceof HTMLScriptElement;
       hideSuggestions();
-      lastDateDay = -1; updateClock();
-      return {getters, updated, cleared:suggestionScriptTag === null, date:lastDateDay === new Date().getDate()};
+      dom.date.textContent = 'stale date'; updateClock();
+      return {getters, updated, cleared:suggestionScriptTag === null, date:dom.date.textContent !== 'stale date'};
     } finally { document.body.appendChild = append; }
   })()`);
   assert.equal(Object.values(adapter).every(Boolean), true, JSON.stringify(adapter));
+  const clockRestored = await evalJS(`(() => {
+    const NativeDate = Date;
+    let now = new NativeDate(2026, 9, 15, 12, 34).getTime();
+    window.Date = class extends NativeDate {
+      constructor(...args) { super(...(args.length ? args : [now])); }
+      static now() { return now; }
+    };
+    try {
+      updateClock();
+      const previous = dom.date.textContent;
+      now = new NativeDate(2026, 10, 15, 12, 34).getTime();
+      dom.clock.textContent = 'stale time';
+      updateClock();
+      return dom.date.textContent !== previous && dom.clock.textContent === '12:34'
+        && dom.clock.getAttribute('datetime') === '12:34';
+    } finally { window.Date = NativeDate; updateClock(); }
+  })()`);
+  assert.equal(clockRestored, true, '跨月同日及同分钟唤醒应恢复时间和日期，无须修改私有缓存');
   console.log('✅ 测试适配层可变状态通过实时访问器读取，搜索完成／取消与日期更新不读取旧快照');
 } finally {
   if (chrome) await chrome.close();

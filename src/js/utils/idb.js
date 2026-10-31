@@ -78,8 +78,7 @@ async function mutateWallpaperDB(mutate) {
 export function setWallpaperSelectionDB(selection) {
     return mutateWallpaperDB(store => {
         store.put(selection, CONFIG.IDB.KEYS.SELECTION);
-        if (selection.wallpaper) store.put(selection.wallpaper, CONFIG.IDB.KEYS.CUSTOM_WALLPAPER);
-        else store.delete(CONFIG.IDB.KEYS.CUSTOM_WALLPAPER);
+        store.delete(CONFIG.IDB.KEYS.CUSTOM_WALLPAPER);
     });
 }
 
@@ -123,8 +122,7 @@ export async function migrateLegacyWallpaperDB(legacyWallpaper) {
                     const preset = backgrounds.indexOf(wallpaper);
                     const selection = { wallpaper: preset >= 0 ? null : wallpaper, bg: Math.max(0, preset) };
                     store.put(selection, CONFIG.IDB.KEYS.SELECTION);
-                    if (selection.wallpaper) store.put(selection.wallpaper, CONFIG.IDB.KEYS.CUSTOM_WALLPAPER);
-                    else store.delete(CONFIG.IDB.KEYS.CUSTOM_WALLPAPER);
+                    store.delete(CONFIG.IDB.KEYS.CUSTOM_WALLPAPER);
                     result = { status: 'migrated', selection };
                 };
             };

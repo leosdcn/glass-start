@@ -40,8 +40,7 @@ Object.assign(window, {
     flushWallpaperSelection: wallpaper.flushWallpaperSelection,
     CONFIG: constants.CONFIG,
     backgrounds: constants.backgrounds,
-    PRESET_WALLPAPER_THEMES: themes.PRESET_WALLPAPER_THEMES,
-    PRESET_WALLPAPER_TINTS: themes.PRESET_WALLPAPER_TINTS,
+    PRESET_TINTS: themes.PRESET_TINTS,
     PRESET_THEMES: themes.PRESET_THEMES,
     escapeHtml: helpers.escapeHtml,
     safeUrl: helpers.safeUrl,
@@ -119,11 +118,6 @@ Object.defineProperties(window, {
         get: () => search.activeSuggestReqId,
         configurable: true
     },
-    lastTimeStr: {
-        get: () => clock.lastTimeStr,
-        set: value => clock.setLastTimeStr(value),
-        configurable: true
-    },
     selectedSuggestionIdx: {
         get: () => search.selectedSuggestionIdx,
         set: value => search.setSelectedSuggestionIdx(value),
@@ -139,11 +133,6 @@ Object.defineProperties(window, {
     },
     isFetchingWeather: {
         get: () => weather.isFetchingWeather(),
-        configurable: true
-    },
-    lastDateDay: {
-        get: () => clock.lastDateDay,
-        set: value => clock.setLastDateDay(value),
         configurable: true
     },
 });

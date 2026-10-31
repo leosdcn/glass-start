@@ -1,7 +1,7 @@
 // @ts-check
 /** 书签匹配与排序；输入候选模型和配置，不访问页面或存储。 */
 // 复用编辑距离矩阵缓冲区，容量不足时扩容。
-let dLevBuffer = typeof Int32Array !== 'undefined' ? new Int32Array(1024) : null;
+let dLevBuffer = new Int32Array(1024);
 
 /**
  * 计算受限 Damerau–Levenshtein（OSA）距离，支持相邻字符交换。
@@ -16,8 +16,8 @@ export function damerauLevenshteinDistance(a, b) {
 
     const cols = bl + 1;
     const requiredSize = (al + 1) * cols;
-    if (!dLevBuffer || dLevBuffer.length < requiredSize) {
-        dLevBuffer = new Int32Array(Math.max(requiredSize, dLevBuffer ? dLevBuffer.length * 2 : 1024));
+    if (dLevBuffer.length < requiredSize) {
+        dLevBuffer = new Int32Array(Math.max(requiredSize, dLevBuffer.length * 2));
     }
     const dp = dLevBuffer;
 
@@ -49,16 +49,14 @@ export function damerauLevenshteinDistance(a, b) {
 }
 
 /**
- * 计算关键词 q 与目标文本（或书签）的前缀拼写容错 / 模糊匹配得分 (Token Prefix Fuzzy Score)
- * @param {string} q - 用户输入的查询关键词
- * @param {string|Partial<import('../types').BookmarkItem>} target - 目标字符串或书签对象
+ * 计算已规范化关键词与目标文本的前缀拼写容错 / 模糊匹配得分 (Token Prefix Fuzzy Score)
+ * @param {string} query - 已去空白并转为小写的查询关键词
+ * @param {string} target - 目标文本
  * @param {import('../types').FuzzyOptions} options
  * @returns {number} 匹配惩罚得分（越小越精确，未匹配返回 Infinity）
  */
-function getFuzzyScore(q, target, options) {
-    const query = (q || '').trim().toLowerCase();
-    if (query.length < options.MIN_QUERY_LEN) return Infinity;
-    const rawText = (typeof target === 'string' ? target : `${target?.name || ''} ${target?.url || ''} ${target?.desc || ''}`).toLowerCase();
+function getFuzzyScore(query, target, options) {
+    const rawText = target.toLowerCase();
     if (!rawText.trim()) return Infinity;
     const rawTokens = rawText.split(/\s+/);
     const wordTokens = rawText.split(/[^a-z0-9\u4e00-\u9fff]+/);

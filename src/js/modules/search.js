@@ -111,12 +111,9 @@ export function renderEngineDropdown() {
     const dropdownMenu = dom.dropdownMenu;
     if (!dropdownMenu) return;
     const curEngine = state.engine || DEFAULT_ENGINE;
-    const order = ['bing', 'google', 'wikipedia'];
     /** @type {Record<string, { name: string; svg: string; url: string }>} */
     const engineMap = engines;
-    dropdownMenu.innerHTML = order.map(key => {
-        const eng = engineMap[key];
-        if (!eng) return '';
+    dropdownMenu.innerHTML = Object.entries(engineMap).map(([key, eng]) => {
         const isChecked = key === curEngine;
         const iconHtml = `<span class="engine-icon size-5 aspect-square shrink-0 rounded pointer-events-none select-none flex items-center justify-center">${eng.svg}</span>`;
         return `<button type="button" data-engine="${key}" role="menuitemradio" aria-checked="${isChecked}" class="w-full flex items-center gap-3 px-3 py-2.5 apple-radius hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 glass-interactive text-left text-sm select-none">
@@ -248,10 +245,9 @@ function openBookmarkUrl(url, newTab = false) {
 
 /**
  * 随机探索/手气不错：从本地书签库中随机挑选并访问一个站点
- * @param {boolean} [newTab=true] - 是否在新标签页打开
  */
 let diceAngle = 0;
-export function openRandomBookmark(newTab = true) {
+export function openRandomBookmark() {
     /** @type {import('../types').BookmarkItem[]} */
     const list = [];
     const seen = new Set();
@@ -275,7 +271,7 @@ export function openRandomBookmark(newTab = true) {
     }
 
     setTimeout(() => {
-        openBookmarkUrl(randomBm.url, newTab);
+        openBookmarkUrl(randomBm.url, true);
     }, CONFIG.TIMERS.STAGGER_OPEN);
 }
 
@@ -347,21 +343,21 @@ function renderSuggestions(localList = [], netList = [], preserveSelection = fal
     if (!suggestionMenu) return;
     const prevIdx = preserveSelection ? selectedSuggestionIdx : -1;
     const restoreInput = selectionUpdatesInput;
-    const maxNetCount = Math.max(0, CONFIG.SUGGEST.MAX_TOTAL_ITEMS - (localList ? localList.length : 0));
-    const safeNetList = (netList || []).slice(0, maxNetCount);
-    const localSig = (localList || []).map(bm => `${bm.url}|${bm.name}|${bm.desc || ''}|${bm.category || ''}`).join(';');
+    const maxNetCount = Math.max(0, CONFIG.SUGGEST.MAX_TOTAL_ITEMS - localList.length);
+    const safeNetList = netList.slice(0, maxNetCount);
+    const localSig = localList.map(bm => `${bm.url}|${bm.name}|${bm.desc || ''}|${bm.category || ''}`).join(';');
     const signature = `${isNetLoading ? 1 : 0}:${localSig}:${safeNetList.join(';')}`;
     if (signature === lastSuggestionsSignature && suggestionMenu.classList.contains('active')) {
         if (!preserveSelection && selectedSuggestionIdx >= 0) selectSuggestion(-1, { updateInput: false });
         return;
     }
     suggestionItems = [
-        ...(localList || []).map(bm => (/** @type {import('../types').SuggestionBookmarkItem} */ ({type: 'bookmark', text: bm.name, url: bm.url}))),
+        ...localList.map(bm => (/** @type {import('../types').SuggestionBookmarkItem} */ ({type: 'bookmark', text: bm.name, url: bm.url}))),
         ...safeNetList.map(text => (/** @type {import('../types').SuggestionQueryItem} */ ({type: 'query', text})))
     ];
     selectedSuggestionIdx = -1;
 
-    if ((!localList || localList.length === 0) && (!netList || netList.length === 0) && !isNetLoading) {
+    if (localList.length === 0 && netList.length === 0 && !isNetLoading) {
         hideSuggestions();
         return;
     }
@@ -385,7 +381,7 @@ function renderSuggestions(localList = [], netList = [], preserveSelection = fal
     `;
 
     // 本地书签分组：就地复用已挂载的 DOM 节点，避免网络联想两阶段重刷时图片销毁与重解码闪烁
-    if (localList && localList.length > 0) {
+    if (localList.length > 0) {
         fragment.appendChild(range.createContextualFragment(renderSectionHeader(t('ui.bookmark'), true)));
         localList.forEach(bm => {
             const existing = existingBookmarkMap.get(bm.url);
@@ -424,7 +420,7 @@ function renderSuggestions(localList = [], netList = [], preserveSelection = fal
     // 网络建议分组
     let netHtml = '';
     if (safeNetList.length > 0) {
-        if (localList && localList.length > 0) {
+        if (localList.length > 0) {
             netHtml += renderSectionHeader(t('ui.search'), false);
         }
         safeNetList.forEach(item => {
@@ -440,10 +436,10 @@ function renderSuggestions(localList = [], netList = [], preserveSelection = fal
             globalIdx++;
         });
     } else if (isNetLoading) {
-        if (localList && localList.length > 0) {
+        if (localList.length > 0) {
             netHtml += renderSectionHeader(t('ui.search'), false);
         }
-        const skeletonCount = Math.max(1, CONFIG.SUGGEST.MAX_TOTAL_ITEMS - (localList ? localList.length : 0));
+        const skeletonCount = Math.max(1, CONFIG.SUGGEST.MAX_TOTAL_ITEMS - localList.length);
         for (let k = 0; k < skeletonCount; k++) {
             const widthClass = k % 2 === 0 ? 'w-44' : 'w-28';
             netHtml += `
@@ -576,7 +572,7 @@ export function fetchSuggestions(engineKey, query) {
     const handleSuggestFallback = () => {
         cleanup();
         if (reqId !== activeSuggestReqId) return;
-        if (localList && localList.length > 0) {
+        if (localList.length > 0) {
             renderSuggestions(localList, [], true, false);
         } else {
             hideSuggestions();
@@ -596,7 +592,7 @@ export function fetchSuggestions(engineKey, query) {
             list = Array.isArray(data[1]) ? data[1] : data.map(item => (typeof item === 'object' && item && item.phrase) ? item.phrase : item);
         }
         const maxNetCount = Math.max(0, CONFIG.SUGGEST.MAX_TOTAL_ITEMS - localList.length);
-        const safeList = (Array.isArray(list) ? list : []).filter(item => typeof item === 'string' && item.trim().length > 0);
+        const safeList = list.filter(item => typeof item === 'string' && item.trim().length > 0);
         if (suggestCache.size >= MAX_SUGGEST_CACHE_SIZE) {
             const oldest = suggestCache.keys().next().value;
             if (oldest) suggestCache.delete(oldest);

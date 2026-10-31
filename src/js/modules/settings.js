@@ -26,7 +26,6 @@ let importRequestId = 0;
 let cachedSettingsTabs = null;
 /** @type {NodeListOf<HTMLElement> | null} */
 let cachedSettingsPanels = null;
-let isPresetBgImagesLoaded = false;
 /** @type {import('../types').CategoryCatalog | null} */
 let pickerCatalog = null;
 /** @type {Element | null} */
@@ -36,8 +35,6 @@ let pickerEntries = [];
 let pickerSelectionSignature = '';
 
 function loadPresetBgCardImages() {
-    if (isPresetBgImagesLoaded) return;
-    isPresetBgImagesLoaded = true;
     const container = dom.presetWallpaperGrid;
     if (!container) return;
     container.querySelectorAll('img[data-src]').forEach((el, idx) => {
@@ -86,7 +83,7 @@ export function switchSettingsTab(targetTabId) {
 
 /** @type {number | null} */
 let bgEffectsRafId = null;
-/** @type {{ opacity: number } | null} */
+/** @type {number | null} */
 let pendingBgEffects = null;
 /** @type {{ element: HTMLElement, opacity: number } | null} */
 let lastBgEffects = null;
@@ -120,13 +117,13 @@ export function previewDraftMaskOpacity(value) {
 export function applyBgEffects(opacity, defer = false) {
     const op = Math.max(0, Math.min(CONFIG.APPEARANCE.MAX_MASK_OPACITY, parseInt(String(opacity), 10) || 0));
     if (defer) {
-        pendingBgEffects = { opacity: op };
+        pendingBgEffects = op;
         if (bgEffectsRafId === null) {
             bgEffectsRafId = requestAnimationFrame(() => {
                 bgEffectsRafId = null;
                 const effects = pendingBgEffects;
                 pendingBgEffects = null;
-                if (effects) renderBgEffects(effects.opacity);
+                if (effects !== null) renderBgEffects(effects);
             });
         }
     } else {
@@ -189,7 +186,7 @@ export function cancelEditModal() {
 export function closeEditModal() {
     closeLanguageModal();
     // 保存关闭时即使后台暂停了 rAF，也同步落定最后的预览；取消已先覆盖并清队列。
-    if (pendingBgEffects) applyBgEffects(pendingBgEffects.opacity);
+    if (pendingBgEffects !== null) applyBgEffects(pendingBgEffects);
     cancelDragSort();
     state.editOpen = false;
     editOpenRequestId++;
@@ -570,23 +567,13 @@ function closeLanguageModal() {
     dom.languageBtn?.setAttribute('aria-expanded', 'false');
 }
 
-export async function saveLanguageModal() {
-    const targetLang = modalState.draftLanguage || 'auto';
-    const currentPref = getLanguagePreference();
-    if (targetLang === currentPref) {
+export function saveLanguageModal() {
+    if (modalState.draftLanguage === getLanguagePreference()) {
         closeLanguageModal();
         return;
     }
     closeLanguageModal();
-    if (state.editOpen) {
-        await saveEditModal();
-    } else {
-        if (!storageSet(CONFIG.KEYS.LANGUAGE, targetLang)) {
-            showConfirm(t('language.saveFailed'), null, t('ui.could.not.save'));
-            return;
-        }
-        location.reload();
-    }
+    return saveEditModal();
 }
 
 /** @param {string} lang */

@@ -1,7 +1,7 @@
 /**
  * 全局内存状态与数据存储
  */
-import { CONFIG, DEFAULT_BOOKMARKS, DEFAULT_CATEGORIES } from '../config/constants.js';
+import { DEFAULT_BOOKMARKS, DEFAULT_CATEGORIES } from '../config/constants.js';
 import { localizeCategories } from '../core/i18n.js';
 import { DEFAULT_ENGINE } from '../config/engines.js';
 

@@ -297,7 +297,7 @@ export function renderWeatherPopover(data) {
         weatherText: raw.weatherCode !== undefined || getLocale() === 'en' ? weatherDescription(raw.weatherCode) : (typeof raw.weatherText === 'string' ? raw.weatherText : '')
     };
     const loc = /** @type {import('../types').WeatherLocation} */ (data.location || {});
-    const days = (Array.isArray(data.daily) ? data.daily : []).filter(isWeatherRecord).map((/** @type {any} */ d, /** @type {number} */ index) => ({
+    const days = (data.daily || []).map((d, index) => ({
         ...d,
         label: forecastLabel(d.date, index) || (typeof d.label === 'string' ? d.label.slice(0, CONFIG.WEATHER.LABEL_MAX_CHARS) : ''),
         icon: (typeof d.icon === 'string' && d.icon) ? d.icon : '⛅',

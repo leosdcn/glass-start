@@ -73,7 +73,7 @@ await test("解码、迟到结果隔离与上传压缩", async () => {
       put(new File([blob],'large.png',{type:'image/png'}));
       await wait(()=>state.customWallpaper!==before && state.customWallpaper?.startsWith('data:image/jpeg'));
       const fit=compressed.width<=CONFIG.APPEARANCE.MAX_UPLOAD_WIDTH && compressed.height<=CONFIG.APPEARANCE.MAX_UPLOAD_HEIGHT && Math.abs(compressed.width/compressed.height-1.5)<0.01;
-      return {invalidBlocked,fit,jpeg:compressed.type==='image/jpeg',quality:compressed.quality===CONFIG.APPEARANCE.JPEG_QUALITY,persisted:await getWallpaperDB()===state.customWallpaper,inputCleared:input.value===''};
+      return {invalidBlocked,fit,jpeg:compressed.type==='image/jpeg',quality:compressed.quality===CONFIG.APPEARANCE.JPEG_QUALITY,persisted:((await getWallpaperSelectionDB())?.wallpaper ?? null)===state.customWallpaper,inputCleared:input.value===''};
     } finally {HTMLCanvasElement.prototype.toDataURL=original;}
   })()`);
       assert.equal(Object.values(uploadResult).every(Boolean),true,JSON.stringify(uploadResult));

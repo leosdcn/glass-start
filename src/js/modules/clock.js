@@ -52,15 +52,6 @@ export function renderCreditsModalList() {
     `).join('');
 }
 
-export let lastDateDay = -1;
-export let lastTimeStr = '';
-/**
- * @param {string} val
- */
-export function setLastTimeStr(val) {
-    lastTimeStr = val;
-}
-
 /** @type {ReturnType<typeof setTimeout>|null} */
 let clockTimerId = null;
 
@@ -94,25 +85,13 @@ export function updateClock() {
     const clockEl = dom.clock;
     const dateEl = dom.date;
 
-
-    if (curTimeStr !== lastTimeStr) {
-        lastTimeStr = curTimeStr;
-        if (clockEl) {
-            clockEl.innerHTML = `${hh}<span class="clock-colon mx-0.5 sm:mx-1">:</span>${mm}`;
-            clockEl.setAttribute('datetime', curTimeStr);
-        }
+    if (clockEl && clockEl.textContent !== curTimeStr) {
+        clockEl.innerHTML = `${hh}<span class="clock-colon mx-0.5 sm:mx-1">:</span>${mm}`;
+        clockEl.setAttribute('datetime', curTimeStr);
     }
-    const day = n.getDate();
-    if (day !== lastDateDay) {
-        lastDateDay = day;
-        if (dateEl) {
-            dateEl.textContent = formatDate(n);
-        }
+    if (dateEl) {
+        const date = formatDate(n);
+        if (dateEl.textContent !== date) dateEl.textContent = date;
     }
     scheduleClockTick();
 }
-
-/**
- * @param {number} value
- */
-export function setLastDateDay(value) { lastDateDay = value; }

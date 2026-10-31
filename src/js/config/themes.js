@@ -35,7 +35,3 @@ export const PRESET_TINTS = Object.freeze([
     '150, 115, 175', // bg7: 紫韵流光 (微醺幻夜紫)
     '205, 160, 195'  // bg8: 梦幻流彩 (柔光暖粉紫)
 ]);
-
-export const PRESET_WALLPAPER_THEMES = PRESET_THEMES;
-export const PRESET_WALLPAPER_TINTS = PRESET_TINTS;
-export const PRESET_WALLPAPER_THEME_COLORS = PRESET_THEME_COLORS;

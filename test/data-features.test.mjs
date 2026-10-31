@@ -205,7 +205,7 @@ const btnA11yCheck = await evalJS(`(() => {
 
   renderWeatherPopover({
     location: { name: '北京', fullName: '中国 · 北京市' },
-    current: { temp: 22, apparent: 23, weatherText: '晴', icon: '☀️', humidity: 40, windSpeed: 2.0, pop: 0, sunrise: '05:30', sunset: '18:50' },
+    current: { temp: 22, apparent: 23, weatherText: '晴', icon: '☀️', humidity: 40, windSpeed: 2.0, pop: 0, sunriseToday: '05:30', sunsetToday: '18:50' },
     daily: []
   });
   const refBtn = document.getElementById('weatherRefreshBtn');
@@ -217,7 +217,7 @@ const btnA11yOk = btnA11yCheck && btnA11yCheck.delHasAria && btnA11yCheck.refHas
 
 // 预设壁纸与深浅主题映射、模式标识保持一致。
 const wallpaperThemeCheck = await evalJS(`(() => {
-  const themes = PRESET_WALLPAPER_THEMES;
+  const themes = PRESET_THEMES;
   const bgs = backgrounds;
   const countOk = Array.isArray(themes) && themes.length === 8 && Array.isArray(bgs) && bgs.length === 8;
   const isAlternating = themes.every((t, i) => i % 2 === 0 ? !t.isLight : t.isLight);
@@ -523,7 +523,6 @@ const wakeupSyncCheck = await evalJS(`(() => {
       const expiredCacheAutoRefreshed = fetchCount > 0 && updatedCache && (Date.now() - updatedCache.timestamp < 1500);
 
       // 7.3 时钟切回前台即时同步 (重置时间缓存模拟跨分钟切回)
-      lastTimeStr = '';
       if (dom.clock) dom.clock.textContent = '00:00:00';
       document.dispatchEvent(new Event('visibilitychange'));
       const clockSynced = dom.clock && dom.clock.textContent !== '00:00:00';

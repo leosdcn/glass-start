@@ -57,7 +57,7 @@ await test("主题配置、图标回退与缓存驱逐", async () => {
       ` });
           await navigateAndWait(send, evalJS, `http://127.0.0.1:${server.port}/theme-probe.html?probe=${token}`,
             "!!window.__headThemeProbe && typeof window.handleIconError === 'function'");
-          const actual = await evalJS(`({ head: __headThemeProbe, runtimeTheme: PRESET_THEMES[${index}], runtimeTint: PRESET_WALLPAPER_TINTS[${index}] })`);
+          const actual = await evalJS(`({ head: __headThemeProbe, runtimeTheme: PRESET_THEMES[${index}], runtimeTint: PRESET_TINTS[${index}] })`);
           assert.deepEqual(actual.head.theme, expected.themes[index]);
           assert.deepEqual(actual.runtimeTheme, expected.themes[index]);
           assert.equal(actual.head.tint, expected.tints[index]);

@@ -102,10 +102,9 @@ export function normalizeBookmark(item, fallbackName = '') {
 /**
  * 根据站点 URL 或原图标 URL 推断备用 Favicon 地址（通过 Google S2 服务）
  * @param {string} url - 书签目标 URL 或失效的图标 URL
- * @param {number} [size] - 图标分辨率，默认取配置
  * @returns {string} Google S2 图标代理地址，无法推断时返回 ''
  */
-export function faviconFallbackFromUrl(url, size = CONFIG.UI.FAVICON_FALLBACK_SIZE) {
+export function faviconFallbackFromUrl(url) {
     if (!url) return '';
     let host = getHostname(url);
     if (!host || host === 'a.favicon.im') {
@@ -118,7 +117,7 @@ export function faviconFallbackFromUrl(url, size = CONFIG.UI.FAVICON_FALLBACK_SI
             // ignore
         }
     }
-    return host ? `https://www.google.com/s2/favicons?domain=${encodeURIComponent(host)}&sz=${size}` : '';
+    return host ? `https://www.google.com/s2/favicons?domain=${encodeURIComponent(host)}&sz=${CONFIG.UI.FAVICON_FALLBACK_SIZE}` : '';
 }
 
 
@@ -196,12 +195,11 @@ export function evictFaviconCache(url) {
  * 统一图标失败策略：备用地址只尝试一次，最终失败交给对应界面渲染。
  * @param {HTMLImageElement|null} img
  * @param {(img: HTMLImageElement) => void} renderFailure
- * @param {number} [size] - 图标分辨率，默认取配置
  * @returns {void}
  */
-export function handleFaviconFailure(img, renderFailure, size = CONFIG.UI.FAVICON_FALLBACK_SIZE) {
+export function handleFaviconFailure(img, renderFailure) {
     if (!img || img.dataset.failed) return;
-    const fallback = faviconFallbackFromUrl(img.dataset.url || img.src, size);
+    const fallback = faviconFallbackFromUrl(img.dataset.url || img.src);
     if (!img.dataset.fallback && fallback && img.src !== fallback) {
         img.dataset.fallback = '1';
         evictFaviconCache(img.src);

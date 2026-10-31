@@ -5,7 +5,7 @@ import { t } from '../core/i18n.js';
  * 设置按钮、书签草稿编辑与拖拽排序的事件装配。
  */
 import { CONFIG } from '../config/constants.js';
-import { normalizeUrl, storageGet, checkImageReady } from '../utils/helpers.js';
+import { normalizeUrl, checkImageReady } from '../utils/helpers.js';
 import { getCategoryCatalog } from '../utils/category-catalog.js';
 
 import { modalState, pageData, state } from '../state/store.js';
@@ -244,7 +244,7 @@ export function bindEditEvents() {
 
     if (dom.urlBgBtn) {
         const openUrlInput = () => {
-            const current = modalState.draftWallpaper || storageGet(CONFIG.KEYS.USER_WALLPAPER) || '';
+            const current = modalState.draftWallpaper || '';
             if (dom.urlBgInput) dom.urlBgInput.value = typeof current === 'string' && current.startsWith('http') ? current : '';
             dom.urlBgBtnGroup?.classList.add('hidden');
             dom.urlBgInputRow?.classList.remove('hidden');

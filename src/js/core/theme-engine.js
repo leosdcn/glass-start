@@ -10,7 +10,6 @@ import { dom } from '../state/dom.js';
 
 /** @type {import('../types.js').WallpaperTheme} */
 let currentWallpaperTheme = (typeof window !== 'undefined' && window.__INITIAL_THEME__) || APP_THEME_DARK;
-let currentWallpaperThemeColor = (typeof window !== 'undefined' && window.__INITIAL_THEME__ && window.__INITIAL_THEME__.themeColor) || '';
 
 let currentCommittedColor = '';
 let currentCommittedIsLight = /** @type {boolean | null} */ (null);
@@ -83,9 +82,9 @@ export function updateGlassTint(tintRgbStr) {
 
 export function syncWallpaperTheme() {
     if (currentWallpaperTheme && currentWallpaperTheme.color) {
-        updateThemeColor(currentWallpaperTheme.color, currentWallpaperTheme.isLight, currentWallpaperThemeColor || currentWallpaperTheme.themeColor);
+        updateThemeColor(currentWallpaperTheme.color, currentWallpaperTheme.isLight, currentWallpaperTheme.themeColor);
     } else {
-        updateThemeColor(APP_THEME_DARK.color, false, currentWallpaperThemeColor || '#546272');
+        updateThemeColor(APP_THEME_DARK.color, false, '#546272');
     }
 }
 
@@ -95,14 +94,7 @@ export function syncWallpaperTheme() {
  */
 export function setWallpaperTheme(theme, themeColor) {
     if (!theme || !theme.color) return;
-    currentWallpaperTheme = theme;
-    if (typeof themeColor === 'string') {
-        currentWallpaperThemeColor = themeColor;
-    } else if (theme.themeColor) {
-        currentWallpaperThemeColor = theme.themeColor;
-    } else {
-        currentWallpaperThemeColor = '';
-    }
+    currentWallpaperTheme = { ...theme, themeColor: themeColor ?? theme.themeColor };
     syncWallpaperTheme();
 }
 

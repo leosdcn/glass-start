@@ -158,7 +158,7 @@ try {
         return true;
       }
     };
-    await fn(mockCacheA, 5);
+    await fn(mockCacheA, 5, 'favicon-test');
     const fifoPruned5Oldest = deletedKeysA.length === 5 && deletedKeysA.every((k, i) => k === `https://a.favicon.im/site-${i}.png`);
     const remaining5Newest = mockEntriesA.length === 5 && mockEntriesA[0] === 'https://a.favicon.im/site-5.png';
 
@@ -169,7 +169,7 @@ try {
       keys: async () => [...mockEntriesB],
       delete: async (k) => { deletedKeysB.push(k); return true; }
     };
-    await fn(mockCacheB, 5);
+    await fn(mockCacheB, 5, 'image-test');
     const noOverheadWhenUnderLimit = deletedKeysB.length === 0 && mockEntriesB.length === 3;
 
     pruneAlgorithmOk = fifoPruned5Oldest && remaining5Newest && noOverheadWhenUnderLimit;

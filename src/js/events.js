@@ -126,7 +126,7 @@ export function bindEvents() {
         randomBookmarkBtn.addEventListener('click', e => {
             e.stopPropagation();
             e.preventDefault();
-            openRandomBookmark(true);
+            openRandomBookmark();
         });
     }
 

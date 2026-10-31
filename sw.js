@@ -67,9 +67,8 @@ const CORE_ASSETS = [
 const pendingPrunes = new Map();
 
 // CacheStorage 超限时按 FIFO 删除最旧条目；同一缓存池并发写入时微任务合并，避免冗余 keys() 扫描。
-/** @param {Cache} cache @param {number} maxEntries @param {string} [poolKey] */
-function pruneCache(cache, maxEntries, poolKey = '') {
-    const key = poolKey || String(maxEntries);
+/** @param {Cache} cache @param {number} maxEntries @param {string} key */
+function pruneCache(cache, maxEntries, key) {
     let pending = pendingPrunes.get(key);
     if (!pending) {
         pending = (async () => {
@@ -271,9 +270,7 @@ async function previousImageResponse(request) {
     if (pathnameLower.startsWith('/_clear_cache')) return;
 
     const isSameOrigin = urlObj.origin === self.location.origin;
-    const scopePath = new URL(/** @type {ServiceWorkerContext} */ (self).registration
-        ? /** @type {ServiceWorkerContext} */ (self).registration.scope
-        : self.location.href).pathname.toLowerCase();
+    const scopePath = new URL(SCOPE_URL).pathname.toLowerCase();
     const scopePathClean = scopePath.endsWith('/') && scopePath.length > 1 ? scopePath.slice(0, -1) : scopePath;
     const isImgAsset = isSameOrigin && /\.(ico|png|jpg|jpeg|svg|webp|avif)$/.test(pathnameLower);
     // 直接打开图片时仍须返回图片，不能被主文档的离线回退替换成 HTML。
