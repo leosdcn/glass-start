@@ -212,6 +212,16 @@ This is my first substantial open-source project, and I am still learning and im
 - `npm run sync:icons` and icon-conversion regression tests require macOS `sips`. Use macOS for complete validation. Building and static hosting do not call `sips`; other systems can build using the icons already in the repository.
 - Dependency installation, icon downloads or refreshes, and online W3C validation require a connection. Reusing local icons does not contact external icon services.
 
+### Version maintenance
+
+`package.json` is the single source of the project version. Builds read it for the website version badge and extension manifest. To update the version, replace `<new-version>` with the target version:
+
+```bash
+npm version <new-version> --no-git-tag-version --ignore-scripts
+```
+
+This synchronizes `package.json` and `package-lock.json` without creating a commit or Git tag or running version hooks. No manual HTML or extension manifest edits are needed. Rebuild to display the new version in the output. Follow [AGENTS.md](./AGENTS.md#验证) for release validation.
+
 ### Local development workflow
 
 ```bash
@@ -240,9 +250,20 @@ npm run build:extension
 
 [AGENTS.md](./AGENTS.md#验证) (Chinese) defines the required validation scope. Prefer directly relevant tests for local changes. `npm test -- <filename-fragment>` checks types and builds as needed before running matching files. When a build is needed, it runs alongside the type check, so do not repeat either manually. The build is skipped only when all matching tests are on the runner's [standalone unit-test list](./test/support/test-selection.mjs). With no arguments, `npm test` and `test:all` run the full suite, intended for high-risk changes across modules, releases or explicitly requested full validation. Use `test:ui`, `test:data`, `test:infra` or `test:lifecycle` to widen the scope by area. Available commands are defined in `package.json`.
 
-`npm run typecheck` checks JavaScript types for core data, drafts, the DOM cache and state, and strictly checks `sw.js` in a separate Worker environment. The scope is defined in `tsconfig.json` and `tsconfig.sw.json`; `npm test` runs both checks. `npm run test:unit` uses the runner's shared standalone test list, checks types and tests search, weather conversion, drafts and related logic without a build or Chrome.
+`npm run typecheck` checks all JavaScript modules under `src/js/` and the type contracts in `test/types/contracts.js`, and strictly checks `sw.js` in a separate Worker environment. The scope is defined in `tsconfig.json` and `tsconfig.sw.json`; `npm test` runs both checks. `npm run test:unit` uses the runner's shared standalone test list, checks types and tests search, weather conversion, drafts and related logic without a build or Chrome.
 
-`npm run benchmark` builds and measures frame intervals during initial and repeated screen transitions. By default, it accesses only local resources. See the [transition benchmark guide](./docs/TRANSITION_BENCHMARK.md) (Chinese) for options, metrics and headless-browser limitations.
+Related browser regressions are grouped in the following files. Named scenarios use separate browser sessions. Add related regressions to the corresponding file rather than creating one per fix.
+
+| Filename fragment | Coverage |
+| :--- | :--- |
+| `data-wallpaper-rendering` | Image decoding, upload compression, shared loads and failure retries |
+| `data-wallpaper-storage` | Selection commits, transaction failures, session isolation and legacy migration |
+| `data-bookmark-picker` | Picker node reuse, catalog invalidation and icon preview requests |
+| `ui-nav-rendering` | Lazy icon loading, category position caching and native scrolling |
+| `ui-modal-accessibility` | Focus, background isolation and incremental isolation updates |
+| `infra-theme-favicon` | Theme configuration, icon fallbacks, cache eviction and direct icon navigation |
+
+`npm run benchmark` builds and measures frame intervals during initial and repeated screen transitions. By default, it measures the local production build; the page may still make its usual network requests, such as weather updates. See the [transition benchmark guide](./docs/TRANSITION_BENCHMARK.md) (Chinese) for options, metrics and headless-browser limitations.
 
 `npm run lint` uses Acorn to check DOM references and PostCSS to inspect CSS declarations and nesting. It also checks that `!important` is limited to reduced-motion rules and verifies the prefix order for frosted glass properties. These parsers are development tools and are not included in the website output.
 

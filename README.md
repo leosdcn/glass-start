@@ -206,6 +206,16 @@ npm run preview
 - `npm run sync:icons` 及图标转换回归测试依赖 macOS 原生 `sips`；完整验证建议在 macOS 上执行。构建与静态托管本身不调用 `sips`，其他系统可使用仓库中已同步的图标构建。
 - 安装依赖、下载或刷新图标和 W3C 在线校验需要网络；仅复用本地图标时不请求外部图标服务。
 
+### 版本号维护
+
+版本号以 `package.json` 为唯一来源，网页版本徽章和扩展清单在构建时自动读取。更新版本时执行以下命令，将 `<新版本号>` 替换为目标版本：
+
+```bash
+npm version <新版本号> --no-git-tag-version --ignore-scripts
+```
+
+命令自动同步 `package.json` 与 `package-lock.json`，不创建提交或 Git 标签，也不执行版本钩子；无需手改 HTML 或扩展清单。重新构建后，产物才会显示新版本。发布前验证按 [AGENTS.md](./AGENTS.md#验证) 执行。
+
 ### 本地开发工作流
 
 ```bash
@@ -232,7 +242,7 @@ npm run build:extension
 
 验证范围以 [AGENTS.md](./AGENTS.md#验证) 为准，局部修改优先运行直接相关测试。`npm test -- <文件名片段>` 执行匹配的测试文件前，会检查类型，并按需构建；需要构建时，两项并行执行，无需重复手动检查类型或构建。仅匹配[运行器明确列出的纯单元测试](./test/support/test-selection.mjs)时跳过构建。无参数的 `npm test` 与 `test:all` 执行全套，用于高风险跨模块改造、发布或明确要求全量验证的场景。`test:ui`、`test:data`、`test:infra`、`test:lifecycle` 可按模块扩大范围，可用命令以 `package.json` 为准。
 
-`npm run typecheck` 对核心数据、草稿、DOM 缓存与状态执行渐进式 JavaScript 类型检查，并在独立 Worker 类型环境中严格检查 `sw.js`；范围以 `tsconfig.json` 和 `tsconfig.sw.json` 为准，`npm test` 同样执行这两项检查。`npm run test:unit` 复用运行器的纯单元测试清单，检查类型并验证搜索、天气转换与草稿等逻辑，无需构建或 Chrome。
+`npm run typecheck` 检查 `src/js/` 下全部 JavaScript 模块及 `test/types/contracts.js` 类型契约，并在独立 Worker 类型环境中严格检查 `sw.js`；范围以 `tsconfig.json` 和 `tsconfig.sw.json` 为准，`npm test` 同样执行这两项检查。`npm run test:unit` 复用运行器的纯单元测试清单，检查类型并验证搜索、天气转换与草稿等逻辑，无需构建或 Chrome。
 
 相近的浏览器回归按功能集中在以下文件中，各具名场景仍使用独立浏览器会话。后续同类回归优先加入对应文件，避免按每次修复新增文件。
 
@@ -245,11 +255,13 @@ npm run build:extension
 | `ui-modal-accessibility` | 焦点、背景隔离与隔离状态增量更新 |
 | `infra-theme-favicon` | 主题配置、图标回退、缓存驱逐与图标直接导航 |
 
-`npm run benchmark` 构建并评测首次与多轮切屏帧间隔，默认只访问本地。参数、统计口径及无头浏览器限制见 [切屏评测说明](./docs/TRANSITION_BENCHMARK.md)。
+`npm run benchmark` 构建并评测首次与多轮切屏帧间隔，默认评测本地生产产物；页面自身的天气等网络请求仍按应用行为发生。参数、统计口径及无头浏览器限制见 [切屏评测说明](./docs/TRANSITION_BENCHMARK.md)。
 
 `npm run lint` 使用 Acorn 检查 DOM 引用，使用 PostCSS 检查 CSS 声明及嵌套关系；同时检查 `!important` 是否仅用于减弱动效规则，以及毛玻璃属性的前缀顺序。这些解析工具仅供开发检查，不进入网站产物。
 
 `npm run test:icons` 与 `npm run test:visual` 是独立入口，需先构建再按需运行。视觉脚本输出截图和布局指标，不自动与基准图逐像素比较。`npm run lint:fix` 仅修复脚本支持的机械规则。[Safari 专项冒烟清单](./docs/SAFARI_SMOKE_CHECKLIST.md) 仅保留为可选参考，用户明确要求时才使用，不作为默认验证或发布门槛。
+
+构建后执行 `node scripts/capture-preview.mjs` 可更新中文 README 截图；添加 `--lang=en` 可更新英文截图。
 
 > 💡 **macOS 便捷启动**：macOS 用户可直接双击根目录的 `start.command` 脚本，检查已有 Node 环境、构建并启动浏览器预览；首次运行前仍需执行 `npm ci`。此入口默认重置本地测试环境，清除该本地站点的缓存、书签、壁纸与偏好，避免旧缓存和设置影响视觉测试。
 

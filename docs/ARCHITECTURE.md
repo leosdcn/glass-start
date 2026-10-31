@@ -114,7 +114,7 @@ flowchart TD
 
 构建在内存中传递并内嵌本次编译的 CSS，不共享磁盘中间文件。空 CSS、编译或压缩失败会阻断构建；整个 `dist/` 的并发写入仍不保证事务性。HTML 使用唯一构建插槽注入入口、样式和 SVG；标记缺失、重复或顺序错误会阻断构建。主题、壁纸清单、引擎元数据/图标、天气图标与天气清洗脚本分别从 `config/`、`utils/weather-data.js` 注入，避免维护副本。
 
-首屏共享配置来自 `config/backgrounds.js`、`config/engines.js`、`config/engine-icons.js`、`config/weather-icons.js`；`src/index.html` 只保留注入插槽。lint 校验壁纸与主题/色调数组长度、引擎键集合、本地图标文件存在性及插槽唯一性，并确保构建插槽无残留。
+首屏共享配置来自 `config/backgrounds.js`、`config/engines.js`、`config/engine-icons.js`、`config/weather-icons.js`；`src/index.html` 只保留注入插槽。lint 校验壁纸与主题/色调数组长度、引擎键集合、本地图标文件存在性及对应源码插槽的唯一性；构建阶段通过 `replaceOnce()` 消费注入插槽，区域标记另检查前后顺序。lint 不检查最终构建产物。
 
 `public/` 在构建时复制到 `dist/`；`src/index.html` 是构建模板。修改构建脚本或其加载的辅助脚本后需重启开发服务。
 
@@ -126,7 +126,7 @@ Chrome 扩展通过 `npm run build:extension` 独立生成 `extension/`。`scrip
 
 ### 多语言
 
-中英文消息以 JSON 存放在 `config/locales/`，语言键与支持列表位于 `config/language.js`。构建将字典和英文目录一次性注入 head，`core/i18n.js` 通过 `window.__GLASS_I18N__` 共享上下文，主应用不再次导入字典。有效语言按手选、浏览器偏好、英文回退确定。首屏预渲染和运行时使用同一翻译接口；body 末尾同步处理 `data-i18n` 文本和白名单属性。英文前景在这一步完成前短暂隐藏，超时会解除，壁纸不受影响。
+中英文消息以 JSON 存放在 `config/locales/`，语言键与支持列表位于 `config/language.js`。构建将中英文字典与两种语言的目录配置一次性注入 head，`core/i18n.js` 通过 `window.__GLASS_I18N__` 共享上下文，主应用不再次导入字典。有效语言按手选、浏览器偏好、英文回退确定。首屏预渲染和运行时使用同一翻译接口；body 末尾同步处理 `data-i18n` 文本和白名单属性。英文前景在这一步完成前短暂隐藏，超时会解除，壁纸不受影响。
 
 设置弹窗右上角的语言控件使用 `modalState.draftLanguage`，取消不提交，完成时在其他设置保存成功后持久化 `glass_language`，偏好变化后刷新；失败保留草稿。全部重置包括语言。普通数量消息通过原生 `Intl.PluralRules`，日期通过 `Intl.DateTimeFormat`；时制、单位和时区不随语言自动切换。
 
@@ -180,7 +180,7 @@ flowchart LR
 
 ## 壁纸与主题
 
-设置中的壁纸、背景暗度、快捷书签、切屏动效和语言由「完成」提交；取消放弃未提交的草稿，恢复原壁纸并作废读取、加载及解码任务。弹窗外快捷键切换壁纸仍立即保存。设置保存按字段顺序执行，不提供跨 LocalStorage 和 IndexedDB 的整体原子事务；已完成的提交不会因随后取消而回滚。
+设置中的壁纸、背景暗度、快捷书签、切屏动效和语言由「完成」提交；取消放弃未提交的草稿，恢复原壁纸并作废读取、加载及解码任务。弹窗外快捷键切换壁纸仍立即保存。设置保存先等待壁纸准备，再依次提交书签、暗度、切屏动效、壁纸和语言，不提供跨 LocalStorage 和 IndexedDB 的整体原子事务；已完成的提交不会因随后取消而回滚。
 
 外观页在桌面将自定义壁纸、暗度和切屏动效横排，窄屏自然换行，沿用设置弹窗的高度约束。网络直链输入在自定义壁纸列原位替换来源按钮，不增加设置区高度；壁纸网格按完整卡片计算行高，卡片固定 16:10，名称居中叠在底部的半透明毛玻璃栏，空间不足时由内容区滚动。选中态同步描边、右上角勾选及 `aria-pressed`。
 
@@ -207,12 +207,12 @@ LocalStorage 仅保存背景索引和轻量首屏提示，新选择不写入 Bas
 - 滚轮识别使用被动监听，不持续拦截导航内容区的滚轮事件；利用上次观察到的内容位置和到顶事件时间，避免合成线程先滚到顶后误判为返回手势。仅在切屏动画期间临时阻止原生滚动，完成、超时、减弱动效或唤醒校准均移除拦截。分类联动先读取侧栏几何信息，再更新高亮，避免写后立即读布局。
 - 触屏按滑动方向及 `CONFIG.GESTURE` 中的位移、平均速度阈值识别切屏；手指落下时记录内容是否在顶部，同一次滑动滚到顶部不会接着返回。全局触摸监听为被动监听；允许取消默认滚动的 `touchmove` 仅绑定首屏和处于顶部的导航内容区，导航内容滚离顶部即解除局部监听。局部监听在触摸开始前安装，确保浏览器仍允许取消切屏手势的默认滚动。多指、取消、失焦或唤醒会清除本轮触屏状态。
 - 导航页返回首屏须在内容顶部；顶部返回按钮不受此滚动位置限制。键盘输入及浮层状态由 `events.js` 协调。
-- 所有切屏入口在动画期间不反转、不重启、不排队；过渡时长及曲线由 CSS 定义。过渡通常在 `transitionend` 完成；事件缺失时以配置的动画时长加缓冲兜底。零时长或减弱动效立即完成，过渡中开启减弱动效也会解除锁定。
+- 所有切屏入口在动画期间不反转、不重启、不排队；过渡时长及曲线由 CSS 定义。过渡通常由导航屏自身的 `transform` 或 `opacity` 的 `transitionend` 完成；事件缺失时以 `CONFIG.GESTURE.TRANSITION_MS + TIMEOUT_BUFFER_MS` 兜底。减弱动效立即完成，过渡中开启减弱动效也会解除锁定；状态机不读取计算样式中的过渡时长，因此仅将 CSS 时长改为零仍会等待兜底计时器。
 - 切屏前清除卡片 3D 倾斜，动画期间不重新启用倾斜；已归零的滚动位置不重复写样式。从内容中间返回时，导航列表退场后才归零，避免首帧重绘列表及可见内容跳动；进入导航前仍确保列表位于顶部。
 
 `reconcileScreenState()` 清理过渡任务、恢复保存的目标屏、校准状态类及可访问性，并移除预渲染类 `.nr`。正常进入、退出与校准共用目标状态应用逻辑。它本身不执行 `display` 重置；默认无明确目标且仍在过渡时会跳过，唤醒调用传入 `force=true`。
 
-`core/app-wake.js` 的 `handleAppWakeUp()` 统一处理 `pageshow` 和恢复可见的 `visibilitychange`：清理残留交互及手势状态，强制校准屏幕、时钟与天气刷新，并检查 Service Worker 更新。BFCache 恢复沿用 CSS 的合成提示策略，不写入内联 `will-change`。校准时在禁用过渡的情况下提交目标布局，再恢复过渡，避免补播动画；不重建 DOM。
+`core/app-wake.js` 的 `handleAppWakeUp()` 统一处理 `pageshow` 和恢复可见的 `visibilitychange`：清理残留交互及手势状态，强制校准屏幕、时钟与天气刷新，并检查 Service Worker 更新。BFCache 恢复沿用 CSS 的合成提示策略，不写入内联 `will-change`。校准时在禁用过渡的情况下提交目标布局，再恢复过渡，避免补播动画；复用未变化的书签和分类节点，目录变化时仍可重建导航。页面隐藏时由同一唤醒模块停止时钟计时器，恢复可见后更新时间并重新安排下一整分钟的更新。
 
 Chrome（首屏已有的 `.is-chrome` 标记）为两屏保留 `will-change: transform`，导航退出后保留离屏玻璃结构，减少重复进入时的绘制与 GPU 进程任务开销；离屏导航仍由位置、`pointer-events: none`、`inert` 与无障碍属性隔离。其他浏览器在导航退出后继续隐藏并关闭离屏毛玻璃，仅在 `body.is-screen-transitioning` 期间申请合成提示，保留 WebKit 原有回收策略。壁纸切换仍通过 `.is-crossfading` 动态分配 `will-change`。`blur` / `pagehide` 添加 `body.tab-blurred`，收到下一次用户交互后解除，防止悬停残留。
 
@@ -260,7 +260,7 @@ Chrome（首屏已有的 `.is-chrome` 标记）为两屏保留 `will-change: tra
 
 同源图片与外部图标中相同的并发请求共享未完成任务，各消费者获得独立响应副本。合并键包含 URL、请求头、模式与凭据等请求属性；缓存写入完成前保留任务，避免响应已返回但缓存尚未提交时重复下载。单个消费者取消不终止共享下载，失败后释放任务以允许后续重试。
 
-同源预设书签图标使用 `./icons/<host>.png`。`scripts/sync-icons.mjs` 默认复用可解码且尺寸合规的本地 PNG，仅补齐缺失或损坏项；`npm run sync:icons:refresh` 全量刷新本地图标。下载时优先匹配 `OFFICIAL_HOST_SOURCES` 官方高清直链，其余回退 Google S2，遇到 404 自动反向尝试 `www` 补全/去前缀，经 macOS `sips` 转换为正方形 PNG。跨域自定义壁纸不进入上述图片池，由页面 CSP 与浏览器网络处理；IndexedDB 仅保存其 URL，不保证远程图片离线可用。
+同源预设书签图标使用 `./icons/<host>.png`。`scripts/sync-icons.mjs` 默认复用可解码且尺寸合规的本地 PNG，仅补齐缺失或损坏项；`npm run sync:icons:refresh` 全量刷新本地图标。下载时优先匹配 `OFFICIAL_HOST_SOURCES` 官方高清直链，其余回退 Google S2，下载失败时反向尝试 `www` 补全/去前缀，经 macOS `sips` 转换为正方形 PNG。跨域自定义壁纸不进入上述图片池，由页面 CSP 与浏览器网络处理；IndexedDB 仅保存其 URL，不保证远程图片离线可用。
 
 ## 搜索与天气
 
@@ -276,7 +276,7 @@ Chrome（首屏已有的 `.is-chrome` 标记）为两屏保留 `will-change: tra
 
 ## 安全与验证边界
 
-动态 HTML 文本经 `escapeHtml()` 转义；`safeUrl()` 检查 HTTP(S)、图片 Data URL 及本地图标路径后返回适合 HTML 属性的转义值，不应将该返回值直接当作未转义原始 URL 使用。网页版 CSP 同时存在于 HTML 与 `public/_headers`，后者需托管平台实际支持。网页版内联脚本及样式仍使用 `'unsafe-inline'`；不能据此声称消除了所有 XSS 风险。
+动态 HTML 文本经 `escapeHtml()` 转义；`safeUrl(url)` 检查 HTTP(S)、图片 Data URL 及本地图标路径，默认返回适合 HTML 模板属性的转义值；通过原生 DOM 属性赋值时使用 `safeUrl(url, false)`，保留 URL 中的原始字符。两种模式均执行相同的白名单检查，拒绝时返回 `#`。网页版 CSP 同时存在于 HTML 与 `public/_headers`，后者需托管平台实际支持。网页版内联脚本及样式仍使用 `'unsafe-inline'`；不能据此声称消除了所有 XSS 风险。
 
 Chrome 扩展 CSP 由 `src/extension/manifest.json` 定义，构建时同步到页面 meta。脚本仅允许本地来源，内联启动脚本外置为 `bootstrap-*.js`；样式仍允许内联。扩展网络接口变更需同时核对 `host_permissions` 与 `connect-src`。
 
@@ -287,5 +287,5 @@ Chrome 扩展 CSP 由 `src/extension/manifest.json` 定义，构建时同步到�
 - 浏览器验收以 Chrome 为准，使用 CDP 验证桌面、移动视口及触摸交互；日常开发、全面测试和发布均不要求 Safari/iOS 真机走查，仅在用户明确要求时进行该专项。导航完成与切屏完成分别等待，避免固定延时掩盖竞态。
 - `infra-chrome-extension.test.mjs` 构建并在独立 Chrome 配置中实际加载扩展，验证新标签页、首屏主题、三引擎联想、设置保存、离线重载及 CSP。联想响应使用固定数据，不能替代真实第三方接口联网走查。
 - W3C 脚本提交网页版 HTML 给在线 Nu 校验器，错误阻断发布；警告、信息及已列明的现代 CSS 兼容性消息分类展示，CSP 警告提示另行核对托管响应头。退出码 0 表示无阻断错误，1 表示页面校验错误，2 表示服务或响应异常导致校验未完成；未完成时需恢复后重试。通过不代表完整无障碍、视觉或功能合规，样式完整性由基础架构测试另行检查。
-- `typecheck` 使用 JSDoc 与 `types.d.ts` 检查核心模型，包含负向类型契约；页面与 `sw.js` 分别使用 DOM 和 Worker 类型环境，覆盖范围以 `tsconfig.json` 和 `tsconfig.sw.json` 为准，尚未覆盖全项目。`npm test` 同样执行两套配置。
+- `typecheck` 使用 JSDoc 与 `types.d.ts` 检查 `src/js/` 下全部 JavaScript 模块及 `test/types/contracts.js` 中的负向类型契约；页面与 `sw.js` 分别使用 DOM 和 Worker 类型环境。覆盖范围以 `tsconfig.json` 和 `tsconfig.sw.json` 为准，不包含全部 Node 工具和测试脚本。`npm test` 同样执行两套配置。
 - 生命周期约束通过页面行为测试验证；Service Worker 测试执行完整脚本及真实升级流程，不通过截取函数体判断实现是否正确。
