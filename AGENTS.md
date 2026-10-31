@@ -2,7 +2,7 @@
 
 > “如无必要，勿增实体。”（Entities should not be multiplied beyond necessity.）
 
-架构与模块索引见 [ARCHITECTURE.md](./docs/ARCHITECTURE.md)；使用、书签格式及测试环境见 [README.md](./README.md)；可选 Safari/iOS 专项参考见 [docs/SAFARI_SMOKE_CHECKLIST.md](./docs/SAFARI_SMOKE_CHECKLIST.md)。实现以源码为准。业务配置位于 `src/js/config/`，各模块职责见架构文档。
+架构与模块索引见 [ARCHITECTURE.md](./docs/ARCHITECTURE.md)；使用、书签格式及测试环境见 [README.md](./README.md)；可选 Safari/iOS 专项参考见 [docs/SAFARI_SMOKE_CHECKLIST.md](./docs/SAFARI_SMOKE_CHECKLIST.md)。局部修改先查架构文档的[按问题定位](./docs/ARCHITECTURE.md#按问题定位)与[样式索引](./docs/ARCHITECTURE.md#样式索引)，按功能读取相关源码和测试。实现以源码为准。业务配置位于 `src/js/config/`，各模块职责见架构文档。
 
 ## 修改边界
 

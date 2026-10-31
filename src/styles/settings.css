@@ -1,0 +1,208 @@
+/* 设置控件、书签编辑/挑选器与确认弹窗。玻璃材质和外观/数据页布局见 glass.css。 */
+
+.settings-transition-btn.active {
+    background: rgba(255, 255, 255, 0.22);
+    color: #ffffff;
+    border-color: rgba(255, 255, 255, 0.35);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    body:not(.tab-blurred) .settings-transition-btn:hover:not(.active) {
+        background: rgba(255, 255, 255, 0.08);
+        color: rgba(255, 255, 255, 0.95);
+    }
+}
+
+/* ==========================================================================
+   OVERLAYS & MODALS (弹窗/抽屉/挑选器/气泡层叠系统)
+   ========================================================================== */
+
+.edit-row-card {
+    position: relative;
+    transition: background-color 0.15s ease, border-color 0.15s ease, opacity 0.2s ease, transform 0.2s ease, box-shadow 0.15s ease;
+}
+@media (hover: hover) and (pointer: fine) {
+    body:not(.tab-blurred) .edit-row-card:hover {
+        border-color: rgba(255, 255, 255, 0.25);
+    }
+    body:not(.tab-blurred) .edit-row-card:hover .drag-handle:not(:disabled) {
+        color: rgba(255, 255, 255, 0.7);
+    }
+    body:not(.tab-blurred) .edit-row-card .drag-handle:hover:not(:disabled) {
+        color: #ffffff;
+    }
+    body:not(.tab-blurred) :is(.bookmark-item, .nav-bookmark):hover {
+        color: #ffffff;
+    }
+    body:not(.tab-blurred) .picker-item:hover:not(:disabled) {
+        background-color: var(--tint-10);
+    }
+}
+.edit-row-card.dragging {
+    opacity: 0.35;
+    border-style: dashed;
+    border-color: rgba(255, 255, 255, 0.25);
+    background-color: rgba(255, 255, 255, 0.04);
+    box-shadow: none;
+}
+/* 拖拽放置瞬间冻结所有 :hover 高亮，等鼠标真实移动后才解除 */
+body.drag-settling .edit-row-card,
+body.drag-settling .drag-handle {
+    pointer-events: none;
+}
+/* 拖拽期间及放置冻结期内：强制把手颜色回到静止态，防止 hover 残留 */
+body.bookmark-dragging .drag-handle,
+body.drag-settling .drag-handle {
+    color: rgba(255, 255, 255, 0.3);
+}
+/* 拖拽目标行通过上下边缘高亮指示插入位置。 */
+/* 插入目标上方：顶部边缘亮起（白色玻璃风格） */
+.edit-row-card.drop-target-above {
+    background-color: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.28);
+    box-shadow: 0 -2px 0 0 rgba(255, 255, 255, 0.55),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+/* 插入目标下方：底部边缘亮起（白色玻璃风格） */
+.edit-row-card.drop-target-below {
+    background-color: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.28);
+    box-shadow: 0 2px 0 0 rgba(255, 255, 255, 0.55),
+                inset 0 -1px 0 rgba(255, 255, 255, 0.08);
+}
+.edit-favicon-box {
+    position: relative;
+    background: transparent;
+    border: none;
+    transition: opacity 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+}
+
+/* 确认弹窗 */
+.confirm-dialog-card {
+    width: calc(100% - 2rem);
+    max-width: 22.5rem;
+    overflow: hidden;
+    padding: 1.5rem 1.25rem 1.25rem 1.25rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+.confirm-dialog-btn-cancel {
+    flex: 1;
+    padding: 0.625rem 1rem;
+    border-radius: var(--radius-control);
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, transform 0.1s var(--ease-snappy);
+}
+@media (hover: hover) and (pointer: fine) {
+    body:not(.tab-blurred) .confirm-dialog-btn-cancel:hover:not(:disabled) {
+        background: rgba(255, 255, 255, 0.16);
+        border-color: rgba(255, 255, 255, 0.25);
+        color: #ffffff;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+    }
+}
+.confirm-dialog-btn-cancel:active:not(:disabled) {
+    transform: scale(0.98);
+}
+.confirm-neutral .confirm-dialog-warning {
+    display: none;
+}
+.confirm-neutral .confirm-dialog-btn-ok {
+    background: rgba(255, 255, 255, 0.16);
+    border: 1px solid rgba(255, 255, 255, 0.24);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+    color: #ffffff;
+    font-weight: 500;
+}
+.confirm-neutral .confirm-dialog-btn-ok:focus-visible {
+    --tw-ring-color: rgba(255, 255, 255, 0.6);
+}
+@media (hover: hover) {
+    body:not(.tab-blurred) .confirm-neutral .confirm-dialog-btn-ok:hover:not(:disabled) {
+        background: rgba(255, 255, 255, 0.25);
+        border-color: rgba(255, 255, 255, 0.36);
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.24);
+    }
+}
+.confirm-dialog-btn-ok {
+    flex: 1;
+    padding: 0.625rem 1rem;
+    border-radius: var(--radius-control);
+    background: rgb(var(--danger) / 0.22);
+    border: 1px solid rgb(var(--danger) / 0.3);
+    color: rgba(254, 226, 226, 0.95);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    transition: background-color 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.1s var(--ease-snappy);
+}
+@media (hover: hover) and (pointer: fine) {
+    body:not(.tab-blurred) .confirm-dialog-btn-ok:hover:not(:disabled) {
+        background: rgb(var(--danger) / 0.45);
+        border-color: rgb(var(--danger) / 0.55);
+        color: #ffffff;
+        box-shadow: 0 4px 12px rgb(var(--danger) / 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+    }
+}
+.confirm-dialog-btn-ok:active:not(:disabled) {
+    transform: scale(0.98);
+}
+
+/* 设置 Tab 样式 */
+@layer components {
+    .settings-tab-btn {
+        background: transparent;
+        color: rgba(255, 255, 255, 0.6);
+        border: 1px solid transparent;
+    }
+    @media (hover: hover) and (pointer: fine) {
+        body:not(.tab-blurred) .settings-tab-btn:hover:not(:disabled):not(.active) {
+            color: rgba(255, 255, 255, 0.9);
+            background: var(--tint-10);
+        }
+    }
+    .settings-tab-btn.active {
+        background: var(--tint-18);
+        color: #ffffff;
+        border-color: rgba(255, 255, 255, 0.25);
+        @apply shadow-tab-active;
+    }
+    .settings-action {
+        @apply bg-white/5 border border-white/10 rounded-control text-white/80;
+    }
+    .settings-action-muted {
+        @apply text-white/75;
+    }
+    .settings-action:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+    @media (hover: hover) and (pointer: fine) {
+        body:not(.tab-blurred) .settings-action:hover:not(:disabled) {
+            @apply bg-white/10 text-white;
+        }
+    }
+}
+
+.picker-item {
+    transition: background-color 0.15s ease, opacity 0.2s ease, transform 0.1s var(--ease-snappy);
+}
+.picker-item:active:not(:disabled) {
+    transform: scale(0.97);
+}
+
+.json-dropzone.drag-over {
+    background: var(--tint-12);
+    border-color: rgba(255, 255, 255, 0.45);
+}
+

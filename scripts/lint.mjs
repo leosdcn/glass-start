@@ -16,6 +16,8 @@ import { inspectI18n } from './lint-i18n.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const isFixMode = process.argv.includes('--fix');
+const cssDir = join(root, 'src', 'styles');
+const cssFiles = readdirSync(cssDir).filter(file => file.endsWith('.css')).sort();
 
 import { c, HR_DOUBLE, logSection, logItem } from './terminal.cjs';
 
@@ -310,8 +312,6 @@ try {
 // 4.5 CSS !important 门禁：按语法树查找减弱动效祖先，保留文件及行列位置。
 let cssInspection;
 try {
-    const cssDir = join(root, 'src', 'styles');
-    const cssFiles = ['main.css', 'glass.css', 'animations.css'];
     const sources = cssFiles.map(file => join(cssDir, file)).filter(file => existsSync(file))
         .map(file => ({ file: relative(root, file), content: readFileSync(file, 'utf-8') }));
     const styleBlocks = [...indexHtml.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style>/gi)];
@@ -494,8 +494,6 @@ try {
 
 // 4.12 🚫 严禁滥加全局字体抗锯齿属性（-webkit-font-smoothing / -moz-osx-font-smoothing）
 try {
-    const cssDir = join(root, 'src', 'styles');
-    const cssFiles = ['main.css', 'glass.css', 'animations.css'];
     let allCss = '';
     for (const f of cssFiles) {
         const p = join(cssDir, f);

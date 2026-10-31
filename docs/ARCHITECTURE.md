@@ -35,45 +35,52 @@
 | `.github/` | CI、部署工作流及 Issue / PR 模板 |
 | 根目录工程文件 | `package.json` 与锁文件管理依赖和命令；`tsconfig.json` 与 `tsconfig.sw.json` 管理页面及 Service Worker 类型检查；`wrangler.jsonc` 配置 Cloudflare 部署；`start.command` 为 macOS 启动入口 |
 
+`test/artifacts/` 根层保留测试入口的最新输出；本地历史调试产物按整理日期存入 `test/artifacts/archive/YYYY-MM-DD/`，压缩包保留原相对路径，`index.json` 记录文件清单和 SHA-256。历史报告中的本地产物路径可通过该索引查找并恢复。归档及临时脚本仍不纳入 Git。
+
 验证依据：[2026-10-24 审计修复](./reports/2026-10-24-audit.md)、[2026-10-28 目录与扩展核实](./reports/2026-10-28-structure-verification.md)、[2026-10-28 多语言验证](./reports/2026-10-28-english-localization.md)、[2026-10-29 模块修复](./reports/2026-10-29-module-review.md)。性能对照：[2026-10-23 Safari](./reports/2026-10-23-safari-performance.md)、[2026-10-25 切屏基准](./reports/2026-10-25-transition-performance.md)、[2026-10-29 切屏与恢复](./reports/2026-10-29-transition-audit.md)。这些是历史测量，不是当前版本的验收凭证；原始性能 JSON 随引用报告保留。
 
 ## 模块索引
 
-按功能查找模块；具体函数、导出和配置值以源码为准。
+### 按问题定位
 
-| 功能 | 源码入口 |
+先按功能找到主入口，再沿实际导入关系阅读；DOM 结构统一在 `src/index.html`，缓存登记与类型分别在 `src/js/state/dom.js`、`src/js/types.d.ts`。表内 JS 路径相对 `src/js/`，CSS 相对 `src/styles/`，测试片段可用于 `npm test -- <片段>`。不必为局部修改遍历整个项目。
+
+| 功能 / 问题 | DOM 或检索词 | 逻辑入口 | 样式入口 | 直接相关测试片段 |
+| :--- | :--- | :--- | :--- | :--- |
+| 启动、全局按键与失焦 | `init()`、`keydown`、`tab-blurred` | `main.js` → `init.js` / `events.js`；`core/app-wake.js`、`core/lifecycle.js` | `page.css` | `lifecycle-`、`ui-screen-gestures` |
+| 双屏、滚轮、触摸与恢复 | `startSection`、`navSection`、`navContent` | `core/screen-state.js`、`core/screen-input.js` | `page.css`、`animations.css` | `ui-screen-`、`ui-input-device-performance` |
+| 快捷书签、分类导航与图标 | `bookmarks`、`navCategories`、`sidebarList` | `modules/bookmarks.js`；`utils/category-catalog.js` | `page.css`、`glass.css` | `data-bookmark-catalog`、`ui-nav-rendering`、`infra-theme-favicon` |
+| 搜索、引擎及本地/网络联想 | `searchInput`、`engineBtn`、`suggestionMenu` | `modules/search.js`；`utils/bookmark-search.js`；`config/engines.js`、`config/engine-icons.js`、`config/engine-head.js` | `search.css` | `data-request-performance`、`data-pure-models`、`data-features` |
+| 设置打开、完成、取消与重置 | `editModal`、`saveEditBtn`、`tabAppearance`、`tabData` | `modules/settings.js`；控件事件在 `modules/settings-events.js` | `settings.css`；外观/数据页布局在 `glass.css` | `data-settings-save`、`ui-modal-accessibility`、`ui-rendered-contracts` |
+| 书签草稿、挑选与拖拽 | `draftBookmarks`、`editList`、`bookmarkPicker` | `state/bookmark-draft.js`、`modules/bookmark-editor.js`、`core/drag-sort.js` | `settings.css`、`glass.css` | `data-bookmark-picker`、`data-audit-fixes`、`data-pure-models` |
+| 壁纸预览、取消、保存与主题色 | `bgLayer`、`presetWallpaperGrid`、`urlBgInput` | `modules/wallpaper.js`；`core/wallpaper-renderer.js`、`core/theme-engine.js`；`utils/idb.js`；`config/backgrounds.js`、`config/themes.js` | `page.css`；壁纸网格在 `glass.css` | `data-wallpaper-`、`infra-theme-favicon` |
+| 天气、定位与缓存显示 | `weatherBtn`、`weatherPopover`、`weatherNum` | `modules/weather.js`；`utils/weather-model.js`、`utils/weather-data.js`；`config/weather-icons.js` | `page.css`、`glass.css` | `data-weather-hydration`、`data-request-performance`、`data-pure-models` |
+| 语言、目录翻译与旧链接兼容 | `data-i18n`、`languageModal`、`canonicalBookmarkUrl` | `core/i18n.js`；`config/language.js`、`config/locales/` | `page.css`；语言选项在 `glass.css` | `data-i18n`、`data-bookmark-catalog` |
+| 模态层叠、焦点、确认框 | `OverlayStack`、`confirmModal`、`inert` | `core/overlay-stack.js`、`core/dialogs.js`；具体弹窗入口在 `modules/settings.js` | `settings.css`、`glass.css`、`animations.css` | `ui-modal-accessibility`、`ui-overlay-modals` |
+| 时钟、快捷键速查与开源致谢 | `clock`、`shortcutModal`、`creditsModal` | `modules/clock.js`；弹窗开关在 `modules/settings.js` | `page.css`、`glass.css` | `lifecycle-behavior`、`ui-overlay-modals` |
+| 指针倾斜、卡片高光与动效收尾 | `pointermove`、`--mouse-x`、`transitionend` | `core/gestures.js`；`utils/transition-cleanup.js` | `glass.css`、`animations.css` | `ui-rendering-performance`、`ui-input-device-performance`、`data-animation-cleanup-unit` |
+| 网页离线缓存、升级与清理 | `ACTIVATE_UPDATE`、`updateNotice`、`clearCacheBtn` | 根目录 `sw.js`；`core/service-worker-updates.js`；`modules/settings-events.js` | `page.css` | `infra-sw-`、`data-audit-regressions` |
+| 网页构建、首帧与扩展差异 | 构建插槽、`__GLASS_EXTENSION__` | 根目录 `scripts/build.cjs`、`scripts/html-template.cjs`、`scripts/build-extension.cjs`、`src/extension/manifest.json` | `main.css` 为唯一编译入口 | `infra-security`、`infra-chrome-extension`、`infra-theme-favicon` |
+
+### 样式索引
+
+| 文件 | 职责与边界 |
 | :--- | :--- |
-| **通用常量与运行时配置** | `src/js/config/constants.js` |
-| **语言偏好、翻译与英文目录** | `src/js/config/language.js`、`src/js/config/locales/`、`src/js/core/i18n.js` |
-| **首屏主题与 Safari 预渲染** | `src/js/config/themes.js` |
-| **首屏预设壁纸清单** | `src/js/config/backgrounds.js` |
-| **搜索引擎元数据与图标** | `src/js/config/engines.js`<br/>`src/js/config/engine-icons.js`<br/>`src/js/config/engine-head.js` |
-| **天气图标映射** | `src/js/config/weather-icons.js` |
-| **全局状态与 DOM 缓存** | `src/js/state/store.js`<br/>`src/js/state/dom.js` |
-| **书签体系与双栏分类导航** | `src/js/modules/bookmarks.js` |
-| **时钟、快捷键与鸣谢** | `src/js/modules/clock.js` |
-| **壁纸预览与持久化** | `src/js/modules/wallpaper.js` |
-| **设置弹窗与生命周期管理** | `src/js/modules/settings.js`<br/>`src/js/core/overlay-stack.js` |
-| **搜索联想与匹配** | `src/js/modules/search.js`<br/>`src/js/utils/bookmark-search.js` |
-| **气象数据与显示** | `src/js/modules/weather.js`<br/>`src/js/utils/weather-model.js` |
-| **浏览器主题色与底色** | `src/js/core/theme-engine.js` |
-| **双屏状态、输入与唤醒协调** | `src/js/core/screen-state.js`<br/>`src/js/core/screen-input.js`<br/>`src/js/core/app-wake.js`<br/>`src/js/core/lifecycle.js` |
-| **指针 3D 倾斜与高光** | `src/js/core/gestures.js` |
-| **拖拽重排与 FLIP 动画** | `src/js/core/drag-sort.js` |
-| **全局事件与焦点管理** | `src/js/events.js` |
-| **文本转义与 URL 处理** | `src/js/utils/helpers.js` |
-| **IndexedDB 大图壁纸持久化** | `src/js/utils/idb.js` |
-| **本地图标同步与格式转换** | `scripts/sync-icons.mjs`<br/>`public/icons/` |
-| **启动装配与生命周期入口** | `src/js/init.js`<br/>`src/js/main.js` |
-| **Chrome 新标签页扩展构建与清单** | `scripts/build-extension.cjs`<br/>`src/extension/manifest.json` |
-| **天气共用数值清洗** | `src/js/utils/weather-data.js` |
-| **目录共用索引** | `src/js/utils/category-catalog.js` |
-| **书签草稿编辑** | `src/js/modules/bookmark-editor.js`<br/>`src/js/state/bookmark-draft.js` |
-| **设置事件装配** | `src/js/modules/settings-events.js` |
-| **确认框与壁纸渲染** | `src/js/core/dialogs.js`<br/>`src/js/core/wallpaper-renderer.js` |
-| **Service Worker 更新与前台协调** | `src/js/core/service-worker-updates.js` |
-| **节点动效收尾与安全清理** | `src/js/utils/transition-cleanup.js` |
-| **Service Worker 与缓存分池** | `sw.js` |
+| `src/styles/main.css` | 唯一装配入口：导入顺序、Tailwind `@source`、`@theme` 与自定义变体；不继续堆放功能选择器。 |
+| `src/styles/page.css` | 全局变量、字体、焦点/按压反馈、双屏、起始页与分类导航、天气浮层、安全区及通用触控规则。 |
+| `src/styles/search.css` | 搜索框聚焦、搜索按钮、引擎菜单、联想列表及其选中/悬停状态。 |
+| `src/styles/settings.css` | 切屏模式选择控件、书签编辑行/拖拽标记、挑选器交互、设置页签/操作按钮、导入拖放和确认框。 |
+| `src/styles/glass.css` | 共用玻璃材质、卡片高光/倾斜；设置内外观、壁纸网格和数据面板布局；语言选项及降低透明度降级。 |
+| `src/styles/animations.css` | 关键帧、入场/退出与减弱动效规则。 |
+
+CSS 通过 `main.css` 按其 `@import` 顺序编译为内联样式，不增加浏览器样式请求。`scripts/lint.mjs` 扫描 `src/styles/` 下全部 CSS 文件；新增样式文件须同时加入入口导入与本索引。布局、材质和动效可以共用于同一控件，修改前核对对应文件中的同名选择器。
+
+### 数据与共享机制
+
+- 默认书签只维护根目录 `bookmarks.json`；语言入口差异与译文见 `config/locales/catalog-*.json`。运行时配置集中在 `config/constants.js`，不要在业务模块或 HTML 复制配置。
+- 全局模型见 `state/store.js`，草稿操作见 `state/bookmark-draft.js`；新增 DOM 缓存键同步 `state/dom.js` 与 `types.d.ts`。
+- 文本转义、URL 与持久化清洗优先复用 `utils/helpers.js`、`utils/category-catalog.js`、`utils/idb.js`。主应用测试接口仅在 `testing/bridge.js`，生产构建裁除。
+- 本地图标下载/转换入口为根目录 `scripts/sync-icons.mjs`，资源在 `public/icons/`；测试共用 CDP 和服务辅助模块在 `test/support/`，回归用例保持 `test/` 顶层。
 
 ## 模块与构建
 

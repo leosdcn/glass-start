@@ -1,0 +1,187 @@
+/* 搜索框、引擎菜单与联想列表。布局外壳及全站焦点规则见 page.css。 */
+
+@media (hover: hover) and (pointer: fine) {
+    body:not(.tab-blurred) #suggestionMenu:not(.keyboard-nav) .suggestion-item:hover {
+        background: rgba(255, 255, 255, 0.12);
+    }
+}
+
+.search-input::placeholder { color: rgba(255,255,255,0.6); }
+
+#dropdownMenu, #suggestionMenu {
+    margin-top: 0.375rem;
+}
+#dropdownMenu.active, #suggestionMenu.active {
+    will-change: transform, opacity;
+}
+@media (min-width: 640px) {
+    #dropdownMenu, #suggestionMenu {
+        margin-top: 0.5rem;
+    }
+}
+
+#searchInput:focus,
+#searchInput:focus-visible {
+    outline: none;
+    box-shadow: none;
+    border-color: transparent;
+    -webkit-tap-highlight-color: transparent;
+}
+.search-box-wrapper {
+    position: relative;
+    transition: border-color var(--duration-focus) var(--ease-exit), box-shadow var(--duration-focus) var(--ease-exit);
+}
+/* 聚焦只增强玻璃内侧光线，不影响相邻按钮或改变搜索框几何。 */
+.search-box-wrapper::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: var(--radius);
+    right: var(--radius);
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.58) 32%, rgba(255, 255, 255, 0.2) 72%, transparent);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity var(--duration-focus) var(--ease-exit);
+}
+.search-box-wrapper:has(#searchInput:focus) {
+    border-color: rgba(var(--glass-tint), 0.32);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.48),
+        inset 0 0 0 1px rgba(var(--glass-tint), 0.075),
+        0 12px 32px -4px rgba(0, 0, 0, 0.25);
+}
+.search-box-wrapper:has(#searchInput:focus)::after {
+    opacity: 1;
+}
+.search-box-wrapper #searchInput::placeholder {
+    transition: color var(--duration-focus) var(--ease-exit);
+}
+.search-box-wrapper #searchInput:focus::placeholder {
+    color: rgba(255, 255, 255, 0.78);
+}
+@media (prefers-reduced-motion: reduce) {
+    .search-box-wrapper #searchInput::placeholder {
+        transition: none;
+    }
+}
+@media (prefers-reduced-transparency: reduce) {
+    .search-box-wrapper:has(#searchInput:focus) {
+        border-color: rgba(255, 255, 255, 0.42);
+    }
+}
+@media (forced-colors: active) {
+    .search-box-wrapper:has(#searchInput:focus) {
+        outline: 2px solid Highlight;
+        outline-offset: 2px;
+    }
+}
+#engineBtn {
+    transition: background-color 0.15s ease, color 0.15s ease, transform 0.08s var(--ease-snappy);
+}
+#engineBtn svg {
+    transition: transform 0.2s var(--ease-spring), opacity 0.15s ease;
+}
+@media (hover: hover) and (pointer: fine) {
+    body:not(.tab-blurred) #engineBtn:hover:not(:disabled) {
+        background-color: rgba(255, 255, 255, 0.12);
+        color: #ffffff;
+    }
+}
+#engineBtn:active {
+    transform: scale(0.96);
+    background-color: rgba(255, 255, 255, 0.18);
+}
+
+#randomBookmarkBtn,
+#searchClearBtn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+    pointer-events: auto;
+    transition: opacity var(--duration-popover) var(--ease-overshoot),
+                transform var(--duration-popover) var(--ease-overshoot),
+                background-color 0.15s ease,
+                color 0.15s ease;
+}
+#randomBookmarkBtn.hidden {
+    display: inline-flex;
+    opacity: 0;
+    transform: scale(0.2) rotate(-90deg);
+    pointer-events: none;
+    transition: opacity var(--duration-popover-exit) var(--ease-exit),
+                transform var(--duration-popover-exit) var(--ease-exit);
+}
+#searchClearBtn.hidden {
+    display: inline-flex;
+    opacity: 0;
+    transform: scale(0.2) rotate(90deg);
+    pointer-events: none;
+    transition: opacity var(--duration-popover-exit) var(--ease-exit),
+                transform var(--duration-popover-exit) var(--ease-exit);
+}
+.nr #randomBookmarkBtn,
+.nr #searchClearBtn {
+    transition: none;
+}
+#randomBookmarkBtn svg {
+    transition: transform 0.24s var(--ease-overshoot);
+}
+@media (hover: hover) and (pointer: fine) {
+    body:not(.tab-blurred) #randomBookmarkBtn:hover:not(:disabled) {
+        transform: scale(1.06) rotate(12deg);
+        background-color: rgba(255, 255, 255, 0.15);
+        color: rgba(255, 255, 255, 0.95);
+    }
+}
+#searchClearBtn svg {
+    transition: transform var(--duration-popover-exit) var(--ease-spring);
+}
+@media (hover: hover) and (pointer: fine) {
+    body:not(.tab-blurred) #searchClearBtn:hover:not(:disabled) {
+        transform: scale(1.05);
+        background-color: rgba(255, 255, 255, 0.15);
+        color: rgba(255, 255, 255, 0.95);
+    }
+    body:not(.tab-blurred) #searchClearBtn:hover:not(:disabled) svg {
+        transform: scale(1.15);
+    }
+}
+
+.suggestion-item {
+    position: relative;
+    z-index: 2;
+    transition: color 0.15s ease;
+    border-radius: var(--radius, 1.5rem);
+}
+.suggestion-item > * {
+    transition: transform var(--duration-popover-exit) var(--ease-spring);
+}
+.suggestion-item.active {
+    background: rgba(255, 255, 255, 0.18);
+    color: #ffffff;
+    font-weight: 500;
+}
+.suggestion-item.active > * {
+    transform: translateX(4px);
+}
+.suggestion-item.active svg {
+    color: rgba(255, 255, 255, 0.95);
+}
+
+.suggestion-section-header {
+    position: relative;
+}
+.suggestion-section-header::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(to right, rgba(255, 255, 255, 0.45) 0%, rgba(255, 255, 255, 0.12) 35%, transparent 100%);
+    opacity: 0.35;
+    pointer-events: none;
+}
+
