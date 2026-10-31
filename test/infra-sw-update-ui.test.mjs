@@ -7,14 +7,14 @@ import { getFreePort, createEvaluator, waitFor, navigateAndWait } from './suppor
 
 const { buildAppJavaScript } = createRequire(import.meta.url)('../scripts/build.cjs');
 const html = readFileSync(new URL('../dist/index.html', import.meta.url), 'utf8');
-const worker = readFileSync(new URL('../sw.js', import.meta.url), 'utf8');
+const worker = readFileSync(new URL('../dist/sw.js', import.meta.url), 'utf8');
 let version = 201, failApp = false;
 const apps = new Map();
 const route = kind => (req, res) => {
   const stamp = `app-core-v${version}`;
   let body;
   if (kind === 'html') body = html.replace(/app-core-v\d+/g, stamp);
-  if (kind === 'worker') body = worker.replace(/const CORE_CACHE = '[^']+';/, `const CORE_CACHE = '${stamp}';`);
+  if (kind === 'worker') body = worker.replace(/app-core-v\d+/g, stamp);
   if (kind === 'app') {
     if (!apps.has(version)) apps.set(version, buildAppJavaScript({ testMode: true, version: stamp }).outputFiles[0].contents);
     body = apps.get(version);

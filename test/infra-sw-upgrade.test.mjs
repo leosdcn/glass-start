@@ -5,7 +5,7 @@ import { startServer } from './support/server.mjs';
 import { launchChrome } from './support/cdp.mjs';
 import { getFreePort, createEvaluator, waitFor } from './support/helpers.mjs';
 
-const source = readFileSync(new URL('../sw.js', import.meta.url), 'utf8');
+const source = readFileSync(new URL('../dist/sw.js', import.meta.url), 'utf8');
 let version = 101, failApp = false, failWallpaper = false, mismatch = false, offline = false;
 let wallpaperBodies = 0, wallpaperValidations = 0;
 let secondVersion = 105;
@@ -14,7 +14,7 @@ const route = (kind) => (req, res) => {
   const routeVersion = req.url.startsWith('/b/') ? secondVersion : version;
   const stamp = `app-core-v${routeVersion}`;
   let body;
-  if (kind === 'worker') body = source.replace(/const CORE_CACHE = '[^']+';/, `const CORE_CACHE = '${stamp}';`)
+  if (kind === 'worker') body = source.replace(/app-core-v\d+/g, stamp)
     + "\nself.addEventListener('message', e => e.waitUntil(clients.matchAll({type:'window'}).then(list => e.ports[0].postMessage(list.length))));";
   if (kind === 'html') body = `<!doctype html><html><head><script>window.__GLASS_BUILD_HTML__="${stamp}";</script><script src="./app.js" defer></script></head><body>version ${routeVersion}</body></html>`;
   if (kind === 'app') body = `window.__GLASS_BUILD_APP__="${mismatch ? 'app-core-v999' : stamp}";window.appVersion=${routeVersion};fetch('./wallpapers/bg1.avif').then(r=>r.text()).then(()=>navigator.serviceWorker.register('./sw.js')).then(reg=>window.reg=reg);`;

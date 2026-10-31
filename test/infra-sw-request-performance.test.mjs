@@ -6,8 +6,8 @@ import { startServer } from './support/server.mjs';
 import { launchChrome } from './support/cdp.mjs';
 import { getFreePort, createEvaluator, waitFor, navigateAndWait } from './support/helpers.mjs';
 
-const worker = readFileSync(new URL('../sw.js', import.meta.url), 'utf8');
-const stamp = worker.match(/const CORE_CACHE = '([^']+)'/)[1];
+const worker = readFileSync(new URL('../dist/sw.js', import.meta.url), 'utf8');
+const stamp = worker.match(/app-core-v\d+/)[0];
 const counts = new Map();
 const pending = [];
 let status = 200;

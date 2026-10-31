@@ -156,8 +156,8 @@ function buildServiceWorkerAndAssets(targetDir = PATHS.dist) {
     if (fs.existsSync(PATHS.sw)) {
         let swContent = fs.readFileSync(PATHS.sw, 'utf-8');
         swContent = swContent.replace(/const\s+(CORE_CACHE|CACHE)\s*=\s*['"][^'"]+['"];/, `const CORE_CACHE = '${currentBuildVersion}';`);
-        fs.writeFileSync(path.join(targetDir, 'sw.js'), swContent, 'utf-8');
-        logItem(`Service Worker 缓存版本已更新: ${c.cyan}${currentBuildVersion}${c.reset}`);
+        fs.writeFileSync(path.join(targetDir, 'sw.js'), minifyJsCode(swContent), 'utf-8');
+        logItem(`Service Worker 缓存版本已更新并压缩: ${c.cyan}${currentBuildVersion}${c.reset}`);
     }
 
     // 3.2 纯静态资产镜像同步 (public/ -> dist/，过滤系统与临时文件，采用 Copy-on-Write 克隆加速)

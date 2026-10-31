@@ -110,7 +110,7 @@ flowchart TD
 - `core/`：页面共用机制，包括浮层、手势、切屏、生命周期、主题与壁纸渲染；切屏和唤醒可协调业务模块，不要求严格单向分层。具体功能及其控件事件放在 `modules/`，跨业务的应用装配放在 `src/js/` 顶层。
 - `utils/`：提供 URL 与文本清洗、目录索引、IndexedDB 存储等共用能力。
 
-构建读取 `package.json` 版本号并生成版本徽章；每次构建生成统一指纹，注入 HTML、应用脚本与 Service Worker。HTML 引用的 `app.js` 同时携带版本查询参数。
+构建读取 `package.json` 版本号并生成版本徽章；每次构建生成统一指纹，注入 HTML、应用脚本与 Service Worker。HTML 引用的 `app.js` 同时携带版本查询参数。应用脚本、内联脚本与 CSS 均压缩；Service Worker 在注入版本后复用 esbuild 压缩，根目录 `sw.js` 保留可读源码，缓存、升级与并发请求回归执行生成的 `dist/sw.js`。
 
 构建在内存中传递并内嵌本次编译的 CSS，不共享磁盘中间文件。空 CSS、编译或压缩失败会阻断构建；整个 `dist/` 的并发写入仍不保证事务性。HTML 使用唯一构建插槽注入入口、样式和 SVG；标记缺失、重复或顺序错误会阻断构建。主题、壁纸清单、引擎元数据/图标、天气图标与天气清洗脚本分别从 `config/`、`utils/weather-data.js` 注入，避免维护副本。
 
