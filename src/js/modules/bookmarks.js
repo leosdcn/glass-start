@@ -530,7 +530,7 @@ export function renderNavCategories(force = false) {
                         ${bm.desc ? `
                             <div class="flex-1 min-w-0 flex flex-col justify-center">
                                 <span class="text-xs md:text-sm font-semibold truncate leading-tight">${escapeHtml(bm.name)}</span>
-                                <span class="bookmark-description text-2xs text-white/60 truncate leading-none mt-1 transition-colors duration-150">${escapeHtml(bm.desc)}</span>
+                                <span class="bookmark-description text-2xs text-white/60 truncate leading-normal mt-0.5 transition-colors duration-150">${escapeHtml(bm.desc)}</span>
                             </div>
                         ` : `
                             <span class="flex-1 min-w-0 text-xs md:text-sm font-semibold truncate leading-tight text-white/90">${escapeHtml(bm.name)}</span>
