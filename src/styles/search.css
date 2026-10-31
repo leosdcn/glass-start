@@ -45,10 +45,12 @@
     transition: opacity var(--duration-focus) var(--ease-exit);
 }
 .search-box-wrapper:has(#searchInput:focus) {
-    border-color: rgba(var(--glass-tint), 0.32);
+    border-color: rgba(255, 255, 255, 0.32);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.48),
-        inset 0 0 0 1px rgba(var(--glass-tint), 0.075),
-        0 12px 32px -4px rgba(0, 0, 0, 0.25);
+        inset 0 0 0 1px rgba(255, 255, 255, 0.06),
+        0 0 8px 0 rgba(255, 255, 255, 0.09),
+        0 0 20px 1px rgba(255, 255, 255, 0.045),
+        0 12px 32px -4px rgba(0, 0, 0, 0.35);
 }
 .search-box-wrapper:has(#searchInput:focus)::after {
     opacity: 1;
@@ -66,7 +68,9 @@
 }
 @media (prefers-reduced-transparency: reduce) {
     .search-box-wrapper:has(#searchInput:focus) {
-        border-color: rgba(255, 255, 255, 0.42);
+        border-color: rgba(255, 255, 255, 0.36);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.48),
+            0 12px 32px -4px rgba(0, 0, 0, 0.35);
     }
 }
 @media (forced-colors: active) {
