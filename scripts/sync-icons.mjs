@@ -16,13 +16,13 @@ import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
 import https from 'node:https';
 import { tmpdir } from 'node:os';
+import { c, HR_DOUBLE } from './terminal.cjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const ROOT_DIR = join(__dirname, '..');
 const ICONS_DIR = join(ROOT_DIR, 'public', 'icons');
 const BOOKMARKS_PATH = join(ROOT_DIR, 'bookmarks.json');
-const HTTP_TIMEOUT_MS = 8000;
 const refresh = process.argv.includes('--refresh');
 
 // 针对 Google S2 索引为母公司通用标或暂无索引的站点，提供官方高清图标直链
@@ -37,27 +37,8 @@ const OFFICIAL_HOST_SOURCES = new Map([
     ['translate.google.com', 'https://www.gstatic.com/images/branding/product/2x/translate_64dp.png']
 ]);
 
-// 终端排版色彩
-const isTTY = process.stdout.isTTY && !process.env.NO_COLOR;
-const c = {
-    reset: isTTY ? '\x1b[0m' : '',
-    bold: isTTY ? '\x1b[1m' : '',
-    dim: isTTY ? '\x1b[2m' : '',
-    cyan: isTTY ? '\x1b[36m' : '',
-    green: isTTY ? '\x1b[32m' : '',
-    yellow: isTTY ? '\x1b[33m' : '',
-    red: isTTY ? '\x1b[31m' : ''
-};
-
-const HR_DOUBLE = '═'.repeat(72);
-
 function getBareHostname(url) {
-    try {
-        const u = new URL(url.startsWith('http') ? url : `https://${url}`);
-        return u.hostname.replace(/^www\./, '').toLowerCase();
-    } catch {
-        return '';
-    }
+    return getRawHostname(url).replace(/^www\./, '');
 }
 
 function getRawHostname(url) {
@@ -69,7 +50,7 @@ function getRawHostname(url) {
     }
 }
 
-function fetchRedirectBuffer(url, timeoutMs = HTTP_TIMEOUT_MS, redirectCount = 0) {
+function fetchRedirectBuffer(url, timeoutMs = 7000, redirectCount = 0) {
     return new Promise((resolve, reject) => {
         if (redirectCount > 5) return reject(new Error('Too many redirects'));
         const req = https.get(url, {
@@ -242,7 +223,7 @@ async function main() {
         if (OFFICIAL_HOST_SOURCES.has(bareHost)) {
             try {
                 const officialUrl = OFFICIAL_HOST_SOURCES.get(bareHost);
-                const offBuf = await fetchRedirectBuffer(officialUrl, 7000);
+                const offBuf = await fetchRedirectBuffer(officialUrl);
                 if (offBuf && offBuf.length > 0) {
                     buf = offBuf;
                     source = `Official Source (${bareHost})`;
@@ -254,7 +235,7 @@ async function main() {
             for (const candidate of candidates) {
                 try {
                     const s2Url = `https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=${encodeURIComponent('https://' + candidate)}&size=128`;
-                    const s2Buf = await fetchRedirectBuffer(s2Url, 7000);
+                    const s2Buf = await fetchRedirectBuffer(s2Url);
                     if (s2Buf && s2Buf.length > 0) {
                         buf = s2Buf;
                         source = `Google S2 (${candidate})`;

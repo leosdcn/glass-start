@@ -53,7 +53,7 @@
 - 🌤️ **Weather and forecasts**: no API key required. Uses IP-based location and place-name lookup, with cached conditions and forecasts for the next few days.
 - 🌐 **English and Chinese**: follow your browser language or choose one manually. The interface, weather and built-in bookmark catalog are localized; your custom text is preserved.
 - ⚡ **Zero runtime dependencies**: the production page requires no npm runtime libraries. Inline rendering reduces flashes on reload; actual loading speed depends on the device, cache and network.
-- 🖼️ **Wallpapers save immediately**: cycle through preset wallpapers, choose a local image, use an image URL or adjust background dimming. Local images are compressed and stored in IndexedDB.
+- 🖼️ **Wallpaper previews and saving**: cycle through preset wallpapers, choose a local image, use an image URL or adjust background dimming. Preview changes in settings and click Done to save; wallpaper shortcuts outside settings save immediately. Local images are compressed and stored in IndexedDB.
 - 🛡️ **Security measures**: Content Security Policy (CSP), escaped dynamic HTML text and URL protocol filtering with `safeUrl`. Configure the response headers in `public/_headers` as required by your hosting platform.
 - 📱 **Offline PWA support on the web**: the Service Worker maintains three separate caches. Cached resources remain available offline; installation options and support vary by browser.
 
@@ -186,10 +186,10 @@ Run `npm run sync:icons:refresh` to download all icons again and convert them to
 
 Click the settings button at the bottom right to edit quick bookmarks, customize appearance and manage data. Categories on the bookmarks page remain defined in `bookmarks.json`.
 
-- **Done / Cancel**: **Done** saves quick bookmarks, background dimming and language. **Cancel** discards those draft changes. Wallpaper selections save immediately and are not undone by Cancel.
+- **Done / Cancel**: **Done** saves quick bookmarks, wallpaper, background dimming, screen transitions and language. **Cancel** discards unsaved drafts, restores the previous wallpaper and invalidates pending wallpaper reads, loads and decoding. Saving is not one atomic transaction across storage items; if it fails, the message identifies changes already saved. Wallpaper shortcuts outside settings save immediately.
 - **Language**: select **Follow browser**, **简体中文** or **English** at the top right of settings, then click **Done** to reload and apply. The interface, weather and built-in catalog follow the selected language; custom and imported text stays as entered. On first use, the app follows your browser's language, falling back to English for unsupported languages. The website and extension save their preferences separately, and language changes also work offline. Time remains in 24-hour format and temperature in Celsius. The extension's name on Chrome's management page follows Chrome's language; PWA installation names keep the default metadata.
 - **Export / Import**: export includes the current quick bookmark draft, even before clicking Done. Importing JSON asks you to replace the draft; click Done to save it. Backups do not contain wallpaper images, appearance settings or search preferences.
-- **Refresh offline cache / Restore defaults**: the confirmation dialog specifies what will be cleared. Restoring defaults immediately removes custom quick bookmarks, wallpapers and preferences. Export bookmarks first if you need a backup.
+- **Refresh offline cache / Restore defaults**: cache clearing only removes this deployment's offline resources and Service Worker, preserving other deployments and the web's shared icon cache. The extension clears its own temporary icon cache. Restoring defaults immediately removes custom quick bookmarks, wallpapers and preferences. Export bookmarks first if you need a backup.
 
 ### 5. Keyboard shortcuts
 
@@ -240,7 +240,7 @@ npm run build:extension
 
 [AGENTS.md](./AGENTS.md#验证) (Chinese) defines the required validation scope. Prefer directly relevant tests for local changes. `npm test -- <filename-fragment>` checks types and builds as needed before running matching files. When a build is needed, it runs alongside the type check, so do not repeat either manually. The build is skipped only when all matching tests are on the runner's [standalone unit-test list](./test/support/test-selection.mjs). With no arguments, `npm test` and `test:all` run the full suite, intended for high-risk changes across modules, releases or explicitly requested full validation. Use `test:ui`, `test:data`, `test:infra` or `test:lifecycle` to widen the scope by area. Available commands are defined in `package.json`.
 
-`npm run typecheck` checks types in selected JavaScript modules for core data, drafts, the DOM cache and state. The scope is defined in `tsconfig.json`. `npm run test:unit` uses the runner's shared standalone test list, checks types and tests search, weather conversion, drafts and related logic without a build or Chrome.
+`npm run typecheck` checks JavaScript types for core data, drafts, the DOM cache and state, and strictly checks `sw.js` in a separate Worker environment. The scope is defined in `tsconfig.json` and `tsconfig.sw.json`; `npm test` runs both checks. `npm run test:unit` uses the runner's shared standalone test list, checks types and tests search, weather conversion, drafts and related logic without a build or Chrome.
 
 `npm run benchmark` builds and measures frame intervals during initial and repeated screen transitions. By default, it accesses only local resources. See the [transition benchmark guide](./docs/TRANSITION_BENCHMARK.md) (Chinese) for options, metrics and headless-browser limitations.
 

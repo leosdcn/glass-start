@@ -313,7 +313,6 @@ const suggestAntiRaceCheck = await evalJS(`(() => {
   // 2. 快速键入第二个词发起第二次请求
   fetchSuggestions('bing', 'github');
   const req2Id = activeSuggestReqId;
-  const cb2Name = '__glassSuggestCb_' + req2Id;
   const reqIdIncremented = req2Id > req1Id;
 
   // 3. 模拟请求 1 晚于请求 2 返回：调用旧回调 cb1 时，由于内部校验 reqId !== activeSuggestReqId，必须静默丢弃

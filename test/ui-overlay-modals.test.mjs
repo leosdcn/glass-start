@@ -32,7 +32,6 @@ const backFromReloadedNav = await evalJS(`(() => {
   const weather = document.getElementById('weatherWidget');
   const gear = document.getElementById('editBookmarksBtn');
   const sRect = s ? s.getBoundingClientRect() : null;
-  const sTy = getComputedStyle(s).transform;
   const nrPresent = document.documentElement.classList.contains('nr');
   const gearHidden = gear ? gear.classList.contains('hidden-on-nav') : false;
   return {

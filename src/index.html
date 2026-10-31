@@ -261,7 +261,6 @@
                         if (ct && c.location && c.location.name) ct.textContent = c.location.name;
                         const btn = document.getElementById('weatherBtn');
                         if (btn && t && ct) {
-                            const desc = c.current.weatherText ? ' ' + c.current.weatherText : '';
                             const icon = (c.current && c.current.icon) ? c.current.icon + ' ' : '';
                             btn.setAttribute('aria-label', window.__GLASS_I18N__.t('weather.capsule',{icon,temperature:t.textContent.replace('°',''),city:ct.textContent,description:window.__GLASS_I18N__.weatherDescription(c.current.weatherCode)}));
                         }

@@ -510,7 +510,7 @@ export function renderNavCategories(force = false) {
         <button type="button" role="tab" id="cat-tab-${i}" aria-selected="${i === 0 ? 'true' : 'false'}" aria-controls="cat-${i}" class="sidebar-item w-full text-left text-xs md:text-sm px-2.5 py-1.75 min-h-9 text-white/70 flex items-center gap-2 ${i === 0 ? 'active' : ''}"
                 data-target="cat-${i}">
             <span class="size-5 shrink-0 sidebar-icon flex items-center justify-center">${getCategoryIconHTML(cat.icon, 'size-4')}</span>
-            <span class="truncate sidebar-label">${escapeHtml(cat.name)}</span>
+            <span class="truncate">${escapeHtml(cat.name)}</span>
         </button>
     `).join('');
 

@@ -260,24 +260,19 @@ export function openRandomBookmark(newTab = true) {
     /** @type {import('../types').BookmarkItem[]} */
     const list = [];
     const seen = new Set();
+    /** @param {import('../types').BookmarkItem} bm */
+    const addBookmark = bm => {
+        if (bm && bm.url && typeof bm.url === 'string' && !seen.has(bm.url)) {
+            seen.add(bm.url);
+            list.push(bm);
+        }
+    };
     if (pageData && Array.isArray(pageData.bookmarks)) {
-        pageData.bookmarks.forEach(bm => {
-            if (bm && bm.url && typeof bm.url === 'string' && !seen.has(bm.url)) {
-                seen.add(bm.url);
-                list.push(bm);
-            }
-        });
+        pageData.bookmarks.forEach(addBookmark);
     }
     if (pageData && Array.isArray(pageData.categories)) {
         pageData.categories.forEach(cat => {
-            if (Array.isArray(cat.bookmarks)) {
-                cat.bookmarks.forEach(bm => {
-                    if (bm && bm.url && typeof bm.url === 'string' && !seen.has(bm.url)) {
-                        seen.add(bm.url);
-                        list.push(bm);
-                    }
-                });
-            }
+            if (Array.isArray(cat.bookmarks)) cat.bookmarks.forEach(addBookmark);
         });
     }
     if (list.length === 0) return;

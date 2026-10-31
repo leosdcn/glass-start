@@ -7,7 +7,6 @@ import { launchSession, sleep, makeTester, pressKey, waitFor, navigateAndWait } 
 
 /** 截图产物输出目录：项目内 test/artifacts/（已 gitignore），相对脚本定位，跨机器可移植 */
 const ARTIFACT_DIR = join(dirname(fileURLToPath(import.meta.url)), 'artifacts');
-const ARTIFACT_DIRS = [ARTIFACT_DIR];
 
 try {
   await mkdir(ARTIFACT_DIR, { recursive: true });
@@ -19,13 +18,11 @@ const { server, chrome, send, evalJS } = await launchSession();
 const press = (key) => pressKey(evalJS, key);
 const settled = section => waitFor(evalJS, `state.currentSection === '${section}' && !isScreenTransitioning()`);
 
-/** 截图并保存到所有指定 Artifact 目录 */
+/** 截图并保存到测试产物目录 */
 async function captureScreenshot(filename) {
   const { data } = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
   const buf = Buffer.from(data, 'base64');
-  for (const dir of ARTIFACT_DIRS) {
-    await writeFile(join(dir, filename), buf);
-  }
+  await writeFile(join(ARTIFACT_DIR, filename), buf);
   return filename;
 }
 
@@ -458,7 +455,7 @@ const testSummaryData = {
 };
 
 await writeFile(
-  join(ARTIFACT_DIRS[0], 'visual_test_summary.json'),
+  join(ARTIFACT_DIR, 'visual_test_summary.json'),
   JSON.stringify(testSummaryData, null, 2)
 );
 

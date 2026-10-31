@@ -3,6 +3,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { launchSession, sleep } from './support/helpers.mjs';
+import { c, HR_DOUBLE } from '../scripts/terminal.cjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
@@ -10,20 +11,10 @@ const ICONS_DIR = join(ROOT, 'public', 'icons');
 const DIST_ICONS_DIR = join(ROOT, 'dist', 'icons');
 const BOOKMARKS_PATH = join(ROOT, 'bookmarks.json');
 
-const c = {
-    reset: '\x1b[0m',
-    bold: '\x1b[1m',
-    dim: '\x1b[2m',
-    green: '\x1b[32m',
-    red: '\x1b[31m',
-    yellow: '\x1b[33m',
-    cyan: '\x1b[36m'
-};
-
 async function run() {
-    console.log(`\n${c.cyan}${c.bold}════════════════════════════════════════════════════════════════════${c.reset}`);
+    console.log(`\n${c.cyan}${c.bold}${HR_DOUBLE}${c.reset}`);
     console.log(`${c.cyan}${c.bold}🧪 Glass Start — 本地书签图标专项效能与渲染验证套件${c.reset}`);
-    console.log(`${c.cyan}${c.bold}════════════════════════════════════════════════════════════════════${c.reset}\n`);
+    console.log(`${c.cyan}${c.bold}${HR_DOUBLE}${c.reset}\n`);
 
     let passedCount = 0;
     let totalChecks = 0;
@@ -138,7 +129,7 @@ async function run() {
 
         // 检验首屏懒加载特性与全量滚动解码
         const domResult = await evalJS(`new Promise(async (resolve) => {
-            const imgs = Array.from(document.querySelectorAll('.bookmark-card img, .category-item img, .nav-item img, .lazy-icon'));
+            const imgs = Array.from(document.querySelectorAll('img.lazy-icon'));
             const total = imgs.length;
             const relativeLocalCount = imgs.filter(img => (img.src || img.dataset.navSrc || '').includes('/icons/')).length;
             const initialLazyLoaded = imgs.filter(img => img.complete && img.naturalWidth > 0).length;
@@ -190,7 +181,7 @@ async function run() {
             url.includes('api.iowen.cn')
         );
 
-        assert('全站图标加载实现真正的 0 外部网络请求 (零泄漏/零外网依赖)', externalFaviconRequests.length === 0,
+        assert('本轮预设书签未请求外部 favicon 服务', externalFaviconRequests.length === 0,
             externalFaviconRequests.length === 0 ? '0 外部图标请求' : `违规外发 ${externalFaviconRequests.length} 个请求: ${externalFaviconRequests.join(', ')}`);
 
     } finally {
@@ -198,14 +189,14 @@ async function run() {
         await server.close();
     }
 
-    console.log(`\n${c.cyan}${c.bold}════════════════════════════════════════════════════════════════════${c.reset}`);
+    console.log(`\n${c.cyan}${c.bold}${HR_DOUBLE}${c.reset}`);
     if (passedCount === totalChecks) {
         console.log(`  ${c.green}✨ 专项测试全部通过！(${passedCount}/${totalChecks} 项断言通过)${c.reset}`);
-        console.log(`  ${c.green}✨ 结论：全站本地书签图标已 100% 起效，首屏实现零外部网络依赖与瞬间解码！${c.reset}`);
+        console.log(`  ${c.green}✨ 预设书签图标均从本地加载并成功解码，本轮未检测到外部 favicon 请求。${c.reset}`);
     } else {
         console.log(`  ${c.red}⚠ 专项测试未全部通过 (${passedCount}/${totalChecks} 项通过)${c.reset}`);
     }
-    console.log(`${c.cyan}${c.bold}════════════════════════════════════════════════════════════════════${c.reset}\n`);
+    console.log(`${c.cyan}${c.bold}${HR_DOUBLE}${c.reset}\n`);
 }
 
 run().catch(err => {

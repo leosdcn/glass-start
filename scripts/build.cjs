@@ -242,62 +242,29 @@ function processProductionAppJs(targetDir = PATHS.dist, { extension = false } = 
 
 // 每轮解析配置及其间接依赖，保持首屏注入与运行时配置一致。
 function injectThemeConfig(html, themePath = path.join(PATHS.src, 'js', 'config', 'themes.js')) {
-    const marker = '/* INJECT_THEME_CONFIG */';
-    const code = (() => {
-        const result = esbuild.buildSync({
-            entryPoints: [themePath],
-            bundle: true,
-            write: false,
-            format: 'iife',
-            globalName: '__headThemes',
-            target: 'es2020',
-            minify: true,
-            charset: 'utf8'
-        });
-        return result.outputFiles[0].text + `
-            const { APP_THEME_DARK: THEME_DARK, APP_THEME_LIGHT: THEME_LIGHT,
-                PRESET_THEMES, PRESET_TINTS, PRESET_THEME_COLORS } = __headThemes;
-        `;
-    })();
-    // 保护 HTML script 边界，同时保留字符串运行时值。
-    return replaceOnce(html, marker, code.replace(/<\/script/gi, '<\\/script'));
-}
-
-// 预渲染内联同一数值清洗模块，避免复制 weatherNum 规则。
-function injectWeatherNum(html) {
-    const marker = '/* INJECT_WEATHER_NUM */';
-    const entryPath = path.join(PATHS.src, 'js', 'utils', 'weather-data.js');
-    const code = (() => {
-        const result = esbuild.buildSync({
-            entryPoints: [entryPath],
-            bundle: true,
-            write: false,
-            format: 'iife',
-            globalName: '__headWeather',
-            target: 'es2020',
-            minify: true,
-            charset: 'utf8'
-        });
-        return result.outputFiles[0].text + '\nconst { weatherNum } = __headWeather;';
-    })();
-    return replaceOnce(html, marker, code.replace(/<\/script/gi, '<\\/script'));
+    return injectHeadConfig(html, {
+        marker: '/* INJECT_THEME_CONFIG */',
+        entryPath: themePath,
+        globalName: '__headThemes',
+        binding: `const { APP_THEME_DARK: THEME_DARK, APP_THEME_LIGHT: THEME_LIGHT,
+            PRESET_THEMES, PRESET_TINTS, PRESET_THEME_COLORS } = __headThemes;`
+    });
 }
 
 // 首屏共享配置（壁纸、引擎、天气图标）从单一模块注入，避免内联副本与运行时漂移。
 function injectHeadConfig(html, { marker, entryPath, globalName, binding }) {
-    const code = (() => {
-        const result = esbuild.buildSync({
-            entryPoints: [entryPath],
-            bundle: true,
-            write: false,
-            format: 'iife',
-            globalName,
-            target: 'es2020',
-            minify: true,
-            charset: 'utf8'
-        });
-        return result.outputFiles[0].text + '\n' + binding;
-    })();
+    const result = esbuild.buildSync({
+        entryPoints: [entryPath],
+        bundle: true,
+        write: false,
+        format: 'iife',
+        globalName,
+        target: 'es2020',
+        minify: true,
+        charset: 'utf8'
+    });
+    const code = result.outputFiles[0].text + '\n' + binding;
+    // 保护 HTML script 边界，同时保留字符串运行时值。
     return replaceOnce(html, marker, code.replace(/<\/script/gi, '<\\/script'));
 }
 
@@ -329,7 +296,13 @@ function processProductionHtml(compiledCss, targetDir = PATHS.dist) {
         globalName: '__headWeatherIcons',
         binding: 'const { WEATHER_EMOJI_MAP: m } = __headWeatherIcons;'
     });
-    prodHtmlContent = injectWeatherNum(injectThemeConfig(prodHtmlContent));
+    // 预渲染与运行时共用数值清洗模块。
+    prodHtmlContent = injectHeadConfig(injectThemeConfig(prodHtmlContent), {
+        marker: '/* INJECT_WEATHER_NUM */',
+        entryPath: path.join(PATHS.src, 'js', 'utils', 'weather-data.js'),
+        globalName: '__headWeather',
+        binding: 'const { weatherNum } = __headWeather;'
+    });
 
     prodHtmlContent = injectDocumentShell(prodHtmlContent, {
         css: compiledCss,
@@ -386,7 +359,7 @@ function processProductionHtml(compiledCss, targetDir = PATHS.dist) {
     // 🛡️ 构建断言（最终产物写盘前）：严禁残留任何 jsdelivr CDN 引用 ——
     // 生产 CSP 已剔除该域名，脚本或 CSP 白名单任一残留都会导致线上样式全挂且难以察觉，必须 fail build 阻断部署
     if (/jsdelivr/i.test(prodHtmlContent)) {
-        throw new Error('构建断言失败: dist/index.html 最终产物中仍残留 jsdelivr CDN 引用，请检查 Tailwind CDN 替换（5.0）与 CSP 清理（5.2）逻辑');
+        throw new Error('构建断言失败: dist/index.html 最终产物中仍残留 jsdelivr CDN 引用，请检查 HTML 模板与构建注入内容');
     }
 
     // 🛡️ 构建断言（最终产物写盘前）：HTML 侧构建指纹必须存在且与 app.js 侧同源同版

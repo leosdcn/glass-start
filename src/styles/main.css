@@ -447,9 +447,6 @@ html:not(.is-chrome) #navSection.nav-hidden .nav-surface {
         flex-shrink: 0;
         width: auto;
     }
-    body:not(.tab-blurred) .sidebar-item:hover .sidebar-label {
-        transform: none;
-    }
 }
 
 /* iOS / iPad 触屏长按系统菜单拦截与核心 UI 组件防圈选 */

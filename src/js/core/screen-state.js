@@ -92,8 +92,8 @@ function waitForScreenTransition(nav, targetSection, onComplete) {
         navTransitionCleanup = () => nav.removeEventListener('transitionend', onEnd);
     }
     // 切屏前已提交过样式，这里再读 transitionDuration 会让浏览器同步重算整棵树；
-    // 动画是否生效只取决于减弱动效与首屏 .nr 直达模式，时长本身由 transitionend/兜底计时器驱动。
-    if (!nav || isReducedMotion() || document.documentElement.classList.contains('nr')) {
+    // 首屏 .nr 已在切屏准备时移除；减弱动效立即完成，其余由 transitionend/兜底计时器驱动。
+    if (!nav || isReducedMotion()) {
         finish();
         return;
     }

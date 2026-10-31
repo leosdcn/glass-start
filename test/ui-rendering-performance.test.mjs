@@ -55,12 +55,9 @@ try {
     await done;
     unsubscribe();
     const paints=events.filter(event=>event.name==='Paint' && event.ph==='X');
-    // 少量容差留给高并发下无头浏览器的偶发系统绘制；云端 CI 纯 CPU 软件栅格化放宽重绘上限，核心严格保证无 Layout。
-    const maxPaints = process.env.CI ? 100 : 4;
-    assert.ok(paints.length <= maxPaints, `30 帧光斑移动产生了 ${paints.length} 次 Paint (上限 ${maxPaints})`);
-    if (!process.env.CI) {
-        assert.equal(events.some(event=>event.name==='Layout' && event.ph==='X'),false);
-    }
+    // 少量容差留给高并发下无头浏览器的偶发系统绘制。
+    assert.ok(paints.length <= 4, `30 帧光斑移动产生了 ${paints.length} 次 Paint (上限 4)`);
+    assert.equal(events.some(event=>event.name==='Layout' && event.ph==='X'),false);
     const spotlight=await evalJS(`(() => {
         const style=getComputedStyle(renderCard,'::before');
         const matrix=new DOMMatrix(style.transform);

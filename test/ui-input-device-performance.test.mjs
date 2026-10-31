@@ -64,21 +64,7 @@ try {
     await send('Emulation.clearDeviceMetricsOverride');
     await send('Emulation.setTouchEmulationEnabled',{enabled:false});
     await send('Input.dispatchMouseEvent',{type:'mouseMoved',x:200,y:200});
-    const hasMouseMedia = await evalJS("matchMedia('(hover:hover) and (pointer:fine)').matches");
-    if (!hasMouseMedia && process.env.CI) {
-        await evalJS(`(() => {
-            const desc = Object.getOwnPropertyDescriptor(MediaQueryList.prototype, 'matches');
-            Object.defineProperty(MediaQueryList.prototype, 'matches', {
-                configurable: true,
-                get() {
-                    if (this.media && this.media.includes('hover') && this.media.includes('fine')) return true;
-                    return desc ? desc.get.call(this) : false;
-                }
-            });
-        })()`);
-    } else {
-        await waitFor(evalJS,"matchMedia('(hover:hover) and (pointer:fine)').matches");
-    }
+    await waitFor(evalJS,"matchMedia('(hover:hover) and (pointer:fine)').matches");
     const dispatch = (type,pointerType) => evalJS(`(async()=>{
         document.body.classList.remove('tab-blurred');
         const card=document.querySelector('.nav-bookmark');const r=card.getBoundingClientRect();
