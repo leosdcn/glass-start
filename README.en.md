@@ -199,7 +199,7 @@ Press `Cmd/Ctrl + /` to open the in-app shortcut panel for the complete list and
 
 ## Development and contributing
 
-This is my first substantial open-source project, and I am still learning and improving it. Issues, suggestions and pull requests are welcome. Please read the [contribution guide](./.github/CONTRIBUTING.en.md) before contributing.
+This is my first substantial open-source project, and I am still learning and improving it. Issues, suggestions and pull requests are welcome. Please read the [contribution guide](./CONTRIBUTING.en.md) before contributing.
 
 > “Entities should not be multiplied beyond necessity.” Keep changes as small as necessary and avoid overengineering.
 
