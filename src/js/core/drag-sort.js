@@ -230,7 +230,7 @@ export function initDragSort() {
         if (e.dataTransfer) {
             e.dataTransfer.effectAllowed = 'move';
             try {
-                e.dataTransfer.setData('text/plain', item.dataset.id || item.dataset.idx || '');
+                e.dataTransfer.setData('text/plain', item.dataset.id || '');
             } catch (_) {}
         }
     });

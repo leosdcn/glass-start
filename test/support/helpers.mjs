@@ -60,23 +60,6 @@ export async function navigateAndWait(send, evalJS, url, predicateJs = 'true', t
   }
 }
 
-/** 模拟输入框输入事件并触发 input/change 事件 */
-export async function typeInput(evalJS, selector, value) {
-  return evalJS(`(() => {
-    const el = document.querySelector(${JSON.stringify(selector)});
-    if (!el) return false;
-    const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
-    if (nativeSetter) {
-      nativeSetter.call(el, ${JSON.stringify(value)});
-    } else {
-      el.value = ${JSON.stringify(value)};
-    }
-    el.dispatchEvent(new Event('input', { bubbles: true }));
-    el.dispatchEvent(new Event('change', { bubbles: true }));
-    return true;
-  })()`);
-}
-
 /** 获取系统当前随机可用空闲端口 */
 export function getFreePort() {
   return new Promise((resolve, reject) => {

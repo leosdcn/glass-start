@@ -251,7 +251,7 @@ npm run build:extension
 
 `npm run test:icons` 与 `npm run test:visual` 是独立入口，需先构建再按需运行。视觉脚本输出截图和布局指标，不自动与基准图逐像素比较。`npm run lint:fix` 仅修复脚本支持的机械规则。[Safari 专项冒烟清单](./docs/SAFARI_SMOKE_CHECKLIST.md) 仅保留为可选参考，用户明确要求时才使用，不作为默认验证或发布门槛。
 
-> 💡 **macOS 便捷启动**：macOS 用户可直接双击根目录的 `start.command` 脚本，检查已有 Node 环境、构建并启动浏览器预览；首次运行前仍需执行 `npm ci`。此入口使用清理缓存地址，会清除该本地站点的书签、壁纸与偏好。
+> 💡 **macOS 便捷启动**：macOS 用户可直接双击根目录的 `start.command` 脚本，检查已有 Node 环境、构建并启动浏览器预览；首次运行前仍需执行 `npm ci`。此入口默认重置本地测试环境，清除该本地站点的缓存、书签、壁纸与偏好，避免旧缓存和设置影响视觉测试。
 
 ---
 

@@ -4,14 +4,10 @@ import { updateClock, stopClockTimer } from '../modules/clock.js';
 import { updateWeather } from '../modules/weather.js';
 import { checkServiceWorkerUpdate } from './service-worker-updates.js';
 import { resetActiveCard } from './gestures.js';
-import { dom } from '../state/dom.js';
 import { reconcileScreenState } from './screen-state.js';
 import { resetScreenInput, blurNonEditableActive } from './screen-input.js';
 
-/**
- * @param {boolean} [wasPersisted]
- */
-export function handleAppWakeUp(wasPersisted = false) {
+export function handleAppWakeUp() {
     updateClock();
 
     document.querySelectorAll('.is-clicked').forEach(el => el.classList.remove('is-clicked'));
@@ -28,11 +24,6 @@ export function handleAppWakeUp(wasPersisted = false) {
 
     checkServiceWorkerUpdate();
 
-    if (wasPersisted) {
-        const startSec = dom.startSection;
-        if (startSec) startSec.style.willChange = 'transform';
-    }
-
     updateWeather(false).catch(() => {});
 }
 
@@ -41,5 +32,5 @@ export function initAppWakeEvents() {
         if (document.hidden) stopClockTimer();
         else handleAppWakeUp();
     }, { passive: true });
-    window.addEventListener('pageshow', e => handleAppWakeUp(e.persisted), { passive: true });
+    window.addEventListener('pageshow', () => handleAppWakeUp(), { passive: true });
 }

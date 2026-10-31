@@ -136,7 +136,6 @@ try {
   console.log('📸 切换到导航页 (' + navFilename + ')...');
   await evalJS('window.switchToNav()');
   await waitFor(evalJS, `state.currentSection === 'nav' && !isScreenTransitioning()`);
-  await evalJS('window.activateVisibleNavIcons && window.activateVisibleNavIcons()');
   await sleep(1500);
 
   const navSnap = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });

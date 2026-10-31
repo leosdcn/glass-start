@@ -336,7 +336,7 @@ export function renderPresetWallpapers() {
         const bg = `./wallpapers/bg${i + 1}.avif`;
         const thumb = `./wallpapers/bg${i + 1}-thumb.avif`;
         const fullTitle = i === 0 ? t('wallpaper.default', { name: title }) : title;
-        return `<button type="button" class="preset-bg-card group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70" data-bg="${bg}" data-title="${escapeHtml(title)}" title="${escapeHtml(fullTitle)}" aria-pressed="false">
+        return `<button type="button" class="preset-bg-card group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70" data-bg="${bg}" title="${escapeHtml(fullTitle)}" aria-pressed="false">
             <span class="preset-bg-image">
                 <img data-src="${thumb}" src="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2016%2010'%3E%3C/svg%3E" width="${CONFIG.UI.WALLPAPER_CARD_WIDTH}" height="${CONFIG.UI.WALLPAPER_CARD_HEIGHT}" alt="" loading="lazy" decoding="async" draggable="false">
                 <span class="preset-bg-check" aria-hidden="true"><svg aria-hidden="true"><use href="#icon-check"/></svg></span>

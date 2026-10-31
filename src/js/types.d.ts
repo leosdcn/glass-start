@@ -55,14 +55,12 @@ export interface CustomMetaItem {
     name?: string;
     desc?: string;
     icon?: string;
-    isCustomIcon?: boolean;
 }
 
 /** 运行时核心数据集 */
 export interface PageData {
     bookmarks: BookmarkItem[];
     categories: BookmarkCategory[];
-    customMeta?: Record<string, CustomMetaItem>;
 }
 
 /** 运行时状态；由调用方显式更新并触发渲染。 */

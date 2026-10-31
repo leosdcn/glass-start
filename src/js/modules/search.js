@@ -116,7 +116,7 @@ export function renderEngineDropdown() {
     if (!dropdownMenu) return;
     const curEngine = state.engine || DEFAULT_ENGINE;
     const order = ['bing', 'google', 'wikipedia'];
-    /** @type {Record<string, { name: string; isSvg: boolean; svg: string; url: string }>} */
+    /** @type {Record<string, { name: string; svg: string; url: string }>} */
     const engineMap = engines;
     dropdownMenu.innerHTML = order.map(key => {
         const eng = engineMap[key];
@@ -167,7 +167,7 @@ export function closeDropdown() {
  * @param {boolean} [save=true] - 是否持久化到 localStorage
  */
 export function setEngine(key, save = true) {
-    /** @type {Record<string, { name: string; isSvg: boolean; svg: string; url: string }>} */
+    /** @type {Record<string, { name: string; svg: string; url: string }>} */
     const engineMap = engines;
     const validEngine = engineMap[key] ? key : DEFAULT_ENGINE;
     state.engine = validEngine;
@@ -211,7 +211,7 @@ function doSearch(queryOverride, newTab = false) {
     if (!q) return;
     hideSuggestions();
     closeDropdown();
-    /** @type {Record<string, { name: string; isSvg: boolean; svg: string; url: string }>} */
+    /** @type {Record<string, { name: string; svg: string; url: string }>} */
     const engineMap = engines;
     const engineObj = engineMap[state.engine] || engineMap[DEFAULT_ENGINE];
     const targetUrl = engineObj.url + encodeURIComponent(q);

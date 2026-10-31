@@ -250,7 +250,7 @@ npm run build:extension
 
 After building, run `node scripts/capture-preview.mjs --lang=en` to regenerate the English README screenshots. Omit `--lang=en` to generate the Chinese screenshots.
 
-> 💡 **macOS launcher**: double-click `start.command` in the project root to check the existing Node environment, build and launch a browser preview. Run `npm ci` before the first launch. This launcher uses the cache-clearing URL, which deletes bookmarks, wallpapers and preferences for that local site.
+> 💡 **macOS launcher**: double-click `start.command` in the project root to check the existing Node environment, build and launch a browser preview. Run `npm ci` before the first launch. This launcher resets the local test environment by default, clearing caches, bookmarks, wallpapers and preferences for that local site so old caches and settings do not affect visual testing.
 
 ---
 

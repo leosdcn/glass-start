@@ -205,7 +205,7 @@ LocalStorage 仅保存背景索引和轻量首屏提示，新选择不写入 Bas
 
 `reconcileScreenState()` 清理过渡任务、恢复保存的目标屏、校准状态类及可访问性，并移除预渲染类 `.nr`。正常进入、退出与校准共用目标状态应用逻辑。它本身不执行 `display` 重置；默认无明确目标且仍在过渡时会跳过，唤醒调用传入 `force=true`。
 
-`core/app-wake.js` 的 `handleAppWakeUp()` 统一处理 `pageshow` 和恢复可见的 `visibilitychange`：清理残留交互及手势状态，强制校准屏幕、时钟与天气刷新，并检查 Service Worker 更新；BFCache 恢复时校准首屏合成层 `willChange`。校准时在禁用过渡的情况下提交目标布局，再恢复过渡，避免补播动画；不重建 DOM。
+`core/app-wake.js` 的 `handleAppWakeUp()` 统一处理 `pageshow` 和恢复可见的 `visibilitychange`：清理残留交互及手势状态，强制校准屏幕、时钟与天气刷新，并检查 Service Worker 更新。BFCache 恢复沿用 CSS 的合成提示策略，不写入内联 `will-change`。校准时在禁用过渡的情况下提交目标布局，再恢复过渡，避免补播动画；不重建 DOM。
 
 Chrome（首屏已有的 `.is-chrome` 标记）为两屏保留 `will-change: transform`，导航退出后保留离屏玻璃结构，减少重复进入时的绘制与 GPU 进程任务开销；离屏导航仍由位置、`pointer-events: none`、`inert` 与无障碍属性隔离。其他浏览器在导航退出后继续隐藏并关闭离屏毛玻璃，仅在 `body.is-screen-transitioning` 期间申请合成提示，保留 WebKit 原有回收策略。壁纸切换仍通过 `.is-crossfading` 动态分配 `will-change`。`blur` / `pagehide` 添加 `body.tab-blurred`，收到下一次用户交互后解除，防止悬停残留。
 

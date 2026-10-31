@@ -39,13 +39,12 @@ export function handleEditIconError(img) {
 /**
  * @param {string} name
  * @param {string} url
- * @param {number} idx
  * @param {string} icon
  * @param {string} id - 由草稿模型分配的行标识
  */
-function getEditRowHTML(name, url, idx, icon, id) {
+function getEditRowHTML(name, url, icon, id) {
     return `
-        <div role="listitem" class="edit-row-card flex items-center gap-1.5 sm:gap-2 p-1.5 sm:p-2 bg-white/5 border border-white/10 apple-radius glass-interactive group mb-1.5 shadow-xs" data-id="${escapeHtml(id)}" data-idx="${idx}" draggable="false">
+        <div role="listitem" class="edit-row-card flex items-center gap-1.5 sm:gap-2 p-1.5 sm:p-2 bg-white/5 border border-white/10 apple-radius glass-interactive group mb-1.5 shadow-xs" data-id="${escapeHtml(id)}" draggable="false">
             <div class="flex items-center gap-1 shrink-0">
                 <button type="button" class="drag-handle touch-none p-1 size-7 flex items-center justify-center shrink-0 text-white/30 cursor-grab active:cursor-grabbing rounded-lg glass-interactive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40" title="${escapeHtml(t('ui.drag.or.press.alt.to.reorder'))}" aria-label="${escapeHtml(t('bookmark.reorderLabel', { name }))}">
                     <svg class="size-3.5 pointer-events-none" aria-hidden="true"><use href="#icon-drag"/></svg>
@@ -86,7 +85,7 @@ export function appendDraftBookmarkRow({ name = '', url = '', icon = '', desc, f
     if (!editList) return null;
 
     const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = getEditRowHTML(name, url, modalState.draftBookmarks.length - 1, icon, rowId).trim();
+    tempDiv.innerHTML = getEditRowHTML(name, url, icon, rowId).trim();
     const div = /** @type {HTMLElement|null} */ (tempDiv.firstElementChild);
     if (!div) return null;
 
@@ -118,7 +117,7 @@ export function renderEditList(listToRender) {
 
     const editList = dom.editList;
     if (!editList) return;
-    editList.innerHTML = '<span class="bookmark-sort-status sr-only" role="status" aria-live="polite"></span>' + modalState.draftBookmarks.map((bm, i) => getEditRowHTML(bm.name, bm.url, i, bm.icon, bm.id)).join('');
+    editList.innerHTML = '<span class="bookmark-sort-status sr-only" role="status" aria-live="polite"></span>' + modalState.draftBookmarks.map(bm => getEditRowHTML(bm.name, bm.url, bm.icon, bm.id)).join('');
     updateAllBookmarkCounters();
 
     editList.querySelectorAll('img.edit-favicon-img').forEach(img => {
