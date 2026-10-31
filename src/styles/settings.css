@@ -32,9 +32,6 @@
     body:not(.tab-blurred) .edit-row-card .drag-handle:hover:not(:disabled) {
         color: #ffffff;
     }
-    body:not(.tab-blurred) :is(.bookmark-item, .nav-bookmark):hover {
-        color: #ffffff;
-    }
     body:not(.tab-blurred) .picker-item:hover:not(:disabled) {
         background-color: var(--tint-10);
     }
