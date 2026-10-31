@@ -22,7 +22,7 @@
 - 动态 HTML 文本使用 `escapeHtml()`，URL 属性使用 `safeUrl()`；`textContent` 直接接收文本。天气数值使用 `weatherNum()`，时间另行校验，地点等文本转义。
 - 保持 lint 约束：按钮声明 `type="button"`，装饰 SVG 标注 `aria-hidden="true"`，交互图标提供 `aria-label`；禁止 `-webkit-font-smoothing`；`!important` 仅允许用于 `prefers-reduced-motion` 规则内。
 - 单行输入框默认及触屏字号 >= 16px；仅书签编辑器和壁纸直链输入允许 `mouse-desktop:text-xs`，其变体须同时满足宽度 >= 640px、hover、精细指针且无粗指针设备。卡片 `:hover` 加 `body:not(.tab-blurred)` 前缀。
-- 预设书签图标统一使用 `./icons/{domain}.png`；`desc` 纯中文 <= 9 字、含英数 <= 13 字符，由 lint 校验。
+- 预设书签图标统一使用 `./icons/{domain}.png`；`desc` 纯中文 <= 12 字、含英数 <= 16 字符，由 lint 校验。
 - 首屏共享配置只修改 `src/js/config/` 下的对应模块，由构建注入 `src/index.html` 插槽；不要在 HTML 内联壁纸、引擎图标或天气图标副本。
 - Chrome 扩展复用网页源码，通过构建标记 `window.__GLASS_EXTENSION__` 区分行为；扩展脚本必须本地打包，不使用内联脚本或远程 JSONP，不注册网页 Service Worker。新增网络接口时同步核对 `src/extension/manifest.json` 的域名权限与 CSP。
 - 文件按职责归位：`core/` 放页面共用机制，`modules/` 放具体功能及其控件事件，应用初始化和跨业务事件装配放在 `src/js/` 顶层。Node 工具按模块格式使用 `.cjs` / `.mjs`；测试辅助文件放在 `test/support/`，回归用例保留在 `test/` 顶层；历史报告使用 `docs/reports/YYYY-MM-DD-topic.md`。

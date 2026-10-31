@@ -462,9 +462,9 @@ try {
                         errors.push(`${prefix} 缺少有效 desc 简介`);
                     } else {
                         const hasAlpha = /[a-zA-Z0-9]/.test(bm.desc);
-                        const maxLen = hasAlpha ? 13 : 9;
+                        const maxLen = hasAlpha ? 16 : 12;
                         if (bm.desc.length > maxLen) {
-                            const typeDesc = hasAlpha ? '中英混排上限13字符' : '纯中文上限9字符';
+                            const typeDesc = hasAlpha ? '中英混排上限16字符' : '纯中文上限12字符';
                             const excess = bm.desc.length - maxLen;
                             errors.push(`bookmarks.json [${cat.name} ➔ ${bm.name}]: desc 溢出 ${excess} 字符 (当前 ${bm.desc.length}/${maxLen} 字符, ${typeDesc}): "${bm.desc}"`);
                         }

@@ -28,7 +28,7 @@ body:
     id: desc
     attributes:
       label: 功能简介（desc）
-      description: 严格限制字数：纯中文 <= 9 字；含英数混排 <= 13 字符。
+      description: 严格限制字数：纯中文 <= 12 字；含英数混排 <= 16 字符。
       placeholder: 例如：在线图片编辑工具
     validations:
       required: true
