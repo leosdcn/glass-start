@@ -32,7 +32,7 @@
 | `docs/reports/` | 必要的历史修复、验证及性能依据，统一命名为 `YYYY-MM-DD-topic.md`；结论以报告所列版本和环境为限，不重复记录当前架构或每轮开发过程 |
 | `docs/performance/`、`docs/assets/` | 性能原始数据与文档图片 |
 | `dist/`、`extension/` | 网页版与 Chrome 扩展的构建产物，由构建生成，不手工修改，不纳入 Git |
-| `.github/` | CI、部署工作流及 Issue / PR 模板 |
+| `.github/` | 中英文贡献指南、CI、部署工作流及 Issue / PR 模板 |
 | 根目录工程文件 | `package.json` 与锁文件管理依赖和命令；`tsconfig.json` 与 `tsconfig.sw.json` 管理页面及 Service Worker 类型检查；`wrangler.jsonc` 配置 Cloudflare 部署；`start.command` 为 macOS 启动入口 |
 
 `test/artifacts/` 根层保留测试入口的最新输出；本地历史调试产物按整理日期存入 `test/artifacts/archive/YYYY-MM-DD/`，压缩包保留原相对路径，`index.json` 记录文件清单和 SHA-256。历史报告中的本地产物路径可通过该索引查找并恢复。归档及临时脚本仍不纳入 Git。
