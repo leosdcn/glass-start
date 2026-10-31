@@ -241,6 +241,19 @@ export function initPickerFaviconObserver() {
     });
 }
 
+/** @param {import('../types').BookmarkItem} bm */
+function getBookmarkCardHTML(bm) {
+    return `
+        <a href="${safeUrl(localizeBookmarkUrl(bm.url))}" target="_blank" rel="noopener noreferrer"
+           data-url="${safeUrl(bm.url)}"
+           data-icon="${safeUrl(bm.icon || '')}"
+           class="bookmark-item flex flex-col items-center justify-center gap-2 py-3 px-1 sm:px-1.5 apple-radius text-white/90">
+            ${getFaviconHTML(bm, 'md')}
+            <span class="bookmark-title text-white/90">${escapeHtml(bm.name)}</span>
+        </a>
+    `;
+}
+
 let lastBookmarksSignature = '';
 export function renderBookmarks(force = false) {
     const bookmarksEl = dom.bookmarks;
@@ -256,15 +269,7 @@ export function renderBookmarks(force = false) {
     });
 
     if (existingMap.size === 0) {
-        bookmarksEl.innerHTML = pageData.bookmarks.map(bm => `
-        <a href="${safeUrl(localizeBookmarkUrl(bm.url))}" target="_blank" rel="noopener noreferrer"
-           data-url="${safeUrl(bm.url)}"
-           data-icon="${safeUrl(bm.icon || '')}"
-           class="bookmark-item flex flex-col items-center justify-center gap-2 py-3 px-1 sm:px-1.5 apple-radius text-white/90">
-            ${getFaviconHTML(bm, 'md')}
-            <span class="bookmark-title text-white/90">${escapeHtml(bm.name)}</span>
-        </a>
-    `).join('');
+        bookmarksEl.innerHTML = pageData.bookmarks.map(getBookmarkCardHTML).join('');
     } else {
         const fragment = document.createDocumentFragment();
         pageData.bookmarks.forEach(bm => {
@@ -290,15 +295,7 @@ export function renderBookmarks(force = false) {
                 fragment.appendChild(node);
             } else {
                 const range = document.createRange();
-                const newFrag = range.createContextualFragment(`
-                    <a href="${safeUrl(localizeBookmarkUrl(bm.url))}" target="_blank" rel="noopener noreferrer"
-                       data-url="${escapeHtml(safeU)}"
-                       data-icon="${escapeHtml(safeIcon)}"
-                       class="bookmark-item flex flex-col items-center justify-center gap-2 py-3 px-1 sm:px-1.5 apple-radius text-white/90">
-                        ${getFaviconHTML(bm, 'md')}
-                        <span class="bookmark-title text-white/90">${escapeHtml(bm.name)}</span>
-                    </a>
-                `);
+                const newFrag = range.createContextualFragment(getBookmarkCardHTML(bm));
                 fragment.appendChild(newFrag);
             }
         });
