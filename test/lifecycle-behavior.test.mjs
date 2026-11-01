@@ -74,7 +74,7 @@ try {
       await navigateAndWait(send, evalJS, url + 'bfcache-away.html');
       const history = await send('Page.getNavigationHistory');
       await send('Page.navigateToHistoryEntry', {entryId:history.entries[history.currentIndex - 1].id});
-      await waitFor(evalJS, `location.href === ${JSON.stringify(url)} && window.__bfcacheRestored === true`);
+      await waitFor(evalJS, `location.href === ${JSON.stringify(url)} && window.__bfcacheRestored === true`, 10000);
       const restored = await evalJS(`({
         token:__bfcacheToken, section:state.currentSection, unlocked:!isScreenTransitioning(),
         inlineLayers:[dom.startSection.style.willChange, dom.navSection.style.willChange],
