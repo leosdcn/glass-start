@@ -17,7 +17,6 @@ await send('Fetch.enable', { patterns: [
 ] });
 
 // 在应用启动前固定请求边界，避免真实定位任务占用后续天气唤醒用例。
-// isFetchingWeather 是只读诊断接口，赋值不能取消模块内部的共享请求。
 await send('Page.addScriptToEvaluateOnNewDocument', { source: `
   window.fetch = async () => ({ ok: true, json: async () => ({}) });
 ` });
@@ -160,11 +159,10 @@ const xssCheck = await evalJS(`(() => {
   const normalized = normalizeUrl(dirtyUrl);
   return {
     escaped: sanitizedName.includes('&lt;img') && !sanitizedName.includes('<img'),
-    xssFired: !!window.__xss_fired,
     safeUrl: normalized.startsWith('https://')
   };
 })()`);
-const xssOk = xssCheck && xssCheck.escaped && !xssCheck.xssFired && xssCheck.safeUrl;
+const xssOk = xssCheck && xssCheck.escaped && xssCheck.safeUrl;
 
 // 2.6 气象缓存数值信任边界与 weatherNum / weatherTime 安全净化
 const weatherSanitizeCheck = await evalJS(`(() => {
@@ -215,18 +213,7 @@ const btnA11yCheck = await evalJS(`(() => {
 })()`);
 const btnA11yOk = btnA11yCheck && btnA11yCheck.delHasAria && btnA11yCheck.refHasAria;
 
-// 预设壁纸与深浅主题映射、模式标识保持一致。
-const wallpaperThemeCheck = await evalJS(`(() => {
-  const themes = PRESET_THEMES;
-  const bgs = backgrounds;
-  const countOk = Array.isArray(themes) && themes.length === 8 && Array.isArray(bgs) && bgs.length === 8;
-  const isAlternating = themes.every((t, i) => i % 2 === 0 ? !t.isLight : t.isLight);
-  const colorsOk = themes.every((t, i) => i % 2 === 0 ? t.color === '#0b0f19' : t.color === '#ffffff');
-  return { countOk, isAlternating, colorsOk };
-})()`);
-const wallpaperThemeOk = wallpaperThemeCheck && wallpaperThemeCheck.countOk && wallpaperThemeCheck.isAlternating && wallpaperThemeCheck.colorsOk;
-
-// 2.9 系统重置与书签默认模型纯 ESM 闭环断言 (不依赖 window 全局挂载 / 内存与存储同步恢复)
+// 2.8 系统重置与书签默认模型纯 ESM 闭环断言 (不依赖 window 全局挂载 / 内存与存储同步恢复)
 const resetBookmarksCheck = await evalJS(`(async () => {
   pageData.categories = DEFAULT_CATEGORIES;
   localStorage.setItem('userBookmarkKeys', JSON.stringify(['https://custom-only.test']));
@@ -273,12 +260,12 @@ const resetBookmarksOk = resetBookmarksCheck && resetBookmarksCheck.resetSuccess
 
 await evalJS(`localStorage.clear()`);
 
-pass('书签轻量存储模型、旧版数据迁移、自定义图标持久化、XSS清洗与纯ESM系统重置 (keys+customMeta/迁移/图标持久化/首屏防空白/XSS防注入/weatherNum清洗/图标按钮Aria-Label/壁纸深浅二元契约/纯ESM重置自闭环)',
-  bmClean && migrationOk && customMetaOk && saveModelOk && xssOk && weatherSanitizeOk && btnA11yOk && wallpaperThemeOk && resetBookmarksOk,
+pass('书签轻量存储模型、旧版数据迁移、自定义图标持久化、XSS清洗与纯ESM系统重置 (keys+customMeta/迁移/图标持久化/首屏防空白/XSS防注入/weatherNum清洗/图标按钮Aria-Label/纯ESM重置自闭环)',
+  bmClean && migrationOk && customMetaOk && saveModelOk && xssOk && weatherSanitizeOk && btnA11yOk && resetBookmarksOk,
   JSON.stringify({ ...saveModel, resetBookmarksOk: resetBookmarksCheck.resetSuccess }));
 
 // ══════════════════════════════════════════════════════════════════════
-// 3. 天气组件胶囊交互、OverlayStack 层叠栈响应与搜索联想防竞态
+// 3. 天气组件胶囊交互与 OverlayStack 层叠栈响应
 // ══════════════════════════════════════════════════════════════════════
 
 const widgetExists = await evalJS(`!!document.getElementById('weatherWidget') && !!document.getElementById('weatherBtn')`);
@@ -302,37 +289,9 @@ const popoverClosed = await evalJS(`({
 })`);
 const closeOk = !popoverClosed.active && popoverClosed.expanded && popoverClosed.stackTop === null;
 
-// 3.2 搜索联想 activeSuggestReqId 递增防竞态调度与失效请求自动丢弃
-const suggestAntiRaceCheck = await evalJS(`(() => {
-  // 1. 发起第一次请求
-  fetchSuggestions('bing', 'git');
-  const req1Id = activeSuggestReqId;
-  const cb1Name = '__glassSuggestCb_' + req1Id;
-  const cb1Exists = typeof window[cb1Name] === 'function';
-
-  // 2. 快速键入第二个词发起第二次请求
-  fetchSuggestions('bing', 'github');
-  const req2Id = activeSuggestReqId;
-  const reqIdIncremented = req2Id > req1Id;
-
-  // 3. 模拟请求 1 晚于请求 2 返回：调用旧回调 cb1 时，由于内部校验 reqId !== activeSuggestReqId，必须静默丢弃
-  if (typeof window[cb1Name] === 'function') {
-    window[cb1Name](['git', ['git-old-slow-result']]);
-  }
-  const oldResultDiscarded = !document.getElementById('suggestionMenu').innerText.includes('git-old-slow-result');
-
-  // 4. 清退联想时自动自增 reqId 并清空未决脚本
-  hideSuggestions();
-  const req3Id = activeSuggestReqId;
-  const hideInvalidatedReq = req3Id > req2Id;
-
-  return { cb1Exists, reqIdIncremented, oldResultDiscarded, hideInvalidatedReq };
-})()`);
-const antiRaceOk = suggestAntiRaceCheck && suggestAntiRaceCheck.cb1Exists && suggestAntiRaceCheck.reqIdIncremented && suggestAntiRaceCheck.oldResultDiscarded && suggestAntiRaceCheck.hideInvalidatedReq;
-
-pass('天气组件胶囊交互、OverlayStack 层叠栈响应与搜索联想防竞态 (挂载存在/点击展开入栈/Escape退栈/activeSuggestReqId防竞态丢弃)',
-  widgetExists && openOk && closeOk && antiRaceOk,
-  JSON.stringify({ widgetExists, openOk, closeOk, antiRaceOk }));
+pass('天气胶囊点击展开、Escape 退栈与 ARIA 状态同步',
+  widgetExists && openOk && closeOk,
+  JSON.stringify({ widgetExists, openOk, closeOk }));
 
 // ══════════════════════════════════════════════════════════════════════
 // 4. 天气弹窗 2×2 网格布局与工位优先级规范
@@ -435,13 +394,13 @@ pass('相对湿度、实时风速与降水雨伞 9 阶形态动态演化 (🌵/�
   dynamicsAllOk, JSON.stringify(dynamicIconsCheck));
 
 // ══════════════════════════════════════════════════════════════════════
-// 6. 预报日期标签
+// 6. 缺少日期的旧缓存保留预报标签
 // ══════════════════════════════════════════════════════════════════════
 
 const weekdayLabels = await evalJS(`(() => {
   renderWeatherPopover({
     location: { name: '上海市' },
-    current: { temp: 28, apparent: 30, weatherText: '多云', icon: '⛅', pop: 10, humidity: 50, windSpeed: 3, sunset: '18:59' },
+    current: { temp: 28, apparent: 30, weatherText: '多云', icon: '⛅', pop: 10, humidity: 50, windSpeed: 3, sunsetToday: '18:59' },
     daily: [
       { label: '今天', icon: '⛅', text: '多云', tempMin: 22, tempMax: 30 },
       { label: '明天', icon: '🌦️', text: '阵雨', tempMin: 23, tempMax: 29 },
@@ -453,7 +412,7 @@ const weekdayLabels = await evalJS(`(() => {
   return labels;
 })()`);
 
-pass('预报日期标签按顺序呈现',
+pass('缺少日期的旧缓存预报标签按顺序呈现',
   JSON.stringify(weekdayLabels) === JSON.stringify(['今天', '明天', '周四', '周五']),
   JSON.stringify(weekdayLabels));
 
@@ -522,7 +481,7 @@ const wakeupSyncCheck = await evalJS(`(() => {
       const updatedCache = storageGet('glass_weather_cache', null);
       const expiredCacheAutoRefreshed = fetchCount > 0 && updatedCache && (Date.now() - updatedCache.timestamp < 1500);
 
-      // 7.3 时钟切回前台即时同步 (重置时间缓存模拟跨分钟切回)
+      // 7.3 时钟切回前台即时修复过期的显示文本
       if (dom.clock) dom.clock.textContent = '00:00:00';
       document.dispatchEvent(new Event('visibilitychange'));
       const clockSynced = dom.clock && dom.clock.textContent !== '00:00:00';

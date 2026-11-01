@@ -1,30 +1,23 @@
-/** 验证构建指纹校验与刷新冷却。 */
-import { launchSession, makeTester } from './support/helpers.mjs';
+/** 指纹裁决只依赖会话存储，无须启动浏览器。实际升级由 infra-sw-upgrade 覆盖。 */
+import assert from 'node:assert/strict';
+import { buildSync } from 'esbuild';
+import vm from 'node:vm';
 
-const { pass, finish } = makeTester();
-const { server, chrome, evalJS } = await launchSession();
+const { outputFiles } = buildSync({ entryPoints: ['src/js/core/lifecycle.js'],
+  bundle: true, write: false, format: 'cjs', platform: 'node' });
+const storage = new Map();
+const context = vm.createContext({ module: { exports: {} }, sessionStorage: {
+  getItem: key => storage.get(key) ?? null,
+  setItem: (key, value) => storage.set(key, value)
+} });
+vm.runInContext(outputFiles[0].text, context);
+const { verifyFingerprint } = context.module.exports;
+const verdict = (html, app) => JSON.parse(JSON.stringify(verifyFingerprint(html, app)));
 
-const fp = await evalJS(`(() => {
-  sessionStorage.removeItem('gs_build_reload_at');
-  const same = verifyFingerprint('app-core-v100', 'app-core-v100');
-  const diff1 = verifyFingerprint('app-core-v200', 'app-core-v999');
-  const guardWritten = (Number(sessionStorage.getItem('gs_build_reload_at')) || 0) > 0;
-  const diff2 = verifyFingerprint('app-core-v200', 'app-core-v999');
-  const devMode = verifyFingerprint(null, null).mismatch === false
-    && verifyFingerprint('only-html', null).mismatch === false;
-  return {
-    sameNoReload: !same.mismatch && !same.mayReload,
-    diffDetected: diff1.mismatch === true && diff1.mayReload === true,
-    guardWritten,
-    cooldownBlocks: diff2.mismatch === true && diff2.mayReload === false,
-    devMode
-  };
-})()`);
-pass('双端构建指纹契约裁决 (同版放行/跨版本守卫刷新/冷却期防风暴/开发模式缺省跳过)',
-  fp.sameNoReload && fp.diffDetected && fp.guardWritten && fp.cooldownBlocks && fp.devMode,
-  JSON.stringify(fp));
-
-const code = finish();
-await chrome.close();
-await server.close();
-process.exit(code);
+assert.deepEqual(verdict('app-core-v100', 'app-core-v100'), { mismatch: false, mayReload: false });
+assert.deepEqual(verdict('app-core-v200', 'app-core-v999'), { mismatch: true, mayReload: true });
+assert.ok(Number(storage.get('gs_build_reload_at')) > 0);
+assert.deepEqual(verdict('app-core-v200', 'app-core-v999'), { mismatch: true, mayReload: false });
+assert.deepEqual(verdict(null, null), { mismatch: false, mayReload: false });
+assert.deepEqual(verdict('only-html', null), { mismatch: false, mayReload: false });
+console.log('✅ 同版放行、跨版刷新许可、冷却期及缺省指纹跳过，均执行真实指纹函数');

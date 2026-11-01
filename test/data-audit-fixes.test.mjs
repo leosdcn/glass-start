@@ -52,7 +52,6 @@ try {
     const release=(index,name)=>readers[index].onload({target:{result:JSON.stringify([{name,url:'https://import.example.test/'}])}});
     try{
       importBookmarksJSON({});cancelEditModal();await openEditModal();
-      const before=JSON.stringify(modalState.draftBookmarks);
       release(0,'过期');
       const noPrompt=OverlayStack.top()?.id==='editModal';
       importBookmarksJSON({});importBookmarksJSON({});release(1,'旧文件');

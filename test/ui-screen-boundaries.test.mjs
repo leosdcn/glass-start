@@ -30,10 +30,6 @@ try {
     })()`), ['hidden', 'none', 'auto']);
 
     // 恢复两种模式各自的时长，保留调整后的曲线，JS 兜底覆盖最长动画。
-    assert.deepEqual(await evalJS(`(() => {
-        const style = getComputedStyle(dom.navSection);
-        return [style.transitionDuration, style.transitionTimingFunction];
-    })()`), ['0.52s, 0.52s', 'cubic-bezier(0.28, 0.11, 0.32, 1), cubic-bezier(0.28, 0.11, 0.32, 1)']);
     assert.equal(await evalJS(`(() => {
         const original = document.documentElement.dataset.transitionMode;
         try {

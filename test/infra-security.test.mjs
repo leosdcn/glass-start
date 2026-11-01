@@ -1,4 +1,5 @@
 /** 验证构建产物、响应头、离线缓存及防嵌套逻辑。 */
+import assert from 'node:assert/strict';
 import { readFileSync, existsSync, statSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -182,7 +183,7 @@ pass('缓存 FIFO 淘汰保留新项，未超限时不删除', pruneAlgorithmOk)
 pass('图标与图片缓存配额为正整数',
   [worker.MAX_FAVICON_ENTRIES, worker.MAX_IMG_ENTRIES].every(value => Number.isInteger(value) && value > 0));
 
-// 直接执行 fetch 路由，验证核心脚本网络失败时返回旧缓存。
+// 直接执行 fetch 路由，验证网络失败不使用其他构建的脚本回填。
 let respond;
 const handlers = new Map();
 vm.runInNewContext(srcSw, {
@@ -230,44 +231,24 @@ pass('安装仅预取同源核心资源，无外部引擎图标请求',
 // 5. 防 <iframe> 恶意嵌套点击劫持 (Frame-Busting) 安全破局
 // ══════════════════════════════════════════════════════════════════════
 
-const srcHtmlFile = join(ROOT, 'src', 'index.html');
-const indexHtml = readFileSync(srcHtmlFile, 'utf-8');
-const distHtml = existsSync(join(DIST, 'index.html')) ? readFileSync(join(DIST, 'index.html'), 'utf-8') : '';
-
-// 校验源文件与构建产物头部是否均包含顶层防嵌破局与白屏防御逻辑
-const frameBustingPattern = /if\s*\(\s*window\.top\s*!==\s*window\.self\s*\)\s*\{?\s*try\s*\{\s*window\.top\.location\.replace\(window\.location\.href\);?\s*\}\s*catch\s*\{\s*document\.documentElement\.style\.display\s*=\s*['"]none['"];?\s*\}?\s*\}?/;
-
-const srcHasFrameBusting = frameBustingPattern.test(indexHtml);
-const distHasFrameBusting = frameBustingPattern.test(distHtml);
-
-// 5.2 真实运行 Frame-Busting 双分支防御逻辑
-// 场景 A: 允许替换时调用 top.location.replace 破局跳转
-let replaceCalledWith = null;
-const mockTopSuccess = { location: { replace: (url) => { replaceCalledWith = url; } } };
-const mockDocA = { documentElement: { style: { display: '' } } };
-const fnA = new Function('window', 'document', `
-  if (window.top !== window.self) {
-    try {
-      window.top.location.replace(window.location.href);
-    } catch {
-      document.documentElement.style.display = 'none';
-    }
+// 执行实际内联脚本，不在测试里维护第二份防嵌套实现。
+for (const file of [join(ROOT, 'src', 'index.html'), join(DIST, 'index.html')]) {
+  const html = readFileSync(file, 'utf-8');
+  const script = [...html.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi)]
+    .find(match => match[1].includes('window.top'))?.[1];
+  assert.ok(script, `${file} 缺少防嵌套脚本`);
+  for (const blocked of [false, true]) {
+    let replaced;
+    const top = { get location() {
+      if (blocked) throw new Error('cross-origin frame');
+      return { replace: url => { replaced = url; } };
+    } };
+    const document = { documentElement: { style: {} } };
+    vm.runInNewContext(script, { window: { top, self: {}, location: { href: 'https://start.test/' } }, document });
+    assert.equal(replaced, blocked ? undefined : 'https://start.test/');
+    assert.equal(document.documentElement.style.display, blocked ? 'none' : undefined);
   }
-`);
-fnA({ top: mockTopSuccess, self: {}, location: { href: 'https://start.test/' } }, mockDocA);
-const frameBustingEscapeOk = replaceCalledWith === 'https://start.test/' && mockDocA.documentElement.style.display === '';
-
-// 场景 B: 跨域 iframe 被 sandbox 拦截抛出 DOMException -> 降级为隐藏全站 DOM 杜绝点击劫持 (Clickjacking)
-const mockTopBlocked = {
-  get location() { throw new Error('Blocked a frame with origin from accessing a cross-origin frame.'); }
-};
-const mockDocB = { documentElement: { style: { display: '' } } };
-fnA({ top: mockTopBlocked, self: {}, location: { href: 'https://start.test/' } }, mockDocB);
-const frameBustingBlankOk = mockDocB.documentElement.style.display === 'none';
-
-const frameBustingOk = srcHasFrameBusting && distHasFrameBusting && frameBustingEscapeOk && frameBustingBlankOk;
-
-pass('防 <iframe> 恶意嵌套点击劫持 (Frame-Busting) 安全破局 (源码与产物双重注入/真实破局跳转与防嵌入白屏双分支执行断言)',
-  frameBustingOk, '源码与构建产物均包含不可绕过的防御闭环且双分支执行验证通过');
+}
+pass('源码与产物的防嵌套脚本：允许时跳出，跨域受限时隐藏页面', true);
 
 process.exit(finish());
