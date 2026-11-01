@@ -139,31 +139,6 @@ async function repairCoreCache(cache) {
     await validateCoreCache(cache);
 }
 
-// 旧池只在资源路径能明确归属本实例时迁移；父 scope 不能据 URL 前缀接管子部署。
-async function migrateLegacyImages() {
-    const keys = (await caches.keys()).filter(key => /^(app-core-|app-images-)/.test(key));
-    for (const key of keys) {
-        const cache = await caches.open(key);
-        const requests = await cache.keys();
-        const corePaths = [...CORE_ASSETS, './manifest.json'].map(asset => new URL(asset, SCOPE_URL).href);
-        const owned = requests.length > 0 && requests.every(request => {
-            const url = new URL(request.url);
-            url.search = '';
-            return key.startsWith('app-core-') ? corePaths.includes(url.href)
-                : ['./icons/', './wallpapers/'].some(path => url.href.startsWith(new URL(path, SCOPE_URL).href));
-        });
-        if (!owned) continue;
-        if (key.startsWith('app-images-')) {
-            const target = await caches.open(CACHE_PREFIX + key);
-            for (const request of requests) {
-                const response = await cache.match(request);
-                if (response) await target.put(request, response);
-            }
-        }
-        await caches.delete(key);
-    }
-}
-
 // 当前版本已不可补齐时返回独立恢复页，避免把新脚本交给旧 HTML。
 // 用户点击后安装并校验新版，控制器切换完成才重载；失败或离线可重试。
 function recoveryResponse() {
@@ -216,7 +191,6 @@ function recoveryResponse() {
 /** @type {ServiceWorkerContext} */ (self).addEventListener('activate', e => e.waitUntil((async () => {
     const cache = await caches.open(CORE_STORAGE);
     await validateCoreCache(cache);
-    await migrateLegacyImages();
     await caches.open(IMG_CACHE);
     const keys = await caches.keys();
     const previousImages = keys.filter(key => key.startsWith(IMAGE_PREFIX) && key !== IMG_CACHE)

@@ -106,28 +106,18 @@ try {
   assert.equal(await evalJS('!!reg.waiting'), true);
   console.log('✅ 完整新版保持 waiting；关闭其他标签时仍有旧页面，控制权保持旧版');
 
-  await evalJS(`Promise.all([
-    caches.open('app-core-v90').then(c=>c.put('/app/index.html',new Response('legacy A'))),
-    caches.open('app-core-v91').then(c=>c.put('/b/index.html',new Response('legacy B'))),
-    caches.open('app-core-v92').then(c=>Promise.all([c.put('/app/index.html',new Response('A')),c.put('/b/index.html',new Response('B'))])),
-    caches.open('app-images-app-core-v90').then(c=>c.put('/app/icons/legacy.png',new Response('legacy image')))
-  ])`);
   await send('Page.navigate', { url: origin + '/status.html' });
   await waitFor(evalJS, `(async () => { const r = await navigator.serviceWorker.getRegistration('/app/'); return r?.active?.state === 'activated' && !r.waiting; })()`, 15000);
   const keys = await evalJS('caches.keys()');
   assert.equal(keys.includes('glass-scope-%2Fapp%2F-app-core-v104'), true);
   assert.equal(keys.includes('glass-scope-%2Fapp%2F-app-core-v101'), false);
-  assert.equal(keys.includes('app-images-v2'), true); // 空的旧池无法归属，保守保留
   assert.equal(keys.includes('glass-scope-%2Fapp%2F-app-images-app-core-v101'), true);
   assert.equal(keys.includes('glass-scope-%2Fapp%2F-app-images-app-core-v104'), true);
   assert.equal(keys.includes('app-favicons-v1'), true);
   assert.equal(await evalJS("caches.open('app-favicons-v1').then(cache => cache.match('https://a.favicon.im/custom.test')).then(response => response.text())"), 'custom-icon');
   assert.equal(keys.includes('unrelated-cache'), true);
-  assert.equal(keys.includes('app-core-v90'),false);
-  assert.equal(keys.includes('app-core-v91'),true);
-  assert.equal(keys.includes('app-core-v92'),true);
   assert.equal(await evalJS(`caches.open('glass-scope-%2Fapp%2F-app-images-app-core-v101').then(c=>c.match('/app/icons/offline.png')).then(r=>!!r)`),true);
-  console.log('✅ GS-07 旧池仅清理归属于本 scope 的资源，其他 scope 和混合池保留');
+  console.log('✅ 新版激活后清理旧版本核心池，当前与上一版图片池保留供回退');
   await send('Page.navigate', { url: origin + '/app/' });
   await waitFor(evalJS, 'window.appVersion === 104 && !!navigator.serviceWorker.controller');
   assert.match(await evalJS("fetch('./icons/test.png').then(r => r.text())"), /image-104/);
@@ -178,34 +168,3 @@ try {
   await chrome.close();
   await server.close();
 }
-
-
-// 重叠 scope 的历史缓存归属：根部署不能迁移或删除子部署的无前缀旧池。
-for (const scopePath of ['/', '/app/']) {
-  const scope = 'https://legacy.example.test' + scopePath;
-  const owned = new URL('./index.html',scope).href;
-  const child = new URL('./child/index.html',scope).href;
-  const stores = new Map([
-    ['app-core-v1',new Map([[owned,new Response('own')]])],
-    ['app-core-v2',new Map([[child,new Response('child')]])],
-    ['app-core-v3',new Map([[owned,new Response('own')],[child,new Response('child')]])],
-    ['app-images-app-core-v1',new Map([[new URL('./icons/own.png',scope).href,new Response('own image')]])],
-    ['app-images-app-core-v2',new Map([[new URL('./child/icons/child.png',scope).href,new Response('child image')]])]
-  ]);
-  const context = {URL, self:{registration:{scope},addEventListener(){}},caches:{
-    keys:async()=>[...stores.keys()],delete:async key=>stores.delete(key),
-    open:async key=>{
-      if(!stores.has(key))stores.set(key,new Map());
-      const entries=stores.get(key);
-      return {keys:async()=>[...entries.keys()].map(url=>({url})),
-        match:async request=>entries.get(request.url)?.clone(),put:async(request,response)=>entries.set(request.url,response)};
-    }
-  }};
-  vm.runInNewContext(source+';globalThis.migrateLegacy=migrateLegacyImages',context);
-  await context.migrateLegacy();
-  assert.equal(stores.has('app-core-v1'),false);
-  for(const key of ['app-core-v2','app-core-v3','app-images-app-core-v2'])assert.equal(stores.has(key),true);
-  assert.equal(stores.has('app-images-app-core-v1'),false);
-  assert.equal(stores.has('glass-scope-'+encodeURIComponent(scopePath)+'-app-images-app-core-v1'),true);
-}
-console.log('✅ 根与嵌套部署迁移历史缓存时，保留子部署及混合池');

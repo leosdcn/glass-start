@@ -1,6 +1,6 @@
 import { localizeBookmarkUrl } from '../core/i18n.js';
-/** 书签派生与迁移、快捷书签和分类导航渲染、图标加载与回退。 */
-import { CONFIG, DEFAULT_BOOKMARKS, DEFAULT_CATEGORIES } from '../config/constants.js';
+/** 书签派生与持久化、快捷书签和分类导航渲染、图标加载与回退。 */
+import { CONFIG, DEFAULT_BOOKMARKS } from '../config/constants.js';
 import {
     escapeHtml,
     safeUrl,
@@ -63,42 +63,6 @@ export function getDerivedBookmarks(keys, categories, customMeta = {}) {
     });
 }
 
-function migrateBookmarksStorage() {
-    const rawUserKeys = storageGet(CONFIG.KEYS.BOOKMARK_KEYS);
-    const rawLegacy = storageGet(CONFIG.KEYS.LEGACY_BOOKMARKS);
-
-    if (rawUserKeys && Array.isArray(rawUserKeys)) return null;
-
-    if (rawLegacy && Array.isArray(rawLegacy) && rawLegacy.length > 0) {
-        /** @type {string[]} */
-        const keys = [];
-        const customMeta = getCustomMeta();
-
-        const existingCatUrls = getCategoryCatalog(DEFAULT_CATEGORIES).byUrl;
-
-        rawLegacy.forEach(bm => {
-            if (!bm || !bm.url) return;
-            const normUrl = normalizeUrl(bm.url);
-            keys.push(normUrl);
-            if (!existingCatUrls.has(normUrl) || bm.name || bm.icon || bm.desc !== undefined) {
-                customMeta[normUrl] = {
-                    name: bm.name || '',
-                    icon: bm.icon || '',
-                    desc: bm.desc || ''
-                };
-            }
-        });
-
-        // URL 列表是迁移完成标记，最后写入；任一步失败均以旧记录恢复本轮视图。
-        if (storageSet(CONFIG.KEYS.CUSTOM_META, customMeta) && storageSet(CONFIG.KEYS.BOOKMARK_KEYS, keys)) {
-            storageRemove(CONFIG.KEYS.LEGACY_BOOKMARKS);
-            return null;
-        }
-        return rawLegacy;
-
-    }
-}
-
 /** @param {import('../types').BookmarkItem[]} list @param {Set<string>} [customTextUrls] @returns {boolean} */
 export function saveUserBookmarks(list, customTextUrls = new Set()) {
     /** @type {string[]} */
@@ -152,20 +116,17 @@ export function saveUserBookmarks(list, customTextUrls = new Set()) {
 
 /** 重置书签存储并通过同一恢复入口同步内存和视图。 */
 export function resetUserBookmarks() {
-    const results = [CONFIG.KEYS.LEGACY_BOOKMARKS, CONFIG.KEYS.BOOKMARK_KEYS, CONFIG.KEYS.CUSTOM_META]
+    const results = [CONFIG.KEYS.BOOKMARK_KEYS, CONFIG.KEYS.CUSTOM_META]
         .map(key => storageRemove(key));
     loadBookmarks();
     return results.every(Boolean);
 }
 
 export function loadBookmarks() {
-    const legacy = migrateBookmarksStorage();
     const userKeys = storageGet(CONFIG.KEYS.BOOKMARK_KEYS);
     const customMeta = getCustomMeta();
 
-    if (legacy) {
-        pageData.bookmarks = legacy.map(bm => normalizeBookmark(bm, deriveNameFromUrl(bm?.url))).filter(bm => bm !== null);
-    } else if (userKeys && Array.isArray(userKeys) && userKeys.length) {
+    if (userKeys && Array.isArray(userKeys) && userKeys.length) {
         pageData.bookmarks = getDerivedBookmarks(userKeys, pageData.categories, customMeta);
     } else {
         pageData.bookmarks = getDerivedBookmarks(DEFAULT_BOOKMARKS.map(b => b.url), pageData.categories, customMeta);

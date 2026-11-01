@@ -12,9 +12,7 @@ const { outputFiles } = await build({
     bundle: true, write: false, format: 'cjs', platform: 'node',
     plugins: [{ name: 'browser-boundaries', setup(builder) {
         builder.onLoad({ filter: /utils\/idb\.js$/ }, () => ({ contents: `
-            export async function getWallpaperDB(){return null}
             export async function getWallpaperSelectionDB(){return writes.at(-1) || null}
-            export async function migrateLegacyWallpaperDB(){return {status:'failed'}}
             export async function setWallpaperSelectionDB(selection){writes.push(selection);return true}
         ` }));
         builder.onLoad({ filter: /core\/wallpaper-renderer\.js$/ }, () => ({
@@ -156,7 +154,7 @@ test('天气正文超时结束共享刷新任务，随后可重新刷新', async
     assert.equal(f.timers.size, 0);
 });
 
-test('旧缓存时间字段在读取边界转换，渲染沿用统一字段', async () => {
+test('有效天气缓存时间字段直接渲染，不发起网络请求', async () => {
     const f = fixture(), { app } = f;
     const midday = new Date(2026, 9, 31, 12).getTime();
     f.context.Date = class extends Date {
@@ -165,7 +163,7 @@ test('旧缓存时间字段在读取边界转换，渲染沿用统一字段', as
     };
     f.context.localStorage.setItem(app.CONFIG.KEYS.WEATHER_CACHE, JSON.stringify({
         timestamp: midday, location: { name: '测试' },
-        current: { temp: 20, sunrise: '05:35', sunset: '18:59' }, daily: []
+        current: { temp: 20, sunriseToday: '05:35', sunsetToday: '18:59' }, daily: []
     }));
     f.context.fetch = () => { throw new Error('有效缓存不应联网'); };
     await app.updateWeather();

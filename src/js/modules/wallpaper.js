@@ -3,8 +3,8 @@ import { t } from '../core/i18n.js';
  * 壁纸状态管理与草稿持久化
  */
 import { CONFIG, backgrounds } from '../config/constants.js';
-import { escapeHtml, storageGet, storageSet, storageRemove } from '../utils/helpers.js';
-import { getWallpaperDB, getWallpaperSelectionDB, setWallpaperSelectionDB, migrateLegacyWallpaperDB } from '../utils/idb.js';
+import { escapeHtml, storageGet, storageSet } from '../utils/helpers.js';
+import { getWallpaperSelectionDB, setWallpaperSelectionDB } from '../utils/idb.js';
 import { state, modalState } from '../state/store.js';
 import { dom } from '../state/dom.js';
 import { applyWallpaper, getPreparedWallpaperImage } from '../core/wallpaper-renderer.js';
@@ -46,8 +46,6 @@ function commitCurrentSelection(targetWallpaper, selectionId) {
     return wallpaperCommitQueue.then(() => result);
 }
 
-/** @type {Promise<unknown> | null} */
-let migrationPromise = null;
 /** @param {{ bg: number, wallpaper?: string | null }} selection */
 function saveWallpaperHints(selection) {
     if (storageGet(CONFIG.KEYS.BG) !== selection.bg) storageSet(CONFIG.KEYS.BG, selection.bg);
@@ -57,43 +55,13 @@ function saveWallpaperHints(selection) {
     }
 }
 
-/** 迁移失败保留原键；只删除本次读取的版本，不删除其他标签的新写入。 */
-function migrateLegacyWallpaper() {
-    if (migrationPromise) return migrationPromise;
-    const startedAt = wallpaperSelectionId;
-    migrationPromise = (async () => {
-        let raw, legacy;
-        try {
-            raw = localStorage.getItem(CONFIG.KEYS.USER_WALLPAPER);
-            legacy = raw ? JSON.parse(raw) : null;
-        } catch { return false; }
-        if (typeof legacy !== 'string') return false;
-        const dataImage = /^data:image\//i.test(legacy) && legacy.includes(',');
-        let remoteImage = false;
-        try { remoteImage = ['http:', 'https:'].includes(new URL(legacy).protocol); } catch {}
-        if (!dataImage && !remoteImage && !backgrounds.includes(legacy)) return false;
-        const result = await migrateLegacyWallpaperDB(legacy);
-        if (result.status === 'failed') return false;
-        if (localStorage.getItem(CONFIG.KEYS.USER_WALLPAPER) === raw) storageRemove(CONFIG.KEYS.USER_WALLPAPER);
-        if (startedAt === wallpaperSelectionId && result.selection) saveWallpaperHints(result.selection);
-        return true;
-    })().catch(() => false).finally(() => { migrationPromise = null; });
-    return migrationPromise;
-}
-
 /**
- * 迁移旧数据后优先读取 IDB 选择记录，缺失时兼容内存与旧存储键。
+ * 优先读取 IDB 选择记录，缺失时返回内存当前生效值。
  * @returns {Promise<string|null>}
  */
 export async function getEffectiveCustomWallpaper() {
-    await migrateLegacyWallpaper();
     const selection = await getWallpaperSelectionDB();
-    if (selection) return selection.wallpaper;
-    return getLegacyCustomWallpaper();
-}
-
-async function getLegacyCustomWallpaper() {
-    return state.customWallpaper || await getWallpaperDB() || storageGet(CONFIG.KEYS.USER_WALLPAPER, null);
+    return selection ? selection.wallpaper : state.customWallpaper;
 }
 
 /**
@@ -119,7 +87,6 @@ export async function clearCustomWallpaper(bg = state.bg) {
     if (!await setWallpaperSelectionDB(selection)) return false;
     state.customWallpaper = null;
     state.bg = bg;
-    storageRemove(CONFIG.KEYS.USER_WALLPAPER);
     saveWallpaperHints(selection);
     return true;
 }
@@ -176,9 +143,6 @@ export async function commitWallpaperSelection(targetWallpaper, isCurrent = () =
     if ((!existing || existing.wallpaper !== selection.wallpaper || existing.bg !== selection.bg)
         && !await setWallpaperSelectionDB(selection)) return false;
     // IDB 是选择结果的持久化真理源；LocalStorage 仅保留轻量首屏提示。
-    try {
-        if (localStorage.getItem(CONFIG.KEYS.USER_WALLPAPER) !== null) storageRemove(CONFIG.KEYS.USER_WALLPAPER);
-    } catch {}
     saveWallpaperHints(selection);
     state.customWallpaper = selection.wallpaper;
     state.bg = selection.bg;
@@ -341,21 +305,13 @@ export function renderPresetWallpapers() {
 }
 
 export async function restoreWallpaper() {
-    await migrateLegacyWallpaper();
     const selection = await getWallpaperSelectionDB();
     const savedBg = selection ? selection.bg : storageGet(CONFIG.KEYS.BG);
     if (savedBg !== null && typeof savedBg === 'number' && savedBg >= 0 && savedBg < backgrounds.length) {
         state.bg = savedBg;
     }
 
-    let customBg = selection ? selection.wallpaper : await getLegacyCustomWallpaper();
-    const legacyPresetIdx = findPresetBgIndex(customBg);
-    if (legacyPresetIdx >= 0) {
-        state.bg = legacyPresetIdx;
-        storageSet(CONFIG.KEYS.BG, legacyPresetIdx);
-        await clearCustomWallpaper();
-        customBg = null;
-    }
+    const customBg = selection ? selection.wallpaper : state.customWallpaper;
     if (customBg) {
         state.customWallpaper = customBg;
         applyWallpaper(customBg, false);

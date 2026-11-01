@@ -142,7 +142,7 @@ Chrome 扩展通过 `npm run build:extension` 独立生成 `extension/`。`scrip
 
 翻译消息使用完整句子，不拼接语序片段；参数只替换一次，不递归解释。缺键按英文、键名顺序回退；正式支持的语言仍须通过键和参数完整性校验。字典不存 HTML，动态模板先翻译再 `escapeHtml()`，URL 继续使用 `safeUrl()`。新增语言优先复用现有系统字体、图片和业务流程，不预建语言加载框架；RTL 需另行验证方向、箭头、拖拽及混合文本布局。
 
-`bookmarks.json` 提供默认快捷书签和分类目录，构建时由 `config/constants.js` 导入。用户配置保存在 LocalStorage：快捷书签使用 URL 键列表，自定义名称、简介和图标使用元数据覆盖；`getDerivedBookmarks()` 从目录与覆盖数据派生当前条目。旧版完整书签数组由 `migrateBookmarksStorage()` 迁移。
+`bookmarks.json` 提供默认快捷书签和分类目录，构建时由 `config/constants.js` 导入。用户配置保存在 LocalStorage：快捷书签使用 URL 键列表，自定义名称、简介和图标使用元数据覆盖；`getDerivedBookmarks()` 从目录与覆盖数据派生当前条目。
 
 `utils/category-catalog.js` 为派生、保存、分类排序和搜索提供共用索引，名称、URL、简介及分类／书签图标变化时重建。持久化使用完整的 `normalizeUrl()` 键，搜索使用自己的去重键，两者语义不同。`normalizeBookmark()` 共用于导入、草稿收集和保存；简介缺省时继承目录，显式空字符串表示清空。
 
@@ -190,11 +190,11 @@ flowchart LR
 
 网络直链预览完成加载与解码后，将同一个图片对象交给渲染器；再次选择时可复用渲染器最近加载的图片。同一选择在图片准备和存储期间共享任务，失败后允许重试。保存前比较 IndexedDB 中的实际选择记录，内容相同时跳过写入；LocalStorage 的轻量提示也只在内容变化时更新。
 
-壁纸内容（Data URL 或图片 URL）与预设索引只写入 IndexedDB 的 `wallpaperSelection` 记录，同一事务删除旧 `customWallpaper` 兼容键，不再保存大图镜像。写入及删除等待事务 `complete` 才报告成功；失败时保留原记录。连续选择通过请求序号和提交队列协调，迟到的图片加载结果不能覆盖新选择。上传图片按配置限制尺寸并压缩。
+壁纸内容（Data URL 或图片 URL）与预设索引只写入 IndexedDB 的 `wallpaperSelection` 记录，不再保存大图镜像到 LocalStorage。写入及删除等待事务 `complete` 才报告成功；失败时保留原记录。连续选择通过请求序号和提交队列协调，迟到的图片加载结果不能覆盖新选择。上传图片按配置限制尺寸并压缩。
 
 预设壁纸也用具体路径记录打开设置时的快照，区别于草稿中的 `null`（恢复默认）。设置保存等待图片准备，并在异步读取选择记录后检查原会话；失效时不开始新写入。事务已完成后的旧任务也不得改写新会话的快照、语言或窗口。
 
-LocalStorage 仅保存背景索引和轻量首屏提示，新选择不写入 Base64。读取时先尝试迁移旧记录，再优先使用 IndexedDB 选择记录；没有新版记录时兼容内存、旧 IndexedDB 键和旧 LocalStorage 键。迁移成功后才清理本次读取的旧值。
+LocalStorage 仅保存背景索引和轻量首屏提示，新选择不写入 Base64。读取时优先使用 IndexedDB 选择记录，失败时回退内存当前值。
 
 首帧与运行时共用 `config/themes.js` 的预设主题与深浅底色；自定义壁纸可由运行时采样决定主题。HTML 预渲染遇到 IndexedDB 自定义壁纸时先恢复底色，等待应用异步恢复图片，避免误请求默认预设。
 

@@ -49,7 +49,6 @@ Object.assign(window, {
     storageGet: helpers.storageGet,
     storageSet: helpers.storageSet,
     storageRemove: helpers.storageRemove,
-    getWallpaperDB: idb.getWallpaperDB,
     setWallpaperSelectionDB: idb.setWallpaperSelectionDB,
     removeWallpaperDB: idb.removeWallpaperDB,
     state: store.state,

@@ -3,7 +3,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { launchSession, waitFor } from './support/helpers.mjs';
 
 const { server, chrome, send, evalJS } = await launchSession();
-const ready = () => waitFor(evalJS, `document.documentElement.lang === 'en' && typeof openEditModal === 'function' && !!document.querySelector('.bookmark-item')`, 10000);
+const ready = () => waitFor(evalJS, `document.documentElement?.lang === 'en' && typeof openEditModal === 'function' && !!document.querySelector('.bookmark-item')`, 10000);
 const chooseEnglish = async () => {
     await evalJS(`(async () => {
         await openEditModal();
@@ -222,7 +222,7 @@ try {
     await ready();
     assert.equal(await evalJS(`pageData.bookmarks.some(bookmark => bookmark.name === '我的自定义书签')`), true);
     await evalJS(`(async () => { await openEditModal(); modalState.draftLanguage = 'zh-CN'; dom.saveEditBtn.click(); })()`);
-    await waitFor(evalJS, `document.documentElement.lang === 'zh-CN' && !!document.querySelector('.bookmark-item')`, 10000);
+    await waitFor(evalJS, `document.documentElement?.lang === 'zh-CN' && !!document.querySelector('.bookmark-item')`, 10000);
     assert.equal(await evalJS(`pageData.bookmarks.some(bookmark => bookmark.name === 'Reddit')`), true);
     assert.equal(await evalJS(`pageData.bookmarks.some(bookmark => bookmark.name === '我的自定义书签')`), true);
     await waitFor(evalJS, `!!document.querySelector('.nav-bookmark')`);

@@ -353,8 +353,8 @@ export function resetBookmarks() {
             return;
         }
         /** @type {(keyof typeof CONFIG.KEYS)[]} */
-        const keys = ['PREFERRED_ENGINE', 'USER_WALLPAPER', 'WALLPAPER_META', 'MASK_OPACITY',
-            'BG', 'NAV_DISCOVERED', 'WEATHER_CACHE', 'WEATHER_LOC', 'WEATHER_SETTINGS',
+        const keys = ['PREFERRED_ENGINE', 'WALLPAPER_META', 'MASK_OPACITY',
+            'BG', 'NAV_DISCOVERED', 'WEATHER_CACHE', 'WEATHER_LOC',
             'THEME_CACHE', 'TINT_CACHE', 'TRANSITION_MODE', 'LANGUAGE'];
         const previousLanguage = getLanguagePreference();
         const removed = keys.map(key => storageRemove(CONFIG.KEYS[key]));

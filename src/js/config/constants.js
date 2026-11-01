@@ -17,17 +17,14 @@ export const CONFIG = Object.freeze({
             KEYS: Object.freeze({
                 LANGUAGE: LANGUAGE_KEY,
                 BOOKMARK_KEYS: 'userBookmarkKeys',
-                LEGACY_BOOKMARKS: 'userBookmarks',
                 CUSTOM_META: 'userCustomMeta',
                 BG: 'bg',
-                USER_WALLPAPER: 'userWallpaper',
                 WALLPAPER_META: 'glass_wallpaper_meta',
                 MASK_OPACITY: 'maskOpacity',
                 PREFERRED_ENGINE: 'preferredEngine',
                 NAV_DISCOVERED: 'hasDiscoveredNav',
                 WEATHER_CACHE: 'glass_weather_cache',
                 WEATHER_LOC: 'glass_weather_loc_cache',
-                WEATHER_SETTINGS: 'glass_weather_settings',
                 THEME_CACHE: 'glass_theme_cache',
                 TINT_CACHE: 'glass_tint_cache',
                 TRANSITION_MODE: 'glass_transition_mode'
@@ -39,8 +36,7 @@ export const CONFIG = Object.freeze({
                 DB_NAME: 'GlassStartDB',
                 VERSION: 1,
                 STORES: Object.freeze({ WALLPAPERS: 'wallpapers' }),
-                KEYS: Object.freeze({
-                    CUSTOM_WALLPAPER: 'customWallpaper', SELECTION: 'wallpaperSelection' })
+                KEYS: Object.freeze({ SELECTION: 'wallpaperSelection' })
             }),
             GESTURE: Object.freeze({
                 WHEEL_IDLE_MS: 180,         // 无滚轮输入后视为新一轮手势

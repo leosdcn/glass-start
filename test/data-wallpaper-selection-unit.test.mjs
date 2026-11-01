@@ -11,9 +11,7 @@ const { outputFiles } = await build({
     bundle: true, write: false, format: 'cjs', platform: 'node',
     plugins: [{ name: 'browser-boundaries', setup(b) {
         b.onLoad({ filter: /utils\/idb\.js$/ }, () => ({ contents: `
-            export async function getWallpaperDB(){return db.value?.wallpaper || null}
             export async function getWallpaperSelectionDB(){return db.value}
-            export async function migrateLegacyWallpaperDB(){return {status:'failed'}}
             export async function setWallpaperSelectionDB(selection){
                 db.attempts++; if(db.gate) await db.gate;
                 if(db.fail) return false;

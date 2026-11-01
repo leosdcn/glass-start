@@ -88,95 +88,60 @@
             const value = JSON.parse(localStorage.getItem('glass_wallpaper_meta'));
             if (value && typeof value.custom === 'boolean' && Number.isInteger(value.bg) && value.bg >= 0 && value.bg < backgrounds.length) wallpaperMeta = value;
           } catch(e) {}
-          // 现代元信息优先；IDB 大图由应用异步恢复，head 只恢复底色并避免盲发默认图片。
-          const rawUserWp = wallpaperMeta ? null : localStorage.getItem('userWallpaper');
+          // 现代元信息优先；IDB 自定义大图由应用异步恢复，首屏预加载仅针对预设壁纸。
           let preloadUrl = '';
-          if (rawUserWp) {
-            const parsed = JSON.parse(rawUserWp);
-            if (typeof parsed === 'string') {
-              // 兼容旧版脏数据：若 userWallpaper 里存的是预设相对路径（./wallpapers/bgN.avif），
-              // 按索引方式处理并擦除，避免后续被误识别为"自定义壁纸"
-              const presetIdx = backgrounds.indexOf(parsed);
-              if (presetIdx >= 0) {
-                try { localStorage.removeItem('userWallpaper'); } catch(e) {}
-                try { localStorage.setItem('bg', JSON.stringify(presetIdx)); } catch(e) {}
-                preloadUrl = backgrounds[presetIdx];
-              } else {
-                preloadUrl = parsed;
-              }
-            }
-            // parsed 非字符串（损坏值）则留空，后续统一 fallback 到 backgrounds[0]
-            if (!preloadUrl) {
-              try { localStorage.removeItem('userWallpaper'); } catch(e) {}
-            }
-          }
-          if (!preloadUrl && !wallpaperMeta?.custom) {
+          if (!wallpaperMeta?.custom) {
             const rawBg = localStorage.getItem('bg');
             let bgIdx = 0;
             try { bgIdx = wallpaperMeta ? wallpaperMeta.bg : rawBg !== null ? JSON.parse(rawBg) : 0; } catch(e) { bgIdx = 0; }
             preloadUrl = (typeof bgIdx === 'number' && backgrounds[bgIdx]) ? backgrounds[bgIdx] : backgrounds[0];
           }
-          if ((preloadUrl && typeof preloadUrl === 'string') || wallpaperMeta?.custom) {
-            // 按视口宽度与 DPR 选择 Unsplash 请求尺寸，并限制最大宽度。
-            const dpr = window.devicePixelRatio || 1;
-            const maxCap = (window.innerWidth * dpr > 2560) ? 3840 : 2560;
-            const targetW = Math.min(Math.ceil((window.innerWidth * dpr) / 200) * 200, maxCap);
-            if (preloadUrl.includes('images.unsplash.com')) {
-              preloadUrl = preloadUrl.replace(/w=\d+/, 'w=' + targetW).replace(/q=\d+/, 'q=70');
-              if (!preloadUrl.includes('fm=webp')) {
-                preloadUrl += '&fm=webp';
+          window.__PRELOADED_BG__ = preloadUrl || '';
+          // 构建时从 config/themes.js 注入同步首屏配置，不单独维护主题副本。
+          /* INJECT_THEME_CONFIG */
+          let initTheme = null;
+          let initTint = '255, 255, 255';
+          let initThemeColor = '';
+          if (wallpaperMeta?.custom) {
+            try {
+              const cached = JSON.parse(localStorage.getItem('glass_theme_cache'));
+              if (cached && typeof cached.isLight === 'boolean') {
+                initTheme = cached.isLight ? THEME_LIGHT : THEME_DARK;
+                if (cached.themeColor) initThemeColor = cached.themeColor;
               }
+              const cachedTint = localStorage.getItem('glass_tint_cache');
+              if (cachedTint) initTint = cachedTint;
+            } catch(e) {}
+          } else {
+            const pIdx = backgrounds.indexOf(preloadUrl);
+            initTheme = (pIdx >= 0 && PRESET_THEMES[pIdx]) ? PRESET_THEMES[pIdx] : THEME_DARK;
+            initTint = (pIdx >= 0 && PRESET_TINTS[pIdx]) ? PRESET_TINTS[pIdx] : '255, 255, 255';
+            initThemeColor = (pIdx >= 0 && PRESET_THEME_COLORS && PRESET_THEME_COLORS[pIdx]) ? PRESET_THEME_COLORS[pIdx] : '';
+          }
+          document.documentElement.style.setProperty('--glass-tint', initTint);
+          if (initTheme && initTheme.color) {
+            const targetColor = initTheme.color;
+            const targetThemeColor = initThemeColor || (initTheme.isLight ? '#ffffff' : '#546272');
+            document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){ m.content = targetThemeColor; });
+            document.documentElement.style.colorScheme = initTheme.isLight ? 'light' : 'dark';
+            if (initTheme.isLight) document.documentElement.classList.add('wallpaper-bright');
+            document.documentElement.style.backgroundColor = targetColor;
+            document.documentElement.style.setProperty('--bg-base', targetColor);
+            document.documentElement.style.setProperty('--bg-start', targetThemeColor);
+            window.__INITIAL_THEME__ = initTheme;
+            window.__INITIAL_THEME_COLOR__ = targetThemeColor;
+          }
+          if (preloadUrl) {
+            const newLink = document.createElement('link');
+            newLink.id = 'preloadWallpaper';
+            newLink.rel = 'preload';
+            newLink.as = 'image';
+            newLink.href = preloadUrl;
+            newLink.setAttribute('fetchpriority', 'high');
+            if (preloadUrl.includes('.avif')) {
+              newLink.setAttribute('type', 'image/avif');
             }
-            window.__PRELOADED_BG__ = preloadUrl || '';
-            // 构建时从 config/themes.js 注入同步首屏配置，不单独维护主题副本。
-            /* INJECT_THEME_CONFIG */
-            let initTheme = null;
-            let initTint = '255, 255, 255';
-            let initThemeColor = '';
-            const isCustom = wallpaperMeta?.custom || (preloadUrl && !preloadUrl.startsWith('./wallpapers/'));
-            if (isCustom) {
-              try {
-                const cached = JSON.parse(localStorage.getItem('glass_theme_cache'));
-                if (cached && typeof cached.isLight === 'boolean') {
-                  initTheme = cached.isLight ? THEME_LIGHT : THEME_DARK;
-                  if (cached.themeColor) initThemeColor = cached.themeColor;
-                }
-                const cachedTint = localStorage.getItem('glass_tint_cache');
-                if (cachedTint) initTint = cachedTint;
-              } catch(e) {}
-            } else {
-              const pIdx = backgrounds.indexOf(preloadUrl);
-              initTheme = (pIdx >= 0 && PRESET_THEMES[pIdx]) ? PRESET_THEMES[pIdx] : THEME_DARK;
-              initTint = (pIdx >= 0 && PRESET_TINTS[pIdx]) ? PRESET_TINTS[pIdx] : '255, 255, 255';
-              initThemeColor = (pIdx >= 0 && PRESET_THEME_COLORS && PRESET_THEME_COLORS[pIdx]) ? PRESET_THEME_COLORS[pIdx] : '';
-            }
-            document.documentElement.style.setProperty('--glass-tint', initTint);
-            if (initTheme && initTheme.color) {
-              const targetColor = initTheme.color;
-              const targetThemeColor = initThemeColor || (initTheme.isLight ? '#ffffff' : '#546272');
-              document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){ m.content = targetThemeColor; });
-              document.documentElement.style.colorScheme = initTheme.isLight ? 'light' : 'dark';
-              if (initTheme.isLight) document.documentElement.classList.add('wallpaper-bright');
-              document.documentElement.style.backgroundColor = targetColor;
-              document.documentElement.style.setProperty('--bg-base', targetColor);
-              document.documentElement.style.setProperty('--bg-start', targetThemeColor);
-              window.__INITIAL_THEME__ = initTheme;
-              window.__INITIAL_THEME_COLOR__ = targetThemeColor;
-            }
-            if (preloadUrl && !preloadUrl.startsWith('data:')) {
-              const newLink = document.createElement('link');
-              newLink.id = 'preloadWallpaper';
-              newLink.rel = 'preload';
-              newLink.as = 'image';
-              newLink.href = preloadUrl;
-              newLink.setAttribute('fetchpriority', 'high');
-              if (preloadUrl.includes('.avif')) {
-                newLink.setAttribute('type', 'image/avif');
-              } else if (preloadUrl.includes('.webp') || preloadUrl.includes('fm=webp')) {
-                newLink.setAttribute('type', 'image/webp');
-              }
-              document.head.appendChild(newLink);
-            }
+            document.head.appendChild(newLink);
           }
         } catch (e) {}
       })();
@@ -243,9 +208,6 @@
             (function(){
                 /* INJECT_WEATHER_NUM */
                 try {
-                    const s = JSON.parse(localStorage.getItem('glass_weather_settings') || '{}');
-                    const w = document.getElementById('weatherWidget');
-                    if (s && s.enabled === false) { if (w) w.style.display = 'none'; return; }
                     const c = JSON.parse(localStorage.getItem('glass_weather_cache') || 'null');
                     if (c && c.current && !c.location?.isFallback) {
                         const i = document.getElementById('weatherIcon');

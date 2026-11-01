@@ -112,24 +112,26 @@ const bmInit = await evalJS(`(() => {
 })()`);
 const bmClean = bmInit.itemCount === 8 && bmInit.titleCount === 8 && bmInit.imgCount === 8 && bmInit.allLoadedOrHaveSrc && bmInit.keys === null && bmInit.meta === null;
 
-// 2.2 旧版 userBookmarks 自动迁移
-await evalJS(`localStorage.setItem('userBookmarks', JSON.stringify([
-  { name: 'Gitee', url: 'https://gitee.com', icon: '' },
-  { name: '自建站', url: 'https://custom.example.dev', icon: 'https://custom.example.dev/icon.png', desc: '个人站点' }
-]))`);
-await evalJS('setTimeout(() => location.reload(), 10)');
-await waitFor(evalJS, 'document.readyState === "complete" && typeof openEditModal === "function" && localStorage.getItem("userBookmarks") === null && !isFetchingWeather');
+// 2.2 自定义书签与元数据持久化加载
+await evalJS(`(() => {
+  localStorage.setItem('userBookmarkKeys', JSON.stringify(['https://gitee.com', 'https://custom.example.dev']));
+  localStorage.setItem('userCustomMeta', JSON.stringify({
+    'https://gitee.com': { name: 'Gitee' },
+    'https://custom.example.dev': { name: '自建站', icon: 'https://custom.example.dev/icon.png', desc: '个人站点' }
+  }));
+})()`);
+await send('Page.reload');
+await waitFor(evalJS, 'document.readyState === "complete" && typeof weatherNum === "function" && !isFetchingWeather');
 
-const migrated = await evalJS(`(() => ({
+const loaded = await evalJS(`(() => ({
   keys: JSON.parse(localStorage.getItem('userBookmarkKeys') || 'null'),
-  meta: JSON.parse(localStorage.getItem('userCustomMeta') || '{}'),
-  legacyGone: localStorage.getItem('userBookmarks') === null
+  meta: JSON.parse(localStorage.getItem('userCustomMeta') || '{}')
 }))()`);
 const giteeIsCat = await evalJS(`!!localStorage.getItem('userBookmarkKeys') && JSON.parse(localStorage.getItem('userBookmarkKeys')).includes('https://gitee.com')`);
 const customInMeta = await evalJS(`(JSON.parse(localStorage.getItem('userCustomMeta') || '{}')['https://custom.example.dev'] || {}).name === '自建站'`);
-const migrationOk = migrated.legacyGone && migrated.keys.length === 2 && giteeIsCat && customInMeta;
+const migrationOk = loaded.keys && loaded.keys.length === 2 && giteeIsCat && customInMeta;
 
-// 2.3 迁移后自定义图标保留
+// 2.3 自定义图标与标题正确渲染
 const renderTitles = await evalJS(`(() => {
   const titles = [...document.querySelectorAll('#bookmarks .bookmark-title')].map(e => e.textContent.trim());
   const customBm = pageData.bookmarks.find(b => normalizeUrl(b.url) === 'https://custom.example.dev');
@@ -144,12 +146,10 @@ await evalJS(`(function(){
 })()`);
 const saveModel = await evalJS(`(() => ({
   keys: JSON.parse(localStorage.getItem('userBookmarkKeys') || 'null'),
-  meta: JSON.parse(localStorage.getItem('userCustomMeta') || '{}'),
-  snapshot: localStorage.getItem('userBookmarks')
+  meta: JSON.parse(localStorage.getItem('userCustomMeta') || '{}')
 }))()`);
 const saveModelOk = saveModel.keys && saveModel.keys.length === 1 && saveModel.keys[0] === 'https://aaa.example.com'
-  && saveModel.meta['https://aaa.example.com'] && saveModel.meta['https://aaa.example.com'].icon.includes('aaa.example.com/a.png')
-  && saveModel.snapshot === null;
+  && saveModel.meta['https://aaa.example.com'] && saveModel.meta['https://aaa.example.com'].icon.includes('aaa.example.com/a.png');
 
 // 2.5 恶意 XSS 注入与转义安全防护
 const xssCheck = await evalJS(`(() => {
@@ -219,7 +219,6 @@ const resetBookmarksCheck = await evalJS(`(async () => {
   localStorage.setItem('userBookmarkKeys', JSON.stringify(['https://custom-only.test']));
   localStorage.setItem('userCustomMeta', JSON.stringify({ 'https://custom-only.test': { name: '临时测试' } }));
   localStorage.setItem('preferredEngine', 'google');
-  localStorage.setItem('userWallpaper', 'https://custom.test/bg.jpg');
   pageData.bookmarks = [{ name: '临时测试', url: 'https://custom-only.test' }];
   renderBookmarks();
 
@@ -243,8 +242,7 @@ const resetBookmarksCheck = await evalJS(`(async () => {
 
     const storageClean = localStorage.getItem('userBookmarkKeys') === null
       && localStorage.getItem('userCustomMeta') === null
-      && localStorage.getItem('preferredEngine') === null
-      && localStorage.getItem('userWallpaper') === null;
+      && localStorage.getItem('preferredEngine') === null;
 
     const domTitles = [...document.querySelectorAll('#bookmarks .bookmark-title')].map(e => e.textContent.trim());
     const domOk = domTitles.includes('GitHub') && domTitles.includes('DeepSeek');
@@ -262,7 +260,7 @@ await evalJS(`localStorage.clear()`);
 
 pass('书签轻量存储模型、旧版数据迁移、自定义图标持久化、XSS清洗与纯ESM系统重置 (keys+customMeta/迁移/图标持久化/首屏防空白/XSS防注入/weatherNum清洗/图标按钮Aria-Label/纯ESM重置自闭环)',
   bmClean && migrationOk && customMetaOk && saveModelOk && xssOk && weatherSanitizeOk && btnA11yOk && resetBookmarksOk,
-  JSON.stringify({ ...saveModel, resetBookmarksOk: resetBookmarksCheck.resetSuccess }));
+  JSON.stringify({ bmClean, migrationOk, customMetaOk, saveModelOk, xssOk, weatherSanitizeOk, btnA11yOk, resetBookmarksOk }));
 
 // ══════════════════════════════════════════════════════════════════════
 // 3. 天气组件胶囊交互与 OverlayStack 层叠栈响应

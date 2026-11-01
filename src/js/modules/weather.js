@@ -476,8 +476,8 @@ function readWeatherCache() {
         return null;
     }
     const c = cache.current;
-    c.sunriseToday = c.sunriseToday || c.sunrise || '--:--';
-    c.sunsetToday = c.sunsetToday || c.sunset || '--:--';
+    c.sunriseToday = c.sunriseToday || '--:--';
+    c.sunsetToday = c.sunsetToday || '--:--';
     c.sunriseTomorrow = c.sunriseTomorrow || c.sunriseToday;
     return cache;
 }

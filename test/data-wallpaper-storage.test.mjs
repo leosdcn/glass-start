@@ -58,10 +58,9 @@ await test("选择提交、事务失败与会话隔离", async () => {
         ((await getWallpaperSelectionDB())?.wallpaper ?? null) === null && state.customWallpaper === null;
     } finally { window.Image = NativeImage; }
     await commitWallpaperSelection(next);
-    const noBase64InLS = localStorage.getItem(CONFIG.KEYS.USER_WALLPAPER) === null;
-    const noLegacyMirror = await getWallpaperDB() === null;
+    const savedSelection = (await getWallpaperSelectionDB())?.wallpaper === next;
     cancelEditModal();
-    return {writeFalse, commitFalse, unchanged, previewOnly, blocked, deleteFalse, saved, restored, resetCancelsPending, noBase64InLS, noLegacyMirror};
+    return {writeFalse, commitFalse, unchanged, previewOnly, blocked, deleteFalse, saved, restored, resetCancelsPending, savedSelection};
   })()`);
       assert.equal(Object.values(result).every(Boolean), true, JSON.stringify(result));
       console.log('✅ 写请求成功后事务中止仍判失败，删除中止保留旧数据，保存按钮阻止失败关闭');
@@ -119,77 +118,33 @@ await test("选择提交、事务失败与会话隔离", async () => {
     }
 });
 
-await test("历史壁纸迁移与新选择优先级", async () => {
+await test("现代壁纸选择持久化与优先级", async () => {
     const { server, chrome, evalJS } = await launchSession();
     try {
       await waitFor(evalJS, 'typeof getEffectiveCustomWallpaper === "function"');
       const checks = await evalJS(`(async () => {
-    const legacy = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+j1ioAAAAASUVORK5CYII=';
-    const next = legacy.replace('image/png;', 'image/png;charset=utf-8;');
-    const prepare = async () => {
-      await removeWallpaperDB(); state.customWallpaper = null;
-      storageRemove(CONFIG.KEYS.WALLPAPER_META); storageRemove(CONFIG.KEYS.USER_WALLPAPER);
-      localStorage.setItem(CONFIG.KEYS.USER_WALLPAPER, JSON.stringify(legacy));
-    };
-    await prepare();
-    const migrated = await getEffectiveCustomWallpaper() === legacy && ((await getWallpaperSelectionDB())?.wallpaper ?? null) === legacy &&
-      localStorage.getItem(CONFIG.KEYS.USER_WALLPAPER) === null && JSON.parse(localStorage.getItem(CONFIG.KEYS.WALLPAPER_META)).custom;
-    // 只有旧 IDB 键、没有 LocalStorage 和新版记录时仍可恢复；提交后收敛到一份记录。
-    await prepare(); storageRemove(CONFIG.KEYS.USER_WALLPAPER);
-    await new Promise((resolve, reject) => {
-      const request = indexedDB.open(CONFIG.IDB.DB_NAME, CONFIG.IDB.VERSION);
-      request.onsuccess = () => {
-        const db = request.result;
-        const tx = db.transaction(CONFIG.IDB.STORES.WALLPAPERS, 'readwrite');
-        tx.oncomplete = () => { db.close(); resolve(); };
-        tx.onerror = tx.onabort = () => { db.close(); reject(new Error('legacy fixture failed')); };
-        tx.objectStore(CONFIG.IDB.STORES.WALLPAPERS).put(legacy, CONFIG.IDB.KEYS.CUSTOM_WALLPAPER);
-      };
-      request.onerror = () => reject(request.error);
-    });
-    const legacyIDB = await getEffectiveCustomWallpaper() === legacy && await getWallpaperSelectionDB() === null;
-    await commitWallpaperSelection(legacy);
-    const consolidated = (await getWallpaperSelectionDB()).wallpaper === legacy && await getWallpaperDB() === null;
-    await prepare();
-    const put = IDBObjectStore.prototype.put;
-    IDBObjectStore.prototype.put = function(...args) {
-      const request = put.apply(this,args); request.addEventListener('success', () => request.transaction.abort()); return request;
-    };
-    let preserved;
-    try { preserved = await getEffectiveCustomWallpaper() === legacy && ((await getWallpaperSelectionDB())?.wallpaper ?? null) === null &&
-      localStorage.getItem(CONFIG.KEYS.USER_WALLPAPER) === JSON.stringify(legacy); }
-    finally { IDBObjectStore.prototype.put = put; }
-    const retried = await getEffectiveCustomWallpaper() === legacy && ((await getWallpaperSelectionDB())?.wallpaper ?? null) === legacy &&
-      localStorage.getItem(CONFIG.KEYS.USER_WALLPAPER) === null;
-    await commitWallpaperSelection(backgrounds[4]);
-    localStorage.setItem(CONFIG.KEYS.USER_WALLPAPER, JSON.stringify(legacy));
-    const modernWins = await getEffectiveCustomWallpaper() === null && state.bg === 4 &&
-      localStorage.getItem(CONFIG.KEYS.USER_WALLPAPER) === null;
-    await prepare(); localStorage.setItem(CONFIG.KEYS.USER_WALLPAPER, JSON.stringify('https://example.com/legacy.png'));
-    const remote = await getEffectiveCustomWallpaper() === 'https://example.com/legacy.png' && localStorage.getItem(CONFIG.KEYS.USER_WALLPAPER) === null;
-    await prepare(); localStorage.setItem(CONFIG.KEYS.USER_WALLPAPER, JSON.stringify(backgrounds[2]));
+    const testImg = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+j1ioAAAAASUVORK5CYII=';
+    await removeWallpaperDB(); state.customWallpaper = null;
+    storageRemove(CONFIG.KEYS.WALLPAPER_META);
+    // 初始状态下无 IDB 记录，返回 null
+    const initialNull = await getEffectiveCustomWallpaper() === null;
+    // 提交自定义壁纸，成功落盘并更新元数据
+    await commitWallpaperSelection(testImg);
+    const saved = await getEffectiveCustomWallpaper() === testImg &&
+      ((await getWallpaperSelectionDB())?.wallpaper ?? null) === testImg &&
+      JSON.parse(localStorage.getItem(CONFIG.KEYS.WALLPAPER_META)).custom === true;
+    // 切换到预设壁纸，清除自定义壁纸记录
+    await commitWallpaperSelection(backgrounds[2]);
+    const presetSaved = await getEffectiveCustomWallpaper() === null && state.bg === 2 &&
+      ((await getWallpaperSelectionDB())?.wallpaper ?? null) === null &&
+      JSON.parse(localStorage.getItem(CONFIG.KEYS.WALLPAPER_META)).custom === false;
+    // 恢复壁纸
     await restoreWallpaper();
-    const preset = state.bg === 2 && await getEffectiveCustomWallpaper() === null && localStorage.getItem(CONFIG.KEYS.USER_WALLPAPER) === null;
-    await prepare();
-    const migrating = getEffectiveCustomWallpaper();
-    await previewDraftWallpaper(backgrounds[5]); await migrating;
-    const concurrent = await getEffectiveCustomWallpaper() === null && state.bg === 5 &&
-      JSON.parse(localStorage.getItem(CONFIG.KEYS.WALLPAPER_META)).bg === 5;
-    await prepare();
-    const changedJob = getEffectiveCustomWallpaper();
-    localStorage.setItem(CONFIG.KEYS.USER_WALLPAPER, JSON.stringify(next));
-    await changedJob;
-    const changedKey = localStorage.getItem(CONFIG.KEYS.USER_WALLPAPER) === JSON.stringify(next);
-    await removeWallpaperDB(); state.customWallpaper = null; storageRemove(CONFIG.KEYS.USER_WALLPAPER);
-    localStorage.setItem(CONFIG.KEYS.USER_WALLPAPER, '{broken');
-    await getEffectiveCustomWallpaper();
-    const malformed = localStorage.getItem(CONFIG.KEYS.USER_WALLPAPER) === '{broken' && ((await getWallpaperSelectionDB())?.wallpaper ?? null) === null;
-    storageRemove(CONFIG.KEYS.USER_WALLPAPER);
-    return {migrated, legacyIDB, consolidated, preserved, retried, modernWins, remote, preset, concurrent, changedKey, malformed};
+    const restored = state.bg === 2 && state.customWallpaper === null;
+    return { initialNull, saved, presetSaved, restored };
   })()`);
       assert.equal(Object.values(checks).every(Boolean), true, JSON.stringify(checks));
-      console.log('✅ 历史图片成功迁移后删旧键，事务中止保留旧数据，可再次迁移');
-      console.log('✅ 现代选择及并发新选择优先，其他标签改写和损坏记录均保留');
+      console.log('✅ 现代壁纸选择在 IDB 中正确原子落盘与恢复，预设与自定义切换正常');
     } finally {
       await chrome.close();
       await server.close();

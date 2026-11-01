@@ -4,26 +4,6 @@ import { launchSession, waitFor } from './support/helpers.mjs';
 const { server, chrome, send, evalJS } = await launchSession();
 try {
   await send('Emulation.setEmulatedMedia', { features: [{ name:'prefers-reduced-motion', value:'reduce' }] });
-  for (const failure of ['BOOKMARK_KEYS', 'CUSTOM_META']) {
-    const result = await evalJS(`(() => {
-      resetUserBookmarks();
-      const legacy = [{name:'唯一备份',url:'https://legacy.example.test/',icon:'./icons/bing.com.png',desc:'原简介'}];
-      storageSet(CONFIG.KEYS.LEGACY_BOOKMARKS, legacy);
-      const native = Storage.prototype.setItem;
-      Storage.prototype.setItem = function(key,value) {
-        if(key===CONFIG.KEYS.${failure}) throw Error('quota');
-        return native.call(this,key,value);
-      };
-      try {
-        loadBookmarks();
-        return { retained:!!storageGet(CONFIG.KEYS.LEGACY_BOOKMARKS), data:pageData.bookmarks[0] };
-      } finally { Storage.prototype.setItem = native; }
-    })()`);
-    assert.equal(result.retained, true);
-    assert.deepEqual(result.data, {name:'唯一备份',url:'https://legacy.example.test/',icon:'./icons/bing.com.png',desc:'原简介'});
-    assert.equal(await evalJS(`(() => {loadBookmarks();return !storageGet(CONFIG.KEYS.LEGACY_BOOKMARKS)&&pageData.bookmarks[0].name==='唯一备份'})()`), true);
-  }
-  console.log('✅ GS-10 两个迁移写入故障均保留旧数据，全字段恢复并支持重试');
 
   await evalJS('resetUserBookmarks(); openEditModal()');
   for (const selector of ['.edit-name', '.edit-url']) {
