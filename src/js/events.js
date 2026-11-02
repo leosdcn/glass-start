@@ -269,6 +269,7 @@ export function bindEvents() {
         if (e.key === 'Escape') {
             const topOverlay = OverlayStack.top();
             if (topOverlay && typeof topOverlay.close === 'function') {
+                e.preventDefault();
                 if (topOverlay.id === 'suggestions' && suggestionMenu?.classList.contains('active') && selectedSuggestionIdx >= 0) {
                     if (searchInput) searchInput.value = originalQuery;
                     updateSearchActionButtons(!!searchInput?.value);

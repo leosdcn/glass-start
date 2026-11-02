@@ -73,7 +73,7 @@ export function showConfirm(message, onConfirm, title = t('ui.confirm.reset.2'),
     }
 
     currentOkBtn.addEventListener('click', handleOk);
-    if (!isNotify) currentCancelBtn.addEventListener('click', handleCancel);
+    currentCancelBtn.addEventListener('click', handleCancel);
     currentModal.addEventListener('click', handleBackdropClick);
     activeConfirmCleanup = cleanup;
 }

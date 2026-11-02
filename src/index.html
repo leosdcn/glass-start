@@ -327,7 +327,7 @@
     </section><!-- /#navSection -->
 
     <!-- 编辑与设置弹窗 (Apple 风格 Tab 分栏设置面板) -->
-    <div id="editModal" role="dialog" aria-modal="true" hidden aria-label="设置与偏好" class="edit-overlay fixed inset-0 flex items-center justify-center z-[var(--z-modal)] overscroll-contain" data-i18n-aria-label="ui.settings.and.preferences">
+    <dialog id="editModal" aria-modal="true" hidden aria-label="设置与偏好" class="edit-overlay fixed inset-0 flex items-center justify-center z-[var(--z-modal)] overscroll-contain" data-i18n-aria-label="ui.settings.and.preferences">
         <div class="glass-strong apple-radius w-full max-w-xl sm:max-w-2xl md:max-w-3xl lg:max-w-4xl mx-4 min-h-panel-min max-h-panel-max sm:h-panel-desktop flex flex-col p-4 sm:p-6 shadow-2xl overflow-hidden">
             <!-- 弹窗 Header -->
             <div class="flex items-center justify-between gap-3 mb-3 pb-2 border-b border-white/10 shrink-0">
@@ -535,10 +535,10 @@
                 <button id="saveEditBtn" type="button" title="保存快捷书签与背景暗度修改" class="glass-btn-primary flex-1 sm:flex-initial py-2.5 px-4 sm:px-6 text-xs sm:text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:opacity-50 disabled:cursor-not-allowed" data-i18n-title="ui.save.bookmarks.background.dimming.and.language"><span data-i18n="ui.done">完成</span></button>
             </div>
         </div>
-    </div><!-- /#editModal -->
+    </dialog><!-- /#editModal -->
 
     <!-- 从导航页选择弹窗 -->
-    <div id="bookmarkPicker" role="dialog" aria-modal="true" hidden aria-label="从导航页选择书签" class="edit-overlay fixed inset-0 flex items-center justify-center z-[var(--z-picker)] overscroll-contain" data-i18n-aria-label="ui.choose.bookmarks.from.directory">
+    <dialog id="bookmarkPicker" aria-modal="true" hidden aria-label="从导航页选择书签" class="edit-overlay fixed inset-0 flex items-center justify-center z-[var(--z-picker)] overscroll-contain" data-i18n-aria-label="ui.choose.bookmarks.from.directory">
         <div class="glass-strong apple-radius pt-4 pb-3 px-4 w-full max-w-2xl xl:max-w-3xl 2xl:max-w-4xl mx-4 max-h-picker-max flex flex-col shadow-2xl">
             <div class="flex items-center justify-between gap-3 mb-3 pb-2 border-b border-white/10 shrink-0">
                 <div class="flex items-center gap-2 min-w-0">
@@ -552,10 +552,10 @@
                 <button id="donePickerBtn" type="button" class="glass-btn-primary py-2 px-6 text-xs sm:text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:opacity-50 disabled:cursor-not-allowed"><span data-i18n="ui.done">完成</span></button>
             </div>
         </div>
-    </div><!-- /#bookmarkPicker -->
+    </dialog><!-- /#bookmarkPicker -->
 
     <!-- 自定义确认弹窗（替代原生 confirm()，保持玻璃风格一致） -->
-    <div id="confirmModal" role="alertdialog" aria-modal="true" hidden aria-labelledby="confirmTitle" aria-describedby="confirmMsg"
+    <dialog id="confirmModal" role="alertdialog" aria-modal="true" hidden aria-labelledby="confirmTitle" aria-describedby="confirmMsg"
          class="edit-overlay fixed inset-0 flex items-center justify-center z-[var(--z-alert)] overscroll-contain">
         <div class="glass-strong apple-radius confirm-dialog-card shadow-2xl">
             <div class="confirm-dialog-warning size-11 rounded-full bg-red-500/15 border border-red-500/30 flex items-center justify-center mb-3 text-red-400 shrink-0">
@@ -570,10 +570,10 @@
                 <button id="confirmOkBtn" type="button" class="confirm-dialog-btn-ok focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400"><span data-i18n="ui.confirm.reset">确认重置</span></button>
             </div>
         </div>
-    </div><!-- /#confirmModal -->
+    </dialog><!-- /#confirmModal -->
 
     <!-- 快捷键速查面板弹窗 (Cmd/Ctrl + /) -->
-    <div id="shortcutModal" role="dialog" aria-modal="true" hidden aria-label="快捷键速查" class="edit-overlay fixed inset-0 flex items-center justify-center z-[var(--z-picker)] overscroll-contain" data-i18n-aria-label="ui.keyboard.shortcuts">
+    <dialog id="shortcutModal" aria-modal="true" hidden aria-label="快捷键速查" class="edit-overlay fixed inset-0 flex items-center justify-center z-[var(--z-picker)] overscroll-contain" data-i18n-aria-label="ui.keyboard.shortcuts">
         <div class="glass-strong apple-radius w-full max-w-sm mx-4 max-h-panel-max flex flex-col p-5 sm:p-6 shadow-2xl overflow-hidden">
             <!-- 弹窗 Header -->
             <div class="flex items-center gap-2 mb-3 pb-2 border-b border-white/10 shrink-0">
@@ -590,10 +590,10 @@
                 <button id="doneShortcutBtn" type="button" class="glass-btn-primary py-2 px-5 text-xs sm:text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:opacity-50 disabled:cursor-not-allowed"><span data-i18n="ui.got.it">知道了</span></button>
             </div>
         </div>
-    </div><!-- /#shortcutModal -->
+    </dialog><!-- /#shortcutModal -->
 
     <!-- 开源致谢弹窗 (Credits & Attribution Modal) -->
-    <div id="creditsModal" role="dialog" aria-modal="true" hidden aria-label="开源致谢" class="edit-overlay fixed inset-0 flex items-center justify-center z-[var(--z-picker)] overscroll-contain" data-i18n-aria-label="ui.credits">
+    <dialog id="creditsModal" aria-modal="true" hidden aria-label="开源致谢" class="edit-overlay fixed inset-0 flex items-center justify-center z-[var(--z-picker)] overscroll-contain" data-i18n-aria-label="ui.credits">
         <div class="glass-strong apple-radius w-full max-w-md mx-4 max-h-panel-max flex flex-col p-5 sm:p-6 shadow-2xl overflow-hidden">
             <!-- 弹窗 Header -->
             <div class="flex items-center gap-2 mb-3 pb-2 border-b border-white/10 shrink-0">
@@ -609,10 +609,10 @@
                 <button id="doneCreditsBtn" type="button" class="glass-btn-primary py-2.5 px-6 text-xs sm:text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:opacity-50 disabled:cursor-not-allowed"><span data-i18n="ui.got.it">知道了</span></button>
             </div>
         </div>
-    </div><!-- /#creditsModal -->
+    </dialog><!-- /#creditsModal -->
 
     <!-- 界面语言选择弹窗 (Language Picker Modal) -->
-    <div id="languageModal" role="dialog" aria-modal="true" hidden aria-label="界面语言" class="edit-overlay fixed inset-0 flex items-center justify-center z-[var(--z-picker)] overscroll-contain" data-i18n-aria-label="language.label">
+    <dialog id="languageModal" aria-modal="true" hidden aria-label="界面语言" class="edit-overlay fixed inset-0 flex items-center justify-center z-[var(--z-picker)] overscroll-contain" data-i18n-aria-label="language.label">
         <div class="glass-strong apple-radius w-full max-w-[21.5rem] mx-4 max-h-panel-max flex flex-col p-5 shadow-2xl overflow-hidden">
             <!-- 弹窗 Header -->
             <div class="flex items-center gap-2 mb-3 pb-2 border-b border-white/10 shrink-0">
@@ -642,7 +642,7 @@
                 <button id="doneLanguageBtn" type="button" class="glass-btn-primary flex-1 sm:flex-initial py-2.5 px-4 sm:px-6 text-xs sm:text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:opacity-50 disabled:cursor-not-allowed"><span data-i18n="ui.done">完成</span></button>
             </div>
         </div>
-    </div><!-- /#languageModal -->
+    </dialog><!-- /#languageModal -->
 
 
     <script>

@@ -29,14 +29,31 @@ function beginVisibilityOperation(id) {
     return operation;
 }
 
+/** @type {WeakSet<Element>} */
+const boundCancelModals = new WeakSet();
+
 /** @param {string} id */
 function showModal(id) {
     const modal = document.getElementById(id);
     if (!modal) return;
-    const wasHidden = modal.hasAttribute('hidden');
     const operation = beginVisibilityOperation(id);
     modal.removeAttribute('hidden');
     modal.removeAttribute('aria-hidden');
+
+    if (typeof HTMLDialogElement !== 'undefined' && modal instanceof HTMLDialogElement && !modal.open) {
+        modal.showModal();
+        if (!boundCancelModals.has(modal)) {
+            modal.addEventListener('cancel', e => {
+                e.preventDefault();
+                const top = OverlayStack.top();
+                if (top && top.id === id && typeof top.close === 'function') {
+                    top.close();
+                }
+            });
+            boundCancelModals.add(modal);
+        }
+    }
+
     const isStillValid = () =>
         visibilityOperations.get(id) === operation &&
         OverlayStack.stack.some(entry => entry.id === id);
@@ -47,14 +64,14 @@ function showModal(id) {
         visibilityOperations.delete(id);
     };
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    operation.frame = requestAnimationFrame(() => {
-        if (!isStillValid()) return;
-        if (!wasHidden || reducedMotion) {
+    if (reducedMotion) {
+        queueMicrotask(() => {
+            if (!isStillValid()) return;
             activate();
-            return;
-        }
-        operation.frame = requestAnimationFrame(activate);
-    });
+        });
+        return;
+    }
+    operation.frame = requestAnimationFrame(activate);
 }
 
 /** @param {string} id */
@@ -70,6 +87,9 @@ function hideModal(id) {
     const finish = () => {
         if (visibilityOperations.get(id) !== operation || OverlayStack.stack.some(entry => entry.id === id)) return;
         modal.setAttribute('hidden', '');
+        if (typeof HTMLDialogElement !== 'undefined' && modal instanceof HTMLDialogElement && modal.open) {
+            modal.close();
+        }
         visibilityOperations.delete(id);
     };
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) finish();
