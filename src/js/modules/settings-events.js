@@ -70,30 +70,14 @@ export function bindEditEvents() {
         }
     });
 
-    /**
-     * 原生 <dialog> 仅在点击背景遮罩（e.target === modal）时关闭，子卡片正常冒泡且不触发退出。
-     * @param {Element | null | undefined} modal
-     * @param {() => void} closeFn
-     */
-    const bindBackdropDismiss = (modal, closeFn) => {
-        modal?.addEventListener('click', e => {
-            if (e.target === modal) closeFn();
-        });
-    };
-
     dom.editBookmarksBtn?.addEventListener('click', openEditModal);
     dom.cancelEditBtn?.addEventListener('click', cancelEditModal);
-    bindBackdropDismiss(dom.editModal, cancelEditModal);
     dom.togglePickerBtn?.addEventListener('click', () => openBookmarkPicker(dom.togglePickerBtn));
     dom.donePickerBtn?.addEventListener('click', closeBookmarkPicker);
-    bindBackdropDismiss(dom.bookmarkPicker, closeBookmarkPicker);
     dom.doneShortcutBtn?.addEventListener('click', closeShortcutModal);
-    bindBackdropDismiss(dom.shortcutModal, closeShortcutModal);
     dom.openShortcutFromSettingsBtn?.addEventListener('click', openShortcutModal);
     dom.openCreditsFromSettingsBtn?.addEventListener('click', openCreditsModal);
     dom.doneCreditsBtn?.addEventListener('click', closeCreditsModal);
-    bindBackdropDismiss(dom.creditsModal, closeCreditsModal);
-    bindBackdropDismiss(dom.languageModal, cancelLanguageModal);
 
     // 重置所有设置 (Danger Zone - 确认后立即重置系统，无需再点击保存)
     if (dom.resetEditBtn) {

@@ -30,7 +30,7 @@ function beginVisibilityOperation(id) {
 }
 
 /** @type {WeakSet<Element>} */
-const boundCancelModals = new WeakSet();
+const boundDialogModals = new WeakSet();
 
 /** @param {string} id */
 function showModal(id) {
@@ -42,7 +42,7 @@ function showModal(id) {
 
     if (typeof HTMLDialogElement !== 'undefined' && modal instanceof HTMLDialogElement && !modal.open) {
         modal.showModal();
-        if (!boundCancelModals.has(modal)) {
+        if (!boundDialogModals.has(modal)) {
             modal.addEventListener('cancel', e => {
                 e.preventDefault();
                 const top = OverlayStack.top();
@@ -50,7 +50,15 @@ function showModal(id) {
                     top.close();
                 }
             });
-            boundCancelModals.add(modal);
+            modal.addEventListener('click', e => {
+                if (e.target === modal) {
+                    const top = OverlayStack.top();
+                    if (top && top.id === id && typeof top.close === 'function') {
+                        top.close();
+                    }
+                }
+            });
+            boundDialogModals.add(modal);
         }
     }
 

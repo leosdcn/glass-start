@@ -57,7 +57,6 @@ export function showConfirm(message, onConfirm, title = t('ui.confirm.reset.2'),
         currentCancelBtn.classList.remove('hidden');
         currentOkBtn.removeEventListener('click', handleOk);
         currentCancelBtn.removeEventListener('click', handleCancel);
-        currentModal.removeEventListener('click', handleBackdropClick);
         if (confirmTriggerEl && typeof confirmTriggerEl.focus === 'function') {
             const opener = confirmTriggerEl;
             confirmTriggerEl = null;
@@ -67,13 +66,8 @@ export function showConfirm(message, onConfirm, title = t('ui.confirm.reset.2'),
 
     function handleOk() { cleanup(); onConfirm?.(); }
     function handleCancel() { cleanup(); }
-    /** @param {MouseEvent} e */
-    function handleBackdropClick(e) {
-        if (e.target === currentModal) cleanup();
-    }
 
     currentOkBtn.addEventListener('click', handleOk);
     currentCancelBtn.addEventListener('click', handleCancel);
-    currentModal.addEventListener('click', handleBackdropClick);
     activeConfirmCleanup = cleanup;
 }
