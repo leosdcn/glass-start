@@ -135,6 +135,8 @@ export function toggleDropdown() {
     engineBtn?.setAttribute('aria-expanded', nextOpen.toString());
     if (nextOpen) {
         OverlayStack.push('dropdown', closeDropdown);
+        const activeItem = /** @type {HTMLElement | null} */ (dropdownMenu?.querySelector('[data-engine][aria-checked="true"]') || dropdownMenu?.querySelector('[data-engine]'));
+        activeItem?.focus();
     } else {
         OverlayStack.pop('dropdown');
     }
@@ -148,9 +150,11 @@ export function closeDropdown() {
     OverlayStack.pop('dropdown');
     const dropdownMenu = dom.dropdownMenu;
     const engineBtn = dom.engineBtn;
+    const hadFocus = !!(dropdownMenu && document.activeElement && dropdownMenu.contains(document.activeElement));
     dropdownMenu?.classList.remove('active');
     dropdownMenu?.setAttribute('aria-hidden', 'true');
     engineBtn?.setAttribute('aria-expanded', 'false');
+    if (hadFocus) engineBtn?.focus();
 }
 
 /**

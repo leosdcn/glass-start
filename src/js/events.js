@@ -108,6 +108,12 @@ export function bindEvents() {
             if (isComposing) return;
             scheduleSuggestions(val);
         });
+
+        const searchForm = /** @type {HTMLFormElement | null} */ (searchInput.form || searchInput.closest('form'));
+        searchForm?.addEventListener('submit', e => {
+            e.preventDefault();
+            activateSuggestion(selectedSuggestionIdx, false);
+        });
     }
 
     if (searchClearBtn) {
@@ -162,6 +168,29 @@ export function bindEvents() {
             const targetEl = e.target instanceof Element ? e.target : null;
             const btn = /** @type {HTMLElement|null} */ (targetEl?.closest('[data-engine]'));
             if (btn && btn.dataset.engine) { e.stopPropagation(); setEngine(btn.dataset.engine); }
+        });
+        dropdownMenu.addEventListener('keydown', e => {
+            const items = /** @type {HTMLElement[]} */ (Array.from(dropdownMenu.querySelectorAll('[data-engine]')));
+            if (!items.length) return;
+            const activeEl = /** @type {HTMLElement | null} */ (document.activeElement);
+            const currentIndex = items.indexOf(activeEl || items[0]);
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                const nextIndex = (currentIndex + 1) % items.length;
+                items[nextIndex].focus();
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                const prevIndex = (currentIndex - 1 + items.length) % items.length;
+                items[prevIndex].focus();
+            } else if (e.key === 'Home') {
+                e.preventDefault();
+                items[0].focus();
+            } else if (e.key === 'End') {
+                e.preventDefault();
+                items[items.length - 1].focus();
+            } else if (e.key === 'Tab') {
+                closeDropdown();
+            }
         });
     }
 

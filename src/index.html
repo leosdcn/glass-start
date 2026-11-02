@@ -238,7 +238,7 @@
         </div>
 
         <!-- 搜索框 -->
-        <div role="search" aria-label="站内与网络搜索" class="w-full max-w-2xl lg:max-w-3xl mx-auto relative mb-8 md:mb-10" data-i18n-aria-label="ui.search.bookmarks.and.the.web">
+        <form role="search" action="#" aria-label="站内与网络搜索" class="w-full max-w-2xl lg:max-w-3xl mx-auto relative mb-8 md:mb-10" data-i18n-aria-label="ui.search.bookmarks.and.the.web">
             <div class="glass-strong apple-radius p-2 flex items-center gap-3 border fade-in search-box-wrapper entrance-delay-1 select-none">
                 <div class="relative shrink-0 flex items-center justify-center size-9 ml-1 select-none">
                     <button id="engineBtn" type="button" aria-label="选择搜索引擎（当前：Bing）" aria-haspopup="menu" aria-expanded="false" aria-controls="dropdownMenu" class="p-2 apple-radius enabled:hover:bg-white/10 glass-interactive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed absolute inset-0 flex items-center justify-center select-none touch-manipulation">
@@ -270,7 +270,7 @@
             <div id="dropdownMenu" role="menu" aria-label="搜索引擎选项" aria-hidden="true" class="dropdown-menu absolute top-full left-0 glass-strong apple-radius p-2 border border-white/20 shadow-2xl min-w-35 z-[var(--z-dropdown)] select-none" data-i18n-aria-label="ui.search.engines"></div>
             <!-- 搜索实时建议联想下拉框 (Spotlight 风格全宽下拉面板) -->
             <div id="suggestionMenu" role="listbox" aria-label="搜索建议" aria-hidden="true" class="dropdown-menu absolute top-full left-0 right-0 w-full mt-3.5 sm:mt-4 glass-strong apple-radius p-2 border border-white/20 shadow-2xl z-[var(--z-dropdown)] max-h-suggestions-max overflow-y-auto overscroll-contain select-none" data-i18n-aria-label="ui.search.suggestions"></div>
-        </div>
+        </form>
 
         <!-- 快捷书签 -->
         <nav aria-label="快捷书签" class="w-full max-w-2xl lg:max-w-3xl mx-auto glass apple-radius p-3 sm:p-4 fade-in mb-6 md:mb-8 relative group entrance-delay-2" data-i18n-aria-label="ui.quick.bookmarks">
@@ -327,7 +327,7 @@
     </section><!-- /#navSection -->
 
     <!-- 编辑与设置弹窗 (Apple 风格 Tab 分栏设置面板) -->
-    <dialog id="editModal" aria-modal="true" hidden aria-label="设置与偏好" class="edit-overlay fixed inset-0 flex items-center justify-center z-[var(--z-modal)] overscroll-contain" data-i18n-aria-label="ui.settings.and.preferences">
+    <dialog id="editModal" aria-modal="true" hidden aria-label="设置与偏好" class="edit-overlay fixed inset-0 flex items-center justify-center overscroll-contain" data-i18n-aria-label="ui.settings.and.preferences">
         <div class="glass-strong apple-radius w-full max-w-xl sm:max-w-2xl md:max-w-3xl lg:max-w-4xl mx-4 min-h-panel-min max-h-panel-max sm:h-panel-desktop flex flex-col p-4 sm:p-6 shadow-2xl overflow-hidden">
             <!-- 弹窗 Header -->
             <div class="flex items-center justify-between gap-3 mb-3 pb-2 border-b border-white/10 shrink-0">
@@ -538,7 +538,7 @@
     </dialog><!-- /#editModal -->
 
     <!-- 从导航页选择弹窗 -->
-    <dialog id="bookmarkPicker" aria-modal="true" hidden aria-label="从导航页选择书签" class="edit-overlay fixed inset-0 flex items-center justify-center z-[var(--z-picker)] overscroll-contain" data-i18n-aria-label="ui.choose.bookmarks.from.directory">
+    <dialog id="bookmarkPicker" aria-modal="true" hidden aria-label="从导航页选择书签" class="edit-overlay fixed inset-0 flex items-center justify-center overscroll-contain" data-i18n-aria-label="ui.choose.bookmarks.from.directory">
         <div class="glass-strong apple-radius pt-4 pb-3 px-4 w-full max-w-2xl xl:max-w-3xl 2xl:max-w-4xl mx-4 max-h-picker-max flex flex-col shadow-2xl">
             <div class="flex items-center justify-between gap-3 mb-3 pb-2 border-b border-white/10 shrink-0">
                 <div class="flex items-center gap-2 min-w-0">
@@ -556,7 +556,7 @@
 
     <!-- 自定义确认弹窗（替代原生 confirm()，保持玻璃风格一致） -->
     <dialog id="confirmModal" role="alertdialog" aria-modal="true" hidden aria-labelledby="confirmTitle" aria-describedby="confirmMsg"
-         class="edit-overlay fixed inset-0 flex items-center justify-center z-[var(--z-alert)] overscroll-contain">
+         class="edit-overlay fixed inset-0 flex items-center justify-center overscroll-contain">
         <div class="glass-strong apple-radius confirm-dialog-card shadow-2xl">
             <div class="confirm-dialog-warning size-11 rounded-full bg-red-500/15 border border-red-500/30 flex items-center justify-center mb-3 text-red-400 shrink-0">
                 <svg class="size-5.5" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
@@ -573,7 +573,7 @@
     </dialog><!-- /#confirmModal -->
 
     <!-- 快捷键速查面板弹窗 (Cmd/Ctrl + /) -->
-    <dialog id="shortcutModal" aria-modal="true" hidden aria-label="快捷键速查" class="edit-overlay fixed inset-0 flex items-center justify-center z-[var(--z-picker)] overscroll-contain" data-i18n-aria-label="ui.keyboard.shortcuts">
+    <dialog id="shortcutModal" aria-modal="true" hidden aria-label="快捷键速查" class="edit-overlay fixed inset-0 flex items-center justify-center overscroll-contain" data-i18n-aria-label="ui.keyboard.shortcuts">
         <div class="glass-strong apple-radius w-full max-w-sm mx-4 max-h-panel-max flex flex-col p-5 sm:p-6 shadow-2xl overflow-hidden">
             <!-- 弹窗 Header -->
             <div class="flex items-center gap-2 mb-3 pb-2 border-b border-white/10 shrink-0">
@@ -593,7 +593,7 @@
     </dialog><!-- /#shortcutModal -->
 
     <!-- 开源致谢弹窗 (Credits & Attribution Modal) -->
-    <dialog id="creditsModal" aria-modal="true" hidden aria-label="开源致谢" class="edit-overlay fixed inset-0 flex items-center justify-center z-[var(--z-picker)] overscroll-contain" data-i18n-aria-label="ui.credits">
+    <dialog id="creditsModal" aria-modal="true" hidden aria-label="开源致谢" class="edit-overlay fixed inset-0 flex items-center justify-center overscroll-contain" data-i18n-aria-label="ui.credits">
         <div class="glass-strong apple-radius w-full max-w-md mx-4 max-h-panel-max flex flex-col p-5 sm:p-6 shadow-2xl overflow-hidden">
             <!-- 弹窗 Header -->
             <div class="flex items-center gap-2 mb-3 pb-2 border-b border-white/10 shrink-0">
@@ -612,7 +612,7 @@
     </dialog><!-- /#creditsModal -->
 
     <!-- 界面语言选择弹窗 (Language Picker Modal) -->
-    <dialog id="languageModal" aria-modal="true" hidden aria-label="界面语言" class="edit-overlay fixed inset-0 flex items-center justify-center z-[var(--z-picker)] overscroll-contain" data-i18n-aria-label="language.label">
+    <dialog id="languageModal" aria-modal="true" hidden aria-label="界面语言" class="edit-overlay fixed inset-0 flex items-center justify-center overscroll-contain" data-i18n-aria-label="language.label">
         <div class="glass-strong apple-radius w-full max-w-[21.5rem] mx-4 max-h-panel-max flex flex-col p-5 shadow-2xl overflow-hidden">
             <!-- 弹窗 Header -->
             <div class="flex items-center gap-2 mb-3 pb-2 border-b border-white/10 shrink-0">
@@ -621,16 +621,16 @@
             </div>
 
             <!-- 语言选项列表 (采用 Endonym 自称母语显示，具备无限纵向扩展性) -->
-            <div id="languageList" role="group" aria-label="界面语言" data-i18n-aria-label="language.label" class="flex-1 overflow-y-auto min-h-0 space-y-2 p-1 -m-1 pr-1 text-xs select-none">
-                <button type="button" data-lang="auto" role="menuitemradio" aria-checked="true" class="language-modal-item w-full flex items-center justify-between p-3 rounded-xl glass-subcard text-left hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50">
+            <div id="languageList" role="radiogroup" aria-label="界面语言" data-i18n-aria-label="language.label" class="flex-1 overflow-y-auto min-h-0 space-y-2 p-1 -m-1 pr-1 text-xs select-none">
+                <button type="button" data-lang="auto" role="radio" aria-checked="true" class="language-modal-item w-full flex items-center justify-between p-3 rounded-xl glass-subcard text-left hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50">
                     <span class="text-sm font-medium text-white/90" data-i18n="language.autoFollow">自动 (跟随浏览器)</span>
                     <svg class="lang-check size-4 text-white shrink-0 transition-opacity duration-150" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg>
                 </button>
-                <button type="button" data-lang="zh-CN" role="menuitemradio" aria-checked="false" class="language-modal-item w-full flex items-center justify-between p-3 rounded-xl glass-subcard text-left hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50">
+                <button type="button" data-lang="zh-CN" role="radio" aria-checked="false" class="language-modal-item w-full flex items-center justify-between p-3 rounded-xl glass-subcard text-left hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50">
                     <span class="text-sm font-medium text-white/90" lang="zh-CN">简体中文</span>
                     <svg class="lang-check size-4 text-white shrink-0 opacity-0 transition-opacity duration-150" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg>
                 </button>
-                <button type="button" data-lang="en" role="menuitemradio" aria-checked="false" class="language-modal-item w-full flex items-center justify-between p-3 rounded-xl glass-subcard text-left hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50">
+                <button type="button" data-lang="en" role="radio" aria-checked="false" class="language-modal-item w-full flex items-center justify-between p-3 rounded-xl glass-subcard text-left hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50">
                     <span class="text-sm font-medium text-white/90" lang="en">English</span>
                     <svg class="lang-check size-4 text-white shrink-0 opacity-0 transition-opacity duration-150" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg>
                 </button>

@@ -224,7 +224,7 @@ Chrome（首屏已有的 `.is-chrome` 标记）为两屏保留 `will-change: tra
 
 `OverlayStack` 维护 LIFO 栈，Escape 由 `events.js` 调用栈顶关闭函数；遮罩点击交给对应浮层处理。
 
-浮层由低到高分为下拉、设置、辅助弹窗和确认层，对应 z-index 为 150 / 1000 / 2000 / 9999；具体样式见源码。
+浮层包括下拉菜单与模态弹窗；模态弹窗（设置、挑选器、确认框等）基于原生 `<dialog>` 位于浏览器顶级层（Top Layer），由 `OverlayStack` 管理入栈时序与焦点；普通下拉菜单（`--z-dropdown: 150`）位于文档流中。
 
 受管理的弹窗可见性只由 `OverlayStack.push()` / `.pop()` 驱动。层叠栈内部统一设置 `hidden`、`aria-hidden`、入场动画及延迟隐藏，切换前取消旧任务。普通提示区、折叠内容可独立使用 `hidden`；下拉组件仍使用自己的状态类展示，但同样注册关闭回调。
 
