@@ -554,6 +554,8 @@ export function openLanguageModal(trigger = dom.languageBtn) {
     syncLanguageUI();
     dom.languageBtn?.setAttribute('aria-expanded', 'true');
     OverlayStack.push('languageModal', cancelLanguageModal, trigger);
+    const activeItem = /** @type {HTMLButtonElement | null} */ (dom.languageList?.querySelector('button[data-lang][aria-checked="true"]'));
+    activeItem?.focus();
 }
 
 export function cancelLanguageModal() {

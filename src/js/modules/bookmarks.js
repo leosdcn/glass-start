@@ -590,6 +590,40 @@ function initSidebarNav(measureActive = true) {
             }, CONFIG.NAV.MANUAL_LOCK_MAX_MS);
         });
 
+        sidebarList.addEventListener('keydown', (e) => {
+            if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey || e.isComposing) return;
+            const allItems = Array.from(sidebarList.querySelectorAll('[data-target]'));
+            if (allItems.length === 0) return;
+            const targetEl = /** @type {Element | null} */ (e.target);
+            const currentBtn = /** @type {HTMLElement | null} */ (targetEl ? targetEl.closest('[data-target]') : null);
+            const currentIndex = currentBtn ? allItems.indexOf(currentBtn) : -1;
+            if (currentIndex === -1) return;
+
+            let nextIndex;
+            switch (e.key) {
+                case 'ArrowDown':
+                case 'ArrowRight':
+                    nextIndex = (currentIndex + 1) % allItems.length;
+                    break;
+                case 'ArrowUp':
+                case 'ArrowLeft':
+                    nextIndex = (currentIndex - 1 + allItems.length) % allItems.length;
+                    break;
+                case 'Home':
+                    nextIndex = 0;
+                    break;
+                case 'End':
+                    nextIndex = allItems.length - 1;
+                    break;
+                default:
+                    return;
+            }
+            e.preventDefault();
+            const nextBtn = /** @type {HTMLElement} */ (allItems[nextIndex]);
+            nextBtn.focus();
+            nextBtn.click();
+        });
+
         let ticking = false;
         /** @type {ReturnType<typeof setTimeout> | null} */
         let scrollEndTimer = null;

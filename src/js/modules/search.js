@@ -381,7 +381,7 @@ function renderSuggestions(localList = [], netList = [], preserveSelection = fal
      * @param {boolean} [isFirst=false]
      */
     const renderSectionHeader = (title, isFirst = false) => `
-        <div class="suggestion-section-header mx-3.5 px-0 ${isFirst ? 'pt-1.5' : 'pt-2'} pb-2 mb-1 text-2xs font-medium tracking-wider text-white/40 uppercase select-none">${title}</div>
+        <div role="presentation" class="suggestion-section-header mx-3.5 px-0 ${isFirst ? 'pt-1.5' : 'pt-2'} pb-2 mb-1 text-2xs font-medium tracking-wider text-white/40 uppercase select-none">${title}</div>
     `;
 
     // 本地书签分组：就地复用已挂载的 DOM 节点，避免网络联想两阶段重刷时图片销毁与重解码闪烁
@@ -447,7 +447,7 @@ function renderSuggestions(localList = [], netList = [], preserveSelection = fal
         for (let k = 0; k < skeletonCount; k++) {
             const widthClass = k % 2 === 0 ? 'w-44' : 'w-28';
             netHtml += `
-                <div class="px-3.5 py-2.5 my-0.5 apple-radius flex items-center gap-3 select-none pointer-events-none animate-pulse">
+                <div aria-hidden="true" class="px-3.5 py-2.5 my-0.5 apple-radius flex items-center gap-3 select-none pointer-events-none animate-pulse">
                     <svg class="w-5 h-5 text-white/20 shrink-0 pointer-events-none select-none" aria-hidden="true"><use href="#icon-search"/></svg>
                     <div class="h-5 bg-white/15 apple-radius ${widthClass}"></div>
                 </div>

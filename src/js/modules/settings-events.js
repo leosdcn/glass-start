@@ -34,6 +34,41 @@ export function bindEditEvents() {
             selectLanguage(btn.dataset.lang);
         }
     });
+    dom.languageList?.addEventListener('keydown', e => {
+        if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey || e.isComposing) return;
+        const items = Array.from(dom.languageList?.querySelectorAll('button[data-lang]') || []);
+        if (items.length === 0) return;
+        const targetEl = e.target instanceof Element ? e.target : null;
+        const currentBtn = /** @type {HTMLElement|null} */ (targetEl?.closest('[data-lang]'));
+        const currentIndex = currentBtn ? items.indexOf(currentBtn) : -1;
+        if (currentIndex === -1) return;
+
+        let nextIndex;
+        switch (e.key) {
+            case 'ArrowDown':
+            case 'ArrowRight':
+                nextIndex = (currentIndex + 1) % items.length;
+                break;
+            case 'ArrowUp':
+            case 'ArrowLeft':
+                nextIndex = (currentIndex - 1 + items.length) % items.length;
+                break;
+            case 'Home':
+                nextIndex = 0;
+                break;
+            case 'End':
+                nextIndex = items.length - 1;
+                break;
+            default:
+                return;
+        }
+        e.preventDefault();
+        const nextBtn = /** @type {HTMLButtonElement} */ (items[nextIndex]);
+        if (nextBtn?.dataset.lang) {
+            selectLanguage(nextBtn.dataset.lang);
+            nextBtn.focus();
+        }
+    });
 
     /**
      * 原生 <dialog> 仅在点击背景遮罩（e.target === modal）时关闭，子卡片正常冒泡且不触发退出。
