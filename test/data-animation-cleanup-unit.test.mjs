@@ -14,12 +14,13 @@ const { outputFiles } = await build({
     plugins: [{ name: 'unrelated-boundaries', setup(b) {
         b.onLoad({ filter: /modules\/settings\.js$/ }, () => ({ contents:
             'export const ' + ['openEditModal', 'saveEditModal', 'cancelEditModal', 'openShortcutModal',
-                'closeShortcutModal', 'openCreditsModal', 'closeCreditsModal', 'openBookmarkPicker',
-                'closeBookmarkPicker', 'updatePickerAvailability', 'switchSettingsTab', 'previewDraftMaskOpacity',
+                'closeShortcutModal', 'openCreditsModal', 'closeCreditsModal', 'switchSettingsTab', 'previewDraftMaskOpacity',
                 'resetBookmarks', 'importBookmarksJSON', 'exportBookmarksJSON',
                 'openLanguageModal', 'saveLanguageModal', 'cancelLanguageModal',
                 'selectLanguage', 'selectDraftTransitionMode', 'closeWallpaperUrlInput'].map(name => `${name}=()=>{}`).join(',')
         }));
+        b.onLoad({ filter: /modules\/bookmark-picker\.js$/ }, () => ({ contents:
+            'export const openBookmarkPicker=()=>{},closeBookmarkPicker=()=>{},updatePickerAvailability=()=>{};' }));
         b.onLoad({ filter: /modules\/wallpaper\.js$/ }, () => ({ contents:
             'export const uploadWallpaper=()=>{},previewDraftWallpaper=()=>{},resetDraftWallpaper=()=>{};' }));
         b.onLoad({ filter: /core\/dialogs\.js$/ }, () => ({ contents: 'export function showConfirm(){}' }));

@@ -19,6 +19,7 @@ import { weatherNum } from '../utils/weather-data.js';
 import { weatherTime, formatLocationFullName } from '../utils/weather-model.js';
 import * as bookmarks from '../modules/bookmarks.js';
 import * as settings from '../modules/settings.js';
+import * as bookmarkPicker from '../modules/bookmark-picker.js';
 import * as editor from '../modules/bookmark-editor.js';
 import { replaceBookmarkDraft } from '../state/bookmark-draft.js';
 import * as dialogs from '../core/dialogs.js';
@@ -102,7 +103,7 @@ Object.assign(window, {
     openCreditsModal: settings.openCreditsModal,
     closeCreditsModal: settings.closeCreditsModal,
     showConfirm: dialogs.showConfirm,
-    openBookmarkPicker: settings.openBookmarkPicker,
+    openBookmarkPicker: bookmarkPicker.openBookmarkPicker,
     exportBookmarksJSON: settings.exportBookmarksJSON,
     resetBookmarks: settings.resetBookmarks,
     getExistingUrls: editor.getExistingUrls,

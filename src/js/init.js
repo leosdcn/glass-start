@@ -4,6 +4,7 @@
 import { CONFIG, engines } from './config/constants.js';
 import { DEFAULT_ENGINE } from './config/engines.js';
 import { storageGet, evictFaviconCache } from './utils/helpers.js';
+import { state } from './state/store.js';
 import { cacheDOM } from './state/dom.js';
 import { updateClock } from './modules/clock.js';
 import { renderEngineDropdown, setEngine, closeDropdown, hideSuggestions } from './modules/search.js';
@@ -130,7 +131,11 @@ export function init() {
     };
 
     scheduleIdleTask(() => {
-        renderNavCategories();
+        // 启动预热：若已处于导航屏（reconcileScreenState 恢复时已触发钩子构建），跳过重复渲染；
+        // 起始屏时提前预热导航区，用户首次切屏时即可直接呈现。
+        if (state.currentSection !== 'nav') {
+            renderNavCategories();
+        }
         refreshSidebarNavCache();
         initFaviconObserver();
         preloadFavicons();

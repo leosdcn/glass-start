@@ -1,9 +1,11 @@
+/**
+ * 设置面板与弹窗管理系统
+ * 负责设置弹窗生命周期、外观与壁纸配置、语言切换及数据导入导出的统一协调。
+ * 具体书签草稿编辑见 bookmark-editor.js，预置目录挑选器见 bookmark-picker.js。
+ */
 import { t, getLanguagePreference } from '../core/i18n.js';
 import { updateAllBookmarkCounters, renderEditList, collectEditData } from './bookmark-editor.js';
 import { showConfirm } from '../core/dialogs.js';
-/**
- * 设置面板与弹窗管理系统
- */
 import { CONFIG, backgrounds } from '../config/constants.js';
 import { DEFAULT_ENGINE } from '../config/engines.js';
 import { escapeHtml, normalizeUrl, normalizeBookmark, storageGet, storageSet, storageRemove } from '../utils/helpers.js';
@@ -18,9 +20,7 @@ import { closeDropdown, hideSuggestions, setEngine } from './search.js';
 import { renderCreditsModalList, renderShortcutModalList } from './clock.js';
 import { getTransitionMode, syncTransitionSwitcherActive, setTransitionMode } from '../core/screen-state.js';
 import { cancelDragSort } from '../core/drag-sort.js';
-import { openBookmarkPicker, closeBookmarkPicker, updatePickerAvailability } from './bookmark-picker.js';
-
-export { openBookmarkPicker, closeBookmarkPicker, updatePickerAvailability };
+import { closeBookmarkPicker } from './bookmark-picker.js';
 
 let editOpenRequestId = 0;
 let importRequestId = 0;

@@ -67,7 +67,9 @@ export function closeWeatherPopover() {
 export function toggleWeatherPopover() {
     const popover = dom.weatherPopover;
     if (!popover) return;
-    if (popover.classList.contains('active')) {
+    // OverlayStack 为弹窗激活态的唯一权威源，与 Esc 退栈及全站弹窗机制保持语义一致
+    const isOpen = OverlayStack.stack.some(item => item.id === 'weatherPopover');
+    if (isOpen) {
         closeWeatherPopover();
     } else {
         openWeatherPopover();
@@ -256,15 +258,6 @@ function renderWeatherError() {
             </button>
         </div>
     `;
-    const retryBtn = /** @type {HTMLButtonElement | null} */ (weatherPopover.querySelector('#weatherErrorRetryBtn'));
-    if (retryBtn) {
-        retryBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            retryBtn.disabled = true;
-            retryBtn.innerHTML = `${getWeatherIconHTML('🔄', 'size-3.5')} ${escapeHtml(t('ui.retrying'))}`;
-            updateWeather(true);
-        });
-    }
 }
 
 /** @param {import('../types').WeatherData | null | undefined} data */
@@ -428,34 +421,6 @@ export function renderWeatherPopover(data) {
             `).join('')}
         </div>
     `;
-
-    const refBtn = /** @type {HTMLButtonElement | null} */ (weatherPopover.querySelector('#weatherRefreshBtn'));
-    if (refBtn) {
-        refBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (refBtn.disabled) return;
-            refBtn.disabled = true;
-            refBtn.setAttribute('aria-busy', 'true');
-            const svg = refBtn.querySelector('svg');
-            if (svg) svg.classList.add('weather-spin');
-            const startTime = Date.now();
-            const MIN_SPIN_DURATION = CONFIG.WEATHER.MIN_SPIN_DURATION;
-            updateWeather(true).finally(() => {
-                const elapsed = Date.now() - startTime;
-                const remaining = Math.max(0, MIN_SPIN_DURATION - elapsed);
-                setTimeout(() => {
-                    const currentPop = dom.weatherPopover;
-                    const currentRefBtn = /** @type {HTMLButtonElement | null} */ (currentPop ? currentPop.querySelector('#weatherRefreshBtn') : null);
-                    const currentSvg = currentRefBtn ? currentRefBtn.querySelector('svg') : null;
-                    if (currentSvg) currentSvg.classList.remove('weather-spin');
-                    if (currentRefBtn) {
-                        currentRefBtn.disabled = false;
-                        currentRefBtn.removeAttribute('aria-busy');
-                    }
-                }, remaining);
-            });
-        });
-    }
 }
 
 /** @type {Promise<void> | null} */
@@ -548,7 +513,68 @@ async function executeWeatherUpdate(cache, force) {
     }
 }
 
+let popoverEventsBound = false;
+
+/**
+ * 委托处理天气弹窗内部的刷新与重试点击交互
+ * @param {MouseEvent} e
+ */
+function handleWeatherPopoverClick(e) {
+    const target = /** @type {HTMLElement | null} */ (e.target instanceof HTMLElement ? e.target : null);
+    if (!target) return;
+
+    const retryBtn = /** @type {HTMLButtonElement | null} */ (target.closest('#weatherErrorRetryBtn'));
+    if (retryBtn) {
+        e.stopPropagation();
+        retryBtn.disabled = true;
+        retryBtn.innerHTML = `${getWeatherIconHTML('🔄', 'size-3.5')} ${escapeHtml(t('ui.retrying'))}`;
+        updateWeather(true);
+        return;
+    }
+
+    const refBtn = /** @type {HTMLButtonElement | null} */ (target.closest('#weatherRefreshBtn'));
+    if (refBtn) {
+        e.stopPropagation();
+        if (refBtn.disabled) return;
+        refBtn.disabled = true;
+        refBtn.setAttribute('aria-busy', 'true');
+        const svg = refBtn.querySelector('svg');
+        if (svg) svg.classList.add('weather-spin');
+        const startTime = Date.now();
+        const MIN_SPIN_DURATION = CONFIG.WEATHER.MIN_SPIN_DURATION;
+        updateWeather(true).finally(() => {
+            const elapsed = Date.now() - startTime;
+            const remaining = Math.max(0, MIN_SPIN_DURATION - elapsed);
+            setTimeout(() => {
+                const currentPop = dom.weatherPopover;
+                const currentRefBtn = /** @type {HTMLButtonElement | null} */ (currentPop ? currentPop.querySelector('#weatherRefreshBtn') : null);
+                const currentSvg = currentRefBtn ? currentRefBtn.querySelector('svg') : null;
+                if (currentSvg) currentSvg.classList.remove('weather-spin');
+                if (currentRefBtn) {
+                    currentRefBtn.disabled = false;
+                    currentRefBtn.removeAttribute('aria-busy');
+                }
+            }, remaining);
+        });
+    }
+}
+
+/** @type {ReturnType<typeof setInterval> | null} */
+let weatherIntervalTimer = null;
+
+export function stopWeatherInterval() {
+    if (weatherIntervalTimer !== null) {
+        clearInterval(weatherIntervalTimer);
+        weatherIntervalTimer = null;
+    }
+}
+
 export function initWeather() {
+    if (!popoverEventsBound && dom.weatherPopover) {
+        dom.weatherPopover.addEventListener('click', handleWeatherPopoverClick);
+        popoverEventsBound = true;
+    }
+
     const cache = readWeatherCache();
     if (cache) {
         renderWeatherCapsule(cache);
@@ -558,5 +584,6 @@ export function initWeather() {
     }
 
     updateWeather(false).catch(() => {});
-    setInterval(() => updateWeather(false), CONFIG.WEATHER.CACHE_TTL);
+    stopWeatherInterval();
+    weatherIntervalTimer = setInterval(() => updateWeather(false), CONFIG.WEATHER.CACHE_TTL);
 }
