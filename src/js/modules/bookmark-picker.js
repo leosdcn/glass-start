@@ -23,7 +23,7 @@ let pickerSelectionSignature = '';
  * 获取当前已存在于编辑列表或已添加的 URL 集合并渲染备选卡片
  * @returns {void}
  */
-export function renderPickerCategories() {
+function renderPickerCategories() {
     const pickerContent = dom.pickerContent;
     if (!pickerContent) return;
     const catalog = getCategoryCatalog(pageData.categories);

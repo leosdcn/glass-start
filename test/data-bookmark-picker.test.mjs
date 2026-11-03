@@ -100,7 +100,7 @@ await test("挑选器节点复用与目录失效", async () => {
     try {
         await send('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'reduce'}]});
         await evalJS('openEditModal()');
-        await waitFor(evalJS,'dom.editModal.classList.contains("active")');
+        await waitFor(evalJS,'document.getElementById("editModal").classList.contains("active")');
         assert.equal(await evalJS(`(async () => {
         openBookmarkPicker();
         window.reuseItems=[...dom.pickerContent.querySelectorAll('.picker-item')];

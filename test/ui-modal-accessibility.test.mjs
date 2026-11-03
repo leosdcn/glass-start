@@ -12,12 +12,12 @@ await test("焦点循环、嵌套弹窗与背景隔离", async () => {
       await waitFor(evalJS, 'typeof openEditModal === "function"');
       await send('Emulation.setEmulatedMedia', { features:[{name:'prefers-reduced-motion', value:'reduce'}] });
       await evalJS('dom.editBookmarksBtn.focus(); openEditModal();');
-      await waitFor(evalJS, 'dom.editModal.contains(document.activeElement) && dom.editModal.classList.contains("active")');
+      await waitFor(evalJS, 'document.getElementById("editModal").contains(document.activeElement) && document.getElementById("editModal").classList.contains("active")');
       const root = await evalJS(`(() => {
     dom.searchInput.focus();
-    return {focusBlocked:dom.editModal.contains(document.activeElement),
+    return {focusBlocked:document.getElementById("editModal").contains(document.activeElement),
       background:dom.startSection.inert && dom.navSection.inert, ancestor:!document.body.inert,
-      modal:!dom.editModal.inert};
+      modal:!document.getElementById("editModal").inert};
   })()`);
       assert.equal(Object.values(root).every(Boolean), true, JSON.stringify(root));
       const { root: document } = await send('DOM.getDocument');
@@ -29,15 +29,15 @@ await test("焦点循环、嵌套弹窗与背景隔离", async () => {
       console.log('✅ 打开立即进入弹窗焦点，背景拒绝焦点且从无障碍树排除，页面唤醒不解除隔离');
 
       await evalJS('dom.togglePickerBtn.focus(); openBookmarkPicker();');
-      await waitFor(evalJS, 'dom.bookmarkPicker.contains(document.activeElement)');
+      await waitFor(evalJS, 'document.getElementById("bookmarkPicker").contains(document.activeElement)');
       await evalJS("dom.donePickerBtn.focus(); showConfirm('测试通知', null, '测试', dom.donePickerBtn);");
       await waitFor(evalJS, 'dom.confirmModal.contains(document.activeElement)');
-      assert.equal(await evalJS('dom.editModal.inert && dom.bookmarkPicker.inert && !dom.confirmModal.inert'), true);
+      assert.equal(await evalJS('document.getElementById("editModal").inert && document.getElementById("bookmarkPicker").inert && !dom.confirmModal.inert'), true);
       await escape();
-      await waitFor(evalJS, 'document.activeElement === dom.donePickerBtn && !dom.bookmarkPicker.inert');
-      assert.equal(await evalJS('dom.editModal.inert'), true);
+      await waitFor(evalJS, 'document.activeElement === dom.donePickerBtn && !document.getElementById("bookmarkPicker").inert');
+      assert.equal(await evalJS('document.getElementById("editModal").inert'), true);
       await escape();
-      await waitFor(evalJS, 'document.activeElement === dom.togglePickerBtn && !dom.editModal.inert');
+      await waitFor(evalJS, 'document.activeElement === dom.togglePickerBtn && !document.getElementById("editModal").inert');
       await escape();
       await waitFor(evalJS, 'document.activeElement === dom.editBookmarksBtn && !state.editOpen');
       assert.equal(await evalJS('!dom.startSection.inert && dom.navSection.inert && !document.body.classList.contains("overflow-hidden")'), true);
@@ -47,10 +47,10 @@ await test("焦点循环、嵌套弹窗与背景隔离", async () => {
     const existing = document.createElement('div'); existing.inert = true; document.body.appendChild(existing);
     await openEditModal(); closeEditModal();
     await new Promise(requestAnimationFrame);
-    const quickClose = !dom.editModal.classList.contains('active') && !state.editOpen && !dom.startSection.inert;
+    const quickClose = !document.getElementById("editModal").classList.contains('active') && !state.editOpen && !dom.startSection.inert;
     await openEditModal();
     await new Promise(requestAnimationFrame);
-    const reopened = dom.editModal.contains(document.activeElement) && dom.startSection.inert;
+    const reopened = document.getElementById("editModal").contains(document.activeElement) && dom.startSection.inert;
     closeEditModal(); await new Promise(requestAnimationFrame);
     const preserved = existing.inert; existing.remove();
     const opener = document.createElement('button'); opener.type = 'button'; opener.textContent = '临时触发';
@@ -68,7 +68,7 @@ await test("焦点循环、嵌套弹窗与背景隔离", async () => {
   })()`);
       assert.equal(Object.values(edge).every(Boolean), true, JSON.stringify(edge));
       console.log('✅ 快速关闭不被迟到动画重开，重新打开正常，既有 inert 和触发元素移除均正确处理');
-      assert.equal(await evalJS('dom.editModal.hidden && dom.shortcutModal.hidden && dom.creditsModal.hidden'), true);
+      assert.equal(await evalJS('document.getElementById("editModal").hidden && dom.shortcutModal.hidden && dom.creditsModal.hidden'), true);
       await send('Emulation.setEmulatedMedia', { features:[{name:'prefers-reduced-motion', value:'no-preference'}] });
       const animated = await evalJS(`(async () => {
     openShortcutModal(); closeShortcutModal();
@@ -124,7 +124,7 @@ await test("隔离增量更新与基础状态恢复", async () => {
     try {
         await send('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'reduce'}]});
         await evalJS('dom.editBookmarksBtn.focus();openEditModal()');
-        await waitFor(evalJS,'dom.editModal.contains(document.activeElement)');
+        await waitFor(evalJS,'document.getElementById("editModal").contains(document.activeElement)');
         const result=await evalJS(`(async()=>{
         let count=0;
         const observer=new MutationObserver(records=>count+=records.length);
@@ -135,7 +135,7 @@ await test("隔离增量更新与基础状态恢复", async () => {
         await new Promise(requestAnimationFrame);
         observer.disconnect();
         return{mutations:count,focus:focused===document.activeElement,
-            isolated:dom.startSection.inert&&dom.navSection.inert&&!dom.editModal.inert};
+            isolated:dom.startSection.inert&&dom.navSection.inert&&!document.getElementById("editModal").inert};
     })()`);
         assert.deepEqual(result,{mutations:0,focus:true,isolated:true});
         console.log('✅ 空关闭与相同隔离状态重复同步均零 inert 写入，焦点和背景隔离不变');
@@ -148,9 +148,9 @@ await test("隔离增量更新与基础状态恢复", async () => {
         performanceInertObserver.observe(document.body,{subtree:true,attributes:true,attributeFilter:['inert']});
         dom.togglePickerBtn.focus();openBookmarkPicker();
     })()`);
-        await waitFor(evalJS,'dom.bookmarkPicker.contains(document.activeElement)');
+        await waitFor(evalJS,'document.getElementById("bookmarkPicker").contains(document.activeElement)');
         assert.equal(await evalJS(`!performanceInertChanges.includes('startSection') && !performanceInertChanges.includes('navSection')`),true);
-        assert.equal(await evalJS('dom.editModal.inert && !dom.bookmarkPicker.inert'),true);
+        assert.equal(await evalJS('document.getElementById("editModal").inert && !document.getElementById("bookmarkPicker").inert'),true);
         await evalJS(`dom.donePickerBtn.click()`);
         await waitFor(evalJS,'document.activeElement===dom.togglePickerBtn');
         assert.equal(await evalJS(`!performanceInertChanges.includes('startSection') && !performanceInertChanges.includes('navSection')`),true);
@@ -158,10 +158,10 @@ await test("隔离增量更新与基础状态恢复", async () => {
         console.log('✅ 嵌套弹窗开关只更新变化的弹窗区域，持续隔离的两屏不重复切换');
 
         await evalJS(`OverlayStack.setBaseInert(dom.startSection,true);closeEditModal()`);
-        await waitFor(evalJS,'!state.editOpen && dom.editModal.hidden');
+        await waitFor(evalJS,'!state.editOpen && document.getElementById("editModal").hidden');
         assert.equal(await evalJS('dom.startSection.inert && dom.navSection.inert'),true);
         await evalJS(`OverlayStack.setBaseInert(dom.startSection,false);dom.editBookmarksBtn.focus();openEditModal()`);
-        await waitFor(evalJS,'dom.editModal.contains(document.activeElement)');
+        await waitFor(evalJS,'document.getElementById("editModal").contains(document.activeElement)');
         await evalJS('closeEditModal()');
         await waitFor(evalJS,'document.activeElement===dom.editBookmarksBtn');
         assert.equal(await evalJS('!dom.startSection.inert && dom.navSection.inert'),true);

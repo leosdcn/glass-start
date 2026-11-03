@@ -73,11 +73,11 @@ try {
   }
   console.log('✅ 2K、1K 与手机尺寸快速往返切换，快捷书签即时对齐搜索条且无布局延迟');
   await evalJS('openEditModal()');
-  await waitFor(evalJS, 'dom.editModal.classList.contains("active")');
+  await waitFor(evalJS, 'document.getElementById("editModal").classList.contains("active")');
   await evalJS('dom.addBookmarkBtn.click()');
   await verify('设置与新增书签行');
   await evalJS('openBookmarkPicker()');
-  await waitFor(evalJS, 'dom.bookmarkPicker.classList.contains("active")');
+  await waitFor(evalJS, 'document.getElementById("bookmarkPicker").classList.contains("active")');
   await verify('目录挑选器');
   await evalJS("showConfirm('检查', null, '检查')");
   await waitFor(evalJS, 'dom.confirmModal.classList.contains("active")');
@@ -106,15 +106,15 @@ try {
 
   // 外观页不能靠压缩网格行高塞进弹窗；窄屏改由内容区滚动，底部操作仍固定。
   await evalJS('openEditModal()');
-  await waitFor(evalJS, 'dom.editModal.classList.contains("active")');
-  await evalJS('Promise.all(dom.editModal.getAnimations({subtree:true}).map(a=>a.finished.catch(()=>{})))');
+  await waitFor(evalJS, 'document.getElementById("editModal").classList.contains("active")');
+  await evalJS('Promise.all(document.getElementById("editModal").getAnimations({subtree:true}).map(a=>a.finished.catch(()=>{})))');
   for (const [width, height] of [[1920,1080], [1000,800], [768,800], [640,800], [390,844], [320,740]]) {
     await chrome.send('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor:2, mobile:false });
     await evalJS("document.getElementById('tab-btn-bookmarks').click()");
-    const panelHeight = await evalJS("parseFloat(getComputedStyle(dom.editModal.querySelector('.glass-strong')).height)");
+    const panelHeight = await evalJS("parseFloat(getComputedStyle(document.getElementById('editModal').querySelector('.glass-strong')).height)");
     await evalJS("document.getElementById('tab-btn-appearance').click(); new Promise(requestAnimationFrame)");
     const layout = await evalJS(`(() => {
-      const panel = dom.tabAppearance, grid = dom.presetWallpaperGrid;
+      const panel = document.getElementById('tabAppearance'), grid = dom.presetWallpaperGrid;
       const cards = [...grid.querySelectorAll('.preset-bg-card')];
       const rects = cards.map(card=>card.getBoundingClientRect());
       const controls = [...panel.querySelectorAll('.appearance-field')].map(el=>el.getBoundingClientRect());
@@ -123,7 +123,7 @@ try {
         Math.min(r.bottom,other.bottom)-Math.max(r.top,other.top)<1));
       return {
         count:cards.length, noOverlap,
-        height:parseFloat(getComputedStyle(dom.editModal.querySelector('.glass-strong')).height),
+        height:parseFloat(getComputedStyle(document.getElementById('editModal').querySelector('.glass-strong')).height),
         horizontalOverflow:panel.scrollWidth>panel.clientWidth+1,
         fullGallery:panel.scrollHeight<=panel.clientHeight+1,
         aligned:Math.max(...controls.map(r=>r.top))-Math.min(...controls.map(r=>r.top))<1,
@@ -142,8 +142,8 @@ try {
     if (width>=640) assert.ok(layout.aligned, `${width}px 三组设置保持横排`);
     if (width===1920) assert.ok(layout.fullGallery, '桌面两排壁纸完整可见');
     const beforeLink = await evalJS(`({
-      controlsHeight:dom.tabAppearance.querySelector('.appearance-controls').clientHeight,
-      galleryTop:dom.tabAppearance.querySelector('.appearance-gallery').offsetTop
+      controlsHeight:document.getElementById('tabAppearance').querySelector('.appearance-controls').clientHeight,
+      galleryTop:document.getElementById('tabAppearance').querySelector('.appearance-gallery').offsetTop
     })`);
     await evalJS('dom.urlBgBtn.click()');
     assert.equal(await evalJS(`document.activeElement===dom.urlBgInput &&
@@ -152,8 +152,8 @@ try {
       Math.abs(dom.urlBgInputRow.getBoundingClientRect().width-dom.urlBgBtn.closest('.appearance-source').getBoundingClientRect().width)<1`), true,
       `${width}px 网络直链输入在自定义壁纸列原位展开并获得焦点`);
     assert.deepEqual(await evalJS(`({
-      controlsHeight:dom.tabAppearance.querySelector('.appearance-controls').clientHeight,
-      galleryTop:dom.tabAppearance.querySelector('.appearance-gallery').offsetTop
+      controlsHeight:document.getElementById('tabAppearance').querySelector('.appearance-controls').clientHeight,
+      galleryTop:document.getElementById('tabAppearance').querySelector('.appearance-gallery').offsetTop
     })`), beforeLink, `${width}px 展开直链输入不增高设置区或推移壁纸`);
     await evalJS('dom.urlBgCancelBtn.click()');
     assert.equal(await evalJS("dom.urlBgInputRow.classList.contains('hidden') && !dom.urlBgBtnGroup.classList.contains('hidden')"), true);

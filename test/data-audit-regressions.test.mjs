@@ -205,7 +205,7 @@ try {
   await send('Emulation.setTouchEmulationEnabled', { enabled: true });
   await waitFor(evalJS, 'matchMedia("(any-pointer: coarse)").matches');
   await evalJS('openEditModal()');
-  await waitFor(evalJS, 'dom.editModal.classList.contains("active")');
+  await waitFor(evalJS, 'document.getElementById("editModal").classList.contains("active")');
   const inputFonts = await evalJS("({name:getComputedStyle(dom.editList.querySelector('.edit-name')).fontSize, url:getComputedStyle(dom.urlBgInput).fontSize})");
   assert.deepEqual(inputFonts, {name:'16px', url:'16px'});
   await evalJS('cancelEditModal()');
@@ -215,7 +215,7 @@ try {
   await send('Page.reload');
   await waitFor(evalJS, "window.__AUDIT_RELOAD__ && typeof state !== 'undefined' && document.getElementById('bookmarks').children.length > 0");
   await evalJS('dom.editBookmarksBtn.click()');
-  await waitFor(evalJS, 'state.editOpen && dom.editModal.classList.contains("active")');
+  await waitFor(evalJS, 'state.editOpen && document.getElementById("editModal").classList.contains("active")');
   assert.deepEqual(exceptions, []);
   console.log('✅ 损坏天气缓存刷新后书签正常渲染、设置可打开，无未捕获异常');
 } finally {

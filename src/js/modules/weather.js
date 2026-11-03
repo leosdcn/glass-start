@@ -562,7 +562,7 @@ function handleWeatherPopoverClick(e) {
 /** @type {ReturnType<typeof setInterval> | null} */
 let weatherIntervalTimer = null;
 
-export function stopWeatherInterval() {
+function stopWeatherInterval() {
     if (weatherIntervalTimer !== null) {
         clearInterval(weatherIntervalTimer);
         weatherIntervalTimer = null;

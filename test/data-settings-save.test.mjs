@@ -109,7 +109,7 @@ try {
       try {
         const saving = saveEditModal();
         while (!release) await new Promise(resolve => setTimeout(resolve, 5));
-        const locked = dom.saveEditBtn.disabled && dom.cancelEditBtn.disabled && dom.tabAppearance.inert;
+        const locked = dom.saveEditBtn.disabled && dom.cancelEditBtn.disabled && document.getElementById('tabAppearance').inert;
         dom.presetWallpaperGrid.querySelector('[data-bg="' + backgrounds[3] + '"]').click();
         const selectionBlocked = await previewDraftWallpaper(backgrounds[3]) === false
           && await resetDraftWallpaper() === false
@@ -117,7 +117,7 @@ try {
           && modalState.draftWallpaper === backgrounds[2];
         const attempts = [
           () => dom.cancelEditBtn.click(),
-          () => dom.editModal.click(),
+          () => document.getElementById('editModal').click(),
           () => document.dispatchEvent(new KeyboardEvent('keydown', {key:'Escape', bubbles:true})),
           () => cancelEditModal()
         ].map(cancel => {
@@ -128,7 +128,7 @@ try {
         release(); await saving;
         const persistedBg = (await getWallpaperSelectionDB()).bg;
         const result = {locked, selectionBlocked, attempts, persistedBg, runtimeBg:state.bg,
-          enabled:!dom.saveEditBtn.disabled && !dom.cancelEditBtn.disabled && !dom.tabAppearance.inert,
+          enabled:!dom.saveEditBtn.disabled && !dom.cancelEditBtn.disabled && !document.getElementById('tabAppearance').inert,
           open:state.editOpen};
         if ('${phase}' === 'abort') {
           result.failureShown = OverlayStack.top()?.id === 'confirmModal';

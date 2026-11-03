@@ -200,11 +200,11 @@ try {
         await evalJS(`openEditModal()`);
         for (const tab of ['tabAppearance', 'tabData']) {
             await evalJS(`document.getElementById('${tab}' === 'tabData' ? 'tab-btn-data' : 'tab-btn-appearance').click()`);
-            await waitFor(evalJS, `getComputedStyle(dom.editModal).opacity === '1' && getComputedStyle(dom.editModal.querySelector('.glass-strong')).opacity === '1'`);
+            await waitFor(evalJS, `getComputedStyle(document.getElementById('editModal')).opacity === '1' && getComputedStyle(document.getElementById('editModal').querySelector('.glass-strong')).opacity === '1'`);
             if (tab === 'tabAppearance') await waitFor(evalJS, `[...dom.presetWallpaperGrid.querySelectorAll('img')].every(img => img.complete && img.naturalWidth > 0 && img.classList.contains('loaded'))`);
             const layout = await evalJS(`new Promise(resolve => requestAnimationFrame(() => {
-                const dialog = dom.editModal.querySelector('.glass-strong').getBoundingClientRect();
-                const panel = dom.${tab};
+                const dialog = document.getElementById('editModal').querySelector('.glass-strong').getBoundingClientRect();
+                const panel = document.getElementById('${tab}');
                 resolve({ fits: dialog.left >= 0 && dialog.right <= innerWidth && dialog.top >= 0 && dialog.bottom <= innerHeight + 1,
                     overflow: panel.scrollWidth > panel.clientWidth + 1 });
             }))`);

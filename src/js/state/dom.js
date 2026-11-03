@@ -33,11 +33,11 @@ export const dom = new Proxy(_domStore, {
  * 避免高频交互时反复查询 DOM 节点导致的性能损耗
  *
  * 节点覆盖区域分组：
- * - 语言弹窗: languageBtn, languageModal, languageList, doneLanguageBtn, cancelLanguageBtn
- * - 设置面板与 Tab: tab-btn-bookmarks, tab-btn-appearance, tab-btn-data, tabBookmarks, tabAppearance, tabData
+ * - 语言弹窗: languageBtn, languageList, doneLanguageBtn, cancelLanguageBtn
+ * - 设置面板: tabAppearance
  * - 时钟与搜索: clock, date, searchInput, searchClearBtn, randomBookmarkBtn, engineBtn, engineIcon, engineName, dropdownMenu, suggestionMenu
- * - 导航与侧边栏: bookmarks, sidebar, sidebarList, navCategories, navContent, navSection, navHint, navHeader, scrollDownHint, startSection
- * - 书签编辑与挑选: editModal, editList, editBookmarksBtn, addBookmarkBtn, saveEditBtn, cancelEditBtn, resetEditBtn, togglePickerBtn, bookmarkPicker, pickerContent, pickerCount, donePickerBtn, exportJsonBtn, importJsonInput, bookmarkCountBadge, jsonDropzone
+ * - 导航与侧边栏: bookmarks, sidebar, sidebarList, navCategories, navContent, navSection, navHint, scrollDownHint, startSection
+ * - 书签编辑与挑选: editList, editBookmarksBtn, addBookmarkBtn, saveEditBtn, cancelEditBtn, resetEditBtn, togglePickerBtn, pickerContent, pickerCount, donePickerBtn, exportJsonBtn, importJsonInput, bookmarkCountBadge, jsonDropzone
  * - 外观与壁纸: uploadBgBtn, urlBgBtn, urlBgBtnGroup, urlBgInputRow, urlBgInput, urlBgConfirmBtn, urlBgCancelBtn, resetBgBtn, uploadBgInput, wallpaperStatus, maskOpacityInput, maskOpacityVal, clearCacheBtn, bgLayer, bgLayerNext, bgOverlay, presetWallpaperGrid, settingsTransitionGrid
  * - 天气组件: weatherWidget, weatherBtn, weatherIcon, weatherTemp, weatherCity, weatherPopover
  * - 快捷键与致谢: shortcutModal, shortcutModalList, doneShortcutBtn, openShortcutFromSettingsBtn, openCreditsFromSettingsBtn, creditsModal, creditsList, doneCreditsBtn
@@ -45,6 +45,6 @@ export const dom = new Proxy(_domStore, {
  * @returns {void}
  */
 export function cacheDOM() {
-    const ids = 'languageBtn languageModal languageList doneLanguageBtn cancelLanguageBtn tab-btn-bookmarks tab-btn-appearance tab-btn-data tabBookmarks tabAppearance tabData clock date searchInput searchClearBtn randomBookmarkBtn engineBtn engineIcon engineName dropdownMenu suggestionMenu bookmarks sidebar sidebarList navCategories navContent editModal editList editBookmarksBtn addBookmarkBtn saveEditBtn cancelEditBtn resetEditBtn togglePickerBtn bookmarkPicker pickerContent pickerCount donePickerBtn exportJsonBtn importJsonInput uploadBgBtn urlBgBtn urlBgBtnGroup urlBgInputRow urlBgInput urlBgConfirmBtn urlBgCancelBtn resetBgBtn uploadBgInput wallpaperStatus bookmarkCountBadge jsonDropzone maskOpacityInput maskOpacityVal clearCacheBtn bgLayer bgLayerNext bgOverlay startSection navSection navHint navHeader presetWallpaperGrid settingsTransitionGrid shortcutModal shortcutModalList doneShortcutBtn openShortcutFromSettingsBtn openCreditsFromSettingsBtn scrollDownHint weatherWidget weatherBtn weatherIcon weatherTemp weatherCity weatherPopover creditsModal creditsList doneCreditsBtn confirmModal confirmTitle confirmMsg confirmCancelBtn confirmOkBtn updateNotice updateNoticeText updateReloadBtn'.split(' ');
+    const ids = 'languageBtn languageList doneLanguageBtn cancelLanguageBtn tabAppearance clock date searchInput searchClearBtn randomBookmarkBtn engineBtn engineIcon engineName dropdownMenu suggestionMenu bookmarks sidebar sidebarList navCategories navContent editList editBookmarksBtn addBookmarkBtn saveEditBtn cancelEditBtn resetEditBtn togglePickerBtn pickerContent pickerCount donePickerBtn exportJsonBtn importJsonInput uploadBgBtn urlBgBtn urlBgBtnGroup urlBgInputRow urlBgInput urlBgConfirmBtn urlBgCancelBtn resetBgBtn uploadBgInput wallpaperStatus bookmarkCountBadge jsonDropzone maskOpacityInput maskOpacityVal clearCacheBtn bgLayer bgLayerNext bgOverlay startSection navSection navHint presetWallpaperGrid settingsTransitionGrid shortcutModal shortcutModalList doneShortcutBtn openShortcutFromSettingsBtn openCreditsFromSettingsBtn scrollDownHint weatherWidget weatherBtn weatherIcon weatherTemp weatherCity weatherPopover creditsModal creditsList doneCreditsBtn confirmModal confirmTitle confirmMsg confirmCancelBtn confirmOkBtn updateNotice updateNoticeText updateReloadBtn'.split(' ');
     ids.forEach(id => dom[id] = $(id));
 }
