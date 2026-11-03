@@ -4,11 +4,11 @@ import { buildSync } from 'esbuild';
 
 // 与浏览器使用同一配置；此入口无需启动 HTTP 服务或 Chrome。
 const { outputFiles } = buildSync({
-  stdin: { contents: `export * from './src/js/utils/bookmark-search.js'; export * from './src/js/utils/weather-model.js'; export { CONFIG } from './src/js/config/constants.js'; export * from './src/js/state/bookmark-draft.js'; export {modalState} from './src/js/state/store.js';`, resolveDir:process.cwd() },
+  stdin: { contents: `export * from './src/js/utils/bookmark-search.js'; export * from './src/js/utils/category-catalog.js'; export * from './src/js/utils/weather-model.js'; export * from './src/js/utils/weather-data.js'; export { CONFIG } from './src/js/config/constants.js'; export * from './src/js/state/bookmark-draft.js'; export {modalState} from './src/js/state/store.js';`, resolveDir:process.cwd() },
   bundle:true, write:false, format:'esm', platform:'node'
 });
 const model = await import('data:text/javascript;base64,' + Buffer.from(outputFiles[0].text).toString('base64'));
-const { CONFIG, rankBookmarkSuggestions, normalizeWeatherForecast, damerauLevenshteinDistance } = model;
+const { CONFIG, rankBookmarkSuggestions, normalizeWeatherForecast, damerauLevenshteinDistance, weatherNum, getCategoryCatalog, searchUrlKey } = model;
 assert.equal(damerauLevenshteinDistance('githbu', 'github'), 1);
 const candidates = [
   {bm:{name:'Tools', url:'https://tools.example', icon:'', desc:'GitHub'}, normUrl:'tools.example', defaultCat:'工具'},
@@ -64,6 +64,35 @@ test('地名合并重复行政区，保留同名省市并消除前缀重复', ()
   ]) {
     assert.equal(model.formatLocationFullName(parts), expected, parts.join('/'));
   }
+});
+
+test('气象数值与异常温度文本清洗 (防 XSS 与非预期类型防御)', () => {
+  const cases = [
+    [23, '23°'], ['23.6', '24°'], [-4.6, '-5°'], [0, '0°'],
+    [null, '0°'], [undefined, '0°'], ['', '0°'], ['  ', '0°'],
+    [true, '0°'], ['NaN', '0°'], ['Infinity', '0°'],
+    ['<img src=x onerror=alert(1)>', '0°'], [[], '0°'], [[25], '0°'], [{}, '0°']
+  ];
+  for (const [value, expected] of cases) {
+    const formatted = Math.round(weatherNum(value, 0)) + '°';
+    assert.equal(formatted, expected, `输入值 ${JSON.stringify(value)}`);
+  }
+});
+
+test('分类目录索引映射、首分类归属与内容变更失效算法', () => {
+  const a = { name: 'Zulu', url: 'https://www.example.com/', icon: './icons/github.com.png', desc: '目录简介' };
+  const b = { name: 'Alpha', url: 'https://example.com/', icon: './icons/github.com.png' };
+  const categories = [{ name: '第一分类', bookmarks: [a] }, { name: '第二分类', bookmarks: [{ ...a, name: '重复' }, b] }];
+  const first = getCategoryCatalog(categories);
+  assert.equal(first.byUrl.size, 2);
+  assert.equal(first.byUrl.get(a.url).name, 'Zulu');
+  assert.equal(first.searchCategories.size, 1);
+  assert.equal(first.searchCategories.get(searchUrlKey(b.url)), '第一分类');
+  assert.equal(getCategoryCatalog(categories), first);
+  categories[0].bookmarks.push({ ...b, name: 'Beta' });
+  const changed = getCategoryCatalog(categories);
+  assert.notEqual(changed, first);
+  assert.deepEqual(changed.sorted[0].sortedBookmarks.map(bm => bm.name), ['Beta', 'Zulu']);
 });
 
 model.replaceBookmarkDraft([{id:'a',name:'A',url:'https://a.test',icon:''}, {id:'b',name:'B',url:'https://b.test',icon:''}]);

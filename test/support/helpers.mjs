@@ -100,22 +100,3 @@ export async function launchSession(preferredPort = 0, customRoutes = {}) {
     throw error;
   }
 }
-
-/** 创建一个收集断言结果的测试器，finish() 返回进程退出码 */
-export function makeTester() {
-  const results = [];
-  const pass = (name, cond, detail = '') => {
-    results.push({ name, ok: !!cond, detail });
-    console.log(`${cond ? '✅' : '❌'} ${name}${detail ? ' — ' + detail : ''}`);
-  };
-  const finish = () => {
-    const failed = results.filter(r => !r.ok);
-    console.log(`\n=== ${results.length - failed.length}/${results.length} 通过 ===`);
-    if (failed.length) {
-      console.log('=== 失败项 ===');
-      for (const f of failed) console.log(`  ❌ ${f.name} ${f.detail}`);
-    }
-    return failed.length ? 1 : 0;
-  };
-  return { results, pass, finish };
-}

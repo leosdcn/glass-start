@@ -3,7 +3,7 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { launchSession, sleep, makeTester, pressKey, waitFor, navigateAndWait } from './support/helpers.mjs';
+import { launchSession, sleep, pressKey, waitFor, navigateAndWait } from './support/helpers.mjs';
 
 /** 截图产物输出目录：项目内 test/artifacts/（已 gitignore），相对脚本定位，跨机器可移植 */
 const ARTIFACT_DIR = join(dirname(fileURLToPath(import.meta.url)), 'artifacts');
@@ -12,7 +12,20 @@ try {
   await mkdir(ARTIFACT_DIR, { recursive: true });
 } catch {}
 
-const { pass, finish, results } = makeTester();
+const results = [];
+const pass = (name, cond, detail = '') => {
+  results.push({ name, ok: !!cond, detail });
+  console.log(`${cond ? '✅' : '❌'} ${name}${detail ? ' — ' + detail : ''}`);
+};
+const finish = () => {
+  const failed = results.filter(r => !r.ok);
+  console.log(`\n=== ${results.length - failed.length}/${results.length} 通过 ===`);
+  if (failed.length) {
+    console.log('=== 失败项 ===');
+    for (const f of failed) console.log(`  ❌ ${f.name} ${f.detail}`);
+  }
+  return failed.length ? 1 : 0;
+};
 const { server, chrome, send, evalJS } = await launchSession();
 
 const press = (key) => pressKey(evalJS, key);

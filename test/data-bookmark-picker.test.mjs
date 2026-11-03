@@ -159,3 +159,46 @@ await test("挑选器节点复用与目录失效", async () => {
         await server.close();
     }
 });
+
+test("目录简介缺省继承与导入导出语义", async () => {
+    const a = { name: 'Zulu', url: 'https://www.example.com/', icon: './icons/github.com.png', desc: '目录简介' };
+    const { server, chrome, evalJS } = await launchSession();
+    try {
+        await evalJS(`pageData.categories=[{name:'测试', bookmarks:[${JSON.stringify(a)}]}]`);
+        for (const desc of [undefined, '']) {
+            const item = { ...a };
+            if (desc === undefined) delete item.desc; else item.desc = desc;
+            const direct = await evalJS(`(async () => {
+                storageRemove(CONFIG.KEYS.CUSTOM_META);
+                saveUserBookmarks([${JSON.stringify(item)}]);
+                loadBookmarks();
+                return pageData.bookmarks[0].desc;
+            })()`);
+            assert.equal(direct, desc === undefined ? '目录简介' : '');
+            await evalJS(`(async () => {
+                await openEditModal();
+                const transfer = new DataTransfer();
+                transfer.items.add(new File([${JSON.stringify(JSON.stringify([item]))}], 'bookmarks.json', { type: 'application/json' }));
+                dom.importJsonInput.files = transfer.files;
+                dom.importJsonInput.dispatchEvent(new Event('change', { bubbles: true }));
+            })()`);
+            await waitFor(evalJS, 'OverlayStack.top()?.id === "confirmModal"');
+            const imported = await evalJS(`(async () => {
+                dom.confirmOkBtn.click();
+                const collected = collectEditData();
+                const create = URL.createObjectURL, click = HTMLAnchorElement.prototype.click; let blob;
+                URL.createObjectURL = value => { blob = value; return create(value); };
+                HTMLAnchorElement.prototype.click = function() {};
+                let exported;
+                try { exportBookmarksJSON(); exported = JSON.parse(await blob.text()).bookmarks[0]; }
+                finally { URL.createObjectURL = create; HTMLAnchorElement.prototype.click = click; }
+                saveUserBookmarks(collected); cancelEditModal(); loadBookmarks();
+                return { hasDesc: Object.hasOwn(exported, 'desc'), desc: pageData.bookmarks[0].desc };
+            })()`);
+            assert.deepEqual(imported, { hasDesc: desc !== undefined, desc: desc === undefined ? '目录简介' : '' });
+        }
+    } finally {
+        await chrome.close();
+        await server.close();
+    }
+});

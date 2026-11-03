@@ -1,68 +1,59 @@
 /** 验证构建产物、响应头、离线缓存及防嵌套逻辑。 */
 import assert from 'node:assert/strict';
+import { test } from 'node:test';
 import { readFileSync, existsSync, statSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 import vm from 'node:vm';
-import { makeTester } from './support/helpers.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
 const DIST = join(ROOT, 'dist');
 
-const { pass, finish } = makeTester();
-
-// ══════════════════════════════════════════════════════════════════════
-// 1. dist/ 产物完整性与 Cache-Control 标头规则
-// ══════════════════════════════════════════════════════════════════════
-
-if (!existsSync(DIST)) {
-  console.error('❌ dist/ 目录不存在 —— 请先执行 npm run build');
-  process.exit(1);
-}
-
-// 1.1 文件完整性
-const requiredFiles = ['index.html', 'sw.js', 'app.js', '_headers', 'robots.txt', 'wallpapers/bg1.avif', 'LICENSE.txt', 'SOURCE.txt'];
-const missingFiles = requiredFiles.filter(f => !existsSync(join(DIST, f)));
-const filesExistOk = missingFiles.length === 0;
-
-pass('产物附带根目录 GPL 原文及源码地址',
-  existsSync(join(DIST, 'LICENSE.txt')) && existsSync(join(DIST, 'SOURCE.txt')) &&
-  readFileSync(join(DIST, 'LICENSE.txt'), 'utf-8') === readFileSync(join(ROOT, 'LICENSE'), 'utf-8') &&
-  readFileSync(join(DIST, 'SOURCE.txt'), 'utf-8').includes('https://github.com/leosdcn/glass-start'));
-
-// HTML 语法合法不代表样式存在；禁止发布构建竞争产生的空样式页面。
-const builtHtml = readFileSync(join(DIST, 'index.html'), 'utf-8');
-const inlineCss = [...builtHtml.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/gi)]
-  .map(match => match[1]).join('\n');
-pass('生产页面包含双屏布局与输入字号样式',
-  inlineCss.includes('#startSection') && inlineCss.includes('#navSection') && inlineCss.includes('.text-base'),
-  `内嵌 CSS: ${Buffer.byteLength(inlineCss)} bytes`);
-
-// 1.2 响应头解析
-function parseHeadersFile(content) {
-  const rules = {};
-  let currentPath = null;
-  for (const line of content.split('\n')) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('#')) continue;
-    if (trimmed.startsWith('/')) {
-      currentPath = trimmed;
-      if (!rules[currentPath]) rules[currentPath] = {};
-    } else if (currentPath && trimmed.includes(':')) {
-      const idx = trimmed.indexOf(':');
-      const key = trimmed.slice(0, idx).trim().toLowerCase();
-      const val = trimmed.slice(idx + 1).trim();
-      rules[currentPath][key] = val;
-    }
+test('dist/ 产物完整性与 Cache-Control 标头规则', () => {
+  if (!existsSync(DIST)) {
+    throw new Error('dist/ 目录不存在 —— 请先执行 npm run build');
   }
-  return rules;
-}
 
-const headersPath = join(DIST, '_headers');
-let headersOk = false;
-if (existsSync(headersPath)) {
+  // 1.1 文件完整性
+  const requiredFiles = ['index.html', 'sw.js', 'app.js', '_headers', 'robots.txt', 'wallpapers/bg1.avif', 'LICENSE.txt', 'SOURCE.txt'];
+  const missingFiles = requiredFiles.filter(f => !existsSync(join(DIST, f)));
+  assert.equal(missingFiles.length, 0, `缺少文件: ${missingFiles.join(', ')}`);
+
+  assert.ok(existsSync(join(DIST, 'LICENSE.txt')) && existsSync(join(DIST, 'SOURCE.txt')));
+  assert.equal(readFileSync(join(DIST, 'LICENSE.txt'), 'utf-8'), readFileSync(join(ROOT, 'LICENSE'), 'utf-8'));
+  assert.ok(readFileSync(join(DIST, 'SOURCE.txt'), 'utf-8').includes('https://github.com/leosdcn/glass-start'));
+
+  // 生产页面包含双屏布局与输入字号样式
+  const builtHtml = readFileSync(join(DIST, 'index.html'), 'utf-8');
+  const inlineCss = [...builtHtml.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/gi)]
+    .map(match => match[1]).join('\n');
+  assert.ok(inlineCss.includes('#startSection') && inlineCss.includes('#navSection') && inlineCss.includes('.text-base'),
+    `内嵌 CSS 必须包含布局与字号声明 (${Buffer.byteLength(inlineCss)} bytes)`);
+
+  // 1.2 响应头解析
+  function parseHeadersFile(content) {
+    const rules = {};
+    let currentPath = null;
+    for (const line of content.split('\n')) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#')) continue;
+      if (trimmed.startsWith('/')) {
+        currentPath = trimmed;
+        if (!rules[currentPath]) rules[currentPath] = {};
+      } else if (currentPath && trimmed.includes(':')) {
+        const idx = trimmed.indexOf(':');
+        const key = trimmed.slice(0, idx).trim().toLowerCase();
+        const val = trimmed.slice(idx + 1).trim();
+        rules[currentPath][key] = val;
+      }
+    }
+    return rules;
+  }
+
+  const headersPath = join(DIST, '_headers');
+  assert.ok(existsSync(headersPath), '缺少 dist/_headers');
   const headersContent = readFileSync(headersPath, 'utf-8');
   const rules = parseHeadersFile(headersContent);
   const indexCc = rules['/index.html']?.['cache-control'] || '';
@@ -76,179 +67,175 @@ if (existsSync(headersPath)) {
   const validIcon = iconCc.includes('max-age=604800');
   const srcHeadersContent = readFileSync(join(ROOT, 'public', '_headers'), 'utf-8');
   const syncOk = srcHeadersContent.trim() === headersContent.trim();
-  headersOk = validNoCache && validWp && validIcon && syncOk;
-}
+  assert.ok(validNoCache && validWp && validIcon && syncOk, 'Cache-Control 头配置合规');
 
-// 1.3 构建脚本 PATHS 常量映射与 Watcher 监听目标有效性校验
-const buildScriptContent = readFileSync(join(ROOT, 'scripts', 'build.cjs'), 'utf-8');
-const buildPathsHasSrcIndexHtml = /srcIndexHtml\s*:\s*path\.join/.test(buildScriptContent);
-const require = createRequire(import.meta.url);
-const fs = require('node:fs');
-const { startWatch, PATHS } = require('../scripts/build.cjs');
-const subscriptions = [];
-const originalWatch = fs.watch;
-try {
-  fs.watch = (path, options) => {
-    subscriptions.push({ path, recursive: options.recursive });
-    return { close() {} };
+  // 1.3 构建脚本 PATHS 常量映射与 Watcher 监听目标有效性校验
+  const buildScriptContent = readFileSync(join(ROOT, 'scripts', 'build.cjs'), 'utf-8');
+  const buildPathsHasSrcIndexHtml = /srcIndexHtml\s*:\s*path\.join/.test(buildScriptContent);
+  const require = createRequire(import.meta.url);
+  const fs = require('node:fs');
+  const { startWatch, PATHS } = require('../scripts/build.cjs');
+  const subscriptions = [];
+  const originalWatch = fs.watch;
+  try {
+    fs.watch = (path, options) => {
+      subscriptions.push({ path, recursive: options.recursive });
+      return { close() {} };
+    };
+    startWatch(undefined, { label: 'Test' })();
+  } finally {
+    fs.watch = originalWatch;
+  }
+  const expectedWatchPaths = [PATHS.src, PATHS.public, PATHS.bookmarksJson, PATHS.pkgJson, PATHS.license, PATHS.sw];
+  assert.ok(buildPathsHasSrcIndexHtml);
+  assert.equal(subscriptions.length, expectedWatchPaths.length);
+  assert.ok(expectedWatchPaths.every(path => subscriptions.filter(item => item.path === path).length === 1));
+  assert.ok(subscriptions.every(item => item.recursive === statSync(item.path).isDirectory()));
+});
+
+test('Service Worker 核心预缓存资源与产物版本契约', () => {
+  const srcSw = readFileSync(join(ROOT, 'sw.js'), 'utf-8');
+  const distSw = readFileSync(join(DIST, 'sw.js'), 'utf-8');
+  function inspectWorker(source) {
+    return vm.runInNewContext(source + '\n;({CORE_ASSETS, MAX_FAVICON_ENTRIES, MAX_IMG_ENTRIES, pruneCache})', {
+      self: { registration: { scope: 'https://example.test/' }, addEventListener() {} }, URL
+    });
+  }
+  const distAssets = Array.from(inspectWorker(distSw).CORE_ASSETS);
+  const missingAssets = [];
+  for (const asset of distAssets) {
+    const resolved = asset === './' ? DIST : join(DIST, asset.replace(/^\.\//, ''));
+    if (!existsSync(resolved) || (asset !== './' && !statSync(resolved).isFile())) {
+      missingAssets.push(asset);
+    }
+  }
+  assert.equal(missingAssets.length, 0, `预缓存缺失: ${missingAssets.join(', ')}`);
+  assert.ok(!distAssets.includes('./icon.svg') && !distAssets.includes('./manifest.json') && distAssets.includes('./index.html'));
+
+  const distIndexContent = existsSync(join(DIST, 'index.html')) ? readFileSync(join(DIST, 'index.html'), 'utf-8') : '';
+  assert.ok(/<head[^>]*>[\s\S]*?<script\s+src=["']\.\/app\.js\?v=app-core-v\d+["']\s+defer><\/script>/.test(distIndexContent));
+  assert.ok(!distIndexContent.includes('id="main-script"'));
+
+  const distAppContent = existsSync(join(DIST, 'app.js')) ? readFileSync(join(DIST, 'app.js'), 'utf-8') : '';
+  assert.ok(distIndexContent.includes('__GLASS_BUILD_HTML__') && distAppContent.includes('__GLASS_BUILD_APP__'));
+});
+
+test('Service Worker 缓存池 FIFO 限额淘汰与网络失败隔离', async () => {
+  const srcSw = readFileSync(join(ROOT, 'sw.js'), 'utf-8');
+  function inspectWorker(source) {
+    return vm.runInNewContext(source + '\n;({CORE_ASSETS, MAX_FAVICON_ENTRIES, MAX_IMG_ENTRIES, pruneCache})', {
+      self: { registration: { scope: 'https://example.test/' }, addEventListener() {} }, URL
+    });
+  }
+  const worker = inspectWorker(srcSw);
+
+  // FIFO pruneCache 算法验证
+  const fn = worker.pruneCache;
+  const mockEntriesA = Array.from({ length: 10 }, (_, i) => `https://a.favicon.im/site-${i}.png`);
+  const deletedKeysA = [];
+  const mockCacheA = {
+    keys: async () => [...mockEntriesA],
+    delete: async (k) => {
+      deletedKeysA.push(k);
+      const idx = mockEntriesA.indexOf(k);
+      if (idx !== -1) mockEntriesA.splice(idx, 1);
+      return true;
+    }
   };
-  startWatch(undefined, { label: 'Test' })();
-} finally {
-  fs.watch = originalWatch;
-}
-const expectedWatchPaths = [PATHS.src, PATHS.public, PATHS.bookmarksJson, PATHS.pkgJson, PATHS.license, PATHS.sw];
-const buildWatcherPathsOk = buildPathsHasSrcIndexHtml && subscriptions.length === expectedWatchPaths.length
-  && expectedWatchPaths.every(path => subscriptions.filter(item => item.path === path).length === 1)
-  && subscriptions.every(item => item.recursive === statSync(item.path).isDirectory());
+  await fn(mockCacheA, 5, 'favicon-test');
+  assert.equal(deletedKeysA.length, 5);
+  assert.ok(deletedKeysA.every((k, i) => k === `https://a.favicon.im/site-${i}.png`));
+  assert.equal(mockEntriesA.length, 5);
+  assert.equal(mockEntriesA[0], 'https://a.favicon.im/site-5.png');
 
-pass('dist/ 产物完整性与 Cache-Control 标头规则 (产物齐全/全链路协商缓存/壁纸协商缓存/同步/构建Watcher路径合规)',
-  filesExistOk && headersOk && buildWatcherPathsOk,
-  filesExistOk && headersOk && buildWatcherPathsOk ? '产物与响应头100%合规且Watcher监听路径合法' : `缺失: ${missingFiles.join(', ')}, watcherOk: ${buildWatcherPathsOk}`);
+  // 未达上限不删除
+  const mockEntriesB = ['https://a.favicon.im/a.png', 'https://a.favicon.im/b.png', 'https://a.favicon.im/c.png'];
+  const deletedKeysB = [];
+  const mockCacheB = {
+    keys: async () => [...mockEntriesB],
+    delete: async (k) => { deletedKeysB.push(k); return true; }
+  };
+  await fn(mockCacheB, 5, 'image-test');
+  assert.equal(deletedKeysB.length, 0);
+  assert.equal(mockEntriesB.length, 3);
 
-// ══════════════════════════════════════════════════════════════════════
-// 2. Service Worker 核心预缓存清单与容错安装
-// ══════════════════════════════════════════════════════════════════════
+  // 缓存配额
+  assert.ok([worker.MAX_FAVICON_ENTRIES, worker.MAX_IMG_ENTRIES].every(value => Number.isInteger(value) && value > 0));
 
-const srcSw = readFileSync(join(ROOT, 'sw.js'), 'utf-8');
-const distSw = readFileSync(join(DIST, 'sw.js'), 'utf-8');
-function inspectWorker(source) {
-  return vm.runInNewContext(source + '\n;({CORE_ASSETS, MAX_FAVICON_ENTRIES, MAX_IMG_ENTRIES, pruneCache})', {
-    self: { registration:{scope:'https://example.test/'}, addEventListener() {} }, URL
+  // 核心脚本网络失败不跨构建回填
+  let respond;
+  const handlers = new Map();
+  vm.runInNewContext(srcSw, {
+    self: {
+      location: { origin: 'https://example.test', href: 'https://example.test/sw.js' },
+      registration: { scope: 'https://example.test/' },
+      addEventListener: (name, cb) => handlers.set(name, cb)
+    },
+    URL, Request, Response,
+    fetch: async () => new Response('unavailable', { status: 503 }),
+    caches: { open: async () => ({ match: async () => undefined }), match: async () => new Response('cached-script') }
   });
-}
-const worker = inspectWorker(srcSw);
-const distAssets = Array.from(inspectWorker(distSw).CORE_ASSETS);
-
-const missingAssets = [];
-for (const asset of distAssets) {
-  const resolved = asset === './' ? DIST : join(DIST, asset.replace(/^\.\//, ''));
-  if (!existsSync(resolved) || (asset !== './' && !statSync(resolved).isFile())) {
-    missingAssets.push(asset);
-  }
-}
-const validAssets = missingAssets.length === 0 && !distAssets.includes('./icon.svg') && !distAssets.includes('./manifest.json') && distAssets.includes('./index.html');
-const distIndexContent = existsSync(join(DIST, 'index.html')) ? readFileSync(join(DIST, 'index.html'), 'utf-8') : '';
-const validScriptVersion = /<head[^>]*>[\s\S]*?<script\s+src=["']\.\/app\.js\?v=app-core-v\d+["']\s+defer><\/script>/.test(distIndexContent);
-const noBodyMainScript = !distIndexContent.includes('id="main-script"');
-const distAppContent = existsSync(join(DIST, 'app.js')) ? readFileSync(join(DIST, 'app.js'), 'utf-8') : '';
-const validFingerprints = distIndexContent.includes('__GLASS_BUILD_HTML__') && distAppContent.includes('__GLASS_BUILD_APP__');
-
-
-pass('核心预缓存资源与产物版本契约（安装、更新及离线行为另由 infra-sw-upgrade 验证）',
-  validAssets && validScriptVersion && noBodyMainScript && validFingerprints,
-  `核心资源存在，HTML 与脚本均包含构建指纹`);
-
-// ══════════════════════════════════════════════════════════════════════
-// 3. Service Worker 缓存池的 FIFO 限额淘汰
-// ══════════════════════════════════════════════════════════════════════
-
-// 3.1 真实运行 SW 内置 pruneCache 算法：验证先进先出 (FIFO) 淘汰顺序与限额准确性
-let pruneAlgorithmOk = false;
-try {
-  {
-    const fn = worker.pruneCache;
-    // 场景 A: 模拟 10 条缓存超出 5 条上限，必须严格按 FIFO 删除最旧的前 5 条 (0..4)，保留最新的后 5 条 (5..9)
-    const mockEntriesA = Array.from({ length: 10 }, (_, i) => `https://a.favicon.im/site-${i}.png`);
-    const deletedKeysA = [];
-    const mockCacheA = {
-      keys: async () => [...mockEntriesA],
-      delete: async (k) => {
-        deletedKeysA.push(k);
-        const idx = mockEntriesA.indexOf(k);
-        if (idx !== -1) mockEntriesA.splice(idx, 1);
-        return true;
-      }
-    };
-    await fn(mockCacheA, 5, 'favicon-test');
-    const fifoPruned5Oldest = deletedKeysA.length === 5 && deletedKeysA.every((k, i) => k === `https://a.favicon.im/site-${i}.png`);
-    const remaining5Newest = mockEntriesA.length === 5 && mockEntriesA[0] === 'https://a.favicon.im/site-5.png';
-
-    // 场景 B: 模拟 3 条缓存未达 5 条上限，不触发任何删除
-    const mockEntriesB = ['https://a.favicon.im/a.png', 'https://a.favicon.im/b.png', 'https://a.favicon.im/c.png'];
-    const deletedKeysB = [];
-    const mockCacheB = {
-      keys: async () => [...mockEntriesB],
-      delete: async (k) => { deletedKeysB.push(k); return true; }
-    };
-    await fn(mockCacheB, 5, 'image-test');
-    const noOverheadWhenUnderLimit = deletedKeysB.length === 0 && mockEntriesB.length === 3;
-
-    pruneAlgorithmOk = fifoPruned5Oldest && remaining5Newest && noOverheadWhenUnderLimit;
-  }
-} catch (e) {
-  pruneAlgorithmOk = false;
-}
-
-pass('缓存 FIFO 淘汰保留新项，未超限时不删除', pruneAlgorithmOk);
-pass('图标与图片缓存配额为正整数',
-  [worker.MAX_FAVICON_ENTRIES, worker.MAX_IMG_ENTRIES].every(value => Number.isInteger(value) && value > 0));
-
-// 直接执行 fetch 路由，验证网络失败不使用其他构建的脚本回填。
-let respond;
-const handlers = new Map();
-vm.runInNewContext(srcSw, {
-  self: { location:{origin:'https://example.test',href:'https://example.test/sw.js'},
-    registration:{scope:'https://example.test/'}, addEventListener:(name, fn)=>handlers.set(name, fn) },
-  URL, Request, Response,
-  fetch: async () => new Response('unavailable', {status:503}),
-  caches: {open:async()=>({match:async()=>undefined}), match:async()=>new Response('cached-script')}
+  handlers.get('fetch')({
+    request: new Request('https://example.test/uncached.js'),
+    respondWith: promise => { respond = promise; },
+    waitUntil() {}
+  });
+  assert.equal((await respond).status, 503);
 });
-handlers.get('fetch')({request:new Request('https://example.test/uncached.js'),
-  respondWith: promise => { respond = promise; }, waitUntil() {}});
-pass('核心脚本网络失败不跨构建回填', (await respond).status === 503);
 
-// ══════════════════════════════════════════════════════════════════════
-// 4. 安装过程只请求同源核心资源，不预取外部引擎图标。
-// ══════════════════════════════════════════════════════════════════════
-const installHandlers = new Map(), installTasks = [], installUrls = [];
-const version = srcSw.match(/const CORE_CACHE = '([^']+)'/)[1];
-class InstallRequest extends Request {
-  constructor(url, options) { super(new URL(url, 'https://example.test/'), options); }
-}
-vm.runInNewContext(srcSw, {
-  self: { registration:{scope:'https://example.test/'}, addEventListener: (name, handler) => installHandlers.set(name, handler) },
-  URL,
-  Request: InstallRequest, Response, AbortSignal,
-  fetch: async url => { installUrls.push(String(url)); return new Response('external'); },
-  caches: {
-    open: async () => ({
-      add: async request => { installUrls.push(request.url); },
-      put: async () => {},
-      match: async asset => new Response(String(asset).includes('app.js')
-        ? `window.__GLASS_BUILD_APP__="${version}"`
-        : `window.__GLASS_BUILD_HTML__="${version}"`)
-    }),
-    delete: async () => true
+test('Service Worker 安装过程只请求同源核心资源', async () => {
+  const srcSw = readFileSync(join(ROOT, 'sw.js'), 'utf-8');
+  function inspectWorker(source) {
+    return vm.runInNewContext(source + '\n;({CORE_ASSETS, MAX_FAVICON_ENTRIES, MAX_IMG_ENTRIES, pruneCache})', {
+      self: { registration: { scope: 'https://example.test/' }, addEventListener() {} }, URL
+    });
+  }
+  const worker = inspectWorker(srcSw);
+  const installHandlers = new Map(), installTasks = [], installUrls = [];
+  const version = srcSw.match(/const CORE_CACHE = '([^']+)'/)[1];
+  class InstallRequest extends Request {
+    constructor(url, options) { super(new URL(url, 'https://example.test/'), options); }
+  }
+  vm.runInNewContext(srcSw, {
+    self: { registration: { scope: 'https://example.test/' }, addEventListener: (name, handler) => installHandlers.set(name, handler) },
+    URL,
+    Request: InstallRequest, Response, AbortSignal,
+    fetch: async url => { installUrls.push(String(url)); return new Response('external'); },
+    caches: {
+      open: async () => ({
+        add: async request => { installUrls.push(request.url); },
+        put: async () => {},
+        match: async asset => new Response(String(asset).includes('app.js')
+          ? `window.__GLASS_BUILD_APP__="${version}"`
+          : `window.__GLASS_BUILD_HTML__="${version}"`)
+      }),
+      delete: async () => true
+    }
+  });
+  installHandlers.get('install')({ waitUntil: task => installTasks.push(task) });
+  await Promise.all(installTasks);
+  assert.equal(installUrls.length, worker.CORE_ASSETS.length);
+  assert.ok(installUrls.every(url => new URL(url).origin === 'https://example.test'));
+});
+
+test('防 iframe 恶意嵌套点击劫持 (Frame-Busting)', () => {
+  for (const file of [join(ROOT, 'src', 'index.html'), join(DIST, 'index.html')]) {
+    const html = readFileSync(file, 'utf-8');
+    const script = [...html.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi)]
+      .find(match => match[1].includes('window.top'))?.[1];
+    assert.ok(script, `${file} 缺少防嵌套脚本`);
+    for (const blocked of [false, true]) {
+      let replaced;
+      const top = {
+        get location() {
+          if (blocked) throw new Error('cross-origin frame');
+          return { replace: url => { replaced = url; } };
+        }
+      };
+      const document = { documentElement: { style: {} } };
+      vm.runInNewContext(script, { window: { top, self: {}, location: { href: 'https://start.test/' } }, document });
+      assert.equal(replaced, blocked ? undefined : 'https://start.test/');
+      assert.equal(document.documentElement.style.display, blocked ? 'none' : undefined);
+    }
   }
 });
-installHandlers.get('install')({ waitUntil: task => installTasks.push(task) });
-await Promise.all(installTasks);
-pass('安装仅预取同源核心资源，无外部引擎图标请求',
-  installUrls.length === worker.CORE_ASSETS.length &&
-  installUrls.every(url => new URL(url).origin === 'https://example.test'));
-
-// ══════════════════════════════════════════════════════════════════════
-// 5. 防 <iframe> 恶意嵌套点击劫持 (Frame-Busting) 安全破局
-// ══════════════════════════════════════════════════════════════════════
-
-// 执行实际内联脚本，不在测试里维护第二份防嵌套实现。
-for (const file of [join(ROOT, 'src', 'index.html'), join(DIST, 'index.html')]) {
-  const html = readFileSync(file, 'utf-8');
-  const script = [...html.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi)]
-    .find(match => match[1].includes('window.top'))?.[1];
-  assert.ok(script, `${file} 缺少防嵌套脚本`);
-  for (const blocked of [false, true]) {
-    let replaced;
-    const top = { get location() {
-      if (blocked) throw new Error('cross-origin frame');
-      return { replace: url => { replaced = url; } };
-    } };
-    const document = { documentElement: { style: {} } };
-    vm.runInNewContext(script, { window: { top, self: {}, location: { href: 'https://start.test/' } }, document });
-    assert.equal(replaced, blocked ? undefined : 'https://start.test/');
-    assert.equal(document.documentElement.style.display, blocked ? 'none' : undefined);
-  }
-}
-pass('源码与产物的防嵌套脚本：允许时跳出，跨域受限时隐藏页面', true);
-
-process.exit(finish());
