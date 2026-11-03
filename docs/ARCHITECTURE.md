@@ -118,6 +118,12 @@ flowchart TD
 
 `public/` 在构建时复制到 `dist/`；`src/index.html` 是构建模板。修改构建脚本或其加载的辅助脚本后需重启开发服务。
 
+#### 工程脚本模块格式约定 (`.cjs` vs `.mjs`)
+
+工程根目录 `scripts/` 下根据运行时职责与加载模式明确区分模块格式：
+- **CommonJS (`.cjs`)**：用于构建主链路（`build.cjs`、`build-extension.cjs`、`html-template.cjs`、`server.cjs`、`watch.cjs`）。以同步方式调用 `child_process.execFileSync` 与 `esbuild.buildSync`，保持构建发布状态机的线性确定性与异常拦截。
+- **ES Modules (`.mjs`)**：用于静态代码分析与周边工具（`lint.mjs`、`lint-dom.mjs`、`lint-css.mjs`、`lint-i18n.mjs`、`sync-icons.mjs`）。天然对齐 `src/js/` 业务源码的 ESM import 特性，便于通过动态 `import()` 原生加载业务配置（如 `backgrounds.js`、`themes.js`）并复用 Acorn 语法分析树。
+
 Chrome 扩展通过 `npm run build:extension` 独立生成 `extension/`。`scripts/build-extension.cjs` 复用同一编译入口，在临时目录中把内联脚本按原位置和执行顺序外置，并用 `src/extension/manifest.json` 替换 PWA 清单，版本号仍取自 `package.json`。扩展使用 Manifest V3 覆盖新标签页，不包含后台脚本或网页 Service Worker；本地资源随扩展更新。编译标记 `window.__GLASS_EXTENSION__` 让搜索联想使用 JSON 请求并裁掉 JSONP 分支，其余业务和 LocalStorage / IndexedDB 存储复用网页源码。扩展与网页拥有独立的存储来源。
 
 扩展构建将首屏样式移到首个阻塞脚本之前，并声明初始深色画布，避免脚本尚未加载时透出白底；脚本执行后仍按已保存壁纸恢复主题。产物移除 PWA 清单链接、网页 Service Worker 及托管专用文件；设置中的缓存清理文案也切换为扩展说明。开发服务只重建网页版，扩展需单独构建并在 Chrome 中重新加载。

@@ -374,6 +374,14 @@ export function resetBookmarks() {
     }, t('ui.reset.all.settings'));
 }
 
+/**
+ * 保存设置面板中的全部草稿
+ *
+ * 提交时序与事务语义说明：
+ * - 依次提交：壁纸预写 -> 书签 -> 遮罩暗度 -> 切屏动效 -> 壁纸正式持久化 -> 语言保存。
+ * - 设计权衡：不提供跨 LocalStorage 与 IndexedDB 的整体原子事务。
+ *   若中途某项持久化失败，已提交的项不会回滚，草稿保留在弹窗内以便用户排查或重试。
+ */
 export async function saveEditModal() {
     const saveBtn = dom.saveEditBtn;
     if (!state.editOpen || !saveBtn || saveBtn.disabled) return;

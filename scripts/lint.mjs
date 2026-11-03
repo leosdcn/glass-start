@@ -162,6 +162,7 @@ logSection('3/4', '📦 校验 JSON 配置文件格式');
 const jsonFiles = [
     { name: 'bookmarks.json', path: join(root, 'bookmarks.json'), desc: '书签与分类数据源' },
     { name: 'manifest.json', path: join(root, 'public', 'manifest.json'), desc: 'PWA Web 应用程序清单' },
+    { name: 'ext/manifest', path: join(root, 'src', 'extension', 'manifest.json'), desc: 'Chrome 扩展清单规范' },
     { name: 'package.json', path: join(root, 'package.json'), desc: 'NPM 依赖与指令配置' }
 ].filter(f => {
     try { return statSync(f.path).isFile(); } catch { return false; }
@@ -574,9 +575,24 @@ try {
             errors.push(`壁纸文件缺失: ${bg}`);
         }
     }
-    for (const marker of ['/* INJECT_BACKGROUNDS */', '/* INJECT_ENGINE_ICONS */', '/* INJECT_WEATHER_ICONS */']) {
+    const requiredBuildMarkers = [
+        '<!-- INJECT_I18N_HEAD -->',
+        '<!-- INJECT_APP_HEAD -->',
+        '/* INJECT_BACKGROUNDS */',
+        '/* INJECT_THEME_CONFIG */',
+        '/* INJECT_ENGINE_ICONS */',
+        '<!-- INJECT_SVG_SPRITE -->',
+        '/* INJECT_WEATHER_NUM */',
+        '/* INJECT_WEATHER_ICONS */',
+        '<!-- INJECT_APP_VERSION -->',
+        '<!-- BUILD_STYLES_START -->',
+        '<!-- BUILD_STYLES_END -->',
+        '<!-- BUILD_APP_ENTRY_START -->',
+        '<!-- BUILD_APP_ENTRY_END -->'
+    ];
+    for (const marker of requiredBuildMarkers) {
         const count = indexHtml.split(marker).length - 1;
-        if (count !== 1) errors.push(`构建插槽 ${marker} 出现 ${count} 次`);
+        if (count !== 1) errors.push(`构建插槽/区域标记 ${marker} 出现 ${count} 次（必须且仅能出现 1 次）`);
     }
     if (/const\s+backgrounds\s*=\s*\[/.test(indexHtml)) errors.push('index.html 仍内联壁纸数组');
     if (/const\s+ENGINE_SVGS\s*=\s*\{/.test(indexHtml)) errors.push('index.html 仍内联引擎图标');
@@ -596,6 +612,81 @@ try {
 } catch (e) {
     failCount++;
     logItem(`多语言校验失败: ${e.message}`, 'error');
+}
+
+// Chrome 扩展 Manifest 权限与业务代码网络请求接口一致性检查
+try {
+    const extManifestPath = join(root, 'src', 'extension', 'manifest.json');
+    const extManifest = JSON.parse(readFileSync(extManifestPath, 'utf-8'));
+
+    // 1. 从 host_permissions 提取域名
+    const hostPermDomains = (extManifest.host_permissions || [])
+        .map(pattern => {
+            const m = pattern.match(/^https:\/\/([^/*]+)\/\*$/);
+            return m ? m[1] : null;
+        })
+        .filter(Boolean)
+        .sort();
+
+    // 2. 从 content_security_policy.extension_pages 的 connect-src 提取外部 HTTPS 域名
+    const csp = extManifest.content_security_policy?.extension_pages || '';
+    const connectSrcMatch = csp.match(/connect-src\s+([^;]+)/);
+    const connectSrcDomains = connectSrcMatch
+        ? [...connectSrcMatch[1].matchAll(/https:\/\/([a-zA-Z0-9.-]+\.[a-z]{2,})/g)]
+            .map(m => m[1])
+            .sort()
+        : [];
+
+    // 3. 从业务网络模块 (search.js 与 weather.js) 提取调用的外部 API 域名
+    const netFiles = [
+        join(root, 'src', 'js', 'modules', 'search.js'),
+        join(root, 'src', 'js', 'modules', 'weather.js')
+    ];
+    const codeApiDomains = new Set();
+    for (const file of netFiles) {
+        const code = readFileSync(file, 'utf-8');
+        const urlMatches = code.matchAll(/https:\/\/([a-zA-Z0-9.-]+\.[a-z]{2,})(?:[/?'"`$]|$)/g);
+        for (const m of urlMatches) {
+            const domain = m[1];
+            if (domain === 'open-meteo.com') continue; // 排除外部文档/许可说明链接
+            codeApiDomains.add(domain);
+        }
+        if (code.includes('.wikipedia.org')) {
+            codeApiDomains.add('en.wikipedia.org');
+            codeApiDomains.add('zh.wikipedia.org');
+        }
+    }
+    const sortedCodeDomains = Array.from(codeApiDomains).sort();
+
+    const permErrors = [];
+    for (const domain of sortedCodeDomains) {
+        if (!hostPermDomains.includes(domain)) {
+            permErrors.push(`API 域名 ${domain} 缺失 host_permissions 授权`);
+        }
+        if (!connectSrcDomains.includes(domain)) {
+            permErrors.push(`API 域名 ${domain} 缺失 CSP connect-src 白名单`);
+        }
+    }
+    for (const domain of hostPermDomains) {
+        if (!connectSrcDomains.includes(domain)) {
+            permErrors.push(`host_permissions 包含 ${domain} 但 connect-src 遗漏`);
+        }
+    }
+    for (const domain of connectSrcDomains) {
+        if (!hostPermDomains.includes(domain)) {
+            permErrors.push(`connect-src 包含 ${domain} 但 host_permissions 遗漏`);
+        }
+    }
+
+    if (permErrors.length > 0) {
+        throw new Error(permErrors.join(' | '));
+    }
+
+    passCount++;
+    logItem(`Chrome 扩展 Manifest 权限与业务网络接口 100% 对齐 (${sortedCodeDomains.length} 个远程 API 域名)`);
+} catch (e) {
+    failCount++;
+    logItem(`Chrome 扩展权限一致性检查失败: ${e.message}`, 'error');
 }
 
 const elapsed = Date.now() - startTime;

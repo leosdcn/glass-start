@@ -1,5 +1,15 @@
+/**
+ * 书签派生与持久化、快捷书签和分类导航渲染、图标加载与回退
+ *
+ * 核心职责域：
+ * 1. 数据派生与持久化：loadBookmarks, saveUserBookmarks, resetUserBookmarks
+ * 2. 快捷书签与分类导航渲染：renderBookmarks, renderNavCategories, updateSidebarActive, refreshSidebarNavCache
+ * 3. 图标生命周期与回退：preloadFavicons, initFaviconObserver, handleIconError, scheduleOffscreenNavIcons
+ *
+ * 维护建议：若未来图标加载/观察器逻辑需独立复用，或单文件规模超过 800 行，
+ * 可考虑将图标生命周期关注点拆解至独立模块（如 bookmark-icons.js）。
+ */
 import { localizeBookmarkUrl } from '../core/i18n.js';
-/** 书签派生与持久化、快捷书签和分类导航渲染、图标加载与回退。 */
 import { CONFIG, DEFAULT_BOOKMARKS } from '../config/constants.js';
 import {
     escapeHtml,

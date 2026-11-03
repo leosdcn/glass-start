@@ -8,6 +8,7 @@
 
 // 缓存池定义（打包 build.cjs 时自动替换 CORE_CACHE 为时间戳版本）
 const CORE_CACHE = 'app-core-v1786255428688';
+// 图标池不对称隔离：外部 Favicon 与应用构建代码正交，跨版本保留以节省流量与网络 IO，故不挂钩 CORE_CACHE
 const FAVICON_CACHE = 'app-favicons-v1';
 const SCOPE_URL = /** @type {ServiceWorkerContext} */ (self).registration.scope;
 const CACHE_PREFIX = 'glass-scope-' + encodeURIComponent(new URL(SCOPE_URL).pathname) + '-';
@@ -20,6 +21,7 @@ const CORE_PREFIX = CACHE_PREFIX + 'app-core-';
 const MAX_FAVICON_ENTRIES = 800;
 const MAX_IMG_ENTRIES = 200;
 const FAVICON_TIMEOUT_MS = 7000;
+// SW 内部指令常量（须与 src/js/config/constants.js 中的 CONFIG.SW_MESSAGES.ACTIVATE_UPDATE 严格同步）
 const SW_MESSAGES = {
     ACTIVATE_UPDATE: 'ACTIVATE_UPDATE'
 };

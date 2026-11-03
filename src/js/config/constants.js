@@ -5,6 +5,7 @@ import { PRESET_BACKGROUNDS } from './backgrounds.js';
 import { ENGINE_META } from './engines.js';
 
 // 默认条目复用根目录书签；英文目录仅配置快捷入口的 URL 与顺序。
+// 注：依赖首屏阻塞脚本注入的 window.__GLASS_I18N__，模块求值时根据当前语言导出
 export const DEFAULT_CATEGORIES = bookmarksData.categories || [];
 const defaultUrls = getLocale() === 'en' ? window.__GLASS_I18N__?.catalogs?.en?.defaultBookmarks : undefined;
 export const DEFAULT_BOOKMARKS = defaultUrls
@@ -33,6 +34,7 @@ export const CONFIG = Object.freeze({
                 FAVICON: 'app-favicons-v1'
             }),
             SW_MESSAGES: Object.freeze({
+                // 与 sw.js 中的 SW_MESSAGES.ACTIVATE_UPDATE 严格同步
                 ACTIVATE_UPDATE: 'ACTIVATE_UPDATE'
             }),
             IDB: Object.freeze({
@@ -163,6 +165,8 @@ export const CONFIG = Object.freeze({
                 MAX_DESC_CHARS: 40,           // 导入书签描述截断字符上限
                 IME_COMPOSITION_KEY_CODE: 229 // Android Chrome 虚拟键盘 IME 组合态 keyCode 兼容防护
             }),
+            // 快捷键列表与致谢信息在模块评估时由 t() 一次性求值并 Object.freeze 固化。
+            // 界面语言切换通过 location.reload() 重载，故无需在运行时做动态响应式订阅。
             SHORTCUTS: Object.freeze([
                 {
                     group: t('ui.navigation.and.controls'),
@@ -195,7 +199,7 @@ export const CONFIG = Object.freeze({
             ])
         });
 
-// 引擎名称、协议与 SVG 首屏注入共用同一份元数据；运行时只补首屏注入的 SVG。
+// 引擎名称、协议与 SVG 首屏注入共用同一份元数据；运行时依赖首屏阻塞脚本注入的 window.__ENGINE_SVGS__。
 export const engines = Object.fromEntries(
     Object.entries(ENGINE_META).map(([key, meta]) => [key, {
         ...meta,

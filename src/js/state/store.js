@@ -19,17 +19,25 @@ export const state = {
     customWallpaper: null     // 当前生效的自定义壁纸 Data URL 或图片 URL
 };
 
-/** @type {import('../types').ModalState} 设置弹窗草稿与快照备份 */
+/**
+ * 设置弹窗草稿与快照备份状态
+ * 采用内存草稿隔离模式：设置面板内的修改均在此操作，取消则丢弃草稿，保存时统一清洗并持久化。
+ * @type {import('../types').ModalState}
+ */
 export const modalState = {
-    initialWallpaper: null,
+    // — 1. 快照备份（打开设置弹窗时快照记录，取消时原样回滚）—
+    initialWallpaper: null,       // 打开弹窗前生效的壁纸（预设索引数字或自定义壁纸字符串）
 
-    draftWallpaper: undefined,
-    draftMaskOpacity: null,
-    draftBookmarks: [],
-    wallpaperSaveFailed: false,
-    bookmarksChanged: false,
-    draftLanguage: 'auto',
-    draftTransitionMode: 'sheet'
+    // — 2. 内存草稿值（面板内编辑中的暂存值，点击“完成”时按序提交至 LocalStorage / IndexedDB）—
+    draftWallpaper: undefined,    // 草稿壁纸选择：数字索引、自定义壁纸 Data URL/URL，或 undefined（未修改）
+    draftMaskOpacity: null,       // 背景遮罩暗度百分比草稿（0-80），null 表示未修改
+    draftBookmarks: [],           // 书签编辑草稿列表（内存数组驱动，由 bookmark-draft 模块封装维护）
+    draftLanguage: 'auto',        // 界面语言草稿（'auto' / 'zh-CN' / 'en'）
+    draftTransitionMode: 'sheet', // 双屏推移切换模式草稿（'sheet' / 'fade' / 'none'）
+
+    // — 3. UI 交互与脏检查标记（仅在弹窗生命周期内有效，不持久化）—
+    wallpaperSaveFailed: false,   // 自定义壁纸写入 IndexedDB 失败标记（用于弹出重试或清理提示）
+    bookmarksChanged: false       // 书签列表是否存在未保存的脏变更标记
 };
 
 // 当前运行时的书签与分类数据集

@@ -57,22 +57,28 @@ export function selectSuggestion(index, { keyboard = false, updateInput = true }
     }
     if (keyboard && changed && item) node?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
 }
-/** @type {HTMLScriptElement | null} */
+// ——— 搜索建议状态与测试探针导出 ———
+// 注：部分变量通过 live binding 导出供 testing/bridge.js 及 CDP 自动化测试断言
+/** @type {HTMLScriptElement | null} 当前活跃的 JSONP 脚本节点（测试探针 / 清理用） */
 export let suggestionScriptTag = null;
+/** 当前选中的建议列表项索引（-1 为未选中，公共状态 / 供外部与测试读取） */
 export let selectedSuggestionIdx = -1;
+/** 键盘上下切换前用户键入的原始关键词（公共状态） */
 export let originalQuery = '';
-/** @type {ReturnType<typeof setTimeout> | null} */
+/** @type {ReturnType<typeof setTimeout> | null} 防抖定时器句柄（测试探针，供时钟快进断言） */
 export let suggestDebounceTimer = null;
+/** 异步建议请求自增计数序列号（测试探针，用于防竞态乱序覆盖） */
 export let activeSuggestReqId = 0;
 /** @type {(() => void) | null} */
 let activeSuggestCleanup = null;
 /** @type {string | null} */
 let activeSuggestKey = null;
-/** @param {number} val */
+
+/** @param {number} val 更新选中建议项索引 */
 export function setSelectedSuggestionIdx(val) {
     selectedSuggestionIdx = val;
 }
-/** @param {string} val */
+/** @param {string} val 更新原始搜索词 */
 export function setOriginalQuery(val) {
     originalQuery = val;
 }

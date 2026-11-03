@@ -65,7 +65,11 @@ function handleImageLoadCapture(e) {
 export function init() {
     if (isAppInitialized) return;
     isAppInitialized = true;
+
+    // ① [必须第一步] 缓存高频 DOM 节点：后续所有业务模块通过 dom.xxx 访问元素均依赖此映射表
     cacheDOM();
+
+    // ② 初始化基础 UI 组件与首屏数据
     renderEngineDropdown();
     try {
         initWeather();
@@ -73,13 +77,17 @@ export function init() {
         console.warn('天气组件初始化失败', err);
     }
 
-    // 在捕获阶段处理图片加载失败与成功，避免模板行内 onerror/onload。
+    // ③ 在捕获阶段处理图片加载失败与成功，解耦模板行内 onerror/onload
     document.addEventListener('error', handleImageErrorCapture, true);
     document.addEventListener('load', handleImageLoadCapture, true);
 
     updateClock();
     loadBookmarks();
+
+    // ④ 异步从 IndexedDB/LocalStorage 恢复壁纸（Promise 不阻塞后续同步启动时序）
     const wallpaperRestored = restoreWallpaper().then(() => true, () => false);
+
+    // ⑤ 注册双屏切换生命周期钩子（按需渲染分类、重算侧边栏与 Favicon 观察器）
     setScreenNavHandlers({
         onPrepareNav: () => {
             renderNavCategories();
@@ -96,21 +104,27 @@ export function init() {
             hideSuggestions();
         }
     });
+
+    // ⑥ 协调屏幕状态、挂载触屏手势、页面唤醒恢复、3D 微动交互与过渡动效切换器
     reconcileScreenState();
     initScreenGestures();
     initAppWakeEvents();
     initGlassSpotlightAndTilt();
     initTransitionSwitcher();
 
+    // ⑦ 恢复用户偏好的搜索引擎
     const saved = storageGet(CONFIG.KEYS.PREFERRED_ENGINE);
     setEngine(saved && engines[saved] ? saved : DEFAULT_ENGINE, false);
 
+    // ⑧ 装配全局事件与设置面板交互事件
     bindEvents();
     bindEditEvents();
 
+    // ⑨ 恢复并应用背景遮罩暗度滤镜
     const savedOpacity = storageGet(CONFIG.KEYS.MASK_OPACITY, CONFIG.APPEARANCE.DEFAULT_MASK_OPACITY);
     applyBgEffects(savedOpacity);
 
+    // ⑩ PWA 与 Service Worker 生命周期更新接管监听
     if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
         initServiceWorkerUpdates();
         navigator.serviceWorker.addEventListener('controllerchange', () => {
@@ -130,6 +144,7 @@ export function init() {
         }
     };
 
+    // ⑪ 低优先级空闲调度：预热导航屏 DOM、观察器挂载与图标预加载（不抢占首屏交互主线程）
     scheduleIdleTask(() => {
         // 启动预热：若已处于导航屏（reconcileScreenState 恢复时已触发钩子构建），跳过重复渲染；
         // 起始屏时提前预热导航区，用户首次切屏时即可直接呈现。
@@ -148,6 +163,7 @@ export function init() {
         if (!isScreenTransitioning()) preloadVisibleNavIcons();
     }));
 
+    // ⑫ 首屏渲染完毕后解耦淡入外壳类名
     setTimeout(() => {
         document.querySelectorAll('.fade-in').forEach(el => el.classList.remove('fade-in'));
     }, CONFIG.TIMERS.FADE_IN_UNLOAD);
