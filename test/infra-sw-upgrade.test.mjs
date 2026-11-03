@@ -150,7 +150,7 @@ try {
   version = 107;
   await evalJS(`caches.open('glass-scope-%2Fapp%2F-app-core-v104').then(cache=>cache.delete('./app.js'))`);
   await send('Page.reload');
-  await waitFor(evalJS, `document.querySelector('h1')?.textContent === '本地应用缓存不完整'`);
+  await waitFor(evalJS, `document.querySelector('h1')?.textContent?.includes('本地应用缓存不完整')`);
   assert.equal(await evalJS(`caches.open('glass-scope-%2Fapp%2F-app-core-v104').then(c=>c.match('./app.js')).then(r=>!!r)`), false);
   await evalJS(`document.querySelector('button').click()`);
   await waitFor(evalJS, 'window.appVersion === 107 && !!navigator.serviceWorker.controller',18000).catch(async error=>{console.log(await evalJS(`({text:document.body.textContent,app:window.appVersion,url:location.href})`));throw error});

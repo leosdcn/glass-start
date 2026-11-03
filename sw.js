@@ -164,9 +164,9 @@ function recoveryResponse() {
             });
             reg.waiting.postMessage({type:'${SW_MESSAGES.ACTIVATE_UPDATE}'});
             await activated;location.reload();
-        }catch(error){status.textContent='暂时无法修复，请恢复网络后重试。';this.disabled=false}
+        }catch(error){status.textContent='暂时无法修复，请恢复网络后重试。 / Unable to repair. Please reconnect and retry.';this.disabled=false}
     };`;
-    return new Response('<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>修复本地缓存</title><body><h1>本地应用缓存不完整</h1><p>请连接网络，修复后重新加载。已保存的设置会保留。</p><button type="button">修复并重新加载</button><script nonce="glass-recovery">' + script + '</script></body></html>', {
+    return new Response('<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>修复本地缓存 / Repair Local Cache</title><body><h1>本地应用缓存不完整 / Local cache is incomplete</h1><p>请连接网络，修复后重新加载。已保存的设置会保留。<br>Please connect to the internet and repair. Saved settings will be kept.</p><button type="button">修复并重新加载 / Repair and Reload</button><script nonce="glass-recovery">' + script + '</script></body></html>', {
         status: 503,
         headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store',
             'Content-Security-Policy': "default-src 'self'; script-src 'nonce-glass-recovery'; worker-src 'self'; object-src 'none'; base-uri 'none'" }
