@@ -9,8 +9,24 @@ import { dom } from '../state/dom.js';
 import { OverlayStack } from './overlay-stack.js';
 import { syncWallpaperTheme } from './theme-engine.js';
 import { resetActiveCard } from './gestures.js';
-import { closeDropdown, hideSuggestions } from '../modules/search.js';
-import { renderNavCategories, refreshSidebarNavCache, updateSidebarActive, initFaviconObserver, activateVisibleNavIcons, scheduleOffscreenNavIcons } from '../modules/bookmarks.js';
+
+/**
+ * @typedef {Object} ScreenNavHandlers
+ * @property {() => void} [onPrepareNav] 准备渲染导航区（渲染分类与可视图标）
+ * @property {() => void} [onRefreshNav] 导航区进入后刷新（侧边栏、观察器及懒加载）
+ * @property {() => void} [onBeforeNavTransition] 开始切向导航屏时（关闭下拉与联想）
+ */
+
+/** @type {ScreenNavHandlers} */
+let screenNavHandlers = {};
+
+/**
+ * 注册切屏相关的业务钩子，解除 core 对具体业务模块的下向依赖。
+ * @param {ScreenNavHandlers} handlers
+ */
+export function setScreenNavHandlers(handlers) {
+    screenNavHandlers = { ...screenNavHandlers, ...handlers };
+}
 
 let isTransitioning = false;
 let sectionInitialized = false;
@@ -177,10 +193,7 @@ function resetNavScroll() {
 }
 
 function refreshNav() {
-    refreshSidebarNavCache();
-    updateSidebarActive();
-    initFaviconObserver();
-    scheduleOffscreenNavIcons();
+    screenNavHandlers.onRefreshNav?.();
 }
 
 /**
@@ -193,8 +206,7 @@ function applySection(section, immediate) {
     const start = dom.startSection;
     const nav = dom.navSection;
     if (inNav) {
-        renderNavCategories();
-        activateVisibleNavIcons();
+        screenNavHandlers.onPrepareNav?.();
     }
     saveSection(section);
     updateSectionAccessibility(section);
@@ -272,8 +284,7 @@ function switchSection(section) {
     prepareScreenTransition();
     isTransitioning = true;
     if (section === 'nav') {
-        closeDropdown();
-        hideSuggestions();
+        screenNavHandlers.onBeforeNavTransition?.();
         discoverNav();
     }
     applySection(section, false);

@@ -63,16 +63,23 @@ export interface PageData {
     categories: BookmarkCategory[];
 }
 
-/** 运行时状态；由调用方显式更新并触发渲染。 */
+/** 运行时状态；由调用方显式更新并触发渲染。按语义划分为偏好、路由、UI 控制与壁纸运行时。 */
 export interface AppState {
+    /* --- 用户偏好 (User Preferences) --- */
     /** 当前激活的搜索引擎 key，对应 engines 对象的键名 */
     engine: string;
-    /** 当前壁纸在 backgrounds 数组中的索引 */
-    bg: number;
-    /** 编辑书签弹窗是否打开（用于屏蔽滚轮切屏与键盘快捷键） */
-    editOpen: boolean;
+
+    /* --- 路由与可见视图 (Routing & Views) --- */
     /** 当前可见屏：'start'（起始页）或 'nav'（导航页） */
     currentSection: 'start' | 'nav';
+
+    /* --- UI 交互与弹窗 (UI Controls) --- */
+    /** 编辑书签弹窗是否打开（用于屏蔽滚轮切屏与键盘快捷键） */
+    editOpen: boolean;
+
+    /* --- 壁纸运行时 (Wallpaper Runtime) --- */
+    /** 当前壁纸在 backgrounds 数组中的索引 */
+    bg: number;
     /** 当前生效的自定义壁纸 DataURL 或 URL */
     customWallpaper: string | null;
 }

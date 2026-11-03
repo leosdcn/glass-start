@@ -44,7 +44,7 @@ function applyUpdate() {
         if (dom.updateNoticeText) dom.updateNoticeText.textContent = t('ui.updating');
     }
     reloadTimer = setTimeout(resetUpdateAttempt, CONFIG.TIMERS.SW_UPDATE_TIMEOUT);
-    try { waiting.postMessage({ type: 'ACTIVATE_UPDATE' }); }
+    try { waiting.postMessage({ type: CONFIG.SW_MESSAGES.ACTIVATE_UPDATE }); }
     catch { resetUpdateAttempt(); }
 }
 

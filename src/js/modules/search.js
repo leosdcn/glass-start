@@ -78,6 +78,53 @@ export function setOriginalQuery(val) {
 }
 
 /**
+ * 处理搜索建议的键盘上下键导航
+ * @param {KeyboardEvent} e
+ * @param {((hasVal: boolean) => void)} [onActionButtonsUpdate]
+ * @returns {boolean} 是否处理了导航按键
+ */
+export function handleSuggestionKeyNav(e, onActionButtonsUpdate) {
+    if (e.ctrlKey || e.metaKey || e.altKey) return false;
+    const isSuggestActive = dom.suggestionMenu?.classList.contains('active');
+    const suggestionCount = isSuggestActive ? suggestionItems.length : 0;
+    if (suggestionCount <= 0) return false;
+
+    const searchInput = dom.searchInput;
+    const updateActiveSuggestion = () => {
+        selectSuggestion(selectedSuggestionIdx, { keyboard: true });
+        if (onActionButtonsUpdate && searchInput) onActionButtonsUpdate(!!searchInput.value);
+    };
+
+    if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        if (selectedSuggestionIdx === -1 && searchInput) {
+            originalQuery = searchInput.value;
+        }
+        let nextIdx = selectedSuggestionIdx + 1;
+        if (nextIdx >= suggestionCount) {
+            nextIdx = -1;
+        }
+        selectedSuggestionIdx = nextIdx;
+        updateActiveSuggestion();
+        return true;
+    }
+
+    if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (selectedSuggestionIdx === -1 && searchInput) {
+            originalQuery = searchInput.value;
+            selectedSuggestionIdx = suggestionCount - 1;
+        } else {
+            selectedSuggestionIdx = selectedSuggestionIdx - 1;
+        }
+        updateActiveSuggestion();
+        return true;
+    }
+
+    return false;
+}
+
+/**
  * 输入防抖与关闭清理共用同一个计时器；执行时读取当前搜索引擎。
  * @param {string} query
  */

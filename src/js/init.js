@@ -6,7 +6,7 @@ import { DEFAULT_ENGINE } from './config/engines.js';
 import { storageGet, evictFaviconCache } from './utils/helpers.js';
 import { cacheDOM } from './state/dom.js';
 import { updateClock } from './modules/clock.js';
-import { renderEngineDropdown, setEngine } from './modules/search.js';
+import { renderEngineDropdown, setEngine, closeDropdown, hideSuggestions } from './modules/search.js';
 import { restoreWallpaper, preloadNextBg } from './modules/wallpaper.js';
 import { initWeather } from './modules/weather.js';
 import {
@@ -15,12 +15,15 @@ import {
     preloadFavicons,
     preloadVisibleNavIcons,
     refreshSidebarNavCache,
+    updateSidebarActive,
     initFaviconObserver,
+    activateVisibleNavIcons,
+    scheduleOffscreenNavIcons,
     handleIconError
 } from './modules/bookmarks.js';
 import { applyBgEffects } from './modules/settings.js';
 import { handleEditIconError } from './modules/bookmark-editor.js';
-import { reconcileScreenState, isScreenTransitioning, initTransitionSwitcher } from './core/screen-state.js';
+import { reconcileScreenState, isScreenTransitioning, initTransitionSwitcher, setScreenNavHandlers } from './core/screen-state.js';
 import { initScreenGestures } from './core/screen-input.js';
 import { initAppWakeEvents } from './core/app-wake.js';
 import { initGlassSpotlightAndTilt } from './core/gestures.js';
@@ -29,6 +32,34 @@ import { bindEditEvents } from './modules/settings-events.js';
 import { initServiceWorkerUpdates } from './core/service-worker-updates.js';
 
 let isAppInitialized = false;
+
+/**
+ * 在捕获阶段处理图片加载失败，按元素类型路由到对应处理逻辑
+ * @param {Event} e
+ */
+function handleImageErrorCapture(e) {
+    const target = /** @type {HTMLImageElement | null} */ (e.target instanceof HTMLImageElement ? e.target : null);
+    if (!target) return;
+    if (target.classList.contains('edit-favicon-img')) {
+        handleEditIconError(target);
+    } else if (target.dataset.initial !== undefined || target.closest('.icon-box')) {
+        handleIconError(target);
+    } else if (target.classList.contains('engine-icon') || target.dataset.hideOnError === '1') {
+        evictFaviconCache(target.src);
+        target.style.display = 'none';
+    }
+}
+
+/**
+ * 在捕获阶段处理图片加载成功，激活淡入类名
+ * @param {Event} e
+ */
+function handleImageLoadCapture(e) {
+    const target = /** @type {HTMLImageElement | null} */ (e.target instanceof HTMLImageElement ? e.target : null);
+    if (target && (target.classList.contains('lazy-icon') || target.classList.contains('edit-favicon-img'))) {
+        target.classList.add('loaded');
+    }
+}
 
 export function init() {
     if (isAppInitialized) return;
@@ -41,32 +72,29 @@ export function init() {
         console.warn('天气组件初始化失败', err);
     }
 
-    // 在捕获阶段处理图片加载失败，避免模板行内 onerror。
-    document.addEventListener('error', (e) => {
-        const target = /** @type {HTMLImageElement | null} */ (e.target instanceof HTMLImageElement ? e.target : null);
-        if (target) {
-            if (target.classList.contains('edit-favicon-img')) {
-                handleEditIconError(target);
-            } else if (target.dataset.initial !== undefined || target.closest('.icon-box')) {
-                handleIconError(target);
-            } else if (target.classList.contains('engine-icon') || target.dataset.hideOnError === '1') {
-                evictFaviconCache(target.src);
-                target.style.display = 'none';
-            }
-        }
-    }, true);
-
-    // 在捕获阶段处理图片加载成功，避免模板行内 onload。
-    document.addEventListener('load', (e) => {
-        const target = /** @type {HTMLImageElement | null} */ (e.target instanceof HTMLImageElement ? e.target : null);
-        if (target && (target.classList.contains('lazy-icon') || target.classList.contains('edit-favicon-img'))) {
-            target.classList.add('loaded');
-        }
-    }, true);
+    // 在捕获阶段处理图片加载失败与成功，避免模板行内 onerror/onload。
+    document.addEventListener('error', handleImageErrorCapture, true);
+    document.addEventListener('load', handleImageLoadCapture, true);
 
     updateClock();
     loadBookmarks();
     const wallpaperRestored = restoreWallpaper().then(() => true, () => false);
+    setScreenNavHandlers({
+        onPrepareNav: () => {
+            renderNavCategories();
+            activateVisibleNavIcons();
+        },
+        onRefreshNav: () => {
+            refreshSidebarNavCache();
+            updateSidebarActive();
+            initFaviconObserver();
+            scheduleOffscreenNavIcons();
+        },
+        onBeforeNavTransition: () => {
+            closeDropdown();
+            hideSuggestions();
+        }
+    });
     reconcileScreenState();
     initScreenGestures();
     initAppWakeEvents();

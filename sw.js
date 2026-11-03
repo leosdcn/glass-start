@@ -20,6 +20,9 @@ const CORE_PREFIX = CACHE_PREFIX + 'app-core-';
 const MAX_FAVICON_ENTRIES = 800;
 const MAX_IMG_ENTRIES = 200;
 const FAVICON_TIMEOUT_MS = 7000;
+const SW_MESSAGES = {
+    ACTIVATE_UPDATE: 'ACTIVATE_UPDATE'
+};
 
 // CacheStorage 不会合并同时未命中的请求；多标签或多个图片节点可能重复下载。
 /** @type {Map<string, Promise<Response>>} */
@@ -157,7 +160,7 @@ function recoveryResponse() {
                 function changed(){clearTimeout(timer);resolve()}
                 navigator.serviceWorker.addEventListener('controllerchange',changed,{once:true});
             });
-            reg.waiting.postMessage({type:'ACTIVATE_UPDATE'});
+            reg.waiting.postMessage({type:'${SW_MESSAGES.ACTIVATE_UPDATE}'});
             await activated;location.reload();
         }catch(error){status.textContent='暂时无法修复，请恢复网络后重试。';this.disabled=false}
     };`;
@@ -203,7 +206,7 @@ function recoveryResponse() {
 
 // 仅接受同源窗口的确认；重新校验已下载资源后再跳过等待。
 /** @type {ServiceWorkerContext} */ (self).addEventListener('message', e => {
-    if (e.data?.type !== 'ACTIVATE_UPDATE' || /** @type {Client | null} */ (e.source)?.type !== 'window' ||
+    if (e.data?.type !== SW_MESSAGES.ACTIVATE_UPDATE || /** @type {Client | null} */ (e.source)?.type !== 'window' ||
         !/** @type {Client} */ (e.source).url.startsWith(SCOPE_URL)) return;
     e.waitUntil((async () => {
         await repairCoreCache(await caches.open(CORE_STORAGE));

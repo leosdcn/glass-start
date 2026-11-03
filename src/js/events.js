@@ -9,7 +9,7 @@ import { state } from './state/store.js';
 import { dom } from './state/dom.js';
 import { OverlayStack, MODAL_OVERLAY_IDS } from './core/overlay-stack.js';
 import { switchToStart, switchToNav, isScreenTransitioning } from './core/screen-state.js';
-import { activateSuggestion, selectSuggestion, getSuggestionCount, fetchSuggestions, hideSuggestions, closeDropdown, toggleDropdown, setEngine, openRandomBookmark, selectedSuggestionIdx, setSelectedSuggestionIdx, originalQuery, setOriginalQuery, scheduleSuggestions } from './modules/search.js';
+import { activateSuggestion, selectSuggestion, getSuggestionCount, fetchSuggestions, hideSuggestions, closeDropdown, toggleDropdown, setEngine, openRandomBookmark, selectedSuggestionIdx, originalQuery, setOriginalQuery, scheduleSuggestions, handleSuggestionKeyNav } from './modules/search.js';
 import { toggleWeatherPopover, closeWeatherPopover } from './modules/weather.js';
 import { switchBg } from './modules/wallpaper.js';
 import { openShortcutModal, closeShortcutModal } from './modules/settings.js';
@@ -342,9 +342,6 @@ export function bindEvents() {
         if (document.activeElement === searchInput) {
             if (e.isComposing || e.keyCode === CONFIG.SECURITY.IME_COMPOSITION_KEY_CODE || isComposing || justEndedComposition) return;
 
-            const isSuggestActive = suggestionMenu && suggestionMenu.classList.contains('active');
-            const suggestionCount = isSuggestActive ? getSuggestionCount() : 0;
-
             if (e.key === 'Enter') {
                 e.preventDefault();
                 const isNewTab = e.altKey || e.metaKey || e.ctrlKey;
@@ -352,36 +349,8 @@ export function bindEvents() {
                 return;
             }
 
-            const updateActiveSuggestion = () => {
-                selectSuggestion(selectedSuggestionIdx, { keyboard: true });
-                if (searchInput) updateSearchActionButtons(!!searchInput.value);
-            };
-
-            if (!e.ctrlKey && !e.metaKey && !e.altKey) {
-                if (e.key === 'ArrowDown' && suggestionCount > 0) {
-                    e.preventDefault();
-                    if (selectedSuggestionIdx === -1 && searchInput) {
-                        setOriginalQuery(searchInput.value);
-                    }
-                    let nextIdx = selectedSuggestionIdx + 1;
-                    if (nextIdx >= suggestionCount) {
-                        nextIdx = -1;
-                    }
-                    setSelectedSuggestionIdx(nextIdx);
-                    updateActiveSuggestion();
-                    return;
-                }
-                if (e.key === 'ArrowUp' && suggestionCount > 0) {
-                    e.preventDefault();
-                    if (selectedSuggestionIdx === -1 && searchInput) {
-                        setOriginalQuery(searchInput.value);
-                        setSelectedSuggestionIdx(suggestionCount - 1);
-                    } else {
-                        setSelectedSuggestionIdx(selectedSuggestionIdx - 1);
-                    }
-                    updateActiveSuggestion();
-                    return;
-                }
+            if (handleSuggestionKeyNav(e, updateSearchActionButtons)) {
+                return;
             }
         }
 
