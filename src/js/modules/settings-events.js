@@ -5,7 +5,7 @@ import { t } from '../core/i18n.js';
  * 设置按钮、书签草稿编辑与拖拽排序的事件装配。
  */
 import { CONFIG } from '../config/constants.js';
-import { normalizeUrl, checkImageReady } from '../utils/helpers.js';
+import { normalizeUrl, checkImageReady, handleRovingKeyNav } from '../utils/helpers.js';
 import { getCategoryCatalog } from '../utils/category-catalog.js';
 
 import { modalState, pageData, state } from '../state/store.js';
@@ -36,39 +36,11 @@ export function bindEditEvents() {
         }
     });
     dom.languageList?.addEventListener('keydown', e => {
-        if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey || e.isComposing) return;
-        const items = Array.from(dom.languageList?.querySelectorAll('button[data-lang]') || []);
-        if (items.length === 0) return;
-        const targetEl = e.target instanceof Element ? e.target : null;
-        const currentBtn = /** @type {HTMLElement|null} */ (targetEl?.closest('[data-lang]'));
-        const currentIndex = currentBtn ? items.indexOf(currentBtn) : -1;
-        if (currentIndex === -1) return;
-
-        let nextIndex;
-        switch (e.key) {
-            case 'ArrowDown':
-            case 'ArrowRight':
-                nextIndex = (currentIndex + 1) % items.length;
-                break;
-            case 'ArrowUp':
-            case 'ArrowLeft':
-                nextIndex = (currentIndex - 1 + items.length) % items.length;
-                break;
-            case 'Home':
-                nextIndex = 0;
-                break;
-            case 'End':
-                nextIndex = items.length - 1;
-                break;
-            default:
-                return;
-        }
-        e.preventDefault();
-        const nextBtn = /** @type {HTMLButtonElement} */ (items[nextIndex]);
-        if (nextBtn?.dataset.lang) {
-            selectLanguage(nextBtn.dataset.lang);
-            nextBtn.focus();
-        }
+        const items = /** @type {HTMLElement[]} */ (Array.from(dom.languageList?.querySelectorAll('button[data-lang]') || []));
+        const currentBtn = /** @type {HTMLElement|null} */ (e.target instanceof Element ? e.target.closest('[data-lang]') : null);
+        handleRovingKeyNav(e, items, currentBtn, nextBtn => {
+            if (nextBtn.dataset.lang) selectLanguage(nextBtn.dataset.lang);
+        });
     });
 
     dom.editBookmarksBtn?.addEventListener('click', openEditModal);
@@ -87,28 +59,15 @@ export function bindEditEvents() {
 
     /** @type {HTMLElement[]} */
     const settingsTabs = Array.from(document.querySelectorAll('.settings-tab-btn'));
-    settingsTabs.forEach((btn, index) => {
+    settingsTabs.forEach(btn => {
         btn.addEventListener('click', e => {
             e.stopPropagation();
             if (btn.dataset.tab) switchSettingsTab(btn.dataset.tab);
         });
         btn.addEventListener('keydown', e => {
-            if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey || e.isComposing) return;
-            let nextIndex;
-            switch (e.key) {
-                case 'ArrowRight': nextIndex = (index + 1) % settingsTabs.length; break;
-                case 'ArrowLeft': nextIndex = (index - 1 + settingsTabs.length) % settingsTabs.length; break;
-                case 'Home': nextIndex = 0; break;
-                case 'End': nextIndex = settingsTabs.length - 1; break;
-                default: return;
-            }
-            e.preventDefault();
-            e.stopPropagation();
-            const nextTab = settingsTabs[nextIndex];
-            if (nextTab && nextTab.dataset.tab) {
-                switchSettingsTab(nextTab.dataset.tab);
-                nextTab.focus();
-            }
+            handleRovingKeyNav(e, settingsTabs, btn, nextTab => {
+                if (nextTab.dataset.tab) switchSettingsTab(nextTab.dataset.tab);
+            });
         });
     });
 

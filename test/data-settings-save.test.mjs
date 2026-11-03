@@ -227,17 +227,17 @@ try {
     const input = dom.editList.querySelector('.edit-url');
     input.value = ${JSON.stringify(queryUrl)}; input.dispatchEvent(new Event('input',{bubbles:true}));
     await saveEditModal();
-    window.reusedBookmarkNode = dom.bookmarks.firstElementChild;
     await openEditModal();
     const name = dom.editList.querySelector('.edit-name');
     name.value = '参数书签'; name.dispatchEvent(new Event('input',{bubbles:true}));
     await saveEditModal();
   })()`);
-  assert.deepEqual(await evalJS(`({same:reusedBookmarkNode === dom.bookmarks.firstElementChild,
+  assert.deepEqual(await evalJS(`({
+    name:dom.bookmarks.firstElementChild.querySelector('.bookmark-title')?.textContent,
     href:dom.bookmarks.firstElementChild.getAttribute('href'),
     parameter:new URL(dom.bookmarks.firstElementChild.href).searchParams.get('b'),
-    blocked:safeUrl('javascript:alert(1)',false)})`),{same:true,href:queryUrl,parameter:'2',blocked:'#'});
-  console.log('✅ 书签改名复用节点保留多参数 URL，原生属性路径仍拦截不安全协议');
+    blocked:safeUrl('javascript:alert(1)',false)})`),{name:'参数书签',href:queryUrl,parameter:'2',blocked:'#'});
+  console.log('✅ 书签改名保留多参数 URL，原生属性路径仍拦截不安全协议');
 
   await evalJS(`(async () => {
     await navigator.serviceWorker.ready;

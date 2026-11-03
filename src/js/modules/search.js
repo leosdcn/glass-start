@@ -387,6 +387,32 @@ export function getLocalBookmarkSuggestions(query, limit = CONFIG.SUGGEST.MAX_LO
 }
 
 /**
+ * @param {import('../types').BookmarkSuggestion} bm
+ * @param {number} idx
+ */
+function getBookmarkSuggestionHTML(bm, idx) {
+    const safeIcon = bm.icon ? safeUrl(bm.icon) : '';
+    const iconHtml = (safeIcon && safeIcon !== '#')
+        ? `<img src="${safeIcon}" width="20" height="20" class="w-5 h-5 rounded-md object-cover shrink-0 pointer-events-none select-none" alt="" data-hide-on-error="1" draggable="false">`
+        : `<svg class="w-5 h-5 text-white/40 shrink-0 pointer-events-none select-none" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0 1 11.186 0Z"/></svg>`;
+
+    return `
+        <div id="sug-opt-${idx}"
+             role="option" aria-selected="false" 
+             data-url="${escapeHtml(bm.url)}" 
+             data-idx="${idx}"
+             class="suggestion-item group px-3.5 py-2.5 my-0.5 apple-radius text-sm text-white/90 flex items-center gap-3 glass-interactive cursor-pointer hover:text-white">
+            ${iconHtml}
+            <div class="truncate flex-1 min-w-0 flex items-center gap-2">
+                <span class="truncate font-medium text-white/95">${escapeHtml(bm.name)}</span>
+                ${bm.desc ? `<span class="truncate text-xs text-white/45 hidden sm:inline">${escapeHtml(bm.desc)}</span>` : ''}
+            </div>
+            <span class="text-2xs px-2 py-0.5 apple-radius bg-white/10 border border-white/15 text-white/60 shrink-0">${escapeHtml(bm.category || '')}</span>
+        </div>
+    `;
+}
+
+/**
  * 渲染搜索联想下拉面板
  * @param {import('../types').BookmarkSuggestion[]} [localList]
  * @param {string[]} [netList]
@@ -449,67 +475,41 @@ function renderSuggestions(localList = [], netList = [], preserveSelection = fal
                 existing.classList.remove('active');
                 fragment.appendChild(existing);
             } else {
-                const safeIcon = bm.icon ? safeUrl(bm.icon) : '';
-                const iconHtml = (safeIcon && safeIcon !== '#')
-                    ? `<img src="${safeIcon}" width="20" height="20" class="w-5 h-5 rounded-md object-cover shrink-0 pointer-events-none select-none" alt="" data-hide-on-error="1" draggable="false">`
-                    : `<svg class="w-5 h-5 text-white/40 shrink-0 pointer-events-none select-none" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0 1 11.186 0Z"/></svg>`;
-
-                const itemFrag = range.createContextualFragment(`
-                    <div id="sug-opt-${globalIdx}"
-                         role="option" aria-selected="false" 
-                         data-url="${escapeHtml(bm.url)}" 
-                         data-idx="${globalIdx}"
-                         class="suggestion-item group px-3.5 py-2.5 my-0.5 apple-radius text-sm text-white/90 flex items-center gap-3 glass-interactive cursor-pointer hover:text-white">
-                        ${iconHtml}
-                        <div class="truncate flex-1 min-w-0 flex items-center gap-2">
-                            <span class="truncate font-medium text-white/95">${escapeHtml(bm.name)}</span>
-                            ${bm.desc ? `<span class="truncate text-xs text-white/45 hidden sm:inline">${escapeHtml(bm.desc)}</span>` : ''}
-                        </div>
-                        <span class="text-2xs px-2 py-0.5 apple-radius bg-white/10 border border-white/15 text-white/60 shrink-0">${escapeHtml(bm.category || '')}</span>
-                    </div>
-                `);
-                fragment.appendChild(itemFrag);
+                fragment.appendChild(range.createContextualFragment(getBookmarkSuggestionHTML(bm, globalIdx)));
             }
             globalIdx++;
         });
     }
 
     // 网络建议分组
-    let netHtml = '';
     if (safeNetList.length > 0) {
-        if (localList.length > 0) {
-            netHtml += renderSectionHeader(t('ui.search'), false);
-        }
+        let netHtml = (localList.length > 0 ? renderSectionHeader(t('ui.search'), false) : '');
         safeNetList.forEach(item => {
+            const idx = globalIdx++;
             netHtml += `
-                <div id="sug-opt-${globalIdx}"
+                <div id="sug-opt-${idx}"
                      role="option" aria-selected="false" 
-                     data-idx="${globalIdx}"
+                     data-idx="${idx}"
                      class="suggestion-item group px-3.5 py-2.5 my-0.5 apple-radius text-sm text-white/85 flex items-center gap-3 glass-interactive cursor-pointer hover:text-white">
                     <svg class="w-5 h-5 text-white/40 group-hover:text-white/80 shrink-0 pointer-events-none select-none transition-colors" aria-hidden="true"><use href="#icon-search"/></svg>
                     <span class="truncate flex-1 min-w-0 font-normal tracking-wide">${escapeHtml(item)}</span>
                 </div>
             `;
-            globalIdx++;
         });
+        fragment.appendChild(range.createContextualFragment(netHtml));
     } else if (isNetLoading) {
-        if (localList.length > 0) {
-            netHtml += renderSectionHeader(t('ui.search'), false);
-        }
+        let skeletonHtml = (localList.length > 0 ? renderSectionHeader(t('ui.search'), false) : '');
         const skeletonCount = Math.max(1, CONFIG.SUGGEST.MAX_TOTAL_ITEMS - localList.length);
         for (let k = 0; k < skeletonCount; k++) {
             const widthClass = k % 2 === 0 ? 'w-44' : 'w-28';
-            netHtml += `
+            skeletonHtml += `
                 <div aria-hidden="true" class="px-3.5 py-2.5 my-0.5 apple-radius flex items-center gap-3 select-none pointer-events-none animate-pulse">
                     <svg class="w-5 h-5 text-white/20 shrink-0 pointer-events-none select-none" aria-hidden="true"><use href="#icon-search"/></svg>
                     <div class="h-5 bg-white/15 apple-radius ${widthClass}"></div>
                 </div>
             `;
         }
-    }
-
-    if (netHtml) {
-        fragment.appendChild(range.createContextualFragment(netHtml));
+        fragment.appendChild(range.createContextualFragment(skeletonHtml));
     }
 
     suggestionMenu.replaceChildren(fragment);

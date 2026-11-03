@@ -29,33 +29,6 @@ let cachedSettingsTabs = null;
 /** @type {NodeListOf<HTMLElement> | null} */
 let cachedSettingsPanels = null;
 
-function loadPresetBgCardImages() {
-    const container = dom.presetWallpaperGrid;
-    if (!container) return;
-    container.querySelectorAll('img[data-src]').forEach((el, idx) => {
-        const img = /** @type {HTMLImageElement} */ (el);
-        const src = img.dataset.src;
-        if (!src) return;
-        delete img.dataset.src;
-        let handled = false;
-        const handleLoaded = () => {
-            if (handled) return;
-            handled = true;
-            img.onload = null;
-            requestAnimationFrame(() => {
-                setTimeout(() => {
-                    img.classList.add('loaded');
-                }, idx * CONFIG.TIMERS.PRESET_CARD_STAGGER);
-            });
-        };
-        img.onload = handleLoaded;
-        img.src = src;
-        if (img.complete && img.naturalWidth > 0) {
-            handleLoaded();
-        }
-    });
-}
-
 /** @param {string} targetTabId */
 export function switchSettingsTab(targetTabId) {
     if (!cachedSettingsTabs) cachedSettingsTabs = document.querySelectorAll('.settings-tab-btn');
@@ -72,7 +45,6 @@ export function switchSettingsTab(targetTabId) {
     if (targetTabId === 'tabAppearance') {
         renderPresetWallpapers();
         updatePresetBgCardsUI(modalState.draftWallpaper);
-        loadPresetBgCardImages();
     }
 }
 
@@ -501,19 +473,11 @@ export function selectDraftTransitionMode(mode) {
 
 function syncLanguageUI() {
     const currentLang = modalState.draftLanguage || 'auto';
-    if (dom.languageList) {
-        dom.languageList.querySelectorAll('button[data-lang]').forEach(el => {
-            const btn = /** @type {HTMLButtonElement} */ (el);
-            const isSelected = btn.dataset.lang === currentLang;
-            btn.setAttribute('aria-checked', isSelected ? 'true' : 'false');
-            const check = btn.querySelector('.lang-check');
-            if (isSelected) {
-                btn.classList.add('selected');
-                check?.classList.remove('opacity-0');
-            } else {
-                btn.classList.remove('selected');
-                check?.classList.add('opacity-0');
-            }
-        });
-    }
+    dom.languageList?.querySelectorAll('button[data-lang]').forEach(el => {
+        const btn = /** @type {HTMLButtonElement} */ (el);
+        const isSelected = btn.dataset.lang === currentLang;
+        btn.setAttribute('aria-checked', isSelected ? 'true' : 'false');
+        btn.classList.toggle('selected', isSelected);
+        btn.querySelector('.lang-check')?.classList.toggle('opacity-0', !isSelected);
+    });
 }

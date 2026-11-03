@@ -296,12 +296,16 @@ export function renderPresetWallpapers() {
         const fullTitle = i === 0 ? t('wallpaper.default', { name: title }) : title;
         return `<button type="button" class="preset-bg-card group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70" data-bg="${bg}" title="${escapeHtml(fullTitle)}" aria-pressed="false">
             <span class="preset-bg-image">
-                <img data-src="${thumb}" src="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2016%2010'%3E%3C/svg%3E" width="${CONFIG.UI.WALLPAPER_CARD_WIDTH}" height="${CONFIG.UI.WALLPAPER_CARD_HEIGHT}" alt="" loading="lazy" decoding="async" draggable="false">
+                <img src="${thumb}" width="${CONFIG.UI.WALLPAPER_CARD_WIDTH}" height="${CONFIG.UI.WALLPAPER_CARD_HEIGHT}" alt="" loading="lazy" decoding="async" draggable="false">
                 <span class="preset-bg-check" aria-hidden="true"><svg aria-hidden="true"><use href="#icon-check"/></svg></span>
             </span>
             <span class="preset-bg-title">${escapeHtml(title)}</span>
         </button>`;
     }).join('');
+    grid.querySelectorAll('img').forEach(img => {
+        if (img.complete && img.naturalWidth > 0) img.classList.add('loaded');
+        else img.addEventListener('load', () => img.classList.add('loaded'), { once: true });
+    });
 }
 
 export async function restoreWallpaper() {

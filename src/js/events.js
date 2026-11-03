@@ -1,6 +1,7 @@
 import { cancelDragSort } from './core/drag-sort.js';
 import { resetActiveCard } from './core/gestures.js';
 import { blurNonEditableActive } from './core/screen-input.js';
+import { handleRovingKeyNav } from './utils/helpers.js';
 
 /** 装配搜索、键盘与页面交互事件，协调输入法、联想选择和弹窗焦点。 */
 import { CONFIG } from './config/constants.js';
@@ -170,27 +171,10 @@ export function bindEvents() {
             if (btn && btn.dataset.engine) { e.stopPropagation(); setEngine(btn.dataset.engine); }
         });
         dropdownMenu.addEventListener('keydown', e => {
+            if (e.key === 'Tab') { closeDropdown(); return; }
             const items = /** @type {HTMLElement[]} */ (Array.from(dropdownMenu.querySelectorAll('[data-engine]')));
-            if (!items.length) return;
             const activeEl = /** @type {HTMLElement | null} */ (document.activeElement);
-            const currentIndex = items.indexOf(activeEl || items[0]);
-            if (e.key === 'ArrowDown') {
-                e.preventDefault();
-                const nextIndex = (currentIndex + 1) % items.length;
-                items[nextIndex].focus();
-            } else if (e.key === 'ArrowUp') {
-                e.preventDefault();
-                const prevIndex = (currentIndex - 1 + items.length) % items.length;
-                items[prevIndex].focus();
-            } else if (e.key === 'Home') {
-                e.preventDefault();
-                items[0].focus();
-            } else if (e.key === 'End') {
-                e.preventDefault();
-                items[items.length - 1].focus();
-            } else if (e.key === 'Tab') {
-                closeDropdown();
-            }
+            handleRovingKeyNav(e, items, activeEl, () => {});
         });
     }
 

@@ -22,6 +22,7 @@ import {
     createLetterBadgeHtml,
     evictFaviconCache,
     checkImageReady,
+    handleRovingKeyNav,
     storageGet,
     storageSet,
     storageRemove
@@ -231,47 +232,7 @@ export function renderBookmarks() {
     if (lastBookmarksSignature && currentSig === lastBookmarksSignature) return;
     lastBookmarksSignature = currentSig;
 
-    const existingMap = new Map();
-    bookmarksEl.querySelectorAll(':scope > .bookmark-item').forEach(el => {
-        const u = el.getAttribute('data-url') || el.getAttribute('href');
-        if (u) existingMap.set(u, el);
-    });
-
-    if (existingMap.size === 0) {
-        bookmarksEl.innerHTML = pageData.bookmarks.map(getBookmarkCardHTML).join('');
-    } else {
-        const fragment = document.createDocumentFragment();
-        pageData.bookmarks.forEach(bm => {
-            const safeU = safeUrl(bm.url, false);
-            const safeIcon = safeUrl(bm.icon || '', false);
-            let node = existingMap.get(safeU) || existingMap.get(bm.url);
-            if (node) {
-                node.setAttribute('href', safeUrl(localizeBookmarkUrl(bm.url), false));
-                existingMap.delete(safeU);
-                existingMap.delete(bm.url);
-                const titleSpan = node.querySelector('.bookmark-title');
-                if (titleSpan && titleSpan.textContent !== bm.name) {
-                    titleSpan.textContent = bm.name;
-                }
-                if (node.getAttribute('data-icon') !== safeIcon) {
-                    node.setAttribute('data-icon', safeIcon);
-                    const oldIconBox = node.querySelector('.icon-box');
-                    if (oldIconBox) {
-                        const newIconFrag = document.createRange().createContextualFragment(getFaviconHTML(bm, 'md'));
-                        oldIconBox.replaceWith(newIconFrag);
-                    }
-                }
-                fragment.appendChild(node);
-            } else {
-                const range = document.createRange();
-                const newFrag = range.createContextualFragment(getBookmarkCardHTML(bm));
-                fragment.appendChild(newFrag);
-            }
-        });
-        existingMap.forEach(staleNode => staleNode.remove());
-        bookmarksEl.appendChild(fragment);
-    }
-
+    bookmarksEl.innerHTML = pageData.bookmarks.map(getBookmarkCardHTML).join('');
     bookmarksEl.querySelectorAll('img.lazy-icon').forEach(img => checkImageReady(/** @type {HTMLImageElement} */ (img)));
 }
 
@@ -601,37 +562,11 @@ function initSidebarNav(measureActive = true) {
         });
 
         sidebarList.addEventListener('keydown', (e) => {
-            if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey || e.isComposing) return;
-            const allItems = Array.from(sidebarList.querySelectorAll('[data-target]'));
-            if (allItems.length === 0) return;
-            const targetEl = /** @type {Element | null} */ (e.target);
-            const currentBtn = /** @type {HTMLElement | null} */ (targetEl ? targetEl.closest('[data-target]') : null);
-            const currentIndex = currentBtn ? allItems.indexOf(currentBtn) : -1;
-            if (currentIndex === -1) return;
-
-            let nextIndex;
-            switch (e.key) {
-                case 'ArrowDown':
-                case 'ArrowRight':
-                    nextIndex = (currentIndex + 1) % allItems.length;
-                    break;
-                case 'ArrowUp':
-                case 'ArrowLeft':
-                    nextIndex = (currentIndex - 1 + allItems.length) % allItems.length;
-                    break;
-                case 'Home':
-                    nextIndex = 0;
-                    break;
-                case 'End':
-                    nextIndex = allItems.length - 1;
-                    break;
-                default:
-                    return;
-            }
-            e.preventDefault();
-            const nextBtn = /** @type {HTMLElement} */ (allItems[nextIndex]);
-            nextBtn.focus();
-            nextBtn.click();
+            const allItems = /** @type {HTMLElement[]} */ (Array.from(sidebarList.querySelectorAll('[data-target]')));
+            const currentBtn = /** @type {HTMLElement | null} */ (e.target instanceof Element ? e.target.closest('[data-target]') : null);
+            handleRovingKeyNav(e, allItems, currentBtn, nextBtn => {
+                nextBtn.click();
+            });
         });
 
         let ticking = false;
