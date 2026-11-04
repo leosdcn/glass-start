@@ -23,7 +23,8 @@ export const CONFIG = Object.freeze({
                 WEATHER_LOC: 'glass_weather_loc_cache',
                 THEME_CACHE: 'glass_theme_cache',
                 TINT_CACHE: 'glass_tint_cache',
-                TRANSITION_MODE: 'glass_transition_mode'
+                TRANSITION_MODE: 'glass_transition_mode',
+                TEMP_UNIT: 'glass_temp_unit'
             }),
             CACHE: Object.freeze({
                 FAVICON: 'app-favicons-v1'

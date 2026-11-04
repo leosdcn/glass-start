@@ -66,7 +66,7 @@ test('天气交互、弹窗规范与休眠感知套件', async (t) => {
         const cards = pop.querySelectorAll('.glass-subcard');
         return {
           hasLocation: text.includes('中国 · 上海市'),
-          hasTemp: text.includes('31°C') && text.includes('体感 36°C'),
+          hasTemp: text.includes('31°C') && text.includes('体感 36°') && !text.includes('体感 36°C'),
           cardCount: cards.length,
           card0: cards[0] ? cards[0].innerText.replace(/\\s+/g, ' ') : '',
           card1: cards[1] ? cards[1].innerText.replace(/\\s+/g, ' ') : '',
@@ -81,6 +81,30 @@ test('天气交互、弹窗规范与休眠感知套件', async (t) => {
         && (domCheck.card3.includes('今日日落') || domCheck.card3.includes('明日日出') || domCheck.card3.includes('今日日出'));
 
       assert.ok(gridOrderOk, `cards: [${domCheck?.card0}] [${domCheck?.card1}] [${domCheck?.card2}] [${domCheck?.card3}]`);
+    });
+
+    await t.test('天气弹窗内原位切换摄氏度/华氏度并即时换算', async () => {
+      await evalJS(`document.getElementById('tempUnitToggleBtn').click()`);
+      await waitFor(evalJS, `(document.getElementById('weatherPopover')?.innerText || '').includes('88°F')`);
+      const fahrenheitState = await evalJS(`({
+        popover: document.getElementById('weatherPopover').innerText,
+        capsule: document.getElementById('weatherTemp').textContent,
+        storage: localStorage.getItem('glass_temp_unit')
+      })`);
+      assert.ok(fahrenheitState.popover.includes('88°F') && fahrenheitState.popover.includes('体感 97°') && !fahrenheitState.popover.includes('体感 97°F'));
+      assert.equal(fahrenheitState.capsule, '88°');
+      assert.equal(fahrenheitState.storage, 'F');
+
+      await evalJS(`document.getElementById('tempUnitToggleBtn').click()`);
+      await waitFor(evalJS, `(document.getElementById('weatherPopover')?.innerText || '').includes('31°C')`);
+      const celsiusState = await evalJS(`({
+        popover: document.getElementById('weatherPopover').innerText,
+        capsule: document.getElementById('weatherTemp').textContent,
+        storage: localStorage.getItem('glass_temp_unit')
+      })`);
+      assert.ok(celsiusState.popover.includes('31°C') && celsiusState.popover.includes('体感 36°') && !celsiusState.popover.includes('体感 36°C'));
+      assert.equal(celsiusState.capsule, '31°');
+      assert.equal(celsiusState.storage, 'C');
     });
 
     await t.test('太阳提示使用天气地点时区，兼容夏令时及无时区旧缓存', async () => {

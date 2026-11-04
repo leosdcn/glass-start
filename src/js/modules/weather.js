@@ -1,7 +1,7 @@
 import { t, getLocale, weatherDescription, forecastLabel } from '../core/i18n.js';
 import { weatherTime, formatLocationFullName, stripAdminSuffix, normalizeWeatherForecast } from '../utils/weather-model.js';
 import { CONFIG } from '../config/constants.js';
-import { weatherNum } from '../utils/weather-data.js';
+import { weatherNum, toDisplayTemp } from '../utils/weather-data.js';
 import { escapeHtml, safeUrl, storageGet, storageSet, storageRemove } from '../utils/helpers.js';
 import { dom } from '../state/dom.js';
 import { OverlayStack } from '../core/overlay-stack.js';
@@ -207,15 +207,43 @@ export async function fetchWeatherForecast(loc) {
     return normalizeWeatherForecast(data, loc, CONFIG.WEATHER, Date.now());
 }
 
+/** @type {import('../types').WeatherData | null} */
+let currentWeatherData = null;
+
+export function getTempUnit() {
+    try {
+        const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(CONFIG.KEYS.TEMP_UNIT) : null;
+        if (!raw) return 'C';
+        return raw === 'F' || raw === '"F"' ? 'F' : 'C';
+    } catch {
+        return 'C';
+    }
+}
+
+export function toggleTempUnit() {
+    const nextUnit = getTempUnit() === 'F' ? 'C' : 'F';
+    try {
+        if (typeof localStorage !== 'undefined') localStorage.setItem(CONFIG.KEYS.TEMP_UNIT, nextUnit);
+    } catch {}
+    const data = currentWeatherData || readWeatherCache();
+    if (data) {
+        renderWeatherCapsule(data);
+        renderWeatherPopover(data);
+    }
+    return nextUnit;
+}
+
 /** @param {import('../types').WeatherData | null | undefined} data */
 export function renderWeatherCapsule(data) {
     const weatherWidget = dom.weatherWidget;
     if (!weatherWidget || !data || !data.current) return;
+    currentWeatherData = data;
     const weatherIcon = dom.weatherIcon;
     const weatherTemp = dom.weatherTemp;
     const weatherCity = dom.weatherCity;
     const weatherBtn = dom.weatherBtn;
-    const temperature = Math.round(weatherNum(data.current.temp, 0));
+    const unit = getTempUnit();
+    const temperature = toDisplayTemp(data.current.temp, unit);
 
     if (weatherIcon) {
         const iconStr = data.current.icon || '';
@@ -279,11 +307,13 @@ export function renderWeatherPopover(data) {
         return;
     }
 
+    currentWeatherData = data;
+    const unit = getTempUnit();
     const raw = data.current;
     const c = {
         ...raw,
-        temp: Math.round(weatherNum(raw.temp, 0)),
-        apparent: Math.round(weatherNum(raw.apparent, weatherNum(raw.temp, 0))),
+        temp: toDisplayTemp(raw.temp, unit),
+        apparent: toDisplayTemp(raw.apparent !== undefined ? raw.apparent : raw.temp, unit),
         humidity: Math.round(weatherNum(raw.humidity, CONFIG.WEATHER.DEFAULT_HUMIDITY)),
         windSpeed: Math.round(weatherNum(raw.windSpeed, 0) * 10) / 10,
         icon: (typeof raw.icon === 'string' && raw.icon) ? raw.icon : '⛅',
@@ -295,8 +325,8 @@ export function renderWeatherPopover(data) {
         label: forecastLabel(d.date, index) || (typeof d.label === 'string' ? d.label.slice(0, CONFIG.WEATHER.LABEL_MAX_CHARS) : ''),
         icon: (typeof d.icon === 'string' && d.icon) ? d.icon : '⛅',
         text: (d.weatherCode !== undefined ? weatherDescription(d.weatherCode) : '') || (typeof d.text === 'string' ? d.text.slice(0, CONFIG.SECURITY.MAX_DESC_CHARS) : ''),
-        tempMax: Math.round(weatherNum(d.tempMax, 0)),
-        tempMin: Math.round(weatherNum(d.tempMin, 0))
+        tempMax: toDisplayTemp(d.tempMax, unit),
+        tempMin: toDisplayTemp(d.tempMin, unit)
     }));
 
     let sunIcon = '🌅';
@@ -370,7 +400,7 @@ export function renderWeatherPopover(data) {
         </div>
     `;
 
-    const sig = JSON.stringify([loc.fullName || loc.name || '', c.temp, c.apparent,
+    const sig = JSON.stringify([unit, loc.fullName || loc.name || '', c.temp, c.apparent,
         c.humidity, c.windSpeed, c.icon, c.weatherText, sunLabel, sunTime, popVal,
         days.slice(0, CONFIG.WEATHER.FORECAST_DISPLAY_DAYS)
             .map(d => [d.label, d.tempMin, d.tempMax, d.icon, d.text])]);
@@ -392,7 +422,7 @@ export function renderWeatherPopover(data) {
             <div class="flex items-center gap-3 min-w-0">
                 <span class="text-3xl sm:text-4xl leading-none select-none shrink-0 flex items-center justify-center">${getWeatherIconHTML(c.icon, 'size-10 sm:size-12')}</span>
                 <div class="min-w-0">
-                    <div class="text-2xl font-bold tracking-tight text-white leading-none">${c.temp}<span class="text-base font-normal text-white/70">°C</span></div>
+                    <div id="tempUnitToggleBtn" role="button" tabindex="0" class="text-2xl font-normal tracking-tight text-white leading-none cursor-pointer select-none rounded hover:opacity-85 transition-opacity inline-block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" title="${escapeHtml(t('weather.toggle.unit'))}" aria-label="${escapeHtml(t('weather.toggle.unit'))}"><span class="font-bold">${c.temp}</span><span class="text-base font-normal text-white/70">°${unit}</span></div>
                     <div class="text-xs text-white/75 mt-1${getLocale() === 'zh-CN' ? ' flex flex-wrap items-baseline gap-x-1' : ''}">
                         <span>${escapeHtml(c.weatherText)}</span>
                         ${getLocale() === 'zh-CN' ? '<span aria-hidden="true">·</span>' : ''}
@@ -531,6 +561,13 @@ function handleWeatherPopoverClick(e) {
     const target = /** @type {HTMLElement | null} */ (e.target instanceof HTMLElement ? e.target : null);
     if (!target) return;
 
+    const unitBtn = /** @type {HTMLElement | null} */ (target.closest('#tempUnitToggleBtn'));
+    if (unitBtn) {
+        e.stopPropagation();
+        toggleTempUnit();
+        return;
+    }
+
     const retryBtn = /** @type {HTMLButtonElement | null} */ (target.closest('#weatherErrorRetryBtn'));
     if (retryBtn) {
         e.stopPropagation();
@@ -577,9 +614,22 @@ function stopWeatherInterval() {
     }
 }
 
+/** @param {KeyboardEvent} e */
+function handleWeatherPopoverKeydown(e) {
+    if (e.key === 'Enter' || e.key === ' ') {
+        const target = /** @type {HTMLElement | null} */ (e.target instanceof HTMLElement ? e.target : null);
+        if (target?.closest('#tempUnitToggleBtn')) {
+            e.preventDefault();
+            e.stopPropagation();
+            toggleTempUnit();
+        }
+    }
+}
+
 export function initWeather() {
     if (!popoverEventsBound && dom.weatherPopover) {
         dom.weatherPopover.addEventListener('click', handleWeatherPopoverClick);
+        dom.weatherPopover.addEventListener('keydown', handleWeatherPopoverKeydown);
         popoverEventsBound = true;
     }
 

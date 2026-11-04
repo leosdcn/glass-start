@@ -8,7 +8,7 @@ const { outputFiles } = buildSync({
   bundle:true, write:false, format:'esm', platform:'node'
 });
 const model = await import('data:text/javascript;base64,' + Buffer.from(outputFiles[0].text).toString('base64'));
-const { CONFIG, rankBookmarkSuggestions, normalizeWeatherForecast, damerauLevenshteinDistance, weatherNum, getCategoryCatalog, searchUrlKey } = model;
+const { CONFIG, rankBookmarkSuggestions, normalizeWeatherForecast, damerauLevenshteinDistance, weatherNum, toDisplayTemp, getCategoryCatalog, searchUrlKey } = model;
 assert.equal(damerauLevenshteinDistance('githbu', 'github'), 1);
 const candidates = [
   {bm:{name:'Tools', url:'https://tools.example', icon:'', desc:'GitHub'}, normUrl:'tools.example', defaultCat:'工具'},
@@ -79,6 +79,17 @@ test('气象数值与异常温度文本清洗 (防 XSS 与非预期类型防御)
     const formatted = Math.round(weatherNum(value, 0)) + '°';
     assert.equal(formatted, expected, `输入值 ${JSON.stringify(value)}`);
   }
+});
+
+test('温度单位换算及异常容错', () => {
+  assert.equal(toDisplayTemp(0, 'C'), 0);
+  assert.equal(toDisplayTemp(0, 'F'), 32);
+  assert.equal(toDisplayTemp(24, 'C'), 24);
+  assert.equal(toDisplayTemp(24, 'F'), 75);
+  assert.equal(toDisplayTemp(100, 'F'), 212);
+  assert.equal(toDisplayTemp(-10, 'F'), 14);
+  assert.equal(toDisplayTemp('invalid', 'F'), 32);
+  assert.equal(toDisplayTemp('25.6', 'C'), 26);
 });
 
 test('分类目录索引映射、首分类归属与内容变更失效算法', () => {

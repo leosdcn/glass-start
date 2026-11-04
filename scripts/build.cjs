@@ -301,7 +301,7 @@ function processProductionHtml(compiledCss, targetDir = PATHS.dist) {
         marker: '/* INJECT_WEATHER_NUM */',
         entryPath: path.join(PATHS.src, 'js', 'utils', 'weather-data.js'),
         globalName: '__headWeather',
-        binding: 'const { weatherNum } = __headWeather;'
+        binding: 'const { weatherNum, toDisplayTemp } = __headWeather;'
     });
 
     prodHtmlContent = injectDocumentShell(prodHtmlContent, {
