@@ -40,20 +40,20 @@ function showModal(id) {
     modal.removeAttribute('hidden');
     modal.removeAttribute('aria-hidden');
 
-    if (typeof HTMLDialogElement !== 'undefined' && modal instanceof HTMLDialogElement && !modal.open) {
+    if (modal instanceof HTMLDialogElement && !modal.open) {
         modal.showModal();
         if (!boundDialogModals.has(modal)) {
             modal.addEventListener('cancel', e => {
                 e.preventDefault();
                 const top = OverlayStack.top();
-                if (top && top.id === id && typeof top.close === 'function') {
+                if (top?.id === id) {
                     top.close();
                 }
             });
             modal.addEventListener('click', e => {
                 if (e.target === modal) {
                     const top = OverlayStack.top();
-                    if (top && top.id === id && typeof top.close === 'function') {
+                    if (top?.id === id) {
                         top.close();
                     }
                 }
@@ -87,15 +87,14 @@ function hideModal(id) {
     const modal = document.getElementById(id);
     if (!modal) return;
     const operation = beginVisibilityOperation(id);
-    if (document.activeElement && modal.contains(document.activeElement) && 'blur' in document.activeElement && typeof document.activeElement.blur === 'function') {
-        document.activeElement.blur();
-    }
+    const active = document.activeElement;
+    if ((active instanceof HTMLElement || active instanceof SVGElement) && modal.contains(active)) active.blur();
     modal.setAttribute('aria-hidden', 'true');
     modal.classList.remove('active');
     const finish = () => {
         if (visibilityOperations.get(id) !== operation || OverlayStack.stack.some(entry => entry.id === id)) return;
         modal.setAttribute('hidden', '');
-        if (typeof HTMLDialogElement !== 'undefined' && modal instanceof HTMLDialogElement && modal.open) {
+        if (modal instanceof HTMLDialogElement && modal.open) {
             modal.close();
         }
         visibilityOperations.delete(id);
@@ -113,7 +112,6 @@ const isolatedElements = new Map();
  */
 function visibleFocusTarget(element) {
     return !!(element && element instanceof HTMLElement && element.isConnected && element !== document.body && element !== document.documentElement &&
-        typeof element.focus === 'function' &&
         !element.closest('[inert], [hidden], [aria-hidden="true"]') &&
         (element.offsetWidth > 0 || element.offsetHeight > 0) &&
         getComputedStyle(element).visibility === 'visible');

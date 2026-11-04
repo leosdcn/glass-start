@@ -55,7 +55,7 @@ export function resetScreenInput() {
  */
 export function blurNonEditableActive() {
     const active = /** @type {HTMLElement|null} */ (document.activeElement);
-    if (active && typeof active.blur === 'function' && active !== document.body && active !== dom.searchInput && !active.matches('input, textarea, select, [contenteditable]:not([contenteditable="false"])')) {
+    if (active && active !== document.body && active !== dom.searchInput && !active.matches('input, textarea, select, [contenteditable]:not([contenteditable="false"])')) {
         active.blur();
     }
 }

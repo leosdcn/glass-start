@@ -74,10 +74,6 @@ let activeSuggestCleanup = null;
 /** @type {string | null} */
 let activeSuggestKey = null;
 
-/** @param {number} val 更新选中建议项索引 */
-export function setSelectedSuggestionIdx(val) {
-    selectedSuggestionIdx = val;
-}
 /** @param {string} val 更新原始搜索词 */
 export function setOriginalQuery(val) {
     originalQuery = val;

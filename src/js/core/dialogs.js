@@ -22,52 +22,36 @@ export function showConfirm(message, onConfirm, title = t('ui.confirm.reset.2'),
     const cancelBtn = dom.confirmCancelBtn;
 
     if (!modal || !okBtn || !cancelBtn || !msgEl) {
-        if (typeof window !== 'undefined' && window.confirm(message)) onConfirm?.();
+        if (window.confirm(message)) onConfirm?.();
         return;
     }
 
-    if (activeConfirmCleanup) {
-        activeConfirmCleanup();
-        activeConfirmCleanup = null;
-    }
-
-    const currentModal = modal;
-    const currentOkBtn = okBtn;
-    const currentCancelBtn = cancelBtn;
+    activeConfirmCleanup?.();
 
     const isNotify = onConfirm == null;
-    currentModal.classList.toggle('confirm-neutral', tone === 'neutral');
-    currentModal.setAttribute('role', tone === 'neutral' ? 'dialog' : 'alertdialog');
-    currentOkBtn.textContent = isNotify ? t('ui.got.it') : (okText || t('ui.confirm'));
-    currentCancelBtn.textContent = cancelText;
-    currentCancelBtn.classList.toggle('hidden', isNotify);
+    modal.classList.toggle('confirm-neutral', tone === 'neutral');
+    modal.setAttribute('role', tone === 'neutral' ? 'dialog' : 'alertdialog');
+    okBtn.textContent = isNotify ? t('ui.got.it') : (okText || t('ui.confirm'));
+    cancelBtn.textContent = cancelText;
+    cancelBtn.classList.toggle('hidden', isNotify);
 
     if (titleEl) titleEl.textContent = title;
     msgEl.textContent = message;
-    /** @type {HTMLElement | null} */
-    let confirmTriggerEl = /** @type {HTMLElement | null} */ (triggerEl || document.activeElement || dom.resetEditBtn);
-    OverlayStack.push('confirmModal', cleanup, confirmTriggerEl);
-    if (confirmTriggerEl && typeof confirmTriggerEl.setAttribute === 'function') {
-        confirmTriggerEl.setAttribute('aria-expanded', 'true');
-    }
-
-    function cleanup() {
+    const confirmTriggerEl = triggerEl || document.activeElement || dom.resetEditBtn;
+    const cleanup = () => {
         activeConfirmCleanup = null;
         OverlayStack.pop('confirmModal');
-        currentCancelBtn.classList.remove('hidden');
-        currentOkBtn.removeEventListener('click', handleOk);
-        currentCancelBtn.removeEventListener('click', handleCancel);
-        if (confirmTriggerEl && typeof confirmTriggerEl.focus === 'function') {
-            const opener = confirmTriggerEl;
-            confirmTriggerEl = null;
-            opener.setAttribute('aria-expanded', 'false');
-        }
-    }
+        cancelBtn.classList.remove('hidden');
+        okBtn.removeEventListener('click', handleOk);
+        cancelBtn.removeEventListener('click', cleanup);
+        confirmTriggerEl?.setAttribute('aria-expanded', 'false');
+    };
 
     function handleOk() { cleanup(); onConfirm?.(); }
-    function handleCancel() { cleanup(); }
 
-    currentOkBtn.addEventListener('click', handleOk);
-    currentCancelBtn.addEventListener('click', handleCancel);
+    OverlayStack.push('confirmModal', cleanup, confirmTriggerEl);
+    confirmTriggerEl?.setAttribute('aria-expanded', 'true');
+    okBtn.addEventListener('click', handleOk);
+    cancelBtn.addEventListener('click', cleanup);
     activeConfirmCleanup = cleanup;
 }

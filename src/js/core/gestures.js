@@ -36,16 +36,14 @@ export function resetActiveCard() {
     }
 }
 export function initGlassSpotlightAndTilt() {
-    if (typeof window === 'undefined') return;
     if (isGlassSpotlightAndTiltInitialized) return;
 
-    const mediaHover = window.matchMedia && window.matchMedia('(hover: hover) and (pointer: fine)');
-    const mediaMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)');
+    const mediaHover = window.matchMedia('(hover: hover) and (pointer: fine)');
+    const mediaMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
-    if (!mediaHover) return;
     isGlassSpotlightAndTiltInitialized = true;
 
-    const canAnimate = () => mediaHover.matches && !mediaMotion?.matches && !document.hidden
+    const canAnimate = () => mediaHover.matches && !mediaMotion.matches && !document.hidden
         && !document.body.classList.contains('tab-blurred')
         && !document.body.classList.contains('is-screen-transitioning') && state.currentSection === 'nav';
 
@@ -53,11 +51,9 @@ export function initGlassSpotlightAndTilt() {
         if (!e.matches) resetActiveCard();
     });
 
-    if (mediaMotion && mediaMotion.addEventListener) {
-        mediaMotion.addEventListener('change', (e) => {
-            if (e.matches) resetActiveCard();
-        });
-    }
+    mediaMotion.addEventListener('change', e => {
+        if (e.matches) resetActiveCard();
+    });
 
     function updateCardTransform() {
         if (!canAnimate()) {
@@ -73,7 +69,7 @@ export function initGlassSpotlightAndTilt() {
         const x = pendingEvent.clientX - rect.left;
         const y = pendingEvent.clientY - rect.top;
 
-        const isPressed = (typeof activeCard.matches === 'function' && activeCard.matches(':active')) || (pendingEvent.buttons === 1);
+        const isPressed = activeCard.matches(':active') || (pendingEvent.buttons === 1);
 
         // 死区过滤：微小位移 (< 0.75px) 且按压状态无变化时，跳过无意义的 DOM 样式与 CSS 变量写入
         const dx = x - lastRenderedX;

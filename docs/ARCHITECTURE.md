@@ -79,7 +79,7 @@ CSS 通过 `main.css` 按其 `@import` 顺序编译为内联样式，不增加�
 
 - 默认书签只维护根目录 `bookmarks.json`；语言入口差异与译文见 `config/locales/catalog-*.json`。运行时配置集中在 `config/constants.js`，不要在业务模块或 HTML 复制配置。
 - 全局模型见 `state/store.js`，草稿操作见 `state/bookmark-draft.js`；新增 DOM 缓存键同步 `state/dom.js` 与 `types.d.ts`。
-- 文本转义、URL 与持久化清洗优先复用 `utils/helpers.js`、`utils/category-catalog.js`、`utils/idb.js`。主应用测试接口仅在 `testing/bridge.js`，生产构建裁除。
+- 文本转义、URL 与持久化清洗优先复用 `utils/helpers.js`、`utils/category-catalog.js`、`utils/idb.js`。主应用测试接口仅在 `testing/bridge.js`，生产构建裁除；搜索内部状态仅通过只读访问器暴露，不提供测试专用的状态写入口。
 - 本地图标下载/转换入口为根目录 `scripts/sync-icons.mjs`，资源在 `public/icons/`；测试共用 CDP 和服务辅助模块在 `test/support/`，回归用例保持 `test/` 顶层。
 
 ## 模块与构建
@@ -109,6 +109,8 @@ flowchart TD
 - `state/dom.js`：集中缓存通过 `dom.xxx` 或静态键访问的节点，新增或更名此类节点时同步更新 `cacheDOM()` 与 `types.d.ts` 的 `DOMCache` 类型。仅用于标签关联、无障碍描述或锚点的 ID 无须缓存。
 - `core/`：页面共用机制，包括浮层、手势、切屏、生命周期、主题与壁纸渲染；切屏通过初始化时注册的钩子协调业务，页面唤醒由顶层 `events.js` 装配。具体功能及其控件事件放在 `modules/`，跨业务的应用装配放在 `src/js/` 顶层。
 - `utils/`：提供 URL 与文本清洗、目录索引、IndexedDB 存储等共用能力。
+
+切屏、手势和弹窗等浏览器专用入口直接使用标准 DOM API，不为缺失 `window`、`document`、`matchMedia` 或基础元素方法增加兼容分支。供 Node 静态检查或纯模型测试加载的共享模块按实际需要保留环境判断；不在测试运行器中伪造全局浏览器环境。网络、存储失败、用户输入清洗及异步任务失效仍由对应模块处理。
 
 构建读取 `package.json` 版本号并生成版本徽章；每次构建生成统一指纹，注入 HTML、应用脚本与 Service Worker。HTML 引用的 `app.js` 同时携带版本查询参数。应用脚本、内联脚本与 CSS 均压缩；Service Worker 在注入版本后复用 esbuild 压缩，根目录 `sw.js` 保留可读源码，缓存、升级与并发请求回归执行生成的 `dist/sw.js`。
 

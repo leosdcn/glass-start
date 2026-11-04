@@ -112,7 +112,7 @@ Object.assign(window, {
     init: app.init,
 });
 
-// 可变导出通过访问器实时读取，保留原有可写接口和属性描述符。
+// 可变导出通过只读访问器实时读取，不允许测试直接改写业务状态。
 Object.defineProperties(window, {
     activeSuggestReqId: {
         get: () => search.activeSuggestReqId,
@@ -120,7 +120,6 @@ Object.defineProperties(window, {
     },
     selectedSuggestionIdx: {
         get: () => search.selectedSuggestionIdx,
-        set: value => search.setSelectedSuggestionIdx(value),
         configurable: true
     },
     suggestionScriptTag: {

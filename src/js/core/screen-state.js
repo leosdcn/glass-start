@@ -47,14 +47,11 @@ function clearTransitionTasks() {
     transitionTimer = null;
     navTransitionCleanup?.();
     navTransitionCleanup = null;
-    if (typeof document !== 'undefined') {
-        document.removeEventListener('wheel', preventTransitionScroll);
-        document.body.classList.remove('is-screen-transitioning');
-    }
+    document.removeEventListener('wheel', preventTransitionScroll);
+    document.body.classList.remove('is-screen-transitioning');
 }
 
 function resetPageScroll() {
-    if (typeof window === 'undefined') return;
     if (window.scrollX === 0 && window.scrollY === 0) return;
     window.scrollTo(0, 0);
     if (document.documentElement.scrollTop !== 0) document.documentElement.scrollTop = 0;
@@ -64,19 +61,17 @@ function resetPageScroll() {
 function prepareScreenTransition() {
     // 先撤销旧过渡，再启用新合成层；反过来会立即清掉刚添加的状态类。
     clearTransitionTasks();
-    if (typeof document !== 'undefined') {
-        // 先失焦再改变切屏样式，避免 blur() 同步提交一次整屏样式重算。
-        const active = /** @type {HTMLElement|null} */ (document.activeElement);
-        active?.blur?.();
-        document.documentElement.classList.remove('nr');
-        document.body.classList.remove('tab-blurred');
-        document.body.classList.add('is-screen-transitioning');
-        document.addEventListener('wheel', preventTransitionScroll, { passive: false });
-    }
+    // 先失焦再改变切屏样式，避免 blur() 同步提交一次整屏样式重算。
+    const active = /** @type {HTMLElement|null} */ (document.activeElement);
+    active?.blur();
+    document.documentElement.classList.remove('nr');
+    document.body.classList.remove('tab-blurred');
+    document.body.classList.add('is-screen-transitioning');
+    document.addEventListener('wheel', preventTransitionScroll, { passive: false });
 }
 
 function isReducedMotion() {
-    return typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
 /**
@@ -98,7 +93,7 @@ function waitForScreenTransition(nav, targetSection, onComplete) {
             clearTransitionTasks();
         }
     };
-    if (typeof document !== 'undefined' && nav) {
+    if (nav) {
         /** @param {TransitionEvent} e */
         const onEnd = e => {
             if (e.target === nav && (e.propertyName === 'transform' || e.propertyName === '-webkit-transform' || e.propertyName === 'opacity')) finish();
@@ -335,10 +330,8 @@ export function setTransitionMode(mode) {
     } catch {
         return false;
     }
-    if (typeof document !== 'undefined' && document.documentElement) {
-        document.documentElement.dataset.transitionMode = mode;
-        syncTransitionSwitcherActive(mode);
-    }
+    document.documentElement.dataset.transitionMode = mode;
+    syncTransitionSwitcherActive(mode);
     return true;
 }
 
@@ -356,8 +349,6 @@ export function syncTransitionSwitcherActive(mode) {
 
 export function initTransitionSwitcher() {
     const mode = getTransitionMode();
-    if (typeof document !== 'undefined' && document.documentElement) {
-        document.documentElement.dataset.transitionMode = mode;
-        syncTransitionSwitcherActive(mode);
-    }
+    document.documentElement.dataset.transitionMode = mode;
+    syncTransitionSwitcherActive(mode);
 }

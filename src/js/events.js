@@ -259,7 +259,7 @@ export function bindEvents() {
         const link = /** @type {HTMLElement|null} */ (targetEl?.closest('a[target="_blank"], .bookmark-item, .nav-bookmark'));
         if (link) {
             resetActiveCard();
-            if (typeof link.blur === 'function') link.blur();
+            link.blur();
             blurNonEditableActive();
             const isBackgroundOpen = e.metaKey || e.ctrlKey || e.button === 1;
             if (!isBackgroundOpen) {
@@ -310,7 +310,7 @@ export function bindEvents() {
 
         if (e.key === 'Escape') {
             const topOverlay = OverlayStack.top();
-            if (topOverlay && typeof topOverlay.close === 'function') {
+            if (topOverlay) {
                 e.preventDefault();
                 if (topOverlay.id === 'suggestions' && suggestionMenu?.classList.contains('active') && selectedSuggestionIdx >= 0) {
                     if (searchInput) searchInput.value = originalQuery;

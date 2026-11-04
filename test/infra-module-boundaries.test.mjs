@@ -59,7 +59,10 @@ try {
   evalJS = await connect(true);
   await waitFor(evalJS, 'typeof fetchSuggestions === "function"');
   const adapter = await evalJS(`(() => {
-    const getters = ['suggestionScriptTag','suggestDebounceTimer','isFetchingWeather'].every(name => typeof Object.getOwnPropertyDescriptor(window,name).get === 'function');
+    const getters = ['suggestionScriptTag','suggestDebounceTimer','selectedSuggestionIdx','activeSuggestReqId','isFetchingWeather'].every(name => {
+      const descriptor = Object.getOwnPropertyDescriptor(window,name);
+      return typeof descriptor.get === 'function' && descriptor.set === undefined;
+    });
     const append = document.body.appendChild;
     document.body.appendChild = function(node) { if(node.tagName === 'SCRIPT') node.type = 'application/x-test'; return append.call(this,node); };
     try {
@@ -89,7 +92,7 @@ try {
     } finally { window.Date = NativeDate; updateClock(); }
   })()`);
   assert.equal(clockRestored, true, '跨月同日及同分钟唤醒应恢复时间和日期，无须修改私有缓存');
-  console.log('✅ 测试适配层可变状态通过实时访问器读取，搜索完成／取消与日期更新不读取旧快照');
+  console.log('✅ 测试适配层内部状态通过只读实时访问器读取，搜索完成／取消与日期更新不读取旧快照');
 } finally {
   if (chrome) await chrome.close();
   await server.close();
