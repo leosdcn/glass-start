@@ -1,4 +1,4 @@
-import { LANGUAGE_KEY, SUPPORTED_LANGUAGES } from '../config/language.js';
+import { LANGUAGE_KEY, SUPPORTED_LANGUAGES, I18N_PENDING_TIMEOUT_MS } from '../config/language.js';
 
 /** @param {unknown} preference @param {readonly string[]} languages */
 export function resolveLocale(preference, languages) {
@@ -118,6 +118,6 @@ export function initializeI18n(messages) {
         document.documentElement.dataset.i18nPending = '';
         window.__GLASS_I18N__.pendingTimer = setTimeout(() => {
             delete document.documentElement.dataset.i18nPending;
-        }, 3000);
+        }, I18N_PENDING_TIMEOUT_MS);
     }
 }

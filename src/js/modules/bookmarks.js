@@ -32,8 +32,20 @@ import { getCategoryCatalog } from '../utils/category-catalog.js';
 
 // Normalize old metadata keys in memory; persistence uses shared URLs on the next save.
 function getCustomMeta() {
-    return Object.fromEntries(Object.entries(storageGet(CONFIG.KEYS.CUSTOM_META) || {})
-        .map(([url, meta]) => [normalizeUrl(url), meta]));
+    const stored = storageGet(CONFIG.KEYS.CUSTOM_META);
+    if (!stored || typeof stored !== 'object' || Array.isArray(stored)) return {};
+    return Object.fromEntries(Object.entries(stored).flatMap(([url, meta]) => {
+        if (!meta || typeof meta !== 'object' || Array.isArray(meta)) return [];
+        const bookmark = normalizeBookmark({ ...meta, url,
+            name: typeof meta.name === 'string' ? meta.name : '' }, deriveNameFromUrl(url));
+        if (!bookmark) return [];
+        // 缺省文字继续继承目录；不要把清洗时的兜底名称保存为用户自定义。
+        return [[bookmark.url, {
+            ...(typeof meta.name === 'string' && meta.name.trim() ? { name: bookmark.name } : {}),
+            ...(typeof meta.icon === 'string' && safeUrl(meta.icon) !== '#' ? { icon: bookmark.icon } : {}),
+            ...(typeof meta.desc === 'string' ? { desc: bookmark.desc } : {})
+        }]];
+    }));
 }
 
 /**
@@ -132,10 +144,15 @@ export function resetUserBookmarks() {
 }
 
 export function loadBookmarks() {
-    const userKeys = storageGet(CONFIG.KEYS.BOOKMARK_KEYS);
+    const storedKeys = storageGet(CONFIG.KEYS.BOOKMARK_KEYS);
+    const userKeys = Array.isArray(storedKeys) ? storedKeys.flatMap(url => {
+        if (typeof url !== 'string') return [];
+        const bookmark = normalizeBookmark({ url }, deriveNameFromUrl(url));
+        return bookmark ? [bookmark.url] : [];
+    }) : [];
     const customMeta = getCustomMeta();
 
-    if (userKeys && Array.isArray(userKeys) && userKeys.length) {
+    if (userKeys.length) {
         pageData.bookmarks = getDerivedBookmarks(userKeys, pageData.categories, customMeta);
     } else {
         const defaultKeys = getLocale() === 'en' ? window.__GLASS_I18N__?.catalogs?.en?.defaultBookmarks : undefined;

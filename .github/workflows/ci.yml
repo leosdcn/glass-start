@@ -37,3 +37,36 @@ jobs:
 
       - name: Run full test suite (typecheck + build + Chrome)
         run: npm test
+
+      - name: Validate release HTML
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        run: npm run test:w3c
+
+      - name: Upload verified Pages artifact
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    name: Deploy verified site
+    needs: linux-checks
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Setup GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Deploy verified artifact
+        id: deployment
+        uses: actions/deploy-pages@v4

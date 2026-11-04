@@ -86,6 +86,8 @@ CSS 通过 `main.css` 按其 `@import` 顺序编译为内联样式，不增加�
 
 应用使用原生 ES 模块与 Web API，无 npm 运行时依赖。Tailwind CSS v4 和 esbuild 仅参与开发与构建；TypeScript 用于类型检查，Acorn 和 PostCSS 分别用于 DOM 与 CSS 静态校验，不进入生产页面。
 
+`.github/workflows/ci.yml` 统一执行检查与 GitHub Pages 发布：PR 运行 lint、类型、构建和 Chrome 回归；main 推送或 main 手动运行还须通过 W3C 校验，再上传本次已验证的 `dist/`。部署 job 显式依赖检查成功，直接发布该产物，不重新构建。
+
 ```mermaid
 flowchart TD
     Source["src/index.html · src/styles · src/js"] --> Build["scripts/build.cjs"]
@@ -152,7 +154,7 @@ Chrome 扩展通过 `npm run build:extension` 独立生成 `extension/`。`scrip
 
 `bookmarks.json` 提供默认快捷书签和分类目录，构建时由 `config/constants.js` 导入原始数据；目录本地化在 `init()` 中完成，`loadBookmarks()` 根据语言选择默认 URL 顺序并读取用户偏好。用户配置保存在 LocalStorage：快捷书签使用 URL 键列表，自定义名称、简介和图标使用元数据覆盖；`getDerivedBookmarks()` 从目录与覆盖数据派生当前条目。
 
-`utils/category-catalog.js` 为派生、保存、分类排序和搜索提供共用索引，名称、URL、简介及分类／书签图标变化时重建。持久化使用完整的 `normalizeUrl()` 键，搜索使用自己的去重键，两者语义不同。`normalizeBookmark()` 共用于导入、草稿收集和保存；简介缺省时继承目录，显式空字符串表示清空。
+`utils/category-catalog.js` 为派生、保存、分类排序和搜索提供共用索引，名称、URL、简介及分类／书签图标变化时重建。持久化使用完整的 `normalizeUrl()` 键，搜索使用自己的去重键，两者语义不同。`normalizeBookmark()` 共用于缓存读取、导入、草稿收集和保存；缓存中的错误条目和字段忽略，全部 URL 无效时使用当前语言默认入口，读取不改写原存储。简介缺省时继承目录，显式空字符串表示清空。
 
 分类导航通过 transform 移出首屏，原生图片懒加载仍可能提前请求其图标。因此导航专用书签图片先保存为 `data-nav-src`。在壁纸恢复后的前台空闲任务中，以低请求优先级提前加载前 5 个分类的本地图标（覆盖 1080p 至 2K 屏首屏可见范围），让加载和淡入尽量避开首次切屏；远程图标和其余分类保持延迟。快速切屏不等待准备任务，往返切屏复用现有节点。侧栏及分类标题的分类图标直接设置 `src`，并在首屏空闲任务中预加载，减少首次切入时的图标空位。
 
@@ -282,7 +284,7 @@ Chrome（首屏已有的 `.is-chrome` 标记）为两屏保留 `will-change: tra
 
 `utils/weather-model.js` 负责天气代码、图标、地点及响应转换，调用方传入配置和时间；新数据不生成天气描述或日期标签，显示层统一按语言生成，旧缓存的文字字段仍兼容读取。日出日落使用 `sunriseToday`、`sunsetToday` 和 `sunriseTomorrow`，旧时间别名只在缓存读取边界转换；不再保存无人读取的 `isDay` 和 `sunsetTomorrow`。`modules/weather.js` 使用 IP 定位与地名解析获取位置，再请求 Open-Meteo。按缓存有效期决定是否更新，唤醒时重新检查。已知地点预报先显示，后台定位及可能发生的地点变更刷新保留在同一个任务中；期间的唤醒和手动刷新共享该任务，完成或失败后释放，忙碌状态直接由共享任务派生。
 
-湿度、风速和降水概率分别按配置分档选择图标，不表示降雨强度或气象灾害等级。日出日落显示由当前时间与预报时间选择。数值通过共用的 `weatherNum()` 清洗，时间经 `weatherTime()` 校验，地点等文本在 HTML 输出时转义。
+湿度、风速和降水概率分别按配置分档选择图标，不表示降雨强度或气象灾害等级。天气响应的 `timezone` 随预报缓存保存，日出日落提示按天气地点时区比较当前时间，原生 `Intl.DateTimeFormat` 处理夏令时；未带时区的旧缓存暂用系统时间，刷新后补齐。数值通过共用的 `weatherNum()` 清洗，时间经 `weatherTime()` 校验，地点等文本在 HTML 输出时转义。
 
 ## 安全与验证边界
 

@@ -83,6 +83,36 @@ test('天气交互、弹窗规范与休眠感知套件', async (t) => {
       assert.ok(gridOrderOk, `cards: [${domCheck?.card0}] [${domCheck?.card1}] [${domCheck?.card2}] [${domCheck?.card3}]`);
     });
 
+    await t.test('太阳提示使用天气地点时区，兼容夏令时及无时区旧缓存', async () => {
+      await send('Emulation.setTimezoneOverride', { timezoneId: 'Asia/Shanghai' });
+      const cases = [
+        ['Europe/London', '2026-11-04T12:00:00Z', '今日日落', '16:30'],
+        ['Europe/London', '2026-11-04T20:00:00Z', '明日日出', '07:02'],
+        ['America/New_York', '2026-07-04T10:00:00Z', '今日日出', '07:00'],
+        ['America/New_York', '2026-11-04T12:00:00Z', '今日日落', '16:30'],
+        [undefined, '2026-11-04T12:00:00Z', '明日日出', '07:02']
+      ];
+      try {
+        for (const [timezone, instant, label, time] of cases) {
+          const text = await evalJS(`(() => {
+            const OriginalDate = Date;
+            window.Date = class extends OriginalDate { constructor(...args) {
+              if (args.length) super(...args); else super(${JSON.stringify(instant)});
+            }};
+            try {
+              renderWeatherPopover({ timezone: ${JSON.stringify(timezone) || 'undefined'},
+                location: { name: '时区测试' }, current: { temp: 10,
+                  sunriseToday: '07:00', sunsetToday: '16:30', sunriseTomorrow: '07:02' }, daily: [] });
+              return dom.weatherPopover.textContent;
+            } finally { window.Date = OriginalDate; }
+          })()`);
+          assert.ok(text.includes(label) && text.includes(time), `${timezone}: ${text}`);
+        }
+      } finally {
+        await send('Emulation.setTimezoneOverride', { timezoneId: '' });
+      }
+    });
+
     await t.test('相对湿度、实时风速与降水雨伞 9 阶形态动态演化', async () => {
       const dynamicIconsCheck = await evalJS(`(() => {
         // 干燥 + 微风 + 低降水

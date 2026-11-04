@@ -102,6 +102,8 @@ npm run build:extension
 - **Vercel / Netlify**：导入 Git 仓库，构建命令设为 `npm run build`，输出目录设为 `dist`；响应头规则须按各平台要求配置。
 - **GitHub Pages**：在 Settings ➔ Pages 选择 GitHub Actions，按[官方自定义工作流指南](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages)安装依赖、执行构建并上传 `dist/` 作为 Pages 产物。若从分支发布，需将产物放在发布分支根目录或 `/docs`，不能直接选择 `/dist`。
 
+`public/_headers` 的响应头规则需要托管平台支持；GitHub Pages 不应用该文件，页面仍使用 HTML meta CSP。meta CSP 与 HTTP CSP 响应头共同生效，响应头不能放宽 meta 中的限制；仅支持响应头的 `frame-ancestors`、缓存及其他安全头也不会由 meta 替代。部署后应核对实际 HTTP 响应，不能仅凭产物中存在 `_headers` 判断规则生效。
+
 ### 本地预览与离线使用
 安装锁定的开发依赖后启动本地预览：
 ```bash

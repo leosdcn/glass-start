@@ -130,6 +130,7 @@ export function normalizeWeatherForecast(data, loc, config, now) {
 
     return {
         timestamp: now,
+        ...(typeof data.timezone === 'string' ? { timezone: data.timezone } : {}),
         location: loc,
         current: {
             temp: Math.round(cur.temperature_2m ?? config.DEFAULT_TEMPERATURE),

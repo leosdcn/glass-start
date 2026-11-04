@@ -4,6 +4,48 @@ import { test } from 'node:test';
 import { readFileSync } from 'node:fs';
 import { launchSession, pressKey, waitFor, navigateAndWait } from './support/helpers.mjs';
 
+test('异常书签缓存不阻断启动，清洗保留有效条目、目录继承和空简介', async () => {
+  const { server, chrome, send, evalJS } = await launchSession();
+  try {
+    await send('Page.addScriptToEvaluateOnNewDocument', { source: `
+      window.fetch = async () => ({ ok: true, json: async () => ({}) });
+      localStorage.setItem('userBookmarkKeys', JSON.stringify([
+        null, 123, {}, 'javascript:alert(1)', 'https://example.com', 'https://github.com'
+      ]));
+      localStorage.setItem('userCustomMeta', JSON.stringify({
+        'https://example.com': {name:123, icon:42, desc:{bad:true}},
+        'https://github.com': {desc:''},
+        'https://invalid.test': ['bad']
+      }));
+    ` });
+    await navigateAndWait(send, evalJS, `http://127.0.0.1:${server.port}/`,
+      'typeof openEditModal === "function" && pageData.bookmarks.length === 2 && !!document.querySelector(".bookmark-item")');
+    const recovered = await evalJS(`(() => {
+      const github = pageData.bookmarks.find(bm => bm.url === 'https://github.com');
+      const catalog = pageData.categories.flatMap(cat => cat.bookmarks).find(bm => bm.url === github.url);
+      document.getElementById('editBookmarksBtn').click();
+      return {bookmarks:pageData.bookmarks, nameInherited:github.name === catalog.name, desc:github.desc};
+    })()`);
+    assert.deepEqual(recovered.bookmarks.map(bm => bm.url), ['https://example.com', 'https://github.com']);
+    assert.equal(recovered.bookmarks[0].name, 'example');
+    assert.equal(recovered.nameInherited, true);
+    assert.equal(recovered.desc, '');
+    await waitFor(evalJS, 'document.getElementById("editModal").open');
+    await evalJS('cancelEditModal()');
+    const fallback = await evalJS(`(() => {
+      localStorage.setItem('userBookmarkKeys', JSON.stringify([null, {}, 'javascript:alert(1)']));
+      localStorage.setItem('userCustomMeta', JSON.stringify(['invalid']));
+      loadBookmarks();
+      return {count:pageData.bookmarks.length, valid:pageData.bookmarks.every(bm => typeof bm.name === 'string')};
+    })()`);
+    assert.equal(fallback.count, 8);
+    assert.equal(fallback.valid, true);
+  } finally {
+    await chrome.close();
+    await server.close();
+  }
+});
+
 test('书签分级模糊搜索算法 (精确/包含/三级梯队/简介降级/Damerau-Levenshtein纠错)', async () => {
   const { server, chrome, send, evalJS } = await launchSession();
   try {

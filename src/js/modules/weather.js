@@ -304,7 +304,15 @@ export function renderWeatherPopover(data) {
     let sunTime = c.sunsetToday || '--:--';
     try {
         const now = new Date();
-        const nowMins = now.getHours() * 60 + now.getMinutes();
+        // Open-Meteo 的太阳时间属于天气地点，不能与系统时区的小时直接比较。
+        // 旧缓存未保存时区，继续沿用本地时间，下一次刷新即补齐。
+        let nowMins = now.getHours() * 60 + now.getMinutes();
+        if (data.timezone) {
+            const parts = new Intl.DateTimeFormat('en-GB', { timeZone: data.timezone,
+                hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(now);
+            nowMins = Number(parts.find(part => part.type === 'hour')?.value) * 60
+                + Number(parts.find(part => part.type === 'minute')?.value);
+        }
         const parseMins = (/** @type {unknown} */ str) => {
             if (!str || typeof str !== 'string' || !str.includes(':')) return null;
             const [h, m] = str.split(':').map(Number);

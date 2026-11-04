@@ -14,6 +14,7 @@ let activeCardRect = null;
 let rafId = null;
 /** @type {MouseEvent | PointerEvent | null} */
 let pendingEvent = null;
+// -9999 标记尚未渲染，确保首次指针输入不被下方的位移死区过滤。
 let lastRenderedX = -9999;
 let lastRenderedY = -9999;
 let lastRenderedPressed = false;

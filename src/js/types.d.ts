@@ -299,6 +299,7 @@ export interface WeatherDailyItem {
     tempMin?: number;
 }
 export interface WeatherData {
+    timezone?: string;
     current: WeatherCurrent;
     daily?: WeatherDailyItem[];
     location?: WeatherLocation;

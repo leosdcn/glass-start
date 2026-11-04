@@ -137,7 +137,8 @@ await test("Service Worker 下直接导航到应用图标", async () => {
     const { server, chrome, send, evalJS } = await launchSession();
     const origin = `http://127.0.0.1:${server.port}`;
     try {
-      await evalJS('navigator.serviceWorker.ready.then(() => true)');
+      // ready 在安装失败时可能一直不结束；与升级测试一致，明确检查激活状态并限时失败。
+      await waitFor(evalJS, `navigator.serviceWorker.getRegistration().then(reg => reg?.active?.state === 'activated')`, 15000);
       await send('Page.reload');
       await waitFor(evalJS, '!!navigator.serviceWorker.controller && typeof openEditModal === "function"');
       for (const suffix of ['', '?v=icon-navigation']) {

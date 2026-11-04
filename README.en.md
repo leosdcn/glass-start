@@ -100,6 +100,8 @@ To run the extension regression test, use `npm test -- infra-chrome-extension`. 
 - **Vercel / Netlify**: import the Git repository, set the build command to `npm run build` and the output directory to `dist`. Configure response headers using the platform's supported format.
 - **GitHub Pages**: select GitHub Actions under **Settings → Pages**. Follow the [official custom workflow guide](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages) to install dependencies, build and upload `dist/` as the Pages artifact. For branch-based publishing, place the output in the publishing branch's root or `/docs`; `/dist` cannot be selected directly.
 
+The response header rules in `public/_headers` require hosting support. GitHub Pages does not apply this file; the page still uses its HTML meta CSP. Meta and HTTP CSP policies apply together: a response header cannot relax a meta policy. Meta CSP also cannot replace header-only directives such as `frame-ancestors`, cache rules or other security headers. Check the actual HTTP response after deployment rather than assuming the presence of `_headers` makes its rules effective.
+
 ### Local preview and offline use
 
 Install the locked development dependencies and start the preview:

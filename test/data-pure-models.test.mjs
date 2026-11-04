@@ -25,6 +25,8 @@ assert.equal(forecast.current.temp, 22);
 assert.deepEqual(forecast.daily, []);
 assert.equal(forecast.current.sunriseToday, '--:--');
 assert.equal(Object.hasOwn(forecast.current, 'weatherText'), false);
+assert.equal(normalizeWeatherForecast({ timezone: 'Europe/London' }, {lat:1, lon:2}, CONFIG.WEATHER, 123).timezone, 'Europe/London');
+assert.equal(Object.hasOwn(forecast, 'timezone'), false, '旧响应不伪造天气地点时区');
 
 test('低降水概率且当前无雨时平滑预报，高降水概率保留雨天预报', () => {
   const location = {lat:31.230, lon:121.473, name:'上海'};
