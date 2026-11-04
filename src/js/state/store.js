@@ -1,8 +1,6 @@
 /**
  * 全局内存状态与数据存储
  */
-import { DEFAULT_BOOKMARKS, DEFAULT_CATEGORIES } from '../config/constants.js';
-import { localizeCategories } from '../core/i18n.js';
 import { DEFAULT_ENGINE } from '../config/engines.js';
 
 // 运行时状态：由调用方显式更新并触发渲染（按偏好、路由、UI 控制与壁纸分组）
@@ -36,13 +34,14 @@ export const modalState = {
     draftTransitionMode: 'sheet', // 双屏推移切换模式草稿（'sheet' / 'fade' / 'none'）
 
     // — 3. UI 交互与脏检查标记（仅在弹窗生命周期内有效，不持久化）—
+    committing: false,            // 正在提交设置；由业务状态驱动取消与编辑限制
     wallpaperSaveFailed: false,   // 自定义壁纸写入 IndexedDB 失败标记（用于弹出重试或清理提示）
     bookmarksChanged: false       // 书签列表是否存在未保存的脏变更标记
 };
 
-// 当前运行时的书签与分类数据集
+// 当前运行时的书签与分类数据集，由 init() 初始化目录，loadBookmarks() 加载用户偏好
 /** @type {import('../types').PageData} */
 export const pageData = {
-    bookmarks: DEFAULT_BOOKMARKS.map(bm => ({ ...bm })),
-    categories: localizeCategories(DEFAULT_CATEGORIES)
+    bookmarks: [],
+    categories: []
 };

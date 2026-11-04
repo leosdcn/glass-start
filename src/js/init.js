@@ -1,10 +1,11 @@
 /**
  * 应用初始化与生命周期挂载
  */
-import { CONFIG, engines } from './config/constants.js';
+import { CONFIG, engines, DEFAULT_CATEGORIES } from './config/constants.js';
 import { DEFAULT_ENGINE } from './config/engines.js';
 import { storageGet, evictFaviconCache } from './utils/helpers.js';
-import { state } from './state/store.js';
+import { state, pageData } from './state/store.js';
+import { localizeCategories } from './core/i18n.js';
 import { cacheDOM } from './state/dom.js';
 import { updateClock } from './modules/clock.js';
 import { renderEngineDropdown, setEngine, closeDropdown, hideSuggestions } from './modules/search.js';
@@ -26,7 +27,6 @@ import { applyBgEffects } from './modules/settings.js';
 import { handleEditIconError } from './modules/bookmark-editor.js';
 import { reconcileScreenState, isScreenTransitioning, initTransitionSwitcher, setScreenNavHandlers } from './core/screen-state.js';
 import { initScreenGestures } from './core/screen-input.js';
-import { initAppWakeEvents } from './core/app-wake.js';
 import { initGlassSpotlightAndTilt } from './core/gestures.js';
 import { bindEvents } from './events.js';
 import { bindEditEvents } from './modules/settings-events.js';
@@ -82,6 +82,7 @@ export function init() {
     document.addEventListener('load', handleImageLoadCapture, true);
 
     updateClock();
+    pageData.categories = localizeCategories(DEFAULT_CATEGORIES);
     loadBookmarks();
 
     // ④ 异步从 IndexedDB/LocalStorage 恢复壁纸（Promise 不阻塞后续同步启动时序）
@@ -105,10 +106,9 @@ export function init() {
         }
     });
 
-    // ⑥ 协调屏幕状态、挂载触屏手势、页面唤醒恢复、3D 微动交互与过渡动效切换器
+    // ⑥ 协调屏幕状态、挂载触屏手势、3D 微动交互与过渡动效切换器
     reconcileScreenState();
     initScreenGestures();
-    initAppWakeEvents();
     initGlassSpotlightAndTilt();
     initTransitionSwitcher();
 
@@ -116,7 +116,7 @@ export function init() {
     const saved = storageGet(CONFIG.KEYS.PREFERRED_ENGINE);
     setEngine(saved && engines[saved] ? saved : DEFAULT_ENGINE, false);
 
-    // ⑧ 装配全局事件与设置面板交互事件
+    // ⑧ 装配全局事件、页面唤醒与设置面板交互事件
     bindEvents();
     bindEditEvents();
 

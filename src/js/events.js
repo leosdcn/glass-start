@@ -1,19 +1,42 @@
 import { cancelDragSort } from './core/drag-sort.js';
 import { resetActiveCard } from './core/gestures.js';
-import { blurNonEditableActive } from './core/screen-input.js';
+import { resetScreenInput, blurNonEditableActive } from './core/screen-input.js';
 import { handleRovingKeyNav } from './utils/helpers.js';
 
-/** 装配搜索、键盘与页面交互事件，协调输入法、联想选择和弹窗焦点。 */
+/** 装配全局事件，协调输入法、弹窗焦点与页面唤醒。 */
 import { CONFIG } from './config/constants.js';
 
 import { state } from './state/store.js';
 import { dom } from './state/dom.js';
 import { OverlayStack, MODAL_OVERLAY_IDS } from './core/overlay-stack.js';
-import { switchToStart, switchToNav, isScreenTransitioning } from './core/screen-state.js';
-import { activateSuggestion, selectSuggestion, getSuggestionCount, fetchSuggestions, hideSuggestions, closeDropdown, toggleDropdown, setEngine, openRandomBookmark, selectedSuggestionIdx, originalQuery, setOriginalQuery, scheduleSuggestions, handleSuggestionKeyNav } from './modules/search.js';
-import { toggleWeatherPopover, closeWeatherPopover } from './modules/weather.js';
+import { switchToStart, switchToNav, isScreenTransitioning, reconcileScreenState } from './core/screen-state.js';
+import { activateSuggestion, selectSuggestion, fetchSuggestions, hideSuggestions, closeDropdown, toggleDropdown, setEngine, openRandomBookmark, selectedSuggestionIdx, originalQuery, setOriginalQuery, scheduleSuggestions, handleSuggestionKeyNav } from './modules/search.js';
+import { toggleWeatherPopover, closeWeatherPopover, updateWeather } from './modules/weather.js';
+import { updateClock, stopClockTimer } from './modules/clock.js';
+import { checkServiceWorkerUpdate } from './core/service-worker-updates.js';
 import { switchBg } from './modules/wallpaper.js';
 import { openShortcutModal, closeShortcutModal } from './modules/settings.js';
+
+/** 页面恢复时协调业务刷新与交互状态，底层机制不导入业务模块。 */
+export function handleAppWakeUp() {
+    updateClock();
+
+    document.querySelectorAll('.is-clicked').forEach(el => el.classList.remove('is-clicked'));
+    document.querySelectorAll('.fade-in, .animate-item-in, .category-title-pulse').forEach(el => {
+        el.classList.remove('fade-in', 'animate-item-in', 'category-title-pulse');
+    });
+    cancelDragSort();
+    document.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
+
+    resetActiveCard();
+    blurNonEditableActive();
+    resetScreenInput();
+    reconcileScreenState(undefined, true);
+
+    checkServiceWorkerUpdate();
+
+    updateWeather(false).catch(() => {});
+}
 
 /**
  * @param {KeyboardEvent} e
@@ -42,6 +65,12 @@ function handleModalTabFocus(e, modalEl) {
 }
 
 export function bindEvents() {
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) stopClockTimer();
+        else handleAppWakeUp();
+    }, { passive: true });
+    window.addEventListener('pageshow', () => handleAppWakeUp(), { passive: true });
+
     let isComposing = false;
     let justEndedComposition = false;
     /** @type {ReturnType<typeof setTimeout>|null} */

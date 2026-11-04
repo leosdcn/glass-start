@@ -47,7 +47,7 @@
 
 | 功能 / 问题 | DOM 或检索词 | 逻辑入口 | 样式入口 | 直接相关测试片段 |
 | :--- | :--- | :--- | :--- | :--- |
-| 启动、全局按键与失焦 | `init()`、`keydown`、`tab-blurred` | `main.js` → `init.js` / `events.js`；`core/app-wake.js`、`core/lifecycle.js` | `page.css` | `lifecycle-`、`ui-screen-gestures` |
+| 启动、全局按键与失焦 | `init()`、`keydown`、`tab-blurred` | `main.js` → `init.js` / `events.js`；`core/lifecycle.js` | `page.css` | `lifecycle-`、`ui-screen-gestures` |
 | 双屏、滚轮、触摸与恢复 | `startSection`、`navSection`、`navContent` | `core/screen-state.js`、`core/screen-input.js` | `page.css`、`animations.css` | `ui-screen-`、`ui-input-device-performance` |
 | 快捷书签、分类导航与图标 | `bookmarks`、`navCategories`、`sidebarList` | `modules/bookmarks.js`；`utils/category-catalog.js` | `page.css`、`glass.css` | `data-bookmark-catalog`、`ui-nav-rendering`、`infra-theme-favicon` |
 | 搜索、引擎及本地/网络联想 | `searchInput`、`engineBtn`、`suggestionMenu` | `modules/search.js`；`utils/bookmark-search.js`；`config/engines.js`、`config/engine-icons.js`、`config/engine-head.js` | `search.css` | `data-request-performance`、`data-pure-models`、`data-features` |
@@ -105,9 +105,9 @@ flowchart TD
 
 - `main.js`：启动初始化与构建指纹校验；业务之间通过模块导入调用。
 - `init.js` 与 `events.js`：应用装配入口，分别负责初始化和跨业务的全局事件协调。
-- `state/store.js`：持有 `state`、`modalState`、`pageData`，均为普通可变对象；调用方显式更新并触发渲染，不自动订阅变化。
+- `state/store.js`：持有 `state`、`modalState`、`pageData`，均为普通可变对象；调用方显式更新并触发渲染，不自动订阅变化。`pageData` 初始为空，由 `init()` 初始化当前语言目录，`loadBookmarks()` 派生快捷书签，配置模块不在求值时选择语言相关的默认书签。
 - `state/dom.js`：集中缓存通过 `dom.xxx` 或静态键访问的节点，新增或更名此类节点时同步更新 `cacheDOM()` 与 `types.d.ts` 的 `DOMCache` 类型。仅用于标签关联、无障碍描述或锚点的 ID 无须缓存。
-- `core/`：页面共用机制，包括浮层、手势、切屏、生命周期、主题与壁纸渲染；切屏和唤醒可协调业务模块，不要求严格单向分层。具体功能及其控件事件放在 `modules/`，跨业务的应用装配放在 `src/js/` 顶层。
+- `core/`：页面共用机制，包括浮层、手势、切屏、生命周期、主题与壁纸渲染；切屏通过初始化时注册的钩子协调业务，页面唤醒由顶层 `events.js` 装配。具体功能及其控件事件放在 `modules/`，跨业务的应用装配放在 `src/js/` 顶层。
 - `utils/`：提供 URL 与文本清洗、目录索引、IndexedDB 存储等共用能力。
 
 构建读取 `package.json` 版本号并生成版本徽章；每次构建生成统一指纹，注入 HTML、应用脚本与 Service Worker。HTML 引用的 `app.js` 同时携带版本查询参数。应用脚本、内联脚本与 CSS 均压缩；Service Worker 在注入版本后复用 esbuild 压缩，根目录 `sw.js` 保留可读源码，缓存、升级与并发请求回归执行生成的 `dist/sw.js`。
@@ -148,7 +148,7 @@ Chrome 扩展通过 `npm run build:extension` 独立生成 `extension/`。`scrip
 
 翻译消息使用完整句子，不拼接语序片段；参数只替换一次，不递归解释。缺键按英文、键名顺序回退；正式支持的语言仍须通过键和参数完整性校验。字典不存 HTML，动态模板先翻译再 `escapeHtml()`，URL 继续使用 `safeUrl()`。新增语言优先复用现有系统字体、图片和业务流程，不预建语言加载框架；RTL 需另行验证方向、箭头、拖拽及混合文本布局。
 
-`bookmarks.json` 提供默认快捷书签和分类目录，构建时由 `config/constants.js` 导入。用户配置保存在 LocalStorage：快捷书签使用 URL 键列表，自定义名称、简介和图标使用元数据覆盖；`getDerivedBookmarks()` 从目录与覆盖数据派生当前条目。
+`bookmarks.json` 提供默认快捷书签和分类目录，构建时由 `config/constants.js` 导入原始数据；目录本地化在 `init()` 中完成，`loadBookmarks()` 根据语言选择默认 URL 顺序并读取用户偏好。用户配置保存在 LocalStorage：快捷书签使用 URL 键列表，自定义名称、简介和图标使用元数据覆盖；`getDerivedBookmarks()` 从目录与覆盖数据派生当前条目。
 
 `utils/category-catalog.js` 为派生、保存、分类排序和搜索提供共用索引，名称、URL、简介及分类／书签图标变化时重建。持久化使用完整的 `normalizeUrl()` 键，搜索使用自己的去重键，两者语义不同。`normalizeBookmark()` 共用于导入、草稿收集和保存；简介缺省时继承目录，显式空字符串表示清空。
 
@@ -173,6 +173,8 @@ flowchart LR
 从备选目录添加快捷书签时，按 URL 定位目录模型并复制名称、图标和简介，避免丢失本地图标而转向外部服务。图标失败后的名称编辑只更新首字徽标，不触发重试；待执行的 URL 图标预览在设置关闭或草稿被替换后作废。
 
 书签挑选器按目录索引复用卡片和图片节点；重复打开时不重建列表，草稿 URL 集合变化时只修改受影响卡片的禁用状态及提示。目录内容变化时重建，避免沿用旧图标。
+
+设置保存先等待当前壁纸预览完成，再读取并校验最新书签草稿；等待期间仍可编辑和取消。实际提交期间以 `modalState.committing` 为唯一业务判断来源，统一禁用取消、语言按钮和设置内容区，结束后解除限制。业务模块不从按钮的 `disabled` 属性推断提交阶段。提交仍按项顺序进行，不提供跨 LocalStorage 与 IndexedDB 的整体事务；失败保留草稿，取消仅撤销未提交预览，不撤销已经保存的项目。
 
 设置职责按模块划分：
 
@@ -218,7 +220,7 @@ LocalStorage 仅保存背景索引和轻量首屏提示，新选择不写入 Bas
 
 `reconcileScreenState()` 清理过渡任务、恢复保存的目标屏、校准状态类及可访问性，并移除预渲染类 `.nr`。正常进入、退出与校准共用目标状态应用逻辑。它本身不执行 `display` 重置；默认无明确目标且仍在过渡时会跳过，唤醒调用传入 `force=true`。
 
-`core/app-wake.js` 的 `handleAppWakeUp()` 统一处理 `pageshow` 和恢复可见的 `visibilitychange`：清理残留交互及手势状态，强制校准屏幕、时钟与天气刷新，并检查 Service Worker 更新。BFCache 恢复沿用 CSS 的合成提示策略，不写入内联 `will-change`。校准时在禁用过渡的情况下提交目标布局，再恢复过渡，避免补播动画；复用未变化的书签和分类节点，目录变化时仍可重建导航。页面隐藏时由同一唤醒模块停止时钟计时器，恢复可见后更新时间并重新安排下一整分钟的更新。时钟与日期直接比较已渲染文本，不维护重复的时间/日号缓存或供测试改写缓存的 setter，跨月同日恢复也会更新日期。
+顶层 `events.js` 的 `handleAppWakeUp()` 统一处理 `pageshow` 和恢复可见的 `visibilitychange`：清理残留交互及手势状态，强制校准屏幕、时钟与天气刷新，并检查 Service Worker 更新。BFCache 恢复沿用 CSS 的合成提示策略，不写入内联 `will-change`。校准时在禁用过渡的情况下提交目标布局，再恢复过渡，避免补播动画；复用未变化的书签和分类节点，目录变化时仍可重建导航。页面隐藏时由同一唤醒模块停止时钟计时器，恢复可见后更新时间并重新安排下一整分钟的更新。时钟与日期直接比较已渲染文本，不维护重复的时间/日号缓存或供测试改写缓存的 setter，跨月同日恢复也会更新日期。
 
 Chrome（首屏已有的 `.is-chrome` 标记）为两屏保留 `will-change: transform`，导航退出后保留离屏玻璃结构，减少重复进入时的绘制与 GPU 进程任务开销；离屏导航仍由位置、`pointer-events: none`、`inert` 与无障碍属性隔离。其他浏览器在导航退出后继续隐藏并关闭离屏毛玻璃，仅在 `body.is-screen-transitioning` 期间申请合成提示，保留 WebKit 原有回收策略。壁纸切换仍通过 `.is-crossfading` 动态分配 `will-change`。`blur` / `pagehide` 添加 `body.tab-blurred`，收到下一次用户交互后解除，防止悬停残留。
 

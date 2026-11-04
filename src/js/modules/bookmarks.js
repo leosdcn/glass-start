@@ -6,10 +6,8 @@
  * 2. 快捷书签与分类导航渲染：renderBookmarks, renderNavCategories, updateSidebarActive, refreshSidebarNavCache
  * 3. 图标生命周期与回退：preloadFavicons, initFaviconObserver, handleIconError, scheduleOffscreenNavIcons
  *
- * 维护建议：若未来图标加载/观察器逻辑需独立复用，或单文件规模超过 800 行，
- * 可考虑将图标生命周期关注点拆解至独立模块（如 bookmark-icons.js）。
  */
-import { localizeBookmarkUrl } from '../core/i18n.js';
+import { getLocale, localizeBookmarkUrl } from '../core/i18n.js';
 import { CONFIG, DEFAULT_BOOKMARKS } from '../config/constants.js';
 import {
     escapeHtml,
@@ -140,7 +138,8 @@ export function loadBookmarks() {
     if (userKeys && Array.isArray(userKeys) && userKeys.length) {
         pageData.bookmarks = getDerivedBookmarks(userKeys, pageData.categories, customMeta);
     } else {
-        pageData.bookmarks = getDerivedBookmarks(DEFAULT_BOOKMARKS.map(b => b.url), pageData.categories, customMeta);
+        const defaultKeys = getLocale() === 'en' ? window.__GLASS_I18N__?.catalogs?.en?.defaultBookmarks : undefined;
+        pageData.bookmarks = getDerivedBookmarks(defaultKeys || DEFAULT_BOOKMARKS.map(b => b.url), pageData.categories, customMeta);
     }
     const bookmarksEl = dom.bookmarks;
     if (bookmarksEl) {

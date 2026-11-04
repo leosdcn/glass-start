@@ -1,17 +1,12 @@
-import { getLocale, t } from '../core/i18n.js';
+import { t } from '../core/i18n.js';
 import { LANGUAGE_KEY } from './language.js';
 import bookmarksData from '../../../bookmarks.json';
 import { PRESET_BACKGROUNDS } from './backgrounds.js';
 import { ENGINE_META } from './engines.js';
 
-// 默认条目复用根目录书签；英文目录仅配置快捷入口的 URL 与顺序。
-// 注：依赖首屏阻塞脚本注入的 window.__GLASS_I18N__，模块求值时根据当前语言导出
+// 共享默认数据；按语言选择快捷入口由 loadBookmarks() 显式完成。
 export const DEFAULT_CATEGORIES = bookmarksData.categories || [];
-const defaultUrls = getLocale() === 'en' ? window.__GLASS_I18N__?.catalogs?.en?.defaultBookmarks : undefined;
-export const DEFAULT_BOOKMARKS = defaultUrls
-    ? defaultUrls.map(url => DEFAULT_CATEGORIES.flatMap(category => category.bookmarks).find(bookmark => bookmark.url === url))
-        .filter(bookmark => bookmark !== undefined)
-    : bookmarksData.bookmarks || [];
+export const DEFAULT_BOOKMARKS = bookmarksData.bookmarks || [];
 
 // ==================== 配置与全局常量 ====================
 export const CONFIG = Object.freeze({

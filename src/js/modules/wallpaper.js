@@ -164,7 +164,7 @@ export async function flushWallpaperSelection() {
  * @param {string | null} urlStr
  */
 export function previewDraftWallpaper(urlStr) {
-    if (state.editOpen && dom.cancelEditBtn?.disabled) return Promise.resolve(false);
+    if (state.editOpen && modalState.committing) return Promise.resolve(false);
     if (pendingSelection?.id === wallpaperSelectionId && pendingSelection.url === urlStr) {
         return pendingSelection.promise;
     }
@@ -328,7 +328,7 @@ export async function restoreWallpaper() {
  * @param {File} file
  */
 export function uploadWallpaper(file) {
-    if (state.editOpen && dom.cancelEditBtn?.disabled) return false;
+    if (state.editOpen && modalState.committing) return false;
     if (!file.type.startsWith('image/')) {
         showConfirm(t('ui.choose.a.valid.image.file.jpg'), null, t('ui.invalid.format'));
         return false;

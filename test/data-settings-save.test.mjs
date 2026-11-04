@@ -62,6 +62,49 @@ try {
   }
   console.log('✅ 等待壁纸时取消保存不提交书签；重新打开后的草稿与窗口不受旧任务干扰');
 
+  // 等待壁纸时仍可编辑；等待结束后必须读取并校验最新草稿。
+  for (const invalid of [false, true]) {
+    const latestDraft = await evalJS(`(async () => {
+      await openEditModal();
+      const NativeImage = window.Image;
+      const images = [];
+      window.Image = class { constructor() { images.push(this); } };
+      const input = dom.editList.querySelector('.edit-name');
+      try {
+        input.value = '等待前名称';
+        input.dispatchEvent(new Event('input', {bubbles:true}));
+        const preview = previewDraftWallpaper(location.origin + '/latest-draft-${invalid}.png');
+        const saving = saveEditModal();
+        const editable = !input.closest('[inert]') && !modalState.committing && !dom.cancelEditBtn.disabled;
+        if (${invalid}) {
+          for (const field of dom.editList.querySelectorAll('.edit-url')) {
+            field.value = '';
+            field.dispatchEvent(new Event('input', {bubbles:true}));
+          }
+        } else {
+          input.value = '等待后的最新名称';
+          input.dispatchEvent(new Event('input', {bubbles:true}));
+        }
+        await images[0].onload();
+        await preview;
+        await saving;
+        const result = {
+          editable, open:state.editOpen, name:pageData.bookmarks[0].name,
+          unlocked:!modalState.committing && !dom.saveEditBtn.disabled && !dom.cancelEditBtn.disabled,
+          rejected:OverlayStack.top()?.id === 'confirmModal'
+        };
+        if (OverlayStack.top()?.id === 'confirmModal') OverlayStack.top().close();
+        if (state.editOpen) cancelEditModal();
+        return result;
+      } finally { window.Image = NativeImage; }
+    })()`);
+    assert.equal(latestDraft.editable && latestDraft.unlocked, true, JSON.stringify(latestDraft));
+    assert.equal(latestDraft.open, invalid);
+    assert.equal(latestDraft.rejected, invalid);
+    assert.equal(latestDraft.name, '等待后的最新名称');
+  }
+  console.log('✅ 等待壁纸期间的修改保存最新草稿，全部失效的最新书签不会提交');
+
   // 读取或真实写事务仍待决时，取消入口均不能恢复旧预览。
   for (const phase of ['read', 'write', 'abort']) {
     const committing = await evalJS(`(async () => {
@@ -109,12 +152,16 @@ try {
       try {
         const saving = saveEditModal();
         while (!release) await new Promise(resolve => setTimeout(resolve, 5));
-        const locked = dom.saveEditBtn.disabled && dom.cancelEditBtn.disabled && document.getElementById('tabAppearance').inert;
+        const locked = modalState.committing && dom.saveEditBtn.disabled && dom.cancelEditBtn.disabled
+          && dom.languageBtn.disabled && [...document.querySelectorAll('.settings-tab-panel')].every(panel => panel.inert);
+        // 控件状态不再决定业务提交状态。
+        dom.cancelEditBtn.disabled = false;
         dom.presetWallpaperGrid.querySelector('[data-bg="' + backgrounds[3] + '"]').click();
         const selectionBlocked = await previewDraftWallpaper(backgrounds[3]) === false
           && await resetDraftWallpaper() === false
           && uploadWallpaper(new File(['image'], 'blocked.png', {type:'image/png'})) === false
           && modalState.draftWallpaper === backgrounds[2];
+        dom.cancelEditBtn.disabled = true;
         const attempts = [
           () => dom.cancelEditBtn.click(),
           () => document.getElementById('editModal').click(),
@@ -128,7 +175,8 @@ try {
         release(); await saving;
         const persistedBg = (await getWallpaperSelectionDB()).bg;
         const result = {locked, selectionBlocked, attempts, persistedBg, runtimeBg:state.bg,
-          enabled:!dom.saveEditBtn.disabled && !dom.cancelEditBtn.disabled && !document.getElementById('tabAppearance').inert,
+          enabled:!modalState.committing && !dom.saveEditBtn.disabled && !dom.cancelEditBtn.disabled
+            && !dom.languageBtn.disabled && [...document.querySelectorAll('.settings-tab-panel')].every(panel => !panel.inert),
           open:state.editOpen};
         if ('${phase}' === 'abort') {
           result.failureShown = OverlayStack.top()?.id === 'confirmModal';

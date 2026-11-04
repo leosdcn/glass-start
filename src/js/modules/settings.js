@@ -29,6 +29,14 @@ let cachedSettingsTabs = null;
 /** @type {NodeListOf<HTMLElement> | null} */
 let cachedSettingsPanels = null;
 
+/** 提交状态是业务判断的唯一来源，控件仅反映该状态。 @param {boolean} committing */
+function setEditCommitting(committing) {
+    modalState.committing = committing;
+    if (dom.cancelEditBtn) dom.cancelEditBtn.disabled = committing;
+    if (dom.languageBtn) dom.languageBtn.disabled = committing;
+    cachedSettingsPanels?.forEach(panel => { panel.inert = committing; });
+}
+
 /** @param {string} targetTabId */
 export function switchSettingsTab(targetTabId) {
     if (!cachedSettingsTabs) cachedSettingsTabs = document.querySelectorAll('.settings-tab-btn');
@@ -141,8 +149,8 @@ export async function openEditModal() {
 }
 
 export function cancelEditModal() {
-    // 壁纸提交开始后不能再恢复旧预览，否则会与已提交的 IDB 记录不一致。
-    if (dom.cancelEditBtn?.disabled) return;
+    // 提交开始后不能恢复旧预览，否则会与已提交的设置不一致。
+    if (modalState.committing) return;
     applyBgEffects(storageGet(CONFIG.KEYS.MASK_OPACITY, CONFIG.APPEARANCE.DEFAULT_MASK_OPACITY));
     modalState.draftTransitionMode = getTransitionMode();
     syncTransitionSwitcherActive(modalState.draftTransitionMode);
@@ -161,8 +169,7 @@ export function closeEditModal() {
         dom.saveEditBtn.disabled = false;
         dom.saveEditBtn.removeAttribute('aria-busy');
     }
-    if (dom.cancelEditBtn) dom.cancelEditBtn.disabled = false;
-    if (dom.tabAppearance) dom.tabAppearance.inert = false;
+    setEditCommitting(false);
     OverlayStack.pop('editModal');
     const editBtn = dom.editBookmarksBtn;
     editBtn?.setAttribute('aria-expanded', 'false');
@@ -245,7 +252,7 @@ export function exportBookmarksJSON() {
  * @returns {void}
  */
 export function importBookmarksJSON(file) {
-    if (!file || !state.editOpen) return;
+    if (!file || !state.editOpen || modalState.committing) return;
     const sessionId = editOpenRequestId;
     const requestId = ++importRequestId;
     const isCurrent = () => state.editOpen && sessionId === editOpenRequestId && requestId === importRequestId;
@@ -350,7 +357,7 @@ export function resetBookmarks() {
  * 保存设置面板中的全部草稿
  *
  * 提交时序与事务语义说明：
- * - 依次提交：壁纸预写 -> 书签 -> 遮罩暗度 -> 切屏动效 -> 壁纸正式持久化 -> 语言保存。
+ * - 等待壁纸预览后收集最新草稿，再依次提交书签、遮罩、动效、壁纸和语言。
  * - 设计权衡：不提供跨 LocalStorage 与 IndexedDB 的整体原子事务。
  *   若中途某项持久化失败，已提交的项不会回滚，草稿保留在弹窗内以便用户排查或重试。
  */
@@ -361,11 +368,6 @@ export async function saveEditModal() {
     saveBtn.disabled = true;
     saveBtn.setAttribute('aria-busy', 'true');
     try {
-        const data = collectEditData();
-        if (data.length === 0) {
-            showConfirm(t('ui.keep.at.least.one.bookmark.with'), null, t('ui.could.not.save'));
-            return;
-        }
         const wallpaperSaved = await flushWallpaperSelection();
         // 取消或重新打开设置后，旧保存任务不得提交草稿、弹提示或关闭新窗口。
         if (!state.editOpen || requestId !== editOpenRequestId) return;
@@ -373,6 +375,18 @@ export async function saveEditModal() {
             showConfirm(t('ui.the.wallpaper.has.not.been.saved'), null, t('ui.could.not.save'));
             return;
         }
+
+        const data = collectEditData();
+        if (data.length === 0) {
+            showConfirm(t('ui.keep.at.least.one.bookmark.with'), null, t('ui.could.not.save'));
+            return;
+        }
+        // 从此刻起提交同一份草稿；等待预览期间仍可编辑和取消。
+        closeLanguageModal();
+        closeBookmarkPicker();
+        cancelDragSort();
+        importRequestId++;
+        setEditCommitting(true);
 
         // 1. 提交书签
         if (modalState.bookmarksChanged && !saveUserBookmarks(data, new Set(modalState.draftBookmarks.filter(item => item.customText).map(item => normalizeUrl(item.url))))) {
@@ -399,9 +413,6 @@ export async function saveEditModal() {
         // 4. 提交壁纸草稿
         if (modalState.draftWallpaper !== undefined && modalState.draftWallpaper !== modalState.initialWallpaper) {
             const targetBg = modalState.draftWallpaper;
-            if (dom.cancelEditBtn) dom.cancelEditBtn.disabled = true;
-            // 提交快照后停止接受外观修改，避免预览与本次保存结果分离。
-            if (dom.tabAppearance) dom.tabAppearance.inert = true;
             const saved = await commitWallpaperSelection(targetBg, () => state.editOpen && requestId === editOpenRequestId);
             if (!state.editOpen || requestId !== editOpenRequestId) return;
             if (!saved) {
@@ -422,8 +433,7 @@ export async function saveEditModal() {
         if (requestId === editOpenRequestId) {
             saveBtn.disabled = false;
             saveBtn.removeAttribute('aria-busy');
-            if (dom.cancelEditBtn) dom.cancelEditBtn.disabled = false;
-            if (dom.tabAppearance) dom.tabAppearance.inert = false;
+            setEditCommitting(false);
         }
     }
 }

@@ -10,7 +10,7 @@ import * as store from '../state/store.js';
 import * as domState from '../state/dom.js';
 import * as overlay_stack from '../core/overlay-stack.js';
 import * as screen_state from '../core/screen-state.js';
-import { handleAppWakeUp } from '../core/app-wake.js';
+import { handleAppWakeUp } from '../events.js';
 import * as lifecycle from '../core/lifecycle.js';
 import * as wallpaper from '../modules/wallpaper.js';
 import * as search from '../modules/search.js';
