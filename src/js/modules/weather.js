@@ -225,12 +225,17 @@ export function toggleTempUnit() {
     try {
         if (typeof localStorage !== 'undefined') localStorage.setItem(CONFIG.KEYS.TEMP_UNIT, nextUnit);
     } catch {}
+    refreshWeatherDisplay();
+    return nextUnit;
+}
+
+/** 按当前单位重新渲染已有天气，不发起网络请求。 */
+export function refreshWeatherDisplay() {
     const data = currentWeatherData || readWeatherCache();
     if (data) {
         renderWeatherCapsule(data);
         renderWeatherPopover(data);
     }
-    return nextUnit;
 }
 
 /** @param {import('../types').WeatherData | null | undefined} data */

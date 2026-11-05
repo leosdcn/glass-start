@@ -47,17 +47,17 @@
 
 | 功能 / 问题 | DOM 或检索词 | 逻辑入口 | 样式入口 | 直接相关测试片段 |
 | :--- | :--- | :--- | :--- | :--- |
-| 启动、全局按键与失焦 | `init()`、`keydown`、`tab-blurred` | `main.js` → `init.js` / `events.js`；`core/lifecycle.js` | `page.css` | `lifecycle-`、`ui-screen-gestures` |
+| 启动、全局按键与失焦 | `init()`、`keydown`、`tab-blurred` | `main.js` → `init.js` / `events.js`；`core/lifecycle.js` | `page.css` | `lifecycle.test`、`ui-screen-gestures` |
 | 双屏、滚轮、触摸与恢复 | `startSection`、`navSection`、`navContent` | `core/screen-state.js`、`core/screen-input.js` | `page.css`、`animations.css` | `ui-screen-`、`ui-input-device-performance` |
-| 快捷书签、分类导航与图标 | `bookmarks`、`navCategories`、`sidebarList` | `modules/bookmarks.js`；`utils/category-catalog.js` | `page.css`、`glass.css` | `data-bookmark-catalog`、`ui-nav-rendering`、`infra-theme-favicon` |
-| 搜索、引擎及本地/网络联想 | `searchInput`、`engineBtn`、`suggestionMenu` | `modules/search.js`；`utils/bookmark-search.js`；`config/engines.js`、`config/engine-icons.js`、`config/engine-head.js` | `search.css` | `data-request-performance`、`data-pure-models`、`data-features` |
+| 快捷书签、分类导航与图标 | `bookmarks`、`navCategories`、`sidebarList` | `modules/bookmarks.js`；`utils/category-catalog.js` | `page.css`、`glass.css` | `data-i18n`、`ui-nav-rendering`、`infra-theme-favicon` |
+| 搜索、引擎及本地/网络联想 | `searchInput`、`engineBtn`、`suggestionMenu` | `modules/search.js`；`utils/bookmark-search.js`；`config/engines.js`、`config/engine-icons.js`、`config/engine-head.js` | `search.css` | `data-request-performance`、`data-pure-models`、`data-bookmarks-features` |
 | 设置打开、完成、取消与重置 | `editModal`、`saveEditBtn`、`tabAppearance`、`tabData` | `modules/settings.js`；控件事件在 `modules/settings-events.js` | `settings.css`；外观/数据页布局在 `glass.css` | `data-settings-save`、`ui-modal-accessibility`、`ui-rendered-contracts` |
-| 书签草稿、挑选与拖拽 | `draftBookmarks`、`editList`、`bookmarkPicker` | `state/bookmark-draft.js`、`modules/bookmark-editor.js`、`core/drag-sort.js` | `settings.css`、`glass.css` | `data-bookmark-picker`、`data-audit-fixes`、`data-pure-models` |
+| 书签草稿、挑选与拖拽 | `draftBookmarks`、`editList`、`bookmarkPicker` | `state/bookmark-draft.js`、`modules/bookmark-editor.js`、`core/drag-sort.js` | `settings.css`、`glass.css` | `data-bookmark-picker`、`data-audit-regressions`、`data-pure-models` |
 | 壁纸预览、取消、保存与主题色 | `bgLayer`、`presetWallpaperGrid`、`urlBgInput` | `modules/wallpaper.js`；`core/wallpaper-renderer.js`、`core/theme-engine.js`；`utils/idb.js`；`config/backgrounds.js`、`config/themes.js` | `page.css`；壁纸网格在 `glass.css` | `data-wallpaper-`、`infra-theme-favicon` |
-| 天气、定位与缓存显示 | `weatherBtn`、`weatherPopover`、`weatherNum` | `modules/weather.js`；`utils/weather-model.js`、`utils/weather-data.js`；`config/weather-icons.js` | `page.css`、`glass.css` | `data-weather-hydration`、`data-request-performance`、`data-pure-models` |
-| 语言、目录翻译与旧链接兼容 | `data-i18n`、`languageModal`、`canonicalBookmarkUrl` | `core/i18n.js`；`config/language.js`、`config/locales/` | `page.css`；语言选项在 `glass.css` | `data-i18n`、`data-bookmark-catalog` |
+| 天气、定位与缓存显示 | `weatherBtn`、`weatherPopover`、`weatherNum` | `modules/weather.js`；`utils/weather-model.js`、`utils/weather-data.js`；`config/weather-icons.js` | `page.css`、`glass.css` | `data-weather-features`、`data-request-performance`、`data-pure-models` |
+| 语言、目录翻译与旧链接兼容 | `data-i18n`、`languageModal`、`canonicalBookmarkUrl` | `core/i18n.js`；`config/language.js`、`config/locales/` | `page.css`；语言选项在 `glass.css` | `data-i18n` |
 | 模态层叠、焦点、确认框 | `OverlayStack`、`confirmModal`、`inert` | `core/overlay-stack.js`、`core/dialogs.js`；具体弹窗入口在 `modules/settings.js` | `settings.css`、`glass.css`、`animations.css` | `ui-modal-accessibility`、`ui-overlay-modals` |
-| 时钟、快捷键速查与开源致谢 | `clock`、`shortcutModal`、`creditsModal` | `modules/clock.js`；弹窗开关在 `modules/settings.js` | `page.css`、`glass.css` | `lifecycle-behavior`、`ui-overlay-modals` |
+| 时钟、快捷键速查与开源致谢 | `clock`、`shortcutModal`、`creditsModal` | `modules/clock.js`；弹窗开关在 `modules/settings.js` | `page.css`、`glass.css` | `lifecycle.test`、`ui-overlay-modals` |
 | 指针倾斜、卡片高光与动效收尾 | `pointermove`、`--mouse-x`、`transitionend` | `core/gestures.js`；`utils/transition-cleanup.js` | `glass.css`、`animations.css` | `ui-rendering-performance`、`ui-input-device-performance`、`data-animation-cleanup-unit` |
 | 网页离线缓存、升级与清理 | `ACTIVATE_UPDATE`、`updateNotice`、`clearCacheBtn` | 根目录 `sw.js`；`core/service-worker-updates.js`；`modules/settings-events.js` | `page.css` | `infra-sw-`、`data-audit-regressions` |
 | 网页构建、首帧与扩展差异 | 构建插槽、`__GLASS_EXTENSION__` | 根目录 `scripts/build.cjs`、`scripts/html-template.cjs`、`scripts/build-extension.cjs`、`src/extension/manifest.json` | `main.css` 为唯一编译入口 | `infra-security`、`infra-chrome-extension`、`infra-theme-favicon` |
@@ -156,7 +156,7 @@ Chrome 扩展通过 `npm run build:extension` 独立生成 `extension/`。`scrip
 
 `utils/category-catalog.js` 为派生、保存、分类排序和搜索提供共用索引，名称、URL、简介及分类／书签图标变化时重建。持久化使用完整的 `normalizeUrl()` 键，搜索使用自己的去重键，两者语义不同。`normalizeBookmark()` 共用于缓存读取、导入、草稿收集和保存；缓存中的错误条目和字段忽略，全部 URL 无效时使用当前语言默认入口，读取不改写原存储。简介缺省时继承目录，显式空字符串表示清空。
 
-分类导航通过 transform 移出首屏，原生图片懒加载仍可能提前请求其图标。因此导航专用书签图片先保存为 `data-nav-src`。在壁纸恢复后的前台空闲任务中，以低请求优先级提前加载前 5 个分类的本地图标（覆盖 1080p 至 2K 屏首屏可见范围），让加载和淡入尽量避开首次切屏；远程图标和其余分类保持延迟。快速切屏不等待准备任务，往返切屏复用现有节点。侧栏及分类标题的分类图标直接设置 `src`，并在首屏空闲任务中预加载，减少首次切入时的图标空位。
+分类导航通过 transform 移出首屏，原生图片懒加载仍可能提前请求其图标。因此导航专用书签图片先保存为 `data-nav-src`。在壁纸恢复后的前台空闲任务中，以低请求优先级提前加载前 5 个分类的本地图标，让加载和淡入尽量避开首次切屏；远程图标和其余分类保持延迟。快速切屏不等待准备任务，往返切屏复用现有节点。侧栏及分类标题的分类图标直接设置 `src`，并在首屏空闲任务中预加载，减少首次切入时的图标空位。
 
 ```mermaid
 flowchart LR

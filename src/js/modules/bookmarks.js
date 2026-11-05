@@ -257,7 +257,7 @@ let lastNavCatalog;
 let navIconsActivated = false;
 let navAllIconsActivated = false;
 
-/** 首屏空闲时仅准备首批本地图标，让加载和淡入尽量在首次切屏前完成（覆盖 1080p 至 2K 屏首屏可见的前 5 个分类）。 */
+/** 首屏空闲时仅准备前 5 个分类的本地图标，让加载和淡入尽量在首次切屏前完成。 */
 export function preloadVisibleNavIcons() {
     if (navIconsActivated || state.currentSection !== 'start' || document.hidden) return;
     const nav = dom.navSection;

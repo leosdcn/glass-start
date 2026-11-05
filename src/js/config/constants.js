@@ -75,7 +75,7 @@ export const CONFIG = Object.freeze({
                 DEFAULT_TEMPERATURE: 25,      // 兜底室温 (°C)
                 DEFAULT_HUMIDITY: 50,         // 兜底相对湿度 (%)
                 LOCATION_DRIFT_THRESHOLD: 0.08, // 静默定位更新漂移容差（经纬度度数）
-                FORECAST_FETCH_DAYS: 5,       // 气象接口拉取预报最大天数
+                FORECAST_FETCH_DAYS: 5,       // 保留的预报天数上限
                 FORECAST_DISPLAY_DAYS: 4,     // 弹窗实际呈现预报天数
                 LABEL_MAX_CHARS: 12           // 预报日期标签截断字符上限
             }),

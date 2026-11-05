@@ -21,6 +21,7 @@ import { renderCreditsModalList, renderShortcutModalList } from './clock.js';
 import { getTransitionMode, syncTransitionSwitcherActive, setTransitionMode } from '../core/screen-state.js';
 import { cancelDragSort } from '../core/drag-sort.js';
 import { closeBookmarkPicker } from './bookmark-picker.js';
+import { refreshWeatherDisplay } from './weather.js';
 
 let editOpenRequestId = 0;
 let importRequestId = 0;
@@ -314,9 +315,10 @@ export function resetBookmarks() {
         /** @type {(keyof typeof CONFIG.KEYS)[]} */
         const keys = ['PREFERRED_ENGINE', 'WALLPAPER_META', 'MASK_OPACITY',
             'BG', 'NAV_DISCOVERED', 'WEATHER_CACHE', 'WEATHER_LOC',
-            'THEME_CACHE', 'TINT_CACHE', 'TRANSITION_MODE', 'LANGUAGE'];
+            'THEME_CACHE', 'TINT_CACHE', 'TRANSITION_MODE', 'LANGUAGE', 'TEMP_UNIT'];
         const previousLanguage = getLanguagePreference();
         const removed = keys.map(key => storageRemove(CONFIG.KEYS[key]));
+        refreshWeatherDisplay();
         const bookmarksReset = resetUserBookmarks();
         const mode = getTransitionMode();
         document.documentElement.dataset.transitionMode = mode;

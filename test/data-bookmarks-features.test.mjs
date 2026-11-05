@@ -214,6 +214,16 @@ test('书签轻量存储模型、自定义图标持久化、XSS清洗与系统�
       localStorage.setItem('userBookmarkKeys', JSON.stringify(['https://custom-only.test']));
       localStorage.setItem('userCustomMeta', JSON.stringify({ 'https://custom-only.test': { name: '临时测试' } }));
       localStorage.setItem('preferredEngine', 'google');
+      localStorage.setItem('glass_temp_unit', 'F');
+      const weather = {
+        location: { name: '上海', fullName: '上海市' },
+        current: { temp: 20, apparent: 20, icon: '☀️' },
+        daily: []
+      };
+      renderWeatherCapsule(weather);
+      renderWeatherPopover(weather);
+      const fahrenheitBeforeReset = dom.weatherTemp.textContent === '68°'
+        && dom.weatherPopover.textContent.includes('68°F');
       pageData.bookmarks = [{ name: '临时测试', url: 'https://custom-only.test' }];
       renderBookmarks();
 
@@ -237,19 +247,24 @@ test('书签轻量存储模型、自定义图标持久化、XSS清洗与系统�
 
         const storageClean = localStorage.getItem('userBookmarkKeys') === null
           && localStorage.getItem('userCustomMeta') === null
-          && localStorage.getItem('preferredEngine') === null;
+          && localStorage.getItem('preferredEngine') === null
+          && localStorage.getItem('glass_temp_unit') === null;
 
         const domTitles = [...document.querySelectorAll('#bookmarks .bookmark-title')].map(e => e.textContent.trim());
         const domOk = domTitles.includes('GitHub') && domTitles.includes('DeepSeek');
 
-        const resetSuccess = countOk && hasDefaultNames && storageClean && domOk;
-        return { resetSuccess, countOk, hasDefaultNames, storageClean, domOk };
+        const celsiusAfterReset = dom.weatherTemp.textContent === '20°'
+          && dom.weatherPopover.textContent.includes('20°C');
+        const resetSuccess = countOk && hasDefaultNames && storageClean && domOk
+          && fahrenheitBeforeReset && celsiusAfterReset;
+        return { resetSuccess, countOk, hasDefaultNames, storageClean, domOk,
+          fahrenheitBeforeReset, celsiusAfterReset };
       } finally {
         window.getDerivedBookmarks = origWinDerived;
         window.DEFAULT_BOOKMARKS = origWinDefault;
       }
     })()`);
-    assert.ok(resetBookmarksCheck.resetSuccess);
+    assert.ok(resetBookmarksCheck.resetSuccess, JSON.stringify(resetBookmarksCheck));
     await evalJS(`localStorage.clear()`);
   } finally {
     await chrome.close();
