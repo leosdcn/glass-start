@@ -250,7 +250,7 @@ npm run build:extension
 
 | 文件名筛选片段 | 覆盖范围 |
 | :--- | :--- |
-| `data-wallpaper-rendering` | 图片解码、上传压缩、加载复用与失败重试 |
+| `data-wallpaper.test` | 图片解码、上传压缩、加载复用与失败重试 |
 | `data-wallpaper-storage` | 选择提交、事务失败、会话隔离与历史迁移 |
 | `data-bookmark-picker` | 挑选器节点复用、目录失效与图标预览请求 |
 | `ui-nav-rendering` | 图标延迟加载、分类位置缓存与原生滚动 |

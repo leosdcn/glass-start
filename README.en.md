@@ -258,7 +258,7 @@ Related browser regressions are grouped in the following files. Named scenarios 
 
 | Filename fragment | Coverage |
 | :--- | :--- |
-| `data-wallpaper-rendering` | Image decoding, upload compression, shared loads and failure retries |
+| `data-wallpaper.test` | Image decoding, upload compression, shared loads and failure retries |
 | `data-wallpaper-storage` | Selection commits, transaction failures, session isolation and legacy migration |
 | `data-bookmark-picker` | Picker node reuse, catalog invalidation and icon preview requests |
 | `ui-nav-rendering` | Lazy icon loading, category position caching and native scrolling |

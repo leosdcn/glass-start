@@ -471,12 +471,12 @@
 
                 <!-- 下半部分：无框双栏分割线布局 (与外观壁纸页保持统一层级) -->
                 <div class="data-management-grid shrink-0 md:flex-1 md:min-h-0">
-                    <!-- 左侧栏：配置备份与恢复 -->
+                    <!-- 左侧栏：书签备份与恢复 -->
                     <!-- gap 只分隔可见 Flex 项，隐藏的文件输入框不额外撑开底部。 -->
                     <div class="data-section shrink-0 md:flex-1 flex flex-col gap-2.5 md:min-h-0">
                         <div class="data-section-heading">
                             <span class="text-xs font-semibold text-white/80 flex items-center gap-1.5">
-                                <svg class="size-4 text-white/60 shrink-0" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="m20.25 7.5-.625 10.632a2.25 2.25 0 0 1-2.247 2.118H6.622a2.25 2.25 0 0 1-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z"/></svg> <span data-i18n="ui.backup.and.restore">配置备份与恢复</span>
+                                <svg class="size-4 text-white/60 shrink-0" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="m20.25 7.5-.625 10.632a2.25 2.25 0 0 1-2.247 2.118H6.622a2.25 2.25 0 0 1-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z"/></svg> <span data-i18n="ui.backup.and.restore">书签备份与恢复</span>
                             </span>
                         </div>
                         <button id="exportJsonBtn" type="button" class="settings-action w-full h-9 px-3.5 text-xs font-medium glass-interactive flex items-center justify-center gap-1.5 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50">
@@ -535,7 +535,7 @@
             <!-- 提交操作：取消与完成 -->
             <div class="flex items-center justify-end gap-2 sm:gap-3 mt-3 pt-3 border-t border-white/10 shrink-0">
                 <button id="cancelEditBtn" type="button" class="flex-1 sm:flex-initial py-2.5 px-3 sm:px-5 rounded-control text-xs sm:text-sm font-normal text-white/50 enabled:hover:text-white/80 enabled:hover:bg-white/5 glass-interactive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 disabled:opacity-50 disabled:cursor-not-allowed"><span data-i18n="ui.cancel">取消</span></button>
-                <button id="saveEditBtn" type="button" title="保存快捷书签与背景暗度修改" class="glass-btn-primary flex-1 sm:flex-initial py-2.5 px-4 sm:px-6 text-xs sm:text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:opacity-50 disabled:cursor-not-allowed" data-i18n-title="ui.save.bookmarks.background.dimming.and.language"><span data-i18n="ui.done">完成</span></button>
+                <button id="saveEditBtn" type="button" title="保存快捷书签、壁纸、背景暗度、切屏动效与语言设置" class="glass-btn-primary flex-1 sm:flex-initial py-2.5 px-4 sm:px-6 text-xs sm:text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:opacity-50 disabled:cursor-not-allowed" data-i18n-title="ui.save.bookmarks.background.dimming.and.language"><span data-i18n="ui.done">完成</span></button>
             </div>
         </div>
     </dialog><!-- /#editModal -->
