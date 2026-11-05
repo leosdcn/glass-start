@@ -79,6 +79,15 @@ export function toggleWeatherPopover() {
 /** @type {Promise<import('../types').WeatherLocation> | null} */
 let inFlightLocationPromise = null;
 
+/**
+ * 零经纬度也是有效坐标，不能按真假判断位置是否存在。
+ * @param {import('../types').WeatherLocation | null | undefined} location
+ * @returns {location is import('../types').WeatherLocation}
+ */
+function hasWeatherCoordinates(location) {
+    return !!location && Number.isFinite(location.lat) && Number.isFinite(location.lon);
+}
+
 function readWeatherLocation() {
     const location = storageGet(CONFIG.KEYS.WEATHER_LOC, null);
     if (location?.isFallback) {
@@ -92,7 +101,7 @@ async function resolveWeatherLocation(force = false) {
     const locCache = readWeatherLocation();
     const now = Date.now();
     const LOC_TTL = CONFIG.WEATHER.LOC_TTL;
-    if (!force && locCache && locCache.timestamp && (now - locCache.timestamp < LOC_TTL) && locCache.lat && (locCache.language || 'zh-CN') === getLocale()) {
+    if (!force && locCache && locCache.timestamp && (now - locCache.timestamp < LOC_TTL) && hasWeatherCoordinates(locCache) && (locCache.language || 'zh-CN') === getLocale()) {
         return locCache;
     }
     if (inFlightLocationPromise) return inFlightLocationPromise;
@@ -101,7 +110,7 @@ async function resolveWeatherLocation(force = false) {
             return await executeResolveWeatherLocation(now);
         } catch (error) {
             const previousLocation = locCache || readWeatherCache()?.location;
-            if (previousLocation?.lat) return previousLocation;
+            if (hasWeatherCoordinates(previousLocation)) return previousLocation;
             throw error;
         } finally {
             inFlightLocationPromise = null;
@@ -174,7 +183,7 @@ async function executeResolveWeatherLocation(now) {
 
     try {
         const data = await fetchJsonWithTimeout(`https://ipwho.is/?lang=${getLocale() === 'en' ? 'en' : 'zh-CN'}`, CONFIG.WEATHER.TIMEOUT_IP);
-        if (data?.success && data.latitude) {
+        if (data?.success && Number.isFinite(data.latitude) && Number.isFinite(data.longitude)) {
             const rawCity = data.city || '';
             const rawRegion = data.region || '';
             const city = rawCity || rawRegion || t('ui.local');
@@ -515,7 +524,8 @@ export function updateWeather(force = false) {
 async function executeWeatherUpdate(cache, force) {
     try {
         const locCache = readWeatherLocation();
-        const knownLoc = (locCache && locCache.lat) ? locCache : (cache && cache.location && cache.location.lat ? cache.location : null);
+        const knownLoc = hasWeatherCoordinates(locCache) ? locCache
+            : hasWeatherCoordinates(cache?.location) ? cache.location : null;
 
         if (knownLoc && !force) {
             const forecastPromise = fetchWeatherForecast(knownLoc);

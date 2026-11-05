@@ -153,6 +153,45 @@ try {
         finally { window.fetch = performanceOriginalFetch; }
     })()`), true);
     console.log('✅ 天气先显示旧地点预报，重新定位全程共享刷新任务，新地点仅请求一次，失败后可重试');
+    const zeroCoordinates = await evalJS(`(async () => {
+        const originalFetch = window.fetch;
+        const requests = [];
+        const location = {name:'赤道', fullName:'赤道', lat:0, lon:0, language:'zh-CN', timestamp:Date.now()};
+        const forecast = {current:{temperature_2m:26,weather_code:0}, daily:{}};
+        try {
+            window.fetch = async url => {
+                requests.push(url);
+                if (url.includes('/forecast?')) return {ok:true,json:async()=>forecast};
+                throw new Error('location offline');
+            };
+            storageSet(CONFIG.KEYS.WEATHER_LOC, location);
+            storageSet(CONFIG.KEYS.WEATHER_CACHE, {timestamp:1,location,current:{temp:20},daily:[]});
+            await updateWeather(false);
+            const cached = requests.length === 1 && requests[0].includes('latitude=0&longitude=0&')
+                && storageGet(CONFIG.KEYS.WEATHER_CACHE).current.temp === 26;
+
+            requests.length = 0;
+            await updateWeather(true);
+            const fallback = requests.some(url => url.includes('latitude=0&longitude=0&'));
+
+            storageRemove(CONFIG.KEYS.WEATHER_LOC);
+            storageRemove(CONFIG.KEYS.WEATHER_CACHE);
+            requests.length = 0;
+            window.fetch = async url => {
+                requests.push(url);
+                if (url.includes('/forecast?')) return {ok:true,json:async()=>forecast};
+                if (url.includes('ipwho.is')) return {ok:true,json:async()=>({success:true,latitude:0,longitude:0,city:'赤道'})};
+                throw new Error('primary location offline');
+            };
+            await updateWeather(true);
+            const located = storageGet(CONFIG.KEYS.WEATHER_CACHE)?.location;
+            return {cached, fallback, located:located?.lat === 0 && located?.lon === 0
+                && requests.some(url => url.includes('latitude=0&longitude=0&'))};
+        } finally { window.fetch = originalFetch; }
+    })()`);
+    assert.deepEqual(zeroCoordinates, {cached:true, fallback:true, located:true});
+    console.log('✅ 零经纬度可复用缓存、定位失败时回退，并接受 IP 定位返回的零坐标');
+
 } finally {
     await chrome.close();
     await server.close();
