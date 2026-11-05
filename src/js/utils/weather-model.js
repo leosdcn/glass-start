@@ -17,18 +17,19 @@ const WMO_WEATHER_ICONS = {
     63: { dayIcon: '🌧️', nightIcon: '🌧️' },
     65: { dayIcon: '🌧️', nightIcon: '🌧️' },
     66: { dayIcon: '🌧️', nightIcon: '🌧️' },
-    67: { dayIcon: '⛈️', nightIcon: '⛈️' },
+    67: { dayIcon: '🌧️', nightIcon: '🌧️' },
     71: { dayIcon: '🌨️', nightIcon: '🌨️' },
     73: { dayIcon: '🌨️', nightIcon: '🌨️' },
     75: { dayIcon: '❄️', nightIcon: '❄️' },
     77: { dayIcon: '🌨️', nightIcon: '🌨️' },
     80: { dayIcon: '🌦️', nightIcon: '🌧️' },
     81: { dayIcon: '🌧️', nightIcon: '🌧️' },
-    82: { dayIcon: '⛈️', nightIcon: '⛈️' },
+    82: { dayIcon: '🌧️', nightIcon: '🌧️' },
     85: { dayIcon: '🌨️', nightIcon: '🌨️' },
     86: { dayIcon: '❄️', nightIcon: '❄️' },
     95: { dayIcon: '⛈️', nightIcon: '⛈️' },
     96: { dayIcon: '⛈️', nightIcon: '⛈️' },
+    97: { dayIcon: '⛈️', nightIcon: '⛈️' },
     99: { dayIcon: '⛈️', nightIcon: '⛈️' }
 };
 
@@ -40,7 +41,7 @@ function getWeatherIcon(code, isDay = true) {
 
 /** @param {unknown} v */
 export function weatherTime(v) {
-    return (typeof v === 'string' && /^\d{1,2}:\d{2}$/.test(v.trim())) ? v.trim() : '--:--';
+    return (typeof v === 'string' && /^(?:[01]?\d|2[0-3]):[0-5]\d$/.test(v.trim())) ? v.trim() : '--:--';
 }
 
 /** @param {unknown[]} parts */

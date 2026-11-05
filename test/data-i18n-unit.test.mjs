@@ -35,6 +35,10 @@ test('complete messages, singular/plural, one-pass parameters and fallback', () 
         scope.window.__GLASS_I18N__.locale = 'en';
         assert.equal(forecastLabel('2026-10-28', 2), 'Wed');
         assert.equal(forecastLabel('bad date', 2), '');
+        for (const invalid of ['2026-02-30','2026-13-01','2026-00-10']) {
+            assert.equal(forecastLabel(invalid, 2), '');
+        }
+        assert.equal(forecastLabel('2028-02-29', 2), 'Tue');
     } finally { delete scope.window; }
 });
 
@@ -44,6 +48,8 @@ test('Chinese date separates weekday while English and forecast labels keep nati
         const date = new Date(2026, 9, 30);
         assert.equal(formatDate(date), '10月30日 星期五');
         assert.equal(forecastLabel('2026-10-30', 2), '周五');
+        assert.equal(scope.module.exports.weatherDescription(67), '强冻雨');
+        assert.equal(scope.module.exports.weatherDescription(97), '强雷暴');
         scope.window.__GLASS_I18N__.locale = 'en';
         assert.equal(formatDate(date), new Intl.DateTimeFormat('en', { month: 'long', day: 'numeric', weekday: 'long' }).format(date));
     } finally { delete scope.window; }

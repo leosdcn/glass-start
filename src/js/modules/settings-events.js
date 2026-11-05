@@ -144,6 +144,9 @@ export function bindEditEvents() {
             if (!fields || !row.dataset.id) return;
             const item = updateBookmarkDraft(row.dataset.id, fields);
             if (!item) return;
+            if (fields.name !== undefined) {
+                row.querySelector('.drag-handle')?.setAttribute('aria-label', t('bookmark.reorderLabel', { name: item.name }));
+            }
 
             // 同步实时 Favicon 预览
             const faviconBox = row.querySelector('.edit-favicon-box');

@@ -382,6 +382,13 @@ export function getLocalBookmarkSuggestions(query, limit = CONFIG.SUGGEST.MAX_LO
     return rankBookmarkSuggestions(query, getSearchCandidates(), CONFIG.SUGGEST, limit);
 }
 
+/** 内容未变化时才复用候选节点，避免同一 URL 的编辑结果仍显示旧内容。
+ * @param {import('../types').BookmarkSuggestion} bm
+ */
+function bookmarkSuggestionKey(bm) {
+    return JSON.stringify([bm.url, bm.name, bm.icon, bm.desc || '', bm.category || '']);
+}
+
 /**
  * @param {import('../types').BookmarkSuggestion} bm
  * @param {number} idx
@@ -395,7 +402,8 @@ function getBookmarkSuggestionHTML(bm, idx) {
     return `
         <div id="sug-opt-${idx}"
              role="option" aria-selected="false" 
-             data-url="${escapeHtml(bm.url)}" 
+             data-url="${escapeHtml(bm.url)}"
+             data-bookmark-key="${escapeHtml(bookmarkSuggestionKey(bm))}"
              data-idx="${idx}"
              class="suggestion-item group px-3.5 py-2.5 my-0.5 apple-radius text-sm text-white/90 flex items-center gap-3 glass-interactive cursor-pointer hover:text-white">
             ${iconHtml}
@@ -424,8 +432,7 @@ function renderSuggestions(localList = [], netList = [], preserveSelection = fal
     const restoreInput = selectionUpdatesInput;
     const maxNetCount = Math.max(0, CONFIG.SUGGEST.MAX_TOTAL_ITEMS - localList.length);
     const safeNetList = netList.slice(0, maxNetCount);
-    const localSig = localList.map(bm => `${bm.url}|${bm.name}|${bm.desc || ''}|${bm.category || ''}`).join(';');
-    const signature = `${isNetLoading ? 1 : 0}:${localSig}:${safeNetList.join(';')}`;
+    const signature = JSON.stringify([isNetLoading, localList.map(bookmarkSuggestionKey), safeNetList]);
     if (signature === lastSuggestionsSignature && suggestionMenu.classList.contains('active')) {
         if (!preserveSelection && selectedSuggestionIdx >= 0) selectSuggestion(-1, { updateInput: false });
         return;
@@ -464,7 +471,7 @@ function renderSuggestions(localList = [], netList = [], preserveSelection = fal
         fragment.appendChild(range.createContextualFragment(renderSectionHeader(t('ui.bookmark'), true)));
         localList.forEach(bm => {
             const existing = existingBookmarkMap.get(bm.url);
-            if (existing) {
+            if (existing && existing.getAttribute('data-bookmark-key') === bookmarkSuggestionKey(bm)) {
                 existing.id = `sug-opt-${globalIdx}`;
                 existing.setAttribute('data-idx', String(globalIdx));
                 existing.setAttribute('aria-selected', 'false');

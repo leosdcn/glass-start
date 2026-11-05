@@ -52,7 +52,8 @@ await test("目录图标复用与过期预览请求", async () => {
             input.value=value; input.dispatchEvent(new Event('input',{bubbles:true}));
         }
         return badge===row.querySelector('.edit-favicon-initial') && badge.textContent==='最' &&
-            !row.querySelector('img') && modalState.draftBookmarks[0].name==='最新名称';
+            !row.querySelector('img') && modalState.draftBookmarks[0].name==='最新名称' &&
+            row.querySelector('.drag-handle').getAttribute('aria-label').includes('最新名称');
     })()`),true);
         assert.equal(external.length,before);
         console.log('✅ 图标失败后的改名只更新现有首字徽标，不重建图片或重试外部请求');

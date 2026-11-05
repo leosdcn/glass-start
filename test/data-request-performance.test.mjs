@@ -117,6 +117,26 @@ try {
     })()`);
     assert.deepEqual(cors, {shared:true, shown:true, cachedNodes:true, aborted:true});
     console.log('✅ Wikipedia 同查询共享请求，命中相同缓存复用节点，关闭仍中止未决请求');
+    const editedSuggestion = await evalJS(`(async () => {
+        const originalFetch = window.fetch;
+        const originalBookmarks = pageData.bookmarks;
+        window.fetch = async () => ({ok:true,json:async()=>['rename-check',[]]});
+        try {
+            pageData.bookmarks = [{name:'原名称',url:'https://rename-check.test',desc:'原简介',icon:'./icons/github.com.png'}];
+            fetchSuggestions('wikipedia','rename-check');
+            await new Promise(resolve => setTimeout(resolve, 0));
+            const originalNode = dom.suggestionMenu.querySelector('.suggestion-item');
+            hideSuggestions();
+            pageData.bookmarks = [{...pageData.bookmarks[0],name:'新名称',desc:'新简介',icon:'./icons/youtube.com.png'}];
+            fetchSuggestions('wikipedia','rename-check');
+            const node = dom.suggestionMenu.querySelector('.suggestion-item');
+            return {updated:node.textContent.includes('新名称') && node.textContent.includes('新简介')
+                && node.querySelector('img').getAttribute('src') === './icons/youtube.com.png',
+                replaced:node !== originalNode};
+        } finally { hideSuggestions(); window.fetch = originalFetch; pageData.bookmarks = originalBookmarks; }
+    })()`);
+    assert.deepEqual(editedSuggestion, {updated:true,replaced:true});
+
 
     await evalJS(`(() => {
         window.performanceOriginalFetch = window.fetch;

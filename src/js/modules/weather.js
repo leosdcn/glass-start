@@ -358,9 +358,10 @@ export function renderWeatherPopover(data) {
                 + Number(parts.find(part => part.type === 'minute')?.value);
         }
         const parseMins = (/** @type {unknown} */ str) => {
-            if (!str || typeof str !== 'string' || !str.includes(':')) return null;
-            const [h, m] = str.split(':').map(Number);
-            return isNaN(h) || isNaN(m) ? null : h * 60 + m;
+            const time = weatherTime(str);
+            if (time === '--:--') return null;
+            const [h, m] = time.split(':').map(Number);
+            return h * 60 + m;
         };
         const riseTodayMins = parseMins(c.sunriseToday);
         const setTodayMins = parseMins(c.sunsetToday);

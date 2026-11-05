@@ -48,7 +48,7 @@ test('低降水概率且当前无雨时平滑预报，高降水概率保留雨�
 });
 
 test('昼夜及未知天气代码保留原有图标回退', () => {
-  for (const [code, isDay, icon] of [[0, 1, '☀️'], [0, 0, '🌙'], [999, 1, '⛅'], [999, 0, '☁️']]) {
+  for (const [code, isDay, icon] of [[0, 1, '☀️'], [0, 0, '🌙'], [67, 1, '🌧️'], [82, 0, '🌧️'], [97, 1, '⛈️'], [999, 1, '⛅'], [999, 0, '☁️']]) {
     const result = normalizeWeatherForecast({current:{weather_code:code, is_day:isDay}},
       {lat:1, lon:2}, CONFIG.WEATHER, 123);
     assert.equal(result.current.icon, icon);
@@ -119,3 +119,10 @@ assert.equal(model.removeBookmarkDraft('a'), true);
 assert.equal(model.removeBookmarkDraft('a'), false);
 assert.equal(model.modalState.bookmarksChanged, true);
 console.log('✅ 独立验证搜索排序、拼写容错、天气转换与草稿修改，无浏览器依赖');
+
+test('天气时间拒绝越界值，允许单数字小时', () => {
+  for (const [input, expected] of [['0:00','0:00'],['23:59','23:59'],[' 7:05 ','7:05'],
+    ['24:00','--:--'],['29:75','--:--'],['12:60','--:--'],['-1:00','--:--'],[null,'--:--']]) {
+    assert.equal(model.weatherTime(input), expected);
+  }
+});

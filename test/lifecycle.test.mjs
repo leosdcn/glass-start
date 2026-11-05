@@ -37,6 +37,8 @@ test('页面切换状态、无障碍隔离与 BFCache 恢复 (浏览器回归)',
     '/bfcache-away.html': '<!doctype html><title>BFCache round trip</title>'
   });
   try {
+    const bfcacheMisses = [];
+    send('Page.backForwardCacheNotUsed', event => bfcacheMisses.push(event));
     await waitFor(evalJS, '!document.querySelector(".fade-in")');
     await evalJS(`(() => {
       window.__nrChanges = [];
@@ -106,7 +108,11 @@ test('页面切换状态、无障碍隔离与 BFCache 恢复 (浏览器回归)',
         await navigateAndWait(send, evalJS, url + 'bfcache-away.html');
         const history = await send('Page.getNavigationHistory');
         await send('Page.navigateToHistoryEntry', { entryId: history.entries[history.currentIndex - 1].id });
-        await waitFor(evalJS, `location.href === ${JSON.stringify(url)} && window.__bfcacheRestored === true`, 10000);
+        try {
+          await waitFor(evalJS, `location.href === ${JSON.stringify(url)} && window.__bfcacheRestored === true`, 10000);
+        } catch (error) {
+          throw new Error('BFCache restore failed: ' + JSON.stringify(bfcacheMisses), { cause: error });
+        }
         const restored = await evalJS(`({
           token: __bfcacheToken, section: state.currentSection, unlocked: !isScreenTransitioning(),
           inlineLayers: [dom.startSection.style.willChange, dom.navSection.style.willChange],

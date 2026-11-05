@@ -73,7 +73,9 @@ export function forecastLabel(value, index) {
     if (index === 1) return t('weather.tomorrow');
     if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return '';
     const [year, month, day] = value.split('-').map(Number);
-    return formatDate(new Date(year, month - 1, day), { weekday: 'short' });
+    const date = new Date(year, month - 1, day);
+    if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) return '';
+    return formatDate(date, { weekday: 'short' });
 }
 
 /** Resolve old Chinese preset URLs to the shared bookmark identity.
