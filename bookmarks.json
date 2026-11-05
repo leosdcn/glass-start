@@ -158,110 +158,6 @@
             "id": "ai"
         },
         {
-            "name": "办公协作",
-            "icon": "./icons/emoji/memo.svg",
-            "bookmarks": [
-                {
-                    "name": "DeepL",
-                    "url": "https://www.deepl.com/translator",
-                    "icon": "./icons/deepl.com.png",
-                    "desc": "文本与文档翻译"
-                },
-                {
-                    "name": "draw.io",
-                    "url": "https://app.diagrams.net",
-                    "icon": "./icons/app.diagrams.net.png",
-                    "desc": "免费开源流程图绘制"
-                },
-                {
-                    "name": "Excalidraw",
-                    "url": "https://excalidraw.com",
-                    "icon": "./icons/excalidraw.com.png",
-                    "desc": "手绘在线协作白板"
-                },
-                {
-                    "name": "Gmail",
-                    "url": "https://mail.google.com",
-                    "icon": "./icons/mail.google.com.png",
-                    "desc": "谷歌电子邮箱"
-                },
-                {
-                    "name": "Google Translate",
-                    "url": "https://translate.google.com",
-                    "icon": "./icons/translate.google.com.png",
-                    "desc": "全球多语种即时翻译"
-                },
-                {
-                    "name": "Notion",
-                    "url": "https://www.notion.com",
-                    "icon": "./icons/notion.com.png",
-                    "desc": "一体化笔记与知识库"
-                },
-                {
-                    "name": "PDF24 Tools",
-                    "url": "https://tools.pdf24.org",
-                    "icon": "./icons/tools.pdf24.org.png",
-                    "desc": "免费在线 PDF 工具箱"
-                },
-                {
-                    "name": "Publish Markdown",
-                    "url": "https://publishmarkdown.com",
-                    "icon": "./icons/publishmarkdown.com.png",
-                    "desc": "Markdown 笔记一键发布"
-                },
-                {
-                    "name": "Time.is",
-                    "url": "https://time.is/",
-                    "icon": "./icons/time.is.png",
-                    "desc": "世界时间与时区查询"
-                }
-            ],
-            "id": "work"
-        },
-        {
-            "name": "云盘传输",
-            "icon": "./icons/emoji/cloud.svg",
-            "bookmarks": [
-                {
-                    "name": "Google Drive",
-                    "url": "https://drive.google.com",
-                    "icon": "./icons/drive.google.com.png",
-                    "desc": "谷歌官方云盘与文档"
-                },
-                {
-                    "name": "iCloud",
-                    "url": "https://www.icloud.com",
-                    "icon": "./icons/icloud.com.png",
-                    "desc": "苹果官方云端服务"
-                },
-                {
-                    "name": "LocalSend",
-                    "url": "https://web.localsend.org",
-                    "icon": "./icons/web.localsend.org.png",
-                    "desc": "开源局域网文件传输"
-                },
-                {
-                    "name": "MEGA",
-                    "url": "https://mega.nz",
-                    "icon": "./icons/mega.nz.png",
-                    "desc": "端到端加密安全云盘"
-                },
-                {
-                    "name": "OneDrive",
-                    "url": "https://onedrive.live.com",
-                    "icon": "./icons/onedrive.live.com.png",
-                    "desc": "微软官方云盘与办公"
-                },
-                {
-                    "name": "微信文件传输助手",
-                    "url": "https://filehelper.weixin.qq.com",
-                    "icon": "./icons/filehelper.weixin.qq.com.png",
-                    "desc": "官方跨端文件传输"
-                }
-            ],
-            "id": "storage"
-        },
-        {
             "name": "影视音乐",
             "icon": "./icons/emoji/clapper.svg",
             "bookmarks": [
@@ -420,6 +316,110 @@
             "id": "social"
         },
         {
+            "name": "办公协作",
+            "icon": "./icons/emoji/memo.svg",
+            "bookmarks": [
+                {
+                    "name": "DeepL",
+                    "url": "https://www.deepl.com/translator",
+                    "icon": "./icons/deepl.com.png",
+                    "desc": "文本与文档翻译"
+                },
+                {
+                    "name": "draw.io",
+                    "url": "https://app.diagrams.net",
+                    "icon": "./icons/app.diagrams.net.png",
+                    "desc": "免费开源流程图绘制"
+                },
+                {
+                    "name": "Excalidraw",
+                    "url": "https://excalidraw.com",
+                    "icon": "./icons/excalidraw.com.png",
+                    "desc": "手绘在线协作白板"
+                },
+                {
+                    "name": "Gmail",
+                    "url": "https://mail.google.com",
+                    "icon": "./icons/mail.google.com.png",
+                    "desc": "谷歌电子邮箱"
+                },
+                {
+                    "name": "Google Translate",
+                    "url": "https://translate.google.com",
+                    "icon": "./icons/translate.google.com.png",
+                    "desc": "全球多语种即时翻译"
+                },
+                {
+                    "name": "Notion",
+                    "url": "https://www.notion.com",
+                    "icon": "./icons/notion.com.png",
+                    "desc": "一体化笔记与知识库"
+                },
+                {
+                    "name": "PDF24 Tools",
+                    "url": "https://tools.pdf24.org",
+                    "icon": "./icons/tools.pdf24.org.png",
+                    "desc": "免费在线 PDF 工具箱"
+                },
+                {
+                    "name": "Publish Markdown",
+                    "url": "https://publishmarkdown.com",
+                    "icon": "./icons/publishmarkdown.com.png",
+                    "desc": "Markdown 笔记一键发布"
+                },
+                {
+                    "name": "Time.is",
+                    "url": "https://time.is/",
+                    "icon": "./icons/time.is.png",
+                    "desc": "世界时间与时区查询"
+                }
+            ],
+            "id": "work"
+        },
+        {
+            "name": "云盘传输",
+            "icon": "./icons/emoji/cloud.svg",
+            "bookmarks": [
+                {
+                    "name": "Google Drive",
+                    "url": "https://drive.google.com",
+                    "icon": "./icons/drive.google.com.png",
+                    "desc": "谷歌官方云盘与文档"
+                },
+                {
+                    "name": "iCloud",
+                    "url": "https://www.icloud.com",
+                    "icon": "./icons/icloud.com.png",
+                    "desc": "苹果官方云端服务"
+                },
+                {
+                    "name": "LocalSend",
+                    "url": "https://web.localsend.org",
+                    "icon": "./icons/web.localsend.org.png",
+                    "desc": "开源局域网文件传输"
+                },
+                {
+                    "name": "MEGA",
+                    "url": "https://mega.nz",
+                    "icon": "./icons/mega.nz.png",
+                    "desc": "端到端加密安全云盘"
+                },
+                {
+                    "name": "OneDrive",
+                    "url": "https://onedrive.live.com",
+                    "icon": "./icons/onedrive.live.com.png",
+                    "desc": "微软官方云盘与办公"
+                },
+                {
+                    "name": "微信文件传输助手",
+                    "url": "https://filehelper.weixin.qq.com",
+                    "icon": "./icons/filehelper.weixin.qq.com.png",
+                    "desc": "官方跨端文件传输"
+                }
+            ],
+            "id": "storage"
+        },
+        {
             "name": "知识学习",
             "icon": "./icons/emoji/books.svg",
             "bookmarks": [
@@ -540,6 +540,55 @@
                 }
             ],
             "id": "maps"
+        },
+        {
+            "name": "游戏娱乐",
+            "icon": "./icons/emoji/gamepad.svg",
+            "bookmarks": [
+                {
+                    "name": "Lichess",
+                    "url": "https://lichess.org",
+                    "icon": "./icons/lichess.org.png",
+                    "desc": "开源国际象棋平台"
+                },
+                {
+                    "name": "PlayOK",
+                    "url": "https://www.playok.com",
+                    "icon": "./icons/playok.com.png",
+                    "desc": "经典多棋种在线下棋"
+                },
+                {
+                    "name": "Poki",
+                    "url": "https://poki.com",
+                    "icon": "./icons/poki.com.png",
+                    "desc": "在线网页休闲小游戏"
+                },
+                {
+                    "name": "PyChess",
+                    "url": "https://www.pychess.org",
+                    "icon": "./icons/pychess.org.png",
+                    "desc": "多变体棋类在线对弈"
+                },
+                {
+                    "name": "Steam",
+                    "url": "https://store.steampowered.com",
+                    "icon": "./icons/store.steampowered.com.png",
+                    "desc": "数字游戏发行平台"
+                },
+                {
+                    "name": "SteamDB",
+                    "url": "https://steamdb.info",
+                    "icon": "./icons/steamdb.info.png",
+                    "desc": "Steam 游戏史低查询"
+                },
+                {
+                    "name": "将棋ウォーズ",
+                    "url": "https://shogiwars.heroz.jp",
+                    "icon": "./icons/shogiwars.heroz.jp.png",
+                    "desc": "日本将棋在线对弈"
+                }
+            ],
+            "id": "games"
         },
         {
             "name": "创意设计",
@@ -808,55 +857,6 @@
                 }
             ],
             "id": "network"
-        },
-        {
-            "name": "游戏娱乐",
-            "icon": "./icons/emoji/gamepad.svg",
-            "bookmarks": [
-                {
-                    "name": "Lichess",
-                    "url": "https://lichess.org",
-                    "icon": "./icons/lichess.org.png",
-                    "desc": "开源国际象棋平台"
-                },
-                {
-                    "name": "PlayOK",
-                    "url": "https://www.playok.com",
-                    "icon": "./icons/playok.com.png",
-                    "desc": "经典多棋种在线下棋"
-                },
-                {
-                    "name": "Poki",
-                    "url": "https://poki.com",
-                    "icon": "./icons/poki.com.png",
-                    "desc": "在线网页休闲小游戏"
-                },
-                {
-                    "name": "PyChess",
-                    "url": "https://www.pychess.org",
-                    "icon": "./icons/pychess.org.png",
-                    "desc": "多变体棋类在线对弈"
-                },
-                {
-                    "name": "Steam",
-                    "url": "https://store.steampowered.com",
-                    "icon": "./icons/store.steampowered.com.png",
-                    "desc": "数字游戏发行平台"
-                },
-                {
-                    "name": "SteamDB",
-                    "url": "https://steamdb.info",
-                    "icon": "./icons/steamdb.info.png",
-                    "desc": "Steam 游戏史低查询"
-                },
-                {
-                    "name": "将棋ウォーズ",
-                    "url": "https://shogiwars.heroz.jp",
-                    "icon": "./icons/shogiwars.heroz.jp.png",
-                    "desc": "日本将棋在线对弈"
-                }
-            ],
-            "id": "games"
         },
         {
             "name": "趣味探索",

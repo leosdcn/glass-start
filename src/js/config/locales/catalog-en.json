@@ -11,17 +11,17 @@
     ],
     "categories": {
         "ai": "AI",
-        "work": "Work",
-        "storage": "Storage",
         "media": "Media",
         "social": "Social",
+        "work": "Work",
+        "storage": "Storage",
         "learning": "Learning",
         "maps": "Maps",
+        "games": "Games",
         "creative": "Creative",
         "resources": "Assets",
         "development": "Dev",
         "network": "Network",
-        "games": "Games",
         "explore": "Explore"
     },
     "bookmarks": {
@@ -80,52 +80,6 @@
         "https://www.qianwen.com": {
             "name": "Qwen",
             "desc": "AI assistant by Alibaba"
-        },
-        "https://www.deepl.com/translator": {
-            "desc": "Translate text and documents"
-        },
-        "https://app.diagrams.net": {
-            "desc": "Open-source diagram editor"
-        },
-        "https://excalidraw.com": {
-            "desc": "Collaborative whiteboard"
-        },
-        "https://mail.google.com": {
-            "desc": "Email by Google"
-        },
-        "https://translate.google.com": {
-            "desc": "Translate across languages"
-        },
-        "https://www.notion.com": {
-            "desc": "Notes and project workspace"
-        },
-        "https://tools.pdf24.org": {
-            "desc": "Free online PDF tools"
-        },
-        "https://publishmarkdown.com": {
-            "desc": "Publish Markdown notes"
-        },
-        "https://time.is/": {
-            "desc": "World clocks and time zones"
-        },
-        "https://drive.google.com": {
-            "desc": "Cloud storage and documents"
-        },
-        "https://www.icloud.com": {
-            "desc": "Cloud services by Apple"
-        },
-        "https://web.localsend.org": {
-            "desc": "Open-source file sharing"
-        },
-        "https://mega.nz": {
-            "desc": "End-to-end encrypted storage"
-        },
-        "https://onedrive.live.com": {
-            "desc": "Cloud storage and Office"
-        },
-        "https://filehelper.weixin.qq.com": {
-            "name": "WeChat File Transfer",
-            "desc": "Cross-device file transfer"
         },
         "https://bandcamp.com": {
             "desc": "Indie music and albums"
@@ -205,6 +159,52 @@
             "name": "Weibo",
             "desc": "Chinese trends and chat"
         },
+        "https://www.deepl.com/translator": {
+            "desc": "Translate text and documents"
+        },
+        "https://app.diagrams.net": {
+            "desc": "Open-source diagram editor"
+        },
+        "https://excalidraw.com": {
+            "desc": "Collaborative whiteboard"
+        },
+        "https://mail.google.com": {
+            "desc": "Email by Google"
+        },
+        "https://translate.google.com": {
+            "desc": "Translate across languages"
+        },
+        "https://www.notion.com": {
+            "desc": "Notes and project workspace"
+        },
+        "https://tools.pdf24.org": {
+            "desc": "Free online PDF tools"
+        },
+        "https://publishmarkdown.com": {
+            "desc": "Publish Markdown notes"
+        },
+        "https://time.is/": {
+            "desc": "World clocks and time zones"
+        },
+        "https://drive.google.com": {
+            "desc": "Cloud storage and documents"
+        },
+        "https://www.icloud.com": {
+            "desc": "Cloud services by Apple"
+        },
+        "https://web.localsend.org": {
+            "desc": "Open-source file sharing"
+        },
+        "https://mega.nz": {
+            "desc": "End-to-end encrypted storage"
+        },
+        "https://onedrive.live.com": {
+            "desc": "Cloud storage and Office"
+        },
+        "https://filehelper.weixin.qq.com": {
+            "name": "WeChat File Transfer",
+            "desc": "Cross-device file transfer"
+        },
         "https://www.desmos.com/calculator": {
             "desc": "Online graphing calculator"
         },
@@ -264,6 +264,28 @@
         "https://www.weather.com.cn": {
             "name": "China Weather",
             "desc": "China weather and alerts"
+        },
+        "https://lichess.org": {
+            "desc": "Open-source online chess"
+        },
+        "https://www.playok.com": {
+            "desc": "Play board games online"
+        },
+        "https://poki.com": {
+            "desc": "Casual browser games"
+        },
+        "https://www.pychess.org": {
+            "desc": "Play chess variants online"
+        },
+        "https://store.steampowered.com": {
+            "desc": "Digital game store"
+        },
+        "https://steamdb.info": {
+            "desc": "Steam prices and deals"
+        },
+        "https://shogiwars.heroz.jp": {
+            "name": "Shogi Wars",
+            "desc": "Play Japanese shogi online"
         },
         "https://bgsub.cn": {
             "desc": "Remove backgrounds locally"
@@ -386,28 +408,6 @@
         },
         "https://www.virustotal.com/gui/": {
             "desc": "Multi-engine malware scanner"
-        },
-        "https://lichess.org": {
-            "desc": "Open-source online chess"
-        },
-        "https://www.playok.com": {
-            "desc": "Play board games online"
-        },
-        "https://poki.com": {
-            "desc": "Casual browser games"
-        },
-        "https://www.pychess.org": {
-            "desc": "Play chess variants online"
-        },
-        "https://store.steampowered.com": {
-            "desc": "Digital game store"
-        },
-        "https://steamdb.info": {
-            "desc": "Steam prices and deals"
-        },
-        "https://shogiwars.heroz.jp": {
-            "name": "Shogi Wars",
-            "desc": "Play Japanese shogi online"
         },
         "https://www.16personalities.com": {
             "desc": "Personality type test"
