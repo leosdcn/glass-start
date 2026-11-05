@@ -164,7 +164,7 @@ test('天气交互、弹窗规范与休眠感知套件', async (t) => {
         // 潮湿 + 暴风 + 强降水
         renderWeatherPopover({
           location: { name: '广州' },
-          current: { temp: 30, apparent: 35, weatherText: '雷阵雨', icon: '⛈️', humidity: 85, windSpeed: 45.0, pop: 80, sunriseToday: '05:35', sunsetToday: '18:59' },
+          current: { temp: 30, apparent: 35, weatherText: '雷阵雨', icon: '⛈️', humidity: 85, windSpeed: 55.0, pop: 80, sunriseToday: '05:35', sunsetToday: '18:59' },
           daily: []
         });
         const htmlWet = document.getElementById('weatherPopover').innerHTML;

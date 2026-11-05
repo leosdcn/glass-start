@@ -68,7 +68,7 @@ export const CONFIG = Object.freeze({
                 HUMIDITY_LOW_THRESHOLD: 35,   // 相对湿度干燥阈值 (%)
                 HUMIDITY_HIGH_THRESHOLD: 75,  // 相对湿度高湿阈值 (%)
                 WIND_MID_THRESHOLD: 15,       // 实时风速清风/疾风阈值 (km/h)
-                WIND_HIGH_THRESHOLD: 35,      // 风速高档图标阈值 (km/h)
+                WIND_HIGH_THRESHOLD: 50,      // 风速高档图标阈值 (km/h)
                 MIN_SPIN_DURATION: 200,       // 气象刷新防闪最小视觉动效门槛 (ms)
                 PRECIP_CODE_START: 51,        // WMO 降水天气代码起点阈值
                 POP_CLEAR_CONFLICT_THRESHOLD: 40, // 降水概率与晴天冲突纠偏阈值 (%)

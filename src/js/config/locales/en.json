@@ -207,7 +207,7 @@
     "engine.current": "Choose search engine (current: {name})",
     "wallpaper.default": "{name} (default)",
     "credits.license": "View license for {name}",
-    "weather.capsule": "{icon} {city}: {temperature}°, {description}. Open detailed forecast",
+    "weather.capsule": "{city}: {temperature}°, {description}. Open detailed forecast",
     "weather.feels.like": "Feels like {temperature}°",
     "weather.toggle.unit": "Click to toggle °C / °F",
     "weather.high": "High {temperature}°",

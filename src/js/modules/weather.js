@@ -19,7 +19,7 @@ function getWeatherIconHTML(icon, className = 'size-4') {
     const clean = typeof icon === 'string' ? icon.trim() : '';
     const path = WEATHER_EMOJI_MAP[clean] || (clean.startsWith('./') || clean.startsWith('/') || clean.endsWith('.svg') ? clean : null);
     if (path) {
-        return `<img src="${safeUrl(path)}" class="${className} shrink-0 object-contain select-none inline-block align-middle pointer-events-none" alt="" aria-hidden="true" decoding="async"><span class="sr-only">${escapeHtml(clean)}</span>`;
+        return `<img src="${safeUrl(path)}" class="${className} shrink-0 object-contain select-none inline-block align-middle pointer-events-none" alt="" aria-hidden="true" decoding="async"><span class="sr-only" aria-hidden="true">${escapeHtml(clean)}</span>`;
     }
     return escapeHtml(icon);
 }
@@ -278,8 +278,7 @@ export function renderWeatherCapsule(data) {
     if (weatherBtn) {
         const cityName = data.location ? data.location.name : t('ui.weather');
         const weatherDesc = weatherDescription(data.current.weatherCode);
-        const iconStr = data.current.icon ? `${data.current.icon} ` : '';
-        const newLabel = t('weather.capsule', { icon: iconStr, temperature, city: cityName || t('ui.weather'), description: weatherDesc });
+        const newLabel = t('weather.capsule', { temperature, city: cityName || t('ui.weather'), description: weatherDesc });
         if (weatherBtn.getAttribute('aria-label') !== newLabel) weatherBtn.setAttribute('aria-label', newLabel);
     }
 }
@@ -343,7 +342,7 @@ export function renderWeatherPopover(data) {
         tempMin: toDisplayTemp(d.tempMin, unit)
     }));
 
-    let sunIcon = '🌅';
+    let sunIcon = '🌇';
     let sunLabel = t('ui.sunset.today');
     let sunTime = c.sunsetToday || '--:--';
     try {
@@ -367,15 +366,15 @@ export function renderWeatherPopover(data) {
         const setTodayMins = parseMins(c.sunsetToday);
 
         if (setTodayMins !== null && nowMins >= setTodayMins) {
-            sunIcon = '🌄';
+            sunIcon = '🌅';
             sunLabel = t('ui.sunrise.tomorrow');
             sunTime = c.sunriseTomorrow || c.sunriseToday || '--:--';
         } else if (riseTodayMins !== null && nowMins < riseTodayMins) {
-            sunIcon = '🌄';
+            sunIcon = '🌅';
             sunLabel = t('ui.sunrise.today');
             sunTime = c.sunriseToday || '--:--';
         } else {
-            sunIcon = '🌅';
+            sunIcon = '🌇';
             sunLabel = t('ui.sunset.today');
             sunTime = c.sunsetToday || '--:--';
         }

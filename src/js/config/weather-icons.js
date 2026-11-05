@@ -21,8 +21,6 @@ export const WEATHER_EMOJI_MAP = Object.freeze({
   "⛈": "./icons/emoji/cloud_with_lightning_rain.svg",
   "🌨️": "./icons/emoji/cloud_with_snow.svg",
   "🌨": "./icons/emoji/cloud_with_snow.svg",
-  "❄️": "./icons/emoji/snowflake.svg",
-  "❄": "./icons/emoji/snowflake.svg",
   "📍": "./icons/emoji/round_pushpin.svg",
   "💦": "./icons/emoji/sweat_drops.svg",
   "💧": "./icons/emoji/droplet.svg",
@@ -36,8 +34,8 @@ export const WEATHER_EMOJI_MAP = Object.freeze({
   "☔": "./icons/emoji/umbrella_rain_drops.svg",
   "☂️": "./icons/emoji/umbrella.svg",
   "☂": "./icons/emoji/umbrella.svg",
-  "🌅": "./icons/emoji/sunset.svg",
-  "🌄": "./icons/emoji/sunrise_over_mountains.svg",
+  "🌇": "./icons/emoji/sunset.svg",
+  "🌅": "./icons/emoji/sunrise.svg",
   "📡": "./icons/emoji/satellite_antenna.svg",
   "🔄": "./icons/emoji/arrows_counterclockwise.svg"
 });
