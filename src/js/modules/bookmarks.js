@@ -276,8 +276,8 @@ export function preloadVisibleNavIcons() {
 }
 
 /**
- * 动效期按需激活：优先激活视口内可见分类图标（前 5 个分类，约 49 个图标），
- * 避免在切屏 Transform 动效首帧同时向 130+ 个图片发起网络与解码请求。
+ * 动效期按需激活前 5 个分类图标，
+ * 避免在切屏 Transform 动效首帧同时加载和解码全部导航图标。
  */
 export function activateVisibleNavIcons() {
     if (navIconsActivated) return;
