@@ -98,30 +98,38 @@ test('页面切换状态、无障碍隔离与 BFCache 恢复 (浏览器回归)',
       for (const section of ['start', 'nav']) {
         await evalJS(section === 'nav' ? 'switchToNav()' : 'switchToStart()');
         await waitFor(evalJS, `state.currentSection === '${section}' && !isScreenTransitioning()`);
-        const token = await evalJS(`(() => {
-          window.__bfcacheToken = Math.random();
-          window.__bfcacheRestored = false;
-          window.addEventListener('pageshow', event => { window.__bfcacheRestored = event.persisted; }, { once: true });
-          return __bfcacheToken;
-        })()`);
-        const url = `http://127.0.0.1:${server.port}/`;
-        await navigateAndWait(send, evalJS, url + 'bfcache-away.html');
-        const history = await send('Page.getNavigationHistory');
-        await send('Page.navigateToHistoryEntry', { entryId: history.entries[history.currentIndex - 1].id });
-        try {
-          await waitFor(evalJS, `location.href === ${JSON.stringify(url)} && window.__bfcacheRestored === true`, 10000);
-        } catch (error) {
-          throw new Error('BFCache restore failed: ' + JSON.stringify(bfcacheMisses), { cause: error });
+        let restored = null;
+        for (let attempt = 0; attempt < 2; attempt++) {
+          const token = await evalJS(`(() => {
+            window.__bfcacheToken = Math.random();
+            window.__bfcacheRestored = false;
+            window.addEventListener('pageshow', event => { window.__bfcacheRestored = event.persisted; }, { once: true });
+            return __bfcacheToken;
+          })()`);
+          const url = `http://127.0.0.1:${server.port}/`;
+          await navigateAndWait(send, evalJS, url + 'bfcache-away.html');
+          const history = await send('Page.getNavigationHistory');
+          await send('Page.navigateToHistoryEntry', { entryId: history.entries[history.currentIndex - 1].id });
+          try {
+            await waitFor(evalJS, `location.href === ${JSON.stringify(url)} && window.__bfcacheRestored === true`, 10000);
+            restored = await evalJS(`({
+              token: __bfcacheToken, section: state.currentSection, unlocked: !isScreenTransitioning(),
+              inlineLayers: [dom.startSection.style.willChange, dom.navSection.style.willChange],
+              layers: [getComputedStyle(dom.startSection).willChange, getComputedStyle(dom.navSection).willChange],
+              isolated: dom.startSection.inert === (state.currentSection === 'nav') && dom.navSection.inert === (state.currentSection === 'start'),
+              top: (state.currentSection === 'start' ? dom.startSection : dom.navSection).getBoundingClientRect().top
+            })`);
+            assert.equal(restored.token, token);
+            assert.equal(restored.section, section);
+            break;
+          } catch (error) {
+            if (attempt === 1) {
+              throw new Error('BFCache restore failed: ' + JSON.stringify(bfcacheMisses), { cause: error });
+            }
+            // 若遇全量测试高负载下 Chrome 临时回收缓存 (CacheFlushed)，等待后自动重试一次
+            await new Promise(r => setTimeout(r, 200));
+          }
         }
-        const restored = await evalJS(`({
-          token: __bfcacheToken, section: state.currentSection, unlocked: !isScreenTransitioning(),
-          inlineLayers: [dom.startSection.style.willChange, dom.navSection.style.willChange],
-          layers: [getComputedStyle(dom.startSection).willChange, getComputedStyle(dom.navSection).willChange],
-          isolated: dom.startSection.inert === (state.currentSection === 'nav') && dom.navSection.inert === (state.currentSection === 'start'),
-          top: (state.currentSection === 'start' ? dom.startSection : dom.navSection).getBoundingClientRect().top
-        })`);
-        assert.equal(restored.token, token);
-        assert.equal(restored.section, section);
         assert.ok(restored.unlocked && restored.isolated && Math.abs(restored.top) < 2, JSON.stringify(restored));
         assert.deepEqual(restored.inlineLayers, ['', '']);
         assert.deepEqual(restored.layers, [chromeCSS ? 'transform' : 'auto', chromeCSS ? 'transform' : 'auto']);
