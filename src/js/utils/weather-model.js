@@ -8,7 +8,7 @@ const WMO_WEATHER_ICONS = {
     3: { dayIcon: '☁️', nightIcon: '☁️' },
     45: { dayIcon: '🌫️', nightIcon: '🌫️' },
     48: { dayIcon: '🌫️', nightIcon: '🌫️' },
-    51: { dayIcon: '🌦️', nightIcon: '🌧️' },
+    51: { dayIcon: '🌧️', nightIcon: '🌧️' },
     53: { dayIcon: '🌧️', nightIcon: '🌧️' },
     55: { dayIcon: '🌧️', nightIcon: '🌧️' },
     56: { dayIcon: '🌧️', nightIcon: '🌧️' },

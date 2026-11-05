@@ -48,7 +48,7 @@ test('低降水概率且当前无雨时平滑预报，高降水概率保留雨�
 });
 
 test('昼夜及未知天气代码保留原有图标回退', () => {
-  for (const [code, isDay, icon] of [[0, 1, '☀️'], [0, 0, '🌙'], [67, 1, '🌧️'], [82, 0, '🌧️'], [97, 1, '⛈️'], [999, 1, '⛅'], [999, 0, '☁️']]) {
+  for (const [code, isDay, icon] of [[0, 1, '☀️'], [0, 0, '🌙'], [51, 1, '🌧️'], [51, 0, '🌧️'], [80, 1, '🌦️'], [80, 0, '🌧️'], [67, 1, '🌧️'], [82, 0, '🌧️'], [97, 1, '⛈️'], [999, 1, '⛅'], [999, 0, '☁️']]) {
     const result = normalizeWeatherForecast({current:{weather_code:code, is_day:isDay}},
       {lat:1, lon:2}, CONFIG.WEATHER, 123);
     assert.equal(result.current.icon, icon);

@@ -49,8 +49,12 @@ test('Chinese date separates weekday while English and forecast labels keep nati
         assert.equal(formatDate(date), '10月30日 星期五');
         assert.equal(forecastLabel('2026-10-30', 2), '周五');
         assert.equal(scope.module.exports.weatherDescription(67), '强冻雨');
+        assert.equal(scope.module.exports.weatherDescription(96), '雷暴伴小冰雹');
         assert.equal(scope.module.exports.weatherDescription(97), '强雷暴');
+        assert.equal(scope.module.exports.weatherDescription(99), '雷暴伴大冰雹');
         scope.window.__GLASS_I18N__.locale = 'en';
+        assert.equal(scope.module.exports.weatherDescription(96), 'Thunderstorm with slight hail');
+        assert.equal(scope.module.exports.weatherDescription(99), 'Thunderstorm with heavy hail');
         assert.equal(formatDate(date), new Intl.DateTimeFormat('en', { month: 'long', day: 'numeric', weekday: 'long' }).format(date));
     } finally { delete scope.window; }
 });
