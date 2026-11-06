@@ -11,8 +11,8 @@
             --glass-border: rgba(255, 255, 255, 0.15);
             --glass-strong: rgba(18, 24, 38, 0.78);
             --text-main: #f8fafc;
-            --text-sub: rgba(255, 255, 255, 0.7);
-            --text-muted: rgba(255, 255, 255, 0.45);
+            --text-sub: #d1d9e6;
+            --text-muted: #aebcd0;
             --accent: #38bdf8;
         }
 
@@ -23,81 +23,57 @@
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
         }
 
+        button { font: inherit; }
+        img, svg { vertical-align: middle; }
+
+        html {
+            overflow: hidden;
+            background: linear-gradient(rgba(11, 15, 25, 0.55), rgba(11, 15, 25, 0.55)),
+                url('../public/wallpapers/bg1.avif') center / cover no-repeat var(--bg-color);
+        }
+
         body {
-            background: #0b0f19 url('../public/wallpapers/aurora.avif') no-repeat center center fixed;
-            background-size: cover;
+            font-size: 16px;
+            line-height: 1.5;
             color: var(--text-main);
-            min-height: 100vh;
-            padding: 24px;
+            height: 100dvh;
+            overflow: hidden;
+            padding: 28px 32px;
+            max-width: 1560px;
+            margin: 0 auto;
             display: flex;
             flex-direction: column;
-            gap: 24px;
         }
 
-        /* 顶部标题区 */
-        .header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 16px 24px;
-            background: rgba(15, 23, 42, 0.65);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid var(--glass-border);
-            border-radius: 16px;
-        }
-
-        .header h1 {
-            font-size: 18px;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .header .badge {
-            font-size: 11px;
-            background: rgba(56, 189, 248, 0.2);
-            color: var(--accent);
-            padding: 3px 8px;
-            border-radius: 20px;
-            border: 1px solid rgba(56, 189, 248, 0.3);
-        }
-
-        /* 主体布局：左侧控制台，右侧真实组件预览 */
+        /* 三列工作台：设置、天气状态、实时预览 */
         .workspace {
             display: grid;
-            grid-template-columns: 460px 1fr;
-            gap: 24px;
-            align-items: start;
+            grid-template-columns: minmax(280px, 0.85fr) minmax(300px, 1fr) minmax(360px, 1fr);
+            grid-template-areas: "controls codes preview";
+            gap: 32px;
+            align-items: stretch;
+            flex: 1;
+            min-height: 0;
+            grid-template-rows: minmax(0, 1fr);
         }
 
-        @media (max-width: 1024px) {
-            .workspace {
-                grid-template-columns: 1fr;
-            }
-        }
 
         /* 控制台容器 */
         .panel {
-            background: rgba(15, 23, 42, 0.75);
-            backdrop-filter: blur(24px);
-            -webkit-backdrop-filter: blur(24px);
-            border: 1px solid var(--glass-border);
-            border-radius: 20px;
-            padding: 20px;
+            grid-area: controls;
+            min-width: 0;
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            gap: 28px;
         }
 
         .section-title {
-            font-size: 13px;
+            font-size: 16px;
             font-weight: 600;
-            color: var(--text-sub);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 8px;
+            color: var(--text-main);
+            flex-wrap: wrap;
+            gap: 4px 12px;
+            margin-bottom: 2px;
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -106,7 +82,7 @@
         .control-group {
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 16px;
         }
 
         /* 标签与滑块 */
@@ -119,11 +95,22 @@
         .slider-header {
             display: flex;
             justify-content: space-between;
-            font-size: 12px;
+            align-items: baseline;
+            gap: 12px;
+            font-size: 14px;
             color: var(--text-sub);
         }
 
+        .slider-header small {
+            display: block;
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
         .slider-header span.val {
+            white-space: nowrap;
+            font-size: 16px;
             color: var(--accent);
             font-weight: 600;
             font-family: ui-monospace, monospace;
@@ -132,10 +119,11 @@
         input[type="range"] {
             appearance: none;
             width: 100%;
-            height: 6px;
-            background: rgba(255, 255, 255, 0.12);
+            height: 4px;
+            margin: 12px 0;
+            background: rgba(255, 255, 255, 0.22);
             border-radius: 3px;
-            outline: none;
+            accent-color: var(--accent);
         }
 
         input[type="range"]::-webkit-slider-thumb {
@@ -156,19 +144,17 @@
         /* 开关切换按钮组 */
         .btn-group {
             display: flex;
-            gap: 8px;
-            background: rgba(0, 0, 0, 0.25);
-            padding: 4px;
-            border-radius: 12px;
+            gap: 6px;
         }
 
         .toggle-btn {
             flex: 1;
-            padding: 6px 12px;
-            border: none;
+            padding: 8px;
+            min-height: 40px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
             background: transparent;
             color: var(--text-sub);
-            font-size: 12px;
+            font-size: 14px;
             font-weight: 500;
             border-radius: 8px;
             cursor: pointer;
@@ -176,17 +162,37 @@
         }
 
         .toggle-btn.active {
-            background: rgba(255, 255, 255, 0.15);
-            color: #fff;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+            background: rgba(56, 189, 248, 0.12);
+            border-color: rgba(56, 189, 248, 0.6);
+            color: #e0f2fe;
         }
+
+        .toggle-btn:hover { background: rgba(56, 189, 248, 0.08); }
+
+        .codes-panel { grid-area: codes; min-width: 0; min-height: 0; }
+        .codes-panel > .section-title, .codes-panel > .section-note { flex-shrink: 0; }
+
+        .panel, .stage {
+            min-height: 0;
+            overflow-y: auto;
+            overscroll-behavior-y: contain;
+            scrollbar-width: thin;
+            scrollbar-color: #64748b transparent;
+        }
+
+        .panel > *, .stage > * { flex-shrink: 0; }
+        .section-note { color: var(--text-muted); font-size: 13px; }
 
         /* WMO 代码分类选择网格 */
         .wmo-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-            gap: 6px;
-            max-height: 280px;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px;
+            flex: 1;
+            min-height: 0;
+            align-content: start;
+            overscroll-behavior-y: contain;
+            scrollbar-color: #64748b transparent;
             overflow-y: auto;
             padding-right: 4px;
         }
@@ -201,21 +207,24 @@
         }
 
         .wmo-card {
+            text-align: left;
             display: flex;
             align-items: center;
             gap: 8px;
-            padding: 7px 10px;
+            padding: 8px;
+            min-width: 0;
+            min-height: 40px;
             background: rgba(255, 255, 255, 0.04);
             border: 1px solid rgba(255, 255, 255, 0.08);
             border-radius: 10px;
             cursor: pointer;
-            font-size: 12px;
+            font-size: 14px;
             color: var(--text-sub);
             transition: all 0.15s ease;
             user-select: none;
         }
 
-        .wmo-card:hover {
+        body:not(.tab-blurred) .wmo-card:hover {
             background: rgba(255, 255, 255, 0.08);
             border-color: rgba(255, 255, 255, 0.2);
             color: #fff;
@@ -228,51 +237,54 @@
             font-weight: 600;
         }
 
+        .wmo-card span {
+            min-width: 0;
+            overflow-wrap: anywhere;
+        }
+
         .wmo-card img {
             width: 18px;
             height: 18px;
-            object-contain: contain;
-            shrink: 0;
+            object-fit: contain;
+            flex-shrink: 0;
         }
 
         /* 预览工作台 */
         .stage {
+            grid-area: preview;
+
             display: flex;
             flex-direction: column;
-            gap: 32px;
+            gap: 24px;
             align-items: center;
-            justify-content: center;
-            padding: 40px;
-            background: rgba(11, 15, 25, 0.4);
-            backdrop-filter: blur(12px);
-            border: 1px solid var(--glass-border);
-            border-radius: 24px;
-            min-height: 600px;
+            min-width: 0;
         }
 
-        /* 真实天气胶囊组件 */
+        /* 天气胶囊外观预览 */
         .capsule-wrapper {
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 12px;
+            gap: 16px;
+            width: 100%;
         }
 
         .capsule-label {
-            font-size: 12px;
-            color: var(--text-muted);
-            letter-spacing: 0.5px;
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-main);
+            align-self: flex-start;
         }
 
         .weather-btn {
             background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
+            backdrop-filter: blur(20px);
             border: 1px solid rgba(255, 255, 255, 0.18);
             padding: 8px 16px;
             border-radius: 9999px;
             color: rgba(255, 255, 255, 0.9);
-            font-size: 13px;
+            font-size: 15px;
             font-weight: 500;
             display: inline-flex;
             align-items: center;
@@ -293,19 +305,19 @@
             transform: scale(0.97);
         }
 
-        /* 真实天气弹窗组件 (Popover) */
+        /* 天气详情外观预览 */
         .weather-popover {
-            width: 320px;
+            width: 380px;
+            max-width: 100%;
             background: rgba(18, 24, 38, 0.82);
-            backdrop-filter: blur(36px);
             -webkit-backdrop-filter: blur(36px);
+            backdrop-filter: blur(36px);
             border: 1px solid rgba(255, 255, 255, 0.2);
             border-radius: 20px;
             padding: 18px;
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.45);
             display: flex;
             flex-direction: column;
-            user-select: none;
             transition: all 0.3s ease;
         }
 
@@ -341,9 +353,7 @@
             transition: all 0.15s ease;
         }
 
-        .refresh-btn:hover {
-            background: rgba(255, 255, 255, 0.18);
-        }
+        .refresh-btn:disabled { cursor: default; color: var(--text-muted); }
 
         .hero-weather {
             display: flex;
@@ -354,12 +364,16 @@
         }
 
         .hero-left {
+            min-width: 0;
             display: flex;
             align-items: center;
             gap: 14px;
         }
 
+        .hero-left > div { min-width: 0; overflow-wrap: anywhere; }
+
         .hero-icon {
+            flex-shrink: 0;
             width: 48px;
             height: 48px;
             object-fit: contain;
@@ -367,6 +381,11 @@
         }
 
         .temp-val {
+            padding: 0;
+            border: 0;
+            background: transparent;
+            color: inherit;
+            border-radius: 4px;
             font-size: 32px;
             font-weight: 700;
             line-height: 1;
@@ -379,12 +398,12 @@
         .temp-unit {
             font-size: 18px;
             font-weight: 400;
-            color: rgba(255, 255, 255, 0.6);
+            color: var(--text-muted);
             margin-left: 2px;
         }
 
         .desc-row-zh {
-            font-size: 12px;
+            font-size: 14px;
             color: rgba(255, 255, 255, 0.75);
             margin-top: 4px;
             display: flex;
@@ -394,7 +413,7 @@
         }
 
         .desc-row-en {
-            font-size: 12px;
+            font-size: 14px;
             color: rgba(255, 255, 255, 0.75);
             margin-top: 4px;
             line-height: 1.35;
@@ -408,9 +427,11 @@
         }
 
         .hero-right {
+            flex-shrink: 0;
+            margin-left: 8px;
             text-align: right;
-            font-size: 12px;
-            color: rgba(255, 255, 255, 0.6);
+            font-size: 14px;
+            color: var(--text-muted);
             line-height: 1.4;
         }
 
@@ -433,7 +454,7 @@
             transition: all 0.2s ease;
         }
 
-        .subcard:hover {
+        body:not(.tab-blurred) .subcard:hover {
             background: rgba(255, 255, 255, 0.08);
             border-color: rgba(255, 255, 255, 0.15);
         }
@@ -442,17 +463,17 @@
             width: 16px;
             height: 16px;
             object-fit: contain;
-            shrink: 0;
+            flex-shrink: 0;
         }
 
         .subcard-label {
-            font-size: 10px;
-            color: rgba(255, 255, 255, 0.45);
+            font-size: 13px;
+            color: var(--text-muted);
             line-height: 1.2;
         }
 
         .subcard-val {
-            font-size: 12px;
+            font-size: 14px;
             font-weight: 600;
             color: rgba(255, 255, 255, 0.9);
             line-height: 1.2;
@@ -472,15 +493,15 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            font-size: 11px;
-            color: rgba(255, 255, 255, 0.45);
+            font-size: 13px;
+            color: var(--text-muted);
             padding: 0 4px;
             margin-bottom: 2px;
             font-weight: 500;
         }
 
         .forecast-header a {
-            color: rgba(255, 255, 255, 0.45);
+            color: var(--text-muted);
             text-decoration: none;
             transition: color 0.15s ease;
         }
@@ -493,7 +514,7 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            font-size: 12px;
+            font-size: 14px;
             padding: 4px 6px;
             border-radius: 8px;
             transition: background 0.15s ease;
@@ -505,7 +526,7 @@
 
         .forecast-label {
             min-width: 44px;
-            color: rgba(255, 255, 255, 0.7);
+            color: var(--text-sub);
             font-weight: 500;
             flex-shrink: 0;
         }
@@ -520,22 +541,24 @@
         }
 
         .forecast-icon {
+            flex-shrink: 0;
             width: 16px;
             height: 16px;
             object-fit: contain;
         }
 
         .forecast-desc {
-            font-size: 11px;
-            color: rgba(255, 255, 255, 0.6);
+            font-size: 13px;
+            color: var(--text-muted);
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            max-width: 90px;
+            max-width: 140px;
         }
 
         .forecast-temps {
-            font-size: 12px;
+            flex-shrink: 0;
+            font-size: 14px;
             font-variant-numeric: tabular-nums;
             color: rgba(255, 255, 255, 0.8);
             font-weight: 500;
@@ -544,11 +567,10 @@
         /* 实时 a11y 监视器 */
         .a11y-monitor {
             width: 100%;
-            background: rgba(0, 0, 0, 0.4);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
-            padding: 12px 16px;
-            font-size: 12px;
+            max-width: 380px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding-top: 16px;
+            font-size: 14px;
             display: flex;
             flex-direction: column;
             gap: 6px;
@@ -562,25 +584,81 @@
             gap: 6px;
         }
 
+        .a11y-header svg {
+            width: 18px;
+            height: 18px;
+            flex-shrink: 0;
+        }
+
         .a11y-content {
             font-family: ui-monospace, monospace;
             color: #cbd5e1;
             line-height: 1.5;
-            word-break: break-all;
+            overflow-wrap: anywhere;
+        }
+        .return-link {
+            align-self: flex-start;
+            color: var(--text-muted);
+            font-size: 13px;
+            text-decoration: none;
+        }
+
+        .return-link:hover { color: var(--accent); }
+
+        .global-options {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+
+        :focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 4px;
+        }
+
+        .whitespace-nowrap { white-space: nowrap; }
+
+        @media (prefers-reduced-motion: reduce) {
+            .toggle-btn, .wmo-card, .weather-btn, .weather-popover,
+            .refresh-btn, .subcard, .forecast-row, .forecast-header a,
+            input[type="range"]::-webkit-slider-thumb {
+                transition: none;
+            }
+        }
+
+        @media (max-width: 1179px) {
+            .workspace {
+                grid-template-columns: minmax(280px, 1fr) minmax(340px, 1fr);
+                grid-template-areas: "controls preview" "codes preview";
+                grid-template-rows: auto auto;
+                align-items: start;
+                overflow-y: auto;
+                overscroll-behavior-y: contain;
+                scrollbar-width: thin;
+            }
+            .panel, .stage { overflow: visible; min-height: auto; }
+            .wmo-grid { max-height: 480px; flex: none; }
+        }
+
+        @media (max-width: 720px) {
+            .workspace { grid-template-columns: 1fr; grid-template-areas: "controls" "preview" "codes"; grid-template-rows: auto auto auto; }
+        }
+
+        @media (max-width: 640px) {
+            body { padding: 20px 16px; }
+            .workspace { gap: 32px; }
+            .global-options { grid-template-columns: 1fr; }
+            .weather-popover { padding: 14px; }
+            .hero-left { gap: 8px; min-width: 0; }
+            .hero-icon { width: 36px; height: 36px; }
+            .hero-right { flex-shrink: 0; margin-left: 8px; }
+            .subcard { padding: 8px; gap: 6px; }
+            .forecast-mid { padding-left: 6px; gap: 6px; }
+            .forecast-temps { flex-shrink: 0; }
         }
     </style>
 </head>
 <body>
-
-    <header class="header">
-        <h1>
-            <span>🌤️</span> Glass Start — 气象组件全状态全景实验室
-        </h1>
-        <div style="display:flex; gap:10px; align-items:center;">
-            <div class="badge">WMO 29状态 · 昼夜形态 · 动态指标</div>
-            <a href="../dist/index.html" style="color:var(--text-sub); text-decoration:none; font-size:12px; padding:4px 10px; background:rgba(255,255,255,0.06); border-radius:8px;">返回起始页 ↗</a>
-        </div>
-    </header>
 
     <div class="workspace">
         <!-- 控制面板 -->
@@ -589,7 +667,7 @@
                 <div class="section-title">
                     <span>全局设置</span>
                 </div>
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                <div class="global-options">
                     <div class="btn-group">
                         <button type="button" class="toggle-btn active" id="btnDay" onclick="setDayNight(true)">☀️ 白天</button>
                         <button type="button" class="toggle-btn" id="btnNight" onclick="setDayNight(false)">🌙 夜间</button>
@@ -600,21 +678,21 @@
                     </div>
                 </div>
                 <div class="btn-group" style="margin-top:4px;">
-                    <button type="button" class="toggle-btn active" id="btnLangZh" onclick="setLanguage('zh')">🇨🇳 中文 (少云)</button>
-                    <button type="button" class="toggle-btn" id="btnLangEn" onclick="setLanguage('en')">🇬🇧 English (Mostly clear)</button>
+                    <button type="button" class="toggle-btn active" id="btnLangZh" onclick="setLanguage('zh')">中文</button>
+                    <button type="button" class="toggle-btn" id="btnLangEn" onclick="setLanguage('en')">English</button>
                 </div>
             </div>
 
             <!-- 动态指标演化 -->
             <div class="control-group">
                 <div class="section-title">
-                    <span>2×2 动态指标滑块</span>
-                    <span style="font-size:10px; color:var(--text-muted); text-transform:none;">根据阈值演化形态</span>
+                    <span>气象指标</span>
+                    <span style="font-size:13px; color:var(--text-muted); text-transform:none;">拖动滑块查看变化</span>
                 </div>
                 
                 <div class="slider-row">
                     <div class="slider-header">
-                        <span>相对湿度（🌵 &lt;35% · 💧 35~75% · 💦 &gt;75%）</span>
+                        <label for="inputHum">相对湿度<small>🌵 &lt;35% · 💧 35~75% · 💦 &gt;75%</small></label>
                         <span class="val" id="valHum">55%</span>
                     </div>
                     <input type="range" id="inputHum" min="0" max="100" value="55" oninput="updateMetrics()">
@@ -622,7 +700,7 @@
 
                 <div class="slider-row">
                     <div class="slider-header">
-                        <span>实时风速（🍃 &lt;15 · 🎏 15~50 · 🌪️ ≥50 km/h）</span>
+                        <label for="inputWind">实时风速<small>🍃 &lt;15 · 🎏 15–&lt;50 · 🌪️ ≥50 km/h</small></label>
                         <span class="val" id="valWind">18 km/h</span>
                     </div>
                     <input type="range" id="inputWind" min="0" max="80" value="18" oninput="updateMetrics()">
@@ -630,7 +708,7 @@
 
                 <div class="slider-row">
                     <div class="slider-header">
-                        <span>降水概率（🌂 &lt;30% · ☂️ 30~70% · ☔️ ≥70%）</span>
+                        <label for="inputPop">降水概率<small>🌂 &lt;30% · ☂️ 30–&lt;70% · ☔️ ≥70%</small></label>
                         <span class="val" id="valPop">20%</span>
                     </div>
                     <input type="range" id="inputPop" min="0" max="100" value="20" oninput="updateMetrics()">
@@ -638,7 +716,7 @@
 
                 <div class="slider-row">
                     <div class="slider-header">
-                        <span>日出日落模式（🌇 城市夕阳 · 🌅 海面晨曦）</span>
+                        <span>日出日落模式<small>🌇 城市夕阳 · 🌅 海面晨曦</small></span>
                     </div>
                     <div class="btn-group">
                         <button type="button" class="toggle-btn active" id="btnSunset" onclick="setSunMode('sunset')">🌇 今日日落</button>
@@ -647,16 +725,18 @@
                     </div>
                 </div>
             </div>
+            <a class="return-link" href="../dist/index.html">← 返回起始页</a>
+        </div>
 
-            <!-- 29 种 WMO 状态切换 -->
-            <div class="control-group">
-                <div class="section-title">
-                    <span>WMO 天气代码（29 种全状态）</span>
-                    <span style="font-size:10px; color:var(--text-muted);" id="currentWmoLabel">当前: Code 1</span>
-                </div>
-                <div class="wmo-grid" id="wmoGrid">
-                    <!-- 由 JS 动态渲染全部 29 种状态按钮 -->
-                </div>
+        <!-- 29 种 WMO 状态切换 -->
+        <div class="control-group codes-panel">
+            <div class="section-title">
+                <span>天气状态</span>
+                <span style="font-size:13px; color:var(--text-muted);" id="currentWmoLabel">当前: Code 1</span>
+            </div>
+            <p class="section-note">选择状态，即时查看图标与天气描述。</p>
+            <div class="wmo-grid" id="wmoGrid">
+                <!-- 由 JS 动态渲染全部 29 种状态按钮 -->
             </div>
         </div>
 
@@ -664,8 +744,8 @@
         <div class="stage">
             <!-- 胶囊预览 -->
             <div class="capsule-wrapper">
-                <div class="capsule-label">首屏胶囊外观与读屏标签</div>
-                <button type="button" class="weather-btn" id="previewCapsule">
+                <div class="capsule-label">实时预览</div>
+                <button type="button" class="weather-btn" id="previewCapsule" aria-controls="previewPopover" onclick="document.getElementById('previewPopover').focus()">
                     <img id="capsuleIcon" src="../public/icons/emoji/sun_behind_small_cloud.svg" style="width:16px; height:16px;" alt="">
                     <span id="capsuleTemp" style="font-weight:600;">22°</span>
                     <span style="opacity:0.3;">·</span>
@@ -673,23 +753,23 @@
                 </button>
             </div>
 
-            <!-- 下拉卡片真实呈现 -->
-            <div class="weather-popover" id="previewPopover">
+            <!-- 固定样例天气详情 -->
+            <div class="weather-popover" id="previewPopover" tabindex="-1" role="region" aria-label="天气详情预览">
                 <div class="popover-header">
                     <div class="location-tag">
                         <img src="../public/icons/emoji/round_pushpin.svg" style="width:14px; height:14px;" alt="">
                         <span id="popoverLocationText">本地</span>
                     </div>
-                    <div class="refresh-btn" title="立即刷新天气">
-                        <svg style="width:14px; height:14px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>
-                    </div>
+                    <button type="button" class="refresh-btn" disabled title="静态预览，不请求实时天气" aria-label="刷新天气（静态预览，不可用）">
+                        <svg aria-hidden="true" style="width:14px; height:14px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>
+                    </button>
                 </div>
 
                 <div class="hero-weather">
                     <div class="hero-left">
                         <img id="popoverHeroIcon" class="hero-icon" src="../public/icons/emoji/sun_behind_small_cloud.svg" alt="">
                         <div>
-                            <div class="temp-val" onclick="toggleUnit()"><span id="popoverTemp">22</span><span class="temp-unit" id="popoverUnit">°C</span></div>
+                            <button type="button" class="temp-val" onclick="toggleUnit()" aria-label="切换温度单位"><span id="popoverTemp">22</span><span class="temp-unit" id="popoverUnit">°C</span></button>
                             <div id="popoverDescContainer" class="desc-row-zh">
                                 <span id="popoverDesc">少云</span>
                                 <span style="opacity:0.4;" aria-hidden="true">·</span>
@@ -779,12 +859,14 @@
             <!-- 无障碍朗读监听面板 -->
             <div class="a11y-monitor">
                 <div class="a11y-header">
-                    <svg style="width:14px; height:14px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 100-6 3 3 0 000 6z"/></svg>
-                    <span>屏幕阅读器 (Screen Reader) 实时发音文本审计</span>
+                    <svg aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                        <rect x="9" y="2" width="6" height="12" rx="3"/>
+                        <path d="M6 10v2a6 6 0 0 0 12 0v-2M12 18v4M9 22h6"/>
+                    </svg>
+                    <span>屏幕阅读器 · 朗读文本</span>
                 </div>
-                <div class="a11y-content" id="a11yOutput">
-                    --
-                </div>
+                <div class="a11y-content" id="a11yOutput">--</div>
+                <p class="section-note">胶囊按钮的无障碍标签预览，不会录音或播放语音。</p>
             </div>
         </div>
     </div>
@@ -843,7 +925,8 @@
             grid.innerHTML = '';
             for (const [codeStr, info] of Object.entries(WMO_DATA)) {
                 const code = Number(codeStr);
-                const card = document.createElement('div');
+                const card = document.createElement('button');
+                card.type = 'button';
                 card.className = `wmo-card ${code === state.code ? 'active' : ''}`;
                 card.id = `wmo-card-${code}`;
                 card.onclick = () => selectWmo(code);
@@ -922,6 +1005,17 @@
         }
 
         function renderAll() {
+            document.querySelectorAll('.toggle-btn, .wmo-card').forEach(button => {
+                button.setAttribute('aria-pressed', String(button.classList.contains('active')));
+            });
+            for (const id of ['previewCapsule', 'previewPopover', 'a11yOutput', 'wmoGrid']) {
+                document.getElementById(id).lang = state.lang === 'zh' ? 'zh-CN' : 'en';
+            }
+            const refresh = document.querySelector('.refresh-btn');
+            refresh.title = state.lang === 'zh' ? '静态预览，不请求实时天气' : 'Static preview; no live weather requests';
+            refresh.setAttribute('aria-label', refresh.title);
+            document.querySelector('.temp-val').setAttribute('aria-label', state.lang === 'zh' ? '切换温度单位' : 'Switch temperature unit');
+            document.getElementById('previewPopover').setAttribute('aria-label', state.lang === 'zh' ? '天气详情预览' : 'Weather details preview');
             const wmo = WMO_DATA[state.code] || WMO_DATA[0];
             const iconFile = state.isDay ? wmo.day : wmo.night;
             const desc = state.lang === 'zh' ? wmo.zh : wmo.en;
@@ -935,7 +1029,7 @@
             document.getElementById('capsuleCity').textContent = state.lang === 'zh' ? '本地' : 'Local area';
             document.getElementById('popoverLocationText').textContent = state.lang === 'zh' ? '本地' : 'Local area';
 
-            // 胶囊无障碍标签计算 (严格按去噪后的真实实现)
+            // 预览与正式组件相同格式的胶囊无障碍标签
             let ariaLabel = '';
             if (state.lang === 'zh') {
                 ariaLabel = `${temp}°·本地 实时天气${desc}，点击查看详细预报`;
@@ -943,14 +1037,14 @@
                 ariaLabel = `Local area: ${temp}°, ${desc}. Open detailed forecast`;
             }
             document.getElementById('previewCapsule').setAttribute('aria-label', ariaLabel);
-            document.getElementById('a11yOutput').textContent = `aria-label="${ariaLabel}" (已去除视觉 Emoji 符号，读屏器直接朗读自然语句)`;
+            document.getElementById('a11yOutput').textContent = ariaLabel;
 
             // 2. 弹窗 Hero 渲染
             document.getElementById('popoverHeroIcon').src = `../public/icons/emoji/${iconFile}`;
             document.getElementById('popoverTemp').textContent = temp;
             document.getElementById('popoverUnit').textContent = `°${state.unit}`;
 
-            // Hero 状态描述与体感排版（英文另起一行，中文单行带间隔点，完全对齐真实组件）
+            // Hero 状态描述与体感排版（英文另起一行，中文单行带间隔点）
             const descContainer = document.getElementById('popoverDescContainer');
             if (state.lang === 'zh') {
                 descContainer.className = 'desc-row-zh';

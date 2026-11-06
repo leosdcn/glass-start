@@ -1,11 +1,13 @@
 /** 验证构建产物、响应头、离线缓存及防嵌套逻辑。 */
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { readFileSync, existsSync, statSync } from 'node:fs';
+import { readFileSync, existsSync, statSync, mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { join, dirname } from 'node:path';
+import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 import vm from 'node:vm';
+import { validateW3c } from '../scripts/validate-w3c.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
@@ -256,5 +258,73 @@ test('天气首屏不将缓存图标地址拼入 HTML', () => {
     });
     assert.equal(elements.weatherIcon.innerHTML, '', '异常缓存只能作为文字显示');
     assert.equal(elements.weatherIcon.textContent, icon);
+  }
+});
+
+async function validatePage(css, messages = [], options = {}) {
+  const directory = mkdtempSync(join(tmpdir(), 'glass-validation-'));
+  const html = `<!doctype html>\n<html lang="en">\n<head>\n<link rel="canonical" href="https://start.test/nested/">\n<style>\n${css}\n</style>\n</head>\n<body style="color:red"></body></html>`;
+  const output = [], requests = [];
+  try {
+    mkdirSync(join(directory, 'dist'));
+    writeFileSync(join(directory, 'dist/index.html'), html);
+    writeFileSync(join(directory, 'package.json'), '{"version":"5.5.0"}');
+    const code = await validateW3c({ rootDir: directory, documentUrl: '',
+      log: message => output.push(message), error: message => output.push(message),
+      fetchImpl: async (url, request) => {
+        requests.push({ url, ...request });
+        return { ok: true, json: async () => ({ messages }) };
+      }, ...options });
+    return { code, html, requests, output: output.join('\n') };
+  } finally { rmSync(directory, { recursive: true, force: true }); }
+}
+
+test('现代 CSS 校验接受注册属性、渐变变量过渡、line-clamp 与能力查询', async () => {
+  const css = '@property --tone{syntax:"<color>";inherits:false;initial-value:red}.card{transition-property:--tone;line-clamp:2}@supports (margin-trim:inline){.card{color:red}}';
+  const result = await validatePage(css, [{ type: 'error', message: 'CSS: Unrecognized at-rule “@property”', lastLine: 6 }]);
+  assert.equal(result.code, 0, result.output);
+  assert.match(result.output, /Stylelint.*0 个错误/);
+  assert.match(result.output, /另有 1 条诊断/);
+  assert.equal(result.requests[0].body, result.html, '提交完整原始 HTML，不删除 CSS 或 CSP 来消除消息');
+  assert.equal(result.requests[0].headers['Content-Location'], 'https://start.test/nested/');
+  assert.equal(result.requests[0].url, 'https://validator.w3.org/nu/?out=json');
+});
+
+test('现代 CSS 校验仍阻断真实语法、属性值与注册描述符错误', async () => {
+  for (const css of ['.card{color:not-a-color}', '.card{colr:red}', '.card{line-clamp:banana}',
+    '@property --x{syntax:"<color>";inherits:banana;initial-value:red}', '@property --x{initial-value:red}',
+    '.card{color:red', '/* stylelint-disable */ .card{color:not-a-color}']) {
+    const result = await validatePage(css);
+    assert.equal(result.code, 1, `${css}\n${result.output}`);
+    assert.equal(result.requests.length, 0, 'CSS 失败后无需消耗在线请求');
+  }
+});
+
+test('HTML 错误与未覆盖的行内 CSS 错误不能被样式块复核吞掉', async () => {
+  for (const message of [
+    { type: 'error', message: 'Element has an invalid attribute.', lastLine: 9 },
+    { type: 'error', message: 'CSS: Unknown property.', lastLine: 9, firstColumn: 14 },
+    { type: 'error', message: 'CSS: Unknown property.' },
+    { type: 'error', message: 'CSS: Unknown property.', lastLine: 5, firstColumn: 1 }
+  ]) {
+    const result = await validatePage('.card{color:red}', [message]);
+    assert.equal(result.code, 1, result.output);
+  }
+});
+
+test('校验文档来源可覆盖，服务失败和异常响应仍为未完成', async () => {
+  const result = await validatePage('.card{color:red}', [], { documentUrl: 'https://other.test/start/' });
+  assert.equal(result.code, 0, result.output);
+  assert.equal(result.requests[0].headers['Content-Location'], 'https://other.test/start/');
+  const invalidUrl = await validatePage('.card{color:red}', [], { documentUrl: 'file:///tmp/index.html' });
+  assert.equal(invalidUrl.code, 2);
+  assert.equal(invalidUrl.requests.length, 0);
+  for (const fetchImpl of [
+    async () => { throw new Error('network unavailable'); },
+    async () => ({ ok: false, status: 503, statusText: 'unavailable' }),
+    async () => ({ ok: true, json: async () => ({}) })
+  ]) {
+    const incomplete = await validatePage('.card{color:red}', [], { fetchImpl });
+    assert.equal(incomplete.code, 2, incomplete.output);
   }
 });
