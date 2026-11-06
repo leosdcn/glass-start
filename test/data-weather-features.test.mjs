@@ -107,6 +107,19 @@ test('天气交互、弹窗规范与休眠感知套件', async (t) => {
       assert.equal(celsiusState.storage, 'C');
     });
 
+    await t.test('键盘连续切换温度单位后保留控件焦点', async () => {
+      await evalJS(`document.getElementById('tempUnitToggleBtn').focus()`);
+      for (const [key, code, unit] of [['Enter', 'Enter', 'F'], [' ', 'Space', 'C']]) {
+        await send('Input.dispatchKeyEvent', { type: 'keyDown', key, code });
+        await send('Input.dispatchKeyEvent', { type: 'keyUp', key, code });
+        const result = await evalJS(`({
+          focused: document.activeElement?.id,
+          unit: localStorage.getItem('glass_temp_unit')
+        })`);
+        assert.deepEqual(result, { focused: 'tempUnitToggleBtn', unit });
+      }
+    });
+
     await t.test('太阳提示使用天气地点时区，兼容夏令时及无时区旧缓存', async () => {
       await send('Emulation.setTimezoneOverride', { timezoneId: 'Asia/Shanghai' });
       const cases = [

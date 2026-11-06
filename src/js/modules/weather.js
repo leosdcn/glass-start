@@ -230,11 +230,17 @@ export function getTempUnit() {
 }
 
 export function toggleTempUnit() {
+    const restoreFocus = document.activeElement?.id === 'tempUnitToggleBtn';
     const nextUnit = getTempUnit() === 'F' ? 'C' : 'F';
     try {
         if (typeof localStorage !== 'undefined') localStorage.setItem(CONFIG.KEYS.TEMP_UNIT, nextUnit);
     } catch {}
     refreshWeatherDisplay();
+    // 弹窗重绘会替换控件，仅在原控件持有焦点时恢复，避免打断其他输入。
+    if (restoreFocus) {
+        const button = /** @type {HTMLElement | null | undefined} */ (dom.weatherPopover?.querySelector('#tempUnitToggleBtn'));
+        button?.focus({ preventScroll: true });
+    }
     return nextUnit;
 }
 
