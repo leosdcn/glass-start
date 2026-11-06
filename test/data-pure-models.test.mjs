@@ -19,6 +19,13 @@ assert.deepEqual(rankBookmarkSuggestions('github', input, CONFIG.SUGGEST).map(it
 assert.deepEqual(rankBookmarkSuggestions('/', input, CONFIG.SUGGEST), []);
 assert.equal(rankBookmarkSuggestions('githbu', input, CONFIG.SUGGEST)[0].name, 'GitHub');
 assert.equal(candidates[0].bm.name, 'Tools');
+test('多词模糊查询不能跳过不匹配的单字符词', () => {
+  for (const query of ['x y', 'x github', 'github x', 'z githbu']) {
+    assert.deepEqual(rankBookmarkSuggestions(query, input, CONFIG.SUGGEST), [], query);
+  }
+  assert.equal(rankBookmarkSuggestions('g githbu', input, CONFIG.SUGGEST)[0].name, 'GitHub');
+  assert.equal(rankBookmarkSuggestions('git githbu', input, CONFIG.SUGGEST)[0].name, 'GitHub');
+});
 const forecast = normalizeWeatherForecast({current:{temperature_2m:21.6, is_day:0}, daily:{}}, {lat:1, lon:2}, CONFIG.WEATHER, 123);
 assert.equal(forecast.timestamp, 123);
 assert.equal(forecast.current.temp, 22);

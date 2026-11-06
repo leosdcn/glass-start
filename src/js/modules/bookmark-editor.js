@@ -1,6 +1,8 @@
 import { t } from '../core/i18n.js';
 import { CONFIG } from '../config/constants.js';
-import { escapeHtml, safeUrl, normalizeUrl, normalizeBookmark, faviconFromUrl, createLetterBadgeHtml, handleFaviconFailure, checkImageReady } from '../utils/helpers.js';
+import { escapeHtml, safeUrl } from '../utils/helpers.js';
+import { normalizeUrl, normalizeBookmark, faviconFromUrl } from '../utils/bookmark-model.js';
+import { createLetterBadgeHtml, handleFaviconFailure, checkImageReady } from '../utils/favicon.js';
 import { modalState } from '../state/store.js';
 import { appendBookmarkDraft } from '../state/bookmark-draft.js';
 import { dom } from '../state/dom.js';

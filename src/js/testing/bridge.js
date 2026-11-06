@@ -5,6 +5,9 @@ import * as gestures from '../core/gestures.js';
 import * as constants from '../config/constants.js';
 import * as themes from '../config/themes.js';
 import * as helpers from '../utils/helpers.js';
+import * as bookmarkModel from '../utils/bookmark-model.js';
+import * as storage from '../utils/storage.js';
+import * as favicon from '../utils/favicon.js';
 import * as idb from '../utils/idb.js';
 import * as store from '../state/store.js';
 import * as domState from '../state/dom.js';
@@ -45,11 +48,11 @@ Object.assign(window, {
     PRESET_THEMES: themes.PRESET_THEMES,
     escapeHtml: helpers.escapeHtml,
     safeUrl: helpers.safeUrl,
-    normalizeUrl: helpers.normalizeUrl,
-    faviconFallbackFromUrl: helpers.faviconFallbackFromUrl,
-    storageGet: helpers.storageGet,
-    storageSet: helpers.storageSet,
-    storageRemove: helpers.storageRemove,
+    normalizeUrl: bookmarkModel.normalizeUrl,
+    faviconFallbackFromUrl: bookmarkModel.faviconFallbackFromUrl,
+    storageGet: storage.storageGet,
+    storageSet: storage.storageSet,
+    storageRemove: storage.storageRemove,
     setWallpaperSelectionDB: idb.setWallpaperSelectionDB,
     removeWallpaperDB: idb.removeWallpaperDB,
     state: store.state,
@@ -86,7 +89,7 @@ Object.assign(window, {
     saveUserBookmarks: bookmarks.saveUserBookmarks,
     loadBookmarks: bookmarks.loadBookmarks,
     restoreWallpaper: wallpaper.restoreWallpaper,
-    handleIconError: bookmarks.handleIconError,
+    handleIconError: favicon.handleIconError,
     renderBookmarks: bookmarks.renderBookmarks,
     renderNavCategories: bookmarks.renderNavCategories,
     preloadVisibleNavIcons: bookmarks.preloadVisibleNavIcons,

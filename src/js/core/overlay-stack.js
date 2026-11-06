@@ -40,7 +40,9 @@ function showModal(id) {
     modal.removeAttribute('hidden');
     modal.removeAttribute('aria-hidden');
 
-    if (modal instanceof HTMLDialogElement && !modal.open) {
+    if (modal instanceof HTMLDialogElement) {
+        // 退出中的窗口仍在原生 top layer；重开时重新置顶，避免被其他退出窗口阻断焦点。
+        if (modal.open) modal.close();
         modal.showModal();
         if (!boundDialogModals.has(modal)) {
             modal.addEventListener('cancel', e => {
@@ -227,3 +229,33 @@ export const OverlayStack = {
         return this.stack.length === 0;
     }
 };
+
+/**
+ * @param {KeyboardEvent} e
+ */
+export function handleModalTabKey(e) {
+    if (e.key !== 'Tab') return false;
+    const top = OverlayStack.top();
+    if (!top || !MODAL_OVERLAY_IDS.has(top.id)) return false;
+    const modalEl = document.getElementById(top.id);
+    if (!modalEl) return false;
+    const focusables = Array.from(modalEl.querySelectorAll('button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])')).filter(el => {
+        const hEl = /** @type {HTMLElement} */ (el);
+        return hEl.tabIndex >= 0 && (hEl.offsetWidth > 0 || hEl.offsetHeight > 0 || hEl === document.activeElement);
+    });
+    if (focusables.length === 0) return true;
+    const first = /** @type {HTMLElement} */ (focusables[0]);
+    const last = /** @type {HTMLElement} */ (focusables[focusables.length - 1]);
+    if (e.shiftKey) {
+        if (document.activeElement === first || !modalEl.contains(document.activeElement)) {
+            last.focus();
+            e.preventDefault();
+        }
+    } else {
+        if (document.activeElement === last || !modalEl.contains(document.activeElement)) {
+            first.focus();
+            e.preventDefault();
+        }
+    }
+    return true;
+}

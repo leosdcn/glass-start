@@ -17,7 +17,7 @@ const { outputFiles } = await build({
                 'closeShortcutModal', 'openCreditsModal', 'closeCreditsModal', 'switchSettingsTab', 'previewDraftMaskOpacity',
                 'resetBookmarks', 'importBookmarksJSON', 'exportBookmarksJSON',
                 'openLanguageModal', 'saveLanguageModal', 'cancelLanguageModal',
-                'selectLanguage', 'selectDraftTransitionMode', 'closeWallpaperUrlInput'].map(name => `${name}=()=>{}`).join(',')
+                'selectLanguage', 'selectDraftTransitionMode', 'closeWallpaperUrlInput', 'clearOfflineCache'].map(name => `${name}=()=>{}`).join(',')
         }));
         b.onLoad({ filter: /modules\/bookmark-picker\.js$/ }, () => ({ contents:
             'export const openBookmarkPicker=()=>{},closeBookmarkPicker=()=>{},updatePickerAvailability=()=>{};' }));

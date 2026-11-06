@@ -55,7 +55,7 @@
 - ⚡ **Zero runtime dependencies**: the production page requires no npm runtime libraries. Inline rendering reduces flashes on reload; actual loading speed depends on the device, cache and network.
 - 🖼️ **Wallpaper previews and saving**: cycle through preset wallpapers, choose a local image, use an image URL or adjust background dimming. Preview changes in settings and click Done to save; wallpaper shortcuts outside settings save immediately. Local images are compressed and stored in IndexedDB.
 - 🛡️ **Security measures**: Content Security Policy (CSP), escaped dynamic HTML text and URL protocol filtering with `safeUrl`. Configure the response headers in `public/_headers` as required by your hosting platform.
-- 📱 **Offline PWA support on the web**: the Service Worker maintains three separate caches. Cached resources remain available offline; installation options and support vary by browser.
+- 📱 **Offline PWA support on the web**: the Service Worker separates core resources, external icons and same-origin images into three cache categories. Cached resources remain available offline; installation options and support vary by browser.
 
 ---
 
@@ -98,7 +98,7 @@ To run the extension regression test, use `npm test -- infra-chrome-extension`. 
 ### Vercel, Netlify and GitHub Pages
 
 - **Vercel / Netlify**: import the Git repository, set the build command to `npm run build` and the output directory to `dist`. Configure response headers using the platform's supported format.
-- **GitHub Pages**: select GitHub Actions under **Settings → Pages**. Follow the [official custom workflow guide](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages) to install dependencies, build and upload `dist/` as the Pages artifact. For branch-based publishing, place the output in the publishing branch's root or `/docs`; `/dist` cannot be selected directly.
+- **GitHub Pages**: the repository includes a [CI and deployment workflow](./.github/workflows/ci.yml). Enable Actions for your repository and select GitHub Actions under **Settings → Pages**. A push to `main` or a manual run on `main` publishes the verified `dist/` after lint, the full test suite and W3C validation succeed; no additional workflow is needed. Refer to the [official custom workflow guide](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages) when changing the publishing branch or process. For branch-based publishing, place the output in the publishing branch's root or `/docs`; `/dist` cannot be selected directly.
 
 The response header rules in `public/_headers` require hosting support. GitHub Pages does not apply this file; the page still uses its HTML meta CSP. Meta and HTTP CSP policies apply together: a response header cannot relax a meta policy. Meta CSP also cannot replace header-only directives such as `frame-ancestors`, cache rules or other security headers. Check the actual HTTP response after deployment rather than assuming the presence of `_headers` makes its rules effective.
 
@@ -188,7 +188,7 @@ Run `npm run sync:icons:refresh` to download all icons again and convert them to
 
 Click the settings button at the bottom right to edit quick bookmarks, customize appearance and manage data. Categories on the bookmarks page remain defined in `bookmarks.json`.
 
-- **Done / Cancel**: **Done** saves quick bookmarks, wallpaper, background dimming, screen transitions and language. **Cancel** discards unsaved drafts, restores the previous wallpaper and invalidates pending wallpaper reads, loads and decoding. Saving is not one atomic transaction across storage items; if it fails, the message identifies changes already saved. Wallpaper shortcuts outside settings save immediately.
+- **Done / Cancel**: **Done** saves quick bookmarks, wallpaper, background dimming, screen transitions and language. **Cancel** discards unsaved drafts, restores the saved wallpaper and invalidates pending wallpaper reads, loads and decoding. Saving is not one atomic transaction across storage items; changes saved before a failure remain effective, while other drafts stay in the panel for retrying. Wallpaper shortcuts outside settings save immediately.
 - **Language**: select **Follow browser**, **简体中文** or **English** at the top right of settings, then click **Done** to reload and apply. The interface, weather and built-in catalog follow the selected language; custom and imported text stays as entered. On first use, the app follows your browser's language, falling back to English for unsupported languages. The website and extension save their preferences separately, and language changes also work offline. Time remains in 24-hour format. Temperature defaults to Celsius; click the temperature unit in the weather details to switch between Celsius and Fahrenheit. The extension's name on Chrome's management page follows Chrome's language; PWA installation names keep the default metadata.
 - **Export / Import**: export includes the current quick bookmark draft, even before clicking Done. Importing JSON asks you to replace the draft; click Done to save it. Backups do not contain wallpaper images, appearance settings or search preferences.
 - **Refresh offline cache / Restore defaults**: cache clearing only removes this deployment's offline resources and Service Worker, preserving other deployments and the web's shared icon cache. The extension clears its own temporary icon cache. Restoring defaults immediately removes custom quick bookmarks, wallpapers and preferences. Export bookmarks first if you need a backup.
@@ -254,12 +254,12 @@ npm run build:extension
 
 `npm run typecheck` checks all JavaScript modules under `src/js/` and the type contracts in `test/types/contracts.js`, and strictly checks `sw.js` in a separate Worker environment. The scope is defined in `tsconfig.json` and `tsconfig.sw.json`; `npm test` runs both checks. `npm run test:unit` uses the runner's shared standalone test list, checks types and tests search, weather conversion, drafts and related logic without a build or Chrome.
 
-Related browser regressions are grouped in the following files. Named scenarios use separate browser sessions. Add related regressions to the corresponding file rather than creating one per fix.
+Related browser regressions are grouped in the following files. Add related regressions to the corresponding file rather than creating one per fix.
 
 | Filename fragment | Coverage |
 | :--- | :--- |
 | `data-wallpaper.test` | Image decoding, upload compression, shared loads and failure retries |
-| `data-wallpaper-storage` | Selection commits, transaction failures, session isolation and legacy migration |
+| `data-wallpaper-storage` | Selection commits, transaction failures, session isolation and restoration priority |
 | `data-bookmark-picker` | Picker node reuse, catalog invalidation and icon preview requests |
 | `ui-nav-rendering` | Lazy icon loading, category position caching and native scrolling |
 | `ui-modal-accessibility` | Focus, background isolation and incremental isolation updates |

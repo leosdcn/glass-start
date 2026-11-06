@@ -105,7 +105,17 @@ await test("焦点循环、嵌套弹窗与背景隔离", async () => {
       !dom.shortcutModal.contains(document.activeElement);
     await new Promise(resolve => setTimeout(resolve, CONFIG.TIMERS.MODAL_HIDE_DELAY + 60));
     const exitFinished = dom.shortcutModal.hidden && OverlayStack.isEmpty() && !dom.startSection.inert;
-    return {closed, midFrameCanceled, midExitHidden, reopened, rapidKeyHandled, exitStarted, exitFinished};
+
+    // 上层仍在退出动画时重开下层，原生 top layer 的顺序也必须与业务栈一致。
+    await openEditModal(); await new Promise(requestAnimationFrame);
+    openCreditsModal(); await new Promise(requestAnimationFrame);
+    closeCreditsModal(); closeEditModal(); await openEditModal();
+    await new Promise(requestAnimationFrame);
+    const input = dom.editList.querySelector('input'); input.focus();
+    const reopenedBelowClosingModal = document.activeElement === input && OverlayStack.top()?.id === 'editModal';
+    closeEditModal();
+    await new Promise(resolve => setTimeout(resolve, CONFIG.TIMERS.MODAL_HIDE_DELAY + 60));
+    return {closed, midFrameCanceled, midExitHidden, reopened, rapidKeyHandled, exitStarted, exitFinished, reopenedBelowClosingModal};
   })()`);
       assert.equal(Object.values(animated).every(Boolean), true, JSON.stringify(animated));
       console.log('✅ 普通动效下区分两帧间取消与退出重开，连按快捷键正确切换，退栈延迟隐藏');

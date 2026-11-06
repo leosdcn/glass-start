@@ -3,13 +3,22 @@
  * 处理备选书签卡片渲染、动态可用性过滤以及挑选器弹窗生命周期。
  */
 import { t } from '../core/i18n.js';
-import { escapeHtml, normalizeUrl } from '../utils/helpers.js';
+import { escapeHtml } from '../utils/helpers.js';
+import { normalizeUrl } from '../utils/bookmark-model.js';
 import { pageData } from '../state/store.js';
 import { dom } from '../state/dom.js';
 import { OverlayStack } from '../core/overlay-stack.js';
-import { getFaviconHTML, getCategoryIconHTML, initPickerFaviconObserver } from './bookmarks.js';
+import { getFaviconHTML, getCategoryIconHTML, checkImageReady, handleIconError } from '../utils/favicon.js';
 import { getCategoryCatalog } from '../utils/category-catalog.js';
 import { updateAllBookmarkCounters, getExistingUrls } from './bookmark-editor.js';
+
+function initPickerFaviconObserver() {
+    const container = dom.pickerContent;
+    if (!container) return;
+    container.querySelectorAll('img.lazy-icon').forEach(img => {
+        checkImageReady(/** @type {HTMLImageElement} */ (img), handleIconError);
+    });
+}
 
 /** @type {import('../types').CategoryCatalog | null} */
 let pickerCatalog = null;

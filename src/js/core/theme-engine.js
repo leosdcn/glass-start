@@ -4,7 +4,7 @@
  */
 import { CONFIG } from '../config/constants.js';
 import { APP_THEME_DARK, APP_THEME_LIGHT } from '../config/themes.js';
-import { storageGet, storageSet } from '../utils/helpers.js';
+import { storageGet, storageSet } from '../utils/storage.js';
 
 import { dom } from '../state/dom.js';
 

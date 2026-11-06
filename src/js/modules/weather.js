@@ -2,7 +2,8 @@ import { t, getLocale, weatherDescription, forecastLabel } from '../core/i18n.js
 import { weatherTime, formatLocationFullName, stripAdminSuffix, normalizeWeatherForecast } from '../utils/weather-model.js';
 import { CONFIG } from '../config/constants.js';
 import { weatherNum, toDisplayTemp } from '../utils/weather-data.js';
-import { escapeHtml, safeUrl, storageGet, storageSet, storageRemove } from '../utils/helpers.js';
+import { escapeHtml, safeUrl } from '../utils/helpers.js';
+import { storageGet, storageSet, storageRemove } from '../utils/storage.js';
 import { dom } from '../state/dom.js';
 import { OverlayStack } from '../core/overlay-stack.js';
 
@@ -17,7 +18,8 @@ import { WEATHER_EMOJI_MAP } from '../config/weather-icons.js';
 function getWeatherIconHTML(icon, className = 'size-4') {
     if (!icon) return '';
     const clean = typeof icon === 'string' ? icon.trim() : '';
-    const path = WEATHER_EMOJI_MAP[clean] || (clean.startsWith('./') || clean.startsWith('/') || clean.endsWith('.svg') ? clean : null);
+    const path = (Object.hasOwn(WEATHER_EMOJI_MAP, clean) ? WEATHER_EMOJI_MAP[clean] : null)
+        || (clean.startsWith('./') || clean.startsWith('/') || clean.endsWith('.svg') ? clean : null);
     if (path) {
         return `<img src="${safeUrl(path)}" class="${className} shrink-0 object-contain select-none inline-block align-middle pointer-events-none" alt="" aria-hidden="true" decoding="async"><span class="sr-only" aria-hidden="true">${escapeHtml(clean)}</span>`;
     }
@@ -579,6 +581,7 @@ let popoverEventsBound = false;
  * @param {MouseEvent} e
  */
 function handleWeatherPopoverClick(e) {
+    e.stopPropagation();
     const target = /** @type {HTMLElement | null} */ (e.target instanceof HTMLElement ? e.target : null);
     if (!target) return;
 

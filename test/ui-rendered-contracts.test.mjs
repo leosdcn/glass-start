@@ -146,11 +146,15 @@ try {
       galleryTop:document.getElementById('tabAppearance').querySelector('.appearance-gallery').offsetTop
     })`);
     await evalJS('dom.urlBgBtn.click()');
-    assert.equal(await evalJS(`document.activeElement===dom.urlBgInput &&
-      !dom.urlBgInputRow.classList.contains('hidden') &&
-      dom.urlBgInputRow.closest('.appearance-source')!==null &&
-      Math.abs(dom.urlBgInputRow.getBoundingClientRect().width-dom.urlBgBtn.closest('.appearance-source').getBoundingClientRect().width)<1`), true,
-      `${width}px 网络直链输入在自定义壁纸列原位展开并获得焦点`);
+    const linkInput = await evalJS(`({focus:document.activeElement?.id,
+      visible:!dom.urlBgInputRow.classList.contains('hidden'),
+      inSource:dom.urlBgInputRow.closest('.appearance-source')!==null,
+      rowWidth:dom.urlBgInputRow.getBoundingClientRect().width,
+      sourceWidth:dom.urlBgBtn.closest('.appearance-source').getBoundingClientRect().width,
+      dialogs:[...document.querySelectorAll('dialog[open]')].map(x=>x.id)})`);
+    assert.ok(linkInput.focus === 'urlBgInput' && linkInput.visible && linkInput.inSource
+      && Math.abs(linkInput.rowWidth-linkInput.sourceWidth)<1,
+      `${width}px 网络直链输入在自定义壁纸列原位展开并获得焦点：${JSON.stringify(linkInput)}`);
     assert.deepEqual(await evalJS(`({
       controlsHeight:document.getElementById('tabAppearance').querySelector('.appearance-controls').clientHeight,
       galleryTop:document.getElementById('tabAppearance').querySelector('.appearance-gallery').offsetTop

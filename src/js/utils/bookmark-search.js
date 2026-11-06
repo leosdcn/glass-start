@@ -68,7 +68,11 @@ function getFuzzyScore(query, target, options) {
     let totalDist = 0;
 
     for (const sq of subQueries) {
-        if (sq.length < 2) continue;
+        // 单字符不做拼写容错，但仍须命中词首，不能跳过后把无关查询算作零距离。
+        if (sq.length < 2) {
+            if (!tokens.some(token => token.startsWith(sq))) return Infinity;
+            continue;
+        }
         const maxDist = sq.length <= options.SHORT_QUERY_LEN ? options.MAX_DIST_SHORT : options.MAX_DIST_LONG;
         let minSubDist = Infinity;
 

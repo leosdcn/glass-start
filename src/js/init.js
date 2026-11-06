@@ -1,34 +1,25 @@
 /**
  * 应用初始化与生命周期挂载
  */
-import { CONFIG, engines, DEFAULT_CATEGORIES } from './config/constants.js';
+import { CONFIG, DEFAULT_CATEGORIES } from './config/constants.js';
 import { DEFAULT_ENGINE } from './config/engines.js';
-import { storageGet, evictFaviconCache } from './utils/helpers.js';
+import { storageGet } from './utils/storage.js';
+import { evictFaviconCache } from './utils/favicon.js';
 import { state, pageData } from './state/store.js';
 import { localizeCategories } from './core/i18n.js';
 import { cacheDOM } from './state/dom.js';
 import { updateClock } from './modules/clock.js';
 import { renderEngineDropdown, setEngine, closeDropdown, hideSuggestions } from './modules/search.js';
-import { restoreWallpaper, preloadNextBg } from './modules/wallpaper.js';
+import { restoreWallpaper, preloadNextBg, applyBgEffects } from './modules/wallpaper.js';
 import { initWeather } from './modules/weather.js';
-import {
-    loadBookmarks,
-    renderNavCategories,
-    preloadFavicons,
-    preloadVisibleNavIcons,
-    refreshSidebarNavCache,
-    updateSidebarActive,
-    initFaviconObserver,
-    activateVisibleNavIcons,
-    scheduleOffscreenNavIcons,
-    handleIconError
-} from './modules/bookmarks.js';
-import { applyBgEffects } from './modules/settings.js';
+import { loadBookmarks, renderNavCategories, preloadFavicons, preloadVisibleNavIcons, refreshSidebarNavCache, updateSidebarActive, initFaviconObserver, activateVisibleNavIcons, scheduleOffscreenNavIcons } from './modules/bookmarks.js';
+import { handleIconError } from './utils/favicon.js';
 import { handleEditIconError } from './modules/bookmark-editor.js';
 import { reconcileScreenState, isScreenTransitioning, initTransitionSwitcher, setScreenNavHandlers } from './core/screen-state.js';
 import { initScreenGestures } from './core/screen-input.js';
 import { initGlassSpotlightAndTilt } from './core/gestures.js';
 import { bindEvents } from './events.js';
+import { bindSearchEvents } from './modules/search-events.js';
 import { bindEditEvents } from './modules/settings-events.js';
 import { initServiceWorkerUpdates } from './core/service-worker-updates.js';
 
@@ -114,9 +105,10 @@ export function init() {
 
     // ⑦ 恢复用户偏好的搜索引擎
     const saved = storageGet(CONFIG.KEYS.PREFERRED_ENGINE);
-    setEngine(saved && engines[saved] ? saved : DEFAULT_ENGINE, false);
+    setEngine(typeof saved === 'string' ? saved : DEFAULT_ENGINE, false);
 
     // ⑧ 装配全局事件、页面唤醒与设置面板交互事件
+    bindSearchEvents();
     bindEvents();
     bindEditEvents();
 

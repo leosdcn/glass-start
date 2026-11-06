@@ -1,16 +1,16 @@
-import { cancelDragSort } from './core/drag-sort.js';
+/** 全局快捷键、页面唤醒和跨业务菜单协调；控件内部事件见各业务事件模块。 */
+import { cancelDragSort } from './modules/bookmark-drag.js';
 import { resetActiveCard } from './core/gestures.js';
 import { resetScreenInput, blurNonEditableActive } from './core/screen-input.js';
-import { handleRovingKeyNav } from './utils/helpers.js';
 
-/** 装配全局事件，协调输入法、弹窗焦点与页面唤醒。 */
 import { CONFIG } from './config/constants.js';
 
 import { state } from './state/store.js';
 import { dom } from './state/dom.js';
-import { OverlayStack, MODAL_OVERLAY_IDS } from './core/overlay-stack.js';
+import { OverlayStack, handleModalTabKey } from './core/overlay-stack.js';
 import { switchToStart, switchToNav, isScreenTransitioning, reconcileScreenState } from './core/screen-state.js';
-import { activateSuggestion, selectSuggestion, fetchSuggestions, hideSuggestions, closeDropdown, toggleDropdown, setEngine, openRandomBookmark, selectedSuggestionIdx, originalQuery, setOriginalQuery, scheduleSuggestions, handleSuggestionKeyNav } from './modules/search.js';
+import { hideSuggestions, closeDropdown, toggleDropdown } from './modules/search.js';
+import { restoreSearchQuery, handleSearchKeydown } from './modules/search-events.js';
 import { toggleWeatherPopover, closeWeatherPopover, updateWeather } from './modules/weather.js';
 import { updateClock, stopClockTimer } from './modules/clock.js';
 import { checkServiceWorkerUpdate } from './core/service-worker-updates.js';
@@ -38,32 +38,6 @@ export function handleAppWakeUp() {
     updateWeather(false).catch(() => {});
 }
 
-/**
- * @param {KeyboardEvent} e
- * @param {HTMLElement | null} modalEl
- */
-function handleModalTabFocus(e, modalEl) {
-    if (!modalEl) return;
-    const focusables = Array.from(modalEl.querySelectorAll('button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])')).filter(el => {
-        const hEl = /** @type {HTMLElement} */ (el);
-        return hEl.tabIndex >= 0 && (hEl.offsetWidth > 0 || hEl.offsetHeight > 0 || hEl === document.activeElement);
-    });
-    if (focusables.length === 0) return;
-    const first = /** @type {HTMLElement} */ (focusables[0]);
-    const last = /** @type {HTMLElement} */ (focusables[focusables.length - 1]);
-    if (e.shiftKey) {
-        if (document.activeElement === first || !modalEl.contains(document.activeElement)) {
-            last.focus();
-            e.preventDefault();
-        }
-    } else {
-        if (document.activeElement === last || !modalEl.contains(document.activeElement)) {
-            first.focus();
-            e.preventDefault();
-        }
-    }
-}
-
 export function bindEvents() {
     document.addEventListener('visibilitychange', () => {
         if (document.hidden) stopClockTimer();
@@ -71,118 +45,7 @@ export function bindEvents() {
     }, { passive: true });
     window.addEventListener('pageshow', () => handleAppWakeUp(), { passive: true });
 
-    let isComposing = false;
-    let justEndedComposition = false;
-    /** @type {ReturnType<typeof setTimeout>|null} */
-    let compositionEndTimer = null;
-
-    const searchInput = dom.searchInput;
-    const searchClearBtn = dom.searchClearBtn;
-    const randomBookmarkBtn = dom.randomBookmarkBtn;
-    const suggestionMenu = dom.suggestionMenu;
-    const engineBtn = dom.engineBtn;
-    const dropdownMenu = dom.dropdownMenu;
-    const weatherBtn = dom.weatherBtn;
-    const weatherPopover = dom.weatherPopover;
-
-    /** @param {boolean} hasVal */
-    const updateSearchActionButtons = (hasVal) => {
-        const actionButtons = [
-            { btn: searchClearBtn, visible: !!hasVal },
-            { btn: randomBookmarkBtn, visible: !hasVal }
-        ];
-        for (const { btn, visible } of actionButtons) {
-            if (!btn) continue;
-            btn.classList.toggle('hidden', !visible);
-            btn.inert = !visible;
-            btn.setAttribute('aria-hidden', String(!visible));
-            if (!visible && document.activeElement === btn) searchInput?.focus();
-        }
-    };
-    updateSearchActionButtons(!!searchInput?.value);
-
-    if (searchInput) {
-        searchInput.addEventListener('compositionstart', () => {
-            isComposing = true;
-            justEndedComposition = false;
-            hideSuggestions();
-        });
-
-        searchInput.addEventListener('compositionend', () => {
-            isComposing = false;
-            justEndedComposition = true;
-            if (compositionEndTimer) clearTimeout(compositionEndTimer);
-            compositionEndTimer = setTimeout(() => {
-                justEndedComposition = false;
-            }, CONFIG.TIMERS.COMPOSITION_END_RESET);
-
-            const val = searchInput.value;
-            setOriginalQuery(val);
-            updateSearchActionButtons(!!val);
-            fetchSuggestions(state.engine, val);
-        });
-
-        searchInput.addEventListener('click', e => {
-            e.stopPropagation();
-            closeDropdown();
-            const val = searchInput.value.trim();
-            if (val && (!suggestionMenu || !suggestionMenu.classList.contains('active'))) {
-                fetchSuggestions(state.engine, val);
-            }
-        });
-
-        searchInput.addEventListener('input', () => {
-            const val = searchInput.value;
-            setOriginalQuery(val);
-            updateSearchActionButtons(!!val);
-            if (isComposing) return;
-            scheduleSuggestions(val);
-        });
-
-        const searchForm = /** @type {HTMLFormElement | null} */ (searchInput.form || searchInput.closest('form'));
-        searchForm?.addEventListener('submit', e => {
-            e.preventDefault();
-            activateSuggestion(selectedSuggestionIdx, false);
-        });
-    }
-
-    if (searchClearBtn) {
-        searchClearBtn.addEventListener('click', e => {
-            e.stopPropagation();
-            e.preventDefault();
-            if (searchInput) searchInput.value = '';
-            setOriginalQuery('');
-            updateSearchActionButtons(false);
-            hideSuggestions();
-            searchInput?.focus();
-        });
-    }
-
-    if (randomBookmarkBtn) {
-        randomBookmarkBtn.addEventListener('click', e => {
-            e.stopPropagation();
-            e.preventDefault();
-            openRandomBookmark();
-        });
-    }
-
-    if (suggestionMenu) {
-        suggestionMenu.addEventListener('click', e => {
-            const targetEl = e.target instanceof Element ? e.target : null;
-            const item = /** @type {HTMLElement|null} */ (targetEl?.closest('.suggestion-item'));
-            if (!item || !item.dataset.idx) return;
-            e.stopPropagation();
-            const isNewTab = e.altKey || e.metaKey || e.ctrlKey;
-            activateSuggestion(Number(item.dataset.idx), isNewTab);
-        });
-        suggestionMenu.addEventListener('mouseover', e => {
-            if (suggestionMenu.classList.contains('keyboard-nav')) suggestionMenu.classList.remove('keyboard-nav');
-            const targetEl = e.target instanceof Element ? e.target : null;
-            const item = /** @type {HTMLElement|null} */ (targetEl?.closest('.suggestion-item'));
-            if (!item || !item.dataset.idx) return;
-            selectSuggestion(Number(item.dataset.idx), { updateInput: false });
-        }, { passive: true });
-    }
+    const { searchInput, suggestionMenu, engineBtn, weatherBtn } = dom;
 
     if (engineBtn) {
         engineBtn.addEventListener('click', e => {
@@ -193,32 +56,12 @@ export function bindEvents() {
         });
     }
 
-    if (dropdownMenu) {
-        dropdownMenu.addEventListener('click', e => {
-            const targetEl = e.target instanceof Element ? e.target : null;
-            const btn = /** @type {HTMLElement|null} */ (targetEl?.closest('[data-engine]'));
-            if (btn && btn.dataset.engine) { e.stopPropagation(); setEngine(btn.dataset.engine); }
-        });
-        dropdownMenu.addEventListener('keydown', e => {
-            if (e.key === 'Tab') { closeDropdown(); return; }
-            const items = /** @type {HTMLElement[]} */ (Array.from(dropdownMenu.querySelectorAll('[data-engine]')));
-            const activeEl = /** @type {HTMLElement | null} */ (document.activeElement);
-            handleRovingKeyNav(e, items, activeEl, () => {});
-        });
-    }
-
     if (weatherBtn) {
         weatherBtn.addEventListener('click', e => {
             e.stopPropagation();
             closeDropdown();
             hideSuggestions();
             toggleWeatherPopover();
-        });
-    }
-
-    if (weatherPopover) {
-        weatherPopover.addEventListener('click', e => {
-            e.stopPropagation();
         });
     }
 
@@ -297,25 +140,13 @@ export function bindEvents() {
     dom.navHint?.addEventListener('click', handleBackToStart);
 
     document.addEventListener('keydown', e => {
-        if (e.key === 'Tab' && !OverlayStack.isEmpty()) {
-            const topOverlay = OverlayStack.top();
-            if (topOverlay && MODAL_OVERLAY_IDS.has(topOverlay.id)) {
-                const modalEl = dom[topOverlay.id];
-                if (modalEl) {
-                    handleModalTabFocus(e, modalEl);
-                    return;
-                }
-            }
-        }
+        if (handleModalTabKey(e)) return;
 
         if (e.key === 'Escape') {
             const topOverlay = OverlayStack.top();
             if (topOverlay) {
                 e.preventDefault();
-                if (topOverlay.id === 'suggestions' && suggestionMenu?.classList.contains('active') && selectedSuggestionIdx >= 0) {
-                    if (searchInput) searchInput.value = originalQuery;
-                    updateSearchActionButtons(!!searchInput?.value);
-                }
+                if (topOverlay.id === 'suggestions' && suggestionMenu?.classList.contains('active')) restoreSearchQuery();
                 topOverlay.close();
                 e.stopPropagation();
                 return;
@@ -352,20 +183,7 @@ export function bindEvents() {
             return;
         }
 
-        if (document.activeElement === searchInput) {
-            if (e.isComposing || e.keyCode === CONFIG.SECURITY.IME_COMPOSITION_KEY_CODE || isComposing || justEndedComposition) return;
-
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                const isNewTab = e.altKey || e.metaKey || e.ctrlKey;
-                activateSuggestion(selectedSuggestionIdx, isNewTab);
-                return;
-            }
-
-            if (handleSuggestionKeyNav(e, updateSearchActionButtons)) {
-                return;
-            }
-        }
+        if (handleSearchKeydown(e)) return;
 
         if (e.ctrlKey || e.metaKey || e.altKey) return;
 

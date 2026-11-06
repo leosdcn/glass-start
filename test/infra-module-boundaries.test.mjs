@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
+import { readFileSync, readdirSync } from 'node:fs';
+import { posix } from 'node:path';
+import { parse } from 'acorn';
 import { startServer } from './support/server.mjs';
 import { launchChrome } from './support/cdp.mjs';
 import { getFreePort, createEvaluator, waitFor } from './support/helpers.mjs';
@@ -9,10 +12,67 @@ const { buildAppJavaScript } = require('../scripts/build.cjs');
 const built = buildAppJavaScript({ testMode: true });
 const productionBuild = buildAppJavaScript();
 assert.equal('src/js/testing/bridge.js' in productionBuild.metafile.inputs, false);
-assert.equal(Object.keys(productionBuild.metafile.inputs).some(path => /node_modules\/(?:acorn|postcss)\//.test(path)), false);
+assert.equal(Object.keys(productionBuild.metafile.inputs).some(path => path.startsWith('node_modules/')), false);
 assert.equal('src/js/testing/bridge.js' in built.metafile.inputs, true);
 const graph = new Map(Object.entries(built.metafile.inputs).map(([name, value]) => [name,
   value.imports.filter(edge => !edge.external && edge.kind !== 'dynamic-import').map(edge => edge.path)]));
+// Include build-only configuration and currently unused modules, so unreachable files cannot bypass the boundary rules.
+const sourceGraph = new Map();
+for (const relative of readdirSync(new URL('../src/js/', import.meta.url), { recursive: true })) {
+  if (!relative.endsWith('.js')) continue;
+  const file = `src/js/${relative.replaceAll('\\', '/')}`;
+  const tree = parse(readFileSync(new URL(`../${file}`, import.meta.url), 'utf8'), { ecmaVersion: 'latest', sourceType: 'module' });
+  const dependencies = new Set();
+  const inspect = node => {
+    const source = node.type === 'ImportDeclaration' || node.type === 'ExportNamedDeclaration' ||
+      node.type === 'ExportAllDeclaration' || node.type === 'ImportExpression' ? node.source : null;
+    if (source) {
+      assert.ok(typeof source.value === 'string' && source.value.startsWith('.'), `模块必须显式导入本地源码：${file}`);
+      dependencies.add(posix.normalize(posix.join(posix.dirname(file), source.value)));
+    }
+    for (const value of Object.values(node)) {
+      for (const child of Array.isArray(value) ? value : [value]) {
+        if (child && typeof child.type === 'string') inspect(child);
+      }
+    }
+  };
+  inspect(tree);
+  sourceGraph.set(file, [...dependencies]);
+  graph.set(file, [...dependencies]);
+}
+// Check dependency direction as well as cycles. Business features must never flow back into core/utils/state.
+const allowedLayers = {
+  config: new Set(['config']),
+  state: new Set(['state', 'config']),
+  utils: new Set(['utils', 'config', 'core']),
+  core: new Set(['core', 'utils', 'config', 'state']),
+  modules: new Set(['modules', 'core', 'utils', 'config', 'state']),
+  testing: new Set(['testing', 'app', 'modules', 'core', 'utils', 'config', 'state']),
+  app: new Set(['app', 'modules', 'core', 'utils', 'config', 'state'])
+};
+const layerOf = file => {
+  const relative = file.replaceAll('\\', '/').replace(/^src\/js\//, '');
+  return relative.includes('/') ? relative.split('/')[0] : 'app';
+};
+for (const [file, dependencies] of sourceGraph) {
+  const layer = layerOf(file);
+  assert.ok(allowedLayers[layer], `未登记的源码层：${file}`);
+  for (const dependency of dependencies) {
+    if (!dependency.startsWith('src/js/')) {
+      assert.equal(file === 'src/js/config/constants.js' && dependency === 'bookmarks.json', true,
+        `业务数据只能由配置入口载入：${file} → ${dependency}`);
+      continue;
+    }
+    // Localized config and bookmark normalization share i18n; no other core dependency is needed here.
+    const localeDependency = dependency === 'src/js/core/i18n.js';
+    // main.js contains the guarded test entry; productionBuild above proves it is removed from production.
+    const testEntry = file === 'src/js/main.js' && dependency === 'src/js/testing/bridge.js';
+    const allowed = allowedLayers[layer].has(layerOf(dependency)) || (layer === 'config' && localeDependency) || testEntry;
+    assert.ok(allowed && (layer !== 'utils' || layerOf(dependency) !== 'core' || localeDependency),
+      `模块依赖越界：${file} → ${dependency}`);
+  }
+}
+console.log('✅ 模块依赖方向符合分层约束，通用层不反向依赖业务或应用装配');
 const visited = new Set(), active = new Set();
 function visit(name, path = []) {
   assert.equal(active.has(name), false, [...path, name].join(' → '));

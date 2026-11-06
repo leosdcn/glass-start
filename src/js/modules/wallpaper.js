@@ -1,14 +1,75 @@
 import { t } from '../core/i18n.js';
 /**
- * 壁纸状态管理与草稿持久化
+ * 壁纸选择、预览与持久化，以及背景暗度显示；设置模块决定草稿何时提交或取消。
  */
 import { CONFIG, backgrounds } from '../config/constants.js';
-import { escapeHtml, storageGet, storageSet } from '../utils/helpers.js';
+import { escapeHtml } from '../utils/helpers.js';
+import { storageGet, storageSet } from '../utils/storage.js';
 import { getWallpaperSelectionDB, setWallpaperSelectionDB } from '../utils/idb.js';
 import { state, modalState } from '../state/store.js';
 import { dom } from '../state/dom.js';
 import { applyWallpaper, getPreparedWallpaperImage } from '../core/wallpaper-renderer.js';
 import { showConfirm } from '../core/dialogs.js';
+
+/** @type {number | null} */
+let bgEffectsRafId = null;
+/** @type {number | null} */
+let pendingBgEffects = null;
+/** @type {{ element: HTMLElement, opacity: number } | null} */
+let lastBgEffects = null;
+
+/** @param {number} op */
+function renderBgEffects(op) {
+    const bgOverlay = dom.bgOverlay;
+    if (!bgOverlay) return;
+    const sameOverlay = lastBgEffects?.element === bgOverlay;
+    if (!sameOverlay) {
+        const trSec = `${CONFIG.TIMERS.BG_OVERLAY_TRANSITION / 1000}s`;
+        bgOverlay.style.transition = `background-color ${trSec} ease`;
+    }
+    if (!sameOverlay || lastBgEffects?.opacity !== op) {
+        bgOverlay.style.backgroundColor = `rgba(0,0,0,${op / 100})`;
+    }
+    lastBgEffects = { element: bgOverlay, opacity: op };
+}
+
+/**
+ * @param {number | string} opacity
+ * @param {boolean} [defer]
+ */
+export function applyBgEffects(opacity, defer = false) {
+    const op = Math.max(0, Math.min(CONFIG.APPEARANCE.MAX_MASK_OPACITY, parseInt(String(opacity), 10) || 0));
+    if (defer) {
+        pendingBgEffects = op;
+        if (bgEffectsRafId === null) {
+            bgEffectsRafId = requestAnimationFrame(() => {
+                bgEffectsRafId = null;
+                const effects = pendingBgEffects;
+                pendingBgEffects = null;
+                if (effects !== null) renderBgEffects(effects);
+            });
+        }
+    } else {
+        if (bgEffectsRafId !== null) cancelAnimationFrame(bgEffectsRafId);
+        bgEffectsRafId = null;
+        pendingBgEffects = null;
+        renderBgEffects(op);
+    }
+    const maskOpacityVal = dom.maskOpacityVal;
+    const maskOpacityInput = dom.maskOpacityInput;
+
+    if (maskOpacityVal) maskOpacityVal.textContent = `${op}%`;
+    if (maskOpacityInput) {
+        if (maskOpacityInput.value !== String(op)) maskOpacityInput.value = String(op);
+        maskOpacityInput.setAttribute('aria-valuenow', String(op));
+        maskOpacityInput.setAttribute('aria-valuetext', `${op}%`);
+    }
+}
+
+/** 关闭设置时同步落定尚未绘制的暗度预览。 */
+export function flushBgEffects() {
+    if (pendingBgEffects !== null) applyBgEffects(pendingBgEffects);
+}
 
 let wallpaperSelectionId = 0;
 /** @type {HTMLImageElement | null} */

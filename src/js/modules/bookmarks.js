@@ -1,30 +1,18 @@
 /**
- * 书签派生与持久化、快捷书签和分类导航渲染、图标加载与回退
+ * 书签派生与持久化、快捷书签和分类导航渲染、导航图标加载调度
  *
  * 核心职责域：
  * 1. 数据派生与持久化：loadBookmarks, saveUserBookmarks, resetUserBookmarks
  * 2. 快捷书签与分类导航渲染：renderBookmarks, renderNavCategories, updateSidebarActive, refreshSidebarNavCache
- * 3. 图标生命周期与回退：preloadFavicons, initFaviconObserver, handleIconError, scheduleOffscreenNavIcons
+ * 3. 导航图标调度：preloadFavicons, initFaviconObserver, scheduleOffscreenNavIcons
  *
  */
 import { getLocale, localizeBookmarkUrl } from '../core/i18n.js';
 import { CONFIG, DEFAULT_BOOKMARKS } from '../config/constants.js';
-import {
-    escapeHtml,
-    safeUrl,
-    normalizeUrl,
-    normalizeBookmark,
-    deriveNameFromUrl,
-    faviconFromUrl,
-    handleFaviconFailure,
-    createLetterBadgeHtml,
-    evictFaviconCache,
-    checkImageReady,
-    handleRovingKeyNav,
-    storageGet,
-    storageSet,
-    storageRemove
-} from '../utils/helpers.js';
+import { escapeHtml, safeUrl, handleRovingKeyNav } from '../utils/helpers.js';
+import { normalizeUrl, normalizeBookmark, deriveNameFromUrl, faviconFromUrl } from '../utils/bookmark-model.js';
+import { getFaviconHTML, getCategoryIconHTML, evictFaviconCache, checkImageReady } from '../utils/favicon.js';
+import { storageGet, storageSet, storageRemove } from '../utils/storage.js';
 import { pageData, state } from '../state/store.js';
 import { dom } from '../state/dom.js';
 
@@ -164,66 +152,10 @@ export function loadBookmarks() {
     }
 }
 
-/** @param {HTMLImageElement} img */
-export function handleIconError(img) {
-    handleFaviconFailure(img, img => {
-        const initial = img.dataset.initial || '?';
-        const parent = img.parentElement;
-        if (parent) {
-            img.remove();
-            const isMd = img.dataset.md === '1';
-            const textClass = isMd ? 'text-xs' : 'text-2xs';
-            parent.classList.add('bg-white/15', 'border', 'border-white/20', 'text-white/90', textClass, 'font-semibold');
-            parent.textContent = initial;
-        }
-    });
-}
-
-/**
- * @param {import('../types').BookmarkItem} bm
- * @param {string} [sizeType]
- * @param {boolean} [deferLoad]
- */
-export function getFaviconHTML(bm, sizeType = 'sm', deferLoad = false) {
-    const initial = (bm.name || '?').trim().charAt(0).toUpperCase() || '?';
-    const isMd = sizeType === 'md';
-    const sizeClass = isMd ? 'icon-box-md' : 'icon-box-sm';
-    const textClass = isMd ? 'text-xs font-semibold' : 'text-2xs font-semibold';
-    const safeIcon = safeUrl(bm.icon);
-    
-    if (!bm.icon || safeIcon === '#') {
-        return createLetterBadgeHtml(initial, sizeClass, textClass);
-    }
-    const imgSize = isMd ? String(CONFIG.UI.ICON_SIZE_MD) : String(CONFIG.UI.ICON_SIZE_SM);
-    return `<div class="icon-box ${sizeClass}"><img ${deferLoad ? 'data-nav-src' : 'src'}="${safeIcon}" width="${imgSize}" height="${imgSize}" data-initial="${escapeHtml(initial)}" data-md="${isMd ? '1' : '0'}" data-url="${safeUrl(bm.url)}" class="lazy-icon pointer-events-none select-none" alt=""${isMd ? '' : ' loading="lazy"'} decoding="async" draggable="false"></div>`;
-}
-
-/**
- * 渲染分类图标 HTML：兼容 SVG/图片相对路径与 Emoji 字符
- * @param {string} icon - 图标路径或 Emoji 字符
- * @param {string} [sizeClass='size-4'] - 尺寸与样式类
- * @returns {string} 渲染的安全 HTML 字符串
- */
-export function getCategoryIconHTML(icon, sizeClass = 'size-4') {
-    if (!icon) return '';
-    if (typeof icon === 'string' && (icon.startsWith('./') || icon.startsWith('/') || icon.endsWith('.svg') || icon.endsWith('.png') || icon.endsWith('.webp'))) {
-        return `<img src="${safeUrl(icon)}" class="${sizeClass} shrink-0 object-contain select-none pointer-events-none inline-block align-middle" alt="" aria-hidden="true" decoding="async">`;
-    }
-    return escapeHtml(icon);
-}
-
 export function initFaviconObserver() {
     const scope = navIconsActivated ? document : (dom.bookmarks || document);
     scope.querySelectorAll('img.lazy-icon').forEach(img => {
         checkImageReady(/** @type {HTMLImageElement} */ (img));
-    });
-}
-
-export function initPickerFaviconObserver() {
-    const container = dom.pickerContent;
-    if (!container) return;
-    container.querySelectorAll('img.lazy-icon').forEach(img => {
-        checkImageReady(/** @type {HTMLImageElement} */ (img), handleIconError);
     });
 }
 

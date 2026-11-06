@@ -1,56 +1,6 @@
-import { t, formatDate } from '../core/i18n.js';
-/** 按分钟更新时间与日期，渲染平台快捷键提示和鸣谢列表。 */
-import { CONFIG, IS_MAC } from '../config/constants.js';
-import { escapeHtml, safeUrl } from '../utils/helpers.js';
+/** 时钟与日期显示、整分钟计时器生命周期。 */
+import { formatDate } from '../core/i18n.js';
 import { dom } from '../state/dom.js';
-import { getCategoryIconHTML } from './bookmarks.js';
-
-/** @type {Record<string, string>} */
-const KBD = {
-    'kbd-any': `<kbd class="kbd-text">${escapeHtml(t('ui.any.character.key'))}</kbd>`,
-    'kbd-slash': IS_MAC ? '<kbd>⌘</kbd><kbd>/</kbd>' : '<kbd>Ctrl</kbd><kbd>/</kbd>',
-    'kbd-bg': IS_MAC ? '<kbd>⌘</kbd><kbd>B</kbd>' : '<kbd>Ctrl</kbd><kbd>B</kbd>',
-    'kbd-newtab': IS_MAC ? '<kbd>⌘</kbd><kbd>↵</kbd>' : '<kbd>Alt</kbd><kbd>↵</kbd>',
-    'kbd-tab': IS_MAC ? '<kbd>Tab</kbd><span class="text-white/35 text-2xs select-none">/</span><kbd>⇧ Tab</kbd>' : '<kbd>Tab</kbd><span class="text-white/35 text-2xs select-none">/</span><kbd>Shift+Tab</kbd>'
-};
-
-export function renderShortcutModalList() {
-    const container = dom.shortcutModalList;
-    if (!container || container.hasChildNodes()) return;
-    container.innerHTML = CONFIG.SHORTCUTS.map(sec => `
-        <div>
-            <h4 class="text-2xs font-semibold uppercase tracking-wider text-white/45 mb-1.5 px-1">${escapeHtml(sec.group)}</h4>
-            <div class="inset-card">
-                ${sec.items.map(item => `
-                    <div class="inset-card-row">
-                        <span class="text-white/85 text-xs">${escapeHtml(item.desc)}</span>
-                        <span class="keycap shrink-0">${item.kbdId ? (KBD[item.kbdId] || `<kbd>${escapeHtml(item.fallback || '')}</kbd>`) : (item.rawHtml || '')}</span>
-                    </div>
-                `).join('')}
-            </div>
-        </div>
-    `).join('');
-}
-
-export function renderCreditsModalList() {
-    const container = dom.creditsList;
-    if (!container || container.hasChildNodes()) return;
-    container.innerHTML = CONFIG.CREDITS.map(item => `
-        <div class="py-3 first:pt-1 last:pb-1 flex items-center justify-between gap-3">
-            <div class="flex items-center gap-2.5 min-w-0">
-                <span class="size-5 shrink-0 select-none flex items-center justify-center">${getCategoryIconHTML(item.icon, 'size-4.5')}</span>
-                <div class="truncate">
-                    <div class="font-medium text-white/90 truncate">${escapeHtml(item.name)}</div>
-                    <div class="text-2xs text-white/55 truncate mt-0.5">${escapeHtml(item.desc)}</div>
-                </div>
-            </div>
-            <a href="${safeUrl(item.url)}" target="_blank" rel="noopener noreferrer" class="shrink-0 text-2xs px-2.5 py-1 rounded-md bg-white/8 hover:bg-white/15 border border-white/12 hover:border-white/20 text-white/80 hover:text-white glass-interactive flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" title="${escapeHtml(t('credits.license', { name: item.name }))}">
-                ${escapeHtml(item.license)}
-                <svg class="size-2.5 opacity-70" aria-hidden="true"><use href="#icon-external"/></svg>
-            </a>
-        </div>
-    `).join('');
-}
 
 /** @type {ReturnType<typeof setTimeout>|null} */
 let clockTimerId = null;

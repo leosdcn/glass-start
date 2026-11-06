@@ -5,17 +5,19 @@ import { t } from '../core/i18n.js';
  * 设置按钮、书签草稿编辑与拖拽排序的事件装配。
  */
 import { CONFIG } from '../config/constants.js';
-import { normalizeUrl, checkImageReady, handleRovingKeyNav } from '../utils/helpers.js';
+import { normalizeUrl } from '../utils/bookmark-model.js';
+import { checkImageReady } from '../utils/favicon.js';
+import { handleRovingKeyNav } from '../utils/helpers.js';
 import { getCategoryCatalog } from '../utils/category-catalog.js';
 
 import { modalState, pageData, state } from '../state/store.js';
 import { updateBookmarkDraft, removeBookmarkDraft } from '../state/bookmark-draft.js';
 import { dom } from '../state/dom.js';
 
-import { initDragSort } from '../core/drag-sort.js';
+import { initDragSort } from './bookmark-drag.js';
 
 import { uploadWallpaper, previewDraftWallpaper, resetDraftWallpaper } from './wallpaper.js';
-import { openEditModal, saveEditModal, cancelEditModal, openShortcutModal, closeShortcutModal, openCreditsModal, closeCreditsModal, switchSettingsTab, previewDraftMaskOpacity, resetBookmarks, importBookmarksJSON, exportBookmarksJSON, openLanguageModal, saveLanguageModal, cancelLanguageModal, selectLanguage, selectDraftTransitionMode, closeWallpaperUrlInput } from './settings.js';
+import { openEditModal, saveEditModal, cancelEditModal, openShortcutModal, closeShortcutModal, openCreditsModal, closeCreditsModal, switchSettingsTab, previewDraftMaskOpacity, resetBookmarks, importBookmarksJSON, exportBookmarksJSON, openLanguageModal, saveLanguageModal, cancelLanguageModal, selectLanguage, selectDraftTransitionMode, closeWallpaperUrlInput, clearOfflineCache } from './settings.js';
 import { openBookmarkPicker, closeBookmarkPicker, updatePickerAvailability } from './bookmark-picker.js';
 import { updateAllBookmarkCounters, getEditFaviconInner, getExistingUrls, handleEditIconError, appendDraftBookmarkRow } from './bookmark-editor.js';
 import { showConfirm } from '../core/dialogs.js';
@@ -288,56 +290,7 @@ export function bindEditEvents() {
         selectDraftTransitionMode(btn.dataset.mode);
     });
 
-    // 清理缓存：确认后再清空并刷新。
-    const clearBtn = dom.clearCacheBtn;
-    if (clearBtn) {
-        clearBtn.addEventListener('click', () => {
-            if (clearBtn.disabled) return;
-            const isExtension = window.__GLASS_EXTENSION__;
-
-            if (!('caches' in window)) {
-                showConfirm(isExtension ? t('ui.this.browser.does.not.support.clearing') : t('ui.offline.caching.is.unavailable.or.the'), null, t('ui.notice'), clearBtn);
-                return;
-            }
-
-            const isOffline = typeof navigator !== 'undefined' && navigator.onLine === false;
-            const msg = isExtension
-                ? t('ui.clear.temporary.caches.and.reload.saved')
-                : isOffline
-                ? t('ui.you.are.offline.clearing.the.offline')
-                : t('ui.clear.the.offline.cache.cached.app');
-
-            showConfirm(
-                msg,
-                async () => {
-                    clearBtn.disabled = true;
-                    const scope = new URL('./', location.href);
-                    const cachePrefix = 'glass-scope-' + encodeURIComponent(scope.pathname) + '-';
-                    try {
-                        if ('caches' in window) {
-                            try {
-                                const keys = await caches.keys();
-                                // 网页图标池跨部署共享；扩展拥有独立来源，可清理自己的图标池。
-                                await Promise.all(keys.filter(key => key.startsWith(cachePrefix) ||
-                                    (isExtension && key === CONFIG.CACHE.FAVICON)).map(key => caches.delete(key)));
-                            } catch {}
-                        }
-                        if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
-                            try {
-                                const regs = await navigator.serviceWorker.getRegistrations();
-                                await Promise.all(regs.filter(r => r.scope === scope.href).map(r => r.unregister()));
-                            } catch {}
-                        }
-                    } finally {
-                        location.reload();
-                    }
-                },
-                isExtension ? t('ui.clear.cache') : t('ui.clear.offline.cache'),
-                clearBtn,
-                isExtension ? t('ui.clear.and.reload') : t('ui.clear.cache.and.reload')
-            );
-        });
-    }
+    dom.clearCacheBtn?.addEventListener('click', clearOfflineCache);
 
     initDragSort();
 }

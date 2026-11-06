@@ -59,13 +59,13 @@
 - ⚡ **零运行时依赖**：生产页面不依赖 npm 运行时库；内联预渲染减少刷新闪烁，加载速度取决于设备、缓存与网络；
 - 🖼️ **壁纸预览与保存**：内置高清壁纸可循环切换，支持上传图片（压缩后写入 IndexedDB）、图片直链与遮罩暗度调节；设置内预览后点击“完成”保存，快捷键切换立即保存；
 - 🛡️ **安全防护**：使用 Content Security Policy (CSP)、动态 HTML 文本转义与 `safeUrl` 协议过滤；部署时需按托管平台要求配置 `public/_headers` 中的响应头规则；
-- 📱 **网页版 PWA 离线支持**：Service Worker 使用三个独立缓存池，已缓存资源可离线使用；安装入口与支持程度取决于浏览器。
+- 📱 **网页版 PWA 离线支持**：Service Worker 按核心资源、外部图标和同源图片三类分池缓存，已缓存资源可离线使用；安装入口与支持程度取决于浏览器。
 
 ---
 
 ## 🚀 快速开始与部署
 
-本项目可构建为 Chrome 新标签页扩展，也可作为纯前端静态应用部署；网页响应头与子路径部署需按托管平台要求配置。
+本项目可构建为 Chrome 新标签页扩展，也可作为纯前端静态应用部署；网页响应头与子路径部署需按托管平台要求配置。从源码构建需要 Node.js 24 或更新版本及 npm。
 
 ### Chrome 新标签页扩展
 
@@ -100,7 +100,7 @@ npm run build:extension
 
 ### Vercel / Netlify / GitHub Pages
 - **Vercel / Netlify**：导入 Git 仓库，构建命令设为 `npm run build`，输出目录设为 `dist`；响应头规则须按各平台要求配置。
-- **GitHub Pages**：在 Settings ➔ Pages 选择 GitHub Actions，按[官方自定义工作流指南](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages)安装依赖、执行构建并上传 `dist/` 作为 Pages 产物。若从分支发布，需将产物放在发布分支根目录或 `/docs`，不能直接选择 `/dist`。
+- **GitHub Pages**：仓库已提供 [CI 与发布工作流](./.github/workflows/ci.yml)。启用仓库的 Actions，并在 Settings ➔ Pages 选择 GitHub Actions；推送到 `main` 或在 `main` 手动运行工作流，会在 lint、完整测试和 W3C 校验成功后发布已验证的 `dist/`，无需另建工作流。修改发布分支或流程时参考[官方自定义工作流指南](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages)。若从分支发布，需将产物放在发布分支根目录或 `/docs`，不能直接选择 `/dist`。
 
 `public/_headers` 的响应头规则需要托管平台支持；GitHub Pages 不应用该文件，页面仍使用 HTML meta CSP。meta CSP 与 HTTP CSP 响应头共同生效，响应头不能放宽 meta 中的限制；仅支持响应头的 `frame-ancestors`、缓存及其他安全头也不会由 meta 替代。部署后应核对实际 HTTP 响应，不能仅凭产物中存在 `_headers` 判断规则生效。
 
@@ -182,7 +182,7 @@ npm run preview
 
 点击右下角设置按钮，可编辑首屏快捷书签、调整外观并管理数据。导航分类仍由 `bookmarks.json` 维护。
 
-- **完成 / 取消**：「完成」保存快捷书签、壁纸、背景暗度、切屏动效与语言；「取消」放弃未提交的草稿并恢复原壁纸，也会作废仍在读取、加载或解码的壁纸任务。保存不是跨所有存储项的原子事务，失败时以提示列出的已保存部分为准。弹窗外使用快捷键切换壁纸会立即保存。
+- **完成 / 取消**：「完成」保存快捷书签、壁纸、背景暗度、切屏动效与语言；「取消」放弃未提交的草稿并恢复已保存的壁纸，也会作废仍在读取、加载或解码的壁纸任务。保存不是跨所有存储项的原子事务，失败前已经保存的更改仍然生效，其余草稿保留在面板内供重试。弹窗外使用快捷键切换壁纸会立即保存。
 - **界面语言**：在设置弹窗右上角选择跟随浏览器、简体中文或 English，点击「完成」后刷新生效。界面、天气、内置分类和书签简介随语言切换，用户改写和导入的文字保留原文。首次使用默认跟随浏览器，不支持的语言回退英文；网页与扩展的选择分别保存，离线也可切换。时间保持 24 小时制；温度默认摄氏度，可在天气详情中点击温度单位切换摄氏度／华氏度。扩展管理页名称跟随 Chrome 的语言，PWA 安装名称保留默认元数据。
 - **导出 / 导入**：导出当前快捷书签草稿，包含尚未点击「完成」的书签修改；导入 JSON 后确认替换草稿，再点击「完成」生效。备份不包含壁纸图片、外观或搜索偏好。
 - **刷新离线缓存 / 还原初始设置**：缓存清理只处理当前部署的离线资源与 Service Worker，同源其他部署和网页共享图标池保留；扩展清理自己的临时图标池。还原会立即清除自定义快捷书签、壁纸与偏好，操作前可先导出书签。
@@ -246,12 +246,12 @@ npm run build:extension
 
 `npm run typecheck` 检查 `src/js/` 下全部 JavaScript 模块及 `test/types/contracts.js` 类型契约，并在独立 Worker 类型环境中严格检查 `sw.js`；范围以 `tsconfig.json` 和 `tsconfig.sw.json` 为准，`npm test` 同样执行这两项检查。`npm run test:unit` 复用运行器的纯单元测试清单，检查类型并验证搜索、天气转换与草稿等逻辑，无需构建或 Chrome。
 
-相近的浏览器回归按功能集中在以下文件中，各具名场景仍使用独立浏览器会话。后续同类回归优先加入对应文件，避免按每次修复新增文件。
+相近的浏览器回归按功能集中在以下文件中。后续同类回归优先加入对应文件，避免按每次修复新增文件。
 
 | 文件名筛选片段 | 覆盖范围 |
 | :--- | :--- |
 | `data-wallpaper.test` | 图片解码、上传压缩、加载复用与失败重试 |
-| `data-wallpaper-storage` | 选择提交、事务失败、会话隔离与历史迁移 |
+| `data-wallpaper-storage` | 选择提交、事务失败、会话隔离与恢复优先级 |
 | `data-bookmark-picker` | 挑选器节点复用、目录失效与图标预览请求 |
 | `ui-nav-rendering` | 图标延迟加载、分类位置缓存与原生滚动 |
 | `ui-modal-accessibility` | 焦点、背景隔离与隔离状态增量更新 |

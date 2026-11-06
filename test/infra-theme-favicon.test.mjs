@@ -7,6 +7,34 @@ import vm from 'node:vm';
 import { launchSession, waitFor, navigateAndWait } from './support/helpers.mjs';
 import { test } from 'node:test';
 
+await test('PWA 身份跟随部署目录，同源子目录不会共用根目录身份', async () => {
+    const built = readFileSync(new URL('../dist/index.html', import.meta.url), 'utf8');
+    const manifest = readFileSync(new URL('../dist/manifest.json', import.meta.url), 'utf8');
+    const { server, chrome, send, evalJS } = await launchSession(0, {
+      '/pwa-probe.html': built.replace('href="./manifest.json"', 'href="./nested/manifest.json"'),
+      '/nested/manifest.json': (_req, res) => {
+        res.writeHead(200, { 'Content-Type': 'application/manifest+json' });
+        res.end(manifest);
+      }
+    });
+    try {
+      await send('Network.enable');
+      await send('Network.setBypassServiceWorker', { bypass: true });
+      const origin = `http://127.0.0.1:${server.port}`;
+      for (const [page, path] of [['/', '/'], ['/pwa-probe.html', '/nested/']]) {
+        await navigateAndWait(send, evalJS, origin + page, 'typeof openEditModal === "function"');
+        const result = await send('Page.getAppManifest');
+        assert.deepEqual(result.errors, []);
+        assert.equal(result.manifest.id, origin + path);
+        assert.equal(result.manifest.startUrl, origin + path);
+        assert.equal(result.manifest.scope, origin + path);
+      }
+    } finally {
+      await chrome.close();
+      await server.close();
+    }
+});
+
 await test("主题配置、图标回退与缓存驱逐", async () => {
     const require = createRequire(import.meta.url);
     const { injectThemeConfig } = require('../scripts/build.cjs');
@@ -44,7 +72,8 @@ await test("主题配置、图标回退与缓存驱逐", async () => {
     const probe = `<script>window.__headThemeProbe = {
   theme: window.__INITIAL_THEME__, tint: document.documentElement.style.getPropertyValue('--glass-tint'),
   color: document.documentElement.style.backgroundColor,
-  bright: document.documentElement.classList.contains('wallpaper-bright')
+  bright: document.documentElement.classList.contains('wallpaper-bright'),
+  engine: window.__PRE_ENGINE__?.name
 };</script>`;
     const { server, chrome, send, evalJS } = await launchSession(0, { '/theme-probe.html': built.replace('</head>', probe + '</head>') });
     try {
@@ -76,7 +105,8 @@ await test("主题配置、图标回退与缓存驱逐", async () => {
     localStorage.clear();
     localStorage.setItem('glass_wallpaper_meta', JSON.stringify({custom:true,bg:0}));
     localStorage.setItem('glass_theme_cache', JSON.stringify({isLight:true}));
-    localStorage.setItem('glass_tint_cache', '1, 2, 3');
+    localStorage.setItem('glass_tint_cache', JSON.stringify('1, 2, 3'));
+    localStorage.setItem('preferredEngine', JSON.stringify('__proto__'));
   ` });
       await navigateAndWait(send, evalJS, `http://127.0.0.1:${server.port}/theme-probe.html?probe=custom-meta`,
         "!!window.__headThemeProbe && typeof window.handleIconError === 'function'");
@@ -84,6 +114,18 @@ await test("主题配置、图标回退与缓存驱逐", async () => {
       assert.equal(custom.head.theme.isLight, true);
       assert.equal(custom.head.color, 'rgb(255, 255, 255)');
       assert.equal(custom.head.tint, '1, 2, 3');
+      assert.equal(custom.head.engine, 'Bing', '首屏拒绝原型属性引擎');
+      for (const key of ['__proto__', 'toString', 'constructor', 'missing']) {
+        assert.equal(await evalJS(`(() => {
+          const button = dom.dropdownMenu.querySelector('[data-engine]');
+          const previous = button.dataset.engine;
+          button.dataset.engine = ${JSON.stringify(key)};
+          button.click();
+          button.dataset.engine = previous;
+          return state.engine;
+        })()`), 'bing', key);
+      }
+      assert.equal(await evalJS('dom.engineName.textContent'), 'Bing');
       assert.equal(custom.preload, '');
       assert.equal(custom.hasLink, false);
       await send('Page.removeScriptToEvaluateOnNewDocument', { identifier:customProbe });

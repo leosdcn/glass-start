@@ -19,12 +19,12 @@ export const state = {
 
 /**
  * 设置弹窗草稿与快照备份状态
- * 采用内存草稿隔离模式：设置面板内的修改均在此操作，取消则丢弃草稿，保存时统一清洗并持久化。
+ * 采用内存草稿隔离模式：取消丢弃未提交草稿，保存按项清洗并持久化，已保存项目不回滚。
  * @type {import('../types').ModalState}
  */
 export const modalState = {
-    // — 1. 快照备份（打开设置弹窗时快照记录，取消时原样回滚）—
-    initialWallpaper: null,       // 打开弹窗前生效的壁纸路径或自定义图片字符串
+    // — 1. 壁纸回退快照（设置模块打开时建立，壁纸提交成功后更新）—
+    initialWallpaper: null,       // 取消时可恢复的已保存壁纸路径或自定义图片字符串
 
     // — 2. 内存草稿值（面板内编辑中的暂存值，点击“完成”时按序提交至 LocalStorage / IndexedDB）—
     draftWallpaper: undefined,    // 草稿壁纸选择：预设路径或自定义图片字符串，null 恢复默认，undefined 未修改

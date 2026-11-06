@@ -4,7 +4,6 @@
     "description": "极简纯净的毛玻璃浏览器起始页。",
     "lang": "zh-CN",
     "dir": "ltr",
-    "id": "/",
     "scope": "./",
     "start_url": "./",
     "display": "standalone",

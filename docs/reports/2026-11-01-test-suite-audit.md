@@ -23,6 +23,8 @@
 
 ## 逐项映射与处理依据
 
+链接维护（2026-11-06）：下表保留审计当日的文件名和用例描述，链接指向后来合并后的现有测试。原 `data-features` 已按书签与天气拆至 `data-bookmarks-features` 和 `data-weather-features`；其表格链接指向书签部分。
+
 每项“保留”均表示本轮未找到可无损删除的重复项，不表示不存在任何交叉断言。综合入口的说明覆盖其内部主要场景。
 
 | 编号 | 文件 / 用例 | 处理及依据 |
@@ -32,12 +34,12 @@
 | 3 | [data-animation-cleanup-unit.test.mjs](../../test/data-animation-cleanup-unit.test.mjs)：新排序和删除接管旧 FLIP，旧收尾不能清除新动效 | 保留；可控事件、计时器与 rAF 验证收尾所有权，真实浏览器难以稳定制造这些顺序。 |
 | 4 | [data-animation-cleanup-unit.test.mjs](../../test/data-animation-cleanup-unit.test.mjs)：新图片加载或解码失败不阻断旧淡入的 rAF、计时器及图层收尾 | 保留；可控事件、计时器与 rAF 验证收尾所有权，真实浏览器难以稳定制造这些顺序。 |
 | 5 | [data-animation-cleanup-unit.test.mjs](../../test/data-animation-cleanup-unit.test.mjs)：较新壁纸完成后，旧淡入回调不能覆盖它 | 保留；可控事件、计时器与 rAF 验证收尾所有权，真实浏览器难以稳定制造这些顺序。 |
-| 6 | [data-audit-fixes.test.mjs](../../test/data-audit-fixes.test.mjs)：迁移、导入、保存故障和触摸排序集成（整文件入口） | 精简一个未消费快照；保留迁移两键失败、导入会话隔离、部分重置、真实离线与多指拖拽。 |
+| 6 | [data-audit-fixes.test.mjs](../../test/data-audit-regressions.test.mjs)：迁移、导入、保存故障和触摸排序集成（整文件入口） | 精简一个未消费快照；保留迁移两键失败、导入会话隔离、部分重置、真实离线与多指拖拽。 |
 | 7 | [data-audit-regressions.test.mjs](../../test/data-audit-regressions.test.mjs)：数据边界、建议激活、空草稿和迟到响应集成（整文件入口） | 保留；存储读取、DOM 篡改不影响模型激活、空草稿、键盘排序、JSONP/CORS 迟到回调及损坏缓存启动。 |
-| 8 | [data-bookmark-catalog.test.mjs](../../test/data-bookmark-catalog.test.mjs)：目录索引与简介继承/清空集成（整文件入口） | 保留；目录完整 URL 与搜索身份不同，缺省简介和显式空串经导入、导出、重载后仍不同。 |
+| 8 | [data-bookmark-catalog.test.mjs](../../test/data-bookmark-picker.test.mjs)：目录索引与简介继承/清空集成（整文件入口） | 保留；目录完整 URL 与搜索身份不同，缺省简介和显式空串经导入、导出、重载后仍不同。 |
 | 9 | [data-bookmark-picker.test.mjs](../../test/data-bookmark-picker.test.mjs)：目录图标复用与过期预览请求 | 保留；目录索引单元验证不能代替真实图片节点、焦点控件、防抖取消与挑选器禁用状态。 |
 | 10 | [data-bookmark-picker.test.mjs](../../test/data-bookmark-picker.test.mjs)：挑选器节点复用与目录失效 | 保留；目录索引单元验证不能代替真实图片节点、焦点控件、防抖取消与挑选器禁用状态。 |
-| 11 | [data-features.test.mjs](../../test/data-features.test.mjs)：搜索、书签持久化、天气交互与唤醒综合（整文件入口） | 精简重复主题采样与弱 JSONP 检查、无效 XSS 标志；保留搜索集成、成功迁移、天气控件、旧标签和唤醒装配。 |
+| 11 | [data-features.test.mjs](../../test/data-bookmarks-features.test.mjs)：搜索、书签持久化、天气交互与唤醒综合（整文件入口） | 精简重复主题采样与弱 JSONP 检查、无效 XSS 标志；保留搜索集成、成功迁移、天气控件、旧标签和唤醒装配。 |
 | 12 | [data-i18n-unit.test.mjs](../../test/data-i18n-unit.test.mjs)：explicit language, browser priority, Chinese variants and invalid preferences | 保留并纳入纯单元清单；语言解析、参数替换、日期与目录身份不需要构建产物或浏览器。 |
 | 13 | [data-i18n-unit.test.mjs](../../test/data-i18n-unit.test.mjs)：complete messages, singular/plural, one-pass parameters and fallback | 保留并纳入纯单元清单；语言解析、参数替换、日期与目录身份不需要构建产物或浏览器。 |
 | 14 | [data-i18n-unit.test.mjs](../../test/data-i18n-unit.test.mjs)：Chinese date separates weekday while English and forecast labels keep native formatting | 保留并纳入纯单元清单；语言解析、参数替换、日期与目录身份不需要构建产物或浏览器。 |
@@ -57,8 +59,8 @@
 | 28 | [data-pure-models.test.mjs](../../test/data-pure-models.test.mjs)：地名合并重复行政区，保留同名省市并消除前缀重复 | 保留；真实纯函数与草稿模型。部分断言在 test() 外执行，运行器数字不能表示全部断言量。 |
 | 29 | [data-request-performance.test.mjs](../../test/data-request-performance.test.mjs)：搜索与天气请求去重和竞态集成（整文件入口） | 保留；请求合并、空缓存、防抖窗口和重新定位共享任务；真正持有并调用旧 JSONP 回调。 |
 | 30 | [data-settings-save.test.mjs](../../test/data-settings-save.test.mjs)：保存事务、失败回滚、取消和缓存清理集成（整文件入口） | 保留；设置保存总流程、读/写/中止期间锁定、两键回滚、取消重开、带参数 URL 节点复用与 scope 清理。 |
-| 31 | [data-wallpaper-rendering.test.mjs](../../test/data-wallpaper-rendering.test.mjs)：解码、迟到结果隔离与上传压缩 | 保留；浏览器实际 Image.decode、canvas JPEG 压缩、图片复用和淡入，区别于选择层的可控边界桩。 |
-| 32 | [data-wallpaper-rendering.test.mjs](../../test/data-wallpaper-rendering.test.mjs)：共享加载、图片复用与失败重试 | 保留；浏览器实际 Image.decode、canvas JPEG 压缩、图片复用和淡入，区别于选择层的可控边界桩。 |
+| 31 | [data-wallpaper-rendering.test.mjs](../../test/data-wallpaper.test.mjs)：解码、迟到结果隔离与上传压缩 | 保留；浏览器实际 Image.decode、canvas JPEG 压缩、图片复用和淡入，区别于选择层的可控边界桩。 |
+| 32 | [data-wallpaper-rendering.test.mjs](../../test/data-wallpaper.test.mjs)：共享加载、图片复用与失败重试 | 保留；浏览器实际 Image.decode、canvas JPEG 压缩、图片复用和淡入，区别于选择层的可控边界桩。 |
 | 33 | [data-wallpaper-selection-unit.test.mjs](../../test/data-wallpaper-selection-unit.test.mjs)：同一网络壁纸只创建和解码一张图片，预览、渲染及并发保存共用结果 | 保留；选择任务/写队列去重、首次默认保存、其他标签改写、故障重试及迟到解码可被精确调度。 |
 | 34 | [data-wallpaper-selection-unit.test.mjs](../../test/data-wallpaper-selection-unit.test.mjs)：重复预设选择跳过 IDB 与轻量提示写入，首次默认选择仍会落盘 | 保留；选择任务/写队列去重、首次默认保存、其他标签改写、故障重试及迟到解码可被精确调度。 |
 | 35 | [data-wallpaper-selection-unit.test.mjs](../../test/data-wallpaper-selection-unit.test.mjs)：其他标签改写后再次选择会重新保存，不错误命中内存去重 | 保留；选择任务/写队列去重、首次默认保存、其他标签改写、故障重试及迟到解码可被精确调度。 |
@@ -68,10 +70,10 @@
 | 39 | [data-wallpaper-selection-unit.test.mjs](../../test/data-wallpaper-selection-unit.test.mjs)：预设加载失败保留此前记录，恢复后可以重试 | 保留；选择任务/写队列去重、首次默认保存、其他标签改写、故障重试及迟到解码可被精确调度。 |
 | 40 | [data-wallpaper-storage.test.mjs](../../test/data-wallpaper-storage.test.mjs)：选择提交、事务失败与会话隔离 | 保留；原生 IDB 请求成功后事务中止、IDB 禁用、延迟恢复及旧 LS/IDB 迁移，不可用内存桩代替。 |
 | 41 | [data-wallpaper-storage.test.mjs](../../test/data-wallpaper-storage.test.mjs)：历史壁纸迁移与新选择优先级 | 保留；原生 IDB 请求成功后事务中止、IDB 禁用、延迟恢复及旧 LS/IDB 迁移，不可用内存桩代替。 |
-| 42 | [data-wallpaper-theme.test.mjs](../../test/data-wallpaper-theme.test.mjs)：自定义壁纸采样与裁切（整文件入口） | 保留；真实图片顶栏/环境色采样和 cover 裁切，预设主题配置测试不覆盖此转换。 |
-| 43 | [data-weather-hydration.test.mjs](../../test/data-weather-hydration.test.mjs)：首帧与运行时天气数值呈现一致（整文件入口） | 保留；同一坏数值在首帧 VM 与 Chrome 运行时呈现一致。features 中的 weatherTime 等其他边界仍独有。 |
+| 42 | [data-wallpaper-theme.test.mjs](../../test/data-wallpaper.test.mjs)：自定义壁纸采样与裁切（整文件入口） | 保留；真实图片顶栏/环境色采样和 cover 裁切，预设主题配置测试不覆盖此转换。 |
+| 43 | [data-weather-hydration.test.mjs](../../test/data-weather-features.test.mjs)：首帧与运行时天气数值呈现一致（整文件入口） | 保留；同一坏数值在首帧 VM 与 Chrome 运行时呈现一致。features 中的 weatherTime 等其他边界仍独有。 |
 | 44 | [infra-chrome-extension.test.mjs](../../test/infra-chrome-extension.test.mjs)：Chrome 扩展构建与真实加载（整文件入口） | 保留；真实 MV3 构建、加载及 CSP、无 SW、不同搜索传输和扩展离线存储，网页版不能代替。 |
-| 45 | [infra-icon-normalization.test.mjs](../../test/infra-icon-normalization.test.mjs)：图标规范化工具（整文件入口） | 保留；实际 sips 等比缩放与填充、坏输入和转换失败；CLI 同步测试不逐项断言这些尺寸。 |
+| 45 | [infra-icon-normalization.test.mjs](../../test/infra-icon-sync.test.mjs)：图标规范化工具（整文件入口） | 保留；实际 sips 等比缩放与填充、坏输入和转换失败；CLI 同步测试不逐项断言这些尺寸。 |
 | 46 | [infra-icon-sync.test.mjs](../../test/infra-icon-sync.test.mjs)：图标同步 CLI（整文件入口） | 保留；完整 CLI 的复用、修复、refresh、官方源、下载失败及临时文件清理。 |
 | 47 | [infra-module-boundaries.test.mjs](../../test/infra-module-boundaries.test.mjs)：模块依赖、生产隔离与测试桥接（整文件入口） | 保留；静态依赖图、生产无测试桥接、篡改测试标记、实时访问器与跨月同日时钟修复。 |
 | 48 | [infra-security.test.mjs](../../test/infra-security.test.mjs)：构建产物、安全、FIFO 和安装边界（整文件入口） | 精简手抄实现与精确正则；改执行源码和产物中的防嵌套脚本。其余产物/响应头/FIFO/安装资源检查保留。 |
@@ -80,8 +82,8 @@
 | 51 | [infra-sw-upgrade.test.mjs](../../test/infra-sw-upgrade.test.mjs)：Worker 升级、scope 隔离与离线恢复（整文件入口） | 保留；worker 安装完整性、指纹校验、ETag、自然激活、scope 归属、离线恢复；不是通知 UI 测试。 |
 | 52 | [infra-theme-favicon.test.mjs](../../test/infra-theme-favicon.test.mjs)：主题配置、图标回退与缓存驱逐 | 集中预设数量、交替深浅和固定颜色断言；保留首帧/运行时、图标回退/驱逐及 worker 图像导航。 |
 | 53 | [infra-theme-favicon.test.mjs](../../test/infra-theme-favicon.test.mjs)：Service Worker 下直接导航到应用图标 | 集中预设数量、交替深浅和固定颜色断言；保留首帧/运行时、图标回退/驱逐及 worker 图像导航。 |
-| 54 | [lifecycle-behavior.test.mjs](../../test/lifecycle-behavior.test.mjs)：唤醒与真实 BFCache 恢复（整文件入口） | 保留；两种 CSS 策略下真实 BFCache 历史往返与两屏恢复；合成 pageshow 不足以代替。 |
-| 55 | [lifecycle-fingerprint.test.mjs](../../test/lifecycle-fingerprint.test.mjs)：构建指纹裁决与刷新冷却（整文件入口） | 改为执行真实模块的无浏览器验证，保留原有裁决与存储冷却断言，纳入纯单元清单。 |
+| 54 | [lifecycle-behavior.test.mjs](../../test/lifecycle.test.mjs)：唤醒与真实 BFCache 恢复（整文件入口） | 保留；两种 CSS 策略下真实 BFCache 历史往返与两屏恢复；合成 pageshow 不足以代替。 |
+| 55 | [lifecycle-fingerprint.test.mjs](../../test/lifecycle.test.mjs)：构建指纹裁决与刷新冷却（整文件入口） | 改为执行真实模块的无浏览器验证，保留原有裁决与存储冷却断言，纳入纯单元清单。 |
 | 56 | [ui-input-device-performance.test.mjs](../../test/ui-input-device-performance.test.mjs)：原生触摸与鼠标能力切换（整文件入口） | 保留；CDP 原生触屏默认滚动、临时阻塞监听和媒体能力切换，合成 TouchEvent 无原生默认行为。 |
 | 57 | [ui-modal-accessibility.test.mjs](../../test/ui-modal-accessibility.test.mjs)：焦点循环、嵌套弹窗与背景隔离 | 保留；真实 AX 树、三层焦点恢复、快速开关、动画阶段、inert 写入去重与基础状态更新。 |
 | 58 | [ui-modal-accessibility.test.mjs](../../test/ui-modal-accessibility.test.mjs)：隔离增量更新与基础状态恢复 | 保留；真实 AX 树、三层焦点恢复、快速开关、动画阶段、inert 写入去重与基础状态更新。 |

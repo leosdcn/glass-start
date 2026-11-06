@@ -1,4 +1,4 @@
-import { normalizeUrl } from './helpers.js';
+import { normalizeUrl } from './bookmark-model.js';
 
 const collator = new Intl.Collator('zh-CN', { numeric: true, sensitivity: 'base' });
 // 搜索去重键与持久化键语义不同；持久化使用完整的 normalizeUrl() 键。

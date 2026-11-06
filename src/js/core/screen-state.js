@@ -3,7 +3,7 @@
  * CSS 状态类控制位置，所有切屏入口共享过渡锁；唤醒显式强制校准。
  */
 import { CONFIG } from '../config/constants.js';
-import { storageGet, storageSet } from '../utils/helpers.js';
+import { storageGet, storageSet } from '../utils/storage.js';
 import { state } from '../state/store.js';
 import { dom } from '../state/dom.js';
 import { OverlayStack } from './overlay-stack.js';

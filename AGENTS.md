@@ -2,7 +2,7 @@
 
 > “如无必要，勿增实体。”（Entities should not be multiplied beyond necessity.）
 
-架构与模块索引见 [ARCHITECTURE.md](./docs/ARCHITECTURE.md)；使用、书签格式及测试环境见 [README.md](./README.md)；可选 Safari/iOS 专项参考见 [docs/SAFARI_SMOKE_CHECKLIST.md](./docs/SAFARI_SMOKE_CHECKLIST.md)。局部修改先查架构文档的[按问题定位](./docs/ARCHITECTURE.md#按问题定位)与[样式索引](./docs/ARCHITECTURE.md#样式索引)，按功能读取相关源码和测试。实现以源码为准。业务配置位于 `src/js/config/`，各模块职责见架构文档。
+架构与模块索引见 [ARCHITECTURE.md](./docs/ARCHITECTURE.md)；使用、书签格式及测试环境见 [README.md](./README.md)；可选 Safari/iOS 专项参考见 [docs/SAFARI_SMOKE_CHECKLIST.md](./docs/SAFARI_SMOKE_CHECKLIST.md)。局部修改先查架构文档的[按问题定位](./docs/ARCHITECTURE.md#按问题定位)、[样式索引](./docs/ARCHITECTURE.md#样式索引)与[模块边界与状态归属](./docs/ARCHITECTURE.md#模块边界与状态归属)，优先读取拥有模块、直接调用方及相关测试，按问题扩大范围。实现以源码为准。业务配置位于 `src/js/config/`，各模块职责见架构文档。
 
 ## 修改边界
 
@@ -26,6 +26,7 @@
 - 首屏共享配置只修改 `src/js/config/` 下的对应模块，由构建注入 `src/index.html` 插槽；不要在 HTML 内联壁纸、引擎图标或天气图标副本。
 - Chrome 扩展复用网页源码，通过构建标记 `window.__GLASS_EXTENSION__` 区分行为；扩展脚本必须本地打包，不使用内联脚本或远程 JSONP，不注册网页 Service Worker。新增网络接口时同步核对 `src/extension/manifest.json` 的域名权限与 CSP。
 - 文件按职责归位：`core/` 放页面共用机制，`modules/` 放具体功能及其控件事件，应用初始化和跨业务事件装配放在 `src/js/` 顶层。Node 工具按模块格式使用 `.cjs` / `.mjs`；测试辅助文件放在 `test/support/`，回归用例保留在 `test/` 顶层；历史报告使用 `docs/reports/YYYY-MM-DD-topic.md`。
+- 依赖方向以架构文档为准：`core/`、`utils/`、`state/` 不导入业务模块，业务模块不导入顶层装配或测试适配。移动函数后直接更新消费方导入，不保留转发入口；书签规则、图标处理和存储分别在 `utils/bookmark-model.js`、`utils/favicon.js`、`utils/storage.js`，不再堆入 `helpers.js`。
 
 ## 验证
 

@@ -239,3 +239,22 @@ test('防 iframe 恶意嵌套点击劫持 (Frame-Busting)', () => {
     }
   }
 });
+
+test('天气首屏不将缓存图标地址拼入 HTML', () => {
+  const html = readFileSync(join(DIST, 'index.html'), 'utf8');
+  const script = [...html.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi)]
+    .find(match => match[1].includes('glass_weather_cache'))?.[1];
+  assert.ok(script);
+  for (const icon of ['x" onerror="window.__injected=1" data-x=".svg', '__proto__']) {
+    const elements = Object.fromEntries(['weatherIcon', 'weatherTemp', 'weatherCity', 'weatherBtn']
+      .map(id => [id, { textContent: '', innerHTML: '', setAttribute() {} }]));
+    vm.runInNewContext(script, {
+      localStorage: { getItem: key => key === 'glass_weather_cache'
+        ? JSON.stringify({ current: {temp:20, icon}, location: {name:'测试'} }) : null },
+      document: { getElementById: id => elements[id] },
+      window: { __GLASS_I18N__: { t: () => '', weatherDescription: () => '' } }
+    });
+    assert.equal(elements.weatherIcon.innerHTML, '', '异常缓存只能作为文字显示');
+    assert.equal(elements.weatherIcon.textContent, icon);
+  }
+});

@@ -4,7 +4,8 @@ import { rankBookmarkSuggestions } from '../utils/bookmark-search.js';
 import { getCategoryCatalog, searchUrlKey } from '../utils/category-catalog.js';
 import { CONFIG, engines } from '../config/constants.js';
 import { DEFAULT_ENGINE } from '../config/engines.js';
-import { escapeHtml, safeUrl, storageSet } from '../utils/helpers.js';
+import { escapeHtml, safeUrl } from '../utils/helpers.js';
+import { storageSet } from '../utils/storage.js';
 import { state, pageData } from '../state/store.js';
 import { dom } from '../state/dom.js';
 import { OverlayStack } from '../core/overlay-stack.js';
@@ -214,7 +215,7 @@ export function closeDropdown() {
 export function setEngine(key, save = true) {
     /** @type {Record<string, { name: string; svg: string; url: string }>} */
     const engineMap = engines;
-    const validEngine = engineMap[key] ? key : DEFAULT_ENGINE;
+    const validEngine = Object.hasOwn(engineMap, key) ? key : DEFAULT_ENGINE;
     state.engine = validEngine;
     const engineObj = engineMap[validEngine] || engineMap[DEFAULT_ENGINE];
     const engineName = dom.engineName;
