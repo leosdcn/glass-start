@@ -61,7 +61,7 @@
 
 ## Getting started and deployment
 
-Glass Start can be built as a Chrome new tab extension or deployed as a static website. Response headers and deployment under a subpath depend on the hosting platform. Building from source requires Node.js 24 or newer and npm.
+Glass Start can be built as a Chrome new tab extension or deployed as a static website. Response headers and deployment under a subpath depend on the hosting platform. Building from source requires Node.js 24.x (at least 24.15.0) or version 26 and above, plus npm.
 
 ### Chrome new tab extension
 
@@ -92,7 +92,7 @@ To run the extension regression test, use `npm test -- infra-chrome-extension`. 
    - **Framework preset**: `None`
    - **Build command**: `npm run build`
    - **Build output directory**: `dist`
-   - **Environment variable**: `NODE_VERSION=24`, meeting the project's Node.js requirement. See the [build environment documentation](https://developers.cloudflare.com/pages/configuration/build-image/).
+   - **Environment variable**: `NODE_VERSION=24`, following the 24.x maintenance branch; the resolved version must be at least 24.15.0. See the [build environment documentation](https://developers.cloudflare.com/pages/configuration/build-image/).
 4. Save and deploy. Subsequent pushes to the configured production branch trigger updates. Use your actual production branch; it need not be `main`.
 
 ### Vercel, Netlify and GitHub Pages
@@ -209,7 +209,7 @@ This is my first substantial open-source project, and I am still learning and im
 
 ### Requirements
 
-- Node.js 24 or newer, with npm. The test driver uses Node's native `fetch` and `WebSocket`; follow the version requirement in `package.json`. Use `npm ci` to install or restore dependencies.
+- Node.js 24.x (at least 24.15.0) or version 26 and above, with npm. The supported range is `^24.15.0 || >=26.0.0`, compatible with Stylelint 18. The test driver uses Node's native `fetch` and `WebSocket`; follow the version requirement in `package.json`. Use `npm ci` to install or restore dependencies.
 - Google Chrome for browser regression tests. Set `CHROME_PATH` if needed, for example `CHROME_PATH="/path/to/chrome" npm test`. Chrome is the acceptance baseline; mobile viewports and touch interactions are simulated through Chrome CDP. Testing in Safari or on physical iOS devices is not required for routine development, full tests or releases.
 - `npm run sync:icons` and icon-conversion regression tests require macOS `sips`. Use macOS for complete validation. Building and static hosting do not call `sips`; other systems can build using the icons already in the repository.
 - Dependency installation, icon downloads or refreshes, and online W3C validation require a connection. Reusing local icons does not contact external icon services.

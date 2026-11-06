@@ -65,7 +65,7 @@
 
 ## 🚀 快速开始与部署
 
-本项目可构建为 Chrome 新标签页扩展，也可作为纯前端静态应用部署；网页响应头与子路径部署需按托管平台要求配置。从源码构建需要 Node.js 24 或更新版本及 npm。
+本项目可构建为 Chrome 新标签页扩展，也可作为纯前端静态应用部署；网页响应头与子路径部署需按托管平台要求配置。从源码构建需要 Node.js 24.x（至少 24.15.0）或 26 及以上版本，以及 npm。
 
 ### Chrome 新标签页扩展
 
@@ -95,7 +95,7 @@ npm run build:extension
    - **Framework preset**: `None`
    - **Build command**: `npm run build`
    - **Build output directory**: `dist`
-   - **环境变量**：`NODE_VERSION=24`，满足项目的 Node.js 版本要求；配置方式见[构建环境文档](https://developers.cloudflare.com/pages/configuration/build-image/)。
+   - **环境变量**：`NODE_VERSION=24`，跟随 24.x 维护版本，实际版本须至少为 24.15.0；配置方式见[构建环境文档](https://developers.cloudflare.com/pages/configuration/build-image/)。
 4. 保存并部署。后续推送到配置的生产分支会触发更新；生产分支按实际仓库选择，不一定是 `main`。
 
 ### Vercel / Netlify / GitHub Pages
@@ -203,7 +203,7 @@ npm run preview
 
 ### 开发环境要求
 
-- 需要使用 Node.js 24 或更新版本及随附的 npm。测试驱动使用 Node 原生 `fetch` 和 `WebSocket`，请遵循 `package.json` 的 Node 版本要求。安装或恢复依赖使用 `npm ci`。
+- 需要使用 Node.js 24.x（至少 24.15.0）或 26 及以上版本及随附的 npm；版本范围为 `^24.15.0 || >=26.0.0`，与 Stylelint 18 的要求保持兼容。测试驱动使用 Node 原生 `fetch` 和 `WebSocket`，请遵循 `package.json` 的 Node 版本要求。安装或恢复依赖使用 `npm ci`。
 - 浏览器回归测试需要 Google Chrome。可通过 `CHROME_PATH` 指定安装路径，例如 `CHROME_PATH="/path/to/chrome" npm test`。项目以 Chrome 为浏览器验收基准，移动视口及触摸交互通过 Chrome CDP 模拟；日常开发、全面测试及发布均不要求 Safari/iOS 真机走查。
 - `npm run sync:icons` 及图标转换回归测试依赖 macOS 原生 `sips`；完整验证建议在 macOS 上执行。构建与静态托管本身不调用 `sips`，其他系统可使用仓库中已同步的图标构建。
 - 安装依赖、下载或刷新图标和 W3C 在线校验需要网络；仅复用本地图标时不请求外部图标服务。
