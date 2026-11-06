@@ -16,6 +16,7 @@ const cssRules = {
     'at-rule-property-required-list': { property: ['syntax', 'inherits'] },
     'property-no-unknown': true,
     'declaration-property-value-no-unknown': true,
+    'value-no-invalid': true,
     'color-no-invalid-hex': true,
     'function-no-unknown': true,
     'media-feature-name-no-unknown': true,
