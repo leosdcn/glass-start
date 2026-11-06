@@ -201,6 +201,76 @@ try {
   }
   console.log('✅ 壁纸提交期间外观选择、取消按钮、遮罩与 Escape 均被锁定；事务成功或失败后解除锁定');
 
+  // 重置的事务完成通知延后时，不能取消或并发保存；失效会话不能触碰新草稿。
+  for (const phase of ['stale', 'success', 'abort']) {
+    await evalJS(`(async () => {
+      await commitWallpaperSelection(backgrounds[1]);
+      await openEditModal();
+      storageSet(CONFIG.KEYS.MASK_OPACITY, 37);
+      window.__resetTransaction = IDBDatabase.prototype.transaction;
+      window.__releaseReset = null;
+      IDBDatabase.prototype.transaction = function(...args) {
+        const tx = __resetTransaction.apply(this, args);
+        if (args[1] === 'readwrite') {
+          IDBDatabase.prototype.transaction = __resetTransaction;
+          for (const eventName of ('${phase}' === 'abort' ? ['abort', 'error'] : ['complete'])) {
+            Object.defineProperty(tx, 'on' + eventName, {set(callback) {
+              tx.addEventListener(eventName, event => { __releaseReset = () => callback(event); });
+            }});
+          }
+          if ('${phase}' === 'abort') {
+            tx.objectStore(CONFIG.IDB.STORES.WALLPAPERS).get(CONFIG.IDB.KEYS.SELECTION)
+              .onsuccess = () => tx.abort();
+          }
+        }
+        return tx;
+      };
+      resetBookmarks(); dom.confirmOkBtn.click();
+    })()`);
+    try {
+      await waitFor(evalJS, 'typeof __releaseReset === "function"');
+      const result = await evalJS(`(async () => {
+        const locked = modalState.committing && dom.saveEditBtn.disabled && dom.cancelEditBtn.disabled
+          && dom.languageBtn.disabled && [...document.querySelectorAll('.settings-tab-panel')].every(panel => panel.inert);
+        dom.cancelEditBtn.click();
+        document.getElementById('editModal').click();
+        document.dispatchEvent(new KeyboardEvent('keydown', {key:'Escape', bubbles:true}));
+        cancelEditModal();
+        const stayedOpen = state.editOpen && OverlayStack.top()?.id === 'editModal';
+        await saveEditModal(); resetBookmarks();
+        const noConcurrentAction = OverlayStack.top()?.id === 'editModal'
+          && storageGet(CONFIG.KEYS.MASK_OPACITY) === 37;
+        if ('${phase}' === 'stale') {
+          // 内部关闭使会话失效，模拟下一轮窗口已被打开。
+          closeEditModal(); await openEditModal();
+          const name = dom.editList.querySelector('.edit-name');
+          name.value = '新会话草稿'; name.dispatchEvent(new Event('input', {bubbles:true}));
+        }
+        __releaseReset();
+        await new Promise(resolve => requestAnimationFrame(resolve));
+        return {locked, stayedOpen, noConcurrentAction};
+      })()`);
+      const after = await evalJS(`({
+        open:state.editOpen, draft:modalState.draftBookmarks[0]?.name,
+        opacity:storageGet(CONFIG.KEYS.MASK_OPACITY),
+        unlocked:!modalState.committing && !dom.saveEditBtn.disabled && !dom.cancelEditBtn.disabled,
+        top:OverlayStack.top()?.id || null
+      })`);
+      assert.deepEqual(result, {locked:true, stayedOpen:true, noConcurrentAction:true});
+      assert.equal(after.unlocked, true, JSON.stringify(after));
+      assert.equal(after.open, phase !== 'success');
+      assert.equal(after.opacity, phase === 'success' ? null : 37);
+      assert.equal(after.top, phase === 'abort' ? 'confirmModal' : phase === 'stale' ? 'editModal' : null);
+      if (phase === 'stale') assert.equal(after.draft, '新会话草稿');
+    } finally {
+      await evalJS(`IDBDatabase.prototype.transaction = __resetTransaction;
+        __releaseReset?.();
+        if (OverlayStack.top()?.id === 'confirmModal') dom.confirmOkBtn.click();
+        if (state.editOpen) cancelEditModal();`);
+    }
+  }
+  console.log('✅ 重置期间锁定取消及并发保存，成功或失败后解锁，旧任务不清空新会话草稿');
+
   await evalJS('commitWallpaperSelection(backgrounds[1])');
   const resetDraft = await evalJS(`(async () => {
     await openEditModal();

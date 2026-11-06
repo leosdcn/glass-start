@@ -301,51 +301,73 @@ export function importBookmarksJSON(file) {
  * @returns {void}
  */
 export function resetBookmarks() {
+    if (!state.editOpen || modalState.committing || dom.saveEditBtn?.disabled) return;
+    const requestId = editOpenRequestId;
     showConfirm(t('ui.restore.all.defaults.this.immediately.removes'), async () => {
-        if (!await clearCustomWallpaper(0)) {
-            showConfirm(t('ui.could.not.clear.wallpaper.storage.your'), null, t('ui.reset.failed'));
-            return;
+        if (!state.editOpen || requestId !== editOpenRequestId || modalState.committing || dom.saveEditBtn?.disabled) return;
+        cancelDragSort();
+        importRequestId++;
+        setEditCommitting(true);
+        if (dom.saveEditBtn) {
+            dom.saveEditBtn.disabled = true;
+            dom.saveEditBtn.setAttribute('aria-busy', 'true');
         }
-        /** @type {(keyof typeof CONFIG.KEYS)[]} */
-        const keys = ['PREFERRED_ENGINE', 'WALLPAPER_META', 'MASK_OPACITY',
-            'BG', 'NAV_DISCOVERED', 'WEATHER_CACHE', 'WEATHER_LOC',
-            'THEME_CACHE', 'TINT_CACHE', 'TRANSITION_MODE', 'LANGUAGE', 'TEMP_UNIT'];
-        const previousLanguage = getLanguagePreference();
-        const removed = keys.map(key => storageRemove(CONFIG.KEYS[key]));
-        refreshWeatherDisplay();
-        const bookmarksReset = resetUserBookmarks();
-        const mode = getTransitionMode();
-        document.documentElement.dataset.transitionMode = mode;
-        syncTransitionSwitcherActive(mode);
-        modalState.draftTransitionMode = mode;
-        const opacity = storageGet(CONFIG.KEYS.MASK_OPACITY, CONFIG.APPEARANCE.DEFAULT_MASK_OPACITY);
-        modalState.draftMaskOpacity = opacity;
-        applyBgEffects(opacity);
-        setEngine(storageGet(CONFIG.KEYS.PREFERRED_ENGINE, DEFAULT_ENGINE), false);
-        applyWallpaper(backgrounds[0], false);
-        if (!bookmarksReset || removed.some(result => !result)) {
-            replaceBookmarkDraft(pageData.bookmarks.map((bm, i) => ({ ...bm, id: `bm_${i}` })));
-            renderEditList();
-            modalState.draftWallpaper = null;
-            updateWallpaperStatusUI(null);
-            updatePresetBgCardsUI(null);
-            showConfirm(t('ui.some.settings.could.not.be.cleared'), null, t('ui.reset.incomplete'));
-            return;
+        try {
+            const wallpaperCleared = await clearCustomWallpaper(0);
+            // 内部关闭或重新打开设置后，旧重置不得清空新草稿或关闭新窗口。
+            if (!state.editOpen || requestId !== editOpenRequestId) return;
+            if (!wallpaperCleared) {
+                showConfirm(t('ui.could.not.clear.wallpaper.storage.your'), null, t('ui.reset.failed'));
+                return;
+            }
+            /** @type {(keyof typeof CONFIG.KEYS)[]} */
+            const keys = ['PREFERRED_ENGINE', 'WALLPAPER_META', 'MASK_OPACITY',
+                'BG', 'NAV_DISCOVERED', 'WEATHER_CACHE', 'WEATHER_LOC',
+                'THEME_CACHE', 'TINT_CACHE', 'TRANSITION_MODE', 'LANGUAGE', 'TEMP_UNIT'];
+            const previousLanguage = getLanguagePreference();
+            const removed = keys.map(key => storageRemove(CONFIG.KEYS[key]));
+            refreshWeatherDisplay();
+            const bookmarksReset = resetUserBookmarks();
+            const mode = getTransitionMode();
+            document.documentElement.dataset.transitionMode = mode;
+            syncTransitionSwitcherActive(mode);
+            modalState.draftTransitionMode = mode;
+            const opacity = storageGet(CONFIG.KEYS.MASK_OPACITY, CONFIG.APPEARANCE.DEFAULT_MASK_OPACITY);
+            modalState.draftMaskOpacity = opacity;
+            applyBgEffects(opacity);
+            setEngine(storageGet(CONFIG.KEYS.PREFERRED_ENGINE, DEFAULT_ENGINE), false);
+            applyWallpaper(backgrounds[0], false);
+            if (!bookmarksReset || removed.some(result => !result)) {
+                replaceBookmarkDraft(pageData.bookmarks.map((bm, i) => ({ ...bm, id: `bm_${i}` })));
+                renderEditList();
+                modalState.draftWallpaper = null;
+                updateWallpaperStatusUI(null);
+                updatePresetBgCardsUI(null);
+                showConfirm(t('ui.some.settings.could.not.be.cleared'), null, t('ui.reset.incomplete'));
+                return;
+            }
+
+            if (dom.scrollDownHint) {
+                dom.scrollDownHint.style.display = '';
+                dom.scrollDownHint.style.opacity = '';
+            }
+
+            modalState.draftWallpaper = undefined;
+            modalState.draftMaskOpacity = null;
+            replaceBookmarkDraft([]);
+
+            closeBookmarkPicker();
+            closeEditModal();
+            if (previousLanguage !== 'auto') location.reload();
+        } finally {
+            if (requestId === editOpenRequestId) {
+                if (dom.saveEditBtn) {
+                    dom.saveEditBtn.disabled = false;
+                    dom.saveEditBtn.removeAttribute('aria-busy');
+                }
+                setEditCommitting(false);
+            }
         }
-
-        if (dom.scrollDownHint) {
-            dom.scrollDownHint.style.display = '';
-            dom.scrollDownHint.style.opacity = '';
-        }
-
-
-        modalState.draftWallpaper = undefined;
-        modalState.draftMaskOpacity = null;
-        replaceBookmarkDraft([]);
-
-        closeBookmarkPicker();
-        closeEditModal();
-        if (previousLanguage !== 'auto') location.reload();
     }, t('ui.reset.all.settings'));
 }
 
@@ -359,7 +381,7 @@ export function resetBookmarks() {
  */
 export async function saveEditModal() {
     const saveBtn = dom.saveEditBtn;
-    if (!state.editOpen || !saveBtn || saveBtn.disabled) return;
+    if (!state.editOpen || modalState.committing || !saveBtn || saveBtn.disabled) return;
     const requestId = editOpenRequestId;
     saveBtn.disabled = true;
     saveBtn.setAttribute('aria-busy', 'true');
