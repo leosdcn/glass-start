@@ -29,12 +29,12 @@
     "test:unit": "node test/run.mjs --unit"
   },
   "devDependencies": {
-    "@tailwindcss/cli": "^4.3.3",
+    "@tailwindcss/cli": "^4.3.4",
     "acorn": "^8.19.0",
     "esbuild": "^0.28.2",
     "postcss": "^8.5.32",
-    "stylelint": "^17.16.0",
-    "tailwindcss": "^4.3.3",
+    "stylelint": "^18.0.0",
+    "tailwindcss": "^4.3.4",
     "typescript": "^7.0.2"
   },
   "keywords": [

@@ -338,6 +338,6 @@ Chrome 扩展 CSP 由 `src/extension/manifest.json` 定义，构建时同步到�
 - `infra-module-boundaries.test.mjs` 检查全部 JS 源文件的依赖方向与无环性、生产包隔离，并验证关闭测试接口的页面启动；通过不等于所有业务职责都能由静态规则判断。
 - 浏览器验收以 Chrome 为准，使用 CDP 验证桌面、移动视口及触摸交互；日常开发、全面测试和发布均不要求 Safari/iOS 真机走查，仅在用户明确要求时进行该专项。导航完成与切屏完成分别等待，避免固定延时掩盖竞态。
 - `infra-chrome-extension.test.mjs` 构建并在独立 Chrome 配置中实际加载扩展，验证新标签页、首屏主题、三引擎联想、设置保存、离线重载及 CSP。联想响应使用固定数据，不能替代真实第三方接口联网走查。
-- `scripts/validate-w3c.mjs` 通过在线 Nu 检查完整 HTML，通过开发依赖 Stylelint 17 检查每个内嵌 `style` 块的语法、属性值、at-rule 前导及描述符，不启用排版规则或源码中的禁用注释。Nu CSS 诊断只有定位在已独立校验的样式块内时才采用 Stylelint 结果并单独计数；不使用属性名称白名单，行内 `style` 属性及无法定位的错误仍由 Nu 检查。Stylelint 不是运行时层叠、变量求值或全部浏览器支持情况的证明。请求以 canonical 地址设置 `Content-Location`，可通过 `W3C_DOCUMENT_URL` 覆盖，提交内容仍为本地 HTML；来源语境检查不替代真实部署的响应头验收。退出码 0 表示无阻断错误，1 表示页面校验错误，2 表示服务、工具或响应异常导致校验未完成；未完成时需恢复后重试。通过不代表完整无障碍、视觉或功能合规，样式完整性由基础架构测试另行检查。
+- `scripts/validate-w3c.mjs` 通过在线 Nu 检查完整 HTML，通过开发依赖 Stylelint 18 检查每个内嵌 `style` 块的语法、属性值、at-rule 前导及描述符，不启用排版规则或源码中的禁用注释。Nu CSS 诊断只有定位在已独立校验的样式块内时才采用 Stylelint 结果并单独计数；不使用属性名称白名单，行内 `style` 属性及无法定位的错误仍由 Nu 检查。Stylelint 不是运行时层叠、变量求值或全部浏览器支持情况的证明。请求以 canonical 地址设置 `Content-Location`，可通过 `W3C_DOCUMENT_URL` 覆盖，提交内容仍为本地 HTML；来源语境检查不替代真实部署的响应头验收。退出码 0 表示无阻断错误，1 表示页面校验错误，2 表示服务、工具或响应异常导致校验未完成；未完成时需恢复后重试。通过不代表完整无障碍、视觉或功能合规，样式完整性由基础架构测试另行检查。
 - `typecheck` 使用 JSDoc 与 `types.d.ts` 检查 `src/js/` 下全部 JavaScript 模块及 `test/types/contracts.js` 中的负向类型契约；页面与 `sw.js` 分别使用 DOM 和 Worker 类型环境。覆盖范围以 `tsconfig.json` 和 `tsconfig.sw.json` 为准，不包含全部 Node 工具和测试脚本。`npm test` 同样执行两套配置。
 - 生命周期约束通过页面行为测试验证；Service Worker 测试执行完整脚本及真实升级流程，不通过截取函数体判断实现是否正确。

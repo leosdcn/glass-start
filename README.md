@@ -244,7 +244,7 @@ npm run build:extension
 
 验证范围以 [AGENTS.md](./AGENTS.md#验证) 为准，局部修改优先运行直接相关测试。`npm test -- <文件名片段>` 执行匹配的测试文件前，会检查类型，并按需构建；需要构建时，两项并行执行，无需重复手动检查类型或构建。仅匹配[运行器明确列出的纯单元测试](./test/support/test-selection.mjs)时跳过构建。无参数的 `npm test` 与 `test:all` 执行全套，用于高风险跨模块改造、发布或明确要求全量验证的场景。`test:ui`、`test:data`、`test:infra`、`test:lifecycle` 可按模块扩大范围，可用命令以 `package.json` 为准。
 
-`npm run test:w3c` 使用在线 Nu 检查完整 HTML，并用开发依赖 Stylelint 17 检查内嵌 `style` 块的现代 CSS 语法与属性值。Nu 在这些已复核样式块上的旧 CSS 引擎诊断单独计数，不再靠属性名称白名单放行；HTML、行内 `style` 属性和无法定位的 CSS 错误仍保留。请求以页面 canonical 地址提供 `Content-Location`，避免同源资源的 CSP 误报；验证其他部署时可用 `W3C_DOCUMENT_URL=https://example.com/start/ npm run test:w3c` 覆盖来源地址，提交的仍是本地产物。真实错误退出码为 1，服务或工具异常为 2；校验不能替代浏览器表现和实际托管响应头检查。
+`npm run test:w3c` 使用在线 Nu 检查完整 HTML，并用开发依赖 Stylelint 18 检查内嵌 `style` 块的现代 CSS 语法与属性值。Nu 在这些已复核样式块上的旧 CSS 引擎诊断单独计数，不再靠属性名称白名单放行；HTML、行内 `style` 属性和无法定位的 CSS 错误仍保留。请求以页面 canonical 地址提供 `Content-Location`，避免同源资源的 CSP 误报；验证其他部署时可用 `W3C_DOCUMENT_URL=https://example.com/start/ npm run test:w3c` 覆盖来源地址，提交的仍是本地产物。真实错误退出码为 1，服务或工具异常为 2；校验不能替代浏览器表现和实际托管响应头检查。
 
 `npm run typecheck` 检查 `src/js/` 下全部 JavaScript 模块及 `test/types/contracts.js` 类型契约，并在独立 Worker 类型环境中严格检查 `sw.js`；范围以 `tsconfig.json` 和 `tsconfig.sw.json` 为准，`npm test` 同样执行这两项检查。`npm run test:unit` 复用运行器的纯单元测试清单，检查类型并验证搜索、天气转换与草稿等逻辑，无需构建或 Chrome。
 

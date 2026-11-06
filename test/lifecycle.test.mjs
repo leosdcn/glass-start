@@ -40,14 +40,17 @@ test('页面切换状态、无障碍隔离与 BFCache 恢复 (浏览器回归)',
     const bfcacheMisses = [];
     send('Page.backForwardCacheNotUsed', event => bfcacheMisses.push(event));
     await waitFor(evalJS, '!document.querySelector(".fade-in")');
-    await evalJS(`(() => {
-      window.__nrChanges = [];
-      new MutationObserver(records => {
-        for (const record of records) {
-          if ((record.oldValue || '').split(/\\s+/).includes('nr') || document.documentElement.classList.contains('nr')) __nrChanges.push(true);
-        }
-      }).observe(document.documentElement, { attributes: true, attributeFilter: ['class'], attributeOldValue: true });
+    const ensureNrObserver = () => evalJS(`(() => {
+      if (!window.__nrChanges) {
+        window.__nrChanges = [];
+        new MutationObserver(records => {
+          for (const record of records) {
+            if ((record.oldValue || '').split(/\\s+/).includes('nr') || document.documentElement.classList.contains('nr')) window.__nrChanges.push(true);
+          }
+        }).observe(document.documentElement, { attributes: true, attributeFilter: ['class'], attributeOldValue: true });
+      }
     })()`);
+    await ensureNrObserver();
     // 非 Chrome 路径仅验证项目 CSS 策略，不模拟其他浏览器引擎。
     for (const chromeCSS of [true, false]) {
       await evalJS(`document.documentElement.classList.toggle('is-chrome', ${chromeCSS})`);
@@ -128,6 +131,7 @@ test('页面切换状态、无障碍隔离与 BFCache 恢复 (浏览器回归)',
             }
             // 若遇全量测试高负载下 Chrome 临时回收缓存 (CacheFlushed)，等待后自动重试一次
             await new Promise(r => setTimeout(r, 200));
+            await ensureNrObserver();
           }
         }
         assert.ok(restored.unlocked && restored.isolated && Math.abs(restored.top) < 2, JSON.stringify(restored));
@@ -140,7 +144,7 @@ test('页面切换状态、无障碍隔离与 BFCache 恢复 (浏览器回归)',
         assert.ok(await evalJS(`Math.abs(dom.${nextSection === 'nav' ? 'navSection' : 'startSection'}.getBoundingClientRect().top) < 2`));
       }
     }
-    assert.equal(await evalJS('__nrChanges.length'), 0);
+    assert.equal(await evalJS('(window.__nrChanges || []).length'), 0);
   } finally {
     await chrome.close();
     await server.close();
