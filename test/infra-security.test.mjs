@@ -280,7 +280,7 @@ async function validatePage(css, messages = [], options = {}) {
 }
 
 test('现代 CSS 校验接受注册属性、渐变变量过渡、line-clamp 与能力查询', async () => {
-  const css = '@property --tone{syntax:"<color>";inherits:false;initial-value:red}.card{transition-property:--tone;line-clamp:2}@supports (margin-trim:inline){.card{color:red}}';
+  const css = '@property --tone{syntax:"<color>";inherits:false;initial-value:red}.card{color:var(--tone);width:calc(1px + 2px);transition-property:--tone;line-clamp:2}@supports (margin-trim:inline){.card{color:red}}';
   const result = await validatePage(css, [{ type: 'error', message: 'CSS: Unrecognized at-rule “@property”', lastLine: 6 }]);
   assert.equal(result.code, 0, result.output);
   assert.match(result.output, /Stylelint.*0 个错误/);
@@ -293,6 +293,8 @@ test('现代 CSS 校验接受注册属性、渐变变量过渡、line-clamp 与�
 test('现代 CSS 校验仍阻断真实语法、属性值与注册描述符错误', async () => {
   for (const css of ['.card{color:not-a-color}', '.card{colr:red}', '.card{line-clamp:banana}',
     '@property --x{syntax:"<color>";inherits:banana;initial-value:red}', '@property --x{initial-value:red}',
+    '.card{top:calc(1px + 2)}', '.card{--offset:red;top:var(--offset)}',
+    '@property --tone{syntax:"<color>";inherits:false;initial-value:red}.card{--tone:1px}',
     '.card{color:red', '/* stylelint-disable */ .card{color:not-a-color}']) {
     const result = await validatePage(css);
     assert.equal(result.code, 1, `${css}\n${result.output}`);

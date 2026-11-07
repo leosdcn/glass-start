@@ -233,9 +233,10 @@ test('书签轻量存储模型、自定义图标持久化、XSS清洗与系统�
       delete window.DEFAULT_BOOKMARKS;
 
       try {
-        resetBookmarks();
-        const okBtn = dom.confirmOkBtn;
-        if (okBtn) okBtn.click();
+        await openEditModal();
+        document.getElementById('tab-btn-data').click();
+        dom.resetEditBtn.click();
+        dom.confirmOkBtn.click();
         const deadline = Date.now() + 3000;
         while (localStorage.getItem('userBookmarkKeys') !== null && Date.now() < deadline) {
           await new Promise(resolve => setTimeout(resolve, 20));
