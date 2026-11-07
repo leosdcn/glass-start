@@ -46,14 +46,16 @@ test('页面刷新状态保持、跳出返回防白屏与触觉倾斜恢复', as
       && !backFromReloadedNav.nrPresent && !backFromReloadedNav.gearHidden && backFromReloadedNav.startAria !== 'true';
     assert.ok(startRestoredValid, JSON.stringify(backFromReloadedNav));
 
-    // BFCache / pageshow 自愈
-    const interruptedTransition = await evalJS(`(() => {
+    // 首次 pageshow 保留正在进行的切屏，BFCache 恢复立即校准。
+    const pageshowTransition = await evalJS(`(() => {
       switchToNav();
       const active = isScreenTransitioning();
-      window.dispatchEvent(new Event('pageshow'));
-      return active;
+      window.dispatchEvent(new PageTransitionEvent('pageshow'));
+      const afterInitialShow = isScreenTransitioning();
+      window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true }));
+      return [active, afterInitialShow, isScreenTransitioning()];
     })()`);
-    assert.ok(interruptedTransition, 'pageshow 确实中断进行中的切屏');
+    assert.deepEqual(pageshowTransition, [true, true, false]);
     await waitFor(evalJS, `!isScreenTransitioning() && (() => {
       const n = document.getElementById("navSection");
       const s = document.getElementById("startSection");
@@ -88,7 +90,7 @@ test('页面刷新状态保持、跳出返回防白屏与触觉倾斜恢复', as
       if (!bm) return { ok: false, reason: 'no-bookmark-found' };
       bm.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true, clientX: 100, clientY: 100 }));
       window.dispatchEvent(new Event('focus'));
-      window.dispatchEvent(new Event('pageshow'));
+      window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true }));
       document.dispatchEvent(new Event('visibilitychange'));
       const bodyHasTabBlurredOnReturn = document.body.classList.contains('tab-blurred');
       const style = window.getComputedStyle(bm);

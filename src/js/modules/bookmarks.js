@@ -8,6 +8,7 @@
  *
  */
 import { getLocale, localizeBookmarkUrl } from '../core/i18n.js';
+import { isScreenTransitioning } from '../core/screen-state.js';
 import { CONFIG, DEFAULT_BOOKMARKS } from '../config/constants.js';
 import { escapeHtml, safeUrl, handleRovingKeyNav } from '../utils/helpers.js';
 import { normalizeUrl, normalizeBookmark, deriveNameFromUrl, faviconFromUrl } from '../utils/bookmark-model.js';
@@ -259,6 +260,7 @@ export function scheduleOffscreenNavIcons() {
     if (typeof window === 'undefined') return;
     const run = () => {
         offscreenIconsIdleId = null;
+        if (document.hidden || state.currentSection !== 'nav' || isScreenTransitioning()) return;
         activateAllNavIcons();
     };
     if ('requestIdleCallback' in window) {

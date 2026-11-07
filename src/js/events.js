@@ -43,7 +43,9 @@ export function bindEvents() {
         if (document.hidden) stopClockTimer();
         else handleAppWakeUp();
     }, { passive: true });
-    window.addEventListener('pageshow', () => handleAppWakeUp(), { passive: true });
+    window.addEventListener('pageshow', event => {
+        if (event.persisted) handleAppWakeUp();
+    }, { passive: true });
 
     const { searchInput, suggestionMenu, engineBtn, weatherBtn } = dom;
 

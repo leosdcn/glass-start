@@ -24,7 +24,7 @@ await test("焦点循环、嵌套弹窗与背景隔离", async () => {
       const { nodeId } = await send('DOM.querySelector', { nodeId:document.nodeId, selector:'#searchInput' });
       const ax = await send('Accessibility.getPartialAXTree', { nodeId, fetchRelatives:false });
       assert.equal(ax.nodes[0].ignored, true);
-      await evalJS("window.dispatchEvent(new Event('pageshow'));");
+      await evalJS("window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true }));");
       assert.equal(await evalJS('dom.startSection.inert && dom.navSection.inert'), true);
       console.log('✅ 打开立即进入弹窗焦点，背景拒绝焦点且从无障碍树排除，页面唤醒不解除隔离');
 

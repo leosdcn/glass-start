@@ -113,8 +113,24 @@ await test("图标空闲准备与延迟加载", async () => {
         return [pending > 100, state.currentSection, active,
             dom.navSection.querySelectorAll('img[fetchpriority="low"]').length];
     })()`), [true,'nav',true,0]);
-        await waitFor(evalJS, '!isScreenTransitioning()');
+        await waitFor(evalJS, '!isScreenTransitioning() && __queuedIdle.length === 1');
         console.log('✅ 用户先切屏时立即进入，迟到的空闲回调不在动画中准备图标');
+
+        // 把导航收尾安排的空闲回调推迟到退场，再确认下次切入能重新安排。
+        const deferredIcons = 'dom.navSection.querySelectorAll("img[data-nav-src]").length';
+        const pending = await evalJS(deferredIcons);
+        assert.ok(pending > 0);
+        assert.deepEqual(await evalJS(`(() => {
+            switchToStart();
+            __queuedIdle.shift()({didTimeout:false,timeRemaining:()=>50});
+            return [isScreenTransitioning(), ${deferredIcons}];
+        })()`), [true, pending]);
+        await waitFor(evalJS, '!isScreenTransitioning()');
+        await evalJS('switchToNav()');
+        await waitFor(evalJS, '!isScreenTransitioning() && __queuedIdle.length === 1');
+        await evalJS('__queuedIdle.shift()({didTimeout:false,timeRemaining:()=>50})');
+        assert.equal(await evalJS(deferredIcons), 0);
+        console.log('✅ 退场期间保留离屏图标的延迟状态，下次切入后正常加载');
     } finally {
         await chrome.close();
         await server.close();
