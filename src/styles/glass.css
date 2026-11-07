@@ -340,7 +340,11 @@
     overflow: hidden;
     -webkit-backface-visibility: hidden;
     backface-visibility: hidden;
-    transition: transform var(--duration-tactile) var(--ease-tactile), background-color 0.32s ease, border-color 0.32s ease, box-shadow var(--duration-tactile) var(--ease-tactile);
+    transition:
+        transform var(--duration-tactile) var(--ease-tactile),
+        background-color var(--bookmark-background-duration, 0.32s) ease,
+        border-color 0.32s ease,
+        box-shadow var(--duration-tactile) var(--ease-tactile);
 }
 .bookmark-item::before {
     content: none;
@@ -417,6 +421,7 @@ body:not(.tab-blurred) .nav-bookmark:not(.is-clicked):active {
         color: #fff;
     }
     body:not(.tab-blurred) .nav-bookmark:not(.is-clicked):hover:active {
+        --bookmark-background-duration: var(--duration-press);
         background-color: rgba(255, 255, 255, 0.08);
     }
     body:not(.tab-blurred) .nav-bookmark:not(.is-clicked):hover:not(:active) .icon-box,
