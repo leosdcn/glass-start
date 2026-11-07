@@ -190,6 +190,44 @@ await test("分类位置缓存与侧栏高亮", async () => {
     }
 });
 
+await test("最后一个分类对齐与滚动边界", async () => {
+    const { server, chrome, send, evalJS } = await launchSession();
+    try {
+        await evalJS('switchToNav()');
+        await waitFor(evalJS, '!isScreenTransitioning()');
+        for (const [width, height] of [[1280, 800], [1920, 1080], [390, 844]]) {
+            await send('Emulation.setDeviceMetricsOverride', {
+                width, height, deviceScaleFactor: 1, mobile: width === 390
+            });
+            await send('Emulation.setTouchEmulationEnabled', { enabled: width === 390 });
+            const { target, bottom } = await evalJS(`(() => {
+                const { navContent, navCategories, sidebarList } = dom;
+                navContent.scrollTo({ top: 0, behavior: 'instant' });
+                sidebarList.lastElementChild.click();
+                return {
+                    target: navCategories.lastElementChild.offsetTop - navCategories.firstElementChild.offsetTop,
+                    bottom: navContent.scrollHeight - navContent.clientHeight
+                };
+            })()`);
+            assert.ok(Math.abs(bottom - target) <= 1, `${width}×${height} 的短分类应在顶对齐时滚到底`);
+            await waitFor(evalJS, `Math.abs(dom.navContent.scrollTop - ${target}) <= 1 &&
+                dom.sidebarList.lastElementChild.getAttribute('aria-selected') === 'true'`);
+        }
+
+        const lastCardClearance = await evalJS(`(() => {
+            const { navContent, navCategories } = dom;
+            const grid = navCategories.lastElementChild.querySelector('.nav-bookmark-grid');
+            for (let i = 0; i < 30; i++) grid.append(grid.firstElementChild.cloneNode(true));
+            navContent.scrollTo({ top: navContent.scrollHeight, behavior: 'instant' });
+            return navContent.getBoundingClientRect().bottom - grid.lastElementChild.getBoundingClientRect().bottom;
+        })()`);
+        assert.ok(lastCardClearance >= 72, '长分类滚到底时最后一排应完整避开渐隐区');
+    } finally {
+        await chrome.close();
+        await server.close();
+    }
+});
+
 await test("原生滚动与事件阻塞区域", async () => {
     /** 验证导航页原生滚轮滚动不进入常驻的主线程阻塞区域。 */
 

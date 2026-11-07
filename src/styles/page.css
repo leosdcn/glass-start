@@ -434,10 +434,12 @@ textarea::placeholder {
 }
 
 #navContent {
+    --nav-bottom-fade: 72px;
     contain: content;
+    container-type: size;
     will-change: scroll-position;
-    -webkit-mask-image: linear-gradient(to bottom, black 0%, black calc(100% - 72px), rgba(0, 0, 0, 0.85) calc(100% - 44px), rgba(0, 0, 0, 0.3) calc(100% - 16px), transparent 100%);
-    mask-image: linear-gradient(to bottom, black 0%, black calc(100% - 72px), rgba(0, 0, 0, 0.85) calc(100% - 44px), rgba(0, 0, 0, 0.3) calc(100% - 16px), transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, black 0%, black calc(100% - var(--nav-bottom-fade)), rgba(0, 0, 0, 0.85) calc(100% - 44px), rgba(0, 0, 0, 0.3) calc(100% - 16px), transparent 100%);
+    mask-image: linear-gradient(to bottom, black 0%, black calc(100% - var(--nav-bottom-fade)), rgba(0, 0, 0, 0.85) calc(100% - 44px), rgba(0, 0, 0, 0.3) calc(100% - 16px), transparent 100%);
 }
 #navContent:focus {
     outline: none;
@@ -580,10 +582,6 @@ textarea::placeholder {
         transform: rotate(90deg);
     }
 }
-#navCategories {
-    padding-bottom: calc(100vh - 12rem);
-    padding-bottom: calc(100dvh - 12rem);
-}
 #editBookmarksBtn.hidden-on-nav {
     pointer-events: none;
 }
@@ -679,6 +677,11 @@ textarea::placeholder {
 
 .category-block {
     position: relative;
+}
+/* 短分类补到刚好可以顶对齐，长分类的最后一排留出渐隐区。 */
+#navCategories > .category-block:last-child {
+    min-height: 100cqh;
+    padding-bottom: var(--nav-bottom-fade);
 }
 body.bookmark-dragging .nav-bookmark,
 body.bookmark-dragging .drag-handle {
