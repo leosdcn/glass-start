@@ -102,7 +102,8 @@ await test("图标空闲准备与延迟加载", async () => {
         window.requestIdleCallback = callback => { __queuedIdle.push(callback); return __queuedIdle.length; };
     `});
         await send('Page.reload');
-        await waitFor(evalJS, 'typeof switchToNav === "function" && window.__queuedIdle?.length >= 2');
+        // 等目录、通用图标和壁纸恢复后的首批图标三个启动任务都入队。
+        await waitFor(evalJS, 'typeof switchToNav === "function" && window.__queuedIdle?.length >= 3');
         assert.deepEqual(await evalJS(`(() => {
             const emptyBeforeEntry = dom.navCategories.firstElementChild === null;
             switchToNav();

@@ -136,14 +136,14 @@ export function init() {
         }
     };
 
-    // ⑪ 低优先级空闲调度：预热导航屏 DOM、观察器挂载与图标预加载（不抢占首屏交互主线程）
+    // ⑪ 先独立预热导航 DOM，分类位置留给切入收尾或导航滚动读取。
     scheduleIdleTask(() => {
-        // 启动预热：若已处于导航屏（reconcileScreenState 恢复时已触发钩子构建），跳过重复渲染；
-        // 起始屏时提前预热导航区，用户首次切屏时即可直接呈现。
-        if (state.currentSection !== 'nav') {
+        if (!document.hidden && state.currentSection === 'start' && !isScreenTransitioning()) {
             renderNavCategories();
         }
-        refreshSidebarNavCache();
+    });
+
+    scheduleIdleTask(() => {
         initFaviconObserver();
         preloadFavicons();
         // 恢复后再判断当前选择，避免在 IDB 返回前预加载默认预设。

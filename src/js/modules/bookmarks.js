@@ -553,7 +553,10 @@ function initSidebarNav(measureActive = true) {
 export function preloadFavicons() {
     const urls = new Set();
     pageData.bookmarks.forEach(bm => { if (bm.icon) urls.add(bm.icon); });
-    pageData.categories.forEach(cat => { if (cat.icon) urls.add(cat.icon); });
+    // 目录已构建时，侧栏图标的 src 已发起加载。
+    if (!dom.sidebarList?.firstElementChild) {
+        pageData.categories.forEach(cat => { if (cat.icon) urls.add(cat.icon); });
+    }
     const readySources = new Set();
     if (dom.bookmarks) {
         dom.bookmarks.querySelectorAll('img').forEach(img => {
