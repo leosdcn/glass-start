@@ -43,9 +43,9 @@ export const CONFIG = Object.freeze({
                 WHEEL_IDLE_MS: 180,         // 无滚轮输入后视为新一轮手势
                 TRANSITION_MS: 580,          // 双屏推移过渡动画时长 (ms)
                 TIMEOUT_BUFFER_MS: 150,      // 双屏推移超时保护冗余缓冲 (ms)
-                SWIPE_THRESHOLD: 40,         // 常规触屏切屏位移阈值 (px)
+                SWIPE_THRESHOLD: 40,         // 滚轮累计位移与触屏切屏位移阈值 (px)
                 FLICK_MIN_DISTANCE: 25,      // 快速轻扫最小触发位移 (px)
-                FLICK_MIN_VELOCITY: 0.25     // 快速轻扫最小瞬时速度 (px/ms)
+                FLICK_MIN_VELOCITY: 0.25     // 快速轻扫最小平均速度 (px/ms)
             }),
             PHYSICS: Object.freeze({
                 TILT_MAX_ROTATION_DEG: 2.5,  // 指针交互最大倾角 (deg)

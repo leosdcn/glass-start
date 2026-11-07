@@ -270,7 +270,7 @@ try {
 
     if (allButtonsCompliant && buttonMatches.length > 0) {
         passCount++;
-        logItem(`全站 ${buttonMatches.length} 处 <button> 标签均 100% 显式声明 type="button" 规范`);
+        logItem(`src/index.html 的 ${buttonMatches.length} 处 <button> 均显式声明有效 type 属性`);
     } else {
         failCount++;
         logItem(`发现缺少显式 type 属性的按钮 (可运行 npm run lint:fix 自动修复):\n    ${nonCompliantButtons.join('\n    ')}`, 'error');
@@ -300,7 +300,7 @@ try {
 
     if (allSvgsCompliant && svgMatches.length > 0) {
         passCount++;
-        logItem(`全站 ${svgMatches.length} 处内嵌 <svg> 矢量图标均 100% 符合 WAI-ARIA 无障碍规范`);
+        logItem(`src/index.html 的 ${svgMatches.length} 处内嵌 <svg> 均声明 aria-hidden、aria-label 或 role="img"`);
     } else {
         failCount++;
         logItem(`发现缺少无障碍属性的 SVG: ${nonCompliantSvgs.join(', ')}`, 'error');
@@ -341,7 +341,7 @@ try {
     const invalidPrefixErrors = cssInspection.prefixViolations;
     if (invalidPrefixErrors.length === 0) {
         passCount++;
-        logItem(`CSS 厂商前缀层叠顺序 100% 规范（-webkit- 前缀均先于标准属性声明，确保跨浏览器编译不丢属性）`);
+        logItem(`毛玻璃属性前缀顺序检查通过（-webkit- 前缀位于对应标准属性之前）`);
     } else {
         failCount++;
         logItem(`CSS 前缀层叠顺序异常 (${invalidPrefixErrors.length} 处):\n    ${invalidPrefixErrors.join('\n    ')}`, 'error');
@@ -387,7 +387,7 @@ try {
 
     if (duplicateIds.length === 0 && missingCachedIds.length === 0 && uncachedIds.length === 0 && untypedIds.length === 0 && domIdSet.size > 0) {
         passCount++;
-        logItem(`全站 ${domIdSet.size} 个 DOM ID 100% 全局唯一，且 cacheDOM() ${cachedIds.length} 个缓存映射健康无死引用`);
+        logItem(`src/index.html 的 ${domIdSet.size} 个 DOM ID 无重复，cacheDOM() 的 ${cachedIds.length} 个映射均指向现有节点`);
     } else {
         failCount++;
         const errors = [];
@@ -481,7 +481,7 @@ try {
 
     if (errors.length === 0) {
         passCount++;
-        logItem(`全站 ${totalBookmarks} 个书签数据 Schema 规范、100% 本地图标就绪、HTTPS 安全协议且 desc 简介无溢出`);
+        logItem(`${totalBookmarks} 个预设书签字段、本地 PNG 文件头与方形尺寸、HTTPS 前缀及简介长度检查通过`);
     } else {
         failCount++;
         logItem(`书签 Schema 与本地图标校验失败 (${errors.length} 处):\n    ${errors.slice(0, 5).join('\n    ')}`, 'error');
@@ -491,7 +491,7 @@ try {
     logItem(`书签 Schema 规范检查异常: ${e.message}`, 'error');
 }
 
-// 切屏恢复、双通道唤醒和动画清理由 lifecycle-behavior.test.mjs 验证实际行为。
+// 切屏恢复、双通道唤醒和动画清理由 lifecycle.test.mjs 验证实际行为。
 
 // 4.12 🚫 严禁滥加全局字体抗锯齿属性（-webkit-font-smoothing / -moz-osx-font-smoothing）
 try {
@@ -683,7 +683,7 @@ try {
     }
 
     passCount++;
-    logItem(`Chrome 扩展 Manifest 权限与业务网络接口 100% 对齐 (${sortedCodeDomains.length} 个远程 API 域名)`);
+    logItem(`Chrome 扩展 Manifest 已覆盖静态提取的 ${sortedCodeDomains.length} 个 API 域名，host_permissions 与 connect-src 域名集合一致`);
 } catch (e) {
     failCount++;
     logItem(`Chrome 扩展权限一致性检查失败: ${e.message}`, 'error');

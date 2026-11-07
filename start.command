@@ -31,7 +31,7 @@ if ! command -v node &> /dev/null; then
 fi
 
 # 构建 dist 产物；首次运行前需自行执行 npm ci。
-echo -e "\033[36m📦 正在执行增量同步与生产打包...\033[0m"
+echo -e "\033[36m📦 正在执行生产构建...\033[0m"
 npm run build
 if [ $? -ne 0 ]; then
     echo -e "\n\033[31m❌ 构建失败，请检查上方错误输出。\033[0m"

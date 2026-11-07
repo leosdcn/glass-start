@@ -110,7 +110,7 @@
                     "name": "Grok",
                     "url": "https://grok.com",
                     "icon": "./icons/grok.com.png",
-                    "desc": "xAI 智能对话助手"
+                    "desc": "AI 对话与创作助手"
                 },
                 {
                     "name": "Hugging Face",
@@ -128,7 +128,7 @@
                     "name": "Mistral",
                     "url": "https://chat.mistral.ai",
                     "icon": "./icons/chat.mistral.ai.png",
-                    "desc": "欧洲开源 AI 对话助手"
+                    "desc": "Mistral AI 对话助手"
                 },
                 {
                     "name": "Perplexity",
@@ -866,7 +866,7 @@
                     "name": "16Personalities",
                     "url": "https://www.16personalities.com",
                     "icon": "./icons/16personalities.com.png",
-                    "desc": "MBTI 十六型人格测试"
+                    "desc": "十六型人格测试"
                 },
                 {
                     "name": "Neal.fun",

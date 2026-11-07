@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/** 生产产物切屏帧间隔评测；默认只访问本地，完整口径见 docs/TRANSITION_BENCHMARK.md。 */
+/** 生产产物切屏帧间隔评测；默认评测本地生产页面，页面自身仍可发起外部请求；完整口径见 docs/TRANSITION_BENCHMARK.md。 */
 import { writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';

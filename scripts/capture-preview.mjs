@@ -98,10 +98,10 @@ try {
   await navigateAndWait(send, evalJS, targetUrl,
     `window.__PREVIEW_READY__ && document.documentElement.lang === ${JSON.stringify(language)} && typeof switchToNav === 'function' && !!document.querySelector('.bookmark-item')`);
 
-  // 3. 充分等待壁纸完全就绪、所有入场动画彻底定格完成 (消除加载中途半透明)
+  // 3. 为壁纸加载及入场动画预留等待时间；固定延时不保证所有资源就绪
   await sleep(3000);
 
-  // 4. 确保时钟、天气文字与动画全部完全 settle
+  // 4. 固定时钟、天气文字，并将带 fade-in 的元素设为最终态
   await evalJS(`
     (() => {
       // 停止并清理任何处于播放中的入场动画，直接定格最终态
@@ -123,7 +123,7 @@ try {
   `);
   await sleep(600);
 
-  // 5. 截取首屏起始页（已完全稳定）
+  // 5. 截取首屏起始页（使用上述等待和固定数据）
   console.log('📸 截取首屏起始页 (' + startFilename + ')...');
   const startSnap = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
   await writeFile(join(OUTPUT_DIR, startFilename), Buffer.from(startSnap.data, 'base64'));

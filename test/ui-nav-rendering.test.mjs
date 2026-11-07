@@ -34,7 +34,7 @@ await test("图标空闲准备与延迟加载", async () => {
             deferred.length >= 70 && deferred.every(img=>!img.hasAttribute('src') &&
             (firstScreen.has(new URL(img.dataset.navSrc,location.href).href) || !resources.includes(new URL(img.dataset.navSrc,location.href).href)));
     })()`), true);
-        console.log('✅ 首批本地图标以低优先级空闲准备，其余 70 个图标仍保持延迟加载');
+        console.log('✅ 首批本地图标以低优先级空闲准备，其余图标仍保持延迟加载');
 
         assert.deepEqual(await evalJS(`(() => {
         const parent = dom.navCategories.querySelector('.category-block');

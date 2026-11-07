@@ -168,7 +168,7 @@ const navVisibleB =
   metricsB.editBookmarksBtn.computed.pointerEvents === 'none' && // gear disabled on nav
   metricsB.editBookmarksBtn.className.includes('hidden-on-nav');
 
-pass('场景 B [Desktop 1470x956 (MacBook Air)]: 切换至导航页 (分类侧边栏/导航Header/卡片流容器 100% 呈现，起始页安全隔离，齿轮禁用)',
+pass('场景 B [Desktop 1470x956 (MacBook Air)]: 切换至导航页 (分类侧栏、顶栏和内容区布局检查通过，起始页 inert，设置按钮禁用)',
   navVisibleB,
   JSON.stringify({
     navSectionY: metricsB.navSection.rect.y,
@@ -219,7 +219,7 @@ const startRestoredD =
   metricsD.editBookmarksBtn.exists && metricsD.editBookmarksBtn.rect.width > 30 && metricsD.editBookmarksBtn.computed.opacity > 0.5 &&
   metricsD.editBookmarksBtn.computed.visibility !== 'hidden';
 
-pass('场景 D [Desktop 1470x956 (MacBook Air)]: 从刷新后的导航页切回搜索页 (时钟/搜索框/快捷书签/天气/齿轮 100% 完整复原，零空白零残影)',
+pass('场景 D [Desktop 1470x956 (MacBook Air)]: 从刷新后的导航页切回搜索页 (时钟、搜索框、快捷书签、天气和设置按钮的尺寸及可见性检查通过)',
   startRestoredD,
   JSON.stringify({
     clock: `${metricsD.clock.rect.width}x${metricsD.clock.rect.height} @ (${metricsD.clock.rect.x}, ${metricsD.clock.rect.y}) opacity=${metricsD.clock.computed.opacity}`,

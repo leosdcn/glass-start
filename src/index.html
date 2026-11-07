@@ -7,7 +7,7 @@
     <script>
         // 防 iframe 点击劫持与恶意嵌套：若检测出页面处于 iframe 中，自动强行跳出；沙箱受限时安全隐藏页面
         if (window.top !== window.self) { try { window.top.location.replace(window.location.href); } catch { document.documentElement.style.display = 'none'; } }
-        // 标记 Chromium 环境，用于字体与排版专属微调
+        // 标记 Chromium 环境，用于两屏合成层与离屏毛玻璃策略
         if (window.chrome) document.documentElement.classList.add('is-chrome');
     </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -33,28 +33,23 @@
     <meta property="og:image" content="https://images.unsplash.com/photo-1477346611705-65d1883cee1e?q=80&w=1200&auto=format&fit=crop">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
-    <meta property="og:image:alt" content="Glass Start 极简玻璃拟态起始页预览" data-i18n-content="ui.preview.of.the.glass.start.browser">
+    <meta property="og:image:alt" content="Glass Start 默认山峦壁纸" data-i18n-content="ui.preview.of.the.glass.start.browser">
 
     <!-- Twitter Card 元数据 -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="Glass Start — 通透起始页" data-i18n-content="ui.glass.start.a.clear.start">
     <meta name="twitter:description" content="极简纯净的毛玻璃浏览器起始页。" data-i18n-content="ui.a.clean.minimal.glass.browser.start">
     <meta name="twitter:image" content="https://images.unsplash.com/photo-1477346611705-65d1883cee1e?q=80&w=1200&auto=format&fit=crop">
-    <meta name="twitter:image:alt" content="Glass Start 极简玻璃拟态起始页预览" data-i18n-content="ui.preview.of.the.glass.start.browser">
+    <meta name="twitter:image:alt" content="Glass Start 默认山峦壁纸" data-i18n-content="ui.preview.of.the.glass.start.browser">
 
-    <!-- Schema.org 结构化数据 (JSON-LD 动态自适应 Origin) -->
+    <!-- Schema.org 网站元数据（部署到其他地址时同步核对 canonical 与社交卡片 URL） -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
       "@type": "WebSite",
       "name": "Glass Start",
       "url": "https://goldcoast.dpdns.org/",
-      "description": "极简纯净的毛玻璃浏览器起始页。",
-      "potentialAction": {
-        "@type": "SearchAction",
-        "target": "https://goldcoast.dpdns.org/?q={search_term_string}",
-        "query-input": "required name=search_term_string"
-      }
+      "description": "极简纯净的毛玻璃浏览器起始页。"
     }
     </script>
 
@@ -393,7 +388,7 @@
                             <div id="urlBgBtnGroup" class="flex gap-2">
                                 <button id="uploadBgBtn" type="button" class="settings-action flex-1 min-w-0 h-9 px-2 text-xs glass-interactive flex items-center justify-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"><svg class="size-3.5 shrink-0 opacity-80" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M2.25 12.75V12A2.25 2.25 0 0 1 4.5 9.75h15A2.25 2.25 0 0 1 21.75 12v.75m-8.69-6.44-2.12-2.12a1.5 1.5 0 0 0-1.061-.44H4.5A2.25 2.25 0 0 0 2.25 6v12a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9a2.25 2.25 0 0 0-2.25-2.25h-5.379a1.5 1.5 0 0 1-1.06-.44Z"/></svg> <span data-i18n="ui.upload.image">本地图片</span></button>
                                 <button id="urlBgBtn" type="button" class="settings-action flex-1 min-w-0 h-9 px-2 text-xs glass-interactive flex items-center justify-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"><svg class="size-3.5 shrink-0 opacity-80" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244"/></svg> <span data-i18n="ui.image.url">网络直链</span></button>
-                                <input type="file" id="uploadBgInput" name="uploadBgInput" accept="image/*" class="hidden" aria-label="上传自定义壁纸" data-i18n-aria-label="ui.upload.custom.wallpaper">
+                                <input type="file" id="uploadBgInput" name="uploadBgInput" accept="image/*" class="hidden" aria-label="选择本地壁纸图片" data-i18n-aria-label="ui.upload.custom.wallpaper">
                             </div>
                             <div id="urlBgInputRow" class="appearance-url-row hidden flex items-center gap-1.5">
                                 <input type="text" id="urlBgInput" name="urlBgInput" inputmode="url" autocapitalize="off" autocomplete="off" spellcheck="false"
@@ -483,12 +478,12 @@
                             <svg class="size-3.5 shrink-0 opacity-80" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg> <span data-i18n="ui.export.bookmarks">导出快捷书签备份</span>
                         </button>
                         <!-- Dropzone 导入框 (flex-1 自适应拉伸填充) -->
-                        <div id="jsonDropzone" role="button" aria-label="点击或将 JSON 备份文件拖入此处上传" class="json-dropzone flex-1 border border-dashed border-white/18 hover:border-white/35 rounded-2xl p-4 text-center glass-interactive cursor-pointer bg-black/15 hover:bg-white/8 flex flex-col items-center justify-center gap-1.5 min-h-24 sm:min-h-28 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" tabindex="0" data-i18n-aria-label="ui.click.or.drop.a.json.backup">
+                        <div id="jsonDropzone" role="button" aria-label="点击选择或拖入 JSON 备份文件" class="json-dropzone flex-1 border border-dashed border-white/18 hover:border-white/35 rounded-2xl p-4 text-center glass-interactive cursor-pointer bg-black/15 hover:bg-white/8 flex flex-col items-center justify-center gap-1.5 min-h-24 sm:min-h-28 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" tabindex="0" data-i18n-aria-label="ui.click.or.drop.a.json.backup">
                             <span class="size-9 rounded-full bg-white/6 border border-white/10 flex items-center justify-center text-white/75 mb-0.5 shrink-0">
                                 <svg class="size-4.5 shrink-0" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5"/></svg>
                             </span>
                             <p class="text-xs text-white/85 font-medium"><span data-i18n="ui.click.or.drop.a.json.backup2">点击或将 JSON 备份文件拖入此处</span></p>
-                            <p class="text-2xs text-white/55"><span data-i18n="ui.import.quick.bookmarks.from.a.backup">自动解析恢复首屏快捷书签</span></p>
+                            <p class="text-2xs text-white/55"><span data-i18n="ui.import.quick.bookmarks.from.a.backup">确认后替换快捷书签草稿</span></p>
                         </div>
                         <input type="file" id="importJsonInput" name="importJsonInput" accept=".json,application/json" class="hidden" aria-label="导入书签配置文件" data-i18n-aria-label="ui.import.bookmark.file">
                     </div>
