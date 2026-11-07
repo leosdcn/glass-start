@@ -228,6 +228,34 @@ await test("最后一个分类对齐与滚动边界", async () => {
     }
 });
 
+await test("窄屏分类栏首尾按钮保留对称边距", async () => {
+    const { server, chrome, send, evalJS } = await launchSession();
+    try {
+        await send('Emulation.setDeviceMetricsOverride', {
+            width: 390, height: 844, deviceScaleFactor: 1, mobile: true
+        });
+        await send('Emulation.setTouchEmulationEnabled', { enabled: true });
+        await evalJS('switchToNav()');
+        await waitFor(evalJS, '!isScreenTransitioning()');
+        const leftInset = await evalJS(`dom.sidebarList.firstElementChild.getBoundingClientRect().left -
+            dom.sidebar.getBoundingClientRect().left`);
+        const mask = await evalJS('getComputedStyle(dom.sidebar).maskImage');
+        assert.notEqual(mask, 'none', '窄屏分类栏应保留固定渐隐');
+
+        await evalJS('dom.sidebarList.lastElementChild.click()');
+        await waitFor(evalJS, `Math.abs(dom.sidebar.scrollLeft - (dom.sidebar.scrollWidth - dom.sidebar.clientWidth)) < 1 &&
+            dom.sidebarList.lastElementChild.getAttribute('aria-selected') === 'true'`);
+        const rightInset = await evalJS(`dom.sidebar.getBoundingClientRect().right -
+            dom.sidebarList.lastElementChild.getBoundingClientRect().right`);
+        assert.equal(leftInset, 8, '首个分类的边框应避开渐隐区域');
+        assert.ok(Math.abs(rightInset - leftInset) < 1, '首尾分类在滚动端点应有相同留白');
+        assert.equal(await evalJS('getComputedStyle(dom.sidebar).maskImage'), mask, '渐隐遮罩应随滚动保持固定');
+    } finally {
+        await chrome.close();
+        await server.close();
+    }
+});
+
 await test("原生滚动与事件阻塞区域", async () => {
     /** 验证导航页原生滚轮滚动不进入常驻的主线程阻塞区域。 */
 

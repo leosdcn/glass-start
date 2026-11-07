@@ -369,6 +369,9 @@ html:not(.is-chrome) #navSection.nav-hidden .nav-surface {
 /* 窄屏侧边栏使用顶部水平滚动。 */
 @media (max-width: 639.98px) {
     #sidebar {
+        --sidebar-inset: 0.5rem;
+        --sidebar-mask: linear-gradient(to right, transparent, black var(--sidebar-inset),
+            black calc(100% - var(--sidebar-inset)), transparent);
         width: 100%;
         max-height: none;
         overflow-x: auto;
@@ -378,9 +381,13 @@ html:not(.is-chrome) #navSection.nav-hidden .nav-surface {
         flex-direction: row;
         flex-wrap: nowrap;
         gap: 0.25rem;
-        padding: 0.4rem 0.5rem;
-        -webkit-mask-image: linear-gradient(to right, transparent 0%, black 1rem, black calc(100% - 1rem), transparent 100%);
-        mask-image: linear-gradient(to right, transparent 0%, black 1rem, black calc(100% - 1rem), transparent 100%);
+        padding: 0.4rem var(--sidebar-inset);
+        -webkit-mask-image: var(--sidebar-mask);
+        mask-image: var(--sidebar-mask);
+    }
+    #sidebar > nav {
+        /* 让滚动容器的右内距也计入横向可滚动范围。 */
+        width: max-content;
     }
     #sidebarList {
         flex-direction: row;
