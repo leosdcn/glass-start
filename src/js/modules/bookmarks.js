@@ -242,6 +242,7 @@ function activateAllNavIcons() {
     }
     if (navAllIconsActivated) return;
     navAllIconsActivated = true;
+    dom.navCategories?.classList.remove('nav-initial-entry');
     const nav = dom.navSection;
     if (!nav) return;
     nav.querySelectorAll('img[data-nav-src]').forEach(node => {
@@ -380,7 +381,11 @@ export function renderNavCategories() {
 
     const navContent = dom.navContent;
     // 首次构建时目录为空，无需读取滚动布局；重绘已有目录才保留位置。
-    const savedScrollTop = navContent && navCategories.firstElementChild ? navContent.scrollTop : 0;
+    const hasCategories = Boolean(navCategories.firstElementChild);
+    const savedScrollTop = navContent && hasCategories ? navContent.scrollTop : 0;
+    if (!hasCategories && !navAllIconsActivated && isScreenTransitioning()) {
+        navCategories.classList.add('nav-initial-entry');
+    }
     const sortedCats = catalog.sorted;
 
     sidebarList.innerHTML = sortedCats.map((cat, i) => `

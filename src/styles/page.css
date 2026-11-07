@@ -715,6 +715,20 @@ input:focus-visible {
     html { font-size: clamp(16px, calc(16px + (100vw - 1550px) * 0.0055), 24px); }
 }
 
+/* 首次切入时延后离屏卡片内部布局，按图标高度或标题与简介的行高保留原网格尺寸。 */
+html.is-chrome .nav-initial-entry .nav-bookmark {
+    content-visibility: auto;
+    contain-intrinsic-block-size: 1.5rem;
+}
+html.is-chrome .nav-initial-entry .nav-bookmark:has(.bookmark-description) {
+    contain-intrinsic-block-size: 2rem;
+}
+@media (min-width: 768px) {
+    html.is-chrome .nav-initial-entry .nav-bookmark:has(.bookmark-description) {
+        contain-intrinsic-block-size: 2.15625rem;
+    }
+}
+
 /* 导航页书签网格自适应流式排版 */
 .nav-bookmark-grid {
     display: grid;

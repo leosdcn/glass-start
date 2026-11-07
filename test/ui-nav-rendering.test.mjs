@@ -104,15 +104,14 @@ await test("图标空闲准备与延迟加载", async () => {
         await send('Page.reload');
         await waitFor(evalJS, 'typeof switchToNav === "function" && window.__queuedIdle?.length >= 2');
         assert.deepEqual(await evalJS(`(() => {
-        // 目录渲染本身也在被扣住的空闲任务中；先建立本用例要测量的延迟图标。
-        renderNavCategories();
-        const pending = dom.navSection.querySelectorAll('img[data-nav-src]').length;
-        switchToNav();
-        const active = isScreenTransitioning();
-        for (const callback of __queuedIdle.splice(0)) callback({didTimeout:false,timeRemaining:()=>50});
-        return [pending > 100, state.currentSection, active,
-            dom.navSection.querySelectorAll('img[fetchpriority="low"]').length];
-    })()`), [true,'nav',true,0]);
+            const emptyBeforeEntry = dom.navCategories.firstElementChild === null;
+            switchToNav();
+            const active = isScreenTransitioning();
+            for (const callback of __queuedIdle.splice(0)) callback({didTimeout:false,timeRemaining:()=>50});
+            const card = dom.navCategories.querySelector('.nav-bookmark');
+            return [emptyBeforeEntry, state.currentSection, active, getComputedStyle(card).contentVisibility,
+                dom.navSection.querySelectorAll('img[fetchpriority="low"]').length];
+        })()`), [true,'nav',true,'auto',0]);
         await waitFor(evalJS, '!isScreenTransitioning() && __queuedIdle.length === 1');
         console.log('✅ 用户先切屏时立即进入，迟到的空闲回调不在动画中准备图标');
 
@@ -130,6 +129,7 @@ await test("图标空闲准备与延迟加载", async () => {
         await waitFor(evalJS, '!isScreenTransitioning() && __queuedIdle.length === 1');
         await evalJS('__queuedIdle.shift()({didTimeout:false,timeRemaining:()=>50})');
         assert.equal(await evalJS(deferredIcons), 0);
+        assert.equal(await evalJS(`getComputedStyle(dom.navCategories.querySelector('.nav-bookmark')).contentVisibility`), 'visible');
         console.log('✅ 退场期间保留离屏图标的延迟状态，下次切入后正常加载');
     } finally {
         await chrome.close();
