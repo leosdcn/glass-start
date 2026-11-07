@@ -51,7 +51,6 @@ export const CONFIG = Object.freeze({
                 TILT_MAX_ROTATION_DEG: 2.5,  // 指针交互最大倾角 (deg)
                 TILT_PERSPECTIVE_PX: 800,    // 3D 透视视距 (px)
                 TILT_HOVER_SCALE: 1.025,     // 悬停缩放比
-                TILT_PRESSED_SCALE: 0.975,   // 按压缩放比
                 DRAG_HYSTERESIS_HIGH: 0.58,  // 拖拽排序迟滞阻尼上限（相对行高比例）
                 DRAG_HYSTERESIS_LOW: 0.42,   // 拖拽排序迟滞阻尼下限（相对行高比例）
                 DICE_ROTATION_STEP: 180,     // 随机书签按钮旋转角度步长 (deg)

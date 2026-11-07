@@ -217,10 +217,10 @@ test('OverlayStack 多层弹窗嵌套压退栈、安全白名单与焦点归还'
     await press('Escape'); await waitFor(evalJS, `OverlayStack.isEmpty()`);
 
     // 6.5 重置确认弹窗
+    await evalJS(`openEditModal(); document.getElementById('tab-btn-data').click()`);
     await evalJS(`document.getElementById('resetEditBtn').click()`); await waitFor(evalJS, `OverlayStack.top()?.id === "confirmModal"`);
     assert.equal(await stackTop(), 'confirmModal');
-    await press('Escape'); await waitFor(evalJS, `OverlayStack.isEmpty()`);
-    assert.equal(await stackTop(), null);
+    await press('Escape'); await waitFor(evalJS, `OverlayStack.top()?.id === "editModal"`);
 
     // 6.6 jsonDropzone
     const dropzoneFired = await evalJS(`(() => {
@@ -231,6 +231,7 @@ test('OverlayStack 多层弹窗嵌套压退栈、安全白名单与焦点归还'
       return fired;
     })()`);
     assert.equal(dropzoneFired, true);
+    await press('Escape'); await waitFor(evalJS, `OverlayStack.isEmpty()`);
 
     // 6.7 遮罩透明度设置记忆
     await evalJS(`localStorage.setItem('maskOpacity', 50)`);

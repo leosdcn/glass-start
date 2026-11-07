@@ -33,13 +33,7 @@
 /* 弹窗仅加厚底色，保留共用环境色渐变；实色降级仍由下方 background 覆盖。 */
 :where(.edit-overlay) .glass-strong { --glass-strong-bg: var(--glass-modal-bg); }
 
-/* 语言弹窗选项：对称微缩触感与选中态 */
-.language-modal-item {
-    transition: background-color var(--duration-fast) var(--ease-spring), border-color var(--duration-fast) var(--ease-spring), box-shadow var(--duration-fast) var(--ease-spring), transform var(--duration-press) var(--ease-snappy);
-}
-.language-modal-item:active {
-    transform: scale(0.985);
-}
+/* 语言弹窗选项的选中态。 */
 .language-modal-item.selected {
     background-color: rgba(255, 255, 255, 0.12);
     border-color: rgba(255, 255, 255, 0.30);
@@ -159,10 +153,6 @@
         border-color: rgba(255, 255, 255, 0.25);
         color: #ffffff;
     }
-}
-
-.glass-btn-primary:active:not(:disabled) {
-    transform: scale(0.98);
 }
 
 .glass-btn-primary:disabled {
@@ -334,10 +324,6 @@
         border-color: rgba(255, 255, 255, 0.55);
     }
 }
-.preset-bg-card:active:not(:disabled) {
-    transform: scale(0.96);
-    transition: transform 0.08s var(--ease-snappy);
-}
 .preset-bg-card.active {
     color: #ffffff;
 }
@@ -419,7 +405,7 @@ body:not(.tab-blurred) .nav-bookmark:not(.is-clicked):active {
             will-change: transform, opacity;
         }
     }
-    body:not(.tab-blurred) .bookmark-item:not(.is-clicked):hover:not(:active) {
+    body:not(.tab-blurred) .bookmark-item:not(.is-clicked):hover {
         background: rgba(255, 255, 255, 0.08);
         transform: scale(1.025) translateZ(0);
         box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.15), 0 8px 20px rgba(0, 0, 0, 0.2);
@@ -429,6 +415,9 @@ body:not(.tab-blurred) .nav-bookmark:not(.is-clicked):active {
         border-color: rgba(255, 255, 255, 0.18);
         box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.2), 0 4px 12px rgba(0, 0, 0, 0.15);
         color: #fff;
+    }
+    body:not(.tab-blurred) .nav-bookmark:not(.is-clicked):hover:active {
+        background-color: rgba(255, 255, 255, 0.08);
     }
     body:not(.tab-blurred) .nav-bookmark:not(.is-clicked):hover:not(:active) .icon-box,
     body:not(.tab-blurred) .bookmark-item:not(.is-clicked):hover:not(:active) .icon-box { transform: scale(1.06) translateZ(0); }

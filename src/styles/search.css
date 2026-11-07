@@ -99,7 +99,6 @@
     }
 }
 #engineBtn:active {
-    transform: scale(0.96);
     background-color: rgba(255, 255, 255, 0.18);
 }
 
@@ -142,6 +141,8 @@
 @media (hover: hover) and (pointer: fine) {
     body:not(.tab-blurred) #randomBookmarkBtn:hover:not(:disabled) {
         transform: scale(1.06) rotate(12deg);
+    }
+    body:not(.tab-blurred) #randomBookmarkBtn:hover:not(:disabled):not(:active) {
         background-color: rgba(255, 255, 255, 0.15);
         color: rgba(255, 255, 255, 0.95);
     }
@@ -152,6 +153,8 @@
 @media (hover: hover) and (pointer: fine) {
     body:not(.tab-blurred) #searchClearBtn:hover:not(:disabled) {
         transform: scale(1.05);
+    }
+    body:not(.tab-blurred) #searchClearBtn:hover:not(:disabled):not(:active) {
         background-color: rgba(255, 255, 255, 0.15);
         color: rgba(255, 255, 255, 0.95);
     }

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { launchSession, waitFor } from './support/helpers.mjs';
 
-const { server, chrome, evalJS } = await launchSession();
+const { server, chrome, send, evalJS } = await launchSession();
 const inspect = () => evalJS(`(() => {
   const issues = [];
   for (const button of document.querySelectorAll('button')) {
@@ -74,6 +74,18 @@ try {
   console.log('✅ 2K、1K 与手机尺寸快速往返切换，快捷书签即时对齐搜索条且无布局延迟');
   await evalJS('openEditModal()');
   await waitFor(evalJS, 'document.getElementById("editModal").classList.contains("active")');
+  await waitFor(evalJS, 'dom.editModal.getAnimations({subtree:true}).length === 0');
+  const tabEdge = await evalJS(`(() => {
+    const { left, top, height } = document.querySelector('#tab-btn-appearance').getBoundingClientRect();
+    return { x: left + 2, y: top + height / 2 };
+  })()`);
+  await send('Input.dispatchMouseEvent', { type: 'mouseMoved', ...tabEdge });
+  await send('Input.dispatchMouseEvent', { type: 'mousePressed', button: 'left', clickCount: 1, ...tabEdge });
+  await evalJS(`Promise.all(document.querySelector('#tab-btn-appearance').getAnimations().map(animation => animation.finished))`);
+  await send('Input.dispatchMouseEvent', { type: 'mouseReleased', button: 'left', clickCount: 1, ...tabEdge });
+  assert.equal(await evalJS("document.querySelector('#tab-btn-appearance').getAttribute('aria-selected')"), 'true',
+    '点击设置页签边缘时，按压反馈不应移走点击区域');
+  await evalJS("document.querySelector('#tab-btn-bookmarks').click()");
   await evalJS('dom.addBookmarkBtn.click()');
   await verify('设置与新增书签行');
   await evalJS('openBookmarkPicker()');

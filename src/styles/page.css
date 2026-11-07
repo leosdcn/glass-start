@@ -472,43 +472,28 @@ textarea::placeholder {
 }
 
 /* ===== 按压缩放反馈 ===== */
-.bookmark-item:active,
-.nav-bookmark:active {
-    transform: scale(0.975) translateY(0) translateZ(0);
-    transition: transform var(--duration-press) var(--ease-snappy);
-}
 .bookmark-item:active .icon-box,
 .nav-bookmark:active .icon-box {
     transform: scale(0.975) translateZ(0);
     transition: transform var(--duration-press) var(--ease-snappy);
 }
-#editBookmarksBtn:active, #weatherBtn:active, #updateReloadBtn:active, #randomBookmarkBtn:active, #searchClearBtn:active {
-    transform: scale(0.94) translateZ(0);
-    background-color: rgba(255, 255, 255, 0.22);
-    transition: transform var(--duration-press) var(--ease-snappy), background-color var(--duration-press) ease;
-}
-.sidebar-item:active {
-    transform: scale(0.97);
-    transition: transform var(--duration-press) var(--ease-snappy);
-}
+#editBookmarksBtn:active, #weatherBtn:active, #updateReloadBtn:active,
+#randomBookmarkBtn:active, #searchClearBtn:active,
 #navHint:active {
-    transform: scale(0.96);
     background-color: rgba(255, 255, 255, 0.22);
-    transition: transform var(--duration-press) var(--ease-snappy), background-color var(--duration-press) ease;
 }
 .json-dropzone:active {
-    transform: scale(0.985);
     background-color: rgba(255, 255, 255, 0.12);
-    transition: transform var(--duration-press) var(--ease-snappy);
 }
 .suggestion-item:active {
-    transform: scale(0.985);
     background-color: rgba(255, 255, 255, 0.22);
-    transition: transform 0.06s var(--ease-snappy);
 }
-button:active {
-    transform: scale(0.96);
-    transition: transform var(--duration-press) var(--ease-snappy);
+/* 按压只缩放内容，按钮边缘在松手时仍可命中。 */
+@media (prefers-reduced-motion: no-preference) {
+    button:enabled:active > :is(span, svg, img),
+    a.settings-action:active > :is(span, svg) {
+        scale: 0.96;
+    }
 }
 
 /* 壁纸与遮罩全屏图层 */
@@ -683,13 +668,13 @@ button:active {
 }
 
 #weatherRefreshBtn {
-    transition: background-color 0.15s ease, transform 0.08s var(--ease-snappy);
+    transition: background-color 0.15s ease;
 }
 #weatherRefreshBtn:active {
-    transform: scale(0.92);
+    background-color: rgba(255, 255, 255, 0.22);
 }
 #weatherRefreshBtn svg {
-    transition: transform 0.25s ease-out;
+    transition: opacity 0.15s ease, transform 0.25s ease-out;
 }
 
 .category-block {

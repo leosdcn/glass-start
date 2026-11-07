@@ -302,7 +302,7 @@ function renderWeatherError() {
             <div class="flex items-center justify-center">${getWeatherIconHTML('📡', 'size-7')}</div>
             <div class="text-xs text-white/80 font-medium">${escapeHtml(t('ui.weather.unavailable'))}</div>
             <div class="text-2xs text-white/50 leading-relaxed">${escapeHtml(t('ui.check.your.connection.or.location.access'))}</div>
-            <button id="weatherErrorRetryBtn" type="button" class="mt-1 px-3.5 py-1.5 bg-white/10 hover:bg-white/20 border border-white/15 text-xs rounded-xl text-white transition flex items-center justify-center gap-1.5 mx-auto active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50">
+            <button id="weatherErrorRetryBtn" type="button" class="mt-1 px-3.5 py-1.5 bg-white/10 hover:bg-white/20 border border-white/15 text-xs rounded-xl text-white transition flex items-center justify-center gap-1.5 mx-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50">
                 ${getWeatherIconHTML('🔄', 'size-3.5')} ${escapeHtml(t('ui.reload'))}
             </button>
         </div>
@@ -435,8 +435,8 @@ export function renderWeatherPopover(data) {
                 <span class="text-xs text-white/50 shrink-0 flex items-center justify-center">${getWeatherIconHTML('📍', 'size-3.5')}</span>
                 <span class="text-xs font-semibold text-white/90 truncate" title="${escapeHtml(loc.fullName || loc.name || '')}">${escapeHtml(loc.fullName || loc.name || '')}</span>
             </div>
-            <button id="weatherRefreshBtn" type="button" class="size-7 apple-radius bg-white/5 hover:bg-white/15 text-white flex items-center justify-center glass-interactive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 shrink-0 disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none" title="${escapeHtml(t('ui.refresh.weather'))}" aria-label="${escapeHtml(t('ui.refresh.weather'))}">
-                <svg class="size-3.5 opacity-70 hover:opacity-100 transition-opacity" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>
+            <button id="weatherRefreshBtn" type="button" class="group size-7 apple-radius bg-white/5 hover:bg-white/15 text-white flex items-center justify-center glass-interactive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 shrink-0 disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none" title="${escapeHtml(t('ui.refresh.weather'))}" aria-label="${escapeHtml(t('ui.refresh.weather'))}">
+                <svg class="size-3.5 pointer-events-none opacity-70 group-hover:opacity-100" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>
             </button>
         </div>
 

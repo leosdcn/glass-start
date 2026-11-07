@@ -17,13 +17,11 @@ let pendingEvent = null;
 // -9999 标记尚未渲染，确保首次指针输入不被下方的位移死区过滤。
 let lastRenderedX = -9999;
 let lastRenderedY = -9999;
-let lastRenderedPressed = false;
 
 export function resetActiveCard() {
     pendingEvent = null;
     lastRenderedX = -9999;
     lastRenderedY = -9999;
-    lastRenderedPressed = false;
     if (rafId !== null) {
         cancelAnimationFrame(rafId);
         rafId = null;
@@ -70,19 +68,16 @@ export function initGlassSpotlightAndTilt() {
         const x = pendingEvent.clientX - rect.left;
         const y = pendingEvent.clientY - rect.top;
 
-        const isPressed = activeCard.matches(':active') || (pendingEvent.buttons === 1);
-
-        // 死区过滤：微小位移 (< 0.75px) 且按压状态无变化时，跳过无意义的 DOM 样式与 CSS 变量写入
+        // 死区过滤：微小位移 (< 0.75px) 不重复写入样式和 CSS 变量。
         const dx = x - lastRenderedX;
         const dy = y - lastRenderedY;
-        if (lastRenderedX !== -9999 && isPressed === lastRenderedPressed && (dx * dx + dy * dy < 0.5625)) {
+        if (lastRenderedX !== -9999 && (dx * dx + dy * dy < 0.5625)) {
             rafId = null;
             return;
         }
 
         lastRenderedX = x;
         lastRenderedY = y;
-        lastRenderedPressed = isPressed;
 
         const centerX = rect.width / 2;
         const centerY = rect.height / 2;
@@ -93,9 +88,7 @@ export function initGlassSpotlightAndTilt() {
         const rotateX = -((y - centerY) / centerY) * maxDeg;
         const rotateY = ((x - centerX) / centerX) * maxDeg;
 
-        const targetScale = isPressed ? CONFIG.PHYSICS.TILT_PRESSED_SCALE : CONFIG.PHYSICS.TILT_HOVER_SCALE;
-
-        activeCard.style.transform = `perspective(${CONFIG.PHYSICS.TILT_PERSPECTIVE_PX}px) rotateX(${rotateX.toFixed(2)}deg) rotateY(${rotateY.toFixed(2)}deg) scale(${targetScale})`;
+        activeCard.style.transform = `perspective(${CONFIG.PHYSICS.TILT_PERSPECTIVE_PX}px) rotateX(${rotateX.toFixed(2)}deg) rotateY(${rotateY.toFixed(2)}deg) scale(${CONFIG.PHYSICS.TILT_HOVER_SCALE})`;
         rafId = null;
     }
 
