@@ -224,19 +224,23 @@ export async function flushWallpaperSelection() {
 /** 
  * 设置内只预览，设置外即选即存；失败保留已提交壁纸。
  * @param {string | null} urlStr
+ * @param {boolean} [isDraft=state.editOpen] - 是否为弹窗草稿模式（仅预览不落盘）
  */
-export function previewDraftWallpaper(urlStr) {
-    if (state.editOpen && modalState.committing) return Promise.resolve(false);
+export function previewDraftWallpaper(urlStr, isDraft = state.editOpen) {
+    if (isDraft && modalState.committing) return Promise.resolve(false);
     if (pendingSelection?.id === wallpaperSelectionId && pendingSelection.url === urlStr) {
         return pendingSelection.promise;
     }
     const selectionId = beginWallpaperSelection();
-    return previewWallpaperSelection(urlStr, selectionId);
+    return executeWallpaperSelection(urlStr, selectionId, isDraft);
 }
 
-/** @param {string | null} urlStr @param {number} selectionId */
-function previewWallpaperSelection(urlStr, selectionId) {
-    const draft = state.editOpen;
+/**
+ * @param {string | null} urlStr
+ * @param {number} selectionId
+ * @param {boolean} isDraft
+ */
+function executeWallpaperSelection(urlStr, selectionId, isDraft) {
     modalState.draftWallpaper = urlStr;
     modalState.wallpaperSaveFailed = false;
     const selection = { url: urlStr, id: selectionId, promise: Promise.resolve(false) };
@@ -275,8 +279,8 @@ function previewWallpaperSelection(urlStr, selectionId) {
         updateWallpaperStatusUI(urlStr);
         updatePresetBgCardsUI(urlStr);
 
-        // 设置弹窗打开期间（草稿模式）：仅预览展示并触发切换动画，不即选即存，等待点击「完成」再落盘
-        if (draft) {
+        // 设置弹窗草稿模式：仅预览展示并触发切换动画，不即选即存，等待点击「完成」再落盘
+        if (isDraft) {
             return true;
         }
 
@@ -319,7 +323,8 @@ export async function switchBg() {
     await flushWallpaperSelection();
     const custom = await getEffectiveCustomWallpaper();
     if (selectionId !== wallpaperSelectionId) return false;
-    const saved = await previewDraftWallpaper(custom ? backgrounds[0] : backgrounds[(state.bg + 1) % backgrounds.length]);
+    const nextBg = custom ? backgrounds[0] : backgrounds[(state.bg + 1) % backgrounds.length];
+    const saved = await previewDraftWallpaper(nextBg, false);
     if (saved) preloadNextBg();
     return saved;
 }
@@ -472,6 +477,6 @@ export function uploadWallpaper(file) {
     latestSelectionPromise = prepared.then(url => {
         if (selectionId !== wallpaperSelectionId) return false;
         cancelPendingPreview = null;
-        return url ? previewWallpaperSelection(url, selectionId) : false;
+        return url ? executeWallpaperSelection(url, selectionId, state.editOpen) : false;
     });
 }

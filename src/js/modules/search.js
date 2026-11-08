@@ -419,6 +419,10 @@ function getBookmarkSuggestionHTML(bm, idx) {
     `;
 }
 
+/** 本地书签节点内存缓存：避免在网络联想两阶段重刷时重复创建节点引起图片闪烁，无需从 DOM 树反向搜刮。 */
+/** @type {Map<string, { key: string, node: HTMLElement }>} */
+const localBookmarkNodeCache = new Map();
+
 /**
  * 渲染搜索联想下拉面板
  * @param {import('../types').BookmarkSuggestion[]} [localList]
@@ -451,12 +455,6 @@ function renderSuggestions(localList = [], netList = [], preserveSelection = fal
         return;
     }
 
-    const existingBookmarkMap = new Map();
-    suggestionMenu.querySelectorAll(':scope > .suggestion-item[data-url]').forEach(el => {
-        const u = el.getAttribute('data-url');
-        if (u) existingBookmarkMap.set(u, /** @type {HTMLElement} */ (el));
-    });
-
     const range = document.createRange();
     const fragment = document.createDocumentFragment();
     let globalIdx = 0;
@@ -469,20 +467,26 @@ function renderSuggestions(localList = [], netList = [], preserveSelection = fal
         <div role="presentation" class="suggestion-section-header mx-3.5 px-0 ${isFirst ? 'pt-1.5' : 'pt-2'} pb-2 mb-1 text-2xs font-medium tracking-wider text-white/40 uppercase select-none">${title}</div>
     `;
 
-    // 本地书签分组：就地复用已挂载的 DOM 节点，避免网络联想两阶段重刷时图片销毁与重解码闪烁
+    // 本地书签分组：从内存缓存复用已挂载的节点，避免网络联想返回时重新生成引起图片解码闪烁
     if (localList.length > 0) {
         fragment.appendChild(range.createContextualFragment(renderSectionHeader(t('ui.bookmark'), true)));
         localList.forEach(bm => {
-            const existing = existingBookmarkMap.get(bm.url);
-            if (existing && existing.getAttribute('data-bookmark-key') === bookmarkSuggestionKey(bm)) {
-                existing.id = `sug-opt-${globalIdx}`;
-                existing.setAttribute('data-idx', String(globalIdx));
-                existing.setAttribute('aria-selected', 'false');
-                existing.classList.remove('active');
-                fragment.appendChild(existing);
+            const cacheKey = bm.url;
+            const contentKey = bookmarkSuggestionKey(bm);
+            const cached = localBookmarkNodeCache.get(cacheKey);
+            let node;
+            if (cached && cached.key === contentKey) {
+                node = cached.node;
+                node.id = `sug-opt-${globalIdx}`;
+                node.setAttribute('data-idx', String(globalIdx));
+                node.setAttribute('aria-selected', 'false');
+                node.classList.remove('active');
             } else {
-                fragment.appendChild(range.createContextualFragment(getBookmarkSuggestionHTML(bm, globalIdx)));
+                const nodeFrag = range.createContextualFragment(getBookmarkSuggestionHTML(bm, globalIdx));
+                node = /** @type {HTMLElement} */ (nodeFrag.firstElementChild);
+                localBookmarkNodeCache.set(cacheKey, { key: contentKey, node });
             }
+            fragment.appendChild(node);
             globalIdx++;
         });
     }
@@ -544,6 +548,7 @@ export function hideSuggestions() {
     selectionUpdatesInput = false;
     lastSuggestionsSignature = '';
     suggestionQueryKey = null;
+    localBookmarkNodeCache.clear();
     if (suggestDebounceTimer !== null) {
         clearTimeout(suggestDebounceTimer);
         suggestDebounceTimer = null;

@@ -15,7 +15,6 @@ let wheelConsumed = false;
 let navWasAtTop = true;
 let navTopArrivalTime = -Infinity;
 let navCoastingToTop = false;
-let lastWheelDelta = 0;
 /** @type {{ id: number, x: number, y: number, time: number, canReturn: boolean }|null} */
 let touch = null;
 let navTouchMoveBlocked = false;
@@ -45,7 +44,6 @@ export function resetScreenInput() {
     navWasAtTop = isNavAtTop();
     navTopArrivalTime = -Infinity;
     navCoastingToTop = false;
-    lastWheelDelta = 0;
     clearTouchGesture();
     syncNavTouchMove();
 }
@@ -80,7 +78,6 @@ function recordNavScroll(e) {
     if (atTop && !navWasAtTop) {
         navTopArrivalTime = e.timeStamp;
         navCoastingToTop = true;
-        lastWheelDelta = 0;
     }
     navWasAtTop = atTop;
 }
@@ -99,7 +96,6 @@ function handleWheel(e) {
         wheelConsumed = false;
         wheelWindowStart = now;
         navCoastingToTop = false;
-        lastWheelDelta = 0;
     }
     wheelTime = now;
     wheelDirection = direction;
@@ -118,29 +114,15 @@ function handleWheel(e) {
         if (!isNavAtTop() || !navWasAtTop) {
             wheelDistance = 0;
             wheelWindowStart = now;
-            lastWheelDelta = delta;
             return;
         }
         if (navCoastingToTop) {
-            // 惯性衰减阶段：只要位移持续衰减，就属于滚到顶的同轮余量，不触发切屏；
-            // 出现明显加速（新的物理划动）或静默超时后才视为新一轮切屏手势。
-            const mag = Math.abs(delta);
-            const lastMag = Math.abs(lastWheelDelta);
-            const isNewFlick = (e.timeStamp - navTopArrivalTime > 60)
-                && (mag >= lastMag + 8 && mag >= 12);
-            if (isNewFlick) {
-                navCoastingToTop = false;
-                wheelDistance = 0;
-                wheelWindowStart = now;
-            } else {
-                lastWheelDelta = delta;
-                wheelDistance = 0;
-                wheelWindowStart = now;
-                return;
-            }
+            // 惯性余量吸收：滚到顶的同轮余量不触发切屏；静默超时或换向后开启新一轮手势
+            wheelDistance = 0;
+            wheelWindowStart = now;
+            return;
         }
     }
-    lastWheelDelta = delta;
     if (now - wheelWindowStart >= CONFIG.GESTURE.WHEEL_IDLE_MS) {
         wheelDistance = 0;
         wheelWindowStart = now;

@@ -239,9 +239,22 @@ export function handleModalTabKey(e) {
     if (!top || !MODAL_OVERLAY_IDS.has(top.id)) return false;
     const modalEl = document.getElementById(top.id);
     if (!modalEl) return false;
+
+    // 原生 <dialog.showModal()> 在现代浏览器中自带顶层焦点陷阱。
+    // 只要焦点在弹窗内，直接交由浏览器原生调度，彻底避免逐个测量 offsetWidth/offsetHeight 引发强制重排。
+    if (modalEl instanceof HTMLDialogElement && modalEl.open) {
+        if (!modalEl.contains(document.activeElement)) {
+            OverlayStack.focusTop();
+            e.preventDefault();
+        }
+        return true;
+    }
+
     const focusables = Array.from(modalEl.querySelectorAll('button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])')).filter(el => {
         const hEl = /** @type {HTMLElement} */ (el);
-        return hEl.tabIndex >= 0 && (hEl.offsetWidth > 0 || hEl.offsetHeight > 0 || hEl === document.activeElement);
+        if (hEl.tabIndex < 0) return false;
+        if (typeof hEl.checkVisibility === 'function') return hEl.checkVisibility();
+        return hEl.offsetWidth > 0 || hEl.offsetHeight > 0 || hEl === document.activeElement;
     });
     if (focusables.length === 0) return true;
     const first = /** @type {HTMLElement} */ (focusables[0]);

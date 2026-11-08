@@ -73,6 +73,35 @@ export function getDerivedBookmarks(keys, categories, customMeta = {}) {
     });
 }
 
+/**
+ * 判定书签字段是否有用户自定义覆盖；未修改项保持继承目录，避免将目录默认值固化为自定义。
+ * @param {import('../types').BookmarkItem} bm
+ * @param {import('../types').BookmarkItem | undefined} catBm
+ * @param {import('../types').CustomMetaItem | undefined} previous
+ * @param {boolean} isForceCustom
+ * @returns {import('../types').CustomMetaItem | null}
+ */
+function resolveBookmarkOverride(bm, catBm, previous, isForceCustom) {
+    if (isForceCustom || !catBm) {
+        return {
+            name: bm.name,
+            icon: bm.icon,
+            ...(bm.desc !== undefined ? { desc: bm.desc } : {})
+        };
+    }
+    const nameCustom = previous?.name !== undefined || bm.name !== catBm.name;
+    const iconCustom = bm.icon !== (catBm.icon || faviconFromUrl(catBm.url));
+    const descCustom = bm.desc !== undefined && (previous?.desc !== undefined || bm.desc !== (catBm.desc || ''));
+    if (!nameCustom && !iconCustom && !descCustom) return null;
+
+    /** @type {import('../types').CustomMetaItem} */
+    const meta = {};
+    if (nameCustom) meta.name = bm.name;
+    if (iconCustom) meta.icon = bm.icon;
+    if (descCustom) meta.desc = bm.desc;
+    return meta;
+}
+
 /** @param {import('../types').BookmarkItem[]} list @param {Set<string>} [customTextUrls] @returns {boolean} */
 export function saveUserBookmarks(list, customTextUrls = new Set()) {
     /** @type {string[]} */
@@ -89,13 +118,10 @@ export function saveUserBookmarks(list, customTextUrls = new Set()) {
         newKeysSet.add(normUrl);
         const catBm = catMetaMap.get(normUrl);
         const previous = customMeta[normUrl];
-        const isCustomized = customTextUrls.has(normUrl) || !catBm || previous?.name !== undefined || previous?.desc !== undefined || (bm.name && bm.name !== catBm.name) || (bm.icon && bm.icon !== (catBm.icon || faviconFromUrl(catBm.url))) || (bm.desc !== undefined && bm.desc !== (catBm.desc || ''));
-        if (isCustomized) {
-            customMeta[normUrl] = {
-                ...((customTextUrls.has(normUrl) || !catBm || previous?.name !== undefined || bm.name !== catBm.name) ? { name: bm.name } : {}),
-                ...(bm.icon !== catBm?.icon ? { icon: bm.icon } : {}),
-                ...((bm.desc !== undefined && (customTextUrls.has(normUrl) || !catBm || previous?.desc !== undefined || bm.desc !== (catBm.desc || ''))) ? { desc: bm.desc } : {})
-            };
+        const isForceCustom = customTextUrls.has(normUrl);
+        const override = resolveBookmarkOverride(bm, catBm, previous, isForceCustom);
+        if (override) {
+            customMeta[normUrl] = override;
         } else {
             delete customMeta[normUrl];
         }
@@ -192,26 +218,38 @@ let lastNavCatalog;
 let navIconsActivated = false;
 let navAllIconsActivated = false;
 
-/** 首屏空闲时仅准备前 5 个分类的本地图标，让加载和淡入尽量在首次切屏前完成。 */
+/**
+ * 激活单个待加载的导航图标
+ * @param {HTMLImageElement} img
+ * @param {{ fetchPriority?: 'low' | 'auto' | 'high', loading?: 'eager' | 'lazy', checkReady?: boolean }} [options]
+ */
+function activateNavImage(img, options = {}) {
+    const source = img.dataset.navSrc || '';
+    if (!source) return;
+    if (options.fetchPriority) img.fetchPriority = options.fetchPriority;
+    if (options.loading) img.loading = options.loading;
+    img.src = source;
+    delete img.dataset.navSrc;
+    if (options.checkReady) checkImageReady(img);
+}
+
+/** 首屏空闲时仅准备前序分类的本地图标，让加载和淡入尽量在首次切屏前完成。 */
 export function preloadVisibleNavIcons() {
     if (navIconsActivated || state.currentSection !== 'start' || document.hidden) return;
     const nav = dom.navSection;
     if (!nav) return;
-    nav.querySelectorAll('.category-block:nth-child(-n+5) img[data-nav-src]').forEach(node => {
+    const selector = `.category-block:nth-child(-n+${CONFIG.NAV.INITIAL_VISIBLE_CATEGORIES}) img[data-nav-src]`;
+    nav.querySelectorAll(selector).forEach(node => {
         const img = /** @type {HTMLImageElement} */ (node);
         const source = img.dataset.navSrc || '';
         // 自定义远程图标和其余分类仍等进入导航后按需加载。
         if (!source.startsWith('./icons/')) return;
-        img.fetchPriority = 'low';
-        img.loading = 'eager';
-        img.src = source;
-        delete img.dataset.navSrc;
-        checkImageReady(img);
+        activateNavImage(img, { fetchPriority: 'low', loading: 'eager', checkReady: true });
     });
 }
 
 /**
- * 动效期按需激活前 5 个分类图标，
+ * 动效期按需激活前序分类图标，
  * 避免在切屏 Transform 动效首帧同时加载和解码全部导航图标。
  */
 export function activateVisibleNavIcons() {
@@ -219,10 +257,9 @@ export function activateVisibleNavIcons() {
     navIconsActivated = true;
     const nav = dom.navSection;
     if (!nav) return;
-    nav.querySelectorAll('.category-block:nth-child(-n+5) img[data-nav-src]').forEach(node => {
-        const img = /** @type {HTMLImageElement} */ (node);
-        img.src = img.dataset.navSrc || '';
-        delete img.dataset.navSrc;
+    const selector = `.category-block:nth-child(-n+${CONFIG.NAV.INITIAL_VISIBLE_CATEGORIES}) img[data-nav-src]`;
+    nav.querySelectorAll(selector).forEach(node => {
+        activateNavImage(/** @type {HTMLImageElement} */ (node));
     });
 }
 
@@ -248,9 +285,7 @@ function activateAllNavIcons() {
     const nav = dom.navSection;
     if (!nav) return;
     nav.querySelectorAll('img[data-nav-src]').forEach(node => {
-        const img = /** @type {HTMLImageElement} */ (node);
-        img.src = img.dataset.navSrc || '';
-        delete img.dataset.navSrc;
+        activateNavImage(/** @type {HTMLImageElement} */ (node));
     });
 }
 
