@@ -4,15 +4,17 @@ import { dom } from '../state/dom.js';
 import { setWallpaperTheme, updateGlassTint, sampleCustomWallpaperTheme } from './theme-engine.js';
 import { afterScreenTransition, isScreenTransitioning } from './screen-state.js';
 
-/** @type {{ url: string, styleUrl: string, base: HTMLElement, next: HTMLElement, animate: boolean, image: HTMLImageElement | null } | null} */
+/** @type {{ url: string, base: HTMLElement, next: HTMLElement, animate: boolean, image: HTMLImageElement | null } | null} */
 let activeWallpaperRequest = null;
 /** 只保留最近一张成功解码的图片，避免积累大图内存。 */
 /** @type {{ url: string, image: HTMLImageElement, themeSamplePending: boolean } | null} */
 let decodedWallpaper = null;
-/** @type {ReturnType<typeof setTimeout>|null} */
-let bgSwitchTimer = null;
-// 图片请求可以更换或失败，已开始的淡入仍须独立完成收尾。
-let wallpaperTransitionId = 0;
+/** @type {string | null} */
+let baseWallpaperUrl = null;
+// 图片请求可以更换或失败，正在进行的淡入独立收尾。
+/** @typedef {{ url: string, styleUrl: string, timer?: ReturnType<typeof setTimeout> }} WallpaperFade */
+/** @type {WallpaperFade | null} */
+let wallpaperFade = null;
 
 /** 预览复用渲染器最近一次成功准备的图片，不额外保留大图缓存。 @param {string} url */
 export function getPreparedWallpaperImage(url) {
@@ -73,67 +75,68 @@ export function applyWallpaper(urlStr, animate = true, preparedImage = null) {
         previous.animate = animate;
         // 同一加载／解码只保留一个任务；后一次调用可更新其入场方式。
         if (!previous.image && !preparedImage) return;
-        const crossfading = bgNext.classList.contains('is-crossfading');
-        const showing = (crossfading ? bgNext : bgBase).style.backgroundImage === previous.styleUrl;
-        if (previous.image && showing && (animate || !crossfading)) {
+        if (previous.image && (wallpaperFade ? animate && wallpaperFade.url === urlStr : baseWallpaperUrl === urlStr)) {
             // 相同图片仍须响应遮罩和视口变化，但不重解码或重播淡入。
             if (presetIdx < 0) updateCustomWallpaperTheme(animate);
             return;
         }
     }
-    const request = { url: urlStr, styleUrl: newStyleUrl, base: bgBase, next: bgNext, animate, image: /** @type {HTMLImageElement | null} */ (null) };
+    const request = { url: urlStr, base: bgBase, next: bgNext, animate, image: /** @type {HTMLImageElement | null} */ (null) };
     activeWallpaperRequest = request;
     const cachedImage = preparedImage || getPreparedWallpaperImage(urlStr);
     const img = cachedImage || new Image();
+
+    /** @param {string} url @param {string} styleUrl */
+    const showBase = (url, styleUrl) => {
+        baseWallpaperUrl = url;
+        bgBase.style.backgroundImage = styleUrl;
+        bgBase.style.opacity = '1';
+    };
+    const resetNextLayer = () => {
+        bgNext.classList.remove('is-crossfading');
+        bgNext.style.transition = 'none';
+        bgNext.style.opacity = '0';
+        bgNext.style.backgroundImage = '';
+    };
 
     const executeTransition = () => {
         img.onload = null;
         img.onerror = null;
         if (activeWallpaperRequest !== request) return;
-        const transitionId = ++wallpaperTransitionId;
         request.image = img;
         decodedWallpaper = { url: urlStr, image: img, themeSamplePending: false };
-        if (bgSwitchTimer) {
-            clearTimeout(bgSwitchTimer);
-            bgSwitchTimer = null;
-            bgNext.classList.remove('is-crossfading');
+        if (wallpaperFade) {
+            clearTimeout(wallpaperFade.timer);
+            if (request.animate) showBase(wallpaperFade.url, wallpaperFade.styleUrl);
+            wallpaperFade = null;
         }
 
         if (presetIdx < 0) updateCustomWallpaperTheme(request.animate);
 
-        if (request.animate) {
-            if (bgNext.style.backgroundImage) {
-                bgBase.style.backgroundImage = bgNext.style.backgroundImage;
-                bgBase.style.opacity = '1';
-            }
-            bgNext.style.transition = 'none';
-            bgNext.style.opacity = '0';
-            bgNext.style.backgroundImage = newStyleUrl;
-            request.styleUrl = bgNext.style.backgroundImage;
-            bgNext.classList.add('is-crossfading');
-
-            requestAnimationFrame(() => {
-                if (wallpaperTransitionId !== transitionId) return;
-                bgNext.style.transition = `opacity ${CONFIG.TIMERS.BG_CROSSFADE / 1000}s var(--ease-exit)`;
-                bgNext.style.opacity = '1';
-                bgSwitchTimer = setTimeout(() => {
-                    if (wallpaperTransitionId !== transitionId) return;
-                    bgSwitchTimer = null;
-                    bgBase.style.backgroundImage = newStyleUrl;
-                    bgBase.style.opacity = '1';
-                    bgNext.style.transition = 'none';
-                    bgNext.style.opacity = '0';
-                    bgNext.classList.remove('is-crossfading');
-                }, CONFIG.TIMERS.BG_CROSSFADE);
-            });
-        } else {
-            bgNext.classList.remove('is-crossfading');
-            bgNext.style.transition = 'none';
-            bgNext.style.opacity = '0';
-            bgBase.style.backgroundImage = newStyleUrl;
-            request.styleUrl = bgBase.style.backgroundImage;
-            bgBase.style.opacity = '1';
+        if (!request.animate) {
+            showBase(urlStr, newStyleUrl);
+            resetNextLayer();
+            return;
         }
+
+        /** @type {WallpaperFade} */
+        const fade = { url: urlStr, styleUrl: newStyleUrl };
+        wallpaperFade = fade;
+        bgNext.style.transition = 'none';
+        bgNext.style.opacity = '0';
+        bgNext.style.backgroundImage = fade.styleUrl;
+        bgNext.classList.add('is-crossfading');
+        requestAnimationFrame(() => {
+            if (wallpaperFade !== fade) return;
+            bgNext.style.transition = `opacity ${CONFIG.TIMERS.BG_CROSSFADE / 1000}s var(--ease-exit)`;
+            bgNext.style.opacity = '1';
+            fade.timer = setTimeout(() => {
+                if (wallpaperFade !== fade) return;
+                wallpaperFade = null;
+                showBase(fade.url, fade.styleUrl);
+                resetNextLayer();
+            }, CONFIG.TIMERS.BG_CROSSFADE);
+        });
     };
 
     const fail = () => {

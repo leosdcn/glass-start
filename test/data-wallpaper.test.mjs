@@ -294,6 +294,18 @@ test('壁纸共享加载、图片复用与失败重试', async () => {
     await evalJS('reusePending.get(reuseUrl("retry")).resolve()');
     await waitFor(evalJS, 'dom.bgLayer.style.backgroundImage.includes("?retry")');
 
+    const fadeStart = await evalJS(`(async () => {
+      const prepare = async url => {
+        const image = new Image(); image.src = url; await image.decode(); return image;
+      };
+      const [base, next] = await Promise.all(backgrounds.slice(0, 2).map(prepare));
+      applyWallpaper(backgrounds[0], false, base);
+      applyWallpaper(backgrounds[1], true, next);
+      return { base: dom.bgLayer.style.backgroundImage, opacity: dom.bgLayerNext.style.opacity };
+    })()`);
+    assert.match(fadeStart.base, /bg1\.avif/);
+    assert.equal(fadeStart.opacity, '0');
+
     assert.equal(await evalJS(`(async () => {
       await commitWallpaperSelection(backgrounds[2]);
       const get = IDBObjectStore.prototype.get;
