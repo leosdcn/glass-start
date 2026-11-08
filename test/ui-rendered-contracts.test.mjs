@@ -10,8 +10,8 @@ const inspect = () => evalJS(`(() => {
   for (const dialog of document.querySelectorAll('[aria-modal="true"]')) {
     if (dialog.style.display) issues.push('modal-display:' + dialog.id);
     const opened = OverlayStack.stack.some(entry => entry.id === dialog.id);
-    if (opened && (dialog.hidden || getComputedStyle(dialog).display === 'none')) issues.push('modal-invisible:' + dialog.id);
-    if (!opened && dialog.classList.contains('active')) issues.push('modal-without-stack:' + dialog.id);
+    if (opened && (!dialog.open || getComputedStyle(dialog).display === 'none')) issues.push('modal-invisible:' + dialog.id);
+    if (!opened && dialog.open) issues.push('modal-without-stack:' + dialog.id);
   }
   return issues;
 })()`);
@@ -82,7 +82,7 @@ try {
   console.log('✅ 2K、1K 与手机尺寸快速往返切换，快捷书签即时对齐搜索条');
   await waitFor(evalJS, "!dom.editBookmarksBtn.classList.contains('fade-in')");
   await pressButtonEdge('editBookmarksBtn', '0.94');
-  await waitFor(evalJS, 'document.getElementById("editModal").classList.contains("active")');
+  await waitFor(evalJS, 'document.getElementById("editModal").open');
   await waitFor(evalJS, 'dom.editModal.getAnimations({subtree:true}).length === 0');
   await pressButtonEdge('tab-btn-appearance', '0.96');
   assert.equal(await evalJS("document.querySelector('#tab-btn-appearance').getAttribute('aria-selected')"), 'true',
@@ -93,16 +93,16 @@ try {
   assert.equal(await evalJS('dom.editList.childElementCount'), rowCount + 1);
   await verify('设置与新增书签行');
   await evalJS('openBookmarkPicker()');
-  await waitFor(evalJS, 'document.getElementById("bookmarkPicker").classList.contains("active")');
+  await waitFor(evalJS, 'document.getElementById("bookmarkPicker").open');
   await verify('目录挑选器');
   await evalJS("showConfirm('检查', null, '检查')");
-  await waitFor(evalJS, 'dom.confirmModal.classList.contains("active")');
+  await waitFor(evalJS, 'dom.confirmModal.open');
   await verify('嵌套确认框');
   await evalJS('dom.confirmCancelBtn.click(); dom.donePickerBtn.click(); closeEditModal(); openCreditsModal()');
-  await waitFor(evalJS, 'dom.creditsModal.classList.contains("active")');
+  await waitFor(evalJS, 'dom.creditsModal.open');
   await verify('鸣谢内容');
   await evalJS('closeCreditsModal(); openShortcutModal()');
-  await waitFor(evalJS, 'dom.shortcutModal.classList.contains("active")');
+  await waitFor(evalJS, 'dom.shortcutModal.open');
   await evalJS("renderWeatherPopover({current:{temp:20,humidity:50,windSpeed:1},location:{name:'测试'},daily:[]})");
   await verify('快捷键与天气内容');
 
@@ -112,6 +112,7 @@ try {
     const dialog = dom.shortcutModal;
     dialog.style.display = 'none';
   })()`);
+  await waitFor(evalJS, 'getComputedStyle(dom.shortcutModal).display === "none"');
   const issues = await inspect();
   assert.ok(issues.includes('button-type:contract-probe'));
   assert.ok(issues.includes('modal-display:shortcutModal'));
@@ -122,7 +123,7 @@ try {
 
   // 外观页不能靠压缩网格行高塞进弹窗；窄屏改由内容区滚动，底部操作仍固定。
   await evalJS('openEditModal()');
-  await waitFor(evalJS, 'document.getElementById("editModal").classList.contains("active")');
+  await waitFor(evalJS, 'document.getElementById("editModal").open');
   await evalJS('Promise.all(document.getElementById("editModal").getAnimations({subtree:true}).map(a=>a.finished.catch(()=>{})))');
   for (const [width, height] of [[1920,1080], [1000,800], [768,800], [640,800], [390,844], [320,740]]) {
     await chrome.send('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor:2, mobile:false });

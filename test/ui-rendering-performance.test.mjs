@@ -98,7 +98,7 @@ test('导航悬停与拖拽渲染', async t => {
         await evalJS('switchToStart()');
         await waitFor(evalJS, '!isScreenTransitioning()');
         await evalJS('openEditModal()');
-        await waitFor(evalJS, 'document.getElementById("editModal").classList.contains("active")');
+        await waitFor(evalJS, 'document.getElementById("editModal").open');
         await evalJS(`(() => {
             window.renderDragTarget=dom.editList.querySelectorAll('.edit-row-card')[2];
             window.renderDragRect=renderDragTarget.getBoundingClientRect();

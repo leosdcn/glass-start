@@ -7,7 +7,7 @@ import { CONFIG } from './config/constants.js';
 
 import { state } from './state/store.js';
 import { dom } from './state/dom.js';
-import { OverlayStack, handleModalTabKey } from './core/overlay-stack.js';
+import { OverlayStack } from './core/overlay-stack.js';
 import { switchToStart, switchToNav, isScreenTransitioning, reconcileScreenState } from './core/screen-state.js';
 import { hideSuggestions, closeDropdown, toggleDropdown } from './modules/search.js';
 import { restoreSearchQuery, handleSearchKeydown } from './modules/search-events.js';
@@ -109,7 +109,6 @@ export function bindEvents() {
         const link = /** @type {HTMLElement|null} */ (targetEl?.closest('a[target="_blank"], .bookmark-item, .nav-bookmark'));
         if (link) {
             resetActiveCard();
-            link.blur();
             blurNonEditableActive();
             const isBackgroundOpen = e.metaKey || e.ctrlKey || e.button === 1;
             if (!isBackgroundOpen) {
@@ -153,7 +152,6 @@ export function bindEvents() {
             if (e.key === 'Escape' && OverlayStack.topModal()) e.preventDefault();
             return;
         }
-        if (handleModalTabKey(e)) return;
 
         if (e.key === 'Escape') {
             const topOverlay = OverlayStack.top();

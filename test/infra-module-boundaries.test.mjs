@@ -99,12 +99,12 @@ try {
   const production = await evalJS(`({private:['__GLASS_DIAG__','state','modalState','pageData','CONFIG','dom','collectEditData','bindEditEvents','isFetchingWeather','showConfirm'].every(key => !(key in window)), clock:!!document.getElementById('clock').textContent.trim()})`);
   assert.equal(production.private && production.clock, true, JSON.stringify(production));
   await evalJS("document.getElementById('editBookmarksBtn').click()");
-  await waitFor(evalJS, "document.getElementById('editModal').classList.contains('active') && document.getElementById('editModal').contains(document.activeElement)");
+  await waitFor(evalJS, "document.getElementById('editModal').open && document.getElementById('editModal').contains(document.activeElement)");
   await evalJS("document.getElementById('addBookmarkBtn').click()");
   assert.equal(await evalJS("document.querySelector('#editList .edit-row-card:last-child .edit-name') === document.activeElement"), true);
   await chrome.send('Input.dispatchKeyEvent', {type:'keyDown',key:'Escape',code:'Escape',windowsVirtualKeyCode:27});
   await chrome.send('Input.dispatchKeyEvent', {type:'keyUp',key:'Escape',code:'Escape',windowsVirtualKeyCode:27});
-  await waitFor(evalJS, "!document.getElementById('editModal').classList.contains('active') && !document.getElementById('startSection').inert");
+  await waitFor(evalJS, "!document.getElementById('editModal').open && !document.getElementById('startSection').inert");
   await evalJS("document.getElementById('engineBtn').click()");
   await waitFor(evalJS, "document.getElementById('dropdownMenu').classList.contains('active')");
   assert.deepEqual(exceptions, []);

@@ -126,7 +126,7 @@ test('双屏手势与键盘切屏交互套件', async () => {
     await waitFor(evalJS, '!isScreenTransitioning() && state.currentSection === "start"');
     assert.equal(await section(), 'start', '弹窗输入框内 ArrowDown 不触发切屏');
     await evalJS('document.getElementById("cancelEditBtn").click()');
-    await waitFor(evalJS, 'document.getElementById("editModal").hasAttribute("hidden") && OverlayStack.isEmpty()');
+    await waitFor(evalJS, '!document.getElementById("editModal").open && OverlayStack.isEmpty()');
 
     await evalJS('window.switchToNav()'); await waitForScreen('nav');
     await evalJS('document.getElementById("navContent").scrollTop = 0');

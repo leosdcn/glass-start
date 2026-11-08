@@ -325,7 +325,7 @@ test('OverlayStack 多层弹窗嵌套压退栈、安全白名单与焦点归还'
     // 同一次设置会话验证背景输入隔离、导入入口和重置确认。
     assert.equal(await evalJS("dom.editBookmarksBtn.getAttribute('aria-expanded')"), 'false');
     await evalJS('dom.editBookmarksBtn.focus(); dom.editBookmarksBtn.click()');
-    await waitFor(evalJS, 'dom.editModal.classList.contains("active")');
+    await waitFor(evalJS, 'dom.editModal.open');
     assert.equal(await evalJS("dom.editBookmarksBtn.getAttribute('aria-expanded')"), 'true');
     await evalJS(`window.dispatchEvent(new WheelEvent('wheel', { deltaY: 120, bubbles: true, cancelable: true }))`);
     await press('PageDown');
@@ -344,7 +344,7 @@ test('OverlayStack 多层弹窗嵌套压退栈、安全白名单与焦点归还'
     const resetExpanded = () => evalJS("dom.resetEditBtn.getAttribute('aria-expanded')");
     assert.equal(await resetExpanded(), 'false');
     await evalJS('dom.resetEditBtn.focus(); dom.resetEditBtn.click()');
-    await waitFor(evalJS, 'dom.confirmModal.classList.contains("active")');
+    await waitFor(evalJS, 'dom.confirmModal.open');
     assert.equal(await resetExpanded(), 'true');
     await evalJS('dom.confirmCancelBtn.click()');
     await waitFor(evalJS, 'document.activeElement === dom.resetEditBtn');

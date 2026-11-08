@@ -80,14 +80,14 @@ try {
   await waitFor(evalJS, `${installed}`, 15000);
   await waitFor(evalJS, notice);
   await waitFor(otherEval, notice);
-  assert.equal(await evalJS(`document.getElementById('updateNotice').closest('[inert]') !== null`), true);
+  assert.equal(await evalJS(`(dom.updateReloadBtn.focus(), dom.editModal.contains(document.activeElement))`), true);
   await evalJS(`document.getElementById('updateReloadBtn').click()`);
   assert.equal(await evalJS(`OverlayStack.top().id`), 'editModal');
   assert.equal(await evalJS(`document.querySelector('.edit-name').value`), '当前草稿');
   console.log('✅ 新版就绪仅提示；弹窗焦点隔离保护未保存草稿，后台不刷新');
 
   await evalJS(`closeEditModal()`);
-  await waitFor(evalJS, `document.getElementById('editModal').hidden`);
+  await waitFor(evalJS, `!document.getElementById('editModal').open`);
   mkdirSync(new URL('./artifacts/', import.meta.url), { recursive:true });
   const noticeScreenshot = await send('Page.captureScreenshot', { format:'png' });
   writeFileSync(new URL('./artifacts/sw-update-notice.png', import.meta.url), Buffer.from(noticeScreenshot.data, 'base64'));

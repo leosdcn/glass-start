@@ -104,10 +104,7 @@
     50% { transform: translateY(2.5px); opacity: 0.85; }
 }
 
-/* 原生 HTML5 <dialog> 与 Top Layer ::backdrop 配置：
-   - 重置浏览器 dialog 默认边框、内外边距及尺寸限制，撑满视口保持 flex 居中。
-   - 非激活/闭合状态下通过 [hidden] / :not([open]) 隐藏，避免被外部 .flex 属性覆盖。
-   - 遮罩底色由 Top Layer 原生 ::backdrop 单独持有并过渡，解耦自玻璃面板，消除刷新/重绘抖动。 */
+/* close() 立即归还焦点；离散过渡只保留退场画面。 */
 .edit-overlay {
     --modal-backdrop-opacity: 0.6;
 }
@@ -124,34 +121,37 @@ dialog.edit-overlay {
     background-color: transparent;
     color: inherit;
     overflow: hidden;
+    transition: display var(--duration-normal) allow-discrete, overlay var(--duration-normal) allow-discrete;
 }
-dialog.edit-overlay:not([open]),
-dialog.edit-overlay[hidden] {
+dialog.edit-overlay:not([open]) {
     display: none;
+    pointer-events: none;
+}
+dialog.edit-overlay:not([open])::backdrop {
+    pointer-events: none;
 }
 dialog.edit-overlay::backdrop {
     background-color: rgba(0, 0, 0, 0);
     transition: background-color var(--duration-normal) var(--ease-exit);
 }
-dialog.edit-overlay.active::backdrop {
+dialog.edit-overlay[open]::backdrop {
     background-color: rgba(0, 0, 0, var(--modal-backdrop-opacity));
     transition: background-color var(--duration-modal) var(--ease-spring);
-}
-.nr dialog.edit-overlay::backdrop {
-    transition: none;
-    background-color: rgba(0, 0, 0, var(--modal-backdrop-opacity));
 }
 .edit-overlay > div {
     opacity: 0;
     transform: scale(0.95);
     transition: opacity var(--duration-normal) var(--ease-exit), transform var(--duration-normal) var(--ease-exit);
 }
-.edit-overlay.active > div {
+.edit-overlay[open] > div {
     opacity: 1;
     transform: scale(1);
     transition: opacity var(--duration-modal) var(--ease-spring), transform var(--duration-modal) var(--ease-spring);
 }
-.nr .edit-overlay > div { transition: none; opacity: 1; transform: none; }
+@starting-style {
+    dialog.edit-overlay[open]::backdrop { background-color: rgba(0, 0, 0, 0); }
+    .edit-overlay[open] > div { opacity: 0; transform: scale(0.95); }
+}
 
 /* 书签编辑新增动画 */
 .edit-row-card.animate-item-in {

@@ -104,7 +104,7 @@ try {
 
     // 设置内只预览：取消后离线重载仍使用原壁纸。
     await evalJS(`document.querySelector('#editBookmarksBtn').click()`);
-    await waitFor(evalJS,`document.querySelector('#editModal').classList.contains('active')`);
+    await waitFor(evalJS,`document.querySelector('#editModal').open`);
     await evalJS(`document.querySelector('#tab-btn-appearance').click(); document.querySelector('[data-bg="./wallpapers/bg3.avif"]').click()`);
     await waitFor(evalJS,`document.querySelector('#bgLayerNext').style.backgroundImage.includes('bg3.avif')`);
     await evalJS(`document.querySelector('#cancelEditBtn').click()`);
@@ -113,11 +113,11 @@ try {
 
     // 实际保存浅色壁纸后，初始深色画布不能锁死恢复的主题。
     await evalJS(`document.querySelector('#editBookmarksBtn').click()`);
-    await waitFor(evalJS,`document.querySelector('#editModal').classList.contains('active')`);
+    await waitFor(evalJS,`document.querySelector('#editModal').open`);
     await evalJS(`document.querySelector('#tab-btn-appearance').click(); document.querySelector('[data-bg="./wallpapers/bg2.avif"]').click()`);
     await waitFor(evalJS,`document.querySelector('#bgLayerNext').style.backgroundImage.includes('bg2.avif')`);
     await evalJS(`document.querySelector('#saveEditBtn').click()`);
-    await waitFor(evalJS,`!document.querySelector('#editModal').classList.contains('active')`);
+    await waitFor(evalJS,`!document.querySelector('#editModal').open`);
     await send('Page.reload');
     await waitFor(evalJS, `document.querySelector('#bgLayer')?.style.backgroundImage.includes('bg2.avif') && !!document.querySelector('.bookmark-item')`, 10000);
     assert.equal(await evalJS('getComputedStyle(document.documentElement).colorScheme'), 'light');
@@ -137,11 +137,11 @@ try {
         document.querySelector('#searchInput').dispatchEvent(new Event('input',{bubbles:true}));
         document.querySelector('#editBookmarksBtn').click();
     })()`);
-    await waitFor(evalJS,`document.querySelector('#editModal').classList.contains('active')`);
+    await waitFor(evalJS,`document.querySelector('#editModal').open`);
     await evalJS(`document.querySelector('#tab-btn-data').click(); document.querySelector('#clearCacheBtn').click()`);
-    await waitFor(evalJS,`document.querySelector('#confirmModal').classList.contains('active')`);
+    await waitFor(evalJS,`document.querySelector('#confirmModal').open`);
     await evalJS(`document.querySelector('#confirmOkBtn').click()`);
-    await waitFor(evalJS,`document.readyState==='complete' && document.querySelector('#bookmarks')?.textContent.includes('扩展保存验证') && !document.querySelector('#editModal').classList.contains('active')`,10000);
+    await waitFor(evalJS,`document.readyState==='complete' && document.querySelector('#bookmarks')?.textContent.includes('扩展保存验证') && !document.querySelector('#editModal').open`,10000);
     assert.equal(await evalJS(`caches.has('app-favicons-v1')`),false);
     await waitFor(evalJS,`document.querySelector('#bgLayer').style.backgroundImage.includes('bg2.avif')`);
     assert.deepEqual(await evalJS('window.__cspViolations'), []);

@@ -1,9 +1,6 @@
 /**
- * 统一 UI 状态与多层弹窗响应栈
- * 管理 LIFO 栈、弹窗可见性、焦点和滚动锁；Escape 事件由 events.js 分发。
+ * 管理浮层的关闭顺序和滚动锁。原生 dialog 负责模态隔离和键盘焦点。
  */
-
-import { CONFIG } from '../config/constants.js';
 
 export const MODAL_OVERLAY_IDS = new Set([
     'editModal',
@@ -14,109 +11,53 @@ export const MODAL_OVERLAY_IDS = new Set([
     'languageModal'
 ]);
 
-// 只有层叠栈拥有弹窗可见性；每次切换取消上一轮动画和延迟隐藏。
-/** @type {Map<string, { frame: number; timer: ReturnType<typeof setTimeout> | number }>} */
-const visibilityOperations = new Map();
-/** @param {string} id */
-function beginVisibilityOperation(id) {
-    const previous = visibilityOperations.get(id);
-    if (previous) {
-        cancelAnimationFrame(previous.frame);
-        clearTimeout(previous.timer);
-    }
-    const operation = { frame: 0, timer: 0 };
-    visibilityOperations.set(id, operation);
-    return operation;
-}
-
-/** @type {WeakSet<Element>} */
-const boundDialogModals = new WeakSet();
+/** @type {WeakSet<HTMLDialogElement>} */
+const boundDialogs = new WeakSet();
 
 /** @param {string} id */
 function showModal(id) {
     const modal = document.getElementById(id);
-    if (!modal) return;
-    const operation = beginVisibilityOperation(id);
-    modal.removeAttribute('hidden');
-    modal.removeAttribute('aria-hidden');
-
-    if (modal instanceof HTMLDialogElement) {
-        // 退出中的窗口仍在原生 top layer；重开时重新置顶，避免被其他退出窗口阻断焦点。
-        if (modal.open) modal.close();
-        modal.showModal();
-        if (!boundDialogModals.has(modal)) {
-            modal.addEventListener('cancel', e => {
-                e.preventDefault();
-                const top = OverlayStack.top();
-                if (top?.id === id) {
-                    top.close();
-                }
-            });
-            modal.addEventListener('click', e => {
-                if (e.target === modal) {
-                    const top = OverlayStack.top();
-                    if (top?.id === id) {
-                        top.close();
-                    }
-                }
-            });
-            boundDialogModals.add(modal);
-        }
-    }
-
-    const isStillValid = () =>
-        visibilityOperations.get(id) === operation &&
-        OverlayStack.stack.some(entry => entry.id === id);
-    const activate = () => {
-        if (!isStillValid()) return;
-        if (OverlayStack.topModal() === modal) OverlayStack.focusTop();
-        modal.classList.add('active');
-        visibilityOperations.delete(id);
-    };
-    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (reducedMotion) {
-        queueMicrotask(() => {
-            if (!isStillValid()) return;
-            activate();
+    if (!(modal instanceof HTMLDialogElement)) return;
+    if (!boundDialogs.has(modal)) {
+        modal.addEventListener('cancel', e => {
+            e.preventDefault();
+            const top = OverlayStack.top();
+            if (top?.id === id) top.close();
         });
-        return;
+        modal.addEventListener('click', e => {
+            const top = OverlayStack.top();
+            if (e.target === modal && top?.id === id) top.close();
+        });
+        boundDialogs.add(modal);
     }
-    operation.frame = requestAnimationFrame(activate);
+    modal.inert = false;
+    modal.showModal();
 }
 
-/** @param {string} id */
-function hideModal(id) {
-    const modal = document.getElementById(id);
-    if (!modal) return;
-    const operation = beginVisibilityOperation(id);
-    const active = document.activeElement;
-    if ((active instanceof HTMLElement || active instanceof SVGElement) && modal.contains(active)) active.blur();
-    modal.setAttribute('aria-hidden', 'true');
-    modal.classList.remove('active');
-    const finish = () => {
-        if (visibilityOperations.get(id) !== operation || OverlayStack.stack.some(entry => entry.id === id)) return;
-        modal.setAttribute('hidden', '');
-        if (modal instanceof HTMLDialogElement && modal.open) {
-            modal.close();
-        }
-        visibilityOperations.delete(id);
-    };
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) finish();
-    else operation.timer = setTimeout(finish, CONFIG.TIMERS.MODAL_HIDE_DELAY);
-}
-
-// 暂存原始 inert 状态，退栈时恢复，保留屏幕切换和既有禁用区域的状态。
-/** @type {Map<HTMLElement, boolean>} */
-const isolatedElements = new Map();
 /**
  * @param {Element | null | undefined} element
  * @returns {element is HTMLElement}
  */
 function visibleFocusTarget(element) {
-    return !!(element && element instanceof HTMLElement && element.isConnected && element !== document.body && element !== document.documentElement &&
-        !element.closest('[inert], [hidden], [aria-hidden="true"]') &&
-        (element.offsetWidth > 0 || element.offsetHeight > 0) &&
-        getComputedStyle(element).visibility === 'visible');
+    return element instanceof HTMLElement && element.isConnected &&
+        element !== document.body && element !== document.documentElement &&
+        !element.closest('[inert], [hidden], [aria-hidden="true"], :disabled') &&
+        element.checkVisibility({ visibilityProperty: true });
+}
+
+const FOCUSABLE = 'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])';
+
+/** @param {Element | null | undefined} trigger */
+function restoreFocus(trigger) {
+    const modal = OverlayStack.topModal();
+    if (visibleFocusTarget(trigger) && (!modal || modal.contains(trigger))) {
+        if (document.activeElement !== trigger) trigger.focus({ preventScroll: true });
+    } else if (!visibleFocusTarget(document.activeElement) || (modal && !modal.contains(document.activeElement))) {
+        const scope = modal || document;
+        const preferred = modal?.querySelector('[role="tab"][aria-selected="true"]');
+        const target = visibleFocusTarget(preferred) ? preferred : [...scope.querySelectorAll(FOCUSABLE)].find(visibleFocusTarget);
+        (target || modal)?.focus({ preventScroll: true });
+    }
 }
 
 /** @type {import('../types').IOverlayStack} */
@@ -126,32 +67,25 @@ export const OverlayStack = {
     push(id, closeFn, trigger = document.activeElement) {
         this.pop(id);
         this.stack.push({ id, close: closeFn, trigger });
-        if (MODAL_OVERLAY_IDS.has(id)) showModal(id);
-        this.syncModalAccessibility();
         if (MODAL_OVERLAY_IDS.has(id)) {
+            showModal(id);
             document.body.classList.add('overflow-hidden', 'touch-none');
         }
     },
 
     pop(id) {
-        let removed = null;
-        if (id) {
-            const idx = this.stack.findIndex(item => item.id === id);
-            if (idx !== -1) {
-                removed = this.stack.splice(idx, 1)[0];
-            }
-        } else {
-            removed = this.stack.pop() || null;
-        }
-        if (!removed) return null;
-        if (MODAL_OVERLAY_IDS.has(removed.id)) hideModal(removed.id);
-        const hasOpenModal = this.stack.some(item => MODAL_OVERLAY_IDS.has(item.id));
-        if (!hasOpenModal) {
-            document.body.classList.remove('overflow-hidden', 'touch-none');
-        }
-        this.syncModalAccessibility();
+        const idx = id ? this.stack.findIndex(item => item.id === id) : this.stack.length - 1;
+        if (idx < 0) return null;
+        const [removed] = this.stack.splice(idx, 1);
         if (MODAL_OVERLAY_IDS.has(removed.id)) {
-            requestAnimationFrame(() => this.restoreFocus(removed.trigger));
+            const modal = document.getElementById(removed.id);
+            if (modal instanceof HTMLDialogElement) {
+                // 先释放原生模态，CSS 可以继续绘制退场画面。
+                modal.close();
+                modal.inert = true;
+            }
+            if (!this.topModal()) document.body.classList.remove('overflow-hidden', 'touch-none');
+            restoreFocus(removed.trigger);
         }
         return removed;
     },
@@ -159,66 +93,6 @@ export const OverlayStack = {
     topModal() {
         const entry = [...this.stack].reverse().find(item => MODAL_OVERLAY_IDS.has(item.id));
         return entry ? document.getElementById(entry.id) : null;
-    },
-
-    setBaseInert(element, value) {
-        if (isolatedElements.has(element)) isolatedElements.set(element, value);
-        else element.inert = value;
-    },
-
-    syncModalAccessibility() {
-        /** @type {Set<HTMLElement>} */
-        const nextIsolated = new Set();
-        let active = this.topModal();
-        // 沿当前弹窗到 body 的路径隔离兄弟区域，绝不隔离包含弹窗的祖先。
-        while (active && active !== document.body) {
-            const parent = active.parentElement;
-            if (!parent) break;
-            for (const sibling of parent.children) {
-                if (sibling === active || ['SCRIPT', 'STYLE', 'LINK'].includes(sibling.tagName) || !(sibling instanceof HTMLElement)) continue;
-                nextIsolated.add(sibling);
-            }
-            active = parent;
-        }
-        // 保持仍需隔离的区域，不反复解除再隔离；原值只在首次接管时记录。
-        for (const [element, previous] of isolatedElements) {
-            if (nextIsolated.has(element)) continue;
-            if (element.inert !== previous) element.inert = previous;
-            isolatedElements.delete(element);
-        }
-        for (const element of nextIsolated) {
-            if (!isolatedElements.has(element)) isolatedElements.set(element, element.inert);
-            if (!element.inert) element.inert = true;
-        }
-    },
-
-    focusTop() {
-        const modal = this.topModal();
-        if (!modal || modal.hasAttribute('hidden')) return;
-        const preferred = modal.querySelector('[autofocus], [role="tab"][aria-selected="true"]');
-        if (preferred && visibleFocusTarget(preferred)) {
-            preferred.focus({ preventScroll: true });
-            return;
-        }
-        const targets = [...modal.querySelectorAll('button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])')];
-        const target = targets.find(visibleFocusTarget);
-        if (target) target.focus({ preventScroll: true });
-        else {
-            modal.setAttribute('tabindex', '-1');
-            modal.focus({ preventScroll: true });
-        }
-    },
-
-    restoreFocus(trigger) {
-        const modal = this.topModal();
-        if (visibleFocusTarget(trigger) && (!modal || (trigger && modal.contains(trigger)))) {
-            trigger.focus({ preventScroll: true });
-        } else if (modal) {
-            if (!modal.contains(document.activeElement)) this.focusTop();
-        } else if (!visibleFocusTarget(document.activeElement)) {
-            const fallback = [...document.querySelectorAll('button:not([disabled]), input:not([disabled]), a[href]')].find(visibleFocusTarget);
-            fallback?.focus({ preventScroll: true });
-        }
     },
 
     top() {
@@ -229,46 +103,3 @@ export const OverlayStack = {
         return this.stack.length === 0;
     }
 };
-
-/**
- * @param {KeyboardEvent} e
- */
-export function handleModalTabKey(e) {
-    if (e.key !== 'Tab') return false;
-    const top = OverlayStack.top();
-    if (!top || !MODAL_OVERLAY_IDS.has(top.id)) return false;
-    const modalEl = document.getElementById(top.id);
-    if (!modalEl) return false;
-
-    // 原生 <dialog.showModal()> 在现代浏览器中自带顶层焦点陷阱。
-    // 只要焦点在弹窗内，直接交由浏览器原生调度，彻底避免逐个测量 offsetWidth/offsetHeight 引发强制重排。
-    if (modalEl instanceof HTMLDialogElement && modalEl.open) {
-        if (!modalEl.contains(document.activeElement)) {
-            OverlayStack.focusTop();
-            e.preventDefault();
-        }
-        return true;
-    }
-
-    const focusables = Array.from(modalEl.querySelectorAll('button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])')).filter(el => {
-        const hEl = /** @type {HTMLElement} */ (el);
-        if (hEl.tabIndex < 0) return false;
-        if (typeof hEl.checkVisibility === 'function') return hEl.checkVisibility();
-        return hEl.offsetWidth > 0 || hEl.offsetHeight > 0 || hEl === document.activeElement;
-    });
-    if (focusables.length === 0) return true;
-    const first = /** @type {HTMLElement} */ (focusables[0]);
-    const last = /** @type {HTMLElement} */ (focusables[focusables.length - 1]);
-    if (e.shiftKey) {
-        if (document.activeElement === first || !modalEl.contains(document.activeElement)) {
-            last.focus();
-            e.preventDefault();
-        }
-    } else {
-        if (document.activeElement === last || !modalEl.contains(document.activeElement)) {
-            first.focus();
-            e.preventDefault();
-        }
-    }
-    return true;
-}

@@ -118,10 +118,6 @@ export interface IOverlayStack {
     push(id: string, closeFn: () => void, trigger?: Element | null): void;
     pop(id?: string): OverlayItem | null;
     topModal(): HTMLElement | null;
-    focusTop(): void;
-    restoreFocus(trigger?: Element | null): void;
-    syncModalAccessibility(): void;
-    setBaseInert(element: HTMLElement, value: boolean): void;
     top(): OverlayItem | null;
     isEmpty(): boolean;
 }

@@ -76,7 +76,7 @@ test('数据容错、搜索联想与网络降级回归', async () => {
     await send('Emulation.setTouchEmulationEnabled', { enabled: true });
     await waitFor(evalJS, 'matchMedia("(any-pointer: coarse)").matches');
     await evalJS('openEditModal()');
-    await waitFor(evalJS, 'document.getElementById("editModal").classList.contains("active")');
+    await waitFor(evalJS, 'document.getElementById("editModal").open');
     const inputFonts = await evalJS("({name:getComputedStyle(dom.editList.querySelector('.edit-name')).fontSize, url:getComputedStyle(dom.urlBgInput).fontSize})");
     assert.deepEqual(inputFonts, { name: '16px', url: '16px' });
     await evalJS('cancelEditModal()');
@@ -85,7 +85,7 @@ test('数据容错、搜索联想与网络降级回归', async () => {
     await send('Page.reload');
     await waitFor(evalJS, "window.__AUDIT_RELOAD__ && typeof state !== 'undefined' && document.getElementById('bookmarks').children.length > 0");
     await evalJS('dom.editBookmarksBtn.click()');
-    await waitFor(evalJS, 'state.editOpen && document.getElementById("editModal").classList.contains("active")');
+    await waitFor(evalJS, 'state.editOpen && document.getElementById("editModal").open');
     assert.deepEqual(exceptions, []);
   } finally {
     await chrome.close();

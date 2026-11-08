@@ -319,7 +319,7 @@
     </section><!-- /#navSection -->
 
     <!-- 编辑与设置弹窗 (Apple 风格 Tab 分栏设置面板) -->
-    <dialog id="editModal" aria-modal="true" hidden aria-label="设置与偏好" class="edit-overlay fixed inset-0 flex items-center justify-center overscroll-contain" data-i18n-aria-label="ui.settings.and.preferences">
+    <dialog id="editModal" aria-modal="true" aria-label="设置与偏好" class="edit-overlay fixed inset-0 flex items-center justify-center overscroll-contain" data-i18n-aria-label="ui.settings.and.preferences">
         <div class="glass-strong apple-radius w-full max-w-xl sm:max-w-2xl md:max-w-3xl lg:max-w-4xl mx-4 min-h-panel-min max-h-panel-max sm:h-panel-desktop flex flex-col p-4 sm:p-6 shadow-2xl overflow-hidden">
             <!-- 弹窗 Header -->
             <div class="flex items-center justify-between gap-3 mb-3 pb-2 border-b border-white/10 shrink-0">
@@ -338,7 +338,7 @@
 
             <!-- Tab 导航栏 -->
             <div role="tablist" aria-label="设置偏好选项卡" class="flex items-center gap-1.5 sm:gap-2 p-1 bg-black/20 border border-white/10 apple-radius mb-3 shrink-0" data-i18n-aria-label="ui.settings.tabs">
-                <button type="button" role="tab" id="tab-btn-bookmarks" tabindex="0" aria-selected="true" aria-controls="tabBookmarks" class="settings-tab-btn active flex-1 py-2 px-1.5 sm:px-4 apple-radius text-xs sm:text-sm font-medium whitespace-nowrap glass-interactive flex items-center justify-center gap-1.5 sm:gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" data-tab="tabBookmarks">
+                <button type="button" role="tab" id="tab-btn-bookmarks" autofocus tabindex="0" aria-selected="true" aria-controls="tabBookmarks" class="settings-tab-btn active flex-1 py-2 px-1.5 sm:px-4 apple-radius text-xs sm:text-sm font-medium whitespace-nowrap glass-interactive flex items-center justify-center gap-1.5 sm:gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" data-tab="tabBookmarks">
                     <svg class="size-4 shrink-0 opacity-80" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0 1 11.186 0Z"/></svg>
                     <span class="whitespace-nowrap shrink-0" data-i18n="settings.bookmarks">快捷书签</span>
                 </button>
@@ -530,7 +530,7 @@
     </dialog><!-- /#editModal -->
 
     <!-- 从导航页选择弹窗 -->
-    <dialog id="bookmarkPicker" aria-modal="true" hidden aria-label="从导航页选择书签" class="edit-overlay fixed inset-0 flex items-center justify-center overscroll-contain" data-i18n-aria-label="ui.choose.bookmarks.from.directory">
+    <dialog id="bookmarkPicker" aria-modal="true" aria-label="从导航页选择书签" class="edit-overlay fixed inset-0 flex items-center justify-center overscroll-contain" data-i18n-aria-label="ui.choose.bookmarks.from.directory">
         <div class="glass-strong apple-radius pt-4 pb-3 px-4 w-full max-w-2xl xl:max-w-3xl 2xl:max-w-4xl mx-4 max-h-picker-max flex flex-col shadow-2xl">
             <div class="flex items-center justify-between gap-3 mb-3 pb-2 border-b border-white/10 shrink-0">
                 <div class="flex items-center gap-2 min-w-0">
@@ -547,7 +547,7 @@
     </dialog><!-- /#bookmarkPicker -->
 
     <!-- 自定义确认弹窗（替代原生 confirm()，保持玻璃风格一致） -->
-    <dialog id="confirmModal" role="alertdialog" aria-modal="true" hidden aria-labelledby="confirmTitle" aria-describedby="confirmMsg"
+    <dialog id="confirmModal" role="alertdialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmMsg"
          class="edit-overlay fixed inset-0 flex items-center justify-center overscroll-contain">
         <div class="glass-strong apple-radius confirm-dialog-card shadow-2xl">
             <div class="confirm-dialog-warning size-11 rounded-full bg-red-500/15 border border-red-500/30 flex items-center justify-center mb-3 text-red-400 shrink-0">
@@ -565,7 +565,7 @@
     </dialog><!-- /#confirmModal -->
 
     <!-- 快捷键速查面板弹窗 (Cmd/Ctrl + /) -->
-    <dialog id="shortcutModal" aria-modal="true" hidden aria-label="快捷键速查" class="edit-overlay fixed inset-0 flex items-center justify-center overscroll-contain" data-i18n-aria-label="ui.keyboard.shortcuts">
+    <dialog id="shortcutModal" aria-modal="true" aria-label="快捷键速查" class="edit-overlay fixed inset-0 flex items-center justify-center overscroll-contain" data-i18n-aria-label="ui.keyboard.shortcuts">
         <div class="glass-strong apple-radius w-full max-w-sm mx-4 max-h-panel-max flex flex-col p-5 sm:p-6 shadow-2xl overflow-hidden">
             <!-- 弹窗 Header -->
             <div class="flex items-center gap-2 mb-3 pb-2 border-b border-white/10 shrink-0">
@@ -585,7 +585,7 @@
     </dialog><!-- /#shortcutModal -->
 
     <!-- 开源致谢弹窗 (Credits & Attribution Modal) -->
-    <dialog id="creditsModal" aria-modal="true" hidden aria-label="开源致谢" class="edit-overlay fixed inset-0 flex items-center justify-center overscroll-contain" data-i18n-aria-label="ui.credits">
+    <dialog id="creditsModal" aria-modal="true" aria-label="开源致谢" class="edit-overlay fixed inset-0 flex items-center justify-center overscroll-contain" data-i18n-aria-label="ui.credits">
         <div class="glass-strong apple-radius w-full max-w-md mx-4 max-h-panel-max flex flex-col p-5 sm:p-6 shadow-2xl overflow-hidden">
             <!-- 弹窗 Header -->
             <div class="flex items-center gap-2 mb-3 pb-2 border-b border-white/10 shrink-0">
@@ -604,7 +604,7 @@
     </dialog><!-- /#creditsModal -->
 
     <!-- 界面语言选择弹窗 (Language Picker Modal) -->
-    <dialog id="languageModal" aria-modal="true" hidden aria-label="界面语言" class="edit-overlay fixed inset-0 flex items-center justify-center overscroll-contain" data-i18n-aria-label="language.label">
+    <dialog id="languageModal" aria-modal="true" aria-label="界面语言" class="edit-overlay fixed inset-0 flex items-center justify-center overscroll-contain" data-i18n-aria-label="language.label">
         <div class="glass-strong apple-radius w-full max-w-[21.5rem] mx-4 max-h-panel-max flex flex-col p-5 shadow-2xl overflow-hidden">
             <!-- 弹窗 Header -->
             <div class="flex items-center gap-2 mb-3 pb-2 border-b border-white/10 shrink-0">

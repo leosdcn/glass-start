@@ -101,7 +101,7 @@ await test("挑选器节点复用与目录失效", async () => {
     try {
         await send('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'reduce'}]});
         await evalJS('openEditModal()');
-        await waitFor(evalJS,'document.getElementById("editModal").classList.contains("active")');
+        await waitFor(evalJS,'document.getElementById("editModal").open');
         assert.equal(await evalJS(`(async () => {
         openBookmarkPicker();
         window.reuseItems=[...dom.pickerContent.querySelectorAll('.picker-item')];
@@ -166,10 +166,10 @@ await test('关闭目录后滚到最后新增书签并归还焦点', async () =>
     try {
         await send('Emulation.setDeviceMetricsOverride', {width:390,height:700,deviceScaleFactor:1,mobile:false});
         await evalJS('dom.editBookmarksBtn.click()');
-        await waitFor(evalJS, "dom.editModal.classList.contains('active')");
+        await waitFor(evalJS, "dom.editModal.open");
         const openPicker = async () => {
             await evalJS('dom.editList.scrollTop = 0; dom.togglePickerBtn.focus(); dom.togglePickerBtn.click()');
-            await waitFor(evalJS, "document.getElementById('bookmarkPicker').classList.contains('active')");
+            await waitFor(evalJS, "document.getElementById('bookmarkPicker').open");
         };
         const waitForReturn = () => waitFor(evalJS, `!document.getElementById('bookmarkPicker').open
           && document.activeElement === dom.togglePickerBtn && OverlayStack.top()?.id === 'editModal'`);

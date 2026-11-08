@@ -2,181 +2,88 @@ import assert from 'node:assert/strict';
 import { launchSession, waitFor } from './support/helpers.mjs';
 import { test } from 'node:test';
 
-await test("焦点循环、嵌套弹窗与背景隔离", async () => {
-    const { server, chrome, send, evalJS } = await launchSession();
-    const escape = async () => {
-      await send('Input.dispatchKeyEvent', { type:'keyDown', key:'Escape', code:'Escape', windowsVirtualKeyCode:27 });
-      await send('Input.dispatchKeyEvent', { type:'keyUp', key:'Escape', code:'Escape', windowsVirtualKeyCode:27 });
-    };
-    try {
-      await waitFor(evalJS, 'typeof openEditModal === "function"');
-      await send('Emulation.setEmulatedMedia', { features:[{name:'prefers-reduced-motion', value:'reduce'}] });
-      await evalJS('dom.editBookmarksBtn.focus(); openEditModal();');
-      await waitFor(evalJS, 'document.getElementById("editModal").contains(document.activeElement) && document.getElementById("editModal").classList.contains("active")');
-      const root = await evalJS(`(() => {
-    dom.searchInput.focus();
-    return {focusBlocked:document.getElementById("editModal").contains(document.activeElement),
-      background:dom.startSection.inert && dom.navSection.inert, ancestor:!document.body.inert,
-      modal:!document.getElementById("editModal").inert};
-  })()`);
-      assert.equal(Object.values(root).every(Boolean), true, JSON.stringify(root));
-      const { root: document } = await send('DOM.getDocument');
-      const { nodeId } = await send('DOM.querySelector', { nodeId:document.nodeId, selector:'#searchInput' });
-      const ax = await send('Accessibility.getPartialAXTree', { nodeId, fetchRelatives:false });
-      assert.equal(ax.nodes[0].ignored, true);
-      await evalJS("window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true }));");
-      assert.equal(await evalJS('dom.startSection.inert && dom.navSection.inert'), true);
-      console.log('✅ 打开立即进入弹窗焦点，背景拒绝焦点且从无障碍树排除，页面唤醒不解除隔离');
-
-      await evalJS('dom.togglePickerBtn.focus(); openBookmarkPicker();');
-      await waitFor(evalJS, 'document.getElementById("bookmarkPicker").contains(document.activeElement)');
-      await evalJS("dom.donePickerBtn.focus(); showConfirm('测试通知', null, '测试', dom.donePickerBtn);");
-      await waitFor(evalJS, 'dom.confirmModal.contains(document.activeElement)');
-      assert.equal(await evalJS('document.getElementById("editModal").inert && document.getElementById("bookmarkPicker").inert && !dom.confirmModal.inert'), true);
-      await escape();
-      await waitFor(evalJS, 'document.activeElement === dom.donePickerBtn && !document.getElementById("bookmarkPicker").inert');
-      assert.equal(await evalJS('document.getElementById("editModal").inert'), true);
-      await escape();
-      await waitFor(evalJS, 'document.activeElement === dom.togglePickerBtn && !document.getElementById("editModal").inert');
-      await escape();
-      await waitFor(evalJS, 'document.activeElement === dom.editBookmarksBtn && !state.editOpen');
-      assert.equal(await evalJS('!dom.startSection.inert && dom.navSection.inert && !document.body.classList.contains("overflow-hidden")'), true);
-      console.log('✅ 设置→选择器→确认框逐层 Escape 恢复触发焦点，原屏幕 inert 与滚动锁正确恢复');
-
-      const edge = await evalJS(`(async () => {
-    const existing = document.createElement('div'); existing.inert = true; document.body.appendChild(existing);
-    await openEditModal(); closeEditModal();
-    await new Promise(requestAnimationFrame);
-    const quickClose = !document.getElementById("editModal").classList.contains('active') && !state.editOpen && !dom.startSection.inert;
-    await openEditModal();
-    await new Promise(requestAnimationFrame);
-    const reopened = document.getElementById("editModal").contains(document.activeElement) && dom.startSection.inert;
-    closeEditModal(); await new Promise(requestAnimationFrame);
-    const preserved = existing.inert; existing.remove();
-    const opener = document.createElement('button'); opener.type = 'button'; opener.textContent = '临时触发';
-    document.body.appendChild(opener); opener.focus(); openCreditsModal(); opener.remove();
-    await new Promise(requestAnimationFrame); closeCreditsModal(); await new Promise(requestAnimationFrame);
-    const fallback = document.activeElement.isConnected && document.activeElement !== document.body &&
-      !document.activeElement.closest('[inert], [hidden], [aria-hidden="true"]');
-    const hidden = document.createElement('button'); hidden.type = 'button'; hidden.textContent = '隐藏触发';
-    document.body.appendChild(hidden); hidden.focus(); openShortcutModal();
-    await new Promise(requestAnimationFrame); hidden.style.visibility = 'hidden';
-    closeShortcutModal(); await new Promise(requestAnimationFrame);
-    const hiddenFallback = document.activeElement !== hidden && document.activeElement !== document.body;
-    hidden.remove();
-    return {quickClose, reopened, preserved, fallback, hiddenFallback};
-  })()`);
-      assert.equal(Object.values(edge).every(Boolean), true, JSON.stringify(edge));
-      console.log('✅ 快速关闭不被迟到动画重开，重新打开正常，既有 inert 和触发元素移除均正确处理');
-      assert.equal(await evalJS('document.getElementById("editModal").hidden && dom.shortcutModal.hidden && dom.creditsModal.hidden'), true);
-      await send('Emulation.setEmulatedMedia', { features:[{name:'prefers-reduced-motion', value:'no-preference'}] });
-      const animated = await evalJS(`(async () => {
-    openShortcutModal(); closeShortcutModal();
-    await new Promise(resolve => setTimeout(resolve, CONFIG.TIMERS.MODAL_HIDE_DELAY + 60));
-    const closed = dom.shortcutModal.hidden && !dom.shortcutModal.classList.contains('active');
-
-    // 1) 第一帧与第二帧之间取消：不挂载 .active，等待延迟隐藏后干净退栈
-    openShortcutModal(); await new Promise(requestAnimationFrame);
-    closeShortcutModal();
-    await new Promise(resolve => setTimeout(resolve, CONFIG.TIMERS.MODAL_HIDE_DELAY + 60));
-    const midFrameCanceled = dom.shortcutModal.hidden && !dom.shortcutModal.classList.contains('active') && OverlayStack.isEmpty();
-
-    // 2) 完全激活后退出途中（<220ms）重开：单帧立即反转接续并恢复焦点
-    openShortcutModal();
-    while (!dom.shortcutModal.classList.contains('active')) await new Promise(requestAnimationFrame);
-    closeShortcutModal();
-    const midExitHidden = !dom.shortcutModal.hasAttribute('hidden');
-    openShortcutModal();
-    await new Promise(resolve => setTimeout(resolve, CONFIG.TIMERS.MODAL_HIDE_DELAY + 60));
-    const reopened = !dom.shortcutModal.hidden && dom.shortcutModal.classList.contains('active') &&
-      dom.shortcutModal.contains(document.activeElement);
-
-    // 3) 双层 rAF 入场期间连按快捷键（⌘/）：识别为已在栈中并关闭而非重复打开
-    closeShortcutModal();
-    await new Promise(resolve => setTimeout(resolve, CONFIG.TIMERS.MODAL_HIDE_DELAY + 60));
-    document.dispatchEvent(new KeyboardEvent('keydown', { key: '/', metaKey: true, bubbles: true }));
-    document.dispatchEvent(new KeyboardEvent('keydown', { key: '/', metaKey: true, bubbles: true }));
-    const rapidKeyHandled = OverlayStack.isEmpty();
-
-    openShortcutModal();
-    while (!dom.shortcutModal.classList.contains('active')) await new Promise(requestAnimationFrame);
-    closeShortcutModal();
-    const exitStarted = !dom.shortcutModal.hidden && dom.shortcutModal.getAttribute('aria-hidden') === 'true' &&
-      !dom.shortcutModal.contains(document.activeElement);
-    await new Promise(resolve => setTimeout(resolve, CONFIG.TIMERS.MODAL_HIDE_DELAY + 60));
-    const exitFinished = dom.shortcutModal.hidden && OverlayStack.isEmpty() && !dom.startSection.inert;
-
-    // 上层仍在退出动画时重开下层，原生 top layer 的顺序也必须与业务栈一致。
-    await openEditModal(); await new Promise(requestAnimationFrame);
-    openCreditsModal(); await new Promise(requestAnimationFrame);
-    closeCreditsModal(); closeEditModal(); await openEditModal();
-    await new Promise(requestAnimationFrame);
-    const input = dom.editList.querySelector('input'); input.focus();
-    const reopenedBelowClosingModal = document.activeElement === input && OverlayStack.top()?.id === 'editModal';
-    closeEditModal();
-    await new Promise(resolve => setTimeout(resolve, CONFIG.TIMERS.MODAL_HIDE_DELAY + 60));
-    return {closed, midFrameCanceled, midExitHidden, reopened, rapidKeyHandled, exitStarted, exitFinished, reopenedBelowClosingModal};
-  })()`);
-      assert.equal(Object.values(animated).every(Boolean), true, JSON.stringify(animated));
-      console.log('✅ 普通动效下区分两帧间取消与退出重开，连按快捷键正确切换，退栈延迟隐藏');
-    } finally {
-      await chrome.close();
-      await server.close();
+test('原生模态隔离背景，按栈顺序归还焦点', async () => {
+  const { server, chrome, send, evalJS } = await launchSession();
+  const press = async (key, windowsVirtualKeyCode) => {
+    for (const type of ['keyDown', 'keyUp']) {
+      await send('Input.dispatchKeyEvent', { type, key, code:key, windowsVirtualKeyCode });
     }
+  };
+  try {
+    await send('Emulation.setEmulatedMedia', { features:[{name:'prefers-reduced-motion', value:'reduce'}] });
+    await evalJS('dom.editBookmarksBtn.focus(); openEditModal()');
+    assert.equal(await evalJS('document.activeElement.id'), 'tab-btn-bookmarks');
+    const { root: document } = await send('DOM.getDocument');
+    const { nodeId } = await send('DOM.querySelector', { nodeId:document.nodeId, selector:'#searchInput' });
+    const ax = await send('Accessibility.getPartialAXTree', { nodeId, fetchRelatives:false });
+    assert.equal(ax.nodes[0].ignored, true);
+    await evalJS("window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true })); dom.searchInput.focus()");
+    assert.equal(await evalJS('dom.editModal.contains(document.activeElement)'), true);
+    await press('Tab', 9);
+    assert.equal(await evalJS('dom.editModal.contains(document.activeElement)'), true);
+
+    await evalJS('dom.togglePickerBtn.focus(); openBookmarkPicker(); dom.donePickerBtn.focus()');
+    await evalJS("showConfirm('测试通知', null, '测试', dom.donePickerBtn)");
+    assert.equal(await evalJS('dom.togglePickerBtn.focus(); dom.donePickerBtn.focus(); dom.confirmModal.contains(document.activeElement)'), true);
+    await press('Escape', 27);
+    assert.equal(await evalJS('!dom.confirmModal.open && document.activeElement === dom.donePickerBtn'), true);
+    await press('Escape', 27);
+    assert.equal(await evalJS('document.activeElement === dom.togglePickerBtn'), true);
+    await press('Escape', 27);
+    assert.equal(await evalJS('document.activeElement === dom.editBookmarksBtn && !state.editOpen && dom.navSection.inert && !document.body.classList.contains("overflow-hidden")'), true);
+
+    const fallback = await evalJS(`(() => {
+      const existing = document.createElement('div'); existing.inert = true; document.body.append(existing);
+      const trigger = document.createElement('button'); trigger.type = 'button'; document.body.append(trigger);
+      trigger.focus(); openCreditsModal(); trigger.remove(); closeCreditsModal();
+      return existing.inert && document.activeElement !== document.body && document.activeElement.isConnected;
+    })()`);
+    assert.equal(fallback, true);
+  } finally {
+    await chrome.close();
+    await server.close();
+  }
 });
 
-await test("隔离增量更新与基础状态恢复", async () => {
-    /** 弹窗隔离只更新变化的区域，保留嵌套焦点和屏幕状态恢复。 */
-
-
-
-    const {server,chrome,send,evalJS}=await launchSession();
-    try {
-        await send('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'reduce'}]});
-        await evalJS('dom.editBookmarksBtn.focus();openEditModal()');
-        await waitFor(evalJS,'document.getElementById("editModal").contains(document.activeElement)');
-        const result=await evalJS(`(async()=>{
-        let count=0;
-        const observer=new MutationObserver(records=>count+=records.length);
-        observer.observe(document.body,{subtree:true,attributes:true,attributeFilter:['inert']});
-        const focused=document.activeElement;
-        for(let i=0;i<20;i++)OverlayStack.pop('absent-performance-layer');
-        for(let i=0;i<20;i++)OverlayStack.syncModalAccessibility();
-        await new Promise(requestAnimationFrame);
-        observer.disconnect();
-        return{mutations:count,focus:focused===document.activeElement,
-            isolated:dom.startSection.inert&&dom.navSection.inert&&!document.getElementById("editModal").inert};
+test('退场继续绘制时，下层可立即获得焦点与点击', async () => {
+  const { server, chrome, evalJS } = await launchSession();
+  try {
+    await evalJS(`(async () => {
+      dom.editBookmarksBtn.focus(); await openEditModal();
+      document.getElementById('tab-btn-data').click();
     })()`);
-        assert.deepEqual(result,{mutations:0,focus:true,isolated:true});
-        console.log('✅ 空关闭与相同隔离状态重复同步均零 inert 写入，焦点和背景隔离不变');
-
-        await evalJS(`(()=>{
-        window.performanceInertChanges=[];
-        window.performanceInertObserver=new MutationObserver(records=>{
-            performanceInertChanges.push(...records.map(record=>record.target.id));
-        });
-        performanceInertObserver.observe(document.body,{subtree:true,attributes:true,attributeFilter:['inert']});
-        dom.togglePickerBtn.focus();openBookmarkPicker();
+    await waitFor(evalJS, 'dom.editModal.getAnimations({subtree:true}).length === 0');
+    await evalJS('dom.openCreditsFromSettingsBtn.focus(); openCreditsModal()');
+    await waitFor(evalJS, 'Number(getComputedStyle(dom.creditsModal.firstElementChild).opacity) === 1');
+    const exit = await evalJS(`(() => {
+      closeCreditsModal();
+      const trigger = dom.openCreditsFromSettingsBtn;
+      const bounds = trigger.getBoundingClientRect();
+      const hit = document.elementFromPoint(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
+      return {
+        logicalClose: !dom.creditsModal.open && !dom.creditsModal.matches(':modal'),
+        visualExit: getComputedStyle(dom.creditsModal).display !== 'none',
+        focusRestored: document.activeElement === trigger,
+        pointerRestored: trigger.contains(hit)
+      };
     })()`);
-        await waitFor(evalJS,'document.getElementById("bookmarkPicker").contains(document.activeElement)');
-        assert.equal(await evalJS(`!performanceInertChanges.includes('startSection') && !performanceInertChanges.includes('navSection')`),true);
-        assert.equal(await evalJS('document.getElementById("editModal").inert && !document.getElementById("bookmarkPicker").inert'),true);
-        await evalJS(`dom.donePickerBtn.click()`);
-        await waitFor(evalJS,'document.activeElement===dom.togglePickerBtn');
-        assert.equal(await evalJS(`!performanceInertChanges.includes('startSection') && !performanceInertChanges.includes('navSection')`),true);
-        await evalJS('performanceInertObserver.disconnect()');
-        console.log('✅ 嵌套弹窗开关只更新变化的弹窗区域，持续隔离的两屏不重复切换');
+    assert.deepEqual(exit, { logicalClose:true, visualExit:true, focusRestored:true, pointerRestored:true });
 
-        await evalJS(`OverlayStack.setBaseInert(dom.startSection,true);closeEditModal()`);
-        await waitFor(evalJS,'!state.editOpen && document.getElementById("editModal").hidden');
-        assert.equal(await evalJS('dom.startSection.inert && dom.navSection.inert'),true);
-        await evalJS(`OverlayStack.setBaseInert(dom.startSection,false);dom.editBookmarksBtn.focus();openEditModal()`);
-        await waitFor(evalJS,'document.getElementById("editModal").contains(document.activeElement)');
-        await evalJS('closeEditModal()');
-        await waitFor(evalJS,'document.activeElement===dom.editBookmarksBtn');
-        assert.equal(await evalJS('!dom.startSection.inert && dom.navSection.inert'),true);
-        console.log('✅ 隔离期间更新的屏幕基础状态保留，最终退栈恢复隔离和触发焦点');
-    }finally{
-        await chrome.close();await server.close();
-    }
+    await evalJS('openCreditsModal()');
+    assert.equal(await evalJS('dom.creditsModal.open && dom.creditsModal.contains(document.activeElement)'), true);
+    await evalJS('closeCreditsModal(); closeEditModal()');
+    await waitFor(evalJS, 'getComputedStyle(dom.creditsModal).display === "none" && getComputedStyle(dom.editModal).display === "none"');
+
+    // 在同一个任务内取消打开，并用连按快捷键验证业务栈与原生状态同步。
+    assert.equal(await evalJS(`(() => {
+      openShortcutModal(); closeShortcutModal();
+      const canceled = !dom.shortcutModal.open && OverlayStack.isEmpty();
+      const press = () => document.dispatchEvent(new KeyboardEvent('keydown', { key:'/', metaKey:true, bubbles:true }));
+      press(); press();
+      return canceled && !dom.shortcutModal.open && OverlayStack.isEmpty();
+    })()`), true);
+  } finally {
+    await chrome.close();
+    await server.close();
+  }
 });

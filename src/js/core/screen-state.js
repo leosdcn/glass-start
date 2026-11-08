@@ -138,20 +138,20 @@ function updateSectionAccessibility(sec) {
     if (sec === 'nav') {
         if (startSection) {
             startSection.setAttribute('aria-hidden', 'true');
-            OverlayStack.setBaseInert(startSection, true);
+            startSection.inert = true;
         }
         if (nav) {
             nav.removeAttribute('aria-hidden');
-            OverlayStack.setBaseInert(nav, false);
+            nav.inert = false;
         }
     } else {
         if (startSection) {
             startSection.removeAttribute('aria-hidden');
-            OverlayStack.setBaseInert(startSection, false);
+            startSection.inert = false;
         }
         if (nav) {
             nav.setAttribute('aria-hidden', 'true');
-            OverlayStack.setBaseInert(nav, true);
+            nav.inert = true;
         }
     }
 }
