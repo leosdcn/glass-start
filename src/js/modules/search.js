@@ -65,8 +65,8 @@ export let suggestionScriptTag = null;
 export let selectedSuggestionIdx = -1;
 /** 键盘上下切换前用户键入的原始关键词（公共状态） */
 export let originalQuery = '';
-/** @type {ReturnType<typeof setTimeout> | null} 防抖定时器句柄（测试探针，供时钟快进断言） */
-export let suggestDebounceTimer = null;
+/** @type {ReturnType<typeof setTimeout> | null} 防抖定时器句柄 */
+let suggestDebounceTimer = null;
 /** 异步建议请求自增计数序列号（测试探针，用于防竞态乱序覆盖） */
 export let activeSuggestReqId = 0;
 /** @type {(() => void) | null} */
@@ -377,7 +377,7 @@ function getSearchCandidates() {
  * @param {number} [limit]
  * @returns {import('../types').BookmarkSuggestion[]}
  */
-export function getLocalBookmarkSuggestions(query, limit = CONFIG.SUGGEST.MAX_LOCAL_ITEMS) {
+function getLocalBookmarkSuggestions(query, limit = CONFIG.SUGGEST.MAX_LOCAL_ITEMS) {
     return rankBookmarkSuggestions(query, getSearchCandidates(), CONFIG.SUGGEST, limit);
 }
 

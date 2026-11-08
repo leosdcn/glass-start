@@ -6,6 +6,7 @@ import { parse } from 'acorn';
 /** Validate only the supported translation contract, alongside the existing lint. */
 export async function inspectI18n(root, sources, html) {
     const { SUPPORTED_LANGUAGES } = await import(pathToFileURL(join(root, 'src/js/config/language.js')));
+    const { PRESET_WALLPAPERS } = await import(pathToFileURL(join(root, 'src/js/config/backgrounds.js')));
     const readJSON = name => JSON.parse(readFileSync(join(root, name), 'utf8'));
     const dictionaries = Object.fromEntries(SUPPORTED_LANGUAGES.map(locale =>
         [locale, readJSON(`src/js/config/locales/${locale}.json`)]));
@@ -41,6 +42,7 @@ export async function inspectI18n(root, sources, html) {
         }
     };
     sources.forEach(({ content }) => walk(parse(content, { ecmaVersion: 'latest', sourceType: 'module' })));
+    for (const { title } of PRESET_WALLPAPERS) checkKey(title);
     for (const match of html.matchAll(/\bdata-i18n(?:-(?:placeholder|title|aria-label|alt|content))?="([^"]+)"/g)) checkKey(match[1]);
     if (html.split('<!-- INJECT_I18N_HEAD -->').length !== 2) throw new Error('Language head slot must occur once');
 

@@ -119,7 +119,7 @@ try {
   evalJS = await connect(true);
   await waitFor(evalJS, 'typeof fetchSuggestions === "function"');
   const adapter = await evalJS(`(() => {
-    const getters = ['suggestionScriptTag','suggestDebounceTimer','selectedSuggestionIdx','activeSuggestReqId','isFetchingWeather'].every(name => {
+    const getters = ['suggestionScriptTag','selectedSuggestionIdx','activeSuggestReqId','isFetchingWeather'].every(name => {
       const descriptor = Object.getOwnPropertyDescriptor(window,name);
       return typeof descriptor.get === 'function' && descriptor.set === undefined;
     });

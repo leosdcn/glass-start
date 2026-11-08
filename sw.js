@@ -244,11 +244,11 @@ async function previousImageResponse(request) {
         return;
     }
 
-    const pathnameLower = urlObj.pathname.toLowerCase();
-    // 过滤本地开发服务器清理通道，直接穿透网络，严禁 SW 拦截
-    if (pathnameLower.startsWith('/_clear_cache')) return;
-
     const isSameOrigin = urlObj.origin === self.location.origin;
+    // 让本地开发服务器的清理请求直达网络。
+    if (isSameOrigin && urlObj.pathname === '/_clear_cache') return;
+
+    const pathnameLower = urlObj.pathname.toLowerCase();
     const scopePath = new URL(SCOPE_URL).pathname.toLowerCase();
     const scopePathClean = scopePath.endsWith('/') && scopePath.length > 1 ? scopePath.slice(0, -1) : scopePath;
     const isImgAsset = isSameOrigin && /\.(ico|png|jpg|jpeg|svg|webp|avif)$/.test(pathnameLower);

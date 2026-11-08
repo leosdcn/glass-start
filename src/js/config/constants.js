@@ -201,10 +201,7 @@ export const engines = Object.fromEntries(
     }])
 );
 
-// 首屏构建会把同一份清单注入 window.__BACKGROUNDS__；模块是唯一真理源。
-export const backgrounds = (typeof window !== 'undefined' && Array.isArray(window.__BACKGROUNDS__) && window.__BACKGROUNDS__.length)
-    ? window.__BACKGROUNDS__
-    : PRESET_BACKGROUNDS;
+export const backgrounds = PRESET_BACKGROUNDS;
 
 // ==================== 平台按键与快捷键适配 ====================
 export const IS_MAC = (() => {

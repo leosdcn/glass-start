@@ -1,6 +1,8 @@
 /** 验证构建产物、响应头、离线缓存及防嵌套逻辑。 */
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
+import { spawn } from 'node:child_process';
+import { once } from 'node:events';
 import { readFileSync, existsSync, statSync, mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -8,6 +10,7 @@ import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 import vm from 'node:vm';
 import { validateW3c } from '../scripts/validate-w3c.mjs';
+import { getFreePort } from './support/helpers.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
@@ -84,7 +87,7 @@ test('dist/ 产物完整性与 Cache-Control 标头规则', () => {
       subscriptions.push({ path, recursive: options.recursive });
       return { close() {} };
     };
-    startWatch(undefined, { label: 'Test' })();
+    startWatch({ label: 'Test' })();
   } finally {
     fs.watch = originalWatch;
   }
@@ -93,6 +96,27 @@ test('dist/ 产物完整性与 Cache-Control 标头规则', () => {
   assert.equal(subscriptions.length, expectedWatchPaths.length);
   assert.ok(expectedWatchPaths.every(path => subscriptions.filter(item => item.path === path).length === 1));
   assert.ok(subscriptions.every(item => item.recursive === statSync(item.path).isDirectory()));
+});
+
+test('开发服务器仅在专用 GET 路径返回清理站点数据的响应', { timeout: 5000 }, async t => {
+  const port = await getFreePort();
+  const server = spawn(process.execPath, ['scripts/server.cjs', '--no-watch'], {
+    cwd: ROOT, stdio: ['ignore', 'pipe', 'inherit'],
+    env: { ...process.env, PORT: String(port), AUTO_OPEN: '0' }
+  });
+  t.after(() => server.kill());
+  await once(server.stdout, 'data', { signal: t.signal });
+  const origin = 'http://127.0.0.1:' + port;
+  for (const [method, path, clears] of [
+    ['GET', '/_clear_cache', true],
+    ['GET', '/_clear_cache-demo', false],
+    ['GET', '/?note=clear-cache=1', false],
+    ['HEAD', '/_clear_cache', false]
+  ]) {
+    const response = await fetch(origin + path, { method, signal: t.signal });
+    assert.equal(response.headers.get('Clear-Site-Data'), clears ? '"cache", "storage"' : null, method + ' ' + path);
+    await response.arrayBuffer();
+  }
 });
 
 test('Service Worker 核心预缓存资源与产物版本契约', () => {
@@ -242,22 +266,29 @@ test('防 iframe 恶意嵌套点击劫持 (Frame-Busting)', () => {
   }
 });
 
-test('天气首屏不将缓存图标地址拼入 HTML', () => {
+test('天气首屏安全显示缓存图标并恢复温标', () => {
   const html = readFileSync(join(DIST, 'index.html'), 'utf8');
   const script = [...html.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi)]
     .find(match => match[1].includes('glass_weather_cache'))?.[1];
   assert.ok(script);
-  for (const icon of ['x" onerror="window.__injected=1" data-x=".svg', '__proto__']) {
+  for (const [icon, tempUnit, expectedTemp] of [
+    ['x" onerror="window.__injected=1" data-x=".svg', null, '20°'],
+    ['__proto__', '"F"', '68°'],
+    ['☀️', 'F', '68°']
+  ]) {
     const elements = Object.fromEntries(['weatherIcon', 'weatherTemp', 'weatherCity', 'weatherBtn']
       .map(id => [id, { textContent: '', innerHTML: '', setAttribute() {} }]));
     vm.runInNewContext(script, {
       localStorage: { getItem: key => key === 'glass_weather_cache'
-        ? JSON.stringify({ current: {temp:20, icon}, location: {name:'测试'} }) : null },
+        ? JSON.stringify({ current: {temp:20, icon}, location: {name:'测试'} }) : tempUnit },
       document: { getElementById: id => elements[id] },
       window: { __GLASS_I18N__: { t: () => '', weatherDescription: () => '' } }
     });
-    assert.equal(elements.weatherIcon.innerHTML, '', '异常缓存只能作为文字显示');
-    assert.equal(elements.weatherIcon.textContent, icon);
+    assert.equal(elements.weatherTemp.textContent, expectedTemp);
+    if (icon !== '☀️') {
+      assert.equal(elements.weatherIcon.innerHTML, '', '异常缓存只能作为文字显示');
+      assert.equal(elements.weatherIcon.textContent, icon);
+    }
   }
 });
 

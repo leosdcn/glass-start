@@ -1,7 +1,7 @@
 import { t, getLocale, weatherDescription, forecastLabel } from '../core/i18n.js';
 import { weatherTime, formatLocationFullName, stripAdminSuffix, normalizeWeatherForecast } from '../utils/weather-model.js';
 import { CONFIG } from '../config/constants.js';
-import { weatherNum, toDisplayTemp } from '../utils/weather-data.js';
+import { parseTempUnit, weatherNum, toDisplayTemp } from '../utils/weather-data.js';
 import { escapeHtml, safeUrl } from '../utils/helpers.js';
 import { storageGet, storageSet, storageRemove } from '../utils/storage.js';
 import { dom } from '../state/dom.js';
@@ -223,21 +223,19 @@ export async function fetchWeatherForecast(loc) {
 /** @type {import('../types').WeatherData | null} */
 let currentWeatherData = null;
 
-export function getTempUnit() {
+function getTempUnit() {
     try {
-        const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(CONFIG.KEYS.TEMP_UNIT) : null;
-        if (!raw) return 'C';
-        return raw === 'F' || raw === '"F"' ? 'F' : 'C';
+        return parseTempUnit(localStorage.getItem(CONFIG.KEYS.TEMP_UNIT));
     } catch {
         return 'C';
     }
 }
 
-export function toggleTempUnit() {
+function toggleTempUnit() {
     const restoreFocus = document.activeElement?.id === 'tempUnitToggleBtn';
     const nextUnit = getTempUnit() === 'F' ? 'C' : 'F';
     try {
-        if (typeof localStorage !== 'undefined') localStorage.setItem(CONFIG.KEYS.TEMP_UNIT, nextUnit);
+        localStorage.setItem(CONFIG.KEYS.TEMP_UNIT, nextUnit);
     } catch {}
     refreshWeatherDisplay();
     // 弹窗重绘会替换控件，仅在原控件持有焦点时恢复，避免打断其他输入。
@@ -245,7 +243,6 @@ export function toggleTempUnit() {
         const button = /** @type {HTMLElement | null | undefined} */ (dom.weatherPopover?.querySelector('#tempUnitToggleBtn'));
         button?.focus({ preventScroll: true });
     }
-    return nextUnit;
 }
 
 /** 按当前单位重新渲染已有天气，不发起网络请求。 */

@@ -68,15 +68,9 @@
     <link rel="dns-prefetch" href="https://api.open-meteo.com">
     <!-- 根据视口、DPR 与保存的偏好预加载壁纸；IDB 图片等待应用恢复。 -->
     <script>
-      /**
-       * 根据用户偏好预加载壁纸。默认使用本地 AVIF；历史远程 Unsplash URL
-       * 按视口宽度与 DPR 调整请求参数。只预加载当前选择，避免同时请求默认壁纸。
-       * 执行时间和首屏效果取决于设备、缓存与网络，不作固定耗时保证。
-       */
       (function() {
         // 壁纸清单、原图来源与 AVIF 重建说明见 config/backgrounds.js。
         /* INJECT_BACKGROUNDS */
-        window.__BACKGROUNDS__ = backgrounds;
         try {
           let wallpaperMeta = null;
           try {
@@ -216,7 +210,7 @@
                             else i.textContent = c.current.icon;
                         }
                         if (t) {
-                            const u = localStorage.getItem('glass_temp_unit') === 'F' ? 'F' : 'C';
+                            const u = parseTempUnit(localStorage.getItem('glass_temp_unit'));
                             t.textContent = toDisplayTemp(c.current.temp, u) + '°';
                         }
                         if (ct && c.location && c.location.name) ct.textContent = c.location.name;

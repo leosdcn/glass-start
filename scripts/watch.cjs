@@ -14,7 +14,7 @@ function shouldIgnore(filename) {
 }
 
 // 监听入口共用防抖与关闭流程；重建期间的新变化合并到下一轮。
-function watchFiles(files, { rebuild, onSuccess, label = 'Watch', delay = 80 }) {
+function watchFiles(files, { rebuild, label = 'Watch', delay = 80 }) {
     let timer = null, pending = null, rebuilding = false, closed = false;
     const run = async () => {
         timer = null;
@@ -22,16 +22,14 @@ function watchFiles(files, { rebuild, onSuccess, label = 'Watch', delay = 80 }) 
         const filename = pending;
         pending = null;
         rebuilding = true;
-        console.log(`\n${c.magenta}📝 [${label}] 检测到源码修改: ${filename}，正在增量编译 dist/ ...${c.reset}`);
-        const startedAt = Date.now();
+        console.log(`\n${c.magenta}📝 [${label}] 检测到源码修改: ${filename}，正在重新构建 dist/ ...${c.reset}`);
         try {
-            const result = await rebuild(filename);
+            const { version, duration } = await rebuild();
             if (!closed) {
-                console.log(`  ${c.green}✔ [${label}] 增量编译完成！版本: ${c.cyan}${result?.version || ''}${c.reset}${c.green} (耗时: ${result?.duration ?? Date.now() - startedAt}ms)${c.reset}\n`);
-                if (typeof onSuccess === 'function') onSuccess(result);
+                console.log(`  ${c.green}✔ [${label}] 重新构建完成！版本: ${c.cyan}${version}${c.reset}${c.green} (耗时: ${duration}ms)${c.reset}\n`);
             }
         } catch (err) {
-            console.error(`  ${c.yellow}❌ [${label}] 增量编译失败:${c.reset}`, err.message || err);
+            console.error(`  ${c.yellow}❌ [${label}] 重新构建失败:${c.reset}`, err.message || err);
         } finally {
             rebuilding = false;
             if (!closed && pending !== null) timer = setTimeout(run, delay);

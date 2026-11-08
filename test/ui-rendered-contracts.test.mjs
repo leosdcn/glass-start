@@ -138,7 +138,7 @@ try {
         Math.min(r.right,other.right)-Math.max(r.left,other.left)<1 ||
         Math.min(r.bottom,other.bottom)-Math.max(r.top,other.top)<1));
       return {
-        count:cards.length, noOverlap,
+        sources:cards.map(card=>card.dataset.bg), backgrounds, noOverlap,
         height:parseFloat(getComputedStyle(document.getElementById('editModal').querySelector('.glass-strong')).height),
         horizontalOverflow:panel.scrollWidth>panel.clientWidth+1,
         fullGallery:panel.scrollHeight<=panel.clientHeight+1,
@@ -152,7 +152,7 @@ try {
         })
       };
     })()`);
-    assert.equal(layout.count, 8);
+    assert.deepEqual(layout.sources, layout.backgrounds);
     assert.equal(layout.height, panelHeight, `${width}px 切换外观页不能撑高弹窗`);
     assert.ok(layout.noOverlap && layout.framed && !layout.horizontalOverflow, `${width}px: ${JSON.stringify(layout)}`);
     if (width>=640) assert.ok(layout.aligned, `${width}px 三组设置保持横排`);

@@ -230,7 +230,6 @@ declare global {
         /** 仅测试适配层挂载，生产页面不提供。 */
         state?: AppState;
         __ENGINE_SVGS__?: Record<string, string>;
-        __BACKGROUNDS__?: string[];
         __INITIAL_THEME__?: { color: string; isLight: boolean; themeColor?: string };
         __GLASS_BUILD_HTML__?: string;
         __GLASS_BUILD_APP__?: string;

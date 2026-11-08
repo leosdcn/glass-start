@@ -24,7 +24,6 @@ const PATHS = {
     srcCss: path.join(ROOT_DIR, 'src', 'styles', 'main.css'),
     srcSvg: path.join(ROOT_DIR, 'src', 'svg', 'sprite.svg'),
     srcMainJs: path.join(ROOT_DIR, 'src', 'js', 'main.js'),
-    srcConstants: path.join(ROOT_DIR, 'src', 'js', 'config', 'constants.js'),
     dist: path.join(ROOT_DIR, 'dist'),
     staging: path.join(ROOT_DIR, '.dist_staging'),
     backup: path.join(ROOT_DIR, '.dist_backup'),
@@ -117,7 +116,7 @@ function publishStagingToDist(stagingDir) {
 
 // Tailwind 扫描 HTML、JS 及导入的样式；Watch 事件可能合并，不能只凭最后一个路径跳过编译。
 function compileTailwindCss() {
-    logSection('1/5', '📦 编译 Tailwind CSS 样式表 (v4 CLI)');
+    logSection('1/4', '📦 编译 Tailwind CSS 样式表 (v4 CLI)');
 
     const cssStart = Date.now();
     let cliBin;
@@ -149,7 +148,7 @@ function compileTailwindCss() {
 
 // 3. 处理并复制 Service Worker 底座脚本与静态资产
 function buildServiceWorkerAndAssets(targetDir = PATHS.dist) {
-    logSection('2/5', '📑 构建 Service Worker 与静态资产 (sw.js & assets)');
+    logSection('2/4', '📑 构建 Service Worker 与静态资产 (sw.js & assets)');
     const assetsStart = Date.now();
     
     // 3.1 Service Worker
@@ -177,23 +176,6 @@ function buildServiceWorkerAndAssets(targetDir = PATHS.dist) {
     buildMetrics.stages.assets = Date.now() - assetsStart;
 }
 
-// 4. 自动数据校验机制 (bookmarks.json 作为单一真理源直接被 constants.js 导入)
-function syncBookmarksData() {
-    logSection('3/5', '🔄 校验书签默认数据 (bookmarks.json 单一真理源)');
-
-    if (fs.existsSync(PATHS.bookmarksJson) && fs.existsSync(PATHS.srcConstants)) {
-        try {
-            const bookmarksData = JSON.parse(fs.readFileSync(PATHS.bookmarksJson, 'utf-8'));
-            const bmCount = Array.isArray(bookmarksData.bookmarks) ? bookmarksData.bookmarks.length : 0;
-            const catCount = Array.isArray(bookmarksData.categories) ? bookmarksData.categories.length : 0;
-            logItem(`根目录 bookmarks.json 格式合法 (${bmCount} 个常用书签, ${catCount} 个导航分类)`);
-            logItem(`源码 src/js/config/constants.js 已原生引入 bookmarks.json，单一真理源自动生效`);
-        } catch (e) {
-            logItem(`校验默认书签时出现警告: ${e.message}`, 'warn');
-        }
-    }
-}
-
 // 两种构建共用编译选项；生产在编译时裁掉测试入口，测试脚本只由测试服务器持有。
 function buildAppJavaScript({ testMode = false, extension = false, version = currentBuildVersion, outfile } = {}) {
     return esbuild.buildSync({
@@ -216,7 +198,7 @@ function buildAppJavaScript({ testMode = false, extension = false, version = cur
 
 // 生成生产应用脚本。
 function processProductionAppJs(targetDir = PATHS.dist, { extension = false } = {}) {
-    logSection('4/5', '⚡ 提取并压缩生产脚本 (dist/app.js)');
+    logSection('3/4', '⚡ 提取并压缩生产脚本 (dist/app.js)');
 
     if (!fs.existsSync(PATHS.srcMainJs)) {
         throw new Error(`未能在 ${PATHS.srcMainJs} 中找到主入口模块`);
@@ -270,7 +252,7 @@ function injectHeadConfig(html, { marker, entryPath, globalName, binding }) {
 
 // 5. 处理生产环境 index.html (替换内联 JS 为外链 dist/app.js，全量内嵌静态编译 Tailwind CSS 与 SVG 精灵)
 function processProductionHtml(compiledCss, targetDir = PATHS.dist) {
-    logSection('5/5', '🔧 处理生产环境页面 (dist/index.html)');
+    logSection('4/4', '🔧 处理生产环境页面 (dist/index.html)');
     const htmlStart = Date.now();
     let prodHtmlContent = fs.readFileSync(PATHS.srcIndexHtml, 'utf-8');
     const i18nBootstrap = esbuild.buildSync({
@@ -301,7 +283,7 @@ function processProductionHtml(compiledCss, targetDir = PATHS.dist) {
         marker: '/* INJECT_WEATHER_NUM */',
         entryPath: path.join(PATHS.src, 'js', 'utils', 'weather-data.js'),
         globalName: '__headWeather',
-        binding: 'const { weatherNum, toDisplayTemp } = __headWeather;'
+        binding: 'const { parseTempUnit, toDisplayTemp } = __headWeather;'
     });
 
     prodHtmlContent = injectDocumentShell(prodHtmlContent, {
@@ -431,7 +413,6 @@ function printDistSummary(startTime) {
 function executeBuild(targetDir, options = {}) {
     const compiledCss = compileTailwindCss();
     buildServiceWorkerAndAssets(targetDir);
-    syncBookmarksData();
     processProductionAppJs(targetDir, options);
     processProductionHtml(compiledCss, targetDir);
 }
@@ -475,7 +456,7 @@ function main() {
     }
 }
 
-// 增量构建流程 (供 Watch Mode 与外部服务器调用)
+// 文件变化后重新构建并发布。
 function rebuild() {
     const startTime = Date.now();
     currentBuildVersion = 'app-core-v' + startTime;
@@ -498,7 +479,7 @@ function rebuild() {
 }
 
 // 独立监听模式
-function startWatch(onRebuildSuccess, { label = 'Watch', delay = 80 } = {}) {
+function startWatch({ label = 'Watch', delay = 80 } = {}) {
     if (label === 'Watch') {
         console.log(`\n${c.yellow}👀 开启文件修改自动构建监听模式 (Watch Mode)...${c.reset}`);
         console.log(`   ${c.dim}正在监听 src/, public/, bookmarks.json, package.json, LICENSE, sw.js ...${c.reset}\n`);
@@ -510,7 +491,7 @@ function startWatch(onRebuildSuccess, { label = 'Watch', delay = 80 } = {}) {
         { path: PATHS.pkgJson, name: 'package.json' },
         { path: PATHS.license, name: 'LICENSE' },
         { path: PATHS.sw, name: 'sw.js' }
-    ], { rebuild, onSuccess: onRebuildSuccess, label, delay });
+    ], { rebuild, label, delay });
 }
 
 if (require.main === module) {
@@ -524,7 +505,6 @@ if (require.main === module) {
 
 module.exports = {
     main,
-    rebuild,
     startWatch,
     injectThemeConfig,
     buildAppJavaScript,

@@ -3,6 +3,7 @@ import { t } from '../core/i18n.js';
  * 壁纸选择、预览与持久化，以及背景暗度显示；设置模块决定草稿何时提交或取消。
  */
 import { CONFIG, backgrounds } from '../config/constants.js';
+import { PRESET_WALLPAPERS } from '../config/backgrounds.js';
 import { escapeHtml } from '../utils/helpers.js';
 import { storageGet, storageSet } from '../utils/storage.js';
 import { getWallpaperSelectionDB, setWallpaperSelectionDB } from '../utils/idb.js';
@@ -350,20 +351,19 @@ export function preloadNextBg() {
 export function renderPresetWallpapers() {
     const grid = dom.presetWallpaperGrid;
     if (!grid || grid.hasChildNodes()) return;
-    const titles = [t('ui.mountains.at.dusk'), t('ui.valley.sunrise'), t('ui.peaks.under.stars'), t('ui.mountain.dawn'), t('ui.city.skyline'), t('ui.quiet.corridors'), t('ui.violet.flow'), t('ui.dream.colors')];
-    grid.innerHTML = titles.map((title, i) => {
-        const bg = `./wallpapers/bg${i + 1}.avif`;
-        const thumb = `./wallpapers/bg${i + 1}-thumb.avif`;
+    grid.innerHTML = PRESET_WALLPAPERS.map(({ url, title: titleKey }, i) => {
+        const title = t(titleKey);
         const fullTitle = i === 0 ? t('wallpaper.default', { name: title }) : title;
-        return `<button type="button" class="preset-bg-card group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70" data-bg="${bg}" title="${escapeHtml(fullTitle)}" aria-pressed="false">
+        return `<button type="button" class="preset-bg-card group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70" data-bg="${escapeHtml(url)}" title="${escapeHtml(fullTitle)}" aria-pressed="false">
             <span class="preset-bg-image">
-                <img src="${thumb}" width="${CONFIG.UI.WALLPAPER_CARD_WIDTH}" height="${CONFIG.UI.WALLPAPER_CARD_HEIGHT}" alt="" loading="lazy" decoding="async" draggable="false">
+                <img width="${CONFIG.UI.WALLPAPER_CARD_WIDTH}" height="${CONFIG.UI.WALLPAPER_CARD_HEIGHT}" alt="" loading="lazy" decoding="async" draggable="false">
                 <span class="preset-bg-check" aria-hidden="true"><svg aria-hidden="true"><use href="#icon-check"/></svg></span>
             </span>
             <span class="preset-bg-title">${escapeHtml(title)}</span>
         </button>`;
     }).join('');
-    grid.querySelectorAll('img').forEach(img => {
+    grid.querySelectorAll('img').forEach((img, i) => {
+        img.src = PRESET_WALLPAPERS[i].url.replace(/\.avif$/i, '-thumb.avif');
         if (img.complete && img.naturalWidth > 0) img.classList.add('loaded');
         else img.addEventListener('load', () => img.classList.add('loaded'), { once: true });
     });

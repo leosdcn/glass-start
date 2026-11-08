@@ -83,7 +83,7 @@ test('书签轻量存储模型、自定义图标持久化与系统重置', async
       }));
     })()`);
     await send('Page.reload');
-    await waitFor(evalJS, 'document.readyState === "complete" && typeof weatherNum === "function" && !isFetchingWeather');
+    await waitFor(evalJS, 'document.readyState === "complete" && typeof renderWeatherCapsule === "function" && !isFetchingWeather');
 
     const loaded = await evalJS(`(() => ({
       keys: JSON.parse(localStorage.getItem('userBookmarkKeys') || 'null'),

@@ -17,13 +17,15 @@
  * 大图：avifenc -s 4 -q 75 --yuv 444 input.png bgX.avif
  * 缩略图：avifenc -s 4 -q 70 --yuv 420 thumb.png bgX-thumb.avif
  */
-export const PRESET_BACKGROUNDS = Object.freeze([
-    './wallpapers/bg1.avif',
-    './wallpapers/bg2.avif',
-    './wallpapers/bg3.avif',
-    './wallpapers/bg4.avif',
-    './wallpapers/bg5.avif',
-    './wallpapers/bg6.avif',
-    './wallpapers/bg7.avif',
-    './wallpapers/bg8.avif'
+export const PRESET_WALLPAPERS = Object.freeze([
+    { url: './wallpapers/bg1.avif', title: 'ui.mountains.at.dusk' },
+    { url: './wallpapers/bg2.avif', title: 'ui.valley.sunrise' },
+    { url: './wallpapers/bg3.avif', title: 'ui.peaks.under.stars' },
+    { url: './wallpapers/bg4.avif', title: 'ui.mountain.dawn' },
+    { url: './wallpapers/bg5.avif', title: 'ui.city.skyline' },
+    { url: './wallpapers/bg6.avif', title: 'ui.quiet.corridors' },
+    { url: './wallpapers/bg7.avif', title: 'ui.violet.flow' },
+    { url: './wallpapers/bg8.avif', title: 'ui.dream.colors' }
 ]);
+
+export const PRESET_BACKGROUNDS = Object.freeze(PRESET_WALLPAPERS.map(({ url }) => url));

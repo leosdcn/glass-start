@@ -1,4 +1,9 @@
 /** 首帧缓存恢复和运行时共用的气象数值清洗与单位换算规则。 */
+/** @param {string | null} value 已存储的温度单位，兼容 JSON 字符串。 */
+export function parseTempUnit(value) {
+    return value === 'F' || value === '"F"' ? 'F' : 'C';
+}
+
 /** @param {unknown} value @param {number} fallback @returns {number} */
 export function weatherNum(value, fallback) {
     if (typeof value !== 'number' && typeof value !== 'string') return fallback;

@@ -14,19 +14,15 @@ import * as domState from '../state/dom.js';
 import * as overlay_stack from '../core/overlay-stack.js';
 import * as screen_state from '../core/screen-state.js';
 import { handleAppWakeUp } from '../events.js';
-import * as lifecycle from '../core/lifecycle.js';
 import * as wallpaper from '../modules/wallpaper.js';
 import * as search from '../modules/search.js';
 import * as weather from '../modules/weather.js';
-import { weatherNum } from '../utils/weather-data.js';
-import { weatherTime, formatLocationFullName } from '../utils/weather-model.js';
 import * as bookmarks from '../modules/bookmarks.js';
 import * as settings from '../modules/settings.js';
 import * as bookmarkPicker from '../modules/bookmark-picker.js';
 import * as editor from '../modules/bookmark-editor.js';
 import { replaceBookmarkDraft } from '../state/bookmark-draft.js';
 import * as dialogs from '../core/dialogs.js';
-import * as settingsEvents from '../modules/settings-events.js';
 import * as app from '../init.js';
 
 // 只暴露现有测试接口，不自动展开模块的其他导出。
@@ -62,7 +58,6 @@ Object.assign(window, {
     switchToNav: screen_state.switchToNav,
     switchToStart: screen_state.switchToStart,
     handleAppWakeUp,
-    verifyFingerprint: lifecycle.verifyFingerprint,
     applyWallpaper: wallpaper_renderer.applyWallpaper,
     getPreparedWallpaperImage: wallpaper_renderer.getPreparedWallpaperImage,
     getEffectiveCustomWallpaper: wallpaper.getEffectiveCustomWallpaper,
@@ -74,10 +69,7 @@ Object.assign(window, {
     DEFAULT_CATEGORIES: constants.DEFAULT_CATEGORIES,
     hideSuggestions: search.hideSuggestions,
     fetchSuggestions: search.fetchSuggestions,
-    weatherNum,
-    weatherTime,
     openWeatherPopover: weather.openWeatherPopover,
-    formatLocationFullName,
     fetchWeatherForecast: weather.fetchWeatherForecast,
     updateWeather: weather.updateWeather,
     renderWeatherCapsule: weather.renderWeatherCapsule,
@@ -106,9 +98,6 @@ Object.assign(window, {
     openBookmarkPicker: bookmarkPicker.openBookmarkPicker,
     exportBookmarksJSON: settings.exportBookmarksJSON,
     resetBookmarks: settings.resetBookmarks,
-    getExistingUrls: editor.getExistingUrls,
-    selectDraftTransitionMode: settings.selectDraftTransitionMode,
-    bindEditEvents: settingsEvents.bindEditEvents,
     init: app.init,
 });
 
@@ -124,10 +113,6 @@ Object.defineProperties(window, {
     },
     suggestionScriptTag: {
         get: () => search.suggestionScriptTag,
-        configurable: true
-    },
-    suggestDebounceTimer: {
-        get: () => search.suggestDebounceTimer,
         configurable: true
     },
     isFetchingWeather: {

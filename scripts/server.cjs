@@ -43,8 +43,9 @@ function createStaticServer() {
     return http.createServer((req, res) => {
         try {
             const urlRaw = req.url || '/';
+            const pathname = urlRaw.split('?')[0];
             // 重置本地视觉测试环境：清除缓存和已保存数据，避免旧状态影响预览。
-            if (urlRaw.startsWith('/_clear_cache') || urlRaw.includes('clear-cache=1')) {
+            if (req.method === 'GET' && pathname === '/_clear_cache') {
                 res.writeHead(200, {
                     'Content-Type': 'text/html; charset=utf-8',
                     'Clear-Site-Data': '"cache", "storage"',
@@ -54,7 +55,7 @@ function createStaticServer() {
                 return;
             }
 
-            let reqPath = decodeURIComponent(urlRaw.split('?')[0]);
+            let reqPath = decodeURIComponent(pathname);
             if (reqPath === '/' || reqPath === '') {
                 reqPath = '/index.html';
             }
@@ -187,7 +188,7 @@ function startListening(port) {
 
     server.listen(port, '0.0.0.0', () => {
         if (enableWatch && !watchCleanup) {
-            watchCleanup = startWatch(undefined, { label: 'Dev Server', delay: 50 });
+            watchCleanup = startWatch({ label: 'Dev Server', delay: 50 });
         }
 
         const lanIps = getLanIps();
@@ -204,9 +205,9 @@ function startListening(port) {
             }
         }
         if (enableWatch) {
-            console.log(`  👀 ${c.bold}增量监听:${c.reset}    ${c.green}已开启 (改动即时编译)${c.reset}`);
+            console.log(`  👀 ${c.bold}文件监听:${c.reset}    ${c.green}已开启 (改动后重新构建)${c.reset}`);
         } else {
-            console.log(`  👀 ${c.bold}增量监听:${c.reset}    ${c.yellow}已关闭 (参数包含 --no-watch)${c.reset}`);
+            console.log(`  👀 ${c.bold}文件监听:${c.reset}    ${c.yellow}已关闭${c.reset}`);
         }
         const isCleanMode = process.env.CLEAR_CACHE === '1' || process.argv.includes('--clear-cache');
         if (isCleanMode) {
@@ -214,7 +215,7 @@ function startListening(port) {
         }
 
         console.log(`\n${c.gray}─── 💡 快速提示 ${'─'.repeat(LINE_WIDTH - 16)}${c.reset}`);
-        console.log(`  • 源码修改时服务将自动增量编译至 dist/ 并滚动版本指纹，直接刷新浏览器即可预览`);
+        if (enableWatch) console.log(`  • 源码修改后自动重新构建 dist/，刷新浏览器即可预览`);
         if (!isCleanMode) {
             console.log(`  • 重置本地视觉测试环境: ${c.yellow}http://localhost:${port}/_clear_cache${c.reset} （清除缓存、书签、壁纸与偏好）`);
         }
