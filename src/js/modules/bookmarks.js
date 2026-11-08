@@ -309,9 +309,8 @@ export function scheduleOffscreenNavIcons() {
 }
 
 let isSidebarNavInitialized = false;
-let isManualScrolling = false;
-/** @type {ReturnType<typeof setTimeout> | null} */
-let manualScrollTimer = null;
+/** @type {{ item: HTMLElement, top: number } | null} */
+let sidebarJump = null;
 /** @type {HTMLElement[]} */
 let cachedSidebarItems = [];
 /** @type {HTMLElement[]} */
@@ -358,10 +357,8 @@ function scrollTabIntoView(item, container) {
 }
 
 export function updateSidebarActive() {
-    const sidebarContainer = dom.sidebar;
-    const sidebarList = dom.sidebarList;
     const content = dom.navContent;
-    if (!sidebarList || !content || isManualScrolling) return;
+    if (!dom.sidebarList || !content || sidebarJump) return;
 
     refreshSidebarNavCache();
     const items = cachedSidebarItems;
@@ -392,13 +389,15 @@ export function updateSidebarActive() {
         }
     }
 
+    selectSidebarTab(items[activeIdx]);
+}
+
+/** @param {HTMLElement} nextActive */
+function selectSidebarTab(nextActive) {
     // 先读取侧栏几何信息，再更新高亮；避免 active 字重变更后立即强制布局。
-    const nextActive = items[activeIdx];
-    if (nextActive && !nextActive.classList.contains('active')) {
-        scrollTabIntoView(nextActive, sidebarContainer);
-    }
-    items.forEach((item, i) => {
-        const isActive = i === activeIdx;
+    if (!nextActive.classList.contains('active')) scrollTabIntoView(nextActive, dom.sidebar);
+    cachedSidebarItems.forEach(item => {
+        const isActive = item === nextActive;
         const wasActive = item.classList.contains('active');
         if (isActive !== wasActive) {
             item.classList.toggle('active', isActive);
@@ -415,6 +414,7 @@ export function renderNavCategories() {
     const catalog = getCategoryCatalog(pageData.categories);
     if (catalog === lastNavCatalog) return;
     lastNavCatalog = catalog;
+    sidebarJump = null;
 
     const navContent = dom.navContent;
     // 首次构建时目录为空，无需读取滚动布局；重绘已有目录才保留位置。
@@ -518,23 +518,15 @@ function initSidebarNav(measureActive = true) {
             const target = targetId ? document.getElementById(targetId) : null;
             if (!target) return;
 
-            isManualScrolling = true;
-            if (manualScrollTimer) clearTimeout(manualScrollTimer);
-
-            const allItems = Array.from(sidebarList.querySelectorAll('[data-target]'));
-            allItems.forEach(item => {
-                const selected = item === btn;
-                item.classList.toggle('active', selected);
-                item.setAttribute('aria-selected', String(selected));
-            });
-            const sidebarContainer = dom.sidebar;
-            scrollTabIntoView(btn, sidebarContainer);
-
-            const cat0 = document.getElementById('cat-0');
-            const baseOffset = cat0 ? cat0.offsetTop : 0;
-            const targetTop = (targetId === 'cat-0') ? 0 : Math.max(0, target.offsetTop - baseOffset);
-
-            content.scrollTo({ top: targetTop, behavior: 'smooth' });
+            refreshSidebarNavCache();
+            const firstCategory = /** @type {HTMLElement | null} */ (dom.navCategories?.firstElementChild);
+            const baseOffset = firstCategory?.offsetTop ?? 0;
+            const top = Math.min(content.scrollHeight - content.clientHeight, Math.max(0, target.offsetTop - baseOffset));
+            const atTarget = Math.abs(content.scrollTop - top) <= 1;
+            sidebarJump = atTarget ? null : { item: btn, top };
+            selectSidebarTab(btn);
+            // 原地点击没有 scrollend；instant 同时取消尚未开始的旧跳转。
+            content.scrollTo({ top, behavior: atTarget ? 'instant' : 'smooth' });
 
             const header = target.querySelector('.category-header');
             if (header) {
@@ -546,11 +538,6 @@ function initSidebarNav(measureActive = true) {
                     });
                 });
             }
-
-            manualScrollTimer = setTimeout(() => {
-                isManualScrolling = false;
-                updateSidebarActive();
-            }, CONFIG.NAV.MANUAL_LOCK_MAX_MS);
         });
 
         sidebarList.addEventListener('keydown', (e) => {
@@ -561,19 +548,31 @@ function initSidebarNav(measureActive = true) {
             });
         });
 
+        const interruptJump = () => {
+            if (!sidebarJump) return;
+            sidebarJump = null;
+            updateSidebarActive();
+        };
+        content.addEventListener('wheel', e => {
+            if (!e.ctrlKey && Math.abs(e.deltaY) > Math.abs(e.deltaX)) interruptJump();
+        }, { passive: true });
+        content.addEventListener('touchstart', interruptJump, { passive: true });
+        content.addEventListener('keydown', e => {
+            if (['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' '].includes(e.key)) interruptJump();
+        });
+        content.addEventListener('scrollend', () => {
+            if (!sidebarJump) return;
+            const top = Math.min(sidebarJump.top, content.scrollHeight - content.clientHeight);
+            if (Math.abs(content.scrollTop - top) > 1) return;
+            selectSidebarTab(sidebarJump.item);
+            sidebarJump = null;
+        });
+
         let ticking = false;
-        /** @type {ReturnType<typeof setTimeout> | null} */
-        let scrollEndTimer = null;
         content.addEventListener('scroll', () => {
             if (!navAllIconsActivated) activateAllNavIcons();
-            if (isManualScrolling) {
-                if (scrollEndTimer) clearTimeout(scrollEndTimer);
-                scrollEndTimer = setTimeout(() => {
-                    isManualScrolling = false;
-                    updateSidebarActive();
-                }, CONFIG.NAV.SCROLL_END_DEBOUNCE);
-                return;
-            }
+            if (state.currentSection !== 'nav') sidebarJump = null;
+            if (sidebarJump) return;
             if (!ticking) {
                 requestAnimationFrame(() => {
                     updateSidebarActive();

@@ -104,8 +104,6 @@ export const CONFIG = Object.freeze({
                 HEADER_OFFSET: 100,           // 滚动监听分类标题吸顶判定线 (px)
                 BOTTOM_TOLERANCE: 32,         // 触底判定容差 (px)
                 BOTTOM_VISIBILITY_RATIO: 0.6, // 触底时末尾分类可见度占比判定线
-                SCROLL_END_DEBOUNCE: 120,     // 滚动静止解锁防抖延时 (ms)
-                MANUAL_LOCK_MAX_MS: 800,      // 点击跳转平滑滚动最大锁定硬上限 (ms)
                 RESIZE_DEBOUNCE: 120,         // 视口尺寸变化防抖延时 (ms)
                 MOBILE_BREAKPOINT: 640,       // 移动端/桌面端分界断点 (px)
                 TABLET_BREAKPOINT: 768,       // 平板端分界断点 (px)

@@ -245,6 +245,41 @@ await test("最后一个分类对齐与滚动边界", async () => {
     }
 });
 
+await test('分类连点只在当前目标到达时结束跳转', async () => {
+    const { server, chrome, evalJS } = await launchSession();
+    try {
+        await evalJS('switchToNav()');
+        await waitFor(evalJS, '!isScreenTransitioning()');
+        const result = await evalJS(`(async () => {
+            const { navContent, sidebarList } = dom;
+            const current = () => sidebarList.querySelector('.active').dataset.target;
+            const end = () => new Promise(resolve => navContent.addEventListener('scrollend', resolve, { once: true }));
+            const firstEnd = end();
+            sidebarList.children[2].click();
+            await firstEnd;
+
+            sidebarList.children[5].click();
+            // 旧滚动结束时，新的平滑滚动还没移动。
+            navContent.dispatchEvent(new Event('scrollend'));
+            updateSidebarActive();
+            const during = current();
+            await end();
+            const arrived = current();
+
+            sidebarList.children[5].click();
+            const finalEnd = end();
+            navContent.scrollTo({ top: 0, behavior: 'instant' });
+            await finalEnd;
+            updateSidebarActive();
+            return { during, arrived, after: current() };
+        })()`);
+        assert.deepEqual(result, { during: 'cat-5', arrived: 'cat-5', after: 'cat-0' });
+    } finally {
+        await chrome.close();
+        await server.close();
+    }
+});
+
 await test("窄屏分类栏首尾按钮保留对称边距", async () => {
     const { server, chrome, send, evalJS } = await launchSession();
     try {
