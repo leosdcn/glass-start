@@ -15,11 +15,20 @@ test('天气交互、弹窗规范与休眠感知套件', async (t) => {
     'typeof openEditModal === "function" && !!document.querySelector(".bookmark-item") && !isFetchingWeather');
 
   try {
-    await t.test('天气组件胶囊展开、Escape 退栈与 ARIA 状态同步', async () => {
+    await t.test('天气胶囊整体缩放、边缘点击、Escape 退栈与 ARIA 状态同步', async () => {
       const widgetExists = await evalJS(`!!document.getElementById('weatherWidget') && !!document.getElementById('weatherBtn')`);
       assert.equal(widgetExists, true);
 
-      await evalJS(`document.getElementById('weatherBtn').click()`);
+      await waitFor(evalJS, "!dom.weatherBtn.classList.contains('fade-in')");
+      const edge = await evalJS(`(() => {
+        const { left, top, height } = dom.weatherBtn.getBoundingClientRect();
+        return { x: left + 1, y: top + height / 2 };
+      })()`);
+      await send('Input.dispatchMouseEvent', { type: 'mouseMoved', ...edge });
+      await send('Input.dispatchMouseEvent', { type: 'mousePressed', button: 'left', clickCount: 1, ...edge });
+      await waitFor(evalJS, "getComputedStyle(dom.weatherBtn).scale === '0.94'");
+      assert.equal(await evalJS('getComputedStyle(dom.weatherTemp).scale'), 'none');
+      await send('Input.dispatchMouseEvent', { type: 'mouseReleased', button: 'left', clickCount: 1, ...edge });
       await waitFor(evalJS, `document.getElementById('weatherPopover')?.classList.contains('active') && OverlayStack.top()?.id === 'weatherPopover'`);
       const popoverOpened = await evalJS(`({
         active: document.getElementById('weatherPopover').classList.contains('active'),

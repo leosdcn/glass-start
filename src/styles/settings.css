@@ -8,7 +8,7 @@
 }
 
 @media (hover: hover) and (pointer: fine) {
-    body:not(.tab-blurred) .settings-transition-btn:hover:not(.active) {
+    body:not(.tab-blurred) .settings-transition-btn:hover:not(.active, :active) {
         background: rgba(255, 255, 255, 0.08);
         color: rgba(255, 255, 255, 0.95);
     }
@@ -32,7 +32,7 @@
     body:not(.tab-blurred) .edit-row-card .drag-handle:hover:not(:disabled) {
         color: #ffffff;
     }
-    body:not(.tab-blurred) .picker-item:hover:not(:disabled) {
+    body:not(.tab-blurred) .picker-item:enabled:hover:not(:active) {
         background-color: var(--tint-10);
     }
 }
@@ -189,7 +189,16 @@ body.drag-settling .drag-handle {
 }
 
 .picker-item {
-    transition: background-color 0.15s ease, opacity 0.2s ease;
+    transition: background-color 0.15s ease, opacity 0.2s ease, scale var(--duration-press) var(--ease-snappy);
+}
+
+#languageBtn {
+    transition: background-color var(--duration-fast) ease, scale var(--duration-press) var(--ease-snappy);
+}
+
+:is(#languageBtn, #cancelEditBtn, #cancelLanguageBtn, #resetBgBtn, #urlBgConfirmBtn, #urlBgCancelBtn):enabled:active,
+:is(.settings-tab-btn, .settings-transition-btn, .settings-action, .language-modal-item, .picker-item):not(:disabled):active {
+    background-color: rgba(255, 255, 255, 0.25);
 }
 
 .json-dropzone.drag-over {

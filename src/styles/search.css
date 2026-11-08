@@ -87,18 +87,18 @@
     }
 }
 #engineBtn {
-    transition: background-color 0.15s ease, color 0.15s ease, transform 0.08s var(--ease-snappy);
+    transition: background-color 0.15s ease, color 0.15s ease, scale var(--duration-press) var(--ease-snappy);
 }
 #engineBtn svg {
     transition: transform 0.2s var(--ease-spring), opacity 0.15s ease;
 }
 @media (hover: hover) and (pointer: fine) {
-    body:not(.tab-blurred) #engineBtn:hover:not(:disabled) {
+    body:not(.tab-blurred) #engineBtn:enabled:hover:not(:active) {
         background-color: rgba(255, 255, 255, 0.12);
         color: #ffffff;
     }
 }
-#engineBtn:active {
+#engineBtn:enabled:active {
     background-color: rgba(255, 255, 255, 0.18);
 }
 
@@ -113,7 +113,8 @@
     transition: opacity var(--duration-popover) var(--ease-overshoot),
                 transform var(--duration-popover) var(--ease-overshoot),
                 background-color 0.15s ease,
-                color 0.15s ease;
+                color 0.15s ease,
+                scale var(--duration-press) var(--ease-snappy);
 }
 #randomBookmarkBtn.hidden {
     display: inline-flex;

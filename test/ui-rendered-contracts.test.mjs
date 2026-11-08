@@ -16,6 +16,17 @@ const inspect = () => evalJS(`(() => {
   return issues;
 })()`);
 const verify = async scene => assert.deepEqual(await inspect(), [], scene);
+const pressButtonEdge = async (id, scale) => {
+  const button = `document.getElementById('${id}')`;
+  const edge = await evalJS(`(() => {
+    const { left, top, height } = ${button}.getBoundingClientRect();
+    return { x: left + 1, y: top + height / 2 };
+  })()`);
+  await send('Input.dispatchMouseEvent', { type: 'mouseMoved', ...edge });
+  await send('Input.dispatchMouseEvent', { type: 'mousePressed', button: 'left', clickCount: 1, ...edge });
+  await waitFor(evalJS, `getComputedStyle(${button}).scale === '${scale}'`);
+  await send('Input.dispatchMouseEvent', { type: 'mouseReleased', button: 'left', clickCount: 1, ...edge });
+};
 // 在最亮的白色背板上合成降级底色与控件底色，检查实际文字而非仅检查父容器。
 const verifyFallbackText = async () => {
   const ratios = await evalJS(`(() => {
@@ -74,21 +85,17 @@ try {
     assert.equal(layout.columns, width>=768 ? 8 : 4);
   }
   console.log('✅ 2K、1K 与手机尺寸快速往返切换，快捷书签即时对齐搜索条且无布局延迟');
-  await evalJS('openEditModal()');
+  await waitFor(evalJS, "!dom.editBookmarksBtn.classList.contains('fade-in')");
+  await pressButtonEdge('editBookmarksBtn', '0.94');
   await waitFor(evalJS, 'document.getElementById("editModal").classList.contains("active")');
   await waitFor(evalJS, 'dom.editModal.getAnimations({subtree:true}).length === 0');
-  const tabEdge = await evalJS(`(() => {
-    const { left, top, height } = document.querySelector('#tab-btn-appearance').getBoundingClientRect();
-    return { x: left + 2, y: top + height / 2 };
-  })()`);
-  await send('Input.dispatchMouseEvent', { type: 'mouseMoved', ...tabEdge });
-  await send('Input.dispatchMouseEvent', { type: 'mousePressed', button: 'left', clickCount: 1, ...tabEdge });
-  await evalJS(`Promise.all(document.querySelector('#tab-btn-appearance').getAnimations().map(animation => animation.finished))`);
-  await send('Input.dispatchMouseEvent', { type: 'mouseReleased', button: 'left', clickCount: 1, ...tabEdge });
+  await pressButtonEdge('tab-btn-appearance', '0.96');
   assert.equal(await evalJS("document.querySelector('#tab-btn-appearance').getAttribute('aria-selected')"), 'true',
     '点击设置页签边缘时，按压反馈不应移走点击区域');
   await evalJS("document.querySelector('#tab-btn-bookmarks').click()");
-  await evalJS('dom.addBookmarkBtn.click()');
+  const rowCount = await evalJS('dom.editList.childElementCount');
+  await pressButtonEdge('addBookmarkBtn', '0.96');
+  assert.equal(await evalJS('dom.editList.childElementCount'), rowCount + 1);
   await verify('设置与新增书签行');
   await evalJS('openBookmarkPicker()');
   await waitFor(evalJS, 'document.getElementById("bookmarkPicker").classList.contains("active")');

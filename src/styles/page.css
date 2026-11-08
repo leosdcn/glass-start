@@ -486,9 +486,7 @@ textarea::placeholder {
     transform: scale(0.975) translateZ(0);
     transition: transform var(--duration-press) var(--ease-snappy);
 }
-#editBookmarksBtn:active, #weatherBtn:active, #updateReloadBtn:active,
-#randomBookmarkBtn:active, #searchClearBtn:active,
-#navHint:active {
+:is(#editBookmarksBtn, #randomBookmarkBtn, #searchClearBtn, #weatherBtn, #updateReloadBtn, #navHint):enabled:active {
     background-color: rgba(255, 255, 255, 0.22);
 }
 .json-dropzone:active {
@@ -497,11 +495,45 @@ textarea::placeholder {
 .suggestion-item:active {
     background-color: rgba(255, 255, 255, 0.22);
 }
-/* 按压只缩放内容，按钮边缘在松手时仍可命中。 */
+/* 热区反向缩放，按钮边缘在原处松手仍可命中。 */
+@layer components {
+    :where(
+        #weatherBtn, #updateReloadBtn, #navHint, #editBookmarksBtn,
+        #engineBtn, #randomBookmarkBtn, #searchClearBtn,
+        #languageBtn, #cancelEditBtn, #cancelLanguageBtn, #resetBgBtn, #urlBgConfirmBtn, #urlBgCancelBtn,
+        .settings-tab-btn, .settings-action, .settings-transition-btn, .glass-btn-primary,
+        .danger-zone-btn, .language-modal-item, .preset-bg-card, .picker-item
+    ) {
+        position: relative;
+        transform-origin: center;
+
+        &::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            translate: -50% -50%;
+            width: calc(100% + 2px);
+            height: calc(100% + 2px);
+            border-radius: inherit;
+            transition: inherit;
+        }
+
+        @media (prefers-reduced-motion: no-preference) {
+            &:not(:disabled):active {
+                --press-content-scale: none;
+                scale: var(--button-press-scale, 0.96);
+            }
+            &:not(:disabled):active::before {
+                scale: calc(1 / var(--button-press-scale, 0.96));
+            }
+        }
+    }
+}
+
 @media (prefers-reduced-motion: no-preference) {
-    button:enabled:active > :is(span, svg, img),
-    a.settings-action:active > :is(span, svg) {
-        scale: 0.96;
+    button:enabled:active > :is(span, svg, img) {
+        scale: var(--press-content-scale, 0.96);
     }
 }
 
@@ -569,13 +601,14 @@ textarea::placeholder {
 }
 
 #editBookmarksBtn {
+    --button-press-scale: 0.94;
     position: absolute;
     bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px));
     right: calc(1.5rem + env(safe-area-inset-right, 0px));
     opacity: var(--opacity-subtle);
     z-index: 50;
     transform: translateZ(0);
-    transition: opacity 0.3s ease, color 0.3s ease, background-color 0.3s ease, border-color 0.3s ease;
+    transition: opacity 0.3s ease, color 0.3s ease, background-color var(--duration-press) ease, border-color 0.3s ease, scale var(--duration-press) var(--ease-snappy);
 }
 #editBookmarksBtn.fade-in {
     animation: fadeInSubtle var(--duration-entrance) var(--ease-spring) backwards;
@@ -627,11 +660,14 @@ textarea::placeholder {
 #weatherBtn {
     position: relative;
     font-variant-numeric: tabular-nums;
-    transition: background-color var(--duration-normal) ease, border-color var(--duration-normal) ease, box-shadow var(--duration-normal) ease, color var(--duration-normal) ease, transform 0.12s ease;
+}
+:is(#weatherBtn, #updateReloadBtn, #navHint) {
+    --button-press-scale: 0.94;
+    transition: background-color var(--duration-normal) ease, border-color var(--duration-normal) ease, box-shadow var(--duration-normal) ease, color var(--duration-normal) ease, scale var(--duration-press) var(--ease-snappy);
+    transform-origin: center;
 }
 @media (hover: hover) and (pointer: fine) {
-    body:not(.tab-blurred) #updateReloadBtn:hover:not(:disabled),
-    body:not(.tab-blurred) #weatherBtn:hover:not(:disabled) {
+    body:not(.tab-blurred) :is(#weatherBtn, #updateReloadBtn):enabled:hover:not(:active) {
         background-color: rgba(255, 255, 255, 0.14);
         border-color: rgba(255, 255, 255, 0.22);
     }
@@ -761,26 +797,11 @@ html.is-chrome .nav-initial-entry .nav-bookmark:has(.bookmark-description) {
         min-height: 44px;
     }
 
-    #engineBtn::after,
-    #randomBookmarkBtn::after,
-    #searchClearBtn::after {
-        content: '';
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
+    :is(#engineBtn, #randomBookmarkBtn, #searchClearBtn)::before {
         min-width: 44px;
         min-height: 44px;
     }
-    #weatherBtn::after,
-    #updateReloadBtn::after,
-    #navHint::after {
-        content: '';
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        min-width: 100%;
+    :is(#weatherBtn, #updateReloadBtn, #navHint)::before {
         min-height: 44px;
     }
 }
