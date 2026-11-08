@@ -26,7 +26,7 @@ import { getCategoryIconHTML } from '../utils/favicon.js';
 
 /** @type {Record<string, string>} */
 const KBD = {
-    'kbd-any': `<kbd class="kbd-text">${escapeHtml(t('ui.any.character.key'))}</kbd>`,
+    'kbd-any': `<kbd class="kbd-badge">${escapeHtml(t('ui.any.character.key'))}</kbd>`,
     'kbd-slash': IS_MAC ? '<kbd>⌘</kbd><kbd>/</kbd>' : '<kbd>Ctrl</kbd><kbd>/</kbd>',
     'kbd-bg': IS_MAC ? '<kbd>⌘</kbd><kbd>B</kbd>' : '<kbd>Ctrl</kbd><kbd>B</kbd>',
     'kbd-newtab': IS_MAC ? '<kbd>⌘</kbd><kbd>↵</kbd>' : '<kbd>Alt</kbd><kbd>↵</kbd>',
@@ -37,12 +37,12 @@ function renderShortcutModalList() {
     const container = dom.shortcutModalList;
     if (!container || container.hasChildNodes()) return;
     container.innerHTML = CONFIG.SHORTCUTS.map(sec => `
-        <div>
-            <h4 class="text-2xs font-semibold uppercase tracking-wider text-white/45 mb-1.5 px-1">${escapeHtml(sec.group)}</h4>
-            <div class="inset-card">
+        <div class="flex flex-col">
+            <h4 class="text-xs font-semibold text-white/80 mb-2 px-1 flex items-center select-none">${escapeHtml(sec.group)}</h4>
+            <div class="flex-1 flex flex-col justify-between">
                 ${sec.items.map(item => `
-                    <div class="inset-card-row">
-                        <span class="text-white/85 text-xs">${escapeHtml(item.desc)}</span>
+                    <div class="shortcut-row">
+                        <span class="text-white/85 text-xs select-none">${escapeHtml(item.desc)}</span>
                         <span class="keycap shrink-0">${item.kbdId ? (KBD[item.kbdId] || `<kbd>${escapeHtml(item.fallback || '')}</kbd>`) : (item.rawHtml || '')}</span>
                     </div>
                 `).join('')}

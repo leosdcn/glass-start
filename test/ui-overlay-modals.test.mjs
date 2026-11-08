@@ -181,6 +181,13 @@ test('从天气切回搜索、更新候选和输入法确认', async () => {
     assert.deepEqual(await evalJS('OverlayStack.stack.map(entry => entry.id)'), ['suggestions']);
     await press('ArrowDown');
     await waitFor(evalJS, 'document.querySelector("#suggestionMenu .suggestion-item.active") !== null');
+    assert.equal(await evalJS('selectedSuggestionIdx'), 0);
+    // Tab 键切换至下一候选
+    await press('Tab');
+    assert.equal(await evalJS('selectedSuggestionIdx'), 1);
+    // Shift+Tab 回切至上一候选
+    await evalJS("document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', shiftKey: true, bubbles: true, cancelable: true }))");
+    assert.equal(await evalJS('selectedSuggestionIdx'), 0);
     const suggestSelectionCheck = await evalJS(`(() => {
       const menu = document.getElementById('suggestionMenu');
       const items = menu ? menu.querySelectorAll('.suggestion-item') : [];
@@ -233,9 +240,12 @@ test('从天气切回搜索、更新候选和输入法确认', async () => {
       input.dispatchEvent(new CompositionEvent('compositionstart'));
       input.value = '输入法';
       input.dispatchEvent(new CompositionEvent('compositionend'));
-      return !input.dispatchEvent(new KeyboardEvent('keydown', {key:'Enter',bubbles:true,cancelable:true}));
+      const enterDefaultPrevented = !input.dispatchEvent(new KeyboardEvent('keydown', {key:'Enter',bubbles:true,cancelable:true}));
+      const tabHandled = !input.dispatchEvent(new KeyboardEvent('keydown', {key:'Tab',bubbles:true,cancelable:true}));
+      return { enterDefaultPrevented, tabHandled };
     })()`);
-    assert.equal(imeEnterPrevented, true, '输入法确认后的回车不能回落到表单默认提交');
+    assert.equal(imeEnterPrevented.enterDefaultPrevented, true, '输入法确认后的回车不能回落到表单默认提交');
+    assert.equal(imeEnterPrevented.tabHandled, true, '输入法确认后 Tab/上下键被候选导航捕获');
   } finally {
     await chrome.close();
     await server.close();

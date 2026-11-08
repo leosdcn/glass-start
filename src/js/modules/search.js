@@ -71,29 +71,39 @@ let activeSuggestCleanup = null;
 let suggestionQueryKey = null;
 
 /**
- * 处理搜索建议的键盘上下键导航
+ * 处理搜索建议的键盘上下键与 Tab 键导航
  * @param {KeyboardEvent} e
  * @returns {boolean} 是否处理了导航按键
  */
 export function handleSuggestionKeyNav(e) {
     if (e.ctrlKey || e.metaKey || e.altKey) return false;
-    // 防抖期间等新候选，避免方向键改走全局切屏入口。
-    if (suggestDebounceTimer !== null && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+    const isNavDown = e.key === 'ArrowDown' || (e.key === 'Tab' && !e.shiftKey);
+    const isNavUp = e.key === 'ArrowUp' || (e.key === 'Tab' && e.shiftKey);
+    if (!isNavDown && !isNavUp) return false;
+
+    // 防抖期间等新候选，避免方向键或 Tab 改走全局切屏/失焦入口。
+    if (suggestDebounceTimer !== null) {
         e.preventDefault();
         return true;
     }
     const isSuggestActive = dom.suggestionMenu?.classList.contains('active');
     const suggestionCount = isSuggestActive ? suggestionItems.length : 0;
-    if (suggestionCount <= 0) return false;
+    if (suggestionCount <= 0) {
+        if (isSuggestActive) {
+            e.preventDefault();
+            return true;
+        }
+        return false;
+    }
 
-    if (e.key === 'ArrowDown') {
+    if (isNavDown) {
         e.preventDefault();
         const next = selectedSuggestionIdx + 1;
         selectSuggestion(next < suggestionCount ? next : -1, { keyboard: true });
         return true;
     }
 
-    if (e.key === 'ArrowUp') {
+    if (isNavUp) {
         e.preventDefault();
         selectSuggestion(selectedSuggestionIdx < 0 ? suggestionCount - 1 : selectedSuggestionIdx - 1, { keyboard: true });
         return true;

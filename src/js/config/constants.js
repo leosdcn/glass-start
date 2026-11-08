@@ -174,7 +174,7 @@ export const CONFIG = Object.freeze({
                     group: t('ui.search.and.actions'),
                     items: [
                         { desc: t('ui.start.typing.to.search'), kbdId: 'kbd-any', fallback: '' },
-                        { desc: t('ui.select.a.suggestion.or.bookmark'), rawHtml: '<kbd>↑</kbd><kbd>↓</kbd>' },
+                        { desc: t('ui.select.a.suggestion.or.bookmark'), rawHtml: '<kbd>↑</kbd><kbd>↓</kbd> / <kbd>Tab</kbd>' },
                         { desc: t('ui.search.or.open.selected.bookmark'), rawHtml: '<kbd>Enter</kbd>' },
                         { desc: t('ui.open.search.in.a.new.tab'), kbdId: 'kbd-newtab', fallback: '⌘ ↵' },
                         { desc: t('ui.move.focus.within.dialog'), kbdId: 'kbd-tab', fallback: 'Tab / ⇧ Tab' }

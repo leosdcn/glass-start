@@ -135,8 +135,10 @@ export function handleSearchKeydown(e) {
     if (document.activeElement !== dom.searchInput) return false;
     if (isComposing) return true;
     if (justEndedComposition) {
-        if (e.key === 'Enter') e.preventDefault();
-        return true;
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            return true;
+        }
     }
     if (e.key === 'Enter') {
         e.preventDefault();
