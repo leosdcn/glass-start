@@ -298,7 +298,9 @@ function openBookmarkUrl(url, newTab = false) {
  * 随机探索/手气不错：从本地书签库中随机挑选并访问一个站点
  */
 let diceAngle = 0;
+let isRandomBookmarkOpening = false;
 export function openRandomBookmark() {
+    if (isRandomBookmarkOpening) return;
     /** @type {import('../types').BookmarkItem[]} */
     const list = [];
     const seen = new Set();
@@ -315,6 +317,7 @@ export function openRandomBookmark() {
     const randomBm = list[Math.floor(Math.random() * list.length)];
 
     const randomBtn = dom.randomBookmarkBtn;
+    isRandomBookmarkOpening = true;
     if (randomBtn) {
         diceAngle += CONFIG.PHYSICS.DICE_ROTATION_STEP;
         const svg = randomBtn.querySelector('svg');
@@ -322,6 +325,7 @@ export function openRandomBookmark() {
     }
 
     setTimeout(() => {
+        isRandomBookmarkOpening = false;
         hideSuggestions();
         openBookmarkUrl(randomBm.url, true);
     }, CONFIG.TIMERS.STAGGER_OPEN);

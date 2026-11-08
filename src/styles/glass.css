@@ -45,7 +45,11 @@
     border: 1px solid rgba(255, 255, 255, 0.10);
     box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.10);
     border-radius: var(--radius-inner); /* 16px 精准同心圆角: R_inner = R_outer(24px) - Padding(20px) 视觉黄金比例 */
-    transition: background-color var(--duration-fast) var(--ease-spring), border-color var(--duration-fast) var(--ease-spring), box-shadow var(--duration-fast) var(--ease-spring), scale var(--duration-press) var(--ease-snappy);
+    transition: background-color var(--duration-fast) var(--ease-spring), border-color var(--duration-fast) var(--ease-spring), box-shadow var(--duration-fast) var(--ease-spring), scale var(--button-press-duration, var(--duration-press-up)) var(--button-press-ease, var(--ease-spring));
+}
+.glass-subcard:active {
+    --button-press-duration: var(--duration-press);
+    --button-press-ease: var(--ease-snappy);
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -143,7 +147,7 @@
     background: rgba(255, 255, 255, 0.10);
     border: 1px solid rgba(255, 255, 255, 0.15);
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.12);
-    transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, color 0.15s ease, scale var(--duration-press) var(--ease-snappy);
+    transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, color 0.15s ease, scale var(--button-press-duration, var(--duration-press-up)) var(--button-press-ease, var(--ease-spring));
     cursor: pointer;
 }
 
@@ -259,7 +263,7 @@
     background: transparent;
     color: rgba(255, 255, 255, 0.7);
     text-align: left;
-    transition: scale var(--duration-press) var(--ease-snappy), color 0.16s ease;
+    transition: scale var(--button-press-duration, var(--duration-press-up)) var(--button-press-ease, var(--ease-spring)), color 0.16s ease;
 }
 .preset-bg-image {
     position: relative;
@@ -558,7 +562,7 @@
     border: 1px solid rgb(var(--danger) / 0.32);
     border-radius: var(--radius-control);
     color: rgba(254, 202, 202, 0.95);
-    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, scale var(--duration-press) var(--ease-snappy);
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, scale var(--button-press-duration, var(--duration-press-up)) var(--button-press-ease, var(--ease-spring));
 }
 @media (hover: hover) and (pointer: fine) {
     body:not(.tab-blurred) .danger-zone-btn:hover:not(:disabled) {

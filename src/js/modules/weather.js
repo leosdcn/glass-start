@@ -612,10 +612,11 @@ function handleWeatherPopoverClick(e) {
         const svg = refBtn.querySelector('svg');
         if (svg) svg.classList.add('weather-spin');
         const startTime = Date.now();
-        const MIN_SPIN_DURATION = CONFIG.WEATHER.MIN_SPIN_DURATION;
+        const cycleMs = 600;
         updateWeather(true).finally(() => {
             const elapsed = Date.now() - startTime;
-            const remaining = Math.max(0, MIN_SPIN_DURATION - elapsed);
+            const targetDuration = Math.max(cycleMs, Math.ceil(elapsed / cycleMs) * cycleMs);
+            const remaining = Math.max(0, targetDuration - elapsed);
             setTimeout(() => {
                 const currentPop = dom.weatherPopover;
                 const currentRefBtn = /** @type {HTMLButtonElement | null} */ (currentPop ? currentPop.querySelector('#weatherRefreshBtn') : null);

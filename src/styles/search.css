@@ -87,7 +87,7 @@
     }
 }
 #engineBtn {
-    transition: background-color 0.15s ease, color 0.15s ease, scale var(--duration-press) var(--ease-snappy);
+    transition: background-color 0.15s ease, color 0.15s ease, scale var(--button-press-duration, var(--duration-press-up)) var(--button-press-ease, var(--ease-spring));
 }
 #engineBtn svg {
     transition: transform 0.2s var(--ease-spring), opacity 0.15s ease;
@@ -114,7 +114,7 @@
                 transform var(--duration-popover) var(--ease-overshoot),
                 background-color 0.15s ease,
                 color 0.15s ease,
-                scale var(--duration-press) var(--ease-snappy);
+                scale var(--button-press-duration, var(--duration-press-up)) var(--button-press-ease, var(--ease-spring));
 }
 #randomBookmarkBtn.hidden {
     display: inline-flex;

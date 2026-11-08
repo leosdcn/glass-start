@@ -106,9 +106,8 @@ export function initGlassSpotlightAndTilt() {
             activeCard = card;
             activeCardRect = card.getBoundingClientRect();
             activeCard.style.willChange = 'transform';
-            const tiltSec = `${CONFIG.TIMERS.TILT_TRANSITION_MS / 1000}s`;
             const bgSec = `${CONFIG.TIMERS.TILT_BG_TRANSITION_MS / 1000}s`;
-            activeCard.style.transition = `transform ${tiltSec} ease-out,
+            activeCard.style.transition = `transform 0s linear,
                 background-color var(--bookmark-background-duration, ${bgSec}) ease,
                 border-color ${bgSec} ease,
                 box-shadow var(--duration-tactile) var(--ease-tactile)`;

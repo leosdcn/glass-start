@@ -34,7 +34,8 @@
     --blur-lg: 36px;
     --z-dropdown: 150;
     --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
-    --ease-overshoot: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --ease-overshoot: cubic-bezier(0.34, 1.25, 0.64, 1);
+    --ease-soft-spring: cubic-bezier(0.2, 1, 0.3, 1);
     --ease-snappy: cubic-bezier(0.2, 0, 0, 1);
     --ease-exit: cubic-bezier(0.4, 0, 0.2, 1);
     --ease-tactile: cubic-bezier(0.2, 0.9, 0.2, 1);
@@ -52,6 +53,7 @@
     --duration-bg-crossfade: 0.45s;
     --duration-tactile: 0.38s;
     --duration-press: 0.08s;
+    --duration-press-up: 0.22s;
     --delay-stagger-1: 0.05s;
     --delay-stagger-2: 0.09s;
     --entrance-offset: 6px;
@@ -462,8 +464,8 @@ textarea::placeholder {
     flex-shrink: 0;
 }
 
-.bg-layer { transition: opacity var(--duration-bg-crossfade) var(--ease-exit); transform: translateZ(0); pointer-events: none; }
-.bg-layer.is-crossfading { will-change: opacity; }
+.bg-layer { transition: opacity var(--duration-bg-crossfade) var(--ease-exit); pointer-events: none; }
+.bg-layer.is-crossfading { will-change: opacity; transform: translateZ(0); }
 #bgOverlay { transition: background-color 0.2s ease; pointer-events: none; }
 
 [draggable="true"] { cursor: grab; }
@@ -498,10 +500,13 @@ textarea::placeholder {
         #engineBtn, #randomBookmarkBtn, #searchClearBtn,
         #languageBtn, #cancelEditBtn, #cancelLanguageBtn, #resetBgBtn, #urlBgConfirmBtn, #urlBgCancelBtn,
         .settings-tab-btn, .settings-action, .settings-transition-btn, .glass-btn-primary,
-        .danger-zone-btn, .language-modal-item, .preset-bg-card, .picker-item
+        .danger-zone-btn, .language-modal-item, .preset-bg-card, .picker-item,
+        .confirm-dialog-btn-cancel, .confirm-dialog-btn-ok
     ) {
         position: relative;
         transform-origin: center;
+        --button-press-duration: var(--duration-press-up);
+        --button-press-ease: var(--ease-spring);
 
         &::before {
             content: '';
@@ -517,6 +522,8 @@ textarea::placeholder {
 
         @media (prefers-reduced-motion: no-preference) {
             &:not(:disabled):active {
+                --button-press-duration: var(--duration-press);
+                --button-press-ease: var(--ease-snappy);
                 --press-content-scale: none;
                 scale: var(--button-press-scale, 0.96);
             }
@@ -604,7 +611,7 @@ textarea::placeholder {
     opacity: var(--opacity-subtle);
     z-index: 50;
     transform: translateZ(0);
-    transition: opacity 0.3s ease, color 0.3s ease, background-color var(--duration-press) ease, border-color 0.3s ease, scale var(--duration-press) var(--ease-snappy);
+    transition: opacity 0.3s ease, color 0.3s ease, background-color var(--duration-press) ease, border-color 0.3s ease, scale var(--button-press-duration, var(--duration-press-up)) var(--button-press-ease, var(--ease-spring));
 }
 #editBookmarksBtn.fade-in {
     animation: fadeInSubtle var(--duration-entrance) var(--ease-spring) backwards;
@@ -659,7 +666,7 @@ textarea::placeholder {
 }
 :is(#weatherBtn, #updateReloadBtn, #navHint) {
     --button-press-scale: 0.94;
-    transition: background-color var(--duration-normal) ease, border-color var(--duration-normal) ease, box-shadow var(--duration-normal) ease, color var(--duration-normal) ease, scale var(--duration-press) var(--ease-snappy);
+    transition: background-color var(--duration-normal) ease, border-color var(--duration-normal) ease, box-shadow var(--duration-normal) ease, color var(--duration-normal) ease, scale var(--button-press-duration, var(--duration-press-up)) var(--button-press-ease, var(--ease-spring));
     transform-origin: center;
 }
 @media (hover: hover) and (pointer: fine) {

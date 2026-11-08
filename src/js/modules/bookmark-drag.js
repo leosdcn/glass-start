@@ -153,7 +153,7 @@ export function initDragSort() {
                 card.style.transform = `translate3d(${deltaX}px, ${deltaY}px, 0)`;
                 const frame = requestAnimationFrame(() => {
                     const flipSec = `${CONFIG.TIMERS.FLIP_DURATION_MS / 1000}s`;
-                    card.style.transition = `transform ${flipSec} var(--ease-overshoot)`;
+                    card.style.transition = `transform ${flipSec} var(--ease-soft-spring)`;
                     card.style.transform = 'translate3d(0, 0, 0)';
                 });
                 onTransitionSettled(card, 'transform', CONFIG.TIMERS.FLIP_DURATION_MS, () => {
