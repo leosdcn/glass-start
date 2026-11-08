@@ -202,7 +202,7 @@ export function bindEvents() {
 
         const suggestionActive = suggestionMenu && suggestionMenu.classList.contains('active');
         if (!isInputActive || (document.activeElement === searchInput && !suggestionActive)) {
-            const isNavAtTop = dom.navContent ? dom.navContent.scrollTop <= 0 : true;
+            const isNavAtTop = state.currentSection === 'nav' ? (!dom.navContent || dom.navContent.scrollTop <= 0) : true;
             const isNavKey = ((e.key === 'PageDown' || e.key === 'ArrowDown') && state.currentSection === 'start')
                 || ((e.key === 'PageUp' || e.key === 'Home' || e.key === 'ArrowUp') && state.currentSection === 'nav' && isNavAtTop);
             if (isNavKey && isScreenTransitioning()) {
@@ -212,8 +212,6 @@ export function bindEvents() {
             if ((e.key === 'PageDown' || e.key === 'ArrowDown') && state.currentSection === 'start') {
                 e.preventDefault();
                 switchToNav();
-                // 将后续方向键的原生滚动交给导航内容，避免失焦后落在 body。
-                dom.navContent?.focus({ preventScroll: true });
                 return;
             }
             if ((e.key === 'PageUp' || e.key === 'Home' || e.key === 'ArrowUp') && state.currentSection === 'nav' && isNavAtTop) {

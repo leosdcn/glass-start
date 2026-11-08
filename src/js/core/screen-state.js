@@ -306,6 +306,11 @@ function switchSection(section) {
             finishNavExit();
         }
     });
+    if (section === 'nav') {
+        afterScreenTransition(() => {
+            if (state.currentSection === 'nav') dom.navContent?.focus({ preventScroll: true });
+        });
+    }
 }
 
 export function switchToNav() {
