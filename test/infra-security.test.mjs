@@ -10,8 +10,9 @@ import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 import vm from 'node:vm';
 import { validateW3c } from '../scripts/validate-w3c.mjs';
-import { getFreePort } from './support/helpers.mjs';
-import { DIST_DIR as DIST } from './support/server.mjs';
+import { createEvaluator, getFreePort, navigateAndWait, waitFor } from './support/helpers.mjs';
+import { launchChrome } from './support/cdp.mjs';
+import { DIST_DIR as DIST, startServer } from './support/server.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
@@ -98,7 +99,7 @@ test('dist/ 产物完整性与 Cache-Control 标头规则', () => {
   assert.ok(subscriptions.every(item => item.recursive === statSync(item.path).isDirectory()));
 });
 
-test('开发服务器仅在专用 GET 路径返回清理站点数据的响应', { timeout: 5000 }, async t => {
+test('跨来源导航到旧预览清理路径时保留本地数据', { timeout: 20000 }, async t => {
   const port = await getFreePort();
   const server = spawn(process.execPath, ['scripts/server.cjs', '--no-watch'], {
     cwd: ROOT, stdio: ['ignore', 'pipe', 'inherit'],
@@ -107,16 +108,68 @@ test('开发服务器仅在专用 GET 路径返回清理站点数据的响应', 
   t.after(() => server.kill());
   await once(server.stdout, 'data', { signal: t.signal });
   const origin = 'http://127.0.0.1:' + port;
-  for (const [method, path, clears] of [
-    ['GET', '/_clear_cache', true],
-    ['GET', '/_clear_cache-demo', false],
-    ['GET', '/?note=clear-cache=1', false],
-    ['HEAD', '/_clear_cache', false]
-  ]) {
-    const response = await fetch(origin + path, { method, signal: t.signal });
-    assert.equal(response.headers.get('Clear-Site-Data'), clears ? '"cache", "storage"' : null, method + ' ' + path);
-    await response.arrayBuffer();
-  }
+  const formerEndpoint = origin + '/_clear_cache';
+  const response = await fetch(formerEndpoint, { signal: t.signal });
+  assert.equal(response.headers.get('Clear-Site-Data'), null);
+  assert.match(await response.text(), /__GLASS_BUILD_HTML__/);
+
+  const other = await startServer(0, undefined, { '/': `<a href="${formerEndpoint}">Navigate</a>` }, { testMode: false });
+  t.after(() => other.close());
+  const chrome = await launchChrome({ port: await getFreePort(), url: origin + '/', testMode: false });
+  t.after(() => chrome.close());
+  const evalJS = createEvaluator(chrome.send);
+  await evalJS(`(async () => {
+    await navigator.serviceWorker.ready;
+    localStorage.setItem('preview-sentinel', 'kept');
+    const req = indexedDB.open('preview-sentinel', 1);
+    await new Promise((resolve, reject) => {
+      req.onsuccess = () => { req.result.close(); resolve(); };
+      req.onerror = reject;
+    });
+  })()`);
+  await navigateAndWait(chrome.send, evalJS, origin + '/', '!!navigator.serviceWorker.controller');
+  await navigateAndWait(chrome.send, evalJS, 'http://127.0.0.1:' + other.port + '/');
+  await evalJS(`setTimeout(() => document.querySelector('a').click(), 0); true`);
+  await waitFor(evalJS, `location.href === ${JSON.stringify(formerEndpoint)} && document.readyState === 'complete'`);
+  assert.deepEqual(await evalJS(`(async () => ({
+    local: localStorage.getItem('preview-sentinel'),
+    indexed: (await indexedDB.databases()).some(db => db.name === 'preview-sentinel')
+  }))()`), { local: 'kept', indexed: true });
+});
+
+test('独立预览将启动 URL 交给临时 Chrome 配置，退出服务后清理', {
+  timeout: 15000, skip: process.platform === 'win32'
+}, async t => {
+  const directory = mkdtempSync(join(tmpdir(), 'glass-preview-fixture-'));
+  const probe = join(directory, 'probe.json');
+  const fakeChrome = join(directory, 'chrome');
+  writeFileSync(fakeChrome, `#!/usr/bin/env node
+const fs = require('node:fs');
+const args = process.argv.slice(2);
+const profile = args.find(arg => arg.startsWith('--user-data-dir=')).split('=').slice(1).join('=');
+fs.writeFileSync(process.env.PREVIEW_PROBE_FILE, JSON.stringify({ profile, url: args.at(-1), ready: fs.existsSync(profile) }));
+setInterval(() => {}, 1000);
+`, { mode: 0o755 });
+  const port = await getFreePort();
+  const server = spawn(process.execPath, ['scripts/server.cjs', '--no-watch', '--isolated'], {
+    cwd: ROOT, stdio: 'ignore',
+    env: { ...process.env, PORT: String(port), AUTO_OPEN: '1', CHROME_PATH: fakeChrome, PREVIEW_PROBE_FILE: probe }
+  });
+  const closed = once(server, 'close');
+  t.after(async () => {
+    server.kill();
+    await closed;
+    rmSync(directory, { recursive: true, force: true });
+  });
+  const result = await waitFor(() => {
+    try { return JSON.parse(readFileSync(probe, 'utf8')); } catch { return false; }
+  }, 'Chrome preview args', 5000);
+  assert.ok(result.ready);
+  assert.ok(result.profile.startsWith(join(tmpdir(), 'glass-start-preview-')));
+  assert.equal(result.url, `http://localhost:${port}/`);
+  server.kill();
+  assert.deepEqual(await closed, [0, null]);
+  assert.equal(existsSync(result.profile), false);
 });
 
 test('Service Worker 核心预缓存资源与产物版本契约', () => {
@@ -205,7 +258,7 @@ test('Service Worker 缓存池 FIFO 限额淘汰与网络失败隔离', async ()
     caches: { open: async () => ({ match: async () => undefined }), match: async () => new Response('cached-script') }
   });
   handlers.get('fetch')({
-    request: new Request('https://example.test/uncached.js'),
+    request: new Request('https://example.test/app.js?v=previous'),
     respondWith: promise => { respond = promise; },
     waitUntil() {}
   });

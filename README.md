@@ -273,7 +273,7 @@ npm run build:extension
 
 构建后执行 `node scripts/capture-preview.mjs` 可更新中文 README 截图；添加 `--lang=en` 可更新英文截图。
 
-> 💡 **macOS 便捷启动**：macOS 用户可直接双击根目录的 `start.command` 脚本，检查已有 Node 环境、构建并启动浏览器预览；首次运行前仍需执行 `npm ci`。此入口默认重置本地测试环境，清除该本地站点的缓存、书签、壁纸与偏好，避免旧缓存和设置影响视觉测试。
+> 💡 **macOS 便捷启动**：首次运行前执行 `npm ci`，随后可双击根目录的 `start.command`。脚本构建项目并以临时 Chrome 配置打开干净的预览，日常浏览器中的缓存、书签、壁纸和偏好会保留。关闭预览或停止服务后，临时配置会被清理。自定义 Chrome 路径可通过 `CHROME_PATH` 指定。
 
 ---
 

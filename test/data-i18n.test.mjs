@@ -60,24 +60,32 @@ try {
     assert.equal(destinations.length, 7);
     assert.ok(destinations.every(item => item.rendered), JSON.stringify(destinations));
     const quickLink = await evalJS(`(() => {
-        const original = pageData.bookmarks;
-        const originalMeta = storageGet(CONFIG.KEYS.CUSTOM_META) || {};
+        const original = storageGet(CONFIG.KEYS.BOOKMARKS);
         const bookmark = pageData.categories.flatMap(category => category.bookmarks).find(bookmark => bookmark.name === 'DeepL');
         try {
+            storageRemove(CONFIG.KEYS.BOOKMARKS);
             storageSet(CONFIG.KEYS.BOOKMARK_KEYS, ['https://www.deepl.com/zh/translator', bookmark.url]);
             storageSet(CONFIG.KEYS.CUSTOM_META, { 'https://www.deepl.com/zh/translator': { name: 'My translator', desc: 'My description' } });
             loadBookmarks();
             const inherited = pageData.bookmarks.map(bookmark => ({ ...bookmark }));
             saveUserBookmarks(pageData.bookmarks);
             loadBookmarks();
-            return { inherited, stored: storageGet(CONFIG.KEYS.BOOKMARK_KEYS), url: pageData.bookmarks[0].url,
+            return { inherited, stored: storageGet(CONFIG.KEYS.BOOKMARKS), url: pageData.bookmarks[0].url,
                 href: document.querySelector('.bookmark-item').getAttribute('href') };
-        } finally { storageSet(CONFIG.KEYS.CUSTOM_META, originalMeta); saveUserBookmarks(original); }
+        } finally {
+            storageRemove(CONFIG.KEYS.BOOKMARK_KEYS);
+            storageRemove(CONFIG.KEYS.CUSTOM_META);
+            if (original) storageSet(CONFIG.KEYS.BOOKMARKS, original);
+            else storageRemove(CONFIG.KEYS.BOOKMARKS);
+            loadBookmarks();
+        }
     })()`);
     assert.equal(quickLink.inherited.length, 1, 'old and shared URLs resolve to one bookmark');
     assert.equal(quickLink.inherited[0].name, 'My translator');
     assert.equal(quickLink.inherited[0].desc, 'My description');
-    assert.deepEqual(quickLink.stored, ['https://www.deepl.com/translator']);
+    assert.equal(quickLink.stored.version, 1);
+    assert.deepEqual(quickLink.stored.keys, ['https://www.deepl.com/translator']);
+    assert.equal(quickLink.stored.meta['https://www.deepl.com/translator'].name, 'My translator');
     assert.equal(quickLink.url, 'https://www.deepl.com/translator');
     assert.equal(quickLink.href, 'https://www.deepl.com/translator');
 
@@ -123,14 +131,14 @@ try {
     })()`);
     const inherited = await evalJS(`(() => {
         const bm = pageData.bookmarks[0];
-        return storageGet(CONFIG.KEYS.CUSTOM_META)[normalizeUrl(bm.url)];
+        return storageGet(CONFIG.KEYS.BOOKMARKS).meta[normalizeUrl(bm.url)];
     })()`);
     assert.equal(inherited.name, '我的自定义书签');
     assert.equal(inherited.desc, undefined, 'inherited English description stays inherited');
 
     // Saving a reorder alone must not write any translated default text.
     await evalJS(`(async () => { await openEditModal(); replaceBookmarkDraft([...modalState.draftBookmarks].reverse(), true); await saveEditModal(); })()`);
-    const customCount = await evalJS(`Object.keys(storageGet(CONFIG.KEYS.CUSTOM_META)).length`);
+    const customCount = await evalJS(`Object.keys(storageGet(CONFIG.KEYS.BOOKMARKS).meta).length`);
     assert.equal(customCount, 1);
 
     // Exercise real storage failure and retry without discarding the draft.

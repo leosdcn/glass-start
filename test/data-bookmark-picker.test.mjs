@@ -204,7 +204,7 @@ test("目录简介缺省继承与导入导出语义", async () => {
             const item = { ...a };
             if (desc === undefined) delete item.desc; else item.desc = desc;
             const direct = await evalJS(`(async () => {
-                storageRemove(CONFIG.KEYS.CUSTOM_META);
+                storageRemove(CONFIG.KEYS.BOOKMARKS);
                 saveUserBookmarks([${JSON.stringify(item)}]);
                 loadBookmarks();
                 return pageData.bookmarks[0].desc;

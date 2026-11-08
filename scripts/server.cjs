@@ -1,7 +1,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const { exec } = require('child_process');
+const { exec, spawn } = require('child_process');
 const os = require('os');
 const zlib = require('zlib');
 const { main: runFullBuild, startWatch } = require('./build.cjs');
@@ -13,6 +13,7 @@ let targetPort = parseInt(process.env.PORT || '3000', 10);
 const testSnapshotDir = process.env.GLASS_TEST_TMPDIR;
 const DIST_DIR = testSnapshotDir ? path.join(testSnapshotDir, 'dist') : path.join(__dirname, '..', 'dist');
 const enableWatch = !testSnapshotDir && !process.argv.includes('--no-watch') && process.env.NO_WATCH !== '1';
+const isolatedPreview = process.argv.includes('--isolated');
 
 // 若 dist 产物不存在，自动执行首次全量构建
 if (!fs.existsSync(path.join(DIST_DIR, 'index.html'))) {
@@ -46,17 +47,6 @@ function createStaticServer() {
         try {
             const urlRaw = req.url || '/';
             const pathname = urlRaw.split('?')[0];
-            // 重置本地视觉测试环境：清除缓存和已保存数据，避免旧状态影响预览。
-            if (req.method === 'GET' && pathname === '/_clear_cache') {
-                res.writeHead(200, {
-                    'Content-Type': 'text/html; charset=utf-8',
-                    'Clear-Site-Data': '"cache", "storage"',
-                    'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0'
-                });
-                res.end(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>重置本地测试环境</title></head><body style="font-family:system-ui;background:#0b0f19;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;"><div style="text-align:center;max-width:420px;padding:24px;"><h2 style="margin-bottom:8px;font-size:18px;">🧹 正在重置本地测试环境...</h2><p id="msg" style="opacity:0.7;font-size:13px;line-height:1.6;">将清除本地缓存及已保存的书签、壁纸和偏好，避免旧数据影响视觉测试。</p></div><script>(async function(){try{if('serviceWorker' in navigator){const regs=await navigator.serviceWorker.getRegistrations();for(const r of regs)await r.unregister();}if('caches' in window){const keys=await caches.keys();for(const k of keys)await caches.delete(k);}try{localStorage.clear();}catch(e){}try{sessionStorage.clear();}catch(e){}if('indexedDB' in window){try{indexedDB.deleteDatabase('GlassStartDB');}catch(e){}}document.getElementById('msg').textContent='✨ 正在重新打开默认起始页...';}catch(err){console.error('Purge error:',err);}finally{setTimeout(()=>{location.replace('/');},100);}})();</script></body></html>`);
-                return;
-            }
-
             let reqPath = decodeURIComponent(pathname);
             if (reqPath === '/' || reqPath === '') {
                 reqPath = '/index.html';
@@ -162,12 +152,43 @@ function createStaticServer() {
 
 
 let watchCleanup = null;
+let previewBrowser = null;
+
+function openIsolatedPreview(url) {
+    const chrome = process.env.CHROME_PATH || (process.platform === 'darwin'
+        ? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' : 'google-chrome');
+    let profile;
+    function removeProfile() {
+        if (!profile) return;
+        try { fs.rmSync(profile, { recursive: true, force: true, maxRetries: 3 }); }
+        catch (error) { console.error(`无法清理临时 Chrome 配置目录 ${profile}：${error.message}`); }
+    }
+    try {
+        profile = fs.mkdtempSync(path.join(os.tmpdir(), 'glass-start-preview-'));
+        previewBrowser = spawn(chrome, [
+            `--user-data-dir=${profile}`, '--no-first-run', '--no-default-browser-check', url
+        ], { stdio: 'ignore' });
+        previewBrowser.once('error', error => console.error(`无法打开独立 Chrome 预览：${error.message}`));
+        previewBrowser.once('close', () => {
+            previewBrowser = null;
+            removeProfile();
+        });
+    } catch (error) {
+        removeProfile();
+        console.error(`无法打开独立 Chrome 预览：${error.message}`);
+    }
+}
+
 function cleanupAndExit() {
     if (watchCleanup) {
         watchCleanup();
         watchCleanup = null;
     }
-    process.exit(0);
+    const browser = previewBrowser;
+    if (!browser) process.exit(0);
+    browser.once('close', () => process.exit(0));
+    browser.kill();
+    setTimeout(() => browser.kill('SIGKILL'), 1500).unref();
 }
 process.on('SIGINT', cleanupAndExit);
 process.on('SIGTERM', cleanupAndExit);
@@ -211,25 +232,18 @@ function startListening(port) {
         } else {
             console.log(`  👀 ${c.bold}文件监听:${c.reset}    ${c.yellow}已关闭${c.reset}`);
         }
-        const isCleanMode = process.env.CLEAR_CACHE === '1' || process.argv.includes('--clear-cache');
-        if (isCleanMode) {
-            console.log(`  🧹 ${c.bold}环境重置:${c.reset}    ${c.yellow}已启用 (自动打开 /_clear_cache，清除缓存、书签、壁纸与偏好)${c.reset}`);
-        }
-
         console.log(`\n${c.gray}─── 💡 快速提示 ${'─'.repeat(LINE_WIDTH - 16)}${c.reset}`);
         if (enableWatch) console.log(`  • 源码修改后自动重新构建 dist/，刷新浏览器即可预览`);
-        if (!isCleanMode) {
-            console.log(`  • 重置本地视觉测试环境: ${c.yellow}http://localhost:${port}/_clear_cache${c.reset} （清除缓存、书签、壁纸与偏好）`);
-        }
         console.log(`  • 局域网设备 (手机 / 平板) 连接同一 Wi-Fi 后即可直接访问上述局域网地址`);
         console.log(`  • 停止本地服务请按: ${c.yellow}Ctrl + C${c.reset}`);
         console.log(`${c.gray}${HR_DOUBLE}${c.reset}\n`);
 
         // 仅在服务确已 listen 成功并能接收请求时，才自动唤起浏览器
         if (process.env.AUTO_OPEN !== '0') {
-            const openPath = isCleanMode ? '/_clear_cache' : '/';
-            const url = `http://localhost:${port}${openPath}`;
-            if (process.platform === 'darwin') {
+            const url = `http://localhost:${port}/`;
+            if (isolatedPreview) {
+                openIsolatedPreview(url);
+            } else if (process.platform === 'darwin') {
                 exec(`open "${url}"`);
             } else if (process.platform === 'win32') {
                 exec(`start "${url}"`);

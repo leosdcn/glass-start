@@ -39,5 +39,5 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-# 启动服务器并重置本地测试环境，避免旧缓存和设置影响视觉预览；清除缓存、书签、壁纸与偏好。
-node scripts/server.cjs --clear-cache
+# 用临时 Chrome 配置预览，保留平时使用的浏览器数据。
+exec node scripts/server.cjs --isolated

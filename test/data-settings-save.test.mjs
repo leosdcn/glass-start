@@ -13,7 +13,7 @@ try {
     const result = await evalJS(`(async () => {
       await openEditModal();
       const before = JSON.stringify(pageData.bookmarks);
-      const stored = localStorage.getItem(CONFIG.KEYS.CUSTOM_META);
+      const stored = localStorage.getItem(CONFIG.KEYS.BOOKMARKS);
       const wallpaperBefore = JSON.stringify(await getWallpaperSelectionDB());
       const NativeImage = window.Image;
       const images = [];
@@ -42,7 +42,7 @@ try {
         return {
           waiting, cancelled,
           unchanged: JSON.stringify(pageData.bookmarks) === before,
-          storageUnchanged: localStorage.getItem(CONFIG.KEYS.CUSTOM_META) === stored,
+          storageUnchanged: localStorage.getItem(CONFIG.KEYS.BOOKMARKS) === stored,
           wallpaperUnchanged: JSON.stringify(await getWallpaperSelectionDB()) === wallpaperBefore,
           selectionCancelled,
           open: state.editOpen,
@@ -333,59 +333,77 @@ try {
   assert.deepEqual(resetDraft,{previewOnly:true,resetSelected:true,cancelKept:true,saved:true});
   console.log('✅ 从非默认预设恢复默认可预览、取消和保存，选中态与持久化一致');
 
-  // 两个存储键分别失败；同时检查已有配置回滚与首次保存的键删除回滚。
+  // 单记录写入失败时，首次保存和更新既有记录都保留原状态。
   for (const existing of [false, true]) {
-    for (const failure of ['BOOKMARK_KEYS', 'CUSTOM_META']) {
-      await evalJS(`(async () => {
-        storageRemove(CONFIG.KEYS.BOOKMARK_KEYS);
-        storageRemove(CONFIG.KEYS.CUSTOM_META);
-        loadBookmarks();
-        if (${existing}) saveUserBookmarks(pageData.bookmarks);
-        await openEditModal();
-        window.__saveBefore = {
-          bookmarks: JSON.stringify(pageData.bookmarks),
-          keys: localStorage.getItem(CONFIG.KEYS.BOOKMARK_KEYS),
-          meta: localStorage.getItem(CONFIG.KEYS.CUSTOM_META)
-        };
-        const name = dom.editList.querySelector('.edit-name');
-        name.value = '失败保留草稿';
-        name.dispatchEvent(new Event('input', { bubbles: true }));
-        const url = dom.editList.querySelector('.edit-url');
-        url.value = 'https://save-regression.example.test/';
-        url.dispatchEvent(new Event('input', { bubbles: true }));
-        window.__originalSetItem = Storage.prototype.setItem;
-        Storage.prototype.setItem = function(key, value) {
-          if (key === CONFIG.KEYS.${failure}) throw new DOMException('test quota', 'QuotaExceededError');
-          return __originalSetItem.call(this, key, value);
-        };
-        dom.saveEditBtn.click();
-      })()`);
-      try {
-        await waitFor(evalJS, '!dom.saveEditBtn.disabled && OverlayStack.top()?.id === "confirmModal"');
-        const failed = await evalJS(`({
-          open: state.editOpen,
-          unchanged: JSON.stringify(pageData.bookmarks) === __saveBefore.bookmarks,
-          keysRestored: localStorage.getItem(CONFIG.KEYS.BOOKMARK_KEYS) === __saveBefore.keys,
-          metaRestored: localStorage.getItem(CONFIG.KEYS.CUSTOM_META) === __saveBefore.meta,
-          draft: modalState.draftBookmarks[0].name,
-          message: dom.confirmMsg.textContent
-        })`);
-        assert.ok(failed.open && failed.unchanged && failed.keysRestored && failed.metaRestored, JSON.stringify(failed));
-        assert.equal(failed.draft, '失败保留草稿');
-        assert.match(failed.message, /书签未能保存/);
-      } finally {
-        await evalJS('Storage.prototype.setItem = __originalSetItem');
-      }
-      await evalJS('dom.confirmOkBtn.click(); dom.saveEditBtn.click()');
-      await waitFor(evalJS, '!state.editOpen && !dom.saveEditBtn.disabled');
-      const retried = await evalJS(`(() => {
-        loadBookmarks();
-        return { name: pageData.bookmarks[0].name, url: pageData.bookmarks[0].url };
-      })()`);
-      assert.deepEqual(retried, { name: '失败保留草稿', url: 'https://save-regression.example.test/' });
+    await evalJS(`(async () => {
+      storageRemove(CONFIG.KEYS.BOOKMARKS);
+      loadBookmarks();
+      if (${existing}) saveUserBookmarks(pageData.bookmarks);
+      await openEditModal();
+      window.__saveBefore = {
+        bookmarks: JSON.stringify(pageData.bookmarks),
+        stored: localStorage.getItem(CONFIG.KEYS.BOOKMARKS)
+      };
+      const name = dom.editList.querySelector('.edit-name');
+      name.value = '失败保留草稿';
+      name.dispatchEvent(new Event('input', { bubbles: true }));
+      const url = dom.editList.querySelector('.edit-url');
+      url.value = 'https://save-regression.example.test/';
+      url.dispatchEvent(new Event('input', { bubbles: true }));
+      window.__originalSetItem = Storage.prototype.setItem;
+      Storage.prototype.setItem = function(key, value) {
+        if (key === CONFIG.KEYS.BOOKMARKS) throw new DOMException('test quota', 'QuotaExceededError');
+        return __originalSetItem.call(this, key, value);
+      };
+      dom.saveEditBtn.click();
+    })()`);
+    try {
+      await waitFor(evalJS, '!dom.saveEditBtn.disabled && OverlayStack.top()?.id === "confirmModal"');
+      const failed = await evalJS(`({
+        open: state.editOpen,
+        unchanged: JSON.stringify(pageData.bookmarks) === __saveBefore.bookmarks,
+        storageUnchanged: localStorage.getItem(CONFIG.KEYS.BOOKMARKS) === __saveBefore.stored,
+        draft: modalState.draftBookmarks[0].name,
+        message: dom.confirmMsg.textContent
+      })`);
+      assert.ok(failed.open && failed.unchanged && failed.storageUnchanged, JSON.stringify(failed));
+      assert.equal(failed.draft, '失败保留草稿');
+      assert.match(failed.message, /书签未能保存/);
+    } finally {
+      await evalJS('Storage.prototype.setItem = __originalSetItem');
     }
+    await evalJS('dom.confirmOkBtn.click(); dom.saveEditBtn.click()');
+    await waitFor(evalJS, '!state.editOpen && !dom.saveEditBtn.disabled');
+    const retried = await evalJS(`(() => {
+      loadBookmarks();
+      return { name: pageData.bookmarks[0].name, url: pageData.bookmarks[0].url };
+    })()`);
+    assert.deepEqual(retried, { name: '失败保留草稿', url: 'https://save-regression.example.test/' });
   }
-  console.log('✅ 书签任一存储键写入失败均保留旧配置、视图与草稿，提示失败并支持重试');
+  console.log('✅ 书签记录写入失败时保留旧配置、视图与草稿，提示失败并支持重试');
+
+  await evalJS(`(async () => {
+    await openEditModal();
+    const name = dom.editList.querySelector('.edit-name');
+    name.value = '重置失败保留的草稿'; name.dispatchEvent(new Event('input', { bubbles: true }));
+    window.__bookmarkBeforeReset = localStorage.getItem(CONFIG.KEYS.BOOKMARKS);
+    window.__originalSetItem = Storage.prototype.setItem;
+    Storage.prototype.setItem = function(key, value) {
+      if (key === CONFIG.KEYS.BOOKMARKS) throw new DOMException('test quota', 'QuotaExceededError');
+      return __originalSetItem.call(this, key, value);
+    };
+    resetBookmarks(); dom.confirmOkBtn.click();
+  })()`);
+  try {
+    await waitFor(evalJS, `OverlayStack.top()?.id === 'confirmModal' && /部分设置未能清除/.test(dom.confirmMsg.textContent)`);
+    assert.deepEqual(await evalJS(`({
+      unchanged: localStorage.getItem(CONFIG.KEYS.BOOKMARKS) === __bookmarkBeforeReset,
+      committed: pageData.bookmarks[0].name, draft: modalState.draftBookmarks[0].name
+    })`), { unchanged: true, committed: '失败保留草稿', draft: '重置失败保留的草稿' });
+  } finally {
+    await evalJS('Storage.prototype.setItem = __originalSetItem');
+  }
+  await evalJS('dom.confirmOkBtn.click(); cancelEditModal()');
 
   const queryUrl = 'https://save-regression.example.test/?a=1&b=2';
   await evalJS(`(async () => {
@@ -412,7 +430,7 @@ try {
     if (worker.state !== 'activated') await new Promise(resolve => worker.addEventListener('statechange', () => {if(worker.state === 'activated')resolve();}));
     await Promise.all(['glass-scope-%2F-app-core-vclear-test','glass-scope-%2Fother%2F-app-core-vkeep-test',
       'unrelated-cache',CONFIG.CACHE.FAVICON].map(key => caches.open(key)));
-    sessionStorage.setItem('clearCacheBookmarkKeys',localStorage.getItem(CONFIG.KEYS.BOOKMARK_KEYS));
+    sessionStorage.setItem('clearCacheBookmarks',localStorage.getItem(CONFIG.KEYS.BOOKMARKS));
     await openEditModal(); document.querySelector('#tab-btn-data').click(); dom.clearCacheBtn.click();
   })()`);
   await waitFor(evalJS,'OverlayStack.top()?.id === "confirmModal"');
@@ -424,7 +442,7 @@ try {
     otherKept:await caches.has('glass-scope-%2Fother%2F-app-core-vkeep-test'),
     unrelatedKept:await caches.has('unrelated-cache'), sharedIconsKept:await caches.has(CONFIG.CACHE.FAVICON),
     otherRegistered:(await navigator.serviceWorker.getRegistrations()).some(r => r.scope === location.origin + '/other/'),
-    bookmarksKept:localStorage.getItem(CONFIG.KEYS.BOOKMARK_KEYS) === sessionStorage.getItem('clearCacheBookmarkKeys')
+    bookmarksKept:localStorage.getItem(CONFIG.KEYS.BOOKMARKS) === sessionStorage.getItem('clearCacheBookmarks')
   }))()`),{ownRemoved:true,otherKept:true,unrelatedKept:true,sharedIconsKept:true,otherRegistered:true,bookmarksKept:true});
   console.log('✅ 清理只删除当前 scope 的离线池，保留其他注册、其他缓存、共享图标和书签');
 } finally {

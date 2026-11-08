@@ -1,6 +1,7 @@
 import { t } from './i18n.js';
 import { CONFIG } from '../config/constants.js';
 import { dom } from '../state/dom.js';
+import { state } from '../state/store.js';
 import { OverlayStack } from './overlay-stack.js';
 import { showConfirm } from './dialogs.js';
 
@@ -9,43 +10,62 @@ let registration = null;
 let initialized = false;
 let checking = false;
 let lastCheckAt = 0;
-let updateAvailable = false;
-let reloadRequested = false;
-/** @type {ReturnType<typeof setTimeout> | null} */
-let reloadTimer = null;
+/** @type {{ worker: ServiceWorker, search: string, timer: ReturnType<typeof setTimeout> } | null} */
+let activation = null;
 
 function showUpdateNotice(message = t('ui.update.available')) {
-    updateAvailable = true;
+    if (activation) return;
     if (dom.updateNoticeText) dom.updateNoticeText.textContent = message;
     dom.updateNotice?.classList.remove('hidden');
 }
 
-function resetUpdateAttempt() {
-    reloadRequested = false;
-    if (reloadTimer) clearTimeout(reloadTimer);
-    reloadTimer = null;
+function finishActivation() {
+    const finished = activation;
+    if (!finished) return null;
+    clearTimeout(finished.timer);
+    activation = null;
     if (dom.updateReloadBtn) {
         dom.updateReloadBtn.disabled = false;
     }
-    showUpdateNotice(t('ui.update.incomplete.please.retry'));
+    return finished;
 }
 
-function applyUpdate() {
-    if (reloadRequested) return;
-    const waiting = registration?.waiting;
-    if (!waiting) {
-        // 另一标签页已激活新版；本页仍由用户确认后才重新载入。
+function canReloadPage() {
+    return !state.editOpen && OverlayStack.isEmpty();
+}
+
+function currentSearch() {
+    return dom.searchInput?.value ?? '';
+}
+
+/** @param {string} confirmedSearch */
+function reloadIfSafe(confirmedSearch) {
+    if (canReloadPage() && currentSearch() === confirmedSearch) {
         location.reload();
+    } else {
+        showUpdateNotice();
+    }
+}
+
+/** @param {ServiceWorker} worker @param {string} search */
+function applyUpdate(worker, search) {
+    if (activation || !canReloadPage()) return;
+    if (worker === navigator.serviceWorker.controller) {
+        reloadIfSafe(search);
         return;
     }
-    reloadRequested = true;
+    if (worker !== registration?.waiting) return;
+    const failed = () => {
+        finishActivation();
+        showUpdateNotice(t('ui.update.incomplete.please.retry'));
+    };
+    activation = { worker, search, timer: setTimeout(failed, CONFIG.TIMERS.SW_UPDATE_TIMEOUT) };
     if (dom.updateReloadBtn) {
         dom.updateReloadBtn.disabled = true;
         if (dom.updateNoticeText) dom.updateNoticeText.textContent = t('ui.updating');
     }
-    reloadTimer = setTimeout(resetUpdateAttempt, CONFIG.TIMERS.SW_UPDATE_TIMEOUT);
-    try { waiting.postMessage({ type: CONFIG.SW_MESSAGES.ACTIVATE_UPDATE }); }
-    catch { resetUpdateAttempt(); }
+    try { worker.postMessage({ type: CONFIG.SW_MESSAGES.ACTIVATE_UPDATE }); }
+    catch { failed(); }
 }
 
 /**
@@ -82,27 +102,30 @@ export async function checkServiceWorkerUpdate(force = false) {
 export function initServiceWorkerUpdates() {
     if (initialized || !('serviceWorker' in navigator) || !location.protocol.startsWith('http')) return;
     initialized = true;
-    /** @type {ServiceWorker | null} */
-    let previousController = navigator.serviceWorker.controller;
+    const initialController = navigator.serviceWorker.controller;
+    let previousController = initialController;
     navigator.serviceWorker.addEventListener('controllerchange', () => {
         const controller = navigator.serviceWorker.controller;
         if (!controller || controller === previousController) return;
         const hadController = !!previousController;
         previousController = controller;
-        if (reloadRequested) {
-            if (reloadTimer) clearTimeout(reloadTimer);
-            reloadTimer = null;
-            location.reload();
-        } else if (hadController) {
+        const finished = finishActivation();
+        if (finished?.worker === controller) {
+            reloadIfSafe(finished.search);
+        } else if (hadController || finished) {
             showUpdateNotice();
         }
     });
     dom.updateReloadBtn?.addEventListener('click', () => {
         // 弹窗开启时不打断草稿；背景按钮同时受 OverlayStack 的 inert 保护。
-        if (!updateAvailable || reloadRequested || !OverlayStack.isEmpty()) return;
+        if (activation || !canReloadPage()) return;
+        const controller = navigator.serviceWorker.controller;
+        const target = registration?.waiting ?? (controller !== initialController ? controller : null);
+        if (!target) return;
+        const search = currentSearch();
         const message = t('ui.reload.to.use.the.new.version') +
-            (dom.searchInput?.value ? t('ui.your.current.search.will.be.cleared') : '');
-        showConfirm(message, applyUpdate, t('ui.new.version.ready'), dom.updateReloadBtn, t('ui.update.now'), 'neutral', t('ui.later'));
+            (search ? t('ui.your.current.search.will.be.cleared') : '');
+        showConfirm(message, () => applyUpdate(target, search), t('ui.new.version.ready'), dom.updateReloadBtn, t('ui.update.now'), 'neutral', t('ui.later'));
     });
     navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(reg => {
         watchRegistration(reg);

@@ -12,6 +12,7 @@ export const DEFAULT_BOOKMARKS = bookmarksData.bookmarks || [];
 export const CONFIG = Object.freeze({
             KEYS: Object.freeze({
                 LANGUAGE: LANGUAGE_KEY,
+                BOOKMARKS: 'glass_bookmarks',
                 BOOKMARK_KEYS: 'userBookmarkKeys',
                 CUSTOM_META: 'userCustomMeta',
                 BG: 'bg',

@@ -159,15 +159,19 @@ test('历史工单缺陷回归 (GS-01 ~ GS-15 焦点、导入、存储配额与�
     assert.equal(await evalJS('storageGet(CONFIG.KEYS.MASK_OPACITY)'), 45);
 
     await evalJS(`(async () => {
+      storageSet(CONFIG.KEYS.BOOKMARK_KEYS, ['https://github.com']);
+      storageSet(CONFIG.KEYS.CUSTOM_META, { 'https://github.com': { name: '旧覆盖' } });
       await openEditModal(); window.__nativeRemove = Storage.prototype.removeItem;
       Storage.prototype.removeItem = function(key) {
-        if ([CONFIG.KEYS.BOOKMARK_KEYS, CONFIG.KEYS.CUSTOM_META, CONFIG.KEYS.MASK_OPACITY].includes(key)) throw Error('denied');
+        if ([CONFIG.KEYS.CUSTOM_META, CONFIG.KEYS.MASK_OPACITY].includes(key)) throw Error('denied');
         return __nativeRemove.call(this, key);
       };
       resetBookmarks(); dom.confirmOkBtn.click();
     })()`);
     await waitFor(evalJS, `OverlayStack.top()?.id === 'confirmModal' && /部分设置未能清除/.test(dom.confirmMsg.textContent)`);
     assert.equal(await evalJS('state.editOpen && modalState.draftMaskOpacity === 45 && dom.maskOpacityInput.value === "45"'), true);
+    assert.equal(await evalJS(`(loadBookmarks(), storageGet(CONFIG.KEYS.CUSTOM_META)['https://github.com'].name === '旧覆盖' &&
+      pageData.bookmarks.length === 8 && pageData.bookmarks.every(bookmark => bookmark.name !== '旧覆盖'))`), true);
     await evalJS(`Storage.prototype.removeItem = __nativeRemove; dom.confirmOkBtn.click(); setTransitionMode('classic'); resetBookmarks(); dom.confirmOkBtn.click()`);
     await waitFor(evalJS, '!state.editOpen');
     assert.equal(await evalJS(`getTransitionMode() === 'sheet' && document.documentElement.dataset.transitionMode === 'sheet' && !localStorage.getItem(CONFIG.KEYS.TRANSITION_MODE) && document.querySelector('.settings-transition-btn[data-mode="sheet"]').getAttribute('aria-pressed') === 'true'`), true);

@@ -19,9 +19,17 @@ import { dom } from '../state/dom.js';
 
 import { getCategoryCatalog } from '../utils/category-catalog.js';
 
-// Normalize old metadata keys in memory; persistence uses shared URLs on the next save.
-function getCustomMeta() {
-    const stored = storageGet(CONFIG.KEYS.CUSTOM_META);
+function readBookmarkRecord() {
+    const missing = Symbol();
+    const record = storageGet(CONFIG.KEYS.BOOKMARKS, missing, null);
+    if (record === missing) {
+        return { keys: storageGet(CONFIG.KEYS.BOOKMARK_KEYS), meta: storageGet(CONFIG.KEYS.CUSTOM_META) };
+    }
+    return record?.version === 1 ? record : null;
+}
+
+/** @param {unknown} stored */
+function getCustomMeta(stored) {
     if (!stored || typeof stored !== 'object' || Array.isArray(stored)) return {};
     return Object.fromEntries(Object.entries(stored).flatMap(([url, meta]) => {
         if (!meta || typeof meta !== 'object' || Array.isArray(meta)) return [];
@@ -106,7 +114,7 @@ function resolveBookmarkOverride(bm, catBm, previous, isForceCustom) {
 export function saveUserBookmarks(list, customTextUrls = new Set()) {
     /** @type {string[]} */
     const keys = [];
-    const customMeta = getCustomMeta();
+    const customMeta = getCustomMeta(readBookmarkRecord()?.meta);
     const catMetaMap = getCategoryCatalog(pageData.categories).byUrl;
 
     const newKeysSet = new Set();
@@ -133,18 +141,7 @@ export function saveUserBookmarks(list, customTextUrls = new Set()) {
         }
     });
 
-    // 两个键均写入成功后才更新视图；元数据写入失败时恢复先前的 URL 列表。
-    let previousKeys;
-    try { previousKeys = localStorage.getItem(CONFIG.KEYS.BOOKMARK_KEYS); }
-    catch { return false; }
-    if (!storageSet(CONFIG.KEYS.BOOKMARK_KEYS, keys)) return false;
-    if (!storageSet(CONFIG.KEYS.CUSTOM_META, customMeta)) {
-        try {
-            if (previousKeys === null) localStorage.removeItem(CONFIG.KEYS.BOOKMARK_KEYS);
-            else localStorage.setItem(CONFIG.KEYS.BOOKMARK_KEYS, previousKeys);
-        } catch {}
-        return false;
-    }
+    if (!storageSet(CONFIG.KEYS.BOOKMARKS, { version: 1, keys, meta: customMeta })) return false;
     pageData.bookmarks = getDerivedBookmarks(keys, pageData.categories, customMeta);
     renderBookmarks();
     return true;
@@ -152,20 +149,22 @@ export function saveUserBookmarks(list, customTextUrls = new Set()) {
 
 /** 重置书签存储并通过同一恢复入口同步内存和视图。 */
 export function resetUserBookmarks() {
-    const results = [CONFIG.KEYS.BOOKMARK_KEYS, CONFIG.KEYS.CUSTOM_META]
-        .map(key => storageRemove(key));
+    // null 表示随语言使用默认顺序，同时覆盖旧格式中仍存在的记录。
+    if (!storageSet(CONFIG.KEYS.BOOKMARKS, { version: 1, keys: null, meta: {} })) return false;
     loadBookmarks();
-    return results.every(Boolean);
+    // 兼容清理只在提交后执行，失败时旧记录也不会重新生效。
+    return [CONFIG.KEYS.BOOKMARK_KEYS, CONFIG.KEYS.CUSTOM_META].map(storageRemove).every(Boolean);
 }
 
 export function loadBookmarks() {
-    const storedKeys = storageGet(CONFIG.KEYS.BOOKMARK_KEYS);
+    const record = readBookmarkRecord();
+    const storedKeys = record?.keys;
     const userKeys = Array.isArray(storedKeys) ? storedKeys.flatMap(url => {
         if (typeof url !== 'string') return [];
         const bookmark = normalizeBookmark({ url }, deriveNameFromUrl(url));
         return bookmark ? [bookmark.url] : [];
     }) : [];
-    const customMeta = getCustomMeta();
+    const customMeta = getCustomMeta(record?.meta);
 
     if (userKeys.length) {
         pageData.bookmarks = getDerivedBookmarks(userKeys, pageData.categories, customMeta);

@@ -195,7 +195,9 @@ Chrome 扩展通过 `npm run build:extension` 独立生成 `extension/`。`scrip
 
 翻译消息使用完整句子，不拼接语序片段；参数只替换一次，不递归解释。缺键按英文、键名顺序回退；正式支持的语言仍须通过键和参数完整性校验。字典不存 HTML，动态模板先翻译再 `escapeHtml()`，URL 继续使用 `safeUrl()`。新增语言优先复用现有系统字体、图片和业务流程，不预建语言加载框架；RTL 需另行验证方向、箭头、拖拽及混合文本布局。
 
-`bookmarks.json` 提供默认快捷书签和分类目录，构建时由 `config/constants.js` 导入原始数据；目录本地化在 `init()` 中完成，`loadBookmarks()` 根据语言选择默认 URL 顺序并读取用户偏好。用户配置保存在 LocalStorage：快捷书签使用 URL 键列表，自定义名称、简介和图标使用元数据覆盖；`getDerivedBookmarks()` 从目录与覆盖数据派生当前条目。
+`bookmarks.json` 提供默认快捷书签和分类目录，构建时由 `config/constants.js` 导入原始数据。目录本地化在 `init()` 中完成。`loadBookmarks()` 根据语言选择默认 URL 顺序并读取用户偏好，`getDerivedBookmarks()` 从目录与覆盖数据派生当前条目。
+
+LocalStorage 的 `glass_bookmarks` 在一次写入中保存版本、URL 顺序与名称、简介和图标覆盖。新记录缺失时兼容读取 `userBookmarkKeys` 和 `userCustomMeta`，首次保存转换为新格式。恢复默认时先写入空覆盖和默认顺序标记，再清理旧键。若清理旧键失败，界面提示重置不完整，已提交的书签仍使用默认顺序和名称。旧标签继续写入旧键时，新记录仍是读取依据。
 
 `utils/category-catalog.js` 为派生、保存、分类排序和搜索提供共用索引，名称、URL、简介及分类／书签图标变化时重建。持久化使用完整的 `normalizeUrl()` 键，搜索使用自己的去重键，两者语义不同。`normalizeBookmark()` 共用于缓存读取、导入、草稿收集和保存；缓存中的错误条目和字段忽略，全部 URL 无效时使用当前语言默认入口，读取不改写原存储。简介缺省时继承目录，显式空字符串表示清空。
 
@@ -294,11 +296,11 @@ Chrome（首屏已有的 `.is-chrome` 标记）为两屏保留 `will-change: tra
 
 本节的 Service Worker 缓存与更新流程适用于网页版。Chrome 扩展使用随包资源离线打开，不注册网页 Service Worker，也不显示网页更新提示；更新需重新构建并在 Chrome 扩展管理页重新加载。扩展设置中的缓存清理仅删除 Cache Storage 临时缓存并刷新页面，保留 LocalStorage / IndexedDB 数据。
 
-`sw.js` 只处理匹配路由的 GET 请求；其他请求交给浏览器。
+`sw.js` 按部署 scope 内的相对路径匹配 GET 请求。文档只匹配部署目录和 `index.html`，核心脚本和清单分别匹配 `app.js` 和 `manifest.json`。应用图片使用 `icons/`、`wallpapers/` 和根目录的两个站点图标路径。其他同源页面和资源保留服务器路由。外部图标缓存只用于应用页面请求的 Favicon.im 和 Google S2 图标。
 
 | 缓存 | 内容与策略 |
 | :--- | :--- |
-| `CORE_STORAGE` | 按 worker scope 与构建版本隔离；HTML、JS/CSS 缓存优先，清单后台重验证；安装时预存核心资源 |
+| `CORE_STORAGE` | 按 worker scope 与构建版本隔离，应用文档和脚本缓存优先，清单后台重验证，安装时预存核心资源 |
 | `FAVICON_CACHE` | 外部图标缓存优先；网络请求有超时，按容量限额 FIFO 淘汰 |
 | `IMG_CACHE` | 同源图片按 worker scope 与构建分池，先查缓存再请求网络；保留上一版供网络失败或服务端错误时回退 |
 
@@ -308,7 +310,7 @@ Chrome（首屏已有的 `.is-chrome` 标记）为两屏保留 `will-change: tra
 
 安装时校验核心资源存在且响应成功，并核对 HTML 与应用指纹；失败则删除残缺核心池并拒绝安装。核心文档和脚本请求使用 `reload`，首张预设壁纸使用 `no-cache` 条件重验证。安装时不预取外部引擎图标；自定义书签的外部图标按实际请求缓存。
 
-`src/js/core/service-worker-updates.js` 在启动、页面唤醒、恢复联网及前台每五分钟检查更新，使用 `updateViaCache: 'none'`，唤醒检查按五分钟节流。新版安装成功后默认保持 waiting，起始页左上角显示“有新版本”；用户点击并确认后发送 `ACTIVATE_UPDATE`，worker 补齐缺失或指纹不符的核心资源、重新校验完整性后调用 `skipWaiting()`，发起页在接管后刷新。其他已受控标签页只显示提示，各自确认后才刷新；编辑弹窗打开时背景更新按钮不可交互。不调用 `clients.claim()`，避免接管未受控页面。超时可重试，不清空缓存或注销 worker；旧客户端全部退出后仍可自然激活。
+`src/js/core/service-worker-updates.js` 在启动、页面唤醒、恢复联网及前台每五分钟检查更新，使用 `updateViaCache: 'none'`，唤醒检查按五分钟节流。新版安装成功后默认保持 waiting，起始页左上角显示“有新版本”。用户确认后，发起页记录目标 Worker 和当时的搜索输入，再发送 `ACTIVATE_UPDATE`。Worker 补齐并校验核心资源后调用 `skipWaiting()`。目标 Worker 接管时，发起页再次检查设置会话、弹窗和搜索输入。期间出现新草稿、弹窗或搜索时保留当前页面，用户可再次确认刷新。其他标签页也各自确认。更新超时可重试，旧客户端全部退出后仍可自然激活。
 
 核心缓存命中时不后台重验证；导航检查核心资源存在性，异常时尝试修补并完整校验指纹。应用脚本网络回填须匹配当前构建。旧构建无法下载时返回独立恢复页；用户点击“修复并重新加载”后安装并验证新版，待控制器切换后重载，避免持久混用旧 HTML 与新脚本。离线或恢复失败时保留重试入口。
 

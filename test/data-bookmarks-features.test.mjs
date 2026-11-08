@@ -68,11 +68,10 @@ test('书签轻量存储模型、自定义图标持久化与系统重置', async
       const titles = items.map(i => (i.querySelector('.bookmark-title') || {}).textContent || '').filter(Boolean);
       const imgs = items.map(i => i.querySelector('img')).filter(Boolean);
       const allLoadedOrHaveSrc = imgs.length === 8 && imgs.every(img => img.src && !img.src.startsWith('data:image/svg'));
-      const keys = localStorage.getItem('userBookmarkKeys');
-      const meta = localStorage.getItem('userCustomMeta');
-      return { itemCount: items.length, titleCount: titles.length, imgCount: imgs.length, allLoadedOrHaveSrc, keys, meta };
+      const record = storageGet(CONFIG.KEYS.BOOKMARKS);
+      return { itemCount: items.length, titleCount: titles.length, imgCount: imgs.length, allLoadedOrHaveSrc, record };
     })()`);
-    assert.ok(bmInit.itemCount === 8 && bmInit.titleCount === 8 && bmInit.imgCount === 8 && bmInit.allLoadedOrHaveSrc && bmInit.keys === null && bmInit.meta === null);
+    assert.ok(bmInit.itemCount === 8 && bmInit.titleCount === 8 && bmInit.imgCount === 8 && bmInit.allLoadedOrHaveSrc && bmInit.record === null);
 
     // 2.2 自定义书签与元数据持久化加载
     await evalJS(`(() => {
@@ -106,12 +105,10 @@ test('书签轻量存储模型、自定义图标持久化与系统重置', async
       pageData.categories = [];
       saveUserBookmarks([{ name: '自定义A', url: 'https://aaa.example.com', icon: 'https://aaa.example.com/a.png' }]);
     })()`);
-    const saveModel = await evalJS(`(() => ({
-      keys: JSON.parse(localStorage.getItem('userBookmarkKeys') || 'null'),
-      meta: JSON.parse(localStorage.getItem('userCustomMeta') || '{}')
-    }))()`);
-    assert.ok(saveModel.keys && saveModel.keys.length === 1 && saveModel.keys[0] === 'https://aaa.example.com'
-      && saveModel.meta['https://aaa.example.com'] && saveModel.meta['https://aaa.example.com'].icon.includes('aaa.example.com/a.png'));
+    const saveModel = await evalJS('storageGet(CONFIG.KEYS.BOOKMARKS)');
+    assert.deepEqual(saveModel.keys, ['https://aaa.example.com']);
+    assert.equal(saveModel.version, 1);
+    assert.equal(saveModel.meta['https://aaa.example.com'].icon, 'https://aaa.example.com/a.png');
 
     // 重置书签自闭环
     const resetBookmarksCheck = await evalJS(`(async () => {
@@ -143,7 +140,7 @@ test('书签轻量存储模型、自定义图标持久化与系统重置', async
         dom.resetEditBtn.click();
         dom.confirmOkBtn.click();
         const deadline = Date.now() + 3000;
-        while (localStorage.getItem('userBookmarkKeys') !== null && Date.now() < deadline) {
+        while (storageGet(CONFIG.KEYS.BOOKMARKS)?.keys !== null && Date.now() < deadline) {
           await new Promise(resolve => setTimeout(resolve, 20));
         }
 
@@ -171,6 +168,14 @@ test('书签轻量存储模型、自定义图标持久化与系统重置', async
       }
     })()`);
     assert.ok(resetBookmarksCheck.resetSuccess, JSON.stringify(resetBookmarksCheck));
+    assert.deepEqual(await evalJS('storageGet(CONFIG.KEYS.BOOKMARKS)'), { version: 1, keys: null, meta: {} });
+    const reloaded = await evalJS(`(() => {
+      storageSet(CONFIG.KEYS.BOOKMARK_KEYS, ['https://old-tab.test', 'https://github.com']);
+      storageSet(CONFIG.KEYS.CUSTOM_META, { 'https://github.com': { name: '旧版覆盖' } });
+      loadBookmarks();
+      return { count: pageData.bookmarks.length, old: pageData.bookmarks.some(bm => bm.name === '旧版覆盖' || bm.url === 'https://old-tab.test') };
+    })()`);
+    assert.deepEqual(reloaded, { count: 8, old: false });
     await evalJS(`localStorage.clear()`);
   } finally {
     await chrome.close();

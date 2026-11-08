@@ -2,15 +2,16 @@
 /**
  * 安全读取 localStorage 中的配置项并反序列化为 JSON
  * @param {string} key - 存储的键名
- * @param {*} [fallback=null] - 当键名不存在或读取抛出异常时的默认返回值
+ * @param {*} [fallback=null] - 键名不存在时的返回值
+ * @param {*} [invalid=fallback] - 读取或解析失败时的返回值
  * @returns {*} 解析后的对象/数组或 fallback 默认值
  */
-export function storageGet(key, fallback = null) {
+export function storageGet(key, fallback = null, invalid = fallback) {
     try {
         const raw = localStorage.getItem(key);
-        return raw ? JSON.parse(raw) : fallback;
+        return raw === null ? fallback : JSON.parse(raw);
     } catch {
-        return fallback;
+        return invalid;
     }
 }
 

@@ -11,7 +11,8 @@ const CORE_CACHE = 'app-core-v1786255428688';
 // 图标池不对称隔离：外部 Favicon 与应用构建代码正交，跨版本保留以节省流量与网络 IO，故不挂钩 CORE_CACHE
 const FAVICON_CACHE = 'app-favicons-v1';
 const SCOPE_URL = /** @type {ServiceWorkerContext} */ (self).registration.scope;
-const CACHE_PREFIX = 'glass-scope-' + encodeURIComponent(new URL(SCOPE_URL).pathname) + '-';
+const SCOPE = new URL(SCOPE_URL);
+const CACHE_PREFIX = 'glass-scope-' + encodeURIComponent(SCOPE.pathname) + '-';
 const CORE_STORAGE = CACHE_PREFIX + CORE_CACHE;
 const IMG_CACHE = CACHE_PREFIX + 'app-images-' + CORE_CACHE;
 const IMAGE_PREFIX = CACHE_PREFIX + 'app-images-';
@@ -67,6 +68,17 @@ const CORE_ASSETS = [
     './app.js',
     './wallpapers/bg1.avif'
 ];
+
+/** @param {URL} url */
+function scopedPath(url) {
+    return url.origin === SCOPE.origin && url.pathname.startsWith(SCOPE.pathname)
+        ? url.pathname.slice(SCOPE.pathname.length) : null;
+}
+
+/** @param {string | null} path */
+function isAppDocument(path) {
+    return path === '' || path === 'index.html';
+}
 
 /** @type {Map<string, Promise<void>>} */
 const pendingPrunes = new Map();
@@ -208,8 +220,9 @@ function recoveryResponse() {
 
 // 仅接受同源窗口的确认；重新校验已下载资源后再跳过等待。
 /** @type {ServiceWorkerContext} */ (self).addEventListener('message', e => {
-    if (e.data?.type !== SW_MESSAGES.ACTIVATE_UPDATE || /** @type {Client | null} */ (e.source)?.type !== 'window' ||
-        !/** @type {Client} */ (e.source).url.startsWith(SCOPE_URL)) return;
+    const client = /** @type {Client | null} */ (e.source);
+    if (e.data?.type !== SW_MESSAGES.ACTIVATE_UPDATE || client?.type !== 'window' ||
+        !isAppDocument(scopedPath(new URL(client.url)))) return;
     e.waitUntil((async () => {
         await repairCoreCache(await caches.open(CORE_STORAGE));
         await /** @type {ServiceWorkerContext} */ (self).skipWaiting();
@@ -237,46 +250,19 @@ async function previousImageResponse(request) {
 /** @type {ServiceWorkerContext} */ (self).addEventListener('fetch', e => {
     if (e.request.method !== 'GET') return;
 
-    let urlObj;
-    try {
-        urlObj = new URL(e.request.url);
-    } catch {
-        return;
-    }
-
-    const isSameOrigin = urlObj.origin === self.location.origin;
-    // 让本地开发服务器的清理请求直达网络。
-    if (isSameOrigin && urlObj.pathname === '/_clear_cache') return;
-
-    const pathnameLower = urlObj.pathname.toLowerCase();
-    const scopePath = new URL(SCOPE_URL).pathname.toLowerCase();
-    const scopePathClean = scopePath.endsWith('/') && scopePath.length > 1 ? scopePath.slice(0, -1) : scopePath;
-    const isImgAsset = isSameOrigin && /\.(ico|png|jpg|jpeg|svg|webp|avif)$/.test(pathnameLower);
-    // 直接打开图片时仍须返回图片，不能被主文档的离线回退替换成 HTML。
-    const isMainDoc = isSameOrigin && !isImgAsset && (
-        e.request.mode === 'navigate'
-        || pathnameLower === '/'
-        || pathnameLower === scopePath
-        || pathnameLower === scopePathClean
-        || pathnameLower.endsWith('/index.html')
-    );
-    const isCoreData = isSameOrigin && pathnameLower.endsWith('/manifest.json');
+    const urlObj = new URL(e.request.url);
+    const path = scopedPath(urlObj);
+    const isImgAsset = path !== null && (path === 'favicon.ico' || path === 'apple-touch-icon.png' ||
+        (/^(icons|wallpapers)\//.test(path) && /\.(ico|png|jpe?g|svg|webp|avif)$/i.test(path)));
     const isFaviconDomain = urlObj.origin === 'https://a.favicon.im'
-        || (urlObj.origin === 'https://www.google.com' && pathnameLower.startsWith('/s2/favicons'))
-        || urlObj.hostname.endsWith('.gstatic.com');
-    const isCoreStaticAsset = isSameOrigin
-        && (pathnameLower.endsWith('.js') || pathnameLower.endsWith('.css'))
-        && !pathnameLower.endsWith('/sw.js');
+        || (urlObj.origin === 'https://www.google.com' && urlObj.pathname === '/s2/favicons');
 
     // 1. 主文档版本隔离 Cache-First；缓存命中不重验证，新版通过 worker 生命周期换代
-    if (isMainDoc) {
+    if (isAppDocument(path)) {
+        const asset = path === '' ? './' : './index.html';
         e.respondWith(
             caches.open(CORE_STORAGE).then(async cache => {
-                const cachedRes = (await cache.match(e.request))
-                    || (await cache.match(e.request, { ignoreSearch: true }))
-                    || (await cache.match('./index.html'))
-                    || (await cache.match('./'))
-                    || (await cache.match('/'));
+                const cachedRes = await cache.match(asset);
 
                 // 导航先检查核心资源存在性；仅异常时执行完整修复和指纹校验。
                 const complete = (await Promise.all(CORE_ASSETS.map(asset => cache.match(asset))))
@@ -284,7 +270,7 @@ async function previousImageResponse(request) {
                 if (cachedRes && complete) return cachedRes;
                 try {
                     await repairCoreCache(cache);
-                    return (await cache.match('./index.html')) || make503Response();
+                    return (await cache.match(asset)) || make503Response();
                 } catch {
                     return recoveryResponse();
                 }
@@ -294,13 +280,13 @@ async function previousImageResponse(request) {
     }
 
     // 2. manifest.json 使用同源 Stale-While-Revalidate。
-    if (isCoreData) {
+    if (path === 'manifest.json') {
+        const asset = './manifest.json';
         e.respondWith(
             caches.open(CORE_STORAGE).then(async cache => {
-                const cachedRes = (await cache.match(e.request))
-                    || (await cache.match(e.request, { ignoreSearch: true }));
-                const fetchPromise = fetch(new Request(e.request, { cache: 'no-cache' })).then(netRes => {
-                    if (netRes.ok) cache.put(e.request, netRes.clone()).catch(() => {});
+                const cachedRes = await cache.match(asset);
+                const fetchPromise = fetch(new Request(e.request, { cache: 'no-cache' })).then(async netRes => {
+                    if (netRes.ok) await cache.put(asset, netRes.clone()).catch(() => {});
                     return netRes;
                 }).catch(() => null);
 
@@ -309,26 +295,18 @@ async function previousImageResponse(request) {
                     return cachedRes;
                 }
 
-                const netRes = await fetchPromise;
-                return netRes
-                    || (await cache.match(e.request))
-                    || (await cache.match(e.request, { ignoreSearch: true }))
-                    || (await caches.match(e.request))
-                    || (await caches.match(e.request, { ignoreSearch: true }))
-                    || make503Response();
+                return await fetchPromise || make503Response();
             })
         );
         return;
     }
 
-    // 3. 同源 JS/CSS 版本隔离 Cache-First；缓存命中不重验证，非 ok 回退缓存
-    if (isCoreStaticAsset) {
+    // 3. 应用脚本版本隔离；版本查询参数复用本构建已校验的脚本。
+    if (path === 'app.js') {
+        const asset = './app.js';
         e.respondWith(
             caches.open(CORE_STORAGE).then(async cache => {
-                const isAppJs = pathnameLower.endsWith('/app.js');
-                const cached = (await cache.match(e.request))
-                    || (await cache.match(e.request, { ignoreSearch: true }))
-                    || (isAppJs ? await cache.match('./app.js') : null);
+                const cached = await cache.match(asset);
 
                 // 命中当前核心池，返回安装时已校验的应用脚本。
                 if (cached) {
@@ -337,10 +315,10 @@ async function previousImageResponse(request) {
 
                 try {
                     const response = await fetch(new Request(e.request, { cache: 'reload' }));
-                    if (!response.ok || (isAppJs && !await validCoreResponse('./app.js', response))) {
+                    if (!await validCoreResponse(asset, response)) {
                         return make503Response();
                     }
-                    await cache.put(e.request, response.clone());
+                    await cache.put(asset, response.clone());
                     return response;
                 } catch {
                     return make503Response();
@@ -352,8 +330,10 @@ async function previousImageResponse(request) {
 
     // 跨域图标缓存优先，未命中时使用带超时的网络请求。
     if (isFaviconDomain) {
-        e.respondWith(
-            shareImageResponse(e, waitForCache => caches.open(FAVICON_CACHE).then(async cache => {
+        e.respondWith((async () => {
+            const client = e.clientId ? await /** @type {ServiceWorkerContext} */ (self).clients.get(e.clientId) : null;
+            if (!client || !isAppDocument(scopedPath(new URL(client.url)))) return fetch(e.request);
+            return shareImageResponse(e, waitForCache => caches.open(FAVICON_CACHE).then(async cache => {
                 const cached = await cache.match(e.request);
                 if (cached) return cached;
 
@@ -377,8 +357,8 @@ async function previousImageResponse(request) {
 
                 const netRes = await fetchWithTimeout();
                 return netRes || new Response('', { status: 404, statusText: 'Favicon Unavailable' });
-            }))
-        );
+            }));
+        })());
         return;
     }
 

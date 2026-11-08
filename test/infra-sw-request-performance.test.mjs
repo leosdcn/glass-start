@@ -92,7 +92,8 @@ let downloads = 0, releaseCacheWrite, failExternal = false;
 const cacheWriteGate = new Promise(resolve=>{releaseCacheWrite=resolve;});
 vm.runInNewContext(worker, {
     self:{location:{origin:'https://example.test',href:'https://example.test/sw.js'},
-        registration:{scope:'https://example.test/'},addEventListener:(name,fn)=>handlers.set(name,fn)},
+        registration:{scope:'https://example.test/'},addEventListener:(name,fn)=>handlers.set(name,fn),
+        clients:{get:async id=>({url:new URL(id,'https://example.test/').href})}},
     URL, Request, Response, AbortController, setTimeout, clearTimeout,
     fetch:async()=>{downloads++;if(failExternal)throw new Error('offline');return new Response('shared-body');},
     caches:{open:async name=>{
@@ -105,10 +106,10 @@ vm.runInNewContext(worker, {
         };
     }}
 });
-function dispatch(requestUrl) {
+function dispatch(requestUrl, clientId = '/') {
     let response;
     const lifetime=[];
-    handlers.get('fetch')({request:new Request(requestUrl),respondWith:task=>{response=task;},waitUntil:task=>lifetime.push(task)});
+    handlers.get('fetch')({clientId,request:new Request(requestUrl),respondWith:task=>{response=task;},waitUntil:task=>lifetime.push(task)});
     return {response,settled:()=>Promise.all(lifetime)};
 }
 const first = dispatch('https://example.test/icons/gap.png');
@@ -125,11 +126,13 @@ const externalSecond=dispatch('https://a.favicon.im/shared.test');
 assert.deepEqual(await Promise.all([externalFirst,externalSecond].map(async task=>(await task.response).text())),['shared-body','shared-body']);
 assert.equal(downloads,2);
 await Promise.all([externalFirst.settled(),externalSecond.settled()]);
+assert.equal(await (await dispatch('https://a.favicon.im/shared.test', '/manual.html').response).text(),'shared-body');
+assert.equal(downloads,3,'同源手册页面走网络，不读应用的外部图标缓存');
 failExternal=true;
 for(let i=0;i<2;i++){
     const failed=dispatch('https://a.favicon.im/retry.test');
     assert.equal((await failed.response).status,404);
     await failed.settled();
 }
-assert.equal(downloads,4);
+assert.equal(downloads,5);
 console.log('✅ 外部图标也共享下载，失败后清理未决任务并允许重试');

@@ -176,7 +176,7 @@ await test("主题配置、图标回退与缓存驱逐", async () => {
     }
 });
 
-await test("Service Worker 下直接导航到应用图标", async () => {
+await test("Service Worker 支持图标直达和应用入口离线导航", async () => {
     const { server, chrome, send, evalJS } = await launchSession();
     const origin = `http://127.0.0.1:${server.port}`;
     try {
@@ -194,8 +194,12 @@ await test("Service Worker 下直接导航到应用图标", async () => {
       await navigateAndWait(send, evalJS, `${origin}/icons/app/favicon.svg?v=icon-navigation`,
         'document.contentType === "image/svg+xml"');
       assert.equal(await evalJS('document.documentElement.localName'), 'svg');
-      await navigateAndWait(send, evalJS, origin + '/offline-entry', 'typeof openEditModal === "function"');
-      console.log('✅ SW 控制下直接导航到 PNG/SVG（含版本参数）返回图像，普通页面导航仍可回退主文档');
+      await send('Network.enable');
+      await send('Network.emulateNetworkConditions', { offline: true, latency: 0, downloadThroughput: 0, uploadThroughput: 0 });
+      for (const entry of ['/?offline=1', '/index.html?offline=1']) {
+        await navigateAndWait(send, evalJS, origin + entry, 'typeof openEditModal === "function" && !!navigator.serviceWorker.controller');
+      }
+      console.log('✅ PNG/SVG 含版本参数时仍返回图像，部署目录与 index.html 均可带参数离线打开');
     } finally {
       await chrome.close();
       await server.close();
