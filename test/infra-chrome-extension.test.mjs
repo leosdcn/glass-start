@@ -7,8 +7,8 @@ import { connectCDP, launchChrome } from './support/cdp.mjs';
 import { createEvaluator, getFreePort, waitFor } from './support/helpers.mjs';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
-createRequire(import.meta.url)('../scripts/build-extension.cjs').buildExtension();
-const output = join(root, 'extension');
+const output = join(process.env.GLASS_TEST_TMPDIR || root, 'extension');
+createRequire(import.meta.url)('../scripts/build-extension.cjs').buildExtension(output);
 const manifest = JSON.parse(readFileSync(join(output, 'manifest.json'), 'utf8'));
 const html = readFileSync(join(output, 'index.html'), 'utf8');
 assert.equal(manifest.version, JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')).version);

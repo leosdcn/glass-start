@@ -2,15 +2,11 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { executeBuild, PATHS } = require('./build.cjs');
 const { replaceOnce } = require('./html-template.cjs');
+const { publishBuild } = require('./publish-build.cjs');
 
 // 复用网页编译与资源注入，独立输出；失败时保留上一份扩展。
-const output = path.join(PATHS.root, 'extension');
-const staging = path.join(PATHS.root, '.extension_staging');
-
-function buildExtension() {
-    fs.rmSync(staging, { recursive: true, force: true });
-    fs.mkdirSync(staging, { recursive: true });
-    try {
+function buildExtension(output = path.join(PATHS.root, 'extension')) {
+    publishBuild(output, staging => {
         executeBuild(staging, { extension: true });
         const manifest = JSON.parse(fs.readFileSync(path.join(PATHS.src, 'extension/manifest.json'), 'utf8'));
         manifest.version = JSON.parse(fs.readFileSync(PATHS.pkgJson, 'utf8')).version;
@@ -46,16 +42,14 @@ function buildExtension() {
             return `<script${attrs} src="./${filename}"></script>`;
         });
         fs.writeFileSync(path.join(staging, 'index.html'), html);
-        for (const name of ['sw.js', '_headers', 'robots.txt', 'sitemap.xml']) {
+        for (const name of ['_headers', 'robots.txt', 'sitemap.xml']) {
             fs.rmSync(path.join(staging, name), { force: true });
         }
-        fs.rmSync(output, { recursive: true, force: true });
-        fs.renameSync(staging, output);
-        console.log('\nChrome 扩展已生成：extension/（chrome://extensions → 加载已解压的扩展程序）');
-    } finally {
-        fs.rmSync(staging, { recursive: true, force: true });
-    }
+    });
 }
 
-if (require.main === module) buildExtension();
+if (require.main === module) {
+    buildExtension();
+    console.log('\nChrome 扩展已生成：extension/（chrome://extensions → 加载已解压的扩展程序）');
+}
 module.exports = { buildExtension };

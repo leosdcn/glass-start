@@ -1,8 +1,8 @@
 import { spawn, spawnSync } from 'node:child_process';
+import { once } from 'node:events';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { randomUUID } from 'node:crypto';
-import { rmSync, existsSync } from 'node:fs';
+import { rmSync, existsSync, mkdtempSync, mkdirSync } from 'node:fs';
 
 function findChromeBin() {
   if (process.env.CHROME_PATH) return process.env.CHROME_PATH;
@@ -33,7 +33,12 @@ const CHROME_BIN = findChromeBin();
 
 const activeInstances = new Set();
 
+function isRunning(proc) {
+  return proc?.pid && proc.exitCode === null && proc.signalCode === null;
+}
+
 function cleanupInstance(instance) {
+  if (!activeInstances.delete(instance)) return;
   try {
     if (instance.connection) instance.connection.close();
     else if (instance.ws && instance.ws.readyState === WebSocket.OPEN) {
@@ -42,23 +47,37 @@ function cleanupInstance(instance) {
   } catch {}
 
   try {
-    if (instance.proc && !instance.proc.killed) {
-      try {
-        process.kill(instance.proc.pid, 'SIGKILL');
-      } catch {}
-    }
+    const proc = instance.proc;
+    if (isRunning(proc)) proc.kill('SIGKILL');
   } catch {}
 
   try {
     if (instance.profileDir) {
-      rmSync(instance.profileDir, { recursive: true, force: true });
+      rmSync(instance.profileDir, { recursive: true, force: true, maxRetries: 3 });
     }
   } catch {}
-
-  activeInstances.delete(instance);
 }
 
-// 注册全局生命周期钩子，确保任意异常退出、Ctrl+C 或完成时 100% 自动销毁无头 Chrome 实例与临时目录
+async function closeInstance(instance) {
+  if (!activeInstances.has(instance)) return;
+  const { proc } = instance;
+  try {
+    if (!isRunning(proc)) return;
+    // 只终止本次启动的进程，等它退出后再删除配置目录。
+    const exited = once(proc, 'exit', { signal: AbortSignal.timeout(1500) }).catch(() => {});
+    proc.kill();
+    await exited;
+    if (isRunning(proc)) {
+      const killed = once(proc, 'exit', { signal: AbortSignal.timeout(1000) }).catch(() => {});
+      proc.kill('SIGKILL');
+      await killed;
+    }
+  } finally {
+    cleanupInstance(instance);
+  }
+}
+
+// 注册退出钩子，清理本进程启动的 Chrome 及其临时目录。
 function registerExitHooks() {
   if (globalThis.__CHROME_HOOKS_REGISTERED__) return;
   globalThis.__CHROME_HOOKS_REGISTERED__ = true;
@@ -158,7 +177,9 @@ export async function connectCDP(ws, { openTimeoutMs = 15000 } = {}) {
 }
 
 export async function launchChrome({ port, url, testMode = true, disableGPU = true, extraArgs = [] }) {
-  const profileDir = process.env.CHROME_PROFILE_DIR || join(process.env.GLASS_TEST_TMPDIR || tmpdir(), `glass-start-test-${port}-${randomUUID()}`);
+  const profileParent = process.env.CHROME_PROFILE_DIR || process.env.GLASS_TEST_TMPDIR || tmpdir();
+  mkdirSync(profileParent, { recursive: true });
+  const profileDir = mkdtempSync(join(profileParent, `glass-start-test-${port}-`));
   const args = [
     '--headless=new',
     ...(disableGPU ? ['--disable-gpu'] : []),
@@ -172,19 +193,23 @@ export async function launchChrome({ port, url, testMode = true, disableGPU = tr
     '--window-size=1470,956',
     '--hide-scrollbars',
     `--remote-debugging-port=${port}`,
-    `--user-data-dir=${profileDir}`,
     ...extraArgs,
+    `--user-data-dir=${profileDir}`,
     'about:blank',
   ];
-  const proc = spawn(CHROME_BIN, args, { stdio: 'ignore' });
-
-  const instance = { proc, ws: null, profileDir };
+  const instance = { proc: null, ws: null, profileDir };
   activeInstances.add(instance);
 
-  let target;
   try {
-    target = await (async function wait() {
+    const proc = instance.proc = spawn(CHROME_BIN, args, { stdio: 'ignore' });
+    let spawnError;
+    proc.once('error', error => { spawnError = error; });
+    const target = await (async function wait() {
       for (let i = 0; i < 200; i++) {
+        if (spawnError) throw spawnError;
+        if (proc.exitCode !== null || proc.signalCode !== null) {
+          throw new Error(`Chrome exited before CDP was ready (${proc.signalCode ?? proc.exitCode})`);
+        }
         try {
           const res = await fetch(`http://127.0.0.1:${port}/json`);
           const list = await res.json();
@@ -196,20 +221,10 @@ export async function launchChrome({ port, url, testMode = true, disableGPU = tr
       }
       throw new Error('Chrome CDP page not found');
     })();
-  } catch (err) {
-    cleanupInstance(instance);
-    throw err;
-  }
+    instance.ws = new WebSocket(target.webSocketDebuggerUrl);
+    instance.connection = await connectCDP(instance.ws);
+    const { send } = instance.connection;
 
-  const ws = new WebSocket(target.webSocketDebuggerUrl);
-  instance.ws = ws;
-  let connection;
-  try { connection = await connectCDP(ws); }
-  catch (error) { cleanupInstance(instance); throw error; }
-  instance.connection = connection;
-  const { send } = connection;
-
-  try {
     await send('Page.enable');
     if (testMode) {
       await send('Page.addScriptToEvaluateOnNewDocument', { source: `window.__GLASS_TEST__ = true; Object.defineProperty(navigator, 'languages', { configurable: true, get: () => ['zh-CN'] });` });
@@ -232,15 +247,9 @@ export async function launchChrome({ port, url, testMode = true, disableGPU = tr
       await new Promise(resolve => setTimeout(resolve, 30));
     }
     if (!ready) throw new Error('Chrome page did not finish navigation within 10000ms');
+    return { send, close: () => closeInstance(instance) };
   } catch (error) {
-    cleanupInstance(instance);
+    await closeInstance(instance);
     throw error;
   }
-
-  return {
-    send,
-    close: async () => {
-      cleanupInstance(instance);
-    },
-  };
 }

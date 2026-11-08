@@ -1,12 +1,13 @@
 /** 实际 worker 处理并发图片请求时，未命中的同一资源只下载一次。 */
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import vm from 'node:vm';
-import { startServer } from './support/server.mjs';
+import { DIST_DIR, startServer } from './support/server.mjs';
 import { launchChrome } from './support/cdp.mjs';
 import { getFreePort, createEvaluator, waitFor, navigateAndWait } from './support/helpers.mjs';
 
-const worker = readFileSync(new URL('../dist/sw.js', import.meta.url), 'utf8');
+const worker = readFileSync(join(DIST_DIR, 'sw.js'), 'utf8');
 const stamp = worker.match(/app-core-v\d+/)[0];
 const counts = new Map();
 const pending = [];

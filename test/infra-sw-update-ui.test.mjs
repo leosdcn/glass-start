@@ -1,13 +1,14 @@
 import assert from 'node:assert/strict';
 import { readFileSync, mkdirSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { createRequire } from 'node:module';
-import { startServer } from './support/server.mjs';
+import { DIST_DIR, startServer } from './support/server.mjs';
 import { launchChrome, connectCDP } from './support/cdp.mjs';
 import { getFreePort, createEvaluator, waitFor, navigateAndWait } from './support/helpers.mjs';
 
 const { buildAppJavaScript } = createRequire(import.meta.url)('../scripts/build.cjs');
-const html = readFileSync(new URL('../dist/index.html', import.meta.url), 'utf8');
-const worker = readFileSync(new URL('../dist/sw.js', import.meta.url), 'utf8');
+const html = readFileSync(join(DIST_DIR, 'index.html'), 'utf8');
+const worker = readFileSync(join(DIST_DIR, 'sw.js'), 'utf8');
 let version = 201, failApp = false;
 const apps = new Map();
 const route = kind => (req, res) => {

@@ -1,0 +1,161 @@
+import assert from 'node:assert/strict';
+import { execFile } from 'node:child_process';
+import fs from 'node:fs';
+import { createRequire } from 'node:module';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { test } from 'node:test';
+import { fileURLToPath } from 'node:url';
+import { promisify } from 'node:util';
+import { launchChrome } from './support/cdp.mjs';
+import { getFreePort } from './support/helpers.mjs';
+
+const root = fileURLToPath(new URL('..', import.meta.url));
+const require = createRequire(import.meta.url);
+const exec = promisify(execFile);
+const serverModule = new URL('./support/server.mjs', import.meta.url).href;
+const cdpModule = new URL('./support/cdp.mjs', import.meta.url).href;
+
+function temporaryDirectory(t) {
+  const dir = fs.mkdtempSync(join(tmpdir(), 'glass-pipeline-'));
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  return dir;
+}
+
+function node(args, { cwd = root, env = {} } = {}) {
+  const childEnv = { ...process.env, ...env };
+  delete childEnv.NODE_TEST_CONTEXT;
+  return exec(process.execPath, args, { cwd, env: childEnv, timeout: 30000 });
+}
+
+test('页面、Worker 类型检查或构建被信号终止时不启动测试', { skip: process.platform === 'win32' }, async t => {
+  const cwd = temporaryDirectory(t);
+  for (const dir of ['test/support', 'scripts', 'node_modules/typescript/bin']) {
+    fs.mkdirSync(join(cwd, dir), { recursive: true });
+  }
+  for (const file of ['test/run.mjs', 'test/support/test-selection.mjs']) {
+    fs.copyFileSync(join(root, file), join(cwd, file));
+  }
+  fs.writeFileSync(join(cwd, 'node_modules/typescript/bin/tsc'),
+    "if (process.argv[3].endsWith('/' + process.env.STOP_STEP)) process.kill(process.pid, 'SIGTERM')");
+  fs.writeFileSync(join(cwd, 'scripts/build.cjs'),
+    "if (process.env.STOP_STEP === 'build') process.kill(process.pid, 'SIGTERM')");
+  const executed = join(cwd, 'test-ran');
+  fs.writeFileSync(join(cwd, 'test/smoke.test.mjs'),
+    "import { writeFileSync } from 'node:fs'; writeFileSync(new URL('../test-ran', import.meta.url), '')");
+  for (const step of ['tsconfig.json', 'tsconfig.sw.json', 'build']) {
+    await assert.rejects(node(['test/run.mjs'], { cwd, env: { STOP_STEP: step } }),
+      { code: 143, stderr: /SIGTERM/ });
+    assert.equal(fs.existsSync(executed), false, step);
+  }
+  await node(['test/run.mjs'], { cwd });
+  assert.equal(fs.existsSync(executed), true);
+});
+
+test('并发网页构建各自产生一致快照，测试服务不读取随后发布的 dist', async t => {
+  const dir = temporaryDirectory(t);
+  const cwd = join(dir, 'project');
+  fs.mkdirSync(cwd);
+  for (const name of ['.gitignore', 'scripts', 'src', 'public', 'package.json', 'bookmarks.json', 'sw.js', 'LICENSE']) {
+    fs.cpSync(join(root, name), join(cwd, name), { recursive: true, mode: fs.constants.COPYFILE_FICLONE });
+  }
+  fs.symlinkSync(join(root, 'node_modules'), join(cwd, 'node_modules'), 'junction');
+  const snapshotA = join(dir, 'run-a');
+  const snapshotB = join(dir, 'run-b');
+  const clock = join(dir, 'build-clock.cjs');
+  fs.writeFileSync(clock, 'Date.now = () => Number(process.env.BUILD_TIME)');
+  const builds = await Promise.allSettled([snapshotA, snapshotB].map((snapshot, i) =>
+    node(['--require', clock, 'scripts/build.cjs', `--test-snapshot=${snapshot}`], {
+      cwd, env: { BUILD_TIME: String(1790000000000 + i) }
+    })));
+  for (const build of builds) if (build.status === 'rejected') throw build.reason;
+
+  const read = (directory, name) => fs.readFileSync(join(directory, name), 'utf8');
+  const verify = (directory, version) => {
+    assert.match(read(directory, 'index.html'), new RegExp(`__GLASS_BUILD_HTML__="${version}"`));
+    assert.match(read(directory, 'app.js'), new RegExp(`__GLASS_BUILD_APP__="${version}"`));
+    assert.ok(read(directory, 'sw.js').includes(version));
+    assert.ok(fs.existsSync(join(directory, 'wallpapers/bg1.avif')));
+  };
+  for (const [i, snapshot] of [snapshotA, snapshotB].entries()) {
+    const version = `app-core-v${1790000000000 + i}`;
+    verify(join(snapshot, 'dist'), version);
+    assert.match(read(snapshot, 'app.test.js'), new RegExp(`__GLASS_BUILD_APP__="${version}"`));
+  }
+  const dist = join(cwd, 'dist');
+  const publishedVersion = read(dist, 'app.js').match(/__GLASS_BUILD_APP__="(app-core-v\d+)"/)?.[1];
+  assert.ok(['app-core-v1790000000000', 'app-core-v1790000000001'].includes(publishedVersion));
+  verify(dist, publishedVersion);
+  assert.deepEqual(fs.readdirSync(cwd).filter(name => name.startsWith('.dist-')), []);
+
+  const snapshot = publishedVersion === 'app-core-v1790000000000' ? snapshotB : snapshotA;
+  await node(['--input-type=module', '-e', `
+    import assert from 'node:assert/strict';
+    import { readFileSync } from 'node:fs';
+    import { join } from 'node:path';
+    import { startServer } from ${JSON.stringify(serverModule)};
+    for (const testMode of [true, false]) {
+      const server = await startServer(0, undefined, {}, { testMode });
+      try {
+        for (const file of ['index.html', 'app.js', 'sw.js']) {
+          const res = await fetch('http://127.0.0.1:' + server.port + '/' + file);
+          assert.ok(res.ok);
+          const expected = testMode && file === 'app.js' ? 'app.test.js' : join('dist', file);
+          assert.equal(await res.text(), readFileSync(join(process.env.GLASS_TEST_TMPDIR, expected), 'utf8'));
+        }
+      } finally { await server.close(); }
+    }
+  `], { cwd, env: { GLASS_TEST_TMPDIR: snapshot } });
+});
+
+test('发布暂存目录失败时恢复上一次完整产物', t => {
+  const dir = temporaryDirectory(t);
+  const output = join(dir, 'dist');
+  const { publishBuild } = require('../scripts/publish-build.cjs');
+  publishBuild(output, staging => fs.writeFileSync(join(staging, 'app.js'), 'previous'));
+  if (process.platform !== 'win32') {
+    assert.equal(fs.statSync(output).mode & 0o777, 0o777 & ~process.umask());
+  }
+  assert.throws(() => publishBuild(output, staging => {
+    fs.writeFileSync(join(staging, 'app.js'), 'incomplete');
+    throw new Error('injected build failure');
+  }), /injected build failure/);
+  assert.equal(fs.readFileSync(join(output, 'app.js'), 'utf8'), 'previous');
+  const rename = fs.renameSync;
+  t.mock.method(fs, 'renameSync', (from, to) => {
+    if (from.startsWith(join(dir, '.dist-build-')) && to === output) throw new Error('injected publish failure');
+    rename(from, to);
+  });
+  assert.throws(() => publishBuild(output, staging => fs.writeFileSync(join(staging, 'app.js'), 'next')),
+    /injected publish failure/);
+  assert.equal(fs.readFileSync(join(output, 'app.js'), 'utf8'), 'previous');
+  assert.deepEqual(fs.readdirSync(dir), ['dist']);
+});
+
+test('Chrome 会话各自清理配置子目录，保留外部父目录和已有文件', async t => {
+  const parent = temporaryDirectory(t);
+  const oldParent = process.env.CHROME_PROFILE_DIR;
+  process.env.CHROME_PROFILE_DIR = parent;
+  t.after(() => {
+    if (oldParent === undefined) delete process.env.CHROME_PROFILE_DIR;
+    else process.env.CHROME_PROFILE_DIR = oldParent;
+  });
+  fs.writeFileSync(join(parent, 'keep.txt'), 'keep');
+  const first = await launchChrome({ port: await getFreePort(), url: 'about:blank', testMode: false });
+  try {
+    const second = await launchChrome({ port: await getFreePort(), url: 'about:blank', testMode: false });
+    try {
+      assert.equal(fs.readdirSync(parent).length, 3);
+      await first.close();
+      assert.equal(fs.readdirSync(parent).length, 2);
+    } finally { await second.close(); }
+  } finally { await first.close(); }
+
+  await node(['--input-type=module', '-e', `
+    import assert from 'node:assert/strict';
+    import { launchChrome } from ${JSON.stringify(cdpModule)};
+    await assert.rejects(launchChrome({ port: ${await getFreePort()}, url: 'about:blank' }), { code: 'ENOENT' });
+  `], { env: { CHROME_PROFILE_DIR: parent, CHROME_PATH: join(parent, 'missing-chrome') } });
+  assert.deepEqual(fs.readdirSync(parent), ['keep.txt']);
+  assert.equal(fs.readFileSync(join(parent, 'keep.txt'), 'utf8'), 'keep');
+});

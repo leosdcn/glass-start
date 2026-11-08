@@ -10,11 +10,13 @@ const { main: runFullBuild, startWatch } = require('./build.cjs');
 const { c, LINE_WIDTH, HR_DOUBLE } = require('./terminal.cjs');
 
 let targetPort = parseInt(process.env.PORT || '3000', 10);
-const DIST_DIR = path.join(__dirname, '..', 'dist');
-const enableWatch = !process.argv.includes('--no-watch') && process.env.NO_WATCH !== '1';
+const testSnapshotDir = process.env.GLASS_TEST_TMPDIR;
+const DIST_DIR = testSnapshotDir ? path.join(testSnapshotDir, 'dist') : path.join(__dirname, '..', 'dist');
+const enableWatch = !testSnapshotDir && !process.argv.includes('--no-watch') && process.env.NO_WATCH !== '1';
 
 // 若 dist 产物不存在，自动执行首次全量构建
-if (!fs.existsSync(DIST_DIR) || !fs.existsSync(path.join(DIST_DIR, 'index.html'))) {
+if (!fs.existsSync(path.join(DIST_DIR, 'index.html'))) {
+    if (testSnapshotDir) throw new Error(`测试构建产物不存在: ${DIST_DIR}`);
     console.log(`\n${c.cyan}📦 未检测到 dist/ 生产产物，正在自动执行首次全量编译...${c.reset}`);
     runFullBuild();
 }

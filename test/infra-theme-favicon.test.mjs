@@ -5,11 +5,12 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import vm from 'node:vm';
 import { launchSession, waitFor, navigateAndWait } from './support/helpers.mjs';
+import { DIST_DIR } from './support/server.mjs';
 import { test } from 'node:test';
 
 await test('PWA 身份跟随部署目录，同源子目录不会共用根目录身份', async () => {
-    const built = readFileSync(new URL('../dist/index.html', import.meta.url), 'utf8');
-    const manifest = readFileSync(new URL('../dist/manifest.json', import.meta.url), 'utf8');
+    const built = readFileSync(join(DIST_DIR, 'index.html'), 'utf8');
+    const manifest = readFileSync(join(DIST_DIR, 'manifest.json'), 'utf8');
     const { server, chrome, send, evalJS } = await launchSession(0, {
       '/pwa-probe.html': built.replace('href="./manifest.json"', 'href="./nested/manifest.json"'),
       '/nested/manifest.json': (_req, res) => {
@@ -68,7 +69,7 @@ await test("主题配置、图标回退与缓存驱逐", async () => {
     }
 
     // 在 defer 应用执行前采样，避免运行时修正掩盖首屏配色错误。
-    const built = readFileSync(new URL('../dist/index.html', import.meta.url), 'utf8');
+    const built = readFileSync(join(DIST_DIR, 'index.html'), 'utf8');
     const probe = `<script>window.__headThemeProbe = {
   theme: window.__INITIAL_THEME__, tint: document.documentElement.style.getPropertyValue('--glass-tint'),
   color: document.documentElement.style.backgroundColor,

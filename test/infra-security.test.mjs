@@ -11,10 +11,10 @@ import { createRequire } from 'node:module';
 import vm from 'node:vm';
 import { validateW3c } from '../scripts/validate-w3c.mjs';
 import { getFreePort } from './support/helpers.mjs';
+import { DIST_DIR as DIST } from './support/server.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
-const DIST = join(ROOT, 'dist');
 
 test('dist/ 产物完整性与 Cache-Control 标头规则', () => {
   if (!existsSync(DIST)) {
@@ -143,7 +143,10 @@ test('Service Worker 核心预缓存资源与产物版本契约', () => {
   assert.ok(!distIndexContent.includes('id="main-script"'));
 
   const distAppContent = existsSync(join(DIST, 'app.js')) ? readFileSync(join(DIST, 'app.js'), 'utf-8') : '';
-  assert.ok(distIndexContent.includes('__GLASS_BUILD_HTML__') && distAppContent.includes('__GLASS_BUILD_APP__'));
+  const version = distIndexContent.match(/window\.__GLASS_BUILD_HTML__="(app-core-v\d+)"/)?.[1];
+  assert.ok(version, 'HTML 必须包含构建指纹');
+  assert.equal(distAppContent.match(/window\.__GLASS_BUILD_APP__="([^"]+)"/)?.[1], version);
+  assert.equal(distSw.match(/app-core-v\d+/)?.[0], version);
 });
 
 test('Service Worker 缓存池 FIFO 限额淘汰与网络失败隔离', async () => {

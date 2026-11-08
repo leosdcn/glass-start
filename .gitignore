@@ -1,10 +1,11 @@
 .DS_Store
 node_modules/
 dist/
-.dist_staging/
-.dist_backup/
+/.dist-build-*/
+/.dist-publish/
 /extension/
-.extension_staging/
+/.extension-build-*/
+/.extension-publish/
 .temp_input.css
 .claude/
 test/.cache.json

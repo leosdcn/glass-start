@@ -246,6 +246,8 @@ npm run build:extension
 
 验证范围以 [AGENTS.md](./AGENTS.md#验证) 为准，局部修改优先运行直接相关测试。`npm test -- <文件名片段>` 执行匹配的测试文件前，会检查类型，并按需构建；需要构建时，两项并行执行，无需重复手动检查类型或构建。仅匹配[运行器明确列出的纯单元测试](./test/support/test-selection.mjs)时跳过构建。无参数的 `npm test` 执行全套，用于高风险跨模块改造、发布或明确要求全量验证的场景。`test:ui`、`test:data`、`test:infra`、`test:lifecycle` 可按模块扩大范围，可用命令以 `package.json` 为准。
 
+每轮 `npm test` 使用独立的网页构建快照。扩展回归也在会话目录生成扩展，供日常安装的 `extension/` 由 `npm run build:extension` 生成。设置 `CHROME_PROFILE_DIR` 可指定 Chrome 测试配置的父目录，每个会话只清理自己创建的子目录。
+
 升级开发组件时同步维护 `package.json` 与 `package-lock.json`；`npm ci` 按锁文件复现版本，`^` 声明的是允许更新的范围，不会让每次 `npm ci` 自动升级。Tailwind 与其 CLI 保持版本一致；它们虽然是开发依赖，升级仍可能改变生成的 CSS，须重建并验证受影响的网页和扩展布局。Stylelint 升级则需核对规则迁移与对应校验回归。
 
 `npm run test:w3c` 不自动构建，发布校验应使用本轮构建或测试生成的 `dist/`。它使用在线 Nu 检查完整 HTML，并用开发依赖 Stylelint 18 检查内嵌 `style` 块的现代 CSS 语法与属性值。Nu 在这些已复核样式块上的旧 CSS 引擎诊断单独计数，不再靠属性名称白名单放行；HTML、行内 `style` 属性和无法定位的 CSS 错误仍保留。请求以页面 canonical 地址提供 `Content-Location`，避免同源资源的 CSP 误报；验证其他部署时可用 `W3C_DOCUMENT_URL=https://example.com/start/ npm run test:w3c` 覆盖来源地址，提交的仍是本地产物。真实错误退出码为 1，服务或工具异常为 2；校验不能替代浏览器表现和实际托管响应头检查。
