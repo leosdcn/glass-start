@@ -1,7 +1,7 @@
 import { spawn, spawnSync } from 'node:child_process';
 import { once } from 'node:events';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { rmSync, existsSync, mkdtempSync, mkdirSync } from 'node:fs';
 
 function findChromeBin() {
@@ -60,12 +60,17 @@ function cleanupInstance(instance) {
 
 async function closeInstance(instance) {
   if (!activeInstances.has(instance)) return;
-  const { proc } = instance;
+  const { proc, connection } = instance;
   try {
     if (!isRunning(proc)) return;
-    // 只终止本次启动的进程，等它退出后再删除配置目录。
-    const exited = once(proc, 'exit', { signal: AbortSignal.timeout(1500) }).catch(() => {});
-    proc.kill();
+    // 让已核对归属的 Chrome 先关闭子进程，再移除配置目录。
+    const exited = once(proc, 'exit', { signal: AbortSignal.timeout(2000) }).catch(() => {});
+    if (connection) {
+      // 关闭本身也可能先断开 CDP，继续等待 Chrome 退出。
+      await connection.send('Browser.close', {}, 1000).catch(() => {});
+    } else {
+      proc.kill();
+    }
     await exited;
     if (isRunning(proc)) {
       const killed = once(proc, 'exit', { signal: AbortSignal.timeout(1000) }).catch(() => {});
@@ -179,7 +184,8 @@ export async function connectCDP(ws, { openTimeoutMs = 15000 } = {}) {
 export async function launchChrome({ port, url, testMode = true, disableGPU = true, extraArgs = [] }) {
   const profileParent = process.env.CHROME_PROFILE_DIR || process.env.GLASS_TEST_TMPDIR || tmpdir();
   mkdirSync(profileParent, { recursive: true });
-  const profileDir = mkdtempSync(join(profileParent, `glass-start-test-${port}-`));
+  const profileDir = mkdtempSync(resolve(profileParent, `glass-start-test-${port}-`));
+  const profileArg = `--user-data-dir=${profileDir}`;
   const args = [
     '--headless=new',
     ...(disableGPU ? ['--disable-gpu'] : []),
@@ -190,11 +196,12 @@ export async function launchChrome({ port, url, testMode = true, disableGPU = tr
     '--blink-settings=primaryHoverType=2,availableHoverTypes=2,primaryPointerType=4,availablePointerTypes=4',
     '--no-first-run',
     '--no-default-browser-check',
+    '--enable-automation',
     '--window-size=1470,956',
     '--hide-scrollbars',
     `--remote-debugging-port=${port}`,
     ...extraArgs,
-    `--user-data-dir=${profileDir}`,
+    profileArg,
     'about:blank',
   ];
   const instance = { proc: null, ws: null, profileDir };
@@ -222,8 +229,16 @@ export async function launchChrome({ port, url, testMode = true, disableGPU = tr
       throw new Error('Chrome CDP page not found');
     })();
     instance.ws = new WebSocket(target.webSocketDebuggerUrl);
-    instance.connection = await connectCDP(instance.ws);
-    const { send } = instance.connection;
+    const connection = await connectCDP(instance.ws);
+    const { send } = connection;
+    try {
+      const { arguments: commandLine } = await send('Browser.getBrowserCommandLine');
+      if (!commandLine?.includes(profileArg)) throw new Error('Chrome CDP belongs to another profile');
+    } catch (error) {
+      connection.close();
+      throw error;
+    }
+    instance.connection = connection;
 
     await send('Page.enable');
     if (testMode) {
