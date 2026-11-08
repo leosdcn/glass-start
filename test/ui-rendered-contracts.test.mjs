@@ -52,6 +52,8 @@ const verifyFallbackText = async () => {
 };
 try {
   await verify('首屏、导航与预设动态按钮');
+  // 先等首屏入场缩放结束，再测相邻帧的响应式布局。
+  await waitFor(evalJS, "!dom.bookmarks.parentElement.classList.contains('fade-in')");
   // 在相邻帧快速往返切换尺寸，避免等待过渡结束掩盖容器与内部网格不同步。
   for (const [width, height] of [[2560,1440], [1920,1080], [1280,720], [1000,800], [390,844], [2560,1440], [1920,1080]]) {
     await chrome.send('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor:1, mobile:false });
