@@ -34,6 +34,14 @@ let sectionInitialized = false;
 let transitionTimer = null;
 /** @type {(() => void)|null} */
 let navTransitionCleanup = null;
+/** @type {Set<() => void>} */
+const screenSettledCallbacks = new Set();
+
+/** @param {() => void} callback */
+export function afterScreenTransition(callback) {
+    if (isTransitioning) screenSettledCallbacks.add(callback);
+    else queueMicrotask(callback);
+}
 
 /** @param {WheelEvent} e */
 function preventTransitionScroll(e) {
@@ -49,6 +57,9 @@ function clearTransitionTasks() {
     navTransitionCleanup = null;
     document.removeEventListener('wheel', preventTransitionScroll);
     document.body.classList.remove('is-screen-transitioning');
+    // 等当前任务完成收尾或唤醒校准，再交还给等待方。
+    for (const callback of screenSettledCallbacks) queueMicrotask(callback);
+    screenSettledCallbacks.clear();
 }
 
 function resetPageScroll() {

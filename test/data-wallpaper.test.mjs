@@ -57,6 +57,79 @@ test('壁纸主题采样与暗度处理', async () => {
   }
 });
 
+test('启动壁纸撞上切屏时先显示，取色等待空闲且不会覆盖新壁纸', async () => {
+  const { server, chrome, send, evalJS } = await launchSession();
+  try {
+    await waitFor(evalJS, 'getPreparedWallpaperImage(backgrounds[state.bg]) !== null');
+    await evalJS(`(() => {
+      const idle = window.requestIdleCallback;
+      const decode = HTMLImageElement.prototype.decode;
+      const reads = CanvasRenderingContext2D.prototype.getImageData;
+      const probe = window.wallpaperProbe = { idle: [], reads: 0 };
+      window.requestIdleCallback = (callback, options) => {
+        if (options?.timeout !== 300) return idle.call(window, callback, options);
+        return probe.idle.push(callback);
+      };
+      HTMLImageElement.prototype.decode = function() {
+        if (this.src !== probe.url) return decode.call(this);
+        return new Promise(resolve => { probe.releaseDecode = resolve; });
+      };
+      CanvasRenderingContext2D.prototype.getImageData = function(...args) {
+        probe.reads++;
+        return reads.apply(this, args);
+      };
+      probe.restore = async color => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = color;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        probe.url = canvas.toDataURL();
+        probe.releaseDecode = null;
+        await setWallpaperSelectionDB({ wallpaper: probe.url, bg: 0 });
+        await restoreWallpaper();
+      };
+      localStorage.setItem('maskOpacity', '0');
+    })()`);
+    const finishDecodeDuringEntry = async color => {
+      await evalJS(`wallpaperProbe.restore(${JSON.stringify(color)})`);
+      await waitFor(evalJS, '!!wallpaperProbe.releaseDecode');
+      assert.equal(await evalJS(`(async () => {
+        switchToNav();
+        wallpaperProbe.releaseDecode();
+        await Promise.resolve();
+        return isScreenTransitioning() && dom.bgLayer.style.backgroundImage.includes(wallpaperProbe.url);
+      })()`), true);
+    };
+    await finishDecodeDuringEntry('rgb(80, 100, 160)');
+    assert.deepEqual(await evalJS('[wallpaperProbe.reads, wallpaperProbe.idle.length]'), [0, 0]);
+    await waitFor(evalJS, 'wallpaperProbe.idle.length === 1');
+    assert.deepEqual(await evalJS(`(() => {
+      switchToStart();
+      wallpaperProbe.idle.shift()();
+      return [isScreenTransitioning(), wallpaperProbe.reads];
+    })()`), [true, 0]);
+    await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] });
+    await waitFor(evalJS, 'wallpaperProbe.idle.length === 1');
+    assert.deepEqual(await evalJS(`(() => {
+      wallpaperProbe.idle.shift()();
+      return [isScreenTransitioning(), wallpaperProbe.reads, JSON.parse(localStorage.getItem('glass_tint_cache'))];
+    })()`), [false, 2, '80, 100, 160']);
+
+    await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'no-preference' }] });
+    await finishDecodeDuringEntry('rgb(180, 80, 120)');
+    await evalJS("reconcileScreenState('nav', true)");
+    await waitFor(evalJS, 'wallpaperProbe.idle.length === 1');
+    assert.deepEqual(await evalJS(`(() => {
+      applyWallpaper(backgrounds[1], false);
+      wallpaperProbe.idle.shift()();
+      return [wallpaperProbe.reads, document.documentElement.style.getPropertyValue('--glass-tint') === PRESET_TINTS[1]];
+    })()`), [2, true]);
+  } finally {
+    await chrome.close();
+    await server.close();
+  }
+});
+
 test('壁纸解码、迟到结果隔离与上传压缩', async () => {
   const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+j1ioAAAAASUVORK5CYII=', 'base64');
   const { server, chrome, evalJS } = await launchSession(0, {

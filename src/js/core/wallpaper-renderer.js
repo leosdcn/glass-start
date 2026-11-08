@@ -2,11 +2,12 @@ import { CONFIG, backgrounds } from '../config/constants.js';
 import { PRESET_THEMES, PRESET_TINTS, PRESET_THEME_COLORS } from '../config/themes.js';
 import { dom } from '../state/dom.js';
 import { setWallpaperTheme, updateGlassTint, sampleCustomWallpaperTheme } from './theme-engine.js';
+import { afterScreenTransition, isScreenTransitioning } from './screen-state.js';
 
 /** @type {{ url: string, styleUrl: string, base: HTMLElement, next: HTMLElement, animate: boolean, image: HTMLImageElement | null } | null} */
 let activeWallpaperRequest = null;
 /** 只保留最近一张成功解码的图片，避免积累大图内存。 */
-/** @type {{ url: string, image: HTMLImageElement } | null} */
+/** @type {{ url: string, image: HTMLImageElement, themeSamplePending: boolean } | null} */
 let decodedWallpaper = null;
 /** @type {ReturnType<typeof setTimeout>|null} */
 let bgSwitchTimer = null;
@@ -16,6 +17,30 @@ let wallpaperTransitionId = 0;
 /** 预览复用渲染器最近一次成功准备的图片，不额外保留大图缓存。 @param {string} url */
 export function getPreparedWallpaperImage(url) {
     return decodedWallpaper?.url === url ? decodedWallpaper.image : null;
+}
+
+function schedulePendingThemeSample() {
+    if (!decodedWallpaper?.themeSamplePending) return;
+    const sample = () => {
+        if (decodedWallpaper?.themeSamplePending) updateCustomWallpaperTheme(false);
+    };
+    if ('requestIdleCallback' in window) {
+        window.requestIdleCallback(sample, { timeout: 300 });
+    } else {
+        setTimeout(sample, 300);
+    }
+}
+
+/** @param {boolean} animate */
+function updateCustomWallpaperTheme(animate) {
+    if (!decodedWallpaper?.image.naturalWidth) return;
+    // 启动恢复的图片照常显示，像素读取等切屏结束；快速往返时继续等下一次收尾。
+    decodedWallpaper.themeSamplePending = !animate && isScreenTransitioning();
+    if (decodedWallpaper.themeSamplePending) {
+        afterScreenTransition(schedulePendingThemeSample);
+        return;
+    }
+    sampleCustomWallpaperTheme(decodedWallpaper.image);
 }
 
 /**
@@ -31,6 +56,7 @@ export function applyWallpaper(urlStr, animate = true, preparedImage = null) {
     // 匹配预设或离线采样壁纸主题色，动态自适应 Safari 顶栏外观与环境光折射
     const presetIdx = backgrounds.indexOf(urlStr);
     if (presetIdx >= 0 && PRESET_THEMES[presetIdx]) {
+        if (decodedWallpaper) decodedWallpaper.themeSamplePending = false;
         const themeColor = PRESET_THEME_COLORS && PRESET_THEME_COLORS[presetIdx];
         setWallpaperTheme(PRESET_THEMES[presetIdx], themeColor);
         if (PRESET_TINTS && PRESET_TINTS[presetIdx]) {
@@ -51,7 +77,7 @@ export function applyWallpaper(urlStr, animate = true, preparedImage = null) {
         const showing = (crossfading ? bgNext : bgBase).style.backgroundImage === previous.styleUrl;
         if (previous.image && showing && (animate || !crossfading)) {
             // 相同图片仍须响应遮罩和视口变化，但不重解码或重播淡入。
-            if (presetIdx < 0) sampleCustomWallpaperTheme(previous.image);
+            if (presetIdx < 0) updateCustomWallpaperTheme(animate);
             return;
         }
     }
@@ -66,16 +92,14 @@ export function applyWallpaper(urlStr, animate = true, preparedImage = null) {
         if (activeWallpaperRequest !== request) return;
         const transitionId = ++wallpaperTransitionId;
         request.image = img;
-        decodedWallpaper = { url: urlStr, image: img };
+        decodedWallpaper = { url: urlStr, image: img, themeSamplePending: false };
         if (bgSwitchTimer) {
             clearTimeout(bgSwitchTimer);
             bgSwitchTimer = null;
             bgNext.classList.remove('is-crossfading');
         }
 
-        if (presetIdx < 0 && img.naturalWidth > 0) {
-            sampleCustomWallpaperTheme(img);
-        }
+        if (presetIdx < 0) updateCustomWallpaperTheme(request.animate);
 
         if (request.animate) {
             if (bgNext.style.backgroundImage) {
