@@ -309,6 +309,7 @@ export function resetBookmarks() {
         if (!state.editOpen || requestId !== editOpenRequestId || modalState.committing || dom.saveEditBtn?.disabled) return;
         cancelDragSort();
         importRequestId++;
+        const previousDraft = [...modalState.draftBookmarks];
         setEditCommitting(true);
         if (dom.saveEditBtn) {
             dom.saveEditBtn.disabled = true;
@@ -340,7 +341,7 @@ export function resetBookmarks() {
             setEngine(storageGet(CONFIG.KEYS.PREFERRED_ENGINE, DEFAULT_ENGINE), false);
             applyWallpaper(backgrounds[0], false);
             if (!bookmarksReset || removed.some(result => !result)) {
-                replaceBookmarkDraft(pageData.bookmarks.map((bm, i) => ({ ...bm, id: `bm_${i}` })));
+                replaceBookmarkDraft(previousDraft);
                 renderEditList();
                 modalState.draftWallpaper = null;
                 updateWallpaperStatusUI(null);
@@ -538,19 +539,17 @@ export function clearOfflineCache() {
             const cachePrefix = 'glass-scope-' + encodeURIComponent(scope.pathname) + '-';
             try {
                 if ('caches' in window) {
-                    try {
-                        const keys = await caches.keys();
-                        // 网页图标池跨部署共享；扩展拥有独立来源，可清理自己的图标池。
-                        await Promise.all(keys.filter(key => key.startsWith(cachePrefix) ||
-                            (isExtension && key === CONFIG.CACHE.FAVICON)).map(key => caches.delete(key)));
-                    } catch {}
+                    const keys = await caches.keys();
+                    // 网页图标池跨部署共享；扩展拥有独立来源，可清理自己的图标池。
+                    await Promise.all(keys.filter(key => key.startsWith(cachePrefix) ||
+                        (isExtension && key === CONFIG.CACHE.FAVICON)).map(key => caches.delete(key)));
                 }
                 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
-                    try {
-                        const regs = await navigator.serviceWorker.getRegistrations();
-                        await Promise.all(regs.filter(r => r.scope === scope.href).map(r => r.unregister()));
-                    } catch {}
+                    const regs = await navigator.serviceWorker.getRegistrations();
+                    await Promise.all(regs.filter(r => r.scope === scope.href).map(r => r.unregister()));
                 }
+            } catch (err) {
+                console.warn('离线缓存或服务工作线程清理异常:', err);
             } finally {
                 location.reload();
             }

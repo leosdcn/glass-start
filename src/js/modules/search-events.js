@@ -71,13 +71,6 @@ export function bindSearchEvents() {
             if (isComposing) return;
             scheduleSuggestions(val);
         });
-
-        const searchForm = /** @type {HTMLFormElement | null} */ (searchInput.form || searchInput.closest('form'));
-        searchForm?.addEventListener('submit', e => {
-            e.preventDefault();
-            if (isComposing || justEndedComposition) return;
-            activateSuggestion(selectedSuggestionIdx, false);
-        });
     }
 
     if (searchClearBtn) {

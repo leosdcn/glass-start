@@ -80,12 +80,13 @@ export function formatLocationFullName(parts) {
     return result.join(' · ');
 }
 
+const CITY_SUFFIX_RE = /(市|区|县|旗)$/;
+const ALL_ADMIN_SUFFIX_RE = /(特别行政区|壮族自治区|回族自治区|维吾尔自治区|自治区|省|市|区|县|旗)$/;
+
 /** @param {unknown} name @param {boolean} [includeProvince] */
 export function stripAdminSuffix(name, includeProvince = false) {
     if (!name || typeof name !== 'string') return '';
-    const pattern = includeProvince
-        ? /(省|市|区|县|特别行政区|壮族自治区|回族自治区|维吾尔自治区|自治区)$/
-        : /(市|区|县|特别行政区|壮族自治区|回族自治区|维吾尔自治区|自治区)$/;
+    const pattern = includeProvince ? ALL_ADMIN_SUFFIX_RE : CITY_SUFFIX_RE;
     return name.replace(pattern, '') || name;
 }
 

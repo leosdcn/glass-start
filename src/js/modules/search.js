@@ -627,7 +627,7 @@ export function fetchSuggestions(engineKey, query) {
         }
         controller?.abort();
         if (script) {
-            try { delete /** @type {any} */ (window)[cbName]; } catch {}
+            delete /** @type {any} */ (window)[cbName];
             script.onload = null;
             script.onerror = null;
             script.remove();
@@ -695,6 +695,7 @@ export function fetchSuggestions(engineKey, query) {
 
     /** @type {any} */ (window)[cbName] = handleSuggestData;
     suggestionScriptTag = script;
+    // 保留 !window.__GLASS_EXTENSION__ 供 esbuild 在扩展构建时触发死代码消除 (DCE)，彻底裁掉 JSONP 注入分支
     if (!window.__GLASS_EXTENSION__ && script) {
         script.onerror = handleSuggestFallback;
 

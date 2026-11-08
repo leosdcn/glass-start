@@ -152,32 +152,17 @@ export function initGlassSpotlightAndTilt() {
         }
     }, { passive: true });
 
-    document.addEventListener('mouseleave', () => {
-        resetActiveCard();
-    }, { passive: true });
-
-    window.addEventListener('dragstart', (e) => {
-        const targetEl = e.target instanceof Element ? e.target : null;
-        const validDragTarget = targetEl && targetEl.closest && targetEl.closest('.edit-row-card[draggable="true"], .drag-handle');
-        if (!validDragTarget) {
-            e.preventDefault();
-        }
-        resetActiveCard();
-    }, { capture: true });
-
-    window.addEventListener('blur', () => { resetActiveCard(); }, { passive: true });
-    window.addEventListener('resize', () => { resetActiveCard(); }, { passive: true });
-    window.addEventListener('scroll', () => { resetActiveCard(); }, { passive: true, capture: true });
-    window.addEventListener('dragend', () => { resetActiveCard(); }, { passive: true });
-    window.addEventListener('drop', () => { resetActiveCard(); }, { passive: true });
-    window.addEventListener('pointercancel', () => { resetActiveCard(); }, { passive: true });
-    window.addEventListener('focus', () => { resetActiveCard(); }, { passive: true });
+    document.addEventListener('mouseleave', resetActiveCard, { passive: true });
+    window.addEventListener('dragstart', resetActiveCard, { capture: true, passive: true });
+    window.addEventListener('blur', resetActiveCard, { passive: true });
+    window.addEventListener('resize', resetActiveCard, { passive: true });
+    window.addEventListener('scroll', resetActiveCard, { passive: true, capture: true });
+    window.addEventListener('dragend', resetActiveCard, { passive: true });
+    window.addEventListener('drop', resetActiveCard, { passive: true });
+    window.addEventListener('pointercancel', resetActiveCard, { passive: true });
+    window.addEventListener('focus', resetActiveCard, { passive: true });
     document.addEventListener('visibilitychange', () => {
-        if (document.hidden) {
-            resetActiveCard();
-        }
+        if (document.hidden) resetActiveCard();
     }, { passive: true });
-    window.addEventListener('pageshow', () => {
-        resetActiveCard();
-    }, { passive: true });
+    window.addEventListener('pageshow', resetActiveCard, { passive: true });
 }
