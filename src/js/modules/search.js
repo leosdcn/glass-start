@@ -1,7 +1,8 @@
 import { t, getLocale, localizeBookmarkUrl } from '../core/i18n.js';
 /** 搜索引擎切换、书签分级匹配与网络联想；请求序号隔离迟到响应。 */
 import { rankBookmarkSuggestions } from '../utils/bookmark-search.js';
-import { getCategoryCatalog, searchUrlKey } from '../utils/category-catalog.js';
+import { getCategoryCatalog } from '../utils/category-catalog.js';
+import { normalizeUrl } from '../utils/bookmark-model.js';
 import { CONFIG, engines } from '../config/constants.js';
 import { DEFAULT_ENGINE } from '../config/engines.js';
 import { escapeHtml, safeUrl } from '../utils/helpers.js';
@@ -17,7 +18,6 @@ let lastSuggestionsSignature = '';
 let suggestionNodes = [];
 /** @type {HTMLElement | null} */
 let selectedSuggestionNode = null;
-let selectionUpdatesInput = false;
 /**
  * @param {number} index
  * @param {boolean} [newTab]
@@ -29,13 +29,12 @@ export function activateSuggestion(index, newTab) {
 }
 /**
  * @param {number} index
- * @param {{ keyboard?: boolean; updateInput?: boolean }} [options]
+ * @param {{ keyboard?: boolean }} [options]
  */
-export function selectSuggestion(index, { keyboard = false, updateInput = true } = {}) {
+export function selectSuggestion(index, { keyboard = false } = {}) {
     const menu = dom.suggestionMenu;
     const input = dom.searchInput;
     selectedSuggestionIdx = suggestionItems[index] ? index : -1;
-    selectionUpdatesInput = updateInput;
     const node = suggestionNodes[selectedSuggestionIdx] || null;
     const changed = node !== selectedSuggestionNode;
     if (changed) {
@@ -48,7 +47,6 @@ export function selectSuggestion(index, { keyboard = false, updateInput = true }
     if (keyboard && !menu?.classList.contains('keyboard-nav')) menu?.classList.add('keyboard-nav');
     const item = suggestionItems[selectedSuggestionIdx];
     if (input) {
-        if (updateInput && input.value !== (item?.text ?? originalQuery)) input.value = item?.text ?? originalQuery;
         const activeId = item ? 'sug-opt-' + selectedSuggestionIdx : null;
         if (input.getAttribute('aria-activedescendant') !== activeId) {
             if (activeId) input.setAttribute('aria-activedescendant', activeId);
@@ -63,8 +61,6 @@ export function selectSuggestion(index, { keyboard = false, updateInput = true }
 export let suggestionScriptTag = null;
 /** 当前选中的建议列表项索引（-1 为未选中，公共状态 / 供外部与测试读取） */
 export let selectedSuggestionIdx = -1;
-/** 键盘上下切换前用户键入的原始关键词（公共状态） */
-export let originalQuery = '';
 /** @type {ReturnType<typeof setTimeout> | null} 防抖定时器句柄 */
 let suggestDebounceTimer = null;
 /** 异步建议请求自增计数序列号（测试探针，用于防竞态乱序覆盖） */
@@ -74,18 +70,12 @@ let activeSuggestCleanup = null;
 /** @type {string | null} */
 let suggestionQueryKey = null;
 
-/** @param {string} val 更新原始搜索词 */
-export function setOriginalQuery(val) {
-    originalQuery = val;
-}
-
 /**
  * 处理搜索建议的键盘上下键导航
  * @param {KeyboardEvent} e
- * @param {((hasVal: boolean) => void)} [onActionButtonsUpdate]
  * @returns {boolean} 是否处理了导航按键
  */
-export function handleSuggestionKeyNav(e, onActionButtonsUpdate) {
+export function handleSuggestionKeyNav(e) {
     if (e.ctrlKey || e.metaKey || e.altKey) return false;
     // 防抖期间等新候选，避免方向键改走全局切屏入口。
     if (suggestDebounceTimer !== null && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
@@ -96,35 +86,16 @@ export function handleSuggestionKeyNav(e, onActionButtonsUpdate) {
     const suggestionCount = isSuggestActive ? suggestionItems.length : 0;
     if (suggestionCount <= 0) return false;
 
-    const searchInput = dom.searchInput;
-    const updateActiveSuggestion = () => {
-        selectSuggestion(selectedSuggestionIdx, { keyboard: true });
-        if (onActionButtonsUpdate && searchInput) onActionButtonsUpdate(!!searchInput.value);
-    };
-
     if (e.key === 'ArrowDown') {
         e.preventDefault();
-        if (selectedSuggestionIdx === -1 && searchInput) {
-            originalQuery = searchInput.value;
-        }
-        let nextIdx = selectedSuggestionIdx + 1;
-        if (nextIdx >= suggestionCount) {
-            nextIdx = -1;
-        }
-        selectedSuggestionIdx = nextIdx;
-        updateActiveSuggestion();
+        const next = selectedSuggestionIdx + 1;
+        selectSuggestion(next < suggestionCount ? next : -1, { keyboard: true });
         return true;
     }
 
     if (e.key === 'ArrowUp') {
         e.preventDefault();
-        if (selectedSuggestionIdx === -1 && searchInput) {
-            originalQuery = searchInput.value;
-            selectedSuggestionIdx = suggestionCount - 1;
-        } else {
-            selectedSuggestionIdx = selectedSuggestionIdx - 1;
-        }
-        updateActiveSuggestion();
+        selectSuggestion(selectedSuggestionIdx < 0 ? suggestionCount - 1 : selectedSuggestionIdx - 1, { keyboard: true });
         return true;
     }
 
@@ -138,7 +109,7 @@ export function handleSuggestionKeyNav(e, onActionButtonsUpdate) {
 export function scheduleSuggestions(query) {
     query = query.trim();
     if (suggestionQueryKey === `${getLocale()}:${state.engine}:${query}`) {
-        if (selectedSuggestionIdx >= 0) selectSuggestion(-1, { updateInput: false });
+        if (selectedSuggestionIdx >= 0) selectSuggestion(-1);
         return;
     }
     // 新输入立即让旧候选失效，网络请求仍防抖。
@@ -365,7 +336,7 @@ function getSearchCandidates() {
         });
     };
     for (const bm of pageData.bookmarks) {
-        if (bm.url) addCandidate(bm, searchUrlKey(bm.url), t('ui.quick.bookmarks'));
+        if (bm.url) addCandidate(bm, normalizeUrl(bm.url), t('ui.quick.bookmarks'));
     }
     for (const {bm, normUrl, defaultCat} of catalog.entries) addCandidate(bm, normUrl, defaultCat);
 
@@ -436,12 +407,11 @@ function renderSuggestions(localList = [], netList = [], preserveSelection = fal
     const searchInput = dom.searchInput;
     if (!suggestionMenu) return;
     const prevIdx = preserveSelection ? selectedSuggestionIdx : -1;
-    const restoreInput = selectionUpdatesInput;
     const maxNetCount = Math.max(0, CONFIG.SUGGEST.MAX_TOTAL_ITEMS - localList.length);
     const safeNetList = netList.slice(0, maxNetCount);
     const signature = JSON.stringify([isNetLoading, localList.map(bookmarkSuggestionKey), safeNetList]);
     if (signature === lastSuggestionsSignature && suggestionMenu.classList.contains('active')) {
-        if (!preserveSelection && selectedSuggestionIdx >= 0) selectSuggestion(-1, { updateInput: false });
+        if (!preserveSelection && selectedSuggestionIdx >= 0) selectSuggestion(-1);
         return;
     }
     suggestionItems = [
@@ -533,7 +503,7 @@ function renderSuggestions(localList = [], netList = [], preserveSelection = fal
         OverlayStack.push('suggestions', hideSuggestions);
     }
 
-    if (prevIdx >= 0) selectSuggestion(Math.min(prevIdx, suggestionItems.length - 1), { updateInput: restoreInput });
+    if (prevIdx >= 0) selectSuggestion(Math.min(prevIdx, suggestionItems.length - 1));
     else searchInput?.removeAttribute('aria-activedescendant');
 }
 
@@ -545,7 +515,6 @@ export function hideSuggestions() {
     suggestionItems = [];
     suggestionNodes = [];
     selectedSuggestionNode = null;
-    selectionUpdatesInput = false;
     lastSuggestionsSignature = '';
     suggestionQueryKey = null;
     localBookmarkNodeCache.clear();

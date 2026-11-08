@@ -9,7 +9,8 @@ import { storageGet, storageSet } from '../utils/storage.js';
 import { getWallpaperSelectionDB, setWallpaperSelectionDB } from '../utils/idb.js';
 import { state, modalState } from '../state/store.js';
 import { dom } from '../state/dom.js';
-import { applyWallpaper, getPreparedWallpaperImage } from '../core/wallpaper-renderer.js';
+import { applyWallpaper, getPreparedWallpaperImage, setWallpaperDimming } from '../core/wallpaper-renderer.js';
+import { sampleCustomWallpaperTheme } from '../core/theme-engine.js';
 import { showConfirm } from '../core/dialogs.js';
 
 /** @type {number | null} */
@@ -19,8 +20,21 @@ let pendingBgEffects = null;
 /** @type {{ element: HTMLElement, opacity: number } | null} */
 let lastBgEffects = null;
 
+/** @param {unknown} value */
+function normalizeMaskOpacity(value) {
+    const opacity = value == null ? NaN : parseInt(String(value), 10);
+    return Number.isFinite(opacity)
+        ? Math.max(0, Math.min(CONFIG.APPEARANCE.MAX_MASK_OPACITY, opacity))
+        : CONFIG.APPEARANCE.DEFAULT_MASK_OPACITY;
+}
+
+export function getSavedMaskOpacity() {
+    return normalizeMaskOpacity(storageGet(CONFIG.KEYS.MASK_OPACITY));
+}
+
 /** @param {number} op */
 function renderBgEffects(op) {
+    setWallpaperDimming(op);
     const bgOverlay = dom.bgOverlay;
     if (!bgOverlay) return;
     const sameOverlay = lastBgEffects?.element === bgOverlay;
@@ -39,7 +53,7 @@ function renderBgEffects(op) {
  * @param {boolean} [defer]
  */
 export function applyBgEffects(opacity, defer = false) {
-    const op = Math.max(0, Math.min(CONFIG.APPEARANCE.MAX_MASK_OPACITY, parseInt(String(opacity), 10) || 0));
+    const op = normalizeMaskOpacity(opacity);
     if (defer) {
         pendingBgEffects = op;
         if (bgEffectsRafId === null) {
@@ -82,6 +96,7 @@ export function discardWallpaperSelection() {
     const discarded = wallpaperTask;
     wallpaperTask = null;
     discarded?.cancel?.();
+    showWallpaperError('');
 }
 
 /** @param {WallpaperTask['mode']} mode @param {string | null} url */
@@ -102,17 +117,40 @@ function trackWallpaperSelection(task, promise) {
     return task.promise;
 }
 
-/** @param {{ bg: number, wallpaper?: string | null }} selection */
-function saveWallpaperHints(selection) {
-    if (storageGet(CONFIG.KEYS.BG) !== selection.bg) storageSet(CONFIG.KEYS.BG, selection.bg);
+/** @param {HTMLImageElement | null} [image] */
+function syncCommittedWallpaperHints(image = getPreparedWallpaperImage(getCommittedWallpaperUrl())) {
+    const { bg, customWallpaper } = state;
+    if (storageGet(CONFIG.KEYS.BG) !== bg) storageSet(CONFIG.KEYS.BG, bg);
+    const mask = storageGet(CONFIG.KEYS.MASK_OPACITY);
+    const sample = customWallpaper && image ? sampleCustomWallpaperTheme(image, normalizeMaskOpacity(mask)) : null;
+    const next = {
+        custom: !!customWallpaper, bg,
+        ...(sample ? { appearance: { mask, isLight: sample.theme.isLight,
+            themeColor: 'themeColor' in sample.theme ? sample.theme.themeColor : undefined, tint: sample.tint } } : {})
+    };
     const meta = storageGet(CONFIG.KEYS.WALLPAPER_META);
-    if (!meta || meta.custom !== !!selection.wallpaper || meta.bg !== selection.bg) {
-        storageSet(CONFIG.KEYS.WALLPAPER_META, { custom: !!selection.wallpaper, bg: selection.bg });
-    }
+    if (JSON.stringify(meta) !== JSON.stringify(next)) storageSet(CONFIG.KEYS.WALLPAPER_META, next);
+}
+
+/** @param {number} opacity */
+export function commitWallpaperDimming(opacity) {
+    opacity = normalizeMaskOpacity(opacity);
+    if (!storageSet(CONFIG.KEYS.MASK_OPACITY, opacity)) return false;
+    syncCommittedWallpaperHints();
+    applyBgEffects(opacity);
+    return true;
 }
 
 export function getCommittedWallpaperUrl() {
     return state.customWallpaper || backgrounds[state.bg] || backgrounds[0];
+}
+
+/** @param {boolean} animate @param {HTMLImageElement | null} [preparedImage] */
+function renderCommittedWallpaper(animate, preparedImage = null) {
+    const url = getCommittedWallpaperUrl();
+    applyWallpaper(url, animate, preparedImage, image => {
+        if (url === getCommittedWallpaperUrl()) syncCommittedWallpaperHints(image);
+    });
 }
 
 /** 取消尚在准备的选择，等待已经开始的提交，再以完整记录建立草稿。 @param {() => boolean} isCurrent */
@@ -125,7 +163,7 @@ export async function prepareWallpaperDraft(isCurrent) {
     if (!isCurrent()) return previous;
     if (saved) syncCommittedWallpaper(saved);
     const current = getCommittedWallpaperUrl();
-    if (current !== previous) applyWallpaper(current, false);
+    if (current !== previous) renderCommittedWallpaper(false);
     return current;
 }
 
@@ -155,7 +193,7 @@ function findPresetBgIndex(url) {
 export async function clearCustomWallpaper(bg = state.bg, isCurrent) {
     discardWallpaperSelection();
     const saved = await commitWallpaperSelection(backgrounds[bg] || backgrounds[0], isCurrent);
-    if (saved) applyWallpaper(getCommittedWallpaperUrl(), false);
+    if (saved) renderCommittedWallpaper(false);
     return saved;
 }
 
@@ -174,6 +212,11 @@ export function updateWallpaperStatusUI(wallpaper) {
         dom.wallpaperStatus.className = 'hidden';
         dom.resetBgBtn.classList.add('hidden');
     }
+}
+
+/** @param {string} message */
+export function showWallpaperError(message) {
+    if (dom.wallpaperError) dom.wallpaperError.textContent = message;
 }
 
 /**
@@ -211,9 +254,9 @@ export function commitWallpaperSelection(targetWallpaper, isCurrent = () => true
         if (!isCurrent()) return false;
         if ((!existing || existing.wallpaper !== selection.wallpaper || existing.bg !== selection.bg)
             && !await setWallpaperSelectionDB(selection)) return false;
-        saveWallpaperHints(selection);
         syncCommittedWallpaper(selection);
-        if (preparedImage) applyWallpaper(targetWallpaper, true, preparedImage);
+        syncCommittedWallpaperHints(preparedImage);
+        if (preparedImage) renderCommittedWallpaper(true, preparedImage);
         return true;
     });
     wallpaperCommitQueue = result;
@@ -278,7 +321,9 @@ async function executeWallpaperSelection(task, url, preparedImage) {
     if (task !== wallpaperTask) return false;
     task.cancel = undefined;
     if (!image) {
-        showConfirm(t('ui.could.not.load.this.image.check'), null, t('ui.image.unavailable'));
+        const message = t('ui.could.not.load.this.image.check');
+        if (task.mode === 'draft') showWallpaperError(message);
+        else showConfirm(message, null, t('ui.image.unavailable'));
         return false;
     }
     if (task.mode === 'draft') {
@@ -308,7 +353,8 @@ export function resetDraftWallpaper() {
 
 export function revertDraftWallpaper() {
     discardWallpaperSelection();
-    showWallpaperDraft(getCommittedWallpaperUrl());
+    modalState.draftWallpaper = getCommittedWallpaperUrl();
+    renderCommittedWallpaper(true);
 }
 
 /** 快捷键轮播也通过同一事务保存，不提前删除自定义壁纸。 */
@@ -378,12 +424,13 @@ export function renderPresetWallpapers() {
 }
 
 export function restoreWallpaper() {
+    applyBgEffects(getSavedMaskOpacity());
     wallpaperRestore = (async () => {
         const selection = await getWallpaperSelectionDB();
         const savedBg = storageGet(CONFIG.KEYS.BG);
         if (selection) syncCommittedWallpaper(selection);
         else if (typeof savedBg === 'number' && backgrounds[savedBg]) state.bg = savedBg;
-        applyWallpaper(getCommittedWallpaperUrl(), false);
+        renderCommittedWallpaper(false);
     })();
     return wallpaperRestore;
 }
@@ -394,10 +441,10 @@ export function restoreWallpaper() {
 export function uploadWallpaper(file) {
     if (!canPreviewWallpaper()) return false;
     if (!file.type.startsWith('image/')) {
-        showConfirm(t('ui.choose.a.valid.image.file.jpg'), null, t('ui.invalid.format'));
+        showWallpaperError(t('ui.choose.a.valid.image.file.jpg'));
         return false;
     }
-    // 选择文件时就占用版本，不能等读取／压缩完成后再把旧上传当成新选择。
+    // 从选择文件起跟踪同一个任务，确保迟到的读取／压缩结果归属原选择。
     const task = beginWallpaperSelection('draft', null);
     const reader = new FileReader();
     /** @type {HTMLImageElement | null} */
@@ -420,7 +467,7 @@ export function uploadWallpaper(file) {
         };
         const fail = () => {
             if (task === wallpaperTask) {
-                showConfirm(t('ui.could.not.read.or.process.this'), null, t('ui.image.processing.failed'));
+                showWallpaperError(t('ui.could.not.read.or.process.this'));
             }
             finish(null);
         };

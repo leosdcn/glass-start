@@ -39,7 +39,7 @@ await test('PWA 身份跟随部署目录，同源子目录不会共用根目录�
 await test("主题配置、图标回退与缓存驱逐", async () => {
     const require = createRequire(import.meta.url);
     const { injectThemeConfig } = require('../scripts/build.cjs');
-    const template = '/* INJECT_THEME_CONFIG */\nglobalThis.result = { themes: PRESET_THEMES, tints: PRESET_TINTS };';
+    const template = '/* INJECT_THEME_CONFIG */\nglobalThis.result = { themes: PRESET_THEMES, tints: PRESET_TINTS, colors: PRESET_THEME_COLORS };';
     const readConfig = path => {
       const context = {};
       vm.runInNewContext(injectThemeConfig(template, path), context);
@@ -91,7 +91,7 @@ await test("主题配置、图标回退与缓存驱逐", async () => {
           await navigateAndWait(send, evalJS, `http://127.0.0.1:${server.port}/theme-probe.html?probe=${token}`,
             "!!window.__headThemeProbe && typeof window.handleIconError === 'function'");
           const actual = await evalJS(`({ head: __headThemeProbe, runtimeTheme: PRESET_THEMES[${index}], runtimeTint: PRESET_TINTS[${index}] })`);
-          assert.deepEqual(actual.head.theme, expected.themes[index]);
+          assert.deepEqual(actual.head.theme, { ...expected.themes[index], themeColor: expected.colors[index] });
           assert.deepEqual(actual.runtimeTheme, expected.themes[index]);
           assert.equal(actual.head.tint, expected.tints[index]);
           assert.equal(actual.runtimeTint, expected.tints[index]);
@@ -104,9 +104,7 @@ await test("主题配置、图标回退与缓存驱逐", async () => {
 
       const { identifier: customProbe } = await send('Page.addScriptToEvaluateOnNewDocument', { source: `
     localStorage.clear();
-    localStorage.setItem('glass_wallpaper_meta', JSON.stringify({custom:true,bg:0}));
-    localStorage.setItem('glass_theme_cache', JSON.stringify({isLight:true}));
-    localStorage.setItem('glass_tint_cache', JSON.stringify('1, 2, 3'));
+    localStorage.setItem('glass_wallpaper_meta', JSON.stringify({custom:true,bg:0,appearance:{mask:null,isLight:true,tint:'1, 2, 3'}}));
     localStorage.setItem('preferredEngine', JSON.stringify('__proto__'));
   ` });
       await navigateAndWait(send, evalJS, `http://127.0.0.1:${server.port}/theme-probe.html?probe=custom-meta`,

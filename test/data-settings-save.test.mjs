@@ -1,13 +1,43 @@
 import assert from 'node:assert/strict';
 import { launchSession, waitFor } from './support/helpers.mjs';
 
+let releaseWallpaper;
 const { server, chrome, send, evalJS } = await launchSession(0, {
+  '/late-wallpaper.png': (_req, res) => {
+    releaseWallpaper = () => { res.writeHead(404); res.end(); };
+  },
   '/other/sw.js': (req, res) => {
     res.writeHead(200, {'Content-Type': 'application/javascript', 'Cache-Control': 'no-store'});
     res.end("self.addEventListener('install', () => self.skipWaiting());");
   }
 });
 try {
+  await evalJS(`(async () => {
+    await openEditModal();
+    document.getElementById('tab-btn-appearance').click();
+    dom.urlBgBtn.click();
+    dom.urlBgInput.value = location.origin + '/late-wallpaper.png';
+    dom.urlBgConfirmBtn.click();
+    document.getElementById('tab-btn-data').click();
+    const transfer = new DataTransfer();
+    transfer.items.add(new File([JSON.stringify([{name:'仍可确认的导入',url:'https://import.test'}])],
+      'bookmarks.json', { type:'application/json' }));
+    dom.importJsonInput.files = transfer.files;
+    dom.importJsonInput.dispatchEvent(new Event('change', { bubbles:true }));
+  })()`);
+  await waitFor(evalJS, `OverlayStack.top()?.id === 'confirmModal' && dom.confirmTitle.textContent === '导入草稿确认'`);
+  await waitFor(() => Boolean(releaseWallpaper), 'wallpaper request held');
+  releaseWallpaper();
+  releaseWallpaper = null;
+  await waitFor(evalJS, `dom.wallpaperError.textContent.includes('无法加载该图片')`);
+  assert.equal(await evalJS(`OverlayStack.top()?.id === 'confirmModal' && dom.confirmTitle.textContent === '导入草稿确认'`), true);
+  await evalJS('dom.confirmOkBtn.click()');
+  assert.deepEqual(await evalJS('modalState.draftBookmarks.map(bookmark => bookmark.name)'), ['仍可确认的导入']);
+  await evalJS(`document.getElementById('tab-btn-appearance').click()`);
+  assert.equal(await evalJS('dom.wallpaperError.getClientRects().length > 0'), true);
+  await evalJS('cancelEditModal()');
+  assert.equal(await evalJS('dom.wallpaperError.textContent'), '');
+
   // 壁纸加载期间取消；也覆盖取消后重新打开并编辑的下一轮窗口。
   for (const reopen of [false, true]) {
     const result = await evalJS(`(async () => {
@@ -179,8 +209,7 @@ try {
             && !dom.languageBtn.disabled && [...document.querySelectorAll('.settings-tab-panel')].every(panel => !panel.inert),
           open:state.editOpen};
         if ('${phase}' === 'abort') {
-          result.failureShown = OverlayStack.top()?.id === 'confirmModal';
-          dom.confirmOkBtn.click();
+          result.failureShown = OverlayStack.top()?.id === 'editModal' && dom.wallpaperError.textContent.includes('未能保存');
           dom.cancelEditBtn.click();
           result.cancelledAfterFailure = !state.editOpen && modalState.draftWallpaper === backgrounds[1];
         }
@@ -446,6 +475,7 @@ try {
   }))()`),{ownRemoved:true,otherKept:true,unrelatedKept:true,sharedIconsKept:true,otherRegistered:true,bookmarksKept:true});
   console.log('✅ 清理只删除当前 scope 的离线池，保留其他注册、其他缓存、共享图标和书签');
 } finally {
+  releaseWallpaper?.();
   await chrome.close();
   await server.close();
 }

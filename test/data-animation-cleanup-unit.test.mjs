@@ -22,7 +22,7 @@ const { outputFiles } = await build({
         b.onLoad({ filter: /modules\/bookmark-picker\.js$/ }, () => ({ contents:
             'export const openBookmarkPicker=()=>{},closeBookmarkPicker=()=>{},addBookmarkFromPicker=()=>{};' }));
         b.onLoad({ filter: /modules\/wallpaper\.js$/ }, () => ({ contents:
-            'export const uploadWallpaper=()=>{},previewDraftWallpaper=()=>{},resetDraftWallpaper=()=>{};' }));
+            'export const uploadWallpaper=()=>{},previewDraftWallpaper=()=>{},resetDraftWallpaper=()=>{},showWallpaperError=()=>{};' }));
         b.onLoad({ filter: /core\/dialogs\.js$/ }, () => ({ contents: 'export function showConfirm(){}' }));
         b.onLoad({ filter: /core\/theme-engine\.js$/ }, () => ({ contents:
             'export function setWallpaperTheme(){};export function updateGlassTint(){};export function sampleCustomWallpaperTheme(){};export function syncWallpaperTheme(){};' }));

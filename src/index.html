@@ -93,13 +93,12 @@
           let initThemeColor = '';
           if (wallpaperMeta?.custom) {
             try {
-              const cached = JSON.parse(localStorage.getItem('glass_theme_cache'));
-              if (cached && typeof cached.isLight === 'boolean') {
+              const cached = wallpaperMeta.appearance;
+              if (cached && cached.mask === JSON.parse(localStorage.getItem('maskOpacity')) && typeof cached.isLight === 'boolean') {
                 initTheme = cached.isLight ? THEME_LIGHT : THEME_DARK;
-                if (cached.themeColor) initThemeColor = cached.themeColor;
+                if (typeof cached.themeColor === 'string') initThemeColor = cached.themeColor;
+                if (typeof cached.tint === 'string' && cached.tint) initTint = cached.tint;
               }
-              const cachedTint = JSON.parse(localStorage.getItem('glass_tint_cache') || 'null');
-              if (typeof cachedTint === 'string' && cachedTint) initTint = cachedTint;
             } catch(e) {}
           } else {
             const pIdx = backgrounds.indexOf(preloadUrl);
@@ -117,7 +116,7 @@
             document.documentElement.style.backgroundColor = targetColor;
             document.documentElement.style.setProperty('--bg-base', targetColor);
             document.documentElement.style.setProperty('--bg-start', targetThemeColor);
-            window.__INITIAL_THEME__ = initTheme;
+            window.__INITIAL_THEME__ = { ...initTheme, themeColor: targetThemeColor };
             window.__INITIAL_THEME_COLOR__ = targetThemeColor;
           }
           if (preloadUrl) {
@@ -391,6 +390,7 @@
                                 <button type="button" id="urlBgConfirmBtn" class="shrink-0 h-9 px-3.5 bg-white/15 enabled:hover:bg-white/25 border border-white/20 rounded-control text-xs font-medium text-white glass-interactive flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 disabled:opacity-50 disabled:cursor-not-allowed" aria-label="应用图片 URL" data-i18n-aria-label="ui.apply.image.url"><span data-i18n="ui.apply">应用</span></button>
                                 <button type="button" id="urlBgCancelBtn" class="shrink-0 h-9 px-2.5 text-xs text-white/50 enabled:hover:text-white/90 enabled:hover:bg-white/10 rounded-control glass-interactive flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" aria-label="取消输入图片 URL" data-i18n-aria-label="ui.cancel.image.url"><span data-i18n="ui.cancel">取消</span></button>
                             </div>
+                            <p id="wallpaperError" role="status" class="mt-1 text-2xs text-rose-200 empty:sr-only"></p>
                         </div>
                     </div>
 

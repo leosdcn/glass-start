@@ -1,12 +1,6 @@
 import { normalizeUrl } from './bookmark-model.js';
 
 const collator = new Intl.Collator('zh-CN', { numeric: true, sensitivity: 'base' });
-// 搜索去重键与持久化键语义不同；持久化使用完整的 normalizeUrl() 键。
-/**
- * @param {string} url
- * @returns {string}
- */
-export const searchUrlKey = url => (url || '').trim().toLowerCase().replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '');
 /** @type {string | undefined} */
 let previousSignature;
 /** @type {import('../types').CategoryCatalog | undefined} */
@@ -38,10 +32,10 @@ export function getCategoryCatalog(categories) {
     const sorted = categories.map(cat => {
         for (const bm of cat.bookmarks) {
             if (!bm.url) continue;
-            const url = normalizeUrl(bm.url), key = searchUrlKey(bm.url);
-            if (!byUrl.has(url)) byUrl.set(url, bm);
-            if (!searchCategories.has(key)) searchCategories.set(key, cat.name);
-            entries.push({ bm, normUrl: key, defaultCat: cat.name || '分类书签' });
+            const normUrl = normalizeUrl(bm.url);
+            if (!byUrl.has(normUrl)) byUrl.set(normUrl, bm);
+            if (!searchCategories.has(normUrl)) searchCategories.set(normUrl, cat.name);
+            entries.push({ bm, normUrl, defaultCat: cat.name || '分类书签' });
         }
         return { ...cat, sortedBookmarks: [...cat.bookmarks].sort((a, b) => collator.compare(a.name, b.name)) };
     });

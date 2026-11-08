@@ -100,7 +100,11 @@ test('导航悬停与拖拽渲染', async t => {
         await evalJS('openEditModal()');
         await waitFor(evalJS, 'document.getElementById("editModal").open');
         await evalJS(`(() => {
-            window.renderDragTarget=dom.editList.querySelectorAll('.edit-row-card')[2];
+            const rows = dom.editList.querySelectorAll('.edit-row-card');
+            const source = rows[0];
+            source.querySelector('.drag-handle').dispatchEvent(new MouseEvent('mousedown',{bubbles:true}));
+            source.dispatchEvent(new DragEvent('dragstart',{bubbles:true,cancelable:true}));
+            window.renderDragTarget=rows[2];
             window.renderDragRect=renderDragTarget.getBoundingClientRect();
             renderDragTarget.dispatchEvent(new DragEvent('dragover',{bubbles:true,cancelable:true,clientY:renderDragRect.top+5}));
         })()`);
@@ -123,6 +127,35 @@ test('导航悬停与拖拽渲染', async t => {
         assert.equal(await evalJS(`dom.editList.querySelectorAll('.drop-target-above,.drop-target-below').length`),1);
         await evalJS(`dom.editList.dispatchEvent(new DragEvent('dragleave',{bubbles:true}))`);
         assert.equal(await evalJS(`dom.editList.querySelectorAll('.drop-target-above,.drop-target-below').length`),0);
+        assert.deepEqual(await evalJS(`(async () => {
+            const rows = [...dom.editList.querySelectorAll('.edit-row-card')];
+            const [source, alternate, target] = rows;
+            const order = () => modalState.draftBookmarks.map(bookmark => bookmark.id);
+            const drag = (element, type, clientY) =>
+                element.dispatchEvent(new DragEvent(type, {bubbles:true,cancelable:true,clientY}));
+            const start = () => {
+                source.querySelector('.drag-handle').dispatchEvent(new MouseEvent('mousedown',{bubbles:true}));
+                drag(source,'dragstart',0);
+            };
+            const unchanged = [];
+            const original = JSON.stringify(order());
+            for (const [invalid, event] of [[source, 'dragenter'], [dom.editList, 'dragover']]) {
+                start();
+                drag(target, 'dragover', target.getBoundingClientRect().bottom-2);
+                await new Promise(requestAnimationFrame);
+                drag(invalid, event, invalid.getBoundingClientRect().top+5);
+                const noIndicator = !dom.editList.querySelector('.drop-target-above,.drop-target-below');
+                drag(invalid, 'drop', invalid.getBoundingClientRect().top+5);
+                drag(source, 'dragend', 0);
+                unchanged.push(noIndicator && JSON.stringify(order()) === original);
+            }
+            start();
+            drag(target, 'dragover', target.getBoundingClientRect().bottom-2);
+            drag(alternate, 'drop', alternate.getBoundingClientRect().bottom-2);
+            drag(source, 'dragend', 0);
+            return {unchanged, actualTarget: order()[0] === alternate.dataset.id && order()[1] === source.dataset.id
+                && order()[2] === target.dataset.id};
+        })()`), { unchanged: [true,true], actualTarget: true });
         console.log('✅ 光斑合成提示在离开或减弱动效时释放；拖拽目标不变时零节点更新，跨边缘和离开正确切换');
     } finally {
         await chrome.close();

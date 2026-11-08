@@ -156,12 +156,12 @@ test('书签轻量存储模型、自定义图标持久化与系统重置', async
         const domTitles = [...document.querySelectorAll('#bookmarks .bookmark-title')].map(e => e.textContent.trim());
         const domOk = domTitles.includes('GitHub') && domTitles.includes('DeepSeek');
 
-        const celsiusAfterReset = dom.weatherTemp.textContent === '20°'
-          && dom.weatherPopover.textContent.includes('20°C');
+        const weatherCleared = dom.weatherTemp.textContent === '--°'
+          && !dom.weatherPopover.textContent.includes('68°F');
         const resetSuccess = countOk && hasDefaultNames && storageClean && domOk
-          && fahrenheitBeforeReset && celsiusAfterReset;
+          && fahrenheitBeforeReset && weatherCleared;
         return { resetSuccess, countOk, hasDefaultNames, storageClean, domOk,
-          fahrenheitBeforeReset, celsiusAfterReset };
+          fahrenheitBeforeReset, weatherCleared };
       } finally {
         window.getDerivedBookmarks = origWinDerived;
         window.DEFAULT_BOOKMARKS = origWinDefault;

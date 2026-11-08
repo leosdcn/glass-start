@@ -16,7 +16,7 @@ const { outputFiles } = await build({
             export async function setWallpaperSelectionDB(selection){writes.push(selection);return true}
         ` }));
         builder.onLoad({ filter: /core\/wallpaper-renderer\.js$/ }, () => ({
-            contents: 'export function applyWallpaper(url){rendered.push(url)};export function getPreparedWallpaperImage(){return null}'
+            contents: 'export function applyWallpaper(url){rendered.push(url)};export function getPreparedWallpaperImage(){return null};export function setWallpaperDimming(){}'
         }));
         builder.onLoad({ filter: /core\/dialogs\.js$/ }, () => ({
             contents: 'export function showConfirm(message){messages.push(message)}'
@@ -32,7 +32,7 @@ function fixture() {
         set innerHTML(value) { html = value; htmlWrites++; },
         querySelector() { return null; }
     };
-    const storage = new Map();
+    const storage = new Map(), wallpaperError = { textContent: '' };
     class Reader {
         static LOADING = 1;
         constructor() { readers.push(this); this.readyState = 0; }
@@ -41,7 +41,7 @@ function fixture() {
         complete(value) { this.readyState = 2; this.onload?.({ target: { result: value } }); }
     }
     const context = vm.createContext({
-        module: { exports: {} }, console, URL, AbortController, DOMException,
+        module: { exports: {} }, console, URL, AbortController, AbortSignal, DOMException,
         Element: class {}, FileReader: Reader,
         Image: class {
             constructor() { this.width = 100; this.height = 80; }
@@ -55,7 +55,7 @@ function fixture() {
             setItem: (key, value) => storage.set(key, value), removeItem: key => storage.delete(key) },
         document: {
             hidden: false,
-            getElementById: key => key === 'weatherPopover' ? popover : null,
+            getElementById: key => ({ weatherPopover: popover, wallpaperError })[key] ?? null,
             createElement(tag) {
                 assert.equal(tag, 'canvas');
                 const number = ++canvasCount;
@@ -68,7 +68,7 @@ function fixture() {
     });
     vm.runInContext(outputFiles[0].text, context);
     const app = context.module.exports;
-    return { context, app, timers, readers, images, writes, rendered, messages,
+    return { context, app, timers, readers, images, writes, rendered, messages, wallpaperError,
         get html() { return html; }, get htmlWrites() { return htmlWrites; } };
 }
 const drain = async () => { for (let i = 0; i < 12; i++) await Promise.resolve(); };
@@ -119,6 +119,36 @@ test('强制重新定位失败后沿用成功位置，仍可获取新天气，�
         assert.equal(cache.current.temp, 25);
         assert.equal(app.isFetchingWeather(), false);
     }
+});
+
+test('旧地点预报失败时继续等待重新定位，并发布新地点预报', async () => {
+    const f = fixture();
+    const { app, context } = f;
+    const old = { name: '旧地点', lat: 1, lon: 2, timestamp: 1 };
+    context.localStorage.setItem(app.CONFIG.KEYS.WEATHER_LOC, JSON.stringify(old));
+    context.localStorage.setItem(app.CONFIG.KEYS.WEATHER_CACHE, JSON.stringify({ location: old, timestamp: 1, current: { temp: 12 }, daily: [] }));
+    let locate;
+    const forecasts = [];
+    context.fetch = async url => {
+        if (url.includes('myip.ipip.net')) return { ok: false, status: 503 };
+        if (url.includes('ipwho.is')) return new Promise(resolve => { locate = resolve; });
+        const latitude = new URL(url).searchParams.get('latitude');
+        forecasts.push(latitude);
+        return latitude === '1' ? { ok: false, status: 503 }
+            : { ok: true, json: async () => ({ current: { temperature_2m: 26, weather_code: 0 }, daily: {} }) };
+    };
+    const task = app.updateWeather();
+    await drain();
+    assert.equal(app.updateWeather(true), task);
+    assert.deepEqual(forecasts, ['1']);
+    locate({ ok: true, json: async () => ({ success: true, city: '新地点', latitude: 40, longitude: 50 }) });
+    await task;
+    assert.deepEqual(forecasts, ['1', '40']);
+    const saved = JSON.parse(context.localStorage.getItem(app.CONFIG.KEYS.WEATHER_CACHE));
+    assert.equal(saved.location.name, '新地点');
+    assert.equal(saved.current.temp, 26);
+    assert.equal(JSON.parse(context.localStorage.getItem(app.CONFIG.KEYS.WEATHER_LOC)).name, '新地点');
+    assert.match(f.html, /新地点/);
 });
 
 test('天气正文超时结束共享刷新任务，随后可重新刷新', async () => {
@@ -243,7 +273,8 @@ test('读取或压缩失败结束保存等待，重新选择可恢复', async ()
     f.readers[0].onerror();
     assert.equal(await app.flushWallpaperSelection(), false);
     assert.equal(f.writes.length, 0);
-    assert.equal(f.messages.length, 1);
+    assert.notEqual(f.wallpaperError.textContent, '');
+    assert.equal(f.messages.length, 0);
     app.uploadWallpaper({ type: 'image/png' });
     f.readers[1].complete('data:image/png;base64,new');
     const create = f.context.document.createElement;

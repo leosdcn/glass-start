@@ -10,7 +10,7 @@ import { localizeCategories } from './core/i18n.js';
 import { cacheDOM } from './state/dom.js';
 import { updateClock } from './modules/clock.js';
 import { renderEngineDropdown, setEngine, closeDropdown, hideSuggestions } from './modules/search.js';
-import { restoreWallpaper, preloadNextBg, applyBgEffects } from './modules/wallpaper.js';
+import { restoreWallpaper, preloadNextBg } from './modules/wallpaper.js';
 import { initWeather } from './modules/weather.js';
 import { loadBookmarks, renderNavCategories, preloadFavicons, preloadVisibleNavIcons, refreshSidebarNavCache, updateSidebarActive, initFaviconObserver, activateVisibleNavIcons, scheduleOffscreenNavIcons } from './modules/bookmarks.js';
 import { handleIconError } from './utils/favicon.js';
@@ -112,11 +112,7 @@ export function init() {
     bindEvents();
     bindEditEvents();
 
-    // ⑨ 恢复并应用背景遮罩暗度滤镜
-    const savedOpacity = storageGet(CONFIG.KEYS.MASK_OPACITY, CONFIG.APPEARANCE.DEFAULT_MASK_OPACITY);
-    applyBgEffects(savedOpacity);
-
-    // ⑩ PWA 与 Service Worker 生命周期更新接管监听
+    // ⑨ PWA 与 Service Worker 生命周期更新接管监听
     if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
         initServiceWorkerUpdates();
         navigator.serviceWorker.addEventListener('controllerchange', () => {

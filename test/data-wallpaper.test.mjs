@@ -8,7 +8,7 @@ test('壁纸主题采样与暗度处理', async () => {
     await send('Emulation.setDeviceMetricsOverride', {
       width: viewportWidth, height: viewportHeight, deviceScaleFactor: 1, mobile: false
     });
-    await evalJS(`(() => {
+    const url = await evalJS(`(async () => {
       const canvas = document.createElement('canvas');
       canvas.width = ${width}; canvas.height = ${height};
       const ctx = canvas.getContext('2d');
@@ -17,10 +17,12 @@ test('壁纸主题采样与暗度处理', async () => {
         ctx.fillRect(band.x, band.y, band.width, band.height);
       }
       ${mask === null ? "localStorage.removeItem('maskOpacity');" : `localStorage.setItem('maskOpacity', ${JSON.stringify(JSON.stringify(mask))});`}
-      localStorage.removeItem('glass_tint_cache');
-      applyWallpaper(canvas.toDataURL(), false);
+      const url = canvas.toDataURL();
+      await setWallpaperSelectionDB({ wallpaper: url, bg: 0 });
+      await restoreWallpaper();
+      return url;
     })()`);
-    await waitFor(evalJS, "localStorage.getItem('glass_tint_cache') !== null");
+    await waitFor(evalJS, `getPreparedWallpaperImage(${JSON.stringify(url)}) && storageGet(CONFIG.KEYS.WALLPAPER_META)?.appearance?.mask === ${JSON.stringify(mask)}`);
     return evalJS(`({
       bright: document.documentElement.classList.contains('wallpaper-bright'),
       tint: document.documentElement.style.getPropertyValue('--glass-tint').split(',').map(Number)
@@ -112,7 +114,7 @@ test('启动壁纸撞上切屏时先显示，取色等待空闲且不会覆盖�
     await waitFor(evalJS, 'wallpaperProbe.idle.length === 1');
     assert.deepEqual(await evalJS(`(() => {
       wallpaperProbe.idle.shift()();
-      return [isScreenTransitioning(), wallpaperProbe.reads, JSON.parse(localStorage.getItem('glass_tint_cache'))];
+      return [isScreenTransitioning(), wallpaperProbe.reads, storageGet(CONFIG.KEYS.WALLPAPER_META).appearance.tint];
     })()`), [false, 2, '80, 100, 160']);
 
     await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'no-preference' }] });
@@ -201,8 +203,7 @@ test('壁纸解码、迟到结果隔离与上传压缩', async () => {
         input.dispatchEvent(new Event('change', { bubbles: true }));
       };
       put(new File(['x'], 'bad.txt', { type: 'text/plain' }));
-      const invalidBlocked = OverlayStack.top()?.id === 'confirmModal';
-      dom.confirmOkBtn.click();
+      const invalidBlocked = OverlayStack.top()?.id === 'editModal' && !!dom.wallpaperError.textContent;
       const source = document.createElement('canvas');
       source.width = 3000;
       source.height = 2000;
@@ -235,6 +236,49 @@ test('壁纸解码、迟到结果隔离与上传压缩', async () => {
       }
     })()`);
     assert.equal(Object.values(uploadResult).every(Boolean), true, JSON.stringify(uploadResult));
+  } finally {
+    await chrome.close();
+    await server.close();
+  }
+});
+
+test('自定义壁纸和暗度预览只更新当前画面，保存后同步首帧色调', async () => {
+  const { server, chrome, send, evalJS } = await launchSession();
+  const getHint = () => evalJS('storageGet(CONFIG.KEYS.WALLPAPER_META).appearance');
+  try {
+    await evalJS(`(async () => {
+      const solid = color => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = color; ctx.fillRect(0, 0, canvas.width, canvas.height);
+        return canvas.toDataURL();
+      };
+      window.whiteWallpaper = solid('white');
+      window.blackWallpaper = solid('black');
+      await commitWallpaperSelection(whiteWallpaper);
+      await restoreWallpaper();
+    })()`);
+    await waitFor(evalJS, `storageGet(CONFIG.KEYS.WALLPAPER_META)?.appearance?.themeColor === '#d9d9d9'`);
+    const savedWhite = await getHint();
+    await evalJS('openEditModal()');
+    await evalJS('previewDraftWallpaper(blackWallpaper)');
+    assert.equal(await evalJS('document.documentElement.style.colorScheme'), 'dark');
+    assert.deepEqual(await getHint(), savedWhite);
+    await evalJS('cancelEditModal()');
+    await waitFor(evalJS, 'document.documentElement.style.colorScheme === "light"');
+    assert.deepEqual(await getHint(), savedWhite);
+
+    await evalJS('openEditModal()');
+    await evalJS('previewDraftMaskOpacity(80)');
+    await waitFor(evalJS, 'document.documentElement.style.colorScheme === "dark"');
+    assert.deepEqual(await getHint(), savedWhite);
+    await evalJS('saveEditModal()');
+    assert.deepEqual(await getHint(), { mask: 80, isLight: false, themeColor: '#333333', tint: '140, 140, 140' });
+    assert.equal(await evalJS('getWallpaperSelectionDB().then(record => record.wallpaper === whiteWallpaper)'), true);
+    await send('Page.reload');
+    await waitFor(evalJS, 'document.readyState === "complete" && typeof openEditModal === "function"');
+    assert.equal(await evalJS('window.__INITIAL_THEME_COLOR__'), '#333333');
+    assert.equal(await evalJS('document.documentElement.style.colorScheme'), 'dark');
   } finally {
     await chrome.close();
     await server.close();

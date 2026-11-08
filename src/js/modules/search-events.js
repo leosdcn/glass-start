@@ -3,7 +3,7 @@ import { CONFIG } from '../config/constants.js';
 import { state } from '../state/store.js';
 import { dom } from '../state/dom.js';
 import { handleRovingKeyNav } from '../utils/helpers.js';
-import { activateSuggestion, selectSuggestion, fetchSuggestions, hideSuggestions, closeDropdown, setEngine, openRandomBookmark, selectedSuggestionIdx, originalQuery, setOriginalQuery, scheduleSuggestions, handleSuggestionKeyNav } from './search.js';
+import { activateSuggestion, selectSuggestion, fetchSuggestions, hideSuggestions, closeDropdown, setEngine, openRandomBookmark, selectedSuggestionIdx, scheduleSuggestions, handleSuggestionKeyNav } from './search.js';
 
 let isComposing = false;
 let justEndedComposition = false;
@@ -50,7 +50,6 @@ export function bindSearchEvents() {
             }, CONFIG.TIMERS.COMPOSITION_END_RESET);
 
             const val = searchInput.value;
-            setOriginalQuery(val);
             updateSearchActionButtons(!!val);
             fetchSuggestions(state.engine, val);
         });
@@ -66,7 +65,6 @@ export function bindSearchEvents() {
 
         searchInput.addEventListener('input', () => {
             const val = searchInput.value;
-            setOriginalQuery(val);
             updateSearchActionButtons(!!val);
             if (isComposing) return;
             scheduleSuggestions(val);
@@ -78,7 +76,6 @@ export function bindSearchEvents() {
             e.stopPropagation();
             e.preventDefault();
             if (searchInput) searchInput.value = '';
-            setOriginalQuery('');
             updateSearchActionButtons(false);
             hideSuggestions();
             searchInput?.focus();
@@ -113,7 +110,7 @@ export function bindSearchEvents() {
             const targetEl = e.target instanceof Element ? e.target : null;
             const item = /** @type {HTMLElement|null} */ (targetEl?.closest('.suggestion-item'));
             if (!item || !item.dataset.idx) return;
-            selectSuggestion(Number(item.dataset.idx), { updateInput: false });
+            selectSuggestion(Number(item.dataset.idx));
         }, { passive: true });
     }
 
@@ -133,13 +130,6 @@ export function bindSearchEvents() {
     }
 }
 
-/** Escape 关闭候选前，恢复方向键选择之前的查询。 */
-export function restoreSearchQuery() {
-    if (selectedSuggestionIdx < 0) return;
-    if (dom.searchInput) dom.searchInput.value = originalQuery;
-    updateSearchActionButtons(!!dom.searchInput?.value);
-}
-
 /** 处理搜索框内部按键；返回 true 时全局快捷键停止分发。 @param {KeyboardEvent} e */
 export function handleSearchKeydown(e) {
     if (document.activeElement !== dom.searchInput) return false;
@@ -153,5 +143,5 @@ export function handleSearchKeydown(e) {
         activateSuggestion(selectedSuggestionIdx, e.altKey || e.metaKey || e.ctrlKey);
         return true;
     }
-    return handleSuggestionKeyNav(e, updateSearchActionButtons);
+    return handleSuggestionKeyNav(e);
 }

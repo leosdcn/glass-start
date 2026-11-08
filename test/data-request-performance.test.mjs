@@ -86,14 +86,26 @@ try {
             dom.searchInput.dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowDown',bubbles:true,cancelable:true}));
             const keyboardValue = dom.searchInput.value;
             window['__glassSuggestCb_' + activeSuggestReqId](['chatg',['chatg result']]);
-            const keyboardPreserved = keyboardValue !== 'chatg' && dom.searchInput.value === keyboardValue &&
+            const keyboardPreserved = keyboardValue === 'chatg' && dom.searchInput.value === keyboardValue &&
                 dom.suggestionMenu.querySelector('[data-idx="0"]').classList.contains('active');
             dom.searchInput.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}));
-            return {hoverPreserved,repeatedWrites,changedWrites,uniqueSelection,keyboardPreserved,escaped:dom.searchInput.value === 'chatg'};
+            const escaped = dom.searchInput.value === 'chatg';
+
+            begin('git');
+            dom.searchInput.dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowDown',bubbles:true,cancelable:true}));
+            const highlighted = dom.suggestionMenu.querySelector('.suggestion-item.active')?.textContent.includes('GitHub');
+            dom.engineBtn.click();
+            document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true,cancelable:true}));
+            dom.engineBtn.click();
+            dom.dropdownMenu.querySelector('[data-engine="google"]').click();
+            const engineQuery = new URL(suggestionScriptTag.src).searchParams.get('q');
+            return {hoverPreserved,repeatedWrites,changedWrites,uniqueSelection,keyboardPreserved,escaped,
+                highlighted, engineQuery, text: dom.searchInput.value};
         } finally { hideSuggestions(); document.body.appendChild = append; }
     })()`);
-    assert.deepEqual(selection, {hoverPreserved:true,repeatedWrites:0,changedWrites:4,uniqueSelection:true,keyboardPreserved:true,escaped:true});
-    console.log('✅ 网络返回保留鼠标原查询与键盘填词；同项重复悬停零写入，换项只更新两个节点');
+    assert.deepEqual(selection, {hoverPreserved:true,repeatedWrites:0,changedWrites:4,uniqueSelection:true,keyboardPreserved:true,escaped:true,
+        highlighted:true, engineQuery:'git', text:'git'});
+    console.log('✅ 网络返回保留原查询与键盘选中项，重复悬停零写入，换项只更新两个节点');
 
     const cors = await evalJS(`(async () => {
         const original = window.fetch;
@@ -137,6 +149,21 @@ try {
     })()`);
     assert.deepEqual(editedSuggestion, {updated:true,replaced:true});
 
+    const paths = await evalJS(`(async () => {
+        const original = window.fetch;
+        window.fetch = async () => ({ok:true,json:async()=>['verifyPath',[]]});
+        try {
+            const records = [
+                { name:'VerifyPath A', url:'https://docs.example.test/Docs/A', icon:'./icons/github.com.png' },
+                { name:'VerifyPath B', url:'https://docs.example.test/docs/a', icon:'./icons/github.com.png' }
+            ];
+            saveUserBookmarks(records);
+            loadBookmarks();
+            fetchSuggestions('wikipedia','verifypath');
+            return [...dom.suggestionMenu.querySelectorAll('.suggestion-item[data-url]')].map(node => node.dataset.url);
+        } finally { hideSuggestions(); window.fetch = original; }
+    })()`);
+    assert.deepEqual(paths, ['https://docs.example.test/Docs/A','https://docs.example.test/docs/a']);
 
     await evalJS(`(() => {
         window.performanceOriginalFetch = window.fetch;
@@ -212,6 +239,34 @@ try {
     assert.deepEqual(zeroCoordinates, {cached:true, fallback:true, located:true});
     console.log('✅ 零经纬度可复用缓存、定位失败时回退，并接受 IP 定位返回的零坐标');
 
+    await evalJS(`(() => {
+        window.resetWeatherOriginalFetch = window.fetch;
+        const old = {name:'重置前地点',lat:1,lon:2,timestamp:1};
+        storageSet(CONFIG.KEYS.WEATHER_LOC, old);
+        storageSet(CONFIG.KEYS.WEATHER_CACHE,{timestamp:1,location:old,current:{temp:22},daily:[]});
+        renderWeatherCapsule(storageGet(CONFIG.KEYS.WEATHER_CACHE));
+        renderWeatherPopover(storageGet(CONFIG.KEYS.WEATHER_CACHE));
+        window.fetch = async (url, {signal}) => {
+            if (url.includes('/forecast?')) return {ok:false,status:503};
+            if (url.includes('myip.ipip.net')) return {ok:false,status:503};
+            if (url.includes('ipwho.is')) return new Promise(resolve => {
+                window.resetWeatherSignal = signal;
+                window.releaseOldLocation = () => resolve({ok:true,json:async()=>({success:true,city:'迟到地点',latitude:40,longitude:50})});
+            });
+            throw new Error('Unexpected URL: ' + url);
+        };
+        window.oldWeatherTask = updateWeather(false);
+    })()`);
+    await waitFor(evalJS, '!!window.releaseOldLocation');
+    await evalJS(`(async () => { await openEditModal(); resetBookmarks(); dom.confirmOkBtn.click(); })()`);
+    await waitFor(evalJS, '!state.editOpen && resetWeatherSignal.aborted');
+    const empty = `!isFetchingWeather && !storageGet(CONFIG.KEYS.WEATHER_LOC) && !storageGet(CONFIG.KEYS.WEATHER_CACHE)
+        && dom.weatherTemp.textContent === '--°' && !dom.weatherPopover.textContent.includes('重置前地点')`;
+    assert.equal(await evalJS(empty), true);
+    await evalJS(`(async () => { releaseOldLocation(); await oldWeatherTask; })()`);
+    assert.equal(await evalJS(empty), true);
+    await evalJS('window.fetch = resetWeatherOriginalFetch');
+    console.log('✅ 恢复默认立即清空天气，旧定位返回后也不能回写或复原界面');
 } finally {
     await chrome.close();
     await server.close();

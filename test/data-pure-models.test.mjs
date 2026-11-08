@@ -18,7 +18,7 @@ const { outputFiles } = buildSync({
   bundle:true, write:false, format:'esm', platform:'node'
 });
 const model = await import('data:text/javascript;base64,' + Buffer.from(outputFiles[0].text).toString('base64'));
-const { CONFIG, rankBookmarkSuggestions, normalizeWeatherForecast, damerauLevenshteinDistance, weatherNum, toDisplayTemp, getCategoryCatalog, searchUrlKey } = model;
+const { CONFIG, rankBookmarkSuggestions, normalizeWeatherForecast, damerauLevenshteinDistance, weatherNum, toDisplayTemp, getCategoryCatalog, normalizeUrl } = model;
 const candidates = [
   {bm:{name:'Tools', url:'https://tools.example', icon:'', desc:'GitHub'}, normUrl:'tools.example', defaultCat:'工具'},
   {bm:{name:'GitHub', url:'https://github.com', icon:''}, normUrl:'github.com', defaultCat:'开发'},
@@ -143,8 +143,9 @@ test('分类目录索引映射、首分类归属与内容变更失效算法', ()
   const first = getCategoryCatalog(categories);
   assert.equal(first.byUrl.size, 2);
   assert.equal(first.byUrl.get(a.url).name, 'Zulu');
-  assert.equal(first.searchCategories.size, 1);
-  assert.equal(first.searchCategories.get(searchUrlKey(b.url)), '第一分类');
+  assert.equal(first.searchCategories.size, 2);
+  assert.equal(first.searchCategories.get(normalizeUrl(a.url)), '第一分类');
+  assert.equal(first.searchCategories.get(normalizeUrl(b.url)), '第二分类');
   assert.equal(getCategoryCatalog(categories), first);
   categories[0].bookmarks.push({ ...b, name: 'Beta' });
   const changed = getCategoryCatalog(categories);

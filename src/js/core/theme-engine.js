@@ -4,7 +4,6 @@
  */
 import { CONFIG } from '../config/constants.js';
 import { APP_THEME_DARK, APP_THEME_LIGHT } from '../config/themes.js';
-import { storageGet, storageSet } from '../utils/storage.js';
 
 import { dom } from '../state/dom.js';
 
@@ -98,13 +97,14 @@ export function setWallpaperTheme(theme, themeColor) {
     syncWallpaperTheme();
 }
 
-/** @type {{ key: string, topRaw: number[], fullRaw: number[] } | null} */
-let cachedRawSample = null;
+/** @type {WeakMap<HTMLImageElement, { key: string, topRaw: number[], fullRaw: number[] }>} */
+const rawSamples = new WeakMap();
 
 /**
  * @param {HTMLImageElement} img
+ * @param {number} opacity
  */
-export function sampleCustomWallpaperTheme(img) {
+export function sampleCustomWallpaperTheme(img, opacity) {
     if (typeof document === 'undefined') return;
     try {
         if (!(img.naturalWidth > 0 && img.naturalHeight > 0)) return;
@@ -116,7 +116,8 @@ export function sampleCustomWallpaperTheme(img) {
         const srcW = width / scale, srcH = height / scale;
         const srcX = (img.naturalWidth - srcW) / 2, srcY = (img.naturalHeight - srcH) / 2;
 
-        const sampleKey = `${img.src || img.currentSrc}_${Math.round(srcX)}_${Math.round(srcY)}_${Math.round(srcW)}_${Math.round(srcH)}`;
+        const sampleKey = `${Math.round(srcX)}_${Math.round(srcY)}_${Math.round(srcW)}_${Math.round(srcH)}`;
+        const cachedRawSample = rawSamples.get(img);
         let topRaw, fullRaw;
 
         if (cachedRawSample && cachedRawSample.key === sampleKey) {
@@ -144,26 +145,16 @@ export function sampleCustomWallpaperTheme(img) {
 
             topRaw = sampleRaw(srcH * CONFIG.APPEARANCE.THEME_SAMPLE_AREA_RATIO);
             fullRaw = sampleRaw(srcH);
-            cachedRawSample = { key: sampleKey, topRaw, fullRaw };
+            rawSamples.set(img, { key: sampleKey, topRaw, fullRaw });
         }
 
-        const savedMask = Number(storageGet(CONFIG.KEYS.MASK_OPACITY, CONFIG.APPEARANCE.DEFAULT_MASK_OPACITY));
-        const maskOp = (Number.isFinite(savedMask)
-            ? Math.max(0, Math.min(CONFIG.APPEARANCE.MAX_MASK_OPACITY, savedMask))
-            : CONFIG.APPEARANCE.DEFAULT_MASK_OPACITY) / 100;
-
+        const maskOp = opacity / 100;
         const [topR, topG, topB] = topRaw.map(v => Math.round(v * (1 - maskOp)));
         const lum = 0.2126 * topR + 0.7152 * topG + 0.0722 * topB;
         const isLight = lum > CONFIG.APPEARANCE.LUMINANCE_THRESHOLD;
         const topHex = '#' + [topR, topG, topB].map(v => Math.max(0, Math.min(255, v)).toString(16).padStart(2, '0')).join('');
         const baseTheme = isLight ? APP_THEME_LIGHT : APP_THEME_DARK;
         const theme = { color: baseTheme.color, isLight: baseTheme.isLight, themeColor: topHex };
-        const cachedTheme = storageGet(CONFIG.KEYS.THEME_CACHE);
-        if (!cachedTheme || cachedTheme.color !== theme.color || cachedTheme.isLight !== theme.isLight || cachedTheme.themeColor !== theme.themeColor) {
-            storageSet(CONFIG.KEYS.THEME_CACHE, theme);
-        }
-        setWallpaperTheme(theme, topHex);
-
         // 动态环境光 Specular Tint：对采样色彩进行适度提亮与区间保护，避免暗色壁纸造成暗沉
         const [r, g, b] = fullRaw.map(v => Math.round(v * (1 - maskOp)));
         const clamp = CONFIG.APPEARANCE.TINT_CLAMP;
@@ -172,12 +163,8 @@ export function sampleCustomWallpaperTheme(img) {
         const tintR = Math.min(clamp.MAX, Math.round(Math.max(clamp.MIN, r * boost)));
         const tintG = Math.min(clamp.MAX, Math.round(Math.max(clamp.MIN, g * boost)));
         const tintB = Math.min(clamp.MAX, Math.round(Math.max(clamp.MIN, b * boost)));
-        const tintStr = `${tintR}, ${tintG}, ${tintB}`;
-        if (storageGet(CONFIG.KEYS.TINT_CACHE) !== tintStr) {
-            storageSet(CONFIG.KEYS.TINT_CACHE, tintStr);
-        }
-        updateGlassTint(tintStr);
+        return { theme, tint: `${tintR}, ${tintG}, ${tintB}` };
     } catch {
-        setWallpaperTheme(APP_THEME_DARK);
+        return { theme: APP_THEME_DARK, tint: '255, 255, 255' };
     }
 }

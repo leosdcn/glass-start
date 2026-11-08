@@ -193,10 +193,11 @@ test('历史工单缺陷回归 (GS-01 ~ GS-15 焦点、导入、存储配额与�
       const before = JSON.stringify(await getWallpaperSelectionDB());
       uploadWallpaper(new File(['broken-image'], 'broken.png', { type: 'image/png' }));
       const prepared = await flushWallpaperSelection();
-      return { failed: !prepared, same: before === JSON.stringify(await getWallpaperSelectionDB()) };
+      return { failed: !prepared, same: before === JSON.stringify(await getWallpaperSelectionDB()),
+        localError: !!dom.wallpaperError.textContent && OverlayStack.top()?.id === 'editModal' };
     })()`);
-    assert.deepEqual(upload, { failed: true, same: true });
-    await evalJS('dom.confirmOkBtn.click(); cancelEditModal()');
+    assert.deepEqual(upload, { failed: true, same: true, localError: true });
+    await evalJS('cancelEditModal()');
 
     // 多指手势与拖拽中断
     await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });

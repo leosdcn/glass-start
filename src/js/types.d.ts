@@ -163,6 +163,7 @@ export interface DOMCache {
     resetBgBtn: HTMLButtonElement | null;
     uploadBgInput: HTMLInputElement | null;
     wallpaperStatus: HTMLElement | null;
+    wallpaperError: HTMLElement | null;
     bookmarkCountBadge: HTMLElement | null;
     jsonDropzone: HTMLElement | null;
     maskOpacityInput: HTMLInputElement | null;

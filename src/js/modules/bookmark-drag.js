@@ -24,7 +24,6 @@ export function initDragSort() {
     let touchMoveRafId = null;
     let touchClientX = 0;
     let touchClientY = 0;
-    let hasPendingTouch = false;
     /** @type {number | null} */
     let touchIdentifier = null;
     /** @type {HTMLElement | null} */
@@ -40,10 +39,17 @@ export function initDragSort() {
     const currentEditList = editList;
 
     /**
-     * @param {HTMLElement} target
-     * @param {number} relY
+     * @param {EventTarget | null} element
+     * @param {number} clientY
      */
-    function updateDropTarget(target, relY) {
+    function updateDropTarget(element, clientY) {
+        const target = /** @type {HTMLElement | null} */ (element instanceof Element ? element.closest('.edit-row-card') : null);
+        if (!dragSrc || !target || target === dragSrc || !currentEditList.contains(target)) {
+            lastOverTarget = lastIsTop = null;
+            return;
+        }
+        const rect = target.getBoundingClientRect();
+        const relY = rect.height > 0 ? (clientY - rect.top) / rect.height : 0.5;
         const isTop = lastOverTarget === target && lastIsTop !== null
             ? (lastIsTop ? relY <= CONFIG.PHYSICS.DRAG_HYSTERESIS_HIGH : relY < CONFIG.PHYSICS.DRAG_HYSTERESIS_LOW)
             : relY < 0.5;
@@ -51,16 +57,12 @@ export function initDragSort() {
         lastIsTop = isTop;
     }
 
-    /**
-     * @param {HTMLElement} target
-     * @param {boolean} isTop
-     */
-    function updateDragIndicator(target, isTop) {
-        lastOverTarget = target;
-        lastIsTop = isTop;
+    function updateDragIndicator() {
+        const target = lastOverTarget;
+        const isTop = lastIsTop;
         if (indicatorTarget === target && indicatorIsTop === isTop) return;
         indicatorTarget?.classList.remove('drop-target-above', 'drop-target-below');
-        target.classList.add(isTop ? 'drop-target-above' : 'drop-target-below');
+        target?.classList.add(isTop ? 'drop-target-above' : 'drop-target-below');
         indicatorTarget = target;
         indicatorIsTop = isTop;
     }
@@ -74,7 +76,6 @@ export function initDragSort() {
             cancelAnimationFrame(touchMoveRafId);
             touchMoveRafId = null;
         }
-        hasPendingTouch = false;
         currentEditList.querySelectorAll('.edit-row-card').forEach(el => {
             el.classList.remove('dragging', 'drop-target-above', 'drop-target-below');
         });
@@ -247,43 +248,44 @@ export function initDragSort() {
         settleDragHover();
     });
 
-    currentEditList.addEventListener('dragover', e => {
+    /** @param {DragEvent} e */
+    function trackMouseTarget(e) {
+        if (!dragSrc || touchIdentifier !== null) return;
+        updateDropTarget(e.target, e.clientY);
+        if (!lastOverTarget) {
+            updateDragIndicator();
+            return;
+        }
         e.preventDefault();
         if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
-        const targetEl = e.target instanceof Element ? e.target : null;
-        const target = /** @type {HTMLElement|null} */ (targetEl?.closest('.edit-row-card'));
-        if (!target || target === dragSrc) return;
-        const rect = target.getBoundingClientRect();
-        const relY = rect.height > 0 ? (e.clientY - rect.top) / rect.height : 0.5;
-        updateDropTarget(target, relY);
         if (!dragOverRafId) {
             dragOverRafId = requestAnimationFrame(() => {
                 dragOverRafId = null;
-                if (lastOverTarget && lastIsTop !== null) updateDragIndicator(lastOverTarget, lastIsTop);
+                updateDragIndicator();
             });
         }
-    });
+    }
+    currentEditList.addEventListener('dragenter', trackMouseTarget);
+    currentEditList.addEventListener('dragover', trackMouseTarget);
 
     currentEditList.addEventListener('dragleave', e => {
-        if (e.target === currentEditList || !(e.relatedTarget instanceof Node && currentEditList.contains(e.relatedTarget))) clearDragClasses();
+        if (e.target === currentEditList || !(e.relatedTarget instanceof Node && currentEditList.contains(e.relatedTarget))) {
+            updateDropTarget(null, 0);
+            updateDragIndicator();
+        }
     });
 
     currentEditList.addEventListener('drop', e => {
+        if (!dragSrc || touchIdentifier !== null) return;
         e.preventDefault();
-        const targetEl = e.target instanceof Element ? e.target : null;
-        let target = lastOverTarget || /** @type {HTMLElement|null} */ (targetEl?.closest('.edit-row-card'));
-        let isTop = lastIsTop;
-        if (target && isTop === null) {
-            const rect = target.getBoundingClientRect();
-            isTop = ((e.clientY - rect.top) / (rect.height || 1)) < 0.5;
-        } else if (isTop === null) {
-            isTop = true;
-        }
+        updateDropTarget(e.target, e.clientY);
         const src = dragSrc;
+        const target = lastOverTarget;
+        const isTop = lastIsTop;
         dragSrc = null;
         clearDragClasses();
         blurActiveHandle();
-        commitReorder(src, target, isTop);
+        if (isTop !== null) commitReorder(src, target, isTop);
         settleDragHover();
     });
 
@@ -316,7 +318,6 @@ export function initDragSort() {
     function processTouchMove() {
         touchMoveRafId = null;
         if (!dragSrc || touchIdentifier === null) return;
-        hasPendingTouch = false;
 
         // 容器上下边缘自适应平滑滚动 (应对长列表场景)
         const listRect = currentEditList.getBoundingClientRect();
@@ -331,23 +332,8 @@ export function initDragSort() {
         if (currentEditList.scrollTop !== beforeScroll) {
             touchMoveRafId = requestAnimationFrame(processTouchMove);
         }
-        const el = document.elementFromPoint(touchClientX, touchClientY);
-        const target = /** @type {HTMLElement|null} */ (el && el.closest('.edit-row-card'));
-
-        // 滑回自身或移出列表卡片区时，隐藏指示线并重置目标，防止松手误重排
-        if (!target || target === dragSrc) {
-            indicatorTarget?.classList.remove('drop-target-above', 'drop-target-below');
-            lastOverTarget = indicatorTarget = null;
-            lastIsTop = indicatorIsTop = null;
-            return;
-        }
-
-        const rect = target.getBoundingClientRect();
-        const relY = (touchClientY - rect.top) / (rect.height || 1);
-        updateDropTarget(target, relY);
-        if (lastOverTarget && lastIsTop !== null) {
-            updateDragIndicator(lastOverTarget, lastIsTop);
-        }
+        updateDropTarget(document.elementFromPoint(touchClientX, touchClientY), touchClientY);
+        updateDragIndicator();
     }
 
     currentEditList.addEventListener('touchmove', e => {
@@ -357,27 +343,20 @@ export function initDragSort() {
 
         touchClientX = touch.clientX;
         touchClientY = touch.clientY;
-        hasPendingTouch = true;
         if (!touchMoveRafId) {
             touchMoveRafId = requestAnimationFrame(processTouchMove);
         }
     }, { passive: true });
 
     currentEditList.addEventListener('touchend', e => {
-        if (!dragSrc || !Array.from(e.changedTouches).some(t => t.identifier === touchIdentifier)) return;
-        if (touchMoveRafId) {
-            cancelAnimationFrame(touchMoveRafId);
-            touchMoveRafId = null;
-        }
-        if (hasPendingTouch) {
-            processTouchMove();
-        }
+        const touch = Array.from(e.changedTouches).find(t => t.identifier === touchIdentifier);
+        if (!dragSrc || !touch) return;
+        updateDropTarget(document.elementFromPoint(touch.clientX, touch.clientY), touch.clientY);
         const src = dragSrc;
         const target = lastOverTarget;
         const isTop = lastIsTop ?? true;
         dragSrc = null;
         touchIdentifier = null;
-        hasPendingTouch = false;
         clearDragClasses();
         blurActiveHandle();
         document.body.classList.remove('bookmark-dragging');

@@ -10,7 +10,7 @@ import { dom } from './state/dom.js';
 import { OverlayStack } from './core/overlay-stack.js';
 import { switchToStart, switchToNav, isScreenTransitioning, reconcileScreenState } from './core/screen-state.js';
 import { hideSuggestions, closeDropdown, toggleDropdown } from './modules/search.js';
-import { restoreSearchQuery, handleSearchKeydown } from './modules/search-events.js';
+import { handleSearchKeydown } from './modules/search-events.js';
 import { toggleWeatherPopover, closeWeatherPopover, updateWeather } from './modules/weather.js';
 import { updateClock, stopClockTimer } from './modules/clock.js';
 import { checkServiceWorkerUpdate } from './core/service-worker-updates.js';
@@ -157,7 +157,6 @@ export function bindEvents() {
             const topOverlay = OverlayStack.top();
             if (topOverlay) {
                 e.preventDefault();
-                if (topOverlay.id === 'suggestions' && suggestionMenu?.classList.contains('active')) restoreSearchQuery();
                 topOverlay.close();
                 e.stopPropagation();
                 return;

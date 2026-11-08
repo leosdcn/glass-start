@@ -15,13 +15,13 @@ import { state, modalState, pageData } from '../state/store.js';
 import { replaceBookmarkDraft } from '../state/bookmark-draft.js';
 import { dom } from '../state/dom.js';
 import { OverlayStack } from '../core/overlay-stack.js';
-import { flushWallpaperSelection, prepareWallpaperDraft, getCommittedWallpaperUrl, discardWallpaperSelection, showWallpaperDraft, updateWallpaperStatusUI, updatePresetBgCardsUI, clearCustomWallpaper, renderPresetWallpapers, commitWallpaperSelection, revertDraftWallpaper, applyBgEffects, flushBgEffects } from './wallpaper.js';
+import { flushWallpaperSelection, prepareWallpaperDraft, getCommittedWallpaperUrl, discardWallpaperSelection, showWallpaperDraft, updateWallpaperStatusUI, updatePresetBgCardsUI, clearCustomWallpaper, renderPresetWallpapers, commitWallpaperSelection, revertDraftWallpaper, applyBgEffects, flushBgEffects, getSavedMaskOpacity, commitWallpaperDimming, showWallpaperError } from './wallpaper.js';
 import { saveUserBookmarks, resetUserBookmarks } from './bookmarks.js';
 import { closeDropdown, hideSuggestions, setEngine } from './search.js';
 import { getTransitionMode, syncTransitionSwitcherActive, setTransitionMode } from '../core/screen-state.js';
 import { cancelDragSort } from './bookmark-drag.js';
 import { closeBookmarkPicker } from './bookmark-picker.js';
-import { refreshWeatherDisplay } from './weather.js';
+import { resetWeather } from './weather.js';
 import { getCategoryIconHTML } from '../utils/favicon.js';
 
 /** @type {Record<string, string>} */
@@ -91,10 +91,6 @@ function setEditPhase(phase) {
     if (dom.cancelEditBtn) dom.cancelEditBtn.disabled = committing;
     if (dom.languageBtn) dom.languageBtn.disabled = committing;
     cachedSettingsPanels?.forEach(panel => { panel.inert = committing; });
-}
-
-function getSavedMaskOpacity() {
-    return storageGet(CONFIG.KEYS.MASK_OPACITY, CONFIG.APPEARANCE.DEFAULT_MASK_OPACITY);
 }
 
 /** @param {string} targetTabId */
@@ -334,10 +330,9 @@ export function resetBookmarks() {
             }
             /** @type {(keyof typeof CONFIG.KEYS)[]} */
             const keys = ['PREFERRED_ENGINE', 'WALLPAPER_META', 'MASK_OPACITY',
-                'BG', 'NAV_DISCOVERED', 'WEATHER_CACHE', 'WEATHER_LOC',
-                'THEME_CACHE', 'TINT_CACHE', 'TRANSITION_MODE', 'LANGUAGE', 'TEMP_UNIT'];
+                'BG', 'NAV_DISCOVERED', 'THEME_CACHE', 'TINT_CACHE', 'TRANSITION_MODE', 'LANGUAGE'];
             const removed = keys.map(key => storageRemove(CONFIG.KEYS[key]));
-            refreshWeatherDisplay();
+            const weatherReset = resetWeather();
             const bookmarksReset = resetUserBookmarks();
             const mode = getTransitionMode();
             document.documentElement.dataset.transitionMode = mode;
@@ -347,7 +342,7 @@ export function resetBookmarks() {
             modalState.draftMaskOpacity = opacity;
             applyBgEffects(opacity);
             setEngine(storageGet(CONFIG.KEYS.PREFERRED_ENGINE, DEFAULT_ENGINE), false);
-            if (!bookmarksReset || removed.some(result => !result)) {
+            if (!bookmarksReset || !weatherReset || removed.some(result => !result)) {
                 // 保留用户编辑；未编辑的列表随已落盘的重置结果更新。
                 if (!modalState.bookmarksChanged) replaceBookmarkDraft(pageData.bookmarks);
                 renderEditList();
@@ -402,7 +397,7 @@ export async function saveEditModal() {
         // 取消或重新打开设置后，旧保存任务不得提交草稿、弹提示或关闭新窗口。
         if (!isCurrent()) return;
         if (!wallpaperSaved) {
-            showConfirm(t('ui.the.wallpaper.has.not.been.saved'), null, t('ui.could.not.save'));
+            if (OverlayStack.top()?.id === 'editModal') switchSettingsTab('tabAppearance');
             return;
         }
 
@@ -430,7 +425,7 @@ export async function saveEditModal() {
 
         // 2. 提交背景暗度
         if (modalState.draftMaskOpacity !== null && modalState.draftMaskOpacity !== getSavedMaskOpacity()) {
-            if (!storageSet(CONFIG.KEYS.MASK_OPACITY, modalState.draftMaskOpacity)) {
+            if (!commitWallpaperDimming(modalState.draftMaskOpacity)) {
                 showConfirm(t('ui.could.not.save.background.dimming.your'), null, t('ui.could.not.save'));
                 return;
             }
@@ -450,7 +445,8 @@ export async function saveEditModal() {
             const saved = await commitWallpaperSelection(targetBg, isCurrent);
             if (!isCurrent()) return;
             if (!saved) {
-                showConfirm(t('ui.could.not.save.the.wallpaper.your'), null, t('ui.wallpaper.not.saved'));
+                showWallpaperError(t('ui.could.not.save.the.wallpaper.your'));
+                switchSettingsTab('tabAppearance');
                 return;
             }
         }

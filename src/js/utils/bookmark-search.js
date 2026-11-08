@@ -123,6 +123,7 @@ export function rankBookmarkSuggestions(query, model, config, limit = config.MAX
         const bmName = candidate.nameLower ?? (bm.name || '').toLowerCase();
         const bmDesc = candidate.descLower ?? (bm.desc || '').toLowerCase();
         const bmUrl = candidate.urlLower ?? (bm.url || '').toLowerCase();
+        const normalizedText = normUrl.toLowerCase().replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '');
         const realCat = urlToCategoryMap.get(normUrl) || defaultCat;
 
         let tier = Infinity;
@@ -133,7 +134,7 @@ export function rankBookmarkSuggestions(query, model, config, limit = config.MAX
             tier = config.TIERS.PREFIX_NAME;
         } else if (bmName.includes(q)) {
             tier = config.TIERS.SUBSTRING_NAME;
-        } else if (bmUrl.includes(q) || normUrl.includes(q)) {
+        } else if (bmUrl.includes(q) || normalizedText.includes(q)) {
             tier = config.TIERS.URL_MATCH;
         } else if (bmDesc.includes(q)) {
             tier = config.TIERS.DESC_MATCH;
@@ -142,7 +143,7 @@ export function rankBookmarkSuggestions(query, model, config, limit = config.MAX
             if (nameFuzzyScore !== Infinity) {
                 tier = config.TIERS.FUZZY_NAME_BASE + nameFuzzyScore;
             } else {
-                const otherFuzzyScore = getFuzzyScore(q, `${normUrl} ${bm.desc || ''}`, config.FUZZY);
+                const otherFuzzyScore = getFuzzyScore(q, `${normalizedText} ${bm.desc || ''}`, config.FUZZY);
                 if (otherFuzzyScore !== Infinity) {
                     tier = config.TIERS.FUZZY_OTHER_BASE + otherFuzzyScore;
                 }

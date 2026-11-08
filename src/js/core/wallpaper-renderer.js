@@ -4,11 +4,14 @@ import { dom } from '../state/dom.js';
 import { setWallpaperTheme, updateGlassTint, sampleCustomWallpaperTheme } from './theme-engine.js';
 import { afterScreenTransition, isScreenTransitioning } from './screen-state.js';
 
-/** @type {{ url: string, base: HTMLElement, next: HTMLElement, animate: boolean, image: HTMLImageElement | null } | null} */
+/** @typedef {(image: HTMLImageElement) => void} ThemeSampleListener */
+/** @type {{ url: string, base: HTMLElement, next: HTMLElement, animate: boolean, image: HTMLImageElement | null, onSample?: ThemeSampleListener } | null} */
 let activeWallpaperRequest = null;
 /** 只保留最近一张成功解码的图片，避免积累大图内存。 */
 /** @type {{ url: string, image: HTMLImageElement, themeSamplePending: boolean } | null} */
 let decodedWallpaper = null;
+/** @type {number} */
+let wallpaperOpacity = CONFIG.APPEARANCE.DEFAULT_MASK_OPACITY;
 /** @type {string | null} */
 let baseWallpaperUrl = null;
 // 图片请求可以更换或失败，正在进行的淡入独立收尾。
@@ -22,9 +25,10 @@ export function getPreparedWallpaperImage(url) {
 }
 
 function schedulePendingThemeSample() {
-    if (!decodedWallpaper?.themeSamplePending) return;
+    const pending = decodedWallpaper;
+    if (!pending?.themeSamplePending) return;
     const sample = () => {
-        if (decodedWallpaper?.themeSamplePending) updateCustomWallpaperTheme(false);
+        if (decodedWallpaper === pending && pending.themeSamplePending) updateCustomWallpaperTheme(false);
     };
     if ('requestIdleCallback' in window) {
         window.requestIdleCallback(sample, { timeout: 300 });
@@ -35,22 +39,38 @@ function schedulePendingThemeSample() {
 
 /** @param {boolean} animate */
 function updateCustomWallpaperTheme(animate) {
-    if (!decodedWallpaper?.image.naturalWidth) return;
+    const request = activeWallpaperRequest;
+    if (!decodedWallpaper?.image.naturalWidth || request?.url !== decodedWallpaper.url || backgrounds.includes(decodedWallpaper.url)) return;
     // 启动恢复的图片照常显示，像素读取等切屏结束；快速往返时继续等下一次收尾。
     decodedWallpaper.themeSamplePending = !animate && isScreenTransitioning();
     if (decodedWallpaper.themeSamplePending) {
         afterScreenTransition(schedulePendingThemeSample);
         return;
     }
-    sampleCustomWallpaperTheme(decodedWallpaper.image);
+    const sample = sampleCustomWallpaperTheme(decodedWallpaper.image, wallpaperOpacity);
+    if (sample) {
+        setWallpaperTheme(sample.theme);
+        updateGlassTint(sample.tint);
+    }
+    const onSample = request.onSample;
+    request.onSample = undefined;
+    onSample?.(decodedWallpaper.image);
+}
+
+/** @param {number} opacity */
+export function setWallpaperDimming(opacity) {
+    if (wallpaperOpacity === opacity) return;
+    wallpaperOpacity = opacity;
+    updateCustomWallpaperTheme(activeWallpaperRequest?.animate ?? false);
 }
 
 /**
  * @param {string} urlStr
  * @param {boolean} [animate]
  * @param {HTMLImageElement | null} [preparedImage] - 调用方已完成加载和解码的图片
+ * @param {ThemeSampleListener} [onSample] - 自定义图已取色，交给持久化拥有者处理
  */
-export function applyWallpaper(urlStr, animate = true, preparedImage = null) {
+export function applyWallpaper(urlStr, animate = true, preparedImage = null, onSample) {
     const bgBase = dom.bgLayer;
     const bgNext = dom.bgLayerNext;
     if (!bgBase || !bgNext || !urlStr || typeof urlStr !== 'string') return;
@@ -58,7 +78,6 @@ export function applyWallpaper(urlStr, animate = true, preparedImage = null) {
     // 匹配预设或离线采样壁纸主题色，动态自适应 Safari 顶栏外观与环境光折射
     const presetIdx = backgrounds.indexOf(urlStr);
     if (presetIdx >= 0 && PRESET_THEMES[presetIdx]) {
-        if (decodedWallpaper) decodedWallpaper.themeSamplePending = false;
         const themeColor = PRESET_THEME_COLORS && PRESET_THEME_COLORS[presetIdx];
         setWallpaperTheme(PRESET_THEMES[presetIdx], themeColor);
         if (PRESET_TINTS && PRESET_TINTS[presetIdx]) {
@@ -73,6 +92,7 @@ export function applyWallpaper(urlStr, animate = true, preparedImage = null) {
     const previous = activeWallpaperRequest;
     if (previous?.url === urlStr && previous.base === bgBase && previous.next === bgNext) {
         previous.animate = animate;
+        previous.onSample = onSample;
         // 同一加载／解码只保留一个任务；后一次调用可更新其入场方式。
         if (!previous.image && !preparedImage) return;
         if (previous.image && (wallpaperFade ? animate && wallpaperFade.url === urlStr : baseWallpaperUrl === urlStr)) {
@@ -81,7 +101,8 @@ export function applyWallpaper(urlStr, animate = true, preparedImage = null) {
             return;
         }
     }
-    const request = { url: urlStr, base: bgBase, next: bgNext, animate, image: /** @type {HTMLImageElement | null} */ (null) };
+    if (decodedWallpaper) decodedWallpaper.themeSamplePending = false;
+    const request = { url: urlStr, base: bgBase, next: bgNext, animate, image: /** @type {HTMLImageElement | null} */ (null), onSample };
     activeWallpaperRequest = request;
     const cachedImage = preparedImage || getPreparedWallpaperImage(urlStr);
     const img = cachedImage || new Image();

@@ -29,15 +29,20 @@ function getWeatherIconHTML(icon, className = 'size-4') {
 /**
  * @param {string} url
  * @param {number} timeoutMs
+ * @param {AbortSignal} [signal]
  */
-async function fetchJsonWithTimeout(url, timeoutMs) {
+async function fetchJsonWithTimeout(url, timeoutMs, signal) {
     const controller = new AbortController();
+    const requestSignal = signal ? AbortSignal.any([signal, controller.signal]) : controller.signal;
+    requestSignal.throwIfAborted();
     const timer = setTimeout(() => { try { controller.abort(); } catch {} }, timeoutMs);
     try {
-        const response = await fetch(url, { signal: controller.signal });
+        const response = await fetch(url, { signal: requestSignal });
         if (!response.ok) throw new Error(`Weather request failed: HTTP ${response.status}`);
         // 超时覆盖正文读取；收到响应头后仍可能停在 json()。
-        return await response.json();
+        const data = await response.json();
+        requestSignal.throwIfAborted();
+        return data;
     } finally {
         clearTimeout(timer);
     }
@@ -80,9 +85,6 @@ export function toggleWeatherPopover() {
     }
 }
 
-/** @type {Promise<import('../types').WeatherLocation> | null} */
-let inFlightLocationPromise = null;
-
 /**
  * 零经纬度也是有效坐标，不能按真假判断位置是否存在。
  * @param {import('../types').WeatherLocation | null | undefined} location
@@ -101,37 +103,30 @@ function readWeatherLocation() {
     return location;
 }
 
-async function resolveWeatherLocation(force = false) {
-    const locCache = readWeatherLocation();
+/**
+ * @param {import('../types').WeatherLocation | null} locCache
+ * @param {boolean} force
+ * @param {AbortSignal} signal
+ */
+async function resolveWeatherLocation(locCache, force, signal) {
     const now = Date.now();
     const LOC_TTL = CONFIG.WEATHER.LOC_TTL;
     if (!force && locCache && locCache.timestamp && (now - locCache.timestamp < LOC_TTL) && hasWeatherCoordinates(locCache) && (locCache.language || 'zh-CN') === getLocale()) {
         return locCache;
     }
-    if (inFlightLocationPromise) return inFlightLocationPromise;
-    inFlightLocationPromise = (async () => {
-        try {
-            return await executeResolveWeatherLocation(now);
-        } catch (error) {
-            const previousLocation = locCache || readWeatherCache()?.location;
-            if (hasWeatherCoordinates(previousLocation)) return previousLocation;
-            throw error;
-        } finally {
-            inFlightLocationPromise = null;
-        }
-    })();
-    return inFlightLocationPromise;
+    return executeResolveWeatherLocation(now, signal);
 }
 
 /**
  * @param {number} now
+ * @param {AbortSignal} signal
  * @returns {Promise<import('../types').WeatherLocation>}
  */
-async function executeResolveWeatherLocation(now) {
+async function executeResolveWeatherLocation(now, signal) {
 
     if (getLocale() !== 'en') {
         try {
-            const ipData = await fetchJsonWithTimeout('https://myip.ipip.net/json', CONFIG.WEATHER.TIMEOUT_IP);
+            const ipData = await fetchJsonWithTimeout('https://myip.ipip.net/json', CONFIG.WEATHER.TIMEOUT_IP, signal);
             if (ipData?.ret === 'ok' && Array.isArray(ipData.data?.location)) {
                 const locArr = ipData.data.location;
                 const country = locArr[0] || '中国';
@@ -144,7 +139,7 @@ async function executeResolveWeatherLocation(now) {
                     try {
                         const queryName = (cleanCity === cleanProv && !rawCity.endsWith('省')) ? `${cleanCity}市` : cleanCity;
                         const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(queryName)}&language=zh&count=10`;
-                        const geoData = await fetchJsonWithTimeout(geoUrl, CONFIG.WEATHER.TIMEOUT_IP);
+                        const geoData = await fetchJsonWithTimeout(geoUrl, CONFIG.WEATHER.TIMEOUT_IP, signal);
                         const results = geoData?.results || [];
                         let matched = results.find((/** @type {any} */ r) => {
                             const matchCountry = !country || (r.country && (r.country.includes(country) || country.includes(r.country)));
@@ -155,7 +150,7 @@ async function executeResolveWeatherLocation(now) {
                         if (!matched && cleanProv && cleanProv !== cleanCity) {
                             try {
                                 const provUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cleanProv)}&language=zh&count=5`;
-                                const provData = await fetchJsonWithTimeout(provUrl, CONFIG.WEATHER.TIMEOUT_IP);
+                                const provData = await fetchJsonWithTimeout(provUrl, CONFIG.WEATHER.TIMEOUT_IP, signal);
                                 if (provData?.results?.[0]) {
                                     matched = provData.results[0];
                                 }
@@ -176,8 +171,7 @@ async function executeResolveWeatherLocation(now) {
                                 language: getLocale(),
                                 timestamp: now
                             };
-                            storageSet(CONFIG.KEYS.WEATHER_LOC, resolved);
-                            return resolved;
+                            if (hasWeatherCoordinates(resolved)) return resolved;
                         }
                     } catch {}
                 }
@@ -186,7 +180,7 @@ async function executeResolveWeatherLocation(now) {
     }
 
     try {
-        const data = await fetchJsonWithTimeout(`https://ipwho.is/?lang=${getLocale() === 'en' ? 'en' : 'zh-CN'}`, CONFIG.WEATHER.TIMEOUT_IP);
+        const data = await fetchJsonWithTimeout(`https://ipwho.is/?lang=${getLocale() === 'en' ? 'en' : 'zh-CN'}`, CONFIG.WEATHER.TIMEOUT_IP, signal);
         if (data?.success && Number.isFinite(data.latitude) && Number.isFinite(data.longitude)) {
             const rawCity = data.city || '';
             const rawRegion = data.region || '';
@@ -202,7 +196,6 @@ async function executeResolveWeatherLocation(now) {
                 language: getLocale(),
                 timestamp: now
             };
-            storageSet(CONFIG.KEYS.WEATHER_LOC, resolved);
             return resolved;
         }
     } catch {}
@@ -210,12 +203,12 @@ async function executeResolveWeatherLocation(now) {
     throw new Error('Weather location unavailable');
 }
 
-/** @param {import('../types').WeatherLocation} loc */
-export async function fetchWeatherForecast(loc) {
+/** @param {import('../types').WeatherLocation} loc @param {AbortSignal} [signal] */
+export async function fetchWeatherForecast(loc, signal) {
     const lat = loc.lat;
     const lon = loc.lon;
     const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,precipitation_probability_max&timezone=auto`;
-    const data = await fetchJsonWithTimeout(url, CONFIG.WEATHER.TIMEOUT_WEATHER);
+    const data = await fetchJsonWithTimeout(url, CONFIG.WEATHER.TIMEOUT_WEATHER, signal);
 
     return normalizeWeatherForecast(data, loc, CONFIG.WEATHER, Date.now());
 }
@@ -246,7 +239,7 @@ function toggleTempUnit() {
 }
 
 /** 按当前单位重新渲染已有天气，不发起网络请求。 */
-export function refreshWeatherDisplay() {
+function refreshWeatherDisplay() {
     const data = currentWeatherData || readWeatherCache();
     if (data) {
         renderWeatherCapsule(data);
@@ -257,12 +250,25 @@ export function refreshWeatherDisplay() {
 /** @param {import('../types').WeatherData | null | undefined} data */
 export function renderWeatherCapsule(data) {
     const weatherWidget = dom.weatherWidget;
-    if (!weatherWidget || !data || !data.current) return;
-    currentWeatherData = data;
+    if (!weatherWidget) return;
     const weatherIcon = dom.weatherIcon;
     const weatherTemp = dom.weatherTemp;
     const weatherCity = dom.weatherCity;
     const weatherBtn = dom.weatherBtn;
+    if (!data?.current) {
+        if (weatherIcon) {
+            delete weatherIcon.dataset.icon;
+            weatherIcon.innerHTML = getWeatherIconHTML('🌤️', 'size-4 sm:size-4.5');
+        }
+        if (weatherTemp) weatherTemp.textContent = '--°';
+        if (weatherCity) {
+            weatherCity.textContent = t('ui.weather');
+            weatherCity.title = '';
+        }
+        weatherBtn?.setAttribute('aria-label', t('ui.weather.open.current.conditions.and.forecast'));
+        return;
+    }
+    currentWeatherData = data;
     const unit = getTempUnit();
     const temperature = toDisplayTemp(data.current.temp, unit);
 
@@ -292,15 +298,15 @@ export function renderWeatherCapsule(data) {
 
 let lastRenderedPopoverSignature = '';
 
-function renderWeatherError() {
+function renderWeatherError(empty = false) {
     lastRenderedPopoverSignature = 'error';
     const weatherPopover = dom.weatherPopover;
     if (!weatherPopover) return;
     weatherPopover.innerHTML = `
         <div class="p-4 text-center space-y-2 flex flex-col items-center justify-center select-none">
             <div class="flex items-center justify-center">${getWeatherIconHTML('📡', 'size-7')}</div>
-            <div class="text-xs text-white/80 font-medium">${escapeHtml(t('ui.weather.unavailable'))}</div>
-            <div class="text-2xs text-white/50 leading-relaxed">${escapeHtml(t('ui.check.your.connection.or.location.access'))}</div>
+            <div class="text-xs text-white/80 font-medium">${escapeHtml(t(empty ? 'ui.no.data' : 'ui.weather.unavailable'))}</div>
+            ${empty ? '' : `<div class="text-2xs text-white/50 leading-relaxed">${escapeHtml(t('ui.check.your.connection.or.location.access'))}</div>`}
             <button id="weatherErrorRetryBtn" type="button" class="mt-1 px-3.5 py-1.5 bg-white/10 hover:bg-white/20 border border-white/15 text-xs rounded-xl text-white transition flex items-center justify-center gap-1.5 mx-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50">
                 ${getWeatherIconHTML('🔄', 'size-3.5')} ${escapeHtml(t('ui.reload'))}
             </button>
@@ -485,11 +491,22 @@ export function renderWeatherPopover(data) {
     if (refreshingButton) weatherPopover.querySelector('#weatherRefreshBtn')?.replaceWith(refreshingButton);
 }
 
-/** @type {Promise<void> | null} */
-let inFlightWeatherPromise = null;
+/** @type {{ controller: AbortController, promise: Promise<void> } | null} */
+let weatherRefresh = null;
 
 export function isFetchingWeather() {
-    return inFlightWeatherPromise !== null;
+    return weatherRefresh !== null;
+}
+
+export function resetWeather() {
+    const previous = weatherRefresh;
+    weatherRefresh = null;
+    previous?.controller.abort();
+    currentWeatherData = null;
+    const results = [CONFIG.KEYS.WEATHER_LOC, CONFIG.KEYS.WEATHER_CACHE, CONFIG.KEYS.TEMP_UNIT].map(storageRemove);
+    renderWeatherCapsule(null);
+    renderWeatherError(true);
+    return results.every(Boolean);
 }
 
 const isWeatherRecord = (/** @type {any} */ value) => value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -511,7 +528,7 @@ function readWeatherCache() {
 
 export function updateWeather(force = false) {
     if (!force && typeof document !== 'undefined' && document.hidden) return Promise.resolve();
-    if (inFlightWeatherPromise) return inFlightWeatherPromise;
+    if (weatherRefresh) return weatherRefresh.promise;
     const cache = readWeatherCache();
     const now = Date.now();
     const CACHE_TTL = CONFIG.WEATHER.CACHE_TTL;
@@ -522,52 +539,62 @@ export function updateWeather(force = false) {
         return Promise.resolve();
     }
 
-    inFlightWeatherPromise = executeWeatherUpdate(cache, force).finally(() => {
-        inFlightWeatherPromise = null;
+    const controller = new AbortController();
+    const promise = executeWeatherUpdate(cache, force, controller.signal).finally(() => {
+        if (weatherRefresh?.controller === controller) weatherRefresh = null;
     });
-    return inFlightWeatherPromise;
+    weatherRefresh = { controller, promise };
+    return promise;
+}
+
+/** @param {import('../types').WeatherData} data */
+function publishWeather(data) {
+    storageSet(CONFIG.KEYS.WEATHER_CACHE, data);
+    renderWeatherCapsule(data);
+    renderWeatherPopover(data);
 }
 
 /** @param {import('../types').WeatherData | null} cache
  * @param {boolean} force
+ * @param {AbortSignal} signal
  */
-async function executeWeatherUpdate(cache, force) {
+async function executeWeatherUpdate(cache, force, signal) {
+    let usable = cache;
     try {
         const locCache = readWeatherLocation();
         const knownLoc = hasWeatherCoordinates(locCache) ? locCache
             : hasWeatherCoordinates(cache?.location) ? cache.location : null;
 
-        if (knownLoc && !force) {
-            const forecastPromise = fetchWeatherForecast(knownLoc);
-            const locationPromise = resolveWeatherLocation(false);
-
-            const freshData = await forecastPromise;
-            storageSet(CONFIG.KEYS.WEATHER_CACHE, freshData);
-            renderWeatherCapsule(freshData);
-            renderWeatherPopover(freshData);
-
-            // 先显示已知地点的预报，同时让整个重新定位过程保留在同一刷新任务中。
-            // 否则唤醒或手动刷新会与游离的重新定位回调重复请求、交错覆盖结果。
-            const newLoc = await locationPromise;
-            if (newLoc && (Math.abs(newLoc.lat - knownLoc.lat) > CONFIG.WEATHER.LOCATION_DRIFT_THRESHOLD || Math.abs(newLoc.lon - knownLoc.lon) > CONFIG.WEATHER.LOCATION_DRIFT_THRESHOLD || newLoc.name !== knownLoc.name || newLoc.fullName !== knownLoc.fullName)) {
-                try {
-                    const relocatedData = await fetchWeatherForecast(newLoc);
-                    storageSet(CONFIG.KEYS.WEATHER_CACHE, relocatedData);
-                    renderWeatherCapsule(relocatedData);
-                    renderWeatherPopover(relocatedData);
-                } catch {}
-            }
-        } else {
-            const loc = await resolveWeatherLocation(force);
-            const freshData = await fetchWeatherForecast(loc);
-            storageSet(CONFIG.KEYS.WEATHER_CACHE, freshData);
-            renderWeatherCapsule(freshData);
-            renderWeatherPopover(freshData);
+        const earlyForecast = knownLoc && !force ? fetchWeatherForecast(knownLoc, signal).catch(() => null) : null;
+        const location = resolveWeatherLocation(locCache, force, signal).catch(() => knownLoc);
+        const early = await earlyForecast;
+        signal.throwIfAborted();
+        if (early) {
+            usable = early;
+            publishWeather(early);
         }
+
+        const loc = await location;
+        signal.throwIfAborted();
+        if (!loc) throw new Error('Weather location unavailable');
+        if (loc !== locCache && loc !== knownLoc) storageSet(CONFIG.KEYS.WEATHER_LOC, loc);
+        if (knownLoc && earlyForecast) {
+            if (early && loc.name === knownLoc.name && loc.fullName === knownLoc.fullName
+                && loc.language === knownLoc.language
+                && Math.abs(loc.lat - knownLoc.lat) <= CONFIG.WEATHER.LOCATION_DRIFT_THRESHOLD
+                && Math.abs(loc.lon - knownLoc.lon) <= CONFIG.WEATHER.LOCATION_DRIFT_THRESHOLD) return;
+            if (!early && loc.lat === knownLoc.lat && loc.lon === knownLoc.lon) {
+                throw new Error('Weather forecast unavailable');
+            }
+        }
+        const data = await fetchWeatherForecast(loc, signal);
+        signal.throwIfAborted();
+        publishWeather(data);
     } catch (err) {
-        if (cache) {
-            renderWeatherCapsule(cache);
-            renderWeatherPopover(cache);
+        if (signal.aborted) return;
+        if (usable) {
+            renderWeatherCapsule(usable);
+            renderWeatherPopover(usable);
         } else {
             const weatherCity = dom.weatherCity;
             if (weatherCity) weatherCity.textContent = t('ui.no.data');
@@ -618,14 +645,9 @@ function handleWeatherPopoverClick(e) {
             const targetDuration = Math.max(cycleMs, Math.ceil(elapsed / cycleMs) * cycleMs);
             const remaining = Math.max(0, targetDuration - elapsed);
             setTimeout(() => {
-                const currentPop = dom.weatherPopover;
-                const currentRefBtn = /** @type {HTMLButtonElement | null} */ (currentPop ? currentPop.querySelector('#weatherRefreshBtn') : null);
-                const currentSvg = currentRefBtn ? currentRefBtn.querySelector('svg') : null;
-                if (currentSvg) currentSvg.classList.remove('weather-spin');
-                if (currentRefBtn) {
-                    currentRefBtn.disabled = false;
-                    currentRefBtn.removeAttribute('aria-busy');
-                }
+                svg?.classList.remove('weather-spin');
+                refBtn.disabled = false;
+                refBtn.removeAttribute('aria-busy');
             }, remaining);
         });
     }

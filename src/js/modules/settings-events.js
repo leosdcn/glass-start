@@ -14,11 +14,10 @@ import { dom } from '../state/dom.js';
 
 import { initDragSort } from './bookmark-drag.js';
 
-import { uploadWallpaper, previewDraftWallpaper, resetDraftWallpaper } from './wallpaper.js';
+import { uploadWallpaper, previewDraftWallpaper, resetDraftWallpaper, showWallpaperError } from './wallpaper.js';
 import { openEditModal, saveEditModal, cancelEditModal, openShortcutModal, closeShortcutModal, openCreditsModal, closeCreditsModal, switchSettingsTab, previewDraftMaskOpacity, resetBookmarks, importBookmarksJSON, exportBookmarksJSON, openLanguageModal, saveLanguageModal, cancelLanguageModal, selectLanguage, selectDraftTransitionMode, closeWallpaperUrlInput, clearOfflineCache } from './settings.js';
 import { openBookmarkPicker, closeBookmarkPicker, addBookmarkFromPicker } from './bookmark-picker.js';
 import { updateAllBookmarkCounters, getEditFaviconInner, handleEditIconError, appendDraftBookmarkRow } from './bookmark-editor.js';
-import { showConfirm } from '../core/dialogs.js';
 import { finishPendingTransition, onTransitionSettled } from '../utils/transition-cleanup.js';
 
 export function bindEditEvents() {
@@ -246,7 +245,7 @@ export function bindEditEvents() {
                     imageUrl.protocol = 'https:';
                 }
             } catch {
-                showConfirm(t('ui.enter.a.valid.image.url.starting'), null, t('ui.invalid.url'));
+                showWallpaperError(t('ui.enter.a.valid.image.url.starting'));
                 return;
             }
             previewDraftWallpaper(imageUrl.href);

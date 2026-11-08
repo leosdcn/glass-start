@@ -25,8 +25,8 @@ await test("选择提交、事务失败与会话隔离", async () => {
       unchanged = ((await getWallpaperSelectionDB())?.wallpaper ?? null) === old && state.customWallpaper === old && modalState.draftWallpaper === old;
       previewOnly = await previewDraftWallpaper(next) === true && ((await getWallpaperSelectionDB())?.wallpaper ?? null) === old;
       await saveEditModal();
-      blocked = state.editOpen && OverlayStack.top()?.id === 'confirmModal' && ((await getWallpaperSelectionDB())?.wallpaper ?? null) === old;
-      dom.confirmOkBtn.click();
+      blocked = state.editOpen && OverlayStack.top()?.id === 'editModal' && !!dom.wallpaperError.textContent
+        && ((await getWallpaperSelectionDB())?.wallpaper ?? null) === old;
     } finally { IDBObjectStore.prototype.put = put; }
     IDBObjectStore.prototype.delete = function(...args) {
       const request = remove.apply(this, args);
