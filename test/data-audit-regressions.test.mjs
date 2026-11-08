@@ -46,23 +46,22 @@ test('数据容错、搜索联想与网络降级回归', async () => {
         dom.searchInput.value = 'audit-unmatched-query'; dom.searchInput.focus();
         fetchSuggestions('bing', 'audit-unmatched-query');
         window['__glassSuggestCb_' + activeSuggestReqId](['query', ['first-result', 'second-result']]);
-        const item = dom.suggestionMenu.querySelector('[data-idx="1"]');
+        const item = dom.suggestionMenu.querySelector('[data-idx="1"] span');
         item.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
         const selected = selectedSuggestionIdx;
         item.textContent = 'tampered-result';
         dom.searchInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', ctrlKey: true, bubbles: true, cancelable: true }));
         const keyboardUsesModel = opened.includes('second-result') && !opened.includes('tampered-result');
-        fetchSuggestions('bing', 'audit-unmatched-query');
-        const clickTarget = dom.suggestionMenu.querySelector('[data-idx="1"] span');
-        clickTarget.textContent = 'tampered-click';
+        const retained = item.isConnected && dom.suggestionMenu.classList.contains('active');
+        item.textContent = 'tampered-click';
         opened = '';
-        clickTarget.dispatchEvent(new MouseEvent('click', { ctrlKey: true, bubbles: true }));
-        return { selected, usesModel: keyboardUsesModel && opened.includes('second-result') && !opened.includes('tampered-click') };
+        item.dispatchEvent(new MouseEvent('click', { ctrlKey: true, bubbles: true }));
+        return { selected, retained, usesModel: keyboardUsesModel && opened.includes('second-result') && !opened.includes('tampered-click') };
       } finally {
         document.body.appendChild = append; window.open = open; hideSuggestions();
       }
     })()`);
-    assert.deepEqual(activation, { selected: 1, usesModel: true });
+    assert.deepEqual(activation, { selected: 1, retained: true, usesModel: true });
 
     await evalJS(`previewDraftWallpaper(location.origin + '/audit-slow.png'); previewDraftWallpaper(backgrounds[2]);`);
     await waitFor(evalJS, 'state.bg === 2 && !state.customWallpaper');

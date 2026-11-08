@@ -75,6 +75,7 @@ export function bindSearchEvents() {
         const searchForm = /** @type {HTMLFormElement | null} */ (searchInput.form || searchInput.closest('form'));
         searchForm?.addEventListener('submit', e => {
             e.preventDefault();
+            if (isComposing || justEndedComposition) return;
             activateSuggestion(selectedSuggestionIdx, false);
         });
     }
@@ -100,14 +101,20 @@ export function bindSearchEvents() {
     }
 
     if (suggestionMenu) {
-        suggestionMenu.addEventListener('click', e => {
+        /** @param {MouseEvent} e */
+        const handleSuggestionClick = e => {
+            const auxiliary = e.type === 'auxclick';
+            if (auxiliary && e.button !== 1) return;
             const targetEl = e.target instanceof Element ? e.target : null;
             const item = /** @type {HTMLElement|null} */ (targetEl?.closest('.suggestion-item'));
             if (!item || !item.dataset.idx) return;
+            if (auxiliary) e.preventDefault();
             e.stopPropagation();
-            const isNewTab = e.altKey || e.metaKey || e.ctrlKey;
+            const isNewTab = auxiliary || e.altKey || e.metaKey || e.ctrlKey;
             activateSuggestion(Number(item.dataset.idx), isNewTab);
-        });
+        };
+        suggestionMenu.addEventListener('click', handleSuggestionClick);
+        suggestionMenu.addEventListener('auxclick', handleSuggestionClick);
         suggestionMenu.addEventListener('mouseover', e => {
             if (suggestionMenu.classList.contains('keyboard-nav')) suggestionMenu.classList.remove('keyboard-nav');
             const targetEl = e.target instanceof Element ? e.target : null;
@@ -143,7 +150,11 @@ export function restoreSearchQuery() {
 /** 处理搜索框内部按键；返回 true 时全局快捷键停止分发。 @param {KeyboardEvent} e */
 export function handleSearchKeydown(e) {
     if (document.activeElement !== dom.searchInput) return false;
-    if (e.isComposing || e.keyCode === CONFIG.SECURITY.IME_COMPOSITION_KEY_CODE || isComposing || justEndedComposition) return true;
+    if (isComposing) return true;
+    if (justEndedComposition) {
+        if (e.key === 'Enter') e.preventDefault();
+        return true;
+    }
     if (e.key === 'Enter') {
         e.preventDefault();
         activateSuggestion(selectedSuggestionIdx, e.altKey || e.metaKey || e.ctrlKey);

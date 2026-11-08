@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { launchSession, waitFor } from './support/helpers.mjs';
+import { launchSession, pressKey, waitFor } from './support/helpers.mjs';
 import { test } from 'node:test';
 
 await test("目录图标复用与过期预览请求", async () => {
@@ -155,6 +155,40 @@ await test("挑选器节点复用与目录失效", async () => {
             dom.pickerContent.firstElementChild.querySelector('img').getAttribute('src')==='./icons/dev.svg';
     })()`),true);
         console.log('✅ 书签或分类图标单独变化时重建目录，缓存不会遮蔽新内容');
+    } finally {
+        await chrome.close();
+        await server.close();
+    }
+});
+
+await test('关闭目录后滚到最后新增书签并归还焦点', async () => {
+    const {server,chrome,send,evalJS} = await launchSession();
+    try {
+        await send('Emulation.setDeviceMetricsOverride', {width:390,height:700,deviceScaleFactor:1,mobile:false});
+        await evalJS('dom.editBookmarksBtn.click()');
+        await waitFor(evalJS, "dom.editModal.classList.contains('active')");
+        const openPicker = async () => {
+            await evalJS('dom.editList.scrollTop = 0; dom.togglePickerBtn.focus(); dom.togglePickerBtn.click()');
+            await waitFor(evalJS, "document.getElementById('bookmarkPicker').classList.contains('active')");
+        };
+        const waitForReturn = () => waitFor(evalJS, `!document.getElementById('bookmarkPicker').open
+          && document.activeElement === dom.togglePickerBtn && OverlayStack.top()?.id === 'editModal'`);
+        await openPicker();
+        await evalJS(`dom.pickerContent.querySelector('.picker-item:not(:disabled)').click();
+          dom.pickerContent.querySelector('.picker-item:not(:disabled)').click()`);
+        assert.equal(await evalJS('dom.editList.scrollTop'), 0);
+        await evalJS('dom.donePickerBtn.click()');
+        await waitForReturn();
+        await waitFor(evalJS, `(() => {
+            const list = dom.editList, row = list.lastElementChild;
+            const viewport = list.getBoundingClientRect(), bounds = row.getBoundingClientRect();
+            return list.scrollTop > 0 && bounds.top >= viewport.top - 1 && bounds.bottom <= viewport.bottom + 1;
+        })()`);
+
+        await openPicker();
+        await pressKey(evalJS, 'Escape');
+        await waitForReturn();
+        assert.equal(await evalJS('dom.editList.scrollTop'), 0, '没有新增书签时保留列表滚动位置');
     } finally {
         await chrome.close();
         await server.close();

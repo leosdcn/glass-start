@@ -20,7 +20,7 @@ const { outputFiles } = await build({
                 'selectLanguage', 'selectDraftTransitionMode', 'closeWallpaperUrlInput', 'clearOfflineCache'].map(name => `${name}=()=>{}`).join(',')
         }));
         b.onLoad({ filter: /modules\/bookmark-picker\.js$/ }, () => ({ contents:
-            'export const openBookmarkPicker=()=>{},closeBookmarkPicker=()=>{},updatePickerAvailability=()=>{};' }));
+            'export const openBookmarkPicker=()=>{},closeBookmarkPicker=()=>{},addBookmarkFromPicker=()=>{};' }));
         b.onLoad({ filter: /modules\/wallpaper\.js$/ }, () => ({ contents:
             'export const uploadWallpaper=()=>{},previewDraftWallpaper=()=>{},resetDraftWallpaper=()=>{};' }));
         b.onLoad({ filter: /core\/dialogs\.js$/ }, () => ({ contents: 'export function showConfirm(){}' }));

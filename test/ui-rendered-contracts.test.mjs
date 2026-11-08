@@ -183,6 +183,23 @@ try {
     await evalJS('dom.urlBgCancelBtn.click()');
     assert.equal(await evalJS("dom.urlBgInputRow.classList.contains('hidden') && !dom.urlBgBtnGroup.classList.contains('hidden')"), true);
   }
+  await evalJS('dom.urlBgBtn.click()');
+  for (const [key, windowsVirtualKeyCode] of [['Escape', 27], ['Enter', 13]]) {
+    await send('Input.imeSetComposition', { text:'壁纸', selectionStart:2, selectionEnd:2 });
+    for (const type of ['rawKeyDown', 'keyUp']) {
+      await send('Input.dispatchKeyEvent', { type, key, code:key, windowsVirtualKeyCode });
+    }
+    assert.equal(await evalJS(`!dom.urlBgInputRow.classList.contains('hidden')
+      && OverlayStack.top()?.id === 'editModal' && document.activeElement === dom.urlBgInput`), true,
+      `输入法组合期间的 ${key} 应保留直链输入和设置`);
+  }
+  await send('Input.insertText', { text:'壁纸' });
+  for (const type of ['rawKeyDown', 'keyUp']) {
+    await send('Input.dispatchKeyEvent', { type, key:'Escape', code:'Escape', windowsVirtualKeyCode:27 });
+  }
+  assert.equal(await evalJS(`dom.urlBgInputRow.classList.contains('hidden')
+    && OverlayStack.top()?.id === 'editModal' && document.activeElement === dom.urlBgBtn`), true,
+    'Escape 仅收起直链输入，保留设置并还原焦点');
   await chrome.send('Emulation.setDeviceMetricsOverride', {width:1920,height:1080,deviceScaleFactor:2,mobile:false});
   await evalJS("document.querySelector('#settingsTransitionGrid [data-mode=sheet]').click()");
   assert.equal(await evalJS("document.documentElement.dataset.transitionMode==='sheet' && document.querySelector('#settingsTransitionGrid [data-mode=sheet]').getAttribute('aria-pressed')==='true'"), true);

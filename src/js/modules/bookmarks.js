@@ -166,9 +166,11 @@ function getBookmarkCardHTML(bm) {
         <a href="${safeUrl(localizeBookmarkUrl(bm.url))}" target="_blank" rel="noopener noreferrer"
            data-url="${safeUrl(bm.url)}"
            data-icon="${safeUrl(bm.icon || '')}"
-           class="bookmark-item flex flex-col items-center justify-center gap-2 py-3 px-1 sm:px-1.5 apple-radius text-white/90">
-            ${getFaviconHTML(bm, 'md')}
-            <span class="bookmark-title text-white/90">${escapeHtml(bm.name)}</span>
+           class="bookmark-item flex min-w-0 apple-radius text-white/90">
+            <div class="bookmark-surface flex flex-1 flex-col items-center justify-center gap-2 py-3 px-1 sm:px-1.5">
+                ${getFaviconHTML(bm, 'md')}
+                <span class="bookmark-title text-white/90">${escapeHtml(bm.name)}</span>
+            </div>
         </a>
     `;
 }

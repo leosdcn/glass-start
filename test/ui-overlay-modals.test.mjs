@@ -140,20 +140,47 @@ test('页面刷新状态保持、跳出返回防白屏与触觉倾斜恢复', as
   }
 });
 
-test('搜索联想键盘选中项保持与 Escape 优雅清退', async () => {
+test('快捷书签缩小整张卡片后仍可在原边缘松手打开', async () => {
+  const { server, chrome, send, evalJS } = await launchSession();
+  try {
+    await waitFor(evalJS, "!dom.bookmarks.parentElement.classList.contains('fade-in')");
+    const point = await evalJS(`(() => {
+      window.pressedBookmark = dom.bookmarks.querySelector('.bookmark-item');
+      window.bookmarkClicks = 0;
+      pressedBookmark.addEventListener('click', event => {
+        event.preventDefault();
+        bookmarkClicks++;
+      });
+      const {left,top,height} = pressedBookmark.getBoundingClientRect();
+      return {x:left+1,y:top+height/2};
+    })()`);
+    const surfaceStyle = "getComputedStyle(pressedBookmark.querySelector('.bookmark-surface'))";
+    await send('Input.dispatchMouseEvent', {type:'mouseMoved',...point});
+    await waitFor(evalJS, `${surfaceStyle}.transform.startsWith('matrix(1.025,')`);
+    await send('Input.dispatchMouseEvent', {type:'mousePressed',button:'left',clickCount:1,...point});
+    await waitFor(evalJS, `${surfaceStyle}.transform.startsWith('matrix(0.975,')
+      && ${surfaceStyle}.backgroundColor === 'rgba(255, 255, 255, 0.14)'`);
+    assert.equal(await evalJS("getComputedStyle(pressedBookmark).transform"), 'none');
+    await send('Input.dispatchMouseEvent', {type:'mouseReleased',button:'left',clickCount:1,...point});
+    assert.equal(await evalJS('bookmarkClicks'), 1);
+  } finally {
+    await chrome.close();
+    await server.close();
+  }
+});
+
+test('从天气切回搜索、更新候选和输入法确认', async () => {
   const { server, chrome, send, evalJS } = await launchSession();
   const press = (key) => pressKey(evalJS, key);
   try {
     await evalJS('window.switchToStart()');
     await waitFor(evalJS, 'state.currentSection === "start" && !isScreenTransitioning()');
-    await evalJS(`(() => {
-      const i = document.getElementById('searchInput');
-      i.focus();
-      const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
-      setter.call(i, 'git');
-      i.dispatchEvent(new Event('input', { bubbles: true }));
-    })()`);
+    await evalJS('dom.weatherBtn.focus(); dom.weatherBtn.click()');
+    assert.equal(await evalJS('OverlayStack.top()?.id'), 'weatherPopover');
+    await evalJS('dom.searchInput.focus()');
+    await send('Input.insertText', { text:'git' });
     await waitFor(evalJS, 'document.querySelectorAll("#suggestionMenu .suggestion-item").length > 0');
+    assert.deepEqual(await evalJS('OverlayStack.stack.map(entry => entry.id)'), ['suggestions']);
     await press('ArrowDown');
     await waitFor(evalJS, 'document.querySelector("#suggestionMenu .suggestion-item.active") !== null');
     const suggestSelectionCheck = await evalJS(`(() => {
@@ -176,6 +203,109 @@ test('搜索联想键盘选中项保持与 Escape 优雅清退', async () => {
     assert.equal(escResult.menuActive, false);
     assert.equal(escResult.idx, -1);
     assert.equal(escResult.top, null);
+
+    const revisedQuery = await evalJS(`(() => {
+      const input = dom.searchInput;
+      const open = window.open;
+      let destination = '';
+      window.open = url => { destination = url; };
+      try {
+        dom.engineBtn.click();
+        dom.dropdownMenu.querySelector('[data-engine="bing"]').click();
+        input.focus();
+        input.value = 'github';
+        fetchSuggestions('bing', input.value);
+        const hadBookmark = dom.suggestionMenu.classList.contains('active') &&
+          dom.suggestionMenu.querySelector('.suggestion-item[data-url]')?.textContent.includes('GitHub');
+        input.value = 'glass-regression-new-query';
+        input.dispatchEvent(new Event('input', {bubbles:true}));
+        const oldMenuClosed = !dom.suggestionMenu.classList.contains('active');
+        input.dispatchEvent(new KeyboardEvent('keydown', {key:'ArrowDown',bubbles:true,cancelable:true}));
+        const value = input.value;
+        input.dispatchEvent(new KeyboardEvent('keydown', {key:'Enter',ctrlKey:true,bubbles:true,cancelable:true}));
+        return {hadBookmark, oldMenuClosed, value, section:state.currentSection, query:destination && new URL(destination).searchParams.get('q')};
+      } finally { window.open = open; }
+    })()`);
+    assert.deepEqual(revisedQuery, {
+      hadBookmark:true, oldMenuClosed:true, value:'glass-regression-new-query', section:'start', query:'glass-regression-new-query'
+    });
+
+    const imeEnterPrevented = await evalJS(`(() => {
+      const input = dom.searchInput;
+      input.dispatchEvent(new CompositionEvent('compositionstart'));
+      input.value = '输入法';
+      input.dispatchEvent(new CompositionEvent('compositionend'));
+      return !input.dispatchEvent(new KeyboardEvent('keydown', {key:'Enter',bubbles:true,cancelable:true}));
+    })()`);
+    assert.equal(imeEnterPrevented, true, '输入法确认后的回车不能回落到表单默认提交');
+  } finally {
+    await chrome.close();
+    await server.close();
+  }
+});
+
+test('新标签页打开候选时保留列表，当前页打开时收起', async () => {
+  const { server, chrome, send, evalJS } = await launchSession();
+  try {
+    await evalJS(`(() => {
+      const url = new URL('#same-tab-bookmark', location.href).href;
+      pageData.bookmarks = [...pageData.bookmarks, {name:'Glass tab fixture', url}];
+      window.openedSuggestions = [];
+      window.open = (...args) => {
+        openedSuggestions.push(args);
+        window.dispatchEvent(new Event('blur'));
+      };
+      window.fetch = async () => ({ok:true,json:async()=>['glass tab fixture',['glass tab docs']]});
+      dom.engineBtn.click();
+      dom.dropdownMenu.querySelector('[data-engine="wikipedia"]').click();
+      dom.searchInput.focus();
+      dom.searchInput.value = 'glass tab fixture';
+      dom.searchInput.dispatchEvent(new Event('input', {bubbles:true}));
+    })()`);
+    const bookmark = '.suggestion-item[data-url]';
+    const network = '.suggestion-item:not([data-url])';
+    const showSuggestions = async () => {
+      await evalJS("fetchSuggestions('wikipedia', 'glass tab fixture')");
+      await waitFor(evalJS, `dom.suggestionMenu.classList.contains('active')
+        && dom.suggestionMenu.querySelector('${network}') && dom.suggestionMenu.getAnimations().length === 0`);
+    };
+    const clickSuggestion = async (selector, button, modifiers = 0) => {
+      const point = await evalJS(`(() => {
+        const {left,top,width,height} = dom.suggestionMenu.querySelector('${selector}').getBoundingClientRect();
+        return {x:left+width/2,y:top+height/2};
+      })()`);
+      for (const type of ['mousePressed', 'mouseReleased']) {
+        await send('Input.dispatchMouseEvent', {type,button,modifiers,clickCount:1,...point});
+      }
+    };
+    await showSuggestions();
+    await evalJS("window.firstSuggestion = dom.suggestionMenu.querySelector('.suggestion-item')");
+    for (const selector of [bookmark, network]) {
+      assert.equal(await evalJS(`dom.suggestionMenu.querySelector('${selector}').dispatchEvent(
+        new MouseEvent('auxclick', {button:2,bubbles:true,cancelable:true}))`), true);
+      await clickSuggestion(selector, 'middle');
+      assert.equal(await evalJS(`dom.suggestionMenu.classList.contains('active')
+        && firstSuggestion.isConnected && dom.searchInput.value === 'glass tab fixture'`), true);
+    }
+    // Ctrl/Cmd 左键与中键共用候选激活入口。
+    await clickSuggestion(network, 'left', process.platform === 'darwin' ? 4 : 2);
+    assert.equal(await evalJS("dom.suggestionMenu.classList.contains('active') && firstSuggestion.isConnected"), true);
+    const opened = await evalJS('openedSuggestions');
+    assert.equal(opened.length, 3);
+    assert.equal(new URL(opened[0][0]).hash, '#same-tab-bookmark');
+    assert.equal(new URL(opened[1][0]).searchParams.get('search'), 'glass tab docs');
+    assert.equal(opened[2][0], opened[1][0]);
+    for (const [, target, features] of opened) assert.deepEqual([target, features], ['_blank', 'noopener,noreferrer']);
+
+    await evalJS('dom.clock.click()');
+    assert.equal(await evalJS("dom.suggestionMenu.classList.contains('active')"), false);
+    await showSuggestions();
+    await pressKey(evalJS, 'Escape');
+    assert.equal(await evalJS(`!dom.suggestionMenu.classList.contains('active')
+      && dom.searchInput.value === 'glass tab fixture'`), true);
+    await showSuggestions();
+    await clickSuggestion(bookmark, 'left');
+    await waitFor(evalJS, "location.hash === '#same-tab-bookmark' && !dom.suggestionMenu.classList.contains('active')");
   } finally {
     await chrome.close();
     await server.close();

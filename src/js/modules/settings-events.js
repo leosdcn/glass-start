@@ -5,12 +5,10 @@ import { t } from '../core/i18n.js';
  * 设置按钮、书签草稿编辑与拖拽排序的事件装配。
  */
 import { CONFIG } from '../config/constants.js';
-import { normalizeUrl } from '../utils/bookmark-model.js';
 import { checkImageReady } from '../utils/favicon.js';
 import { handleRovingKeyNav } from '../utils/helpers.js';
-import { getCategoryCatalog } from '../utils/category-catalog.js';
 
-import { modalState, pageData, state } from '../state/store.js';
+import { modalState, state } from '../state/store.js';
 import { updateBookmarkDraft, removeBookmarkDraft } from '../state/bookmark-draft.js';
 import { dom } from '../state/dom.js';
 
@@ -18,8 +16,8 @@ import { initDragSort } from './bookmark-drag.js';
 
 import { uploadWallpaper, previewDraftWallpaper, resetDraftWallpaper } from './wallpaper.js';
 import { openEditModal, saveEditModal, cancelEditModal, openShortcutModal, closeShortcutModal, openCreditsModal, closeCreditsModal, switchSettingsTab, previewDraftMaskOpacity, resetBookmarks, importBookmarksJSON, exportBookmarksJSON, openLanguageModal, saveLanguageModal, cancelLanguageModal, selectLanguage, selectDraftTransitionMode, closeWallpaperUrlInput, clearOfflineCache } from './settings.js';
-import { openBookmarkPicker, closeBookmarkPicker, updatePickerAvailability } from './bookmark-picker.js';
-import { updateAllBookmarkCounters, getEditFaviconInner, getExistingUrls, handleEditIconError, appendDraftBookmarkRow } from './bookmark-editor.js';
+import { openBookmarkPicker, closeBookmarkPicker, addBookmarkFromPicker } from './bookmark-picker.js';
+import { updateAllBookmarkCounters, getEditFaviconInner, handleEditIconError, appendDraftBookmarkRow } from './bookmark-editor.js';
 import { showConfirm } from '../core/dialogs.js';
 import { finishPendingTransition, onTransitionSettled } from '../utils/transition-cleanup.js';
 
@@ -117,14 +115,7 @@ export function bindEditEvents() {
             const targetEl = e.target instanceof Element ? e.target : null;
             const item = /** @type {HTMLButtonElement|null} */ (targetEl?.closest('.picker-item'));
             if (!item || item.disabled || !item.dataset.url) return;
-            const bookmark = getCategoryCatalog(pageData.categories).byUrl.get(normalizeUrl(item.dataset.url));
-            if (!bookmark) return;
-            const { name, url, icon, desc } = bookmark;
-            const urls = getExistingUrls();
-            if (urls.has(normalizeUrl(url))) return;
-
-            appendDraftBookmarkRow({ name, url, icon, desc });
-            updatePickerAvailability();
+            addBookmarkFromPicker(item.dataset.url);
         });
     }
 
@@ -264,6 +255,7 @@ export function bindEditEvents() {
         dom.urlBgConfirmBtn?.addEventListener('click', submitUrl);
         dom.urlBgCancelBtn?.addEventListener('click', closeWallpaperUrlInput);
         dom.urlBgInput?.addEventListener('keydown', e => {
+            if (e.isComposing || e.keyCode === CONFIG.SECURITY.IME_COMPOSITION_KEY_CODE) return;
             if (e.key === 'Enter') { e.preventDefault(); submitUrl(); }
             if (e.key === 'Escape') { e.preventDefault(); closeWallpaperUrlInput(); }
         });

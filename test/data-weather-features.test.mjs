@@ -38,6 +38,8 @@ test('天气交互、弹窗规范与休眠感知套件', async (t) => {
       })`);
       assert.ok(popoverOpened.active && popoverOpened.ariaHidden && popoverOpened.expanded && popoverOpened.stackTop === 'weatherPopover');
 
+      await evalJS("dom.weatherPopover.querySelector('button').focus()");
+      assert.equal(await evalJS('dom.weatherPopover.contains(document.activeElement)'), true);
       await press('Escape');
       await waitFor(evalJS, `!document.getElementById('weatherPopover')?.classList.contains('active') && OverlayStack.isEmpty()`);
       const popoverClosed = await evalJS(`({
@@ -46,6 +48,7 @@ test('天气交互、弹窗规范与休眠感知套件', async (t) => {
         stackTop: OverlayStack.top() ? OverlayStack.top().id : null
       })`);
       assert.ok(!popoverClosed.active && popoverClosed.expanded && popoverClosed.stackTop === null);
+      assert.equal(await evalJS('document.activeElement === dom.weatherBtn'), true);
     });
 
     await t.test('天气弹窗 2×2 网格布局与工位优先级规范', async () => {
@@ -349,6 +352,33 @@ test('天气交互、弹窗规范与休眠感知套件', async (t) => {
       assert.ok(wakeupSyncCheck.expiredCacheAutoRefreshed);
       assert.ok(wakeupSyncCheck.clockSynced);
       assert.ok(wakeupSyncCheck.pageshowExpiredAutoRefreshed);
+    });
+
+    await t.test('手动刷新重绘预报后保留最短忙碌反馈', async () => {
+      const state = await evalJS(`(async () => {
+        const originalFetch = window.fetch;
+        window.fetch = async url => {
+          if (url.includes('ipwho.is')) return {ok:true,json:async()=>({success:true,latitude:31,longitude:121,city:'上海'})};
+          if (url.includes('/forecast?')) return {ok:true,json:async()=>({current:{temperature_2m:37,weather_code:0},daily:{}})};
+          throw new Error('Unexpected weather URL: ' + url);
+        };
+        try {
+          const button = dom.weatherPopover.querySelector('#weatherRefreshBtn');
+          button.click();
+          await updateWeather(true);
+          const current = dom.weatherPopover.querySelector('#weatherRefreshBtn');
+          return {
+            updated: storageGet(CONFIG.KEYS.WEATHER_CACHE).current.temp === 37,
+            busy: current.disabled && current.getAttribute('aria-busy') === 'true',
+            spinning: current.querySelector('svg').classList.contains('weather-spin')
+          };
+        } finally { window.fetch = originalFetch; }
+      })()`);
+      assert.deepEqual(state, {updated:true,busy:true,spinning:true});
+      await waitFor(evalJS, `(() => {
+        const button = dom.weatherPopover.querySelector('#weatherRefreshBtn');
+        return !button.disabled && !button.hasAttribute('aria-busy') && !button.querySelector('.weather-spin');
+      })()`);
     });
   } finally {
     await chrome.close();

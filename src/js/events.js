@@ -49,6 +49,8 @@ export function bindEvents() {
 
     const { searchInput, suggestionMenu, engineBtn, weatherBtn } = dom;
 
+    searchInput?.addEventListener('focus', closeWeatherPopover);
+
     if (engineBtn) {
         engineBtn.addEventListener('click', e => {
             e.stopPropagation();
@@ -67,13 +69,16 @@ export function bindEvents() {
         });
     }
 
-    const handleCloseMenus = () => {
+    document.addEventListener('click', () => {
         closeDropdown();
         hideSuggestions();
         closeWeatherPopover();
-    };
-    document.addEventListener('click', handleCloseMenus);
-    window.addEventListener('blur', handleCloseMenus);
+    });
+    // 切到新标签页时保留候选，回到原页后可继续打开其他结果。
+    window.addEventListener('blur', () => {
+        closeDropdown();
+        closeWeatherPopover();
+    });
 
     let tabBlurListenersAttached = false;
     const clearTabBlurOnInteraction = () => {
@@ -142,6 +147,12 @@ export function bindEvents() {
     dom.navHint?.addEventListener('click', handleBackToStart);
 
     document.addEventListener('keydown', e => {
+        if (e.defaultPrevented) return;
+        if (e.isComposing || e.keyCode === CONFIG.SECURITY.IME_COMPOSITION_KEY_CODE) {
+            // Chrome 仍可能把组合态的 Escape 交给原生 dialog 关闭。
+            if (e.key === 'Escape' && OverlayStack.topModal()) e.preventDefault();
+            return;
+        }
         if (handleModalTabKey(e)) return;
 
         if (e.key === 'Escape') {

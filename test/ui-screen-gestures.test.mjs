@@ -131,6 +131,14 @@ test('双屏手势与键盘切屏交互套件', async () => {
     await evalJS('window.switchToNav()'); await waitForScreen('nav');
     await evalJS('document.getElementById("navContent").scrollTop = 0');
     await waitFor(evalJS, 'document.getElementById("navContent").scrollTop === 0');
+    await evalJS('dom.sidebarList.firstElementChild.focus()');
+    await nativeKey('ArrowUp', 38);
+    assert.equal(await section(), 'nav', '侧栏处理的 ArrowUp 不应返回首页');
+    assert.equal(await evalJS('document.activeElement === dom.sidebarList.lastElementChild'), true);
+    await nativeKey('Home', 36);
+    assert.equal(await section(), 'nav', '侧栏处理的 Home 不应返回首页');
+    assert.equal(await evalJS('document.activeElement === dom.sidebarList.firstElementChild'), true);
+    await waitFor(evalJS, 'dom.navContent.scrollTop === 0');
     await evalJS('document.activeElement && document.activeElement.blur()');
     await press('ArrowUp'); await waitForScreen('start');
     assert.equal(await section(), 'start', 'Nav 顶端 ArrowUp 返回 Start');

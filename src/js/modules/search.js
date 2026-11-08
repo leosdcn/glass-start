@@ -18,7 +18,6 @@ let suggestionNodes = [];
 /** @type {HTMLElement | null} */
 let selectedSuggestionNode = null;
 let selectionUpdatesInput = false;
-export function getSuggestionCount() { return suggestionItems.length; }
 /**
  * @param {number} index
  * @param {boolean} [newTab]
@@ -73,7 +72,7 @@ export let activeSuggestReqId = 0;
 /** @type {(() => void) | null} */
 let activeSuggestCleanup = null;
 /** @type {string | null} */
-let activeSuggestKey = null;
+let suggestionQueryKey = null;
 
 /** @param {string} val 更新原始搜索词 */
 export function setOriginalQuery(val) {
@@ -88,6 +87,11 @@ export function setOriginalQuery(val) {
  */
 export function handleSuggestionKeyNav(e, onActionButtonsUpdate) {
     if (e.ctrlKey || e.metaKey || e.altKey) return false;
+    // 防抖期间等新候选，避免方向键改走全局切屏入口。
+    if (suggestDebounceTimer !== null && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+        e.preventDefault();
+        return true;
+    }
     const isSuggestActive = dom.suggestionMenu?.classList.contains('active');
     const suggestionCount = isSuggestActive ? suggestionItems.length : 0;
     if (suggestionCount <= 0) return false;
@@ -132,21 +136,14 @@ export function handleSuggestionKeyNav(e, onActionButtonsUpdate) {
  * @param {string} query
  */
 export function scheduleSuggestions(query) {
-    if (suggestDebounceTimer !== null) {
-        clearTimeout(suggestDebounceTimer);
-    }
-    if (selectedSuggestionIdx >= 0) {
-        selectSuggestion(-1, { updateInput: false });
-    }
-    // 输入已经变化，防抖等待期间也不能让上一次请求写回旧结果。
-    if (activeSuggestKey !== `${getLocale()}:${state.engine}:${query.trim()}`) {
-        activeSuggestReqId++;
-        activeSuggestCleanup?.();
-    }
-    if (!query.trim()) {
-        hideSuggestions();
+    query = query.trim();
+    if (suggestionQueryKey === `${getLocale()}:${state.engine}:${query}`) {
+        if (selectedSuggestionIdx >= 0) selectSuggestion(-1, { updateInput: false });
         return;
     }
+    // 新输入立即让旧候选失效，网络请求仍防抖。
+    hideSuggestions();
+    if (!query) return;
     suggestDebounceTimer = setTimeout(() => {
         suggestDebounceTimer = null;
         fetchSuggestions(state.engine, query);
@@ -255,7 +252,6 @@ function doSearch(queryOverride, newTab = false) {
     const searchInput = dom.searchInput;
     const q = (queryOverride !== undefined ? queryOverride : (searchInput ? searchInput.value : '')).trim();
     if (!q) return;
-    hideSuggestions();
     closeDropdown();
     /** @type {Record<string, { name: string; svg: string; url: string }>} */
     const engineMap = engines;
@@ -264,6 +260,7 @@ function doSearch(queryOverride, newTab = false) {
     if (newTab) {
         window.open(targetUrl, '_blank', 'noopener,noreferrer');
     } else {
+        hideSuggestions();
         window.location.href = targetUrl;
     }
 }
@@ -288,11 +285,11 @@ function openBookmarkUrl(url, newTab = false) {
             return;
         }
     }
-    hideSuggestions();
     closeDropdown();
     if (newTab) {
         window.open(trimmed, '_blank', 'noopener,noreferrer');
     } else {
+        hideSuggestions();
         window.location.href = trimmed;
     }
 }
@@ -325,6 +322,7 @@ export function openRandomBookmark() {
     }
 
     setTimeout(() => {
+        hideSuggestions();
         openBookmarkUrl(randomBm.url, true);
     }, CONFIG.TIMERS.STAGGER_OPEN);
 }
@@ -541,6 +539,7 @@ export function hideSuggestions() {
     selectedSuggestionNode = null;
     selectionUpdatesInput = false;
     lastSuggestionsSignature = '';
+    suggestionQueryKey = null;
     if (suggestDebounceTimer !== null) {
         clearTimeout(suggestDebounceTimer);
         suggestDebounceTimer = null;
@@ -584,9 +583,10 @@ export function fetchSuggestions(engineKey, query) {
 
     const cacheKey = `${getLocale()}:${engineKey}:${query}`;
     // compositionend 后的 input、重复选择当前引擎等入口共享正在进行的请求和列表。
-    if (activeSuggestKey === cacheKey) return;
+    if (activeSuggestCleanup && suggestionQueryKey === cacheKey) return;
     activeSuggestCleanup?.();
     activeSuggestReqId++;
+    suggestionQueryKey = cacheKey;
     const localList = getLocalBookmarkSuggestions(query, CONFIG.SUGGEST.MAX_LOCAL_ITEMS);
 
     const cachedEntry = suggestCache.get(cacheKey);
@@ -626,7 +626,6 @@ export function fetchSuggestions(engineKey, query) {
         if (suggestionScriptTag === script) suggestionScriptTag = null;
         if (activeSuggestCleanup === cleanup) {
             activeSuggestCleanup = null;
-            activeSuggestKey = null;
         }
     };
 
@@ -641,7 +640,6 @@ export function fetchSuggestions(engineKey, query) {
     };
 
     activeSuggestCleanup = cleanup;
-    activeSuggestKey = cacheKey;
     timeoutTimer = setTimeout(handleSuggestFallback, CONFIG.SUGGEST.JSONP_TIMEOUT);
 
     /** @param {any} data */

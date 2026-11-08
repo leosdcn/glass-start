@@ -60,10 +60,12 @@ export function closeWeatherPopover() {
     const popover = dom.weatherPopover;
     const btn = dom.weatherBtn;
     if (!popover || !btn) return;
+    const restoreFocus = popover.contains(document.activeElement);
     OverlayStack.pop('weatherPopover');
     popover.classList.remove('active');
     popover.setAttribute('aria-hidden', 'true');
     btn.setAttribute('aria-expanded', 'false');
+    if (restoreFocus) btn.focus({ preventScroll: true });
 }
 
 export function toggleWeatherPopover() {
@@ -429,6 +431,8 @@ export function renderWeatherPopover(data) {
     if (sig === lastRenderedPopoverSignature && weatherPopover.innerHTML.trim()) return;
     lastRenderedPopoverSignature = sig;
 
+    // 预报更新会重绘浮层，保留仍处于手动刷新状态的按钮及旋转动画。
+    const refreshingButton = weatherPopover.querySelector('#weatherRefreshBtn[aria-busy="true"]');
     weatherPopover.innerHTML = `
         <div class="flex items-center justify-between pb-2.5 mb-3 border-b border-white/10">
             <div class="flex items-center gap-1.5 min-w-0 pr-2">
@@ -481,6 +485,7 @@ export function renderWeatherPopover(data) {
             `).join('')}
         </div>
     `;
+    if (refreshingButton) weatherPopover.querySelector('#weatherRefreshBtn')?.replaceWith(refreshingButton);
 }
 
 /** @type {Promise<void> | null} */

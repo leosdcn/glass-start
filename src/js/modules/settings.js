@@ -176,11 +176,13 @@ export function closeEditModal() {
 export function closeWallpaperUrlInput() {
     const inputRow = dom.urlBgInputRow;
     if (inputRow && !inputRow.classList.contains('hidden')) {
+        const restoreFocus = inputRow.contains(document.activeElement);
         inputRow.classList.add('hidden');
         const btnGroup = dom.urlBgBtnGroup;
         btnGroup?.classList.remove('hidden');
         const urlInput = dom.urlBgInput;
         if (urlInput) urlInput.value = '';
+        if (restoreFocus) dom.urlBgBtn?.focus({ preventScroll: true });
     }
 }
 

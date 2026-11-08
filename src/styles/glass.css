@@ -342,18 +342,23 @@
 }
 
 /* ===== 玻璃高光与指针 3D 倾斜 ===== */
-.bookmark-item, .nav-bookmark {
+.bookmark-surface, .nav-bookmark {
     position: relative;
     overflow: hidden;
     -webkit-backface-visibility: hidden;
     backface-visibility: hidden;
     transition:
-        transform var(--duration-tactile) var(--ease-tactile),
+        transform var(--bookmark-transform-duration, var(--duration-tactile)) var(--ease-tactile),
         background-color var(--bookmark-background-duration, 0.32s) ease,
         border-color 0.32s ease,
         box-shadow var(--duration-tactile) var(--ease-tactile);
 }
-.bookmark-item::before {
+/* 链接保留原尺寸，内层独立承载缩放、底色和光斑。 */
+.bookmark-surface {
+    border-radius: inherit;
+    pointer-events: none;
+}
+.bookmark-surface::before {
     content: none;
     position: absolute;
     inset: 0;
@@ -389,50 +394,68 @@
     transition: opacity 0.3s ease;
     z-index: 1;
 }
-.bookmark-item > *, .nav-bookmark > * {
+.bookmark-surface > *, .nav-bookmark > * {
     position: relative;
     z-index: 2;
 }
-body:not(.tab-blurred) .bookmark-item:not(.is-clicked):active,
-body:not(.tab-blurred) .nav-bookmark:not(.is-clicked):active {
-    will-change: transform;
+.bookmark-item:not(.is-clicked):active .bookmark-surface {
+    --bookmark-background-duration: var(--duration-press);
+    background-color: rgba(255, 255, 255, 0.14);
+}
+.nav-bookmark:not(.is-clicked):active {
+    --bookmark-background-duration: var(--duration-press);
+    background-color: rgba(255, 255, 255, 0.08);
+}
+@media (prefers-reduced-motion: no-preference) {
+    .bookmark-item:not(.is-clicked):active .bookmark-surface {
+        --bookmark-transform-duration: var(--duration-press);
+        transform: scale(0.975) translateZ(0);
+    }
+    .nav-bookmark:not(.is-clicked):active .icon-box {
+        transform: scale(0.975) translateZ(0);
+        transition: transform var(--duration-press) var(--ease-snappy);
+    }
 }
 @media (hover: hover) and (pointer: fine) {
-    .bookmark-item::before,
+    .bookmark-surface::before,
     .nav-bookmark::before {
         content: '';
     }
-    body:not(.tab-blurred) .bookmark-item:not(.is-clicked):hover,
-    body:not(.tab-blurred) .nav-bookmark:not(.is-clicked):hover {
-        will-change: transform;
-    }
-    body:not(.tab-blurred) .bookmark-item:not(.is-clicked):hover::before,
+    body:not(.tab-blurred) .bookmark-item:not(.is-clicked):hover .bookmark-surface::before,
     body:not(.tab-blurred) .nav-bookmark:not(.is-clicked):hover::before {
         opacity: 1;
     }
     @media (prefers-reduced-motion: no-preference) {
+        body:not(.tab-blurred) .bookmark-item:not(.is-clicked):hover .bookmark-surface,
+        body:not(.tab-blurred) .nav-bookmark:not(.is-clicked):hover {
+            will-change: transform;
+        }
+        body:not(.tab-blurred) .bookmark-item:not(.is-clicked):hover:not(:active) .bookmark-surface {
+            transform: scale(1.025) translateZ(0);
+        }
+        body:not(.tab-blurred) .bookmark-item:not(.is-clicked):hover .icon-box,
+        body:not(.tab-blurred) .nav-bookmark:not(.is-clicked):hover:not(:active) .icon-box {
+            transform: scale(1.06) translateZ(0);
+        }
         /* 光斑只移动静态纹理；离开卡片后交由浏览器回收临时合成层。 */
         body:not(.tab-blurred) .nav-bookmark:not(.is-clicked):hover::before {
             will-change: transform, opacity;
         }
     }
-    body:not(.tab-blurred) .bookmark-item:not(.is-clicked):hover {
-        background: rgba(255, 255, 255, 0.08);
-        transform: scale(1.025) translateZ(0);
+    body:not(.tab-blurred) .bookmark-item:not(.is-clicked):hover .bookmark-surface {
         box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.15), 0 8px 20px rgba(0, 0, 0, 0.2);
     }
-    body:not(.tab-blurred) .nav-bookmark:not(.is-clicked):hover:not(:active) {
-        background: rgba(255, 255, 255, 0.12);
+    body:not(.tab-blurred) .nav-bookmark:not(.is-clicked):hover {
         border-color: rgba(255, 255, 255, 0.18);
         box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.2), 0 4px 12px rgba(0, 0, 0, 0.15);
         color: #fff;
     }
-    body:not(.tab-blurred) .nav-bookmark:not(.is-clicked):hover:active {
-        --bookmark-background-duration: var(--duration-press);
+    body:not(.tab-blurred) .bookmark-item:not(.is-clicked):hover:not(:active) .bookmark-surface {
         background-color: rgba(255, 255, 255, 0.08);
     }
-    body:not(.tab-blurred) .nav-bookmark:not(.is-clicked):hover:not(:active) .icon-box,
-    body:not(.tab-blurred) .bookmark-item:not(.is-clicked):hover:not(:active) .icon-box { transform: scale(1.06) translateZ(0); }
+    body:not(.tab-blurred) .nav-bookmark:not(.is-clicked):hover:not(:active) {
+        background-color: rgba(255, 255, 255, 0.12);
+    }
     body:not(.tab-blurred) .sidebar-item:hover {
         color: #fff;
     }

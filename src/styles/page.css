@@ -196,8 +196,9 @@ body.is-screen-transitioning :is(.bookmark-item, .nav-bookmark) {
     pointer-events: none;
     transition: none;
 }
-body.is-screen-transitioning :is(.bookmark-item, .nav-bookmark)::before,
-body.is-screen-transitioning :is(.bookmark-item, .nav-bookmark)::after,
+body.is-screen-transitioning .bookmark-surface,
+body.is-screen-transitioning :is(.bookmark-surface, .nav-bookmark)::before,
+body.is-screen-transitioning .nav-bookmark::after,
 body.is-screen-transitioning :is(.bookmark-item, .nav-bookmark) .icon-box {
     transition: none;
 }
@@ -481,11 +482,6 @@ textarea::placeholder {
 }
 
 /* ===== 按压缩放反馈 ===== */
-.bookmark-item:active .icon-box,
-.nav-bookmark:active .icon-box {
-    transform: scale(0.975) translateZ(0);
-    transition: transform var(--duration-press) var(--ease-snappy);
-}
 :is(#editBookmarksBtn, #randomBookmarkBtn, #searchClearBtn, #weatherBtn, #updateReloadBtn, #navHint):enabled:active {
     background-color: rgba(255, 255, 255, 0.22);
 }

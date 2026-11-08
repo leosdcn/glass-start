@@ -10,7 +10,7 @@ import { dom } from '../state/dom.js';
 import { OverlayStack } from '../core/overlay-stack.js';
 import { getFaviconHTML, getCategoryIconHTML, checkImageReady, handleIconError } from '../utils/favicon.js';
 import { getCategoryCatalog } from '../utils/category-catalog.js';
-import { updateAllBookmarkCounters, getExistingUrls } from './bookmark-editor.js';
+import { updateAllBookmarkCounters, getExistingUrls, appendDraftBookmarkRow } from './bookmark-editor.js';
 
 function initPickerFaviconObserver() {
     const container = dom.pickerContent;
@@ -27,6 +27,8 @@ let pickerRoot = null;
 /** @type {{ button: HTMLButtonElement, bookmark: import('../types').BookmarkItem }[]} */
 let pickerEntries = [];
 let pickerSelectionSignature = '';
+/** @type {HTMLElement | null} */
+let lastAddedRow = null;
 
 /**
  * 获取当前已存在于编辑列表或已添加的 URL 集合并渲染备选卡片
@@ -84,7 +86,7 @@ function renderPickerCategories() {
 }
 
 /** 草稿成员变化只更新受影响的卡片，保留已经加载的图片及滚动位置。 */
-export function updatePickerAvailability() {
+function updatePickerAvailability() {
     const urls = getExistingUrls();
     const signature = JSON.stringify([...urls].sort());
     if (signature === pickerSelectionSignature) return;
@@ -107,6 +109,15 @@ export function updatePickerAvailability() {
     }
 }
 
+/** @param {string} url */
+export function addBookmarkFromPicker(url) {
+    const key = normalizeUrl(url);
+    const bookmark = getCategoryCatalog(pageData.categories).byUrl.get(key);
+    if (!bookmark || getExistingUrls().has(key)) return;
+    lastAddedRow = appendDraftBookmarkRow(bookmark);
+    updatePickerAvailability();
+}
+
 /**
  * @param {Element | null} [triggerEl]
  */
@@ -118,6 +129,15 @@ export function openBookmarkPicker(triggerEl = null) {
 }
 
 export function closeBookmarkPicker() {
-    OverlayStack.pop('bookmarkPicker');
+    const closed = OverlayStack.pop('bookmarkPicker');
     dom.togglePickerBtn?.setAttribute('aria-expanded', 'false');
+    const row = lastAddedRow;
+    lastAddedRow = null;
+    if (closed && row) requestAnimationFrame(async () => {
+        // 入场动画会暂时移动行的位置，等它结束再对齐。
+        await Promise.allSettled(row.getAnimations().map(animation => animation.finished));
+        if (OverlayStack.top()?.id === 'editModal' && row.parentElement === dom.editList) {
+            row.scrollIntoView({ block: 'nearest' });
+        }
+    });
 }
