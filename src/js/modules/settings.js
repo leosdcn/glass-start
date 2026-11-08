@@ -309,7 +309,6 @@ export function resetBookmarks() {
         if (!state.editOpen || requestId !== editOpenRequestId || modalState.committing || dom.saveEditBtn?.disabled) return;
         cancelDragSort();
         importRequestId++;
-        const previousDraft = [...modalState.draftBookmarks];
         setEditCommitting(true);
         if (dom.saveEditBtn) {
             dom.saveEditBtn.disabled = true;
@@ -341,7 +340,8 @@ export function resetBookmarks() {
             setEngine(storageGet(CONFIG.KEYS.PREFERRED_ENGINE, DEFAULT_ENGINE), false);
             applyWallpaper(backgrounds[0], false);
             if (!bookmarksReset || removed.some(result => !result)) {
-                replaceBookmarkDraft(previousDraft);
+                // 保留用户编辑；未编辑的列表随已落盘的重置结果更新。
+                if (!modalState.bookmarksChanged) replaceBookmarkDraft(pageData.bookmarks);
                 renderEditList();
                 modalState.draftWallpaper = null;
                 updateWallpaperStatusUI(null);

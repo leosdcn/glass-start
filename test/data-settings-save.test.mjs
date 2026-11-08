@@ -271,6 +271,29 @@ try {
   }
   console.log('✅ 重置期间锁定取消及并发保存，成功或失败后解锁，旧任务不清空新会话草稿');
 
+  // 书签已重置但其他偏好删除失败时，保留用户改名及其保存意图。
+  await evalJS(`(async () => {
+    await openEditModal();
+    const input = dom.editList.querySelector('.edit-name');
+    input.value = '重置失败后仍可保存';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    const remove = Storage.prototype.removeItem;
+    window.restoreAuditStorage = () => { Storage.prototype.removeItem = remove; };
+    Storage.prototype.removeItem = function(key) {
+      if (key === CONFIG.KEYS.MASK_OPACITY) throw new DOMException('blocked', 'SecurityError');
+      return remove.call(this, key);
+    };
+    resetBookmarks(); dom.confirmOkBtn.click();
+  })()`);
+  try {
+    await waitFor(evalJS, 'OverlayStack.top()?.id === "confirmModal" && !modalState.committing');
+    assert.equal(await evalJS('modalState.draftBookmarks[0].name'), '重置失败后仍可保存');
+  } finally {
+    await evalJS('restoreAuditStorage()');
+  }
+  await evalJS('dom.confirmOkBtn.click(); saveEditModal()');
+  assert.equal(await evalJS('pageData.bookmarks[0].name'), '重置失败后仍可保存');
+
   await evalJS('commitWallpaperSelection(backgrounds[1])');
   const resetDraft = await evalJS(`(async () => {
     await openEditModal();
