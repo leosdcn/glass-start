@@ -132,8 +132,8 @@
     transition: opacity var(--duration-popover-exit) var(--ease-exit),
                 transform var(--duration-popover-exit) var(--ease-exit);
 }
-.nr #randomBookmarkBtn,
-.nr #searchClearBtn {
+.screen-restoring #randomBookmarkBtn,
+.screen-restoring #searchClearBtn {
     transition: none;
 }
 #randomBookmarkBtn svg {

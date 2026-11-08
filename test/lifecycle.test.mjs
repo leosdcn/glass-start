@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { buildSync } from 'esbuild';
 import vm from 'node:vm';
-import { launchSession, waitFor, navigateAndWait } from './support/helpers.mjs';
+import { launchSession, waitFor, navigateAndWait, sleep } from './support/helpers.mjs';
 
 test('应用构建指纹比对与刷新冷却判定 (纯单元测试)', () => {
   const { outputFiles } = buildSync({
@@ -32,6 +32,59 @@ test('应用构建指纹比对与刷新冷却判定 (纯单元测试)', () => {
   assert.deepEqual(verdict('only-html', null), { mismatch: false, mayReload: false });
 });
 
+test('两种切屏模式均在主脚本执行前恢复导航位置，接管时不补播过渡', async () => {
+  const { server, chrome, send, evalJS } = await launchSession();
+  let paused;
+  const stopPausing = send('Fetch.requestPaused', event => { paused = event; });
+  const layout = () => evalJS(`(() => {
+    const nav = document.getElementById('navSection');
+    const start = document.getElementById('startSection');
+    return {
+      screen: document.documentElement.dataset.screen,
+      mode: document.documentElement.dataset.transitionMode,
+      top: nav.getBoundingClientRect().top,
+      visibility: getComputedStyle(nav).visibility,
+      startTransform: getComputedStyle(start).transform
+    };
+  })()`);
+  try {
+    await send('Network.enable');
+    await send('Network.setBypassServiceWorker', { bypass: true });
+    await send('Network.setCacheDisabled', { cacheDisabled: true });
+    await send('Fetch.enable', { patterns: [{ urlPattern: '*app.js*' }] });
+    for (const mode of ['sheet', 'classic']) {
+      await evalJS(`sessionStorage.setItem('startpage_section', 'nav');
+        localStorage.setItem('hasDiscoveredNav', '1');
+        ${mode === 'sheet' ? "localStorage.removeItem('glass_transition_mode')" : "localStorage.setItem('glass_transition_mode', 'classic')"};`);
+      paused = undefined;
+      await send('Page.reload');
+      await waitFor(() => !!paused, 'deferred app request paused', 10000);
+      await waitFor(evalJS, `document.readyState === 'interactive' && !!document.getElementById('navSection') && typeof state === 'undefined'`);
+      const before = await layout();
+      assert.equal(before.screen, 'nav');
+      assert.equal(before.mode, mode);
+      assert.ok(Math.abs(before.top) < 1);
+      assert.equal(before.visibility, 'visible');
+      assert.equal(await evalJS(`getComputedStyle(document.getElementById('scrollDownHint')).visibility`), 'hidden');
+      assert.equal(await evalJS(`getComputedStyle(document.getElementById('navSection')).transitionProperty`), 'none');
+      if (mode === 'sheet') {
+        await sleep(1600); // 旧实现会在主脚本到达前撤掉预渲染状态。
+        assert.deepEqual(await layout(), before);
+        assert.equal(await evalJS(`document.documentElement.classList.contains('screen-restoring')`), true);
+      }
+      await send('Fetch.continueRequest', { requestId: paused.requestId });
+      await waitFor(evalJS, `document.readyState === 'complete' && typeof state !== 'undefined' && state.currentSection === 'nav'`);
+      assert.deepEqual(await layout(), before);
+      assert.equal(await evalJS(`!document.documentElement.classList.contains('screen-restoring') &&
+        dom.startSection.inert && !dom.navSection.inert && dom.navSection.getAnimations().length === 0`), true);
+    }
+  } finally {
+    stopPausing();
+    await chrome.close();
+    await server.close();
+  }
+});
+
 test('页面切换状态、无障碍隔离与 BFCache 恢复 (浏览器回归)', async () => {
   const { server, chrome, send, evalJS } = await launchSession(0, {
     '/bfcache-away.html': '<!doctype html><title>BFCache round trip</title>'
@@ -40,17 +93,17 @@ test('页面切换状态、无障碍隔离与 BFCache 恢复 (浏览器回归)',
     const bfcacheMisses = [];
     send('Page.backForwardCacheNotUsed', event => bfcacheMisses.push(event));
     await waitFor(evalJS, '!document.querySelector(".fade-in")');
-    const ensureNrObserver = () => evalJS(`(() => {
-      if (!window.__nrChanges) {
-        window.__nrChanges = [];
+    const ensureRestoreObserver = () => evalJS(`(() => {
+      if (!window.__restoreChanges) {
+        window.__restoreChanges = [];
         new MutationObserver(records => {
           for (const record of records) {
-            if ((record.oldValue || '').split(/\\s+/).includes('nr') || document.documentElement.classList.contains('nr')) window.__nrChanges.push(true);
+            if ((record.oldValue || '').split(/\\s+/).includes('screen-restoring') || document.documentElement.classList.contains('screen-restoring')) window.__restoreChanges.push(true);
           }
         }).observe(document.documentElement, { attributes: true, attributeFilter: ['class'], attributeOldValue: true });
       }
     })()`);
-    await ensureNrObserver();
+    await ensureRestoreObserver();
     // 非 Chrome 路径仅验证项目 CSS 策略，不模拟其他浏览器引擎。
     for (const chromeCSS of [true, false]) {
       await evalJS(`document.documentElement.classList.toggle('is-chrome', ${chromeCSS})`);
@@ -105,7 +158,7 @@ test('页面切换状态、无障碍隔离与 BFCache 恢复 (浏览器回归)',
           // BFCache 未命中会重新加载页面，下一次尝试须恢复观察器、CSS 模式和目标屏幕。
           await waitFor(evalJS, `location.href === ${JSON.stringify(url)} && typeof switchToStart === 'function'
             && !!document.querySelector('.bookmark-item')`);
-          await ensureNrObserver();
+          await ensureRestoreObserver();
           await evalJS(`document.documentElement.classList.toggle('is-chrome', ${chromeCSS});
             ${section === 'nav' ? 'switchToNav()' : 'switchToStart()'}`);
           await waitFor(evalJS, `state.currentSection === '${section}' && !isScreenTransitioning()`);
@@ -147,7 +200,7 @@ test('页面切换状态、无障碍隔离与 BFCache 恢复 (浏览器回归)',
         assert.ok(await evalJS(`Math.abs(dom.${nextSection === 'nav' ? 'navSection' : 'startSection'}.getBoundingClientRect().top) < 2`));
       }
     }
-    assert.equal(await evalJS('(window.__nrChanges || []).length'), 0);
+    assert.equal(await evalJS('(window.__restoreChanges || []).length'), 0);
   } finally {
     await chrome.close();
     await server.close();

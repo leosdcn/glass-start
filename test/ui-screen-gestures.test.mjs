@@ -32,11 +32,11 @@ test('双屏手势与键盘切屏交互套件', async () => {
         navTransform: getComputedStyle(n).transform,
         startAria: s.getAttribute('aria-hidden'),
         navAria: n.getAttribute('aria-hidden'),
-        gearClass: document.getElementById('editBookmarksBtn').className,
+        gearInteractive: getComputedStyle(document.getElementById('editBookmarksBtn')).pointerEvents !== 'none',
       };
     })()`);
     const initValid = init.scrollY === 0 && (init.startTransform === 'none' || init.startTransform === 'matrix(1, 0, 0, 1, 0, 0)')
-      && tyOf(init.navTransform) > 599 && init.navAria === 'true' && init.startAria !== 'true' && !init.gearClass.includes('hidden-on-nav');
+      && tyOf(init.navTransform) > 599 && init.navAria === 'true' && init.startAria !== 'true' && init.gearInteractive;
     assert.ok(initValid, '初始状态合规');
 
     // 1.2 JS API 切换到 Nav
@@ -46,14 +46,14 @@ test('双屏手势与键盘切屏交互套件', async () => {
       return {
         scrollY: window.scrollY,
         startTransform: getComputedStyle(s).transform,
-        isPushedUp: s.classList.contains('screen-pushed-up'),
+        target: document.documentElement.dataset.screen,
         navTransform: getComputedStyle(n).transform,
         navAria: n.getAttribute('aria-hidden'),
-        gearClass: document.getElementById('editBookmarksBtn').className,
+        gearInteractive: getComputedStyle(document.getElementById('editBookmarksBtn')).pointerEvents !== 'none',
       };
     })()`);
-    const navValid = nearZero(tyOf(navState.navTransform)) && navState.scrollY === 0 && navState.isPushedUp
-      && navState.navAria !== 'true' && navState.gearClass.includes('hidden-on-nav');
+    const navValid = nearZero(tyOf(navState.navTransform)) && navState.scrollY === 0 && navState.target === 'nav'
+      && navState.navAria !== 'true' && !navState.gearInteractive;
     assert.ok(navValid, '切至 Nav 状态合规');
 
     // 1.3 切回 Start + ArrowDown 切屏
@@ -75,7 +75,7 @@ test('双屏手势与键盘切屏交互套件', async () => {
       document.dispatchEvent(new KeyboardEvent('keydown', { key: 'PageDown', bubbles: true, cancelable: true }));
     })()`);
     await waitForScreen('nav');
-    assert.equal(await evalJS('document.getElementById("startSection").classList.contains("screen-pushed-up")'), true);
+    assert.equal(await evalJS('document.documentElement.dataset.screen === "nav"'), true);
     assert.equal(focusAfterStart, 'BODY');
 
     // 合成 KeyboardEvent 不触发浏览器默认滚动；用 CDP 真实按键验证切屏后的连续滚动。

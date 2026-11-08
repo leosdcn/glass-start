@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { launchSession, waitFor } from './support/helpers.mjs';
+import { launchSession, waitFor, sleep } from './support/helpers.mjs';
 
 let releaseWallpaper;
 const { server, chrome, send, evalJS } = await launchSession(0, {
@@ -474,6 +474,27 @@ try {
     bookmarksKept:localStorage.getItem(CONFIG.KEYS.BOOKMARKS) === sessionStorage.getItem('clearCacheBookmarks')
   }))()`),{ownRemoved:true,otherKept:true,unrelatedKept:true,sharedIconsKept:true,otherRegistered:true,bookmarksKept:true});
   console.log('✅ 清理只删除当前 scope 的离线池，保留其他注册、其他缓存、共享图标和书签');
+
+  await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] });
+  await evalJS(`(async () => {
+    if (state.currentSection === 'nav') switchToStart();
+    await openEditModal(); resetBookmarks(); dom.confirmOkBtn.click();
+  })()`);
+  await waitFor(evalJS, '!state.editOpen');
+  const hint = `getComputedStyle(document.getElementById('scrollDownHint'))`;
+  assert.equal(await evalJS(`${hint}.visibility`), 'visible');
+  await evalJS(`(async () => {
+    switchToNav();
+    window.discoveryHidden = ${hint}.visibility === 'hidden' && storageGet(CONFIG.KEYS.NAV_DISCOVERED) === 1;
+    switchToStart();
+    await openEditModal(); resetBookmarks(); dom.confirmOkBtn.click();
+  })()`);
+  await waitFor(evalJS, '!state.editOpen && !storageGet(CONFIG.KEYS.NAV_DISCOVERED)');
+  assert.equal(await evalJS('discoveryHidden'), true);
+  assert.equal(await evalJS(`${hint}.visibility`), 'visible');
+  await sleep(700);
+  assert.equal(await evalJS(`${hint}.visibility === 'visible' && ${hint}.display !== 'none'`), true);
+  console.log('✅ 恢复默认后提示立即恢复，旧淡出时间点经过后仍可见');
 } finally {
   releaseWallpaper?.();
   await chrome.close();

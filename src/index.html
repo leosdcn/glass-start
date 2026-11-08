@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN" dir="ltr">
+<html lang="zh-CN" dir="ltr" data-screen="start" data-transition-mode="sheet">
 <head>
     <meta charset="UTF-8">
     <!-- INJECT_I18N_HEAD -->
@@ -135,8 +135,16 @@
       })();
 
       if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
-      try{sessionStorage.getItem('startpage_section')==='nav'&&document.documentElement.classList.add('nr');setTimeout(function(){document.documentElement.classList.remove('nr')},1500);}catch(e){}
-      try{let m=localStorage.getItem('glass_transition_mode')||'sheet';if(m!=='sheet'&&m!=='classic')m='sheet';document.documentElement.dataset.transitionMode=m;}catch(e){}
+      try {
+        if (sessionStorage.getItem('startpage_section') === 'nav') {
+          document.documentElement.dataset.screen = 'nav';
+          document.documentElement.classList.add('screen-restoring');
+        }
+      } catch {}
+      try {
+        if (localStorage.getItem('glass_transition_mode') === 'classic') document.documentElement.dataset.transitionMode = 'classic';
+        if (localStorage.getItem('hasDiscoveredNav') === '1') document.documentElement.setAttribute('data-nav-discovered', '');
+      } catch {}
       try{
         const rawEngine = localStorage.getItem('preferredEngine');
         /* 引擎图标与元数据由 config/engine-head.js 注入。 */
@@ -273,7 +281,6 @@
             <span data-i18n="ui.explore.below">向下探索</span>
             <span class="scroll-hint inline-flex" aria-hidden="true"><svg class="size-5" aria-hidden="true"><use href="#icon-chevron-down"/></svg></span>
         </div>
-        <script>(function(){try{if(localStorage.getItem('hasDiscoveredNav')==='1'){const h=document.getElementById('scrollDownHint');if(h)h.style.display='none';}}catch(e){}})()</script>
 
         <!-- 右下角悬浮编辑设置按钮（置于起始页内，随起始页物理滑屏） -->
         <button id="editBookmarksBtn" type="button" aria-expanded="false" aria-controls="editModal" aria-haspopup="dialog" aria-label="编辑与设置" title="编辑书签与设置" class="p-3 glass-strong apple-radius text-white/70 enabled:hover:text-white enabled:hover:bg-white/20 border border-white/20 shadow-2xl flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 fade-in entrance-delay-2" data-i18n-aria-label="ui.edit.and.settings" data-i18n-title="ui.edit.bookmarks.and.settings">

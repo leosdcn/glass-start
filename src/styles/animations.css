@@ -17,7 +17,7 @@
     transform-origin: center 40%;
     will-change: transform, opacity;
 }
-.nr .fade-in { animation: none; }
+.screen-restoring .fade-in { animation: none; }
 
 /* 缩放收敛到原尺寸，不设过冲关键帧。 */
 @keyframes appleSpringOvershoot {
@@ -78,8 +78,8 @@
     0%, 100% { opacity: 1; }
     50% { opacity: 0.5; }
 }
-.nr .clock-colon { animation: none; opacity: 1; }
-#startSection.screen-pushed-up .clock-colon { animation-play-state: paused; }
+.screen-restoring .clock-colon { animation: none; opacity: 1; }
+html[data-screen="nav"] .clock-colon { animation-play-state: paused; }
 
 /* 导航分类微光脉冲提醒 */
 .category-title-pulse::after {
@@ -97,7 +97,7 @@
     transform: translateZ(0);
     animation: bounceDown 3s ease-in-out infinite;
 }
-#startSection.screen-pushed-up .scroll-hint { animation-play-state: paused; }
+html[data-screen="nav"] .scroll-hint { animation-play-state: paused; }
 
 @keyframes bounceDown {
     0%, 100% { transform: translateY(0); opacity: 0.45; }
@@ -161,7 +161,6 @@ dialog.edit-overlay[open]::backdrop {
     from { opacity: 0; transform: translateY(-8px) scale(0.97); }
     to { opacity: 1; transform: translateY(0) scale(1); }
 }
-.nr .edit-row-card { animation: none; }
 
 /* 天气旋转动画 */
 .weather-spin {

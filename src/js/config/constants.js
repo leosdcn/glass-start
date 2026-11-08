@@ -132,7 +132,6 @@ export const CONFIG = Object.freeze({
                 SW_UPDATE_TIMEOUT: 15000,    // 用户确认后等待新版接管的上限 (ms)
                 STAGGER_OPEN: 260,            // 随机书签跳转延时 (ms)
                 BG_CROSSFADE: 450,            // 壁纸跨图层淡入时长 (ms)
-                HINT_FADE: 600,               // 下滑提示淡出延时 (ms)
                 CLICK_FEEDBACK_CLEAR: 600,    // 触感反馈类清除延时 (ms)
                 FADE_IN_UNLOAD: 800,          // 入场动画自动脱壳延时 (ms)
                 OBJECT_REVOKE: 1000,          // 临时 Blob/URL 释放安全延时 (ms)

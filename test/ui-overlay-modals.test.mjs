@@ -11,11 +11,11 @@ test('页面刷新状态保持、跳出返回防白屏与触觉倾斜恢复', as
     await evalJS('window.__pre_reload_nav = true; sessionStorage.setItem("startpage_section", "nav"); setTimeout(() => location.reload(), 10);');
     await waitFor(evalJS, `document.readyState === "complete" && !window.__pre_reload_nav && !!window.state && state.currentSection === "nav" && (() => {
       const n = document.getElementById("navSection");
-      return n && n.className.includes("screen-pushed-in") && !n.className.includes("nav-hidden");
+      return n && document.documentElement.dataset.screen === "nav" && !n.className.includes("nav-hidden");
     })()`);
     const restored = await evalJS(`(() => {
       const n = document.getElementById('navSection');
-      return n.className.includes('screen-pushed-in') && !n.className.includes('nav-hidden');
+      return document.documentElement.dataset.screen === 'nav' && !n.className.includes('nav-hidden');
     })()`);
     assert.equal(restored, true);
 
@@ -28,22 +28,22 @@ test('页面刷新状态保持、跳出返回防白屏与触觉倾斜恢复', as
       const weather = document.getElementById('weatherWidget');
       const gear = document.getElementById('editBookmarksBtn');
       const sRect = s ? s.getBoundingClientRect() : null;
-      const nrPresent = document.documentElement.classList.contains('nr');
-      const gearHidden = gear ? gear.classList.contains('hidden-on-nav') : false;
+      const restoring = document.documentElement.classList.contains('screen-restoring');
+      const gearHidden = gear ? getComputedStyle(gear).pointerEvents === 'none' : false;
       return {
         sTop: sRect ? sRect.top : -999,
         sHeight: sRect ? sRect.height : 0,
         hasClock: !!clock && clock.offsetWidth > 0,
         hasSearch: !!search && search.offsetWidth > 0,
         hasWeather: !!weather,
-        nrPresent,
+        restoring,
         gearHidden,
         startAria: s.getAttribute('aria-hidden')
       };
     })()`);
     const startRestoredValid = Math.abs(backFromReloadedNav.sTop) < 0.05 && backFromReloadedNav.sHeight > 0
       && backFromReloadedNav.hasClock && backFromReloadedNav.hasSearch && backFromReloadedNav.hasWeather
-      && !backFromReloadedNav.nrPresent && !backFromReloadedNav.gearHidden && backFromReloadedNav.startAria !== 'true';
+      && !backFromReloadedNav.restoring && !backFromReloadedNav.gearHidden && backFromReloadedNav.startAria !== 'true';
     assert.ok(startRestoredValid, JSON.stringify(backFromReloadedNav));
 
     // 首次 pageshow 保留正在进行的切屏，BFCache 恢复立即校准。
@@ -58,13 +58,11 @@ test('页面刷新状态保持、跳出返回防白屏与触觉倾斜恢复', as
     assert.deepEqual(pageshowTransition, [true, true, false]);
     await waitFor(evalJS, `!isScreenTransitioning() && (() => {
       const n = document.getElementById("navSection");
-      const s = document.getElementById("startSection");
-      return n && n.classList.contains("screen-pushed-in") && !n.classList.contains("nav-hidden") && s && s.classList.contains("screen-pushed-up");
+      return n && document.documentElement.dataset.screen === "nav" && !n.classList.contains("nav-hidden");
     })()`);
     const bfCacheHealed = await evalJS(`(() => {
-      const s = document.getElementById('startSection');
       const n = document.getElementById('navSection');
-      return !isScreenTransitioning() && state.currentSection === 'nav' && s.classList.contains('screen-pushed-up') && n.classList.contains('screen-pushed-in') && !n.classList.contains('nav-hidden');
+      return !isScreenTransitioning() && state.currentSection === 'nav' && document.documentElement.dataset.screen === 'nav' && !n.classList.contains('nav-hidden');
     })()`);
     assert.equal(bfCacheHealed, true);
 

@@ -80,7 +80,10 @@ try {
     assert.equal(await evalJS('window.__GLASS_TEST__'), undefined);
     assert.equal(await evalJS('navigator.serviceWorker.controller'), null);
     await waitFor(evalJS, 'document.querySelector("#bgLayer").style.backgroundImage.includes("wallpapers/")');
-    assert.equal(await evalJS('[...document.querySelectorAll("#bookmarks img")].every(img => img.complete && img.naturalWidth > 0)'), true);
+    await waitFor(evalJS, `(() => {
+        const icons = [...document.querySelectorAll('#bookmarks img')];
+        return icons.length > 0 && icons.every(img => img.complete && img.naturalWidth > 0);
+    })()`, 10000);
 
     // 用实际控件触发所有引擎的联想请求。
     for (const [engine, host] of [['bing', 'api.bing.com'], ['google', 'suggestqueries.google.com'], ['wikipedia', 'zh.wikipedia.org']]) {
@@ -149,7 +152,24 @@ try {
     mkdirSync(join(root, 'test/artifacts'), { recursive: true });
     const screenshot = await send('Page.captureScreenshot', { format: 'png' });
     writeFileSync(join(root, 'test/artifacts/chrome-extension.png'), Buffer.from(screenshot.data, 'base64'));
-    console.log('✅ Chrome MV3 扩展：脚本加载前深色底色、浅色主题恢复、新标签页、三引擎联想、设置保存和离线重载通过，无 CSP 违规');
+
+    await evalJS(`sessionStorage.setItem('startpage_section', 'nav'); localStorage.removeItem('glass_transition_mode')`);
+    let pausedApp;
+    const stopAppPause = send('Fetch.requestPaused', event => { pausedApp = event; });
+    await send('Fetch.enable', { patterns: [{ urlPattern: `chrome-extension://${id}/app.js*` }] });
+    await send('Page.reload');
+    await waitFor(() => !!pausedApp, 'extension app request paused', 10000);
+    await waitFor(evalJS, `document.readyState === 'interactive' && !window.__GLASS_BUILD_APP__`);
+    const navAtTop = `document.documentElement.dataset.screen === 'nav' &&
+        Math.abs(document.getElementById('navSection').getBoundingClientRect().top) < 1`;
+    assert.equal(await evalJS(navAtTop), true);
+    await send('Fetch.continueRequest', { requestId: pausedApp.requestId });
+    await send('Fetch.disable');
+    stopAppPause();
+    await waitFor(evalJS, `!!window.__GLASS_BUILD_APP__ && !document.documentElement.classList.contains('screen-restoring')`);
+    assert.equal(await evalJS(navAtTop), true);
+    assert.equal(await evalJS(`document.getElementById('startSection').inert && !document.getElementById('navSection').inert`), true);
+    console.log('✅ Chrome MV3 扩展通过冷启动底色、导航首帧、三引擎联想、设置保存及离线重载验证');
 } finally {
     browser?.close();
     await chrome.close();

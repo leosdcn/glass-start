@@ -23,8 +23,14 @@ export default { get(url, options, callback) {
     const response = new EventEmitter();
     response.statusCode = 200; response.headers = {};
     callback(response);
-    const image = url.startsWith('https://t2.gstatic.com/') ? process.env.ICON_SMALL_PNG : process.env.ICON_LARGE_PNG;
-    response.emit('data', process.env.ICON_FAIL === 'image' ? Buffer.from('not an image') : Buffer.from(image, 'base64'));
+    const s2 = url.startsWith('https://t2.gstatic.com/');
+    const target = s2 ? new URL(url).searchParams.get('url') : '';
+    const failure = process.env.ICON_FAIL;
+    const invalid = failure === 'image' || (failure === 'official-html' && !s2)
+      || (failure === 'primary-html' && target === 'https://example.test')
+      || (failure === 'example-html' && target.endsWith('example.test'));
+    const image = s2 ? process.env.ICON_SMALL_PNG : process.env.ICON_LARGE_PNG;
+    response.emit('data', invalid ? Buffer.from('<html>not an image</html>') : Buffer.from(image, 'base64'));
     response.emit('end');
   });
   return request;
@@ -35,6 +41,8 @@ export default { get(url, options, callback) {
   const icons = join(root, 'public/icons');
   const normal = join(icons, 'example.test.png'), official = join(icons, 'qianwen.com.png');
   const s2Url = 'https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https%3A%2F%2Fexample.test&size=128';
+  const wwwUrl = s2Url.replace('%2F%2Fexample.test', '%2F%2Fwww.example.test');
+  const officialFallback = s2Url.replace('example.test', 'qianwen.com');
   const officialUrl = 'https://img.alicdn.com/imgextra/i4/O1CN01OXv3EM1FN8t9W4P79_!!6000000000474-2-tps-80-80.png';
 
   function resizedPng(name, height, width) {
@@ -112,7 +120,44 @@ export default { get(url, options, callback) {
     const repairOfficial = run();
     assert.equal(repairOfficial.status, 0, repairOfficial.stdout + repairOfficial.stderr);
     assert.deepEqual(repairOfficial.requests, [officialUrl]);
+
+    rmSync(official);
+    const officialHtml = run([], 'official-html');
+    assert.equal(officialHtml.status, 0, officialHtml.stdout + officialHtml.stderr);
+    assert.deepEqual(officialHtml.requests, [officialUrl, officialFallback]);
+    assert.deepEqual(readFileSync(official), small);
+
+    rmSync(normal);
+    const primaryHtml = run([], 'primary-html');
+    assert.equal(primaryHtml.status, 0, primaryHtml.stdout + primaryHtml.stderr);
+    assert.deepEqual(primaryHtml.requests, [s2Url, wwwUrl]);
+    assert.deepEqual(readFileSync(normal), small);
+
+    const bookmarks = join(root, 'bookmarks.json');
+    const draft = JSON.parse(readFileSync(bookmarks, 'utf8'));
+    draft.bookmarks[0].icon = './icons/old-example.png';
+    draft.bookmarks[1].icon = './icons/old-official.png';
+    draft.categories = [{ name: 'Test', bookmarks: draft.bookmarks }];
+    const raw = JSON.stringify(draft);
+    writeFileSync(bookmarks, raw);
+    writeFileSync(join(icons, 'old-example.png'), png);
+    rmSync(normal);
+    rmSync(official);
+    const allFailed = run([], 'image');
+    assert.equal(allFailed.status, 1, allFailed.stdout + allFailed.stderr);
+    assert.equal(readFileSync(bookmarks, 'utf8'), raw);
+
+    const partial = run([], 'example-html');
+    assert.equal(partial.status, 1, partial.stdout + partial.stderr);
+    assert.equal(existsSync(normal), false);
+    assert.equal(existsSync(official), true);
+    const saved = JSON.parse(readFileSync(bookmarks, 'utf8'));
+    for (const list of [saved.bookmarks, saved.categories[0].bookmarks]) {
+      assert.deepEqual(list.map(bookmark => bookmark.icon), ['./icons/old-example.png', './icons/qianwen.com.png']);
+    }
+    assert.deepEqual(readFileSync(join(icons, 'old-example.png')), png);
     assert.equal(readdirSync(icons).some(name => name.startsWith('.icon-sync-')), false);
+    assert.equal(readdirSync(root).some(name => name.startsWith('.icon-sync-')), false);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

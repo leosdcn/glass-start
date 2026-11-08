@@ -18,7 +18,7 @@ import { OverlayStack } from '../core/overlay-stack.js';
 import { flushWallpaperSelection, prepareWallpaperDraft, getCommittedWallpaperUrl, discardWallpaperSelection, showWallpaperDraft, updateWallpaperStatusUI, updatePresetBgCardsUI, clearCustomWallpaper, renderPresetWallpapers, commitWallpaperSelection, revertDraftWallpaper, applyBgEffects, flushBgEffects, getSavedMaskOpacity, commitWallpaperDimming, showWallpaperError } from './wallpaper.js';
 import { saveUserBookmarks, resetUserBookmarks } from './bookmarks.js';
 import { closeDropdown, hideSuggestions, setEngine } from './search.js';
-import { getTransitionMode, syncTransitionSwitcherActive, setTransitionMode } from '../core/screen-state.js';
+import { getTransitionMode, syncTransitionSwitcherActive, setTransitionMode, resetNavDiscovery } from '../core/screen-state.js';
 import { cancelDragSort } from './bookmark-drag.js';
 import { closeBookmarkPicker } from './bookmark-picker.js';
 import { resetWeather } from './weather.js';
@@ -330,8 +330,9 @@ export function resetBookmarks() {
             }
             /** @type {(keyof typeof CONFIG.KEYS)[]} */
             const keys = ['PREFERRED_ENGINE', 'WALLPAPER_META', 'MASK_OPACITY',
-                'BG', 'NAV_DISCOVERED', 'THEME_CACHE', 'TINT_CACHE', 'TRANSITION_MODE', 'LANGUAGE'];
+                'BG', 'THEME_CACHE', 'TINT_CACHE', 'TRANSITION_MODE', 'LANGUAGE'];
             const removed = keys.map(key => storageRemove(CONFIG.KEYS[key]));
+            const navReset = resetNavDiscovery();
             const weatherReset = resetWeather();
             const bookmarksReset = resetUserBookmarks();
             const mode = getTransitionMode();
@@ -342,7 +343,7 @@ export function resetBookmarks() {
             modalState.draftMaskOpacity = opacity;
             applyBgEffects(opacity);
             setEngine(storageGet(CONFIG.KEYS.PREFERRED_ENGINE, DEFAULT_ENGINE), false);
-            if (!bookmarksReset || !weatherReset || removed.some(result => !result)) {
+            if (!bookmarksReset || !weatherReset || !navReset || removed.some(result => !result)) {
                 // 保留用户编辑；未编辑的列表随已落盘的重置结果更新。
                 if (!modalState.bookmarksChanged) replaceBookmarkDraft(pageData.bookmarks);
                 renderEditList();
@@ -359,11 +360,6 @@ export function resetBookmarks() {
                 syncLanguageUI();
                 showConfirm(t('ui.some.settings.could.not.be.cleared'), null, t('ui.reset.incomplete'));
                 return;
-            }
-
-            if (dom.scrollDownHint) {
-                dom.scrollDownHint.style.display = '';
-                dom.scrollDownHint.style.opacity = '';
             }
 
             modalState.draftWallpaper = null;

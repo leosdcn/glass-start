@@ -8,7 +8,7 @@ import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import { launchChrome } from './support/cdp.mjs';
-import { getFreePort } from './support/helpers.mjs';
+import { getFreePort, sleep, waitFor } from './support/helpers.mjs';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const require = createRequire(import.meta.url);
@@ -158,4 +158,47 @@ test('Chrome 会话各自清理配置子目录，保留外部父目录和已有�
   `], { env: { CHROME_PROFILE_DIR: parent, CHROME_PATH: join(parent, 'missing-chrome') } });
   assert.deepEqual(fs.readdirSync(parent), ['keep.txt']);
   assert.equal(fs.readFileSync(join(parent, 'keep.txt'), 'utf8'), 'keep');
+});
+
+test('源码文件原子替换后继续监听，并忽略同内容保存和无关文件', async t => {
+  const root = temporaryDirectory(t);
+  const bookmarks = join(root, 'bookmarks.json');
+  const config = join(root, 'package.json');
+  const swap = join(root, 'editor-save.tmp');
+  fs.writeFileSync(bookmarks, 'initial');
+  fs.writeFileSync(config, 'config');
+  const { watchFiles } = require('../scripts/watch.cjs');
+  const changes = [];
+  const stop = watchFiles([
+    { path: bookmarks, name: 'bookmarks.json' },
+    { path: config, name: 'package.json' }
+  ], { delay: 25, label: 'Test', rebuild: () => {
+    changes.push(fs.readFileSync(bookmarks, 'utf8'));
+    return { version: 'test', duration: 0 };
+  } });
+  try {
+    // macOS 目录事件流异步启动，先用另一个受监听文件确认已开始接收事件。
+    await waitFor(() => {
+      if (changes.length) return true;
+      fs.writeFileSync(config, 'watcher ready probe');
+      return false;
+    }, 'directory watcher ready', 4000, 60);
+    assert.deepEqual(changes.splice(0), ['initial']);
+
+    fs.writeFileSync(bookmarks, 'first edit');
+    await waitFor(() => changes.length >= 1, 'in-place write', 4000);
+    fs.writeFileSync(swap, 'atomic replacement');
+    fs.renameSync(swap, bookmarks);
+    await waitFor(() => changes.length >= 2, 'replacement', 4000);
+    fs.writeFileSync(bookmarks, 'edit replacement');
+    await waitFor(() => changes.length >= 3, 'edit of replacement', 4000);
+    fs.writeFileSync(bookmarks, 'edit replacement');
+    fs.writeFileSync(swap, 'ignored');
+    await sleep(150);
+    assert.deepEqual(changes, ['first edit', 'atomic replacement', 'edit replacement']);
+    fs.writeFileSync(config, 'config changed');
+    await waitFor(() => changes.length === 4, 'second watched file', 4000);
+  } finally {
+    stop();
+  }
 });

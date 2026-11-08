@@ -182,7 +182,6 @@ export interface DOMCache {
     doneShortcutBtn: HTMLButtonElement | null;
     openShortcutFromSettingsBtn: HTMLButtonElement | null;
     openCreditsFromSettingsBtn: HTMLButtonElement | null;
-    scrollDownHint: HTMLElement | null;
     weatherWidget: HTMLElement | null;
     weatherBtn: HTMLButtonElement | null;
     weatherIcon: HTMLElement | null;

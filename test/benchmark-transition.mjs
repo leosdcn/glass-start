@@ -55,7 +55,7 @@ export async function measureTransition(direction, timeoutMs = 10000) {
     const nodes = [startSection, navSection, content];
     const targetNav = direction === 'nav';
     if (!nodes.every(Boolean)) throw new Error('缺少切屏节点');
-    if (startSection.classList.contains('screen-pushed-up') === targetNav) throw new Error('切屏起始状态不正确');
+    if ((document.documentElement.dataset.screen === 'nav') === targetNav) throw new Error('切屏起始状态不正确');
     return new Promise((resolveSample, reject) => {
         let frameId, timer, last, start, quiet = 0;
         const frames = [];
@@ -68,7 +68,7 @@ export async function measureTransition(direction, timeoutMs = 10000) {
         const tick = now => {
             frames.push(now-last);
             last = now;
-            const reached = startSection.classList.contains('screen-pushed-up') === targetNav;
+            const reached = (document.documentElement.dataset.screen === 'nav') === targetNav;
             let settled = false;
             if (reached && !document.body.classList.contains('is-screen-transitioning')) {
                 // 只在收尾检查三个切屏节点，避免逐帧遍历全部书签及强制读取样式。

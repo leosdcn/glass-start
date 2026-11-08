@@ -10,7 +10,7 @@
  * 4. 格式规范化：统一使用 macOS 原生 sips 转录为 128x128 1:1 PNG 存入 icons/{host}.png；
  * 5. 零外部依赖：纯原生 Node.js + 原生 sips，不引入任何 npm dependencies。
  */
-import { existsSync, mkdirSync, writeFileSync, readFileSync, mkdtempSync, rmSync, renameSync } from 'node:fs';
+import { existsSync, mkdirSync, writeFileSync, readFileSync, mkdtempSync, rmSync, renameSync, statSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
@@ -60,10 +60,12 @@ function fetchRedirectBuffer(url, timeoutMs = 7000, redirectCount = 0) {
             }
         }, (res) => {
             if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+                res.resume();
                 const nextUrl = new URL(res.headers.location, url).href;
                 return resolve(fetchRedirectBuffer(nextUrl, timeoutMs, redirectCount + 1));
             }
             if (res.statusCode !== 200) {
+                res.resume();
                 return reject(new Error(`HTTP ${res.statusCode}`));
             }
             const chunks = [];
@@ -83,16 +85,23 @@ function fetchRedirectBuffer(url, timeoutMs = 7000, redirectCount = 0) {
 const PNG_HEADER = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
 const IEND_CHUNK = Buffer.from([0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4e, 0x44, 0xae, 0x42, 0x60, 0x82]);
 
+function pngDimensions(path) {
+    const png = readFileSync(path);
+    if (png.length < 57 || !png.subarray(0, 8).equals(PNG_HEADER)
+        || png.toString('ascii', 12, 16) !== 'IHDR' || !png.subarray(-12).equals(IEND_CHUNK)) {
+        throw new Error('Invalid PNG');
+    }
+    const width = png.readUInt32BE(16), height = png.readUInt32BE(20);
+    if (!width || !height) throw new Error('Invalid PNG dimensions');
+    return { width, height };
+}
+
 /** 文件头、尺寸与尾标合规后实际解码，避免复用图像数据损坏的 PNG。 */
 function isReusableIcon(path) {
     let workDir;
     try {
-        const png = readFileSync(path);
-        if (png.length < 57 || !png.subarray(0, 8).equals(PNG_HEADER) ||
-            png.toString('ascii', 12, 16) !== 'IHDR') return false;
-        const width = png.readUInt32BE(16), height = png.readUInt32BE(20);
-        if (!width || width !== height || width > 128) return false;
-        if (!png.subarray(-12).equals(IEND_CHUNK)) return false;
+        const { width, height } = pngDimensions(path);
+        if (width !== height || width > 128) return false;
         workDir = mkdtempSync(join(tmpdir(), 'glass-icon-check-'));
         execFileSync('sips', ['-s', 'format', 'png', path, '--out', join(workDir, 'decoded.png')],
             { stdio: 'ignore', timeout: 5000 });
@@ -110,31 +119,22 @@ function saveAsPng(inputBuffer, destPath) {
     const isSvg = inputBuffer.subarray(0, 200).toString('utf8').includes('<svg');
     const inputPath = join(workDir, isSvg ? 'input.svg' : 'input.bin');
     const outputPath = join(workDir, 'output.png');
-    const pngHeader = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
     const runSips = args => execFileSync('sips', args, { stdio: 'ignore', timeout: 5000 });
-    const dimensions = () => {
-        const png = readFileSync(outputPath);
-        if (png.length < 24 || !png.subarray(0, 8).equals(pngHeader)
-            || png.toString('ascii', 12, 16) !== 'IHDR') throw new Error('Invalid PNG');
-        const width = png.readUInt32BE(16), height = png.readUInt32BE(20);
-        if (!width || !height) throw new Error('Invalid PNG dimensions');
-        return { width, height };
-    };
     try {
         writeFileSync(inputPath, inputBuffer);
         runSips(isSvg
             ? ['-s', 'format', 'png', '-Z', '128', inputPath, '--out', outputPath]
             : ['-s', 'format', 'png', inputPath, '--out', outputPath]);
-        let { width, height } = dimensions();
+        let { width, height } = pngDimensions(outputPath);
         if (Math.max(width, height) > 128) {
             runSips(['-Z', '128', outputPath]);
-            ({ width, height } = dimensions());
+            ({ width, height } = pngDimensions(outputPath));
         }
         if (width !== height) {
             const side = String(Math.max(width, height));
             runSips(['--padToHeightWidth', side, side, outputPath]);
         }
-        ({ width, height } = dimensions());
+        ({ width, height } = pngDimensions(outputPath));
         if (width !== height || width > 128) throw new Error('Icon must be square');
         renameSync(outputPath, destPath);
         return true;
@@ -217,40 +217,21 @@ async function main() {
             candidates.push('www.' + bareHost);
         }
 
-        let buf = null;
-        let source = '';
+        const sources = candidates.map(candidate => ({
+            url: `https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=${encodeURIComponent('https://' + candidate)}&size=128`,
+            source: `Google S2 (${candidate})`
+        }));
+        const officialUrl = OFFICIAL_HOST_SOURCES.get(bareHost);
+        if (officialUrl) sources.unshift({ url: officialUrl, source: `Official Source (${bareHost})` });
 
-        if (OFFICIAL_HOST_SOURCES.has(bareHost)) {
+        for (const { url, source } of sources) {
             try {
-                const officialUrl = OFFICIAL_HOST_SOURCES.get(bareHost);
-                const offBuf = await fetchRedirectBuffer(officialUrl);
-                if (offBuf && offBuf.length > 0) {
-                    buf = offBuf;
-                    source = `Official Source (${bareHost})`;
-                }
+                const buffer = await fetchRedirectBuffer(url);
+                if (saveAsPng(buffer, destPath)) return { host: bareHost, success: true, source };
             } catch {}
         }
 
-        if (!buf) {
-            for (const candidate of candidates) {
-                try {
-                    const s2Url = `https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=${encodeURIComponent('https://' + candidate)}&size=128`;
-                    const s2Buf = await fetchRedirectBuffer(s2Url);
-                    if (s2Buf && s2Buf.length > 0) {
-                        buf = s2Buf;
-                        source = `Google S2 (${candidate})`;
-                        break;
-                    }
-                } catch {}
-            }
-        }
-
-        if (buf) {
-            const ok = saveAsPng(buf, destPath);
-            return { host: bareHost, success: ok, source };
-        }
-
-        return { host: bareHost, success: false, error: 'Google S2 404 / fetch error' };
+        return { host: bareHost, success: false, error: '所有来源均未生成可用 PNG' };
     });
 
     const results = await runConcurrent(tasks, 12, (idx, total, res) => {
@@ -263,19 +244,20 @@ async function main() {
     console.log('\n');
     const failed = results.filter(r => !r.success);
     if (failed.length > 0) {
-        console.log(`  ${c.yellow}⚠ 注意：有 ${failed.length} 个图标未能成功下载：${c.reset}`);
-        failed.forEach(f => console.log(`    - ${f.host}: ${f.error || 'PNG normalization failed'}`));
+        console.log(`  ${c.yellow}⚠ 注意：有 ${failed.length} 个图标未能同步：${c.reset}`);
+        failed.forEach(f => console.log(`    - ${f.host}: ${f.error}`));
         process.exitCode = 1;
     } else {
         console.log(`  ${c.green}✨ 全站 ${totalHosts} 个书签图标已就绪（复用 ${results.filter(r => r.source === 'local').length} 个，下载 ${results.filter(r => r.source !== 'local').length} 个）！${c.reset}`);
     }
 
-    // 统一将 bookmarks.json 的 icon 规范为 ./icons/{host}.png
+    // 只更新已经有可用本地图标的引用。
+    const readyHosts = new Set(results.filter(r => r.success).map(r => r.host));
     let updatedIconCount = 0;
     function updateIconField(bm) {
         if (!bm || !bm.url) return;
         const host = getBareHostname(bm.url);
-        if (!host) return;
+        if (!readyHosts.has(host)) return;
         const iconPath = `./icons/${host}.png`;
         if (bm.icon !== iconPath) {
             bm.icon = iconPath;
@@ -289,7 +271,18 @@ async function main() {
     });
 
     if (updatedIconCount > 0) {
-        writeFileSync(BOOKMARKS_PATH, JSON.stringify(data, null, 4) + '\n', 'utf-8');
+        const stage = mkdtempSync(join(ROOT_DIR, '.icon-sync-'));
+        try {
+            const stagedBookmarks = join(stage, 'bookmarks.json');
+            writeFileSync(stagedBookmarks, JSON.stringify(data, null, 4) + '\n',
+                { encoding: 'utf-8', mode: statSync(BOOKMARKS_PATH).mode });
+            if (readFileSync(BOOKMARKS_PATH, 'utf-8') !== rawData) {
+                throw new Error('同步期间 bookmarks.json 已更新，请重新执行图标同步');
+            }
+            renameSync(stagedBookmarks, BOOKMARKS_PATH);
+        } finally {
+            rmSync(stage, { recursive: true, force: true });
+        }
         console.log(`  ${c.green}✔${c.reset} 已规范 bookmarks.json 中 ${c.bold}${updatedIconCount}${c.reset} 处图标路径为 ./icons/{host}.png`);
     }
 

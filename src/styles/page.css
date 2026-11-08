@@ -3,12 +3,6 @@
 /* ==========================================================================
    SETTINGS & DESIGN TOKENS (设计令牌与基础配置)
    ========================================================================== */
-/* .nr 模式：直达导航页预渲染，与 HEAD inline script 配合消除刷新抖动 */
-.nr #startSection { -webkit-transform: translate3d(0, -100dvh, 0); transform: translate3d(0, -100dvh, 0); transition: none; }
-.nr #navSection { visibility: visible; -webkit-transform: translate3d(0, 0, 0); transform: translate3d(0, 0, 0); transition: none; }
-.nr #editBookmarksBtn, .nr #weatherWidget { opacity: 0; pointer-events: none; transition: none; }
-.nr *, .nr *::before, .nr *::after { animation: none; transition: none; }
-
 /* 字号与字距工具类 */
 .text-2xs { font-size: 0.625rem; letter-spacing: -0.012em; }
 .text-2xs-plus { font-size: 0.6875rem; letter-spacing: -0.012em; }
@@ -145,43 +139,43 @@ img, a, button, .nav-bookmark, .bookmark-item {
 /* ==========================================================================
    SCREEN SYSTEM & STRUCTURAL LAYOUT (双屏推移与全屏分层系统)
    ========================================================================== */
-#startSection {
+:root {
+    --screen-height: 100vh;
+}
+@supports (height: 100dvh) {
+    :root { --screen-height: 100dvh; }
+}
+:is(#startSection, #navSection) {
     position: fixed;
     inset: 0;
     width: 100%;
-    height: 100vh;
-    height: 100dvh;
+    height: var(--screen-height);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    transition: transform var(--duration-slide) var(--ease-slide);
+}
+#startSection {
+    --start-away: translate3d(0, calc(-1 * var(--screen-height)), 0);
     z-index: 10;
     -webkit-transform: translate3d(0, 0, 0);
     transform: translate3d(0, 0, 0);
-    -webkit-backface-visibility: hidden;
-    backface-visibility: hidden;
-    transition: transform var(--duration-slide) var(--ease-slide);
 }
-#startSection.screen-pushed-up {
-    -webkit-transform: translate3d(0, -100vh, 0);
-    -webkit-transform: translate3d(0, -100dvh, 0);
-    transform: translate3d(0, -100vh, 0);
-    transform: translate3d(0, -100dvh, 0);
+html[data-screen="nav"] #startSection {
+    -webkit-transform: var(--start-away);
+    transform: var(--start-away);
+    pointer-events: none;
 }
 #navSection {
-    position: fixed;
-    inset: 0;
-    width: 100%;
-    height: 100vh;
-    height: 100dvh;
     z-index: 20;
-    -webkit-transform: translate3d(0, 100vh, 0);
-    -webkit-transform: translate3d(0, 100dvh, 0);
-    transform: translate3d(0, 100vh, 0);
-    transform: translate3d(0, 100dvh, 0);
-    -webkit-backface-visibility: hidden;
-    backface-visibility: hidden;
-    transition: transform var(--duration-slide) var(--ease-slide);
+    -webkit-transform: translate3d(0, var(--screen-height), 0);
+    transform: translate3d(0, var(--screen-height), 0);
 }
-#navSection.screen-pushed-in {
+html[data-screen="nav"] #navSection {
     -webkit-transform: translate3d(0, 0, 0);
     transform: translate3d(0, 0, 0);
+}
+html.screen-restoring :is(#startSection, #navSection) {
+    transition: none;
 }
 body.is-screen-transitioning :is(#startSection, #navSection) {
     will-change: transform;
@@ -210,26 +204,11 @@ body.is-screen-transitioning :is(.bookmark-item, .nav-bookmark) .icon-box {
    保持毛玻璃 (backdrop-filter) 全程 100% 活跃，不使用破坏背景采样的父级 opacity 过滤
    ========================================================================== */
 /* iOS 卡片层叠栈模式 (Layered Sheet Stacking) */
+html[data-transition-mode="sheet"] {
+    --duration-slide: 0.52s;
+}
 html[data-transition-mode="sheet"] #startSection {
-    -webkit-transform: scale(1) translate3d(0, 0, 0);
-    transform: scale(1) translate3d(0, 0, 0);
-    transition: -webkit-transform 0.52s var(--ease-slide), transform 0.52s var(--ease-slide);
-}
-html[data-transition-mode="sheet"] #startSection.screen-pushed-up {
-    -webkit-transform: scale(0.94) translate3d(0, -16px, 0);
-    transform: scale(0.94) translate3d(0, -16px, 0);
-    pointer-events: none;
-}
-html[data-transition-mode="sheet"] #navSection {
-    -webkit-transform: translate3d(0, 100vh, 0);
-    -webkit-transform: translate3d(0, 100dvh, 0);
-    transform: translate3d(0, 100vh, 0);
-    transform: translate3d(0, 100dvh, 0);
-    transition: -webkit-transform 0.52s var(--ease-slide), transform 0.52s var(--ease-slide);
-}
-html[data-transition-mode="sheet"] #navSection.screen-pushed-in {
-    -webkit-transform: translate3d(0, 0, 0);
-    transform: translate3d(0, 0, 0);
+    --start-away: scale(0.94) translate3d(0, -16px, 0);
 }
 
 /* ==========================================================================
@@ -328,19 +307,15 @@ html.wallpaper-bright .nav-bookmark .text-2xs {
    ========================================================================== */
 /* 第二屏通过离屏位置、pointer-events 与 inert 隔离。
    Chrome 保留离屏玻璃结构，避免下次进入重新绘制；其他浏览器保留隐藏/卸载策略。 */
-#navSection.nav-hidden {
+html:not([data-screen="nav"]) #navSection.nav-hidden {
     pointer-events: none;
 }
-html:not(.is-chrome) #navSection.nav-hidden {
+html:not(.is-chrome, [data-screen="nav"]) #navSection.nav-hidden {
     visibility: hidden;
 }
-html:not(.is-chrome) #navSection.nav-hidden .nav-surface {
+html:not(.is-chrome, [data-screen="nav"]) #navSection.nav-hidden .nav-surface {
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
-}
-#navSection.nav-visible {
-    visibility: visible;
-    pointer-events: auto;
 }
 #sidebarList {
     position: relative;
@@ -596,7 +571,12 @@ textarea::placeholder {
 /* 下滑指示器安全区偏移与状态驱动 */
 .hint-down {
     bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
-    transition: opacity 0.6s ease;
+    transition: opacity 0.6s ease, visibility 0.6s;
+}
+html[data-nav-discovered] #scrollDownHint {
+    opacity: 0;
+    visibility: hidden;
+    animation: none;
 }
 @media (min-width: 768px) {
     .hint-down {
@@ -626,7 +606,7 @@ textarea::placeholder {
         transform: rotate(90deg);
     }
 }
-#editBookmarksBtn.hidden-on-nav {
+html[data-screen="nav"] #editBookmarksBtn {
     pointer-events: none;
 }
 @media (min-width: 768px) {

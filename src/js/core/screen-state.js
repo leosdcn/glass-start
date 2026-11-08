@@ -3,7 +3,7 @@
  * CSS 状态类控制位置，所有切屏入口共享过渡锁；唤醒显式强制校准。
  */
 import { CONFIG } from '../config/constants.js';
-import { storageGet, storageSet } from '../utils/storage.js';
+import { storageRemove, storageSet } from '../utils/storage.js';
 import { state } from '../state/store.js';
 import { dom } from '../state/dom.js';
 import { OverlayStack } from './overlay-stack.js';
@@ -75,7 +75,6 @@ function prepareScreenTransition() {
     // 先失焦再改变切屏样式，避免 blur() 同步提交一次整屏样式重算。
     const active = /** @type {HTMLElement|null} */ (document.activeElement);
     active?.blur();
-    document.documentElement.classList.remove('nr');
     document.body.classList.remove('tab-blurred');
     document.body.classList.add('is-screen-transitioning');
     document.addEventListener('wheel', preventTransitionScroll, { passive: false });
@@ -113,7 +112,7 @@ function waitForScreenTransition(nav, targetSection, onComplete) {
         navTransitionCleanup = () => nav.removeEventListener('transitionend', onEnd);
     }
     // 切屏前已提交过样式，这里再读 transitionDuration 会让浏览器同步重算整棵树；
-    // 首屏 .nr 已在切屏准备时移除；减弱动效立即完成，其余由 transitionend/兜底计时器驱动。
+    // 减弱动效立即完成，其余由 transitionend 和兜底计时器驱动。
     if (!nav || isReducedMotion()) {
         finish();
         return;
@@ -157,31 +156,12 @@ function updateSectionAccessibility(sec) {
 }
 
 /**
- * @returns {'start'|'nav'|null}
- */
-function getSavedSection() {
-    try {
-        const val = sessionStorage.getItem('startpage_section');
-        return val === 'nav' || val === 'start' ? val : null;
-    } catch {
-        return null;
-    }
-}
-
-/**
  * @param {'start'|'nav'} s
  */
 function saveSection(s) {
     sectionInitialized = true;
     state.currentSection = s;
     try { sessionStorage.setItem('startpage_section', s); } catch {}
-}
-
-function updateGearVisibility() {
-    const editBtn = dom.editBookmarksBtn;
-    if (editBtn) {
-        editBtn.classList.toggle('hidden-on-nav', state.currentSection === 'nav');
-    }
 }
 
 export function isScreenTransitioning() {
@@ -216,9 +196,7 @@ function applySection(section, immediate) {
     }
     saveSection(section);
     updateSectionAccessibility(section);
-    updateGearVisibility();
     syncWallpaperTheme();
-    document.body.classList.toggle('in-nav-mode', inNav);
 
     for (const el of [start, nav]) {
         if (!el) continue;
@@ -226,15 +204,9 @@ function applySection(section, immediate) {
         const targetTransition = immediate ? 'none' : '';
         if (el.style.transition !== targetTransition) el.style.transition = targetTransition;
     }
-    start?.classList.toggle('screen-pushed-up', inNav);
-    if (nav) {
-        if (inNav) {
-            nav.classList.remove('nav-hidden');
-            nav.classList.add('nav-visible');
-        }
-        nav.classList.toggle('screen-pushed-in', inNav);
-        if (!inNav && immediate) finishNavExit();
-    }
+    if (inNav) nav?.classList.remove('nav-hidden');
+    else if (immediate) finishNavExit();
+    document.documentElement.dataset.screen = section;
     if (immediate) {
         // 先应用目标，再提交无动画布局，恢复 transition 后不会补播切屏。
         for (const el of [start, nav]) {
@@ -246,7 +218,6 @@ function applySection(section, immediate) {
 }
 
 function finishNavExit() {
-    dom.navSection?.classList.remove('nav-visible');
     dom.navSection?.classList.add('nav-hidden');
 }
 
@@ -257,26 +228,29 @@ function finishNavExit() {
  */
 export function reconcileScreenState(targetSection, force = false) {
     if (!targetSection && !force && isTransitioning) return;
-    const section = targetSection || (sectionInitialized ? state.currentSection : getSavedSection()) || 'start';
+    const section = targetSection || (sectionInitialized ? state.currentSection
+        : document.documentElement.dataset.screen === 'nav' ? 'nav' : 'start');
     // 先读取滚动布局，再清理过渡样式，避免唤醒时提前提交一轮整屏样式重算。
     resetPageScroll();
     if (section === 'start') resetNavScroll();
     clearTransitionTasks();
     isTransitioning = false;
     applySection(section, true);
-    document.documentElement.classList.remove('nr');
+    document.documentElement.classList.remove('screen-restoring');
     if (section === 'nav') refreshNav();
 }
 
 function discoverNav() {
-    if (storageGet(CONFIG.KEYS.NAV_DISCOVERED)) return;
+    const root = document.documentElement;
+    if (root.hasAttribute('data-nav-discovered')) return;
     storageSet(CONFIG.KEYS.NAV_DISCOVERED, 1);
-    const hint = dom.scrollDownHint;
-    if (hint) {
-        hint.style.transition = 'opacity 0.6s ease';
-        hint.style.opacity = '0';
-        setTimeout(() => { hint.style.display = 'none'; }, CONFIG.TIMERS.HINT_FADE);
-    }
+    root.setAttribute('data-nav-discovered', '');
+}
+
+export function resetNavDiscovery() {
+    if (!storageRemove(CONFIG.KEYS.NAV_DISCOVERED)) return false;
+    document.documentElement.removeAttribute('data-nav-discovered');
+    return true;
 }
 
 /** @param {'start'|'nav'} section */

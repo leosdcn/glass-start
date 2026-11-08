@@ -1,7 +1,12 @@
 const fs = require('node:fs');
+const { dirname, basename } = require('node:path');
 const { c } = require('./terminal.cjs');
 
 const IGNORED_NAMES = new Set(['.DS_Store', 'Thumbs.db', 'desktop.ini']);
+
+function readContent(file) {
+    try { return fs.readFileSync(file); } catch { return null; }
+}
 
 function shouldIgnore(filename) {
     if (!filename) return false;
@@ -42,25 +47,41 @@ function watchFiles(files, { rebuild, label = 'Watch', delay = 80 }) {
         if (!rebuilding) timer = setTimeout(run, delay);
     };
     const watchers = [];
-    for (const { path, name } of files) {
-        if (!fs.existsSync(path)) continue;
+    const filesByDirectory = new Map();
+    const watch = (path, name, recursive, onChange) => {
         try {
-            const isDir = fs.statSync(path).isDirectory();
-            let previousContent = isDir ? null : fs.readFileSync(path);
-            watchers.push(fs.watch(path, { recursive: isDir }, (_, filename) => {
-                if (filename && shouldIgnore(filename)) return;
-                // 单文件可能收到重复或仅元数据变化的通知，内容未变时不重建。
-                if (!isDir) {
-                    let content = null;
-                    try { content = fs.readFileSync(path); } catch {}
-                    if (content === previousContent || (content && previousContent && content.equals(previousContent))) return;
-                    previousContent = content;
-                }
-                trigger(isDir && filename ? `${name}${filename}` : name);
-            }));
+            watchers.push(fs.watch(path, { recursive }, onChange));
         } catch (err) {
             console.warn(`  ${c.yellow}⚠ 无法监听 ${name}: ${err.message}${c.reset}`);
         }
+    };
+    for (const { path, name } of files) {
+        try {
+            if (fs.statSync(path, { throwIfNoEntry: false })?.isDirectory()) {
+                watch(path, name, true, (_, filename) => {
+                    if (!shouldIgnore(filename)) trigger(filename ? `${name}${filename}` : name);
+                });
+            } else {
+                const directory = dirname(path);
+                if (!filesByDirectory.has(directory)) filesByDirectory.set(directory, new Map());
+                filesByDirectory.get(directory).set(basename(path), { path, name, previous: readContent(path) });
+            }
+        } catch (err) {
+            console.warn(`  ${c.yellow}⚠ 无法监听 ${name}: ${err.message}${c.reset}`);
+        }
+    }
+    // 通过父目录追踪路径名，编辑器原子替换后仍可收到新文件的变化。
+    for (const [directory, entries] of filesByDirectory) {
+        watch(directory, directory, false, (_, filename) => {
+            const changed = filename ? [entries.get(filename)] : entries.values();
+            for (const entry of changed) {
+                if (!entry) continue;
+                const content = readContent(entry.path);
+                if (content === entry.previous || (content && entry.previous && content.equals(entry.previous))) continue;
+                entry.previous = content;
+                trigger(entry.name);
+            }
+        });
     }
     return () => {
         if (closed) return;
