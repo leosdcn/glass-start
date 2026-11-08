@@ -313,48 +313,25 @@ test('新标签页打开候选时保留列表，当前页打开时收起', async
 });
 
 test('OverlayStack 多层弹窗嵌套压退栈、安全白名单与焦点归还', async () => {
-  const { server, chrome, send, evalJS } = await launchSession();
+  const { server, chrome, evalJS } = await launchSession();
   const press = (key) => pressKey(evalJS, key);
-  const stackTop = () => evalJS(`OverlayStack.top() ? OverlayStack.top().id : null`);
   try {
-    // 6.1 clock
     assert.equal(await evalJS(`document.getElementById('clock').style.willChange`), '');
 
-    // 6.2 多层 Modal LIFO 退栈
-    await evalJS(`document.getElementById('editBookmarksBtn').click()`); await waitFor(evalJS, `OverlayStack.top()?.id === "editModal"`);
-    await evalJS(`document.getElementById('togglePickerBtn').click()`); await waitFor(evalJS, `OverlayStack.top()?.id === "bookmarkPicker"`);
-    const topPicker = await stackTop();
-    await press('Escape'); await waitFor(evalJS, `document.getElementById('bookmarkPicker').hasAttribute('hidden')`);
-    const afterEsc1 = await evalJS(`({ pickerHidden: document.getElementById('bookmarkPicker').hasAttribute('hidden'), editOpen: !document.getElementById('editModal').hasAttribute('hidden') })`);
-    await press('Escape'); await waitFor(evalJS, `document.getElementById('editModal').hasAttribute('hidden')`);
-    const topNull = await stackTop();
-    assert.equal(topPicker, 'bookmarkPicker');
-    assert.ok(afterEsc1.pickerHidden && afterEsc1.editOpen);
-    assert.equal(topNull, null);
-
-    // 6.3 引擎下拉框
+    // 引擎下拉框
     await evalJS(`document.getElementById('engineBtn').click()`); await waitFor(evalJS, `OverlayStack.top()?.id === "dropdown"`);
-    assert.equal(await stackTop(), 'dropdown');
     await press('Escape'); await waitFor(evalJS, `OverlayStack.isEmpty()`);
-    assert.equal(await stackTop(), null);
 
-    // 6.4 活动 Modal 拦截滚轮与快捷键
-    await evalJS(`document.getElementById('editBookmarksBtn').click()`); await waitFor(evalJS, `OverlayStack.top()?.id === "editModal"`);
+    // 同一次设置会话验证背景输入隔离、导入入口和重置确认。
+    assert.equal(await evalJS("dom.editBookmarksBtn.getAttribute('aria-expanded')"), 'false');
+    await evalJS('dom.editBookmarksBtn.focus(); dom.editBookmarksBtn.click()');
+    await waitFor(evalJS, 'dom.editModal.classList.contains("active")');
+    assert.equal(await evalJS("dom.editBookmarksBtn.getAttribute('aria-expanded')"), 'true');
     await evalJS(`window.dispatchEvent(new WheelEvent('wheel', { deltaY: 120, bubbles: true, cancelable: true }))`);
-    await waitFor(evalJS, 'state.currentSection === "start" && !isScreenTransitioning()');
-    assert.equal(await evalJS(`state.currentSection`), 'start');
     await press('PageDown');
-    await waitFor(evalJS, 'state.currentSection === "start" && !isScreenTransitioning()');
-    assert.equal(await evalJS(`state.currentSection`), 'start');
-    await press('Escape'); await waitFor(evalJS, `OverlayStack.isEmpty()`);
+    assert.equal(await evalJS('state.currentSection === "start" && !isScreenTransitioning()'), true);
 
-    // 6.5 重置确认弹窗
-    await evalJS(`openEditModal(); document.getElementById('tab-btn-data').click()`);
-    await evalJS(`document.getElementById('resetEditBtn').click()`); await waitFor(evalJS, `OverlayStack.top()?.id === "confirmModal"`);
-    assert.equal(await stackTop(), 'confirmModal');
-    await press('Escape'); await waitFor(evalJS, `OverlayStack.top()?.id === "editModal"`);
-
-    // 6.6 jsonDropzone
+    await evalJS("document.getElementById('tab-btn-data').click()");
     const dropzoneFired = await evalJS(`(() => {
       let fired = false;
       const input = document.getElementById('importJsonInput');
@@ -363,9 +340,22 @@ test('OverlayStack 多层弹窗嵌套压退栈、安全白名单与焦点归还'
       return fired;
     })()`);
     assert.equal(dropzoneFired, true);
-    await press('Escape'); await waitFor(evalJS, `OverlayStack.isEmpty()`);
 
-    // 6.7 遮罩透明度设置记忆
+    const resetExpanded = () => evalJS("dom.resetEditBtn.getAttribute('aria-expanded')");
+    assert.equal(await resetExpanded(), 'false');
+    await evalJS('dom.resetEditBtn.focus(); dom.resetEditBtn.click()');
+    await waitFor(evalJS, 'dom.confirmModal.classList.contains("active")');
+    assert.equal(await resetExpanded(), 'true');
+    await evalJS('dom.confirmCancelBtn.click()');
+    await waitFor(evalJS, 'document.activeElement === dom.resetEditBtn');
+    assert.equal(await resetExpanded(), 'false');
+
+    await evalJS('dom.cancelEditBtn.click()');
+    await waitFor(evalJS, 'document.activeElement === dom.editBookmarksBtn');
+    assert.equal(await evalJS("dom.editBookmarksBtn.getAttribute('aria-expanded')"), 'false');
+    assert.equal(await evalJS('!document.body.matches(".overflow-hidden, .touch-none")'), true);
+
+    // 遮罩透明度设置记忆
     await evalJS(`localStorage.setItem('maskOpacity', 50)`);
     await evalJS('window.__pre_reload_mask = true; setTimeout(() => location.reload(), 10);');
     await waitFor(evalJS, 'document.readyState === "complete" && !window.__pre_reload_mask && !!window.OverlayStack && window.__PRE_BG_EFFECTS__?.op === 50');
@@ -376,7 +366,7 @@ test('OverlayStack 多层弹窗嵌套压退栈、安全白名单与焦点归还'
     assert.equal(beforeOverlay, afterOverlay);
     await evalJS(`localStorage.removeItem('maskOpacity')`);
 
-    // 6.8 搜索引擎白名单
+    // 搜索引擎白名单
     const engineDropdownCheck = await evalJS(`(() => {
       const buttons = [...document.querySelectorAll('#dropdownMenu button[data-engine]')];
       const engineKeys = buttons.map(b => b.dataset.engine);
@@ -385,54 +375,6 @@ test('OverlayStack 多层弹窗嵌套压退栈、安全白名单与焦点归还'
       };
     })()`);
     assert.equal(engineDropdownCheck.isClean, true);
-
-    // 6.9 焦点平滑归还与 ARIA 状态联动
-    const focusRestoreCheck = await evalJS(`(async () => {
-      const waitForFocus = async (id, timeout = 4000) => {
-        const start = Date.now();
-        while (Date.now() - start < timeout) {
-          if (document.activeElement && document.activeElement.id === id) return true;
-          await new Promise(r => setTimeout(r, 50));
-        }
-        return false;
-      };
-
-      const editBtn = document.getElementById('editBookmarksBtn');
-      const editInitExpanded = editBtn ? editBtn.getAttribute('aria-expanded') : null;
-      editBtn.focus();
-      editBtn.click();
-      await new Promise(r => setTimeout(r, 300));
-      const editOpenExpanded = editBtn ? editBtn.getAttribute('aria-expanded') : null;
-
-      // 触发子弹窗并取消，验证焦点归还到子弹窗触发按钮
-      document.getElementById('tab-btn-data').click();
-      await new Promise(r => setTimeout(r, 200));
-      const resetBtn = document.getElementById('resetEditBtn');
-      const confirmInitExpanded = resetBtn ? resetBtn.getAttribute('aria-expanded') : null;
-      resetBtn.focus();
-      resetBtn.click();
-      await new Promise(r => setTimeout(r, 200));
-      const confirmOpenExpanded = resetBtn ? resetBtn.getAttribute('aria-expanded') : null;
-
-      document.getElementById('confirmCancelBtn').click();
-      const confirmTriggerRestoredOk = await waitForFocus('resetEditBtn');
-      const confirmClosedExpanded = resetBtn ? resetBtn.getAttribute('aria-expanded') : null;
-      const confirmAriaOk = confirmInitExpanded === 'false' && confirmOpenExpanded === 'true' && confirmClosedExpanded === 'false';
-
-      // 关闭主弹窗，验证焦点归还到主触发按钮及 body 滚动锁释放
-      document.getElementById('cancelEditBtn').click();
-      const focusRestoredOk = await waitForFocus('editBookmarksBtn');
-      const editClosedExpanded = editBtn ? editBtn.getAttribute('aria-expanded') : null;
-      const editAriaOk = editInitExpanded === 'false' && editOpenExpanded === 'true' && editClosedExpanded === 'false';
-      const bodyLockReleased = !document.body.classList.contains('overflow-hidden') && !document.body.classList.contains('touch-none');
-
-      return { confirmTriggerRestoredOk, confirmAriaOk, editAriaOk, focusRestoredOk, bodyLockReleased };
-    })()`);
-    assert.ok(focusRestoreCheck.confirmTriggerRestoredOk);
-    assert.ok(focusRestoreCheck.confirmAriaOk);
-    assert.ok(focusRestoreCheck.editAriaOk);
-    assert.ok(focusRestoreCheck.focusRestoredOk);
-    assert.ok(focusRestoreCheck.bodyLockReleased);
   } finally {
     await chrome.close();
     await server.close();

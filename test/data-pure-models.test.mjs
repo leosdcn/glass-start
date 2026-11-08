@@ -4,21 +4,58 @@ import { buildSync } from 'esbuild';
 
 // 与浏览器使用同一配置；此入口无需启动 HTTP 服务或 Chrome。
 const { outputFiles } = buildSync({
-  stdin: { contents: `export * from './src/js/utils/bookmark-search.js'; export * from './src/js/utils/category-catalog.js'; export * from './src/js/utils/weather-model.js'; export * from './src/js/utils/weather-data.js'; export { CONFIG } from './src/js/config/constants.js'; export * from './src/js/state/bookmark-draft.js'; export {modalState} from './src/js/state/store.js';`, resolveDir:process.cwd() },
+  stdin: { contents: `
+    export * from './src/js/utils/bookmark-search.js';
+    export * from './src/js/utils/category-catalog.js';
+    export * from './src/js/utils/weather-model.js';
+    export * from './src/js/utils/weather-data.js';
+    export { faviconFallbackFromUrl, normalizeUrl } from './src/js/utils/bookmark-model.js';
+    export { escapeHtml } from './src/js/utils/helpers.js';
+    export { CONFIG } from './src/js/config/constants.js';
+    export * from './src/js/state/bookmark-draft.js';
+    export { modalState } from './src/js/state/store.js';
+  `, resolveDir:process.cwd() },
   bundle:true, write:false, format:'esm', platform:'node'
 });
 const model = await import('data:text/javascript;base64,' + Buffer.from(outputFiles[0].text).toString('base64'));
 const { CONFIG, rankBookmarkSuggestions, normalizeWeatherForecast, damerauLevenshteinDistance, weatherNum, toDisplayTemp, getCategoryCatalog, searchUrlKey } = model;
-assert.equal(damerauLevenshteinDistance('githbu', 'github'), 1);
 const candidates = [
   {bm:{name:'Tools', url:'https://tools.example', icon:'', desc:'GitHub'}, normUrl:'tools.example', defaultCat:'工具'},
-  {bm:{name:'GitHub', url:'https://github.com', icon:''}, normUrl:'github.com', defaultCat:'开发'}
+  {bm:{name:'GitHub', url:'https://github.com', icon:''}, normUrl:'github.com', defaultCat:'开发'},
+  {bm:{name:'Google', url:'https://google.com', icon:''}, normUrl:'google.com', defaultCat:'工具'}
 ];
 const input = {candidates, urlToCategoryMap:new Map()};
-assert.deepEqual(rankBookmarkSuggestions('github', input, CONFIG.SUGGEST).map(item=>item.name), ['GitHub', 'Tools']);
-assert.deepEqual(rankBookmarkSuggestions('/', input, CONFIG.SUGGEST), []);
-assert.equal(rankBookmarkSuggestions('githbu', input, CONFIG.SUGGEST)[0].name, 'GitHub');
-assert.equal(candidates[0].bm.name, 'Tools');
+test('书签名称、地址与简介的排序优先级和拼写容错', () => {
+  const ranked = { ...input, candidates: [
+    candidates[0],
+    {bm:{name:'Mirror', url:'https://github.example', icon:''}, normUrl:'github.example', defaultCat:'工具'},
+    {bm:{name:'使用 GitHub', url:'https://git.example', icon:''}, normUrl:'git.example', defaultCat:'开发'},
+    {bm:{name:'GitHub Desktop', url:'https://desktop.example', icon:''}, normUrl:'desktop.example', defaultCat:'开发'},
+    candidates[1]
+  ] };
+  assert.deepEqual(rankBookmarkSuggestions('github', ranked, CONFIG.SUGGEST, 5).map(item => item.name),
+    ['GitHub', 'GitHub Desktop', '使用 GitHub', 'Mirror', 'Tools']);
+  assert.deepEqual(rankBookmarkSuggestions('/', input, CONFIG.SUGGEST), []);
+  assert.equal(damerauLevenshteinDistance('githbu', 'github'), 1);
+  assert.equal(rankBookmarkSuggestions('githbu', input, CONFIG.SUGGEST)[0].name, 'GitHub');
+  assert.equal(rankBookmarkSuggestions('goolge', input, CONFIG.SUGGEST)[0].name, 'Google');
+  assert.equal(candidates[0].bm.name, 'Tools');
+});
+
+test('书签文本转义、URL 规范化及图标备用地址', () => {
+  const escaped = model.escapeHtml('<img src=x onerror="alert(1)">');
+  assert.ok(escaped.includes('&lt;img') && !escaped.includes('<img'));
+  assert.ok(model.normalizeUrl('javascript:alert(1)').startsWith('https://'));
+  for (const [url, host] of [
+    ['https://github.com', 'github.com'],
+    ['https://www.google.com', 'google.com'],
+    ['https://a.favicon.im/bilibili.com', 'bilibili.com']
+  ]) {
+    assert.equal(model.faviconFallbackFromUrl(url), 'https://www.google.com/s2/favicons?domain=' + host + '&sz=128');
+  }
+  assert.equal(model.faviconFallbackFromUrl(''), '');
+});
+
 test('多词模糊查询不能跳过不匹配的单字符词', () => {
   for (const query of ['x y', 'x github', 'github x', 'z githbu']) {
     assert.deepEqual(rankBookmarkSuggestions(query, input, CONFIG.SUGGEST), [], query);

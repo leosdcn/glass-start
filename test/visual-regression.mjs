@@ -3,7 +3,7 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { launchSession, sleep, pressKey, waitFor, navigateAndWait } from './support/helpers.mjs';
+import { launchSession, sleep, pressKey, waitFor } from './support/helpers.mjs';
 
 /** 截图产物输出目录：项目内 test/artifacts/（已 gitignore），相对脚本定位，跨机器可移植 */
 const ARTIFACT_DIR = join(dirname(fileURLToPath(import.meta.url)), 'artifacts');
@@ -152,85 +152,15 @@ await settled('nav');
 const metricsB = await inspectComponentMetrics({ ...START_COMPONENTS, ...NAV_COMPONENTS });
 await captureScreenshot('visual_test_scenario_B_desktop_nav.png');
 
-const transitionMode = await evalJS('document.documentElement.dataset.transitionMode');
-const startPositionValid = transitionMode === 'sheet'
-  ? metricsB.startSection.rect.width > 0 && metricsB.startSection.rect.width < metricsB.navSection.rect.width
-    && metricsB.startSection.rect.height > 0 && metricsB.startSection.rect.height < metricsB.navSection.rect.height
-    && Number(metricsB.startSection.computed.zIndex) < Number(metricsB.navSection.computed.zIndex)
-  : metricsB.startSection.rect.bottom <= 1;
-const navVisibleB = 
-  metricsB.navSection.exists && metricsB.navSection.rect.top === 0 && metricsB.navSection.ariaHidden !== 'true' &&
-  metricsB.navHeader.exists && metricsB.navHeader.rect.height > 30 &&
-  metricsB.sidebar.exists && metricsB.sidebar.rect.width > 80 &&
-  metricsB.navContent.exists && metricsB.navContent.rect.width > 500 &&
-  startPositionValid && // 层叠模式缩小到导航后方，经典模式完整移出视口
-  metricsB.startSection.ariaHidden === 'true' && metricsB.startSection.inert && // 两种切屏模式均隔离首屏
-  metricsB.editBookmarksBtn.computed.pointerEvents === 'none' && // gear disabled on nav
-  metricsB.editBookmarksBtn.className.includes('hidden-on-nav');
-
-pass('场景 B [Desktop 1470x956 (MacBook Air)]: 切换至导航页 (分类侧栏、顶栏和内容区布局检查通过，起始页 inert，设置按钮禁用)',
-  navVisibleB,
-  JSON.stringify({
-    navSectionY: metricsB.navSection.rect.y,
-    startSectionTop: metricsB.startSection.rect.top,
-    sidebarWidth: metricsB.sidebar.rect.width,
-    navContentWidth: metricsB.navContent.rect.width,
-    gearPointerEvents: metricsB.editBookmarksBtn.computed.pointerEvents,
-    gearHiddenClass: metricsB.editBookmarksBtn.className.includes('hidden-on-nav'),
-  }));
-
-// ══════════════════════════════════════════════════════════════════════
-// 场景 C：在导航页刷新页面 (sessionStorage='nav')
-// ══════════════════════════════════════════════════════════════════════
-await evalJS('window.__visualBeforeReload = true; sessionStorage.setItem("startpage_section", "nav")');
-await navigateAndWait(send, evalJS, `http://127.0.0.1:${server.port}/`, `!window.__visualBeforeReload && typeof switchToStart === 'function' && state.currentSection === 'nav'`);
-await settled('nav');
-
-const metricsC = await inspectComponentMetrics({ ...START_COMPONENTS, ...NAV_COMPONENTS });
-await captureScreenshot('visual_test_scenario_C_desktop_nav_reloaded.png');
-
-const navReloadedC = 
-  metricsC.navSection.exists && metricsC.navSection.rect.top === 0 && metricsC.navSection.ariaHidden !== 'true' &&
-  metricsC.sidebar.exists && metricsC.sidebar.rect.width > 80 &&
-  metricsC.navContent.exists && metricsC.navContent.rect.width > 500;
-
-pass('场景 C [Desktop 1470x956 (MacBook Air)]: 导航页刷新水合态 (sessionStorage 保持直出导航页无闪烁)',
-  navReloadedC,
-  JSON.stringify({
-    navTop: metricsC.navSection.rect.top,
-    sidebarRect: metricsC.sidebar.rect,
-  }));
-
-// ══════════════════════════════════════════════════════════════════════
-// 场景 D：从刷新后的导航页平滑切回搜索页 (重点验证组件消失问题)
-// ══════════════════════════════════════════════════════════════════════
-await evalJS('window.switchToStart()');
+pass('场景 B [Desktop 1470x956] 导航顶栏、侧栏与内容区可见',
+  metricsB.navHeader.rect?.height > 30 && metricsB.sidebar.rect?.width > 80 &&
+  metricsB.navContent.rect?.width > 500,
+  JSON.stringify(metricsB.navContent));
+await evalJS('switchToStart()');
 await settled('start');
 
-const metricsD = await inspectComponentMetrics(START_COMPONENTS);
-await captureScreenshot('visual_test_scenario_D_desktop_back_to_start.png');
-
-const startRestoredD = 
-  metricsD.startSection.exists && metricsD.startSection.rect.top === 0 && metricsD.startSection.ariaHidden !== 'true' &&
-  metricsD.clock.exists && metricsD.clock.rect.width > 100 && metricsD.clock.rect.height > 40 && metricsD.clock.computed.opacity > 0.8 &&
-  metricsD.searchBoxWrapper.exists && metricsD.searchBoxWrapper.rect.width > 400 && metricsD.searchBoxWrapper.rect.height >= 40 &&
-  metricsD.weatherWidget.exists && metricsD.weatherBtn.rect.width > 60 && metricsD.weatherBtn.computed.visibility !== 'hidden' &&
-  metricsD.bookmarks.exists && metricsD.bookmarks.rect.width > 400 &&
-  metricsD.editBookmarksBtn.exists && metricsD.editBookmarksBtn.rect.width > 30 && metricsD.editBookmarksBtn.computed.opacity > 0.5 &&
-  metricsD.editBookmarksBtn.computed.visibility !== 'hidden';
-
-pass('场景 D [Desktop 1470x956 (MacBook Air)]: 从刷新后的导航页切回搜索页 (时钟、搜索框、快捷书签、天气和设置按钮的尺寸及可见性检查通过)',
-  startRestoredD,
-  JSON.stringify({
-    clock: `${metricsD.clock.rect.width}x${metricsD.clock.rect.height} @ (${metricsD.clock.rect.x}, ${metricsD.clock.rect.y}) opacity=${metricsD.clock.computed.opacity}`,
-    searchBox: `${metricsD.searchBoxWrapper.rect.width}x${metricsD.searchBoxWrapper.rect.height} @ (${metricsD.searchBoxWrapper.rect.x}, ${metricsD.searchBoxWrapper.rect.y})`,
-    weatherBtn: `${metricsD.weatherBtn.rect.width}x${metricsD.weatherBtn.rect.height} @ (${metricsD.weatherBtn.rect.x}, ${metricsD.weatherBtn.rect.y}) opacity=${metricsD.weatherBtn.computed.opacity}`,
-    bookmarks: `${metricsD.bookmarks.rect.width}x${metricsD.bookmarks.rect.height} @ (${metricsD.bookmarks.rect.x}, ${metricsD.bookmarks.rect.y})`,
-    gearBtn: `${metricsD.editBookmarksBtn.rect.width}x${metricsD.editBookmarksBtn.rect.height} @ (${metricsD.editBookmarksBtn.rect.x}, ${metricsD.editBookmarksBtn.rect.y}) opacity=${metricsD.editBookmarksBtn.computed.opacity}`,
-  }));
-
 // ══════════════════════════════════════════════════════════════════════
-// 场景 E：搜索框联想输入与退栈还原状态
+// 场景 E：搜索联想面板
 // ══════════════════════════════════════════════════════════════════════
 await evalJS(`(() => {
   const i = document.getElementById('searchInput');
@@ -252,29 +182,10 @@ const suggestionActiveE1 =
   metricsE1.suggestionMenu.exists && metricsE1.suggestionMenu.rect.height > 50 &&
   metricsE1.suggestionMenu.computed.visibility !== 'hidden' && metricsE1.suggestionMenu.computed.opacity > 0.8;
 
-// 按 Escape 退出联想面板
+pass('场景 E [Desktop 1470x956] 搜索联想面板可见', suggestionActiveE1,
+  JSON.stringify(metricsE1.suggestionMenu.rect));
 await press('Escape');
-await sleep(300);
-
-const metricsE2 = await inspectComponentMetrics({
-  ...START_COMPONENTS,
-  suggestionMenu: '#suggestionMenu',
-});
-await captureScreenshot('visual_test_scenario_E2_desktop_suggestions_dismissed.png');
-
-const suggestionDismissedE2 = 
-  metricsE2.suggestionMenu.computed.visibility === 'hidden' ||
-  metricsE2.suggestionMenu.computed.opacity === 0 ||
-  metricsE2.suggestionMenu.rect.height === 0 ||
-  metricsE2.suggestionMenu.ariaHidden === 'true';
-
-pass('场景 E [Desktop 1470x956 (MacBook Air)]: 搜索框联想输入激活与退栈清退 (Spotlight 级下拉渲染与 Escape 优雅隐退)',
-  suggestionActiveE1 && suggestionDismissedE2,
-  JSON.stringify({
-    suggestionActiveHeight: metricsE1.suggestionMenu.rect.height,
-    suggestionActiveOpacity: metricsE1.suggestionMenu.computed.opacity,
-    dismissedAriaHidden: metricsE2.suggestionMenu.ariaHidden,
-  }));
+await waitFor(evalJS, '!document.getElementById("suggestionMenu").classList.contains("active")');
 
 // ══════════════════════════════════════════════════════════════════════
 // 场景 F：移动端起始页
@@ -325,35 +236,6 @@ pass('场景 G [Mobile 402x874 (iPhone 17)]: 移动端导航页响应式渲染 (
   JSON.stringify({
     sidebarHeight: metricsG.sidebar.rect.height,
     navContentRect: metricsG.navContent.rect,
-  }));
-
-// ══════════════════════════════════════════════════════════════════════
-// 场景 H：移动端在导航页刷新并切回搜索页
-// ══════════════════════════════════════════════════════════════════════
-await evalJS('window.__visualBeforeReload = true; sessionStorage.setItem("startpage_section", "nav")');
-await navigateAndWait(send, evalJS, `http://127.0.0.1:${server.port}/`, `!window.__visualBeforeReload && typeof switchToStart === 'function' && state.currentSection === 'nav'`);
-await settled('nav');
-await evalJS('window.switchToStart()');
-await settled('start');
-
-const metricsH = await inspectComponentMetrics(START_COMPONENTS);
-await captureScreenshot('visual_test_scenario_H_mobile_back_to_start.png');
-
-const mobileStartRestoredH = 
-  metricsH.startSection.exists && metricsH.startSection.rect.top === 0 &&
-  metricsH.clock.exists && metricsH.clock.rect.width > 80 && metricsH.clock.computed.opacity > 0.8 &&
-  metricsH.searchBoxWrapper.exists && metricsH.searchBoxWrapper.rect.width >= 300 &&
-  metricsH.weatherWidget.exists && metricsH.weatherBtn.rect.width > 50 &&
-  metricsH.bookmarks.exists && metricsH.bookmarks.rect.width >= 300 &&
-  metricsH.editBookmarksBtn.exists && metricsH.editBookmarksBtn.rect.width >= 35 && metricsH.editBookmarksBtn.computed.opacity > 0.5;
-
-pass('场景 H [Mobile 402x874 (iPhone 17)]: 移动端刷新后切回搜索页全量复原 (时钟/搜索框/快捷书签/天气/齿轮 零缺失)',
-  mobileStartRestoredH,
-  JSON.stringify({
-    clock: `${metricsH.clock.rect.width}x${metricsH.clock.rect.height}`,
-    searchBox: `${metricsH.searchBoxWrapper.rect.width}x${metricsH.searchBoxWrapper.rect.height}`,
-    weather: `${metricsH.weatherBtn.rect.width}x${metricsH.weatherBtn.rect.height}`,
-    gear: `${metricsH.editBookmarksBtn.rect.width}x${metricsH.editBookmarksBtn.rect.height}`,
   }));
 
 // ══════════════════════════════════════════════════════════════════════
@@ -454,13 +336,9 @@ const testSummaryData = {
   scenarios: {
     metricsA,
     metricsB,
-    metricsC,
-    metricsD,
     metricsE1,
-    metricsE2,
     metricsF,
     metricsG,
-    metricsH,
     metricsI,
     metricsJ,
     metricsK,

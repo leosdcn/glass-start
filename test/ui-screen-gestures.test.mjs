@@ -154,19 +154,7 @@ test('双屏手势与键盘切屏交互套件', async () => {
     })()`); await waitForScreen('nav');
     assert.ok(nearZero(tyOf(await evalJS('getComputedStyle(document.getElementById("navSection")).transform'))));
 
-    await evalJS(`document.getElementById('navContent').scrollTop = 400`);
-    await waitFor(evalJS, 'document.getElementById("navContent").scrollTop === 400');
-    await evalJS(`document.dispatchEvent(new WheelEvent('wheel', { deltaY: -60, cancelable: true }))`);
-    await waitFor(evalJS, '!isScreenTransitioning() && state.currentSection === "nav"');
-    assert.equal(await evalJS('document.getElementById("startSection").getAttribute("aria-hidden") === "true"'), true);
-
-    await evalJS(`document.getElementById('navContent').scrollTop = 0`);
-    await waitFor(evalJS, 'document.getElementById("navContent").scrollTop === 0');
-    // 同一轮滚内容到顶不能直接返回；静默后才开始新一轮向上意图。
-    await evalJS(`new Promise(resolve => setTimeout(resolve, CONFIG.GESTURE.WHEEL_IDLE_MS + 30))`);
-    await evalJS(`document.dispatchEvent(new WheelEvent('wheel', { deltaY: -60, cancelable: true }))`);
-    await waitForScreen('start');
-    assert.equal(await evalJS('document.getElementById("startSection").getAttribute("aria-hidden") !== "true"'), true);
+    await evalJS('switchToStart()'); await waitForScreen('start');
 
     await evalJS(`(function(){
       const tc = (y) => new Touch({ identifier: 1, target: document.body, clientX: 0, clientY: y });

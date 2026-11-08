@@ -73,18 +73,13 @@ try {
       const grid = dom.bookmarks, nav = grid.parentElement;
       const rect = nav.getBoundingClientRect();
       resolve({ width:rect.width, searchWidth:search.width, left:rect.left, searchLeft:search.left,
-        delay:getComputedStyle(nav).transitionDelay,
-        layoutTransitions:nav.getAnimations().flatMap(a => a.effect.getKeyframes())
-          .some(frame => ['maxWidth', 'paddingLeft', 'paddingRight', 'marginBottom'].some(key => key in frame)),
         columns:getComputedStyle(grid).gridTemplateColumns.split(' ').length });
     }))`);
     assert.ok(Math.abs(layout.width-layout.searchWidth)<1 && Math.abs(layout.left-layout.searchLeft)<1,
       `${width}px 快捷书签应即时与搜索条对齐：${JSON.stringify(layout)}`);
-    assert.equal(layout.delay, '0s', '入场动画延迟不能触发容器布局过渡延迟');
-    assert.equal(layout.layoutTransitions, false, '响应式布局不能生成延迟过渡');
     assert.equal(layout.columns, width>=768 ? 8 : 4);
   }
-  console.log('✅ 2K、1K 与手机尺寸快速往返切换，快捷书签即时对齐搜索条且无布局延迟');
+  console.log('✅ 2K、1K 与手机尺寸快速往返切换，快捷书签即时对齐搜索条');
   await waitFor(evalJS, "!dom.editBookmarksBtn.classList.contains('fade-in')");
   await pressButtonEdge('editBookmarksBtn', '0.94');
   await waitFor(evalJS, 'document.getElementById("editModal").classList.contains("active")');

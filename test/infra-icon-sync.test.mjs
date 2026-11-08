@@ -1,58 +1,15 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync, existsSync, readdirSync, renameSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync, existsSync, readdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join, dirname } from 'node:path';
+import { join } from 'node:path';
 import { spawnSync, execFileSync } from 'node:child_process';
-import vm from 'node:vm';
 
-let hasSips = false;
-try {
-  const check = spawnSync('sips', ['--version'], { stdio: 'ignore' });
-  hasSips = check.status === 0;
-} catch {
-  hasSips = false;
-}
+const hasSips = spawnSync('sips', ['--version'], { stdio: 'ignore' }).status === 0;
 
-if (!hasSips) {
-  console.log('⚠️ 当前环境未检测到 sips（通常仅 macOS 支持），跳过图标同步与规范化套件');
-  process.exit(0);
-}
-
-test('图标正方形 1:1 填充、超限缩放与异常容错规范化', () => {
-  const source = readFileSync(new URL('../scripts/sync-icons.mjs', import.meta.url), 'utf8');
-  const implementation = source.slice(source.indexOf('function saveAsPng('), source.indexOf('\nasync function runConcurrent'));
-  const context = { Buffer, mkdtempSync, readFileSync, writeFileSync, rmSync, renameSync, join, dirname, execFileSync };
-  const normalize = vm.runInNewContext(`(${implementation})`, context);
-  const workDir = mkdtempSync(join(tmpdir(), 'glass-icon-regression-'));
-  try {
-    const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+j1ioAAAAASUVORK5CYII=', 'base64');
-    const input = join(workDir, 'rectangle.png'), output = join(workDir, 'icon.png');
-    writeFileSync(input, png);
-    execFileSync('sips', ['-z', '19', '16', input], { stdio: 'ignore' });
-    assert.equal(normalize(readFileSync(input), output), true);
-    const square = readFileSync(output);
-    assert.equal(square.readUInt32BE(16), 19);
-    assert.equal(square.readUInt32BE(20), 19);
-
-    execFileSync('sips', ['-z', '256', '128', input], { stdio: 'ignore' });
-    assert.equal(normalize(readFileSync(input), output), true);
-    const capped = readFileSync(output);
-    assert.equal(capped.readUInt32BE(16), 128);
-    assert.equal(capped.readUInt32BE(20), 128);
-
-    assert.equal(normalize(Buffer.from('not an image'), output), false);
-    assert.deepEqual(readFileSync(output), capped);
-    const unavailable = vm.runInNewContext(`(${implementation})`, { ...context, execFileSync: () => { throw new Error('sips unavailable'); } });
-    assert.equal(unavailable(png, output), false);
-    assert.deepEqual(readFileSync(output), capped);
-    assert.equal(readdirSync(workDir).some(name => name.startsWith('.icon-sync-')), false);
-  } finally {
-    rmSync(workDir, { recursive: true, force: true });
-  }
-});
-
-test('图标 CLI 同步拉取、缓存复用、坏数据自愈与失败回滚', () => {
+test('图标 CLI 下载、尺寸规范化、缓存修复与失败回滚', {
+  skip: hasSips ? false : '需要 macOS sips'
+}, () => {
   const root = mkdtempSync(join(tmpdir(), 'glass-icon-sync-'));
   const png = readFileSync(new URL('../public/icons/github.com.png', import.meta.url));
   const transport = `import { EventEmitter } from 'node:events';
@@ -62,11 +19,12 @@ export default { get(url, options, callback) {
   const request = new EventEmitter();
   request.setTimeout = () => request;
   queueMicrotask(() => {
-    if (process.env.ICON_FAIL === '1') { request.emit('error', new Error('offline')); return; }
+    if (process.env.ICON_FAIL === 'network') { request.emit('error', new Error('offline')); return; }
     const response = new EventEmitter();
     response.statusCode = 200; response.headers = {};
     callback(response);
-    response.emit('data', Buffer.from(process.env.ICON_PNG, 'base64'));
+    const image = url.startsWith('https://t2.gstatic.com/') ? process.env.ICON_SMALL_PNG : process.env.ICON_LARGE_PNG;
+    response.emit('data', process.env.ICON_FAIL === 'image' ? Buffer.from('not an image') : Buffer.from(image, 'base64'));
     response.emit('end');
   });
   return request;
@@ -79,17 +37,26 @@ export default { get(url, options, callback) {
   const s2Url = 'https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https%3A%2F%2Fexample.test&size=128';
   const officialUrl = 'https://img.alicdn.com/imgextra/i4/O1CN01OXv3EM1FN8t9W4P79_!!6000000000474-2-tps-80-80.png';
 
-  function run(args = [], fail = false) {
-    writeFileSync(log, '');
-    const result = spawnSync(process.execPath, [join(root, 'scripts/sync-icons.mjs'), ...args], {
-      cwd: root, encoding: 'utf8',
-      env: { ...process.env, ICON_REQUEST_LOG: log, ICON_PNG: png.toString('base64'), ICON_FAIL: fail ? '1' : '0' }
-    });
-    const requests = readFileSync(log, 'utf8').trim().split('\n').filter(Boolean);
-    return { ...result, requests };
+  function resizedPng(name, height, width) {
+    const path = join(root, name);
+    writeFileSync(path, png);
+    execFileSync('sips', ['-z', String(height), String(width), path], { stdio: 'ignore' });
+    return readFileSync(path).toString('base64');
   }
 
   try {
+    const smallPng = resizedPng('small.png', 19, 16);
+    const largePng = resizedPng('large.png', 256, 128);
+    function run(args = [], failure = '') {
+      writeFileSync(log, '');
+      const result = spawnSync(process.execPath, [join(root, 'scripts/sync-icons.mjs'), ...args], {
+        cwd: root, encoding: 'utf8',
+        env: { ...process.env, ICON_REQUEST_LOG: log, ICON_SMALL_PNG: smallPng, ICON_LARGE_PNG: largePng, ICON_FAIL: failure }
+      });
+      const requests = readFileSync(log, 'utf8').trim().split('\n').filter(Boolean);
+      return { ...result, requests };
+    }
+
     mkdirSync(join(root, 'scripts'));
     mkdirSync(icons, { recursive: true });
     writeFileSync(join(root, 'scripts/sync-icons.mjs'), script);
@@ -108,7 +75,8 @@ export default { get(url, options, callback) {
     const missing = run();
     assert.equal(missing.status, 0, missing.stdout + missing.stderr);
     assert.deepEqual(missing.requests, [s2Url]);
-    assert.equal(existsSync(normal), true);
+    const small = readFileSync(normal);
+    assert.deepEqual([small.readUInt32BE(16), small.readUInt32BE(20)], [19, 19]);
 
     // 保留合法文件头的截断 PNG 也必须修复
     writeFileSync(normal, png.subarray(0, 24));
@@ -128,14 +96,17 @@ export default { get(url, options, callback) {
     assert.equal(refresh.status, 0, refresh.stdout + refresh.stderr);
     assert.deepEqual(refresh.requests.sort(), [officialUrl, s2Url].sort());
     assert.equal(existsSync(normal), true);
-    assert.equal(existsSync(official), true);
+    const large = readFileSync(official);
+    assert.deepEqual([large.readUInt32BE(16), large.readUInt32BE(20)], [128, 128]);
 
     const originalNormal = readFileSync(normal);
     const originalOfficial = readFileSync(official);
-    const failed = run(['--refresh'], true);
-    assert.equal(failed.status, 1, failed.stdout + failed.stderr);
-    assert.deepEqual(readFileSync(normal), originalNormal);
-    assert.deepEqual(readFileSync(official), originalOfficial);
+    for (const failure of ['network', 'image']) {
+      const failed = run(['--refresh'], failure);
+      assert.equal(failed.status, 1, failed.stdout + failed.stderr);
+      assert.deepEqual(readFileSync(normal), originalNormal);
+      assert.deepEqual(readFileSync(official), originalOfficial);
+    }
 
     writeFileSync(official, Buffer.from('broken'));
     const repairOfficial = run();

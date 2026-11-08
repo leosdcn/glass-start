@@ -15,7 +15,6 @@
     "test:data": "node test/run.mjs data",
     "test:infra": "node test/run.mjs infra",
     "test:lifecycle": "node test/run.mjs lifecycle",
-    "test:all": "node test/run.mjs",
     "test:visual": "node test/visual-regression.mjs",
     "lint": "node scripts/lint.mjs",
     "lint:fix": "node scripts/lint.mjs --fix",
