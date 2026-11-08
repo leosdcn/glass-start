@@ -188,8 +188,9 @@ test('预报图标或描述独立变化更新界面，相同内容仍复用', ()
     assert.equal(f.htmlWrites, 3);
 });
 
-test('读取中的旧上传不能覆盖后选预设，保存等待新上传处理和落盘', async () => {
+test('读取中的旧上传不能覆盖后选预设，保存等待新上传处理', async () => {
     const f = fixture(), { app } = f;
+    app.modalState.phase = 'editing';
     app.uploadWallpaper({ type: 'image/png' });
     const lateRead = f.readers[0].onload;
     await app.previewDraftWallpaper(app.backgrounds[2]);
@@ -197,8 +198,8 @@ test('读取中的旧上传不能覆盖后选预设，保存等待新上传处�
     await drain();
     assert.equal(f.readers[0].readyState, 2);
     assert.equal(f.images.length, 0);
-    assert.equal(app.state.bg, 2);
-    assert.equal(f.writes.length, 1);
+    assert.equal(app.modalState.draftWallpaper, app.backgrounds[2]);
+    assert.equal(f.writes.length, 0);
     app.uploadWallpaper({ type: 'image/png' });
     let saved = false;
     const saving = app.flushWallpaperSelection().then(result => { saved = result; });
@@ -208,12 +209,13 @@ test('读取中的旧上传不能覆盖后选预设，保存等待新上传处�
     f.images[0].onload();
     await saving;
     assert.equal(saved, true);
-    assert.equal(app.state.customWallpaper, 'data:image/jpeg;base64,upload1');
-    assert.equal(f.writes.at(-1).wallpaper, app.state.customWallpaper);
+    assert.equal(app.modalState.draftWallpaper, 'data:image/jpeg;base64,upload1');
+    assert.equal(f.writes.length, 0);
 });
 
 test('解码中的旧上传、旧错误回调不能覆盖新上传或重置', async () => {
     const f = fixture(), { app } = f;
+    app.modalState.phase = 'editing';
     app.uploadWallpaper({ type: 'image/png' });
     f.readers[0].complete('data:image/png;base64,old');
     const oldLoad = f.images[0].onload, oldError = f.images[0].onerror;
@@ -223,8 +225,8 @@ test('解码中的旧上传、旧错误回调不能覆盖新上传或重置', as
     await app.flushWallpaperSelection();
     oldLoad(); oldError();
     await drain();
-    assert.equal(f.writes.length, 1);
-    assert.equal(app.state.customWallpaper, 'data:image/jpeg;base64,upload1');
+    assert.equal(f.writes.length, 0);
+    assert.equal(app.modalState.draftWallpaper, 'data:image/jpeg;base64,upload1');
     app.uploadWallpaper({ type: 'image/png' });
     const lateRead = f.readers[2].onload;
     await app.clearCustomWallpaper();
@@ -236,6 +238,7 @@ test('解码中的旧上传、旧错误回调不能覆盖新上传或重置', as
 
 test('读取或压缩失败结束保存等待，重新选择可恢复', async () => {
     const f = fixture(), { app } = f;
+    app.modalState.phase = 'editing';
     app.uploadWallpaper({ type: 'image/png' });
     f.readers[0].onerror();
     assert.equal(await app.flushWallpaperSelection(), false);
@@ -251,15 +254,14 @@ test('读取或压缩失败结束保存等待，重新选择可恢复', async ()
     f.context.document.createElement = create;
     await app.previewDraftWallpaper(app.backgrounds[1]);
     assert.equal(await app.flushWallpaperSelection(), true);
-    assert.equal(app.state.bg, 1);
+    assert.equal(app.modalState.draftWallpaper, app.backgrounds[1]);
 });
 
 test('取消设置终止读取或处理中的上传，迟到回调不渲染或保存', async () => {
     for (const phase of ['read', 'image']) {
         const f = fixture(), { app } = f;
-        app.state.editOpen = true;
+        app.modalState.phase = 'editing';
         app.state.bg = 2;
-        app.modalState.initialWallpaper = app.backgrounds[2];
         app.uploadWallpaper({ type:'image/png' });
         let late;
         if (phase === 'read') {
@@ -270,7 +272,7 @@ test('取消设置终止读取或处理中的上传，迟到回调不渲染或�
             late = f.images[0].onload;
         }
         app.revertDraftWallpaper();
-        app.state.editOpen = false;
+        app.modalState.phase = 'closed';
         late();
         await app.flushWallpaperSelection();
         assert.equal(f.writes.length, 0, phase);

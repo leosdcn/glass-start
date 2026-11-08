@@ -74,8 +74,8 @@ export interface AppState {
     currentSection: 'start' | 'nav';
 
     /* --- UI 交互与弹窗 (UI Controls) --- */
-    /** 编辑书签弹窗是否打开（用于屏蔽滚轮切屏与键盘快捷键） */
-    editOpen: boolean;
+    /** 是否已有打开中或可见的设置会话 */
+    readonly editOpen: boolean;
 
     /* --- 壁纸运行时 (Wallpaper Runtime) --- */
     /** 当前壁纸在 backgrounds 数组中的索引 */
@@ -84,15 +84,12 @@ export interface AppState {
     customWallpaper: string | null;
 }
 
-/** 设置弹窗内部草稿状态机与快照备份 */
+/** 设置会话阶段与草稿 */
 export interface ModalState {
-    initialWallpaper: string | null;
-
-    draftWallpaper: string | null | undefined;
+    phase: 'closed' | 'opening' | 'editing' | 'preparing-save' | 'committing';
+    draftWallpaper: string | null;
     draftMaskOpacity: number | null;
     draftBookmarks: DraftBookmarkItem[];
-    committing: boolean;
-    wallpaperSaveFailed: boolean;
     bookmarksChanged: boolean;
     draftLanguage: string;
     draftTransitionMode: string;

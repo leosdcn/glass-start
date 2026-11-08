@@ -11,31 +11,25 @@ export const state = {
     // 路由与可见视图
     currentSection: 'start',  // 当前可见屏：'start'（起始页）或 'nav'（导航页）
     // UI 交互与弹窗
-    editOpen: false,          // 编辑书签弹窗是否打开（用于屏蔽滚轮切屏与键盘快捷键）
+    get editOpen() { return modalState.phase !== 'closed'; },
     // 壁纸运行时
     bg: 0,                    // 当前壁纸在 backgrounds 数组中的索引
     customWallpaper: null     // 当前生效的自定义壁纸 Data URL 或图片 URL
 };
 
 /**
- * 设置弹窗草稿与快照备份状态
+ * 设置会话阶段与草稿
  * 采用内存草稿隔离模式：取消丢弃未提交草稿，保存按项清洗并持久化，已保存项目不回滚。
  * @type {import('../types').ModalState}
  */
 export const modalState = {
-    // — 1. 壁纸回退快照（设置模块打开时建立，壁纸提交成功后更新）—
-    initialWallpaper: null,       // 取消时可恢复的已保存壁纸路径或自定义图片字符串
-
-    // — 2. 内存草稿值（面板内编辑中的暂存值，点击“完成”时按序提交至 LocalStorage / IndexedDB）—
-    draftWallpaper: undefined,    // 草稿壁纸选择：预设路径或自定义图片字符串，null 恢复默认，undefined 未修改
+    phase: 'closed',
+    draftWallpaper: null,        // 成功准备的预设路径或自定义图片字符串
     draftMaskOpacity: null,       // 背景遮罩暗度百分比草稿（0-80），null 表示未修改
     draftBookmarks: [],           // 书签编辑草稿列表（内存数组驱动，由 bookmark-draft 模块封装维护）
     draftLanguage: 'auto',        // 界面语言草稿（'auto' / 'zh-CN' / 'en'）
     draftTransitionMode: 'sheet', // 切屏模式草稿（'sheet' / 'classic'）
 
-    // — 3. UI 交互与脏检查标记（仅在弹窗生命周期内有效，不持久化）—
-    committing: false,            // 正在提交设置；由业务状态驱动取消与编辑限制
-    wallpaperSaveFailed: false,   // 壁纸准备或保存失败标记（保存设置前需重新选择）
     bookmarksChanged: false       // 书签列表是否存在未保存的脏变更标记
 };
 

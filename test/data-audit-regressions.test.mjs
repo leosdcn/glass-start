@@ -63,11 +63,11 @@ test('数据容错、搜索联想与网络降级回归', async () => {
     })()`);
     assert.deepEqual(activation, { selected: 1, retained: true, usesModel: true });
 
-    await evalJS(`previewDraftWallpaper(location.origin + '/audit-slow.png'); previewDraftWallpaper(backgrounds[2]);`);
+    await evalJS(`selectWallpaper(location.origin + '/audit-slow.png'); selectWallpaper(backgrounds[2]);`);
     await waitFor(evalJS, 'state.bg === 2 && !state.customWallpaper');
     await new Promise(resolve => setTimeout(resolve, 550));
-    assert.equal(await evalJS('state.bg === 2 && !state.customWallpaper && modalState.draftWallpaper === backgrounds[2]'), true);
-    await evalJS(`previewDraftWallpaper(location.origin + '/audit-broken.png'); resetDraftWallpaper();`);
+    assert.equal(await evalJS('state.bg === 2 && !state.customWallpaper && modalState.draftWallpaper === null'), true);
+    await evalJS(`selectWallpaper(location.origin + '/audit-broken.png'); selectWallpaper(null);`);
     await waitFor(evalJS, 'state.bg === 0 && !state.customWallpaper');
     await new Promise(resolve => setTimeout(resolve, 550));
     assert.equal(await evalJS("OverlayStack.top()?.id !== 'confirmModal' && !state.customWallpaper"), true);
@@ -188,8 +188,8 @@ test('历史工单缺陷回归 (GS-01 ~ GS-15 焦点、导入、存储配额与�
       await openEditModal(); await previewDraftWallpaper(backgrounds[1]);
       const before = JSON.stringify(await getWallpaperSelectionDB());
       uploadWallpaper(new File(['broken-image'], 'broken.png', { type: 'image/png' }));
-      await flushWallpaperSelection();
-      return { failed: modalState.wallpaperSaveFailed, same: before === JSON.stringify(await getWallpaperSelectionDB()) };
+      const prepared = await flushWallpaperSelection();
+      return { failed: !prepared, same: before === JSON.stringify(await getWallpaperSelectionDB()) };
     })()`);
     assert.deepEqual(upload, { failed: true, same: true });
     await evalJS('dom.confirmOkBtn.click(); cancelEditModal()');

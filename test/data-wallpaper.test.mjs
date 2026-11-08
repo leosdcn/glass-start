@@ -191,6 +191,8 @@ test('壁纸解码、迟到结果隔离与上传压缩', async () => {
           await new Promise(r => setTimeout(r, 20));
         }
       };
+      await openEditModal();
+      document.getElementById('tab-btn-appearance').click();
       const input = dom.uploadBgInput;
       const put = file => {
         const dt = new DataTransfer();
@@ -215,14 +217,17 @@ test('壁纸解码、迟到结果隔离与上传压缩', async () => {
       const before = state.customWallpaper;
       try {
         put(new File([blob], 'large.png', { type: 'image/png' }));
-        await wait(() => state.customWallpaper !== before && state.customWallpaper?.startsWith('data:image/jpeg'));
+        await wait(() => modalState.draftWallpaper?.startsWith('data:image/jpeg'));
+        const previewOnly = state.customWallpaper === before;
+        await saveEditModal();
         const fit = compressed.width <= CONFIG.APPEARANCE.MAX_UPLOAD_WIDTH
           && compressed.height <= CONFIG.APPEARANCE.MAX_UPLOAD_HEIGHT
           && Math.abs(compressed.width / compressed.height - 1.5) < 0.01;
         return {
-          invalidBlocked, fit, jpeg: compressed.type === 'image/jpeg',
+          invalidBlocked, previewOnly, fit, jpeg: compressed.type === 'image/jpeg',
           quality: compressed.quality === CONFIG.APPEARANCE.JPEG_QUALITY,
-          persisted: ((await getWallpaperSelectionDB())?.wallpaper ?? null) === state.customWallpaper,
+          persisted: state.customWallpaper?.startsWith('data:image/jpeg') &&
+            (await getWallpaperSelectionDB())?.wallpaper === state.customWallpaper,
           inputCleared: input.value === ''
         };
       } finally {

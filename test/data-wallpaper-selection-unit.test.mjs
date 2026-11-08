@@ -11,7 +11,7 @@ const { outputFiles } = await build({
     bundle: true, write: false, format: 'cjs', platform: 'node',
     plugins: [{ name: 'browser-boundaries', setup(b) {
         b.onLoad({ filter: /utils\/idb\.js$/ }, () => ({ contents: `
-            export async function getWallpaperSelectionDB(){return db.value}
+            export async function getWallpaperSelectionDB(){if(db.readGate) await db.readGate;return db.value}
             export async function setWallpaperSelectionDB(selection){
                 db.attempts++; if(db.gate) await db.gate;
                 if(db.fail) return false;
@@ -58,7 +58,7 @@ function fixture() {
     return { app: context.module.exports, images, db, metrics, messages, base, next,
         async selectPreset(url) {
             const before = images.length;
-            const pending = context.module.exports.previewDraftWallpaper(url);
+            const pending = context.module.exports.selectWallpaper(url);
             if (images.length > before) await images.at(-1).onload();
             return pending;
         },
@@ -75,19 +75,19 @@ test('同一网络壁纸只创建和解码一张图片，预览、渲染及并�
     const f = fixture();
     let release;
     f.db.gate = new Promise(resolve => { release = resolve; });
-    const first = f.app.previewDraftWallpaper(url);
-    assert.equal(f.app.previewDraftWallpaper(url), first);
+    const first = f.app.selectWallpaper(url);
+    assert.equal(f.app.selectWallpaper(url), first);
     assert.equal(f.images.length, 1);
     await f.images[0].onload();
     await drain();
-    assert.equal(f.app.previewDraftWallpaper(url), first, '落盘期间也应复用原任务');
+    assert.equal(f.app.selectWallpaper(url), first, '落盘期间也应复用原任务');
     assert.equal(f.metrics.decodes, 1);
     assert.equal(f.images.length, 1, '正式渲染不得重新创建图片');
     release();
     assert.equal(await first, true);
     f.settleFade();
     const storageWrites = f.metrics.storageWrites;
-    assert.equal(await f.app.previewDraftWallpaper(url), true);
+    assert.equal(await f.app.selectWallpaper(url), true);
     assert.equal(f.images.length, 1);
     assert.equal(f.metrics.decodes, 1);
     assert.equal(f.db.attempts, 1);
@@ -121,28 +121,28 @@ test('其他标签改写后再次选择会重新保存，不错误命中内存�
 test('网络或解码失败释放任务，重试能重新准备并保存', async () => {
     for (const decodeFailure of [false, true]) {
         const f = fixture();
-        const failed = f.app.previewDraftWallpaper(url);
+        const failed = f.app.selectWallpaper(url);
         if (decodeFailure) { f.images[0].broken = true; await f.images[0].onload(); }
         else f.images[0].onerror();
         assert.equal(await failed, false);
         assert.equal(f.db.attempts, 0);
-        const retry = f.app.previewDraftWallpaper(url);
+        const retry = f.app.selectWallpaper(url);
         assert.equal(f.images.length, 2);
         await f.images[1].onload();
         assert.equal(await retry, true);
         assert.equal(f.db.writes, 1);
-        assert.equal(f.app.modalState.wallpaperSaveFailed, false);
+        assert.equal(await f.app.flushWallpaperSelection(), true);
     }
 });
 
 test('存储失败可重试；重试复用已准备的网络图片', async () => {
     const f = fixture(); f.db.fail = true;
-    const first = f.app.previewDraftWallpaper(url);
+    const first = f.app.selectWallpaper(url);
     await f.images[0].onload();
     assert.equal(await first, false);
     assert.equal(f.db.writes, 0);
     f.db.fail = false;
-    assert.equal(await f.app.previewDraftWallpaper(url), true);
+    assert.equal(await f.app.selectWallpaper(url), true);
     assert.equal(f.images.filter(img => img.src === url).length, 1);
     assert.equal(f.db.attempts, 2);
     assert.equal(f.db.writes, 1);
@@ -150,7 +150,7 @@ test('存储失败可重试；重试复用已准备的网络图片', async () =>
 
 test('旧网络图片解码迟到或被重置，不触发渲染或持久化', async () => {
     const f = fixture(); let release;
-    const first = f.app.previewDraftWallpaper(url);
+    const first = f.app.selectWallpaper(url);
     f.images[0].decodeGate = new Promise(resolve => { release = resolve; });
     const loading = f.images[0].onload();
     await f.selectPreset(f.app.backgrounds[2]);
@@ -160,7 +160,7 @@ test('旧网络图片解码迟到或被重置，不触发渲染或持久化', as
     assert.equal(f.db.value.bg, 2);
     assert.equal(f.db.writes, 1);
     assert.match(f.base.style.backgroundImage, /bg3\.avif/);
-    const cancelled = f.app.previewDraftWallpaper(url);
+    const cancelled = f.app.selectWallpaper(url);
     await f.app.clearCustomWallpaper();
     assert.equal(await cancelled, false);
     assert.equal(f.messages.length, 0);
@@ -170,11 +170,45 @@ test('预设加载失败保留此前记录，恢复后可以重试', async () =>
     const f = fixture();
     await f.selectPreset(f.app.backgrounds[1]);
     const before = JSON.stringify(f.db.value);
-    const failed = f.app.previewDraftWallpaper(f.app.backgrounds[7]);
+    const failed = f.app.selectWallpaper(f.app.backgrounds[7]);
     f.images.at(-1).onerror();
     assert.equal(await failed, false);
     assert.equal(JSON.stringify(f.db.value), before);
     assert.equal(f.app.state.bg, 1);
     assert.equal(await f.selectPreset(f.app.backgrounds[7]), true);
     assert.equal(f.db.value.bg, 7);
+});
+
+test('设置打开取消仍在准备的快捷键选择，并等待已开始的写入', async () => {
+    for (const phase of ['reading', 'loading', 'writing']) {
+        const f = fixture();
+        let release;
+        f.db[phase === 'reading' ? 'readGate' : 'gate'] = new Promise(resolve => { release = resolve; });
+        const live = f.app.switchBg();
+        await drain();
+        const load = f.images[0]?.onload;
+        if (phase === 'writing') {
+            await load();
+            await drain();
+            assert.equal(f.db.attempts, 1);
+        }
+
+        f.app.modalState.phase = 'opening';
+        let opened = false;
+        const draft = f.app.prepareWallpaperDraft(() => true).then(url => {
+            opened = true;
+            return url;
+        });
+        await drain();
+        if (phase === 'writing') assert.equal(opened, false);
+        release();
+        const expected = f.app.backgrounds[phase === 'writing' ? 1 : 0];
+        assert.equal(await draft, expected);
+        assert.equal(await live, phase === 'writing');
+        if (phase === 'loading') await load();
+        if (phase === 'reading') assert.equal(f.images.length, 0);
+        assert.equal(f.app.modalState.draftWallpaper, null);
+        assert.equal(f.app.getCommittedWallpaperUrl(), expected);
+        assert.equal(f.db.writes, phase === 'writing' ? 1 : 0);
+    }
 });

@@ -6,7 +6,7 @@
 import { t, getLanguagePreference } from '../core/i18n.js';
 import { updateAllBookmarkCounters, renderEditList, collectEditData } from './bookmark-editor.js';
 import { showConfirm } from '../core/dialogs.js';
-import { CONFIG, backgrounds, IS_MAC } from '../config/constants.js';
+import { CONFIG, IS_MAC } from '../config/constants.js';
 import { DEFAULT_ENGINE } from '../config/engines.js';
 import { escapeHtml, safeUrl } from '../utils/helpers.js';
 import { normalizeUrl, normalizeBookmark } from '../utils/bookmark-model.js';
@@ -15,8 +15,7 @@ import { state, modalState, pageData } from '../state/store.js';
 import { replaceBookmarkDraft } from '../state/bookmark-draft.js';
 import { dom } from '../state/dom.js';
 import { OverlayStack } from '../core/overlay-stack.js';
-import { applyWallpaper } from '../core/wallpaper-renderer.js';
-import { flushWallpaperSelection, getEffectiveCustomWallpaper, updateWallpaperStatusUI, updatePresetBgCardsUI, clearCustomWallpaper, renderPresetWallpapers, commitWallpaperSelection, revertDraftWallpaper, applyBgEffects, flushBgEffects } from './wallpaper.js';
+import { flushWallpaperSelection, prepareWallpaperDraft, getCommittedWallpaperUrl, discardWallpaperSelection, showWallpaperDraft, updateWallpaperStatusUI, updatePresetBgCardsUI, clearCustomWallpaper, renderPresetWallpapers, commitWallpaperSelection, revertDraftWallpaper, applyBgEffects, flushBgEffects } from './wallpaper.js';
 import { saveUserBookmarks, resetUserBookmarks } from './bookmarks.js';
 import { closeDropdown, hideSuggestions, setEngine } from './search.js';
 import { getTransitionMode, syncTransitionSwitcherActive, setTransitionMode } from '../core/screen-state.js';
@@ -79,12 +78,23 @@ let cachedSettingsTabs = null;
 /** @type {NodeListOf<HTMLElement> | null} */
 let cachedSettingsPanels = null;
 
-/** 提交状态是业务判断的唯一来源，控件仅反映该状态。 @param {boolean} committing */
-function setEditCommitting(committing) {
-    modalState.committing = committing;
+/** @param {import('../types').ModalState['phase']} phase */
+function setEditPhase(phase) {
+    modalState.phase = phase;
+    const committing = phase === 'committing';
+    const saving = committing || phase === 'preparing-save';
+    if (dom.saveEditBtn) {
+        dom.saveEditBtn.disabled = saving;
+        if (saving) dom.saveEditBtn.setAttribute('aria-busy', 'true');
+        else dom.saveEditBtn.removeAttribute('aria-busy');
+    }
     if (dom.cancelEditBtn) dom.cancelEditBtn.disabled = committing;
     if (dom.languageBtn) dom.languageBtn.disabled = committing;
     cachedSettingsPanels?.forEach(panel => { panel.inert = committing; });
+}
+
+function getSavedMaskOpacity() {
+    return storageGet(CONFIG.KEYS.MASK_OPACITY, CONFIG.APPEARANCE.DEFAULT_MASK_OPACITY);
 }
 
 /** @param {string} targetTabId */
@@ -119,17 +129,15 @@ export async function openEditModal() {
     hideSuggestions();
     const editBtn = dom.editBookmarksBtn;
     editBtn?.setAttribute('aria-expanded', 'true');
-    state.editOpen = true;
+    setEditPhase('opening');
     const requestId = ++editOpenRequestId;
     const trigger = document.activeElement;
-    const initialWallpaper = await getEffectiveCustomWallpaper();
-    if (!state.editOpen || requestId !== editOpenRequestId) return;
-    modalState.initialWallpaper = initialWallpaper || backgrounds[state.bg];
-
-    modalState.draftWallpaper = modalState.initialWallpaper;
-    modalState.draftMaskOpacity = storageGet(CONFIG.KEYS.MASK_OPACITY, CONFIG.APPEARANCE.DEFAULT_MASK_OPACITY);
+    const isCurrent = () => requestId === editOpenRequestId;
+    const wallpaper = await prepareWallpaperDraft(isCurrent);
+    if (!isCurrent()) return;
+    modalState.draftWallpaper = wallpaper;
+    modalState.draftMaskOpacity = getSavedMaskOpacity();
     modalState.draftTransitionMode = getTransitionMode();
-    modalState.wallpaperSaveFailed = false;
     modalState.draftLanguage = getLanguagePreference();
     syncLanguageUI();
     syncTransitionSwitcherActive(modalState.draftTransitionMode);
@@ -140,31 +148,31 @@ export async function openEditModal() {
     renderEditList();
     updateWallpaperStatusUI(modalState.draftWallpaper);
     applyBgEffects(modalState.draftMaskOpacity ?? CONFIG.APPEARANCE.DEFAULT_MASK_OPACITY);
+    setEditPhase('editing');
     OverlayStack.push('editModal', cancelEditModal, trigger);
 }
 
 export function cancelEditModal() {
     // 提交开始后不能恢复旧预览，否则会与已提交的设置不一致。
-    if (modalState.committing) return;
-    applyBgEffects(storageGet(CONFIG.KEYS.MASK_OPACITY, CONFIG.APPEARANCE.DEFAULT_MASK_OPACITY));
-    modalState.draftTransitionMode = getTransitionMode();
-    syncTransitionSwitcherActive(modalState.draftTransitionMode);
-    revertDraftWallpaper();
+    if (!state.editOpen || modalState.phase === 'committing') return;
+    if (modalState.phase !== 'opening') {
+        applyBgEffects(getSavedMaskOpacity());
+        modalState.draftTransitionMode = getTransitionMode();
+        syncTransitionSwitcherActive(modalState.draftTransitionMode);
+        revertDraftWallpaper();
+    }
     closeEditModal();
 }
 
 export function closeEditModal() {
+    if (!state.editOpen) return;
     closeLanguageModal();
     // 保存关闭时即使后台暂停了 rAF，也同步落定最后的预览；取消已先覆盖并清队列。
     flushBgEffects();
     cancelDragSort();
-    state.editOpen = false;
+    discardWallpaperSelection();
     editOpenRequestId++;
-    if (dom.saveEditBtn) {
-        dom.saveEditBtn.disabled = false;
-        dom.saveEditBtn.removeAttribute('aria-busy');
-    }
-    setEditCommitting(false);
+    setEditPhase('closed');
     OverlayStack.pop('editModal');
     const editBtn = dom.editBookmarksBtn;
     editBtn?.setAttribute('aria-expanded', 'false');
@@ -249,7 +257,7 @@ export function exportBookmarksJSON() {
  * @returns {void}
  */
 export function importBookmarksJSON(file) {
-    if (!file || !state.editOpen || modalState.committing) return;
+    if (!file || (modalState.phase !== 'editing' && modalState.phase !== 'preparing-save')) return;
     const sessionId = editOpenRequestId;
     const requestId = ++importRequestId;
     const isCurrent = () => state.editOpen && sessionId === editOpenRequestId && requestId === importRequestId;
@@ -303,21 +311,23 @@ export function importBookmarksJSON(file) {
  * @returns {void}
  */
 export function resetBookmarks() {
-    if (!state.editOpen || modalState.committing || dom.saveEditBtn?.disabled) return;
+    if (modalState.phase !== 'editing') return;
     const requestId = editOpenRequestId;
+    const isCurrent = () => requestId === editOpenRequestId;
     showConfirm(t('ui.restore.all.defaults.this.immediately.removes'), async () => {
-        if (!state.editOpen || requestId !== editOpenRequestId || modalState.committing || dom.saveEditBtn?.disabled) return;
+        if (!isCurrent() || modalState.phase !== 'editing') return;
         cancelDragSort();
         importRequestId++;
-        setEditCommitting(true);
-        if (dom.saveEditBtn) {
-            dom.saveEditBtn.disabled = true;
-            dom.saveEditBtn.setAttribute('aria-busy', 'true');
-        }
+        const previousLanguage = getLanguagePreference();
+        const pendingLanguage = modalState.draftLanguage !== previousLanguage ? modalState.draftLanguage : null;
+        const pendingMode = modalState.draftTransitionMode !== getTransitionMode() ? modalState.draftTransitionMode : null;
+        const pendingOpacity = modalState.draftMaskOpacity !== getSavedMaskOpacity() ? modalState.draftMaskOpacity : null;
+        const pendingWallpaper = modalState.draftWallpaper !== getCommittedWallpaperUrl() ? modalState.draftWallpaper : null;
+        setEditPhase('committing');
         try {
-            const wallpaperCleared = await clearCustomWallpaper(0);
+            const wallpaperCleared = await clearCustomWallpaper(0, isCurrent);
             // 内部关闭或重新打开设置后，旧重置不得清空新草稿或关闭新窗口。
-            if (!state.editOpen || requestId !== editOpenRequestId) return;
+            if (!isCurrent()) return;
             if (!wallpaperCleared) {
                 showConfirm(t('ui.could.not.clear.wallpaper.storage.your'), null, t('ui.reset.failed'));
                 return;
@@ -326,7 +336,6 @@ export function resetBookmarks() {
             const keys = ['PREFERRED_ENGINE', 'WALLPAPER_META', 'MASK_OPACITY',
                 'BG', 'NAV_DISCOVERED', 'WEATHER_CACHE', 'WEATHER_LOC',
                 'THEME_CACHE', 'TINT_CACHE', 'TRANSITION_MODE', 'LANGUAGE', 'TEMP_UNIT'];
-            const previousLanguage = getLanguagePreference();
             const removed = keys.map(key => storageRemove(CONFIG.KEYS[key]));
             refreshWeatherDisplay();
             const bookmarksReset = resetUserBookmarks();
@@ -334,18 +343,25 @@ export function resetBookmarks() {
             document.documentElement.dataset.transitionMode = mode;
             syncTransitionSwitcherActive(mode);
             modalState.draftTransitionMode = mode;
-            const opacity = storageGet(CONFIG.KEYS.MASK_OPACITY, CONFIG.APPEARANCE.DEFAULT_MASK_OPACITY);
+            const opacity = getSavedMaskOpacity();
             modalState.draftMaskOpacity = opacity;
             applyBgEffects(opacity);
             setEngine(storageGet(CONFIG.KEYS.PREFERRED_ENGINE, DEFAULT_ENGINE), false);
-            applyWallpaper(backgrounds[0], false);
             if (!bookmarksReset || removed.some(result => !result)) {
                 // 保留用户编辑；未编辑的列表随已落盘的重置结果更新。
                 if (!modalState.bookmarksChanged) replaceBookmarkDraft(pageData.bookmarks);
                 renderEditList();
-                modalState.draftWallpaper = null;
-                updateWallpaperStatusUI(null);
-                updatePresetBgCardsUI(null);
+                if (pendingWallpaper) showWallpaperDraft(pendingWallpaper);
+                else {
+                    modalState.draftWallpaper = getCommittedWallpaperUrl();
+                    updateWallpaperStatusUI(modalState.draftWallpaper);
+                    updatePresetBgCardsUI(modalState.draftWallpaper);
+                }
+                if (pendingOpacity !== null) previewDraftMaskOpacity(pendingOpacity);
+                modalState.draftTransitionMode = pendingMode ?? mode;
+                syncTransitionSwitcherActive(modalState.draftTransitionMode);
+                modalState.draftLanguage = pendingLanguage ?? getLanguagePreference();
+                syncLanguageUI();
                 showConfirm(t('ui.some.settings.could.not.be.cleared'), null, t('ui.reset.incomplete'));
                 return;
             }
@@ -355,7 +371,7 @@ export function resetBookmarks() {
                 dom.scrollDownHint.style.opacity = '';
             }
 
-            modalState.draftWallpaper = undefined;
+            modalState.draftWallpaper = null;
             modalState.draftMaskOpacity = null;
             replaceBookmarkDraft([]);
 
@@ -363,13 +379,7 @@ export function resetBookmarks() {
             closeEditModal();
             if (previousLanguage !== 'auto') location.reload();
         } finally {
-            if (requestId === editOpenRequestId) {
-                if (dom.saveEditBtn) {
-                    dom.saveEditBtn.disabled = false;
-                    dom.saveEditBtn.removeAttribute('aria-busy');
-                }
-                setEditCommitting(false);
-            }
+            if (isCurrent()) setEditPhase('editing');
         }
     }, t('ui.reset.all.settings'));
 }
@@ -383,15 +393,14 @@ export function resetBookmarks() {
  *   若中途某项持久化失败，已提交的项不会回滚，草稿保留在弹窗内以便用户排查或重试。
  */
 export async function saveEditModal() {
-    const saveBtn = dom.saveEditBtn;
-    if (!state.editOpen || modalState.committing || !saveBtn || saveBtn.disabled) return;
+    if (modalState.phase !== 'editing') return;
     const requestId = editOpenRequestId;
-    saveBtn.disabled = true;
-    saveBtn.setAttribute('aria-busy', 'true');
+    const isCurrent = () => requestId === editOpenRequestId;
+    setEditPhase('preparing-save');
     try {
         const wallpaperSaved = await flushWallpaperSelection();
         // 取消或重新打开设置后，旧保存任务不得提交草稿、弹提示或关闭新窗口。
-        if (!state.editOpen || requestId !== editOpenRequestId) return;
+        if (!isCurrent()) return;
         if (!wallpaperSaved) {
             showConfirm(t('ui.the.wallpaper.has.not.been.saved'), null, t('ui.could.not.save'));
             return;
@@ -407,16 +416,20 @@ export async function saveEditModal() {
         closeBookmarkPicker();
         cancelDragSort();
         importRequestId++;
-        setEditCommitting(true);
+        setEditPhase('committing');
 
         // 1. 提交书签
-        if (modalState.bookmarksChanged && !saveUserBookmarks(data, new Set(modalState.draftBookmarks.filter(item => item.customText).map(item => normalizeUrl(item.url))))) {
-            showConfirm(t('ui.could.not.save.bookmarks.your.draft'), null, t('ui.could.not.save'));
-            return;
+        if (modalState.bookmarksChanged) {
+            const customText = new Set(modalState.draftBookmarks.filter(item => item.customText).map(item => normalizeUrl(item.url)));
+            if (!saveUserBookmarks(data, customText)) {
+                showConfirm(t('ui.could.not.save.bookmarks.your.draft'), null, t('ui.could.not.save'));
+                return;
+            }
+            modalState.bookmarksChanged = false;
         }
 
         // 2. 提交背景暗度
-        if (modalState.draftMaskOpacity !== null) {
+        if (modalState.draftMaskOpacity !== null && modalState.draftMaskOpacity !== getSavedMaskOpacity()) {
             if (!storageSet(CONFIG.KEYS.MASK_OPACITY, modalState.draftMaskOpacity)) {
                 showConfirm(t('ui.could.not.save.background.dimming.your'), null, t('ui.could.not.save'));
                 return;
@@ -432,15 +445,14 @@ export async function saveEditModal() {
         }
 
         // 4. 提交壁纸草稿
-        if (modalState.draftWallpaper !== undefined && modalState.draftWallpaper !== modalState.initialWallpaper) {
+        if (modalState.draftWallpaper && modalState.draftWallpaper !== getCommittedWallpaperUrl()) {
             const targetBg = modalState.draftWallpaper;
-            const saved = await commitWallpaperSelection(targetBg, () => state.editOpen && requestId === editOpenRequestId);
-            if (!state.editOpen || requestId !== editOpenRequestId) return;
+            const saved = await commitWallpaperSelection(targetBg, isCurrent);
+            if (!isCurrent()) return;
             if (!saved) {
                 showConfirm(t('ui.could.not.save.the.wallpaper.your'), null, t('ui.wallpaper.not.saved'));
                 return;
             }
-            modalState.initialWallpaper = targetBg;
         }
 
         const languageChanged = modalState.draftLanguage !== getLanguagePreference();
@@ -451,11 +463,7 @@ export async function saveEditModal() {
         closeEditModal();
         if (languageChanged) location.reload();
     } finally {
-        if (requestId === editOpenRequestId) {
-            saveBtn.disabled = false;
-            saveBtn.removeAttribute('aria-busy');
-            setEditCommitting(false);
-        }
+        if (isCurrent()) setEditPhase('editing');
     }
 }
 

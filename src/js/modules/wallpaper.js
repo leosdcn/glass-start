@@ -72,40 +72,34 @@ export function flushBgEffects() {
     if (pendingBgEffects !== null) applyBgEffects(pendingBgEffects);
 }
 
-let wallpaperSelectionId = 0;
-/** @type {HTMLImageElement | null} */
-let pendingPreviewImage = null;
-let wallpaperCommitQueue = Promise.resolve();
-let latestSelectionPromise = Promise.resolve(true);
-/** @type {(() => void) | null} */
-let cancelPendingPreview = null;
-/** @type {{ url: string | null, id: number, promise: Promise<boolean> } | null} */
-let pendingSelection = null;
+/** @typedef {{ mode: 'draft'|'live', url: string|null, promise: Promise<boolean>, cancel?: () => void, retryImage?: HTMLImageElement }} WallpaperTask */
+/** @type {WallpaperTask | null} */
+let wallpaperTask = null;
+let wallpaperCommitQueue = Promise.resolve(true);
+let wallpaperRestore = Promise.resolve();
 
-function beginWallpaperSelection() {
-    wallpaperSelectionId++;
-    cancelPendingPreview?.();
-    cancelPendingPreview = null;
-    if (pendingPreviewImage) {
-        pendingPreviewImage.onload = pendingPreviewImage.onerror = null;
-        pendingPreviewImage = null;
-    }
-    return wallpaperSelectionId;
+export function discardWallpaperSelection() {
+    const discarded = wallpaperTask;
+    wallpaperTask = null;
+    discarded?.cancel?.();
 }
 
-/**
- * @param {string | null} targetWallpaper
- * @param {number} selectionId
- * @returns {Promise<boolean>}
- */
-function commitCurrentSelection(targetWallpaper, selectionId) {
-    let result = false;
-    wallpaperCommitQueue = wallpaperCommitQueue.catch(() => {}).then(async () => {
-        if (selectionId === wallpaperSelectionId) {
-            result = await commitWallpaperSelection(targetWallpaper);
-        }
+/** @param {WallpaperTask['mode']} mode @param {string | null} url */
+function beginWallpaperSelection(mode, url) {
+    discardWallpaperSelection();
+    /** @type {WallpaperTask} */
+    const task = { mode, url, promise: Promise.resolve(false) };
+    wallpaperTask = task;
+    return task;
+}
+
+/** @param {WallpaperTask} task @param {Promise<boolean>} promise */
+function trackWallpaperSelection(task, promise) {
+    task.promise = promise.finally(() => {
+        if (!task.retryImage) task.url = null;
+        task.cancel = undefined;
     });
-    return wallpaperCommitQueue.then(() => result);
+    return task.promise;
 }
 
 /** @param {{ bg: number, wallpaper?: string | null }} selection */
@@ -117,13 +111,28 @@ function saveWallpaperHints(selection) {
     }
 }
 
-/**
- * 优先读取 IDB 选择记录，缺失时返回内存当前生效值。
- * @returns {Promise<string|null>}
- */
-export async function getEffectiveCustomWallpaper() {
-    const selection = await getWallpaperSelectionDB();
-    return selection ? selection.wallpaper : state.customWallpaper;
+export function getCommittedWallpaperUrl() {
+    return state.customWallpaper || backgrounds[state.bg] || backgrounds[0];
+}
+
+/** 取消尚在准备的选择，等待已经开始的提交，再以完整记录建立草稿。 @param {() => boolean} isCurrent */
+export async function prepareWallpaperDraft(isCurrent) {
+    discardWallpaperSelection();
+    await wallpaperRestore;
+    await wallpaperCommitQueue;
+    const previous = getCommittedWallpaperUrl();
+    const saved = await getWallpaperSelectionDB();
+    if (!isCurrent()) return previous;
+    if (saved) syncCommittedWallpaper(saved);
+    const current = getCommittedWallpaperUrl();
+    if (current !== previous) applyWallpaper(current, false);
+    return current;
+}
+
+/** @param {{ bg: number, wallpaper: string | null }} selection */
+function syncCommittedWallpaper(selection) {
+    state.bg = backgrounds[selection.bg] ? selection.bg : 0;
+    state.customWallpaper = selection.wallpaper;
 }
 
 /**
@@ -140,17 +149,14 @@ function findPresetBgIndex(url) {
 /**
  * 原子保存无自定义图片的选择，成功后同步内存与首帧提示。
  * @param {number} [bg=state.bg] - 保留或切换到的预设索引
+ * @param {() => boolean} [isCurrent]
  * @returns {Promise<boolean>}
  */
-export async function clearCustomWallpaper(bg = state.bg) {
-    beginWallpaperSelection();
-    await wallpaperCommitQueue.catch(() => {});
-    const selection = { wallpaper: null, bg };
-    if (!await setWallpaperSelectionDB(selection)) return false;
-    state.customWallpaper = null;
-    state.bg = bg;
-    saveWallpaperHints(selection);
-    return true;
+export async function clearCustomWallpaper(bg = state.bg, isCurrent) {
+    discardWallpaperSelection();
+    const saved = await commitWallpaperSelection(backgrounds[bg] || backgrounds[0], isCurrent);
+    if (saved) applyWallpaper(getCommittedWallpaperUrl(), false);
+    return saved;
 }
 
 /** 刷新壁纸来源提示；调用方传入当前预览或已恢复的选择。
@@ -191,140 +197,137 @@ export function updatePresetBgCardsUI(customWallpaperOverride) {
 }
 
 /**
- * 提交壁纸与预设索引，等待 IDB 事务完成后更新已保存状态。
- * @param {string|null} targetWallpaper
- * @param {() => boolean} [isCurrent] - 异步读取后确认设置会话仍有效
- * @returns {Promise<boolean>}
+ * 所有写入按序执行。事务已发起时，完成后仍需同步已提交选择。
+ * @param {string} targetWallpaper
+ * @param {() => boolean} [isCurrent]
+ * @param {HTMLImageElement} [preparedImage] - 即时切换成功后发布已准备的图片
  */
-export async function commitWallpaperSelection(targetWallpaper, isCurrent = () => true) {
+export function commitWallpaperSelection(targetWallpaper, isCurrent = () => true, preparedImage) {
     const presetIdx = findPresetBgIndex(targetWallpaper);
-    const selection = { wallpaper: presetIdx >= 0 ? null : (targetWallpaper || null), bg: Math.max(0, presetIdx) };
-    // 以实际持久化记录判定相同选择，避免内存默认值或其他标签的写入造成误判。
-    const existing = await getWallpaperSelectionDB();
-    if (!isCurrent()) return false;
-    if ((!existing || existing.wallpaper !== selection.wallpaper || existing.bg !== selection.bg)
-        && !await setWallpaperSelectionDB(selection)) return false;
-    // IDB 是选择结果的持久化真理源；LocalStorage 仅保留轻量首屏提示。
-    saveWallpaperHints(selection);
-    state.customWallpaper = selection.wallpaper;
-    state.bg = selection.bg;
-    return true;
+    const selection = { wallpaper: presetIdx >= 0 ? null : targetWallpaper, bg: Math.max(0, presetIdx) };
+    const result = wallpaperCommitQueue.then(async () => {
+        // 用实际记录判定相同选择，其他标签的写入也纳入比较。
+        const existing = await getWallpaperSelectionDB();
+        if (!isCurrent()) return false;
+        if ((!existing || existing.wallpaper !== selection.wallpaper || existing.bg !== selection.bg)
+            && !await setWallpaperSelectionDB(selection)) return false;
+        saveWallpaperHints(selection);
+        syncCommittedWallpaper(selection);
+        if (preparedImage) applyWallpaper(targetWallpaper, true, preparedImage);
+        return true;
+    });
+    wallpaperCommitQueue = result;
+    return result;
 }
 
-/** 等待当前选择及落盘，用于保存按钮阻止未完成或失败的保存。 */
+/** 保存等待最新的草稿选择，期间再次选择时继续等待。 */
 export async function flushWallpaperSelection() {
     let current;
+    let result;
     do {
-        current = latestSelectionPromise;
-        await current;
-    } while (current !== latestSelectionPromise);
-    return !modalState.wallpaperSaveFailed;
+        current = wallpaperTask;
+        result = current ? await current.promise : true;
+    } while (current !== wallpaperTask);
+    return result;
 }
 
-/** 
- * 设置内只预览，设置外即选即存；失败保留已提交壁纸。
- * @param {string | null} urlStr
- * @param {boolean} [isDraft=state.editOpen] - 是否为弹窗草稿模式（仅预览不落盘）
- */
-export function previewDraftWallpaper(urlStr, isDraft = state.editOpen) {
-    if (isDraft && modalState.committing) return Promise.resolve(false);
-    if (pendingSelection?.id === wallpaperSelectionId && pendingSelection.url === urlStr) {
-        return pendingSelection.promise;
-    }
-    const selectionId = beginWallpaperSelection();
-    return executeWallpaperSelection(urlStr, selectionId, isDraft);
+function canPreviewWallpaper() {
+    return modalState.phase === 'editing' || modalState.phase === 'preparing-save';
 }
 
-/**
- * @param {string | null} urlStr
- * @param {number} selectionId
- * @param {boolean} isDraft
- */
-function executeWallpaperSelection(urlStr, selectionId, isDraft) {
-    modalState.draftWallpaper = urlStr;
-    modalState.wallpaperSaveFailed = false;
-    const selection = { url: urlStr, id: selectionId, promise: Promise.resolve(false) };
-    pendingSelection = selection;
-    latestSelectionPromise = selection.promise = (async () => {
-        let preparedImage = urlStr ? getPreparedWallpaperImage(urlStr) : null;
-        if (urlStr || !getPreparedWallpaperImage(backgrounds[0])) {
-            preparedImage = preparedImage || await new Promise(resolve => {
-                const img = new Image();
-                pendingPreviewImage = img;
-                cancelPendingPreview = () => resolve(null);
-                img.onload = async () => {
-                    try {
-                        if (typeof img.decode === 'function') await img.decode();
-                        resolve(img);
-                    } catch { resolve(null); }
-                };
-                img.onerror = () => resolve(null);
-                img.src = urlStr || backgrounds[0];
-            });
-            if (selectionId !== wallpaperSelectionId) return false;
-            if (pendingPreviewImage) {
-                pendingPreviewImage.onload = pendingPreviewImage.onerror = null;
-                pendingPreviewImage = null;
-            }
-            cancelPendingPreview = null;
-            if (!preparedImage) {
-                modalState.wallpaperSaveFailed = true;
-                modalState.draftWallpaper = state.customWallpaper || backgrounds[state.bg];
-                showConfirm(t('ui.could.not.load.this.image.check'), null, t('ui.image.unavailable'));
-                return false;
-            }
-        }
-        if (selectionId !== wallpaperSelectionId) return false;
-        applyWallpaper(urlStr || backgrounds[0], true, preparedImage);
-        updateWallpaperStatusUI(urlStr);
-        updatePresetBgCardsUI(urlStr);
+/** @param {string} url */
+export function previewDraftWallpaper(url) {
+    if (!canPreviewWallpaper()) return Promise.resolve(false);
+    return selectWallpaperFor('draft', url);
+}
 
-        // 设置弹窗草稿模式：仅预览展示并触发切换动画，不即选即存，等待点击「完成」再落盘
-        if (isDraft) {
-            return true;
-        }
+/** @param {string | null} url */
+export function selectWallpaper(url) {
+    if (state.editOpen) return Promise.resolve(false);
+    return selectWallpaperFor('live', url || backgrounds[0]);
+}
 
-        const saved = await commitCurrentSelection(urlStr, selectionId);
-        if (selectionId !== wallpaperSelectionId) return false;
-        modalState.wallpaperSaveFailed = !saved;
-        if (!saved) {
-            const previous = state.customWallpaper || backgrounds[state.bg];
-            modalState.draftWallpaper = previous;
-            applyWallpaper(previous, true);
-            updateWallpaperStatusUI(previous);
-            updatePresetBgCardsUI(previous);
-            showConfirm(t('ui.could.not.save.the.wallpaper.your'), null, t('ui.wallpaper.not.saved'));
-        }
-        return saved;
-    })().finally(() => {
-        if (pendingSelection === selection) pendingSelection = null;
+/** @param {WallpaperTask['mode']} mode @param {string} url */
+function selectWallpaperFor(mode, url) {
+    const previous = wallpaperTask?.mode === mode && wallpaperTask.url === url ? wallpaperTask : null;
+    if (previous && !previous.retryImage) return previous.promise;
+    const task = beginWallpaperSelection(mode, url);
+    return trackWallpaperSelection(task, executeWallpaperSelection(task, url, previous?.retryImage));
+}
+
+/** @param {WallpaperTask} task @param {string} url @param {HTMLImageElement} [preparedImage] */
+async function executeWallpaperSelection(task, url, preparedImage) {
+    task.url = url;
+    const image = preparedImage || getPreparedWallpaperImage(url) || await new Promise(resolve => {
+        const img = new Image();
+        /** @param {HTMLImageElement | null} result */
+        const finish = result => {
+            img.onload = img.onerror = null;
+            resolve(result);
+        };
+        task.cancel = () => finish(null);
+        img.onload = async () => {
+            try {
+                if (typeof img.decode === 'function') await img.decode();
+                finish(img);
+            } catch { finish(null); }
+        };
+        img.onerror = () => finish(null);
+        img.src = url;
     });
-    return latestSelectionPromise;
+    if (task !== wallpaperTask) return false;
+    task.cancel = undefined;
+    if (!image) {
+        showConfirm(t('ui.could.not.load.this.image.check'), null, t('ui.image.unavailable'));
+        return false;
+    }
+    if (task.mode === 'draft') {
+        showWallpaperDraft(url, image);
+        return true;
+    }
+
+    const saved = await commitWallpaperSelection(url, () => wallpaperTask === task, image);
+    if (!saved && wallpaperTask === task) {
+        task.retryImage = image;
+        showConfirm(t('ui.could.not.save.the.wallpaper.your'), null, t('ui.wallpaper.not.saved'));
+    }
+    return saved;
 }
 
-/** 预览默认壁纸；设置内由完成按钮保存。 */
+/** @param {string} url @param {HTMLImageElement | null} [image] */
+export function showWallpaperDraft(url, image = null) {
+    modalState.draftWallpaper = url;
+    applyWallpaper(url, true, image);
+    updateWallpaperStatusUI(url);
+    updatePresetBgCardsUI(url);
+}
+
 export function resetDraftWallpaper() {
-    return previewDraftWallpaper(null);
+    return previewDraftWallpaper(backgrounds[0]);
 }
 
-/** 取消草稿并平滑回滚至打开设置前的原始壁纸 */
 export function revertDraftWallpaper() {
-    beginWallpaperSelection();
-    const revertBg = modalState.initialWallpaper || backgrounds[state.bg] || backgrounds[0];
-    modalState.draftWallpaper = modalState.initialWallpaper;
-    applyWallpaper(revertBg, true);
-    updateWallpaperStatusUI(revertBg);
-    updatePresetBgCardsUI(revertBg);
+    discardWallpaperSelection();
+    showWallpaperDraft(getCommittedWallpaperUrl());
 }
 
 /** 快捷键轮播也通过同一事务保存，不提前删除自定义壁纸。 */
 export async function switchBg() {
-    const selectionId = wallpaperSelectionId;
-    await flushWallpaperSelection();
-    const custom = await getEffectiveCustomWallpaper();
-    if (selectionId !== wallpaperSelectionId) return false;
-    const nextBg = custom ? backgrounds[0] : backgrounds[(state.bg + 1) % backgrounds.length];
-    const saved = await previewDraftWallpaper(nextBg, false);
+    if (state.editOpen) return false;
+    const previous = wallpaperTask;
+    if (previous) await previous.promise;
+    if (state.editOpen || wallpaperTask !== previous) return false;
+    const task = beginWallpaperSelection('live', null);
+    const saved = await trackWallpaperSelection(task, (async () => {
+        await wallpaperRestore;
+        const selection = await getWallpaperSelectionDB();
+        if (wallpaperTask !== task) return false;
+        const custom = selection ? selection.wallpaper : state.customWallpaper;
+        const bg = selection?.bg ?? state.bg;
+        const nextBg = custom ? backgrounds[0] : backgrounds[(bg + 1) % backgrounds.length];
+        const preparedImage = previous?.url === nextBg ? previous.retryImage : undefined;
+        return executeWallpaperSelection(task, nextBg, preparedImage);
+    })());
     if (saved) preloadNextBg();
     return saved;
 }
@@ -374,34 +377,28 @@ export function renderPresetWallpapers() {
     });
 }
 
-export async function restoreWallpaper() {
-    const selection = await getWallpaperSelectionDB();
-    const savedBg = selection ? selection.bg : storageGet(CONFIG.KEYS.BG);
-    if (savedBg !== null && typeof savedBg === 'number' && savedBg >= 0 && savedBg < backgrounds.length) {
-        state.bg = savedBg;
-    }
-
-    const customBg = selection ? selection.wallpaper : state.customWallpaper;
-    if (customBg) {
-        state.customWallpaper = customBg;
-        applyWallpaper(customBg, false);
-    } else {
-        applyWallpaper(backgrounds[state.bg] || backgrounds[0], false);
-    }
+export function restoreWallpaper() {
+    wallpaperRestore = (async () => {
+        const selection = await getWallpaperSelectionDB();
+        const savedBg = storageGet(CONFIG.KEYS.BG);
+        if (selection) syncCommittedWallpaper(selection);
+        else if (typeof savedBg === 'number' && backgrounds[savedBg]) state.bg = savedBg;
+        applyWallpaper(getCommittedWallpaperUrl(), false);
+    })();
+    return wallpaperRestore;
 }
 
 /**
  * @param {File} file
  */
 export function uploadWallpaper(file) {
-    if (state.editOpen && modalState.committing) return false;
+    if (!canPreviewWallpaper()) return false;
     if (!file.type.startsWith('image/')) {
         showConfirm(t('ui.choose.a.valid.image.file.jpg'), null, t('ui.invalid.format'));
         return false;
     }
     // 选择文件时就占用版本，不能等读取／压缩完成后再把旧上传当成新选择。
-    const selectionId = beginWallpaperSelection();
-    modalState.wallpaperSaveFailed = false;
+    const task = beginWallpaperSelection('draft', null);
     const reader = new FileReader();
     /** @type {HTMLImageElement | null} */
     let image = null;
@@ -417,27 +414,26 @@ export function uploadWallpaper(file) {
             }
             resolve(value);
         };
-        cancelPendingPreview = () => {
+        task.cancel = () => {
             finish(null);
             if (reader.readyState === FileReader.LOADING) reader.abort();
         };
         const fail = () => {
-            if (selectionId === wallpaperSelectionId) {
-                modalState.wallpaperSaveFailed = true;
+            if (task === wallpaperTask) {
                 showConfirm(t('ui.could.not.read.or.process.this'), null, t('ui.image.processing.failed'));
             }
             finish(null);
         };
         reader.onerror = reader.onabort = fail;
         reader.onload = ev => {
-            if (selectionId !== wallpaperSelectionId) { finish(null); return; }
+            if (task !== wallpaperTask) { finish(null); return; }
             const target = /** @type {FileReader|null} */ (ev.target);
             const dataUrl = typeof target?.result === 'string' ? target.result : '';
             if (!dataUrl) { fail(); return; }
             const img = new Image();
             image = img;
             img.onload = () => {
-                if (selectionId !== wallpaperSelectionId) { finish(null); return; }
+                if (task !== wallpaperTask) { finish(null); return; }
                 let canvas;
                 try {
                     const MAX_WIDTH = CONFIG.APPEARANCE.MAX_UPLOAD_WIDTH;
@@ -474,9 +470,9 @@ export function uploadWallpaper(file) {
         };
         try { reader.readAsDataURL(file); } catch { fail(); }
     });
-    latestSelectionPromise = prepared.then(url => {
-        if (selectionId !== wallpaperSelectionId) return false;
-        cancelPendingPreview = null;
-        return url ? executeWallpaperSelection(url, selectionId, state.editOpen) : false;
-    });
+    trackWallpaperSelection(task, prepared.then(url => {
+        if (task !== wallpaperTask || !url) return false;
+        task.cancel = undefined;
+        return executeWallpaperSelection(task, url);
+    }));
 }

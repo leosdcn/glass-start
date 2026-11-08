@@ -75,7 +75,7 @@ try {
         input.dispatchEvent(new Event('input', {bubbles:true}));
         const preview = previewDraftWallpaper(location.origin + '/latest-draft-${invalid}.png');
         const saving = saveEditModal();
-        const editable = !input.closest('[inert]') && !modalState.committing && !dom.cancelEditBtn.disabled;
+        const editable = !input.closest('[inert]') && modalState.phase !== 'committing' && !dom.cancelEditBtn.disabled;
         if (${invalid}) {
           for (const field of dom.editList.querySelectorAll('.edit-url')) {
             field.value = '';
@@ -90,7 +90,7 @@ try {
         await saving;
         const result = {
           editable, open:state.editOpen, name:pageData.bookmarks[0].name,
-          unlocked:!modalState.committing && !dom.saveEditBtn.disabled && !dom.cancelEditBtn.disabled,
+          unlocked:modalState.phase !== 'committing' && !dom.saveEditBtn.disabled && !dom.cancelEditBtn.disabled,
           rejected:OverlayStack.top()?.id === 'confirmModal'
         };
         if (OverlayStack.top()?.id === 'confirmModal') OverlayStack.top().close();
@@ -152,7 +152,7 @@ try {
       try {
         const saving = saveEditModal();
         while (!release) await new Promise(resolve => setTimeout(resolve, 5));
-        const locked = modalState.committing && dom.saveEditBtn.disabled && dom.cancelEditBtn.disabled
+        const locked = modalState.phase === 'committing' && dom.saveEditBtn.disabled && dom.cancelEditBtn.disabled
           && dom.languageBtn.disabled && [...document.querySelectorAll('.settings-tab-panel')].every(panel => panel.inert);
         // 控件状态不再决定业务提交状态。
         dom.cancelEditBtn.disabled = false;
@@ -175,7 +175,7 @@ try {
         release(); await saving;
         const persistedBg = (await getWallpaperSelectionDB()).bg;
         const result = {locked, selectionBlocked, attempts, persistedBg, runtimeBg:state.bg,
-          enabled:!modalState.committing && !dom.saveEditBtn.disabled && !dom.cancelEditBtn.disabled
+          enabled:modalState.phase !== 'committing' && !dom.saveEditBtn.disabled && !dom.cancelEditBtn.disabled
             && !dom.languageBtn.disabled && [...document.querySelectorAll('.settings-tab-panel')].every(panel => !panel.inert),
           open:state.editOpen};
         if ('${phase}' === 'abort') {
@@ -230,7 +230,7 @@ try {
     try {
       await waitFor(evalJS, 'typeof __releaseReset === "function"');
       const result = await evalJS(`(async () => {
-        const locked = modalState.committing && dom.saveEditBtn.disabled && dom.cancelEditBtn.disabled
+        const locked = modalState.phase === 'committing' && dom.saveEditBtn.disabled && dom.cancelEditBtn.disabled
           && dom.languageBtn.disabled && [...document.querySelectorAll('.settings-tab-panel')].every(panel => panel.inert);
         dom.cancelEditBtn.click();
         document.getElementById('editModal').click();
@@ -242,18 +242,22 @@ try {
           && storageGet(CONFIG.KEYS.MASK_OPACITY) === 37;
         if ('${phase}' === 'stale') {
           // 内部关闭使会话失效，模拟下一轮窗口已被打开。
-          closeEditModal(); await openEditModal();
+          closeEditModal();
+          const opening = openEditModal();
+          __releaseReset();
+          await opening;
           const name = dom.editList.querySelector('.edit-name');
           name.value = '新会话草稿'; name.dispatchEvent(new Event('input', {bubbles:true}));
+        } else {
+          __releaseReset();
         }
-        __releaseReset();
         await new Promise(resolve => requestAnimationFrame(resolve));
         return {locked, stayedOpen, noConcurrentAction};
       })()`);
       const after = await evalJS(`({
         open:state.editOpen, draft:modalState.draftBookmarks[0]?.name,
         opacity:storageGet(CONFIG.KEYS.MASK_OPACITY),
-        unlocked:!modalState.committing && !dom.saveEditBtn.disabled && !dom.cancelEditBtn.disabled,
+        unlocked:modalState.phase !== 'committing' && !dom.saveEditBtn.disabled && !dom.cancelEditBtn.disabled,
         top:OverlayStack.top()?.id || null
       })`);
       assert.deepEqual(result, {locked:true, stayedOpen:true, noConcurrentAction:true});
@@ -286,13 +290,34 @@ try {
     resetBookmarks(); dom.confirmOkBtn.click();
   })()`);
   try {
-    await waitFor(evalJS, 'OverlayStack.top()?.id === "confirmModal" && !modalState.committing');
+    await waitFor(evalJS, 'OverlayStack.top()?.id === "confirmModal" && modalState.phase !== "committing"');
     assert.equal(await evalJS('modalState.draftBookmarks[0].name'), '重置失败后仍可保存');
   } finally {
     await evalJS('restoreAuditStorage()');
   }
   await evalJS('dom.confirmOkBtn.click(); saveEditModal()');
   assert.equal(await evalJS('pageData.bookmarks[0].name'), '重置失败后仍可保存');
+
+  await evalJS(`(async () => {
+    await commitWallpaperSelection(backgrounds[1]);
+    await openEditModal();
+    const remove = Storage.prototype.removeItem;
+    window.restoreAuditStorage = () => { Storage.prototype.removeItem = remove; };
+    Storage.prototype.removeItem = function(key) {
+      if (key === CONFIG.KEYS.MASK_OPACITY) throw new DOMException('blocked', 'SecurityError');
+      return remove.call(this, key);
+    };
+    resetBookmarks(); dom.confirmOkBtn.click();
+  })()`);
+  try {
+    await waitFor(evalJS, 'OverlayStack.top()?.id === "confirmModal" && modalState.phase === "editing"');
+    assert.equal(await evalJS('getWallpaperSelectionDB().then(selection => selection.bg)'), 0);
+  } finally {
+    await evalJS('restoreAuditStorage()');
+  }
+  await evalJS('dom.confirmOkBtn.click(); cancelEditModal()');
+  await waitFor(evalJS, 'dom.bgLayer.style.backgroundImage.includes("bg1.avif") && !dom.bgLayerNext.classList.contains("is-crossfading")');
+  assert.equal(await evalJS('state.bg'), 0);
 
   await evalJS('commitWallpaperSelection(backgrounds[1])');
   const resetDraft = await evalJS(`(async () => {

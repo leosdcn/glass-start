@@ -22,7 +22,7 @@ await test("选择提交、事务失败与会话隔离", async () => {
     try {
       writeFalse = await setWallpaperSelectionDB({ wallpaper: next, bg: 0 }) === false;
       commitFalse = await commitWallpaperSelection(next) === false;
-      unchanged = ((await getWallpaperSelectionDB())?.wallpaper ?? null) === old && state.customWallpaper === old && modalState.initialWallpaper === old;
+      unchanged = ((await getWallpaperSelectionDB())?.wallpaper ?? null) === old && state.customWallpaper === old && modalState.draftWallpaper === old;
       previewOnly = await previewDraftWallpaper(next) === true && ((await getWallpaperSelectionDB())?.wallpaper ?? null) === old;
       await saveEditModal();
       blocked = state.editOpen && OverlayStack.top()?.id === 'confirmModal' && ((await getWallpaperSelectionDB())?.wallpaper ?? null) === old;
@@ -53,8 +53,9 @@ await test("选择提交、事务失败与会话隔离", async () => {
     let resetCancelsPending;
     try {
       const stopped = previewDraftWallpaper('https://pending.example.com/image.png');
+      const stoppedImage = pending;
       const cleared = await clearCustomWallpaper();
-      resetCancelsPending = cleared && await stopped === false && pending.onload === null &&
+      resetCancelsPending = cleared && await stopped === false && stoppedImage.onload === null &&
         ((await getWallpaperSelectionDB())?.wallpaper ?? null) === null && state.customWallpaper === null;
     } finally { window.Image = NativeImage; }
     await commitWallpaperSelection(next);
@@ -121,27 +122,27 @@ await test("选择提交、事务失败与会话隔离", async () => {
 await test("现代壁纸选择持久化与优先级", async () => {
     const { server, chrome, evalJS } = await launchSession();
     try {
-      await waitFor(evalJS, 'typeof getEffectiveCustomWallpaper === "function"');
+      await waitFor(evalJS, 'typeof getCommittedWallpaperUrl === "function"');
       const checks = await evalJS(`(async () => {
     const testImg = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+j1ioAAAAASUVORK5CYII=';
     await removeWallpaperDB(); state.customWallpaper = null;
     storageRemove(CONFIG.KEYS.WALLPAPER_META);
-    // 初始状态下无 IDB 记录，返回 null
-    const initialNull = await getEffectiveCustomWallpaper() === null;
+    // 初始状态下无 IDB 记录，使用当前预设。
+    const initialPreset = getCommittedWallpaperUrl() === backgrounds[state.bg];
     // 提交自定义壁纸，成功落盘并更新元数据
     await commitWallpaperSelection(testImg);
-    const saved = await getEffectiveCustomWallpaper() === testImg &&
+    const saved = getCommittedWallpaperUrl() === testImg &&
       ((await getWallpaperSelectionDB())?.wallpaper ?? null) === testImg &&
       JSON.parse(localStorage.getItem(CONFIG.KEYS.WALLPAPER_META)).custom === true;
     // 切换到预设壁纸，清除自定义壁纸记录
     await commitWallpaperSelection(backgrounds[2]);
-    const presetSaved = await getEffectiveCustomWallpaper() === null && state.bg === 2 &&
+    const presetSaved = getCommittedWallpaperUrl() === backgrounds[2] && state.bg === 2 &&
       ((await getWallpaperSelectionDB())?.wallpaper ?? null) === null &&
       JSON.parse(localStorage.getItem(CONFIG.KEYS.WALLPAPER_META)).custom === false;
     // 恢复壁纸
     await restoreWallpaper();
     const restored = state.bg === 2 && state.customWallpaper === null;
-    return { initialNull, saved, presetSaved, restored };
+    return { initialPreset, saved, presetSaved, restored };
   })()`);
       assert.equal(Object.values(checks).every(Boolean), true, JSON.stringify(checks));
       console.log('✅ 现代壁纸选择在 IDB 中正确原子落盘与恢复，预设与自定义切换正常');
