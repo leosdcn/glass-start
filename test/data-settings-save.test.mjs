@@ -18,6 +18,7 @@ try {
     dom.urlBgBtn.click();
     dom.urlBgInput.value = location.origin + '/late-wallpaper.png';
     dom.urlBgConfirmBtn.click();
+    dom.saveEditBtn.click();
     document.getElementById('tab-btn-data').click();
     const transfer = new DataTransfer();
     transfer.items.add(new File([JSON.stringify([{name:'仍可确认的导入',url:'https://import.test'}])],
@@ -180,8 +181,29 @@ try {
         };
       }
       try {
-        const saving = saveEditModal();
+        let saving;
+        if ('${phase}' === 'abort') {
+          const name = dom.editList.querySelector('.edit-name');
+          name.value = '壁纸失败前已保存的书签';
+          name.dispatchEvent(new Event('input', {bubbles: true}));
+          previewDraftMaskOpacity(47);
+          modalState.draftTransitionMode = 'classic';
+
+          const NativeImage = window.Image;
+          window.Image = class {};
+          try {
+            previewDraftWallpaper(location.origin + '/pending-import.png');
+            saving = saveEditModal();
+            const data = JSON.stringify([{name:'提交期间不得导入', url:'https://late-import.example.test/'}]);
+            importBookmarksJSON(new File([data], 'bookmarks.json', {type:'application/json'}));
+            while (OverlayStack.top()?.id !== 'confirmModal') await new Promise(resolve => setTimeout(resolve, 5));
+          } finally { window.Image = NativeImage; }
+          await previewDraftWallpaper(backgrounds[2]);
+        } else {
+          saving = saveEditModal();
+        }
         while (!release) await new Promise(resolve => setTimeout(resolve, 5));
+        const importDismissed = OverlayStack.top()?.id === 'editModal';
         const locked = modalState.phase === 'committing' && dom.saveEditBtn.disabled && dom.cancelEditBtn.disabled
           && dom.languageBtn.disabled && [...document.querySelectorAll('.settings-tab-panel')].every(panel => panel.inert);
         // 控件状态不再决定业务提交状态。
@@ -209,7 +231,19 @@ try {
             && !dom.languageBtn.disabled && [...document.querySelectorAll('.settings-tab-panel')].every(panel => !panel.inert),
           open:state.editOpen};
         if ('${phase}' === 'abort') {
-          result.failureShown = OverlayStack.top()?.id === 'editModal' && dom.wallpaperError.textContent.includes('未能保存');
+          result.importDismissed = importDismissed;
+          const error = dom.wallpaperError.textContent;
+          result.failureShown = OverlayStack.top()?.id === 'editModal' && error.includes('未能保存');
+          result.partialSaveShown = ['快捷书签', '背景暗度', '切屏动效', '已保存并生效'].every(label => error.includes(label));
+          result.otherChangesSaved = pageData.bookmarks[0].name === '壁纸失败前已保存的书签'
+            && storageGet(CONFIG.KEYS.MASK_OPACITY) === 47 && getTransitionMode() === 'classic';
+          IDBObjectStore.prototype.put = function(...args) {
+            const req = put.apply(this, args);
+            req.addEventListener('success', () => req.transaction.abort());
+            return req;
+          };
+          await saveEditModal();
+          result.retryShowsSavedChanges = dom.wallpaperError.textContent === error;
           dom.cancelEditBtn.click();
           result.cancelledAfterFailure = !state.editOpen && modalState.draftWallpaper === backgrounds[1];
         }
@@ -225,10 +259,12 @@ try {
       locked:true, selectionBlocked:true, attempts:[true,true,true,true],
       persistedBg:phase === 'abort' ? 1 : 2, runtimeBg:phase === 'abort' ? 1 : 2,
       enabled:true, open:phase === 'abort',
-      ...(phase === 'abort' ? {failureShown:true,cancelledAfterFailure:true} : {})
+      ...(phase === 'abort' ? {importDismissed:true, failureShown:true, partialSaveShown:true,
+        otherChangesSaved:true, retryShowsSavedChanges:true, cancelledAfterFailure:true} : {})
     });
   }
   console.log('✅ 壁纸提交期间外观选择、取消按钮、遮罩与 Escape 均被锁定；事务成功或失败后解除锁定');
+  console.log('✅ 保存时关闭待确认的导入；壁纸写入失败及重试时列出已生效的设置');
 
   // 重置的事务完成通知延后时，不能取消或并发保存；失效会话不能触碰新草稿。
   for (const phase of ['stale', 'success', 'abort']) {

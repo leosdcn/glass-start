@@ -3,7 +3,7 @@
  * 负责设置弹窗生命周期、外观与壁纸配置、语言切换及数据导入导出的统一协调。
  * 具体书签草稿编辑见 bookmark-editor.js，预置目录挑选器见 bookmark-picker.js。
  */
-import { t, getLanguagePreference } from '../core/i18n.js';
+import { t, getLocale, getLanguagePreference } from '../core/i18n.js';
 import { updateAllBookmarkCounters, renderEditList, collectEditData } from './bookmark-editor.js';
 import { showConfirm } from '../core/dialogs.js';
 import { CONFIG, IS_MAC } from '../config/constants.js';
@@ -74,6 +74,7 @@ function renderCreditsModalList() {
 let editOpenRequestId = 0;
 /** @type {AbortController | null} */
 let activeImportController = null;
+const savedSettings = new Set();
 
 function cancelPendingImport() {
     if (activeImportController) {
@@ -138,6 +139,7 @@ export function previewDraftMaskOpacity(value) {
 
 export async function openEditModal() {
     if (state.editOpen) return;
+    savedSettings.clear();
     closeDropdown();
     hideSuggestions();
     const editBtn = dom.editBookmarksBtn;
@@ -310,13 +312,16 @@ export function importBookmarksJSON(file) {
     const isCurrent = () => !signal.aborted && state.editOpen && sessionId === editOpenRequestId;
 
     const reader = new FileReader();
-    signal.addEventListener('abort', () => {
+    const abortRead = () => {
         try {
             if (reader.readyState === FileReader.LOADING) reader.abort();
         } catch {}
-    }, { once: true });
+    };
+    signal.addEventListener('abort', abortRead, { once: true });
 
     reader.onload = (e) => {
+        reader.onload = null;
+        signal.removeEventListener('abort', abortRead);
         if (!isCurrent()) return;
         try {
             if (!e.target || typeof e.target.result !== 'string') return;
@@ -331,14 +336,14 @@ export function importBookmarksJSON(file) {
                     if (cat && Array.isArray(cat.bookmarks)) importedList.push(...cat.bookmarks);
                 });
             } else {
-                showConfirm(t('ui.this.file.does.not.contain.a'), null, t('ui.invalid.format'));
+                showConfirm(t('ui.this.file.does.not.contain.a'), null, t('ui.invalid.format'), { signal });
                 return;
             }
 
             const validBookmarks = importedList.map((/** @type {any} */ item) => normalizeBookmark(item, t('ui.untitled'))).filter(Boolean);
 
             if (validBookmarks.length === 0) {
-                showConfirm(t('ui.no.valid.bookmarks.were.found.in'), null, t('ui.import.failed'));
+                showConfirm(t('ui.no.valid.bookmarks.were.found.in'), null, t('ui.import.failed'), { signal });
                 return;
             }
 
@@ -347,17 +352,14 @@ export function importBookmarksJSON(file) {
                 replaceBookmarkDraft(validBookmarks.map((/** @type {import('../types').BookmarkItem} */ bookmark) => ({ ...bookmark, customText: true })), true);
                 renderEditList();
                 closeBookmarkPicker();
-            }, t('ui.confirm.import'));
+            }, t('ui.confirm.import'), { signal });
         } catch (err) {
-            showConfirm(t('ui.could.not.parse.the.json.file'), null, t('ui.parse.error'));
-        } finally {
-            reader.onload = null;
-            if (activeImportController === controller) activeImportController = null;
+            showConfirm(t('ui.could.not.parse.the.json.file'), null, t('ui.parse.error'), { signal });
         }
     };
     reader.onerror = () => {
-        if (isCurrent()) showConfirm(t('ui.could.not.read.the.file.please'), null, t('ui.import.failed'));
-        if (activeImportController === controller) activeImportController = null;
+        signal.removeEventListener('abort', abortRead);
+        if (isCurrent()) showConfirm(t('ui.could.not.read.the.file.please'), null, t('ui.import.failed'), { signal });
     };
     reader.readAsText(file, 'UTF-8');
 }
@@ -388,6 +390,7 @@ export function resetBookmarks() {
                 showConfirm(t('ui.could.not.clear.wallpaper.storage.your'), null, t('ui.reset.failed'));
                 return;
             }
+            savedSettings.clear();
             /** @type {(keyof typeof CONFIG.KEYS)[]} */
             const keys = ['PREFERRED_ENGINE', 'WALLPAPER_META', 'MASK_OPACITY',
                 'BG', 'THEME_CACHE', 'TINT_CACHE', 'TRANSITION_MODE', 'LANGUAGE'];
@@ -477,6 +480,7 @@ export async function saveEditModal() {
                 return;
             }
             modalState.bookmarksChanged = false;
+            savedSettings.add(t('settings.bookmarks'));
         }
 
         // 2. 提交背景暗度
@@ -485,6 +489,7 @@ export async function saveEditModal() {
                 showConfirm(t('ui.could.not.save.background.dimming.your'), null, t('ui.could.not.save'));
                 return;
             }
+            savedSettings.add(t('ui.background.dimming'));
         }
 
         // 3. 提交切屏动效
@@ -493,6 +498,7 @@ export async function saveEditModal() {
                 showConfirm(t('ui.could.not.save.transition.mode.your'), null, t('ui.could.not.save'));
                 return;
             }
+            savedSettings.add(t('ui.page.transition'));
         }
 
         // 4. 提交壁纸草稿
@@ -501,7 +507,9 @@ export async function saveEditModal() {
             const saved = await commitWallpaperSelection(targetBg, isCurrent);
             if (!isCurrent()) return;
             if (!saved) {
-                showWallpaperError(t('ui.could.not.save.the.wallpaper.your'));
+                showWallpaperError(savedSettings.size
+                    ? t('settings.wallpaper.partialSave', { settings: new Intl.ListFormat(getLocale()).format(savedSettings) })
+                    : t('ui.could.not.save.the.wallpaper.your'));
                 switchSettingsTab('tabAppearance');
                 return;
             }
@@ -580,7 +588,7 @@ export function clearOfflineCache() {
     const isExtension = window.__GLASS_EXTENSION__;
 
     if (!('caches' in window)) {
-        showConfirm(isExtension ? t('ui.this.browser.does.not.support.clearing') : t('ui.offline.caching.is.unavailable.or.the'), null, t('ui.notice'), clearBtn);
+        showConfirm(isExtension ? t('ui.this.browser.does.not.support.clearing') : t('ui.offline.caching.is.unavailable.or.the'), null, t('ui.notice'), { triggerEl: clearBtn });
         return;
     }
 
@@ -615,7 +623,6 @@ export function clearOfflineCache() {
             }
         },
         isExtension ? t('ui.clear.cache') : t('ui.clear.offline.cache'),
-        clearBtn,
-        isExtension ? t('ui.clear.and.reload') : t('ui.clear.cache.and.reload')
+        { triggerEl: clearBtn, okText: isExtension ? t('ui.clear.and.reload') : t('ui.clear.cache.and.reload') }
     );
 }

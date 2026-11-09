@@ -124,6 +124,7 @@
     "ui.could.not.load.this.image.check": "Could not load this image. Check the URL or your connection and try again.",
     "ui.image.unavailable": "Image unavailable",
     "ui.could.not.save.the.wallpaper.your": "Could not save the wallpaper. Your previous wallpaper has been kept. Check storage space or permissions and try again.",
+    "settings.wallpaper.partialSave": "Could not save the wallpaper. Your previous wallpaper has been kept. Changes to {settings} were saved and are in effect. Check storage space or permissions and try again.",
     "ui.wallpaper.not.saved": "Wallpaper not saved",
     "ui.mountains.at.dusk": "Mountains at dusk",
     "ui.valley.sunrise": "Valley sunrise",

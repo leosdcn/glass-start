@@ -9,12 +9,12 @@ let activeConfirmCleanup = null;
  * @param {string} message
  * @param {(() => void) | null | undefined} [onConfirm]
  * @param {string} [title]
- * @param {Element | null} [triggerEl]
- * @param {string} [okText]
- * @param {'danger' | 'neutral' | string} [tone]
- * @param {string} [cancelText]
+ * @param {{triggerEl?: Element | null, okText?: string, tone?: string, cancelText?: string, signal?: AbortSignal}} [options]
  */
-export function showConfirm(message, onConfirm, title = t('ui.confirm.reset.2'), triggerEl = null, okText = '', tone = 'danger', cancelText = t('ui.cancel')) {
+export function showConfirm(message, onConfirm, title = t('ui.confirm.reset.2'), {
+    triggerEl = null, okText = '', tone = 'danger', cancelText = t('ui.cancel'), signal
+} = {}) {
+    if (signal?.aborted) return;
     const modal = dom.confirmModal;
     const titleEl = dom.confirmTitle;
     const msgEl = dom.confirmMsg;
@@ -44,6 +44,7 @@ export function showConfirm(message, onConfirm, title = t('ui.confirm.reset.2'),
         cancelBtn.classList.remove('hidden');
         okBtn.removeEventListener('click', handleOk);
         cancelBtn.removeEventListener('click', cleanup);
+        signal?.removeEventListener('abort', cleanup);
         confirmTriggerEl?.setAttribute('aria-expanded', 'false');
     };
 
@@ -53,5 +54,6 @@ export function showConfirm(message, onConfirm, title = t('ui.confirm.reset.2'),
     confirmTriggerEl?.setAttribute('aria-expanded', 'true');
     okBtn.addEventListener('click', handleOk);
     cancelBtn.addEventListener('click', cleanup);
+    signal?.addEventListener('abort', cleanup, { once: true });
     activeConfirmCleanup = cleanup;
 }

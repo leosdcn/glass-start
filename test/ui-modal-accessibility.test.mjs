@@ -23,7 +23,7 @@ test('原生模态隔离背景，按栈顺序归还焦点', async () => {
     assert.equal(await evalJS('dom.editModal.contains(document.activeElement)'), true);
 
     await evalJS('dom.togglePickerBtn.focus(); openBookmarkPicker(); dom.donePickerBtn.focus()');
-    await evalJS("showConfirm('测试通知', null, '测试', dom.donePickerBtn)");
+    await evalJS("showConfirm('测试通知', null, '测试', { triggerEl: dom.donePickerBtn })");
     assert.equal(await evalJS('dom.togglePickerBtn.focus(); dom.donePickerBtn.focus(); dom.confirmModal.contains(document.activeElement)'), true);
     await press('Escape', 27);
     assert.equal(await evalJS('!dom.confirmModal.open && document.activeElement === dom.donePickerBtn'), true);

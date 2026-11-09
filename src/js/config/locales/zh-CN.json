@@ -124,6 +124,7 @@
     "ui.could.not.load.this.image.check": "无法加载该图片，请检查图片是否有效或恢复网络后重试。",
     "ui.image.unavailable": "图片无法加载",
     "ui.could.not.save.the.wallpaper.your": "壁纸未能保存，原有壁纸已保留。请检查浏览器存储空间或权限后重新选择。",
+    "settings.wallpaper.partialSave": "壁纸未能保存，原有壁纸已保留。{settings}的更改已保存并生效。请检查浏览器存储空间或权限后重试。",
     "ui.wallpaper.not.saved": "壁纸保存失败",
     "ui.mountains.at.dusk": "暮色山峦",
     "ui.valley.sunrise": "溪谷晨曦",

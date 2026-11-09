@@ -116,6 +116,7 @@ export function initDragSort() {
     }
 
     function resetDragSession() {
+        const hadPointerDrag = isDragHandleActive || dragSrc !== null;
         isDragHandleActive = false;
         document.body.classList.remove('bookmark-dragging');
         currentEditList.querySelectorAll('.edit-row-card[draggable="true"]').forEach(card => {
@@ -124,7 +125,7 @@ export function initDragSort() {
         clearDragClasses();
         dragSrc = null;
         touchIdentifier = null;
-        blurActiveHandle();
+        if (hadPointerDrag) blurActiveHandle();
     }
 
     // ── 共享：DOM 重排 + draftBookmarks 同步 + FLIP 动画 ─────────────────────

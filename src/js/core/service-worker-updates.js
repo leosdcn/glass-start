@@ -125,7 +125,9 @@ export function initServiceWorkerUpdates() {
         const search = currentSearch();
         const message = t('ui.reload.to.use.the.new.version') +
             (search ? t('ui.your.current.search.will.be.cleared') : '');
-        showConfirm(message, () => applyUpdate(target, search), t('ui.new.version.ready'), dom.updateReloadBtn, t('ui.update.now'), 'neutral', t('ui.later'));
+        showConfirm(message, () => applyUpdate(target, search), t('ui.new.version.ready'), {
+            triggerEl: dom.updateReloadBtn, okText: t('ui.update.now'), tone: 'neutral', cancelText: t('ui.later')
+        });
     });
     navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(reg => {
         watchRegistration(reg);

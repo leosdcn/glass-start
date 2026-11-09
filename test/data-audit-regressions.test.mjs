@@ -106,6 +106,21 @@ test('历史工单缺陷回归 (GS-01 ~ GS-15 焦点、导入、存储配额与�
         return document.activeElement === input;
       })()`), true);
     }
+    assert.equal(await evalJS(`(() => {
+      const handle = dom.editList.querySelector('.drag-handle');
+      const id = handle.closest('.edit-row-card').dataset.id;
+      const reorder = key => document.activeElement.dispatchEvent(new KeyboardEvent('keydown', {
+        key, altKey: true, bubbles: true, cancelable: true
+      }));
+      handle.focus();
+      reorder('ArrowDown');
+      const moved = modalState.draftBookmarks[1].id === id;
+      window.dispatchEvent(new Event('blur'));
+      handleAppWakeUp();
+      const keptFocus = document.activeElement === handle;
+      reorder('ArrowUp');
+      return moved && keptFocus && modalState.draftBookmarks[0].id === id;
+    })()`), true);
     await evalJS('cancelEditModal()');
     for (const target of ['nav', 'start']) {
       assert.equal(await evalJS(`(() => {
