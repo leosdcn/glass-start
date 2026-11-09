@@ -17,6 +17,27 @@ import { checkServiceWorkerUpdate } from './core/service-worker-updates.js';
 import { switchBg } from './modules/wallpaper.js';
 import { openShortcutModal, closeShortcutModal } from './modules/settings.js';
 
+/** @type {AbortController | null} */
+let tabBlurAbortController = null;
+const clearTabBlurOnInteraction = () => {
+    if (document.body.classList.contains('tab-blurred')) {
+        document.body.classList.remove('tab-blurred');
+    }
+    if (tabBlurAbortController) {
+        tabBlurAbortController.abort();
+        tabBlurAbortController = null;
+    }
+};
+const attachTabBlurListeners = () => {
+    if (tabBlurAbortController) return;
+    tabBlurAbortController = new AbortController();
+    const opts = { passive: true, signal: tabBlurAbortController.signal };
+    window.addEventListener('mousemove', clearTabBlurOnInteraction, opts);
+    window.addEventListener('keydown', clearTabBlurOnInteraction, opts);
+    window.addEventListener('touchstart', clearTabBlurOnInteraction, opts);
+    window.addEventListener('wheel', clearTabBlurOnInteraction, opts);
+};
+
 /** 页面恢复时协调业务刷新与交互状态，底层机制不导入业务模块。 */
 export function handleAppWakeUp() {
     updateClock();
@@ -79,29 +100,6 @@ export function bindEvents() {
         closeDropdown();
         closeWeatherPopover();
     });
-
-    let tabBlurListenersAttached = false;
-    const clearTabBlurOnInteraction = () => {
-        if (document.body.classList.contains('tab-blurred')) {
-            document.body.classList.remove('tab-blurred');
-        }
-        if (tabBlurListenersAttached) {
-            tabBlurListenersAttached = false;
-            window.removeEventListener('mousemove', clearTabBlurOnInteraction);
-            window.removeEventListener('keydown', clearTabBlurOnInteraction);
-            window.removeEventListener('touchstart', clearTabBlurOnInteraction);
-            window.removeEventListener('wheel', clearTabBlurOnInteraction);
-        }
-    };
-    const attachTabBlurListeners = () => {
-        if (!tabBlurListenersAttached) {
-            tabBlurListenersAttached = true;
-            window.addEventListener('mousemove', clearTabBlurOnInteraction, { passive: true });
-            window.addEventListener('keydown', clearTabBlurOnInteraction, { passive: true });
-            window.addEventListener('touchstart', clearTabBlurOnInteraction, { passive: true });
-            window.addEventListener('wheel', clearTabBlurOnInteraction, { passive: true });
-        }
-    };
 
     /** @param {MouseEvent} e */
     const handleLinkClickFeedback = (e) => {

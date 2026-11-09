@@ -86,8 +86,27 @@ export function initDragSort() {
     }
 
     let isDragHandleActive = false;
-    /** @type {number | null} */
-    let dragSettlingRaf = null;
+    /** @type {ReturnType<typeof setTimeout> | null} */
+    let dragSettlingTimer = null;
+
+    function clearDragSettling() {
+        if (dragSettlingTimer) {
+            clearTimeout(dragSettlingTimer);
+            dragSettlingTimer = null;
+        }
+        document.body.classList.remove('drag-settling');
+        window.removeEventListener('pointermove', clearDragSettling, { capture: true });
+    }
+
+    function settleDragHover() {
+        clearDragSettling();
+        document.body.classList.add('drag-settling');
+        // FLIP 动画结束后确定性恢复；指针移动亦可提前解除，消除鼠标静止导致的伪悬停锁定
+        dragSettlingTimer = setTimeout(clearDragSettling, CONFIG.TIMERS.FLIP_DURATION_MS);
+        queueMicrotask(() => {
+            window.addEventListener('pointermove', clearDragSettling, { capture: true, once: true, passive: true });
+        });
+    }
 
     function blurActiveHandle() {
         const active = /** @type {HTMLElement|null} */ (document.activeElement);
@@ -96,20 +115,16 @@ export function initDragSort() {
         }
     }
 
-    function settleDragHover() {
-        if (dragSettlingRaf) cancelAnimationFrame(dragSettlingRaf);
-        document.body.classList.add('drag-settling');
-        const clear = () => {
-            document.body.classList.remove('drag-settling');
-            document.removeEventListener('pointermove', clear, { capture: true });
-            dragSettlingRaf = null;
-        };
-        // 在下一帧后注册 pointermove 监听，避免当前帧立即触发
-        dragSettlingRaf = requestAnimationFrame(() => {
-            dragSettlingRaf = requestAnimationFrame(() => {
-                document.addEventListener('pointermove', clear, { capture: true, once: true, passive: true });
-            });
+    function resetDragSession() {
+        isDragHandleActive = false;
+        document.body.classList.remove('bookmark-dragging');
+        currentEditList.querySelectorAll('.edit-row-card[draggable="true"]').forEach(card => {
+            card.setAttribute('draggable', 'false');
         });
+        clearDragClasses();
+        dragSrc = null;
+        touchIdentifier = null;
+        blurActiveHandle();
     }
 
     // ── 共享：DOM 重排 + draftBookmarks 同步 + FLIP 动画 ─────────────────────
@@ -204,12 +219,7 @@ export function initDragSort() {
     });
 
     document.addEventListener('mouseup', () => {
-        isDragHandleActive = false;
-        document.body.classList.remove('bookmark-dragging');
-        currentEditList.querySelectorAll('.edit-row-card[draggable="true"]').forEach(card => {
-            card.setAttribute('draggable', 'false');
-        });
-        blurActiveHandle();
+        resetDragSession();
     }, { passive: true });
 
     currentEditList.addEventListener('dragstart', e => {
@@ -237,14 +247,7 @@ export function initDragSort() {
     });
 
     currentEditList.addEventListener('dragend', () => {
-        isDragHandleActive = false;
-        document.body.classList.remove('bookmark-dragging');
-        currentEditList.querySelectorAll('.edit-row-card[draggable="true"]').forEach(card => {
-            card.setAttribute('draggable', 'false');
-        });
-        clearDragClasses();
-        dragSrc = null;
-        blurActiveHandle();
+        resetDragSession();
         settleDragHover();
     });
 
@@ -282,21 +285,15 @@ export function initDragSort() {
         const src = dragSrc;
         const target = lastOverTarget;
         const isTop = lastIsTop;
-        dragSrc = null;
-        clearDragClasses();
-        blurActiveHandle();
+        resetDragSession();
         if (isTop !== null) commitReorder(src, target, isTop);
         settleDragHover();
     });
 
     // ── 触屏路径：.drag-handle 上有 touch-none（touch-action:none），无需 preventDefault ──
     cancelCurrentDrag = () => {
-        dragSrc = null;
-        touchIdentifier = null;
-        isDragHandleActive = false;
-        clearDragClasses();
-        currentEditList.querySelectorAll('[draggable="true"]').forEach(card => card.setAttribute('draggable', 'false'));
-        document.body.classList.remove('bookmark-dragging');
+        resetDragSession();
+        clearDragSettling();
     };
 
     currentEditList.addEventListener('touchstart', e => {
@@ -355,14 +352,11 @@ export function initDragSort() {
         const src = dragSrc;
         const target = lastOverTarget;
         const isTop = lastIsTop ?? true;
-        dragSrc = null;
-        touchIdentifier = null;
-        clearDragClasses();
-        blurActiveHandle();
-        document.body.classList.remove('bookmark-dragging');
+        resetDragSession();
         if (target && src !== target) {
             commitReorder(src, target, isTop);
         }
+        settleDragHover();
     }, { passive: true });
 
     // 系统手势、来电或弹窗中断：纯重置，严禁触发重排
