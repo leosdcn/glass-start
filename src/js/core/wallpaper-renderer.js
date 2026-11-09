@@ -1,200 +1,194 @@
 import { CONFIG, backgrounds } from '../config/constants.js';
 import { PRESET_THEMES, PRESET_TINTS, PRESET_THEME_COLORS } from '../config/themes.js';
 import { dom } from '../state/dom.js';
-import { setWallpaperTheme, updateGlassTint, sampleCustomWallpaperTheme } from './theme-engine.js';
+import { getWallpaperTheme, setWallpaperTheme, updateGlassTint, sampleCustomWallpaperTheme } from './theme-engine.js';
 import { afterScreenTransition, isScreenTransitioning } from './screen-state.js';
 
 /** @typedef {(image: HTMLImageElement) => void} ThemeSampleListener */
-/** @type {{ url: string, base: HTMLElement, next: HTMLElement, animate: boolean, image: HTMLImageElement | null, onSample?: ThemeSampleListener } | null} */
-let activeWallpaperRequest = null;
-/** 只保留最近一张成功解码的图片，避免积累大图内存。 */
-/** @type {{ url: string, image: HTMLImageElement, themeSamplePending: boolean } | null} */
-let decodedWallpaper = null;
+/** @typedef {{ theme: import('../types').WallpaperTheme, tint: string }} WallpaperAppearance */
+/** @typedef {{ url: string | null, image: HTMLImageElement | null, backgroundImage: string, appearance?: WallpaperAppearance, onSample?: ThemeSampleListener, samplePending?: boolean }} WallpaperFrame */
+/** @type {{ url: string, animate: boolean, onSample?: ThemeSampleListener } | null} */
+let pendingWallpaper = null;
+/** @type {WallpaperFrame | null} */
+let displayedWallpaper = null;
+/** @type {((show: boolean) => void) | null} */
+let finishWallpaperFade = null;
 /** @type {number} */
 let wallpaperOpacity = CONFIG.APPEARANCE.DEFAULT_MASK_OPACITY;
-/** @type {string | null} */
-let baseWallpaperUrl = null;
-// 图片请求可以更换或失败，正在进行的淡入独立收尾。
-/** @typedef {{ url: string, finish: (show: boolean) => void }} WallpaperFade */
-/** @type {WallpaperFade | null} */
-let wallpaperFade = null;
 
-/** 预览复用渲染器最近一次成功准备的图片，不额外保留大图缓存。 @param {string} url */
+/** @param {string} url */
 export function getPreparedWallpaperImage(url) {
-    return decodedWallpaper?.url === url ? decodedWallpaper.image : null;
+    return displayedWallpaper?.url === url ? displayedWallpaper.image : null;
 }
 
-function schedulePendingThemeSample() {
-    const pending = decodedWallpaper;
-    if (!pending?.themeSamplePending) return;
-    const sample = () => {
-        if (decodedWallpaper === pending && pending.themeSamplePending) updateCustomWallpaperTheme(false);
-    };
-    if ('requestIdleCallback' in window) {
-        window.requestIdleCallback(sample, { timeout: 300 });
-    } else {
-        setTimeout(sample, 300);
-    }
+/** 保留实际显示的图片，启动解码未完成时保留模板已绘制的底图。 */
+export function captureWallpaperFrame() {
+    return displayedWallpaper ?? /** @type {WallpaperFrame} */ ({
+        url: null, image: null,
+        backgroundImage: dom.bgLayer?.style.backgroundImage ?? '',
+        appearance: {
+            theme: getWallpaperTheme(),
+            tint: document.documentElement.style.getPropertyValue('--glass-tint') || '255, 255, 255'
+        }
+    });
 }
 
-/** @param {boolean} animate */
-function updateCustomWallpaperTheme(animate) {
-    const request = activeWallpaperRequest;
-    if (!decodedWallpaper?.image.naturalWidth || request?.url !== decodedWallpaper.url || backgrounds.includes(decodedWallpaper.url)) return;
-    // 启动恢复的图片照常显示，像素读取等切屏结束；快速往返时继续等下一次收尾。
-    decodedWallpaper.themeSamplePending = !animate && isScreenTransitioning();
-    if (decodedWallpaper.themeSamplePending) {
-        afterScreenTransition(schedulePendingThemeSample);
+/** @param {WallpaperFrame} frame @param {boolean} defer */
+function sampleWallpaperFrame(frame, defer) {
+    if (!frame.image || frame !== displayedWallpaper || backgrounds.includes(frame.url ?? '')) return;
+    if (defer && isScreenTransitioning()) {
+        if (frame.samplePending) return;
+        frame.samplePending = true;
+        afterScreenTransition(() => {
+            const sample = () => {
+                if (!frame.samplePending) return;
+                frame.samplePending = false;
+                sampleWallpaperFrame(frame, true);
+            };
+            if ('requestIdleCallback' in window) window.requestIdleCallback(sample, { timeout: 300 });
+            else setTimeout(sample, 300);
+        });
         return;
     }
-    const sample = sampleCustomWallpaperTheme(decodedWallpaper.image, wallpaperOpacity);
+    frame.samplePending = false;
+    const sample = sampleCustomWallpaperTheme(frame.image, wallpaperOpacity);
     if (sample) {
-        setWallpaperTheme(sample.theme);
-        updateGlassTint(sample.tint);
+        frame.appearance = sample;
+        applyFrameAppearance(sample);
     }
-    const onSample = request.onSample;
-    request.onSample = undefined;
-    onSample?.(decodedWallpaper.image);
+    const onSample = frame.onSample;
+    frame.onSample = undefined;
+    onSample?.(frame.image);
+}
+
+/** @param {WallpaperAppearance} appearance */
+function applyFrameAppearance({ theme, tint }) {
+    setWallpaperTheme(theme);
+    updateGlassTint(tint);
 }
 
 /** @param {number} opacity */
 export function setWallpaperDimming(opacity) {
     if (wallpaperOpacity === opacity) return;
     wallpaperOpacity = opacity;
-    updateCustomWallpaperTheme(activeWallpaperRequest?.animate ?? false);
+    if (displayedWallpaper) sampleWallpaperFrame(displayedWallpaper, true);
 }
 
-/**
- * @param {string} urlStr
- * @param {boolean} [animate]
- * @param {HTMLImageElement | null} [preparedImage] - 调用方已完成加载和解码的图片
- * @param {ThemeSampleListener} [onSample] - 自定义图已取色，交给持久化拥有者处理
- */
-export function applyWallpaper(urlStr, animate = true, preparedImage = null, onSample) {
-    const bgBase = dom.bgLayer;
-    const bgNext = dom.bgLayerNext;
-    if (!bgBase || !bgNext || !urlStr || typeof urlStr !== 'string') return;
-
-    // 匹配预设或离线采样壁纸主题色，动态自适应 Safari 顶栏外观与环境光折射
-    const presetIdx = backgrounds.indexOf(urlStr);
-    if (presetIdx >= 0 && PRESET_THEMES[presetIdx]) {
-        const themeColor = PRESET_THEME_COLORS && PRESET_THEME_COLORS[presetIdx];
-        setWallpaperTheme(PRESET_THEMES[presetIdx], themeColor);
-        if (PRESET_TINTS && PRESET_TINTS[presetIdx]) {
-            updateGlassTint(PRESET_TINTS[presetIdx]);
-        }
-    }
-
-    // 过滤 URL 中可能破坏 CSS url() 语法的引号、反斜杠、右括号与换行符
-    const safeCssUrl = urlStr.replace(/["'\\\r\n)]/g, '\\$&');
-    const newStyleUrl = `url("${safeCssUrl}")`;
-
-    const previous = activeWallpaperRequest;
-    if (previous?.url === urlStr && previous.base === bgBase && previous.next === bgNext) {
-        previous.animate = animate;
-        previous.onSample = onSample;
-        // 同一加载／解码只保留一个任务；后一次调用可更新其入场方式。
-        if (!previous.image && !preparedImage) return;
-        if (previous.image && (wallpaperFade ? animate && wallpaperFade.url === urlStr : baseWallpaperUrl === urlStr)) {
-            // 相同图片仍须响应遮罩和视口变化，但不重解码或重播淡入。
-            if (presetIdx < 0) updateCustomWallpaperTheme(animate);
-            return;
-        }
-    }
-    if (decodedWallpaper) decodedWallpaper.themeSamplePending = false;
-    const request = { url: urlStr, base: bgBase, next: bgNext, animate, image: /** @type {HTMLImageElement | null} */ (null), onSample };
-    activeWallpaperRequest = request;
-    const cachedImage = preparedImage || getPreparedWallpaperImage(urlStr);
-    const img = cachedImage || new Image();
-
-    /** @param {string} url @param {string} styleUrl */
-    const showBase = (url, styleUrl) => {
-        baseWallpaperUrl = url;
-        bgBase.style.backgroundImage = styleUrl;
-        bgBase.style.opacity = '1';
-    };
-    const resetNextLayer = () => {
-        bgNext.classList.remove('is-crossfading');
-        bgNext.style.opacity = '0';
-        bgNext.style.backgroundImage = '';
+/** @param {WallpaperFrame} frame @param {boolean} animate */
+function presentWallpaperFrame(frame, animate) {
+    const base = dom.bgLayer;
+    const next = dom.bgLayerNext;
+    if (!base || !next) return;
+    const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const shouldAnimate = animate && !motion.matches;
+    finishWallpaperFade?.(shouldAnimate);
+    if (displayedWallpaper) displayedWallpaper.samplePending = false;
+    displayedWallpaper = frame;
+    const showBase = () => {
+        base.style.backgroundImage = frame.backgroundImage;
+        base.style.opacity = '1';
     };
 
-    const executeTransition = () => {
-        img.onload = null;
-        img.onerror = null;
-        if (activeWallpaperRequest !== request) return;
-        request.image = img;
-        decodedWallpaper = { url: urlStr, image: img, themeSamplePending: false };
-        const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
-        const shouldAnimate = request.animate && !motion.matches;
-        wallpaperFade?.finish(shouldAnimate);
-
-        if (presetIdx < 0) updateCustomWallpaperTheme(request.animate);
-
-        if (!shouldAnimate) {
-            showBase(urlStr, newStyleUrl);
-            resetNextLayer();
-            return;
-        }
-
-        bgNext.style.opacity = '0';
-        bgNext.style.backgroundImage = newStyleUrl;
-        bgNext.classList.add('is-crossfading');
-        const animation = bgNext.animate([{ opacity: 0 }, { opacity: 1 }], {
+    if (!shouldAnimate) {
+        showBase();
+    } else {
+        next.style.opacity = '0';
+        next.style.backgroundImage = frame.backgroundImage;
+        next.classList.add('is-crossfading');
+        const animation = next.animate([{ opacity: 0 }, { opacity: 1 }], {
             duration: CONFIG.TIMERS.BG_CROSSFADE,
             easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
             fill: 'forwards'
         });
-        /** @type {WallpaperFade} */
-        const fade = {
-            url: urlStr,
-            finish(show) {
-                if (wallpaperFade !== fade) return;
-                wallpaperFade = null;
-                motion.removeEventListener('change', onMotion);
-                if (show) showBase(urlStr, newStyleUrl);
-                animation.cancel();
-                resetNextLayer();
-            }
+        /** @param {boolean} show */
+        const finish = show => {
+            if (finishWallpaperFade !== finish) return;
+            finishWallpaperFade = null;
+            motion.removeEventListener('change', onMotion);
+            if (show) showBase();
+            animation.cancel();
+            next.classList.remove('is-crossfading');
+            next.style.opacity = '0';
+            next.style.backgroundImage = '';
         };
-        const settle = () => fade.finish(true);
+        const settle = () => finish(true);
         const onMotion = () => { if (motion.matches) settle(); };
-        wallpaperFade = fade;
+        finishWallpaperFade = finish;
         motion.addEventListener('change', onMotion);
         animation.finished.then(settle, settle);
-    };
+    }
 
-    const fail = () => {
-        img.onload = img.onerror = null;
-        if (activeWallpaperRequest === request) activeWallpaperRequest = null;
-    };
-    let preparing = false;
-    const prepareTransition = async () => {
-        if (preparing) return;
-        preparing = true;
-        img.onload = img.onerror = null;
-        if (activeWallpaperRequest !== request) return;
-        if (!img.naturalWidth) { fail(); return; }
-        if (typeof img.decode === 'function') {
-            try {
-                await img.decode();
-            } catch {
-                // 解码失败保留当前壁纸，不启动不完整图片的交叉淡入。
-                fail();
-                return;
-            }
-        }
-        executeTransition();
-    };
+    if (frame.appearance) applyFrameAppearance(frame.appearance);
+    sampleWallpaperFrame(frame, !animate);
+}
 
-    if (cachedImage) {
-        executeTransition();
+/** @param {WallpaperFrame} frame */
+export function restoreWallpaperFrame(frame) {
+    pendingWallpaper = null;
+    presentWallpaperFrame(frame, false);
+}
+
+/**
+ * @param {string} url
+ * @param {boolean} [animate]
+ * @param {HTMLImageElement | null} [preparedImage]
+ * @param {ThemeSampleListener} [onSample]
+ */
+export function applyWallpaper(url, animate = true, preparedImage = null, onSample) {
+    if (!dom.bgLayer || !dom.bgLayerNext || !url || typeof url !== 'string') return;
+    if (pendingWallpaper?.url === url && !preparedImage) {
+        pendingWallpaper.animate = animate;
+        pendingWallpaper.onSample = onSample;
         return;
     }
-    img.onload = prepareTransition;
-    img.onerror = fail;
-    img.src = urlStr;
-    if (img.complete && img.naturalWidth > 0) {
-        prepareTransition();
+
+    if (displayedWallpaper?.url === url) {
+        pendingWallpaper = null;
+        if (!animate) finishWallpaperFade?.(true);
+        displayedWallpaper.onSample = onSample;
+        sampleWallpaperFrame(displayedWallpaper, !animate);
+        return;
     }
+
+    const request = { url, animate, onSample };
+    pendingWallpaper = request;
+    const image = preparedImage ?? new Image();
+    const present = () => {
+        if (pendingWallpaper !== request) return;
+        pendingWallpaper = null;
+        const preset = backgrounds.indexOf(url);
+        const appearance = preset < 0 ? undefined : {
+            theme: { ...PRESET_THEMES[preset], themeColor: PRESET_THEME_COLORS[preset] },
+            tint: PRESET_TINTS[preset]
+        };
+        // 避免 URL 中的特殊字符破坏 CSS url() 语法。
+        const backgroundImage = `url("${url.replace(/["'\\\r\n)]/g, '\\$&')}")`;
+        presentWallpaperFrame({ url, image, backgroundImage, appearance, onSample: request.onSample }, request.animate);
+    };
+    if (preparedImage) {
+        present();
+        return;
+    }
+
+    const clearListeners = () => { image.onload = image.onerror = null; };
+    const fail = () => {
+        clearListeners();
+        if (pendingWallpaper === request) pendingWallpaper = null;
+    };
+    const decode = async () => {
+        if (!image.onload) return;
+        clearListeners();
+        if (pendingWallpaper !== request) return;
+        try {
+            if (!image.naturalWidth) { fail(); return; }
+            await image.decode?.();
+            present();
+        } catch {
+            fail();
+        }
+    };
+    image.onload = decode;
+    image.onerror = fail;
+    image.src = url;
+    if (image.complete && image.naturalWidth > 0) decode();
 }

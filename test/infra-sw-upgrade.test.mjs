@@ -10,6 +10,8 @@ const builtVersion = readFileSync(join(DIST_DIR, 'index.html'), 'utf8').match(/_
 let version = 101, failApp = false, failWallpaper = false, mismatch = false, offline = false;
 let wallpaperBodies = 0, wallpaperValidations = 0;
 let secondVersion = 105;
+const activationPaused = Promise.withResolvers();
+let releaseActivation;
 const route = (kind) => (req, res) => {
   if (offline) { req.socket.destroy(); return; }
   const routeVersion = req.url.startsWith('/b/') ? secondVersion : version;
@@ -20,6 +22,16 @@ const route = (kind) => (req, res) => {
   let body;
   if (kind === 'worker') body = source.replaceAll(builtVersion, stamp)
     + "\nself.addEventListener('message', e => e.waitUntil(clients.matchAll({type:'window'}).then(list => e.ports[0].postMessage(list.length))));";
+  if (kind === 'worker' && routeVersion === 106) body = `
+    self.addEventListener('activate', () => {
+      const readCacheNames = CacheStorage.prototype.keys;
+      CacheStorage.prototype.keys = async function () {
+        CacheStorage.prototype.keys = readCacheNames;
+        await fetch('./activation-gate', {cache: 'no-store'});
+        return readCacheNames.call(this);
+      };
+    });
+  ` + body;
   if (kind === 'html') body = `<!doctype html><html><head><script>window.__GLASS_BUILD_HTML__="${stamp}";</script><script src="./app-builds/${stamp}.js" defer></script></head><body>version ${routeVersion}</body></html>`;
   if (kind === 'app') body = `window.__GLASS_BUILD_APP__="${mismatch ? 'app-core-v999' : stamp}";window.appVersion=${routeVersion};fetch('./wallpapers/bg1.avif').then(r=>r.text()).then(()=>navigator.serviceWorker.register('./sw.js')).then(reg=>window.reg=reg);`;
   if (kind === 'image') body = `image-${routeVersion}-${req.url}`;
@@ -44,8 +56,12 @@ const server = await startServer(0, undefined, {
   ...Object.fromEntries([101, 102, 103, 1031, 104, 107].map(id => ['/app/app-builds/app-core-v' + id + '.js', route('app')])),
   '/app/sw.js': route('worker'), '/app/wallpapers/bg1.avif': route('image'),
   '/b/': route('html'), '/b/index.html': route('html'),
-  ...Object.fromEntries([105, 106].map(id => ['/b/app-builds/app-core-v' + id + '.js', route('app')])),
+  ...Object.fromEntries([105, 106, 108].map(id => ['/b/app-builds/app-core-v' + id + '.js', route('app')])),
   '/b/sw.js': route('worker'), '/b/wallpapers/bg1.avif': route('image'),
+  '/b/activation-gate': (_req, res) => {
+    releaseActivation = () => { releaseActivation = undefined; res.end(); };
+    activationPaused.resolve();
+  },
   '/app/icons/test.png': route('image'),
   '/app/icons/offline.png': route('image'),
   '/status.html': '<!doctype html><html><head></head><body>uncontrolled status</body></html>'
@@ -140,12 +156,27 @@ try {
   secondVersion = 106;
   await update();
   await waitFor(evalJS,'!!reg.waiting');
-  await evalJS(`reg.waiting.postMessage({type:'ACTIVATE_UPDATE'})`);
-  await waitFor(evalJS,'!reg.waiting && reg.active?.state === "activated"');
+  await evalJS(`window.activating = reg.waiting; activating.postMessage({type:'ACTIVATE_UPDATE'})`);
+  const deadline = AbortSignal.timeout(8000);
+  await Promise.race([activationPaused.promise, new Promise((_, reject) => {
+    deadline.addEventListener('abort', () => reject(deadline.reason), { once: true });
+  })]);
+  assert.equal(await evalJS('activating.state'), 'activating');
+  secondVersion = 108;
+  await evalJS('reg.update().then(() => null)');
+  await waitFor(evalJS, 'reg.waiting?.state === "installed"');
+  releaseActivation();
+  await waitFor(evalJS, 'activating.state === "activated"');
   assert.equal(await evalJS(`caches.keys().then(keys=>keys.includes('glass-scope-%2Fapp%2F-app-core-v104')&&keys.includes('glass-scope-%2Fb%2F-app-core-v106'))`),true);
+  assert.equal(await evalJS(`caches.has('glass-scope-%2Fb%2F-app-core-v108')`), true, '正在等待的构建不能被回收');
+  offline = true;
+  await evalJS(`window.nextWorker = reg.waiting; nextWorker.postMessage({type:'ACTIVATE_UPDATE'})`);
+  await waitFor(evalJS, 'nextWorker.state === "activated" && navigator.serviceWorker.controller === nextWorker');
+  assert.equal(await evalJS(`caches.has('glass-scope-%2Fb%2F-app-core-v105')`), false, '已退役的构建仍可回收');
+  offline = false;
   await send('Page.navigate',{url:origin+'/app/'});
   await waitFor(evalJS,'window.appVersion === 104 && !!navigator.serviceWorker.controller');
-  console.log('✅ GS-07 两个 scope 不同版本安装和更新，各自保留核心缓存');
+  console.log('✅ 激活期间安装下一版，等待构建仍能在断网后接管，退役池按 scope 回收');
   await send('Network.enable');
   offline = true;
   await send('Network.emulateNetworkConditions', { offline:true, latency:0, downloadThroughput:0, uploadThroughput:0 });
@@ -179,10 +210,11 @@ try {
   await waitFor(evalJS,'window.appVersion === 107 && !!navigator.serviceWorker.controller');
   assert.equal(await evalJS(`window.__GLASS_BUILD_HTML__===window.__GLASS_BUILD_APP__`),true);
   await send('Page.navigate',{url:origin+'/b/'});
-  await waitFor(evalJS,'window.appVersion === 106 && !!navigator.serviceWorker.controller');
+  await waitFor(evalJS,'window.appVersion === 108 && !!navigator.serviceWorker.controller');
   console.log('✅ GS-14 缺失旧脚本不污染旧池，恢复页升级完整新版，两个实例均可离线重载');
   console.log('✅ 最后一个旧客户端退出后新版激活，旧核心池清理，新版断网重载可用');
 } finally {
+  releaseActivation?.();
   await chrome.close();
   await server.close();
 }

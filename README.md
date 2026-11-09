@@ -69,7 +69,7 @@
 
 ### Chrome 新标签页扩展
 
-**下载安装**：前往 [Releases](https://github.com/leosdcn/glass-start/releases/latest) 下载扩展 ZIP，安装与更新方法见发布说明。
+**下载安装**。下载发布说明中列出的扩展 ZIP，按说明安装或更新。要使用当前源码的版本，可按下方步骤构建。[GitHub Releases](https://github.com/leosdcn/glass-start/releases/latest)
 
 **从源码构建**：执行以下命令。
 
@@ -99,7 +99,7 @@ npm run build:extension
 4. 保存并部署。后续推送到配置的生产分支会触发更新；生产分支按实际仓库选择，不一定是 `main`。
 
 ### Vercel / Netlify / GitHub Pages
-- **Vercel / Netlify**：导入 Git 仓库，构建命令设为 `npm run build`，输出目录设为 `dist`；响应头规则须按各平台要求配置。
+- **Vercel / Netlify**。导入 Git 仓库，选择符合 `package.json` 要求的 Node.js 版本，并安装开发依赖。构建命令设为 `npm run build`，输出目录设为 `dist`。响应头规则按各平台的配置方式设置。
 - **GitHub Pages**：仓库已提供 [CI 与发布工作流](./.github/workflows/ci.yml)。启用仓库的 Actions，并在 Settings ➔ Pages 选择 GitHub Actions；推送到 `main` 或在 `main` 手动运行工作流，会在 lint、完整测试和 W3C 校验成功后发布已验证的 `dist/`，无需另建工作流。修改发布分支或流程时参考[官方自定义工作流指南](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages)。若从分支发布，需将产物放在发布分支根目录或 `/docs`，不能直接选择 `/dist`。
 
 `public/_headers` 的响应头规则需要托管平台支持；GitHub Pages 不应用该文件，页面仍使用 HTML meta CSP。meta CSP 与 HTTP CSP 响应头共同生效，响应头不能放宽 meta 中的限制；仅支持响应头的 `frame-ancestors`、缓存及其他安全头也不会由 meta 替代。部署后应核对实际 HTTP 响应，不能仅凭产物中存在 `_headers` 判断规则生效。
@@ -183,8 +183,9 @@ npm run preview
 点击右下角设置按钮，可编辑首屏快捷书签、调整外观并管理数据。导航分类仍由 `bookmarks.json` 维护。
 
 - **完成 / 取消**：「完成」保存快捷书签、壁纸、背景暗度、切屏动效与语言；「取消」放弃未提交的草稿并恢复已保存的壁纸，也会作废仍在读取、加载或解码的壁纸任务。保存不是跨所有存储项的原子事务，失败前已经保存的更改仍然生效，其余草稿保留在面板内供重试。弹窗外使用快捷键切换壁纸会立即保存。
-- **界面语言**：在设置弹窗右上角选择跟随浏览器、简体中文或 English，点击「完成」后刷新生效。界面、天气、内置分类和书签简介随语言切换，用户改写和导入的文字保留原文。首次使用默认跟随浏览器，不支持的语言回退英文；网页与扩展的选择分别保存，离线也可切换。时间保持 24 小时制；温度默认摄氏度，可在天气详情中点击温度单位切换摄氏度／华氏度。扩展管理页名称跟随 Chrome 的语言，PWA 安装名称保留默认元数据。
+- **界面语言**。在设置弹窗右上角选择跟随浏览器、简体中文或 English，点击「完成」保存。实际界面语言变化时，页面会刷新。界面、天气、内置分类和书签简介随语言切换，用户改写和导入的文字保留原文。首次使用默认跟随浏览器，不支持的语言回退英文。网页与扩展分别保存语言偏好，离线也可切换。时间保持 24 小时制。温度默认摄氏度，可在天气详情中切换摄氏度／华氏度。扩展管理页名称跟随 Chrome 的语言，PWA 安装名称保留默认元数据。
 - **导出 / 导入**：导出当前快捷书签草稿，包含尚未点击「完成」的书签修改及目录继承信息。导入 JSON 后确认替换草稿，再点击「完成」生效。备份不包含壁纸图片、外观或搜索偏好。
+  导出格式为 `{ version, exportDate, bookmarks }`，当前格式版本为 `1.1`。导入也接受书签数组或含 `categories[].bookmarks` 的目录 JSON。重复链接保留首个有效条目。
 - **刷新离线缓存 / 还原初始设置**：缓存清理只处理当前部署的离线资源与 Service Worker，同源其他部署和网页共享图标池保留；扩展清理自己的临时图标池。清理成功后会刷新并丢弃未保存的草稿。确认还原后清除自定义快捷书签、壁纸与偏好；提交期间暂时禁用编辑、保存和取消，完成或失败后解除限制。操作前可先导出书签。
 
 ### 5. 键盘快捷键
@@ -205,7 +206,7 @@ npm run preview
 
 - 需要使用 Node.js 24.x（至少 24.15.0）或 26 及以上版本及随附的 npm；版本范围为 `^24.15.0 || >=26.0.0`，与 Stylelint 18 的要求保持兼容。测试驱动使用 Node 原生 `fetch` 和 `WebSocket`，请遵循 `package.json` 的 Node 版本要求。安装或恢复依赖使用 `npm ci`。
 - 浏览器回归测试需要 Google Chrome。可通过 `CHROME_PATH` 指定安装路径，例如 `CHROME_PATH="/path/to/chrome" npm test`。项目以 Chrome 为浏览器验收基准，移动视口及触摸交互通过 Chrome CDP 模拟；日常开发、全面测试及发布均不要求 Safari/iOS 真机走查。
-- `npm run sync:icons` 及图标转换回归测试依赖 macOS 原生 `sips`；完整验证建议在 macOS 上执行。构建与静态托管本身不调用 `sips`，其他系统可使用仓库中已同步的图标构建。
+- `npm run sync:icons` 及图标转换回归测试依赖 macOS 原生 `sips`。Ubuntu CI 和其他没有 `sips` 的环境会跳过图标转换回归。使用仓库中已同步的图标可在其他系统构建和静态托管。
 - 安装依赖、下载或刷新图标和 W3C 在线校验需要网络；仅复用本地图标时不请求外部图标服务。
 
 先用 `node --version` 确认当前环境；`engines` 声明不会自动切换 Node，`start.command` 也只检查 Node 命令是否可用。CI 固定最低支持版本以验证下限，Cloudflare 部署示例则跟随符合要求的 24.x 维护版本。
@@ -246,7 +247,7 @@ npm run build:extension
 
 验证范围以 [AGENTS.md](./AGENTS.md#验证) 为准，局部修改优先运行直接相关测试。`npm test -- <文件名片段>` 执行匹配的测试文件前，会检查类型，并按需构建；需要构建时，两项并行执行，无需重复手动检查类型或构建。仅匹配[运行器明确列出的纯单元测试](./test/support/test-selection.mjs)时跳过构建。无参数的 `npm test` 执行全套，用于高风险跨模块改造、发布或明确要求全量验证的场景。`test:ui`、`test:data`、`test:infra`、`test:lifecycle` 可按模块扩大范围，可用命令以 `package.json` 为准。
 
-每轮 `npm test` 使用独立的网页构建快照。扩展回归也在会话目录生成扩展，供日常安装的 `extension/` 由 `npm run build:extension` 生成。设置 `CHROME_PROFILE_DIR` 可指定 Chrome 测试配置的父目录，每个会话只清理自己创建的子目录。
+需要构建时，`npm test` 发布 `dist/` 并将本轮网页产物和同指纹测试脚本保存在独立会话目录。测试服务从该快照读取，开发服务随后重建也不会影响正在运行的测试。扩展回归在会话目录生成扩展，供日常安装的 `extension/` 由 `npm run build:extension` 生成。设置 `CHROME_PROFILE_DIR` 可指定 Chrome 测试配置的父目录，每个会话只清理自己创建的子目录。
 
 升级开发组件时同步维护 `package.json` 与 `package-lock.json`；`npm ci` 按锁文件复现版本，`^` 声明的是允许更新的范围，不会让每次 `npm ci` 自动升级。Tailwind 与其 CLI 保持版本一致；它们虽然是开发依赖，升级仍可能改变生成的 CSS，须重建并验证受影响的网页和扩展布局。Stylelint 升级则需核对规则迁移与对应校验回归。
 
@@ -258,11 +259,11 @@ npm run build:extension
 
 | 文件名筛选片段 | 覆盖范围 |
 | :--- | :--- |
-| `data-wallpaper.test` | 图片解码、上传压缩、加载复用与失败重试 |
+| `data-wallpaper.test` | 图片解码、上传压缩、预览取消、加载复用与失败重试 |
 | `data-wallpaper-storage` | 选择提交、事务失败、会话隔离与恢复优先级 |
 | `data-bookmark-picker` | 挑选器节点复用、目录失效与图标预览请求 |
-| `ui-nav-rendering` | 图标延迟加载、分类位置缓存与原生滚动 |
-| `ui-modal-accessibility` | 焦点、背景隔离与隔离状态增量更新 |
+| `ui-nav-rendering` | 图标延迟加载、分类位置缓存、高亮动画与原生滚动 |
+| `ui-modal-accessibility` | 原生模态隔离、焦点归还与退场交互 |
 | `infra-theme-favicon` | 主题配置、图标回退、缓存驱逐与图标直接导航 |
 
 `npm run benchmark` 构建并评测首次与多轮切屏帧间隔，默认评测本地生产产物；页面自身的天气等网络请求仍按应用行为发生。参数、统计口径及无头浏览器限制见 [切屏评测说明](./docs/TRANSITION_BENCHMARK.md)。

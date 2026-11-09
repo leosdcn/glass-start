@@ -63,12 +63,38 @@ test('并发网页构建各自产生一致快照，测试服务不读取随后�
   const snapshotA = join(dir, 'run-a');
   const snapshotB = join(dir, 'run-b');
   const clock = join(dir, 'build-clock.cjs');
-  fs.writeFileSync(clock, 'Date.now = () => Number(process.env.BUILD_TIME)');
-  const builds = await Promise.allSettled([snapshotA, snapshotB].map((snapshot, i) =>
+  const ready = join(dir, 'ready');
+  const release = join(dir, 'release');
+  fs.writeFileSync(clock, `
+    const fs = require('node:fs');
+    Date.now = () => Number(process.env.BUILD_TIME);
+    const symlink = fs.symlinkSync;
+    fs.symlinkSync = (target, link, type) => {
+      if (process.env.BUILD_PAUSE && link.endsWith('-link')) {
+        fs.writeFileSync(${JSON.stringify(ready)}, '');
+        const delay = new Int32Array(new SharedArrayBuffer(4));
+        const deadline = performance.now() + 15000;
+        while (!fs.existsSync(${JSON.stringify(release)})) {
+          if (performance.now() > deadline) throw new Error('publish barrier timed out');
+          Atomics.wait(delay, 0, 0, 20);
+        }
+      }
+      return symlink(target, link, type);
+    };
+  `);
+  const build = (snapshot, i, env) =>
     node(['--require', clock, 'scripts/build.cjs', `--test-snapshot=${snapshot}`], {
-      cwd, env: { BUILD_TIME: String(1790000000000 + i) }
-    })));
-  for (const build of builds) if (build.status === 'rejected') throw build.reason;
+      cwd, env: { BUILD_TIME: String(1790000000000 + i), ...env }
+    });
+  const second = Promise.allSettled([build(snapshotB, 1, { BUILD_PAUSE: '1' })]);
+  try {
+    await waitFor(() => fs.existsSync(ready), 'second build ready to publish', 12000);
+    await build(snapshotA, 0);
+  } finally {
+    fs.writeFileSync(release, '');
+    const [result] = await second;
+    if (result.status === 'rejected') throw result.reason;
+  }
 
   const read = (directory, name) => fs.readFileSync(join(directory, name), 'utf8');
   const buildId = directory => read(directory, 'index.html').match(/__GLASS_BUILD_HTML__="([^"]+)"/)?.[1];
@@ -86,7 +112,9 @@ test('并发网页构建各自产生一致快照，测试服务不读取随后�
   }
   const dist = join(cwd, 'dist');
   const publishedVersion = buildId(dist);
-  assert.ok([snapshotA, snapshotB].some(snapshot => buildId(join(snapshot, 'dist')) === publishedVersion));
+  assert.equal(publishedVersion, buildId(join(snapshotB, 'dist')));
+  const previousScript = `app-builds/${buildId(join(snapshotA, 'dist'))}.js`;
+  assert.equal(read(dist, previousScript), read(join(snapshotA, 'dist'), previousScript));
   verify(dist, publishedVersion);
   assert.equal(fs.lstatSync(dist).isSymbolicLink(), true);
   assert.match(fs.realpathSync(dist), /[/\\]\.dist-build-[^/\\]+$/);

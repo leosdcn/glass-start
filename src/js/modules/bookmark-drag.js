@@ -7,7 +7,7 @@ import { dom } from '../state/dom.js';
 import { modalState } from '../state/store.js';
 import { reorderBookmarkDraft } from '../state/bookmark-draft.js';
 import { updateAllBookmarkCounters } from './bookmark-editor.js';
-import { finishPendingTransition, onTransitionSettled } from '../utils/transition-cleanup.js';
+import { animateBookmarkLayout } from './bookmark-motion.js';
 
 let cancelCurrentDrag = () => {};
 
@@ -144,44 +144,9 @@ export function initDragSort() {
         const targetIdx = modalState.draftBookmarks.findIndex(b => b.id === target.dataset.id);
         if (srcIdx < 0 || targetIdx < 0) return;
 
-        // 清除旧 FLIP（包括尚未执行的 rAF），再测量本次布局。
-        const rows = /** @type {HTMLElement[]} */ (Array.from(currentEditList.querySelectorAll('.edit-row-card')));
-        rows.forEach(finishPendingTransition);
-        /** @type {HTMLElement[]} */
-        const cards = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-            ? [] : rows.filter(card => card.isConnected);
-        const firstPositions = new Map();
-        cards.forEach(card => firstPositions.set(card, card.getBoundingClientRect()));
-
-        if (isTop) {
-            target.parentNode?.insertBefore(src, target);
-        } else {
-            target.parentNode?.insertBefore(src, target.nextSibling);
-        }
-        reorderBookmarkDraft(src.dataset.id || '', target.dataset.id || '', isTop);
-
-        // 先批量读取重排后的坐标，再写入 FLIP 样式，避免逐行交错读写。
-        const lastPositions = new Map(cards.map(card => [card, card.getBoundingClientRect()]));
-        cards.forEach(card => {
-            const first = firstPositions.get(card);
-            const last = lastPositions.get(card);
-            if (!first || !last) return;
-            const deltaY = first.top - last.top;
-            const deltaX = first.left - last.left;
-            if (deltaY !== 0 || deltaX !== 0) {
-                card.style.transition = 'none';
-                card.style.transform = `translate3d(${deltaX}px, ${deltaY}px, 0)`;
-                const frame = requestAnimationFrame(() => {
-                    const flipSec = `${CONFIG.TIMERS.FLIP_DURATION_MS / 1000}s`;
-                    card.style.transition = `transform ${flipSec} var(--ease-soft-spring)`;
-                    card.style.transform = 'translate3d(0, 0, 0)';
-                });
-                onTransitionSettled(card, 'transform', CONFIG.TIMERS.FLIP_DURATION_MS, () => {
-                    cancelAnimationFrame(frame);
-                    card.style.transition = '';
-                    card.style.transform = '';
-                });
-            }
+        animateBookmarkLayout(currentEditList, () => {
+            currentEditList.insertBefore(src, isTop ? target : target.nextSibling);
+            reorderBookmarkDraft(src.dataset.id || '', target.dataset.id || '', isTop);
         });
 
         updateAllBookmarkCounters();

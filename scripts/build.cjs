@@ -380,19 +380,18 @@ function executeBuild(targetDir, { extension = false } = {}) {
     return version;
 }
 
-function buildWebRelease(targetDir) {
-    const version = executeBuild(targetDir);
+function retainPreviousWebScript(targetDir, previousDir) {
+    if (!previousDir) return;
     try {
-        const html = fs.readFileSync(path.join(PATHS.dist, 'index.html'), 'utf8');
+        const html = fs.readFileSync(path.join(previousDir, 'index.html'), 'utf8');
         const previous = html.match(/__GLASS_BUILD_HTML__="(app-core-v\d+-[0-9a-f]{16})"/)?.[1];
         if (previous) {
             const script = appScriptPath(previous);
-            fs.copyFileSync(path.join(PATHS.dist, script), path.join(targetDir, script));
+            fs.copyFileSync(path.join(previousDir, script), path.join(targetDir, script));
         }
     } catch (error) {
         if (error.code !== 'ENOENT') throw error;
     }
-    return version;
 }
 
 // 主构建入口流程
@@ -419,15 +418,18 @@ function main({ testSnapshotDir } = {}) {
     }
 
     try {
-        const items = publishWebBuild(PATHS.dist, staging => {
-            const version = buildWebRelease(staging);
+        let items;
+        publishWebBuild(PATHS.dist, staging => {
+            const version = executeBuild(staging);
             if (testSnapshotDir) {
                 fs.cpSync(staging, path.join(testSnapshotDir, 'dist'), {
                     recursive: true, mode: fs.constants.COPYFILE_FICLONE
                 });
                 buildAppJavaScript({ testMode: true, version, outfile: path.join(testSnapshotDir, 'app.test.js') });
             }
-            return describeDist(staging);
+        }, (staging, previous) => {
+            retainPreviousWebScript(staging, previous);
+            items = describeDist(staging);
         });
         printDistSummary(startTime, items);
     } catch (err) {
@@ -439,7 +441,7 @@ function main({ testSnapshotDir } = {}) {
 // 文件变化后重新构建并发布。
 function rebuild() {
     const startTime = Date.now();
-    const version = publishWebBuild(PATHS.dist, buildWebRelease);
+    const version = publishWebBuild(PATHS.dist, executeBuild, retainPreviousWebScript);
     return { version, duration: Date.now() - startTime };
 }
 

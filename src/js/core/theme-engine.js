@@ -10,6 +10,10 @@ import { dom } from '../state/dom.js';
 /** @type {import('../types.js').WallpaperTheme} */
 let currentWallpaperTheme = (typeof window !== 'undefined' && window.__INITIAL_THEME__) || APP_THEME_DARK;
 
+export function getWallpaperTheme() {
+    return currentWallpaperTheme;
+}
+
 let currentCommittedColor = '';
 let currentCommittedIsLight = /** @type {boolean | null} */ (null);
 let currentCommittedThemeColor = '';

@@ -19,6 +19,7 @@ const IMAGE_PREFIX = CACHE_PREFIX + 'app-images-';
 const CORE_PREFIX = CACHE_PREFIX + 'app-core-';
 const APP_ASSET = `./app-builds/${CORE_CACHE}.js`;
 const ACTIVATED_CORE = new URL('./.glass-core-activated', SCOPE_URL);
+const CORE_PREDECESSORS = new URL('./.glass-core-predecessors', SCOPE_URL);
 const LEGACY_APP = new URL('./app.js', SCOPE_URL);
 
 // 图标与图片容量上限配置
@@ -187,6 +188,8 @@ function recoveryResponse() {
 /** @type {ServiceWorkerContext} */ (self).addEventListener('install', e => {
     e.waitUntil((async () => {
         try {
+            // 安装任务按注册串行。记录先于本次安装的池，供日后接管时回收。
+            const predecessors = (await caches.keys()).filter(key => key.startsWith(CORE_PREFIX) && key !== CORE_STORAGE);
             const cache = await caches.open(CORE_STORAGE);
             // 壁纸用条件重验证复用 HTTP 缓存正文；更新时仍检查服务器，不能 force-cache 读取旧图。
             const results = await Promise.allSettled(CORE_ASSETS.map(asset => cache.add(new Request(asset, {
@@ -194,6 +197,7 @@ function recoveryResponse() {
             }))));
             if (results.some(result => result.status === 'rejected')) throw new Error('Core installation incomplete');
             await validateCoreCache(cache);
+            await cache.put(CORE_PREDECESSORS, Response.json(predecessors));
         } catch (error) {
             await caches.delete(CORE_STORAGE);
             throw error;
@@ -210,18 +214,18 @@ function recoveryResponse() {
     const keys = await caches.keys();
     const previousImages = keys.filter(key => key.startsWith(IMAGE_PREFIX) && key !== IMG_CACHE)
         .sort((a, b) => cacheBuildTime(b) - cacheBuildTime(a))[0];
-    const candidates = keys.filter(key => key.startsWith(CORE_PREFIX) && key !== CORE_STORAGE)
+    const predecessors = new Set(await (await cache.match(CORE_PREDECESSORS))?.json() ?? []);
+    // 只回收本次安装前已存在的池，下一次安装即使先进入 waiting 也不在本次回收范围。
+    const candidates = keys.filter(key => predecessors.has(key))
         .sort((a, b) => cacheBuildTime(b) - cacheBuildTime(a));
-    const activated = await Promise.all(candidates.map(cacheName => caches.match(ACTIVATED_CORE, { cacheName })));
-    const previous = candidates[activated.findIndex(Boolean)];
-    // 首次迁移时旧 Worker 没有接管记录，保留含旧入口的池直到下一次接管。
+    const markers = await Promise.all(candidates.map(cacheName => caches.match(ACTIVATED_CORE, { cacheName })));
+    const previous = candidates[markers.findIndex(Boolean)];
+    // 迁移时保留仍可能被旧 HTML 引用的旧入口。
     const legacy = previous ? [] : await Promise.all(candidates.map(cacheName => caches.match(LEGACY_APP, { cacheName })));
-    const retainedCore = previous ? [previous] : candidates.filter((_, index) => legacy[index]);
+    const retiredCore = candidates.filter((key, index) => key !== previous && !legacy[index]);
     await cache.put(ACTIVATED_CORE, new Response(''));
-    await Promise.all(keys.filter(key =>
-        (key.startsWith(CORE_PREFIX) && key !== CORE_STORAGE && !retainedCore.includes(key)) ||
-        (key.startsWith(IMAGE_PREFIX) && key !== IMG_CACHE && key !== previousImages)
-    ).map(key => caches.delete(key)));
+    const retiredImages = keys.filter(key => key.startsWith(IMAGE_PREFIX) && key !== IMG_CACHE && key !== previousImages);
+    await Promise.all([...retiredCore, ...retiredImages].map(key => caches.delete(key)));
 })()));
 
 // 仅接受同源窗口的确认；重新校验已下载资源后再跳过等待。

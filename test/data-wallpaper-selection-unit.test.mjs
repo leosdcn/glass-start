@@ -18,7 +18,7 @@ const { outputFiles } = await build({
                 db.value=selection; db.writes++; return true;
             }` }));
         b.onLoad({ filter: /core\/theme-engine\.js$/ }, () => ({ contents:
-            'export function setWallpaperTheme(){};export function updateGlassTint(){};export function sampleCustomWallpaperTheme(){};export function syncWallpaperTheme(){};' }));
+            'export function getWallpaperTheme(){};export function setWallpaperTheme(){};export function updateGlassTint(){};export function sampleCustomWallpaperTheme(){};export function syncWallpaperTheme(){};' }));
         b.onLoad({ filter: /core\/dialogs\.js$/ }, () => ({ contents:
             'export function showConfirm(message){messages.push(message)}' }));
     } }]

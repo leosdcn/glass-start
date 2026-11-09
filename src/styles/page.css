@@ -405,8 +405,7 @@ textarea::placeholder {
 .category-header {
     position: relative;
 }
-.category-header::after {
-    content: '';
+.category-header-line {
     position: absolute;
     bottom: 0;
     left: 0;

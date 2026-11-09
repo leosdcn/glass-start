@@ -1,14 +1,10 @@
 /** 搜索输入、输入法、候选与引擎菜单的控件事件；跨业务关闭和全局快捷键由 events.js 协调。 */
-import { CONFIG } from '../config/constants.js';
 import { state } from '../state/store.js';
 import { dom } from '../state/dom.js';
 import { handleRovingKeyNav } from '../utils/helpers.js';
 import { activateSuggestion, selectSuggestion, fetchSuggestions, hideSuggestions, closeDropdown, setEngine, openRandomBookmark, selectedSuggestionIdx, scheduleSuggestions, handleSuggestionKeyNav } from './search.js';
 
 let isComposing = false;
-let justEndedComposition = false;
-/** @type {ReturnType<typeof setTimeout>|null} */
-let compositionEndTimer = null;
 
 /** @param {boolean} hasVal */
 function updateSearchActionButtons(hasVal) {
@@ -37,18 +33,11 @@ export function bindSearchEvents() {
     if (searchInput) {
         searchInput.addEventListener('compositionstart', () => {
             isComposing = true;
-            justEndedComposition = false;
             hideSuggestions();
         });
 
         searchInput.addEventListener('compositionend', () => {
             isComposing = false;
-            justEndedComposition = true;
-            if (compositionEndTimer) clearTimeout(compositionEndTimer);
-            compositionEndTimer = setTimeout(() => {
-                justEndedComposition = false;
-            }, CONFIG.TIMERS.COMPOSITION_END_RESET);
-
             const val = searchInput.value;
             updateSearchActionButtons(!!val);
             fetchSuggestions(state.engine, val);
@@ -119,7 +108,13 @@ export function bindSearchEvents() {
         dropdownMenu.addEventListener('click', e => {
             const targetEl = e.target instanceof Element ? e.target : null;
             const btn = /** @type {HTMLElement|null} */ (targetEl?.closest('[data-engine]'));
-            if (btn && btn.dataset.engine) { e.stopPropagation(); setEngine(btn.dataset.engine); }
+            if (btn?.dataset.engine) {
+                e.stopPropagation();
+                setEngine(btn.dataset.engine);
+                closeDropdown();
+                const query = dom.searchInput?.value.trim();
+                if (query) fetchSuggestions(state.engine, query);
+            }
         });
         dropdownMenu.addEventListener('keydown', e => {
             if (e.key === 'Tab') { closeDropdown(); return; }
@@ -134,16 +129,12 @@ export function bindSearchEvents() {
 export function handleSearchKeydown(e) {
     if (document.activeElement !== dom.searchInput) return false;
     if (isComposing) return true;
-    if (justEndedComposition) {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            return true;
-        }
-    }
     if (e.key === 'Enter') {
         e.preventDefault();
         activateSuggestion(selectedSuggestionIdx, e.altKey || e.metaKey || e.ctrlKey);
         return true;
     }
-    return handleSuggestionKeyNav(e);
+    if (handleSuggestionKeyNav(e)) return true;
+    // 有查询时，上下键留在搜索框；Tab 只有可选候选时才由列表接管。
+    return (e.key === 'ArrowUp' || e.key === 'ArrowDown') && !!dom.searchInput?.value.trim();
 }

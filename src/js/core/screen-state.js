@@ -15,6 +15,7 @@ import { resetActiveCard } from './gestures.js';
  * @property {() => void} [onPrepareNav] 准备渲染导航区（渲染分类与可视图标）
  * @property {() => void} [onRefreshNav] 导航区进入后刷新（侧边栏、观察器及懒加载）
  * @property {() => void} [onBeforeNavTransition] 开始切向导航屏时（关闭下拉与联想）
+ * @property {() => void} [onLeaveNav] 离开导航屏时清理导航交互
  */
 
 /** @type {ScreenNavHandlers} */
@@ -182,6 +183,8 @@ function applySection(section, immediate) {
     const nav = dom.navSection;
     if (inNav) {
         screenNavHandlers.onPrepareNav?.();
+    } else if (state.currentSection === 'nav') {
+        screenNavHandlers.onLeaveNav?.();
     }
     saveSection(section);
     updateSectionAccessibility(section);

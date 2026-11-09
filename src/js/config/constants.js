@@ -124,7 +124,6 @@ export const CONFIG = Object.freeze({
             TIMERS: Object.freeze({
                 SW_UPDATE_CHECK_INTERVAL: 5 * 60 * 1000, // 前台更新检查间隔 (ms)
                 SW_UPDATE_TIMEOUT: 15000,    // 用户确认后等待新版接管的上限 (ms)
-                STAGGER_OPEN: 260,            // 随机书签跳转延时 (ms)
                 BG_CROSSFADE: 450,            // 壁纸跨图层淡入时长 (ms)
                 WEATHER_REFRESH_FEEDBACK: 600, // 手动刷新反馈的最短显示时间 (ms)
                 CLICK_FEEDBACK_CLEAR: 600,    // 触感反馈类清除延时 (ms)
@@ -132,9 +131,7 @@ export const CONFIG = Object.freeze({
                 OBJECT_REVOKE: 1000,          // 临时 Blob/URL 释放安全延时 (ms)
                 FALLBACK_IDLE_DELAY: 1500,    // 空闲调度降级回退延时 (ms)
                 IDLE_TIMEOUT: 3000,           // 空闲调度最大超时上限 (ms)
-                COMPOSITION_END_RESET: 100,   // 输入法组合结束复位延迟 (ms)
                 FLIP_DURATION_MS: 350,        // FLIP 动画时长 (ms)
-                TRANSITION_CLEANUP_BUFFER: 50, // 动画结束事件丢失时的收尾缓冲 (ms)
                 BOOKMARK_DELETE_DURATION: 220, // 书签删除动效时长 (ms)
                 BG_OVERLAY_TRANSITION: 200,   // 遮罩滑块平滑过渡时长 (ms)
                 TILT_TRANSITION_MS: 80,       // 3D 悬停倾斜过渡时长 (ms)

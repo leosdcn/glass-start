@@ -16,7 +16,11 @@ const { outputFiles } = await build({
             export async function setWallpaperSelectionDB(selection){writes.push(selection);return true}
         ` }));
         builder.onLoad({ filter: /core\/wallpaper-renderer\.js$/ }, () => ({
-            contents: 'export function applyWallpaper(url){rendered.push(url)};export function getPreparedWallpaperImage(){return null};export function setWallpaperDimming(){}'
+            contents: `export function applyWallpaper(url){rendered.push(url)}
+                export function getPreparedWallpaperImage(){return null}
+                export function setWallpaperDimming(){}
+                export function captureWallpaperFrame(){return null}
+                export function restoreWallpaperFrame(){}`
         }));
         builder.onLoad({ filter: /core\/dialogs\.js$/ }, () => ({
             contents: 'export function showConfirm(message){messages.push(message)}'
@@ -163,6 +167,50 @@ test('旧地点预报失败时继续等待重新定位，并发布新地点预�
     assert.match(f.html, /新地点/);
 });
 
+test('新地点预报不等旧请求，失败后旧结果不更新缓存且唤醒会重试', async () => {
+    const { app, context } = fixture();
+    const { WEATHER_LOC, WEATHER_CACHE } = app.CONFIG.KEYS;
+    const old = { name: '旧地点', lat: 1, lon: 2, timestamp: 1 };
+    const cache = { location: old, timestamp: 1, current: { temp: 12 }, daily: [] };
+    const read = key => JSON.parse(context.localStorage.getItem(key));
+    const write = (key, value) => context.localStorage.setItem(key, JSON.stringify(value));
+    const forecast = temp => ({ ok: true, json: async () => ({ current: { temperature_2m: temp }, daily: {} }) });
+    write(WEATHER_LOC, old);
+    write(WEATHER_CACHE, cache);
+    const requests = [];
+    let finishOld, oldSignal;
+    context.fetch = async (url, { signal }) => {
+        if (url.includes('myip.ipip.net')) return { ok: false, status: 503 };
+        if (url.includes('ipwho.is')) {
+            return { ok: true, json: async () => ({ success: true, city: '新地点', latitude: 40, longitude: 50 }) };
+        }
+        const latitude = new URL(url).searchParams.get('latitude');
+        requests.push(latitude);
+        if (latitude === '1') {
+            oldSignal = signal;
+            return new Promise(resolve => { finishOld = resolve; });
+        }
+        return requests.length === 2 ? { ok: false, status: 503 } : forecast(26);
+    };
+
+    const first = app.updateWeather();
+    await new Promise(setImmediate);
+    assert.deepEqual(requests, ['1', '40']);
+    assert.equal(oldSignal.aborted, true);
+    await first;
+    finishOld(forecast(18));
+    await drain();
+    assert.deepEqual(read(WEATHER_CACHE), cache);
+    assert.equal(read(WEATHER_LOC).name, '新地点');
+
+    // 兼容旧版本曾写出的新鲜时间戳与错误地点组合。
+    write(WEATHER_CACHE, { ...cache, timestamp: Date.now() });
+    await app.updateWeather();
+    assert.deepEqual(requests, ['1', '40', '40']);
+    assert.equal(read(WEATHER_CACHE).location.name, '新地点');
+    assert.equal(read(WEATHER_CACHE).current.temp, 26);
+});
+
 test('天气正文超时结束共享刷新任务，随后可重新刷新', async () => {
     const f = fixture(), { app } = f;
     const location = { lat: 31, lon: 121, name: '测试', timestamp: Date.now() };
@@ -272,6 +320,7 @@ test('解码中的旧上传、旧错误回调不能覆盖新上传或重置', as
     app.uploadWallpaper({ type: 'image/png' });
     const lateRead = f.readers[2].onload;
     await app.clearCustomWallpaper();
+    app.revertDraftWallpaper();
     lateRead({ target: { result: 'data:image/png;base64,late' } });
     assert.equal(await app.flushWallpaperSelection(), true);
     assert.equal(app.state.customWallpaper, null);

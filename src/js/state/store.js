@@ -25,6 +25,7 @@ export const state = {
 export const modalState = {
     phase: 'closed',
     draftWallpaper: null,        // 成功准备的预设路径或自定义图片字符串
+    wallpaperSelection: null,    // 当前会话的选图意图及准备任务
     draftMaskOpacity: null,       // 背景遮罩暗度百分比草稿（0-80），null 表示未修改
     draftBookmarks: [],           // 书签编辑草稿列表（内存数组驱动，由 bookmark-draft 模块封装维护）
     draftLanguage: 'auto',        // 界面语言草稿（'auto' / 'zh-CN' / 'en'）

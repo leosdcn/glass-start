@@ -81,16 +81,6 @@
 .screen-restoring .clock-colon { animation: none; opacity: 1; }
 html[data-screen="nav"] .clock-colon { animation-play-state: paused; }
 
-/* 导航分类微光脉冲提醒 */
-.category-title-pulse::after {
-    animation: catLinePulse 1.2s var(--ease-pulse);
-}
-@keyframes catLinePulse {
-    0%   { opacity: 1; }
-    35%  { opacity: 1; }
-    100% { opacity: 0.28; }
-}
-
 /* 滚动指示器动画 */
 .scroll-hint {
     will-change: transform;

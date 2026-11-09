@@ -274,6 +274,23 @@ try {
       await commitWallpaperSelection(backgrounds[1]);
       await openEditModal();
       storageSet(CONFIG.KEYS.MASK_OPACITY, 37);
+      if ('${phase}' !== 'stale') {
+        const decode = HTMLImageElement.prototype.decode;
+        const loading = Promise.withResolvers();
+        const decoding = Promise.withResolvers();
+        window.__releaseDraftDecode = decoding.resolve;
+        window.__resetDraftURL = location.origin + '/wallpapers/bg3.avif?pending-reset-draft';
+        HTMLImageElement.prototype.decode = async function() {
+          await decode.call(this);
+          if (this.src !== __resetDraftURL) return;
+          loading.resolve();
+          await decoding.promise;
+        };
+        try {
+          window.__resetDraftResult = previewDraftWallpaper(__resetDraftURL);
+          await loading.promise;
+        } finally { HTMLImageElement.prototype.decode = decode; }
+      }
       window.__resetTransaction = IDBDatabase.prototype.transaction;
       window.__releaseReset = null;
       IDBDatabase.prototype.transaction = function(...args) {
@@ -316,7 +333,13 @@ try {
           const name = dom.editList.querySelector('.edit-name');
           name.value = '新会话草稿'; name.dispatchEvent(new Event('input', {bubbles:true}));
         } else {
+          __releaseDraftDecode();
+          await new Promise(resolve => requestAnimationFrame(resolve));
+          if (modalState.draftWallpaper !== backgrounds[1]) throw new Error('重置期间发布了壁纸预览');
           __releaseReset();
+          const expected = '${phase}' === 'abort';
+          if (await __resetDraftResult !== expected) throw new Error('重置结果与选图任务的去留不一致');
+          if (expected && modalState.draftWallpaper !== __resetDraftURL) throw new Error('失败后未恢复待预览壁纸');
         }
         await new Promise(resolve => requestAnimationFrame(resolve));
         return {locked, stayedOpen, noConcurrentAction};
@@ -335,12 +358,13 @@ try {
       if (phase === 'stale') assert.equal(after.draft, '新会话草稿');
     } finally {
       await evalJS(`IDBDatabase.prototype.transaction = __resetTransaction;
+        window.__releaseDraftDecode?.();
         __releaseReset?.();
         if (OverlayStack.top()?.id === 'confirmModal') dom.confirmOkBtn.click();
         if (state.editOpen) cancelEditModal();`);
     }
   }
-  console.log('✅ 重置期间锁定取消及并发保存，成功或失败后解锁，旧任务不清空新会话草稿');
+  console.log('✅ 重置期间暂停壁纸预览，成功时丢弃，失败时恢复，旧任务不清空新会话草稿');
 
   // 书签已重置但其他偏好删除失败时，保留用户改名及其保存意图。
   await evalJS(`(async () => {
@@ -450,6 +474,7 @@ try {
   console.log('✅ 书签记录写入失败时保留旧配置、视图与草稿，提示失败并支持重试');
 
   await evalJS(`(async () => {
+    dom.searchInput.value = 'git';
     await openEditModal();
     const name = dom.editList.querySelector('.edit-name');
     name.value = '重置失败保留的草稿'; name.dispatchEvent(new Event('input', { bubbles: true }));
@@ -463,14 +488,27 @@ try {
   })()`);
   try {
     await waitFor(evalJS, `OverlayStack.top()?.id === 'confirmModal' && /部分设置未能清除/.test(dom.confirmMsg.textContent)`);
+    await evalJS("fetchSuggestions(state.engine, 'git'); openWeatherPopover()");
     assert.deepEqual(await evalJS(`({
       unchanged: localStorage.getItem(CONFIG.KEYS.BOOKMARKS) === __bookmarkBeforeReset,
-      committed: pageData.bookmarks[0].name, draft: modalState.draftBookmarks[0].name
-    })`), { unchanged: true, committed: '失败保留草稿', draft: '重置失败保留的草稿' });
+      committed: pageData.bookmarks[0].name, draft: modalState.draftBookmarks[0].name,
+      overlays: OverlayStack.stack.map(item => item.id),
+      backgroundOpen: dom.suggestionMenu.classList.contains('active') || dom.weatherPopover.classList.contains('active')
+    })`), { unchanged: true, committed: '失败保留草稿', draft: '重置失败保留的草稿',
+      overlays: ['editModal', 'confirmModal'], backgroundOpen: false });
   } finally {
     await evalJS('Storage.prototype.setItem = __originalSetItem');
   }
-  await evalJS('dom.confirmOkBtn.click(); cancelEditModal()');
+  const escape = async () => {
+    const key = { key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 };
+    await send('Input.dispatchKeyEvent', { ...key, type: 'keyDown' });
+    await send('Input.dispatchKeyEvent', { ...key, type: 'keyUp' });
+  };
+  await escape();
+  assert.equal(await evalJS("OverlayStack.top()?.id"), 'editModal');
+  await escape();
+  assert.equal(await evalJS("state.editOpen"), false);
+  await evalJS("dom.searchInput.value = ''");
 
   const queryUrl = 'https://save-regression.example.test/?a=1&b=2';
   await evalJS(`(async () => {

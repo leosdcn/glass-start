@@ -85,10 +85,20 @@ export interface AppState {
     customWallpaper: string | null;
 }
 
+export interface WallpaperSelectionTask {
+    mode: 'draft' | 'live';
+    url: string | null;
+    promise: Promise<boolean>;
+    cancel?: () => void;
+    retryImage?: HTMLImageElement;
+    pause?: { done: Promise<void>; resume: () => void };
+}
+
 /** 设置会话阶段与草稿 */
 export interface ModalState {
     phase: 'closed' | 'opening' | 'editing' | 'preparing-save' | 'committing';
     draftWallpaper: string | null;
+    wallpaperSelection: WallpaperSelectionTask | null;
     draftMaskOpacity: number | null;
     draftBookmarks: DraftBookmarkItem[];
     bookmarksChanged: boolean;
@@ -113,7 +123,7 @@ export interface OverlayItem {
 /** 多层弹窗层叠栈管理器 */
 export interface IOverlayStack {
     stack: OverlayItem[];
-    push(id: string, closeFn: () => void, trigger?: Element | null): void;
+    push(id: string, closeFn: () => void, trigger?: Element | null): boolean;
     pop(id?: string): OverlayItem | null;
     topModal(): HTMLElement | null;
     top(): OverlayItem | null;

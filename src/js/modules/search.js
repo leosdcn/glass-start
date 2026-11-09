@@ -81,20 +81,8 @@ export function handleSuggestionKeyNav(e) {
     const isNavUp = e.key === 'ArrowUp' || (e.key === 'Tab' && e.shiftKey);
     if (!isNavDown && !isNavUp) return false;
 
-    // 防抖期间等新候选，避免方向键或 Tab 改走全局切屏/失焦入口。
-    if (suggestDebounceTimer !== null) {
-        e.preventDefault();
-        return true;
-    }
-    const isSuggestActive = dom.suggestionMenu?.classList.contains('active');
-    const suggestionCount = isSuggestActive ? suggestionItems.length : 0;
-    if (suggestionCount <= 0) {
-        if (isSuggestActive) {
-            e.preventDefault();
-            return true;
-        }
-        return false;
-    }
+    const suggestionCount = suggestionItems.length;
+    if (!suggestionCount) return false;
 
     if (isNavDown) {
         e.preventDefault();
@@ -113,7 +101,7 @@ export function handleSuggestionKeyNav(e) {
 }
 
 /**
- * 输入防抖与关闭清理共用同一个计时器；执行时读取当前搜索引擎。
+ * 输入变化立即更新本地候选，网络请求防抖。
  * @param {string} query
  */
 export function scheduleSuggestions(query) {
@@ -122,13 +110,8 @@ export function scheduleSuggestions(query) {
         if (selectedSuggestionIdx >= 0) selectSuggestion(-1);
         return;
     }
-    // 新输入立即让旧候选失效，网络请求仍防抖。
     hideSuggestions();
-    if (!query) return;
-    suggestDebounceTimer = setTimeout(() => {
-        suggestDebounceTimer = null;
-        fetchSuggestions(state.engine, query);
-    }, CONFIG.SUGGEST.DEBOUNCE_MS);
+    if (query) fetchSuggestions(state.engine, query, true);
 }
 
 /**
@@ -157,17 +140,17 @@ export function renderEngineDropdown() {
 export function toggleDropdown() {
     const dropdownMenu = dom.dropdownMenu;
     const engineBtn = dom.engineBtn;
-    const nextOpen = !dropdownMenu?.classList.contains('active');
-    dropdownMenu?.classList.toggle('active', nextOpen);
-    dropdownMenu?.setAttribute('aria-hidden', (!nextOpen).toString());
-    engineBtn?.setAttribute('aria-expanded', nextOpen.toString());
-    if (nextOpen) {
-        OverlayStack.push('dropdown', closeDropdown);
-        const activeItem = /** @type {HTMLElement | null} */ (dropdownMenu?.querySelector('[data-engine][aria-checked="true"]') || dropdownMenu?.querySelector('[data-engine]'));
-        activeItem?.focus();
-    } else {
-        OverlayStack.pop('dropdown');
+    if (!dropdownMenu || !engineBtn) return;
+    if (dropdownMenu.classList.contains('active')) {
+        closeDropdown();
+        return;
     }
+    if (!OverlayStack.push('dropdown', closeDropdown, engineBtn)) return;
+    dropdownMenu.classList.add('active');
+    dropdownMenu.setAttribute('aria-hidden', 'false');
+    engineBtn.setAttribute('aria-expanded', 'true');
+    const activeItem = /** @type {HTMLElement | null} */ (dropdownMenu.querySelector('[data-engine][aria-checked="true"]') || dropdownMenu.querySelector('[data-engine]'));
+    activeItem?.focus();
 }
 
 /**
@@ -200,7 +183,6 @@ export function setEngine(key, save = true) {
     const engineBtn = dom.engineBtn;
     const engineIcon = dom.engineIcon;
     const dropdownMenu = dom.dropdownMenu;
-    const searchInput = dom.searchInput;
 
     if (engineName) engineName.textContent = engineObj.name;
     if (engineBtn) {
@@ -217,11 +199,7 @@ export function setEngine(key, save = true) {
             }
         });
     }
-    closeDropdown();
     if (save) storageSet(CONFIG.KEYS.PREFERRED_ENGINE, validEngine);
-    if (searchInput && searchInput.value.trim()) {
-        fetchSuggestions(validEngine, searchInput.value.trim());
-    }
 }
 
 /** 
@@ -279,9 +257,7 @@ function openBookmarkUrl(url, newTab = false) {
  * 随机探索/手气不错：从本地书签库中随机挑选并访问一个站点
  */
 let diceAngle = 0;
-let isRandomBookmarkOpening = false;
 export function openRandomBookmark() {
-    if (isRandomBookmarkOpening) return;
     /** @type {import('../types').BookmarkItem[]} */
     const list = [];
     const seen = new Set();
@@ -298,18 +274,14 @@ export function openRandomBookmark() {
     const randomBm = list[Math.floor(Math.random() * list.length)];
 
     const randomBtn = dom.randomBookmarkBtn;
-    isRandomBookmarkOpening = true;
     if (randomBtn) {
         diceAngle += CONFIG.PHYSICS.DICE_ROTATION_STEP;
         const svg = randomBtn.querySelector('svg');
         if (svg) svg.style.transform = `rotate(${diceAngle}deg)`;
     }
 
-    setTimeout(() => {
-        isRandomBookmarkOpening = false;
-        hideSuggestions();
-        openBookmarkUrl(randomBm.url, true);
-    }, CONFIG.TIMERS.STAGGER_OPEN);
+    hideSuggestions();
+    openBookmarkUrl(randomBm.url, true);
 }
 
 /** @type {import('../types').SearchCandidateModel | null} */
@@ -414,7 +386,7 @@ function getLocalListSignature(list) {
 function renderSuggestions(localList = [], netList = [], preserveSelection = false, isNetLoading = false) {
     const suggestionMenu = dom.suggestionMenu;
     const searchInput = dom.searchInput;
-    if (!suggestionMenu) return;
+    if (!suggestionMenu || !searchInput) return;
     const prevIdx = preserveSelection ? selectedSuggestionIdx : -1;
     const maxNetCount = Math.max(0, CONFIG.SUGGEST.MAX_TOTAL_ITEMS - localList.length);
     const safeNetList = netList.slice(0, maxNetCount);
@@ -424,16 +396,17 @@ function renderSuggestions(localList = [], netList = [], preserveSelection = fal
         if (!preserveSelection && selectedSuggestionIdx >= 0) selectSuggestion(-1);
         return;
     }
+    if (localList.length === 0 && safeNetList.length === 0 && !isNetLoading) {
+        hideSuggestions();
+        return;
+    }
+    if (!OverlayStack.stack.some(entry => entry.id === 'suggestions')
+        && !OverlayStack.push('suggestions', hideSuggestions, searchInput)) return;
     suggestionItems = [
         ...localList.map(bm => (/** @type {import('../types').SuggestionBookmarkItem} */ ({type: 'bookmark', text: bm.name, url: bm.url}))),
         ...safeNetList.map(text => (/** @type {import('../types').SuggestionQueryItem} */ ({type: 'query', text})))
     ];
     selectedSuggestionIdx = -1;
-
-    if (localList.length === 0 && safeNetList.length === 0 && !isNetLoading) {
-        hideSuggestions();
-        return;
-    }
 
     /**
      * @param {string} title
@@ -510,10 +483,7 @@ function renderSuggestions(localList = [], netList = [], preserveSelection = fal
     lastSuggestionsSignature = signature;
     suggestionMenu.classList.add('active');
     suggestionMenu.setAttribute('aria-hidden', 'false');
-    if (searchInput) searchInput.setAttribute('aria-expanded', 'true');
-    if (!OverlayStack.stack.some(entry => entry.id === 'suggestions')) {
-        OverlayStack.push('suggestions', hideSuggestions);
-    }
+    searchInput.setAttribute('aria-expanded', 'true');
 
     if (prevIdx >= 0) selectSuggestion(Math.min(prevIdx, suggestionItems.length - 1));
     else searchInput?.removeAttribute('aria-activedescendant');
@@ -562,23 +532,27 @@ const MAX_SUGGEST_CACHE_SIZE = 50;
  * 核心实时建议拉取函数
  * @param {string} engineKey
  * @param {string} query
+ * @param {boolean} [deferNetwork]
  */
-export function fetchSuggestions(engineKey, query) {
+export function fetchSuggestions(engineKey, query, deferNetwork = false) {
+    if (OverlayStack.topModal()) return;
+    query = query.trim();
+    const cacheKey = `${getLocale()}:${engineKey}:${query}`;
+    const preserveSelection = suggestDebounceTimer !== null && suggestionQueryKey === cacheKey;
     if (suggestDebounceTimer !== null) {
         clearTimeout(suggestDebounceTimer);
         suggestDebounceTimer = null;
     }
-    query = (query || '').trim();
     if (!query) {
         hideSuggestions();
         return;
     }
 
-    const cacheKey = `${getLocale()}:${engineKey}:${query}`;
     // compositionend 后的 input、重复选择当前引擎等入口共享正在进行的请求和列表。
     if (activeSuggestCleanup && suggestionQueryKey === cacheKey) return;
     activeSuggestCleanup?.();
     activeSuggestReqId++;
+    const reqId = activeSuggestReqId;
     suggestionQueryKey = cacheKey;
     const localList = getLocalBookmarkSuggestions(query, CONFIG.SUGGEST.MAX_LOCAL_ITEMS);
 
@@ -587,17 +561,35 @@ export function fetchSuggestions(engineKey, query) {
         const maxNetCount = Math.max(0, CONFIG.SUGGEST.MAX_TOTAL_ITEMS - localList.length);
         const netList = cachedEntry.list.slice(0, maxNetCount);
         if (localList.length > 0 || netList.length > 0) {
-            renderSuggestions(localList, netList, false);
+            renderSuggestions(localList, netList, preserveSelection);
         } else {
             hideSuggestions();
         }
         return;
     }
 
-    renderSuggestions(localList, [], false, true);
+    const start = () => {
+        suggestDebounceTimer = null;
+        if (OverlayStack.topModal()) return;
+        renderSuggestions(localList, [], deferNetwork || preserveSelection, true);
+        requestNetworkSuggestions(engineKey, query, cacheKey, localList, reqId);
+    };
+    if (deferNetwork) {
+        if (localList.length) renderSuggestions(localList);
+        suggestDebounceTimer = setTimeout(start, CONFIG.SUGGEST.DEBOUNCE_MS);
+    } else {
+        start();
+    }
+}
 
-    const reqId = activeSuggestReqId;
-
+/**
+ * @param {string} engineKey
+ * @param {string} query
+ * @param {string} cacheKey
+ * @param {import('../types').BookmarkSuggestion[]} localList
+ * @param {number} reqId
+ */
+function requestNetworkSuggestions(engineKey, query, cacheKey, localList, reqId) {
     const cbName = `__glassSuggestCb_${reqId}`;
     const controller = window.__GLASS_EXTENSION__ || engineKey === 'wikipedia' ? new AbortController() : null;
     const script = controller ? null : document.createElement('script');

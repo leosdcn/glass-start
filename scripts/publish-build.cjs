@@ -1,5 +1,6 @@
 const fs = require('node:fs');
 const path = require('node:path');
+const { randomUUID } = require('node:crypto');
 
 function acquirePublishLock(lockDir) {
     const deadline = performance.now() + 5000;
@@ -58,46 +59,92 @@ function publishBuild(output, populate) {
     }
 }
 
-/** 网页预览通过一次重命名切换发布入口。每次构建独占目标目录。 */
-function publishWebBuild(output, populate) {
+// 非空目录通过 rename 竞争发布权。回收者只删除失效进程的唯一标记，
+// 即使有多个构建同时发现它，也不能删除后来取得锁的进程的标记。
+function removeWebPublishLock(lock, owner) {
+    try {
+        if (owner) fs.unlinkSync(path.join(lock, owner));
+        fs.rmdirSync(lock);
+    } catch (error) {
+        if (!['ENOENT', 'ENOTEMPTY', 'EEXIST'].includes(error.code)) throw error;
+    }
+}
+
+function acquireWebPublishLock(lock, candidate) {
+    const owner = `${process.pid}-${randomUUID()}`;
+    fs.mkdirSync(candidate);
+    fs.writeFileSync(path.join(candidate, owner), '');
+    const deadline = performance.now() + 5000;
+    const delay = new Int32Array(new SharedArrayBuffer(4));
+    for (;;) {
+        try {
+            fs.renameSync(candidate, lock);
+            return owner;
+        } catch (error) {
+            if (!['EEXIST', 'ENOTEMPTY', 'EPERM'].includes(error.code)) throw error;
+            if (performance.now() >= deadline) {
+                throw new Error(`等待网页发布超时，请检查 ${lock}`, { cause: error });
+            }
+        }
+        let ownerFile;
+        try { [ownerFile] = fs.readdirSync(lock); }
+        catch (error) { if (error.code === 'ENOENT') continue; throw error; }
+        const pid = Number(ownerFile?.split('-')[0]);
+        if (pid > 0) {
+            try {
+                process.kill(pid, 0);
+            } catch (error) {
+                if (error.code === 'ESRCH') removeWebPublishLock(lock, ownerFile);
+            }
+        } else if (!ownerFile) removeWebPublishLock(lock);
+        Atomics.wait(delay, 0, 0, 25);
+    }
+}
+
+/** 并行准备各自的目录，在同一发布锁内读取前版、切换入口并回收。 */
+function publishWebBuild(output, populate, prepare = () => {}) {
     const parent = path.dirname(output);
     const prefix = path.join(parent, `.${path.basename(output)}-build-`);
     const release = fs.mkdtempSync(prefix);
     const link = release + '-link';
+    const candidate = release + '-lock';
+    const lock = path.join(parent, `.${path.basename(output)}-publish`);
+    const migration = output + '.migration';
+    const backup = path.join(migration, 'previous');
     let published = false;
     try {
         const result = populate(release);
         fs.chmodSync(release, 0o777 & ~process.umask());
         fs.symlinkSync(release, link, process.platform === 'win32' ? 'junction' : 'dir');
-        const entry = fs.lstatSync(output, { throwIfNoEntry: false });
-        if (entry?.isDirectory()) {
-            // 只在迁移旧构建的实体目录时保留备份。之后的发布直接替换链接。
-            const lock = output + '.migration';
-            acquirePublishLock(lock);
+        const owner = acquireWebPublishLock(lock, candidate);
+        try {
+            if (fs.existsSync(backup) && !fs.lstatSync(output, { throwIfNoEntry: false })) {
+                fs.renameSync(backup, output);
+            }
+            const entry = fs.lstatSync(output, { throwIfNoEntry: false });
+            const previous = entry?.isSymbolicLink() ? path.resolve(parent, fs.readlinkSync(output)) : null;
+            prepare(release, entry ? output : null);
+            if (entry?.isDirectory()) {
+                fs.mkdirSync(migration, { recursive: true });
+                fs.renameSync(output, backup);
+            }
             try {
-                const backup = path.join(lock, 'previous');
-                if (fs.lstatSync(output, { throwIfNoEntry: false })?.isDirectory()) fs.renameSync(output, backup);
-                try {
-                    fs.renameSync(link, output);
-                    published = true;
-                } catch (error) {
-                    if (fs.existsSync(backup) && !fs.existsSync(output)) fs.renameSync(backup, output);
-                    throw error;
-                }
-            } finally {
-                if (fs.existsSync(output)) fs.rmSync(lock, { recursive: true, force: true });
+                fs.renameSync(link, output);
+                published = true;
+            } catch (error) {
+                if (entry?.isDirectory()) fs.renameSync(backup, output);
+                throw error;
+            }
+            fs.rmSync(migration, { recursive: true, force: true });
+            if (previous?.startsWith(prefix) && path.dirname(previous) === parent && previous !== release) {
+                fs.rmSync(previous, { recursive: true, force: true });
             }
             return result;
+        } finally {
+            removeWebPublishLock(lock, owner);
         }
-
-        const previous = entry?.isSymbolicLink() ? path.resolve(parent, fs.readlinkSync(output)) : null;
-        fs.renameSync(link, output);
-        published = true;
-        if (previous?.startsWith(prefix) && path.dirname(previous) === parent && previous !== release) {
-            fs.rmSync(previous, { recursive: true, force: true });
-        }
-        return result;
     } finally {
+        fs.rmSync(candidate, { recursive: true, force: true });
         if (!published) {
             fs.rmSync(link, { force: true });
             fs.rmSync(release, { recursive: true, force: true });

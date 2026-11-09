@@ -121,8 +121,13 @@ test('启动壁纸撞上切屏时先显示，取色等待空闲且不会覆盖�
     await finishDecodeDuringEntry('rgb(180, 80, 120)');
     await evalJS("reconcileScreenState('nav', true)");
     await waitFor(evalJS, 'wallpaperProbe.idle.length === 1');
+    await evalJS(`(async () => {
+      const image = new Image();
+      image.src = backgrounds[1];
+      await image.decode();
+      applyWallpaper(backgrounds[1], false, image);
+    })()`);
     assert.deepEqual(await evalJS(`(() => {
-      applyWallpaper(backgrounds[1], false);
       wallpaperProbe.idle.shift()();
       return [wallpaperProbe.reads, document.documentElement.style.getPropertyValue('--glass-tint') === PRESET_TINTS[1]];
     })()`), [2, true]);
@@ -264,8 +269,23 @@ test('自定义壁纸和暗度预览只更新当前画面，保存后同步首�
     await evalJS('previewDraftWallpaper(blackWallpaper)');
     assert.equal(await evalJS('document.documentElement.style.colorScheme'), 'dark');
     assert.deepEqual(await getHint(), savedWhite);
-    await evalJS('cancelEditModal()');
-    await waitFor(evalJS, 'document.documentElement.style.colorScheme === "light"');
+    assert.deepEqual(await evalJS(`(() => {
+      const NativeImage = window.Image;
+      let reloads = 0;
+      window.Image = class {
+        set src(value) {
+          if (value === whiteWallpaper) reloads++;
+          queueMicrotask(() => this.onerror?.());
+        }
+      };
+      try {
+        cancelEditModal();
+        return { reloads, restored: dom.bgLayer.style.backgroundImage.includes(whiteWallpaper),
+          light: document.documentElement.style.colorScheme === 'light',
+          tint: document.documentElement.style.getPropertyValue('--glass-tint'),
+          faded: dom.bgLayerNext.classList.contains('is-crossfading') };
+      } finally { window.Image = NativeImage; }
+    })()`), { reloads: 0, restored: true, light: true, tint: savedWhite.tint, faded: false });
     assert.deepEqual(await getHint(), savedWhite);
 
     await evalJS('openEditModal()');
@@ -354,6 +374,30 @@ test('壁纸共享加载、图片复用与失败重试', async () => {
     })()`);
     assert.match(fadeStart.base, /bg1\.avif/);
     assert.equal(fadeStart.opacity, '0');
+
+    assert.equal(await evalJS(`(async () => {
+      const snapshot = () => [dom.bgLayer.style.backgroundImage, dom.bgLayerNext.style.backgroundImage,
+        document.documentElement.style.colorScheme, document.documentElement.style.getPropertyValue('--glass-tint')];
+      applyWallpaper(backgrounds[1], false);
+      const before = snapshot();
+      const nativeDecode = HTMLImageElement.prototype.decode;
+      let startDecode;
+      const decoded = new Promise(resolve => { startDecode = resolve; });
+      HTMLImageElement.prototype.decode = function() {
+        if (this.src.endsWith('/bg3.avif')) {
+          startDecode();
+          return Promise.reject(new Error('injected preset decode failure'));
+        }
+        return nativeDecode.call(this);
+      };
+      try {
+        applyWallpaper(backgrounds[2], false);
+        const pending = JSON.stringify(snapshot()) === JSON.stringify(before);
+        await decoded;
+        await Promise.resolve();
+        return pending && JSON.stringify(snapshot()) === JSON.stringify(before);
+      } finally { HTMLImageElement.prototype.decode = nativeDecode; }
+    })()`), true);
 
     assert.equal(await evalJS(`(async () => {
       await commitWallpaperSelection(backgrounds[2]);

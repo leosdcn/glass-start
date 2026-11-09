@@ -26,7 +26,7 @@ const { outputFiles } = await build({
             'export const uploadWallpaper=()=>{},previewDraftWallpaper=()=>{},resetDraftWallpaper=()=>{},showWallpaperError=()=>{};' }));
         b.onLoad({ filter: /core\/dialogs\.js$/ }, () => ({ contents: 'export function showConfirm(){}' }));
         b.onLoad({ filter: /core\/theme-engine\.js$/ }, () => ({ contents:
-            'export function setWallpaperTheme(){};export function updateGlassTint(){};export function sampleCustomWallpaperTheme(){};export function syncWallpaperTheme(){};' }));
+            'export function getWallpaperTheme(){};export function setWallpaperTheme(){};export function updateGlassTint(){};export function sampleCustomWallpaperTheme(){};export function syncWallpaperTheme(){};' }));
     } }]
 });
 
@@ -46,6 +46,7 @@ function fixture() {
     const motion = new Target(); motion.matches = false;
     class Element extends Target {
         style = {}; dataset = {}; isConnected = true; textContent = '';
+        animations = [];
         constructor(kind) {
             super(); this.kind = kind;
             const names = new Set();
@@ -60,6 +61,13 @@ function fixture() {
         remove() { this.isConnected = false; rows.splice(rows.indexOf(this), 1); }
         getBoundingClientRect() { return { top: rows.indexOf(this) * 40, left: 0 }; }
         get nextSibling() { return rows[rows.indexOf(this) + 1] ?? null; }
+        animate(keyframes) {
+            const { promise, resolve, reject } = Promise.withResolvers();
+            const animation = { keyframes, finished: promise, finish: resolve, cancelled: false,
+                cancel() { this.cancelled = true; reject(new Error('cancelled')); } };
+            this.animations.push(animation);
+            return animation;
+        }
     }
     const rows = ['a', 'b', 'c'].map(id => {
         const row = new Element('edit-row-card'); row.dataset.id = id; return row;
@@ -77,7 +85,7 @@ function fixture() {
     document.querySelectorAll = () => [];
     document.getElementById = id => ({ editList: list, bgLayer: base, bgLayerNext: next, bookmarkCountBadge: badge })[id] ?? null;
     document.body = new Element('body');
-    const timers = new Map(), frames = new Map(), images = [], fades = []; let id = 0;
+    const timers = new Map(), images = [], fades = []; let id = 0;
     next.animate = () => {
         const { promise, resolve, reject } = Promise.withResolvers();
         const fade = { finished: promise, finish: resolve, cancel: () => reject(new Error('cancelled')) };
@@ -86,8 +94,8 @@ function fixture() {
     };
     const context = vm.createContext({ module: { exports: {} }, console, document, Element,
         window: { matchMedia: () => motion, __GLASS_I18N__: { locale: 'zh-CN', messages: { 'zh-CN': messages } } }, CSS: { escape: value => value },
+        getComputedStyle: () => ({ getPropertyValue: () => 'ease' }),
         setTimeout: fn => { timers.set(++id, fn); return id; }, clearTimeout: key => timers.delete(key),
-        requestAnimationFrame: fn => { frames.set(++id, fn); return id; }, cancelAnimationFrame: key => frames.delete(key),
         Image: class { constructor() { images.push(this); this.naturalWidth = 100; this.complete = false; } }
     });
     vm.runInContext(outputFiles[0].text, context);
@@ -95,71 +103,70 @@ function fixture() {
     app.modalState.draftBookmarks = rows.map(row => ({ id: row.dataset.id, name: row.dataset.id, url: 'https://example.test', icon: '' }));
     app.bindEditEvents();
     const child = (row, kind) => { const el = new Element(kind); el.parentNode = row; return el; };
-    return { app, rows, list, base, next, badge, motion, images, timers, frames, fades,
+    return { app, rows, list, base, next, badge, motion, images, timers, fades,
         remove: row => list.emit('click', { target: child(row, 'del-btn') }),
-        reorder: row => list.emit('keydown', { target: child(row, 'drag-handle'), altKey: true, key: 'ArrowDown' }),
-        flushFrames() { for (const [key, fn] of [...frames]) { frames.delete(key); fn(); } },
-        flushTimers() { for (const [key, fn] of [...timers]) { timers.delete(key); fn(); } }
+        reorder: row => list.emit('keydown', { target: child(row, 'drag-handle'), altKey: true, key: 'ArrowDown' })
     };
 }
 
-test('删除只消费自身 opacity 事件；取消、减弱动效或事件缺失均删除占位行', () => {
-    for (const mode of ['end', 'cancel', 'motion', 'timeout']) {
+test('删除行的动画结束、取消或启用减弱动效时移除占位行', async () => {
+    for (const mode of ['end', 'cancel', 'motion']) {
         const f = fixture(), row = f.rows[0];
         f.remove(row);
+        const exit = row.animations[0];
         assert.equal(f.app.modalState.draftBookmarks.length, 2);
-        row.emit('transitionend', { propertyName: 'opacity', target: {} });
-        row.emit('transitionend', { propertyName: 'color' });
         assert.equal(row.isConnected, true);
-        if (mode === 'end') row.emit('transitionend', { propertyName: 'opacity' });
-        if (mode === 'cancel') row.emit('transitioncancel', { propertyName: 'opacity' });
+        if (mode === 'end') exit.finish();
+        if (mode === 'cancel') exit.cancel();
         if (mode === 'motion') { f.motion.matches = true; f.motion.emit('change'); }
-        if (mode === 'timeout') f.flushTimers();
+        await exit.finished.catch(() => {});
         assert.equal(row.isConnected, false, mode);
         assert.equal(f.badge.textContent, '已添加 2 项');
-        assert.equal(f.timers.size, 0);
+        if (mode === 'end') {
+            const shifts = f.rows.map(item => item.animations[0]);
+            assert.ok(shifts.every(shift => shift.keyframes[0].transform === 'translate3d(0px, 40px, 0)'));
+            f.motion.matches = true;
+            f.motion.emit('change');
+            assert.ok(shifts.every(shift => shift.cancelled));
+            assert.ok(f.rows.every(item => !item.style.transform && !item.style.transition));
+        }
         assert.equal(f.motion.listeners.get('change').size, 0);
-        assert.equal(row.listeners.get('transitionend').size, 0);
     }
 });
 
-test('排序忽略子元素和其他属性的事件，取消时清除样式及待执行 rAF', () => {
-    for (const mode of ['cancel', 'motion', 'timeout', 'end']) {
+test('排序由动画对象收尾，减弱动效可取消位移', async () => {
+    for (const mode of ['motion', 'end']) {
         const f = fixture(), row = f.rows[0];
         f.reorder(row);
         assert.equal(f.rows.map(x => x.dataset.id).join(), 'b,a,c');
         assert.equal(f.app.modalState.draftBookmarks.map(x => x.id).join(), 'b,a,c');
-        row.emit('transitionend', { propertyName: 'transform', target: {} });
-        row.emit('transitionend', { propertyName: 'background-color' });
-        assert.match(row.style.transform, /translate3d/);
+        const shifts = f.rows.flatMap(item => item.animations);
+        assert.equal(shifts.length, 2);
         if (mode === 'motion') { f.motion.matches = true; f.motion.emit('change'); }
-        if (mode === 'cancel') row.emit('transitioncancel', { propertyName: 'transform' });
-        if (mode === 'end') row.emit('transitionend', { propertyName: 'transform' });
-        if (mode === 'timeout') f.flushTimers();
-        f.flushFrames();
-        assert.equal(row.style.transform, '', mode);
-        assert.equal(row.style.transition, '', mode);
-        f.flushTimers();
+        else shifts.forEach(shift => shift.finish());
+        await Promise.allSettled(shifts.map(shift => shift.finished));
+        assert.ok(shifts.every(shift => shift.cancelled));
         assert.equal(f.motion.listeners.get('change').size, 0);
     }
 });
 
-test('新排序和删除接管旧 FLIP，旧收尾不能清除新动效', () => {
+test('新排序和删除接管旧位移，旧收尾不能取消新动画', async () => {
     const f = fixture(), row = f.rows[0];
     f.reorder(row);
-    const oldTimers = [...f.timers.values()];
+    const first = row.animations.at(-1);
+    first.finish();
     f.reorder(row);
-    f.flushFrames();
-    oldTimers.forEach(fn => fn());
-    assert.match(row.style.transition, /transform/);
+    const second = row.animations.at(-1);
+    await first.finished;
+    assert.equal(first.cancelled, true);
+    assert.equal(second.cancelled, false);
     f.remove(row);
-    f.flushFrames();
-    assert.equal(row.style.opacity, '0');
-    assert.match(row.style.transform, /scale/);
-    row.emit('transitioncancel', { propertyName: 'opacity' });
+    const exit = row.animations.at(-1);
+    assert.equal(second.cancelled, true);
+    assert.equal(exit.keyframes[1].opacity, 0);
+    exit.cancel();
+    await exit.finished.catch(() => {});
     assert.equal(row.isConnected, false);
-    f.flushTimers();
-    assert.equal(f.frames.size, 0);
     assert.equal(f.motion.listeners.get('change').size, 0);
 });
 

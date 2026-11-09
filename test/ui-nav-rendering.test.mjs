@@ -76,6 +76,35 @@ await test("图标空闲准备与延迟加载", async () => {
 
         await evalJS('switchToNav()');
         await waitFor(evalJS, '!isScreenTransitioning() && dom.navCategories.querySelector("img").naturalWidth > 0');
+        await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'no-preference' }] });
+        assert.deepEqual(await evalJS(`(() => {
+          const [first, second] = dom.sidebarList.querySelectorAll('button');
+          const [line1, line2] = dom.navCategories.querySelectorAll('.category-header-line');
+          first.click();
+          const firstPulse = line1.getAnimations()[0];
+          second.click();
+          const secondPulse = line2.getAnimations()[0];
+          const restarted = firstPulse?.playState === 'idle' && !!secondPulse;
+          handleAppWakeUp();
+          const woke = secondPulse?.playState === 'idle' && !line2.getAnimations().length;
+          first.click();
+          const leaving = line1.getAnimations()[0];
+          switchToStart();
+          return { restarted, woke, left: leaving?.playState === 'idle' };
+        })()`), { restarted: true, woke: true, left: true });
+        await waitFor(evalJS, '!isScreenTransitioning()');
+        await evalJS('switchToNav()');
+        await waitFor(evalJS, '!isScreenTransitioning()');
+        await evalJS(`dom.sidebarList.querySelector('button').click();
+          window.motionPreferencePulse = dom.navCategories.querySelector('.category-header-line').getAnimations()[0]`);
+        assert.equal(await evalJS('!!motionPreferencePulse'), true);
+        await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] });
+        await waitFor(evalJS, 'motionPreferencePulse.playState === "idle"');
+        assert.equal(await evalJS(`(() => {
+          dom.sidebarList.querySelector('button').click();
+          return dom.navCategories.querySelector('.category-header-line').getAnimations().length;
+        })()`), 0);
+        await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'no-preference' }] });
         await waitFor(evalJS, 'dom.navSection.querySelectorAll("img[data-nav-src]").length === 0', 2500);
         await evalJS(`(() => {
         window.lastNavIcon = dom.navCategories.querySelector('.category-block:last-child img.lazy-icon');

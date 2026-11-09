@@ -342,6 +342,33 @@ function selectSidebarTab(nextActive) {
     });
 }
 
+/** @type {Animation | null} */
+let categoryPulse = null;
+
+export function cancelCategoryPulse() {
+    categoryPulse?.cancel();
+    categoryPulse = null;
+}
+
+/** @param {Element} line */
+function pulseCategory(line) {
+    cancelCategoryPulse();
+    const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    if (motion.matches) return;
+    const easing = getComputedStyle(line).getPropertyValue('--ease-pulse').trim();
+    const animation = line.animate([
+        { opacity: 1 }, { opacity: 1, offset: 0.35, easing }, { opacity: 0.28 }
+    ], { duration: 1200 });
+    categoryPulse = animation;
+    const onMotion = () => { if (motion.matches) animation.cancel(); };
+    const settle = () => {
+        motion.removeEventListener('change', onMotion);
+        if (categoryPulse === animation) categoryPulse = null;
+    };
+    motion.addEventListener('change', onMotion);
+    animation.finished.then(settle, settle);
+}
+
 export function renderNavCategories() {
     const sidebarList = dom.sidebarList;
     const navCategories = dom.navCategories;
@@ -350,6 +377,7 @@ export function renderNavCategories() {
     const catalog = getCategoryCatalog(pageData.categories);
     if (catalog === lastNavCatalog) return;
     lastNavCatalog = catalog;
+    cancelCategoryPulse();
 
     const navContent = dom.navContent;
     // 首次构建时目录为空，无需读取滚动布局；重绘已有目录才保留位置。
@@ -375,6 +403,7 @@ export function renderNavCategories() {
             <div class="category-header flex items-center gap-2.5 pb-2.5 mb-3.5 transition-colors duration-300 select-none">
                 <span class="size-6 shrink-0 flex items-center justify-center">${getCategoryIconHTML(cat.icon, 'size-5')}</span>
                 <h3 class="text-xs sm:text-sm font-semibold tracking-wide text-white/90">${escapeHtml(cat.name)}</h3>
+                <span class="category-header-line" aria-hidden="true"></span>
             </div>
             <div class="nav-bookmark-grid">
                 ${sortedBookmarks.map(bm => `
@@ -459,16 +488,8 @@ function initSidebarNav(measureActive = true) {
             const top = Math.min(content.scrollHeight - content.clientHeight, Math.max(0, target.offsetTop - baseOffset));
             content.scrollTo({ top });
 
-            const header = target.querySelector('.category-header');
-            if (header) {
-                header.classList.remove('category-title-pulse');
-                requestAnimationFrame(() => {
-                    requestAnimationFrame(() => {
-                        header.classList.add('category-title-pulse');
-                        header.addEventListener('animationend', () => header.classList.remove('category-title-pulse'), { once: true });
-                    });
-                });
-            }
+            const line = target.querySelector('.category-header-line');
+            if (line) pulseCategory(line);
         });
 
         sidebarList.addEventListener('keydown', (e) => {

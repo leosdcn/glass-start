@@ -1,5 +1,6 @@
 /** 全局快捷键、页面唤醒和跨业务菜单协调；控件内部事件见各业务事件模块。 */
 import { cancelDragSort } from './modules/bookmark-drag.js';
+import { cancelCategoryPulse } from './modules/bookmarks.js';
 import { resetActiveCard } from './core/gestures.js';
 import { resetScreenInput, blurNonEditableActive } from './core/screen-input.js';
 
@@ -43,8 +44,9 @@ export function handleAppWakeUp() {
     updateClock();
 
     cancelDragSort();
-    document.querySelectorAll('.is-clicked, .fade-in, .animate-item-in, .category-title-pulse, .dragging').forEach(el => {
-        el.classList.remove('is-clicked', 'fade-in', 'animate-item-in', 'category-title-pulse', 'dragging');
+    cancelCategoryPulse();
+    document.querySelectorAll('.is-clicked, .fade-in, .animate-item-in, .dragging').forEach(el => {
+        el.classList.remove('is-clicked', 'fade-in', 'animate-item-in', 'dragging');
     });
 
     resetActiveCard();

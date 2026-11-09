@@ -287,6 +287,7 @@ test('Service Worker 安装过程只请求同源核心资源', async () => {
     Request: InstallRequest, Response, AbortSignal,
     fetch: async url => { installUrls.push(String(url)); return new Response('external'); },
     caches: {
+      keys: async () => [],
       open: async () => ({
         add: async request => { installUrls.push(request.url); },
         put: async () => {},

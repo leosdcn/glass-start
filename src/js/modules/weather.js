@@ -51,14 +51,13 @@ async function fetchJsonWithTimeout(url, timeoutMs, signal) {
 export function openWeatherPopover() {
     const popover = dom.weatherPopover;
     const btn = dom.weatherBtn;
-    if (!popover || !btn) return;
+    if (!popover || !btn || !OverlayStack.push('weatherPopover', closeWeatherPopover, btn)) return;
     if (!popover.innerHTML.trim()) {
         renderWeatherPopover(null);
     }
     popover.classList.add('active');
     popover.setAttribute('aria-hidden', 'false');
     btn.setAttribute('aria-expanded', 'true');
-    OverlayStack.push('weatherPopover', closeWeatherPopover);
 }
 
 export function closeWeatherPopover() {
@@ -100,7 +99,18 @@ function readWeatherLocation() {
         storageRemove(CONFIG.KEYS.WEATHER_LOC);
         return null;
     }
-    return location;
+    return hasWeatherCoordinates(location) ? location : null;
+}
+
+/** @param {import('../types').WeatherLocation | null | undefined} a
+ * @param {import('../types').WeatherLocation} b
+ */
+function matchesForecastLocation(a, b) {
+    return hasWeatherCoordinates(a)
+        && a.name === b.name && a.fullName === b.fullName
+        && (a.language || 'zh-CN') === (b.language || 'zh-CN')
+        && Math.abs(a.lat - b.lat) <= CONFIG.WEATHER.LOCATION_DRIFT_THRESHOLD
+        && Math.abs(a.lon - b.lon) <= CONFIG.WEATHER.LOCATION_DRIFT_THRESHOLD;
 }
 
 /**
@@ -513,17 +523,17 @@ export function updateWeather(force = false) {
     if (!force && typeof document !== 'undefined' && document.hidden) return Promise.resolve();
     if (weatherRefresh) return weatherRefresh.promise;
     const cache = readWeatherCache();
-    const now = Date.now();
-    const CACHE_TTL = CONFIG.WEATHER.CACHE_TTL;
+    const locCache = readWeatherLocation();
 
-    if (!force && cache && cache.timestamp && (now - cache.timestamp < CACHE_TTL) && (cache.location?.language || 'zh-CN') === getLocale()) {
-        renderWeatherCapsule(cache);
-        renderWeatherPopover(cache);
+    if (!force && cache?.timestamp && Date.now() - cache.timestamp < CONFIG.WEATHER.CACHE_TTL
+        && (cache.location?.language || 'zh-CN') === getLocale()
+        && (!locCache || matchesForecastLocation(cache.location, locCache))) {
+        displayWeather(cache);
         return Promise.resolve();
     }
 
     const controller = new AbortController();
-    const promise = executeWeatherUpdate(cache, force, controller.signal).finally(() => {
+    const promise = executeWeatherUpdate(cache, locCache, force, controller.signal).finally(() => {
         if (weatherRefresh?.controller === controller) weatherRefresh = null;
     });
     weatherRefresh = { controller, promise };
@@ -531,53 +541,50 @@ export function updateWeather(force = false) {
 }
 
 /** @param {import('../types').WeatherData} data */
-function publishWeather(data) {
-    storageSet(CONFIG.KEYS.WEATHER_CACHE, data);
+function displayWeather(data) {
     renderWeatherCapsule(data);
     renderWeatherPopover(data);
 }
 
 /** @param {import('../types').WeatherData | null} cache
+ * @param {import('../types').WeatherLocation | null} locCache
  * @param {boolean} force
  * @param {AbortSignal} signal
  */
-async function executeWeatherUpdate(cache, force, signal) {
-    let usable = cache;
-    try {
-        const locCache = readWeatherLocation();
-        const knownLoc = hasWeatherCoordinates(locCache) ? locCache
-            : hasWeatherCoordinates(cache?.location) ? cache.location : null;
-
-        const earlyForecast = knownLoc && !force ? fetchWeatherForecast(knownLoc, signal).catch(() => null) : null;
-        const location = resolveWeatherLocation(locCache, force, signal).catch(() => knownLoc);
-        const early = await earlyForecast;
-        signal.throwIfAborted();
-        if (early) {
-            usable = early;
-            publishWeather(early);
+async function executeWeatherUpdate(cache, locCache, force, signal) {
+    const knownLoc = locCache ?? (hasWeatherCoordinates(cache?.location) ? cache.location : null);
+    const provisional = new AbortController();
+    const forecastSignal = AbortSignal.any([signal, provisional.signal]);
+    let usable = currentWeatherData ?? cache;
+    const earlyForecast = knownLoc && !force ? fetchWeatherForecast(knownLoc, forecastSignal).then(data => {
+        if (!forecastSignal.aborted) {
+            usable = data;
+            displayWeather(data);
         }
-
-        const loc = await location;
+        return data;
+    }).catch(() => null) : null;
+    try {
+        const loc = await resolveWeatherLocation(locCache, force, signal).catch(() => knownLoc);
         signal.throwIfAborted();
         if (!loc) throw new Error('Weather location unavailable');
         if (loc !== locCache && loc !== knownLoc) storageSet(CONFIG.KEYS.WEATHER_LOC, loc);
-        if (knownLoc && earlyForecast) {
-            if (early && loc.name === knownLoc.name && loc.fullName === knownLoc.fullName
-                && loc.language === knownLoc.language
-                && Math.abs(loc.lat - knownLoc.lat) <= CONFIG.WEATHER.LOCATION_DRIFT_THRESHOLD
-                && Math.abs(loc.lon - knownLoc.lon) <= CONFIG.WEATHER.LOCATION_DRIFT_THRESHOLD) return;
-            if (!early && loc.lat === knownLoc.lat && loc.lon === knownLoc.lon) {
-                throw new Error('Weather forecast unavailable');
-            }
-        }
-        const data = await fetchWeatherForecast(loc, signal);
+        const sameCoordinates = knownLoc?.lat === loc.lat && knownLoc.lon === loc.lon;
+        let data = earlyForecast && (sameCoordinates || matchesForecastLocation(knownLoc, loc))
+            ? await earlyForecast : null;
         signal.throwIfAborted();
-        publishWeather(data);
+        provisional.abort();
+        if (!data) {
+            if (earlyForecast && sameCoordinates) throw new Error('Weather forecast unavailable');
+            data = await fetchWeatherForecast(loc, signal);
+        }
+        signal.throwIfAborted();
+        const confirmed = { ...data, location: loc };
+        storageSet(CONFIG.KEYS.WEATHER_CACHE, confirmed);
+        displayWeather(confirmed);
     } catch (err) {
         if (signal.aborted) return;
         if (usable) {
-            renderWeatherCapsule(usable);
-            renderWeatherPopover(usable);
+            displayWeather(usable);
         } else {
             const weatherCity = dom.weatherCity;
             if (weatherCity) weatherCity.textContent = t('ui.no.data');

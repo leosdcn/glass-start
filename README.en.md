@@ -65,7 +65,7 @@ Glass Start can be built as a Chrome new tab extension or deployed as a static w
 
 ### Chrome new tab extension
 
-**Download**: get the extension ZIP from [Releases](https://github.com/leosdcn/glass-start/releases/latest). Follow the installation and update instructions in the release notes.
+**Download and install.** Download the extension ZIP listed in the release notes and follow the installation or update instructions. To use the current source version, build it with the steps below. [GitHub Releases](https://github.com/leosdcn/glass-start/releases/latest)
 
 **Build from source**:
 
@@ -97,7 +97,7 @@ To run the extension regression test, use `npm test -- infra-chrome-extension`. 
 
 ### Vercel, Netlify and GitHub Pages
 
-- **Vercel / Netlify**: import the Git repository, set the build command to `npm run build` and the output directory to `dist`. Configure response headers using the platform's supported format.
+- **Vercel / Netlify**. Import the Git repository, select a Node.js version supported by `package.json`, and install the development dependencies. Set the build command to `npm run build` and the output directory to `dist`. Configure response headers using the platform's supported format.
 - **GitHub Pages**: the repository includes a [CI and deployment workflow](./.github/workflows/ci.yml). Enable Actions for your repository and select GitHub Actions under **Settings → Pages**. A push to `main` or a manual run on `main` publishes the verified `dist/` after lint, the full test suite and W3C validation succeed; no additional workflow is needed. Refer to the [official custom workflow guide](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages) when changing the publishing branch or process. For branch-based publishing, place the output in the publishing branch's root or `/docs`; `/dist` cannot be selected directly.
 
 The response header rules in `public/_headers` require hosting support. GitHub Pages does not apply this file; the page still uses its HTML meta CSP. Meta and HTTP CSP policies apply together: a response header cannot relax a meta policy. Meta CSP also cannot replace header-only directives such as `frame-ancestors`, cache rules or other security headers. Check the actual HTTP response after deployment rather than assuming the presence of `_headers` makes its rules effective.
@@ -189,8 +189,9 @@ Run `npm run sync:icons:refresh` to download all icons again and convert them to
 Click the settings button at the bottom right to edit quick bookmarks, customize appearance and manage data. Categories on the bookmarks page remain defined in `bookmarks.json`.
 
 - **Done / Cancel**: **Done** saves quick bookmarks, wallpaper, background dimming, screen transitions and language. **Cancel** discards unsaved drafts, restores the saved wallpaper and invalidates pending wallpaper reads, loads and decoding. Saving is not one atomic transaction across storage items; changes saved before a failure remain effective, while other drafts stay in the panel for retrying. Wallpaper shortcuts outside settings save immediately.
-- **Language**: select **Follow browser**, **简体中文** or **English** at the top right of settings, then click **Done** to reload and apply. The interface, weather and built-in catalog follow the selected language; custom and imported text stays as entered. On first use, the app follows your browser's language, falling back to English for unsupported languages. The website and extension save their preferences separately, and language changes also work offline. Time remains in 24-hour format. Temperature defaults to Celsius; click the temperature unit in the weather details to switch between Celsius and Fahrenheit. The extension's name on Chrome's management page follows Chrome's language; PWA installation names keep the default metadata.
+- **Language**. Select **Follow browser**, **简体中文** or **English** at the top right of settings, then click **Done** to save. The page reloads when the effective interface language changes. The interface, weather and built-in catalog follow the selected language. Custom and imported text stays as entered. On first use, the app follows your browser's language, falling back to English for unsupported languages. The website and extension save their preferences separately, and language changes work offline. Time remains in 24-hour format. Temperature defaults to Celsius and can be switched to Fahrenheit in the weather details. The extension's name on Chrome's management page follows Chrome's language. PWA installation names use the default metadata.
 - **Export / Import**: Export includes the current quick bookmark draft and which fields it inherits from the catalog. Importing JSON asks you to replace the draft; click Done to save it. Backups do not contain wallpaper images, appearance settings or search preferences.
+  The export uses `{ version, exportDate, bookmarks }` with format version `1.1`. Import also accepts a bookmark array or catalog JSON with `categories[].bookmarks`. For duplicate links, the first valid entry is kept.
 - **Refresh offline cache / Restore defaults**: cache clearing only removes this deployment's offline resources and Service Worker, preserving other deployments and the web's shared icon cache. The extension clears its own temporary icon cache. A successful cache clear reloads the page and discards unsaved edits. Confirming Restore defaults removes custom quick bookmarks, wallpapers and preferences. Editing, saving and cancellation are disabled during the reset and restored on completion or failure. Export bookmarks first if you need a backup.
 
 ### 5. Keyboard shortcuts
@@ -211,7 +212,7 @@ This is my first substantial open-source project, and I am still learning and im
 
 - Node.js 24.x (at least 24.15.0) or version 26 and above, with npm. The supported range is `^24.15.0 || >=26.0.0`, compatible with Stylelint 18. The test driver uses Node's native `fetch` and `WebSocket`; follow the version requirement in `package.json`. Use `npm ci` to install or restore dependencies.
 - Google Chrome for browser regression tests. Set `CHROME_PATH` if needed, for example `CHROME_PATH="/path/to/chrome" npm test`. Chrome is the acceptance baseline; mobile viewports and touch interactions are simulated through Chrome CDP. Testing in Safari or on physical iOS devices is not required for routine development, full tests or releases.
-- `npm run sync:icons` and icon-conversion regression tests require macOS `sips`. Use macOS for complete validation. Building and static hosting do not call `sips`; other systems can build using the icons already in the repository.
+- `npm run sync:icons` and the icon-conversion regression test require macOS `sips`. Ubuntu CI and other environments without `sips` skip that test. Other systems can build and host the site using the icons already in the repository.
 - Dependency installation, icon downloads or refreshes, and online W3C validation require a connection. Reusing local icons does not contact external icon services.
 
 Check the active environment with `node --version`; the `engines` declaration does not switch Node automatically, and `start.command` only checks whether the Node command is available. CI uses the minimum supported version to verify the lower bound, while the Cloudflare deployment example follows a supported 24.x maintenance version.
@@ -254,6 +255,8 @@ npm run build:extension
 
 [AGENTS.md](./AGENTS.md#验证) (Chinese) defines the required validation scope. Prefer directly relevant tests for local changes. `npm test -- <filename-fragment>` checks types and builds as needed before running matching files. When a build is needed, it runs alongside the type check, so do not repeat either manually. The build is skipped only when all matching tests are on the runner's [standalone unit-test list](./test/support/test-selection.mjs). With no arguments, `npm test` runs the full suite, intended for high-risk changes across modules, releases or explicitly requested full validation. Use `test:ui`, `test:data`, `test:infra` or `test:lifecycle` to widen the scope by area. Available commands are defined in `package.json`.
 
+When a build is needed, `npm test` publishes `dist/` and keeps a copy of the web build and a matching test script in a separate session directory. The test server reads that snapshot, so a later development rebuild cannot affect the running tests. Extension regression tests also build in the session directory. Use `npm run build:extension` to generate `extension/` for local installation. Set `CHROME_PROFILE_DIR` to choose the parent directory for Chrome test profiles. Each session cleans up its own subdirectory.
+
 When upgrading development tools, update both `package.json` and `package-lock.json`. `npm ci` reproduces the locked versions; a `^` range permits updates but does not make each `npm ci` upgrade packages automatically. Keep Tailwind and its CLI on the same version. These development dependencies can affect the generated CSS, so rebuild and verify affected website and extension layouts after upgrading them. For Stylelint upgrades, check rule migrations and the corresponding validation regressions.
 
 `npm run test:w3c` does not build the project; release validation should use `dist/` generated by the current build or test run. It checks the complete HTML with the online Nu checker and validates modern CSS syntax and declaration values in embedded `style` blocks with the development dependency Stylelint 18. Legacy Nu CSS diagnostics located in those independently checked blocks are counted separately, without a property-name allowlist. HTML errors, inline `style` attribute errors and CSS diagnostics without a usable location remain checked by Nu. The request supplies the page's canonical URL as `Content-Location` to avoid false same-origin CSP warnings. Override the document address with `W3C_DOCUMENT_URL=https://example.com/start/ npm run test:w3c`; the submitted document is still the local build. Real errors exit with code 1, while service or tool failures exit with code 2. This check does not replace browser testing or verification of deployed response headers.
@@ -264,11 +267,11 @@ Related browser regressions are grouped in the following files. Add related regr
 
 | Filename fragment | Coverage |
 | :--- | :--- |
-| `data-wallpaper.test` | Image decoding, upload compression, shared loads and failure retries |
+| `data-wallpaper.test` | Image decoding, upload compression, preview cancellation, shared loads and failure retries |
 | `data-wallpaper-storage` | Selection commits, transaction failures, session isolation and restoration priority |
 | `data-bookmark-picker` | Picker node reuse, catalog invalidation and icon preview requests |
-| `ui-nav-rendering` | Lazy icon loading, category position caching and native scrolling |
-| `ui-modal-accessibility` | Focus, background isolation and incremental isolation updates |
+| `ui-nav-rendering` | Lazy icon loading, category position caching, highlight animation and native scrolling |
+| `ui-modal-accessibility` | Native modal isolation, focus restoration and interaction during exit transitions |
 | `infra-theme-favicon` | Theme configuration, icon fallbacks, cache eviction and direct icon navigation |
 
 `npm run benchmark` builds and measures frame intervals during initial and repeated screen transitions. By default, it measures the local production build; the page may still make its usual network requests, such as weather updates. See the [transition benchmark guide](./docs/TRANSITION_BENCHMARK.md) (Chinese) for options, metrics and headless-browser limitations.
@@ -279,7 +282,7 @@ Related browser regressions are grouped in the following files. Add related regr
 
 After building, run `node scripts/capture-preview.mjs --lang=en` to regenerate the English README screenshots. Omit `--lang=en` to generate the Chinese screenshots.
 
-> 💡 **macOS launcher**: double-click `start.command` in the project root to check the existing Node environment, build and launch a browser preview. Run `npm ci` before the first launch. This launcher resets the local test environment by default, clearing caches, bookmarks, wallpapers and preferences for that local site so old caches and settings do not affect visual testing.
+> 💡 **macOS launcher**. Run `npm ci` before the first launch, then double-click `start.command` in the project root. It builds the website and opens it in a temporary Chrome profile, keeping your regular browser data intact. Closing Chrome or stopping the server removes the temporary profile. Set `CHROME_PATH` to use a different Chrome executable.
 
 ---
 

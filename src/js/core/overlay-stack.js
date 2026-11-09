@@ -65,12 +65,20 @@ export const OverlayStack = {
     stack: [],
 
     push(id, closeFn, trigger = document.activeElement) {
+        const modal = MODAL_OVERLAY_IDS.has(id);
+        if (!modal && this.topModal()) return false;
+        if (modal) {
+            for (const item of this.stack.slice().reverse()) {
+                if (!MODAL_OVERLAY_IDS.has(item.id)) item.close();
+            }
+        }
         this.pop(id);
         this.stack.push({ id, close: closeFn, trigger });
-        if (MODAL_OVERLAY_IDS.has(id)) {
+        if (modal) {
             showModal(id);
             document.body.classList.add('overflow-hidden', 'touch-none');
         }
+        return true;
     },
 
     pop(id) {

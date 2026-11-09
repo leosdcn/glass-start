@@ -84,6 +84,20 @@ try {
   await pressButtonEdge('editBookmarksBtn', '0.94');
   await waitFor(evalJS, 'document.getElementById("editModal").open');
   await waitFor(evalJS, 'dom.editModal.getAnimations({subtree:true}).length === 0');
+  assert.equal(await evalJS(`(async () => {
+    const [row, sibling] = dom.editList.querySelectorAll('.edit-row-card');
+    row.querySelector('.del-btn').click();
+    const exit = row.getAnimations().find(animation => !(animation instanceof CSSTransition));
+    exit.finish();
+    await exit.finished;
+    window.shiftedBookmarkRow = sibling;
+    return !row.isConnected && sibling.getAnimations().some(animation =>
+      animation.effect.getKeyframes().some(frame => frame.transform && frame.transform !== 'none'));
+  })()`), true, '删除后的兄弟行应使用同一套位移动画');
+  await send('Emulation.setEmulatedMedia', { features: [{ name:'prefers-reduced-motion', value:'reduce' }] });
+  await waitFor(evalJS, 'shiftedBookmarkRow.getAnimations().length === 0');
+  assert.equal(await evalJS('!shiftedBookmarkRow.style.transform && !shiftedBookmarkRow.style.transition'), true);
+  await send('Emulation.setEmulatedMedia', { features: [{ name:'prefers-reduced-motion', value:'no-preference' }] });
   await pressButtonEdge('tab-btn-appearance', '0.96');
   assert.equal(await evalJS("document.querySelector('#tab-btn-appearance').getAttribute('aria-selected')"), 'true',
     '点击设置页签边缘时，按压反馈不应移走点击区域');

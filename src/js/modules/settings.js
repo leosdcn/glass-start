@@ -15,7 +15,7 @@ import { state, modalState, pageData } from '../state/store.js';
 import { replaceBookmarkDraft } from '../state/bookmark-draft.js';
 import { dom } from '../state/dom.js';
 import { OverlayStack } from '../core/overlay-stack.js';
-import { flushWallpaperSelection, prepareWallpaperDraft, getCommittedWallpaperUrl, discardWallpaperSelection, showWallpaperDraft, updateWallpaperStatusUI, updatePresetBgCardsUI, clearCustomWallpaper, renderPresetWallpapers, commitWallpaperSelection, revertDraftWallpaper, applyBgEffects, flushBgEffects, getSavedMaskOpacity, commitWallpaperDimming, showWallpaperError, previewDraftWallpaper } from './wallpaper.js';
+import { flushWallpaperSelection, prepareWallpaperDraft, getCommittedWallpaperUrl, closeWallpaperDraft, pauseWallpaperDraft, showWallpaperDraft, updateWallpaperStatusUI, updatePresetBgCardsUI, clearCustomWallpaper, renderPresetWallpapers, commitWallpaperSelection, revertDraftWallpaper, applyBgEffects, flushBgEffects, getSavedMaskOpacity, commitWallpaperDimming, showWallpaperError, previewDraftWallpaper } from './wallpaper.js';
 import { saveUserBookmarks, resetUserBookmarks, getImportedBookmarks } from './bookmarks.js';
 import { closeDropdown, hideSuggestions, setEngine } from './search.js';
 import { getTransitionMode, syncTransitionSwitcherActive, setTransitionMode, resetNavDiscovery } from '../core/screen-state.js';
@@ -238,7 +238,7 @@ export function closeEditModal() {
     // 保存关闭时即使后台暂停了 rAF，也同步落定最后的预览；取消已先覆盖并清队列。
     flushBgEffects();
     cancelDragSort();
-    discardWallpaperSelection();
+    closeWallpaperDraft();
     editSession = null;
     setEditPhase('closed');
     OverlayStack.pop('editModal');
@@ -427,6 +427,7 @@ export function resetBookmarks() {
         const before = session.baseline;
         if (!before) return;
         beginEditCommit();
+        const resumeWallpaper = pauseWallpaperDraft();
         try {
             const wallpaperCleared = await clearCustomWallpaper(0, isCurrent);
             if (!isCurrent()) return;
@@ -456,6 +457,7 @@ export function resetBookmarks() {
             finishEdit();
         } finally {
             if (isCurrent()) setEditPhase('editing');
+            resumeWallpaper?.();
         }
     }, t('ui.reset.all.settings'));
 }
@@ -468,7 +470,7 @@ export async function saveEditModal() {
     const isCurrent = () => editSession === session;
     setEditPhase('preparing-save');
     try {
-        const previewReady = await flushWallpaperSelection();
+        const previewReady = await flushWallpaperSelection(isCurrent);
         if (!isCurrent()) return;
         if (!previewReady) {
             if (OverlayStack.top()?.id === 'editModal') switchSettingsTab('tabAppearance');
@@ -603,7 +605,7 @@ export function clearOfflineCache() {
         async () => {
             if (editSession !== session || modalState.phase !== 'editing') return;
             beginEditCommit();
-            discardWallpaperSelection();
+            const resumeWallpaper = pauseWallpaperDraft();
             const scope = new URL('./', location.href);
             const cachePrefix = 'glass-scope-' + encodeURIComponent(scope.pathname) + '-';
             try {
@@ -627,6 +629,8 @@ export function clearOfflineCache() {
                     setEditPhase('editing');
                     showConfirm(t('cache.clearFailed'), null, t('ui.notice'), { triggerEl: clearBtn });
                 }
+            } finally {
+                resumeWallpaper?.();
             }
         },
         isExtension ? t('ui.clear.cache') : t('ui.clear.offline.cache'),

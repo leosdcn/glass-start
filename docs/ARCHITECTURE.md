@@ -36,15 +36,15 @@
 | `.github/` | CI、部署工作流及 Issue / PR 模板 |
 | 根目录工程文件 | `package.json` 与锁文件管理依赖和命令；`tsconfig.json` 与 `tsconfig.sw.json` 管理页面及 Service Worker 类型检查；`wrangler.jsonc` 配置 Cloudflare 部署；`start.command` 为 macOS 启动入口 |
 
-`test/artifacts/` 根层保留测试入口的最新输出；本地历史调试产物按整理日期存入 `test/artifacts/archive/YYYY-MM-DD/`，压缩包保留原相对路径，`index.json` 记录文件清单和 SHA-256。历史报告中的本地产物路径可通过该索引查找并恢复。归档及临时脚本仍不纳入 Git。
+`test/artifacts/` 保存本地测试输出。已归档的调试产物可在 `test/artifacts/archive/YYYY-MM-DD/` 的 `index.json` 中按原路径查找，索引记录文件清单和 SHA-256。该目录由 Git 忽略，历史报告引用的本地产物仅在保有相关记录的工作区可查。
 
-验证依据：[2026-10-24 审计修复](./reports/2026-10-24-audit.md)、[2026-10-28 目录与扩展核实](./reports/2026-10-28-structure-verification.md)、[2026-10-28 多语言验证](./reports/2026-10-28-english-localization.md)、[2026-10-29 模块修复](./reports/2026-10-29-module-review.md)。性能对照：[2026-10-23 Safari](./reports/2026-10-23-safari-performance.md)、[2026-10-25 切屏基准](./reports/2026-10-25-transition-performance.md)、[2026-10-29 切屏与恢复](./reports/2026-10-29-transition-audit.md)。这些是历史测量，不是当前版本的验收凭证；原始性能 JSON 随引用报告保留。
+历史验证包括 [2026-10-24 审计修复](./reports/2026-10-24-audit.md)、[2026-10-28 目录与扩展核实](./reports/2026-10-28-structure-verification.md)、[2026-10-28 多语言验证](./reports/2026-10-28-english-localization.md)、[2026-10-29 模块修复](./reports/2026-10-29-module-review.md) 和 [2026-11-08 v5.5.0 验收](./reports/2026-11-08-regression-verification.md)。性能对照见 [2026-10-23 Safari](./reports/2026-10-23-safari-performance.md)、[2026-10-25 切屏基准](./reports/2026-10-25-transition-performance.md) 和 [2026-10-29 切屏与恢复](./reports/2026-10-29-transition-audit.md)。结果仅适用于各报告所列源码与环境。
 
 ## 模块索引
 
 ### 按问题定位
 
-先按功能找到主入口，再沿实际导入关系阅读；DOM 结构统一在 `src/index.html`，缓存登记与类型分别在 `src/js/state/dom.js`、`src/js/types.d.ts`。表内 JS 路径相对 `src/js/`，CSS 相对 `src/styles/`，测试片段可用于 `npm test -- <片段>`。不必为局部修改遍历整个项目。
+先按功能找到主入口，再沿实际导入关系阅读。静态 DOM 在 `src/index.html`，运行时生成的节点由各功能模块渲染，缓存登记与类型分别在 `src/js/state/dom.js`、`src/js/types.d.ts`。表内 JS 路径相对 `src/js/`，CSS 相对 `src/styles/`，测试片段可用于 `npm test -- <片段>`。
 
 | 功能 / 问题 | DOM 或检索词 | 逻辑入口 | 样式入口 | 直接相关测试片段 |
 | :--- | :--- | :--- | :--- | :--- |
@@ -55,14 +55,14 @@
 | 设置打开、完成、取消与重置 | `editModal`、`saveEditBtn`、`tabAppearance`、`tabData` | `modules/settings.js`；控件事件在 `modules/settings-events.js` | `settings.css`；外观/数据页布局在 `glass.css` | `data-settings-save`、`ui-modal-accessibility`、`ui-rendered-contracts` |
 | 书签草稿、挑选与拖拽 | `draftBookmarks`、`editList`、`bookmarkPicker` | `state/bookmark-draft.js`、`modules/bookmark-editor.js`、`modules/bookmark-picker.js`、`modules/bookmark-drag.js` | `settings.css`、`glass.css` | `data-bookmark-picker`、`data-audit-regressions`、`data-pure-models` |
 | 壁纸预览、取消、保存与主题色 | `bgLayer`、`presetWallpaperGrid`、`urlBgInput` | `modules/wallpaper.js`；`core/wallpaper-renderer.js`、`core/theme-engine.js`；`utils/idb.js`；`config/backgrounds.js`、`config/themes.js` | `page.css`；壁纸网格在 `glass.css` | `data-wallpaper`、`infra-theme-favicon` |
-| 天气、定位与缓存显示 | `weatherBtn`、`weatherPopover`、`weatherNum` | `modules/weather.js`；`utils/weather-model.js`、`utils/weather-data.js`；`config/weather-icons.js` | `page.css`、`glass.css` | `data-weather-features`、`data-request-performance`、`data-pure-models` |
+| 天气、定位与缓存显示 | `weatherBtn`、`weatherPopover`、`weatherNum` | `modules/weather.js`；`utils/weather-model.js`、`utils/weather-data.js`；`config/weather-icons.js` | `page.css`、`glass.css` | `data-weather-features`、`data-request-performance`、`data-priority-fixes-unit`、`data-pure-models` |
 | 语言、目录翻译与旧链接兼容 | `data-i18n`、`languageModal`、`canonicalBookmarkUrl` | `core/i18n.js`；`config/language.js`、`config/locales/` | `page.css`；语言选项在 `glass.css` | `data-i18n` |
 | 模态层叠、焦点、确认框 | `OverlayStack`、`confirmModal`、`inert` | `core/overlay-stack.js`、`core/dialogs.js`；具体弹窗入口在 `modules/settings.js` | `settings.css`、`glass.css`、`animations.css` | `ui-modal-accessibility`、`ui-overlay-modals` |
 | 时钟与日期 | `clock`、`date` | `modules/clock.js` | `page.css` | `lifecycle.test`、`infra-module-boundaries` |
 | 快捷键速查与开源致谢 | `shortcutModal`、`creditsModal` | `modules/settings.js`（内容、开关）、`modules/settings-events.js`（控件事件） | `glass.css` | `ui-overlay-modals` |
-| 指针倾斜、卡片高光与动效收尾 | `pointermove`、`--mouse-x`、`transitionend` | `core/gestures.js`；`utils/transition-cleanup.js` | `glass.css`、`animations.css` | `ui-rendering-performance`、`ui-input-device-performance`、`data-animation-cleanup-unit` |
+| 指针倾斜、卡片高光与书签行位移 | `pointermove`、`--mouse-x`、`animateBookmarkLayout` | `core/gestures.js`；`modules/bookmark-motion.js` | `glass.css`、`animations.css` | `ui-rendering-performance`、`ui-input-device-performance`、`data-animation-cleanup-unit` |
 | 网页离线缓存、升级与清理 | `ACTIVATE_UPDATE`、`updateNotice`、`clearCacheBtn` | 根目录 `sw.js`；`core/service-worker-updates.js`；清理流程在 `modules/settings.js`，按钮绑定在 `modules/settings-events.js` | `page.css` | `infra-sw-`、`data-audit-regressions` |
-| 网页构建、首帧与扩展差异 | 构建插槽、`__GLASS_EXTENSION__` | 根目录 `scripts/build.cjs`、`scripts/html-template.cjs`、`scripts/build-extension.cjs`、`src/extension/manifest.json` | `main.css` 为唯一编译入口 | `infra-security`、`infra-chrome-extension`、`infra-theme-favicon` |
+| 网页构建、并发发布、首帧与扩展差异 | 构建插槽、`publishWebBuild`、`__GLASS_EXTENSION__` | 根目录 `scripts/build.cjs`、`scripts/publish-build.cjs`、`scripts/html-template.cjs`、`scripts/build-extension.cjs`、`src/extension/manifest.json` | `main.css` 为唯一编译入口 | `infra-build-pipeline`、`infra-security`、`infra-chrome-extension`、`infra-theme-favicon` |
 
 ### 样式索引
 
@@ -79,7 +79,7 @@ CSS 通过 `main.css` 按其 `@import` 顺序编译为内联样式，不增加�
 
 ### 数据与共享机制
 
-- 默认书签只维护根目录 `bookmarks.json`；语言入口差异与译文见 `config/locales/catalog-*.json`。运行时配置集中在 `config/constants.js`，不要在业务模块或 HTML 复制配置。
+- 共享书签目录和中文默认快捷入口维护在根目录 `bookmarks.json`。语言入口差异、译文和英文默认快捷入口见 `config/locales/catalog-*.json`。运行时配置位于 `config/`，其中 `constants.js` 定义通用阈值、存储键及计时配置。
 - 全局模型见 `state/store.js`，草稿操作见 `state/bookmark-draft.js`；新增 DOM 缓存键同步 `state/dom.js` 与 `types.d.ts`。
 - HTML 安全输出和列表键盘导航用 `utils/helpers.js`；书签字段及 URL 规则用 `utils/bookmark-model.js`；图标输出与失败处理用 `utils/favicon.js`；LocalStorage JSON 读写用 `utils/storage.js`，壁纸 IndexedDB 用 `utils/idb.js`；目录索引用 `utils/category-catalog.js`。主应用测试接口仅在 `testing/bridge.js`，生产构建裁除；搜索内部状态仅通过只读访问器暴露，不提供测试专用的状态写入口。
 - 本地图标下载/转换入口为根目录 `scripts/sync-icons.mjs`，资源在 `public/icons/`；测试共用 CDP 和服务辅助模块在 `test/support/`，回归用例保持 `test/` 顶层。
@@ -106,10 +106,10 @@ CSS 通过 `main.css` 按其 `@import` 顺序编译为内联样式，不增加�
 
 | 数据 / 行为 | 修改入口与协作边界 |
 | :--- | :--- |
-| `state.engine` | `modules/search.js` 校验并更新；输入法、输入框、候选及引擎菜单事件在 `search-events.js`，全局事件只分发搜索按键与跨业务关闭。 |
+| `state.engine` | `modules/search.js` 校验并更新偏好和引擎控件。用户选引擎后，由 `search-events.js` 关闭菜单并用当前查询请求联想。启动和设置重置只应用偏好。全局事件分发搜索按键与跨业务关闭。 |
 | `state.currentSection`、切屏锁 | `core/screen-state.js`；输入识别在 `core/screen-input.js`，导航渲染钩子由 `init.js` 注册。 |
 | 设置会话与提交阶段 | `modules/settings.js` 更新 `modalState.phase`，由阶段派生 `state.editOpen` 和按钮状态；`settings-events.js` 负责控件绑定与局部交互。 |
-| `modalState.draftBookmarks`、`bookmarksChanged` | 通过 `state/bookmark-draft.js` 增删改排；编辑器负责行渲染、清洗与收集，挑选器负责目录卡片，`modules/bookmark-drag.js` 负责书签专用的拖拽与 FLIP。 |
+| `modalState.draftBookmarks`、`bookmarksChanged` | 通过 `state/bookmark-draft.js` 增删改排；编辑器负责行渲染、清洗与收集，挑选器负责目录卡片，`modules/bookmark-drag.js` 负责拖拽，删除与重排共用 `modules/bookmark-motion.js` 的 FLIP。 |
 | 壁纸草稿、`state.bg / customWallpaper`、图片任务及暗度预览队列 | `modules/wallpaper.js` 管理选择、预览和提交；设置模块决定何时保存或取消。图层与取色分别在 `core/wallpaper-renderer.js / theme-engine.js`。 |
 | 语言、暗度、切屏动效草稿 | `modules/settings.js` 协调草稿与顺序提交；实际暗度显示交给 wallpaper，切屏模式交给 screen-state，语言生效通过刷新完成。 |
 | `pageData.categories / bookmarks` | 分类由 `init.js` 初始化；快捷书签由 `modules/bookmarks.js` 派生、保存并渲染。搜索和挑选器通过目录索引读取，不直接改目录。 |
@@ -119,7 +119,7 @@ CSS 通过 `main.css` 按其 `@import` 顺序编译为内联样式，不增加�
 
 ### 工程、样式与测试
 
-构建入口 `scripts/build.cjs` 负责产物流程，`html-template.cjs` 只处理模板结构，扩展构建复用网页构建；开发服务与文件监听分别在 `server.cjs / watch.cjs`。单文件通过父目录按文件名监听，并比较当前内容，编辑器原子替换后仍可继续重建。lint 的 DOM、CSS、多语言检查分别由对应辅助脚本实现，不进入浏览器。样式按上方样式索引划分布局、材质和动效，同一控件可组合使用；测试共享设施只放在 `test/support/`，业务源码不得导入。
+构建入口 `scripts/build.cjs` 负责产物流程，`publish-build.cjs` 负责发布与前版回收，`html-template.cjs` 只处理模板结构，扩展构建复用网页编译。开发服务与文件监听分别在 `server.cjs / watch.cjs`。单文件通过父目录按文件名监听，并比较当前内容，编辑器原子替换后仍可继续重建。lint 的 DOM、CSS、多语言检查分别由对应辅助脚本实现，不进入浏览器。样式按上方样式索引划分布局、材质和动效，同一控件可组合使用；测试共享设施只放在 `test/support/`，业务源码不得导入。
 
 ## 模块与构建
 
@@ -154,9 +154,9 @@ flowchart TD
 
 构建读取 `package.json` 版本号并生成版本徽章；每次构建生成统一指纹，注入 HTML、应用脚本与 Service Worker。网页版 HTML 引用不可变的 `app-builds/<构建 ID>.js`，扩展使用随包的 `app.js`。启动时指纹不一致会停止初始化。应用脚本、内联脚本与 CSS 均压缩；Service Worker 在注入版本后复用 esbuild 压缩，根目录 `sw.js` 保留可读源码，缓存、升级与并发请求回归执行生成的 `dist/sw.js`。
 
-构建在内存中传递并内嵌本次编译的 CSS。空 CSS、编译或压缩失败会阻断构建。网页每次写入独立目录，再原子替换 `dist` 链接。预览服务从同一文件描述符读取元数据和正文，已开始的响应可以跨发布完成。复用已有网页产物构建时，会随包保留上一版带构建 ID 的脚本。
+构建在内存中传递并内嵌本次编译的 CSS。空 CSS、编译或压缩失败会阻断构建。网页各自编译到独立目录，在发布锁内保留当前入口引用的版本化脚本，再原子替换 `dist` 链接并回收前版目录。预览服务从同一文件描述符读取元数据和正文，已开始的响应可以跨发布完成。下一次发布会回收已退出进程留下的锁。
 
-首次从旧实体 `dist/` 迁移和扩展目录发布有单独的备份路径。若进程在迁移旧目录期间被强制终止，确认没有构建进程后，可以从 `dist.migration/previous` 恢复旧产物。扩展使用固定的解包目录，发布时在 `.extension-publish/previous` 保留备份。干净的部署环境只产生当前脚本。托管端要为尚未受 Worker 控制的旧文档提供过渡期时，应保留仍被引用的版本化脚本路径。
+首次从旧实体 `dist/` 迁移和扩展目录发布有单独的备份路径。若旧目录迁移中断并留下空入口，下一次网页发布会先从 `dist.migration/previous` 恢复旧产物。扩展使用固定的解包目录，发布时在 `.extension-publish/previous` 保留备份。干净的部署环境只产生当前脚本。托管端要为尚未受 Worker 控制的旧文档提供过渡期时，应保留仍被引用的版本化脚本路径。
 
 HTML 使用唯一构建插槽注入入口、样式和 SVG。标记缺失、重复或顺序错误会阻断构建。主题、壁纸清单、引擎元数据/图标、天气图标与天气清洗脚本分别从 `config/`、`utils/weather-data.js` 注入，避免维护副本。
 
@@ -198,11 +198,13 @@ Chrome 扩展通过 `npm run build:extension` 独立生成 `extension/`。`scrip
 
 LocalStorage 的 `glass_bookmarks` 在一次写入中保存版本、URL 顺序与名称、简介和图标覆盖。新记录缺失时兼容读取 `userBookmarkKeys` 和 `userCustomMeta`，首次保存转换为新格式。恢复默认时先写入空覆盖和默认顺序标记，再清理旧键。清理旧键是尽力回收。提交了默认顺序标记后，遗留键不会重新生效。旧标签继续写入旧键时，新记录仍是读取依据。
 
-`utils/category-catalog.js` 为派生、保存、分类排序和搜索提供共用索引，名称、URL、简介及分类／书签图标变化时重建。持久化使用完整的 `normalizeUrl()` 键，搜索使用自己的去重键，两者语义不同。`normalizeBookmark()` 共用于缓存读取、导入、草稿收集和保存；缓存中的错误条目和字段忽略，全部 URL 无效时使用当前语言默认入口，读取不改写原存储。简介缺省时继承目录，显式空字符串表示清空。
+`utils/category-catalog.js` 为派生、保存、分类排序和搜索提供共用索引，名称、URL、简介及分类／书签图标变化时重建。持久化和搜索去重共用 `normalizeUrl()` 的共享 URL 标识，持久化另经 `normalizeBookmarkUrl()` 校验链接。`normalizeBookmark()` 共用于缓存读取、导入、草稿收集和保存；缓存中的错误条目和字段忽略，全部 URL 无效时使用当前语言默认入口，读取不改写原存储。简介缺省时继承目录，显式空字符串表示清空。
 
 分类导航通过 transform 移出首屏，原生图片懒加载仍可能提前请求其图标。因此导航专用书签图片先保存为 `data-nav-src`。在壁纸恢复后的前台空闲任务中，以低请求优先级提前加载前 5 个分类的本地图标，让加载和淡入尽量避开首次切屏；远程图标和其余分类保持延迟。切入后安排的离屏图标空闲任务只在导航页可见且切屏已结束时执行。若回调执行时已开始退场，下次切入时重新安排。快速切屏不等待准备任务，往返切屏复用现有节点。侧栏及分类标题的图标随导航 DOM 设置 `src`，目录尚未构建时由图标空闲任务预加载。
 
 启动时用独立的空闲任务预热导航 DOM，分类位置留到切入收尾或导航滚动时测量。如果首次切入时目录尚未预热，Chrome 保留所有卡片的网格占位，并用 `content-visibility: auto` 延后离屏卡片内部的布局和绘制。导航内容开始滚动或离屏图标空闲任务执行时，恢复完整渲染。
+
+分类标题的高亮由导航持有一个动画对象。再次选择、离开导航、页面唤醒或开启减弱动效时结束旧动画。
 
 ```mermaid
 flowchart LR
@@ -230,7 +232,7 @@ flowchart LR
 
 壁纸预览和提交错误显示在外观面板的来源控件下方。迟到的图片错误可留在该面板，导入确认等操作继续使用各自的对话框。
 
-确认恢复默认后同样进入提交阶段，禁用编辑、保存及取消并作废待完成的导入。部分失败时，未编辑的项随已落盘结果更新，用户已有的草稿编辑仍可保存。IndexedDB 返回后检查设置会话身份，旧重置不会改写新草稿。关闭会话时依据已生效的语言和目标语言决定是否刷新。清缓存确认时明确告知刷新会丢弃草稿，并在清理期间锁定会话。清理失败时保持草稿可编辑。
+确认恢复默认后同样进入提交阶段，禁用编辑、保存及取消并作废待完成的导入。选图时即将准备任务登记到设置草稿。重置和清缓存期间暂停发布，成功关闭时丢弃选择，失败后继续原任务。部分失败时，未编辑的项随已落盘结果更新，用户已有的草稿编辑仍可保存。IndexedDB 返回后检查设置会话身份，旧重置不会改写新草稿。关闭会话时依据已生效的语言和目标语言决定是否刷新。清缓存确认时明确告知刷新会丢弃草稿。
 
 设置职责按模块划分：
 
@@ -240,7 +242,8 @@ flowchart LR
 | `modules/bookmark-editor.js` | 草稿行渲染、计数及收集 |
 | `modules/bookmark-picker.js` | 目录挑选器的开关、卡片复用及可选状态更新 |
 | `modules/settings-events.js` | 设置控件事件、草稿字段更新、局部反馈和拖拽装配 |
-| `modules/bookmark-drag.js` | 鼠标与触屏重排、迟滞判定和 FLIP 动画 |
+| `modules/bookmark-drag.js` | 鼠标与触屏重排、迟滞判定 |
+| `modules/bookmark-motion.js` | 书签行删除退场与共用 FLIP，按行取消或接管动效 |
 | `core/dialogs.js` | 共用确认框，不依赖设置或壁纸业务 |
 
 ## 壁纸与主题
@@ -251,7 +254,7 @@ flowchart LR
 
 `modules/wallpaper.js` 管理选择、恢复、预加载、图片上传及背景暗度预览；`core/wallpaper-renderer.js` 管理图层切换；`core/theme-engine.js` 管理采样与浏览器外壳颜色。
 
-壁纸恢复读取 IndexedDB 中的选择记录；没有记录时，预设索引回退到 LocalStorage，自定义壁纸沿用内存当前值，不迁移旧自定义壁纸记录。渲染器合并同一 URL 的待完成加载／解码，只保留最近一张成功解码的图片；重复应用已显示或正在淡入的壁纸不重播动画。自定义图片仍按当前遮罩和视口重新采样主题，失败后释放待完成任务以允许重试。壁纸淡入在动画对象完成或取消时换层。减弱动效直接完成换层。
+壁纸恢复读取 IndexedDB 中的选择记录；没有记录时，预设索引回退到 LocalStorage，自定义壁纸沿用内存当前值，不迁移旧自定义壁纸记录。渲染器分别持有待解码请求和已显示画面，解码完成后才切换图片与预设主题。重复应用同一图片时复用请求或已显示画面。设置预览期间保留原画面，取消时直接恢复图片与主题，关闭设置后释放这份引用。自定义图片按当前遮罩和视口采样主题。壁纸淡入由动画对象收尾，减弱动效直接完成换层。
 
 网络直链预览完成加载与解码后，将同一个图片对象交给渲染器；再次选择时可复用渲染器最近加载的图片。同一选择在图片准备和存储期间共享任务，失败后允许重试。保存前比较 IndexedDB 中的实际选择记录，内容相同时跳过写入；LocalStorage 的轻量提示也只在内容变化时更新。
 
@@ -271,7 +274,7 @@ LocalStorage 仅保存背景索引和轻量首屏提示，新选择不写入 Bas
 
 - `core/screen-input.js` 将滚轮在短时间窗口内的同向位移累计到 `CONFIG.GESTURE.SWIPE_THRESHOLD`；反向输入或连续 `WHEEL_IDLE_MS`（180ms）无输入时，开始新一轮。切屏后及动画期间的同向尾部输入不再触发切屏。滚轮事件没有可靠的跨浏览器手势结束标志，静默间隔是近似边界，并非物理惯性检测。
 - 内容尚未到顶时，该轮滚轮输入只滚内容；到顶后须重新向上滚动才能返回。侧边栏、天气、编辑按钮及输入控件的手势不参与切屏；带修饰键的滚轮和横向滚动交给浏览器。
-- 滚轮识别使用被动监听，不持续拦截导航内容区的滚轮事件；利用上次观察到的内容位置和到顶事件时间，避免合成线程先滚到顶后误判为返回手势。仅在切屏动画期间临时阻止原生滚动，过渡结算、减弱动效或唤醒校准均移除拦截。分类联动先读取侧栏几何信息，再更新高亮。点击发出滚动请求，高亮始终由当前位置计算。
+- 滚轮识别使用被动监听。滚动事件记录内容是否到顶，惯性到顶后，本轮余下的同向输入仍归内容滚动，直到滚轮静默或反向才开启新一轮。切屏动画期间临时阻止原生滚动，过渡结算、减弱动效或唤醒校准均移除拦截。分类联动先读取侧栏几何信息，再更新高亮。点击发出滚动请求，高亮始终由当前位置计算。
 - 触屏按滑动方向及 `CONFIG.GESTURE` 中的位移、平均速度阈值识别切屏；手指落下时记录内容是否在顶部，同一次滑动滚到顶部不会接着返回。全局触摸监听为被动监听；允许取消默认滚动的 `touchmove` 仅绑定首屏和处于顶部的导航内容区，导航内容滚离顶部即解除局部监听。局部监听在触摸开始前安装，确保浏览器仍允许取消切屏手势的默认滚动。多指、取消、失焦或唤醒会清除本轮触屏状态。
 - 导航页返回首屏须在内容顶部；顶部返回按钮不受此滚动位置限制。键盘输入及浮层状态由 `events.js` 协调。键盘切入导航页将后续原生滚动交由 `navContent`，但将焦点移交安排在动效结束后的微任务（`afterScreenTransition`）中执行，避免在起跳首帧对已弄脏的状态类触发整树强制同步重排；首屏按键短路第二屏滚动位置读取。
 - 所有切屏入口在动画期间不反转、不重启、不排队。过渡时长及曲线由 CSS 定义。目标样式更新后的首个动画帧读取导航屏自身的 `transform` 过渡对象，完成、取消和没有过渡对象均走同一收尾路径。减弱动效立即完成。
@@ -291,7 +294,7 @@ Chrome（首屏已有的 `.is-chrome` 标记）为两屏保留 `will-change: tra
 
 `OverlayStack` 维护 LIFO 栈，Escape 由 `events.js` 调用栈顶关闭函数；遮罩点击交给对应浮层处理。
 
-浮层包括下拉菜单与模态弹窗。原生 `<dialog>` 负责顶层显示、背景隔离及 Tab 导航，`OverlayStack` 统一通过 `showModal()` / `close()` 同步模态和业务栈。退栈后立即归还焦点，CSS 离散过渡只保留退场画面；退出层不接收输入。触发元素失效时由栈选择可用的回退焦点。普通下拉菜单使用自己的状态类，并注册关闭回调。
+浮层包括下拉菜单与模态弹窗。原生 `<dialog>` 负责顶层显示、背景隔离及 Tab 导航，`OverlayStack` 统一通过 `showModal()` / `close()` 同步模态和业务栈。开启模态时收起背景浮层，模态期间拒绝背景浮层入栈。退栈后立即归还焦点，CSS 离散过渡只保留退场画面；退出层不接收输入。触发元素失效时由栈选择可用的回退焦点。普通下拉菜单使用自己的状态类，并注册关闭回调。
 
 栈内存在模态弹窗时锁定 body 滚动；全部模态弹窗关闭后解锁。两屏自身的 `inert` 由切屏模块管理。
 
@@ -317,7 +320,7 @@ Chrome（首屏已有的 `.is-chrome` 标记）为两屏保留 `will-change: tra
 
 核心缓存命中时不后台重验证。导航检查核心资源是否齐备，异常时尝试修补并校验指纹。脚本按请求的构建身份查找，网络响应也须匹配该构建。无法补齐时返回独立恢复页。点击修复后先尝试补齐当前构建，仍无法获取时再请求新版安装并等待接管。
 
-核心与同源图片池使用 scope 路径前缀。激活后保留当前与上次实际接管的核心池，尚未接管的旧等待版本不占用这个保留名额。同源图片保留当前与最近上一版。外部图标池继续同源共享。
+核心与同源图片池使用 scope 路径前缀。安装时将已有核心池记录在当前核心池，接管时只在这份清单内回收。保留当前池和清单内构建时间最新且带激活标记的池。被替换的旧等待版本可以回收，后来开始安装的版本由各自的接管流程处理。找不到已激活的候选池时，保留含旧版 `app.js` 的候选池供迁移。同源图片池保留当前版和其余池中构建时间最新的一版。外部图标池继续同源共享。
 
 外部图标请求可缓存成功或 `opaque` 响应；`opaque` 的状态与正文不可读，因此这不是内容安全校验。图标显示失败由前端捕获阶段监听处理，尝试 Google S2，最终回退首字母徽标。
 
@@ -327,7 +330,7 @@ Chrome（首屏已有的 `.is-chrome` 标记）为两屏保留 `will-change: tra
 
 ## 搜索与天气
 
-`utils/bookmark-search.js` 负责纯数据匹配与排序，`modules/search.js` 负责候选装配、请求和界面，`modules/search-events.js` 负责控件事件、输入法与搜索按键。后者混排本地书签与网络联想，容量与防抖由配置控制；先显示本地结果，等待网络时预留骨架行，减少列表高度变化。
+`utils/bookmark-search.js` 负责纯数据匹配与排序，`modules/search.js` 负责候选装配、请求和界面，`modules/search-events.js` 负责控件事件、输入法与搜索按键。本地候选随输入即时更新，网络请求防抖，发出请求后用骨架行预留位置。搜索框有查询时保留上下键，Tab 只在有可选候选时由列表接管。输入法确认依照组合事件，组合结束后的独立 Enter 可立即提交。随机书签在点击事件中打开，骰子旋转独立播放。
 
 方向键只高亮候选，输入框保留用户键入的查询。按 Enter 或点击候选时读取选中项，切换引擎和编辑输入继续使用原文。书签候选用与持久化相同的 URL 标识去重，路径大小写保留，匹配时对文本单独转换大小写。
 
@@ -337,7 +340,7 @@ Chrome（首屏已有的 `.is-chrome` 标记）为两屏保留 `will-change: tra
 
 `utils/weather-model.js` 分别转换当前实况与按地点日期索引的每日预报。每日天气码、降水概率和带日期的太阳事件保留各自含义。展示层使用地点时区选择今天、明天和下一次太阳事件，并兼容旧缓存的文字与时间字段。未带时区的旧缓存沿用系统时区，缺失数值显示占位符。
 
-`modules/weather.js` 的一次刷新拥有定位、预报和发布权限。已知地点预报可先显示，失败后仍等待已发出的定位。唤醒和手动刷新共享当前任务。天气浮层保留温标按钮、刷新按钮和归属链接的节点，更新只替换显示数据的区域。设置重置会中止请求并清除天气视图、地点、预报缓存及温度偏好。
+`modules/weather.js` 的一次刷新拥有定位、预报和发布权限。自动刷新可用已知地点的预报临时显示，确认地点后才写入预报缓存。若坐标相同，或地点名称和语言一致且坐标偏差在配置阈值内，可复用这次请求。否则取消仍在进行的旧预报，立即请求新地点。地点确认后单独保存，预报缓存失配或过期时下次刷新仍会请求。定位失败时可回退到已知地点，预报失败时可保留已有画面。唤醒和手动刷新共享当前任务。天气浮层保留温标按钮、刷新按钮和归属链接的节点，更新只替换显示数据的区域。设置重置会中止请求并清除天气视图、地点、预报缓存及温度偏好。
 
 湿度、风速和降水概率按配置分档选择图标。数值通过共用的 `weatherNum()` 清洗，时间经 `weatherTime()` 校验，地点等文本按 HTML 或原生 DOM 边界安全输出。
 
@@ -349,7 +352,7 @@ Chrome 扩展 CSP 由 `src/extension/manifest.json` 定义，构建时同步到�
 
 测试入口、命令和环境要求见 README。以下边界用于解释验证结果：
 
-- 生产构建编译时裁掉 `testing/bridge.js`。`npm test` 从同一次构建取得生产网页快照和同指纹的测试脚本，整个会话从独立目录读取。Chrome 仍需预先设置 `window.__GLASS_TEST__ = true` 才挂载接口，测试脚本只供测试服务使用。
+- 生产构建编译时裁掉 `testing/bridge.js`。需要构建的 `npm test` 会生成独立的生产网页快照和同指纹测试脚本，测试服务按会话读取。Chrome 仍需预先设置 `window.__GLASS_TEST__ = true` 才挂载接口，测试脚本只供测试服务使用。
 - `infra-module-boundaries.test.mjs` 检查全部 JS 源文件的依赖方向与无环性、生产包隔离，并验证关闭测试接口的页面启动；通过不等于所有业务职责都能由静态规则判断。
 - 浏览器验收以 Chrome 为准，使用 CDP 验证桌面、移动视口及触摸交互；日常开发、全面测试和发布均不要求 Safari/iOS 真机走查，仅在用户明确要求时进行该专项。导航完成与切屏完成分别等待，避免固定延时掩盖竞态。
 - `infra-chrome-extension.test.mjs` 在 `npm test` 的会话目录构建扩展，并在独立 Chrome 配置中实际加载，验证新标签页、首屏主题、三引擎联想、设置保存、离线重载及 CSP。联想响应使用固定数据，不能替代真实第三方接口联网走查。

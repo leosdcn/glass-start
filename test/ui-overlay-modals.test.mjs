@@ -225,27 +225,51 @@ test('从天气切回搜索、更新候选和输入法确认', async () => {
         input.value = 'glass-regression-new-query';
         input.dispatchEvent(new Event('input', {bubbles:true}));
         const oldMenuClosed = !dom.suggestionMenu.classList.contains('active');
+        const tabUnclaimed = input.dispatchEvent(new KeyboardEvent('keydown', {key:'Tab',bubbles:true,cancelable:true}));
         input.dispatchEvent(new KeyboardEvent('keydown', {key:'ArrowDown',bubbles:true,cancelable:true}));
         const value = input.value;
         input.dispatchEvent(new KeyboardEvent('keydown', {key:'Enter',ctrlKey:true,bubbles:true,cancelable:true}));
-        return {hadBookmark, oldMenuClosed, value, section:state.currentSection, query:destination && new URL(destination).searchParams.get('q')};
+        return {hadBookmark, oldMenuClosed, tabUnclaimed, value, section:state.currentSection, query:destination && new URL(destination).searchParams.get('q')};
       } finally { window.open = open; }
     })()`);
     assert.deepEqual(revisedQuery, {
-      hadBookmark:true, oldMenuClosed:true, value:'glass-regression-new-query', section:'start', query:'glass-regression-new-query'
+      hadBookmark:true, oldMenuClosed:true, tabUnclaimed:true, value:'glass-regression-new-query', section:'start', query:'glass-regression-new-query'
     });
 
-    const imeEnterPrevented = await evalJS(`(() => {
+    const searchActions = await evalJS(`(() => {
       const input = dom.searchInput;
-      input.dispatchEvent(new CompositionEvent('compositionstart'));
-      input.value = '输入法';
-      input.dispatchEvent(new CompositionEvent('compositionend'));
-      const enterDefaultPrevented = !input.dispatchEvent(new KeyboardEvent('keydown', {key:'Enter',bubbles:true,cancelable:true}));
-      const tabHandled = !input.dispatchEvent(new KeyboardEvent('keydown', {key:'Tab',bubbles:true,cancelable:true}));
-      return { enterDefaultPrevented, tabHandled };
+      const open = window.open;
+      const opened = [];
+      window.open = url => opened.push(url);
+      const enter = isComposing => input.dispatchEvent(new KeyboardEvent('keydown',
+        {key:'Enter',ctrlKey:true,isComposing,bubbles:true,cancelable:true}));
+      try {
+        input.dispatchEvent(new CompositionEvent('compositionstart'));
+        input.value = 'git';
+        enter(true);
+        const imeDidNotSearch = opened.length === 0;
+        input.dispatchEvent(new CompositionEvent('compositionend'));
+        enter(false);
+        const independentEnterSearched = opened.length === 1 && new URL(opened[0]).searchParams.get('q') === 'git';
+        const tabHandled = !input.dispatchEvent(new KeyboardEvent('keydown', {key:'Tab',bubbles:true,cancelable:true}));
+
+        input.value = '';
+        input.dispatchEvent(new Event('input', {bubbles:true}));
+        dom.randomBookmarkBtn.click();
+        const diceOpenedImmediately = opened.length === 2;
+        input.value = 'github';
+        input.dispatchEvent(new Event('input', {bubbles:true}));
+        const localResultImmediate = dom.suggestionMenu.classList.contains('active') &&
+          dom.suggestionMenu.querySelector('.suggestion-item')?.textContent.includes('GitHub') &&
+          !suggestionScriptTag;
+        return { imeDidNotSearch, independentEnterSearched, tabHandled, diceOpenedImmediately, localResultImmediate };
+      } finally {
+        window.open = open;
+        hideSuggestions();
+      }
     })()`);
-    assert.equal(imeEnterPrevented.enterDefaultPrevented, true, '输入法确认后的回车不能回落到表单默认提交');
-    assert.equal(imeEnterPrevented.tabHandled, true, '输入法确认后 Tab/上下键被候选导航捕获');
+    assert.deepEqual(searchActions, { imeDidNotSearch:true, independentEnterSearched:true, tabHandled:true,
+      diceOpenedImmediately:true, localResultImmediate:true });
   } finally {
     await chrome.close();
     await server.close();

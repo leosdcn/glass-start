@@ -182,7 +182,8 @@ try {
         };
         window.performanceWeatherUpdate = updateWeather(false);
     })()`);
-    await waitFor(evalJS, 'storageGet(CONFIG.KEYS.WEATHER_CACHE).current.temp === 21');
+    await waitFor(evalJS, 'dom.weatherTemp.textContent === "21°"');
+    assert.equal(await evalJS('storageGet(CONFIG.KEYS.WEATHER_CACHE).current.temp'), 20);
     const pending = await evalJS(`({busy:isFetchingWeather, shared:updateWeather(true) === performanceWeatherUpdate,
         forecasts:performanceWeatherRequests.filter(url=>url.includes('/forecast?')).length})`);
     assert.deepEqual(pending, {busy:true, shared:true, forecasts:1});

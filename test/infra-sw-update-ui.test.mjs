@@ -227,6 +227,7 @@ try {
   await evalJS(`dom.updateReloadBtn.click(); setTimeout(() => dom.confirmOkBtn.click(), 50); true`);
   await waitFor(evalJS, `window.__GLASS_BUILD_APP__ === 'app-core-v208' && document.readyState === 'complete'`, 15000);
   assert.match(await evalJS(`fetch('/app-builds/app-core-v206.js').then(r => r.text())`), /__GLASS_BUILD_APP__="app-core-v206"/);
+  assert.equal(await evalJS(`caches.has('glass-scope-%2F-app-core-v207')`), false);
   assert.equal(await evalJS(`fetch('/app-builds/app-core-v207.js').then(r => r.status)`), 503);
   console.log('✅ 确认期间替换了 waiting Worker 时，新目标需单独确认');
 } finally {
