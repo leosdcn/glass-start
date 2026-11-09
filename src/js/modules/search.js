@@ -366,13 +366,6 @@ function getLocalBookmarkSuggestions(query, limit = CONFIG.SUGGEST.MAX_LOCAL_ITE
     return rankBookmarkSuggestions(query, getSearchCandidates(), CONFIG.SUGGEST, limit);
 }
 
-/** 内容未变化时才复用候选节点，避免同一 URL 的编辑结果仍显示旧内容。
- * @param {import('../types').BookmarkSuggestion} bm
- */
-function bookmarkSuggestionKey(bm) {
-    return JSON.stringify([bm.url, bm.name, bm.icon, bm.desc || '', bm.category || '']);
-}
-
 /**
  * @param {import('../types').BookmarkSuggestion} bm
  * @param {number} idx
@@ -387,7 +380,6 @@ function getBookmarkSuggestionHTML(bm, idx) {
         <div id="sug-opt-${idx}"
              role="option" aria-selected="false" 
              data-url="${escapeHtml(bm.url)}"
-             data-bookmark-key="${escapeHtml(bookmarkSuggestionKey(bm))}"
              data-idx="${idx}"
              class="suggestion-item group px-3.5 py-2.5 my-0.5 apple-radius text-sm text-white/90 flex items-center gap-3 glass-interactive cursor-pointer hover:text-white">
             ${iconHtml}
@@ -400,9 +392,16 @@ function getBookmarkSuggestionHTML(bm, idx) {
     `;
 }
 
-/** 本地书签节点内存缓存：避免在网络联想两阶段重刷时重复创建节点引起图片闪烁，无需从 DOM 树反向搜刮。 */
-/** @type {Map<string, { key: string, node: HTMLElement }>} */
-const localBookmarkNodeCache = new Map();
+/** @type {HTMLElement | null} */
+let localGroup = null;
+/** @type {HTMLElement | null} */
+let netGroup = null;
+let lastRenderedLocalKey = '';
+
+/** @param {import('../types').BookmarkSuggestion[]} list */
+function getLocalListSignature(list) {
+    return list.map(bm => `${bm.url}|${bm.name}|${bm.icon}|${bm.desc || ''}`).join('\n');
+}
 
 /**
  * 渲染搜索联想下拉面板
@@ -419,7 +418,8 @@ function renderSuggestions(localList = [], netList = [], preserveSelection = fal
     const prevIdx = preserveSelection ? selectedSuggestionIdx : -1;
     const maxNetCount = Math.max(0, CONFIG.SUGGEST.MAX_TOTAL_ITEMS - localList.length);
     const safeNetList = netList.slice(0, maxNetCount);
-    const signature = JSON.stringify([isNetLoading, localList.map(bookmarkSuggestionKey), safeNetList]);
+    const localKey = getLocalListSignature(localList);
+    const signature = JSON.stringify([isNetLoading, localKey, safeNetList]);
     if (signature === lastSuggestionsSignature && suggestionMenu.classList.contains('active')) {
         if (!preserveSelection && selectedSuggestionIdx >= 0) selectSuggestion(-1);
         return;
@@ -430,14 +430,10 @@ function renderSuggestions(localList = [], netList = [], preserveSelection = fal
     ];
     selectedSuggestionIdx = -1;
 
-    if (localList.length === 0 && netList.length === 0 && !isNetLoading) {
+    if (localList.length === 0 && safeNetList.length === 0 && !isNetLoading) {
         hideSuggestions();
         return;
     }
-
-    const range = document.createRange();
-    const fragment = document.createDocumentFragment();
-    let globalIdx = 0;
 
     /**
      * @param {string} title
@@ -447,33 +443,38 @@ function renderSuggestions(localList = [], netList = [], preserveSelection = fal
         <div role="presentation" class="suggestion-section-header mx-3.5 px-0 ${isFirst ? 'pt-1.5' : 'pt-2'} pb-2 mb-1 text-2xs font-medium tracking-wider text-white/40 uppercase select-none">${title}</div>
     `;
 
-    // 本地书签分组：从内存缓存复用已挂载的节点，避免网络联想返回时重新生成引起图片解码闪烁
-    if (localList.length > 0) {
-        fragment.appendChild(range.createContextualFragment(renderSectionHeader(t('ui.bookmark'), true)));
-        localList.forEach(bm => {
-            const cacheKey = bm.url;
-            const contentKey = bookmarkSuggestionKey(bm);
-            const cached = localBookmarkNodeCache.get(cacheKey);
-            let node;
-            if (cached && cached.key === contentKey) {
-                node = cached.node;
-                node.id = `sug-opt-${globalIdx}`;
-                node.setAttribute('data-idx', String(globalIdx));
-                node.setAttribute('aria-selected', 'false');
-                node.classList.remove('active');
-            } else {
-                const nodeFrag = range.createContextualFragment(getBookmarkSuggestionHTML(bm, globalIdx));
-                node = /** @type {HTMLElement} */ (nodeFrag.firstElementChild);
-                localBookmarkNodeCache.set(cacheKey, { key: contentKey, node });
-            }
-            fragment.appendChild(node);
-            globalIdx++;
-        });
+    // 确保内部的分组子容器已就绪
+    if (!localGroup || !netGroup || !suggestionMenu.contains(localGroup)) {
+        localGroup = document.createElement('div');
+        localGroup.id = 'suggestLocalGroup';
+        localGroup.setAttribute('role', 'presentation');
+
+        netGroup = document.createElement('div');
+        netGroup.id = 'suggestNetGroup';
+        netGroup.setAttribute('role', 'presentation');
+
+        suggestionMenu.replaceChildren(localGroup, netGroup);
+        lastRenderedLocalKey = '';
     }
 
-    // 网络建议分组
+    // 本地书签分组：仅当本地数据真正变更或首次挂载时才渲染，避免网络联想返回时重新生成节点导致图片闪烁
+    if (lastRenderedLocalKey !== localKey) {
+        lastRenderedLocalKey = localKey;
+        if (localList.length > 0) {
+            let localHtml = renderSectionHeader(t('ui.bookmark'), true);
+            localList.forEach((bm, idx) => {
+                localHtml += getBookmarkSuggestionHTML(bm, idx);
+            });
+            localGroup.innerHTML = localHtml;
+        } else {
+            localGroup.innerHTML = '';
+        }
+    }
+
+    // 网络建议分组：支持从骨架屏平滑更新为联想词，或在无网络结果时清空
     if (safeNetList.length > 0) {
         let netHtml = (localList.length > 0 ? renderSectionHeader(t('ui.search'), false) : '');
+        let globalIdx = localList.length;
         safeNetList.forEach(item => {
             const idx = globalIdx++;
             netHtml += `
@@ -486,7 +487,7 @@ function renderSuggestions(localList = [], netList = [], preserveSelection = fal
                 </div>
             `;
         });
-        fragment.appendChild(range.createContextualFragment(netHtml));
+        netGroup.innerHTML = netHtml;
     } else if (isNetLoading) {
         let skeletonHtml = (localList.length > 0 ? renderSectionHeader(t('ui.search'), false) : '');
         const skeletonCount = Math.max(1, CONFIG.SUGGEST.MAX_TOTAL_ITEMS - localList.length);
@@ -499,10 +500,11 @@ function renderSuggestions(localList = [], netList = [], preserveSelection = fal
                 </div>
             `;
         }
-        fragment.appendChild(range.createContextualFragment(skeletonHtml));
+        netGroup.innerHTML = skeletonHtml;
+    } else {
+        netGroup.innerHTML = '';
     }
 
-    suggestionMenu.replaceChildren(fragment);
     suggestionNodes = suggestionMenu.querySelectorAll('.suggestion-item');
     selectedSuggestionNode = null;
     lastSuggestionsSignature = signature;
@@ -527,7 +529,7 @@ export function hideSuggestions() {
     selectedSuggestionNode = null;
     lastSuggestionsSignature = '';
     suggestionQueryKey = null;
-    localBookmarkNodeCache.clear();
+    lastRenderedLocalKey = '';
     if (suggestDebounceTimer !== null) {
         clearTimeout(suggestDebounceTimer);
         suggestDebounceTimer = null;
@@ -540,7 +542,10 @@ export function hideSuggestions() {
     if (suggestionMenu) {
         suggestionMenu.classList.remove('active', 'keyboard-nav');
         suggestionMenu.setAttribute('aria-hidden', 'true');
+        suggestionMenu.replaceChildren();
     }
+    localGroup = null;
+    netGroup = null;
     if (searchInput) {
         searchInput.setAttribute('aria-expanded', 'false');
         searchInput.removeAttribute('aria-activedescendant');
