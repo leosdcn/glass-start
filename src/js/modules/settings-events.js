@@ -15,7 +15,7 @@ import { dom } from '../state/dom.js';
 import { initDragSort } from './bookmark-drag.js';
 
 import { uploadWallpaper, previewDraftWallpaper, resetDraftWallpaper, showWallpaperError } from './wallpaper.js';
-import { openEditModal, saveEditModal, cancelEditModal, openShortcutModal, closeShortcutModal, openCreditsModal, closeCreditsModal, switchSettingsTab, previewDraftMaskOpacity, resetBookmarks, importBookmarksJSON, exportBookmarksJSON, openLanguageModal, saveLanguageModal, cancelLanguageModal, selectLanguage, selectDraftTransitionMode, closeWallpaperUrlInput, clearOfflineCache } from './settings.js';
+import { openEditModal, saveEditModal, cancelEditModal, openShortcutModal, closeShortcutModal, openCreditsModal, closeCreditsModal, switchSettingsTab, previewDraftMaskOpacity, resetBookmarks, importBookmarksJSON, exportBookmarksJSON, openLanguageModal, saveLanguageModal, cancelLanguageModal, selectLanguage, selectDraftTransitionMode, closeWallpaperUrlInput, openWallpaperUrlInput, submitWallpaperUrlInput, getSettingsTabs, clearOfflineCache } from './settings.js';
 import { openBookmarkPicker, closeBookmarkPicker, addBookmarkFromPicker } from './bookmark-picker.js';
 import { updateAllBookmarkCounters, getEditFaviconInner, handleEditIconError, appendDraftBookmarkRow } from './bookmark-editor.js';
 import { finishPendingTransition, onTransitionSettled } from '../utils/transition-cleanup.js';
@@ -56,8 +56,7 @@ export function bindEditEvents() {
         dom.resetEditBtn.addEventListener('click', resetBookmarks);
     }
 
-    /** @type {HTMLElement[]} */
-    const settingsTabs = Array.from(document.querySelectorAll('.settings-tab-btn'));
+    const settingsTabs = getSettingsTabs();
     settingsTabs.forEach(btn => {
         btn.addEventListener('click', e => {
             e.stopPropagation();
@@ -175,6 +174,11 @@ export function bindEditEvents() {
             if (del) {
                 const item = /** @type {HTMLElement|null} */ (del.closest('.edit-row-card'));
                 if (item) {
+                    const timer = editFaviconTimers.get(item);
+                    if (timer !== undefined) {
+                        clearTimeout(timer);
+                        editFaviconTimers.delete(item);
+                    }
                     finishPendingTransition(item);
                     if (item.dataset.id) removeBookmarkDraft(item.dataset.id);
                     const remove = () => {
@@ -225,37 +229,12 @@ export function bindEditEvents() {
     }
 
     if (dom.urlBgBtn) {
-        const openUrlInput = () => {
-            const current = modalState.draftWallpaper || '';
-            if (dom.urlBgInput) dom.urlBgInput.value = typeof current === 'string' && current.startsWith('http') ? current : '';
-            dom.urlBgBtnGroup?.classList.add('hidden');
-            dom.urlBgInputRow?.classList.remove('hidden');
-            dom.urlBgInput?.focus();
-        };
-        const submitUrl = () => {
-            const trimmed = (dom.urlBgInput?.value || '').trim();
-            closeWallpaperUrlInput();
-            if (!trimmed) return;
-            let imageUrl;
-            try {
-                if (!/^https?:\/\//i.test(trimmed)) throw new Error('Invalid image URL');
-                imageUrl = new URL(trimmed);
-                // 外部图片遵循 img-src https:；同源本地 HTTP 图片仍允许加载。
-                if (imageUrl.protocol === 'http:' && imageUrl.origin !== location.origin) {
-                    imageUrl.protocol = 'https:';
-                }
-            } catch {
-                showWallpaperError(t('ui.enter.a.valid.image.url.starting'));
-                return;
-            }
-            previewDraftWallpaper(imageUrl.href);
-        };
-        dom.urlBgBtn.addEventListener('click', openUrlInput);
-        dom.urlBgConfirmBtn?.addEventListener('click', submitUrl);
+        dom.urlBgBtn.addEventListener('click', openWallpaperUrlInput);
+        dom.urlBgConfirmBtn?.addEventListener('click', submitWallpaperUrlInput);
         dom.urlBgCancelBtn?.addEventListener('click', closeWallpaperUrlInput);
         dom.urlBgInput?.addEventListener('keydown', e => {
             if (e.isComposing || e.keyCode === CONFIG.SECURITY.IME_COMPOSITION_KEY_CODE) return;
-            if (e.key === 'Enter') { e.preventDefault(); submitUrl(); }
+            if (e.key === 'Enter') { e.preventDefault(); submitWallpaperUrlInput(); }
             if (e.key === 'Escape') { e.preventDefault(); closeWallpaperUrlInput(); }
         });
     }

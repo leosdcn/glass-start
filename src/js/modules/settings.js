@@ -15,7 +15,7 @@ import { state, modalState, pageData } from '../state/store.js';
 import { replaceBookmarkDraft } from '../state/bookmark-draft.js';
 import { dom } from '../state/dom.js';
 import { OverlayStack } from '../core/overlay-stack.js';
-import { flushWallpaperSelection, prepareWallpaperDraft, getCommittedWallpaperUrl, discardWallpaperSelection, showWallpaperDraft, updateWallpaperStatusUI, updatePresetBgCardsUI, clearCustomWallpaper, renderPresetWallpapers, commitWallpaperSelection, revertDraftWallpaper, applyBgEffects, flushBgEffects, getSavedMaskOpacity, commitWallpaperDimming, showWallpaperError } from './wallpaper.js';
+import { flushWallpaperSelection, prepareWallpaperDraft, getCommittedWallpaperUrl, discardWallpaperSelection, showWallpaperDraft, updateWallpaperStatusUI, updatePresetBgCardsUI, clearCustomWallpaper, renderPresetWallpapers, commitWallpaperSelection, revertDraftWallpaper, applyBgEffects, flushBgEffects, getSavedMaskOpacity, commitWallpaperDimming, showWallpaperError, previewDraftWallpaper } from './wallpaper.js';
 import { saveUserBookmarks, resetUserBookmarks } from './bookmarks.js';
 import { closeDropdown, hideSuggestions, setEngine } from './search.js';
 import { getTransitionMode, syncTransitionSwitcherActive, setTransitionMode, resetNavDiscovery } from '../core/screen-state.js';
@@ -72,11 +72,30 @@ function renderCreditsModalList() {
 }
 
 let editOpenRequestId = 0;
-let importRequestId = 0;
-/** @type {NodeListOf<HTMLElement> | null} */
-let cachedSettingsTabs = null;
-/** @type {NodeListOf<HTMLElement> | null} */
-let cachedSettingsPanels = null;
+/** @type {AbortController | null} */
+let activeImportController = null;
+
+function cancelPendingImport() {
+    if (activeImportController) {
+        activeImportController.abort();
+        activeImportController = null;
+    }
+}
+
+/** @type {HTMLElement[] | null} */
+let settingsTabsList = null;
+/** @type {HTMLElement[] | null} */
+let settingsPanelsList = null;
+
+export function getSettingsPanels() {
+    if (!settingsPanelsList) settingsPanelsList = Array.from(document.querySelectorAll('.settings-tab-panel'));
+    return settingsPanelsList;
+}
+
+export function getSettingsTabs() {
+    if (!settingsTabsList) settingsTabsList = Array.from(document.querySelectorAll('.settings-tab-btn'));
+    return settingsTabsList;
+}
 
 /** @param {import('../types').ModalState['phase']} phase */
 function setEditPhase(phase) {
@@ -90,20 +109,18 @@ function setEditPhase(phase) {
     }
     if (dom.cancelEditBtn) dom.cancelEditBtn.disabled = committing;
     if (dom.languageBtn) dom.languageBtn.disabled = committing;
-    cachedSettingsPanels?.forEach(panel => { panel.inert = committing; });
+    getSettingsPanels().forEach(panel => { panel.inert = committing; });
 }
 
 /** @param {string} targetTabId */
 export function switchSettingsTab(targetTabId) {
-    if (!cachedSettingsTabs) cachedSettingsTabs = document.querySelectorAll('.settings-tab-btn');
-    if (!cachedSettingsPanels) cachedSettingsPanels = document.querySelectorAll('.settings-tab-panel');
-    cachedSettingsTabs.forEach(tab => {
+    getSettingsTabs().forEach(tab => {
         const isTarget = tab.dataset.tab === targetTabId;
         tab.classList.toggle('active', isTarget);
         tab.setAttribute('aria-selected', isTarget ? 'true' : 'false');
         tab.tabIndex = isTarget ? 0 : -1;
     });
-    cachedSettingsPanels.forEach(panel => {
+    getSettingsPanels().forEach(panel => {
         panel.classList.toggle('hidden', panel.id !== targetTabId);
     });
     if (targetTabId === 'tabAppearance') {
@@ -163,6 +180,7 @@ export function cancelEditModal() {
 export function closeEditModal() {
     if (!state.editOpen) return;
     closeLanguageModal();
+    cancelPendingImport();
     // 保存关闭时即使后台暂停了 rAF，也同步落定最后的预览；取消已先覆盖并清队列。
     flushBgEffects();
     cancelDragSort();
@@ -174,6 +192,15 @@ export function closeEditModal() {
     editBtn?.setAttribute('aria-expanded', 'false');
 
     closeWallpaperUrlInput();
+}
+
+/** 打开壁纸直链输入行 */
+export function openWallpaperUrlInput() {
+    const current = modalState.draftWallpaper || '';
+    if (dom.urlBgInput) dom.urlBgInput.value = typeof current === 'string' && current.startsWith('http') ? current : '';
+    dom.urlBgBtnGroup?.classList.add('hidden');
+    dom.urlBgInputRow?.classList.remove('hidden');
+    dom.urlBgInput?.focus();
 }
 
 /** 关闭并清空壁纸直链输入行，恢复操作按钮组 */
@@ -188,6 +215,26 @@ export function closeWallpaperUrlInput() {
         if (urlInput) urlInput.value = '';
         if (restoreFocus) dom.urlBgBtn?.focus({ preventScroll: true });
     }
+}
+
+/** 提交壁纸直链输入行并触发草稿预览 */
+export function submitWallpaperUrlInput() {
+    const trimmed = (dom.urlBgInput?.value || '').trim();
+    closeWallpaperUrlInput();
+    if (!trimmed) return;
+    let imageUrl;
+    try {
+        if (!/^https?:\/\//i.test(trimmed)) throw new Error('Invalid image URL');
+        imageUrl = new URL(trimmed);
+        // 外部图片遵循 img-src https:；同源本地 HTTP 图片仍允许加载。
+        if (imageUrl.protocol === 'http:' && imageUrl.origin !== location.origin) {
+            imageUrl.protocol = 'https:';
+        }
+    } catch {
+        showWallpaperError(t('ui.enter.a.valid.image.url.starting'));
+        return;
+    }
+    previewDraftWallpaper(imageUrl.href);
 }
 
 export function openShortcutModal() {
@@ -254,10 +301,21 @@ export function exportBookmarksJSON() {
  */
 export function importBookmarksJSON(file) {
     if (!file || (modalState.phase !== 'editing' && modalState.phase !== 'preparing-save')) return;
+    cancelPendingImport();
+
+    const controller = new AbortController();
+    activeImportController = controller;
+    const signal = controller.signal;
     const sessionId = editOpenRequestId;
-    const requestId = ++importRequestId;
-    const isCurrent = () => state.editOpen && sessionId === editOpenRequestId && requestId === importRequestId;
+    const isCurrent = () => !signal.aborted && state.editOpen && sessionId === editOpenRequestId;
+
     const reader = new FileReader();
+    signal.addEventListener('abort', () => {
+        try {
+            if (reader.readyState === FileReader.LOADING) reader.abort();
+        } catch {}
+    }, { once: true });
+
     reader.onload = (e) => {
         if (!isCurrent()) return;
         try {
@@ -294,10 +352,12 @@ export function importBookmarksJSON(file) {
             showConfirm(t('ui.could.not.parse.the.json.file'), null, t('ui.parse.error'));
         } finally {
             reader.onload = null;
+            if (activeImportController === controller) activeImportController = null;
         }
     };
     reader.onerror = () => {
         if (isCurrent()) showConfirm(t('ui.could.not.read.the.file.please'), null, t('ui.import.failed'));
+        if (activeImportController === controller) activeImportController = null;
     };
     reader.readAsText(file, 'UTF-8');
 }
@@ -313,7 +373,7 @@ export function resetBookmarks() {
     showConfirm(t('ui.restore.all.defaults.this.immediately.removes'), async () => {
         if (!isCurrent() || modalState.phase !== 'editing') return;
         cancelDragSort();
-        importRequestId++;
+        cancelPendingImport();
         const previousLanguage = getLanguagePreference();
         const pendingLanguage = modalState.draftLanguage !== previousLanguage ? modalState.draftLanguage : null;
         const pendingMode = modalState.draftTransitionMode !== getTransitionMode() ? modalState.draftTransitionMode : null;
@@ -406,7 +466,7 @@ export async function saveEditModal() {
         closeLanguageModal();
         closeBookmarkPicker();
         cancelDragSort();
-        importRequestId++;
+        cancelPendingImport();
         setEditPhase('committing');
 
         // 1. 提交书签
