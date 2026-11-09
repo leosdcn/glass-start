@@ -353,7 +353,7 @@ function getBookmarkSuggestionHTML(bm, idx) {
              role="option" aria-selected="false" 
              data-url="${escapeHtml(bm.url)}"
              data-idx="${idx}"
-             class="suggestion-item group px-3.5 py-2.5 my-0.5 apple-radius text-sm text-white/90 flex items-center gap-3 glass-interactive cursor-pointer hover:text-white">
+             class="suggestion-item px-3.5 py-2.5 my-0.5 apple-radius text-sm text-white/90 flex items-center gap-3 glass-interactive cursor-pointer hover:text-white">
             ${iconHtml}
             <div class="truncate flex-1 min-w-0 flex items-center gap-2">
                 <span class="truncate font-medium text-white/95">${escapeHtml(bm.name)}</span>

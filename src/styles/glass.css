@@ -47,10 +47,6 @@
     border-radius: var(--radius-inner); /* 16px 精准同心圆角: R_inner = R_outer(24px) - Padding(20px) 视觉黄金比例 */
     transition: background-color var(--duration-fast) var(--ease-spring), border-color var(--duration-fast) var(--ease-spring), box-shadow var(--duration-fast) var(--ease-spring), scale var(--button-press-duration, var(--duration-press-up)) var(--button-press-ease, var(--ease-spring));
 }
-.glass-subcard:active {
-    --button-press-duration: var(--duration-press);
-    --button-press-ease: var(--ease-snappy);
-}
 
 @media (hover: hover) and (pointer: fine) {
     body:not(.tab-blurred) .glass-subcard:hover {
@@ -126,7 +122,6 @@
     box-sizing: border-box;
     transition: background-color var(--duration-fast, 0.16s) var(--ease-spring), border-color var(--duration-fast, 0.16s) var(--ease-spring), box-shadow var(--duration-fast, 0.16s) var(--ease-spring);
 }
-.keycap kbd.kbd-text,
 .keycap kbd.kbd-badge {
     min-width: auto;
     padding: 0 0.5rem;
@@ -480,9 +475,6 @@
     }
     body:not(.tab-blurred) .nav-bookmark:not(.is-clicked):hover:not(:active) {
         background-color: rgba(255, 255, 255, 0.12);
-    }
-    body:not(.tab-blurred) .sidebar-item:hover {
-        color: #fff;
     }
 }
 

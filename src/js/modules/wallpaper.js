@@ -458,7 +458,7 @@ export function renderPresetWallpapers() {
     grid.innerHTML = PRESET_WALLPAPERS.map(({ url, title: titleKey }, i) => {
         const title = t(titleKey);
         const fullTitle = i === 0 ? t('wallpaper.default', { name: title }) : title;
-        return `<button type="button" class="preset-bg-card group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70" data-bg="${escapeHtml(url)}" title="${escapeHtml(fullTitle)}" aria-pressed="false">
+        return `<button type="button" class="preset-bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70" data-bg="${escapeHtml(url)}" title="${escapeHtml(fullTitle)}" aria-pressed="false">
             <span class="preset-bg-image">
                 <img width="${CONFIG.UI.WALLPAPER_CARD_WIDTH}" height="${CONFIG.UI.WALLPAPER_CARD_HEIGHT}" alt="" loading="lazy" decoding="async" draggable="false">
                 <span class="preset-bg-check" aria-hidden="true"><svg aria-hidden="true"><use href="#icon-check"/></svg></span>

@@ -177,7 +177,7 @@
     <script>(function(){const bg=document.getElementById('bgLayer');const url=(window.__PRELOADED_BG__!==undefined)?window.__PRELOADED_BG__:'./wallpapers/bg1.avif';if(bg&&url){bg.style.backgroundImage="url(\""+url.replace(/["'\\]/g,'\\$&')+"\")";bg.style.opacity='1';}if(window.__INITIAL_THEME_COLOR__&&bg){bg.style.backgroundColor=window.__INITIAL_THEME_COLOR__;}if(window.__PRE_BG_EFFECTS__){const o=document.getElementById('bgOverlay');if(o){o.style.backgroundColor='rgba(0, 0, 0, '+(window.__PRE_BG_EFFECTS__.op/100)+')';}}})()</script>
 
     <!-- ========== 第一屏：起始页 ========== -->
-    <main id="startSection" aria-label="起始页" class="relative z-10 min-h-dvh flex flex-col items-center justify-center px-4 py-12" data-i18n-aria-label="ui.start.page">
+    <main id="startSection" aria-label="起始页" class="flex flex-col items-center justify-center px-4 py-12" data-i18n-aria-label="ui.start.page">
         <h1 class="sr-only"><span data-i18n="ui.glass.start.a.clear.start">Glass Start — 通透起始页</span></h1>
 
         <!-- 左上角版本状态，与右侧天气胶囊对齐，随起始页一起切屏。 -->
@@ -268,11 +268,11 @@
             </div>
             <div id="dropdownMenu" role="menu" aria-label="搜索引擎选项" aria-hidden="true" class="dropdown-menu absolute top-full left-0 glass-strong apple-radius p-2 border border-white/20 shadow-2xl min-w-35 z-[var(--z-dropdown)] select-none" data-i18n-aria-label="ui.search.engines"></div>
             <!-- 搜索实时建议联想下拉框 (Spotlight 风格全宽下拉面板) -->
-            <div id="suggestionMenu" role="listbox" aria-label="搜索建议" aria-hidden="true" class="dropdown-menu absolute top-full left-0 right-0 w-full mt-3.5 sm:mt-4 glass-strong apple-radius p-2 border border-white/20 shadow-2xl z-[var(--z-dropdown)] max-h-suggestions-max overflow-y-auto overscroll-contain select-none" data-i18n-aria-label="ui.search.suggestions"></div>
+            <div id="suggestionMenu" role="listbox" aria-label="搜索建议" aria-hidden="true" class="dropdown-menu absolute top-full left-0 right-0 w-full glass-strong apple-radius p-2 border border-white/20 shadow-2xl z-[var(--z-dropdown)] max-h-suggestions-max overflow-y-auto overscroll-contain select-none" data-i18n-aria-label="ui.search.suggestions"></div>
         </form>
 
         <!-- 快捷书签 -->
-        <nav aria-label="快捷书签" class="w-full max-w-2xl lg:max-w-3xl mx-auto glass apple-radius p-3 sm:p-4 fade-in mb-6 md:mb-8 relative group entrance-delay-2" data-i18n-aria-label="ui.quick.bookmarks">
+        <nav aria-label="快捷书签" class="w-full max-w-2xl lg:max-w-3xl mx-auto glass apple-radius p-3 sm:p-4 fade-in mb-6 md:mb-8 relative entrance-delay-2" data-i18n-aria-label="ui.quick.bookmarks">
             <div id="bookmarks" class="grid grid-cols-4 md:grid-cols-8 gap-2 min-h-43 md:min-h-22"></div>
         </nav>
 
@@ -290,7 +290,7 @@
     </main><!-- /#startSection -->
 
     <!-- ========== 第二屏：导航页 ========== -->
-    <section id="navSection" aria-label="分类导航页" class="relative z-10 h-dvh nav-hidden overflow-hidden" data-i18n-aria-label="ui.bookmark.directory.page">
+    <section id="navSection" aria-label="分类导航页" class="nav-hidden overflow-hidden" data-i18n-aria-label="ui.bookmark.directory.page">
         <div class="h-full flex flex-col w-full">
             <!-- 主体：铺满视口的玻璃页面，分类与内容融入同一层 -->
             <div class="nav-surface flex-1 glass flex flex-col overflow-hidden min-h-0">

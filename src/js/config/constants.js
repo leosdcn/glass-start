@@ -67,7 +67,6 @@ export const CONFIG = Object.freeze({
                 HUMIDITY_HIGH_THRESHOLD: 75,  // 相对湿度高湿阈值 (%)
                 WIND_MID_THRESHOLD: 15,       // 实时风速清风/疾风阈值 (km/h)
                 WIND_HIGH_THRESHOLD: 50,      // 风速高档图标阈值 (km/h)
-                MIN_SPIN_DURATION: 200,       // 气象刷新防闪最小视觉动效门槛 (ms)
                 LOCATION_DRIFT_THRESHOLD: 0.08, // 静默定位更新漂移容差（经纬度度数）
                 FORECAST_FETCH_DAYS: 5,       // 保留的预报天数上限
                 FORECAST_DISPLAY_DAYS: 4,     // 弹窗实际呈现预报天数
@@ -134,7 +133,6 @@ export const CONFIG = Object.freeze({
                 FLIP_DURATION_MS: 350,        // FLIP 动画时长 (ms)
                 BOOKMARK_DELETE_DURATION: 220, // 书签删除动效时长 (ms)
                 BG_OVERLAY_TRANSITION: 200,   // 遮罩滑块平滑过渡时长 (ms)
-                TILT_TRANSITION_MS: 80,       // 3D 悬停倾斜过渡时长 (ms)
                 TILT_BG_TRANSITION_MS: 320    // 3D 悬停背景过渡时长 (ms)
             }),
             UI: Object.freeze({
