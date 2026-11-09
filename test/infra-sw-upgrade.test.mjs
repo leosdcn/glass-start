@@ -141,7 +141,7 @@ try {
   assert.equal(await evalJS(`caches.open('glass-scope-%2Fapp%2F-app-images-app-core-v101').then(c=>c.match('/app/icons/offline.png')).then(r=>!!r)`),true);
   console.log('✅ 新版激活保留上一版核心与图片池');
   await send('Page.navigate', { url: origin + '/app/' });
-  await waitFor(evalJS, 'window.appVersion === 104 && !!navigator.serviceWorker.controller');
+  await waitFor(evalJS, 'window.appVersion === 104 && !!navigator.serviceWorker.controller && !!window.reg');
   assert.match(await evalJS("fetch('./icons/test.png').then(r => r.text())"), /image-104/);
   assert.match(await evalJS("fetch('./app-builds/app-core-v101.js').then(r => r.text())"), /appVersion=101/);
   assert.equal(await evalJS("fetch('./app-builds/app-core-v100.js').then(r => r.status)"), 503);
@@ -193,7 +193,7 @@ try {
   await waitFor(evalJS, `document.querySelector('h1')?.textContent?.includes('本地应用缓存不完整')`);
   failApp = false;
   await evalJS(`document.querySelector('button').click()`);
-  await waitFor(evalJS, 'window.appVersion === 104 && !!navigator.serviceWorker.controller');
+  await waitFor(evalJS, 'window.appVersion === 104 && !!navigator.serviceWorker.controller && !!window.reg');
   assert.equal(await evalJS('!!reg.waiting'), false);
   console.log('✅ 网络恢复后可补齐同一构建，无需等待发布新版');
   version = 107;
