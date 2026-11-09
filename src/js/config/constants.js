@@ -42,8 +42,6 @@ export const CONFIG = Object.freeze({
             }),
             GESTURE: Object.freeze({
                 WHEEL_IDLE_MS: 180,         // 无滚轮输入后视为新一轮手势
-                TRANSITION_MS: 580,          // 双屏推移过渡动画时长 (ms)
-                TIMEOUT_BUFFER_MS: 150,      // 双屏推移超时保护冗余缓冲 (ms)
                 SWIPE_THRESHOLD: 40,         // 滚轮累计位移与触屏切屏位移阈值 (px)
                 FLICK_MIN_DISTANCE: 25,      // 快速轻扫最小触发位移 (px)
                 FLICK_MIN_VELOCITY: 0.25     // 快速轻扫最小平均速度 (px/ms)
@@ -55,8 +53,8 @@ export const CONFIG = Object.freeze({
                 DRAG_HYSTERESIS_HIGH: 0.58,  // 拖拽排序迟滞阻尼上限（相对行高比例）
                 DRAG_HYSTERESIS_LOW: 0.42,   // 拖拽排序迟滞阻尼下限（相对行高比例）
                 DICE_ROTATION_STEP: 180,     // 随机书签按钮旋转角度步长 (deg)
-                BOOKMARK_DELETE_SCALE: 0.92, // 书签删除动效缩放比
-                BOOKMARK_DELETE_OFFSET_Y: -6 // 书签删除动效垂直位移 (px)
+                BOOKMARK_DELETE_SCALE: 0.82, // 书签删除动效缩放比
+                BOOKMARK_DELETE_OFFSET_Y: -10 // 书签删除动效垂直位移 (px)
             }),
             WEATHER: Object.freeze({
                 CACHE_TTL: 15 * 60 * 1000,    // 气象数据本地缓存有效期 (ms)
@@ -70,10 +68,6 @@ export const CONFIG = Object.freeze({
                 WIND_MID_THRESHOLD: 15,       // 实时风速清风/疾风阈值 (km/h)
                 WIND_HIGH_THRESHOLD: 50,      // 风速高档图标阈值 (km/h)
                 MIN_SPIN_DURATION: 200,       // 气象刷新防闪最小视觉动效门槛 (ms)
-                PRECIP_CODE_START: 51,        // WMO 降水天气代码起点阈值
-                POP_CLEAR_CONFLICT_THRESHOLD: 40, // 降水概率与晴天冲突纠偏阈值 (%)
-                DEFAULT_TEMPERATURE: 25,      // 兜底室温 (°C)
-                DEFAULT_HUMIDITY: 50,         // 兜底相对湿度 (%)
                 LOCATION_DRIFT_THRESHOLD: 0.08, // 静默定位更新漂移容差（经纬度度数）
                 FORECAST_FETCH_DAYS: 5,       // 保留的预报天数上限
                 FORECAST_DISPLAY_DAYS: 4,     // 弹窗实际呈现预报天数
@@ -132,6 +126,7 @@ export const CONFIG = Object.freeze({
                 SW_UPDATE_TIMEOUT: 15000,    // 用户确认后等待新版接管的上限 (ms)
                 STAGGER_OPEN: 260,            // 随机书签跳转延时 (ms)
                 BG_CROSSFADE: 450,            // 壁纸跨图层淡入时长 (ms)
+                WEATHER_REFRESH_FEEDBACK: 600, // 手动刷新反馈的最短显示时间 (ms)
                 CLICK_FEEDBACK_CLEAR: 600,    // 触感反馈类清除延时 (ms)
                 FADE_IN_UNLOAD: 800,          // 入场动画自动脱壳延时 (ms)
                 OBJECT_REVOKE: 1000,          // 临时 Blob/URL 释放安全延时 (ms)
@@ -140,7 +135,7 @@ export const CONFIG = Object.freeze({
                 COMPOSITION_END_RESET: 100,   // 输入法组合结束复位延迟 (ms)
                 FLIP_DURATION_MS: 350,        // FLIP 动画时长 (ms)
                 TRANSITION_CLEANUP_BUFFER: 50, // 动画结束事件丢失时的收尾缓冲 (ms)
-                BOOKMARK_DELETE_DURATION: 180, // 书签删除动效时长 (ms)
+                BOOKMARK_DELETE_DURATION: 220, // 书签删除动效时长 (ms)
                 BG_OVERLAY_TRANSITION: 200,   // 遮罩滑块平滑过渡时长 (ms)
                 TILT_TRANSITION_MS: 80,       // 3D 悬停倾斜过渡时长 (ms)
                 TILT_BG_TRANSITION_MS: 320    // 3D 悬停背景过渡时长 (ms)

@@ -18,15 +18,19 @@ function replaceRegion(html, name, value) {
     return html.slice(0, from) + value + html.slice(to + end.length);
 }
 
-function injectDocumentShell(html, { css, svg, version }) {
+function appScriptPath(version, extension) {
+    return extension ? 'app.js' : `app-builds/${version}.js`;
+}
+
+function injectDocumentShell(html, { css, svg, version, extension }) {
     if (typeof css !== 'string' || !css.trim()) throw new Error('Refusing to generate HTML without compiled CSS');
     if (typeof svg !== 'string' || !svg.trim()) throw new Error('Refusing to generate HTML without SVG sprite');
     const fingerprint = JSON.stringify(version).replace(/</g, '\\u003c');
-    html = replaceOnce(html, '<!-- INJECT_APP_HEAD -->', `<script>window.__GLASS_BUILD_HTML__=${fingerprint}</script><script src="./app.js?v=${encodeURIComponent(version)}" defer></script>`);
+    html = replaceOnce(html, '<!-- INJECT_APP_HEAD -->', `<script>window.__GLASS_BUILD_HTML__=${fingerprint}</script><script src="./${appScriptPath(version, extension)}" defer></script>`);
     html = replaceRegion(html, 'APP_ENTRY', '');
     html = replaceOnce(html, '<!-- INJECT_SVG_SPRITE -->', svg);
     html = replaceRegion(html, 'STYLES', `<style>${css.replace(/<\/style>/gi, '\\3c/style>')}</style>`);
     return html;
 }
 
-module.exports = { replaceOnce, injectDocumentShell };
+module.exports = { replaceOnce, injectDocumentShell, appScriptPath };

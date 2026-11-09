@@ -24,7 +24,7 @@ const MIME = {
 export function startServer(port = 0, root = DIST_DIR, customRoutes = {}, { testMode = true } = {}) {
   const useTestApp = testMode && root === DIST_DIR;
   let testApp = useTestApp && runTempDir ? readFileSync(join(runTempDir, 'app.test.js')) : null;
-  let testVersion;
+  let testVersion = testApp?.toString().match(/window\.__GLASS_BUILD_APP__="([^"]+)";/)?.[1];
   return new Promise((resolve, reject) => {
     const server = createServer((req, res) => {
       try {
@@ -48,19 +48,19 @@ export function startServer(port = 0, root = DIST_DIR, customRoutes = {}, { test
           return;
         }
         let data;
-        if (useTestApp && p === '/app.js') {
+        const requestedVersion = /^\/app-builds\/([^/]+)\.js$/.exec(p)?.[1];
+        if (useTestApp && requestedVersion) {
           if (!runTempDir) {
-            const version = readFileSync(file, 'utf-8').match(/window\.__GLASS_BUILD_APP__="([^"]+)";/)?.[1];
-            if (!version) throw new Error('Production build fingerprint missing');
-            if (version !== testVersion) {
+            const version = readFileSync(join(root, 'index.html'), 'utf-8')
+              .match(/window\.__GLASS_BUILD_HTML__="([^"]+)"/)?.[1];
+            if (version === requestedVersion && version !== testVersion) {
               testApp = buildAppJavaScript({ testMode: true, version }).outputFiles[0].contents;
               testVersion = version;
             }
           }
-          data = testApp;
-        } else {
-          data = readFileSync(file);
+          if (requestedVersion === testVersion) data = testApp;
         }
+        data ??= readFileSync(file);
         res.writeHead(200, { 'Content-Type': MIME[extname(file)] || 'application/octet-stream', 'Cache-Control': 'no-cache' });
         res.end(data);
       } catch {

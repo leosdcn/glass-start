@@ -245,7 +245,7 @@ await test("最后一个分类对齐与滚动边界", async () => {
     }
 });
 
-await test('分类连点只在当前目标到达时结束跳转', async () => {
+await test('分类高亮始终跟随位置，平滑跳转中断后照常更新', async () => {
     const { server, chrome, evalJS } = await launchSession();
     try {
         await evalJS('switchToNav()');
@@ -264,16 +264,17 @@ await test('分类连点只在当前目标到达时结束跳转', async () => {
             updateSidebarActive();
             const during = current();
             await end();
+            updateSidebarActive();
             const arrived = current();
 
-            sidebarList.children[5].click();
+            sidebarList.children[4].click();
             const finalEnd = end();
             navContent.scrollTo({ top: 0, behavior: 'instant' });
             await finalEnd;
             updateSidebarActive();
             return { during, arrived, after: current() };
         })()`);
-        assert.deepEqual(result, { during: 'cat-5', arrived: 'cat-5', after: 'cat-0' });
+        assert.deepEqual(result, { during: 'cat-2', arrived: 'cat-5', after: 'cat-0' });
     } finally {
         await chrome.close();
         await server.close();

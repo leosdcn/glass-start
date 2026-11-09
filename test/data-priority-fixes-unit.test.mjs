@@ -26,11 +26,23 @@ const { outputFiles } = await build({
 
 function fixture() {
     const timers = new Map(), readers = [], images = [], writes = [], rendered = [], messages = [];
-    let timerId = 0, html = '', htmlWrites = 0, canvasCount = 0;
+    let timerId = 0, htmlWrites = 0, canvasCount = 0;
+    const weatherParts = new Map();
     const popover = {
-        get innerHTML() { return html; },
-        set innerHTML(value) { html = value; htmlWrites++; },
-        querySelector() { return null; }
+        innerHTML: '',
+        querySelector(selector) {
+            if (!weatherParts.has(selector)) {
+                let html = '';
+                weatherParts.set(selector, {
+                    get innerHTML() { return html; },
+                    set innerHTML(value) {
+                        html = value;
+                        if (selector === '[data-weather-forecast]') htmlWrites++;
+                    }
+                });
+            }
+            return weatherParts.get(selector);
+        }
     };
     const storage = new Map(), wallpaperError = { textContent: '' };
     class Reader {
@@ -69,7 +81,7 @@ function fixture() {
     vm.runInContext(outputFiles[0].text, context);
     const app = context.module.exports;
     return { context, app, timers, readers, images, writes, rendered, messages, wallpaperError,
-        get html() { return html; }, get htmlWrites() { return htmlWrites; } };
+        get html() { return Array.from(weatherParts.values(), part => part.innerHTML + (part.textContent ?? '')).join(''); }, get htmlWrites() { return htmlWrites; } };
 }
 const drain = async () => { for (let i = 0; i < 12; i++) await Promise.resolve(); };
 
@@ -188,7 +200,7 @@ test('有效天气缓存时间字段直接渲染，不发起网络请求', async
     const f = fixture(), { app } = f;
     const midday = new Date(2026, 9, 31, 12).getTime();
     f.context.Date = class extends Date {
-        constructor() { super(midday); }
+        constructor(...args) { super(...(args.length ? args : [midday])); }
         static now() { return midday; }
     };
     f.context.localStorage.setItem(app.CONFIG.KEYS.WEATHER_CACHE, JSON.stringify({

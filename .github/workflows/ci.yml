@@ -47,7 +47,7 @@ jobs:
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         uses: actions/upload-pages-artifact@v3
         with:
-          path: dist
+          path: dist/.
 
   deploy:
     name: Deploy verified site

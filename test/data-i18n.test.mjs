@@ -99,7 +99,7 @@ try {
     await send('Network.setCacheDisabled', { cacheDisabled: true });
     let pausedApp;
     const stopPausing = send('Fetch.requestPaused', event => { pausedApp = event; });
-    await send('Fetch.enable', { patterns: [{ urlPattern: '*app.js*' }] });
+    await send('Fetch.enable', { patterns: [{ urlPattern: '*/app-builds/*.js' }] });
     await send('Page.reload');
     await waitFor(() => Promise.resolve(!!pausedApp), 'deferred app request paused', 10000);
     await waitFor(evalJS, `document.querySelector('#searchInput')?.placeholder === 'Search...' && !document.documentElement.hasAttribute('data-i18n-pending')`);
@@ -155,10 +155,15 @@ try {
     assert.match(failed.message, /Could not save the language/);
     await evalJS(`dom.confirmOkBtn.click(); cancelEditModal();`);
 
+    const forecastDates = await evalJS(`Array.from({length: 3}, (_, index) => {
+        const date = new Date();
+        date.setDate(date.getDate() + index);
+        return new Intl.DateTimeFormat('sv-SE').format(date);
+    })`);
     // Cached Chinese descriptions must not leak into the English forecast or its ARIA label.
     const weather = await evalJS(`(() => {
         const cached = { current: { temp: 22, apparent: 21, weatherCode: 0, weatherText: '晴', icon: '☀️' },
-            location: { name: 'Shanghai' }, daily: [{ date: '2026-10-28', weatherCode: 3, label: '今天', text: '阴', tempMax: 24, tempMin: 18 }] };
+            location: { name: 'Shanghai' }, daily: [{ date: ${JSON.stringify(forecastDates[0])}, weatherCode: 3, label: '今天', text: '阴', tempMax: 24, tempMin: 18 }] };
         renderWeatherCapsule(cached); renderWeatherPopover(cached);
         return { label: dom.weatherBtn.getAttribute('aria-label'), text: dom.weatherPopover.textContent };
     })()`);
@@ -174,7 +179,7 @@ try {
         try {
             window.fetch = async () => ({ ok: true, json: async () => ({
                 current: { temperature_2m: 22, weather_code: 0, is_day: 1 },
-                daily: { time: ['2026-10-28', '2026-10-29', '2026-10-30'], weather_code: [3, 999, 2] }
+                daily: { time: ${JSON.stringify(forecastDates)}, weather_code: [3, 999, 2] }
             }) });
             const data = await fetchWeatherForecast({ lat: 31, lon: 121, name: 'Shanghai' });
             const result = { data, views: {} };
@@ -240,7 +245,7 @@ try {
 
     // Reset must use the same locale default as initialization, without requiring a reload.
     await send('Network.emulateNetworkConditions', { offline: false, latency: 0, downloadThroughput: -1, uploadThroughput: -1 });
-    await send('Page.addScriptToEvaluateOnNewDocument', { source: `
+    const { identifier: automaticLocale } = await send('Page.addScriptToEvaluateOnNewDocument', { source: `
         Object.defineProperty(navigator, 'languages', { get: () => ['en-US'] });
         localStorage.removeItem('glass_language');
     ` });
@@ -261,6 +266,25 @@ try {
     await send('Page.reload');
     await ready();
     assert.equal(await evalJS('state.engine'), 'google', 'reset and reload agree on the default engine');
+    await send('Page.removeScriptToEvaluateOnNewDocument', { identifier: automaticLocale });
+    await send('Page.addScriptToEvaluateOnNewDocument', { source: "Object.defineProperty(navigator, 'languages', { get: () => ['en-US'] });" });
+    await evalJS(`(async () => { await openEditModal(); modalState.draftLanguage = 'zh-CN'; dom.saveEditBtn.click(); })()`);
+    await waitFor(evalJS, `document.documentElement.lang === 'zh-CN' && typeof openEditModal === 'function'`);
+    await evalJS(`(async () => {
+        await openEditModal();
+        const remove = Storage.prototype.removeItem;
+        window.restoreStorage = () => { Storage.prototype.removeItem = remove; };
+        Storage.prototype.removeItem = function(key) {
+            if (key === CONFIG.KEYS.NAV_DISCOVERED) throw Error('reset blocked');
+            return remove.call(this, key);
+        };
+        resetBookmarks(); dom.confirmOkBtn.click();
+    })()`);
+    await waitFor(evalJS, `modalState.phase === 'editing' && dom.confirmModal.open && !storageGet(CONFIG.KEYS.LANGUAGE)`);
+    assert.equal(await evalJS(`document.documentElement.lang`), 'zh-CN');
+    await evalJS('restoreStorage(); dom.confirmOkBtn.click(); resetBookmarks(); dom.confirmOkBtn.click()');
+    await ready();
+    assert.equal(await evalJS('state.engine'), 'google', 'retry reconciles the effective locale after a partial reset');
     console.log('✅ 英文全站、语言草稿与保存失败、书签继承、天气缓存、桌面/触屏布局及离线切换通过');
 } finally {
     await chrome.close();

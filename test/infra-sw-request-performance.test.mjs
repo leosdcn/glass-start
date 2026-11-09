@@ -8,7 +8,7 @@ import { launchChrome } from './support/cdp.mjs';
 import { getFreePort, createEvaluator, waitFor, navigateAndWait } from './support/helpers.mjs';
 
 const worker = readFileSync(join(DIST_DIR, 'sw.js'), 'utf8');
-const stamp = worker.match(/app-core-v\d+/)[0];
+const stamp = readFileSync(join(DIST_DIR, 'index.html'), 'utf8').match(/__GLASS_BUILD_HTML__="([^"]+)"/)[1];
 const counts = new Map();
 const pending = [];
 let status = 200;
@@ -23,7 +23,7 @@ const image = (req, res) => {
 const server = await startServer(0, undefined, {
     '/burst/':html, '/burst/index.html':html,
     '/burst/sw.js':(req,res)=>{res.writeHead(200,{'Content-Type':'application/javascript','Cache-Control':'no-store'});res.end(worker);},
-    '/burst/app.js':(req,res)=>{res.writeHead(200,{'Content-Type':'application/javascript'});res.end(`window.__GLASS_BUILD_APP__="${stamp}";`);},
+    ['/burst/app-builds/' + stamp + '.js']:(req,res)=>{res.writeHead(200,{'Content-Type':'application/javascript'});res.end(`window.__GLASS_BUILD_APP__="${stamp}";`);},
     '/burst/wallpapers/bg1.avif':(req,res)=>{res.writeHead(200);res.end('wallpaper');},
     '/burst/icons/concurrent.png':image, '/burst/icons/retry.png':image,
     '/burst/icons/variants.png':image, '/burst/icons/cancel.png':image

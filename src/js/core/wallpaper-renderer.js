@@ -15,7 +15,7 @@ let wallpaperOpacity = CONFIG.APPEARANCE.DEFAULT_MASK_OPACITY;
 /** @type {string | null} */
 let baseWallpaperUrl = null;
 // 图片请求可以更换或失败，正在进行的淡入独立收尾。
-/** @typedef {{ url: string, styleUrl: string, timer?: ReturnType<typeof setTimeout> }} WallpaperFade */
+/** @typedef {{ url: string, finish: (show: boolean) => void }} WallpaperFade */
 /** @type {WallpaperFade | null} */
 let wallpaperFade = null;
 
@@ -115,7 +115,6 @@ export function applyWallpaper(urlStr, animate = true, preparedImage = null, onS
     };
     const resetNextLayer = () => {
         bgNext.classList.remove('is-crossfading');
-        bgNext.style.transition = 'none';
         bgNext.style.opacity = '0';
         bgNext.style.backgroundImage = '';
     };
@@ -126,38 +125,43 @@ export function applyWallpaper(urlStr, animate = true, preparedImage = null, onS
         if (activeWallpaperRequest !== request) return;
         request.image = img;
         decodedWallpaper = { url: urlStr, image: img, themeSamplePending: false };
-        if (wallpaperFade) {
-            clearTimeout(wallpaperFade.timer);
-            if (request.animate) showBase(wallpaperFade.url, wallpaperFade.styleUrl);
-            wallpaperFade = null;
-        }
+        const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
+        const shouldAnimate = request.animate && !motion.matches;
+        wallpaperFade?.finish(shouldAnimate);
 
         if (presetIdx < 0) updateCustomWallpaperTheme(request.animate);
 
-        if (!request.animate) {
+        if (!shouldAnimate) {
             showBase(urlStr, newStyleUrl);
             resetNextLayer();
             return;
         }
 
-        /** @type {WallpaperFade} */
-        const fade = { url: urlStr, styleUrl: newStyleUrl };
-        wallpaperFade = fade;
-        bgNext.style.transition = 'none';
         bgNext.style.opacity = '0';
-        bgNext.style.backgroundImage = fade.styleUrl;
+        bgNext.style.backgroundImage = newStyleUrl;
         bgNext.classList.add('is-crossfading');
-        requestAnimationFrame(() => {
-            if (wallpaperFade !== fade) return;
-            bgNext.style.transition = `opacity ${CONFIG.TIMERS.BG_CROSSFADE / 1000}s var(--ease-exit)`;
-            bgNext.style.opacity = '1';
-            fade.timer = setTimeout(() => {
+        const animation = bgNext.animate([{ opacity: 0 }, { opacity: 1 }], {
+            duration: CONFIG.TIMERS.BG_CROSSFADE,
+            easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
+            fill: 'forwards'
+        });
+        /** @type {WallpaperFade} */
+        const fade = {
+            url: urlStr,
+            finish(show) {
                 if (wallpaperFade !== fade) return;
                 wallpaperFade = null;
-                showBase(fade.url, fade.styleUrl);
+                motion.removeEventListener('change', onMotion);
+                if (show) showBase(urlStr, newStyleUrl);
+                animation.cancel();
                 resetNextLayer();
-            }, CONFIG.TIMERS.BG_CROSSFADE);
-        });
+            }
+        };
+        const settle = () => fade.finish(true);
+        const onMotion = () => { if (motion.matches) settle(); };
+        wallpaperFade = fade;
+        motion.addEventListener('change', onMotion);
+        animation.finished.then(settle, settle);
     };
 
     const fail = () => {

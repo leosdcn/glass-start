@@ -42,8 +42,25 @@ const MIME_TYPES = {
     '.webmanifest': 'application/manifest+json; charset=utf-8'
 };
 
+async function openStaticFile(filePath) {
+    const file = await fs.promises.open(filePath, 'r').catch(error => {
+        if (error.code === 'ENOENT' || error.code === 'ENOTDIR') return null;
+        throw error;
+    });
+    if (!file) return null;
+    try {
+        const stats = await file.stat();
+        if (stats.isFile()) return { file, stats };
+    } catch (error) {
+        await file.close();
+        throw error;
+    }
+    await file.close();
+    return null;
+}
+
 function createStaticServer() {
-    return http.createServer((req, res) => {
+    return http.createServer(async (req, res) => {
         try {
             const urlRaw = req.url || '/';
             const pathname = urlRaw.split('?')[0];
@@ -63,86 +80,93 @@ function createStaticServer() {
                 return;
             }
 
-            fs.stat(filePath, (err, stats) => {
-                let targetPath = filePath;
-                let isFallback = false;
-                if (err || !stats.isFile()) {
-                    // 🛡️ SPA 回退仅服务无扩展路由与 HTML 文档；缺失的静态资源必须如实 404，
-                    // 严禁以 200 返回 index.html（否则浏览器会把 HTML 当 JS/CSS 解析报错，
-                    // 且 Service Worker 可能以请求 URL 为键缓存错误实体）。
-                    const reqExt = path.extname(reqPath).toLowerCase();
-                    if (reqExt && reqExt !== '.html') {
-                        res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
-                        res.end('404 Not Found');
-                        return;
-                    }
-                    targetPath = path.join(DIST_DIR, 'index.html');
-                    isFallback = true;
-                }
-
-                const isWallpaper = rel.startsWith('wallpapers' + path.sep) || rel.startsWith('wallpapers/');
-                const isIcon = rel.startsWith('icons' + path.sep) || rel.startsWith('icons/')
-                    || rel === 'apple-touch-icon.png' || rel === 'favicon.ico';
-                const isImmutableAsset = isWallpaper || isIcon;
-
-                // 对壁纸与图标处理 If-Modified-Since，命中时返回 304。
-                const ifModifiedSince = req.headers['if-modified-since'];
-                if (!isFallback && stats && ifModifiedSince && isImmutableAsset) {
-                    const reqMtime = new Date(ifModifiedSince).getTime();
-                    if (Math.floor(stats.mtimeMs / 1000) <= Math.floor(reqMtime / 1000)) {
-                        res.writeHead(304, 'Not Modified');
-                        res.end();
-                        return;
-                    }
-                }
-
-                const ext = path.extname(targetPath).toLowerCase();
-                const contentType = MIME_TYPES[ext] || 'application/octet-stream';
-
-                res.setHeader('Content-Type', contentType);
-                if (stats && !isFallback) {
-                    res.setHeader('Last-Modified', stats.mtime.toUTCString());
-                }
-
-                // 🛡️ 本地开发服务防滞后与 Service Worker 强管辖响应头
-                res.setHeader('Service-Worker-Allowed', '/');
-
-                if (isImmutableAsset) {
-                    res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
-                } else {
-                    // 禁用代码与文档 HTTP 缓存；已受 Service Worker 控制的页面仍可能命中其缓存。
-                    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
-                    res.setHeader('Pragma', 'no-cache');
-                    res.setHeader('Expires', '0');
-                }
-
-                // 仅对非文档类静态资产开放跨域读取；HTML 文档不设置 CORS
-                if (!contentType.startsWith('text/html')) {
-                    res.setHeader('Access-Control-Allow-Origin', '*');
-                }
-
-                // 针对文本类静态资产（HTML, JS, CSS, JSON, SVG）支持原生 Gzip / Deflate 流式压缩
-                const isCompressible = /^(text\/|application\/(javascript|json|manifest\+json)|image\/svg\+xml)/.test(contentType);
-                const acceptEncoding = req.headers['accept-encoding'] || '';
-
-                const rawStream = fs.createReadStream(targetPath);
-                rawStream.on('error', () => {
-                    if (!res.headersSent) res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+            // 先打开文件再读取元数据，发布切换后仍可从同一描述符完成当前响应。
+            let asset = await openStaticFile(filePath);
+            const isFallback = !asset;
+            const targetPath = isFallback ? path.join(DIST_DIR, 'index.html') : filePath;
+            if (isFallback) {
+                const reqExt = path.extname(reqPath).toLowerCase();
+                if (reqExt && reqExt !== '.html') {
+                    res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
                     res.end('404 Not Found');
-                });
-
-                if (isCompressible && acceptEncoding.includes('gzip')) {
-                    res.setHeader('Content-Encoding', 'gzip');
-                    res.setHeader('Vary', 'Accept-Encoding');
-                    rawStream.pipe(zlib.createGzip({ level: 6 })).pipe(res);
-                } else if (isCompressible && acceptEncoding.includes('deflate')) {
-                    res.setHeader('Content-Encoding', 'deflate');
-                    res.setHeader('Vary', 'Accept-Encoding');
-                    rawStream.pipe(zlib.createDeflate({ level: 6 })).pipe(res);
-                } else {
-                    rawStream.pipe(res);
+                    return;
                 }
+                asset = await openStaticFile(targetPath);
+                if (!asset) {
+                    res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+                    res.end('404 Not Found');
+                    return;
+                }
+            }
+            const { file, stats } = asset;
+
+            const isWallpaper = rel.startsWith('wallpapers' + path.sep) || rel.startsWith('wallpapers/');
+            const isIcon = rel.startsWith('icons' + path.sep) || rel.startsWith('icons/')
+                || rel === 'apple-touch-icon.png' || rel === 'favicon.ico';
+            const isBuildScript = rel.startsWith('app-builds' + path.sep) && path.extname(rel) === '.js';
+            const isRevalidatedAsset = isWallpaper || isIcon;
+
+            // 对壁纸与图标处理 If-Modified-Since，命中时返回 304。
+            const ifModifiedSince = req.headers['if-modified-since'];
+            if (!isFallback && ifModifiedSince && isRevalidatedAsset) {
+                const reqMtime = new Date(ifModifiedSince).getTime();
+                if (Math.floor(stats.mtimeMs / 1000) <= Math.floor(reqMtime / 1000)) {
+                    await file.close();
+                    res.writeHead(304, 'Not Modified');
+                    res.end();
+                    return;
+                }
+            }
+
+            const ext = path.extname(targetPath).toLowerCase();
+            const contentType = MIME_TYPES[ext] || 'application/octet-stream';
+
+            res.setHeader('Content-Type', contentType);
+            if (!isFallback) {
+                res.setHeader('Last-Modified', stats.mtime.toUTCString());
+            }
+
+            // 🛡️ 本地开发服务防滞后与 Service Worker 强管辖响应头
+            res.setHeader('Service-Worker-Allowed', '/');
+
+            if (isBuildScript) {
+                res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+            } else if (isRevalidatedAsset) {
+                res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
+            } else {
+                // 禁用代码与文档 HTTP 缓存；已受 Service Worker 控制的页面仍可能命中其缓存。
+                res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
+                res.setHeader('Pragma', 'no-cache');
+                res.setHeader('Expires', '0');
+            }
+
+            // 仅对非文档类静态资产开放跨域读取；HTML 文档不设置 CORS
+            if (!contentType.startsWith('text/html')) {
+                res.setHeader('Access-Control-Allow-Origin', '*');
+            }
+
+            // 针对文本类静态资产（HTML, JS, CSS, JSON, SVG）支持原生 Gzip / Deflate 流式压缩
+            const isCompressible = /^(text\/|application\/(javascript|json|manifest\+json)|image\/svg\+xml)/.test(contentType);
+            const acceptEncoding = req.headers['accept-encoding'] || '';
+
+            const rawStream = file.createReadStream();
+            res.on('close', () => rawStream.destroy());
+            rawStream.on('error', () => {
+                if (!res.headersSent) res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+                res.end('404 Not Found');
             });
+
+            if (isCompressible && acceptEncoding.includes('gzip')) {
+                res.setHeader('Content-Encoding', 'gzip');
+                res.setHeader('Vary', 'Accept-Encoding');
+                rawStream.pipe(zlib.createGzip({ level: 6 })).pipe(res);
+            } else if (isCompressible && acceptEncoding.includes('deflate')) {
+                res.setHeader('Content-Encoding', 'deflate');
+                res.setHeader('Vary', 'Accept-Encoding');
+                rawStream.pipe(zlib.createDeflate({ level: 6 })).pipe(res);
+            } else {
+                rawStream.pipe(res);
+            }
         } catch {
             res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' });
             res.end('500 Internal Server Error');

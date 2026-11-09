@@ -1,35 +1,22 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { buildSync } from 'esbuild';
-import vm from 'node:vm';
 import { launchSession, waitFor, navigateAndWait, sleep } from './support/helpers.mjs';
 
-test('应用构建指纹比对与刷新冷却判定 (纯单元测试)', () => {
-  const { outputFiles } = buildSync({
-    entryPoints: ['src/js/core/lifecycle.js'],
-    bundle: true,
-    write: false,
-    format: 'cjs',
-    platform: 'node'
-  });
-  const storage = new Map();
-  const context = vm.createContext({
-    module: { exports: {} },
-    sessionStorage: {
-      getItem: key => storage.get(key) ?? null,
-      setItem: (key, value) => storage.set(key, value)
-    }
-  });
-  vm.runInContext(outputFiles[0].text, context);
-  const { verifyFingerprint } = context.module.exports;
-  const verdict = (html, app) => JSON.parse(JSON.stringify(verifyFingerprint(html, app)));
-
-  assert.deepEqual(verdict('app-core-v100', 'app-core-v100'), { mismatch: false, mayReload: false });
-  assert.deepEqual(verdict('app-core-v200', 'app-core-v999'), { mismatch: true, mayReload: true });
-  assert.ok(Number(storage.get('gs_build_reload_at')) > 0);
-  assert.deepEqual(verdict('app-core-v200', 'app-core-v999'), { mismatch: true, mayReload: false });
-  assert.deepEqual(verdict(null, null), { mismatch: false, mayReload: false });
-  assert.deepEqual(verdict('only-html', null), { mismatch: false, mayReload: false });
+test('混版应用在初始化前退出，页面只导航一次', async () => {
+  const { server, chrome, send, evalJS } = await launchSession();
+  try {
+    await send('Page.addScriptToEvaluateOnNewDocument', { source: `
+      const key = 'fingerprintProbeLoads';
+      sessionStorage.setItem(key, String(Number(sessionStorage.getItem(key)) + 1));
+      Object.defineProperty(window, '__GLASS_BUILD_APP__', { get: () => 'mismatched', set() {} });
+    ` });
+    await send('Page.reload');
+    await waitFor(evalJS, `document.readyState === 'complete' && window.__GLASS_BUILD_APP__ === 'mismatched'`);
+    assert.equal(await evalJS(`typeof state === 'undefined' && sessionStorage.getItem('fingerprintProbeLoads') === '1'`), true);
+  } finally {
+    await chrome.close();
+    await server.close();
+  }
 });
 
 test('两种切屏模式均在主脚本执行前恢复导航位置，接管时不补播过渡', async () => {
@@ -51,7 +38,7 @@ test('两种切屏模式均在主脚本执行前恢复导航位置，接管时�
     await send('Network.enable');
     await send('Network.setBypassServiceWorker', { bypass: true });
     await send('Network.setCacheDisabled', { cacheDisabled: true });
-    await send('Fetch.enable', { patterns: [{ urlPattern: '*app.js*' }] });
+    await send('Fetch.enable', { patterns: [{ urlPattern: '*/app-builds/*.js' }] });
     for (const mode of ['sheet', 'classic']) {
       await evalJS(`sessionStorage.setItem('startpage_section', 'nav');
         localStorage.setItem('hasDiscoveredNav', '1');

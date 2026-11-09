@@ -17,6 +17,9 @@ const CORE_STORAGE = CACHE_PREFIX + CORE_CACHE;
 const IMG_CACHE = CACHE_PREFIX + 'app-images-' + CORE_CACHE;
 const IMAGE_PREFIX = CACHE_PREFIX + 'app-images-';
 const CORE_PREFIX = CACHE_PREFIX + 'app-core-';
+const APP_ASSET = `./app-builds/${CORE_CACHE}.js`;
+const ACTIVATED_CORE = new URL('./.glass-core-activated', SCOPE_URL);
+const LEGACY_APP = new URL('./app.js', SCOPE_URL);
 
 // 图标与图片容量上限配置
 const MAX_FAVICON_ENTRIES = 800;
@@ -65,7 +68,7 @@ function shareImageResponse(event, loadResponse) {
 const CORE_ASSETS = [
     './',
     './index.html',
-    './app.js',
+    APP_ASSET,
     './wallpapers/bg1.avif'
 ];
 
@@ -113,36 +116,29 @@ function make503Response() {
     });
 }
 
-// 核心资源不仅需存在，还必须与当前 worker 的构建指纹一致（单次循环校验存在性与指纹）。
+// 每个构建只接收属于自己的文档和脚本。
 /** @param {Cache} cache */
 async function validateCoreCache(cache) {
-    /** @type {Partial<Record<string, string>>} */
-    const fingerprints = {
-        './': '__GLASS_BUILD_HTML__',
-        './index.html': '__GLASS_BUILD_HTML__',
-        './app.js': '__GLASS_BUILD_APP__'
-    };
     for (const asset of CORE_ASSETS) {
-        const response = await cache.match(asset);
-        if (!response || !response.ok) throw new Error('Missing core asset: ' + asset);
-        const property = fingerprints[asset];
-        if (property) {
-            const text = await response.text();
-            const fingerprint = text.match(new RegExp(property + `\\s*=\\s*["']([^"']+)`));
-            if (fingerprint?.[1] !== CORE_CACHE) throw new Error('Core version mismatch: ' + asset);
+        if (!await validCoreResponse(asset, await cache.match(asset))) {
+            throw new Error('Missing or invalid core asset: ' + asset);
         }
     }
+}
+
+/** @param {Response} response @param {string} property @param {string} version */
+async function matchesBuild(response, property, version) {
+    const text = await response.clone().text();
+    return text.match(new RegExp(property + `\\s*=\\s*["']([^"']+)`))?.[1] === version;
 }
 
 // 只补缺失或指纹不符的资源；所有响应在写入前校验，不污染仍可用的旧构建。
 /** @param {string} asset @param {Response | undefined} response */
 async function validCoreResponse(asset, response) {
     if (!response?.ok) return false;
-    const property = asset === './app.js' ? '__GLASS_BUILD_APP__'
+    const property = asset === APP_ASSET ? '__GLASS_BUILD_APP__'
         : (asset === './' || asset === './index.html') ? '__GLASS_BUILD_HTML__' : null;
-    if (!property) return true;
-    const text = await response.clone().text();
-    return text.match(new RegExp(property + `\\s*=\\s*["']([^"']+)`))?.[1] === CORE_CACHE;
+    return !property || matchesBuild(response, property, CORE_CACHE);
 }
 
 /** @param {Cache} cache */
@@ -162,6 +158,8 @@ function recoveryResponse() {
     const script = `document.querySelector('button').onclick=async function(){
         this.disabled=true;const status=document.querySelector('p');
         try{
+            const repaired=await fetch(location.href,{cache:'reload'}).then(response=>response.ok,()=>false);
+            if(repaired){location.reload();return}
             const reg=await navigator.serviceWorker.getRegistration();
             await reg.update();
             const worker=reg.installing;
@@ -211,9 +209,17 @@ function recoveryResponse() {
     await caches.open(IMG_CACHE);
     const keys = await caches.keys();
     const previousImages = keys.filter(key => key.startsWith(IMAGE_PREFIX) && key !== IMG_CACHE)
-        .sort((a, b) => imageCacheVersion(b) - imageCacheVersion(a))[0];
+        .sort((a, b) => cacheBuildTime(b) - cacheBuildTime(a))[0];
+    const candidates = keys.filter(key => key.startsWith(CORE_PREFIX) && key !== CORE_STORAGE)
+        .sort((a, b) => cacheBuildTime(b) - cacheBuildTime(a));
+    const activated = await Promise.all(candidates.map(cacheName => caches.match(ACTIVATED_CORE, { cacheName })));
+    const previous = candidates[activated.findIndex(Boolean)];
+    // 首次迁移时旧 Worker 没有接管记录，保留含旧入口的池直到下一次接管。
+    const legacy = previous ? [] : await Promise.all(candidates.map(cacheName => caches.match(LEGACY_APP, { cacheName })));
+    const retainedCore = previous ? [previous] : candidates.filter((_, index) => legacy[index]);
+    await cache.put(ACTIVATED_CORE, new Response(''));
     await Promise.all(keys.filter(key =>
-        (key.startsWith(CORE_PREFIX) && key !== CORE_STORAGE) ||
+        (key.startsWith(CORE_PREFIX) && key !== CORE_STORAGE && !retainedCore.includes(key)) ||
         (key.startsWith(IMAGE_PREFIX) && key !== IMG_CACHE && key !== previousImages)
     ).map(key => caches.delete(key)));
 })()));
@@ -230,15 +236,15 @@ function recoveryResponse() {
 });
 
 /** @param {string} key */
-function imageCacheVersion(key) {
-    return Number(key.match(/app-core-v(\d+)$/)?.[1] || 0);
+function cacheBuildTime(key) {
+    return Number(key.match(/app-core-v(\d+)(?:-[0-9a-f]{16})?$/)?.[1] || 0);
 }
 
 // 仅在网络失败时读取上一版图片，避免在线更新继续使用旧内容。
 /** @param {Request} request */
 async function previousImageResponse(request) {
     const keys = (await caches.keys()).filter(key => key.startsWith(IMAGE_PREFIX) && key !== IMG_CACHE)
-        .sort((a, b) => imageCacheVersion(b) - imageCacheVersion(a));
+        .sort((a, b) => cacheBuildTime(b) - cacheBuildTime(a));
     for (const key of keys) {
         const cached = await (await caches.open(key)).match(request);
         if (cached) return cached;
@@ -301,30 +307,33 @@ async function previousImageResponse(request) {
         return;
     }
 
-    // 3. 应用脚本版本隔离；版本查询参数复用本构建已校验的脚本。
-    if (path === 'app.js') {
-        const asset = './app.js';
-        e.respondWith(
-            caches.open(CORE_STORAGE).then(async cache => {
-                const cached = await cache.match(asset);
-
-                // 命中当前核心池，返回安装时已校验的应用脚本。
-                if (cached) {
+    // 已解析的旧 HTML 即使被新版 Worker 接管，仍只会收到自己引用的构建。
+    const legacyVersion = path === 'app.js' ? urlObj.searchParams.get('v') : null;
+    const scriptVersion = /^app-builds\/(app-core-v\d+(?:-[0-9a-f]{16})?)\.js$/.exec(path ?? '')?.[1];
+    const requestedVersion = scriptVersion ?? (/^app-core-v\d+$/.test(legacyVersion ?? '') ? legacyVersion : null);
+    if (requestedVersion) {
+        e.respondWith((async () => {
+            const asset = scriptVersion ? `./${path}` : './app.js';
+            const cacheName = CACHE_PREFIX + requestedVersion;
+            try {
+                const cached = await caches.match(new URL(asset, SCOPE_URL), { cacheName });
+                if (cached && (scriptVersion || await matchesBuild(cached, '__GLASS_BUILD_APP__', requestedVersion))) {
                     return cached;
                 }
-
-                try {
-                    const response = await fetch(new Request(e.request, { cache: 'reload' }));
-                    if (!await validCoreResponse(asset, response)) {
-                        return make503Response();
-                    }
-                    await cache.put(asset, response.clone());
-                    return response;
-                } catch {
+                if (!scriptVersion) return make503Response();
+                const response = await fetch(e.request);
+                if (!response.ok || !await matchesBuild(response, '__GLASS_BUILD_APP__', requestedVersion)) {
                     return make503Response();
                 }
-            })
-        );
+                if (requestedVersion === CORE_CACHE) {
+                    const cache = await caches.open(CORE_STORAGE);
+                    await cache.put(asset, response.clone()).catch(() => {});
+                }
+                return response;
+            } catch {
+                return make503Response();
+            }
+        })());
         return;
     }
 

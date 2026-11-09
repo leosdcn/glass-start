@@ -1,5 +1,5 @@
 import { t, getLocale, weatherDescription, forecastLabel } from '../core/i18n.js';
-import { weatherTime, formatLocationFullName, stripAdminSuffix, normalizeWeatherForecast } from '../utils/weather-model.js';
+import { weatherTime, formatLocationFullName, stripAdminSuffix, normalizeWeatherForecast, getForecastPeriod } from '../utils/weather-model.js';
 import { CONFIG } from '../config/constants.js';
 import { parseTempUnit, weatherNum, toDisplayTemp } from '../utils/weather-data.js';
 import { escapeHtml, safeUrl } from '../utils/helpers.js';
@@ -207,7 +207,7 @@ async function executeResolveWeatherLocation(now, signal) {
 export async function fetchWeatherForecast(loc, signal) {
     const lat = loc.lat;
     const lon = loc.lon;
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,precipitation_probability_max&timezone=auto`;
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,precipitation_probability_max&timezone=auto`;
     const data = await fetchJsonWithTimeout(url, CONFIG.WEATHER.TIMEOUT_WEATHER, signal);
 
     return normalizeWeatherForecast(data, loc, CONFIG.WEATHER, Date.now());
@@ -225,17 +225,11 @@ function getTempUnit() {
 }
 
 function toggleTempUnit() {
-    const restoreFocus = document.activeElement?.id === 'tempUnitToggleBtn';
     const nextUnit = getTempUnit() === 'F' ? 'C' : 'F';
     try {
         localStorage.setItem(CONFIG.KEYS.TEMP_UNIT, nextUnit);
     } catch {}
     refreshWeatherDisplay();
-    // 弹窗重绘会替换控件，仅在原控件持有焦点时恢复，避免打断其他输入。
-    if (restoreFocus) {
-        const button = /** @type {HTMLElement | null | undefined} */ (dom.weatherPopover?.querySelector('#tempUnitToggleBtn'));
-        button?.focus({ preventScroll: true });
-    }
 }
 
 /** 按当前单位重新渲染已有天气，不发起网络请求。 */
@@ -297,12 +291,76 @@ export function renderWeatherCapsule(data) {
 }
 
 let lastRenderedPopoverSignature = '';
+/** @type {ReturnType<typeof mountWeatherView> | null} */
+let weatherView = null;
+
+/** @param {HTMLElement} popover */
+function mountWeatherView(popover) {
+    popover.innerHTML = `
+        <div data-weather-status></div>
+        <div data-weather-data hidden>
+            <div class="flex items-center justify-between pb-2.5 mb-3 border-b border-white/10">
+                <div class="flex items-center gap-1.5 min-w-0 pr-2">
+                    <span class="text-xs text-white/50 shrink-0 flex items-center justify-center">${getWeatherIconHTML('📍', 'size-3.5')}</span>
+                    <span data-weather-location class="text-xs font-semibold text-white/90 truncate"></span>
+                </div>
+                <button id="weatherRefreshBtn" type="button" class="group size-7 apple-radius bg-white/5 hover:bg-white/15 text-white flex items-center justify-center glass-interactive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 shrink-0 aria-disabled:opacity-40 aria-disabled:cursor-not-allowed aria-disabled:pointer-events-none" title="${escapeHtml(t('ui.refresh.weather'))}" aria-label="${escapeHtml(t('ui.refresh.weather'))}">
+                    <svg class="size-3.5 pointer-events-none opacity-70 group-hover:opacity-100" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>
+                </button>
+            </div>
+            <div class="flex items-center justify-between gap-3 mb-3 px-1">
+                <div class="flex items-center gap-3 min-w-0">
+                    <span data-weather-icon class="text-3xl sm:text-4xl leading-none select-none shrink-0 flex items-center justify-center"></span>
+                    <div class="min-w-0">
+                        <button type="button" id="tempUnitToggleBtn" class="text-2xl font-normal tracking-tight text-white leading-none cursor-pointer select-none rounded hover:opacity-85 transition-opacity inline-block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" title="${escapeHtml(t('weather.toggle.unit'))}" aria-label="${escapeHtml(t('weather.toggle.unit'))}"><span class="font-bold">--</span><span class="text-base font-normal text-white/70">°C</span></button>
+                        <div data-weather-current class="text-xs text-white/75 mt-1${getLocale() === 'zh-CN' ? ' flex flex-wrap items-baseline gap-x-1' : ''}"></div>
+                    </div>
+                </div>
+                <div data-weather-range class="text-right text-xs text-white/60 shrink-0 whitespace-nowrap"></div>
+            </div>
+            <div data-weather-stats class="grid grid-cols-2 gap-2 mb-3"></div>
+            <div class="space-y-1.5 pt-2 border-t border-white/10">
+                <div class="flex items-center justify-between gap-2 px-1 mb-1">
+                    <span class="text-2xs text-white/50 font-medium">${escapeHtml(t('ui.upcoming.forecast'))}</span>
+                    <a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer" class="shrink-0 text-2xs text-white/50 hover:text-white/80 transition-colors rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" aria-label="${escapeHtml(t('ui.weather.data.open.meteo.opens.in'))}">Open-Meteo</a>
+                </div>
+                <div data-weather-forecast class="space-y-1.5"></div>
+            </div>
+        </div>
+    `;
+    /** @param {string} selector */
+    const find = selector => /** @type {HTMLElement} */ (popover.querySelector(selector));
+    return {
+        popover, status: find('[data-weather-status]'), body: find('[data-weather-data]'),
+        location: find('[data-weather-location]'), icon: find('[data-weather-icon]'),
+        temp: find('#tempUnitToggleBtn'), current: find('[data-weather-current]'),
+        range: find('[data-weather-range]'), stats: find('[data-weather-stats]'),
+        forecast: find('[data-weather-forecast]')
+    };
+}
+
+function getWeatherView() {
+    const popover = dom.weatherPopover;
+    if (!popover) return null;
+    if (weatherView?.popover !== popover) {
+        weatherView = mountWeatherView(popover);
+        lastRenderedPopoverSignature = '';
+    }
+    return weatherView;
+}
+
+/** @param {string} signature @param {string} html */
+function showWeatherStatus(signature, html) {
+    const view = getWeatherView();
+    if (!view || signature === lastRenderedPopoverSignature) return;
+    lastRenderedPopoverSignature = signature;
+    view.body.hidden = true;
+    view.status.hidden = false;
+    view.status.innerHTML = html;
+}
 
 function renderWeatherError(empty = false) {
-    lastRenderedPopoverSignature = 'error';
-    const weatherPopover = dom.weatherPopover;
-    if (!weatherPopover) return;
-    weatherPopover.innerHTML = `
+    showWeatherStatus(empty ? 'empty' : 'error', `
         <div class="p-4 text-center space-y-2 flex flex-col items-center justify-center select-none">
             <div class="flex items-center justify-center">${getWeatherIconHTML('📡', 'size-7')}</div>
             <div class="text-xs text-white/80 font-medium">${escapeHtml(t(empty ? 'ui.no.data' : 'ui.weather.unavailable'))}</div>
@@ -311,17 +369,15 @@ function renderWeatherError(empty = false) {
                 ${getWeatherIconHTML('🔄', 'size-3.5')} ${escapeHtml(t('ui.reload'))}
             </button>
         </div>
-    `;
+    `);
 }
 
 /** @param {import('../types').WeatherData | null | undefined} data */
 export function renderWeatherPopover(data) {
-    const weatherPopover = dom.weatherPopover;
-    if (!weatherPopover) return;
-    if (!data || !data.current) {
-        if (lastRenderedPopoverSignature === 'loading' && weatherPopover.innerHTML.trim()) return;
-        lastRenderedPopoverSignature = 'loading';
-        weatherPopover.innerHTML = `
+    const view = getWeatherView();
+    if (!view) return;
+    if (!data?.current) {
+        showWeatherStatus('loading', `
             <div class="p-4 text-center flex flex-col items-center justify-center gap-2.5 select-none w-full">
                 <div class="size-5 border-2 border-white/25 border-t-white rounded-full animate-spin"></div>
                 <div class="space-y-0.5">
@@ -329,93 +385,58 @@ export function renderWeatherPopover(data) {
                     <div class="text-2xs text-white/45">${escapeHtml(t('ui.finding.your.location.and.updating.weather'))}</div>
                 </div>
             </div>
-        `;
+        `);
         return;
     }
 
     currentWeatherData = data;
     const unit = getTempUnit();
     const raw = data.current;
-    const c = {
-        ...raw,
-        temp: toDisplayTemp(raw.temp, unit),
-        apparent: toDisplayTemp(raw.apparent !== undefined ? raw.apparent : raw.temp, unit),
-        humidity: Math.round(weatherNum(raw.humidity, CONFIG.WEATHER.DEFAULT_HUMIDITY)),
-        windSpeed: Math.round(weatherNum(raw.windSpeed, 0) * 10) / 10,
-        icon: (typeof raw.icon === 'string' && raw.icon) ? raw.icon : '⛅',
-        weatherText: raw.weatherCode !== undefined || getLocale() === 'en' ? weatherDescription(raw.weatherCode) : (typeof raw.weatherText === 'string' ? raw.weatherText : '')
-    };
-    const loc = /** @type {import('../types').WeatherLocation} */ (data.location || {});
-    const days = (data.daily || []).map((d, index) => ({
-        ...d,
-        label: forecastLabel(d.date, index) || (typeof d.label === 'string' ? d.label.slice(0, CONFIG.WEATHER.LABEL_MAX_CHARS) : ''),
+    const period = getForecastPeriod(data, new Date());
+    const location = data.location?.fullName || data.location?.name || '';
+    const temp = toDisplayTemp(raw.temp, unit);
+    const apparent = toDisplayTemp(raw.apparent ?? raw.temp, unit);
+    const humidity = Math.round(weatherNum(raw.humidity, NaN));
+    const windSpeed = Math.round(weatherNum(raw.windSpeed, NaN) * 10) / 10;
+    const icon = typeof raw.icon === 'string' && raw.icon ? raw.icon : '⛅';
+    const weatherText = raw.weatherCode === undefined && getLocale() === 'zh-CN' && typeof raw.weatherText === 'string' && raw.weatherText
+        ? raw.weatherText : weatherDescription(raw.weatherCode);
+    const days = period.days.slice(0, CONFIG.WEATHER.FORECAST_DISPLAY_DAYS).map((d, index) => ({
+        label: forecastLabel(d.date, d.date ? (d.date === period.date ? 0 : d.date === period.tomorrow ? 1 : 2) : index)
+            || (typeof d.label === 'string' ? d.label.slice(0, CONFIG.WEATHER.LABEL_MAX_CHARS) : ''),
         icon: (typeof d.icon === 'string' && d.icon) ? d.icon : '⛅',
-        text: (d.weatherCode !== undefined ? weatherDescription(d.weatherCode) : '') || (typeof d.text === 'string' ? d.text.slice(0, CONFIG.SECURITY.MAX_DESC_CHARS) : ''),
+        text: (d.weatherCode !== undefined ? weatherDescription(d.weatherCode) : '')
+            || (typeof d.text === 'string' ? d.text.slice(0, CONFIG.SECURITY.MAX_DESC_CHARS) : ''),
         tempMax: toDisplayTemp(d.tempMax, unit),
         tempMin: toDisplayTemp(d.tempMin, unit)
     }));
+    const sun = period.sun;
+    const sunrise = sun?.kind === 'sunrise';
+    const sunDate = sun?.dateTime?.slice(0, 10);
+    const sunLabel = sunDate === period.date
+        ? t(sunrise ? 'ui.sunrise.today' : 'ui.sunset.today')
+        : sunrise && sunDate === period.tomorrow ? t('ui.sunrise.tomorrow')
+        : t(sunrise ? 'weather.nextSunrise' : sunDate ? 'weather.nextSunset' : 'weather.sunEvent');
+    const sunTime = weatherTime(sun?.dateTime?.slice(11));
+    const chance = weatherNum(period.pop, NaN);
+    const pop = Number.isFinite(chance) ? Math.max(0, Math.min(100, chance)) : NaN;
 
-    let sunIcon = '🌇';
-    let sunLabel = t('ui.sunset.today');
-    let sunTime = c.sunsetToday || '--:--';
-    try {
-        const now = new Date();
-        // Open-Meteo 的太阳时间属于天气地点，不能与系统时区的小时直接比较。
-        // 旧缓存未保存时区，继续沿用本地时间，下一次刷新即补齐。
-        let nowMins = now.getHours() * 60 + now.getMinutes();
-        if (data.timezone) {
-            const parts = new Intl.DateTimeFormat('en-GB', { timeZone: data.timezone,
-                hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(now);
-            nowMins = Number(parts.find(part => part.type === 'hour')?.value) * 60
-                + Number(parts.find(part => part.type === 'minute')?.value);
-        }
-        const parseMins = (/** @type {unknown} */ str) => {
-            const time = weatherTime(str);
-            if (time === '--:--') return null;
-            const [h, m] = time.split(':').map(Number);
-            return h * 60 + m;
-        };
-        const riseTodayMins = parseMins(c.sunriseToday);
-        const setTodayMins = parseMins(c.sunsetToday);
-
-        if (setTodayMins !== null && nowMins >= setTodayMins) {
-            sunIcon = '🌅';
-            sunLabel = t('ui.sunrise.tomorrow');
-            sunTime = c.sunriseTomorrow || c.sunriseToday || '--:--';
-        } else if (riseTodayMins !== null && nowMins < riseTodayMins) {
-            sunIcon = '🌅';
-            sunLabel = t('ui.sunrise.today');
-            sunTime = c.sunriseToday || '--:--';
-        } else {
-            sunIcon = '🌇';
-            sunLabel = t('ui.sunset.today');
-            sunTime = c.sunsetToday || '--:--';
-        }
-    } catch (_) {}
-    sunTime = weatherTime(sunTime);
-
-    const popVal = Math.max(0, Math.min(100, c.pop !== undefined ? weatherNum(c.pop, 0) : (weatherNum(c.precipitation, 0) > 0 ? 100 : 0)));
-    let popIcon = '🌂';
-    if (popVal >= CONFIG.WEATHER.POP_HIGH_THRESHOLD) {
-        popIcon = '☔️';
-    } else if (popVal >= CONFIG.WEATHER.POP_MID_THRESHOLD) {
-        popIcon = '☂️';
-    }
-
-    let humIcon = '💧';
-    if (c.humidity < CONFIG.WEATHER.HUMIDITY_LOW_THRESHOLD) {
-        humIcon = '🌵';
-    } else if (c.humidity > CONFIG.WEATHER.HUMIDITY_HIGH_THRESHOLD) {
-        humIcon = '💦';
-    }
-
-    let windIcon = '🍃';
-    if (c.windSpeed >= CONFIG.WEATHER.WIND_HIGH_THRESHOLD) {
-        windIcon = '🌪️';
-    } else if (c.windSpeed >= CONFIG.WEATHER.WIND_MID_THRESHOLD) {
-        windIcon = '🎏';
-    }
-
+    const sig = JSON.stringify([unit, location, temp, apparent, humidity, windSpeed, icon, weatherText, sunLabel, sunTime, pop, days,
+        period.today?.tempMax, period.today?.tempMin]);
+    if (sig === lastRenderedPopoverSignature) return;
+    lastRenderedPopoverSignature = sig;
+    if (!view.status.hidden) view.status.innerHTML = '';
+    view.status.hidden = true;
+    view.body.hidden = false;
+    view.location.textContent = location;
+    view.location.title = location;
+    view.icon.innerHTML = getWeatherIconHTML(icon, 'size-10 sm:size-12');
+    view.temp.innerHTML = `<span class="font-bold">${temp}</span><span class="text-base font-normal text-white/70">°${unit}</span>`;
+    view.current.innerHTML = `<span>${escapeHtml(weatherText)}</span>
+        ${getLocale() === 'zh-CN' ? '<span aria-hidden="true">·</span>' : ''}
+        <span class="whitespace-nowrap${getLocale() === 'zh-CN' ? '' : ' block mt-0.5'}">${escapeHtml(t('weather.feels.like', { temperature: apparent }))}</span>`;
+    view.range.innerHTML = period.today ? `<div>${escapeHtml(t('weather.high', { temperature: toDisplayTemp(period.today.tempMax, unit) }))}</div>
+        <div>${escapeHtml(t('weather.low', { temperature: toDisplayTemp(period.today.tempMin, unit) }))}</div>` : '';
     /** @type {(icon: string, label: string, val: string | number) => string} */
     const weatherCard = (icon, label, val) => `
         <div class="p-2 glass-subcard flex items-center gap-2">
@@ -427,56 +448,17 @@ export function renderWeatherPopover(data) {
         </div>
     `;
 
-    const sig = JSON.stringify([unit, loc.fullName || loc.name || '', c.temp, c.apparent,
-        c.humidity, c.windSpeed, c.icon, c.weatherText, sunLabel, sunTime, popVal,
-        days.slice(0, CONFIG.WEATHER.FORECAST_DISPLAY_DAYS)
-            .map(d => [d.label, d.tempMin, d.tempMax, d.icon, d.text])]);
-    if (sig === lastRenderedPopoverSignature && weatherPopover.innerHTML.trim()) return;
-    lastRenderedPopoverSignature = sig;
-
-    // 预报更新会重绘浮层，保留仍处于手动刷新状态的按钮及旋转动画。
-    const refreshingButton = weatherPopover.querySelector('#weatherRefreshBtn[aria-busy="true"]');
-    weatherPopover.innerHTML = `
-        <div class="flex items-center justify-between pb-2.5 mb-3 border-b border-white/10">
-            <div class="flex items-center gap-1.5 min-w-0 pr-2">
-                <span class="text-xs text-white/50 shrink-0 flex items-center justify-center">${getWeatherIconHTML('📍', 'size-3.5')}</span>
-                <span class="text-xs font-semibold text-white/90 truncate" title="${escapeHtml(loc.fullName || loc.name || '')}">${escapeHtml(loc.fullName || loc.name || '')}</span>
-            </div>
-            <button id="weatherRefreshBtn" type="button" class="group size-7 apple-radius bg-white/5 hover:bg-white/15 text-white flex items-center justify-center glass-interactive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 shrink-0 disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none" title="${escapeHtml(t('ui.refresh.weather'))}" aria-label="${escapeHtml(t('ui.refresh.weather'))}">
-                <svg class="size-3.5 pointer-events-none opacity-70 group-hover:opacity-100" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>
-            </button>
-        </div>
-
-        <div class="flex items-center justify-between gap-3 mb-3 px-1">
-            <div class="flex items-center gap-3 min-w-0">
-                <span class="text-3xl sm:text-4xl leading-none select-none shrink-0 flex items-center justify-center">${getWeatherIconHTML(c.icon, 'size-10 sm:size-12')}</span>
-                <div class="min-w-0">
-                    <div id="tempUnitToggleBtn" role="button" tabindex="0" class="text-2xl font-normal tracking-tight text-white leading-none cursor-pointer select-none rounded hover:opacity-85 transition-opacity inline-block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" title="${escapeHtml(t('weather.toggle.unit'))}" aria-label="${escapeHtml(t('weather.toggle.unit'))}"><span class="font-bold">${c.temp}</span><span class="text-base font-normal text-white/70">°${unit}</span></div>
-                    <div class="text-xs text-white/75 mt-1${getLocale() === 'zh-CN' ? ' flex flex-wrap items-baseline gap-x-1' : ''}">
-                        <span>${escapeHtml(c.weatherText)}</span>
-                        ${getLocale() === 'zh-CN' ? '<span aria-hidden="true">·</span>' : ''}
-                        <span class="whitespace-nowrap${getLocale() === 'zh-CN' ? '' : ' block mt-0.5'}">${escapeHtml(t('weather.feels.like', { temperature: c.apparent }))}</span>
-                    </div>
-                </div>
-            </div>
-            ${days[0] ? `<div class="text-right text-xs text-white/60 shrink-0 whitespace-nowrap"><div>${escapeHtml(t('weather.high', { temperature: days[0].tempMax }))}</div><div class="mt-0.5">${escapeHtml(t('weather.low', { temperature: days[0].tempMin }))}</div></div>` : ''}
-        </div>
-
-        <div class="grid grid-cols-2 gap-2 mb-3">
-            ${weatherCard(getWeatherIconHTML(humIcon, 'size-4'), t('ui.humidity'), c.humidity + '%')}
-            ${weatherCard(getWeatherIconHTML(windIcon, 'size-4'), t('ui.wind.speed'), c.windSpeed + ' km/h')}
-            ${weatherCard(getWeatherIconHTML(popIcon, 'size-4'), t('ui.rain.chance'), popVal + '%')}
-            ${weatherCard(getWeatherIconHTML(sunIcon, 'size-4'), sunLabel, sunTime)}
-        </div>
-
-        <div class="space-y-1.5 pt-2 border-t border-white/10">
-            <div class="flex items-center justify-between gap-2 px-1 mb-1">
-                <span class="text-2xs text-white/50 font-medium">${escapeHtml(t('ui.upcoming.forecast'))}</span>
-                <a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer" class="shrink-0 text-2xs text-white/50 hover:text-white/80 transition-colors rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" aria-label="${escapeHtml(t('ui.weather.data.open.meteo.opens.in'))}">
-                    Open-Meteo
-                </a>
-            </div>
-            ${days.slice(0, CONFIG.WEATHER.FORECAST_DISPLAY_DAYS).map((/** @type {any} */ d) => `
+    const humIcon = humidity < CONFIG.WEATHER.HUMIDITY_LOW_THRESHOLD ? '🌵' : humidity > CONFIG.WEATHER.HUMIDITY_HIGH_THRESHOLD ? '💦' : '💧';
+    const windIcon = windSpeed >= CONFIG.WEATHER.WIND_HIGH_THRESHOLD ? '🌪️' : windSpeed >= CONFIG.WEATHER.WIND_MID_THRESHOLD ? '🎏' : '🍃';
+    const popIcon = pop >= CONFIG.WEATHER.POP_HIGH_THRESHOLD ? '☔️' : pop >= CONFIG.WEATHER.POP_MID_THRESHOLD ? '☂️' : '🌂';
+    view.stats.innerHTML = `
+        ${weatherCard(getWeatherIconHTML(humIcon, 'size-4'), t('ui.humidity'), Number.isFinite(humidity) ? humidity + '%' : '--')}
+        ${weatherCard(getWeatherIconHTML(windIcon, 'size-4'), t('ui.wind.speed'), Number.isFinite(windSpeed) ? windSpeed + ' km/h' : '--')}
+        ${weatherCard(getWeatherIconHTML(popIcon, 'size-4'), t('ui.rain.chance'), Number.isFinite(pop) ? pop + '%' : '--')}
+        ${weatherCard(getWeatherIconHTML(sunrise ? '🌅' : '🌇', 'size-4'), sunLabel, sunTime)}
+    `;
+    view.forecast.innerHTML = `
+            ${days.map(d => `
                 <div class="flex items-center justify-between text-xs py-1 px-1.5 apple-radius hover:bg-white/5 transition-colors">
                     <span class="w-10 text-white/70 font-medium shrink-0">${escapeHtml(d.label)}</span>
                     <div class="flex items-center gap-2 flex-1 min-w-0 pl-7 sm:pl-8">
@@ -486,9 +468,7 @@ export function renderWeatherPopover(data) {
                     <span class="w-16 text-right tabular-nums text-white/80 shrink-0">${d.tempMin}° ~ ${d.tempMax}°</span>
                 </div>
             `).join('')}
-        </div>
     `;
-    if (refreshingButton) weatherPopover.querySelector('#weatherRefreshBtn')?.replaceWith(refreshingButton);
 }
 
 /** @type {{ controller: AbortController, promise: Promise<void> } | null} */
@@ -505,6 +485,13 @@ export function resetWeather() {
     currentWeatherData = null;
     const results = [CONFIG.KEYS.WEATHER_LOC, CONFIG.KEYS.WEATHER_CACHE, CONFIG.KEYS.TEMP_UNIT].map(storageRemove);
     renderWeatherCapsule(null);
+    const view = getWeatherView();
+    if (view) {
+        for (const part of [view.location, view.icon, view.temp, view.current, view.range, view.stats, view.forecast]) {
+            part.textContent = '';
+        }
+        view.location.title = '';
+    }
     renderWeatherError(true);
     return results.every(Boolean);
 }
@@ -519,10 +506,6 @@ function readWeatherCache() {
         storageRemove(CONFIG.KEYS.WEATHER_CACHE);
         return null;
     }
-    const c = cache.current;
-    c.sunriseToday = c.sunriseToday || '--:--';
-    c.sunsetToday = c.sunsetToday || '--:--';
-    c.sunriseTomorrow = c.sunriseTomorrow || c.sunriseToday;
     return cache;
 }
 
@@ -624,8 +607,7 @@ function handleWeatherPopoverClick(e) {
     const retryBtn = /** @type {HTMLButtonElement | null} */ (target.closest('#weatherErrorRetryBtn'));
     if (retryBtn) {
         e.stopPropagation();
-        retryBtn.disabled = true;
-        retryBtn.innerHTML = `${getWeatherIconHTML('🔄', 'size-3.5')} ${escapeHtml(t('ui.retrying'))}`;
+        renderWeatherPopover(null);
         updateWeather(true);
         return;
     }
@@ -633,22 +615,16 @@ function handleWeatherPopoverClick(e) {
     const refBtn = /** @type {HTMLButtonElement | null} */ (target.closest('#weatherRefreshBtn'));
     if (refBtn) {
         e.stopPropagation();
-        if (refBtn.disabled) return;
-        refBtn.disabled = true;
+        if (refBtn.hasAttribute('aria-busy')) return;
+        refBtn.setAttribute('aria-disabled', 'true');
         refBtn.setAttribute('aria-busy', 'true');
         const svg = refBtn.querySelector('svg');
-        if (svg) svg.classList.add('weather-spin');
-        const startTime = Date.now();
-        const cycleMs = 600;
-        updateWeather(true).finally(() => {
-            const elapsed = Date.now() - startTime;
-            const targetDuration = Math.max(cycleMs, Math.ceil(elapsed / cycleMs) * cycleMs);
-            const remaining = Math.max(0, targetDuration - elapsed);
-            setTimeout(() => {
-                svg?.classList.remove('weather-spin');
-                refBtn.disabled = false;
-                refBtn.removeAttribute('aria-busy');
-            }, remaining);
+        svg?.classList.add('weather-spin');
+        const feedback = new Promise(resolve => setTimeout(resolve, CONFIG.TIMERS.WEATHER_REFRESH_FEEDBACK));
+        Promise.allSettled([updateWeather(true), feedback]).then(() => {
+            svg?.classList.remove('weather-spin');
+            refBtn.removeAttribute('aria-disabled');
+            refBtn.removeAttribute('aria-busy');
         });
     }
 }
@@ -663,22 +639,9 @@ function stopWeatherInterval() {
     }
 }
 
-/** @param {KeyboardEvent} e */
-function handleWeatherPopoverKeydown(e) {
-    if (e.key === 'Enter' || e.key === ' ') {
-        const target = /** @type {HTMLElement | null} */ (e.target instanceof HTMLElement ? e.target : null);
-        if (target?.closest('#tempUnitToggleBtn')) {
-            e.preventDefault();
-            e.stopPropagation();
-            toggleTempUnit();
-        }
-    }
-}
-
 export function initWeather() {
     if (!popoverEventsBound && dom.weatherPopover) {
         dom.weatherPopover.addEventListener('click', handleWeatherPopoverClick);
-        dom.weatherPopover.addEventListener('keydown', handleWeatherPopoverKeydown);
         popoverEventsBound = true;
     }
 

@@ -11,7 +11,7 @@ import { getLocale, localizeBookmarkUrl } from '../core/i18n.js';
 import { isScreenTransitioning } from '../core/screen-state.js';
 import { CONFIG, DEFAULT_BOOKMARKS } from '../config/constants.js';
 import { escapeHtml, safeUrl, handleRovingKeyNav } from '../utils/helpers.js';
-import { normalizeUrl, normalizeBookmarkUrl, normalizeBookmark, normalizeBookmarks, deriveNameFromUrl, faviconFromUrl } from '../utils/bookmark-model.js';
+import { normalizeUrl, normalizeBookmarkUrl, normalizeBookmark, normalizeBookmarks, normalizeBookmarkOverrides, deriveNameFromUrl, faviconFromUrl } from '../utils/bookmark-model.js';
 import { getFaviconHTML, getCategoryIconHTML, evictFaviconCache, checkImageReady } from '../utils/favicon.js';
 import { storageGet, storageSet, storageRemove } from '../utils/storage.js';
 import { pageData, state } from '../state/store.js';
@@ -32,16 +32,8 @@ function readBookmarkRecord() {
 function getCustomMeta(stored) {
     if (!stored || typeof stored !== 'object' || Array.isArray(stored)) return {};
     return Object.fromEntries(Object.entries(stored).flatMap(([url, meta]) => {
-        if (!meta || typeof meta !== 'object' || Array.isArray(meta)) return [];
-        const bookmark = normalizeBookmark({ ...meta, url,
-            name: typeof meta.name === 'string' ? meta.name : '' }, deriveNameFromUrl(url));
-        if (!bookmark) return [];
-        // 缺省文字继续继承目录；不要把清洗时的兜底名称保存为用户自定义。
-        return [[bookmark.url, {
-            ...(typeof meta.name === 'string' && meta.name.trim() ? { name: bookmark.name } : {}),
-            ...(typeof meta.icon === 'string' && safeUrl(meta.icon) !== '#' ? { icon: bookmark.icon } : {}),
-            ...(typeof meta.desc === 'string' ? { desc: bookmark.desc } : {})
-        }]];
+        const key = normalizeBookmarkUrl(url);
+        return key ? [[key, normalizeBookmarkOverrides(meta)]] : [];
     }));
 }
 
@@ -52,79 +44,40 @@ function getCustomMeta(stored) {
  * @returns {import('../types').BookmarkItem[]}
  */
 export function getDerivedBookmarks(keys, categories, customMeta = {}) {
-    const catMap = getCategoryCatalog(categories).byUrl;
-
-    return [...new Set(keys.map(normalizeUrl))].map(normalized => {
-        const catBm = catMap.get(normalized);
-        const custom = customMeta[normalized];
-        if (custom) {
-            return {
-                name: custom.name || catBm?.name || deriveNameFromUrl(normalized),
-                url: normalized,
-                icon: custom.icon || catBm?.icon || faviconFromUrl(normalized),
-                desc: custom.desc !== undefined ? custom.desc : (catBm?.desc || '')
-            };
-        }
-        if (catBm) {
-            return {
-                name: catBm.name,
-                url: catBm.url,
-                icon: catBm.icon || faviconFromUrl(catBm.url),
-                desc: catBm.desc || ''
-            };
-        }
+    const catalog = getCategoryCatalog(categories).byUrl;
+    return [...new Set(keys.map(normalizeUrl))].map(url => {
+        const entry = catalog.get(url);
+        const overrides = customMeta[url] ?? {};
         return {
-            name: deriveNameFromUrl(normalized),
-            url: normalized,
-            icon: faviconFromUrl(normalized)
+            url,
+            name: overrides.name ?? entry?.name ?? deriveNameFromUrl(url),
+            icon: overrides.icon || entry?.icon || faviconFromUrl(url),
+            desc: overrides.desc ?? entry?.desc ?? '',
+            overrides
         };
     });
 }
 
-/**
- * 判定书签字段是否有用户自定义覆盖；未修改项保持继承目录，避免将目录默认值固化为自定义。
- * @param {import('../types').BookmarkItem} bm
- * @param {import('../types').BookmarkItem | undefined} catBm
- * @param {import('../types').CustomMetaItem | undefined} previous
- * @param {boolean} isForceCustom
- * @returns {import('../types').CustomMetaItem | null}
- */
-function resolveBookmarkOverride(bm, catBm, previous, isForceCustom) {
-    if (isForceCustom || !catBm) {
-        return {
-            name: bm.name,
-            icon: bm.icon,
-            ...(bm.desc !== undefined ? { desc: bm.desc } : {})
-        };
-    }
-    const nameCustom = previous?.name !== undefined || bm.name !== catBm.name;
-    const iconCustom = bm.icon !== (catBm.icon || faviconFromUrl(catBm.url));
-    const descCustom = bm.desc !== undefined && (previous?.desc !== undefined || bm.desc !== (catBm.desc || ''));
-    if (!nameCustom && !iconCustom && !descCustom) return null;
-
-    /** @type {import('../types').CustomMetaItem} */
-    const meta = {};
-    if (nameCustom) meta.name = bm.name;
-    if (iconCustom) meta.icon = bm.icon;
-    if (descCustom) meta.desc = bm.desc;
-    return meta;
+/** @param {import('../types').BookmarkItem[]} list */
+export function getImportedBookmarks(list) {
+    const catalog = getCategoryCatalog(pageData.categories).byUrl;
+    const meta = Object.fromEntries(list.map(bookmark => {
+        const explicit = normalizeBookmarkOverrides(bookmark);
+        // 没有可继承的目录项时，备份中的显示值仍能独立恢复。
+        return [bookmark.url, catalog.has(bookmark.url)
+            ? bookmark.overrides ?? explicit : { ...explicit, ...bookmark.overrides }];
+    }));
+    return getDerivedBookmarks(list.map(bookmark => bookmark.url), pageData.categories, meta);
 }
 
 /** @param {import('../types').BookmarkItem[]} list @returns {boolean} */
 export function saveUserBookmarks(list) {
     const bookmarks = normalizeBookmarks(list, item => normalizeBookmark(item, deriveNameFromUrl(item?.url)));
     const keys = bookmarks.map(bookmark => bookmark.url);
-    const previousMeta = getCustomMeta(readBookmarkRecord()?.meta);
-    const catMetaMap = getCategoryCatalog(pageData.categories).byUrl;
-    /** @type {Record<string, import('../types').CustomMetaItem>} */
-    const customMeta = {};
-
-    for (const bm of bookmarks) {
-        const catBm = catMetaMap.get(bm.url);
-        const previous = previousMeta[bm.url];
-        const override = resolveBookmarkOverride(bm, catBm, previous, bm.customText === true);
-        if (override) customMeta[bm.url] = override;
-    }
+    const customMeta = Object.fromEntries(bookmarks.flatMap(bookmark => {
+        const overrides = bookmark.overrides ?? normalizeBookmarkOverrides(bookmark);
+        return Object.keys(overrides).length ? [[bookmark.url, overrides]] : [];
+    }));
 
     if (!storageSet(CONFIG.KEYS.BOOKMARKS, { version: 1, keys, meta: customMeta })) return false;
     pageData.bookmarks = getDerivedBookmarks(keys, pageData.categories, customMeta);
@@ -138,7 +91,8 @@ export function resetUserBookmarks() {
     if (!storageSet(CONFIG.KEYS.BOOKMARKS, { version: 1, keys: null, meta: {} })) return false;
     loadBookmarks();
     // 兼容清理只在提交后执行，失败时旧记录也不会重新生效。
-    return [CONFIG.KEYS.BOOKMARK_KEYS, CONFIG.KEYS.CUSTOM_META].map(storageRemove).every(Boolean);
+    [CONFIG.KEYS.BOOKMARK_KEYS, CONFIG.KEYS.CUSTOM_META].forEach(storageRemove);
+    return true;
 }
 
 export function loadBookmarks() {
@@ -293,8 +247,6 @@ export function scheduleOffscreenNavIcons() {
 }
 
 let isSidebarNavInitialized = false;
-/** @type {{ item: HTMLElement, top: number } | null} */
-let sidebarJump = null;
 /** @type {HTMLElement[]} */
 let cachedSidebarItems = [];
 /** @type {HTMLElement[]} */
@@ -342,7 +294,7 @@ function scrollTabIntoView(item, container) {
 
 export function updateSidebarActive() {
     const content = dom.navContent;
-    if (!dom.sidebarList || !content || sidebarJump) return;
+    if (!dom.sidebarList || !content) return;
 
     refreshSidebarNavCache();
     const items = cachedSidebarItems;
@@ -398,7 +350,6 @@ export function renderNavCategories() {
     const catalog = getCategoryCatalog(pageData.categories);
     if (catalog === lastNavCatalog) return;
     lastNavCatalog = catalog;
-    sidebarJump = null;
 
     const navContent = dom.navContent;
     // 首次构建时目录为空，无需读取滚动布局；重绘已有目录才保留位置。
@@ -506,11 +457,7 @@ function initSidebarNav(measureActive = true) {
             const firstCategory = /** @type {HTMLElement | null} */ (dom.navCategories?.firstElementChild);
             const baseOffset = firstCategory?.offsetTop ?? 0;
             const top = Math.min(content.scrollHeight - content.clientHeight, Math.max(0, target.offsetTop - baseOffset));
-            const atTarget = Math.abs(content.scrollTop - top) <= 1;
-            sidebarJump = atTarget ? null : { item: btn, top };
-            selectSidebarTab(btn);
-            // 原地点击没有 scrollend；instant 同时取消尚未开始的旧跳转。
-            content.scrollTo({ top, behavior: atTarget ? 'instant' : 'smooth' });
+            content.scrollTo({ top });
 
             const header = target.querySelector('.category-header');
             if (header) {
@@ -532,31 +479,9 @@ function initSidebarNav(measureActive = true) {
             });
         });
 
-        const interruptJump = () => {
-            if (!sidebarJump) return;
-            sidebarJump = null;
-            updateSidebarActive();
-        };
-        content.addEventListener('wheel', e => {
-            if (!e.ctrlKey && Math.abs(e.deltaY) > Math.abs(e.deltaX)) interruptJump();
-        }, { passive: true });
-        content.addEventListener('touchstart', interruptJump, { passive: true });
-        content.addEventListener('keydown', e => {
-            if (['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' '].includes(e.key)) interruptJump();
-        });
-        content.addEventListener('scrollend', () => {
-            if (!sidebarJump) return;
-            const top = Math.min(sidebarJump.top, content.scrollHeight - content.clientHeight);
-            if (Math.abs(content.scrollTop - top) > 1) return;
-            selectSidebarTab(sidebarJump.item);
-            sidebarJump = null;
-        });
-
         let ticking = false;
         content.addEventListener('scroll', () => {
             if (!navAllIconsActivated) activateAllNavIcons();
-            if (state.currentSection !== 'nav') sidebarJump = null;
-            if (sidebarJump) return;
             if (!ticking) {
                 requestAnimationFrame(() => {
                     updateSidebarActive();

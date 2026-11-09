@@ -30,8 +30,6 @@ export function setScreenNavHandlers(handlers) {
 
 let isTransitioning = false;
 let sectionInitialized = false;
-/** @type {ReturnType<typeof setTimeout>|null} */
-let transitionTimer = null;
 /** @type {AbortController|null} */
 let transitionAbortController = null;
 /** @type {Set<() => void>} */
@@ -51,8 +49,6 @@ function preventTransitionScroll(e) {
 
 // 普通切屏与唤醒校准共用任务清理，防止旧动画回调干扰下一次切换。
 function clearTransitionTasks() {
-    if (transitionTimer) clearTimeout(transitionTimer);
-    transitionTimer = null;
     if (transitionAbortController) {
         transitionAbortController.abort();
         transitionAbortController = null;
@@ -86,10 +82,6 @@ function prepareScreenTransition() {
     });
 }
 
-function isReducedMotion() {
-    return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-}
-
 /**
  * @param {HTMLElement|null|undefined} nav
  * @param {'start'|'nav'} targetSection
@@ -98,6 +90,7 @@ function isReducedMotion() {
 function waitForScreenTransition(nav, targetSection, onComplete) {
     const signal = transitionAbortController?.signal;
     const finish = () => {
+        if (signal?.aborted) return;
         if (state.currentSection !== targetSection) {
             clearTransitionTasks();
             return;
@@ -110,24 +103,18 @@ function waitForScreenTransition(nav, targetSection, onComplete) {
             clearTransitionTasks();
         }
     };
-    if (nav && signal) {
-        /** @param {TransitionEvent} e */
-        const onEnd = e => {
-            if (e.target === nav && (e.propertyName === 'transform' || e.propertyName === '-webkit-transform' || e.propertyName === 'opacity')) finish();
-        };
-        nav.addEventListener('transitionend', onEnd, { signal });
-    }
-    // 切屏前已提交过样式，这里再读 transitionDuration 会让浏览器同步重算整棵树；
-    // 减弱动效立即完成，其余由 transitionend 和兜底计时器驱动。
-    if (!nav || isReducedMotion()) {
+    if (!nav || !signal || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
         finish();
         return;
     }
-    const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
-    if (signal) {
-        motion.addEventListener('change', () => { if (motion.matches) finish(); }, { signal });
-    }
-    transitionTimer = setTimeout(finish, CONFIG.GESTURE.TRANSITION_MS + CONFIG.GESTURE.TIMEOUT_BUFFER_MS);
+    // 目标样式提交后读取导航屏的主过渡，完成、取消或无过渡走同一条收尾路径。
+    const frame = requestAnimationFrame(() => {
+        const transition = nav.getAnimations().find(animation =>
+            'transitionProperty' in animation && animation.transitionProperty === 'transform');
+        if (transition) transition.finished.then(finish, finish);
+        else finish();
+    });
+    signal.addEventListener('abort', () => cancelAnimationFrame(frame), { once: true });
 }
 
 /**
@@ -273,14 +260,13 @@ function switchSection(section) {
     waitForScreenTransition(dom.navSection, section, () => {
         if (section === 'nav') {
             refreshNav();
-            resetPageScroll();
         } else {
             // 返回按钮允许从内容中间离开；先归零再隐藏整屏，
             // 避免读取 scrollTop 时刚被 nav-hidden 弄脏样式而强制重算，也避免入场前重绘列表。
             resetNavScroll();
-            resetPageScroll();
             finishNavExit();
         }
+        resetPageScroll();
     });
     if (section === 'nav') {
         afterScreenTransition(() => {

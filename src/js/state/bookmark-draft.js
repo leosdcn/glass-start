@@ -1,31 +1,41 @@
 import { modalState } from './store.js';
 
-/** 草稿修改集中在此；调用方负责渲染与焦点，不从 DOM 读取书签字段。 */
-/** @param {Array<import('../types').BookmarkItem & {id?: string, origUrl?: string}>} bookmarks @param {boolean} [changed] */
+/** @typedef {import('../types').BookmarkItem & {id?: string, origUrl?: string}} DraftInput */
+
+/** @param {DraftInput} bookmark @param {string} id @returns {import('../types').DraftBookmarkItem} */
+function createDraft(bookmark, id) {
+    const { name = '', icon = '', desc, url = '', origUrl = url } = bookmark;
+    const overrides = { ...(bookmark.overrides ?? { name, icon, desc }) };
+    return {
+        id, url, origUrl, overrides,
+        get name() { return overrides.name ?? name; },
+        get icon() { return overrides.icon ?? icon; },
+        get desc() { return overrides.desc ?? desc; }
+    };
+}
+
+/** 草稿修改集中在此；调用方负责渲染与焦点，不从 DOM 读取书签字段。
+ * @param {DraftInput[]} bookmarks @param {boolean} [changed]
+ */
 export function replaceBookmarkDraft(bookmarks, changed = false) {
-    modalState.draftBookmarks = bookmarks.map((bm, i) => ({
-        id: bm.id || `bm_${Date.now()}_${i}`,
-        name: bm.name || '',
-        url: bm.url || '',
-        icon: bm.icon || '',
-        origUrl: bm.origUrl || bm.url || '',
-        desc: bm.desc,
-        customText: bm.customText
-    }));
+    const revision = Date.now();
+    modalState.draftBookmarks = bookmarks.map((bookmark, i) => createDraft(bookmark, bookmark.id || `bm_${revision}_${i}`));
     modalState.bookmarksChanged = changed;
 }
 
-/** @param {import('../types').DraftBookmarkItem} bookmark */
+/** @param {DraftInput & {id: string}} bookmark */
 export function appendBookmarkDraft(bookmark) {
-    modalState.draftBookmarks.push(bookmark);
+    const draft = createDraft(bookmark, bookmark.id);
+    modalState.draftBookmarks.push(draft);
     modalState.bookmarksChanged = true;
+    return draft;
 }
 
 /** @param {string} id @param {{name?: string, url?: string}} fields */
 export function updateBookmarkDraft(id, fields) {
     const item = modalState.draftBookmarks.find(bookmark => bookmark.id === id);
     if (!item) return null;
-    if (fields.name !== undefined) item.name = fields.name;
+    if (fields.name !== undefined) item.overrides.name = fields.name;
     if (fields.url !== undefined) item.url = fields.url;
     modalState.bookmarksChanged = true;
     return item;

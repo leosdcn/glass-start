@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict';
-import vm from 'node:vm';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { DIST_DIR, startServer } from './support/server.mjs';
@@ -7,6 +6,7 @@ import { launchChrome } from './support/cdp.mjs';
 import { getFreePort, createEvaluator, waitFor } from './support/helpers.mjs';
 
 const source = readFileSync(join(DIST_DIR, 'sw.js'), 'utf8');
+const builtVersion = readFileSync(join(DIST_DIR, 'index.html'), 'utf8').match(/__GLASS_BUILD_HTML__="([^"]+)"/)[1];
 let version = 101, failApp = false, failWallpaper = false, mismatch = false, offline = false;
 let wallpaperBodies = 0, wallpaperValidations = 0;
 let secondVersion = 105;
@@ -14,10 +14,13 @@ const route = (kind) => (req, res) => {
   if (offline) { req.socket.destroy(); return; }
   const routeVersion = req.url.startsWith('/b/') ? secondVersion : version;
   const stamp = `app-core-v${routeVersion}`;
+  if (kind === 'app' && req.url.split('?')[0].split('/').pop() !== stamp + '.js') {
+    res.writeHead(404); res.end(); return;
+  }
   let body;
-  if (kind === 'worker') body = source.replace(/app-core-v\d+/g, stamp)
+  if (kind === 'worker') body = source.replaceAll(builtVersion, stamp)
     + "\nself.addEventListener('message', e => e.waitUntil(clients.matchAll({type:'window'}).then(list => e.ports[0].postMessage(list.length))));";
-  if (kind === 'html') body = `<!doctype html><html><head><script>window.__GLASS_BUILD_HTML__="${stamp}";</script><script src="./app.js" defer></script></head><body>version ${routeVersion}</body></html>`;
+  if (kind === 'html') body = `<!doctype html><html><head><script>window.__GLASS_BUILD_HTML__="${stamp}";</script><script src="./app-builds/${stamp}.js" defer></script></head><body>version ${routeVersion}</body></html>`;
   if (kind === 'app') body = `window.__GLASS_BUILD_APP__="${mismatch ? 'app-core-v999' : stamp}";window.appVersion=${routeVersion};fetch('./wallpapers/bg1.avif').then(r=>r.text()).then(()=>navigator.serviceWorker.register('./sw.js')).then(reg=>window.reg=reg);`;
   if (kind === 'image') body = `image-${routeVersion}-${req.url}`;
   const wallpaper = kind === 'image' && req.url === '/app/wallpapers/bg1.avif';
@@ -37,9 +40,11 @@ const route = (kind) => (req, res) => {
   res.end(body);
 };
 const server = await startServer(0, undefined, {
-  '/app/': route('html'), '/app/index.html': route('html'), '/app/app.js': route('app'),
+  '/app/': route('html'), '/app/index.html': route('html'),
+  ...Object.fromEntries([101, 102, 103, 1031, 104, 107].map(id => ['/app/app-builds/app-core-v' + id + '.js', route('app')])),
   '/app/sw.js': route('worker'), '/app/wallpapers/bg1.avif': route('image'),
-  '/b/': route('html'), '/b/index.html': route('html'), '/b/app.js': route('app'),
+  '/b/': route('html'), '/b/index.html': route('html'),
+  ...Object.fromEntries([105, 106].map(id => ['/b/app-builds/app-core-v' + id + '.js', route('app')])),
   '/b/sw.js': route('worker'), '/b/wallpapers/bg1.avif': route('image'),
   '/app/icons/test.png': route('image'),
   '/app/icons/offline.png': route('image'),
@@ -56,7 +61,7 @@ const update = async () => evalJS(`(async () => {
     worker.addEventListener('statechange', () => { if (['installed','redundant'].includes(worker.state)) resolve(); });
   });
   return { waiting:!!reg.waiting, controlled:!!navigator.serviceWorker.controller,
-    app:await (await fetch('./app.js')).text(), caches:await caches.keys() };
+    app:await (await fetch('./app-builds/' + window.__GLASS_BUILD_HTML__ + '.js')).text(), caches:await caches.keys() };
 })()`);
 try {
   await send('Page.enable');
@@ -111,17 +116,20 @@ try {
   await waitFor(evalJS, `(async () => { const r = await navigator.serviceWorker.getRegistration('/app/'); return r?.active?.state === 'activated' && !r.waiting; })()`, 15000);
   const keys = await evalJS('caches.keys()');
   assert.equal(keys.includes('glass-scope-%2Fapp%2F-app-core-v104'), true);
-  assert.equal(keys.includes('glass-scope-%2Fapp%2F-app-core-v101'), false);
+  assert.equal(keys.includes('glass-scope-%2Fapp%2F-app-core-v101'), true);
   assert.equal(keys.includes('glass-scope-%2Fapp%2F-app-images-app-core-v101'), true);
   assert.equal(keys.includes('glass-scope-%2Fapp%2F-app-images-app-core-v104'), true);
   assert.equal(keys.includes('app-favicons-v1'), true);
   assert.equal(await evalJS("caches.open('app-favicons-v1').then(cache => cache.match('https://a.favicon.im/custom.test')).then(response => response.text())"), 'custom-icon');
   assert.equal(keys.includes('unrelated-cache'), true);
   assert.equal(await evalJS(`caches.open('glass-scope-%2Fapp%2F-app-images-app-core-v101').then(c=>c.match('/app/icons/offline.png')).then(r=>!!r)`),true);
-  console.log('✅ 新版激活后清理旧版本核心池，当前与上一版图片池保留供回退');
+  console.log('✅ 新版激活保留上一版核心与图片池');
   await send('Page.navigate', { url: origin + '/app/' });
   await waitFor(evalJS, 'window.appVersion === 104 && !!navigator.serviceWorker.controller');
   assert.match(await evalJS("fetch('./icons/test.png').then(r => r.text())"), /image-104/);
+  assert.match(await evalJS("fetch('./app-builds/app-core-v101.js').then(r => r.text())"), /appVersion=101/);
+  assert.equal(await evalJS("fetch('./app-builds/app-core-v100.js').then(r => r.status)"), 503);
+  console.log('✅ 新版接管后旧脚本仍按请求版本读取，缺失版本不会返回新版脚本');
   console.log('✅ 同 URL 图片跨版本获取新内容，旧 HTTP immutable 缓存不覆盖新版');
   // 同源第二实例安装与升级不能回收 A 的缓存。
   secondVersion = 105;
@@ -148,11 +156,20 @@ try {
   console.log('✅ 新版离线首次使用图片可回退上一版缓存');
   offline = false;
   await send('Network.emulateNetworkConditions', {offline:false,latency:0,downloadThroughput:-1,uploadThroughput:-1});
-  version = 107;
-  await evalJS(`caches.open('glass-scope-%2Fapp%2F-app-core-v104').then(cache=>cache.delete('./app.js'))`);
+  failApp = true;
+  await evalJS(`caches.open('glass-scope-%2Fapp%2F-app-core-v104').then(cache=>cache.delete('./app-builds/app-core-v104.js'))`);
   await send('Page.reload');
   await waitFor(evalJS, `document.querySelector('h1')?.textContent?.includes('本地应用缓存不完整')`);
-  assert.equal(await evalJS(`caches.open('glass-scope-%2Fapp%2F-app-core-v104').then(c=>c.match('./app.js')).then(r=>!!r)`), false);
+  failApp = false;
+  await evalJS(`document.querySelector('button').click()`);
+  await waitFor(evalJS, 'window.appVersion === 104 && !!navigator.serviceWorker.controller');
+  assert.equal(await evalJS('!!reg.waiting'), false);
+  console.log('✅ 网络恢复后可补齐同一构建，无需等待发布新版');
+  version = 107;
+  await evalJS(`caches.open('glass-scope-%2Fapp%2F-app-core-v104').then(cache=>cache.delete('./app-builds/app-core-v104.js'))`);
+  await send('Page.reload');
+  await waitFor(evalJS, `document.querySelector('h1')?.textContent?.includes('本地应用缓存不完整')`);
+  assert.equal(await evalJS(`caches.open('glass-scope-%2Fapp%2F-app-core-v104').then(c=>c.match('./app-builds/app-core-v104.js')).then(r=>!!r)`), false);
   await evalJS(`document.querySelector('button').click()`);
   await waitFor(evalJS, 'window.appVersion === 107 && !!navigator.serviceWorker.controller',18000).catch(async error=>{console.log(await evalJS(`({text:document.body.textContent,app:window.appVersion,url:location.href})`));throw error});
   assert.equal(await evalJS(`window.__GLASS_BUILD_HTML__ === window.__GLASS_BUILD_APP__ && window.__GLASS_BUILD_APP__ === 'app-core-v107'`),true);

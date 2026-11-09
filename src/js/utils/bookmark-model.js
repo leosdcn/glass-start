@@ -73,6 +73,18 @@ export function resolveBookmarkIcon(url, icon, origUrl = '') {
     return faviconFromUrl(url);
 }
 
+/** @param {unknown} value @returns {import('../types').CustomMetaItem} */
+export function normalizeBookmarkOverrides(value) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+    const { name, icon, desc } = /** @type {import('../types').CustomMetaItem} */ (value);
+    const trimmedIcon = typeof icon === 'string' ? icon.trim() : '';
+    return {
+        ...(typeof name === 'string' && name.trim() ? { name: name.trim().slice(0, CONFIG.SECURITY.MAX_NAME_CHARS) } : {}),
+        ...(trimmedIcon && safeUrl(trimmedIcon) !== '#' ? { icon: trimmedIcon } : {}),
+        ...(typeof desc === 'string' ? { desc: desc.trim().slice(0, CONFIG.SECURITY.MAX_DESC_CHARS) } : {})
+    };
+}
+
 /**
  * 书签入口共用的字段清洗。
  * @param {any} item
@@ -89,7 +101,9 @@ export function normalizeBookmark(item, fallbackName = '', origUrl = '') {
     const bookmark = { name, url, icon: resolveBookmarkIcon(url, item.icon, origUrl) };
     // 缺省继承目录简介，空字符串是明确清空；不能将两者归并。
     if (typeof item.desc === 'string') bookmark.desc = item.desc.trim().slice(0, CONFIG.SECURITY.MAX_DESC_CHARS);
-    if (item.customText === true) bookmark.customText = true;
+    if (item.overrides && typeof item.overrides === 'object' && !Array.isArray(item.overrides)) {
+        bookmark.overrides = normalizeBookmarkOverrides(item.overrides);
+    }
     return bookmark;
 }
 

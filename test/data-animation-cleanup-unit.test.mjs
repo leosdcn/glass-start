@@ -77,7 +77,13 @@ function fixture() {
     document.querySelectorAll = () => [];
     document.getElementById = id => ({ editList: list, bgLayer: base, bgLayerNext: next, bookmarkCountBadge: badge })[id] ?? null;
     document.body = new Element('body');
-    const timers = new Map(), frames = new Map(), images = []; let id = 0;
+    const timers = new Map(), frames = new Map(), images = [], fades = []; let id = 0;
+    next.animate = () => {
+        const { promise, resolve, reject } = Promise.withResolvers();
+        const fade = { finished: promise, finish: resolve, cancel: () => reject(new Error('cancelled')) };
+        fades.push(fade);
+        return fade;
+    };
     const context = vm.createContext({ module: { exports: {} }, console, document, Element,
         window: { matchMedia: () => motion, __GLASS_I18N__: { locale: 'zh-CN', messages: { 'zh-CN': messages } } }, CSS: { escape: value => value },
         setTimeout: fn => { timers.set(++id, fn); return id; }, clearTimeout: key => timers.delete(key),
@@ -89,7 +95,7 @@ function fixture() {
     app.modalState.draftBookmarks = rows.map(row => ({ id: row.dataset.id, name: row.dataset.id, url: 'https://example.test', icon: '' }));
     app.bindEditEvents();
     const child = (row, kind) => { const el = new Element(kind); el.parentNode = row; return el; };
-    return { app, rows, list, base, next, badge, motion, images, timers, frames,
+    return { app, rows, list, base, next, badge, motion, images, timers, frames, fades,
         remove: row => list.emit('click', { target: child(row, 'del-btn') }),
         reorder: row => list.emit('keydown', { target: child(row, 'drag-handle'), altKey: true, key: 'ArrowDown' }),
         flushFrames() { for (const [key, fn] of [...frames]) { frames.delete(key); fn(); } },
@@ -157,35 +163,50 @@ test('新排序和删除接管旧 FLIP，旧收尾不能清除新动效', () => 
     assert.equal(f.motion.listeners.get('change').size, 0);
 });
 
-test('新图片加载或解码失败不阻断旧淡入的 rAF、计时器及图层收尾', async () => {
-    for (const beforeFrame of [true, false]) {
-        for (const decodeFailure of [true, false]) {
-            const f = fixture();
-            f.app.applyWallpaper('./wallpapers/bg1.avif', true);
-            await f.images[0].onload();
-            if (!beforeFrame) f.flushFrames();
-            f.app.applyWallpaper('./wallpapers/bg2.avif', true);
-            if (decodeFailure) {
-                f.images[1].decode = async () => { throw new Error('broken'); };
-                await f.images[1].onload();
-            } else f.images[1].onerror();
-            f.flushFrames(); f.flushTimers();
-            assert.equal(f.base.style.backgroundImage, 'url("./wallpapers/bg1.avif")');
-            assert.equal(f.next.style.opacity, '0');
-            assert.equal(f.next.classList.contains('is-crossfading'), false);
-            assert.equal(f.timers.size, 0);
-        }
+test('新图片失败后，旧淡入仍由动画对象完成换层', async () => {
+    for (const decodeFailure of [true, false]) {
+        const f = fixture();
+        f.app.applyWallpaper('./wallpapers/bg1.avif', true);
+        await f.images[0].onload();
+        f.app.applyWallpaper('./wallpapers/bg2.avif', true);
+        if (decodeFailure) {
+            f.images[1].decode = async () => { throw new Error('broken'); };
+            await f.images[1].onload();
+        } else f.images[1].onerror();
+        f.fades[0].finish();
+        await f.fades[0].finished;
+        assert.equal(f.base.style.backgroundImage, 'url("./wallpapers/bg1.avif")');
+        assert.equal(f.next.style.opacity, '0');
+        assert.equal(f.next.classList.contains('is-crossfading'), false);
+        assert.equal(f.timers.size, 0);
     }
 });
 
 test('较新壁纸完成后，旧淡入回调不能覆盖它', async () => {
     const f = fixture();
     f.app.applyWallpaper('./wallpapers/bg1.avif', true);
-    await f.images[0].onload(); f.flushFrames();
-    const oldTimer = [...f.timers.values()][0];
+    await f.images[0].onload();
+    const oldFade = f.fades[0];
     f.app.applyWallpaper('./wallpapers/bg2.avif', false);
     await f.images[1].onload();
-    oldTimer(); f.flushFrames(); f.flushTimers();
+    await assert.rejects(oldFade.finished);
+    assert.equal(f.base.style.backgroundImage, 'url("./wallpapers/bg2.avif")');
+    assert.equal(f.next.classList.contains('is-crossfading'), false);
+});
+
+test('减弱动效直接提交壁纸，切换偏好会结束已开始的淡入', async () => {
+    const f = fixture();
+    f.motion.matches = true;
+    f.app.applyWallpaper('./wallpapers/bg1.avif', true);
+    await f.images[0].onload();
+    assert.equal(f.fades.length, 0);
+    assert.equal(f.base.style.backgroundImage, 'url("./wallpapers/bg1.avif")');
+    f.motion.matches = false;
+    f.app.applyWallpaper('./wallpapers/bg2.avif', true);
+    await f.images[1].onload();
+    assert.equal(f.fades.length, 1);
+    f.motion.matches = true;
+    f.motion.emit('change');
     assert.equal(f.base.style.backgroundImage, 'url("./wallpapers/bg2.avif")');
     assert.equal(f.next.classList.contains('is-crossfading'), false);
 });

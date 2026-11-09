@@ -34,6 +34,8 @@ export function initDragSort() {
     let indicatorTarget = null;
     /** @type {boolean | null} */
     let indicatorIsTop = null;
+    /** @type {DOMRect | null} */
+    let cachedListRect = null;
     const editList = dom.editList;
     if (!editList) return;
     const currentEditList = editList;
@@ -123,6 +125,7 @@ export function initDragSort() {
             card.setAttribute('draggable', 'false');
         });
         clearDragClasses();
+        cachedListRect = null;
         dragSrc = null;
         touchIdentifier = null;
         if (hadPointerDrag) blurActiveHandle();
@@ -307,6 +310,7 @@ export function initDragSort() {
         touchIdentifier = touch.identifier;
         touchClientX = touch.clientX;
         touchClientY = touch.clientY;
+        cachedListRect = currentEditList.getBoundingClientRect();
         blurActiveHandle();
         dragSrc = card;
         card.classList.add('dragging');
@@ -318,7 +322,8 @@ export function initDragSort() {
         if (!dragSrc || touchIdentifier === null) return;
 
         // 容器上下边缘自适应平滑滚动 (应对长列表场景)
-        const listRect = currentEditList.getBoundingClientRect();
+        if (!cachedListRect) cachedListRect = currentEditList.getBoundingClientRect();
+        const listRect = cachedListRect;
         const edgeZone = 36;
         const beforeScroll = currentEditList.scrollTop;
         if (touchClientY < listRect.top + edgeZone) {

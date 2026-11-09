@@ -498,11 +498,24 @@ try {
     await Promise.all(['glass-scope-%2F-app-core-vclear-test','glass-scope-%2Fother%2F-app-core-vkeep-test',
       'unrelated-cache',CONFIG.CACHE.FAVICON].map(key => caches.open(key)));
     sessionStorage.setItem('clearCacheBookmarks',localStorage.getItem(CONFIG.KEYS.BOOKMARKS));
-    await openEditModal(); document.querySelector('#tab-btn-data').click(); dom.clearCacheBtn.click();
+    await openEditModal();
+    const name = dom.editList.querySelector('.edit-name');
+    name.value = '清缓存前未保存'; name.dispatchEvent(new Event('input', { bubbles: true }));
+    document.querySelector('#tab-btn-data').click(); dom.clearCacheBtn.click();
   })()`);
   await waitFor(evalJS,'OverlayStack.top()?.id === "confirmModal"');
   await send('Page.addScriptToEvaluateOnNewDocument',{source:"window.__cacheClearReloaded = true;"});
-  await evalJS('dom.confirmOkBtn.click()');
+  assert.equal(await evalJS(`(() => {
+    const warned = dom.confirmMsg.textContent.includes('刷新将丢弃未保存的更改');
+    const keys = CacheStorage.prototype.keys;
+    CacheStorage.prototype.keys = function() {
+      return new Promise(resolve => { window.releaseCacheKeys = () => resolve(keys.call(this)); });
+    };
+    dom.confirmOkBtn.click();
+    dom.cancelEditBtn.click();
+    return warned && modalState.phase === 'committing' && dom.tabData.inert && state.editOpen;
+  })()`), true);
+  await evalJS('releaseCacheKeys()');
   await waitFor(evalJS,'window.__cacheClearReloaded === true && typeof state !== "undefined" && !!document.querySelector(".bookmark-item")',10000);
   assert.deepEqual(await evalJS(`(async () => ({
     ownRemoved:!await caches.has('glass-scope-%2F-app-core-vclear-test'),

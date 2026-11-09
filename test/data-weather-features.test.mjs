@@ -141,14 +141,24 @@ test('天气交互、弹窗规范与休眠感知套件', async (t) => {
     await t.test('键盘连续切换温度单位后保留控件焦点', async () => {
       await evalJS(`document.getElementById('tempUnitToggleBtn').focus()`);
       for (const [key, code, unit] of [['Enter', 'Enter', 'F'], [' ', 'Space', 'C']]) {
-        await send('Input.dispatchKeyEvent', { type: 'keyDown', key, code });
-        await send('Input.dispatchKeyEvent', { type: 'keyUp', key, code });
+        const windowsVirtualKeyCode = key === 'Enter' ? 13 : 32;
+        await send('Input.dispatchKeyEvent', { type: 'keyDown', key, code, windowsVirtualKeyCode, text: key === 'Enter' ? '\r' : ' ' });
+        await send('Input.dispatchKeyEvent', { type: 'keyUp', key, code, windowsVirtualKeyCode });
         const result = await evalJS(`({
           focused: document.activeElement?.id,
           unit: localStorage.getItem('glass_temp_unit')
         })`);
         assert.deepEqual(result, { focused: 'tempUnitToggleBtn', unit });
       }
+    });
+
+    await t.test('预报更新保留温标控件和键盘焦点', async () => {
+      assert.equal(await evalJS(`(() => {
+        const button = document.querySelector('#tempUnitToggleBtn');
+        button.focus();
+        renderWeatherPopover({current:{temp:25}, daily:[]});
+        return button === document.querySelector('#tempUnitToggleBtn') && document.activeElement === button;
+      })()`), true);
     });
 
     await t.test('太阳提示使用天气地点时区，兼容夏令时及无时区旧缓存', async () => {
@@ -369,7 +379,7 @@ test('天气交互、弹窗规范与休眠感知套件', async (t) => {
           const current = dom.weatherPopover.querySelector('#weatherRefreshBtn');
           return {
             updated: storageGet(CONFIG.KEYS.WEATHER_CACHE).current.temp === 37,
-            busy: current.disabled && current.getAttribute('aria-busy') === 'true',
+            busy: current.getAttribute('aria-disabled') === 'true' && current.getAttribute('aria-busy') === 'true',
             spinning: current.querySelector('svg').classList.contains('weather-spin')
           };
         } finally { window.fetch = originalFetch; }
@@ -377,7 +387,7 @@ test('天气交互、弹窗规范与休眠感知套件', async (t) => {
       assert.deepEqual(state, {updated:true,busy:true,spinning:true});
       await waitFor(evalJS, `(() => {
         const button = dom.weatherPopover.querySelector('#weatherRefreshBtn');
-        return !button.disabled && !button.hasAttribute('aria-busy') && !button.querySelector('.weather-spin');
+        return !button.hasAttribute('aria-disabled') && !button.hasAttribute('aria-busy') && !button.querySelector('.weather-spin');
       })()`);
     });
   } finally {

@@ -16,9 +16,10 @@ export function weatherNum(value, fallback) {
  * 将摄氏度转换为当前显示单位的数值
  * @param {unknown} celsius
  * @param {'C' | 'F' | string} [unit]
- * @returns {number}
+ * @returns {number | '--'}
  */
 export function toDisplayTemp(celsius, unit = 'C') {
-    const c = weatherNum(celsius, 0);
+    const c = weatherNum(celsius, NaN);
+    if (!Number.isFinite(c)) return '--';
     return unit === 'F' ? Math.round(c * 1.8 + 32) : Math.round(c);
 }

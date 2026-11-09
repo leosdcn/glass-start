@@ -35,9 +35,15 @@ function fixture() {
     const base = new Element(), next = new Element(), images = [], messages = [];
     const storage = new Map(), metrics = { storageWrites: 0, decodes: 0 };
     const db = { value: null, writes: 0, attempts: 0, fail: false, gate: null };
-    const frames = new Map(), timers = new Map(); let id = 0;
+    const fades = [];
+    next.animate = () => {
+        const { promise, resolve, reject } = Promise.withResolvers();
+        fades.push(resolve);
+        return { finished: promise, cancel: () => reject(new Error('cancelled')) };
+    };
     const context = vm.createContext({
         module: { exports: {} }, console, Element, db, messages,
+        window: { matchMedia: () => ({ matches: false, addEventListener() {}, removeEventListener() {} }) },
         document: { getElementById: key => ({ bgLayer: base, bgLayerNext: next })[key] ?? null },
         localStorage: { getItem: key => storage.get(key) ?? null,
             setItem(key, value) { metrics.storageWrites++; storage.set(key, value); },
@@ -50,9 +56,7 @@ function fixture() {
                 if (this.decodeGate) await this.decodeGate;
                 if (this.broken) throw new Error('Decode failed');
             }
-        },
-        requestAnimationFrame: fn => { frames.set(++id, fn); return id; },
-        setTimeout: fn => { timers.set(++id, fn); return id; }, clearTimeout: key => timers.delete(key)
+        }
     });
     vm.runInContext(outputFiles[0].text, context);
     return { app: context.module.exports, images, db, metrics, messages, base, next,
@@ -62,9 +66,9 @@ function fixture() {
             if (images.length > before) await images.at(-1).onload();
             return pending;
         },
-        settleFade() {
-            for (const [key, fn] of [...frames]) { frames.delete(key); fn(); }
-            for (const [key, fn] of [...timers]) { timers.delete(key); fn(); }
+        async settleFade() {
+            fades.splice(0).forEach(finish => finish());
+            await Promise.resolve();
         }
     };
 }
@@ -85,7 +89,7 @@ test('同一网络壁纸只创建和解码一张图片，预览、渲染及并�
     assert.equal(f.images.length, 1, '正式渲染不得重新创建图片');
     release();
     assert.equal(await first, true);
-    f.settleFade();
+    await f.settleFade();
     const storageWrites = f.metrics.storageWrites;
     assert.equal(await f.app.selectWallpaper(url), true);
     assert.equal(f.images.length, 1);
@@ -156,7 +160,7 @@ test('旧网络图片解码迟到或被重置，不触发渲染或持久化', as
     await f.selectPreset(f.app.backgrounds[2]);
     assert.equal(await first, false);
     release(); await loading; await drain();
-    f.settleFade();
+    await f.settleFade();
     assert.equal(f.db.value.bg, 2);
     assert.equal(f.db.writes, 1);
     assert.match(f.base.style.backgroundImage, /bg3\.avif/);

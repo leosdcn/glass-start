@@ -71,24 +71,28 @@ test('并发网页构建各自产生一致快照，测试服务不读取随后�
   for (const build of builds) if (build.status === 'rejected') throw build.reason;
 
   const read = (directory, name) => fs.readFileSync(join(directory, name), 'utf8');
+  const buildId = directory => read(directory, 'index.html').match(/__GLASS_BUILD_HTML__="([^"]+)"/)?.[1];
   const verify = (directory, version) => {
     assert.match(read(directory, 'index.html'), new RegExp(`__GLASS_BUILD_HTML__="${version}"`));
-    assert.match(read(directory, 'app.js'), new RegExp(`__GLASS_BUILD_APP__="${version}"`));
+    assert.match(read(directory, `app-builds/${version}.js`), new RegExp(`__GLASS_BUILD_APP__="${version}"`));
     assert.ok(read(directory, 'sw.js').includes(version));
     assert.ok(fs.existsSync(join(directory, 'wallpapers/bg1.avif')));
   };
   for (const [i, snapshot] of [snapshotA, snapshotB].entries()) {
-    const version = `app-core-v${1790000000000 + i}`;
+    const version = buildId(join(snapshot, 'dist'));
+    assert.match(version, new RegExp(`^app-core-v${1790000000000 + i}-[0-9a-f]{16}$`));
     verify(join(snapshot, 'dist'), version);
     assert.match(read(snapshot, 'app.test.js'), new RegExp(`__GLASS_BUILD_APP__="${version}"`));
   }
   const dist = join(cwd, 'dist');
-  const publishedVersion = read(dist, 'app.js').match(/__GLASS_BUILD_APP__="(app-core-v\d+)"/)?.[1];
-  assert.ok(['app-core-v1790000000000', 'app-core-v1790000000001'].includes(publishedVersion));
+  const publishedVersion = buildId(dist);
+  assert.ok([snapshotA, snapshotB].some(snapshot => buildId(join(snapshot, 'dist')) === publishedVersion));
   verify(dist, publishedVersion);
-  assert.deepEqual(fs.readdirSync(cwd).filter(name => name.startsWith('.dist-')), []);
+  assert.equal(fs.lstatSync(dist).isSymbolicLink(), true);
+  assert.match(fs.realpathSync(dist), /[/\\]\.dist-build-[^/\\]+$/);
 
-  const snapshot = publishedVersion === 'app-core-v1790000000000' ? snapshotB : snapshotA;
+  const snapshot = publishedVersion === buildId(join(snapshotA, 'dist')) ? snapshotB : snapshotA;
+  const script = `app-builds/${buildId(join(snapshot, 'dist'))}.js`;
   await node(['--input-type=module', '-e', `
     import assert from 'node:assert/strict';
     import { readFileSync } from 'node:fs';
@@ -97,10 +101,11 @@ test('并发网页构建各自产生一致快照，测试服务不读取随后�
     for (const testMode of [true, false]) {
       const server = await startServer(0, undefined, {}, { testMode });
       try {
-        for (const file of ['index.html', 'app.js', 'sw.js']) {
+        const script = ${JSON.stringify(script)};
+        for (const file of ['index.html', script, 'sw.js']) {
           const res = await fetch('http://127.0.0.1:' + server.port + '/' + file);
           assert.ok(res.ok);
-          const expected = testMode && file === 'app.js' ? 'app.test.js' : join('dist', file);
+          const expected = testMode && file === script ? 'app.test.js' : join('dist', file);
           assert.equal(await res.text(), readFileSync(join(process.env.GLASS_TEST_TMPDIR, expected), 'utf8'));
         }
       } finally { await server.close(); }
@@ -130,6 +135,41 @@ test('发布暂存目录失败时恢复上一次完整产物', t => {
     /injected publish failure/);
   assert.equal(fs.readFileSync(join(output, 'app.js'), 'utf8'), 'previous');
   assert.deepEqual(fs.readdirSync(dir), ['dist']);
+});
+
+test('网页切换前进程被中止时旧入口继续服务，已打开的文件可读完', { skip: process.platform === 'win32' }, async t => {
+  const dir = temporaryDirectory(t);
+  const output = join(dir, 'dist');
+  const modulePath = join(root, 'scripts/publish-build.cjs');
+  const { publishWebBuild } = require(modulePath);
+  const write = value => staging => fs.writeFileSync(join(staging, 'index.html'), value);
+  fs.mkdirSync(output);
+  fs.writeFileSync(join(output, 'index.html'), 'legacy');
+  publishWebBuild(output, write('previous'));
+  assert.equal(fs.lstatSync(output).isSymbolicLink(), true);
+
+  await assert.rejects(node(['-e', `
+    const fs = require('node:fs');
+    const { join } = require('node:path');
+    const output = ${JSON.stringify(output)};
+    const rename = fs.renameSync;
+    fs.renameSync = (source, target) => {
+      if (target === output) process.kill(process.pid, 'SIGKILL');
+      rename(source, target);
+    };
+    require(${JSON.stringify(modulePath)}).publishWebBuild(output, staging =>
+      fs.writeFileSync(join(staging, 'index.html'), 'interrupted'));
+  `]), { signal: 'SIGKILL' });
+  assert.equal(fs.readFileSync(join(output, 'index.html'), 'utf8'), 'previous');
+
+  const file = fs.openSync(join(output, 'index.html'), 'r');
+  try {
+    publishWebBuild(output, write('next'));
+    assert.equal(fs.readFileSync(join(output, 'index.html'), 'utf8'), 'next');
+    assert.equal(fs.readFileSync(file, 'utf8'), 'previous');
+  } finally {
+    fs.closeSync(file);
+  }
 });
 
 test('Chrome 会话各自清理配置子目录，保留外部父目录和已有文件', async t => {

@@ -9,15 +9,19 @@ import { getFreePort, createEvaluator, waitFor, navigateAndWait } from './suppor
 const { buildAppJavaScript } = createRequire(import.meta.url)('../scripts/build.cjs');
 const html = readFileSync(join(DIST_DIR, 'index.html'), 'utf8');
 const worker = readFileSync(join(DIST_DIR, 'sw.js'), 'utf8');
+const builtVersion = html.match(/__GLASS_BUILD_HTML__="([^"]+)"/)[1];
 let version = 201, failApp = false;
 let holdApp = false, releaseApp;
 const apps = new Map();
 const route = kind => (req, res) => {
   const stamp = `app-core-v${version}`;
   let body;
-  if (kind === 'html') body = html.replace(/app-core-v\d+/g, stamp);
-  if (kind === 'worker') body = worker.replace(/app-core-v\d+/g, stamp);
+  if (kind === 'html') body = html.replaceAll(builtVersion, stamp);
+  if (kind === 'worker') body = worker.replaceAll(builtVersion, stamp);
   if (kind === 'app') {
+    if (req.url.split('?')[0] !== '/app-builds/' + stamp + '.js') {
+      res.writeHead(404); res.end(); return;
+    }
     if (!apps.has(version)) apps.set(version, buildAppJavaScript({ testMode: true, version: stamp }).outputFiles[0].contents);
     body = apps.get(version);
   }
@@ -39,7 +43,8 @@ const siblingResources = {
   '/other/icons/logo.png': 'sibling image'
 };
 const server = await startServer(0, undefined, {
-  '/': route('html'), '/index.html': route('html'), '/app.js': route('app'), '/sw.js': route('worker'),
+  '/': route('html'), '/index.html': route('html'), '/sw.js': route('worker'),
+  ...Object.fromEntries([201, 202, 203, 204, 205, 206, 207, 208].map(id => ['/app-builds/app-core-v' + id + '.js', route('app')])),
   '/manual.html': '<title>Shared origin manual</title>',
   ...siblingResources
 });
@@ -72,7 +77,7 @@ try {
     assert.equal(await evalJS(`fetch(${JSON.stringify(path)}).then(r => r.text())`), body);
   }
   assert.equal(await evalJS(`fetch('/index.html?source=probe').then(r => r.text()).then(html => html.includes('app-core-v201'))`), true);
-  assert.equal(await evalJS(`fetch('/app.js?v=app-core-v201').then(r => r.text()).then(js => js.startsWith('window.__GLASS_BUILD_APP__="app-core-v201"'))`), true);
+  assert.equal(await evalJS(`fetch('/app-builds/app-core-v201.js').then(r => r.text()).then(js => js.startsWith('window.__GLASS_BUILD_APP__="app-core-v201"'))`), true);
   assert.equal(await evalJS(`caches.open('glass-scope-%2F-app-core-v201').then(c => c.keys()).then(keys => keys.some(r => new URL(r.url).pathname.startsWith('/other/')))`), false);
   console.log('✅ 首次安装不误报更新；注册绕过 worker HTTP 缓存');
 
@@ -155,7 +160,7 @@ try {
   version = 204;
   await update();
   await waitFor(evalJS, installed);
-  await evalJS(`caches.open('glass-scope-%2F-app-core-v204').then(c => c.delete('./app.js'))`);
+  await evalJS(`caches.open('glass-scope-%2F-app-core-v204').then(c => c.delete('./app-builds/app-core-v204.js'))`);
   failApp = true;
   await evalJS(`document.getElementById('updateReloadBtn').click(); document.getElementById('confirmOkBtn').click()`);
   await waitFor(evalJS, `document.getElementById('updateNoticeText').textContent === '更新暂未完成，请重试'`,18000);
@@ -164,7 +169,7 @@ try {
   failApp = false;
   await evalJS(`document.getElementById('updateReloadBtn').click(); document.getElementById('confirmOkBtn').click()`);
   await waitFor(evalJS, `window.__GLASS_BUILD_APP__ === 'app-core-v204' && document.readyState === 'complete'`, 18000);
-  assert.equal(await evalJS(`caches.open('glass-scope-%2F-app-core-v204').then(c=>c.match('./app.js')).then(r=>!!r)`), true);
+  assert.equal(await evalJS(`caches.open('glass-scope-%2F-app-core-v204').then(c=>c.match('./app-builds/app-core-v204.js')).then(r=>!!r)`), true);
   console.log('✅ 损坏的等待版本补下载、重新校验后完成升级');
 
   for (const [next, protectedWork] of [[205, 'draft'], [206, 'search']]) {
@@ -172,7 +177,7 @@ try {
     version = next;
     await update();
     await waitFor(evalJS, installed);
-    await evalJS(`caches.open('glass-scope-%2F-app-core-v${next}').then(c => c.delete('./app.js'))`);
+    await evalJS(`caches.open('glass-scope-%2F-app-core-v${next}').then(c => c.delete('./app-builds/app-core-v${next}.js'))`);
     holdApp = true;
     await evalJS(`navigator.serviceWorker.addEventListener('controllerchange', () => { window.testControllerChanged = true; }, { once:true });
       window.testControllerChanged = false; dom.updateReloadBtn.click(); dom.confirmOkBtn.click()`);
@@ -221,6 +226,8 @@ try {
   assert.equal(await evalJS(installed), true);
   await evalJS(`dom.updateReloadBtn.click(); setTimeout(() => dom.confirmOkBtn.click(), 50); true`);
   await waitFor(evalJS, `window.__GLASS_BUILD_APP__ === 'app-core-v208' && document.readyState === 'complete'`, 15000);
+  assert.match(await evalJS(`fetch('/app-builds/app-core-v206.js').then(r => r.text())`), /__GLASS_BUILD_APP__="app-core-v206"/);
+  assert.equal(await evalJS(`fetch('/app-builds/app-core-v207.js').then(r => r.status)`), 503);
   console.log('✅ 确认期间替换了 waiting Worker 时，新目标需单独确认');
 } finally {
   releaseApp?.();

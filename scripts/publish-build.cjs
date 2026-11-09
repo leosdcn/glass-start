@@ -58,4 +58,51 @@ function publishBuild(output, populate) {
     }
 }
 
-module.exports = { publishBuild };
+/** 网页预览通过一次重命名切换发布入口。每次构建独占目标目录。 */
+function publishWebBuild(output, populate) {
+    const parent = path.dirname(output);
+    const prefix = path.join(parent, `.${path.basename(output)}-build-`);
+    const release = fs.mkdtempSync(prefix);
+    const link = release + '-link';
+    let published = false;
+    try {
+        const result = populate(release);
+        fs.chmodSync(release, 0o777 & ~process.umask());
+        fs.symlinkSync(release, link, process.platform === 'win32' ? 'junction' : 'dir');
+        const entry = fs.lstatSync(output, { throwIfNoEntry: false });
+        if (entry?.isDirectory()) {
+            // 只在迁移旧构建的实体目录时保留备份。之后的发布直接替换链接。
+            const lock = output + '.migration';
+            acquirePublishLock(lock);
+            try {
+                const backup = path.join(lock, 'previous');
+                if (fs.lstatSync(output, { throwIfNoEntry: false })?.isDirectory()) fs.renameSync(output, backup);
+                try {
+                    fs.renameSync(link, output);
+                    published = true;
+                } catch (error) {
+                    if (fs.existsSync(backup) && !fs.existsSync(output)) fs.renameSync(backup, output);
+                    throw error;
+                }
+            } finally {
+                if (fs.existsSync(output)) fs.rmSync(lock, { recursive: true, force: true });
+            }
+            return result;
+        }
+
+        const previous = entry?.isSymbolicLink() ? path.resolve(parent, fs.readlinkSync(output)) : null;
+        fs.renameSync(link, output);
+        published = true;
+        if (previous?.startsWith(prefix) && path.dirname(previous) === parent && previous !== release) {
+            fs.rmSync(previous, { recursive: true, force: true });
+        }
+        return result;
+    } finally {
+        if (!published) {
+            fs.rmSync(link, { force: true });
+            fs.rmSync(release, { recursive: true, force: true });
+        }
+    }
+}
+
+module.exports = { publishBuild, publishWebBuild };

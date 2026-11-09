@@ -124,7 +124,7 @@
     "ui.could.not.load.this.image.check": "无法加载该图片，请检查图片是否有效或恢复网络后重试。",
     "ui.image.unavailable": "图片无法加载",
     "ui.could.not.save.the.wallpaper.your": "壁纸未能保存，原有壁纸已保留。请检查浏览器存储空间或权限后重新选择。",
-    "settings.wallpaper.partialSave": "壁纸未能保存，原有壁纸已保留。{settings}的更改已保存并生效。请检查浏览器存储空间或权限后重试。",
+    "settings.partialSave": "{error}{settings}的更改已保存并生效。",
     "ui.wallpaper.not.saved": "壁纸保存失败",
     "ui.mountains.at.dusk": "暮色山峦",
     "ui.valley.sunrise": "溪谷晨曦",
@@ -174,7 +174,6 @@
     "ui.weather.unavailable": "天气获取失败",
     "ui.check.your.connection.or.location.access": "网络异常或定位受阻，请检查网络后重试",
     "ui.reload": "重新加载",
-    "ui.retrying": "正在重试...",
     "ui.loading.weather": "正在获取实时天气...",
     "ui.finding.your.location.and.updating.weather": "正在自动定位并同步气象数据",
     "ui.refresh.weather": "立即刷新天气",
@@ -200,6 +199,9 @@
     "credits.license": "查看{name}许可说明",
     "weather.capsule": "{temperature}°·{city} 实时天气{description}，点击查看详细预报",
     "weather.feels.like": "体感 {temperature}°",
+    "weather.nextSunrise": "下次日出",
+    "weather.nextSunset": "下次日落",
+    "weather.sunEvent": "日出日落",
     "weather.toggle.unit": "点击切换摄氏度与华氏度",
     "weather.high": "最高 {temperature}°",
     "weather.low": "最低 {temperature}°",
@@ -243,5 +245,8 @@
     "cache.extension.title": "临时缓存",
     "cache.extension.description": "可清理临时缓存并刷新页面，不影响已保存的书签、壁纸和设置。",
     "cache.extension.action": "清理缓存并刷新",
-    "settings.bookmarks": "快捷书签"
+    "settings.bookmarks": "快捷书签",
+    "settings.wallpaper": "壁纸",
+    "cache.discardDraft": "刷新将丢弃未保存的更改。",
+    "cache.clearFailed": "缓存清理未完成，设置草稿仍保留在当前窗口。"
 }

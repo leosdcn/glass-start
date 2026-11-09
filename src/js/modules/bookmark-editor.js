@@ -1,7 +1,7 @@
 import { t } from '../core/i18n.js';
 import { CONFIG } from '../config/constants.js';
 import { escapeHtml, safeUrl } from '../utils/helpers.js';
-import { normalizeBookmarkUrl, normalizeBookmark, normalizeBookmarks, resolveBookmarkIcon } from '../utils/bookmark-model.js';
+import { normalizeBookmarkUrl, normalizeUrl, normalizeBookmark, normalizeBookmarks, normalizeBookmarkOverrides, resolveBookmarkIcon } from '../utils/bookmark-model.js';
 import { createLetterBadgeHtml, handleFaviconFailure, checkImageReady } from '../utils/favicon.js';
 import { modalState } from '../state/store.js';
 import { appendBookmarkDraft } from '../state/bookmark-draft.js';
@@ -67,20 +67,20 @@ function getEditRowHTML(item) {
 
 /**
  * 创建并追加一条草稿书签行到编辑列表
- * @param {{ name?: string, url?: string, icon?: string, desc?: string, focus?: boolean }} [options]
+ * @param {{ name?: string, url?: string, icon?: string, desc?: string, overrides?: import('../types').CustomMetaItem, focus?: boolean }} [options]
  * @returns {HTMLElement|null} 创建的 DOM 节点
  */
-export function appendDraftBookmarkRow({ name = '', url = '', icon = '', desc, focus = false } = {}) {
+export function appendDraftBookmarkRow({ name = '', url = '', icon = '', desc, overrides = {}, focus = false } = {}) {
     const rowId = `bm_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
-    const newBm = {
+    const newBm = appendBookmarkDraft({
         id: rowId,
         name,
         url,
         icon: icon || '',
         origUrl: url || '',
-        desc
-    };
-    appendBookmarkDraft(newBm);
+        desc,
+        overrides
+    });
 
     const editList = dom.editList;
     if (!editList) return null;
@@ -125,7 +125,15 @@ export function renderEditList() {
  * @returns {import('../types').BookmarkItem[]}
  */
 export function collectEditData() {
-    return normalizeBookmarks(modalState.draftBookmarks, item => normalizeBookmark(item, '', item.origUrl));
+    return normalizeBookmarks(modalState.draftBookmarks, item => {
+        const bookmark = normalizeBookmark(item, '', item.origUrl);
+        if (!bookmark) return null;
+        if (item.origUrl && normalizeUrl(item.origUrl) !== bookmark.url) {
+            // 改换目标时保留表单文字，原地址的图标随地址解绑。
+            bookmark.overrides = normalizeBookmarkOverrides({ name: bookmark.name, desc: bookmark.desc });
+        }
+        return bookmark;
+    });
 }
 
 export function getExistingUrls() {

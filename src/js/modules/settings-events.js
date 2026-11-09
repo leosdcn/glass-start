@@ -181,15 +181,45 @@ export function bindEditEvents() {
                     }
                     finishPendingTransition(item);
                     if (item.dataset.id) removeBookmarkDraft(item.dataset.id);
+
+                    const allCards = dom.editList ? /** @type {HTMLElement[]} */ (Array.from(dom.editList.querySelectorAll('.edit-row-card'))) : [];
+                    allCards.forEach(finishPendingTransition);
+                    const itemIndex = allCards.indexOf(item);
+                    const siblingsToShift = itemIndex >= 0 ? allCards.slice(itemIndex + 1) : [];
+                    const firstTops = new Map(siblingsToShift.map(card => [card, card.getBoundingClientRect().top]));
+
                     const remove = () => {
                         item.remove();
                         updateAllBookmarkCounters();
+                        if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                            siblingsToShift.forEach(card => {
+                                if (!card.isConnected) return;
+                                const firstTop = firstTops.get(card);
+                                if (firstTop === undefined) return;
+                                const lastTop = card.getBoundingClientRect().top;
+                                const deltaY = firstTop - lastTop;
+                                if (deltaY !== 0) {
+                                    card.style.transition = 'none';
+                                    card.style.transform = `translate3d(0, ${deltaY}px, 0)`;
+                                    void card.offsetHeight;
+                                    card.style.transition = 'transform 0.28s var(--ease-soft-spring)';
+                                    card.style.transform = 'translate3d(0, 0, 0)';
+                                    card.addEventListener('transitionend', function onEnd(e) {
+                                        if (e.target === card && e.propertyName === 'transform') {
+                                            card.removeEventListener('transitionend', onEnd);
+                                            card.style.transition = '';
+                                            card.style.transform = '';
+                                        }
+                                    }, { once: true });
+                                }
+                            });
+                        }
                     };
                     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
                         remove();
                     } else {
                         const durSec = `${CONFIG.TIMERS.BOOKMARK_DELETE_DURATION / 1000}s`;
-                        item.style.transition = `opacity ${durSec} var(--ease-spring), transform ${durSec} var(--ease-spring)`;
+                        item.style.transition = `opacity ${durSec} var(--ease-exit), transform ${durSec} var(--ease-exit)`;
                         item.style.opacity = '0';
                         item.style.transform = `scale(${CONFIG.PHYSICS.BOOKMARK_DELETE_SCALE}) translateY(${CONFIG.PHYSICS.BOOKMARK_DELETE_OFFSET_Y}px)`;
                         onTransitionSettled(item, 'opacity', CONFIG.TIMERS.BOOKMARK_DELETE_DURATION, remove);

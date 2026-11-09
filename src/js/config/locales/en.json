@@ -124,7 +124,7 @@
     "ui.could.not.load.this.image.check": "Could not load this image. Check the URL or your connection and try again.",
     "ui.image.unavailable": "Image unavailable",
     "ui.could.not.save.the.wallpaper.your": "Could not save the wallpaper. Your previous wallpaper has been kept. Check storage space or permissions and try again.",
-    "settings.wallpaper.partialSave": "Could not save the wallpaper. Your previous wallpaper has been kept. Changes to {settings} were saved and are in effect. Check storage space or permissions and try again.",
+    "settings.partialSave": "{error} Changes to {settings} were saved and are in effect.",
     "ui.wallpaper.not.saved": "Wallpaper not saved",
     "ui.mountains.at.dusk": "Mountains at dusk",
     "ui.valley.sunrise": "Valley sunrise",
@@ -174,7 +174,6 @@
     "ui.weather.unavailable": "Weather unavailable",
     "ui.check.your.connection.or.location.access": "Check your connection or location access and try again",
     "ui.reload": "Reload",
-    "ui.retrying": "Retrying...",
     "ui.loading.weather": "Loading weather...",
     "ui.finding.your.location.and.updating.weather": "Finding your location and loading the weather",
     "ui.refresh.weather": "Refresh weather",
@@ -206,6 +205,9 @@
     "credits.license": "View license for {name}",
     "weather.capsule": "{city}: {temperature}°, {description}. Open detailed forecast",
     "weather.feels.like": "Feels like {temperature}°",
+    "weather.nextSunrise": "Next sunrise",
+    "weather.nextSunset": "Next sunset",
+    "weather.sunEvent": "Sunrise and sunset",
     "weather.toggle.unit": "Click to toggle °C / °F",
     "weather.high": "High {temperature}°",
     "weather.low": "Low {temperature}°",
@@ -249,5 +251,8 @@
     "cache.extension.title": "Temporary cache",
     "cache.extension.description": "Clear temporary caches and reload without changing saved bookmarks, wallpaper or settings.",
     "cache.extension.action": "Clear cache and reload",
-    "settings.bookmarks": "Bookmarks"
+    "settings.bookmarks": "Bookmarks",
+    "settings.wallpaper": "Wallpaper",
+    "cache.discardDraft": "Reloading will discard any unsaved changes.",
+    "cache.clearFailed": "Could not finish clearing the cache. Your settings draft is still open."
 }

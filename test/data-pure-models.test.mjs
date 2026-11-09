@@ -67,15 +67,15 @@ const forecast = normalizeWeatherForecast({current:{temperature_2m:21.6, is_day:
 assert.equal(forecast.timestamp, 123);
 assert.equal(forecast.current.temp, 22);
 assert.deepEqual(forecast.daily, []);
-assert.equal(forecast.current.sunriseToday, '--:--');
+assert.equal(forecast.current.sunriseToday, undefined);
 assert.equal(Object.hasOwn(forecast.current, 'weatherText'), false);
 assert.equal(normalizeWeatherForecast({ timezone: 'Europe/London' }, {lat:1, lon:2}, CONFIG.WEATHER, 123).timezone, 'Europe/London');
 assert.equal(Object.hasOwn(forecast, 'timezone'), false, '旧响应不伪造天气地点时区');
 
-test('低降水概率且当前无雨时平滑预报，高降水概率保留雨天预报', () => {
+test('当前晴天和低降水概率也保留每日预报天气码', () => {
   const location = {lat:31.230, lon:121.473, name:'上海'};
   for (const [code, pop, expected] of [
-    [51, 16, {weatherCode:1, icon:'🌤️'}],
+    [95, 16, {weatherCode:95, icon:'⛈️'}],
     [63, 80, {weatherCode:63, icon:'🌧️'}]
   ]) {
     const result = normalizeWeatherForecast({
@@ -89,6 +89,24 @@ test('低降水概率且当前无雨时平滑预报，高降水概率保留雨�
     assert.equal(Object.hasOwn(result.daily[0], 'text'), false);
     assert.equal(Object.hasOwn(result.daily[0], 'label'), false);
   }
+});
+
+test('地点跨午夜后按日期选出今日预报和下次日出', () => {
+  const data = normalizeWeatherForecast({
+    timezone: 'Asia/Shanghai',
+    daily: {
+      time: ['2026-11-08', '2026-11-09'],
+      sunrise: ['2026-11-08T06:01', '2026-11-09T06:02'],
+      sunset: ['2026-11-08T18:00', '2026-11-09T18:01'],
+      precipitation_probability_max: [10, 30]
+    }
+  }, { lat: 1, lon: 2 }, CONFIG.WEATHER, Date.parse('2026-11-08T15:55:00Z'));
+  const period = model.getForecastPeriod(data, new Date('2026-11-08T16:05:00Z'));
+  assert.equal(period.date, '2026-11-09');
+  assert.deepEqual(period.days.map(day => day.date), ['2026-11-09']);
+  assert.equal(period.today.pop, 30);
+  assert.equal(period.sun.dateTime, '2026-11-09T06:02');
+  assert.equal(data.current.temp, undefined);
 });
 
 test('昼夜及未知天气代码保留原有图标回退', () => {
@@ -132,7 +150,7 @@ test('温度单位换算及异常容错', () => {
   assert.equal(toDisplayTemp(24, 'F'), 75);
   assert.equal(toDisplayTemp(100, 'F'), 212);
   assert.equal(toDisplayTemp(-10, 'F'), 14);
-  assert.equal(toDisplayTemp('invalid', 'F'), 32);
+  assert.equal(toDisplayTemp('invalid', 'F'), '--');
   assert.equal(toDisplayTemp('25.6', 'C'), 26);
 });
 

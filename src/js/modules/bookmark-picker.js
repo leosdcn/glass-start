@@ -114,7 +114,7 @@ export function addBookmarkFromPicker(url) {
     const key = normalizeUrl(url);
     const bookmark = getCategoryCatalog(pageData.categories).byUrl.get(key);
     if (!bookmark || getExistingUrls().has(key)) return;
-    lastAddedRow = appendDraftBookmarkRow(bookmark);
+    lastAddedRow = appendDraftBookmarkRow({ ...bookmark, overrides: {} });
     updatePickerAvailability();
 }
 

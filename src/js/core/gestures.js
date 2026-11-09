@@ -26,13 +26,14 @@ export function resetActiveCard() {
         cancelAnimationFrame(rafId);
         rafId = null;
     }
-    if (activeCard) {
-        activeCard.style.transition = '';
-        activeCard.style.transform = '';
-        activeCard.style.willChange = '';
-        activeCard = null;
-        activeCardRect = null;
-    }
+    if (!activeCard) return;
+    activeCard.style.transition = '';
+    activeCard.style.transform = '';
+    activeCard.style.willChange = '';
+    activeCard.style.removeProperty('--mouse-x');
+    activeCard.style.removeProperty('--mouse-y');
+    activeCard = null;
+    activeCardRect = null;
 }
 export function initGlassSpotlightAndTilt() {
     if (isGlassSpotlightAndTiltInitialized) return;
@@ -152,17 +153,13 @@ export function initGlassSpotlightAndTilt() {
         }
     }, { passive: true });
 
-    document.addEventListener('mouseleave', resetActiveCard, { passive: true });
-    window.addEventListener('dragstart', resetActiveCard, { capture: true, passive: true });
-    window.addEventListener('blur', resetActiveCard, { passive: true });
-    window.addEventListener('resize', resetActiveCard, { passive: true });
+    const resetEvents = ['blur', 'focus', 'resize', 'dragstart', 'dragend', 'drop', 'pointercancel', 'pageshow'];
+    for (const type of resetEvents) {
+        window.addEventListener(type, resetActiveCard, { passive: true, capture: type === 'dragstart' });
+    }
     window.addEventListener('scroll', resetActiveCard, { passive: true, capture: true });
-    window.addEventListener('dragend', resetActiveCard, { passive: true });
-    window.addEventListener('drop', resetActiveCard, { passive: true });
-    window.addEventListener('pointercancel', resetActiveCard, { passive: true });
-    window.addEventListener('focus', resetActiveCard, { passive: true });
+    document.addEventListener('mouseleave', resetActiveCard, { passive: true });
     document.addEventListener('visibilitychange', () => {
         if (document.hidden) resetActiveCard();
     }, { passive: true });
-    window.addEventListener('pageshow', resetActiveCard, { passive: true });
 }

@@ -263,15 +263,15 @@ export function commitWallpaperSelection(targetWallpaper, isCurrent = () => true
     return result;
 }
 
-/** 保存等待最新的草稿选择，期间再次选择时继续等待。 */
+/** 保存等待最新的草稿选择，期间再次选择时排空等待。 */
 export async function flushWallpaperSelection() {
-    let current;
-    let result;
-    do {
-        current = wallpaperTask;
-        result = current ? await current.promise : true;
-    } while (current !== wallpaperTask);
-    return result;
+    let task = wallpaperTask;
+    while (task) {
+        const result = await task.promise;
+        if (task === wallpaperTask) return result;
+        task = wallpaperTask;
+    }
+    return true;
 }
 
 function canPreviewWallpaper() {

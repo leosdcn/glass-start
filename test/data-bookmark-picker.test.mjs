@@ -256,20 +256,37 @@ test("导入、导出与保存保留首条有效书签及其简介语义", async
                 dom.saveEditBtn.click();
                 return { importedNames, exported };
             })()`);
-            assert.deepEqual(imported, { importedNames: [a.name], exported: [item] });
+            const { url, ...override } = item;
+            const withOrigin = { ...item, desc: desc ?? '目录简介', overrides: override };
+            assert.deepEqual(imported, { importedNames: [a.name], exported: [withOrigin] });
             await waitFor(evalJS, '!dom.editModal.open');
             const saved = await evalJS(`(() => {
                 loadBookmarks();
                 const { keys, meta } = storageGet(CONFIG.KEYS.BOOKMARKS);
                 return { keys, meta, bookmarks: pageData.bookmarks };
             })()`);
-            const { url, ...override } = item;
             assert.deepEqual(saved, {
                 keys: [url],
                 meta: { [url]: override },
-                bookmarks: [{ ...item, desc: desc ?? '目录简介' }]
+                bookmarks: [withOrigin]
             });
         }
+        const backup = await evalJS(`(async () => {
+            await openEditModal();
+            replaceBookmarkDraft(getDerivedBookmarks([ ${JSON.stringify(a.url)} ], pageData.categories));
+            const backup = collectEditData();
+            importBookmarksJSON(new File([JSON.stringify({version:'1.1', bookmarks:backup})], 'backup.json'));
+            return backup;
+        })()`);
+        assert.deepEqual(backup[0].overrides, {});
+        await waitFor(evalJS, 'OverlayStack.top()?.id === "confirmModal"');
+        await evalJS('dom.confirmOkBtn.click(); saveEditModal()');
+        assert.deepEqual(await evalJS(`(() => {
+            const stored = storageGet(CONFIG.KEYS.BOOKMARKS);
+            pageData.categories[0].bookmarks[0].name = '目录更新';
+            loadBookmarks();
+            return { meta: stored.meta, name: pageData.bookmarks[0].name };
+        })()`), { meta: {}, name: '目录更新' });
     } finally {
         await chrome.close();
         await server.close();

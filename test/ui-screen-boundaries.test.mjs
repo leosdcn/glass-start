@@ -29,7 +29,7 @@ try {
         } finally { document.documentElement.classList.add('is-chrome'); }
     })()`), ['hidden', 'none', 'auto']);
 
-    // 恢复两种模式各自的时长，保留调整后的曲线，JS 兜底覆盖最长动画。
+    // 两种模式使用各自的 CSS 时长，共用速度曲线。
     assert.equal(await evalJS(`(() => {
         const original = document.documentElement.dataset.transitionMode;
         try {
@@ -38,8 +38,7 @@ try {
                 const duration = mode === 'sheet' ? 520 : 580;
                 return [dom.startSection,dom.navSection].every(node => {
                     const style = getComputedStyle(node);
-                    return duration <= CONFIG.GESTURE.TRANSITION_MS &&
-                        style.transitionDuration.split(',').every(value=>Number.parseFloat(value)*1000===duration) &&
+                    return style.transitionDuration.split(',').every(value=>Number.parseFloat(value)*1000===duration) &&
                         style.transitionTimingFunction.includes('cubic-bezier(0.28, 0.11, 0.32, 1)');
                 });
             });
@@ -57,7 +56,7 @@ try {
         return [state.currentSection, isScreenTransitioning()];
     })()`), ['nav', true]);
     await settled('nav');
-    console.log('✅ 两种模式时长已恢复、曲线保留，兜底覆盖动画，连续输入不能打断切屏');
+    console.log('✅ 两种模式时长与曲线保留，连续输入不能打断切屏');
 
     // 用浏览器真实默认滚动将内容带到顶部，再发同向尾部事件。
     await evalJS("dom.navContent.style.scrollBehavior='auto'; dom.navContent.scrollTop=30");
@@ -210,7 +209,7 @@ try {
     assert.equal(await evalJS("document.body.classList.contains('is-screen-transitioning')"), false);
     console.log('✅ 触屏起点不残留；减弱动效立即完成，动画中开启也能解锁');
 
-    // 事件丢失时兜底完成；唤醒取消旧任务后不会再被旧完成回调覆盖。
+    // 即使外部监听器拦截 transitionend，动画对象仍能结算。
     await send('Emulation.setEmulatedMedia', {features:[{name:'prefers-reduced-motion',value:'no-preference'}]});
     await evalJS(`(() => {
         window.__stopScreenEnd = e => e.stopImmediatePropagation();
@@ -226,7 +225,15 @@ try {
     })()`);
     await settled('nav');
     assert.deepEqual(await evalJS('[dom.navSection.classList.contains("nav-hidden"),dom.startSection.inert,dom.navSection.inert]'), [false,true,false]);
-    console.log('✅ 过渡事件丢失时可兜底完成，唤醒清理后下一次切屏不受旧任务干扰');
+    assert.equal(await evalJS(`(async () => {
+        dom.navSection.style.setProperty('--duration-slide', '0s');
+        try {
+            switchToStart();
+            await new Promise(requestAnimationFrame);
+            return !isScreenTransitioning();
+        } finally { dom.navSection.style.removeProperty('--duration-slide'); }
+    })()`), true);
+    console.log('✅ 动画对象结算不依赖事件传播，CSS 零时长和唤醒均能清理切屏锁');
 } finally {
     await chrome.close();
     await server.close();

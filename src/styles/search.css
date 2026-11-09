@@ -137,11 +137,14 @@
     transition: none;
 }
 #randomBookmarkBtn svg {
-    transition: transform 0.24s var(--ease-overshoot);
+    transition: transform 0.24s ease-out;
 }
 @media (hover: hover) and (pointer: fine) {
     body:not(.tab-blurred) #randomBookmarkBtn:hover:not(:disabled) {
         transform: scale(1.06) rotate(12deg);
+    }
+    body:not(.tab-blurred) #randomBookmarkBtn:hover:not(:disabled) svg {
+        transition-timing-function: var(--ease-overshoot);
     }
     body:not(.tab-blurred) #randomBookmarkBtn:hover:not(:disabled):not(:active) {
         background-color: rgba(255, 255, 255, 0.15);

@@ -143,8 +143,10 @@ try {
     await waitFor(evalJS,`document.querySelector('#editModal').open`);
     await evalJS(`document.querySelector('#tab-btn-data').click(); document.querySelector('#clearCacheBtn').click()`);
     await waitFor(evalJS,`document.querySelector('#confirmModal').open`);
+    const beforeCacheClear = await evalJS('performance.timeOrigin');
     await evalJS(`document.querySelector('#confirmOkBtn').click()`);
-    await waitFor(evalJS,`document.readyState==='complete' && document.querySelector('#bookmarks')?.textContent.includes('扩展保存验证') && !document.querySelector('#editModal').open`,10000);
+    await waitFor(evalJS,`performance.timeOrigin !== ${beforeCacheClear} && document.readyState==='complete' &&
+        document.querySelector('#bookmarks')?.textContent.includes('扩展保存验证') && !document.querySelector('#editModal').open`,10000);
     assert.equal(await evalJS(`caches.has('app-favicons-v1')`),false);
     await waitFor(evalJS,`document.querySelector('#bgLayer').style.backgroundImage.includes('bg2.avif')`);
     assert.deepEqual(await evalJS('window.__cspViolations'), []);

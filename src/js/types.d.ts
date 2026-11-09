@@ -12,14 +12,15 @@ export interface BookmarkItem {
     url: string;
     icon: string;
     desc?: string;
-    /** Transient import marker; never written into bookmark backups. */
-    customText?: boolean;
+    /** 缺省字段继承目录，保留空简介作为显式覆盖。 */
+    overrides?: CustomMetaItem;
 }
 
 /** 设置弹窗中的书签草稿，包含排序标识与原始 URL */
 export interface DraftBookmarkItem extends BookmarkItem {
     id: string;
     origUrl: string;
+    overrides: CustomMetaItem;
 }
 
 /** 分类目录结构定义 */
@@ -268,7 +269,7 @@ export interface WeatherLocation {
     timestamp?: number;
 }
 export interface WeatherCurrent {
-    temp: number;
+    temp?: number;
     apparent?: number;
     weatherCode?: number;
     weatherText?: string;
@@ -289,6 +290,9 @@ export interface WeatherDailyItem {
     text?: string;
     tempMax?: number;
     tempMin?: number;
+    pop?: number;
+    sunrise?: string;
+    sunset?: string;
 }
 export interface WeatherData {
     timezone?: string;
@@ -299,10 +303,6 @@ export interface WeatherData {
 }
 export interface ForecastOptions {
     FORECAST_FETCH_DAYS: number;
-    PRECIP_CODE_START: number;
-    POP_CLEAR_CONFLICT_THRESHOLD: number;
-    DEFAULT_TEMPERATURE: number;
-    DEFAULT_HUMIDITY: number;
 }
 
 export interface SuggestionBookmarkItem {

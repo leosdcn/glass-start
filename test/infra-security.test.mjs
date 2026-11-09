@@ -23,7 +23,7 @@ test('dist/ 产物完整性与 Cache-Control 标头规则', () => {
   }
 
   // 1.1 文件完整性
-  const requiredFiles = ['index.html', 'sw.js', 'app.js', '_headers', 'robots.txt', 'wallpapers/bg1.avif', 'LICENSE.txt', 'SOURCE.txt'];
+  const requiredFiles = ['index.html', 'sw.js', '_headers', 'robots.txt', 'wallpapers/bg1.avif', 'LICENSE.txt', 'SOURCE.txt'];
   const missingFiles = requiredFiles.filter(f => !existsSync(join(DIST, f)));
   assert.equal(missingFiles.length, 0, `缺少文件: ${missingFiles.join(', ')}`);
 
@@ -65,15 +65,15 @@ test('dist/ 产物完整性与 Cache-Control 标头规则', () => {
   const indexCc = rules['/index.html']?.['cache-control'] || '';
   const rootCc = rules['/']?.['cache-control'] || '';
   const swCc = rules['/sw.js']?.['cache-control'] || '';
-  const appCc = rules['/app.js']?.['cache-control'] || '';
+  const appCc = rules['/app-builds/*']?.['cache-control'] || '';
   const manifestCc = rules['/manifest.json']?.['cache-control'] || '';
   const iconCc = rules['/apple-touch-icon.png']?.['cache-control'] || '';
-  const validNoCache = indexCc.includes('max-age=0') && rootCc.includes('max-age=0') && swCc.includes('max-age=0') && appCc.includes('max-age=0') && manifestCc.includes('max-age=0') && !appCc.includes('immutable');
+  const validNoCache = [indexCc, rootCc, swCc, manifestCc].every(cc => cc.includes('max-age=0'));
   const validWp = ['wallpapers', 'icons'].every(dir => { const cc = rules['/' + dir + '/*']?.['cache-control'] || ''; return cc.includes('max-age=0') && cc.includes('must-revalidate') && !cc.includes('immutable'); });
   const validIcon = iconCc.includes('max-age=604800');
   const srcHeadersContent = readFileSync(join(ROOT, 'public', '_headers'), 'utf-8');
   const syncOk = srcHeadersContent.trim() === headersContent.trim();
-  assert.ok(validNoCache && validWp && validIcon && syncOk, 'Cache-Control 头配置合规');
+  assert.ok(validNoCache && appCc.includes('immutable') && validWp && validIcon && syncOk, 'Cache-Control 头配置合规');
 
   // 1.3 构建脚本 PATHS 常量映射与 Watcher 监听目标有效性校验
   const buildScriptContent = readFileSync(join(ROOT, 'scripts', 'build.cjs'), 'utf-8');
@@ -194,14 +194,15 @@ test('Service Worker 核心预缓存资源与产物版本契约', () => {
   assert.ok(!distAssets.includes('./icon.svg') && !distAssets.includes('./manifest.json') && distAssets.includes('./index.html'));
 
   const distIndexContent = existsSync(join(DIST, 'index.html')) ? readFileSync(join(DIST, 'index.html'), 'utf-8') : '';
-  assert.ok(/<head[^>]*>[\s\S]*?<script\s+src=["']\.\/app\.js\?v=app-core-v\d+["']\s+defer><\/script>/.test(distIndexContent));
+  const version = distIndexContent.match(/window\.__GLASS_BUILD_HTML__="(app-core-v\d+-[0-9a-f]{16})"/)?.[1];
+  assert.ok(version, 'HTML 必须包含构建指纹');
+  const script = `app-builds/${version}.js`;
+  assert.ok(distIndexContent.includes(`<script src="./${script}" defer></script>`));
   assert.ok(!distIndexContent.includes('id="main-script"'));
 
-  const distAppContent = existsSync(join(DIST, 'app.js')) ? readFileSync(join(DIST, 'app.js'), 'utf-8') : '';
-  const version = distIndexContent.match(/window\.__GLASS_BUILD_HTML__="(app-core-v\d+)"/)?.[1];
-  assert.ok(version, 'HTML 必须包含构建指纹');
+  const distAppContent = readFileSync(join(DIST, script), 'utf-8');
   assert.equal(distAppContent.match(/window\.__GLASS_BUILD_APP__="([^"]+)"/)?.[1], version);
-  assert.equal(distSw.match(/app-core-v\d+/)?.[0], version);
+  assert.ok(distSw.includes(JSON.stringify(version)));
 });
 
 test('Service Worker 缓存池 FIFO 限额淘汰与网络失败隔离', async () => {
@@ -257,10 +258,10 @@ test('Service Worker 缓存池 FIFO 限额淘汰与网络失败隔离', async ()
     },
     URL, Request, Response,
     fetch: async () => new Response('unavailable', { status: 503 }),
-    caches: { open: async () => ({ match: async () => undefined }), match: async () => new Response('cached-script') }
+    caches: { match: async () => undefined }
   });
   handlers.get('fetch')({
-    request: new Request('https://example.test/app.js?v=previous'),
+    request: new Request('https://example.test/app-builds/app-core-v100.js'),
     respondWith: promise => { respond = promise; },
     waitUntil() {}
   });
@@ -289,7 +290,7 @@ test('Service Worker 安装过程只请求同源核心资源', async () => {
       open: async () => ({
         add: async request => { installUrls.push(request.url); },
         put: async () => {},
-        match: async asset => new Response(String(asset).includes('app.js')
+        match: async asset => new Response(String(asset).includes('app-builds/')
           ? `window.__GLASS_BUILD_APP__="${version}"`
           : `window.__GLASS_BUILD_HTML__="${version}"`)
       }),

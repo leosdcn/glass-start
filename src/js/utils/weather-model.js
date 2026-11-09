@@ -33,9 +33,9 @@ const WMO_WEATHER_ICONS = {
     99: { dayIcon: '⛈️', nightIcon: '⛈️' }
 };
 
-/** @param {number} code @param {boolean} [isDay] */
+/** @param {number | undefined} code @param {boolean} [isDay] */
 function getWeatherIcon(code, isDay = true) {
-    const item = WMO_WEATHER_ICONS[code] || { dayIcon: '⛅', nightIcon: '☁️' };
+    const item = (code === undefined ? undefined : WMO_WEATHER_ICONS[code]) || { dayIcon: '⛅', nightIcon: '☁️' };
     return isDay ? item.dayIcon : item.nightIcon;
 }
 
@@ -90,63 +90,90 @@ export function stripAdminSuffix(name, includeProvince = false) {
     return name.replace(pattern, '') || name;
 }
 
-/**
- * 将天气响应转换为应用数据；时间由调用方传入，便于独立验证。
+/** @param {unknown} value @param {number} [scale] */
+function rounded(value, scale = 1) {
+    return typeof value === 'number' && Number.isFinite(value) ? Math.round(value * scale) / scale : undefined;
+}
+
+/** 将天气响应转换为实况与按地点日期组织的预报。
  * @param {Record<string, any>} data
  * @param {import('../types').WeatherLocation} loc
  * @param {import('../types').ForecastOptions} config
  * @param {number} now
  */
 export function normalizeWeatherForecast(data, loc, config, now) {
-    const cur = data.current || {};
-    const isDay = cur.is_day === 1;
+    const current = data.current || {};
     const daily = data.daily || {};
-
-    const days = [];
-    if (daily.time && Array.isArray(daily.time)) {
-        for (let i = 0; i < Math.min(daily.time.length, config.FORECAST_FETCH_DAYS); i++) {
-            let dayCode = daily.weather_code ? daily.weather_code[i] : 0;
-
-            if (i === 0) {
-                const todayPop = (daily.precipitation_probability_max && daily.precipitation_probability_max[0] != null) ? daily.precipitation_probability_max[0] : 0;
-                const isPrecipCode = dayCode >= config.PRECIP_CODE_START;
-                const isCurRaining = (cur.precipitation && cur.precipitation > 0) || (cur.weather_code >= config.PRECIP_CODE_START);
-                if (isPrecipCode && !isCurRaining && todayPop < config.POP_CLEAR_CONFLICT_THRESHOLD) {
-                    dayCode = (cur.weather_code != null) ? cur.weather_code : 1;
-                }
-            }
-
-            days.push({
-                date: daily.time[i],
-                weatherCode: dayCode,
-                icon: getWeatherIcon(dayCode),
-                tempMax: Math.round(daily.temperature_2m_max?.[i] ?? cur.temperature_2m ?? config.DEFAULT_TEMPERATURE),
-                tempMin: Math.round(daily.temperature_2m_min?.[i] ?? cur.temperature_2m ?? config.DEFAULT_TEMPERATURE)
-            });
-        }
-    }
-
-    const sunriseStr = daily.sunrise && daily.sunrise[0] ? daily.sunrise[0].split('T')[1] : '--:--';
-    const sunsetStr = daily.sunset && daily.sunset[0] ? daily.sunset[0].split('T')[1] : '--:--';
-    const sunriseTomStr = daily.sunrise && daily.sunrise[1] ? daily.sunrise[1].split('T')[1] : sunriseStr;
-
+    const dates = /** @type {string[]} */ (Array.isArray(daily.time)
+        ? daily.time.slice(0, config.FORECAST_FETCH_DAYS) : []);
     return {
         timestamp: now,
         ...(typeof data.timezone === 'string' ? { timezone: data.timezone } : {}),
         location: loc,
         current: {
-            temp: Math.round(cur.temperature_2m ?? config.DEFAULT_TEMPERATURE),
-            apparent: Math.round(cur.apparent_temperature ?? cur.temperature_2m ?? config.DEFAULT_TEMPERATURE),
-            weatherCode: cur.weather_code ?? 0,
-            icon: getWeatherIcon(cur.weather_code, isDay),
-            humidity: Math.round(cur.relative_humidity_2m ?? config.DEFAULT_HUMIDITY),
-            windSpeed: Math.round((cur.wind_speed_10m ?? 0) * 10) / 10,
-            precipitation: cur.precipitation ?? 0,
-            pop: (daily.precipitation_probability_max && daily.precipitation_probability_max[0] != null) ? Math.round(daily.precipitation_probability_max[0]) : 0,
-            sunriseToday: sunriseStr,
-            sunsetToday: sunsetStr,
-            sunriseTomorrow: sunriseTomStr
+            temp: rounded(current.temperature_2m),
+            apparent: rounded(current.apparent_temperature),
+            weatherCode: rounded(current.weather_code),
+            icon: getWeatherIcon(current.weather_code, current.is_day === 1),
+            humidity: rounded(current.relative_humidity_2m),
+            windSpeed: rounded(current.wind_speed_10m, 10)
         },
-        daily: days
+        daily: dates.map((date, i) => ({
+            date,
+            weatherCode: rounded(daily.weather_code?.[i]),
+            icon: getWeatherIcon(daily.weather_code?.[i]),
+            tempMax: rounded(daily.temperature_2m_max?.[i]),
+            tempMin: rounded(daily.temperature_2m_min?.[i]),
+            pop: rounded(daily.precipitation_probability_max?.[i]),
+            sunrise: daily.sunrise?.[i],
+            sunset: daily.sunset?.[i]
+        }))
     };
+}
+
+/** @param {Date} date @param {string} [timeZone] */
+function weatherLocalTime(date, timeZone) {
+    let formatter;
+    const options = /** @type {Intl.DateTimeFormatOptions} */ ({
+        year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit',
+        hourCycle: 'h23', calendar: 'gregory'
+    });
+    try { formatter = new Intl.DateTimeFormat('en-GB', { ...options, timeZone }); }
+    catch { formatter = new Intl.DateTimeFormat('en-GB', options); }
+    const { year, month, day, hour, minute } = Object.fromEntries(formatter.formatToParts(date).map(p => [p.type, p.value]));
+    return { date: `${year}-${month}-${day}`, time: `${hour}:${minute}` };
+}
+
+/** @param {string} date */
+function nextWeatherDate(date) {
+    const next = new Date(date + 'T00:00:00Z');
+    next.setUTCDate(next.getUTCDate() + 1);
+    return next.toISOString().slice(0, 10);
+}
+
+/** @param {import('../types').WeatherData} data @param {Date} now */
+export function getForecastPeriod(data, now) {
+    const local = weatherLocalTime(now, data.timezone);
+    const tomorrow = nextWeatherDate(local.date);
+    const saved = new Date(data.timestamp ?? NaN);
+    const savedDate = Number.isFinite(saved.getTime()) ? weatherLocalTime(saved, data.timezone).date : local.date;
+    const days = (data.daily || []).filter(day => day.date ? day.date >= local.date : savedDate === local.date);
+    const today = days.find(day => day.date === local.date) ?? days.find(day => !day.date);
+    const upcoming = days.flatMap(day => [
+        { kind: 'sunrise', dateTime: day.sunrise },
+        { kind: 'sunset', dateTime: day.sunset }
+    ]);
+    // 旧记录的无日期时刻以缓存生成日为准。
+    upcoming.push(
+        { kind: 'sunrise', dateTime: savedDate + 'T' + weatherTime(data.current.sunriseToday).padStart(5, '0') },
+        { kind: 'sunset', dateTime: savedDate + 'T' + weatherTime(data.current.sunsetToday).padStart(5, '0') },
+        { kind: 'sunrise', dateTime: nextWeatherDate(savedDate) + 'T' + weatherTime(data.current.sunriseTomorrow).padStart(5, '0') }
+    );
+    const cutoff = local.date + 'T' + local.time;
+    const sun = upcoming.filter(event => typeof event.dateTime === 'string'
+        && /^\d{4}-\d{2}-\d{2}T(?:[01]\d|2[0-3]):[0-5]\d$/.test(event.dateTime)
+        && event.dateTime > cutoff)
+        .sort((a, b) => (a.dateTime || '').localeCompare(b.dateTime || ''))[0];
+    const pop = today?.pop ?? (savedDate === local.date ? data.current.pop : undefined);
+    return { date: local.date, tomorrow, days, today, sun, pop };
 }

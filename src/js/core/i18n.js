@@ -78,12 +78,26 @@ export function forecastLabel(value, index) {
     return formatDate(date, { weekday: 'short' });
 }
 
+/** @type {WeakMap<object, Map<string, string>>} */
+const canonicalMapCache = new WeakMap();
+
 /** Resolve old Chinese preset URLs to the shared bookmark identity.
  * @param {string} url
  */
 export function canonicalBookmarkUrl(url) {
+    if (!url) return '';
     const bookmarks = typeof window !== 'undefined' ? window.__GLASS_I18N__?.catalogs?.['zh-CN']?.bookmarks : undefined;
-    return Object.entries(bookmarks || {}).find(([, bookmark]) => (bookmark.url || bookmark.legacyUrl) === url)?.[0] || url;
+    if (!bookmarks) return url;
+    let map = canonicalMapCache.get(bookmarks);
+    if (!map) {
+        map = new Map();
+        for (const [canonical, bookmark] of Object.entries(bookmarks)) {
+            if (bookmark.url) map.set(bookmark.url, canonical);
+            if (bookmark.legacyUrl) map.set(bookmark.legacyUrl, canonical);
+        }
+        canonicalMapCache.set(bookmarks, map);
+    }
+    return map.get(url) || url;
 }
 
 /** Resolve a built-in bookmark's destination without changing its saved identity.

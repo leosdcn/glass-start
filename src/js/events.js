@@ -42,12 +42,10 @@ const attachTabBlurListeners = () => {
 export function handleAppWakeUp() {
     updateClock();
 
-    document.querySelectorAll('.is-clicked').forEach(el => el.classList.remove('is-clicked'));
-    document.querySelectorAll('.fade-in, .animate-item-in, .category-title-pulse').forEach(el => {
-        el.classList.remove('fade-in', 'animate-item-in', 'category-title-pulse');
-    });
     cancelDragSort();
-    document.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
+    document.querySelectorAll('.is-clicked, .fade-in, .animate-item-in, .category-title-pulse, .dragging').forEach(el => {
+        el.classList.remove('is-clicked', 'fade-in', 'animate-item-in', 'category-title-pulse', 'dragging');
+    });
 
     resetActiveCard();
     blurNonEditableActive();

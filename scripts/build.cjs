@@ -1,9 +1,10 @@
 const { watchFiles } = require('./watch.cjs');
-const { replaceOnce, injectDocumentShell } = require('./html-template.cjs');
-const { publishBuild } = require('./publish-build.cjs');
+const { replaceOnce, injectDocumentShell, appScriptPath } = require('./html-template.cjs');
+const { publishWebBuild } = require('./publish-build.cjs');
 const fs = require('fs');
 const path = require('path');
 const { execFileSync } = require('child_process');
+const { randomBytes } = require('node:crypto');
 
 /**
  * ==============================================================================
@@ -161,7 +162,8 @@ function buildAppJavaScript({ testMode = false, extension = false, version = 'ap
 
 // 生成生产应用脚本。
 function processProductionAppJs(targetDir, { extension, version }) {
-    logSection('3/4', '⚡ 提取并压缩生产脚本 (dist/app.js)');
+    const script = appScriptPath(version, extension);
+    logSection('3/4', `⚡ 提取并压缩生产脚本 (${script})`);
 
     if (!fs.existsSync(PATHS.srcMainJs)) {
         throw new Error(`未能在 ${PATHS.srcMainJs} 中找到主入口模块`);
@@ -169,7 +171,7 @@ function processProductionAppJs(targetDir, { extension, version }) {
 
     const jsStart = Date.now();
     try {
-        const appJsFile = path.join(targetDir, 'app.js');
+        const appJsFile = path.join(targetDir, script);
         const result = buildAppJavaScript({ outfile: appJsFile, extension, version });
         const appJsContent = fs.readFileSync(appJsFile, 'utf-8');
         const jsDuration = Date.now() - jsStart;
@@ -179,7 +181,7 @@ function processProductionAppJs(targetDir, { extension, version }) {
         buildMetrics.stages.js = jsDuration;
         buildMetrics.sizes.jsKb = appJsKb;
         buildMetrics.sizes.modules = moduleCount;
-        logItem(`生产环境 dist/app.js ESM 模块依赖 AST 编译完成 (${appJsKb} KB, ${moduleCount} 个模块, 耗时 ${jsDuration}ms)`);
+        logItem(`应用脚本编译完成 (${appJsKb} KB, ${moduleCount} 个模块, 耗时 ${jsDuration}ms)`);
     } catch (e) {
         throw new Error(`esbuild 打包 src/js/main.js 失败: ${e.message}`);
     }
@@ -213,8 +215,8 @@ function injectHeadConfig(html, { marker, entryPath, globalName, binding }) {
     return replaceOnce(html, marker, code.replace(/<\/script/gi, '<\\/script'));
 }
 
-// 5. 处理生产环境 index.html (替换内联 JS 为外链 dist/app.js，全量内嵌静态编译 Tailwind CSS 与 SVG 精灵)
-function processProductionHtml(compiledCss, targetDir, buildVersion) {
+// 5. 注入应用脚本、静态编译后的 Tailwind CSS 与 SVG 精灵。
+function processProductionHtml(compiledCss, targetDir, buildVersion, extension) {
     logSection('4/4', '🔧 处理生产环境页面 (dist/index.html)');
     const htmlStart = Date.now();
     let prodHtmlContent = fs.readFileSync(PATHS.srcIndexHtml, 'utf-8');
@@ -252,7 +254,8 @@ function processProductionHtml(compiledCss, targetDir, buildVersion) {
     prodHtmlContent = injectDocumentShell(prodHtmlContent, {
         css: compiledCss,
         svg: fs.readFileSync(PATHS.srcSvg, 'utf-8'),
-        version: buildVersion
+        version: buildVersion,
+        extension
     });
 
     // 品牌卡片版本号只由 package.json 提供。
@@ -368,12 +371,27 @@ function printDistSummary(startTime, items) {
 }
 
 function executeBuild(targetDir, { extension = false } = {}) {
-    const version = 'app-core-v' + Date.now();
+    const version = `app-core-v${Date.now()}-${randomBytes(8).toString('hex')}`;
     resetBuildMetrics();
     const compiledCss = compileTailwindCss();
     buildServiceWorkerAndAssets(targetDir, { extension, version });
     processProductionAppJs(targetDir, { extension, version });
-    processProductionHtml(compiledCss, targetDir, version);
+    processProductionHtml(compiledCss, targetDir, version, extension);
+    return version;
+}
+
+function buildWebRelease(targetDir) {
+    const version = executeBuild(targetDir);
+    try {
+        const html = fs.readFileSync(path.join(PATHS.dist, 'index.html'), 'utf8');
+        const previous = html.match(/__GLASS_BUILD_HTML__="(app-core-v\d+-[0-9a-f]{16})"/)?.[1];
+        if (previous) {
+            const script = appScriptPath(previous);
+            fs.copyFileSync(path.join(PATHS.dist, script), path.join(targetDir, script));
+        }
+    } catch (error) {
+        if (error.code !== 'ENOENT') throw error;
+    }
     return version;
 }
 
@@ -401,8 +419,8 @@ function main({ testSnapshotDir } = {}) {
     }
 
     try {
-        const items = publishBuild(PATHS.dist, staging => {
-            const version = executeBuild(staging);
+        const items = publishWebBuild(PATHS.dist, staging => {
+            const version = buildWebRelease(staging);
             if (testSnapshotDir) {
                 fs.cpSync(staging, path.join(testSnapshotDir, 'dist'), {
                     recursive: true, mode: fs.constants.COPYFILE_FICLONE
@@ -421,7 +439,7 @@ function main({ testSnapshotDir } = {}) {
 // 文件变化后重新构建并发布。
 function rebuild() {
     const startTime = Date.now();
-    const version = publishBuild(PATHS.dist, executeBuild);
+    const version = publishWebBuild(PATHS.dist, buildWebRelease);
     return { version, duration: Date.now() - startTime };
 }
 
