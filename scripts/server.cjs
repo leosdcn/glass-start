@@ -1,4 +1,5 @@
 const http = require('http');
+const https = require('https');
 const fs = require('fs');
 const path = require('path');
 const { exec, spawn } = require('child_process');
@@ -59,8 +60,63 @@ async function openStaticFile(filePath) {
     return null;
 }
 
-function createStaticServer() {
-    return http.createServer(async (req, res) => {
+function resolveSslConfig() {
+    const useHttps = process.argv.includes('--https') || process.env.HTTPS === '1';
+    if (!useHttps) return null;
+
+    const root = path.join(__dirname, '..');
+    const customCert = process.env.SSL_CERT;
+    const customKey = process.env.SSL_KEY;
+
+    if (customCert && customKey) {
+        const certPath = path.isAbsolute(customCert) ? customCert : path.join(root, customCert);
+        const keyPath = path.isAbsolute(customKey) ? customKey : path.join(root, customKey);
+        if (fs.existsSync(certPath) && fs.existsSync(keyPath)) {
+            return {
+                key: fs.readFileSync(keyPath),
+                cert: fs.readFileSync(certPath),
+                certPath,
+                keyPath
+            };
+        }
+        throw new Error(`指定的 SSL 证书或私钥不存在: cert=${certPath}, key=${keyPath}`);
+    }
+
+    const certCandidates = [
+        { cert: 'localhost.pem', key: 'localhost-key.pem' },
+        { cert: 'localhost+2.pem', key: 'localhost+2-key.pem' },
+        { cert: 'cert.pem', key: 'key.pem' },
+        { cert: '.cert/localhost.pem', key: '.cert/localhost-key.pem' },
+        { cert: '.cert/cert.pem', key: '.cert/key.pem' }
+    ];
+
+    for (const pair of certCandidates) {
+        const certPath = path.join(root, pair.cert);
+        const keyPath = path.join(root, pair.key);
+        if (fs.existsSync(certPath) && fs.existsSync(keyPath)) {
+            return {
+                key: fs.readFileSync(keyPath),
+                cert: fs.readFileSync(certPath),
+                certPath,
+                keyPath
+            };
+        }
+    }
+
+    console.error(`\n${c.red}${c.bold}❌ 未检测到本地 SSL 证书文件！${c.reset}`);
+    console.error(`  使用 HTTPS 启动需先生成本地受信任证书。推荐使用 mkcert：`);
+    console.error(`    1. 安装 mkcert:     ${c.cyan}brew install mkcert${c.reset} (macOS) 或 ${c.cyan}choco install mkcert${c.reset} (Windows)`);
+    console.error(`    2. 安装本地根 CA:   ${c.cyan}mkcert -install${c.reset}`);
+    console.error(`    3. 签发本地证书:     ${c.cyan}mkcert localhost 127.0.0.1 ::1${c.reset}`);
+    console.error(`  生成 localhost.pem 和 localhost-key.pem 后再次运行即可。\n`);
+    process.exit(1);
+}
+
+const sslConfig = resolveSslConfig();
+const isHttps = Boolean(sslConfig);
+const protocol = isHttps ? 'https' : 'http';
+
+async function handleStaticRequest(req, res) {
         try {
             const urlRaw = req.url || '/';
             const pathname = urlRaw.split('?')[0];
@@ -171,7 +227,13 @@ function createStaticServer() {
             res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' });
             res.end('500 Internal Server Error');
         }
-    });
+    }
+
+function createStaticServer() {
+    if (isHttps) {
+        return https.createServer({ key: sslConfig.key, cert: sslConfig.cert }, handleStaticRequest);
+    }
+    return http.createServer(handleStaticRequest);
 }
 
 
@@ -240,15 +302,15 @@ function startListening(port) {
 
         const lanIps = getLanIps();
         console.log(`\n${c.cyan}${HR_DOUBLE}${c.reset}`);
-        console.log(`${c.bold}${c.cyan}🚀 Glass Start — 本地开发与局域网预览服务${c.reset}`);
+        console.log(`${c.bold}${c.cyan}🚀 Glass Start — 本地开发与局域网预览服务 (${protocol.toUpperCase()})${c.reset}`);
         console.log(`${c.cyan}${HR_DOUBLE}${c.reset}\n`);
 
-        console.log(`  💻 ${c.bold}本机访问:${c.reset}    ${c.cyan}http://localhost:${port}/${c.reset}`);
-        console.log(`  🔗 ${c.bold}本地回环:${c.reset}    ${c.cyan}http://127.0.0.1:${port}/${c.reset}`);
+        console.log(`  💻 ${c.bold}本机访问:${c.reset}    ${c.cyan}${protocol}://localhost:${port}/${c.reset}`);
+        console.log(`  🔗 ${c.bold}本地回环:${c.reset}    ${c.cyan}${protocol}://127.0.0.1:${port}/${c.reset}`);
         if (lanIps.length > 0) {
-            console.log(`  📱 ${c.bold}局域网访问:${c.reset}  ${c.cyan}http://${lanIps[0]}:${port}/${c.reset}`);
+            console.log(`  📱 ${c.bold}局域网访问:${c.reset}  ${c.cyan}${protocol}://${lanIps[0]}:${port}/${c.reset}`);
             if (lanIps.length > 1) {
-                console.log(`  🌐 ${c.bold}其它网卡:${c.reset}    ${lanIps.slice(1).map(ip => `${c.cyan}http://${ip}:${port}/${c.reset}`).join(', ')}`);
+                console.log(`  🌐 ${c.bold}其它网卡:${c.reset}    ${lanIps.slice(1).map(ip => `${c.cyan}${protocol}://${ip}:${port}/${c.reset}`).join(', ')}`);
             }
         }
         if (enableWatch) {
@@ -264,7 +326,7 @@ function startListening(port) {
 
         // 仅在服务确已 listen 成功并能接收请求时，才自动唤起浏览器
         if (process.env.AUTO_OPEN !== '0') {
-            const url = `http://localhost:${port}/`;
+            const url = `${protocol}://localhost:${port}/`;
             if (isolatedPreview) {
                 openIsolatedPreview(url);
             } else if (process.platform === 'darwin') {

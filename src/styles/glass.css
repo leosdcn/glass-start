@@ -255,8 +255,10 @@
     .appearance-mode-picker .settings-transition-btn { padding-inline: 0.25rem; }
 }
 @media (pointer: coarse) {
-    .appearance-mode-picker { height: auto; min-height: 2.75rem; }
-    .appearance-controls :is(.settings-action, .settings-transition-btn) { min-height: 2.75rem; }
+    .appearance-mode-picker { height: 2.75rem; min-height: 2.75rem; box-sizing: border-box; align-items: stretch; }
+    .appearance-mode-picker .settings-transition-btn { height: 100%; min-height: 0; }
+    .appearance-controls .settings-action { min-height: 2.75rem; }
+    .appearance-controls .appearance-dim-control { min-height: 2.75rem; }
     .appearance-url-row :is(input, button) { min-height: 2.75rem; }
 }
 
@@ -286,6 +288,14 @@
     background-color: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.15);
     transition: border-color 0.16s ease, box-shadow 0.16s ease;
+}
+@media (max-height: 700px) {
+    .preset-bg-image {
+        aspect-ratio: 18 / 9;
+    }
+    .appearance-controls {
+        padding-bottom: 0.75rem;
+    }
 }
 .preset-bg-card img {
     position: absolute;

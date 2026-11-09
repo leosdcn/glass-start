@@ -28,3 +28,4 @@ npm-debug.log*
 .env*
 *.pem
 *.key
+.cert/

@@ -23,6 +23,7 @@
     "sync:icons": "node scripts/sync-icons.mjs",
     "sync:icons:refresh": "node scripts/sync-icons.mjs --refresh",
     "dev": "node scripts/server.cjs",
+    "dev:https": "node scripts/server.cjs --https",
     "preview": "npm run build && node scripts/server.cjs --no-watch",
     "typecheck": "tsc --project tsconfig.json && tsc --project tsconfig.sw.json",
     "test:unit": "node test/run.mjs --unit"

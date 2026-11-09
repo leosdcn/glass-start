@@ -237,6 +237,9 @@ npm ci
 # Refresh the browser manually after changes.
 npm run dev
 
+# Or start with local HTTPS (for PWA debugging or avoiding HSTS conflicts; requires mkcert certs):
+npm run dev:https
+
 # 3. Only after adding bookmarks or changing URLs or icon sources:
 npm run sync:icons
 
@@ -282,7 +285,7 @@ Related browser regressions are grouped in the following files. Add related regr
 
 After building, run `node scripts/capture-preview.mjs --lang=en` to regenerate the English README screenshots. Omit `--lang=en` to generate the Chinese screenshots.
 
-> 💡 **macOS launcher**. Run `npm ci` before the first launch, then double-click `start.command` in the project root. It builds the website and opens it in a temporary Chrome profile, keeping your regular browser data intact. Closing Chrome or stopping the server removes the temporary profile. Set `CHROME_PATH` to use a different Chrome executable.
+> 💡 **macOS launcher**. Run `npm ci` before the first launch, then double-click `start.command` in the project root. It builds the website and opens it in a temporary Chrome profile, keeping your regular browser data intact; automatically switches to HTTPS when local certs (e.g. from `mkcert`) are present, falling back to HTTP seamlessly. Closing Chrome or stopping the server removes the temporary profile. Set `CHROME_PATH` to use a different Chrome executable.
 
 ---
 

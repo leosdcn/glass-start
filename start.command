@@ -39,5 +39,21 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
+# 智能检测本地证书：若环境装有 mkcert 但未生成证书，自动静默生成；若已有证书则自动启用 HTTPS
+if [ ! -f "localhost.pem" ] && command -v mkcert &>/dev/null; then
+    mkcert localhost 127.0.0.1 ::1 >/dev/null 2>&1
+fi
+
+HTTPS_OPT=""
+if [ -f "localhost.pem" ] && [ -f "localhost-key.pem" ]; then
+    HTTPS_OPT="--https"
+elif [ -f "localhost+2.pem" ] && [ -f "localhost+2-key.pem" ]; then
+    HTTPS_OPT="--https"
+elif [ -f "cert.pem" ] && [ -f "key.pem" ]; then
+    HTTPS_OPT="--https"
+elif [ -f ".cert/localhost.pem" ] && [ -f ".cert/localhost-key.pem" ]; then
+    HTTPS_OPT="--https"
+fi
+
 # 用临时 Chrome 配置预览，保留平时使用的浏览器数据。
-exec node scripts/server.cjs --isolated
+exec node scripts/server.cjs --isolated $HTTPS_OPT

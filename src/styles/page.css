@@ -473,6 +473,7 @@ textarea::placeholder {
         #weatherBtn, #updateReloadBtn, #navHint, #editBookmarksBtn,
         #engineBtn, #randomBookmarkBtn, #searchClearBtn,
         #languageBtn, #cancelEditBtn, #cancelLanguageBtn, #resetBgBtn, #urlBgConfirmBtn, #urlBgCancelBtn,
+        .drag-handle, .del-btn,
         .settings-tab-btn, .settings-action, .settings-transition-btn, .glass-btn-primary,
         .danger-zone-btn, .language-modal-item, .preset-bg-card, .picker-item,
         .confirm-dialog-btn-cancel, .confirm-dialog-btn-ok
@@ -769,9 +770,11 @@ html.is-chrome .nav-initial-entry .nav-bookmark:has(.bookmark-description) {
 /* ==========================================================================
    TOUCH TARGET EXPANSION (Apple HIG 触控热区扩展 >= 44pt)
    ========================================================================== */
-/* 窄屏与混合触屏设备使用独立触控区域，避免用伪元素扩展后互相重叠。 */
+/* 窄屏与混合触屏设备使用独立触控区域；内联紧凑按钮（拖拽手柄、删除、语言胶囊、微型恢复）保持视觉尺寸，通过 ::before 扩展热区。 */
 @media (max-width: 639.98px), (any-pointer: coarse) {
-    :is(#editModal, #bookmarkPicker, #shortcutModal, #creditsModal, #confirmModal) button {
+    :is(#editModal, #bookmarkPicker, #shortcutModal, #creditsModal, #confirmModal) button:not(
+        #languageBtn, .drag-handle, .del-btn, #resetBgBtn
+    ) {
         min-width: 44px;
         min-height: 44px;
     }
@@ -779,7 +782,11 @@ html.is-chrome .nav-initial-entry .nav-bookmark:has(.bookmark-description) {
         min-height: 44px;
     }
 
-    :is(#engineBtn, #randomBookmarkBtn, #searchClearBtn)::before {
+    :is(
+        #languageBtn, #resetBgBtn,
+        .drag-handle, .del-btn,
+        #engineBtn, #randomBookmarkBtn, #searchClearBtn
+    )::before {
         min-width: 44px;
         min-height: 44px;
     }

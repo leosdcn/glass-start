@@ -119,7 +119,7 @@ CSS 通过 `main.css` 按其 `@import` 顺序编译为内联样式，不增加�
 
 ### 工程、样式与测试
 
-构建入口 `scripts/build.cjs` 负责产物流程，`publish-build.cjs` 负责发布与前版回收，`html-template.cjs` 只处理模板结构，扩展构建复用网页编译。开发服务与文件监听分别在 `server.cjs / watch.cjs`。单文件通过父目录按文件名监听，并比较当前内容，编辑器原子替换后仍可继续重建。lint 的 DOM、CSS、多语言检查分别由对应辅助脚本实现，不进入浏览器。样式按上方样式索引划分布局、材质和动效，同一控件可组合使用；测试共享设施只放在 `test/support/`，业务源码不得导入。
+构建入口 `scripts/build.cjs` 负责产物流程，`publish-build.cjs` 负责发布与前版回收，`html-template.cjs` 只处理模板结构，扩展构建复用网页编译。开发服务与文件监听分别在 `server.cjs / watch.cjs`（支持标准 HTTP 以及基于 `mkcert` 本地证书的零依赖 HTTPS 模式）。单文件通过父目录按文件名监听，并比较当前内容，编辑器原子替换后仍可继续重建。lint 的 DOM、CSS、多语言检查分别由对应辅助脚本实现，不进入浏览器。样式按上方样式索引划分布局、材质和动效，同一控件可组合使用；测试共享设施只放在 `test/support/`，业务源码不得导入。
 
 ## 模块与构建
 

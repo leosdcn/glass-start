@@ -139,7 +139,7 @@ try {
   await evalJS('openEditModal()');
   await waitFor(evalJS, 'document.getElementById("editModal").open');
   await evalJS('Promise.all(document.getElementById("editModal").getAnimations({subtree:true}).map(a=>a.finished.catch(()=>{})))');
-  for (const [width, height] of [[1920,1080], [1000,800], [768,800], [640,800], [390,844], [320,740]]) {
+  for (const [width, height] of [[1920,1080], [1299,651], [1000,800], [768,800], [640,800], [390,844], [320,740]]) {
     await chrome.send('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor:2, mobile:false });
     await evalJS("document.getElementById('tab-btn-bookmarks').click()");
     const panelHeight = await evalJS("parseFloat(getComputedStyle(document.getElementById('editModal').querySelector('.glass-strong')).height)");
@@ -152,6 +152,7 @@ try {
       const noOverlap = rects.every((r,i)=>rects.slice(i+1).every(other=>
         Math.min(r.right,other.right)-Math.max(r.left,other.left)<1 ||
         Math.min(r.bottom,other.bottom)-Math.max(r.top,other.top)<1));
+      const expectedRatio = ${height} <= 700 ? 18/9 : 16/10;
       return {
         sources:cards.map(card=>card.dataset.bg), backgrounds, noOverlap,
         height:parseFloat(getComputedStyle(document.getElementById('editModal').querySelector('.glass-strong')).height),
@@ -161,7 +162,7 @@ try {
         framed:cards.every(card=>{
           const image=card.querySelector('.preset-bg-image').getBoundingClientRect();
           const title=card.querySelector('.preset-bg-title').getBoundingClientRect();
-          return Math.abs(image.width/image.height-16/10)<0.02 &&
+          return Math.abs(image.width/image.height-expectedRatio)<0.02 &&
             title.top>image.top && title.bottom<=image.bottom &&
             title.left>=image.left && title.right<=image.right;
         })
@@ -171,7 +172,7 @@ try {
     assert.equal(layout.height, panelHeight, `${width}px 切换外观页不能撑高弹窗`);
     assert.ok(layout.noOverlap && layout.framed && !layout.horizontalOverflow, `${width}px: ${JSON.stringify(layout)}`);
     if (width>=640) assert.ok(layout.aligned, `${width}px 三组设置保持横排`);
-    if (width===1920) assert.ok(layout.fullGallery, '桌面两排壁纸完整可见');
+    if (width===1920 || (width===1299 && height===651)) assert.ok(layout.fullGallery, `${width}x${height}px 桌面两排壁纸完整可见`);
     const beforeLink = await evalJS(`({
       controlsHeight:document.getElementById('tabAppearance').querySelector('.appearance-controls').clientHeight,
       galleryTop:document.getElementById('tabAppearance').querySelector('.appearance-gallery').offsetTop
