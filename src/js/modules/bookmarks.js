@@ -11,7 +11,7 @@ import { getLocale, localizeBookmarkUrl } from '../core/i18n.js';
 import { isScreenTransitioning } from '../core/screen-state.js';
 import { CONFIG, DEFAULT_BOOKMARKS } from '../config/constants.js';
 import { escapeHtml, safeUrl, handleRovingKeyNav } from '../utils/helpers.js';
-import { normalizeUrl, normalizeBookmark, deriveNameFromUrl, faviconFromUrl } from '../utils/bookmark-model.js';
+import { normalizeUrl, normalizeBookmarkUrl, normalizeBookmark, normalizeBookmarks, deriveNameFromUrl, faviconFromUrl } from '../utils/bookmark-model.js';
 import { getFaviconHTML, getCategoryIconHTML, evictFaviconCache, checkImageReady } from '../utils/favicon.js';
 import { storageGet, storageSet, storageRemove } from '../utils/storage.js';
 import { pageData, state } from '../state/store.js';
@@ -110,36 +110,21 @@ function resolveBookmarkOverride(bm, catBm, previous, isForceCustom) {
     return meta;
 }
 
-/** @param {import('../types').BookmarkItem[]} list @param {Set<string>} [customTextUrls] @returns {boolean} */
-export function saveUserBookmarks(list, customTextUrls = new Set()) {
-    /** @type {string[]} */
-    const keys = [];
-    const customMeta = getCustomMeta(readBookmarkRecord()?.meta);
+/** @param {import('../types').BookmarkItem[]} list @returns {boolean} */
+export function saveUserBookmarks(list) {
+    const bookmarks = normalizeBookmarks(list, item => normalizeBookmark(item, deriveNameFromUrl(item?.url)));
+    const keys = bookmarks.map(bookmark => bookmark.url);
+    const previousMeta = getCustomMeta(readBookmarkRecord()?.meta);
     const catMetaMap = getCategoryCatalog(pageData.categories).byUrl;
+    /** @type {Record<string, import('../types').CustomMetaItem>} */
+    const customMeta = {};
 
-    const newKeysSet = new Set();
-    list.forEach(item => {
-        const bm = normalizeBookmark(item, deriveNameFromUrl(item?.url));
-        if (!bm) return;
-        const normUrl = bm.url;
-        keys.push(normUrl);
-        newKeysSet.add(normUrl);
-        const catBm = catMetaMap.get(normUrl);
-        const previous = customMeta[normUrl];
-        const isForceCustom = customTextUrls.has(normUrl);
-        const override = resolveBookmarkOverride(bm, catBm, previous, isForceCustom);
-        if (override) {
-            customMeta[normUrl] = override;
-        } else {
-            delete customMeta[normUrl];
-        }
-    });
-
-    Object.keys(customMeta).forEach(urlKey => {
-        if (!newKeysSet.has(urlKey)) {
-            delete customMeta[urlKey];
-        }
-    });
+    for (const bm of bookmarks) {
+        const catBm = catMetaMap.get(bm.url);
+        const previous = previousMeta[bm.url];
+        const override = resolveBookmarkOverride(bm, catBm, previous, bm.customText === true);
+        if (override) customMeta[bm.url] = override;
+    }
 
     if (!storageSet(CONFIG.KEYS.BOOKMARKS, { version: 1, keys, meta: customMeta })) return false;
     pageData.bookmarks = getDerivedBookmarks(keys, pageData.categories, customMeta);
@@ -161,8 +146,8 @@ export function loadBookmarks() {
     const storedKeys = record?.keys;
     const userKeys = Array.isArray(storedKeys) ? storedKeys.flatMap(url => {
         if (typeof url !== 'string') return [];
-        const bookmark = normalizeBookmark({ url }, deriveNameFromUrl(url));
-        return bookmark ? [bookmark.url] : [];
+        const validUrl = normalizeBookmarkUrl(url);
+        return validUrl ? [validUrl] : [];
     }) : [];
     const customMeta = getCustomMeta(record?.meta);
 

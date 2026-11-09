@@ -4,12 +4,12 @@
  * 具体书签草稿编辑见 bookmark-editor.js，预置目录挑选器见 bookmark-picker.js。
  */
 import { t, getLocale, getLanguagePreference } from '../core/i18n.js';
-import { updateAllBookmarkCounters, renderEditList, collectEditData } from './bookmark-editor.js';
+import { renderEditList, collectEditData } from './bookmark-editor.js';
 import { showConfirm } from '../core/dialogs.js';
 import { CONFIG, IS_MAC } from '../config/constants.js';
 import { DEFAULT_ENGINE } from '../config/engines.js';
 import { escapeHtml, safeUrl } from '../utils/helpers.js';
-import { normalizeUrl, normalizeBookmark } from '../utils/bookmark-model.js';
+import { normalizeBookmark, normalizeBookmarks } from '../utils/bookmark-model.js';
 import { storageGet, storageSet, storageRemove } from '../utils/storage.js';
 import { state, modalState, pageData } from '../state/store.js';
 import { replaceBookmarkDraft } from '../state/bookmark-draft.js';
@@ -276,11 +276,11 @@ export function closeCreditsModal() {
  * @returns {void}
  */
 export function exportBookmarksJSON() {
-    const data = collectEditData();
+    const bookmarks = collectEditData().map(({ customText, ...bookmark }) => bookmark);
     const exportData = {
         version: '1.0',
         exportDate: new Date().toISOString(),
-        bookmarks: data
+        bookmarks
     };
     const jsonStr = JSON.stringify(exportData, null, 2);
     const blob = new Blob([jsonStr], { type: 'application/json' });
@@ -340,7 +340,8 @@ export function importBookmarksJSON(file) {
                 return;
             }
 
-            const validBookmarks = importedList.map((/** @type {any} */ item) => normalizeBookmark(item, t('ui.untitled'))).filter(Boolean);
+            const fallbackName = t('ui.untitled');
+            const validBookmarks = normalizeBookmarks(importedList, item => normalizeBookmark(item, fallbackName));
 
             if (validBookmarks.length === 0) {
                 showConfirm(t('ui.no.valid.bookmarks.were.found.in'), null, t('ui.import.failed'), { signal });
@@ -349,7 +350,7 @@ export function importBookmarksJSON(file) {
 
             showConfirm(t('bookmark.importConfirm', { count: validBookmarks.length }), () => {
                 if (!isCurrent()) return;
-                replaceBookmarkDraft(validBookmarks.map((/** @type {import('../types').BookmarkItem} */ bookmark) => ({ ...bookmark, customText: true })), true);
+                replaceBookmarkDraft(validBookmarks.map(bookmark => ({ ...bookmark, customText: true })), true);
                 renderEditList();
                 closeBookmarkPicker();
             }, t('ui.confirm.import'), { signal });
@@ -474,12 +475,12 @@ export async function saveEditModal() {
 
         // 1. 提交书签
         if (modalState.bookmarksChanged) {
-            const customText = new Set(modalState.draftBookmarks.filter(item => item.customText).map(item => normalizeUrl(item.url)));
-            if (!saveUserBookmarks(data, customText)) {
+            if (!saveUserBookmarks(data)) {
                 showConfirm(t('ui.could.not.save.bookmarks.your.draft'), null, t('ui.could.not.save'));
                 return;
             }
-            modalState.bookmarksChanged = false;
+            replaceBookmarkDraft(pageData.bookmarks);
+            renderEditList();
             savedSettings.add(t('settings.bookmarks'));
         }
 

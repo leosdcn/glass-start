@@ -1,7 +1,7 @@
 import { t } from '../core/i18n.js';
 import { CONFIG } from '../config/constants.js';
 import { escapeHtml, safeUrl } from '../utils/helpers.js';
-import { normalizeUrl, normalizeBookmark, faviconFromUrl } from '../utils/bookmark-model.js';
+import { normalizeBookmarkUrl, normalizeBookmark, normalizeBookmarks, resolveBookmarkIcon } from '../utils/bookmark-model.js';
 import { createLetterBadgeHtml, handleFaviconFailure, checkImageReady } from '../utils/favicon.js';
 import { modalState } from '../state/store.js';
 import { appendBookmarkDraft } from '../state/bookmark-draft.js';
@@ -15,9 +15,12 @@ export function updateAllBookmarkCounters() {
     if (pickerCount && pickerCount.textContent !== text) pickerCount.textContent = text;
 }
 
-export function getEditFaviconInner(name = '', url = '', icon = '') {
+/** @param {import('../types').DraftBookmarkItem} item */
+export function getEditFaviconInner(item) {
+    const { name, icon, origUrl } = item;
     const initial = (name || '?').trim().charAt(0).toUpperCase() || '?';
-    const faviconUrl = icon || faviconFromUrl(url);
+    const url = normalizeBookmarkUrl(item.url);
+    const faviconUrl = resolveBookmarkIcon(url, icon, origUrl);
     const safeFavicon = faviconUrl ? safeUrl(faviconUrl) : '';
     if (safeFavicon && safeFavicon !== '#') {
         return `<div class="icon-box icon-box-sm edit-favicon-img-wrapper pointer-events-none select-none"><img src="${safeFavicon}" width="${CONFIG.UI.ICON_SIZE_SM}" height="${CONFIG.UI.ICON_SIZE_SM}" data-initial="${escapeHtml(initial)}" data-url="${safeUrl(url)}" class="edit-favicon-img pointer-events-none select-none" alt="" decoding="async" draggable="false"></div>`;
@@ -38,13 +41,9 @@ export function handleEditIconError(img) {
     });
 }
 
-/**
- * @param {string} name
- * @param {string} url
- * @param {string} icon
- * @param {string} id - 由草稿模型分配的行标识
- */
-function getEditRowHTML(name, url, icon, id) {
+/** @param {import('../types').DraftBookmarkItem} item */
+function getEditRowHTML(item) {
+    const { name, url, id } = item;
     return `
         <div role="listitem" class="edit-row-card flex items-center gap-1.5 sm:gap-2 p-1.5 sm:p-2 bg-white/5 border border-white/10 apple-radius glass-interactive group mb-1.5 shadow-xs" data-id="${escapeHtml(id)}" draggable="false">
             <div class="flex items-center gap-1 shrink-0">
@@ -52,7 +51,7 @@ function getEditRowHTML(name, url, icon, id) {
                     <svg class="size-3.5 pointer-events-none" aria-hidden="true"><use href="#icon-drag"/></svg>
                 </button>
                 <div class="edit-favicon-box shrink-0 flex items-center justify-center text-white/90 select-none pointer-events-none">
-                    ${getEditFaviconInner(name, url, icon)}
+                    ${getEditFaviconInner(item)}
                 </div>
             </div>
             <div class="flex-1 min-w-0 grid grid-cols-1 sm:grid-cols-3 items-center gap-1 sm:gap-1.5">
@@ -87,7 +86,7 @@ export function appendDraftBookmarkRow({ name = '', url = '', icon = '', desc, f
     if (!editList) return null;
 
     const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = getEditRowHTML(name, url, icon, rowId).trim();
+    tempDiv.innerHTML = getEditRowHTML(newBm).trim();
     const div = /** @type {HTMLElement|null} */ (tempDiv.firstElementChild);
     if (!div) return null;
 
@@ -113,7 +112,7 @@ export function appendDraftBookmarkRow({ name = '', url = '', icon = '', desc, f
 export function renderEditList() {
     const editList = dom.editList;
     if (!editList) return;
-    editList.innerHTML = '<span class="bookmark-sort-status sr-only" role="status" aria-live="polite"></span>' + modalState.draftBookmarks.map(bm => getEditRowHTML(bm.name, bm.url, bm.icon, bm.id)).join('');
+    editList.innerHTML = '<span class="bookmark-sort-status sr-only" role="status" aria-live="polite"></span>' + modalState.draftBookmarks.map(getEditRowHTML).join('');
     updateAllBookmarkCounters();
 
     editList.querySelectorAll('img.edit-favicon-img').forEach(img => {
@@ -126,22 +125,13 @@ export function renderEditList() {
  * @returns {import('../types').BookmarkItem[]}
  */
 export function collectEditData() {
-    const bookmarks = [];
-    for (const item of modalState.draftBookmarks) {
-        const bookmark = normalizeBookmark(item);
-        if (!bookmark) continue;
-        const { url } = bookmark;
-        const origUrl = normalizeUrl(item.origUrl || '');
-        if (origUrl && url !== origUrl) bookmark.icon = faviconFromUrl(url);
-        bookmarks.push(bookmark);
-    }
-    return bookmarks;
+    return normalizeBookmarks(modalState.draftBookmarks, item => normalizeBookmark(item, '', item.origUrl));
 }
 
 export function getExistingUrls() {
     const urls = new Set();
     for (const bm of modalState.draftBookmarks) {
-        const norm = normalizeUrl(bm.url);
+        const norm = normalizeBookmarkUrl(bm.url);
         if (norm) urls.add(norm);
     }
     return urls;

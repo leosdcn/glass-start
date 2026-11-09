@@ -38,6 +38,23 @@ await test("目录图标复用与过期预览请求", async () => {
         assert.equal(external.length,0);
         console.log('✅ 从目录添加、草稿预览与保存均使用原始本地图标和元数据，无外部图标请求');
 
+        const equivalentUrl = await evalJS(`(async () => {
+        await openEditModal();
+        const row = dom.editList.querySelector('.edit-row-card');
+        const field = row.querySelector('.edit-url');
+        const originalIcon = row.querySelector('img').getAttribute('src');
+        field.value = ' ' + field.value + ' ';
+        field.dispatchEvent(new Event('input', { bubbles: true }));
+        await new Promise(resolve => setTimeout(resolve, CONFIG.SUGGEST.DEBOUNCE_MS + 30));
+        const previewIcon = row.querySelector('img')?.getAttribute('src');
+        await saveEditModal();
+        return { originalIcon, previewIcon, savedIcon: pageData.bookmarks[0].icon };
+    })()`);
+        assert.ok(equivalentUrl.originalIcon.startsWith('./icons/'));
+        assert.equal(equivalentUrl.previewIcon, equivalentUrl.originalIcon);
+        assert.equal(equivalentUrl.savedIcon, equivalentUrl.originalIcon);
+        assert.equal(external.length, 0);
+
         await evalJS(`(async () => {
         await openEditModal();
         replaceBookmarkDraft([{name:'旧名称',url:'https://performance-icon.invalid/',icon:'data:image/png;base64,broken'}]); renderEditList();
@@ -195,7 +212,7 @@ await test('关闭目录后滚到最后新增书签并归还焦点', async () =>
     }
 });
 
-test("目录简介缺省继承与导入导出语义", async () => {
+test("导入、导出与保存保留首条有效书签及其简介语义", async () => {
     const a = { name: 'Zulu', url: 'https://www.example.com/', icon: './icons/github.com.png', desc: '目录简介' };
     const { server, chrome, evalJS } = await launchSession();
     try {
@@ -210,27 +227,48 @@ test("目录简介缺省继承与导入导出语义", async () => {
                 return pageData.bookmarks[0].desc;
             })()`);
             assert.equal(direct, desc === undefined ? '目录简介' : '');
+            const duplicate = { ...a, url: ' www.example.com/ ', name: '后续同址书签', desc: '重复简介' };
             await evalJS(`(async () => {
                 await openEditModal();
                 const transfer = new DataTransfer();
-                transfer.items.add(new File([${JSON.stringify(JSON.stringify([item]))}], 'bookmarks.json', { type: 'application/json' }));
+                transfer.items.add(new File([${JSON.stringify(JSON.stringify([item, duplicate]))}], 'bookmarks.json', { type: 'application/json' }));
                 dom.importJsonInput.files = transfer.files;
                 dom.importJsonInput.dispatchEvent(new Event('change', { bubbles: true }));
             })()`);
             await waitFor(evalJS, 'OverlayStack.top()?.id === "confirmModal"');
             const imported = await evalJS(`(async () => {
                 dom.confirmOkBtn.click();
-                const collected = collectEditData();
+                const importedNames = modalState.draftBookmarks.map(bookmark => bookmark.name);
+                dom.addBookmarkBtn.click();
+                const row = dom.editList.lastElementChild;
+                for (const [selector, value] of [['.edit-name', '手动重复'], ['.edit-url', ${JSON.stringify(a.url)}]]) {
+                    const input = row.querySelector(selector);
+                    input.value = value;
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+                document.getElementById('tab-btn-data').click();
                 const create = URL.createObjectURL, click = HTMLAnchorElement.prototype.click; let blob;
                 URL.createObjectURL = value => { blob = value; return create(value); };
                 HTMLAnchorElement.prototype.click = function() {};
                 let exported;
-                try { exportBookmarksJSON(); exported = JSON.parse(await blob.text()).bookmarks[0]; }
+                try { dom.exportJsonBtn.click(); exported = JSON.parse(await blob.text()).bookmarks; }
                 finally { URL.createObjectURL = create; HTMLAnchorElement.prototype.click = click; }
-                saveUserBookmarks(collected); cancelEditModal(); loadBookmarks();
-                return { hasDesc: Object.hasOwn(exported, 'desc'), desc: pageData.bookmarks[0].desc };
+                dom.saveEditBtn.click();
+                return { importedNames, exported };
             })()`);
-            assert.deepEqual(imported, { hasDesc: desc !== undefined, desc: desc === undefined ? '目录简介' : '' });
+            assert.deepEqual(imported, { importedNames: [a.name], exported: [item] });
+            await waitFor(evalJS, '!dom.editModal.open');
+            const saved = await evalJS(`(() => {
+                loadBookmarks();
+                const { keys, meta } = storageGet(CONFIG.KEYS.BOOKMARKS);
+                return { keys, meta, bookmarks: pageData.bookmarks };
+            })()`);
+            const { url, ...override } = item;
+            assert.deepEqual(saved, {
+                keys: [url],
+                meta: { [url]: override },
+                bookmarks: [{ ...item, desc: desc ?? '目录简介' }]
+            });
         }
     } finally {
         await chrome.close();

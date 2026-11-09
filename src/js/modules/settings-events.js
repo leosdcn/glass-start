@@ -160,7 +160,7 @@ export function bindEditEvents() {
                     editFaviconTimers.set(row, setTimeout(() => {
                         editFaviconTimers.delete(row);
                         if (!state.editOpen || !row.isConnected || !modalState.draftBookmarks.includes(item)) return;
-                        faviconBox.innerHTML = getEditFaviconInner(item.name, item.url);
+                        faviconBox.innerHTML = getEditFaviconInner(item);
                         const newImg = /** @type {HTMLImageElement|null} */ (faviconBox.querySelector('.edit-favicon-img'));
                         if (newImg) checkImageReady(newImg, handleEditIconError);
                     }, CONFIG.SUGGEST.DEBOUNCE_MS));

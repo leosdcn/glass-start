@@ -17,6 +17,15 @@ export function normalizeUrl(url) {
     return canonicalBookmarkUrl(url);
 }
 
+/** @param {unknown} value */
+export function normalizeBookmarkUrl(value) {
+    const rawUrl = String(value || '').trim();
+    if (/^[a-z][a-z\d+.-]*:(?!\d+(?:[/?#]|$))/i.test(rawUrl) && !/^https?:\/\//i.test(rawUrl)) return '';
+    const url = normalizeUrl(rawUrl);
+    if (!url) return '';
+    try { return new URL(url).hostname ? url : ''; } catch { return ''; }
+}
+
 /**
  * 从给定的 URL 字符串中安全提取规范化 Hostname 并剥离前缀 www.
  * @param {string} url
@@ -51,26 +60,52 @@ export function faviconFromUrl(url) {
 }
 
 /**
- * 书签入口共用的字段清洗；草稿标识、图标随 URL 变更等编辑行为由调用方管理。
+ * URL 变更时按新地址推导图标，等价地址保留原图标。
+ * @param {string} url - 已清洗的书签 URL
+ * @param {unknown} icon
+ * @param {string} [origUrl]
+ */
+export function resolveBookmarkIcon(url, icon, origUrl = '') {
+    if (!url) return '';
+    const original = normalizeUrl(origUrl);
+    const customIcon = typeof icon === 'string' ? icon.trim() : '';
+    if (customIcon && (!original || original === url) && safeUrl(customIcon) !== '#') return customIcon;
+    return faviconFromUrl(url);
+}
+
+/**
+ * 书签入口共用的字段清洗。
  * @param {any} item
  * @param {string} [fallbackName]
+ * @param {string} [origUrl] - 仅由草稿收集传入
  * @returns {import('../types').BookmarkItem | null}
  */
-export function normalizeBookmark(item, fallbackName = '') {
+export function normalizeBookmark(item, fallbackName = '', origUrl = '') {
     if (!item || typeof item !== 'object' || Array.isArray(item)) return null;
     const name = String(item.name || fallbackName).trim().slice(0, CONFIG.SECURITY.MAX_NAME_CHARS);
-    const rawUrl = String(item.url || '').trim();
-    if (/^[a-z][a-z\d+.-]*:(?!\d+(?:[/?#]|$))/i.test(rawUrl) && !/^https?:\/\//i.test(rawUrl)) return null;
-    const url = normalizeUrl(rawUrl);
+    const url = normalizeBookmarkUrl(item.url);
     if (!name || !url) return null;
-    try { if (!new URL(url).hostname) return null; } catch { return null; }
-    const rawIcon = typeof item.icon === 'string' ? item.icon.trim() : '';
-    const icon = rawIcon && safeUrl(rawIcon) !== '#' ? rawIcon : faviconFromUrl(url);
     /** @type {import('../types').BookmarkItem} */
-    const bookmark = { name, url, icon };
+    const bookmark = { name, url, icon: resolveBookmarkIcon(url, item.icon, origUrl) };
     // 缺省继承目录简介，空字符串是明确清空；不能将两者归并。
     if (typeof item.desc === 'string') bookmark.desc = item.desc.trim().slice(0, CONFIG.SECURITY.MAX_DESC_CHARS);
+    if (item.customText === true) bookmark.customText = true;
     return bookmark;
+}
+
+/**
+ * 清洗列表，同一共享 URL 保留第一条有效书签。
+ * @template T
+ * @param {T[]} items
+ * @param {(item: T) => import('../types').BookmarkItem | null} normalizeItem
+ */
+export function normalizeBookmarks(items, normalizeItem) {
+    const unique = new Map();
+    for (const item of items) {
+        const bookmark = normalizeItem(item);
+        if (bookmark && !unique.has(bookmark.url)) unique.set(bookmark.url, bookmark);
+    }
+    return [...unique.values()];
 }
 
 /**

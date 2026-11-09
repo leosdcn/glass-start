@@ -184,7 +184,7 @@ try {
         let saving;
         if ('${phase}' === 'abort') {
           const name = dom.editList.querySelector('.edit-name');
-          name.value = '壁纸失败前已保存的书签';
+          name.value = ' 壁纸失败前已保存的书签 ';
           name.dispatchEvent(new Event('input', {bubbles: true}));
           previewDraftMaskOpacity(47);
           modalState.draftTransitionMode = 'classic';
@@ -237,6 +237,8 @@ try {
           result.partialSaveShown = ['快捷书签', '背景暗度', '切屏动效', '已保存并生效'].every(label => error.includes(label));
           result.otherChangesSaved = pageData.bookmarks[0].name === '壁纸失败前已保存的书签'
             && storageGet(CONFIG.KEYS.MASK_OPACITY) === 47 && getTransitionMode() === 'classic';
+          result.bookmarkDraftSynced = !modalState.bookmarksChanged
+            && dom.editList.querySelector('.edit-name').value === pageData.bookmarks[0].name;
           IDBObjectStore.prototype.put = function(...args) {
             const req = put.apply(this, args);
             req.addEventListener('success', () => req.transaction.abort());
@@ -260,7 +262,7 @@ try {
       persistedBg:phase === 'abort' ? 1 : 2, runtimeBg:phase === 'abort' ? 1 : 2,
       enabled:true, open:phase === 'abort',
       ...(phase === 'abort' ? {importDismissed:true, failureShown:true, partialSaveShown:true,
-        otherChangesSaved:true, retryShowsSavedChanges:true, cancelledAfterFailure:true} : {})
+        otherChangesSaved:true, bookmarkDraftSynced:true, retryShowsSavedChanges:true, cancelledAfterFailure:true} : {})
     });
   }
   console.log('✅ 壁纸提交期间外观选择、取消按钮、遮罩与 Escape 均被锁定；事务成功或失败后解除锁定');
