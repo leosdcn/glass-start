@@ -512,10 +512,7 @@ export function hideSuggestions() {
     if (suggestionMenu) {
         suggestionMenu.classList.remove('active', 'keyboard-nav');
         suggestionMenu.setAttribute('aria-hidden', 'true');
-        suggestionMenu.replaceChildren();
     }
-    localGroup = null;
-    netGroup = null;
     if (searchInput) {
         searchInput.setAttribute('aria-expanded', 'false');
         searchInput.removeAttribute('aria-activedescendant');
