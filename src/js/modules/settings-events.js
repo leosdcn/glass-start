@@ -56,7 +56,7 @@ export function bindEditEvents() {
         dom.resetEditBtn.addEventListener('click', resetBookmarks);
     }
 
-    const settingsTabs = getSettingsTabs();
+    const settingsTabs = getSettingsTabs() || [];
     settingsTabs.forEach(btn => {
         btn.addEventListener('click', e => {
             e.stopPropagation();

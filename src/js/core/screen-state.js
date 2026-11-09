@@ -32,8 +32,8 @@ let isTransitioning = false;
 let sectionInitialized = false;
 /** @type {ReturnType<typeof setTimeout>|null} */
 let transitionTimer = null;
-/** @type {(() => void)|null} */
-let navTransitionCleanup = null;
+/** @type {AbortController|null} */
+let transitionAbortController = null;
 /** @type {Set<() => void>} */
 const screenSettledCallbacks = new Set();
 
@@ -53,9 +53,10 @@ function preventTransitionScroll(e) {
 function clearTransitionTasks() {
     if (transitionTimer) clearTimeout(transitionTimer);
     transitionTimer = null;
-    navTransitionCleanup?.();
-    navTransitionCleanup = null;
-    document.removeEventListener('wheel', preventTransitionScroll);
+    if (transitionAbortController) {
+        transitionAbortController.abort();
+        transitionAbortController = null;
+    }
     document.body.classList.remove('is-screen-transitioning');
     // 等当前任务完成收尾或唤醒校准，再交还给等待方。
     for (const callback of screenSettledCallbacks) queueMicrotask(callback);
@@ -77,7 +78,12 @@ function prepareScreenTransition() {
     active?.blur();
     document.body.classList.remove('tab-blurred');
     document.body.classList.add('is-screen-transitioning');
-    document.addEventListener('wheel', preventTransitionScroll, { passive: false });
+
+    transitionAbortController = new AbortController();
+    document.addEventListener('wheel', preventTransitionScroll, {
+        passive: false,
+        signal: transitionAbortController.signal
+    });
 }
 
 function isReducedMotion() {
@@ -90,6 +96,7 @@ function isReducedMotion() {
  * @param {() => void} onComplete
  */
 function waitForScreenTransition(nav, targetSection, onComplete) {
+    const signal = transitionAbortController?.signal;
     const finish = () => {
         if (state.currentSection !== targetSection) {
             clearTransitionTasks();
@@ -103,13 +110,12 @@ function waitForScreenTransition(nav, targetSection, onComplete) {
             clearTransitionTasks();
         }
     };
-    if (nav) {
+    if (nav && signal) {
         /** @param {TransitionEvent} e */
         const onEnd = e => {
             if (e.target === nav && (e.propertyName === 'transform' || e.propertyName === '-webkit-transform' || e.propertyName === 'opacity')) finish();
         };
-        nav.addEventListener('transitionend', onEnd);
-        navTransitionCleanup = () => nav.removeEventListener('transitionend', onEnd);
+        nav.addEventListener('transitionend', onEnd, { signal });
     }
     // 切屏前已提交过样式，这里再读 transitionDuration 会让浏览器同步重算整棵树；
     // 减弱动效立即完成，其余由 transitionend 和兜底计时器驱动。
@@ -118,13 +124,9 @@ function waitForScreenTransition(nav, targetSection, onComplete) {
         return;
     }
     const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const onMotionChange = () => { if (motion.matches) finish(); };
-    motion.addEventListener('change', onMotionChange);
-    const cleanup = navTransitionCleanup;
-    navTransitionCleanup = () => {
-        cleanup?.();
-        motion.removeEventListener('change', onMotionChange);
-    };
+    if (signal) {
+        motion.addEventListener('change', () => { if (motion.matches) finish(); }, { signal });
+    }
     transitionTimer = setTimeout(finish, CONFIG.GESTURE.TRANSITION_MS + CONFIG.GESTURE.TIMEOUT_BUFFER_MS);
 }
 

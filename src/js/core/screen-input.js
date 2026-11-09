@@ -6,15 +6,40 @@ import { OverlayStack } from './overlay-stack.js';
 import { isScreenTransitioning, switchToNav, switchToStart } from './screen-state.js';
 
 const EXCLUDED_TARGETS = '#sidebar, #weatherWidget, #editBookmarksBtn, input, textarea, select, [contenteditable]:not([contenteditable="false"])';
-let wheelTime = -Infinity;
-let wheelWindowStart = 0;
-let wheelDirection = 0;
-let wheelDistance = 0;
-let wheelConsumed = false;
-// 被动 wheel 可能晚于合成线程的滚动提交；保留上次 scroll 观察到的位置。
-let navWasAtTop = true;
-let navTopArrivalTime = -Infinity;
-let navCoastingToTop = false;
+
+/** 滚轮手势会话状态机：集中维护滚动窗口、方向与惯性到顶余量吸收。 */
+const wheelSession = {
+    time: -Infinity,
+    windowStart: 0,
+    direction: 0,
+    distance: 0,
+    consumed: false,
+    navWasAtTop: true,
+    navTopArrivalTime: -Infinity,
+    navCoastingToTop: false,
+
+    reset() {
+        this.time = -Infinity;
+        this.windowStart = 0;
+        this.direction = 0;
+        this.distance = 0;
+        this.consumed = false;
+        this.navWasAtTop = isNavAtTop();
+        this.navTopArrivalTime = -Infinity;
+        this.navCoastingToTop = false;
+    },
+
+    /** @param {number} now */
+    restartWindow(now) {
+        this.distance = 0;
+        this.windowStart = now;
+    },
+
+    consume() {
+        this.consumed = true;
+    }
+};
+
 /** @type {{ id: number, x: number, y: number, time: number, canReturn: boolean }|null} */
 let touch = null;
 let navTouchMoveBlocked = false;
@@ -37,13 +62,7 @@ function syncNavTouchMove() {
 }
 
 export function resetScreenInput() {
-    wheelTime = -Infinity;
-    wheelDirection = 0;
-    wheelDistance = 0;
-    wheelConsumed = false;
-    navWasAtTop = isNavAtTop();
-    navTopArrivalTime = -Infinity;
-    navCoastingToTop = false;
+    wheelSession.reset();
     clearTouchGesture();
     syncNavTouchMove();
 }
@@ -74,13 +93,13 @@ function recordNavScroll(e) {
     syncNavTouchMove();
     if (!atTop && state.currentSection === 'nav') {
         clearTouchGesture();
-        navCoastingToTop = false;
+        wheelSession.navCoastingToTop = false;
     }
-    if (atTop && !navWasAtTop) {
-        navTopArrivalTime = e.timeStamp;
-        navCoastingToTop = true;
+    if (atTop && !wheelSession.navWasAtTop) {
+        wheelSession.navTopArrivalTime = e.timeStamp;
+        wheelSession.navCoastingToTop = true;
     }
-    navWasAtTop = atTop;
+    wheelSession.navWasAtTop = atTop;
 }
 
 /** @param {WheelEvent} e */
@@ -92,47 +111,34 @@ function handleWheel(e) {
     if (!Number.isFinite(delta) || !delta || Math.abs(delta) < Math.abs(e.deltaX * unit)) return;
     const now = performance.now();
     const direction = Math.sign(delta);
-    if (now - wheelTime >= CONFIG.GESTURE.WHEEL_IDLE_MS || direction !== wheelDirection) {
-        wheelDistance = 0;
-        wheelConsumed = false;
-        wheelWindowStart = now;
-        navCoastingToTop = false;
+    if (now - wheelSession.time >= CONFIG.GESTURE.WHEEL_IDLE_MS || direction !== wheelSession.direction) {
+        wheelSession.restartWindow(now);
+        wheelSession.consumed = false;
+        wheelSession.navCoastingToTop = false;
     }
-    wheelTime = now;
-    wheelDirection = direction;
+    wheelSession.time = now;
+    wheelSession.direction = direction;
 
-    if (isExcluded(e.target) || !OverlayStack.isEmpty()) {
-        wheelConsumed = true;
+    if (isExcluded(e.target) || !OverlayStack.isEmpty() || isScreenTransitioning()) {
+        wheelSession.consume();
         return;
     }
-    if (isScreenTransitioning()) {
-        wheelConsumed = true;
-        return;
-    }
-    if (wheelConsumed) return;
+    if (wheelSession.consumed) return;
     // 一轮手势中只要还在滚内容，就不能在到顶后被余下事件带回首屏。
     if (state.currentSection === 'nav') {
-        if (!isNavAtTop() || !navWasAtTop) {
-            wheelDistance = 0;
-            wheelWindowStart = now;
-            return;
-        }
-        if (navCoastingToTop) {
-            // 惯性余量吸收：滚到顶的同轮余量不触发切屏；静默超时或换向后开启新一轮手势
-            wheelDistance = 0;
-            wheelWindowStart = now;
+        if (!isNavAtTop() || !wheelSession.navWasAtTop || wheelSession.navCoastingToTop) {
+            wheelSession.restartWindow(now);
             return;
         }
     }
-    if (now - wheelWindowStart >= CONFIG.GESTURE.WHEEL_IDLE_MS) {
-        wheelDistance = 0;
-        wheelWindowStart = now;
+    if (now - wheelSession.windowStart >= CONFIG.GESTURE.WHEEL_IDLE_MS) {
+        wheelSession.restartWindow(now);
     }
-    wheelDistance += delta;
-    const entering = state.currentSection === 'start' && wheelDistance >= CONFIG.GESTURE.SWIPE_THRESHOLD;
-    const leaving = state.currentSection === 'nav' && wheelDistance <= -CONFIG.GESTURE.SWIPE_THRESHOLD;
+    wheelSession.distance += delta;
+    const entering = state.currentSection === 'start' && wheelSession.distance >= CONFIG.GESTURE.SWIPE_THRESHOLD;
+    const leaving = state.currentSection === 'nav' && wheelSession.distance <= -CONFIG.GESTURE.SWIPE_THRESHOLD;
     if (!entering && !leaving) return;
-    wheelConsumed = true;
+    wheelSession.consume();
     if (entering) switchToNav();
     else switchToStart();
 }
