@@ -133,6 +133,7 @@ export const CONFIG = Object.freeze({
                 FLIP_DURATION_MS: 350,        // FLIP 动画时长 (ms)
                 BOOKMARK_DELETE_DURATION: 220, // 书签删除动效时长 (ms)
                 BG_OVERLAY_TRANSITION: 200,   // 遮罩滑块平滑过渡时长 (ms)
+                TILT_TRANSITION_MS: 80,       // 3D 悬停倾斜过渡时长 (ms)
                 TILT_BG_TRANSITION_MS: 320    // 3D 悬停背景过渡时长 (ms)
             }),
             UI: Object.freeze({

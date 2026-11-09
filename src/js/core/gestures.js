@@ -30,8 +30,6 @@ export function resetActiveCard() {
     activeCard.style.transition = '';
     activeCard.style.transform = '';
     activeCard.style.willChange = '';
-    activeCard.style.removeProperty('--mouse-x');
-    activeCard.style.removeProperty('--mouse-y');
     activeCard = null;
     activeCardRect = null;
 }
@@ -107,8 +105,9 @@ export function initGlassSpotlightAndTilt() {
             activeCard = card;
             activeCardRect = card.getBoundingClientRect();
             activeCard.style.willChange = 'transform';
+            const tiltSec = `${CONFIG.TIMERS.TILT_TRANSITION_MS / 1000}s`;
             const bgSec = `${CONFIG.TIMERS.TILT_BG_TRANSITION_MS / 1000}s`;
-            activeCard.style.transition = `transform 0s linear,
+            activeCard.style.transition = `transform ${tiltSec} ease-out,
                 background-color var(--bookmark-background-duration, ${bgSec}) ease,
                 border-color ${bgSec} ease,
                 box-shadow var(--duration-tactile) var(--ease-tactile)`;
