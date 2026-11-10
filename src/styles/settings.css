@@ -122,7 +122,7 @@ body.drag-settling .drag-handle {
 .confirm-neutral .confirm-dialog-btn-ok:focus-visible {
     box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.6), 0 2px 8px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.18);
 }
-@media (hover: hover) {
+@media (hover: hover) and (pointer: fine) {
     body:not(.tab-blurred) .confirm-neutral .confirm-dialog-btn-ok:hover:not(:disabled) {
         background: rgba(255, 255, 255, 0.25);
         border-color: rgba(255, 255, 255, 0.36);
