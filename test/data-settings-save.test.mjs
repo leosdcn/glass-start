@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
-import { launchSession, waitFor, sleep } from './support/helpers.mjs';
+import { createEvaluator, launchSession, waitFor, sleep } from './support/helpers.mjs';
+import { connectCDP } from './support/cdp.mjs';
 
 let releaseWallpaper;
-const { server, chrome, send, evalJS } = await launchSession(0, {
+const { server, chrome, send, evalJS, cdpPort } = await launchSession(0, {
   '/late-wallpaper.png': (_req, res) => {
     releaseWallpaper = () => { res.writeHead(404); res.end(); };
   },
@@ -107,6 +108,9 @@ try {
         const preview = previewDraftWallpaper(location.origin + '/latest-draft-${invalid}.png');
         const saving = saveEditModal();
         const editable = !input.closest('[inert]') && modalState.phase !== 'committing' && !dom.cancelEditBtn.disabled;
+        dom.languageBtn.click();
+        const languageLocked = dom.languageBtn.disabled && OverlayStack.top()?.id !== 'languageModal';
+        if (OverlayStack.top()?.id === 'languageModal') dom.cancelLanguageBtn.click();
         if (${invalid}) {
           for (const field of dom.editList.querySelectorAll('.edit-url')) {
             field.value = '';
@@ -120,8 +124,8 @@ try {
         await preview;
         await saving;
         const result = {
-          editable, open:state.editOpen, name:pageData.bookmarks[0].name,
-          unlocked:modalState.phase !== 'committing' && !dom.saveEditBtn.disabled && !dom.cancelEditBtn.disabled,
+          editable, languageLocked, open:state.editOpen, name:pageData.bookmarks[0].name,
+          unlocked:modalState.phase !== 'committing' && !dom.saveEditBtn.disabled && !dom.cancelEditBtn.disabled && !dom.languageBtn.disabled,
           rejected:OverlayStack.top()?.id === 'confirmModal'
         };
         if (OverlayStack.top()?.id === 'confirmModal') OverlayStack.top().close();
@@ -129,7 +133,7 @@ try {
         return result;
       } finally { window.Image = NativeImage; }
     })()`);
-    assert.equal(latestDraft.editable && latestDraft.unlocked, true, JSON.stringify(latestDraft));
+    assert.equal(latestDraft.editable && latestDraft.languageLocked && latestDraft.unlocked, true, JSON.stringify(latestDraft));
     assert.equal(latestDraft.open, invalid);
     assert.equal(latestDraft.rejected, invalid);
     assert.equal(latestDraft.name, '等待后的最新名称');
@@ -534,6 +538,7 @@ try {
     const worker = other.installing || other.waiting || other.active;
     if (worker.state !== 'activated') await new Promise(resolve => worker.addEventListener('statechange', () => {if(worker.state === 'activated')resolve();}));
     await Promise.all(['glass-scope-%2F-app-core-vclear-test','glass-scope-%2Fother%2F-app-core-vkeep-test',
+      'glass-scope-%2F-audit%2F-app-core-vkeep-test', 'glass-scope-%2F-audit%2F-app-images-app-core-vkeep-test',
       'unrelated-cache',CONFIG.CACHE.FAVICON].map(key => caches.open(key)));
     sessionStorage.setItem('clearCacheBookmarks',localStorage.getItem(CONFIG.KEYS.BOOKMARKS));
     await openEditModal();
@@ -558,10 +563,12 @@ try {
   assert.deepEqual(await evalJS(`(async () => ({
     ownRemoved:!await caches.has('glass-scope-%2F-app-core-vclear-test'),
     otherKept:await caches.has('glass-scope-%2Fother%2F-app-core-vkeep-test'),
+    nestedKept:await caches.has('glass-scope-%2F-audit%2F-app-core-vkeep-test') &&
+      await caches.has('glass-scope-%2F-audit%2F-app-images-app-core-vkeep-test'),
     unrelatedKept:await caches.has('unrelated-cache'), sharedIconsKept:await caches.has(CONFIG.CACHE.FAVICON),
     otherRegistered:(await navigator.serviceWorker.getRegistrations()).some(r => r.scope === location.origin + '/other/'),
     bookmarksKept:localStorage.getItem(CONFIG.KEYS.BOOKMARKS) === sessionStorage.getItem('clearCacheBookmarks')
-  }))()`),{ownRemoved:true,otherKept:true,unrelatedKept:true,sharedIconsKept:true,otherRegistered:true,bookmarksKept:true});
+  }))()`),{ownRemoved:true,otherKept:true,nestedKept:true,unrelatedKept:true,sharedIconsKept:true,otherRegistered:true,bookmarksKept:true});
   console.log('✅ 清理只删除当前 scope 的离线池，保留其他注册、其他缓存、共享图标和书签');
 
   await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] });
@@ -584,6 +591,37 @@ try {
   await sleep(700);
   assert.equal(await evalJS(`${hint}.visibility === 'visible' && ${hint}.display !== 'none'`), true);
   console.log('✅ 恢复默认后提示立即恢复，旧淡出时间点经过后仍可见');
+
+  const { targetId } = await send('Target.createTarget', { url: 'about:blank' });
+  const targets = await (await fetch(`http://127.0.0.1:${cdpPort}/json/list`)).json();
+  const second = await connectCDP(new WebSocket(targets.find(target => target.id === targetId).webSocketDebuggerUrl));
+  try {
+    const tab = createEvaluator(second.send);
+    await second.send('Page.enable');
+    await second.send('Page.addScriptToEvaluateOnNewDocument', { source:
+      "window.__GLASS_TEST__=true; Object.defineProperty(navigator,'languages',{get:()=>['zh-CN']});" });
+    await second.send('Page.navigate', { url: `http://127.0.0.1:${server.port}/` });
+    await waitFor(tab, 'typeof openEditModal === "function" && !!dom.bookmarks?.firstElementChild', 10000);
+    const changeName = (index, name) => `(() => {
+      const input = dom.editList.querySelectorAll('.edit-name')[${index}];
+      input.value = ${JSON.stringify(name)};
+      input.dispatchEvent(new Event('input', {bubbles:true}));
+    })()`;
+    await evalJS(`(async()=>{await openEditModal(); ${changeName(0, '标签一已保存')}; await saveEditModal()})()`);
+    await tab('openEditModal()');
+    assert.equal(await tab('modalState.draftBookmarks[0].name'), '标签一已保存');
+    await evalJS('openEditModal()');
+    await tab(`${changeName(1, '标签二已保存')}; saveEditModal()`);
+    await evalJS(`${changeName(0, '旧草稿')}; saveEditModal()`);
+    assert.equal(await evalJS(`OverlayStack.top()?.id === 'confirmModal' && dom.confirmMsg.textContent.includes('另一个标签页')`), true);
+    assert.equal(await evalJS('modalState.draftBookmarks[0].name'), '旧草稿');
+    assert.deepEqual(await tab('pageData.bookmarks.slice(0,2).map(bookmark=>bookmark.name)'), ['标签一已保存', '标签二已保存']);
+    await waitFor(evalJS, `pageData.bookmarks[1].name === '标签二已保存'`);
+  } finally {
+    second.close();
+    await send('Target.closeTarget', { targetId });
+  }
+  console.log('✅ 两个标签页共享最新书签，保存旧草稿会提示冲突并保留草稿');
 } finally {
   releaseWallpaper?.();
   await chrome.close();

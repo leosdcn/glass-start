@@ -134,7 +134,9 @@ await test("主题配置、图标回退与缓存驱逐", async () => {
       const icons = await evalJS(`(async () => {
     const descriptor = Object.getOwnPropertyDescriptor(window, 'caches');
     const deleted = [];
-    Object.defineProperty(window, 'caches', { configurable:true, value:{open:async () => ({delete:async url => deleted.push(url)})} });
+    Object.defineProperty(window, 'caches', { configurable:true, value:{
+      has:async () => true, open:async () => ({delete:async url => deleted.push(url)})
+    } });
     try {
       const results = [];
       for (const edit of [false, true]) {

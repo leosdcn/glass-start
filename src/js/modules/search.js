@@ -621,19 +621,24 @@ function requestNetworkSuggestions(engineKey, query, cacheKey, localList, reqId)
 
     /** @param {any} data */
     const handleSuggestData = data => {
-        cleanup();
-        if (reqId !== activeSuggestReqId) return;
-        let list = [];
-        if (Array.isArray(data)) {
-            list = Array.isArray(data[1]) ? data[1] : data.map(item => (typeof item === 'object' && item && item.phrase) ? item.phrase : item);
+        if (reqId !== activeSuggestReqId) { cleanup(); return; }
+        if (!Array.isArray(data)) return handleSuggestFallback();
+        const nested = Array.isArray(data[1]);
+        if (nested && typeof data[0] !== 'string') return handleSuggestFallback();
+        /** @type {unknown[]} */
+        const list = nested ? data[1] : data.map(item => item?.phrase ?? item);
+        const safeList = list.filter(/** @returns {item is string} */ item => typeof item === 'string' && item.trim().length > 0);
+        if ((list.length && !safeList.length) || (!nested && list.length !== safeList.length)) {
+            return handleSuggestFallback();
         }
+        cleanup();
         const maxNetCount = Math.max(0, CONFIG.SUGGEST.MAX_TOTAL_ITEMS - localList.length);
-        const safeList = list.filter(item => typeof item === 'string' && item.trim().length > 0);
+        suggestCache.delete(cacheKey);
         if (suggestCache.size >= MAX_SUGGEST_CACHE_SIZE) {
             const oldest = suggestCache.keys().next().value;
             if (oldest) suggestCache.delete(oldest);
         }
-        suggestCache.set(cacheKey, { list: safeList, timestamp: Date.now() });
+        suggestCache.set(cacheKey, { list: safeList.slice(0, CONFIG.SUGGEST.MAX_TOTAL_ITEMS), timestamp: Date.now() });
         const netList = safeList.slice(0, maxNetCount);
         if (localList.length > 0 || netList.length > 0) {
             renderSuggestions(localList, netList, true);

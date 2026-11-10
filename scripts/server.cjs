@@ -5,6 +5,8 @@ const path = require('path');
 const { exec, spawn } = require('child_process');
 const os = require('os');
 const zlib = require('zlib');
+const { createHash } = require('node:crypto');
+const { Readable } = require('node:stream');
 const { main: runFullBuild, startWatch } = require('./build.cjs');
 
 // 终端格式化排版与 ANSI 彩色工具
@@ -160,25 +162,15 @@ async function handleStaticRequest(req, res) {
             const isIcon = rel.startsWith('icons' + path.sep) || rel.startsWith('icons/')
                 || rel === 'apple-touch-icon.png' || rel === 'favicon.ico';
             const isBuildScript = rel.startsWith('app-builds' + path.sep) && path.extname(rel) === '.js';
-            const isRevalidatedAsset = isWallpaper || isIcon;
-
-            // 对壁纸与图标处理 If-Modified-Since，命中时返回 304。
-            const ifModifiedSince = req.headers['if-modified-since'];
-            if (!isFallback && ifModifiedSince && isRevalidatedAsset) {
-                const reqMtime = new Date(ifModifiedSince).getTime();
-                if (Math.floor(stats.mtimeMs / 1000) <= Math.floor(reqMtime / 1000)) {
-                    await file.close();
-                    res.writeHead(304, 'Not Modified');
-                    res.end();
-                    return;
-                }
-            }
+            const isRevalidatedAsset = !isFallback && (isWallpaper || isIcon);
 
             const ext = path.extname(targetPath).toLowerCase();
             const contentType = MIME_TYPES[ext] || 'application/octet-stream';
+            const isCompressible = /^(text\/|application\/(javascript|json|manifest\+json)|image\/svg\+xml)/.test(contentType);
 
             res.setHeader('Content-Type', contentType);
-            if (!isFallback) {
+            if (isCompressible) res.setHeader('Vary', 'Accept-Encoding');
+            if (!isFallback && !isRevalidatedAsset) {
                 res.setHeader('Last-Modified', stats.mtime.toUTCString());
             }
 
@@ -201,11 +193,24 @@ async function handleStaticRequest(req, res) {
                 res.setHeader('Access-Control-Allow-Origin', '*');
             }
 
-            // 针对文本类静态资产（HTML, JS, CSS, JSON, SVG）支持原生 Gzip / Deflate 流式压缩
-            const isCompressible = /^(text\/|application\/(javascript|json|manifest\+json)|image\/svg\+xml)/.test(contentType);
+            let body;
+            if (isRevalidatedAsset) {
+                // 校验的是同一文件描述符读取的字节，时间戳精度和重新复制不会改变判断。
+                body = await file.readFile().finally(() => file.close());
+                const tag = '"' + createHash('sha256').update(body).digest('base64url') + '"';
+                res.setHeader('ETag', 'W/' + tag);
+                const tags = req.headers['if-none-match']?.split(',') ?? [];
+                if (tags.some(value => value.trim() === '*' || value.trim().replace(/^W\//, '') === tag)) {
+                    res.writeHead(304);
+                    res.end();
+                    return;
+                }
+            }
+
+            // 文本类静态资源可按协商压缩。
             const acceptEncoding = req.headers['accept-encoding'] || '';
 
-            const rawStream = file.createReadStream();
+            const rawStream = body ? Readable.from([body]) : file.createReadStream();
             res.on('close', () => rawStream.destroy());
             rawStream.on('error', () => {
                 if (!res.headersSent) res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
@@ -214,11 +219,9 @@ async function handleStaticRequest(req, res) {
 
             if (isCompressible && acceptEncoding.includes('gzip')) {
                 res.setHeader('Content-Encoding', 'gzip');
-                res.setHeader('Vary', 'Accept-Encoding');
                 rawStream.pipe(zlib.createGzip({ level: 6 })).pipe(res);
             } else if (isCompressible && acceptEncoding.includes('deflate')) {
                 res.setHeader('Content-Encoding', 'deflate');
-                res.setHeader('Vary', 'Accept-Encoding');
                 rawStream.pipe(zlib.createDeflate({ level: 6 })).pipe(res);
             } else {
                 rawStream.pipe(res);

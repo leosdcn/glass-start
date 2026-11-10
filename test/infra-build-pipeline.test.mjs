@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
-import { execFile } from 'node:child_process';
+import { execFile, spawn } from 'node:child_process';
+import { once } from 'node:events';
 import fs from 'node:fs';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
@@ -9,6 +10,7 @@ import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import { launchChrome } from './support/cdp.mjs';
 import { getFreePort, sleep, waitFor } from './support/helpers.mjs';
+import { startServer } from './support/server.mjs';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const require = createRequire(import.meta.url);
@@ -165,6 +167,44 @@ test('发布暂存目录失败时恢复上一次完整产物', t => {
   assert.deepEqual(fs.readdirSync(dir), ['dist']);
 });
 
+test('扩展切换目录时构建被中止，后续发布可恢复备份和回收锁', { skip: process.platform === 'win32' }, async t => {
+  const dir = temporaryDirectory(t);
+  const output = join(dir, 'extension');
+  const backup = join(dir, '.extension-publish', 'previous');
+  const modulePath = join(root, 'scripts/publish-build.cjs');
+  const { publishBuild } = require(modulePath);
+  const write = value => staging => fs.writeFileSync(join(staging, 'app.js'), value);
+  publishBuild(output, write('previous'));
+
+  await assert.rejects(node(['-e', `
+    const fs = require('node:fs');
+    const output = ${JSON.stringify(output)};
+    const rename = fs.renameSync;
+    fs.renameSync = (source, target) => {
+      rename(source, target);
+      if (source === output) process.kill(process.pid, 'SIGKILL');
+    };
+    require(${JSON.stringify(modulePath)}).publishBuild(output, staging =>
+      fs.writeFileSync(staging + '/app.js', 'interrupted'));
+  `]), { signal: 'SIGKILL' });
+  assert.equal(fs.existsSync(output), false);
+  assert.equal(fs.readFileSync(join(backup, 'app.js'), 'utf8'), 'previous');
+
+  const rename = fs.renameSync;
+  const failure = t.mock.method(fs, 'renameSync', (from, to) => {
+    if (from.startsWith(join(dir, '.extension-build-')) && to === output) throw new Error('injected retry failure');
+    rename(from, to);
+  });
+  assert.throws(() => publishBuild(output, write('retry')), /injected retry failure/);
+  assert.equal(fs.readFileSync(join(output, 'app.js'), 'utf8'), 'previous');
+  failure.mock.restore();
+
+  publishBuild(output, write('next'));
+  assert.equal(fs.readFileSync(join(output, 'app.js'), 'utf8'), 'next');
+  assert.equal(fs.existsSync(backup), false);
+  assert.equal(fs.existsSync(join(dir, '.extension-publish-lock')), false);
+});
+
 test('网页切换前进程被中止时旧入口继续服务，已打开的文件可读完', { skip: process.platform === 'win32' }, async t => {
   const dir = temporaryDirectory(t);
   const output = join(dir, 'dist');
@@ -195,8 +235,78 @@ test('网页切换前进程被中止时旧入口继续服务，已打开的文�
     publishWebBuild(output, write('next'));
     assert.equal(fs.readFileSync(join(output, 'index.html'), 'utf8'), 'next');
     assert.equal(fs.readFileSync(file, 'utf8'), 'previous');
+    assert.deepEqual(fs.readdirSync(dir).filter(name => name.startsWith('.dist-build-')),
+      [fs.readlinkSync(output).split(/[\\/]/).at(-1)], '中止构建的目录和链接已清理');
   } finally {
     fs.closeSync(file);
+  }
+});
+
+test('全新发布目录可从线上保留经指纹校验的上一版脚本', async t => {
+  const dir = temporaryDirectory(t);
+  const assets = join(dir, 'app-builds');
+  fs.mkdirSync(assets);
+  const version = 'app-core-v1-1111111111111111';
+  const asset = `app-builds/${version}.js`;
+  fs.writeFileSync(join(assets, 'app-core-v2-2222222222222222.js'), 'new build');
+  let script = `window.__GLASS_BUILD_APP__="${version}";`;
+  const server = await startServer(0, dir, {
+    '/deployed/': `<script>window.__GLASS_BUILD_HTML__="${version}";</script><script src="./${asset}"></script>`,
+    ['/deployed/' + asset]: (_req, res) => {
+      res.writeHead(200, {'Content-Type':'text/javascript; charset=utf-8'});
+      res.end(script);
+    }
+  });
+  const { retainDeployedScript } = require('../scripts/retain-deployed.cjs');
+  try {
+    const origin = `http://127.0.0.1:${server.port}`;
+    assert.equal(await retainDeployedScript(origin + '/first-deploy', dir), undefined);
+    assert.equal(await retainDeployedScript(origin + '/deployed', dir), asset);
+    assert.equal(fs.readFileSync(join(dir, asset), 'utf8'), script);
+    script = 'window.__GLASS_BUILD_APP__="app-core-v9";';
+    await assert.rejects(retainDeployedScript(origin + '/deployed', dir), /指纹/);
+    assert.equal(fs.readFileSync(join(dir, asset), 'utf8'), `window.__GLASS_BUILD_APP__="${version}";`);
+  } finally {
+    await server.close();
+  }
+});
+
+test('本地预览的图标 ETag 区分同一秒内修改的内容', async t => {
+  const dir = temporaryDirectory(t);
+  const rootDir = join(dir, 'dist');
+  fs.mkdirSync(join(rootDir, 'icons'), { recursive: true });
+  fs.writeFileSync(join(rootDir, 'index.html'), '<!doctype html>');
+  const file = join(rootDir, 'icons', 'probe.png');
+  const sameSecond = 1700000000;
+  fs.writeFileSync(file, 'old');
+  fs.utimesSync(file, sameSecond + 0.1, sameSecond + 0.1);
+  const port = await getFreePort();
+  const url = `http://127.0.0.1:${port}/icons/probe.png`;
+  const preview = spawn(process.execPath, [join(root, 'scripts/server.cjs'), '--no-watch'], {
+    env: { ...process.env, GLASS_TEST_TMPDIR: dir, PORT: String(port) }, stdio: 'ignore'
+  });
+  const exited = once(preview, 'exit');
+  try {
+    await waitFor(() => fetch(url).then(r => r.ok, () => false), 'preview server listening');
+    const first = await fetch(url);
+    assert.equal(await first.text(), 'old');
+    const oldTag = first.headers.get('etag');
+    assert.ok(oldTag);
+    fs.writeFileSync(file, 'new');
+    fs.utimesSync(file, sameSecond + 0.9, sameSecond + 0.9);
+    const updated = await fetch(url, { headers: {
+      'If-None-Match': oldTag, 'If-Modified-Since': new Date(sameSecond * 1000).toUTCString()
+    }});
+    assert.equal(updated.status, 200);
+    assert.equal(await updated.text(), 'new');
+    const currentTag = updated.headers.get('etag');
+    assert.notEqual(currentTag, oldTag);
+    const unchanged = await fetch(url, { headers: { 'If-None-Match': currentTag } });
+    assert.equal(unchanged.status, 304);
+    assert.equal(unchanged.headers.get('etag'), currentTag);
+  } finally {
+    preview.kill();
+    await exited;
   }
 });
 

@@ -1,6 +1,6 @@
 /** 全局快捷键、页面唤醒和跨业务菜单协调；控件内部事件见各业务事件模块。 */
 import { cancelDragSort } from './modules/bookmark-drag.js';
-import { cancelCategoryPulse } from './modules/bookmarks.js';
+import { cancelCategoryPulse, loadBookmarks } from './modules/bookmarks.js';
 import { resetActiveCard } from './core/gestures.js';
 import { resetScreenInput, blurNonEditableActive } from './core/screen-input.js';
 
@@ -60,6 +60,11 @@ export function handleAppWakeUp() {
 }
 
 export function bindEvents() {
+    window.addEventListener('storage', event => {
+        const keys = CONFIG.KEYS;
+        if (event.storageArea === localStorage && (event.key === null || event.key === keys.BOOKMARKS ||
+            event.key === keys.BOOKMARK_KEYS || event.key === keys.CUSTOM_META)) loadBookmarks();
+    });
     document.addEventListener('visibilitychange', () => {
         if (document.hidden) stopClockTimer();
         else handleAppWakeUp();

@@ -22,6 +22,12 @@ const ACTIVATED_CORE = new URL('./.glass-core-activated', SCOPE_URL);
 const CORE_PREDECESSORS = new URL('./.glass-core-predecessors', SCOPE_URL);
 const LEGACY_APP = new URL('./app.js', SCOPE_URL);
 
+/** @param {string} key @param {string} prefix */
+function isScopedCache(key, prefix) {
+    // 部署路径以编码后的斜杠结尾，更深路径可能也匹配前缀。
+    return key.startsWith(prefix) && !key.includes('%2F-', CACHE_PREFIX.length);
+}
+
 // 图标与图片容量上限配置
 const MAX_FAVICON_ENTRIES = 800;
 const MAX_IMG_ENTRIES = 200;
@@ -69,9 +75,9 @@ function shareImageResponse(event, loadResponse) {
 const CORE_ASSETS = [
     './',
     './index.html',
-    APP_ASSET,
-    './wallpapers/bg1.avif'
+    APP_ASSET
 ];
+const DEFAULT_WALLPAPER = './wallpapers/bg1.avif';
 
 /** @param {URL} url */
 function scopedPath(url) {
@@ -84,29 +90,35 @@ function isAppDocument(path) {
     return path === '' || path === 'index.html';
 }
 
-/** @type {Map<string, Promise<void>>} */
+/** @type {Map<string, { dirty: boolean, task: Promise<void> }>} */
 const pendingPrunes = new Map();
 
 // CacheStorage 超限时按 FIFO 删除最旧条目；同一缓存池并发写入时微任务合并，避免冗余 keys() 扫描。
 /** @param {Cache} cache @param {number} maxEntries @param {string} key */
 function pruneCache(cache, maxEntries, key) {
-    let pending = pendingPrunes.get(key);
-    if (!pending) {
-        pending = (async () => {
-            try {
-                await Promise.resolve();
+    const pending = pendingPrunes.get(key);
+    if (pending) {
+        pending.dirty = true;
+        return pending.task;
+    }
+    const state = { dirty: true, task: Promise.resolve() };
+    state.task = (async () => {
+        try {
+            await Promise.resolve();
+            while (state.dirty) {
+                state.dirty = false;
                 const keys = await cache.keys();
                 if (keys.length > maxEntries) {
                     const toDelete = keys.slice(0, keys.length - maxEntries);
                     await Promise.all(toDelete.map(k => cache.delete(k)));
                 }
-            } catch {}
-        })().finally(() => {
-            if (pendingPrunes.get(key) === pending) pendingPrunes.delete(key);
-        });
-        pendingPrunes.set(key, pending);
-    }
-    return pending;
+            }
+        } catch {} finally {
+            pendingPrunes.delete(key);
+        }
+    })();
+    pendingPrunes.set(key, state);
+    return state.task;
 }
 
 function make503Response() {
@@ -133,6 +145,22 @@ async function matchesBuild(response, property, version) {
     return text.match(new RegExp(property + `\\s*=\\s*["']([^"']+)`))?.[1] === version;
 }
 
+/** @param {Response | undefined} response */
+function isImageResponse(response) {
+    return !!response?.ok && /^image\//i.test(response.headers.get('content-type') ?? '');
+}
+
+/** @param {Response | undefined} response */
+async function isManifestResponse(response) {
+    if (!response?.ok || !/^application\/(manifest\+)?json(?:\s*;|$)/i.test(response.headers.get('content-type') ?? '')) return false;
+    try {
+        const data = await response.clone().json();
+        return !!data && typeof data === 'object' && !Array.isArray(data);
+    } catch {
+        return false;
+    }
+}
+
 // 只补缺失或指纹不符的资源；所有响应在写入前校验，不污染仍可用的旧构建。
 /** @param {string} asset @param {Response | undefined} response */
 async function validCoreResponse(asset, response) {
@@ -142,15 +170,14 @@ async function validCoreResponse(asset, response) {
     return !property || matchesBuild(response, property, CORE_CACHE);
 }
 
-/** @param {Cache} cache */
-async function repairCoreCache(cache) {
-    for (const asset of CORE_ASSETS) {
+/** @param {Cache} cache @param {string[]} [assets] */
+async function repairCoreCache(cache, assets = CORE_ASSETS) {
+    for (const asset of assets) {
         if (await validCoreResponse(asset, await cache.match(asset))) continue;
         const response = await fetch(new Request(new URL(asset, SCOPE_URL), { cache: 'reload' }));
         if (!await validCoreResponse(asset, response)) throw new Error('Cannot repair core asset: ' + asset);
         await cache.put(asset, response);
     }
-    await validateCoreCache(cache);
 }
 
 // 当前版本已不可补齐时返回独立恢复页，避免把新脚本交给旧 HTML。
@@ -189,15 +216,19 @@ function recoveryResponse() {
     e.waitUntil((async () => {
         try {
             // 安装任务按注册串行。记录先于本次安装的池，供日后接管时回收。
-            const predecessors = (await caches.keys()).filter(key => key.startsWith(CORE_PREFIX) && key !== CORE_STORAGE);
+            const predecessors = (await caches.keys()).filter(key => isScopedCache(key, CORE_PREFIX) && key !== CORE_STORAGE);
             const cache = await caches.open(CORE_STORAGE);
-            // 壁纸用条件重验证复用 HTTP 缓存正文；更新时仍检查服务器，不能 force-cache 读取旧图。
-            const results = await Promise.allSettled(CORE_ASSETS.map(asset => cache.add(new Request(asset, {
-                cache: asset.startsWith('./wallpapers/') ? 'no-cache' : 'reload'
-            }))));
+            const results = await Promise.allSettled(CORE_ASSETS.map(asset => cache.add(new Request(asset, { cache: 'reload' }))));
             if (results.some(result => result.status === 'rejected')) throw new Error('Core installation incomplete');
             await validateCoreCache(cache);
             await cache.put(CORE_PREDECESSORS, Response.json(predecessors));
+            // 条件重验证复用 HTTP 缓存正文；缺图仍允许安装并离线启动。
+            try {
+                const wallpaper = await fetch(new Request(DEFAULT_WALLPAPER, {
+                    cache: 'no-cache', signal: AbortSignal.timeout(FAVICON_TIMEOUT_MS)
+                }));
+                if (isImageResponse(wallpaper)) await cache.put(DEFAULT_WALLPAPER, wallpaper);
+            } catch {}
         } catch (error) {
             await caches.delete(CORE_STORAGE);
             throw error;
@@ -212,11 +243,12 @@ function recoveryResponse() {
     await validateCoreCache(cache);
     await caches.open(IMG_CACHE);
     const keys = await caches.keys();
-    const previousImages = keys.filter(key => key.startsWith(IMAGE_PREFIX) && key !== IMG_CACHE)
+    const otherImages = keys.filter(key => isScopedCache(key, IMAGE_PREFIX) && key !== IMG_CACHE);
+    const previousImages = otherImages
         .sort((a, b) => cacheBuildTime(b) - cacheBuildTime(a))[0];
     const predecessors = new Set(await (await cache.match(CORE_PREDECESSORS))?.json() ?? []);
     // 只回收本次安装前已存在的池，下一次安装即使先进入 waiting 也不在本次回收范围。
-    const candidates = keys.filter(key => predecessors.has(key))
+    const candidates = keys.filter(key => predecessors.has(key) && isScopedCache(key, CORE_PREFIX))
         .sort((a, b) => cacheBuildTime(b) - cacheBuildTime(a));
     const markers = await Promise.all(candidates.map(cacheName => caches.match(ACTIVATED_CORE, { cacheName })));
     const previous = candidates[markers.findIndex(Boolean)];
@@ -224,7 +256,7 @@ function recoveryResponse() {
     const legacy = previous ? [] : await Promise.all(candidates.map(cacheName => caches.match(LEGACY_APP, { cacheName })));
     const retiredCore = candidates.filter((key, index) => key !== previous && !legacy[index]);
     await cache.put(ACTIVATED_CORE, new Response(''));
-    const retiredImages = keys.filter(key => key.startsWith(IMAGE_PREFIX) && key !== IMG_CACHE && key !== previousImages);
+    const retiredImages = otherImages.filter(key => key !== previousImages);
     await Promise.all([...retiredCore, ...retiredImages].map(key => caches.delete(key)));
 })()));
 
@@ -247,11 +279,19 @@ function cacheBuildTime(key) {
 // 仅在网络失败时读取上一版图片，避免在线更新继续使用旧内容。
 /** @param {Request} request */
 async function previousImageResponse(request) {
-    const keys = (await caches.keys()).filter(key => key.startsWith(IMAGE_PREFIX) && key !== IMG_CACHE)
+    const keys = (await caches.keys()).filter(key => isScopedCache(key, IMAGE_PREFIX) && key !== IMG_CACHE)
         .sort((a, b) => cacheBuildTime(b) - cacheBuildTime(a));
     for (const key of keys) {
-        const cached = await (await caches.open(key)).match(request);
-        if (cached) return cached;
+        const cached = await caches.match(request, { cacheName: key });
+        if (cached && isImageResponse(cached)) return cached;
+    }
+    if (request.url === new URL(DEFAULT_WALLPAPER, SCOPE_URL).href) {
+        const previousCore = (await caches.keys()).filter(key => isScopedCache(key, CORE_PREFIX) && key !== CORE_STORAGE)
+            .sort((a, b) => cacheBuildTime(b) - cacheBuildTime(a));
+        for (const key of previousCore) {
+            const cached = await caches.match(request, { cacheName: key });
+            if (cached && isImageResponse(cached)) return cached;
+        }
     }
     return null;
 }
@@ -272,14 +312,12 @@ async function previousImageResponse(request) {
         const asset = path === '' ? './' : './index.html';
         e.respondWith(
             caches.open(CORE_STORAGE).then(async cache => {
-                const cachedRes = await cache.match(asset);
-
-                // 导航先检查核心资源存在性；仅异常时执行完整修复和指纹校验。
-                const complete = (await Promise.all(CORE_ASSETS.map(asset => cache.match(asset))))
-                    .every(response => response?.ok);
-                if (cachedRes && complete) return cachedRes;
                 try {
-                    await repairCoreCache(cache);
+                    const [document, script] = await Promise.all([cache.match(asset), cache.match(APP_ASSET)]);
+                    if (document && await validCoreResponse(asset, document) && await validCoreResponse(APP_ASSET, script)) {
+                        return document;
+                    }
+                    await repairCoreCache(cache, [asset, APP_ASSET]);
                     return (await cache.match(asset)) || make503Response();
                 } catch {
                     return recoveryResponse();
@@ -296,11 +334,12 @@ async function previousImageResponse(request) {
             caches.open(CORE_STORAGE).then(async cache => {
                 const cachedRes = await cache.match(asset);
                 const fetchPromise = fetch(new Request(e.request, { cache: 'no-cache' })).then(async netRes => {
-                    if (netRes.ok) await cache.put(asset, netRes.clone()).catch(() => {});
+                    if (await isManifestResponse(netRes)) await cache.put(asset, netRes.clone()).catch(() => {});
+                    else if (netRes.ok) return null;
                     return netRes;
                 }).catch(() => null);
 
-                if (cachedRes) {
+                if (cachedRes && await isManifestResponse(cachedRes)) {
                     e.waitUntil(fetchPromise);
                     return cachedRes;
                 }
@@ -321,11 +360,11 @@ async function previousImageResponse(request) {
             const cacheName = CACHE_PREFIX + requestedVersion;
             try {
                 const cached = await caches.match(new URL(asset, SCOPE_URL), { cacheName });
-                if (cached && (scriptVersion || await matchesBuild(cached, '__GLASS_BUILD_APP__', requestedVersion))) {
+                if (cached?.ok && await matchesBuild(cached, '__GLASS_BUILD_APP__', requestedVersion)) {
                     return cached;
                 }
                 if (!scriptVersion) return make503Response();
-                const response = await fetch(e.request);
+                const response = await fetch(e.request, cached ? { cache: 'reload' } : undefined);
                 if (!response.ok || !await matchesBuild(response, '__GLASS_BUILD_APP__', requestedVersion)) {
                     return make503Response();
                 }
@@ -355,7 +394,7 @@ async function previousImageResponse(request) {
                     const timeoutId = setTimeout(() => controller.abort(), FAVICON_TIMEOUT_MS);
                     try {
                         const netRes = await fetch(e.request, { cache: 'no-cache', signal: controller.signal });
-                        if (netRes && (netRes.ok || netRes.type === 'opaque')) {
+                        if (isImageResponse(netRes) || netRes.type === 'opaque') {
                             try {
                                 await cache.put(e.request, netRes.clone());
                                 waitForCache(pruneCache(cache, MAX_FAVICON_ENTRIES, FAVICON_CACHE));
@@ -379,18 +418,19 @@ async function previousImageResponse(request) {
     if (isImgAsset) {
         e.respondWith(
             shareImageResponse(e, waitForCache => caches.open(IMG_CACHE).then(async cache => {
-                const cached = (await cache.match(e.request))
-                    || (await caches.open(CORE_STORAGE).then(core => core.match(e.request)));
-                if (cached) return cached;
+                const cached = await cache.match(e.request);
+                if (cached && isImageResponse(cached)) return cached;
+                const precached = await caches.match(e.request, { cacheName: CORE_STORAGE });
+                if (precached && isImageResponse(precached)) return precached;
                 try {
                     // 单个消费者取消不能中止其他消费者共用的下载。
                     const res = await fetch(new Request(e.request, { cache: 'reload', signal: new AbortController().signal }));
-                    if (res.ok) {
+                    if (isImageResponse(res)) {
                         waitForCache(cache.put(e.request, res.clone()).then(() => pruneCache(cache, MAX_IMG_ENTRIES, IMG_CACHE)).catch(() => {}));
                         return res;
                     }
-                    if (res.status >= 500) return (await previousImageResponse(e.request)) || res;
-                    return res;
+                    if (!res.ok && res.status < 500) return res;
+                    return (await previousImageResponse(e.request)) || (res.ok ? make503Response() : res);
                 } catch {
                     return (await previousImageResponse(e.request)) || new Response('', { status: 404 });
                 }

@@ -82,7 +82,7 @@ npm run build:extension
 
 扩展使用 Manifest V3，代码、图标和预设壁纸均打包在本地；天气和在线搜索联想需要联网，并仅为相应接口声明域名权限。不读取浏览器书签、历史记录或网页内容。自定义壁纸和设置保存在扩展自己的本地存储中，不自动与网页版共享或跨设备同步。网页版导出的书签 JSON 可以在扩展设置中导入；该备份不包含壁纸和偏好设置。
 
-扩展依靠随包资源离线打开，不注册网页版的 Service Worker，也不显示网页版本更新提示。设置中的“清理缓存并刷新”只清理临时缓存，不删除已保存的书签、壁纸和设置；远程壁纸、天气与在线联想仍受网络可用性影响。
+扩展依靠随包资源离线打开，不注册网页版的 Service Worker，也不显示网页版本更新提示。设置中的「重新加载页面」刷新当前页面的临时状态，并保留已保存的书签、壁纸和设置。远程壁纸、天气与在线联想仍受网络可用性影响。
 
 更新源码后重新执行 `npm run build:extension`，在扩展管理页点击「重新加载」并重新打开新标签页。保持文件夹路径不变并直接重载，可保留本地数据；移除扩展会删除其存储。`npm run build` 仍只生成网页版 `dist/`，两种构建互不覆盖。扩展安装包目前仅通过 GitHub Release 分发，尚未上架 Chrome 应用商店。
 
@@ -98,9 +98,11 @@ npm run build:extension
    - **环境变量**：`NODE_VERSION=24`，跟随 24.x 维护版本，实际版本须至少为 24.15.0；配置方式见[构建环境文档](https://developers.cloudflare.com/pages/configuration/build-image/)。
 4. 保存并部署。后续推送到配置的生产分支会触发更新；生产分支按实际仓库选择，不一定是 `main`。
 
+生产构建可设置 `GLASS_PREVIOUS_DEPLOY_URL` 为生产站点入口，并使用 `npm run build:deploy`，以便把当前线上 HTML 引用的版本化脚本带入下一次发布。
+
 ### Vercel / Netlify / GitHub Pages
 - **Vercel / Netlify**。导入 Git 仓库，选择符合 `package.json` 要求的 Node.js 版本，并安装开发依赖。构建命令设为 `npm run build`，输出目录设为 `dist`。响应头规则按各平台的配置方式设置。
-- **GitHub Pages**：仓库已提供 [CI 与发布工作流](./.github/workflows/ci.yml)。启用仓库的 Actions，并在 Settings ➔ Pages 选择 GitHub Actions；推送到 `main` 或在 `main` 手动运行工作流，会在 lint、完整测试和 W3C 校验成功后发布已验证的 `dist/`，无需另建工作流。修改发布分支或流程时参考[官方自定义工作流指南](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages)。若从分支发布，需将产物放在发布分支根目录或 `/docs`，不能直接选择 `/dist`。
+- **GitHub Pages**：仓库已提供 [CI 与发布工作流](./.github/workflows/ci.yml)。启用仓库的 Actions，并在 Settings ➔ Pages 选择 GitHub Actions；推送到 `main` 或在 `main` 手动运行工作流，会在 lint、完整测试和 W3C 校验成功后发布已验证的 `dist/`，并保留当前线上 HTML 引用的版本化脚本。修改发布分支或流程时参考[官方自定义工作流指南](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages)。若从分支发布，需将产物放在发布分支根目录或 `/docs`，不能直接选择 `/dist`。
 
 `public/_headers` 的响应头规则需要托管平台支持；GitHub Pages 不应用该文件，页面仍使用 HTML meta CSP。meta CSP 与 HTTP CSP 响应头共同生效，响应头不能放宽 meta 中的限制；仅支持响应头的 `frame-ancestors`、缓存及其他安全头也不会由 meta 替代。部署后应核对实际 HTTP 响应，不能仅凭产物中存在 `_headers` 判断规则生效。
 
@@ -186,7 +188,7 @@ npm run preview
 - **界面语言**。在设置弹窗右上角选择跟随浏览器、简体中文或 English，点击「完成」保存。实际界面语言变化时，页面会刷新。界面、天气、内置分类和书签简介随语言切换，用户改写和导入的文字保留原文。首次使用默认跟随浏览器，不支持的语言回退英文。网页与扩展分别保存语言偏好，离线也可切换。时间保持 24 小时制。温度默认摄氏度，可在天气详情中切换摄氏度／华氏度。扩展管理页名称跟随 Chrome 的语言，PWA 安装名称保留默认元数据。
 - **导出 / 导入**：导出当前快捷书签草稿，包含尚未点击「完成」的书签修改及目录继承信息。导入 JSON 后确认替换草稿，再点击「完成」生效。备份不包含壁纸图片、外观或搜索偏好。
   导出格式为 `{ version, exportDate, bookmarks }`，当前格式版本为 `1.1`。导入也接受书签数组或含 `categories[].bookmarks` 的目录 JSON。重复链接保留首个有效条目。
-- **刷新离线缓存 / 还原初始设置**：缓存清理只处理当前部署的离线资源与 Service Worker，同源其他部署和网页共享图标池保留；扩展清理自己的临时图标池。清理成功后会刷新并丢弃未保存的草稿。确认还原后清除自定义快捷书签、壁纸与偏好；提交期间暂时禁用编辑、保存和取消，完成或失败后解除限制。操作前可先导出书签。
+- **刷新离线缓存 / 还原初始设置**：缓存清理只处理当前部署的离线资源与 Service Worker，同源其他部署和网页共享图标池保留。网页刷新离线缓存和扩展重新加载页面都会丢弃未保存的草稿。确认还原后清除自定义快捷书签、壁纸与偏好；提交期间暂时禁用编辑、保存和取消，完成或失败后解除限制。操作前可先导出书签。
 
 ### 5. 键盘快捷键
 

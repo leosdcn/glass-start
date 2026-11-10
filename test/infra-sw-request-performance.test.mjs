@@ -24,7 +24,7 @@ const server = await startServer(0, undefined, {
     '/burst/':html, '/burst/index.html':html,
     '/burst/sw.js':(req,res)=>{res.writeHead(200,{'Content-Type':'application/javascript','Cache-Control':'no-store'});res.end(worker);},
     ['/burst/app-builds/' + stamp + '.js']:(req,res)=>{res.writeHead(200,{'Content-Type':'application/javascript'});res.end(`window.__GLASS_BUILD_APP__="${stamp}";`);},
-    '/burst/wallpapers/bg1.avif':(req,res)=>{res.writeHead(200);res.end('wallpaper');},
+    '/burst/wallpapers/bg1.avif':(req,res)=>{res.writeHead(200,{'Content-Type':'image/avif'});res.end('wallpaper');},
     '/burst/icons/concurrent.png':image, '/burst/icons/retry.png':image,
     '/burst/icons/variants.png':image, '/burst/icons/cancel.png':image
 });
@@ -90,19 +90,29 @@ try {
 const handlers = new Map(), stores = new Map();
 let downloads = 0, releaseCacheWrite, failExternal = false;
 const cacheWriteGate = new Promise(resolve=>{releaseCacheWrite=resolve;});
+let holdPrune;
 vm.runInNewContext(worker, {
     self:{location:{origin:'https://example.test',href:'https://example.test/sw.js'},
         registration:{scope:'https://example.test/'},addEventListener:(name,fn)=>handlers.set(name,fn),
         clients:{get:async id=>({url:new URL(id,'https://example.test/').href})}},
     URL, Request, Response, AbortController, setTimeout, clearTimeout,
-    fetch:async()=>{downloads++;if(failExternal)throw new Error('offline');return new Response('shared-body');},
-    caches:{open:async name=>{
+    fetch:async()=>{
+        downloads++;
+        if(failExternal)throw new Error('offline');
+        return new Response('shared-body',{headers:{'Content-Type':'image/png'}});
+    },
+    caches:{match:async (request,{cacheName})=>stores.get(cacheName)?.get(request.url)?.clone(),open:async name=>{
         if(!stores.has(name))stores.set(name,new Map());
         const entries=stores.get(name);
         return {
             match:async request=>entries.get(request.url)?.clone(),
             put:async(request,response)=>{await cacheWriteGate;entries.set(request.url,response);},
-            keys:async()=>[...entries.keys()].map(url=>new Request(url))
+            delete:async request=>entries.delete(request.url),
+            keys:async()=>{
+                const keys=[...entries.keys()].map(url=>new Request(url));
+                if (holdPrune) await holdPrune(keys);
+                return keys;
+            }
         };
     }}
 });
@@ -136,3 +146,21 @@ for(let i=0;i<2;i++){
 }
 assert.equal(downloads,5);
 console.log('✅ 外部图标也共享下载，失败后清理未决任务并允许重试');
+
+failExternal = false;
+const images = [...stores.values()].find(cache => cache.has('https://example.test/icons/gap.png'));
+for (let i = images.size; i < 200; i++) images.set('https://example.test/icons/seed-' + i + '.png', new Response());
+const snapshot = Promise.withResolvers(), resumePrune = Promise.withResolvers();
+holdPrune = keys => {
+    holdPrune = null;
+    snapshot.resolve(keys.length);
+    return resumePrune.promise;
+};
+const firstWrite = dispatch('https://example.test/icons/new-1.png');
+assert.equal(await snapshot.promise, 201);
+const more = [2, 3, 4].map(i => dispatch('https://example.test/icons/new-' + i + '.png'));
+await Promise.all(more.map(task => task.response));
+await waitFor(() => images.size === 204, 'all new responses stored');
+resumePrune.resolve();
+await Promise.all([firstWrite, ...more].map(task => task.settled()));
+assert.equal(images.size, 200, '淘汰扫描期间的写入必须触发再次扫描');

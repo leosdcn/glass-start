@@ -3,11 +3,12 @@ node_modules/
 dist/
 /dist
 /dist.migration/
-/.dist-build-*/
+/.dist-build-*
 /.dist-publish/
 /extension/
 /.extension-build-*/
 /.extension-publish/
+/.extension-publish-lock/
 .temp_input.css
 .claude/
 test/.cache.json

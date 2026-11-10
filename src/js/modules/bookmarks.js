@@ -70,8 +70,9 @@ export function getImportedBookmarks(list) {
     return getDerivedBookmarks(list.map(bookmark => bookmark.url), pageData.categories, meta);
 }
 
-/** @param {import('../types').BookmarkItem[]} list @returns {boolean} */
-export function saveUserBookmarks(list) {
+/** @param {import('../types').BookmarkItem[]} list @param {string} [expectedRevision] */
+export function saveUserBookmarks(list, expectedRevision) {
+    if (expectedRevision !== undefined && JSON.stringify(readBookmarkRecord()) !== expectedRevision) return 'conflict';
     const bookmarks = normalizeBookmarks(list, item => normalizeBookmark(item, deriveNameFromUrl(item?.url)));
     const keys = bookmarks.map(bookmark => bookmark.url);
     const customMeta = Object.fromEntries(bookmarks.flatMap(bookmark => {
@@ -115,6 +116,7 @@ export function loadBookmarks() {
     if (bookmarksEl) {
         renderBookmarks();
     }
+    return JSON.stringify(record);
 }
 
 export function initFaviconObserver() {

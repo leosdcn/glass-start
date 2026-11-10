@@ -23,3 +23,18 @@ export function toDisplayTemp(celsius, unit = 'C') {
     if (!Number.isFinite(c)) return '--';
     return unit === 'F' ? Math.round(c * 1.8 + 32) : Math.round(c);
 }
+
+/** @param {import('../types').WeatherData | null} data */
+export function isUsableWeatherData(data) {
+    const current = data?.current;
+    const daily = data?.daily;
+    const isRecord = (/** @type {unknown} */ value) => !!value && typeof value === 'object' && !Array.isArray(value);
+    if (!isRecord(current) || data?.location?.isFallback ||
+        (daily !== undefined && (!Array.isArray(daily) || !daily.every(isRecord)))) return false;
+    const isMeasurement = (/** @type {unknown} */ value) => Number.isFinite(weatherNum(value, NaN));
+    return !!current && ([current.temp, current.apparent, current.weatherCode, current.humidity, current.windSpeed,
+        current.pop, current.precipitation].some(isMeasurement) ||
+        typeof current.weatherText === 'string' && !!current.weatherText.trim() ||
+        !!daily?.some(day => [day.tempMin, day.tempMax, day.weatherCode, day.pop].some(isMeasurement) ||
+            typeof day.text === 'string' && !!day.text.trim()));
+}

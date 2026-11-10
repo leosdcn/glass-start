@@ -1,7 +1,7 @@
 import { t, getLocale, weatherDescription, forecastLabel } from '../core/i18n.js';
 import { weatherTime, formatLocationFullName, stripAdminSuffix, normalizeWeatherForecast, getForecastPeriod } from '../utils/weather-model.js';
 import { CONFIG } from '../config/constants.js';
-import { parseTempUnit, weatherNum, toDisplayTemp } from '../utils/weather-data.js';
+import { isUsableWeatherData, parseTempUnit, weatherNum, toDisplayTemp } from '../utils/weather-data.js';
 import { escapeHtml, safeUrl } from '../utils/helpers.js';
 import { storageGet, storageSet, storageRemove } from '../utils/storage.js';
 import { dom } from '../state/dom.js';
@@ -220,7 +220,9 @@ export async function fetchWeatherForecast(loc, signal) {
     const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,precipitation_probability_max&timezone=auto`;
     const data = await fetchJsonWithTimeout(url, CONFIG.WEATHER.TIMEOUT_WEATHER, signal);
 
-    return normalizeWeatherForecast(data, loc, CONFIG.WEATHER, Date.now());
+    const forecast = normalizeWeatherForecast(data, loc, CONFIG.WEATHER, Date.now());
+    if (!isUsableWeatherData(forecast)) throw new Error('Weather response contains no measurements');
+    return forecast;
 }
 
 /** @type {import('../types').WeatherData | null} */
@@ -506,13 +508,10 @@ export function resetWeather() {
     return results.every(Boolean);
 }
 
-const isWeatherRecord = (/** @type {any} */ value) => value !== null && typeof value === 'object' && !Array.isArray(value);
-
 function readWeatherCache() {
     const cache = storageGet(CONFIG.KEYS.WEATHER_CACHE, null);
     if (!cache) return null;
-    if (!isWeatherRecord(cache) || cache.location?.isFallback || !isWeatherRecord(cache.current)
-        || (cache.daily !== undefined && (!Array.isArray(cache.daily) || !cache.daily.every(isWeatherRecord)))) {
+    if (!isUsableWeatherData(cache)) {
         storageRemove(CONFIG.KEYS.WEATHER_CACHE);
         return null;
     }

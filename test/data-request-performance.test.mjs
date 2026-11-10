@@ -46,10 +46,19 @@ try {
             const stale = window['__glassSuggestCb_' + activeSuggestReqId];
             fetchSuggestions('bing', 'performance-empty');
             stale(['old', ['late-after-cache']]);
-            return {shared, inputShared, staleDiscarded, cachedEmpty, cacheRaceDiscarded:!dom.suggestionMenu.classList.contains('active')};
+            const cacheRaceDiscarded = !dom.suggestionMenu.classList.contains('active');
+            fetchSuggestions('bing', 'performance-malformed');
+            window['__glassSuggestCb_' + activeSuggestReqId]({error:'temporary'});
+            const beforeRetry = requests;
+            fetchSuggestions('bing', 'performance-malformed');
+            const malformedRetried = requests === beforeRetry + 1;
+            window['__glassSuggestCb_' + activeSuggestReqId](['query', ['restored suggestion']]);
+            const retryRendered = dom.suggestionMenu.textContent.includes('restored suggestion');
+            return {shared, inputShared, staleDiscarded, cachedEmpty, cacheRaceDiscarded, malformedRetried, retryRendered};
         } finally { hideSuggestions(); document.body.appendChild = append; }
     })()`);
-    assert.deepEqual(jsonp, {shared:true, inputShared:true, staleDiscarded:true, cachedEmpty:true, cacheRaceDiscarded:true});
+    assert.deepEqual(jsonp, {shared:true, inputShared:true, staleDiscarded:true, cachedEmpty:true,
+        cacheRaceDiscarded:true, malformedRetried:true, retryRendered:true});
     console.log('✅ JSONP 同查询只请求／渲染一次，输入防抖期间丢弃旧响应，空结果复用缓存');
 
     const selection = await evalJS(`(() => {

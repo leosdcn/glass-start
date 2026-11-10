@@ -8,6 +8,7 @@ import { getFreePort, createEvaluator, waitFor } from './support/helpers.mjs';
 const source = readFileSync(join(DIST_DIR, 'sw.js'), 'utf8');
 const builtVersion = readFileSync(join(DIST_DIR, 'index.html'), 'utf8').match(/__GLASS_BUILD_HTML__="([^"]+)"/)[1];
 let version = 101, failApp = false, failWallpaper = false, mismatch = false, offline = false;
+let invalidIcon = true, manifestType = 'text/html', manifestBody = '<html>fallback</html>';
 let wallpaperBodies = 0, wallpaperValidations = 0;
 let secondVersion = 105;
 const activationPaused = Promise.withResolvers();
@@ -37,7 +38,11 @@ const route = (kind) => (req, res) => {
   if (kind === 'image') body = `image-${routeVersion}-${req.url}`;
   const wallpaper = kind === 'image' && req.url === '/app/wallpapers/bg1.avif';
   const etag = `"wallpaper-${routeVersion}"`;
-  if (wallpaper && failWallpaper) { res.writeHead(503); res.end('wallpaper unavailable'); return; }
+  if (wallpaper && failWallpaper) {
+    res.writeHead(200, { 'Content-Type':'text/html', 'Cache-Control':'no-store' });
+    res.end('<html>wallpaper unavailable</html>');
+    return;
+  }
   if (wallpaper && req.headers['if-none-match'] === etag) {
     wallpaperValidations++;
     res.writeHead(304, { ETag: etag, 'Cache-Control': 'public, max-age=31536000, immutable' });
@@ -64,6 +69,15 @@ const server = await startServer(0, undefined, {
   },
   '/app/icons/test.png': route('image'),
   '/app/icons/offline.png': route('image'),
+  '/app/icons/recover.png': (req, res) => {
+    if (!invalidIcon) return route('image')(req, res);
+    res.writeHead(200, {'Content-Type':'text/html'});
+    res.end('<html>fallback</html>');
+  },
+  '/app/manifest.json': (_req, res) => {
+    res.writeHead(200, {'Content-Type':manifestType, 'Cache-Control':'no-store'});
+    res.end(manifestBody);
+  },
   '/status.html': '<!doctype html><html><head></head><body>uncontrolled status</body></html>'
 });
 const origin = `http://127.0.0.1:${server.port}`;
@@ -89,6 +103,11 @@ try {
   await waitFor(evalJS, '!!navigator.serviceWorker.controller && window.appVersion === 101 && !!window.reg');
   assert.equal(await evalJS("caches.keys().then(keys => keys.includes('app-favicons-v1'))"), false);
   await evalJS("Promise.all([caches.open('app-images-v2'), caches.open('unrelated-cache'), caches.open('app-favicons-v1').then(cache => cache.put('https://a.favicon.im/custom.test', new Response('custom-icon')))])");
+  const nestedCaches = [
+    'glass-scope-%2Fapp%2F-app-core-neighbor%2F-app-core-v100',
+    'glass-scope-%2Fapp%2F-app-images-neighbor%2F-app-images-app-core-v100'
+  ];
+  await evalJS(`Promise.all(${JSON.stringify(nestedCaches)}.map(key => caches.open(key)))`);
   assert.match(await evalJS("fetch('./icons/test.png').then(r => r.text())"), /image-101/);
   await evalJS("fetch('./icons/offline.png').then(r => r.text())");
   version = 102; failApp = true;
@@ -105,11 +124,11 @@ try {
 
   version = 1031; mismatch = false; failWallpaper = true;
   const missingWallpaper = await update();
-  assert.equal(missingWallpaper.waiting, false);
-  assert.equal(missingWallpaper.caches.includes('glass-scope-%2Fapp%2F-app-core-v1031'), false);
+  assert.equal(missingWallpaper.waiting, true);
+  assert.equal(await evalJS("caches.open('glass-scope-%2Fapp%2F-app-core-v1031').then(c=>c.match('./wallpapers/bg1.avif')).then(Boolean)"), false);
   assert.match(missingWallpaper.app, /appVersion=101/);
   failWallpaper = false;
-  console.log('✅ 壁纸重验证失败拒绝新版安装，不使用旧 HTTP 图片冒充完整新版');
+  console.log('✅ 壁纸重验证失败仍可安装新版，旧 HTTP 图片不写入新版缓存');
 
   version = 104; mismatch = false;
   const waiting = await update();
@@ -138,10 +157,25 @@ try {
   assert.equal(keys.includes('app-favicons-v1'), true);
   assert.equal(await evalJS("caches.open('app-favicons-v1').then(cache => cache.match('https://a.favicon.im/custom.test')).then(response => response.text())"), 'custom-icon');
   assert.equal(keys.includes('unrelated-cache'), true);
+  assert.ok(nestedCaches.every(key => keys.includes(key)), '升级只回收当前部署的缓存');
   assert.equal(await evalJS(`caches.open('glass-scope-%2Fapp%2F-app-images-app-core-v101').then(c=>c.match('/app/icons/offline.png')).then(r=>!!r)`),true);
   console.log('✅ 新版激活保留上一版核心与图片池');
   await send('Page.navigate', { url: origin + '/app/' });
   await waitFor(evalJS, 'window.appVersion === 104 && !!navigator.serviceWorker.controller && !!window.reg');
+  await evalJS(`caches.open('glass-scope-%2Fapp%2F-app-core-v104').then(c=>c.put('./app-builds/app-core-v104.js',new Response(
+    'window.__GLASS_BUILD_APP__="app-core-v999";', {headers:{'Content-Type':'application/javascript'}})))`);
+  await send('Page.reload');
+  await waitFor(evalJS, 'window.appVersion === 104 && !!window.reg');
+  assert.match(await evalJS("caches.open('glass-scope-%2Fapp%2F-app-core-v104').then(c=>c.match('./app-builds/app-core-v104.js')).then(r=>r.text())"), /appVersion=104/);
+  assert.equal(await evalJS("fetch('./icons/recover.png').then(r=>r.status)"), 503);
+  assert.equal(await evalJS("fetch('./manifest.json').then(r=>r.status)"), 503);
+  manifestType = 'application/manifest+json'; manifestBody = 'not JSON';
+  assert.equal(await evalJS("fetch('./manifest.json').then(r=>r.status)"), 503);
+  invalidIcon = false; manifestBody = '{"name":"Glass"}';
+  assert.match(await evalJS("fetch('./icons/recover.png').then(r=>r.text())"), /image-104/);
+  assert.deepEqual(await evalJS("fetch('./manifest.json').then(r=>r.json())"), {name:'Glass'});
+  manifestType = 'text/html'; manifestBody = '<html>fallback</html>';
+  assert.deepEqual(await evalJS("fetch('./manifest.json').then(r=>r.json())"), {name:'Glass'});
   assert.match(await evalJS("fetch('./icons/test.png').then(r => r.text())"), /image-104/);
   assert.match(await evalJS("fetch('./app-builds/app-core-v101.js').then(r => r.text())"), /appVersion=101/);
   assert.equal(await evalJS("fetch('./app-builds/app-core-v100.js').then(r => r.status)"), 503);
@@ -178,11 +212,13 @@ try {
   await waitFor(evalJS,'window.appVersion === 104 && !!navigator.serviceWorker.controller');
   console.log('✅ 激活期间安装下一版，等待构建仍能在断网后接管，退役池按 scope 回收');
   await send('Network.enable');
+  await evalJS(`caches.open('glass-scope-%2Fapp%2F-app-core-v104').then(cache=>cache.delete('./wallpapers/bg1.avif'))`);
   offline = true;
   await send('Network.emulateNetworkConditions', { offline:true, latency:0, downloadThroughput:0, uploadThroughput:0 });
   await send('Page.addScriptToEvaluateOnNewDocument', { source:'window.__offlineUpgradeProbe = true;' });
   await send('Page.reload');
   await waitFor(evalJS, 'window.__offlineUpgradeProbe && window.appVersion === 104 && !!navigator.serviceWorker.controller');
+  assert.match(await evalJS("fetch('./wallpapers/bg1.avif').then(r => r.text())"), /image-101/);
   assert.match(await evalJS("fetch('./icons/offline.png').then(r => r.text())"), /image-101/);
   console.log('✅ 新版离线首次使用图片可回退上一版缓存');
   offline = false;

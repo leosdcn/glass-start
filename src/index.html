@@ -205,7 +205,7 @@
                 /* INJECT_WEATHER_NUM */
                 try {
                     const c = JSON.parse(localStorage.getItem('glass_weather_cache') || 'null');
-                    if (c && c.current && !c.location?.isFallback) {
+                    if (isUsableWeatherData(c)) {
                         const i = document.getElementById('weatherIcon');
                         const t = document.getElementById('weatherTemp');
                         const ct = document.getElementById('weatherCity');

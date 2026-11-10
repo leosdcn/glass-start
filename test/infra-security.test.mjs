@@ -285,7 +285,7 @@ test('Service Worker 安装过程只请求同源核心资源', async () => {
     self: { registration: { scope: 'https://example.test/' }, addEventListener: (name, handler) => installHandlers.set(name, handler) },
     URL,
     Request: InstallRequest, Response, AbortSignal,
-    fetch: async url => { installUrls.push(String(url)); return new Response('external'); },
+    fetch: async request => { installUrls.push(request.url); return new Response('wallpaper', {headers:{'Content-Type':'image/avif'}}); },
     caches: {
       keys: async () => [],
       open: async () => ({
@@ -300,7 +300,8 @@ test('Service Worker 安装过程只请求同源核心资源', async () => {
   });
   installHandlers.get('install')({ waitUntil: task => installTasks.push(task) });
   await Promise.all(installTasks);
-  assert.equal(installUrls.length, worker.CORE_ASSETS.length);
+  assert.equal(installUrls.length, worker.CORE_ASSETS.length + 1);
+  assert.equal(new URL(installUrls.at(-1)).pathname, '/wallpapers/bg1.avif');
   assert.ok(installUrls.every(url => new URL(url).origin === 'https://example.test'));
 });
 

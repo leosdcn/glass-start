@@ -228,14 +228,17 @@ test("导入、导出与保存保留首条有效书签及其简介语义", async
             })()`);
             assert.equal(direct, desc === undefined ? '目录简介' : '');
             const duplicate = { ...a, url: ' www.example.com/ ', name: '后续同址书签', desc: '重复简介' };
+            const malformed = { name: '无效网址', url: { toString: null } };
+            const malformedName = { ...duplicate, name: { toString: null } };
             await evalJS(`(async () => {
                 await openEditModal();
                 const transfer = new DataTransfer();
-                transfer.items.add(new File([${JSON.stringify(JSON.stringify([item, duplicate]))}], 'bookmarks.json', { type: 'application/json' }));
+                transfer.items.add(new File([${JSON.stringify(JSON.stringify([malformed, item, malformedName, duplicate]))}], 'bookmarks.json', { type: 'application/json' }));
                 dom.importJsonInput.files = transfer.files;
                 dom.importJsonInput.dispatchEvent(new Event('change', { bubbles: true }));
             })()`);
             await waitFor(evalJS, 'OverlayStack.top()?.id === "confirmModal"');
+            assert.match(await evalJS('dom.confirmTitle.textContent'), /导入草稿确认/);
             const imported = await evalJS(`(async () => {
                 dom.confirmOkBtn.click();
                 const importedNames = modalState.draftBookmarks.map(bookmark => bookmark.name);

@@ -211,6 +211,44 @@ test('新地点预报不等旧请求，失败后旧结果不更新缓存且唤�
     assert.equal(read(WEATHER_CACHE).current.temp, 26);
 });
 
+test('空天气响应保留上一次预报，下一次刷新仍能更新', async () => {
+    const f = fixture(), { app, context } = f;
+    const key = app.CONFIG.KEYS.WEATHER_CACHE;
+    const location = { name: '测试地点', lat: 1, lon: 2, timestamp: Date.now() };
+    const previous = JSON.stringify({ location, timestamp: 1, current: { temp: 21 }, daily: [] });
+    context.localStorage.setItem(key, previous);
+    let forecast = {};
+    context.fetch = async url => url.includes('/forecast?')
+        ? { ok: true, json: async () => forecast } : { ok: false, status: 503 };
+
+    for (const invalid of [{}, { current: { is_day: 1 }, daily: { time: ['2026-11-10'] } }]) {
+        forecast = invalid;
+        await app.updateWeather(true);
+        assert.equal(context.localStorage.getItem(key), previous);
+        assert.match(f.html, /21/);
+    }
+    forecast = { current: { temperature_2m: 0 } };
+    await app.updateWeather(true);
+    assert.equal(JSON.parse(context.localStorage.getItem(key)).current.temp, 0);
+});
+
+test('已落盘的空天气缓存即使在有效期内也会重新请求', async () => {
+    const { app, context } = fixture();
+    const { WEATHER_CACHE, WEATHER_LOC } = app.CONFIG.KEYS;
+    const timestamp = Date.now();
+    const location = { name: '测试地点', lat: 0, lon: 2, timestamp };
+    context.localStorage.setItem(WEATHER_LOC, JSON.stringify(location));
+    context.localStorage.setItem(WEATHER_CACHE, JSON.stringify({ location, timestamp, current: { icon: '🌡️' }, daily: [] }));
+    let calls = 0;
+    context.fetch = async () => {
+        calls++;
+        return { ok: true, json: async () => ({current:{temperature_2m:0}}) };
+    };
+    await app.updateWeather();
+    assert.equal(calls, 1);
+    assert.equal(JSON.parse(context.localStorage.getItem(WEATHER_CACHE)).current.temp, 0);
+});
+
 test('天气正文超时结束共享刷新任务，随后可重新刷新', async () => {
     const f = fixture(), { app } = f;
     const location = { lat: 31, lon: 121, name: '测试', timestamp: Date.now() };

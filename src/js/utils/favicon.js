@@ -20,9 +20,11 @@ export function createLetterBadgeHtml(initial, sizeClass = 'icon-box-sm', textCl
  * @returns {void}
  */
 export function evictFaviconCache(url) {
-    if (url && typeof caches !== 'undefined') {
+    if (url && !(typeof window !== 'undefined' && window.__GLASS_EXTENSION__) && typeof caches !== 'undefined') {
         try {
-            caches.open(CONFIG.CACHE.FAVICON).then(cache => cache.delete(url)).catch(() => {});
+            caches.has(CONFIG.CACHE.FAVICON).then(exists => {
+                if (exists) return caches.open(CONFIG.CACHE.FAVICON).then(cache => cache.delete(url));
+            }).catch(() => {});
         } catch {}
     }
 }

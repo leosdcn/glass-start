@@ -19,7 +19,7 @@ export function normalizeUrl(url) {
 
 /** @param {unknown} value */
 export function normalizeBookmarkUrl(value) {
-    const rawUrl = String(value || '').trim();
+    const rawUrl = typeof value === 'string' ? value.trim() : '';
     if (/^[a-z][a-z\d+.-]*:(?!\d+(?:[/?#]|$))/i.test(rawUrl) && !/^https?:\/\//i.test(rawUrl)) return '';
     const url = normalizeUrl(rawUrl);
     if (!url) return '';
@@ -94,7 +94,8 @@ export function normalizeBookmarkOverrides(value) {
  */
 export function normalizeBookmark(item, fallbackName = '', origUrl = '') {
     if (!item || typeof item !== 'object' || Array.isArray(item)) return null;
-    const name = String(item.name || fallbackName).trim().slice(0, CONFIG.SECURITY.MAX_NAME_CHARS);
+    const value = typeof item.name === 'string' || typeof item.name === 'number' ? item.name : '';
+    const name = String(value || fallbackName).trim().slice(0, CONFIG.SECURITY.MAX_NAME_CHARS);
     const url = normalizeBookmarkUrl(item.url);
     if (!name || !url) return null;
     /** @type {import('../types').BookmarkItem} */

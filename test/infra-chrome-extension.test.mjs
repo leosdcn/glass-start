@@ -135,14 +135,24 @@ try {
     assert.deepEqual(exceptions, []);
 
     await evalJS(`(async () => {
-        await caches.open('app-favicons-v1');
+        const container = document.createElement('div');
+        container.className = 'icon-box';
+        const broken = document.createElement('img');
+        broken.dataset.initial = 'Z';
+        broken.src = './icons/does-not-exist.png';
+        container.id = 'broken-icon-probe';
+        container.append(broken);
+        document.body.append(container);
         document.querySelector('#searchInput').value='';
         document.querySelector('#searchInput').dispatchEvent(new Event('input',{bubbles:true}));
         document.querySelector('#editBookmarksBtn').click();
     })()`);
+    await waitFor(evalJS,`document.querySelector('#broken-icon-probe').textContent === 'Z'`);
+    assert.equal(await evalJS(`caches.has('app-favicons-v1')`), false);
     await waitFor(evalJS,`document.querySelector('#editModal').open`);
     await evalJS(`document.querySelector('#tab-btn-data').click(); document.querySelector('#clearCacheBtn').click()`);
     await waitFor(evalJS,`document.querySelector('#confirmModal').open`);
+    assert.equal(await evalJS(`document.querySelector('#confirmOkBtn').textContent.trim()`), 'Reload page');
     const beforeCacheClear = await evalJS('performance.timeOrigin');
     await evalJS(`document.querySelector('#confirmOkBtn').click()`);
     await waitFor(evalJS,`performance.timeOrigin !== ${beforeCacheClear} && document.readyState==='complete' &&

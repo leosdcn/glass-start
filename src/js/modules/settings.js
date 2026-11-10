@@ -16,7 +16,7 @@ import { replaceBookmarkDraft } from '../state/bookmark-draft.js';
 import { dom } from '../state/dom.js';
 import { OverlayStack } from '../core/overlay-stack.js';
 import { flushWallpaperSelection, prepareWallpaperDraft, getCommittedWallpaperUrl, closeWallpaperDraft, pauseWallpaperDraft, showWallpaperDraft, updateWallpaperStatusUI, updatePresetBgCardsUI, clearCustomWallpaper, renderPresetWallpapers, commitWallpaperSelection, revertDraftWallpaper, applyBgEffects, flushBgEffects, getSavedMaskOpacity, commitWallpaperDimming, showWallpaperError, previewDraftWallpaper } from './wallpaper.js';
-import { saveUserBookmarks, resetUserBookmarks, getImportedBookmarks } from './bookmarks.js';
+import { loadBookmarks, saveUserBookmarks, resetUserBookmarks, getImportedBookmarks } from './bookmarks.js';
 import { closeDropdown, hideSuggestions, setEngine } from './search.js';
 import { getTransitionMode, syncTransitionSwitcherActive, setTransitionMode, resetNavDiscovery } from '../core/screen-state.js';
 import { cancelDragSort } from './bookmark-drag.js';
@@ -72,10 +72,20 @@ function renderCreditsModalList() {
 }
 
 /** @typedef {ReturnType<typeof readCommittedSettings>} SettingsBaseline */
-/** @type {{ initial?: SettingsBaseline, baseline?: SettingsBaseline } | null} */
+/** @type {{ initial?: SettingsBaseline, baseline?: SettingsBaseline, bookmarkRevision?: string } | null} */
 let editSession = null;
 /** @type {AbortController | null} */
 let activeImportController = null;
+
+/** @template T @param {() => T} commit */
+async function commitBookmarks(commit) {
+    // 同源标签在同一把锁内比较版本并写入。不可用时仍检查已落盘的版本。
+    try {
+        return navigator.locks ? await navigator.locks.request(CONFIG.KEYS.BOOKMARKS, commit) : commit();
+    } catch {
+        return false;
+    }
+}
 
 function readCommittedSettings() {
     return {
@@ -127,7 +137,7 @@ function setEditPhase(phase) {
         else dom.saveEditBtn.removeAttribute('aria-busy');
     }
     if (dom.cancelEditBtn) dom.cancelEditBtn.disabled = committing;
-    if (dom.languageBtn) dom.languageBtn.disabled = committing;
+    if (dom.languageBtn) dom.languageBtn.disabled = saving;
     getSettingsPanels().forEach(panel => { panel.inert = committing; });
 }
 
@@ -202,6 +212,7 @@ export async function openEditModal() {
     const isCurrent = () => editSession === session;
     await prepareWallpaperDraft(isCurrent);
     if (!isCurrent()) return;
+    session.bookmarkRevision = loadBookmarks();
     const committed = session.initial = session.baseline = readCommittedSettings();
     const { bookmarks, ...draft } = committed;
     Object.assign(modalState, draft);
@@ -438,9 +449,15 @@ export function resetBookmarks() {
 
             const keys = /** @type {const} */ (['PREFERRED_ENGINE', 'WALLPAPER_META', 'MASK_OPACITY',
                 'BG', 'THEME_CACHE', 'TINT_CACHE', 'TRANSITION_MODE', 'LANGUAGE']);
+            const bookmarksReset = await commitBookmarks(() => {
+                if (!isCurrent() || !resetUserBookmarks()) return false;
+                session.bookmarkRevision = loadBookmarks();
+                return true;
+            });
+            if (!isCurrent()) return;
             const outcomes = [
                 ...keys.map(key => storageRemove(CONFIG.KEYS[key])),
-                resetNavDiscovery(), resetWeather(), resetUserBookmarks()
+                resetNavDiscovery(), resetWeather(), bookmarksReset
             ];
             const committed = session.baseline = readCommittedSettings();
             document.documentElement.dataset.transitionMode = committed.draftTransitionMode;
@@ -484,9 +501,14 @@ export async function saveEditModal() {
         }
         beginEditCommit();
         const { draftWallpaper, draftMaskOpacity, draftTransitionMode, draftLanguage } = modalState;
-        /** @type {Array<[keyof SettingsBaseline, boolean, () => boolean | Promise<boolean>, string]>} */
+        /** @type {Array<[keyof SettingsBaseline, boolean, () => boolean | 'conflict' | Promise<boolean | 'conflict'>, string]>} */
         const commits = [
-            ['bookmarks', modalState.bookmarksChanged, () => saveUserBookmarks(data), 'ui.could.not.save.bookmarks.your.draft'],
+            ['bookmarks', modalState.bookmarksChanged, () => commitBookmarks(() => {
+                if (!isCurrent()) return false;
+                const result = saveUserBookmarks(data, session.bookmarkRevision);
+                if (result === true) session.bookmarkRevision = loadBookmarks();
+                return result;
+            }), 'ui.could.not.save.bookmarks.your.draft'],
             ['draftMaskOpacity', draftMaskOpacity !== baseline.draftMaskOpacity,
                 () => draftMaskOpacity !== null && commitWallpaperDimming(draftMaskOpacity), 'ui.could.not.save.background.dimming.your'],
             ['draftTransitionMode', draftTransitionMode !== baseline.draftTransitionMode,
@@ -500,6 +522,10 @@ export async function saveEditModal() {
             if (!changed) continue;
             const saved = await commit();
             if (!isCurrent()) return;
+            if (saved === 'conflict') {
+                showConfirm(t('settings.bookmarkConflict'), null, t('ui.could.not.save'));
+                return;
+            }
             if (!saved) {
                 const fields = /** @type {(keyof typeof settingLabels)[]} */ (Object.keys(settingLabels));
                 const applied = fields.filter(key => initial[key] !== session.baseline?.[key]).map(key => t(settingLabels[key]));
@@ -588,15 +614,19 @@ export function clearOfflineCache() {
     if (!clearBtn || !session?.baseline || modalState.phase !== 'editing') return;
     const isExtension = window.__GLASS_EXTENSION__;
 
+    if (isExtension) {
+        showConfirm(`${t('cache.extension.description')} ${t('cache.discardDraft')}`, () => {
+            if (editSession === session && modalState.phase === 'editing') location.reload();
+        }, t('cache.extension.title'), { triggerEl: clearBtn, okText: t('cache.extension.action') });
+        return;
+    }
     if (!('caches' in window)) {
-        showConfirm(isExtension ? t('ui.this.browser.does.not.support.clearing') : t('ui.offline.caching.is.unavailable.or.the'), null, t('ui.notice'), { triggerEl: clearBtn });
+        showConfirm(t('ui.offline.caching.is.unavailable.or.the'), null, t('ui.notice'), { triggerEl: clearBtn });
         return;
     }
 
     const isOffline = typeof navigator !== 'undefined' && navigator.onLine === false;
-    const message = isExtension
-        ? t('ui.clear.temporary.caches.and.reload.saved')
-        : isOffline
+    const message = isOffline
         ? t('ui.you.are.offline.clearing.the.offline')
         : t('ui.clear.the.offline.cache.cached.app');
 
@@ -609,12 +639,10 @@ export function clearOfflineCache() {
             const scope = new URL('./', location.href);
             const cachePrefix = 'glass-scope-' + encodeURIComponent(scope.pathname) + '-';
             try {
-                if ('caches' in window) {
-                    const keys = await caches.keys();
-                    // 网页图标池跨部署共享；扩展拥有独立来源，可清理自己的图标池。
-                    await Promise.all(keys.filter(key => key.startsWith(cachePrefix) ||
-                        (isExtension && key === CONFIG.CACHE.FAVICON)).map(key => caches.delete(key)));
-                }
+                const keys = await caches.keys();
+                // 另一个 %2F- 表示前缀命中的是更深的部署路径。
+                await Promise.all(keys.filter(key => key.startsWith(cachePrefix) &&
+                    !key.includes('%2F-', cachePrefix.length)).map(key => caches.delete(key)));
                 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
                     const regs = await navigator.serviceWorker.getRegistrations();
                     await Promise.all(regs.filter(r => r.scope === scope.href).map(r => r.unregister()));
@@ -633,7 +661,7 @@ export function clearOfflineCache() {
                 resumeWallpaper?.();
             }
         },
-        isExtension ? t('ui.clear.cache') : t('ui.clear.offline.cache'),
-        { triggerEl: clearBtn, okText: isExtension ? t('ui.clear.and.reload') : t('ui.clear.cache.and.reload') }
+        t('ui.clear.offline.cache'),
+        { triggerEl: clearBtn, okText: t('ui.clear.cache.and.reload') }
     );
 }
