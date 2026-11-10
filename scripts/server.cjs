@@ -333,8 +333,8 @@ function startListening(port) {
         console.log(`  • 停止本地服务请按: ${c.yellow}Ctrl + C${c.reset}`);
         console.log(`${c.gray}${HR_DOUBLE}${c.reset}\n`);
 
-        // 仅在服务确已 listen 成功并能接收请求时，才自动唤起浏览器
-        if (process.env.AUTO_OPEN !== '0') {
+        // 仅在服务确已 listen 成功并能接收请求时，才自动唤起浏览器（测试环境下默认静默）
+        if (process.env.AUTO_OPEN !== '0' && !process.env.GLASS_TEST_TMPDIR && process.env.NODE_ENV !== 'test') {
             const url = `${protocol}://localhost:${port}/`;
             if (isolatedPreview) {
                 openIsolatedPreview(url);

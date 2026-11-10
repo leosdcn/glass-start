@@ -294,7 +294,7 @@ test('本地预览的图标 ETag 区分同一秒内修改的内容', async t => 
   const port = await getFreePort();
   const url = `http://127.0.0.1:${port}/icons/probe.png`;
   const preview = spawn(process.execPath, [join(root, 'scripts/server.cjs'), '--no-watch'], {
-    env: { ...process.env, GLASS_TEST_TMPDIR: dir, PORT: String(port) }, stdio: 'ignore'
+    env: { ...process.env, GLASS_TEST_TMPDIR: dir, PORT: String(port), AUTO_OPEN: '0' }, stdio: 'ignore'
   });
   const exited = once(preview, 'exit');
   try {

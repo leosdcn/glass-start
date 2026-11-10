@@ -5,6 +5,8 @@ import { fileURLToPath } from 'node:url';
 import { constants, tmpdir } from 'node:os';
 import { requiresBuild, standaloneTests } from './support/test-selection.mjs';
 
+process.env.AUTO_OPEN = '0';
+
 const testDir = fileURLToPath(new URL('.', import.meta.url));
 const rootDir = join(testDir, '..');
 const patterns = process.argv.slice(2).filter(arg => !arg.startsWith('-')).map(pattern => pattern.toLowerCase());
