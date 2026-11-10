@@ -34,7 +34,6 @@ export const dom = new Proxy(_domStore, {
  *
  * 节点覆盖区域分组：
  * - 语言弹窗: languageBtn, languageList, doneLanguageBtn, cancelLanguageBtn
- * - 设置面板: tabAppearance
  * - 时钟与搜索: clock, date, searchInput, searchClearBtn, randomBookmarkBtn, engineBtn, engineIcon, engineName, dropdownMenu, suggestionMenu
  * - 导航与侧边栏: bookmarks, sidebar, sidebarList, navCategories, navContent, navSection, navHint, startSection
  * - 书签编辑与挑选: editList, editBookmarksBtn, addBookmarkBtn, saveEditBtn, cancelEditBtn, resetEditBtn, togglePickerBtn, pickerContent, pickerCount, donePickerBtn, exportJsonBtn, importJsonInput, bookmarkCountBadge, jsonDropzone
@@ -45,6 +44,6 @@ export const dom = new Proxy(_domStore, {
  * @returns {void}
  */
 export function cacheDOM() {
-    const ids = 'languageBtn languageList doneLanguageBtn cancelLanguageBtn tabAppearance clock date searchInput searchClearBtn randomBookmarkBtn engineBtn engineIcon engineName dropdownMenu suggestionMenu bookmarks sidebar sidebarList navCategories navContent editList editBookmarksBtn addBookmarkBtn saveEditBtn cancelEditBtn resetEditBtn togglePickerBtn pickerContent pickerCount donePickerBtn exportJsonBtn importJsonInput uploadBgBtn urlBgBtn urlBgBtnGroup urlBgInputRow urlBgInput urlBgConfirmBtn urlBgCancelBtn resetBgBtn uploadBgInput wallpaperStatus wallpaperError bookmarkCountBadge jsonDropzone maskOpacityInput maskOpacityVal clearCacheBtn bgLayer bgLayerNext bgOverlay startSection navSection navHint presetWallpaperGrid settingsTransitionGrid shortcutModal shortcutModalList doneShortcutBtn openShortcutFromSettingsBtn openCreditsFromSettingsBtn weatherWidget weatherBtn weatherIcon weatherTemp weatherCity weatherPopover creditsModal creditsList doneCreditsBtn confirmModal confirmTitle confirmMsg confirmCancelBtn confirmOkBtn updateNotice updateNoticeText updateReloadBtn'.split(' ');
+    const ids = 'languageBtn languageList doneLanguageBtn cancelLanguageBtn clock date searchInput searchClearBtn randomBookmarkBtn engineBtn engineIcon engineName dropdownMenu suggestionMenu bookmarks sidebar sidebarList navCategories navContent editList editBookmarksBtn addBookmarkBtn saveEditBtn cancelEditBtn resetEditBtn togglePickerBtn pickerContent pickerCount donePickerBtn exportJsonBtn importJsonInput uploadBgBtn urlBgBtn urlBgBtnGroup urlBgInputRow urlBgInput urlBgConfirmBtn urlBgCancelBtn resetBgBtn uploadBgInput wallpaperStatus wallpaperError bookmarkCountBadge jsonDropzone maskOpacityInput maskOpacityVal clearCacheBtn bgLayer bgLayerNext bgOverlay startSection navSection navHint presetWallpaperGrid settingsTransitionGrid shortcutModal shortcutModalList doneShortcutBtn openShortcutFromSettingsBtn openCreditsFromSettingsBtn weatherWidget weatherBtn weatherIcon weatherTemp weatherCity weatherPopover creditsModal creditsList doneCreditsBtn confirmModal confirmTitle confirmMsg confirmCancelBtn confirmOkBtn updateNotice updateNoticeText updateReloadBtn'.split(' ');
     ids.forEach(id => dom[id] = $(id));
 }

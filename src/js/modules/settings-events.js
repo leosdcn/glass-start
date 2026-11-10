@@ -14,7 +14,7 @@ import { dom } from '../state/dom.js';
 
 import { initDragSort } from './bookmark-drag.js';
 
-import { uploadWallpaper, previewDraftWallpaper, resetDraftWallpaper, showWallpaperError } from './wallpaper.js';
+import { uploadWallpaper, previewDraftWallpaper, resetDraftWallpaper } from './wallpaper.js';
 import { openEditModal, saveEditModal, cancelEditModal, openShortcutModal, closeShortcutModal, openCreditsModal, closeCreditsModal, switchSettingsTab, previewDraftMaskOpacity, resetBookmarks, importBookmarksJSON, exportBookmarksJSON, openLanguageModal, saveLanguageModal, cancelLanguageModal, selectLanguage, selectDraftTransitionMode, closeWallpaperUrlInput, openWallpaperUrlInput, submitWallpaperUrlInput, getSettingsTabs, clearOfflineCache } from './settings.js';
 import { openBookmarkPicker, closeBookmarkPicker, addBookmarkFromPicker } from './bookmark-picker.js';
 import { getEditFaviconInner, handleEditIconError, appendDraftBookmarkRow } from './bookmark-editor.js';

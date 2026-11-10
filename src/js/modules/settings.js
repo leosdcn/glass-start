@@ -106,7 +106,7 @@ let settingsTabsList = null;
 /** @type {HTMLElement[] | null} */
 let settingsPanelsList = null;
 
-export function getSettingsPanels() {
+function getSettingsPanels() {
     if (!settingsPanelsList) settingsPanelsList = Array.from(document.querySelectorAll('.settings-tab-panel'));
     return settingsPanelsList;
 }
