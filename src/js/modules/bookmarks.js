@@ -128,8 +128,6 @@ export function initFaviconObserver() {
 function getBookmarkCardHTML(bm) {
     return `
         <a href="${safeUrl(localizeBookmarkUrl(bm.url))}" target="_blank" rel="noopener noreferrer"
-           data-url="${safeUrl(bm.url)}"
-           data-icon="${safeUrl(bm.icon || '')}"
            class="bookmark-item flex min-w-0 apple-radius text-white/90">
             <div class="bookmark-surface flex flex-1 flex-col items-center justify-center gap-2 py-3 px-1 sm:px-1.5">
                 ${getFaviconHTML(bm, 'md')}

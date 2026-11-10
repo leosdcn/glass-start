@@ -32,6 +32,22 @@ test('原生模态隔离背景，按栈顺序归还焦点', async () => {
     await press('Escape', 27);
     assert.equal(await evalJS('document.activeElement === dom.editBookmarksBtn && !state.editOpen && dom.navSection.inert && !document.body.classList.contains("overflow-hidden")'), true);
 
+    await evalJS("showConfirm('测试确认', () => {}, '测试', { tone: 'neutral' })");
+    await press('Tab', 9);
+    assert.equal(await evalJS('dom.confirmOkBtn.matches(":focus-visible")'), true);
+    const shadow = await evalJS('getComputedStyle(dom.confirmOkBtn).boxShadow');
+    const { x, y } = await evalJS(`(() => {
+      const rect = dom.confirmOkBtn.getBoundingClientRect();
+      return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+    })()`);
+    await send('Input.dispatchMouseEvent', { type: 'mouseMoved', x, y });
+    await waitFor(evalJS, `dom.confirmOkBtn.matches(':hover') && getComputedStyle(dom.confirmOkBtn).boxShadow !== ${JSON.stringify(shadow)}`);
+    assert.deepEqual(await evalJS(`(() => {
+      const style = getComputedStyle(dom.confirmOkBtn);
+      return [dom.confirmOkBtn.matches(':focus-visible'), style.outlineStyle, style.outlineWidth];
+    })()`), [true, 'solid', '2px']);
+    await press('Escape', 27);
+
     const fallback = await evalJS(`(() => {
       const existing = document.createElement('div'); existing.inert = true; document.body.append(existing);
       const trigger = document.createElement('button'); trigger.type = 'button'; document.body.append(trigger);

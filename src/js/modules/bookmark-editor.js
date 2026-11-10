@@ -23,7 +23,7 @@ export function getEditFaviconInner(item) {
     const faviconUrl = resolveBookmarkIcon(url, icon, origUrl);
     const safeFavicon = faviconUrl ? safeUrl(faviconUrl) : '';
     if (safeFavicon && safeFavicon !== '#') {
-        return `<div class="icon-box icon-box-sm edit-favicon-img-wrapper pointer-events-none select-none"><img src="${safeFavicon}" width="${CONFIG.UI.ICON_SIZE_SM}" height="${CONFIG.UI.ICON_SIZE_SM}" data-initial="${escapeHtml(initial)}" data-url="${safeUrl(url)}" class="edit-favicon-img pointer-events-none select-none" alt="" decoding="async" draggable="false"></div>`;
+        return `<div class="icon-box icon-box-sm pointer-events-none select-none"><img src="${safeFavicon}" width="${CONFIG.UI.ICON_SIZE_SM}" height="${CONFIG.UI.ICON_SIZE_SM}" data-initial="${escapeHtml(initial)}" data-url="${safeUrl(url)}" class="edit-favicon-img pointer-events-none select-none" alt="" decoding="async" draggable="false"></div>`;
     }
     return createLetterBadgeHtml(initial, 'icon-box-sm edit-favicon-initial', 'text-2xs font-semibold');
 }

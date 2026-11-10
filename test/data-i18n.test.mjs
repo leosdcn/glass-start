@@ -97,6 +97,11 @@ try {
     await send('Network.enable');
     await send('Network.setBypassServiceWorker', { bypass: true });
     await send('Network.setCacheDisabled', { cacheDisabled: true });
+    const { identifier: weatherCache } = await send('Page.addScriptToEvaluateOnNewDocument', { source: `
+        localStorage.setItem('glass_weather_cache', JSON.stringify({
+            current: { temp: 24, weatherCode: 2 }, location: { name: 'Shanghai' }, timestamp: Date.now()
+        }));
+    ` });
     let pausedApp;
     const stopPausing = send('Fetch.requestPaused', event => { pausedApp = event; });
     await send('Fetch.enable', { patterns: [{ urlPattern: '*/app-builds/*.js' }] });
@@ -107,6 +112,11 @@ try {
     assert.equal(await evalJS(`document.getElementById('engineName').textContent`), 'Google');
     assert.match(await evalJS(`document.getElementById('engineBtn').getAttribute('aria-label')`), /Google/);
     assert.equal(await evalJS(`document.title`), 'Glass Start');
+    assert.equal(await evalJS(`document.getElementById('weatherCity').textContent`), 'Shanghai');
+    assert.equal(await evalJS(`document.getElementById('weatherTemp').textContent`), '24°');
+    assert.match(await evalJS(`document.getElementById('weatherBtn').getAttribute('aria-label')`), /^Shanghai: 24°,/);
+    await evalJS(`localStorage.removeItem('glass_weather_cache')`);
+    await send('Page.removeScriptToEvaluateOnNewDocument', { identifier: weatherCache });
     await send('Fetch.continueRequest', { requestId: pausedApp.requestId });
     await send('Fetch.disable');
     stopPausing();

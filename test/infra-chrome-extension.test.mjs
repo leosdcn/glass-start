@@ -22,7 +22,7 @@ for (const locale of ['en', 'zh_CN']) {
     assert.ok(messages.extensionName.message && messages.extensionDescription.message);
 }
 assert(!/<script\b(?![^>]*\bsrc=)/i.test(html), '扩展中不得存在内联脚本');
-assert(!/JsonCallback|callback=/.test(readFileSync(join(output, 'app.js'), 'utf8')), '扩展编译时裁掉 JSONP');
+assert(!/__glassSuggestCb_|JsonCallback|callback=/.test(readFileSync(join(output, 'app.js'), 'utf8')), '扩展编译时裁掉 JSONP');
 assert(!existsSync(join(output, 'sw.js')));
 
 const port = await getFreePort();

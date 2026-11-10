@@ -99,7 +99,8 @@ body.drag-settling .drag-handle {
     transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, scale var(--button-press-duration, var(--duration-press-up)) var(--button-press-ease, var(--ease-spring));
 }
 .confirm-dialog-btn-cancel:focus-visible {
-    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.50), 0 2px 6px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    outline: 2px solid rgba(255, 255, 255, 0.5);
+    outline-offset: 0;
 }
 @media (hover: hover) and (pointer: fine) {
     body:not(.tab-blurred) .confirm-dialog-btn-cancel:hover:not(:disabled) {
@@ -120,7 +121,7 @@ body.drag-settling .drag-handle {
     font-weight: 500;
 }
 .confirm-neutral .confirm-dialog-btn-ok:focus-visible {
-    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.6), 0 2px 8px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+    outline-color: rgba(255, 255, 255, 0.6);
 }
 @media (hover: hover) and (pointer: fine) {
     body:not(.tab-blurred) .confirm-neutral .confirm-dialog-btn-ok:hover:not(:disabled) {
@@ -143,7 +144,8 @@ body.drag-settling .drag-handle {
     transition: background-color 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, color 0.15s ease, scale var(--button-press-duration, var(--duration-press-up)) var(--button-press-ease, var(--ease-spring));
 }
 .confirm-dialog-btn-ok:focus-visible {
-    box-shadow: 0 0 0 2px rgb(248 113 113), 0 2px 6px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    outline: 2px solid rgb(248 113 113);
+    outline-offset: 0;
 }
 @media (hover: hover) and (pointer: fine) {
     body:not(.tab-blurred) .confirm-dialog-btn-ok:hover:not(:disabled) {

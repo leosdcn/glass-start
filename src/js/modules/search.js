@@ -126,7 +126,7 @@ export function renderEngineDropdown() {
     const engineMap = engines;
     dropdownMenu.innerHTML = Object.entries(engineMap).map(([key, eng]) => {
         const isChecked = key === curEngine;
-        const iconHtml = `<span class="engine-icon size-5 aspect-square shrink-0 rounded pointer-events-none select-none flex items-center justify-center">${eng.svg}</span>`;
+        const iconHtml = `<span class="size-5 aspect-square shrink-0 rounded pointer-events-none select-none flex items-center justify-center">${eng.svg}</span>`;
         return `<button type="button" data-engine="${key}" role="menuitemradio" aria-checked="${isChecked}" class="w-full flex items-center gap-3 px-3 py-2.5 apple-radius hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 glass-interactive text-left text-sm select-none">
             ${iconHtml} ${eng.name}
         </button>`;
@@ -188,10 +188,7 @@ export function setEngine(key, save = true) {
     if (engineBtn) {
         engineBtn.setAttribute('aria-label', t('engine.current', { name: engineObj.name }));
     }
-    if (engineIcon) {
-        engineIcon.style.display = '';
-        engineIcon.innerHTML = engineObj.svg;
-    }
+    if (engineIcon) engineIcon.innerHTML = engineObj.svg;
     if (dropdownMenu) {
         dropdownMenu.querySelectorAll('[role="menuitemradio"]').forEach(btn => {
             if (btn instanceof HTMLElement) {
@@ -419,11 +416,9 @@ function renderSuggestions(localList = [], netList = [], preserveSelection = fal
     // 确保内部的分组子容器已就绪
     if (!localGroup || !netGroup || !suggestionMenu.contains(localGroup)) {
         localGroup = document.createElement('div');
-        localGroup.id = 'suggestLocalGroup';
         localGroup.setAttribute('role', 'presentation');
 
         netGroup = document.createElement('div');
-        netGroup.id = 'suggestNetGroup';
         netGroup.setAttribute('role', 'presentation');
 
         suggestionMenu.replaceChildren(localGroup, netGroup);
@@ -587,9 +582,10 @@ export function fetchSuggestions(engineKey, query, deferNetwork = false) {
  * @param {number} reqId
  */
 function requestNetworkSuggestions(engineKey, query, cacheKey, localList, reqId) {
-    const cbName = `__glassSuggestCb_${reqId}`;
+    // 显式使用构建标记，让扩展产物裁掉 JSONP 的创建、注册和清理。
+    const cbName = window.__GLASS_EXTENSION__ ? '' : `__glassSuggestCb_${reqId}`;
     const controller = window.__GLASS_EXTENSION__ || engineKey === 'wikipedia' ? new AbortController() : null;
-    const script = controller ? null : document.createElement('script');
+    const script = !window.__GLASS_EXTENSION__ && !controller ? document.createElement('script') : null;
     /** @type {ReturnType<typeof setTimeout> | null} */
     let timeoutTimer = null;
 
@@ -599,13 +595,12 @@ function requestNetworkSuggestions(engineKey, query, cacheKey, localList, reqId)
             timeoutTimer = null;
         }
         controller?.abort();
-        if (script) {
+        if (!window.__GLASS_EXTENSION__ && script) {
             delete /** @type {any} */ (window)[cbName];
-            script.onload = null;
             script.onerror = null;
             script.remove();
+            if (suggestionScriptTag === script) suggestionScriptTag = null;
         }
-        if (suggestionScriptTag === script) suggestionScriptTag = null;
         if (activeSuggestCleanup === cleanup) {
             activeSuggestCleanup = null;
         }
@@ -666,10 +661,9 @@ function requestNetworkSuggestions(engineKey, query, cacheKey, localList, reqId)
         return;
     }
 
-    /** @type {any} */ (window)[cbName] = handleSuggestData;
-    suggestionScriptTag = script;
-    // 保留 !window.__GLASS_EXTENSION__ 供 esbuild 在扩展构建时触发死代码消除 (DCE)，彻底裁掉 JSONP 注入分支
     if (!window.__GLASS_EXTENSION__ && script) {
+        /** @type {any} */ (window)[cbName] = handleSuggestData;
+        suggestionScriptTag = script;
         script.onerror = handleSuggestFallback;
 
         if (engineKey === 'bing') {

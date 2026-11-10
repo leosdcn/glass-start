@@ -337,7 +337,7 @@ test('天气首屏安全显示缓存图标并恢复温标', () => {
     ['☀️', 'F', '68°']
   ]) {
     const elements = Object.fromEntries(['weatherIcon', 'weatherTemp', 'weatherCity', 'weatherBtn']
-      .map(id => [id, { textContent: '', innerHTML: '', setAttribute() {} }]));
+      .map(id => [id, { textContent: '', innerHTML: '', setAttribute() {}, removeAttribute() {} }]));
     vm.runInNewContext(script, {
       localStorage: { getItem: key => key === 'glass_weather_cache'
         ? JSON.stringify({ current: {temp:20, icon}, location: {name:'测试'} }) : tempUnit },

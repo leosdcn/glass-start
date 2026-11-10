@@ -36,7 +36,7 @@ function handleImageErrorCapture(e) {
         handleEditIconError(target);
     } else if (target.dataset.initial !== undefined || target.closest('.icon-box')) {
         handleIconError(target);
-    } else if (target.classList.contains('engine-icon') || target.dataset.hideOnError === '1') {
+    } else if (target.dataset.hideOnError === '1') {
         evictFaviconCache(target.src);
         target.style.display = 'none';
     }
