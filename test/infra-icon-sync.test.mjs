@@ -7,9 +7,7 @@ import { spawnSync, execFileSync } from 'node:child_process';
 
 const hasSips = spawnSync('sips', ['--version'], { stdio: 'ignore' }).status === 0;
 
-test('图标 CLI 下载、尺寸规范化、缓存修复与失败回滚', {
-  skip: hasSips ? false : '需要 macOS sips'
-}, () => {
+test('图标 CLI 下载、尺寸规范化、缓存修复与失败回滚', () => {
   const root = mkdtempSync(join(tmpdir(), 'glass-icon-sync-'));
   const png = readFileSync(new URL('../public/icons/github.com.png', import.meta.url));
   const transport = `import { EventEmitter } from 'node:events';
@@ -47,8 +45,15 @@ export default { get(url, options, callback) {
 
   function resizedPng(name, height, width) {
     const path = join(root, name);
-    writeFileSync(path, png);
-    execFileSync('sips', ['-z', String(height), String(width), path], { stdio: 'ignore' });
+    if (hasSips) {
+      writeFileSync(path, png);
+      execFileSync('sips', ['-z', String(height), String(width), path], { stdio: 'ignore' });
+    } else {
+      const buf = Buffer.from(png);
+      buf.writeUInt32BE(width, 16);
+      buf.writeUInt32BE(height, 20);
+      writeFileSync(path, buf);
+    }
     return readFileSync(path).toString('base64');
   }
 

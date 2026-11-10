@@ -60,8 +60,21 @@ export async function navigateAndWait(send, evalJS, url, predicateJs = 'true', t
   }
 }
 
-/** 获取系统当前随机可用空闲端口 */
-export function getFreePort() {
+let lastAllocatedPort = 13000 + Math.floor(Math.random() * 10000);
+
+/** 获取系统当前随机可用空闲端口（带自增偏移避免并发碰撞） */
+export async function getFreePort() {
+  for (let i = 0; i < 10; i++) {
+    const candidate = ++lastAllocatedPort;
+    const available = await new Promise(resolve => {
+      const srv = createNetServer();
+      srv.once('error', () => resolve(false));
+      srv.listen(candidate, '127.0.0.1', () => {
+        srv.close(() => resolve(true));
+      });
+    });
+    if (available) return candidate;
+  }
   return new Promise((resolve, reject) => {
     const srv = createNetServer();
     srv.listen(0, '127.0.0.1', () => {

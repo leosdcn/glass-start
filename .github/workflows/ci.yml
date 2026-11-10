@@ -16,9 +16,13 @@ permissions:
 
 jobs:
   linux-checks:
-    name: Lint & Test (Ubuntu)
+    name: Lint & Test (Ubuntu, Node ${{ matrix.node-version }})
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: ['24.15.0', '26']
     permissions:
       contents: read
       pages: read
@@ -29,8 +33,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          # 验证项目声明的最低支持环境；部署无需固定在此下限。
-          node-version: '24.15.0'
+          node-version: ${{ matrix.node-version }}
           cache: 'npm'
 
       - name: Install dependencies
@@ -42,23 +45,22 @@ jobs:
       - name: Run full test suite (typecheck + build + Chrome)
         run: npm test
 
-      - name: Validate release HTML
-        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+      - name: Validate release HTML & CSS (W3C / Stylelint)
         run: npm run test:w3c
 
       - name: Setup GitHub Pages
-        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && matrix.node-version == '24.15.0'
         id: pages
         uses: actions/configure-pages@v5
 
       - name: Retain the currently deployed app script
-        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && matrix.node-version == '24.15.0'
         env:
           GLASS_PREVIOUS_DEPLOY_URL: ${{ steps.pages.outputs.base_url }}
         run: node scripts/retain-deployed.cjs
 
       - name: Upload verified Pages artifact
-        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && matrix.node-version == '24.15.0'
         uses: actions/upload-pages-artifact@v3
         with:
           path: dist/.

@@ -308,7 +308,9 @@ export function openShortcutModal() {
     renderShortcutModalList();
     closeDropdown();
     hideSuggestions();
-    dom.openShortcutFromSettingsBtn?.setAttribute('aria-expanded', 'true');
+    if (state.editOpen) {
+        dom.openShortcutFromSettingsBtn?.setAttribute('aria-expanded', 'true');
+    }
     OverlayStack.push('shortcutModal', closeShortcutModal);
 }
 
@@ -375,7 +377,13 @@ export function importBookmarksJSON(file) {
     const isCurrent = () => !signal.aborted && session === editSession;
 
     const reader = new FileReader();
+    const clearReader = () => {
+        reader.onload = reader.onerror = reader.onabort = null;
+        signal.removeEventListener('abort', abortRead);
+    };
+
     const abortRead = () => {
+        clearReader();
         try {
             if (reader.readyState === FileReader.LOADING) reader.abort();
         } catch {}
@@ -383,8 +391,7 @@ export function importBookmarksJSON(file) {
     signal.addEventListener('abort', abortRead, { once: true });
 
     reader.onload = (e) => {
-        reader.onload = null;
-        signal.removeEventListener('abort', abortRead);
+        clearReader();
         if (!isCurrent()) return;
         try {
             if (!e.target || typeof e.target.result !== 'string') return;
@@ -424,7 +431,7 @@ export function importBookmarksJSON(file) {
         }
     };
     reader.onerror = () => {
-        signal.removeEventListener('abort', abortRead);
+        clearReader();
         if (isCurrent()) showConfirm(t('ui.could.not.read.the.file.please'), null, t('ui.import.failed'), { signal });
     };
     reader.readAsText(file, 'UTF-8');

@@ -144,7 +144,7 @@ test('历史工单缺陷回归 (GS-01 ~ GS-15 焦点、导入、存储配额与�
       await openEditModal();
       const Native = window.FileReader, readers = [];
       window.FileReader = class { constructor() { readers.push(this); } readAsText() {} };
-      const release = (index, name) => readers[index].onload({ target: { result: JSON.stringify([{ name, url: 'https://import.example.test/' }]) } });
+      const release = (index, name) => readers[index].onload?.({ target: { result: JSON.stringify([{ name, url: 'https://import.example.test/' }]) } });
       try {
         importBookmarksJSON({}); cancelEditModal(); await openEditModal();
         release(0, '过期');

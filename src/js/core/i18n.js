@@ -1,14 +1,18 @@
 import { LANGUAGE_KEY, SUPPORTED_LANGUAGES, I18N_PENDING_TIMEOUT_MS } from '../config/language.js';
 
-/** @param {unknown} preference @param {readonly string[]} languages */
+/** @param {unknown} preference @param {readonly unknown[]} [languages] */
 export function resolveLocale(preference, languages) {
     if (typeof preference === 'string' && SUPPORTED_LANGUAGES.includes(preference)) return preference;
-    for (const language of languages) {
-        const exact = SUPPORTED_LANGUAGES.find(locale => locale.toLowerCase() === language.toLowerCase());
-        if (exact) return exact;
-        const base = language.split('-')[0].toLowerCase();
-        const match = SUPPORTED_LANGUAGES.find(locale => locale.split('-')[0].toLowerCase() === base);
-        if (match) return match;
+    if (Array.isArray(languages)) {
+        for (const language of languages) {
+            if (typeof language !== 'string' || !language) continue;
+            const lower = language.toLowerCase();
+            const exact = SUPPORTED_LANGUAGES.find(locale => locale.toLowerCase() === lower);
+            if (exact) return exact;
+            const base = lower.split('-')[0];
+            const match = SUPPORTED_LANGUAGES.find(locale => locale.split('-')[0].toLowerCase() === base);
+            if (match) return match;
+        }
     }
     return 'en';
 }
@@ -33,9 +37,9 @@ export function t(key, params = {}) {
     let message = context?.messages[context.locale]?.[key] ?? context?.messages.en?.[key] ?? key;
     if (typeof message !== 'string') {
         const category = new Intl.PluralRules(getLocale()).select(typeof params.count === 'number' ? params.count : 0);
-        message = message[category] || message.other;
+        message = (message && (message[category] || message.other)) || key;
     }
-    return message.replace(/\{(\w+)\}/g, (match, name) => Object.hasOwn(params, name) ? String(params[name]) : match);
+    return String(message).replace(/\{(\w+)\}/g, (match, name) => Object.hasOwn(params, name) ? String(params[name]) : match);
 }
 
 /** @param {ParentNode} [root] */
@@ -78,6 +82,16 @@ export function forecastLabel(value, index) {
     return formatDate(date, { weekday: 'short' });
 }
 
+/** @param {string | undefined | null} url */
+function safeUrlHref(url) {
+    if (!url) return '';
+    try {
+        return new URL(url).href;
+    } catch {
+        return url;
+    }
+}
+
 /** @type {WeakMap<object, Map<string, string>>} */
 const canonicalMapCache = new WeakMap();
 
@@ -92,16 +106,16 @@ export function canonicalBookmarkUrl(url) {
     if (!map) {
         map = new Map();
         for (const canonical of Object.keys(catalogs.en?.bookmarks ?? {})) {
-            map.set(URL.parse(canonical)?.href ?? canonical, canonical);
+            map.set(safeUrlHref(canonical), canonical);
         }
         for (const [canonical, bookmark] of Object.entries(catalogs['zh-CN']?.bookmarks ?? {})) {
-            map.set(URL.parse(canonical)?.href ?? canonical, canonical);
-            if (bookmark.url) map.set(URL.parse(bookmark.url)?.href ?? bookmark.url, canonical);
-            if (bookmark.legacyUrl) map.set(URL.parse(bookmark.legacyUrl)?.href ?? bookmark.legacyUrl, canonical);
+            map.set(safeUrlHref(canonical), canonical);
+            if (bookmark.url) map.set(safeUrlHref(bookmark.url), canonical);
+            if (bookmark.legacyUrl) map.set(safeUrlHref(bookmark.legacyUrl), canonical);
         }
         canonicalMapCache.set(catalogs, map);
     }
-    return map.get(URL.parse(url)?.href ?? url) || url;
+    return map.get(safeUrlHref(url)) || url;
 }
 
 /** Resolve a built-in bookmark's destination without changing its saved identity.

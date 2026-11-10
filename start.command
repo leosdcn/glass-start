@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/zsh
 
 # 自动切换至项目根目录
 cd "$(dirname "$0")"

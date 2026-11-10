@@ -119,6 +119,8 @@ const isHttps = Boolean(sslConfig);
 const protocol = isHttps ? 'https' : 'http';
 
 async function handleStaticRequest(req, res) {
+        let asset = null;
+        let streamPiped = false;
         try {
             const urlRaw = req.url || '/';
             const pathname = urlRaw.split('?')[0];
@@ -139,7 +141,7 @@ async function handleStaticRequest(req, res) {
             }
 
             // 先打开文件再读取元数据，发布切换后仍可从同一描述符完成当前响应。
-            let asset = await openStaticFile(filePath);
+            asset = await openStaticFile(filePath);
             const isFallback = !asset;
             const targetPath = isFallback ? path.join(DIST_DIR, 'index.html') : filePath;
             if (isFallback) {
@@ -217,6 +219,7 @@ async function handleStaticRequest(req, res) {
                 res.end('404 Not Found');
             });
 
+            streamPiped = true;
             if (isCompressible && acceptEncoding.includes('gzip')) {
                 res.setHeader('Content-Encoding', 'gzip');
                 rawStream.pipe(zlib.createGzip({ level: 6 })).pipe(res);
@@ -227,7 +230,10 @@ async function handleStaticRequest(req, res) {
                 rawStream.pipe(res);
             }
         } catch {
-            res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' });
+            if (asset?.file && !streamPiped) {
+                try { await asset.file.close(); } catch {}
+            }
+            if (!res.headersSent) res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' });
             res.end('500 Internal Server Error');
         }
     }
@@ -335,7 +341,7 @@ function startListening(port) {
             } else if (process.platform === 'darwin') {
                 exec(`open "${url}"`);
             } else if (process.platform === 'win32') {
-                exec(`start "${url}"`);
+                exec(`start "" "${url}"`);
             } else {
                 exec(`xdg-open "${url}"`);
             }

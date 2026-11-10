@@ -96,15 +96,8 @@ function registerExitHooks() {
   process.on('exit', cleanupAll);
   process.on('SIGINT', () => { cleanupAll(); process.exit(130); });
   process.on('SIGTERM', () => { cleanupAll(); process.exit(143); });
-  process.on('uncaughtException', (err) => {
-    console.error('Unhandled Exception in test:', err);
+  process.on('uncaughtExceptionMonitor', () => {
     cleanupAll();
-    process.exit(1);
-  });
-  process.on('unhandledRejection', (reason) => {
-    console.error('Unhandled Rejection in test:', reason);
-    cleanupAll();
-    process.exit(1);
   });
 }
 

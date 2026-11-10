@@ -113,15 +113,17 @@ export function init() {
     bindEvents();
     bindEditEvents();
 
-    // ⑨ PWA 与 Service Worker 生命周期更新接管监听
-    if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
-        initServiceWorkerUpdates();
-        navigator.serviceWorker.addEventListener('controllerchange', () => {
-            if (isScreenTransitioning()) {
-                return;
-            }
-            reconcileScreenState();
-        });
+    // ⑨ PWA 与 Service Worker 生命周期更新接管监听（扩展构建通过 DCE 自动剔除）
+    if (typeof window === 'undefined' || !window.__GLASS_EXTENSION__) {
+        if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+            initServiceWorkerUpdates();
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                if (isScreenTransitioning()) {
+                    return;
+                }
+                reconcileScreenState();
+            });
+        }
     }
 
     /** @type {(fn: () => void, fallbackDelay?: number) => void} */

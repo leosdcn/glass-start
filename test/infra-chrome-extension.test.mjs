@@ -51,6 +51,21 @@ try {
                 window.__suggestRequests.push(value);
                 return Promise.resolve(new Response(JSON.stringify(['glass', ['extension suggestion']])));
             }
+            if (/myip\.ipip\.net/.test(value)) {
+                return Promise.resolve(new Response(JSON.stringify({ ret: 'ok', data: { location: ['中国', '北京', '北京'] } })));
+            }
+            if (/geocoding-api\.open-meteo\.com/.test(value)) {
+                return Promise.resolve(new Response(JSON.stringify({ results: [{ latitude: 39.9, longitude: 116.4, name: '北京' }] })));
+            }
+            if (/ipwho\.is/.test(value)) {
+                return Promise.resolve(new Response(JSON.stringify({ success: true, latitude: 39.9, longitude: 116.4, city: 'Beijing' })));
+            }
+            if (/api\.open-meteo\.com/.test(value)) {
+                return Promise.resolve(new Response(JSON.stringify({
+                    current: { temperature_2m: 20, weather_code: 0, is_day: 1 },
+                    daily: { temperature_2m_max: [25], temperature_2m_min: [15], weather_code: [0] }
+                })));
+            }
             return originalFetch(url, options);
         };
     ` });
@@ -150,7 +165,10 @@ try {
     await waitFor(evalJS,`document.querySelector('#broken-icon-probe').textContent === 'Z'`);
     assert.equal(await evalJS(`caches.has('app-favicons-v1')`), false);
     await waitFor(evalJS,`document.querySelector('#editModal').open`);
-    await evalJS(`document.querySelector('#tab-btn-data').click(); document.querySelector('#clearCacheBtn').click()`);
+    await evalJS(`document.querySelector('#tab-btn-data').click()`);
+    const cacheSection = await evalJS(`document.querySelector('.data-section-cache')?.textContent || ''`);
+    assert.equal(cacheSection.includes('Service Worker'), false, 'Extension data panel must not mention Service Worker');
+    await evalJS(`document.querySelector('#clearCacheBtn').click()`);
     await waitFor(evalJS,`document.querySelector('#confirmModal').open`);
     assert.equal(await evalJS(`document.querySelector('#confirmOkBtn').textContent.trim()`), 'Reload page');
     const beforeCacheClear = await evalJS('performance.timeOrigin');

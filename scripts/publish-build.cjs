@@ -134,6 +134,9 @@ function publishWebBuild(output, populate, prepare = () => {}) {
                 fs.renameSync(output, backup);
             }
             try {
+                if (process.platform === 'win32' && fs.existsSync(output)) {
+                    fs.rmSync(output, { recursive: true, force: true });
+                }
                 fs.renameSync(link, output);
                 published = true;
             } catch (error) {

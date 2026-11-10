@@ -100,6 +100,7 @@ export async function checkServiceWorkerUpdate(force = false) {
 }
 
 export function initServiceWorkerUpdates() {
+    if (typeof window !== 'undefined' && window.__GLASS_EXTENSION__) return;
     if (initialized || !('serviceWorker' in navigator) || !location.protocol.startsWith('http')) return;
     initialized = true;
     const initialController = navigator.serviceWorker.controller;

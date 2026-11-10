@@ -586,4 +586,5 @@ export function uploadWallpaper(file) {
         task.cancel = undefined;
         return executeWallpaperSelection(task, url);
     }));
+    return true;
 }

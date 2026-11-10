@@ -1,4 +1,4 @@
-/** 生成场景截图并断言布局，不做基准图像差分；视口与场景在各测试处定义。 */
+/** 视觉布局断言与截图捕获工具：生成场景截图并断言 DOM 几何与计算样式（不做像素级基准比对，保留截图于 test/artifacts/ 供人工审阅）；视口与场景在各测试处定义。 */
 
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join, dirname } from 'node:path';

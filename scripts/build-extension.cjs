@@ -11,7 +11,12 @@ function buildExtension(output = path.join(PATHS.root, 'extension')) {
         const manifest = JSON.parse(fs.readFileSync(path.join(PATHS.src, 'extension/manifest.json'), 'utf8'));
         manifest.version = JSON.parse(fs.readFileSync(PATHS.pkgJson, 'utf8')).version;
         fs.writeFileSync(path.join(staging, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n');
-        for (const [locale, folder] of [['zh-CN', 'zh_CN'], ['en', 'en']]) {
+        const langConfig = fs.readFileSync(path.join(PATHS.src, 'js/config/language.js'), 'utf8');
+        const langMatch = langConfig.match(/SUPPORTED_LANGUAGES\s*=\s*Object\.freeze\((\[[^\]]+\])\)/);
+        /** @type {string[]} */
+        const supportedLocales = langMatch ? JSON.parse(langMatch[1].replace(/'/g, '"')) : ['zh-CN', 'en'];
+        for (const locale of supportedLocales) {
+            const folder = locale.replace('-', '_');
             const messages = JSON.parse(fs.readFileSync(path.join(PATHS.src, 'js/config/locales', `${locale}.json`), 'utf8'));
             const directory = path.join(staging, '_locales', folder);
             fs.mkdirSync(directory, { recursive: true });
@@ -20,12 +25,18 @@ function buildExtension(output = path.join(PATHS.root, 'extension')) {
                 extensionDescription: { message: messages['extension.description'] }
             }, null, 2) + '\n');
         }
-        fs.copyFileSync(path.join(PATHS.src, 'extension/icon128.png'), path.join(staging, 'icon128.png'));
+        for (const iconName of ['icon16.png', 'icon48.png', 'icon128.png']) {
+            const iconPath = path.join(PATHS.src, 'extension', iconName);
+            if (fs.existsSync(iconPath)) {
+                fs.copyFileSync(iconPath, path.join(staging, iconName));
+            }
+        }
 
         let html = fs.readFileSync(path.join(staging, 'index.html'), 'utf8');
-        html = html.replace(/<meta\b[^>]*http-equiv="Content-Security-Policy"[^>]*>/i,
-            `<meta http-equiv="Content-Security-Policy" content="${manifest.content_security_policy.extension_pages}">`);
-        html = html.replace(/<link\b[^>]*rel="manifest"[^>]*>/gi, '');
+        // 移除扩展环境冗余的 CSP Meta（MV3 完全由 manifest.json CSP 控制）与社交/搜索引擎 Meta
+        html = html.replace(/<meta\b[^>]*http-equiv="Content-Security-Policy"[^>]*>/i, '');
+        html = html.replace(/<link\b[^>]*rel="(?:canonical|manifest)"[^>]*>/gi, '');
+        html = html.replace(/<meta\b[^>]*(?:name="robots"|property="og:[^"]+")[^>]*>/gi, '');
         // 外置首屏脚本会阻塞解析；先应用现有样式，避免等待脚本时透出白色画布。
         const initialStyle = html.match(/<style\b[^>]*>[\s\S]*?<\/style>/i)?.[0];
         if (!initialStyle) throw new Error('扩展页面缺少首屏样式');

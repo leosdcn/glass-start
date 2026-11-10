@@ -23,6 +23,10 @@ export const dom = new Proxy(_domStore, {
                 target[prop] = fresh;
                 return fresh;
             }
+            if (el instanceof Element && !el.isConnected) {
+                target[prop] = null;
+                return null;
+            }
         }
         return el;
     }

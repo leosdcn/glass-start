@@ -59,7 +59,7 @@ function getFuzzyScore(query, target, options) {
     const rawText = target.toLowerCase();
     if (!rawText.trim()) return Infinity;
     const rawTokens = rawText.split(/\s+/);
-    const wordTokens = rawText.split(/[^a-z0-9\u4e00-\u9fff]+/);
+    const wordTokens = rawText.split(/[^\p{L}\p{N}]+/u);
     const tokens = Array.from(new Set([...rawTokens, ...wordTokens].filter(t => t.length > 0)));
 
     const subQueries = query.split(/\s+/).filter(sq => sq.length > 0);
@@ -111,7 +111,7 @@ function getFuzzyScore(query, target, options) {
  */
 export function rankBookmarkSuggestions(query, model, config, limit = config.MAX_LOCAL_ITEMS) {
     const q = (query || '').trim().toLowerCase();
-    if (!q || !/[a-z0-9\u4e00-\u9fff]/.test(q)) return [];
+    if (!q || !/[\p{L}\p{N}]/u.test(q)) return [];
     const isFuzzyEligible = q.length >= config.FUZZY.MIN_QUERY_LEN;
 
     const { candidates: allCandidates, urlToCategoryMap } = model;
@@ -156,7 +156,7 @@ export function rankBookmarkSuggestions(query, model, config, limit = config.MAX
                 idx,
                 item: {
                     type: 'bookmark',
-                    name: bm.name || '未命名书签',
+                    name: bm.name || '',
                     url: bm.url,
                     icon: bm.icon || '',
                     desc: bm.desc || '',

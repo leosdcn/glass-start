@@ -20,7 +20,10 @@ export function escapeHtml(str) {
  */
 export function safeUrl(url, html = true) {
     const u = (url || '').trim();
-    return (/^https?:\/\//i.test(u) || /^data:image\//i.test(u) || /^(\.\/|\/)?icons\/[a-zA-Z0-9_\-\/.]+\.(png|svg|webp|ico)$/i.test(u)) ? (html ? escapeHtml(u) : u) : '#';
+    const isHttp = /^https?:\/\//i.test(u);
+    const isIcon = /^(\.\/|\/)?icons\/[a-zA-Z0-9_\-\/.]+\.(png|svg|webp|ico)$/i.test(u);
+    const isDataImg = /^data:image\/(png|jpeg|jpg|webp|gif|x-icon|avif);base64,/i.test(u);
+    return (isHttp || isIcon || isDataImg) ? (html ? escapeHtml(u) : u) : '#';
 }
 
 /**

@@ -97,14 +97,28 @@ function pngDimensions(path) {
 }
 
 /** 文件头、尺寸与尾标合规后实际解码，避免复用图像数据损坏的 PNG。 */
+let _hasSips = undefined;
+function hasSips() {
+    if (_hasSips !== undefined) return _hasSips;
+    try {
+        execFileSync('sips', ['--version'], { stdio: 'ignore', timeout: 2000 });
+        _hasSips = true;
+    } catch {
+        _hasSips = false;
+    }
+    return _hasSips;
+}
+
 function isReusableIcon(path) {
     let workDir;
     try {
         const { width, height } = pngDimensions(path);
         if (width !== height || width > 128) return false;
-        workDir = mkdtempSync(join(tmpdir(), 'glass-icon-check-'));
-        execFileSync('sips', ['-s', 'format', 'png', path, '--out', join(workDir, 'decoded.png')],
-            { stdio: 'ignore', timeout: 5000 });
+        if (hasSips()) {
+            workDir = mkdtempSync(join(tmpdir(), 'glass-icon-check-'));
+            execFileSync('sips', ['-s', 'format', 'png', path, '--out', join(workDir, 'decoded.png')],
+                { stdio: 'ignore', timeout: 5000 });
+        }
         return true;
     } catch {
         return false;
@@ -113,15 +127,22 @@ function isReusableIcon(path) {
     }
 }
 
-/** 使用 macOS 原生 sips 转录规范化为 128x128 1:1 PNG */
+/** 规范化转录为 128x128 1:1 PNG（macOS 使用原生 sips，其他环境复用合规 PNG） */
 function saveAsPng(inputBuffer, destPath) {
     const workDir = mkdtempSync(join(dirname(destPath), '.icon-sync-'));
     const isSvg = inputBuffer.subarray(0, 200).toString('utf8').includes('<svg');
     const inputPath = join(workDir, isSvg ? 'input.svg' : 'input.bin');
     const outputPath = join(workDir, 'output.png');
-    const runSips = args => execFileSync('sips', args, { stdio: 'ignore', timeout: 5000 });
     try {
         writeFileSync(inputPath, inputBuffer);
+        if (!hasSips()) {
+            if (isSvg) return false;
+            const { width, height } = pngDimensions(inputPath);
+            if (width !== height || width > 128) return false;
+            renameSync(inputPath, destPath);
+            return true;
+        }
+        const runSips = args => execFileSync('sips', args, { stdio: 'ignore', timeout: 5000 });
         runSips(isSvg
             ? ['-s', 'format', 'png', '-Z', '128', inputPath, '--out', outputPath]
             : ['-s', 'format', 'png', inputPath, '--out', outputPath]);

@@ -30,7 +30,13 @@ export function normalizeBookmarkUrl(value) {
  * @param {string} url
  */
 export function bookmarkUrlKey(url) {
-    return URL.parse(normalizeUrl(url))?.href ?? '';
+    const normalized = normalizeUrl(url);
+    if (!normalized) return '';
+    try {
+        return new URL(normalized).href;
+    } catch {
+        return '';
+    }
 }
 
 /**

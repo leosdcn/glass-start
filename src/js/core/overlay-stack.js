@@ -24,9 +24,14 @@ function showModal(id) {
             const top = OverlayStack.top();
             if (top?.id === id) top.close();
         });
+        let isPointerDownOnBackdrop = false;
+        modal.addEventListener('pointerdown', e => {
+            isPointerDownOnBackdrop = e.target === modal;
+        });
         modal.addEventListener('click', e => {
             const top = OverlayStack.top();
-            if (e.target === modal && top?.id === id) top.close();
+            if (e.target === modal && isPointerDownOnBackdrop && top?.id === id) top.close();
+            isPointerDownOnBackdrop = false;
         });
         boundDialogs.add(modal);
     }

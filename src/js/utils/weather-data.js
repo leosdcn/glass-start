@@ -21,7 +21,8 @@ export function weatherNum(value, fallback) {
 export function toDisplayTemp(celsius, unit = 'C') {
     const c = weatherNum(celsius, NaN);
     if (!Number.isFinite(c)) return '--';
-    return unit === 'F' ? Math.round(c * 1.8 + 32) : Math.round(c);
+    const val = unit === 'F' ? Math.round(c * 1.8 + 32) : Math.round(c);
+    return Object.is(val, -0) ? 0 : val;
 }
 
 /** @param {unknown} value @returns {value is string} */
