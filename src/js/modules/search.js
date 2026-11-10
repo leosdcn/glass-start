@@ -2,7 +2,7 @@ import { t, getLocale, localizeBookmarkUrl } from '../core/i18n.js';
 /** 搜索引擎切换、书签分级匹配与网络联想；请求序号隔离迟到响应。 */
 import { rankBookmarkSuggestions } from '../utils/bookmark-search.js';
 import { getCategoryCatalog } from '../utils/category-catalog.js';
-import { normalizeUrl } from '../utils/bookmark-model.js';
+import { bookmarkUrlKey } from '../utils/bookmark-model.js';
 import { CONFIG, engines } from '../config/constants.js';
 import { DEFAULT_ENGINE } from '../config/engines.js';
 import { escapeHtml, safeUrl } from '../utils/helpers.js';
@@ -71,14 +71,14 @@ let activeSuggestCleanup = null;
 let suggestionQueryKey = null;
 
 /**
- * 处理搜索建议的键盘上下键与 Tab 键导航
+ * 处理搜索建议的方向键导航
  * @param {KeyboardEvent} e
  * @returns {boolean} 是否处理了导航按键
  */
 export function handleSuggestionKeyNav(e) {
     if (e.ctrlKey || e.metaKey || e.altKey) return false;
-    const isNavDown = e.key === 'ArrowDown' || (e.key === 'Tab' && !e.shiftKey);
-    const isNavUp = e.key === 'ArrowUp' || (e.key === 'Tab' && e.shiftKey);
+    const isNavDown = e.key === 'ArrowDown';
+    const isNavUp = e.key === 'ArrowUp';
     if (!isNavDown && !isNavUp) return false;
 
     const suggestionCount = suggestionItems.length;
@@ -260,8 +260,9 @@ export function openRandomBookmark() {
     const seen = new Set();
     /** @param {import('../types').BookmarkItem} bm */
     const addBookmark = bm => {
-        if (bm?.url && !seen.has(bm.url)) {
-            seen.add(bm.url);
+        const key = bookmarkUrlKey(bm.url);
+        if (key && !seen.has(key)) {
+            seen.add(key);
             list.push(bm);
         }
     };
@@ -315,7 +316,8 @@ function getSearchCandidates() {
         });
     };
     for (const bm of pageData.bookmarks) {
-        if (bm.url) addCandidate(bm, normalizeUrl(bm.url), t('ui.quick.bookmarks'));
+        const key = bookmarkUrlKey(bm.url);
+        if (key) addCandidate(bm, key, t('ui.quick.bookmarks'));
     }
     for (const {bm, normUrl, defaultCat} of catalog.entries) addCandidate(bm, normUrl, defaultCat);
 

@@ -390,6 +390,46 @@ test('天气交互、弹窗规范与休眠感知套件', async (t) => {
         return !button.hasAttribute('aria-disabled') && !button.hasAttribute('aria-busy') && !button.querySelector('.weather-spin');
       })()`);
     });
+
+    await t.test('拒绝异常预报，重载时跳过历史坏缓存并自动刷新', async () => {
+      await send('Page.addScriptToEvaluateOnNewDocument', { source: `
+        const fallbackFetch = window.fetch;
+        window.fetch = url => {
+          if (!String(url).includes('/forecast?')) return fallbackFetch(url);
+          window.tempBeforeForecast = document.getElementById('weatherTemp').textContent;
+          return Promise.resolve(new Response(JSON.stringify({
+            current: { temperature_2m: 24 }, daily: { time: ['2026-11-10'] }
+          })));
+        };
+      ` });
+      const beforeReload = await evalJS(`(async () => {
+        const location = { name: '北京', lat: 39.9, lon: 116.4, language: 'zh-CN', timestamp: Date.now() };
+        const goodCache = { timestamp: Date.now(), location, current: { temp: 21 }, daily: [] };
+        storageSet(CONFIG.KEYS.LANGUAGE, 'zh-CN');
+        storageSet(CONFIG.KEYS.WEATHER_LOC, location);
+        storageSet(CONFIG.KEYS.WEATHER_CACHE, goodCache);
+        renderWeatherCapsule(goodCache);
+        window.fetch = async url => new Response(JSON.stringify(String(url).includes('/forecast?')
+          ? { current: { temperature_2m: 19 }, daily: { time: [{ toString: null }] } } : {}));
+        await updateWeather(true);
+        const result = {
+          stored: storageGet(CONFIG.KEYS.WEATHER_CACHE).current.temp,
+          visible: dom.weatherTemp.textContent,
+          timeOrigin: performance.timeOrigin
+        };
+        storageSet(CONFIG.KEYS.WEATHER_CACHE, {
+          ...goodCache, current: { temp: 19 }, daily: [{ date: { toString: null }, tempMin: 18 }]
+        });
+        return result;
+      })()`);
+      assert.equal(beforeReload.stored, 21);
+      assert.equal(beforeReload.visible, '21°');
+      await send('Page.reload');
+      await waitFor(evalJS, `performance.timeOrigin !== ${beforeReload.timeOrigin} &&
+        document.querySelector('#weatherTemp')?.textContent === '24°' &&
+        JSON.parse(localStorage.getItem('glass_weather_cache'))?.current.temp === 24`);
+      assert.equal(await evalJS('window.tempBeforeForecast'), '--°');
+    });
   } finally {
     await chrome.close();
     await server.close();

@@ -124,6 +124,7 @@
     "ui.could.not.save.the.wallpaper.your": "Could not save the wallpaper. Your previous wallpaper has been kept. Check storage space or permissions and try again.",
     "settings.partialSave": "{error} Changes to {settings} were saved and are in effect.",
     "settings.bookmarkConflict": "Another tab saved changes to your bookmarks. Your draft is still open. You can export it before reopening Settings to edit the latest bookmarks.",
+    "settings.invalidBookmarkDraft": "Each bookmark needs a name and a valid URL. Correct or remove the incomplete entries before saving.",
     "ui.wallpaper.not.saved": "Wallpaper not saved",
     "ui.mountains.at.dusk": "Mountains at dusk",
     "ui.valley.sunrise": "Valley sunrise",

@@ -172,13 +172,29 @@ function syncCommittedWallpaperHints(image = getRetainedWallpaperImage(getCommit
     if (JSON.stringify(meta) !== JSON.stringify(next)) storageSet(CONFIG.KEYS.WALLPAPER_META, next);
 }
 
-/** @param {number} opacity */
-export function commitWallpaperDimming(opacity) {
-    opacity = normalizeMaskOpacity(opacity);
-    if (!storageSet(CONFIG.KEYS.MASK_OPACITY, opacity)) return false;
-    syncCommittedWallpaperHints();
-    applyBgEffects(opacity);
-    return true;
+/** @template T @param {() => Promise<T>} task */
+function withWallpaperLock(task) {
+    const locks = globalThis.navigator?.locks;
+    return locks ? locks.request(CONFIG.KEYS.WALLPAPER_META, task) : task();
+}
+
+/** @param {number} opacity @param {() => boolean} isCurrent */
+export async function commitWallpaperDimming(opacity, isCurrent) {
+    const mask = normalizeMaskOpacity(opacity);
+    return withWallpaperLock(async () => {
+        const saved = await getWallpaperSelectionDB();
+        if (!isCurrent() || !storageSet(CONFIG.KEYS.MASK_OPACITY, mask)) return false;
+        const previous = getCommittedWallpaperUrl();
+        if (saved) {
+            syncCommittedWallpaper(saved);
+            syncCommittedWallpaperHints();
+        }
+        applyBgEffects(mask);
+        if (modalState.draftWallpaper === previous && previous !== getCommittedWallpaperUrl()) {
+            renderCommittedWallpaper(false);
+        }
+        return true;
+    }).catch(() => false);
 }
 
 export function getCommittedWallpaperUrl() {
@@ -189,7 +205,10 @@ export function getCommittedWallpaperUrl() {
 function renderCommittedWallpaper(animate, preparedImage = null) {
     const url = getCommittedWallpaperUrl();
     applyWallpaper(url, animate, preparedImage ?? getRetainedWallpaperImage(url), image => {
-        if (url === getCommittedWallpaperUrl()) syncCommittedWallpaperHints(image);
+        withWallpaperLock(async () => {
+            const saved = await getWallpaperSelectionDB();
+            if (saved?.wallpaper === url && url === getCommittedWallpaperUrl()) syncCommittedWallpaperHints(image);
+        }).catch(() => {});
     });
 }
 
@@ -288,7 +307,7 @@ export function updatePresetBgCardsUI(customWallpaperOverride) {
 export function commitWallpaperSelection(targetWallpaper, isCurrent = () => true, preparedImage) {
     const presetIdx = findPresetBgIndex(targetWallpaper);
     const selection = { wallpaper: presetIdx >= 0 ? null : targetWallpaper, bg: Math.max(0, presetIdx) };
-    const result = wallpaperCommitQueue.then(async () => {
+    const result = wallpaperCommitQueue.then(() => withWallpaperLock(async () => {
         // 用实际记录判定相同选择，其他标签的写入也纳入比较。
         const existing = await getWallpaperSelectionDB();
         if (!isCurrent()) return false;
@@ -298,7 +317,7 @@ export function commitWallpaperSelection(targetWallpaper, isCurrent = () => true
         syncCommittedWallpaperHints(preparedImage);
         if (preparedImage) renderCommittedWallpaper(true, preparedImage);
         return true;
-    });
+    })).catch(() => false);
     wallpaperCommitQueue = result;
     return result;
 }

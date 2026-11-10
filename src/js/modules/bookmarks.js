@@ -11,7 +11,7 @@ import { getLocale, localizeBookmarkUrl } from '../core/i18n.js';
 import { isScreenTransitioning } from '../core/screen-state.js';
 import { CONFIG, DEFAULT_BOOKMARKS } from '../config/constants.js';
 import { escapeHtml, safeUrl, handleRovingKeyNav } from '../utils/helpers.js';
-import { normalizeUrl, normalizeBookmarkUrl, normalizeBookmark, normalizeBookmarks, normalizeBookmarkOverrides, deriveNameFromUrl, faviconFromUrl } from '../utils/bookmark-model.js';
+import { bookmarkUrlKey, normalizeBookmarkUrl, normalizeBookmark, normalizeBookmarks, normalizeBookmarkOverrides, deriveNameFromUrl, faviconFromUrl } from '../utils/bookmark-model.js';
 import { getFaviconHTML, getCategoryIconHTML, evictFaviconCache, checkImageReady } from '../utils/favicon.js';
 import { storageGet, storageSet, storageRemove } from '../utils/storage.js';
 import { pageData, state } from '../state/store.js';
@@ -28,13 +28,25 @@ function readBookmarkRecord() {
     return record?.version === 1 ? record : null;
 }
 
-/** @param {unknown} stored */
-function getCustomMeta(stored) {
-    if (!stored || typeof stored !== 'object' || Array.isArray(stored)) return {};
-    return Object.fromEntries(Object.entries(stored).flatMap(([url, meta]) => {
-        const key = normalizeBookmarkUrl(url);
-        return key ? [[key, normalizeBookmarkOverrides(meta)]] : [];
-    }));
+/** @param {unknown} stored @param {string[]} urls */
+function getCustomMeta(stored, urls) {
+    /** @type {Map<string, import('../types').CustomMetaItem>} */
+    const entries = new Map();
+    if (!stored || typeof stored !== 'object' || Array.isArray(stored)) return entries;
+    const sources = new Set(urls);
+    const first = new Map();
+    for (const url of sources) {
+        const key = bookmarkUrlKey(url);
+        if (key && !first.has(key)) first.set(key, url);
+    }
+    for (const [url, meta] of Object.entries(stored)) {
+        const key = bookmarkUrlKey(normalizeBookmarkUrl(url));
+        const selected = first.get(key);
+        // 后续重复条目的覆盖不能改变首条，兼容旧存储中只用别名保存的元数据。
+        if (!key || (selected !== url && sources.has(url))) continue;
+        if (!entries.has(key) || selected === url) entries.set(key, normalizeBookmarkOverrides(meta));
+    }
+    return entries;
 }
 
 /**
@@ -45,9 +57,15 @@ function getCustomMeta(stored) {
  */
 export function getDerivedBookmarks(keys, categories, customMeta = {}) {
     const catalog = getCategoryCatalog(categories).byUrl;
-    return [...new Set(keys.map(normalizeUrl))].map(url => {
-        const entry = catalog.get(url);
-        const overrides = customMeta[url] ?? {};
+    const meta = getCustomMeta(customMeta, keys);
+    const seen = new Set();
+    return keys.flatMap(value => {
+        const url = normalizeBookmarkUrl(value);
+        const key = bookmarkUrlKey(url);
+        if (!key || seen.has(key)) return [];
+        seen.add(key);
+        const entry = catalog.get(key);
+        const overrides = meta.get(key) ?? {};
         return {
             url,
             name: overrides.name ?? entry?.name ?? deriveNameFromUrl(url),
@@ -64,7 +82,7 @@ export function getImportedBookmarks(list) {
     const meta = Object.fromEntries(list.map(bookmark => {
         const explicit = normalizeBookmarkOverrides(bookmark);
         // 没有可继承的目录项时，备份中的显示值仍能独立恢复。
-        return [bookmark.url, catalog.has(bookmark.url)
+        return [bookmark.url, catalog.has(bookmarkUrlKey(bookmark.url))
             ? bookmark.overrides ?? explicit : { ...explicit, ...bookmark.overrides }];
     }));
     return getDerivedBookmarks(list.map(bookmark => bookmark.url), pageData.categories, meta);
@@ -99,12 +117,9 @@ export function resetUserBookmarks() {
 export function loadBookmarks() {
     const record = readBookmarkRecord();
     const storedKeys = record?.keys;
-    const userKeys = Array.isArray(storedKeys) ? storedKeys.flatMap(url => {
-        if (typeof url !== 'string') return [];
-        const validUrl = normalizeBookmarkUrl(url);
-        return validUrl ? [validUrl] : [];
-    }) : [];
-    const customMeta = getCustomMeta(record?.meta);
+    const userKeys = Array.isArray(storedKeys)
+        ? storedKeys.filter(url => typeof url === 'string' && normalizeBookmarkUrl(url)) : [];
+    const customMeta = record?.meta;
 
     if (userKeys.length) {
         pageData.bookmarks = getDerivedBookmarks(userKeys, pageData.categories, customMeta);

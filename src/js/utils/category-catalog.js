@@ -1,4 +1,4 @@
-import { normalizeUrl } from './bookmark-model.js';
+import { bookmarkUrlKey } from './bookmark-model.js';
 
 const collator = new Intl.Collator('zh-CN', { numeric: true, sensitivity: 'base' });
 /** @type {string | undefined} */
@@ -31,8 +31,8 @@ export function getCategoryCatalog(categories) {
     const entries = [];
     const sorted = categories.map(cat => {
         for (const bm of cat.bookmarks) {
-            if (!bm.url) continue;
-            const normUrl = normalizeUrl(bm.url);
+            const normUrl = bookmarkUrlKey(bm.url);
+            if (!normUrl) continue;
             if (!byUrl.has(normUrl)) byUrl.set(normUrl, bm);
             if (!searchCategories.has(normUrl)) searchCategories.set(normUrl, cat.name);
             entries.push({ bm, normUrl, defaultCat: cat.name || '分类书签' });

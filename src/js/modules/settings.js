@@ -396,7 +396,9 @@ export function importBookmarksJSON(file) {
                 importedList = parsed.bookmarks;
             } else if (parsed && Array.isArray(parsed.categories)) {
                 parsed.categories.forEach((/** @type {any} */ cat) => {
-                    if (cat && Array.isArray(cat.bookmarks)) importedList.push(...cat.bookmarks);
+                    if (cat && Array.isArray(cat.bookmarks)) {
+                        for (const bookmark of cat.bookmarks) importedList.push(bookmark);
+                    }
                 });
             } else {
                 showConfirm(t('ui.this.file.does.not.contain.a'), null, t('ui.invalid.format'), { signal });
@@ -494,9 +496,15 @@ export async function saveEditModal() {
             return;
         }
 
-        const data = collectEditData();
+        let invalidDraft = false;
+        const data = collectEditData(() => { invalidDraft = true; });
         if (data.length === 0) {
             showConfirm(t('ui.keep.at.least.one.bookmark.with'), null, t('ui.could.not.save'));
+            return;
+        }
+        if (invalidDraft) {
+            if (OverlayStack.top()?.id === 'editModal') switchSettingsTab('tabBookmarks');
+            showConfirm(t('settings.invalidBookmarkDraft'), null, t('ui.could.not.save'));
             return;
         }
         beginEditCommit();
@@ -510,7 +518,7 @@ export async function saveEditModal() {
                 return result;
             }), 'ui.could.not.save.bookmarks.your.draft'],
             ['draftMaskOpacity', draftMaskOpacity !== baseline.draftMaskOpacity,
-                () => draftMaskOpacity !== null && commitWallpaperDimming(draftMaskOpacity), 'ui.could.not.save.background.dimming.your'],
+                () => draftMaskOpacity !== null && commitWallpaperDimming(draftMaskOpacity, isCurrent), 'ui.could.not.save.background.dimming.your'],
             ['draftTransitionMode', draftTransitionMode !== baseline.draftTransitionMode,
                 () => setTransitionMode(draftTransitionMode), 'ui.could.not.save.transition.mode.your'],
             ['draftWallpaper', draftWallpaper !== baseline.draftWallpaper,

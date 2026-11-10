@@ -182,11 +182,9 @@ test('从天气切回搜索、更新候选和输入法确认', async () => {
     await press('ArrowDown');
     await waitFor(evalJS, 'document.querySelector("#suggestionMenu .suggestion-item.active") !== null');
     assert.equal(await evalJS('selectedSuggestionIdx'), 0);
-    // Tab 键切换至下一候选
-    await press('Tab');
+    await press('ArrowDown');
     assert.equal(await evalJS('selectedSuggestionIdx'), 1);
-    // Shift+Tab 回切至上一候选
-    await evalJS("document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', shiftKey: true, bubbles: true, cancelable: true }))");
+    await press('ArrowUp');
     assert.equal(await evalJS('selectedSuggestionIdx'), 0);
     const suggestSelectionCheck = await evalJS(`(() => {
       const menu = document.getElementById('suggestionMenu');
@@ -208,6 +206,16 @@ test('从天气切回搜索、更新候选和输入法确认', async () => {
     assert.equal(escResult.menuActive, false);
     assert.equal(escResult.idx, -1);
     assert.equal(escResult.top, null);
+
+    for (const modifiers of [0, 8]) {
+      await evalJS(`dom.searchInput.focus(); fetchSuggestions(state.engine, dom.searchInput.value)`);
+      await waitFor(evalJS, 'dom.suggestionMenu.querySelector(".suggestion-item") !== null');
+      for (const type of ['rawKeyDown', 'keyUp']) {
+        await send('Input.dispatchKeyEvent', {type, key:'Tab', code:'Tab', windowsVirtualKeyCode:9, modifiers});
+      }
+      assert.equal(await evalJS(`document.activeElement !== dom.searchInput &&
+        dom.searchInput.getAttribute('aria-expanded') === 'false' && OverlayStack.isEmpty()`), true);
+    }
 
     const revisedQuery = await evalJS(`(() => {
       const input = dom.searchInput;
@@ -251,7 +259,7 @@ test('从天气切回搜索、更新候选和输入法确认', async () => {
         input.dispatchEvent(new CompositionEvent('compositionend'));
         enter(false);
         const independentEnterSearched = opened.length === 1 && new URL(opened[0]).searchParams.get('q') === 'git';
-        const tabHandled = !input.dispatchEvent(new KeyboardEvent('keydown', {key:'Tab',bubbles:true,cancelable:true}));
+        const tabUnclaimed = input.dispatchEvent(new KeyboardEvent('keydown', {key:'Tab',bubbles:true,cancelable:true}));
 
         input.value = '';
         input.dispatchEvent(new Event('input', {bubbles:true}));
@@ -262,13 +270,13 @@ test('从天气切回搜索、更新候选和输入法确认', async () => {
         const localResultImmediate = dom.suggestionMenu.classList.contains('active') &&
           dom.suggestionMenu.querySelector('.suggestion-item')?.textContent.includes('GitHub') &&
           !suggestionScriptTag;
-        return { imeDidNotSearch, independentEnterSearched, tabHandled, diceOpenedImmediately, localResultImmediate };
+        return { imeDidNotSearch, independentEnterSearched, tabUnclaimed, diceOpenedImmediately, localResultImmediate };
       } finally {
         window.open = open;
         hideSuggestions();
       }
     })()`);
-    assert.deepEqual(searchActions, { imeDidNotSearch:true, independentEnterSearched:true, tabHandled:true,
+    assert.deepEqual(searchActions, { imeDidNotSearch:true, independentEnterSearched:true, tabUnclaimed:true,
       diceOpenedImmediately:true, localResultImmediate:true });
   } finally {
     await chrome.close();

@@ -114,8 +114,9 @@ test('启动壁纸撞上切屏时先显示，取色等待空闲且不会覆盖�
     await waitFor(evalJS, 'wallpaperProbe.idle.length === 1');
     assert.deepEqual(await evalJS(`(() => {
       wallpaperProbe.idle.shift()();
-      return [isScreenTransitioning(), wallpaperProbe.reads, storageGet(CONFIG.KEYS.WALLPAPER_META).appearance.tint];
-    })()`), [false, 2, '80, 100, 160']);
+      return [isScreenTransitioning(), wallpaperProbe.reads];
+    })()`), [false, 2]);
+    await waitFor(evalJS, "storageGet(CONFIG.KEYS.WALLPAPER_META)?.appearance?.tint === '80, 100, 160'");
 
     await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'no-preference' }] });
     await finishDecodeDuringEntry('rgb(180, 80, 120)');

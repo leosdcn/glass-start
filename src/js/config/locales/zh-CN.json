@@ -124,6 +124,7 @@
     "ui.could.not.save.the.wallpaper.your": "壁纸未能保存，原有壁纸已保留。请检查浏览器存储空间或权限后重新选择。",
     "settings.partialSave": "{error}{settings}的更改已保存并生效。",
     "settings.bookmarkConflict": "另一个标签页已保存书签改动。当前草稿仍保留，你可以先导出草稿，再重新打开设置编辑最新书签。",
+    "settings.invalidBookmarkDraft": "每条书签都需要名称和有效的 URL。请修正或删除有误的条目后再保存。",
     "ui.wallpaper.not.saved": "壁纸保存失败",
     "ui.mountains.at.dusk": "暮色山峦",
     "ui.valley.sunrise": "溪谷晨曦",

@@ -1,5 +1,7 @@
 // @ts-check
 /** 天气代码、地点名称与预报数据转换，不依赖 DOM、网络或存储。 */
+import { isForecastDate } from './weather-data.js';
+
 /** @type {Record<number, {dayIcon: string, nightIcon: string}>} */
 const WMO_WEATHER_ICONS = {
     0: { dayIcon: '☀️', nightIcon: '🌙' },
@@ -104,8 +106,11 @@ function rounded(value, scale = 1) {
 export function normalizeWeatherForecast(data, loc, config, now) {
     const current = data.current || {};
     const daily = data.daily || {};
-    const dates = /** @type {string[]} */ (Array.isArray(daily.time)
-        ? daily.time.slice(0, config.FORECAST_FETCH_DAYS) : []);
+    /** @type {unknown[]} */
+    const dates = Array.isArray(daily.time) ? daily.time.slice(0, config.FORECAST_FETCH_DAYS) : [];
+    if ((daily.time !== undefined && !Array.isArray(daily.time)) || !dates.every(isForecastDate)) {
+        throw new Error('Weather response contains an invalid forecast date');
+    }
     return {
         timestamp: now,
         ...(typeof data.timezone === 'string' ? { timezone: data.timezone } : {}),

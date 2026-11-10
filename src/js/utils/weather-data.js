@@ -24,15 +24,25 @@ export function toDisplayTemp(celsius, unit = 'C') {
     return unit === 'F' ? Math.round(c * 1.8 + 32) : Math.round(c);
 }
 
+/** @param {unknown} value @returns {value is string} */
+export function isForecastDate(value) {
+    if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+    const date = new Date(value + 'T00:00:00Z');
+    return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value;
+}
+
 /** @param {import('../types').WeatherData | null} data */
 export function isUsableWeatherData(data) {
     const current = data?.current;
     const daily = data?.daily;
     const isRecord = (/** @type {unknown} */ value) => !!value && typeof value === 'object' && !Array.isArray(value);
-    if (!isRecord(current) || data?.location?.isFallback ||
-        (daily !== undefined && (!Array.isArray(daily) || !daily.every(isRecord)))) return false;
+    if (!current || !isRecord(current) || data?.location?.isFallback ||
+        (data?.timestamp !== undefined && !Number.isFinite(data.timestamp)) ||
+        [current.icon, data?.location?.name, data?.location?.fullName].some(value => value !== undefined && typeof value !== 'string') ||
+        (daily !== undefined && (!Array.isArray(daily) ||
+            !daily.every(day => isRecord(day) && (day.date === undefined || day.date === '' || isForecastDate(day.date)))))) return false;
     const isMeasurement = (/** @type {unknown} */ value) => Number.isFinite(weatherNum(value, NaN));
-    return !!current && ([current.temp, current.apparent, current.weatherCode, current.humidity, current.windSpeed,
+    return ([current.temp, current.apparent, current.weatherCode, current.humidity, current.windSpeed,
         current.pop, current.precipitation].some(isMeasurement) ||
         typeof current.weatherText === 'string' && !!current.weatherText.trim() ||
         !!daily?.some(day => [day.tempMin, day.tempMax, day.weatherCode, day.pop].some(isMeasurement) ||

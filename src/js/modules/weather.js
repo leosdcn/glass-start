@@ -557,8 +557,8 @@ async function executeWeatherUpdate(cache, locCache, force, signal) {
     let usable = currentWeatherData ?? cache;
     const earlyForecast = knownLoc && !force ? fetchWeatherForecast(knownLoc, forecastSignal).then(data => {
         if (!forecastSignal.aborted) {
-            usable = data;
             displayWeather(data);
+            usable = data;
         }
         return data;
     }).catch(() => null) : null;
@@ -578,8 +578,8 @@ async function executeWeatherUpdate(cache, locCache, force, signal) {
         }
         signal.throwIfAborted();
         const confirmed = { ...data, location: loc };
-        storageSet(CONFIG.KEYS.WEATHER_CACHE, confirmed);
         displayWeather(confirmed);
+        storageSet(CONFIG.KEYS.WEATHER_CACHE, confirmed);
     } catch (err) {
         if (signal.aborted) return;
         if (usable) {

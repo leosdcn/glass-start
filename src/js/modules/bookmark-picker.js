@@ -4,7 +4,7 @@
  */
 import { t } from '../core/i18n.js';
 import { escapeHtml } from '../utils/helpers.js';
-import { normalizeUrl } from '../utils/bookmark-model.js';
+import { bookmarkUrlKey } from '../utils/bookmark-model.js';
 import { pageData } from '../state/store.js';
 import { dom } from '../state/dom.js';
 import { OverlayStack } from '../core/overlay-stack.js';
@@ -57,7 +57,7 @@ function renderPickerCategories() {
             </div>
             <div class="grid grid-cols-2 sm:grid-cols-3 gap-1">
                 ${sortedBookmarks.map(bm => {
-                    const exists = urls.has(normalizeUrl(bm.url));
+                    const exists = urls.has(bookmarkUrlKey(bm.url));
                     const faviconHtml = getFaviconHTML(bm, 'sm');
                     return `
                         <button type="button" class="w-full flex items-center gap-2 px-2 py-1.5 apple-radius picker-item text-left select-none ${exists ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}" ${exists ? 'disabled aria-disabled="true"' : ''} aria-label="${exists ? escapeHtml(t('bookmark.existsLabel', { name: bm.name })) : escapeHtml(t('bookmark.addLabel', { name: bm.name }))}" data-url="${escapeHtml(bm.url)}">
@@ -92,7 +92,7 @@ function updatePickerAvailability() {
     if (signature === pickerSelectionSignature) return;
     pickerSelectionSignature = signature;
     for (const { button, bookmark } of pickerEntries) {
-        const exists = urls.has(normalizeUrl(bookmark.url));
+        const exists = urls.has(bookmarkUrlKey(bookmark.url));
         if (button.disabled === exists) continue;
         button.disabled = exists;
         button.classList.toggle('opacity-40', exists);
@@ -111,7 +111,7 @@ function updatePickerAvailability() {
 
 /** @param {string} url */
 export function addBookmarkFromPicker(url) {
-    const key = normalizeUrl(url);
+    const key = bookmarkUrlKey(url);
     const bookmark = getCategoryCatalog(pageData.categories).byUrl.get(key);
     if (!bookmark || getExistingUrls().has(key)) return;
     lastAddedRow = appendDraftBookmarkRow({ ...bookmark, overrides: {} });

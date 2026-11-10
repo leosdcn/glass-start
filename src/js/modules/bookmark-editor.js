@@ -1,7 +1,7 @@
 import { t } from '../core/i18n.js';
 import { CONFIG } from '../config/constants.js';
 import { escapeHtml, safeUrl } from '../utils/helpers.js';
-import { normalizeBookmarkUrl, normalizeUrl, normalizeBookmark, normalizeBookmarks, normalizeBookmarkOverrides, resolveBookmarkIcon } from '../utils/bookmark-model.js';
+import { bookmarkUrlKey, normalizeBookmarkUrl, normalizeBookmark, normalizeBookmarks, normalizeBookmarkOverrides, resolveBookmarkIcon } from '../utils/bookmark-model.js';
 import { createLetterBadgeHtml, handleFaviconFailure, checkImageReady } from '../utils/favicon.js';
 import { modalState } from '../state/store.js';
 import { appendBookmarkDraft } from '../state/bookmark-draft.js';
@@ -122,13 +122,17 @@ export function renderEditList() {
 
 /**
  * 从内存草稿收集并清洗书签，不反向解析 DOM。
+ * @param {() => void} [onInvalid] - 已保存或已填写的行无法保存时通知调用方。
  * @returns {import('../types').BookmarkItem[]}
  */
-export function collectEditData() {
+export function collectEditData(onInvalid) {
     return normalizeBookmarks(modalState.draftBookmarks, item => {
         const bookmark = normalizeBookmark(item, '', item.origUrl);
-        if (!bookmark) return null;
-        if (item.origUrl && normalizeUrl(item.origUrl) !== bookmark.url) {
+        if (!bookmark) {
+            if (item.origUrl || item.name.trim() || item.url.trim()) onInvalid?.();
+            return null;
+        }
+        if (item.origUrl && bookmarkUrlKey(item.origUrl) !== bookmarkUrlKey(bookmark.url)) {
             // 改换目标时保留表单文字，原地址的图标随地址解绑。
             bookmark.overrides = normalizeBookmarkOverrides({ name: bookmark.name, desc: bookmark.desc });
         }
@@ -140,7 +144,7 @@ export function getExistingUrls() {
     const urls = new Set();
     for (const bm of modalState.draftBookmarks) {
         const norm = normalizeBookmarkUrl(bm.url);
-        if (norm) urls.add(norm);
+        if (norm) urls.add(bookmarkUrlKey(norm));
     }
     return urls;
 }

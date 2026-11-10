@@ -26,6 +26,13 @@ export function normalizeBookmarkUrl(value) {
     try { return new URL(url).hostname ? url : ''; } catch { return ''; }
 }
 
+/** 按浏览器实际解析的地址比较，保留存储中的首条书签及目录的共享 URL。
+ * @param {string} url
+ */
+export function bookmarkUrlKey(url) {
+    return URL.parse(normalizeUrl(url))?.href ?? '';
+}
+
 /**
  * 从给定的 URL 字符串中安全提取规范化 Hostname 并剥离前缀 www.
  * @param {string} url
@@ -67,9 +74,9 @@ export function faviconFromUrl(url) {
  */
 export function resolveBookmarkIcon(url, icon, origUrl = '') {
     if (!url) return '';
-    const original = normalizeUrl(origUrl);
+    const original = bookmarkUrlKey(origUrl);
     const customIcon = typeof icon === 'string' ? icon.trim() : '';
-    if (customIcon && (!original || original === url) && safeUrl(customIcon) !== '#') return customIcon;
+    if (customIcon && (!original || original === bookmarkUrlKey(url)) && safeUrl(customIcon) !== '#') return customIcon;
     return faviconFromUrl(url);
 }
 
@@ -118,7 +125,10 @@ export function normalizeBookmarks(items, normalizeItem) {
     const unique = new Map();
     for (const item of items) {
         const bookmark = normalizeItem(item);
-        if (bookmark && !unique.has(bookmark.url)) unique.set(bookmark.url, bookmark);
+        if (bookmark) {
+            const key = bookmarkUrlKey(bookmark.url);
+            if (!unique.has(key)) unique.set(key, bookmark);
+        }
     }
     return [...unique.values()];
 }

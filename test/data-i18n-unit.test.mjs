@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { build } from 'esbuild';
 import vm from 'node:vm';
-const scope = vm.createContext({ module: { exports: {} }, Intl });
+const scope = vm.createContext({ module: { exports: {} }, Intl, URL });
 const bundled = await build({ entryPoints: ['src/js/core/i18n.js'], bundle: true, write: false, format: 'cjs', platform: 'node' });
 vm.runInContext(bundled.outputFiles[0].text, scope);
 const { resolveLocale, t, formatDate, forecastLabel, localizeCategories, localizeBookmarkUrl, canonicalBookmarkUrl } = scope.module.exports;
@@ -75,6 +75,7 @@ test('catalog translation uses stable identity without mutating original default
         scope.window.__GLASS_I18N__.locale = 'zh-CN';
         assert.equal(localizeBookmarkUrl('https://example.test'), 'https://example.test/zh');
         assert.equal(canonicalBookmarkUrl('https://example.test/zh'), 'https://example.test');
+        assert.equal(canonicalBookmarkUrl('https://EXAMPLE.TEST:443/zh'), 'https://example.test');
         assert.equal(canonicalBookmarkUrl('https://custom.test'), 'https://custom.test');
         assert.equal(canonicalBookmarkUrl('https://auto.test/zh'), 'https://auto.test');
         assert.equal(localizeBookmarkUrl('https://auto.test/zh'), 'https://auto.test');

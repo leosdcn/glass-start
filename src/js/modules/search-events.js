@@ -134,7 +134,11 @@ export function handleSearchKeydown(e) {
         activateSuggestion(selectedSuggestionIdx, e.altKey || e.metaKey || e.ctrlKey);
         return true;
     }
+    if (e.key === 'Tab' && !e.altKey && !e.ctrlKey && !e.metaKey) {
+        hideSuggestions();
+        return true;
+    }
     if (handleSuggestionKeyNav(e)) return true;
-    // 有查询时，上下键留在搜索框；Tab 只有可选候选时才由列表接管。
+    // 有查询时，上下键留在搜索框。
     return (e.key === 'ArrowUp' || e.key === 'ArrowDown') && !!dom.searchInput?.value.trim();
 }

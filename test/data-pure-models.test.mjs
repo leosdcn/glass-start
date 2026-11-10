@@ -9,7 +9,7 @@ const { outputFiles } = buildSync({
     export * from './src/js/utils/category-catalog.js';
     export * from './src/js/utils/weather-model.js';
     export * from './src/js/utils/weather-data.js';
-    export { faviconFallbackFromUrl, normalizeUrl } from './src/js/utils/bookmark-model.js';
+    export { bookmarkUrlKey, faviconFallbackFromUrl, normalizeBookmark, normalizeBookmarks, normalizeUrl } from './src/js/utils/bookmark-model.js';
     export { escapeHtml } from './src/js/utils/helpers.js';
     export { CONFIG } from './src/js/config/constants.js';
     export * from './src/js/state/bookmark-draft.js';
@@ -18,7 +18,7 @@ const { outputFiles } = buildSync({
   bundle:true, write:false, format:'esm', platform:'node'
 });
 const model = await import('data:text/javascript;base64,' + Buffer.from(outputFiles[0].text).toString('base64'));
-const { CONFIG, rankBookmarkSuggestions, normalizeWeatherForecast, damerauLevenshteinDistance, weatherNum, toDisplayTemp, getCategoryCatalog, normalizeUrl } = model;
+const { CONFIG, rankBookmarkSuggestions, normalizeWeatherForecast, damerauLevenshteinDistance, weatherNum, toDisplayTemp, getCategoryCatalog, bookmarkUrlKey } = model;
 const candidates = [
   {bm:{name:'Tools', url:'https://tools.example', icon:'', desc:'GitHub'}, normUrl:'tools.example', defaultCat:'工具'},
   {bm:{name:'GitHub', url:'https://github.com', icon:''}, normUrl:'github.com', defaultCat:'开发'},
@@ -54,6 +54,15 @@ test('书签文本转义、URL 规范化及图标备用地址', () => {
     assert.equal(model.faviconFallbackFromUrl(url), 'https://www.google.com/s2/favicons?domain=' + host + '&sz=128');
   }
   assert.equal(model.faviconFallbackFromUrl(''), '');
+});
+
+test('书签按浏览器解析后的地址去重，保留首条与不同的路径、查询和片段', () => {
+  const urls = ['https://example.test', 'https://EXAMPLE.TEST:443/', 'http://example.test',
+    'https://example.test/path/', 'https://example.test/path', 'https://example.test/?q=1',
+    'https://example.test/?q=2', 'https://example.test/?q=2#section'];
+  const list = model.normalizeBookmarks(urls.map((url, i) => ({url, name:String(i)})), item => model.normalizeBookmark(item));
+  assert.deepEqual(list.map(({url}) => url), urls.filter((_, i) => i !== 1));
+  assert.equal(list[0].name, '0');
 });
 
 test('多词模糊查询不能跳过不匹配的单字符词', () => {
@@ -162,8 +171,8 @@ test('分类目录索引映射、首分类归属与内容变更失效算法', ()
   assert.equal(first.byUrl.size, 2);
   assert.equal(first.byUrl.get(a.url).name, 'Zulu');
   assert.equal(first.searchCategories.size, 2);
-  assert.equal(first.searchCategories.get(normalizeUrl(a.url)), '第一分类');
-  assert.equal(first.searchCategories.get(normalizeUrl(b.url)), '第二分类');
+  assert.equal(first.searchCategories.get(bookmarkUrlKey(a.url)), '第一分类');
+  assert.equal(first.searchCategories.get(bookmarkUrlKey(b.url)), '第二分类');
   assert.equal(getCategoryCatalog(categories), first);
   categories[0].bookmarks.push({ ...b, name: 'Beta' });
   const changed = getCategoryCatalog(categories);

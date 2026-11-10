@@ -86,18 +86,22 @@ const canonicalMapCache = new WeakMap();
  */
 export function canonicalBookmarkUrl(url) {
     if (!url) return '';
-    const bookmarks = typeof window !== 'undefined' ? window.__GLASS_I18N__?.catalogs?.['zh-CN']?.bookmarks : undefined;
-    if (!bookmarks) return url;
-    let map = canonicalMapCache.get(bookmarks);
+    const catalogs = typeof window !== 'undefined' ? window.__GLASS_I18N__?.catalogs : undefined;
+    if (!catalogs) return url;
+    let map = canonicalMapCache.get(catalogs);
     if (!map) {
         map = new Map();
-        for (const [canonical, bookmark] of Object.entries(bookmarks)) {
-            if (bookmark.url) map.set(bookmark.url, canonical);
-            if (bookmark.legacyUrl) map.set(bookmark.legacyUrl, canonical);
+        for (const canonical of Object.keys(catalogs.en?.bookmarks ?? {})) {
+            map.set(URL.parse(canonical)?.href ?? canonical, canonical);
         }
-        canonicalMapCache.set(bookmarks, map);
+        for (const [canonical, bookmark] of Object.entries(catalogs['zh-CN']?.bookmarks ?? {})) {
+            map.set(URL.parse(canonical)?.href ?? canonical, canonical);
+            if (bookmark.url) map.set(URL.parse(bookmark.url)?.href ?? bookmark.url, canonical);
+            if (bookmark.legacyUrl) map.set(URL.parse(bookmark.legacyUrl)?.href ?? bookmark.legacyUrl, canonical);
+        }
+        canonicalMapCache.set(catalogs, map);
     }
-    return map.get(url) || url;
+    return map.get(URL.parse(url)?.href ?? url) || url;
 }
 
 /** Resolve a built-in bookmark's destination without changing its saved identity.

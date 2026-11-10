@@ -592,6 +592,26 @@ try {
   assert.equal(await evalJS(`${hint}.visibility === 'visible' && ${hint}.display !== 'none'`), true);
   console.log('✅ 恢复默认后提示立即恢复，旧淡出时间点经过后仍可见');
 
+  const mixedDraft = await evalJS(`(async () => {
+    const before = localStorage.getItem(CONFIG.KEYS.BOOKMARKS);
+    await openEditModal();
+    const input = dom.editList.querySelector('.edit-url');
+    const original = input.value;
+    const edit = value => { input.value = value; input.dispatchEvent(new Event('input', {bubbles:true})); };
+    edit('https://');
+    await saveEditModal();
+    const kept = state.editOpen && dom.confirmMsg.textContent.includes('有效的 URL') &&
+      modalState.draftBookmarks[0].url === 'https://' &&
+      localStorage.getItem(CONFIG.KEYS.BOOKMARKS) === before &&
+      pageData.bookmarks.some(bookmark => bookmark.url === original);
+    dom.confirmOkBtn.click();
+    edit(original);
+    dom.addBookmarkBtn.click();
+    await saveEditModal();
+    return {kept, emptyRowIgnored: !state.editOpen && pageData.bookmarks.some(bookmark => bookmark.url === original)};
+  })()`);
+  assert.deepEqual(mixedDraft, {kept:true, emptyRowIgnored:true});
+
   const { targetId } = await send('Target.createTarget', { url: 'about:blank' });
   const targets = await (await fetch(`http://127.0.0.1:${cdpPort}/json/list`)).json();
   const second = await connectCDP(new WebSocket(targets.find(target => target.id === targetId).webSocketDebuggerUrl));
@@ -617,6 +637,30 @@ try {
     assert.equal(await evalJS('modalState.draftBookmarks[0].name'), '旧草稿');
     assert.deepEqual(await tab('pageData.bookmarks.slice(0,2).map(bookmark=>bookmark.name)'), ['标签一已保存', '标签二已保存']);
     await waitFor(evalJS, `pageData.bookmarks[1].name === '标签二已保存'`);
+    await evalJS('dom.confirmOkBtn.click(); cancelEditModal()');
+    await tab('openEditModal()');
+    await send('Page.bringToFront');
+    await evalJS(`(async () => {
+      await openEditModal(); document.querySelector('#tab-btn-appearance').click();
+      dom.presetWallpaperGrid.querySelector('[data-bg="./wallpapers/bg2.avif"]').click();
+      await saveEditModal();
+    })()`);
+    await second.send('Page.bringToFront');
+    await tab(`(async () => {
+      document.querySelector('#tab-btn-appearance').click();
+      dom.maskOpacityInput.value = '42';
+      dom.maskOpacityInput.dispatchEvent(new Event('input', {bubbles:true}));
+      await saveEditModal();
+    })()`);
+    assert.deepEqual(await evalJS(`(async()=>({selection:await getWallpaperSelectionDB(),
+      hint:storageGet(CONFIG.KEYS.WALLPAPER_META), mask:storageGet(CONFIG.KEYS.MASK_OPACITY)}))()`),
+      {selection:{wallpaper:null,bg:1},hint:{custom:false,bg:1},mask:42});
+    await send('Page.bringToFront');
+    const timeOrigin = await evalJS('performance.timeOrigin');
+    await send('Page.reload');
+    await waitFor(evalJS, `performance.timeOrigin !== ${timeOrigin} && typeof openEditModal === 'function' &&
+      dom.bgLayer?.style.backgroundImage.includes('bg2.avif')`, 10000);
+    assert.equal(await evalJS('window.__PRELOADED_BG__'), './wallpapers/bg2.avif');
   } finally {
     second.close();
     await send('Target.closeTarget', { targetId });

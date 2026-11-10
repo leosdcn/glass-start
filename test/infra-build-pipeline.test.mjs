@@ -52,6 +52,17 @@ test('页面、Worker 类型检查或构建被信号终止时不启动测试', {
   }
   await node(['test/run.mjs'], { cwd });
   assert.equal(fs.existsSync(executed), true);
+  const extra = join(cwd, 'test-ran-second');
+  fs.writeFileSync(join(cwd, 'test/smoke-second.test.mjs'),
+    "import { appendFileSync } from 'node:fs'; appendFileSync(new URL('../test-ran-second', import.meta.url), 'once')");
+  fs.unlinkSync(executed);
+  await node(['test/run.mjs', 'SMOKE.TEST', 'second', 'smoke'], { cwd });
+  assert.equal(fs.existsSync(executed), true);
+  assert.equal(fs.readFileSync(extra, 'utf8'), 'once');
+  fs.unlinkSync(executed);
+  await assert.rejects(node(['test/run.mjs', 'smoke', 'misspelled-filter'], { cwd }),
+    { code: 1, stderr: /misspelled-filter/ });
+  assert.equal(fs.existsSync(executed), false);
 });
 
 test('并发网页构建各自产生一致快照，测试服务不读取随后发布的 dist', async t => {

@@ -227,13 +227,16 @@ test("导入、导出与保存保留首条有效书签及其简介语义", async
                 return pageData.bookmarks[0].desc;
             })()`);
             assert.equal(direct, desc === undefined ? '目录简介' : '');
-            const duplicate = { ...a, url: ' www.example.com/ ', name: '后续同址书签', desc: '重复简介' };
+            const duplicate = { ...a, url: ' https://WWW.EXAMPLE.COM:443 ', name: '后续同址书签', desc: '重复简介' };
             const malformed = { name: '无效网址', url: { toString: null } };
             const malformedName = { ...duplicate, name: { toString: null } };
             await evalJS(`(async () => {
                 await openEditModal();
                 const transfer = new DataTransfer();
-                transfer.items.add(new File([${JSON.stringify(JSON.stringify([malformed, item, malformedName, duplicate]))}], 'bookmarks.json', { type: 'application/json' }));
+                const records = ${JSON.stringify([malformed, item, malformedName, duplicate])};
+                const input = ${desc === undefined}
+                    ? { categories: [{bookmarks: [...Array(150000).fill(null), ...records]}] } : records;
+                transfer.items.add(new File([JSON.stringify(input)], 'bookmarks.json', { type: 'application/json' }));
                 dom.importJsonInput.files = transfer.files;
                 dom.importJsonInput.dispatchEvent(new Event('change', { bubbles: true }));
             })()`);
@@ -244,7 +247,7 @@ test("导入、导出与保存保留首条有效书签及其简介语义", async
                 const importedNames = modalState.draftBookmarks.map(bookmark => bookmark.name);
                 dom.addBookmarkBtn.click();
                 const row = dom.editList.lastElementChild;
-                for (const [selector, value] of [['.edit-name', '手动重复'], ['.edit-url', ${JSON.stringify(a.url)}]]) {
+                for (const [selector, value] of [['.edit-name', '手动重复'], ['.edit-url', ${JSON.stringify(duplicate.url)}]]) {
                     const input = row.querySelector(selector);
                     input.value = value;
                     input.dispatchEvent(new Event('input', { bubbles: true }));
@@ -290,6 +293,13 @@ test("导入、导出与保存保留首条有效书签及其简介语义", async
             loadBookmarks();
             return { meta: stored.meta, name: pageData.bookmarks[0].name };
         })()`), { meta: {}, name: '目录更新' });
+        assert.deepEqual(await evalJS(`(() => {
+            const first = 'https://example.test', alias = 'https://EXAMPLE.TEST:443/';
+            storageSet(CONFIG.KEYS.BOOKMARKS, {version:1, keys:[first, alias],
+                meta:{[first]:{name:'旧记录首条'}, [alias]:{name:'旧记录次条'}}});
+            loadBookmarks();
+            return pageData.bookmarks.map(({name,url}) => ({name,url}));
+        })()`), [{name:'旧记录首条',url:'https://example.test'}]);
     } finally {
         await chrome.close();
         await server.close();

@@ -7,13 +7,14 @@ import { requiresBuild, standaloneTests } from './support/test-selection.mjs';
 
 const testDir = fileURLToPath(new URL('.', import.meta.url));
 const rootDir = join(testDir, '..');
-const pattern = process.argv.slice(2).find(arg => !arg.startsWith('-'));
+const patterns = process.argv.slice(2).filter(arg => !arg.startsWith('-')).map(pattern => pattern.toLowerCase());
 const unitOnly = process.argv.includes('--unit');
-const files = readdirSync(testDir).filter(name => name.endsWith('.test.mjs') &&
-  (!unitOnly || standaloneTests.has(name)) &&
-  (!pattern || name.toLowerCase().includes(pattern.toLowerCase()))).sort();
-if (!files.length) {
-  console.error(`未找到匹配的测试文件: ${pattern || '*'}`);
+const available = readdirSync(testDir).filter(name => name.endsWith('.test.mjs') &&
+  (!unitOnly || standaloneTests.has(name)));
+const unmatched = patterns.filter(pattern => !available.some(name => name.toLowerCase().includes(pattern)));
+const files = available.filter(name => !patterns.length || patterns.some(pattern => name.toLowerCase().includes(pattern))).sort();
+if (unmatched.length || !files.length) {
+  console.error(`未找到匹配的测试文件: ${unmatched.join(', ') || '*'}`);
   process.exit(1);
 }
 
