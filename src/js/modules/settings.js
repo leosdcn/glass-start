@@ -198,7 +198,8 @@ export function previewDraftMaskOpacity(value) {
     applyBgEffects(modalState.draftMaskOpacity, true);
 }
 
-export async function openEditModal() {
+/** @param {HTMLElement} [invoker] */
+export async function openEditModal(invoker, openedWithPointer = false) {
     if (state.editOpen) return;
     /** @type {NonNullable<typeof editSession>} */
     const session = {};
@@ -208,7 +209,7 @@ export async function openEditModal() {
     const editBtn = dom.editBookmarksBtn;
     editBtn?.setAttribute('aria-expanded', 'true');
     setEditPhase('opening');
-    const trigger = document.activeElement;
+    const trigger = invoker ?? document.activeElement;
     const isCurrent = () => editSession === session;
     await prepareWallpaperDraft(isCurrent);
     if (!isCurrent()) return;
@@ -226,6 +227,7 @@ export async function openEditModal() {
     updateWallpaperStatusUI(modalState.draftWallpaper);
     applyBgEffects(modalState.draftMaskOpacity ?? CONFIG.APPEARANCE.DEFAULT_MASK_OPACITY);
     setEditPhase('editing');
+    dom.editModal?.toggleAttribute('data-hide-initial-focus-ring', openedWithPointer);
     OverlayStack.push('editModal', cancelEditModal, trigger);
 }
 

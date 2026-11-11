@@ -195,6 +195,11 @@ body.drag-settling .drag-handle {
     }
 }
 
+/* Safari 在鼠标打开原生 dialog 时也可能让初始焦点匹配 :focus-visible。 */
+#editModal[data-hide-initial-focus-ring] .settings-tab-btn[autofocus]:focus-visible {
+    @apply ring-0;
+}
+
 .picker-item {
     transition: background-color 0.15s ease, opacity 0.2s ease, scale var(--button-press-duration, var(--duration-press-up)) var(--button-press-ease, var(--ease-spring));
 }
