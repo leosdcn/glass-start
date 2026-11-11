@@ -229,6 +229,7 @@ function doSearch(queryOverride, newTab = false) {
 function openBookmarkUrl(url, newTab = false) {
     if (!url) return;
     let trimmed = localizeBookmarkUrl(url.trim());
+    if (trimmed.startsWith('//')) trimmed = 'https:' + trimmed;
     if (/^(javascript|data|vbscript|file|blob):/i.test(trimmed)) {
         console.warn('⚠️ 拦截高危伪协议书签 URL:', trimmed);
         return;

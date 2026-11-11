@@ -82,7 +82,8 @@ export function resolveBookmarkIcon(url, icon, origUrl = '') {
     if (!url) return '';
     const original = bookmarkUrlKey(origUrl);
     const customIcon = typeof icon === 'string' ? icon.trim() : '';
-    if (customIcon && (!original || original === bookmarkUrlKey(url)) && safeUrl(customIcon) !== '#') return customIcon;
+    const maxIconChars = CONFIG.SECURITY.MAX_ICON_CHARS || 2048;
+    if (customIcon && customIcon.length <= maxIconChars && (!original || original === bookmarkUrlKey(url)) && safeUrl(customIcon) !== '#') return customIcon;
     return faviconFromUrl(url);
 }
 
@@ -91,9 +92,10 @@ export function normalizeBookmarkOverrides(value) {
     if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
     const { name, icon, desc } = /** @type {import('../types').CustomMetaItem} */ (value);
     const trimmedIcon = typeof icon === 'string' ? icon.trim() : '';
+    const maxIconChars = CONFIG.SECURITY.MAX_ICON_CHARS || 2048;
     return {
         ...(typeof name === 'string' && name.trim() ? { name: name.trim().slice(0, CONFIG.SECURITY.MAX_NAME_CHARS) } : {}),
-        ...(trimmedIcon && safeUrl(trimmedIcon) !== '#' ? { icon: trimmedIcon } : {}),
+        ...(trimmedIcon && trimmedIcon.length <= maxIconChars && safeUrl(trimmedIcon) !== '#' ? { icon: trimmedIcon } : {}),
         ...(typeof desc === 'string' ? { desc: desc.trim().slice(0, CONFIG.SECURITY.MAX_DESC_CHARS) } : {})
     };
 }

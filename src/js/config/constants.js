@@ -146,6 +146,7 @@ export const CONFIG = Object.freeze({
             SECURITY: Object.freeze({
                 MAX_NAME_CHARS: 60,           // 导入书签名称截断字符上限
                 MAX_DESC_CHARS: 40,           // 导入书签描述截断字符上限
+                MAX_ICON_CHARS: 2048,         // 自定义书签图标字符上限 (防 LocalStorage 膨胀)
                 IME_COMPOSITION_KEY_CODE: 229 // Android Chrome 虚拟键盘 IME 组合态 keyCode 兼容防护
             }),
             // 快捷键列表与致谢信息在模块评估时由 t() 一次性求值并 Object.freeze 固化。

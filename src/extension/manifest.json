@@ -21,7 +21,7 @@
     "https://en.wikipedia.org/*"
   ],
   "content_security_policy": {
-    "extension_pages": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https://api.bing.com https://suggestqueries.google.com https://zh.wikipedia.org https://en.wikipedia.org https://api.open-meteo.com https://geocoding-api.open-meteo.com https://myip.ipip.net https://ipwho.is; object-src 'none'; base-uri 'none'; form-action 'self'"
+    "extension_pages": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https://api.bing.com https://suggestqueries.google.com https://zh.wikipedia.org https://en.wikipedia.org https://api.open-meteo.com https://geocoding-api.open-meteo.com https://myip.ipip.net https://ipwho.is; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
   },
   "default_locale": "en"
 }

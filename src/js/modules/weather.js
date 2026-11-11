@@ -90,7 +90,9 @@ export function toggleWeatherPopover() {
  * @returns {location is import('../types').WeatherLocation}
  */
 function hasWeatherCoordinates(location) {
-    return !!location && Number.isFinite(location.lat) && Number.isFinite(location.lon);
+    return !!location
+        && typeof location.lat === 'number' && Number.isFinite(location.lat) && location.lat >= -90 && location.lat <= 90
+        && typeof location.lon === 'number' && Number.isFinite(location.lon) && location.lon >= -180 && location.lon <= 180;
 }
 
 function readWeatherLocation() {
@@ -454,8 +456,8 @@ export function renderWeatherPopover(data) {
         <div class="p-2 glass-subcard flex items-center gap-2">
             <span class="text-sm select-none">${icon}</span>
             <div class="min-w-0">
-                <div class="text-2xs text-white/50 leading-tight">${label}</div>
-                <div class="text-xs font-semibold text-white/90 leading-tight mt-0.5">${val}</div>
+                <div class="text-2xs text-white/50 leading-tight">${escapeHtml(label)}</div>
+                <div class="text-xs font-semibold text-white/90 leading-tight mt-0.5">${escapeHtml(String(val))}</div>
             </div>
         </div>
     `;

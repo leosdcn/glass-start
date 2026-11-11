@@ -9,7 +9,9 @@ function buildExtension(output = path.join(PATHS.root, 'extension')) {
     publishBuild(output, staging => {
         executeBuild(staging, { extension: true });
         const manifest = JSON.parse(fs.readFileSync(path.join(PATHS.src, 'extension/manifest.json'), 'utf8'));
-        manifest.version = JSON.parse(fs.readFileSync(PATHS.pkgJson, 'utf8')).version;
+        const rawVersion = JSON.parse(fs.readFileSync(PATHS.pkgJson, 'utf8')).version;
+        const versionMatch = rawVersion.match(/^(\d+(?:\.\d+){0,3})/);
+        manifest.version = versionMatch ? versionMatch[1] : rawVersion;
         fs.writeFileSync(path.join(staging, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n');
         const langConfig = fs.readFileSync(path.join(PATHS.src, 'js/config/language.js'), 'utf8');
         const langMatch = langConfig.match(/SUPPORTED_LANGUAGES\s*=\s*Object\.freeze\((\[[^\]]+\])\)/);
@@ -53,7 +55,7 @@ function buildExtension(output = path.join(PATHS.root, 'extension')) {
             return `<script${attrs} src="./${filename}"></script>`;
         });
         fs.writeFileSync(path.join(staging, 'index.html'), html);
-        for (const name of ['_headers', 'robots.txt', 'sitemap.xml']) {
+        for (const name of ['_headers', 'robots.txt', 'sitemap.xml', 'apple-touch-icon.png']) {
             fs.rmSync(path.join(staging, name), { force: true });
         }
     });

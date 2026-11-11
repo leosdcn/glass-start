@@ -155,7 +155,7 @@ setInterval(() => {}, 1000);
   const port = await getFreePort();
   const server = spawn(process.execPath, ['scripts/server.cjs', '--no-watch', '--isolated'], {
     cwd: ROOT, stdio: 'ignore',
-    env: { ...process.env, PORT: String(port), AUTO_OPEN: '1', CHROME_PATH: fakeChrome, PREVIEW_PROBE_FILE: probe }
+    env: { ...process.env, PORT: String(port), AUTO_OPEN: '1', CHROME_PATH: fakeChrome, PREVIEW_PROBE_FILE: probe, GLASS_TEST_TMPDIR: '' }
   });
   const closed = once(server, 'close');
   t.after(async () => {

@@ -44,8 +44,9 @@ export function handleEditIconError(img) {
 /** @param {import('../types').DraftBookmarkItem} item */
 function getEditRowHTML(item) {
     const { name, url, id } = item;
+    const safeId = escapeHtml(id);
     return `
-        <div role="listitem" class="edit-row-card flex items-center gap-1.5 sm:gap-2 p-1.5 sm:p-2 bg-white/5 border border-white/10 apple-radius glass-interactive mb-1.5 shadow-xs" data-id="${escapeHtml(id)}" draggable="false">
+        <div role="listitem" class="edit-row-card flex items-center gap-1.5 sm:gap-2 p-1.5 sm:p-2 bg-white/5 border border-white/10 apple-radius glass-interactive mb-1.5 shadow-xs" data-id="${safeId}" draggable="false">
             <div class="flex items-center gap-1 shrink-0">
                 <button type="button" class="drag-handle touch-none p-1 size-7 flex items-center justify-center shrink-0 text-white/30 cursor-grab active:cursor-grabbing rounded-lg glass-interactive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40" title="${escapeHtml(t('ui.drag.or.press.alt.to.reorder'))}" aria-label="${escapeHtml(t('bookmark.reorderLabel', { name }))}">
                     <svg class="size-3.5 pointer-events-none" aria-hidden="true"><use href="#icon-drag"/></svg>
@@ -55,8 +56,8 @@ function getEditRowHTML(item) {
                 </div>
             </div>
             <div class="flex-1 min-w-0 grid grid-cols-1 sm:grid-cols-3 items-center gap-1 sm:gap-1.5">
-                <input type="text" id="bm-name-${id}" name="bookmark_name_${id}" class="edit-name w-full min-w-0 bg-black/25 border border-white/10 rounded-lg px-2.5 py-1 sm:py-1.5 text-base mouse-desktop:text-xs text-white/90 focus:border-white/40 focus:bg-black/40 focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:outline-none outline-none transition-colors font-medium" value="${escapeHtml(name)}" placeholder="${escapeHtml(t('ui.bookmark.name'))}" aria-label="${escapeHtml(t('ui.bookmark.name'))}">
-                <input type="text" id="bm-url-${id}" name="bookmark_url_${id}" inputmode="url" autocapitalize="off" class="edit-url w-full min-w-0 sm:col-span-2 bg-black/25 border border-white/10 rounded-lg px-2.5 py-1 sm:py-1.5 text-base mouse-desktop:text-xs text-white/60 focus:border-white/40 focus:bg-black/40 focus:text-white focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:outline-none outline-none transition-colors font-mono" value="${escapeHtml(url)}" placeholder="https://..." aria-label="${escapeHtml(t('ui.bookmark.url'))}">
+                <input type="text" id="bm-name-${safeId}" name="bookmark_name_${safeId}" class="edit-name w-full min-w-0 bg-black/25 border border-white/10 rounded-lg px-2.5 py-1 sm:py-1.5 text-base mouse-desktop:text-xs text-white/90 focus:border-white/40 focus:bg-black/40 focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:outline-none outline-none transition-colors font-medium" value="${escapeHtml(name)}" placeholder="${escapeHtml(t('ui.bookmark.name'))}" aria-label="${escapeHtml(t('ui.bookmark.name'))}">
+                <input type="text" id="bm-url-${safeId}" name="bookmark_url_${safeId}" inputmode="url" autocapitalize="off" class="edit-url w-full min-w-0 sm:col-span-2 bg-black/25 border border-white/10 rounded-lg px-2.5 py-1 sm:py-1.5 text-base mouse-desktop:text-xs text-white/60 focus:border-white/40 focus:bg-black/40 focus:text-white focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:outline-none outline-none transition-colors font-mono" value="${escapeHtml(url)}" placeholder="https://..." aria-label="${escapeHtml(t('ui.bookmark.url'))}">
             </div>
             <button type="button" class="del-btn shrink-0 size-7 sm:size-8 p-1 enabled:hover:bg-red-500/20 rounded-full text-white/30 enabled:hover:text-red-400 flex items-center justify-center transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-1 focus-visible:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed" title="${escapeHtml(t('ui.delete.bookmark'))}" aria-label="${escapeHtml(t('ui.delete.bookmark'))}">
                 <svg class="size-4 pointer-events-none" aria-hidden="true"><use href="#icon-trash"/></svg>

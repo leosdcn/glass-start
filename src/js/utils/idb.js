@@ -52,6 +52,13 @@ function getDB() {
     return openingPromise;
 }
 
+function resetDB() {
+    if (activeDb) {
+        try { activeDb.close(); } catch {}
+        activeDb = null;
+    }
+}
+
 /** @returns {Promise<{wallpaper: string|null, bg: number}|null>} */
 export async function getWallpaperSelectionDB() {
     try {
@@ -72,7 +79,10 @@ export async function getWallpaperSelectionDB() {
             req.onerror = handleError;
             tx.onabort = handleError;
         });
-    } catch { return null; }
+    } catch {
+        resetDB();
+        return null;
+    }
 }
 
 // 请求成功不等于事务提交成功；全部写入或删除均等待 complete。
@@ -93,7 +103,10 @@ async function mutateWallpaperDB(mutate) {
             try { mutate(tx.objectStore(CONFIG.IDB.STORES.WALLPAPERS)); }
             catch { tx.abort(); resolve(false); }
         });
-    } catch { return false; }
+    } catch {
+        resetDB();
+        return false;
+    }
 }
 
 /** 

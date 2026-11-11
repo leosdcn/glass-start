@@ -9,8 +9,8 @@ const { outputFiles } = buildSync({
     export * from './src/js/utils/category-catalog.js';
     export * from './src/js/utils/weather-model.js';
     export * from './src/js/utils/weather-data.js';
-    export { bookmarkUrlKey, faviconFallbackFromUrl, normalizeBookmark, normalizeBookmarks, normalizeUrl } from './src/js/utils/bookmark-model.js';
-    export { escapeHtml } from './src/js/utils/helpers.js';
+    export { bookmarkUrlKey, faviconFallbackFromUrl, normalizeBookmark, normalizeBookmarks, normalizeUrl, normalizeBookmarkOverrides } from './src/js/utils/bookmark-model.js';
+    export { escapeHtml, safeUrl } from './src/js/utils/helpers.js';
     export { CONFIG } from './src/js/config/constants.js';
     export * from './src/js/state/bookmark-draft.js';
     export { modalState } from './src/js/state/store.js';
@@ -54,6 +54,12 @@ test('书签文本转义、URL 规范化及图标备用地址', () => {
     assert.equal(model.faviconFallbackFromUrl(url), 'https://www.google.com/s2/favicons?domain=' + host + '&sz=128');
   }
   assert.equal(model.faviconFallbackFromUrl(''), '');
+  assert.equal(model.safeUrl('icons/../../secret.png'), '#');
+  assert.equal(model.safeUrl('./icons/test.png'), './icons/test.png');
+  const giantIcon = 'data:image/png;base64,' + 'A'.repeat(3000);
+  assert.equal(model.normalizeBookmarkOverrides({ icon: giantIcon }).icon, undefined);
+  const normalIcon = 'data:image/png;base64,' + 'A'.repeat(50);
+  assert.equal(model.normalizeBookmarkOverrides({ icon: normalIcon }).icon, normalIcon);
 });
 
 test('书签按浏览器解析后的地址去重，保留首条与不同的路径、查询和片段', () => {

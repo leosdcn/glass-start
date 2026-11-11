@@ -184,7 +184,7 @@ export interface DOMCache {
     bgOverlay: HTMLElement | null;
     startSection: HTMLElement | null;
     navSection: HTMLElement | null;
-    navHint: HTMLElement | null;
+    navHint: HTMLButtonElement | null;
     presetWallpaperGrid: HTMLElement | null;
     settingsTransitionGrid: HTMLElement | null;
     shortcutModal: HTMLDialogElement | null;
