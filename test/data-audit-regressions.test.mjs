@@ -63,6 +63,63 @@ test('数据容错、搜索联想与网络降级回归', async () => {
     })()`);
     assert.deepEqual(activation, { selected: 1, retained: true, usesModel: true });
 
+    const perfResults = await evalJS(`(() => {
+      // 1. 搜索按钮状态记忆剪枝：多次输入非空字符只触发一次 DOM 属性更新
+      let hiddenToggles = 0;
+      const origToggle = dom.searchClearBtn.classList.toggle;
+      dom.searchClearBtn.classList.toggle = function(...args) {
+        hiddenToggles++;
+        return origToggle.apply(this, args);
+      };
+      dom.searchInput.value = 'a';
+      dom.searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+      dom.searchInput.value = 'ab';
+      dom.searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+      dom.searchInput.value = 'abc';
+      dom.searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+      dom.searchClearBtn.classList.toggle = origToggle;
+
+      // 2. 联想面板 DOM 缓存复用：同一候选列表不重建 DOM 节点，本地无匹配时同步清空防幽灵残影
+      dom.searchInput.value = 'githu';
+      dom.searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+      const firstOptNode = dom.suggestionMenu.querySelector('.suggestion-item');
+      dom.searchInput.value = 'github';
+      dom.searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+      const secondOptNode = dom.suggestionMenu.querySelector('.suggestion-item');
+      const domReused = firstOptNode !== null && firstOptNode === secondOptNode;
+      dom.searchInput.value = 'githubxyznonexistentquery';
+      dom.searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+      const ghostCleared = !dom.suggestionMenu.classList.contains('active') && dom.suggestionMenu.querySelectorAll('.suggestion-item').length === 0;
+
+      // 3. gestures 标量短路：首屏 pointermove 不读取 document.body.classList
+      let classListReads = 0;
+      const origContains = document.body.classList.contains;
+      document.body.classList.contains = function(...args) {
+        classListReads++;
+        return origContains.apply(this, args);
+      };
+      document.dispatchEvent(new PointerEvent('pointermove', { pointerType: 'mouse', bubbles: true }));
+      document.body.classList.contains = origContains;
+
+      // 4. 侧栏滚动每帧零数组分配（布局观察器已就绪时滚动比对无 map 分配）
+      updateSidebarActive();
+      let arrayMaps = 0;
+      const origMap = Array.prototype.map;
+      Array.prototype.map = function(...args) {
+        arrayMaps++;
+        return origMap.apply(this, args);
+      };
+      updateSidebarActive();
+      Array.prototype.map = origMap;
+
+      hideSuggestions();
+      dom.searchInput.value = '';
+      dom.searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+
+      return { hiddenToggles, domReused, ghostCleared, classListReads, arrayMaps };
+    })()`);
+    assert.deepEqual(perfResults, { hiddenToggles: 1, domReused: true, ghostCleared: true, classListReads: 0, arrayMaps: 0 });
+
     await evalJS(`selectWallpaper(location.origin + '/audit-slow.png'); selectWallpaper(backgrounds[2]);`);
     await waitFor(evalJS, 'state.bg === 2 && !state.customWallpaper');
     await new Promise(resolve => setTimeout(resolve, 550));

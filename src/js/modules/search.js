@@ -109,12 +109,15 @@ export function handleSuggestionKeyNav(e) {
  */
 export function scheduleSuggestions(query) {
     query = query.trim();
+    if (!query) {
+        hideSuggestions();
+        return;
+    }
     if (suggestionQueryKey === `${getLocale()}:${state.engine}:${query}`) {
         if (selectedSuggestionIdx >= 0) selectSuggestion(-1);
         return;
     }
-    hideSuggestions();
-    if (query) fetchSuggestions(state.engine, query, true);
+    fetchSuggestions(state.engine, query, true);
 }
 
 /**
@@ -316,7 +319,8 @@ function getSearchCandidates() {
             defaultCat,
             nameLower: (bm.name || '').toLowerCase(),
             descLower: (bm.desc || '').toLowerCase(),
-            urlLower: (bm.url || '').toLowerCase()
+            urlLower: (bm.url || '').toLowerCase(),
+            cleanUrl: normUrl.toLowerCase().replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')
         });
     };
     for (const bm of pageData.bookmarks) {
@@ -420,7 +424,7 @@ function renderSuggestions(localList = [], netList = [], preserveSelection = fal
     `;
 
     // 确保内部的分组子容器已就绪
-    if (!localGroup || !netGroup || !suggestionMenu.contains(localGroup)) {
+    if (!localGroup || !netGroup || !suggestionMenu.contains(localGroup) || !suggestionMenu.contains(netGroup)) {
         localGroup = document.createElement('div');
         localGroup.setAttribute('role', 'presentation');
 
@@ -501,6 +505,8 @@ export function hideSuggestions() {
     lastSuggestionsSignature = '';
     suggestionQueryKey = null;
     lastRenderedLocalKey = '';
+    if (localGroup) localGroup.innerHTML = '';
+    if (netGroup) netGroup.innerHTML = '';
     if (suggestDebounceTimer !== null) {
         clearTimeout(suggestDebounceTimer);
         suggestDebounceTimer = null;
@@ -573,7 +579,29 @@ export function fetchSuggestions(engineKey, query, deferNetwork = false) {
         requestNetworkSuggestions(engineKey, query, cacheKey, localList, reqId);
     };
     if (deferNetwork) {
-        if (localList.length) renderSuggestions(localList);
+        if (localList.length) {
+            renderSuggestions(localList);
+        } else {
+            suggestionItems = [];
+            suggestionNodes = [];
+            selectedSuggestionNode = null;
+            lastSuggestionsSignature = '';
+            lastRenderedLocalKey = '';
+            if (localGroup) localGroup.innerHTML = '';
+            if (netGroup) netGroup.innerHTML = '';
+            const suggestionMenu = dom.suggestionMenu;
+            const searchInput = dom.searchInput;
+            if (suggestionMenu) {
+                suggestionMenu.classList.remove('active', 'keyboard-nav');
+                suggestionMenu.setAttribute('aria-hidden', 'true');
+            }
+            if (searchInput) {
+                searchInput.setAttribute('aria-expanded', 'false');
+                searchInput.removeAttribute('aria-activedescendant');
+            }
+            selectedSuggestionIdx = -1;
+            OverlayStack.pop('suggestions');
+        }
         suggestDebounceTimer = setTimeout(start, CONFIG.SUGGEST.DEBOUNCE_MS);
     } else {
         start();

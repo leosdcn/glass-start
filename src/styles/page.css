@@ -176,7 +176,7 @@ html[data-screen="nav"] #navSection {
 html.screen-restoring :is(#startSection, #navSection) {
     transition: none;
 }
-body.is-screen-transitioning :is(#startSection, #navSection) {
+body.is-screen-transitioning > :is(#startSection, #navSection) {
     will-change: transform;
     pointer-events: none;
 }
@@ -185,16 +185,12 @@ body.is-screen-transitioning :is(#startSection, #navSection) {
 html.is-chrome :is(#startSection, #navSection) {
     will-change: transform;
 }
-/* 移动中的卡片不接收悬停，避免经过光标时反复启动背景、边框与阴影过渡。
-   同时结束旧悬停过渡；切屏完成后恢复原有指针反馈。 */
-body.is-screen-transitioning :is(.bookmark-item, .nav-bookmark) {
-    pointer-events: none;
-    transition: none;
-}
-body.is-screen-transitioning .bookmark-surface,
+/* 移动中的卡片在切屏期间暂停过渡，避免经过光标时启动背景与高光动画。
+   切屏完成后恢复原有指针反馈。 */
+body.is-screen-transitioning :is(.bookmark-surface, .nav-bookmark, .icon-box),
 body.is-screen-transitioning :is(.bookmark-surface, .nav-bookmark)::before,
 body.is-screen-transitioning .nav-bookmark::after,
-body.is-screen-transitioning :is(.bookmark-item, .nav-bookmark) .icon-box {
+body:not(.tab-blurred).is-screen-transitioning .nav-bookmark:hover::after {
     transition: none;
 }
 

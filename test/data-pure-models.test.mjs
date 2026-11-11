@@ -216,3 +216,25 @@ test('天气时间拒绝越界值，允许单数字小时', () => {
     assert.equal(model.weatherTime(input), expected);
   }
 });
+
+test('书签候选模型预存 cleanUrl 与 subQueries 入口切分评分', () => {
+  const customCandidate = {
+    bm: { name: 'Vite Build Tool', url: 'https://vitejs.dev/', icon: '' },
+    normUrl: 'https://vitejs.dev/',
+    defaultCat: '工具',
+    cleanUrl: 'vitejs.dev'
+  };
+  const testModel = {
+    candidates: [customCandidate],
+    urlToCategoryMap: new Map()
+  };
+  // 命中预存的 cleanUrl
+  const urlMatches = rankBookmarkSuggestions('vitejs', testModel, CONFIG.SUGGEST);
+  assert.equal(urlMatches.length, 1);
+  assert.equal(urlMatches[0].name, 'Vite Build Tool');
+
+  // 多词模糊命中（验证 subQueries 切分与评分正常）
+  const fuzzyMatches = rankBookmarkSuggestions('vti build', testModel, CONFIG.SUGGEST);
+  assert.equal(fuzzyMatches.length, 1);
+  assert.equal(fuzzyMatches[0].name, 'Vite Build Tool');
+});

@@ -5,13 +5,19 @@ import { handleRovingKeyNav } from '../utils/helpers.js';
 import { activateSuggestion, selectSuggestion, fetchSuggestions, hideSuggestions, closeDropdown, setEngine, openRandomBookmark, getSelectedSuggestionIdx, scheduleSuggestions, handleSuggestionKeyNav } from './search.js';
 
 let isComposing = false;
+/** @type {boolean | null} 记录按钮当前展示状态，避免输入期间无状态变化的重复 DOM 属性写入 */
+let lastHasVal = null;
 
 /** @param {boolean} hasVal */
 function updateSearchActionButtons(hasVal) {
+    const next = !!hasVal;
+    if (lastHasVal === next) return;
+    lastHasVal = next;
+
     const { searchClearBtn, randomBookmarkBtn, searchInput } = dom;
     const actionButtons = [
-        { btn: searchClearBtn, visible: !!hasVal },
-        { btn: randomBookmarkBtn, visible: !hasVal }
+        { btn: searchClearBtn, visible: next },
+        { btn: randomBookmarkBtn, visible: !next }
     ];
     for (const { btn, visible } of actionButtons) {
         if (!btn) continue;
@@ -28,6 +34,7 @@ export function bindSearchEvents() {
     const randomBookmarkBtn = dom.randomBookmarkBtn;
     const suggestionMenu = dom.suggestionMenu;
 
+    lastHasVal = null;
     updateSearchActionButtons(!!searchInput?.value);
 
     if (searchInput) {

@@ -324,15 +324,15 @@ export function updateSidebarActive() {
     if (scrollTop <= CONFIG.NAV.TOP_THRESHOLD) {
         activeIdx = 0;
     } else {
-        const secTops = cachedSectionOffsets.map(off => off - scrollTop);
-        for (let i = 0; i < secTops.length; i++) {
-            if (secTops[i] <= CONFIG.NAV.HEADER_OFFSET) {
+        for (let i = 0; i < cachedSectionOffsets.length; i++) {
+            if (cachedSectionOffsets[i] - scrollTop <= CONFIG.NAV.HEADER_OFFSET) {
                 activeIdx = i;
             }
         }
         if (scrollTop + containerHeight >= scrollHeight - CONFIG.NAV.BOTTOM_TOLERANCE) {
+            const bottomThreshold = containerHeight * CONFIG.NAV.BOTTOM_VISIBILITY_RATIO;
             for (let i = sections.length - 1; i >= 0; i--) {
-                if (secTops[i] <= containerHeight * CONFIG.NAV.BOTTOM_VISIBILITY_RATIO) {
+                if (cachedSectionOffsets[i] - scrollTop <= bottomThreshold) {
                     activeIdx = i;
                     break;
                 }

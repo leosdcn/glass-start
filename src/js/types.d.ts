@@ -267,6 +267,7 @@ export interface SearchCandidateItem {
     nameLower?: string;
     descLower?: string;
     urlLower?: string;
+    cleanUrl?: string;
 }
 export interface SearchCandidateModel {
     candidates: SearchCandidateItem[];

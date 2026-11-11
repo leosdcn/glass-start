@@ -41,9 +41,10 @@ export function initGlassSpotlightAndTilt() {
 
     isGlassSpotlightAndTiltInitialized = true;
 
-    const canAnimate = () => mediaHover.matches && !mediaMotion.matches && !document.hidden
+    const canAnimate = () => (typeof state !== 'undefined' && state.currentSection === 'nav')
+        && !document.hidden && mediaHover.matches && !mediaMotion.matches
         && !document.body.classList.contains('tab-blurred')
-        && !document.body.classList.contains('is-screen-transitioning') && state.currentSection === 'nav';
+        && !document.body.classList.contains('is-screen-transitioning');
 
     mediaHover.addEventListener('change', e => {
         if (!e.matches) resetActiveCard();
@@ -139,7 +140,7 @@ export function initGlassSpotlightAndTilt() {
     }, { passive: true });
 
     document.addEventListener('pointermove', (e) => {
-        if (e.pointerType !== 'mouse' || !canAnimate()) {
+        if (e.pointerType !== 'mouse' || (typeof state !== 'undefined' && state.currentSection !== 'nav') || !canAnimate()) {
             if (activeCard) resetActiveCard();
             return;
         }

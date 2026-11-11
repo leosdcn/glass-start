@@ -53,16 +53,16 @@ export function damerauLevenshteinDistance(a, b) {
  * @param {string} query - 已去空白并转为小写的查询关键词
  * @param {string} target - 目标文本
  * @param {import('../types').FuzzyOptions} options
+ * @param {string[]} [subQueries] - 预切分的查询子词，避免循环中重复执行正则切分
  * @returns {number} 匹配惩罚得分（越小越精确，未匹配返回 Infinity）
  */
-function getFuzzyScore(query, target, options) {
+function getFuzzyScore(query, target, options, subQueries = query.split(/\s+/).filter(sq => sq.length > 0)) {
     const rawText = target.toLowerCase();
     if (!rawText.trim()) return Infinity;
     const rawTokens = rawText.split(/\s+/);
     const wordTokens = rawText.split(/[^\p{L}\p{N}]+/u);
     const tokens = Array.from(new Set([...rawTokens, ...wordTokens].filter(t => t.length > 0)));
 
-    const subQueries = query.split(/\s+/).filter(sq => sq.length > 0);
     if (subQueries.length === 0) return Infinity;
 
     let totalDist = 0;
@@ -113,6 +113,7 @@ export function rankBookmarkSuggestions(query, model, config, limit = config.MAX
     const q = (query || '').trim().toLowerCase();
     if (!q || !/[\p{L}\p{N}]/u.test(q)) return [];
     const isFuzzyEligible = q.length >= config.FUZZY.MIN_QUERY_LEN;
+    const subQueries = isFuzzyEligible ? q.split(/\s+/).filter(sq => sq.length > 0) : [];
 
     const { candidates: allCandidates, urlToCategoryMap } = model;
     const matches = [];
@@ -123,7 +124,7 @@ export function rankBookmarkSuggestions(query, model, config, limit = config.MAX
         const bmName = candidate.nameLower ?? (bm.name || '').toLowerCase();
         const bmDesc = candidate.descLower ?? (bm.desc || '').toLowerCase();
         const bmUrl = candidate.urlLower ?? (bm.url || '').toLowerCase();
-        const normalizedText = normUrl.toLowerCase().replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '');
+        const normalizedText = candidate.cleanUrl ?? normUrl.toLowerCase().replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '');
         const realCat = urlToCategoryMap.get(normUrl) || defaultCat;
 
         let tier = Infinity;
@@ -139,11 +140,11 @@ export function rankBookmarkSuggestions(query, model, config, limit = config.MAX
         } else if (bmDesc.includes(q)) {
             tier = config.TIERS.DESC_MATCH;
         } else if (isFuzzyEligible) {
-            const nameFuzzyScore = getFuzzyScore(q, bm.name || '', config.FUZZY);
+            const nameFuzzyScore = getFuzzyScore(q, bm.name || '', config.FUZZY, subQueries);
             if (nameFuzzyScore !== Infinity) {
                 tier = config.TIERS.FUZZY_NAME_BASE + nameFuzzyScore;
             } else {
-                const otherFuzzyScore = getFuzzyScore(q, `${normalizedText} ${bm.desc || ''}`, config.FUZZY);
+                const otherFuzzyScore = getFuzzyScore(q, `${normalizedText} ${bm.desc || ''}`, config.FUZZY, subQueries);
                 if (otherFuzzyScore !== Infinity) {
                     tier = config.TIERS.FUZZY_OTHER_BASE + otherFuzzyScore;
                 }
