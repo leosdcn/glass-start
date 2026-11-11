@@ -107,7 +107,7 @@ function getFuzzyScore(query, target, options) {
  * @param {import('../types').SearchCandidateModel} model
  * @param {import('../types').SearchOptions} config
  * @param {number} [limit] - 最多返回匹配条数，默认取配置
- * @returns {Array<{type: string, name: string, url: string, icon: string, desc: string, category: string}>}
+ * @returns {Array<import('../types').BookmarkSuggestion>}
  */
 export function rankBookmarkSuggestions(query, model, config, limit = config.MAX_LOCAL_ITEMS) {
     const q = (query || '').trim().toLowerCase();
@@ -155,7 +155,7 @@ export function rankBookmarkSuggestions(query, model, config, limit = config.MAX
                 tier,
                 idx,
                 item: {
-                    type: 'bookmark',
+                    type: /** @type {const} */ ('bookmark'),
                     name: bm.name || '',
                     url: bm.url,
                     icon: bm.icon || '',

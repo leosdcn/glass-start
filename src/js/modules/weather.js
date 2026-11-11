@@ -27,13 +27,34 @@ function getWeatherIconHTML(icon, className = 'size-4') {
 }
 
 /**
+ * @param {Array<AbortSignal | undefined | null>} signals
+ * @returns {AbortSignal}
+ */
+function anySignal(signals) {
+    if (typeof AbortSignal !== 'undefined' && typeof AbortSignal.any === 'function') {
+        const filtered = signals.filter(Boolean);
+        return AbortSignal.any(/** @type {AbortSignal[]} */ (filtered));
+    }
+    const controller = new AbortController();
+    for (const sig of signals) {
+        if (!sig) continue;
+        if (sig.aborted) {
+            controller.abort(sig.reason);
+            return sig;
+        }
+        sig.addEventListener('abort', () => controller.abort(sig.reason), { once: true });
+    }
+    return controller.signal;
+}
+
+/**
  * @param {string} url
  * @param {number} timeoutMs
  * @param {AbortSignal} [signal]
  */
 async function fetchJsonWithTimeout(url, timeoutMs, signal) {
     const controller = new AbortController();
-    const requestSignal = signal ? AbortSignal.any([signal, controller.signal]) : controller.signal;
+    const requestSignal = signal ? anySignal([signal, controller.signal]) : controller.signal;
     requestSignal.throwIfAborted();
     const timer = setTimeout(() => { try { controller.abort(); } catch {} }, timeoutMs);
     try {
@@ -153,7 +174,7 @@ async function executeResolveWeatherLocation(now, signal) {
                         const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(queryName)}&language=zh&count=10`;
                         const geoData = await fetchJsonWithTimeout(geoUrl, CONFIG.WEATHER.TIMEOUT_IP, signal);
                         const results = geoData?.results || [];
-                        let matched = results.find((/** @type {any} */ r) => {
+                        let matched = results.find((/** @type {import('../types').GeocodingResultItem} */ r) => {
                             const matchCountry = !country || (r.country && (r.country.includes(country) || country.includes(r.country)));
                             const matchProv = !cleanProv || (r.admin1 && (r.admin1.includes(cleanProv) || cleanProv.includes(r.admin1))) || (r.name && r.name.includes(cleanProv));
                             return matchCountry && matchProv;
@@ -555,16 +576,16 @@ function displayWeather(data) {
 async function executeWeatherUpdate(cache, locCache, force, signal) {
     const knownLoc = locCache ?? (hasWeatherCoordinates(cache?.location) ? cache.location : null);
     const provisional = new AbortController();
-    const forecastSignal = AbortSignal.any([signal, provisional.signal]);
     let usable = currentWeatherData ?? cache;
-    const earlyForecast = knownLoc && !force ? fetchWeatherForecast(knownLoc, forecastSignal).then(data => {
-        if (!forecastSignal.aborted) {
-            displayWeather(data);
-            usable = data;
-        }
-        return data;
-    }).catch(() => null) : null;
     try {
+        const forecastSignal = anySignal([signal, provisional.signal]);
+        const earlyForecast = knownLoc && !force ? fetchWeatherForecast(knownLoc, forecastSignal).then(data => {
+            if (!forecastSignal.aborted) {
+                displayWeather(data);
+                usable = data;
+            }
+            return data;
+        }).catch(() => null) : null;
         const loc = await resolveWeatherLocation(locCache, force, signal).catch(() => knownLoc);
         signal.throwIfAborted();
         if (!loc) throw new Error('Weather location unavailable');
@@ -616,7 +637,7 @@ function handleWeatherPopoverClick(e) {
     if (retryBtn) {
         e.stopPropagation();
         renderWeatherPopover(null);
-        updateWeather(true);
+        updateWeather(true).catch(() => {});
         return;
     }
 
@@ -663,5 +684,5 @@ export function initWeather() {
 
     updateWeather(false).catch(() => {});
     stopWeatherInterval();
-    weatherIntervalTimer = setInterval(() => updateWeather(false), CONFIG.WEATHER.CACHE_TTL);
+    weatherIntervalTimer = setInterval(() => updateWeather(false).catch(() => {}), CONFIG.WEATHER.CACHE_TTL);
 }

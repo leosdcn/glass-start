@@ -18,9 +18,9 @@ const IMG_CACHE = CACHE_PREFIX + 'app-images-' + CORE_CACHE;
 const IMAGE_PREFIX = CACHE_PREFIX + 'app-images-';
 const CORE_PREFIX = CACHE_PREFIX + 'app-core-';
 const APP_ASSET = `./app-builds/${CORE_CACHE}.js`;
-const ACTIVATED_CORE = new URL('./.glass-core-activated', SCOPE_URL);
-const CORE_PREDECESSORS = new URL('./.glass-core-predecessors', SCOPE_URL);
-const LEGACY_APP = new URL('./app.js', SCOPE_URL);
+const ACTIVATED_CORE = new URL('./.glass-core-activated', SCOPE_URL).href;
+const CORE_PREDECESSORS = new URL('./.glass-core-predecessors', SCOPE_URL).href;
+const LEGACY_APP = new URL('./app.js', SCOPE_URL).href;
 
 /** @param {string} key @param {string} prefix */
 function isScopedCache(key, prefix) {

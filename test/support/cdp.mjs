@@ -235,7 +235,21 @@ export async function launchChrome({ port, url, testMode = true, disableGPU = tr
 
     await send('Page.enable');
     if (testMode) {
-      await send('Page.addScriptToEvaluateOnNewDocument', { source: `window.__GLASS_TEST__ = true; Object.defineProperty(navigator, 'languages', { configurable: true, get: () => ['zh-CN'] });` });
+      await send('Page.addScriptToEvaluateOnNewDocument', {
+        source: `window.__GLASS_TEST__ = true;
+Object.defineProperty(navigator, 'languages', { configurable: true, get: () => ['zh-CN'] });
+const _origFetch = window.fetch;
+window.fetch = async (url, opts) => {
+  const u = String(url);
+  if (u.includes('open-meteo.com') || u.includes('ipwho.is') || u.includes('myip.ipip.net')) {
+    return new Response(JSON.stringify({ status: 'fail', ret: 'err' }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
+  return _origFetch(url, opts);
+};`
+      });
     }
     await send('Page.navigate', { url });
 

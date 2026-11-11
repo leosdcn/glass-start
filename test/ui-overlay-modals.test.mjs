@@ -386,6 +386,12 @@ test('OverlayStack 多层弹窗嵌套压退栈、安全白名单与焦点归还'
     await evalJS('dom.resetEditBtn.focus(); dom.resetEditBtn.click()');
     await waitFor(evalJS, 'dom.confirmModal.open');
     assert.equal(await resetExpanded(), 'true');
+    const confirmInfo = await evalJS(`({
+      title: dom.confirmTitle.textContent.trim(),
+      msg: dom.confirmMsg.textContent.trim()
+    })`);
+    assert.ok(confirmInfo.title.length > 0 && !confirmInfo.title.includes('undefined'));
+    assert.ok(confirmInfo.msg.length > 0 && !confirmInfo.msg.includes('undefined'));
     await evalJS('dom.confirmCancelBtn.click()');
     await waitFor(evalJS, 'document.activeElement === dom.resetEditBtn');
     assert.equal(await resetExpanded(), 'false');

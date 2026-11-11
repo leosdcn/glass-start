@@ -48,7 +48,8 @@ export function weatherTime(v) {
 
 /** @param {unknown[]} parts */
 export function formatLocationFullName(parts) {
-    const cleaned = parts
+    const list = Array.isArray(parts) ? parts : [];
+    const cleaned = list
         .filter(p => typeof p === 'string')
         .map(p => p.trim())
         .filter(Boolean);

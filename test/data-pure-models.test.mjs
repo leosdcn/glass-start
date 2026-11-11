@@ -78,6 +78,18 @@ test('多词模糊查询不能跳过不匹配的单字符词', () => {
   assert.equal(rankBookmarkSuggestions('g githbu', input, CONFIG.SUGGEST)[0].name, 'GitHub');
   assert.equal(rankBookmarkSuggestions('git githbu', input, CONFIG.SUGGEST)[0].name, 'GitHub');
 });
+
+test('多语言 Unicode（日文、俄文、变音符号）书签检索与前缀匹配', () => {
+  const i18nCandidates = [
+    { bm: { name: 'ヤフー', url: 'https://yahoo.co.jp', icon: '', desc: 'ポータル' }, normUrl: 'yahoo.co.jp', defaultCat: '検索' },
+    { bm: { name: 'Яндекс', url: 'https://yandex.ru', icon: '', desc: 'Поиск' }, normUrl: 'yandex.ru', defaultCat: 'Поиск' },
+    { bm: { name: 'München Portal', url: 'https://muenchen.de', icon: '', desc: 'Stadt' }, normUrl: 'muenchen.de', defaultCat: 'City' }
+  ];
+  const i18nModel = { candidates: i18nCandidates, urlToCategoryMap: new Map() };
+  assert.equal(rankBookmarkSuggestions('ヤフー', i18nModel, CONFIG.SUGGEST)[0].name, 'ヤフー');
+  assert.equal(rankBookmarkSuggestions('яндекс', i18nModel, CONFIG.SUGGEST)[0].name, 'Яндекс');
+  assert.equal(rankBookmarkSuggestions('münchen', i18nModel, CONFIG.SUGGEST)[0].name, 'München Portal');
+});
 const forecast = normalizeWeatherForecast({current:{temperature_2m:21.6, is_day:0}, daily:{}}, {lat:1, lon:2}, CONFIG.WEATHER, 123);
 assert.equal(forecast.timestamp, 123);
 assert.equal(forecast.current.temp, 22);

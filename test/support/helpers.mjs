@@ -78,7 +78,8 @@ export async function getFreePort() {
   return new Promise((resolve, reject) => {
     const srv = createNetServer();
     srv.listen(0, '127.0.0.1', () => {
-      const { port } = srv.address();
+      const addr = srv.address();
+      const port = typeof addr === 'object' && addr ? addr.port : 0;
       srv.close(() => resolve(port));
     });
     srv.on('error', reject);

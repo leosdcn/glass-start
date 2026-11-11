@@ -83,6 +83,7 @@ function getAllJsInDir(dir) {
     return results;
 }
 const allSrcJsFiles = getAllJsInDir(join(root, 'src', 'js'));
+/** @type {Array<{ file: string, content: string, ast?: any }>} */
 const srcJsSources = allSrcJsFiles.map(file => ({ file, content: readFileSync(file, 'utf-8') }));
 // ---- 1. src/index.html 内联 <script> 语法校验 ----
 logSection('1/4', '📄 校验 src/index.html 内联脚本语法');
@@ -111,23 +112,49 @@ scripts.forEach((m, i) => {
 
 // ---- 2. 核心 JS 脚本与 src/js 业务模块语法校验 (node --check) ----
 logSection('2/4', '⚙️  校验核心 JavaScript 语法 (node --check)');
+
+const SCRIPT_DESCS = {
+    'scripts/build.cjs': '打包构建脚本',
+    'scripts/build-extension.cjs': '扩展打包脚本',
+    'scripts/publish-build.cjs': '发布构建镜像脚本',
+    'scripts/retain-deployed.cjs': '历史构建清理脚本',
+    'scripts/html-template.cjs': '共享 HTML 模板处理',
+    'scripts/server.cjs': '本地开发/预览服务',
+    'scripts/terminal.cjs': '共享终端输出',
+    'scripts/watch.cjs': '共享文件监听',
+    'scripts/sync-icons.mjs': '书签图标同步工具',
+    'scripts/validate-w3c.mjs': 'W3C 规范校验脚本',
+    'scripts/capture-preview.mjs': '预览图捕获工具',
+    'scripts/lint-dom.mjs': 'DOM 缓存 AST 分析器',
+    'scripts/lint-css.mjs': 'CSS 规则 AST 分析器',
+    'scripts/lint-i18n.mjs': '国际化语言包校验器',
+    'scripts/lint.mjs': '静态规范总检查器',
+    'sw.js': 'Service Worker 底座'
+};
+
+const scriptFiles = readdirSync(join(root, 'scripts'))
+    .filter(name => (name.endsWith('.cjs') || name.endsWith('.mjs')) && statSync(join(root, 'scripts', name)).isFile())
+    .sort()
+    .map(name => ({
+        name: `scripts/${name}`,
+        desc: SCRIPT_DESCS[`scripts/${name}`] || '工程辅助脚本'
+    }));
+
 const jsFiles = [
-    { name: 'scripts/build.cjs', desc: '打包构建脚本' },
-    { name: 'scripts/html-template.cjs', desc: '共享 HTML 模板处理' },
-    { name: 'sw.js', desc: 'Service Worker 底座' },
-    { name: 'scripts/server.cjs', desc: '本地开发/预览服务' },
-    { name: 'scripts/terminal.cjs', desc: '共享终端输出' },
-    { name: 'scripts/watch.cjs', desc: '共享文件监听' }
-].filter(f => {
-    try { return statSync(join(root, f.name)).isFile(); } catch { return false; }
-});
+    { name: 'sw.js', desc: SCRIPT_DESCS['sw.js'] },
+    ...scriptFiles
+];
 
 for (const item of jsFiles) {
     const fullPath = join(root, item.name);
-    const label = `${item.name.padEnd(18, ' ')} (${item.desc})`;
+    const label = `${item.name.padEnd(28, ' ')} (${item.desc})`;
     try {
         const code = readFileSync(fullPath, 'utf-8');
-        new vm.Script(code, { filename: item.name });
+        if (item.name.endsWith('.mjs')) {
+            parseJs(code, { ecmaVersion: 'latest', sourceType: 'module', locations: true });
+        } else {
+            new vm.Script(code, { filename: item.name });
+        }
         passCount++;
         logItem(`${label} 语法通过`);
     } catch (e) {
@@ -313,6 +340,7 @@ try {
 // 4.5 CSS !important 门禁：按语法树查找减弱动效祖先，保留文件及行列位置。
 let cssInspection;
 try {
+    /** @type {Array<{ file: string, content: string, lineOffset?: number, columnOffset?: number }>} */
     const sources = cssFiles.map(file => join(cssDir, file)).filter(file => existsSync(file))
         .map(file => ({ file: relative(root, file), content: readFileSync(file, 'utf-8') }));
     const styleBlocks = [...indexHtml.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style>/gi)];
@@ -349,6 +377,22 @@ try {
 } catch (e) {
     failCount++;
     logItem(`CSS 前缀层叠顺序扫描异常: ${e.message}`, 'error');
+}
+
+// 4.5.2 卡片与交互元素 :hover 必须声明 body:not(.tab-blurred) 前缀防切屏状态卡死
+try {
+    if (!cssInspection) throw new Error('CSS 语法分析未完成');
+    const hoverErrors = cssInspection.hoverViolations;
+    if (hoverErrors.length === 0) {
+        passCount++;
+        logItem('卡片与交互元素 :hover 规则均声明 body:not(.tab-blurred) 前缀');
+    } else {
+        failCount++;
+        logItem(`CSS :hover 前缀规范异常 (${hoverErrors.length} 处):\n    ${hoverErrors.join('\n    ')}`, 'error');
+    }
+} catch (e) {
+    failCount++;
+    logItem(`CSS :hover 前缀规范扫描异常: ${e.message}`, 'error');
 }
 
 // 4.6 DOM ID 唯一性与 cacheDOM() 引用健康门禁

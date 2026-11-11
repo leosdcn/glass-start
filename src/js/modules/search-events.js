@@ -2,7 +2,7 @@
 import { state } from '../state/store.js';
 import { dom } from '../state/dom.js';
 import { handleRovingKeyNav } from '../utils/helpers.js';
-import { activateSuggestion, selectSuggestion, fetchSuggestions, hideSuggestions, closeDropdown, setEngine, openRandomBookmark, selectedSuggestionIdx, scheduleSuggestions, handleSuggestionKeyNav } from './search.js';
+import { activateSuggestion, selectSuggestion, fetchSuggestions, hideSuggestions, closeDropdown, setEngine, openRandomBookmark, getSelectedSuggestionIdx, scheduleSuggestions, handleSuggestionKeyNav } from './search.js';
 
 let isComposing = false;
 
@@ -131,7 +131,7 @@ export function handleSearchKeydown(e) {
     if (isComposing) return true;
     if (e.key === 'Enter') {
         e.preventDefault();
-        activateSuggestion(selectedSuggestionIdx, e.altKey || e.metaKey || e.ctrlKey);
+        activateSuggestion(getSelectedSuggestionIdx(), e.altKey || e.metaKey || e.ctrlKey);
         return true;
     }
     if (e.key === 'Tab' && !e.altKey && !e.ctrlKey && !e.metaKey) {

@@ -26,11 +26,12 @@
     "dev": "node scripts/server.cjs",
     "dev:https": "node scripts/server.cjs --https",
     "preview": "npm run build && node scripts/server.cjs --no-watch",
-    "typecheck": "tsc --project tsconfig.json && tsc --project tsconfig.sw.json",
+    "typecheck": "tsc --project tsconfig.json && tsc --project tsconfig.sw.json && tsc --project tsconfig.scripts.json",
     "test:unit": "node test/run.mjs --unit"
   },
   "devDependencies": {
     "@tailwindcss/cli": "^4.3.4",
+    "@types/node": "^26.6.6",
     "acorn": "^8.19.0",
     "esbuild": "^0.28.2",
     "postcss": "^8.5.32",

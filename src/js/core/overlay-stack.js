@@ -28,6 +28,9 @@ function showModal(id) {
         modal.addEventListener('pointerdown', e => {
             isPointerDownOnBackdrop = e.target === modal;
         });
+        modal.addEventListener('pointercancel', () => {
+            isPointerDownOnBackdrop = false;
+        });
         modal.addEventListener('click', e => {
             const top = OverlayStack.top();
             if (e.target === modal && isPointerDownOnBackdrop && top?.id === id) top.close();
@@ -44,10 +47,17 @@ function showModal(id) {
  * @returns {element is HTMLElement}
  */
 function visibleFocusTarget(element) {
-    return element instanceof HTMLElement && element.isConnected &&
-        element !== document.body && element !== document.documentElement &&
-        !element.closest('[inert], [hidden], [aria-hidden="true"], :disabled') &&
-        element.checkVisibility({ visibilityProperty: true });
+    if (!(element instanceof HTMLElement) || !element.isConnected ||
+        element === document.body || element === document.documentElement ||
+        element.closest('[inert], [hidden], [aria-hidden="true"], :disabled')) {
+        return false;
+    }
+    if (typeof element.checkVisibility === 'function') {
+        return element.checkVisibility({ visibilityProperty: true });
+    }
+    const style = window.getComputedStyle(element);
+    return style.display !== 'none' && style.visibility !== 'hidden' &&
+        (element.offsetWidth > 0 || element.offsetHeight > 0 || element.getClientRects().length > 0);
 }
 
 const FOCUSABLE = 'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])';

@@ -6,6 +6,7 @@ async function retainDeployedScript(baseUrl, output = join(__dirname, '..', 'dis
     const base = new URL(baseUrl);
     base.pathname = base.pathname.replace(/\/?$/, '/');
     base.search = base.hash = '';
+    /** @type {RequestInit} */
     const options = { redirect: 'error', cache: 'no-store', signal: AbortSignal.timeout(15000) };
     const page = await fetch(base, options);
     if (page.status === 404) return; // 尚未部署。

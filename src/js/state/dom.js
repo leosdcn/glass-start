@@ -16,15 +16,16 @@ const _domStore = {};
 export const dom = new Proxy(_domStore, {
     get(target, prop) {
         if (typeof prop !== 'string') return Reflect.get(target, prop);
-        let el = target[prop];
+        const store = /** @type {Record<string, HTMLElement | null>} */ (target);
+        let el = store[prop];
         if (!el || (el instanceof Element && !el.isConnected)) {
             const fresh = $(prop);
             if (fresh) {
-                target[prop] = fresh;
+                store[prop] = fresh;
                 return fresh;
             }
             if (el instanceof Element && !el.isConnected) {
-                target[prop] = null;
+                store[prop] = null;
                 return null;
             }
         }
@@ -48,6 +49,7 @@ export const dom = new Proxy(_domStore, {
  * @returns {void}
  */
 export function cacheDOM() {
-    const ids = 'languageBtn languageList doneLanguageBtn cancelLanguageBtn clock date searchInput searchClearBtn randomBookmarkBtn engineBtn engineIcon engineName dropdownMenu suggestionMenu bookmarks sidebar sidebarList navCategories navContent editList editBookmarksBtn addBookmarkBtn saveEditBtn cancelEditBtn resetEditBtn togglePickerBtn pickerContent pickerCount donePickerBtn exportJsonBtn importJsonInput uploadBgBtn urlBgBtn urlBgBtnGroup urlBgInputRow urlBgInput urlBgConfirmBtn urlBgCancelBtn resetBgBtn uploadBgInput wallpaperStatus wallpaperError bookmarkCountBadge jsonDropzone maskOpacityInput maskOpacityVal clearCacheBtn bgLayer bgLayerNext bgOverlay startSection navSection navHint presetWallpaperGrid settingsTransitionGrid shortcutModal shortcutModalList doneShortcutBtn openShortcutFromSettingsBtn openCreditsFromSettingsBtn weatherWidget weatherBtn weatherIcon weatherTemp weatherCity weatherPopover creditsModal creditsList doneCreditsBtn confirmModal confirmTitle confirmMsg confirmCancelBtn confirmOkBtn updateNotice updateNoticeText updateReloadBtn'.split(' ');
-    ids.forEach(id => dom[id] = $(id));
+    const ids = 'languageBtn languageList doneLanguageBtn cancelLanguageBtn clock date searchInput searchClearBtn randomBookmarkBtn engineBtn engineIcon engineName dropdownMenu suggestionMenu bookmarks sidebar sidebarList navCategories navContent editList editBookmarksBtn addBookmarkBtn saveEditBtn cancelEditBtn resetEditBtn togglePickerBtn pickerContent pickerCount donePickerBtn exportJsonBtn importJsonInput uploadBgBtn urlBgBtn urlBgBtnGroup urlBgInputRow urlBgInput urlBgConfirmBtn urlBgCancelBtn resetBgBtn uploadBgInput wallpaperStatus wallpaperError bookmarkCountBadge jsonDropzone maskOpacityInput maskOpacityVal clearCacheBtn bgLayer bgLayerNext bgOverlay startSection navSection navHint presetWallpaperGrid settingsTransitionGrid shortcutModal shortcutModalList doneShortcutBtn openShortcutFromSettingsBtn openCreditsFromSettingsBtn weatherWidget weatherBtn weatherIcon weatherTemp weatherCity weatherPopover creditsModal creditsList doneCreditsBtn confirmModal confirmTitle confirmMsg confirmCancelBtn confirmOkBtn updateNotice updateNoticeText updateReloadBtn editModal bookmarkPicker languageModal tabBookmarks tabAppearance tabData'.split(' ');
+    const target = /** @type {Record<string, HTMLElement | null>} */ (dom);
+    ids.forEach(id => target[id] = $(id));
 }

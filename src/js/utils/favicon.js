@@ -86,7 +86,7 @@ export function handleIconError(img) {
  * @param {boolean} [deferLoad]
  */
 export function getFaviconHTML(bm, sizeType = 'sm', deferLoad = false) {
-    const initial = (bm.name || '?').trim().charAt(0).toUpperCase() || '?';
+    const initial = [...(bm.name || '?').trim()][0]?.toUpperCase() || '?';
     const isMd = sizeType === 'md';
     const sizeClass = isMd ? 'icon-box-md' : 'icon-box-sm';
     const textClass = isMd ? 'text-xs font-semibold' : 'text-2xs font-semibold';

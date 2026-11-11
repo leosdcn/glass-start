@@ -18,7 +18,7 @@ export function updateAllBookmarkCounters() {
 /** @param {import('../types').DraftBookmarkItem} item */
 export function getEditFaviconInner(item) {
     const { name, icon, origUrl } = item;
-    const initial = (name || '?').trim().charAt(0).toUpperCase() || '?';
+    const initial = [...(name || '?').trim()][0]?.toUpperCase() || '?';
     const url = normalizeBookmarkUrl(item.url);
     const faviconUrl = resolveBookmarkIcon(url, icon, origUrl);
     const safeFavicon = faviconUrl ? safeUrl(faviconUrl) : '';

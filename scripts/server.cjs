@@ -348,7 +348,7 @@ function startListening(port) {
         }
     });
 
-    server.on('error', (err) => {
+    server.on('error', (/** @type {NodeJS.ErrnoException} */ err) => {
         if (err.code === 'EADDRINUSE') {
             console.warn(`  ${c.yellow}⚠️ 端口 ${port} 已被占用，正在尝试端口 ${port + 1}...${c.reset}`);
             startListening(port + 1);

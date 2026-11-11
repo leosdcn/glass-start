@@ -402,7 +402,7 @@ export function importBookmarksJSON(file) {
             } else if (parsed && Array.isArray(parsed.bookmarks)) {
                 importedList = parsed.bookmarks;
             } else if (parsed && Array.isArray(parsed.categories)) {
-                parsed.categories.forEach((/** @type {any} */ cat) => {
+                parsed.categories.forEach((/** @type {Partial<import('../types').BookmarkCategory>} */ cat) => {
                     if (cat && Array.isArray(cat.bookmarks)) {
                         for (const bookmark of cat.bookmarks) importedList.push(bookmark);
                     }
@@ -481,6 +481,9 @@ export function resetBookmarks() {
             syncTransitionSwitcherActive(committed.draftTransitionMode);
             replaceBookmarkDraft([]);
             finishEdit();
+        } catch (err) {
+            console.error('Settings reset failed:', err);
+            showConfirm(t('ui.some.settings.could.not.be.cleared'), null, t('ui.reset.failed'));
         } finally {
             if (isCurrent()) setEditPhase('editing');
             resumeWallpaper?.();
@@ -563,6 +566,9 @@ export async function saveEditModal() {
             }
         }
         finishEdit();
+    } catch (err) {
+        console.error('Settings save failed:', err);
+        showConfirm(t('ui.could.not.save'), null, t('ui.could.not.save'));
     } finally {
         if (isCurrent()) setEditPhase('editing');
     }

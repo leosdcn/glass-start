@@ -152,3 +152,28 @@ await test("现代壁纸选择持久化与优先级", async () => {
       await server.close();
     }
 });
+
+await test("IndexedDB 版本升级协商与多连接生命周期 (onversionchange)", async () => {
+    const { server, chrome, send, evalJS } = await launchSession();
+    try {
+        const upgradeNegotiated = await evalJS(`(async () => {
+            await getWallpaperSelectionDB();
+            return new Promise((resolve) => {
+                let versionChanged = false;
+                const req = indexedDB.open(CONFIG.IDB.NAME, CONFIG.IDB.VERSION + 1);
+                req.onblocked = () => resolve(false);
+                req.onupgradeneeded = () => { versionChanged = true; };
+                req.onsuccess = (e) => {
+                    e.target.result.close();
+                    resolve(versionChanged);
+                };
+                req.onerror = () => resolve(false);
+            });
+        })()`);
+        assert.equal(upgradeNegotiated, true, '旧连接必须响应 onversionchange 自动释放，允许版本升级顺利完成');
+        console.log('✅ IndexedDB 跨连接/版本变更自动协商关闭成功，杜绝多标签页升级死锁');
+    } finally {
+        await chrome.close();
+        await server.close();
+    }
+});

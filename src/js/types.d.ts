@@ -209,7 +209,12 @@ export interface DOMCache {
     updateNotice: HTMLElement | null;
     updateNoticeText: HTMLElement | null;
     updateReloadBtn: HTMLButtonElement | null;
-    [key: string]: HTMLElement | null;
+    editModal: HTMLDialogElement | null;
+    bookmarkPicker: HTMLDialogElement | null;
+    languageModal: HTMLDialogElement | null;
+    tabBookmarks: HTMLElement | null;
+    tabAppearance: HTMLElement | null;
+    tabData: HTMLElement | null;
 }
 
 export type TranslationMessage = string | Record<string, string>;
@@ -277,6 +282,14 @@ export interface WeatherLocation {
     isFallback?: boolean;
     timestamp?: number;
 }
+export interface GeocodingResultItem {
+    name?: string;
+    latitude: number;
+    longitude: number;
+    country?: string;
+    admin1?: string;
+    admin2?: string;
+}
 export interface WeatherCurrent {
     temp?: number;
     apparent?: number;
@@ -326,6 +339,7 @@ export interface SuggestionQueryItem {
 export type SuggestionItem = SuggestionBookmarkItem | SuggestionQueryItem;
 
 export interface BookmarkSuggestion {
+    type?: 'bookmark';
     name: string;
     url: string;
     icon?: string;

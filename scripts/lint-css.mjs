@@ -14,6 +14,7 @@ function requiresReducedMotion(params) {
 export function inspectCSSSources(sources) {
     const importantViolations = [];
     const prefixViolations = [];
+    const hoverViolations = [];
     for (const { file, content, lineOffset = 0, columnOffset = 0 } of sources) {
         const location = position => `${file}:${position.line + lineOffset}:${position.column + (position.line === 1 ? columnOffset : 0)}`;
         let root;
@@ -22,6 +23,16 @@ export function inspectCSSSources(sources) {
         } catch (error) {
             throw new Error(`${location({ line: error.line, column: error.column })}: ${error.reason}`, { cause: error });
         }
+        root.walkRules(rule => {
+            const selectors = postcss.list.comma(rule.selector);
+            for (const sel of selectors) {
+                if (sel.includes(':hover') && !sel.includes('-webkit-autofill')) {
+                    if (!sel.includes('body:not(.tab-blurred)')) {
+                        hoverViolations.push(`${location(rule.source.start)}: 包含 :hover 的选择器须加 body:not(.tab-blurred) 前缀: "${sel.trim()}"`);
+                    }
+                }
+            }
+        });
         const standardByParent = new Map();
         root.walkDecls(decl => {
             if (decl.important) {
@@ -42,5 +53,5 @@ export function inspectCSSSources(sources) {
             }
         });
     }
-    return { importantViolations, prefixViolations };
+    return { importantViolations, prefixViolations, hoverViolations };
 }

@@ -72,7 +72,8 @@ export function startServer(port = 0, root = DIST_DIR, customRoutes = {}, { test
 
     server.on('error', reject);
     server.listen(port, '127.0.0.1', () => {
-      const actualPort = server.address().port;
+      const addr = server.address();
+      const actualPort = typeof addr === 'object' && addr ? addr.port : 0;
       resolve({
         port: actualPort,
         server,

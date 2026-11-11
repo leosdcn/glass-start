@@ -136,7 +136,11 @@ export function localizeCategories(categories) {
     return categories.map(category => ({
         ...category,
         name: catalog.categories?.[category.id || ''] || category.name,
-        bookmarks: category.bookmarks.map(bookmark => ({ ...bookmark, ...catalog.bookmarks[bookmark.url], url: bookmark.url }))
+        bookmarks: (Array.isArray(category?.bookmarks) ? category.bookmarks : []).map(bookmark => ({
+            ...bookmark,
+            ...(catalog.bookmarks?.[bookmark.url] || {}),
+            url: bookmark.url
+        }))
     }));
 }
 

@@ -107,7 +107,7 @@ function removeAbandonedWebBuilds(parent, prefix, release) {
 }
 
 /** 并行准备各自的目录，在同一发布锁内读取前版、切换入口并回收。 */
-function publishWebBuild(output, populate, prepare = () => {}) {
+function publishWebBuild(output, populate, prepare = (release, previous) => {}) {
     const parent = path.dirname(output);
     const prefix = path.join(parent, `.${path.basename(output)}-build-`);
     const release = fs.mkdtempSync(prefix + process.pid + '-');
@@ -120,7 +120,8 @@ function publishWebBuild(output, populate, prepare = () => {}) {
     try {
         const result = populate(release);
         fs.chmodSync(release, 0o777 & ~process.umask());
-        fs.symlinkSync(release, link, process.platform === 'win32' ? 'junction' : 'dir');
+        const target = process.platform === 'win32' ? release : path.relative(parent, release);
+        fs.symlinkSync(target, link, process.platform === 'win32' ? 'junction' : 'dir');
         const owner = acquirePublishLock(lock, candidate);
         try {
             if (fs.existsSync(backup) && !fs.lstatSync(output, { throwIfNoEntry: false })) {

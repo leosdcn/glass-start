@@ -55,16 +55,19 @@ export function selectSuggestion(index, { keyboard = false } = {}) {
     }
     if (keyboard && changed && item) node?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
 }
-// ——— 搜索建议状态与测试探针导出 ———
-// 注：部分变量通过 live binding 导出供 testing/bridge.js 及 CDP 自动化测试断言
+// ——— 搜索建议状态与访问器 ———
 /** @type {HTMLScriptElement | null} 当前活跃的 JSONP 脚本节点（测试探针 / 清理用） */
-export let suggestionScriptTag = null;
+let suggestionScriptTag = null;
 /** 当前选中的建议列表项索引（-1 为未选中，公共状态 / 供外部与测试读取） */
-export let selectedSuggestionIdx = -1;
+let selectedSuggestionIdx = -1;
 /** @type {ReturnType<typeof setTimeout> | null} 防抖定时器句柄 */
 let suggestDebounceTimer = null;
 /** 异步建议请求自增计数序列号（测试探针，用于防竞态乱序覆盖） */
-export let activeSuggestReqId = 0;
+let activeSuggestReqId = 0;
+
+export function getSelectedSuggestionIdx() { return selectedSuggestionIdx; }
+export function getActiveSuggestReqId() { return activeSuggestReqId; }
+export function getSuggestionScriptTag() { return suggestionScriptTag; }
 /** @type {(() => void) | null} */
 let activeSuggestCleanup = null;
 /** @type {string | null} */
@@ -599,7 +602,7 @@ function requestNetworkSuggestions(engineKey, query, cacheKey, localList, reqId)
         }
         controller?.abort();
         if (!window.__GLASS_EXTENSION__ && script) {
-            delete /** @type {any} */ (window)[cbName];
+            delete /** @type {Record<string, unknown>} */ (/** @type {unknown} */ (window))[cbName];
             script.onerror = null;
             script.remove();
             if (suggestionScriptTag === script) suggestionScriptTag = null;
@@ -670,7 +673,7 @@ function requestNetworkSuggestions(engineKey, query, cacheKey, localList, reqId)
     }
 
     if (!window.__GLASS_EXTENSION__ && script) {
-        /** @type {any} */ (window)[cbName] = handleSuggestData;
+        /** @type {Record<string, unknown>} */ (/** @type {unknown} */ (window))[cbName] = handleSuggestData;
         suggestionScriptTag = script;
         script.onerror = handleSuggestFallback;
 

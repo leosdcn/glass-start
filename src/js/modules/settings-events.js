@@ -144,7 +144,7 @@ export function bindEditEvents() {
             const faviconBox = row.querySelector('.edit-favicon-box');
             if (faviconBox) {
                 const nameVal = item.name;
-                const initial = (nameVal || '?').trim().charAt(0).toUpperCase() || '?';
+                const initial = [...(nameVal || '?').trim()][0]?.toUpperCase() || '?';
 
                 const existingImg = /** @type {HTMLElement|null} */ (faviconBox.querySelector('.edit-favicon-img'));
                 const existingInitial = faviconBox.querySelector('.edit-favicon-initial');

@@ -5,8 +5,8 @@ import { parse } from 'acorn';
 
 /** Validate only the supported translation contract, alongside the existing lint. */
 export async function inspectI18n(root, sources, html) {
-    const { SUPPORTED_LANGUAGES } = await import(pathToFileURL(join(root, 'src/js/config/language.js')));
-    const { PRESET_WALLPAPERS } = await import(pathToFileURL(join(root, 'src/js/config/backgrounds.js')));
+    const { SUPPORTED_LANGUAGES } = await import(pathToFileURL(join(root, 'src/js/config/language.js')).href);
+    const { PRESET_WALLPAPERS } = await import(pathToFileURL(join(root, 'src/js/config/backgrounds.js')).href);
     const readJSON = name => JSON.parse(readFileSync(join(root, name), 'utf8'));
     const dictionaries = Object.fromEntries(SUPPORTED_LANGUAGES.map(locale =>
         [locale, readJSON(`src/js/config/locales/${locale}.json`)]));

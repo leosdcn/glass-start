@@ -141,6 +141,7 @@ function buildServiceWorkerAndAssets(targetDir, { extension, version }) {
 }
 
 // 两种构建共用编译选项；生产在编译时裁掉测试入口，测试脚本只由测试服务器持有。
+/** @param {{ testMode?: boolean, extension?: boolean, version?: string, outfile?: string }} [options] */
 function buildAppJavaScript({ testMode = false, extension = false, version = 'app-core-v' + Date.now(), outfile } = {}) {
     return esbuild.buildSync({
         entryPoints: [PATHS.srcMainJs],
@@ -398,6 +399,7 @@ function retainPreviousWebScript(targetDir, previousDir) {
 }
 
 // 主构建入口流程
+/** @param {{ testSnapshotDir?: string }} [options] */
 function main({ testSnapshotDir } = {}) {
     const startTime = Date.now();
 
