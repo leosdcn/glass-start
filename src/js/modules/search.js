@@ -489,23 +489,25 @@ function renderSuggestions(localList = [], netList = [], preserveSelection = fal
     else searchInput?.removeAttribute('aria-activedescendant');
 }
 
-/**
- * 收起联想下拉面板、作废未决网络请求并从 OverlayStack 出栈
- * @returns {void}
- */
-export function hideSuggestions() {
-    suggestionItems = [];
-    suggestionNodes = [];
-    selectedSuggestionNode = null;
-    lastSuggestionsSignature = '';
+/** 作废未决联想，保留已渲染的候选。 */
+export function cancelSuggestionRequest() {
     suggestionQueryKey = null;
-    lastRenderedLocalKey = '';
     if (suggestDebounceTimer !== null) {
         clearTimeout(suggestDebounceTimer);
         suggestDebounceTimer = null;
     }
     activeSuggestReqId++;
     activeSuggestCleanup?.();
+}
+
+/** 收起联想下拉面板并从 OverlayStack 出栈。 */
+export function hideSuggestions() {
+    suggestionItems = [];
+    suggestionNodes = [];
+    selectedSuggestionNode = null;
+    lastSuggestionsSignature = '';
+    lastRenderedLocalKey = '';
+    cancelSuggestionRequest();
     OverlayStack.pop('suggestions');
     const suggestionMenu = dom.suggestionMenu;
     const searchInput = dom.searchInput;
@@ -549,10 +551,6 @@ export function fetchSuggestions(engineKey, query, deferNetwork = false) {
     query = query.trim();
     const cacheKey = `${getLocale()}:${engineKey}:${query}`;
     const preserveSelection = suggestDebounceTimer !== null && suggestionQueryKey === cacheKey;
-    if (suggestDebounceTimer !== null) {
-        clearTimeout(suggestDebounceTimer);
-        suggestDebounceTimer = null;
-    }
     if (!query) {
         hideSuggestions();
         return;
@@ -560,8 +558,7 @@ export function fetchSuggestions(engineKey, query, deferNetwork = false) {
 
     // compositionend 后的 input、重复选择当前引擎等入口共享正在进行的请求和列表。
     if (activeSuggestCleanup && suggestionQueryKey === cacheKey) return;
-    activeSuggestCleanup?.();
-    activeSuggestReqId++;
+    cancelSuggestionRequest();
     const reqId = activeSuggestReqId;
     suggestionQueryKey = cacheKey;
     const localList = getLocalBookmarkSuggestions(query, CONFIG.SUGGEST.MAX_LOCAL_ITEMS);

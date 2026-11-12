@@ -2,7 +2,7 @@
 import { state } from '../state/store.js';
 import { dom } from '../state/dom.js';
 import { handleRovingKeyNav } from '../utils/helpers.js';
-import { activateSuggestion, selectSuggestion, fetchSuggestions, hideSuggestions, closeDropdown, setEngine, openRandomBookmark, getSelectedSuggestionIdx, scheduleSuggestions, handleSuggestionKeyNav } from './search.js';
+import { activateSuggestion, selectSuggestion, fetchSuggestions, cancelSuggestionRequest, hideSuggestions, closeDropdown, setEngine, openRandomBookmark, getSelectedSuggestionIdx, scheduleSuggestions, handleSuggestionKeyNav } from './search.js';
 
 let isComposing = false;
 /** @type {boolean | null} 记录按钮当前展示状态，避免输入期间无状态变化的重复 DOM 属性写入 */
@@ -40,7 +40,8 @@ export function bindSearchEvents() {
     if (searchInput) {
         searchInput.addEventListener('compositionstart', () => {
             isComposing = true;
-            hideSuggestions();
+            cancelSuggestionRequest();
+            selectSuggestion(-1);
         });
 
         searchInput.addEventListener('compositionend', () => {
@@ -53,6 +54,7 @@ export function bindSearchEvents() {
         searchInput.addEventListener('click', e => {
             e.stopPropagation();
             closeDropdown();
+            if (isComposing) return;
             const val = searchInput.value.trim();
             if (val && (!suggestionMenu || !suggestionMenu.classList.contains('active'))) {
                 fetchSuggestions(state.engine, val);
@@ -87,8 +89,15 @@ export function bindSearchEvents() {
     }
 
     if (suggestionMenu) {
+        suggestionMenu.addEventListener('pointerdown', e => {
+            if (isComposing) e.preventDefault();
+        });
         /** @param {MouseEvent} e */
         const handleSuggestionClick = e => {
+            if (isComposing) {
+                e.stopPropagation();
+                return;
+            }
             const auxiliary = e.type === 'auxclick';
             if (auxiliary && e.button !== 1) return;
             const targetEl = e.target instanceof Element ? e.target : null;
@@ -102,6 +111,7 @@ export function bindSearchEvents() {
         suggestionMenu.addEventListener('click', handleSuggestionClick);
         suggestionMenu.addEventListener('auxclick', handleSuggestionClick);
         suggestionMenu.addEventListener('mouseover', e => {
+            if (isComposing) return;
             if (suggestionMenu.classList.contains('keyboard-nav')) suggestionMenu.classList.remove('keyboard-nav');
             const targetEl = e.target instanceof Element ? e.target : null;
             const item = /** @type {HTMLElement|null} */ (targetEl?.closest('.suggestion-item'));
@@ -120,7 +130,7 @@ export function bindSearchEvents() {
                 setEngine(btn.dataset.engine);
                 closeDropdown();
                 const query = dom.searchInput?.value.trim();
-                if (query) fetchSuggestions(state.engine, query);
+                if (query && !isComposing) fetchSuggestions(state.engine, query);
             }
         });
         dropdownMenu.addEventListener('keydown', e => {

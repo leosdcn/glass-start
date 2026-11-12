@@ -248,18 +248,39 @@ test('从天气切回搜索、更新候选和输入法确认', async () => {
     const searchActions = await evalJS(`(() => {
       const input = dom.searchInput;
       const open = window.open;
+      const append = document.body.appendChild;
       const opened = [];
       window.open = url => opened.push(url);
+      document.body.appendChild = function(node) {
+        if (node.tagName === 'SCRIPT') node.type = 'application/x-test';
+        return append.call(this, node);
+      };
       const enter = isComposing => input.dispatchEvent(new KeyboardEvent('keydown',
         {key:'Enter',ctrlKey:true,isComposing,bubbles:true,cancelable:true}));
       try {
+        input.focus();
+        input.value = 'githu';
+        fetchSuggestions('bing', input.value);
+        const bookmark = dom.suggestionMenu.querySelector('.suggestion-item[data-url]');
+        const lateResponse = window['__glassSuggestCb_' + activeSuggestReqId];
         input.dispatchEvent(new CompositionEvent('compositionstart'));
-        input.value = 'git';
-        enter(true);
-        const imeDidNotSearch = opened.length === 0;
+        input.value = 'githu aa';
+        input.dispatchEvent(new InputEvent('input', {bubbles:true,isComposing:true}));
+        lateResponse(['githu',['stale during composition']]);
+        const keptOldResults = dom.suggestionMenu.classList.contains('active') && bookmark.isConnected &&
+          !suggestionScriptTag && !dom.suggestionMenu.textContent.includes('stale during composition');
+        bookmark.dispatchEvent(new MouseEvent('mouseover', {bubbles:true}));
+        bookmark.dispatchEvent(new MouseEvent('click', {bubbles:true,ctrlKey:true}));
+        const arrowUnclaimed = input.dispatchEvent(new KeyboardEvent('keydown',
+          {key:'ArrowDown',bubbles:true,cancelable:true}));
+        const imeDidNotSearch = enter(true) && enter(false) && opened.length === 0 && selectedSuggestionIdx === -1;
+        input.value = '维基百科';
         input.dispatchEvent(new CompositionEvent('compositionend'));
+        input.dispatchEvent(new InputEvent('input', {bubbles:true}));
+        const committedBookmark = dom.suggestionMenu.querySelector('.suggestion-item[data-url]')?.dataset.url;
+        const committedRequest = suggestionScriptTag && new URL(suggestionScriptTag.src).searchParams.get('query');
         enter(false);
-        const independentEnterSearched = opened.length === 1 && new URL(opened[0]).searchParams.get('q') === 'git';
+        const independentEnterSearched = opened.length === 1 && new URL(opened[0]).searchParams.get('q') === '维基百科';
         const tabUnclaimed = input.dispatchEvent(new KeyboardEvent('keydown', {key:'Tab',bubbles:true,cancelable:true}));
 
         input.value = '';
@@ -271,14 +292,17 @@ test('从天气切回搜索、更新候选和输入法确认', async () => {
         const localResultImmediate = dom.suggestionMenu.classList.contains('active') &&
           dom.suggestionMenu.querySelector('.suggestion-item')?.textContent.includes('GitHub') &&
           !suggestionScriptTag;
-        return { imeDidNotSearch, independentEnterSearched, tabUnclaimed, diceOpenedImmediately, localResultImmediate };
+        return { keptOldResults, arrowUnclaimed, imeDidNotSearch, committedBookmark, committedRequest, independentEnterSearched,
+          tabUnclaimed, diceOpenedImmediately, localResultImmediate };
       } finally {
         window.open = open;
+        document.body.appendChild = append;
         hideSuggestions();
       }
     })()`);
-    assert.deepEqual(searchActions, { imeDidNotSearch:true, independentEnterSearched:true, tabUnclaimed:true,
-      diceOpenedImmediately:true, localResultImmediate:true });
+    assert.deepEqual(searchActions, { keptOldResults:true, arrowUnclaimed:true, imeDidNotSearch:true,
+      committedBookmark:'https://en.wikipedia.org/wiki/Main_Page', committedRequest:'维基百科',
+      independentEnterSearched:true, tabUnclaimed:true, diceOpenedImmediately:true, localResultImmediate:true });
   } finally {
     await chrome.close();
     await server.close();
