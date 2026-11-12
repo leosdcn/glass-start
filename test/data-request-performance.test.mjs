@@ -138,6 +138,67 @@ try {
     })()`);
     assert.deepEqual(cors, {shared:true, shown:true, cachedNodes:true, aborted:true});
     console.log('✅ Wikipedia 同查询共享请求，命中相同缓存复用节点，关闭仍中止未决请求');
+
+    await send('Emulation.setEmulatedMedia', { features:[{name:'prefers-reduced-motion', value:'no-preference'}] });
+    const loading = await evalJS(`(async () => {
+        const originalFetch = window.fetch;
+        const originalEngine = state.engine;
+        const { searchInput, suggestionMenu } = dom;
+        const originalValue = searchInput.value;
+        const requestStarted = new Promise(started => {
+            window.fetch = () => new Promise(resolve => started(resolve));
+        });
+        try {
+            state.engine = 'wikipedia';
+            searchInput.value = 'github';
+            searchInput.dispatchEvent(new Event('input', { bubbles:true }));
+            const local = suggestionMenu.querySelector('.suggestion-item[data-url]');
+            const networkGroup = suggestionMenu.lastElementChild;
+            const skeleton = networkGroup?.querySelector(':scope > [aria-hidden="true"]');
+            const initialHeight = suggestionMenu.offsetHeight;
+            const respond = await requestStarted;
+            const pendingHeight = suggestionMenu.offsetHeight;
+            const sameSkeleton = !!skeleton?.isConnected;
+            respond({ok:true,json:async()=>['github',['github docs','github topics','github status']]});
+            await new Promise(resolve => setTimeout(resolve, 0));
+            const resultHeight = suggestionMenu.offsetHeight;
+            const localKept = !!local?.isConnected;
+            const networkShown = networkGroup?.textContent.includes('github docs');
+            const waitForTransitions = () => Promise.allSettled(suggestionMenu.getAnimations().map(animation => animation.finished));
+            const input = value => {
+                searchInput.value = value;
+                searchInput.dispatchEvent(new Event('input', { bubbles:true }));
+            };
+            await waitForTransitions();
+            input('');
+            const closingHeight = suggestionMenu.offsetHeight;
+            const collapsed = searchInput.getAttribute('aria-expanded') === 'false' &&
+                suggestionMenu.getAttribute('aria-hidden') === 'true' && getComputedStyle(suggestionMenu).pointerEvents === 'none';
+            await waitForTransitions();
+            const cleared = !suggestionMenu.querySelector('.suggestion-item');
+
+            input('github');
+            await waitForTransitions();
+            input('');
+            const exiting = waitForTransitions();
+            input('github');
+            await exiting;
+            const reopened = suggestionMenu.classList.contains('active') && !!suggestionMenu.querySelector('.suggestion-item[data-url]');
+            return { initialHeight, pendingHeight, resultHeight, sameSkeleton, localKept, networkShown,
+                closingHeight, collapsed, cleared, reopened };
+        } finally {
+            hideSuggestions();
+            window.fetch = originalFetch;
+            state.engine = originalEngine;
+            searchInput.value = originalValue;
+        }
+    })()`);
+    assert.ok(loading.sameSkeleton && loading.localKept && loading.networkShown, JSON.stringify(loading));
+    assert.equal(loading.initialHeight, loading.pendingHeight);
+    assert.equal(loading.pendingHeight, loading.resultHeight);
+    assert.equal(loading.closingHeight, loading.resultHeight);
+    assert.ok(loading.collapsed && loading.cleared && loading.reopened, JSON.stringify(loading));
+
     const editedSuggestion = await evalJS(`(async () => {
         const originalFetch = window.fetch;
         const originalBookmarks = pageData.bookmarks;

@@ -407,7 +407,8 @@ function renderSuggestions(localList = [], netList = [], preserveSelection = fal
     const safeNetList = netList.slice(0, maxNetCount);
     const localKey = getLocalListSignature(localList);
     const signature = JSON.stringify([isNetLoading, localKey, safeNetList]);
-    if (signature === lastSuggestionsSignature && suggestionMenu.classList.contains('active')) {
+    const isOpen = suggestionMenu.classList.contains('active');
+    if (signature === lastSuggestionsSignature && isOpen) {
         if (!preserveSelection && selectedSuggestionIdx >= 0) selectSuggestion(-1);
         return;
     }
@@ -444,7 +445,7 @@ function renderSuggestions(localList = [], netList = [], preserveSelection = fal
     }
 
     // 本地书签分组：仅当本地数据真正变更或首次挂载时才渲染，避免网络联想返回时重新生成节点导致图片闪烁
-    if (lastRenderedLocalKey !== localKey) {
+    if (!isOpen || lastRenderedLocalKey !== localKey) {
         lastRenderedLocalKey = localKey;
         if (localList.length > 0) {
             let localHtml = renderSectionHeader(t('ui.bookmark'), true);
@@ -513,8 +514,6 @@ export function hideSuggestions() {
     lastSuggestionsSignature = '';
     suggestionQueryKey = null;
     lastRenderedLocalKey = '';
-    if (localGroup) localGroup.innerHTML = '';
-    if (netGroup) netGroup.innerHTML = '';
     if (suggestDebounceTimer !== null) {
         clearTimeout(suggestDebounceTimer);
         suggestDebounceTimer = null;
@@ -525,8 +524,21 @@ export function hideSuggestions() {
     const suggestionMenu = dom.suggestionMenu;
     const searchInput = dom.searchInput;
     if (suggestionMenu) {
+        const wasOpen = suggestionMenu.classList.contains('active');
         suggestionMenu.classList.remove('active', 'keyboard-nav');
         suggestionMenu.setAttribute('aria-hidden', 'true');
+        if (wasOpen) {
+            // 先关闭交互，等 CSS 隐藏面板后再移除内容，保持退场高度。
+            const clearGroups = () => {
+                if (suggestionMenu.classList.contains('active') || getComputedStyle(suggestionMenu).visibility !== 'hidden') return;
+                localGroup?.replaceChildren();
+                netGroup?.replaceChildren();
+            };
+            const exit = suggestionMenu.getAnimations().find(animation =>
+                'transitionProperty' in animation && animation.transitionProperty === 'visibility');
+            if (exit) void exit.finished.then(clearGroups, clearGroups);
+            else clearGroups();
+        }
     }
     if (searchInput) {
         searchInput.setAttribute('aria-expanded', 'false');
@@ -588,7 +600,8 @@ export function fetchSuggestions(engineKey, query, deferNetwork = false) {
     };
     if (deferNetwork) {
         if (localList.length) {
-            renderSuggestions(localList);
+            // 首次展开就预留网络结果的位置，防抖结束时复用同一份骨架。
+            renderSuggestions(localList, [], preserveSelection, true);
         } else {
             suggestionItems = [];
             suggestionNodes = [];
