@@ -232,16 +232,17 @@ test('从天气切回搜索、更新候选和输入法确认', async () => {
           dom.suggestionMenu.querySelector('.suggestion-item[data-url]')?.textContent.includes('GitHub');
         input.value = 'glass-regression-new-query';
         input.dispatchEvent(new Event('input', {bubbles:true}));
-        const oldMenuClosed = !dom.suggestionMenu.classList.contains('active');
+        const loadingMenuStayedOpen = dom.suggestionMenu.classList.contains('active') &&
+          !dom.suggestionMenu.querySelector('[role="option"]');
         const tabUnclaimed = input.dispatchEvent(new KeyboardEvent('keydown', {key:'Tab',bubbles:true,cancelable:true}));
         input.dispatchEvent(new KeyboardEvent('keydown', {key:'ArrowDown',bubbles:true,cancelable:true}));
         const value = input.value;
         input.dispatchEvent(new KeyboardEvent('keydown', {key:'Enter',ctrlKey:true,bubbles:true,cancelable:true}));
-        return {hadBookmark, oldMenuClosed, tabUnclaimed, value, section:state.currentSection, query:destination && new URL(destination).searchParams.get('q')};
+        return {hadBookmark, loadingMenuStayedOpen, tabUnclaimed, value, section:state.currentSection, query:destination && new URL(destination).searchParams.get('q')};
       } finally { window.open = open; }
     })()`);
     assert.deepEqual(revisedQuery, {
-      hadBookmark:true, oldMenuClosed:true, tabUnclaimed:true, value:'glass-regression-new-query', section:'start', query:'glass-regression-new-query'
+      hadBookmark:true, loadingMenuStayedOpen:true, tabUnclaimed:true, value:'glass-regression-new-query', section:'start', query:'glass-regression-new-query'
     });
 
     const searchActions = await evalJS(`(() => {

@@ -79,7 +79,7 @@ test('数据容错、搜索联想与网络降级回归', async () => {
       dom.searchInput.dispatchEvent(new Event('input', { bubbles: true }));
       dom.searchClearBtn.classList.toggle = origToggle;
 
-      // 2. 联想面板 DOM 缓存复用：同一候选列表不重建 DOM 节点，本地无匹配时同步清空防幽灵残影
+      // 2. 相同书签复用节点。新输入没有本地结果时，已展开的面板直接切到网络占位。
       dom.searchInput.value = 'githu';
       dom.searchInput.dispatchEvent(new Event('input', { bubbles: true }));
       const firstOptNode = dom.suggestionMenu.querySelector('.suggestion-item');
@@ -89,7 +89,10 @@ test('数据容错、搜索联想与网络降级回归', async () => {
       const domReused = firstOptNode !== null && firstOptNode === secondOptNode;
       dom.searchInput.value = 'githubxyznonexistentquery';
       dom.searchInput.dispatchEvent(new Event('input', { bubbles: true }));
-      const ghostCleared = !dom.suggestionMenu.classList.contains('active') && dom.suggestionMenu.querySelectorAll('.suggestion-item').length === 0;
+      const loadingWithoutStaleOptions = dom.suggestionMenu.classList.contains('active') &&
+        dom.searchInput.getAttribute('aria-expanded') === 'true' &&
+        !dom.suggestionMenu.querySelector('[role="option"]') &&
+        !!dom.suggestionMenu.lastElementChild.querySelector(':scope > [aria-hidden="true"]');
 
       // 3. gestures 标量短路：首屏 pointermove 不读取 document.body.classList
       let classListReads = 0;
@@ -116,9 +119,9 @@ test('数据容错、搜索联想与网络降级回归', async () => {
       dom.searchInput.value = '';
       dom.searchInput.dispatchEvent(new Event('input', { bubbles: true }));
 
-      return { hiddenToggles, domReused, ghostCleared, classListReads, arrayMaps };
+      return { hiddenToggles, domReused, loadingWithoutStaleOptions, classListReads, arrayMaps };
     })()`);
-    assert.deepEqual(perfResults, { hiddenToggles: 1, domReused: true, ghostCleared: true, classListReads: 0, arrayMaps: 0 });
+    assert.deepEqual(perfResults, { hiddenToggles: 1, domReused: true, loadingWithoutStaleOptions: true, classListReads: 0, arrayMaps: 0 });
 
     await evalJS(`selectWallpaper(location.origin + '/audit-slow.png'); selectWallpaper(backgrounds[2]);`);
     await waitFor(evalJS, 'state.bg === 2 && !state.customWallpaper');

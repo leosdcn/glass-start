@@ -188,17 +188,13 @@
     color: rgba(255, 255, 255, 0.95);
 }
 
-.suggestion-section-header {
-    position: relative;
+#suggestionMenu > [role="group"]:empty {
+    display: none;
 }
-.suggestion-section-header::after {
+
+#suggestionMenu > [role="group"]:not(:empty) + [role="group"]:not(:empty)::before {
     content: '';
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: linear-gradient(to right, rgba(255, 255, 255, 0.45) 0%, rgba(255, 255, 255, 0.12) 35%, transparent 100%);
-    opacity: 0.35;
-    pointer-events: none;
+    display: block;
+    margin: 0.25rem 0.875rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.16);
 }

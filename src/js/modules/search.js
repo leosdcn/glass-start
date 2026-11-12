@@ -424,21 +424,15 @@ function renderSuggestions(localList = [], netList = [], preserveSelection = fal
     ];
     selectedSuggestionIdx = -1;
 
-    /**
-     * @param {string} title
-     * @param {boolean} [isFirst=false]
-     */
-    const renderSectionHeader = (title, isFirst = false) => `
-        <div role="presentation" class="suggestion-section-header mx-3.5 px-0 ${isFirst ? 'pt-1.5' : 'pt-2'} pb-2 mb-1 text-2xs font-medium tracking-wider text-white/40 uppercase select-none">${title}</div>
-    `;
-
     // 确保内部的分组子容器已就绪
     if (!localGroup || !netGroup || !suggestionMenu.contains(localGroup) || !suggestionMenu.contains(netGroup)) {
         localGroup = document.createElement('div');
-        localGroup.setAttribute('role', 'presentation');
+        localGroup.setAttribute('role', 'group');
+        localGroup.setAttribute('aria-label', t('ui.bookmark'));
 
         netGroup = document.createElement('div');
-        netGroup.setAttribute('role', 'presentation');
+        netGroup.setAttribute('role', 'group');
+        netGroup.setAttribute('aria-label', t('ui.search.suggestions'));
 
         suggestionMenu.replaceChildren(localGroup, netGroup);
         lastRenderedLocalKey = '';
@@ -447,20 +441,12 @@ function renderSuggestions(localList = [], netList = [], preserveSelection = fal
     // 本地书签分组：仅当本地数据真正变更或首次挂载时才渲染，避免网络联想返回时重新生成节点导致图片闪烁
     if (!isOpen || lastRenderedLocalKey !== localKey) {
         lastRenderedLocalKey = localKey;
-        if (localList.length > 0) {
-            let localHtml = renderSectionHeader(t('ui.bookmark'), true);
-            localList.forEach((bm, idx) => {
-                localHtml += getBookmarkSuggestionHTML(bm, idx);
-            });
-            localGroup.innerHTML = localHtml;
-        } else {
-            localGroup.innerHTML = '';
-        }
+        localGroup.innerHTML = localList.map(getBookmarkSuggestionHTML).join('');
     }
 
     // 网络建议分组：支持从骨架屏平滑更新为联想词，或在无网络结果时清空
     if (safeNetList.length > 0) {
-        let netHtml = (localList.length > 0 ? renderSectionHeader(t('ui.search'), false) : '');
+        let netHtml = '';
         let globalIdx = localList.length;
         safeNetList.forEach(item => {
             const idx = globalIdx++;
@@ -476,7 +462,7 @@ function renderSuggestions(localList = [], netList = [], preserveSelection = fal
         });
         netGroup.innerHTML = netHtml;
     } else if (isNetLoading) {
-        let skeletonHtml = (localList.length > 0 ? renderSectionHeader(t('ui.search'), false) : '');
+        let skeletonHtml = '';
         const skeletonCount = Math.max(1, CONFIG.SUGGEST.MAX_TOTAL_ITEMS - localList.length);
         for (let k = 0; k < skeletonCount; k++) {
             const widthClass = k % 2 === 0 ? 'w-44' : 'w-28';
@@ -599,29 +585,9 @@ export function fetchSuggestions(engineKey, query, deferNetwork = false) {
         requestNetworkSuggestions(engineKey, query, cacheKey, localList, reqId);
     };
     if (deferNetwork) {
-        if (localList.length) {
-            // 首次展开就预留网络结果的位置，防抖结束时复用同一份骨架。
+        if (localList.length || dom.suggestionMenu?.classList.contains('active')) {
+            // 防抖期间用骨架替换旧建议，已展开的面板无需重新退场和入场。
             renderSuggestions(localList, [], preserveSelection, true);
-        } else {
-            suggestionItems = [];
-            suggestionNodes = [];
-            selectedSuggestionNode = null;
-            lastSuggestionsSignature = '';
-            lastRenderedLocalKey = '';
-            if (localGroup) localGroup.innerHTML = '';
-            if (netGroup) netGroup.innerHTML = '';
-            const suggestionMenu = dom.suggestionMenu;
-            const searchInput = dom.searchInput;
-            if (suggestionMenu) {
-                suggestionMenu.classList.remove('active', 'keyboard-nav');
-                suggestionMenu.setAttribute('aria-hidden', 'true');
-            }
-            if (searchInput) {
-                searchInput.setAttribute('aria-expanded', 'false');
-                searchInput.removeAttribute('aria-activedescendant');
-            }
-            selectedSuggestionIdx = -1;
-            OverlayStack.pop('suggestions');
         }
         suggestDebounceTimer = setTimeout(start, CONFIG.SUGGEST.DEBOUNCE_MS);
     } else {
