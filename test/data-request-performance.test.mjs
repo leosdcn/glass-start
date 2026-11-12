@@ -123,20 +123,25 @@ try {
         try {
             fetchSuggestions('wikipedia', 'performance-cors');
             const node = dom.suggestionMenu.firstChild;
+            const busy = dom.suggestionMenu.getAttribute('aria-busy') === 'true' &&
+                !dom.suggestionMenu.querySelector('[role="option"]');
             fetchSuggestions('wikipedia', 'performance-cors');
             const shared = requests.length === 1 && !requests[0].options.signal.aborted && node === dom.suggestionMenu.firstChild;
             requests[0].resolve({ok:true,json:async()=>['query',['shared-result']]});
             await new Promise(resolve => setTimeout(resolve, 0));
-            const shown = dom.suggestionMenu.textContent.includes('shared-result');
+            const shown = dom.suggestionMenu.textContent.includes('shared-result') &&
+                !dom.suggestionMenu.hasAttribute('aria-busy') &&
+                dom.suggestionMenu.lastElementChild.getAttribute('aria-hidden') === 'false';
             const completedNode = dom.suggestionMenu.firstChild;
             fetchSuggestions('wikipedia', 'performance-cors');
             const cachedNodes = requests.length === 1 && completedNode === dom.suggestionMenu.firstChild;
             fetchSuggestions('wikipedia', 'performance-cancel');
             hideSuggestions();
-            return {shared, shown, cachedNodes, aborted:requests[1].options.signal.aborted};
+            return {busy, shared, shown, cachedNodes, aborted:requests[1].options.signal.aborted,
+                closed:!dom.suggestionMenu.hasAttribute('aria-busy')};
         } finally { window.fetch = original; hideSuggestions(); }
     })()`);
-    assert.deepEqual(cors, {shared:true, shown:true, cachedNodes:true, aborted:true});
+    assert.deepEqual(cors, {busy:true, shared:true, shown:true, cachedNodes:true, aborted:true, closed:true});
     console.log('✅ Wikipedia 同查询共享请求，命中相同缓存复用节点，关闭仍中止未决请求');
 
     await send('Emulation.setEmulatedMedia', { features:[{name:'prefers-reduced-motion', value:'no-preference'}] });
@@ -155,6 +160,8 @@ try {
             const local = suggestionMenu.querySelector('.suggestion-item[data-url]');
             const networkGroup = suggestionMenu.lastElementChild;
             const skeleton = networkGroup?.querySelector(':scope > [aria-hidden="true"]');
+            const localAccessibleWhileLoading = !suggestionMenu.hasAttribute('aria-busy') &&
+                networkGroup?.getAttribute('aria-hidden') === 'true';
             const initialHeight = suggestionMenu.offsetHeight;
             const respond = await requestStarted;
             const pendingHeight = suggestionMenu.offsetHeight;
@@ -184,7 +191,7 @@ try {
             input('github');
             await exiting;
             const reopened = suggestionMenu.classList.contains('active') && !!suggestionMenu.querySelector('.suggestion-item[data-url]');
-            return { initialHeight, pendingHeight, resultHeight, sameSkeleton, localKept, networkShown,
+            return { initialHeight, pendingHeight, resultHeight, sameSkeleton, localKept, networkShown, localAccessibleWhileLoading,
                 closingHeight, collapsed, cleared, reopened };
         } finally {
             hideSuggestions();
@@ -194,6 +201,7 @@ try {
         }
     })()`);
     assert.ok(loading.sameSkeleton && loading.localKept && loading.networkShown, JSON.stringify(loading));
+    assert.ok(loading.localAccessibleWhileLoading, JSON.stringify(loading));
     assert.equal(loading.initialHeight, loading.pendingHeight);
     assert.equal(loading.pendingHeight, loading.resultHeight);
     assert.equal(loading.closingHeight, loading.resultHeight);

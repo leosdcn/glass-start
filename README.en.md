@@ -130,7 +130,7 @@ npm run preview
 - **Type to search**: type letters or numbers on the start page; the search field receives focus and your input automatically.
 - **Combined suggestions**: search for preset bookmarks by either their Chinese or English catalog name. Matching local bookmarks appear first, followed by search-engine suggestions. Online results depend on service availability, and cached results can appear immediately.
 - **Input methods**: during text composition, an open suggestions panel keeps its current contents. The input method handles the arrow keys and Enter. Web suggestions update after you commit the text.
-- **Keyboard selection**: use `↑` / `↓` to cycle through results and `Enter` to open the selected item.
+- **Keyboard selection**: use `↑` / `↓` to select a suggestion and `Enter` to open it. Use `←` / `→` to clear the selection and move the caret, then press `Enter` to search for the typed text.
 - **Open in a new tab**: press `Cmd + Enter`, `Ctrl + Enter` or `Alt + Enter` to open the selected item or run the search in a new tab.
 - **Search engines**: click the icon on the left of the search field to choose Bing, Google or Wikipedia. Without a saved preference, English defaults to Google and Chinese to Bing. Your saved engine choice takes priority over the language default.
 

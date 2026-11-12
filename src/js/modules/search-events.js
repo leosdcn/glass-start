@@ -155,6 +155,10 @@ export function handleSearchKeydown(e) {
         hideSuggestions();
         return true;
     }
+    if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && getSelectedSuggestionIdx() >= 0) {
+        selectSuggestion(-1, { keyboard: true });
+        return true;
+    }
     if (handleSuggestionKeyNav(e)) return true;
     // 有查询时，上下键留在搜索框。
     return (e.key === 'ArrowUp' || e.key === 'ArrowDown') && !!dom.searchInput?.value.trim();

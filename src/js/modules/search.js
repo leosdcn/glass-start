@@ -423,6 +423,8 @@ function renderSuggestions(localList = [], netList = [], preserveSelection = fal
         ...safeNetList.map(text => (/** @type {import('../types').SuggestionQueryItem} */ ({type: 'query', text})))
     ];
     selectedSuggestionIdx = -1;
+    const waitingForOptions = isNetLoading && suggestionItems.length === 0;
+    if (waitingForOptions) suggestionMenu.setAttribute('aria-busy', 'true');
 
     // 确保内部的分组子容器已就绪
     if (!localGroup || !netGroup || !suggestionMenu.contains(localGroup) || !suggestionMenu.contains(netGroup)) {
@@ -445,6 +447,7 @@ function renderSuggestions(localList = [], netList = [], preserveSelection = fal
     }
 
     // 网络建议分组：支持从骨架屏平滑更新为联想词，或在无网络结果时清空
+    netGroup.setAttribute('aria-hidden', String(safeNetList.length === 0));
     if (safeNetList.length > 0) {
         let netHtml = '';
         let globalIdx = localList.length;
@@ -487,6 +490,7 @@ function renderSuggestions(localList = [], netList = [], preserveSelection = fal
 
     if (prevIdx >= 0) selectSuggestion(Math.min(prevIdx, suggestionItems.length - 1));
     else searchInput?.removeAttribute('aria-activedescendant');
+    if (!waitingForOptions) suggestionMenu.removeAttribute('aria-busy');
 }
 
 /** 作废未决联想，保留已渲染的候选。 */
@@ -515,6 +519,7 @@ export function hideSuggestions() {
         const wasOpen = suggestionMenu.classList.contains('active');
         suggestionMenu.classList.remove('active', 'keyboard-nav');
         suggestionMenu.setAttribute('aria-hidden', 'true');
+        suggestionMenu.removeAttribute('aria-busy');
         if (wasOpen) {
             // 先关闭交互，等 CSS 隐藏面板后再移除内容，保持退场高度。
             const clearGroups = () => {

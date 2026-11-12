@@ -344,6 +344,22 @@ test('新标签页打开候选时保留列表，当前页打开时收起', async
       }
     };
     await showSuggestions();
+    await evalJS('dom.searchInput.setSelectionRange(5, 5)');
+    for (const [key, keyCode, caret] of [['ArrowLeft', 37, 4], ['ArrowRight', 39, 5]]) {
+      await pressKey(evalJS, 'ArrowDown');
+      assert.equal(await evalJS("dom.searchInput.getAttribute('aria-activedescendant')"), 'sug-opt-0');
+      for (const type of ['rawKeyDown', 'keyUp']) {
+        await send('Input.dispatchKeyEvent', {type,key,code:key,windowsVirtualKeyCode:keyCode});
+      }
+      assert.equal(await evalJS('dom.searchInput.selectionStart'), caret);
+      assert.equal(await evalJS(`dom.suggestionMenu.classList.contains('active')
+        && !dom.searchInput.hasAttribute('aria-activedescendant')
+        && !dom.suggestionMenu.querySelector('[aria-selected="true"]')`), true);
+    }
+    await evalJS(`dom.searchInput.dispatchEvent(new KeyboardEvent('keydown',
+      {key:'Enter',ctrlKey:true,bubbles:true,cancelable:true}))`);
+    assert.equal(new URL(await evalJS('openedSuggestions.pop()[0]')).searchParams.get('search'), 'glass tab fixture');
+
     await evalJS("window.firstSuggestion = dom.suggestionMenu.querySelector('.suggestion-item')");
     for (const selector of [bookmark, network]) {
       assert.equal(await evalJS(`dom.suggestionMenu.querySelector('${selector}').dispatchEvent(
