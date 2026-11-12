@@ -4,6 +4,13 @@ import { launchSession, waitFor } from './support/helpers.mjs';
 
 const { server, chrome, send, evalJS } = await launchSession();
 const ready = () => waitFor(evalJS, `document.documentElement?.lang === 'en' && typeof openEditModal === 'function' && !!document.querySelector('.bookmark-item')`, 10000);
+const firstLocalSuggestion = query => evalJS(`(() => {
+    try {
+        fetchSuggestions(state.engine, ${JSON.stringify(query)}, true);
+        const item = dom.suggestionMenu.querySelector('.suggestion-item[data-url]');
+        return item && { name: item.querySelector('span').textContent, url: item.dataset.url };
+    } finally { hideSuggestions(); }
+})()`);
 const chooseEnglish = async () => {
     await evalJS(`(async () => {
         await openEditModal();
@@ -19,6 +26,10 @@ try {
     assert.equal(await evalJS(`state.engine`), 'bing');
     assert.deepEqual(await evalJS(`pageData.bookmarks.map(bookmark => bookmark.name)`),
         ['GitHub', 'DeepSeek', 'Gemini', 'YouTube', '哔哩哔哩', '抖音', '豆包', '网易云音乐']);
+    for (const query of ['Google Arts & Culture', 'Google 艺术与文化']) {
+        assert.deepEqual(await firstLocalSuggestion(query), { name: 'Google 艺术与文化', url: 'https://artsandculture.google.com' }, query);
+    }
+    assert.deepEqual(await firstLocalSuggestion('Quick, Draw!'), { name: '快速涂鸦', url: 'https://quickdraw.withgoogle.com' });
     await evalJS(`(async () => {
         await openEditModal();
         dom.languageBtn.click();
@@ -46,6 +57,10 @@ try {
     assert.deepEqual(await evalJS(`pageData.bookmarks.map(bookmark => bookmark.name)`),
         ['ChatGPT', 'Gemini', 'DeepSeek', 'GitHub', 'YouTube', 'Spotify', 'Reddit', 'X']);
     assert.equal(await evalJS(`pageData.categories.every(category => category.bookmarks.every(bookmark => !/[\u4e00-\u9fff]/.test(bookmark.name + bookmark.desc)))`), true);
+    for (const query of ['维基百科', 'Wikipedia']) {
+        assert.deepEqual(await firstLocalSuggestion(query), { name: 'Wikipedia', url: 'https://en.wikipedia.org/wiki/Main_Page' }, query);
+    }
+    assert.deepEqual(await firstLocalSuggestion('快速涂鸦'), { name: 'Quick, Draw!', url: 'https://quickdraw.withgoogle.com' });
 
     // Destinations vary by language; stored bookmark identity must remain stable.
     const destinations = await evalJS(`(() => {

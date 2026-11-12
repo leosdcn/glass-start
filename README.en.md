@@ -168,7 +168,7 @@ This is a structural example. Chinese source text is intentional: English names,
 
 - **`bookmarks`**: default quick bookmarks on the Chinese start page, with `name`, `url` and `icon`.
 - **`categories`**: categories on the bookmarks page. Each has a stable `id`, a display `name`, an `icon` and a `bookmarks` list. Match category IDs in the English catalog when adding or changing categories.
-- **`name`**: use the official Chinese name for Chinese services and the official English name for international services. Localized names can be provided in the English catalog.
+- **`name`**: use the official Chinese name in the Chinese interface when available and the original name otherwise. Set English display names in `catalog-en.json`.
 - **`desc`**: a short subtitle. In `bookmarks.json`, Chinese-only descriptions are limited to 12 characters; descriptions containing Latin letters or numbers are limited to 16 characters. English catalog descriptions are limited to **28 characters, including spaces and punctuation**, enforced by lint. A character limit does not guarantee that text fits every card width.
 - **`url`**: use the official HTTPS address, preferably a direct link with no unnecessary redirects.
 - **`icon`**: preset bookmarks use same-origin paths such as `./icons/<domain>.png`, loaded from the site or its cache. The sync script fetches icons based on the URL hostname, converts them to square PNGs using `sips` and writes back the local paths. The `icon` field is not a custom download source.

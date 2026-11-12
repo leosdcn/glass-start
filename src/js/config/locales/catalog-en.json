@@ -130,6 +130,7 @@
             "desc": "Share photos and videos"
         },
         "https://www.linkedin.com": {
+            "name": "LinkedIn",
             "desc": "Professional networking"
         },
         "https://linux.do": {
@@ -172,6 +173,7 @@
             "desc": "Email by Google"
         },
         "https://translate.google.com": {
+            "name": "Google Translate",
             "desc": "Translate across languages"
         },
         "https://www.notion.com": {
@@ -187,6 +189,7 @@
             "desc": "World clocks and time zones"
         },
         "https://drive.google.com": {
+            "name": "Google Drive",
             "desc": "Cloud storage and documents"
         },
         "https://www.icloud.com": {
@@ -209,9 +212,11 @@
             "desc": "Online graphing calculator"
         },
         "https://www.duolingo.com": {
+            "name": "Duolingo",
             "desc": "Bite-size language lessons"
         },
         "https://artsandculture.google.com": {
+            "name": "Google Arts & Culture",
             "desc": "Explore art and museums"
         },
         "https://archive.org": {
@@ -224,6 +229,7 @@
             "desc": "Practical how-to guides"
         },
         "https://en.wikipedia.org/wiki/Main_Page": {
+            "name": "Wikipedia",
             "desc": "The free encyclopedia"
         },
         "https://socpk.com": {
@@ -246,9 +252,11 @@
             "desc": "Live global flight tracking"
         },
         "https://earth.google.com": {
+            "name": "Google Earth",
             "desc": "Explore Earth in 3D"
         },
         "https://maps.google.com": {
+            "name": "Google Maps",
             "desc": "Global maps and directions"
         },
         "https://stellarium-web.org": {
@@ -291,6 +299,7 @@
             "desc": "Remove backgrounds locally"
         },
         "https://www.canva.com": {
+            "name": "Canva",
             "desc": "Online design and templates"
         },
         "https://coolors.co": {
@@ -419,6 +428,7 @@
             "desc": "Character personality types"
         },
         "https://quickdraw.withgoogle.com": {
+            "name": "Quick, Draw!",
             "desc": "Drawing game with Google AI"
         },
         "https://radio.garden": {

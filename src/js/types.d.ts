@@ -265,6 +265,7 @@ export interface SearchCandidateItem {
     normUrl: string;
     defaultCat: string;
     nameLower?: string;
+    alternateNamesLower?: string[];
     descLower?: string;
     urlLower?: string;
     cleanUrl?: string;

@@ -259,7 +259,7 @@
                     "desc": "照片视频分享社区"
                 },
                 {
-                    "name": "LinkedIn",
+                    "name": "领英",
                     "url": "https://www.linkedin.com",
                     "icon": "./icons/linkedin.com.png",
                     "desc": "全球职业社交与人脉"
@@ -344,7 +344,7 @@
                     "desc": "谷歌电子邮箱"
                 },
                 {
-                    "name": "Google Translate",
+                    "name": "Google 翻译",
                     "url": "https://translate.google.com",
                     "icon": "./icons/translate.google.com.png",
                     "desc": "全球多语种即时翻译"
@@ -381,7 +381,7 @@
             "icon": "./icons/emoji/cloud.svg",
             "bookmarks": [
                 {
-                    "name": "Google Drive",
+                    "name": "Google 云端硬盘",
                     "url": "https://drive.google.com",
                     "icon": "./icons/drive.google.com.png",
                     "desc": "谷歌官方云盘与文档"
@@ -430,13 +430,13 @@
                     "desc": "在线函数绘图与科学计算"
                 },
                 {
-                    "name": "Duolingo",
+                    "name": "多邻国",
                     "url": "https://www.duolingo.com",
                     "icon": "./icons/duolingo.com.png",
                     "desc": "趣味游戏化外语学习"
                 },
                 {
-                    "name": "Google Arts & Culture",
+                    "name": "Google 艺术与文化",
                     "url": "https://artsandculture.google.com",
                     "icon": "./icons/artsandculture.google.com.png",
                     "desc": "全球艺术博物馆漫游"
@@ -460,7 +460,7 @@
                     "desc": "万物生活与实操指南"
                 },
                 {
-                    "name": "Wikipedia",
+                    "name": "维基百科",
                     "url": "https://en.wikipedia.org/wiki/Main_Page",
                     "icon": "./icons/en.wikipedia.org.png",
                     "desc": "自由的多语言百科全书"
@@ -503,13 +503,13 @@
                     "desc": "全球航班实时雷达"
                 },
                 {
-                    "name": "Google Earth",
+                    "name": "Google 地球",
                     "url": "https://earth.google.com",
                     "icon": "./icons/earth.google.com.png",
                     "desc": "三维地球探索工具"
                 },
                 {
-                    "name": "Google Maps",
+                    "name": "Google 地图",
                     "url": "https://maps.google.com",
                     "icon": "./icons/maps.google.com.png",
                     "desc": "全球地图导航服务"
@@ -601,7 +601,7 @@
                     "desc": "本地一键智能抠图"
                 },
                 {
-                    "name": "Canva",
+                    "name": "Canva可画",
                     "url": "https://www.canva.com",
                     "icon": "./icons/canva.com.png",
                     "desc": "在线平面设计与模板"
@@ -881,7 +881,7 @@
                     "desc": "人物角色性格数据库"
                 },
                 {
-                    "name": "Quick, Draw!",
+                    "name": "快速涂鸦",
                     "url": "https://quickdraw.withgoogle.com",
                     "icon": "./icons/quickdraw.withgoogle.com.png",
                     "desc": "谷歌 AI 你画我猜"

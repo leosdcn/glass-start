@@ -101,6 +101,14 @@ function getFuzzyScore(query, target, options, subQueries = query.split(/\s+/).f
     return totalDist <= maxTotalDist ? totalDist : Infinity;
 }
 
+/** @param {string} query @param {string} name @param {import('../types').SearchOptions['TIERS']} tiers */
+function getNameMatchTier(query, name, tiers) {
+    if (name === query) return tiers.EXACT_NAME;
+    if (name.startsWith(query)) return tiers.PREFIX_NAME;
+    if (name.includes(query)) return tiers.SUBSTRING_NAME;
+    return Infinity;
+}
+
 /**
  * 在本地全站书签中根据关键词检索匹配项（包含快捷书签与分类书签）
  * @param {string} query - 搜索关键词
@@ -120,27 +128,27 @@ export function rankBookmarkSuggestions(query, model, config, limit = config.MAX
 
     for (let idx = 0; idx < allCandidates.length; idx++) {
         const candidate = allCandidates[idx];
-        const { bm, normUrl, defaultCat } = candidate;
+        const { bm, normUrl, defaultCat, alternateNamesLower = [] } = candidate;
         const bmName = candidate.nameLower ?? (bm.name || '').toLowerCase();
         const bmDesc = candidate.descLower ?? (bm.desc || '').toLowerCase();
         const bmUrl = candidate.urlLower ?? (bm.url || '').toLowerCase();
         const normalizedText = candidate.cleanUrl ?? normUrl.toLowerCase().replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '');
         const realCat = urlToCategoryMap.get(normUrl) || defaultCat;
 
-        let tier = Infinity;
+        let tier = getNameMatchTier(q, bmName, config.TIERS);
+        for (const name of alternateNamesLower) {
+            tier = Math.min(tier, getNameMatchTier(q, name, config.TIERS));
+        }
 
-        if (bmName === q) {
-            tier = config.TIERS.EXACT_NAME;
-        } else if (bmName.startsWith(q)) {
-            tier = config.TIERS.PREFIX_NAME;
-        } else if (bmName.includes(q)) {
-            tier = config.TIERS.SUBSTRING_NAME;
-        } else if (bmUrl.includes(q) || normalizedText.includes(q)) {
+        if (tier === Infinity && (bmUrl.includes(q) || normalizedText.includes(q))) {
             tier = config.TIERS.URL_MATCH;
-        } else if (bmDesc.includes(q)) {
+        } else if (tier === Infinity && bmDesc.includes(q)) {
             tier = config.TIERS.DESC_MATCH;
-        } else if (isFuzzyEligible) {
-            const nameFuzzyScore = getFuzzyScore(q, bm.name || '', config.FUZZY, subQueries);
+        } else if (tier === Infinity && isFuzzyEligible) {
+            let nameFuzzyScore = getFuzzyScore(q, bmName, config.FUZZY, subQueries);
+            for (const name of alternateNamesLower) {
+                nameFuzzyScore = Math.min(nameFuzzyScore, getFuzzyScore(q, name, config.FUZZY, subQueries));
+            }
             if (nameFuzzyScore !== Infinity) {
                 tier = config.TIERS.FUZZY_NAME_BASE + nameFuzzyScore;
             } else {

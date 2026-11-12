@@ -3,7 +3,7 @@ import { t, getLocale, localizeBookmarkUrl } from '../core/i18n.js';
 import { rankBookmarkSuggestions } from '../utils/bookmark-search.js';
 import { getCategoryCatalog } from '../utils/category-catalog.js';
 import { bookmarkUrlKey } from '../utils/bookmark-model.js';
-import { CONFIG, engines } from '../config/constants.js';
+import { CONFIG, DEFAULT_CATEGORIES, engines } from '../config/constants.js';
 import { DEFAULT_ENGINE } from '../config/engines.js';
 import { escapeHtml, safeUrl } from '../utils/helpers.js';
 import { storageSet } from '../utils/storage.js';
@@ -302,6 +302,12 @@ function getSearchCandidates() {
         return cachedSearchCandidates;
     }
     const urlToCategoryMap = catalog.searchCategories;
+    const englishBookmarks = window.__GLASS_I18N__?.catalogs?.en?.bookmarks;
+    const presetNamesByUrl = new Map(DEFAULT_CATEGORIES.flatMap(category => category.bookmarks.map(({ url, name }) => {
+        const englishName = englishBookmarks?.[url]?.name;
+        const names = englishName && englishName !== name ? [name, englishName] : [name];
+        return [bookmarkUrlKey(url), names.map(name => name.toLowerCase())];
+    })));
     /** @type {import('../types').SearchCandidateItem[]} */
     const candidates = [];
     const seenNormUrls = new Set();
@@ -313,11 +319,13 @@ function getSearchCandidates() {
     const addCandidate = (bm, normUrl, defaultCat) => {
         if (seenNormUrls.has(normUrl)) return;
         seenNormUrls.add(normUrl);
+        const nameLower = (bm.name || '').toLowerCase();
         candidates.push({
             bm,
             normUrl,
             defaultCat,
-            nameLower: (bm.name || '').toLowerCase(),
+            nameLower,
+            alternateNamesLower: presetNamesByUrl.get(normUrl)?.filter(name => name !== nameLower),
             descLower: (bm.desc || '').toLowerCase(),
             urlLower: (bm.url || '').toLowerCase(),
             cleanUrl: normUrl.toLowerCase().replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')
