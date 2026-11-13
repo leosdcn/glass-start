@@ -125,10 +125,22 @@
                     "desc": "月之暗面长文本 AI"
                 },
                 {
+                    "name": "Meta AI",
+                    "url": "https://meta.ai",
+                    "icon": "./icons/meta.ai.png",
+                    "desc": "Meta 官方 AI 助手"
+                },
+                {
                     "name": "Mistral",
                     "url": "https://chat.mistral.ai",
                     "icon": "./icons/chat.mistral.ai.png",
                     "desc": "Mistral AI 对话助手"
+                },
+                {
+                    "name": "Muse",
+                    "url": "https://muse.ai",
+                    "icon": "./icons/muse.ai.png",
+                    "desc": "Meta 个人 AI 智能体"
                 },
                 {
                     "name": "Perplexity",
@@ -629,12 +641,6 @@
                     "url": "https://squoosh.app",
                     "icon": "./icons/squoosh.app.png",
                     "desc": "开源本地图片压缩"
-                },
-                {
-                    "name": "Vocal Remover",
-                    "url": "https://vocalremover.org",
-                    "icon": "./icons/vocalremover.org.png",
-                    "desc": "免费人声伴奏分离"
                 },
                 {
                     "name": "waifu2x",
