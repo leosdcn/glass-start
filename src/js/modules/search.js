@@ -422,7 +422,6 @@ function renderSuggestions(localList = [], netList = [], preserveSelection = fal
         ...localList.map(bm => (/** @type {import('../types').SuggestionBookmarkItem} */ ({type: 'bookmark', text: bm.name, url: bm.url}))),
         ...safeNetList.map(text => (/** @type {import('../types').SuggestionQueryItem} */ ({type: 'query', text})))
     ];
-    selectedSuggestionIdx = -1;
     const waitingForOptions = isNetLoading && suggestionItems.length === 0;
     if (waitingForOptions) suggestionMenu.setAttribute('aria-busy', 'true');
 
@@ -482,14 +481,12 @@ function renderSuggestions(localList = [], netList = [], preserveSelection = fal
     }
 
     suggestionNodes = suggestionMenu.querySelectorAll('.suggestion-item');
-    selectedSuggestionNode = null;
     lastSuggestionsSignature = signature;
     suggestionMenu.classList.add('active');
     suggestionMenu.setAttribute('aria-hidden', 'false');
     searchInput.setAttribute('aria-expanded', 'true');
 
-    if (prevIdx >= 0) selectSuggestion(Math.min(prevIdx, suggestionItems.length - 1));
-    else searchInput?.removeAttribute('aria-activedescendant');
+    selectSuggestion(Math.min(prevIdx, suggestionItems.length - 1));
     if (!waitingForOptions) suggestionMenu.removeAttribute('aria-busy');
 }
 

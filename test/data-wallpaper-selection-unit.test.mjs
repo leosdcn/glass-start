@@ -42,7 +42,7 @@ function fixture() {
         return { finished: promise, cancel: () => reject(new Error('cancelled')) };
     };
     const context = vm.createContext({
-        module: { exports: {} }, console, Element, db, messages,
+        module: { exports: {} }, console, Element, db, messages, setTimeout, clearTimeout,
         window: { matchMedia: () => ({ matches: false, addEventListener() {}, removeEventListener() {} }) },
         document: { getElementById: key => ({ bgLayer: base, bgLayerNext: next })[key] ?? null },
         localStorage: { getItem: key => storage.get(key) ?? null,

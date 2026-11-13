@@ -121,7 +121,7 @@ npm run preview
 
 ### 1. Scrolling between screens
 
-- **Wheel / swipe**: scroll down or swipe up on the start page to open the bookmarks page. At the top of the bookmarks page, scroll up or swipe down to return.
+- **Wheel / swipe**: scroll down or swipe up on the start page. If its content scrolls, reach the bottom before continuing to the bookmarks page. At the top of the bookmarks page, scroll up or swipe down to return.
 - **Return button**: click **Start page** at the top of the bookmarks page.
 - **Keyboard**: when no dialog or panel blocks page navigation and you are not editing another input, press `PageDown` / `↓` to open bookmarks. At the top of the bookmarks page, press `PageUp` / `Home` / `↑` to return. When search suggestions are open, arrow keys select suggestions first.
 
@@ -195,7 +195,7 @@ Click the settings button at the bottom right to edit quick bookmarks, customize
 - **Language**. Select **Follow browser**, **简体中文** or **English** at the top right of settings, then click **Done** to save. The page reloads when the effective interface language changes. The interface, weather and built-in catalog follow the selected language. Custom and imported text stays as entered. On first use, the app follows your browser's language, falling back to English for unsupported languages. The website and extension save their preferences separately, and language changes work offline. Time remains in 24-hour format. Temperature defaults to Celsius and can be switched to Fahrenheit in the weather details. The extension's name on Chrome's management page follows Chrome's language. PWA installation names use the default metadata.
 - **Export / Import**: Export includes the current quick bookmark draft and which fields it inherits from the catalog. Importing JSON asks you to replace the draft; click Done to save it. Backups do not contain wallpaper images, appearance settings or search preferences.
   The export uses `{ version, exportDate, bookmarks }` with format version `1.1`. Import also accepts a bookmark array or catalog JSON with `categories[].bookmarks`. For duplicate links, the first valid entry is kept.
-- **Refresh offline cache / Restore defaults**: cache clearing only removes this deployment's offline resources and Service Worker, preserving other deployments and the web's shared icon cache. Refreshing the offline cache on the web or reloading the extension page discards unsaved edits. Confirming Restore defaults removes custom quick bookmarks, wallpapers and preferences. Editing, saving and cancellation are disabled during the reset and restored on completion or failure. Export bookmarks first if you need a backup.
+- **Refresh offline cache / Restore defaults**: cache clearing removes this deployment’s offline images and preserves the active app’s core cache, other deployments and the web’s shared icon cache. Refreshing the offline cache on the web or reloading the extension page discards unsaved edits. Confirming Restore defaults removes custom quick bookmarks, wallpapers and preferences. Editing, saving and cancellation are disabled during the reset and restored on completion or failure. Export bookmarks first if you need a backup.
 
 ### 5. Keyboard shortcuts
 
@@ -215,7 +215,7 @@ This is my first substantial open-source project, and I am still learning and im
 
 - Node.js 24.x (at least 24.15.0) or version 26 and above, with npm. The supported range is `^24.15.0 || >=26.0.0`, compatible with Stylelint 18. The test driver uses Node's native `fetch` and `WebSocket`; follow the version requirement in `package.json`. Use `npm ci` to install or restore dependencies.
 - Google Chrome for browser regression tests. Set `CHROME_PATH` if needed, for example `CHROME_PATH="/path/to/chrome" npm test`. Chrome is the acceptance baseline; mobile viewports and touch interactions are simulated through Chrome CDP. Testing in Safari or on physical iOS devices is not required for routine development, full tests or releases.
-- Downloaded icons are converted with macOS `sips`. Environments without `sips` can still build, host, and test syncing valid PNGs. Conversion and corrupted pixel data checks run when `sips` is available.
+- Downloaded icons are converted with macOS `sips`. Environments without `sips` can still build, host, and test syncing valid PNGs. Without `sips`, the sync tool checks PNG chunk checksums and compressed image data. Image conversion uses `sips`.
 - Dependency installation, icon downloads or refreshes, and online W3C validation require a connection. Reusing local icons does not contact external icon services.
 
 Check the active environment with `node --version`; the `engines` declaration does not switch Node automatically, and `start.command` only checks whether the Node command is available. CI uses the minimum supported version to verify the lower bound, while the Cloudflare deployment example follows a supported 24.x maintenance version.

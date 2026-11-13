@@ -120,7 +120,7 @@ function getNameMatchTier(query, name, tiers) {
 export function rankBookmarkSuggestions(query, model, config, limit = config.MAX_LOCAL_ITEMS) {
     const q = (query || '').trim().toLowerCase();
     if (!q || !/[\p{L}\p{N}]/u.test(q)) return [];
-    const isFuzzyEligible = q.length >= config.FUZZY.MIN_QUERY_LEN;
+    const isFuzzyEligible = q.length >= config.FUZZY.MIN_QUERY_LEN && q.length <= config.FUZZY.MAX_QUERY_LEN;
     const subQueries = isFuzzyEligible ? q.split(/\s+/).filter(sq => sq.length > 0) : [];
 
     const { candidates: allCandidates, urlToCategoryMap } = model;

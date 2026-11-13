@@ -531,11 +531,20 @@ textarea::placeholder {
 }
 
 /* 起始页首屏 padding 安全区适配；只作用于首屏，不能命中导航页 section。 */
-#startSection {
+#startContent {
+    justify-content: safe center;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
     padding-top: max(3rem, calc(3rem + env(safe-area-inset-top, 0px)));
     padding-bottom: max(3rem, calc(3rem + env(safe-area-inset-bottom, 0px)));
     padding-left: max(1rem, calc(1rem + env(safe-area-inset-left, 0px)));
     padding-right: max(1rem, calc(1rem + env(safe-area-inset-right, 0px)));
+}
+
+@media (max-height: 480px) {
+    #startContent {
+        padding-top: calc(4rem + env(safe-area-inset-top, 0px));
+    }
 }
 
 /* 玻璃底板延伸到视口边缘，安全区留白放在材质内部，保护刘海与底部手势区域。 */

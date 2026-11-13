@@ -9,13 +9,13 @@ import { showConfirm } from '../core/dialogs.js';
 import { CONFIG, IS_MAC } from '../config/constants.js';
 import { DEFAULT_ENGINE } from '../config/engines.js';
 import { escapeHtml, safeUrl } from '../utils/helpers.js';
-import { normalizeBookmark, normalizeBookmarks } from '../utils/bookmark-model.js';
+import { normalizeBookmark, normalizeBookmarks, normalizeBookmarkOverrides } from '../utils/bookmark-model.js';
 import { storageGet, storageSet, storageRemove } from '../utils/storage.js';
 import { state, modalState, pageData } from '../state/store.js';
 import { replaceBookmarkDraft } from '../state/bookmark-draft.js';
 import { dom } from '../state/dom.js';
 import { OverlayStack } from '../core/overlay-stack.js';
-import { flushWallpaperSelection, prepareWallpaperDraft, getCommittedWallpaperUrl, closeWallpaperDraft, pauseWallpaperDraft, showWallpaperDraft, updateWallpaperStatusUI, updatePresetBgCardsUI, clearCustomWallpaper, renderPresetWallpapers, commitWallpaperSelection, revertDraftWallpaper, applyBgEffects, flushBgEffects, getSavedMaskOpacity, commitWallpaperDimming, showWallpaperError, previewDraftWallpaper } from './wallpaper.js';
+import { flushWallpaperSelection, prepareWallpaperDraft, getCommittedWallpaperUrl, closeWallpaperDraft, pauseWallpaperDraft, showWallpaperDraft, updateWallpaperStatusUI, updatePresetBgCardsUI, clearCustomWallpaper, renderPresetWallpapers, commitWallpaperSelection, revertDraftWallpaper, applyBgEffects, flushBgEffects, getSavedMaskOpacity, commitWallpaperDimming, showWallpaperError, previewDraftWallpaper, discardWallpaperDraftSelection } from './wallpaper.js';
 import { loadBookmarks, saveUserBookmarks, resetUserBookmarks, getImportedBookmarks } from './bookmarks.js';
 import { closeDropdown, hideSuggestions, setEngine } from './search.js';
 import { getTransitionMode, syncTransitionSwitcherActive, setTransitionMode, resetNavDiscovery } from '../core/screen-state.js';
@@ -298,6 +298,7 @@ export function submitWallpaperUrlInput() {
             imageUrl.protocol = 'https:';
         }
     } catch {
+        discardWallpaperDraftSelection();
         showWallpaperError(t('ui.enter.a.valid.image.url.starting'));
         return;
     }
@@ -415,7 +416,11 @@ export function importBookmarksJSON(file) {
             }
 
             const fallbackName = t('ui.untitled');
-            const validBookmarks = normalizeBookmarks(importedList, item => normalizeBookmark(item, fallbackName));
+            const validBookmarks = normalizeBookmarks(importedList, item => {
+                const bookmark = normalizeBookmark(item, fallbackName);
+                if (bookmark && !bookmark.overrides) bookmark.overrides = normalizeBookmarkOverrides(item);
+                return bookmark;
+            });
 
             if (validBookmarks.length === 0) {
                 showConfirm(t('ui.no.valid.bookmarks.were.found.in'), null, t('ui.import.failed'), { signal });
@@ -504,7 +509,13 @@ export async function saveEditModal() {
         const previewReady = await flushWallpaperSelection(isCurrent);
         if (!isCurrent()) return;
         if (!previewReady) {
-            if (OverlayStack.top()?.id === 'editModal') switchSettingsTab('tabAppearance');
+            if (OverlayStack.top()?.id === 'editModal') {
+                switchSettingsTab('tabAppearance');
+                showConfirm(t('settings.discardFailedWallpaper'), () => {
+                    discardWallpaperDraftSelection();
+                    saveEditModal();
+                }, t('ui.could.not.save'), { tone: 'neutral', okText: t('settings.saveWithoutFailedWallpaper') });
+            }
             return;
         }
 
@@ -665,11 +676,10 @@ export function clearOfflineCache() {
                 const keys = await caches.keys();
                 // 另一个 %2F- 表示前缀命中的是更深的部署路径。
                 await Promise.all(keys.filter(key => key.startsWith(cachePrefix) &&
-                    !key.includes('%2F-', cachePrefix.length)).map(key => caches.delete(key)));
-                if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
-                    const regs = await navigator.serviceWorker.getRegistrations();
-                    await Promise.all(regs.filter(r => r.scope === scope.href).map(r => r.unregister()));
-                }
+                    !key.includes('%2F-', cachePrefix.length) &&
+                    // 注册、安装和注销可能与清理并行，核心池由 Worker 接管流程回收。
+                    !/^app-core-v\d+(?:-[0-9a-f]{16})?$/.test(key.slice(cachePrefix.length)))
+                    .map(key => caches.delete(key)));
                 if (editSession === session) {
                     closeEditModal();
                     location.reload();

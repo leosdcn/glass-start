@@ -37,8 +37,34 @@ try {
   assert.deepEqual(await evalJS('modalState.draftBookmarks.map(bookmark => bookmark.name)'), ['仍可确认的导入']);
   await evalJS(`document.getElementById('tab-btn-appearance').click()`);
   assert.equal(await evalJS('dom.wallpaperError.getClientRects().length > 0'), true);
-  await evalJS('cancelEditModal()');
+  const wallpaperBeforeDiscard = await evalJS('getWallpaperSelectionDB()');
+  await evalJS('dom.saveEditBtn.click()');
+  await waitFor(evalJS, "OverlayStack.top()?.id === 'confirmModal' && dom.confirmOkBtn.textContent === '保留壁纸并保存'");
+  await evalJS('dom.confirmOkBtn.click()');
+  await waitFor(evalJS, '!state.editOpen');
+  assert.deepEqual(await evalJS('getWallpaperSelectionDB()'), wallpaperBeforeDiscard);
+  assert.equal(await evalJS('pageData.bookmarks[0].name'), '仍可确认的导入');
   assert.equal(await evalJS('dom.wallpaperError.textContent'), '');
+  await evalJS('resetUserBookmarks()');
+
+  await evalJS(`(async () => {
+    await openEditModal();
+    document.getElementById('tab-btn-appearance').click();
+    dom.urlBgBtn.click();
+    dom.urlBgInput.value = location.origin + '/late-wallpaper.png?stale';
+    dom.urlBgConfirmBtn.click();
+  })()`);
+  await waitFor(() => Boolean(releaseWallpaper), 'wallpaper request held');
+  await evalJS(`(() => {
+    dom.urlBgBtn.click();
+    dom.urlBgInput.value = 'invalid-url';
+    dom.urlBgConfirmBtn.click();
+  })()`);
+  releaseWallpaper();
+  releaseWallpaper = null;
+  assert.equal(await evalJS('flushWallpaperSelection()'), true);
+  assert.equal(await evalJS("dom.wallpaperError.textContent.includes('有效')"), true);
+  await evalJS('cancelEditModal()');
 
   // 壁纸加载期间取消；也覆盖取消后重新打开并编辑的下一轮窗口。
   for (const reopen of [false, true]) {

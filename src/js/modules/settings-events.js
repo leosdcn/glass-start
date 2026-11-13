@@ -216,10 +216,8 @@ export function bindEditEvents() {
         dom.uploadBgInput.addEventListener('change', e => {
             const targetInput = e.target instanceof HTMLInputElement ? e.target : null;
             const file = targetInput?.files?.[0];
-            if (file) {
-                if (uploadWallpaper(file) === false) return;
-            }
             if (targetInput) targetInput.value = '';
+            if (file) uploadWallpaper(file);
         });
     }
 

@@ -344,6 +344,20 @@ test('新标签页打开候选时保留列表，当前页打开时收起', async
       }
     };
     await showSuggestions();
+    await pressKey(evalJS, 'ArrowDown');
+    await evalJS("window.initialSuggestion = dom.suggestionMenu.querySelector('.suggestion-item'); dom.searchInput.setSelectionRange(0, 1)");
+    await send('Input.insertText', { text: 'G' });
+    assert.equal(await evalJS(`initialSuggestion === dom.suggestionMenu.querySelector('.suggestion-item')
+      && initialSuggestion.getAttribute('aria-selected') === 'false'
+      && !initialSuggestion.classList.contains('active')
+      && !dom.searchInput.hasAttribute('aria-activedescendant')`), true);
+    await send('Input.imeSetComposition', {text:'搜',selectionStart:1,selectionEnd:1});
+    for (const type of ['rawKeyDown', 'keyUp']) {
+      await send('Input.dispatchKeyEvent', {type,key:'Tab',code:'Tab',windowsVirtualKeyCode:9});
+    }
+    await waitFor(evalJS, `document.activeElement === dom.searchClearBtn && dom.searchInput.getAttribute('aria-expanded') === 'false'`);
+    await evalJS("dom.searchInput.focus(); dom.searchInput.value = 'glass tab fixture'");
+    await showSuggestions();
     await evalJS('dom.searchInput.setSelectionRange(5, 5)');
     for (const [key, keyCode, caret] of [['ArrowLeft', 37, 4], ['ArrowRight', 39, 5]]) {
       await pressKey(evalJS, 'ArrowDown');

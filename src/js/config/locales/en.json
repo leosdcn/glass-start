@@ -94,8 +94,8 @@
     "ui.this.browser.does.not.support.clearing": "This browser does not support clearing the cache.",
     "ui.offline.caching.is.unavailable.or.the": "Cache Storage is unavailable in this environment. The offline cache cannot be cleared.",
     "ui.notice": "Notice",
-    "ui.you.are.offline.clearing.the.offline": "You are offline. Clearing the offline cache will make this page unavailable until you reconnect. Clear the cache and reload?",
-    "ui.clear.the.offline.cache.cached.app": "Clear this deployment’s offline resources and reload? Other deployments and shared icon caches will be kept. Saved bookmarks, wallpaper and settings are unaffected.",
+    "ui.you.are.offline.clearing.the.offline": "You are offline. Reloading will use the cached app. Cleared images will need a connection to download again. Continue?",
+    "ui.clear.the.offline.cache.cached.app": "Clear this deployment’s offline image cache and reload? The current app version, other deployments and shared icon caches will be kept. Saved bookmarks, wallpaper and settings are unaffected.",
     "ui.clear.cache": "Clear cache",
     "ui.clear.offline.cache": "Clear offline cache",
     "ui.clear.cache.and.reload": "Clear cache and reload",
@@ -254,5 +254,7 @@
     "settings.bookmarks": "Bookmarks",
     "settings.wallpaper": "Wallpaper",
     "cache.discardDraft": "Reloading will discard any unsaved changes.",
+    "settings.discardFailedWallpaper": "The new wallpaper could not be previewed. Keep the last successful preview or saved wallpaper and continue saving?",
+    "settings.saveWithoutFailedWallpaper": "Keep wallpaper and save",
     "cache.clearFailed": "Could not finish clearing the cache. Your settings draft is still open."
 }

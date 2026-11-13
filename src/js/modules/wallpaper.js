@@ -112,6 +112,10 @@ function discardWallpaperSelection(mode) {
     discarded?.pause?.resume();
 }
 
+export function discardWallpaperDraftSelection() {
+    discardWallpaperSelection('draft');
+}
+
 export function closeWallpaperDraft() {
     discardWallpaperSelection('draft');
     wallpaperDraftBase = null;
@@ -366,12 +370,18 @@ async function executeWallpaperSelection(task, url, preparedImage) {
     task.url = url;
     const image = url && (preparedImage || getRetainedWallpaperImage(url) || await new Promise(resolve => {
         const img = new Image();
+        const abort = () => {
+            finish(null);
+            img.src = '';
+        };
+        const timeout = /^https?:\/\//i.test(url) ? setTimeout(abort, CONFIG.TIMERS.WALLPAPER_LOAD_TIMEOUT) : null;
         /** @param {HTMLImageElement | null} result */
         const finish = result => {
+            if (timeout !== null) clearTimeout(timeout);
             img.onload = img.onerror = null;
             resolve(result);
         };
-        task.cancel = () => finish(null);
+        task.cancel = timeout === null ? () => finish(null) : abort;
         img.onload = async () => {
             try {
                 if (typeof img.decode === 'function') await img.decode();
@@ -510,6 +520,7 @@ export function restoreWallpaper() {
 export function uploadWallpaper(file) {
     if (!canPreviewWallpaper()) return false;
     if (!file.type.startsWith('image/')) {
+        discardWallpaperDraftSelection();
         showWallpaperError(t('ui.choose.a.valid.image.file.jpg'));
         return false;
     }

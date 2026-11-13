@@ -347,9 +347,13 @@ test('壁纸共享加载、图片复用与失败重试', async () => {
 
     await evalJS('applyWallpaper(reuseUrl("fade"), true)');
     await waitFor(evalJS, 'reusePending.has(reuseUrl("fade"))');
-    await evalJS('reusePending.get(reuseUrl("fade")).resolve()');
-    await waitFor(evalJS, 'dom.bgLayerNext.classList.contains("is-crossfading") && dom.bgLayerNext.getAnimations().length === 1');
-    await evalJS('applyWallpaper(reuseUrl("fade"), true)');
+    assert.equal(await evalJS(`(async () => {
+      reusePending.get(reuseUrl('fade')).resolve();
+      await Promise.resolve();
+      const fading = dom.bgLayerNext.classList.contains('is-crossfading') && dom.bgLayerNext.getAnimations().length === 1;
+      applyWallpaper(reuseUrl('fade'), true);
+      return fading;
+    })()`), true);
     await waitFor(evalJS, '!dom.bgLayerNext.classList.contains("is-crossfading")');
     assert.equal(await evalJS('dom.bgLayer.style.backgroundImage.includes("?fade")'), true);
     assert.equal(await evalJS('reuseDecodes.filter(url => url === reuseUrl("fade")).length'), 1);

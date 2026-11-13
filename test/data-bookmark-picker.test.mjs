@@ -293,6 +293,17 @@ test("导入、导出与保存保留首条有效书签及其简介语义", async
             loadBookmarks();
             return { meta: stored.meta, name: pageData.bookmarks[0].name };
         })()`), { meta: {}, name: '目录更新' });
+        await evalJS(`(async () => {
+            await openEditModal();
+            importBookmarksJSON(new File([JSON.stringify([{name:'自定义名称',url:${JSON.stringify(a.url)}}])], 'legacy.json'));
+        })()`);
+        await waitFor(evalJS, 'OverlayStack.top()?.id === "confirmModal"');
+        await evalJS('dom.confirmOkBtn.click(); saveEditModal()');
+        assert.deepEqual(await evalJS(`(() => {
+            const bookmark = pageData.bookmarks[0];
+            return [bookmark.icon, pageData.categories[0].bookmarks[0].icon,
+                storageGet(CONFIG.KEYS.BOOKMARKS).meta[bookmark.url]];
+        })()`), [a.icon, a.icon, {name:'自定义名称'}]);
         assert.deepEqual(await evalJS(`(() => {
             const first = 'https://example.test', alias = 'https://EXAMPLE.TEST:443/';
             storageSet(CONFIG.KEYS.BOOKMARKS, {version:1, keys:[first, alias],

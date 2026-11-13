@@ -128,7 +128,10 @@ function buildServiceWorkerAndAssets(targetDir, { extension, version }) {
         fs.cpSync(PATHS.public, targetDir, {
             recursive: true,
             mode: fs.constants.COPYFILE_FICLONE,
-            filter: src => !src.endsWith('.DS_Store') && !src.endsWith('Thumbs.db')
+            filter: src => {
+                if (fs.lstatSync(src).isSymbolicLink()) throw new Error(`静态资源不能是符号链接: ${src}`);
+                return !src.endsWith('.DS_Store') && !src.endsWith('Thumbs.db');
+            }
         });
         const iconCount = fs.existsSync(path.join(PATHS.public, 'icons')) ? fs.readdirSync(path.join(PATHS.public, 'icons')).filter(f => f.endsWith('.png')).length : 0;
         const wpCount = fs.existsSync(path.join(PATHS.public, 'wallpapers')) ? fs.readdirSync(path.join(PATHS.public, 'wallpapers')).length : 0;

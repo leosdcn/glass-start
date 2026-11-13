@@ -67,6 +67,10 @@ export function bindSearchEvents() {
             if (isComposing) return;
             scheduleSuggestions(val);
         });
+        searchInput.addEventListener('focusout', e => {
+            // 候选区按下时保留输入焦点，键盘移到其他控件时收起。
+            if (e.relatedTarget) hideSuggestions();
+        });
     }
 
     if (searchClearBtn) {
@@ -91,6 +95,9 @@ export function bindSearchEvents() {
     if (suggestionMenu) {
         suggestionMenu.addEventListener('pointerdown', e => {
             if (isComposing) e.preventDefault();
+        });
+        suggestionMenu.addEventListener('mousedown', e => {
+            if (e.target instanceof Element && e.target.closest('.suggestion-item')) e.preventDefault();
         });
         /** @param {MouseEvent} e */
         const handleSuggestionClick = e => {

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
-import { readFileSync, existsSync, statSync, mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
+import { readFileSync, existsSync, statSync, mkdtempSync, mkdirSync, writeFileSync, symlinkSync, rmSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
@@ -172,6 +172,35 @@ setInterval(() => {}, 1000);
   server.kill();
   assert.deepEqual(await closed, [0, null]);
   assert.equal(existsSync(result.profile), false);
+});
+
+test('预览允许产物入口链接，阻止静态文件链接逃出产物目录', {
+  timeout: 10000, skip: process.platform === 'win32'
+}, async t => {
+  const directory = mkdtempSync(join(tmpdir(), 'glass-preview-links-'));
+  const build = join(directory, 'build');
+  mkdirSync(build);
+  writeFileSync(join(build, 'index.html'), '<title>Preview</title>');
+  writeFileSync(join(directory, 'outside.txt'), 'outside preview');
+  symlinkSync(build, join(directory, 'dist'));
+  symlinkSync(join(directory, 'outside.txt'), join(build, 'outside.txt'));
+  const port = await getFreePort();
+  const server = spawn(process.execPath, ['scripts/server.cjs', '--no-watch'], {
+    cwd: ROOT, stdio: ['ignore', 'pipe', 'inherit'],
+    env: {...process.env, GLASS_TEST_TMPDIR:directory, PORT:String(port), AUTO_OPEN:'0'}
+  });
+  t.after(async () => {
+    const closed = once(server, 'close');
+    if (server.kill()) await closed;
+    rmSync(directory, {recursive:true, force:true});
+  });
+  await once(server.stdout, 'data', {signal:t.signal});
+  const url = 'http://127.0.0.1:' + port;
+  assert.equal((await fetch(url + '/', {signal:t.signal})).status, 200);
+  const response = await fetch(url + '/outside.txt', {signal:t.signal});
+  assert.equal(response.status, 403);
+  assert.equal(response.headers.get('Access-Control-Allow-Origin'), null);
+  assert.equal(await response.text(), '403 Forbidden');
 });
 
 test('Service Worker 核心预缓存资源与产物版本契约', () => {

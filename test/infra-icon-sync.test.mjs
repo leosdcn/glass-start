@@ -10,7 +10,7 @@ const officialHost = 'official.example';
 const officialUrl = 'https://assets.example/official.png';
 // 两张独立于站内资源的有效灰色 PNG，分别为 19×19 和 128×128。
 const smallFixture = 'iVBORw0KGgoAAAANSUhEUgAAABMAAAATCAAAAABXO2kQAAAAEUlEQVR42mNowAQMo2J0EQMAAFa0gUbBi0UAAAAASUVORK5CYII=';
-const largeFixture = 'iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAAAAADmVT4XAAAAWUlEQVR42u3OIQEAAAACIKc73RkWWEB6FgEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBgXdgvAQB4V1F2L0AAAAASUVORK5CYII=';
+const largeFixture = 'iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAAAAADmVT4XAAAAWUlEQVR4nO3OIQEAAAACIKc73RkWWEB6FgEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBgXdgvAQB4V3UIbcAAAAASUVORK5CYII=';
 
 test('图标 CLI 下载、尺寸规范化、缓存修复与失败回滚', () => {
   const png = Buffer.from(largeFixture, 'base64');
@@ -99,7 +99,7 @@ export default { get(url, options, callback) {
     assert.equal(corrupt.status, 0, corrupt.stdout + corrupt.stderr);
     assert.deepEqual(corrupt.requests, [s2Url]);
 
-    if (hasSips) {
+    {
       // 文件头和尾标有效，但像素数据损坏时需要重新下载。
       const repairedPng = readFileSync(normal);
       writeFileSync(normal, Buffer.concat([png.subarray(0, 33), Buffer.alloc(12), png.subarray(-12)]));

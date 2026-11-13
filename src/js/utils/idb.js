@@ -14,9 +14,9 @@ function getDB() {
     if (openingPromise) return openingPromise;
     if (typeof window === 'undefined' || !('indexedDB' in window)) return Promise.resolve(null);
 
-    openingPromise = new Promise(resolve => {
-        try {
-            const req = indexedDB.open(CONFIG.IDB.DB_NAME, CONFIG.IDB.VERSION);
+    try {
+        const req = indexedDB.open(CONFIG.IDB.DB_NAME, CONFIG.IDB.VERSION);
+        openingPromise = new Promise(resolve => {
             req.onupgradeneeded = e => {
                 const openReq = /** @type {IDBOpenDBRequest} */ (e.target);
                 const db = openReq.result;
@@ -44,11 +44,10 @@ function getDB() {
                 openingPromise = null;
                 resolve(null);
             };
-        } catch {
-            openingPromise = null;
-            resolve(null);
-        }
-    });
+        });
+    } catch {
+        return Promise.resolve(null);
+    }
     return openingPromise;
 }
 

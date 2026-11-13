@@ -87,6 +87,11 @@ function isNavAtTop() {
     return !dom.navContent || dom.navContent.scrollTop <= 0;
 }
 
+export function canScrollStartDown() {
+    const start = dom.startContent;
+    return Boolean(start && start.scrollTop + start.clientHeight < start.scrollHeight - 1);
+}
+
 /** @param {Event} e */
 function recordNavScroll(e) {
     const atTop = isNavAtTop();
@@ -124,6 +129,10 @@ function handleWheel(e) {
         return;
     }
     if (wheelSession.consumed) return;
+    if (state.currentSection === 'start' && direction > 0 && canScrollStartDown()) {
+        wheelSession.consume();
+        return;
+    }
     // 一轮手势中只要还在滚内容，就不能在到顶后被余下事件带回首屏。
     if (state.currentSection === 'nav') {
         if (!isNavAtTop() || !wheelSession.navWasAtTop || wheelSession.navCoastingToTop) {
@@ -148,6 +157,7 @@ function handleTouchStart(e) {
     clearTouchGesture();
     if (isScreenTransitioning() || !OverlayStack.isEmpty() || isExcluded(e.target) || e.touches.length !== 1) return;
     if (state.currentSection === 'nav' && !isNavAtTop()) return;
+    if (state.currentSection === 'start' && canScrollStartDown()) return;
     const point = e.touches[0];
     touch = { id: point.identifier, x: point.clientX, y: point.clientY, time: performance.now(), canReturn: isNavAtTop() };
 }
@@ -197,7 +207,7 @@ export function initScreenGestures() {
     document.addEventListener('wheel', handleWheel, { passive: true });
     document.addEventListener('pointerdown', resetScreenInput, { passive: true });
     document.addEventListener('touchstart', handleTouchStart, { passive: true });
-    // 首屏没有原生内容滚动；导航列表仅在顶部准备下滑返回，中间滚动不拦截。
+    // 首屏滚到底、导航页滚到顶后，下一次触摸才允许切屏。
     dom.startSection?.addEventListener('touchmove', handleActiveTouchMove, { passive: false });
     document.addEventListener('touchmove', e => handleTouch(e, false), { passive: true });
     document.addEventListener('touchend', e => handleTouch(e, true), { passive: true });

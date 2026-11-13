@@ -352,7 +352,8 @@ function selectSidebarTab(nextActive) {
         const wasActive = item.classList.contains('active');
         if (isActive !== wasActive) {
             item.classList.toggle('active', isActive);
-            item.setAttribute('aria-selected', isActive ? 'true' : 'false');
+            if (isActive) item.setAttribute('aria-current', 'location');
+            else item.removeAttribute('aria-current');
         }
     });
 }
@@ -404,7 +405,7 @@ export function renderNavCategories() {
     const sortedCats = catalog.sorted;
 
     sidebarList.innerHTML = sortedCats.map((cat, i) => `
-        <button type="button" role="tab" id="cat-tab-${i}" aria-selected="${i === 0 ? 'true' : 'false'}" aria-controls="cat-${i}" class="sidebar-item w-full text-left text-xs md:text-sm px-2.5 py-1.75 min-h-9 text-white/70 flex items-center gap-2 ${i === 0 ? 'active' : ''}"
+        <button type="button" id="cat-tab-${i}" ${i === 0 ? 'aria-current="location"' : ''} aria-controls="cat-${i}" class="sidebar-item w-full text-left text-xs md:text-sm px-2.5 py-1.75 min-h-9 text-white/70 flex items-center gap-2 ${i === 0 ? 'active' : ''}"
                 data-target="cat-${i}">
             <span class="size-5 shrink-0 sidebar-icon flex items-center justify-center">${getCategoryIconHTML(cat.icon, 'size-4')}</span>
             <span class="truncate">${escapeHtml(cat.name)}</span>
@@ -414,10 +415,10 @@ export function renderNavCategories() {
     navCategories.innerHTML = sortedCats.map((cat, i) => {
         const sortedBookmarks = cat.sortedBookmarks;
         return `
-        <div id="cat-${i}" role="tabpanel" aria-labelledby="cat-tab-${i}" class="category-block ${i > 0 ? 'scroll-mt-6' : ''}">
+        <section id="cat-${i}" aria-labelledby="cat-heading-${i}" class="category-block ${i > 0 ? 'scroll-mt-6' : ''}">
             <div class="category-header flex items-center gap-2.5 pb-2.5 mb-3.5 transition-colors duration-300 select-none">
                 <span class="size-6 shrink-0 flex items-center justify-center">${getCategoryIconHTML(cat.icon, 'size-5')}</span>
-                <h3 class="text-xs sm:text-sm font-semibold tracking-wide text-white/90">${escapeHtml(cat.name)}</h3>
+                <h3 id="cat-heading-${i}" class="text-xs sm:text-sm font-semibold tracking-wide text-white/90">${escapeHtml(cat.name)}</h3>
                 <span class="category-header-line" aria-hidden="true"></span>
             </div>
             <div class="nav-bookmark-grid">
@@ -436,7 +437,7 @@ export function renderNavCategories() {
                     </a>
                 `).join('')}
             </div>
-        </div>
+        </section>
     `;
     }).join('');
 

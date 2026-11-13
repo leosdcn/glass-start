@@ -108,6 +108,20 @@ try {
   await waitFor(evalJS, `${installed}`, 15000);
   await waitFor(evalJS, notice);
   await waitFor(otherEval, notice);
+  const beforeClear = await evalJS('performance.timeOrigin');
+  await evalJS(`cancelEditModal(); openEditModal().then(() => {
+    document.getElementById('tab-btn-data').click();
+    dom.clearCacheBtn.click();
+    setTimeout(() => dom.confirmOkBtn.click(), 50);
+  }); true`);
+  const remainsUsable = `window.__GLASS_BUILD_APP__ === 'app-core-v201' && !!document.querySelector('.bookmark-item')`;
+  await waitFor(evalJS, `performance.timeOrigin !== ${beforeClear} && (${remainsUsable})`, 10000);
+  const afterClear = await evalJS('performance.timeOrigin');
+  await send('Page.reload');
+  await waitFor(evalJS, `performance.timeOrigin !== ${afterClear} && (${remainsUsable})`, 10000);
+  assert.equal(await evalJS(installed), true);
+  assert.equal(await otherEval("document.querySelector('.edit-name').value"), '另一标签草稿');
+  await evalJS(`(async () => { await openEditModal(); document.querySelector('.edit-name').value = '当前草稿'; document.querySelector('.edit-name').dispatchEvent(new Event('input', {bubbles:true})); })()`);
   assert.equal(await evalJS(`(dom.updateReloadBtn.focus(), dom.editModal.contains(document.activeElement))`), true);
   await evalJS(`document.getElementById('updateReloadBtn').click()`);
   assert.equal(await evalJS(`OverlayStack.top().id`), 'editModal');

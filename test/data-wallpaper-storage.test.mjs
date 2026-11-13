@@ -82,6 +82,21 @@ await test("选择提交、事务失败与会话隔离", async () => {
       assert.equal(await evalJS('(async () => (((await getWallpaperSelectionDB())?.wallpaper ?? null)) === state.customWallpaper)()'), true);
       console.log('✅ IDB 不可用明确失败，恢复权限并重载后原壁纸仍可读取');
 
+      const { identifier: synchronousFailure } = await send('Page.addScriptToEvaluateOnNewDocument', {source:`
+        window.auditOpenCalls = 0;
+        const open = indexedDB.open;
+        indexedDB.open = function(...args) {
+          if (++window.auditOpenCalls === 1) throw new DOMException('Transient failure', 'SecurityError');
+          return open.apply(this, args);
+        };
+      `});
+      await send('Page.reload');
+      await waitFor(evalJS, 'window.auditOpenCalls > 0 && typeof getWallpaperSelectionDB === "function"');
+      assert.deepEqual(await evalJS(`(async () => [
+        Boolean((await getWallpaperSelectionDB())?.wallpaper), window.auditOpenCalls
+      ])()`), [true, 2]);
+      await send('Page.removeScriptToEvaluateOnNewDocument', {identifier:synchronousFailure});
+
       await send('Network.enable');
       const requestedPresets = [];
       const stopRequests = send('Network.requestWillBeSent', ({ request }) => {

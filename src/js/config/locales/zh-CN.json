@@ -94,8 +94,8 @@
     "ui.this.browser.does.not.support.clearing": "当前浏览器不支持缓存清理。",
     "ui.offline.caching.is.unavailable.or.the": "当前环境无法使用 Cache Storage，不能清理离线缓存。",
     "ui.notice": "提示",
-    "ui.you.are.offline.clearing.the.offline": "警告：当前处于离线状态！清理 Service Worker 缓存与注销将导致页面在重新联网前无法访问。确定要继续清理并刷新吗？",
-    "ui.clear.the.offline.cache.cached.app": "确定要清理当前部署的离线资源并刷新吗？其他部署的缓存和共享图标缓存会保留，已保存的书签、壁纸与设置不受影响。",
+    "ui.you.are.offline.clearing.the.offline": "当前处于离线状态。刷新会使用已缓存的应用，已清理的图片需联网后重新下载。确定要继续吗？",
+    "ui.clear.the.offline.cache.cached.app": "确定要清理当前部署的离线图片缓存并刷新吗？当前应用版本、其他部署的缓存和共享图标缓存会保留，已保存的书签、壁纸与设置不受影响。",
     "ui.clear.cache": "清理缓存",
     "ui.clear.offline.cache": "清理离线缓存",
     "ui.clear.cache.and.reload": "立即清理并刷新",
@@ -248,5 +248,7 @@
     "settings.bookmarks": "快捷书签",
     "settings.wallpaper": "壁纸",
     "cache.discardDraft": "刷新将丢弃未保存的更改。",
+    "settings.discardFailedWallpaper": "新壁纸预览失败。是否保留上一次成功预览或已保存的壁纸，并继续保存？",
+    "settings.saveWithoutFailedWallpaper": "保留壁纸并保存",
     "cache.clearFailed": "缓存清理未完成，设置草稿仍保留在当前窗口。"
 }

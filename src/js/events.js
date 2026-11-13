@@ -2,7 +2,7 @@
 import { cancelDragSort } from './modules/bookmark-drag.js';
 import { cancelCategoryPulse, loadBookmarks } from './modules/bookmarks.js';
 import { resetActiveCard } from './core/gestures.js';
-import { resetScreenInput, blurNonEditableActive } from './core/screen-input.js';
+import { resetScreenInput, blurNonEditableActive, canScrollStartDown } from './core/screen-input.js';
 
 import { CONFIG } from './config/constants.js';
 
@@ -211,7 +211,12 @@ export function bindEvents() {
             }
             if ((e.key === 'PageDown' || e.key === 'ArrowDown') && state.currentSection === 'start') {
                 e.preventDefault();
-                switchToNav();
+                const start = dom.startContent;
+                if (start && canScrollStartDown()) {
+                    start.scrollBy({ top: e.key === 'PageDown' ? start.clientHeight * 0.9 : 40 });
+                } else {
+                    switchToNav();
+                }
                 return;
             }
             if ((e.key === 'PageUp' || e.key === 'Home' || e.key === 'ArrowUp') && state.currentSection === 'nav' && isNavAtTop) {

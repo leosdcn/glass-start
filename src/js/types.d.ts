@@ -183,6 +183,7 @@ export interface DOMCache {
     bgLayerNext: HTMLElement | null;
     bgOverlay: HTMLElement | null;
     startSection: HTMLElement | null;
+    startContent: HTMLElement | null;
     navSection: HTMLElement | null;
     navHint: HTMLButtonElement | null;
     presetWallpaperGrid: HTMLElement | null;
@@ -251,6 +252,7 @@ declare global {
 /** 搜索算法只接收候选模型和配置，不依赖页面状态。 */
 export interface FuzzyOptions {
     MIN_QUERY_LEN: number;
+    MAX_QUERY_LEN: number;
     SHORT_QUERY_LEN: number;
     MAX_DIST_SHORT: number;
     MAX_DIST_LONG: number;

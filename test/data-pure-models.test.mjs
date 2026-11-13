@@ -79,6 +79,15 @@ test('多词模糊查询不能跳过不匹配的单字符词', () => {
   assert.equal(rankBookmarkSuggestions('git githbu', input, CONFIG.SUGGEST)[0].name, 'GitHub');
 });
 
+test('长查询仍可精确匹配 URL，跳过编辑距离计算', () => {
+  const prefix = 'a'.repeat(4000);
+  const url = 'https://example.test/' + prefix + 'b';
+  const longModel = { candidates: [{ bm: { name: '长链接', url, icon: '' },
+    normUrl: url, defaultCat: '工具' }], urlToCategoryMap: new Map() };
+  assert.deepEqual(rankBookmarkSuggestions(prefix + 'x', longModel, CONFIG.SUGGEST), []);
+  assert.equal(rankBookmarkSuggestions(prefix + 'b', longModel, CONFIG.SUGGEST)[0].url, url);
+});
+
 test('多语言 Unicode（日文、俄文、变音符号）书签检索与前缀匹配', () => {
   const i18nCandidates = [
     { bm: { name: 'ヤフー', url: 'https://yahoo.co.jp', icon: '', desc: 'ポータル' }, normUrl: 'yahoo.co.jp', defaultCat: '検索' },

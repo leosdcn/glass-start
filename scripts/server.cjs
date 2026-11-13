@@ -45,12 +45,19 @@ const MIME_TYPES = {
     '.webmanifest': 'application/manifest+json; charset=utf-8'
 };
 
-async function openStaticFile(filePath) {
-    const file = await fs.promises.open(filePath, 'r').catch(error => {
+async function openStaticFile(root, relativePath) {
+    let file;
+    try {
+        const target = await fs.promises.realpath(path.join(root, relativePath));
+        const relative = path.relative(root, target);
+        if (relative === '..' || relative.startsWith('..' + path.sep) || path.isAbsolute(relative)) {
+            throw Object.assign(new Error('Static file escapes the build directory'), { code: 'EACCES' });
+        }
+        file = await fs.promises.open(target, 'r');
+    } catch (error) {
         if (error.code === 'ENOENT' || error.code === 'ENOTDIR') return null;
         throw error;
-    });
-    if (!file) return null;
+    }
     try {
         const stats = await file.stat();
         if (stats.isFile()) return { file, stats };
@@ -141,7 +148,8 @@ async function handleStaticRequest(req, res) {
             }
 
             // 先打开文件再读取元数据，发布切换后仍可从同一描述符完成当前响应。
-            asset = await openStaticFile(filePath);
+            const root = await fs.promises.realpath(DIST_DIR);
+            asset = await openStaticFile(root, rel);
             const isFallback = !asset;
             const targetPath = isFallback ? path.join(DIST_DIR, 'index.html') : filePath;
             if (isFallback) {
@@ -151,7 +159,7 @@ async function handleStaticRequest(req, res) {
                     res.end('404 Not Found');
                     return;
                 }
-                asset = await openStaticFile(targetPath);
+                asset = await openStaticFile(root, 'index.html');
                 if (!asset) {
                     res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
                     res.end('404 Not Found');
@@ -229,12 +237,13 @@ async function handleStaticRequest(req, res) {
             } else {
                 rawStream.pipe(res);
             }
-        } catch {
+        } catch (error) {
             if (asset?.file && !streamPiped) {
                 try { await asset.file.close(); } catch {}
             }
-            if (!res.headersSent) res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' });
-            res.end('500 Internal Server Error');
+            const forbidden = error.code === 'EACCES';
+            if (!res.headersSent) res.writeHead(forbidden ? 403 : 500, { 'Content-Type': 'text/plain; charset=utf-8' });
+            res.end(forbidden ? '403 Forbidden' : '500 Internal Server Error');
         }
     }
 

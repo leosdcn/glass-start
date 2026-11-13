@@ -229,7 +229,7 @@ async function executeResolveWeatherLocation(now, signal) {
                 language: getLocale(),
                 timestamp: now
             };
-            return resolved;
+            if (hasWeatherCoordinates(resolved)) return resolved;
         }
     } catch {}
 

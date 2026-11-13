@@ -1,7 +1,7 @@
 /** 尺寸变化应直接重排，不能意外给宽度、间距等布局属性添加过渡。 */
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { launchSession } from './support/helpers.mjs';
+import { launchSession, waitFor } from './support/helpers.mjs';
 
 test('跨分辨率与视口切换无多余布局过渡', async () => {
   const { chrome, server, send, evalJS } = await launchSession();
@@ -59,6 +59,32 @@ test('跨分辨率与视口切换无多余布局过渡', async () => {
     assert.deepEqual(await inspect(), []);
     await settle();
     assert.equal(await evalJS('modalState.draftBookmarks.length'), before - 1);
+    await evalJS(`(() => {
+      cancelEditModal();
+      const bookmarks = Array.from({length:48}, (_, i) => ({
+        name:'书签 ' + i, url:'https://example.test/' + i, icon:'./icons/github.com.png'
+      }));
+      saveUserBookmarks(bookmarks);
+    })()`);
+    await send('Emulation.setTouchEmulationEnabled', {enabled:true});
+    assert.equal(await evalJS(`(() => {
+      const { top, bottom } = dom.searchInput.getBoundingClientRect();
+      return top >= 0 && bottom <= innerHeight;
+    })()`), true);
+    const swipe = async () => {
+      for (const [type, y] of [['touchStart',650],['touchMove',565],['touchMove',500],['touchEnd',0]]) {
+        await send('Input.dispatchTouchEvent', {type, touchPoints:type === 'touchEnd' ? [] : [{x:185,y}]});
+      }
+    };
+    await swipe();
+    const settingsTop = await evalJS('dom.editBookmarksBtn.getBoundingClientRect().top');
+    await waitFor(evalJS, 'dom.startContent.scrollTop > 0');
+    assert.equal(await evalJS('state.currentSection'), 'start');
+    await evalJS('dom.startContent.scrollTop = dom.startContent.scrollHeight');
+    assert.equal(await evalJS('dom.bookmarks.lastElementChild.getBoundingClientRect().bottom <= innerHeight'), true);
+    assert.equal(await evalJS('dom.editBookmarksBtn.getBoundingClientRect().top'), settingsTop);
+    await swipe();
+    await waitFor(evalJS, 'state.currentSection === "nav" && !isScreenTransitioning()');
   } finally {
     await chrome.close();
     await server.close();

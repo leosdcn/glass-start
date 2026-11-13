@@ -16,6 +16,7 @@ import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
 import https from 'node:https';
 import { tmpdir } from 'node:os';
+import { crc32, inflateSync } from 'node:zlib';
 import { c, HR_DOUBLE } from './terminal.cjs';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -115,7 +116,7 @@ function fetchRedirectBuffer(url, referer = '', timeoutMs = 7000, redirectCount 
 const PNG_HEADER = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
 const IEND_CHUNK = Buffer.from([0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4e, 0x44, 0xae, 0x42, 0x60, 0x82]);
 
-function pngDimensions(path) {
+function pngDimensions(path, checkData = false) {
     const png = readFileSync(path);
     if (png.length < 57 || !png.subarray(0, 8).equals(PNG_HEADER)
         || png.toString('ascii', 12, 16) !== 'IHDR' || !png.subarray(-12).equals(IEND_CHUNK)) {
@@ -123,6 +124,22 @@ function pngDimensions(path) {
     }
     const width = png.readUInt32BE(16), height = png.readUInt32BE(20);
     if (!width || !height) throw new Error('Invalid PNG dimensions');
+    if (checkData && width === height && width <= 128) {
+        const data = [];
+        for (let offset = 8; offset < png.length;) {
+            if (offset + 12 > png.length) throw new Error('Truncated PNG chunk');
+            const end = offset + 8 + png.readUInt32BE(offset);
+            if (end + 4 > png.length || crc32(png.subarray(offset + 4, end)) !== png.readUInt32BE(end)) {
+                throw new Error('Invalid PNG chunk');
+            }
+            if (png.toString('ascii', offset + 4, offset + 8) === 'IDAT') data.push(png.subarray(offset + 8, end));
+            offset = end + 4;
+        }
+        // 128² RGBA 16-bit 加滤镜字节和隔行扫描开销仍小于 140 KiB。
+        if (!data.length || !inflateSync(Buffer.concat(data), { maxOutputLength: 140 * 1024 }).length) {
+            throw new Error('Invalid PNG image data');
+        }
+    }
     return { width, height };
 }
 
@@ -142,7 +159,7 @@ function hasSips() {
 function isReusableIcon(path) {
     let workDir;
     try {
-        const { width, height } = pngDimensions(path);
+        const { width, height } = pngDimensions(path, !hasSips());
         if (width !== height || width > 128) return false;
         if (hasSips()) {
             workDir = mkdtempSync(join(tmpdir(), 'glass-icon-check-'));
@@ -177,7 +194,7 @@ function saveAsPng(inputBuffer, destPath, { entry, cropSize } = {}) {
         writeFileSync(inputPath, inputBuffer);
         if (!hasSips()) {
             if (isSvg || cropSize) return false;
-            const { width, height } = pngDimensions(inputPath);
+            const { width, height } = pngDimensions(inputPath, true);
             if (width !== height || width > 128) return false;
             renameSync(inputPath, destPath);
             return true;

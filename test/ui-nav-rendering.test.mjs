@@ -304,7 +304,7 @@ await test("最后一个分类对齐与滚动边界", async () => {
             })()`);
             assert.ok(Math.abs(bottom - target) <= 1, `${width}×${height} 的短分类应在顶对齐时滚到底`);
             await waitFor(evalJS, `Math.abs(dom.navContent.scrollTop - ${target}) <= 1 &&
-                dom.sidebarList.lastElementChild.getAttribute('aria-selected') === 'true'`);
+                dom.sidebarList.lastElementChild.getAttribute('aria-current') === 'location'`);
         }
 
         const lastCardClearance = await evalJS(`(() => {
@@ -373,7 +373,7 @@ await test("窄屏分类栏首尾按钮保留对称边距", async () => {
 
         await evalJS('dom.sidebarList.lastElementChild.click()');
         await waitFor(evalJS, `Math.abs(dom.sidebar.scrollLeft - (dom.sidebar.scrollWidth - dom.sidebar.clientWidth)) < 1 &&
-            dom.sidebarList.lastElementChild.getAttribute('aria-selected') === 'true'`);
+            dom.sidebarList.lastElementChild.getAttribute('aria-current') === 'location'`);
         const rightInset = await evalJS(`dom.sidebar.getBoundingClientRect().right -
             dom.sidebarList.lastElementChild.getBoundingClientRect().right`);
         assert.equal(leftInset, 8, '首个分类的边框应避开渐隐区域');
@@ -416,9 +416,9 @@ await test("原生滚动与事件阻塞区域", async () => {
         }
         assert.equal(wheelRegions().length, 0);
         assert.deepEqual(await evalJS(`[
-        document.querySelectorAll('#sidebarList [aria-selected="true"]').length,
-        document.querySelector('#sidebarList .active')?.getAttribute('aria-selected')
-    ]`), [1,'true']);
+        document.querySelectorAll('#sidebarList [aria-current="location"]').length,
+        document.querySelector('#sidebarList .active')?.getAttribute('aria-current')
+    ]`), [1,'location']);
         console.log('✅ 分类内容连续上下原生滚动，无常驻滚轮阻塞区域，分类高亮保持唯一');
 
         await evalJS(`(() => {
