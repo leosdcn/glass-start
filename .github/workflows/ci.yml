@@ -23,6 +23,12 @@ jobs:
       fail-fast: false
       matrix:
         node-version: ['24.15.0', '26']
+    services:
+      nu:
+        # 官方 Nu 26.11.9.2。只在产出 Pages 文件的矩阵任务启动。
+        image: ${{ matrix.node-version == '24.15.0' && 'ghcr.io/validator/validator@sha256:292cef9f3367a6d52447c617e65c94bca04cd3399abb37bd5d17c1c7d430525a' || '' }}
+        ports:
+          - 8888/tcp
     permissions:
       contents: read
       pages: read
@@ -46,6 +52,9 @@ jobs:
         run: npm test
 
       - name: Validate release HTML & CSS (W3C / Stylelint)
+        if: matrix.node-version == '24.15.0'
+        env:
+          W3C_VALIDATOR_URL: http://127.0.0.1:${{ job.services.nu.ports['8888'] }}/?out=json
         run: npm run test:w3c
 
       - name: Setup GitHub Pages

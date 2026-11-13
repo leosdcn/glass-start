@@ -97,37 +97,49 @@ await test("选择提交、事务失败与会话隔离", async () => {
       ])()`), [true, 2]);
       await send('Page.removeScriptToEvaluateOnNewDocument', {identifier:synchronousFailure});
 
-      await send('Network.enable');
-      const requestedPresets = [];
-      const stopRequests = send('Network.requestWillBeSent', ({ request }) => {
-        if (/\/wallpapers\/bg\d+\.avif(?:\?|$)/.test(request.url)) requestedPresets.push(request.url);
-      });
-      const { identifier: delayedOpen } = await send('Page.addScriptToEvaluateOnNewDocument', { source: `
+      const { identifier: startupProbe } = await send('Page.addScriptToEvaluateOnNewDocument', { source: `
+    const probe = window.wallpaperStartup = { idle: [], imageSources: [] };
+    window.requestIdleCallback = callback => probe.idle.push(callback);
+    const src = Object.getOwnPropertyDescriptor(HTMLImageElement.prototype, 'src');
+    Object.defineProperty(HTMLImageElement.prototype, 'src', { ...src, set(url) {
+      probe.imageSources.push(url);
+      src.set.call(this, url);
+    } });
     const open = IDBFactory.prototype.open;
     IDBFactory.prototype.open = function(...args) {
       const request = open.apply(this, args);
       Object.defineProperty(request, 'onsuccess', { set(callback) {
-        request.addEventListener('success', event => setTimeout(() => callback(event), 350));
+        request.addEventListener('success', event => { probe.releaseDB = () => callback(event); });
       } });
       return request;
     };
   ` });
       try {
-        await navigateAndWait(send, evalJS, `http://127.0.0.1:${server.port}/?preload=custom`,
-          'typeof commitWallpaperSelection === "function" && !!state.customWallpaper');
-        await evalJS('new Promise(resolve => setTimeout(resolve, 300))');
-        assert.equal(requestedPresets.some(url => /\/bg2\.avif(?:\?|$)/.test(url)), false);
-
-        await evalJS('commitWallpaperSelection(backgrounds[3])');
-        requestedPresets.length = 0;
-        await navigateAndWait(send, evalJS, `http://127.0.0.1:${server.port}/?preload=preset`,
-          'typeof commitWallpaperSelection === "function" && state.bg === 3 && !state.customWallpaper');
-        await waitFor(async () => requestedPresets.some(url => /\/bg5\.avif(?:\?|$)/.test(url)), 'true');
-        assert.equal(requestedPresets.some(url => /\/bg2\.avif(?:\?|$)/.test(url)), false);
+        for (const custom of [true, false]) {
+          if (!custom) assert.equal(await evalJS('commitWallpaperSelection(backgrounds[3])'), true);
+          await navigateAndWait(send, evalJS, `http://127.0.0.1:${server.port}/?preload=${custom ? 'custom' : 'preset'}`,
+            'wallpaperStartup.releaseDB && wallpaperStartup.idle.length >= 2');
+          // 在当前文档内先执行启动空闲任务，再允许 IDB 恢复，避免混入导航前的图片请求。
+          assert.equal(await evalJS(`(() => {
+            for (const callback of wallpaperStartup.idle.splice(0)) {
+              callback({ didTimeout: false, timeRemaining: () => 50 });
+            }
+            return wallpaperStartup.imageSources.includes(backgrounds[1]);
+          })()`), false, '壁纸恢复前不预加载默认下一张');
+          await evalJS('wallpaperStartup.releaseDB()');
+          if (custom) {
+            await waitFor(evalJS, '!!state.customWallpaper');
+            assert.deepEqual(await evalJS('wallpaperStartup.imageSources.filter(url => backgrounds.includes(url))'), [],
+              '自定义壁纸恢复后不预加载预设');
+          } else {
+            await waitFor(evalJS, 'state.bg === 3 && wallpaperStartup.imageSources.includes(backgrounds[4])');
+            assert.equal(await evalJS('wallpaperStartup.imageSources.includes(backgrounds[1])'), false,
+              '恢复预设后不预加载默认下一张');
+          }
+        }
         console.log('✅ IDB 延迟恢复时自定义壁纸跳过下一张预设，预设选择按恢复后的索引预加载');
       } finally {
-        stopRequests();
-        await send('Page.removeScriptToEvaluateOnNewDocument', { identifier: delayedOpen });
+        await send('Page.removeScriptToEvaluateOnNewDocument', { identifier: startupProbe });
       }
     } finally {
       await chrome.close();

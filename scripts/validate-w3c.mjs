@@ -1,4 +1,4 @@
-/** HTML 使用 Nu 在线校验，内嵌样式使用 Stylelint；退出码 0 通过，1 页面错误，2 校验未完成。 */
+/** HTML 使用 Nu 校验，内嵌样式使用 Stylelint；退出码 0 通过，1 页面错误，2 校验未完成。 */
 import { readFileSync, existsSync } from 'node:fs';
 import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -39,7 +39,8 @@ function isCheckedStyleMessage(message, blocks, lineOffsets) {
 }
 
 export async function validateW3c({ rootDir = root, fetchImpl = fetch, log = console.log, error = console.error,
-    documentUrl = process.env.W3C_DOCUMENT_URL } = {}) {
+    documentUrl = process.env.W3C_DOCUMENT_URL,
+    validatorUrl = process.env.W3C_VALIDATOR_URL ?? 'https://validator.w3.org/nu/?out=json' } = {}) {
     log(`\n${c.cyan}${HR_DOUBLE}${c.reset}`);
     log(`${c.bold}${c.cyan}🌐 Glass Start — Nu HTML / Stylelint CSS 校验${c.reset}`);
     log(`${c.cyan}${HR_DOUBLE}${c.reset}\n`);
@@ -79,15 +80,18 @@ export async function validateW3c({ rootDir = root, fetchImpl = fetch, log = con
             if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error('校验文档来源必须为 HTTP(S) 地址');
             headers['Content-Location'] = parsed.href;
         }
-        log(`  正在校验 ${targetName}，连接 W3C 在线验证 API...`);
+        log(`  正在通过 Nu 校验 ${targetName}（${new URL(validatorUrl).origin}）...`);
         const startTime = Date.now();
-        const res = await fetchImpl('https://validator.w3.org/nu/?out=json', {
+        const res = await fetchImpl(validatorUrl, {
             method: 'POST',
             headers,
             body: rawHtml,
             signal: AbortSignal.timeout(30000)
         });
-        if (!res.ok) throw new Error(`W3C 服务响应异常: HTTP ${res.status} ${res.statusText}`);
+        if (!res.ok) {
+            await res.body?.cancel().catch(() => {});
+            throw new Error(`W3C 服务响应异常: HTTP ${res.status} ${res.statusText}`);
+        }
         const data = await res.json();
         if (!Array.isArray(data?.messages) || data.messages.some(message =>
             !message || typeof message.message !== 'string' || !['error', 'info'].includes(message.type))) {

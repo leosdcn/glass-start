@@ -408,7 +408,7 @@ test('现代 CSS 校验接受注册属性、渐变变量过渡、line-clamp 与�
   assert.match(result.output, /另有 1 条诊断/);
   assert.equal(result.requests[0].body, result.html, '提交完整原始 HTML，不删除 CSS 或 CSP 来消除消息');
   assert.equal(result.requests[0].headers['Content-Location'], 'https://start.test/nested/');
-  assert.equal(result.requests[0].url, 'https://validator.w3.org/nu/?out=json');
+  assert.equal(result.requests[0].url, process.env.W3C_VALIDATOR_URL ?? 'https://validator.w3.org/nu/?out=json');
 });
 
 test('现代 CSS 校验仍阻断真实语法、属性值与注册描述符错误', async () => {
@@ -435,13 +435,21 @@ test('HTML 错误与未覆盖的行内 CSS 错误不能被样式块复核吞掉'
   }
 });
 
-test('校验文档来源可覆盖，服务失败和异常响应仍为未完成', async () => {
-  const result = await validatePage('.card{color:red}', [], { documentUrl: 'https://other.test/start/' });
+test('Nu 服务与校验文档来源可独立覆盖，服务失败和异常响应仍为未完成', async () => {
+  const validatorUrl = 'http://127.0.0.1:8888/?out=json';
+  const result = await validatePage('.card{color:red}', [], { validatorUrl, documentUrl: 'https://other.test/start/' });
   assert.equal(result.code, 0, result.output);
+  assert.equal(result.requests[0].url, validatorUrl);
   assert.equal(result.requests[0].headers['Content-Location'], 'https://other.test/start/');
+  assert.equal(result.requests[0].body, result.html);
   const invalidUrl = await validatePage('.card{color:red}', [], { documentUrl: 'file:///tmp/index.html' });
   assert.equal(invalidUrl.code, 2);
   assert.equal(invalidUrl.requests.length, 0);
+  const rateLimited = new Response('rate limited', { status: 429 });
+  const limited = await validatePage('.card{color:red}', [], { fetchImpl: async () => rateLimited });
+  assert.equal(limited.code, 2, limited.output);
+  assert.match(limited.output, /HTTP 429/);
+  assert.equal(rateLimited.bodyUsed, true);
   for (const fetchImpl of [
     async () => { throw new Error('network unavailable'); },
     async () => ({ ok: false, status: 503, statusText: 'unavailable' }),

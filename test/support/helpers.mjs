@@ -94,9 +94,8 @@ export async function launchSession(preferredPort = 0, customRoutes = {}) {
   const server = await startServer(preferredPort, undefined, customRoutes);
   let chrome;
   try {
-    const cdpPort = await getFreePort();
-    chrome = await launchChrome({ port: cdpPort, url: `http://127.0.0.1:${server.port}/` });
-    const { send } = chrome;
+    chrome = await launchChrome({ url: `http://127.0.0.1:${server.port}/` });
+    const { send, cdpPort } = chrome;
     await send('Page.enable');
     await send('Runtime.enable');
     // 默认关闭系统级减少动效/透明度，避免 CI runner 的无障碍偏好改变玻璃与倾斜断言。

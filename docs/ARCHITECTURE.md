@@ -125,7 +125,7 @@ CSS 通过 `main.css` 按其 `@import` 顺序编译为内联样式，不增加�
 
 应用使用原生 ES 模块与 Web API，无 npm 运行时依赖。Tailwind CSS v4 和 esbuild 仅参与开发与构建；TypeScript 用于类型检查，Acorn 和 PostCSS 分别用于 DOM 与 CSS 静态校验，Stylelint 用于构建产物的现代 CSS 校验，均不进入生产页面。
 
-`.github/workflows/ci.yml` 统一执行检查与 GitHub Pages 发布：PR 运行 lint、类型、构建和 Chrome 回归；main 推送或 main 手动运行还须通过 W3C 校验，再上传本次已验证的 `dist/`。部署 job 显式依赖检查成功，直接发布该产物，不重新构建。
+`.github/workflows/ci.yml` 统一执行检查与 GitHub Pages 发布。Node 24.15.0 和 26 均运行 lint、类型、构建和 Chrome 回归。Node 24.15.0 任务使用固定镜像的本地 Nu 和 Stylelint 校验本次生成的 `dist/`。main 推送或 main 手动运行时，该任务在校验通过后上传产物，部署任务等待两组检查通过后直接发布该产物。
 
 ```mermaid
 flowchart TD
@@ -358,6 +358,6 @@ Chrome 扩展 CSP 由 `src/extension/manifest.json` 定义，构建时同步到�
 - `infra-module-boundaries.test.mjs` 检查全部 JS 源文件的依赖方向与无环性、生产包隔离，并验证关闭测试接口的页面启动；通过不等于所有业务职责都能由静态规则判断。
 - 浏览器验收以 Chrome 为准，使用 CDP 验证桌面、移动视口及触摸交互；日常开发、全面测试和发布均不要求 Safari/iOS 真机走查，仅在用户明确要求时进行该专项。导航完成与切屏完成分别等待，避免固定延时掩盖竞态。
 - `infra-chrome-extension.test.mjs` 在 `npm test` 的会话目录构建扩展，并在独立 Chrome 配置中实际加载，验证新标签页、首屏主题、三引擎联想、设置保存、离线重载及 CSP。联想响应使用固定数据，不能替代真实第三方接口联网走查。
-- `scripts/validate-w3c.mjs` 不自动构建，发布时须校验本轮生成的 `dist/`；它通过在线 Nu 检查完整 HTML，通过开发依赖 Stylelint 18 检查每个内嵌 `style` 块的语法、属性值、at-rule 前导及描述符，不启用排版规则或源码中的禁用注释。Stylelint 18 的 `declaration-property-value-no-unknown` 检查含已声明变量的属性值，配合 `value-no-invalid` 检查不可解析的值与非法算式，两条规则职责不同，升级时须保留对应回归。Nu CSS 诊断只有定位在已独立校验的样式块内时才采用 Stylelint 结果并单独计数；不使用属性名称白名单，行内 `style` 属性及无法定位的错误仍由 Nu 检查。Stylelint 不是运行时层叠、变量求值结果或全部浏览器支持情况的证明。请求以 canonical 地址设置 `Content-Location`，可通过 `W3C_DOCUMENT_URL` 覆盖，提交内容仍为本地 HTML；来源语境检查不替代真实部署的响应头验收。退出码 0 表示无阻断错误，1 表示页面校验错误，2 表示服务、工具或响应异常导致校验未完成；未完成时需恢复后重试。通过不代表完整无障碍、视觉或功能合规，样式完整性由基础架构测试另行检查。
+- `scripts/validate-w3c.mjs` 不自动构建，发布时须校验本轮生成的 `dist/`。它通过 Nu 检查完整 HTML，默认使用 W3C 公共服务，CI 通过 `W3C_VALIDATOR_URL` 使用 runner 本地服务。Stylelint 18 检查每个内嵌 `style` 块的语法、属性值、at-rule 前导及描述符，不启用排版规则或源码中的禁用注释。Stylelint 18 的 `declaration-property-value-no-unknown` 检查含已声明变量的属性值，配合 `value-no-invalid` 检查不可解析的值与非法算式，两条规则职责不同，升级时须保留对应回归。Nu CSS 诊断只有定位在已独立校验的样式块内时才采用 Stylelint 结果并单独计数；不使用属性名称白名单，行内 `style` 属性及无法定位的错误仍由 Nu 检查。Stylelint 不是运行时层叠、变量求值结果或全部浏览器支持情况的证明。请求以 canonical 地址设置 `Content-Location`，可通过 `W3C_DOCUMENT_URL` 覆盖，提交内容仍为本地 HTML；来源语境检查不替代真实部署的响应头验收。退出码 0 表示无阻断错误，1 表示页面校验错误，2 表示服务、工具或响应异常导致校验未完成；未完成时需恢复后重试。通过不代表完整无障碍、视觉或功能合规，样式完整性由基础架构测试另行检查。
 - `typecheck` 使用 JSDoc 与 `types.d.ts` 检查 `src/js/` 下全部 JavaScript 模块及 `test/types/contracts.js` 中的负向类型契约；页面与 `sw.js` 分别使用 DOM 和 Worker 类型环境。覆盖范围以 `tsconfig.json` 和 `tsconfig.sw.json` 为准，不包含全部 Node 工具和测试脚本。`npm test` 同样执行两套配置。
 - 生命周期约束通过页面行为测试验证；Service Worker 测试执行完整脚本及真实升级流程，不通过截取函数体判断实现是否正确。

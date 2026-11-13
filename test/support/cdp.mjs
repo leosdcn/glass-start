@@ -2,7 +2,7 @@ import { spawn, spawnSync } from 'node:child_process';
 import { once } from 'node:events';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { rmSync, existsSync, mkdtempSync, mkdirSync } from 'node:fs';
+import { rmSync, existsSync, mkdtempSync, mkdirSync, readFileSync } from 'node:fs';
 
 function findChromeBin() {
   if (process.env.CHROME_PATH) return process.env.CHROME_PATH;
@@ -174,7 +174,17 @@ export async function connectCDP(ws, { openTimeoutMs = 15000 } = {}) {
   };
 }
 
-export async function launchChrome({ port, url, testMode = true, disableGPU = true, extraArgs = [] }) {
+export async function launchChrome(options) {
+  try {
+    return await launchChromeOnce(options);
+  } catch (error) {
+    if (error.code !== 'CHROME_CDP_STARTUP_TIMEOUT') throw error;
+    console.warn(error.message + '\nRetrying Chrome startup with a fresh profile.');
+    return launchChromeOnce(options);
+  }
+}
+
+async function launchChromeOnce({ port = 0, url, testMode = true, disableGPU = true, extraArgs = [] }) {
   const profileParent = process.env.CHROME_PROFILE_DIR || process.env.GLASS_TEST_TMPDIR || tmpdir();
   mkdirSync(profileParent, { recursive: true });
   const profileDir = mkdtempSync(resolve(profileParent, `glass-start-test-${port}-`));
@@ -201,25 +211,38 @@ export async function launchChrome({ port, url, testMode = true, disableGPU = tr
   activeInstances.add(instance);
 
   try {
-    const proc = instance.proc = spawn(CHROME_BIN, args, { stdio: 'ignore' });
+    const proc = instance.proc = spawn(CHROME_BIN, args, { stdio: ['ignore', 'ignore', 'pipe'] });
+    let stderr = '';
+    proc.stderr.setEncoding('utf8');
+    proc.stderr.on('data', chunk => { stderr = (stderr + chunk).slice(-4000); });
     let spawnError;
     proc.once('error', error => { spawnError = error; });
+    let cdpPort = port;
     const target = await (async function wait() {
-      for (let i = 0; i < 200; i++) {
+      const deadline = Date.now() + 10000;
+      while (Date.now() < deadline) {
         if (spawnError) throw spawnError;
         if (proc.exitCode !== null || proc.signalCode !== null) {
           throw new Error(`Chrome exited before CDP was ready (${proc.signalCode ?? proc.exitCode})`);
         }
         try {
-          const res = await fetch(`http://127.0.0.1:${port}/json`);
-          const list = await res.json();
-          const page = list.find(t => t.type === 'page' && /^https?:\/\//.test(t.url) && !t.url.includes('chrome://')) ||
-                       list.find(t => t.type === 'page' && !t.url.includes('chrome://'));
-          if (page) return page;
+          // 由 Chrome 绑定临时端口，再从当前配置目录发现端口。
+          if (!cdpPort) cdpPort = Number.parseInt(readFileSync(join(profileDir, 'DevToolsActivePort'), 'utf8'), 10);
+          if (cdpPort) {
+            const res = await fetch(`http://127.0.0.1:${cdpPort}/json`, { signal: AbortSignal.timeout(1000) });
+            const list = await res.json();
+            const page = list.find(t => t.type === 'page' && /^https?:\/\//.test(t.url) && !t.url.includes('chrome://')) ||
+                         list.find(t => t.type === 'page' && !t.url.includes('chrome://'));
+            if (page) return page;
+          }
         } catch {}
         await new Promise(r => setTimeout(r, 50));
       }
-      throw new Error('Chrome CDP page not found');
+      const endpoint = cdpPort ? `port ${cdpPort}` : 'no DevToolsActivePort';
+      const details = stderr.trim();
+      throw Object.assign(new Error(`Chrome CDP page not found within 10000ms (${endpoint})${details ? '\n' + details : ''}`), {
+        code: 'CHROME_CDP_STARTUP_TIMEOUT'
+      });
     })();
     instance.ws = new WebSocket(target.webSocketDebuggerUrl);
     const connection = await connectCDP(instance.ws);
@@ -269,7 +292,7 @@ window.fetch = async (url, opts) => {
       await new Promise(resolve => setTimeout(resolve, 30));
     }
     if (!ready) throw new Error('Chrome page did not finish navigation within 10000ms');
-    return { send, close: () => closeInstance(instance) };
+    return { send, cdpPort, close: () => closeInstance(instance) };
   } catch (error) {
     await closeInstance(instance);
     throw error;

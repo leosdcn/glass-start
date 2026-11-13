@@ -76,11 +76,15 @@ test('跨分辨率与视口切换无多余布局过渡', async () => {
         await send('Input.dispatchTouchEvent', {type, touchPoints:type === 'touchEnd' ? [] : [{x:185,y}]});
       }
     };
+    await evalJS(`dom.startContent.addEventListener('scrollend', () => {
+      window.startSwipeFinished = true;
+    }, { once: true })`);
     await swipe();
     const settingsTop = await evalJS('dom.editBookmarksBtn.getBoundingClientRect().top');
     await waitFor(evalJS, 'dom.startContent.scrollTop > 0');
     assert.equal(await evalJS('state.currentSection'), 'start');
-    await evalJS('dom.startContent.scrollTop = dom.startContent.scrollHeight');
+    await waitFor(evalJS, 'window.startSwipeFinished');
+    await evalJS("dom.startContent.scrollTo({ top: dom.startContent.scrollHeight, behavior: 'instant' })");
     assert.equal(await evalJS('dom.bookmarks.lastElementChild.getBoundingClientRect().bottom <= innerHeight'), true);
     assert.equal(await evalJS('dom.editBookmarksBtn.getBoundingClientRect().top'), settingsTop);
     await swipe();

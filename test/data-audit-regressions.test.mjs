@@ -105,6 +105,7 @@ test('数据容错、搜索联想与网络降级回归', async () => {
       document.body.classList.contains = origContains;
 
       // 4. 侧栏滚动每帧零数组分配（布局观察器已就绪时滚动比对无 map 分配）
+      renderNavCategories();
       updateSidebarActive();
       let arrayMaps = 0;
       const origMap = Array.prototype.map;

@@ -7,6 +7,11 @@ import { launchSession, pressKey, waitFor, navigateAndWait } from './support/hel
 test('异常书签缓存不阻断启动，清洗保留有效条目、目录继承和空简介', async () => {
   const { server, chrome, send, evalJS } = await launchSession();
   try {
+    send('Fetch.requestPaused', ({ requestId }) => send('Fetch.failRequest', { requestId, errorReason: 'Failed' }));
+    await send('Fetch.enable', { patterns: [
+      { urlPattern: 'https://a.favicon.im/*', resourceType: 'Image' },
+      { urlPattern: 'https://www.google.com/s2/favicons*', resourceType: 'Image' }
+    ] });
     await send('Page.addScriptToEvaluateOnNewDocument', { source: `
       window.fetch = async () => ({ ok: true, json: async () => ({}) });
       localStorage.setItem('userBookmarkKeys', JSON.stringify([
@@ -18,7 +23,7 @@ test('异常书签缓存不阻断启动，清洗保留有效条目、目录继�
         'https://invalid.test': ['bad']
       }));
     ` });
-    await navigateAndWait(send, evalJS, `http://127.0.0.1:${server.port}/`,
+    await navigateAndWait(send, evalJS, `http://127.0.0.1:${server.port}/?bookmark-cache=invalid`,
       'typeof openEditModal === "function" && pageData.bookmarks.length === 2 && !!document.querySelector(".bookmark-item")');
     const recovered = await evalJS(`(() => {
       const github = pageData.bookmarks.find(bm => bm.url === 'https://github.com');
