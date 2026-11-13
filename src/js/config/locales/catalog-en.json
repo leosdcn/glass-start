@@ -64,9 +64,6 @@
         "https://www.kimi.com": {
             "desc": "Long-context AI by Moonshot"
         },
-        "https://meta.ai": {
-            "desc": "Meta AI chat assistant"
-        },
         "https://chat.mistral.ai": {
             "desc": "AI chat assistant"
         },

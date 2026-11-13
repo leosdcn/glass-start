@@ -125,12 +125,6 @@
                     "desc": "月之暗面长文本 AI"
                 },
                 {
-                    "name": "Meta AI",
-                    "url": "https://meta.ai",
-                    "icon": "./icons/meta.ai.png",
-                    "desc": "Meta 官方 AI 助手"
-                },
-                {
                     "name": "Mistral",
                     "url": "https://chat.mistral.ai",
                     "icon": "./icons/chat.mistral.ai.png",
