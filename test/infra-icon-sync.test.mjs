@@ -41,7 +41,7 @@ export default { get(url, options, callback) {
   const s2Url = 'https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https%3A%2F%2Fexample.test&size=128';
   const wwwUrl = s2Url.replace('%2F%2Fexample.test', '%2F%2Fwww.example.test');
   const officialFallback = s2Url.replace('example.test', 'qianwen.com');
-  const officialUrl = 'https://img.alicdn.com/imgextra/i4/O1CN01OXv3EM1FN8t9W4P79_!!6000000000474-2-tps-80-80.png';
+  const officialUrl = 'https://img.alicdn.com/imgextra/i3/O1CN01meficLFy3FK0UDAm_!!6000000006257-2-tps-240-240.png';
 
   function resizedPng(name, height, width) {
     const path = join(root, name);

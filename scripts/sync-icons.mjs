@@ -25,17 +25,45 @@ const ICONS_DIR = join(ROOT_DIR, 'public', 'icons');
 const BOOKMARKS_PATH = join(ROOT_DIR, 'bookmarks.json');
 const refresh = process.argv.includes('--refresh');
 
-// 针对 Google S2 索引为母公司通用标或暂无索引的站点，提供官方高清图标直链
-const OFFICIAL_HOST_SOURCES = new Map([
+/** @typedef {{ url: string, entry?: string, referer?: string, cropSize?: number }} IconSource */
+
+// 为官网提供更合适图标的站点指定官方资源。
+const OFFICIAL_HOST_SOURCES = new Map(/** @type {[string, string | IconSource][]} */ ([
+    ['archive.org', 'https://archive.org/offshoot_assets/apple-touch-icon.png'],
     ['colab.research.google.com', 'https://www.gstatic.com/colaboratory-static/common/7e9bfd7c9345c7972401c42c04bf40a9/img/favicon.ico'],
+    ['cook.yunyoujun.cn', 'https://cook.yunyoujun.cn/favicon.svg'],
+    ['desmos.com', 'https://www.desmos.com/assets/img/apps/graphing/apple-touch-icon.png'],
+    ['douban.com', {
+        url: 'https://img3.doubanio.com/f/talion/7c6364aadf368dc0210173c940cfd0f64ceddc66/pics/icon/m_logo_200.png',
+        referer: 'https://m.douban.com/'
+    }],
     ['drive.google.com', 'https://www.gstatic.com/images/branding/productlogos/drive_2026/v2/web-64dp/logo_drive_2026_color_2x_web_64dp.png'],
     ['earth.google.com', 'https://www.gstatic.com/images/branding/product/2x/earth_64dp.png'],
+    ['en.wikivoyage.org', 'https://upload.wikimedia.org/wikipedia/commons/8/8a/Wikivoyage-logo.svg'],
     ['github.com', 'https://github.githubassets.com/favicons/favicon-dark.svg'],
+    ['linkedin.com', 'https://play-lh.googleusercontent.com/oij55bxj3e-4JrhGntpki0lnQyE8yQn8X5FPEzZ0t7cLppeiSINynEk7n9COoh7QSaCOZ_yiPO31NVaW4SDbWg=s512'],
     ['maps.google.com', 'https://www.gstatic.com/images/branding/productlogos/maps_2025/v1/web-64dp/logo_maps_2025_color_2x_web_64dp.png'],
+    ['msdmanuals.com', 'https://edge.sitecorecloud.io/mmanual-ssq1ci05/media/manual/brand-logos/mm_logo.svg'],
+    ['netflix.com', {
+        url: 'https://assets.ctfassets.net/4cd45et68cgf/5vCbQ45TfVUvWgm8eiDOtn/ef1c2431dc81f79ae93fcce649ae796f/Netflix_Symbol.zip',
+        entry: '02_Netflix_Symbol/01_Netflix_Symbol_RGB/Netflix_Symbol_RGB.png',
+        cropSize: 904 // 红色 N 高约 900 px，居中裁去素材包原图的透明留白。
+    }],
     ['onedrive.live.com', 'https://res-1.cdn.office.net/files/fabric-cdn-prod_20230815.002/assets/brand-icons/product/png/onedrive_96x2.png'],
-    ['qianwen.com', 'https://img.alicdn.com/imgextra/i4/O1CN01OXv3EM1FN8t9W4P79_!!6000000000474-2-tps-80-80.png'],
-    ['translate.google.com', 'https://www.gstatic.com/images/branding/product/2x/translate_64dp.png']
-]);
+    ['open.spotify.com', 'https://storage.googleapis.com/pr-newsroom-wp/1/2021/02/Spotify_Icon_RGB_Green.png'],
+    ['pychess.org', 'https://cdn.jsdelivr.net/gh/pychess/pychess-variants@1.11.89/static/favicon/ms-icon-310x310.png'],
+    ['qianwen.com', 'https://img.alicdn.com/imgextra/i3/O1CN01meficLFy3FK0UDAm_!!6000000006257-2-tps-240-240.png'],
+    ['shogiwars.heroz.jp', 'https://play-lh.googleusercontent.com/MxcyRQDoC02-XccBkR8hKklHBerLULM1mifESyvIJX11rI8L8rwyfYfhrchFl1DEzNYWvSuRdTfH-JjQ30Z5=w512'],
+    ['sspai.com', 'https://sspai.com/apple-touch-icon.png'],
+    ['stellarium-web.org', 'https://stellarium.sfo2.cdn.digitaloceanspaces.com/stellarium-web/frontend-1.16.0/icon-180.png'],
+    ['translate.google.com', 'https://www.gstatic.com/images/branding/product/2x/translate_64dp.png'],
+    ['twitch.tv', {
+        url: 'https://www.twitch.tv/p/press-center/assets/media/glitch.zip',
+        entry: 'glitch/Purple/TwitchGlitchPurple.svg'
+    }],
+    ['web.localsend.org', 'https://web.localsend.org/logo-512.png'],
+    ['weibo.com', 'https://h5.sinaimg.cn/upload/447/2017/10/12/code_logo.png']
+]));
 
 function getBareHostname(url) {
     return getRawHostname(url).replace(/^www\./, '');
@@ -50,19 +78,21 @@ function getRawHostname(url) {
     }
 }
 
-function fetchRedirectBuffer(url, timeoutMs = 7000, redirectCount = 0) {
+function fetchRedirectBuffer(url, referer = '', timeoutMs = 7000, redirectCount = 0) {
     return new Promise((resolve, reject) => {
         if (redirectCount > 5) return reject(new Error('Too many redirects'));
         const req = https.get(url, {
             headers: {
                 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-                'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8'
+                'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+                ...(referer ? { Referer: referer } : {})
             }
         }, (res) => {
             if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
                 res.resume();
-                const nextUrl = new URL(res.headers.location, url).href;
-                return resolve(fetchRedirectBuffer(nextUrl, timeoutMs, redirectCount + 1));
+                const nextUrl = new URL(res.headers.location, url);
+                const nextReferer = nextUrl.origin === new URL(url).origin ? referer : '';
+                return resolve(fetchRedirectBuffer(nextUrl.href, nextReferer, timeoutMs, redirectCount + 1));
             }
             if (res.statusCode !== 200) {
                 res.resume();
@@ -127,16 +157,26 @@ function isReusableIcon(path) {
     }
 }
 
-/** 规范化转录为 128x128 1:1 PNG（macOS 使用原生 sips，其他环境复用合规 PNG） */
-function saveAsPng(inputBuffer, destPath) {
+/** 规范化为不超过 128×128 的正方形 PNG。官方素材包只读取指定条目。
+ * @param {Buffer} inputBuffer
+ * @param {string} destPath
+ * @param {Pick<IconSource, 'entry' | 'cropSize'>} [options]
+ */
+function saveAsPng(inputBuffer, destPath, { entry, cropSize } = {}) {
     const workDir = mkdtempSync(join(dirname(destPath), '.icon-sync-'));
-    const isSvg = inputBuffer.subarray(0, 200).toString('utf8').includes('<svg');
-    const inputPath = join(workDir, isSvg ? 'input.svg' : 'input.bin');
     const outputPath = join(workDir, 'output.png');
     try {
+        if (entry) {
+            const archive = join(workDir, 'official.zip');
+            writeFileSync(archive, inputBuffer);
+            inputBuffer = execFileSync('unzip', ['-p', archive, entry], { timeout: 5000 });
+        }
+        // XML 声明、导出注释和文档类型可能出现在 SVG 根元素前。
+        const isSvg = inputBuffer.subarray(0, 512).toString('utf8').includes('<svg');
+        const inputPath = join(workDir, isSvg ? 'input.svg' : 'input.bin');
         writeFileSync(inputPath, inputBuffer);
         if (!hasSips()) {
-            if (isSvg) return false;
+            if (isSvg || cropSize) return false;
             const { width, height } = pngDimensions(inputPath);
             if (width !== height || width > 128) return false;
             renameSync(inputPath, destPath);
@@ -146,6 +186,10 @@ function saveAsPng(inputBuffer, destPath) {
         runSips(isSvg
             ? ['-s', 'format', 'png', '-Z', '128', inputPath, '--out', outputPath]
             : ['-s', 'format', 'png', inputPath, '--out', outputPath]);
+        if (cropSize) {
+            const side = String(cropSize);
+            runSips(['--cropToHeightWidth', side, side, outputPath]);
+        }
         let { width, height } = pngDimensions(outputPath);
         if (Math.max(width, height) > 128) {
             runSips(['-Z', '128', outputPath]);
@@ -238,17 +282,21 @@ async function main() {
             candidates.push('www.' + bareHost);
         }
 
+        /** @type {(IconSource & { source: string })[]} */
         const sources = candidates.map(candidate => ({
             url: `https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=${encodeURIComponent('https://' + candidate)}&size=128`,
             source: `Google S2 (${candidate})`
         }));
-        const officialUrl = OFFICIAL_HOST_SOURCES.get(bareHost);
-        if (officialUrl) sources.unshift({ url: officialUrl, source: `Official Source (${bareHost})` });
+        const official = OFFICIAL_HOST_SOURCES.get(bareHost);
+        if (official) sources.unshift({
+            ...(typeof official === 'string' ? { url: official } : official),
+            source: `Official Source (${bareHost})`
+        });
 
-        for (const { url, source } of sources) {
+        for (const { url, source, entry, referer, cropSize } of sources) {
             try {
-                const buffer = await fetchRedirectBuffer(url);
-                if (saveAsPng(buffer, destPath)) return { host: bareHost, success: true, source };
+                const buffer = await fetchRedirectBuffer(url, referer);
+                if (saveAsPng(buffer, destPath, { entry, cropSize })) return { host: bareHost, success: true, source };
             } catch {}
         }
 

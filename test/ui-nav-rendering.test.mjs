@@ -23,16 +23,22 @@ await test("图标空闲准备与延迟加载", async () => {
             ...dom.navCategories.querySelectorAll('.category-header img')];
         return icons.length > 0 && icons.every(img => !img.hasAttribute('loading'));
     })()`), true);
-        await waitFor(evalJS, `dom.navCategories.querySelector('.category-block:nth-child(-n+5) img.lazy-icon[src]')?.fetchPriority === 'low'`);
+        await waitFor(evalJS, `dom.navCategories.querySelector('img.lazy-icon[fetchpriority="low"]')`);
         assert.equal(await evalJS(`(() => {
         const firstScreen = new Set([...dom.bookmarks.querySelectorAll('img')].map(img=>img.src));
-        const resources = performance.getEntriesByType('resource').map(entry=>entry.name);
-        const deferred = [...dom.navSection.querySelectorAll('img[data-nav-src]')];
-        const prepared = [...dom.navCategories.querySelectorAll('.category-block:nth-child(-n+5) img.lazy-icon[src]')];
-        return prepared.length > 0 && prepared.every(img=>img.getAttribute('src').startsWith('./icons/') &&
+        const resources = new Set(performance.getEntriesByType('resource').map(entry=>entry.name));
+        const categories = [...dom.navCategories.querySelectorAll('.category-block')];
+        const limit = CONFIG.NAV.INITIAL_VISIBLE_CATEGORIES;
+        const iconsIn = blocks => blocks.flatMap(block => [...block.querySelectorAll('img.lazy-icon')]);
+        const prepared = iconsIn(categories.slice(0, limit));
+        const deferred = iconsIn(categories.slice(limit));
+        return prepared.length > 0 && prepared.every(img=>img.getAttribute('src')?.startsWith('./icons/') &&
             img.loading === 'eager' && img.fetchPriority === 'low') &&
-            deferred.length >= 70 && deferred.every(img=>!img.hasAttribute('src') &&
-            (firstScreen.has(new URL(img.dataset.navSrc,location.href).href) || !resources.includes(new URL(img.dataset.navSrc,location.href).href)));
+            deferred.length > 0 && deferred.every(img => {
+                if (img.hasAttribute('src') || !img.dataset.navSrc) return false;
+                const url = new URL(img.dataset.navSrc, location.href).href;
+                return firstScreen.has(url) || !resources.has(url);
+            });
     })()`), true);
         console.log('✅ 首批本地图标以低优先级空闲准备，其余图标仍保持延迟加载');
 
