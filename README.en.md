@@ -215,7 +215,7 @@ This is my first substantial open-source project, and I am still learning and im
 
 - Node.js 24.x (at least 24.15.0) or version 26 and above, with npm. The supported range is `^24.15.0 || >=26.0.0`, compatible with Stylelint 18. The test driver uses Node's native `fetch` and `WebSocket`; follow the version requirement in `package.json`. Use `npm ci` to install or restore dependencies.
 - Google Chrome for browser regression tests. Set `CHROME_PATH` if needed, for example `CHROME_PATH="/path/to/chrome" npm test`. Chrome is the acceptance baseline; mobile viewports and touch interactions are simulated through Chrome CDP. Testing in Safari or on physical iOS devices is not required for routine development, full tests or releases.
-- `npm run sync:icons` and the icon-conversion regression test require macOS `sips`. Ubuntu CI and other environments without `sips` skip that test. Other systems can build and host the site using the icons already in the repository.
+- Downloaded icons are converted with macOS `sips`. Environments without `sips` can still build, host, and test syncing valid PNGs. Conversion and corrupted pixel data checks run when `sips` is available.
 - Dependency installation, icon downloads or refreshes, and online W3C validation require a connection. Reusing local icons does not contact external icon services.
 
 Check the active environment with `node --version`; the `engines` declaration does not switch Node automatically, and `start.command` only checks whether the Node command is available. CI uses the minimum supported version to verify the lower bound, while the Cloudflare deployment example follows a supported 24.x maintenance version.
@@ -284,7 +284,7 @@ Related browser regressions are grouped in the following files. Add related regr
 
 `npm run lint` uses Acorn to check DOM references and PostCSS to inspect CSS declarations and nesting. It also checks that `!important` is limited to reduced-motion rules and verifies the prefix order for frosted glass properties. These parsers are development tools and are not included in the website output.
 
-`npm run test:icons` and `npm run test:visual` are separate commands: build first, then run them as needed. The visual script produces screenshots and layout metrics; it does not automatically compare pixels against baseline images. `npm run lint:fix` only fixes mechanical rules supported by the script. The [Safari smoke checklist](./docs/SAFARI_SMOKE_CHECKLIST.md) (Chinese) is optional and used only when explicitly requested, not as a default acceptance or release requirement.
+`npm run test:icons` uses the standard runner to build the site and run the navigation regression tests, including same-origin icon URLs, decoding, and lazy loading. Build before running `npm run test:visual`, which produces screenshots and layout metrics for manual review. `npm run lint:fix` applies supported mechanical fixes. Use the [Safari smoke checklist](./docs/SAFARI_SMOKE_CHECKLIST.md) (Chinese) when explicitly requested.
 
 After building, run `node scripts/capture-preview.mjs --lang=en` to regenerate the English README screenshots. Omit `--lang=en` to generate the Chinese screenshots.
 

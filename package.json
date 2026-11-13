@@ -20,7 +20,7 @@
     "lint": "node scripts/lint.mjs",
     "lint:fix": "node scripts/lint.mjs --fix",
     "test:w3c": "node scripts/validate-w3c.mjs",
-    "test:icons": "node test/verify-local-icons.mjs",
+    "test:icons": "node test/run.mjs ui-nav-rendering",
     "sync:icons": "node scripts/sync-icons.mjs",
     "sync:icons:refresh": "node scripts/sync-icons.mjs --refresh",
     "dev": "node scripts/server.cjs",

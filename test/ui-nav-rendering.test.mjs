@@ -10,6 +10,14 @@ await test("图标空闲准备与延迟加载", async () => {
     const { server, chrome, send, evalJS } = await launchSession();
     try {
         await send('Network.enable');
+        const externalImages = [];
+        const origin = `http://127.0.0.1:${server.port}`;
+        send('Network.requestWillBeSent', ({ type, request }) => {
+            const url = new URL(request.url);
+            if (type === 'Image' && /^https?:$/.test(url.protocol) && url.origin !== origin) {
+                externalImages.push(url.href);
+            }
+        });
         await send('Network.setBypassServiceWorker', { bypass: true });
         await send('Network.setCacheDisabled', { cacheDisabled: true });
         await send('Page.addScriptToEvaluateOnNewDocument', { source: `
@@ -117,6 +125,39 @@ await test("图标空闲准备与延迟加载", async () => {
         lastNavIcon.scrollIntoView({block:'center',behavior:'instant'});
     })()`);
         await waitFor(evalJS, 'lastNavIcon.naturalWidth > 0 && lastNavIcon.classList.contains("loaded")');
+        const iconErrors = await evalJS(`(async () => {
+            const groups = [
+                [dom.bookmarks, pageData.bookmarks],
+                [dom.navCategories, pageData.categories.flatMap(category => category.bookmarks)]
+            ];
+            const errors = [];
+            for (const [container, bookmarks] of groups) {
+                const icons = [...container.querySelectorAll('img.lazy-icon')];
+                if (!icons.length || icons.length !== bookmarks.length) {
+                    errors.push(container.id + ': 图标数量 ' + icons.length + '/' + bookmarks.length);
+                    continue;
+                }
+                const expected = bookmarks.map(bookmark => new URL(bookmark.icon, location.href).href).sort();
+                const actual = icons.map(icon => icon.src).sort();
+                if (expected.some((url, index) => url !== actual[index])) {
+                    errors.push(container.id + ': 渲染的图标与书签目录不一致');
+                }
+                for (const icon of icons) {
+                    const url = new URL(icon.src, location.href);
+                    if (url.origin !== location.origin || !url.pathname.startsWith('/icons/')) {
+                        errors.push(icon.src + ': 图标来源错误');
+                        continue;
+                    }
+                    // 延迟加载已用末尾卡片验证，这里让离屏图片也能直接解码。
+                    icon.loading = 'eager';
+                    try { await icon.decode(); }
+                    catch { errors.push(icon.src + ': 图标解码失败'); }
+                }
+            }
+            return errors;
+        })()`);
+        assert.deepEqual(iconErrors, []);
+        assert.deepEqual(externalImages, []);
         await evalJS('switchToStart()');
         await waitFor(evalJS, '!isScreenTransitioning()');
         await evalJS('switchToNav()');

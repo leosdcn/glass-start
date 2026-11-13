@@ -6,10 +6,14 @@ import { join } from 'node:path';
 import { spawnSync, execFileSync } from 'node:child_process';
 
 const hasSips = spawnSync('sips', ['--version'], { stdio: 'ignore' }).status === 0;
+const officialHost = 'official.example';
+const officialUrl = 'https://assets.example/official.png';
+// 两张独立于站内资源的有效灰色 PNG，分别为 19×19 和 128×128。
+const smallFixture = 'iVBORw0KGgoAAAANSUhEUgAAABMAAAATCAAAAABXO2kQAAAAEUlEQVR42mNowAQMo2J0EQMAAFa0gUbBi0UAAAAASUVORK5CYII=';
+const largeFixture = 'iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAAAAADmVT4XAAAAWUlEQVR42u3OIQEAAAACIKc73RkWWEB6FgEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBgXdgvAQB4V1F2L0AAAAASUVORK5CYII=';
 
 test('图标 CLI 下载、尺寸规范化、缓存修复与失败回滚', () => {
-  const root = mkdtempSync(join(tmpdir(), 'glass-icon-sync-'));
-  const png = readFileSync(new URL('../public/icons/github.com.png', import.meta.url));
+  const png = Buffer.from(largeFixture, 'base64');
   const transport = `import { EventEmitter } from 'node:events';
 import { appendFileSync } from 'node:fs';
 export default { get(url, options, callback) {
@@ -33,33 +37,31 @@ export default { get(url, options, callback) {
   });
   return request;
 }};`;
-  const script = readFileSync(new URL('../scripts/sync-icons.mjs', import.meta.url), 'utf8')
-    .replace("import https from 'node:https';", `import https from 'data:text/javascript;base64,${Buffer.from(transport).toString('base64')}';`);
+  const source = readFileSync(new URL('../scripts/sync-icons.mjs', import.meta.url), 'utf8');
+  const transportImport = "import https from 'node:https';";
+  const entryPoint = 'main().catch(';
+  assert.ok(source.includes(transportImport) && source.includes(entryPoint), '图标测试夹具需要适配同步脚本入口');
+  const script = source
+    .replace(transportImport, `import https from 'data:text/javascript;base64,${Buffer.from(transport).toString('base64')}';`)
+    .replace(entryPoint, `OFFICIAL_HOST_SOURCES.set(${JSON.stringify(officialHost)}, ${JSON.stringify(officialUrl)});\n${entryPoint}`);
+  const root = mkdtempSync(join(tmpdir(), 'glass-icon-sync-'));
   const log = join(root, 'requests.log');
   const icons = join(root, 'public/icons');
-  const normal = join(icons, 'example.test.png'), official = join(icons, 'qianwen.com.png');
+  const normal = join(icons, 'example.test.png'), official = join(icons, officialHost + '.png');
   const s2Url = 'https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https%3A%2F%2Fexample.test&size=128';
   const wwwUrl = s2Url.replace('%2F%2Fexample.test', '%2F%2Fwww.example.test');
-  const officialFallback = s2Url.replace('example.test', 'qianwen.com');
-  const officialUrl = 'https://img.alicdn.com/imgextra/i3/O1CN01meficLFy3FK0UDAm_!!6000000006257-2-tps-240-240.png';
+  const officialFallback = s2Url.replace('example.test', officialHost);
 
   function resizedPng(name, height, width) {
     const path = join(root, name);
-    if (hasSips) {
-      writeFileSync(path, png);
-      execFileSync('sips', ['-z', String(height), String(width), path], { stdio: 'ignore' });
-    } else {
-      const buf = Buffer.from(png);
-      buf.writeUInt32BE(width, 16);
-      buf.writeUInt32BE(height, 20);
-      writeFileSync(path, buf);
-    }
+    writeFileSync(path, png);
+    execFileSync('sips', ['-z', String(height), String(width), path], { stdio: 'ignore' });
     return readFileSync(path).toString('base64');
   }
 
   try {
-    const smallPng = resizedPng('small.png', 19, 16);
-    const largePng = resizedPng('large.png', 256, 128);
+    const smallPng = hasSips ? resizedPng('small.png', 19, 16) : smallFixture;
+    const largePng = hasSips ? resizedPng('large.png', 256, 128) : largeFixture;
     function run(args = [], failure = '') {
       writeFileSync(log, '');
       const result = spawnSync(process.execPath, [join(root, 'scripts/sync-icons.mjs'), ...args], {
@@ -76,7 +78,7 @@ export default { get(url, options, callback) {
     writeFileSync(join(root, 'scripts/terminal.cjs'), readFileSync(new URL('../scripts/terminal.cjs', import.meta.url)));
     writeFileSync(join(root, 'bookmarks.json'), JSON.stringify({ bookmarks: [
       { name: 'Normal', url: 'https://example.test', icon: './icons/example.test.png' },
-      { name: 'Official', url: 'https://qianwen.com', icon: './icons/qianwen.com.png' }
+      { name: 'Official', url: 'https://' + officialHost, icon: './icons/' + officialHost + '.png' }
     ], categories: [] }));
     writeFileSync(normal, png); writeFileSync(official, png);
     const reuse = run();
@@ -97,13 +99,15 @@ export default { get(url, options, callback) {
     assert.equal(corrupt.status, 0, corrupt.stdout + corrupt.stderr);
     assert.deepEqual(corrupt.requests, [s2Url]);
 
-    // 缺少有效图像数据时重新下载
-    const repairedPng = readFileSync(normal);
-    writeFileSync(normal, Buffer.concat([png.subarray(0, 33), Buffer.alloc(12), png.subarray(-12)]));
-    const invalidData = run();
-    assert.equal(invalidData.status, 0, invalidData.stdout + invalidData.stderr);
-    assert.deepEqual(invalidData.requests, [s2Url]);
-    assert.deepEqual(readFileSync(normal), repairedPng);
+    if (hasSips) {
+      // 文件头和尾标有效，但像素数据损坏时需要重新下载。
+      const repairedPng = readFileSync(normal);
+      writeFileSync(normal, Buffer.concat([png.subarray(0, 33), Buffer.alloc(12), png.subarray(-12)]));
+      const invalidData = run();
+      assert.equal(invalidData.status, 0, invalidData.stdout + invalidData.stderr);
+      assert.deepEqual(invalidData.requests, [s2Url]);
+      assert.deepEqual(readFileSync(normal), repairedPng);
+    }
 
     const refresh = run(['--refresh']);
     assert.equal(refresh.status, 0, refresh.stdout + refresh.stderr);
@@ -158,7 +162,7 @@ export default { get(url, options, callback) {
     assert.equal(existsSync(official), true);
     const saved = JSON.parse(readFileSync(bookmarks, 'utf8'));
     for (const list of [saved.bookmarks, saved.categories[0].bookmarks]) {
-      assert.deepEqual(list.map(bookmark => bookmark.icon), ['./icons/old-example.png', './icons/qianwen.com.png']);
+      assert.deepEqual(list.map(bookmark => bookmark.icon), ['./icons/old-example.png', './icons/' + officialHost + '.png']);
     }
     assert.deepEqual(readFileSync(join(icons, 'old-example.png')), png);
     assert.equal(readdirSync(icons).some(name => name.startsWith('.icon-sync-')), false);

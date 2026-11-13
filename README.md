@@ -209,7 +209,7 @@ npm run preview
 
 - 需要使用 Node.js 24.x（至少 24.15.0）或 26 及以上版本及随附的 npm；版本范围为 `^24.15.0 || >=26.0.0`，与 Stylelint 18 的要求保持兼容。测试驱动使用 Node 原生 `fetch` 和 `WebSocket`，请遵循 `package.json` 的 Node 版本要求。安装或恢复依赖使用 `npm ci`。
 - 浏览器回归测试需要 Google Chrome。可通过 `CHROME_PATH` 指定安装路径，例如 `CHROME_PATH="/path/to/chrome" npm test`。项目以 Chrome 为浏览器验收基准，移动视口及触摸交互通过 Chrome CDP 模拟；日常开发、全面测试及发布均不要求 Safari/iOS 真机走查。
-- `npm run sync:icons` 及图标转换回归测试依赖 macOS 原生 `sips`。Ubuntu CI 和其他没有 `sips` 的环境会跳过图标转换回归。使用仓库中已同步的图标可在其他系统构建和静态托管。
+- 下载后的图标转换使用 macOS 原生 `sips`。没有 `sips` 的环境仍可构建、托管并验证合规 PNG 的同步行为。转换和像素数据损坏的检查在有 `sips` 时运行。
 - 安装依赖、下载或刷新图标和 W3C 在线校验需要网络；仅复用本地图标时不请求外部图标服务。
 
 先用 `node --version` 确认当前环境；`engines` 声明不会自动切换 Node，`start.command` 也只检查 Node 命令是否可用。CI 固定最低支持版本以验证下限，Cloudflare 部署示例则跟随符合要求的 24.x 维护版本。
@@ -276,7 +276,7 @@ npm run build:extension
 
 `npm run lint` 使用 Acorn 检查 DOM 引用，使用 PostCSS 检查 CSS 声明及嵌套关系；同时检查 `!important` 是否仅用于减弱动效规则，以及毛玻璃属性的前缀顺序。这些解析工具仅供开发检查，不进入网站产物。
 
-`npm run test:icons` 与 `npm run test:visual` 是独立入口，需先构建再按需运行。视觉脚本输出截图和布局指标，不自动与基准图逐像素比较。`npm run lint:fix` 仅修复脚本支持的机械规则。[Safari 专项冒烟清单](./docs/SAFARI_SMOKE_CHECKLIST.md) 仅保留为可选参考，用户明确要求时才使用，不作为默认验证或发布门槛。
+`npm run test:icons` 通过标准测试运行器构建并执行导航回归，检查预设图标的同源路径、解码和延迟加载。`npm run test:visual` 需先构建，输出供人工检查的截图和布局指标。`npm run lint:fix` 仅修复脚本支持的机械规则。[Safari 专项冒烟清单](./docs/SAFARI_SMOKE_CHECKLIST.md) 仅在用户明确要求时使用。
 
 构建后执行 `node scripts/capture-preview.mjs` 可更新中文 README 截图；添加 `--lang=en` 可更新英文截图。
 
