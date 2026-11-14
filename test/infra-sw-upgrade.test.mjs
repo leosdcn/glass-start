@@ -10,6 +10,9 @@ const builtVersion = readFileSync(join(DIST_DIR, 'index.html'), 'utf8').match(/_
 let version = 101, failApp = false, failWallpaper = false, mismatch = false, offline = false;
 let invalidIcon = true, manifestType = 'text/html', manifestBody = '<html>fallback</html>';
 let wallpaperBodies = 0, wallpaperValidations = 0;
+const initialCoreRequests = [];
+const staleAppRequests = [];
+let serveStaleApp = false;
 let secondVersion = 105;
 const activationPaused = Promise.withResolvers();
 let releaseActivation;
@@ -34,8 +37,20 @@ const route = (kind) => (req, res) => {
     });
   ` + body;
   if (kind === 'html') body = `<!doctype html><html><head><script>window.__GLASS_BUILD_HTML__="${stamp}";</script><script src="./app-builds/${stamp}.js" defer></script></head><body>version ${routeVersion}</body></html>`;
-  if (kind === 'app') body = `window.__GLASS_BUILD_APP__="${mismatch ? 'app-core-v999' : stamp}";window.appVersion=${routeVersion};fetch('./wallpapers/bg1.avif').then(r=>r.text()).then(()=>navigator.serviceWorker.register('./sw.js')).then(reg=>window.reg=reg);`;
+  const appCacheReload = req.headers['cache-control'] === 'no-cache';
+  const staleApp = kind === 'app' && routeVersion === 104 && serveStaleApp && !appCacheReload;
+  if (kind === 'app') body = `window.__GLASS_BUILD_APP__="${mismatch || staleApp ? 'app-core-v999' : stamp}";window.appVersion=${routeVersion};fetch('./wallpapers/bg1.avif').then(r=>r.text()).then(()=>navigator.serviceWorker.register('./sw.js')).then(reg=>window.reg=reg);`;
   if (kind === 'image') body = `image-${routeVersion}-${req.url}`;
+  const initialHTML = kind === 'html' && routeVersion === 101;
+  const initialApp = kind === 'app' && routeVersion === 101;
+  const htmlETag = `"${stamp}"`;
+  if (initialHTML && req.headers['if-none-match'] === htmlETag) {
+    initialCoreRequests.push([req.url, 304]);
+    res.writeHead(304, { ETag: htmlETag, 'Cache-Control': 'public, max-age=0, must-revalidate' });
+    res.end(); return;
+  }
+  if (initialHTML || initialApp) initialCoreRequests.push([req.url, 200]);
+  if (kind === 'app' && routeVersion === 104 && serveStaleApp) staleAppRequests.push(appCacheReload);
   const wallpaper = kind === 'image' && req.url === '/app/wallpapers/bg1.avif';
   const etag = `"wallpaper-${routeVersion}"`;
   if (wallpaper && failWallpaper) {
@@ -51,8 +66,9 @@ const route = (kind) => (req, res) => {
   if (wallpaper) wallpaperBodies++;
   res.writeHead(kind === 'app' && failApp ? 503 : 200, {
     'Content-Type': kind === 'html' ? 'text/html' : kind === 'image' ? 'image/avif' : 'application/javascript',
-    'Cache-Control': kind === 'image' ? 'public, max-age=31536000, immutable' : 'no-store',
-    ...(wallpaper ? { ETag: etag } : {})
+    'Cache-Control': kind === 'image' || initialApp ? 'public, max-age=31536000, immutable'
+      : initialHTML ? 'public, max-age=0, must-revalidate' : 'no-store',
+    ...(wallpaper ? { ETag: etag } : initialHTML ? { ETag: htmlETag } : {})
   });
   res.end(body);
 };
@@ -96,6 +112,10 @@ const update = async () => evalJS(`(async () => {
 try {
   await send('Page.enable');
   await waitFor(evalJS, 'window.reg && reg.active?.state === "activated"', 15000);
+  assert.deepEqual(initialCoreRequests, [
+    ['/app/', 200], ['/app/app-builds/app-core-v101.js', 200], ['/app/', 304]
+  ]);
+  console.log('✅ SW 首次安装只条件验证一份 HTML，并复用 HTTP 缓存中的版本化脚本');
   assert.equal(wallpaperBodies, 1);
   assert.ok(wallpaperValidations >= 1);
   console.log('✅ 已下载壁纸在 SW 首次安装时使用 ETag 条件验证，正文只传输一次');
@@ -130,8 +150,10 @@ try {
   failWallpaper = false;
   console.log('✅ 壁纸重验证失败仍可安装新版，旧 HTTP 图片不写入新版缓存');
 
-  version = 104; mismatch = false;
+  version = 104; mismatch = false; serveStaleApp = true;
   const waiting = await update();
+  serveStaleApp = false;
+  assert.deepEqual(staleAppRequests, [false, true], '脚本指纹不匹配时绕过 HTTP 缓存重试');
   assert.equal(waiting.waiting, true);
   assert.match(await evalJS("caches.open('glass-scope-%2Fapp%2F-app-core-v104').then(c=>c.match('./wallpapers/bg1.avif')).then(r=>r.text())"), /image-104/);
   assert.match(waiting.app, /appVersion=101/);
@@ -220,6 +242,10 @@ try {
   await waitFor(evalJS, 'window.__offlineUpgradeProbe && window.appVersion === 104 && !!navigator.serviceWorker.controller');
   assert.match(await evalJS("fetch('./wallpapers/bg1.avif').then(r => r.text())"), /image-101/);
   assert.match(await evalJS("fetch('./icons/offline.png').then(r => r.text())"), /image-101/);
+  const aliasUrl = origin + '/app/index.html?offline=1';
+  await send('Page.navigate', { url: aliasUrl });
+  await waitFor(evalJS, `location.href === ${JSON.stringify(aliasUrl)} && window.appVersion === 104 && !!navigator.serviceWorker.controller`);
+  console.log('✅ 同一份版本化核心缓存离线支持根路径与 index.html 入口');
   console.log('✅ 新版离线首次使用图片可回退上一版缓存');
   offline = false;
   await send('Network.emulateNetworkConditions', {offline:false,latency:0,downloadThroughput:-1,uploadThroughput:-1});

@@ -17,6 +17,7 @@ const CORE_STORAGE = CACHE_PREFIX + CORE_CACHE;
 const IMG_CACHE = CACHE_PREFIX + 'app-images-' + CORE_CACHE;
 const IMAGE_PREFIX = CACHE_PREFIX + 'app-images-';
 const CORE_PREFIX = CACHE_PREFIX + 'app-core-';
+const DOCUMENT_ASSET = './';
 const APP_ASSET = `./app-builds/${CORE_CACHE}.js`;
 const ACTIVATED_CORE = new URL('./.glass-core-activated', SCOPE_URL).href;
 const CORE_PREDECESSORS = new URL('./.glass-core-predecessors', SCOPE_URL).href;
@@ -72,11 +73,7 @@ function shareImageResponse(event, loadResponse) {
 }
 
 // 核心预缓存静态资源列表
-const CORE_ASSETS = [
-    './',
-    './index.html',
-    APP_ASSET
-];
+const CORE_ASSETS = [DOCUMENT_ASSET, APP_ASSET];
 const DEFAULT_WALLPAPER = './wallpapers/bg1.avif';
 
 /** @param {URL} url */
@@ -161,22 +158,33 @@ async function isManifestResponse(response) {
     }
 }
 
-// 只补缺失或指纹不符的资源；所有响应在写入前校验，不污染仍可用的旧构建。
 /** @param {string} asset @param {Response | undefined} response */
 async function validCoreResponse(asset, response) {
     if (!response?.ok) return false;
-    const property = asset === APP_ASSET ? '__GLASS_BUILD_APP__'
-        : (asset === './' || asset === './index.html') ? '__GLASS_BUILD_HTML__' : null;
-    return !property || matchesBuild(response, property, CORE_CACHE);
+    const property = asset === APP_ASSET ? '__GLASS_BUILD_APP__' : '__GLASS_BUILD_HTML__';
+    return matchesBuild(response, property, CORE_CACHE);
 }
 
-/** @param {Cache} cache @param {string[]} [assets] */
-async function repairCoreCache(cache, assets = CORE_ASSETS) {
-    for (const asset of assets) {
+/** @param {Cache} cache @param {string} asset @param {RequestCache} cacheMode */
+async function cacheCoreAsset(cache, asset, cacheMode) {
+    const url = new URL(asset, SCOPE_URL);
+    let response = await fetch(new Request(url, { cache: cacheMode }));
+    let valid = await validCoreResponse(asset, response);
+    if (!valid && cacheMode !== 'reload') {
+        // 指纹失配或命中缓存的错误响应时，绕过 HTTP 缓存重试一次。
+        response = await fetch(new Request(url, { cache: 'reload' }));
+        valid = await validCoreResponse(asset, response);
+    }
+    if (!valid) throw new Error('Invalid core asset: ' + asset);
+    await cache.put(asset, response);
+}
+
+// 只补缺失或指纹不符的资源；所有响应在写入前校验。
+/** @param {Cache} cache */
+async function repairCoreCache(cache) {
+    for (const asset of CORE_ASSETS) {
         if (await validCoreResponse(asset, await cache.match(asset))) continue;
-        const response = await fetch(new Request(new URL(asset, SCOPE_URL), { cache: 'reload' }));
-        if (!await validCoreResponse(asset, response)) throw new Error('Cannot repair core asset: ' + asset);
-        await cache.put(asset, response);
+        await cacheCoreAsset(cache, asset, 'reload');
     }
 }
 
@@ -218,9 +226,11 @@ function recoveryResponse() {
             // 安装任务按注册串行。记录先于本次安装的池，供日后接管时回收。
             const predecessors = (await caches.keys()).filter(key => isScopedCache(key, CORE_PREFIX) && key !== CORE_STORAGE);
             const cache = await caches.open(CORE_STORAGE);
-            const results = await Promise.allSettled(CORE_ASSETS.map(asset => cache.add(new Request(asset, { cache: 'reload' }))));
-            if (results.some(result => result.status === 'rejected')) throw new Error('Core installation incomplete');
-            await validateCoreCache(cache);
+            // 文档条件重验证，带构建指纹的脚本可复用 HTTP 缓存。
+            const results = await Promise.allSettled(CORE_ASSETS.map(asset =>
+                cacheCoreAsset(cache, asset, asset === DOCUMENT_ASSET ? 'no-cache' : 'default')));
+            const failure = results.find(result => result.status === 'rejected');
+            if (failure) throw failure.reason;
             await cache.put(CORE_PREDECESSORS, Response.json(predecessors));
             // 条件重验证复用 HTTP 缓存正文；缺图仍允许安装并离线启动。
             try {
@@ -309,16 +319,16 @@ async function previousImageResponse(request) {
 
     // 1. 主文档版本隔离 Cache-First；缓存命中不重验证，新版通过 worker 生命周期换代
     if (isAppDocument(path)) {
-        const asset = path === '' ? './' : './index.html';
+        // 部署目录和 index.html 共用一份文档，两个入口的相对资源路径相同。
         e.respondWith(
             caches.open(CORE_STORAGE).then(async cache => {
                 try {
-                    const [document, script] = await Promise.all([cache.match(asset), cache.match(APP_ASSET)]);
-                    if (document && await validCoreResponse(asset, document) && await validCoreResponse(APP_ASSET, script)) {
+                    const [document, script] = await Promise.all([cache.match(DOCUMENT_ASSET), cache.match(APP_ASSET)]);
+                    if (document && await validCoreResponse(DOCUMENT_ASSET, document) && await validCoreResponse(APP_ASSET, script)) {
                         return document;
                     }
-                    await repairCoreCache(cache, [asset, APP_ASSET]);
-                    return (await cache.match(asset)) || make503Response();
+                    await repairCoreCache(cache);
+                    return (await cache.match(DOCUMENT_ASSET)) || make503Response();
                 } catch {
                     return recoveryResponse();
                 }

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
-import { readFileSync, existsSync, statSync, mkdtempSync, mkdirSync, writeFileSync, symlinkSync, rmSync } from 'node:fs';
+import { readFileSync, existsSync, mkdtempSync, mkdirSync, writeFileSync, symlinkSync, rmSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
@@ -204,28 +204,15 @@ test('预览允许产物入口链接，阻止静态文件链接逃出产物目�
 });
 
 test('Service Worker 核心预缓存资源与产物版本契约', () => {
-  const srcSw = readFileSync(join(ROOT, 'sw.js'), 'utf-8');
   const distSw = readFileSync(join(DIST, 'sw.js'), 'utf-8');
-  function inspectWorker(source) {
-    return vm.runInNewContext(source + '\n;({CORE_ASSETS, MAX_FAVICON_ENTRIES, MAX_IMG_ENTRIES, pruneCache})', {
-      self: { registration: { scope: 'https://example.test/' }, addEventListener() {} }, URL
-    });
-  }
-  const distAssets = Array.from(inspectWorker(distSw).CORE_ASSETS);
-  const missingAssets = [];
-  for (const asset of distAssets) {
-    const resolved = asset === './' ? DIST : join(DIST, asset.replace(/^\.\//, ''));
-    if (!existsSync(resolved) || (asset !== './' && !statSync(resolved).isFile())) {
-      missingAssets.push(asset);
-    }
-  }
-  assert.equal(missingAssets.length, 0, `预缓存缺失: ${missingAssets.join(', ')}`);
-  assert.ok(!distAssets.includes('./icon.svg') && !distAssets.includes('./manifest.json') && distAssets.includes('./index.html'));
-
-  const distIndexContent = existsSync(join(DIST, 'index.html')) ? readFileSync(join(DIST, 'index.html'), 'utf-8') : '';
+  const distAssets = vm.runInNewContext(distSw + '\nCORE_ASSETS', {
+    self: { registration: { scope: 'https://example.test/' }, addEventListener() {} }, URL
+  });
+  const distIndexContent = readFileSync(join(DIST, 'index.html'), 'utf-8');
   const version = distIndexContent.match(/window\.__GLASS_BUILD_HTML__="(app-core-v\d+-[0-9a-f]{16})"/)?.[1];
   assert.ok(version, 'HTML 必须包含构建指纹');
   const script = `app-builds/${version}.js`;
+  assert.deepEqual(Array.from(distAssets), ['./', `./${script}`]);
   assert.ok(distIndexContent.includes(`<script src="./${script}" defer></script>`));
   assert.ok(!distIndexContent.includes('id="main-script"'));
 
@@ -299,39 +286,40 @@ test('Service Worker 缓存池 FIFO 限额淘汰与网络失败隔离', async ()
 
 test('Service Worker 安装过程只请求同源核心资源', async () => {
   const srcSw = readFileSync(join(ROOT, 'sw.js'), 'utf-8');
-  function inspectWorker(source) {
-    return vm.runInNewContext(source + '\n;({CORE_ASSETS, MAX_FAVICON_ENTRIES, MAX_IMG_ENTRIES, pruneCache})', {
-      self: { registration: { scope: 'https://example.test/' }, addEventListener() {} }, URL
-    });
-  }
-  const worker = inspectWorker(srcSw);
-  const installHandlers = new Map(), installTasks = [], installUrls = [];
+  const installHandlers = new Map(), installTasks = [], installRequests = [];
   const version = srcSw.match(/const CORE_CACHE = '([^']+)'/)[1];
+  const origin = 'https://example.test';
+  const appUrl = `${origin}/app-builds/${version}.js`;
   class InstallRequest extends Request {
-    constructor(url, options) { super(new URL(url, 'https://example.test/'), options); }
+    constructor(url, options) { super(new URL(url, origin), options); }
   }
   vm.runInNewContext(srcSw, {
-    self: { registration: { scope: 'https://example.test/' }, addEventListener: (name, handler) => installHandlers.set(name, handler) },
+    self: { registration: { scope: `${origin}/` }, addEventListener: (name, handler) => installHandlers.set(name, handler) },
     URL,
     Request: InstallRequest, Response, AbortSignal,
-    fetch: async request => { installUrls.push(request.url); return new Response('wallpaper', {headers:{'Content-Type':'image/avif'}}); },
+    fetch: async request => {
+      installRequests.push([request.url, request.cache]);
+      if (request.url === `${origin}/`) return new Response(`window.__GLASS_BUILD_HTML__="${version}"`);
+      if (request.url === appUrl) {
+        if (request.cache === 'default') return new Response(null, {status:404});
+        return new Response(`window.__GLASS_BUILD_APP__="${version}"`);
+      }
+      return new Response('wallpaper', {headers:{'Content-Type':'image/avif'}});
+    },
     caches: {
       keys: async () => [],
-      open: async () => ({
-        add: async request => { installUrls.push(request.url); },
-        put: async () => {},
-        match: async asset => new Response(String(asset).includes('app-builds/')
-          ? `window.__GLASS_BUILD_APP__="${version}"`
-          : `window.__GLASS_BUILD_HTML__="${version}"`)
-      }),
+      open: async () => ({ put: async () => {} }),
       delete: async () => true
     }
   });
   installHandlers.get('install')({ waitUntil: task => installTasks.push(task) });
   await Promise.all(installTasks);
-  assert.equal(installUrls.length, worker.CORE_ASSETS.length + 1);
-  assert.equal(new URL(installUrls.at(-1)).pathname, '/wallpapers/bg1.avif');
-  assert.ok(installUrls.every(url => new URL(url).origin === 'https://example.test'));
+  assert.deepEqual(installRequests, [
+    [`${origin}/`, 'no-cache'],
+    [appUrl, 'default'],
+    [appUrl, 'reload'],
+    [`${origin}/wallpapers/bg1.avif`, 'no-cache']
+  ]);
 });
 
 test('防 iframe 恶意嵌套点击劫持 (Frame-Busting)', () => {
