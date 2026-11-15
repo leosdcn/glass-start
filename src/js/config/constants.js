@@ -103,7 +103,8 @@ export const CONFIG = Object.freeze({
                 MOBILE_BREAKPOINT: 640,       // 移动端/桌面端分界断点 (px)
                 TABLET_BREAKPOINT: 768,       // 平板端分界断点 (px)
                 TAB_SCROLL_MARGIN: 8,         // 侧边栏横向/纵向对齐边界安全内距 (px)
-                INITIAL_VISIBLE_CATEGORIES: 5 // 初始加载/切屏动效期间可见分类块数量
+                INITIAL_VISIBLE_CATEGORIES: 5, // 宽屏预取及切屏动效期间启用的分类数量
+                NARROW_PRELOAD_CATEGORIES: 2  // 窄屏首页空闲时预取的分类数量
             }),
             APPEARANCE: Object.freeze({
                 DEFAULT_MASK_OPACITY: 15,     // 默认遮罩暗度百分比 (%)

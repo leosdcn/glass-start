@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { launchSession, waitFor, sleep } from './support/helpers.mjs';
+import { launchSession, navigateAndWait, waitFor, sleep } from './support/helpers.mjs';
 import { test } from 'node:test';
 
 await test("图标空闲准备与延迟加载", async () => {
@@ -23,23 +23,17 @@ await test("图标空闲准备与延迟加载", async () => {
         await send('Page.addScriptToEvaluateOnNewDocument', { source: `
         localStorage.setItem('glass_weather_cache', JSON.stringify({timestamp:Date.now(),current:{temp:20},daily:[]}));
     ` });
-        await send('Page.reload');
-        await waitFor(evalJS, 'typeof switchToNav === "function" && dom.navCategories.querySelector("img[data-nav-src]")');
-        assert.equal(await evalJS(`(() => {
-        const icons = [...dom.bookmarks.querySelectorAll('img'),
-            ...dom.sidebarList.querySelectorAll('img'),
-            ...dom.navCategories.querySelectorAll('.category-header img')];
-        return icons.length > 0 && icons.every(img => !img.hasAttribute('loading'));
-    })()`), true);
-        await waitFor(evalJS, `dom.navCategories.querySelector('img.lazy-icon[fetchpriority="low"]')`);
-        assert.equal(await evalJS(`(() => {
+        for (const [width, limit] of [[767, 2], [768, 5]]) {
+            await send('Emulation.setDeviceMetricsOverride', { width, height: 915, deviceScaleFactor: 1, mobile: false });
+            await navigateAndWait(send, evalJS, `${origin}/?viewport=${width}`, 'typeof switchToNav === "function"');
+            await waitFor(evalJS, `dom.navCategories.querySelector('img.lazy-icon[fetchpriority="low"]')`);
+            assert.equal(await evalJS(`(() => {
         const firstScreen = new Set([...dom.bookmarks.querySelectorAll('img')].map(img=>img.src));
         const resources = new Set(performance.getEntriesByType('resource').map(entry=>entry.name));
         const categories = [...dom.navCategories.querySelectorAll('.category-block')];
-        const limit = CONFIG.NAV.INITIAL_VISIBLE_CATEGORIES;
         const iconsIn = blocks => blocks.flatMap(block => [...block.querySelectorAll('img.lazy-icon')]);
-        const prepared = iconsIn(categories.slice(0, limit));
-        const deferred = iconsIn(categories.slice(limit));
+        const prepared = iconsIn(categories.slice(0, ${limit}));
+        const deferred = iconsIn(categories.slice(${limit}));
         return prepared.length > 0 && prepared.every(img=>img.getAttribute('src')?.startsWith('./icons/') &&
             img.loading === 'eager' && img.fetchPriority === 'low') &&
             deferred.length > 0 && deferred.every(img => {
@@ -47,8 +41,26 @@ await test("图标空闲准备与延迟加载", async () => {
                 const url = new URL(img.dataset.navSrc, location.href).href;
                 return firstScreen.has(url) || !resources.has(url);
             });
+    })()`), true, `${width}px 首页只应空闲准备前 ${limit} 个分类`);
+            if (width === 767) {
+                assert.deepEqual(await evalJS(`(() => {
+                    switchToNav();
+                    const pending = index => dom.navCategories.querySelector('.category-block:nth-child(' + index + ') img[data-nav-src]');
+                    return [isScreenTransitioning(), [3, 4, 5].every(index => !pending(index)), !!pending(6)];
+                })()`), [true, true, true]);
+                await waitFor(evalJS, '!isScreenTransitioning()');
+                await evalJS('switchToStart()');
+                await waitFor(evalJS, '!isScreenTransitioning()');
+            }
+        }
+        await send('Emulation.clearDeviceMetricsOverride');
+        assert.equal(await evalJS(`(() => {
+        const icons = [...dom.bookmarks.querySelectorAll('img'),
+            ...dom.sidebarList.querySelectorAll('img'),
+            ...dom.navCategories.querySelectorAll('.category-header img')];
+        return icons.length > 0 && icons.every(img => !img.hasAttribute('loading'));
     })()`), true);
-        console.log('✅ 首批本地图标以低优先级空闲准备，其余图标仍保持延迟加载');
+        console.log('✅ 窄屏与宽屏分别预取前 2 和 5 类，切入时补加载前 5 类');
 
         assert.deepEqual(await evalJS(`(() => {
         const parent = dom.navCategories.querySelector('.category-block');

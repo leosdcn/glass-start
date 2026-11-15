@@ -191,7 +191,10 @@ export function preloadVisibleNavIcons() {
     if (navIconsActivated || state.currentSection !== 'start' || document.hidden) return;
     const nav = dom.navSection;
     if (!nav) return;
-    const selector = `.category-block:nth-child(-n+${CONFIG.NAV.INITIAL_VISIBLE_CATEGORIES}) img[data-nav-src]`;
+    const { TABLET_BREAKPOINT, INITIAL_VISIBLE_CATEGORIES, NARROW_PRELOAD_CATEGORIES } = CONFIG.NAV;
+    const limit = window.matchMedia(`(min-width: ${TABLET_BREAKPOINT}px)`).matches
+        ? INITIAL_VISIBLE_CATEGORIES : NARROW_PRELOAD_CATEGORIES;
+    const selector = `.category-block:nth-child(-n+${limit}) img[data-nav-src]`;
     nav.querySelectorAll(selector).forEach(node => {
         const img = /** @type {HTMLImageElement} */ (node);
         const source = img.dataset.navSrc || '';
