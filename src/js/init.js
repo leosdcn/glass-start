@@ -145,8 +145,10 @@ export function init() {
     scheduleIdleTask(() => {
         initFaviconObserver();
         preloadFavicons();
-        // 恢复后再判断当前选择，避免在 IDB 返回前预加载默认预设。
-        wallpaperRestored.then(restored => { if (restored) preloadNextBg(); });
+        // 扩展的壁纸随包提供，恢复保存的选择后再预加载下一张。
+        if (window.__GLASS_EXTENSION__) {
+            wallpaperRestored.then(restored => { if (restored) preloadNextBg(); });
+        }
     });
 
     // 壁纸恢复后再申请独立空闲任务；快速切屏照常进入，不等待图标准备。

@@ -99,6 +99,7 @@ await test("选择提交、事务失败与会话隔离", async () => {
 
       const { identifier: startupProbe } = await send('Page.addScriptToEvaluateOnNewDocument', { source: `
     const probe = window.wallpaperStartup = { idle: [], imageSources: [] };
+    Object.defineProperty(navigator, 'connection', { value: { saveData: false, effectiveType: '4g' } });
     window.requestIdleCallback = callback => probe.idle.push(callback);
     const src = Object.getOwnPropertyDescriptor(HTMLImageElement.prototype, 'src');
     Object.defineProperty(HTMLImageElement.prototype, 'src', { ...src, set(url) {
@@ -132,12 +133,16 @@ await test("选择提交、事务失败与会话隔离", async () => {
             assert.deepEqual(await evalJS('wallpaperStartup.imageSources.filter(url => backgrounds.includes(url))'), [],
               '自定义壁纸恢复后不预加载预设');
           } else {
-            await waitFor(evalJS, 'state.bg === 3 && wallpaperStartup.imageSources.includes(backgrounds[4])');
-            assert.equal(await evalJS('wallpaperStartup.imageSources.includes(backgrounds[1])'), false,
-              '恢复预设后不预加载默认下一张');
+            await waitFor(evalJS, 'state.bg === 3 && !!getPreparedWallpaperImage(backgrounds[3])');
+            assert.deepEqual(await evalJS('wallpaperStartup.imageSources.filter(url => backgrounds.includes(url))'),
+              ['./wallpapers/bg4.avif'], '启动只加载恢复出的预设');
+            await send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'b', code: 'KeyB', modifiers: 2, windowsVirtualKeyCode: 66 });
+            await send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'b', code: 'KeyB', modifiers: 2, windowsVirtualKeyCode: 66 });
+            await waitFor(evalJS, 'state.bg === 4 && wallpaperStartup.imageSources.includes(backgrounds[5])');
+            assert.equal(await evalJS('getWallpaperSelectionDB().then(selection => selection?.bg)'), 4);
           }
         }
-        console.log('✅ IDB 延迟恢复时自定义壁纸跳过下一张预设，预设选择按恢复后的索引预加载');
+        console.log('✅ IDB 延迟恢复只加载当前壁纸，快捷键切换成功后预取下一张');
       } finally {
         await send('Page.removeScriptToEvaluateOnNewDocument', { identifier: startupProbe });
       }

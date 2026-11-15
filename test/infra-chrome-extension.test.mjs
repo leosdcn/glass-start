@@ -71,6 +71,10 @@ try {
     ` });
     // 浅色浏览器、冷缓存、首个脚本尚未加载时也必须先有深色页面底色。
     await send('Network.enable');
+    let nextWallpaperRequested = false;
+    const stopWatchingWallpaper = send('Network.requestWillBeSent', ({ request }) => {
+        if (request.url === `chrome-extension://${id}/wallpapers/bg2.avif`) nextWallpaperRequested = true;
+    });
     await send('Network.clearBrowserCache');
     await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: 'light' }] });
     let pausedBootstrap;
@@ -95,6 +99,8 @@ try {
     assert.equal(await evalJS('window.__GLASS_TEST__'), undefined);
     assert.equal(await evalJS('navigator.serviceWorker.controller'), null);
     await waitFor(evalJS, 'document.querySelector("#bgLayer").style.backgroundImage.includes("wallpapers/")');
+    await waitFor(async () => nextWallpaperRequested, '扩展启动时预取下一张本地预设');
+    stopWatchingWallpaper();
     await waitFor(evalJS, `(() => {
         const icons = [...document.querySelectorAll('#bookmarks img')];
         return icons.length > 0 && icons.every(img => img.complete && img.naturalWidth > 0);
