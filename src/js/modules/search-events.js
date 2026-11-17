@@ -140,6 +140,21 @@ export function bindSearchEvents() {
 
     const searchBox = searchInput?.closest('.search-box-wrapper');
     if (searchBox instanceof HTMLElement && imageSearchInput) {
+        /** @param {FileList} files */
+        const submitTransferredImage = files => {
+            closeDropdown();
+            hideSuggestions();
+            if (imageSearchStatus) imageSearchStatus.textContent = '';
+            imageSearchInput.files = files;
+            submitImageSearch(getImageSearchEngine(), imageSearchInput);
+        };
+        searchInput?.addEventListener('paste', e => {
+            const files = e.clipboardData?.files;
+            if (files?.length !== 1 || !files[0].type.startsWith('image/')) return;
+            e.preventDefault();
+            submitTransferredImage(files);
+        });
+
         /** @param {DragEvent} e */
         const highlightImageDrop = e => {
             const transfer = e.dataTransfer;
@@ -163,11 +178,7 @@ export function bindSearchEvents() {
             if (!files?.length) return;
             e.preventDefault();
             if (files.length !== 1) return;
-            closeDropdown();
-            hideSuggestions();
-            if (imageSearchStatus) imageSearchStatus.textContent = '';
-            imageSearchInput.files = files;
-            submitImageSearch(getImageSearchEngine(), imageSearchInput);
+            submitTransferredImage(files);
         });
     }
     if (dropdownMenu) {

@@ -574,6 +574,48 @@ test('拖入本地图片后用当前引擎搜图', async () => {
   }
 });
 
+test('粘贴图片用当前引擎搜图，文字和网址保留默认粘贴', async () => {
+  const { server, chrome, send, evalJS } = await launchSession();
+  try {
+    const image = readFileSync(new URL('../src/extension/icon16.png', import.meta.url)).toString('base64');
+    const destinations = [
+      ['bing', 'https://www.bing.com/images/search'],
+      ['google', 'https://lens.google.com/v3/upload']
+    ];
+    const requests = [];
+    send('Fetch.requestPaused', event => requests.push(event));
+    await send('Fetch.enable', {
+      patterns: destinations.map(([, url]) => ({ urlPattern: `${url}?*`, resourceType: 'Document' }))
+    });
+    await waitFor(evalJS, '!!dom.lensUploadFrame.contentDocument.forms[0]');
+    const paste = async contents => evalJS(`(() => {
+      dom.searchInput.focus();
+      const clipboardData = new DataTransfer();
+      ${contents}
+      return dom.searchInput.dispatchEvent(new ClipboardEvent('paste', { clipboardData, bubbles: true, cancelable: true }));
+    })()`);
+    for (const text of ['玻璃起始页', 'https://example.test/image.png']) {
+      assert.equal(await paste(`clipboardData.setData('text/plain', ${JSON.stringify(text)});`), true);
+    }
+    assert.equal(requests.length, 0);
+
+    for (const [index, [engine, destination]] of destinations.entries()) {
+      await evalJS(`dom.engineBtn.click(); dom.dropdownMenu.querySelector('[data-engine="${engine}"]').click()`);
+      assert.equal(await paste(`clipboardData.items.add(new File(
+        [Uint8Array.from(atob('${image}'), c => c.charCodeAt(0))], 'pasted.png', { type: 'image/png' }));`), false);
+      await waitFor(async () => requests.length === index + 1, '粘贴图片上传导航');
+      const { request, requestId } = requests[index];
+      await send('Fetch.fulfillRequest', { requestId, responseCode: 204 });
+      assert.equal(request.method, 'POST');
+      assert.equal(request.url.split('?')[0], destination);
+      assert.equal(await evalJS('dom.imageSearchInput.files.length'), 0);
+    }
+  } finally {
+    await chrome.close();
+    await server.close();
+  }
+});
+
 test('OverlayStack 多层弹窗嵌套压退栈、安全白名单与焦点归还', async () => {
   const { server, chrome, evalJS } = await launchSession();
   const press = (key) => pressKey(evalJS, key);
