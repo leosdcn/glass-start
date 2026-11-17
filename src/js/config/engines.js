@@ -15,3 +15,8 @@ export const IMAGE_SEARCH_UPLOADS = Object.freeze({
     },
     google: { url: 'https://lens.google.com/v3/upload?ep=cntpubb&re=df&s=4' }
 });
+
+export const IMAGE_SEARCH_LINKS = Object.freeze({
+    bing: 'https://www.bing.com/images/search?view=detailv2&iss=sbi&FORM=SBIIRP&sbisrc=UrlPaste',
+    google: 'https://lens.google.com/uploadbyurl'
+});

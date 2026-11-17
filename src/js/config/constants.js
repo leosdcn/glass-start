@@ -126,6 +126,7 @@ export const CONFIG = Object.freeze({
                 SW_UPDATE_TIMEOUT: 15000,    // 用户确认后等待新版接管的上限 (ms)
                 BG_CROSSFADE: 450,            // 壁纸跨图层淡入时长 (ms)
                 WALLPAPER_LOAD_TIMEOUT: 15000, // 壁纸直链加载及解码等待上限 (ms)
+                IMAGE_LINK_CHECK_TIMEOUT: 800, // 搜索框识别无图片后缀的链接等待上限 (ms)
                 WEATHER_REFRESH_FEEDBACK: 600, // 手动刷新反馈的最短显示时间 (ms)
                 CLICK_FEEDBACK_CLEAR: 600,    // 触感反馈类清除延时 (ms)
                 FADE_IN_UNLOAD: 800,          // 入场动画自动脱壳延时 (ms)

@@ -409,6 +409,64 @@ test('新标签页打开候选时保留列表，当前页打开时收起', async
   }
 });
 
+test('搜索框按图片链接、网页地址和关键词分流', async () => {
+  const image = readFileSync(new URL('../src/extension/icon16.png', import.meta.url));
+  const { server, chrome, send, evalJS, port } = await launchSession(0, {
+    '/image-link': (_req, res) => {
+      res.writeHead(200, { 'Content-Type': 'image/png' });
+      res.end(image);
+    },
+    '/ordinary-page': '<title>网页直达</title>'
+  });
+  try {
+    const origin = 'http://127.0.0.1:' + port;
+    const photo = 'https://images.example.test/photo.JPG?size=800&token=a%2Fb';
+    const cdnImage = origin + '/image-link?width=320';
+    const webpage = origin + '/ordinary-page?next=photo.png';
+    const locale = await evalJS('document.documentElement.lang');
+    await evalJS('window.openedLinks = []; window.open = (...args) => openedLinks.push(args);');
+    const fill = async (engine, query) => evalJS(`(() => {
+      dom.searchInput.value = '';
+      dom.engineBtn.click();
+      dom.dropdownMenu.querySelector('[data-engine="${engine}"]').click();
+      dom.searchInput.focus();
+      dom.searchInput.value = ${JSON.stringify(query)};
+    })()`);
+    const enter = async (modifiers = 0) => {
+      await send('Input.dispatchKeyEvent', { type: 'rawKeyDown', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13, modifiers });
+      await send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13, modifiers });
+    };
+    const cases = [
+      ['bing', photo, 'https://www.bing.com/images/search', 'q', 'imgurl:' + photo],
+      ['google', cdnImage, 'https://lens.google.com/uploadbyurl', 'url', cdnImage],
+      locale === 'en'
+        ? ['wikipedia', photo, 'https://lens.google.com/uploadbyurl', 'url', photo]
+        : ['wikipedia', photo, 'https://www.bing.com/images/search', 'q', 'imgurl:' + photo],
+      ['google', '查找 https://example.test/page', 'https://www.google.com/search', 'q', '查找 https://example.test/page'],
+      ['bing', 'javascript:alert(1)', 'https://www.bing.com/search', 'q', 'javascript:alert(1)']
+    ];
+    for (const [index, [engine, query, destination, param, value]] of cases.entries()) {
+      await fill(engine, query);
+      await enter(2);
+      await waitFor(evalJS, 'openedLinks.length === ' + (index + 1));
+      const [href, target, features] = await evalJS('openedLinks.at(-1)');
+      const url = new URL(href);
+      assert.equal(url.origin + url.pathname, destination);
+      assert.equal(url.searchParams.get(param), value);
+      assert.deepEqual([target, features], ['_blank', 'noopener,noreferrer']);
+      assert.equal(await evalJS('state.engine'), engine);
+    }
+    await fill('google', webpage);
+    await evalJS("dom.searchInput.dispatchEvent(new Event('input', { bubbles: true }))");
+    assert.equal(await evalJS("dom.searchInput.getAttribute('aria-expanded')"), 'false');
+    await enter();
+    await waitFor(evalJS, 'document.title === "网页直达" && location.href === ' + JSON.stringify(webpage));
+  } finally {
+    await chrome.close();
+    await server.close();
+  }
+});
+
 test('相机打开本地选图并提交给当前引擎', async () => {
   const { server, chrome, send, evalJS } = await launchSession();
   try {

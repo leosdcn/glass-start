@@ -127,6 +127,8 @@ npm run preview
 
 ### 2. Search and quick navigation
 
+**Search box update in v5.6.0.** Search by image or image URL, and open web links directly from the search box.
+
 - **Type to search**: type letters or numbers on the start page; the search field receives focus and your input automatically.
 - **Combined suggestions**: search for preset bookmarks by either their Chinese or English catalog name. Matching local bookmarks appear first, followed by search-engine suggestions. Online results depend on service availability, and cached results can appear immediately.
 - **Input methods**: during text composition, an open suggestions panel keeps its current contents. The input method handles the arrow keys and Enter. Web suggestions update after you commit the text.

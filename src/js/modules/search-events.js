@@ -1,18 +1,12 @@
 /** 搜索输入、输入法、候选与引擎菜单的控件事件；跨业务关闭和全局快捷键由 events.js 协调。 */
-import { DEFAULT_ENGINE } from '../config/engines.js';
 import { state } from '../state/store.js';
 import { dom } from '../state/dom.js';
 import { handleRovingKeyNav } from '../utils/helpers.js';
-import { activateSuggestion, selectSuggestion, fetchSuggestions, cancelSuggestionRequest, hideSuggestions, closeDropdown, setEngine, getSelectedSuggestionIdx, scheduleSuggestions, handleSuggestionKeyNav, submitImageSearch } from './search.js';
+import { activateSuggestion, selectSuggestion, fetchSuggestions, cancelSuggestionRequest, hideSuggestions, closeDropdown, setEngine, getSelectedSuggestionIdx, scheduleSuggestions, handleSuggestionKeyNav, getImageSearchEngine, submitImageSearch } from './search.js';
 
 let isComposing = false;
 /** @type {boolean | null} 记录按钮当前展示状态，避免输入期间无状态变化的重复 DOM 属性写入 */
 let lastHasVal = null;
-
-function getImageSearchEngine() {
-    const engine = state.engine;
-    return engine === 'bing' || engine === 'google' ? engine : DEFAULT_ENGINE;
-}
 
 /** @param {boolean} hasVal */
 function updateSearchActionButtons(hasVal) {

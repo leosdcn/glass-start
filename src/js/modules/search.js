@@ -4,7 +4,7 @@ import { rankBookmarkSuggestions } from '../utils/bookmark-search.js';
 import { getCategoryCatalog } from '../utils/category-catalog.js';
 import { bookmarkUrlKey } from '../utils/bookmark-model.js';
 import { CONFIG, DEFAULT_CATEGORIES, engines } from '../config/constants.js';
-import { DEFAULT_ENGINE, IMAGE_SEARCH_UPLOADS } from '../config/engines.js';
+import { DEFAULT_ENGINE, IMAGE_SEARCH_LINKS, IMAGE_SEARCH_UPLOADS } from '../config/engines.js';
 import { escapeHtml, safeUrl } from '../utils/helpers.js';
 import { storageSet } from '../utils/storage.js';
 import { state, pageData } from '../state/store.js';
@@ -18,11 +18,13 @@ let lastSuggestionsSignature = '';
 let suggestionNodes = [];
 /** @type {HTMLElement | null} */
 let selectedSuggestionNode = null;
+let searchSubmissionId = 0;
 /**
  * @param {number} index
  * @param {boolean} [newTab]
  */
 export function activateSuggestion(index, newTab) {
+    searchSubmissionId++;
     const item = suggestionItems[index];
     if (item?.type === 'bookmark') openBookmarkUrl(item.url, newTab);
     else doSearch(item?.text, newTab);
@@ -203,20 +205,75 @@ export function setEngine(key, save = true) {
     if (save) storageSet(CONFIG.KEYS.PREFERRED_ENGINE, validEngine);
 }
 
-/** 
+/** @param {string} query */
+function parseSearchLink(query) {
+    if (/\s/.test(query)) return null;
+    const hasProtocol = /^https?:\/\/[^/]/i.test(query);
+    const hasDomain = /^(?:[a-z\d-]+\.)+(?:[a-z]{2,}|xn--[a-z\d-]+)(?=[:/?#]|$)/i.test(query);
+    if (!hasProtocol && !hasDomain) return null;
+    try {
+        return new URL(hasProtocol ? query : 'https://' + query);
+    } catch {
+        return null;
+    }
+}
+
+/** @param {string} url */
+function checkImageLink(url) {
+    return new Promise(resolve => {
+        const image = new Image();
+        const finish = (/** @type {boolean} */ isImage) => {
+            clearTimeout(timeout);
+            image.onload = image.onerror = null;
+            image.removeAttribute('src');
+            resolve(isImage);
+        };
+        const timeout = setTimeout(() => finish(false), CONFIG.TIMERS.IMAGE_LINK_CHECK_TIMEOUT);
+        image.onload = () => finish(true);
+        image.onerror = () => finish(false);
+        image.referrerPolicy = 'no-referrer';
+        image.src = url;
+    });
+}
+
+export function getImageSearchEngine() {
+    const engine = state.engine;
+    return engine === 'bing' || engine === 'google' ? engine : DEFAULT_ENGINE;
+}
+
+/**
  * 执行搜索
  * @param {string} [queryOverride] - 可选直接传入建议词
  * @param {boolean} [newTab=false] - 是否在新标签页中打开
  */
-function doSearch(queryOverride, newTab = false) {
+async function doSearch(queryOverride, newTab = false) {
     const searchInput = dom.searchInput;
-    const q = (queryOverride !== undefined ? queryOverride : (searchInput ? searchInput.value : '')).trim();
+    const inputValue = searchInput?.value ?? '';
+    const q = (queryOverride ?? inputValue).trim();
     if (!q) return;
     closeDropdown();
     /** @type {Record<string, { name: string; svg: string; url: string }>} */
     const engineMap = engines;
     const engineObj = engineMap[state.engine] || engineMap[DEFAULT_ENGINE];
-    const targetUrl = engineObj.url + encodeURIComponent(q);
+    const link = queryOverride === undefined ? parseSearchLink(q) : null;
+    let targetUrl = link?.href ?? engineObj.url + encodeURIComponent(q);
+    if (link && !link.username && !link.password) {
+        const submissionId = searchSubmissionId;
+        const imageEngine = getImageSearchEngine();
+        const isImage = /\.(?:avif|bmp|gif|heic|heif|ico|jpe?g|png|svg|tiff?|webp)$/i.test(link.pathname)
+            || await checkImageLink(link.href);
+        if (submissionId !== searchSubmissionId || searchInput?.value !== inputValue || document.activeElement !== searchInput) return;
+        if (isImage) {
+            const destination = new URL(IMAGE_SEARCH_LINKS[imageEngine]);
+            if (imageEngine === 'bing') {
+                destination.searchParams.set('q', 'imgurl:' + link.href);
+            } else {
+                destination.searchParams.set('url', link.href);
+                destination.searchParams.set('hl', getLocale());
+            }
+            targetUrl = destination.href;
+        }
+    }
     if (newTab) {
         window.open(targetUrl, '_blank', 'noopener,noreferrer');
     } else {
@@ -587,12 +644,12 @@ const MAX_SUGGEST_CACHE_SIZE = 50;
 export function fetchSuggestions(engineKey, query, deferNetwork = false) {
     if (OverlayStack.topModal()) return;
     query = query.trim();
-    const cacheKey = `${getLocale()}:${engineKey}:${query}`;
-    const preserveSelection = suggestDebounceTimer !== null && suggestionQueryKey === cacheKey;
-    if (!query) {
+    if (!query || parseSearchLink(query)) {
         hideSuggestions();
         return;
     }
+    const cacheKey = `${getLocale()}:${engineKey}:${query}`;
+    const preserveSelection = suggestDebounceTimer !== null && suggestionQueryKey === cacheKey;
 
     // compositionend 后的 input、重复选择当前引擎等入口共享正在进行的请求和列表。
     if (activeSuggestCleanup && suggestionQueryKey === cacheKey) return;
