@@ -112,7 +112,7 @@
     align-items: center;
     justify-content: center;
     opacity: 1;
-    transform: scale(1) rotate(0deg);
+    transform: scale(1);
     pointer-events: auto;
     transition: opacity var(--duration-popover) var(--ease-overshoot),
                 transform var(--duration-popover) var(--ease-overshoot),
@@ -120,18 +120,11 @@
                 color 0.15s ease,
                 scale var(--button-press-duration, var(--duration-press-up)) var(--button-press-ease, var(--ease-spring));
 }
-#imageSearchBtn.hidden {
-    display: inline-flex;
-    opacity: 0;
-    transform: scale(0.2) rotate(-90deg);
-    pointer-events: none;
-    transition: opacity var(--duration-popover-exit) var(--ease-exit),
-                transform var(--duration-popover-exit) var(--ease-exit);
-}
+#imageSearchBtn.hidden,
 #searchClearBtn.hidden {
     display: inline-flex;
     opacity: 0;
-    transform: scale(0.2) rotate(90deg);
+    transform: scale(0.5);
     pointer-events: none;
     transition: opacity var(--duration-popover-exit) var(--ease-exit),
                 transform var(--duration-popover-exit) var(--ease-exit);
@@ -140,22 +133,19 @@
 .screen-restoring #searchClearBtn {
     transition: none;
 }
-#searchClearBtn svg {
+:is(#imageSearchBtn, #searchClearBtn) svg {
     transition: transform var(--duration-popover-exit) var(--ease-spring);
 }
 @media (hover: hover) and (pointer: fine) {
-    body:not(.tab-blurred) #imageSearchBtn:hover:not(:disabled) {
-        transform: scale(1.06) rotate(12deg);
-    }
-    body:not(.tab-blurred) #searchClearBtn:hover:not(:disabled) {
+    body:not(.tab-blurred) :is(#imageSearchBtn, #searchClearBtn):hover:not(:disabled) {
         transform: scale(1.05);
     }
     body:not(.tab-blurred) :is(#imageSearchBtn, #searchClearBtn):hover:not(:disabled):not(:active) {
         background-color: rgba(255, 255, 255, 0.15);
         color: rgba(255, 255, 255, 0.95);
     }
-    body:not(.tab-blurred) #searchClearBtn:hover:not(:disabled) svg {
-        transform: scale(1.15);
+    body:not(.tab-blurred) :is(#imageSearchBtn, #searchClearBtn):hover:not(:disabled) svg {
+        transform: scale(1.12);
     }
 }
 
