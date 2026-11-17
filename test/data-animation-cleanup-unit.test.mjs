@@ -93,7 +93,9 @@ function fixture() {
         return fade;
     };
     const context = vm.createContext({ module: { exports: {} }, console, document, Element,
-        window: { matchMedia: () => motion, __GLASS_I18N__: { locale: 'zh-CN', messages: { 'zh-CN': messages } } }, CSS: { escape: value => value },
+        window: Object.assign(new Target(), {
+            matchMedia: () => motion, __GLASS_I18N__: { locale: 'zh-CN', messages: { 'zh-CN': messages } }
+        }), CSS: { escape: value => value },
         getComputedStyle: () => ({ getPropertyValue: () => 'ease' }),
         setTimeout: fn => { timers.set(++id, fn); return id; }, clearTimeout: key => timers.delete(key),
         Image: class { constructor() { images.push(this); this.naturalWidth = 100; this.complete = false; } }

@@ -43,7 +43,9 @@ function fixture() {
     };
     const context = vm.createContext({
         module: { exports: {} }, console, Element, db, messages, setTimeout, clearTimeout,
-        window: { matchMedia: () => ({ matches: false, addEventListener() {}, removeEventListener() {} }) },
+        window: Object.assign(new EventTarget(), {
+            matchMedia: () => ({ matches: false, addEventListener() {}, removeEventListener() {} })
+        }),
         document: { getElementById: key => ({ bgLayer: base, bgLayerNext: next })[key] ?? null },
         localStorage: { getItem: key => storage.get(key) ?? null,
             setItem(key, value) { metrics.storageWrites++; storage.set(key, value); },

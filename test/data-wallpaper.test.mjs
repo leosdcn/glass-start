@@ -315,6 +315,7 @@ test('壁纸共享加载、图片复用与失败重试', async () => {
     }
   });
   try {
+    await waitFor(evalJS, '!!getPreparedWallpaperImage(getCommittedWallpaperUrl())');
     await evalJS(`(() => {
       window.reuseDecodeDescriptor = Object.getOwnPropertyDescriptor(HTMLImageElement.prototype, 'decode');
       window.reuseSrcDescriptor = Object.getOwnPropertyDescriptor(HTMLImageElement.prototype, 'src');
