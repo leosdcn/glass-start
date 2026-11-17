@@ -37,6 +37,9 @@ test('书签名称、地址与简介的排序优先级和拼写容错', () => {
     ['GitHub', 'GitHub Desktop', '使用 GitHub', 'Mirror', 'Tools']);
   assert.deepEqual(rankBookmarkSuggestions('/', input, CONFIG.SUGGEST), []);
   assert.equal(damerauLevenshteinDistance('githbu', 'github'), 1);
+  assert.equal(damerauLevenshteinDistance('githbu', 'github', 1), 1);
+  assert.equal(damerauLevenshteinDistance('githbu', 'github', 0), Infinity);
+  assert.equal(damerauLevenshteinDistance('abc', 'xyz', 1), Infinity);
   assert.equal(rankBookmarkSuggestions('githbu', input, CONFIG.SUGGEST)[0].name, 'GitHub');
   assert.equal(rankBookmarkSuggestions('goolge', input, CONFIG.SUGGEST)[0].name, 'Google');
   assert.equal(candidates[0].bm.name, 'Tools');

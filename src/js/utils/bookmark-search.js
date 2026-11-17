@@ -4,15 +4,17 @@
 let dLevBuffer = new Int32Array(1024);
 
 /**
- * 计算受限 Damerau–Levenshtein（OSA）距离，支持相邻字符交换。
+ * 计算受限 Damerau–Levenshtein（OSA）距离，支持相邻字符交换与阈值早停。
  * @param {string} a - 源字符串
  * @param {string} b - 目标字符串
- * @returns {number} 最小编辑距离步数
+ * @param {number} [maxDist] - 允许的最大编辑距离上限；超过时返回 Infinity 提前剪枝
+ * @returns {number} 最小编辑距离步数；超出上限时返回 Infinity
  */
-export function damerauLevenshteinDistance(a, b) {
+export function damerauLevenshteinDistance(a, b, maxDist = Infinity) {
     const al = a.length, bl = b.length;
-    if (al === 0) return bl;
-    if (bl === 0) return al;
+    if (al === 0) return bl <= maxDist ? bl : Infinity;
+    if (bl === 0) return al <= maxDist ? al : Infinity;
+    if (Math.abs(al - bl) > maxDist) return Infinity;
 
     const cols = bl + 1;
     const requiredSize = (al + 1) * cols;
@@ -29,6 +31,7 @@ export function damerauLevenshteinDistance(a, b) {
         const prevIOffset = (i - 1) * cols;
         const charA = a[i - 1];
         const prevCharA = i > 1 ? a[i - 2] : '';
+        let minRowVal = Infinity;
 
         for (let j = 1; j <= bl; j++) {
             const cost = charA === b[j - 1] ? 0 : 1;
@@ -43,9 +46,12 @@ export function damerauLevenshteinDistance(a, b) {
                 if (transCost < minVal) minVal = transCost;
             }
             dp[iOffset + j] = minVal;
+            if (minVal < minRowVal) minRowVal = minVal;
         }
+        if (minRowVal > maxDist) return Infinity;
     }
-    return dp[al * cols + bl];
+    const res = dp[al * cols + bl];
+    return res <= maxDist ? res : Infinity;
 }
 
 /**
@@ -82,7 +88,8 @@ function getFuzzyScore(query, target, options, subQueries = query.split(/\s+/).f
             const maxLen = Math.min(token.length, sq.length + 1);
             for (let len = minLen; len <= maxLen; len++) {
                 const prefix = token.substring(0, len);
-                const dist = damerauLevenshteinDistance(sq, prefix);
+                const limit = Math.min(maxDist, minSubDist === Infinity ? maxDist : minSubDist - 1);
+                const dist = damerauLevenshteinDistance(sq, prefix, limit);
                 if (dist < minSubDist) {
                     minSubDist = dist;
                     if (minSubDist === 0) break;
