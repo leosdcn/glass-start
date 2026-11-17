@@ -128,19 +128,13 @@ export function renderEngineDropdown() {
     const dropdownMenu = dom.dropdownMenu;
     if (!dropdownMenu) return;
     const curEngine = state.engine || DEFAULT_ENGINE;
-    const itemClass = 'w-full flex items-center gap-3 px-3 py-2.5 apple-radius hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 glass-interactive text-left text-sm select-none';
-    const engineItems = Object.entries(engines).map(([key, eng]) => {
+    dropdownMenu.innerHTML = Object.entries(engines).map(([key, eng]) => {
         const isChecked = key === curEngine;
         const iconHtml = `<span class="size-5 aspect-square shrink-0 rounded pointer-events-none select-none flex items-center justify-center">${eng.svg}</span>`;
-        return `<button type="button" data-engine="${key}" role="menuitemradio" aria-checked="${isChecked}" class="${itemClass}">
+        return `<button type="button" data-engine="${key}" role="menuitemradio" aria-checked="${isChecked}" class="w-full flex items-center gap-3 px-3 py-2.5 apple-radius hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 glass-interactive text-left text-sm select-none">
             ${iconHtml} ${escapeHtml(eng.name)}
         </button>`;
     }).join('');
-    const imageItems = Object.entries(IMAGE_SEARCH_UPLOADS).map(([key, { name }]) => {
-        const label = escapeHtml(t('engine.upload.image', { name }));
-        return `<button type="button" data-image-search="${key}" role="menuitem" class="${itemClass} pl-11">${label}</button>`;
-    }).join('');
-    dropdownMenu.innerHTML = `${engineItems}<div role="separator" class="my-1 border-t border-white/15"></div>${imageItems}`;
 }
 
 /**
@@ -329,38 +323,6 @@ function openBookmarkUrl(url, newTab = false) {
         hideSuggestions();
         window.location.href = trimmed;
     }
-}
-
-/**
- * 随机探索/手气不错：从本地书签库中随机挑选并访问一个站点
- */
-let diceAngle = 0;
-export function openRandomBookmark() {
-    /** @type {import('../types').BookmarkItem[]} */
-    const list = [];
-    const seen = new Set();
-    /** @param {import('../types').BookmarkItem} bm */
-    const addBookmark = bm => {
-        const key = bookmarkUrlKey(bm.url);
-        if (key && !seen.has(key)) {
-            seen.add(key);
-            list.push(bm);
-        }
-    };
-    pageData.bookmarks.forEach(addBookmark);
-    getCategoryCatalog(pageData.categories).entries.forEach(entry => addBookmark(entry.bm));
-    if (list.length === 0) return;
-    const randomBm = list[Math.floor(Math.random() * list.length)];
-
-    const randomBtn = dom.randomBookmarkBtn;
-    if (randomBtn) {
-        diceAngle += CONFIG.PHYSICS.DICE_ROTATION_STEP;
-        const svg = randomBtn.querySelector('svg');
-        if (svg) svg.style.transform = `rotate(${diceAngle}deg)`;
-    }
-
-    hideSuggestions();
-    openBookmarkUrl(randomBm.url, true);
 }
 
 /** @type {import('../types').SearchCandidateModel | null} */

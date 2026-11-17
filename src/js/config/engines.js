@@ -9,10 +9,9 @@ export const ENGINE_META = Object.freeze({
 
 export const IMAGE_SEARCH_UPLOADS = Object.freeze({
     bing: {
-        name: 'Bing',
         url: 'https://www.bing.com/images/search?view=detailv2&iss=sbiupload&FORM=SBIVSP&sbisrc=ImgPicker&idpbck=1',
         maxPixels: 1_000_000,
         jpegQuality: 0.7
     },
-    google: { name: 'Google Lens', url: 'https://lens.google.com/v3/upload?ep=cntpubb&re=df&s=4' }
+    google: { url: 'https://lens.google.com/v3/upload?ep=cntpubb&re=df&s=4' }
 });

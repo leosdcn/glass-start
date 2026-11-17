@@ -3,11 +3,16 @@ import { DEFAULT_ENGINE } from '../config/engines.js';
 import { state } from '../state/store.js';
 import { dom } from '../state/dom.js';
 import { handleRovingKeyNav } from '../utils/helpers.js';
-import { activateSuggestion, selectSuggestion, fetchSuggestions, cancelSuggestionRequest, hideSuggestions, closeDropdown, setEngine, openRandomBookmark, getSelectedSuggestionIdx, scheduleSuggestions, handleSuggestionKeyNav, submitImageSearch } from './search.js';
+import { activateSuggestion, selectSuggestion, fetchSuggestions, cancelSuggestionRequest, hideSuggestions, closeDropdown, setEngine, getSelectedSuggestionIdx, scheduleSuggestions, handleSuggestionKeyNav, submitImageSearch } from './search.js';
 
 let isComposing = false;
 /** @type {boolean | null} 记录按钮当前展示状态，避免输入期间无状态变化的重复 DOM 属性写入 */
 let lastHasVal = null;
+
+function getImageSearchEngine() {
+    const engine = state.engine;
+    return engine === 'bing' || engine === 'google' ? engine : DEFAULT_ENGINE;
+}
 
 /** @param {boolean} hasVal */
 function updateSearchActionButtons(hasVal) {
@@ -15,10 +20,10 @@ function updateSearchActionButtons(hasVal) {
     if (lastHasVal === next) return;
     lastHasVal = next;
 
-    const { searchClearBtn, randomBookmarkBtn, searchInput } = dom;
+    const { searchClearBtn, imageSearchBtn, searchInput } = dom;
     const actionButtons = [
         { btn: searchClearBtn, visible: next },
-        { btn: randomBookmarkBtn, visible: !next }
+        { btn: imageSearchBtn, visible: !next }
     ];
     for (const { btn, visible } of actionButtons) {
         if (!btn) continue;
@@ -32,7 +37,6 @@ function updateSearchActionButtons(hasVal) {
 export function bindSearchEvents() {
     const searchInput = dom.searchInput;
     const searchClearBtn = dom.searchClearBtn;
-    const randomBookmarkBtn = dom.randomBookmarkBtn;
     const suggestionMenu = dom.suggestionMenu;
 
     lastHasVal = null;
@@ -85,14 +89,6 @@ export function bindSearchEvents() {
         });
     }
 
-    if (randomBookmarkBtn) {
-        randomBookmarkBtn.addEventListener('click', e => {
-            e.stopPropagation();
-            e.preventDefault();
-            openRandomBookmark();
-        });
-    }
-
     if (suggestionMenu) {
         suggestionMenu.addEventListener('pointerdown', e => {
             if (isComposing) e.preventDefault();
@@ -128,11 +124,18 @@ export function bindSearchEvents() {
         }, { passive: true });
     }
 
-    const { dropdownMenu, imageSearchInput, imageSearchStatus } = dom;
-    /** @type {'bing' | 'google' | undefined} */
-    let imageSearchEngine;
+    const { dropdownMenu, imageSearchBtn, imageSearchInput, imageSearchStatus } = dom;
+    imageSearchBtn?.addEventListener('click', e => {
+        if (!imageSearchInput) return;
+        e.stopPropagation();
+        closeDropdown();
+        hideSuggestions();
+        if (imageSearchStatus) imageSearchStatus.textContent = '';
+        imageSearchInput.value = '';
+        imageSearchInput.click();
+    });
     imageSearchInput?.addEventListener('change', () => {
-        if (imageSearchEngine) submitImageSearch(imageSearchEngine, imageSearchInput);
+        submitImageSearch(getImageSearchEngine(), imageSearchInput);
     });
 
     const searchBox = searchInput?.closest('.search-box-wrapper');
@@ -164,23 +167,12 @@ export function bindSearchEvents() {
             hideSuggestions();
             if (imageSearchStatus) imageSearchStatus.textContent = '';
             imageSearchInput.files = files;
-            const engine = state.engine;
-            submitImageSearch(engine === 'bing' || engine === 'google' ? engine : DEFAULT_ENGINE, imageSearchInput);
+            submitImageSearch(getImageSearchEngine(), imageSearchInput);
         });
     }
     if (dropdownMenu) {
         dropdownMenu.addEventListener('click', e => {
             const targetEl = e.target instanceof Element ? e.target : null;
-            const imageEngine = targetEl?.closest('[data-image-search]')?.getAttribute('data-image-search');
-            if (imageSearchInput && (imageEngine === 'bing' || imageEngine === 'google')) {
-                e.stopPropagation();
-                closeDropdown();
-                imageSearchEngine = imageEngine;
-                if (imageSearchStatus) imageSearchStatus.textContent = '';
-                imageSearchInput.value = '';
-                imageSearchInput.click();
-                return;
-            }
             const btn = /** @type {HTMLElement|null} */ (targetEl?.closest('[data-engine]'));
             if (btn?.dataset.engine) {
                 e.stopPropagation();
@@ -192,7 +184,7 @@ export function bindSearchEvents() {
         });
         dropdownMenu.addEventListener('keydown', e => {
             if (e.key === 'Tab') { closeDropdown(); return; }
-            const items = /** @type {HTMLElement[]} */ (Array.from(dropdownMenu.querySelectorAll('[role="menuitemradio"], [role="menuitem"]')));
+            const items = /** @type {HTMLElement[]} */ (Array.from(dropdownMenu.querySelectorAll('[data-engine]')));
             const activeEl = /** @type {HTMLElement | null} */ (document.activeElement);
             handleRovingKeyNav(e, items, activeEl, () => {});
         });

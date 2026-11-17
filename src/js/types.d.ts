@@ -139,7 +139,7 @@ export interface DOMCache {
     imageSearchInput: HTMLInputElement | null;
     imageSearchStatus: HTMLElement | null;
     lensUploadFrame: HTMLIFrameElement | null;
-    randomBookmarkBtn: HTMLButtonElement | null;
+    imageSearchBtn: HTMLButtonElement | null;
     engineBtn: HTMLButtonElement | null;
     engineIcon: HTMLElement | null;
     engineName: HTMLElement | null;

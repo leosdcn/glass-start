@@ -287,15 +287,15 @@ test('从天气切回搜索、更新候选和输入法确认', async () => {
 
         input.value = '';
         input.dispatchEvent(new Event('input', {bubbles:true}));
-        dom.randomBookmarkBtn.click();
-        const diceOpenedImmediately = opened.length === 2;
+        const cameraForEmpty = !dom.imageSearchBtn.inert && dom.searchClearBtn.inert;
         input.value = 'github';
         input.dispatchEvent(new Event('input', {bubbles:true}));
+        const clearForText = dom.imageSearchBtn.inert && !dom.searchClearBtn.inert;
         const localResultImmediate = dom.suggestionMenu.classList.contains('active') &&
           dom.suggestionMenu.querySelector('.suggestion-item')?.textContent.includes('GitHub') &&
           !suggestionScriptTag;
         return { keptOldResults, arrowUnclaimed, imeDidNotSearch, committedBookmark, committedRequest, independentEnterSearched,
-          tabUnclaimed, diceOpenedImmediately, localResultImmediate };
+          tabUnclaimed, cameraForEmpty, clearForText, localResultImmediate };
       } finally {
         window.open = open;
         document.body.appendChild = append;
@@ -304,7 +304,7 @@ test('从天气切回搜索、更新候选和输入法确认', async () => {
     })()`);
     assert.deepEqual(searchActions, { keptOldResults:true, arrowUnclaimed:true, imeDidNotSearch:true,
       committedBookmark:'https://en.wikipedia.org/wiki/Main_Page', committedRequest:'维基百科',
-      independentEnterSearched:true, tabUnclaimed:true, diceOpenedImmediately:true, localResultImmediate:true });
+      independentEnterSearched:true, tabUnclaimed:true, cameraForEmpty:true, clearForText:true, localResultImmediate:true });
   } finally {
     await chrome.close();
     await server.close();
@@ -409,7 +409,7 @@ test('新标签页打开候选时保留列表，当前页打开时收起', async
   }
 });
 
-test('以图搜图打开本地选图并把图片提交给所选服务', async () => {
+test('相机打开本地选图并提交给当前引擎', async () => {
   const { server, chrome, send, evalJS } = await launchSession();
   try {
     const imagePath = fileURLToPath(new URL('../src/extension/icon16.png', import.meta.url));
@@ -422,7 +422,6 @@ test('以图搜图打开本地选图并把图片提交给所选服务', async ()
     const choosers = [];
     send('Page.fileChooserOpened', event => choosers.push(event));
     await send('Page.setInterceptFileChooserDialog', { enabled: true });
-    await evalJS(`dom.engineBtn.click(); dom.dropdownMenu.querySelector('[data-engine="wikipedia"]').click()`);
     await waitFor(evalJS, '!!dom.lensUploadFrame.contentDocument.forms[0]');
     await evalJS(`window.imageUploads = [];
       const recordUpload = event => {
@@ -440,18 +439,22 @@ test('以图搜图打开本地选图并把图片提交给所选服务', async ()
     await send('Fetch.enable', {
       patterns: destinations.map(([, url]) => ({ urlPattern: `${url}?*`, resourceType: 'Document' }))
     });
-    for (const [index, [engine, destination]] of destinations.entries()) {
-      await evalJS('dom.engineBtn.click()');
-      assert.equal(await evalJS(`dom.dropdownMenu.querySelectorAll('[data-image-search]').length`), 2);
-      const [key, keyCode] = index === 0 ? ['ArrowDown', 40] : ['End', 35];
-      for (const type of ['rawKeyDown', 'keyUp']) {
-        await send('Input.dispatchKeyEvent', { type, key, code: key, windowsVirtualKeyCode: keyCode });
-      }
-      assert.equal(await evalJS('document.activeElement.dataset.imageSearch'), engine);
+    const locale = await evalJS('document.documentElement.lang');
+    const [defaultEngine, defaultDestination] = destinations[locale === 'en' ? 1 : 0];
+    const cases = [
+      ...destinations.map(([engine, destination]) => ({ engine, destination, preferred: engine })),
+      { engine: defaultEngine, destination: defaultDestination, preferred: 'wikipedia' }
+    ];
+    assert.deepEqual(await evalJS(`Array.from(dom.dropdownMenu.children, item => [item.dataset.engine, item.getAttribute('role')])`),
+      [['bing', 'menuitemradio'], ['google', 'menuitemradio'], ['wikipedia', 'menuitemradio']]);
+    for (const [index, { engine, destination, preferred }] of cases.entries()) {
+      await evalJS(`dom.engineBtn.click(); dom.dropdownMenu.querySelector('[data-engine="${preferred}"]').click()`);
+      assert.equal(await evalJS(`!dom.imageSearchBtn.inert && dom.engineBtn.getAttribute('aria-expanded') === 'false'`), true);
+      await evalJS('dom.imageSearchBtn.focus()');
       await send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Enter', code: 'Enter', text: '\r', windowsVirtualKeyCode: 13 });
       await send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 });
       await waitFor(async () => choosers.length === index + 1, '系统文件选择器');
-      assert.equal(await evalJS('document.activeElement === dom.engineBtn'), true);
+      assert.equal(await evalJS('document.activeElement === dom.imageSearchBtn'), true);
       await send('DOM.setFileInputFiles', {
         backendNodeId: choosers[index].backendNodeId, files: [engine === 'bing' ? largePngPath : imagePath]
       });
@@ -480,7 +483,7 @@ test('以图搜图打开本地选图并把图片提交给所选服务', async ()
           encoded_image: { filename: 'icon16.png', type: 'image/png', base64: image.toString('base64') }
         });
       }
-      assert.equal(await evalJS('state.engine'), 'wikipedia');
+      assert.equal(await evalJS('state.engine'), preferred);
       assert.equal(await evalJS('dom.imageSearchInput.files.length'), 0);
     }
   } finally {

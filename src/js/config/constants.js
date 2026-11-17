@@ -52,7 +52,6 @@ export const CONFIG = Object.freeze({
                 TILT_HOVER_SCALE: 1.025,     // 悬停缩放比
                 DRAG_HYSTERESIS_HIGH: 0.58,  // 拖拽排序迟滞阻尼上限（相对行高比例）
                 DRAG_HYSTERESIS_LOW: 0.42,   // 拖拽排序迟滞阻尼下限（相对行高比例）
-                DICE_ROTATION_STEP: 180,     // 随机书签按钮旋转角度步长 (deg)
                 BOOKMARK_DELETE_SCALE: 0.82, // 书签删除动效缩放比
                 BOOKMARK_DELETE_OFFSET_Y: -10 // 书签删除动效垂直位移 (px)
             }),

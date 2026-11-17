@@ -381,7 +381,7 @@ html:not(.is-chrome, [data-screen="nav"]) #navSection.nav-hidden .nav-surface {
 
 /* iOS / iPad 触屏长按系统菜单拦截与核心 UI 组件防圈选 */
 .bookmark-item, .nav-bookmark, .sidebar-item, .icon-box, #sidebar, #bookmarks,
-#engineBtn, #dropdownMenu, #dropdownMenu *, #suggestionMenu, .search-box-wrapper button, #randomBookmarkBtn, #searchClearBtn,
+#engineBtn, #dropdownMenu, #dropdownMenu *, #suggestionMenu, .search-box-wrapper button, #imageSearchBtn, #searchClearBtn,
 #clock, #date, #navHeader {
     -webkit-touch-callout: none;
     -webkit-user-select: none;
@@ -454,7 +454,7 @@ textarea::placeholder {
 }
 
 /* ===== 按压缩放反馈 ===== */
-:is(#editBookmarksBtn, #randomBookmarkBtn, #searchClearBtn, #weatherBtn, #updateReloadBtn, #navHint):enabled:active {
+:is(#editBookmarksBtn, #imageSearchBtn, #searchClearBtn, #weatherBtn, #updateReloadBtn, #navHint):enabled:active {
     background-color: rgba(255, 255, 255, 0.22);
 }
 .json-dropzone:active {
@@ -467,7 +467,7 @@ textarea::placeholder {
 @layer components {
     :where(
         #weatherBtn, #updateReloadBtn, #navHint, #editBookmarksBtn,
-        #engineBtn, #randomBookmarkBtn, #searchClearBtn,
+        #engineBtn, #imageSearchBtn, #searchClearBtn,
         #languageBtn, #cancelEditBtn, #cancelLanguageBtn, #resetBgBtn, #urlBgConfirmBtn, #urlBgCancelBtn,
         .drag-handle, .del-btn,
         .settings-tab-btn, .settings-action, .settings-transition-btn, .glass-btn-primary,
@@ -790,7 +790,7 @@ html.is-chrome .nav-initial-entry .nav-bookmark:has(.bookmark-description) {
     :is(
         #languageBtn, #resetBgBtn,
         .drag-handle, .del-btn,
-        #engineBtn, #randomBookmarkBtn, #searchClearBtn
+        #engineBtn, #imageSearchBtn, #searchClearBtn
     )::before {
         min-width: 44px;
         min-height: 44px;
