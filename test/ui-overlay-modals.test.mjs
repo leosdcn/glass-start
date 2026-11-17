@@ -1,6 +1,8 @@
 /** 验证弹窗栈、唤醒恢复、联想交互及移动视口可访问性。 */
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
+import { fileURLToPath } from 'node:url';
 import { launchSession, pressKey, waitFor } from './support/helpers.mjs';
 
 test('页面刷新状态保持、跳出返回防白屏与触觉倾斜恢复', async () => {
@@ -401,6 +403,168 @@ test('新标签页打开候选时保留列表，当前页打开时收起', async
     await showSuggestions();
     await clickSuggestion(bookmark, 'left');
     await waitFor(evalJS, "location.hash === '#same-tab-bookmark' && !dom.suggestionMenu.classList.contains('active')");
+  } finally {
+    await chrome.close();
+    await server.close();
+  }
+});
+
+test('以图搜图打开本地选图并把图片提交给所选服务', async () => {
+  const { server, chrome, send, evalJS } = await launchSession();
+  try {
+    const imagePath = fileURLToPath(new URL('../src/extension/icon16.png', import.meta.url));
+    const image = readFileSync(imagePath);
+    const largePngPath = fileURLToPath(new URL('../docs/assets/preview-start.png', import.meta.url));
+    const destinations = [
+      ['bing', 'https://www.bing.com/images/search'],
+      ['google', 'https://lens.google.com/v3/upload']
+    ];
+    const choosers = [];
+    send('Page.fileChooserOpened', event => choosers.push(event));
+    await send('Page.setInterceptFileChooserDialog', { enabled: true });
+    await evalJS(`dom.engineBtn.click(); dom.dropdownMenu.querySelector('[data-engine="wikipedia"]').click()`);
+    await waitFor(evalJS, '!!dom.lensUploadFrame.contentDocument.forms[0]');
+    await evalJS(`window.imageUploads = [];
+      const recordUpload = event => {
+        const parts = Array.from(event.formData, async ([name, value]) => [name, typeof value === 'string' ? value : {
+          filename: value.name, type: value.type, base64: btoa(String.fromCharCode(...new Uint8Array(await value.arrayBuffer())))
+        }]);
+        if (!parts.length) return;
+        imageUploads.push(Promise.all(parts).then(Object.fromEntries));
+      };
+      document.addEventListener('formdata', recordUpload);
+      dom.lensUploadFrame.contentDocument.addEventListener('formdata', recordUpload);`);
+
+    const requests = [];
+    send('Fetch.requestPaused', request => requests.push(request));
+    await send('Fetch.enable', {
+      patterns: destinations.map(([, url]) => ({ urlPattern: `${url}?*`, resourceType: 'Document' }))
+    });
+    for (const [index, [engine, destination]] of destinations.entries()) {
+      await evalJS('dom.engineBtn.click()');
+      assert.equal(await evalJS(`dom.dropdownMenu.querySelectorAll('[data-image-search]').length`), 2);
+      const [key, keyCode] = index === 0 ? ['ArrowDown', 40] : ['End', 35];
+      for (const type of ['rawKeyDown', 'keyUp']) {
+        await send('Input.dispatchKeyEvent', { type, key, code: key, windowsVirtualKeyCode: keyCode });
+      }
+      assert.equal(await evalJS('document.activeElement.dataset.imageSearch'), engine);
+      await send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Enter', code: 'Enter', text: '\r', windowsVirtualKeyCode: 13 });
+      await send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 });
+      await waitFor(async () => choosers.length === index + 1, '系统文件选择器');
+      assert.equal(await evalJS('document.activeElement === dom.engineBtn'), true);
+      await send('DOM.setFileInputFiles', {
+        backendNodeId: choosers[index].backendNodeId, files: [engine === 'bing' ? largePngPath : imagePath]
+      });
+      await waitFor(async () => requests.length === index + 1, '图片上传导航');
+      const { request, requestId } = requests[index];
+      await send('Fetch.fulfillRequest', { requestId, responseCode: 204 });
+      const url = new URL(request.url);
+      assert.equal(url.origin + url.pathname, destination);
+      assert.equal(request.method, 'POST');
+      assert.match(request.headers['Content-Type'], /^multipart\/form-data;/);
+      if (engine === 'bing') {
+        const prepared = await evalJS(`(async () => {
+          const { cbir, imageBin } = await imageUploads[${index}];
+          const image = new Image();
+          image.src = 'data:image/jpeg;base64,' + imageBin;
+          await image.decode();
+          return { cbir, signature: imageBin.slice(0, 4), width: image.naturalWidth, height: image.naturalHeight };
+        })()`);
+        assert.equal(prepared.cbir, 'sbi');
+        assert.equal(prepared.signature, '/9j/');
+        const pixels = prepared.width * prepared.height;
+        assert.ok(pixels > 990_000 && pixels <= 1_000_000);
+      } else {
+        assert.equal(request.referrerPolicy, 'no-referrer');
+        assert.deepEqual(await evalJS(`imageUploads[${index}]`), {
+          encoded_image: { filename: 'icon16.png', type: 'image/png', base64: image.toString('base64') }
+        });
+      }
+      assert.equal(await evalJS('state.engine'), 'wikipedia');
+      assert.equal(await evalJS('dom.imageSearchInput.files.length'), 0);
+    }
+  } finally {
+    await chrome.close();
+    await server.close();
+  }
+});
+
+test('拖入本地图片后用当前引擎搜图', async () => {
+  const { server, chrome, send, evalJS } = await launchSession();
+  try {
+    const imagePath = fileURLToPath(new URL('../src/extension/icon16.png', import.meta.url));
+    const bing = 'https://www.bing.com/images/search';
+    const google = 'https://lens.google.com/v3/upload';
+    const requests = [];
+    send('Fetch.requestPaused', event => requests.push(event));
+    await send('Fetch.enable', {
+      patterns: [bing, google].map(url => ({ urlPattern: `${url}?*`, resourceType: 'Document' }))
+    });
+    const locale = await evalJS('document.documentElement.lang');
+    const dragData = { items: [], files: [imagePath], dragOperationsMask: 1 };
+    const overSearch = 'dom.searchInput.closest(".search-box-wrapper").classList.contains("image-dragover")';
+
+    const engines = [['bing', bing], ['google', google], ['wikipedia', locale === 'en' ? google : bing]];
+    for (const [index, [engine, destination]] of engines.entries()) {
+      await evalJS(`dom.engineBtn.click(); dom.dropdownMenu.querySelector('[data-engine="${engine}"]').click()`);
+      const point = await evalJS(`(() => {
+        const { x, y, width, height } = dom.searchInput.getBoundingClientRect();
+        return { x: x + width / 2, y: y + height / 2 };
+      })()`);
+      for (const type of ['dragEnter', 'dragOver']) {
+        await send('Input.dispatchDragEvent', { type, ...point, data: dragData });
+      }
+      await waitFor(evalJS, overSearch);
+      if (index === 0) {
+        await send('Input.dispatchDragEvent', { type: 'dragOver', x: 1, y: 1, data: dragData });
+        await waitFor(evalJS, `!${overSearch}`);
+        await send('Input.dispatchDragEvent', { type: 'dragOver', ...point, data: dragData });
+        await waitFor(evalJS, overSearch);
+      }
+      await send('Input.dispatchDragEvent', { type: 'drop', ...point, data: dragData });
+      await waitFor(async () => requests.length === index + 1, '拖图上传导航');
+      const { request, requestId } = requests[index];
+      await send('Fetch.fulfillRequest', { requestId, responseCode: 204 });
+      assert.equal(request.method, 'POST');
+      const url = new URL(request.url);
+      assert.equal(url.origin + url.pathname, destination);
+      assert.equal(await evalJS(overSearch), false);
+      assert.equal(await evalJS('state.engine'), engine);
+    }
+
+    const png = readFileSync(imagePath, 'base64');
+    const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><rect width="16" height="16"/></svg>';
+    const examples = [
+      ['bing', bing, `new File([Uint8Array.from(atob('${png}'), c => c.charCodeAt(0))], 'image.png')`],
+      ['google', google, `new File([Uint8Array.from(atob('${png}'), c => c.charCodeAt(0))], 'image.png', { type: 'application/octet-stream' })`],
+      ['bing', bing, `new File([${JSON.stringify(svg)}], 'image.svg', { type: 'image/svg+xml' })`]
+    ];
+    const dropFile = async source => evalJS(`(() => {
+      const dataTransfer = new DataTransfer();
+      dataTransfer.items.add(${source});
+      dom.searchInput.dispatchEvent(new DragEvent('dragover', { bubbles: true, cancelable: true, dataTransfer }));
+      const highlighted = ${overSearch};
+      dom.searchInput.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer }));
+      return highlighted;
+    })()`);
+    for (const [engine, destination, source] of examples) {
+      await evalJS(`dom.engineBtn.click(); dom.dropdownMenu.querySelector('[data-engine="${engine}"]').click()`);
+      const index = requests.length;
+      assert.equal(await dropFile(source), true);
+      await waitFor(async () => requests.length === index + 1, '浏览器解码有效图片后提交');
+      const { request, requestId } = requests[index];
+      await send('Fetch.fulfillRequest', { requestId, responseCode: 204 });
+      const url = new URL(request.url);
+      assert.equal(url.origin + url.pathname, destination);
+    }
+
+    const layout = '[dom.searchInput.form.offsetTop, dom.searchInput.form.offsetHeight, dom.bookmarks.parentElement.offsetTop]';
+    const before = await evalJS(layout);
+    const requestCount = requests.length;
+    await dropFile(`new File(['not an image'], 'broken.png', { type: 'image/png' })`);
+    await waitFor(evalJS, '!!dom.imageSearchStatus.textContent');
+    assert.deepEqual(await evalJS(layout), before);
+    assert.equal(requests.length, requestCount);
   } finally {
     await chrome.close();
     await server.close();

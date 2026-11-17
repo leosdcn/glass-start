@@ -1,8 +1,9 @@
 /** 搜索输入、输入法、候选与引擎菜单的控件事件；跨业务关闭和全局快捷键由 events.js 协调。 */
+import { DEFAULT_ENGINE } from '../config/engines.js';
 import { state } from '../state/store.js';
 import { dom } from '../state/dom.js';
 import { handleRovingKeyNav } from '../utils/helpers.js';
-import { activateSuggestion, selectSuggestion, fetchSuggestions, cancelSuggestionRequest, hideSuggestions, closeDropdown, setEngine, openRandomBookmark, getSelectedSuggestionIdx, scheduleSuggestions, handleSuggestionKeyNav } from './search.js';
+import { activateSuggestion, selectSuggestion, fetchSuggestions, cancelSuggestionRequest, hideSuggestions, closeDropdown, setEngine, openRandomBookmark, getSelectedSuggestionIdx, scheduleSuggestions, handleSuggestionKeyNav, submitImageSearch } from './search.js';
 
 let isComposing = false;
 /** @type {boolean | null} 记录按钮当前展示状态，避免输入期间无状态变化的重复 DOM 属性写入 */
@@ -127,10 +128,59 @@ export function bindSearchEvents() {
         }, { passive: true });
     }
 
-    const dropdownMenu = dom.dropdownMenu;
+    const { dropdownMenu, imageSearchInput, imageSearchStatus } = dom;
+    /** @type {'bing' | 'google' | undefined} */
+    let imageSearchEngine;
+    imageSearchInput?.addEventListener('change', () => {
+        if (imageSearchEngine) submitImageSearch(imageSearchEngine, imageSearchInput);
+    });
+
+    const searchBox = searchInput?.closest('.search-box-wrapper');
+    if (searchBox instanceof HTMLElement && imageSearchInput) {
+        /** @param {DragEvent} e */
+        const highlightImageDrop = e => {
+            const transfer = e.dataTransfer;
+            if (!transfer?.types.includes('Files')) return;
+            e.preventDefault();
+            const files = Array.from(transfer.items).filter(item => item.kind === 'file');
+            const type = files[0]?.type;
+            const acceptsImage = files.length <= 1 && (!type || type === 'application/octet-stream' || type.startsWith('image/'));
+            transfer.dropEffect = acceptsImage ? 'copy' : 'none';
+            searchBox.classList.toggle('image-dragover', acceptsImage);
+        };
+        searchBox.addEventListener('dragenter', highlightImageDrop);
+        searchBox.addEventListener('dragover', highlightImageDrop);
+        searchBox.addEventListener('dragleave', e => {
+            if (e.relatedTarget instanceof Node && searchBox.contains(e.relatedTarget)) return;
+            searchBox.classList.remove('image-dragover');
+        });
+        searchBox.addEventListener('drop', e => {
+            searchBox.classList.remove('image-dragover');
+            const files = e.dataTransfer?.files;
+            if (!files?.length) return;
+            e.preventDefault();
+            if (files.length !== 1) return;
+            closeDropdown();
+            hideSuggestions();
+            if (imageSearchStatus) imageSearchStatus.textContent = '';
+            imageSearchInput.files = files;
+            const engine = state.engine;
+            submitImageSearch(engine === 'bing' || engine === 'google' ? engine : DEFAULT_ENGINE, imageSearchInput);
+        });
+    }
     if (dropdownMenu) {
         dropdownMenu.addEventListener('click', e => {
             const targetEl = e.target instanceof Element ? e.target : null;
+            const imageEngine = targetEl?.closest('[data-image-search]')?.getAttribute('data-image-search');
+            if (imageSearchInput && (imageEngine === 'bing' || imageEngine === 'google')) {
+                e.stopPropagation();
+                closeDropdown();
+                imageSearchEngine = imageEngine;
+                if (imageSearchStatus) imageSearchStatus.textContent = '';
+                imageSearchInput.value = '';
+                imageSearchInput.click();
+                return;
+            }
             const btn = /** @type {HTMLElement|null} */ (targetEl?.closest('[data-engine]'));
             if (btn?.dataset.engine) {
                 e.stopPropagation();
@@ -142,7 +192,7 @@ export function bindSearchEvents() {
         });
         dropdownMenu.addEventListener('keydown', e => {
             if (e.key === 'Tab') { closeDropdown(); return; }
-            const items = /** @type {HTMLElement[]} */ (Array.from(dropdownMenu.querySelectorAll('[data-engine]')));
+            const items = /** @type {HTMLElement[]} */ (Array.from(dropdownMenu.querySelectorAll('[role="menuitemradio"], [role="menuitem"]')));
             const activeEl = /** @type {HTMLElement | null} */ (document.activeElement);
             handleRovingKeyNav(e, items, activeEl, () => {});
         });

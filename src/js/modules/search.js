@@ -4,7 +4,7 @@ import { rankBookmarkSuggestions } from '../utils/bookmark-search.js';
 import { getCategoryCatalog } from '../utils/category-catalog.js';
 import { bookmarkUrlKey } from '../utils/bookmark-model.js';
 import { CONFIG, DEFAULT_CATEGORIES, engines } from '../config/constants.js';
-import { DEFAULT_ENGINE } from '../config/engines.js';
+import { DEFAULT_ENGINE, IMAGE_SEARCH_UPLOADS } from '../config/engines.js';
 import { escapeHtml, safeUrl } from '../utils/helpers.js';
 import { storageSet } from '../utils/storage.js';
 import { state, pageData } from '../state/store.js';
@@ -128,15 +128,19 @@ export function renderEngineDropdown() {
     const dropdownMenu = dom.dropdownMenu;
     if (!dropdownMenu) return;
     const curEngine = state.engine || DEFAULT_ENGINE;
-    /** @type {Record<string, { name: string; svg: string; url: string }>} */
-    const engineMap = engines;
-    dropdownMenu.innerHTML = Object.entries(engineMap).map(([key, eng]) => {
+    const itemClass = 'w-full flex items-center gap-3 px-3 py-2.5 apple-radius hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 glass-interactive text-left text-sm select-none';
+    const engineItems = Object.entries(engines).map(([key, eng]) => {
         const isChecked = key === curEngine;
         const iconHtml = `<span class="size-5 aspect-square shrink-0 rounded pointer-events-none select-none flex items-center justify-center">${eng.svg}</span>`;
-        return `<button type="button" data-engine="${key}" role="menuitemradio" aria-checked="${isChecked}" class="w-full flex items-center gap-3 px-3 py-2.5 apple-radius hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 glass-interactive text-left text-sm select-none">
-            ${iconHtml} ${eng.name}
+        return `<button type="button" data-engine="${key}" role="menuitemradio" aria-checked="${isChecked}" class="${itemClass}">
+            ${iconHtml} ${escapeHtml(eng.name)}
         </button>`;
     }).join('');
+    const imageItems = Object.entries(IMAGE_SEARCH_UPLOADS).map(([key, { name }]) => {
+        const label = escapeHtml(t('engine.upload.image', { name }));
+        return `<button type="button" data-image-search="${key}" role="menuitem" class="${itemClass} pl-11">${label}</button>`;
+    }).join('');
+    dropdownMenu.innerHTML = `${engineItems}<div role="separator" class="my-1 border-t border-white/15"></div>${imageItems}`;
 }
 
 /**
@@ -224,6 +228,76 @@ function doSearch(queryOverride, newTab = false) {
     } else {
         hideSuggestions();
         window.location.href = targetUrl;
+    }
+}
+
+/** @param {keyof typeof IMAGE_SEARCH_UPLOADS} engine @param {HTMLInputElement} input */
+export async function submitImageSearch(engine, input) {
+    const file = input.files?.[0];
+    if (!file) return;
+    // Lens 的跨站上传需要省略来源，独立表单文档只对该上传应用 no-referrer。
+    const form = engine === 'google' ? dom.lensUploadFrame?.contentDocument?.forms[0] : input.form;
+    const reportError = () => {
+        if (input.files?.[0] !== file) return;
+        if (dom.imageSearchStatus) dom.imageSearchStatus.textContent = t('engine.upload.error');
+        input.value = '';
+    };
+    if (!form || !file.size) {
+        reportError();
+        return;
+    }
+
+    const action = new URL(IMAGE_SEARCH_UPLOADS[engine].url);
+    /** @param {Record<string, string | File>} fields */
+    const submit = fields => {
+        form.action = action.href;
+        form.addEventListener('formdata', event => {
+            for (const [name, value] of Object.entries(fields)) event.formData.set(name, value);
+            input.value = '';
+        }, { once: true });
+        form.submit();
+    };
+    if (engine === 'google') {
+        action.searchParams.set('hl', getLocale());
+        action.searchParams.set('st', String(Date.now()));
+        if (file.type.startsWith('image/')) {
+            submit({ encoded_image: file });
+            return;
+        }
+    }
+
+    // 拖入的文件可能没有图片 MIME。交给浏览器解码，也支持仅由 viewBox 定义尺寸的 SVG。
+    const url = URL.createObjectURL(file);
+    try {
+        const image = new Image();
+        image.src = url;
+        await image.decode();
+        if (input.files?.[0] !== file) return;
+        if (engine === 'google') {
+            submit({ encoded_image: file });
+            return;
+        }
+        // 与 Bing 网页端一样缩小大图并用白底 JPEG 编码。
+        const { naturalWidth, naturalHeight } = image;
+        const { maxPixels, jpegQuality } = IMAGE_SEARCH_UPLOADS.bing;
+        const scale = Math.min(1, Math.sqrt(maxPixels / (naturalWidth * naturalHeight)));
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, Math.floor(naturalWidth * scale));
+        canvas.height = Math.max(1, Math.floor(naturalHeight * scale));
+        const context = canvas.getContext('2d', { alpha: false });
+        if (!context) {
+            reportError();
+            return;
+        }
+        context.fillStyle = '#fff';
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.drawImage(image, 0, 0, canvas.width, canvas.height);
+        const imageBin = canvas.toDataURL('image/jpeg', jpegQuality).split(',', 2)[1];
+        submit({ cbir: 'sbi', imageBin });
+    } catch {
+        reportError();
+    } finally {
+        URL.revokeObjectURL(url);
     }
 }
 

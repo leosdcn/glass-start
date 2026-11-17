@@ -6,9 +6,11 @@ test('混版应用在初始化前退出，页面只导航一次', async () => {
   const { server, chrome, send, evalJS } = await launchSession();
   try {
     await send('Page.addScriptToEvaluateOnNewDocument', { source: `
-      const key = 'fingerprintProbeLoads';
-      sessionStorage.setItem(key, String(Number(sessionStorage.getItem(key)) + 1));
-      Object.defineProperty(window, '__GLASS_BUILD_APP__', { get: () => 'mismatched', set() {} });
+      if (window === window.top) {
+        const key = 'fingerprintProbeLoads';
+        sessionStorage.setItem(key, String(Number(sessionStorage.getItem(key)) + 1));
+        Object.defineProperty(window, '__GLASS_BUILD_APP__', { get: () => 'mismatched', set() {} });
+      }
     ` });
     await send('Page.reload');
     await waitFor(evalJS, `document.readyState === 'complete' && window.__GLASS_BUILD_APP__ === 'mismatched'`);

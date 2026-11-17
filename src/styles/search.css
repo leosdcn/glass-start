@@ -62,6 +62,10 @@
     opacity: 1;
     transition: opacity 0.26s var(--ease-spring);
 }
+.search-box-wrapper.image-dragover {
+    outline: 2px dashed rgb(255 255 255 / 75%);
+    outline-offset: 4px;
+}
 .search-box-wrapper #searchInput::placeholder {
     transition: color var(--duration-focus) var(--ease-exit);
 }

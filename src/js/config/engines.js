@@ -6,3 +6,13 @@ export const ENGINE_META = Object.freeze({
     google: Object.freeze({ name: 'Google', url: 'https://www.google.com/search?q=' }),
     wikipedia: Object.freeze({ name: 'Wikipedia', url: `https://${getLocale() === 'en' ? 'en' : 'zh'}.wikipedia.org/w/index.php?search=` })
 });
+
+export const IMAGE_SEARCH_UPLOADS = Object.freeze({
+    bing: {
+        name: 'Bing',
+        url: 'https://www.bing.com/images/search?view=detailv2&iss=sbiupload&FORM=SBIVSP&sbisrc=ImgPicker&idpbck=1',
+        maxPixels: 1_000_000,
+        jpegQuality: 0.7
+    },
+    google: { name: 'Google Lens', url: 'https://lens.google.com/v3/upload?ep=cntpubb&re=df&s=4' }
+});
