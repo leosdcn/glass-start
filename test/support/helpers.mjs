@@ -12,8 +12,8 @@ export const createEvaluator = send => async expression => {
 
 export const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 export const pressKey = (evalJS, key) => evalJS(`document.dispatchEvent(new KeyboardEvent('keydown', { key: '${key}', bubbles: true, cancelable: true }))`);
-// CI runner 更慢且可能默认开启减少动效/透明度；给状态轮询更宽裕的窗口。
-const defaultWaitTimeout = process.env.CI ? 8000 : 3000;
+// 状态轮询超时统一为 10 秒，与 Chrome 启动和导航上限保持一致；轮询在条件满足时即刻返回，不增加开销。
+const defaultWaitTimeout = 10000;
 
 export const tyOf = (m) => {
   const r = /matrix\(1, 0, 0, 1, 0, (-?\d+(?:\.\d+)?)\)/.exec(m);

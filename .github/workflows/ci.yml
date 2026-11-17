@@ -16,17 +16,13 @@ permissions:
 
 jobs:
   linux-checks:
-    name: Lint & Test (Ubuntu, Node ${{ matrix.node-version }})
+    name: Lint & Test (Ubuntu)
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    strategy:
-      fail-fast: false
-      matrix:
-        node-version: ['24.15.0', '26']
     services:
       nu:
-        # 官方 Nu 26.11.9.2。只在产出 Pages 文件的矩阵任务启动。
-        image: ${{ matrix.node-version == '24.15.0' && 'ghcr.io/validator/validator@sha256:292cef9f3367a6d52447c617e65c94bca04cd3399abb37bd5d17c1c7d430525a' || '' }}
+        # 官方 Nu 26.11.9.2。校验待发布产物规范。
+        image: ghcr.io/validator/validator@sha256:292cef9f3367a6d52447c617e65c94bca04cd3399abb37bd5d17c1c7d430525a
         ports:
           - 8888/tcp
     permissions:
@@ -39,7 +35,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node-version }}
+          node-version: '24.15.0'
           cache: 'npm'
 
       - name: Install dependencies
@@ -52,24 +48,23 @@ jobs:
         run: npm test
 
       - name: Validate release HTML & CSS (W3C / Stylelint)
-        if: matrix.node-version == '24.15.0'
         env:
           W3C_VALIDATOR_URL: http://127.0.0.1:${{ job.services.nu.ports['8888'] }}/?out=json
         run: npm run test:w3c
 
       - name: Setup GitHub Pages
-        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && matrix.node-version == '24.15.0'
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         id: pages
         uses: actions/configure-pages@v5
 
       - name: Retain the currently deployed app script
-        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && matrix.node-version == '24.15.0'
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         env:
           GLASS_PREVIOUS_DEPLOY_URL: ${{ steps.pages.outputs.base_url }}
         run: node scripts/retain-deployed.cjs
 
       - name: Upload verified Pages artifact
-        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && matrix.node-version == '24.15.0'
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         uses: actions/upload-pages-artifact@v3
         with:
           path: dist/.
