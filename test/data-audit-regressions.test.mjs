@@ -289,7 +289,14 @@ test('历史工单缺陷回归 (GS-01 ~ GS-15 焦点、导入、存储配额与�
       __dispatch('touchstart', [__first], [__first]); __dispatch('touchmove', [__other, __moved], [__moved]);
     })()`);
     await evalJS('new Promise(requestAnimationFrame)');
-    assert.equal(await evalJS(`(() => { __dispatch('touchend', [__moved], [__other]); return modalState.draftBookmarks[0].id === 'touch_0' && !dom.editList.querySelector('.dragging'); })()`), false);
+    const multiTouchState = await evalJS(`(() => {
+      __dispatch('touchend', [__moved], [__other]);
+      return {
+        firstId: modalState.draftBookmarks[0].id,
+        isDragging: Boolean(dom.editList.querySelector('.dragging'))
+      };
+    })()`);
+    assert.deepEqual(multiTouchState, { firstId: 'touch_0', isDragging: true });
     await evalJS(`__dispatch('touchend', [], [__moved])`);
     assert.equal(await evalJS(`modalState.draftBookmarks[0].id === 'touch_1'`), true);
     await evalJS(`__dispatch('touchstart', [__first], [__first]); __dispatch('touchmove', [__moved], [__moved])`);

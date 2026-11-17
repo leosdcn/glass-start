@@ -160,7 +160,7 @@ await evalJS('switchToStart()');
 await settled('start');
 
 // ══════════════════════════════════════════════════════════════════════
-// 场景 E：搜索联想面板
+// 场景 C：搜索联想面板
 // ══════════════════════════════════════════════════════════════════════
 await evalJS(`(() => {
   const i = document.getElementById('searchInput');
@@ -182,13 +182,13 @@ const suggestionActiveE1 =
   metricsE1.suggestionMenu.exists && metricsE1.suggestionMenu.rect.height > 50 &&
   metricsE1.suggestionMenu.computed.visibility !== 'hidden' && metricsE1.suggestionMenu.computed.opacity > 0.8;
 
-pass('场景 E [Desktop 1470x956] 搜索联想面板可见', suggestionActiveE1,
+pass('场景 C [Desktop 1470x956] 搜索联想面板可见', suggestionActiveE1,
   JSON.stringify(metricsE1.suggestionMenu.rect));
 await press('Escape');
 await waitFor(evalJS, '!document.getElementById("suggestionMenu").classList.contains("active")');
 
 // ══════════════════════════════════════════════════════════════════════
-// 场景 F：移动端起始页
+// 场景 D：移动端起始页
 // ══════════════════════════════════════════════════════════════════════
 await send('Emulation.setDeviceMetricsOverride', {
   width: 402,
@@ -208,7 +208,7 @@ const mobileStartValidF =
   metricsF.bookmarks.exists && metricsF.bookmarks.rect.width >= 300 &&
   metricsF.editBookmarksBtn.exists && metricsF.editBookmarksBtn.rect.width >= 35;
 
-pass('场景 F [Mobile 402x874 (iPhone 17)]: 移动端起始页响应式渲染 (时钟/搜索框/快捷书签/天气/齿轮在移动端完美自适应)',
+pass('场景 D [Mobile 402x874 (iPhone 17)]: 移动端起始页响应式渲染 (时钟/搜索框/快捷书签/天气/齿轮在移动端完美自适应)',
   mobileStartValidF,
   JSON.stringify({
     clock: `${metricsF.clock.rect.width}x${metricsF.clock.rect.height}`,
@@ -218,7 +218,7 @@ pass('场景 F [Mobile 402x874 (iPhone 17)]: 移动端起始页响应式渲染 (
   }));
 
 // ══════════════════════════════════════════════════════════════════════
-// 场景 G：移动端导航页 (顶部水平 Tab 与卡片流)
+// 场景 E：移动端导航页 (顶部水平 Tab 与卡片流)
 // ══════════════════════════════════════════════════════════════════════
 await evalJS('window.switchToNav()');
 await settled('nav');
@@ -231,7 +231,7 @@ const mobileNavValidG =
   metricsG.sidebar.exists && metricsG.sidebar.rect.height >= 40 && // horizontal top bar
   metricsG.navContent.exists && metricsG.navContent.rect.width >= 350;
 
-pass('场景 G [Mobile 402x874 (iPhone 17)]: 移动端导航页响应式渲染 (水平分类Tab栏/卡片流/返回Header正常呈现)',
+pass('场景 E [Mobile 402x874 (iPhone 17)]: 移动端导航页响应式渲染 (水平分类Tab栏/卡片流/返回Header正常呈现)',
   mobileNavValidG,
   JSON.stringify({
     sidebarHeight: metricsG.sidebar.rect.height,
@@ -239,7 +239,7 @@ pass('场景 G [Mobile 402x874 (iPhone 17)]: 移动端导航页响应式渲染 (
   }));
 
 // ══════════════════════════════════════════════════════════════════════
-// 场景 I：设置与偏好弹窗完整渲染 (外观/书签/数据面板)
+// 场景 F：设置与偏好弹窗完整渲染 (外观/书签/数据面板)
 // ══════════════════════════════════════════════════════════════════════
 await send('Emulation.setDeviceMetricsOverride', { width: 1470, height: 956, deviceScaleFactor: 2, mobile: false });
 await evalJS('window.switchToStart()');
@@ -261,7 +261,7 @@ const editModalValidI =
   metricsI.editModalContent.rect.width > 500 && metricsI.editModalContent.rect.height > 400 &&
   metricsI.saveEditBtn.exists;
 
-pass('场景 I [Desktop 1470x956 (MacBook Air)]: 设置与偏好弹窗渲染 (毛玻璃容器/Tab导航/快捷书签列表/保存取消按钮)',
+pass('场景 F [Desktop 1470x956 (MacBook Air)]: 设置与偏好弹窗渲染 (毛玻璃容器/Tab导航/快捷书签列表/保存取消按钮)',
   editModalValidI,
   JSON.stringify({
     modalRect: metricsI.editModalContent.rect,
@@ -269,7 +269,7 @@ pass('场景 I [Desktop 1470x956 (MacBook Air)]: 设置与偏好弹窗渲染 (�
   }));
 
 // ══════════════════════════════════════════════════════════════════════
-// 场景 J：天气预报详情卡片展开
+// 场景 G：天气预报详情卡片展开
 // ══════════════════════════════════════════════════════════════════════
 await press('Escape');
 await sleep(400);
@@ -288,7 +288,7 @@ const weatherPopoverValidJ =
   metricsJ.weatherPopover.computed.visibility !== 'hidden' &&
   metricsJ.weatherPopover.computed.opacity > 0.8;
 
-pass('场景 J [Desktop 1470x956 (MacBook Air)]: 天气预报详情展开卡片 (2×2详细指标/多日天气预报/日落感知/带伞提示)',
+pass('场景 G [Desktop 1470x956 (MacBook Air)]: 天气预报详情展开卡片 (2×2详细指标/多日天气预报/日落感知/带伞提示)',
   weatherPopoverValidJ,
   JSON.stringify({
     popoverRect: metricsJ.weatherPopover.rect,
@@ -296,7 +296,7 @@ pass('场景 J [Desktop 1470x956 (MacBook Air)]: 天气预报详情展开卡片 
   }));
 
 // ══════════════════════════════════════════════════════════════════════
-// 场景 K：全站快捷键速查面板 (Cmd/Ctrl + /)
+// 场景 H：全站快捷键速查面板 (Cmd/Ctrl + /)
 // ══════════════════════════════════════════════════════════════════════
 await press('Escape');
 await sleep(400);
@@ -316,7 +316,7 @@ const shortcutModalValidK =
   metricsK.shortcutModalContent.rect.width > 350 &&
   metricsK.doneShortcutBtn.exists;
 
-pass('场景 K [Desktop 1470x956 (MacBook Air)]: 快捷键速查面板 (⌘/ 触发/全站键盘快捷键键位指引)',
+pass('场景 H [Desktop 1470x956 (MacBook Air)]: 快捷键速查面板 (⌘/ 触发/全站键盘快捷键键位指引)',
   shortcutModalValidK,
   JSON.stringify({
     shortcutRect: metricsK.shortcutModalContent.rect,

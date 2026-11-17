@@ -22,11 +22,13 @@ export const tyOf = (m) => {
 
 /** 响应式状态轮询器：等待表达式求值为真即刻放行，彻底消除盲等 sleep */
 export async function waitFor(evalJS, predicateJs, timeout = defaultWaitTimeout, interval = 20) {
+  const isDirectFn = typeof evalJS === 'function' && evalJS.length === 0;
+  const label = typeof predicateJs === 'string' ? predicateJs : (evalJS.name || 'predicate');
   const start = Date.now();
   let lastError;
   while (Date.now() - start < timeout) {
     try {
-      const res = await evalJS(predicateJs);
+      const res = await (isDirectFn ? evalJS() : evalJS(predicateJs));
       if (res) return res;
     } catch (error) {
       if (!/Cannot find context|Execution context was destroyed|Inspected target navigated or closed/i.test(error?.message || '')) {
@@ -37,7 +39,7 @@ export async function waitFor(evalJS, predicateJs, timeout = defaultWaitTimeout,
     await new Promise(r => setTimeout(r, interval));
   }
   const causeMsg = lastError ? ` (last error: ${lastError.message})` : '';
-  throw new Error(`Timeout after ${timeout}ms waiting for: ${predicateJs}${causeMsg}`);
+  throw new Error(`Timeout after ${timeout}ms waiting for: ${label}${causeMsg}`);
 }
 
 /** 仅导航就绪等待允许上下文替换；其他协议错误和页面异常直接报告。 */
@@ -60,21 +62,8 @@ export async function navigateAndWait(send, evalJS, url, predicateJs = 'true', t
   }
 }
 
-let lastAllocatedPort = 13000 + Math.floor(Math.random() * 10000);
-
-/** 获取系统当前随机可用空闲端口（带自增偏移避免并发碰撞） */
+/** 获取系统当前内核分配的可用空闲端口 */
 export async function getFreePort() {
-  for (let i = 0; i < 10; i++) {
-    const candidate = ++lastAllocatedPort;
-    const available = await new Promise(resolve => {
-      const srv = createNetServer();
-      srv.once('error', () => resolve(false));
-      srv.listen(candidate, '127.0.0.1', () => {
-        srv.close(() => resolve(true));
-      });
-    });
-    if (available) return candidate;
-  }
   return new Promise((resolve, reject) => {
     const srv = createNetServer();
     srv.listen(0, '127.0.0.1', () => {

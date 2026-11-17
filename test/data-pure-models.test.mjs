@@ -102,14 +102,17 @@ test('多语言 Unicode（日文、俄文、变音符号）书签检索与前缀
   assert.equal(rankBookmarkSuggestions('яндекс', i18nModel, CONFIG.SUGGEST)[0].name, 'Яндекс');
   assert.equal(rankBookmarkSuggestions('münchen', i18nModel, CONFIG.SUGGEST)[0].name, 'München Portal');
 });
-const forecast = normalizeWeatherForecast({current:{temperature_2m:21.6, is_day:0}, daily:{}}, {lat:1, lon:2}, CONFIG.WEATHER, 123);
-assert.equal(forecast.timestamp, 123);
-assert.equal(forecast.current.temp, 22);
-assert.deepEqual(forecast.daily, []);
-assert.equal(forecast.current.sunriseToday, undefined);
-assert.equal(Object.hasOwn(forecast.current, 'weatherText'), false);
-assert.equal(normalizeWeatherForecast({ timezone: 'Europe/London' }, {lat:1, lon:2}, CONFIG.WEATHER, 123).timezone, 'Europe/London');
-assert.equal(Object.hasOwn(forecast, 'timezone'), false, '旧响应不伪造天气地点时区');
+
+test('天气预测规范化与时区保留', () => {
+  const forecast = normalizeWeatherForecast({current:{temperature_2m:21.6, is_day:0}, daily:{}}, {lat:1, lon:2}, CONFIG.WEATHER, 123);
+  assert.equal(forecast.timestamp, 123);
+  assert.equal(forecast.current.temp, 22);
+  assert.deepEqual(forecast.daily, []);
+  assert.equal(forecast.current.sunriseToday, undefined);
+  assert.equal(Object.hasOwn(forecast.current, 'weatherText'), false);
+  assert.equal(normalizeWeatherForecast({ timezone: 'Europe/London' }, {lat:1, lon:2}, CONFIG.WEATHER, 123).timezone, 'Europe/London');
+  assert.equal(Object.hasOwn(forecast, 'timezone'), false, '旧响应不伪造天气地点时区');
+});
 
 test('当前晴天和低降水概率也保留每日预报天气码', () => {
   const location = {lat:31.230, lon:121.473, name:'上海'};
@@ -210,17 +213,18 @@ test('分类目录索引映射、首分类归属与内容变更失效算法', ()
   assert.deepEqual(changed.sorted[0].sortedBookmarks.map(bm => bm.name), ['Beta', 'Zulu']);
 });
 
-model.replaceBookmarkDraft([{id:'a',name:'A',url:'https://a.test',icon:''}, {id:'b',name:'B',url:'https://b.test',icon:''}]);
-assert.equal(model.modalState.bookmarksChanged, false);
-model.updateBookmarkDraft('a', {name:'Changed'});
-assert.equal(model.modalState.draftBookmarks[0].name, 'Changed');
-assert.equal(model.reorderBookmarkDraft('a', 'missing', true), false);
-assert.equal(model.reorderBookmarkDraft('a', 'b', false), true);
-assert.deepEqual(model.modalState.draftBookmarks.map(item=>item.id), ['b','a']);
-assert.equal(model.removeBookmarkDraft('a'), true);
-assert.equal(model.removeBookmarkDraft('a'), false);
-assert.equal(model.modalState.bookmarksChanged, true);
-console.log('✅ 独立验证搜索排序、拼写容错、天气转换与草稿修改，无浏览器依赖');
+test('书签草稿模型更新、重排与删除状态追踪', () => {
+  model.replaceBookmarkDraft([{id:'a',name:'A',url:'https://a.test',icon:''}, {id:'b',name:'B',url:'https://b.test',icon:''}]);
+  assert.equal(model.modalState.bookmarksChanged, false);
+  model.updateBookmarkDraft('a', {name:'Changed'});
+  assert.equal(model.modalState.draftBookmarks[0].name, 'Changed');
+  assert.equal(model.reorderBookmarkDraft('a', 'missing', true), false);
+  assert.equal(model.reorderBookmarkDraft('a', 'b', false), true);
+  assert.deepEqual(model.modalState.draftBookmarks.map(item=>item.id), ['b','a']);
+  assert.equal(model.removeBookmarkDraft('a'), true);
+  assert.equal(model.removeBookmarkDraft('a'), false);
+  assert.equal(model.modalState.bookmarksChanged, true);
+});
 
 test('天气时间拒绝越界值，允许单数字小时', () => {
   for (const [input, expected] of [['0:00','0:00'],['23:59','23:59'],[' 7:05 ','7:05'],

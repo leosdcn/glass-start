@@ -4,7 +4,8 @@ export const standaloneTests = new Set([
   'data-i18n-unit.test.mjs',
   'data-priority-fixes-unit.test.mjs',
   'data-animation-cleanup-unit.test.mjs',
-  'data-wallpaper-selection-unit.test.mjs'
+  'data-wallpaper-selection-unit.test.mjs',
+  'infra-icon-sync.test.mjs'
 ]);
 
 export function requiresBuild(files) {

@@ -140,7 +140,7 @@ export async function connectCDP(ws, { openTimeoutMs = 15000 } = {}) {
         else entry.resolve(message.result);
       } else {
         for (const listener of listeners.get(message.method) || []) {
-          try { listener(message.params); } catch {}
+          try { listener(message.params); } catch (err) { fail(err); }
         }
       }
     }

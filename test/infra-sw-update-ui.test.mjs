@@ -1,11 +1,13 @@
+import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { createRequire } from 'node:module';
 import { DIST_DIR, startServer } from './support/server.mjs';
 import { launchChrome, connectCDP } from './support/cdp.mjs';
-import { getFreePort, createEvaluator, waitFor, navigateAndWait } from './support/helpers.mjs';
+import { createEvaluator, waitFor, navigateAndWait } from './support/helpers.mjs';
 
+test('Service Worker v201~v208 更新提示、激活与超时回滚', async () => {
 const { buildAppJavaScript } = createRequire(import.meta.url)('../scripts/build.cjs');
 const html = readFileSync(join(DIST_DIR, 'index.html'), 'utf8');
 const worker = readFileSync(join(DIST_DIR, 'sw.js'), 'utf8');
@@ -22,7 +24,11 @@ const route = kind => (req, res) => {
     if (req.url.split('?')[0] !== '/app-builds/' + stamp + '.js') {
       res.writeHead(404); res.end(); return;
     }
-    if (!apps.has(version)) apps.set(version, buildAppJavaScript({ testMode: true, version: stamp }).outputFiles[0].contents);
+    if (!apps.has(version)) {
+      const code = buildAppJavaScript({ testMode: true, version: stamp }).outputFiles[0].text;
+      const patched = code.replace(/SW_UPDATE_TIMEOUT:15e3/g, 'SW_UPDATE_TIMEOUT:200');
+      apps.set(version, Buffer.from(patched));
+    }
     body = apps.get(version);
   }
   res.writeHead(kind === 'app' && failApp ? 503 : 200, {
@@ -49,8 +55,8 @@ const server = await startServer(0, undefined, {
   ...siblingResources
 });
 const origin = `http://127.0.0.1:${server.port}`;
-const port = await getFreePort();
-const chrome = await launchChrome({ port, url: origin + '/' });
+const chrome = await launchChrome({ url: origin + '/' });
+const port = chrome.cdpPort;
 const { send } = chrome;
 const evalJS = createEvaluator(send);
 let other;
@@ -109,11 +115,14 @@ try {
   await waitFor(evalJS, notice);
   await waitFor(otherEval, notice);
   const beforeClear = await evalJS('performance.timeOrigin');
-  await evalJS(`cancelEditModal(); openEditModal().then(() => {
+  await evalJS(`(async () => {
+    cancelEditModal();
+    await openEditModal();
     document.getElementById('tab-btn-data').click();
     dom.clearCacheBtn.click();
-    setTimeout(() => dom.confirmOkBtn.click(), 50);
-  }); true`);
+  })()`);
+  await waitFor(evalJS, `OverlayStack.top()?.id === 'confirmModal'`);
+  await evalJS(`dom.confirmOkBtn.click()`);
   const remainsUsable = `window.__GLASS_BUILD_APP__ === 'app-core-v201' && !!document.querySelector('.bookmark-item')`;
   await waitFor(evalJS, `performance.timeOrigin !== ${beforeClear} && (${remainsUsable})`, 10000);
   const afterClear = await evalJS('performance.timeOrigin');
@@ -145,7 +154,8 @@ try {
   const { data } = await send('Page.captureScreenshot', { format:'png' });
   mkdirSync(new URL('./artifacts/', import.meta.url), { recursive:true });
   writeFileSync(new URL('./artifacts/sw-update-confirm.png', import.meta.url), Buffer.from(data, 'base64'));
-  await evalJS(`setTimeout(() => document.getElementById('confirmOkBtn').click(), 50); true`);
+  await waitFor(evalJS, `OverlayStack.top()?.id === 'confirmModal'`);
+  await evalJS(`document.getElementById('confirmOkBtn').click()`);
   await waitFor(async expression => {
     try { return await evalJS(expression); }
     catch (error) {
@@ -160,7 +170,9 @@ try {
   assert.equal(await otherEval(`OverlayStack.top()?.id`), 'editModal');
   console.log('✅ 取消保留旧版；确认后无需关标签或清缓存即升级，HTML/JS 同版；其他标签草稿不被刷新');
 
-  await otherEval(`closeEditModal(); document.getElementById('updateReloadBtn').click(); setTimeout(() => document.getElementById('confirmOkBtn').click(), 50); true`);
+  await otherEval(`closeEditModal(); document.getElementById('updateReloadBtn').click()`);
+  await waitFor(otherEval, `OverlayStack.top()?.id === 'confirmModal'`);
+  await otherEval(`document.getElementById('confirmOkBtn').click()`);
   await waitFor(async expression => {
     try { return await otherEval(expression); }
     catch (error) {
@@ -219,7 +231,9 @@ try {
       assert.equal(await evalJS('dom.searchInput.value'), '接管前新搜索');
       await evalJS('hideSuggestions()');
     }
-    await evalJS(`dom.updateReloadBtn.click(); setTimeout(() => dom.confirmOkBtn.click(), 50); true`);
+    await evalJS(`dom.updateReloadBtn.click()`);
+    await waitFor(evalJS, `OverlayStack.top()?.id === 'confirmModal'`);
+    await evalJS(`dom.confirmOkBtn.click()`);
     await waitFor(evalJS, `window.__GLASS_BUILD_APP__ === 'app-core-v${next}' && document.readyState === 'complete'`, 15000);
   }
   console.log('✅ Worker 接管前新增的草稿和搜索输入保留，再次确认后刷新');
@@ -238,7 +252,9 @@ try {
   assert.equal(await evalJS('dom.updateReloadBtn.disabled'), false);
   assert.equal(await evalJS('window.__GLASS_BUILD_APP__'), 'app-core-v206');
   assert.equal(await evalJS(installed), true);
-  await evalJS(`dom.updateReloadBtn.click(); setTimeout(() => dom.confirmOkBtn.click(), 50); true`);
+  await evalJS(`dom.updateReloadBtn.click()`);
+  await waitFor(evalJS, `OverlayStack.top()?.id === 'confirmModal'`);
+  await evalJS(`dom.confirmOkBtn.click()`);
   await waitFor(evalJS, `window.__GLASS_BUILD_APP__ === 'app-core-v208' && document.readyState === 'complete'`, 15000);
   assert.match(await evalJS(`fetch('/app-builds/app-core-v206.js').then(r => r.text())`), /__GLASS_BUILD_APP__="app-core-v206"/);
   assert.equal(await evalJS(`caches.has('glass-scope-%2F-app-core-v207')`), false);
@@ -246,7 +262,11 @@ try {
   console.log('✅ 确认期间替换了 waiting Worker 时，新目标需单独确认');
 } finally {
   releaseApp?.();
-  other?.close();
+  if (other) {
+    try { await send('Target.closeTarget', { targetId }); } catch {}
+    other.close();
+  }
   await chrome.close();
   await server.close();
 }
+});
