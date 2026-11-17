@@ -208,11 +208,10 @@ export function setEngine(key, save = true) {
 /** @param {string} query */
 function parseSearchLink(query) {
     if (/\s/.test(query)) return null;
-    const hasProtocol = /^https?:\/\/[^/]/i.test(query);
-    const hasDomain = /^(?:[a-z\d-]+\.)+(?:[a-z]{2,}|xn--[a-z\d-]+)(?=[:/?#]|$)/i.test(query);
-    if (!hasProtocol && !hasDomain) return null;
     try {
-        return new URL(hasProtocol ? query : 'https://' + query);
+        if (/^https?:\/\/[^/]/i.test(query)) return new URL(query);
+        if (/^\/\/[^/]/.test(query)) return new URL('https:' + query);
+        return null;
     } catch {
         return null;
     }

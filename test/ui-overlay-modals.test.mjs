@@ -439,10 +439,14 @@ test('搜索框按图片链接、网页地址和关键词分流', async () => {
     const cases = [
       ['bing', photo, 'https://www.bing.com/images/search', 'q', 'imgurl:' + photo],
       ['google', cdnImage, 'https://lens.google.com/uploadbyurl', 'url', cdnImage],
+      ['google', '//images.example.test/sticker.png?v=1', 'https://lens.google.com/uploadbyurl', 'url',
+        'https://images.example.test/sticker.png?v=1'],
       locale === 'en'
         ? ['wikipedia', photo, 'https://lens.google.com/uploadbyurl', 'url', photo]
         : ['wikipedia', photo, 'https://www.bing.com/images/search', 'q', 'imgurl:' + photo],
       ['google', '查找 https://example.test/page', 'https://www.google.com/search', 'q', '查找 https://example.test/page'],
+      ['google', 'Node.js', 'https://www.google.com/search', 'q', 'Node.js'],
+      ['bing', 'style.css', 'https://www.bing.com/search', 'q', 'style.css'],
       ['bing', 'javascript:alert(1)', 'https://www.bing.com/search', 'q', 'javascript:alert(1)']
     ];
     for (const [index, [engine, query, destination, param, value]] of cases.entries()) {
