@@ -43,13 +43,7 @@ export function bindEditEvents() {
     });
 
     const editButton = dom.editBookmarksBtn;
-    editButton?.addEventListener('click', e => openEditModal(editButton, e.detail > 0));
-    const editModal = dom.editModal;
-    if (editModal) {
-        const restoreFocusRing = () => editModal.removeAttribute('data-hide-initial-focus-ring');
-        editModal.addEventListener('keydown', restoreFocusRing);
-        editModal.addEventListener('focusout', restoreFocusRing);
-    }
+    editButton?.addEventListener('click', () => openEditModal(editButton));
     dom.cancelEditBtn?.addEventListener('click', cancelEditModal);
     dom.togglePickerBtn?.addEventListener('click', () => openBookmarkPicker(dom.togglePickerBtn));
     dom.donePickerBtn?.addEventListener('click', closeBookmarkPicker);

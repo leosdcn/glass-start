@@ -14,6 +14,20 @@ export const MODAL_OVERLAY_IDS = new Set([
 /** @type {WeakSet<HTMLDialogElement>} */
 const boundDialogs = new WeakSet();
 
+let lastInputWasPointer = false;
+if (typeof window !== 'undefined') {
+    window.addEventListener('pointerdown', () => { lastInputWasPointer = true; }, true);
+    window.addEventListener('keydown', () => { lastInputWasPointer = false; }, true);
+}
+
+function wasTriggeredByPointer() {
+    if (typeof window !== 'undefined' && window.event instanceof UIEvent) {
+        if (window.event.detail > 0) return true;
+        if (window.event instanceof KeyboardEvent) return false;
+    }
+    return lastInputWasPointer;
+}
+
 /** @param {string} id */
 function showModal(id) {
     const modal = document.getElementById(id);
@@ -36,9 +50,13 @@ function showModal(id) {
             if (e.target === modal && isPointerDownOnBackdrop && top?.id === id) top.close();
             isPointerDownOnBackdrop = false;
         });
+        const restoreFocusRing = () => modal.removeAttribute('data-hide-initial-focus-ring');
+        modal.addEventListener('keydown', restoreFocusRing);
+        modal.addEventListener('focusout', restoreFocusRing);
         boundDialogs.add(modal);
     }
     modal.inert = false;
+    modal.toggleAttribute('data-hide-initial-focus-ring', wasTriggeredByPointer());
     modal.showModal();
 }
 
@@ -106,6 +124,7 @@ export const OverlayStack = {
                 // 先释放原生模态，CSS 可以继续绘制退场画面。
                 modal.close();
                 modal.inert = true;
+                modal.removeAttribute('data-hide-initial-focus-ring');
             }
             if (!this.topModal()) document.body.classList.remove('overflow-hidden', 'touch-none');
             restoreFocus(removed.trigger);

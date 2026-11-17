@@ -199,7 +199,7 @@ export function previewDraftMaskOpacity(value) {
 }
 
 /** @param {HTMLElement} [invoker] */
-export async function openEditModal(invoker, openedWithPointer = false) {
+export async function openEditModal(invoker) {
     if (state.editOpen) return;
     /** @type {NonNullable<typeof editSession>} */
     const session = {};
@@ -227,7 +227,6 @@ export async function openEditModal(invoker, openedWithPointer = false) {
     updateWallpaperStatusUI(modalState.draftWallpaper);
     applyBgEffects(modalState.draftMaskOpacity ?? CONFIG.APPEARANCE.DEFAULT_MASK_OPACITY);
     setEditPhase('editing');
-    dom.editModal?.toggleAttribute('data-hide-initial-focus-ring', openedWithPointer);
     OverlayStack.push('editModal', cancelEditModal, trigger);
 }
 

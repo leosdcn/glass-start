@@ -65,6 +65,78 @@ test('设置的初始页签在鼠标打开时隐藏焦点环，使用键盘时�
   }
 });
 
+test('确认弹窗在鼠标打开时隐藏取消按钮焦点环，使用键盘时恢复', async () => {
+  const { server, chrome, send, evalJS } = await launchSession();
+  const press = async (key, windowsVirtualKeyCode, text) => {
+    await send('Input.dispatchKeyEvent', { type: 'keyDown', key, code: key, windowsVirtualKeyCode, text });
+    await send('Input.dispatchKeyEvent', { type: 'keyUp', key, code: key, windowsVirtualKeyCode });
+  };
+  const focusStyle = () => evalJS(`(() => {
+    const el = document.activeElement;
+    const style = getComputedStyle(el);
+    return { id: el.id, outline: style.outlineStyle, outlineWidth: style.outlineWidth };
+  })()`);
+  try {
+    await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] });
+    await evalJS(`(() => {
+      dom.updateNoticeText.textContent = '有新版本';
+      dom.updateNotice.classList.remove('hidden');
+      dom.updateReloadBtn.disabled = false;
+      dom.updateReloadBtn.addEventListener('click', () => {
+        showConfirm('有新版本', () => {}, '新版本已就绪', {
+          triggerEl: dom.updateReloadBtn,
+          okText: '立即更新',
+          tone: 'neutral',
+          cancelText: '稍后'
+        });
+      });
+    })()`);
+
+    const point = await evalJS(`(() => {
+      const rect = dom.updateReloadBtn.getBoundingClientRect();
+      return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+    })()`);
+    const mouse = { ...point, button: 'left', clickCount: 1 };
+    await send('Input.dispatchMouseEvent', { type: 'mousePressed', ...mouse });
+    await send('Input.dispatchMouseEvent', { type: 'mouseReleased', ...mouse });
+    await waitFor(evalJS, 'dom.confirmModal.open');
+
+    await send('DOM.enable');
+    await send('CSS.enable');
+    const { root } = await send('DOM.getDocument');
+    const { nodeId } = await send('DOM.querySelector', { nodeId: root.nodeId, selector: '#confirmCancelBtn' });
+    // 模拟 WebKit 在鼠标打开原生弹窗后为初始焦点匹配 :focus-visible。
+    await send('CSS.forcePseudoState', { nodeId, forcedPseudoClasses: ['focus-visible'] });
+    const initial = await focusStyle();
+    assert.equal(initial.id, 'confirmCancelBtn');
+    assert.equal(initial.outline, 'none');
+
+    await press('Tab', 9);
+    await send('CSS.forcePseudoState', { nodeId, forcedPseudoClasses: [] });
+    const ok = await focusStyle();
+    assert.equal(ok.id, 'confirmOkBtn');
+    assert.equal(ok.outline, 'solid');
+
+    await press('Escape', 27);
+    await waitFor(evalJS, '!dom.confirmModal.open');
+
+    // 键盘触发打开时保持焦点环可见
+    await evalJS(`dom.updateReloadBtn.focus()`);
+    await press('Enter', 13, '\r');
+    await waitFor(evalJS, 'dom.confirmModal.open');
+    const { nodeId: cancelNodeId } = await send('DOM.querySelector', { nodeId: root.nodeId, selector: '#confirmCancelBtn' });
+    await send('CSS.forcePseudoState', { nodeId: cancelNodeId, forcedPseudoClasses: ['focus-visible'] });
+    const keyboard = await focusStyle();
+    assert.equal(keyboard.id, 'confirmCancelBtn');
+    assert.equal(keyboard.outline, 'solid');
+    await send('CSS.forcePseudoState', { nodeId: cancelNodeId, forcedPseudoClasses: [] });
+    await press('Escape', 27);
+  } finally {
+    await chrome.close();
+    await server.close();
+  }
+});
+
 test('原生模态隔离背景，按栈顺序归还焦点', async () => {
   const { server, chrome, send, evalJS } = await launchSession();
   const press = async (key, windowsVirtualKeyCode) => {
