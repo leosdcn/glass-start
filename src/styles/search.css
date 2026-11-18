@@ -93,6 +93,9 @@
 #engineBtn {
     transition: background-color 0.15s ease, color 0.15s ease, scale var(--button-press-duration, var(--duration-press-up)) var(--button-press-ease, var(--ease-spring));
 }
+#engineIcon {
+    position: relative;
+}
 #engineBtn svg {
     transition: transform 0.2s var(--ease-spring), opacity 0.15s ease;
 }
