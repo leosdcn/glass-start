@@ -155,7 +155,7 @@
           const saved = JSON.parse(rawEngine);
           if (typeof saved === 'string' && Object.hasOwn(ENGINE_META, saved)) engine = saved;
         } catch (e) {}
-        window.__PRE_ENGINE__ = ENGINE_META[engine];
+        window.__PRE_ENGINE__ = { key: engine, ...ENGINE_META[engine] };
         const rawOp = localStorage.getItem('maskOpacity');
         if (rawOp !== null) {
           const op = JSON.parse(rawOp);
@@ -256,7 +256,7 @@
                             </span>
                             <span id="engineName" class="sr-only">Bing</span>
                         </button>
-                        <script>(function(){if(window.__PRE_ENGINE__){const b=document.getElementById('engineBtn');const i=document.getElementById('engineIcon');const n=document.getElementById('engineName');if(b)b.setAttribute('aria-label',window.__GLASS_I18N__.t('engine.current',{name:window.__PRE_ENGINE__.name}));if(i){const key=window.__PRE_ENGINE__.name.toLowerCase();if(window.__ENGINE_SVGS__&&window.__ENGINE_SVGS__[key])i.innerHTML=window.__ENGINE_SVGS__[key];}if(n)n.textContent=window.__PRE_ENGINE__.name;}})()</script>
+                        <script>(function(){if(window.__PRE_ENGINE__){const b=document.getElementById('engineBtn');const i=document.getElementById('engineIcon');const n=document.getElementById('engineName');if(b)b.setAttribute('aria-label',window.__GLASS_I18N__.t('engine.current',{name:window.__PRE_ENGINE__.name}));if(i){const key=window.__PRE_ENGINE__.key;if(window.__ENGINE_SVGS__&&window.__ENGINE_SVGS__[key])i.innerHTML=window.__ENGINE_SVGS__[key];}if(n)n.textContent=window.__PRE_ENGINE__.name;}})()</script>
                     </div>
                     <label for="searchInput" class="sr-only"><span data-i18n="ui.search">搜索</span></label>
                     <input type="text" id="searchInput" name="q" role="combobox" enterkeyhint="search" aria-haspopup="listbox" aria-label="搜索输入框" aria-autocomplete="list" aria-controls="suggestionMenu" aria-expanded="false" class="flex-1 bg-transparent border-none outline-none text-lg search-input text-white h-12 pl-0 pr-2.5 min-w-0 focus-visible:ring-0" placeholder="搜索..." autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" data-i18n-aria-label="ui.search.input" data-i18n-placeholder="ui.search.2">
