@@ -184,12 +184,38 @@ export function bindSearchEvents() {
             if (btn?.dataset.engine) {
                 e.stopPropagation();
                 const previousEngine = state.engine;
+                const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+                const shouldAnimate = btn.dataset.engine !== previousEngine && !reducedMotion;
+                const previousSvg = shouldAnimate ? dom.engineIcon?.querySelector(':scope > svg:not([data-leaving])') : null;
+                const leavingSvg = previousSvg instanceof SVGElement ? /** @type {SVGElement} */ (previousSvg.cloneNode(true)) : null;
+
                 setEngine(btn.dataset.engine);
-                if (state.engine !== previousEngine && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-                    dom.engineIcon?.querySelector('svg')?.animate([{ opacity: 0.55 }, { opacity: 1 }], {
-                        duration: 120,
-                        easing: 'ease-out'
-                    });
+
+                if (state.engine !== previousEngine && !reducedMotion && dom.engineIcon) {
+                    const enteringSvg = dom.engineIcon.querySelector(':scope > svg:not([data-leaving])');
+                    if (leavingSvg) {
+                        leavingSvg.dataset.leaving = '1';
+                        leavingSvg.setAttribute('aria-hidden', 'true');
+                        leavingSvg.style.position = 'absolute';
+                        leavingSvg.style.inset = '0';
+                        leavingSvg.style.pointerEvents = 'none';
+                        dom.engineIcon.appendChild(leavingSvg);
+                        const exitAnim = leavingSvg.animate(
+                            [
+                                { opacity: 1, transform: 'scale(1)' },
+                                { opacity: 0, transform: 'scale(0.55)' }
+                            ],
+                            { duration: 160, easing: 'cubic-bezier(0.4, 0, 0.2, 1)', fill: 'forwards' }
+                        );
+                        exitAnim.finished.then(() => leavingSvg.remove(), () => leavingSvg.remove());
+                    }
+                    enteringSvg?.animate(
+                        [
+                            { opacity: 0, transform: 'scale(0.55)' },
+                            { opacity: 1, transform: 'scale(1)' }
+                        ],
+                        { duration: 240, easing: 'cubic-bezier(0.2, 0.95, 0.25, 1)', fill: 'backwards' }
+                    );
                 }
                 closeDropdown();
                 const query = dom.searchInput?.value.trim();
