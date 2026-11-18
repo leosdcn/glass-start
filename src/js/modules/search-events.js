@@ -183,7 +183,14 @@ export function bindSearchEvents() {
             const btn = /** @type {HTMLElement|null} */ (targetEl?.closest('[data-engine]'));
             if (btn?.dataset.engine) {
                 e.stopPropagation();
+                const previousEngine = state.engine;
                 setEngine(btn.dataset.engine);
+                if (state.engine !== previousEngine && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                    dom.engineIcon?.querySelector('svg')?.animate([{ opacity: 0.55 }, { opacity: 1 }], {
+                        duration: 120,
+                        easing: 'ease-out'
+                    });
+                }
                 closeDropdown();
                 const query = dom.searchInput?.value.trim();
                 if (query && !isComposing) fetchSuggestions(state.engine, query);

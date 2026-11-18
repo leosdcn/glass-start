@@ -76,7 +76,7 @@
 }
 @keyframes colonPulse {
     0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
+    50% { opacity: 0.75; }
 }
 .screen-restoring .clock-colon { animation: none; opacity: 1; }
 html[data-screen="nav"] .clock-colon { animation-play-state: paused; }

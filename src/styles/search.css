@@ -97,7 +97,7 @@
     transition: transform 0.2s var(--ease-spring), opacity 0.15s ease;
 }
 @media (hover: hover) and (pointer: fine) {
-    body:not(.tab-blurred) :is(#engineBtn, #imageSearchBtn):enabled:hover:not(:active) {
+    body:not(.tab-blurred) :is(#engineBtn, #imageSearchBtn, #searchClearBtn):enabled:hover:not(:active) {
         background-color: rgba(255, 255, 255, 0.12);
         color: #ffffff;
     }
@@ -132,21 +132,6 @@
 .screen-restoring #imageSearchBtn,
 .screen-restoring #searchClearBtn {
     transition: none;
-}
-#searchClearBtn svg {
-    transition: transform var(--duration-popover-exit) var(--ease-spring);
-}
-@media (hover: hover) and (pointer: fine) {
-    body:not(.tab-blurred) #searchClearBtn:hover:not(:disabled) {
-        transform: scale(1.05);
-    }
-    body:not(.tab-blurred) #searchClearBtn:hover:not(:disabled):not(:active) {
-        background-color: rgba(255, 255, 255, 0.15);
-        color: rgba(255, 255, 255, 0.95);
-    }
-    body:not(.tab-blurred) #searchClearBtn:hover:not(:disabled) svg {
-        transform: scale(1.12);
-    }
 }
 
 .suggestion-item {
