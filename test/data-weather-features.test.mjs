@@ -95,6 +95,40 @@ test('天气交互、弹窗规范与休眠感知套件', async (t) => {
       assert.ok(gridOrderOk, `cards: [${domCheck?.card0}] [${domCheck?.card1}] [${domCheck?.card2}] [${domCheck?.card3}]`);
     });
 
+    await t.test('手机横屏可滑到末条预报并用键盘聚焦数据来源', async () => {
+      await send('Emulation.setDeviceMetricsOverride', { width: 667, height: 320, deviceScaleFactor: 1, mobile: true });
+      await send('Emulation.setTouchEmulationEnabled', { enabled: true });
+      try {
+        await waitFor(evalJS, 'dom.weatherPopover.getAnimations().length === 0');
+        const panel = await evalJS(`(() => {
+          const rect = dom.weatherPopover.getBoundingClientRect();
+          return { top: rect.top, bottom: rect.bottom, x: rect.x + rect.width / 2, y: rect.bottom - 24,
+            onTop: dom.weatherPopover.contains(document.elementFromPoint(rect.right - 24, rect.bottom - 24)),
+            scrollable: dom.weatherPopover.scrollHeight > dom.weatherPopover.clientHeight };
+        })()`);
+        assert.ok(panel.scrollable && panel.onTop && panel.bottom <= 320, JSON.stringify(panel));
+        await send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: panel.x, y: panel.y }] });
+        for (const fraction of [0.25, 0.5, 0.75, 1]) {
+          await send('Input.dispatchTouchEvent', { type: 'touchMove',
+            touchPoints: [{ x: panel.x, y: panel.y - (panel.y - panel.top - 8) * fraction }] });
+        }
+        await send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+        await waitFor(evalJS, `(() => {
+          const last = dom.weatherPopover.querySelector('[data-weather-forecast]').lastElementChild;
+          return dom.weatherPopover.scrollTop > 0 && last.getBoundingClientRect().bottom <=
+             dom.weatherPopover.getBoundingClientRect().bottom;
+        })()`);
+        await evalJS("document.querySelector('#tempUnitToggleBtn').focus()");
+        await send('Input.dispatchKeyEvent', { type: 'rawKeyDown', key: 'Tab', code: 'Tab', windowsVirtualKeyCode: 9 });
+        await send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Tab', code: 'Tab', windowsVirtualKeyCode: 9 });
+        assert.equal(await evalJS("document.activeElement.href"), 'https://open-meteo.com/');
+      } finally {
+        await send('Emulation.clearDeviceMetricsOverride');
+        await send('Emulation.setTouchEmulationEnabled', { enabled: false });
+        await evalJS('dom.weatherPopover.scrollTop = 0');
+      }
+    });
+
     await t.test('刷新按钮边缘与箭头中心共享悬停和指针命中区域', async () => {
       const opacity = `getComputedStyle(document.querySelector('#weatherRefreshBtn svg')).opacity`;
       await waitFor(evalJS, 'dom.weatherPopover.getAnimations().length === 0');

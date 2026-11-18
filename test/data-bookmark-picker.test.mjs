@@ -316,3 +316,41 @@ test("导入、导出与保存保留首条有效书签及其简介语义", async
         await server.close();
     }
 });
+
+test('导出前拦截无效的已有书签并返回编辑页', async () => {
+    const { server, chrome, evalJS } = await launchSession();
+    try {
+        const result = await evalJS(`(async () => {
+            await openEditModal();
+            const input = dom.editList.querySelector('.edit-url');
+            input.value = 'https://';
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+            document.getElementById('tab-btn-data').click();
+            const create = URL.createObjectURL;
+            let created = 0;
+            URL.createObjectURL = blob => { created++; return create(blob); };
+            try { dom.exportJsonBtn.click(); }
+            finally { URL.createObjectURL = create; }
+            return { created, editing: !dom.tabBookmarks.hidden, message: dom.confirmMsg.textContent };
+        })()`);
+        assert.equal(result.created, 0);
+        assert.equal(result.editing, true);
+        assert.match(result.message, /有效的 URL/);
+        const emptyBackup = await evalJS(`(async () => {
+            dom.confirmOkBtn.click();
+            replaceBookmarkDraft([]);
+            renderEditList();
+            document.getElementById('tab-btn-data').click();
+            const create = URL.createObjectURL, click = HTMLAnchorElement.prototype.click;
+            let blob;
+            URL.createObjectURL = value => { blob = value; return create(value); };
+            HTMLAnchorElement.prototype.click = () => {};
+            try { dom.exportJsonBtn.click(); return JSON.parse(await blob.text()).bookmarks; }
+            finally { URL.createObjectURL = create; HTMLAnchorElement.prototype.click = click; }
+        })()`);
+        assert.deepEqual(emptyBackup, []);
+    } finally {
+        await chrome.close();
+        await server.close();
+    }
+});

@@ -622,8 +622,9 @@ html[data-screen="nav"] #editBookmarksBtn {
 
 #updateNotice,
 #weatherWidget {
+    --top-control-offset: calc(1.25rem + env(safe-area-inset-top, 0px));
     position: absolute;
-    top: calc(1.25rem + env(safe-area-inset-top, 0px));
+    top: var(--top-control-offset);
     z-index: 40;
 }
 #updateNotice {
@@ -632,10 +633,13 @@ html[data-screen="nav"] #editBookmarksBtn {
 #weatherWidget {
     right: calc(1.25rem + env(safe-area-inset-right, 0px));
 }
+#weatherWidget:has(#weatherPopover.active) {
+    z-index: var(--z-dropdown);
+}
 @media (min-width: 768px) {
     #updateNotice,
     #weatherWidget {
-        top: calc(1.75rem + env(safe-area-inset-top, 0px));
+        --top-control-offset: calc(1.75rem + env(safe-area-inset-top, 0px));
     }
     #updateNotice {
         left: calc(2rem + env(safe-area-inset-left, 0px));
@@ -673,6 +677,9 @@ html[data-screen="nav"] #editBookmarksBtn {
     top: calc(100% + 0.5rem);
     width: 17.5rem;
     max-width: calc(100vw - 2.5rem);
+    max-height: calc(100dvh - var(--top-control-offset) - 4rem - env(safe-area-inset-bottom, 0px));
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
     opacity: 0;
     transform: translateY(-2px) scale(0.96) translateZ(0);
     pointer-events: none;

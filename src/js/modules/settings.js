@@ -343,7 +343,8 @@ export function closeCreditsModal() {
  * @returns {void}
  */
 export function exportBookmarksJSON() {
-    const bookmarks = collectEditData();
+    const bookmarks = validateBookmarkDraft(t('ui.export.bookmarks'), true);
+    if (!bookmarks) return;
     const exportData = {
         version: '1.1',
         exportDate: new Date().toISOString(),
@@ -497,6 +498,20 @@ export function resetBookmarks() {
     }, t('ui.reset.all.settings'));
 }
 
+/** @param {string} title @param {boolean} [allowEmpty] */
+function validateBookmarkDraft(title, allowEmpty = false) {
+    let invalidDraft = false;
+    const data = collectEditData(() => { invalidDraft = true; });
+    if (!allowEmpty && data.length === 0) {
+        showConfirm(t('ui.keep.at.least.one.bookmark.with'), null, title);
+        return null;
+    }
+    if (!invalidDraft) return data;
+    if (OverlayStack.top()?.id === 'editModal') switchSettingsTab('tabBookmarks');
+    showConfirm(t('settings.invalidBookmarkDraft'), null, title);
+    return null;
+}
+
 /** 保存只提交会话中改变的字段。一次失败保留剩余草稿，已经成功的字段成为下次重试的基线。 */
 export async function saveEditModal() {
     const session = editSession;
@@ -518,17 +533,8 @@ export async function saveEditModal() {
             return;
         }
 
-        let invalidDraft = false;
-        const data = collectEditData(() => { invalidDraft = true; });
-        if (data.length === 0) {
-            showConfirm(t('ui.keep.at.least.one.bookmark.with'), null, t('ui.could.not.save'));
-            return;
-        }
-        if (invalidDraft) {
-            if (OverlayStack.top()?.id === 'editModal') switchSettingsTab('tabBookmarks');
-            showConfirm(t('settings.invalidBookmarkDraft'), null, t('ui.could.not.save'));
-            return;
-        }
+        const data = validateBookmarkDraft(t('ui.could.not.save'));
+        if (!data) return;
         beginEditCommit();
         const { draftWallpaper, draftMaskOpacity, draftTransitionMode, draftLanguage } = modalState;
         /** @type {Array<[keyof SettingsBaseline, boolean, () => boolean | 'conflict' | Promise<boolean | 'conflict'>, string]>} */
