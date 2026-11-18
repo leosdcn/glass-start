@@ -205,7 +205,7 @@ export function bindSearchEvents() {
                                 { opacity: 1, transform: 'scale(1)' },
                                 { opacity: 0, transform: 'scale(0.55)' }
                             ],
-                            { duration: 160, easing: 'cubic-bezier(0.4, 0, 0.2, 1)', fill: 'forwards' }
+                            { duration: 100, easing: 'cubic-bezier(0.4, 0, 0.2, 1)', fill: 'forwards' }
                         );
                         exitAnim.finished.then(() => leavingSvg.remove(), () => leavingSvg.remove());
                     }
@@ -214,7 +214,7 @@ export function bindSearchEvents() {
                             { opacity: 0, transform: 'scale(0.55)' },
                             { opacity: 1, transform: 'scale(1)' }
                         ],
-                        { duration: 240, easing: 'cubic-bezier(0.2, 0.95, 0.25, 1)', fill: 'backwards' }
+                        { delay: 55, duration: 200, easing: 'cubic-bezier(0.2, 0.95, 0.25, 1)', fill: 'backwards' }
                     );
                 }
                 closeDropdown();
