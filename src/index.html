@@ -146,13 +146,12 @@
         if (localStorage.getItem('hasDiscoveredNav') === '1') document.documentElement.setAttribute('data-nav-discovered', '');
       } catch {}
       try{
-        const rawEngine = localStorage.getItem('preferredEngine');
         /* 引擎图标与元数据由 config/engine-head.js 注入。 */
         /* INJECT_ENGINE_ICONS */
         window.__ENGINE_SVGS__ = ENGINE_SVGS;
         let engine = DEFAULT_ENGINE;
         try {
-          const saved = JSON.parse(rawEngine);
+          const saved = JSON.parse(localStorage.getItem('preferredEngine'));
           if (typeof saved === 'string' && Object.hasOwn(ENGINE_META, saved)) engine = saved;
         } catch (e) {}
         window.__PRE_ENGINE__ = { key: engine, ...ENGINE_META[engine] };

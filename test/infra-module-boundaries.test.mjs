@@ -102,6 +102,13 @@ try {
   await waitFor(evalJS, "document.getElementById('editModal').open && document.getElementById('editModal').contains(document.activeElement)");
   await evalJS("document.getElementById('addBookmarkBtn').click()");
   assert.equal(await evalJS("document.querySelector('#editList .edit-row-card:last-child .edit-name') === document.activeElement"), true);
+  await evalJS("document.querySelector('#editList .edit-row-card:last-child .del-btn').focus()");
+  await chrome.send('Input.dispatchKeyEvent', {type:'keyDown',key:' ',code:'Space',windowsVirtualKeyCode:32,text:' '});
+  await chrome.send('Input.dispatchKeyEvent', {type:'keyUp',key:' ',code:'Space',windowsVirtualKeyCode:32});
+  await waitFor(evalJS, `(() => {
+    const row = document.querySelector('#editList .edit-row-card:last-child');
+    return row.querySelector('.edit-name').value && row.querySelector('.del-btn') === document.activeElement;
+  })()`);
   await chrome.send('Input.dispatchKeyEvent', {type:'keyDown',key:'Escape',code:'Escape',windowsVirtualKeyCode:27});
   await chrome.send('Input.dispatchKeyEvent', {type:'keyUp',key:'Escape',code:'Escape',windowsVirtualKeyCode:27});
   await waitFor(evalJS, "!document.getElementById('editModal').open && !document.getElementById('startSection').inert");
@@ -111,9 +118,13 @@ try {
   console.log('✅ 未启用测试接口的生产页面可正常启动、编辑及操作搜索引擎，业务不依赖 window 接口');
   await chrome.send('Page.enable');
   await chrome.send('Page.addScriptToEvaluateOnNewDocument', { source: 'window.__GLASS_TEST__ = true;' });
+  await chrome.send('Page.addScriptToEvaluateOnNewDocument', { source: `
+    Object.defineProperty(window, 'localStorage', { get() { throw new DOMException('Storage denied', 'SecurityError'); } });
+  ` });
   await chrome.send('Page.reload');
   await waitFor(evalJS, 'window.__GLASS_TEST__ === true && !!document.querySelector(".bookmark-item")');
   assert.equal(await evalJS("['__GLASS_DIAG__','state','modalState','fetchSuggestions','collectEditData'].every(key => !(key in window))"), true);
+  assert.equal(await evalJS("document.querySelectorAll('#engineIcon svg, #dropdownMenu svg').length"), 4);
   console.log('✅ 生产依赖图不含测试适配层，外部设置测试标记也不挂载接口');
   await chrome.close();
   evalJS = await connect(true);

@@ -1,4 +1,5 @@
 import { CONFIG } from '../config/constants.js';
+import { dom } from '../state/dom.js';
 import { updateAllBookmarkCounters } from './bookmark-editor.js';
 
 /** @type {WeakMap<HTMLElement, () => void>} */
@@ -63,8 +64,12 @@ export function animateBookmarkRemoval(list, row) {
     settleBookmarkRows(list);
     if (!row.isConnected) return;
     const remove = () => {
+        const focused = document.activeElement && row.contains(document.activeElement);
+        const next = focused && (row.nextElementSibling?.querySelector('.del-btn:not(:disabled)')
+            ?? row.previousElementSibling?.querySelector('.del-btn:not(:disabled)'));
         row.remove();
         updateAllBookmarkCounters();
+        if (focused) (next instanceof HTMLElement ? next : dom.addBookmarkBtn)?.focus();
     };
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
         remove();
