@@ -96,9 +96,6 @@
 #engineIcon {
     position: relative;
 }
-#engineBtn svg {
-    transition: transform 0.2s var(--ease-spring), opacity 0.15s ease;
-}
 @media (hover: hover) and (pointer: fine) {
     body:not(.tab-blurred) :is(#engineBtn, #imageSearchBtn, #searchClearBtn):enabled:hover:not(:active) {
         background-color: rgba(255, 255, 255, 0.12);
