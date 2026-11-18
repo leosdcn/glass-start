@@ -32,6 +32,7 @@ export function bindSearchEvents() {
     const searchInput = dom.searchInput;
     const searchClearBtn = dom.searchClearBtn;
     const suggestionMenu = dom.suggestionMenu;
+    const { dropdownMenu, imageSearchBtn, imageSearchInput, imageSearchStatus } = dom;
 
     lastHasVal = null;
     updateSearchActionButtons(!!searchInput?.value);
@@ -61,6 +62,7 @@ export function bindSearchEvents() {
         });
 
         searchInput.addEventListener('input', () => {
+            if (imageSearchStatus) imageSearchStatus.textContent = '';
             const val = searchInput.value;
             updateSearchActionButtons(!!val);
             if (isComposing) return;
@@ -77,6 +79,7 @@ export function bindSearchEvents() {
             e.stopPropagation();
             e.preventDefault();
             if (searchInput) searchInput.value = '';
+            if (imageSearchStatus) imageSearchStatus.textContent = '';
             updateSearchActionButtons(false);
             hideSuggestions();
             searchInput?.focus();
@@ -118,7 +121,6 @@ export function bindSearchEvents() {
         }, { passive: true });
     }
 
-    const { dropdownMenu, imageSearchBtn, imageSearchInput, imageSearchStatus } = dom;
     imageSearchBtn?.addEventListener('click', e => {
         if (!imageSearchInput) return;
         e.stopPropagation();

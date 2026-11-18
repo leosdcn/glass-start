@@ -133,7 +133,7 @@
 .screen-restoring #searchClearBtn {
     transition: none;
 }
-:is(#imageSearchBtn, #searchClearBtn) svg {
+#searchClearBtn svg {
     transition: transform var(--duration-popover-exit) var(--ease-spring);
 }
 @media (hover: hover) and (pointer: fine) {
@@ -144,7 +144,7 @@
         background-color: rgba(255, 255, 255, 0.15);
         color: rgba(255, 255, 255, 0.95);
     }
-    body:not(.tab-blurred) :is(#imageSearchBtn, #searchClearBtn):hover:not(:disabled) svg {
+    body:not(.tab-blurred) #searchClearBtn:hover:not(:disabled) svg {
         transform: scale(1.12);
     }
 }

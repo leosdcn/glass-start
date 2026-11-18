@@ -134,6 +134,8 @@ npm run preview
 - **Input methods**: during text composition, an open suggestions panel keeps its current contents. The input method handles the arrow keys and Enter. Web suggestions update after you commit the text.
 - **Keyboard selection**: use `↑` / `↓` to select a suggestion and `Enter` to open it. Use `←` / `→` to clear the selection and move the caret, then press `Enter` to search for the typed text.
 - **Open in a new tab**: press `Cmd + Enter`, `Ctrl + Enter` or `Alt + Enter` to open the selected item or run the search in a new tab.
+- **Search by image**: when the search field is empty, click the camera on the right to choose a file. When the field contains text, the right side shows the clear button. You can also drop an image onto the search box, or paste an image into the search field with `Cmd + V` or `Ctrl + V`. Bing and Google use their own image search services. With Wikipedia selected, the Chinese interface uses Bing and the English interface uses Google Lens.
+- **Open links directly**: type an image URL or a web address and press Enter to search for the image or open the page. For URLs without a recognized image extension, the app briefly checks whether the link points to an image and opens the original URL if the check fails or times out.
 - **Search engines**: click the icon on the left of the search field to choose Bing, Google or Wikipedia. Without a saved preference, English defaults to Google and Chinese to Bing. Your saved engine choice takes priority over the language default.
 
 ### 3. Maintaining default bookmarks

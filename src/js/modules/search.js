@@ -184,6 +184,7 @@ export function setEngine(key, save = true) {
     const engineMap = engines;
     const validEngine = Object.hasOwn(engineMap, key) ? key : DEFAULT_ENGINE;
     state.engine = validEngine;
+    if (dom.imageSearchStatus) dom.imageSearchStatus.textContent = '';
     const engineObj = engineMap[validEngine] || engineMap[DEFAULT_ENGINE];
     const engineName = dom.engineName;
     const engineBtn = dom.engineBtn;
@@ -261,7 +262,7 @@ async function doSearch(queryOverride, newTab = false) {
         const imageEngine = getImageSearchEngine();
         const isImage = /\.(?:avif|bmp|gif|heic|heif|ico|jpe?g|png|svg|tiff?|webp)$/i.test(link.pathname)
             || await checkImageLink(link.href);
-        if (submissionId !== searchSubmissionId || searchInput?.value !== inputValue || document.activeElement !== searchInput) return;
+        if (submissionId !== searchSubmissionId || searchInput?.value !== inputValue) return;
         if (isImage) {
             const destination = new URL(IMAGE_SEARCH_LINKS[imageEngine]);
             if (imageEngine === 'bing') {
@@ -283,7 +284,8 @@ async function doSearch(queryOverride, newTab = false) {
 
 /** @param {keyof typeof IMAGE_SEARCH_UPLOADS} engine @param {HTMLInputElement} input */
 export async function submitImageSearch(engine, input) {
-    const file = input.files?.[0];
+    const files = input.files;
+    const file = files?.[0];
     if (!file) return;
     // Lens 的跨站上传需要省略来源，独立表单文档只对该上传应用 no-referrer。
     const form = engine === 'google' ? dom.lensUploadFrame?.contentDocument?.forms[0] : input.form;
@@ -298,33 +300,48 @@ export async function submitImageSearch(engine, input) {
     }
 
     const action = new URL(IMAGE_SEARCH_UPLOADS[engine].url);
-    /** @param {Record<string, string | File>} fields */
+    /** @param {Record<string, string | FileList>} fields */
     const submit = fields => {
-        form.action = action.href;
-        form.addEventListener('formdata', event => {
-            for (const [name, value] of Object.entries(fields)) event.formData.set(name, value);
+        const controls = Object.entries(fields).map(([name, value]) => {
+            const field = form.ownerDocument.createElement('input');
+            field.name = name;
+            if (typeof value === 'string') {
+                field.type = 'hidden';
+                field.value = value;
+            } else {
+                field.type = 'file';
+                field.files = value;
+            }
+            return field;
+        });
+        try {
+            form.action = action.href;
+            form.append(...controls);
+            form.submit();
             input.value = '';
-        }, { once: true });
-        form.submit();
-    };
-    if (engine === 'google') {
-        action.searchParams.set('hl', getLocale());
-        action.searchParams.set('st', String(Date.now()));
-        if (file.type.startsWith('image/')) {
-            submit({ encoded_image: file });
-            return;
+        } finally {
+            controls.forEach(field => field.remove());
         }
-    }
+    };
 
-    // 拖入的文件可能没有图片 MIME。交给浏览器解码，也支持仅由 viewBox 定义尺寸的 SVG。
-    const url = URL.createObjectURL(file);
+    let url;
     try {
+        if (engine === 'google') {
+            action.searchParams.set('hl', getLocale());
+            action.searchParams.set('st', String(Date.now()));
+            if (file.type.startsWith('image/')) {
+                submit({ encoded_image: files });
+                return;
+            }
+        }
+        // 拖入的文件可能没有图片 MIME。交给浏览器解码，也支持仅由 viewBox 定义尺寸的 SVG。
+        url = URL.createObjectURL(file);
         const image = new Image();
         image.src = url;
         await image.decode();
         if (input.files?.[0] !== file) return;
         if (engine === 'google') {
-            submit({ encoded_image: file });
+            submit({ encoded_image: files });
             return;
         }
         // 与 Bing 网页端一样缩小大图并用白底 JPEG 编码。
@@ -347,7 +364,7 @@ export async function submitImageSearch(engine, input) {
     } catch {
         reportError();
     } finally {
-        URL.revokeObjectURL(url);
+        if (url) URL.revokeObjectURL(url);
     }
 }
 

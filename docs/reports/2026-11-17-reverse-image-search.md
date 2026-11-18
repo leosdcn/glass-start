@@ -6,7 +6,20 @@
 
 早期实现提交原图时，约 6.2 MB 的 PNG 可复现 HTTP 400。参照 Bing 图片搜索页面的处理方式，用 `Image.decode()` 解码，超过 100 万像素时按比例缩小，在白底画布上以 `0.7` 的质量编码成 JPEG。原生 multipart 表单向 `www.bing.com/images/search` 提交 `cbir=sbi` 和 `imageBin`。`imageBin` 只包含 JPEG 的 Base64 内容。上传查询参数集中维护在[引擎配置](../../src/js/config/engines.js)。
 
-同一测试 PNG 经转换后，在 Chrome 网页版和扩展中提交均得到 HTTP 200 的 Bing 结果页。100 万像素是本项目的预处理阈值，测试记录的 6.2 MB 是复现样本的大小。
+同一测试 PNG 经转换后，在 Chrome 网页版和扩展中提交均得到 HTTP 200 的 Bing 结果页。100 万像素是接入时采用的预处理阈值，6.2 MB 是复现样本的大小。
+
+### 2026-11-18 上传复测
+
+用 Chrome 将合成图编码成质量为 `0.7` 的 JPEG，跳过本地缩放，沿用项目的 multipart 字段向 Bing 提交。成功以 Bing 返回搜图令牌为准。
+
+| 样本 | 尺寸 | `imageBin` 字节数 | 上传结果 |
+| :--- | :--- | ---: | :--- |
+| 随机噪声 | 1095 × 1095 | 846,184 | 返回搜图令牌 |
+| 随机噪声 | 1500 × 800 | 844,812 | 返回搜图令牌 |
+| 随机噪声 | 1216 × 1216 | 1,038,120 | HTTP 400 |
+| 简单图案 | 10400 × 10400 | 1,019,112 | 返回搜图令牌 |
+
+结果更符合编码后体积的限制，尚未测得 Bing 的绝对像素上限。项目将单次编码的预处理上限调至 120 万像素，JPEG 质量继续采用 `0.7`。两张约 120 万像素的噪声图都成功，Base64 体积比表中的失败样本低约 18%。
 
 ## Google Lens 上传返回 HTTP 403
 
@@ -16,8 +29,8 @@
 
 ## 文件处理与 CSP
 
-- [相机选图与拖放](../../src/js/modules/search-events.js)均进入同一[上传函数](../../src/js/modules/search.js)。浏览器可以解码缺少 MIME 类型的图片，以及只有 `viewBox` 的 SVG。提交后清空文件输入，解码时用到的对象 URL 在处理结束时释放，应用不持久化图片。
-- 本地解码失败时，在搜索框下方的绝对定位状态区提示，页面布局保持原位。
+- 相机选图、拖放与粘贴共用上传流程。浏览器尝试解码缺少 MIME 类型的图片和仅有 `viewBox` 的 SVG。用原生表单字段提交，提交后移除临时字段并清空文件输入，处理结束时释放解码用的对象 URL。图片由浏览器直接提交给对应服务，应用不持久化图片。[控件事件](../../src/js/modules/search-events.js) · [上传函数](../../src/js/modules/search.js)
+- 本地解码失败时，搜索框下方的绝对定位状态区显示提示，页面布局保持原位。输入文字、清空搜索框或切换引擎时清除提示。
 - 网页模板、[托管响应头](../../public/_headers)和[扩展清单](../../src/extension/manifest.json)的 `form-action` 均放行两个上传路径以及 `www.google.com/search` 结果路径。浏览器直接向对应提供方提交图片。
 
 ## 验证记录
@@ -28,4 +41,4 @@
 | `012e91d` | `npm run lint`、`npm test -- ui-overlay-modals`、`npm run build:extension` | lint 与扩展构建通过，专项测试 8/8 通过。 |
 | `012e91d` | Chrome 桌面、390 px 移动模拟与解包扩展 | 检查相机入口和引擎菜单，在扩展中打开系统选图并拦截两个引擎的真实浏览器 POST。 |
 
-[Chrome 回归用例](../../test/ui-overlay-modals.test.mjs)通过 CDP 拦截上传请求，验证选图和拖放、Wikipedia 的语言回退、Bing JPEG 像素上限、Lens 原文件与来源策略，以及无 MIME 的图片和无效文件提示。表中的自动化结果覆盖浏览器提交行为。线上响应以接入时的实测和用户复验为准。
+Chrome 回归用例通过 CDP 拦截上传请求，覆盖选图、拖放和粘贴、Wikipedia 的语言回退、Bing JPEG 像素上限、Lens 原文件与来源策略，以及无 MIME 的图片和无效文件提示。2026-11-18 调整上限后，`npm run lint` 的 43 项检查和 `npm test -- ui-overlay-modals` 的 10 项测试均通过。[Chrome 回归用例](../../test/ui-overlay-modals.test.mjs)

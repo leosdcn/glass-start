@@ -411,12 +411,21 @@ test('新标签页打开候选时保留列表，当前页打开时收起', async
 
 test('搜索框按图片链接、网页地址和关键词分流', async () => {
   const image = readFileSync(new URL('../src/extension/icon16.png', import.meta.url));
+  let stalledProbes = 0;
   const { server, chrome, send, evalJS, port } = await launchSession(0, {
     '/image-link': (_req, res) => {
       res.writeHead(200, { 'Content-Type': 'image/png' });
       res.end(image);
     },
-    '/ordinary-page': '<title>网页直达</title>'
+    '/ordinary-page': '<title>网页直达</title>',
+    '/slow-page': (req, res) => {
+      if (req.headers['sec-fetch-dest'] === 'image') {
+        stalledProbes++;
+        return;
+      }
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+      res.end('<title>探测超时后打开网页</title>');
+    }
   });
   try {
     const origin = 'http://127.0.0.1:' + port;
@@ -465,6 +474,15 @@ test('搜索框按图片链接、网页地址和关键词分流', async () => {
     assert.equal(await evalJS("dom.searchInput.getAttribute('aria-expanded')"), 'false');
     await enter();
     await waitFor(evalJS, 'document.title === "网页直达" && location.href === ' + JSON.stringify(webpage));
+    await evalJS('history.back()');
+    await waitFor(evalJS, '!!window.dom?.searchInput');
+    const slowPage = origin + '/slow-page';
+    await fill('google', slowPage);
+    await evalJS(`dom.searchInput.dispatchEvent(new KeyboardEvent('keydown', {
+      key: 'Enter', bubbles: true, cancelable: true
+    })); dom.searchInput.blur();`);
+    await waitFor(evalJS, 'document.title === "探测超时后打开网页" && location.href === ' + JSON.stringify(slowPage));
+    assert.equal(stalledProbes, 1);
   } finally {
     await chrome.close();
     await server.close();
@@ -538,7 +556,7 @@ test('相机打开本地选图并提交给当前引擎', async () => {
         assert.equal(prepared.cbir, 'sbi');
         assert.equal(prepared.signature, '/9j/');
         const pixels = prepared.width * prepared.height;
-        assert.ok(pixels > 990_000 && pixels <= 1_000_000);
+        assert.ok(pixels > 1_190_000 && pixels <= 1_200_000);
       } else {
         assert.equal(request.referrerPolicy, 'no-referrer');
         assert.deepEqual(await evalJS(`imageUploads[${index}]`), {
@@ -547,6 +565,8 @@ test('相机打开本地选图并提交给当前引擎', async () => {
       }
       assert.equal(await evalJS('state.engine'), preferred);
       assert.equal(await evalJS('dom.imageSearchInput.files.length'), 0);
+      assert.deepEqual(await evalJS(`[dom.imageSearchInput.form.elements.length,
+        dom.lensUploadFrame.contentDocument.forms[0].elements.length]`), [1, 0]);
     }
   } finally {
     await chrome.close();
@@ -626,9 +646,19 @@ test('拖入本地图片后用当前引擎搜图', async () => {
     const layout = '[dom.searchInput.form.offsetTop, dom.searchInput.form.offsetHeight, dom.bookmarks.parentElement.offsetTop]';
     const before = await evalJS(layout);
     const requestCount = requests.length;
-    await dropFile(`new File(['not an image'], 'broken.png', { type: 'image/png' })`);
-    await waitFor(evalJS, '!!dom.imageSearchStatus.textContent');
-    assert.deepEqual(await evalJS(layout), before);
+    const broken = `new File(['not an image'], 'broken.png', { type: 'image/png' })`;
+    const nextActions = [
+      `dom.searchInput.value = 'test'; dom.searchInput.dispatchEvent(new Event('input', { bubbles: true }))`,
+      'dom.searchClearBtn.click()',
+      `dom.engineBtn.click(); dom.dropdownMenu.querySelector('[data-engine="google"]').click()`
+    ];
+    for (const action of nextActions) {
+      await dropFile(broken);
+      await waitFor(evalJS, '!!dom.imageSearchStatus.textContent');
+      assert.deepEqual(await evalJS(layout), before);
+      await evalJS(action);
+      assert.equal(await evalJS('dom.imageSearchStatus.textContent'), '');
+    }
     assert.equal(requests.length, requestCount);
   } finally {
     await chrome.close();
