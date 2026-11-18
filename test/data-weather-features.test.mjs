@@ -95,6 +95,26 @@ test('天气交互、弹窗规范与休眠感知套件', async (t) => {
       assert.ok(gridOrderOk, `cards: [${domCheck?.card0}] [${domCheck?.card1}] [${domCheck?.card2}] [${domCheck?.card3}]`);
     });
 
+    await t.test('刷新按钮边缘与箭头中心共享悬停和指针命中区域', async () => {
+      const opacity = `getComputedStyle(document.querySelector('#weatherRefreshBtn svg')).opacity`;
+      await waitFor(evalJS, 'dom.weatherPopover.getAnimations().length === 0');
+      const points = await evalJS(`(() => {
+        const { left, top, width, height } = document.querySelector('#weatherRefreshBtn').getBoundingClientRect();
+        const y = top + height / 2;
+        return [{ x: left + 4, y }, { x: left + width / 2, y }];
+      })()`);
+
+      assert.equal(await evalJS(opacity), '0.7');
+      for (const { x, y } of points) {
+        await send('Input.dispatchMouseEvent', { type: 'mouseMoved', x, y });
+        await waitFor(evalJS, `${opacity} === '1'`);
+        assert.equal(await evalJS(`document.elementFromPoint(${x}, ${y})?.id`), 'weatherRefreshBtn');
+      }
+      await send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: 1, y: 1 });
+      await waitFor(evalJS, `${opacity} === '0.7'`);
+    });
+
+    // 先验证鼠标悬停，避免触摸模拟改变后续的悬停能力。
     await t.test('手机横屏可滑到末条预报并用键盘聚焦数据来源', async () => {
       await send('Emulation.setDeviceMetricsOverride', { width: 667, height: 320, deviceScaleFactor: 1, mobile: true });
       await send('Emulation.setTouchEmulationEnabled', { enabled: true });
@@ -127,25 +147,6 @@ test('天气交互、弹窗规范与休眠感知套件', async (t) => {
         await send('Emulation.setTouchEmulationEnabled', { enabled: false });
         await evalJS('dom.weatherPopover.scrollTop = 0');
       }
-    });
-
-    await t.test('刷新按钮边缘与箭头中心共享悬停和指针命中区域', async () => {
-      const opacity = `getComputedStyle(document.querySelector('#weatherRefreshBtn svg')).opacity`;
-      await waitFor(evalJS, 'dom.weatherPopover.getAnimations().length === 0');
-      const points = await evalJS(`(() => {
-        const { left, top, width, height } = document.querySelector('#weatherRefreshBtn').getBoundingClientRect();
-        const y = top + height / 2;
-        return [{ x: left + 4, y }, { x: left + width / 2, y }];
-      })()`);
-
-      assert.equal(await evalJS(opacity), '0.7');
-      for (const { x, y } of points) {
-        await send('Input.dispatchMouseEvent', { type: 'mouseMoved', x, y });
-        await waitFor(evalJS, `${opacity} === '1'`);
-        assert.equal(await evalJS(`document.elementFromPoint(${x}, ${y})?.id`), 'weatherRefreshBtn');
-      }
-      await send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: 1, y: 1 });
-      await waitFor(evalJS, `${opacity} === '0.7'`);
     });
 
     await t.test('天气弹窗内原位切换摄氏度/华氏度并即时换算', async () => {
