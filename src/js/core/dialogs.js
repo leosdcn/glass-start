@@ -45,13 +45,11 @@ export function showConfirm(message, onConfirm, title = t('ui.confirm.reset.2'),
         okBtn.removeEventListener('click', handleOk);
         cancelBtn.removeEventListener('click', cleanup);
         signal?.removeEventListener('abort', cleanup);
-        confirmTriggerEl?.setAttribute('aria-expanded', 'false');
     };
 
     function handleOk() { cleanup(); onConfirm?.(); }
 
     OverlayStack.push('confirmModal', cleanup, confirmTriggerEl);
-    confirmTriggerEl?.setAttribute('aria-expanded', 'true');
     okBtn.addEventListener('click', handleOk);
     cancelBtn.addEventListener('click', cleanup);
     signal?.addEventListener('abort', cleanup, { once: true });

@@ -608,20 +608,17 @@ let popoverEventsBound = false;
  * @param {MouseEvent} e
  */
 function handleWeatherPopoverClick(e) {
-    e.stopPropagation();
     const target = /** @type {HTMLElement | null} */ (e.target instanceof HTMLElement ? e.target : null);
     if (!target) return;
 
     const unitBtn = /** @type {HTMLElement | null} */ (target.closest('#tempUnitToggleBtn'));
     if (unitBtn) {
-        e.stopPropagation();
         toggleTempUnit();
         return;
     }
 
     const retryBtn = /** @type {HTMLButtonElement | null} */ (target.closest('#weatherErrorRetryBtn'));
     if (retryBtn) {
-        e.stopPropagation();
         renderWeatherPopover(null);
         updateWeather(true).catch(() => {});
         return;
@@ -629,7 +626,6 @@ function handleWeatherPopoverClick(e) {
 
     const refBtn = /** @type {HTMLButtonElement | null} */ (target.closest('#weatherRefreshBtn'));
     if (refBtn) {
-        e.stopPropagation();
         if (refBtn.hasAttribute('aria-busy')) return;
         refBtn.setAttribute('aria-disabled', 'true');
         refBtn.setAttribute('aria-busy', 'true');

@@ -11,6 +11,7 @@ import { DEFAULT_ENGINE } from '../config/engines.js';
 import { escapeHtml, safeUrl } from '../utils/helpers.js';
 import { normalizeBookmark, normalizeBookmarks, normalizeBookmarkOverrides } from '../utils/bookmark-model.js';
 import { storageGet, storageSet, storageRemove } from '../utils/storage.js';
+import { IMAGE_CACHE_PREFIX, scopedCachePrefix, isScopedCache } from '../utils/offline-cache.js';
 import { state, modalState, pageData } from '../state/store.js';
 import { replaceBookmarkDraft } from '../state/bookmark-draft.js';
 import { dom } from '../state/dom.js';
@@ -207,8 +208,6 @@ export async function openEditModal(invoker) {
     editSession = session;
     closeDropdown();
     hideSuggestions();
-    const editBtn = dom.editBookmarksBtn;
-    editBtn?.setAttribute('aria-expanded', 'true');
     setEditPhase('opening');
     const trigger = invoker ?? document.activeElement;
     const isCurrent = () => editSession === session;
@@ -255,8 +254,6 @@ export function closeEditModal() {
     editSession = null;
     setEditPhase('closed');
     OverlayStack.pop('editModal');
-    const editBtn = dom.editBookmarksBtn;
-    editBtn?.setAttribute('aria-expanded', 'false');
 
     closeWallpaperUrlInput();
 }
@@ -309,11 +306,7 @@ export function openShortcutModal(trigger = document.activeElement) {
     const modal = dom.shortcutModal;
     if (!modal) return;
     renderShortcutModalList();
-    closeDropdown();
     hideSuggestions();
-    if (state.editOpen) {
-        dom.openShortcutFromSettingsBtn?.setAttribute('aria-expanded', 'true');
-    }
     OverlayStack.push('shortcutModal', closeShortcutModal, trigger);
 }
 
@@ -321,14 +314,12 @@ export function closeShortcutModal() {
     const modal = dom.shortcutModal;
     if (!modal) return;
     OverlayStack.pop('shortcutModal');
-    dom.openShortcutFromSettingsBtn?.setAttribute('aria-expanded', 'false');
 }
 
 export function openCreditsModal(trigger = document.activeElement) {
     const modal = dom.creditsModal;
     if (!modal) return;
     renderCreditsModalList();
-    dom.openCreditsFromSettingsBtn?.setAttribute('aria-expanded', 'true');
     OverlayStack.push('creditsModal', closeCreditsModal, trigger);
 }
 
@@ -336,7 +327,6 @@ export function closeCreditsModal() {
     const modal = dom.creditsModal;
     if (!modal) return;
     OverlayStack.pop('creditsModal');
-    dom.openCreditsFromSettingsBtn?.setAttribute('aria-expanded', 'false');
 }
 
 /**
@@ -601,7 +591,6 @@ let initialLanguageOnOpen = 'auto';
 export function openLanguageModal(trigger = dom.languageBtn) {
     initialLanguageOnOpen = modalState.draftLanguage || 'auto';
     syncLanguageUI();
-    dom.languageBtn?.setAttribute('aria-expanded', 'true');
     OverlayStack.push('languageModal', cancelLanguageModal, trigger);
 }
 
@@ -613,7 +602,6 @@ export function cancelLanguageModal() {
 
 function closeLanguageModal() {
     OverlayStack.pop('languageModal');
-    dom.languageBtn?.setAttribute('aria-expanded', 'false');
 }
 
 export function saveLanguageModal() {
@@ -679,14 +667,10 @@ export function clearOfflineCache() {
             beginEditCommit();
             const resumeWallpaper = pauseWallpaperDraft();
             const scope = new URL('./', location.href);
-            const cachePrefix = 'glass-scope-' + encodeURIComponent(scope.pathname) + '-';
+            const imagePrefix = scopedCachePrefix(scope.pathname) + IMAGE_CACHE_PREFIX;
             try {
                 const keys = await caches.keys();
-                // 另一个 %2F- 表示前缀命中的是更深的部署路径。
-                await Promise.all(keys.filter(key => key.startsWith(cachePrefix) &&
-                    !key.includes('%2F-', cachePrefix.length) &&
-                    // 注册、安装和注销可能与清理并行，核心池由 Worker 接管流程回收。
-                    !/^app-core-v\d+(?:-[0-9a-f]{16})?$/.test(key.slice(cachePrefix.length)))
+                await Promise.all(keys.filter(key => isScopedCache(key, imagePrefix))
                     .map(key => caches.delete(key)));
                 if (editSession === session) {
                     closeEditModal();

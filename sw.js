@@ -3,6 +3,7 @@
  * 核心安装校验构建指纹；新版等待用户确认或旧客户端退出后激活。
  * 外部图标允许 opaque 响应入池，无法读取其正文进行校验。
  */
+import { IMAGE_CACHE_PREFIX, scopedCachePrefix, isScopedCache } from './src/js/utils/offline-cache.js';
 
 /** @typedef {ServiceWorkerGlobalScope & typeof globalThis} ServiceWorkerContext */
 
@@ -12,22 +13,16 @@ const CORE_CACHE = 'app-core-v1786255428688';
 const FAVICON_CACHE = 'app-favicons-v1';
 const SCOPE_URL = /** @type {ServiceWorkerContext} */ (self).registration.scope;
 const SCOPE = new URL(SCOPE_URL);
-const CACHE_PREFIX = 'glass-scope-' + encodeURIComponent(SCOPE.pathname) + '-';
+const CACHE_PREFIX = scopedCachePrefix(SCOPE.pathname);
 const CORE_STORAGE = CACHE_PREFIX + CORE_CACHE;
-const IMG_CACHE = CACHE_PREFIX + 'app-images-' + CORE_CACHE;
-const IMAGE_PREFIX = CACHE_PREFIX + 'app-images-';
+const IMAGE_PREFIX = CACHE_PREFIX + IMAGE_CACHE_PREFIX;
+const IMG_CACHE = IMAGE_PREFIX + CORE_CACHE;
 const CORE_PREFIX = CACHE_PREFIX + 'app-core-';
 const DOCUMENT_ASSET = './';
 const APP_ASSET = `./app-builds/${CORE_CACHE}.js`;
 const ACTIVATED_CORE = new URL('./.glass-core-activated', SCOPE_URL).href;
 const CORE_PREDECESSORS = new URL('./.glass-core-predecessors', SCOPE_URL).href;
 const LEGACY_APP = new URL('./app.js', SCOPE_URL).href;
-
-/** @param {string} key @param {string} prefix */
-function isScopedCache(key, prefix) {
-    // 部署路径以编码后的斜杠结尾，更深路径可能也匹配前缀。
-    return key.startsWith(prefix) && !key.includes('%2F-', CACHE_PREFIX.length);
-}
 
 // 图标与图片容量上限配置
 const MAX_FAVICON_ENTRIES = 800;

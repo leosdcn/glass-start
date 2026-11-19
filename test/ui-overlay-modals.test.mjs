@@ -808,6 +808,11 @@ test('天气与引擎菜单退场仍可见，关闭后立即退出键盘焦点�
     for (const [id, triggerId, tabCount] of [['weatherPopover', 'weatherBtn', 1], ['dropdownMenu', 'engineBtn', 3]]) {
       await evalJS(`document.getElementById('${triggerId}').click()`);
       await waitFor(evalJS, `getComputedStyle(document.getElementById('${id}')).opacity === '1'`);
+      assert.equal(await evalJS(`(() => {
+        const panel = document.getElementById('${id}');
+        panel.click();
+        return !panel.inert;
+      })()`), true);
       await evalJS(`(() => {
         const panel = document.getElementById('${id}');
         panel.querySelector('button').focus();
@@ -826,6 +831,12 @@ test('天气与引擎菜单退场仍可见，关闭后立即退出键盘焦点�
         assert.equal(await evalJS(`document.getElementById('${id}').contains(document.activeElement)`), false);
       }
       await evalJS(`document.getElementById('${id}').getAnimations().forEach(animation => animation.finish())`);
+      assert.equal(await evalJS(`(() => {
+        const panel = document.getElementById('${id}');
+        document.getElementById('${triggerId}').click();
+        document.body.click();
+        return panel.inert;
+      })()`), true);
     }
   } finally {
     await chrome.close();
@@ -845,7 +856,11 @@ test('OverlayStack 多层弹窗嵌套压退栈、安全白名单与焦点归还'
 
     // 同一次设置会话验证背景输入隔离、导入入口和重置确认。
     assert.equal(await evalJS("dom.editBookmarksBtn.getAttribute('aria-expanded')"), 'false');
-    await evalJS('dom.editBookmarksBtn.focus(); dom.editBookmarksBtn.click()');
+    assert.deepEqual(await evalJS(`(() => {
+      dom.editBookmarksBtn.focus();
+      dom.editBookmarksBtn.click();
+      return [dom.editModal.open, dom.editBookmarksBtn.getAttribute('aria-expanded')];
+    })()`), [false, 'false']);
     await waitFor(evalJS, 'dom.editModal.open');
     assert.equal(await evalJS("dom.editBookmarksBtn.getAttribute('aria-expanded')"), 'true');
     await evalJS(`window.dispatchEvent(new WheelEvent('wheel', { deltaY: 120, bubbles: true, cancelable: true }))`);
@@ -861,6 +876,17 @@ test('OverlayStack 多层弹窗嵌套压退栈、安全白名单与焦点归还'
       return fired;
     })()`);
     assert.equal(dropzoneFired, true);
+
+    await evalJS(`(() => {
+      dom.jsonDropzone.focus();
+      const dataTransfer = new DataTransfer();
+      dataTransfer.items.add(new File(['invalid json'], 'bookmarks.json', { type: 'application/json' }));
+      dom.jsonDropzone.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer }));
+    })()`);
+    await waitFor(evalJS, 'dom.confirmModal.open');
+    assert.equal(await evalJS("dom.jsonDropzone.getAttribute('aria-expanded')"), null);
+    await evalJS('dom.confirmOkBtn.click()');
+    await waitFor(evalJS, 'document.activeElement === dom.jsonDropzone');
 
     const resetExpanded = () => evalJS("dom.resetEditBtn.getAttribute('aria-expanded')");
     assert.equal(await resetExpanded(), 'false');

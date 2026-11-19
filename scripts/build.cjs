@@ -119,7 +119,11 @@ function buildServiceWorkerAndAssets(targetDir, { extension, version }) {
         const declaration = source.match(/const\s+CORE_CACHE\s*=\s*['"][^'"]+['"];/)?.[0];
         if (!declaration) throw new Error('Service Worker 缺少 CORE_CACHE 构建插槽');
         const swContent = replaceOnce(source, declaration, `const CORE_CACHE = '${version}';`);
-        fs.writeFileSync(path.join(targetDir, 'sw.js'), minifyJsCode(swContent), 'utf-8');
+        const worker = esbuild.buildSync({
+            stdin: { contents: swContent, resolveDir: ROOT_DIR, sourcefile: PATHS.sw },
+            bundle: true, write: false, format: 'iife', minify: true, target: 'es2020', legalComments: 'none'
+        }).outputFiles[0].text;
+        fs.writeFileSync(path.join(targetDir, 'sw.js'), worker, 'utf-8');
         logItem(`Service Worker 缓存版本已更新并压缩: ${c.cyan}${version}${c.reset}`);
     }
 
@@ -236,13 +240,13 @@ function processProductionHtml(compiledCss, targetDir, buildVersion, extension) 
         marker: '/* INJECT_BACKGROUNDS */',
         entryPath: path.join(PATHS.src, 'js', 'config', 'backgrounds.js'),
         globalName: '__headBackgrounds',
-        binding: 'const { PRESET_BACKGROUNDS: backgrounds } = __headBackgrounds;'
+        binding: 'const { PRESET_BACKGROUNDS: backgrounds, WALLPAPER_KEYS, normalizeMaskOpacity } = __headBackgrounds;'
     });
     prodHtmlContent = injectHeadConfig(prodHtmlContent, {
         marker: '/* INJECT_ENGINE_ICONS */',
         entryPath: path.join(PATHS.src, 'js', 'config', 'engine-head.js'),
         globalName: '__headEngines',
-        binding: 'const { ENGINE_SVGS, ENGINE_META, DEFAULT_ENGINE } = __headEngines;'
+        binding: 'const { ENGINE_SVGS, ENGINE_META, DEFAULT_ENGINE, PREFERRED_ENGINE_KEY, normalizeEngine } = __headEngines;'
     });
     prodHtmlContent = injectHeadConfig(prodHtmlContent, {
         marker: '/* INJECT_WEATHER_ICONS */',

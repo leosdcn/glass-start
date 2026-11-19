@@ -126,6 +126,7 @@ export interface IOverlayStack {
     stack: OverlayItem[];
     push(id: string, closeFn: () => void, trigger?: Element | null, panel?: HTMLElement): boolean;
     pop(id?: string): OverlayItem | null;
+    closeOutsidePanels(target: Node): void;
     topModal(): HTMLElement | null;
     top(): OverlayItem | null;
     has(id: string): boolean;

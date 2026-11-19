@@ -2,7 +2,6 @@
  * 应用初始化与生命周期挂载
  */
 import { CONFIG, DEFAULT_CATEGORIES } from './config/constants.js';
-import { DEFAULT_ENGINE } from './config/engines.js';
 import { storageGet } from './utils/storage.js';
 import { evictFaviconCache } from './utils/favicon.js';
 import { state, pageData } from './state/store.js';
@@ -105,8 +104,7 @@ export function init() {
     initTransitionSwitcher();
 
     // ⑦ 恢复用户偏好的搜索引擎
-    const saved = storageGet(CONFIG.KEYS.PREFERRED_ENGINE);
-    setEngine(typeof saved === 'string' ? saved : DEFAULT_ENGINE, false);
+    setEngine(storageGet(CONFIG.KEYS.PREFERRED_ENGINE), false);
 
     // ⑧ 装配全局事件、页面唤醒与设置面板交互事件
     bindSearchEvents();

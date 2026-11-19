@@ -42,10 +42,9 @@ function hidePointerFocusRing() {
     }
 }
 
-/** @param {string} id */
-function showModal(id) {
-    const modal = document.getElementById(id);
-    if (!(modal instanceof HTMLDialogElement)) return;
+/** @param {HTMLDialogElement} modal */
+function showModal(modal) {
+    const { id } = modal;
     if (!boundDialogs.has(modal)) {
         modal.addEventListener('cancel', e => {
             e.preventDefault();
@@ -69,6 +68,13 @@ function showModal(id) {
     modal.inert = false;
     modal.showModal();
     hidePointerFocusRing();
+}
+
+/** @param {Element | null | undefined} trigger @param {string} panelId @param {boolean} expanded */
+function setExpanded(trigger, panelId, expanded) {
+    if (trigger?.getAttribute('aria-controls')?.split(/\s+/).includes(panelId)) {
+        trigger.setAttribute('aria-expanded', String(expanded));
+    }
 }
 
 /**
@@ -109,8 +115,9 @@ export const OverlayStack = {
     stack: [],
 
     push(id, closeFn, trigger = document.activeElement, panel) {
-        const modal = MODAL_OVERLAY_IDS.has(id);
-        if (!modal && this.topModal()) return false;
+        const isModal = MODAL_OVERLAY_IDS.has(id);
+        const modal = isModal ? document.getElementById(id) : null;
+        if (isModal ? !(modal instanceof HTMLDialogElement) : this.topModal()) return false;
         if (modal) {
             for (const item of this.stack.slice().reverse()) {
                 if (!MODAL_OVERLAY_IDS.has(item.id)) item.close();
@@ -118,15 +125,15 @@ export const OverlayStack = {
         }
         this.pop(id);
         this.stack.push({ id, close: closeFn, trigger, panel });
-        if (modal) {
-            showModal(id);
+        if (modal instanceof HTMLDialogElement) {
+            showModal(modal);
             document.body.classList.add('overflow-hidden', 'touch-none');
         } else if (panel) {
             panel.inert = false;
             panel.classList.add('active');
             panel.setAttribute('aria-hidden', 'false');
-            trigger?.setAttribute('aria-expanded', 'true');
         }
+        setExpanded(trigger, panel?.id ?? id, true);
         return true;
     },
 
@@ -134,6 +141,7 @@ export const OverlayStack = {
         const idx = id ? this.stack.findIndex(item => item.id === id) : this.stack.length - 1;
         if (idx < 0) return null;
         const [removed] = this.stack.splice(idx, 1);
+        setExpanded(removed.trigger, removed.panel?.id ?? removed.id, false);
         if (MODAL_OVERLAY_IDS.has(removed.id)) {
             const previousFocus = document.activeElement;
             const modal = document.getElementById(removed.id);
@@ -150,11 +158,16 @@ export const OverlayStack = {
             const containedFocus = panel.contains(document.activeElement);
             panel.inert = true;
             panel.classList.remove('active');
-            trigger?.setAttribute('aria-expanded', 'false');
             if (containedFocus && visibleFocusTarget(trigger)) trigger.focus({ preventScroll: true });
             panel.setAttribute('aria-hidden', 'true');
         }
         return removed;
+    },
+
+    closeOutsidePanels(target) {
+        for (const { panel, trigger, close } of this.stack.slice().reverse()) {
+            if (panel && !panel.contains(target) && !trigger?.contains(target)) close();
+        }
     },
 
     topModal() {

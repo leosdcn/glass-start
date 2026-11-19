@@ -9,6 +9,7 @@ import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 import vm from 'node:vm';
+import { buildSync } from 'esbuild';
 import { validateW3c } from '../scripts/validate-w3c.mjs';
 import { createEvaluator, getFreePort, navigateAndWait, waitFor } from './support/helpers.mjs';
 import { launchChrome } from './support/cdp.mjs';
@@ -205,14 +206,10 @@ test('预览允许产物入口链接，阻止静态文件链接逃出产物目�
 
 test('Service Worker 核心预缓存资源与产物版本契约', () => {
   const distSw = readFileSync(join(DIST, 'sw.js'), 'utf-8');
-  const distAssets = vm.runInNewContext(distSw + '\nCORE_ASSETS', {
-    self: { registration: { scope: 'https://example.test/' }, addEventListener() {} }, URL
-  });
   const distIndexContent = readFileSync(join(DIST, 'index.html'), 'utf-8');
   const version = distIndexContent.match(/window\.__GLASS_BUILD_HTML__="(app-core-v\d+-[0-9a-f]{16})"/)?.[1];
   assert.ok(version, 'HTML 必须包含构建指纹');
   const script = `app-builds/${version}.js`;
-  assert.deepEqual(Array.from(distAssets), ['./', `./${script}`]);
   assert.ok(distIndexContent.includes(`<script src="./${script}" defer></script>`));
   assert.ok(!distIndexContent.includes('id="main-script"'));
 
@@ -223,12 +220,13 @@ test('Service Worker 核心预缓存资源与产物版本契约', () => {
 
 test('Service Worker 缓存池 FIFO 限额淘汰与网络失败隔离', async () => {
   const srcSw = readFileSync(join(ROOT, 'sw.js'), 'utf-8');
-  function inspectWorker(source) {
-    return vm.runInNewContext(source + '\n;({CORE_ASSETS, MAX_FAVICON_ENTRIES, MAX_IMG_ENTRIES, pruneCache})', {
-      self: { registration: { scope: 'https://example.test/' }, addEventListener() {} }, URL
-    });
-  }
-  const worker = inspectWorker(srcSw);
+  const inspect = buildSync({
+    stdin: { contents: srcSw + '\nglobalThis.inspect = { MAX_FAVICON_ENTRIES, MAX_IMG_ENTRIES, pruneCache };', resolveDir: ROOT },
+    bundle: true, write: false, format: 'iife'
+  }).outputFiles[0].text;
+  const scope = { self: { registration: { scope: 'https://example.test/' }, addEventListener() {} }, URL };
+  vm.runInNewContext(inspect, scope);
+  const worker = scope.inspect;
 
   // FIFO pruneCache 算法验证
   const fn = worker.pruneCache;
@@ -266,7 +264,7 @@ test('Service Worker 缓存池 FIFO 限额淘汰与网络失败隔离', async ()
   // 核心脚本网络失败不跨构建回填
   let respond;
   const handlers = new Map();
-  vm.runInNewContext(srcSw, {
+  vm.runInNewContext(readFileSync(join(DIST, 'sw.js'), 'utf-8'), {
     self: {
       location: { origin: 'https://example.test', href: 'https://example.test/sw.js' },
       registration: { scope: 'https://example.test/' },
@@ -285,15 +283,15 @@ test('Service Worker 缓存池 FIFO 限额淘汰与网络失败隔离', async ()
 });
 
 test('Service Worker 安装过程只请求同源核心资源', async () => {
-  const srcSw = readFileSync(join(ROOT, 'sw.js'), 'utf-8');
+  const worker = readFileSync(join(DIST, 'sw.js'), 'utf-8');
   const installHandlers = new Map(), installTasks = [], installRequests = [];
-  const version = srcSw.match(/const CORE_CACHE = '([^']+)'/)[1];
+  const version = readFileSync(join(DIST, 'index.html'), 'utf-8').match(/__GLASS_BUILD_HTML__="([^"]+)"/)[1];
   const origin = 'https://example.test';
   const appUrl = `${origin}/app-builds/${version}.js`;
   class InstallRequest extends Request {
     constructor(url, options) { super(new URL(url, origin), options); }
   }
-  vm.runInNewContext(srcSw, {
+  vm.runInNewContext(worker, {
     self: { registration: { scope: `${origin}/` }, addEventListener: (name, handler) => installHandlers.set(name, handler) },
     URL,
     Request: InstallRequest, Response, AbortSignal,

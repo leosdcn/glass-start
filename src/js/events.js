@@ -10,7 +10,7 @@ import { state } from './state/store.js';
 import { dom } from './state/dom.js';
 import { OverlayStack } from './core/overlay-stack.js';
 import { switchToStart, switchToNav, isScreenTransitioning, reconcileScreenState } from './core/screen-state.js';
-import { hideSuggestions, closeDropdown, toggleDropdown } from './modules/search.js';
+import { hideSuggestions, cancelSuggestionRequest, closeDropdown, toggleDropdown } from './modules/search.js';
 import { handleSearchKeydown } from './modules/search-events.js';
 import { toggleWeatherPopover, closeWeatherPopover, updateWeather } from './modules/weather.js';
 import { updateClock, stopClockTimer } from './modules/clock.js';
@@ -76,29 +76,16 @@ export function bindEvents() {
 
     searchInput?.addEventListener('focus', closeWeatherPopover);
 
-    if (engineBtn) {
-        engineBtn.addEventListener('click', e => {
-            e.stopPropagation();
-            hideSuggestions();
-            closeWeatherPopover();
-            toggleDropdown();
-        });
-    }
+    engineBtn?.addEventListener('click', toggleDropdown);
+    weatherBtn?.addEventListener('click', toggleWeatherPopover);
 
-    if (weatherBtn) {
-        weatherBtn.addEventListener('click', e => {
-            e.stopPropagation();
-            closeDropdown();
-            hideSuggestions();
-            toggleWeatherPopover();
-        });
-    }
-
-    document.addEventListener('click', () => {
-        closeDropdown();
-        hideSuggestions();
-        closeWeatherPopover();
-    });
+    document.addEventListener('click', e => {
+        const target = e.target;
+        if (!(target instanceof Node)) return;
+        // 防抖中的联想还未入栈，也要在点击搜索框以外时作废。
+        if (!OverlayStack.has('suggestions') && !searchInput?.contains(target)) cancelSuggestionRequest();
+        OverlayStack.closeOutsidePanels(target);
+    }, { capture: true });
     // 切到新标签页时保留候选，回到原页后可继续打开其他结果。
     window.addEventListener('blur', () => {
         closeDropdown();
@@ -161,7 +148,6 @@ export function bindEvents() {
                 e.stopPropagation();
                 return;
             }
-            closeDropdown();
             hideSuggestions();
             searchInput?.blur();
             return;
