@@ -257,5 +257,6 @@
     "cache.discardDraft": "Reloading will discard any unsaved changes.",
     "settings.discardFailedWallpaper": "The new wallpaper could not be previewed. Keep the last successful preview or saved wallpaper and continue saving?",
     "settings.saveWithoutFailedWallpaper": "Keep wallpaper and save",
-    "cache.clearFailed": "Could not finish clearing the cache. Your settings draft is still open."
+    "cache.clearFailed": "Could not finish clearing the cache. Your settings draft is still open.",
+    "ui.file.too.large": "File is too large. Choose a file up to {size} MB."
 }

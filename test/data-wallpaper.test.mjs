@@ -138,7 +138,7 @@ test('启动壁纸撞上切屏时先显示，取色等待空闲且不会覆盖�
   }
 });
 
-test('壁纸解码、迟到结果隔离与上传压缩', async () => {
+test('壁纸解码、迟到结果隔离与原图上传校验', async () => {
   const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+j1ioAAAAASUVORK5CYII=', 'base64');
   const { server, chrome, evalJS } = await launchSession(0, {
     '/decode.png': (req, res) => {
@@ -210,36 +210,26 @@ test('壁纸解码、迟到结果隔离与上传压缩', async () => {
       };
       put(new File(['x'], 'bad.txt', { type: 'text/plain' }));
       const invalidBlocked = OverlayStack.top()?.id === 'editModal' && !!dom.wallpaperError.textContent;
+      put(new File(['<svg></svg>'], 'bad.svg', { type: 'image/svg+xml' }));
+      const svgBlocked = !!dom.wallpaperError.textContent;
+      const oversizedBlocked = uploadWallpaper({ type: 'image/png', size: CONFIG.APPEARANCE.MAX_UPLOAD_BYTES + 1 }) === false
+        && !!dom.wallpaperError.textContent;
       const source = document.createElement('canvas');
-      source.width = 3000;
-      source.height = 2000;
-      source.getContext('2d').fillRect(0, 0, 3000, 2000);
+      source.width = 64;
+      source.height = 48;
+      source.getContext('2d').fillRect(0, 0, 64, 48);
       const blob = await new Promise(resolve => source.toBlob(resolve, 'image/png'));
-      const original = HTMLCanvasElement.prototype.toDataURL;
-      let compressed;
-      HTMLCanvasElement.prototype.toDataURL = function(type, quality) {
-        compressed = { width: this.width, height: this.height, type, quality };
-        return original.call(this, type, quality);
-      };
       const before = state.customWallpaper;
-      try {
-        put(new File([blob], 'large.png', { type: 'image/png' }));
-        await wait(() => modalState.draftWallpaper?.startsWith('data:image/jpeg'));
-        const previewOnly = state.customWallpaper === before;
-        await saveEditModal();
-        const fit = compressed.width <= CONFIG.APPEARANCE.MAX_UPLOAD_WIDTH
-          && compressed.height <= CONFIG.APPEARANCE.MAX_UPLOAD_HEIGHT
-          && Math.abs(compressed.width / compressed.height - 1.5) < 0.01;
-        return {
-          invalidBlocked, previewOnly, fit, jpeg: compressed.type === 'image/jpeg',
-          quality: compressed.quality === CONFIG.APPEARANCE.JPEG_QUALITY,
-          persisted: state.customWallpaper?.startsWith('data:image/jpeg') &&
-            (await getWallpaperSelectionDB())?.wallpaper === state.customWallpaper,
-          inputCleared: input.value === ''
-        };
-      } finally {
-        HTMLCanvasElement.prototype.toDataURL = original;
-      }
+      put(new File([blob], 'sample.png', { type: 'image/png' }));
+      await wait(() => modalState.draftWallpaper?.startsWith('data:image/png'));
+      const previewOnly = state.customWallpaper === before;
+      await saveEditModal();
+      return {
+        invalidBlocked, svgBlocked, oversizedBlocked, previewOnly,
+        persisted: state.customWallpaper?.startsWith('data:image/png') &&
+          (await getWallpaperSelectionDB())?.wallpaper === state.customWallpaper,
+        inputCleared: input.value === ''
+      };
     })()`);
     assert.equal(Object.values(uploadResult).every(Boolean), true, JSON.stringify(uploadResult));
   } finally {

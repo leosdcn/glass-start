@@ -371,6 +371,10 @@ export function exportBookmarksJSON() {
  */
 export function importBookmarksJSON(file) {
     if (!file || (modalState.phase !== 'editing' && modalState.phase !== 'preparing-save')) return;
+    if (file.size > CONFIG.SECURITY.MAX_IMPORT_BYTES) {
+        showConfirm(t('ui.file.too.large', { size: Math.round(CONFIG.SECURITY.MAX_IMPORT_BYTES / (1024 * 1024)) }), null, t('ui.import.failed'));
+        return;
+    }
     cancelPendingImport();
 
     const controller = new AbortController();

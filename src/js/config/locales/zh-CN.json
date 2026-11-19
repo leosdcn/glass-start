@@ -251,5 +251,6 @@
     "cache.discardDraft": "刷新将丢弃未保存的更改。",
     "settings.discardFailedWallpaper": "新壁纸预览失败。是否保留上一次成功预览或已保存的壁纸，并继续保存？",
     "settings.saveWithoutFailedWallpaper": "保留壁纸并保存",
-    "cache.clearFailed": "缓存清理未完成，设置草稿仍保留在当前窗口。"
+    "cache.clearFailed": "缓存清理未完成，设置草稿仍保留在当前窗口。",
+    "ui.file.too.large": "文件过大，请选择不超过 {size} MB 的文件。"
 }

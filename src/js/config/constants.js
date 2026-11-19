@@ -108,9 +108,7 @@ export const CONFIG = Object.freeze({
             APPEARANCE: Object.freeze({
                 DEFAULT_MASK_OPACITY: 15,     // 默认遮罩暗度百分比 (%)
                 MAX_MASK_OPACITY: 80,         // 遮罩透明度最大百分比 (%)
-                MAX_UPLOAD_WIDTH: 3840,       // 自定义壁纸最大宽度 (px)
-                MAX_UPLOAD_HEIGHT: 2160,      // 自定义壁纸最大高度
-                JPEG_QUALITY: 0.95,           // Canvas 壁纸压缩质量
+                MAX_UPLOAD_BYTES: 10 * 1024 * 1024, // 自定义壁纸上传文件体积上限 (10 MB)
                 THEME_SAMPLE_WIDTH: 16,       // 壁纸取色采样宽度 (px)
                 THEME_SAMPLE_HEIGHT: 4,       // 壁纸取色采样高度 (px)
                 THEME_SAMPLE_AREA_RATIO: 0.15, // 可见壁纸顶部的主题采样比例；环境色采样完整可见区域
@@ -150,6 +148,7 @@ export const CONFIG = Object.freeze({
                 MAX_NAME_CHARS: 60,           // 导入书签名称截断字符上限
                 MAX_DESC_CHARS: 40,           // 导入书签描述截断字符上限
                 MAX_ICON_CHARS: 2048,         // 自定义书签图标字符上限 (防 LocalStorage 膨胀)
+                MAX_IMPORT_BYTES: 5 * 1024 * 1024, // 书签 JSON 导入文件体积上限 (5 MB)
                 IME_COMPOSITION_KEY_CODE: 229 // Android Chrome 虚拟键盘 IME 组合态 keyCode 兼容防护
             }),
             // 快捷键列表与致谢信息在模块评估时由 t() 一次性求值并 Object.freeze 固化。

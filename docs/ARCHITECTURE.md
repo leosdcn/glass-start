@@ -34,7 +34,7 @@
 | `docs/performance/`、`docs/assets/` | 性能原始数据与文档图片 |
 | `dist/`、`extension/` | 网页版与 Chrome 扩展的构建产物，由构建生成，不手工修改，不纳入 Git |
 | `.github/` | CI、部署工作流及 Issue / PR 模板 |
-| 根目录工程文件 | `package.json` 与锁文件管理依赖和命令；`tsconfig.json` 与 `tsconfig.sw.json` 管理页面及 Service Worker 类型检查；`wrangler.jsonc` 配置 Cloudflare 部署；`start.command` 为 macOS 启动入口 |
+| 根目录工程文件 | `package.json` 与锁文件管理依赖和命令；`tsconfig.json`、`tsconfig.sw.json` 与 `tsconfig.scripts.json` 分别管理页面、Service Worker 及工程/测试辅助脚本的类型检查；`wrangler.jsonc` 配置 Cloudflare 部署；`start.command` 为 macOS 启动入口 |
 
 `test/artifacts/` 保存本地测试输出。已归档的调试产物可在 `test/artifacts/archive/YYYY-MM-DD/` 的 `index.json` 中按原路径查找，索引记录文件清单和 SHA-256。该目录由 Git 忽略，历史报告引用的本地产物仅在保有相关记录的工作区可查。
 
@@ -167,8 +167,8 @@ HTML 使用唯一构建插槽注入入口、样式和 SVG。标记缺失、重�
 #### 工程脚本模块格式约定 (`.cjs` vs `.mjs`)
 
 工程根目录 `scripts/` 下根据运行时职责与加载模式明确区分模块格式：
-- **CommonJS (`.cjs`)**：用于构建主链路（`build.cjs`、`build-extension.cjs`、`html-template.cjs`、`server.cjs`、`watch.cjs`）。以同步方式调用 `child_process.execFileSync` 与 `esbuild.buildSync`，保持构建发布状态机的线性确定性与异常拦截。
-- **ES Modules (`.mjs`)**：用于静态代码分析与周边工具（`lint.mjs`、`lint-dom.mjs`、`lint-css.mjs`、`lint-i18n.mjs`、`sync-icons.mjs`）。天然对齐 `src/js/` 业务源码的 ESM import 特性，便于通过动态 `import()` 原生加载业务配置（如 `backgrounds.js`、`themes.js`）并复用 Acorn 语法分析树。
+- **CommonJS (`.cjs`)**：用于构建、发布与本地服务主链路（`build.cjs`、`build-extension.cjs`、`publish-build.cjs`、`retain-deployed.cjs`、`html-template.cjs`、`server.cjs`、`watch.cjs`、`terminal.cjs`）。以同步方式调用 `child_process.execFileSync` 与 `esbuild.buildSync`，保持构建发布状态机的线性确定性与异常拦截。
+- **ES Modules (`.mjs`)**：用于静态代码分析、校验与周边工具（`lint.mjs`、`lint-dom.mjs`、`lint-css.mjs`、`lint-i18n.mjs`、`sync-icons.mjs`、`validate-w3c.mjs`、`capture-preview.mjs`）。天然对齐 `src/js/` 业务源码的 ESM import 特性，便于通过动态 `import()` 原生加载业务配置（如 `backgrounds.js`、`themes.js`）并复用 Acorn 语法分析树。
 
 Chrome 扩展通过 `npm run build:extension` 独立生成 `extension/`。`scripts/build-extension.cjs` 复用同一编译入口，在临时目录中把内联脚本按原位置和执行顺序外置，并用 `src/extension/manifest.json` 替换 PWA 清单，版本号仍取自 `package.json`。扩展使用 Manifest V3 覆盖新标签页，不包含后台脚本或网页 Service Worker；本地资源随扩展更新。编译标记 `window.__GLASS_EXTENSION__` 让搜索联想使用 JSON 请求并裁掉 JSONP 分支，其余业务和 LocalStorage / IndexedDB 存储复用网页源码。扩展与网页拥有独立的存储来源。
 
@@ -260,7 +260,7 @@ flowchart LR
 
 网络直链预览完成加载与解码后，将同一个图片对象交给渲染器；再次选择时可复用渲染器最近加载的图片。同一选择在图片准备和存储期间共享任务，失败后允许重试。保存前比较 IndexedDB 中的实际选择记录，内容相同时跳过写入。暗度保存和延迟取色更新提示前会核对已落盘的壁纸。浏览器支持 Web Locks 时，同源标签的壁纸提交和提示写入串行执行。LocalStorage 的轻量提示只在内容变化时更新。
 
-壁纸内容（Data URL 或图片 URL）与预设索引只写入 IndexedDB 的 `wallpaperSelection` 记录。写入及删除等待事务 `complete` 才报告成功，失败时保留原记录。选择任务明确区分草稿预览和即时切换，迟到的图片结果不能覆盖新选择。各写入入口共用提交队列。上传图片按配置限制尺寸并压缩。
+壁纸内容（Data URL 或图片 URL）与预设索引只写入 IndexedDB 的 `wallpaperSelection` 记录。写入及删除等待事务 `complete` 才报告成功，失败时保留原记录。选择任务明确区分草稿预览和即时切换，迟到的图片结果不能覆盖新选择。各写入入口共用提交队列。上传图片按配置限制文件大小（10 MB）与安全栅格格式，解码通过后直接保留原图。
 
 打开设置时作废尚未提交的即时选择，等待正在执行的写入后读取完整的已提交记录。保存在异步读取后检查会话有效性，失效时不开始新写入。已经开始的事务完成后仍同步已提交选择，旧设置会话不再改写当前草稿或窗口。
 
@@ -365,5 +365,5 @@ Chrome 扩展 CSP 由 `src/extension/manifest.json` 定义，构建时同步到�
 - 浏览器验收以 Chrome 为准，使用 CDP 验证桌面、移动视口及触摸交互；日常开发、全面测试和发布均不要求 Safari/iOS 真机走查，仅在用户明确要求时进行该专项。导航完成与切屏完成分别等待，避免固定延时掩盖竞态。
 - `infra-chrome-extension.test.mjs` 在 `npm test` 的会话目录构建扩展，并在独立 Chrome 配置中实际加载，验证新标签页、首屏主题、三引擎联想、设置保存、离线重载及 CSP。联想响应使用固定数据，不能替代真实第三方接口联网走查。
 - `scripts/validate-w3c.mjs` 不自动构建，发布时须校验本轮生成的 `dist/`。它通过 Nu 检查完整 HTML，默认使用 W3C 公共服务，CI 通过 `W3C_VALIDATOR_URL` 使用 runner 本地服务。Stylelint 18 检查每个内嵌 `style` 块的语法、属性值、at-rule 前导及描述符，不启用排版规则或源码中的禁用注释。Stylelint 18 的 `declaration-property-value-no-unknown` 检查含已声明变量的属性值，配合 `value-no-invalid` 检查不可解析的值与非法算式，两条规则职责不同，升级时须保留对应回归。Nu CSS 诊断只有定位在已独立校验的样式块内时才采用 Stylelint 结果并单独计数；不使用属性名称白名单，行内 `style` 属性及无法定位的错误仍由 Nu 检查。Stylelint 不是运行时层叠、变量求值结果或全部浏览器支持情况的证明。请求以 canonical 地址设置 `Content-Location`，可通过 `W3C_DOCUMENT_URL` 覆盖，提交内容仍为本地 HTML；来源语境检查不替代真实部署的响应头验收。退出码 0 表示无阻断错误，1 表示页面校验错误，2 表示服务、工具或响应异常导致校验未完成；未完成时需恢复后重试。通过不代表完整无障碍、视觉或功能合规，样式完整性由基础架构测试另行检查。
-- `typecheck` 使用 JSDoc 与 `types.d.ts` 检查 `src/js/` 下全部 JavaScript 模块及 `test/types/contracts.js` 中的负向类型契约；页面与 `sw.js` 分别使用 DOM 和 Worker 类型环境。覆盖范围以 `tsconfig.json` 和 `tsconfig.sw.json` 为准，不包含全部 Node 工具和测试脚本。`npm test` 同样执行两套配置。
+- `typecheck` 使用 JSDoc 与 `types.d.ts` 检查 `src/js/` 下全部 JavaScript 模块及 `test/types/contracts.js` 中的负向类型契约，在独立 Worker 类型环境中检查 `sw.js`，并通过 `tsconfig.scripts.json` 检查 `scripts/` 与 `test/support/` 下的 Node 工具脚本（不含顶层测试用例文件）。覆盖范围以 `tsconfig.json`、`tsconfig.sw.json` 和 `tsconfig.scripts.json` 为准，`npm test` 执行前两套配置。
 - 生命周期约束通过页面行为测试验证；Service Worker 测试执行完整脚本及真实升级流程，不通过截取函数体判断实现是否正确。
