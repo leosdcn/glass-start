@@ -5,6 +5,8 @@
  */
 import { IMAGE_CACHE_PREFIX, scopedCachePrefix, isScopedCache } from './src/js/utils/offline-cache.js';
 
+import { appScriptPath, buildFromScriptPath, legacyBuildId, cacheBuildTime, htmlFingerprint, scriptFingerprint } from './src/js/utils/build-identity.js';
+
 /** @typedef {ServiceWorkerGlobalScope & typeof globalThis} ServiceWorkerContext */
 
 // 缓存池定义（打包 build.cjs 时自动替换 CORE_CACHE 为时间戳版本）
@@ -19,7 +21,7 @@ const IMAGE_PREFIX = CACHE_PREFIX + IMAGE_CACHE_PREFIX;
 const IMG_CACHE = IMAGE_PREFIX + CORE_CACHE;
 const CORE_PREFIX = CACHE_PREFIX + 'app-core-';
 const DOCUMENT_ASSET = './';
-const APP_ASSET = `./app-builds/${CORE_CACHE}.js`;
+const APP_ASSET = `./${appScriptPath(CORE_CACHE)}`;
 const ACTIVATED_CORE = new URL('./.glass-core-activated', SCOPE_URL).href;
 const CORE_PREDECESSORS = new URL('./.glass-core-predecessors', SCOPE_URL).href;
 const LEGACY_APP = new URL('./app.js', SCOPE_URL).href;
@@ -131,12 +133,6 @@ async function validateCoreCache(cache) {
     }
 }
 
-/** @param {Response} response @param {string} property @param {string} version */
-async function matchesBuild(response, property, version) {
-    const text = await response.clone().text();
-    return text.match(new RegExp(property + `\\s*=\\s*["']([^"']+)`))?.[1] === version;
-}
-
 /** @param {Response | undefined} response */
 function isImageResponse(response) {
     return !!response?.ok && /^image\//i.test(response.headers.get('content-type') ?? '');
@@ -156,8 +152,8 @@ async function isManifestResponse(response) {
 /** @param {string} asset @param {Response | undefined} response */
 async function validCoreResponse(asset, response) {
     if (!response?.ok) return false;
-    const property = asset === APP_ASSET ? '__GLASS_BUILD_APP__' : '__GLASS_BUILD_HTML__';
-    return matchesBuild(response, property, CORE_CACHE);
+    const fingerprint = asset === APP_ASSET ? scriptFingerprint : htmlFingerprint;
+    return fingerprint(await response.clone().text()) === CORE_CACHE;
 }
 
 /** @param {Cache} cache @param {string} asset @param {RequestCache} cacheMode */
@@ -277,11 +273,6 @@ function recoveryResponse() {
     })());
 });
 
-/** @param {string} key */
-function cacheBuildTime(key) {
-    return Number(key.match(/app-core-v(\d+)(?:-[0-9a-f]{16})?$/)?.[1] || 0);
-}
-
 // 仅在网络失败时读取上一版图片，避免在线更新继续使用旧内容。
 /** @param {Request} request */
 async function previousImageResponse(request) {
@@ -357,21 +348,21 @@ async function previousImageResponse(request) {
     }
 
     // 已解析的旧 HTML 即使被新版 Worker 接管，仍只会收到自己引用的构建。
-    const legacyVersion = path === 'app.js' ? urlObj.searchParams.get('v') : null;
-    const scriptVersion = /^app-builds\/(app-core-v\d+(?:-[0-9a-f]{16})?)\.js$/.exec(path ?? '')?.[1];
-    const requestedVersion = scriptVersion ?? (/^app-core-v\d+$/.test(legacyVersion ?? '') ? legacyVersion : null);
+    const legacyVersion = path === 'app.js' ? legacyBuildId(urlObj.searchParams.get('v')) : undefined;
+    const scriptVersion = buildFromScriptPath(path);
+    const requestedVersion = scriptVersion ?? legacyVersion;
     if (requestedVersion) {
         e.respondWith((async () => {
             const asset = scriptVersion ? `./${path}` : './app.js';
             const cacheName = CACHE_PREFIX + requestedVersion;
             try {
                 const cached = await caches.match(new URL(asset, SCOPE_URL), { cacheName });
-                if (cached?.ok && await matchesBuild(cached, '__GLASS_BUILD_APP__', requestedVersion)) {
+                if (cached?.ok && scriptFingerprint(await cached.clone().text()) === requestedVersion) {
                     return cached;
                 }
                 if (!scriptVersion) return make503Response();
                 const response = await fetch(e.request, cached ? { cache: 'reload' } : undefined);
-                if (!response.ok || !await matchesBuild(response, '__GLASS_BUILD_APP__', requestedVersion)) {
+                if (!response.ok || scriptFingerprint(await response.clone().text()) !== requestedVersion) {
                     return make503Response();
                 }
                 if (requestedVersion === CORE_CACHE) {

@@ -16,7 +16,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="Glass Start">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://api.bing.com https://suggestqueries.google.com https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https://api.open-meteo.com https://geocoding-api.open-meteo.com https://myip.ipip.net https://ipwho.is https://a.favicon.im https://www.google.com https://*.gstatic.com https://cloudflareinsights.com https://zh.wikipedia.org https://en.wikipedia.org; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'self' https://www.bing.com/images/search https://lens.google.com/v3/upload https://www.google.com/search">
+    <!-- INJECT_WEB_CSP -->
     <meta name="referrer" content="strict-origin-when-cross-origin">
     <meta name="description" content="极简纯净的毛玻璃浏览器起始页。" data-i18n-content="ui.a.clean.minimal.glass.browser.start">
     <meta name="keywords" content="起始页, 浏览器导航, 玻璃拟态, 个人主页, Glassmorphism, Startpage" data-i18n-content="ui.start.page.bookmarks.glassmorphism.personal.homepage">
@@ -207,7 +207,7 @@
         <!-- 右上角天气胶囊，随起始页一起切屏。 -->
         <div id="weatherWidget" class="select-none">
             <button id="weatherBtn" type="button" aria-expanded="false" aria-controls="weatherPopover" aria-haspopup="dialog" aria-label="--°·天气，点击查看实时天气与详细预报" class="glass apple-radius px-3 py-1.5 sm:px-3.5 sm:py-2 text-white/80 enabled:hover:text-white border border-white/12 flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-medium glass-interactive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 fade-in" data-i18n-aria-label="ui.weather.open.current.conditions.and.forecast">
-                <span id="weatherIcon" aria-hidden="true" class="text-sm sm:text-base leading-none select-none flex items-center justify-center"><img src="./icons/emoji/sun_behind_small_cloud.svg" class="size-4 sm:size-4.5 shrink-0 object-contain select-none inline-block align-middle pointer-events-none" alt="" aria-hidden="true"></span>
+                <span id="weatherIcon" aria-hidden="true" class="text-sm sm:text-base leading-none select-none flex items-center justify-center"></span>
                 <span id="weatherTemp" class="tabular-nums font-semibold tracking-tight leading-none">--°</span>
                 <span aria-hidden="true" class="text-white/30 font-light select-none">·</span>
                 <span id="weatherCity" class="text-white/80 max-w-22 sm:max-w-30 truncate text-[0.6875rem] sm:text-xs tracking-[-0.012em]" data-i18n="ui.weather">天气</span>
@@ -216,43 +216,10 @@
             <div id="weatherPopover" role="dialog" aria-modal="false" aria-label="实时天气详细预报" inert aria-hidden="true" class="dropdown-menu absolute p-3.5 sm:p-4 glass-strong apple-radius border border-white/20 shadow-2xl z-[var(--z-dropdown)] select-none" data-i18n-aria-label="ui.current.weather.and.forecast"></div>
         </div>
         <script>
-            // 使用缓存预渲染天气；数值规则与运行时来自同一模块。
             (function(){
-                /* INJECT_WEATHER_NUM */
-                try {
-                    const c = JSON.parse(localStorage.getItem('glass_weather_cache') || 'null');
-                    if (isUsableWeatherData(c)) {
-                        const i = document.getElementById('weatherIcon');
-                        const t = document.getElementById('weatherTemp');
-                        const ct = document.getElementById('weatherCity');
-                        if (i && c.current.icon) {
-                            /* INJECT_WEATHER_ICONS */
-                            // 首屏只使用配置中的本地图标，缓存中的其他内容作为纯文本显示。
-                            const p = Object.hasOwn(m, c.current.icon) ? m[c.current.icon] : null;
-                            if (p) i.innerHTML = '<img src="' + p + '" class="size-4 sm:size-4.5 shrink-0 object-contain select-none inline-block align-middle pointer-events-none" alt="" aria-hidden="true">';
-                            else i.textContent = c.current.icon;
-                        }
-                        if (t) {
-                            const u = parseTempUnit(localStorage.getItem('glass_temp_unit'));
-                            t.textContent = toDisplayTemp(c.current.temp, u) + '°';
-                        }
-                        const i18n = window.__GLASS_I18N__;
-                        const city = c.location?.name || i18n.t('ui.weather');
-                        if (ct) {
-                            ct.textContent = city;
-                            ct.removeAttribute('data-i18n');
-                        }
-                        const btn = document.getElementById('weatherBtn');
-                        if (btn && t) {
-                            btn.setAttribute('aria-label', i18n.t('weather.capsule', {
-                                temperature: t.textContent.replace('°', ''), city,
-                                description: i18n.weatherDescription(c.current.weatherCode)
-                            }));
-                            btn.removeAttribute('data-i18n-aria-label');
-                        }
-                    }
-                } catch(e){}
-            })()
+                /* INJECT_WEATHER_CAPSULE */
+                renderCachedWeatherCapsule();
+            })();
         </script>
         <div id="startContent" class="flex h-full flex-col items-center">
             <!-- 时钟 -->

@@ -1,3 +1,4 @@
+import { settleAnimation } from '../core/motion.js';
 import { CONFIG } from '../config/constants.js';
 import { dom } from '../state/dom.js';
 import { updateAllBookmarkCounters } from './bookmark-editor.js';
@@ -22,19 +23,11 @@ function settleBookmarkRows(list) {
 function playRowMotion(row, keyframes, duration, easing, onSettle) {
     const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
     const animation = row.animate(keyframes, { duration, easing, fill: 'both' });
-    const cancel = () => settle(false);
-    const onMotion = () => { if (motion.matches) cancel(); };
-    /** @param {boolean} completed */
-    const settle = completed => {
-        if (cancelRowMotion.get(row) !== cancel) return;
-        cancelRowMotion.delete(row);
-        motion.removeEventListener('change', onMotion);
-        animation.cancel();
+    const cancel = settleAnimation(animation, motion, completed => {
+        if (cancelRowMotion.get(row) === cancel) cancelRowMotion.delete(row);
         onSettle?.(completed);
-    };
+    });
     cancelRowMotion.set(row, cancel);
-    motion.addEventListener('change', onMotion);
-    animation.finished.then(() => settle(true), cancel);
 }
 
 /** 删除和重排共用同一份位移动画。先完成旧操作，再分批测量布局。 */

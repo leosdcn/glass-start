@@ -13,15 +13,6 @@ export function normalizeEngine(key) {
     return typeof key === 'string' && Object.hasOwn(ENGINE_META, key) ? key : DEFAULT_ENGINE;
 }
 
-export const IMAGE_SEARCH_UPLOADS = Object.freeze({
-    bing: {
-        url: 'https://www.bing.com/images/search?view=detailv2&iss=sbiupload&FORM=SBIVSP&sbisrc=ImgPicker&idpbck=1',
-        maxPixels: 1_200_000,
-        jpegQuality: 0.7
-    },
-    google: { url: 'https://lens.google.com/v3/upload?ep=cntpubb&re=df&s=4' }
-});
-
 export const IMAGE_SEARCH_LINKS = Object.freeze({
     bing: 'https://www.bing.com/images/search?view=detailv2&iss=sbi&FORM=SBIIRP&sbisrc=UrlPaste',
     google: 'https://lens.google.com/uploadbyurl'

@@ -152,6 +152,12 @@ test('并发网页构建各自产生一致快照，测试服务不读取随后�
       } finally { await server.close(); }
     }
   `], { cwd, env: { GLASS_TEST_TMPDIR: snapshot } });
+
+  // 本地回收产物也必须校验正文指纹，损坏的上一版脚本不能带入新发布。
+  fs.writeFileSync(join(dist, script), 'window.__GLASS_BUILD_APP__="app-core-v9";');
+  await node(['scripts/build.cjs'], { cwd });
+  assert.equal(fs.existsSync(join(dist, script)), false);
+  verify(dist, buildId(dist));
 });
 
 test('发布暂存目录失败时恢复上一次完整产物', t => {

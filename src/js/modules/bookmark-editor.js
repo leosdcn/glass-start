@@ -1,3 +1,4 @@
+import { settleAnimation } from '../core/motion.js';
 import { t } from '../core/i18n.js';
 import { CONFIG } from '../config/constants.js';
 import { escapeHtml, safeUrl } from '../utils/helpers.js';
@@ -91,9 +92,16 @@ export function appendDraftBookmarkRow({ name = '', url = '', icon = '', desc, o
     const div = /** @type {HTMLElement|null} */ (tempDiv.firstElementChild);
     if (!div) return null;
 
-    div.classList.add('animate-item-in');
-    div.addEventListener('animationend', () => div.classList.remove('animate-item-in'), { once: true });
+    const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const easing = motion.matches ? '' : getComputedStyle(editList).getPropertyValue('--ease-spring').trim();
     editList.appendChild(div);
+    if (!motion.matches) {
+        const animation = div.animate([
+            { opacity: 0, transform: 'translateY(-8px) scale(0.97)' },
+            { opacity: 1, transform: 'translateY(0) scale(1)' }
+        ], { duration: 220, easing });
+        settleAnimation(animation, motion);
+    }
 
     const newImg = /** @type {HTMLImageElement|null} */ (div.querySelector('.edit-favicon-img'));
     if (newImg) {

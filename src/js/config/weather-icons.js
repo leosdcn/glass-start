@@ -1,3 +1,6 @@
+export const WEATHER_CACHE_KEY = 'glass_weather_cache';
+export const WEATHER_TEMP_UNIT_KEY = 'glass_temp_unit';
+
 /**
  * 天气 Emoji / 本地 SVG 图标映射：首屏预渲染与运行时共用，由构建注入 index.html。
  * 新增映射时 lint 会校验本地图标文件存在。

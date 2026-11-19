@@ -1,6 +1,7 @@
 /** 搜索输入、输入法、候选与引擎菜单的控件事件；跨业务关闭和全局快捷键由 events.js 协调。 */
 import { state } from '../state/store.js';
 import { dom } from '../state/dom.js';
+import { settleAnimation } from '../core/motion.js';
 import { OverlayStack } from '../core/overlay-stack.js';
 import { handleRovingKeyNav } from '../utils/helpers.js';
 import { activateSuggestion, selectSuggestion, fetchSuggestions, cancelSuggestionRequest, cancelSearchSubmission, hideSuggestions, closeDropdown, setEngine, getSelectedSuggestionIdx, scheduleSuggestions, handleSuggestionKeyNav, getImageSearchEngine, submitImageSearch } from './search.js';
@@ -181,14 +182,14 @@ export function bindSearchEvents() {
             const btn = /** @type {HTMLElement|null} */ (targetEl?.closest('[data-engine]'));
             if (btn?.dataset.engine) {
                 const previousEngine = state.engine;
-                const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-                const shouldAnimate = btn.dataset.engine !== previousEngine && !reducedMotion;
+                const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
+                const shouldAnimate = btn.dataset.engine !== previousEngine && !motion.matches;
                 const previousSvg = shouldAnimate ? dom.engineIcon?.querySelector(':scope > svg:not([data-leaving])') : null;
                 const leavingSvg = previousSvg instanceof SVGElement ? /** @type {SVGElement} */ (previousSvg.cloneNode(true)) : null;
 
                 setEngine(btn.dataset.engine);
 
-                if (state.engine !== previousEngine && !reducedMotion && dom.engineIcon) {
+                if (state.engine !== previousEngine && !motion.matches && dom.engineIcon) {
                     const enteringSvg = dom.engineIcon.querySelector(':scope > svg:not([data-leaving])');
                     if (leavingSvg) {
                         leavingSvg.dataset.leaving = '1';
@@ -204,15 +205,15 @@ export function bindSearchEvents() {
                             ],
                             { duration: 100, easing: 'cubic-bezier(0.4, 0, 0.2, 1)', fill: 'forwards' }
                         );
-                        exitAnim.finished.then(() => leavingSvg.remove(), () => leavingSvg.remove());
+                        settleAnimation(exitAnim, motion, () => leavingSvg.remove());
                     }
-                    enteringSvg?.animate(
+                    if (enteringSvg) settleAnimation(enteringSvg.animate(
                         [
                             { opacity: 0, transform: 'scale(0.55)' },
                             { opacity: 1, transform: 'scale(1)' }
                         ],
                         { delay: 55, duration: 200, easing: 'cubic-bezier(0.2, 0.95, 0.25, 1)', fill: 'backwards' }
-                    );
+                    ), motion);
                 }
                 closeDropdown();
                 const query = dom.searchInput?.value.trim();

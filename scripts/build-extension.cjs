@@ -2,6 +2,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { executeBuild, PATHS } = require('./build.cjs');
 const { replaceOnce } = require('./html-template.cjs');
+const { getContentSecurityPolicy } = require('./content-security-policy.cjs');
 const { publishBuild } = require('./publish-build.cjs');
 
 // 复用网页编译与资源注入，独立输出；失败时保留上一份扩展。
@@ -12,6 +13,7 @@ function buildExtension(output = path.join(PATHS.root, 'extension')) {
         const rawVersion = JSON.parse(fs.readFileSync(PATHS.pkgJson, 'utf8')).version;
         const versionMatch = rawVersion.match(/^(\d+(?:\.\d+){0,3})/);
         manifest.version = versionMatch ? versionMatch[1] : rawVersion;
+        Object.assign(manifest, getContentSecurityPolicy().extensionPolicy);
         fs.writeFileSync(path.join(staging, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n');
         const langConfig = fs.readFileSync(path.join(PATHS.src, 'js/config/language.js'), 'utf8');
         const langMatch = langConfig.match(/SUPPORTED_LANGUAGES\s*=\s*Object\.freeze\((\[[^\]]+\])\)/);
@@ -35,8 +37,7 @@ function buildExtension(output = path.join(PATHS.root, 'extension')) {
         }
 
         let html = fs.readFileSync(path.join(staging, 'index.html'), 'utf8');
-        // 移除扩展环境冗余的 CSP Meta（MV3 完全由 manifest.json CSP 控制）与社交/搜索引擎 Meta
-        html = html.replace(/<meta\b[^>]*http-equiv="Content-Security-Policy"[^>]*>/i, '');
+        // 移除扩展环境的社交/搜索引擎 Meta。
         html = html.replace(/<link\b[^>]*rel="(?:canonical|manifest)"[^>]*>/gi, '');
         html = html.replace(/<meta\b[^>]*(?:name="robots"|property="og:[^"]+")[^>]*>/gi, '');
         // 外置首屏脚本会阻塞解析；先应用现有样式，避免等待脚本时透出白色画布。

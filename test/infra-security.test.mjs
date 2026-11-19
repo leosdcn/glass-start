@@ -73,7 +73,11 @@ test('dist/ 产物完整性与 Cache-Control 标头规则', () => {
   const validWp = ['wallpapers', 'icons'].every(dir => { const cc = rules['/' + dir + '/*']?.['cache-control'] || ''; return cc.includes('max-age=0') && cc.includes('must-revalidate') && !cc.includes('immutable'); });
   const validIcon = iconCc.includes('max-age=604800');
   const srcHeadersContent = readFileSync(join(ROOT, 'public', '_headers'), 'utf-8');
-  const syncOk = srcHeadersContent.trim() === headersContent.trim();
+  const webPolicy = readFileSync(join(DIST, 'index.html'), 'utf8')
+    .match(/http-equiv="Content-Security-Policy" content="([^"]+)"/)?.[1];
+  assert.ok(webPolicy);
+  assert.equal(rules['/*']['content-security-policy'], webPolicy + "; frame-ancestors 'self'; upgrade-insecure-requests");
+  const syncOk = srcHeadersContent.replace('{{WEB_CSP}}', rules['/*']['content-security-policy']).trim() === headersContent.trim();
   assert.ok(validNoCache && appCc.includes('immutable') && validWp && validIcon && syncOk, 'Cache-Control 头配置合规');
 
   // 1.3 构建脚本 PATHS 常量映射与 Watcher 监听目标有效性校验
@@ -350,18 +354,21 @@ test('天气首屏安全显示缓存图标并恢复温标', () => {
   for (const [icon, tempUnit, expectedTemp] of [
     ['x" onerror="window.__injected=1" data-x=".svg', null, '20°'],
     ['__proto__', '"F"', '68°'],
-    ['☀️', 'F', '68°']
+    ['☀️', 'F', '68°'],
+    ['./icons/emoji/sun_behind_small_cloud.svg', null, '20°']
   ]) {
     const elements = Object.fromEntries(['weatherIcon', 'weatherTemp', 'weatherCity', 'weatherBtn']
-      .map(id => [id, { textContent: '', innerHTML: '', setAttribute() {}, removeAttribute() {} }]));
+      .map(id => [id, { textContent: '', innerHTML: '', dataset: {}, getAttribute() {}, setAttribute() {}, removeAttribute() {} }]));
     vm.runInNewContext(script, {
       localStorage: { getItem: key => key === 'glass_weather_cache'
         ? JSON.stringify({ current: {temp:20, icon}, location: {name:'测试'} }) : tempUnit },
       document: { getElementById: id => elements[id] },
-      window: { __GLASS_I18N__: { t: () => '', weatherDescription: () => '' } }
+      window: { __GLASS_I18N__: { locale: 'en', messages: { en: {} } } }
     });
     assert.equal(elements.weatherTemp.textContent, expectedTemp);
-    if (icon !== '☀️') {
+    if (icon === '☀️' || icon.startsWith('./icons/')) {
+      assert.match(elements.weatherIcon.innerHTML, /<img /);
+    } else {
       assert.equal(elements.weatherIcon.innerHTML, '', '异常缓存只能作为文字显示');
       assert.equal(elements.weatherIcon.textContent, icon);
     }

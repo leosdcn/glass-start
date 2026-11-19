@@ -1,4 +1,14 @@
 /** 首帧缓存恢复和运行时共用的气象数值清洗与单位换算规则。 */
+import { WEATHER_TEMP_UNIT_KEY } from '../config/weather-icons.js';
+
+export function getWeatherTempUnit() {
+    try {
+        return parseTempUnit(localStorage.getItem(WEATHER_TEMP_UNIT_KEY));
+    } catch {
+        return 'C';
+    }
+}
+
 /** @param {string | null} value 已存储的温度单位，兼容 JSON 字符串。 */
 export function parseTempUnit(value) {
     return value === 'F' || value === '"F"' ? 'F' : 'C';

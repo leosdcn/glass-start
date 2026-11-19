@@ -844,6 +844,31 @@ test('天气与引擎菜单退场仍可见，关闭后立即退出键盘焦点�
   }
 });
 
+test('减弱动效切换时结束搜索图标动画，旧书签行不补播入场', async () => {
+  const { server, chrome, send, evalJS } = await launchSession();
+  const motion = value => send('Emulation.setEmulatedMedia', {
+    features: [{ name: 'prefers-reduced-motion', value }]
+  });
+  try {
+    assert.equal(await evalJS(`(() => {
+      dom.engineBtn.click();
+      dom.dropdownMenu.querySelector('[data-engine]:not([aria-checked="true"])').click();
+      const animations = dom.engineIcon.getAnimations({ subtree: true });
+      animations.forEach(animation => animation.pause());
+      return animations.length;
+    })()`), 2);
+    await motion('reduce');
+    await waitFor(evalJS, '!dom.engineIcon.querySelector("[data-leaving]") && dom.engineIcon.getAnimations({subtree: true}).length === 0');
+    await evalJS('openEditModal()');
+    await evalJS('dom.addBookmarkBtn.click()');
+    await motion('no-preference');
+    assert.equal(await evalJS("dom.editList.querySelector('.edit-row-card:last-child').getAnimations().length"), 0);
+  } finally {
+    await chrome.close();
+    await server.close();
+  }
+});
+
 test('OverlayStack 多层弹窗嵌套压退栈、安全白名单与焦点归还', async () => {
   const { server, chrome, evalJS } = await launchSession();
   const press = (key) => pressKey(evalJS, key);

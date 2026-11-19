@@ -75,6 +75,7 @@ export default { get(url, options, callback) {
     mkdirSync(join(root, 'scripts'));
     mkdirSync(icons, { recursive: true });
     writeFileSync(join(root, 'scripts/sync-icons.mjs'), script);
+    writeFileSync(join(root, 'scripts/icon-png.mjs'), readFileSync(new URL('../scripts/icon-png.mjs', import.meta.url)));
     writeFileSync(join(root, 'scripts/terminal.cjs'), readFileSync(new URL('../scripts/terminal.cjs', import.meta.url)));
     writeFileSync(join(root, 'bookmarks.json'), JSON.stringify({ bookmarks: [
       { name: 'Normal', url: 'https://example.test', icon: './icons/example.test.png' },
