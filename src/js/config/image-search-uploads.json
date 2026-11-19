@@ -1,0 +1,10 @@
+{
+    "bing": {
+        "url": "https://www.bing.com/images/search?view=detailv2&iss=sbiupload&FORM=SBIVSP&sbisrc=ImgPicker&idpbck=1",
+        "maxPixels": 1200000,
+        "jpegQuality": 0.7
+    },
+    "google": {
+        "url": "https://lens.google.com/v3/upload?ep=cntpubb&re=df&s=4"
+    }
+}

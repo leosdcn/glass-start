@@ -17,6 +17,10 @@ assert.equal(manifest.background, undefined);
 assert.equal(manifest.permissions, undefined);
 assert.equal(manifest.default_locale, 'en');
 assert.equal(manifest.name, '__MSG_extensionName__');
+const webHtml = readFileSync(join(process.env.GLASS_TEST_TMPDIR || root, 'dist/index.html'), 'utf8');
+const formAction = policy => policy.match(/(?:^|; )form-action [^;]+/)?.[0];
+assert.equal(formAction(manifest.content_security_policy.extension_pages), formAction(webHtml.match(/Content-Security-Policy" content="([^"]+)"/)[1]));
+assert.ok(!html.includes('http-equiv="Content-Security-Policy"'));
 for (const locale of ['en', 'zh_CN']) {
     const messages = JSON.parse(readFileSync(join(output, '_locales', locale, 'messages.json'), 'utf8'));
     assert.ok(messages.extensionName.message && messages.extensionDescription.message);

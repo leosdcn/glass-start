@@ -1,5 +1,7 @@
+const { appScriptPath, referencedWebBuild, scriptFingerprint } = require('../src/js/utils/build-identity.js');
 const { watchFiles } = require('./watch.cjs');
-const { replaceOnce, injectDocumentShell, appScriptPath } = require('./html-template.cjs');
+const { replaceOnce, injectDocumentShell } = require('./html-template.cjs');
+const { getContentSecurityPolicy } = require('./content-security-policy.cjs');
 const { publishWebBuild } = require('./publish-build.cjs');
 const fs = require('fs');
 const path = require('path');
@@ -109,7 +111,7 @@ function compileTailwindCss() {
 }
 
 // 3. 处理并复制 Service Worker 底座脚本与静态资产
-function buildServiceWorkerAndAssets(targetDir, { extension, version }) {
+function buildServiceWorkerAndAssets(targetDir, { extension, version, webHeader }) {
     logSection('2/4', '📑 构建 Service Worker 与静态资产 (sw.js & assets)');
     const assetsStart = Date.now();
     
@@ -142,6 +144,12 @@ function buildServiceWorkerAndAssets(targetDir, { extension, version }) {
         logItem(`纯静态资源目录 public/ 已全量镜像同步至 dist/ (包含 ${iconCount} 个本地图标, ${wpCount} 个壁纸与 PWA/安全元数据)`);
     }
 
+    if (!extension) {
+        const headers = path.join(targetDir, '_headers');
+        const template = fs.readFileSync(headers, 'utf8');
+        fs.writeFileSync(headers, replaceOnce(template, '{{WEB_CSP}}', webHeader), 'utf8');
+    }
+
     fs.copyFileSync(PATHS.license, path.join(targetDir, 'LICENSE.txt'));
 
     buildMetrics.stages.assets = Date.now() - assetsStart;
@@ -170,7 +178,7 @@ function buildAppJavaScript({ testMode = false, extension = false, version = 'ap
 
 // 生成生产应用脚本。
 function processProductionAppJs(targetDir, { extension, version }) {
-    const script = appScriptPath(version, extension);
+    const script = extension ? 'app.js' : appScriptPath(version);
     logSection('3/4', `⚡ 提取并压缩生产脚本 (${script})`);
 
     if (!fs.existsSync(PATHS.srcMainJs)) {
@@ -224,10 +232,12 @@ function injectHeadConfig(html, { marker, entryPath, globalName, binding }) {
 }
 
 // 5. 注入应用脚本、静态编译后的 Tailwind CSS 与 SVG 精灵。
-function processProductionHtml(compiledCss, targetDir, buildVersion, extension) {
+function processProductionHtml(compiledCss, targetDir, buildVersion, extension, webMeta) {
     logSection('4/4', '🔧 处理生产环境页面 (dist/index.html)');
     const htmlStart = Date.now();
     let prodHtmlContent = fs.readFileSync(PATHS.srcIndexHtml, 'utf-8');
+    prodHtmlContent = replaceOnce(prodHtmlContent, '<!-- INJECT_WEB_CSP -->',
+        extension ? '' : `<meta http-equiv="Content-Security-Policy" content="${webMeta}">`);
     const i18nBootstrap = esbuild.buildSync({
         stdin: { contents: `import { messages } from './src/js/config/locales/index.js'; import enCatalog from './src/js/config/locales/catalog-en.json'; import zhCatalog from './src/js/config/locales/catalog-zh-CN.json'; import { initializeI18n } from './src/js/core/i18n.js'; initializeI18n(messages); window.__GLASS_I18N__.catalogs = { en: enCatalog, 'zh-CN': zhCatalog };`, resolveDir: ROOT_DIR },
         bundle: true, write: false, format: 'iife', target: 'es2020', minify: true, charset: 'utf8',
@@ -248,18 +258,11 @@ function processProductionHtml(compiledCss, targetDir, buildVersion, extension) 
         globalName: '__headEngines',
         binding: 'const { ENGINE_SVGS, ENGINE_META, DEFAULT_ENGINE, PREFERRED_ENGINE_KEY, normalizeEngine } = __headEngines;'
     });
-    prodHtmlContent = injectHeadConfig(prodHtmlContent, {
-        marker: '/* INJECT_WEATHER_ICONS */',
-        entryPath: path.join(PATHS.src, 'js', 'config', 'weather-icons.js'),
-        globalName: '__headWeatherIcons',
-        binding: 'const { WEATHER_EMOJI_MAP: m } = __headWeatherIcons;'
-    });
-    // 预渲染与运行时共用数值清洗模块。
     prodHtmlContent = injectHeadConfig(injectThemeConfig(prodHtmlContent), {
-        marker: '/* INJECT_WEATHER_NUM */',
-        entryPath: path.join(PATHS.src, 'js', 'utils', 'weather-data.js'),
+        marker: '/* INJECT_WEATHER_CAPSULE */',
+        entryPath: path.join(PATHS.src, 'js', 'utils', 'weather-head.js'),
         globalName: '__headWeather',
-        binding: 'const { isUsableWeatherData, parseTempUnit, toDisplayTemp } = __headWeather;'
+        binding: 'const { renderCachedWeatherCapsule } = __headWeather;'
     });
 
     prodHtmlContent = injectDocumentShell(prodHtmlContent, {
@@ -385,9 +388,10 @@ function executeBuild(targetDir, { extension = false } = {}) {
     const version = `app-core-v${Date.now()}-${randomBytes(8).toString('hex')}`;
     resetBuildMetrics();
     const compiledCss = compileTailwindCss();
-    buildServiceWorkerAndAssets(targetDir, { extension, version });
+    const { webMeta, webHeader } = getContentSecurityPolicy();
+    buildServiceWorkerAndAssets(targetDir, { extension, version, webHeader });
     processProductionAppJs(targetDir, { extension, version });
-    processProductionHtml(compiledCss, targetDir, version, extension);
+    processProductionHtml(compiledCss, targetDir, version, extension, webMeta);
     return version;
 }
 
@@ -395,10 +399,11 @@ function retainPreviousWebScript(targetDir, previousDir) {
     if (!previousDir) return;
     try {
         const html = fs.readFileSync(path.join(previousDir, 'index.html'), 'utf8');
-        const previous = html.match(/__GLASS_BUILD_HTML__="(app-core-v\d+-[0-9a-f]{16})"/)?.[1];
-        if (previous) {
-            const script = appScriptPath(previous);
-            fs.copyFileSync(path.join(previousDir, script), path.join(targetDir, script));
+        const previous = referencedWebBuild(html);
+        if (!previous) return;
+        const script = fs.readFileSync(path.join(previousDir, previous.asset), 'utf8');
+        if (scriptFingerprint(script) === previous.version) {
+            fs.writeFileSync(path.join(targetDir, previous.asset), script, 'utf8');
         }
     } catch (error) {
         if (error.code !== 'ENOENT') throw error;

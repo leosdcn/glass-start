@@ -13,6 +13,8 @@ import { parse as parseJs } from 'acorn';
 import { inspectDOMSources } from './lint-dom.mjs';
 import { inspectCSSSources } from './lint-css.mjs';
 import { inspectI18n } from './lint-i18n.mjs';
+import { getContentSecurityPolicy } from './content-security-policy.cjs';
+import { validateIconPng } from './icon-png.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const isFixMode = process.argv.includes('--fix');
@@ -452,7 +454,6 @@ try {
     const data = JSON.parse(rawBookmarks);
     let totalBookmarks = 0;
     const errors = [];
-    const PNG_HEADER = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 
     function checkBookmarkItem(bm, prefix) {
         totalBookmarks++;
@@ -471,14 +472,9 @@ try {
                 errors.push(`${prefix} 本地图标物理文件缺失: "public/icons/${iconFileName}"，请运行 "npm run sync:icons" 自动下载转写！`);
             } else {
                 try {
-                    const buf = readFileSync(iconPath);
-                    if (buf.length < 24 || !buf.subarray(0, 8).equals(PNG_HEADER)) {
-                        errors.push(`${prefix} 本地图标 "public/icons/${iconFileName}" 非有效二进制 PNG 文件 (魔数校验失败)，请运行 "npm run sync:icons" 重新生成！`);
-                    } else if (buf.readUInt32BE(16) !== buf.readUInt32BE(20) || buf.readUInt32BE(16) === 0) {
-                        errors.push(`${prefix} 本地图标必须为非空 1:1 PNG: ${iconFileName}`);
-                    }
+                    validateIconPng(iconPath);
                 } catch (readErr) {
-                    errors.push(`${prefix} 本地图标读取失败: ${readErr.message}`);
+                    errors.push(`${prefix} 本地图标 "${iconFileName}" 校验失败: ${readErr.message}`);
                 }
             }
         }
@@ -626,8 +622,8 @@ try {
         '/* INJECT_THEME_CONFIG */',
         '/* INJECT_ENGINE_ICONS */',
         '<!-- INJECT_SVG_SPRITE -->',
-        '/* INJECT_WEATHER_NUM */',
-        '/* INJECT_WEATHER_ICONS */',
+        '/* INJECT_WEATHER_CAPSULE */',
+        '<!-- INJECT_WEB_CSP -->',
         '<!-- INJECT_APP_VERSION -->',
         '<!-- BUILD_STYLES_START -->',
         '<!-- BUILD_STYLES_END -->',
@@ -660,8 +656,7 @@ try {
 
 // Chrome 扩展 Manifest 权限与业务代码网络请求接口一致性检查
 try {
-    const extManifestPath = join(root, 'src', 'extension', 'manifest.json');
-    const extManifest = JSON.parse(readFileSync(extManifestPath, 'utf-8'));
+    const extManifest = getContentSecurityPolicy().extensionPolicy;
 
     // 1. 从 host_permissions 提取域名
     const hostPermDomains = (extManifest.host_permissions || [])

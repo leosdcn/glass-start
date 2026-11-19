@@ -1,3 +1,4 @@
+import { WEATHER_CACHE_KEY, WEATHER_TEMP_UNIT_KEY } from './weather-icons.js';
 import { t } from '../core/i18n.js';
 import { LANGUAGE_KEY } from './language.js';
 import bookmarksData from '../../../bookmarks.json';
@@ -18,12 +19,12 @@ export const CONFIG = Object.freeze({
                 ...WALLPAPER_KEYS,
                 PREFERRED_ENGINE: PREFERRED_ENGINE_KEY,
                 NAV_DISCOVERED: 'hasDiscoveredNav',
-                WEATHER_CACHE: 'glass_weather_cache',
+                WEATHER_CACHE: WEATHER_CACHE_KEY,
                 WEATHER_LOC: 'glass_weather_loc_cache',
                 THEME_CACHE: 'glass_theme_cache',
                 TINT_CACHE: 'glass_tint_cache',
                 TRANSITION_MODE: 'glass_transition_mode',
-                TEMP_UNIT: 'glass_temp_unit'
+                TEMP_UNIT: WEATHER_TEMP_UNIT_KEY
             }),
             CACHE: Object.freeze({
                 FAVICON: 'app-favicons-v1'

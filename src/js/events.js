@@ -45,8 +45,8 @@ export function handleAppWakeUp() {
 
     cancelDragSort();
     cancelCategoryPulse();
-    document.querySelectorAll('.is-clicked, .fade-in, .animate-item-in, .dragging').forEach(el => {
-        el.classList.remove('is-clicked', 'fade-in', 'animate-item-in', 'dragging');
+    document.querySelectorAll('.is-clicked, .fade-in, .dragging').forEach(el => {
+        el.classList.remove('is-clicked', 'fade-in', 'dragging');
     });
 
     resetActiveCard();

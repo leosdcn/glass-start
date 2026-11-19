@@ -158,7 +158,7 @@ flowchart TD
 
 首次从旧实体 `dist/` 迁移和扩展目录发布有单独的备份路径。若旧目录迁移中断并留下空入口，下一次网页发布会先从 `dist.migration/previous` 恢复旧产物。扩展使用固定的解包目录，发布时在 `.extension-publish/previous` 保留备份。常规干净构建只产生当前脚本。GitHub Pages 工作流在上传前从现有部署读取 HTML，校验并保留其版本化脚本，为尚未受 Worker 控制的旧文档提供过渡期。其他静态托管可通过 `GLASS_PREVIOUS_DEPLOY_URL` 和 `npm run build:deploy` 启用相同流程。
 
-HTML 使用唯一构建插槽注入入口、样式和 SVG。标记缺失、重复或顺序错误会阻断构建。主题、壁纸清单、引擎元数据/图标、天气图标与天气清洗脚本分别从 `config/`、`utils/weather-data.js` 注入，避免维护副本。
+HTML 使用唯一构建插槽注入入口、样式和 SVG。标记缺失、重复或顺序错误会阻断构建。主题、壁纸清单与引擎元数据/图标从 `config/` 注入。首屏天气和运行时共用 `utils/weather-view.js` 渲染缓存，首屏入口由 `utils/weather-head.js` 注入。
 
 首屏共享配置来自 `config/backgrounds.js`、`config/engines.js`、`config/engine-icons.js`、`config/weather-icons.js`；`src/index.html` 只保留注入插槽。lint 校验壁纸与主题/色调数组长度、引擎键集合、本地图标文件存在性及对应源码插槽的唯一性；构建阶段通过 `replaceOnce()` 消费注入插槽，区域标记另检查前后顺序。lint 不检查最终构建产物。
 
@@ -330,7 +330,7 @@ Chrome（首屏已有的 `.is-chrome` 标记）为两屏保留 `will-change: tra
 
 同源图片与外部图标中相同的并发请求共享未完成任务，各消费者获得独立响应副本。合并键包含 URL、请求头、模式与凭据等请求属性；缓存写入完成前保留任务，避免响应已返回但缓存尚未提交时重复下载。单个消费者取消不终止共享下载，失败后释放任务以允许后续重试。
 
-同源预设书签图标使用 `./icons/<host>.png`。`scripts/sync-icons.mjs` 默认复用可解码且尺寸合规的本地 PNG，仅补齐缺失或损坏项。`npm run sync:icons:refresh` 全量刷新本地图标。使用 macOS `sips` 解码和转换；没有 `sips` 时仅接受尺寸合规、块校验和与压缩图像数据通过检查的 PNG。候选顺序为指定的官方资源、原始主机的 Google S2 和备用 `www` 形式的 Google S2。官方资源可指定下载所需的来源页，也可用 `unzip` 读取素材包内指定图标。带有过多透明留白的官方原图可在缩放前按指定尺寸居中裁剪。书签引用只更新已就绪的图标，失败域名保留原引用。跨域自定义壁纸由页面 CSP 与浏览器网络处理，IndexedDB 保存其 URL。
+同源预设书签图标使用 `./icons/<host>.png`。`scripts/sync-icons.mjs` 默认复用可解码且尺寸合规的本地 PNG，仅补齐缺失或损坏项。`npm run sync:icons:refresh` 全量刷新本地图标。同步与 lint 共用 `scripts/icon-png.mjs` 检查尺寸、块校验和与压缩图像数据。图标同步可用 macOS `sips` 解码和转换。候选顺序为指定的官方资源、原始主机的 Google S2 和备用 `www` 形式的 Google S2。官方资源可指定下载所需的来源页，也可用 `unzip` 读取素材包内指定图标。带有过多透明留白的官方原图可在缩放前按指定尺寸居中裁剪。书签引用只更新已就绪的图标，失败域名保留原引用。跨域自定义壁纸由页面 CSP 与浏览器网络处理，IndexedDB 保存其 URL。
 
 ## 搜索与天气
 
@@ -356,9 +356,9 @@ Chrome（首屏已有的 `.is-chrome` 标记）为两屏保留 `will-change: tra
 
 ## 安全与验证边界
 
-动态 HTML 文本经 `escapeHtml()` 转义；`safeUrl(url)` 检查 HTTP(S)、图片 Data URL 及本地图标路径，默认返回适合 HTML 模板属性的转义值；通过原生 DOM 属性赋值时使用 `safeUrl(url, false)`，保留 URL 中的原始字符。两种模式均执行相同的白名单检查，拒绝时返回 `#`。网页版 CSP 同时存在于 HTML 与 `public/_headers`，后者需托管平台实际支持。网页版内联脚本及样式仍使用 `'unsafe-inline'`；不能据此声称消除了所有 XSS 风险。
+动态 HTML 文本经 `escapeHtml()` 转义；`safeUrl(url)` 检查 HTTP(S)、图片 Data URL 及本地图标路径，默认返回适合 HTML 模板属性的转义值；通过原生 DOM 属性赋值时使用 `safeUrl(url, false)`，保留 URL 中的原始字符。两种模式均执行相同的白名单检查，拒绝时返回 `#`。网页版 CSP 由 `scripts/content-security-policy.cjs` 生成并写入产物 HTML 和 `_headers`，后者需托管平台实际支持。网页版内联脚本及样式仍使用 `'unsafe-inline'`；不能据此声称消除了所有 XSS 风险。
 
-Chrome 扩展 CSP 由 `src/extension/manifest.json` 定义，构建时同步到页面 meta。脚本仅允许本地来源，内联启动脚本外置为 `bootstrap-*.js`；样式仍允许内联。扩展网络接口变更需同时核对 `host_permissions` 与 `connect-src`。
+Chrome 扩展构建由同一策略生成清单 CSP 和主机权限。脚本仅允许本地来源，内联启动脚本外置为 `bootstrap-*.js`，样式允许内联。上传目标路径取自以图搜图配置。
 
 测试入口、命令和环境要求见 README。以下边界用于解释验证结果：
 

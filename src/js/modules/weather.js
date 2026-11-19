@@ -1,30 +1,13 @@
 import { t, getLocale, weatherDescription, forecastLabel } from '../core/i18n.js';
 import { weatherTime, formatLocationFullName, stripAdminSuffix, normalizeWeatherForecast, getForecastPeriod } from '../utils/weather-model.js';
 import { CONFIG } from '../config/constants.js';
-import { isUsableWeatherData, parseTempUnit, weatherNum, toDisplayTemp } from '../utils/weather-data.js';
-import { escapeHtml, safeUrl } from '../utils/helpers.js';
+import { isUsableWeatherData, getWeatherTempUnit, weatherNum, toDisplayTemp } from '../utils/weather-data.js';
+import { escapeHtml } from '../utils/helpers.js';
 import { storageGet, storageSet, storageRemove } from '../utils/storage.js';
 import { dom } from '../state/dom.js';
 import { OverlayStack } from '../core/overlay-stack.js';
 
-import { WEATHER_EMOJI_MAP } from '../config/weather-icons.js';
-
-/**
- * 将天气 Emoji 或本地图片映射为渲染用 HTML
- * @param {string} icon - Emoji 符号或图片路径
- * @param {string} [className='size-4'] - CSS 尺寸与样式类
- * @returns {string} 渲染的安全 HTML 字符串
- */
-function getWeatherIconHTML(icon, className = 'size-4') {
-    if (!icon) return '';
-    const clean = typeof icon === 'string' ? icon.trim() : '';
-    const path = (Object.hasOwn(WEATHER_EMOJI_MAP, clean) ? WEATHER_EMOJI_MAP[clean] : null)
-        || (clean.startsWith('./') || clean.startsWith('/') || clean.endsWith('.svg') ? clean : null);
-    if (path) {
-        return `<img src="${safeUrl(path)}" class="${className} shrink-0 object-contain select-none inline-block align-middle pointer-events-none" alt="" aria-hidden="true" decoding="async"><span class="sr-only" aria-hidden="true">${escapeHtml(clean)}</span>`;
-    }
-    return escapeHtml(icon);
-}
+import { getWeatherIconHTML, renderWeatherCapsuleView } from '../utils/weather-view.js';
 
 /**
  * @param {Array<AbortSignal | undefined | null>} signals
@@ -237,16 +220,8 @@ export async function fetchWeatherForecast(loc, signal) {
 /** @type {import('../types').WeatherData | null} */
 let currentWeatherData = null;
 
-function getTempUnit() {
-    try {
-        return parseTempUnit(localStorage.getItem(CONFIG.KEYS.TEMP_UNIT));
-    } catch {
-        return 'C';
-    }
-}
-
 function toggleTempUnit() {
-    const nextUnit = getTempUnit() === 'F' ? 'C' : 'F';
+    const nextUnit = getWeatherTempUnit() === 'F' ? 'C' : 'F';
     try {
         localStorage.setItem(CONFIG.KEYS.TEMP_UNIT, nextUnit);
     } catch {}
@@ -264,51 +239,9 @@ function refreshWeatherDisplay() {
 
 /** @param {import('../types').WeatherData | null | undefined} data */
 export function renderWeatherCapsule(data) {
-    const weatherWidget = dom.weatherWidget;
-    if (!weatherWidget) return;
-    const weatherIcon = dom.weatherIcon;
-    const weatherTemp = dom.weatherTemp;
-    const weatherCity = dom.weatherCity;
-    const weatherBtn = dom.weatherBtn;
-    if (!data?.current) {
-        if (weatherIcon) {
-            delete weatherIcon.dataset.icon;
-            weatherIcon.innerHTML = getWeatherIconHTML('🌤️', 'size-4 sm:size-4.5');
-        }
-        if (weatherTemp) weatherTemp.textContent = '--°';
-        if (weatherCity) {
-            weatherCity.textContent = t('ui.weather');
-            weatherCity.title = '';
-        }
-        weatherBtn?.setAttribute('aria-label', t('ui.weather.open.current.conditions.and.forecast'));
-        return;
-    }
-    currentWeatherData = data;
-    const unit = getTempUnit();
-    const temperature = toDisplayTemp(data.current.temp, unit);
-
-    if (weatherIcon) {
-        const iconStr = data.current.icon || '';
-        if (weatherIcon.dataset.icon !== iconStr || !weatherIcon.querySelector('img')) {
-            weatherIcon.dataset.icon = iconStr;
-            weatherIcon.innerHTML = getWeatherIconHTML(iconStr, 'size-4 sm:size-4.5');
-        }
-    }
-    if (weatherTemp) {
-        const tempStr = `${temperature}°`;
-        if (weatherTemp.textContent !== tempStr) weatherTemp.textContent = tempStr;
-    }
-    if (weatherCity) {
-        const cityName = data.location?.name || t('ui.weather');
-        if (weatherCity.textContent !== cityName) weatherCity.textContent = cityName;
-        weatherCity.title = data.location?.fullName || '';
-    }
-    if (weatherBtn) {
-        const cityName = data.location ? data.location.name : t('ui.weather');
-        const weatherDesc = weatherDescription(data.current.weatherCode);
-        const newLabel = t('weather.capsule', { temperature, city: cityName || t('ui.weather'), description: weatherDesc });
-        if (weatherBtn.getAttribute('aria-label') !== newLabel) weatherBtn.setAttribute('aria-label', newLabel);
-    }
+    if (!dom.weatherWidget) return;
+    if (data?.current) currentWeatherData = data;
+    renderWeatherCapsuleView(dom, data, getWeatherTempUnit());
 }
 
 let lastRenderedPopoverSignature = '';
@@ -411,7 +344,7 @@ export function renderWeatherPopover(data) {
     }
 
     currentWeatherData = data;
-    const unit = getTempUnit();
+    const unit = getWeatherTempUnit();
     const raw = data.current;
     const period = getForecastPeriod(data, new Date());
     const location = data.location?.fullName || data.location?.name || '';
