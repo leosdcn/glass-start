@@ -213,6 +213,13 @@ function finishNavExit() {
     dom.navSection?.classList.add('nav-hidden');
 }
 
+function focusNavContent() {
+    if (state.currentSection === 'nav' && (document.activeElement === document.body ||
+        document.activeElement === document.documentElement) && !OverlayStack.topModal()) {
+        dom.navContent?.focus({ preventScroll: true });
+    }
+}
+
 /**
  * 无明确目标且仍在过渡时默认跳过；唤醒可强制立即恢复。
  * @param {'nav'|'start'} [targetSection]
@@ -229,7 +236,10 @@ export function reconcileScreenState(targetSection, force = false) {
     isTransitioning = false;
     applySection(section, true);
     document.documentElement.classList.remove('screen-restoring');
-    if (section === 'nav') refreshNav();
+    if (section === 'nav') {
+        refreshNav();
+        focusNavContent();
+    }
 }
 
 function discoverNav() {
@@ -272,9 +282,7 @@ function switchSection(section) {
         resetPageScroll();
     });
     if (section === 'nav') {
-        afterScreenTransition(() => {
-            if (state.currentSection === 'nav') dom.navContent?.focus({ preventScroll: true });
-        });
+        afterScreenTransition(focusNavContent);
     }
 }
 

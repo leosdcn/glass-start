@@ -109,13 +109,13 @@ const rawSamples = new WeakMap();
  * @param {number} opacity
  */
 export function sampleCustomWallpaperTheme(img, opacity) {
-    if (typeof document === 'undefined') return;
+    if (typeof document === 'undefined' || !(img.naturalWidth > 0 && img.naturalHeight > 0)) return;
+    const bgLayer = dom.bgLayer;
+    const width = bgLayer?.clientWidth || window.innerWidth || img.naturalWidth;
+    const height = bgLayer?.clientHeight || window.innerHeight || img.naturalHeight;
+    const aspect = width / height;
     try {
-        if (!(img.naturalWidth > 0 && img.naturalHeight > 0)) return;
-        // 对齐壁纸的 background-size: cover / background-position: center，仅在加载时采样。
-        const bgLayer = dom.bgLayer;
-        const width = bgLayer?.clientWidth || window.innerWidth || img.naturalWidth;
-        const height = bgLayer?.clientHeight || window.innerHeight || img.naturalHeight;
+        // 按壁纸图层的 cover 居中裁切采样。
         const scale = Math.max(width / img.naturalWidth, height / img.naturalHeight);
         const srcW = width / scale, srcH = height / scale;
         const srcX = (img.naturalWidth - srcW) / 2, srcY = (img.naturalHeight - srcH) / 2;
@@ -167,8 +167,8 @@ export function sampleCustomWallpaperTheme(img, opacity) {
         const tintR = Math.min(clamp.MAX, Math.round(Math.max(clamp.MIN, r * boost)));
         const tintG = Math.min(clamp.MAX, Math.round(Math.max(clamp.MIN, g * boost)));
         const tintB = Math.min(clamp.MAX, Math.round(Math.max(clamp.MIN, b * boost)));
-        return { theme, tint: `${tintR}, ${tintG}, ${tintB}` };
+        return { theme, tint: `${tintR}, ${tintG}, ${tintB}`, aspect };
     } catch {
-        return { theme: APP_THEME_DARK, tint: '255, 255, 255' };
+        return { theme: APP_THEME_DARK, tint: '255, 255, 255', aspect };
     }
 }

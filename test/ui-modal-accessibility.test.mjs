@@ -2,6 +2,27 @@ import assert from 'node:assert/strict';
 import { launchSession, waitFor } from './support/helpers.mjs';
 import { test } from 'node:test';
 
+const visibleRing = /(?<!rgba\(0, 0, 0, 0\)) 0px 0px 0px 2px(?:,|$)/;
+
+async function clickWithoutFocus(send, evalJS, id) {
+  const point = await evalJS(`(() => {
+    const button = document.getElementById(${JSON.stringify(id)});
+    // 模拟 Safari 点击按钮时不会先把焦点移到按钮上。
+    button.addEventListener('mousedown', e => e.preventDefault(), { once: true });
+    const rect = button.getBoundingClientRect();
+    return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+  })()`);
+  const mouse = { ...point, button: 'left', clickCount: 1 };
+  await send('Input.dispatchMouseEvent', { type: 'mousePressed', ...mouse });
+  await send('Input.dispatchMouseEvent', { type: 'mouseReleased', ...mouse });
+}
+
+async function forceFocusVisible(send, root, selector) {
+  const { nodeId } = await send('DOM.querySelector', { nodeId: root.nodeId, selector });
+  await send('CSS.forcePseudoState', { nodeId, forcedPseudoClasses: ['focus-visible'] });
+  return () => send('CSS.forcePseudoState', { nodeId, forcedPseudoClasses: [] });
+}
+
 test('设置的初始页签在鼠标打开时隐藏焦点环，使用键盘时恢复', async () => {
   const { server, chrome, send, evalJS } = await launchSession();
   const press = async (key, windowsVirtualKeyCode, text) => {
@@ -13,7 +34,6 @@ test('设置的初始页签在鼠标打开时隐藏焦点环，使用键盘时�
     const style = getComputedStyle(tab);
     return { id: tab.id, selected: tab.getAttribute('aria-selected'), outline: style.outlineStyle, shadow: style.boxShadow };
   })()`);
-  const ring = / 0px 0px 0px 2px(?:,|$)/;
   try {
     await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] });
     const point = await evalJS(`(() => {
@@ -39,18 +59,18 @@ test('设置的初始页签在鼠标打开时隐藏焦点环，使用键盘时�
     assert.equal(initial.id, 'tab-btn-bookmarks');
     assert.equal(initial.selected, 'true');
     assert.equal(initial.outline, 'none');
-    assert.doesNotMatch(initial.shadow, ring);
+    assert.doesNotMatch(initial.shadow, visibleRing);
 
     await press('Home', 36);
     const sameTab = await focusStyle();
     assert.equal(sameTab.id, 'tab-btn-bookmarks');
-    assert.match(sameTab.shadow, ring);
+    assert.match(sameTab.shadow, visibleRing);
     await send('CSS.forcePseudoState', { nodeId, forcedPseudoClasses: [] });
     await press('ArrowRight', 39);
     const appearance = await focusStyle();
     assert.equal(appearance.id, 'tab-btn-appearance');
     assert.equal(appearance.selected, 'true');
-    assert.match(appearance.shadow, ring);
+    assert.match(appearance.shadow, visibleRing);
 
     await press('Escape', 27);
     assert.equal(await evalJS('!dom.editModal.open && document.activeElement === dom.editBookmarksBtn'), true);
@@ -58,7 +78,7 @@ test('设置的初始页签在鼠标打开时隐藏焦点环，使用键盘时�
     await waitFor(evalJS, 'dom.editModal.open');
     const keyboard = await focusStyle();
     assert.equal(keyboard.id, 'tab-btn-bookmarks');
-    assert.match(keyboard.shadow, ring);
+    assert.match(keyboard.shadow, visibleRing);
   } finally {
     await chrome.close();
     await server.close();
@@ -131,6 +151,108 @@ test('确认弹窗在鼠标打开时隐藏取消按钮焦点环，使用键盘�
     assert.equal(keyboard.outline, 'solid');
     await send('CSS.forcePseudoState', { nodeId: cancelNodeId, forcedPseudoClasses: [] });
     await press('Escape', 27);
+  } finally {
+    await chrome.close();
+    await server.close();
+  }
+});
+
+test('语言弹窗聚焦当前选项，打开和归还焦点沿用鼠标或键盘提示', async () => {
+  const { server, chrome, send, evalJS } = await launchSession();
+  const click = id => clickWithoutFocus(send, evalJS, id);
+  const press = async (key, windowsVirtualKeyCode) => {
+    for (const type of ['keyDown', 'keyUp']) {
+      await send('Input.dispatchKeyEvent', { type, key, code: key, windowsVirtualKeyCode });
+    }
+  };
+  const shadow = () => evalJS('getComputedStyle(dom.languageBtn).boxShadow');
+  const restored = '!dom.languageModal.open && dom.editModal.open && document.activeElement === dom.languageBtn';
+  try {
+    await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] });
+    await evalJS(`storageSet(CONFIG.KEYS.LANGUAGE, 'zh-CN'); openEditModal()`);
+    await click('languageBtn');
+    assert.equal(await evalJS('dom.languageModal.open && document.activeElement.dataset.lang'), 'zh-CN');
+    await send('DOM.enable');
+    await send('CSS.enable');
+    const { root } = await send('DOM.getDocument');
+    const clearOption = await forceFocusVisible(send, root, '#languageList [data-lang="zh-CN"]');
+    assert.doesNotMatch(await evalJS('getComputedStyle(document.activeElement).boxShadow'), visibleRing);
+    await clearOption();
+
+    await click('cancelLanguageBtn');
+    assert.equal(await evalJS(restored), true);
+    const clearTrigger = await forceFocusVisible(send, root, '#languageBtn');
+    assert.doesNotMatch(await shadow(), visibleRing);
+    await press('Shift', 16);
+    assert.equal(await evalJS(restored), true);
+    assert.match(await shadow(), visibleRing);
+
+    await click('languageBtn');
+    await click('doneLanguageBtn');
+    assert.equal(await evalJS(restored), true);
+    assert.doesNotMatch(await shadow(), visibleRing);
+    await evalJS('dom.cancelEditBtn.focus(); dom.languageBtn.focus()');
+    assert.match(await shadow(), visibleRing);
+    await clearTrigger();
+
+    await click('languageBtn');
+    assert.equal(await evalJS('dom.languageModal.open'), true);
+    await press('Escape', 27);
+    assert.equal(await evalJS(restored), true);
+    assert.match(await shadow(), visibleRing);
+
+    await send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 1 });
+    for (const [id, expected] of [['languageBtn', 'dom.languageModal.open'], ['cancelLanguageBtn', restored]]) {
+      const touch = await evalJS(`(() => {
+        const rect = document.getElementById('${id}').getBoundingClientRect();
+        return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+      })()`);
+      await send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [touch] });
+      await send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+      await waitFor(evalJS, expected);
+    }
+    const clearTouch = await forceFocusVisible(send, root, '#languageBtn');
+    assert.doesNotMatch(await shadow(), visibleRing);
+    await clearTouch();
+  } finally {
+    await chrome.close();
+    await server.close();
+  }
+});
+
+test('设置子弹窗向实际点击的按钮归还焦点并隐藏指针焦点环', async () => {
+  const { server, chrome, send, evalJS } = await launchSession();
+  const click = id => clickWithoutFocus(send, evalJS, id);
+  try {
+    await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] });
+    await evalJS(`(async () => {
+      await openEditModal();
+      document.getElementById('tab-btn-data').click();
+    })()`);
+    await send('DOM.enable');
+    await send('CSS.enable');
+    const { root } = await send('DOM.getDocument');
+    for (const [opener, modalId, closer] of [
+      ['openShortcutFromSettingsBtn', 'shortcutModal', 'doneShortcutBtn'],
+      ['openCreditsFromSettingsBtn', 'creditsModal', 'doneCreditsBtn'],
+      ['resetEditBtn', 'confirmModal', 'confirmCancelBtn']
+    ]) {
+      await evalJS("document.getElementById('tab-btn-data').focus()");
+      await click(opener);
+      assert.equal(await evalJS(`document.getElementById('${modalId}').open`), true, modalId);
+      if (modalId === 'shortcutModal') {
+        assert.equal(await evalJS('document.activeElement === dom.doneShortcutBtn'), true);
+        const clear = await forceFocusVisible(send, root, '#doneShortcutBtn');
+        assert.doesNotMatch(await evalJS('getComputedStyle(dom.doneShortcutBtn).boxShadow'), visibleRing);
+        await clear();
+      }
+      await click(closer);
+      assert.equal(await evalJS(`!document.getElementById('${modalId}').open && document.activeElement.id === '${opener}'`), true, opener);
+      const clear = await forceFocusVisible(send, root, `#${opener}`);
+      assert.equal(await evalJS('getComputedStyle(document.activeElement).outlineStyle'), 'none', opener);
+      assert.doesNotMatch(await evalJS('getComputedStyle(document.activeElement).boxShadow'), visibleRing, opener);
+      await clear();
+    }
   } finally {
     await chrome.close();
     await server.close();

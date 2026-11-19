@@ -118,15 +118,17 @@ export interface OverlayItem {
     id: string;
     close: () => void;
     trigger?: Element | null;
+    panel?: HTMLElement;
 }
 
 /** 多层弹窗层叠栈管理器 */
 export interface IOverlayStack {
     stack: OverlayItem[];
-    push(id: string, closeFn: () => void, trigger?: Element | null): boolean;
+    push(id: string, closeFn: () => void, trigger?: Element | null, panel?: HTMLElement): boolean;
     pop(id?: string): OverlayItem | null;
     topModal(): HTMLElement | null;
     top(): OverlayItem | null;
+    has(id: string): boolean;
     isEmpty(): boolean;
 }
 

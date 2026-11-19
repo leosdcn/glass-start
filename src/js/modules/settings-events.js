@@ -48,8 +48,8 @@ export function bindEditEvents() {
     dom.togglePickerBtn?.addEventListener('click', () => openBookmarkPicker(dom.togglePickerBtn));
     dom.donePickerBtn?.addEventListener('click', closeBookmarkPicker);
     dom.doneShortcutBtn?.addEventListener('click', closeShortcutModal);
-    dom.openShortcutFromSettingsBtn?.addEventListener('click', openShortcutModal);
-    dom.openCreditsFromSettingsBtn?.addEventListener('click', openCreditsModal);
+    dom.openShortcutFromSettingsBtn?.addEventListener('click', () => openShortcutModal(dom.openShortcutFromSettingsBtn));
+    dom.openCreditsFromSettingsBtn?.addEventListener('click', () => openCreditsModal(dom.openCreditsFromSettingsBtn));
     dom.doneCreditsBtn?.addEventListener('click', closeCreditsModal);
 
     // 重置所有设置 (Danger Zone - 确认后立即重置系统，无需再点击保存)

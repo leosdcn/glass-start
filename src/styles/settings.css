@@ -195,14 +195,6 @@ body.drag-settling .drag-handle {
     }
 }
 
-/* Safari 在鼠标打开原生 dialog 时也会让初始焦点匹配 :focus-visible。 */
-dialog[data-hide-initial-focus-ring] :is(.confirm-dialog-btn-cancel, .confirm-dialog-btn-ok, button, [role="tab"], a):focus-visible {
-    outline: none;
-}
-dialog[data-hide-initial-focus-ring] :is(.settings-tab-btn, .glass-btn-primary, [autofocus], button):focus-visible {
-    @apply ring-0;
-}
-
 .picker-item {
     transition: background-color 0.15s ease, opacity 0.2s ease, scale var(--button-press-duration, var(--duration-press-up)) var(--button-press-ease, var(--ease-spring));
 }

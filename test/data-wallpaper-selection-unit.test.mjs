@@ -50,6 +50,7 @@ function fixture() {
         localStorage: { getItem: key => storage.get(key) ?? null,
             setItem(key, value) { metrics.storageWrites++; storage.set(key, value); },
             removeItem(key) { metrics.storageWrites++; storage.delete(key); } },
+        ResizeObserver: class { observe() {} },
         Image: class {
             naturalWidth = 100; complete = false;
             constructor() { images.push(this); }

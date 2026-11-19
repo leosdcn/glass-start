@@ -69,10 +69,12 @@ export function resetScreenInput() {
 
 /**
  * 失焦非输入型可聚焦元素（如链接、卡片、按钮），避免保持高亮；正在编辑的输入框与搜索栏除外。
+ * @param {{ preserveNavigationFocus?: boolean }} [options]
  */
-export function blurNonEditableActive() {
+export function blurNonEditableActive({ preserveNavigationFocus = false } = {}) {
     const active = /** @type {HTMLElement|null} */ (document.activeElement);
     if (active && active !== document.body && active !== dom.searchInput && !active.closest('dialog:modal') &&
+        !(preserveNavigationFocus && dom.navSection?.contains(active)) &&
         !active.matches('input, textarea, select, [contenteditable]:not([contenteditable="false"])')) {
         active.blur();
     }

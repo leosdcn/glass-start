@@ -76,7 +76,9 @@ await test("主题配置、图标回退与缓存驱逐", async () => {
   bright: document.documentElement.classList.contains('wallpaper-bright'),
   engine: window.__PRE_ENGINE__?.name
 };</script>`;
-    const { server, chrome, send, evalJS } = await launchSession(0, { '/theme-probe.html': built.replace('</head>', probe + '</head>') });
+    const probeHtml = built.replace('</head>', probe + '</head>')
+      .replace('</body>', probe.replace('__headThemeProbe', '__bodyThemeProbe') + '</body>');
+    const { server, chrome, send, evalJS } = await launchSession(0, { '/theme-probe.html': probeHtml });
     try {
       // 首屏探针使用独立 HTML 路由；绕过 SW 导航回退，确保每次读取探针页面。
       await send('Network.enable');
@@ -102,18 +104,19 @@ await test("主题配置、图标回退与缓存驱逐", async () => {
       }
       console.log('✅ 八张预设冷启动及有历史缓存启动，应用执行前底色、色调与运行时一致');
 
+      await send('Emulation.setDeviceMetricsOverride', { width: 1000, height: 800, deviceScaleFactor: 1, mobile: false });
       const { identifier: customProbe } = await send('Page.addScriptToEvaluateOnNewDocument', { source: `
     localStorage.clear();
-    localStorage.setItem('glass_wallpaper_meta', JSON.stringify({custom:true,bg:0,appearance:{mask:null,isLight:true,tint:'1, 2, 3'}}));
+    localStorage.setItem('glass_wallpaper_meta', JSON.stringify({custom:true,bg:0,appearance:{mask:null,aspect:1.25,isLight:true,tint:'1, 2, 3'}}));
     localStorage.setItem('preferredEngine', JSON.stringify('__proto__'));
   ` });
       await navigateAndWait(send, evalJS, `http://127.0.0.1:${server.port}/theme-probe.html?probe=custom-meta`,
-        "!!window.__headThemeProbe && typeof window.handleIconError === 'function'");
-      const custom = await evalJS('({head:__headThemeProbe, preload:__PRELOADED_BG__, hasLink:!!document.getElementById("preloadWallpaper")})');
-      assert.equal(custom.head.theme.isLight, true);
-      assert.equal(custom.head.color, 'rgb(255, 255, 255)');
-      assert.equal(custom.head.tint, '1, 2, 3');
-      assert.equal(custom.head.engine, 'Bing', '首屏拒绝原型属性引擎');
+        "!!window.__bodyThemeProbe && typeof window.handleIconError === 'function'");
+      const custom = await evalJS('({body:__bodyThemeProbe, preload:__PRELOADED_BG__, hasLink:!!document.getElementById("preloadWallpaper")})');
+      assert.equal(custom.body.theme.isLight, true);
+      assert.equal(custom.body.color, 'rgb(255, 255, 255)');
+      assert.equal(custom.body.tint, '1, 2, 3');
+      assert.equal(custom.body.engine, 'Bing', '首屏拒绝原型属性引擎');
       for (const key of ['__proto__', 'toString', 'constructor', 'missing']) {
         assert.equal(await evalJS(`(() => {
           const button = dom.dropdownMenu.querySelector('[data-engine]');

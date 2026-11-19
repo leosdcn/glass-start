@@ -169,7 +169,7 @@ function syncCommittedWallpaperHints(image = getRetainedWallpaperImage(getCommit
     const sample = customWallpaper && image ? sampleCustomWallpaperTheme(image, normalizeMaskOpacity(mask)) : null;
     const next = {
         custom: !!customWallpaper, bg,
-        ...(sample ? { appearance: { mask, isLight: sample.theme.isLight,
+        ...(sample ? { appearance: { mask, aspect: sample.aspect, isLight: sample.theme.isLight,
             themeColor: 'themeColor' in sample.theme ? sample.theme.themeColor : undefined, tint: sample.tint } } : {})
     };
     const meta = storageGet(CONFIG.KEYS.WALLPAPER_META);
