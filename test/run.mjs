@@ -2,7 +2,7 @@ import { spawn } from 'node:child_process';
 import { readdirSync, mkdtempSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { constants, tmpdir } from 'node:os';
+import { constants, tmpdir, availableParallelism } from 'node:os';
 import { requiresBuild, standaloneTests } from './support/test-selection.mjs';
 
 process.env.AUTO_OPEN = '0';
@@ -74,8 +74,10 @@ if (needsBuild) {
 const prerequisiteFailure = (await Promise.all(tasks)).find(code => code !== 0);
 if (interrupted || prerequisiteFailure) process.exit(interrupted || prerequisiteFailure);
 
-const concurrency = process.env.GLASS_TEST_CONCURRENCY || (process.env.CI ? '1' : '6');
-const code = await runProcess(['--test', `--test-concurrency=${concurrency}`, ...files.map(name => join(testDir, name))],
+const defaultConcurrency = process.env.CI ? '1' : String(Math.min(4, Math.max(1, Math.floor((availableParallelism?.() || 4) / 2))));
+const concurrency = process.env.GLASS_TEST_CONCURRENCY || defaultConcurrency;
+const testTimeout = process.env.GLASS_TEST_TIMEOUT || '60000';
+const code = await runProcess(['--test', `--test-timeout=${testTimeout}`, `--test-concurrency=${concurrency}`, ...files.map(name => join(testDir, name))],
   { ...process.env, GLASS_TEST_TMPDIR: runTempDir });
 clearTimeout(shutdownTimer);
 process.exit(interrupted || code);
