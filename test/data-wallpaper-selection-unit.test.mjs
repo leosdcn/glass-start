@@ -168,7 +168,7 @@ test('旧网络图片解码迟到或被重置，不触发渲染或持久化', as
     assert.equal(f.db.writes, 1);
     assert.match(f.base.style.backgroundImage, /bg3\.avif/);
     const cancelled = f.app.selectWallpaper(url);
-    await f.app.clearCustomWallpaper();
+    assert.equal(await f.app.resetWallpaperSettings(), true);
     assert.equal(await cancelled, false);
     assert.equal(f.messages.length, 0);
 });
