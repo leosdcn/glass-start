@@ -55,12 +55,12 @@
 | 设置打开、完成、取消与重置 | `editModal`、`saveEditBtn`、`tabAppearance`、`tabData` | `modules/settings.js`；控件事件在 `modules/settings-events.js` | `settings.css`；外观/数据页布局在 `glass.css` | `data-settings-save`、`ui-modal-accessibility`、`ui-rendered-contracts` |
 | 书签草稿、挑选与拖拽 | `draftBookmarks`、`editList`、`bookmarkPicker` | `state/bookmark-draft.js`、`modules/bookmark-editor.js`、`modules/bookmark-picker.js`、`modules/bookmark-drag.js` | `settings.css`、`glass.css` | `data-bookmark-picker`、`data-audit-regressions`、`data-pure-models` |
 | 壁纸预览、取消、保存与主题色 | `bgLayer`、`presetWallpaperGrid`、`urlBgInput` | `modules/wallpaper.js`；`core/wallpaper-renderer.js`、`core/theme-engine.js`；`utils/idb.js`；`config/backgrounds.js`、`config/themes.js` | `page.css`；壁纸网格在 `glass.css` | `data-wallpaper`、`infra-theme-favicon` |
-| 天气、定位与缓存显示 | `weatherBtn`、`weatherPopover`、`weatherNum` | `modules/weather.js`；`utils/weather-model.js`、`utils/weather-data.js`；`config/weather-icons.js` | `page.css`、`glass.css` | `data-weather-features`、`data-request-performance`、`data-priority-fixes-unit`、`data-pure-models` |
+| 天气、定位与缓存显示 | `weatherBtn`、`weatherPopover`、`weatherNum` | `modules/weather.js`；`utils/weather-model.js`、`utils/weather-data.js`、`utils/weather-view.js`、`utils/weather-head.js`；`config/weather-icons.js` | `page.css`、`glass.css` | `data-weather-features`、`data-request-performance`、`data-priority-fixes-unit`、`data-pure-models` |
 | 语言、目录翻译与旧链接兼容 | `data-i18n`、`languageModal`、`canonicalBookmarkUrl` | `core/i18n.js`；`config/language.js`、`config/locales/` | `page.css`；语言选项在 `glass.css` | `data-i18n` |
 | 模态层叠、焦点、确认框 | `OverlayStack`、`confirmModal`、`inert` | `core/overlay-stack.js`、`core/dialogs.js`；具体弹窗入口在 `modules/settings.js` | `settings.css`、`glass.css`、`animations.css` | `ui-modal-accessibility`、`ui-overlay-modals` |
 | 时钟与日期 | `clock`、`date` | `modules/clock.js` | `page.css` | `lifecycle.test`、`infra-module-boundaries` |
 | 快捷键速查与开源致谢 | `shortcutModal`、`creditsModal` | `modules/settings.js`（内容、开关）、`modules/settings-events.js`（控件事件） | `glass.css` | `ui-overlay-modals` |
-| 指针倾斜、卡片高光与书签行位移 | `pointermove`、`--mouse-x`、`animateBookmarkLayout` | `core/gestures.js`；`modules/bookmark-motion.js` | `glass.css`、`animations.css` | `ui-rendering-performance`、`ui-input-device-performance`、`data-animation-cleanup-unit` |
+| 指针倾斜、卡片高光与书签行位移 | `pointermove`、`--mouse-x`、`animateBookmarkLayout` | `core/gestures.js`、`core/motion.js`；`modules/bookmark-motion.js` | `glass.css`、`animations.css` | `ui-rendering-performance`、`ui-input-device-performance`、`data-animation-cleanup-unit` |
 | 网页离线缓存、升级与清理 | `ACTIVATE_UPDATE`、`updateNotice`、`clearCacheBtn` | 根目录 `sw.js`；`core/service-worker-updates.js`；清理流程在 `modules/settings.js`，按钮绑定在 `modules/settings-events.js` | `page.css` | `infra-sw-`、`data-audit-regressions` |
 | 网页构建、并发发布、首帧与扩展差异 | 构建插槽、`publishWebBuild`、`__GLASS_EXTENSION__` | 根目录 `scripts/build.cjs`、`scripts/publish-build.cjs`、`scripts/html-template.cjs`、`scripts/build-extension.cjs`、`src/extension/manifest.json` | `main.css` 为唯一编译入口 | `infra-build-pipeline`、`infra-security`、`infra-chrome-extension`、`infra-theme-favicon` |
 
@@ -244,6 +244,7 @@ flowchart LR
 | `modules/settings-events.js` | 设置控件事件、草稿字段更新、局部反馈和拖拽装配 |
 | `modules/bookmark-drag.js` | 鼠标与触屏重排、迟滞判定 |
 | `modules/bookmark-motion.js` | 书签行删除退场与共用 FLIP，按行取消或接管动效 |
+| `core/motion.js` | Web Animations API 动画收尾与减弱动效偏好响应 |
 | `core/dialogs.js` | 共用确认框，不依赖设置或壁纸业务 |
 
 ## 壁纸与主题
@@ -362,7 +363,7 @@ Chrome 扩展构建由同一策略生成清单 CSP 和主机权限。脚本仅�
 
 测试入口、命令和环境要求见 README。以下边界用于解释验证结果：
 
-- 生产构建编译时裁掉 `testing/bridge.js`。需要构建的 `npm test` 会生成独立的生产网页快照和同指纹测试脚本，测试服务按会话读取。Chrome 仍需预先设置 `window.__GLASS_TEST__ = true` 才挂载接口，测试脚本只供测试服务使用。
+- 生产构建编译时裁掉 `testing/bridge.js`。需要构建的 `npm test` 会生成独立的生产网页快照和同指纹测试脚本，测试服务按会话读取。Chrome 仍需预先设置 `window.__GLASS_TEST__ = true` 才挂载接口，测试脚本只供测试服务使用。测试运行器默认按可用 CPU 核心数平稳调度并发（上限 4，CI 为 1，可用 `GLASS_TEST_CONCURRENCY` 覆盖），向 Node 注入 60 秒超时熔断（可用 `GLASS_TEST_TIMEOUT` 调整）；CDP 会话在连接后监听 Chrome 实例的退出事件，进程异常中断时即刻结束等待，防止僵死。
 - `infra-module-boundaries.test.mjs` 检查全部 JS 源文件的依赖方向与无环性、生产包隔离，并验证关闭测试接口的页面启动；通过不等于所有业务职责都能由静态规则判断。
 - 浏览器验收以 Chrome 为准，使用 CDP 验证桌面、移动视口及触摸交互；日常开发、全面测试和发布均不要求 Safari/iOS 真机走查，仅在用户明确要求时进行该专项。导航完成与切屏完成分别等待，避免固定延时掩盖竞态。
 - `infra-chrome-extension.test.mjs` 在 `npm test` 的会话目录构建扩展，并在独立 Chrome 配置中实际加载，验证新标签页、首屏主题、三引擎联想、设置保存、离线重载及 CSP。联想响应使用固定数据，不能替代真实第三方接口联网走查。
