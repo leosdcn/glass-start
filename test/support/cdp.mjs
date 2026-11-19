@@ -39,6 +39,9 @@ function isRunning(proc) {
 
 function cleanupInstance(instance) {
   if (!activeInstances.delete(instance)) return;
+  if (instance.onProcExit && instance.proc) {
+    try { instance.proc.removeListener('exit', instance.onProcExit); } catch {}
+  }
   try {
     if (instance.connection) instance.connection.close();
     else if (instance.ws && instance.ws.readyState === WebSocket.OPEN) {
@@ -60,7 +63,10 @@ function cleanupInstance(instance) {
 
 async function closeInstance(instance) {
   if (!activeInstances.has(instance)) return;
-  const { proc, connection } = instance;
+  const { proc, connection, onProcExit } = instance;
+  if (onProcExit && proc) {
+    try { proc.removeListener('exit', onProcExit); } catch {}
+  }
   try {
     if (!isRunning(proc)) return;
     // 让已核对归属的 Chrome 先关闭子进程，再移除配置目录。
@@ -170,7 +176,9 @@ export async function connectCDP(ws, { openTimeoutMs = 15000 } = {}) {
         catch (error) { fail(new Error('CDP send failed', { cause:error })); }
       });
     },
-    close() { fail(new Error('CDP connection closed by client')); }
+    close(reason) {
+      fail(reason instanceof Error ? reason : new Error(String(reason || 'CDP connection closed by client')));
+    }
   };
 }
 
@@ -246,6 +254,11 @@ async function launchChromeOnce({ port = 0, url, testMode = true, disableGPU = t
     })();
     instance.ws = new WebSocket(target.webSocketDebuggerUrl);
     const connection = await connectCDP(instance.ws);
+    const onProcExit = (code, signal) => {
+      connection.close(new Error(`Chrome process exited unexpectedly (${signal ?? code ?? 'unknown'})`));
+    };
+    proc.once('exit', onProcExit);
+    instance.onProcExit = onProcExit;
     const { send } = connection;
     try {
       const { arguments: commandLine } = await send('Browser.getBrowserCommandLine');
