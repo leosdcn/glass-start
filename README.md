@@ -258,7 +258,7 @@ npm run build:extension
 
 验证范围以 [AGENTS.md](./AGENTS.md#验证) 为准，局部修改优先运行直接相关测试。`npm test -- <文件名片段> [更多片段]` 执行任一片段匹配的测试文件，每个文件只运行一次。任一片段没有匹配时会报错。运行前会检查类型，并按需构建；需要构建时，两项并行执行，无需重复手动检查类型或构建。仅匹配[运行器明确列出的纯单元测试](./test/support/test-selection.mjs)时跳过构建。无参数的 `npm test` 执行全套，用于高风险跨模块改造、发布或明确要求全量验证的场景。`test:ui`、`test:data`、`test:infra`、`test:lifecycle` 可按模块扩大范围，可用命令以 `package.json` 为准。
 
-需要构建时，`npm test` 发布 `dist/` 并将本轮网页产物和同指纹测试脚本保存在独立会话目录。测试服务从该快照读取，开发服务随后重建也不会影响正在运行的测试。扩展回归在会话目录生成扩展，供日常安装的 `extension/` 由 `npm run build:extension` 生成。设置 `CHROME_PROFILE_DIR` 可指定 Chrome 测试配置的父目录，每个会话只清理自己创建的子目录。
+需要构建时，`npm test` 发布 `dist/` 并将本轮网页产物和同指纹测试脚本保存在独立会话目录。测试服务从该快照读取，开发服务随后重建也不会影响正在运行的测试。扩展回归在会话目录生成扩展，供日常安装的 `extension/` 由 `npm run build:extension` 生成。设置 `CHROME_PROFILE_DIR` 可指定 Chrome 测试配置的父目录，每个会话只清理自己创建的子目录；通过 `GLASS_TEST_CONCURRENCY` 可自定义并发测试进程数（默认根据 CPU 核心数自适应，上限 4，CI 为 1），`GLASS_TEST_TIMEOUT` 可调整单个测试超时熔断阈值（默认 60000ms）。
 
 升级开发组件时同步维护 `package.json` 与 `package-lock.json`；`npm ci` 按锁文件复现版本，`^` 声明的是允许更新的范围，不会让每次 `npm ci` 自动升级。Tailwind 与其 CLI 保持版本一致；它们虽然是开发依赖，升级仍可能改变生成的 CSS，须重建并验证受影响的网页和扩展布局。Stylelint 升级则需核对规则迁移与对应校验回归。
 
