@@ -88,36 +88,38 @@
           window.__PRELOADED_BG__ = preloadUrl || '';
           // 构建时从 config/themes.js 注入同步首屏配置，不单独维护主题副本。
           /* INJECT_THEME_CONFIG */
-          let initTheme = null;
-          let initTint = '255, 255, 255';
-          let initThemeColor = '';
+          function applyInitialTheme(theme, tint, themeColor) {
+            const root = document.documentElement;
+            const targetThemeColor = themeColor || (theme.isLight ? '#ffffff' : '#546272');
+            root.style.setProperty('--glass-tint', tint);
+            root.style.setProperty('--bg-base', theme.color);
+            root.style.setProperty('--bg-start', targetThemeColor);
+            root.style.backgroundColor = theme.color;
+            root.style.colorScheme = theme.isLight ? 'light' : 'dark';
+            root.classList.toggle('wallpaper-bright', theme.isLight);
+            document.querySelectorAll('meta[name="theme-color"]').forEach(meta => { meta.content = targetThemeColor; });
+            window.__INITIAL_THEME__ = { ...theme, themeColor: targetThemeColor };
+            window.__INITIAL_THEME_COLOR__ = targetThemeColor;
+          }
           if (wallpaperMeta?.custom) {
+            document.documentElement.style.setProperty('--glass-tint', '255, 255, 255');
             try {
               const cached = wallpaperMeta.appearance;
-              if (cached && cached.mask === JSON.parse(localStorage.getItem('maskOpacity')) && typeof cached.isLight === 'boolean') {
-                initTheme = cached.isLight ? THEME_LIGHT : THEME_DARK;
-                if (typeof cached.themeColor === 'string') initThemeColor = cached.themeColor;
-                if (typeof cached.tint === 'string' && cached.tint) initTint = cached.tint;
+              if (cached && typeof cached.isLight === 'boolean' && Number.isFinite(cached.aspect) &&
+                  cached.mask === JSON.parse(localStorage.getItem('maskOpacity'))) {
+                // 图层落入 DOM 后，用实际宽高比校验缓存中的裁切条件。
+                window.__applyCachedWallpaperTheme__ = bg => {
+                  if (cached.aspect !== bg.clientWidth / bg.clientHeight) return;
+                  applyInitialTheme(cached.isLight ? THEME_LIGHT : THEME_DARK,
+                    typeof cached.tint === 'string' && cached.tint ? cached.tint : '255, 255, 255',
+                    typeof cached.themeColor === 'string' ? cached.themeColor : '');
+                };
               }
             } catch(e) {}
           } else {
             const pIdx = backgrounds.indexOf(preloadUrl);
-            initTheme = (pIdx >= 0 && PRESET_THEMES[pIdx]) ? PRESET_THEMES[pIdx] : THEME_DARK;
-            initTint = (pIdx >= 0 && PRESET_TINTS[pIdx]) ? PRESET_TINTS[pIdx] : '255, 255, 255';
-            initThemeColor = (pIdx >= 0 && PRESET_THEME_COLORS && PRESET_THEME_COLORS[pIdx]) ? PRESET_THEME_COLORS[pIdx] : '';
-          }
-          document.documentElement.style.setProperty('--glass-tint', initTint);
-          if (initTheme && initTheme.color) {
-            const targetColor = initTheme.color;
-            const targetThemeColor = initThemeColor || (initTheme.isLight ? '#ffffff' : '#546272');
-            document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){ m.content = targetThemeColor; });
-            document.documentElement.style.colorScheme = initTheme.isLight ? 'light' : 'dark';
-            if (initTheme.isLight) document.documentElement.classList.add('wallpaper-bright');
-            document.documentElement.style.backgroundColor = targetColor;
-            document.documentElement.style.setProperty('--bg-base', targetColor);
-            document.documentElement.style.setProperty('--bg-start', targetThemeColor);
-            window.__INITIAL_THEME__ = { ...initTheme, themeColor: targetThemeColor };
-            window.__INITIAL_THEME_COLOR__ = targetThemeColor;
+            applyInitialTheme(PRESET_THEMES[pIdx] || THEME_DARK,
+              PRESET_TINTS[pIdx] || '255, 255, 255', PRESET_THEME_COLORS[pIdx] || '');
           }
           if (preloadUrl) {
             const newLink = document.createElement('link');
@@ -173,7 +175,25 @@
     <div id="bgLayer" class="bg-fullscreen bg-cover bg-center bg-no-repeat z-0 bg-slate-900 bg-layer"></div>
     <div id="bgLayerNext" class="bg-fullscreen bg-cover bg-center bg-no-repeat z-0 opacity-0 bg-slate-900 bg-layer"></div>
     <div id="bgOverlay" class="bg-fullscreen bg-black/15 pointer-events-none z-0"></div>
-    <script>(function(){const bg=document.getElementById('bgLayer');const url=(window.__PRELOADED_BG__!==undefined)?window.__PRELOADED_BG__:'./wallpapers/bg1.avif';if(bg&&url){bg.style.backgroundImage="url(\""+url.replace(/["'\\\r\n)]/g,'\\$&')+"\")";bg.style.opacity='1';}if(window.__INITIAL_THEME_COLOR__&&bg){bg.style.backgroundColor=window.__INITIAL_THEME_COLOR__;}if(window.__PRE_BG_EFFECTS__){const o=document.getElementById('bgOverlay');if(o){o.style.backgroundColor='rgba(0, 0, 0, '+(window.__PRE_BG_EFFECTS__.op/100)+')';}}})()</script>
+    <script>
+      (function() {
+        const bg = document.getElementById('bgLayer');
+        const url = window.__PRELOADED_BG__ ?? './wallpapers/bg1.avif';
+        if (bg) {
+          window.__applyCachedWallpaperTheme__?.(bg);
+          if (url) {
+            bg.style.backgroundImage = 'url("' + url.replace(/["'\\\r\n)]/g, '\\$&') + '")';
+            bg.style.opacity = '1';
+          }
+          if (window.__INITIAL_THEME_COLOR__) bg.style.backgroundColor = window.__INITIAL_THEME_COLOR__;
+        }
+        delete window.__applyCachedWallpaperTheme__;
+        if (window.__PRE_BG_EFFECTS__) {
+          const overlay = document.getElementById('bgOverlay');
+          if (overlay) overlay.style.backgroundColor = 'rgba(0, 0, 0, ' + (window.__PRE_BG_EFFECTS__.op / 100) + ')';
+        }
+      })();
+    </script>
 
     <!-- ========== 第一屏：起始页 ========== -->
     <main id="startSection" aria-label="起始页" data-i18n-aria-label="ui.start.page">
@@ -196,7 +216,7 @@
                 <span id="weatherCity" class="text-white/80 max-w-22 sm:max-w-30 truncate text-[0.6875rem] sm:text-xs tracking-[-0.012em]" data-i18n="ui.weather">天气</span>
             </button>
             <!-- 下拉天气预报卡片 -->
-            <div id="weatherPopover" role="dialog" aria-modal="false" aria-label="实时天气详细预报" aria-hidden="true" class="dropdown-menu absolute p-3.5 sm:p-4 glass-strong apple-radius border border-white/20 shadow-2xl z-[var(--z-dropdown)] select-none" data-i18n-aria-label="ui.current.weather.and.forecast"></div>
+            <div id="weatherPopover" role="dialog" aria-modal="false" aria-label="实时天气详细预报" inert aria-hidden="true" class="dropdown-menu absolute p-3.5 sm:p-4 glass-strong apple-radius border border-white/20 shadow-2xl z-[var(--z-dropdown)] select-none" data-i18n-aria-label="ui.current.weather.and.forecast"></div>
         </div>
         <script>
             // 使用缓存预渲染天气；数值规则与运行时来自同一模块。
@@ -268,9 +288,9 @@
                         </button>
                     </div>
                 </div>
-                <div id="dropdownMenu" role="menu" aria-label="搜索引擎选项" aria-hidden="true" class="dropdown-menu absolute top-full left-0 glass-strong apple-radius p-2 border border-white/20 shadow-2xl min-w-35 z-[var(--z-dropdown)] select-none" data-i18n-aria-label="ui.search.engines"></div>
+                <div id="dropdownMenu" role="menu" aria-label="搜索引擎选项" inert aria-hidden="true" class="dropdown-menu absolute top-full left-0 glass-strong apple-radius p-2 border border-white/20 shadow-2xl min-w-35 z-[var(--z-dropdown)] select-none" data-i18n-aria-label="ui.search.engines"></div>
                 <!-- 搜索实时建议联想下拉框 (Spotlight 风格全宽下拉面板) -->
-                <div id="suggestionMenu" role="listbox" aria-label="搜索建议" aria-hidden="true" class="dropdown-menu absolute top-full left-0 right-0 w-full glass-strong apple-radius p-2 border border-white/20 shadow-2xl z-[var(--z-dropdown)] max-h-suggestions-max overflow-y-auto overscroll-contain select-none" data-i18n-aria-label="ui.search.suggestions"></div>
+                <div id="suggestionMenu" role="listbox" aria-label="搜索建议" inert aria-hidden="true" class="dropdown-menu absolute top-full left-0 right-0 w-full glass-strong apple-radius p-2 border border-white/20 shadow-2xl z-[var(--z-dropdown)] max-h-suggestions-max overflow-y-auto overscroll-contain select-none" data-i18n-aria-label="ui.search.suggestions"></div>
                 <p id="imageSearchStatus" role="status" class="pointer-events-none absolute inset-x-0 top-full mt-2 px-2 text-sm text-rose-200"></p>
             </form>
             <form hidden method="post" enctype="multipart/form-data">

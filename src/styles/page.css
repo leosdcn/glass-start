@@ -727,6 +727,12 @@ body.bookmark-dragging .drag-handle {
 }
 
 /* ===== 键盘焦点环 ===== */
+/* Safari 可能把指针触发的原生弹窗焦点转移识别为 :focus-visible。 */
+[data-pointer-modal-focus]:focus:focus-visible {
+    outline: none;
+    @apply ring-transparent ring-offset-transparent;
+}
+
 @layer base {
     :focus-visible {
         outline: 2px solid rgba(255, 255, 255, 0.55);

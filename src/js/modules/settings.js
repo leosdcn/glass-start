@@ -17,7 +17,7 @@ import { dom } from '../state/dom.js';
 import { OverlayStack } from '../core/overlay-stack.js';
 import { flushWallpaperSelection, prepareWallpaperDraft, getCommittedWallpaperUrl, closeWallpaperDraft, pauseWallpaperDraft, showWallpaperDraft, updateWallpaperStatusUI, updatePresetBgCardsUI, clearCustomWallpaper, renderPresetWallpapers, commitWallpaperSelection, revertDraftWallpaper, applyBgEffects, flushBgEffects, getSavedMaskOpacity, commitWallpaperDimming, showWallpaperError, previewDraftWallpaper, discardWallpaperDraftSelection } from './wallpaper.js';
 import { loadBookmarks, saveUserBookmarks, resetUserBookmarks, getImportedBookmarks } from './bookmarks.js';
-import { closeDropdown, hideSuggestions, setEngine } from './search.js';
+import { cancelSearchSubmission, closeDropdown, hideSuggestions, setEngine } from './search.js';
 import { getTransitionMode, syncTransitionSwitcherActive, setTransitionMode, resetNavDiscovery } from '../core/screen-state.js';
 import { cancelDragSort } from './bookmark-drag.js';
 import { closeBookmarkPicker } from './bookmark-picker.js';
@@ -201,6 +201,7 @@ export function previewDraftMaskOpacity(value) {
 /** @param {HTMLElement} [invoker] */
 export async function openEditModal(invoker) {
     if (state.editOpen) return;
+    cancelSearchSubmission();
     /** @type {NonNullable<typeof editSession>} */
     const session = {};
     editSession = session;
@@ -304,7 +305,7 @@ export function submitWallpaperUrlInput() {
     previewDraftWallpaper(imageUrl.href);
 }
 
-export function openShortcutModal() {
+export function openShortcutModal(trigger = document.activeElement) {
     const modal = dom.shortcutModal;
     if (!modal) return;
     renderShortcutModalList();
@@ -313,7 +314,7 @@ export function openShortcutModal() {
     if (state.editOpen) {
         dom.openShortcutFromSettingsBtn?.setAttribute('aria-expanded', 'true');
     }
-    OverlayStack.push('shortcutModal', closeShortcutModal);
+    OverlayStack.push('shortcutModal', closeShortcutModal, trigger);
 }
 
 export function closeShortcutModal() {
@@ -323,12 +324,12 @@ export function closeShortcutModal() {
     dom.openShortcutFromSettingsBtn?.setAttribute('aria-expanded', 'false');
 }
 
-export function openCreditsModal() {
+export function openCreditsModal(trigger = document.activeElement) {
     const modal = dom.creditsModal;
     if (!modal) return;
     renderCreditsModalList();
     dom.openCreditsFromSettingsBtn?.setAttribute('aria-expanded', 'true');
-    OverlayStack.push('creditsModal', closeCreditsModal);
+    OverlayStack.push('creditsModal', closeCreditsModal, trigger);
 }
 
 export function closeCreditsModal() {
@@ -499,7 +500,7 @@ export function resetBookmarks() {
             if (isCurrent()) setEditPhase('editing');
             resumeWallpaper?.();
         }
-    }, t('ui.reset.all.settings'));
+    }, t('ui.reset.all.settings'), { triggerEl: dom.resetEditBtn });
 }
 
 /** @param {string} title @param {boolean} [allowEmpty] */
@@ -603,8 +604,6 @@ export function openLanguageModal(trigger = dom.languageBtn) {
     syncLanguageUI();
     dom.languageBtn?.setAttribute('aria-expanded', 'true');
     OverlayStack.push('languageModal', cancelLanguageModal, trigger);
-    const activeItem = /** @type {HTMLButtonElement | null} */ (dom.languageList?.querySelector('button[data-lang][aria-checked="true"]'));
-    activeItem?.focus();
 }
 
 export function cancelLanguageModal() {
@@ -645,6 +644,7 @@ function syncLanguageUI() {
         const btn = /** @type {HTMLButtonElement} */ (el);
         const isSelected = btn.dataset.lang === currentLang;
         btn.setAttribute('aria-checked', isSelected ? 'true' : 'false');
+        btn.autofocus = isSelected;
         btn.classList.toggle('selected', isSelected);
         btn.querySelector('.lang-check')?.classList.toggle('opacity-0', !isSelected);
     });

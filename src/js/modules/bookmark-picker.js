@@ -124,8 +124,8 @@ export function addBookmarkFromPicker(url) {
 export function openBookmarkPicker(triggerEl = null) {
     const opener = triggerEl || document.activeElement || dom.togglePickerBtn;
     dom.togglePickerBtn?.setAttribute('aria-expanded', 'true');
-    OverlayStack.push('bookmarkPicker', closeBookmarkPicker, opener);
     renderPickerCategories();
+    OverlayStack.push('bookmarkPicker', closeBookmarkPicker, opener);
 }
 
 export function closeBookmarkPicker() {

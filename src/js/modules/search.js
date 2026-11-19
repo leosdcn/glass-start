@@ -19,15 +19,28 @@ let suggestionNodes = [];
 /** @type {HTMLElement | null} */
 let selectedSuggestionNode = null;
 let searchSubmissionId = 0;
+
+export function cancelSearchSubmission() {
+    searchSubmissionId++;
+}
+
+/** @param {number} id @param {string} inputValue */
+function canFinishSearch(id, inputValue) {
+    return id === searchSubmissionId && (dom.searchInput?.value ?? '') === inputValue &&
+        !state.editOpen && !OverlayStack.topModal();
+}
+
 /**
  * @param {number} index
  * @param {boolean} [newTab]
  */
 export function activateSuggestion(index, newTab) {
-    searchSubmissionId++;
+    const submissionId = ++searchSubmissionId;
+    const inputValue = dom.searchInput?.value ?? '';
+    if (!canFinishSearch(submissionId, inputValue)) return;
     const item = suggestionItems[index];
     if (item?.type === 'bookmark') openBookmarkUrl(item.url, newTab);
-    else doSearch(item?.text, newTab);
+    else void doSearch(submissionId, inputValue, item?.text, newTab);
 }
 /**
  * @param {number} index
@@ -147,14 +160,11 @@ export function toggleDropdown() {
     const dropdownMenu = dom.dropdownMenu;
     const engineBtn = dom.engineBtn;
     if (!dropdownMenu || !engineBtn) return;
-    if (dropdownMenu.classList.contains('active')) {
+    if (OverlayStack.has('dropdown')) {
         closeDropdown();
         return;
     }
-    if (!OverlayStack.push('dropdown', closeDropdown, engineBtn)) return;
-    dropdownMenu.classList.add('active');
-    dropdownMenu.setAttribute('aria-hidden', 'false');
-    engineBtn.setAttribute('aria-expanded', 'true');
+    if (!OverlayStack.push('dropdown', closeDropdown, engineBtn, dropdownMenu)) return;
     const activeItem = /** @type {HTMLElement | null} */ (dropdownMenu.querySelector('[data-engine][aria-checked="true"]') || dropdownMenu.querySelector('[data-engine]'));
     activeItem?.focus();
 }
@@ -165,13 +175,6 @@ export function toggleDropdown() {
  */
 export function closeDropdown() {
     OverlayStack.pop('dropdown');
-    const dropdownMenu = dom.dropdownMenu;
-    const engineBtn = dom.engineBtn;
-    const hadFocus = !!(dropdownMenu && document.activeElement && dropdownMenu.contains(document.activeElement));
-    dropdownMenu?.classList.remove('active');
-    dropdownMenu?.setAttribute('aria-hidden', 'true');
-    engineBtn?.setAttribute('aria-expanded', 'false');
-    if (hadFocus) engineBtn?.focus();
 }
 
 /**
@@ -183,6 +186,7 @@ export function setEngine(key, save = true) {
     /** @type {Record<string, { name: string; svg: string; url: string }>} */
     const engineMap = engines;
     const validEngine = Object.hasOwn(engineMap, key) ? key : DEFAULT_ENGINE;
+    if (validEngine !== state.engine) cancelSearchSubmission();
     state.engine = validEngine;
     if (dom.imageSearchStatus) dom.imageSearchStatus.textContent = '';
     const engineObj = engineMap[validEngine] || engineMap[DEFAULT_ENGINE];
@@ -243,12 +247,12 @@ export function getImageSearchEngine() {
 
 /**
  * 执行搜索
+ * @param {number} submissionId
+ * @param {string} inputValue
  * @param {string} [queryOverride] - 可选直接传入建议词
  * @param {boolean} [newTab=false] - 是否在新标签页中打开
  */
-async function doSearch(queryOverride, newTab = false) {
-    const searchInput = dom.searchInput;
-    const inputValue = searchInput?.value ?? '';
+async function doSearch(submissionId, inputValue, queryOverride, newTab = false) {
     const q = (queryOverride ?? inputValue).trim();
     if (!q) return;
     closeDropdown();
@@ -258,11 +262,9 @@ async function doSearch(queryOverride, newTab = false) {
     const link = queryOverride === undefined ? parseSearchLink(q) : null;
     let targetUrl = link?.href ?? engineObj.url + encodeURIComponent(q);
     if (link && !link.username && !link.password) {
-        const submissionId = searchSubmissionId;
         const imageEngine = getImageSearchEngine();
         const isImage = /\.(?:avif|bmp|gif|heic|heif|ico|jpe?g|png|svg|tiff?|webp)$/i.test(link.pathname)
             || await checkImageLink(link.href);
-        if (submissionId !== searchSubmissionId || searchInput?.value !== inputValue || OverlayStack.topModal()) return;
         if (isImage) {
             const destination = new URL(IMAGE_SEARCH_LINKS[imageEngine]);
             if (imageEngine === 'bing') {
@@ -274,6 +276,7 @@ async function doSearch(queryOverride, newTab = false) {
             targetUrl = destination.href;
         }
     }
+    if (!canFinishSearch(submissionId, inputValue)) return;
     if (newTab) {
         window.open(targetUrl, '_blank', 'noopener,noreferrer');
     } else {
@@ -284,15 +287,18 @@ async function doSearch(queryOverride, newTab = false) {
 
 /** @param {keyof typeof IMAGE_SEARCH_UPLOADS} engine @param {HTMLInputElement} input */
 export async function submitImageSearch(engine, input) {
-    const files = input.files;
-    const file = files?.[0];
+    const file = input.files?.[0];
     if (!file) return;
+    const submissionId = ++searchSubmissionId;
+    const inputValue = dom.searchInput?.value ?? '';
+    input.value = '';
+    const isCurrent = () => canFinishSearch(submissionId, inputValue);
+    if (!isCurrent()) return;
     // Lens 的跨站上传需要省略来源，独立表单文档只对该上传应用 no-referrer。
     const form = engine === 'google' ? dom.lensUploadFrame?.contentDocument?.forms[0] : input.form;
     const reportError = () => {
-        if (input.files?.[0] !== file) return;
+        if (!isCurrent()) return;
         if (dom.imageSearchStatus) dom.imageSearchStatus.textContent = t('engine.upload.error');
-        input.value = '';
     };
     if (!form || !file.size) {
         reportError();
@@ -300,8 +306,9 @@ export async function submitImageSearch(engine, input) {
     }
 
     const action = new URL(IMAGE_SEARCH_UPLOADS[engine].url);
-    /** @param {Record<string, string | FileList>} fields */
+    /** @param {Record<string, string | File>} fields */
     const submit = fields => {
+        if (!isCurrent()) return;
         const controls = Object.entries(fields).map(([name, value]) => {
             const field = form.ownerDocument.createElement('input');
             field.name = name;
@@ -310,7 +317,9 @@ export async function submitImageSearch(engine, input) {
                 field.value = value;
             } else {
                 field.type = 'file';
-                field.files = value;
+                const transfer = new DataTransfer();
+                transfer.items.add(value);
+                field.files = transfer.files;
             }
             return field;
         });
@@ -318,7 +327,6 @@ export async function submitImageSearch(engine, input) {
             form.action = action.href;
             form.append(...controls);
             form.submit();
-            input.value = '';
         } finally {
             controls.forEach(field => field.remove());
         }
@@ -330,7 +338,7 @@ export async function submitImageSearch(engine, input) {
             action.searchParams.set('hl', getLocale());
             action.searchParams.set('st', String(Date.now()));
             if (file.type.startsWith('image/')) {
-                submit({ encoded_image: files });
+                submit({ encoded_image: file });
                 return;
             }
         }
@@ -339,9 +347,9 @@ export async function submitImageSearch(engine, input) {
         const image = new Image();
         image.src = url;
         await image.decode();
-        if (input.files?.[0] !== file) return;
+        if (!isCurrent()) return;
         if (engine === 'google') {
-            submit({ encoded_image: files });
+            submit({ encoded_image: file });
             return;
         }
         // 与 Bing 网页端一样缩小大图并用白底 JPEG 编码。
@@ -516,7 +524,7 @@ function renderSuggestions(localList = [], netList = [], preserveSelection = fal
     const safeNetList = netList.slice(0, maxNetCount);
     const localKey = getLocalListSignature(localList);
     const signature = JSON.stringify([isNetLoading, localKey, safeNetList]);
-    const isOpen = suggestionMenu.classList.contains('active');
+    const isOpen = OverlayStack.has('suggestions');
     if (signature === lastSuggestionsSignature && isOpen) {
         if (!preserveSelection && selectedSuggestionIdx >= 0) selectSuggestion(-1);
         return;
@@ -525,8 +533,7 @@ function renderSuggestions(localList = [], netList = [], preserveSelection = fal
         hideSuggestions();
         return;
     }
-    if (!OverlayStack.stack.some(entry => entry.id === 'suggestions')
-        && !OverlayStack.push('suggestions', hideSuggestions, searchInput)) return;
+    if (!isOpen && !OverlayStack.push('suggestions', hideSuggestions, searchInput, suggestionMenu)) return;
     suggestionItems = [
         ...localList.map(bm => (/** @type {import('../types').SuggestionBookmarkItem} */ ({type: 'bookmark', text: bm.name, url: bm.url}))),
         ...safeNetList.map(text => (/** @type {import('../types').SuggestionQueryItem} */ ({type: 'query', text})))
@@ -591,10 +598,6 @@ function renderSuggestions(localList = [], netList = [], preserveSelection = fal
 
     suggestionNodes = suggestionMenu.querySelectorAll('.suggestion-item');
     lastSuggestionsSignature = signature;
-    suggestionMenu.classList.add('active');
-    suggestionMenu.setAttribute('aria-hidden', 'false');
-    searchInput.setAttribute('aria-expanded', 'true');
-
     selectSuggestion(Math.min(prevIdx, suggestionItems.length - 1));
     if (!waitingForOptions) suggestionMenu.removeAttribute('aria-busy');
 }
@@ -618,18 +621,16 @@ export function hideSuggestions() {
     lastSuggestionsSignature = '';
     lastRenderedLocalKey = '';
     cancelSuggestionRequest();
-    OverlayStack.pop('suggestions');
+    const wasOpen = !!OverlayStack.pop('suggestions');
     const suggestionMenu = dom.suggestionMenu;
     const searchInput = dom.searchInput;
     if (suggestionMenu) {
-        const wasOpen = suggestionMenu.classList.contains('active');
-        suggestionMenu.classList.remove('active', 'keyboard-nav');
-        suggestionMenu.setAttribute('aria-hidden', 'true');
+        suggestionMenu.classList.remove('keyboard-nav');
         suggestionMenu.removeAttribute('aria-busy');
         if (wasOpen) {
             // 先关闭交互，等 CSS 隐藏面板后再移除内容，保持退场高度。
             const clearGroups = () => {
-                if (suggestionMenu.classList.contains('active') || getComputedStyle(suggestionMenu).visibility !== 'hidden') return;
+                if (OverlayStack.has('suggestions') || getComputedStyle(suggestionMenu).visibility !== 'hidden') return;
                 localGroup?.replaceChildren();
                 netGroup?.replaceChildren();
             };
@@ -639,10 +640,7 @@ export function hideSuggestions() {
             else clearGroups();
         }
     }
-    if (searchInput) {
-        searchInput.setAttribute('aria-expanded', 'false');
-        searchInput.removeAttribute('aria-activedescendant');
-    }
+    searchInput?.removeAttribute('aria-activedescendant');
     selectedSuggestionIdx = -1;
 }
 
@@ -693,7 +691,7 @@ export function fetchSuggestions(engineKey, query, deferNetwork = false) {
         requestNetworkSuggestions(engineKey, query, cacheKey, localList, reqId);
     };
     if (deferNetwork) {
-        if (localList.length || dom.suggestionMenu?.classList.contains('active')) {
+        if (localList.length || OverlayStack.has('suggestions')) {
             // 防抖期间用骨架替换旧建议，已展开的面板无需重新退场和入场。
             renderSuggestions(localList, [], preserveSelection, true);
         }

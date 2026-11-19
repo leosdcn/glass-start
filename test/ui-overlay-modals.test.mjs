@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { launchSession, pressKey, waitFor } from './support/helpers.mjs';
+import { launchSession, navigateAndWait, pressKey, waitFor } from './support/helpers.mjs';
 
 test('页面刷新状态保持、跳出返回防白屏与触觉倾斜恢复', async () => {
   const { server, chrome, send, evalJS } = await launchSession();
@@ -134,6 +134,28 @@ test('页面刷新状态保持、跳出返回防白屏与触觉倾斜恢复', as
       };
     })()`);
     assert.ok(tiltTest.ok, `3D 倾斜触觉正确响应与复位: ${JSON.stringify(tiltTest)}`);
+  } finally {
+    await chrome.close();
+    await server.close();
+  }
+});
+
+test('重新加载与唤醒后导航保留书签焦点并可继续用 PageDown 滚动', async () => {
+  const { server, chrome, send, evalJS, port } = await launchSession();
+  try {
+    await evalJS('sessionStorage.setItem("startpage_section", "nav")');
+    await navigateAndWait(send, evalJS, `http://127.0.0.1:${port}/?restore=nav`, 'window.state?.currentSection === "nav"');
+    assert.equal(await evalJS('document.activeElement === dom.navContent'), true);
+    for (const type of ['rawKeyDown', 'keyUp']) {
+      await send('Input.dispatchKeyEvent', { type, key: 'PageDown', code: 'PageDown', windowsVirtualKeyCode: 34 });
+    }
+    await waitFor(evalJS, 'dom.navContent.scrollTop > 0');
+    await evalJS(`dom.navContent.querySelector('.nav-bookmark').focus({ preventScroll: true });
+      window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true }));`);
+    assert.equal(await evalJS("document.activeElement.matches('.nav-bookmark')"), true);
+    await evalJS(`document.activeElement.blur();
+      window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true }));`);
+    assert.equal(await evalJS('document.activeElement === dom.navContent'), true);
   } finally {
     await chrome.close();
     await server.close();
@@ -489,6 +511,77 @@ test('搜索框按图片链接、网页地址和关键词分流', async () => {
   }
 });
 
+test('新图片提交作废旧网址探测，打开设置作废尚未完成的搜图', async () => {
+  const { server, chrome, send, evalJS } = await launchSession();
+  const requests = [];
+  try {
+    send('Fetch.requestPaused', event => requests.push(event));
+    await send('Fetch.enable', { patterns: [{ urlPattern: 'https://www.bing.com/images/search?*', resourceType: 'Document' }] });
+    const image = readFileSync(new URL('../src/extension/icon16.png', import.meta.url)).toString('base64');
+    await evalJS(`(async () => {
+      dom.engineBtn.click();
+      dom.dropdownMenu.querySelector('[data-engine="bing"]').click();
+      window.openedSearchUrls = [];
+      window.open = href => openedSearchUrls.push(href);
+      window.imageFormSubmissions = 0;
+      const submit = HTMLFormElement.prototype.submit;
+      HTMLFormElement.prototype.submit = function() {
+        imageFormSubmissions++;
+        return submit.call(this);
+      };
+
+      const descriptor = Object.getOwnPropertyDescriptor(HTMLImageElement.prototype, 'src');
+      const decode = HTMLImageElement.prototype.decode;
+      const pendingUrl = location.origin + '/pending-link';
+      let finishProbe;
+      Object.defineProperty(HTMLImageElement.prototype, 'src', {
+        ...descriptor, set(value) {
+          if (value === pendingUrl) finishProbe = () => this.onerror();
+          else descriptor.set.call(this, value);
+        }
+      });
+      HTMLImageElement.prototype.decode = function() {
+        const result = decode.call(this);
+        return this.src.startsWith('blob:')
+          ? result.then(() => new Promise(resolve => { window.finishSearchDecode = resolve; }))
+          : result;
+      };
+      window.pasteSearchImage = () => {
+        window.finishSearchDecode = null;
+        const clipboardData = new DataTransfer();
+        clipboardData.items.add(new File([Uint8Array.from(atob('${image}'), c => c.charCodeAt(0))], 'pending.png', { type: 'image/png' }));
+        dom.searchInput.dispatchEvent(new ClipboardEvent('paste', { clipboardData, bubbles: true, cancelable: true }));
+      };
+      dom.searchInput.focus();
+      dom.searchInput.value = pendingUrl;
+      dom.searchInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', ctrlKey: true, bubbles: true, cancelable: true }));
+      pasteSearchImage();
+      finishProbe();
+      await Promise.resolve();
+    })()`);
+    assert.deepEqual(await evalJS('openedSearchUrls'), []);
+    await waitFor(evalJS, '!!window.finishSearchDecode');
+    await evalJS('window.finishSearchDecode()');
+    await waitFor(async () => requests.length === 1, '较新的图片提交');
+    await send('Fetch.fulfillRequest', { requestId: requests[0].requestId, responseCode: 204 });
+    assert.equal(requests[0].request.method, 'POST');
+
+    await evalJS('pasteSearchImage()');
+    await waitFor(evalJS, '!!window.finishSearchDecode');
+    await evalJS('openEditModal()');
+    assert.equal(await evalJS('dom.editModal.open'), true);
+    await evalJS(`(async () => {
+      cancelEditModal();
+      window.finishSearchDecode();
+      await new Promise(resolve => requestAnimationFrame(resolve));
+    })()`);
+    assert.equal(await evalJS('imageFormSubmissions'), 1);
+  } finally {
+    await chrome.close();
+    await server.close();
+  }
+});
+
 test('相机打开本地选图并提交给当前引擎', async () => {
   const { server, chrome, send, evalJS } = await launchSession();
   try {
@@ -701,6 +794,38 @@ test('粘贴图片用当前引擎搜图，文字和网址保留默认粘贴', as
       assert.equal(request.method, 'POST');
       assert.equal(request.url.split('?')[0], destination);
       assert.equal(await evalJS('dom.imageSearchInput.files.length'), 0);
+    }
+  } finally {
+    await chrome.close();
+    await server.close();
+  }
+});
+
+test('天气与引擎菜单退场仍可见，关闭后立即退出键盘焦点顺序', async () => {
+  const { server, chrome, send, evalJS } = await launchSession();
+  try {
+    await evalJS(`renderWeatherPopover({ location: { name: '上海' }, current: { temp: 25, weatherText: '晴' }, daily: [] })`);
+    for (const [id, triggerId, tabCount] of [['weatherPopover', 'weatherBtn', 1], ['dropdownMenu', 'engineBtn', 3]]) {
+      await evalJS(`document.getElementById('${triggerId}').click()`);
+      await waitFor(evalJS, `getComputedStyle(document.getElementById('${id}')).opacity === '1'`);
+      await evalJS(`(() => {
+        const panel = document.getElementById('${id}');
+        panel.querySelector('button').focus();
+        document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+        panel.getAnimations().forEach(animation => animation.pause());
+      })()`);
+      const state = await evalJS(`(() => {
+        const panel = document.getElementById('${id}');
+        return [panel.inert, panel.getAttribute('aria-hidden'), getComputedStyle(panel).visibility, document.activeElement.id];
+      })()`);
+      assert.deepEqual(state, [true, 'true', 'visible', triggerId]);
+      for (let step = 0; step < tabCount; step++) {
+        for (const type of ['rawKeyDown', 'keyUp']) {
+          await send('Input.dispatchKeyEvent', { type, key: 'Tab', code: 'Tab', windowsVirtualKeyCode: 9 });
+        }
+        assert.equal(await evalJS(`document.getElementById('${id}').contains(document.activeElement)`), false);
+      }
+      await evalJS(`document.getElementById('${id}').getAnimations().forEach(animation => animation.finish())`);
     }
   } finally {
     await chrome.close();

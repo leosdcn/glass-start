@@ -72,33 +72,19 @@ async function fetchJsonWithTimeout(url, timeoutMs, signal) {
 export function openWeatherPopover() {
     const popover = dom.weatherPopover;
     const btn = dom.weatherBtn;
-    if (!popover || !btn || !OverlayStack.push('weatherPopover', closeWeatherPopover, btn)) return;
+    if (!popover || !btn || OverlayStack.has('weatherPopover') ||
+        !OverlayStack.push('weatherPopover', closeWeatherPopover, btn, popover)) return;
     if (!popover.innerHTML.trim()) {
         renderWeatherPopover(null);
     }
-    popover.classList.add('active');
-    popover.setAttribute('aria-hidden', 'false');
-    btn.setAttribute('aria-expanded', 'true');
 }
 
 export function closeWeatherPopover() {
-    const popover = dom.weatherPopover;
-    const btn = dom.weatherBtn;
-    if (!popover || !btn) return;
-    const restoreFocus = popover.contains(document.activeElement);
     OverlayStack.pop('weatherPopover');
-    popover.classList.remove('active');
-    popover.setAttribute('aria-hidden', 'true');
-    btn.setAttribute('aria-expanded', 'false');
-    if (restoreFocus) btn.focus({ preventScroll: true });
 }
 
 export function toggleWeatherPopover() {
-    const popover = dom.weatherPopover;
-    if (!popover) return;
-    // OverlayStack 为弹窗激活态的唯一权威源，与 Esc 退栈及全站弹窗机制保持语义一致
-    const isOpen = OverlayStack.stack.some(item => item.id === 'weatherPopover');
-    if (isOpen) {
+    if (OverlayStack.has('weatherPopover')) {
         closeWeatherPopover();
     } else {
         openWeatherPopover();

@@ -14,18 +14,32 @@ export const MODAL_OVERLAY_IDS = new Set([
 /** @type {WeakSet<HTMLDialogElement>} */
 const boundDialogs = new WeakSet();
 
+const POINTER_FOCUS = 'data-pointer-modal-focus';
 let lastInputWasPointer = false;
 if (typeof window !== 'undefined') {
+    const enableFocusRing = () => {
+        lastInputWasPointer = false;
+        document.activeElement?.removeAttribute(POINTER_FOCUS);
+    };
     window.addEventListener('pointerdown', () => { lastInputWasPointer = true; }, true);
-    window.addEventListener('keydown', () => { lastInputWasPointer = false; }, true);
+    window.addEventListener('keydown', enableFocusRing, true);
+    window.addEventListener('click', e => {
+        if (!e.isTrusted) return;
+        if (e.detail > 0) lastInputWasPointer = true;
+        else enableFocusRing();
+    }, true);
+    window.addEventListener('focusout', e => {
+        if (e.target instanceof Element) e.target.removeAttribute(POINTER_FOCUS);
+    }, true);
 }
 
-function wasTriggeredByPointer() {
-    if (typeof window !== 'undefined' && window.event instanceof UIEvent) {
-        if (window.event.detail > 0) return true;
-        if (window.event instanceof KeyboardEvent) return false;
+function hidePointerFocusRing() {
+    // 输入控件保留浏览器的焦点提示。
+    const target = document.activeElement;
+    if (lastInputWasPointer && target instanceof HTMLElement &&
+        !target.matches('body, html, input, select, textarea, :read-write')) {
+        target.setAttribute(POINTER_FOCUS, '');
     }
-    return lastInputWasPointer;
 }
 
 /** @param {string} id */
@@ -50,14 +64,11 @@ function showModal(id) {
             if (e.target === modal && isPointerDownOnBackdrop && top?.id === id) top.close();
             isPointerDownOnBackdrop = false;
         });
-        const restoreFocusRing = () => modal.removeAttribute('data-hide-initial-focus-ring');
-        modal.addEventListener('keydown', restoreFocusRing);
-        modal.addEventListener('focusout', restoreFocusRing);
         boundDialogs.add(modal);
     }
     modal.inert = false;
-    modal.toggleAttribute('data-hide-initial-focus-ring', wasTriggeredByPointer());
     modal.showModal();
+    hidePointerFocusRing();
 }
 
 /**
@@ -97,7 +108,7 @@ function restoreFocus(trigger) {
 export const OverlayStack = {
     stack: [],
 
-    push(id, closeFn, trigger = document.activeElement) {
+    push(id, closeFn, trigger = document.activeElement, panel) {
         const modal = MODAL_OVERLAY_IDS.has(id);
         if (!modal && this.topModal()) return false;
         if (modal) {
@@ -106,10 +117,15 @@ export const OverlayStack = {
             }
         }
         this.pop(id);
-        this.stack.push({ id, close: closeFn, trigger });
+        this.stack.push({ id, close: closeFn, trigger, panel });
         if (modal) {
             showModal(id);
             document.body.classList.add('overflow-hidden', 'touch-none');
+        } else if (panel) {
+            panel.inert = false;
+            panel.classList.add('active');
+            panel.setAttribute('aria-hidden', 'false');
+            trigger?.setAttribute('aria-expanded', 'true');
         }
         return true;
     },
@@ -119,15 +135,24 @@ export const OverlayStack = {
         if (idx < 0) return null;
         const [removed] = this.stack.splice(idx, 1);
         if (MODAL_OVERLAY_IDS.has(removed.id)) {
+            const previousFocus = document.activeElement;
             const modal = document.getElementById(removed.id);
             if (modal instanceof HTMLDialogElement) {
                 // 先释放原生模态，CSS 可以继续绘制退场画面。
                 modal.close();
                 modal.inert = true;
-                modal.removeAttribute('data-hide-initial-focus-ring');
             }
             if (!this.topModal()) document.body.classList.remove('overflow-hidden', 'touch-none');
             restoreFocus(removed.trigger);
+            if (document.activeElement !== previousFocus) hidePointerFocusRing();
+        } else if (removed.panel) {
+            const { panel, trigger } = removed;
+            const containedFocus = panel.contains(document.activeElement);
+            panel.inert = true;
+            panel.classList.remove('active');
+            trigger?.setAttribute('aria-expanded', 'false');
+            if (containedFocus && visibleFocusTarget(trigger)) trigger.focus({ preventScroll: true });
+            panel.setAttribute('aria-hidden', 'true');
         }
         return removed;
     },
@@ -139,6 +164,10 @@ export const OverlayStack = {
 
     top() {
         return this.stack[this.stack.length - 1] || null;
+    },
+
+    has(id) {
+        return this.stack.some(entry => entry.id === id);
     },
 
     isEmpty() {

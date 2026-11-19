@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { launchSession, waitFor } from './support/helpers.mjs';
+import { launchSession, navigateAndWait, waitFor } from './support/helpers.mjs';
 
 test('壁纸主题采样与暗度处理', async () => {
   const { server, chrome, send, evalJS } = await launchSession();
@@ -284,12 +284,47 @@ test('自定义壁纸和暗度预览只更新当前画面，保存后同步首�
     await waitFor(evalJS, 'document.documentElement.style.colorScheme === "dark"');
     assert.deepEqual(await getHint(), savedWhite);
     await evalJS('saveEditModal()');
-    assert.deepEqual(await getHint(), { mask: 80, isLight: false, themeColor: '#333333', tint: '140, 140, 140' });
+    assert.deepEqual(await getHint(), { mask: 80, aspect: savedWhite.aspect, isLight: false, themeColor: '#333333', tint: '140, 140, 140' });
     assert.equal(await evalJS('getWallpaperSelectionDB().then(record => record.wallpaper === whiteWallpaper)'), true);
     await send('Page.reload');
     await waitFor(evalJS, 'document.readyState === "complete" && typeof openEditModal === "function"');
     assert.equal(await evalJS('window.__INITIAL_THEME_COLOR__'), '#333333');
     assert.equal(await evalJS('document.documentElement.style.colorScheme'), 'dark');
+  } finally {
+    await chrome.close();
+    await server.close();
+  }
+});
+
+test('壁纸按实际图层宽高比重新取色，首帧跳过不同裁切的缓存', async () => {
+  const { server, chrome, send, evalJS, port } = await launchSession();
+  const resize = (width, height) => send('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 1, mobile: false });
+  const sampled = 'storageGet(CONFIG.KEYS.WALLPAPER_META)?.appearance';
+  try {
+    await resize(1200, 600);
+    await evalJS(`(async () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = 1200;
+      canvas.height = 600;
+      const context = canvas.getContext('2d');
+      context.fillStyle = 'white';
+      context.fillRect(0, 0, 1200, 600);
+      context.fillStyle = 'black';
+      context.fillRect(400, 0, 400, 600);
+      await commitWallpaperSelection(canvas.toDataURL());
+      await restoreWallpaper();
+    })()`);
+    await waitFor(evalJS, `${sampled}?.aspect === 2 && document.documentElement.style.colorScheme === 'light'`);
+    await resize(400, 900);
+    await waitFor(evalJS, `document.documentElement.style.colorScheme === 'dark'`);
+    assert.equal(await evalJS('document.querySelector(\'meta[name="theme-color"]\').content'), '#000000');
+
+    const origin = `http://127.0.0.1:${port}/`;
+    const ready = `!!window.dom?.bgLayer && ${sampled}?.aspect === dom.bgLayer.clientWidth / dom.bgLayer.clientHeight`;
+    await navigateAndWait(send, evalJS, origin + '?crop=changed', ready);
+    assert.equal(await evalJS('window.__INITIAL_THEME_COLOR__ ?? null'), null);
+    await navigateAndWait(send, evalJS, origin + '?crop=matched', ready);
+    assert.equal(await evalJS('window.__INITIAL_THEME_COLOR__'), '#000000');
   } finally {
     await chrome.close();
     await server.close();

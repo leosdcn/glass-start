@@ -11,6 +11,8 @@ import { afterScreenTransition, isScreenTransitioning } from './screen-state.js'
 let pendingWallpaper = null;
 /** @type {WallpaperFrame | null} */
 let displayedWallpaper = null;
+/** @type {ResizeObserver | null} */
+let wallpaperResizeObserver = null;
 /** @type {((show: boolean) => void) | null} */
 let finishWallpaperFade = null;
 /** @type {number} */
@@ -120,6 +122,12 @@ function presentWallpaperFrame(frame, animate) {
 
     if (frame.appearance) applyFrameAppearance(frame.appearance);
     sampleWallpaperFrame(frame, !animate);
+    if (!wallpaperResizeObserver && frame.image && !backgrounds.includes(frame.url ?? '')) {
+        wallpaperResizeObserver = new ResizeObserver(() => {
+            if (displayedWallpaper) sampleWallpaperFrame(displayedWallpaper, true);
+        });
+        wallpaperResizeObserver.observe(base);
+    }
 }
 
 /** @param {WallpaperFrame} frame */

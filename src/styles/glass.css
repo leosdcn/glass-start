@@ -153,7 +153,7 @@
     cursor: pointer;
 }
 
-.glass-btn-primary:focus-visible {
+.glass-btn-primary:focus-visible:not(:where([data-pointer-modal-focus])) {
     box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.60), 0 2px 6px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 

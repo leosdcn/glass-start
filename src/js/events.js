@@ -50,7 +50,7 @@ export function handleAppWakeUp() {
     });
 
     resetActiveCard();
-    blurNonEditableActive();
+    blurNonEditableActive({ preserveNavigationFocus: true });
     resetScreenInput();
     reconcileScreenState(undefined, true);
 
@@ -73,7 +73,7 @@ export function bindEvents() {
         if (event.persisted) handleAppWakeUp();
     }, { passive: true });
 
-    const { searchInput, suggestionMenu, engineBtn, weatherBtn } = dom;
+    const { searchInput, engineBtn, weatherBtn } = dom;
 
     searchInput?.addEventListener('focus', closeWeatherPopover);
 
@@ -137,7 +137,7 @@ export function bindEvents() {
         cancelDragSort();
         document.body.classList.add('tab-blurred');
         attachTabBlurListeners();
-        blurNonEditableActive();
+        blurNonEditableActive({ preserveNavigationFocus: true });
     };
     window.addEventListener('blur', handleTabBlur, { passive: true });
     window.addEventListener('pagehide', handleTabBlur, { passive: true });
@@ -200,7 +200,7 @@ export function bindEvents() {
 
         if (e.ctrlKey || e.metaKey || e.altKey) return;
 
-        const suggestionActive = suggestionMenu && suggestionMenu.classList.contains('active');
+        const suggestionActive = OverlayStack.has('suggestions');
         if (!isInputActive || (document.activeElement === searchInput && !suggestionActive)) {
             const isNavAtTop = state.currentSection === 'nav' ? (!dom.navContent || dom.navContent.scrollTop <= 0) : true;
             const isNavKey = ((e.key === 'PageDown' || e.key === 'ArrowDown') && state.currentSection === 'start')

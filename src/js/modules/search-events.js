@@ -1,8 +1,9 @@
 /** 搜索输入、输入法、候选与引擎菜单的控件事件；跨业务关闭和全局快捷键由 events.js 协调。 */
 import { state } from '../state/store.js';
 import { dom } from '../state/dom.js';
+import { OverlayStack } from '../core/overlay-stack.js';
 import { handleRovingKeyNav } from '../utils/helpers.js';
-import { activateSuggestion, selectSuggestion, fetchSuggestions, cancelSuggestionRequest, hideSuggestions, closeDropdown, setEngine, getSelectedSuggestionIdx, scheduleSuggestions, handleSuggestionKeyNav, getImageSearchEngine, submitImageSearch } from './search.js';
+import { activateSuggestion, selectSuggestion, fetchSuggestions, cancelSuggestionRequest, cancelSearchSubmission, hideSuggestions, closeDropdown, setEngine, getSelectedSuggestionIdx, scheduleSuggestions, handleSuggestionKeyNav, getImageSearchEngine, submitImageSearch } from './search.js';
 
 let isComposing = false;
 /** @type {boolean | null} 记录按钮当前展示状态，避免输入期间无状态变化的重复 DOM 属性写入 */
@@ -40,6 +41,7 @@ export function bindSearchEvents() {
     if (searchInput) {
         searchInput.addEventListener('compositionstart', () => {
             isComposing = true;
+            cancelSearchSubmission();
             cancelSuggestionRequest();
             selectSuggestion(-1);
         });
@@ -56,12 +58,13 @@ export function bindSearchEvents() {
             closeDropdown();
             if (isComposing) return;
             const val = searchInput.value.trim();
-            if (val && (!suggestionMenu || !suggestionMenu.classList.contains('active'))) {
+            if (val && !OverlayStack.has('suggestions')) {
                 fetchSuggestions(state.engine, val);
             }
         });
 
         searchInput.addEventListener('input', () => {
+            cancelSearchSubmission();
             if (imageSearchStatus) imageSearchStatus.textContent = '';
             const val = searchInput.value;
             updateSearchActionButtons(!!val);
@@ -78,6 +81,7 @@ export function bindSearchEvents() {
         searchClearBtn.addEventListener('click', e => {
             e.stopPropagation();
             e.preventDefault();
+            cancelSearchSubmission();
             if (searchInput) searchInput.value = '';
             if (imageSearchStatus) imageSearchStatus.textContent = '';
             updateSearchActionButtons(false);
@@ -124,6 +128,7 @@ export function bindSearchEvents() {
     imageSearchBtn?.addEventListener('click', e => {
         if (!imageSearchInput) return;
         e.stopPropagation();
+        cancelSearchSubmission();
         closeDropdown();
         hideSuggestions();
         if (imageSearchStatus) imageSearchStatus.textContent = '';
