@@ -62,7 +62,6 @@ Object.assign(window, {
     getPreparedWallpaperImage: wallpaper_renderer.getPreparedWallpaperImage,
     getCommittedWallpaperUrl: wallpaper.getCommittedWallpaperUrl,
     selectWallpaper: wallpaper.selectWallpaper,
-    clearCustomWallpaper: wallpaper.clearCustomWallpaper,
     commitWallpaperSelection: wallpaper.commitWallpaperSelection,
     previewDraftWallpaper: wallpaper.previewDraftWallpaper,
     resetDraftWallpaper: wallpaper.resetDraftWallpaper,

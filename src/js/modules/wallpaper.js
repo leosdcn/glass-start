@@ -5,7 +5,7 @@ import { t } from '../core/i18n.js';
 import { CONFIG, backgrounds } from '../config/constants.js';
 import { PRESET_WALLPAPERS } from '../config/backgrounds.js';
 import { escapeHtml } from '../utils/helpers.js';
-import { storageGet, storageSet } from '../utils/storage.js';
+import { storageGet, storageRemove, storageSet } from '../utils/storage.js';
 import { getWallpaperSelectionDB, setWallpaperSelectionDB } from '../utils/idb.js';
 import { state, modalState } from '../state/store.js';
 import { dom } from '../state/dom.js';
@@ -91,7 +91,8 @@ export function flushBgEffects() {
 let liveWallpaperTask = null;
 /** @type {ReturnType<typeof captureWallpaperFrame> | null} */
 let wallpaperDraftBase = null;
-let wallpaperCommitQueue = Promise.resolve(true);
+/** @type {Promise<unknown>} */
+let wallpaperCommitQueue = Promise.resolve();
 let wallpaperRestore = Promise.resolve();
 
 /** @param {WallpaperTask['mode']} mode */
@@ -164,7 +165,7 @@ function getRetainedWallpaperImage(url) {
 /** @param {HTMLImageElement | null} [image] */
 function syncCommittedWallpaperHints(image = getRetainedWallpaperImage(getCommittedWallpaperUrl())) {
     const { bg, customWallpaper } = state;
-    if (storageGet(CONFIG.KEYS.BG) !== bg) storageSet(CONFIG.KEYS.BG, bg);
+    const indexSaved = storageGet(CONFIG.KEYS.BG) === bg || storageSet(CONFIG.KEYS.BG, bg);
     const mask = storageGet(CONFIG.KEYS.MASK_OPACITY);
     const sample = customWallpaper && image ? sampleCustomWallpaperTheme(image, normalizeMaskOpacity(mask)) : null;
     const next = {
@@ -173,7 +174,8 @@ function syncCommittedWallpaperHints(image = getRetainedWallpaperImage(getCommit
             themeColor: 'themeColor' in sample.theme ? sample.theme.themeColor : undefined, tint: sample.tint } } : {})
     };
     const meta = storageGet(CONFIG.KEYS.WALLPAPER_META);
-    if (JSON.stringify(meta) !== JSON.stringify(next)) storageSet(CONFIG.KEYS.WALLPAPER_META, next);
+    const metadataSaved = JSON.stringify(meta) === JSON.stringify(next) || storageSet(CONFIG.KEYS.WALLPAPER_META, next);
+    return indexSaved && metadataSaved;
 }
 
 /** @template T @param {() => Promise<T>} task */
@@ -248,14 +250,17 @@ function findPresetBgIndex(url) {
 }
 
 /**
- * 原子保存无自定义图片的选择，成功后同步内存与首帧提示。
- * @param {number} [bg=state.bg] - 保留或切换到的预设索引
+ * 恢复默认壁纸和暗度。暗度或提示写入失败时，仍保留已提交的壁纸选择。
  * @param {() => boolean} [isCurrent]
- * @returns {Promise<boolean>}
  */
-export async function clearCustomWallpaper(bg = state.bg, isCurrent) {
+export async function resetWallpaperSettings(isCurrent = () => true) {
     discardWallpaperSelection('live');
-    const saved = await commitWallpaperSelection(backgrounds[bg] || backgrounds[0], isCurrent);
+    const saved = await enqueueWallpaperSelection({ bg: 0, wallpaper: null }, isCurrent, () => {
+        const keys = CONFIG.KEYS;
+        const cleared = !isCurrent() || [keys.MASK_OPACITY, keys.THEME_CACHE, keys.TINT_CACHE].map(storageRemove).every(Boolean);
+        const hintsSaved = syncCommittedWallpaperHints();
+        return cleared && hintsSaved ? true : /** @type {const} */ ('partial');
+    });
     if (saved) renderCommittedWallpaper(false);
     return saved;
 }
@@ -311,6 +316,21 @@ export function updatePresetBgCardsUI(customWallpaperOverride) {
 export function commitWallpaperSelection(targetWallpaper, isCurrent = () => true, preparedImage) {
     const presetIdx = findPresetBgIndex(targetWallpaper);
     const selection = { wallpaper: presetIdx >= 0 ? null : targetWallpaper, bg: Math.max(0, presetIdx) };
+    return enqueueWallpaperSelection(selection, isCurrent, () => {
+        syncCommittedWallpaperHints(preparedImage);
+        if (preparedImage) renderCommittedWallpaper(true, preparedImage);
+        return true;
+    });
+}
+
+/**
+ * @template T
+ * @param {{ wallpaper: string | null, bg: number }} selection
+ * @param {() => boolean} isCurrent
+ * @param {() => T} onCommitted
+ * @returns {Promise<T | false>}
+ */
+function enqueueWallpaperSelection(selection, isCurrent, onCommitted) {
     const result = wallpaperCommitQueue.then(() => withWallpaperLock(async () => {
         // 用实际记录判定相同选择，其他标签的写入也纳入比较。
         const existing = await getWallpaperSelectionDB();
@@ -318,10 +338,8 @@ export function commitWallpaperSelection(targetWallpaper, isCurrent = () => true
         if ((!existing || existing.wallpaper !== selection.wallpaper || existing.bg !== selection.bg)
             && !await setWallpaperSelectionDB(selection)) return false;
         syncCommittedWallpaper(selection);
-        syncCommittedWallpaperHints(preparedImage);
-        if (preparedImage) renderCommittedWallpaper(true, preparedImage);
-        return true;
-    })).catch(() => false);
+        return onCommitted();
+    })).catch(() => /** @type {const} */ (false));
     wallpaperCommitQueue = result;
     return result;
 }

@@ -368,7 +368,7 @@ test('解码中的旧上传、旧错误回调不能覆盖新上传或重置', as
     assert.equal(app.modalState.draftWallpaper, 'data:image/png;base64,new');
     app.uploadWallpaper({ type: 'image/png', size: 1024 });
     const lateRead = f.readers[2].onload;
-    await app.clearCustomWallpaper();
+    assert.equal(await app.resetWallpaperSettings(), true);
     app.revertDraftWallpaper();
     lateRead({ target: { result: 'data:image/png;base64,late' } });
     assert.equal(await app.flushWallpaperSelection(), true);

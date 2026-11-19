@@ -21,6 +21,35 @@ test('混版应用在初始化前退出，页面只导航一次', async () => {
   }
 });
 
+test('切换标签页后从起始页原来的快捷书签继续 Tab 导航', async () => {
+  const { server, chrome, send, evalJS } = await launchSession();
+  const tab = async () => {
+    for (const type of ['rawKeyDown', 'keyUp']) {
+      await send('Input.dispatchKeyEvent', { type, key: 'Tab', code: 'Tab', windowsVirtualKeyCode: 9 });
+    }
+  };
+  let otherTab;
+  try {
+    await evalJS("dom.bookmarks.querySelector('.bookmark-item').focus()");
+    await tab();
+    const focused = index => `document.activeElement === dom.bookmarks.children[${index}] &&
+      document.activeElement.matches(':focus-visible')`;
+    assert.equal(await evalJS(focused(1)), true);
+
+    otherTab = await send('Target.createTarget', { url: 'about:blank' });
+    await waitFor(evalJS, 'document.hidden');
+    await send('Page.bringToFront');
+    await waitFor(evalJS, '!document.hidden && document.hasFocus()');
+    assert.equal(await evalJS(focused(1)), true);
+    await tab();
+    assert.equal(await evalJS(focused(2)), true);
+  } finally {
+    if (otherTab) await send('Target.closeTarget', { targetId: otherTab.targetId });
+    await chrome.close();
+    await server.close();
+  }
+});
+
 test('两种切屏模式均在主脚本执行前恢复导航位置，接管时不补播过渡', async () => {
   const { server, chrome, send, evalJS } = await launchSession();
   let paused;

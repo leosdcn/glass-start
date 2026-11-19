@@ -15,7 +15,7 @@ import { state, modalState, pageData } from '../state/store.js';
 import { replaceBookmarkDraft } from '../state/bookmark-draft.js';
 import { dom } from '../state/dom.js';
 import { OverlayStack } from '../core/overlay-stack.js';
-import { flushWallpaperSelection, prepareWallpaperDraft, getCommittedWallpaperUrl, closeWallpaperDraft, pauseWallpaperDraft, showWallpaperDraft, updateWallpaperStatusUI, updatePresetBgCardsUI, clearCustomWallpaper, renderPresetWallpapers, commitWallpaperSelection, revertDraftWallpaper, applyBgEffects, flushBgEffects, getSavedMaskOpacity, commitWallpaperDimming, showWallpaperError, previewDraftWallpaper, discardWallpaperDraftSelection } from './wallpaper.js';
+import { flushWallpaperSelection, prepareWallpaperDraft, getCommittedWallpaperUrl, closeWallpaperDraft, pauseWallpaperDraft, showWallpaperDraft, updateWallpaperStatusUI, updatePresetBgCardsUI, resetWallpaperSettings, renderPresetWallpapers, commitWallpaperSelection, revertDraftWallpaper, applyBgEffects, flushBgEffects, getSavedMaskOpacity, commitWallpaperDimming, showWallpaperError, previewDraftWallpaper, discardWallpaperDraftSelection } from './wallpaper.js';
 import { loadBookmarks, saveUserBookmarks, resetUserBookmarks, getImportedBookmarks } from './bookmarks.js';
 import { cancelSearchSubmission, closeDropdown, hideSuggestions, setEngine } from './search.js';
 import { getTransitionMode, syncTransitionSwitcherActive, setTransitionMode, resetNavDiscovery } from '../core/screen-state.js';
@@ -461,15 +461,14 @@ export function resetBookmarks() {
         beginEditCommit();
         const resumeWallpaper = pauseWallpaperDraft();
         try {
-            const wallpaperCleared = await clearCustomWallpaper(0, isCurrent);
+            const wallpaperReset = await resetWallpaperSettings(isCurrent);
             if (!isCurrent()) return;
-            if (!wallpaperCleared) {
+            if (!wallpaperReset) {
                 showConfirm(t('ui.could.not.clear.wallpaper.storage.your'), null, t('ui.reset.failed'));
                 return;
             }
 
-            const keys = /** @type {const} */ (['PREFERRED_ENGINE', 'WALLPAPER_META', 'MASK_OPACITY',
-                'BG', 'THEME_CACHE', 'TINT_CACHE', 'TRANSITION_MODE', 'LANGUAGE']);
+            const keys = /** @type {const} */ (['PREFERRED_ENGINE', 'TRANSITION_MODE', 'LANGUAGE']);
             const bookmarksReset = await commitBookmarks(() => {
                 if (!isCurrent() || !resetUserBookmarks()) return false;
                 session.bookmarkRevision = loadBookmarks();
@@ -478,7 +477,7 @@ export function resetBookmarks() {
             if (!isCurrent()) return;
             const outcomes = [
                 ...keys.map(key => storageRemove(CONFIG.KEYS[key])),
-                resetNavDiscovery(), resetWeather(), bookmarksReset
+                resetNavDiscovery(), resetWeather(), bookmarksReset, wallpaperReset === true
             ];
             const committed = session.baseline = readCommittedSettings();
             document.documentElement.dataset.transitionMode = committed.draftTransitionMode;

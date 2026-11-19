@@ -2,7 +2,7 @@
 import { cancelDragSort } from './modules/bookmark-drag.js';
 import { cancelCategoryPulse, loadBookmarks } from './modules/bookmarks.js';
 import { resetActiveCard } from './core/gestures.js';
-import { resetScreenInput, blurNonEditableActive, canScrollStartDown } from './core/screen-input.js';
+import { resetScreenInput, canScrollStartDown } from './core/screen-input.js';
 
 import { CONFIG } from './config/constants.js';
 
@@ -50,7 +50,6 @@ export function handleAppWakeUp() {
     });
 
     resetActiveCard();
-    blurNonEditableActive({ preserveNavigationFocus: true });
     resetScreenInput();
     reconcileScreenState(undefined, true);
 
@@ -112,7 +111,6 @@ export function bindEvents() {
         const link = /** @type {HTMLElement|null} */ (targetEl?.closest('a[target="_blank"], .bookmark-item, .nav-bookmark'));
         if (link) {
             resetActiveCard();
-            blurNonEditableActive();
             const isBackgroundOpen = e.metaKey || e.ctrlKey || e.button === 1;
             if (!isBackgroundOpen) {
                 link.classList.add('is-clicked');
@@ -137,7 +135,6 @@ export function bindEvents() {
         cancelDragSort();
         document.body.classList.add('tab-blurred');
         attachTabBlurListeners();
-        blurNonEditableActive({ preserveNavigationFocus: true });
     };
     window.addEventListener('blur', handleTabBlur, { passive: true });
     window.addEventListener('pagehide', handleTabBlur, { passive: true });

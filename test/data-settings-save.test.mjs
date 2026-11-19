@@ -687,11 +687,45 @@ try {
     await waitFor(evalJS, `performance.timeOrigin !== ${timeOrigin} && typeof openEditModal === 'function' &&
       dom.bgLayer?.style.backgroundImage.includes('bg2.avif')`, 10000);
     assert.equal(await evalJS('window.__PRELOADED_BG__'), './wallpapers/bg2.avif');
+
+    // 标签一重置壁纸后阻塞在书签锁，标签二在此期间保存新的壁纸及暗度。
+    await tab(`navigator.locks.request(CONFIG.KEYS.BOOKMARKS, () => new Promise(resolve => {
+      window.releaseBookmarkResetLock = resolve;
+    })); void 0;`);
+    await waitFor(tab, 'typeof releaseBookmarkResetLock === "function"');
+    try {
+      await evalJS('(async () => { await openEditModal(); resetBookmarks(); dom.confirmOkBtn.click(); })()');
+      await waitFor(evalJS, `(async () => modalState.phase === 'committing' &&
+        (await getWallpaperSelectionDB())?.bg === 0 &&
+        (await navigator.locks.query()).pending.some(lock => lock.name === CONFIG.KEYS.BOOKMARKS))()`);
+      await second.send('Page.bringToFront');
+      await tab(`(async () => {
+        await openEditModal();
+        document.querySelector('#tab-btn-appearance').click();
+        dom.presetWallpaperGrid.querySelector('[data-bg="./wallpapers/bg3.avif"]').click();
+        dom.maskOpacityInput.value = '54';
+        dom.maskOpacityInput.dispatchEvent(new Event('input', {bubbles:true}));
+        await saveEditModal();
+      })()`);
+      assert.equal(await tab('!state.editOpen'), true);
+    } finally {
+      await tab('releaseBookmarkResetLock()');
+    }
+    await waitFor(evalJS, '!state.editOpen');
+    assert.deepEqual(await tab(`(async () => ({selection:await getWallpaperSelectionDB(),
+      hint:storageGet(CONFIG.KEYS.WALLPAPER_META), index:storageGet(CONFIG.KEYS.BG), mask:storageGet(CONFIG.KEYS.MASK_OPACITY)}))()`),
+    {selection:{wallpaper:null,bg:2},hint:{custom:false,bg:2},index:2,mask:54});
+    const secondTimeOrigin = await tab('performance.timeOrigin');
+    await second.send('Page.reload');
+    await waitFor(tab, `performance.timeOrigin !== ${secondTimeOrigin} && typeof openEditModal === 'function' &&
+      dom.bgLayer?.style.backgroundImage.includes('bg3.avif')`);
+    assert.equal(await tab('window.__PRELOADED_BG__'), './wallpapers/bg3.avif');
   } finally {
     second.close();
     await send('Target.closeTarget', { targetId });
   }
   console.log('✅ 两个标签页共享最新书签，保存旧草稿会提示冲突并保留草稿');
+  console.log('✅ 设置重置等待书签锁时，其他标签页后保存的壁纸、暗度和首屏提示保持一致');
 } finally {
   releaseWallpaper?.();
   await chrome.close();
