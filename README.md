@@ -57,7 +57,7 @@
 - 🌤️ **天气与预报**：无需 API Key，通过 IP 定位与地名解析获取位置，支持缓存展示和多日预报；
 - 🌐 **中英文界面**：跟随浏览器或手选语言，覆盖界面、天气和内置书签目录，保留用户自定义文字；
 - ⚡ **零运行时依赖**：生产页面不依赖 npm 运行时库；内联预渲染减少刷新闪烁，加载速度取决于设备、缓存与网络；
-- 🖼️ **壁纸预览与保存**：内置高清壁纸可循环切换，支持上传图片（压缩后写入 IndexedDB）、图片直链与遮罩暗度调节；设置内预览后点击“完成”保存，快捷键切换立即保存；
+- 🖼️ **壁纸预览与保存**：内置高清壁纸可循环切换，支持上传本地图片（限 10 MB，原图写入 IndexedDB）、图片直链与遮罩暗度调节；设置内预览后点击“完成”保存，快捷键切换立即保存；
 - 🛡️ **安全防护**：使用 Content Security Policy (CSP)、动态 HTML 文本转义与 `safeUrl` 协议过滤；部署时需按托管平台要求配置 `public/_headers` 中的响应头规则；
 - 📱 **网页版 PWA 离线支持**：Service Worker 按核心资源、外部图标和同源图片三类分池缓存，已缓存资源可离线使用；安装入口与支持程度取决于浏览器。
 
@@ -266,13 +266,13 @@ npm run build:extension
 
 请求以页面 canonical 地址提供 `Content-Location`，避免同源资源的 CSP 误报。验证其他部署时可用 `W3C_DOCUMENT_URL=https://example.com/start/ npm run test:w3c` 覆盖来源地址，提交内容仍为本地产物。真实错误退出码为 1，服务或工具异常为 2。校验不能替代浏览器表现和实际托管响应头检查。
 
-`npm run typecheck` 检查 `src/js/` 下全部 JavaScript 模块及 `test/types/contracts.js` 类型契约，并在独立 Worker 类型环境中严格检查 `sw.js`；范围以 `tsconfig.json` 和 `tsconfig.sw.json` 为准，`npm test` 同样执行这两项检查。`npm run test:unit` 复用运行器的纯单元测试清单，检查类型并验证搜索、天气转换与草稿等逻辑，无需构建或 Chrome。
+`npm run typecheck` 检查 `src/js/` 下全部 JavaScript 模块及 `test/types/contracts.js` 类型契约，在独立 Worker 类型环境中严格检查 `sw.js`，并检查 `scripts/` 与 `test/support/` 下的 Node 工具脚本；范围以 `tsconfig.json`、`tsconfig.sw.json` 和 `tsconfig.scripts.json` 为准，`npm test` 执行前两项配置。`npm run test:unit` 复用运行器的纯单元测试清单，检查类型并验证搜索、天气转换与草稿等逻辑，无需构建或 Chrome。
 
 相近的浏览器回归按功能集中在以下文件中。后续同类回归优先加入对应文件，避免按每次修复新增文件。
 
 | 文件名筛选片段 | 覆盖范围 |
 | :--- | :--- |
-| `data-wallpaper.test` | 图片解码、上传压缩、预览取消、加载复用与失败重试 |
+| `data-wallpaper.test` | 图片解码、原图上传校验、预览取消、加载复用与失败重试 |
 | `data-wallpaper-storage` | 选择提交、事务失败、会话隔离与恢复优先级 |
 | `data-bookmark-picker` | 挑选器节点复用、目录失效与图标预览请求 |
 | `ui-nav-rendering` | 图标延迟加载、分类位置缓存、高亮动画与原生滚动 |

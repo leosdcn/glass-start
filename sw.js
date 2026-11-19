@@ -256,7 +256,8 @@ function recoveryResponse() {
     const otherImages = keys.filter(key => isScopedCache(key, IMAGE_PREFIX) && key !== IMG_CACHE);
     const previousImages = otherImages
         .sort((a, b) => cacheBuildTime(b) - cacheBuildTime(a))[0];
-    const predecessors = new Set(await (await cache.match(CORE_PREDECESSORS))?.json() ?? []);
+    const rawPredecessors = await (await cache.match(CORE_PREDECESSORS))?.json().catch(() => null);
+    const predecessors = new Set(Array.isArray(rawPredecessors) ? rawPredecessors : []);
     // 只回收本次安装前已存在的池，下一次安装即使先进入 waiting 也不在本次回收范围。
     const candidates = keys.filter(key => predecessors.has(key) && isScopedCache(key, CORE_PREFIX))
         .sort((a, b) => cacheBuildTime(b) - cacheBuildTime(a));

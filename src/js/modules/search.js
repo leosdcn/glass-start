@@ -262,7 +262,7 @@ async function doSearch(queryOverride, newTab = false) {
         const imageEngine = getImageSearchEngine();
         const isImage = /\.(?:avif|bmp|gif|heic|heif|ico|jpe?g|png|svg|tiff?|webp)$/i.test(link.pathname)
             || await checkImageLink(link.href);
-        if (submissionId !== searchSubmissionId || searchInput?.value !== inputValue) return;
+        if (submissionId !== searchSubmissionId || searchInput?.value !== inputValue || OverlayStack.topModal()) return;
         if (isImage) {
             const destination = new URL(IMAGE_SEARCH_LINKS[imageEngine]);
             if (imageEngine === 'bing') {

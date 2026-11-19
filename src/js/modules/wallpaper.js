@@ -514,31 +514,31 @@ export function restoreWallpaper() {
     return wallpaperRestore;
 }
 
+const ALLOWED_UPLOAD_IMAGE_TYPES = /^image\/(png|jpeg|jpg|webp|gif|x-icon|avif)$/i;
+
 /**
  * @param {File} file
  */
 export function uploadWallpaper(file) {
     if (!canPreviewWallpaper()) return false;
-    if (!file.type.startsWith('image/')) {
+    if (!ALLOWED_UPLOAD_IMAGE_TYPES.test(file.type || '')) {
         discardWallpaperDraftSelection();
         showWallpaperError(t('ui.choose.a.valid.image.file.jpg'));
         return false;
     }
-    // 从选择文件起跟踪同一个任务，确保迟到的读取／压缩结果归属原选择。
+    if (file.size > CONFIG.APPEARANCE.MAX_UPLOAD_BYTES) {
+        discardWallpaperDraftSelection();
+        showWallpaperError(t('ui.file.too.large', { size: Math.round(CONFIG.APPEARANCE.MAX_UPLOAD_BYTES / (1024 * 1024)) }));
+        return false;
+    }
+    // 从选择文件起跟踪同一个任务，确保迟到的读取／解码结果归属原选择。
     const task = beginWallpaperSelection('draft', null);
     const reader = new FileReader();
-    /** @type {HTMLImageElement | null} */
-    let image = null;
     /** @type {Promise<string | null>} */
     const prepared = new Promise(resolve => {
         /** @param {string | null} value */
         const finish = value => {
             reader.onload = reader.onerror = reader.onabort = null;
-            if (image) {
-                image.onload = image.onerror = null;
-                image.src = '';
-                image = null;
-            }
             resolve(value);
         };
         task.cancel = () => {
@@ -551,44 +551,7 @@ export function uploadWallpaper(file) {
             if (task !== modalState.wallpaperSelection) { finish(null); return; }
             const target = /** @type {FileReader|null} */ (ev.target);
             const dataUrl = typeof target?.result === 'string' ? target.result : '';
-            if (!dataUrl) { fail(); return; }
-            const img = new Image();
-            image = img;
-            img.onload = () => {
-                if (task !== modalState.wallpaperSelection) { finish(null); return; }
-                let canvas;
-                try {
-                    const MAX_WIDTH = CONFIG.APPEARANCE.MAX_UPLOAD_WIDTH;
-                    const MAX_HEIGHT = CONFIG.APPEARANCE.MAX_UPLOAD_HEIGHT;
-                    let width = img.width;
-                    let height = img.height;
-
-                    if (width > MAX_WIDTH || height > MAX_HEIGHT) {
-                        if (width / height > MAX_WIDTH / MAX_HEIGHT) {
-                            height = Math.round((height * MAX_WIDTH) / width);
-                            width = MAX_WIDTH;
-                        } else {
-                            width = Math.round((width * MAX_HEIGHT) / height);
-                            height = MAX_HEIGHT;
-                        }
-                    }
-
-                    canvas = document.createElement('canvas');
-                    canvas.width = width;
-                    canvas.height = height;
-                    const ctx = canvas.getContext('2d');
-                    if (ctx) {
-                        ctx.drawImage(img, 0, 0, width, height);
-                        const compressedDataUrl = canvas.toDataURL('image/jpeg', CONFIG.APPEARANCE.JPEG_QUALITY);
-                        finish(compressedDataUrl);
-                    } else fail();
-                } catch { fail(); }
-                finally {
-                    if (canvas) canvas.width = canvas.height = 0;
-                }
-            };
-            img.onerror = fail;
-            img.src = dataUrl;
+            finish(dataUrl || null);
         };
         try { reader.readAsDataURL(file); } catch { fail(); }
     });
