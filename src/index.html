@@ -71,16 +71,19 @@
       (function() {
         // 壁纸清单、原图来源与 AVIF 重建说明见 config/backgrounds.js。
         /* INJECT_BACKGROUNDS */
+        let savedMask = null;
+        try { savedMask = JSON.parse(localStorage.getItem(WALLPAPER_KEYS.MASK_OPACITY)); } catch(e) {}
+        window.__PRE_BG_EFFECTS__ = { op: normalizeMaskOpacity(savedMask) };
         try {
           let wallpaperMeta = null;
           try {
-            const value = JSON.parse(localStorage.getItem('glass_wallpaper_meta'));
+            const value = JSON.parse(localStorage.getItem(WALLPAPER_KEYS.WALLPAPER_META));
             if (value && typeof value.custom === 'boolean' && Number.isInteger(value.bg) && value.bg >= 0 && value.bg < backgrounds.length) wallpaperMeta = value;
           } catch(e) {}
           // 现代元信息优先；IDB 自定义大图由应用异步恢复，首屏预加载仅针对预设壁纸。
           let preloadUrl = '';
           if (!wallpaperMeta?.custom) {
-            const rawBg = localStorage.getItem('bg');
+            const rawBg = localStorage.getItem(WALLPAPER_KEYS.BG);
             let bgIdx = 0;
             try { bgIdx = wallpaperMeta ? wallpaperMeta.bg : rawBg !== null ? JSON.parse(rawBg) : 0; } catch(e) { bgIdx = 0; }
             preloadUrl = (typeof bgIdx === 'number' && backgrounds[bgIdx]) ? backgrounds[bgIdx] : backgrounds[0];
@@ -106,7 +109,7 @@
             try {
               const cached = wallpaperMeta.appearance;
               if (cached && typeof cached.isLight === 'boolean' && Number.isFinite(cached.aspect) &&
-                  cached.mask === JSON.parse(localStorage.getItem('maskOpacity'))) {
+                  cached.mask === savedMask) {
                 // 图层落入 DOM 后，用实际宽高比校验缓存中的裁切条件。
                 window.__applyCachedWallpaperTheme__ = bg => {
                   if (cached.aspect !== bg.clientWidth / bg.clientHeight) return;
@@ -153,15 +156,9 @@
         window.__ENGINE_SVGS__ = ENGINE_SVGS;
         let engine = DEFAULT_ENGINE;
         try {
-          const saved = JSON.parse(localStorage.getItem('preferredEngine'));
-          if (typeof saved === 'string' && Object.hasOwn(ENGINE_META, saved)) engine = saved;
+          engine = normalizeEngine(JSON.parse(localStorage.getItem(PREFERRED_ENGINE_KEY)));
         } catch (e) {}
         window.__PRE_ENGINE__ = { key: engine, ...ENGINE_META[engine] };
-        const rawOp = localStorage.getItem('maskOpacity');
-        if (rawOp !== null) {
-          const op = JSON.parse(rawOp);
-          window.__PRE_BG_EFFECTS__ = { op };
-        }
       }catch(e){}
     </script>
     <!-- BUILD_STYLES_START -->

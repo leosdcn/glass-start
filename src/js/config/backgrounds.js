@@ -29,3 +29,22 @@ export const PRESET_WALLPAPERS = Object.freeze([
 ]);
 
 export const PRESET_BACKGROUNDS = Object.freeze(PRESET_WALLPAPERS.map(({ url }) => url));
+
+export const WALLPAPER_KEYS = Object.freeze({
+    BG: 'bg',
+    WALLPAPER_META: 'glass_wallpaper_meta',
+    MASK_OPACITY: 'maskOpacity'
+});
+
+export const WALLPAPER_DIMMING = Object.freeze({
+    DEFAULT_MASK_OPACITY: 15,
+    MAX_MASK_OPACITY: 80
+});
+
+/** @param {unknown} value */
+export function normalizeMaskOpacity(value) {
+    const opacity = value == null ? NaN : parseInt(String(value), 10);
+    return Number.isFinite(opacity)
+        ? Math.max(0, Math.min(WALLPAPER_DIMMING.MAX_MASK_OPACITY, opacity))
+        : WALLPAPER_DIMMING.DEFAULT_MASK_OPACITY;
+}

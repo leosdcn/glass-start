@@ -563,7 +563,8 @@ try {
     const other = await navigator.serviceWorker.register('/other/sw.js', {scope:'/other/'});
     const worker = other.installing || other.waiting || other.active;
     if (worker.state !== 'activated') await new Promise(resolve => worker.addEventListener('statechange', () => {if(worker.state === 'activated')resolve();}));
-    await Promise.all(['glass-scope-%2F-app-core-vclear-test','glass-scope-%2Fother%2F-app-core-vkeep-test',
+    await Promise.all(['glass-scope-%2F-app-images-app-core-vclear-test','glass-scope-%2F-app-core-vfuture',
+      'glass-scope-%2F-app-images-neighbor%2F-app-images-app-core-vkeep-test','glass-scope-%2Fother%2F-app-core-vkeep-test',
       'glass-scope-%2F-audit%2F-app-core-vkeep-test', 'glass-scope-%2F-audit%2F-app-images-app-core-vkeep-test',
       'unrelated-cache',CONFIG.CACHE.FAVICON].map(key => caches.open(key)));
     sessionStorage.setItem('clearCacheBookmarks',localStorage.getItem(CONFIG.KEYS.BOOKMARKS));
@@ -587,14 +588,16 @@ try {
   await evalJS('releaseCacheKeys()');
   await waitFor(evalJS,'window.__cacheClearReloaded === true && typeof state !== "undefined" && !!document.querySelector(".bookmark-item")',10000);
   assert.deepEqual(await evalJS(`(async () => ({
-    ownRemoved:!await caches.has('glass-scope-%2F-app-core-vclear-test'),
+    ownRemoved:!await caches.has('glass-scope-%2F-app-images-app-core-vclear-test'),
+    ownCoreKept:await caches.has('glass-scope-%2F-app-core-vfuture'),
     otherKept:await caches.has('glass-scope-%2Fother%2F-app-core-vkeep-test'),
     nestedKept:await caches.has('glass-scope-%2F-audit%2F-app-core-vkeep-test') &&
-      await caches.has('glass-scope-%2F-audit%2F-app-images-app-core-vkeep-test'),
+      await caches.has('glass-scope-%2F-audit%2F-app-images-app-core-vkeep-test') &&
+      await caches.has('glass-scope-%2F-app-images-neighbor%2F-app-images-app-core-vkeep-test'),
     unrelatedKept:await caches.has('unrelated-cache'), sharedIconsKept:await caches.has(CONFIG.CACHE.FAVICON),
     otherRegistered:(await navigator.serviceWorker.getRegistrations()).some(r => r.scope === location.origin + '/other/'),
     bookmarksKept:localStorage.getItem(CONFIG.KEYS.BOOKMARKS) === sessionStorage.getItem('clearCacheBookmarks')
-  }))()`),{ownRemoved:true,otherKept:true,nestedKept:true,unrelatedKept:true,sharedIconsKept:true,otherRegistered:true,bookmarksKept:true});
+  }))()`),{ownRemoved:true,ownCoreKept:true,otherKept:true,nestedKept:true,unrelatedKept:true,sharedIconsKept:true,otherRegistered:true,bookmarksKept:true});
   console.log('✅ 清理只删除当前 scope 的离线池，保留其他注册、其他缓存、共享图标和书签');
 
   await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] });

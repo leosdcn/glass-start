@@ -3,7 +3,7 @@ import { t } from '../core/i18n.js';
  * 壁纸选择、预览与持久化，以及背景暗度显示；设置模块决定草稿何时提交或取消。
  */
 import { CONFIG, backgrounds } from '../config/constants.js';
-import { PRESET_WALLPAPERS } from '../config/backgrounds.js';
+import { PRESET_WALLPAPERS, normalizeMaskOpacity } from '../config/backgrounds.js';
 import { escapeHtml } from '../utils/helpers.js';
 import { storageGet, storageRemove, storageSet } from '../utils/storage.js';
 import { getWallpaperSelectionDB, setWallpaperSelectionDB } from '../utils/idb.js';
@@ -19,14 +19,6 @@ let bgEffectsRafId = null;
 let pendingBgEffects = null;
 /** @type {{ element: HTMLElement, opacity: number } | null} */
 let lastBgEffects = null;
-
-/** @param {unknown} value */
-function normalizeMaskOpacity(value) {
-    const opacity = value == null ? NaN : parseInt(String(value), 10);
-    return Number.isFinite(opacity)
-        ? Math.max(0, Math.min(CONFIG.APPEARANCE.MAX_MASK_OPACITY, opacity))
-        : CONFIG.APPEARANCE.DEFAULT_MASK_OPACITY;
-}
 
 export function getSavedMaskOpacity() {
     return normalizeMaskOpacity(storageGet(CONFIG.KEYS.MASK_OPACITY));

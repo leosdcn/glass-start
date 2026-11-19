@@ -53,9 +53,7 @@ export function bindSearchEvents() {
             fetchSuggestions(state.engine, val);
         });
 
-        searchInput.addEventListener('click', e => {
-            e.stopPropagation();
-            closeDropdown();
+        searchInput.addEventListener('click', () => {
             if (isComposing) return;
             const val = searchInput.value.trim();
             if (val && !OverlayStack.has('suggestions')) {
@@ -79,7 +77,6 @@ export function bindSearchEvents() {
 
     if (searchClearBtn) {
         searchClearBtn.addEventListener('click', e => {
-            e.stopPropagation();
             e.preventDefault();
             cancelSearchSubmission();
             if (searchInput) searchInput.value = '';
@@ -99,17 +96,13 @@ export function bindSearchEvents() {
         });
         /** @param {MouseEvent} e */
         const handleSuggestionClick = e => {
-            if (isComposing) {
-                e.stopPropagation();
-                return;
-            }
+            if (isComposing) return;
             const auxiliary = e.type === 'auxclick';
             if (auxiliary && e.button !== 1) return;
             const targetEl = e.target instanceof Element ? e.target : null;
             const item = /** @type {HTMLElement|null} */ (targetEl?.closest('.suggestion-item'));
             if (!item || !item.dataset.idx) return;
             if (auxiliary) e.preventDefault();
-            e.stopPropagation();
             const isNewTab = auxiliary || e.altKey || e.metaKey || e.ctrlKey;
             activateSuggestion(Number(item.dataset.idx), isNewTab);
         };
@@ -187,7 +180,6 @@ export function bindSearchEvents() {
             const targetEl = e.target instanceof Element ? e.target : null;
             const btn = /** @type {HTMLElement|null} */ (targetEl?.closest('[data-engine]'));
             if (btn?.dataset.engine) {
-                e.stopPropagation();
                 const previousEngine = state.engine;
                 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
                 const shouldAnimate = btn.dataset.engine !== previousEngine && !reducedMotion;

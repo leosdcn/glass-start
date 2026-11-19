@@ -123,14 +123,12 @@ export function addBookmarkFromPicker(url) {
  */
 export function openBookmarkPicker(triggerEl = null) {
     const opener = triggerEl || document.activeElement || dom.togglePickerBtn;
-    dom.togglePickerBtn?.setAttribute('aria-expanded', 'true');
     renderPickerCategories();
     OverlayStack.push('bookmarkPicker', closeBookmarkPicker, opener);
 }
 
 export function closeBookmarkPicker() {
     const closed = OverlayStack.pop('bookmarkPicker');
-    dom.togglePickerBtn?.setAttribute('aria-expanded', 'false');
     const row = lastAddedRow;
     lastAddedRow = null;
     if (closed && row) requestAnimationFrame(async () => {

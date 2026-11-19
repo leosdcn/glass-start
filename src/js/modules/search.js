@@ -4,7 +4,7 @@ import { rankBookmarkSuggestions } from '../utils/bookmark-search.js';
 import { getCategoryCatalog } from '../utils/category-catalog.js';
 import { bookmarkUrlKey } from '../utils/bookmark-model.js';
 import { CONFIG, DEFAULT_CATEGORIES, engines } from '../config/constants.js';
-import { DEFAULT_ENGINE, IMAGE_SEARCH_LINKS, IMAGE_SEARCH_UPLOADS } from '../config/engines.js';
+import { DEFAULT_ENGINE, IMAGE_SEARCH_LINKS, IMAGE_SEARCH_UPLOADS, normalizeEngine } from '../config/engines.js';
 import { escapeHtml, safeUrl } from '../utils/helpers.js';
 import { storageSet } from '../utils/storage.js';
 import { state, pageData } from '../state/store.js';
@@ -179,13 +179,13 @@ export function closeDropdown() {
 
 /**
  * 设置当前搜索引擎
- * @param {string} key - engines 中的引擎标识
+ * @param {unknown} key - engines 中的引擎标识或已存储的偏好
  * @param {boolean} [save=true] - 是否持久化到 localStorage
  */
 export function setEngine(key, save = true) {
     /** @type {Record<string, { name: string; svg: string; url: string }>} */
     const engineMap = engines;
-    const validEngine = Object.hasOwn(engineMap, key) ? key : DEFAULT_ENGINE;
+    const validEngine = normalizeEngine(key);
     if (validEngine !== state.engine) cancelSearchSubmission();
     state.engine = validEngine;
     if (dom.imageSearchStatus) dom.imageSearchStatus.textContent = '';

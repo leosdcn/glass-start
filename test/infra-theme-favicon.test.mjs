@@ -74,7 +74,8 @@ await test("主题配置、图标回退与缓存驱逐", async () => {
   theme: window.__INITIAL_THEME__, tint: document.documentElement.style.getPropertyValue('--glass-tint'),
   color: document.documentElement.style.backgroundColor,
   bright: document.documentElement.classList.contains('wallpaper-bright'),
-  engine: window.__PRE_ENGINE__?.name
+  engine: window.__PRE_ENGINE__?.name,
+  mask: document.getElementById('bgOverlay')?.style.backgroundColor
 };</script>`;
     const probeHtml = built.replace('</head>', probe + '</head>')
       .replace('</body>', probe.replace('__headThemeProbe', '__bodyThemeProbe') + '</body>');
@@ -103,6 +104,16 @@ await test("主题配置、图标回退与缓存驱逐", async () => {
         }
       }
       console.log('✅ 八张预设冷启动及有历史缓存启动，应用执行前底色、色调与运行时一致');
+
+      for (const [saved, expectedMask] of [['100', 'rgba(0, 0, 0, 0.8)'], ['null', 'rgba(0, 0, 0, 0.15)']]) {
+        const { identifier } = await send('Page.addScriptToEvaluateOnNewDocument', {
+          source: `localStorage.setItem('maskOpacity', ${JSON.stringify(saved)});`
+        });
+        await navigateAndWait(send, evalJS, `http://127.0.0.1:${server.port}/theme-probe.html?mask=${saved}`,
+          "!!window.__bodyThemeProbe && typeof window.handleIconError === 'function'");
+        assert.deepEqual(await evalJS('[__bodyThemeProbe.mask, dom.bgOverlay.style.backgroundColor]'), [expectedMask, expectedMask]);
+        await send('Page.removeScriptToEvaluateOnNewDocument', { identifier });
+      }
 
       await send('Emulation.setDeviceMetricsOverride', { width: 1000, height: 800, deviceScaleFactor: 1, mobile: false });
       const { identifier: customProbe } = await send('Page.addScriptToEvaluateOnNewDocument', { source: `

@@ -150,7 +150,7 @@ for (const item of jsFiles) {
     const label = `${item.name.padEnd(28, ' ')} (${item.desc})`;
     try {
         const code = readFileSync(fullPath, 'utf-8');
-        if (item.name.endsWith('.mjs')) {
+        if (item.name === 'sw.js' || item.name.endsWith('.mjs')) {
             parseJs(code, { ecmaVersion: 'latest', sourceType: 'module', locations: true });
         } else {
             new vm.Script(code, { filename: item.name });

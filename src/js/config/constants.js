@@ -1,8 +1,8 @@
 import { t } from '../core/i18n.js';
 import { LANGUAGE_KEY } from './language.js';
 import bookmarksData from '../../../bookmarks.json';
-import { PRESET_BACKGROUNDS } from './backgrounds.js';
-import { ENGINE_META } from './engines.js';
+import { PRESET_BACKGROUNDS, WALLPAPER_DIMMING, WALLPAPER_KEYS } from './backgrounds.js';
+import { ENGINE_META, PREFERRED_ENGINE_KEY } from './engines.js';
 
 // 共享默认数据；按语言选择快捷入口由 loadBookmarks() 显式完成。
 export const DEFAULT_CATEGORIES = bookmarksData.categories || [];
@@ -15,10 +15,8 @@ export const CONFIG = Object.freeze({
                 BOOKMARKS: 'glass_bookmarks',
                 BOOKMARK_KEYS: 'userBookmarkKeys',
                 CUSTOM_META: 'userCustomMeta',
-                BG: 'bg',
-                WALLPAPER_META: 'glass_wallpaper_meta',
-                MASK_OPACITY: 'maskOpacity',
-                PREFERRED_ENGINE: 'preferredEngine',
+                ...WALLPAPER_KEYS,
+                PREFERRED_ENGINE: PREFERRED_ENGINE_KEY,
                 NAV_DISCOVERED: 'hasDiscoveredNav',
                 WEATHER_CACHE: 'glass_weather_cache',
                 WEATHER_LOC: 'glass_weather_loc_cache',
@@ -106,8 +104,7 @@ export const CONFIG = Object.freeze({
                 NARROW_PRELOAD_CATEGORIES: 2  // 窄屏首页空闲时预取的分类数量
             }),
             APPEARANCE: Object.freeze({
-                DEFAULT_MASK_OPACITY: 15,     // 默认遮罩暗度百分比 (%)
-                MAX_MASK_OPACITY: 80,         // 遮罩透明度最大百分比 (%)
+                ...WALLPAPER_DIMMING,
                 MAX_UPLOAD_BYTES: 10 * 1024 * 1024, // 自定义壁纸上传文件体积上限 (10 MB)
                 THEME_SAMPLE_WIDTH: 16,       // 壁纸取色采样宽度 (px)
                 THEME_SAMPLE_HEIGHT: 4,       // 壁纸取色采样高度 (px)
