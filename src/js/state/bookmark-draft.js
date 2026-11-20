@@ -57,7 +57,7 @@ export function reorderBookmarkDraft(sourceId, targetId, before) {
     const targetIndex = bookmarks.findIndex(bookmark => bookmark.id === targetId);
     if (sourceIndex < 0 || targetIndex < 0 || sourceIndex === targetIndex) return false;
     const [moved] = bookmarks.splice(sourceIndex, 1);
-    const destination = bookmarks.findIndex(bookmark => bookmark.id === targetId);
+    const destination = sourceIndex < targetIndex ? targetIndex - 1 : targetIndex;
     bookmarks.splice(before ? destination : destination + 1, 0, moved);
     modalState.bookmarksChanged = true;
     return true;

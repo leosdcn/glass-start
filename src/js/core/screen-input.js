@@ -120,7 +120,7 @@ function handleWheel(e) {
     }
     // 一轮手势中只要还在滚内容，就不能在到顶后被余下事件带回首屏。
     if (state.currentSection === 'nav') {
-        if (!isNavAtTop() || !wheelSession.navWasAtTop || wheelSession.navCoastingToTop) {
+        if (!wheelSession.navWasAtTop || wheelSession.navCoastingToTop || !isNavAtTop()) {
             wheelSession.restartWindow(now);
             return;
         }
@@ -178,7 +178,7 @@ function handleTouch(e, ending, cancelScroll = false) {
         && distance / Math.max(1, performance.now() - gesture.time) > CONFIG.GESTURE.FLICK_MIN_VELOCITY;
     if (distance < CONFIG.GESTURE.SWIPE_THRESHOLD && !flick) return;
     const entering = state.currentSection === 'start' && dy > 0;
-    const leaving = state.currentSection === 'nav' && dy < 0 && gesture.canReturn && isNavAtTop();
+    const leaving = state.currentSection === 'nav' && dy < 0 && gesture.canReturn;
     if (!entering && !leaving) return;
     clearTouchGesture();
     if (!ending && cancelScroll && e.cancelable) e.preventDefault();

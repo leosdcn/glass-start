@@ -163,15 +163,14 @@ export function bindEvents() {
             return;
         }
 
-        if (!OverlayStack.isEmpty()) {
-            const onlySuggestions = OverlayStack.top()?.id === 'suggestions' && OverlayStack.stack.length === 1;
-            if (!onlySuggestions) return;
-        }
+        const topOverlay = OverlayStack.top();
+        const onlySuggestions = topOverlay?.id === 'suggestions' && OverlayStack.stack.length === 1;
+        if (topOverlay && !onlySuggestions) return;
 
         const activeEl = /** @type {HTMLElement|null} */ (document.activeElement);
         const activeTag = activeEl?.tagName;
         const isInputActive = activeTag === 'INPUT' || activeTag === 'TEXTAREA' || !!activeEl?.isContentEditable;
-        const isInteractiveActive = isInputActive || !!activeEl?.closest('button, [role="button"], a, select');
+        const isSearchActive = activeEl === searchInput;
 
         if ((e.key === 'b' || e.key === 'B') && (e.metaKey || e.ctrlKey) && !isInputActive) {
             e.preventDefault();
@@ -179,20 +178,20 @@ export function bindEvents() {
             return;
         }
 
-        if (handleSearchKeydown(e)) return;
+        if (isSearchActive && handleSearchKeydown(e)) return;
 
         if (e.ctrlKey || e.metaKey || e.altKey) return;
 
-        const suggestionActive = OverlayStack.has('suggestions');
-        if (!isInputActive || (document.activeElement === searchInput && !suggestionActive)) {
-            const isNavAtTop = state.currentSection === 'nav' ? (!dom.navContent || dom.navContent.scrollTop <= 0) : true;
-            const isNavKey = ((e.key === 'PageDown' || e.key === 'ArrowDown') && state.currentSection === 'start')
-                || ((e.key === 'PageUp' || e.key === 'Home' || e.key === 'ArrowUp') && state.currentSection === 'nav' && isNavAtTop);
-            if (isNavKey && isScreenTransitioning()) {
+        if (!isInputActive || (isSearchActive && !onlySuggestions)) {
+            const enteringNav = state.currentSection === 'start' && (e.key === 'PageDown' || e.key === 'ArrowDown');
+            const leavingNav = state.currentSection === 'nav' &&
+                (e.key === 'PageUp' || e.key === 'Home' || e.key === 'ArrowUp') &&
+                (!dom.navContent || dom.navContent.scrollTop <= 0);
+            if ((enteringNav || leavingNav) && isScreenTransitioning()) {
                 e.preventDefault();
                 return;
             }
-            if ((e.key === 'PageDown' || e.key === 'ArrowDown') && state.currentSection === 'start') {
+            if (enteringNav) {
                 e.preventDefault();
                 const start = dom.startContent;
                 if (start && canScrollStartDown()) {
@@ -202,14 +201,15 @@ export function bindEvents() {
                 }
                 return;
             }
-            if ((e.key === 'PageUp' || e.key === 'Home' || e.key === 'ArrowUp') && state.currentSection === 'nav' && isNavAtTop) {
+            if (leavingNav) {
                 e.preventDefault();
                 switchToStart();
                 return;
             }
         }
 
-        if (state.currentSection === 'start' && e.key.length === 1 && e.key !== ' ' && !isInteractiveActive) {
+        if (state.currentSection === 'start' && e.key.length === 1 && e.key !== ' ' &&
+            !isInputActive && !activeEl?.closest('button, [role="button"], a, select')) {
             searchInput?.focus();
             return;
         }
