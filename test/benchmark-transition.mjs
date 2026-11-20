@@ -8,11 +8,13 @@ import { launchChrome } from './support/cdp.mjs';
 import { createEvaluator, getFreePort, navigateAndWait, sleep } from './support/helpers.mjs';
 
 export function parseOptions(args) {
-    const options = { rounds:5, throttle:1, compare:null, json:null, help:false };
+    const options = { rounds:5, throttle:1, compare:null, json:null, cold:false, mobile:false, help:false };
     for (let i = 0; i < args.length; i++) {
         const arg = args[i];
         if (arg === '--help') options.help = true;
         else if (arg === '--native') options.throttle = 1;
+        else if (arg === '--cold') options.cold = true;
+        else if (arg === '--mobile') options.mobile = true;
         else if (['--rounds', '--throttle', '--compare', '--json'].includes(arg)) {
             const value = args[++i];
             if (!value || value.startsWith('--')) throw new Error(`${arg} 缺少参数`);
@@ -48,7 +50,7 @@ export function summarize(samples, baselineMs) {
 }
 
 // 在浏览器内序列化执行；以实际过渡和 opacity 判定结束，而非只看切屏锁。
-export async function measureTransition(direction, timeoutMs = 10000) {
+export async function measureTransition(direction, timeoutMs = 10000, immediate = false) {
     const startSection = document.getElementById('startSection');
     const navSection = document.getElementById('navSection');
     const content = document.getElementById('navContent');
@@ -57,17 +59,21 @@ export async function measureTransition(direction, timeoutMs = 10000) {
     if (!nodes.every(Boolean)) throw new Error('缺少切屏节点');
     if ((document.documentElement.dataset.screen === 'nav') === targetNav) throw new Error('切屏起始状态不正确');
     return new Promise((resolveSample, reject) => {
-        let frameId, timer, last, start, quiet = 0;
+        let frameId, timer, last, start, inputMs, firstFrameMs, quiet = 0;
         const frames = [];
         const finish = error => {
             clearTimeout(timer);
             cancelAnimationFrame(frameId);
             if (error) reject(error);
-            else resolveSample({ direction, durationMs:performance.now()-start, frames });
+            else resolveSample({ direction, durationMs:performance.now()-start, frames,
+                ...(immediate ? { inputMs, firstFrameMs } : {}) });
         };
         const tick = now => {
-            frames.push(now-last);
-            last = now;
+            // 启动任务内触发时，浏览器提供的帧时间戳可能早于触发时间。
+            const frameTime = immediate ? performance.now() : now;
+            if (last === undefined) firstFrameMs = frameTime-start;
+            else frames.push(frameTime-last);
+            last = frameTime;
             const reached = (document.documentElement.dataset.screen === 'nav') === targetNav;
             let settled = false;
             if (reached && !document.body.classList.contains('is-screen-transitioning')) {
@@ -82,13 +88,17 @@ export async function measureTransition(direction, timeoutMs = 10000) {
             else frameId = requestAnimationFrame(tick);
         };
         timer = setTimeout(()=>finish(new Error(`切屏超时：${direction}`)), timeoutMs);
-        frameId = requestAnimationFrame(() => {
-            start = last = performance.now();
+        const trigger = () => {
+            start = performance.now();
+            if (!immediate) last = start;
             document.dispatchEvent(new KeyboardEvent('keydown', {
                 key:targetNav ? 'ArrowDown' : 'ArrowUp', bubbles:true, cancelable:true
             }));
+            if (immediate) inputMs = performance.now()-start;
             frameId = requestAnimationFrame(tick);
-        });
+        };
+        if (immediate) trigger();
+        else frameId = requestAnimationFrame(trigger);
     });
 }
 
@@ -101,10 +111,29 @@ async function benchmarkSite(url, options) {
         await send('Runtime.enable');
         await send('Network.enable');
         await send('Network.setBypassServiceWorker', { bypass:true });
-        await send('Emulation.setDeviceMetricsOverride', { width:1920, height:1080, deviceScaleFactor:2, mobile:false });
+        const viewport = options.mobile ? { width:390, height:844, deviceScaleFactor:3, mobile:true }
+            : { width:1920, height:1080, deviceScaleFactor:2, mobile:false };
+        await send('Emulation.setDeviceMetricsOverride', viewport);
+        if (options.mobile) await send('Emulation.setTouchEmulationEnabled', { enabled:true });
         await send('Emulation.setCPUThrottlingRate', { rate:options.throttle });
         await send('Emulation.setEmulatedMedia', { features:[{ name:'prefers-reduced-motion', value:'no-preference' }] });
+        if (options.cold) {
+            await send('Page.addScriptToEvaluateOnNewDocument', { source:`(() => {
+                const observer = new MutationObserver(() => {
+                    if (!document.querySelector('#bookmarks .bookmark-item')) return;
+                    observer.disconnect();
+                    const categoriesBefore = document.getElementById('navCategories')?.childElementCount ?? 0;
+                    window.__glassBenchmarkCold = (${measureTransition.toString()})('nav', 10000, true).then(
+                        sample => ({ ...sample, categoriesBefore }), error => ({ error:error.message }));
+                });
+                observer.observe(document, { childList:true, subtree:true });
+            })()` });
+        }
         await navigateAndWait(send, evalJS, url, '!!document.querySelector(".bookmark-item") && !!document.getElementById("navContent")', 30000);
+        const coldEntry = options.cold ? await evalJS('window.__glassBenchmarkCold') : null;
+        if (options.cold && (!coldEntry || coldEntry.error)) {
+            throw new Error(coldEntry?.error || '书签出现时未触发启动切屏评测');
+        }
         await evalJS('document.fonts.ready.then(()=>true)');
         const browser = await send('Browser.getVersion');
         const buildFingerprint = await evalJS('window.__GLASS_BUILD_APP__ || null');
@@ -115,7 +144,7 @@ async function benchmarkSite(url, options) {
                 else requestAnimationFrame(tick);}; requestAnimationFrame(tick);
         })`);
         const sample = direction => evalJS(`(${measureTransition.toString()})(${JSON.stringify(direction)})`);
-        const firstEntry = await sample('nav');
+        const firstEntry = coldEntry || await sample('nav');
         const firstReturn = await sample('start');
         const warmEntry = [], warmReturn = [];
         for (let round = 0; round < options.rounds; round++) {
@@ -123,7 +152,7 @@ async function benchmarkSite(url, options) {
             warmEntry.push(await sample('nav'));
             warmReturn.push(await sample('start'));
         }
-        const groups = { firstEntry:[firstEntry], firstReturn:[firstReturn], warmEntry, warmReturn };
+        const groups = { [options.cold ? 'coldEntry' : 'firstEntry']:[firstEntry], firstReturn:[firstReturn], warmEntry, warmReturn };
         const summaries = Object.fromEntries(Object.entries(groups).map(([key,samples])=>[key,summarize(samples,baselineMs)]));
         return { url, browser, buildFingerprint, baselineMs, summaries, raw:groups };
     } finally { await chrome.close(); }
@@ -132,7 +161,7 @@ async function benchmarkSite(url, options) {
 async function main() {
     const options = parseOptions(process.argv.slice(2));
     if (options.help) {
-        console.log('npm run benchmark -- [--rounds 5] [--throttle 4] [--compare URL] [--json PATH]（默认原速 CPU）');
+        console.log('npm run benchmark -- [--cold] [--mobile] [--rounds 5] [--throttle 4] [--compare URL] [--json PATH]（默认原速 CPU）');
         return;
     }
     const server = await startServer(0, undefined, {}, { testMode:false });
@@ -140,10 +169,15 @@ async function main() {
         const results = [];
         const urls = [`http://127.0.0.1:${server.port}/`, ...(options.compare ? [options.compare] : [])];
         for (const url of urls) {
-            console.log(`评测 ${url}：1920×1080 @2x，CPU ${options.throttle}x，重复 ${options.rounds} 轮`);
+            const viewport = options.mobile ? '390×844 @3x' : '1920×1080 @2x';
+            console.log(`评测 ${url}：${viewport}，CPU ${options.throttle}x，重复 ${options.rounds} 轮`);
             const result = await benchmarkSite(url, options);
             results.push(result);
             console.log(`基准帧间隔 ${result.baselineMs.toFixed(2)}ms；首次切入独立列出。`);
+            const cold = result.raw.coldEntry?.[0];
+            if (cold) {
+                console.log(`启动即切的已有分类数 ${cold.categoriesBefore}，输入处理 ${cold.inputMs.toFixed(1)}ms，首个回调等待 ${cold.firstFrameMs.toFixed(1)}ms。`);
+            }
             console.table(Object.fromEntries(Object.entries(result.summaries).map(([key,values])=>[
                 key, Object.fromEntries(Object.entries(values).map(([name,value])=>[name,Number(value.toFixed(2))]))
             ])));

@@ -15,7 +15,6 @@ const wheelSession = {
     distance: 0,
     consumed: false,
     navWasAtTop: true,
-    navTopArrivalTime: -Infinity,
     navCoastingToTop: false,
 
     reset() {
@@ -25,7 +24,6 @@ const wheelSession = {
         this.distance = 0;
         this.consumed = false;
         this.navWasAtTop = isNavAtTop();
-        this.navTopArrivalTime = -Infinity;
         this.navCoastingToTop = false;
     },
 
@@ -53,8 +51,8 @@ function handleActiveTouchMove(event) {
     handleTouch(/** @type {TouchEvent} */ (event), false, true);
 }
 
-function syncNavTouchMove() {
-    const block = isNavAtTop();
+/** @param {boolean} block */
+function syncNavTouchMove(block) {
     if (block === navTouchMoveBlocked || !dom.navContent) return;
     navTouchMoveBlocked = block;
     if (block) dom.navContent.addEventListener('touchmove', handleActiveTouchMove, { passive: false });
@@ -64,7 +62,7 @@ function syncNavTouchMove() {
 export function resetScreenInput() {
     wheelSession.reset();
     clearTouchGesture();
-    syncNavTouchMove();
+    syncNavTouchMove(wheelSession.navWasAtTop);
 }
 
 /** @param {EventTarget|null} target */
@@ -81,16 +79,14 @@ export function canScrollStartDown() {
     return Boolean(start && start.scrollTop + start.clientHeight < start.scrollHeight - 1);
 }
 
-/** @param {Event} e */
-function recordNavScroll(e) {
+function recordNavScroll() {
     const atTop = isNavAtTop();
-    syncNavTouchMove();
+    syncNavTouchMove(atTop);
     if (!atTop && state.currentSection === 'nav') {
         clearTouchGesture();
         wheelSession.navCoastingToTop = false;
     }
     if (atTop && !wheelSession.navWasAtTop) {
-        wheelSession.navTopArrivalTime = e.timeStamp;
         wheelSession.navCoastingToTop = true;
     }
     wheelSession.navWasAtTop = atTop;
@@ -145,10 +141,11 @@ function handleWheel(e) {
 function handleTouchStart(e) {
     clearTouchGesture();
     if (isScreenTransitioning() || !OverlayStack.isEmpty() || isExcluded(e.target) || e.touches.length !== 1) return;
-    if (state.currentSection === 'nav' && !isNavAtTop()) return;
     if (state.currentSection === 'start' && canScrollStartDown()) return;
+    const atTop = isNavAtTop();
+    if (state.currentSection === 'nav' && !atTop) return;
     const point = e.touches[0];
-    touch = { id: point.identifier, x: point.clientX, y: point.clientY, time: performance.now(), canReturn: isNavAtTop() };
+    touch = { id: point.identifier, x: point.clientX, y: point.clientY, time: performance.now(), canReturn: atTop };
 }
 
 /**
