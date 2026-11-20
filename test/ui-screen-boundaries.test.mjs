@@ -45,6 +45,65 @@ try {
         } finally { document.documentElement.dataset.transitionMode = original; }
     })()`), true);
 
+    // 调整视口高度时，离屏页应跟随边界移动，不启动一次额外的切屏过渡。
+    const viewport = height => send('Emulation.setDeviceMetricsOverride', {
+        width: 1280, height, deviceScaleFactor: 1, mobile: false
+    });
+    const originalMode = await evalJS('document.documentElement.dataset.transitionMode');
+    await viewport(680);
+    await waitFor(evalJS, 'innerHeight === 680 && Math.abs(dom.navSection.getBoundingClientRect().top - 680) < 1');
+    const assertOffscreenAfterResize = async (height, direction) => {
+        await viewport(height);
+        await waitFor(evalJS, `innerHeight === ${height}`);
+        const bounds = await evalJS(`(() => {
+            const node = ${direction === 'nav' ? 'dom.navSection' : 'dom.startSection'};
+            const animating = node.getAnimations().some(animation =>
+                animation instanceof CSSTransition && animation.transitionProperty === 'transform');
+            return { animating, inert: node.inert };
+        })()`);
+        assert.equal(bounds.animating, false, '视口调整不触发 transform 过渡');
+        assert.equal(bounds.inert, true);
+        const edge = direction === 'nav' ? 'dom.navSection.getBoundingClientRect().top' : 'dom.startSection.getBoundingClientRect().bottom';
+        await waitFor(evalJS, `Math.abs(${edge} - ${direction === 'nav' ? height : 0}) < 1`);
+    };
+    await assertOffscreenAfterResize(840, 'nav');
+    await evalJS("document.documentElement.dataset.transitionMode = 'classic'; switchToNav()");
+    await settled('nav');
+    await assertOffscreenAfterResize(680, 'start');
+    await evalJS('switchToStart()');
+    await settled('start');
+
+    await evalJS(`(() => {
+        window.__resizeWarmupResult = null;
+        const nav = dom.navSection;
+        const probe = () => {
+            const warmup = nav.getAnimations().find(animation => !(animation instanceof CSSTransition));
+            if (!warmup || !warmup.currentTime) {
+                requestAnimationFrame(probe);
+                return;
+            }
+            const wasInert = nav.inert && nav.getAttribute('aria-hidden') === 'true';
+            const wasTransparent = Number(getComputedStyle(nav).opacity) <= 0.0011;
+            switchToNav();
+            requestAnimationFrame(() => {
+                const transform = nav.getAnimations().find(animation =>
+                    animation instanceof CSSTransition && animation.transitionProperty === 'transform');
+                window.__resizeWarmupResult = [wasInert, wasTransparent, warmup.playState, nav.inert, Boolean(transform)];
+            });
+        };
+        window.addEventListener('resize', () => requestAnimationFrame(probe), { once: true });
+    })()`);
+    await viewport(760);
+    await waitFor(evalJS, 'window.__resizeWarmupResult !== null');
+    assert.deepEqual(await evalJS('window.__resizeWarmupResult'), [true, true, 'idle', false, true],
+        '预绘制期间导航仍隔离，切入会取消预绘制并正常播放 transform 过渡');
+    await settled('nav');
+    await evalJS('switchToStart()');
+    await settled('start');
+    await evalJS(`document.documentElement.dataset.transitionMode = ${JSON.stringify(originalMode)}`);
+    await send('Emulation.clearDeviceMetricsOverride');
+    console.log('✅ 调整视口不会误播放切屏，预绘制可中断并保持正常入场');
+
     // 同一短窗口的小位移累计可进入，动画期间 API/键盘/滚轮均不能反转。
     await wheel(10); await wheel(10); await wheel(10);
     assert.equal(await section(), 'start');

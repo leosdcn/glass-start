@@ -33,6 +33,10 @@ let isTransitioning = false;
 let sectionInitialized = false;
 /** @type {AbortController|null} */
 let transitionAbortController = null;
+/** @type {ReturnType<typeof setTimeout>|null} */
+let navResizeTimer = null;
+/** @type {Animation|null} */
+let navResizeWarmup = null;
 /** @type {Set<() => void>} */
 const screenSettledCallbacks = new Set();
 
@@ -65,6 +69,38 @@ function resetPageScroll() {
     window.scrollTo(0, 0);
     if (document.documentElement.scrollTop !== 0) document.documentElement.scrollTop = 0;
     if (document.body.scrollTop !== 0) document.body.scrollTop = 0;
+}
+
+function cancelNavResizeWarmup() {
+    if (navResizeTimer !== null) {
+        clearTimeout(navResizeTimer);
+        navResizeTimer = null;
+    }
+    navResizeWarmup?.cancel();
+    navResizeWarmup = null;
+}
+
+export function scheduleNavResizeWarmup() {
+    cancelNavResizeWarmup();
+    if (!document.documentElement.classList.contains('is-chrome') ||
+        !window.matchMedia('(hover: hover) and (pointer: fine)').matches ||
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches ||
+        document.hidden || isTransitioning || state.currentSection !== 'start') return;
+
+    navResizeTimer = setTimeout(() => {
+        navResizeTimer = null;
+        const nav = dom.navSection;
+        if (!nav?.inert || !dom.navCategories?.firstElementChild || document.hidden ||
+            !OverlayStack.isEmpty() || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+        // Chrome 会跳过完全透明的离屏层。极低透明度让它先为新尺寸光栅化，导航仍处于 inert。
+        const keyframe = { opacity: 0.001, transform: 'translateZ(0)' };
+        const animation = nav.animate([keyframe, keyframe], CONFIG.NAV.RESIZE_WARMUP_DURATION);
+        navResizeWarmup = animation;
+        animation.addEventListener('finish', () => {
+            if (navResizeWarmup === animation) navResizeWarmup = null;
+        }, { once: true });
+    }, CONFIG.NAV.RESIZE_WARMUP_DELAY);
 }
 
 function prepareScreenTransition() {
@@ -227,6 +263,7 @@ function focusNavContent() {
  */
 export function reconcileScreenState(targetSection, force = false) {
     if (!targetSection && !force && isTransitioning) return;
+    cancelNavResizeWarmup();
     const section = targetSection || (sectionInitialized ? state.currentSection
         : document.documentElement.dataset.screen === 'nav' ? 'nav' : 'start');
     // 先读取滚动布局，再清理过渡样式，避免唤醒时提前提交一轮整屏样式重算。
@@ -259,6 +296,7 @@ export function resetNavDiscovery() {
 function switchSection(section) {
     // 所有入口共用同一条规则：动画期间不反转、不重启、不排队。
     if (isTransitioning || state.currentSection === section) return;
+    cancelNavResizeWarmup();
     // 滚动校准放在改变样式之前，避免切屏首帧交错写样式、读滚动布局。
     resetPageScroll();
     if (section === 'nav') resetNavScroll();

@@ -98,6 +98,8 @@ export const CONFIG = Object.freeze({
                 BOTTOM_TOLERANCE: 32,         // 触底判定容差 (px)
                 BOTTOM_VISIBILITY_RATIO: 0.6, // 触底时末尾分类可见度占比判定线
                 RESIZE_DEBOUNCE: 120,         // 视口尺寸变化防抖延时 (ms)
+                RESIZE_WARMUP_DELAY: 60,      // 桌面 Chrome 窗口停止调整后的预绘制等待 (ms)
+                RESIZE_WARMUP_DURATION: 72,   // 为新尺寸的导航图层留出数帧光栅化时间 (ms)
                 MOBILE_BREAKPOINT: 640,       // 移动端/桌面端分界断点 (px)
                 TABLET_BREAKPOINT: 768,       // 平板端分界断点 (px)
                 TAB_SCROLL_MARGIN: 8,         // 侧边栏横向/纵向对齐边界安全内距 (px)

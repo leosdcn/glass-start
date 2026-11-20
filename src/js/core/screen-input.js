@@ -3,7 +3,7 @@ import { CONFIG } from '../config/constants.js';
 import { dom } from '../state/dom.js';
 import { state } from '../state/store.js';
 import { OverlayStack } from './overlay-stack.js';
-import { isScreenTransitioning, switchToNav, switchToStart } from './screen-state.js';
+import { isScreenTransitioning, scheduleNavResizeWarmup, switchToNav, switchToStart } from './screen-state.js';
 
 const EXCLUDED_TARGETS = '#sidebar, #weatherWidget, #editBookmarksBtn, input, textarea, select, [contenteditable]:not([contenteditable="false"])';
 
@@ -188,6 +188,7 @@ function handleTouch(e, ending, cancelScroll = false) {
 
 export function initScreenGestures() {
     resetScreenInput();
+    window.addEventListener('resize', scheduleNavResizeWarmup, { passive: true });
     dom.navContent?.addEventListener('scroll', recordNavScroll, { passive: true });
     // 平时仅观察意图，允许浏览器独立滚动；切屏期的临时阻止由屏幕模块管理。
     document.addEventListener('wheel', handleWheel, { passive: true });

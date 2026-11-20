@@ -154,7 +154,8 @@ img, a, button, .nav-bookmark, .bookmark-item {
     transition: transform var(--duration-slide) var(--ease-slide);
 }
 #startSection {
-    --start-away: translate3d(0, calc(-1 * var(--screen-height)), 0);
+    /* 按屏幕自身高度偏移，调整视口时不改变 transform 的目标值。 */
+    --start-away: translate3d(0, -100%, 0);
     z-index: 10;
     -webkit-transform: translate3d(0, 0, 0);
     transform: translate3d(0, 0, 0);
@@ -166,8 +167,8 @@ html[data-screen="nav"] #startSection {
 }
 #navSection {
     z-index: 20;
-    -webkit-transform: translate3d(0, var(--screen-height), 0);
-    transform: translate3d(0, var(--screen-height), 0);
+    -webkit-transform: translate3d(0, 100%, 0);
+    transform: translate3d(0, 100%, 0);
 }
 html[data-screen="nav"] #navSection {
     -webkit-transform: translate3d(0, 0, 0);
