@@ -136,7 +136,7 @@ export function loadBookmarks() {
 
 export function initFaviconObserver() {
     const scope = navIconsActivated ? document : (dom.bookmarks || document);
-    scope.querySelectorAll('img.lazy-icon').forEach(img => {
+    scope.querySelectorAll('img.lazy-icon:not(.loaded)').forEach(img => {
         checkImageReady(/** @type {HTMLImageElement} */ (img));
     });
 }
@@ -319,26 +319,26 @@ export function updateSidebarActive() {
     const sections = cachedSidebarSections;
     if (!items.length || !sections.length) return;
 
-    const containerHeight = content.clientHeight;
     const scrollTop = content.scrollTop;
-    const scrollHeight = content.scrollHeight;
-
-    let activeIdx = 0;
     if (scrollTop <= CONFIG.NAV.TOP_THRESHOLD) {
-        activeIdx = 0;
-    } else {
-        for (let i = 0; i < cachedSectionOffsets.length; i++) {
-            if (cachedSectionOffsets[i] - scrollTop <= CONFIG.NAV.HEADER_OFFSET) {
-                activeIdx = i;
-            }
+        selectSidebarTab(items[0]);
+        return;
+    }
+
+    const containerHeight = content.clientHeight;
+    const scrollHeight = content.scrollHeight;
+    let activeIdx = 0;
+    for (let i = 0; i < cachedSectionOffsets.length; i++) {
+        if (cachedSectionOffsets[i] - scrollTop <= CONFIG.NAV.HEADER_OFFSET) {
+            activeIdx = i;
         }
-        if (scrollTop + containerHeight >= scrollHeight - CONFIG.NAV.BOTTOM_TOLERANCE) {
-            const bottomThreshold = containerHeight * CONFIG.NAV.BOTTOM_VISIBILITY_RATIO;
-            for (let i = sections.length - 1; i >= 0; i--) {
-                if (cachedSectionOffsets[i] - scrollTop <= bottomThreshold) {
-                    activeIdx = i;
-                    break;
-                }
+    }
+    if (scrollTop + containerHeight >= scrollHeight - CONFIG.NAV.BOTTOM_TOLERANCE) {
+        const bottomThreshold = containerHeight * CONFIG.NAV.BOTTOM_VISIBILITY_RATIO;
+        for (let i = sections.length - 1; i >= 0; i--) {
+            if (cachedSectionOffsets[i] - scrollTop <= bottomThreshold) {
+                activeIdx = i;
+                break;
             }
         }
     }
@@ -348,8 +348,9 @@ export function updateSidebarActive() {
 
 /** @param {HTMLElement} nextActive */
 function selectSidebarTab(nextActive) {
+    if (nextActive.classList.contains('active')) return;
     // 先读取侧栏几何信息，再更新高亮；避免 active 字重变更后立即强制布局。
-    if (!nextActive.classList.contains('active')) scrollTabIntoView(nextActive, dom.sidebar);
+    scrollTabIntoView(nextActive, dom.sidebar);
     cachedSidebarItems.forEach(item => {
         const isActive = item === nextActive;
         const wasActive = item.classList.contains('active');
@@ -446,7 +447,7 @@ export function renderNavCategories() {
 
     sidebarCacheDirty = true;
     const shouldMeasure = navIconsActivated || state.currentSection === 'nav';
-    initSidebarNav(shouldMeasure);
+    initSidebarNav();
     if (sidebarLayoutObserver && navContent) {
         const observer = sidebarLayoutObserver;
         observer.disconnect();
@@ -454,7 +455,6 @@ export function renderNavCategories() {
         if (navCategories) observer.observe(navCategories, { box: 'border-box' });
     }
     if (shouldMeasure) {
-        refreshSidebarNavCache();
         updateSidebarActive();
         initFaviconObserver();
     }
@@ -463,14 +463,10 @@ export function renderNavCategories() {
     }
 }
 
-function initSidebarNav(measureActive = true) {
+function initSidebarNav() {
     const sidebarList = dom.sidebarList;
     const content = dom.navContent;
     if (!sidebarList || !content) return;
-
-    if (measureActive) {
-        updateSidebarActive();
-    }
 
     if (!isSidebarNavInitialized) {
         /** @type {ReturnType<typeof setTimeout> | null} */

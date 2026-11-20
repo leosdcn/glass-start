@@ -11,7 +11,7 @@ import { updateClock } from './modules/clock.js';
 import { renderEngineDropdown, setEngine, closeDropdown, hideSuggestions } from './modules/search.js';
 import { restoreWallpaper, preloadNextBg } from './modules/wallpaper.js';
 import { initWeather } from './modules/weather.js';
-import { loadBookmarks, renderNavCategories, preloadFavicons, preloadVisibleNavIcons, refreshSidebarNavCache, updateSidebarActive, initFaviconObserver, activateVisibleNavIcons, scheduleOffscreenNavIcons, cancelCategoryPulse } from './modules/bookmarks.js';
+import { loadBookmarks, renderNavCategories, preloadFavicons, preloadVisibleNavIcons, updateSidebarActive, initFaviconObserver, activateVisibleNavIcons, scheduleOffscreenNavIcons, cancelCategoryPulse } from './modules/bookmarks.js';
 import { handleIconError } from './utils/favicon.js';
 import { handleEditIconError } from './modules/bookmark-editor.js';
 import { reconcileScreenState, isScreenTransitioning, initTransitionSwitcher, setScreenNavHandlers } from './core/screen-state.js';
@@ -85,7 +85,6 @@ export function init() {
             activateVisibleNavIcons();
         },
         onRefreshNav: () => {
-            refreshSidebarNavCache();
             updateSidebarActive();
             initFaviconObserver();
             scheduleOffscreenNavIcons();
