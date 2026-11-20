@@ -229,9 +229,8 @@ export function bindSearchEvents() {
     }
 }
 
-/** 处理搜索框内部按键；返回 true 时全局快捷键停止分发。 @param {KeyboardEvent} e */
+/** 搜索框获得焦点时处理按键；返回 true 时全局快捷键停止分发。 @param {KeyboardEvent} e */
 export function handleSearchKeydown(e) {
-    if (document.activeElement !== dom.searchInput) return false;
     if (isComposing) return true;
     if (e.key === 'Enter') {
         e.preventDefault();

@@ -351,15 +351,11 @@ function selectSidebarTab(nextActive) {
     if (nextActive.classList.contains('active')) return;
     // 先读取侧栏几何信息，再更新高亮；避免 active 字重变更后立即强制布局。
     scrollTabIntoView(nextActive, dom.sidebar);
-    cachedSidebarItems.forEach(item => {
-        const isActive = item === nextActive;
-        const wasActive = item.classList.contains('active');
-        if (isActive !== wasActive) {
-            item.classList.toggle('active', isActive);
-            if (isActive) item.setAttribute('aria-current', 'location');
-            else item.removeAttribute('aria-current');
-        }
-    });
+    const previous = dom.sidebarList?.querySelector('.sidebar-item.active');
+    previous?.classList.remove('active');
+    previous?.removeAttribute('aria-current');
+    nextActive.classList.add('active');
+    nextActive.setAttribute('aria-current', 'location');
 }
 
 /** @type {Animation | null} */

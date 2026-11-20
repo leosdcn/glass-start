@@ -290,15 +290,19 @@ export function initDragSort() {
         if (!cachedListRect) cachedListRect = currentEditList.getBoundingClientRect();
         const listRect = cachedListRect;
         const edgeZone = 36;
-        const beforeScroll = currentEditList.scrollTop;
+        let scrollDelta = 0;
         if (touchClientY < listRect.top + edgeZone) {
-            currentEditList.scrollTop -= 6;
+            scrollDelta = -6;
         } else if (touchClientY > listRect.bottom - edgeZone) {
-            currentEditList.scrollTop += 6;
+            scrollDelta = 6;
         }
 
-        if (currentEditList.scrollTop !== beforeScroll) {
-            touchMoveRafId = requestAnimationFrame(processTouchMove);
+        if (scrollDelta) {
+            const beforeScroll = currentEditList.scrollTop;
+            currentEditList.scrollTop = beforeScroll + scrollDelta;
+            if (currentEditList.scrollTop !== beforeScroll) {
+                touchMoveRafId = requestAnimationFrame(processTouchMove);
+            }
         }
         updateDropTarget(document.elementFromPoint(touchClientX, touchClientY), touchClientY);
         updateDragIndicator();

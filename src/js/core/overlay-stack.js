@@ -171,8 +171,11 @@ export const OverlayStack = {
     },
 
     topModal() {
-        const entry = [...this.stack].reverse().find(item => MODAL_OVERLAY_IDS.has(item.id));
-        return entry ? document.getElementById(entry.id) : null;
+        for (let i = this.stack.length - 1; i >= 0; i--) {
+            const { id } = this.stack[i];
+            if (MODAL_OVERLAY_IDS.has(id)) return document.getElementById(id);
+        }
+        return null;
     },
 
     top() {

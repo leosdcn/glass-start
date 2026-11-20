@@ -129,11 +129,14 @@ export function scheduleSuggestions(query) {
         hideSuggestions();
         return;
     }
-    if (suggestionQueryKey === `${getLocale()}:${state.engine}:${query}`) {
+    const engineKey = state.engine;
+    const cacheKey = `${getLocale()}:${engineKey}:${query}`;
+    if (suggestionQueryKey === cacheKey) {
         if (selectedSuggestionIdx >= 0) selectSuggestion(-1);
         return;
     }
-    fetchSuggestions(state.engine, query, true);
+    if (OverlayStack.topModal()) return;
+    fetchSuggestionsForQuery(engineKey, query, true, cacheKey);
 }
 
 /**
@@ -658,16 +661,26 @@ const MAX_SUGGEST_CACHE_SIZE = 50;
  */
 export function fetchSuggestions(engineKey, query, deferNetwork = false) {
     if (OverlayStack.topModal()) return;
-    query = query.trim();
+    fetchSuggestionsForQuery(engineKey, query.trim(), deferNetwork);
+}
+
+/**
+ * @param {string} engineKey
+ * @param {string} query 已去首尾空白的查询
+ * @param {boolean} deferNetwork
+ * @param {string} [queryKey]
+ */
+function fetchSuggestionsForQuery(engineKey, query, deferNetwork, queryKey) {
     if (!query || parseSearchLink(query)) {
         hideSuggestions();
         return;
     }
-    const cacheKey = `${getLocale()}:${engineKey}:${query}`;
-    const preserveSelection = suggestDebounceTimer !== null && suggestionQueryKey === cacheKey;
+    const cacheKey = queryKey ?? `${getLocale()}:${engineKey}:${query}`;
+    const sameQuery = suggestionQueryKey === cacheKey;
+    const preserveSelection = suggestDebounceTimer !== null && sameQuery;
 
     // compositionend 后的 input、重复选择当前引擎等入口共享正在进行的请求和列表。
-    if (activeSuggestCleanup && suggestionQueryKey === cacheKey) return;
+    if (activeSuggestCleanup && sameQuery) return;
     cancelSuggestionRequest();
     const reqId = activeSuggestReqId;
     suggestionQueryKey = cacheKey;
