@@ -103,7 +103,7 @@ export function init() {
     initTransitionSwitcher();
 
     // ⑦ 恢复用户偏好的搜索引擎
-    setEngine(storageGet(CONFIG.KEYS.PREFERRED_ENGINE), false);
+    setEngine(window.__PRE_ENGINE__?.key ?? storageGet(CONFIG.KEYS.PREFERRED_ENGINE), false);
 
     // ⑧ 装配全局事件、页面唤醒与设置面板交互事件
     bindSearchEvents();

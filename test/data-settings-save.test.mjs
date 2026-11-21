@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { createEvaluator, launchSession, waitFor, sleep } from './support/helpers.mjs';
 import { connectCDP } from './support/cdp.mjs';
+import { FAVICON_CACHE } from '../src/js/utils/offline-cache.js';
 
 let releaseWallpaper;
 const { server, chrome, send, evalJS, cdpPort } = await launchSession(0, {
@@ -403,7 +404,16 @@ try {
     input.value = '重置失败后仍可保存';
     input.dispatchEvent(new Event('input', { bubbles: true }));
     const remove = Storage.prototype.removeItem;
-    window.restoreAuditStorage = () => { Storage.prototype.removeItem = remove; };
+    const get = Storage.prototype.getItem;
+    window.bookmarkCommitReads = 0;
+    window.restoreAuditStorage = () => {
+      Storage.prototype.removeItem = remove;
+      Storage.prototype.getItem = get;
+    };
+    Storage.prototype.getItem = function(key) {
+      if (key === CONFIG.KEYS.BOOKMARKS) bookmarkCommitReads++;
+      return get.call(this, key);
+    };
     Storage.prototype.removeItem = function(key) {
       if (key === CONFIG.KEYS.MASK_OPACITY) throw new DOMException('blocked', 'SecurityError');
       return remove.call(this, key);
@@ -413,11 +423,13 @@ try {
   try {
     await waitFor(evalJS, 'OverlayStack.top()?.id === "confirmModal" && modalState.phase !== "committing"');
     assert.equal(await evalJS('modalState.draftBookmarks[0].name'), '重置失败后仍可保存');
+    assert.equal(await evalJS('bookmarkCommitReads'), 0, '重置直接沿用刚写入的书签记录');
+    await evalJS('dom.confirmOkBtn.click(); saveEditModal()');
+    assert.equal(await evalJS('bookmarkCommitReads'), 1, '重试保存只读一次书签以检查冲突');
+    assert.equal(await evalJS('pageData.bookmarks[0].name'), '重置失败后仍可保存');
   } finally {
     await evalJS('restoreAuditStorage()');
   }
-  await evalJS('dom.confirmOkBtn.click(); saveEditModal()');
-  assert.equal(await evalJS('pageData.bookmarks[0].name'), '重置失败后仍可保存');
 
   await evalJS(`(async () => {
     await commitWallpaperSelection(backgrounds[1]);
@@ -566,7 +578,7 @@ try {
     await Promise.all(['glass-scope-%2F-app-images-app-core-vclear-test','glass-scope-%2F-app-core-vfuture',
       'glass-scope-%2F-app-images-neighbor%2F-app-images-app-core-vkeep-test','glass-scope-%2Fother%2F-app-core-vkeep-test',
       'glass-scope-%2F-audit%2F-app-core-vkeep-test', 'glass-scope-%2F-audit%2F-app-images-app-core-vkeep-test',
-      'unrelated-cache',CONFIG.CACHE.FAVICON].map(key => caches.open(key)));
+      'unrelated-cache',${JSON.stringify(FAVICON_CACHE)}].map(key => caches.open(key)));
     sessionStorage.setItem('clearCacheBookmarks',localStorage.getItem(CONFIG.KEYS.BOOKMARKS));
     await openEditModal();
     const name = dom.editList.querySelector('.edit-name');
@@ -594,7 +606,7 @@ try {
     nestedKept:await caches.has('glass-scope-%2F-audit%2F-app-core-vkeep-test') &&
       await caches.has('glass-scope-%2F-audit%2F-app-images-app-core-vkeep-test') &&
       await caches.has('glass-scope-%2F-app-images-neighbor%2F-app-images-app-core-vkeep-test'),
-    unrelatedKept:await caches.has('unrelated-cache'), sharedIconsKept:await caches.has(CONFIG.CACHE.FAVICON),
+    unrelatedKept:await caches.has('unrelated-cache'), sharedIconsKept:await caches.has(${JSON.stringify(FAVICON_CACHE)}),
     otherRegistered:(await navigator.serviceWorker.getRegistrations()).some(r => r.scope === location.origin + '/other/'),
     bookmarksKept:localStorage.getItem(CONFIG.KEYS.BOOKMARKS) === sessionStorage.getItem('clearCacheBookmarks')
   }))()`),{ownRemoved:true,ownCoreKept:true,otherKept:true,nestedKept:true,unrelatedKept:true,sharedIconsKept:true,otherRegistered:true,bookmarksKept:true});

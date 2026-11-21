@@ -1,15 +1,14 @@
-import { parse } from 'acorn';
-
 const children = node => Object.values(node).flatMap(value => Array.isArray(value) ? value : [value])
     .filter(value => value && typeof value.type === 'string');
 const walk = (node, visit) => { visit(node); children(node).forEach(child => walk(child, visit)); };
 
 /** 静态检查可识别的 DOM 引用；变量按词法作用域解析，注释及字符串不会被当成代码。 */
 export function inspectDOMSources(sources, overlayPath, typesSource) {
-    const trees = new Map(sources.map(({ file, content, ast }) => [file,
-        ast || parse(content, { ecmaVersion: 'latest', sourceType: 'module', locations: true })]));
+    const trees = new Map(sources.map(({ file, ast }) => [file, ast]));
+    const overlay = trees.get(overlayPath);
+    if (!overlay) throw new Error('无法读取 MODAL_OVERLAY_IDS 弹窗清单');
     const modalIds = new Set();
-    walk(trees.get(overlayPath), node => {
+    walk(overlay, node => {
         if (node.type === 'VariableDeclarator' && node.id.name === 'MODAL_OVERLAY_IDS') {
             const array = node.init?.type === 'NewExpression' && node.init.arguments[0];
             if (array?.type === 'ArrayExpression') {

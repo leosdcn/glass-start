@@ -165,7 +165,7 @@ for (const item of jsFiles) {
     }
 }
 
-// 校验 src/js/ 下全部 ESM 业务模块 (单进程 Acorn 快速 AST 语法分析，并缓存 AST 供后续 DOM 规则复用)
+// 语法校验生成的 AST 供 DOM 与多语言规则复用。
 if (srcJsSources.length > 0) {
     const failures = [];
     for (const source of srcJsSources) {
@@ -185,6 +185,7 @@ if (srcJsSources.length > 0) {
         logItem(`${label} 语法错误:\n${failures.join('\n')}`, 'error');
     }
 }
+const parsedJsSources = srcJsSources.filter(source => source.ast);
 
 // ---- 3. 根目录 JSON 配置文件合法性校验 ----
 logSection('3/4', '📦 校验 JSON 配置文件格式');
@@ -400,7 +401,7 @@ try {
 // 4.6 DOM ID 唯一性与 cacheDOM() 引用健康门禁
 let domInspection;
 try {
-    domInspection = inspectDOMSources(srcJsSources,
+    domInspection = inspectDOMSources(parsedJsSources,
         join(root, 'src', 'js', 'core', 'overlay-stack.js'), readFileSync(join(root, 'src', 'js', 'types.d.ts'), 'utf-8'));
     const bodyMatch = indexHtml.match(/<body\b[^>]*>([\s\S]*?)<\/body>/i);
     const bodyHtml = bodyMatch ? bodyMatch[1] : indexHtml;
@@ -454,6 +455,8 @@ try {
     const data = JSON.parse(rawBookmarks);
     let totalBookmarks = 0;
     const errors = [];
+    /** @type {Map<string, NodeJS.ErrnoException | null>} */
+    const iconChecks = new Map();
 
     function checkBookmarkItem(bm, prefix) {
         totalBookmarks++;
@@ -468,14 +471,19 @@ try {
         } else {
             const iconFileName = bm.icon.replace(/^\.\/icons\//, '');
             const iconPath = join(root, 'public', 'icons', iconFileName);
-            if (!existsSync(iconPath)) {
-                errors.push(`${prefix} 本地图标物理文件缺失: "public/icons/${iconFileName}"，请运行 "npm run sync:icons" 自动下载转写！`);
-            } else {
+            if (!iconChecks.has(iconPath)) {
                 try {
                     validateIconPng(iconPath);
+                    iconChecks.set(iconPath, null);
                 } catch (readErr) {
-                    errors.push(`${prefix} 本地图标 "${iconFileName}" 校验失败: ${readErr.message}`);
+                    iconChecks.set(iconPath, readErr);
                 }
+            }
+            const error = iconChecks.get(iconPath);
+            if (error?.code === 'ENOENT' || error?.code === 'ENOTDIR') {
+                errors.push(`${prefix} 本地图标物理文件缺失: "public/icons/${iconFileName}"，请运行 "npm run sync:icons" 自动下载转写！`);
+            } else if (error) {
+                errors.push(`${prefix} 本地图标 "${iconFileName}" 校验失败: ${error.message}`);
             }
         }
     }
@@ -635,7 +643,9 @@ try {
         if (count !== 1) errors.push(`构建插槽/区域标记 ${marker} 出现 ${count} 次（必须且仅能出现 1 次）`);
     }
     if (/const\s+backgrounds\s*=\s*\[/.test(indexHtml)) errors.push('index.html 仍内联壁纸数组');
-    if (/const\s+ENGINE_SVGS\s*=\s*\{/.test(indexHtml)) errors.push('index.html 仍内联引擎图标');
+    if (/const\s+ENGINE_SVGS\s*=\s*\{|id="engineIcon"[^>]*>\s*<svg\b/.test(indexHtml)) {
+        errors.push('index.html 仍内联引擎图标');
+    }
     if (/const\s+m\s*=\s*\{\s*'☀️'/.test(indexHtml)) errors.push('index.html 仍内联天气图标');
     if (errors.length) throw new Error(errors.join(' | '));
     passCount++;
@@ -646,7 +656,7 @@ try {
 }
 
 try {
-    const summary = await inspectI18n(root, srcJsSources, indexHtml);
+    const summary = await inspectI18n(root, parsedJsSources, indexHtml);
     passCount++;
     logItem(`多语言键、参数及内置内容：${summary}`);
 } catch (e) {

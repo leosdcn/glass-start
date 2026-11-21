@@ -8,9 +8,18 @@ try {
     await send('Network.setBypassServiceWorker', { bypass: true });
     await send('Page.addScriptToEvaluateOnNewDocument', { source: `
         localStorage.setItem('glass_weather_cache', JSON.stringify({timestamp:Date.now(),current:{temp:20},daily:[]}));
+        window.weatherStartupReads = {cache:0, unit:0};
+        window.originalWeatherGetItem = Storage.prototype.getItem;
+        Storage.prototype.getItem = function(key) {
+            if (key === 'glass_weather_cache') weatherStartupReads.cache++;
+            if (key === 'glass_temp_unit') weatherStartupReads.unit++;
+            return originalWeatherGetItem.call(this, key);
+        };
     ` });
     await send('Page.reload');
-    await waitFor(evalJS, 'typeof updateWeather === "function" && !isFetchingWeather');
+    await waitFor(evalJS, 'window.weatherStartupReads && typeof updateWeather === "function" && !isFetchingWeather');
+    assert.deepEqual(await evalJS('(Storage.prototype.getItem = originalWeatherGetItem, weatherStartupReads)'),
+        {cache:2, unit:2}, '首帧脚本与主应用各读取一次天气和单位');
 
     const jsonp = await evalJS(`(() => {
         const append = document.body.appendChild;
@@ -281,6 +290,8 @@ try {
     console.log('✅ 天气先显示旧地点预报，重新定位全程共享刷新任务，新地点仅请求一次，失败后可重试');
     const zeroCoordinates = await evalJS(`(async () => {
         const originalFetch = window.fetch;
+        const getItem = Storage.prototype.getItem;
+        let unitReads = 0;
         const requests = [];
         const location = {name:'赤道', fullName:'赤道', lat:0, lon:0, language:'zh-CN', timestamp:Date.now()};
         const forecast = {current:{temperature_2m:26,weather_code:0}, daily:{}};
@@ -292,7 +303,12 @@ try {
             };
             storageSet(CONFIG.KEYS.WEATHER_LOC, location);
             storageSet(CONFIG.KEYS.WEATHER_CACHE, {timestamp:1,location,current:{temp:20},daily:[]});
+            Storage.prototype.getItem = function(key) {
+                if (key === CONFIG.KEYS.TEMP_UNIT) unitReads++;
+                return getItem.call(this, key);
+            };
             await updateWeather(false);
+            Storage.prototype.getItem = getItem;
             const cached = requests.length === 1 && requests[0].includes('latitude=0&longitude=0&')
                 && storageGet(CONFIG.KEYS.WEATHER_CACHE).current.temp === 26;
 
@@ -317,12 +333,12 @@ try {
             coordinates = [91, 181];
             requests.length = 0;
             await updateWeather(true);
-            return {cached, fallback, located:acceptedZero,
+            return {cached, unitReads, fallback, located:acceptedZero,
                 rejectedOutOfRange:storageGet(CONFIG.KEYS.WEATHER_LOC)?.lat === 0
                     && !requests.some(url => url.includes('latitude=91&longitude=181&'))};
-        } finally { window.fetch = originalFetch; }
+        } finally { window.fetch = originalFetch; Storage.prototype.getItem = getItem; }
     })()`);
-    assert.deepEqual(zeroCoordinates, {cached:true, fallback:true, located:true, rejectedOutOfRange:true});
+    assert.deepEqual(zeroCoordinates, {cached:true, unitReads:1, fallback:true, located:true, rejectedOutOfRange:true});
     console.log('✅ 零经纬度可复用缓存、定位失败时回退，并接受 IP 定位返回的零坐标');
 
     await evalJS(`(() => {

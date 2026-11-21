@@ -4,13 +4,14 @@ import { rankBookmarkSuggestions } from '../utils/bookmark-search.js';
 import { getCategoryCatalog } from '../utils/category-catalog.js';
 import { bookmarkUrlKey } from '../utils/bookmark-model.js';
 import { CONFIG, DEFAULT_CATEGORIES, engines } from '../config/constants.js';
-import IMAGE_SEARCH_UPLOADS from '../config/image-search-uploads.json';
 import { DEFAULT_ENGINE, IMAGE_SEARCH_LINKS, normalizeEngine } from '../config/engines.js';
 import { escapeHtml, safeUrl } from '../utils/helpers.js';
 import { storageSet } from '../utils/storage.js';
 import { state, pageData } from '../state/store.js';
 import { dom } from '../state/dom.js';
 import { OverlayStack } from '../core/overlay-stack.js';
+
+const IMAGE_SEARCH_UPLOADS = __GLASS_IMAGE_SEARCH_UPLOADS__;
 
 /** @type {import('../types').SuggestionItem[]} */
 let suggestionItems = [];
@@ -199,11 +200,15 @@ export function setEngine(key, save = true) {
     const engineIcon = dom.engineIcon;
     const dropdownMenu = dom.dropdownMenu;
 
-    if (engineName) engineName.textContent = engineObj.name;
+    if (engineName && engineName.textContent !== engineObj.name) engineName.textContent = engineObj.name;
     if (engineBtn) {
-        engineBtn.setAttribute('aria-label', t('engine.current', { name: engineObj.name }));
+        const label = t('engine.current', { name: engineObj.name });
+        if (engineBtn.getAttribute('aria-label') !== label) engineBtn.setAttribute('aria-label', label);
     }
-    if (engineIcon) engineIcon.innerHTML = engineObj.svg;
+    if (engineIcon && engineIcon.dataset.renderedEngine !== validEngine) {
+        engineIcon.innerHTML = engineObj.svg;
+        engineIcon.dataset.renderedEngine = validEngine;
+    }
     if (dropdownMenu) {
         dropdownMenu.querySelectorAll('[role="menuitemradio"]').forEach(btn => {
             if (btn instanceof HTMLElement) {

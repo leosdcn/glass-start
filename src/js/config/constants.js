@@ -26,9 +26,6 @@ export const CONFIG = Object.freeze({
                 TRANSITION_MODE: 'glass_transition_mode',
                 TEMP_UNIT: WEATHER_TEMP_UNIT_KEY
             }),
-            CACHE: Object.freeze({
-                FAVICON: 'app-favicons-v1'
-            }),
             IDB: Object.freeze({
                 DB_NAME: 'GlassStartDB',
                 VERSION: 1,

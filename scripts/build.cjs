@@ -1,7 +1,7 @@
 const { appScriptPath, referencedWebBuild, scriptFingerprint } = require('../src/js/utils/build-identity.js');
 const { watchFiles } = require('./watch.cjs');
 const { replaceOnce, injectDocumentShell } = require('./html-template.cjs');
-const { getContentSecurityPolicy } = require('./content-security-policy.cjs');
+const { getContentSecurityPolicy, readImageSearchUploads } = require('./content-security-policy.cjs');
 const { publishWebBuild } = require('./publish-build.cjs');
 const fs = require('fs');
 const path = require('path');
@@ -156,8 +156,8 @@ function buildServiceWorkerAndAssets(targetDir, { extension, version, webHeader 
 }
 
 // 两种构建共用编译选项；生产在编译时裁掉测试入口，测试脚本只由测试服务器持有。
-/** @param {{ testMode?: boolean, extension?: boolean, version?: string, outfile?: string }} [options] */
-function buildAppJavaScript({ testMode = false, extension = false, version = 'app-core-v' + Date.now(), outfile } = {}) {
+/** @param {{ testMode?: boolean, extension?: boolean, version?: string, outfile?: string, uploads?: ReturnType<typeof readImageSearchUploads> }} [options] */
+function buildAppJavaScript({ testMode = false, extension = false, version = 'app-core-v' + Date.now(), outfile, uploads = readImageSearchUploads() } = {}) {
     return esbuild.buildSync({
         entryPoints: [PATHS.srcMainJs],
         bundle: true,
@@ -166,6 +166,7 @@ function buildAppJavaScript({ testMode = false, extension = false, version = 'ap
         target: ['es2022'],
         charset: 'utf8',
         define: {
+            __GLASS_IMAGE_SEARCH_UPLOADS__: JSON.stringify(uploads),
             'window.__GLASS_EXTENSION__': String(extension),
             ...(testMode ? {} : { 'window.__GLASS_TEST__': 'false' })
         },
@@ -177,7 +178,7 @@ function buildAppJavaScript({ testMode = false, extension = false, version = 'ap
 }
 
 // 生成生产应用脚本。
-function processProductionAppJs(targetDir, { extension, version }) {
+function processProductionAppJs(targetDir, { extension, version, uploads }) {
     const script = extension ? 'app.js' : appScriptPath(version);
     logSection('3/4', `⚡ 提取并压缩生产脚本 (${script})`);
 
@@ -188,7 +189,7 @@ function processProductionAppJs(targetDir, { extension, version }) {
     const jsStart = Date.now();
     try {
         const appJsFile = path.join(targetDir, script);
-        const result = buildAppJavaScript({ outfile: appJsFile, extension, version });
+        const result = buildAppJavaScript({ outfile: appJsFile, extension, version, uploads });
         const appJsContent = fs.readFileSync(appJsFile, 'utf-8');
         const jsDuration = Date.now() - jsStart;
         const appJsBytes = Buffer.byteLength(appJsContent, 'utf-8');
@@ -232,7 +233,7 @@ function injectHeadConfig(html, { marker, entryPath, globalName, binding }) {
 }
 
 // 5. 注入应用脚本、静态编译后的 Tailwind CSS 与 SVG 精灵。
-function processProductionHtml(compiledCss, targetDir, buildVersion, extension, webMeta) {
+function processProductionHtml(compiledCss, targetDir, { version: buildVersion, appVersion, extension, webMeta }) {
     logSection('4/4', '🔧 处理生产环境页面 (dist/index.html)');
     const htmlStart = Date.now();
     let prodHtmlContent = fs.readFileSync(PATHS.srcIndexHtml, 'utf-8');
@@ -273,8 +274,7 @@ function processProductionHtml(compiledCss, targetDir, buildVersion, extension, 
     });
 
     // 品牌卡片版本号只由 package.json 提供。
-    const { version } = JSON.parse(fs.readFileSync(PATHS.pkgJson, 'utf-8'));
-    prodHtmlContent = replaceOnce(prodHtmlContent, '<!-- INJECT_APP_VERSION -->', `v${version}`);
+    prodHtmlContent = replaceOnce(prodHtmlContent, '<!-- INJECT_APP_VERSION -->', `v${appVersion}`);
 
     // 5.1 对 HTML 中所有的 <style> 和 <script> 标签内容进行全面压缩
     function minifyInlineStylesAndScripts(html) {
@@ -386,13 +386,15 @@ function printDistSummary(startTime, items) {
 
 function executeBuild(targetDir, { extension = false } = {}) {
     const version = `app-core-v${Date.now()}-${randomBytes(8).toString('hex')}`;
+    const { version: appVersion } = JSON.parse(fs.readFileSync(PATHS.pkgJson, 'utf-8'));
+    const uploads = readImageSearchUploads();
+    const { webMeta, webHeader, extensionPolicy } = getContentSecurityPolicy(uploads);
     resetBuildMetrics();
     const compiledCss = compileTailwindCss();
-    const { webMeta, webHeader } = getContentSecurityPolicy();
     buildServiceWorkerAndAssets(targetDir, { extension, version, webHeader });
-    processProductionAppJs(targetDir, { extension, version });
-    processProductionHtml(compiledCss, targetDir, version, extension, webMeta);
-    return version;
+    processProductionAppJs(targetDir, { extension, version, uploads });
+    processProductionHtml(compiledCss, targetDir, { version, appVersion, extension, webMeta });
+    return { version, appVersion, extensionPolicy, uploads };
 }
 
 function retainPreviousWebScript(targetDir, previousDir) {
@@ -437,12 +439,12 @@ function main({ testSnapshotDir } = {}) {
     try {
         let items;
         publishWebBuild(PATHS.dist, staging => {
-            const version = executeBuild(staging);
+            const { version, uploads } = executeBuild(staging);
             if (testSnapshotDir) {
                 fs.cpSync(staging, path.join(testSnapshotDir, 'dist'), {
                     recursive: true, mode: fs.constants.COPYFILE_FICLONE
                 });
-                buildAppJavaScript({ testMode: true, version, outfile: path.join(testSnapshotDir, 'app.test.js') });
+                buildAppJavaScript({ testMode: true, version, outfile: path.join(testSnapshotDir, 'app.test.js'), uploads });
             }
         }, (staging, previous) => {
             retainPreviousWebScript(staging, previous);
@@ -458,7 +460,7 @@ function main({ testSnapshotDir } = {}) {
 // 文件变化后重新构建并发布。
 function rebuild() {
     const startTime = Date.now();
-    const version = publishWebBuild(PATHS.dist, executeBuild, retainPreviousWebScript);
+    const { version } = publishWebBuild(PATHS.dist, executeBuild, retainPreviousWebScript);
     return { version, duration: Date.now() - startTime };
 }
 

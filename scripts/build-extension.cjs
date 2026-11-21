@@ -2,18 +2,16 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { executeBuild, PATHS } = require('./build.cjs');
 const { replaceOnce } = require('./html-template.cjs');
-const { getContentSecurityPolicy } = require('./content-security-policy.cjs');
 const { publishBuild } = require('./publish-build.cjs');
 
 // 复用网页编译与资源注入，独立输出；失败时保留上一份扩展。
 function buildExtension(output = path.join(PATHS.root, 'extension')) {
     publishBuild(output, staging => {
-        executeBuild(staging, { extension: true });
+        const { appVersion, extensionPolicy } = executeBuild(staging, { extension: true });
         const manifest = JSON.parse(fs.readFileSync(path.join(PATHS.src, 'extension/manifest.json'), 'utf8'));
-        const rawVersion = JSON.parse(fs.readFileSync(PATHS.pkgJson, 'utf8')).version;
-        const versionMatch = rawVersion.match(/^(\d+(?:\.\d+){0,3})/);
-        manifest.version = versionMatch ? versionMatch[1] : rawVersion;
-        Object.assign(manifest, getContentSecurityPolicy().extensionPolicy);
+        const versionMatch = appVersion.match(/^(\d+(?:\.\d+){0,3})/);
+        manifest.version = versionMatch ? versionMatch[1] : appVersion;
+        Object.assign(manifest, extensionPolicy);
         fs.writeFileSync(path.join(staging, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n');
         const langConfig = fs.readFileSync(path.join(PATHS.src, 'js/config/language.js'), 'utf8');
         const langMatch = langConfig.match(/SUPPORTED_LANGUAGES\s*=\s*Object\.freeze\((\[[^\]]+\])\)/);

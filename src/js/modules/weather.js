@@ -221,27 +221,22 @@ export async function fetchWeatherForecast(loc, signal) {
 let currentWeatherData = null;
 
 function toggleTempUnit() {
-    const nextUnit = getWeatherTempUnit() === 'F' ? 'C' : 'F';
+    /** @type {'C' | 'F'} */
+    let unit = getWeatherTempUnit();
+    const nextUnit = unit === 'F' ? 'C' : 'F';
     try {
         localStorage.setItem(CONFIG.KEYS.TEMP_UNIT, nextUnit);
+        unit = nextUnit;
     } catch {}
-    refreshWeatherDisplay();
-}
-
-/** 按当前单位重新渲染已有天气，不发起网络请求。 */
-function refreshWeatherDisplay() {
     const data = currentWeatherData || readWeatherCache();
-    if (data) {
-        renderWeatherCapsule(data);
-        renderWeatherPopover(data);
-    }
+    if (data) displayWeather(data, unit);
 }
 
-/** @param {import('../types').WeatherData | null | undefined} data */
-export function renderWeatherCapsule(data) {
+/** @param {import('../types').WeatherData | null | undefined} data @param {'C' | 'F'} [unit] */
+export function renderWeatherCapsule(data, unit) {
     if (!dom.weatherWidget) return;
     if (data?.current) currentWeatherData = data;
-    renderWeatherCapsuleView(dom, data, getWeatherTempUnit());
+    renderWeatherCapsuleView(dom, data, unit ?? getWeatherTempUnit());
 }
 
 let lastRenderedPopoverSignature = '';
@@ -326,8 +321,8 @@ function renderWeatherError(empty = false) {
     `);
 }
 
-/** @param {import('../types').WeatherData | null | undefined} data */
-export function renderWeatherPopover(data) {
+/** @param {import('../types').WeatherData | null | undefined} data @param {'C' | 'F'} [unit] */
+export function renderWeatherPopover(data, unit) {
     const view = getWeatherView();
     if (!view) return;
     if (!data?.current) {
@@ -344,7 +339,7 @@ export function renderWeatherPopover(data) {
     }
 
     currentWeatherData = data;
-    const unit = getWeatherTempUnit();
+    unit ??= getWeatherTempUnit();
     const raw = data.current;
     const period = getForecastPeriod(data, new Date());
     const location = data.location?.fullName || data.location?.name || '';
@@ -460,16 +455,22 @@ function readWeatherCache() {
     return cache;
 }
 
-export function updateWeather(force = false) {
-    if (!force && typeof document !== 'undefined' && document.hidden) return Promise.resolve();
+export function updateWeather(force = false, initial = false) {
+    const paused = !force && typeof document !== 'undefined' && document.hidden;
+    if (paused && !initial) return Promise.resolve();
     if (weatherRefresh) return weatherRefresh.promise;
     const cache = readWeatherCache();
+    if (initial) {
+        if (cache) displayWeather(cache);
+        else renderWeatherPopover(null);
+    }
+    if (paused) return Promise.resolve();
     const locCache = readWeatherLocation();
 
     if (!force && cache?.timestamp && Date.now() - cache.timestamp < CONFIG.WEATHER.CACHE_TTL
         && (cache.location?.language || 'zh-CN') === getLocale()
         && (!locCache || matchesForecastLocation(cache.location, locCache))) {
-        displayWeather(cache);
+        if (!initial) displayWeather(cache);
         return Promise.resolve();
     }
 
@@ -481,10 +482,10 @@ export function updateWeather(force = false) {
     return promise;
 }
 
-/** @param {import('../types').WeatherData} data */
-function displayWeather(data) {
-    renderWeatherCapsule(data);
-    renderWeatherPopover(data);
+/** @param {import('../types').WeatherData} data @param {'C' | 'F'} [unit] */
+function displayWeather(data, unit = getWeatherTempUnit()) {
+    renderWeatherCapsule(data, unit);
+    renderWeatherPopover(data, unit);
 }
 
 /** @param {import('../types').WeatherData | null} cache
@@ -520,7 +521,12 @@ async function executeWeatherUpdate(cache, locCache, force, signal) {
         }
         signal.throwIfAborted();
         const confirmed = { ...data, location: loc };
-        displayWeather(confirmed);
+        // 同一份预报在名称未变时沿用已显示的视图，但仍保存确认后的位置。
+        if (data === currentWeatherData && data.location?.name === loc.name && data.location?.fullName === loc.fullName) {
+            currentWeatherData = confirmed;
+        } else {
+            displayWeather(confirmed);
+        }
         storageSet(CONFIG.KEYS.WEATHER_CACHE, confirmed);
     } catch (err) {
         if (signal.aborted) return;
@@ -589,15 +595,7 @@ export function initWeather() {
         popoverEventsBound = true;
     }
 
-    const cache = readWeatherCache();
-    if (cache) {
-        renderWeatherCapsule(cache);
-        renderWeatherPopover(cache);
-    } else {
-        renderWeatherPopover(null);
-    }
-
-    updateWeather(false).catch(() => {});
+    updateWeather(false, true).catch(() => {});
     stopWeatherInterval();
     weatherIntervalTimer = setInterval(() => updateWeather(false).catch(() => {}), CONFIG.WEATHER.CACHE_TTL);
 }

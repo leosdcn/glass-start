@@ -98,24 +98,35 @@ export function saveUserBookmarks(list, expectedRevision) {
         return Object.keys(overrides).length ? [[bookmark.url, overrides]] : [];
     }));
 
-    if (!storageSet(CONFIG.KEYS.BOOKMARKS, { version: 1, keys, meta: customMeta })) return false;
-    pageData.bookmarks = getDerivedBookmarks(keys, pageData.categories, customMeta);
-    renderBookmarks();
-    return true;
+    return writeBookmarkRecord(keys, customMeta);
 }
 
 /** 重置书签存储并通过同一恢复入口同步内存和视图。 */
 export function resetUserBookmarks() {
     // null 表示随语言使用默认顺序，同时覆盖旧格式中仍存在的记录。
-    if (!storageSet(CONFIG.KEYS.BOOKMARKS, { version: 1, keys: null, meta: {} })) return false;
-    loadBookmarks();
+    const saved = writeBookmarkRecord(null, {});
+    if (!saved) return false;
     // 兼容清理只在提交后执行，失败时旧记录也不会重新生效。
     [CONFIG.KEYS.BOOKMARK_KEYS, CONFIG.KEYS.CUSTOM_META].forEach(storageRemove);
-    return true;
+    return saved;
 }
 
 export function loadBookmarks() {
     const record = readBookmarkRecord();
+    applyBookmarkRecord(record);
+    return JSON.stringify(record);
+}
+
+/** @param {string[] | null} keys @param {Record<string, import('../types').CustomMetaItem>} meta */
+function writeBookmarkRecord(keys, meta) {
+    const record = { version: 1, keys, meta };
+    if (!storageSet(CONFIG.KEYS.BOOKMARKS, record)) return false;
+    applyBookmarkRecord(record);
+    return { revision: JSON.stringify(record), bookmarks: pageData.bookmarks };
+}
+
+/** @param {{ keys?: unknown, meta?: Record<string, import('../types').CustomMetaItem> } | null} record */
+function applyBookmarkRecord(record) {
     const storedKeys = record?.keys;
     const userKeys = Array.isArray(storedKeys)
         ? storedKeys.filter(url => typeof url === 'string' && normalizeBookmarkUrl(url)) : [];
@@ -127,11 +138,7 @@ export function loadBookmarks() {
         const defaultKeys = getLocale() === 'en' ? window.__GLASS_I18N__?.catalogs?.en?.defaultBookmarks : undefined;
         pageData.bookmarks = getDerivedBookmarks(defaultKeys || DEFAULT_BOOKMARKS.map(b => b.url), pageData.categories, customMeta);
     }
-    const bookmarksEl = dom.bookmarks;
-    if (bookmarksEl) {
-        renderBookmarks();
-    }
-    return JSON.stringify(record);
+    renderBookmarks();
 }
 
 export function initFaviconObserver() {

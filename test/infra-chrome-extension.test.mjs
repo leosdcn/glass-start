@@ -1,17 +1,31 @@
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
-import { readFileSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import fs, { readFileSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
 import { connectCDP, launchChrome } from './support/cdp.mjs';
-import { createEvaluator, waitFor } from './support/helpers.mjs';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const output = join(process.env.GLASS_TEST_TMPDIR || root, 'extension');
-createRequire(import.meta.url)('../scripts/build-extension.cjs').buildExtension(output);
+const buildConfigReads = new Map([
+    [join(root, 'package.json'), 0],
+    [join(root, 'src/js/config/image-search-uploads.json'), 0]
+]);
+fs.readFileSync = (file, ...options) => {
+    if (buildConfigReads.has(file)) buildConfigReads.set(file, buildConfigReads.get(file) + 1);
+    return readFileSync(file, ...options);
+};
+try {
+    createRequire(import.meta.url)('../scripts/build-extension.cjs').buildExtension(output);
+} finally {
+    fs.readFileSync = readFileSync;
+}
+assert.deepEqual([...buildConfigReads.values()], [1, 1], '扩展构建复用版本与上传配置的同一次读取');
+const { createEvaluator, waitFor } = await import('./support/helpers.mjs');
 const manifest = JSON.parse(readFileSync(join(output, 'manifest.json'), 'utf8'));
 const html = readFileSync(join(output, 'index.html'), 'utf8');
 assert.equal(manifest.version, JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')).version);
+assert.ok(html.includes(`>v${manifest.version}</span>`));
 assert.equal(manifest.manifest_version, 3);
 assert.equal(manifest.background, undefined);
 assert.equal(manifest.permissions, undefined);
@@ -26,7 +40,11 @@ for (const locale of ['en', 'zh_CN']) {
     assert.ok(messages.extensionName.message && messages.extensionDescription.message);
 }
 assert(!/<script\b(?![^>]*\bsrc=)/i.test(html), '扩展中不得存在内联脚本');
-assert(!/__glassSuggestCb_|JsonCallback|callback=/.test(readFileSync(join(output, 'app.js'), 'utf8')), '扩展编译时裁掉 JSONP');
+const appScript = readFileSync(join(output, 'app.js'), 'utf8');
+assert(!/__glassSuggestCb_|JsonCallback|callback=/.test(appScript), '扩展编译时裁掉 JSONP');
+for (const { url } of Object.values(JSON.parse(readFileSync(join(root, 'src/js/config/image-search-uploads.json'), 'utf8')))) {
+    assert.ok(appScript.includes(JSON.stringify(url)), '应用脚本使用同一份搜图上传配置');
+}
 assert(!existsSync(join(output, 'sw.js')));
 
 const chrome = await launchChrome({ url: 'about:blank', testMode: false,

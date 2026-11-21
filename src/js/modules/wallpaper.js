@@ -290,7 +290,7 @@ export function updatePresetBgCardsUI(customWallpaperOverride) {
         : (state.customWallpaper || backgrounds[state.bg] || '');
     const container = dom.presetWallpaperGrid;
     if (!container) return;
-    renderPresetWallpapers();
+    renderPresetWallpapers(container);
     container.querySelectorAll('.preset-bg-card').forEach(card => {
         const cardEl = card instanceof HTMLElement ? card : null;
         const bg = cardEl?.dataset.bg;
@@ -489,11 +489,11 @@ export function preloadNextBg() {
 
 /**
  * 渲染设置面板中预设高清壁纸缩略图网格卡片
+ * @param {HTMLElement} grid
  * @returns {void}
  */
-export function renderPresetWallpapers() {
-    const grid = dom.presetWallpaperGrid;
-    if (!grid || grid.hasChildNodes()) return;
+function renderPresetWallpapers(grid) {
+    if (grid.hasChildNodes()) return;
     grid.innerHTML = PRESET_WALLPAPERS.map(({ url, title: titleKey }, i) => {
         const title = t(titleKey);
         const fullTitle = i === 0 ? t('wallpaper.default', { name: title }) : title;

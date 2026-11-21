@@ -75,6 +75,7 @@ await test("主题配置、图标回退与缓存驱逐", async () => {
   color: document.documentElement.style.backgroundColor,
   bright: document.documentElement.classList.contains('wallpaper-bright'),
   engine: window.__PRE_ENGINE__?.name,
+  legacyBgReads: window.startupReads?.legacyBg,
   mask: document.getElementById('bgOverlay')?.style.backgroundColor
 };</script>`;
     const probeHtml = built.replace('</head>', probe + '</head>')
@@ -88,8 +89,23 @@ await test("主题配置、图标回退与缓存驱逐", async () => {
         for (let index = 0; index < expected.themes.length; index++) {
           const token = `${warm}-${index}`;
           const { identifier } = await send('Page.addScriptToEvaluateOnNewDocument', { source: `
-        localStorage.clear(); localStorage.setItem('bg', '${index}');
-        ${warm ? "localStorage.setItem('glass_theme_cache', JSON.stringify({isLight:false})); localStorage.setItem('glass_tint_cache', '1, 2, 3');" : ''}
+        localStorage.clear();
+        localStorage.setItem('bg', '${warm ? (index + 1) % expected.themes.length : index}');
+        localStorage.setItem('preferredEngine', '"wikipedia"');
+        ${warm ? `localStorage.setItem('glass_wallpaper_meta', JSON.stringify({custom:false,bg:${index}}));
+            localStorage.setItem('glass_theme_cache', JSON.stringify({isLight:false})); localStorage.setItem('glass_tint_cache', '1, 2, 3');` : ''}
+        window.startupReads = { legacyBg: 0, engine: 0, iconWrites: 0 };
+        const getItem = Storage.prototype.getItem;
+        Storage.prototype.getItem = function(key) {
+            if (key === 'bg') startupReads.legacyBg++;
+            if (key === 'preferredEngine') startupReads.engine++;
+            return getItem.call(this, key);
+        };
+        const innerHtml = Object.getOwnPropertyDescriptor(Element.prototype, 'innerHTML');
+        Object.defineProperty(Element.prototype, 'innerHTML', { ...innerHtml, set(value) {
+            if (this.id === 'engineIcon') startupReads.iconWrites++;
+            return innerHtml.set.call(this, value);
+        } });
       ` });
           await navigateAndWait(send, evalJS, `http://127.0.0.1:${server.port}/theme-probe.html?probe=${token}`,
             "!!window.__headThemeProbe && typeof window.handleIconError === 'function'");
@@ -100,6 +116,13 @@ await test("主题配置、图标回退与缓存驱逐", async () => {
           assert.equal(actual.runtimeTint, expected.tints[index]);
           assert.equal(actual.head.bright, expected.themes[index].isLight);
           assert.equal(actual.head.color, expected.themes[index].isLight ? 'rgb(255, 255, 255)' : 'rgb(11, 15, 25)');
+          assert.equal(actual.head.legacyBgReads, warm ? 0 : 1);
+          assert.equal(actual.head.engine, 'Wikipedia');
+          assert.deepEqual(await evalJS(`({
+            engine:state.engine, savedReads:startupReads.engine, iconWrites:startupReads.iconWrites,
+            picked:dom.dropdownMenu.querySelector('[aria-checked="true"]')?.dataset.engine,
+            svg:!!dom.engineIcon.querySelector('svg')
+          })`), { engine:'wikipedia', savedReads:1, iconWrites:1, picked:'wikipedia', svg:true });
           await send('Page.removeScriptToEvaluateOnNewDocument', { identifier });
         }
       }
