@@ -41,6 +41,7 @@ const wheelSession = {
 /** @type {{ id: number, x: number, y: number, time: number, canReturn: boolean }|null} */
 let touch = null;
 let navTouchMoveBlocked = false;
+const handledTouchMoves = new WeakSet();
 
 function clearTouchGesture() {
     touch = null;
@@ -48,6 +49,7 @@ function clearTouchGesture() {
 
 /** 局部监听必须在手指落下前安装，才能可靠取消真实浏览器滚动。 @param {Event} event */
 function handleActiveTouchMove(event) {
+    handledTouchMoves.add(event);
     handleTouch(/** @type {TouchEvent} */ (event), false, true);
 }
 
@@ -196,7 +198,9 @@ export function initScreenGestures() {
     document.addEventListener('touchstart', handleTouchStart, { passive: true });
     // 首屏滚到底、导航页滚到顶后，下一次触摸才允许切屏。
     dom.startSection?.addEventListener('touchmove', handleActiveTouchMove, { passive: false });
-    document.addEventListener('touchmove', e => handleTouch(e, false), { passive: true });
+    document.addEventListener('touchmove', e => {
+        if (!handledTouchMoves.delete(e)) handleTouch(e, false);
+    }, { passive: true });
     document.addEventListener('touchend', e => handleTouch(e, true), { passive: true });
     document.addEventListener('touchcancel', clearTouchGesture, { passive: true });
     window.addEventListener('blur', resetScreenInput, { passive: true });

@@ -207,8 +207,8 @@ test('分类目录索引映射、首分类归属与内容变更失效算法', ()
   assert.equal(first.searchCategories.get(bookmarkUrlKey(a.url)), '第一分类');
   assert.equal(first.searchCategories.get(bookmarkUrlKey(b.url)), '第二分类');
   assert.equal(getCategoryCatalog(categories), first);
-  categories[0].bookmarks.push({ ...b, name: 'Beta' });
-  const changed = getCategoryCatalog(categories);
+  const updated = [{ ...categories[0], bookmarks: [a, { ...b, name: 'Beta' }] }, categories[1]];
+  const changed = getCategoryCatalog(updated);
   assert.notEqual(changed, first);
   assert.deepEqual(changed.sorted[0].sortedBookmarks.map(bm => bm.name), ['Beta', 'Zulu']);
 });

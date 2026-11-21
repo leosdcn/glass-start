@@ -25,10 +25,10 @@ export interface DraftBookmarkItem extends BookmarkItem {
 
 /** 分类目录结构定义 */
 export interface BookmarkCategory {
-    id?: string;
-    name: string;
-    icon: string;
-    bookmarks: BookmarkItem[];
+    readonly id?: string;
+    readonly name: string;
+    readonly icon: string;
+    readonly bookmarks: readonly Readonly<BookmarkItem>[];
 }
 
 /** 目录共用索引条目 */
@@ -61,7 +61,7 @@ export interface CustomMetaItem {
 /** 运行时核心数据集 */
 export interface PageData {
     bookmarks: BookmarkItem[];
-    categories: BookmarkCategory[];
+    categories: readonly BookmarkCategory[];
 }
 
 /** 运行时状态；由调用方显式更新并触发渲染。按语义划分为偏好、路由、UI 控制与壁纸运行时。 */

@@ -29,10 +29,6 @@ export const CONFIG = Object.freeze({
             CACHE: Object.freeze({
                 FAVICON: 'app-favicons-v1'
             }),
-            SW_MESSAGES: Object.freeze({
-                // 与 sw.js 中的 SW_MESSAGES.ACTIVATE_UPDATE 严格同步
-                ACTIVATE_UPDATE: 'ACTIVATE_UPDATE'
-            }),
             IDB: Object.freeze({
                 DB_NAME: 'GlassStartDB',
                 VERSION: 1,

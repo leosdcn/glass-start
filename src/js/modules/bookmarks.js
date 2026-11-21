@@ -51,7 +51,7 @@ function getCustomMeta(stored, urls) {
 
 /**
  * @param {string[]} keys
- * @param {import('../types').BookmarkCategory[]} categories
+ * @param {readonly import('../types').BookmarkCategory[]} categories
  * @param {Record<string, import('../types').CustomMetaItem>} [customMeta]
  * @returns {import('../types').BookmarkItem[]}
  */

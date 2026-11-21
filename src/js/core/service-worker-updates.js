@@ -1,5 +1,6 @@
 import { t } from './i18n.js';
 import { CONFIG } from '../config/constants.js';
+import { ACTIVATE_UPDATE } from '../utils/offline-cache.js';
 import { dom } from '../state/dom.js';
 import { state } from '../state/store.js';
 import { OverlayStack } from './overlay-stack.js';
@@ -64,7 +65,7 @@ function applyUpdate(worker, search) {
         dom.updateReloadBtn.disabled = true;
         if (dom.updateNoticeText) dom.updateNoticeText.textContent = t('ui.updating');
     }
-    try { worker.postMessage({ type: CONFIG.SW_MESSAGES.ACTIVATE_UPDATE }); }
+    try { worker.postMessage({ type: ACTIVATE_UPDATE }); }
     catch { failed(); }
 }
 

@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { DIST_DIR, startServer } from './support/server.mjs';
 import { launchChrome } from './support/cdp.mjs';
-import { getFreePort, createEvaluator, waitFor } from './support/helpers.mjs';
+import { createEvaluator, waitFor } from './support/helpers.mjs';
 
 const source = readFileSync(join(DIST_DIR, 'sw.js'), 'utf8');
 const builtVersion = readFileSync(join(DIST_DIR, 'index.html'), 'utf8').match(/__GLASS_BUILD_HTML__="([^"]+)"/)[1];
@@ -97,7 +97,7 @@ const server = await startServer(0, undefined, {
   '/status.html': '<!doctype html><html><head></head><body>uncontrolled status</body></html>'
 });
 const origin = `http://127.0.0.1:${server.port}`;
-const chrome = await launchChrome({ port: await getFreePort(), url: origin + '/app/' });
+const chrome = await launchChrome({ url: origin + '/app/' });
 const { send } = chrome;
 const evalJS = createEvaluator(send);
 const update = async () => evalJS(`(async () => {

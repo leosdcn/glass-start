@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
-import { execFile, spawn } from 'node:child_process';
-import { once } from 'node:events';
+import { execFile } from 'node:child_process';
 import fs from 'node:fs';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
@@ -9,8 +8,8 @@ import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import { launchChrome } from './support/cdp.mjs';
-import { getFreePort, sleep, waitFor } from './support/helpers.mjs';
-import { startServer } from './support/server.mjs';
+import { sleep, waitFor } from './support/helpers.mjs';
+import { startPreviewServer, startServer } from './support/server.mjs';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const require = createRequire(import.meta.url);
@@ -297,14 +296,9 @@ test('本地预览的图标 ETag 区分同一秒内修改的内容', async t => 
   const sameSecond = 1700000000;
   fs.writeFileSync(file, 'old');
   fs.utimesSync(file, sameSecond + 0.1, sameSecond + 0.1);
-  const port = await getFreePort();
-  const url = `http://127.0.0.1:${port}/icons/probe.png`;
-  const preview = spawn(process.execPath, [join(root, 'scripts/server.cjs'), '--no-watch'], {
-    env: { ...process.env, GLASS_TEST_TMPDIR: dir, PORT: String(port), AUTO_OPEN: '0' }, stdio: 'ignore'
-  });
-  const exited = once(preview, 'exit');
+  const preview = await startPreviewServer({ env: { GLASS_TEST_TMPDIR: dir } });
+  const url = `http://127.0.0.1:${preview.port}/icons/probe.png`;
   try {
-    await waitFor(() => fetch(url).then(r => r.ok, () => false), 'preview server listening');
     const first = await fetch(url);
     assert.equal(await first.text(), 'old');
     const oldTag = first.headers.get('etag');
@@ -322,8 +316,7 @@ test('本地预览的图标 ETag 区分同一秒内修改的内容', async t => 
     assert.equal(unchanged.status, 304);
     assert.equal(unchanged.headers.get('etag'), currentTag);
   } finally {
-    preview.kill();
-    await exited;
+    await preview.close();
   }
 });
 
@@ -336,10 +329,11 @@ test('Chrome 会话各自清理配置子目录，保留外部父目录和已有�
     else process.env.CHROME_PROFILE_DIR = oldParent;
   });
   fs.writeFileSync(join(parent, 'keep.txt'), 'keep');
-  const first = await launchChrome({ port: await getFreePort(), url: 'about:blank', testMode: false });
+  const first = await launchChrome({ url: 'about:blank', testMode: false });
   try {
-    const second = await launchChrome({ port: await getFreePort(), url: 'about:blank', testMode: false });
+    const second = await launchChrome({ url: 'about:blank', testMode: false });
     try {
+      assert.notEqual(first.cdpPort, second.cdpPort);
       assert.equal(fs.readdirSync(parent).length, 3);
       await first.close();
       assert.equal(fs.readdirSync(parent).length, 2);
@@ -349,7 +343,7 @@ test('Chrome 会话各自清理配置子目录，保留外部父目录和已有�
   await node(['--input-type=module', '-e', `
     import assert from 'node:assert/strict';
     import { launchChrome } from ${JSON.stringify(cdpModule)};
-    await assert.rejects(launchChrome({ port: ${await getFreePort()}, url: 'about:blank' }), { code: 'ENOENT' });
+    await assert.rejects(launchChrome({ url: 'about:blank' }), { code: 'ENOENT' });
   `], { env: { CHROME_PROFILE_DIR: parent, CHROME_PATH: join(parent, 'missing-chrome') } });
   assert.deepEqual(fs.readdirSync(parent), ['keep.txt']);
   assert.equal(fs.readFileSync(join(parent, 'keep.txt'), 'utf8'), 'keep');
@@ -360,13 +354,19 @@ test('源码文件原子替换后继续监听，并忽略同内容保存和无�
   const bookmarks = join(root, 'bookmarks.json');
   const config = join(root, 'package.json');
   const swap = join(root, 'editor-save.tmp');
+  const source = join(root, 'src');
+  const sourceFile = join(source, 'example.js');
+  const sourceSwap = join(source, 'editor-save.tmp');
   fs.writeFileSync(bookmarks, 'initial');
   fs.writeFileSync(config, 'config');
+  fs.mkdirSync(source);
+  fs.writeFileSync(sourceFile, 'initial');
   const { watchFiles } = require('../scripts/watch.cjs');
   const changes = [];
   const stop = watchFiles([
     { path: bookmarks, name: 'bookmarks.json' },
-    { path: config, name: 'package.json' }
+    { path: config, name: 'package.json' },
+    { path: source, name: 'src/' }
   ], { delay: 25, label: 'Test', rebuild: () => {
     changes.push(fs.readFileSync(bookmarks, 'utf8'));
     return { version: 'test', duration: 0 };
@@ -393,6 +393,21 @@ test('源码文件原子替换后继续监听，并忽略同内容保存和无�
     assert.deepEqual(changes, ['first edit', 'atomic replacement', 'edit replacement']);
     fs.writeFileSync(config, 'config changed');
     await waitFor(() => changes.length === 4, 'second watched file', 4000);
+
+    fs.writeFileSync(sourceFile, 'first source edit');
+    await waitFor(() => changes.length === 5, 'recursive watcher edit', 4000);
+    fs.writeFileSync(sourceFile, 'first source edit');
+    fs.writeFileSync(sourceSwap, 'first source edit');
+    fs.renameSync(sourceSwap, sourceFile);
+    await sleep(150);
+    assert.equal(changes.length, 5, '同内容保存及原子替换不重建');
+    fs.writeFileSync(sourceSwap, 'new source');
+    fs.renameSync(sourceSwap, sourceFile);
+    await waitFor(() => changes.length === 6, 'recursive watcher replacement', 4000);
+    fs.unlinkSync(sourceFile);
+    await waitFor(() => changes.length === 7, 'recursive watcher removal', 4000);
+    fs.writeFileSync(sourceFile, 'new source');
+    await waitFor(() => changes.length === 8, 'recursive watcher creation', 4000);
   } finally {
     stop();
   }

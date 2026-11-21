@@ -1,8 +1,6 @@
 /** 验证构建产物、响应头、离线缓存及防嵌套逻辑。 */
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { spawn } from 'node:child_process';
-import { once } from 'node:events';
 import { readFileSync, existsSync, mkdtempSync, mkdirSync, writeFileSync, symlinkSync, rmSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -11,9 +9,9 @@ import { createRequire } from 'node:module';
 import vm from 'node:vm';
 import { buildSync } from 'esbuild';
 import { validateW3c } from '../scripts/validate-w3c.mjs';
-import { createEvaluator, getFreePort, navigateAndWait, waitFor } from './support/helpers.mjs';
+import { createEvaluator, navigateAndWait, waitFor } from './support/helpers.mjs';
 import { launchChrome } from './support/cdp.mjs';
-import { DIST_DIR as DIST, startServer } from './support/server.mjs';
+import { DIST_DIR as DIST, startPreviewServer, startServer } from './support/server.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
@@ -107,14 +105,9 @@ test('dist/ 产物完整性与 Cache-Control 标头规则', () => {
 });
 
 test('跨来源导航到旧预览清理路径时保留本地数据', { timeout: 20000 }, async t => {
-  const port = await getFreePort();
-  const server = spawn(process.execPath, ['scripts/server.cjs', '--no-watch'], {
-    cwd: ROOT, stdio: ['ignore', 'pipe', 'inherit'],
-    env: { ...process.env, PORT: String(port), AUTO_OPEN: '0' }
-  });
-  t.after(() => server.kill());
-  await once(server.stdout, 'data', { signal: t.signal });
-  const origin = 'http://127.0.0.1:' + port;
+  const server = await startPreviewServer();
+  t.after(() => server.close());
+  const origin = 'http://127.0.0.1:' + server.port;
   const formerEndpoint = origin + '/_clear_cache';
   const response = await fetch(formerEndpoint, { signal: t.signal });
   assert.equal(response.headers.get('Clear-Site-Data'), null);
@@ -122,7 +115,7 @@ test('跨来源导航到旧预览清理路径时保留本地数据', { timeout: 
 
   const other = await startServer(0, undefined, { '/': `<a href="${formerEndpoint}">Navigate</a>` }, { testMode: false });
   t.after(() => other.close());
-  const chrome = await launchChrome({ port: await getFreePort(), url: origin + '/', testMode: false });
+  const chrome = await launchChrome({ url: origin + '/', testMode: false });
   t.after(() => chrome.close());
   const evalJS = createEvaluator(chrome.send);
   await evalJS(`(async () => {
@@ -157,25 +150,21 @@ const profile = args.find(arg => arg.startsWith('--user-data-dir=')).split('=').
 fs.writeFileSync(process.env.PREVIEW_PROBE_FILE, JSON.stringify({ profile, url: args.at(-1), ready: fs.existsSync(profile) }));
 setInterval(() => {}, 1000);
 `, { mode: 0o755 });
-  const port = await getFreePort();
-  const server = spawn(process.execPath, ['scripts/server.cjs', '--no-watch', '--isolated'], {
-    cwd: ROOT, stdio: 'ignore',
-    env: { ...process.env, PORT: String(port), AUTO_OPEN: '1', CHROME_PATH: fakeChrome, PREVIEW_PROBE_FILE: probe, GLASS_TEST_TMPDIR: '' }
-  });
-  const closed = once(server, 'close');
+  let server;
   t.after(async () => {
-    server.kill();
-    await closed;
-    rmSync(directory, { recursive: true, force: true });
+    try { await server?.close(); } finally { rmSync(directory, { recursive: true, force: true }); }
+  });
+  server = await startPreviewServer({
+    args: ['--isolated'],
+    env: { AUTO_OPEN: '1', CHROME_PATH: fakeChrome, PREVIEW_PROBE_FILE: probe, GLASS_TEST_TMPDIR: '' }
   });
   const result = await waitFor(() => {
     try { return JSON.parse(readFileSync(probe, 'utf8')); } catch { return false; }
   }, 'Chrome preview args', 5000);
   assert.ok(result.ready);
   assert.ok(result.profile.startsWith(join(tmpdir(), 'glass-start-preview-')));
-  assert.equal(result.url, `http://localhost:${port}/`);
-  server.kill();
-  assert.deepEqual(await closed, [0, null]);
+  assert.equal(result.url, `http://localhost:${server.port}/`);
+  assert.deepEqual(await server.close(), [0, null]);
   assert.equal(existsSync(result.profile), false);
 });
 
@@ -189,18 +178,12 @@ test('预览允许产物入口链接，阻止静态文件链接逃出产物目�
   writeFileSync(join(directory, 'outside.txt'), 'outside preview');
   symlinkSync(build, join(directory, 'dist'));
   symlinkSync(join(directory, 'outside.txt'), join(build, 'outside.txt'));
-  const port = await getFreePort();
-  const server = spawn(process.execPath, ['scripts/server.cjs', '--no-watch'], {
-    cwd: ROOT, stdio: ['ignore', 'pipe', 'inherit'],
-    env: {...process.env, GLASS_TEST_TMPDIR:directory, PORT:String(port), AUTO_OPEN:'0'}
-  });
+  let server;
   t.after(async () => {
-    const closed = once(server, 'close');
-    if (server.kill()) await closed;
-    rmSync(directory, {recursive:true, force:true});
+    try { await server?.close(); } finally { rmSync(directory, { recursive: true, force: true }); }
   });
-  await once(server.stdout, 'data', {signal:t.signal});
-  const url = 'http://127.0.0.1:' + port;
+  server = await startPreviewServer({ env: { GLASS_TEST_TMPDIR: directory } });
+  const url = 'http://127.0.0.1:' + server.port;
   assert.equal((await fetch(url + '/', {signal:t.signal})).status, 200);
   const response = await fetch(url + '/outside.txt', {signal:t.signal});
   assert.equal(response.status, 403);
