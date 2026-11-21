@@ -1,5 +1,5 @@
 const http = require('http');
-const https = require('https');
+const http2 = require('node:http2');
 const fs = require('fs');
 const path = require('path');
 const { exec, spawn, spawnSync } = require('child_process');
@@ -248,7 +248,7 @@ async function handleStaticRequest(req, res) {
 
 function createStaticServer() {
     if (isHttps) {
-        return https.createServer({ key: sslConfig.key, cert: sslConfig.cert }, handleStaticRequest);
+        return http2.createSecureServer({ key: sslConfig.key, cert: sslConfig.cert, allowHTTP1: true }, handleStaticRequest);
     }
     return http.createServer(handleStaticRequest);
 }

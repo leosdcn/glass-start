@@ -238,7 +238,7 @@ npm ci
 # 2. 启动本地开发服务 (监听修改并自动重建，支持局域网访问；页面需手动刷新)
 npm run dev
 
-# 若需在本地使用 HTTPS（如真机调试 PWA 或避免 HSTS 冲突，需通过 mkcert 签发证书）：
+# 本地 HTTPS 使用 HTTP/2，兼容 HTTP/1.1 客户端。需提供本地证书，如使用 mkcert 签发。
 npm run dev:https
 
 # 3. (仅新增书签或修改 URL、图标来源时) 同步书签图标至 public/icons/ 目录
