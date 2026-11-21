@@ -5,7 +5,8 @@
  */
 import { ACTIVATE_UPDATE, FAVICON_CACHE, IMAGE_CACHE_PREFIX, scopedCachePrefix, isScopedCache } from './src/js/utils/offline-cache.js';
 
-import { appScriptPath, buildFromScriptPath, legacyBuildId, cacheBuildTime, htmlFingerprint, scriptFingerprint } from './src/js/utils/build-identity.js';
+import { appScriptPath, buildFromScriptPath, legacyBuildId, cacheBuildTime, htmlFingerprint, scriptFingerprint,
+    BUILD_FINGERPRINT_PREFIX_BYTES } from './src/js/utils/build-identity.js';
 
 /** @typedef {ServiceWorkerGlobalScope & typeof globalThis} ServiceWorkerContext */
 
@@ -143,18 +144,18 @@ async function isManifestResponse(response) {
 }
 
 /** @param {string} asset @param {Response | undefined} response */
-async function validCoreResponse(asset, response) {
-    if (asset === APP_ASSET) return validAppScriptPrefix(response?.clone(), CORE_CACHE);
-    return !!response?.ok && htmlFingerprint(await response.clone().text()) === CORE_CACHE;
+function validCoreResponse(asset, response) {
+    return validBuildPrefix(response?.clone(), CORE_CACHE, asset === APP_ASSET ? scriptFingerprint : htmlFingerprint);
 }
 
-/** @param {Response | undefined} response @param {string} version */
-async function validAppScriptPrefix(response, version) {
+/** @param {Response | undefined} response @param {string} version
+ * @param {(prefix: string) => string | undefined} [readFingerprint] */
+async function validBuildPrefix(response, version, readFingerprint = scriptFingerprint) {
     if (!response?.ok || !response.body) return false;
-    // 构建将版本标记写在第一行；校验只需读开头。
+    // 构建把 HTML 和 JS 的版本标记写在开头，校验不等待完整正文。
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
-    let remaining = 256;
+    let remaining = BUILD_FINGERPRINT_PREFIX_BYTES;
     let prefix = '';
     try {
         while (remaining > 0) {
@@ -162,7 +163,7 @@ async function validAppScriptPrefix(response, version) {
             if (done) break;
             prefix += decoder.decode(value.subarray(0, remaining), { stream: true });
             remaining -= value.length;
-            const fingerprint = scriptFingerprint(prefix);
+            const fingerprint = readFingerprint(prefix);
             if (fingerprint !== undefined) return fingerprint === version;
         }
         return false;
@@ -333,7 +334,7 @@ async function previousImageResponse(request) {
             caches.open(CORE_STORAGE).then(async cache => {
                 try {
                     const [document, script] = await Promise.all([cache.match(DOCUMENT_ASSET), cache.match(APP_ASSET)]);
-                    if (document && await validCoreResponse(DOCUMENT_ASSET, document) && await validAppScriptPrefix(script, CORE_CACHE)) {
+                    if (document && await validCoreResponse(DOCUMENT_ASSET, document) && await validBuildPrefix(script, CORE_CACHE)) {
                         return document;
                     }
                     await repairCoreCache(cache);
@@ -380,12 +381,12 @@ async function previousImageResponse(request) {
             try {
                 const cached = await caches.match(new URL(asset, SCOPE_URL), { cacheName });
                 if (cached) {
-                    if (await validAppScriptPrefix(cached.clone(), requestedVersion)) return cached;
+                    if (await validBuildPrefix(cached.clone(), requestedVersion)) return cached;
                     void cached.body?.cancel().catch(() => {});
                 }
                 if (!scriptVersion) return make503Response();
                 const response = await fetch(e.request, cached ? { cache: 'reload' } : undefined);
-                if (!await validAppScriptPrefix(response.clone(), requestedVersion)) {
+                if (!await validBuildPrefix(response.clone(), requestedVersion)) {
                     return make503Response();
                 }
                 if (requestedVersion === CORE_CACHE) {

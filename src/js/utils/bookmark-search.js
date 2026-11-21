@@ -22,18 +22,25 @@ export function damerauLevenshteinDistance(a, b, maxDist = Infinity) {
         dLevBuffer = new Int32Array(Math.max(requiredSize, dLevBuffer.length * 2));
     }
     const dp = dLevBuffer;
+    const radius = Math.floor(maxDist);
+    const outside = Math.max(al, bl) + 1;
 
-    for (let i = 0; i <= al; i++) dp[i * cols] = i;
-    for (let j = 0; j <= bl; j++) dp[j] = j;
+    for (let j = 0; j <= Math.min(bl, radius); j++) dp[j] = j;
+    if (radius < bl) dp[radius + 1] = outside;
 
     for (let i = 1; i <= al; i++) {
         const iOffset = i * cols;
         const prevIOffset = (i - 1) * cols;
+        // 超过阈值的对角带外不可能命中，只初始化本行递推会读到的边界。
+        const first = Math.max(1, i - radius);
+        const last = Math.min(bl, i + radius);
+        dp[iOffset + first - 1] = first === 1 && i <= radius ? i : outside;
+        if (last < bl) dp[iOffset + last + 1] = outside;
         const charA = a[i - 1];
         const prevCharA = i > 1 ? a[i - 2] : '';
         let minRowVal = Infinity;
 
-        for (let j = 1; j <= bl; j++) {
+        for (let j = first; j <= last; j++) {
             const cost = charA === b[j - 1] ? 0 : 1;
             let minVal = dp[prevIOffset + j] + 1; // deletion
             const insertCost = dp[iOffset + j - 1] + 1; // insertion

@@ -136,10 +136,17 @@ await test("挑选器节点复用与目录失效", async () => {
         window.reusePick=reuseItems.find(item=>!item.disabled);
         window.reuseImage=reusePick.querySelector('img');
         const before=modalState.draftBookmarks.length;
-        reusePick.click();
+        const unaffected=reuseItems.find(item=>!item.disabled && item.dataset.url!==reusePick.dataset.url);
+        const NativeURL=window.URL;
+        let unrelatedParses=0;
+        window.URL=new Proxy(NativeURL,{construct(target,args,newTarget) {
+            if (args[0]===unaffected.dataset.url) unrelatedParses++;
+            return Reflect.construct(target,args,newTarget);
+        }});
+        try { reusePick.click(); } finally { window.URL=NativeURL; }
         const added=reusePick.disabled && modalState.draftBookmarks.length===before+1;
         dom.donePickerBtn.click();openBookmarkPicker();
-        return added && reusePick.isConnected && reusePick.querySelector('img')===reuseImage && reusePick.disabled;
+        return unrelatedParses===0 && added && reusePick.isConnected && reusePick.querySelector('img')===reuseImage && reusePick.disabled;
     })()`),true);
         assert.equal(await evalJS(`(() => {
         dom.donePickerBtn.click();

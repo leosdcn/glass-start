@@ -111,7 +111,10 @@ test('并发网页构建各自产生一致快照，测试服务不读取随后�
   const read = (directory, name) => fs.readFileSync(join(directory, name), 'utf8');
   const buildId = directory => read(directory, 'index.html').match(/__GLASS_BUILD_HTML__="([^"]+)"/)?.[1];
   const verify = (directory, version) => {
-    assert.match(read(directory, 'index.html'), new RegExp(`__GLASS_BUILD_HTML__="${version}"`));
+    const html = read(directory, 'index.html');
+    assert.match(html, new RegExp(`__GLASS_BUILD_HTML__="${version}"`));
+    assert.ok(html.includes('"ui.a.clean.minimal.glass.browser.start":"极简纯净的毛玻璃浏览器起始页。"'),
+      '首屏脚本保留 UTF-8 字典，避免将中文重新编码为转义串');
     assert.match(read(directory, `app-builds/${version}.js`), new RegExp(`__GLASS_BUILD_APP__="${version}"`));
     assert.ok(read(directory, 'sw.js').includes(version));
     assert.ok(fs.existsSync(join(directory, 'wallpapers/bg1.avif')));
