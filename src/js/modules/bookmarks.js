@@ -114,32 +114,43 @@ export function resetUserBookmarks() {
 
 export function loadBookmarks() {
     const record = readBookmarkRecord();
-    applyBookmarkRecord(record);
-    return JSON.stringify(record);
+    const revision = JSON.stringify(record);
+    applyBookmarkRecord(record, revision);
+    return revision;
 }
 
 /** @param {string[] | null} keys @param {Record<string, import('../types').CustomMetaItem>} meta */
 function writeBookmarkRecord(keys, meta) {
     const record = { version: 1, keys, meta };
     if (!storageSet(CONFIG.KEYS.BOOKMARKS, record)) return false;
-    applyBookmarkRecord(record);
-    return { revision: JSON.stringify(record), bookmarks: pageData.bookmarks };
+    const revision = JSON.stringify(record);
+    applyBookmarkRecord(record, revision);
+    return { revision, bookmarks: pageData.bookmarks };
 }
 
-/** @param {{ keys?: unknown, meta?: Record<string, import('../types').CustomMetaItem> } | null} record */
-function applyBookmarkRecord(record) {
+/** @type {({ revision: string, locale: string } & import('../types').PageData) | null} */
+let appliedBookmarkRecord = null;
+
+/** @param {{ keys?: unknown, meta?: Record<string, import('../types').CustomMetaItem> } | null} record @param {string} revision */
+function applyBookmarkRecord(record, revision) {
+    const locale = getLocale();
+    const { categories, bookmarks } = pageData;
+    if (appliedBookmarkRecord?.revision === revision && appliedBookmarkRecord.locale === locale &&
+        appliedBookmarkRecord.categories === categories && appliedBookmarkRecord.bookmarks === bookmarks) return;
+
     const storedKeys = record?.keys;
     const userKeys = Array.isArray(storedKeys)
         ? storedKeys.filter(url => typeof url === 'string' && normalizeBookmarkUrl(url)) : [];
     const customMeta = record?.meta;
 
     if (userKeys.length) {
-        pageData.bookmarks = getDerivedBookmarks(userKeys, pageData.categories, customMeta);
+        pageData.bookmarks = getDerivedBookmarks(userKeys, categories, customMeta);
     } else {
-        const defaultKeys = getLocale() === 'en' ? window.__GLASS_I18N__?.catalogs?.en?.defaultBookmarks : undefined;
-        pageData.bookmarks = getDerivedBookmarks(defaultKeys || DEFAULT_BOOKMARKS.map(b => b.url), pageData.categories, customMeta);
+        const defaultKeys = locale === 'en' ? window.__GLASS_I18N__?.catalogs?.en?.defaultBookmarks : undefined;
+        pageData.bookmarks = getDerivedBookmarks(defaultKeys || DEFAULT_BOOKMARKS.map(b => b.url), categories, customMeta);
     }
     renderBookmarks();
+    appliedBookmarkRecord = { revision, locale, categories, bookmarks: pageData.bookmarks };
 }
 
 /** @param {import('../types').BookmarkItem} bm */
@@ -483,7 +494,6 @@ function initSidebarNav() {
             const target = targetId ? document.getElementById(targetId) : null;
             if (!target) return;
 
-            refreshSidebarNavCache();
             const firstCategory = /** @type {HTMLElement | null} */ (dom.navCategories?.firstElementChild);
             const baseOffset = firstCategory?.offsetTop ?? 0;
             const top = Math.min(content.scrollHeight - content.clientHeight, Math.max(0, target.offsetTop - baseOffset));

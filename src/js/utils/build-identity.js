@@ -4,6 +4,8 @@ const buildId = new RegExp('^' + buildPattern + '$');
 const buildSuffix = new RegExp(buildPattern + '$');
 const scriptPath = new RegExp('^app-builds/(' + buildPattern + ')\\.js$');
 
+export const BUILD_FINGERPRINT_PREFIX_BYTES = 256;
+
 /** @param {string} version */
 export function appScriptPath(version) {
     return `app-builds/${version}.js`;

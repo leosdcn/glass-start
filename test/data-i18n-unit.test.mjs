@@ -70,6 +70,36 @@ test('Chinese date separates weekday while English and forecast labels keep nati
     } finally { delete scope.window; }
 });
 
+test('calendar formatters are reused across days and follow system time zone changes', () => {
+    const savedZone = process.env.TZ;
+    const locale = 'en-GB';
+    let created = 0;
+    scope.Intl = {
+        DateTimeFormat: class extends Intl.DateTimeFormat {
+            constructor(...args) { super(...args); created++; }
+        }
+    };
+    scope.window = { __GLASS_I18N__: { locale, messages } };
+    const date = new Date('2026-10-30T00:30:00Z');
+    const native = () => new Intl.DateTimeFormat(locale, { month: 'long', day: 'numeric', weekday: 'long' }).format(date);
+    try {
+        process.env.TZ = 'UTC';
+        const before = formatDate(date);
+        assert.equal(before, native());
+        assert.equal(forecastLabel('2026-10-30', 2), 'Fri');
+        process.env.TZ = 'America/Los_Angeles';
+        assert.equal(formatDate(date), native());
+        assert.notEqual(formatDate(date), before);
+        assert.equal(forecastLabel('2026-10-31', 2), 'Sat');
+        assert.equal(created, 2);
+    } finally {
+        if (savedZone === undefined) delete process.env.TZ;
+        else process.env.TZ = savedZone;
+        scope.Intl = Intl;
+        delete scope.window;
+    }
+});
+
 test('catalog translation uses stable identity without mutating original defaults', () => {
     const categories = [{ id: 'ai', name: '人工智能', icon: '', bookmarks: [{ name: '名字', url: 'https://example.test', icon: '', desc: '简介' }] }];
     scope.window = { __GLASS_I18N__: { locale: 'en', messages,

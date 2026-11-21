@@ -20,11 +20,15 @@ function replaceRegion(html, name, value) {
     return html.slice(0, from) + value + html.slice(to + end.length);
 }
 
-function injectDocumentShell(html, { css, svg, version, extension }) {
+function injectDocumentShell(html, { css, svg, version, extension, i18nBootstrap }) {
     if (typeof css !== 'string' || !css.trim()) throw new Error('Refusing to generate HTML without compiled CSS');
     if (typeof svg !== 'string' || !svg.trim()) throw new Error('Refusing to generate HTML without SVG sprite');
-    const fingerprint = JSON.stringify(version).replace(/</g, '\\u003c');
-    html = replaceOnce(html, '<!-- INJECT_APP_HEAD -->', `<script>window.__GLASS_BUILD_HTML__=${fingerprint}</script><script src="./${extension ? 'app.js' : appScriptPath(version)}" defer></script>`);
+    const fingerprint = `window.__GLASS_BUILD_HTML__=${JSON.stringify(version).replace(/</g, '\\u003c')};`;
+    const appEntry = `<script src="./${extension ? 'app.js' : appScriptPath(version)}" defer></script>`;
+    html = replaceOnce(html, '<!-- INJECT_APP_HEAD -->', extension ? appEntry : `<script>${fingerprint}</script>${appEntry}`);
+    // 扩展把版本标记与语言初始化放进同一个本地阻塞脚本。
+    html = replaceOnce(html, '<!-- INJECT_I18N_HEAD -->',
+        `<script>${extension ? fingerprint : ''}${i18nBootstrap.replace(/<\/script/gi, '<\\/script')}</script>`);
     html = replaceRegion(html, 'APP_ENTRY', '');
     html = replaceOnce(html, '<!-- INJECT_SVG_SPRITE -->', svg);
     html = replaceRegion(html, 'STYLES', `<style>${css.replace(/<\/style>/gi, '\\3c/style>')}</style>`);

@@ -64,6 +64,25 @@ test('导航悬停与拖拽渲染', async () => {
 
         await send('Input.dispatchMouseEvent',{type:'mouseMoved',x:1,y:1});
         await waitFor(evalJS, 'getComputedStyle(renderCard,"::before").willChange === "auto"');
+        const measurements = await evalJS(`(async () => {
+            const cards = [...dom.navCategories.querySelectorAll('.nav-bookmark')].slice(0, 3);
+            const reads = [0, 0, 0];
+            const read = Element.prototype.getBoundingClientRect;
+            const rects = cards.map(card => read.call(card));
+            for (const [i, card] of cards.entries()) {
+                card.getBoundingClientRect = function() { reads[i]++; return read.call(this); };
+            }
+            try {
+                for (const [i, card] of cards.entries()) {
+                    card.dispatchEvent(new PointerEvent('pointermove', { bubbles:true, pointerType:'mouse',
+                        clientX:rects[i].left+10, clientY:rects[i].top+10 }));
+                }
+                const beforeFrame = [...reads];
+                await new Promise(requestAnimationFrame);
+                return [beforeFrame, reads, cards.map(card => card.style.transform.includes('perspective'))];
+            } finally { for (const card of cards) delete card.getBoundingClientRect; }
+        })()`);
+        assert.deepEqual(measurements, [[0,0,0], [0,0,1], [false,false,true]]);
         await send('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'reduce'}]});
         await send('Input.dispatchMouseEvent',{type:'mouseMoved',...point});
         assert.equal(await evalJS('getComputedStyle(renderCard,"::before").willChange'), 'auto');

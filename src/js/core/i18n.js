@@ -64,10 +64,30 @@ export function applyTranslations(root = document) {
     }
 }
 
+const clockDateFormat = /** @type {const} */ ({ month: 'long', day: 'numeric', weekday: 'long' });
+const forecastDateFormat = /** @type {const} */ ({ weekday: 'short' });
+/** @type {Map<string, Intl.DateTimeFormat>} */
+const calendarFormatters = new Map();
+
 /** @param {Date} date @param {Intl.DateTimeFormatOptions} [options] */
-export function formatDate(date, options = { month: 'long', day: 'numeric', weekday: 'long' }) {
+export function formatDate(date, options = clockDateFormat) {
     const locale = getLocale();
-    const formatter = new Intl.DateTimeFormat(locale, options);
+    let formatter;
+    if (options === clockDateFormat || options === forecastDateFormat) {
+        // 缓存 UTC 格式器，仍按每次调用时的系统时区取得年月日。
+        const day = new Date(0);
+        day.setUTCFullYear(date.getFullYear(), date.getMonth(), date.getDate());
+        if (Number.isFinite(day.getTime())) {
+            date = day;
+            const key = `${locale}:${options.weekday}`;
+            formatter = calendarFormatters.get(key);
+            if (!formatter) {
+                formatter = new Intl.DateTimeFormat(locale, { ...options, timeZone: 'UTC' });
+                calendarFormatters.set(key, formatter);
+            }
+        }
+    }
+    formatter ??= new Intl.DateTimeFormat(locale, options);
     if (locale === 'zh-CN' && options.month && options.day && options.weekday) {
         return formatter.formatToParts(date).map(part => part.type === 'weekday' ? ` ${part.value}` : part.value).join('');
     }
@@ -89,7 +109,7 @@ export function forecastLabel(value, index) {
     const [year, month, day] = value.split('-').map(Number);
     const date = new Date(year, month - 1, day);
     if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) return '';
-    return formatDate(date, { weekday: 'short' });
+    return formatDate(date, forecastDateFormat);
 }
 
 /** @param {string | undefined | null} url */

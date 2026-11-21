@@ -101,8 +101,9 @@ export function setWallpaperTheme(theme, themeColor) {
     syncWallpaperTheme();
 }
 
-/** @type {WeakMap<HTMLImageElement, { key: string, topRaw: number[], fullRaw: number[] }>} */
+/** @type {WeakMap<HTMLImageElement, { key: string, topRaw: number[], fullRaw: number[] } | null>} */
 const rawSamples = new WeakMap();
+const fallbackSample = { theme: APP_THEME_DARK, tint: '255, 255, 255' };
 
 /**
  * @param {HTMLImageElement} img
@@ -114,6 +115,8 @@ export function sampleCustomWallpaperTheme(img, opacity) {
     const width = bgLayer?.clientWidth || window.innerWidth || img.naturalWidth;
     const height = bgLayer?.clientHeight || window.innerHeight || img.naturalHeight;
     const aspect = width / height;
+    const cachedRawSample = rawSamples.get(img);
+    if (cachedRawSample === null) return { ...fallbackSample, aspect };
     try {
         // 按壁纸图层的 cover 居中裁切采样。
         const scale = Math.max(width / img.naturalWidth, height / img.naturalHeight);
@@ -121,7 +124,6 @@ export function sampleCustomWallpaperTheme(img, opacity) {
         const srcX = (img.naturalWidth - srcW) / 2, srcY = (img.naturalHeight - srcH) / 2;
 
         const sampleKey = `${Math.round(srcX)}_${Math.round(srcY)}_${Math.round(srcW)}_${Math.round(srcH)}`;
-        const cachedRawSample = rawSamples.get(img);
         let topRaw, fullRaw;
 
         if (cachedRawSample && cachedRawSample.key === sampleKey) {
@@ -168,7 +170,9 @@ export function sampleCustomWallpaperTheme(img, opacity) {
         const tintG = Math.min(clamp.MAX, Math.round(Math.max(clamp.MIN, g * boost)));
         const tintB = Math.min(clamp.MAX, Math.round(Math.max(clamp.MIN, b * boost)));
         return { theme, tint: `${tintR}, ${tintG}, ${tintB}`, aspect };
-    } catch {
-        return { theme: APP_THEME_DARK, tint: '255, 255, 255', aspect };
+    } catch (error) {
+        // 同一张图片的 Canvas 跨域限制不会因暗度或窗口尺寸改变。
+        if (error instanceof DOMException && error.name === 'SecurityError') rawSamples.set(img, null);
+        return { ...fallbackSample, aspect };
     }
 }

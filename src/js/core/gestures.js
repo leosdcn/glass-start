@@ -12,20 +12,24 @@ let activeCard = null;
 let activeCardRect = null;
 /** @type {number | null} */
 let rafId = null;
-/** @type {MouseEvent | PointerEvent | null} */
-let pendingEvent = null;
+/** @type {{card: HTMLElement, event: PointerEvent} | null} */
+let pendingPointer = null;
 // -9999 标记尚未渲染，确保首次指针输入不被下方的位移死区过滤。
 let lastRenderedX = -9999;
 let lastRenderedY = -9999;
 
 export function resetActiveCard() {
-    pendingEvent = null;
-    lastRenderedX = -9999;
-    lastRenderedY = -9999;
+    pendingPointer = null;
     if (rafId !== null) {
         cancelAnimationFrame(rafId);
         rafId = null;
     }
+    clearCardStyles();
+}
+
+function clearCardStyles() {
+    lastRenderedX = -9999;
+    lastRenderedY = -9999;
     if (!activeCard) return;
     activeCard.style.transition = '';
     activeCard.style.transform = '';
@@ -55,26 +59,36 @@ export function initGlassSpotlightAndTilt() {
     });
 
     function updateCardTransform() {
-        if (!canAnimate()) {
-            resetActiveCard();
+        rafId = null;
+        const pointer = pendingPointer;
+        pendingPointer = null;
+        if (!canAnimate() || !pointer?.card.isConnected) {
+            clearCardStyles();
             return;
         }
-        if (!activeCard || !pendingEvent) {
-            rafId = null;
-            return;
+        const { card, event } = pointer;
+        let rect = activeCardRect;
+        if (activeCard !== card || !rect) {
+            // 同一帧只测量最后命中的卡片，先读几何再清理旧卡片样式。
+            rect = card.getBoundingClientRect();
+            clearCardStyles();
+            activeCard = card;
+            activeCardRect = rect;
+            card.style.willChange = 'transform';
+            const tiltSec = `${CONFIG.TIMERS.TILT_TRANSITION_MS / 1000}s`;
+            const bgSec = `${CONFIG.TIMERS.TILT_BG_TRANSITION_MS / 1000}s`;
+            card.style.transition = `transform ${tiltSec} ease-out,
+                background-color var(--bookmark-background-duration, ${bgSec}) ease,
+                border-color ${bgSec} ease,
+                box-shadow var(--duration-tactile) var(--ease-tactile)`;
         }
-        if (!activeCardRect) activeCardRect = activeCard.getBoundingClientRect();
-        const rect = activeCardRect;
-        const x = pendingEvent.clientX - rect.left;
-        const y = pendingEvent.clientY - rect.top;
+        const x = event.clientX - rect.left;
+        const y = event.clientY - rect.top;
 
         // 死区过滤：微小位移 (< 0.75px) 不重复写入样式和 CSS 变量。
         const dx = x - lastRenderedX;
         const dy = y - lastRenderedY;
-        if (lastRenderedX !== -9999 && (dx * dx + dy * dy < 0.5625)) {
-            rafId = null;
-            return;
-        }
+        if (lastRenderedX !== -9999 && (dx * dx + dy * dy < 0.5625)) return;
 
         lastRenderedX = x;
         lastRenderedY = y;
@@ -82,34 +96,21 @@ export function initGlassSpotlightAndTilt() {
         const centerX = rect.width / 2;
         const centerY = rect.height / 2;
         // 光斑纹理固定在卡片中心，更新位移而不是重绘渐变背景。
-        activeCard.style.setProperty('--mouse-x', `${x - centerX}px`);
-        activeCard.style.setProperty('--mouse-y', `${y - centerY}px`);
+        card.style.setProperty('--mouse-x', `${x - centerX}px`);
+        card.style.setProperty('--mouse-y', `${y - centerY}px`);
         const maxDeg = CONFIG.PHYSICS.TILT_MAX_ROTATION_DEG;
         const rotateX = -((y - centerY) / centerY) * maxDeg;
         const rotateY = ((x - centerX) / centerX) * maxDeg;
 
-        activeCard.style.transform = `perspective(${CONFIG.PHYSICS.TILT_PERSPECTIVE_PX}px) rotateX(${rotateX.toFixed(2)}deg) rotateY(${rotateY.toFixed(2)}deg) scale(${CONFIG.PHYSICS.TILT_HOVER_SCALE})`;
-        rafId = null;
+        card.style.transform = `perspective(${CONFIG.PHYSICS.TILT_PERSPECTIVE_PX}px) rotateX(${rotateX.toFixed(2)}deg) rotateY(${rotateY.toFixed(2)}deg) scale(${CONFIG.PHYSICS.TILT_HOVER_SCALE})`;
     }
 
     /**
      * @param {HTMLElement} card
-     * @param {MouseEvent | PointerEvent} e
+     * @param {PointerEvent} e
      */
     function setActiveCardAndSchedule(card, e) {
-        if (activeCard !== card) {
-            if (activeCard) resetActiveCard();
-            activeCard = card;
-            activeCardRect = card.getBoundingClientRect();
-            activeCard.style.willChange = 'transform';
-            const tiltSec = `${CONFIG.TIMERS.TILT_TRANSITION_MS / 1000}s`;
-            const bgSec = `${CONFIG.TIMERS.TILT_BG_TRANSITION_MS / 1000}s`;
-            activeCard.style.transition = `transform ${tiltSec} ease-out,
-                background-color var(--bookmark-background-duration, ${bgSec}) ease,
-                border-color ${bgSec} ease,
-                box-shadow var(--duration-tactile) var(--ease-tactile)`;
-        }
-        pendingEvent = e;
+        pendingPointer = { card, event: e };
         if (rafId === null) {
             rafId = requestAnimationFrame(updateCardTransform);
         }
@@ -128,19 +129,20 @@ export function initGlassSpotlightAndTilt() {
 
     document.addEventListener('pointerup', (e) => {
         if (e.pointerType !== 'mouse') { resetActiveCard(); return; }
-        if (activeCard) setActiveCardAndSchedule(activeCard, e);
+        const card = pendingPointer?.card ?? activeCard;
+        if (card) setActiveCardAndSchedule(card, e);
     }, { passive: true });
 
     document.addEventListener('pointermove', (e) => {
         if (e.pointerType !== 'mouse' || !canAnimate()) {
-            if (activeCard) resetActiveCard();
+            if (activeCard || pendingPointer) resetActiveCard();
             return;
         }
         const targetEl = e.target instanceof Element ? e.target : null;
         const card = /** @type {HTMLElement|null} */ (targetEl?.closest?.('.nav-bookmark'));
         if (card) {
             setActiveCardAndSchedule(card, e);
-        } else if (activeCard) {
+        } else if (activeCard || pendingPointer) {
             resetActiveCard();
         }
     }, { passive: true });

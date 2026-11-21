@@ -179,6 +179,7 @@ function updateSectionAccessibility(sec) {
  * @param {'start'|'nav'} s
  */
 function saveSection(s) {
+    if (sectionInitialized && state.currentSection === s) return;
     sectionInitialized = true;
     state.currentSection = s;
     try { sessionStorage.setItem('startpage_section', s); } catch {}
@@ -243,6 +244,20 @@ function focusNavContent() {
     }
 }
 
+/** @param {'nav'|'start'} section */
+function isSectionSettled(section) {
+    const root = document.documentElement;
+    const start = dom.startSection;
+    const nav = dom.navSection;
+    const inNav = section === 'nav';
+    return sectionInitialized && !isTransitioning && state.currentSection === section &&
+        root.dataset.screen === section && !root.classList.contains('screen-restoring') &&
+        (!start || (start.inert === inNav && start.getAttribute('aria-hidden') === (inNav ? 'true' : null) &&
+            !start.style.transform && !start.style.transition)) &&
+        (!nav || (nav.inert === !inNav && nav.getAttribute('aria-hidden') === (inNav ? null : 'true') &&
+            nav.classList.contains('nav-hidden') === !inNav && !nav.style.transform && !nav.style.transition));
+}
+
 /**
  * 无明确目标且仍在过渡时默认跳过；唤醒可强制立即恢复。
  * @param {'nav'|'start'} [targetSection]
@@ -253,12 +268,13 @@ export function reconcileScreenState(targetSection, force = false) {
     cancelNavResizeWarmup();
     const section = targetSection || (sectionInitialized ? state.currentSection
         : document.documentElement.dataset.screen === 'nav' ? 'nav' : 'start');
+    const settled = isSectionSettled(section);
     // 先读取滚动布局，再清理过渡样式，避免唤醒时提前提交一轮整屏样式重算。
     resetPageScroll();
     if (section === 'start') resetNavScroll();
     clearTransitionTasks();
     isTransitioning = false;
-    applySection(section, true);
+    if (!settled) applySection(section, true);
     document.documentElement.classList.remove('screen-restoring');
     if (section === 'nav') {
         screenNavHandlers.onRefreshNav?.();

@@ -53,6 +53,28 @@ test('壁纸主题采样与暗度处理', async () => {
       assert.ok(cropped.tint.every((value, i) => Math.abs(value - [60, 100, 200][i]) <= 2),
         '横纵向 cover 裁切均应排除不可见白色区域：' + cropped.tint);
     }
+    const blocked = await evalJS(`(async () => {
+      const read = CanvasRenderingContext2D.prototype.getImageData;
+      let attempts = 0;
+      const canvas = document.createElement('canvas');
+      canvas.getContext('2d').fillRect(0, 0, 1, 1);
+      const img = new Image();
+      img.src = canvas.toDataURL();
+      await img.decode();
+      CanvasRenderingContext2D.prototype.getImageData = function() {
+        attempts++;
+        throw new DOMException('Canvas pixels are not readable', 'SecurityError');
+      };
+      try {
+        applyWallpaper(img.src, false, img);
+        previewDraftMaskOpacity(21);
+        await new Promise(requestAnimationFrame);
+        previewDraftMaskOpacity(22);
+        await new Promise(requestAnimationFrame);
+        return [attempts, document.documentElement.style.getPropertyValue('--glass-tint')];
+      } finally { CanvasRenderingContext2D.prototype.getImageData = read; }
+    })()`);
+    assert.deepEqual(blocked, [1, '255, 255, 255'], '同一不可读图片的暗度预览不反复取色');
   } finally {
     await chrome.close();
     await server.close();

@@ -1,4 +1,4 @@
-const { appScriptPath, referencedWebBuild, scriptFingerprint } = require('../src/js/utils/build-identity.js');
+const { appScriptPath, referencedWebBuild, scriptFingerprint, htmlFingerprint, BUILD_FINGERPRINT_PREFIX_BYTES } = require('../src/js/utils/build-identity.js');
 const { watchFiles } = require('./watch.cjs');
 const { replaceOnce, injectDocumentShell } = require('./html-template.cjs');
 const { getContentSecurityPolicy, readImageSearchUploads } = require('./content-security-policy.cjs');
@@ -56,6 +56,7 @@ function minifyJsCode(jsCode) {
     return esbuild.transformSync(jsCode, {
         minify: true,
         target: 'es2020',
+        charset: 'utf8',
         legalComments: 'none'
     }).code;
 }
@@ -190,11 +191,10 @@ function processProductionAppJs(targetDir, { extension, version, uploads }) {
     try {
         const appJsFile = path.join(targetDir, script);
         const result = buildAppJavaScript({ outfile: appJsFile, extension, version, uploads });
-        const appJsContent = fs.readFileSync(appJsFile, 'utf-8');
         const jsDuration = Date.now() - jsStart;
-        const appJsBytes = Buffer.byteLength(appJsContent, 'utf-8');
+        const [{ bytes: appJsBytes }] = Object.values(result.metafile.outputs);
         const appJsKb = (appJsBytes / 1024).toFixed(2);
-        const moduleCount = result.metafile ? Object.keys(result.metafile.inputs).length : 0;
+        const moduleCount = Object.keys(result.metafile.inputs).length;
         buildMetrics.stages.js = jsDuration;
         buildMetrics.sizes.jsKb = appJsKb;
         buildMetrics.sizes.modules = moduleCount;
@@ -246,7 +246,6 @@ function processProductionHtml(compiledCss, targetDir, { version: buildVersion, 
             'window.__GLASS_EXTENSION__': String(Boolean(extension))
         }
     }).outputFiles[0].text;
-    prodHtmlContent = replaceOnce(prodHtmlContent, '<!-- INJECT_I18N_HEAD -->', `<script>${i18nBootstrap.replace(/<\/script/gi, '<\\/script')}</script>`);
     prodHtmlContent = injectHeadConfig(prodHtmlContent, {
         marker: '/* INJECT_BACKGROUNDS */',
         entryPath: path.join(PATHS.src, 'js', 'config', 'backgrounds.js'),
@@ -270,7 +269,8 @@ function processProductionHtml(compiledCss, targetDir, { version: buildVersion, 
         css: compiledCss,
         svg: fs.readFileSync(PATHS.srcSvg, 'utf-8'),
         version: buildVersion,
-        extension
+        extension,
+        i18nBootstrap
     });
 
     // 品牌卡片版本号只由 package.json 提供。
@@ -325,8 +325,8 @@ function processProductionHtml(compiledCss, targetDir, { version: buildVersion, 
     }
 
     // 🛡️ 构建断言（最终产物写盘前）：HTML 侧构建指纹必须存在且与 app.js 侧同源同版
-    if (!prodHtmlContent.includes(`window.__GLASS_BUILD_HTML__="${buildVersion}"`)) {
-        throw new Error('构建断言失败: dist/index.html 未注入构建指纹 (__GLASS_BUILD_HTML__)，运行时版本契约将失效');
+    if (htmlFingerprint(Buffer.from(prodHtmlContent).subarray(0, BUILD_FINGERPRINT_PREFIX_BYTES).toString('utf8')) !== buildVersion) {
+        throw new Error('构建断言失败: dist/index.html 开头缺少正确的构建指纹 (__GLASS_BUILD_HTML__)');
     }
 
     fs.writeFileSync(path.join(targetDir, 'index.html'), prodHtmlContent, 'utf-8');

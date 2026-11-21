@@ -460,10 +460,7 @@ export function updateWeather(force = false, initial = false) {
     if (paused && !initial) return Promise.resolve();
     if (weatherRefresh) return weatherRefresh.promise;
     const cache = readWeatherCache();
-    if (initial) {
-        if (cache) displayWeather(cache);
-        else renderWeatherPopover(null);
-    }
+    if (initial && cache) displayWeather(cache);
     if (paused) return Promise.resolve();
     const locCache = readWeatherLocation();
 
@@ -485,7 +482,7 @@ export function updateWeather(force = false, initial = false) {
 /** @param {import('../types').WeatherData} data @param {'C' | 'F'} [unit] */
 function displayWeather(data, unit = getWeatherTempUnit()) {
     renderWeatherCapsule(data, unit);
-    renderWeatherPopover(data, unit);
+    if (OverlayStack.has('weatherPopover')) renderWeatherPopover(data, unit);
 }
 
 /** @param {import('../types').WeatherData | null} cache

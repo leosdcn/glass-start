@@ -7,6 +7,7 @@ import { build } from 'esbuild';
 const { outputFiles } = await build({
     stdin: { contents: `export * from './src/js/modules/weather.js';
         export * from './src/js/modules/wallpaper.js';
+        export {OverlayStack} from './src/js/core/overlay-stack.js';
         export {state, modalState} from './src/js/state/store.js';
         export {CONFIG, backgrounds} from './src/js/config/constants.js';`, resolveDir: process.cwd() },
     bundle: true, write: false, format: 'cjs', platform: 'node',
@@ -85,6 +86,7 @@ function fixture() {
     vm.runInContext(outputFiles[0].text, context);
     const app = context.module.exports;
     return { context, app, timers, readers, images, writes, rendered, messages, wallpaperError,
+        showPopover() { app.OverlayStack.stack.push({ id: 'weatherPopover' }); },
         get html() { return Array.from(weatherParts.values(), part => part.innerHTML + (part.textContent ?? '')).join(''); }, get htmlWrites() { return htmlWrites; } };
 }
 const drain = async () => { for (let i = 0; i < 12; i++) await Promise.resolve(); };
@@ -139,6 +141,7 @@ test('强制重新定位失败后沿用成功位置，仍可获取新天气，�
 
 test('旧地点预报失败时继续等待重新定位，并发布新地点预报', async () => {
     const f = fixture();
+    f.showPopover();
     const { app, context } = f;
     const old = { name: '旧地点', lat: 1, lon: 2, timestamp: 1 };
     context.localStorage.setItem(app.CONFIG.KEYS.WEATHER_LOC, JSON.stringify(old));
@@ -213,6 +216,7 @@ test('新地点预报不等旧请求，失败后旧结果不更新缓存且唤�
 
 test('空天气响应保留上一次预报，下一次刷新仍能更新', async () => {
     const f = fixture(), { app, context } = f;
+    f.showPopover();
     const key = app.CONFIG.KEYS.WEATHER_CACHE;
     const location = { name: '测试地点', lat: 1, lon: 2, timestamp: Date.now() };
     const previous = JSON.stringify({ location, timestamp: 1, current: { temp: 21 }, daily: [] });
@@ -292,6 +296,7 @@ test('天气正文超时结束共享刷新任务，随后可重新刷新', async
 
 test('有效天气缓存时间字段直接渲染，不发起网络请求', async () => {
     const f = fixture(), { app } = f;
+    f.showPopover();
     const midday = new Date(2026, 9, 31, 12).getTime();
     f.context.Date = class extends Date {
         constructor(...args) { super(...(args.length ? args : [midday])); }

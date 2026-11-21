@@ -93,7 +93,7 @@ const cacheWriteGate = new Promise(resolve=>{releaseCacheWrite=resolve;});
 let holdPrune;
 const coreDownloads = new Map();
 let failCoreRepair = false;
-const decodedScriptBytes = [];
+const decodedPrefixBytes = [];
 const coreScript = `/app-builds/${stamp}.js`;
 const cacheUrl = request => new URL(request.url ?? request, 'https://example.test/').href;
 vm.runInNewContext(worker, {
@@ -103,7 +103,7 @@ vm.runInNewContext(worker, {
     URL, Request, Response, AbortController, setTimeout, clearTimeout,
     TextDecoder: class extends TextDecoder {
         decode(value, options) {
-            decodedScriptBytes.push(value.byteLength);
+            decodedPrefixBytes.push(value.byteLength);
             return super.decode(value, options);
         }
     },
@@ -192,8 +192,8 @@ const repaired = await requestCore();
 assert.deepEqual(await Promise.all(repaired.map(response => response.text())), [html, html]);
 assert.equal(coreDownloads.get('/'), 2, '允许重试且同次修复只下载一份文档');
 assert.equal(coreDownloads.get(coreScript), 1, '并发修复只下载一份匹配版本的脚本');
-assert.ok(decodedScriptBytes.length > 0 && decodedScriptBytes.every(count => count <= 256),
-    '修复下载的脚本也只校验版本前缀');
+assert.ok(decodedPrefixBytes.length > 0 && decodedPrefixBytes.every(count => count <= 256),
+    '修复下载的文档和脚本只校验版本前缀');
 
 const scriptUrl = 'https://example.test' + coreScript;
 const coreCache = [...stores.values()].find(cache => cache.has(scriptUrl));
@@ -201,18 +201,22 @@ const prefix = 'window.__GLASS_BUILD_APP__="';
 const suffix = stamp + '";';
 const tail = '\n//' + 'x'.repeat(150 * 1024);
 const encoder = new TextEncoder();
-coreCache.set(scriptUrl, new Response(new ReadableStream({
+const streamed = chunks => new Response(new ReadableStream({
     start(controller) {
-        for (const chunk of [prefix, suffix, tail]) controller.enqueue(encoder.encode(chunk));
+        for (const chunk of chunks) controller.enqueue(encoder.encode(chunk));
         controller.close();
     }
-})));
-decodedScriptBytes.length = 0;
+}));
+coreCache.set(scriptUrl, streamed([prefix, suffix, tail]));
+const htmlPrefix = '<!doctype html><head><script>window.__GLASS_BUILD_HTML__="';
+const htmlTail = '</script></head><body>' + 'x'.repeat(210 * 1024) + '</body>';
+coreCache.set('https://example.test/', streamed([htmlPrefix, suffix, htmlTail]));
+decodedPrefixBytes.length = 0;
 const documentResponse = await dispatch('https://example.test/').response;
-assert.equal(await documentResponse.text(), html);
+assert.equal(await documentResponse.text(), htmlPrefix + suffix + htmlTail);
 const scriptResponse = await dispatch(scriptUrl).response;
 assert.equal(scriptResponse.status, 200);
 assert.ok(await scriptResponse.text() === prefix + suffix + tail, '返回完整脚本正文');
-assert.deepEqual(decodedScriptBytes, [prefix.length, suffix.length, prefix.length, suffix.length],
-    '文档入口与脚本请求均校验跨分块的版本标记，无需解码脚本正文');
+assert.deepEqual(decodedPrefixBytes, [htmlPrefix.length, suffix.length, prefix.length, suffix.length, prefix.length, suffix.length],
+    '文档和脚本均校验跨分块的版本标记，正文保持可流式读取');
 assert.equal(coreDownloads.get(coreScript), 1, '正常启动走原缓存');

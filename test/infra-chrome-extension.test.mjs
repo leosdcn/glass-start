@@ -41,6 +41,9 @@ for (const locale of ['en', 'zh_CN']) {
     assert.ok(messages.extensionName.message && messages.extensionDescription.message);
 }
 assert(!/<script\b(?![^>]*\bsrc=)/i.test(html), '扩展中不得存在内联脚本');
+const firstBootstrap = readFileSync(join(output, 'bootstrap-1.js'), 'utf8');
+assert.match(firstBootstrap, /^window\.__GLASS_BUILD_HTML__=/);
+assert.match(firstBootstrap, /__GLASS_I18N__/, '版本标记和语言初始化共用一个本地阻塞脚本');
 const appScript = readFileSync(join(output, 'app.js'), 'utf8');
 assert(!/__glassSuggestCb_|JsonCallback|callback=/.test(appScript), '扩展编译时裁掉 JSONP');
 for (const { url } of Object.values(JSON.parse(readFileSync(join(root, 'src/js/config/image-search-uploads.json'), 'utf8')))) {

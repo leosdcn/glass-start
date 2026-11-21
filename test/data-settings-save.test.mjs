@@ -14,6 +14,13 @@ const { server, chrome, send, evalJS, cdpPort } = await launchSession(0, {
   }
 });
 try {
+  assert.equal(await evalJS(`(async () => {
+    const committed = pageData.bookmarks;
+    await openEditModal();
+    const reused = committed === pageData.bookmarks;
+    cancelEditModal();
+    return reused;
+  })()`), true, '打开设置时复用相同版本的已提交书签，草稿继续单独创建');
   await evalJS(`(async () => {
     await openEditModal();
     document.getElementById('tab-btn-appearance').click();

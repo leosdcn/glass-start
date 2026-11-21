@@ -17,9 +17,16 @@ try {
         };
     ` });
     await send('Page.reload');
-    await waitFor(evalJS, 'window.weatherStartupReads && typeof updateWeather === "function" && !isFetchingWeather');
+    await waitFor(evalJS, 'window.weatherStartupReads && typeof updateWeather === "function" && dom.weatherTemp?.textContent === "20°" && !isFetchingWeather');
     assert.deepEqual(await evalJS('(Storage.prototype.getItem = originalWeatherGetItem, weatherStartupReads)'),
         {cache:2, unit:2}, '首帧脚本与主应用各读取一次天气和单位');
+    assert.deepEqual(await evalJS(`(() => {
+        const before = dom.weatherPopover.childElementCount;
+        dom.weatherBtn.click();
+        const opened = dom.weatherPopover.querySelector('#tempUnitToggleBtn')?.textContent;
+        dom.weatherBtn.click();
+        return [before, opened];
+    })()`), [0, '20°C'], '缓存天气详情延迟到首次打开时渲染');
 
     const jsonp = await evalJS(`(() => {
         const append = document.body.appendChild;

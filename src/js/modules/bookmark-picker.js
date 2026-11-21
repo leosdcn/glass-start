@@ -24,9 +24,10 @@ function initPickerFaviconObserver() {
 let pickerCatalog = null;
 /** @type {Element | null} */
 let pickerRoot = null;
-/** @type {{ button: HTMLButtonElement, bookmark: import('../types').BookmarkItem }[]} */
+/** @type {{ button: HTMLButtonElement, key: string, name: string }[]} */
 let pickerEntries = [];
-let pickerSelectionSignature = '';
+/** @type {Set<string>} */
+let pickerSelection = new Set();
 /** @type {HTMLElement | null} */
 let lastAddedRow = null;
 
@@ -45,6 +46,8 @@ function renderPickerCategories() {
     }
     const urls = getExistingUrls();
     const sortedCats = catalog.sorted;
+    /** @type {{ key: string, name: string }[]} */
+    const entries = [];
 
     pickerContent.innerHTML = sortedCats.map(cat => {
         const sortedBookmarks = cat.sortedBookmarks;
@@ -57,7 +60,9 @@ function renderPickerCategories() {
             </div>
             <div class="grid grid-cols-2 sm:grid-cols-3 gap-1">
                 ${sortedBookmarks.map(bm => {
-                    const exists = urls.has(bookmarkUrlKey(bm.url));
+                    const key = bookmarkUrlKey(bm.url);
+                    entries.push({ key, name: bm.name });
+                    const exists = urls.has(key);
                     const faviconHtml = getFaviconHTML(bm, 'sm');
                     return `
                         <button type="button" class="w-full flex items-center gap-2 px-2 py-1.5 apple-radius picker-item text-left select-none ${exists ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}" ${exists ? 'disabled aria-disabled="true"' : ''} aria-label="${exists ? escapeHtml(t('bookmark.existsLabel', { name: bm.name })) : escapeHtml(t('bookmark.addLabel', { name: bm.name }))}" data-url="${escapeHtml(bm.url)}">
@@ -76,23 +81,20 @@ function renderPickerCategories() {
     }).join('');
     pickerCatalog = catalog;
     pickerRoot = pickerContent.firstElementChild;
-    const bookmarks = sortedCats.flatMap(cat => cat.sortedBookmarks);
     pickerEntries = Array.from(pickerContent.querySelectorAll('.picker-item'), (node, i) => ({
-        button: /** @type {HTMLButtonElement} */ (node), bookmark: bookmarks[i]
+        button: /** @type {HTMLButtonElement} */ (node), ...entries[i]
     }));
-    pickerSelectionSignature = JSON.stringify([...urls].sort());
+    pickerSelection = urls;
     updateAllBookmarkCounters();
     initPickerFaviconObserver();
 }
 
 /** 草稿成员变化只更新受影响的卡片，保留已经加载的图片及滚动位置。 */
-function updatePickerAvailability() {
-    const urls = getExistingUrls();
-    const signature = JSON.stringify([...urls].sort());
-    if (signature === pickerSelectionSignature) return;
-    pickerSelectionSignature = signature;
-    for (const { button, bookmark } of pickerEntries) {
-        const exists = urls.has(bookmarkUrlKey(bookmark.url));
+function updatePickerAvailability(urls = getExistingUrls()) {
+    if (urls.size === pickerSelection.size && [...urls].every(key => pickerSelection.has(key))) return;
+    pickerSelection = urls;
+    for (const { button, key, name } of pickerEntries) {
+        const exists = urls.has(key);
         if (button.disabled === exists) continue;
         button.disabled = exists;
         button.classList.toggle('opacity-40', exists);
@@ -100,7 +102,7 @@ function updatePickerAvailability() {
         button.classList.toggle('cursor-pointer', !exists);
         if (exists) button.setAttribute('aria-disabled', 'true');
         else button.removeAttribute('aria-disabled');
-        button.setAttribute('aria-label', exists ? t('bookmark.existsLabel', { name: bookmark.name }) : t('bookmark.addLabel', { name: bookmark.name }));
+        button.setAttribute('aria-label', exists ? t('bookmark.existsLabel', { name }) : t('bookmark.addLabel', { name }));
         const status = button.lastElementChild;
         if (status) {
             status.textContent = exists ? t('ui.already.added') : '+';
@@ -113,9 +115,12 @@ function updatePickerAvailability() {
 export function addBookmarkFromPicker(url) {
     const key = bookmarkUrlKey(url);
     const bookmark = getCategoryCatalog(pageData.categories).byUrl.get(key);
-    if (!bookmark || getExistingUrls().has(key)) return;
+    if (!bookmark) return;
+    const urls = getExistingUrls();
+    if (urls.has(key)) return;
     lastAddedRow = appendDraftBookmarkRow({ ...bookmark, overrides: {} });
-    updatePickerAvailability();
+    urls.add(key);
+    updatePickerAvailability(urls);
 }
 
 /**
