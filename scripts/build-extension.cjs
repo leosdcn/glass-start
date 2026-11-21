@@ -3,6 +3,7 @@ const path = require('node:path');
 const { executeBuild, PATHS } = require('./build.cjs');
 const { replaceOnce } = require('./html-template.cjs');
 const { publishBuild } = require('./publish-build.cjs');
+const { SUPPORTED_LANGUAGES } = require('../src/js/config/language.js');
 
 // 复用网页编译与资源注入，独立输出；失败时保留上一份扩展。
 function buildExtension(output = path.join(PATHS.root, 'extension')) {
@@ -13,11 +14,7 @@ function buildExtension(output = path.join(PATHS.root, 'extension')) {
         manifest.version = versionMatch ? versionMatch[1] : appVersion;
         Object.assign(manifest, extensionPolicy);
         fs.writeFileSync(path.join(staging, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n');
-        const langConfig = fs.readFileSync(path.join(PATHS.src, 'js/config/language.js'), 'utf8');
-        const langMatch = langConfig.match(/SUPPORTED_LANGUAGES\s*=\s*Object\.freeze\((\[[^\]]+\])\)/);
-        /** @type {string[]} */
-        const supportedLocales = langMatch ? JSON.parse(langMatch[1].replace(/'/g, '"')) : ['zh-CN', 'en'];
-        for (const locale of supportedLocales) {
+        for (const locale of SUPPORTED_LANGUAGES) {
             const folder = locale.replace('-', '_');
             const messages = JSON.parse(fs.readFileSync(path.join(PATHS.src, 'js/config/locales', `${locale}.json`), 'utf8'));
             const directory = path.join(staging, '_locales', folder);
@@ -27,11 +24,8 @@ function buildExtension(output = path.join(PATHS.root, 'extension')) {
                 extensionDescription: { message: messages['extension.description'] }
             }, null, 2) + '\n');
         }
-        for (const iconName of ['icon16.png', 'icon48.png', 'icon128.png']) {
-            const iconPath = path.join(PATHS.src, 'extension', iconName);
-            if (fs.existsSync(iconPath)) {
-                fs.copyFileSync(iconPath, path.join(staging, iconName));
-            }
+        for (const iconName of Object.values(manifest.icons)) {
+            fs.copyFileSync(path.join(PATHS.src, 'extension', iconName), path.join(staging, iconName));
         }
 
         let html = fs.readFileSync(path.join(staging, 'index.html'), 'utf8');

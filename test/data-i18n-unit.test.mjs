@@ -21,6 +21,13 @@ test('explicit language, browser priority, Chinese variants and invalid preferen
 });
 
 test('complete messages, singular/plural, one-pass parameters and fallback', () => {
+    let pluralRulesCreated = 0;
+    scope.Intl = {
+        ...Intl, DateTimeFormat: Intl.DateTimeFormat,
+        PluralRules: class extends Intl.PluralRules {
+            constructor(locale) { super(locale); pluralRulesCreated++; }
+        }
+    };
     scope.window = { __GLASS_I18N__: { locale: 'en', messages } };
     try {
         assert.deepEqual(Object.keys(messages.en).sort(), Object.keys(messages['zh-CN']).sort());
@@ -28,6 +35,7 @@ test('complete messages, singular/plural, one-pass parameters and fallback', () 
         assert.equal(t('bookmark.count', { count: 3 }), '3 bookmarks added');
         assert.equal(t('bookmark.importConfirm', { count: 1 }), 'Replace your current bookmark draft with 1 bookmark? Click Done to save it.');
         assert.equal(t('bookmark.importConfirm', { count: 3 }), 'Replace your current bookmark draft with 3 bookmarks? Click Done to save them.');
+        assert.equal(pluralRulesCreated, 1, '同一语言的多条复数消息复用规则');
         assert.equal(t('bookmark.addLabel', { name: '{count}<img>' }), 'Add quick bookmark: {count}<img>');
         assert.equal(t('unknown.key'), 'unknown.key');
         scope.window.__GLASS_I18N__.locale = 'missing';
@@ -39,7 +47,10 @@ test('complete messages, singular/plural, one-pass parameters and fallback', () 
             assert.equal(forecastLabel(invalid, 2), '');
         }
         assert.equal(forecastLabel('2028-02-29', 2), 'Tue');
-    } finally { delete scope.window; }
+    } finally {
+        scope.Intl = Intl;
+        delete scope.window;
+    }
 });
 
 test('Chinese date separates weekday while English and forecast labels keep native formatting', () => {

@@ -254,6 +254,21 @@ try {
     await evalJS(`document.dispatchEvent(new TouchEvent('touchend',{changedTouches:[new Touch({identifier:9,target:document.body,clientX:0,clientY:400})]}))`);
     assert.equal(await section(), 'nav');
 
+    // 触摸期间被其他入口切到另一屏，松手不能用旧屏的起点切回。
+    await evalJS('switchToStart()');
+    await settled('start');
+    await evalJS(`(() => {
+        const point = new Touch({identifier:10,target:dom.startSection,clientX:0,clientY:200});
+        dom.startSection.dispatchEvent(new TouchEvent('touchstart',{touches:[point],bubbles:true}));
+        switchToNav();
+    })()`);
+    await settled('nav');
+    await evalJS(`(() => {
+        const point = new Touch({identifier:10,target:dom.startSection,clientX:0,clientY:400});
+        dom.startSection.dispatchEvent(new TouchEvent('touchend',{changedTouches:[point],bubbles:true}));
+    })()`);
+    assert.equal(await section(), 'nav', '上一屏的触摸不能把当前屏切回去');
+
     // 无动画无需超时等待，两个方向都能连续立即完成。
     await send('Emulation.setEmulatedMedia', {features:[{name:'prefers-reduced-motion',value:'reduce'}]});
     assert.deepEqual(await evalJS(`(() => {

@@ -50,7 +50,6 @@ function shareImageResponse(event, loadResponse) {
         /** @param {Promise<unknown>} task */
         const waitForCache = task => {
             cacheTasks.push(task);
-            event.waitUntil(task);
         };
         pending = Promise.resolve().then(() => loadResponse(waitForCache));
         pendingImageResponses.set(key, pending);
@@ -145,13 +144,12 @@ async function isManifestResponse(response) {
 
 /** @param {string} asset @param {Response | undefined} response */
 async function validCoreResponse(asset, response) {
-    if (!response?.ok) return false;
-    const fingerprint = asset === APP_ASSET ? scriptFingerprint : htmlFingerprint;
-    return fingerprint(await response.clone().text()) === CORE_CACHE;
+    if (asset === APP_ASSET) return validAppScriptPrefix(response?.clone(), CORE_CACHE);
+    return !!response?.ok && htmlFingerprint(await response.clone().text()) === CORE_CACHE;
 }
 
 /** @param {Response | undefined} response @param {string} version */
-async function validCachedAppResponse(response, version) {
+async function validAppScriptPrefix(response, version) {
     if (!response?.ok || !response.body) return false;
     // 构建将版本标记写在第一行；校验只需读开头。
     const reader = response.body.getReader();
@@ -299,14 +297,15 @@ function recoveryResponse() {
 // 仅在网络失败时读取上一版图片，避免在线更新继续使用旧内容。
 /** @param {Request} request */
 async function previousImageResponse(request) {
-    const keys = (await caches.keys()).filter(key => isScopedCache(key, IMAGE_PREFIX) && key !== IMG_CACHE)
+    const keys = await caches.keys();
+    const previousImages = keys.filter(key => isScopedCache(key, IMAGE_PREFIX) && key !== IMG_CACHE)
         .sort((a, b) => cacheBuildTime(b) - cacheBuildTime(a));
-    for (const key of keys) {
+    for (const key of previousImages) {
         const cached = await caches.match(request, { cacheName: key });
         if (cached && isImageResponse(cached)) return cached;
     }
     if (request.url === new URL(DEFAULT_WALLPAPER, SCOPE_URL).href) {
-        const previousCore = (await caches.keys()).filter(key => isScopedCache(key, CORE_PREFIX) && key !== CORE_STORAGE)
+        const previousCore = keys.filter(key => isScopedCache(key, CORE_PREFIX) && key !== CORE_STORAGE)
             .sort((a, b) => cacheBuildTime(b) - cacheBuildTime(a));
         for (const key of previousCore) {
             const cached = await caches.match(request, { cacheName: key });
@@ -334,7 +333,7 @@ async function previousImageResponse(request) {
             caches.open(CORE_STORAGE).then(async cache => {
                 try {
                     const [document, script] = await Promise.all([cache.match(DOCUMENT_ASSET), cache.match(APP_ASSET)]);
-                    if (document && await validCoreResponse(DOCUMENT_ASSET, document) && await validCachedAppResponse(script, CORE_CACHE)) {
+                    if (document && await validCoreResponse(DOCUMENT_ASSET, document) && await validAppScriptPrefix(script, CORE_CACHE)) {
                         return document;
                     }
                     await repairCoreCache(cache);
@@ -381,12 +380,12 @@ async function previousImageResponse(request) {
             try {
                 const cached = await caches.match(new URL(asset, SCOPE_URL), { cacheName });
                 if (cached) {
-                    if (await validCachedAppResponse(cached.clone(), requestedVersion)) return cached;
+                    if (await validAppScriptPrefix(cached.clone(), requestedVersion)) return cached;
                     void cached.body?.cancel().catch(() => {});
                 }
                 if (!scriptVersion) return make503Response();
                 const response = await fetch(e.request, cached ? { cache: 'reload' } : undefined);
-                if (!response.ok || scriptFingerprint(await response.clone().text()) !== requestedVersion) {
+                if (!await validAppScriptPrefix(response.clone(), requestedVersion)) {
                     return make503Response();
                 }
                 if (requestedVersion === CORE_CACHE) {

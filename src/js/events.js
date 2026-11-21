@@ -130,11 +130,7 @@ export function bindEvents() {
     window.addEventListener('blur', handleTabBlur, { passive: true });
     window.addEventListener('pagehide', handleTabBlur, { passive: true });
 
-    const handleBackToStart = () => {
-        if (isScreenTransitioning()) return;
-        switchToStart();
-    };
-    dom.navHint?.addEventListener('click', handleBackToStart);
+    dom.navHint?.addEventListener('click', switchToStart);
 
     document.addEventListener('keydown', e => {
         if (e.defaultPrevented) return;

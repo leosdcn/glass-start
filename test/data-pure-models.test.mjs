@@ -215,6 +215,7 @@ test('分类目录索引映射、首分类归属与内容变更失效算法', ()
 
 test('书签草稿模型更新、重排与删除状态追踪', () => {
   model.replaceBookmarkDraft([{id:'a',name:'A',url:'https://a.test',icon:''}, {id:'b',name:'B',url:'https://b.test',icon:''}]);
+  assert.equal(model.reorderBookmarkDraft('a', 'b', true), false, '相邻行保持原位');
   assert.equal(model.modalState.bookmarksChanged, false);
   model.updateBookmarkDraft('a', {name:'Changed'});
   assert.equal(model.modalState.draftBookmarks[0].name, 'Changed');

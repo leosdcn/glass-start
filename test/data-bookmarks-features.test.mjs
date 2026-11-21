@@ -37,6 +37,17 @@ test('异常书签缓存不阻断启动，清洗保留有效条目、目录继�
     assert.equal(recovered.desc, '');
     await waitFor(evalJS, 'document.getElementById("editModal").open');
     await evalJS('cancelEditModal()');
+
+    assert.equal(await evalJS(`(() => {
+      const card = dom.bookmarks.lastElementChild;
+      card.focus();
+      const meta = JSON.parse(localStorage.getItem('userCustomMeta'));
+      meta['https://github.com'].desc = 'Updated description';
+      localStorage.setItem('userCustomMeta', JSON.stringify(meta));
+      loadBookmarks();
+      return document.activeElement === card && pageData.bookmarks[1].desc === 'Updated description';
+    })()`), true, '只改简介时，快捷卡片应保留节点和键盘焦点');
+
     const fallback = await evalJS(`(() => {
       localStorage.setItem('userBookmarkKeys', JSON.stringify([null, {}, 'javascript:alert(1)']));
       localStorage.setItem('userCustomMeta', JSON.stringify(['invalid']));

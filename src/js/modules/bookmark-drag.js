@@ -6,7 +6,6 @@ import { CONFIG } from '../config/constants.js';
 import { dom } from '../state/dom.js';
 import { modalState } from '../state/store.js';
 import { reorderBookmarkDraft } from '../state/bookmark-draft.js';
-import { updateAllBookmarkCounters } from './bookmark-editor.js';
 import { animateBookmarkLayout } from './bookmark-motion.js';
 
 let cancelCurrentDrag = () => {};
@@ -136,18 +135,11 @@ export function initDragSort() {
      * @param {boolean} isTop
      */
     function commitReorder(src, target, isTop) {
-        if (!src || !target || src === target) return;
-
-        const srcIdx = modalState.draftBookmarks.findIndex(b => b.id === src.dataset.id);
-        const targetIdx = modalState.draftBookmarks.findIndex(b => b.id === target.dataset.id);
-        if (srcIdx < 0 || targetIdx < 0) return;
+        if (!src || !target || !reorderBookmarkDraft(src.dataset.id || '', target.dataset.id || '', isTop)) return;
 
         animateBookmarkLayout(currentEditList, () => {
             currentEditList.insertBefore(src, isTop ? target : target.nextSibling);
-            reorderBookmarkDraft(src.dataset.id || '', target.dataset.id || '', isTop);
         });
-
-        updateAllBookmarkCounters();
     }
 
     currentEditList.addEventListener('keydown', e => {

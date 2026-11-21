@@ -41,7 +41,7 @@ export function initGlassSpotlightAndTilt() {
 
     isGlassSpotlightAndTiltInitialized = true;
 
-    const canAnimate = () => (typeof state !== 'undefined' && state.currentSection === 'nav')
+    const canAnimate = () => (state.currentSection === 'nav')
         && !document.hidden && mediaHover.matches && !mediaMotion.matches
         && !document.body.classList.contains('tab-blurred')
         && !document.body.classList.contains('is-screen-transitioning');
@@ -117,7 +117,7 @@ export function initGlassSpotlightAndTilt() {
 
     document.addEventListener('pointerdown', (e) => {
         if (e.pointerType !== 'mouse') { resetActiveCard(); return; }
-        if (typeof state !== 'undefined' && state.currentSection !== 'nav') return;
+        if (state.currentSection !== 'nav') return;
         const targetEl = e.target instanceof Element ? e.target : null;
         const card = /** @type {HTMLElement|null} */ (targetEl?.closest?.('.nav-bookmark'));
         if (card) {
@@ -128,12 +128,7 @@ export function initGlassSpotlightAndTilt() {
 
     document.addEventListener('pointerup', (e) => {
         if (e.pointerType !== 'mouse') { resetActiveCard(); return; }
-        if (activeCard) {
-            pendingEvent = e;
-            if (rafId === null) {
-                rafId = requestAnimationFrame(updateCardTransform);
-            }
-        }
+        if (activeCard) setActiveCardAndSchedule(activeCard, e);
     }, { passive: true });
 
     document.addEventListener('pointermove', (e) => {

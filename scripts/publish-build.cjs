@@ -3,8 +3,10 @@ const path = require('node:path');
 const { randomUUID } = require('node:crypto');
 
 function publishBuild(output, populate) {
-    const prefix = path.join(path.dirname(output), `.${path.basename(output)}`);
-    const staging = fs.mkdtempSync(prefix + '-build-');
+    const parent = path.dirname(output);
+    const prefix = path.join(parent, `.${path.basename(output)}`);
+    const stagingPrefix = prefix + '-build-';
+    const staging = fs.mkdtempSync(stagingPrefix + process.pid + '-');
     const candidate = staging + '-lock';
     const lock = prefix + '-publish-lock';
     // 备份沿用原路径，回收失效锁时仍能恢复被中断的发布。
@@ -38,6 +40,7 @@ function publishBuild(output, populate) {
                 throw error;
             }
             fs.rmSync(backupDir, { recursive: true, force: true });
+            removeAbandonedBuilds(parent, stagingPrefix, staging);
             return result;
         } finally {
             removePublishLock(lock, owner);
@@ -90,8 +93,8 @@ function acquirePublishLock(lock, candidate) {
     }
 }
 
-/** 清理可确认归属已退出进程的网页暂存目录，保留当前入口和并行构建。 */
-function removeAbandonedWebBuilds(parent, prefix, release) {
+/** 清理可确认归属已退出进程的暂存目录，保留当前版本和并行构建。 */
+function removeAbandonedBuilds(parent, prefix, release) {
     const base = path.basename(prefix);
     for (const name of fs.readdirSync(parent)) {
         if (!name.startsWith(base)) continue;
@@ -148,7 +151,7 @@ function publishWebBuild(output, populate, prepare = (release, previous) => {}) 
             if (previous?.startsWith(prefix) && path.dirname(previous) === parent && previous !== release) {
                 fs.rmSync(previous, { recursive: true, force: true });
             }
-            removeAbandonedWebBuilds(parent, prefix, release);
+            removeAbandonedBuilds(parent, prefix, release);
             return result;
         } finally {
             removePublishLock(lock, owner);

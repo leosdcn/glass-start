@@ -162,8 +162,10 @@ function rebaseDraft(before, after) {
     for (const field of /** @type {const} */ (['draftMaskOpacity', 'draftTransitionMode', 'draftWallpaper', 'draftLanguage'])) {
         if (modalState[field] === before[field]) Object.assign(modalState, { [field]: after[field] });
     }
-    if (!modalState.bookmarksChanged) replaceBookmarkDraft(after.bookmarks);
-    renderEditList();
+    if (!modalState.bookmarksChanged) {
+        replaceBookmarkDraft(after.bookmarks);
+        renderEditList();
+    }
     if (modalState.draftWallpaper !== after.draftWallpaper && modalState.draftWallpaper) {
         showWallpaperDraft(modalState.draftWallpaper);
     } else {
@@ -335,16 +337,16 @@ export function closeCreditsModal() {
 export function exportBookmarksJSON() {
     const bookmarks = validateBookmarkDraft(t('ui.export.bookmarks'), true);
     if (!bookmarks) return;
+    const d = new Date();
     const exportData = {
         version: '1.1',
-        exportDate: new Date().toISOString(),
+        exportDate: d.toISOString(),
         bookmarks
     };
     const jsonStr = JSON.stringify(exportData, null, 2);
     const blob = new Blob([jsonStr], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    const d = new Date();
     const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     a.href = url;
     a.download = `startpage_bookmarks_${dateStr}.json`;
@@ -361,11 +363,11 @@ export function exportBookmarksJSON() {
  */
 export function importBookmarksJSON(file) {
     if (!file || (modalState.phase !== 'editing' && modalState.phase !== 'preparing-save')) return;
+    cancelPendingImport();
     if (file.size > CONFIG.SECURITY.MAX_IMPORT_BYTES) {
         showConfirm(t('ui.file.too.large', { size: Math.round(CONFIG.SECURITY.MAX_IMPORT_BYTES / (1024 * 1024)) }), null, t('ui.import.failed'));
         return;
     }
-    cancelPendingImport();
 
     const controller = new AbortController();
     activeImportController = controller;
@@ -512,6 +514,7 @@ export async function saveEditModal() {
     const session = editSession;
     if (!session?.baseline || !session.initial || modalState.phase !== 'editing') return;
     const { baseline, initial } = session;
+    let bookmarksCommitted = false;
     const isCurrent = () => editSession === session;
     setEditPhase('preparing-save');
     try {
@@ -578,7 +581,7 @@ export async function saveEditModal() {
             session.baseline = { ...session.baseline, ...saved };
             if (saved.bookmarks) {
                 replaceBookmarkDraft(saved.bookmarks);
-                renderEditList();
+                bookmarksCommitted = true;
             }
         }
         finishEdit();
@@ -586,7 +589,10 @@ export async function saveEditModal() {
         console.error('Settings save failed:', err);
         showConfirm(t('ui.could.not.save'), null, t('ui.could.not.save'));
     } finally {
-        if (isCurrent()) setEditPhase('editing');
+        if (isCurrent()) {
+            if (bookmarksCommitted) renderEditList();
+            setEditPhase('editing');
+        }
     }
 }
 
@@ -609,12 +615,9 @@ function closeLanguageModal() {
 }
 
 export function saveLanguageModal() {
-    if (modalState.draftLanguage === getLanguagePreference()) {
-        closeLanguageModal();
-        return;
-    }
+    const changed = modalState.draftLanguage !== getLanguagePreference();
     closeLanguageModal();
-    return saveEditModal();
+    if (changed) return saveEditModal();
 }
 
 /** @param {string} lang */

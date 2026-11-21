@@ -16,7 +16,8 @@ let activation = null;
 
 function showUpdateNotice(message = t('ui.update.available')) {
     if (activation) return;
-    if (dom.updateNoticeText) dom.updateNoticeText.textContent = message;
+    const text = dom.updateNoticeText;
+    if (text && text.textContent !== message) text.textContent = message;
     dom.updateNotice?.classList.remove('hidden');
 }
 

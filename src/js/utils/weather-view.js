@@ -11,12 +11,15 @@ function weatherIconPath(icon) {
     return /^(?:\.\/|\/)?icons\//.test(key) && safeUrl(key, false) !== '#' ? key : '';
 }
 
+/** @param {string} icon @param {string} path @param {string} className */
+function weatherImageHTML(icon, path, className) {
+    return `<img src="${safeUrl(path)}" class="${className} shrink-0 object-contain select-none inline-block align-middle pointer-events-none" alt="" aria-hidden="true" decoding="async"><span class="sr-only" aria-hidden="true">${escapeHtml(icon.trim())}</span>`;
+}
+
 /** @param {string} icon @param {string} [className] */
 export function getWeatherIconHTML(icon, className = 'size-4') {
     const path = weatherIconPath(icon);
-    return path
-        ? `<img src="${safeUrl(path)}" class="${className} shrink-0 object-contain select-none inline-block align-middle pointer-events-none" alt="" aria-hidden="true" decoding="async"><span class="sr-only" aria-hidden="true">${escapeHtml(icon.trim())}</span>`
-        : escapeHtml(icon);
+    return path ? weatherImageHTML(icon, path, className) : escapeHtml(icon);
 }
 
 /**
@@ -32,13 +35,15 @@ export function renderWeatherCapsuleView({ weatherIcon, weatherTemp, weatherCity
 
     if (weatherIcon && weatherIcon.dataset.icon !== icon) {
         weatherIcon.dataset.icon = icon;
-        if (weatherIconPath(icon)) weatherIcon.innerHTML = getWeatherIconHTML(icon, 'size-4 sm:size-4.5');
+        const path = weatherIconPath(icon);
+        if (path) weatherIcon.innerHTML = weatherImageHTML(icon, path, 'size-4 sm:size-4.5');
         else weatherIcon.textContent = icon;
     }
     if (weatherTemp && weatherTemp.textContent !== temperature + '°') weatherTemp.textContent = temperature + '°';
     if (weatherCity) {
         if (weatherCity.textContent !== city) weatherCity.textContent = city;
-        weatherCity.title = data?.location?.fullName || '';
+        const title = data?.location?.fullName || '';
+        if (weatherCity.title !== title) weatherCity.title = title;
         weatherCity.removeAttribute('data-i18n');
     }
     if (weatherBtn) {

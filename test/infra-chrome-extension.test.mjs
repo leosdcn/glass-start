@@ -31,6 +31,7 @@ assert.equal(manifest.background, undefined);
 assert.equal(manifest.permissions, undefined);
 assert.equal(manifest.default_locale, 'en');
 assert.equal(manifest.name, '__MSG_extensionName__');
+for (const icon of Object.values(manifest.icons)) assert.ok(existsSync(join(output, icon)), `缺少清单图标 ${icon}`);
 const webHtml = readFileSync(join(process.env.GLASS_TEST_TMPDIR || root, 'dist/index.html'), 'utf8');
 const formAction = policy => policy.match(/(?:^|; )form-action [^;]+/)?.[0];
 assert.equal(formAction(manifest.content_security_policy.extension_pages), formAction(webHtml.match(/Content-Security-Policy" content="([^"]+)"/)[1]));

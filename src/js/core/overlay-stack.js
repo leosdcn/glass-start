@@ -97,10 +97,9 @@ function visibleFocusTarget(element) {
 
 const FOCUSABLE = 'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])';
 
-/** @param {Element | null | undefined} trigger */
-function restoreFocus(trigger) {
-    const modal = OverlayStack.topModal();
-    if (visibleFocusTarget(trigger) && (!modal || modal.contains(trigger))) {
+/** @param {Element | null | undefined} trigger @param {HTMLElement | null} modal */
+function restoreFocus(trigger, modal) {
+    if ((!modal || modal.contains(trigger ?? null)) && visibleFocusTarget(trigger)) {
         if (document.activeElement !== trigger) trigger.focus({ preventScroll: true });
     } else if (!visibleFocusTarget(document.activeElement) || (modal && !modal.contains(document.activeElement))) {
         const scope = modal || document;
@@ -150,8 +149,9 @@ export const OverlayStack = {
                 modal.close();
                 modal.inert = true;
             }
-            if (!this.topModal()) document.body.classList.remove('overflow-hidden', 'touch-none');
-            restoreFocus(removed.trigger);
+            const remainingModal = this.topModal();
+            if (!remainingModal) document.body.classList.remove('overflow-hidden', 'touch-none');
+            restoreFocus(removed.trigger, remainingModal);
             if (document.activeElement !== previousFocus) hidePointerFocusRing();
         } else if (removed.panel) {
             const { panel, trigger } = removed;
@@ -165,6 +165,7 @@ export const OverlayStack = {
     },
 
     closeOutsidePanels(target) {
+        if (!this.stack.length) return;
         for (const { panel, trigger, close } of this.stack.slice().reverse()) {
             if (panel && !panel.contains(target) && !trigger?.contains(target)) close();
         }

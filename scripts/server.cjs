@@ -112,6 +112,20 @@ const sslConfig = resolveSslConfig();
 const isHttps = Boolean(sslConfig);
 const protocol = isHttps ? 'https' : 'http';
 
+/** @param {string} header */
+function selectCompression(header) {
+    const weights = new Map();
+    for (const entry of header.split(',')) {
+        const match = /^\s*(gzip|deflate|\*)(?:\s*;\s*q\s*=\s*(0(?:\.\d{0,3})?|1(?:\.0{0,3})?))?\s*$/i.exec(entry);
+        if (match) weights.set(match[1].toLowerCase(), Number(match[2] ?? 1));
+    }
+    const wildcard = weights.get('*') ?? 0;
+    const gzip = weights.get('gzip') ?? wildcard;
+    const deflate = weights.get('deflate') ?? wildcard;
+    if (gzip === 0 && deflate === 0) return null;
+    return gzip >= deflate ? 'gzip' : 'deflate';
+}
+
 async function handleStaticRequest(req, res) {
         let asset = null;
         let streamPiped = false;
@@ -205,7 +219,7 @@ async function handleStaticRequest(req, res) {
             }
 
             // 文本类静态资源可按协商压缩。
-            const acceptEncoding = req.headers['accept-encoding'] || '';
+            const encoding = isCompressible ? selectCompression(req.headers['accept-encoding'] ?? '') : null;
 
             const rawStream = body ? Readable.from([body]) : file.createReadStream();
             res.on('close', () => rawStream.destroy());
@@ -215,12 +229,10 @@ async function handleStaticRequest(req, res) {
             });
 
             streamPiped = true;
-            if (isCompressible && acceptEncoding.includes('gzip')) {
-                res.setHeader('Content-Encoding', 'gzip');
-                rawStream.pipe(zlib.createGzip({ level: 6 })).pipe(res);
-            } else if (isCompressible && acceptEncoding.includes('deflate')) {
-                res.setHeader('Content-Encoding', 'deflate');
-                rawStream.pipe(zlib.createDeflate({ level: 6 })).pipe(res);
+            if (encoding) {
+                res.setHeader('Content-Encoding', encoding);
+                const compress = encoding === 'gzip' ? zlib.createGzip : zlib.createDeflate;
+                rawStream.pipe(compress({ level: 6 })).pipe(res);
             } else {
                 rawStream.pipe(res);
             }

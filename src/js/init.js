@@ -3,7 +3,7 @@
  */
 import { CONFIG, DEFAULT_CATEGORIES } from './config/constants.js';
 import { storageGet } from './utils/storage.js';
-import { evictFaviconCache } from './utils/favicon.js';
+import { evictFaviconCache, handleIconError } from './utils/favicon.js';
 import { state, pageData } from './state/store.js';
 import { localizeCategories } from './core/i18n.js';
 import { cacheDOM } from './state/dom.js';
@@ -11,11 +11,11 @@ import { updateClock } from './modules/clock.js';
 import { renderEngineDropdown, setEngine, closeDropdown, hideSuggestions } from './modules/search.js';
 import { restoreWallpaper, preloadNextBg } from './modules/wallpaper.js';
 import { initWeather } from './modules/weather.js';
-import { loadBookmarks, renderNavCategories, preloadFavicons, preloadVisibleNavIcons, updateSidebarActive, initFaviconObserver, activateVisibleNavIcons, scheduleOffscreenNavIcons, cancelCategoryPulse } from './modules/bookmarks.js';
-import { handleIconError } from './utils/favicon.js';
+import { loadBookmarks, renderNavCategories, preloadVisibleNavIcons, updateSidebarActive, activateVisibleNavIcons, scheduleOffscreenNavIcons, cancelCategoryPulse } from './modules/bookmarks.js';
 import { handleEditIconError } from './modules/bookmark-editor.js';
 import { reconcileScreenState, isScreenTransitioning, initTransitionSwitcher, setScreenNavHandlers } from './core/screen-state.js';
 import { initScreenGestures } from './core/screen-input.js';
+import { syncWallpaperTheme } from './core/theme-engine.js';
 import { initGlassSpotlightAndTilt } from './core/gestures.js';
 import { bindEvents } from './events.js';
 import { bindSearchEvents } from './modules/search-events.js';
@@ -76,9 +76,10 @@ export function init() {
     loadBookmarks();
 
     // ④ 异步从 IndexedDB/LocalStorage 恢复壁纸（Promise 不阻塞后续同步启动时序）
+    syncWallpaperTheme();
     const wallpaperRestored = restoreWallpaper().then(() => true, () => false);
 
-    // ⑤ 注册双屏切换生命周期钩子（按需渲染分类、重算侧边栏与 Favicon 观察器）
+    // ⑤ 注册双屏切换钩子：按需渲染分类、重算侧边栏并调度导航图标。
     setScreenNavHandlers({
         onPrepareNav: () => {
             renderNavCategories();
@@ -86,7 +87,6 @@ export function init() {
         },
         onRefreshNav: () => {
             updateSidebarActive();
-            initFaviconObserver();
             scheduleOffscreenNavIcons();
         },
         onLeaveNav: cancelCategoryPulse,
@@ -110,18 +110,8 @@ export function init() {
     bindEvents();
     bindEditEvents();
 
-    // ⑨ PWA 与 Service Worker 生命周期更新接管监听（扩展构建通过 DCE 自动剔除）
-    if (typeof window === 'undefined' || !window.__GLASS_EXTENSION__) {
-        if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
-            initServiceWorkerUpdates();
-            navigator.serviceWorker.addEventListener('controllerchange', () => {
-                if (isScreenTransitioning()) {
-                    return;
-                }
-                reconcileScreenState();
-            });
-        }
-    }
+    // 扩展构建裁掉网页更新入口，平台检查由更新模块负责。
+    if (!window.__GLASS_EXTENSION__) initServiceWorkerUpdates();
 
     /** @type {(fn: () => void, fallbackDelay?: number) => void} */
     const scheduleIdleTask = (fn, fallbackDelay = CONFIG.TIMERS.FALLBACK_IDLE_DELAY) => {
@@ -139,14 +129,12 @@ export function init() {
         }
     });
 
-    scheduleIdleTask(() => {
-        initFaviconObserver();
-        preloadFavicons();
-        // 扩展的壁纸随包提供，恢复保存的选择后再预加载下一张。
-        if (window.__GLASS_EXTENSION__) {
+    // 扩展的壁纸随包提供，恢复保存的选择后再预加载下一张。
+    if (window.__GLASS_EXTENSION__) {
+        scheduleIdleTask(() => {
             wallpaperRestored.then(restored => { if (restored) preloadNextBg(); });
-        }
-    });
+        });
+    }
 
     // 壁纸恢复后再申请独立空闲任务；快速切屏照常进入，不等待图标准备。
     wallpaperRestored.then(() => scheduleIdleTask(() => {

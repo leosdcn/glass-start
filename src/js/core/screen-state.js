@@ -7,7 +7,6 @@ import { storageRemove, storageSet } from '../utils/storage.js';
 import { state } from '../state/store.js';
 import { dom } from '../state/dom.js';
 import { OverlayStack } from './overlay-stack.js';
-import { syncWallpaperTheme } from './theme-engine.js';
 import { resetActiveCard } from './gestures.js';
 
 /**
@@ -121,17 +120,12 @@ function prepareScreenTransition() {
 
 /**
  * @param {HTMLElement|null|undefined} nav
- * @param {'start'|'nav'} targetSection
  * @param {() => void} onComplete
  */
-function waitForScreenTransition(nav, targetSection, onComplete) {
+function waitForScreenTransition(nav, onComplete) {
     const signal = transitionAbortController?.signal;
     const finish = () => {
         if (signal?.aborted) return;
-        if (state.currentSection !== targetSection) {
-            clearTransitionTasks();
-            return;
-        }
         isTransitioning = false;
         // 先完成收尾读取再撤销临时合成层：反过来会在离场帧触发一次强制样式重算。
         try {
@@ -204,10 +198,6 @@ function resetNavScroll() {
     content.style.scrollBehavior = behavior;
 }
 
-function refreshNav() {
-    screenNavHandlers.onRefreshNav?.();
-}
-
 /**
  * 正常切换与唤醒共用目标状态；退出时等动画结束再关闭指针入口。
  * @param {'start'|'nav'} section
@@ -224,7 +214,6 @@ function applySection(section, immediate) {
     }
     saveSection(section);
     updateSectionAccessibility(section);
-    syncWallpaperTheme();
 
     for (const el of [start, nav]) {
         if (!el) continue;
@@ -237,11 +226,9 @@ function applySection(section, immediate) {
     document.documentElement.dataset.screen = section;
     if (immediate) {
         // 先应用目标，再提交无动画布局，恢复 transition 后不会补播切屏。
-        for (const el of [start, nav]) {
-            if (!el) continue;
-            void el.offsetHeight;
-            el.style.transition = '';
-        }
+        void document.documentElement.offsetHeight;
+        if (start) start.style.transition = '';
+        if (nav) nav.style.transition = '';
     }
 }
 
@@ -274,7 +261,7 @@ export function reconcileScreenState(targetSection, force = false) {
     applySection(section, true);
     document.documentElement.classList.remove('screen-restoring');
     if (section === 'nav') {
-        refreshNav();
+        screenNavHandlers.onRefreshNav?.();
         focusNavContent();
     }
 }
@@ -308,9 +295,9 @@ function switchSection(section) {
         discoverNav();
     }
     applySection(section, false);
-    waitForScreenTransition(dom.navSection, section, () => {
+    waitForScreenTransition(dom.navSection, () => {
         if (section === 'nav') {
-            refreshNav();
+            screenNavHandlers.onRefreshNav?.();
         } else {
             // 返回按钮允许从内容中间离开；先归零再隐藏整屏，
             // 避免读取 scrollTop 时刚被 nav-hidden 弄脏样式而强制重算，也避免入场前重绘列表。

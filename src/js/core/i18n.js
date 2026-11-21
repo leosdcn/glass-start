@@ -28,18 +28,28 @@ export function getLocale() {
     return typeof window !== 'undefined' && window.__GLASS_I18N__ ? window.__GLASS_I18N__.locale : 'zh-CN';
 }
 
+/** @type {Map<string, Intl.PluralRules>} */
+const pluralRulesByLocale = new Map();
+
 /** @param {string} key @param {Record<string, string | number>} [params] */
-export function t(key, params = {}) {
+export function t(key, params) {
     if (/^cache\.(title|description|action)$/.test(key)) {
         key = `cache.${typeof window !== 'undefined' && window.__GLASS_EXTENSION__ ? 'extension' : 'web'}.${key.slice(6)}`;
     }
     const context = typeof window !== 'undefined' ? window.__GLASS_I18N__ : undefined;
     let message = context?.messages[context.locale]?.[key] ?? context?.messages.en?.[key] ?? key;
     if (typeof message !== 'string') {
-        const category = new Intl.PluralRules(getLocale()).select(typeof params.count === 'number' ? params.count : 0);
+        const locale = context?.locale ?? 'zh-CN';
+        let rules = pluralRulesByLocale.get(locale);
+        if (!rules) {
+            rules = new Intl.PluralRules(locale);
+            pluralRulesByLocale.set(locale, rules);
+        }
+        const category = rules.select(typeof params?.count === 'number' ? params.count : 0);
         message = (message && (message[category] || message.other)) || key;
     }
-    return String(message).replace(/\{(\w+)\}/g, (match, name) => Object.hasOwn(params, name) ? String(params[name]) : match);
+    const text = String(message);
+    return params ? text.replace(/\{(\w+)\}/g, (match, name) => Object.hasOwn(params, name) ? String(params[name]) : match) : text;
 }
 
 /** @param {ParentNode} [root] */

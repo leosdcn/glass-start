@@ -226,6 +226,33 @@ test('天气交互、弹窗规范与休眠感知套件', async (t) => {
       }
     });
 
+    await t.test('关闭期间跨过日落，再开天气详情即刷新太阳提示', async () => {
+      assert.deepEqual(await evalJS(`(() => {
+        const RealDate = Date;
+        let instant = '2026-11-04T12:00:00Z';
+        window.Date = class extends RealDate {
+          constructor(...args) { if (args.length) super(...args); else super(instant); }
+        };
+        const { weatherBtn, weatherPopover } = dom;
+        const wasOpen = OverlayStack.has('weatherPopover');
+        try {
+          if (wasOpen) weatherBtn.click();
+          renderWeatherPopover({ timezone: 'Europe/London', current: { temp: 10 },
+            daily: [
+              { date: '2026-11-04', sunset: '2026-11-04T16:30' },
+              { date: '2026-11-05', sunrise: '2026-11-05T07:02' }
+            ] });
+          const before = weatherPopover.textContent.includes('今日日落');
+          instant = '2026-11-04T20:00:00Z';
+          weatherBtn.click();
+          return [before, weatherPopover.textContent.includes('明日日出')];
+        } finally {
+          if (!wasOpen && OverlayStack.has('weatherPopover')) weatherBtn.click();
+          window.Date = RealDate;
+        }
+      })()`), [true, true]);
+    });
+
     await t.test('相对湿度、实时风速与降水雨伞 9 阶形态动态演化', async () => {
       const dynamicIconsCheck = await evalJS(`(() => {
         // 干燥 + 微风 + 低降水

@@ -119,8 +119,8 @@ await test("选择提交、事务失败与会话隔离", async () => {
         for (const custom of [true, false]) {
           if (!custom) assert.equal(await evalJS('commitWallpaperSelection(backgrounds[3])'), true);
           await navigateAndWait(send, evalJS, `http://127.0.0.1:${server.port}/?preload=${custom ? 'custom' : 'preset'}`,
-            'wallpaperStartup.releaseDB && wallpaperStartup.idle.length >= 2');
-          // 在当前文档内先执行启动空闲任务，再允许 IDB 恢复，避免混入导航前的图片请求。
+            'wallpaperStartup.releaseDB && wallpaperStartup.idle.length === 1');
+          // 先执行目录预热，再允许 IDB 恢复，确保导航图标与壁纸准备互不阻塞。
           assert.equal(await evalJS(`(() => {
             for (const callback of wallpaperStartup.idle.splice(0)) {
               callback({ didTimeout: false, timeRemaining: () => 50 });

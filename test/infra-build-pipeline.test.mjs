@@ -228,7 +228,7 @@ test('扩展切换目录时构建被中止，后续发布可恢复备份和回�
   publishBuild(output, write('next'));
   assert.equal(fs.readFileSync(join(output, 'app.js'), 'utf8'), 'next');
   assert.equal(fs.existsSync(backup), false);
-  assert.equal(fs.existsSync(join(dir, '.extension-publish-lock')), false);
+  assert.deepEqual(fs.readdirSync(dir), ['extension'], '回收被中断进程留下的暂存目录和发布锁');
 });
 
 test('网页切换前进程被中止时旧入口继续服务，已打开的文件可读完', { skip: process.platform === 'win32' }, async t => {
@@ -325,6 +325,30 @@ test('本地预览的图标 ETag 区分同一秒内修改的内容', async t => 
     const unchanged = await fetch(url, { headers: { 'If-None-Match': currentTag } });
     assert.equal(unchanged.status, 304);
     assert.equal(unchanged.headers.get('etag'), currentTag);
+  } finally {
+    await preview.close();
+  }
+});
+
+test('本地预览遵守压缩权重和显式禁用', async t => {
+  const dir = temporaryDirectory(t);
+  const dist = join(dir, 'dist');
+  fs.mkdirSync(dist);
+  const html = '<!doctype html><title>Preview</title>';
+  fs.writeFileSync(join(dist, 'index.html'), html);
+  const preview = await startPreviewServer({ env: { GLASS_TEST_TMPDIR: dir } });
+  try {
+    for (const [accept, expected] of [
+      ['gzip;q=0, deflate;q=0', null],
+      ['gzip;q=0.2, deflate;q=0.9', 'deflate'],
+      ['GZIP;q=0.9, deflate;q=0.2', 'gzip'],
+      ['gzip;q=0, *;q=0.5', 'deflate']
+    ]) {
+      const url = `http://127.0.0.1:${preview.port}/`;
+      const response = await fetch(url, { headers: { 'Accept-Encoding': accept } });
+      assert.equal(response.headers.get('content-encoding'), expected, accept);
+      assert.equal(await response.text(), html);
+    }
   } finally {
     await preview.close();
   }

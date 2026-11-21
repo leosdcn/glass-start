@@ -4,15 +4,16 @@
  * 核心职责域：
  * 1. 数据派生与持久化：loadBookmarks, saveUserBookmarks, resetUserBookmarks
  * 2. 快捷书签与分类导航渲染：renderBookmarks, renderNavCategories, updateSidebarActive, refreshSidebarNavCache
- * 3. 导航图标调度：preloadFavicons, initFaviconObserver, scheduleOffscreenNavIcons
+ * 3. 导航图标调度：activateVisibleNavIcons, preloadVisibleNavIcons, scheduleOffscreenNavIcons
  *
  */
 import { getLocale, localizeBookmarkUrl } from '../core/i18n.js';
 import { isScreenTransitioning } from '../core/screen-state.js';
+import { settleAnimation } from '../core/motion.js';
 import { CONFIG, DEFAULT_BOOKMARKS } from '../config/constants.js';
 import { escapeHtml, safeUrl, handleRovingKeyNav } from '../utils/helpers.js';
 import { bookmarkUrlKey, normalizeBookmarkUrl, normalizeBookmark, normalizeBookmarks, normalizeBookmarkOverrides, deriveNameFromUrl, faviconFromUrl } from '../utils/bookmark-model.js';
-import { getFaviconHTML, getCategoryIconHTML, evictFaviconCache, checkImageReady } from '../utils/favicon.js';
+import { getFaviconHTML, getCategoryIconHTML, checkImageReady } from '../utils/favicon.js';
 import { storageGet, storageSet, storageRemove } from '../utils/storage.js';
 import { pageData, state } from '../state/store.js';
 import { dom } from '../state/dom.js';
@@ -141,13 +142,6 @@ function applyBookmarkRecord(record) {
     renderBookmarks();
 }
 
-export function initFaviconObserver() {
-    const scope = navIconsActivated ? document : (dom.bookmarks || document);
-    scope.querySelectorAll('img.lazy-icon:not(.loaded)').forEach(img => {
-        checkImageReady(/** @type {HTMLImageElement} */ (img));
-    });
-}
-
 /** @param {import('../types').BookmarkItem} bm */
 function getBookmarkCardHTML(bm) {
     return `
@@ -165,7 +159,7 @@ let lastBookmarksSignature = '';
 export function renderBookmarks() {
     const bookmarksEl = dom.bookmarks;
     if (!bookmarksEl) return;
-    const currentSig = JSON.stringify(pageData.bookmarks);
+    const currentSig = JSON.stringify(pageData.bookmarks.map(({ url, name, icon }) => [url, name, icon]));
     if (lastBookmarksSignature && currentSig === lastBookmarksSignature) return;
     lastBookmarksSignature = currentSig;
 
@@ -282,7 +276,7 @@ let sidebarCacheDirty = true;
 /** @type {ResizeObserver | null} */
 let sidebarLayoutObserver = null;
 
-export function refreshSidebarNavCache() {
+function refreshSidebarNavCache() {
     // 无尺寸观察器时沿用实时测量，避免无法可靠失效的缓存。
     if (sidebarLayoutObserver && !sidebarCacheDirty) return;
     const sidebarList = dom.sidebarList;
@@ -302,17 +296,18 @@ function scrollTabIntoView(item, container) {
     if (!item || !container) return;
     const isMobile = window.innerWidth <= CONFIG.NAV.MOBILE_BREAKPOINT;
     const margin = CONFIG.NAV.TAB_SCROLL_MARGIN;
+    const behavior = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth';
     const cRect = container.getBoundingClientRect();
     const iRect = item.getBoundingClientRect();
     if (isMobile) {
         if (iRect.left < cRect.left + margin || iRect.right > cRect.right - margin) {
             const targetLeft = container.scrollLeft + (iRect.left - cRect.left) - (container.clientWidth / 2) + (item.offsetWidth / 2);
-            container.scrollTo({ left: Math.max(0, targetLeft), behavior: 'smooth' });
+            container.scrollTo({ left: Math.max(0, targetLeft), behavior });
         }
     } else {
         if (iRect.top < cRect.top + margin || iRect.bottom > cRect.bottom - margin) {
             const targetTop = container.scrollTop + (iRect.top - cRect.top) - (container.clientHeight / 2) + (item.offsetHeight / 2);
-            container.scrollTo({ top: Math.max(0, targetTop), behavior: 'smooth' });
+            container.scrollTo({ top: Math.max(0, targetTop), behavior });
         }
     }
 }
@@ -365,12 +360,11 @@ function selectSidebarTab(nextActive) {
     nextActive.setAttribute('aria-current', 'location');
 }
 
-/** @type {Animation | null} */
-let categoryPulse = null;
+/** @type {(() => void) | null} */
+let cancelPulse = null;
 
 export function cancelCategoryPulse() {
-    categoryPulse?.cancel();
-    categoryPulse = null;
+    cancelPulse?.();
 }
 
 /** @param {Element} line */
@@ -382,14 +376,7 @@ function pulseCategory(line) {
     const animation = line.animate([
         { opacity: 1 }, { opacity: 1, offset: 0.35, easing }, { opacity: 0.28 }
     ], { duration: 1200 });
-    categoryPulse = animation;
-    const onMotion = () => { if (motion.matches) animation.cancel(); };
-    const settle = () => {
-        motion.removeEventListener('change', onMotion);
-        if (categoryPulse === animation) categoryPulse = null;
-    };
-    motion.addEventListener('change', onMotion);
-    animation.finished.then(settle, settle);
+    cancelPulse = settleAnimation(animation, motion, () => { cancelPulse = null; });
 }
 
 export function renderNavCategories() {
@@ -457,13 +444,10 @@ export function renderNavCategories() {
         observer.observe(navContent);
         if (navCategories) observer.observe(navCategories, { box: 'border-box' });
     }
-    if (shouldMeasure) {
-        updateSidebarActive();
-        initFaviconObserver();
-    }
     if (navContent && savedScrollTop > 0) {
         navContent.scrollTop = savedScrollTop;
     }
+    if (shouldMeasure) updateSidebarActive();
 }
 
 function initSidebarNav() {
@@ -479,7 +463,6 @@ function initSidebarNav() {
             if (resizeTimer) clearTimeout(resizeTimer);
             resizeTimer = setTimeout(() => {
                 if (state.currentSection === 'nav') {
-                    refreshSidebarNavCache();
                     requestAnimationFrame(updateSidebarActive);
                 }
             }, CONFIG.NAV.RESIZE_DEBOUNCE);
@@ -532,33 +515,4 @@ function initSidebarNav() {
 
         isSidebarNavInitialized = true;
     }
-}
-
-export function preloadFavicons() {
-    const urls = new Set();
-    pageData.bookmarks.forEach(bm => { if (bm.icon) urls.add(bm.icon); });
-    // 目录已构建时，侧栏图标的 src 已发起加载。
-    if (!dom.sidebarList?.firstElementChild) {
-        pageData.categories.forEach(cat => { if (cat.icon) urls.add(cat.icon); });
-    }
-    const readySources = new Set();
-    if (dom.bookmarks) {
-        dom.bookmarks.querySelectorAll('img').forEach(img => {
-            if (img.complete) {
-                if (img.src) readySources.add(img.src);
-                const attrSrc = img.getAttribute('src');
-                if (attrSrc) readySources.add(attrSrc);
-            }
-        });
-    }
-    urls.forEach(url => {
-        if (readySources.has(url)) return;
-        const img = new Image();
-        img.onload = () => { img.onload = img.onerror = null; };
-        img.onerror = () => {
-            img.onload = img.onerror = null;
-            evictFaviconCache(url);
-        };
-        img.src = url;
-    });
 }

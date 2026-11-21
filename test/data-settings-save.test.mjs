@@ -41,12 +41,33 @@ try {
   const wallpaperBeforeDiscard = await evalJS('getWallpaperSelectionDB()');
   await evalJS('dom.saveEditBtn.click()');
   await waitFor(evalJS, "OverlayStack.top()?.id === 'confirmModal' && dom.confirmOkBtn.textContent === '保留壁纸并保存'");
-  await evalJS('dom.confirmOkBtn.click()');
+  await evalJS('window.savedDraftRow = dom.editList.querySelector(".edit-row-card"); dom.confirmOkBtn.click()');
   await waitFor(evalJS, '!state.editOpen');
+  assert.equal(await evalJS('savedDraftRow === dom.editList.querySelector(".edit-row-card")'), true,
+    '完整保存直接关闭设置，无需重建书签编辑行');
   assert.deepEqual(await evalJS('getWallpaperSelectionDB()'), wallpaperBeforeDiscard);
   assert.equal(await evalJS('pageData.bookmarks[0].name'), '仍可确认的导入');
   assert.equal(await evalJS('dom.wallpaperError.textContent'), '');
   await evalJS('resetUserBookmarks()');
+
+  const latestImport = await evalJS(`(async () => {
+    await openEditModal();
+    const nativeRead = FileReader.prototype.readAsText;
+    let pending;
+    FileReader.prototype.readAsText = function() { pending = this; };
+    try {
+      importBookmarksJSON(new File(['[]'], 'earlier.json'));
+      importBookmarksJSON(new File([new Uint8Array(CONFIG.SECURITY.MAX_IMPORT_BYTES + 1)], 'latest.json'));
+      const message = dom.confirmMsg.textContent;
+      pending.onload?.({target: {result: '[{"name":"早先导入","url":"https://earlier.test"}]'}});
+      return message === dom.confirmMsg.textContent;
+    } finally {
+      FileReader.prototype.readAsText = nativeRead;
+      OverlayStack.top()?.close();
+      cancelEditModal();
+    }
+  })()`);
+  assert.equal(latestImport, true, '新文件即使超限，旧文件也不能覆盖当前提示');
 
   await evalJS(`(async () => {
     await openEditModal();
