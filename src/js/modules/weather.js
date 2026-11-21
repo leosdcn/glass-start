@@ -57,9 +57,8 @@ export function openWeatherPopover() {
     const btn = dom.weatherBtn;
     if (!popover || !btn || OverlayStack.has('weatherPopover') ||
         !OverlayStack.push('weatherPopover', closeWeatherPopover, btn, popover)) return;
-    if (!popover.innerHTML.trim()) {
-        renderWeatherPopover(null);
-    }
+    if (currentWeatherData) displayWeather(currentWeatherData);
+    else if (!popover.firstElementChild) renderWeatherPopover(null);
 }
 
 export function closeWeatherPopover() {
@@ -323,8 +322,6 @@ function renderWeatherError(empty = false) {
 
 /** @param {import('../types').WeatherData | null | undefined} data @param {'C' | 'F'} [unit] */
 export function renderWeatherPopover(data, unit) {
-    const view = getWeatherView();
-    if (!view) return;
     if (!data?.current) {
         showWeatherStatus('loading', `
             <div class="p-4 text-center flex flex-col items-center justify-center gap-2.5 select-none w-full">
@@ -338,9 +335,12 @@ export function renderWeatherPopover(data, unit) {
         return;
     }
 
+    const view = getWeatherView();
+    if (!view) return;
     currentWeatherData = data;
     unit ??= getWeatherTempUnit();
     const raw = data.current;
+    const isChinese = getLocale() === 'zh-CN';
     const period = getForecastPeriod(data, new Date());
     const location = data.location?.fullName || data.location?.name || '';
     const temp = toDisplayTemp(raw.temp, unit);
@@ -348,7 +348,7 @@ export function renderWeatherPopover(data, unit) {
     const humidity = Math.round(weatherNum(raw.humidity, NaN));
     const windSpeed = Math.round(weatherNum(raw.windSpeed, NaN) * 10) / 10;
     const icon = typeof raw.icon === 'string' && raw.icon ? raw.icon : '⛅';
-    const weatherText = raw.weatherCode === undefined && getLocale() === 'zh-CN' && typeof raw.weatherText === 'string' && raw.weatherText
+    const weatherText = raw.weatherCode === undefined && isChinese && typeof raw.weatherText === 'string' && raw.weatherText
         ? raw.weatherText : weatherDescription(raw.weatherCode);
     const days = period.days.slice(0, CONFIG.WEATHER.FORECAST_DISPLAY_DAYS).map((d, index) => ({
         label: forecastLabel(d.date, d.date ? (d.date === period.date ? 0 : d.date === period.tomorrow ? 1 : 2) : index)
@@ -382,8 +382,8 @@ export function renderWeatherPopover(data, unit) {
     view.icon.innerHTML = getWeatherIconHTML(icon, 'size-10 sm:size-12');
     view.temp.innerHTML = `<span class="font-bold">${temp}</span><span class="text-base font-normal text-white/70">°${unit}</span>`;
     view.current.innerHTML = `<span>${escapeHtml(weatherText)}</span>
-        ${getLocale() === 'zh-CN' ? '<span aria-hidden="true">·</span>' : ''}
-        <span class="whitespace-nowrap${getLocale() === 'zh-CN' ? '' : ' block mt-0.5'}">${escapeHtml(t('weather.feels.like', { temperature: apparent }))}</span>`;
+        ${isChinese ? '<span aria-hidden="true">·</span>' : ''}
+        <span class="whitespace-nowrap${isChinese ? '' : ' block mt-0.5'}">${escapeHtml(t('weather.feels.like', { temperature: apparent }))}</span>`;
     view.range.innerHTML = period.today ? `<div>${escapeHtml(t('weather.high', { temperature: toDisplayTemp(period.today.tempMax, unit) }))}</div>
         <div>${escapeHtml(t('weather.low', { temperature: toDisplayTemp(period.today.tempMin, unit) }))}</div>` : '';
     /** @type {(icon: string, label: string, val: string | number) => string} */

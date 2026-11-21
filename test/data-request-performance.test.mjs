@@ -70,6 +70,28 @@ try {
         cacheRaceDiscarded:true, malformedRetried:true, retryRendered:true});
     console.log('✅ JSONP 同查询只请求／渲染一次，输入防抖期间丢弃旧响应，空结果复用缓存');
 
+    const categoryLabel = await evalJS(`(() => {
+        const append = document.body.appendChild;
+        const categories = pageData.categories;
+        document.body.appendChild = function(node) {
+            if (node.tagName === 'SCRIPT') node.type = 'application/x-test';
+            return append.call(this, node);
+        };
+        try {
+            fetchSuggestions('bing', 'github.com');
+            window['__glassSuggestCb_' + activeSuggestReqId](['github.com', []]);
+            pageData.categories = categories.map(category => category.bookmarks.some(bookmark =>
+                bookmark.name === 'GitHub') ? { ...category, name: 'Updated category' } : category);
+            fetchSuggestions('bing', 'github.com');
+            return dom.suggestionMenu.querySelector('[data-idx="0"] > :last-child')?.textContent;
+        } finally {
+            pageData.categories = categories;
+            hideSuggestions();
+            document.body.appendChild = append;
+        }
+    })()`);
+    assert.equal(categoryLabel, 'Updated category', '查询缓存命中后仍更新改名的分类标签');
+
     const selection = await evalJS(`(() => {
         const append = document.body.appendChild;
         document.body.appendChild = function(node) {

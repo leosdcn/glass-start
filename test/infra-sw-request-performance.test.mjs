@@ -137,10 +137,11 @@ function dispatch(requestUrl, clientId = '/') {
     let response;
     const lifetime=[];
     handlers.get('fetch')({clientId,request:new Request(requestUrl),respondWith:task=>{response=task;},waitUntil:task=>lifetime.push(task)});
-    return {response,settled:()=>Promise.all(lifetime)};
+    return {response,lifetime,settled:()=>Promise.all(lifetime)};
 }
 const first = dispatch('https://example.test/icons/gap.png');
 assert.equal(await (await first.response).text(),'shared-body');
+assert.equal(first.lifetime.length, 1, '同一共享请求只注册一个覆盖缓存写入的生命周期任务');
 const duringWrite = dispatch('https://example.test/icons/gap.png');
 assert.equal(await (await duringWrite.response).text(),'shared-body');
 assert.equal(downloads,1);
@@ -191,6 +192,8 @@ const repaired = await requestCore();
 assert.deepEqual(await Promise.all(repaired.map(response => response.text())), [html, html]);
 assert.equal(coreDownloads.get('/'), 2, '允许重试且同次修复只下载一份文档');
 assert.equal(coreDownloads.get(coreScript), 1, '并发修复只下载一份匹配版本的脚本');
+assert.ok(decodedScriptBytes.length > 0 && decodedScriptBytes.every(count => count <= 256),
+    '修复下载的脚本也只校验版本前缀');
 
 const scriptUrl = 'https://example.test' + coreScript;
 const coreCache = [...stores.values()].find(cache => cache.has(scriptUrl));

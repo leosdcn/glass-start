@@ -70,7 +70,10 @@ export function selectSuggestion(index, { keyboard = false } = {}) {
             else input.removeAttribute('aria-activedescendant');
         }
     }
-    if (keyboard && changed && item) node?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    if (keyboard && changed && node) {
+        const behavior = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth';
+        node.scrollIntoView({ block: 'nearest', behavior });
+    }
 }
 // ——— 搜索建议状态与访问器 ———
 /** @type {HTMLScriptElement | null} 当前活跃的 JSONP 脚本节点（测试探针 / 清理用） */
@@ -211,9 +214,9 @@ export function setEngine(key, save = true) {
     }
     if (dropdownMenu) {
         dropdownMenu.querySelectorAll('[role="menuitemradio"]').forEach(btn => {
-            if (btn instanceof HTMLElement) {
-                btn.setAttribute('aria-checked', btn.dataset.engine === validEngine ? 'true' : 'false');
-            }
+            if (!(btn instanceof HTMLElement)) return;
+            const checked = String(btn.dataset.engine === validEngine);
+            if (btn.getAttribute('aria-checked') !== checked) btn.setAttribute('aria-checked', checked);
         });
     }
     if (save) storageSet(CONFIG.KEYS.PREFERRED_ENGINE, validEngine);
@@ -513,7 +516,7 @@ let lastRenderedLocalKey = '';
 
 /** @param {import('../types').BookmarkSuggestion[]} list */
 function getLocalListSignature(list) {
-    return list.map(bm => `${bm.url}|${bm.name}|${bm.icon}|${bm.desc || ''}`).join('\n');
+    return JSON.stringify(list.map(({ url, name, icon, desc, category }) => [url, name, icon, desc, category]));
 }
 
 /**
@@ -693,13 +696,7 @@ function fetchSuggestionsForQuery(engineKey, query, deferNetwork, queryKey) {
 
     const cachedEntry = suggestCache.get(cacheKey);
     if (cachedEntry && (Date.now() - cachedEntry.timestamp < SUGGEST_CACHE_TTL)) {
-        const maxNetCount = Math.max(0, CONFIG.SUGGEST.MAX_TOTAL_ITEMS - localList.length);
-        const netList = cachedEntry.list.slice(0, maxNetCount);
-        if (localList.length > 0 || netList.length > 0) {
-            renderSuggestions(localList, netList, preserveSelection);
-        } else {
-            hideSuggestions();
-        }
+        renderSuggestions(localList, cachedEntry.list, preserveSelection);
         return;
     }
 
@@ -755,11 +752,7 @@ function requestNetworkSuggestions(engineKey, query, cacheKey, localList, reqId)
     const handleSuggestFallback = () => {
         cleanup();
         if (reqId !== activeSuggestReqId) return;
-        if (localList.length > 0) {
-            renderSuggestions(localList, [], true, false);
-        } else {
-            hideSuggestions();
-        }
+        renderSuggestions(localList, [], true);
     };
 
     activeSuggestCleanup = cleanup;
@@ -778,19 +771,14 @@ function requestNetworkSuggestions(engineKey, query, cacheKey, localList, reqId)
             return handleSuggestFallback();
         }
         cleanup();
-        const maxNetCount = Math.max(0, CONFIG.SUGGEST.MAX_TOTAL_ITEMS - localList.length);
         suggestCache.delete(cacheKey);
         if (suggestCache.size >= MAX_SUGGEST_CACHE_SIZE) {
             const oldest = suggestCache.keys().next().value;
             if (oldest) suggestCache.delete(oldest);
         }
-        suggestCache.set(cacheKey, { list: safeList.slice(0, CONFIG.SUGGEST.MAX_TOTAL_ITEMS), timestamp: Date.now() });
-        const netList = safeList.slice(0, maxNetCount);
-        if (localList.length > 0 || netList.length > 0) {
-            renderSuggestions(localList, netList, true);
-        } else {
-            hideSuggestions();
-        }
+        const cachedList = safeList.slice(0, CONFIG.SUGGEST.MAX_TOTAL_ITEMS);
+        suggestCache.set(cacheKey, { list: cachedList, timestamp: Date.now() });
+        renderSuggestions(localList, cachedList, true);
     };
 
     if (controller) {

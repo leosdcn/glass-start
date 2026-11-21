@@ -65,11 +65,13 @@ export function applyBgEffects(opacity, defer = false) {
     const maskOpacityVal = dom.maskOpacityVal;
     const maskOpacityInput = dom.maskOpacityInput;
 
-    if (maskOpacityVal) maskOpacityVal.textContent = `${op}%`;
+    const value = String(op);
+    const label = `${value}%`;
+    if (maskOpacityVal && maskOpacityVal.textContent !== label) maskOpacityVal.textContent = label;
     if (maskOpacityInput) {
-        if (maskOpacityInput.value !== String(op)) maskOpacityInput.value = String(op);
-        maskOpacityInput.setAttribute('aria-valuenow', String(op));
-        maskOpacityInput.setAttribute('aria-valuetext', `${op}%`);
+        if (maskOpacityInput.value !== value) maskOpacityInput.value = value;
+        if (maskOpacityInput.getAttribute('aria-valuenow') !== value) maskOpacityInput.setAttribute('aria-valuenow', value);
+        if (maskOpacityInput.getAttribute('aria-valuetext') !== label) maskOpacityInput.setAttribute('aria-valuetext', label);
     }
 }
 
@@ -155,11 +157,12 @@ function getRetainedWallpaperImage(url) {
 }
 
 /** @param {HTMLImageElement | null} [image] */
-function syncCommittedWallpaperHints(image = getRetainedWallpaperImage(getCommittedWallpaperUrl())) {
+function syncCommittedWallpaperHints(image) {
     const { bg, customWallpaper } = state;
     const indexSaved = storageGet(CONFIG.KEYS.BG) === bg || storageSet(CONFIG.KEYS.BG, bg);
-    const mask = storageGet(CONFIG.KEYS.MASK_OPACITY);
-    const sample = customWallpaper && image ? sampleCustomWallpaperTheme(image, normalizeMaskOpacity(mask)) : null;
+    const sampleImage = customWallpaper ? image ?? getRetainedWallpaperImage(customWallpaper) : null;
+    const mask = sampleImage ? storageGet(CONFIG.KEYS.MASK_OPACITY) : null;
+    const sample = sampleImage ? sampleCustomWallpaperTheme(sampleImage, normalizeMaskOpacity(mask)) : null;
     const next = {
         custom: !!customWallpaper, bg,
         ...(sample ? { appearance: { mask, aspect: sample.aspect, isLight: sample.theme.isLight,
@@ -199,10 +202,10 @@ export function getCommittedWallpaperUrl() {
     return state.customWallpaper || backgrounds[state.bg] || backgrounds[0];
 }
 
-/** @param {boolean} animate @param {HTMLImageElement | null} [preparedImage] */
-function renderCommittedWallpaper(animate, preparedImage = null) {
+/** @param {boolean} animate */
+function renderCommittedWallpaper(animate) {
     const url = getCommittedWallpaperUrl();
-    applyWallpaper(url, animate, preparedImage ?? getRetainedWallpaperImage(url), image => {
+    applyWallpaper(url, animate, getRetainedWallpaperImage(url), image => {
         withWallpaperLock(async () => {
             const saved = await getWallpaperSelectionDB();
             if (saved?.wallpaper === url && url === getCommittedWallpaperUrl()) syncCommittedWallpaperHints(image);
@@ -310,7 +313,8 @@ export function commitWallpaperSelection(targetWallpaper, isCurrent = () => true
     const selection = { wallpaper: presetIdx >= 0 ? null : targetWallpaper, bg: Math.max(0, presetIdx) };
     return enqueueWallpaperSelection(selection, isCurrent, () => {
         syncCommittedWallpaperHints(preparedImage);
-        if (preparedImage) renderCommittedWallpaper(true, preparedImage);
+        // 已在锁内完成首帧提示，现成图片可以直接发布，无需在取色后再读一次记录。
+        if (preparedImage) applyWallpaper(targetWallpaper, true, preparedImage);
         return true;
     });
 }
@@ -516,9 +520,12 @@ export function restoreWallpaper() {
     applyBgEffects(getSavedMaskOpacity());
     wallpaperRestore = (async () => {
         const selection = await getWallpaperSelectionDB();
-        const savedBg = storageGet(CONFIG.KEYS.BG);
-        if (selection) syncCommittedWallpaper(selection);
-        else if (typeof savedBg === 'number' && backgrounds[savedBg]) state.bg = savedBg;
+        if (selection) {
+            syncCommittedWallpaper(selection);
+        } else {
+            const savedBg = storageGet(CONFIG.KEYS.BG);
+            if (typeof savedBg === 'number' && backgrounds[savedBg]) state.bg = savedBg;
+        }
         renderCommittedWallpaper(false);
     })();
     return wallpaperRestore;

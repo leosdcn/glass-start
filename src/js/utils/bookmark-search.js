@@ -57,16 +57,15 @@ export function damerauLevenshteinDistance(a, b, maxDist = Infinity) {
 /**
  * 计算已规范化关键词与目标文本的前缀拼写容错 / 模糊匹配得分 (Token Prefix Fuzzy Score)
  * @param {string} query - 已去空白并转为小写的查询关键词
- * @param {string} target - 目标文本
+ * @param {string} target - 小写目标文本
  * @param {import('../types').FuzzyOptions} options
- * @param {string[]} [subQueries] - 预切分的查询子词，避免循环中重复执行正则切分
+ * @param {string[]} subQueries - 预切分的查询子词，避免循环中重复执行正则切分
  * @returns {number} 匹配惩罚得分（越小越精确，未匹配返回 Infinity）
  */
-function getFuzzyScore(query, target, options, subQueries = query.split(/\s+/).filter(sq => sq.length > 0)) {
-    const rawText = target.toLowerCase();
-    if (!rawText.trim()) return Infinity;
-    const rawTokens = rawText.split(/\s+/);
-    const wordTokens = rawText.split(/[^\p{L}\p{N}]+/u);
+function getFuzzyScore(query, target, options, subQueries) {
+    if (!target.trim()) return Infinity;
+    const rawTokens = target.split(/\s+/);
+    const wordTokens = target.split(/[^\p{L}\p{N}]+/u);
     const tokens = Array.from(new Set([...rawTokens, ...wordTokens].filter(t => t.length > 0)));
 
     if (subQueries.length === 0) return Infinity;
@@ -82,13 +81,13 @@ function getFuzzyScore(query, target, options, subQueries = query.split(/\s+/).f
         const maxDist = sq.length <= options.SHORT_QUERY_LEN ? options.MAX_DIST_SHORT : options.MAX_DIST_LONG;
         let minSubDist = Infinity;
 
+        const minLen = Math.max(2, sq.length - 1);
         for (const token of tokens) {
-            if (token.length < Math.max(2, sq.length - 1)) continue;
-            const minLen = Math.max(2, sq.length - 1);
+            if (token.length < minLen) continue;
             const maxLen = Math.min(token.length, sq.length + 1);
             for (let len = minLen; len <= maxLen; len++) {
                 const prefix = token.substring(0, len);
-                const limit = Math.min(maxDist, minSubDist === Infinity ? maxDist : minSubDist - 1);
+                const limit = Math.min(maxDist, minSubDist - 1);
                 const dist = damerauLevenshteinDistance(sq, prefix, limit);
                 if (dist < minSubDist) {
                     minSubDist = dist;
@@ -140,7 +139,6 @@ export function rankBookmarkSuggestions(query, model, config, limit = config.MAX
         const bmDesc = candidate.descLower ?? (bm.desc || '').toLowerCase();
         const bmUrl = candidate.urlLower ?? (bm.url || '').toLowerCase();
         const normalizedText = candidate.cleanUrl ?? normUrl.toLowerCase().replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '');
-        const realCat = urlToCategoryMap.get(normUrl) || defaultCat;
 
         let tier = getNameMatchTier(q, bmName, config.TIERS);
         for (const name of alternateNamesLower) {
@@ -159,7 +157,7 @@ export function rankBookmarkSuggestions(query, model, config, limit = config.MAX
             if (nameFuzzyScore !== Infinity) {
                 tier = config.TIERS.FUZZY_NAME_BASE + nameFuzzyScore;
             } else {
-                const otherFuzzyScore = getFuzzyScore(q, `${normalizedText} ${bm.desc || ''}`, config.FUZZY, subQueries);
+                const otherFuzzyScore = getFuzzyScore(q, `${normalizedText} ${bmDesc}`, config.FUZZY, subQueries);
                 if (otherFuzzyScore !== Infinity) {
                     tier = config.TIERS.FUZZY_OTHER_BASE + otherFuzzyScore;
                 }
@@ -176,7 +174,7 @@ export function rankBookmarkSuggestions(query, model, config, limit = config.MAX
                     url: bm.url,
                     icon: bm.icon || '',
                     desc: bm.desc || '',
-                    category: realCat
+                    category: urlToCategoryMap.get(normUrl) || defaultCat
                 }
             });
         }

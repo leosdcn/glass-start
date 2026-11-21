@@ -137,15 +137,18 @@ export function normalizeWeatherForecast(data, loc, config, now) {
     };
 }
 
-/** @param {Date} date @param {string} [timeZone] */
-function weatherLocalTime(date, timeZone) {
-    let formatter;
+/** @param {string} [timeZone] */
+function getWeatherTimeFormatter(timeZone) {
     const options = /** @type {Intl.DateTimeFormatOptions} */ ({
         year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit',
         hourCycle: 'h23', calendar: 'gregory'
     });
-    try { formatter = new Intl.DateTimeFormat('en-GB', { ...options, timeZone }); }
-    catch { formatter = new Intl.DateTimeFormat('en-GB', options); }
+    try { return new Intl.DateTimeFormat('en-GB', { ...options, timeZone }); }
+    catch { return new Intl.DateTimeFormat('en-GB', options); }
+}
+
+/** @param {Intl.DateTimeFormat} formatter @param {Date} date */
+function weatherLocalTime(formatter, date) {
     const { year, month, day, hour, minute } = Object.fromEntries(formatter.formatToParts(date).map(p => [p.type, p.value]));
     return { date: `${year}-${month}-${day}`, time: `${hour}:${minute}` };
 }
@@ -159,10 +162,11 @@ function nextWeatherDate(date) {
 
 /** @param {import('../types').WeatherData} data @param {Date} now */
 export function getForecastPeriod(data, now) {
-    const local = weatherLocalTime(now, data.timezone);
+    const formatter = getWeatherTimeFormatter(data.timezone);
+    const local = weatherLocalTime(formatter, now);
     const tomorrow = nextWeatherDate(local.date);
     const saved = new Date(data.timestamp ?? NaN);
-    const savedDate = Number.isFinite(saved.getTime()) ? weatherLocalTime(saved, data.timezone).date : local.date;
+    const savedDate = Number.isFinite(saved.getTime()) ? weatherLocalTime(formatter, saved).date : local.date;
     const days = (data.daily || []).filter(day => day.date ? day.date >= local.date : savedDate === local.date);
     const today = days.find(day => day.date === local.date) ?? days.find(day => !day.date);
     const upcoming = days.flatMap(day => [

@@ -281,7 +281,7 @@ test('Service Worker 安装过程只请求同源核心资源', async () => {
   vm.runInNewContext(worker, {
     self: { registration: { scope: `${origin}/` }, addEventListener: (name, handler) => installHandlers.set(name, handler) },
     URL,
-    Request: InstallRequest, Response, AbortSignal,
+    Request: InstallRequest, Response, AbortSignal, TextDecoder,
     fetch: async request => {
       installRequests.push([request.url, request.cache]);
       if (request.url === `${origin}/`) return new Response(`window.__GLASS_BUILD_HTML__="${version}"`);

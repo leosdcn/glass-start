@@ -11,7 +11,7 @@ const { outputFiles } = await build({
     bundle: true, write: false, format: 'cjs', platform: 'node',
     plugins: [{ name: 'browser-boundaries', setup(b) {
         b.onLoad({ filter: /utils\/idb\.js$/ }, () => ({ contents: `
-            export async function getWallpaperSelectionDB(){if(db.readGate) await db.readGate;return db.value}
+            export async function getWallpaperSelectionDB(){db.reads++;if(db.readGate) await db.readGate;return db.value}
             export async function setWallpaperSelectionDB(selection){
                 db.attempts++; if(db.gate) await db.gate;
                 if(db.fail) return false;
@@ -34,7 +34,7 @@ function fixture() {
     }
     const base = new Element(), next = new Element(), images = [], messages = [];
     const storage = new Map(), metrics = { storageWrites: 0, decodes: 0 };
-    const db = { value: null, writes: 0, attempts: 0, fail: false, gate: null };
+    const db = { value: null, reads: 0, writes: 0, attempts: 0, fail: false, gate: null };
     const fades = [];
     next.animate = () => {
         const { promise, resolve, reject } = Promise.withResolvers();
@@ -92,6 +92,7 @@ test('同一网络壁纸只创建和解码一张图片，预览、渲染及并�
     assert.equal(f.images.length, 1, '正式渲染不得重新创建图片');
     release();
     assert.equal(await first, true);
+    assert.equal(f.db.reads, 1, '提交已解码壁纸只读取一次实际选择');
     await f.settleFade();
     const storageWrites = f.metrics.storageWrites;
     assert.equal(await f.app.selectWallpaper(url), true);

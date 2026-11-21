@@ -43,6 +43,21 @@ test('切换标签页后从起始页原来的快捷书签继续 Tab 导航', asy
     assert.equal(await evalJS(focused(1)), true);
     await tab();
     assert.equal(await evalJS(focused(2)), true);
+
+    assert.equal(await evalJS(`(() => {
+      const writes = [];
+      const setItem = Storage.prototype.setItem;
+      Storage.prototype.setItem = function(key, value) {
+        if (this === sessionStorage && key === 'startpage_section') writes.push(value);
+        return setItem.call(this, key, value);
+      };
+      try {
+        navigator.serviceWorker.dispatchEvent(new Event('controllerchange'));
+      } finally {
+        Storage.prototype.setItem = setItem;
+      }
+      return writes.length;
+    })()`), 0, 'Worker 接管不会重新应用已稳定的屏幕状态');
   } finally {
     if (otherTab) await send('Target.closeTarget', { targetId: otherTab.targetId });
     await chrome.close();

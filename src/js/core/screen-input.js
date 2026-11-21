@@ -38,7 +38,7 @@ const wheelSession = {
     }
 };
 
-/** @type {{ id: number, x: number, y: number, time: number, canReturn: boolean }|null} */
+/** @type {{ id: number, x: number, y: number, time: number, section: 'start'|'nav' }|null} */
 let touch = null;
 let navTouchMoveBlocked = false;
 const handledTouchMoves = new WeakSet();
@@ -143,11 +143,10 @@ function handleWheel(e) {
 function handleTouchStart(e) {
     clearTouchGesture();
     if (isScreenTransitioning() || !OverlayStack.isEmpty() || isExcluded(e.target) || e.touches.length !== 1) return;
-    if (state.currentSection === 'start' && canScrollStartDown()) return;
-    const atTop = isNavAtTop();
-    if (state.currentSection === 'nav' && !atTop) return;
+    const section = state.currentSection;
+    if (section === 'start' ? canScrollStartDown() : !isNavAtTop()) return;
     const point = e.touches[0];
-    touch = { id: point.identifier, x: point.clientX, y: point.clientY, time: performance.now(), canReturn: atTop };
+    touch = { id: point.identifier, x: point.clientX, y: point.clientY, time: performance.now(), section };
 }
 
 /**
@@ -160,11 +159,12 @@ function handleTouchStart(e) {
 function handleTouch(e, ending, cancelScroll = false) {
     const gesture = touch;
     if (!gesture) return;
-    if (isScreenTransitioning() || !OverlayStack.isEmpty() || (!ending && e.touches.length !== 1)) {
+    if (gesture.section !== state.currentSection || isScreenTransitioning() ||
+        !OverlayStack.isEmpty() || (!ending && e.touches.length !== 1)) {
         clearTouchGesture();
         return;
     }
-    if (state.currentSection === 'nav' && !isNavAtTop()) {
+    if (gesture.section === 'nav' && !isNavAtTop()) {
         clearTouchGesture();
         return;
     }
@@ -179,10 +179,9 @@ function handleTouch(e, ending, cancelScroll = false) {
     const flick = ending && distance >= CONFIG.GESTURE.FLICK_MIN_DISTANCE
         && distance / Math.max(1, performance.now() - gesture.time) > CONFIG.GESTURE.FLICK_MIN_VELOCITY;
     if (distance < CONFIG.GESTURE.SWIPE_THRESHOLD && !flick) return;
-    const entering = state.currentSection === 'start' && dy > 0;
-    const leaving = state.currentSection === 'nav' && dy < 0 && gesture.canReturn;
-    if (!entering && !leaving) return;
-    clearTouchGesture();
+    const entering = gesture.section === 'start';
+    if (entering ? dy <= 0 : dy >= 0) return;
+    if (!ending) clearTouchGesture();
     if (!ending && cancelScroll && e.cancelable) e.preventDefault();
     if (entering) switchToNav();
     else switchToStart();

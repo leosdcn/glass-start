@@ -859,6 +859,20 @@ test('减弱动效切换时结束搜索图标动画，旧书签行不补播入�
     })()`), 2);
     await motion('reduce');
     await waitFor(evalJS, '!dom.engineIcon.querySelector("[data-leaving]") && dom.engineIcon.getAnimations({subtree: true}).length === 0');
+    const scrollBehavior = await evalJS(`(() => {
+      const input = dom.searchInput;
+      input.focus();
+      input.value = 'github';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      const item = dom.suggestionMenu.querySelector('.suggestion-item');
+      if (!item) return null;
+      let behavior;
+      item.scrollIntoView = options => { behavior = options.behavior; };
+      input.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }));
+      hideSuggestions();
+      return behavior;
+    })()`);
+    assert.equal(scrollBehavior, 'instant', '减弱动效时键盘选择联想项立即滚动');
     await evalJS('openEditModal()');
     await evalJS('dom.addBookmarkBtn.click()');
     await motion('no-preference');
