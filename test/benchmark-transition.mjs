@@ -5,7 +5,7 @@ import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { startServer } from './support/server.mjs';
 import { launchChrome } from './support/cdp.mjs';
-import { createEvaluator, getFreePort, navigateAndWait, sleep } from './support/helpers.mjs';
+import { createEvaluator, navigateAndWait, sleep } from './support/helpers.mjs';
 
 export function parseOptions(args) {
     const options = { rounds:5, throttle:1, compare:null, json:null, cold:false, mobile:false, help:false };
@@ -104,7 +104,7 @@ export async function measureTransition(direction, timeoutMs = 10000, immediate 
 
 async function benchmarkSite(url, options) {
     // 每个站点使用新的临时浏览器配置；不复用上一个版本的缓存与会话。
-    const chrome = await launchChrome({ port:await getFreePort(), url:'about:blank', testMode:false, disableGPU:false });
+    const chrome = await launchChrome({ url:'about:blank', testMode:false, disableGPU:false });
     const { send } = chrome;
     const evalJS = createEvaluator(send);
     try {

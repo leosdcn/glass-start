@@ -3,7 +3,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { startServer } from '../test/support/server.mjs';
 import { launchChrome } from '../test/support/cdp.mjs';
-import { createEvaluator, getFreePort, sleep, waitFor, navigateAndWait } from '../test/support/helpers.mjs';
+import { createEvaluator, sleep, waitFor, navigateAndWait } from '../test/support/helpers.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = join(__dirname, '..');
@@ -18,12 +18,10 @@ await mkdir(OUTPUT_DIR, { recursive: true });
 
 console.log('🚀 正在启动允许 GPU 加速的 Chrome 截图会话...');
 const server = await startServer(0, undefined, {}, { testMode: true });
-const cdpPort = await getFreePort();
 const targetUrl = `http://127.0.0.1:${server.port}/index.html`;
 
 // 启动带有 GPU 加速并直接导航的 Chrome
 const chrome = await launchChrome({
-  port: cdpPort,
   url: targetUrl,
   disableGPU: false,
   testMode: true

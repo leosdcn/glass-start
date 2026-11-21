@@ -5,7 +5,7 @@ import { posix } from 'node:path';
 import { parse } from 'acorn';
 import { startServer } from './support/server.mjs';
 import { launchChrome } from './support/cdp.mjs';
-import { getFreePort, createEvaluator, waitFor } from './support/helpers.mjs';
+import { createEvaluator, waitFor } from './support/helpers.mjs';
 
 const require = createRequire(import.meta.url);
 const { buildAppJavaScript } = require('../scripts/build.cjs');
@@ -89,7 +89,7 @@ const productionServer = await startServer(0, undefined, {}, { testMode: false }
 let chrome;
 const exceptions = [];
 const connect = async testMode => {
-  chrome = await launchChrome({port:await getFreePort(), url:`http://127.0.0.1:${testMode ? server.port : productionServer.port}/`, testMode});
+  chrome = await launchChrome({url:`http://127.0.0.1:${testMode ? server.port : productionServer.port}/`, testMode});
   chrome.send('Runtime.exceptionThrown', event => exceptions.push(event.exceptionDetails));
   return createEvaluator(chrome.send);
 };

@@ -78,16 +78,16 @@ export function initDragSort() {
             cancelAnimationFrame(touchMoveRafId);
             touchMoveRafId = null;
         }
-        currentEditList.querySelectorAll('.edit-row-card').forEach(el => {
-            el.classList.remove('dragging', 'drop-target-above', 'drop-target-below');
-        });
+        dragSrc?.classList.remove('dragging');
+        indicatorTarget?.classList.remove('drop-target-above', 'drop-target-below');
         lastOverTarget = null;
         lastIsTop = null;
         indicatorTarget = null;
         indicatorIsTop = null;
     }
 
-    let isDragHandleActive = false;
+    /** @type {Element | null} */
+    let armedCard = null;
     /** @type {ReturnType<typeof setTimeout> | null} */
     let dragSettlingTimer = null;
 
@@ -118,17 +118,15 @@ export function initDragSort() {
     }
 
     function resetDragSession() {
-        const hadPointerDrag = isDragHandleActive || dragSrc !== null;
-        isDragHandleActive = false;
+        if (!armedCard && !dragSrc) return;
+        armedCard?.setAttribute('draggable', 'false');
+        armedCard = null;
         document.body.classList.remove('bookmark-dragging');
-        currentEditList.querySelectorAll('.edit-row-card[draggable="true"]').forEach(card => {
-            card.setAttribute('draggable', 'false');
-        });
         clearDragClasses();
         cachedListRect = null;
         dragSrc = null;
         touchIdentifier = null;
-        if (hadPointerDrag) blurActiveHandle();
+        blurActiveHandle();
     }
 
     // ── 共享：DOM 重排 + draftBookmarks 同步 + FLIP 动画 ─────────────────────
@@ -177,14 +175,11 @@ export function initDragSort() {
     currentEditList.addEventListener('mousedown', e => {
         const targetEl = e.target instanceof Element ? e.target : null;
         const handle = targetEl?.closest('.drag-handle');
-        const card = targetEl?.closest('.edit-row-card');
-        if (handle && card) {
-            isDragHandleActive = true;
-            card.setAttribute('draggable', 'true');
-        } else if (card) {
-            isDragHandleActive = false;
-            card.setAttribute('draggable', 'false');
-        }
+        const card = handle?.closest('.edit-row-card') ?? null;
+        if (card === armedCard) return;
+        armedCard?.setAttribute('draggable', 'false');
+        armedCard = card;
+        armedCard?.setAttribute('draggable', 'true');
     });
 
     document.addEventListener('mouseup', () => {
@@ -192,13 +187,9 @@ export function initDragSort() {
     }, { passive: true });
 
     currentEditList.addEventListener('dragstart', e => {
-        if (!isDragHandleActive) {
-            e.preventDefault();
-            return;
-        }
         const targetEl = e.target instanceof Element ? e.target : null;
         const item = /** @type {HTMLElement|null} */ (targetEl?.closest('.edit-row-card'));
-        if (!item) {
+        if (!item || item !== armedCard) {
             e.preventDefault();
             return;
         }

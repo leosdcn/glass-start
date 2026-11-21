@@ -52,6 +52,7 @@
 | 双屏、滚轮、触摸与恢复 | `startSection`、`navSection`、`navContent` | `core/screen-state.js`、`core/screen-input.js` | `page.css`、`animations.css` | `ui-screen-`、`ui-input-device-performance` |
 | 快捷书签、分类导航与图标 | `bookmarks`、`navCategories`、`sidebarList` | `modules/bookmarks.js`；字段与 URL 在 `utils/bookmark-model.js`，图标在 `utils/favicon.js`，目录索引在 `utils/category-catalog.js` | `page.css`、`glass.css` | `data-i18n`、`ui-nav-rendering`、`infra-theme-favicon` |
 | 搜索、引擎及本地/网络联想 | `searchInput`、`engineBtn`、`suggestionMenu` | `modules/search.js`、`modules/search-events.js`；`utils/bookmark-search.js`；`config/engines.js`、`config/engine-icons.js`、`config/engine-head.js` | `search.css` | `data-request-performance`、`data-pure-models`、`data-bookmarks-features` |
+| 以图搜图、图片链接分流 | `imageSearchBtn`、`imageSearchInput`、`lensUploadFrame` | `modules/search.js`、`modules/search-events.js`；上传配置在 `config/image-search-uploads.json`，搜图结果页在 `config/engines.js` | `search.css`、`page.css` | `ui-overlay-modals` |
 | 设置打开、完成、取消与重置 | `editModal`、`saveEditBtn`、`tabAppearance`、`tabData` | `modules/settings.js`；控件事件在 `modules/settings-events.js` | `settings.css`；外观/数据页布局在 `glass.css` | `data-settings-save`、`ui-modal-accessibility`、`ui-rendered-contracts` |
 | 书签草稿、挑选与拖拽 | `draftBookmarks`、`editList`、`bookmarkPicker` | `state/bookmark-draft.js`、`modules/bookmark-editor.js`、`modules/bookmark-picker.js`、`modules/bookmark-drag.js` | `settings.css`、`glass.css` | `data-bookmark-picker`、`data-audit-regressions`、`data-pure-models` |
 | 壁纸预览、取消、保存与主题色 | `bgLayer`、`presetWallpaperGrid`、`urlBgInput` | `modules/wallpaper.js`；`core/wallpaper-renderer.js`、`core/theme-engine.js`；`utils/idb.js`；`config/backgrounds.js`、`config/themes.js` | `page.css`；壁纸网格在 `glass.css` | `data-wallpaper`、`infra-theme-favicon` |
@@ -112,14 +113,14 @@ CSS 通过 `main.css` 按其 `@import` 顺序编译为内联样式，不增加�
 | `modalState.draftBookmarks`、`bookmarksChanged` | 通过 `state/bookmark-draft.js` 增删改排；编辑器负责行渲染、清洗与收集，挑选器负责目录卡片，`modules/bookmark-drag.js` 负责拖拽，删除与重排共用 `modules/bookmark-motion.js` 的 FLIP。 |
 | 壁纸草稿、`state.bg / customWallpaper`、图片任务及暗度预览队列 | `modules/wallpaper.js` 管理选择、预览和提交；设置模块决定何时保存或取消。图层与取色分别在 `core/wallpaper-renderer.js / theme-engine.js`。 |
 | 语言、暗度、切屏动效草稿 | `modules/settings.js` 协调草稿与顺序提交；实际暗度显示交给 wallpaper，切屏模式交给 screen-state，语言生效通过刷新完成。 |
-| `pageData.categories / bookmarks` | 分类由 `init.js` 初始化；快捷书签由 `modules/bookmarks.js` 派生、保存并渲染。搜索和挑选器通过目录索引读取，不直接改目录。 |
+| `pageData.categories / bookmarks` | 分类由 `init.js` 初始化，发布后只读。内容变化时替换目录数组，按数组和语言重建共享索引。快捷书签由 `modules/bookmarks.js` 派生、保存并渲染。 |
 | 搜索候选、天气请求、图层和主题内部状态 | 留在对应模块内部；跨模块只调用导出操作，不为测试新增生产状态写入口。 |
 | 持久化 | 业务模块决定内容与时机；`utils/storage.js / idb.js` 只执行存储操作，不回调业务或渲染。设置保存不是跨存储的原子事务。 |
 | 浮层显示、隔离与焦点 | `core/overlay-stack.js` 维护关闭顺序及非模态面板的交互状态，原生模态负责背景隔离和 Tab 导航。顶层转交 Escape，业务提供关闭回调。 |
 
 ### 工程、样式与测试
 
-构建入口 `scripts/build.cjs` 负责产物流程，`publish-build.cjs` 负责发布与前版回收，`html-template.cjs` 只处理模板结构，扩展构建复用网页编译。开发服务与文件监听分别在 `server.cjs / watch.cjs`（支持标准 HTTP 以及基于 `mkcert` 本地证书的零依赖 HTTPS 模式）。单文件通过父目录按文件名监听，并比较当前内容，编辑器原子替换后仍可继续重建。lint 的 DOM、CSS、多语言检查分别由对应辅助脚本实现，不进入浏览器。样式按上方样式索引划分布局、材质和动效，同一控件可组合使用；测试共享设施只放在 `test/support/`，业务源码不得导入。
+构建入口 `scripts/build.cjs` 负责产物流程，`publish-build.cjs` 负责发布与前版回收，`html-template.cjs` 只处理模板结构，扩展构建复用网页编译。开发服务与文件监听分别在 `server.cjs / watch.cjs`（支持标准 HTTP 以及基于 `mkcert` 本地证书的零依赖 HTTPS 模式）。单文件通过父目录按文件名监听。单文件和递归目录监听均比较内容，同内容保存跳过重建，新增、删除和原子替换仍会检查。lint 的 DOM、CSS、多语言检查分别由对应辅助脚本实现，不进入浏览器。样式按上方样式索引划分布局、材质和动效，同一控件可组合使用；测试共享设施只放在 `test/support/`，业务源码不得导入。
 
 ## 模块与构建
 
@@ -278,7 +279,7 @@ LocalStorage 仅保存背景索引和轻量首屏提示，新选择不写入 Bas
 - `core/screen-input.js` 将滚轮在短时间窗口内的同向位移累计到 `CONFIG.GESTURE.SWIPE_THRESHOLD`；反向输入或连续 `WHEEL_IDLE_MS`（180ms）无输入时，开始新一轮。切屏后及动画期间的同向尾部输入不再触发切屏。滚轮事件没有可靠的跨浏览器手势结束标志，静默间隔是近似边界，并非物理惯性检测。
 - 内容尚未到顶时，该轮滚轮输入只滚内容；到顶后须重新向上滚动才能返回。侧边栏、天气、编辑按钮及输入控件的手势不参与切屏；带修饰键的滚轮和横向滚动交给浏览器。
 - 滚轮识别使用被动监听。滚动事件记录内容是否到顶，惯性到顶后，本轮余下的同向输入仍归内容滚动，直到滚轮静默或反向才开启新一轮。切屏动画期间临时阻止原生滚动，过渡结算、减弱动效或唤醒校准均移除拦截。分类联动先读取侧栏几何信息，再更新高亮。点击发出滚动请求，高亮始终由当前位置计算。
-- 触屏按滑动方向及 `CONFIG.GESTURE` 中的位移、平均速度阈值识别切屏；手指落下时记录内容是否在顶部，同一次滑动滚到顶部不会接着返回。全局触摸监听为被动监听；允许取消默认滚动的 `touchmove` 仅绑定首屏和处于顶部的导航内容区，导航内容滚离顶部即解除局部监听。局部监听在触摸开始前安装，确保浏览器仍允许取消切屏手势的默认滚动。多指、取消、失焦或唤醒会清除本轮触屏状态。
+- 触屏按滑动方向及 `CONFIG.GESTURE` 中的位移、平均速度阈值识别切屏；手指落下时记录内容是否在顶部，同一次滑动滚到顶部不会接着返回。全局触摸监听为被动监听；允许取消默认滚动的 `touchmove` 仅绑定首屏和处于顶部的导航内容区，导航内容滚离顶部即解除局部监听。局部监听在触摸开始前安装，确保浏览器仍允许取消切屏手势的默认滚动。已经由局部监听处理的事件冒泡后直接跳过。多指、取消、失焦或唤醒会清除本轮触屏状态。
 - 首屏内容溢出时先滚动首屏，在末尾开始的新滚轮或触摸手势才能进入导航。导航页返回首屏须在内容顶部；顶部返回按钮不受此滚动位置限制。键盘输入及浮层状态由 `events.js` 协调。键盘切入导航页将后续原生滚动交由 `navContent`，但将焦点移交安排在动效结束后的微任务（`afterScreenTransition`）中执行，避免在起跳首帧对已弄脏的状态类触发整树强制同步重排；首屏按键短路第二屏滚动位置读取。
 - 所有切屏入口在动画期间不反转、不重启、不排队。过渡时长及曲线由 CSS 定义。目标样式更新后的首个动画帧读取导航屏自身的 `transform` 过渡对象，完成、取消和没有过渡对象均走同一收尾路径。减弱动效立即完成。
 - 切屏前清除卡片 3D 倾斜，动画期间不重新启用倾斜；已归零的滚动位置不重复写样式。从内容中间返回时，导航列表退场后才归零，避免首帧重绘列表及可见内容跳动；进入导航前仍确保列表位于顶部。
@@ -287,7 +288,7 @@ LocalStorage 仅保存背景索引和轻量首屏提示，新选择不写入 Bas
 
 `reconcileScreenState()` 清理过渡任务并校准目标屏和可访问性。正常进入、退出与校准共用目标状态应用逻辑。加载或唤醒恢复到导航时保留有效焦点，焦点已落在页面主体时交给 `navContent` 接续键盘滚动。默认无明确目标且仍在过渡时会跳过，唤醒调用传入 `force=true`。下滑提示由导航发现状态驱动，CSS 完成淡出。恢复默认通过切屏模块删除记录并同步显示。
 
-首次加载由 `init()` 校准目标屏，随后触发的普通 `pageshow` 不会打断进行中的切屏。顶层 `events.js` 的 `handleAppWakeUp()` 处理 BFCache 恢复时的 `pageshow`（`persisted === true`）和恢复可见的 `visibilitychange`，清理残留交互及手势状态，强制校准屏幕，刷新时钟和天气，并检查 Service Worker 更新。BFCache 恢复沿用 CSS 的合成提示策略，不写入内联 `will-change`。校准时在禁用过渡的情况下提交目标布局，再恢复过渡，避免补播动画；复用未变化的书签和分类节点，目录变化时仍可重建导航。页面隐藏时由同一唤醒模块停止时钟计时器，恢复可见后更新时间并重新安排下一整分钟的更新。时钟与日期直接比较已渲染文本，不维护重复的时间/日号缓存或供测试改写缓存的 setter，跨月同日恢复也会更新日期。
+首次加载由 `init()` 校准目标屏，随后触发的普通 `pageshow` 不会打断进行中的切屏。顶层 `events.js` 统一处理页面唤醒。可见页面从 BFCache 返回时由 `pageshow` 处理一次，普通切回标签页或恢复后才变为可见时由 `visibilitychange` 处理。唤醒会清理残留交互及手势状态，强制校准屏幕，刷新时钟和天气，并检查 Service Worker 更新。BFCache 恢复沿用 CSS 的合成提示策略，不写入内联 `will-change`。校准时在禁用过渡的情况下提交目标布局，再恢复过渡，避免补播动画；复用未变化的书签和分类节点，目录变化时仍可重建导航。页面隐藏时由同一唤醒模块停止时钟计时器，恢复可见后更新时间并重新安排下一整分钟的更新。时钟与日期直接比较已渲染文本，不维护重复的时间/日号缓存或供测试改写缓存的 setter，跨月同日恢复也会更新日期。
 
 Chrome（首屏已有的 `.is-chrome` 标记）为两屏保留 `will-change: transform`，导航退出后保留离屏玻璃结构，减少重复进入时的绘制与 GPU 进程任务开销；离屏导航仍由位置、`pointer-events: none`、`inert` 与无障碍属性隔离。其他浏览器在导航退出后继续隐藏并关闭离屏毛玻璃，仅在 `body.is-screen-transitioning` 期间申请合成提示，保留 WebKit 原有回收策略。壁纸切换仍通过 `.is-crossfading` 动态分配 `will-change`。`blur` / `pagehide` 添加 `body.tab-blurred`，收到下一次用户交互后解除，防止悬停残留。两屏均由浏览器保留仍有效的焦点，焦点环由 `:focus-visible` 控制。
 
@@ -317,7 +318,7 @@ Chrome（首屏已有的 `.is-chrome` 标记）为两屏保留 `will-change: tra
 | `FAVICON_CACHE` | 外部图标缓存优先；网络请求有超时，按容量限额 FIFO 淘汰 |
 | `IMG_CACHE` | 同源图片按 worker scope 与构建分池，先查缓存再请求网络；保留上一版供网络失败或服务端错误时回退 |
 
-部署作用域和图片池命名由 `utils/offline-cache.js` 提供。缓存配额、超时和预缓存清单由 `sw.js` 管理。
+部署作用域、图片池命名和页面与 Worker 共用的 `ACTIVATE_UPDATE` 消息类型由 `utils/offline-cache.js` 提供。缓存配额、超时和预缓存清单由 `sw.js` 管理。
 
 设置中的缓存清理按当前页面目录匹配部署 scope，删除当前 scope 的离线图片池；保留版本化核心池，确保活跃和等待中的 Worker 可以继续服务，旧核心池随版本接管回收。其他部署、无法确认归属的历史池及网页共享 favicon 池保留。
 
@@ -325,7 +326,7 @@ Chrome（首屏已有的 `.is-chrome` 标记）为两屏保留 `will-change: tra
 
 `src/js/core/service-worker-updates.js` 在启动、页面唤醒、恢复联网及前台每五分钟检查更新，使用 `updateViaCache: 'none'`，唤醒检查按五分钟节流。新版安装成功后默认保持 waiting，起始页左上角显示“有新版本”。用户确认后，发起页记录目标 Worker 和当时的搜索输入，再发送 `ACTIVATE_UPDATE`。Worker 补齐并校验核心资源后调用 `skipWaiting()`。目标 Worker 接管时，发起页再次检查设置会话、弹窗和搜索输入。期间出现新草稿、弹窗或搜索时保留当前页面，用户可再次确认刷新。其他标签页也各自确认。更新超时可重试，旧客户端全部退出后仍可自然激活。
 
-核心缓存命中时不后台重验证。导航核对当前文档及应用脚本的构建指纹，缺失或失配时尝试补齐。脚本按请求的构建身份查找，缓存及网络响应均须匹配该构建。无法补齐时返回独立恢复页。点击修复后先尝试补齐当前构建，仍无法获取时再请求新版安装并等待接管。
+核心缓存命中时不后台重验证。导航核对当前文档及应用脚本的构建指纹，缺失或失配时尝试补齐。同一 Worker 的并发入口共用进行中的核心缓存修复，完成或失败后均释放任务。脚本按请求的构建身份查找，缓存及网络响应均须匹配该构建。无法补齐时返回独立恢复页。点击修复后先尝试补齐当前构建，仍无法获取时再请求新版安装并等待接管。
 
 核心与同源图片池使用 scope 路径前缀。安装时将已有核心池记录在当前核心池，接管时只在这份清单内回收。保留当前池和清单内构建时间最新且带激活标记的池。被替换的旧等待版本可以回收，后来开始安装的版本由各自的接管流程处理。找不到已激活的候选池时，保留含旧版 `app.js` 的候选池供迁移。同源图片池保留当前版和其余池中构建时间最新的一版。外部图标池继续同源共享。
 
@@ -361,7 +362,7 @@ Chrome（首屏已有的 `.is-chrome` 标记）为两屏保留 `will-change: tra
 
 动态 HTML 文本经 `escapeHtml()` 转义；`safeUrl(url)` 检查 HTTP(S)、图片 Data URL 及本地图标路径，默认返回适合 HTML 模板属性的转义值；通过原生 DOM 属性赋值时使用 `safeUrl(url, false)`，保留 URL 中的原始字符。两种模式均执行相同的白名单检查，拒绝时返回 `#`。网页版 CSP 由 `scripts/content-security-policy.cjs` 生成并写入产物 HTML 和 `_headers`，后者需托管平台实际支持。网页版内联脚本及样式仍使用 `'unsafe-inline'`；不能据此声称消除了所有 XSS 风险。
 
-Chrome 扩展构建由同一策略生成清单 CSP 和主机权限。脚本仅允许本地来源，内联启动脚本外置为 `bootstrap-*.js`，样式允许内联。上传目标路径取自以图搜图配置。
+Chrome 扩展构建从 `scripts/content-security-policy.cjs` 获取策略，将 `host_permissions` 和 `content_security_policy` 写入生成的 `extension/manifest.json`。脚本仅允许本地来源，内联启动脚本外置为 `bootstrap-*.js`，样式允许内联。上传目标路径取自以图搜图配置。
 
 测试入口、命令和环境要求见 README。以下边界用于解释验证结果：
 

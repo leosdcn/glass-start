@@ -183,6 +183,14 @@ test('页面切换状态、无障碍隔离与 BFCache 恢复 (浏览器回归)',
           const token = await evalJS(`(() => {
             window.__bfcacheToken = Math.random();
             window.__bfcacheRestored = false;
+            if (window.__bfcacheScreenWrites === undefined) {
+              const originalSetItem = Storage.prototype.setItem;
+              Storage.prototype.setItem = function(key, value) {
+                if (this === sessionStorage && key === 'startpage_section') window.__bfcacheScreenWrites++;
+                return originalSetItem.call(this, key, value);
+              };
+            }
+            window.__bfcacheScreenWrites = 0;
             window.addEventListener('pageshow', event => { window.__bfcacheRestored = event.persisted; }, { once: true });
             return __bfcacheToken;
           })()`);
@@ -199,6 +207,7 @@ test('页面切换状态、无障碍隔离与 BFCache 恢复 (浏览器回归)',
           }
           restored = await evalJS(`({
             token: __bfcacheToken, section: state.currentSection, unlocked: !isScreenTransitioning(),
+            writes: __bfcacheScreenWrites,
             inlineLayers: [dom.startSection.style.willChange, dom.navSection.style.willChange],
             layers: [getComputedStyle(dom.startSection).willChange, getComputedStyle(dom.navSection).willChange],
             isolated: dom.startSection.inert === (state.currentSection === 'nav') && dom.navSection.inert === (state.currentSection === 'start'),
@@ -206,6 +215,7 @@ test('页面切换状态、无障碍隔离与 BFCache 恢复 (浏览器回归)',
           })`);
           assert.equal(restored.token, token);
           assert.equal(restored.section, section);
+          assert.equal(restored.writes, 1, '一次 BFCache 恢复只校准一次屏幕');
           break;
         }
         assert.ok(restored.unlocked && restored.isolated && Math.abs(restored.top) < 2, JSON.stringify(restored));

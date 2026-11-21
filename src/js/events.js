@@ -59,6 +59,8 @@ export function handleAppWakeUp() {
 }
 
 export function bindEvents() {
+    let waitingForPageShow = false;
+    window.addEventListener('pagehide', event => { waitingForPageShow = event.persisted; }, { passive: true });
     window.addEventListener('storage', event => {
         const keys = CONFIG.KEYS;
         if (event.storageArea === localStorage && (event.key === null || event.key === keys.BOOKMARKS ||
@@ -66,10 +68,12 @@ export function bindEvents() {
     });
     document.addEventListener('visibilitychange', () => {
         if (document.hidden) stopClockTimer();
-        else handleAppWakeUp();
+        // 从 BFCache 返回时，pageshow 统一接管这一轮唤醒。
+        else if (!waitingForPageShow) handleAppWakeUp();
     }, { passive: true });
     window.addEventListener('pageshow', event => {
-        if (event.persisted) handleAppWakeUp();
+        waitingForPageShow = false;
+        if (event.persisted && !document.hidden) handleAppWakeUp();
     }, { passive: true });
 
     const { searchInput, engineBtn, weatherBtn } = dom;

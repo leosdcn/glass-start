@@ -1,4 +1,3 @@
-import { createServer as createNetServer } from 'node:net';
 import { startServer } from './server.mjs';
 import { launchChrome } from './cdp.mjs';
 import assert from 'node:assert/strict';
@@ -60,19 +59,6 @@ export async function navigateAndWait(send, evalJS, url, predicateJs = 'true', t
     if (contextError && error.message.startsWith('Timeout')) throw new Error(error.message, { cause: contextError });
     throw error;
   }
-}
-
-/** 获取系统当前内核分配的可用空闲端口 */
-export async function getFreePort() {
-  return new Promise((resolve, reject) => {
-    const srv = createNetServer();
-    srv.listen(0, '127.0.0.1', () => {
-      const addr = srv.address();
-      const port = typeof addr === 'object' && addr ? addr.port : 0;
-      srv.close(() => resolve(port));
-    });
-    srv.on('error', reject);
-  });
 }
 
 /**

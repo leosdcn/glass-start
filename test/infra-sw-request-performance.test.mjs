@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import vm from 'node:vm';
 import { DIST_DIR, startServer } from './support/server.mjs';
 import { launchChrome } from './support/cdp.mjs';
-import { getFreePort, createEvaluator, waitFor, navigateAndWait } from './support/helpers.mjs';
+import { createEvaluator, waitFor, navigateAndWait } from './support/helpers.mjs';
 
 const worker = readFileSync(join(DIST_DIR, 'sw.js'), 'utf8');
 const stamp = readFileSync(join(DIST_DIR, 'index.html'), 'utf8').match(/__GLASS_BUILD_HTML__="([^"]+)"/)[1];
@@ -29,7 +29,7 @@ const server = await startServer(0, undefined, {
     '/burst/icons/variants.png':image, '/burst/icons/cancel.png':image
 });
 const url = `http://127.0.0.1:${server.port}/burst/`;
-const chrome = await launchChrome({port:await getFreePort(),url});
+const chrome = await launchChrome({url});
 const {send} = chrome;
 const evalJS = createEvaluator(send);
 const release = () => { for (const resolve of pending.splice(0)) resolve(); };
@@ -91,12 +91,22 @@ const handlers = new Map(), stores = new Map();
 let downloads = 0, releaseCacheWrite, failExternal = false;
 const cacheWriteGate = new Promise(resolve=>{releaseCacheWrite=resolve;});
 let holdPrune;
+const coreDownloads = new Map();
+let failCoreRepair = false;
+const coreScript = `/app-builds/${stamp}.js`;
+const cacheUrl = request => new URL(request.url ?? request, 'https://example.test/').href;
 vm.runInNewContext(worker, {
     self:{location:{origin:'https://example.test',href:'https://example.test/sw.js'},
         registration:{scope:'https://example.test/'},addEventListener:(name,fn)=>handlers.set(name,fn),
         clients:{get:async id=>({url:new URL(id,'https://example.test/').href})}},
     URL, Request, Response, AbortController, setTimeout, clearTimeout,
-    fetch:async()=>{
+    fetch:async request=>{
+        const path = new URL(request.url).pathname;
+        if (path === '/' || path === coreScript) {
+            coreDownloads.set(path, (coreDownloads.get(path) ?? 0) + 1);
+            if (failCoreRepair) return new Response(null, {status:503});
+            return new Response(path === '/' ? html : `window.__GLASS_BUILD_APP__="${stamp}";`);
+        }
         downloads++;
         if(failExternal)throw new Error('offline');
         return new Response('shared-body',{headers:{'Content-Type':'image/png'}});
@@ -105,9 +115,9 @@ vm.runInNewContext(worker, {
         if(!stores.has(name))stores.set(name,new Map());
         const entries=stores.get(name);
         return {
-            match:async request=>entries.get(request.url)?.clone(),
-            put:async(request,response)=>{await cacheWriteGate;entries.set(request.url,response);},
-            delete:async request=>entries.delete(request.url),
+            match:async request=>entries.get(cacheUrl(request))?.clone(),
+            put:async(request,response)=>{await cacheWriteGate;entries.set(cacheUrl(request),response);},
+            delete:async request=>entries.delete(cacheUrl(request)),
             keys:async()=>{
                 const keys=[...entries.keys()].map(url=>new Request(url));
                 if (holdPrune) await holdPrune(keys);
@@ -164,3 +174,13 @@ await waitFor(() => images.size === 204, 'all new responses stored');
 resumePrune.resolve();
 await Promise.all([firstWrite, ...more].map(task => task.settled()));
 assert.equal(images.size, 200, '淘汰扫描期间的写入必须触发再次扫描');
+
+const requestCore = () => Promise.all(['/', '/index.html'].map(path => dispatch('https://example.test' + path).response));
+failCoreRepair = true;
+assert.deepEqual((await requestCore()).map(response => response.status), [503, 503]);
+assert.equal(coreDownloads.get('/'), 1, '并发导航共用一次失败的修复');
+failCoreRepair = false;
+const repaired = await requestCore();
+assert.deepEqual(await Promise.all(repaired.map(response => response.text())), [html, html]);
+assert.equal(coreDownloads.get('/'), 2, '允许重试且同次修复只下载一份文档');
+assert.equal(coreDownloads.get(coreScript), 1, '并发修复只下载一份匹配版本的脚本');

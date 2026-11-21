@@ -1,4 +1,6 @@
 import { createServer } from 'node:http';
+import { fork } from 'node:child_process';
+import { once } from 'node:events';
 import { readFileSync } from 'node:fs';
 import { extname, join, normalize, relative, isAbsolute } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -7,6 +9,7 @@ import { createRequire } from 'node:module';
 const { buildAppJavaScript } = createRequire(import.meta.url)('../../scripts/build.cjs');
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
+const previewServerPath = fileURLToPath(new URL('../../scripts/server.cjs', import.meta.url));
 const runTempDir = process.env.GLASS_TEST_TMPDIR;
 export const DIST_DIR = runTempDir ? join(runTempDir, 'dist') : join(__dirname, '..', '..', 'dist');
 
@@ -81,4 +84,28 @@ export function startServer(port = 0, root = DIST_DIR, customRoutes = {}, { test
       });
     });
   });
+}
+
+/** 启动真实预览服务，用 IPC 读取实际监听端口。 */
+export async function startPreviewServer({ args = [], env = {} } = {}) {
+  const child = fork(previewServerPath, ['--no-watch', ...args], {
+    env: { ...process.env, AUTO_OPEN: '0', ...env, PORT: '0' },
+    stdio: ['ignore', 'ignore', 'inherit', 'ipc'],
+  });
+  const closed = once(child, 'close');
+  const close = async () => {
+    if (child.pid && child.exitCode === null && child.signalCode === null) child.kill();
+    return closed;
+  };
+  try {
+    const [port] = await Promise.race([
+      once(child, 'message', { signal: AbortSignal.timeout(10000) }),
+      closed.then(([code, signal]) => { throw new Error(`预览服务在监听前退出 (${code ?? signal})`); }),
+    ]);
+    if (!Number.isInteger(port) || port <= 0) throw new Error(`无效的预览服务端口: ${port}`);
+    return { port, close };
+  } catch (error) {
+    await close().catch(() => {});
+    throw error;
+  }
 }

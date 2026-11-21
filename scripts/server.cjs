@@ -310,13 +310,15 @@ function getLanIps() {
     return ips;
 }
 
-function startListening(port) {
+function startListening(requestedPort) {
     const server = createStaticServer();
 
-    server.listen(port, '0.0.0.0', () => {
+    server.listen(requestedPort, '0.0.0.0', () => {
+        const { port } = /** @type {import('node:net').AddressInfo} */ (server.address());
         if (enableWatch && !watchCleanup) {
             watchCleanup = startWatch({ label: 'Dev Server', delay: 50 });
         }
+        process.send?.(port);
 
         const lanIps = getLanIps();
         console.log(`\n${c.cyan}${HR_DOUBLE}${c.reset}`);
@@ -359,8 +361,8 @@ function startListening(port) {
 
     server.on('error', (/** @type {NodeJS.ErrnoException} */ err) => {
         if (err.code === 'EADDRINUSE') {
-            console.warn(`  ${c.yellow}⚠️ 端口 ${port} 已被占用，正在尝试端口 ${port + 1}...${c.reset}`);
-            startListening(port + 1);
+            console.warn(`  ${c.yellow}⚠️ 端口 ${requestedPort} 已被占用，正在尝试端口 ${requestedPort + 1}...${c.reset}`);
+            startListening(requestedPort + 1);
         } else {
             console.error(`\n${c.red}${c.bold}❌ 服务器启动出错:${c.reset}`, err);
             process.exit(1);

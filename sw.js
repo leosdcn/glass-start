@@ -3,7 +3,7 @@
  * 核心安装校验构建指纹；新版等待用户确认或旧客户端退出后激活。
  * 外部图标允许 opaque 响应入池，无法读取其正文进行校验。
  */
-import { IMAGE_CACHE_PREFIX, scopedCachePrefix, isScopedCache } from './src/js/utils/offline-cache.js';
+import { ACTIVATE_UPDATE, IMAGE_CACHE_PREFIX, scopedCachePrefix, isScopedCache } from './src/js/utils/offline-cache.js';
 
 import { appScriptPath, buildFromScriptPath, legacyBuildId, cacheBuildTime, htmlFingerprint, scriptFingerprint } from './src/js/utils/build-identity.js';
 
@@ -30,10 +30,6 @@ const LEGACY_APP = new URL('./app.js', SCOPE_URL).href;
 const MAX_FAVICON_ENTRIES = 800;
 const MAX_IMG_ENTRIES = 200;
 const FAVICON_TIMEOUT_MS = 7000;
-// SW 内部指令常量（须与 src/js/config/constants.js 中的 CONFIG.SW_MESSAGES.ACTIVATE_UPDATE 严格同步）
-const SW_MESSAGES = {
-    ACTIVATE_UPDATE: 'ACTIVATE_UPDATE'
-};
 
 // CacheStorage 不会合并同时未命中的请求；多标签或多个图片节点可能重复下载。
 /** @type {Map<string, Promise<Response>>} */
@@ -170,13 +166,18 @@ async function cacheCoreAsset(cache, asset, cacheMode) {
     await cache.put(asset, response);
 }
 
-// 只补缺失或指纹不符的资源；所有响应在写入前校验。
+/** @type {Promise<void> | null} */
+let pendingCoreRepair = null;
+
+// 同一 Worker 的并发入口共用修复，失败后也释放任务以便重试。
 /** @param {Cache} cache */
-async function repairCoreCache(cache) {
-    for (const asset of CORE_ASSETS) {
-        if (await validCoreResponse(asset, await cache.match(asset))) continue;
-        await cacheCoreAsset(cache, asset, 'reload');
-    }
+function repairCoreCache(cache) {
+    return pendingCoreRepair ??= (async () => {
+        for (const asset of CORE_ASSETS) {
+            if (await validCoreResponse(asset, await cache.match(asset))) continue;
+            await cacheCoreAsset(cache, asset, 'reload');
+        }
+    })().finally(() => { pendingCoreRepair = null; });
 }
 
 // 当前版本已不可补齐时返回独立恢复页，避免把新脚本交给旧 HTML。
@@ -199,7 +200,7 @@ function recoveryResponse() {
                 function changed(){clearTimeout(timer);resolve()}
                 navigator.serviceWorker.addEventListener('controllerchange',changed,{once:true});
             });
-            reg.waiting.postMessage({type:'${SW_MESSAGES.ACTIVATE_UPDATE}'});
+            reg.waiting.postMessage({type:'${ACTIVATE_UPDATE}'});
             await activated;location.reload();
         }catch(error){status.textContent='暂时无法修复，请恢复网络后重试。 / Unable to repair. Please reconnect and retry.';this.disabled=false}
     };`;
@@ -265,7 +266,7 @@ function recoveryResponse() {
 // 仅接受同源窗口的确认；重新校验已下载资源后再跳过等待。
 /** @type {ServiceWorkerContext} */ (self).addEventListener('message', e => {
     const client = /** @type {Client | null} */ (e.source);
-    if (e.data?.type !== SW_MESSAGES.ACTIVATE_UPDATE || client?.type !== 'window' ||
+    if (e.data?.type !== ACTIVATE_UPDATE || client?.type !== 'window' ||
         !isAppDocument(scopedPath(new URL(client.url)))) return;
     e.waitUntil((async () => {
         await repairCoreCache(await caches.open(CORE_STORAGE));

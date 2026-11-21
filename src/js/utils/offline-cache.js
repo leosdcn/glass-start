@@ -1,4 +1,6 @@
 export const IMAGE_CACHE_PREFIX = 'app-images-';
+// 已部署的页面和 Worker 可能跨版本通信，保留消息类型的字面值。
+export const ACTIVATE_UPDATE = 'ACTIVATE_UPDATE';
 
 /** @param {string} pathname */
 export function scopedCachePrefix(pathname) {

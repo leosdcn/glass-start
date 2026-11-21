@@ -157,8 +157,10 @@ await test("挑选器节点复用与目录失效", async () => {
 
         assert.equal(await evalJS(`(() => {
         dom.donePickerBtn.click();
-        const bookmark=pageData.categories[0].bookmarks[0];
-        bookmark.icon=bookmark.icon==='./icons/github.com.png'?'./icons/bilibili.com.png':'./icons/github.com.png';
+        const [category, ...categories] = pageData.categories;
+        const [old, ...bookmarks] = category.bookmarks;
+        const bookmark = { ...old, icon: old.icon==='./icons/github.com.png'?'./icons/bilibili.com.png':'./icons/github.com.png' };
+        pageData.categories = [{ ...category, bookmarks: [bookmark, ...bookmarks] }, ...categories];
         openBookmarkPicker();
         const updated=[...dom.pickerContent.querySelectorAll('.picker-item')].find(item=>item.dataset.url===bookmark.url);
         return reuseItems.every(node=>!node.isConnected) && updated.querySelector('img').getAttribute('src')===bookmark.icon;
@@ -166,7 +168,8 @@ await test("挑选器节点复用与目录失效", async () => {
         assert.equal(await evalJS(`(() => {
         dom.donePickerBtn.click();
         const before=dom.pickerContent.firstElementChild;
-        pageData.categories[0].icon='./icons/dev.svg';
+        const [category, ...categories] = pageData.categories;
+        pageData.categories = [{ ...category, icon: './icons/dev.svg' }, ...categories];
         openBookmarkPicker();
         return dom.pickerContent.firstElementChild!==before &&
             dom.pickerContent.firstElementChild.querySelector('img').getAttribute('src')==='./icons/dev.svg';
@@ -289,7 +292,9 @@ test("导入、导出与保存保留首条有效书签及其简介语义", async
         await evalJS('dom.confirmOkBtn.click(); saveEditModal()');
         assert.deepEqual(await evalJS(`(() => {
             const stored = storageGet(CONFIG.KEYS.BOOKMARKS);
-            pageData.categories[0].bookmarks[0].name = '目录更新';
+            const [category, ...categories] = pageData.categories;
+            const [bookmark, ...bookmarks] = category.bookmarks;
+            pageData.categories = [{ ...category, bookmarks: [{ ...bookmark, name: '目录更新' }, ...bookmarks] }, ...categories];
             loadBookmarks();
             return { meta: stored.meta, name: pageData.bookmarks[0].name };
         })()`), { meta: {}, name: '目录更新' });

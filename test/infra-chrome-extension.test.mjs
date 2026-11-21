@@ -4,7 +4,7 @@ import { readFileSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
 import { connectCDP, launchChrome } from './support/cdp.mjs';
-import { createEvaluator, getFreePort, waitFor } from './support/helpers.mjs';
+import { createEvaluator, waitFor } from './support/helpers.mjs';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const output = join(process.env.GLASS_TEST_TMPDIR || root, 'extension');
@@ -29,12 +29,11 @@ assert(!/<script\b(?![^>]*\bsrc=)/i.test(html), '扩展中不得存在内联脚�
 assert(!/__glassSuggestCb_|JsonCallback|callback=/.test(readFileSync(join(output, 'app.js'), 'utf8')), '扩展编译时裁掉 JSONP');
 assert(!existsSync(join(output, 'sw.js')));
 
-const port = await getFreePort();
-const chrome = await launchChrome({ port, url: 'about:blank', testMode: false,
+const chrome = await launchChrome({ url: 'about:blank', testMode: false,
     extraArgs: ['--enable-unsafe-extension-debugging'] });
 let browser;
 try {
-    const version = await (await fetch(`http://127.0.0.1:${port}/json/version`)).json();
+    const version = await (await fetch(`http://127.0.0.1:${chrome.cdpPort}/json/version`)).json();
     browser = await connectCDP(new WebSocket(version.webSocketDebuggerUrl));
     const { id } = await browser.send('Extensions.loadUnpacked', { path: output });
     const { send } = chrome;

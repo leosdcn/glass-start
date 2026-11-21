@@ -16,6 +16,19 @@ test('Chrome 触摸滚动与输入能力变化', async t => {
             return listeners.filter(listener=>listener.type==='touchmove' && !listener.passive).length;
         };
         assert.equal(await blockingMoves('document'),0,'document 上没有非被动 touchmove');
+        const touchReads = await evalJS(`(() => {
+            const target = dom.startSection;
+            const point = new Touch({identifier:1,target,clientX:195,clientY:600});
+            target.dispatchEvent(new TouchEvent('touchstart', {bubbles:true,touches:[point]}));
+            const move = new TouchEvent('touchmove', {bubbles:true,cancelable:true,touches:[point]});
+            const touches = move.touches;
+            let reads = 0;
+            Object.defineProperty(move, 'touches', {get:() => { reads++; return touches; }});
+            target.dispatchEvent(move);
+            target.dispatchEvent(new TouchEvent('touchcancel', {bubbles:true}));
+            return reads;
+        })()`);
+        assert.equal(touchReads, 2, '局部监听处理后，冒泡到 document 的同一事件不再判定');
         const touch = (type,y) => send('Input.dispatchTouchEvent',{type,touchPoints:type==='touchEnd'||type==='touchCancel'?[]:[{x:195,y}]});
         await touch('touchStart',600);
         await touch('touchMove',480);
