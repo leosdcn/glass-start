@@ -254,9 +254,10 @@ html.wallpaper-bright .nav-bookmark .text-2xs {
     -webkit-box-orient: vertical;
     overflow: hidden;
     max-width: 100%;
+    /* 阴影留白由负外边距抵消，名称可用整块内容宽度。 */
     padding: 1px 4px 3px;
     margin: -1px -4px -3px;
-    box-sizing: border-box;
+    box-sizing: content-box;
 }
 @media (min-width: 640px) {
     .bookmark-title { font-size: 0.75rem; }
