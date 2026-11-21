@@ -1,4 +1,6 @@
 export const IMAGE_CACHE_PREFIX = 'app-images-';
+// 外部图标跨构建、跨同源部署目录复用。
+export const FAVICON_CACHE = 'app-favicons-v1';
 // 已部署的页面和 Worker 可能跨版本通信，保留消息类型的字面值。
 export const ACTIVATE_UPDATE = 'ACTIVATE_UPDATE';
 

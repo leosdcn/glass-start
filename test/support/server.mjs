@@ -12,6 +12,8 @@ const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const previewServerPath = fileURLToPath(new URL('../../scripts/server.cjs', import.meta.url));
 const runTempDir = process.env.GLASS_TEST_TMPDIR;
 export const DIST_DIR = runTempDir ? join(runTempDir, 'dist') : join(__dirname, '..', '..', 'dist');
+/** @type {{ app: Buffer, version?: string } | undefined} */
+let testSnapshot;
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -27,8 +29,13 @@ const MIME = {
 
 export function startServer(port = 0, root = DIST_DIR, customRoutes = {}, { testMode = true } = {}) {
   const useTestApp = testMode && root === DIST_DIR;
-  let testApp = useTestApp && runTempDir ? readFileSync(join(runTempDir, 'app.test.js')) : null;
-  let testVersion = testApp?.toString().match(/window\.__GLASS_BUILD_APP__="([^"]+)";/)?.[1];
+  if (useTestApp && runTempDir && !testSnapshot) {
+    // 运行器为整个测试进程提供同一份不可变快照。
+    const app = readFileSync(join(runTempDir, 'app.test.js'));
+    testSnapshot = { app, version: app.toString().match(/window\.__GLASS_BUILD_APP__="([^"]+)";/)?.[1] };
+  }
+  let testApp = useTestApp ? testSnapshot?.app : undefined;
+  let testVersion = useTestApp ? testSnapshot?.version : undefined;
   return new Promise((resolve, reject) => {
     const server = createServer((req, res) => {
       try {

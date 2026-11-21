@@ -21,9 +21,13 @@ function serialize(directives) {
     return Object.entries(directives).map(([name, value]) => value ? name + ' ' + value : name).join('; ');
 }
 
-function getContentSecurityPolicy() {
-    const uploads = JSON.parse(readFileSync(join(__dirname, '../src/js/config/image-search-uploads.json'), 'utf8'));
-    const uploadPaths = Object.values(/** @type {Record<string, {url: string}>} */ (uploads)).map(({ url }) => {
+/** @returns {typeof import('../src/js/config/image-search-uploads.json')} */
+function readImageSearchUploads() {
+    return JSON.parse(readFileSync(join(__dirname, '../src/js/config/image-search-uploads.json'), 'utf8'));
+}
+
+function getContentSecurityPolicy(uploads = readImageSearchUploads()) {
+    const uploadPaths = Object.values(uploads).map(({ url }) => {
         const endpoint = new URL(url);
         return endpoint.origin + endpoint.pathname;
     });
@@ -52,4 +56,4 @@ function getContentSecurityPolicy() {
     };
 }
 
-module.exports = { getContentSecurityPolicy };
+module.exports = { getContentSecurityPolicy, readImageSearchUploads };

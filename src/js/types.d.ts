@@ -227,6 +227,9 @@ export interface DOMCache {
 export type TranslationMessage = string | Record<string, string>;
 
 declare global {
+    /** 应用脚本与 CSP 使用同一轮构建读取的上传配置。 */
+    const __GLASS_IMAGE_SEARCH_UPLOADS__: typeof import('./config/image-search-uploads.json');
+
     interface Navigator {
         readonly userAgentData?: { readonly platform: string };
         readonly connection?: { readonly saveData?: boolean; readonly effectiveType?: string };
@@ -245,6 +248,7 @@ declare global {
         /** 仅测试适配层挂载，生产页面不提供。 */
         state?: AppState;
         __ENGINE_SVGS__?: Record<string, string>;
+        __PRE_ENGINE__?: { key: string; name: string; url: string };
         __INITIAL_THEME__?: { color: string; isLight: boolean; themeColor?: string };
         __GLASS_BUILD_HTML__?: string;
         __GLASS_BUILD_APP__?: string;

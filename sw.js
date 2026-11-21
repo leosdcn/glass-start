@@ -3,7 +3,7 @@
  * 核心安装校验构建指纹；新版等待用户确认或旧客户端退出后激活。
  * 外部图标允许 opaque 响应入池，无法读取其正文进行校验。
  */
-import { ACTIVATE_UPDATE, IMAGE_CACHE_PREFIX, scopedCachePrefix, isScopedCache } from './src/js/utils/offline-cache.js';
+import { ACTIVATE_UPDATE, FAVICON_CACHE, IMAGE_CACHE_PREFIX, scopedCachePrefix, isScopedCache } from './src/js/utils/offline-cache.js';
 
 import { appScriptPath, buildFromScriptPath, legacyBuildId, cacheBuildTime, htmlFingerprint, scriptFingerprint } from './src/js/utils/build-identity.js';
 
@@ -11,8 +11,6 @@ import { appScriptPath, buildFromScriptPath, legacyBuildId, cacheBuildTime, html
 
 // 缓存池定义（打包 build.cjs 时自动替换 CORE_CACHE 为时间戳版本）
 const CORE_CACHE = 'app-core-v1786255428688';
-// 图标池不对称隔离：外部 Favicon 与应用构建代码正交，跨版本保留以节省流量与网络 IO，故不挂钩 CORE_CACHE
-const FAVICON_CACHE = 'app-favicons-v1';
 const SCOPE_URL = /** @type {ServiceWorkerContext} */ (self).registration.scope;
 const SCOPE = new URL(SCOPE_URL);
 const CACHE_PREFIX = scopedCachePrefix(SCOPE.pathname);
@@ -150,6 +148,30 @@ async function validCoreResponse(asset, response) {
     if (!response?.ok) return false;
     const fingerprint = asset === APP_ASSET ? scriptFingerprint : htmlFingerprint;
     return fingerprint(await response.clone().text()) === CORE_CACHE;
+}
+
+/** @param {Response | undefined} response @param {string} version */
+async function validCachedAppResponse(response, version) {
+    if (!response?.ok || !response.body) return false;
+    // 构建将版本标记写在第一行；校验只需读开头。
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let remaining = 256;
+    let prefix = '';
+    try {
+        while (remaining > 0) {
+            const { value, done } = await reader.read();
+            if (done) break;
+            prefix += decoder.decode(value.subarray(0, remaining), { stream: true });
+            remaining -= value.length;
+            const fingerprint = scriptFingerprint(prefix);
+            if (fingerprint !== undefined) return fingerprint === version;
+        }
+        return false;
+    } finally {
+        // 响应的另一分支可能仍未读取，取消不能阻塞返回。
+        void reader.cancel().catch(() => {});
+    }
 }
 
 /** @param {Cache} cache @param {string} asset @param {RequestCache} cacheMode */
@@ -312,7 +334,7 @@ async function previousImageResponse(request) {
             caches.open(CORE_STORAGE).then(async cache => {
                 try {
                     const [document, script] = await Promise.all([cache.match(DOCUMENT_ASSET), cache.match(APP_ASSET)]);
-                    if (document && await validCoreResponse(DOCUMENT_ASSET, document) && await validCoreResponse(APP_ASSET, script)) {
+                    if (document && await validCoreResponse(DOCUMENT_ASSET, document) && await validCachedAppResponse(script, CORE_CACHE)) {
                         return document;
                     }
                     await repairCoreCache(cache);
@@ -358,8 +380,9 @@ async function previousImageResponse(request) {
             const cacheName = CACHE_PREFIX + requestedVersion;
             try {
                 const cached = await caches.match(new URL(asset, SCOPE_URL), { cacheName });
-                if (cached?.ok && scriptFingerprint(await cached.clone().text()) === requestedVersion) {
-                    return cached;
+                if (cached) {
+                    if (await validCachedAppResponse(cached.clone(), requestedVersion)) return cached;
+                    void cached.body?.cancel().catch(() => {});
                 }
                 if (!scriptVersion) return make503Response();
                 const response = await fetch(e.request, cached ? { cache: 'reload' } : undefined);

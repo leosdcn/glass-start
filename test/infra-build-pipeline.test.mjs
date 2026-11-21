@@ -135,10 +135,19 @@ test('并发网页构建各自产生一致快照，测试服务不读取随后�
   const script = `app-builds/${buildId(join(snapshot, 'dist'))}.js`;
   await node(['--input-type=module', '-e', `
     import assert from 'node:assert/strict';
-    import { readFileSync } from 'node:fs';
+    import fs from 'node:fs';
+    import { syncBuiltinESMExports } from 'node:module';
     import { join } from 'node:path';
     import { startServer } from ${JSON.stringify(serverModule)};
-    for (const testMode of [true, false]) {
+    const readFileSync = fs.readFileSync;
+    const appPath = join(process.env.GLASS_TEST_TMPDIR, 'app.test.js');
+    let appReads = 0;
+    fs.readFileSync = (file, ...options) => {
+      if (file === appPath) appReads++;
+      return readFileSync(file, ...options);
+    };
+    syncBuiltinESMExports();
+    for (const testMode of [false, true, true]) {
       const server = await startServer(0, undefined, {}, { testMode });
       try {
         const script = ${JSON.stringify(script)};
@@ -149,6 +158,7 @@ test('并发网页构建各自产生一致快照，测试服务不读取随后�
           assert.equal(await res.text(), readFileSync(join(process.env.GLASS_TEST_TMPDIR, expected), 'utf8'));
         }
       } finally { await server.close(); }
+      assert.equal(appReads, testMode ? 1 : 0);
     }
   `], { cwd, env: { GLASS_TEST_TMPDIR: snapshot } });
 

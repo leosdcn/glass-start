@@ -93,6 +93,7 @@ const cacheWriteGate = new Promise(resolve=>{releaseCacheWrite=resolve;});
 let holdPrune;
 const coreDownloads = new Map();
 let failCoreRepair = false;
+const decodedScriptBytes = [];
 const coreScript = `/app-builds/${stamp}.js`;
 const cacheUrl = request => new URL(request.url ?? request, 'https://example.test/').href;
 vm.runInNewContext(worker, {
@@ -100,6 +101,12 @@ vm.runInNewContext(worker, {
         registration:{scope:'https://example.test/'},addEventListener:(name,fn)=>handlers.set(name,fn),
         clients:{get:async id=>({url:new URL(id,'https://example.test/').href})}},
     URL, Request, Response, AbortController, setTimeout, clearTimeout,
+    TextDecoder: class extends TextDecoder {
+        decode(value, options) {
+            decodedScriptBytes.push(value.byteLength);
+            return super.decode(value, options);
+        }
+    },
     fetch:async request=>{
         const path = new URL(request.url).pathname;
         if (path === '/' || path === coreScript) {
@@ -111,7 +118,7 @@ vm.runInNewContext(worker, {
         if(failExternal)throw new Error('offline');
         return new Response('shared-body',{headers:{'Content-Type':'image/png'}});
     },
-    caches:{match:async (request,{cacheName})=>stores.get(cacheName)?.get(request.url)?.clone(),open:async name=>{
+    caches:{match:async (request,{cacheName})=>stores.get(cacheName)?.get(cacheUrl(request))?.clone(),open:async name=>{
         if(!stores.has(name))stores.set(name,new Map());
         const entries=stores.get(name);
         return {
@@ -184,3 +191,25 @@ const repaired = await requestCore();
 assert.deepEqual(await Promise.all(repaired.map(response => response.text())), [html, html]);
 assert.equal(coreDownloads.get('/'), 2, '允许重试且同次修复只下载一份文档');
 assert.equal(coreDownloads.get(coreScript), 1, '并发修复只下载一份匹配版本的脚本');
+
+const scriptUrl = 'https://example.test' + coreScript;
+const coreCache = [...stores.values()].find(cache => cache.has(scriptUrl));
+const prefix = 'window.__GLASS_BUILD_APP__="';
+const suffix = stamp + '";';
+const tail = '\n//' + 'x'.repeat(150 * 1024);
+const encoder = new TextEncoder();
+coreCache.set(scriptUrl, new Response(new ReadableStream({
+    start(controller) {
+        for (const chunk of [prefix, suffix, tail]) controller.enqueue(encoder.encode(chunk));
+        controller.close();
+    }
+})));
+decodedScriptBytes.length = 0;
+const documentResponse = await dispatch('https://example.test/').response;
+assert.equal(await documentResponse.text(), html);
+const scriptResponse = await dispatch(scriptUrl).response;
+assert.equal(scriptResponse.status, 200);
+assert.ok(await scriptResponse.text() === prefix + suffix + tail, '返回完整脚本正文');
+assert.deepEqual(decodedScriptBytes, [prefix.length, suffix.length, prefix.length, suffix.length],
+    '文档入口与脚本请求均校验跨分块的版本标记，无需解码脚本正文');
+assert.equal(coreDownloads.get(coreScript), 1, '正常启动走原缓存');

@@ -289,7 +289,7 @@ npm run build:extension
 
 构建后执行 `node scripts/capture-preview.mjs` 可更新中文 README 截图；添加 `--lang=en` 可更新英文截图。
 
-> 💡 **macOS 便捷启动**：首次运行前执行 `npm ci`，随后可双击根目录的 `start.command`。脚本构建项目并以临时 Chrome 配置打开干净的预览，日常浏览器中的缓存、书签、壁纸和偏好会保留；检测到根目录有受信任证书（或本地已装有 `mkcert`）时自动走 HTTPS，否则平滑以 HTTP 启动。关闭预览或停止服务后，临时配置会被清理。自定义 Chrome 路径可通过 `CHROME_PATH` 指定。
+> 💡 **macOS 便捷启动**：首次运行前执行 `npm ci`，随后可双击根目录的 `start.command`。脚本构建项目并以临时 Chrome 配置打开干净的预览，日常浏览器中的缓存、书签、壁纸和偏好会保留；自动复用项目根目录、`.cert/` 或 `SSL_CERT` / `SSL_KEY` 指定的证书。没有现成证书时尝试用 `mkcert` 签发，未取得证书时以 HTTP 启动。关闭预览或停止服务后，临时配置会被清理。自定义 Chrome 路径可通过 `CHROME_PATH` 指定。
 
 ---
 

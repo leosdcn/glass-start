@@ -2,7 +2,7 @@ const http = require('http');
 const https = require('https');
 const fs = require('fs');
 const path = require('path');
-const { exec, spawn } = require('child_process');
+const { exec, spawn, spawnSync } = require('child_process');
 const os = require('os');
 const zlib = require('zlib');
 const { createHash } = require('node:crypto');
@@ -70,47 +70,34 @@ async function openStaticFile(root, relativePath) {
 }
 
 function resolveSslConfig() {
-    const useHttps = process.argv.includes('--https') || process.env.HTTPS === '1';
-    if (!useHttps) return null;
+    const requireHttps = process.argv.includes('--https') || process.env.HTTPS === '1';
+    const autoHttps = process.argv.includes('--auto-https');
+    if (!requireHttps && !autoHttps) return null;
 
     const root = path.join(__dirname, '..');
     const customCert = process.env.SSL_CERT;
     const customKey = process.env.SSL_KEY;
 
-    if (customCert && customKey) {
-        const certPath = path.isAbsolute(customCert) ? customCert : path.join(root, customCert);
-        const keyPath = path.isAbsolute(customKey) ? customKey : path.join(root, customKey);
-        if (fs.existsSync(certPath) && fs.existsSync(keyPath)) {
-            return {
-                key: fs.readFileSync(keyPath),
-                cert: fs.readFileSync(certPath),
-                certPath,
-                keyPath
-            };
-        }
-        throw new Error(`指定的 SSL 证书或私钥不存在: cert=${certPath}, key=${keyPath}`);
+    const custom = customCert && customKey;
+    const candidates = (custom ? [[customCert, customKey]] : [
+        ['localhost.pem', 'localhost-key.pem'],
+        ['localhost+2.pem', 'localhost+2-key.pem'],
+        ['cert.pem', 'key.pem'],
+        ['.cert/localhost.pem', '.cert/localhost-key.pem'],
+        ['.cert/cert.pem', '.cert/key.pem']
+    ]).map(([cert, key]) => ({ cert: path.resolve(root, cert), key: path.resolve(root, key) }));
+    const findPair = () => candidates.find(({ cert, key }) => fs.existsSync(cert) && fs.existsSync(key));
+    let pair = findPair();
+    if (!pair && custom) {
+        throw new Error(`指定的 SSL 证书或私钥不存在: cert=${candidates[0].cert}, key=${candidates[0].key}`);
     }
-
-    const certCandidates = [
-        { cert: 'localhost.pem', key: 'localhost-key.pem' },
-        { cert: 'localhost+2.pem', key: 'localhost+2-key.pem' },
-        { cert: 'cert.pem', key: 'key.pem' },
-        { cert: '.cert/localhost.pem', key: '.cert/localhost-key.pem' },
-        { cert: '.cert/cert.pem', key: '.cert/key.pem' }
-    ];
-
-    for (const pair of certCandidates) {
-        const certPath = path.join(root, pair.cert);
-        const keyPath = path.join(root, pair.key);
-        if (fs.existsSync(certPath) && fs.existsSync(keyPath)) {
-            return {
-                key: fs.readFileSync(keyPath),
-                cert: fs.readFileSync(certPath),
-                certPath,
-                keyPath
-            };
-        }
+    if (!pair && autoHttps) {
+        // 先复用现有证书，无匹配时才尝试签发。
+        const result = spawnSync('mkcert', ['localhost', '127.0.0.1', '::1'], { cwd: root, stdio: 'ignore' });
+        if (result.status === 0) pair = findPair();
     }
+    if (pair) return { cert: fs.readFileSync(pair.cert), key: fs.readFileSync(pair.key) };
+    if (!requireHttps) return null;
 
     console.error(`\n${c.red}${c.bold}❌ 未检测到本地 SSL 证书文件！${c.reset}`);
     console.error(`  使用 HTTPS 启动需先生成本地受信任证书。推荐使用 mkcert：`);

@@ -1,7 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { parse } from 'acorn';
 
 /** Validate only the supported translation contract, alongside the existing lint. */
 export async function inspectI18n(root, sources, html) {
@@ -33,7 +32,7 @@ export async function inspectI18n(root, sources, html) {
         } else if (!Object.hasOwn(dictionaries.en, key)) throw new Error(`Unknown translation key: ${key}`);
     };
     const walk = node => {
-        if (!node || typeof node !== 'object') return;
+        if (typeof node?.type !== 'string') return;
         if (node.type === 'CallExpression' && node.callee.type === 'Identifier' && node.callee.name === 't'
             && node.arguments[0]?.type === 'Literal') checkKey(node.arguments[0].value);
         for (const value of Object.values(node)) {
@@ -41,7 +40,7 @@ export async function inspectI18n(root, sources, html) {
             else if (value && typeof value === 'object') walk(value);
         }
     };
-    sources.forEach(({ content }) => walk(parse(content, { ecmaVersion: 'latest', sourceType: 'module' })));
+    for (const { ast } of sources) walk(ast);
     for (const { title } of PRESET_WALLPAPERS) checkKey(title);
     for (const match of html.matchAll(/\bdata-i18n(?:-(?:placeholder|title|aria-label|alt|content))?="([^"]+)"/g)) checkKey(match[1]);
     if (html.split('<!-- INJECT_I18N_HEAD -->').length !== 2) throw new Error('Language head slot must occur once');

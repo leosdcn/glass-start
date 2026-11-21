@@ -2,6 +2,7 @@
 import { CONFIG } from '../config/constants.js';
 import { escapeHtml, safeUrl } from './helpers.js';
 import { faviconFallbackFromUrl } from './bookmark-model.js';
+import { FAVICON_CACHE } from './offline-cache.js';
 
 /**
  * 生成缺失图标的首字母徽标 HTML。
@@ -22,8 +23,8 @@ export function createLetterBadgeHtml(initial, sizeClass = 'icon-box-sm', textCl
 export function evictFaviconCache(url) {
     if (url && !(typeof window !== 'undefined' && window.__GLASS_EXTENSION__) && typeof caches !== 'undefined') {
         try {
-            caches.has(CONFIG.CACHE.FAVICON).then(exists => {
-                if (exists) return caches.open(CONFIG.CACHE.FAVICON).then(cache => cache.delete(url));
+            caches.has(FAVICON_CACHE).then(exists => {
+                if (exists) return caches.open(FAVICON_CACHE).then(cache => cache.delete(url));
             }).catch(() => {});
         } catch {}
     }

@@ -16,7 +16,7 @@ import { state, modalState, pageData } from '../state/store.js';
 import { replaceBookmarkDraft } from '../state/bookmark-draft.js';
 import { dom } from '../state/dom.js';
 import { OverlayStack } from '../core/overlay-stack.js';
-import { flushWallpaperSelection, prepareWallpaperDraft, getCommittedWallpaperUrl, closeWallpaperDraft, pauseWallpaperDraft, showWallpaperDraft, updateWallpaperStatusUI, updatePresetBgCardsUI, resetWallpaperSettings, renderPresetWallpapers, commitWallpaperSelection, revertDraftWallpaper, applyBgEffects, flushBgEffects, getSavedMaskOpacity, commitWallpaperDimming, showWallpaperError, previewDraftWallpaper, discardWallpaperDraftSelection } from './wallpaper.js';
+import { flushWallpaperSelection, prepareWallpaperDraft, getCommittedWallpaperUrl, closeWallpaperDraft, pauseWallpaperDraft, showWallpaperDraft, updateWallpaperStatusUI, updatePresetBgCardsUI, resetWallpaperSettings, commitWallpaperSelection, revertDraftWallpaper, applyBgEffects, flushBgEffects, getSavedMaskOpacity, commitWallpaperDimming, showWallpaperError, previewDraftWallpaper, discardWallpaperDraftSelection } from './wallpaper.js';
 import { loadBookmarks, saveUserBookmarks, resetUserBookmarks, getImportedBookmarks } from './bookmarks.js';
 import { cancelSearchSubmission, closeDropdown, hideSuggestions, setEngine } from './search.js';
 import { getTransitionMode, syncTransitionSwitcherActive, setTransitionMode, resetNavDiscovery } from '../core/screen-state.js';
@@ -187,7 +187,6 @@ export function switchSettingsTab(targetTabId) {
         panel.classList.toggle('hidden', panel.id !== targetTabId);
     });
     if (targetTabId === 'tabAppearance') {
-        renderPresetWallpapers();
         updatePresetBgCardsUI(modalState.draftWallpaper);
     }
 }
@@ -460,8 +459,10 @@ export function resetBookmarks() {
 
             const keys = /** @type {const} */ (['PREFERRED_ENGINE', 'TRANSITION_MODE', 'LANGUAGE']);
             const bookmarksReset = await commitBookmarks(() => {
-                if (!isCurrent() || !resetUserBookmarks()) return false;
-                session.bookmarkRevision = loadBookmarks();
+                if (!isCurrent()) return false;
+                const saved = resetUserBookmarks();
+                if (!saved) return false;
+                session.bookmarkRevision = saved.revision;
                 return true;
             });
             if (!isCurrent()) return;
@@ -531,22 +532,26 @@ export async function saveEditModal() {
         if (!data) return;
         beginEditCommit();
         const { draftWallpaper, draftMaskOpacity, draftTransitionMode, draftLanguage } = modalState;
-        /** @type {Array<[keyof SettingsBaseline, boolean, () => boolean | 'conflict' | Promise<boolean | 'conflict'>, string]>} */
+        /** @typedef {Partial<SettingsBaseline> | false | 'conflict'} CommitResult */
+        /** @type {Array<[keyof SettingsBaseline, boolean, () => CommitResult | Promise<CommitResult>, string]>} */
         const commits = [
             ['bookmarks', modalState.bookmarksChanged, () => commitBookmarks(() => {
                 if (!isCurrent()) return false;
-                const result = saveUserBookmarks(data, session.bookmarkRevision);
-                if (result === true) session.bookmarkRevision = loadBookmarks();
-                return result;
+                const saved = saveUserBookmarks(data, session.bookmarkRevision);
+                if (!saved || saved === 'conflict') return saved;
+                session.bookmarkRevision = saved.revision;
+                return { bookmarks: saved.bookmarks };
             }), 'ui.could.not.save.bookmarks.your.draft'],
             ['draftMaskOpacity', draftMaskOpacity !== baseline.draftMaskOpacity,
-                () => draftMaskOpacity !== null && commitWallpaperDimming(draftMaskOpacity, isCurrent), 'ui.could.not.save.background.dimming.your'],
+                async () => draftMaskOpacity !== null && await commitWallpaperDimming(draftMaskOpacity, isCurrent)
+                    && { draftMaskOpacity: getSavedMaskOpacity() }, 'ui.could.not.save.background.dimming.your'],
             ['draftTransitionMode', draftTransitionMode !== baseline.draftTransitionMode,
-                () => setTransitionMode(draftTransitionMode), 'ui.could.not.save.transition.mode.your'],
+                () => setTransitionMode(draftTransitionMode) && { draftTransitionMode }, 'ui.could.not.save.transition.mode.your'],
             ['draftWallpaper', draftWallpaper !== baseline.draftWallpaper,
-                () => draftWallpaper !== null && commitWallpaperSelection(draftWallpaper, isCurrent), 'ui.could.not.save.the.wallpaper.your'],
+                async () => draftWallpaper !== null && await commitWallpaperSelection(draftWallpaper, isCurrent)
+                    && { draftWallpaper: getCommittedWallpaperUrl() }, 'ui.could.not.save.the.wallpaper.your'],
             ['draftLanguage', draftLanguage !== baseline.draftLanguage,
-                () => storageSet(CONFIG.KEYS.LANGUAGE, draftLanguage), 'language.saveFailed']
+                () => storageSet(CONFIG.KEYS.LANGUAGE, draftLanguage) && { draftLanguage: getLanguagePreference() }, 'language.saveFailed']
         ];
         for (const [field, changed, commit, error] of commits) {
             if (!changed) continue;
@@ -570,10 +575,9 @@ export async function saveEditModal() {
                 }
                 return;
             }
-            const committed = readCommittedSettings();
-            session.baseline = { ...session.baseline, [field]: committed[field] };
-            if (field === 'bookmarks') {
-                replaceBookmarkDraft(committed.bookmarks);
+            session.baseline = { ...session.baseline, ...saved };
+            if (saved.bookmarks) {
+                replaceBookmarkDraft(saved.bookmarks);
                 renderEditList();
             }
         }

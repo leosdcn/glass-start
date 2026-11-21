@@ -294,7 +294,7 @@ Related browser regressions are grouped in the following files. Add related regr
 
 After building, run `node scripts/capture-preview.mjs --lang=en` to regenerate the English README screenshots. Omit `--lang=en` to generate the Chinese screenshots.
 
-> 💡 **macOS launcher**. Run `npm ci` before the first launch, then double-click `start.command` in the project root. It builds the website and opens it in a temporary Chrome profile, keeping your regular browser data intact; automatically switches to HTTPS when local certs (e.g. from `mkcert`) are present, falling back to HTTP seamlessly. Closing Chrome or stopping the server removes the temporary profile. Set `CHROME_PATH` to use a different Chrome executable.
+> 💡 **macOS launcher**. Run `npm ci` before the first launch, then double-click `start.command` in the project root. It builds the website and opens it in a temporary Chrome profile, keeping your regular browser data intact. It uses certificates from the project root, `.cert/`, or the `SSL_CERT` and `SSL_KEY` paths. If none are available, it tries `mkcert` and falls back to HTTP if no certificate is generated. Closing Chrome or stopping the server removes the temporary profile. Set `CHROME_PATH` to use a different Chrome executable.
 
 ---
 
