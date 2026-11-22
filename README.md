@@ -102,7 +102,7 @@ npm run build:extension
 
 ### Vercel / Netlify / GitHub Pages
 - **Vercel / Netlify**。导入 Git 仓库，选择符合 `package.json` 要求的 Node.js 版本，并安装开发依赖。构建命令设为 `npm run build`，输出目录设为 `dist`。响应头规则按各平台的配置方式设置。
-- **GitHub Pages**：仓库已提供 [CI 与发布工作流](./.github/workflows/ci.yml)。启用仓库的 Actions，并在 Settings ➔ Pages 选择 GitHub Actions；推送到 `main` 或在 `main` 手动运行工作流，会在 lint、完整测试和 W3C 校验成功后发布已验证的 `dist/`，并保留当前线上 HTML 引用的版本化脚本。修改发布分支或流程时参考[官方自定义工作流指南](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages)。若从分支发布，需将产物放在发布分支根目录或 `/docs`，不能直接选择 `/dist`。
+- **GitHub Pages**：仓库已提供 [CI 与发布工作流](./.github/workflows/ci.yml)。启用仓库的 Actions，并在 Settings ➔ Pages 选择 GitHub Actions；日常推送和 PR 运行 lint、单元测试、关键 Chrome 回归与 W3C 校验。修改应用版本或手动运行工作流时执行完整测试。推送到 `main` 或在 `main` 手动运行通过后，会发布已验证的 `dist/`，并保留当前线上 HTML 引用的版本化脚本。修改发布分支或流程时参考[官方自定义工作流指南](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages)。若从分支发布，需将产物放在发布分支根目录或 `/docs`，不能直接选择 `/dist`。
 
 `public/_headers` 的响应头规则需要托管平台支持；GitHub Pages 不应用该文件，页面仍使用 HTML meta CSP。meta CSP 与 HTTP CSP 响应头共同生效，响应头不能放宽 meta 中的限制；仅支持响应头的 `frame-ancestors`、缓存及其他安全头也不会由 meta 替代。部署后应核对实际 HTTP 响应，不能仅凭产物中存在 `_headers` 判断规则生效。
 
@@ -264,7 +264,7 @@ npm run build:extension
 
 升级开发组件时同步维护 `package.json` 与 `package-lock.json`；`npm ci` 按锁文件复现版本，`^` 声明的是允许更新的范围，不会让每次 `npm ci` 自动升级。Tailwind 与其 CLI 保持版本一致；它们虽然是开发依赖，升级仍可能改变生成的 CSS，须重建并验证受影响的网页和扩展布局。Stylelint 升级则需核对规则迁移与对应校验回归。
 
-`npm run test:w3c` 不自动构建，发布校验应使用本轮构建或测试生成的 `dist/`。它使用 Nu 检查完整 HTML，并用开发依赖 Stylelint 18 检查内嵌 `style` 块的现代 CSS 语法与属性值。Nu 在这些已复核样式块上的旧 CSS 引擎诊断单独计数，HTML、行内 `style` 属性和无法定位的 CSS 错误仍保留。命令默认连接 W3C 公共服务，可用 `W3C_VALIDATOR_URL='http://127.0.0.1:8888/?out=json' npm run test:w3c` 使用已启动的本地 Nu 服务。CI 使用固定镜像的本地 Nu 检查待发布产物并运行完整测试。
+`npm run test:w3c` 不自动构建，发布校验应使用本轮构建或测试生成的 `dist/`。它使用 Nu 检查完整 HTML，并用开发依赖 Stylelint 18 检查内嵌 `style` 块的现代 CSS 语法与属性值。Nu 在这些已复核样式块上的旧 CSS 引擎诊断单独计数，HTML、行内 `style` 属性和无法定位的 CSS 错误仍保留。命令默认连接 W3C 公共服务，可用 `W3C_VALIDATOR_URL='http://127.0.0.1:8888/?out=json' npm run test:w3c` 使用已启动的本地 Nu 服务。CI 使用固定镜像的本地 Nu 检查本轮构建产物。
 
 请求以页面 canonical 地址提供 `Content-Location`，避免同源资源的 CSP 误报。验证其他部署时可用 `W3C_DOCUMENT_URL=https://example.com/start/ npm run test:w3c` 覆盖来源地址，提交内容仍为本地产物。真实错误退出码为 1，服务或工具异常为 2。校验不能替代浏览器表现和实际托管响应头检查。
 

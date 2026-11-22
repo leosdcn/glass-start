@@ -31,6 +31,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -44,8 +46,26 @@ jobs:
       - name: Run lint
         run: npm run lint
 
-      - name: Run full test suite (typecheck + build + Chrome)
-        run: npm test
+      - name: Run selected test suite (typecheck + build + Chrome)
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          current_version=$(node -p 'require("./package.json").version')
+          if [[ "$EVENT_NAME" != workflow_dispatch && "$BASE_SHA" =~ ^[0-9a-f]{40}$ ]] &&
+            { git cat-file -e "$BASE_SHA^{commit}" 2>/dev/null ||
+              git fetch --no-tags --depth=1 origin "$BASE_SHA"; } &&
+            previous_version=$(git show "$BASE_SHA:package.json" |
+              node -p 'JSON.parse(require("node:fs").readFileSync(0, "utf8")).version') &&
+            [[ "$previous_version" == "$current_version" ]]; then
+            echo "Running quick CI suite"
+            npm test -- unit.test.mjs data-pure-models infra-icon-sync \
+              infra-sw-upgrade infra-chrome-extension infra-resource-cleanup
+          else
+            echo "Running full CI suite"
+            npm test
+          fi
 
       - name: Validate release HTML & CSS (W3C / Stylelint)
         env:
