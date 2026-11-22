@@ -1,14 +1,15 @@
 const fs = require('node:fs');
 const path = require('node:path');
-const { executeBuild, PATHS } = require('./build.cjs');
+const { compileTailwindCss, executeBuild, PATHS } = require('./build.cjs');
 const { replaceOnce } = require('./html-template.cjs');
-const { publishBuild } = require('./publish-build.cjs');
+const { publishBuild, ensureSignalHandlers } = require('./publish-build.cjs');
 const { SUPPORTED_LANGUAGES } = require('../src/js/config/language.js');
 
 // 复用网页编译与资源注入，独立输出；失败时保留上一份扩展。
-function buildExtension(output = path.join(PATHS.root, 'extension')) {
+async function buildExtension(output = path.join(PATHS.root, 'extension')) {
+    const compiledCss = await compileTailwindCss();
     publishBuild(output, staging => {
-        const { appVersion, extensionPolicy } = executeBuild(staging, { extension: true });
+        const { appVersion, extensionPolicy } = executeBuild(staging, compiledCss, { extension: true });
         const manifest = JSON.parse(fs.readFileSync(path.join(PATHS.src, 'extension/manifest.json'), 'utf8'));
         const versionMatch = appVersion.match(/^(\d+(?:\.\d+){0,3})/);
         manifest.version = versionMatch ? versionMatch[1] : appVersion;
@@ -55,7 +56,12 @@ function buildExtension(output = path.join(PATHS.root, 'extension')) {
 }
 
 if (require.main === module) {
-    buildExtension();
-    console.log('\nChrome 扩展已生成：extension/（chrome://extensions → 加载已解压的扩展程序）');
+    ensureSignalHandlers();
+    buildExtension().then(() => {
+        console.log('\nChrome 扩展已生成：extension/（chrome://extensions → 加载已解压的扩展程序）');
+    }).catch(error => {
+        console.error(error);
+        process.exitCode = 1;
+    });
 }
 module.exports = { buildExtension };

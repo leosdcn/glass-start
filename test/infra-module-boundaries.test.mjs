@@ -84,9 +84,7 @@ function visit(name, path = []) {
 for (const name of graph.keys()) visit(name);
 console.log('✅ 应用及测试适配模块的静态导入图无循环依赖');
 
-const server = await startServer();
-const productionServer = await startServer(0, undefined, {}, { testMode: false });
-let chrome;
+let server, productionServer, chrome;
 const exceptions = [];
 const connect = async testMode => {
   chrome = await launchChrome({url:`http://127.0.0.1:${testMode ? server.port : productionServer.port}/`, testMode});
@@ -94,6 +92,8 @@ const connect = async testMode => {
   return createEvaluator(chrome.send);
 };
 try {
+  server = await startServer();
+  productionServer = await startServer(0, undefined, {}, { testMode: false });
   let evalJS = await connect(false);
   await waitFor(evalJS, '!!document.querySelector(".bookmark-item")');
   const production = await evalJS(`({private:['__GLASS_DIAG__','state','modalState','pageData','CONFIG','dom','collectEditData','bindEditEvents','isFetchingWeather','showConfirm'].every(key => !(key in window)), clock:!!document.getElementById('clock').textContent.trim()})`);
@@ -165,7 +165,7 @@ try {
   assert.equal(clockRestored, true, '跨月同日及同分钟唤醒应恢复时间和日期，无须修改私有缓存');
   console.log('✅ 测试适配层内部状态通过只读实时访问器读取，搜索完成／取消与日期更新不读取旧快照');
 } finally {
-  if (chrome) await chrome.close();
-  await server.close();
-  await productionServer.close();
+  if (chrome) await chrome.close().catch(() => {});
+  if (server) await server.close().catch(() => {});
+  if (productionServer) await productionServer.close().catch(() => {});
 }

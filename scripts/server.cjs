@@ -18,13 +18,6 @@ const DIST_DIR = testSnapshotDir ? path.join(testSnapshotDir, 'dist') : path.joi
 const enableWatch = !testSnapshotDir && !process.argv.includes('--no-watch') && process.env.NO_WATCH !== '1';
 const isolatedPreview = process.argv.includes('--isolated');
 
-// 若 dist 产物不存在，自动执行首次全量构建
-if (!fs.existsSync(path.join(DIST_DIR, 'index.html'))) {
-    if (testSnapshotDir) throw new Error(`测试构建产物不存在: ${DIST_DIR}`);
-    console.log(`\n${c.cyan}📦 未检测到 dist/ 生产产物，正在自动执行首次全量编译...${c.reset}`);
-    runFullBuild();
-}
-
 const MIME_TYPES = {
     '.html': 'text/html; charset=utf-8',
     '.js': 'text/javascript; charset=utf-8',
@@ -93,7 +86,7 @@ function resolveSslConfig() {
     }
     if (!pair && autoHttps) {
         // 先复用现有证书，无匹配时才尝试签发。
-        const result = spawnSync('mkcert', ['localhost', '127.0.0.1', '::1'], { cwd: root, stdio: 'ignore' });
+        const result = spawnSync('mkcert', ['localhost', '127.0.0.1', '::1'], { cwd: root, stdio: 'ignore', timeout: 5000, killSignal: 'SIGKILL' });
         if (result.status === 0) pair = findPair();
     }
     if (pair) return { cert: fs.readFileSync(pair.cert), key: fs.readFileSync(pair.key) };
@@ -254,47 +247,112 @@ function createStaticServer() {
 }
 
 
+let activeServer = null;
 let watchCleanup = null;
 let previewBrowser = null;
+let previewProfile = null;
+
+function removePreviewProfile() {
+    if (!previewProfile) return;
+    const target = previewProfile;
+    previewProfile = null;
+    try { fs.rmSync(target, { recursive: true, force: true, maxRetries: 5, retryDelay: 20 }); }
+    catch (error) { console.error(`无法清理临时 Chrome 配置目录 ${target}：${error.message}`); }
+}
+
+function killPreviewBrowser(sig = 'SIGTERM') {
+    if (!previewBrowser) return;
+    try {
+        if (process.platform !== 'win32' && previewBrowser.pid) {
+            process.kill(-previewBrowser.pid, sig);
+        } else {
+            previewBrowser.kill(sig);
+        }
+    } catch {}
+}
 
 function openIsolatedPreview(url) {
     const chrome = process.env.CHROME_PATH || (process.platform === 'darwin'
         ? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' : 'google-chrome');
-    let profile;
-    function removeProfile() {
-        if (!profile) return;
-        try { fs.rmSync(profile, { recursive: true, force: true, maxRetries: 3 }); }
-        catch (error) { console.error(`无法清理临时 Chrome 配置目录 ${profile}：${error.message}`); }
-    }
     try {
-        profile = fs.mkdtempSync(path.join(os.tmpdir(), 'glass-start-preview-'));
+        previewProfile = fs.mkdtempSync(path.join(process.env.GLASS_TEST_TMPDIR || os.tmpdir(), 'glass-start-preview-'));
         previewBrowser = spawn(chrome, [
-            `--user-data-dir=${profile}`, '--no-first-run', '--no-default-browser-check', url
-        ], { stdio: 'ignore' });
+            `--user-data-dir=${previewProfile}`,
+            '--no-first-run',
+            '--no-default-browser-check',
+            '--disable-background-networking',
+            '--disable-component-update',
+            '--disable-sync',
+            '--disable-default-apps',
+            '--disable-breakpad',
+            '--disable-crash-reporter',
+            '--disable-crashpad-for-testing',
+            '--noerrdialogs',
+            '--disable-client-side-phishing-detection',
+            '--disable-component-extensions-with-background-pages',
+            '--disable-background-timer-throttling',
+            '--disable-backgrounding-occluded-windows',
+            '--disable-renderer-backgrounding',
+            '--password-store=basic',
+            '--use-mock-keychain',
+            '--mute-audio',
+            '--disable-domain-reliability',
+            '--disable-features=Translate,OptimizationHints,MediaRouter',
+            '--metrics-recording-only',
+            url
+        ], {
+            stdio: 'ignore',
+            detached: process.platform !== 'win32',
+            env: { ...process.env, BREAKPAD_DUMP_LOCATION: previewProfile }
+        });
         previewBrowser.once('error', error => console.error(`无法打开独立 Chrome 预览：${error.message}`));
         previewBrowser.once('close', () => {
+            killPreviewBrowser('SIGKILL');
             previewBrowser = null;
-            removeProfile();
+            removePreviewProfile();
         });
     } catch (error) {
-        removeProfile();
+        removePreviewProfile();
         console.error(`无法打开独立 Chrome 预览：${error.message}`);
     }
 }
 
 function cleanupAndExit() {
+    if (activeServer) {
+        try { activeServer.closeAllConnections?.(); } catch {}
+        try { activeServer.close(); } catch {}
+        activeServer = null;
+    }
     if (watchCleanup) {
-        watchCleanup();
+        try { watchCleanup(); } catch {}
         watchCleanup = null;
     }
     const browser = previewBrowser;
-    if (!browser) process.exit(0);
-    browser.once('close', () => process.exit(0));
-    browser.kill();
-    setTimeout(() => browser.kill('SIGKILL'), 1500).unref();
+    if (!browser) {
+        removePreviewProfile();
+        process.exit(0);
+    }
+    browser.once('close', () => {
+        removePreviewProfile();
+        process.exit(0);
+    });
+    killPreviewBrowser('SIGTERM');
+    setTimeout(() => {
+        killPreviewBrowser('SIGKILL');
+        setTimeout(() => {
+            removePreviewProfile();
+            process.exit(0);
+        }, 100);
+    }, 1500).unref();
 }
 process.on('SIGINT', cleanupAndExit);
 process.on('SIGTERM', cleanupAndExit);
+process.on('SIGHUP', cleanupAndExit);
+process.on('disconnect', cleanupAndExit);
+process.on('exit', () => {
+    killPreviewBrowser('SIGKILL');
+    removePreviewProfile();
+});
 
 function getLanIps() {
     const interfaces = os.networkInterfaces();
@@ -310,7 +368,7 @@ function getLanIps() {
 }
 
 function startListening(requestedPort) {
-    const server = createStaticServer();
+    const server = activeServer = createStaticServer();
 
     server.listen(requestedPort, '0.0.0.0', () => {
         const { port } = /** @type {import('node:net').AddressInfo} */ (server.address());
@@ -369,5 +427,17 @@ function startListening(requestedPort) {
     });
 }
 
-startListening(targetPort);
+async function start() {
+    if (!fs.existsSync(path.join(DIST_DIR, 'index.html'))) {
+        if (testSnapshotDir) throw new Error(`测试构建产物不存在: ${DIST_DIR}`);
+        console.log(`\n${c.cyan}📦 未检测到 dist/ 生产产物，正在自动执行首次全量编译...${c.reset}`);
+        await runFullBuild();
+    }
+    startListening(targetPort);
+}
+
+start().catch(error => {
+    console.error(error);
+    process.exitCode = 1;
+});
 

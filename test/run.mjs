@@ -1,8 +1,9 @@
 import { spawn } from 'node:child_process';
-import { readdirSync, mkdtempSync, rmSync } from 'node:fs';
+import { readdirSync, mkdtempSync, rmSync, writeFileSync, readFileSync, realpathSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { constants, tmpdir, availableParallelism } from 'node:os';
+import { cleanupChromeProcesses } from './support/chrome-processes.mjs';
 import { requiresBuild, standaloneTests } from './support/test-selection.mjs';
 
 process.env.AUTO_OPEN = '0';
@@ -20,30 +21,52 @@ if (unmatched.length || !files.length) {
   process.exit(1);
 }
 
+// 只回收本项目中能确认所有者已退出的测试沙箱。
+const project = realpathSync(rootDir);
+for (const entry of readdirSync(tmpdir(), { withFileTypes: true })) {
+  if (!entry.isDirectory() || !/^glass-start-run-[a-zA-Z0-9]{6}$/.test(entry.name)) continue;
+  const candidate = join(tmpdir(), entry.name);
+  try {
+    const { pid, root } = JSON.parse(readFileSync(join(candidate, 'runner.pid'), 'utf8'));
+    if (root !== project || !Number.isSafeInteger(pid) || pid <= 0) continue;
+    try { process.kill(pid, 0); }
+    catch (error) {
+      if (error.code === 'ESRCH') rmSync(candidate, { recursive: true, force: true });
+    }
+  } catch {}
+}
+
 // 仅明确列出的纯单元测试可跳过构建；未知测试默认验证新产物。
 const needsBuild = requiresBuild(files);
 const runTempDir = mkdtempSync(join(tmpdir(), 'glass-start-run-'));
+writeFileSync(join(runTempDir, 'runner.pid'), JSON.stringify({ pid: process.pid, root: project }));
 const grouped = process.platform !== 'win32';
 const children = new Set();
 let interrupted = 0, shutdownTimer;
 
-function killGroup(child) {
+function killGroup(child, signal = 'SIGKILL') {
   try {
-    if (grouped && child.pid) process.kill(-child.pid, 'SIGKILL');
-    else child.kill('SIGKILL');
+    if (grouped && child.pid) process.kill(-child.pid, signal);
+    else child.kill(signal);
   } catch {}
 }
 process.on('exit', () => {
-  children.forEach(killGroup);
-  rmSync(runTempDir, { recursive: true, force: true });
+  children.forEach(child => killGroup(child, 'SIGKILL'));
+  cleanupChromeProcesses(runTempDir);
+  rmSync(runTempDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 20 });
 });
-for (const signal of ['SIGINT', 'SIGTERM']) {
+for (const signal of ['SIGINT', 'SIGTERM', 'SIGHUP']) {
   process.on(signal, () => {
-    if (interrupted) return;
-    interrupted = 128 + constants.signals[signal];
-    for (const child of children) child.kill(signal);
-    // 先让 CDP 的退出钩子清理浏览器，失去响应时才终止本次进程组。
-    shutdownTimer = setTimeout(() => children.forEach(killGroup), 3000);
+    if (interrupted) {
+      process.exit(128 + (constants.signals[signal] || 1));
+    }
+    interrupted = 128 + (constants.signals[signal] || 1);
+    for (const child of children) killGroup(child, signal);
+    // 先让 CDP 的退出钩子清理浏览器，失去响应时才终止本次进程组并硬退出。
+    shutdownTimer = setTimeout(() => {
+      children.forEach(child => killGroup(child, 'SIGKILL'));
+      setTimeout(() => process.exit(interrupted || 1), 500);
+    }, 3000);
   });
 }
 

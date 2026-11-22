@@ -17,19 +17,20 @@ const navFilename = language === 'en' ? 'preview-nav-en.png' : 'preview-nav.png'
 await mkdir(OUTPUT_DIR, { recursive: true });
 
 console.log('🚀 正在启动允许 GPU 加速的 Chrome 截图会话...');
-const server = await startServer(0, undefined, {}, { testMode: true });
-const targetUrl = `http://127.0.0.1:${server.port}/index.html`;
-
-// 启动带有 GPU 加速并直接导航的 Chrome
-const chrome = await launchChrome({
-  url: targetUrl,
-  disableGPU: false,
-  testMode: true
-});
-const { send } = chrome;
-const evalJS = createEvaluator(send);
-
+let server, chrome;
 try {
+  server = await startServer(0, undefined, {}, { testMode: true });
+  const targetUrl = `http://127.0.0.1:${server.port}/index.html`;
+
+  // 启动带有 GPU 加速并直接导航的 Chrome
+  chrome = await launchChrome({
+    url: targetUrl,
+    disableGPU: false,
+    testMode: true
+  });
+  const { send } = chrome;
+  const evalJS = createEvaluator(send);
+
   const FIXED_TS = new Date('2026-10-27T12:00:00+08:00').getTime();
 
   // 1. 设置 1440x900 @2x 视口与地理/时区模拟
@@ -137,13 +138,13 @@ try {
 
   // 7. 使用 sips 优化为 1440px 宽度
   try {
-    const { execSync } = await import('node:child_process');
-    execSync(`sips -Z 1440 "${join(OUTPUT_DIR, startFilename)}"`, { stdio: 'ignore' });
-    execSync(`sips -Z 1440 "${join(OUTPUT_DIR, navFilename)}"`, { stdio: 'ignore' });
+    const { execFileSync } = await import('node:child_process');
+    execFileSync('sips', ['-Z', '1440', join(OUTPUT_DIR, startFilename)], { timeout: 15000, killSignal: 'SIGKILL', stdio: 'ignore' });
+    execFileSync('sips', ['-Z', '1440', join(OUTPUT_DIR, navFilename)], { timeout: 15000, killSignal: 'SIGKILL', stdio: 'ignore' });
   } catch(e) {}
 
   console.log('✅ Chrome 截图已成功生成至 docs/assets/ !');
 } finally {
-  await chrome.close();
-  await server.close();
+  if (chrome) await chrome.close().catch(() => {});
+  if (server) await server.close().catch(() => {});
 }

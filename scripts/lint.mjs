@@ -5,7 +5,7 @@
  * 3. 校验 bookmarks.json、public/manifest.json 等 JSON 配置
  * 4. 静态检查输入字号、ARIA、CSS、DOM ID、书签及生命周期等工程约束
  */
-import { readFileSync, writeFileSync, statSync, existsSync, readdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, chmodSync, statSync, existsSync, readdirSync, renameSync, rmSync } from 'node:fs';
 import { join, dirname, relative } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import vm from 'node:vm';
@@ -68,9 +68,19 @@ if (isFixMode) {
     });
 
     if (fixCount > 0) {
-        writeFileSync(htmlPath, fixedHtml, 'utf-8');
-        indexHtml = fixedHtml;
-        console.log(`  ${c.green}⚡ [Auto-Fix] 已自动修复 src/index.html 中 ${fixCount} 处机械性无障碍属性！${c.reset}`);
+        const tempPath = `${htmlPath}.tmp-${process.pid}-${Date.now()}`;
+        try {
+            const mode = statSync(htmlPath).mode & 0o777;
+            writeFileSync(tempPath, fixedHtml, { encoding: 'utf-8', flag: 'wx', mode, flush: true });
+            chmodSync(tempPath, mode);
+            renameSync(tempPath, htmlPath);
+            indexHtml = fixedHtml;
+            console.log(`  ${c.green}⚡ [Auto-Fix] 已自动修复 src/index.html 中 ${fixCount} 处机械性无障碍属性！${c.reset}`);
+        } finally {
+            if (existsSync(tempPath)) {
+                try { rmSync(tempPath, { force: true }); } catch {}
+            }
+        }
     }
 }
 

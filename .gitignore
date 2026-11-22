@@ -9,6 +9,8 @@ dist/
 /.extension-build-*/
 /.extension-publish/
 /.extension-publish-lock/
+/.icon-sync-*/
+public/icons/.icon-sync-*/
 .temp_input.css
 .claude/
 test/.cache.json

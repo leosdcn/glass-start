@@ -49,7 +49,7 @@ await test("主题配置、图标回退与缓存驱逐", async () => {
     assert.equal(expected.themes.length, 8);
     assert.ok(expected.themes.every((theme, i) => theme.isLight === (i % 2 === 1)
       && theme.color === (theme.isLight ? '#ffffff' : '#0b0f19')));
-    const fixtureDir = mkdtempSync(join(tmpdir(), 'glass-theme-config-'));
+    const fixtureDir = mkdtempSync(join(process.env.GLASS_TEST_TMPDIR || tmpdir(), 'glass-theme-config-'));
     try {
       const source = readFileSync(new URL('../src/js/config/themes.js', import.meta.url), 'utf8');
       const fixture = join(fixtureDir, 'themes.js');

@@ -1,17 +1,49 @@
 const fs = require('node:fs');
 const path = require('node:path');
+const os = require('node:os');
 const { randomUUID } = require('node:crypto');
 
+const activeCleanups = new Set();
+function registerCleanup(fn) {
+    activeCleanups.add(fn);
+    return () => activeCleanups.delete(fn);
+}
+function executeCleanups() {
+    for (const fn of activeCleanups) {
+        try { fn(); } catch {}
+    }
+    activeCleanups.clear();
+}
+let signalsRegistered = false;
+function ensureSignalHandlers() {
+    if (signalsRegistered) return;
+    signalsRegistered = true;
+    for (const sig of ['SIGINT', 'SIGTERM', 'SIGHUP']) {
+        process.once(sig, () => {
+            executeCleanups();
+            const sigCode = os.constants?.signals?.[sig] || 1;
+            process.exit(128 + sigCode);
+        });
+    }
+    process.on('exit', executeCleanups);
+}
+
 function publishBuild(output, populate) {
+    ensureSignalHandlers();
     const parent = path.dirname(output);
     const prefix = path.join(parent, `.${path.basename(output)}`);
     const stagingPrefix = prefix + '-build-';
+    removeAbandonedBuilds(parent, stagingPrefix, '');
     const staging = fs.mkdtempSync(stagingPrefix + process.pid + '-');
     const candidate = staging + '-lock';
     const lock = prefix + '-publish-lock';
     // 备份沿用原路径，回收失效锁时仍能恢复被中断的发布。
     const backupDir = prefix + '-publish';
     const previous = path.join(backupDir, 'previous');
+    const unregister = registerCleanup(() => {
+        try { fs.rmSync(candidate, { recursive: true, force: true }); } catch {}
+        try { fs.rmSync(staging, { recursive: true, force: true }); } catch {}
+    });
     try {
         const result = populate(staging);
         // mkdtemp 创建的目录只允许当前用户访问。发布产物沿用普通目录的权限。
@@ -46,6 +78,7 @@ function publishBuild(output, populate) {
             removePublishLock(lock, owner);
         }
     } finally {
+        unregister();
         fs.rmSync(candidate, { recursive: true, force: true });
         fs.rmSync(staging, { recursive: true, force: true });
     }
@@ -96,11 +129,13 @@ function acquirePublishLock(lock, candidate) {
 /** 清理可确认归属已退出进程的暂存目录，保留当前版本和并行构建。 */
 function removeAbandonedBuilds(parent, prefix, release) {
     const base = path.basename(prefix);
+    const resolvedRelease = release ? path.resolve(release) : null;
     for (const name of fs.readdirSync(parent)) {
         if (!name.startsWith(base)) continue;
         const owner = /^([1-9]\d*)-[a-zA-Z0-9]{6}(?:-(?:lock|link))?$/.exec(name.slice(base.length));
         const file = path.join(parent, name);
-        if (!owner || file === release) continue;
+        const resolvedFile = path.resolve(file);
+        if (!owner || resolvedFile === resolvedRelease) continue;
         try {
             process.kill(Number(owner[1]), 0);
         } catch (error) {
@@ -111,6 +146,7 @@ function removeAbandonedBuilds(parent, prefix, release) {
 
 /** 并行准备各自的目录，在同一发布锁内读取前版、切换入口并回收。 */
 function publishWebBuild(output, populate, prepare = (release, previous) => {}) {
+    ensureSignalHandlers();
     const parent = path.dirname(output);
     const prefix = path.join(parent, `.${path.basename(output)}-build-`);
     const release = fs.mkdtempSync(prefix + process.pid + '-');
@@ -120,6 +156,13 @@ function publishWebBuild(output, populate, prepare = (release, previous) => {}) 
     const migration = output + '.migration';
     const backup = path.join(migration, 'previous');
     let published = false;
+    const unregister = registerCleanup(() => {
+        try { fs.rmSync(candidate, { recursive: true, force: true }); } catch {}
+        if (!published) {
+            try { fs.rmSync(link, { force: true }); } catch {}
+            try { fs.rmSync(release, { recursive: true, force: true }); } catch {}
+        }
+    });
     try {
         const result = populate(release);
         fs.chmodSync(release, 0o777 & ~process.umask());
@@ -130,10 +173,10 @@ function publishWebBuild(output, populate, prepare = (release, previous) => {}) 
             if (fs.existsSync(backup) && !fs.lstatSync(output, { throwIfNoEntry: false })) {
                 fs.renameSync(backup, output);
             }
-            const entry = fs.lstatSync(output, { throwIfNoEntry: false });
-            const previous = entry?.isSymbolicLink() ? path.resolve(parent, fs.readlinkSync(output)) : null;
-            prepare(release, entry ? output : null);
-            if (entry?.isDirectory()) {
+            const currentEntry = fs.lstatSync(output, { throwIfNoEntry: false });
+            const previous = currentEntry?.isSymbolicLink() ? path.resolve(parent, fs.readlinkSync(output)) : null;
+            prepare(release, currentEntry ? output : null);
+            if (currentEntry?.isDirectory()) {
                 fs.mkdirSync(migration, { recursive: true });
                 fs.renameSync(output, backup);
             }
@@ -144,7 +187,7 @@ function publishWebBuild(output, populate, prepare = (release, previous) => {}) 
                 fs.renameSync(link, output);
                 published = true;
             } catch (error) {
-                if (entry?.isDirectory()) fs.renameSync(backup, output);
+                if (currentEntry?.isDirectory()) fs.renameSync(backup, output);
                 throw error;
             }
             fs.rmSync(migration, { recursive: true, force: true });
@@ -157,6 +200,7 @@ function publishWebBuild(output, populate, prepare = (release, previous) => {}) 
             removePublishLock(lock, owner);
         }
     } finally {
+        unregister();
         fs.rmSync(candidate, { recursive: true, force: true });
         if (!published) {
             fs.rmSync(link, { force: true });
@@ -165,4 +209,4 @@ function publishWebBuild(output, populate, prepare = (release, previous) => {}) 
     }
 }
 
-module.exports = { publishBuild, publishWebBuild };
+module.exports = { publishBuild, publishWebBuild, ensureSignalHandlers };

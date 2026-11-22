@@ -10,14 +10,39 @@
  * 4. 格式规范化：统一使用 macOS 原生 sips 转录为 128x128 1:1 PNG 存入 icons/{host}.png；
  * 5. 零外部依赖：纯原生 Node.js + 原生 sips，不引入任何 npm dependencies。
  */
-import { existsSync, mkdirSync, writeFileSync, readFileSync, mkdtempSync, rmSync, renameSync, statSync } from 'node:fs';
+import { existsSync, mkdirSync, writeFileSync, readFileSync, mkdtempSync, rmSync, renameSync, statSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { execFileSync } from 'node:child_process';
+import { execFile } from 'node:child_process';
 import https from 'node:https';
-import { tmpdir } from 'node:os';
+import { tmpdir, constants } from 'node:os';
 import { pngDimensions, validateIconPng } from './icon-png.mjs';
 import { c, HR_DOUBLE } from './terminal.cjs';
+
+const activeCleanups = new Set();
+function registerCleanup(fn) {
+    activeCleanups.add(fn);
+    return () => activeCleanups.delete(fn);
+}
+function executeCleanups() {
+    for (const fn of [...activeCleanups].reverse()) {
+        try { fn(); } catch {}
+    }
+    activeCleanups.clear();
+}
+let signalsRegistered = false;
+function ensureSignalHandlers() {
+    if (signalsRegistered) return;
+    signalsRegistered = true;
+    for (const sig of ['SIGINT', 'SIGTERM', 'SIGHUP']) {
+        process.once(sig, () => {
+            executeCleanups();
+            const sigCode = constants.signals?.[sig] || 1;
+            process.exit(128 + sigCode);
+        });
+    }
+    process.on('exit', executeCleanups);
+}
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -25,6 +50,7 @@ const ROOT_DIR = join(__dirname, '..');
 const ICONS_DIR = join(ROOT_DIR, 'public', 'icons');
 const BOOKMARKS_PATH = join(ROOT_DIR, 'bookmarks.json');
 const refresh = process.argv.includes('--refresh');
+const checkOnly = process.argv.includes('--check-only');
 
 /** @typedef {{ url: string, entry?: string, referer?: string, cropSize?: number }} IconSource */
 
@@ -113,32 +139,40 @@ function fetchRedirectBuffer(url, referer = '', timeoutMs = 7000, redirectCount 
     });
 }
 
-/** 文件头、尺寸与尾标合规后实际解码，避免复用图像数据损坏的 PNG。 */
-let _hasSips = undefined;
-function hasSips() {
-    if (_hasSips !== undefined) return _hasSips;
-    try {
-        execFileSync('sips', ['--version'], { stdio: 'ignore', timeout: 2000 });
-        _hasSips = true;
-    } catch {
-        _hasSips = false;
-    }
-    return _hasSips;
+/** @returns {Promise<Buffer>} */
+function runTool(command, args, timeout) {
+    return new Promise((resolve, reject) => {
+        const tool = execFile(command, args, { timeout, killSignal: 'SIGKILL', encoding: 'buffer' },
+            (error, stdout) => {
+                unregister();
+                if (error) reject(error);
+                else resolve(stdout);
+            });
+        const unregister = registerCleanup(() => tool.kill('SIGKILL'));
+    });
 }
 
-function isReusableIcon(path) {
+/** 文件头、尺寸与尾标合规后实际解码，避免复用图像数据损坏的 PNG。 */
+let sipsAvailable;
+function hasSips() {
+    return sipsAvailable ??= runTool('sips', ['--version'], 2000).then(() => true, () => false);
+}
+
+async function isReusableIcon(path) {
     let workDir;
+    let unregister;
     try {
         validateIconPng(path);
-        if (hasSips()) {
-            workDir = mkdtempSync(join(tmpdir(), 'glass-icon-check-'));
-            execFileSync('sips', ['-s', 'format', 'png', path, '--out', join(workDir, 'decoded.png')],
-                { stdio: 'ignore', timeout: 5000 });
+        if (await hasSips()) {
+            workDir = mkdtempSync(join(process.env.GLASS_TEST_TMPDIR || tmpdir(), `glass-icon-check-${process.pid}-`));
+            unregister = registerCleanup(() => rmSync(workDir, { recursive: true, force: true }));
+            await runTool('sips', ['-s', 'format', 'png', path, '--out', join(workDir, 'decoded.png')], 5000);
         }
         return true;
     } catch {
         return false;
     } finally {
+        unregister?.();
         if (workDir) rmSync(workDir, { recursive: true, force: true });
     }
 }
@@ -148,41 +182,43 @@ function isReusableIcon(path) {
  * @param {string} destPath
  * @param {Pick<IconSource, 'entry' | 'cropSize'>} [options]
  */
-function saveAsPng(inputBuffer, destPath, { entry, cropSize } = {}) {
-    const workDir = mkdtempSync(join(dirname(destPath), '.icon-sync-'));
+async function saveAsPng(inputBuffer, destPath, { entry, cropSize } = {}) {
+    ensureSignalHandlers();
+    const workDir = mkdtempSync(join(dirname(destPath), `.icon-sync-${process.pid}-`));
+    const unregister = registerCleanup(() => rmSync(workDir, { recursive: true, force: true }));
     const outputPath = join(workDir, 'output.png');
     try {
         if (entry) {
             const archive = join(workDir, 'official.zip');
             writeFileSync(archive, inputBuffer);
-            inputBuffer = execFileSync('unzip', ['-p', archive, entry], { timeout: 5000 });
+            inputBuffer = await runTool('unzip', ['-p', archive, entry], 5000);
         }
         // XML 声明、导出注释和文档类型可能出现在 SVG 根元素前。
         const isSvg = inputBuffer.subarray(0, 512).toString('utf8').includes('<svg');
         const inputPath = join(workDir, isSvg ? 'input.svg' : 'input.bin');
         writeFileSync(inputPath, inputBuffer);
-        if (!hasSips()) {
+        if (!await hasSips()) {
             if (isSvg || cropSize) return false;
             validateIconPng(inputPath);
             renameSync(inputPath, destPath);
             return true;
         }
-        const runSips = args => execFileSync('sips', args, { stdio: 'ignore', timeout: 5000 });
-        runSips(isSvg
+        const runSips = args => runTool('sips', args, 5000);
+        await runSips(isSvg
             ? ['-s', 'format', 'png', '-Z', '128', inputPath, '--out', outputPath]
             : ['-s', 'format', 'png', inputPath, '--out', outputPath]);
         if (cropSize) {
             const side = String(cropSize);
-            runSips(['--cropToHeightWidth', side, side, outputPath]);
+            await runSips(['--cropToHeightWidth', side, side, outputPath]);
         }
         let { width, height } = pngDimensions(outputPath);
         if (Math.max(width, height) > 128) {
-            runSips(['-Z', '128', outputPath]);
+            await runSips(['-Z', '128', outputPath]);
             ({ width, height } = pngDimensions(outputPath));
         }
         if (width !== height) {
             const side = String(Math.max(width, height));
-            runSips(['--padToHeightWidth', side, side, outputPath]);
+            await runSips(['--padToHeightWidth', side, side, outputPath]);
         }
         validateIconPng(outputPath);
         renameSync(outputPath, destPath);
@@ -190,6 +226,7 @@ function saveAsPng(inputBuffer, destPath, { entry, cropSize } = {}) {
     } catch {
         return false;
     } finally {
+        unregister();
         rmSync(workDir, { recursive: true, force: true });
     }
 }
@@ -208,12 +245,32 @@ async function runConcurrent(tasks, concurrency = 10, onProgress = null) {
     return results;
 }
 
+function cleanupAbandonedSyncDirs() {
+    const stage = /^\.icon-sync-(\d+)-[a-zA-Z0-9]{6}$/;
+    /** @type {[string, RegExp][]} */
+    const targets = [[ROOT_DIR, stage], [ICONS_DIR, stage],
+        [process.env.GLASS_TEST_TMPDIR || tmpdir(), /^glass-icon-check-(\d+)-[a-zA-Z0-9]{6}$/]];
+    for (const [dir, pattern] of targets) {
+        if (!existsSync(dir)) continue;
+        for (const name of readdirSync(dir)) {
+            const pid = Number(pattern.exec(name)?.[1]);
+            if (!Number.isSafeInteger(pid) || pid <= 0) continue;
+            try { process.kill(pid, 0); }
+            catch (error) {
+                if (error.code === 'ESRCH') rmSync(join(dir, name), { recursive: true, force: true });
+            }
+        }
+    }
+}
+
 async function main() {
+    ensureSignalHandlers();
+    if (!checkOnly) cleanupAbandonedSyncDirs();
     console.log(`\n${c.cyan}${HR_DOUBLE}${c.reset}`);
     console.log(`${c.bold}${c.cyan}📦 Glass Start — Google S2 (sz=128) 本地图标纯净同步引擎${c.reset}`);
     console.log(`${c.cyan}${HR_DOUBLE}${c.reset}\n`);
 
-    if (!existsSync(ICONS_DIR)) {
+    if (!checkOnly && !existsSync(ICONS_DIR)) {
         mkdirSync(ICONS_DIR, { recursive: true });
         console.log(`  ${c.green}✔${c.reset} 创建本地图标目录: ${c.dim}public/icons/${c.reset}`);
     }
@@ -247,16 +304,18 @@ async function main() {
     });
 
     const totalHosts = siteMap.size;
-    console.log(`  ${c.cyan}ℹ${c.reset} 扫描到 ${c.bold}${totalHosts}${c.reset} 个唯一站点域名，${refresh ? '全量刷新本地图标' : '复用有效本地图标，仅补齐缺失或损坏项'}...`);
+    console.log(`  ${c.cyan}ℹ${c.reset} 扫描到 ${c.bold}${totalHosts}${c.reset} 个唯一站点域名，${checkOnly ? '仅校验本地图标' : refresh ? '全量刷新本地图标' : '复用有效本地图标，仅补齐缺失或损坏项'}...`);
 
     let completed = 0;
     const tasks = Array.from(siteMap.values()).map(site => async () => {
         const { bareHost, preferredHost, destPath } = site;
 
         // 默认复用已合规本地图标；--refresh 时全量重新拉取
-        if (!refresh && isReusableIcon(destPath)) {
+        if ((checkOnly || !refresh) && await isReusableIcon(destPath)) {
             return { host: bareHost, success: true, source: 'local' };
         }
+
+        if (checkOnly) return { host: bareHost, success: false, error: '本地图标缺失或无效' };
 
         // 构建候选请求主机：优先使用原始书签中自带的 hostname，若失败自动反向尝试（裸域 ➔ www. 或 www. ➔ 裸域）
         const candidates = [preferredHost];
@@ -280,7 +339,7 @@ async function main() {
         for (const { url, source, entry, referer, cropSize } of sources) {
             try {
                 const buffer = await fetchRedirectBuffer(url, referer);
-                if (saveAsPng(buffer, destPath, { entry, cropSize })) return { host: bareHost, success: true, source };
+                if (await saveAsPng(buffer, destPath, { entry, cropSize })) return { host: bareHost, success: true, source };
             } catch {}
         }
 
@@ -304,6 +363,8 @@ async function main() {
         console.log(`  ${c.green}✨ 全站 ${totalHosts} 个书签图标已就绪（复用 ${results.filter(r => r.source === 'local').length} 个，下载 ${results.filter(r => r.source !== 'local').length} 个）！${c.reset}`);
     }
 
+    if (checkOnly) return;
+
     // 只更新已经有可用本地图标的引用。
     const readyHosts = new Set(results.filter(r => r.success).map(r => r.host));
     let updatedIconCount = 0;
@@ -324,7 +385,8 @@ async function main() {
     });
 
     if (updatedIconCount > 0) {
-        const stage = mkdtempSync(join(ROOT_DIR, '.icon-sync-'));
+        const stage = mkdtempSync(join(ROOT_DIR, `.icon-sync-${process.pid}-`));
+        const unregister = registerCleanup(() => rmSync(stage, { recursive: true, force: true }));
         try {
             const stagedBookmarks = join(stage, 'bookmarks.json');
             writeFileSync(stagedBookmarks, JSON.stringify(data, null, 4) + '\n',
@@ -334,6 +396,7 @@ async function main() {
             }
             renameSync(stagedBookmarks, BOOKMARKS_PATH);
         } finally {
+            unregister();
             rmSync(stage, { recursive: true, force: true });
         }
         console.log(`  ${c.green}✔${c.reset} 已规范 bookmarks.json 中 ${c.bold}${updatedIconCount}${c.reset} 处图标路径为 ./icons/{host}.png`);

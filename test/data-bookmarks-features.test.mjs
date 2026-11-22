@@ -2,11 +2,18 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { readFileSync } from 'node:fs';
-import { launchSession, pressKey, waitFor, navigateAndWait } from './support/helpers.mjs';
+import { createEvaluator, launchSession, pressKey, waitFor, navigateAndWait } from './support/helpers.mjs';
+import { launchChrome } from './support/cdp.mjs';
+import { startServer } from './support/server.mjs';
 
 test('异常书签缓存不阻断启动，清洗保留有效条目、目录继承和空简介', async () => {
-  const { server, chrome, send, evalJS } = await launchSession();
+  const server = await startServer();
+  let chrome;
   try {
+    // 先设置异常记录，再进行应用的首次导航，避免两个文档同时初始化空的 IndexedDB。
+    chrome = await launchChrome({ url: 'about:blank' });
+    const { send } = chrome;
+    const evalJS = createEvaluator(send);
     send('Fetch.requestPaused', ({ requestId }) => send('Fetch.failRequest', { requestId, errorReason: 'Failed' }));
     await send('Fetch.enable', { patterns: [
       { urlPattern: 'https://a.favicon.im/*', resourceType: 'Image' },
@@ -57,8 +64,7 @@ test('异常书签缓存不阻断启动，清洗保留有效条目、目录继�
     assert.equal(fallback.count, 8);
     assert.equal(fallback.valid, true);
   } finally {
-    await chrome.close();
-    await server.close();
+    try { await chrome?.close(); } finally { await server.close(); }
   }
 });
 
@@ -125,6 +131,7 @@ test('书签轻量存储模型、自定义图标持久化与系统重置', async
     assert.deepEqual(saveModel.keys, ['https://aaa.example.com']);
     assert.equal(saveModel.version, 1);
     assert.equal(saveModel.meta['https://aaa.example.com'].icon, 'https://aaa.example.com/a.png');
+    assert.deepEqual(await evalJS(`['userBookmarkKeys', 'userCustomMeta'].map(key => localStorage.getItem(key))`), [null, null]);
 
     // 重置书签自闭环
     const resetBookmarksCheck = await evalJS(`(async () => {

@@ -2,10 +2,10 @@ const { appScriptPath, referencedWebBuild, scriptFingerprint, htmlFingerprint, B
 const { watchFiles } = require('./watch.cjs');
 const { replaceOnce, injectDocumentShell } = require('./html-template.cjs');
 const { getContentSecurityPolicy, readImageSearchUploads } = require('./content-security-policy.cjs');
-const { publishWebBuild } = require('./publish-build.cjs');
+const { publishWebBuild, ensureSignalHandlers } = require('./publish-build.cjs');
 const fs = require('fs');
 const path = require('path');
-const { execFileSync } = require('child_process');
+const { execFile } = require('child_process');
 const { randomBytes } = require('node:crypto');
 
 /**
@@ -80,7 +80,7 @@ function checkTailwindInstalled() {
 }
 
 // Tailwind 扫描 HTML、JS 及导入的样式；Watch 事件可能合并，不能只凭最后一个路径跳过编译。
-function compileTailwindCss() {
+async function compileTailwindCss() {
     logSection('1/4', '📦 编译 Tailwind CSS 样式表 (v4 CLI)');
 
     const cssStart = Date.now();
@@ -93,10 +93,17 @@ function compileTailwindCss() {
     }
 
     try {
-        const cssContent = execFileSync(process.execPath, [cliBin, '-i', PATHS.srcCss, '-m'], {
-            cwd: ROOT_DIR,
-            encoding: 'utf-8',
-            stdio: ['pipe', 'pipe', 'pipe']
+        resetBuildMetrics();
+        const cssContent = await new Promise((resolve, reject) => {
+            const tool = execFile(process.execPath, [cliBin, '-i', PATHS.srcCss, '-m'], {
+                cwd: ROOT_DIR, encoding: 'utf-8', timeout: 60000, killSignal: 'SIGKILL'
+            }, (error, stdout, stderr) => {
+                process.removeListener('exit', stop);
+                if (error) reject(Object.assign(error, { stderr }));
+                else resolve(stdout);
+            });
+            const stop = () => tool.kill('SIGKILL');
+            process.once('exit', stop);
         });
         if (!cssContent || !cssContent.trim()) throw new Error('Tailwind 编译输出为空样式');
         const cssDuration = Date.now() - cssStart;
@@ -136,6 +143,7 @@ function buildServiceWorkerAndAssets(targetDir, { extension, version, webHeader 
             recursive: true,
             mode: fs.constants.COPYFILE_FICLONE,
             filter: src => {
+                if (path.basename(src).startsWith('.icon-sync-')) return false;
                 if (fs.lstatSync(src).isSymbolicLink()) throw new Error(`静态资源不能是符号链接: ${src}`);
                 return !src.endsWith('.DS_Store') && !src.endsWith('Thumbs.db');
             }
@@ -384,13 +392,11 @@ function printDistSummary(startTime, items) {
     console.log(`${c.gray}${HR_DOUBLE}${c.reset}\n`);
 }
 
-function executeBuild(targetDir, { extension = false } = {}) {
+function executeBuild(targetDir, compiledCss, { extension = false } = {}) {
     const version = `app-core-v${Date.now()}-${randomBytes(8).toString('hex')}`;
     const { version: appVersion } = JSON.parse(fs.readFileSync(PATHS.pkgJson, 'utf-8'));
     const uploads = readImageSearchUploads();
     const { webMeta, webHeader, extensionPolicy } = getContentSecurityPolicy(uploads);
-    resetBuildMetrics();
-    const compiledCss = compileTailwindCss();
     buildServiceWorkerAndAssets(targetDir, { extension, version, webHeader });
     processProductionAppJs(targetDir, { extension, version, uploads });
     processProductionHtml(compiledCss, targetDir, { version, appVersion, extension, webMeta });
@@ -414,7 +420,7 @@ function retainPreviousWebScript(targetDir, previousDir) {
 
 // 主构建入口流程
 /** @param {{ testSnapshotDir?: string }} [options] */
-function main({ testSnapshotDir } = {}) {
+async function main({ testSnapshotDir } = {}) {
     const startTime = Date.now();
 
     console.log(`\n${c.cyan}${HR_DOUBLE}${c.reset}`);
@@ -437,9 +443,10 @@ function main({ testSnapshotDir } = {}) {
     }
 
     try {
+        const compiledCss = await compileTailwindCss();
         let items;
         publishWebBuild(PATHS.dist, staging => {
-            const { version, uploads } = executeBuild(staging);
+            const { version, uploads } = executeBuild(staging, compiledCss);
             if (testSnapshotDir) {
                 fs.cpSync(staging, path.join(testSnapshotDir, 'dist'), {
                     recursive: true, mode: fs.constants.COPYFILE_FICLONE
@@ -458,9 +465,10 @@ function main({ testSnapshotDir } = {}) {
 }
 
 // 文件变化后重新构建并发布。
-function rebuild() {
+async function rebuild() {
     const startTime = Date.now();
-    const { version } = publishWebBuild(PATHS.dist, executeBuild, retainPreviousWebScript);
+    const compiledCss = await compileTailwindCss();
+    const { version } = publishWebBuild(PATHS.dist, staging => executeBuild(staging, compiledCss), retainPreviousWebScript);
     return { version, duration: Date.now() - startTime };
 }
 
@@ -482,12 +490,10 @@ function startWatch({ label = 'Watch', delay = 80 } = {}) {
 
 if (require.main === module) {
     const snapshotArg = process.argv.find(arg => arg.startsWith('--test-snapshot='));
-    main({ testSnapshotDir: snapshotArg?.slice('--test-snapshot='.length) });
-
-    // 监听模式 (--watch)
-    if (process.argv.includes('--watch')) {
-        startWatch();
-    }
+    ensureSignalHandlers();
+    main({ testSnapshotDir: snapshotArg?.slice('--test-snapshot='.length) }).then(() => {
+        if (process.argv.includes('--watch')) startWatch();
+    });
 }
 
 module.exports = {
@@ -496,6 +502,7 @@ module.exports = {
     injectThemeConfig,
     buildAppJavaScript,
     executeBuild,
+    compileTailwindCss,
     PATHS
 };
 

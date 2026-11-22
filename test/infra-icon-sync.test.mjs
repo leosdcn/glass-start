@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawnSync, execFileSync } from 'node:child_process';
 
-const hasSips = spawnSync('sips', ['--version'], { stdio: 'ignore' }).status === 0;
+const hasSips = spawnSync('sips', ['--version'], { stdio: 'ignore', timeout: 5000 }).status === 0;
 const officialHost = 'official.example';
 const officialUrl = 'https://assets.example/official.png';
 // 两张独立于站内资源的有效灰色 PNG，分别为 19×19 和 128×128。
@@ -44,7 +44,7 @@ export default { get(url, options, callback) {
   const script = source
     .replace(transportImport, `import https from 'data:text/javascript;base64,${Buffer.from(transport).toString('base64')}';`)
     .replace(entryPoint, `OFFICIAL_HOST_SOURCES.set(${JSON.stringify(officialHost)}, ${JSON.stringify(officialUrl)});\n${entryPoint}`);
-  const root = mkdtempSync(join(tmpdir(), 'glass-icon-sync-'));
+  const root = mkdtempSync(join(process.env.GLASS_TEST_TMPDIR || tmpdir(), 'glass-icon-sync-'));
   const log = join(root, 'requests.log');
   const icons = join(root, 'public/icons');
   const normal = join(icons, 'example.test.png'), official = join(icons, officialHost + '.png');
@@ -55,7 +55,7 @@ export default { get(url, options, callback) {
   function resizedPng(name, height, width) {
     const path = join(root, name);
     writeFileSync(path, png);
-    execFileSync('sips', ['-z', String(height), String(width), path], { stdio: 'ignore' });
+    execFileSync('sips', ['-z', String(height), String(width), path], { stdio: 'ignore', timeout: 10000 });
     return readFileSync(path).toString('base64');
   }
 
@@ -65,7 +65,7 @@ export default { get(url, options, callback) {
     function run(args = [], failure = '') {
       writeFileSync(log, '');
       const result = spawnSync(process.execPath, [join(root, 'scripts/sync-icons.mjs'), ...args], {
-        cwd: root, encoding: 'utf8',
+        cwd: root, encoding: 'utf8', timeout: 30000,
         env: { ...process.env, ICON_REQUEST_LOG: log, ICON_SMALL_PNG: smallPng, ICON_LARGE_PNG: largePng, ICON_FAIL: failure }
       });
       const requests = readFileSync(log, 'utf8').trim().split('\n').filter(Boolean);
@@ -88,9 +88,18 @@ export default { get(url, options, callback) {
     assert.deepEqual(readFileSync(normal), png);
 
     rmSync(normal);
+    const liveStage = join(icons, `.icon-sync-${process.pid}-abcdef`);
+    mkdirSync(liveStage);
+    const check = run(['--check-only']);
+    assert.equal(check.status, 1, check.stdout + check.stderr);
+    assert.deepEqual(check.requests, []);
+    assert.equal(existsSync(normal), false);
+    assert.equal(existsSync(liveStage), true);
     const missing = run();
     assert.equal(missing.status, 0, missing.stdout + missing.stderr);
     assert.deepEqual(missing.requests, [s2Url]);
+    assert.equal(existsSync(liveStage), true);
+    rmSync(liveStage, { recursive: true });
     const small = readFileSync(normal);
     assert.deepEqual([small.readUInt32BE(16), small.readUInt32BE(20)], [19, 19]);
 

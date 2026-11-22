@@ -72,7 +72,9 @@ const route = (kind) => (req, res) => {
   });
   res.end(body);
 };
-const server = await startServer(0, undefined, {
+let server, chrome;
+try {
+  server = await startServer(0, undefined, {
   '/app/': route('html'), '/app/index.html': route('html'),
   ...Object.fromEntries([101, 102, 103, 1031, 104, 107].map(id => ['/app/app-builds/app-core-v' + id + '.js', route('app')])),
   '/app/sw.js': route('worker'), '/app/wallpapers/bg1.avif': route('image'),
@@ -97,7 +99,7 @@ const server = await startServer(0, undefined, {
   '/status.html': '<!doctype html><html><head></head><body>uncontrolled status</body></html>'
 });
 const origin = `http://127.0.0.1:${server.port}`;
-const chrome = await launchChrome({ url: origin + '/app/' });
+chrome = await launchChrome({ url: origin + '/app/' });
 const { send } = chrome;
 const evalJS = createEvaluator(send);
 const update = async () => evalJS(`(async () => {
@@ -109,7 +111,6 @@ const update = async () => evalJS(`(async () => {
   return { waiting:!!reg.waiting, controlled:!!navigator.serviceWorker.controller,
     app:await (await fetch('./app-builds/' + window.__GLASS_BUILD_HTML__ + '.js')).text(), caches:await caches.keys() };
 })()`);
-try {
   await send('Page.enable');
   await waitFor(evalJS, 'window.reg && reg.active?.state === "activated"', 15000);
   assert.deepEqual(initialCoreRequests, [
@@ -277,6 +278,6 @@ try {
   console.log('✅ 最后一个旧客户端退出后新版激活，旧核心池清理，新版断网重载可用');
 } finally {
   releaseActivation?.();
-  await chrome.close();
-  await server.close();
+  if (chrome) await chrome.close().catch(() => {});
+  if (server) await server.close().catch(() => {});
 }

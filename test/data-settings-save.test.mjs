@@ -607,6 +607,7 @@ try {
       'glass-scope-%2F-app-images-neighbor%2F-app-images-app-core-vkeep-test','glass-scope-%2Fother%2F-app-core-vkeep-test',
       'glass-scope-%2F-audit%2F-app-core-vkeep-test', 'glass-scope-%2F-audit%2F-app-images-app-core-vkeep-test',
       'unrelated-cache',${JSON.stringify(FAVICON_CACHE)}].map(key => caches.open(key)));
+    await (await caches.open(${JSON.stringify(FAVICON_CACHE)})).put('/favicon-test-sentinel', new Response('keep'));
     sessionStorage.setItem('clearCacheBookmarks',localStorage.getItem(CONFIG.KEYS.BOOKMARKS));
     await openEditModal();
     const name = dom.editList.querySelector('.edit-name');
@@ -614,6 +615,19 @@ try {
     document.querySelector('#tab-btn-data').click(); dom.clearCacheBtn.click();
   })()`);
   await waitFor(evalJS,'OverlayStack.top()?.id === "confirmModal"');
+  await evalJS(`(() => {
+    const remove = CacheStorage.prototype.delete;
+    CacheStorage.prototype.delete = function(key) {
+      if (key === 'glass-scope-%2F-app-images-app-core-vclear-test') return Promise.reject(new Error('delete failed'));
+      return remove.call(this, key);
+    };
+    window.restoreCacheDelete = () => { CacheStorage.prototype.delete = remove; };
+    dom.confirmOkBtn.click();
+  })()`);
+  await waitFor(evalJS, `modalState.phase === 'editing' && OverlayStack.top()?.id === 'confirmModal'`);
+  assert.equal(await evalJS(`modalState.draftBookmarks[0].name`), '清缓存前未保存');
+  await evalJS('restoreCacheDelete(); dom.confirmOkBtn.click(); dom.clearCacheBtn.click()');
+  await waitFor(evalJS, 'OverlayStack.top()?.id === "confirmModal"');
   await send('Page.addScriptToEvaluateOnNewDocument',{source:"window.__cacheClearReloaded = true;"});
   assert.equal(await evalJS(`(() => {
     const warned = dom.confirmMsg.textContent.includes('刷新将丢弃未保存的更改');
@@ -634,7 +648,7 @@ try {
     nestedKept:await caches.has('glass-scope-%2F-audit%2F-app-core-vkeep-test') &&
       await caches.has('glass-scope-%2F-audit%2F-app-images-app-core-vkeep-test') &&
       await caches.has('glass-scope-%2F-app-images-neighbor%2F-app-images-app-core-vkeep-test'),
-    unrelatedKept:await caches.has('unrelated-cache'), sharedIconsKept:await caches.has(${JSON.stringify(FAVICON_CACHE)}),
+    unrelatedKept:await caches.has('unrelated-cache'), sharedIconsKept:(await (await caches.open(${JSON.stringify(FAVICON_CACHE)})).match('/favicon-test-sentinel')) !== undefined,
     otherRegistered:(await navigator.serviceWorker.getRegistrations()).some(r => r.scope === location.origin + '/other/'),
     bookmarksKept:localStorage.getItem(CONFIG.KEYS.BOOKMARKS) === sessionStorage.getItem('clearCacheBookmarks')
   }))()`),{ownRemoved:true,ownCoreKept:true,otherKept:true,nestedKept:true,unrelatedKept:true,sharedIconsKept:true,otherRegistered:true,bookmarksKept:true});

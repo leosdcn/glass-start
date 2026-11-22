@@ -16,7 +16,7 @@ fs.readFileSync = (file, ...options) => {
     return readFileSync(file, ...options);
 };
 try {
-    createRequire(import.meta.url)('../scripts/build-extension.cjs').buildExtension(output);
+    await createRequire(import.meta.url)('../scripts/build-extension.cjs').buildExtension(output);
 } finally {
     fs.readFileSync = readFileSync;
 }

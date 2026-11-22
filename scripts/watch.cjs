@@ -1,5 +1,5 @@
 const fs = require('node:fs');
-const { dirname, basename, join } = require('node:path');
+const { dirname, basename, join, relative } = require('node:path');
 const { createHash } = require('node:crypto');
 const { c } = require('./terminal.cjs');
 
@@ -7,7 +7,9 @@ const IGNORED_NAMES = new Set(['.DS_Store', 'Thumbs.db', 'desktop.ini']);
 
 function shouldIgnore(filename) {
     if (!filename) return false;
-    const base = filename.split(/[/\\]/).pop();
+    const segments = filename.split(/[/\\]/);
+    if (segments.some(segment => segment.startsWith('.icon-sync-'))) return true;
+    const base = segments.at(-1);
     if (!base) return true;
     if (IGNORED_NAMES.has(base)) return true;
     // 忽略 macOS 伴生资源分支、编辑器临时文件与备份文件
@@ -28,8 +30,8 @@ function snapshotDirectory(path) {
     /** @type {Map<string, string>} */
     const snapshot = new Map();
     for (const entry of fs.readdirSync(path, { recursive: true, withFileTypes: true })) {
-        if (shouldIgnore(entry.name)) continue;
         const file = join(entry.parentPath, entry.name);
+        if (shouldIgnore(relative(path, file))) continue;
         const signature = readSignature(file);
         if (signature !== undefined) snapshot.set(file, signature);
     }

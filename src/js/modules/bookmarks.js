@@ -107,8 +107,6 @@ export function resetUserBookmarks() {
     // null 表示随语言使用默认顺序，同时覆盖旧格式中仍存在的记录。
     const saved = writeBookmarkRecord(null, {});
     if (!saved) return false;
-    // 兼容清理只在提交后执行，失败时旧记录也不会重新生效。
-    [CONFIG.KEYS.BOOKMARK_KEYS, CONFIG.KEYS.CUSTOM_META].forEach(storageRemove);
     return saved;
 }
 
@@ -123,6 +121,7 @@ export function loadBookmarks() {
 function writeBookmarkRecord(keys, meta) {
     const record = { version: 1, keys, meta };
     if (!storageSet(CONFIG.KEYS.BOOKMARKS, record)) return false;
+    [CONFIG.KEYS.BOOKMARK_KEYS, CONFIG.KEYS.CUSTOM_META].forEach(storageRemove);
     const revision = JSON.stringify(record);
     applyBookmarkRecord(record, revision);
     return { revision, bookmarks: pageData.bookmarks };

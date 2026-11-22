@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
-import { execFile } from 'node:child_process';
+import { execFile, spawn } from 'node:child_process';
+import { once } from 'node:events';
 import fs from 'node:fs';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
@@ -18,7 +19,7 @@ const serverModule = new URL('./support/server.mjs', import.meta.url).href;
 const cdpModule = new URL('./support/cdp.mjs', import.meta.url).href;
 
 function temporaryDirectory(t) {
-  const dir = fs.mkdtempSync(join(tmpdir(), 'glass-pipeline-'));
+  const dir = fs.mkdtempSync(join(process.env.GLASS_TEST_TMPDIR || tmpdir(), 'glass-pipeline-'));
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   return dir;
 }
@@ -34,7 +35,7 @@ test('页面、Worker 类型检查或构建被信号终止时不启动测试', {
   for (const dir of ['test/support', 'scripts', 'node_modules/typescript/bin']) {
     fs.mkdirSync(join(cwd, dir), { recursive: true });
   }
-  for (const file of ['test/run.mjs', 'test/support/test-selection.mjs']) {
+  for (const file of ['test/run.mjs', 'test/support/test-selection.mjs', 'test/support/chrome-processes.mjs']) {
     fs.copyFileSync(join(root, file), join(cwd, file));
   }
   fs.writeFileSync(join(cwd, 'node_modules/typescript/bin/tsc'),
@@ -62,6 +63,55 @@ test('页面、Worker 类型检查或构建被信号终止时不启动测试', {
   await assert.rejects(node(['test/run.mjs', 'smoke', 'misspelled-filter'], { cwd }),
     { code: 1, stderr: /misspelled-filter/ });
   assert.equal(fs.existsSync(executed), false);
+});
+
+test('运行器强制退出时回收测试进程另行启动的 Chrome 组，并保留无主标记的目录', { skip: process.platform === 'win32' }, async t => {
+  const cwd = temporaryDirectory(t);
+  const systemTemp = join(cwd, 'tmp');
+  for (const dir of ['test/support', 'scripts', 'node_modules/typescript/bin', 'tmp/glass-start-run-abcDEF']) {
+    fs.mkdirSync(join(cwd, dir), { recursive: true });
+  }
+  for (const file of ['test/run.mjs', 'test/support/test-selection.mjs', 'test/support/chrome-processes.mjs']) {
+    fs.copyFileSync(join(root, file), join(cwd, file));
+  }
+  for (const file of ['node_modules/typescript/bin/tsc', 'scripts/build.cjs']) fs.writeFileSync(join(cwd, file), '');
+  const unrelated = join(systemTemp, 'glass-start-run-abcDEF');
+  fs.utimesSync(unrelated, 0, 0);
+  const marker = join(cwd, 'chrome.pid');
+  const profile = join(cwd, 'glass-start-test-fake');
+  fs.writeFileSync(join(cwd, 'test/smoke.test.mjs'), `
+    import { spawn } from 'node:child_process';
+    import { mkdirSync, writeFileSync } from 'node:fs';
+    import { trackChromeProcess } from './support/chrome-processes.mjs';
+    process.on('SIGTERM', () => {});
+    const child = spawn(process.execPath, ['-e', 'setInterval(() => {}, 1000)'], { detached: true, stdio: 'ignore' });
+    mkdirSync(${JSON.stringify(profile)});
+    trackChromeProcess(child.pid, ${JSON.stringify(profile)});
+    writeFileSync(${JSON.stringify(marker)}, String(child.pid));
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 15000);
+  `);
+  const env = { ...process.env, TMPDIR: systemTemp, NODE_DISABLE_COMPILE_CACHE: '1' };
+  delete env.NODE_TEST_CONTEXT;
+  const runner = spawn(process.execPath, ['test/run.mjs'], { cwd, env, stdio: 'ignore' });
+  const exited = once(runner, 'exit', { signal: AbortSignal.timeout(15000) });
+  let browserPid;
+  try {
+    await waitFor(() => fs.existsSync(marker), 'Chrome registry created');
+    browserPid = Number(fs.readFileSync(marker, 'utf8'));
+    assert.equal(runner.kill('SIGTERM'), true);
+    assert.deepEqual(await exited, [143, null]);
+    const { stdout } = await exec('ps', ['-axo', 'pgid=,stat='], { timeout: 2000 });
+    assert.equal(stdout.split('\n').some(line => {
+      const [group, state] = line.trim().split(/\s+/);
+      return Number(group) === browserPid && !state?.startsWith('Z');
+    }), false);
+    assert.equal(fs.existsSync(profile), false);
+    assert.deepEqual(fs.readdirSync(systemTemp), ['glass-start-run-abcDEF']);
+  } finally {
+    if (runner.exitCode === null && runner.signalCode === null) runner.kill('SIGKILL');
+    if (browserPid) { try { process.kill(-browserPid, 'SIGKILL'); } catch {} }
+    await exited.catch(() => {});
+  }
 });
 
 test('并发网页构建各自产生一致快照，测试服务不读取随后发布的 dist', async t => {
@@ -269,6 +319,48 @@ test('网页切换前进程被中止时旧入口继续服务，已打开的文�
   } finally {
     fs.closeSync(file);
   }
+});
+
+test('网页构建准备与失败期间持续保留前版产物，已退出进程的 live 符号链接不被清理', { skip: process.platform === 'win32' }, async t => {
+  const dir = temporaryDirectory(t);
+  const output = join(dir, 'dist');
+  const modulePath = join(root, 'scripts/publish-build.cjs');
+
+  // 1. 在独立子进程中构建前一版，使生成该版本的 creator PID 退出死亡
+  await node(['-e', `
+    const { publishWebBuild } = require(${JSON.stringify(modulePath)});
+    const fs = require('node:fs');
+    const { join } = require('node:path');
+    publishWebBuild(${JSON.stringify(output)}, staging => {
+      fs.writeFileSync(join(staging, 'index.html'), 'v1-live');
+    });
+  `]);
+
+  assert.equal(fs.lstatSync(output).isSymbolicLink(), true);
+  assert.equal(fs.readFileSync(join(output, 'index.html'), 'utf8'), 'v1-live');
+
+  // 2. 在当前进程启动后续构建，并在 populate 阶段及失败后验证 v1-live 持续可用未被误删
+  const { publishWebBuild } = require(modulePath);
+  let checkedDuringPopulate = false;
+  assert.throws(() => {
+    publishWebBuild(output, staging => {
+      // 验证在构建中途，即使前版进程已死亡，dist 依旧完好
+      assert.equal(fs.existsSync(output), true, '构建中途 dist 必须存在');
+      assert.equal(fs.readFileSync(join(output, 'index.html'), 'utf8'), 'v1-live', '构建中途 dist 必须持续服务前版内容');
+      checkedDuringPopulate = true;
+      throw new Error('injected compilation failure');
+    });
+  }, /injected compilation failure/);
+
+  assert.equal(checkedDuringPopulate, true);
+  assert.equal(fs.existsSync(output), true, '构建失败后 dist 必须存在');
+  assert.equal(fs.readFileSync(join(output, 'index.html'), 'utf8'), 'v1-live', '构建失败后 dist 必须持续服务前版内容');
+
+  // 3. 后续成功构建后，原子切换到新版本
+  publishWebBuild(output, staging => {
+    fs.writeFileSync(join(staging, 'index.html'), 'v2-live');
+  });
+  assert.equal(fs.readFileSync(join(output, 'index.html'), 'utf8'), 'v2-live');
 });
 
 test('全新发布目录可从线上保留经指纹校验的上一版脚本', async t => {

@@ -1,5 +1,6 @@
 import { spawn, spawnSync } from 'node:child_process';
 import { once } from 'node:events';
+import { killChromeProcess, trackChromeProcess } from './chrome-processes.mjs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { rmSync, existsSync, mkdtempSync, mkdirSync, readFileSync } from 'node:fs';
@@ -21,7 +22,7 @@ function findChromeBin() {
       if (existsSync(c)) return c;
     } else {
       try {
-        const check = spawnSync('which', [c], { stdio: 'ignore' });
+        const check = spawnSync('which', [c], { stdio: 'ignore', timeout: 2000, killSignal: 'SIGKILL' });
         if (check.status === 0) return c;
       } catch {}
     }
@@ -50,15 +51,12 @@ function cleanupInstance(instance) {
   } catch {}
 
   try {
-    const proc = instance.proc;
-    if (isRunning(proc)) proc.kill('SIGKILL');
-  } catch {}
-
-  try {
-    if (instance.profileDir) {
-      rmSync(instance.profileDir, { recursive: true, force: true, maxRetries: 3 });
-    }
-  } catch {}
+    if (process.platform !== 'win32' || isRunning(instance.proc)) killChromeProcess(instance.proc?.pid);
+    rmSync(instance.profileDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 20 });
+    if (instance.record) rmSync(instance.record, { force: true });
+  } catch (error) {
+    console.error(`无法清理 Chrome 测试会话：${error.message}`);
+  }
 }
 
 async function closeInstance(instance) {
@@ -75,12 +73,12 @@ async function closeInstance(instance) {
       // 关闭本身也可能先断开 CDP，继续等待 Chrome 退出。
       await connection.send('Browser.close', {}, 1000).catch(() => {});
     } else {
-      proc.kill();
+      killChromeProcess(proc.pid, 'SIGTERM');
     }
     await exited;
     if (isRunning(proc)) {
       const killed = once(proc, 'exit', { signal: AbortSignal.timeout(1000) }).catch(() => {});
-      proc.kill('SIGKILL');
+      killChromeProcess(proc.pid);
       await killed;
     }
   } finally {
@@ -102,6 +100,7 @@ function registerExitHooks() {
   process.on('exit', cleanupAll);
   process.on('SIGINT', () => { cleanupAll(); process.exit(130); });
   process.on('SIGTERM', () => { cleanupAll(); process.exit(143); });
+  process.on('SIGHUP', () => { cleanupAll(); process.exit(129); });
   process.on('uncaughtExceptionMonitor', () => {
     cleanupAll();
   });
@@ -203,6 +202,25 @@ async function launchChromeOnce({ port = 0, url, testMode = true, disableGPU = t
     '--no-sandbox',
     '--disable-setuid-sandbox',
     '--disable-dev-shm-usage',
+    '--disable-background-networking',
+    '--disable-component-update',
+    '--disable-sync',
+    '--disable-default-apps',
+    '--disable-breakpad',
+    '--disable-crash-reporter',
+    '--disable-crashpad-for-testing',
+    '--noerrdialogs',
+    '--disable-client-side-phishing-detection',
+    '--disable-component-extensions-with-background-pages',
+    '--disable-background-timer-throttling',
+    '--disable-backgrounding-occluded-windows',
+    '--disable-renderer-backgrounding',
+    '--password-store=basic',
+    '--use-mock-keychain',
+    '--mute-audio',
+    '--disable-domain-reliability',
+    '--disable-features=Translate,OptimizationHints,MediaRouter',
+    '--metrics-recording-only',
     // 让 Linux headless 与桌面浏览器一致地声明 hover/pointer 能力，避免倾斜测试被媒体查询提前关闭。
     '--blink-settings=primaryHoverType=2,availableHoverTypes=2,primaryPointerType=4,availablePointerTypes=4',
     '--no-first-run',
@@ -219,7 +237,12 @@ async function launchChromeOnce({ port = 0, url, testMode = true, disableGPU = t
   activeInstances.add(instance);
 
   try {
-    const proc = instance.proc = spawn(CHROME_BIN, args, { stdio: ['ignore', 'ignore', 'pipe'] });
+    const proc = instance.proc = spawn(CHROME_BIN, args, {
+      stdio: ['ignore', 'ignore', 'pipe'],
+      detached: process.platform !== 'win32',
+      env: { ...process.env, BREAKPAD_DUMP_LOCATION: profileDir }
+    });
+    instance.record = trackChromeProcess(proc.pid, profileDir);
     let stderr = '';
     proc.stderr.setEncoding('utf8');
     proc.stderr.on('data', chunk => { stderr = (stderr + chunk).slice(-4000); });
@@ -305,7 +328,7 @@ window.fetch = async (url, opts) => {
       await new Promise(resolve => setTimeout(resolve, 30));
     }
     if (!ready) throw new Error('Chrome page did not finish navigation within 10000ms');
-    return { send, cdpPort, close: () => closeInstance(instance) };
+    return { send, cdpPort, pid: instance.proc?.pid, proc: instance.proc, profileDir: instance.profileDir, close: () => closeInstance(instance) };
   } catch (error) {
     await closeInstance(instance);
     throw error;

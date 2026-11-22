@@ -15,6 +15,39 @@ export const DIST_DIR = runTempDir ? join(runTempDir, 'dist') : join(__dirname, 
 /** @type {{ app: Buffer, version?: string } | undefined} */
 let testSnapshot;
 
+const activeServers = new Set();
+const activePreviewProcesses = new Set();
+
+function registerServerExitHooks() {
+  if (globalThis.__SERVER_HOOKS_REGISTERED__) return;
+  globalThis.__SERVER_HOOKS_REGISTERED__ = true;
+  const cleanupAll = () => {
+    for (const s of activeServers) {
+      try { s.closeAllConnections?.(); } catch {}
+      try { s.close(); } catch {}
+    }
+    activeServers.clear();
+    for (const p of activePreviewProcesses) {
+      try {
+        if (p.exitCode === null && p.signalCode === null) {
+          if (p.connected) p.disconnect();
+          else p.kill('SIGTERM');
+        }
+      } catch {}
+    }
+    activePreviewProcesses.clear();
+  };
+  process.on('exit', cleanupAll);
+  for (const [signal, code] of Object.entries({ SIGINT: 130, SIGTERM: 143, SIGHUP: 129 })) {
+    process.on(signal, () => {
+      cleanupAll();
+      process.exit(code);
+    });
+  }
+  process.on('uncaughtExceptionMonitor', cleanupAll);
+}
+registerServerExitHooks();
+
 const MIME = {
   '.html': 'text/html; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
@@ -82,12 +115,19 @@ export function startServer(port = 0, root = DIST_DIR, customRoutes = {}, { test
 
     server.on('error', reject);
     server.listen(port, '127.0.0.1', () => {
+      activeServers.add(server);
       const addr = server.address();
       const actualPort = typeof addr === 'object' && addr ? addr.port : 0;
       resolve({
         port: actualPort,
         server,
-        close: () => new Promise((r) => server.close(r)),
+        close: () => {
+          activeServers.delete(server);
+          return new Promise(resolve => {
+            server.close(resolve);
+            server.closeAllConnections();
+          });
+        },
       });
     });
   });
@@ -99,8 +139,10 @@ export async function startPreviewServer({ args = [], env = {} } = {}) {
     env: { ...process.env, AUTO_OPEN: '0', ...env, PORT: '0' },
     stdio: ['ignore', 'ignore', 'inherit', 'ipc'],
   });
+  activePreviewProcesses.add(child);
   const closed = once(child, 'close');
   const close = async () => {
+    activePreviewProcesses.delete(child);
     if (child.pid && child.exitCode === null && child.signalCode === null) child.kill();
     return closed;
   };
@@ -112,6 +154,7 @@ export async function startPreviewServer({ args = [], env = {} } = {}) {
     if (!Number.isInteger(port) || port <= 0) throw new Error(`无效的预览服务端口: ${port}`);
     return { port, close };
   } catch (error) {
+    activePreviewProcesses.delete(child);
     await close().catch(() => {});
     throw error;
   }

@@ -20,20 +20,21 @@ const image = (req, res) => {
         res.end('image-body:' + (req.headers['x-variant'] || 'default'));
     });
 };
-const server = await startServer(0, undefined, {
-    '/burst/':html, '/burst/index.html':html,
-    '/burst/sw.js':(req,res)=>{res.writeHead(200,{'Content-Type':'application/javascript','Cache-Control':'no-store'});res.end(worker);},
-    ['/burst/app-builds/' + stamp + '.js']:(req,res)=>{res.writeHead(200,{'Content-Type':'application/javascript'});res.end(`window.__GLASS_BUILD_APP__="${stamp}";`);},
-    '/burst/wallpapers/bg1.avif':(req,res)=>{res.writeHead(200,{'Content-Type':'image/avif'});res.end('wallpaper');},
-    '/burst/icons/concurrent.png':image, '/burst/icons/retry.png':image,
-    '/burst/icons/variants.png':image, '/burst/icons/cancel.png':image
-});
-const url = `http://127.0.0.1:${server.port}/burst/`;
-const chrome = await launchChrome({url});
-const {send} = chrome;
-const evalJS = createEvaluator(send);
+let server, chrome;
 const release = () => { for (const resolve of pending.splice(0)) resolve(); };
 try {
+    server = await startServer(0, undefined, {
+        '/burst/':html, '/burst/index.html':html,
+        '/burst/sw.js':(req,res)=>{res.writeHead(200,{'Content-Type':'application/javascript','Cache-Control':'no-store'});res.end(worker);},
+        ['/burst/app-builds/' + stamp + '.js']:(req,res)=>{res.writeHead(200,{'Content-Type':'application/javascript'});res.end(`window.__GLASS_BUILD_APP__="${stamp}";`);},
+        '/burst/wallpapers/bg1.avif':(req,res)=>{res.writeHead(200,{'Content-Type':'image/avif'});res.end('wallpaper');},
+        '/burst/icons/concurrent.png':image, '/burst/icons/retry.png':image,
+        '/burst/icons/variants.png':image, '/burst/icons/cancel.png':image
+    });
+    const url = `http://127.0.0.1:${server.port}/burst/`;
+    chrome = await launchChrome({url});
+    const {send} = chrome;
+    const evalJS = createEvaluator(send);
     await waitFor(evalJS, 'window.reg?.active?.state === "activated"', 15000);
     await navigateAndWait(send, evalJS, url, '!!navigator.serviceWorker.controller');
     // 让服务端响应保持未完成，保证所有客户端请求在同一冷缓存窗口内到达。
@@ -82,15 +83,15 @@ try {
     console.log('✅ 单个消费者取消不影响其他消费者共用的下载');
 } finally {
     release();
-    await chrome.close();
-    await server.close();
+    if (chrome) await chrome.close().catch(() => {});
+    if (server) await server.close().catch(() => {});
 }
 
 // 执行完整 worker，并控制 CacheStorage 写入时机，覆盖真实浏览器难以稳定制造的写入窗口。
 const handlers = new Map(), stores = new Map();
 let downloads = 0, releaseCacheWrite, failExternal = false;
 const cacheWriteGate = new Promise(resolve=>{releaseCacheWrite=resolve;});
-let holdPrune;
+let holdPrune, rejectFaviconWrite;
 const coreDownloads = new Map();
 let failCoreRepair = false;
 const decodedPrefixBytes = [];
@@ -100,7 +101,7 @@ vm.runInNewContext(worker, {
     self:{location:{origin:'https://example.test',href:'https://example.test/sw.js'},
         registration:{scope:'https://example.test/'},addEventListener:(name,fn)=>handlers.set(name,fn),
         clients:{get:async id=>({url:new URL(id,'https://example.test/').href})}},
-    URL, Request, Response, AbortController, setTimeout, clearTimeout,
+    URL, Request, Response, AbortController, DOMException, setTimeout, clearTimeout,
     TextDecoder: class extends TextDecoder {
         decode(value, options) {
             decodedPrefixBytes.push(value.byteLength);
@@ -118,12 +119,19 @@ vm.runInNewContext(worker, {
         if(failExternal)throw new Error('offline');
         return new Response('shared-body',{headers:{'Content-Type':'image/png'}});
     },
-    caches:{match:async (request,{cacheName})=>stores.get(cacheName)?.get(cacheUrl(request))?.clone(),open:async name=>{
+    caches:{ keys:async()=>[...stores.keys()], match:async (request,{cacheName})=>stores.get(cacheName)?.get(cacheUrl(request))?.clone(),open:async name=>{
         if(!stores.has(name))stores.set(name,new Map());
         const entries=stores.get(name);
         return {
             match:async request=>entries.get(cacheUrl(request))?.clone(),
-            put:async(request,response)=>{await cacheWriteGate;entries.set(cacheUrl(request),response);},
+            put:async(request,response)=>{
+                await cacheWriteGate;
+                if (cacheUrl(request) === rejectFaviconWrite) {
+                    rejectFaviconWrite = undefined;
+                    throw new DOMException('full', 'QuotaExceededError');
+                }
+                entries.set(cacheUrl(request),response);
+            },
             delete:async request=>entries.delete(cacheUrl(request)),
             keys:async()=>{
                 const keys=[...entries.keys()].map(url=>new Request(url));
@@ -194,6 +202,27 @@ assert.equal(coreDownloads.get('/'), 2, '允许重试且同次修复只下载一
 assert.equal(coreDownloads.get(coreScript), 1, '并发修复只下载一份匹配版本的脚本');
 assert.ok(decodedPrefixBytes.length > 0 && decodedPrefixBytes.every(count => count <= 256),
     '修复下载的文档和脚本只校验版本前缀');
+
+const faviconEntries = [...stores.values()].find(cache => cache.has('https://a.favicon.im/shared.test'));
+const seedFavicons = () => {
+    for (let i = 0; i < 800; i++) faviconEntries.set('https://a.favicon.im/seed-' + i, new Response());
+};
+seedFavicons();
+let activation;
+handlers.get('activate')({waitUntil: task => { activation = task; }});
+await activation;
+assert.equal(faviconEntries.size, 120, '新 Worker 激活时裁剪旧图标池，命中旧缓存也能释放配额');
+assert.ok(faviconEntries.has('https://a.favicon.im/seed-799'));
+
+seedFavicons();
+const quotaUrl = 'https://a.favicon.im/quota-retry.test';
+rejectFaviconWrite = quotaUrl;
+const quota = dispatch(quotaUrl);
+assert.equal(await (await quota.response).text(), 'shared-body');
+await quota.settled();
+assert.equal(faviconEntries.size, 120, '配额重试后保留条目上限');
+assert.ok(faviconEntries.has(quotaUrl));
+assert.equal(faviconEntries.has('https://a.favicon.im/seed-0'), false);
 
 const scriptUrl = 'https://example.test' + coreScript;
 const coreCache = [...stores.values()].find(cache => cache.has(scriptUrl));

@@ -140,7 +140,7 @@ test('跨来源导航到旧预览清理路径时保留本地数据', { timeout: 
 test('独立预览将启动 URL 交给临时 Chrome 配置，退出服务后清理', {
   timeout: 15000, skip: process.platform === 'win32'
 }, async t => {
-  const directory = mkdtempSync(join(tmpdir(), 'glass-preview-fixture-'));
+  const directory = mkdtempSync(join(process.env.GLASS_TEST_TMPDIR || tmpdir(), 'glass-preview-fixture-'));
   const probe = join(directory, 'probe.json');
   const fakeChrome = join(directory, 'chrome');
   writeFileSync(fakeChrome, `#!/usr/bin/env node
@@ -171,7 +171,7 @@ setInterval(() => {}, 1000);
 test('预览允许产物入口链接，阻止静态文件链接逃出产物目录', {
   timeout: 10000, skip: process.platform === 'win32'
 }, async t => {
-  const directory = mkdtempSync(join(tmpdir(), 'glass-preview-links-'));
+  const directory = mkdtempSync(join(process.env.GLASS_TEST_TMPDIR || tmpdir(), 'glass-preview-links-'));
   const build = join(directory, 'build');
   mkdirSync(build);
   writeFileSync(join(build, 'index.html'), '<title>Preview</title>');
@@ -359,7 +359,7 @@ test('天气首屏安全显示缓存图标并恢复温标', () => {
 });
 
 async function validatePage(css, messages = [], options = {}) {
-  const directory = mkdtempSync(join(tmpdir(), 'glass-validation-'));
+  const directory = mkdtempSync(join(process.env.GLASS_TEST_TMPDIR || tmpdir(), 'glass-validation-'));
   const html = `<!doctype html>\n<html lang="en">\n<head>\n<link rel="canonical" href="https://start.test/nested/">\n<style>\n${css}\n</style>\n</head>\n<body style="color:red"></body></html>`;
   const output = [], requests = [];
   try {

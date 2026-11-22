@@ -48,31 +48,31 @@ const siblingResources = {
   '/other/site.css': 'body { color: green }',
   '/other/icons/logo.png': 'sibling image'
 };
-const server = await startServer(0, undefined, {
-  '/': route('html'), '/index.html': route('html'), '/sw.js': route('worker'),
-  ...Object.fromEntries([201, 202, 203, 204, 205, 206, 207, 208].map(id => ['/app-builds/app-core-v' + id + '.js', route('app')])),
-  '/manual.html': '<title>Shared origin manual</title>',
-  ...siblingResources
-});
-const origin = `http://127.0.0.1:${server.port}`;
-const chrome = await launchChrome({ url: origin + '/' });
-const port = chrome.cdpPort;
-const { send } = chrome;
-const evalJS = createEvaluator(send);
-let other;
-const installed = `(async () => { const reg = await navigator.serviceWorker.getRegistration(); return !!reg?.waiting; })()`;
-const notice = `!document.getElementById('updateNotice').classList.contains('hidden')`;
-const update = async () => {
-  await evalJS(`(async () => {
-    const reg = await navigator.serviceWorker.getRegistration();
-    await reg.update();
-    const worker = reg.installing;
-    if (worker && !['installed', 'redundant'].includes(worker.state)) await new Promise(resolve => {
-      worker.addEventListener('statechange', () => { if (['installed', 'redundant'].includes(worker.state)) resolve(); });
-    });
-  })()`);
-};
+let server, chrome, other, targetId;
 try {
+  server = await startServer(0, undefined, {
+    '/': route('html'), '/index.html': route('html'), '/sw.js': route('worker'),
+    ...Object.fromEntries([201, 202, 203, 204, 205, 206, 207, 208].map(id => ['/app-builds/app-core-v' + id + '.js', route('app')])),
+    '/manual.html': '<title>Shared origin manual</title>',
+    ...siblingResources
+  });
+  const origin = `http://127.0.0.1:${server.port}`;
+  chrome = await launchChrome({ url: origin + '/' });
+  const port = chrome.cdpPort;
+  const { send } = chrome;
+  const evalJS = createEvaluator(send);
+  const installed = `(async () => { const reg = await navigator.serviceWorker.getRegistration(); return !!reg?.waiting; })()`;
+  const notice = `!document.getElementById('updateNotice').classList.contains('hidden')`;
+  const update = async () => {
+    await evalJS(`(async () => {
+      const reg = await navigator.serviceWorker.getRegistration();
+      await reg.update();
+      const worker = reg.installing;
+      if (worker && !['installed', 'redundant'].includes(worker.state)) await new Promise(resolve => {
+        worker.addEventListener('statechange', () => { if (['installed', 'redundant'].includes(worker.state)) resolve(); });
+      });
+    })()`);
+  };
   await send('Page.enable');
   await waitFor(evalJS, `(async () => { const r = await navigator.serviceWorker.getRegistration(); return r?.active?.state === 'activated'; })()`, 15000);
   assert.equal(await evalJS(notice), false);
@@ -95,7 +95,7 @@ try {
   console.log('✅ 下载失败不提示新版本、不切换或清除旧缓存');
 
   version = 201;
-  const { targetId } = await send('Target.createTarget', { url: origin + '/manual.html' });
+  ({ targetId } = await send('Target.createTarget', { url: origin + '/manual.html' }));
   const targets = await (await fetch(`http://127.0.0.1:${port}/json`)).json();
   const target = targets.find(t => t.id === targetId);
   other = await connectCDP(new WebSocket(target.webSocketDebuggerUrl));
@@ -263,10 +263,10 @@ try {
 } finally {
   releaseApp?.();
   if (other) {
-    try { await send('Target.closeTarget', { targetId }); } catch {}
-    other.close();
+    try { await chrome.send('Target.closeTarget', { targetId }); } catch {}
+    try { other.close(); } catch {}
   }
-  await chrome.close();
-  await server.close();
+  if (chrome) await chrome.close().catch(() => {});
+  if (server) await server.close().catch(() => {});
 }
 });

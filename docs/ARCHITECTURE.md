@@ -315,7 +315,7 @@ Chrome（首屏已有的 `.is-chrome` 标记）为两屏保留 `will-change: tra
 | 缓存 | 内容与策略 |
 | :--- | :--- |
 | `CORE_STORAGE` | 按 worker scope 与构建版本隔离，应用文档和脚本缓存优先，清单后台重验证，安装时预存核心资源 |
-| `FAVICON_CACHE` | 外部图标缓存优先；网络请求有超时，按容量限额 FIFO 淘汰 |
+| `FAVICON_CACHE` | 外部图标缓存优先；网络请求有超时，激活和写入后按 120 条上限 FIFO 淘汰，配额不足时先淘汰再重试 |
 | `IMG_CACHE` | 同源图片按 worker scope 与构建分池，先查缓存再请求网络；保留上一版供网络失败或服务端错误时回退 |
 
 部署作用域、图片池命名和页面与 Worker 共用的 `ACTIVATE_UPDATE` 消息类型由 `utils/offline-cache.js` 提供。缓存配额、超时和预缓存清单由 `sw.js` 管理。
@@ -334,7 +334,7 @@ Chrome（首屏已有的 `.is-chrome` 标记）为两屏保留 `will-change: tra
 
 同源图片与外部图标中相同的并发请求共享未完成任务，各消费者获得独立响应副本。合并键包含 URL、请求头、模式与凭据等请求属性；缓存写入完成前保留任务，避免响应已返回但缓存尚未提交时重复下载。单个消费者取消不终止共享下载，失败后释放任务以允许后续重试。
 
-同源预设书签图标使用 `./icons/<host>.png`。`scripts/sync-icons.mjs` 默认复用可解码且尺寸合规的本地 PNG，仅补齐缺失或损坏项。`npm run sync:icons:refresh` 全量刷新本地图标。同步与 lint 共用 `scripts/icon-png.mjs` 检查尺寸、块校验和与压缩图像数据。图标同步可用 macOS `sips` 解码和转换。候选顺序为指定的官方资源、原始主机的 Google S2 和备用 `www` 形式的 Google S2。官方资源可指定下载所需的来源页，也可用 `unzip` 读取素材包内指定图标。带有过多透明留白的官方原图可在缩放前按指定尺寸居中裁剪。书签引用只更新已就绪的图标，失败域名保留原引用。跨域自定义壁纸由页面 CSP 与浏览器网络处理，IndexedDB 保存其 URL。
+同源预设书签图标使用 `./icons/<host>.png`。`scripts/sync-icons.mjs` 默认复用可解码且尺寸合规的本地 PNG，仅补齐缺失或损坏项。`npm run sync:icons:refresh` 全量刷新本地图标。同步与 lint 共用 `scripts/icon-png.mjs` 检查尺寸、块校验和与压缩图像数据。`node scripts/sync-icons.mjs --check-only` 只校验本地图标，不下载图标或改写书签。图标同步可用 macOS `sips` 解码和转换。候选顺序为指定的官方资源、原始主机的 Google S2 和备用 `www` 形式的 Google S2。官方资源可指定下载所需的来源页，也可用 `unzip` 读取素材包内指定图标。带有过多透明留白的官方原图可在缩放前按指定尺寸居中裁剪。书签引用只更新已就绪的图标，失败域名保留原引用。跨域自定义壁纸由页面 CSP 与浏览器网络处理，IndexedDB 保存其 URL。
 
 ## 搜索与天气
 

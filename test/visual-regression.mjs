@@ -26,9 +26,12 @@ const finish = () => {
   }
   return failed.length ? 1 : 0;
 };
-const { server, chrome, send, evalJS } = await launchSession();
+let session;
+try {
+  session = await launchSession();
+  const { server, chrome, send, evalJS } = session;
 
-const press = (key) => pressKey(evalJS, key);
+  const press = (key) => pressKey(evalJS, key);
 const settled = section => waitFor(evalJS, `state.currentSection === '${section}' && !isScreenTransitioning()`);
 
 /** 截图并保存到测试产物目录 */
@@ -325,29 +328,36 @@ pass('场景 H [Desktop 1470x956 (MacBook Air)]: 快捷键速查面板 (⌘/ 触
 await press('Escape');
 await sleep(400);
 
-const exitCode = finish();
-await chrome.close();
-await server.close();
+  const exitCode = finish();
 
-// 输出最终详细指标给调用者
-const testSummaryData = {
-  totalPassed: results.filter(r => r.ok).length,
-  totalTests: results.length,
-  scenarios: {
-    metricsA,
-    metricsB,
-    metricsE1,
-    metricsF,
-    metricsG,
-    metricsI,
-    metricsJ,
-    metricsK,
+  // 输出最终详细指标给调用者
+  const testSummaryData = {
+    totalPassed: results.filter(r => r.ok).length,
+    totalTests: results.length,
+    scenarios: {
+      metricsA,
+      metricsB,
+      metricsE1,
+      metricsF,
+      metricsG,
+      metricsI,
+      metricsJ,
+      metricsK,
+    }
+  };
+
+  await writeFile(
+    join(ARTIFACT_DIR, 'visual_test_summary.json'),
+    JSON.stringify(testSummaryData, null, 2)
+  );
+
+  await session.chrome.close();
+  await session.server.close();
+  session = null;
+  process.exit(exitCode);
+} finally {
+  if (session) {
+    try { await session.chrome?.close(); } catch {}
+    try { await session.server?.close(); } catch {}
   }
-};
-
-await writeFile(
-  join(ARTIFACT_DIR, 'visual_test_summary.json'),
-  JSON.stringify(testSummaryData, null, 2)
-);
-
-process.exit(exitCode);
+}

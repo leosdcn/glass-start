@@ -9,6 +9,10 @@ await test("选择提交、事务失败与会话隔离", async () => {
       const result = await evalJS(`(async () => {
     const old = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+j1ioAAAAASUVORK5CYII=';
     const next = old.replace('image/png;', 'image/png;charset=utf-8;');
+    localStorage.setItem(CONFIG.KEYS.BG, '3');
+    const empty = await getWallpaperSelectionDB() === null;
+    await restoreWallpaper();
+    const restoredLegacy = state.bg === 3;
     await commitWallpaperSelection(old);
     await openEditModal();
     const put = IDBObjectStore.prototype.put;
@@ -62,7 +66,7 @@ await test("选择提交、事务失败与会话隔离", async () => {
     await commitWallpaperSelection(next);
     const savedSelection = (await getWallpaperSelectionDB())?.wallpaper === next;
     cancelEditModal();
-    return {writeFalse, commitFalse, unchanged, previewOnly, blocked, deleteFalse, saved, restored, resetCancelsPending, savedSelection};
+    return {empty, restoredLegacy, writeFalse, commitFalse, unchanged, previewOnly, blocked, deleteFalse, saved, restored, resetCancelsPending, savedSelection};
   })()`);
       assert.equal(Object.values(result).every(Boolean), true, JSON.stringify(result));
       console.log('✅ 写请求成功后事务中止仍判失败，删除中止保留旧数据，保存按钮阻止失败关闭');

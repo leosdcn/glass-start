@@ -26,7 +26,7 @@ const CORE_PREDECESSORS = new URL('./.glass-core-predecessors', SCOPE_URL).href;
 const LEGACY_APP = new URL('./app.js', SCOPE_URL).href;
 
 // 图标与图片容量上限配置
-const MAX_FAVICON_ENTRIES = 800;
+const MAX_FAVICON_ENTRIES = 120;
 const MAX_IMG_ENTRIES = 200;
 const FAVICON_TIMEOUT_MS = 7000;
 
@@ -281,7 +281,13 @@ function recoveryResponse() {
     const retiredCore = candidates.filter((key, index) => key !== previous && !legacy[index]);
     await cache.put(ACTIVATED_CORE, new Response(''));
     const retiredImages = otherImages.filter(key => key !== previousImages);
-    await Promise.all([...retiredCore, ...retiredImages].map(key => caches.delete(key)));
+    /** @type {Promise<unknown>[]} */
+    const cleanup = [...retiredCore, ...retiredImages].map(key => caches.delete(key));
+    if (keys.includes(FAVICON_CACHE)) {
+        cleanup.push(caches.open(FAVICON_CACHE).then(favicons =>
+            pruneCache(favicons, MAX_FAVICON_ENTRIES, FAVICON_CACHE)));
+    }
+    await Promise.allSettled(cleanup);
 })()));
 
 // 仅接受同源窗口的确认；重新校验已下载资源后再跳过等待。
@@ -418,8 +424,18 @@ async function previousImageResponse(request) {
                         if (isImageResponse(netRes) || netRes.type === 'opaque') {
                             try {
                                 await cache.put(e.request, netRes.clone());
+                            } catch (putErr) {
+                                if (putErr instanceof DOMException && putErr.name === 'QuotaExceededError') {
+                                    try {
+                                        const keys = await cache.keys();
+                                        const purgeCount = Math.max(10, Math.floor(keys.length * 0.25), keys.length - MAX_FAVICON_ENTRIES + 1);
+                                        await Promise.all(keys.slice(0, purgeCount).map(k => cache.delete(k)));
+                                        await cache.put(e.request, netRes.clone());
+                                    } catch {}
+                                }
+                            } finally {
                                 waitForCache(pruneCache(cache, MAX_FAVICON_ENTRIES, FAVICON_CACHE));
-                            } catch {}
+                            }
                             return netRes;
                         }
                     } catch {} finally {

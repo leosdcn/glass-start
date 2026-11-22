@@ -677,8 +677,10 @@ export function clearOfflineCache() {
             const imagePrefix = scopedCachePrefix(scope.pathname) + IMAGE_CACHE_PREFIX;
             try {
                 const keys = await caches.keys();
-                await Promise.all(keys.filter(key => isScopedCache(key, imagePrefix))
-                    .map(key => caches.delete(key)));
+                const targets = keys.filter(key => isScopedCache(key, imagePrefix));
+                const results = await Promise.allSettled(targets.map(key => caches.delete(key)));
+                const failed = results.find(result => result.status === 'rejected');
+                if (failed) throw failed.reason;
                 if (editSession === session) {
                     closeEditModal();
                     location.reload();
