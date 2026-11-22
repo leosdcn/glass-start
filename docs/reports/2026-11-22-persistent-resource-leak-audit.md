@@ -10,7 +10,7 @@
 | 扩展发布 | 目录切换中断可能留下备份及发布锁。 | 后续发布在取得锁后恢复备份，产物暂存和备份按各自的归属清理。现有中断测试保留。 |
 | 图标同步 | 仅按前缀扫描会删除并行同步进程仍在使用的目录。原回归套件将未实现的 `--check-only` 当成只读命令。 | 暂存目录含所有者 PID，扫描只回收能确认进程已退出的目录。解码及解包命令异步执行并设有超时。`--check-only` 只验证本地图标，缺失或无效时返回失败。构建排除图标暂存目录。 |
 | 预览服务 | 父进程 IPC 断开后，预览服务可能继续监听。早期修订又让部分启动异常以状态码 `0` 退出。 | 服务监听 IPC 断开并回收其预览浏览器和配置目录。启动错误保留诊断与失败状态。 |
-| Chrome 和测试运行器 | Chrome 主进程异常退出后，同一进程组的子进程可能继续运行。测试进程阻塞时，其创建的独立 Chrome 进程组也可能脱离运行器回收范围。仅检查项目路径会漏掉使用宿主目录的 Crashpad。 | POSIX 清理直接使用已启动的进程组；运行器通过本次沙箱中的记录回收独立 Chrome 组。Chrome 使用专用的 Crashpad 禁用参数，并将备用转储位置放在自己的配置目录。 |
+| Chrome 和测试运行器 | Chrome 主进程异常退出后，同一进程组的子进程可能继续运行。测试进程阻塞时，其创建的独立 Chrome 进程组也可能脱离运行器回收范围。仅检查项目路径会漏掉使用宿主目录的 Crashpad。 | POSIX 清理直接使用已启动的进程组；运行器通过本次沙箱中的记录回收独立 Chrome 组。Chrome 将 Crashpad 转储位置放在独立配置目录。 |
 | 测试沙箱 | 单靠临时目录前缀和老化时间无法识别归属。级联启动失败也可能绕过清理。 | 测试运行器以项目路径和 PID 识别自己的沙箱。测试夹具使用运行器目录，直接运行时回退到系统临时目录。关键级联启动路径使用 `finally` 回收已启动资源。 |
 | 壁纸恢复和重置 | 读取层合成默认记录会屏蔽旧版 LocalStorage 回退。重置后独立发起删除还可能与新的壁纸提交竞争。 | 缺失或损坏的 IndexedDB 记录返回 `null`，保留旧版索引回退。重置在现有提交队列和 Web Lock 内写入默认选择并替换旧壁纸内容。 |
 | 书签迁移 | 旧版 LocalStorage 键在正常保存后仍可能保留。已有逻辑区分新版键缺失与记录损坏。 | 新格式记录写入成功后集中删除旧键，保存和重置共用该入口。 |
@@ -40,4 +40,4 @@
 - `SIGKILL` 和断电无法执行进程内钩子。后续运行只能清理可以确认归属的残留，进程组测试限 POSIX。原子重命名用于防止读取到半个文件，断电后的落盘持久性未测试。
 - Chromium 会给 opaque 响应加上可变的配额填充。固定的单条用量和将 LocalStorage 一并耗尽的推算应从容量结论中移除。LocalStorage 使用独立的存储区域配额。[Chromium 填充实现](https://raw.githubusercontent.com/chromium/chromium/main/storage/common/quota/padding_key.cc) · [Chromium LocalStorage 实现](https://chromium.googlesource.com/chromium/src/+/refs/heads/main/components/services/storage/dom_storage/local_storage_impl.cc#49)
 - Worker 激活阶段等待扩展任务结束，旧缓存删除失败影响对应清理任务。安装阶段有独立的成功条件。[Service Worker 规范](https://www.w3.org/TR/service-workers/#activate-algorithm)
-- Crashpad 检查以本次 Chrome 构建为准。禁用参数及其处理逻辑来自 Chromium，运行器另有配置目录内的备用转储位置。[Chromium Chrome 启动逻辑](https://chromium.googlesource.com/chromium/src/+/refs/heads/main/chrome/app/chrome_main_delegate.cc)
+- Ubuntu CI #58 的 Chrome 反复报告文件描述符归属错误。移除 Chromium 内部测试参数 `--disable-crashpad-for-testing`，保留配置目录内的转储位置与进程组回收。源码监听改用各级父目录，避免 Linux 的递归监听在原子替换后丢失事件。[Ubuntu CI #58](https://github.com/leosdcn/glass-start/actions/runs/44992324046/job/137115866083) · [Ferrum 维护记录](https://github.com/rubycdp/ferrum/blob/main/CHANGELOG.md#L360-L362) · [Node.js 递归监听实现](https://github.com/nodejs/node/blob/v24.15.0/lib/internal/fs/recursive_watch.js#L148-L196)

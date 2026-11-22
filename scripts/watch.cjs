@@ -20,10 +20,14 @@ function shouldIgnore(filename) {
 function readSignature(path) {
     const stats = fs.lstatSync(path, { throwIfNoEntry: false });
     if (!stats) return undefined;
-    if (stats.isDirectory()) return 'directory';
+    if (stats.isDirectory()) return `directory:${stats.dev}:${stats.ino}`;
     if (stats.isSymbolicLink()) return `link:${fs.readlinkSync(path)}`;
     if (!stats.isFile()) return `mode:${stats.mode}`;
     return createHash('sha256').update(fs.readFileSync(path)).digest('hex');
+}
+
+function isDirectorySignature(signature) {
+    return signature?.startsWith('directory:');
 }
 
 function snapshotDirectory(path) {
@@ -66,42 +70,74 @@ function watchFiles(files, { rebuild, label = 'Watch', delay = 80 }) {
         clearTimeout(timer);
         if (!rebuilding) timer = setTimeout(run, delay);
     };
-    const watchers = [];
+    const watchers = new Set();
     const filesByDirectory = new Map();
-    const watch = (path, name, recursive, onChange) => {
+    const watch = (path, name, onChange) => {
         try {
-            watchers.push(fs.watch(path, { recursive }, onChange));
+            const watcher = fs.watch(path, { recursive: false }, onChange);
+            watchers.add(watcher);
+            return watcher;
         } catch (err) {
             console.warn(`  ${c.yellow}⚠ 无法监听 ${name}: ${err.message}${c.reset}`);
         }
     };
+    const closeWatcher = watcher => {
+        watchers.delete(watcher);
+        try { watcher.close(); } catch {}
+    };
+
+    function watchDirectoryTree(path, name) {
+        let previous = snapshotDirectory(path);
+        const directories = new Map();
+        const onChange = (directory, filename) => {
+            const file = filename ? join(directory, filename) : null;
+            const relativeFile = file && relative(path, file);
+            if (shouldIgnore(relativeFile)) return;
+            const label = relativeFile ? `${name}${relativeFile}` : name;
+            try {
+                const signature = file ? readSignature(file) : undefined;
+                if (!file || isDirectorySignature(signature) || isDirectorySignature(previous.get(file))) {
+                    const current = snapshotDirectory(path);
+                    refreshDirectories(current);
+                    const changed = current.size !== previous.size ||
+                        [...current].some(([key, value]) => previous.get(key) !== value);
+                    previous = current;
+                    if (changed) trigger(label);
+                    return;
+                }
+                if (signature === previous.get(file)) return;
+                if (signature === undefined) previous.delete(file);
+                else previous.set(file, signature);
+            } catch {
+                // 无法比较时仍安排重建，让构建处理读写冲突或无效资源。
+            }
+            trigger(label);
+        };
+        // Linux 的递归实现也监听文件 inode，原子替换后可能漏掉后续事件。
+        // 直接监听每一级父目录，目录本身被替换时再更新对应的监听器。
+        function refreshDirectories(snapshot) {
+            const current = new Map([[path, readSignature(path)]]);
+            for (const [file, signature] of snapshot) {
+                if (isDirectorySignature(signature)) current.set(file, signature);
+            }
+            for (const [directory, { watcher, signature }] of directories) {
+                if (current.get(directory) === signature) continue;
+                closeWatcher(watcher);
+                directories.delete(directory);
+            }
+            for (const [directory, signature] of current) {
+                if (!isDirectorySignature(signature) || directories.has(directory)) continue;
+                const watcher = watch(directory, directory, (_, filename) => onChange(directory, filename));
+                if (watcher) directories.set(directory, { watcher, signature });
+            }
+        }
+        refreshDirectories(previous);
+    }
+
     for (const { path, name } of files) {
         try {
             if (fs.statSync(path, { throwIfNoEntry: false })?.isDirectory()) {
-                let previous = snapshotDirectory(path);
-                watch(path, name, true, (_, filename) => {
-                    if (shouldIgnore(filename)) return;
-                    const label = filename ? `${name}${filename}` : name;
-                    try {
-                        const file = filename ? join(path, filename) : null;
-                        const signature = file ? readSignature(file) : undefined;
-                        if (!file || signature === 'directory' || previous.get(file) === 'directory') {
-                            // 目录迁移和缺少文件名的事件可能涉及多个子项。
-                            const current = snapshotDirectory(path);
-                            const changed = current.size !== previous.size ||
-                                [...current].some(([key, value]) => previous.get(key) !== value);
-                            previous = current;
-                            if (changed) trigger(label);
-                            return;
-                        }
-                        if (signature === previous.get(file)) return;
-                        if (signature === undefined) previous.delete(file);
-                        else previous.set(file, signature);
-                    } catch {
-                        // 无法比较时仍安排重建，让构建处理读写冲突或无效资源。
-                    }
-                    trigger(label);
-                });
+                watchDirectoryTree(path, name);
             } else {
                 const directory = dirname(path);
                 if (!filesByDirectory.has(directory)) filesByDirectory.set(directory, new Map());
@@ -113,7 +149,7 @@ function watchFiles(files, { rebuild, label = 'Watch', delay = 80 }) {
     }
     // 通过父目录追踪路径名，编辑器原子替换后仍可收到新文件的变化。
     for (const [directory, entries] of filesByDirectory) {
-        watch(directory, directory, false, (_, filename) => {
+        watch(directory, directory, (_, filename) => {
             const changed = filename ? [entries.get(filename)] : entries.values();
             for (const entry of changed) {
                 if (!entry) continue;
@@ -131,9 +167,7 @@ function watchFiles(files, { rebuild, label = 'Watch', delay = 80 }) {
         closed = true;
         pending = null;
         clearTimeout(timer);
-        for (const watcher of watchers) {
-            try { watcher.close(); } catch {}
-        }
+        for (const watcher of watchers) closeWatcher(watcher);
     };
 }
 

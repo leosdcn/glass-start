@@ -484,11 +484,12 @@ test('源码文件原子替换后继续监听，并忽略同内容保存和无�
   const config = join(root, 'package.json');
   const swap = join(root, 'editor-save.tmp');
   const source = join(root, 'src');
-  const sourceFile = join(source, 'example.js');
-  const sourceSwap = join(source, 'editor-save.tmp');
+  const nested = join(source, 'nested');
+  const sourceFile = join(nested, 'example.js');
+  const sourceSwap = join(nested, 'editor-save.tmp');
   fs.writeFileSync(bookmarks, 'initial');
   fs.writeFileSync(config, 'config');
-  fs.mkdirSync(source);
+  fs.mkdirSync(nested, { recursive: true });
   fs.writeFileSync(sourceFile, 'initial');
   const { watchFiles } = require('../scripts/watch.cjs');
   const changes = [];
@@ -537,6 +538,13 @@ test('源码文件原子替换后继续监听，并忽略同内容保存和无�
     await waitFor(() => changes.length === 7, 'recursive watcher removal', 4000);
     fs.writeFileSync(sourceFile, 'new source');
     await waitFor(() => changes.length === 8, 'recursive watcher creation', 4000);
+    const newDirectory = join(source, 'added');
+    const newFile = join(newDirectory, 'component.js');
+    fs.mkdirSync(newDirectory);
+    fs.writeFileSync(newFile, 'initial content');
+    await waitFor(() => changes.length === 9, 'new watched directory', 4000);
+    fs.writeFileSync(newFile, 'edited content');
+    await waitFor(() => changes.length === 10, 'edit in new directory', 4000);
   } finally {
     stop();
   }

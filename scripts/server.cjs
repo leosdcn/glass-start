@@ -286,7 +286,6 @@ function openIsolatedPreview(url) {
             '--disable-default-apps',
             '--disable-breakpad',
             '--disable-crash-reporter',
-            '--disable-crashpad-for-testing',
             '--noerrdialogs',
             '--disable-client-side-phishing-detection',
             '--disable-component-extensions-with-background-pages',

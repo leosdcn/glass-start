@@ -95,13 +95,16 @@ test('dist/ 产物完整性与 Cache-Control 标头规则', () => {
   } finally {
     fs.watch = originalWatch;
   }
-  const expectedSubscriptions = [
-    { path: PATHS.src, recursive: true },
-    { path: PATHS.public, recursive: true },
-    { path: PATHS.root, recursive: false }
-  ];
+  const expectedDirectories = [PATHS.root];
+  for (const directory of [PATHS.src, PATHS.public]) {
+    expectedDirectories.push(directory);
+    for (const entry of fs.readdirSync(directory, { recursive: true, withFileTypes: true })) {
+      if (entry.isDirectory()) expectedDirectories.push(join(entry.parentPath, entry.name));
+    }
+  }
   assert.ok(buildPathsHasSrcIndexHtml);
-  assert.deepEqual(subscriptions, expectedSubscriptions);
+  assert.ok(subscriptions.every(({ recursive }) => recursive === false));
+  assert.deepEqual(subscriptions.map(({ path }) => path).sort(), expectedDirectories.sort());
 });
 
 test('跨来源导航到旧预览清理路径时保留本地数据', { timeout: 20000 }, async t => {
