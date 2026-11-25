@@ -1,7 +1,7 @@
 /** 真实触摸滚动、临时拦截释放，以及触摸/鼠标能力切换回归。 */
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { launchSession, navigateAndWait, waitFor } from './support/helpers.mjs';
+import { addNewDocumentScript, launchSession, navigateAndWait, waitFor } from './support/helpers.mjs';
 
 test('Chrome 触摸滚动与输入能力变化', async t => {
     const {server,chrome,send,evalJS} = await launchSession();
@@ -76,22 +76,71 @@ test('Chrome 触摸滚动与输入能力变化', async t => {
             await send('Emulation.clearDeviceMetricsOverride');
             await send('Emulation.setTouchEmulationEnabled',{enabled:false});
             await send('Input.dispatchMouseEvent',{type:'mouseMoved',x:200,y:200});
-            await waitFor(evalJS, "matchMedia('(hover:hover) and (pointer:fine)').matches");
-            const dispatch = (type,pointerType) => evalJS(`(async()=>{
-                document.body.classList.remove('tab-blurred');
-                const card=document.querySelector('.nav-bookmark');const r=card.getBoundingClientRect();
-                card.dispatchEvent(new PointerEvent('${type}',{bubbles:true,pointerType:'${pointerType}',clientX:r.x+10,clientY:r.y+10}));
-                await new Promise(requestAnimationFrame);return card.style.transform;
-            })()`);
-            assert.match(await dispatch('pointermove','mouse'),/perspective/);
-            assert.equal(await dispatch('pointerdown','touch'),'');
-            assert.equal(await dispatch('pointermove','touch'),'');
-            assert.match(await dispatch('pointermove','mouse'),/perspective/);
-            await send('Emulation.setTouchEmulationEnabled',{enabled:true});
-            await waitFor(evalJS,'document.querySelector(".nav-bookmark").style.transform === ""');
-            await send('Emulation.setTouchEmulationEnabled',{enabled:false});
-            assert.match(await dispatch('pointermove','mouse'),/perspective/);
-            console.log('✅ 触屏启动后接鼠标无需刷新；手指不触发倾斜，能力消失时清理，恢复后鼠标可用');
+            let cdpRestored = false;
+            try {
+                await waitFor(evalJS, "matchMedia('(hover:hover) and (pointer:fine)').matches", 500);
+                cdpRestored = true;
+            } catch {}
+            let removeMediaProbe;
+            try {
+                if (!cdpRestored) {
+                    // 无物理指针设备的 headless Linux 容器关闭触摸仿真后仍上报无鼠标；
+                    // 改由可控 MediaQueryList 代理验证同一套能力切换与事件清理逻辑。
+                    removeMediaProbe = await addNewDocumentScript(send, `(() => {
+                        const nativeMatchMedia = window.matchMedia.bind(window);
+                        let hoverFine = false;
+                        const listeners = new Set();
+                        const mql = {
+                            media: '(hover: hover) and (pointer: fine)',
+                            get matches() { return hoverFine; },
+                            onchange: null,
+                            addEventListener(type, fn) { if (type === 'change' && typeof fn === 'function') listeners.add(fn); },
+                            removeEventListener(type, fn) { listeners.delete(fn); },
+                            addListener(fn) { this.addEventListener('change', fn); },
+                            removeListener(fn) { this.removeEventListener('change', fn); },
+                            dispatchEvent(ev) { listeners.forEach(fn => fn.call(this, ev)); return true; }
+                        };
+                        window.matchMedia = query => /\\(\\s*hover\\s*:\\s*hover\\s*\\)\\s+and\\s+\\(\\s*pointer\\s*:\\s*fine\\s*\\)/i.test(query)
+                            ? mql : nativeMatchMedia(query);
+                        window.__setHoverFine = next => {
+                            hoverFine = Boolean(next);
+                            const event = new MediaQueryListEvent('change', { media: mql.media, matches: hoverFine });
+                            mql.onchange?.(event);
+                            mql.dispatchEvent(event);
+                        };
+                    })()`);
+                    await navigateAndWait(send, evalJS, `http://127.0.0.1:${server.port}/?touch=probe`,
+                        'typeof switchToNav === "function" && !!document.querySelector(".bookmark-item")');
+                    await evalJS('switchToNav()');
+                    await waitFor(evalJS, '!isScreenTransitioning()');
+                    await evalJS('window.__setHoverFine(true)');
+                }
+                const dispatch = (type,pointerType) => evalJS(`(async()=>{
+                    document.body.classList.remove('tab-blurred');
+                    const card=document.querySelector('.nav-bookmark');const r=card.getBoundingClientRect();
+                    card.dispatchEvent(new PointerEvent('${type}',{bubbles:true,pointerType:'${pointerType}',clientX:r.x+10,clientY:r.y+10}));
+                    await new Promise(requestAnimationFrame);return card.style.transform;
+                })()`);
+                assert.match(await dispatch('pointermove','mouse'),/perspective/);
+                assert.equal(await dispatch('pointerdown','touch'),'');
+                assert.equal(await dispatch('pointermove','touch'),'');
+                assert.match(await dispatch('pointermove','mouse'),/perspective/);
+                if (cdpRestored) {
+                    await send('Emulation.setTouchEmulationEnabled',{enabled:true});
+                } else {
+                    await evalJS('window.__setHoverFine(false)');
+                }
+                await waitFor(evalJS,'document.querySelector(".nav-bookmark").style.transform === ""');
+                if (cdpRestored) {
+                    await send('Emulation.setTouchEmulationEnabled',{enabled:false});
+                } else {
+                    await evalJS('window.__setHoverFine(true)');
+                }
+                assert.match(await dispatch('pointermove','mouse'),/perspective/);
+                console.log('✅ 触屏启动后接鼠标无需刷新；手指不触发倾斜，能力消失时清理，恢复后鼠标可用');
+            } finally {
+                if (removeMediaProbe) await removeMediaProbe();
+            }
         });
     } finally {await chrome.close();await server.close();}
 });
