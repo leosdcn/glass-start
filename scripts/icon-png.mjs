@@ -4,6 +4,7 @@ import { crc32, inflateSync } from 'node:zlib';
 const PNG_HEADER = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
 const IEND_CHUNK = Buffer.from([0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4e, 0x44, 0xae, 0x42, 0x60, 0x82]);
 
+/** @param {import('node:fs').PathLike} path */
 export function pngDimensions(path, checkData = false) {
     const png = readFileSync(path);
     if (png.length < 57 || !png.subarray(0, 8).equals(PNG_HEADER)

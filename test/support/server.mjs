@@ -21,8 +21,9 @@ const activeServers = new Set();
 const activePreviewProcesses = new Set();
 
 function registerServerExitHooks() {
-  if (globalThis.__SERVER_HOOKS_REGISTERED__) return;
-  globalThis.__SERVER_HOOKS_REGISTERED__ = true;
+  const g = /** @type {{ __SERVER_HOOKS_REGISTERED__?: boolean }} */ (globalThis);
+  if (g.__SERVER_HOOKS_REGISTERED__) return;
+  g.__SERVER_HOOKS_REGISTERED__ = true;
   const cleanupAll = () => {
     for (const s of activeServers) {
       try { s.closeAllConnections?.(); } catch {}
@@ -44,6 +45,11 @@ function registerServerExitHooks() {
 }
 registerServerExitHooks();
 
+/**
+ * @param {number} [port]
+ * @param {string} [root]
+ * @param {Record<string, string | ((req: import('node:http').IncomingMessage, res: import('node:http').ServerResponse) => void)>} [customRoutes]
+ */
 export function startServer(port = 0, root = DIST_DIR, customRoutes = {}, { testMode = true } = {}) {
   const useTestApp = testMode && root === DIST_DIR;
   if (useTestApp && runTempDir && !testSnapshot) {
@@ -56,7 +62,7 @@ export function startServer(port = 0, root = DIST_DIR, customRoutes = {}, { test
   return new Promise((resolve, reject) => {
     const server = createServer((req, res) => {
       try {
-        let p = normalize(decodeURIComponent(req.url.split('?')[0]));
+        let p = normalize(decodeURIComponent((req.url || '/').split('?')[0]));
         if (customRoutes[p]) {
           const handler = customRoutes[p];
           if (typeof handler === 'string') {
@@ -82,14 +88,15 @@ export function startServer(port = 0, root = DIST_DIR, customRoutes = {}, { test
             const version = readFileSync(join(root, 'index.html'), 'utf-8')
               .match(/window\.__GLASS_BUILD_HTML__="([^"]+)"/)?.[1];
             if (version === requestedVersion && version !== testVersion) {
-              testApp = buildAppJavaScript({ testMode: true, version }).outputFiles[0].contents;
+              const built = buildAppJavaScript({ testMode: true, version });
+              testApp = built.outputFiles?.[0]?.contents;
               testVersion = version;
             }
           }
           if (requestedVersion === testVersion) data = testApp;
         }
         data ??= readFileSync(file);
-        res.writeHead(200, { 'Content-Type': MIME_TYPES[extname(file)] || 'application/octet-stream', 'Cache-Control': 'no-cache' });
+        res.writeHead(200, { 'Content-Type': /** @type {Record<string, string>} */ (MIME_TYPES)[extname(file)] || 'application/octet-stream', 'Cache-Control': 'no-cache' });
         res.end(data);
       } catch {
         res.writeHead(404);
@@ -117,7 +124,9 @@ export function startServer(port = 0, root = DIST_DIR, customRoutes = {}, { test
   });
 }
 
-/** 启动真实预览服务，用 IPC 读取实际监听端口。 */
+/** 启动真实预览服务，用 IPC 读取实际监听端口。
+ * @param {{ args?: string[], env?: Record<string, string | undefined> }} [options]
+ */
 export async function startPreviewServer({ args = [], env = {} } = {}) {
   const child = fork(previewServerPath, ['--no-watch', ...args], {
     env: { ...process.env, AUTO_OPEN: '0', ...env, PORT: '0' },

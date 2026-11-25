@@ -2,6 +2,10 @@ import { randomUUID } from 'node:crypto';
 import { readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { basename, isAbsolute, join } from 'node:path';
 
+/**
+ * @param {number} pid
+ * @param {string} profile
+ */
 export function trackChromeProcess(pid, profile) {
   const sandbox = process.env.GLASS_TEST_TMPDIR;
   if (!sandbox || !pid) return;
@@ -10,19 +14,24 @@ export function trackChromeProcess(pid, profile) {
   return record;
 }
 
+/**
+ * @param {number} pid
+ * @param {NodeJS.Signals} [signal]
+ */
 export function killChromeProcess(pid, signal = 'SIGKILL') {
   if (!pid) return;
   try { process.kill(process.platform === 'win32' ? pid : -pid, signal); }
-  catch (error) { if (error.code !== 'ESRCH') throw error; }
+  catch (error) { if (/** @type {NodeJS.ErrnoException} */ (error).code !== 'ESRCH') throw error; }
 }
 
 // Called by the runner after its test process group has been stopped.
+/** @param {string} sandbox */
 export function cleanupChromeProcesses(sandbox) {
   let entries;
   try {
     entries = readdirSync(sandbox);
   } catch (error) {
-    if (error.code === 'ENOENT') return;
+    if (/** @type {NodeJS.ErrnoException} */ (error).code === 'ENOENT') return;
     throw error;
   }
   for (const name of entries) {
@@ -36,7 +45,7 @@ export function cleanupChromeProcesses(sandbox) {
       killChromeProcess(pid);
       rmSync(profile, { recursive: true, force: true, maxRetries: 5, retryDelay: 20 });
     } catch (error) {
-      console.error(`无法回收 Chrome 测试进程 ${pid}：${error.message}`);
+      console.error(`无法回收 Chrome 测试进程 ${pid}：${error instanceof Error ? error.message : String(error)}`);
     }
   }
 }

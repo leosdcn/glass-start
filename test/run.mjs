@@ -31,7 +31,7 @@ for (const entry of readdirSync(tmpdir(), { withFileTypes: true })) {
     if (root !== project || !Number.isSafeInteger(pid) || pid <= 0) continue;
     try { process.kill(pid, 0); }
     catch (error) {
-      if (error.code === 'ESRCH') rmSync(candidate, { recursive: true, force: true });
+      if (/** @type {NodeJS.ErrnoException} */ (error).code === 'ESRCH') rmSync(candidate, { recursive: true, force: true });
     }
   } catch {}
 }
@@ -41,9 +41,16 @@ const needsBuild = requiresBuild(files);
 const runTempDir = mkdtempSync(join(tmpdir(), 'glass-start-run-'));
 writeFileSync(join(runTempDir, 'runner.pid'), JSON.stringify({ pid: process.pid, root: project }));
 const grouped = process.platform !== 'win32';
+/** @type {Set<import('node:child_process').ChildProcess>} */
 const children = new Set();
-let interrupted = 0, shutdownTimer;
+let interrupted = 0;
+/** @type {ReturnType<typeof setTimeout> | undefined} */
+let shutdownTimer;
 
+/**
+ * @param {import('node:child_process').ChildProcess} child
+ * @param {NodeJS.Signals} [signal]
+ */
 function killGroup(child, signal = 'SIGKILL') {
   try {
     if (grouped && child.pid) process.kill(-child.pid, signal);
@@ -55,7 +62,7 @@ process.on('exit', () => {
   cleanupChromeProcesses(runTempDir);
   rmSync(runTempDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 20 });
 });
-for (const signal of ['SIGINT', 'SIGTERM', 'SIGHUP']) {
+for (const signal of /** @type {const} */ (['SIGINT', 'SIGTERM', 'SIGHUP'])) {
   process.on(signal, () => {
     if (interrupted) {
       process.exit(128 + (constants.signals[signal] || 1));
@@ -70,6 +77,7 @@ for (const signal of ['SIGINT', 'SIGTERM', 'SIGHUP']) {
   });
 }
 
+/** @param {string[]} args */
 function runProcess(args, env = process.env) {
   return new Promise(resolve => {
     const child = spawn(process.execPath, args, { cwd: rootDir, stdio: 'inherit', detached: grouped, env });

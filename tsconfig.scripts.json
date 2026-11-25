@@ -3,8 +3,8 @@
     "allowJs": true,
     "checkJs": true,
     "noEmit": true,
-    "noImplicitAny": false,
-    "strict": false,
+    "noImplicitAny": true,
+    "strict": true,
     "skipLibCheck": true,
     "target": "ES2022",
     "module": "NodeNext",
@@ -15,6 +15,7 @@
   "include": [
     "scripts/**/*.cjs",
     "scripts/**/*.mjs",
-    "test/support/**/*.mjs"
+    "test/support/**/*.mjs",
+    "test/run.mjs"
   ]
 }

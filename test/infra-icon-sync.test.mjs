@@ -77,6 +77,7 @@ export default { get(url, options, callback) {
     writeFileSync(join(root, 'scripts/sync-icons.mjs'), script);
     writeFileSync(join(root, 'scripts/icon-png.mjs'), readFileSync(new URL('../scripts/icon-png.mjs', import.meta.url)));
     writeFileSync(join(root, 'scripts/terminal.cjs'), readFileSync(new URL('../scripts/terminal.cjs', import.meta.url)));
+    writeFileSync(join(root, 'scripts/cleanup-registry.cjs'), readFileSync(new URL('../scripts/cleanup-registry.cjs', import.meta.url)));
     writeFileSync(join(root, 'bookmarks.json'), JSON.stringify({ bookmarks: [
       { name: 'Normal', url: 'https://example.test', icon: './icons/example.test.png' },
       { name: 'Official', url: 'https://' + officialHost, icon: './icons/' + officialHost + '.png' }

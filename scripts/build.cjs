@@ -52,6 +52,7 @@ function resetBuildMetrics() {
 // 构建统一使用 esbuild；编译或压缩失败直接报告，不使用正则降级。
 const esbuild = require('esbuild');
 
+/** @param {string} jsCode */
 function minifyJsCode(jsCode) {
     return esbuild.transformSync(jsCode, {
         minify: true,
@@ -61,6 +62,7 @@ function minifyJsCode(jsCode) {
     }).code;
 }
 
+/** @param {string} cssCode */
 function minifyCssCode(cssCode) {
     return esbuild.transformSync(cssCode, {
         loader: 'css',
@@ -89,11 +91,12 @@ async function compileTailwindCss() {
         const cliPkg = require.resolve('@tailwindcss/cli/package.json', { paths: [ROOT_DIR] });
         cliBin = path.resolve(path.dirname(cliPkg), 'dist', 'index.mjs');
     } catch (e) {
-        throw new Error(`未能找到本地 @tailwindcss/cli 依赖包，请先执行 npm install。\n(${e.message})`);
+        throw new Error(`未能找到本地 @tailwindcss/cli 依赖包，请先执行 npm install。\n(${e instanceof Error ? e.message : String(e)})`);
     }
 
     try {
         resetBuildMetrics();
+        /** @type {string} */
         const cssContent = await new Promise((resolve, reject) => {
             const tool = execFile(process.execPath, [cliBin, '-i', PATHS.srcCss, '-m'], {
                 cwd: ROOT_DIR, encoding: 'utf-8', timeout: 60000, killSignal: 'SIGKILL'
@@ -113,12 +116,17 @@ async function compileTailwindCss() {
         logItem(`扫描 src/styles/main.css 与组件模板 完成，原子化 CSS 静态编译就绪 (${cssKb} KB, 耗时 ${cssDuration}ms)`);
         return cssContent;
     } catch (err) {
-        const errMsg = err.stderr ? String(err.stderr).trim() : (err.message || String(err));
+        const e = /** @type {{ stderr?: unknown, message?: string }} */ (err);
+        const errMsg = e?.stderr ? String(e.stderr).trim() : (e?.message || String(err));
         throw new Error(`Tailwind CSS 编译失败: ${errMsg}`);
     }
 }
 
 // 3. 处理并复制 Service Worker 底座脚本与静态资产
+/**
+ * @param {string} targetDir
+ * @param {{ extension: boolean, version: string, webHeader: string }} options
+ */
 function buildServiceWorkerAndAssets(targetDir, { extension, version, webHeader }) {
     logSection('2/4', '📑 构建 Service Worker 与静态资产 (sw.js & assets)');
     const assetsStart = Date.now();
@@ -187,6 +195,10 @@ function buildAppJavaScript({ testMode = false, extension = false, version = 'ap
 }
 
 // 生成生产应用脚本。
+/**
+ * @param {string} targetDir
+ * @param {{ extension: boolean, version: string, uploads: ReturnType<typeof readImageSearchUploads> }} options
+ */
 function processProductionAppJs(targetDir, { extension, version, uploads }) {
     const script = extension ? 'app.js' : appScriptPath(version);
     logSection('3/4', `⚡ 提取并压缩生产脚本 (${script})`);
@@ -208,11 +220,12 @@ function processProductionAppJs(targetDir, { extension, version, uploads }) {
         buildMetrics.sizes.modules = moduleCount;
         logItem(`应用脚本编译完成 (${appJsKb} KB, ${moduleCount} 个模块, 耗时 ${jsDuration}ms)`);
     } catch (e) {
-        throw new Error(`esbuild 打包 src/js/main.js 失败: ${e.message}`);
+        throw new Error(`esbuild 打包 src/js/main.js 失败: ${e instanceof Error ? e.message : String(e)}`);
     }
 }
 
 // 每轮解析配置及其间接依赖，保持首屏注入与运行时配置一致。
+/** @param {string} html */
 function injectThemeConfig(html, themePath = path.join(PATHS.src, 'js', 'config', 'themes.js')) {
     return injectHeadConfig(html, {
         marker: '/* INJECT_THEME_CONFIG */',
@@ -224,6 +237,10 @@ function injectThemeConfig(html, themePath = path.join(PATHS.src, 'js', 'config'
 }
 
 // 首屏共享配置（壁纸、引擎、天气图标）从单一模块注入，避免内联副本与运行时漂移。
+/**
+ * @param {string} html
+ * @param {{ marker: string, entryPath: string, globalName: string, binding: string }} options
+ */
 function injectHeadConfig(html, { marker, entryPath, globalName, binding }) {
     const result = esbuild.buildSync({
         entryPoints: [entryPath],
@@ -241,6 +258,11 @@ function injectHeadConfig(html, { marker, entryPath, globalName, binding }) {
 }
 
 // 5. 注入应用脚本、静态编译后的 Tailwind CSS 与 SVG 精灵。
+/**
+ * @param {string} compiledCss
+ * @param {string} targetDir
+ * @param {{ version: string, appVersion: string, extension: boolean, webMeta: string }} options
+ */
 function processProductionHtml(compiledCss, targetDir, { version: buildVersion, appVersion, extension, webMeta }) {
     logSection('4/4', '🔧 处理生产环境页面 (dist/index.html)');
     const htmlStart = Date.now();
@@ -285,15 +307,16 @@ function processProductionHtml(compiledCss, targetDir, { version: buildVersion, 
     prodHtmlContent = replaceOnce(prodHtmlContent, '<!-- INJECT_APP_VERSION -->', `v${appVersion}`);
 
     // 5.1 对 HTML 中所有的 <style> 和 <script> 标签内容进行全面压缩
+    /** @param {string} html */
     function minifyInlineStylesAndScripts(html) {
         // 压缩所有 <style> 块
-        html = html.replace(/<style([^>]*)>([\s\S]*?)<\/style>/gi, (match, attrs, content) => {
+        html = html.replace(/<style([^>]*)>([\s\S]*?)<\/style>/gi, (/** @type {string} */ match, /** @type {string} */ attrs, /** @type {string} */ content) => {
             const minified = minifyCssCode(content);
             return `<style${attrs}>${minified}</style>`;
         });
 
         // 压缩所有 <script> 块
-        html = html.replace(/<script([^>]*)>([\s\S]*?)<\/script>/gi, (match, attrs, content) => {
+        html = html.replace(/<script([^>]*)>([\s\S]*?)<\/script>/gi, (/** @type {string} */ match, /** @type {string} */ attrs, /** @type {string} */ content) => {
             if (/\bsrc\s*=/i.test(attrs) && !content.trim()) return match;
             if (/type=["']application\/ld\+json["']/i.test(attrs)) {
                 try {
@@ -311,6 +334,7 @@ function processProductionHtml(compiledCss, targetDir, { version: buildVersion, 
     prodHtmlContent = minifyInlineStylesAndScripts(prodHtmlContent);
 
     // 压缩 HTML 注释与空白，保留 style / script 内容边界。
+    /** @param {string} htmlStr */
     function minifyHtml(htmlStr) {
         htmlStr = htmlStr.replace(/<!--(?!\[if)[\s\S]*?-->/g, '');
         const parts = htmlStr.split(/(<(style|script)\b[\s\S]*?<\/\2>)/i);
@@ -342,6 +366,7 @@ function processProductionHtml(compiledCss, targetDir, { version: buildVersion, 
     fs.writeFileSync(path.join(targetDir, 'index.html'), prodHtmlContent, 'utf-8');
 }
 
+/** @param {string} itemPath @returns {number} */
 function getPathByteSize(itemPath) {
     try {
         const stat = fs.statSync(itemPath);
@@ -357,6 +382,7 @@ function getPathByteSize(itemPath) {
 }
 
 // 6. 打印构建成功产物清单与耗时汇总
+/** @param {string} directory */
 function describeDist(directory) {
     return fs.readdirSync(directory).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' })).map(file => {
         const fullPath = path.join(directory, file);
@@ -366,6 +392,10 @@ function describeDist(directory) {
     });
 }
 
+/**
+ * @param {number} startTime
+ * @param {Array<{ displayName: string, size: number }>} items
+ */
 function printDistSummary(startTime, items) {
     const elapsed = Date.now() - startTime;
     console.log(`\n${c.gray}${HR_DOUBLE}${c.reset}`);
@@ -394,6 +424,10 @@ function printDistSummary(startTime, items) {
     console.log(`${c.gray}${HR_DOUBLE}${c.reset}\n`);
 }
 
+/**
+ * @param {string} targetDir
+ * @param {string} compiledCss
+ */
 function executeBuild(targetDir, compiledCss, { extension = false } = {}) {
     const version = `app-core-v${Date.now()}-${randomBytes(8).toString('hex')}`;
     const { version: appVersion } = JSON.parse(fs.readFileSync(PATHS.pkgJson, 'utf-8'));
@@ -405,6 +439,10 @@ function executeBuild(targetDir, compiledCss, { extension = false } = {}) {
     return { version, appVersion, extensionPolicy, uploads };
 }
 
+/**
+ * @param {string} targetDir
+ * @param {string | null} previousDir
+ */
 function retainPreviousWebScript(targetDir, previousDir) {
     if (!previousDir) return;
     try {
@@ -416,7 +454,7 @@ function retainPreviousWebScript(targetDir, previousDir) {
             fs.writeFileSync(path.join(targetDir, previous.asset), script, 'utf8');
         }
     } catch (error) {
-        if (error.code !== 'ENOENT') throw error;
+        if (/** @type {NodeJS.ErrnoException} */ (error).code !== 'ENOENT') throw error;
     }
 }
 
@@ -446,7 +484,8 @@ async function main({ testSnapshotDir, snapshotOnlyDir } = {}) {
 
     try {
         const compiledCss = await compileTailwindCss();
-        let items;
+        /** @type {Array<{ displayName: string, size: number }>} */
+        let items = [];
         if (snapshotOnlyDir) {
             const snapshotDist = path.join(snapshotOnlyDir, 'dist');
             fs.rmSync(snapshotDist, { recursive: true, force: true });
@@ -455,7 +494,7 @@ async function main({ testSnapshotDir, snapshotOnlyDir } = {}) {
             buildAppJavaScript({ testMode: true, version, outfile: path.join(snapshotOnlyDir, 'app.test.js'), uploads });
             items = describeDist(snapshotDist);
         } else {
-            publishWebBuild(PATHS.dist, staging => {
+            publishWebBuild(PATHS.dist, /** @param {string} staging */ staging => {
                 const { version, uploads } = executeBuild(staging, compiledCss);
                 if (testSnapshotDir) {
                     fs.cpSync(staging, path.join(testSnapshotDir, 'dist'), {
@@ -470,7 +509,7 @@ async function main({ testSnapshotDir, snapshotOnlyDir } = {}) {
         }
         printDistSummary(startTime, items);
     } catch (err) {
-        console.error(`\n  ${c.yellow}❌ 构建失败:${c.reset}\n`, err.message || err);
+        console.error(`\n  ${c.yellow}❌ 构建失败:${c.reset}\n`, err instanceof Error ? err.message : err);
         process.exit(1);
     }
 }
@@ -479,7 +518,7 @@ async function main({ testSnapshotDir, snapshotOnlyDir } = {}) {
 async function rebuild() {
     const startTime = Date.now();
     const compiledCss = await compileTailwindCss();
-    const { version } = publishWebBuild(PATHS.dist, staging => executeBuild(staging, compiledCss), retainPreviousWebScript);
+    const { version } = publishWebBuild(PATHS.dist, /** @param {string} staging */ staging => executeBuild(staging, compiledCss), retainPreviousWebScript);
     return { version, duration: Date.now() - startTime };
 }
 

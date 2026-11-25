@@ -13,6 +13,7 @@ const { main: runFullBuild, startWatch } = require('./build.cjs');
 const { c, LINE_WIDTH, HR_DOUBLE } = require('./terminal.cjs');
 
 const { MIME_TYPES } = require('./mime-types.cjs');
+const { BASE_CHROME_FLAGS } = require('./chrome-flags.cjs');
 
 let targetPort = parseInt(process.env.PORT || '3000', 10);
 const testSnapshotDir = process.env.GLASS_TEST_TMPDIR;
@@ -20,6 +21,11 @@ const DIST_DIR = testSnapshotDir ? path.join(testSnapshotDir, 'dist') : path.joi
 const enableWatch = !testSnapshotDir && !process.argv.includes('--no-watch') && process.env.NO_WATCH !== '1';
 const isolatedPreview = process.argv.includes('--isolated');
 
+/**
+ * @param {string} root
+ * @param {string} relativePath
+ * @returns {Promise<{ file: import('node:fs/promises').FileHandle, stats: import('node:fs').Stats } | null>}
+ */
 async function openStaticFile(root, relativePath) {
     let file;
     try {
@@ -30,7 +36,8 @@ async function openStaticFile(root, relativePath) {
         }
         file = await fs.promises.open(target, 'r');
     } catch (error) {
-        if (error.code === 'ENOENT' || error.code === 'ENOTDIR') return null;
+        const code = /** @type {NodeJS.ErrnoException} */ (error).code;
+        if (code === 'ENOENT' || code === 'ENOTDIR') return null;
         throw error;
     }
     try {
@@ -101,6 +108,10 @@ function selectCompression(header) {
     return gzip >= deflate ? 'gzip' : 'deflate';
 }
 
+/**
+ * @param {import('node:http').IncomingMessage | import('node:http2').Http2ServerRequest} req
+ * @param {import('node:http').ServerResponse} res
+ */
 async function handleStaticRequest(req, res) {
         let asset = null;
         let streamPiped = false;
@@ -149,7 +160,9 @@ async function handleStaticRequest(req, res) {
                     return;
                 }
             }
-            const { file, stats } = asset;
+            const opened = asset;
+            if (!opened) return;
+            const { file, stats } = opened;
 
             const isWallpaper = rel.startsWith('wallpapers' + path.sep) || rel.startsWith('wallpapers/');
             const isIcon = rel.startsWith('icons' + path.sep) || rel.startsWith('icons/')
@@ -158,7 +171,7 @@ async function handleStaticRequest(req, res) {
             const isRevalidatedAsset = !isFallback && (isWallpaper || isIcon);
 
             const ext = path.extname(targetPath).toLowerCase();
-            const contentType = MIME_TYPES[ext] || 'application/octet-stream';
+            const contentType = /** @type {Record<string, string>} */ (MIME_TYPES)[ext] || 'application/octet-stream';
             const isCompressible = /^(text\/|application\/(javascript|json|manifest\+json)|image\/svg\+xml)/.test(contentType);
 
             res.setHeader('Content-Type', contentType);
@@ -193,7 +206,7 @@ async function handleStaticRequest(req, res) {
                 const tag = '"' + createHash('sha256').update(body).digest('base64url') + '"';
                 res.setHeader('ETag', 'W/' + tag);
                 const tags = req.headers['if-none-match']?.split(',') ?? [];
-                if (tags.some(value => value.trim() === '*' || value.trim().replace(/^W\//, '') === tag)) {
+                if (tags.some(/** @param {string} value */ value => value.trim() === '*' || value.trim().replace(/^W\//, '') === tag)) {
                     res.writeHead(304);
                     res.end();
                     return;
@@ -204,13 +217,14 @@ async function handleStaticRequest(req, res) {
             const encoding = isCompressible ? selectCompression(req.headers['accept-encoding'] ?? '') : null;
 
             const rawStream = body ? Readable.from([body]) : file.createReadStream();
+            /** @type {NodeJS.ReadableStream[]} */
             const streams = [rawStream];
             if (encoding) {
                 res.setHeader('Content-Encoding', encoding);
                 const compress = encoding === 'gzip' ? zlib.createGzip : zlib.createDeflate;
                 streams.push(compress({ level: 6 }));
             }
-            streams.push(res);
+            streams.push(/** @type {any} */ (res));
 
             streamPiped = true;
             pipeline(streams, err => {
@@ -226,23 +240,27 @@ async function handleStaticRequest(req, res) {
             if (asset?.file && !streamPiped) {
                 try { await asset.file.close(); } catch {}
             }
-            const forbidden = error.code === 'EACCES';
+            const forbidden = /** @type {NodeJS.ErrnoException} */ (error).code === 'EACCES';
             if (!res.headersSent) res.writeHead(forbidden ? 403 : 500, { 'Content-Type': 'text/plain; charset=utf-8' });
             res.end(forbidden ? '403 Forbidden' : '500 Internal Server Error');
         }
     }
 
 function createStaticServer() {
-    if (isHttps) {
-        return http2.createSecureServer({ key: sslConfig.key, cert: sslConfig.cert, allowHTTP1: true }, handleStaticRequest);
+    if (isHttps && sslConfig) {
+        return http2.createSecureServer({ key: sslConfig.key, cert: sslConfig.cert, allowHTTP1: true }, /** @type {any} */ (handleStaticRequest));
     }
     return http.createServer(handleStaticRequest);
 }
 
 
+/** @type {any} */
 let activeServer = null;
+/** @type {(() => void) | null} */
 let watchCleanup = null;
+/** @type {import('node:child_process').ChildProcess | null} */
 let previewBrowser = null;
+/** @type {string | null} */
 let previewProfile = null;
 
 function removePreviewProfile() {
@@ -250,20 +268,21 @@ function removePreviewProfile() {
     const target = previewProfile;
     previewProfile = null;
     try { fs.rmSync(target, { recursive: true, force: true, maxRetries: 5, retryDelay: 20 }); }
-    catch (error) { console.error(`无法清理临时 Chrome 配置目录 ${target}：${error.message}`); }
+    catch (error) { console.error(`无法清理临时 Chrome 配置目录 ${target}：${error instanceof Error ? error.message : String(error)}`); }
 }
 
 function killPreviewBrowser(sig = 'SIGTERM') {
     if (!previewBrowser) return;
     try {
         if (process.platform !== 'win32' && previewBrowser.pid) {
-            process.kill(-previewBrowser.pid, sig);
+            process.kill(-previewBrowser.pid, /** @type {NodeJS.Signals} */ (sig));
         } else {
-            previewBrowser.kill(sig);
+            previewBrowser.kill(/** @type {NodeJS.Signals} */ (sig));
         }
     } catch {}
 }
 
+/** @param {string} url */
 function openIsolatedPreview(url) {
     const chrome = process.env.CHROME_PATH || (process.platform === 'darwin'
         ? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' : 'google-chrome');
@@ -271,23 +290,7 @@ function openIsolatedPreview(url) {
         previewProfile = fs.mkdtempSync(path.join(process.env.GLASS_TEST_TMPDIR || os.tmpdir(), 'glass-start-preview-'));
         previewBrowser = spawn(chrome, [
             `--user-data-dir=${previewProfile}`,
-            '--no-first-run',
-            '--no-default-browser-check',
-            '--disable-background-networking',
-            '--disable-component-update',
-            '--disable-sync',
-            '--disable-default-apps',
-            '--disable-breakpad',
-            '--disable-crash-reporter',
-            '--noerrdialogs',
-            '--disable-client-side-phishing-detection',
-            '--disable-component-extensions-with-background-pages',
-            '--disable-background-timer-throttling',
-            '--disable-backgrounding-occluded-windows',
-            '--disable-renderer-backgrounding',
-            '--password-store=basic',
-            '--use-mock-keychain',
-            '--mute-audio',
+            ...BASE_CHROME_FLAGS,
             '--disable-domain-reliability',
             '--disable-features=Translate,OptimizationHints,MediaRouter',
             '--metrics-recording-only',
@@ -305,7 +308,7 @@ function openIsolatedPreview(url) {
         });
     } catch (error) {
         removePreviewProfile();
-        console.error(`无法打开独立 Chrome 预览：${error.message}`);
+        console.error(`无法打开独立 Chrome 预览：${error instanceof Error ? error.message : String(error)}`);
     }
 }
 
@@ -362,6 +365,7 @@ function getLanIps() {
     return ips;
 }
 
+/** @param {number} requestedPort */
 function startListening(requestedPort) {
     const server = activeServer = createStaticServer();
 
@@ -431,8 +435,10 @@ async function start() {
     startListening(targetPort);
 }
 
-start().catch(error => {
-    console.error(error);
-    process.exitCode = 1;
-});
+if (require.main === module) {
+    start().catch(error => {
+        console.error(error);
+        process.exitCode = 1;
+    });
+}
 

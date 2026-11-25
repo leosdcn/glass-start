@@ -5,21 +5,30 @@ const c = Object.fromEntries(Object.entries(codes).map(([name, code]) => [name, 
 const LINE_WIDTH = 72;
 const HR_DOUBLE = '═'.repeat(LINE_WIDTH);
 
+/** @param {string} str */
 function getVisualWidth(str) {
     let width = 0;
     for (const ch of str.replace(/\x1b\[[0-9;]*m/g, '')) {
-        const code = ch.codePointAt(0);
+        const code = ch.codePointAt(0) ?? 0;
         if ((code >= 0xFE00 && code <= 0xFE0F) || code === 0x200D) continue;
         width += code > 0x7f ? 2 : 1;
     }
     return width;
 }
 
+/**
+ * @param {string|number} step
+ * @param {string} title
+ */
 function logSection(step, title) {
     const trailingLine = '─'.repeat(Math.max(4, LINE_WIDTH - getVisualWidth(`─── [${step}] ${title} `)));
     console.log(`\n${c.cyan}─── [${step}] ${title} ${c.gray}${trailingLine}${c.reset}`);
 }
 
+/**
+ * @param {string} msg
+ * @param {'ok' | 'warn' | 'info' | 'error'} [status]
+ */
 function logItem(msg, status = 'ok') {
     const icons = { ok: `${c.green}✔`, warn: `${c.yellow}⚠`, info: `${c.cyan}ℹ`, error: `${c.red}❌` };
     console.log(`  ${icons[status] || icons.error}${c.reset} ${msg}`);

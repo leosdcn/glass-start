@@ -2,38 +2,12 @@ const fs = require('node:fs');
 const path = require('node:path');
 const os = require('node:os');
 const { randomUUID } = require('node:crypto');
+const { registerCleanup, ensureExitCleanup, ensureSignalHandlers } = require('./cleanup-registry.cjs');
 
-const activeCleanups = new Set();
-function registerCleanup(fn) {
-    activeCleanups.add(fn);
-    return () => activeCleanups.delete(fn);
-}
-function executeCleanups() {
-    for (const fn of activeCleanups) {
-        try { fn(); } catch {}
-    }
-    activeCleanups.clear();
-}
-let exitCleanupRegistered = false;
-function ensureExitCleanup() {
-    if (exitCleanupRegistered) return;
-    exitCleanupRegistered = true;
-    process.on('exit', executeCleanups);
-}
-let signalsRegistered = false;
-function ensureSignalHandlers() {
-    ensureExitCleanup();
-    if (signalsRegistered) return;
-    signalsRegistered = true;
-    for (const sig of ['SIGINT', 'SIGTERM', 'SIGHUP']) {
-        process.once(sig, () => {
-            executeCleanups();
-            const sigCode = os.constants?.signals?.[sig] || 1;
-            process.exit(128 + sigCode);
-        });
-    }
-}
-
+/**
+ * @param {string} output
+ * @param {(staging: string) => void} populate
+ */
 function publishBuild(output, populate) {
     ensureExitCleanup();
     const parent = path.dirname(output);
@@ -92,15 +66,23 @@ function publishBuild(output, populate) {
 
 // 非空目录通过 rename 竞争发布权。回收者只删除失效进程的唯一标记，
 // 即使有多个构建同时发现它，也不能删除后来取得锁的进程的标记。
+/**
+ * @param {string} lock
+ * @param {string} [owner]
+ */
 function removePublishLock(lock, owner) {
     try {
         if (owner) fs.unlinkSync(path.join(lock, owner));
         fs.rmdirSync(lock);
     } catch (error) {
-        if (!['ENOENT', 'ENOTEMPTY', 'EEXIST'].includes(error.code)) throw error;
+        if (!['ENOENT', 'ENOTEMPTY', 'EEXIST'].includes(/** @type {NodeJS.ErrnoException} */ (error).code || '')) throw error;
     }
 }
 
+/**
+ * @param {string} lock
+ * @param {string} candidate
+ */
 function acquirePublishLock(lock, candidate) {
     const owner = `${process.pid}-${randomUUID()}`;
     fs.mkdirSync(candidate);
@@ -112,20 +94,20 @@ function acquirePublishLock(lock, candidate) {
             fs.renameSync(candidate, lock);
             return owner;
         } catch (error) {
-            if (!['EEXIST', 'ENOTEMPTY', 'EPERM'].includes(error.code)) throw error;
+            if (!['EEXIST', 'ENOTEMPTY', 'EPERM'].includes(/** @type {NodeJS.ErrnoException} */ (error).code || '')) throw error;
             if (performance.now() >= deadline) {
                 throw new Error(`等待构建发布超时，请检查 ${lock}`, { cause: error });
             }
         }
         let ownerFile;
         try { [ownerFile] = fs.readdirSync(lock); }
-        catch (error) { if (error.code === 'ENOENT') continue; throw error; }
+        catch (error) { if (/** @type {NodeJS.ErrnoException} */ (error).code === 'ENOENT') continue; throw error; }
         const pid = Number(ownerFile?.split('-')[0]);
         if (pid > 0) {
             try {
                 process.kill(pid, 0);
             } catch (error) {
-                if (error.code === 'ESRCH') removePublishLock(lock, ownerFile);
+                if (/** @type {NodeJS.ErrnoException} */ (error).code === 'ESRCH') removePublishLock(lock, ownerFile);
             }
         } else {
             removePublishLock(lock, ownerFile);
@@ -134,7 +116,11 @@ function acquirePublishLock(lock, candidate) {
     }
 }
 
-/** 清理可确认归属已退出进程的暂存目录，保留当前版本和并行构建。 */
+/** 清理可确认归属已退出进程的暂存目录，保留当前版本和并行构建。
+ * @param {string} parent
+ * @param {string} prefix
+ * @param {string} release
+ */
 function removeAbandonedBuilds(parent, prefix, release) {
     const base = path.basename(prefix);
     const resolvedRelease = release ? path.resolve(release) : null;
@@ -147,13 +133,19 @@ function removeAbandonedBuilds(parent, prefix, release) {
         try {
             process.kill(Number(owner[1]), 0);
         } catch (error) {
-            if (error.code === 'ESRCH') fs.rmSync(file, { recursive: true, force: true });
+            if (/** @type {NodeJS.ErrnoException} */ (error).code === 'ESRCH') fs.rmSync(file, { recursive: true, force: true });
         }
     }
 }
 
-/** 并行准备各自的目录，在同一发布锁内读取前版、切换入口并回收。 */
-function publishWebBuild(output, populate, prepare = (release, previous) => {}) {
+/** 并行准备各自的目录，在同一发布锁内读取前版、切换入口并回收。
+ * @template T
+ * @param {string} output
+ * @param {(release: string) => T} populate
+ * @param {(release: string, previous: string | null) => void} [prepare]
+ * @returns {T}
+ */
+function publishWebBuild(output, populate, prepare = () => {}) {
     ensureExitCleanup();
     const parent = path.dirname(output);
     const prefix = path.join(parent, `.${path.basename(output)}-build-`);

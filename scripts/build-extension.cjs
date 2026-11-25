@@ -8,7 +8,7 @@ const { SUPPORTED_LANGUAGES } = require('../src/js/config/language.js');
 // 复用网页编译与资源注入，独立输出；失败时保留上一份扩展。
 async function buildExtension(output = path.join(PATHS.root, 'extension')) {
     const compiledCss = await compileTailwindCss();
-    publishBuild(output, staging => {
+    publishBuild(output, /** @param {string} staging */ staging => {
         const { appVersion, extensionPolicy } = executeBuild(staging, compiledCss, { extension: true });
         const manifest = JSON.parse(fs.readFileSync(path.join(PATHS.src, 'extension/manifest.json'), 'utf8'));
         const versionMatch = appVersion.match(/^(\d+(?:\.\d+){0,3})/);

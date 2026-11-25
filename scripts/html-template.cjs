@@ -1,6 +1,10 @@
 const { appScriptPath } = require('../src/js/utils/build-identity.js');
 
-/** 构建插槽必须唯一；不依赖周围标签的属性顺序或缩进。 */
+/** 构建插槽必须唯一；不依赖周围标签的属性顺序或缩进。
+ * @param {string} html
+ * @param {string} marker
+ * @param {string} value
+ */
 function replaceOnce(html, marker, value) {
     const index = html.indexOf(marker);
     if (index < 0 || html.indexOf(marker, index + marker.length) !== -1) {
@@ -9,6 +13,11 @@ function replaceOnce(html, marker, value) {
     return html.slice(0, index) + value + html.slice(index + marker.length);
 }
 
+/**
+ * @param {string} html
+ * @param {string} name
+ * @param {string} value
+ */
 function replaceRegion(html, name, value) {
     const start = `<!-- BUILD_${name}_START -->`;
     const end = `<!-- BUILD_${name}_END -->`;
@@ -20,6 +29,10 @@ function replaceRegion(html, name, value) {
     return html.slice(0, from) + value + html.slice(to + end.length);
 }
 
+/**
+ * @param {string} html
+ * @param {{ css: string, svg: string, version: string, extension?: boolean, i18nBootstrap: string }} options
+ */
 function injectDocumentShell(html, { css, svg, version, extension, i18nBootstrap }) {
     if (typeof css !== 'string' || !css.trim()) throw new Error('Refusing to generate HTML without compiled CSS');
     if (typeof svg !== 'string' || !svg.trim()) throw new Error('Refusing to generate HTML without SVG sprite');

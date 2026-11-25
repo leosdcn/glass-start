@@ -4,7 +4,9 @@ const { dirname, join } = require('node:path');
 
 const MAX_RETAIN_BYTES = 2 * 1024 * 1024;
 
-/** 将当前线上 HTML 引用的脚本带入下一次静态发布，供仍持有该 HTML 的浏览器使用。 */
+/** 将当前线上 HTML 引用的脚本带入下一次静态发布，供仍持有该 HTML 的浏览器使用。
+ * @param {string} baseUrl
+ */
 async function retainDeployedScript(baseUrl, output = join(__dirname, '..', 'dist')) {
     const base = new URL(baseUrl);
     if (base.protocol !== 'https:' && base.protocol !== 'http:') {

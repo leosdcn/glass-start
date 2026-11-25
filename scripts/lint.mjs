@@ -23,6 +23,13 @@ const cssFiles = readdirSync(cssDir).filter(file => file.endsWith('.css')).sort(
 
 import { c, HR_DOUBLE, logSection, logItem } from './terminal.cjs';
 
+/** @param {unknown} e */
+const errMsg = e => e instanceof Error ? e.message : String(e);
+
+/**
+ * @param {string} content
+ * @param {number} index
+ */
 function getLineCol(content, index) {
     const prefix = content.slice(0, index);
     const line = prefix.split('\n').length;
@@ -31,6 +38,7 @@ function getLineCol(content, index) {
     return { line, col };
 }
 
+/** @param {number} bytes */
 function formatSize(bytes) {
     if (bytes >= 1024) {
         return (bytes / 1024).toFixed(2) + ' KB';
@@ -50,7 +58,9 @@ console.log(`${c.cyan}${HR_DOUBLE}${c.reset}`);
 const htmlPath = join(root, 'src', 'index.html');
 let indexHtml = readFileSync(htmlPath, 'utf-8');
 
-/** 剥离 script/style/注释内容并保留换行偏移，供纯 HTML 静态扫描使用。 */
+/** 剥离 script/style/注释内容并保留换行偏移，供纯 HTML 静态扫描使用。
+ * @param {string} html
+ */
 function stripNonHtmlMarkup(html) {
     return html.replace(/(<(script|style)\b[^>]*>[\s\S]*?<\/\2>|<!--[\s\S]*?-->)/gi,
         match => match.replace(/[^\n]/g, ' '));
@@ -92,8 +102,13 @@ if (isFixMode) {
     }
 }
 
+/**
+ * @param {string} dir
+ * @returns {string[]}
+ */
 function getAllJsInDir(dir) {
-    let results = [];
+    /** @type {string[]} */
+    const results = [];
     if (!existsSync(dir)) return results;
     readdirSync(dir, { withFileTypes: true }).forEach(entry => {
         const full = join(dir, entry.name);
@@ -126,13 +141,14 @@ scripts.forEach((m, i) => {
         logItem(`${label} 语法通过`);
     } catch (e) {
         failCount++;
-        logItem(`${label} 语法错误: ${e.message}`, 'error');
+        logItem(`${label} 语法错误: ${errMsg(e)}`, 'error');
     }
 });
 
 // ---- 2. 核心 JS 脚本与 src/js 业务模块语法校验 (node --check) ----
 logSection('2/4', '⚙️  校验核心 JavaScript 语法 (node --check)');
 
+/** @type {Record<string, string>} */
 const SCRIPT_DESCS = {
     'scripts/build.cjs': '打包构建脚本',
     'scripts/build-extension.cjs': '扩展打包脚本',
@@ -179,7 +195,7 @@ for (const item of jsFiles) {
         logItem(`${label} 语法通过`);
     } catch (e) {
         failCount++;
-        logItem(`${label} 语法错误:\n${e.message}`, 'error');
+        logItem(`${label} 语法错误:\n${errMsg(e)}`, 'error');
     }
 }
 
@@ -190,8 +206,9 @@ if (srcJsSources.length > 0) {
         try {
             source.ast = parseJs(source.content, { ecmaVersion: 'latest', sourceType: 'module', locations: true });
         } catch (err) {
-            const loc = err.loc ? `:${err.loc.line}:${err.loc.column}` : '';
-            failures.push(`${relative(root, source.file)}${loc}:\n${err.message}`);
+            const parseErr = /** @type {{ loc?: { line: number, column: number } }} */ (err);
+            const loc = parseErr?.loc ? `:${parseErr.loc.line}:${parseErr.loc.column}` : '';
+            failures.push(`${relative(root, source.file)}${loc}:\n${errMsg(err)}`);
         }
     }
     const label = `src/js/            (${srcJsSources.length} 个 ESM 核心业务子模块)`;
@@ -203,7 +220,7 @@ if (srcJsSources.length > 0) {
         logItem(`${label} 语法错误:\n${failures.join('\n')}`, 'error');
     }
 }
-const parsedJsSources = srcJsSources.filter(source => source.ast);
+const parsedJsSources = /** @type {Array<{ file: string, content: string, ast: any }>} */ (srcJsSources.filter(source => source.ast));
 
 // ---- 3. 根目录 JSON 配置文件合法性校验 ----
 logSection('3/4', '📦 校验 JSON 配置文件格式');
@@ -225,7 +242,7 @@ for (const item of jsonFiles) {
         logItem(`${label} 格式合法`);
     } catch (e) {
         failCount++;
-        logItem(`${label} 解析错误: ${e.message}`, 'error');
+        logItem(`${label} 解析错误: ${errMsg(e)}`, 'error');
     }
 }
 
@@ -255,7 +272,7 @@ try {
     }
 } catch (e) {
     failCount++;
-    logItem(`版本号单一真理源检查异常: ${e.message}`, 'error');
+    logItem(`版本号单一真理源检查异常: ${errMsg(e)}`, 'error');
 }
 
 // 4.2 移动端 iOS 16px 防放大输入框规范静态扫描
@@ -303,7 +320,7 @@ try {
     }
 } catch (e) {
     failCount++;
-    logItem(`输入框规范扫描异常: ${e.message}`, 'error');
+    logItem(`输入框规范扫描异常: ${errMsg(e)}`, 'error');
 }
 
 // 4.3 <button> 标签显式声明 type="button" 规范全量扫描
@@ -332,7 +349,7 @@ try {
     }
 } catch (e) {
     failCount++;
-    logItem(`按钮 type 属性规范扫描异常: ${e.message}`, 'error');
+    logItem(`按钮 type 属性规范扫描异常: ${errMsg(e)}`, 'error');
 }
 
 // 4.4 装饰性 <svg> 矢量图标 W3C WAI-ARIA (aria-hidden="true") 规范扫描
@@ -362,7 +379,7 @@ try {
     }
 } catch (e) {
     failCount++;
-    logItem(`SVG 无障碍规范扫描异常: ${e.message}`, 'error');
+    logItem(`SVG 无障碍规范扫描异常: ${errMsg(e)}`, 'error');
 }
 
 // 4.5 CSS !important 门禁：按语法树查找减弱动效祖先，保留文件及行列位置。
@@ -388,7 +405,7 @@ try {
     }
 } catch (e) {
     failCount++;
-    logItem(`CSS !important 规范扫描异常: ${e.message}`, 'error');
+    logItem(`CSS !important 规范扫描异常: ${errMsg(e)}`, 'error');
 }
 
 // 4.5.1 同一声明块内，-webkit-backdrop-filter 须在标准属性之前。
@@ -404,7 +421,7 @@ try {
     }
 } catch (e) {
     failCount++;
-    logItem(`CSS 前缀层叠顺序扫描异常: ${e.message}`, 'error');
+    logItem(`CSS 前缀层叠顺序扫描异常: ${errMsg(e)}`, 'error');
 }
 
 // 4.5.2 卡片与交互元素 :hover 必须声明 body:not(.tab-blurred) 前缀防切屏状态卡死
@@ -420,14 +437,16 @@ try {
     }
 } catch (e) {
     failCount++;
-    logItem(`CSS :hover 前缀规范扫描异常: ${e.message}`, 'error');
+    logItem(`CSS :hover 前缀规范扫描异常: ${errMsg(e)}`, 'error');
 }
 
 // 4.6 DOM ID 唯一性与 cacheDOM() 引用健康门禁
+/** @type {ReturnType<typeof inspectDOMSources> | undefined} */
 let domInspection;
 try {
-    domInspection = inspectDOMSources(parsedJsSources,
+    const inspection = inspectDOMSources(parsedJsSources,
         join(root, 'src', 'js', 'core', 'overlay-stack.js'), readFileSync(join(root, 'src', 'js', 'types.d.ts'), 'utf-8'));
+    domInspection = inspection;
     const bodyMatch = indexHtml.match(/<body\b[^>]*>([\s\S]*?)<\/body>/i);
     const bodyHtml = bodyMatch ? bodyMatch[1] : indexHtml;
     const noScriptBody = bodyHtml.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '');
@@ -454,8 +473,8 @@ try {
     const cacheDomMatch = domJsContent.match(/const\s+ids\s*=\s*['"]([^'"]+)['"]/i);
     const cachedIds = cacheDomMatch ? cacheDomMatch[1].trim().split(/\s+/) : [];
     const missingCachedIds = cachedIds.filter(id => !domIdSet.has(id));
-    const uncachedIds = [...domInspection.cachedReferences].filter(id => !cachedIds.includes(id));
-    const untypedIds = [...domInspection.cachedReferences].filter(id => !domInspection.typedIds.has(id));
+    const uncachedIds = [...inspection.cachedReferences].filter(id => !cachedIds.includes(id));
+    const untypedIds = [...inspection.cachedReferences].filter(id => !inspection.typedIds.has(id));
 
     if (duplicateIds.length === 0 && missingCachedIds.length === 0 && uncachedIds.length === 0 && untypedIds.length === 0 && domIdSet.size > 0) {
         passCount++;
@@ -471,7 +490,7 @@ try {
     }
 } catch (e) {
     failCount++;
-    logItem(`DOM ID 唯一性与引用检查异常: ${e.message}`, 'error');
+    logItem(`DOM ID 唯一性与引用检查异常: ${errMsg(e)}`, 'error');
 }
 
 // 4.7 书签 Schema 结构、本地图标物理就绪、HTTPS 协议安全与 desc 排版规范门禁
@@ -479,10 +498,15 @@ try {
     const rawBookmarks = readFileSync(join(root, 'bookmarks.json'), 'utf-8');
     const data = JSON.parse(rawBookmarks);
     let totalBookmarks = 0;
+    /** @type {string[]} */
     const errors = [];
-    /** @type {Map<string, NodeJS.ErrnoException | null>} */
+    /** @type {Map<string, NodeJS.ErrnoException | Error | null>} */
     const iconChecks = new Map();
 
+    /**
+     * @param {{ name?: string, url?: string, icon?: string, desc?: string }} bm
+     * @param {string} prefix
+     */
     function checkBookmarkItem(bm, prefix) {
         totalBookmarks++;
         if (!bm.name || typeof bm.name !== 'string') errors.push(`${prefix} 缺少有效 name`);
@@ -501,11 +525,12 @@ try {
                     validateIconPng(iconPath);
                     iconChecks.set(iconPath, null);
                 } catch (readErr) {
-                    iconChecks.set(iconPath, readErr);
+                    iconChecks.set(iconPath, readErr instanceof Error ? readErr : new Error(String(readErr)));
                 }
             }
             const error = iconChecks.get(iconPath);
-            if (error?.code === 'ENOENT' || error?.code === 'ENOTDIR') {
+            const code = error && 'code' in error ? error.code : undefined;
+            if (code === 'ENOENT' || code === 'ENOTDIR') {
                 errors.push(`${prefix} 本地图标物理文件缺失: "public/icons/${iconFileName}"，请运行 "npm run sync:icons" 自动下载转写！`);
             } else if (error) {
                 errors.push(`${prefix} 本地图标 "${iconFileName}" 校验失败: ${error.message}`);
@@ -514,7 +539,7 @@ try {
     }
 
     if (Array.isArray(data.bookmarks)) {
-        data.bookmarks.forEach((bm, i) => {
+        data.bookmarks.forEach(/** @param {any} bm @param {number} i */ (bm, i) => {
             checkBookmarkItem(bm, `常用书签 [${bm.name || '#' + i}]`);
         });
     } else {
@@ -523,13 +548,13 @@ try {
 
     if (Array.isArray(data.categories)) {
         const catNameSet = new Set();
-        data.categories.forEach((cat, catIdx) => {
+        data.categories.forEach(/** @param {any} cat @param {number} catIdx */ (cat, catIdx) => {
             if (!cat.name) errors.push(`分类 #${catIdx} 缺少 name`);
             if (catNameSet.has(cat.name)) errors.push(`分类名重复: ${cat.name}`);
             catNameSet.add(cat.name);
 
             if (Array.isArray(cat.bookmarks)) {
-                cat.bookmarks.forEach((bm, bmIdx) => {
+                cat.bookmarks.forEach(/** @param {any} bm @param {number} bmIdx */ (bm, bmIdx) => {
                     const prefix = `[${cat.name}] ${bm.name || '#' + bmIdx}`;
                     checkBookmarkItem(bm, prefix);
                     if (!bm.desc || typeof bm.desc !== 'string' || bm.desc.trim().length === 0) {
@@ -561,7 +586,7 @@ try {
     }
 } catch (e) {
     failCount++;
-    logItem(`书签 Schema 规范检查异常: ${e.message}`, 'error');
+    logItem(`书签 Schema 规范检查异常: ${errMsg(e)}`, 'error');
 }
 
 // 切屏恢复、双通道唤醒和动画清理由 lifecycle.test.mjs 验证实际行为。
@@ -579,7 +604,7 @@ try {
     }
 } catch (e) {
     failCount++;
-    logItem(`字体抗锯齿门禁扫描异常: ${e.message}`, 'error');
+    logItem(`字体抗锯齿门禁扫描异常: ${errMsg(e)}`, 'error');
 }
 
 // 仅检查静态可识别的受管理弹窗；普通元素可独立修改 hidden/display。
@@ -591,11 +616,12 @@ try {
     logItem('受管理弹窗的显示生命周期由 OverlayStack 持有，普通元素可独立使用 hidden/display');
 } catch (e) {
     failCount++;
-    logItem(`弹窗显示生命周期门禁失败: ${e.message}`, 'error');
+    logItem(`弹窗显示生命周期门禁失败: ${errMsg(e)}`, 'error');
 }
 
 // 首屏共享配置单一真理源：模块长度/键集合/本地资源/构建插槽必须一致。
 try {
+    /** @param {string} relativePath */
     const loadConfig = relativePath => import(pathToFileURL(join(root, relativePath)).href);
     const [
         { PRESET_BACKGROUNDS },
@@ -672,7 +698,7 @@ try {
     logItem(`首屏共享配置单一真理源：${PRESET_BACKGROUNDS.length} 张壁纸、${engineMetaKeys.length} 个引擎、${Object.keys(WEATHER_EMOJI_MAP).length} 个天气图标，注入插槽与本地资源一致`);
 } catch (e) {
     failCount++;
-    logItem(`首屏共享配置一致性检查失败: ${e.message}`, 'error');
+    logItem(`首屏共享配置一致性检查失败: ${errMsg(e)}`, 'error');
 }
 
 try {
@@ -681,7 +707,7 @@ try {
     logItem(`多语言键、参数及内置内容：${summary}`);
 } catch (e) {
     failCount++;
-    logItem(`多语言校验失败: ${e.message}`, 'error');
+    logItem(`多语言校验失败: ${errMsg(e)}`, 'error');
 }
 
 // Chrome 扩展 Manifest 权限与业务代码网络请求接口一致性检查
@@ -736,7 +762,7 @@ try {
         }
     }
     for (const domain of hostPermDomains) {
-        if (!connectSrcDomains.includes(domain)) {
+        if (domain && !connectSrcDomains.includes(domain)) {
             permErrors.push(`host_permissions 包含 ${domain} 但 connect-src 遗漏`);
         }
     }
@@ -754,7 +780,7 @@ try {
     logItem(`Chrome 扩展 Manifest 已覆盖静态提取的 ${sortedCodeDomains.length} 个 API 域名，host_permissions 与 connect-src 域名集合一致`);
 } catch (e) {
     failCount++;
-    logItem(`Chrome 扩展权限一致性检查失败: ${e.message}`, 'error');
+    logItem(`Chrome 扩展权限一致性检查失败: ${errMsg(e)}`, 'error');
 }
 
 const elapsed = Date.now() - startTime;

@@ -15,34 +15,12 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFile } from 'node:child_process';
 import https from 'node:https';
-import { tmpdir, constants } from 'node:os';
+import { tmpdir } from 'node:os';
+import { createRequire } from 'node:module';
 import { pngDimensions, validateIconPng } from './icon-png.mjs';
 import { c, HR_DOUBLE } from './terminal.cjs';
 
-const activeCleanups = new Set();
-function registerCleanup(fn) {
-    activeCleanups.add(fn);
-    return () => activeCleanups.delete(fn);
-}
-function executeCleanups() {
-    for (const fn of [...activeCleanups].reverse()) {
-        try { fn(); } catch {}
-    }
-    activeCleanups.clear();
-}
-let signalsRegistered = false;
-function ensureSignalHandlers() {
-    if (signalsRegistered) return;
-    signalsRegistered = true;
-    for (const sig of ['SIGINT', 'SIGTERM', 'SIGHUP']) {
-        process.once(sig, () => {
-            executeCleanups();
-            const sigCode = constants.signals?.[sig] || 1;
-            process.exit(128 + sigCode);
-        });
-    }
-    process.on('exit', executeCleanups);
-}
+const { registerCleanup, ensureSignalHandlers } = createRequire(import.meta.url)('./cleanup-registry.cjs');
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -92,10 +70,12 @@ const OFFICIAL_HOST_SOURCES = new Map(/** @type {[string, string | IconSource][]
     ['weibo.com', 'https://h5.sinaimg.cn/upload/447/2017/10/12/code_logo.png']
 ]));
 
+/** @param {string} url */
 function getBareHostname(url) {
     return getRawHostname(url).replace(/^www\./, '');
 }
 
+/** @param {string} url */
 function getRawHostname(url) {
     try {
         const u = new URL(url.startsWith('http') ? url : `https://${url}`);
@@ -105,6 +85,10 @@ function getRawHostname(url) {
     }
 }
 
+/**
+ * @param {string} url
+ * @returns {Promise<Buffer>}
+ */
 function fetchRedirectBuffer(url, referer = '', timeoutMs = 7000, redirectCount = 0) {
     return new Promise((resolve, reject) => {
         if (redirectCount > 5) return reject(new Error('Too many redirects'));
@@ -115,7 +99,8 @@ function fetchRedirectBuffer(url, referer = '', timeoutMs = 7000, redirectCount 
                 ...(referer ? { Referer: referer } : {})
             }
         }, (res) => {
-            if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+            const status = res.statusCode ?? 0;
+            if (status >= 300 && status < 400 && res.headers.location) {
                 res.resume();
                 let nextUrl;
                 try {
@@ -129,11 +114,12 @@ function fetchRedirectBuffer(url, referer = '', timeoutMs = 7000, redirectCount 
                 const nextReferer = nextUrl.origin === new URL(url).origin ? referer : '';
                 return resolve(fetchRedirectBuffer(nextUrl.href, nextReferer, timeoutMs, redirectCount + 1));
             }
-            if (res.statusCode !== 200) {
+            if (status !== 200) {
                 res.resume();
                 return reject(new Error(`HTTP ${res.statusCode}`));
             }
             const MAX_ICON_BYTES = 2 * 1024 * 1024;
+            /** @type {Buffer[]} */
             const chunks = [];
             let totalBytes = 0;
             res.on('data', d => {
@@ -157,7 +143,12 @@ function fetchRedirectBuffer(url, referer = '', timeoutMs = 7000, redirectCount 
     });
 }
 
-/** @returns {Promise<Buffer>} */
+/**
+ * @param {string} command
+ * @param {string[]} args
+ * @param {number} timeout
+ * @returns {Promise<Buffer>}
+ */
 function runTool(command, args, timeout) {
     return new Promise((resolve, reject) => {
         const tool = execFile(command, args, { timeout, killSignal: 'SIGKILL', encoding: 'buffer' },
@@ -171,20 +162,25 @@ function runTool(command, args, timeout) {
 }
 
 /** 文件头、尺寸与尾标合规后实际解码，避免复用图像数据损坏的 PNG。 */
+/** @type {Promise<boolean> | undefined} */
 let sipsAvailable;
 function hasSips() {
     return sipsAvailable ??= runTool('sips', ['--version'], 2000).then(() => true, () => false);
 }
 
+/** @param {string} path */
 async function isReusableIcon(path) {
+    /** @type {string | undefined} */
     let workDir;
+    /** @type {(() => void) | undefined} */
     let unregister;
     try {
         validateIconPng(path);
         if (await hasSips()) {
-            workDir = mkdtempSync(join(process.env.GLASS_TEST_TMPDIR || tmpdir(), `glass-icon-check-${process.pid}-`));
-            unregister = registerCleanup(() => rmSync(workDir, { recursive: true, force: true }));
-            await runTool('sips', ['-s', 'format', 'png', path, '--out', join(workDir, 'decoded.png')], 5000);
+            const dir = mkdtempSync(join(process.env.GLASS_TEST_TMPDIR || tmpdir(), `glass-icon-check-${process.pid}-`));
+            workDir = dir;
+            unregister = registerCleanup(() => rmSync(dir, { recursive: true, force: true }));
+            await runTool('sips', ['-s', 'format', 'png', path, '--out', join(dir, 'decoded.png')], 5000);
         }
         return true;
     } catch {
@@ -221,6 +217,7 @@ async function saveAsPng(inputBuffer, destPath, { entry, cropSize } = {}) {
             renameSync(inputPath, destPath);
             return true;
         }
+        /** @param {string[]} args */
         const runSips = args => runTool('sips', args, 5000);
         await runSips(isSvg
             ? ['-s', 'format', 'png', '-Z', '128', inputPath, '--out', outputPath]
@@ -249,8 +246,16 @@ async function saveAsPng(inputBuffer, destPath, { entry, cropSize } = {}) {
     }
 }
 
+/**
+ * @template T
+ * @param {Array<() => Promise<T>>} tasks
+ * @param {number} [concurrency]
+ * @param {((index: number, total: number, result: T) => void) | null} [onProgress]
+ * @returns {Promise<T[]>}
+ */
 async function runConcurrent(tasks, concurrency = 10, onProgress = null) {
     let index = 0;
+    /** @type {T[]} */
     const results = new Array(tasks.length);
     async function worker() {
         while (index < tasks.length) {
@@ -275,7 +280,7 @@ function cleanupAbandonedSyncDirs() {
             if (!Number.isSafeInteger(pid) || pid <= 0) continue;
             try { process.kill(pid, 0); }
             catch (error) {
-                if (error.code === 'ESRCH') rmSync(join(dir, name), { recursive: true, force: true });
+                if (/** @type {NodeJS.ErrnoException} */ (error).code === 'ESRCH') rmSync(join(dir, name), { recursive: true, force: true });
             }
         }
     }
@@ -303,6 +308,7 @@ async function main() {
 
     // 收集唯一裸域名及其原始 URL 偏好
     const siteMap = new Map();
+    /** @param {{ url?: string, icon?: string }} bm */
     function collectBookmark(bm) {
         if (!bm || !bm.url) return;
         const bareHost = getBareHostname(bm.url);
@@ -317,7 +323,7 @@ async function main() {
     }
 
     (data.bookmarks || []).forEach(collectBookmark);
-    (data.categories || []).forEach(cat => {
+    (data.categories || []).forEach(/** @param {{ bookmarks?: Array<{ url?: string }> }} cat */ cat => {
         (cat.bookmarks || []).forEach(collectBookmark);
     });
 
@@ -386,6 +392,7 @@ async function main() {
     // 只更新已经有可用本地图标的引用。
     const readyHosts = new Set(results.filter(r => r.success).map(r => r.host));
     let updatedIconCount = 0;
+    /** @param {{ url?: string, icon?: string }} bm */
     function updateIconField(bm) {
         if (!bm || !bm.url) return;
         const host = getBareHostname(bm.url);
@@ -398,7 +405,7 @@ async function main() {
     }
 
     (data.bookmarks || []).forEach(updateIconField);
-    (data.categories || []).forEach(cat => {
+    (data.categories || []).forEach(/** @param {{ bookmarks?: Array<{ url?: string, icon?: string }> }} cat */ cat => {
         (cat.bookmarks || []).forEach(updateIconField);
     });
 

@@ -23,10 +23,18 @@ const cssRules = {
     'media-query-no-invalid': true
 };
 
-/** Nu 自带 CSS 诊断仅在定位到已独立校验的 style 块时交由 Stylelint 裁定；行内 style 属性仍由 Nu 检查。 */
+/** @typedef {{ start: number, end: number, contentStart: number, contentEnd: number }} StyleBlock */
+/** @typedef {{ message: string, type: string, subType?: string, lastLine?: number, lastColumn?: number, firstColumn?: number, extract?: string }} NuMessage */
+
+/** Nu 自带 CSS 诊断仅在定位到已独立校验的 style 块时交由 Stylelint 裁定；行内 style 属性仍由 Nu 检查。
+ * @param {NuMessage} message
+ * @param {StyleBlock[]} blocks
+ * @param {number[]} lineOffsets
+ */
 function isCheckedStyleMessage(message, blocks, lineOffsets) {
     if (!message.message.startsWith('CSS: ') || !Number.isInteger(message.lastLine)) return false;
-    const lineStart = lineOffsets[message.lastLine - 1];
+    const lastLine = /** @type {number} */ (message.lastLine);
+    const lineStart = lineOffsets[lastLine - 1];
     if (lineStart === undefined) return false;
     const column = message.lastColumn || message.firstColumn;
     if (column) {
@@ -34,7 +42,7 @@ function isCheckedStyleMessage(message, blocks, lineOffsets) {
         return blocks.some(block => offset >= block.contentStart && offset < block.contentEnd);
     }
     // 缺少列号时，只接管整行都属于该 style 块的消息，避免误归类相邻的 HTML 属性。
-    const lineEnd = (lineOffsets[message.lastLine] ?? Infinity) - 1;
+    const lineEnd = (lineOffsets[lastLine] ?? Infinity) - 1;
     return blocks.some(block => lineStart >= block.start && lineEnd <= block.end);
 }
 
@@ -77,6 +85,7 @@ export async function validateW3c({ rootDir = root, fetchImpl = fetch, log = con
 
         const canonical = [...rawHtml.matchAll(/<link\b[^>]*>/gi)].find(match => /\brel=["']canonical["']/i.test(match[0]));
         const sourceUrl = documentUrl || canonical?.[0].match(/\bhref=["']([^"']+)["']/i)?.[1];
+        /** @type {Record<string, string>} */
         const headers = { 'Content-Type': 'text/html; charset=utf-8',
             'User-Agent': `Glass-Start-W3C-Auditor/${version} (Node.js)` };
         if (sourceUrl) {
@@ -97,12 +106,13 @@ export async function validateW3c({ rootDir = root, fetchImpl = fetch, log = con
             throw new Error(`W3C 服务响应异常: HTTP ${res.status} ${res.statusText}`);
         }
         const data = await res.json();
-        if (!Array.isArray(data?.messages) || data.messages.some(message =>
+        if (!Array.isArray(data?.messages) || data.messages.some(/** @param {any} message */ message =>
             !message || typeof message.message !== 'string' || !['error', 'info'].includes(message.type))) {
             throw new Error('W3C 响应缺少有效消息列表，或包含校验器自身异常');
         }
 
         const lineOffsets = [0, ...[...rawHtml.matchAll(/\n/g)].map(match => match.index + 1)];
+        /** @type {{ errors: NuMessage[], warnings: NuMessage[], csp: NuMessage[], info: NuMessage[], legacyCss: NuMessage[] }} */
         const groups = { errors: [], warnings: [], csp: [], info: [], legacyCss: [] };
         for (const message of data.messages) {
             if (isCheckedStyleMessage(message, blocks, lineOffsets)) groups.legacyCss.push(message);
@@ -113,6 +123,11 @@ export async function validateW3c({ rootDir = root, fetchImpl = fetch, log = con
         }
 
         log(`\n─── HTML 校验结果 (${Date.now() - startTime}ms)：${groups.errors.length} 个错误、${groups.warnings.length + groups.csp.length} 个警告 ───`);
+        /**
+         * @param {string} title
+         * @param {NuMessage[]} messages
+         * @param {string} color
+         */
         const printGroup = (title, messages, color) => {
             if (!messages.length) return;
             log(`\n${color}${title} (${messages.length})${c.reset}`);
@@ -133,7 +148,7 @@ export async function validateW3c({ rootDir = root, fetchImpl = fetch, log = con
         log('\n✔ HTML / CSS 校验完成，无阻断错误；本检查不代表完整无障碍、视觉或功能合规。');
         return 0;
     } catch (err) {
-        error(`\n⚠ W3C 校验未完成: ${err.message}`);
+        error(`\n⚠ W3C 校验未完成: ${err instanceof Error ? err.message : String(err)}`);
         error('  请检查待校验文件、网络或服务状态后重试；本次不判定页面错误，也不视为校验通过。');
         return 2;
     }

@@ -8,6 +8,7 @@ export const standaloneTests = new Set([
   'infra-icon-sync.test.mjs'
 ]);
 
+/** @param {string[]} files */
 export function requiresBuild(files) {
   return files.some(file => !standaloneTests.has(file));
 }

@@ -2,38 +2,52 @@ import { startServer } from './server.mjs';
 import { launchChrome } from './cdp.mjs';
 import assert from 'node:assert/strict';
 
-/** CDP 协议错误由 send 报告，页面求值异常统一在此抛出。 */
+/** @typedef {(method: string, params?: Record<string, any> | ((params: any) => void), timeoutMs?: number) => Promise<any>} CDPSend */
+/** @typedef {(expression: string) => Promise<any>} EvalJS */
+
+/** CDP 协议错误由 send 报告，页面求值异常统一在此抛出。
+ * @param {CDPSend} send
+ * @returns {EvalJS}
+ */
 export const createEvaluator = send => async expression => {
   const response = await send('Runtime.evaluate', { expression, returnByValue: true, awaitPromise: true });
   assert.equal(response.exceptionDetails, undefined, JSON.stringify(response.exceptionDetails));
   return response.result?.value;
 };
 
+/** @param {number} ms */
 export const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+/** @param {EvalJS} evalJS @param {string} key */
 export const pressKey = (evalJS, key) => evalJS(`document.dispatchEvent(new KeyboardEvent('keydown', { key: ${JSON.stringify(key)}, bubbles: true, cancelable: true }))`);
 // 状态轮询超时统一为 10 秒，与 Chrome 启动和导航上限保持一致；轮询在条件满足时即刻返回，不增加开销。
 const defaultWaitTimeout = 10000;
 
+/** @param {string} m */
 export const tyOf = (m) => {
   const r = /matrix\(1, 0, 0, 1, 0, (-?\d+(?:\.\d+)?)\)/.exec(m);
   return r ? parseFloat(r[1]) : null;
 };
 
-/** 响应式状态轮询器：等待表达式求值为真即刻放行，彻底消除盲等 sleep */
-export async function waitFor(evalJS, predicateJs, timeout = defaultWaitTimeout, interval = 20) {
+/** 响应式状态轮询器：等待表达式求值为真即刻放行，彻底消除盲等 sleep
+ * @param {EvalJS | (() => any)} evalJS
+ * @param {string} [predicateJs]
+ */
+export async function waitFor(evalJS, predicateJs = '', timeout = defaultWaitTimeout, interval = 20) {
   const isDirectFn = typeof evalJS === 'function' && evalJS.length === 0;
-  const label = typeof predicateJs === 'string' ? predicateJs : (evalJS.name || 'predicate');
+  const label = typeof predicateJs === 'string' && predicateJs ? predicateJs : (evalJS.name || 'predicate');
   const start = Date.now();
+  /** @type {Error | undefined} */
   let lastError;
   while (Date.now() - start < timeout) {
     try {
-      const res = await (isDirectFn ? evalJS() : evalJS(predicateJs));
+      const res = await (isDirectFn ? /** @type {() => any} */ (evalJS)() : /** @type {EvalJS} */ (evalJS)(predicateJs));
       if (res) return res;
     } catch (error) {
-      if (!/Cannot find context|Execution context was destroyed|Inspected target navigated or closed/i.test(error?.message || '')) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (!/Cannot find context|Execution context was destroyed|Inspected target navigated or closed/i.test(message)) {
         throw error;
       }
-      lastError = error;
+      lastError = error instanceof Error ? error : new Error(message);
     }
     await new Promise(r => setTimeout(r, interval));
   }
@@ -41,22 +55,29 @@ export async function waitFor(evalJS, predicateJs, timeout = defaultWaitTimeout,
   throw new Error(`Timeout after ${timeout}ms waiting for: ${label}${causeMsg}`);
 }
 
-/** 仅导航就绪等待允许上下文替换；其他协议错误和页面异常直接报告。 */
+/** 仅导航就绪等待允许上下文替换；其他协议错误和页面异常直接报告。
+ * @param {CDPSend} send
+ * @param {EvalJS} evalJS
+ * @param {string} url
+ */
 export async function navigateAndWait(send, evalJS, url, predicateJs = 'true', timeout = 10000) {
   const navigation = await send('Page.navigate', { url });
   if (navigation.errorText) throw new Error(`Navigation failed: ${navigation.errorText}`);
+  /** @type {unknown} */
   let contextError;
   try {
-    return await waitFor(async expression => {
+    return await waitFor(/** @param {string} expression */ async expression => {
       try { return await evalJS(expression); }
       catch (error) {
-        if (!/CDP command Runtime.evaluate failed \(-32000\): (?:Cannot find context|Execution context was destroyed|Inspected target navigated or closed)/i.test(error.message)) throw error;
+        const message = error instanceof Error ? error.message : String(error);
+        if (!/CDP command Runtime.evaluate failed \(-32000\): (?:Cannot find context|Execution context was destroyed|Inspected target navigated or closed)/i.test(message)) throw error;
         contextError = error;
         return false;
       }
     }, `location.href === ${JSON.stringify(url)} && document.readyState === 'complete' && (${predicateJs})`, timeout);
   } catch (error) {
-    if (contextError && error.message.startsWith('Timeout')) throw new Error(error.message, { cause: contextError });
+    const message = error instanceof Error ? error.message : String(error);
+    if (contextError && message.startsWith('Timeout')) throw new Error(message, { cause: contextError });
     throw error;
   }
 }

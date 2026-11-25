@@ -2,14 +2,20 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-/** Validate only the supported translation contract, alongside the existing lint. */
+/** Validate only the supported translation contract, alongside the existing lint.
+ * @param {string} root
+ * @param {Array<{ ast: any }>} sources
+ * @param {string} html
+ */
 export async function inspectI18n(root, sources, html) {
     const { SUPPORTED_LANGUAGES } = await import(pathToFileURL(join(root, 'src/js/config/language.js')).href);
     const { PRESET_WALLPAPERS } = await import(pathToFileURL(join(root, 'src/js/config/backgrounds.js')).href);
+    /** @param {string} name */
     const readJSON = name => JSON.parse(readFileSync(join(root, name), 'utf8'));
-    const dictionaries = Object.fromEntries(SUPPORTED_LANGUAGES.map(locale =>
+    const dictionaries = Object.fromEntries(SUPPORTED_LANGUAGES.map(/** @param {string} locale */ locale =>
         [locale, readJSON(`src/js/config/locales/${locale}.json`)]));
     const keys = Object.keys(dictionaries.en).sort();
+    /** @param {string | Record<string, string>} message */
     const placeholders = message => [...new Set((typeof message === 'string' ? [message] : Object.values(message))
         .flatMap(text => [...text.matchAll(/\{(\w+)\}/g)].map(match => match[1])))].sort().join(',');
     for (const [locale, messages] of Object.entries(dictionaries)) {
@@ -25,12 +31,14 @@ export async function inspectI18n(root, sources, html) {
                 placeholders(text) !== placeholders(message))) throw new Error(`${locale}/${key}: placeholders differ`);
         }
     }
+    /** @param {string} key */
     const checkKey = key => {
         if (/^cache\.(title|description|action)$/.test(key)) {
             checkKey(`cache.web.${key.slice(6)}`);
             checkKey(`cache.extension.${key.slice(6)}`);
         } else if (!Object.hasOwn(dictionaries.en, key)) throw new Error(`Unknown translation key: ${key}`);
     };
+    /** @param {any} node */
     const walk = node => {
         if (typeof node?.type !== 'string') return;
         if (node.type === 'CallExpression' && node.callee.type === 'Identifier' && node.callee.name === 't'
@@ -48,10 +56,12 @@ export async function inspectI18n(root, sources, html) {
     const catalog = readJSON('src/js/config/locales/catalog-en.json');
     const defaults = readJSON('bookmarks.json');
     const ids = new Set();
-    const urls = new Set(defaults.categories.flatMap(category => category.bookmarks.map(bookmark => bookmark.url)));
+    /** @type {Array<{ id: string, bookmarks: Array<{ url: string, desc?: string }> }>} */
+    const defaultCategories = defaults.categories;
+    const urls = new Set(defaultCategories.flatMap(category => category.bookmarks.map(bookmark => bookmark.url)));
     if (catalog.defaultBookmarks.length !== defaults.bookmarks.length || new Set(catalog.defaultBookmarks).size !== catalog.defaultBookmarks.length
-        || catalog.defaultBookmarks.some(url => !urls.has(url))) throw new Error('English default bookmarks must be unique catalog URLs matching the default count');
-    defaults.categories.forEach(category => {
+        || catalog.defaultBookmarks.some(/** @param {string} url */ url => !urls.has(url))) throw new Error('English default bookmarks must be unique catalog URLs matching the default count');
+    defaultCategories.forEach(category => {
         if (!category.id || ids.has(category.id) || !catalog.categories[category.id]) throw new Error(`Missing/duplicate category translation: ${category.id}`);
         ids.add(category.id);
         category.bookmarks.forEach(bookmark => {

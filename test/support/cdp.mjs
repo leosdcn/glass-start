@@ -4,6 +4,9 @@ import { killChromeProcess, trackChromeProcess } from './chrome-processes.mjs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { rmSync, existsSync, mkdtempSync, mkdirSync, readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
+
+const { BASE_CHROME_FLAGS } = createRequire(import.meta.url)('../../scripts/chrome-flags.cjs');
 
 function findChromeBin() {
   if (process.env.CHROME_PATH) return process.env.CHROME_PATH;
@@ -32,12 +35,18 @@ function findChromeBin() {
 
 const CHROME_BIN = findChromeBin();
 
+/** @typedef {{ send: import('./helpers.mjs').CDPSend, close: (reason?: unknown) => void }} CDPConnection */
+/** @typedef {{ proc: import('node:child_process').ChildProcess | null, ws: WebSocket | null, profileDir: string, record?: string, onProcExit?: (code: number | null, signal: NodeJS.Signals | null) => void, connection?: CDPConnection }} ChromeInstance */
+
+/** @type {Set<ChromeInstance>} */
 const activeInstances = new Set();
 
+/** @param {import('node:child_process').ChildProcess | null | undefined} proc */
 function isRunning(proc) {
-  return proc?.pid && proc.exitCode === null && proc.signalCode === null;
+  return Boolean(proc?.pid && proc.exitCode === null && proc.signalCode === null);
 }
 
+/** @param {ChromeInstance} instance */
 function cleanupInstance(instance) {
   if (!activeInstances.delete(instance)) return;
   if (instance.onProcExit && instance.proc) {
@@ -51,14 +60,15 @@ function cleanupInstance(instance) {
   } catch {}
 
   try {
-    if (process.platform !== 'win32' || isRunning(instance.proc)) killChromeProcess(instance.proc?.pid);
+    if (instance.proc?.pid && (process.platform !== 'win32' || isRunning(instance.proc))) killChromeProcess(instance.proc.pid);
     rmSync(instance.profileDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 20 });
     if (instance.record) rmSync(instance.record, { force: true });
   } catch (error) {
-    console.error(`无法清理 Chrome 测试会话：${error.message}`);
+    console.error(`无法清理 Chrome 测试会话：${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
+/** @param {ChromeInstance} instance */
 async function closeInstance(instance) {
   if (!activeInstances.has(instance)) return;
   const { proc, connection, onProcExit } = instance;
@@ -66,17 +76,17 @@ async function closeInstance(instance) {
     try { proc.removeListener('exit', onProcExit); } catch {}
   }
   try {
-    if (!isRunning(proc)) return;
+    if (!proc || !isRunning(proc)) return;
     // 让已核对归属的 Chrome 先关闭子进程，再移除配置目录。
     const exited = once(proc, 'exit', { signal: AbortSignal.timeout(2000) }).catch(() => {});
     if (connection) {
       // 关闭本身也可能先断开 CDP，继续等待 Chrome 退出。
       await connection.send('Browser.close', {}, 1000).catch(() => {});
-    } else {
+    } else if (proc.pid) {
       killChromeProcess(proc.pid, 'SIGTERM');
     }
     await exited;
-    if (isRunning(proc)) {
+    if (isRunning(proc) && proc.pid) {
       const killed = once(proc, 'exit', { signal: AbortSignal.timeout(1000) }).catch(() => {});
       killChromeProcess(proc.pid);
       await killed;
@@ -88,8 +98,9 @@ async function closeInstance(instance) {
 
 // 注册退出钩子，清理本进程启动的 Chrome 及其临时目录。
 function registerExitHooks() {
-  if (globalThis.__CHROME_HOOKS_REGISTERED__) return;
-  globalThis.__CHROME_HOOKS_REGISTERED__ = true;
+  const g = /** @type {{ __CHROME_HOOKS_REGISTERED__?: boolean }} */ (globalThis);
+  if (g.__CHROME_HOOKS_REGISTERED__) return;
+  g.__CHROME_HOOKS_REGISTERED__ = true;
 
   const cleanupAll = () => {
     for (const inst of [...activeInstances]) {
@@ -105,13 +116,25 @@ function registerExitHooks() {
 
 registerExitHooks();
 
-/** 断线、协议错误和主动关闭均立即结束待决请求并清理计时器。 */
+/** 断线、协议错误和主动关闭均立即结束待决请求并清理计时器。
+ * @param {WebSocket} ws
+ * @returns {Promise<CDPConnection>}
+ */
 export async function connectCDP(ws, { openTimeoutMs = 15000 } = {}) {
-  let id = 0, failure = null;
-  const pending = new Map(), listeners = new Map();
-  let resolveOpen, rejectOpen;
-  const opened = new Promise((resolve, reject) => { resolveOpen = resolve; rejectOpen = reject; });
+  let id = 0;
+  /** @type {Error | null} */
+  let failure = null;
+  /** @type {Map<number, { resolve: (value: any) => void, reject: (reason?: any) => void, timer: ReturnType<typeof setTimeout>, method: string }>} */
+  const pending = new Map();
+  /** @type {Map<string, Set<(params: any) => void>>} */
+  const listeners = new Map();
+  /** @type {() => void} */
+  let resolveOpen = () => {};
+  /** @type {(reason?: any) => void} */
+  let rejectOpen = () => {};
+  const opened = new Promise((resolve, reject) => { resolveOpen = () => resolve(undefined); rejectOpen = reject; });
   const openTimer = setTimeout(() => fail(new Error('CDP connection opening timed out')), openTimeoutMs);
+  /** @param {Error} error */
   function fail(error) {
     if (failure) return;
     failure = error;
@@ -123,16 +146,17 @@ export async function connectCDP(ws, { openTimeoutMs = 15000 } = {}) {
     }
     pending.clear();
     listeners.clear();
-    for (const [name, handler] of Object.entries(handlers)) ws.removeEventListener(name, handler);
+    for (const [name, handler] of Object.entries(handlers)) ws.removeEventListener(name, /** @type {EventListener} */ (handler));
     try { ws.close(); } catch {}
   }
+  /** @type {{ open: () => void, error: () => void, close: (event: CloseEvent) => void, message: (event: MessageEvent) => void }} */
   const handlers = {
     open() { clearTimeout(openTimer); resolveOpen(); },
     error() { fail(new Error('CDP connection error')); },
     close(event) { fail(new Error(`CDP connection closed (${event.code || 'unknown'}): ${event.reason || 'no reason'}`)); },
     message(event) {
       let message;
-      try { message = JSON.parse(event.data); }
+      try { message = JSON.parse(String(event.data)); }
       catch (error) { fail(new Error('CDP received invalid JSON', { cause:error })); return; }
       const entry = pending.get(message.id);
       if (entry) {
@@ -142,22 +166,24 @@ export async function connectCDP(ws, { openTimeoutMs = 15000 } = {}) {
         else entry.resolve(message.result);
       } else {
         for (const listener of listeners.get(message.method) || []) {
-          try { listener(message.params); } catch (err) { fail(err); }
+          try { listener(message.params); } catch (err) { fail(err instanceof Error ? err : new Error(String(err))); }
         }
       }
     }
   };
-  for (const [name, handler] of Object.entries(handlers)) ws.addEventListener(name, handler);
+  for (const [name, handler] of Object.entries(handlers)) ws.addEventListener(name, /** @type {EventListener} */ (handler));
   if (ws.readyState === WebSocket.OPEN) handlers.open();
   else if (ws.readyState > WebSocket.OPEN) fail(new Error('CDP connection already closed'));
   await opened;
   return {
+    /** @type {import('./helpers.mjs').CDPSend} */
     send(method, params = {}, timeoutMs = 15000) {
       if (typeof params === 'function') {
         if (failure) throw failure;
+        const listener = /** @type {(params: any) => void} */ (params);
         if (!listeners.has(method)) listeners.set(method, new Set());
-        listeners.get(method).add(params);
-        return () => listeners.get(method)?.delete(params);
+        listeners.get(method)?.add(listener);
+        return Promise.resolve(() => listeners.get(method)?.delete(listener));
       }
       if (!failure && ws.readyState !== WebSocket.OPEN) fail(new Error('CDP connection is not open'));
       if (failure) return Promise.reject(failure);
@@ -178,16 +204,18 @@ export async function connectCDP(ws, { openTimeoutMs = 15000 } = {}) {
   };
 }
 
+/** @param {{ port?: number, url: string, testMode?: boolean, disableGPU?: boolean, extraArgs?: string[] }} options */
 export async function launchChrome(options) {
   try {
     return await launchChromeOnce(options);
   } catch (error) {
-    if (error.code !== 'CHROME_CDP_STARTUP_TIMEOUT') throw error;
-    console.warn(error.message + '\nRetrying Chrome startup with a fresh profile.');
+    if (/** @type {NodeJS.ErrnoException} */ (error).code !== 'CHROME_CDP_STARTUP_TIMEOUT') throw error;
+    console.warn((error instanceof Error ? error.message : String(error)) + '\nRetrying Chrome startup with a fresh profile.');
     return launchChromeOnce(options);
   }
 }
 
+/** @param {{ port?: number, url: string, testMode?: boolean, disableGPU?: boolean, extraArgs?: string[] }} options */
 async function launchChromeOnce({ port = 0, url, testMode = true, disableGPU = true, extraArgs = [] }) {
   const profileParent = process.env.CHROME_PROFILE_DIR || process.env.GLASS_TEST_TMPDIR || tmpdir();
   mkdirSync(profileParent, { recursive: true });
@@ -199,28 +227,12 @@ async function launchChromeOnce({ port = 0, url, testMode = true, disableGPU = t
     '--no-sandbox',
     '--disable-setuid-sandbox',
     '--disable-dev-shm-usage',
-    '--disable-background-networking',
-    '--disable-component-update',
-    '--disable-sync',
-    '--disable-default-apps',
-    '--disable-breakpad',
-    '--disable-crash-reporter',
-    '--noerrdialogs',
-    '--disable-client-side-phishing-detection',
-    '--disable-component-extensions-with-background-pages',
-    '--disable-background-timer-throttling',
-    '--disable-backgrounding-occluded-windows',
-    '--disable-renderer-backgrounding',
-    '--password-store=basic',
-    '--use-mock-keychain',
-    '--mute-audio',
+    ...BASE_CHROME_FLAGS,
     '--disable-domain-reliability',
     '--disable-features=Translate,OptimizationHints,MediaRouter',
     '--metrics-recording-only',
     // 让 Linux headless 与桌面浏览器一致地声明 hover/pointer 能力，避免倾斜测试被媒体查询提前关闭。
     '--blink-settings=primaryHoverType=2,availableHoverTypes=2,primaryPointerType=4,availablePointerTypes=4',
-    '--no-first-run',
-    '--no-default-browser-check',
     '--enable-automation',
     '--window-size=1470,956',
     '--hide-scrollbars',
@@ -229,6 +241,7 @@ async function launchChromeOnce({ port = 0, url, testMode = true, disableGPU = t
     profileArg,
     'about:blank',
   ];
+  /** @type {ChromeInstance} */
   const instance = { proc: null, ws: null, profileDir };
   activeInstances.add(instance);
 
@@ -238,10 +251,11 @@ async function launchChromeOnce({ port = 0, url, testMode = true, disableGPU = t
       detached: process.platform !== 'win32',
       env: { ...process.env, BREAKPAD_DUMP_LOCATION: profileDir }
     });
-    instance.record = trackChromeProcess(proc.pid, profileDir);
+    instance.record = proc.pid ? trackChromeProcess(proc.pid, profileDir) : undefined;
     let stderr = '';
     proc.stderr.setEncoding('utf8');
     proc.stderr.on('data', chunk => { stderr = (stderr + chunk).slice(-4000); });
+    /** @type {Error | undefined} */
     let spawnError;
     proc.once('error', error => { spawnError = error; });
     let cdpPort = port;
@@ -257,6 +271,7 @@ async function launchChromeOnce({ port = 0, url, testMode = true, disableGPU = t
           if (!cdpPort) cdpPort = Number.parseInt(readFileSync(join(profileDir, 'DevToolsActivePort'), 'utf8'), 10);
           if (cdpPort) {
             const res = await fetch(`http://127.0.0.1:${cdpPort}/json`, { signal: AbortSignal.timeout(1000) });
+            /** @type {Array<{ type: string, url: string, webSocketDebuggerUrl: string }>} */
             const list = await res.json();
             const page = list.find(t => t.type === 'page' && /^https?:\/\//.test(t.url) && !t.url.includes('chrome://')) ||
                          list.find(t => t.type === 'page' && !t.url.includes('chrome://'));
@@ -273,6 +288,7 @@ async function launchChromeOnce({ port = 0, url, testMode = true, disableGPU = t
     })();
     instance.ws = new WebSocket(target.webSocketDebuggerUrl);
     const connection = await connectCDP(instance.ws);
+    /** @param {number | null} code @param {NodeJS.Signals | null} signal */
     const onProcExit = (code, signal) => {
       connection.close(new Error(`Chrome process exited unexpectedly (${signal ?? code ?? 'unknown'})`));
     };
@@ -319,7 +335,7 @@ window.fetch = async (url, opts) => {
         });
         if (response.result?.value === true) { ready = true; break; }
       } catch (error) {
-        if (!/Cannot find context|Execution context was destroyed|Inspected target navigated or closed/i.test(error.message)) throw error;
+        if (!/Cannot find context|Execution context was destroyed|Inspected target navigated or closed/i.test(error instanceof Error ? error.message : String(error))) throw error;
       }
       await new Promise(resolve => setTimeout(resolve, 30));
     }
