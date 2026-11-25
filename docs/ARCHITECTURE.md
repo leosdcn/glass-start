@@ -126,7 +126,7 @@ CSS 通过 `main.css` 按其 `@import` 顺序编译为内联样式，不增加�
 
 应用使用原生 ES 模块与 Web API，无 npm 运行时依赖。Tailwind CSS v4 和 esbuild 仅参与开发与构建；TypeScript 用于类型检查，Acorn 和 PostCSS 分别用于 DOM 与 CSS 静态校验，Stylelint 用于构建产物的现代 CSS 校验，均不进入生产页面。
 
-`.github/workflows/ci.yml` 统一执行检查与 GitHub Pages 发布。在基准 Node 24.15.0 环境下运行 lint、类型、构建、Chrome 回归，并使用固定镜像的本地 Nu 和 Stylelint 校验本次生成的 `dist/`。main 推送或 main 手动运行时，校验通过后上传产物并完成发布。
+`.github/workflows/ci.yml` 统一执行检查与 GitHub Pages 发布。在基准 Node 24.15.0 环境下默认运行 lint、类型检查、纯单元测试（`npm run test:unit`）、生产构建（`npm run build`），并使用固定镜像的本地 Nu 和 Stylelint 校验本次生成的 `dist/`；手动触发并启用 `run_full_tests` 时运行全量 Chrome 回归。main 推送或 main 手动运行时，校验通过后上传产物并完成发布。
 
 ```mermaid
 flowchart TD

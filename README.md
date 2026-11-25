@@ -102,7 +102,7 @@ npm run build:extension
 
 ### Vercel / Netlify / GitHub Pages
 - **Vercel / Netlify**。导入 Git 仓库，选择符合 `package.json` 要求的 Node.js 版本，并安装开发依赖。构建命令设为 `npm run build`，输出目录设为 `dist`。响应头规则按各平台的配置方式设置。
-- **GitHub Pages**：仓库已提供 [CI 与发布工作流](./.github/workflows/ci.yml)。启用仓库的 Actions，并在 Settings ➔ Pages 选择 GitHub Actions；日常推送和 PR 运行 lint、单元测试、关键 Chrome 回归与 W3C 校验。修改应用版本或手动运行工作流时执行完整测试。推送到 `main` 或在 `main` 手动运行通过后，会发布已验证的 `dist/`，并保留当前线上 HTML 引用的版本化脚本。修改发布分支或流程时参考[官方自定义工作流指南](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages)。若从分支发布，需将产物放在发布分支根目录或 `/docs`，不能直接选择 `/dist`。
+- **GitHub Pages**：仓库已提供 [CI 与发布工作流](./.github/workflows/ci.yml)。启用仓库的 Actions，并在 Settings ➔ Pages 选择 GitHub Actions；日常推送和 PR 运行 lint、类型检查、纯单元测试、构建与 W3C 校验，手动触发工作流并勾选 `run_full_tests` 时可按需执行全量 Chrome 回归测试。推送到 `main` 或在 `main` 手动运行通过后，会发布已验证的 `dist/`，并保留当前线上 HTML 引用的版本化脚本。修改发布分支或流程时参考[官方自定义工作流指南](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages)。若从分支发布，需将产物放在发布分支根目录或 `/docs`，不能直接选择 `/dist`。
 
 `public/_headers` 的响应头规则需要托管平台支持；GitHub Pages 不应用该文件，页面仍使用 HTML meta CSP。meta CSP 与 HTTP CSP 响应头共同生效，响应头不能放宽 meta 中的限制；仅支持响应头的 `frame-ancestors`、缓存及其他安全头也不会由 meta 替代。部署后应核对实际 HTTP 响应，不能仅凭产物中存在 `_headers` 判断规则生效。
 
