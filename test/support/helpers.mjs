@@ -10,7 +10,7 @@ export const createEvaluator = send => async expression => {
 };
 
 export const sleep = (ms) => new Promise(r => setTimeout(r, ms));
-export const pressKey = (evalJS, key) => evalJS(`document.dispatchEvent(new KeyboardEvent('keydown', { key: '${key}', bubbles: true, cancelable: true }))`);
+export const pressKey = (evalJS, key) => evalJS(`document.dispatchEvent(new KeyboardEvent('keydown', { key: ${JSON.stringify(key)}, bubbles: true, cancelable: true }))`);
 // 状态轮询超时统一为 10 秒，与 Chrome 启动和导航上限保持一致；轮询在条件满足时即刻返回，不增加开销。
 const defaultWaitTimeout = 10000;
 

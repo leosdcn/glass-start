@@ -14,6 +14,8 @@ export function cancelDragSort() {
     cancelCurrentDrag();
 }
 
+const initializedDragLists = new WeakSet();
+
 export function initDragSort() {
     /** @type {HTMLElement | null} */
     let dragSrc = null;
@@ -36,7 +38,8 @@ export function initDragSort() {
     /** @type {DOMRect | null} */
     let cachedListRect = null;
     const editList = dom.editList;
-    if (!editList) return;
+    if (!editList || initializedDragLists.has(editList)) return;
+    initializedDragLists.add(editList);
     const currentEditList = editList;
 
     /**
@@ -116,7 +119,12 @@ export function initDragSort() {
         }
     }
 
+    const handleDocumentMouseUp = () => {
+        resetDragSession();
+    };
+
     function resetDragSession() {
+        document.removeEventListener('mouseup', handleDocumentMouseUp);
         if (!armedCard && !dragSrc) return;
         armedCard?.setAttribute('draggable', 'false');
         armedCard = null;
@@ -142,180 +150,183 @@ export function initDragSort() {
         });
     }
 
-    currentEditList.addEventListener('keydown', e => {
-        const targetEl = e.target instanceof Element ? e.target : null;
-        const handle = targetEl?.closest('.drag-handle');
-        if (!handle || !e.altKey || e.ctrlKey || e.metaKey || e.shiftKey
-            || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return;
-        e.preventDefault();
-        e.stopPropagation();
-        const src = /** @type {HTMLElement|null} */ (handle.closest('.edit-row-card'));
-        const index = modalState.draftBookmarks.findIndex(b => b.id === src?.dataset.id);
-        const nextIndex = index + (e.key === 'ArrowUp' ? -1 : 1);
-        if (index < 0 || nextIndex < 0 || nextIndex >= modalState.draftBookmarks.length) return;
-        const next = modalState.draftBookmarks[nextIndex];
-        const target = /** @type {HTMLElement|null} */ (currentEditList.querySelector(`.edit-row-card[data-id="${CSS.escape(next.id)}"]`));
-        if (!target) return;
-        commitReorder(src, target, nextIndex < index);
-        const focusable = /** @type {HTMLElement} */ (handle);
-        focusable.focus();
-        const status = currentEditList.querySelector('.bookmark-sort-status');
-        if (status) status.textContent = t('bookmark.moved', { name: modalState.draftBookmarks[nextIndex].name, position: nextIndex + 1, count: modalState.draftBookmarks.length });
-    });
-
-    // ── 鼠标路径：mousedown 控制 draggable ───────────────────────────────────
-    currentEditList.addEventListener('mousedown', e => {
-        const targetEl = e.target instanceof Element ? e.target : null;
-        const handle = targetEl?.closest('.drag-handle');
-        const card = handle?.closest('.edit-row-card') ?? null;
-        if (card === armedCard) return;
-        armedCard?.setAttribute('draggable', 'false');
-        armedCard = card;
-        armedCard?.setAttribute('draggable', 'true');
-    });
-
-    document.addEventListener('mouseup', () => {
-        resetDragSession();
-    }, { passive: true });
-
-    currentEditList.addEventListener('dragstart', e => {
-        const targetEl = e.target instanceof Element ? e.target : null;
-        const item = /** @type {HTMLElement|null} */ (targetEl?.closest('.edit-row-card'));
-        if (!item || item !== armedCard) {
+    function bindKeyboardSort() {
+        currentEditList.addEventListener('keydown', e => {
+            const targetEl = e.target instanceof Element ? e.target : null;
+            const handle = targetEl?.closest('.drag-handle');
+            if (!handle || !e.altKey || e.ctrlKey || e.metaKey || e.shiftKey
+                || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return;
             e.preventDefault();
-            return;
-        }
-        blurActiveHandle();
-        try { window.getSelection()?.removeAllRanges(); } catch (_) {}
-        document.body.classList.add('bookmark-dragging');
-        dragSrc = item;
-        item.classList.add('dragging');
-        if (e.dataTransfer) {
-            e.dataTransfer.effectAllowed = 'move';
-            try {
-                e.dataTransfer.setData('text/plain', item.dataset.id || '');
-            } catch (_) {}
-        }
-    });
-
-    currentEditList.addEventListener('dragend', () => {
-        resetDragSession();
-        settleDragHover();
-    });
-
-    /** @param {DragEvent} e */
-    function trackMouseTarget(e) {
-        if (!dragSrc || touchIdentifier !== null) return;
-        updateDropTarget(e.target, e.clientY);
-        if (!lastOverTarget) {
-            updateDragIndicator();
-            return;
-        }
-        e.preventDefault();
-        if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
-        if (!dragOverRafId) {
-            dragOverRafId = requestAnimationFrame(() => {
-                dragOverRafId = null;
-                updateDragIndicator();
-            });
-        }
+            e.stopPropagation();
+            const src = /** @type {HTMLElement|null} */ (handle.closest('.edit-row-card'));
+            const index = modalState.draftBookmarks.findIndex(b => b.id === src?.dataset.id);
+            const nextIndex = index + (e.key === 'ArrowUp' ? -1 : 1);
+            if (index < 0 || nextIndex < 0 || nextIndex >= modalState.draftBookmarks.length) return;
+            const next = modalState.draftBookmarks[nextIndex];
+            const target = /** @type {HTMLElement|null} */ (currentEditList.querySelector(`.edit-row-card[data-id="${CSS.escape(next.id)}"]`));
+            if (!target) return;
+            commitReorder(src, target, nextIndex < index);
+            /** @type {HTMLElement} */ (handle).focus();
+            const status = currentEditList.querySelector('.bookmark-sort-status');
+            if (status) status.textContent = t('bookmark.moved', { name: modalState.draftBookmarks[nextIndex].name, position: nextIndex + 1, count: modalState.draftBookmarks.length });
+        });
     }
-    currentEditList.addEventListener('dragenter', trackMouseTarget);
-    currentEditList.addEventListener('dragover', trackMouseTarget);
 
-    currentEditList.addEventListener('dragleave', e => {
-        if (e.target === currentEditList || !(e.relatedTarget instanceof Node && currentEditList.contains(e.relatedTarget))) {
-            updateDropTarget(null, 0);
+    function bindMouseDrag() {
+        currentEditList.addEventListener('mousedown', e => {
+            const targetEl = e.target instanceof Element ? e.target : null;
+            const handle = targetEl?.closest('.drag-handle');
+            const card = handle?.closest('.edit-row-card') ?? null;
+            if (card === armedCard) return;
+            armedCard?.setAttribute('draggable', 'false');
+            armedCard = card;
+            armedCard?.setAttribute('draggable', 'true');
+            if (armedCard) {
+                document.addEventListener('mouseup', handleDocumentMouseUp, { passive: true });
+            } else {
+                document.removeEventListener('mouseup', handleDocumentMouseUp);
+            }
+        });
+
+        currentEditList.addEventListener('dragstart', e => {
+            const targetEl = e.target instanceof Element ? e.target : null;
+            const item = /** @type {HTMLElement|null} */ (targetEl?.closest('.edit-row-card'));
+            if (!item || item !== armedCard) {
+                e.preventDefault();
+                return;
+            }
+            blurActiveHandle();
+            try { window.getSelection()?.removeAllRanges(); } catch (_) {}
+            document.body.classList.add('bookmark-dragging');
+            dragSrc = item;
+            item.classList.add('dragging');
+            if (e.dataTransfer) {
+                e.dataTransfer.effectAllowed = 'move';
+                try {
+                    e.dataTransfer.setData('text/plain', item.dataset.id || '');
+                } catch (_) {}
+            }
+        });
+
+        currentEditList.addEventListener('dragend', () => {
+            resetDragSession();
+            settleDragHover();
+        });
+
+        /** @param {DragEvent} e */
+        function trackMouseTarget(e) {
+            if (!dragSrc || touchIdentifier !== null) return;
+            updateDropTarget(e.target, e.clientY);
+            if (!lastOverTarget) {
+                updateDragIndicator();
+                return;
+            }
+            e.preventDefault();
+            if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+            if (!dragOverRafId) {
+                dragOverRafId = requestAnimationFrame(() => {
+                    dragOverRafId = null;
+                    updateDragIndicator();
+                });
+            }
+        }
+        currentEditList.addEventListener('dragenter', trackMouseTarget);
+        currentEditList.addEventListener('dragover', trackMouseTarget);
+
+        currentEditList.addEventListener('dragleave', e => {
+            if (e.target === currentEditList || !(e.relatedTarget instanceof Node && currentEditList.contains(e.relatedTarget))) {
+                updateDropTarget(null, 0);
+                updateDragIndicator();
+            }
+        });
+
+        currentEditList.addEventListener('drop', e => {
+            if (!dragSrc || touchIdentifier !== null) return;
+            e.preventDefault();
+            updateDropTarget(e.target, e.clientY);
+            const src = dragSrc;
+            const target = lastOverTarget;
+            const isTop = lastIsTop;
+            resetDragSession();
+            if (isTop !== null) commitReorder(src, target, isTop);
+            settleDragHover();
+        });
+    }
+
+    function bindTouchDrag() {
+        currentEditList.addEventListener('touchstart', e => {
+            if (dragSrc) return;
+            const targetEl = e.target instanceof Element ? e.target : null;
+            const handle = targetEl?.closest('.drag-handle');
+            const card = /** @type {HTMLElement|null} */ (handle && handle.closest('.edit-row-card'));
+            const touch = e.changedTouches[0];
+            if (!handle || !card || !touch) return;
+            touchIdentifier = touch.identifier;
+            touchClientX = touch.clientX;
+            touchClientY = touch.clientY;
+            cachedListRect = currentEditList.getBoundingClientRect();
+            blurActiveHandle();
+            dragSrc = card;
+            card.classList.add('dragging');
+            document.body.classList.add('bookmark-dragging');
+        }, { passive: true });
+
+        function processTouchMove() {
+            touchMoveRafId = null;
+            if (!dragSrc || touchIdentifier === null) return;
+
+            if (!cachedListRect) cachedListRect = currentEditList.getBoundingClientRect();
+            const listRect = cachedListRect;
+            const edgeZone = 36;
+            let scrollDelta = 0;
+            if (touchClientY < listRect.top + edgeZone) scrollDelta = -6;
+            else if (touchClientY > listRect.bottom - edgeZone) scrollDelta = 6;
+
+            if (scrollDelta) {
+                const beforeScroll = currentEditList.scrollTop;
+                currentEditList.scrollTop = beforeScroll + scrollDelta;
+                if (currentEditList.scrollTop !== beforeScroll) {
+                    touchMoveRafId = requestAnimationFrame(processTouchMove);
+                }
+            }
+            updateDropTarget(document.elementFromPoint(touchClientX, touchClientY), touchClientY);
             updateDragIndicator();
         }
-    });
 
-    currentEditList.addEventListener('drop', e => {
-        if (!dragSrc || touchIdentifier !== null) return;
-        e.preventDefault();
-        updateDropTarget(e.target, e.clientY);
-        const src = dragSrc;
-        const target = lastOverTarget;
-        const isTop = lastIsTop;
-        resetDragSession();
-        if (isTop !== null) commitReorder(src, target, isTop);
-        settleDragHover();
-    });
+        currentEditList.addEventListener('touchmove', e => {
+            if (!dragSrc) return;
+            const touch = Array.from(e.touches).find(t => t.identifier === touchIdentifier);
+            if (!touch) return;
 
-    // ── 触屏路径：.drag-handle 上有 touch-none（touch-action:none），无需 preventDefault ──
+            touchClientX = touch.clientX;
+            touchClientY = touch.clientY;
+            if (!touchMoveRafId) {
+                touchMoveRafId = requestAnimationFrame(processTouchMove);
+            }
+        }, { passive: true });
+
+        currentEditList.addEventListener('touchend', e => {
+            const touch = Array.from(e.changedTouches).find(t => t.identifier === touchIdentifier);
+            if (!dragSrc || !touch) return;
+            updateDropTarget(document.elementFromPoint(touch.clientX, touch.clientY), touch.clientY);
+            const src = dragSrc;
+            const target = lastOverTarget;
+            const isTop = lastIsTop ?? true;
+            resetDragSession();
+            if (target && src !== target) {
+                commitReorder(src, target, isTop);
+            }
+            settleDragHover();
+        }, { passive: true });
+    }
+
     cancelCurrentDrag = () => {
         resetDragSession();
         clearDragSettling();
     };
-
-    currentEditList.addEventListener('touchstart', e => {
-        if (dragSrc) return;
-        const targetEl = e.target instanceof Element ? e.target : null;
-        const handle = targetEl?.closest('.drag-handle');
-        const card = /** @type {HTMLElement|null} */ (handle && handle.closest('.edit-row-card'));
-        const touch = e.changedTouches[0];
-        if (!handle || !card || !touch) return;
-        touchIdentifier = touch.identifier;
-        touchClientX = touch.clientX;
-        touchClientY = touch.clientY;
-        cachedListRect = currentEditList.getBoundingClientRect();
-        blurActiveHandle();
-        dragSrc = card;
-        card.classList.add('dragging');
-        document.body.classList.add('bookmark-dragging');
-    }, { passive: true });
-
-    function processTouchMove() {
-        touchMoveRafId = null;
-        if (!dragSrc || touchIdentifier === null) return;
-
-        // 容器上下边缘自适应平滑滚动 (应对长列表场景)
-        if (!cachedListRect) cachedListRect = currentEditList.getBoundingClientRect();
-        const listRect = cachedListRect;
-        const edgeZone = 36;
-        let scrollDelta = 0;
-        if (touchClientY < listRect.top + edgeZone) {
-            scrollDelta = -6;
-        } else if (touchClientY > listRect.bottom - edgeZone) {
-            scrollDelta = 6;
-        }
-
-        if (scrollDelta) {
-            const beforeScroll = currentEditList.scrollTop;
-            currentEditList.scrollTop = beforeScroll + scrollDelta;
-            if (currentEditList.scrollTop !== beforeScroll) {
-                touchMoveRafId = requestAnimationFrame(processTouchMove);
-            }
-        }
-        updateDropTarget(document.elementFromPoint(touchClientX, touchClientY), touchClientY);
-        updateDragIndicator();
-    }
-
-    currentEditList.addEventListener('touchmove', e => {
-        if (!dragSrc) return;
-        const touch = Array.from(e.touches).find(t => t.identifier === touchIdentifier);
-        if (!touch) return;
-
-        touchClientX = touch.clientX;
-        touchClientY = touch.clientY;
-        if (!touchMoveRafId) {
-            touchMoveRafId = requestAnimationFrame(processTouchMove);
-        }
-    }, { passive: true });
-
-    currentEditList.addEventListener('touchend', e => {
-        const touch = Array.from(e.changedTouches).find(t => t.identifier === touchIdentifier);
-        if (!dragSrc || !touch) return;
-        updateDropTarget(document.elementFromPoint(touch.clientX, touch.clientY), touch.clientY);
-        const src = dragSrc;
-        const target = lastOverTarget;
-        const isTop = lastIsTop ?? true;
-        resetDragSession();
-        if (target && src !== target) {
-            commitReorder(src, target, isTop);
-        }
-        settleDragHover();
-    }, { passive: true });
+    bindKeyboardSort();
+    bindMouseDrag();
+    bindTouchDrag();
 
     // 系统手势、来电或弹窗中断：纯重置，严禁触发重排
     currentEditList.addEventListener('touchcancel', cancelDragSort, { passive: true });

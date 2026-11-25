@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { test } from 'node:test';
 import { createRequire } from 'node:module';
 import { readFileSync, readdirSync } from 'node:fs';
 import { posix } from 'node:path';
@@ -7,6 +8,7 @@ import { startServer } from './support/server.mjs';
 import { launchChrome } from './support/cdp.mjs';
 import { createEvaluator, waitFor } from './support/helpers.mjs';
 
+test('静态模块边界与依赖无环检查', () => {
 const require = createRequire(import.meta.url);
 const { buildAppJavaScript } = require('../scripts/build.cjs');
 const built = buildAppJavaScript({ testMode: true });
@@ -18,12 +20,24 @@ const graph = new Map(Object.entries(built.metafile.inputs).map(([name, value]) 
   value.imports.filter(edge => !edge.external && edge.kind !== 'dynamic-import').map(edge => edge.path)]));
 // Include build-only configuration and currently unused modules, so unreachable files cannot bypass the boundary rules.
 const sourceGraph = new Map();
-for (const relative of readdirSync(new URL('../src/js/', import.meta.url), { recursive: true })) {
-  if (!relative.endsWith('.js')) continue;
-  const file = `src/js/${relative.replaceAll('\\', '/')}`;
+const jsFiles = [
+  ...readdirSync(new URL('../src/js/', import.meta.url), { recursive: true })
+    .filter(relative => relative.endsWith('.js'))
+    .map(relative => `src/js/${relative.replaceAll('\\', '/')}`),
+  'sw.js'
+];
+for (const file of jsFiles) {
   const tree = parse(readFileSync(new URL(`../${file}`, import.meta.url), 'utf8'), { ecmaVersion: 'latest', sourceType: 'module' });
   const dependencies = new Set();
+  const allowForwarding = file === 'src/js/config/engine-head.js';
+  const allowTestFlag = file === 'src/js/main.js' || file === 'src/js/testing/bridge.js';
   const inspect = node => {
+    if (!allowForwarding && ((node.type === 'ExportNamedDeclaration' && node.source) || node.type === 'ExportAllDeclaration')) {
+      assert.fail(`禁止保留跨文件转发出口（AGENTS.md）：${file}`);
+    }
+    if (!allowTestFlag && node.type === 'Identifier' && node.name === '__GLASS_TEST__') {
+      assert.fail(`禁止在生产模块中引用 __GLASS_TEST__：${file}`);
+    }
     const source = node.type === 'ImportDeclaration' || node.type === 'ExportNamedDeclaration' ||
       node.type === 'ExportAllDeclaration' || node.type === 'ImportExpression' ? node.source : null;
     if (source) {
@@ -37,6 +51,7 @@ for (const relative of readdirSync(new URL('../src/js/', import.meta.url), { rec
     }
   };
   inspect(tree);
+  if (file === 'sw.js') continue;
   sourceGraph.set(file, [...dependencies]);
   graph.set(file, [...dependencies]);
 }
@@ -83,8 +98,15 @@ function visit(name, path = []) {
 }
 for (const name of graph.keys()) visit(name);
 console.log('✅ 应用及测试适配模块的静态导入图无循环依赖');
+});
 
+test('生产环境与测试桥接运行时边界检查', async t => {
 let server, productionServer, chrome;
+t.after(async () => {
+  await chrome?.close().catch(() => {});
+  await productionServer?.close().catch(() => {});
+  await server?.close().catch(() => {});
+});
 const exceptions = [];
 const connect = async testMode => {
   chrome = await launchChrome({url:`http://127.0.0.1:${testMode ? server.port : productionServer.port}/`, testMode});
@@ -169,3 +191,4 @@ try {
   if (server) await server.close().catch(() => {});
   if (productionServer) await productionServer.close().catch(() => {});
 }
+});

@@ -6,13 +6,15 @@ import { extname, join, normalize, relative, isAbsolute } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 
-const { buildAppJavaScript } = createRequire(import.meta.url)('../../scripts/build.cjs');
+const require = createRequire(import.meta.url);
+const { buildAppJavaScript } = require('../../scripts/build.cjs');
+const { MIME_TYPES } = require('../../scripts/mime-types.cjs');
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const previewServerPath = fileURLToPath(new URL('../../scripts/server.cjs', import.meta.url));
 const runTempDir = process.env.GLASS_TEST_TMPDIR;
 export const DIST_DIR = runTempDir ? join(runTempDir, 'dist') : join(__dirname, '..', '..', 'dist');
-/** @type {{ app: Buffer, version?: string } | undefined} */
+/** @type {{ app: Uint8Array, version?: string } | undefined} */
 let testSnapshot;
 
 const activeServers = new Set();
@@ -38,27 +40,9 @@ function registerServerExitHooks() {
     activePreviewProcesses.clear();
   };
   process.on('exit', cleanupAll);
-  for (const [signal, code] of Object.entries({ SIGINT: 130, SIGTERM: 143, SIGHUP: 129 })) {
-    process.on(signal, () => {
-      cleanupAll();
-      process.exit(code);
-    });
-  }
   process.on('uncaughtExceptionMonitor', cleanupAll);
 }
 registerServerExitHooks();
-
-const MIME = {
-  '.html': 'text/html; charset=utf-8',
-  '.js': 'text/javascript; charset=utf-8',
-  '.css': 'text/css; charset=utf-8',
-  '.json': 'application/json; charset=utf-8',
-  '.svg': 'image/svg+xml',
-  '.png': 'image/png',
-  '.avif': 'image/avif',
-  '.ico': 'image/x-icon',
-  '.txt': 'text/plain; charset=utf-8',
-};
 
 export function startServer(port = 0, root = DIST_DIR, customRoutes = {}, { testMode = true } = {}) {
   const useTestApp = testMode && root === DIST_DIR;
@@ -105,7 +89,7 @@ export function startServer(port = 0, root = DIST_DIR, customRoutes = {}, { test
           if (requestedVersion === testVersion) data = testApp;
         }
         data ??= readFileSync(file);
-        res.writeHead(200, { 'Content-Type': MIME[extname(file)] || 'application/octet-stream', 'Cache-Control': 'no-cache' });
+        res.writeHead(200, { 'Content-Type': MIME_TYPES[extname(file)] || 'application/octet-stream', 'Cache-Control': 'no-cache' });
         res.end(data);
       } catch {
         res.writeHead(404);

@@ -117,7 +117,15 @@ function fetchRedirectBuffer(url, referer = '', timeoutMs = 7000, redirectCount 
         }, (res) => {
             if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
                 res.resume();
-                const nextUrl = new URL(res.headers.location, url);
+                let nextUrl;
+                try {
+                    nextUrl = new URL(res.headers.location, url);
+                } catch {
+                    return reject(new Error('Invalid redirect URL'));
+                }
+                if (nextUrl.protocol !== 'https:') {
+                    return reject(new Error(`Unsupported redirect protocol: ${nextUrl.protocol}`));
+                }
                 const nextReferer = nextUrl.origin === new URL(url).origin ? referer : '';
                 return resolve(fetchRedirectBuffer(nextUrl.href, nextReferer, timeoutMs, redirectCount + 1));
             }
@@ -125,8 +133,18 @@ function fetchRedirectBuffer(url, referer = '', timeoutMs = 7000, redirectCount 
                 res.resume();
                 return reject(new Error(`HTTP ${res.statusCode}`));
             }
+            const MAX_ICON_BYTES = 2 * 1024 * 1024;
             const chunks = [];
-            res.on('data', d => chunks.push(d));
+            let totalBytes = 0;
+            res.on('data', d => {
+                totalBytes += d.length;
+                if (totalBytes > MAX_ICON_BYTES) {
+                    res.destroy();
+                    reject(new Error('Response too large'));
+                    return;
+                }
+                chunks.push(d);
+            });
             res.on('end', () => {
                 const b = Buffer.concat(chunks);
                 if (b.length === 0) return reject(new Error('Empty buffer'));

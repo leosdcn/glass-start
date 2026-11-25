@@ -9,75 +9,12 @@ import { storageGet, storageRemove, storageSet } from '../utils/storage.js';
 import { getWallpaperSelectionDB, setWallpaperSelectionDB } from '../utils/idb.js';
 import { state, modalState } from '../state/store.js';
 import { dom } from '../state/dom.js';
-import { applyWallpaper, captureWallpaperFrame, getPreparedWallpaperImage, restoreWallpaperFrame, setWallpaperDimming } from '../core/wallpaper-renderer.js';
+import { applyBgEffects, applyWallpaper, captureWallpaperFrame, getPreparedWallpaperImage, restoreWallpaperFrame } from '../core/wallpaper-renderer.js';
 import { sampleCustomWallpaperTheme } from '../core/theme-engine.js';
 import { showConfirm } from '../core/dialogs.js';
 
-/** @type {number | null} */
-let bgEffectsRafId = null;
-/** @type {number | null} */
-let pendingBgEffects = null;
-/** @type {{ element: HTMLElement, opacity: number } | null} */
-let lastBgEffects = null;
-
 export function getSavedMaskOpacity() {
     return normalizeMaskOpacity(storageGet(CONFIG.KEYS.MASK_OPACITY));
-}
-
-/** @param {number} op */
-function renderBgEffects(op) {
-    setWallpaperDimming(op);
-    const bgOverlay = dom.bgOverlay;
-    if (!bgOverlay) return;
-    const sameOverlay = lastBgEffects?.element === bgOverlay;
-    if (!sameOverlay) {
-        const trSec = `${CONFIG.TIMERS.BG_OVERLAY_TRANSITION / 1000}s`;
-        bgOverlay.style.transition = `background-color ${trSec} ease`;
-    }
-    if (!sameOverlay || lastBgEffects?.opacity !== op) {
-        bgOverlay.style.backgroundColor = `rgba(0,0,0,${op / 100})`;
-    }
-    lastBgEffects = { element: bgOverlay, opacity: op };
-}
-
-/**
- * @param {number | string} opacity
- * @param {boolean} [defer]
- */
-export function applyBgEffects(opacity, defer = false) {
-    const op = normalizeMaskOpacity(opacity);
-    if (defer) {
-        pendingBgEffects = op;
-        if (bgEffectsRafId === null) {
-            bgEffectsRafId = requestAnimationFrame(() => {
-                bgEffectsRafId = null;
-                const effects = pendingBgEffects;
-                pendingBgEffects = null;
-                if (effects !== null) renderBgEffects(effects);
-            });
-        }
-    } else {
-        if (bgEffectsRafId !== null) cancelAnimationFrame(bgEffectsRafId);
-        bgEffectsRafId = null;
-        pendingBgEffects = null;
-        renderBgEffects(op);
-    }
-    const maskOpacityVal = dom.maskOpacityVal;
-    const maskOpacityInput = dom.maskOpacityInput;
-
-    const value = String(op);
-    const label = `${value}%`;
-    if (maskOpacityVal && maskOpacityVal.textContent !== label) maskOpacityVal.textContent = label;
-    if (maskOpacityInput) {
-        if (maskOpacityInput.value !== value) maskOpacityInput.value = value;
-        if (maskOpacityInput.getAttribute('aria-valuenow') !== value) maskOpacityInput.setAttribute('aria-valuenow', value);
-        if (maskOpacityInput.getAttribute('aria-valuetext') !== label) maskOpacityInput.setAttribute('aria-valuetext', label);
-    }
-}
-
-/** 关闭设置时同步落定尚未绘制的暗度预览。 */
-export function flushBgEffects() {
-    if (pendingBgEffects !== null) applyBgEffects(pendingBgEffects);
 }
 
 /** @typedef {import('../types').WallpaperSelectionTask} WallpaperTask */

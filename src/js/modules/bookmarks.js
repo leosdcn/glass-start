@@ -110,6 +110,10 @@ export function resetUserBookmarks() {
     return saved;
 }
 
+export function getBookmarkRevision() {
+    return JSON.stringify(readBookmarkRecord());
+}
+
 export function loadBookmarks() {
     const record = readBookmarkRecord();
     const revision = JSON.stringify(record);
@@ -304,7 +308,7 @@ function refreshSidebarNavCache() {
  */
 function scrollTabIntoView(item, container) {
     if (!item || !container) return;
-    const isMobile = window.innerWidth <= CONFIG.NAV.MOBILE_BREAKPOINT;
+    const isMobile = window.innerWidth < CONFIG.NAV.MOBILE_BREAKPOINT;
     const margin = CONFIG.NAV.TAB_SCROLL_MARGIN;
     const behavior = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth';
     const cRect = container.getBoundingClientRect();

@@ -18,16 +18,10 @@ export const dom = new Proxy(_domStore, {
         if (typeof prop !== 'string') return Reflect.get(target, prop);
         const store = /** @type {Record<string, HTMLElement | null>} */ (target);
         let el = store[prop];
-        if (!el || (el instanceof Element && !el.isConnected)) {
+        if (!Object.hasOwn(store, prop) || (el instanceof Element && !el.isConnected)) {
             const fresh = $(prop);
-            if (fresh) {
-                store[prop] = fresh;
-                return fresh;
-            }
-            if (el instanceof Element && !el.isConnected) {
-                store[prop] = null;
-                return null;
-            }
+            store[prop] = fresh;
+            return fresh;
         }
         return el;
     }

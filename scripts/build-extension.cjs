@@ -30,9 +30,9 @@ async function buildExtension(output = path.join(PATHS.root, 'extension')) {
         }
 
         let html = fs.readFileSync(path.join(staging, 'index.html'), 'utf8');
-        // 移除扩展环境的社交/搜索引擎 Meta。
-        html = html.replace(/<link\b[^>]*rel="(?:canonical|manifest)"[^>]*>/gi, '');
-        html = html.replace(/<meta\b[^>]*(?:name="robots"|property="og:[^"]+")[^>]*>/gi, '');
+        // 移除扩展环境的社交/搜索引擎/iOS WebApp Meta 与图标。
+        html = html.replace(/<link\b[^>]*rel="(?:canonical|manifest|apple-touch-icon)"[^>]*>/gi, '');
+        html = html.replace(/<meta\b[^>]*(?:name="(?:robots|twitter:[^"]+|apple-mobile-web-app-[^"]+)"|property="og:[^"]+")[^>]*>/gi, '');
         // 外置首屏脚本会阻塞解析；先应用现有样式，避免等待脚本时透出白色画布。
         const initialStyle = html.match(/<style\b[^>]*>[\s\S]*?<\/style>/i)?.[0];
         if (!initialStyle) throw new Error('扩展页面缺少首屏样式');

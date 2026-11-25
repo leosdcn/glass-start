@@ -30,9 +30,11 @@ export function showConfirm(message, onConfirm, title = t('ui.confirm.reset.2'),
 
     const isNotify = onConfirm == null;
     modal.classList.toggle('confirm-neutral', tone === 'neutral');
-    modal.setAttribute('role', tone === 'neutral' ? 'dialog' : 'alertdialog');
+    if (tone === 'neutral') modal.removeAttribute('role');
+    else modal.setAttribute('role', 'alertdialog');
     okBtn.textContent = isNotify ? t('ui.got.it') : (okText || t('ui.confirm'));
     cancelBtn.textContent = cancelText;
+    cancelBtn.classList.remove('hidden');
     cancelBtn.classList.toggle('hidden', isNotify);
 
     if (titleEl) titleEl.textContent = title;
@@ -41,7 +43,6 @@ export function showConfirm(message, onConfirm, title = t('ui.confirm.reset.2'),
     const cleanup = () => {
         activeConfirmCleanup = null;
         OverlayStack.pop('confirmModal');
-        cancelBtn.classList.remove('hidden');
         okBtn.removeEventListener('click', handleOk);
         cancelBtn.removeEventListener('click', cleanup);
         signal?.removeEventListener('abort', cleanup);
@@ -49,7 +50,7 @@ export function showConfirm(message, onConfirm, title = t('ui.confirm.reset.2'),
 
     function handleOk() { cleanup(); onConfirm?.(); }
 
-    OverlayStack.push('confirmModal', cleanup, confirmTriggerEl);
+    if (!OverlayStack.push('confirmModal', cleanup, confirmTriggerEl)) return;
     okBtn.addEventListener('click', handleOk);
     cancelBtn.addEventListener('click', cleanup);
     signal?.addEventListener('abort', cleanup, { once: true });

@@ -98,9 +98,6 @@ function registerExitHooks() {
   };
 
   process.on('exit', cleanupAll);
-  process.on('SIGINT', () => { cleanupAll(); process.exit(130); });
-  process.on('SIGTERM', () => { cleanupAll(); process.exit(143); });
-  process.on('SIGHUP', () => { cleanupAll(); process.exit(129); });
   process.on('uncaughtExceptionMonitor', () => {
     cleanupAll();
   });

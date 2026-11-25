@@ -177,8 +177,8 @@
 
 .glass-interactive {
     transition-property: background-color, color, border-color, transform, box-shadow, scale;
-    transition-duration: var(--duration-fast, 0.16s);
-    transition-timing-function: var(--ease-spring);
+    transition-duration: var(--button-press-duration, var(--duration-fast, 0.16s));
+    transition-timing-function: var(--button-press-ease, var(--ease-spring));
 }
 
 .appearance-controls {
@@ -236,10 +236,10 @@
         pointer-events: none;
     }
 }
-@media (min-width: 640px) and (max-width: 767px) {
+@media (min-width: 640px) and (max-width: 767.98px) {
     .appearance-source #urlBgBtnGroup svg { display: none; }
 }
-@media (max-width: 639px) {
+@media (max-width: 639.98px) {
     .appearance-controls { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .appearance-source { grid-column: 1 / -1; }
     .appearance-motion {

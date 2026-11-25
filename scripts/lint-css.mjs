@@ -15,6 +15,7 @@ export function inspectCSSSources(sources) {
     const importantViolations = [];
     const prefixViolations = [];
     const hoverViolations = [];
+    const fontSmoothingViolations = [];
     for (const { file, content, lineOffset = 0, columnOffset = 0 } of sources) {
         const location = position => `${file}:${position.line + lineOffset}:${position.column + (position.line === 1 ? columnOffset : 0)}`;
         let root;
@@ -46,6 +47,9 @@ export function inspectCSSSources(sources) {
                 if (!reducedMotion) importantViolations.push(`${location(decl.source.start)}: ${decl.toString()}`);
             }
             const prop = decl.prop.toLowerCase();
+            if (prop === 'font-smoothing' || prop === '-webkit-font-smoothing' || prop === '-moz-osx-font-smoothing') {
+                fontSmoothingViolations.push(`${location(decl.source.start)}: ${decl.toString()}`);
+            }
             if (prop === 'backdrop-filter') standardByParent.set(decl.parent, decl);
             if (prop === '-webkit-backdrop-filter' && standardByParent.has(decl.parent)) {
                 const standard = standardByParent.get(decl.parent);
@@ -53,5 +57,5 @@ export function inspectCSSSources(sources) {
             }
         });
     }
-    return { importantViolations, prefixViolations, hoverViolations };
+    return { importantViolations, prefixViolations, hoverViolations, fontSmoothingViolations };
 }

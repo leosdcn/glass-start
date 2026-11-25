@@ -70,18 +70,13 @@ test('Chrome 触摸滚动与输入能力变化', async t => {
         assert.equal(await blockingMoves('document'),0);
         assert.equal(await evalJS('state.currentSection'),'start');
 
-        await t.test('触屏模式切回鼠标后恢复卡片倾斜', async inputTest => {
+        await t.test('触屏模式切回鼠标后恢复卡片倾斜', async () => {
             await evalJS('switchToNav()');await waitFor(evalJS,'!isScreenTransitioning()');
             // 页面在纯触屏模式启动，此后接入鼠标，无需刷新即可启用倾斜。
             await send('Emulation.clearDeviceMetricsOverride');
             await send('Emulation.setTouchEmulationEnabled',{enabled:false});
             await send('Input.dispatchMouseEvent',{type:'mouseMoved',x:200,y:200});
-            if (!await evalJS(`new Promise(resolve => requestAnimationFrame(() => {
-                resolve(matchMedia('(hover:hover) and (pointer:fine)').matches);
-            }))`)) {
-                inputTest.skip('Chrome 未暴露精细指针和悬停能力');
-                return;
-            }
+            await waitFor(evalJS, "matchMedia('(hover:hover) and (pointer:fine)').matches");
             const dispatch = (type,pointerType) => evalJS(`(async()=>{
                 document.body.classList.remove('tab-blurred');
                 const card=document.querySelector('.nav-bookmark');const r=card.getBoundingClientRect();

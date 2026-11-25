@@ -187,7 +187,11 @@ function handleTouch(e, ending, cancelScroll = false) {
     else switchToStart();
 }
 
+let screenGesturesBound = false;
+
 export function initScreenGestures() {
+    if (screenGesturesBound) return;
+    screenGesturesBound = true;
     resetScreenInput();
     window.addEventListener('resize', scheduleNavResizeWarmup, { passive: true });
     dom.navContent?.addEventListener('scroll', recordNavScroll, { passive: true });

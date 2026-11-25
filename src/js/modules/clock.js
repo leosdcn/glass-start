@@ -36,7 +36,13 @@ export function updateClock() {
     const dateEl = dom.date;
 
     if (clockEl && clockEl.textContent !== curTimeStr) {
-        clockEl.innerHTML = `${hh}<span class="clock-colon mx-0.5 sm:mx-1">:</span>${mm}`;
+        const colon = clockEl.querySelector('.clock-colon');
+        if (colon && clockEl.firstChild?.nodeType === 3 && clockEl.lastChild?.nodeType === 3) {
+            if (clockEl.firstChild.textContent !== hh) clockEl.firstChild.textContent = hh;
+            if (clockEl.lastChild.textContent !== mm) clockEl.lastChild.textContent = mm;
+        } else {
+            clockEl.innerHTML = `${hh}<span class="clock-colon mx-0.5 sm:mx-1">:</span>${mm}`;
+        }
         clockEl.setAttribute('datetime', curTimeStr);
     }
     if (dateEl) {

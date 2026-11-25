@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { tmpdir } from 'node:os';
 import { createRequire } from 'node:module';
 import { DIST_DIR, startServer } from './support/server.mjs';
 import { launchChrome, connectCDP } from './support/cdp.mjs';
@@ -27,6 +28,7 @@ const route = kind => (req, res) => {
     if (!apps.has(version)) {
       const code = buildAppJavaScript({ testMode: true, version: stamp }).outputFiles[0].text;
       const patched = code.replace(/SW_UPDATE_TIMEOUT:15e3/g, 'SW_UPDATE_TIMEOUT:200');
+      assert.notStrictEqual(patched, code, 'SW_UPDATE_TIMEOUT patch must match compiled bundle');
       apps.set(version, Buffer.from(patched));
     }
     body = apps.get(version);
@@ -139,9 +141,12 @@ try {
 
   await evalJS(`closeEditModal()`);
   await waitFor(evalJS, `!document.getElementById('editModal').open`);
-  mkdirSync(new URL('./artifacts/', import.meta.url), { recursive:true });
+  const artifactsDir = process.env.GLASS_SAVE_TEST_ARTIFACTS === '1'
+    ? new URL('./artifacts/', import.meta.url)
+    : join(process.env.GLASS_TEST_TMPDIR || tmpdir(), 'glass-sw-update-ui');
+  mkdirSync(artifactsDir, { recursive:true });
   const noticeScreenshot = await send('Page.captureScreenshot', { format:'png' });
-  writeFileSync(new URL('./artifacts/sw-update-notice.png', import.meta.url), Buffer.from(noticeScreenshot.data, 'base64'));
+  writeFileSync(artifactsDir instanceof URL ? new URL('sw-update-notice.png', artifactsDir) : join(artifactsDir, 'sw-update-notice.png'), Buffer.from(noticeScreenshot.data, 'base64'));
   await send('Emulation.setDeviceMetricsOverride', { width:320, height:640, deviceScaleFactor:1, mobile:true });
   assert.equal(await evalJS(`(() => { const r = document.getElementById('updateNotice').getBoundingClientRect(); return r.left >= 0 && r.right <= innerWidth; })()`), true);
   await send('Emulation.clearDeviceMetricsOverride');
@@ -152,8 +157,7 @@ try {
   assert.equal(await evalJS(`window.__GLASS_BUILD_APP__`), 'app-core-v201');
   await evalJS(`document.getElementById('updateReloadBtn').click()`);
   const { data } = await send('Page.captureScreenshot', { format:'png' });
-  mkdirSync(new URL('./artifacts/', import.meta.url), { recursive:true });
-  writeFileSync(new URL('./artifacts/sw-update-confirm.png', import.meta.url), Buffer.from(data, 'base64'));
+  writeFileSync(artifactsDir instanceof URL ? new URL('sw-update-confirm.png', artifactsDir) : join(artifactsDir, 'sw-update-confirm.png'), Buffer.from(data, 'base64'));
   await waitFor(evalJS, `OverlayStack.top()?.id === 'confirmModal'`);
   await evalJS(`document.getElementById('confirmOkBtn').click()`);
   await waitFor(async expression => {

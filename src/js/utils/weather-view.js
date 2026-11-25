@@ -13,7 +13,7 @@ function weatherIconPath(icon) {
 
 /** @param {string} icon @param {string} path @param {string} className */
 function weatherImageHTML(icon, path, className) {
-    return `<img src="${safeUrl(path)}" class="${className} shrink-0 object-contain select-none inline-block align-middle pointer-events-none" alt="" aria-hidden="true" decoding="async"><span class="sr-only" aria-hidden="true">${escapeHtml(icon.trim())}</span>`;
+    return `<img src="${safeUrl(path)}" data-icon="${escapeHtml(icon.trim())}" class="${escapeHtml(className)} shrink-0 object-contain select-none inline-block align-middle pointer-events-none" alt="" aria-hidden="true" decoding="async">`;
 }
 
 /** @param {string} icon @param {string} [className] */

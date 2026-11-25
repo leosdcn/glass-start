@@ -1,8 +1,14 @@
 /** 重复入口共享请求，输入变化立即作废旧响应，重新定位保持刷新互斥。 */
 import assert from 'node:assert/strict';
+import { test } from 'node:test';
 import { launchSession, waitFor } from './support/helpers.mjs';
 
+test('请求合并、联想作废与天气刷新互斥套件', async t => {
 const { server, chrome, send, evalJS } = await launchSession();
+t.after(async () => {
+    await chrome.close();
+    await server.close();
+});
 try {
     await send('Network.enable');
     await send('Network.setBypassServiceWorker', { bypass: true });
@@ -389,7 +395,7 @@ try {
         window.oldWeatherTask = updateWeather(false);
     })()`);
     await waitFor(evalJS, '!!window.releaseOldLocation');
-    await evalJS(`(async () => { await openEditModal(); resetBookmarks(); dom.confirmOkBtn.click(); })()`);
+    await evalJS(`(async () => { await openEditModal(); resetAllSettings(); dom.confirmOkBtn.click(); })()`);
     await waitFor(evalJS, '!state.editOpen && resetWeatherSignal.aborted');
     const empty = `!isFetchingWeather && !storageGet(CONFIG.KEYS.WEATHER_LOC) && !storageGet(CONFIG.KEYS.WEATHER_CACHE)
         && dom.weatherTemp.textContent === '--°' && !dom.weatherPopover.textContent.includes('重置前地点')`;
@@ -402,3 +408,4 @@ try {
     await chrome.close();
     await server.close();
 }
+});

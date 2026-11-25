@@ -71,6 +71,10 @@ export function initGlassSpotlightAndTilt() {
         if (activeCard !== card || !rect) {
             // 同一帧只测量最后命中的卡片，先读几何再清理旧卡片样式。
             rect = card.getBoundingClientRect();
+            if (rect.width <= 0 || rect.height <= 0) {
+                clearCardStyles();
+                return;
+            }
             clearCardStyles();
             activeCard = card;
             activeCardRect = rect;

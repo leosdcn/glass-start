@@ -6,12 +6,11 @@
 
 ## 修改边界
 
-- 以完整解决问题所需的范围判断最小改动。修复缺陷时沿实际调用链定位导致问题的逻辑或状态，在负责该行为的模块修复。多个入口受同一规则影响时，优先修正现有共用实现，并核对受影响的调用方和回归用例。避免多余的抽象、状态包装和测试脚手架。
-- 优先使用原生 Web API，默认保持零第三方运行时依赖。确需引入时，应说明收益，验证产物体积、首屏性能和离线兼容性，并同步调整 `test/infra-module-boundaries.test.mjs` 中受影响的依赖检查。开发依赖可按需增加，避免无关工具扩张。
-- 应用源码位于 `src/`、`bookmarks.json`、`sw.js`；可按任务需要修改文档、工具及测试，避免无关改动。图标同步可更新 `public/icons/`。
-- 不手工修改 `dist/` 或 `extension/`，分别由 `npm run build`、`npm run build:extension` 生成；扩展清单与图标源码位于 `src/extension/`，版本号由构建读取 `package.json`。Tailwind v4 的主题配置统一放在 `src/styles/main.css` 的 `@theme` 中，不创建 `tailwind.config.js`。
-- 版本号以 `package.json` 为准；未经明确授权不执行 `git push`，日常验证不滥用 `--force`。
-- 同类问题跨入口出现或修复后复发时，先回查调用链、共用规则和状态写入位置。排查无进展时，根据已有证据调整方向，避免重复执行无法提供新信息的检查。确需用户信息或权限时再暂停。
+- 以解决问题所需的最小范围修改：修根因与共用实现，避免多余抽象；但单模块超过 ~400 行或函数多职责混杂时，应按职责拆分而非继续追加。
+- 优先使用原生 Web API，默认保持零第三方运行时依赖。确需引入时，应说明收益，验证产物体积、首屏性能与离线兼容性，并同步调整 `test/infra-module-boundaries.test.mjs`。开发依赖可按需增加，避免无关工具扩张。
+- 应用源码位于 `src/`、`bookmarks.json`、`sw.js`，图标同步更新 `public/icons/`；可按需修改文档、工具与测试。
+- 不手工修改 `dist/` 或 `extension/`（由 `npm run build`、`npm run build:extension` 生成）；扩展清单与图标源码位于 `src/extension/`，版本号以 `package.json` 为准。Tailwind v4 主题配置放在 `src/styles/main.css` 的 `@theme` 中，不创建 `tailwind.config.js`。
+- 未经明确授权不执行 `git push`，日常验证不滥用 `--force`。同类问题跨入口复发时，优先回查调用链与状态写入点。
 
 ## 实现约束
 
@@ -20,12 +19,10 @@
 - 通过 `dom.xxx` 或静态键访问的节点须登记到 `src/js/state/dom.js` 的 `cacheDOM()`，并同步 `src/js/types.d.ts` 的 `DOMCache` 类型；仅用于标签关联、无障碍描述或锚点的 ID 无须缓存。
 - 受 `OverlayStack` 管理的弹窗通过 `.push(id, closeFn)` / `.pop(id)` 管理显示与关闭，业务模块不直接修改这些弹窗的 `style.display` 或 `hidden`；普通提示区、折叠内容可使用 `hidden`。层级见架构文档。
 - 动态 HTML 文本使用 `escapeHtml()`，URL 属性使用 `safeUrl()`；`textContent` 直接接收文本。天气数值使用 `weatherNum()`，时间另行校验，地点等文本转义。
-- 按钮须显式声明 `type`（`button`、`submit` 或 `reset`），普通操作按钮用 `type="button"`。装饰 SVG 标注 `aria-hidden="true"`，交互图标提供 `aria-label`。禁止 `-webkit-font-smoothing`。`!important` 仅允许用于 `prefers-reduced-motion` 规则内。
-- 单行输入框默认及触屏字号 >= 16px。仅书签编辑器和壁纸直链输入允许 `mouse-desktop:text-xs`，其变体须同时满足宽度 >= 640px、hover、精细指针且无粗指针设备。含 `:hover` 的选择器须加 `body:not(.tab-blurred)` 前缀，含 `-webkit-autofill` 的选择器除外。
-- 预设书签图标统一使用 `./icons/{domain}.png`；`desc` 纯中文 <= 12 字、含英数 <= 16 字符，由 lint 校验。
+- HTML/CSS/数据静态规范由 `npm run lint` 兜底（包括按钮 `type`、SVG ARIA 属性、禁止 `-webkit-font-smoothing`、`!important` 限缩、输入框 >= 16px、`:hover` 加 `body:not(.tab-blurred)`、预设图标与简介字数上限）；在 JS 模板字符串或未覆盖路径新增 DOM/样式时同样须遵守。
 - 首屏共享配置只修改 `src/js/config/` 下的对应模块，由构建注入 `src/index.html` 插槽；不要在 HTML 内联壁纸、引擎图标或天气图标副本。
 - Chrome 扩展复用网页源码，通过构建标记 `window.__GLASS_EXTENSION__` 区分行为；扩展脚本必须本地打包，不使用内联脚本或远程 JSONP，不注册网页 Service Worker。新增网络接口时，在 `scripts/content-security-policy.cjs` 核对网页与扩展的 CSP 及扩展主机权限。构建会将扩展策略写入产物清单。
-- 文件按职责归位：`core/` 放页面共用机制，`modules/` 放具体功能及其控件事件，应用初始化和跨业务事件装配放在 `src/js/` 顶层。Node 工具按模块格式使用 `.cjs` / `.mjs`；测试辅助文件放在 `test/support/`，回归用例保留在 `test/` 顶层；历史报告使用 `docs/reports/YYYY-MM-DD-topic.md`。
+- 文件按职责归位：`core/` 放页面共用机制，`modules/` 放具体功能及其控件事件，应用初始化和跨业务事件装配放在 `src/js/` 顶层。Node 工具按模块格式使用 `.cjs` / `.mjs`；测试辅助文件放在 `test/support/`，业务测试与回归用例按业务域归入 `test/` 顶层对应套件（不新建按修复/审计批次命名的杂烩测试文件）；历史报告使用 `docs/reports/YYYY-MM-DD-topic.md`。
 - 依赖方向以架构文档为准：`core/`、`utils/`、`state/` 不导入业务模块，业务模块不导入顶层装配或测试适配。移动函数后直接更新消费方导入，不保留转发入口；书签规则、图标处理和存储分别在 `utils/bookmark-model.js`、`utils/favicon.js`、`utils/storage.js`，不再堆入 `helpers.js`。
 
 ## 验证
@@ -45,11 +42,9 @@
 | 核心状态机、持久化迁移、Service Worker 升级或构建入口改动 | `npm run lint`。影响范围可以可靠界定时，运行直接相关测试。影响范围广或无法可靠界定时，运行全量 `npm test`。 | — |
 | 版本发布前 | `npm run lint`、`npm test`、`npm run test:w3c`；浏览器验收使用 Chrome | W3C 错误阻断发布；警告分类评估；服务不可用视为校验未完成，恢复后重试 |
 
-- 局部浏览器回归可用 `npm test -- data-settings-save` 等文件名片段筛选；选择足够具体的片段，避免误匹配无关文件。`test:ui` / `test:data` / `test:infra` / `test:lifecycle` 是更大范围的备选入口，不是局部修改的默认要求。
-- 无需浏览器或构建产物的纯单元测试，可直接运行 `node --test test/<对应文件>.test.mjs`。浏览器测试使用上述筛选入口，由运行器先检查页面和 Service Worker 的类型并构建。
-- `npm test`（含按文件筛选）执行 `tsconfig.json` 和 `tsconfig.sw.json`。需要检查 `scripts/`、`test/support/` 下的工程代码，或需要单独验证类型时，运行 `npm run typecheck`，它会执行上述两套配置及 `tsconfig.scripts.json`。
-- 不因准备 Git Commit、修改了源码文件或结束任务而自动执行全量测试。仅在上述高风险改造、版本发布或用户明确要求时运行全量。
-- 同一版本的检查通过后不重复运行；后续改动只重跑受影响项。验证失败时先定位原因，不以运行全量测试代替排查。
-- 不为文档、文案或简单样式调整新增测试。行为修复优先复用已有测试；存在未覆盖的回归风险时再补充。
+- 局部浏览器回归用 `npm test -- <文件名片段>` 精确筛选；`test:ui` / `test:data` / `test:infra` / `test:lifecycle` 为更大范围的备选入口。纯单元测试直接跑 `node --test test/<对应文件>.test.mjs`。
+- `npm test` 会执行 `tsconfig.json` 和 `tsconfig.sw.json`。改动 `scripts/`、`test/support/` 或类型配置时，运行 `npm run typecheck`（同时覆盖 `tsconfig.scripts.json`）。
+- 仅在高风险改造、版本发布或用户明确要求时运行全量 `npm test`；同一版本已通过的检查不重复运行，验证失败先定位原因。
+- 不为文档、文案或简单样式调整新增测试。行为修复需要回归保护时，按业务域补充到对应测试文件（以独立 `test()` 隔离、用 `after`/`finally` 清理全局状态并用确定性等待替代固定 `sleep()`），不新建按修复批次命名的杂烩测试文件。
 
 交付时列出检查结果，并说明必要但未完成的验证、环境阻塞或既有失败。

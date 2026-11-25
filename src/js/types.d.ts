@@ -277,10 +277,13 @@ export interface SearchCandidateItem {
     normUrl: string;
     defaultCat: string;
     nameLower?: string;
+    nameTokens?: string[];
     alternateNamesLower?: string[];
+    alternateNameTokens?: string[][];
     descLower?: string;
     urlLower?: string;
     cleanUrl?: string;
+    otherTokens?: string[];
 }
 export interface SearchCandidateModel {
     candidates: SearchCandidateItem[];

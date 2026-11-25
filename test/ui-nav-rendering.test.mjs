@@ -480,3 +480,65 @@ await test("原生滚动与事件阻塞区域", async () => {
         await server.close();
     }
 });
+
+test('移动端视口与侧边栏 Tab 滚动联动及触控规范', async () => {
+  const { server, chrome, send, evalJS } = await launchSession();
+  try {
+    await send('Emulation.setDeviceMetricsOverride', {
+      width: 402,
+      height: 874,
+      deviceScaleFactor: 3,
+      mobile: true
+    });
+    await waitFor(evalJS, 'window.innerWidth === 402');
+
+    await evalJS('window.switchToNav()');
+    await waitFor(evalJS, 'state.currentSection === "nav" && !isScreenTransitioning()');
+
+    const tab0Info = await evalJS(`(() => {
+      const tab0 = document.getElementById('cat-tab-0'), sidebar = document.getElementById('sidebar');
+      if (!tab0 || !sidebar) return null;
+      const tRect = tab0.getBoundingClientRect(), sRect = sidebar.getBoundingClientRect();
+      return {
+        text: tab0.textContent.trim(),
+        active: tab0.classList.contains('active'),
+        visible: tRect.left >= sRect.left && tRect.right <= sRect.right,
+        scrollLeft: sidebar.scrollLeft,
+        tabHeight: tRect.height
+      };
+    })()`);
+    assert.ok(tab0Info?.active && tab0Info?.visible && tab0Info?.scrollLeft === 0);
+    assert.ok((tab0Info?.tabHeight || 0) >= 35);
+
+    await evalJS('(() => { const n = document.getElementById("navContent"); n.scrollTop = 800; n.dispatchEvent(new Event("scroll")); })()');
+    await waitFor(evalJS, `(() => {
+      const activeTab = document.getElementById("sidebar")?.querySelector(".sidebar-item.active");
+      return activeTab && activeTab.id !== "cat-tab-0";
+    })()`);
+    const scrolledInfo = await evalJS(`(() => {
+      const activeTab = document.getElementById('sidebar').querySelector('.sidebar-item.active');
+      return activeTab ? activeTab.id : null;
+    })()`);
+    assert.notEqual(scrolledInfo, 'cat-tab-0');
+
+    await evalJS('(() => { const n = document.getElementById("navContent"); n.scrollTop = 0; n.dispatchEvent(new Event("scroll")); })()');
+    await waitFor(evalJS, `(() => {
+      const activeTab = document.getElementById("sidebar")?.querySelector(".sidebar-item.active");
+      return activeTab && activeTab.id === "cat-tab-0";
+    })()`);
+    const restoredInfo = await evalJS(`(() => {
+      const tab0 = document.getElementById('cat-tab-0'), sidebar = document.getElementById('sidebar');
+      if (!tab0 || !sidebar) return null;
+      const tRect = tab0.getBoundingClientRect(), sRect = sidebar.getBoundingClientRect();
+      return {
+        active: tab0.classList.contains('active'),
+        scrollLeft: sidebar.scrollLeft,
+        visible: tRect.left >= sRect.left && tRect.right <= sRect.right
+      };
+    })()`);
+    assert.ok(restoredInfo.active && restoredInfo.scrollLeft === 0 && restoredInfo.visible);
+  } finally {
+    await chrome.close();
+    await server.close();
+  }
+});

@@ -13,13 +13,14 @@ const { outputFiles } = await build({
     bundle: true, write: false, format: 'cjs', platform: 'node',
     plugins: [{ name: 'unrelated-boundaries', setup(b) {
         b.onLoad({ filter: /modules\/settings\.js$/ }, () => ({ contents:
-            'export const ' + ['openEditModal', 'saveEditModal', 'cancelEditModal', 'openShortcutModal',
-                'closeShortcutModal', 'openCreditsModal', 'closeCreditsModal', 'switchSettingsTab', 'previewDraftMaskOpacity',
-                'resetBookmarks', 'importBookmarksJSON', 'exportBookmarksJSON',
+            'export const ' + ['openEditModal', 'saveEditModal', 'cancelEditModal', 'switchSettingsTab', 'previewDraftMaskOpacity',
+                'resetAllSettings', 'importBookmarksJSON', 'exportBookmarksJSON',
                 'openLanguageModal', 'saveLanguageModal', 'cancelLanguageModal',
                 'selectLanguage', 'selectDraftTransitionMode', 'closeWallpaperUrlInput',
                 'openWallpaperUrlInput', 'submitWallpaperUrlInput', 'clearOfflineCache'].map(name => `${name}=()=>{}`).join(',') + ';export const getSettingsTabs=()=>[];'
         }));
+        b.onLoad({ filter: /modules\/settings-static-modals\.js$/ }, () => ({ contents:
+            'export const openShortcutModal=()=>{},closeShortcutModal=()=>{},openCreditsModal=()=>{},closeCreditsModal=()=>{};' }));
         b.onLoad({ filter: /modules\/bookmark-picker\.js$/ }, () => ({ contents:
             'export const openBookmarkPicker=()=>{},closeBookmarkPicker=()=>{},addBookmarkFromPicker=()=>{};' }));
         b.onLoad({ filter: /modules\/wallpaper\.js$/ }, () => ({ contents:
@@ -74,7 +75,11 @@ function fixture() {
     });
     const list = new Element('editList');
     rows.forEach(row => row.parentNode = list);
-    list.querySelectorAll = () => rows.slice();
+    list.querySelectorAll = selector => {
+        const classMatch = /^\.([a-z0-9_-]+)$/i.exec(selector);
+        if (classMatch) return rows.filter(row => row.kind === classMatch[1]);
+        return rows.slice();
+    };
     list.querySelector = selector => rows.find(row => selector.includes(`data-id="${row.dataset.id}"`)) ?? null;
     list.insertBefore = (src, target) => {
         rows.splice(rows.indexOf(src), 1);

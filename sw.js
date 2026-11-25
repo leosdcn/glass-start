@@ -166,7 +166,8 @@ async function validBuildPrefix(response, version, readFingerprint = scriptFinge
             const fingerprint = readFingerprint(prefix);
             if (fingerprint !== undefined) return fingerprint === version;
         }
-        return false;
+        prefix += decoder.decode();
+        return readFingerprint(prefix) === version;
     } finally {
         // 响应的另一分支可能仍未读取，取消不能阻塞返回。
         void reader.cancel().catch(() => {});
@@ -322,6 +323,29 @@ async function previousImageResponse(request) {
     return null;
 }
 
+/** @param {Cache} cache @param {Request} request @param {Response} response @param {number} maxEntries @param {string} cacheKey @param {(p: Promise<void>) => void} waitForCache */
+async function putWithQuotaRetry(cache, request, response, maxEntries, cacheKey, waitForCache) {
+    try {
+        await cache.put(request, response.clone());
+    } catch (putErr) {
+        if (putErr instanceof DOMException && putErr.name === 'QuotaExceededError') {
+            try {
+                const keys = await cache.keys();
+                const purgeCount = Math.max(10, Math.floor(keys.length * 0.25), keys.length - maxEntries + 1);
+                await Promise.all(keys.slice(0, purgeCount).map(k => cache.delete(k)));
+                await cache.put(request, response.clone());
+            } catch {}
+        }
+    } finally {
+        waitForCache(pruneCache(cache, maxEntries, cacheKey));
+    }
+}
+
+/** @param {Request} req */
+function fetchableRequest(req) {
+    return req.mode === 'navigate' ? req.url : req;
+}
+
 // 拦截 Fetch 请求阶段
 /** @type {ServiceWorkerContext} */ (self).addEventListener('fetch', e => {
     if (e.request.method !== 'GET') return;
@@ -359,7 +383,7 @@ async function previousImageResponse(request) {
         e.respondWith(
             caches.open(CORE_STORAGE).then(async cache => {
                 const cachedRes = await cache.match(asset);
-                const fetchPromise = fetch(new Request(e.request, { cache: 'no-cache' })).then(async netRes => {
+                const fetchPromise = fetch(new Request(fetchableRequest(e.request), { cache: 'no-cache' })).then(async netRes => {
                     if (await isManifestResponse(netRes)) await cache.put(asset, netRes.clone()).catch(() => {});
                     else if (netRes.ok) return null;
                     return netRes;
@@ -391,7 +415,7 @@ async function previousImageResponse(request) {
                     void cached.body?.cancel().catch(() => {});
                 }
                 if (!scriptVersion) return make503Response();
-                const response = await fetch(e.request, cached ? { cache: 'reload' } : undefined);
+                const response = await fetch(cached ? fetchableRequest(e.request) : e.request, cached ? { cache: 'reload' } : undefined);
                 if (!await validBuildPrefix(response.clone(), requestedVersion)) {
                     return make503Response();
                 }
@@ -422,20 +446,7 @@ async function previousImageResponse(request) {
                     try {
                         const netRes = await fetch(e.request, { cache: 'no-cache', signal: controller.signal });
                         if (isImageResponse(netRes) || netRes.type === 'opaque') {
-                            try {
-                                await cache.put(e.request, netRes.clone());
-                            } catch (putErr) {
-                                if (putErr instanceof DOMException && putErr.name === 'QuotaExceededError') {
-                                    try {
-                                        const keys = await cache.keys();
-                                        const purgeCount = Math.max(10, Math.floor(keys.length * 0.25), keys.length - MAX_FAVICON_ENTRIES + 1);
-                                        await Promise.all(keys.slice(0, purgeCount).map(k => cache.delete(k)));
-                                        await cache.put(e.request, netRes.clone());
-                                    } catch {}
-                                }
-                            } finally {
-                                waitForCache(pruneCache(cache, MAX_FAVICON_ENTRIES, FAVICON_CACHE));
-                            }
+                            await putWithQuotaRetry(cache, e.request, netRes, MAX_FAVICON_ENTRIES, FAVICON_CACHE, waitForCache);
                             return netRes;
                         }
                     } catch {} finally {
@@ -461,9 +472,9 @@ async function previousImageResponse(request) {
                 if (precached && isImageResponse(precached)) return precached;
                 try {
                     // 单个消费者取消不能中止其他消费者共用的下载。
-                    const res = await fetch(new Request(e.request, { cache: 'reload', signal: new AbortController().signal }));
+                    const res = await fetch(new Request(fetchableRequest(e.request), { cache: 'reload', signal: new AbortController().signal }));
                     if (isImageResponse(res)) {
-                        waitForCache(cache.put(e.request, res.clone()).then(() => pruneCache(cache, MAX_IMG_ENTRIES, IMG_CACHE)).catch(() => {}));
+                        waitForCache(putWithQuotaRetry(cache, e.request, res, MAX_IMG_ENTRIES, IMG_CACHE, waitForCache));
                         return res;
                     }
                     if (!res.ok && res.status < 500) return res;

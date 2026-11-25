@@ -1,5 +1,6 @@
 /** 实际 worker 处理并发图片请求时，未命中的同一资源只下载一次。 */
 import assert from 'node:assert/strict';
+import { test } from 'node:test';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import vm from 'node:vm';
@@ -9,10 +10,12 @@ import { createEvaluator, waitFor, navigateAndWait } from './support/helpers.mjs
 
 const worker = readFileSync(join(DIST_DIR, 'sw.js'), 'utf8');
 const stamp = readFileSync(join(DIST_DIR, 'index.html'), 'utf8').match(/__GLASS_BUILD_HTML__="([^"]+)"/)[1];
+const html = `<!doctype html><html><head><script>window.__GLASS_BUILD_HTML__="${stamp}";</script></head><body><script>navigator.serviceWorker.register('./sw.js').then(reg=>window.reg=reg)</script></body></html>`;
+
+test('Service Worker 并发图片请求去重与取消隔离', async () => {
 const counts = new Map();
 const pending = [];
 let status = 200;
-const html = `<!doctype html><html><head><script>window.__GLASS_BUILD_HTML__="${stamp}";</script></head><body><script>navigator.serviceWorker.register('./sw.js').then(reg=>window.reg=reg)</script></body></html>`;
 const image = (req, res) => {
     counts.set(req.url, (counts.get(req.url) || 0) + 1);
     pending.push(() => {
@@ -86,6 +89,9 @@ try {
     if (chrome) await chrome.close().catch(() => {});
     if (server) await server.close().catch(() => {});
 }
+});
+
+test('Service Worker 分块校验与失败隔离', async () => {
 
 // 执行完整 worker，并控制 CacheStorage 写入时机，覆盖真实浏览器难以稳定制造的写入窗口。
 const handlers = new Map(), stores = new Map();
@@ -249,3 +255,4 @@ assert.ok(await scriptResponse.text() === prefix + suffix + tail, '返回完整�
 assert.deepEqual(decodedPrefixBytes, [htmlPrefix.length, suffix.length, prefix.length, suffix.length, prefix.length, suffix.length],
     '文档和脚本均校验跨分块的版本标记，正文保持可流式读取');
 assert.equal(coreDownloads.get(coreScript), 1, '正常启动走原缓存');
+});

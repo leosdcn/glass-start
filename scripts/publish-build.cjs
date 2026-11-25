@@ -14,8 +14,15 @@ function executeCleanups() {
     }
     activeCleanups.clear();
 }
+let exitCleanupRegistered = false;
+function ensureExitCleanup() {
+    if (exitCleanupRegistered) return;
+    exitCleanupRegistered = true;
+    process.on('exit', executeCleanups);
+}
 let signalsRegistered = false;
 function ensureSignalHandlers() {
+    ensureExitCleanup();
     if (signalsRegistered) return;
     signalsRegistered = true;
     for (const sig of ['SIGINT', 'SIGTERM', 'SIGHUP']) {
@@ -25,11 +32,10 @@ function ensureSignalHandlers() {
             process.exit(128 + sigCode);
         });
     }
-    process.on('exit', executeCleanups);
 }
 
 function publishBuild(output, populate) {
-    ensureSignalHandlers();
+    ensureExitCleanup();
     const parent = path.dirname(output);
     const prefix = path.join(parent, `.${path.basename(output)}`);
     const stagingPrefix = prefix + '-build-';
@@ -47,7 +53,7 @@ function publishBuild(output, populate) {
     try {
         const result = populate(staging);
         // mkdtemp 创建的目录只允许当前用户访问。发布产物沿用普通目录的权限。
-        fs.chmodSync(staging, 0o777 & ~process.umask());
+        fs.chmodSync(staging, 0o755);
         const owner = acquirePublishLock(lock, candidate);
         try {
             if (fs.existsSync(previous) && !fs.existsSync(output)) fs.renameSync(previous, output);
@@ -121,7 +127,9 @@ function acquirePublishLock(lock, candidate) {
             } catch (error) {
                 if (error.code === 'ESRCH') removePublishLock(lock, ownerFile);
             }
-        } else if (!ownerFile) removePublishLock(lock);
+        } else {
+            removePublishLock(lock, ownerFile);
+        }
         Atomics.wait(delay, 0, 0, 25);
     }
 }
@@ -146,7 +154,7 @@ function removeAbandonedBuilds(parent, prefix, release) {
 
 /** 并行准备各自的目录，在同一发布锁内读取前版、切换入口并回收。 */
 function publishWebBuild(output, populate, prepare = (release, previous) => {}) {
-    ensureSignalHandlers();
+    ensureExitCleanup();
     const parent = path.dirname(output);
     const prefix = path.join(parent, `.${path.basename(output)}-build-`);
     const release = fs.mkdtempSync(prefix + process.pid + '-');
@@ -165,7 +173,7 @@ function publishWebBuild(output, populate, prepare = (release, previous) => {}) 
     });
     try {
         const result = populate(release);
-        fs.chmodSync(release, 0o777 & ~process.umask());
+        fs.chmodSync(release, 0o755);
         const target = process.platform === 'win32' ? release : path.relative(parent, release);
         fs.symlinkSync(target, link, process.platform === 'win32' ? 'junction' : 'dir');
         const owner = acquirePublishLock(lock, candidate);
@@ -187,7 +195,15 @@ function publishWebBuild(output, populate, prepare = (release, previous) => {}) 
                 fs.renameSync(link, output);
                 published = true;
             } catch (error) {
-                if (currentEntry?.isDirectory()) fs.renameSync(backup, output);
+                if (currentEntry?.isDirectory()) {
+                    try {
+                        fs.renameSync(backup, output);
+                    } catch (restoreError) {
+                        throw new Error(`恢复上一版产物失败，备份保留在 ${backup}`, {
+                            cause: new AggregateError([error, restoreError])
+                        });
+                    }
+                }
                 throw error;
             }
             fs.rmSync(migration, { recursive: true, force: true });

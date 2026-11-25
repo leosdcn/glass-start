@@ -1,12 +1,12 @@
 /**
  * 静态语法与格式检查 (scripts/lint.mjs)，DOM/CSS 通过开发依赖 Acorn/PostCSS 解析。
  * 1. 提取 src/index.html 内联脚本并校验语法
- * 2. 使用 node --check 校验核心脚本及 src/js 业务模块
+ * 2. 使用 Acorn / Node 校验核心脚本及 src/js 业务模块
  * 3. 校验 bookmarks.json、public/manifest.json 等 JSON 配置
  * 4. 静态检查输入字号、ARIA、CSS、DOM ID、书签及生命周期等工程约束
  */
 import { readFileSync, writeFileSync, chmodSync, statSync, existsSync, readdirSync, renameSync, rmSync } from 'node:fs';
-import { join, dirname, relative } from 'node:path';
+import { join, dirname, relative, sep } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import vm from 'node:vm';
 import { parse as parseJs } from 'acorn';
@@ -50,22 +50,30 @@ console.log(`${c.cyan}${HR_DOUBLE}${c.reset}`);
 const htmlPath = join(root, 'src', 'index.html');
 let indexHtml = readFileSync(htmlPath, 'utf-8');
 
+/** 剥离 script/style/注释内容并保留换行偏移，供纯 HTML 静态扫描使用。 */
+function stripNonHtmlMarkup(html) {
+    return html.replace(/(<(script|style)\b[^>]*>[\s\S]*?<\/\2>|<!--[\s\S]*?-->)/gi,
+        match => match.replace(/[^\n]/g, ' '));
+}
+
 // 🔧 --fix 自动修复模式：针对机械性规则就地自愈
 if (isFixMode) {
-    let fixedHtml = indexHtml;
     let fixCount = 0;
-
-    // 1. 自动为缺少 type 的 <button> 补齐 type="button"
-    fixedHtml = fixedHtml.replace(/<button\b(?![^>]*\btype=)/gi, () => {
-        fixCount++;
-        return '<button type="button"';
-    });
-
-    // 2. 自动为缺少 ARIA 属性的 <svg> 补齐 aria-hidden="true"
-    fixedHtml = fixedHtml.replace(/<svg\b(?![^>]*\b(aria-hidden|aria-label|role)=)/gi, () => {
-        fixCount++;
-        return '<svg aria-hidden="true"';
-    });
+    const fixedHtml = indexHtml.split(/(<(script|style)\b[^>]*>[\s\S]*?<\/\2>|<!--[\s\S]*?-->)/gi)
+        .map((part, index) => {
+            if (!part || index % 3 !== 0) return part;
+            // 1. 自动为缺少 type 的 <button> 补齐 type="button"
+            let next = part.replace(/<button\b(?![^>]*\btype=)/gi, () => {
+                fixCount++;
+                return '<button type="button"';
+            });
+            // 2. 自动为缺少 ARIA 属性的 <svg> 补齐 aria-hidden="true"
+            next = next.replace(/<svg\b(?![^>]*\b(aria-hidden|aria-label|role)=)/gi, () => {
+                fixCount++;
+                return '<svg aria-hidden="true"';
+            });
+            return next;
+        }).join('');
 
     if (fixCount > 0) {
         const tempPath = `${htmlPath}.tmp-${process.pid}-${Date.now()}`;
@@ -251,9 +259,16 @@ try {
 }
 
 // 4.2 移动端 iOS 16px 防放大输入框规范静态扫描
+const cleanIndexHtml = stripNonHtmlMarkup(indexHtml);
 try {
-    const inputSources = [{ file: 'src/index.html', content: indexHtml }, ...srcJsSources];
-    const inputMatches = inputSources.flatMap(source => [...source.content.matchAll(/<input[^>]*type=["']text["'][^>]*>/gi)].map(match => ({ match, ...source })));
+    const inputSources = [{ file: 'src/index.html', content: cleanIndexHtml }, ...srcJsSources];
+    const textInputTypes = new Set(['text', 'search', 'url', 'email', 'tel', 'password']);
+    const inputMatches = inputSources.flatMap(source => [...source.content.matchAll(/<input\b([^>]*)>/gi)]
+        .filter(match => {
+            const typeMatch = match[1].match(/\btype=["']([^"']+)["']/i);
+            return !typeMatch || textInputTypes.has(typeMatch[1].toLowerCase());
+        })
+        .map(match => ({ match, ...source })));
     let allInputsCompliant = true;
     const nonCompliant = [];
     const mainCss = readFileSync(join(root, 'src', 'styles', 'main.css'), 'utf-8');
@@ -293,7 +308,7 @@ try {
 
 // 4.3 <button> 标签显式声明 type="button" 规范全量扫描
 try {
-    const buttonMatches = [...indexHtml.matchAll(/<button\b([^>]*)>/gi)];
+    const buttonMatches = [...cleanIndexHtml.matchAll(/<button\b([^>]*)>/gi)];
     let allButtonsCompliant = true;
     const nonCompliantButtons = [];
 
@@ -322,7 +337,7 @@ try {
 
 // 4.4 装饰性 <svg> 矢量图标 W3C WAI-ARIA (aria-hidden="true") 规范扫描
 try {
-    const svgMatches = [...indexHtml.matchAll(/<svg\b([^>]*)>/gi)];
+    const svgMatches = [...cleanIndexHtml.matchAll(/<svg\b([^>]*)>/gi)];
     let allSvgsCompliant = true;
     const nonCompliantSvgs = [];
 
@@ -553,19 +568,14 @@ try {
 
 // 4.12 🚫 严禁滥加全局字体抗锯齿属性（-webkit-font-smoothing / -moz-osx-font-smoothing）
 try {
-    let allCss = '';
-    for (const f of cssFiles) {
-        const p = join(cssDir, f);
-        if (existsSync(p)) allCss += '\n' + readFileSync(p, 'utf-8');
-    }
-    const hasFontSmoothing = /font-smoothing\s*:\s*antialiased/i.test(allCss + '\n' + indexHtml) ||
-                             /-moz-osx-font-smoothing\s*:\s*grayscale/i.test(allCss + '\n' + indexHtml);
-    if (!hasFontSmoothing) {
+    if (!cssInspection) throw new Error('CSS 语法分析未完成');
+    const fontSmoothingErrors = cssInspection.fontSmoothingViolations;
+    if (fontSmoothingErrors.length === 0) {
         passCount++;
         logItem(`全站字体排版纯净合规（严禁人为添加 -webkit-font-smoothing 降级抗锯齿）`);
     } else {
         failCount++;
-        logItem(`检测到非法 font-smoothing 属性，严禁滥用该属性导致字体发虚和单薄`, 'error');
+        logItem(`检测到非法 font-smoothing 属性 (${fontSmoothingErrors.length} 处):\n    ${fontSmoothingErrors.join('\n    ')}`, 'error');
     }
 } catch (e) {
     failCount++;
@@ -696,11 +706,10 @@ try {
             .sort()
         : [];
 
-    // 3. 从业务网络模块 (search.js 与 weather.js) 提取调用的外部 API 域名
-    const netFiles = [
-        join(root, 'src', 'js', 'modules', 'search.js'),
-        join(root, 'src', 'js', 'modules', 'weather.js')
-    ];
+    // 3. 从业务与核心模块提取调用的外部 API 域名
+    const netFiles = srcJsSources
+        .map(source => source.file)
+        .filter(file => file.startsWith(join(root, 'src', 'js', 'modules') + sep) || file.startsWith(join(root, 'src', 'js', 'core') + sep));
     const codeApiDomains = new Set();
     for (const file of netFiles) {
         const code = readFileSync(file, 'utf-8');

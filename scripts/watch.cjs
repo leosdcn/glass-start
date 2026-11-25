@@ -17,13 +17,21 @@ function shouldIgnore(filename) {
     return false;
 }
 
-function readSignature(path) {
-    const stats = fs.lstatSync(path, { throwIfNoEntry: false });
-    if (!stats) return undefined;
-    if (stats.isDirectory()) return `directory:${stats.dev}:${stats.ino}`;
-    if (stats.isSymbolicLink()) return `link:${fs.readlinkSync(path)}`;
-    if (!stats.isFile()) return `mode:${stats.mode}`;
-    return createHash('sha256').update(fs.readFileSync(path)).digest('hex');
+function readSignature(filePath) {
+    try {
+        const stats = fs.lstatSync(filePath, { throwIfNoEntry: false });
+        if (!stats) return undefined;
+        if (stats.isDirectory()) return `directory:${stats.dev}:${stats.ino}`;
+        if (stats.isSymbolicLink()) return `link:${fs.readlinkSync(filePath)}`;
+        if (!stats.isFile()) return `mode:${stats.mode}`;
+        if (/\.(?:png|jpe?g|webp|avif|ico)$/i.test(filePath)) {
+            return `stat:${stats.size}:${stats.mtimeMs}`;
+        }
+        return createHash('sha256').update(fs.readFileSync(filePath)).digest('hex');
+    } catch (error) {
+        if (error?.code === 'ENOENT' || error?.code === 'EPERM' || error?.code === 'EACCES') return undefined;
+        throw error;
+    }
 }
 
 function isDirectorySignature(signature) {

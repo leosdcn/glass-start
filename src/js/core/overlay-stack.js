@@ -122,7 +122,11 @@ export const OverlayStack = {
                 if (!MODAL_OVERLAY_IDS.has(item.id)) item.close();
             }
         }
-        this.pop(id);
+        const existing = this.stack.find(item => item.id === id);
+        if (existing) {
+            try { existing.close(); } catch {}
+            this.pop(id);
+        }
         this.stack.push({ id, close: closeFn, trigger, panel });
         if (modal instanceof HTMLDialogElement) {
             showModal(modal);

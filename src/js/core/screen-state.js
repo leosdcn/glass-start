@@ -369,7 +369,7 @@ export function setTransitionMode(mode) {
  * @param {string} mode
  */
 export function syncTransitionSwitcherActive(mode) {
-    document.querySelectorAll('.settings-transition-btn').forEach(btn => {
+    (dom.settingsTransitionGrid ?? document).querySelectorAll('.settings-transition-btn').forEach(btn => {
         const el = /** @type {HTMLElement} */ (btn);
         const isActive = el.dataset.mode === mode;
         el.classList.toggle('active', isActive);

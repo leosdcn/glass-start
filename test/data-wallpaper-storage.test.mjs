@@ -58,7 +58,7 @@ await test("选择提交、事务失败与会话隔离", async () => {
     try {
       const stopped = previewDraftWallpaper('https://pending.example.com/image.png');
       const stoppedImage = pending;
-      resetBookmarks();
+      resetAllSettings();
       dom.confirmOkBtn.click();
       resetCancelsPending = await stopped === false && !state.editOpen && stoppedImage.onload === null &&
         ((await getWallpaperSelectionDB())?.wallpaper ?? null) === null && state.customWallpaper === null;

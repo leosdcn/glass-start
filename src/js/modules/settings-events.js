@@ -15,12 +15,13 @@ import { dom } from '../state/dom.js';
 import { initDragSort } from './bookmark-drag.js';
 
 import { uploadWallpaper, previewDraftWallpaper, resetDraftWallpaper } from './wallpaper.js';
-import { openEditModal, saveEditModal, cancelEditModal, openShortcutModal, closeShortcutModal, openCreditsModal, closeCreditsModal, switchSettingsTab, previewDraftMaskOpacity, resetBookmarks, importBookmarksJSON, exportBookmarksJSON, openLanguageModal, saveLanguageModal, cancelLanguageModal, selectLanguage, selectDraftTransitionMode, closeWallpaperUrlInput, openWallpaperUrlInput, submitWallpaperUrlInput, getSettingsTabs, clearOfflineCache } from './settings.js';
+import { openEditModal, saveEditModal, cancelEditModal, switchSettingsTab, previewDraftMaskOpacity, resetAllSettings, importBookmarksJSON, exportBookmarksJSON, openLanguageModal, saveLanguageModal, cancelLanguageModal, selectLanguage, selectDraftTransitionMode, closeWallpaperUrlInput, openWallpaperUrlInput, submitWallpaperUrlInput, getSettingsTabs, clearOfflineCache } from './settings.js';
+import { openShortcutModal, closeShortcutModal, openCreditsModal, closeCreditsModal } from './settings-static-modals.js';
 import { openBookmarkPicker, closeBookmarkPicker, addBookmarkFromPicker } from './bookmark-picker.js';
 import { getEditFaviconInner, handleEditIconError, appendDraftBookmarkRow } from './bookmark-editor.js';
 import { animateBookmarkRemoval } from './bookmark-motion.js';
 
-export function bindEditEvents() {
+function bindLanguageAndModalEvents() {
     dom.languageBtn?.addEventListener('click', e => {
         e.stopPropagation();
         openLanguageModal(dom.languageBtn);
@@ -30,9 +31,7 @@ export function bindEditEvents() {
     dom.languageList?.addEventListener('click', e => {
         const targetEl = e.target instanceof Element ? e.target : null;
         const btn = /** @type {HTMLElement|null} */ (targetEl?.closest('[data-lang]'));
-        if (btn?.dataset.lang) {
-            selectLanguage(btn.dataset.lang);
-        }
+        if (btn?.dataset.lang) selectLanguage(btn.dataset.lang);
     });
     dom.languageList?.addEventListener('keydown', e => {
         const items = /** @type {HTMLElement[]} */ (Array.from(dom.languageList?.querySelectorAll('button[data-lang]') || []));
@@ -44,18 +43,13 @@ export function bindEditEvents() {
 
     const editButton = dom.editBookmarksBtn;
     editButton?.addEventListener('click', () => openEditModal(editButton));
-    dom.cancelEditBtn?.addEventListener('click', cancelEditModal);
     dom.togglePickerBtn?.addEventListener('click', () => openBookmarkPicker(dom.togglePickerBtn));
     dom.donePickerBtn?.addEventListener('click', closeBookmarkPicker);
     dom.doneShortcutBtn?.addEventListener('click', closeShortcutModal);
     dom.openShortcutFromSettingsBtn?.addEventListener('click', () => openShortcutModal(dom.openShortcutFromSettingsBtn));
     dom.openCreditsFromSettingsBtn?.addEventListener('click', () => openCreditsModal(dom.openCreditsFromSettingsBtn));
     dom.doneCreditsBtn?.addEventListener('click', closeCreditsModal);
-
-    // 重置所有设置 (Danger Zone - 确认后立即重置系统，无需再点击保存)
-    if (dom.resetEditBtn) {
-        dom.resetEditBtn.addEventListener('click', resetBookmarks);
-    }
+    dom.resetEditBtn?.addEventListener('click', resetAllSettings);
 
     const settingsTabs = getSettingsTabs() || [];
     settingsTabs.forEach(btn => {
@@ -69,151 +63,141 @@ export function bindEditEvents() {
             });
         });
     });
+}
 
-    // 卡片在首次打开外观页时生成，监听稳定的网格容器。
+function bindImportDropzoneEvents() {
+    dom.exportJsonBtn?.addEventListener('click', exportBookmarksJSON);
+    dom.importJsonInput?.addEventListener('change', e => {
+        const targetInput = e.target instanceof HTMLInputElement ? e.target : null;
+        const file = targetInput?.files?.[0];
+        if (file) importBookmarksJSON(file);
+        if (targetInput) targetInput.value = '';
+    });
+
+    const dropzone = dom.jsonDropzone;
+    if (!dropzone) return;
+    dropzone.addEventListener('click', () => dom.importJsonInput?.click());
+    dropzone.addEventListener('keydown', e => {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            dom.importJsonInput?.click();
+        }
+    });
+    dropzone.addEventListener('dragover', e => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropzone.classList.add('drag-over');
+    });
+    dropzone.addEventListener('dragleave', e => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.relatedTarget instanceof Node && dropzone.contains(e.relatedTarget)) return;
+        dropzone.classList.remove('drag-over');
+    });
+    dropzone.addEventListener('drop', e => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropzone.classList.remove('drag-over');
+        const file = e.dataTransfer?.files[0];
+        if (file) importBookmarksJSON(file);
+    });
+}
+
+function bindBookmarkEditListEvents() {
+    dom.pickerContent?.addEventListener('click', e => {
+        const targetEl = e.target instanceof Element ? e.target : null;
+        const item = /** @type {HTMLButtonElement|null} */ (targetEl?.closest('.picker-item'));
+        if (!item || item.disabled || !item.dataset.url) return;
+        addBookmarkFromPicker(item.dataset.url);
+    });
+    dom.addBookmarkBtn?.addEventListener('click', () => {
+        appendDraftBookmarkRow({ focus: true });
+    });
+
+    const editList = dom.editList;
+    if (!editList) return;
+
+    /** 每行独立防抖，避免编辑下一行时取消上一行的预览。 @type {WeakMap<HTMLElement, ReturnType<typeof setTimeout>>} */
+    const editFaviconTimers = new WeakMap();
+    /** @type {Set<ReturnType<typeof setTimeout>>} */
+    const activeFaviconTimers = new Set();
+    const clearAllFaviconTimers = () => {
+        for (const timer of activeFaviconTimers) clearTimeout(timer);
+        activeFaviconTimers.clear();
+    };
+    dom.cancelEditBtn?.addEventListener('click', clearAllFaviconTimers);
+    dom.saveEditBtn?.addEventListener('click', clearAllFaviconTimers);
+
+    editList.addEventListener('input', e => {
+        const target = e.target instanceof HTMLInputElement ? e.target : null;
+        const row = /** @type {HTMLElement|null} */ (target?.closest('.edit-row-card'));
+        if (!row || !target) return;
+        const fields = target.classList.contains('edit-name') ? { name: target.value }
+            : target.classList.contains('edit-url') ? { url: target.value } : null;
+        if (!fields || !row.dataset.id) return;
+        const item = updateBookmarkDraft(row.dataset.id, fields);
+        if (!item) return;
+        if (fields.name !== undefined) {
+            row.querySelector('.drag-handle')?.setAttribute('aria-label', t('bookmark.reorderLabel', { name: item.name }));
+        }
+
+        const faviconBox = row.querySelector('.edit-favicon-box');
+        if (!faviconBox) return;
+        const initial = [...(item.name || '?').trim()][0]?.toUpperCase() || '?';
+        const existingImg = /** @type {HTMLElement|null} */ (faviconBox.querySelector('.edit-favicon-img'));
+        const existingInitial = faviconBox.querySelector('.edit-favicon-initial');
+        if (existingImg) existingImg.dataset.initial = initial;
+        if (existingInitial) existingInitial.textContent = initial;
+
+        if (target.classList.contains('edit-url')) {
+            const previousTimer = editFaviconTimers.get(row);
+            if (previousTimer !== undefined) {
+                clearTimeout(previousTimer);
+                activeFaviconTimers.delete(previousTimer);
+            }
+            const timer = setTimeout(() => {
+                activeFaviconTimers.delete(timer);
+                editFaviconTimers.delete(row);
+                if (!state.editOpen || !row.isConnected || !modalState.draftBookmarks.includes(item)) return;
+                faviconBox.innerHTML = getEditFaviconInner(item);
+                const newImg = /** @type {HTMLImageElement|null} */ (faviconBox.querySelector('.edit-favicon-img'));
+                if (newImg) checkImageReady(newImg, handleEditIconError);
+            }, CONFIG.SUGGEST.DEBOUNCE_MS);
+            editFaviconTimers.set(row, timer);
+            activeFaviconTimers.add(timer);
+        }
+    });
+
+    editList.addEventListener('click', e => {
+        const targetEl = e.target instanceof Element ? e.target : null;
+        const item = /** @type {HTMLElement|null} */ (targetEl?.closest('.del-btn')?.closest('.edit-row-card'));
+        if (!item) return;
+        const timer = editFaviconTimers.get(item);
+        if (timer !== undefined) {
+            clearTimeout(timer);
+            activeFaviconTimers.delete(timer);
+            editFaviconTimers.delete(item);
+        }
+        if (item.dataset.id) removeBookmarkDraft(item.dataset.id);
+        animateBookmarkRemoval(editList, item);
+    });
+}
+
+function bindWallpaperEvents() {
     dom.presetWallpaperGrid?.addEventListener('click', e => {
         const card = e.target instanceof Element ? e.target.closest('.preset-bg-card') : null;
         if (!(card instanceof HTMLElement) || !dom.presetWallpaperGrid?.contains(card)) return;
         e.stopPropagation();
-        const url = card.dataset.bg;
-        if (url) previewDraftWallpaper(url);
+        if (card.dataset.bg) previewDraftWallpaper(card.dataset.bg);
     });
 
-    // JSON 拖拽 Dropzone 交互绑定
-    if (dom.jsonDropzone) {
-        dom.jsonDropzone.addEventListener('click', () => dom.importJsonInput?.click());
-        dom.jsonDropzone.addEventListener('keydown', e => {
-            if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                dom.importJsonInput?.click();
-            }
-        });
-        dom.jsonDropzone.addEventListener('dragover', e => {
-            e.preventDefault();
-            e.stopPropagation();
-            dom.jsonDropzone?.classList.add('drag-over');
-        });
-        dom.jsonDropzone.addEventListener('dragleave', e => {
-            e.preventDefault();
-            e.stopPropagation();
-            if (e.relatedTarget instanceof Node && dom.jsonDropzone?.contains(e.relatedTarget)) return;
-            dom.jsonDropzone?.classList.remove('drag-over');
-        });
-        dom.jsonDropzone.addEventListener('drop', e => {
-            e.preventDefault();
-            e.stopPropagation();
-            dom.jsonDropzone?.classList.remove('drag-over');
-            const file = e.dataTransfer?.files[0];
-            if (file) importBookmarksJSON(file);
-        });
-    }
-
-    // 备选池书签一键添加绑定
-    if (dom.pickerContent) {
-        dom.pickerContent.addEventListener('click', e => {
-            const targetEl = e.target instanceof Element ? e.target : null;
-            const item = /** @type {HTMLButtonElement|null} */ (targetEl?.closest('.picker-item'));
-            if (!item || item.disabled || !item.dataset.url) return;
-            addBookmarkFromPicker(item.dataset.url);
-        });
-    }
-
-    if (dom.addBookmarkBtn) {
-        dom.addBookmarkBtn.addEventListener('click', () => {
-            appendDraftBookmarkRow({ focus: true });
-        });
-    }
-
-    const editList = dom.editList;
-    if (editList) {
-        /** 每行独立防抖，避免编辑下一行时取消上一行的预览。 @type {WeakMap<HTMLElement, ReturnType<typeof setTimeout>>} */
-        const editFaviconTimers = new WeakMap();
-        editList.addEventListener('input', (e) => {
-            const target = e.target instanceof HTMLInputElement ? e.target : null;
-            const row = /** @type {HTMLElement|null} */ (target?.closest('.edit-row-card'));
-            if (!row || !target) return;
-            const fields = target.classList.contains('edit-name') ? { name: target.value }
-                : target.classList.contains('edit-url') ? { url: target.value } : null;
-            if (!fields || !row.dataset.id) return;
-            const item = updateBookmarkDraft(row.dataset.id, fields);
-            if (!item) return;
-            if (fields.name !== undefined) {
-                row.querySelector('.drag-handle')?.setAttribute('aria-label', t('bookmark.reorderLabel', { name: item.name }));
-            }
-
-            // 同步实时 Favicon 预览
-            const faviconBox = row.querySelector('.edit-favicon-box');
-            if (faviconBox) {
-                const nameVal = item.name;
-                const initial = [...(nameVal || '?').trim()][0]?.toUpperCase() || '?';
-
-                const existingImg = /** @type {HTMLElement|null} */ (faviconBox.querySelector('.edit-favicon-img'));
-                const existingInitial = faviconBox.querySelector('.edit-favicon-initial');
-                if (existingImg) {
-                    existingImg.dataset.initial = initial;
-                }
-                if (existingInitial) {
-                    existingInitial.textContent = initial;
-                }
-
-                if (target.classList.contains('edit-url')) {
-                    const previousTimer = editFaviconTimers.get(row);
-                    if (previousTimer !== undefined) clearTimeout(previousTimer);
-                    editFaviconTimers.set(row, setTimeout(() => {
-                        editFaviconTimers.delete(row);
-                        if (!state.editOpen || !row.isConnected || !modalState.draftBookmarks.includes(item)) return;
-                        faviconBox.innerHTML = getEditFaviconInner(item);
-                        const newImg = /** @type {HTMLImageElement|null} */ (faviconBox.querySelector('.edit-favicon-img'));
-                        if (newImg) checkImageReady(newImg, handleEditIconError);
-                    }, CONFIG.SUGGEST.DEBOUNCE_MS));
-                }
-            }
-        });
-
-        editList.addEventListener('click', e => {
-            const targetEl = e.target instanceof Element ? e.target : null;
-            const del = targetEl?.closest('.del-btn');
-            if (del) {
-                const item = /** @type {HTMLElement|null} */ (del.closest('.edit-row-card'));
-                if (item) {
-                    const timer = editFaviconTimers.get(item);
-                    if (timer !== undefined) {
-                        clearTimeout(timer);
-                        editFaviconTimers.delete(item);
-                    }
-                    if (item.dataset.id) removeBookmarkDraft(item.dataset.id);
-                    animateBookmarkRemoval(editList, item);
-                }
-            }
-        });
-    }
-
-    // 保存流程由设置模块统一管理。
-    if (dom.saveEditBtn) {
-        dom.saveEditBtn.addEventListener('click', saveEditModal);
-    }
-
-    // JSON 导入导出事件绑定
-    dom.exportJsonBtn?.addEventListener('click', exportBookmarksJSON);
-    if (dom.importJsonInput) {
-        dom.importJsonInput.addEventListener('change', e => {
-            const targetInput = e.target instanceof HTMLInputElement ? e.target : null;
-            const file = targetInput?.files?.[0];
-            if (file) importBookmarksJSON(file);
-            if (targetInput) targetInput.value = '';
-        });
-    }
-
-    // 自定义壁纸事件绑定
-    if (dom.uploadBgBtn) dom.uploadBgBtn.addEventListener('click', () => dom.uploadBgInput?.click());
-    if (dom.uploadBgInput) {
-        dom.uploadBgInput.addEventListener('change', e => {
-            const targetInput = e.target instanceof HTMLInputElement ? e.target : null;
-            const file = targetInput?.files?.[0];
-            if (targetInput) targetInput.value = '';
-            if (file) uploadWallpaper(file);
-        });
-    }
+    dom.uploadBgBtn?.addEventListener('click', () => dom.uploadBgInput?.click());
+    dom.uploadBgInput?.addEventListener('change', e => {
+        const targetInput = e.target instanceof HTMLInputElement ? e.target : null;
+        const file = targetInput?.files?.[0];
+        if (targetInput) targetInput.value = '';
+        if (file) uploadWallpaper(file);
+    });
 
     if (dom.urlBgBtn) {
         dom.urlBgBtn.addEventListener('click', openWallpaperUrlInput);
@@ -226,27 +210,27 @@ export function bindEditEvents() {
         });
     }
 
-    if (dom.resetBgBtn) {
-        dom.resetBgBtn.addEventListener('click', async () => {
-            await resetDraftWallpaper();
-        });
-    }
-
-    // 背景暗度事件绑定（草稿实时预览）
-    if (dom.maskOpacityInput) {
-        dom.maskOpacityInput.addEventListener('input', e => {
-            const targetInput = e.target instanceof HTMLInputElement ? e.target : null;
-            if (targetInput) previewDraftMaskOpacity(targetInput.value);
-        });
-    }
-
-    // 切屏动效选择（草稿高亮切换，保存时生效）
-    dom.settingsTransitionGrid?.addEventListener('click', e => {
-        const btn = /** @type {HTMLElement|null} */ (e.target instanceof HTMLElement ? e.target.closest('.settings-transition-btn') : null);
-        if (!btn || !btn.dataset.mode) return;
-        selectDraftTransitionMode(btn.dataset.mode);
+    dom.resetBgBtn?.addEventListener('click', async () => {
+        await resetDraftWallpaper();
     });
+    dom.maskOpacityInput?.addEventListener('input', e => {
+        const targetInput = e.target instanceof HTMLInputElement ? e.target : null;
+        if (targetInput) previewDraftMaskOpacity(targetInput.value);
+    });
+    dom.settingsTransitionGrid?.addEventListener('click', e => {
+        const btn = /** @type {HTMLElement|null} */ (e.target instanceof Element ? e.target.closest('.settings-transition-btn') : null);
+        if (btn?.dataset.mode) selectDraftTransitionMode(btn.dataset.mode);
+    });
+}
 
+export function bindEditEvents() {
+    bindLanguageAndModalEvents();
+    bindImportDropzoneEvents();
+    bindBookmarkEditListEvents();
+    bindWallpaperEvents();
+
+    dom.cancelEditBtn?.addEventListener('click', cancelEditModal);
+    dom.saveEditBtn?.addEventListener('click', saveEditModal);
     dom.clearCacheBtn?.addEventListener('click', clearOfflineCache);
 
     initDragSort();

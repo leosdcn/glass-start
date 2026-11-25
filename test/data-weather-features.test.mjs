@@ -84,7 +84,7 @@ test('天气交互、弹窗规范与休眠感知套件', async (t) => {
           card1: cards[1] ? cards[1].innerText.replace(/\\s+/g, ' ') : '',
           card2: cards[2] ? cards[2].innerText.replace(/\\s+/g, ' ') : '',
           card3: cards[3] ? cards[3].innerText.replace(/\\s+/g, ' ') : '',
-          hasUmbrella: text.includes('🌂') || text.includes('☂️') || text.includes('☔️')
+          hasUmbrella: ['🌂', '☂️', '☔️'].some(icon => text.includes(icon) || [...pop.querySelectorAll('img[data-icon]')].some(img => img.dataset.icon === icon))
         };
       })()`);
 
@@ -155,7 +155,7 @@ test('天气交互、弹窗规范与休眠感知套件', async (t) => {
       const fahrenheitState = await evalJS(`({
         popover: document.getElementById('weatherPopover').innerText,
         capsule: document.getElementById('weatherTemp').textContent,
-        storage: localStorage.getItem('glass_temp_unit')
+        storage: storageGet(CONFIG.KEYS.TEMP_UNIT)
       })`);
       assert.ok(fahrenheitState.popover.includes('88°F') && fahrenheitState.popover.includes('体感 97°') && !fahrenheitState.popover.includes('体感 97°F'));
       assert.equal(fahrenheitState.capsule, '88°');
@@ -166,7 +166,7 @@ test('天气交互、弹窗规范与休眠感知套件', async (t) => {
       const celsiusState = await evalJS(`({
         popover: document.getElementById('weatherPopover').innerText,
         capsule: document.getElementById('weatherTemp').textContent,
-        storage: localStorage.getItem('glass_temp_unit')
+        storage: storageGet(CONFIG.KEYS.TEMP_UNIT)
       })`);
       assert.ok(celsiusState.popover.includes('31°C') && celsiusState.popover.includes('体感 36°') && !celsiusState.popover.includes('体感 36°C'));
       assert.equal(celsiusState.capsule, '31°');
@@ -181,7 +181,7 @@ test('天气交互、弹窗规范与休眠感知套件', async (t) => {
         await send('Input.dispatchKeyEvent', { type: 'keyUp', key, code, windowsVirtualKeyCode });
         const result = await evalJS(`({
           focused: document.activeElement?.id,
-          unit: localStorage.getItem('glass_temp_unit')
+          unit: storageGet(CONFIG.KEYS.TEMP_UNIT)
         })`);
         assert.deepEqual(result, { focused: 'tempUnitToggleBtn', unit });
       }

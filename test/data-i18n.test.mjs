@@ -1,8 +1,16 @@
 import assert from 'node:assert/strict';
+import { test } from 'node:test';
 import { mkdirSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
 import { launchSession, waitFor } from './support/helpers.mjs';
 
+test('多语言切换、语言草稿、布局与离线验证套件', async t => {
 const { server, chrome, send, evalJS } = await launchSession();
+t.after(async () => {
+    await chrome.close();
+    await server.close();
+});
 const ready = () => waitFor(evalJS, `document.documentElement?.lang === 'en' && typeof openEditModal === 'function' && !!document.querySelector('.bookmark-item')`, 10000);
 const firstLocalSuggestion = query => evalJS(`(() => {
     try {
@@ -232,7 +240,10 @@ try {
     assert.doesNotMatch(freshWeather.views.en.text, /[\u4e00-\u9fff]/);
 
     // Mobile layout and screenshots use actual rendered UI.
-    mkdirSync(new URL('./artifacts/', import.meta.url), { recursive: true });
+    const artifactsDir = process.env.GLASS_SAVE_TEST_ARTIFACTS === '1'
+        ? new URL('./artifacts/', import.meta.url)
+        : join(process.env.GLASS_TEST_TMPDIR || tmpdir(), 'glass-i18n');
+    mkdirSync(artifactsDir, { recursive: true });
     for (const [width, height] of [[1440, 1000], [390, 844]]) {
         await send('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 1, mobile: width < 640 });
         await evalJS(`openEditModal()`);
@@ -248,7 +259,7 @@ try {
             }))`);
             assert.ok(layout.fits && !layout.overflow, JSON.stringify({ width, tab, ...layout }));
             const { data } = await send('Page.captureScreenshot', { format: 'png' });
-            writeFileSync(new URL(`./artifacts/i18n-${width}-${tab}.png`, import.meta.url), Buffer.from(data, 'base64'));
+            writeFileSync(artifactsDir instanceof URL ? new URL(`i18n-${width}-${tab}.png`, artifactsDir) : join(artifactsDir, `i18n-${width}-${tab}.png`), Buffer.from(data, 'base64'));
         }
         await evalJS(`cancelEditModal()`);
     }
@@ -303,11 +314,11 @@ try {
             if (key === CONFIG.KEYS.NAV_DISCOVERED) throw Error('reset blocked');
             return remove.call(this, key);
         };
-        resetBookmarks(); dom.confirmOkBtn.click();
+        resetAllSettings(); dom.confirmOkBtn.click();
     })()`);
     await waitFor(evalJS, `modalState.phase === 'editing' && dom.confirmModal.open && !storageGet(CONFIG.KEYS.LANGUAGE)`);
     assert.equal(await evalJS(`document.documentElement.lang`), 'zh-CN');
-    await evalJS('restoreStorage(); dom.confirmOkBtn.click(); resetBookmarks(); dom.confirmOkBtn.click()');
+    await evalJS('restoreStorage(); dom.confirmOkBtn.click(); resetAllSettings(); dom.confirmOkBtn.click()');
     await ready();
     assert.equal(await evalJS('state.engine'), 'google', 'retry reconciles the effective locale after a partial reset');
     console.log('✅ 英文全站、语言草稿与保存失败、书签继承、天气缓存、桌面/触屏布局及离线切换通过');
@@ -315,3 +326,4 @@ try {
     await chrome.close();
     await server.close();
 }
+});

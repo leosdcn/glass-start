@@ -1,7 +1,16 @@
 // @ts-check
 /** 书签匹配与排序；输入候选模型和配置，不访问页面或存储。 */
-// 复用编辑距离矩阵缓冲区，容量不足时扩容。
+// 复用编辑距离矩阵缓冲区，常规长度内避免重复分配，超长输入改用局部缓冲区。
+const MAX_POOLED_DLEV_LEN = 4096;
 let dLevBuffer = new Int32Array(1024);
+
+/** @param {string} target */
+export function tokenizeSearchText(target) {
+    if (!target.trim()) return [];
+    const rawTokens = target.split(/\s+/);
+    const wordTokens = target.split(/[^\p{L}\p{N}]+/u);
+    return Array.from(new Set([...rawTokens, ...wordTokens].filter(t => t.length > 0)));
+}
 
 /**
  * 计算受限 Damerau–Levenshtein（OSA）距离，支持相邻字符交换与阈值早停。
@@ -18,10 +27,15 @@ export function damerauLevenshteinDistance(a, b, maxDist = Infinity) {
 
     const cols = bl + 1;
     const requiredSize = (al + 1) * cols;
-    if (dLevBuffer.length < requiredSize) {
-        dLevBuffer = new Int32Array(Math.max(requiredSize, dLevBuffer.length * 2));
+    let dp;
+    if (requiredSize <= MAX_POOLED_DLEV_LEN) {
+        if (dLevBuffer.length < requiredSize) {
+            dLevBuffer = new Int32Array(Math.max(requiredSize, dLevBuffer.length * 2));
+        }
+        dp = dLevBuffer;
+    } else {
+        dp = new Int32Array(requiredSize);
     }
-    const dp = dLevBuffer;
     const radius = Math.floor(maxDist);
     const outside = Math.max(al, bl) + 1;
 
@@ -67,15 +81,12 @@ export function damerauLevenshteinDistance(a, b, maxDist = Infinity) {
  * @param {string} target - 小写目标文本
  * @param {import('../types').FuzzyOptions} options
  * @param {string[]} subQueries - 预切分的查询子词，避免循环中重复执行正则切分
+ * @param {string[]} [preTokens] - 预切分的目标词元列表
  * @returns {number} 匹配惩罚得分（越小越精确，未匹配返回 Infinity）
  */
-function getFuzzyScore(query, target, options, subQueries) {
-    if (!target.trim()) return Infinity;
-    const rawTokens = target.split(/\s+/);
-    const wordTokens = target.split(/[^\p{L}\p{N}]+/u);
-    const tokens = Array.from(new Set([...rawTokens, ...wordTokens].filter(t => t.length > 0)));
-
-    if (subQueries.length === 0) return Infinity;
+function getFuzzyScore(query, target, options, subQueries, preTokens) {
+    const tokens = preTokens ?? tokenizeSearchText(target);
+    if (tokens.length === 0 || subQueries.length === 0) return Infinity;
 
     let totalDist = 0;
 
@@ -157,14 +168,14 @@ export function rankBookmarkSuggestions(query, model, config, limit = config.MAX
         } else if (tier === Infinity && bmDesc.includes(q)) {
             tier = config.TIERS.DESC_MATCH;
         } else if (tier === Infinity && isFuzzyEligible) {
-            let nameFuzzyScore = getFuzzyScore(q, bmName, config.FUZZY, subQueries);
-            for (const name of alternateNamesLower) {
-                nameFuzzyScore = Math.min(nameFuzzyScore, getFuzzyScore(q, name, config.FUZZY, subQueries));
+            let nameFuzzyScore = getFuzzyScore(q, bmName, config.FUZZY, subQueries, candidate.nameTokens);
+            for (let i = 0; i < alternateNamesLower.length; i++) {
+                nameFuzzyScore = Math.min(nameFuzzyScore, getFuzzyScore(q, alternateNamesLower[i], config.FUZZY, subQueries, candidate.alternateNameTokens?.[i]));
             }
             if (nameFuzzyScore !== Infinity) {
                 tier = config.TIERS.FUZZY_NAME_BASE + nameFuzzyScore;
             } else {
-                const otherFuzzyScore = getFuzzyScore(q, `${normalizedText} ${bmDesc}`, config.FUZZY, subQueries);
+                const otherFuzzyScore = getFuzzyScore(q, `${normalizedText} ${bmDesc}`, config.FUZZY, subQueries, candidate.otherTokens);
                 if (otherFuzzyScore !== Infinity) {
                     tier = config.TIERS.FUZZY_OTHER_BASE + otherFuzzyScore;
                 }

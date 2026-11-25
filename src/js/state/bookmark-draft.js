@@ -5,7 +5,13 @@ import { modalState } from './store.js';
 /** @param {DraftInput} bookmark @param {string} id @returns {import('../types').DraftBookmarkItem} */
 function createDraft(bookmark, id) {
     const { name = '', icon = '', desc, url = '', origUrl = url } = bookmark;
-    const overrides = { ...(bookmark.overrides ?? { name, icon, desc }) };
+    const overrides = {
+        ...(bookmark.overrides ?? {
+            name,
+            ...(icon ? { icon } : {}),
+            ...(desc !== undefined ? { desc } : {})
+        })
+    };
     return {
         id, url, origUrl, overrides,
         get name() { return overrides.name ?? name; },

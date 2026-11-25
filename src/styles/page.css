@@ -353,9 +353,6 @@ html:not(.is-chrome, [data-screen="nav"]) #navSection.nav-hidden .nav-surface {
         overflow-y: hidden;
         -webkit-overflow-scrolling: touch;
         overscroll-behavior-x: contain;
-        flex-direction: row;
-        flex-wrap: nowrap;
-        gap: 0.25rem;
         padding: 0.4rem var(--sidebar-inset);
         -webkit-mask-image: var(--sidebar-mask);
         mask-image: var(--sidebar-mask);
@@ -522,7 +519,7 @@ textarea::placeholder {
     height: 100vh;
     height: 100dvh;
 }
-@media (max-width: 640px) {
+@media (max-width: 639.98px) {
     .bg-fullscreen {
         top: calc(-15px - env(safe-area-inset-top, 0px));
         left: calc(-10px - env(safe-area-inset-left, 0px));
@@ -723,7 +720,6 @@ html[data-screen="nav"] #editBookmarksBtn {
     min-height: 100cqh;
     padding-bottom: var(--nav-bottom-fade);
 }
-body.bookmark-dragging .nav-bookmark,
 body.bookmark-dragging .drag-handle {
     pointer-events: none;
 }

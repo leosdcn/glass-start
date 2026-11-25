@@ -56,11 +56,11 @@
         0 12px 32px -4px rgba(0, 0, 0, 0.35),
         0 0 8px 0 rgba(255, 255, 255, 0.09),
         0 0 20px 1px rgba(255, 255, 255, 0.045);
-    transition: border-color 0.26s var(--ease-spring), box-shadow 0.26s var(--ease-spring);
+    transition: border-color var(--duration-popover) var(--ease-spring), box-shadow var(--duration-popover) var(--ease-spring);
 }
 .search-box-wrapper:has(#searchInput:focus)::after {
     opacity: 1;
-    transition: opacity 0.26s var(--ease-spring);
+    transition: opacity var(--duration-popover) var(--ease-spring);
 }
 .search-box-wrapper.image-dragover {
     outline: 2px dashed rgb(255 255 255 / 75%);

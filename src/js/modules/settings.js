@@ -6,9 +6,8 @@
 import { t, getLocale, getLanguagePreference, resolveLocale } from '../core/i18n.js';
 import { renderEditList, collectEditData } from './bookmark-editor.js';
 import { showConfirm } from '../core/dialogs.js';
-import { CONFIG, IS_MAC } from '../config/constants.js';
-import { DEFAULT_ENGINE } from '../config/engines.js';
-import { escapeHtml, safeUrl } from '../utils/helpers.js';
+import { CONFIG } from '../config/constants.js';
+import { getDefaultEngine } from '../config/engines.js';
 import { normalizeBookmark, normalizeBookmarks, normalizeBookmarkOverrides } from '../utils/bookmark-model.js';
 import { storageGet, storageSet, storageRemove } from '../utils/storage.js';
 import { IMAGE_CACHE_PREFIX, scopedCachePrefix, isScopedCache } from '../utils/offline-cache.js';
@@ -16,61 +15,14 @@ import { state, modalState, pageData } from '../state/store.js';
 import { replaceBookmarkDraft } from '../state/bookmark-draft.js';
 import { dom } from '../state/dom.js';
 import { OverlayStack } from '../core/overlay-stack.js';
-import { flushWallpaperSelection, prepareWallpaperDraft, getCommittedWallpaperUrl, closeWallpaperDraft, pauseWallpaperDraft, showWallpaperDraft, updateWallpaperStatusUI, updatePresetBgCardsUI, resetWallpaperSettings, commitWallpaperSelection, revertDraftWallpaper, applyBgEffects, flushBgEffects, getSavedMaskOpacity, commitWallpaperDimming, showWallpaperError, previewDraftWallpaper, discardWallpaperDraftSelection } from './wallpaper.js';
-import { loadBookmarks, saveUserBookmarks, resetUserBookmarks, getImportedBookmarks } from './bookmarks.js';
+import { applyBgEffects, flushBgEffects } from '../core/wallpaper-renderer.js';
+import { flushWallpaperSelection, prepareWallpaperDraft, getCommittedWallpaperUrl, closeWallpaperDraft, pauseWallpaperDraft, showWallpaperDraft, updateWallpaperStatusUI, updatePresetBgCardsUI, resetWallpaperSettings, commitWallpaperSelection, revertDraftWallpaper, getSavedMaskOpacity, commitWallpaperDimming, showWallpaperError, previewDraftWallpaper, discardWallpaperDraftSelection } from './wallpaper.js';
+import { loadBookmarks, saveUserBookmarks, resetUserBookmarks, getImportedBookmarks, getBookmarkRevision } from './bookmarks.js';
 import { cancelSearchSubmission, closeDropdown, hideSuggestions, setEngine } from './search.js';
 import { getTransitionMode, syncTransitionSwitcherActive, setTransitionMode, resetNavDiscovery } from '../core/screen-state.js';
 import { cancelDragSort } from './bookmark-drag.js';
 import { closeBookmarkPicker } from './bookmark-picker.js';
 import { resetWeather } from './weather.js';
-import { getCategoryIconHTML } from '../utils/favicon.js';
-
-/** @type {Record<string, string>} */
-const KBD = {
-    'kbd-any': `<kbd class="kbd-badge">${escapeHtml(t('ui.any.character.key'))}</kbd>`,
-    'kbd-slash': IS_MAC ? '<kbd>⌘</kbd><kbd>/</kbd>' : '<kbd>Ctrl</kbd><kbd>/</kbd>',
-    'kbd-bg': IS_MAC ? '<kbd>⌘</kbd><kbd>B</kbd>' : '<kbd>Ctrl</kbd><kbd>B</kbd>',
-    'kbd-newtab': IS_MAC ? '<kbd>⌘</kbd><kbd>↵</kbd>' : '<kbd>Alt</kbd><kbd>↵</kbd>',
-    'kbd-tab': IS_MAC ? '<kbd>Tab</kbd><span class="text-white/35 text-2xs select-none">/</span><kbd>⇧ Tab</kbd>' : '<kbd>Tab</kbd><span class="text-white/35 text-2xs select-none">/</span><kbd>Shift+Tab</kbd>'
-};
-
-function renderShortcutModalList() {
-    const container = dom.shortcutModalList;
-    if (!container || container.hasChildNodes()) return;
-    container.innerHTML = CONFIG.SHORTCUTS.map(sec => `
-        <div class="flex flex-col">
-            <h4 class="text-xs font-semibold text-white/80 mb-2 px-1 flex items-center select-none">${escapeHtml(sec.group)}</h4>
-            <div class="flex-1 flex flex-col justify-between">
-                ${sec.items.map(item => `
-                    <div class="shortcut-row">
-                        <span class="text-white/85 text-xs select-none">${escapeHtml(item.desc)}</span>
-                        <span class="keycap shrink-0">${item.kbdId ? (KBD[item.kbdId] || `<kbd>${escapeHtml(item.fallback || '')}</kbd>`) : (item.rawHtml || '')}</span>
-                    </div>
-                `).join('')}
-            </div>
-        </div>
-    `).join('');
-}
-
-function renderCreditsModalList() {
-    const container = dom.creditsList;
-    if (!container || container.hasChildNodes()) return;
-    container.innerHTML = CONFIG.CREDITS.map(item => `
-        <div class="py-3 first:pt-1 last:pb-1 flex items-center justify-between gap-3">
-            <div class="flex items-center gap-2.5 min-w-0">
-                <span class="size-5 shrink-0 select-none flex items-center justify-center">${getCategoryIconHTML(item.icon, 'size-4.5')}</span>
-                <div class="truncate">
-                    <div class="font-medium text-white/90 truncate">${escapeHtml(item.name)}</div>
-                    <div class="text-2xs text-white/55 truncate mt-0.5">${escapeHtml(item.desc)}</div>
-                </div>
-            </div>
-            <a href="${safeUrl(item.url)}" target="_blank" rel="noopener noreferrer" class="shrink-0 text-2xs px-2.5 py-1 rounded-md bg-white/8 hover:bg-white/15 border border-white/12 hover:border-white/20 text-white/80 hover:text-white glass-interactive flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" title="${escapeHtml(t('credits.license', { name: item.name }))}">
-                ${escapeHtml(item.license)}
-                <svg class="size-2.5 opacity-70" aria-hidden="true"><use href="#icon-external"/></svg>
-            </a>
-        </div>
-    `).join('');
-}
 
 /** @typedef {ReturnType<typeof readCommittedSettings>} SettingsBaseline */
 /** @type {{ initial?: SettingsBaseline, baseline?: SettingsBaseline, bookmarkRevision?: string } | null} */
@@ -118,12 +70,16 @@ let settingsTabsList = null;
 let settingsPanelsList = null;
 
 function getSettingsPanels() {
-    if (!settingsPanelsList) settingsPanelsList = Array.from(document.querySelectorAll('.settings-tab-panel'));
+    if (!settingsPanelsList || !settingsPanelsList.every(el => el.isConnected)) {
+        settingsPanelsList = Array.from(document.querySelectorAll('.settings-tab-panel'));
+    }
     return settingsPanelsList;
 }
 
 export function getSettingsTabs() {
-    if (!settingsTabsList) settingsTabsList = Array.from(document.querySelectorAll('.settings-tab-btn'));
+    if (!settingsTabsList || !settingsTabsList.every(el => el.isConnected)) {
+        settingsTabsList = Array.from(document.querySelectorAll('.settings-tab-btn'));
+    }
     return settingsTabsList;
 }
 
@@ -212,23 +168,36 @@ export async function openEditModal(invoker) {
     setEditPhase('opening');
     const trigger = invoker ?? document.activeElement;
     const isCurrent = () => editSession === session;
-    await prepareWallpaperDraft(isCurrent);
-    if (!isCurrent()) return;
-    session.bookmarkRevision = loadBookmarks();
-    const committed = session.initial = session.baseline = readCommittedSettings();
-    const { bookmarks, ...draft } = committed;
-    Object.assign(modalState, draft);
-    syncLanguageUI();
-    syncTransitionSwitcherActive(modalState.draftTransitionMode);
-    closeLanguageModal();
+    try {
+        await prepareWallpaperDraft(isCurrent);
+        if (!isCurrent()) return;
+        session.bookmarkRevision = loadBookmarks();
+        const committed = session.initial = session.baseline = readCommittedSettings();
+        const { bookmarks, ...draft } = committed;
+        Object.assign(modalState, draft);
+        syncLanguageUI();
+        syncTransitionSwitcherActive(modalState.draftTransitionMode);
+        closeLanguageModal();
 
-    replaceBookmarkDraft(bookmarks);
-    switchSettingsTab('tabBookmarks');
-    renderEditList();
-    updateWallpaperStatusUI(modalState.draftWallpaper);
-    applyBgEffects(modalState.draftMaskOpacity ?? CONFIG.APPEARANCE.DEFAULT_MASK_OPACITY);
-    setEditPhase('editing');
-    OverlayStack.push('editModal', cancelEditModal, trigger);
+        replaceBookmarkDraft(bookmarks);
+        switchSettingsTab('tabBookmarks');
+        renderEditList();
+        updateWallpaperStatusUI(modalState.draftWallpaper);
+        applyBgEffects(modalState.draftMaskOpacity ?? CONFIG.APPEARANCE.DEFAULT_MASK_OPACITY);
+        setEditPhase('editing');
+        if (!OverlayStack.push('editModal', cancelEditModal, trigger)) {
+            closeWallpaperDraft();
+            editSession = null;
+            setEditPhase('closed');
+        }
+    } catch (err) {
+        console.error('Failed to open settings:', err);
+        if (isCurrent()) {
+            closeWallpaperDraft();
+            editSession = null;
+            setEditPhase('closed');
+        }
+    }
 }
 
 export function cancelEditModal() {
@@ -301,33 +270,6 @@ export function submitWallpaperUrlInput() {
         return;
     }
     previewDraftWallpaper(imageUrl.href);
-}
-
-export function openShortcutModal(trigger = document.activeElement) {
-    const modal = dom.shortcutModal;
-    if (!modal) return;
-    renderShortcutModalList();
-    hideSuggestions();
-    OverlayStack.push('shortcutModal', closeShortcutModal, trigger);
-}
-
-export function closeShortcutModal() {
-    const modal = dom.shortcutModal;
-    if (!modal) return;
-    OverlayStack.pop('shortcutModal');
-}
-
-export function openCreditsModal(trigger = document.activeElement) {
-    const modal = dom.creditsModal;
-    if (!modal) return;
-    renderCreditsModalList();
-    OverlayStack.push('creditsModal', closeCreditsModal, trigger);
-}
-
-export function closeCreditsModal() {
-    const modal = dom.creditsModal;
-    if (!modal) return;
-    OverlayStack.pop('creditsModal');
 }
 
 /**
@@ -441,7 +383,7 @@ export function importBookmarksJSON(file) {
 }
 
 /** 确认后重置；发生部分失败时，让未改动的字段跟随最新提交基线。 */
-export function resetBookmarks() {
+export function resetAllSettings() {
     const session = editSession;
     if (!session?.baseline || modalState.phase !== 'editing') return;
     const isCurrent = () => editSession === session;
@@ -474,7 +416,7 @@ export function resetBookmarks() {
             ];
             const committed = session.baseline = readCommittedSettings();
             document.documentElement.dataset.transitionMode = committed.draftTransitionMode;
-            setEngine(storageGet(CONFIG.KEYS.PREFERRED_ENGINE, DEFAULT_ENGINE), false);
+            setEngine(storageGet(CONFIG.KEYS.PREFERRED_ENGINE, getDefaultEngine()), false);
             if (outcomes.includes(false)) {
                 rebaseDraft(before, committed);
                 showConfirm(t('ui.some.settings.could.not.be.cleared'), null, t('ui.reset.incomplete'));
@@ -561,7 +503,14 @@ export async function saveEditModal() {
             const saved = await commit();
             if (!isCurrent()) return;
             if (saved === 'conflict') {
-                showConfirm(t('settings.bookmarkConflict'), null, t('ui.could.not.save'));
+                showConfirm(t('settings.bookmarkConflict'), () => {
+                    if (!isCurrent()) return;
+                    session.bookmarkRevision = getBookmarkRevision();
+                    saveEditModal();
+                }, t('ui.could.not.save'), {
+                    tone: 'neutral',
+                    okText: t('settings.overwriteBookmarks')
+                });
                 return;
             }
             if (!saved) {

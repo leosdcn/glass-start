@@ -84,11 +84,7 @@ export function updateGlassTint(tintRgbStr) {
 }
 
 export function syncWallpaperTheme() {
-    if (currentWallpaperTheme && currentWallpaperTheme.color) {
-        updateThemeColor(currentWallpaperTheme.color, currentWallpaperTheme.isLight, currentWallpaperTheme.themeColor);
-    } else {
-        updateThemeColor(APP_THEME_DARK.color, false, '#546272');
-    }
+    updateThemeColor(currentWallpaperTheme.color, currentWallpaperTheme.isLight, currentWallpaperTheme.themeColor);
 }
 
 /**

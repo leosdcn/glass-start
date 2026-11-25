@@ -1,8 +1,14 @@
 /** 双屏交互边界：到顶保护、连续输入、动画互斥与零动画完成。 */
 import assert from 'node:assert/strict';
+import { test } from 'node:test';
 import { launchSession, waitFor } from './support/helpers.mjs';
 
+test('双屏交互边界与动画完成套件', async t => {
 const { server, chrome, send, evalJS } = await launchSession();
+t.after(async () => {
+    await chrome.close();
+    await server.close();
+});
 const settled = target => waitFor(evalJS, `state.currentSection === '${target}' && !isScreenTransitioning()`);
 const idle = () => evalJS('new Promise(resolve => setTimeout(resolve, CONFIG.GESTURE.WHEEL_IDLE_MS + 40))');
 const wheel = (delta, extra = '') => evalJS(`document.dispatchEvent(new WheelEvent('wheel', { deltaY:${delta}, cancelable:true, ${extra} }))`);
@@ -312,3 +318,4 @@ try {
     await chrome.close();
     await server.close();
 }
+});

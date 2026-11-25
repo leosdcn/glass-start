@@ -16,7 +16,7 @@ import { toggleWeatherPopover, closeWeatherPopover, updateWeather } from './modu
 import { updateClock, stopClockTimer } from './modules/clock.js';
 import { checkServiceWorkerUpdate } from './core/service-worker-updates.js';
 import { switchBg } from './modules/wallpaper.js';
-import { openShortcutModal, closeShortcutModal } from './modules/settings.js';
+import { openShortcutModal, closeShortcutModal } from './modules/settings-static-modals.js';
 
 /** @type {AbortController | null} */
 let tabBlurAbortController = null;
@@ -58,9 +58,12 @@ export function handleAppWakeUp() {
     updateWeather(false).catch(() => {});
 }
 
+let eventsBound = false;
+
 export function bindEvents() {
+    if (eventsBound) return;
+    eventsBound = true;
     let waitingForPageShow = false;
-    window.addEventListener('pagehide', event => { waitingForPageShow = event.persisted; }, { passive: true });
     window.addEventListener('storage', event => {
         const keys = CONFIG.KEYS;
         if (event.storageArea === localStorage && (event.key === null || event.key === keys.BOOKMARKS ||
@@ -90,14 +93,25 @@ export function bindEvents() {
         if (!OverlayStack.has('suggestions') && !searchInput?.contains(target)) cancelSuggestionRequest();
         OverlayStack.closeOutsidePanels(target);
     }, { capture: true });
+    const handleTabBlur = () => {
+        cancelDragSort();
+        document.body.classList.add('tab-blurred');
+        attachTabBlurListeners();
+    };
     // 切到新标签页时保留候选，回到原页后可继续打开其他结果。
     window.addEventListener('blur', () => {
         closeDropdown();
         closeWeatherPopover();
-    });
+        handleTabBlur();
+    }, { passive: true });
+    window.addEventListener('pagehide', event => {
+        waitingForPageShow = event.persisted;
+        handleTabBlur();
+    }, { passive: true });
 
     /** @param {MouseEvent} e */
     const handleLinkClickFeedback = (e) => {
+        if (e.type === 'auxclick' && e.button !== 1) return;
         const targetEl = e.target instanceof Element ? e.target : null;
         const link = /** @type {HTMLElement|null} */ (targetEl?.closest('a[target="_blank"], .bookmark-item, .nav-bookmark'));
         if (link) {
@@ -105,7 +119,6 @@ export function bindEvents() {
             const isBackgroundOpen = e.metaKey || e.ctrlKey || e.button === 1;
             if (!isBackgroundOpen) {
                 link.classList.add('is-clicked');
-                link.style.transform = '';
                 document.body.classList.add('tab-blurred');
                 attachTabBlurListeners();
                 const clearClicked = () => {
@@ -121,14 +134,6 @@ export function bindEvents() {
     };
     document.addEventListener('click', handleLinkClickFeedback, { passive: true });
     document.addEventListener('auxclick', handleLinkClickFeedback, { passive: true });
-
-    const handleTabBlur = () => {
-        cancelDragSort();
-        document.body.classList.add('tab-blurred');
-        attachTabBlurListeners();
-    };
-    window.addEventListener('blur', handleTabBlur, { passive: true });
-    window.addEventListener('pagehide', handleTabBlur, { passive: true });
 
     dom.navHint?.addEventListener('click', switchToStart);
 

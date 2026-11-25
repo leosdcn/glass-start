@@ -1,10 +1,12 @@
 import assert from 'node:assert/strict';
+import { test } from 'node:test';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { DIST_DIR, startServer } from './support/server.mjs';
 import { launchChrome } from './support/cdp.mjs';
 import { createEvaluator, waitFor } from './support/helpers.mjs';
 
+test('Service Worker 升级、缓存校验与断网重载集成套件', async t => {
 const source = readFileSync(join(DIST_DIR, 'sw.js'), 'utf8');
 const builtVersion = readFileSync(join(DIST_DIR, 'index.html'), 'utf8').match(/__GLASS_BUILD_HTML__="([^"]+)"/)[1];
 let version = 101, failApp = false, failWallpaper = false, mismatch = false, offline = false;
@@ -281,3 +283,4 @@ const update = async () => evalJS(`(async () => {
   if (chrome) await chrome.close().catch(() => {});
   if (server) await server.close().catch(() => {});
 }
+});

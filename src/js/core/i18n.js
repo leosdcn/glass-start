@@ -37,7 +37,7 @@ export function t(key, params) {
         key = `cache.${typeof window !== 'undefined' && window.__GLASS_EXTENSION__ ? 'extension' : 'web'}.${key.slice(6)}`;
     }
     const context = typeof window !== 'undefined' ? window.__GLASS_I18N__ : undefined;
-    let message = context?.messages[context.locale]?.[key] ?? context?.messages.en?.[key] ?? key;
+    let message = context?.messages?.[context.locale]?.[key] ?? context?.messages?.en?.[key] ?? key;
     if (typeof message !== 'string') {
         const locale = context?.locale ?? 'zh-CN';
         let rules = pluralRulesByLocale.get(locale);
@@ -97,7 +97,7 @@ export function formatDate(date, options = clockDateFormat) {
 /** @param {unknown} code */
 export function weatherDescription(code) {
     return typeof code === 'number' && Number.isInteger(code) && code >= 0 && code <= 99
-        && typeof window !== 'undefined' && window.__GLASS_I18N__?.messages.en[`weather.code.${code}`]
+        && typeof window !== 'undefined' && window.__GLASS_I18N__?.messages?.en?.[`weather.code.${code}`]
         ? t(`weather.code.${code}`) : t('weather.unknown');
 }
 

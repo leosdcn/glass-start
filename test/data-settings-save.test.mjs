@@ -1,8 +1,10 @@
 import assert from 'node:assert/strict';
+import { test } from 'node:test';
 import { createEvaluator, launchSession, waitFor, sleep } from './support/helpers.mjs';
 import { connectCDP } from './support/cdp.mjs';
 import { FAVICON_CACHE } from '../src/js/utils/offline-cache.js';
 
+test('设置保存、冲突控制、缓存清理与重置恢复集成套件', async t => {
 let releaseWallpaper;
 const { server, chrome, send, evalJS, cdpPort } = await launchSession(0, {
   '/late-wallpaper.png': (_req, res) => {
@@ -12,6 +14,11 @@ const { server, chrome, send, evalJS, cdpPort } = await launchSession(0, {
     res.writeHead(200, {'Content-Type': 'application/javascript', 'Cache-Control': 'no-store'});
     res.end("self.addEventListener('install', () => self.skipWaiting());");
   }
+});
+t.after(async () => {
+  releaseWallpaper?.();
+  await chrome.close();
+  await server.close();
 });
 try {
   assert.equal(await evalJS(`(async () => {
@@ -350,27 +357,29 @@ try {
           await loading.promise;
         } finally { HTMLImageElement.prototype.decode = decode; }
       }
-      window.__resetTransaction = IDBDatabase.prototype.transaction;
-      window.__releaseReset = null;
-      IDBDatabase.prototype.transaction = function(...args) {
-        const tx = __resetTransaction.apply(this, args);
-        if (args[1] === 'readwrite') {
-          IDBDatabase.prototype.transaction = __resetTransaction;
-          for (const eventName of ('${phase}' === 'abort' ? ['abort', 'error'] : ['complete'])) {
-            Object.defineProperty(tx, 'on' + eventName, {set(callback) {
-              tx.addEventListener(eventName, event => { __releaseReset = () => callback(event); });
-            }});
-          }
-          if ('${phase}' === 'abort') {
-            tx.objectStore(CONFIG.IDB.STORES.WALLPAPERS).get(CONFIG.IDB.KEYS.SELECTION)
-              .onsuccess = () => tx.abort();
-          }
-        }
-        return tx;
-      };
-      resetBookmarks(); dom.confirmOkBtn.click();
     })()`);
     try {
+      await evalJS(`(() => {
+        window.__resetTransaction = IDBDatabase.prototype.transaction;
+        window.__releaseReset = null;
+        IDBDatabase.prototype.transaction = function(...args) {
+          const tx = __resetTransaction.apply(this, args);
+          if (args[1] === 'readwrite') {
+            IDBDatabase.prototype.transaction = __resetTransaction;
+            for (const eventName of ('${phase}' === 'abort' ? ['abort', 'error'] : ['complete'])) {
+              Object.defineProperty(tx, 'on' + eventName, {set(callback) {
+                tx.addEventListener(eventName, event => { __releaseReset = () => callback(event); });
+              }});
+            }
+            if ('${phase}' === 'abort') {
+              tx.objectStore(CONFIG.IDB.STORES.WALLPAPERS).get(CONFIG.IDB.KEYS.SELECTION)
+                .onsuccess = () => tx.abort();
+            }
+          }
+          return tx;
+        };
+        resetAllSettings(); dom.confirmOkBtn.click();
+      })()`);
       await waitFor(evalJS, 'typeof __releaseReset === "function"');
       const result = await evalJS(`(async () => {
         const locked = modalState.phase === 'committing' && dom.saveEditBtn.disabled && dom.cancelEditBtn.disabled
@@ -380,7 +389,7 @@ try {
         document.dispatchEvent(new KeyboardEvent('keydown', {key:'Escape', bubbles:true}));
         cancelEditModal();
         const stayedOpen = state.editOpen && OverlayStack.top()?.id === 'editModal';
-        await saveEditModal(); resetBookmarks();
+        await saveEditModal(); resetAllSettings();
         const noConcurrentAction = OverlayStack.top()?.id === 'editModal'
           && storageGet(CONFIG.KEYS.MASK_OPACITY) === 37;
         if ('${phase}' === 'stale') {
@@ -446,7 +455,7 @@ try {
       if (key === CONFIG.KEYS.MASK_OPACITY) throw new DOMException('blocked', 'SecurityError');
       return remove.call(this, key);
     };
-    resetBookmarks(); dom.confirmOkBtn.click();
+    resetAllSettings(); dom.confirmOkBtn.click();
   })()`);
   try {
     await waitFor(evalJS, 'OverlayStack.top()?.id === "confirmModal" && modalState.phase !== "committing"');
@@ -468,7 +477,7 @@ try {
       if (key === CONFIG.KEYS.MASK_OPACITY) throw new DOMException('blocked', 'SecurityError');
       return remove.call(this, key);
     };
-    resetBookmarks(); dom.confirmOkBtn.click();
+    resetAllSettings(); dom.confirmOkBtn.click();
   })()`);
   try {
     await waitFor(evalJS, 'OverlayStack.top()?.id === "confirmModal" && modalState.phase === "editing"');
@@ -554,7 +563,7 @@ try {
       if (key === CONFIG.KEYS.BOOKMARKS) throw new DOMException('test quota', 'QuotaExceededError');
       return __originalSetItem.call(this, key, value);
     };
-    resetBookmarks(); dom.confirmOkBtn.click();
+    resetAllSettings(); dom.confirmOkBtn.click();
   })()`);
   try {
     await waitFor(evalJS, `OverlayStack.top()?.id === 'confirmModal' && /部分设置未能清除/.test(dom.confirmMsg.textContent)`);
@@ -632,6 +641,7 @@ try {
   assert.equal(await evalJS(`(() => {
     const warned = dom.confirmMsg.textContent.includes('刷新将丢弃未保存的更改');
     const keys = CacheStorage.prototype.keys;
+    window.restoreCacheKeys = () => { CacheStorage.prototype.keys = keys; };
     CacheStorage.prototype.keys = function() {
       return new Promise(resolve => { window.releaseCacheKeys = () => resolve(keys.call(this)); });
     };
@@ -639,7 +649,11 @@ try {
     dom.cancelEditBtn.click();
     return warned && modalState.phase === 'committing' && dom.tabData.inert && state.editOpen;
   })()`), true);
-  await evalJS('releaseCacheKeys()');
+  try {
+    await evalJS('releaseCacheKeys()');
+  } finally {
+    await evalJS('restoreCacheKeys?.()');
+  }
   await waitFor(evalJS,'window.__cacheClearReloaded === true && typeof state !== "undefined" && !!document.querySelector(".bookmark-item")',10000);
   assert.deepEqual(await evalJS(`(async () => ({
     ownRemoved:!await caches.has('glass-scope-%2F-app-images-app-core-vclear-test'),
@@ -657,7 +671,7 @@ try {
   await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] });
   await evalJS(`(async () => {
     if (state.currentSection === 'nav') switchToStart();
-    await openEditModal(); resetBookmarks(); dom.confirmOkBtn.click();
+    await openEditModal(); resetAllSettings(); dom.confirmOkBtn.click();
   })()`);
   await waitFor(evalJS, '!state.editOpen');
   const hint = `getComputedStyle(document.getElementById('scrollDownHint'))`;
@@ -666,7 +680,7 @@ try {
     switchToNav();
     window.discoveryHidden = ${hint}.visibility === 'hidden' && storageGet(CONFIG.KEYS.NAV_DISCOVERED) === 1;
     switchToStart();
-    await openEditModal(); resetBookmarks(); dom.confirmOkBtn.click();
+    await openEditModal(); resetAllSettings(); dom.confirmOkBtn.click();
   })()`);
   await waitFor(evalJS, '!state.editOpen && !storageGet(CONFIG.KEYS.NAV_DISCOVERED)');
   assert.equal(await evalJS('discoveryHidden'), true);
@@ -751,7 +765,7 @@ try {
     })); void 0;`);
     await waitFor(tab, 'typeof releaseBookmarkResetLock === "function"');
     try {
-      await evalJS('(async () => { await openEditModal(); resetBookmarks(); dom.confirmOkBtn.click(); })()');
+      await evalJS('(async () => { await openEditModal(); resetAllSettings(); dom.confirmOkBtn.click(); })()');
       await waitFor(evalJS, `(async () => modalState.phase === 'committing' &&
         (await getWallpaperSelectionDB())?.bg === 0 &&
         (await navigator.locks.query()).pending.some(lock => lock.name === CONFIG.KEYS.BOOKMARKS))()`);
@@ -785,6 +799,5 @@ try {
   console.log('✅ 设置重置等待书签锁时，其他标签页后保存的壁纸、暗度和首屏提示保持一致');
 } finally {
   releaseWallpaper?.();
-  await chrome.close();
-  await server.close();
 }
+});

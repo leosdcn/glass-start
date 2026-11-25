@@ -144,38 +144,41 @@ export const CONFIG = Object.freeze({
                 MAX_IMPORT_BYTES: 5 * 1024 * 1024, // 书签 JSON 导入文件体积上限 (5 MB)
                 IME_COMPOSITION_KEY_CODE: 229 // Android Chrome 虚拟键盘 IME 组合态 keyCode 兼容防护
             }),
-            // 快捷键列表与致谢信息在模块评估时由 t() 一次性求值并 Object.freeze 固化。
-            // 界面语言切换通过 location.reload() 重载，故无需在运行时做动态响应式订阅。
-            SHORTCUTS: Object.freeze([
-                {
-                    group: t('ui.navigation.and.controls'),
-                    items: [
-                        { desc: t('ui.open.or.close.keyboard.shortcuts'), kbdId: 'kbd-slash', fallback: '⌘ /' },
-                        { desc: t('ui.cycle.preset.wallpapers'), kbdId: 'kbd-bg', fallback: '⌘ B' },
-                        { desc: t('ui.go.to.bookmark.directory'), rawHtml: '<kbd>↓</kbd><span class="text-white/35 text-2xs select-none">/</span><kbd>PgDn</kbd>' },
-                        { desc: t('ui.return.to.start.page'), rawHtml: '<kbd>↑</kbd><span class="text-white/35 text-2xs select-none">/</span><kbd>PgUp</kbd><span class="text-white/35 text-2xs select-none">/</span><kbd>Home</kbd>' },
-                        { desc: t('ui.close.dialog.or.clear.focus'), rawHtml: '<kbd>Esc</kbd>' }
-                    ]
-                },
-                {
-                    group: t('ui.search.and.actions'),
-                    items: [
-                        { desc: t('ui.start.typing.to.search'), kbdId: 'kbd-any', fallback: '' },
-                        { desc: t('ui.select.a.suggestion.or.bookmark'), rawHtml: '<kbd>↑</kbd><kbd>↓</kbd>' },
-                        { desc: t('ui.search.or.open.selected.bookmark'), rawHtml: '<kbd>Enter</kbd>' },
-                        { desc: t('ui.open.search.in.a.new.tab'), kbdId: 'kbd-newtab', fallback: '⌘ ↵' },
-                        { desc: t('ui.move.focus.within.dialog'), kbdId: 'kbd-tab', fallback: 'Tab / ⇧ Tab' }
-                    ]
-                }
-            ]),
-            CREDITS: Object.freeze([
-                { icon: './icons/emoji/framed_picture.svg', name: t('ui.preset.wallpapers'), desc: t('ui.selected.2.5k.photography.from.unsplash'), url: 'https://unsplash.com/license', license: t('ui.unsplash.license') },
-                { icon: './icons/emoji/grinning.svg', name: t('ui.open.source.emoji'), desc: t('ui.consistent.vector.emoji.from.twemoji'), url: 'https://github.com/jdecked/twemoji/blob/main/LICENSE-GRAPHICS', license: 'CC-BY 4.0' },
-                { icon: './icons/emoji/sun_behind_small_cloud.svg', name: t('ui.weather.data'), desc: t('ui.global.weather.and.geocoding.by.open'), url: 'https://open-meteo.com/en/licence', license: 'CC-BY 4.0' },
-                { icon: './icons/emoji/jigsaw.svg', name: t('ui.interface.icons'), desc: t('ui.heroicons.by.tailwind.labs'), url: 'https://github.com/tailwindlabs/heroicons/blob/master/LICENSE', license: t('ui.mit.license') },
-                { icon: './icons/emoji/palette.svg', name: t('ui.styles.and.design'), desc: t('ui.utility.first.styling.with.tailwind.css'), url: 'https://github.com/tailwindlabs/tailwindcss/blob/main/LICENSE', license: t('ui.mit.license') },
-                { icon: './icons/emoji/zap.svg', name: t('ui.build.tools'), desc: t('ui.fast.bundling.and.minification.with.esbuild'), url: 'https://github.com/evanw/esbuild/blob/main/LICENSE.md', license: t('ui.mit.license') }
-            ])
+            // 快捷键列表与致谢信息通过 getter 按需读取 t()，避免模块求值期固化未翻译文本。
+            get SHORTCUTS() {
+                return [
+                    {
+                        group: t('ui.navigation.and.controls'),
+                        items: [
+                            { desc: t('ui.open.or.close.keyboard.shortcuts'), kbdId: 'kbd-slash', fallback: '⌘ /' },
+                            { desc: t('ui.cycle.preset.wallpapers'), kbdId: 'kbd-bg', fallback: '⌘ B' },
+                            { desc: t('ui.go.to.bookmark.directory'), rawHtml: '<kbd>↓</kbd><span class="text-white/35 text-2xs select-none">/</span><kbd>PgDn</kbd>' },
+                            { desc: t('ui.return.to.start.page'), rawHtml: '<kbd>↑</kbd><span class="text-white/35 text-2xs select-none">/</span><kbd>PgUp</kbd><span class="text-white/35 text-2xs select-none">/</span><kbd>Home</kbd>' },
+                            { desc: t('ui.close.dialog.or.clear.focus'), rawHtml: '<kbd>Esc</kbd>' }
+                        ]
+                    },
+                    {
+                        group: t('ui.search.and.actions'),
+                        items: [
+                            { desc: t('ui.start.typing.to.search'), kbdId: 'kbd-any', fallback: '' },
+                            { desc: t('ui.select.a.suggestion.or.bookmark'), rawHtml: '<kbd>↑</kbd><kbd>↓</kbd>' },
+                            { desc: t('ui.search.or.open.selected.bookmark'), rawHtml: '<kbd>Enter</kbd>' },
+                            { desc: t('ui.open.search.in.a.new.tab'), kbdId: 'kbd-newtab', fallback: '⌘ ↵' },
+                            { desc: t('ui.move.focus.within.dialog'), kbdId: 'kbd-tab', fallback: 'Tab / ⇧ Tab' }
+                        ]
+                    }
+                ];
+            },
+            get CREDITS() {
+                return [
+                    { icon: './icons/emoji/framed_picture.svg', name: t('ui.preset.wallpapers'), desc: t('ui.selected.2.5k.photography.from.unsplash'), url: 'https://unsplash.com/license', license: t('ui.unsplash.license') },
+                    { icon: './icons/emoji/grinning.svg', name: t('ui.open.source.emoji'), desc: t('ui.consistent.vector.emoji.from.twemoji'), url: 'https://github.com/jdecked/twemoji/blob/main/LICENSE-GRAPHICS', license: 'CC-BY 4.0' },
+                    { icon: './icons/emoji/sun_behind_small_cloud.svg', name: t('ui.weather.data'), desc: t('ui.global.weather.and.geocoding.by.open'), url: 'https://open-meteo.com/en/licence', license: 'CC-BY 4.0' },
+                    { icon: './icons/emoji/jigsaw.svg', name: t('ui.interface.icons'), desc: t('ui.heroicons.by.tailwind.labs'), url: 'https://github.com/tailwindlabs/heroicons/blob/master/LICENSE', license: t('ui.mit.license') },
+                    { icon: './icons/emoji/palette.svg', name: t('ui.styles.and.design'), desc: t('ui.utility.first.styling.with.tailwind.css'), url: 'https://github.com/tailwindlabs/tailwindcss/blob/main/LICENSE', license: t('ui.mit.license') },
+                    { icon: './icons/emoji/zap.svg', name: t('ui.build.tools'), desc: t('ui.fast.bundling.and.minification.with.esbuild'), url: 'https://github.com/evanw/esbuild/blob/main/LICENSE.md', license: t('ui.mit.license') }
+                ];
+            }
         });
 
 // 引擎名称、协议与 SVG 首屏注入共用同一份元数据；运行时依赖首屏阻塞脚本注入的 window.__ENGINE_SVGS__。

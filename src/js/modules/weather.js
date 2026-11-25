@@ -121,63 +121,68 @@ async function resolveWeatherLocation(locCache, force, signal) {
 /**
  * @param {number} now
  * @param {AbortSignal} signal
+ * @returns {Promise<import('../types').WeatherLocation | null>}
+ */
+async function resolveZhIpLocation(now, signal) {
+    try {
+        const ipData = await fetchJsonWithTimeout('https://myip.ipip.net/json', CONFIG.WEATHER.TIMEOUT_IP, signal);
+        if (ipData?.ret !== 'ok' || !Array.isArray(ipData.data?.location)) return null;
+
+        const locArr = ipData.data.location;
+        const country = locArr[0] || '中国';
+        const province = locArr[1] || '';
+        const rawCity = locArr[2] || locArr[3] || province;
+        const cleanCity = stripAdminSuffix(rawCity);
+        const cleanProv = stripAdminSuffix(province, true);
+        if (!cleanCity) return null;
+
+        const queryName = (cleanCity === cleanProv && !rawCity.endsWith('省')) ? `${cleanCity}市` : cleanCity;
+        const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(queryName)}&language=zh&count=10`;
+        const geoData = await fetchJsonWithTimeout(geoUrl, CONFIG.WEATHER.TIMEOUT_IP, signal);
+        const results = geoData?.results || [];
+        let matched = results.find((/** @type {import('../types').GeocodingResultItem} */ r) => {
+            const matchCountry = !country || (r.country && (r.country.includes(country) || country.includes(r.country)));
+            const matchProv = !cleanProv || (r.admin1 && (r.admin1.includes(cleanProv) || cleanProv.includes(r.admin1))) || (r.name && r.name.includes(cleanProv));
+            return matchCountry && matchProv;
+        });
+
+        if (!matched && cleanProv && cleanProv !== cleanCity) {
+            try {
+                const provUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cleanProv)}&language=zh&count=5`;
+                const provData = await fetchJsonWithTimeout(provUrl, CONFIG.WEATHER.TIMEOUT_IP, signal);
+                if (provData?.results?.[0]) matched = provData.results[0];
+            } catch {}
+        }
+
+        if (!matched && results.length > 0) matched = results[0];
+        if (!matched) return null;
+
+        const dispName = (matched.name || cleanCity).replace(/(市|区|县)$/, '') || matched.name || cleanCity;
+        const fullName = formatLocationFullName([matched.country || country, matched.admin1 || province, matched.admin2, matched.name || cleanCity]);
+        const resolved = {
+            name: dispName,
+            fullName,
+            lat: matched.latitude,
+            lon: matched.longitude,
+            isAuto: true,
+            language: getLocale(),
+            timestamp: now
+        };
+        return hasWeatherCoordinates(resolved) ? resolved : null;
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * @param {number} now
+ * @param {AbortSignal} signal
  * @returns {Promise<import('../types').WeatherLocation>}
  */
 async function executeResolveWeatherLocation(now, signal) {
-
     if (getLocale() !== 'en') {
-        try {
-            const ipData = await fetchJsonWithTimeout('https://myip.ipip.net/json', CONFIG.WEATHER.TIMEOUT_IP, signal);
-            if (ipData?.ret === 'ok' && Array.isArray(ipData.data?.location)) {
-                const locArr = ipData.data.location;
-                const country = locArr[0] || '中国';
-                const province = locArr[1] || '';
-                const rawCity = locArr[2] || locArr[3] || province;
-                const cleanCity = stripAdminSuffix(rawCity);
-                const cleanProv = stripAdminSuffix(province, true);
-
-                if (cleanCity) {
-                    try {
-                        const queryName = (cleanCity === cleanProv && !rawCity.endsWith('省')) ? `${cleanCity}市` : cleanCity;
-                        const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(queryName)}&language=zh&count=10`;
-                        const geoData = await fetchJsonWithTimeout(geoUrl, CONFIG.WEATHER.TIMEOUT_IP, signal);
-                        const results = geoData?.results || [];
-                        let matched = results.find((/** @type {import('../types').GeocodingResultItem} */ r) => {
-                            const matchCountry = !country || (r.country && (r.country.includes(country) || country.includes(r.country)));
-                            const matchProv = !cleanProv || (r.admin1 && (r.admin1.includes(cleanProv) || cleanProv.includes(r.admin1))) || (r.name && r.name.includes(cleanProv));
-                            return matchCountry && matchProv;
-                        });
-
-                        if (!matched && cleanProv && cleanProv !== cleanCity) {
-                            try {
-                                const provUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cleanProv)}&language=zh&count=5`;
-                                const provData = await fetchJsonWithTimeout(provUrl, CONFIG.WEATHER.TIMEOUT_IP, signal);
-                                if (provData?.results?.[0]) {
-                                    matched = provData.results[0];
-                                }
-                            } catch {}
-                        }
-
-                        if (!matched && results.length > 0) matched = results[0];
-
-                        if (matched) {
-                            const dispName = (matched.name || cleanCity).replace(/(市|区|县)$/, '') || matched.name || cleanCity;
-                            const fullName = formatLocationFullName([matched.country || country, matched.admin1 || province, matched.admin2, matched.name || cleanCity]);
-                            const resolved = {
-                                name: dispName,
-                                fullName: fullName,
-                                lat: matched.latitude,
-                                lon: matched.longitude,
-                                isAuto: true,
-                                language: getLocale(),
-                                timestamp: now
-                            };
-                            if (hasWeatherCoordinates(resolved)) return resolved;
-                        }
-                    } catch {}
-                }
-            }
-        } catch {}
+        const zhLocation = await resolveZhIpLocation(now, signal);
+        if (zhLocation) return zhLocation;
     }
 
     try {
@@ -190,7 +195,7 @@ async function executeResolveWeatherLocation(now, signal) {
             const fullName = formatLocationFullName([data.country, data.region, data.city]);
             const resolved = {
                 name: dispName,
-                fullName: fullName,
+                fullName,
                 lat: data.latitude,
                 lon: data.longitude,
                 isAuto: true,
@@ -223,10 +228,7 @@ function toggleTempUnit() {
     /** @type {'C' | 'F'} */
     let unit = getWeatherTempUnit();
     const nextUnit = unit === 'F' ? 'C' : 'F';
-    try {
-        localStorage.setItem(CONFIG.KEYS.TEMP_UNIT, nextUnit);
-        unit = nextUnit;
-    } catch {}
+    if (storageSet(CONFIG.KEYS.TEMP_UNIT, nextUnit)) unit = nextUnit;
     const data = currentWeatherData || readWeatherCache();
     if (data) displayWeather(data, unit);
 }
@@ -253,7 +255,7 @@ function mountWeatherView(popover) {
                     <span data-weather-location class="text-xs font-semibold text-white/90 truncate"></span>
                 </div>
                 <button id="weatherRefreshBtn" type="button" class="group size-7 apple-radius bg-white/5 hover:bg-white/15 text-white flex items-center justify-center glass-interactive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 shrink-0 aria-disabled:opacity-40 aria-disabled:cursor-not-allowed aria-disabled:pointer-events-none" title="${escapeHtml(t('ui.refresh.weather'))}" aria-label="${escapeHtml(t('ui.refresh.weather'))}">
-                    <svg class="size-3.5 pointer-events-none opacity-70 group-hover:opacity-100" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>
+                    <svg class="size-3.5 pointer-events-none opacity-70 group-hover:opacity-100" aria-hidden="true"><use href="#icon-refresh"/></svg>
                 </button>
             </div>
             <div class="flex items-center justify-between gap-3 mb-3 px-1">
@@ -534,6 +536,8 @@ async function executeWeatherUpdate(cache, locCache, force, signal) {
             if (weatherCity) weatherCity.textContent = t('ui.no.data');
             renderWeatherError();
         }
+    } finally {
+        provisional.abort();
     }
 }
 
@@ -544,7 +548,7 @@ let popoverEventsBound = false;
  * @param {MouseEvent} e
  */
 function handleWeatherPopoverClick(e) {
-    const target = /** @type {HTMLElement | null} */ (e.target instanceof HTMLElement ? e.target : null);
+    const target = e.target instanceof Element ? e.target : null;
     if (!target) return;
 
     const unitBtn = /** @type {HTMLElement | null} */ (target.closest('#tempUnitToggleBtn'));

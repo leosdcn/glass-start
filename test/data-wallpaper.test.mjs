@@ -470,8 +470,8 @@ test('壁纸共享加载、图片复用与失败重试', async () => {
   } finally {
     try {
       await evalJS(`(() => {
-        Object.defineProperty(HTMLImageElement.prototype, 'decode', reuseDecodeDescriptor);
-        Object.defineProperty(HTMLImageElement.prototype, 'src', reuseSrcDescriptor);
+        if (window.reuseDecodeDescriptor) Object.defineProperty(HTMLImageElement.prototype, 'decode', reuseDecodeDescriptor);
+        if (window.reuseSrcDescriptor) Object.defineProperty(HTMLImageElement.prototype, 'src', reuseSrcDescriptor);
       })()`);
     } finally {
       await chrome.close();

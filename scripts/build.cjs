@@ -264,7 +264,7 @@ function processProductionHtml(compiledCss, targetDir, { version: buildVersion, 
         marker: '/* INJECT_ENGINE_ICONS */',
         entryPath: path.join(PATHS.src, 'js', 'config', 'engine-head.js'),
         globalName: '__headEngines',
-        binding: 'const { ENGINE_SVGS, ENGINE_META, DEFAULT_ENGINE, PREFERRED_ENGINE_KEY, normalizeEngine } = __headEngines;'
+        binding: 'const { ENGINE_SVGS, ENGINE_META, getDefaultEngine, PREFERRED_ENGINE_KEY, normalizeEngine } = __headEngines;'
     });
     prodHtmlContent = injectHeadConfig(injectThemeConfig(prodHtmlContent), {
         marker: '/* INJECT_WEATHER_CAPSULE */',
@@ -294,6 +294,7 @@ function processProductionHtml(compiledCss, targetDir, { version: buildVersion, 
 
         // 压缩所有 <script> 块
         html = html.replace(/<script([^>]*)>([\s\S]*?)<\/script>/gi, (match, attrs, content) => {
+            if (/\bsrc\s*=/i.test(attrs) && !content.trim()) return match;
             if (/type=["']application\/ld\+json["']/i.test(attrs)) {
                 try {
                     return `<script${attrs}>${JSON.stringify(JSON.parse(content))}</script>`;
@@ -312,9 +313,10 @@ function processProductionHtml(compiledCss, targetDir, { version: buildVersion, 
     // 压缩 HTML 注释与空白，保留 style / script 内容边界。
     function minifyHtml(htmlStr) {
         htmlStr = htmlStr.replace(/<!--(?!\[if)[\s\S]*?-->/g, '');
-        const parts = htmlStr.split(/(<(?:style|script)[\s\S]*?<\/(?:style|script)>)/i);
-        const minified = parts.map(part => {
-            if (/^<(?:style|script)/i.test(part)) return part;
+        const parts = htmlStr.split(/(<(style|script)\b[\s\S]*?<\/\2>)/i);
+        const minified = parts.map((part, index) => {
+            if (!part || index % 3 === 2) return '';
+            if (/^<(?:style|script)\b/i.test(part)) return part;
             return part.replace(/\s+/g, ' ').replace(/>\s+</g, '><').trim();
         }).join('');
         return minified.trim();
@@ -419,8 +421,8 @@ function retainPreviousWebScript(targetDir, previousDir) {
 }
 
 // 主构建入口流程
-/** @param {{ testSnapshotDir?: string }} [options] */
-async function main({ testSnapshotDir } = {}) {
+/** @param {{ testSnapshotDir?: string, snapshotOnlyDir?: string }} [options] */
+async function main({ testSnapshotDir, snapshotOnlyDir } = {}) {
     const startTime = Date.now();
 
     console.log(`\n${c.cyan}${HR_DOUBLE}${c.reset}`);
@@ -445,18 +447,27 @@ async function main({ testSnapshotDir } = {}) {
     try {
         const compiledCss = await compileTailwindCss();
         let items;
-        publishWebBuild(PATHS.dist, staging => {
-            const { version, uploads } = executeBuild(staging, compiledCss);
-            if (testSnapshotDir) {
-                fs.cpSync(staging, path.join(testSnapshotDir, 'dist'), {
-                    recursive: true, mode: fs.constants.COPYFILE_FICLONE
-                });
-                buildAppJavaScript({ testMode: true, version, outfile: path.join(testSnapshotDir, 'app.test.js'), uploads });
-            }
-        }, (staging, previous) => {
-            retainPreviousWebScript(staging, previous);
-            items = describeDist(staging);
-        });
+        if (snapshotOnlyDir) {
+            const snapshotDist = path.join(snapshotOnlyDir, 'dist');
+            fs.rmSync(snapshotDist, { recursive: true, force: true });
+            fs.mkdirSync(snapshotDist, { recursive: true });
+            const { version, uploads } = executeBuild(snapshotDist, compiledCss);
+            buildAppJavaScript({ testMode: true, version, outfile: path.join(snapshotOnlyDir, 'app.test.js'), uploads });
+            items = describeDist(snapshotDist);
+        } else {
+            publishWebBuild(PATHS.dist, staging => {
+                const { version, uploads } = executeBuild(staging, compiledCss);
+                if (testSnapshotDir) {
+                    fs.cpSync(staging, path.join(testSnapshotDir, 'dist'), {
+                        recursive: true, mode: fs.constants.COPYFILE_FICLONE
+                    });
+                    buildAppJavaScript({ testMode: true, version, outfile: path.join(testSnapshotDir, 'app.test.js'), uploads });
+                }
+            }, (staging, previous) => {
+                retainPreviousWebScript(staging, previous);
+                items = describeDist(staging);
+            });
+        }
         printDistSummary(startTime, items);
     } catch (err) {
         console.error(`\n  ${c.yellow}❌ 构建失败:${c.reset}\n`, err.message || err);
@@ -490,8 +501,12 @@ function startWatch({ label = 'Watch', delay = 80 } = {}) {
 
 if (require.main === module) {
     const snapshotArg = process.argv.find(arg => arg.startsWith('--test-snapshot='));
+    const snapshotOnlyArg = process.argv.find(arg => arg.startsWith('--snapshot-only='));
     ensureSignalHandlers();
-    main({ testSnapshotDir: snapshotArg?.slice('--test-snapshot='.length) }).then(() => {
+    main({
+        testSnapshotDir: snapshotArg?.slice('--test-snapshot='.length),
+        snapshotOnlyDir: snapshotOnlyArg?.slice('--snapshot-only='.length)
+    }).then(() => {
         if (process.argv.includes('--watch')) startWatch();
     });
 }

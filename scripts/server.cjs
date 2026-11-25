@@ -6,37 +6,19 @@ const { exec, spawn, spawnSync } = require('child_process');
 const os = require('os');
 const zlib = require('zlib');
 const { createHash } = require('node:crypto');
-const { Readable } = require('node:stream');
+const { Readable, pipeline } = require('node:stream');
 const { main: runFullBuild, startWatch } = require('./build.cjs');
 
 // 终端格式化排版与 ANSI 彩色工具
 const { c, LINE_WIDTH, HR_DOUBLE } = require('./terminal.cjs');
+
+const { MIME_TYPES } = require('./mime-types.cjs');
 
 let targetPort = parseInt(process.env.PORT || '3000', 10);
 const testSnapshotDir = process.env.GLASS_TEST_TMPDIR;
 const DIST_DIR = testSnapshotDir ? path.join(testSnapshotDir, 'dist') : path.join(__dirname, '..', 'dist');
 const enableWatch = !testSnapshotDir && !process.argv.includes('--no-watch') && process.env.NO_WATCH !== '1';
 const isolatedPreview = process.argv.includes('--isolated');
-
-const MIME_TYPES = {
-    '.html': 'text/html; charset=utf-8',
-    '.js': 'text/javascript; charset=utf-8',
-    '.css': 'text/css; charset=utf-8',
-    '.json': 'application/json; charset=utf-8',
-    '.png': 'image/png',
-    '.jpg': 'image/jpeg',
-    '.jpeg': 'image/jpeg',
-    '.webp': 'image/webp',
-    '.avif': 'image/avif',
-    '.gif': 'image/gif',
-    '.svg': 'image/svg+xml',
-    '.ico': 'image/x-icon',
-    '.woff2': 'font/woff2',
-    '.woff': 'font/woff',
-    '.ttf': 'font/ttf',
-    '.txt': 'text/plain; charset=utf-8',
-    '.webmanifest': 'application/manifest+json; charset=utf-8'
-};
 
 async function openStaticFile(root, relativePath) {
     let file;
@@ -125,7 +107,14 @@ async function handleStaticRequest(req, res) {
         try {
             const urlRaw = req.url || '/';
             const pathname = urlRaw.split('?')[0];
-            let reqPath = decodeURIComponent(pathname);
+            let reqPath;
+            try {
+                reqPath = decodeURIComponent(pathname);
+            } catch {
+                res.writeHead(400, { 'Content-Type': 'text/plain; charset=utf-8' });
+                res.end('400 Bad Request');
+                return;
+            }
             if (reqPath === '/' || reqPath === '') {
                 reqPath = '/index.html';
             }
@@ -215,20 +204,24 @@ async function handleStaticRequest(req, res) {
             const encoding = isCompressible ? selectCompression(req.headers['accept-encoding'] ?? '') : null;
 
             const rawStream = body ? Readable.from([body]) : file.createReadStream();
-            res.on('close', () => rawStream.destroy());
-            rawStream.on('error', () => {
-                if (!res.headersSent) res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
-                res.end('404 Not Found');
-            });
-
-            streamPiped = true;
+            const streams = [rawStream];
             if (encoding) {
                 res.setHeader('Content-Encoding', encoding);
                 const compress = encoding === 'gzip' ? zlib.createGzip : zlib.createDeflate;
-                rawStream.pipe(compress({ level: 6 })).pipe(res);
-            } else {
-                rawStream.pipe(res);
+                streams.push(compress({ level: 6 }));
             }
+            streams.push(res);
+
+            streamPiped = true;
+            pipeline(streams, err => {
+                if (!err) return;
+                if (!res.headersSent) {
+                    res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+                    res.end('404 Not Found');
+                } else {
+                    res.destroy();
+                }
+            });
         } catch (error) {
             if (asset?.file && !streamPiped) {
                 try { await asset.file.close(); } catch {}
@@ -316,7 +309,10 @@ function openIsolatedPreview(url) {
     }
 }
 
+let exiting = false;
 function cleanupAndExit() {
+    if (exiting) return;
+    exiting = true;
     if (activeServer) {
         try { activeServer.closeAllConnections?.(); } catch {}
         try { activeServer.close(); } catch {}
@@ -344,10 +340,10 @@ function cleanupAndExit() {
         }, 100);
     }, 1500).unref();
 }
-process.on('SIGINT', cleanupAndExit);
-process.on('SIGTERM', cleanupAndExit);
-process.on('SIGHUP', cleanupAndExit);
-process.on('disconnect', cleanupAndExit);
+process.once('SIGINT', cleanupAndExit);
+process.once('SIGTERM', cleanupAndExit);
+process.once('SIGHUP', cleanupAndExit);
+process.once('disconnect', cleanupAndExit);
 process.on('exit', () => {
     killPreviewBrowser('SIGKILL');
     removePreviewProfile();
@@ -416,7 +412,7 @@ function startListening(requestedPort) {
     });
 
     server.on('error', (/** @type {NodeJS.ErrnoException} */ err) => {
-        if (err.code === 'EADDRINUSE') {
+        if (err.code === 'EADDRINUSE' && requestedPort < 65535) {
             console.warn(`  ${c.yellow}⚠️ 端口 ${requestedPort} 已被占用，正在尝试端口 ${requestedPort + 1}...${c.reset}`);
             startListening(requestedPort + 1);
         } else {

@@ -20,6 +20,8 @@ const { outputFiles } = await build({
             contents: `export function applyWallpaper(url){rendered.push(url)}
                 export function getPreparedWallpaperImage(){return null}
                 export function setWallpaperDimming(){}
+                export function applyBgEffects(){}
+                export function flushBgEffects(){}
                 export function captureWallpaperFrame(){return null}
                 export function restoreWallpaperFrame(){}`
         }));
@@ -32,13 +34,20 @@ const { outputFiles } = await build({
 function fixture() {
     const timers = new Map(), readers = [], images = [], writes = [], rendered = [], messages = [];
     let timerId = 0, htmlWrites = 0, canvasCount = 0;
+    const allowedWeatherSelectors = new Set([
+        '[data-weather-status]', '[data-weather-data]', '[data-weather-location]',
+        '[data-weather-icon]', '#tempUnitToggleBtn', '[data-weather-current]',
+        '[data-weather-range]', '[data-weather-stats]', '[data-weather-forecast]'
+    ]);
     const weatherParts = new Map();
     const popover = {
         innerHTML: '',
         querySelector(selector) {
+            assert.ok(allowedWeatherSelectors.has(selector), `Unexpected weather selector: ${selector}`);
             if (!weatherParts.has(selector)) {
                 let html = '';
                 weatherParts.set(selector, {
+                    hidden: false,
                     get innerHTML() { return html; },
                     set innerHTML(value) {
                         html = value;
@@ -87,7 +96,14 @@ function fixture() {
     const app = context.module.exports;
     return { context, app, timers, readers, images, writes, rendered, messages, wallpaperError,
         showPopover() { app.OverlayStack.stack.push({ id: 'weatherPopover' }); },
-        get html() { return Array.from(weatherParts.values(), part => part.innerHTML + (part.textContent ?? '')).join(''); }, get htmlWrites() { return htmlWrites; } };
+        get html() {
+            const bodyHidden = weatherParts.get('[data-weather-data]')?.hidden;
+            return Array.from(weatherParts.entries(), ([selector, part]) => {
+                if (part.hidden) return '';
+                if (bodyHidden && selector !== '[data-weather-status]') return '';
+                return part.innerHTML + (part.textContent ?? '');
+            }).join('');
+        }, get htmlWrites() { return htmlWrites; } };
 }
 const drain = async () => { for (let i = 0; i < 12; i++) await Promise.resolve(); };
 
@@ -148,9 +164,12 @@ test('旧地点预报失败时继续等待重新定位，并发布新地点预�
     context.localStorage.setItem(app.CONFIG.KEYS.WEATHER_CACHE, JSON.stringify({ location: old, timestamp: 1, current: { temp: 12 }, daily: [] }));
     let locate;
     const forecasts = [];
-    context.fetch = async url => {
+    context.fetch = async (url, options) => {
         if (url.includes('myip.ipip.net')) return { ok: false, status: 503 };
-        if (url.includes('ipwho.is')) return new Promise(resolve => { locate = resolve; });
+        if (url.includes('ipwho.is')) return new Promise((resolve, reject) => {
+            locate = resolve;
+            options?.signal?.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')), { once: true });
+        });
         const latitude = new URL(url).searchParams.get('latitude');
         forecasts.push(latitude);
         return latitude === '1' ? { ok: false, status: 503 }

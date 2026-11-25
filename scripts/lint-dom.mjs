@@ -133,7 +133,7 @@ export function inspectDOMSources(sources, overlayPath, typesSource) {
             }
         });
     }
-    const interfaceBody = typesSource.match(/export\s+interface\s+DOMCache\s*\{([\s\S]*?)\n\}/)?.[1] || '';
+    const interfaceBody = typesSource.match(/export\s+interface\s+DOMCache\s*\{([\s\S]*?)\n\s*\}/)?.[1] || '';
     const typedIds = new Set([...interfaceBody.matchAll(/^\s*(?:([\w$-]+)|['"]([^'"]+)['"])\??\s*:/gm)].map(match => match[1] || match[2]));
     return { cachedReferences, typedIds, visibilityViolations };
 }

@@ -3,12 +3,8 @@ import { isUsableWeatherData, getWeatherTempUnit } from './weather-data.js';
 import { storageGet } from './storage.js';
 import { renderWeatherCapsuleView } from './weather-view.js';
 
-export function renderCachedWeatherCapsule() {
+/** @param {Parameters<typeof renderWeatherCapsuleView>[0]} elements */
+export function renderCachedWeatherCapsule(elements) {
     const cached = storageGet(WEATHER_CACHE_KEY);
-    renderWeatherCapsuleView({
-        weatherIcon: document.getElementById('weatherIcon'),
-        weatherTemp: document.getElementById('weatherTemp'),
-        weatherCity: document.getElementById('weatherCity'),
-        weatherBtn: document.getElementById('weatherBtn')
-    }, isUsableWeatherData(cached) ? cached : null, getWeatherTempUnit());
+    renderWeatherCapsuleView(elements, isUsableWeatherData(cached) ? cached : null, getWeatherTempUnit());
 }

@@ -97,7 +97,7 @@ const START_COMPONENTS = {
   engineBtn: '#engineBtn',
   weatherWidget: '#weatherWidget',
   weatherBtn: '#weatherBtn',
-  bookmarksNav: 'nav[aria-label="快捷书签"]',
+  bookmarksNav: 'nav:has(> #bookmarks)',
   bookmarks: '#bookmarks',
   editBookmarksBtn: '#editBookmarksBtn',
   scrollDownHint: '#scrollDownHint',

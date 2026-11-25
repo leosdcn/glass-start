@@ -66,6 +66,7 @@
     <link rel="dns-prefetch" href="https://myip.ipip.net">
     <link rel="dns-prefetch" href="https://geocoding-api.open-meteo.com">
     <link rel="dns-prefetch" href="https://api.open-meteo.com">
+    <link rel="dns-prefetch" href="https://ipwho.is">
     <!-- 根据视口、DPR 与保存的偏好预加载壁纸；IDB 图片等待应用恢复。 -->
     <script>
       (function() {
@@ -155,7 +156,7 @@
         /* 引擎图标与元数据由 config/engine-head.js 注入。 */
         /* INJECT_ENGINE_ICONS */
         window.__ENGINE_SVGS__ = ENGINE_SVGS;
-        let engine = DEFAULT_ENGINE;
+        let engine = getDefaultEngine();
         try {
           engine = normalizeEngine(JSON.parse(localStorage.getItem(PREFERRED_ENGINE_KEY)));
         } catch (e) {}
@@ -201,8 +202,9 @@
         <div id="updateNotice" class="hidden select-none max-w-[calc(50%-1.5rem)] w-max">
             <button id="updateReloadBtn" type="button" aria-expanded="false" aria-controls="confirmModal" aria-haspopup="dialog" class="glass apple-radius px-3 py-1.5 sm:px-3.5 sm:py-2 text-white/80 enabled:hover:text-white border border-white/12 flex items-center justify-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-medium cursor-pointer glass-interactive max-w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:opacity-50 disabled:cursor-wait">
                 <svg class="size-4 sm:size-4.5 shrink-0" aria-hidden="true"><use href="#icon-arrow-up-circle"/></svg>
-                <span id="updateNoticeText" role="status" aria-live="polite" class="truncate tracking-tight leading-normal" data-i18n="ui.update.available">有新版本</span>
+                <span id="updateNoticeText" class="truncate tracking-tight leading-normal" data-i18n="ui.update.available">有新版本</span>
             </button>
+            <span role="status" aria-live="polite" class="sr-only" data-i18n="ui.update.available"></span>
         </div>
 
         <!-- 右上角天气胶囊，随起始页一起切屏。 -->
@@ -211,7 +213,7 @@
                 <span id="weatherIcon" aria-hidden="true" class="text-sm sm:text-base leading-none select-none flex items-center justify-center"></span>
                 <span id="weatherTemp" class="tabular-nums font-semibold tracking-tight leading-none">--°</span>
                 <span aria-hidden="true" class="text-white/30 font-light select-none">·</span>
-                <span id="weatherCity" class="text-white/80 max-w-22 sm:max-w-30 truncate text-[0.6875rem] sm:text-xs tracking-[-0.012em]" data-i18n="ui.weather">天气</span>
+                <span id="weatherCity" class="text-white/80 max-w-22 sm:max-w-30 truncate text-2xs-plus sm:text-xs tracking-[-0.012em]" data-i18n="ui.weather">天气</span>
             </button>
             <!-- 下拉天气预报卡片 -->
             <div id="weatherPopover" role="dialog" aria-modal="false" aria-label="实时天气详细预报" inert aria-hidden="true" class="dropdown-menu absolute p-3.5 sm:p-4 glass-strong apple-radius border border-white/20 shadow-2xl z-[var(--z-dropdown)] select-none" data-i18n-aria-label="ui.current.weather.and.forecast"></div>
@@ -219,7 +221,12 @@
         <script>
             (function(){
                 /* INJECT_WEATHER_CAPSULE */
-                renderCachedWeatherCapsule();
+                renderCachedWeatherCapsule({
+                    weatherIcon: document.getElementById('weatherIcon'),
+                    weatherTemp: document.getElementById('weatherTemp'),
+                    weatherCity: document.getElementById('weatherCity'),
+                    weatherBtn: document.getElementById('weatherBtn')
+                });
             })();
         </script>
         <div id="startContent" class="flex h-full flex-col items-center">
@@ -227,7 +234,7 @@
             <div class="shrink-0 text-center clock-text mb-10 md:mb-14 select-none">
                 <time id="clock" datetime="00:00" class="text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-clock tracking-tight tabular-nums block">00<span class="clock-colon mx-0.5 sm:mx-1">:</span>00</time>
                 <div id="date" class="text-xs sm:text-sm md:text-base mt-3.5 sm:mt-4 md:mt-5 text-white/75 font-normal uppercase drop-shadow-sm min-h-[1.5em]">&nbsp;</div>
-                <script>(function(){const n=new Date();const c=document.getElementById('clock');const d=document.getElementById('date');if(c){const h=String(n.getHours()).padStart(2,'0');const m=String(n.getMinutes()).padStart(2,'0');c.innerHTML=`${h}<span class="clock-colon mx-0.5 sm:mx-1">:</span>${m}`;c.setAttribute('datetime',`${h}:${m}`);}if(d){d.textContent=window.__GLASS_I18N__.formatDate(n);}})()</script>
+                <script>(function(){const n=new Date();const c=document.getElementById('clock');const d=document.getElementById('date');if(c){const h=String(n.getHours()).padStart(2,'0');const m=String(n.getMinutes()).padStart(2,'0');c.innerHTML=`${h}<span class="clock-colon mx-0.5 sm:mx-1">:</span>${m}`;c.setAttribute('datetime',`${h}:${m}`);}if(d){const formatted=window.__GLASS_I18N__?.formatDate?.(n);if(formatted)d.textContent=formatted;}})()</script>
             </div>
 
             <!-- 搜索框 -->
@@ -250,7 +257,7 @@
                                 }
                                 const button = document.getElementById('engineBtn');
                                 const name = document.getElementById('engineName');
-                                if (button) button.setAttribute('aria-label', window.__GLASS_I18N__.t('engine.current', {name: engine.name}));
+                                if (button) button.setAttribute('aria-label', window.__GLASS_I18N__?.t?.('engine.current', {name: engine.name}) || engine.name);
                                 if (name && name.textContent !== engine.name) name.textContent = engine.name;
                             })();
                         </script>
@@ -272,7 +279,7 @@
                 <p id="imageSearchStatus" role="status" class="pointer-events-none absolute inset-x-0 top-full mt-2 px-2 text-sm text-rose-200"></p>
             </form>
             <form hidden method="post" enctype="multipart/form-data">
-                <input id="imageSearchInput" type="file" accept="image/*">
+                <input id="imageSearchInput" type="file" accept="image/*" aria-label="以图搜图" data-i18n-aria-label="ui.search.by.image">
             </form>
             <iframe id="lensUploadFrame" title="Google Lens" hidden srcdoc="&lt;!doctype html&gt;&lt;meta name='referrer' content='no-referrer'&gt;&lt;form method='post' enctype='multipart/form-data' target='_top'&gt;&lt;/form&gt;"></iframe>
 
@@ -283,7 +290,7 @@
         </div>
 
         <!-- 向下滚动提示，首次进入导航页后隐藏。 -->
-        <div id="scrollDownHint" class="absolute bottom-4 md:bottom-7 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5 text-white/50 text-xs font-medium tracking-[0.25em] pointer-events-none hint-down select-none fade-in entrance-delay-2">
+        <div id="scrollDownHint" class="absolute left-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5 text-white/50 text-xs font-medium tracking-[0.25em] pointer-events-none hint-down select-none fade-in entrance-delay-2">
             <span data-i18n="ui.explore.below">向下探索</span>
             <span class="scroll-hint inline-flex" aria-hidden="true"><svg class="size-5" aria-hidden="true"><use href="#icon-chevron-down"/></svg></span>
         </div>
@@ -303,7 +310,7 @@
                 <!-- 页面顶部导航栏 -->
                 <header id="navHeader" class="flex items-center justify-between px-5 py-2.5 border-b border-white/10 bg-transparent shrink-0 select-none">
                     <div class="flex items-center gap-2 pointer-events-none select-none">
-                        <svg class="size-4 text-white/85 shrink-0" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z"/></svg>
+                        <svg class="size-4 text-white/85 shrink-0" aria-hidden="true"><use href="#icon-grid"/></svg>
                         <h2 class="text-xs sm:text-sm font-semibold tracking-wide text-white/95"><span data-i18n="ui.bookmark.directory">分类导航</span></h2>
                     </div>
                     <!-- 右侧返回操作药丸 -->
@@ -316,7 +323,7 @@
                 <!-- 下方主体：左侧分类 + 右侧书签 -->
                 <div class="flex-1 flex flex-col sm:flex-row overflow-hidden min-h-0">
                     <!-- 侧边栏（移动端顶部水平滚动，桌面端左侧垂直滚动） -->
-                    <aside id="sidebar" class="sm:w-28 md:w-32 lg:w-34 shrink-0 p-2 md:p-2.5 sm:pt-3 md:pt-3 overflow-x-auto sm:overflow-y-auto no-scrollbar overscroll-x-contain sm:border-r border-white/8 bg-black/6 sm:bg-gradient-to-b sm:from-black/5 sm:to-black/9 sm:shadow-[inset_-1px_0_0_0_rgba(255,255,255,0.06)]">
+                    <aside id="sidebar" class="sm:w-28 md:w-32 lg:w-34 shrink-0 p-2 md:p-2.5 sm:pt-3 md:pt-3 overflow-x-auto sm:overflow-y-auto overscroll-x-contain sm:border-r border-white/8 bg-black/6 sm:bg-gradient-to-b sm:from-black/5 sm:to-black/9 sm:shadow-[inset_-1px_0_0_0_rgba(255,255,255,0.06)]">
                         <nav aria-label="导航分类" data-i18n-aria-label="ui.bookmark.categories">
                             <div id="sidebarList" class="flex sm:flex-col gap-1"></div>
                         </nav>
@@ -373,7 +380,7 @@
                 <div id="editList" role="list" aria-label="书签列表" class="flex-1 overflow-y-auto space-y-1.5 mb-2.5 min-h-0 pr-1" data-i18n-aria-label="ui.bookmark.list"></div>
                 <div class="grid grid-cols-2 gap-2 sm:gap-2.5 shrink-0">
                     <button id="addBookmarkBtn" type="button" class="settings-action h-9 min-w-0 px-3 glass-interactive text-xs flex items-center justify-center gap-1.5 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"><svg class="size-3.5 shrink-0 opacity-80" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M12 4.5v15m7.5-7.5h-15"/></svg> <span class="min-w-0 leading-tight" data-i18n="ui.add.bookmark">手动添加书签</span></button>
-                    <button id="togglePickerBtn" type="button" aria-expanded="false" aria-controls="bookmarkPicker" aria-haspopup="dialog" class="settings-action h-9 px-3 text-xs glass-interactive flex items-center justify-center gap-1.5 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"><svg class="size-3.5 shrink-0 opacity-80" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M12 9v6m3-3H9m12 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg> <span class="min-w-0 whitespace-normal" data-i18n="ui.choose.from.directory">从导航页批量选择</span></button>
+                    <button id="togglePickerBtn" type="button" aria-expanded="false" aria-controls="bookmarkPicker" aria-haspopup="dialog" class="settings-action h-9 px-3 text-xs glass-interactive flex items-center justify-center gap-1.5 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"><svg class="size-3.5 shrink-0 opacity-80" aria-hidden="true"><use href="#icon-plus-circle"/></svg> <span class="min-w-0 whitespace-normal" data-i18n="ui.choose.from.directory">从导航页批量选择</span></button>
                 </div>
             </div>
 
@@ -436,7 +443,7 @@
                 <div class="appearance-gallery flex flex-col gap-2.5 shrink-0">
                     <div class="flex items-center justify-between shrink-0">
                         <span class="text-xs font-semibold text-white/80 flex items-center gap-1.5">
-                            <svg class="size-4 text-white/60 shrink-0" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z"/></svg> <span data-i18n="ui.wallpaper.collection">精选壁纸</span>
+                            <svg class="size-4 text-white/60 shrink-0" aria-hidden="true"><use href="#icon-grid"/></svg> <span data-i18n="ui.wallpaper.collection">精选壁纸</span>
                         </span>
                         <span id="wallpaperStatus" class="hidden text-2xs text-emerald-400/90 font-medium" data-i18n="ui.custom.wallpaper.active">已使用自定义壁纸</span>
                     </div>
@@ -510,7 +517,7 @@
                                 </p>
                             </div>
                             <button id="clearCacheBtn" type="button" aria-expanded="false" aria-controls="confirmModal" aria-haspopup="dialog" class="settings-action w-full h-9 px-3.5 text-xs font-medium settings-action-muted glass-interactive flex items-center justify-center gap-1.5 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50">
-                                <svg class="size-3.5 shrink-0 opacity-80" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/></svg> <span data-i18n="cache.action">一键刷新 Service Worker 离线缓存</span>
+                                <svg class="size-3.5 shrink-0 opacity-80" aria-hidden="true"><use href="#icon-refresh"/></svg> <span data-i18n="cache.action">一键刷新 Service Worker 离线缓存</span>
                             </button>
                         </div>
 
@@ -547,7 +554,7 @@
         <div class="glass-strong apple-radius pt-4 pb-3 px-4 w-full max-w-2xl xl:max-w-3xl 2xl:max-w-4xl mx-4 max-h-picker-max flex flex-col shadow-2xl">
             <div class="flex items-center justify-between gap-3 mb-3 pb-2 border-b border-white/10 shrink-0">
                 <div class="flex items-center gap-2 min-w-0">
-                    <svg class="size-4.5 text-white/80 shrink-0" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 9v6m3-3H9m12 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>
+                    <svg class="size-4.5 text-white/80 shrink-0" aria-hidden="true"><use href="#icon-plus-circle"/></svg>
                     <h3 class="text-base font-semibold tracking-wide text-white/90 truncate"><span data-i18n="ui.choose.from.directory.2">从导航页选择</span></h3>
                 </div>
                 <span id="pickerCount" class="glass-badge shrink-0" data-i18n="ui.0.bookmarks.added">已添加 0 项</span>
@@ -564,9 +571,7 @@
          class="edit-overlay fixed inset-0 flex items-center justify-center overscroll-contain">
         <div class="glass-strong apple-radius confirm-dialog-card shadow-2xl">
             <div class="confirm-dialog-warning size-11 rounded-full bg-red-500/15 border border-red-500/30 flex items-center justify-center mb-3 text-red-400 shrink-0">
-                <svg class="size-5.5" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-                    <path d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"/>
-                </svg>
+                <svg class="size-5.5" aria-hidden="true"><use href="#icon-warning"/></svg>
             </div>
             <h3 id="confirmTitle" class="text-sm sm:text-base font-semibold text-white/90 mb-1.5"><span data-i18n="ui.reset.bookmarks">重置快捷书签</span></h3>
             <p id="confirmMsg" class="text-xs text-white/65 leading-relaxed mb-5"></p>
@@ -628,15 +633,15 @@
             <div id="languageList" role="radiogroup" aria-label="界面语言" data-i18n-aria-label="language.label" class="flex-1 overflow-y-auto min-h-0 space-y-2 p-1 -m-1 pr-1 text-xs select-none">
                 <button type="button" data-lang="auto" role="radio" aria-checked="true" class="language-modal-item w-full flex items-center justify-between p-3 rounded-xl glass-subcard text-left hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50">
                     <span class="text-sm font-medium text-white/90" data-i18n="language.autoFollow">自动 (跟随浏览器)</span>
-                    <svg class="lang-check size-4 text-white shrink-0 transition-opacity duration-150" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg>
+                    <svg class="lang-check size-4 text-white shrink-0 transition-opacity duration-150" aria-hidden="true"><use href="#icon-check"/></svg>
                 </button>
                 <button type="button" data-lang="zh-CN" role="radio" aria-checked="false" class="language-modal-item w-full flex items-center justify-between p-3 rounded-xl glass-subcard text-left hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50">
                     <span class="text-sm font-medium text-white/90" lang="zh-CN">简体中文</span>
-                    <svg class="lang-check size-4 text-white shrink-0 opacity-0 transition-opacity duration-150" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg>
+                    <svg class="lang-check size-4 text-white shrink-0 opacity-0 transition-opacity duration-150" aria-hidden="true"><use href="#icon-check"/></svg>
                 </button>
                 <button type="button" data-lang="en" role="radio" aria-checked="false" class="language-modal-item w-full flex items-center justify-between p-3 rounded-xl glass-subcard text-left hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50">
                     <span class="text-sm font-medium text-white/90" lang="en">English</span>
-                    <svg class="lang-check size-4 text-white shrink-0 opacity-0 transition-opacity duration-150" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg>
+                    <svg class="lang-check size-4 text-white shrink-0 opacity-0 transition-opacity duration-150" aria-hidden="true"><use href="#icon-check"/></svg>
                 </button>
             </div>
 

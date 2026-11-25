@@ -1,17 +1,16 @@
 import { t, getLocale, localizeBookmarkUrl } from '../core/i18n.js';
 /** 搜索引擎切换、书签分级匹配与网络联想；请求序号隔离迟到响应。 */
-import { rankBookmarkSuggestions } from '../utils/bookmark-search.js';
+import { rankBookmarkSuggestions, tokenizeSearchText } from '../utils/bookmark-search.js';
 import { getCategoryCatalog } from '../utils/category-catalog.js';
 import { bookmarkUrlKey } from '../utils/bookmark-model.js';
 import { CONFIG, DEFAULT_CATEGORIES, engines } from '../config/constants.js';
-import { DEFAULT_ENGINE, IMAGE_SEARCH_LINKS, normalizeEngine } from '../config/engines.js';
+import { getDefaultEngine, IMAGE_SEARCH_LINKS, normalizeEngine } from '../config/engines.js';
 import { escapeHtml, safeUrl } from '../utils/helpers.js';
 import { storageSet } from '../utils/storage.js';
 import { state, pageData } from '../state/store.js';
 import { dom } from '../state/dom.js';
 import { OverlayStack } from '../core/overlay-stack.js';
-
-const IMAGE_SEARCH_UPLOADS = __GLASS_IMAGE_SEARCH_UPLOADS__;
+import { checkImageLink, getImageSearchEngine, uploadImageSearch } from './image-search.js';
 
 /** @type {import('../types').SuggestionItem[]} */
 let suggestionItems = [];
@@ -150,7 +149,7 @@ export function scheduleSuggestions(query) {
 export function renderEngineDropdown() {
     const dropdownMenu = dom.dropdownMenu;
     if (!dropdownMenu) return;
-    const curEngine = state.engine || DEFAULT_ENGINE;
+    const curEngine = state.engine || getDefaultEngine();
     dropdownMenu.innerHTML = Object.entries(engines).map(([key, eng]) => {
         const isChecked = key === curEngine;
         const iconHtml = `<span class="size-5 aspect-square shrink-0 rounded pointer-events-none select-none flex items-center justify-center">${eng.svg}</span>`;
@@ -197,7 +196,7 @@ export function setEngine(key, save = true) {
     if (validEngine !== state.engine) cancelSearchSubmission();
     state.engine = validEngine;
     if (dom.imageSearchStatus) dom.imageSearchStatus.textContent = '';
-    const engineObj = engineMap[validEngine] || engineMap[DEFAULT_ENGINE];
+    const engineObj = engineMap[validEngine] || engineMap[getDefaultEngine()];
     const engineName = dom.engineName;
     const engineBtn = dom.engineBtn;
     const engineIcon = dom.engineIcon;
@@ -234,27 +233,14 @@ function parseSearchLink(query) {
     }
 }
 
-/** @param {string} url */
-function checkImageLink(url) {
-    return new Promise(resolve => {
-        const image = new Image();
-        const finish = (/** @type {boolean} */ isImage) => {
-            clearTimeout(timeout);
-            image.onload = image.onerror = null;
-            image.removeAttribute('src');
-            resolve(isImage);
-        };
-        const timeout = setTimeout(() => finish(false), CONFIG.TIMERS.IMAGE_LINK_CHECK_TIMEOUT);
-        image.onload = () => finish(true);
-        image.onerror = () => finish(false);
-        image.referrerPolicy = 'no-referrer';
-        image.src = url;
-    });
-}
-
-export function getImageSearchEngine() {
-    const engine = state.engine;
-    return engine === 'bing' || engine === 'google' ? engine : DEFAULT_ENGINE;
+/** @param {string} url @param {boolean} newTab */
+function navigateToUrl(url, newTab) {
+    if (newTab) {
+        window.open(url, '_blank', 'noopener,noreferrer');
+    } else {
+        hideSuggestions();
+        window.location.href = url;
+    }
 }
 
 /**
@@ -268,9 +254,7 @@ async function doSearch(submissionId, inputValue, queryOverride, newTab = false)
     const q = (queryOverride ?? inputValue).trim();
     if (!q) return;
     closeDropdown();
-    /** @type {Record<string, { name: string; svg: string; url: string }>} */
-    const engineMap = engines;
-    const engineObj = engineMap[state.engine] || engineMap[DEFAULT_ENGINE];
+    const engineObj = engines[state.engine] || engines[getDefaultEngine()];
     const link = queryOverride === undefined ? parseSearchLink(q) : null;
     let targetUrl = link?.href ?? engineObj.url + encodeURIComponent(q);
     if (link && !link.username && !link.password) {
@@ -289,15 +273,10 @@ async function doSearch(submissionId, inputValue, queryOverride, newTab = false)
         }
     }
     if (!canFinishSearch(submissionId, inputValue)) return;
-    if (newTab) {
-        window.open(targetUrl, '_blank', 'noopener,noreferrer');
-    } else {
-        hideSuggestions();
-        window.location.href = targetUrl;
-    }
+    navigateToUrl(targetUrl, newTab);
 }
 
-/** @param {keyof typeof IMAGE_SEARCH_UPLOADS} engine @param {HTMLInputElement} input */
+/** @param {'bing' | 'google'} engine @param {HTMLInputElement} input */
 export async function submitImageSearch(engine, input) {
     const file = input.files?.[0];
     if (!file) return;
@@ -306,86 +285,7 @@ export async function submitImageSearch(engine, input) {
     input.value = '';
     const isCurrent = () => canFinishSearch(submissionId, inputValue);
     if (!isCurrent()) return;
-    // Lens 的跨站上传需要省略来源，独立表单文档只对该上传应用 no-referrer。
-    const form = engine === 'google' ? dom.lensUploadFrame?.contentDocument?.forms[0] : input.form;
-    const reportError = () => {
-        if (!isCurrent()) return;
-        if (dom.imageSearchStatus) dom.imageSearchStatus.textContent = t('engine.upload.error');
-    };
-    if (!form || !file.size) {
-        reportError();
-        return;
-    }
-
-    const action = new URL(IMAGE_SEARCH_UPLOADS[engine].url);
-    /** @param {Record<string, string | File>} fields */
-    const submit = fields => {
-        if (!isCurrent()) return;
-        const controls = Object.entries(fields).map(([name, value]) => {
-            const field = form.ownerDocument.createElement('input');
-            field.name = name;
-            if (typeof value === 'string') {
-                field.type = 'hidden';
-                field.value = value;
-            } else {
-                field.type = 'file';
-                const transfer = new DataTransfer();
-                transfer.items.add(value);
-                field.files = transfer.files;
-            }
-            return field;
-        });
-        try {
-            form.action = action.href;
-            form.append(...controls);
-            form.submit();
-        } finally {
-            controls.forEach(field => field.remove());
-        }
-    };
-
-    let url;
-    try {
-        if (engine === 'google') {
-            action.searchParams.set('hl', getLocale());
-            action.searchParams.set('st', String(Date.now()));
-            if (file.type.startsWith('image/')) {
-                submit({ encoded_image: file });
-                return;
-            }
-        }
-        // 拖入的文件可能没有图片 MIME。交给浏览器解码，也支持仅由 viewBox 定义尺寸的 SVG。
-        url = URL.createObjectURL(file);
-        const image = new Image();
-        image.src = url;
-        await image.decode();
-        if (!isCurrent()) return;
-        if (engine === 'google') {
-            submit({ encoded_image: file });
-            return;
-        }
-        // 与 Bing 网页端一样缩小大图并用白底 JPEG 编码。
-        const { naturalWidth, naturalHeight } = image;
-        const { maxPixels, jpegQuality } = IMAGE_SEARCH_UPLOADS.bing;
-        const scale = Math.min(1, Math.sqrt(maxPixels / (naturalWidth * naturalHeight)));
-        const canvas = document.createElement('canvas');
-        canvas.width = Math.max(1, Math.floor(naturalWidth * scale));
-        canvas.height = Math.max(1, Math.floor(naturalHeight * scale));
-        const context = canvas.getContext('2d', { alpha: false });
-        if (!context) {
-            reportError();
-            return;
-        }
-        context.fillStyle = '#fff';
-        context.fillRect(0, 0, canvas.width, canvas.height);
-        context.drawImage(image, 0, 0, canvas.width, canvas.height);
-        const imageBin = canvas.toDataURL('image/jpeg', jpegQuality).split(',', 2)[1];
-        submit({ cbir: 'sbi', imageBin });
-    } catch {
-        reportError();
-    } finally {
-        if (url) URL.revokeObjectURL(url);
-    }
+    await uploadImageSearch(engine, input, file, isCurrent);
 }
 
 /**
@@ -401,7 +301,7 @@ function openBookmarkUrl(url, newTab = false) {
         console.warn('⚠️ 拦截高危伪协议书签 URL:', trimmed);
         return;
     }
-    if (!/^(https?:|\/|\.\/|#)/i.test(trimmed)) {
+    if (!/^(https?:\/\/|\/(?!\/)|\.\/|#)/i.test(trimmed)) {
         if (/^[\w.-]+\.[a-z]{2,}(:\d+)?(\/.*)?$/i.test(trimmed)) {
             trimmed = 'https://' + trimmed;
         } else {
@@ -410,12 +310,7 @@ function openBookmarkUrl(url, newTab = false) {
         }
     }
     closeDropdown();
-    if (newTab) {
-        window.open(trimmed, '_blank', 'noopener,noreferrer');
-    } else {
-        hideSuggestions();
-        window.location.href = trimmed;
-    }
+    navigateToUrl(trimmed, newTab);
 }
 
 /** @type {import('../types').SearchCandidateModel | null} */
@@ -449,15 +344,21 @@ function getSearchCandidates() {
         if (seenNormUrls.has(normUrl)) return;
         seenNormUrls.add(normUrl);
         const nameLower = (bm.name || '').toLowerCase();
+        const alternateNamesLower = presetNamesByUrl.get(normUrl)?.filter(name => name !== nameLower);
+        const descLower = (bm.desc || '').toLowerCase();
+        const cleanUrl = normUrl.toLowerCase().replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '');
         candidates.push({
             bm,
             normUrl,
             defaultCat,
             nameLower,
-            alternateNamesLower: presetNamesByUrl.get(normUrl)?.filter(name => name !== nameLower),
-            descLower: (bm.desc || '').toLowerCase(),
+            nameTokens: tokenizeSearchText(nameLower),
+            alternateNamesLower,
+            alternateNameTokens: alternateNamesLower?.map(tokenizeSearchText),
+            descLower,
             urlLower: (bm.url || '').toLowerCase(),
-            cleanUrl: normUrl.toLowerCase().replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')
+            cleanUrl,
+            otherTokens: tokenizeSearchText(`${cleanUrl} ${descLower}`)
         });
     };
     for (const bm of pageData.bookmarks) {
@@ -702,7 +603,10 @@ function fetchSuggestionsForQuery(engineKey, query, deferNetwork, queryKey) {
 
     const start = () => {
         suggestDebounceTimer = null;
-        if (OverlayStack.topModal()) return;
+        if (OverlayStack.topModal()) {
+            suggestionQueryKey = null;
+            return;
+        }
         renderSuggestions(localList, [], deferNetwork || preserveSelection, true);
         requestNetworkSuggestions(engineKey, query, cacheKey, localList, reqId);
     };

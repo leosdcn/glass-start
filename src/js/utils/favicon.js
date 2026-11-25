@@ -12,7 +12,7 @@ import { FAVICON_CACHE } from './offline-cache.js';
  * @returns {string} HTML 字符串
  */
 export function createLetterBadgeHtml(initial, sizeClass = 'icon-box-sm', textClass = 'text-2xs font-semibold') {
-    return `<div class="icon-box ${sizeClass} bg-white/15 border border-white/20 text-white/90 ${textClass} pointer-events-none select-none">${escapeHtml(initial)}</div>`;
+    return `<div class="icon-box ${escapeHtml(sizeClass)} bg-white/15 border border-white/20 text-white/90 ${escapeHtml(textClass)} pointer-events-none select-none">${escapeHtml(initial)}</div>`;
 }
 
 /**
@@ -109,7 +109,10 @@ export function getFaviconHTML(bm, sizeType = 'sm', deferLoad = false) {
 export function getCategoryIconHTML(icon, sizeClass = 'size-4') {
     if (!icon) return '';
     if (typeof icon === 'string' && (icon.startsWith('./') || icon.startsWith('/') || icon.endsWith('.svg') || icon.endsWith('.png') || icon.endsWith('.webp'))) {
-        return `<img src="${safeUrl(icon)}" class="${sizeClass} shrink-0 object-contain select-none pointer-events-none inline-block align-middle" alt="" aria-hidden="true" decoding="async">`;
+        const safe = safeUrl(icon);
+        if (safe !== '#') {
+            return `<img src="${safe}" class="${escapeHtml(sizeClass)} shrink-0 object-contain select-none pointer-events-none inline-block align-middle" alt="" aria-hidden="true" decoding="async">`;
+        }
     }
     return escapeHtml(icon);
 }

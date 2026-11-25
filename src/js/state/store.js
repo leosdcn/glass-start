@@ -1,13 +1,13 @@
 /**
  * 全局内存状态与数据存储
  */
-import { DEFAULT_ENGINE } from '../config/engines.js';
+import { getDefaultEngine } from '../config/engines.js';
 
 // 运行时状态：由调用方显式更新并触发渲染（按偏好、路由、UI 控制与壁纸分组）
 /** @type {import('../types').AppState} */
 export const state = {
     // 用户偏好
-    engine: DEFAULT_ENGINE,  // 当前激活的搜索引擎 key，对应 engines 对象的键名
+    engine: getDefaultEngine(),  // 当前激活的搜索引擎 key，对应 engines 对象的键名
     // 路由与可见视图
     currentSection: 'start',  // 当前可见屏：'start'（起始页）或 'nav'（导航页）
     // UI 交互与弹窗

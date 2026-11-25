@@ -92,7 +92,7 @@ const tsc = join(rootDir, 'node_modules/typescript/bin/tsc');
 const tasks = ['tsconfig.json', 'tsconfig.sw.json'].map(config =>
   runProcess([tsc, '--project', join(rootDir, config)]));
 if (needsBuild) {
-  tasks.push(runProcess([join(rootDir, 'scripts/build.cjs'), `--test-snapshot=${runTempDir}`]));
+  tasks.push(runProcess([join(rootDir, 'scripts/build.cjs'), `--snapshot-only=${runTempDir}`]));
 }
 const prerequisiteFailure = (await Promise.all(tasks)).find(code => code !== 0);
 if (interrupted || prerequisiteFailure) process.exit(interrupted || prerequisiteFailure);

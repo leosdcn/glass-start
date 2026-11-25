@@ -17,6 +17,7 @@ function getDB() {
     try {
         const req = indexedDB.open(CONFIG.IDB.DB_NAME, CONFIG.IDB.VERSION);
         openingPromise = new Promise(resolve => {
+            let cancelled = false;
             req.onupgradeneeded = e => {
                 const openReq = /** @type {IDBOpenDBRequest} */ (e.target);
                 const db = openReq.result;
@@ -25,22 +26,33 @@ function getDB() {
                 }
             };
             req.onsuccess = () => {
-                activeDb = req.result;
-                activeDb.onversionchange = () => {
-                    activeDb?.close();
-                    activeDb = null;
+                const db = req.result;
+                if (cancelled || activeDb) {
+                    try { db.close(); } catch {}
+                    openingPromise = null;
+                    resolve(activeDb);
+                    return;
+                }
+                activeDb = db;
+                db.onversionchange = () => {
+                    try { db.close(); } catch {}
+                    if (activeDb === db) activeDb = null;
                 };
-                activeDb.onclose = () => { activeDb = null; };
+                db.onclose = () => {
+                    if (activeDb === db) activeDb = null;
+                };
                 openingPromise = null;
-                resolve(activeDb);
+                resolve(db);
             };
             req.onblocked = e => {
                 e?.preventDefault?.();
+                cancelled = true;
                 openingPromise = null;
                 resolve(null);
             };
             req.onerror = e => {
                 e?.preventDefault?.();
+                cancelled = true;
                 openingPromise = null;
                 resolve(null);
             };

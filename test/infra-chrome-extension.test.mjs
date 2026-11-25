@@ -1,10 +1,13 @@
 import assert from 'node:assert/strict';
+import { test } from 'node:test';
 import { createRequire } from 'node:module';
 import fs, { readFileSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
+import { tmpdir } from 'node:os';
 import { connectCDP, launchChrome } from './support/cdp.mjs';
 
+test('Chrome MV3 扩展构建、冷启动、三引擎联想、设置保存与离线重载', async () => {
 const root = fileURLToPath(new URL('..', import.meta.url));
 const output = join(process.env.GLASS_TEST_TMPDIR || root, 'extension');
 const buildConfigReads = new Map([
@@ -210,9 +213,12 @@ try {
     await waitFor(evalJS,`document.querySelector('#bgLayer').style.backgroundImage.includes('bg2.avif')`);
     assert.deepEqual(await evalJS('window.__cspViolations'), []);
 
-    mkdirSync(join(root, 'test/artifacts'), { recursive: true });
+    const artifactsDir = process.env.GLASS_SAVE_TEST_ARTIFACTS === '1'
+        ? join(root, 'test/artifacts')
+        : join(process.env.GLASS_TEST_TMPDIR || tmpdir(), 'glass-chrome-extension');
+    mkdirSync(artifactsDir, { recursive: true });
     const screenshot = await send('Page.captureScreenshot', { format: 'png' });
-    writeFileSync(join(root, 'test/artifacts/chrome-extension.png'), Buffer.from(screenshot.data, 'base64'));
+    writeFileSync(join(artifactsDir, 'chrome-extension.png'), Buffer.from(screenshot.data, 'base64'));
 
     await evalJS(`sessionStorage.setItem('startpage_section', 'nav'); localStorage.removeItem('glass_transition_mode')`);
     let pausedApp;
@@ -235,3 +241,4 @@ try {
     browser?.close();
     await chrome.close();
 }
+});

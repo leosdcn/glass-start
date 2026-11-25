@@ -8,18 +8,18 @@ import { startServer } from './support/server.mjs';
 
 test('异常书签缓存不阻断启动，清洗保留有效条目、目录继承和空简介', async () => {
   const server = await startServer();
-  let chrome;
+  let chrome, send, docScriptId;
   try {
     // 先设置异常记录，再进行应用的首次导航，避免两个文档同时初始化空的 IndexedDB。
     chrome = await launchChrome({ url: 'about:blank' });
-    const { send } = chrome;
+    send = chrome.send;
     const evalJS = createEvaluator(send);
-    send('Fetch.requestPaused', ({ requestId }) => send('Fetch.failRequest', { requestId, errorReason: 'Failed' }));
+    send('Fetch.requestPaused', ({ requestId }) => send('Fetch.failRequest', { requestId, errorReason: 'Failed' }).catch(() => {}));
     await send('Fetch.enable', { patterns: [
       { urlPattern: 'https://a.favicon.im/*', resourceType: 'Image' },
       { urlPattern: 'https://www.google.com/s2/favicons*', resourceType: 'Image' }
     ] });
-    await send('Page.addScriptToEvaluateOnNewDocument', { source: `
+    ({ identifier: docScriptId } = await send('Page.addScriptToEvaluateOnNewDocument', { source: `
       window.fetch = async () => ({ ok: true, json: async () => ({}) });
       localStorage.setItem('userBookmarkKeys', JSON.stringify([
         null, 123, {}, 'javascript:alert(1)', 'https://example.com', 'https://github.com'
@@ -29,7 +29,7 @@ test('异常书签缓存不阻断启动，清洗保留有效条目、目录继�
         'https://github.com': {desc:''},
         'https://invalid.test': ['bad']
       }));
-    ` });
+    ` })).identifier;
     await navigateAndWait(send, evalJS, `http://127.0.0.1:${server.port}/?bookmark-cache=invalid`,
       'typeof openEditModal === "function" && pageData.bookmarks.length === 2 && !!document.querySelector(".bookmark-item")');
     const recovered = await evalJS(`(() => {
@@ -64,6 +64,7 @@ test('异常书签缓存不阻断启动，清洗保留有效条目、目录继�
     assert.equal(fallback.count, 8);
     assert.equal(fallback.valid, true);
   } finally {
+    if (send && docScriptId) await send('Page.removeScriptToEvaluateOnNewDocument', { identifier: docScriptId }).catch(() => {});
     try { await chrome?.close(); } finally { await server.close(); }
   }
 });
@@ -74,7 +75,7 @@ test('书签轻量存储模型、自定义图标持久化与系统重置', async
   send('Fetch.requestPaused', ({ requestId }) => send('Fetch.fulfillRequest', {
     requestId, responseCode: 200,
     responseHeaders: [{ name: 'Content-Type', value: 'image/png' }], body: iconBody
-  }));
+  }).catch(() => {}));
   await send('Fetch.enable', { patterns: [
     { urlPattern: 'https://custom.example.dev/*', resourceType: 'Image' },
     { urlPattern: 'https://aaa.example.com/*', resourceType: 'Image' }

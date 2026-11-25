@@ -1,7 +1,13 @@
 import assert from 'node:assert/strict';
+import { test } from 'node:test';
 import { launchSession, waitFor } from './support/helpers.mjs';
 
+test('渲染契约、按钮类型与降级对比度套件', async t => {
 const { server, chrome, send, evalJS } = await launchSession();
+t.after(async () => {
+  await chrome.close();
+  await server.close();
+});
 const inspect = () => evalJS(`(() => {
   const issues = [];
   for (const button of document.querySelectorAll('button')) {
@@ -263,7 +269,7 @@ try {
     ] });
     for (const bright of [false, true]) {
       await evalJS(`document.documentElement.classList.toggle('wallpaper-bright', ${bright})`);
-      await waitFor(evalJS, `['#weatherBtn', 'nav[aria-label="快捷书签"]', '#editModal .glass-strong', '.search-box-wrapper', '.nav-surface'].every(selector => {
+      await waitFor(evalJS, `['#weatherBtn', 'nav:has(> #bookmarks)', '#editModal .glass-strong', '.search-box-wrapper', '.nav-surface'].every(selector => {
         const s = getComputedStyle(document.querySelector(selector));
         const alpha = Number(s.backgroundColor.match(/rgba?\\([^)]*, ([\\d.]+)\\)$/)?.[1] || 1);
         return s.backdropFilter === 'none' && s.backgroundImage === 'none' && alpha >= 0.9;
@@ -300,3 +306,4 @@ try {
   await chrome.close();
   await server.close();
 }
+});

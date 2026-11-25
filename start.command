@@ -4,7 +4,11 @@
 cd "$(dirname "$0")"
 
 # 自动补充 macOS 常见的 Node / NVM / Homebrew / FNM 环境变量路径（解决从 Finder 双击启动时 PATH 缺失问题）
-export PATH="/usr/local/bin:/opt/homebrew/bin:$HOME/.nvm/versions/node/$(ls $HOME/.nvm/versions/node 2>/dev/null | tail -n 1)/bin:$HOME/.fnm/current/bin:$HOME/.volta/bin:$PATH"
+NVM_LATEST_NODE_DIR=""
+if [ -d "$HOME/.nvm/versions/node" ]; then
+    NVM_LATEST_NODE_DIR="$(ls -1 "$HOME/.nvm/versions/node" 2>/dev/null | sort -V | tail -n 1)"
+fi
+export PATH="/usr/local/bin:/opt/homebrew/bin:${NVM_LATEST_NODE_DIR:+$HOME/.nvm/versions/node/$NVM_LATEST_NODE_DIR/bin:}$HOME/.fnm/current/bin:$HOME/.volta/bin:$PATH"
 
 # 如果存在用户 profile / zshrc，尝试静默读取以补全环境
 if [ -f "$HOME/.zshrc" ]; then

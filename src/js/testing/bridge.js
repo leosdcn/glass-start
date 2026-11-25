@@ -19,6 +19,7 @@ import * as search from '../modules/search.js';
 import * as weather from '../modules/weather.js';
 import * as bookmarks from '../modules/bookmarks.js';
 import * as settings from '../modules/settings.js';
+import * as settingsStaticModals from '../modules/settings-static-modals.js';
 import * as bookmarkPicker from '../modules/bookmark-picker.js';
 import * as editor from '../modules/bookmark-editor.js';
 import { replaceBookmarkDraft } from '../state/bookmark-draft.js';
@@ -90,14 +91,14 @@ Object.assign(window, {
     openEditModal: settings.openEditModal,
     cancelEditModal: settings.cancelEditModal,
     closeEditModal: settings.closeEditModal,
-    openShortcutModal: settings.openShortcutModal,
-    closeShortcutModal: settings.closeShortcutModal,
-    openCreditsModal: settings.openCreditsModal,
-    closeCreditsModal: settings.closeCreditsModal,
+    openShortcutModal: settingsStaticModals.openShortcutModal,
+    closeShortcutModal: settingsStaticModals.closeShortcutModal,
+    openCreditsModal: settingsStaticModals.openCreditsModal,
+    closeCreditsModal: settingsStaticModals.closeCreditsModal,
     showConfirm: dialogs.showConfirm,
     openBookmarkPicker: bookmarkPicker.openBookmarkPicker,
     exportBookmarksJSON: settings.exportBookmarksJSON,
-    resetBookmarks: settings.resetBookmarks,
+    resetAllSettings: settings.resetAllSettings,
     init: app.init,
 });
 
