@@ -229,6 +229,8 @@ export type TranslationMessage = string | Record<string, string>;
 declare global {
     /** 应用脚本与 CSP 使用同一轮构建读取的上传配置。 */
     const __GLASS_IMAGE_SEARCH_UPLOADS__: typeof import('./config/image-search-uploads.json');
+    /** 构建期注入的 SW 更新等待超时（ms），测试可覆盖。 */
+    const __GLASS_SW_UPDATE_TIMEOUT__: number | undefined;
 
     interface Navigator {
         readonly userAgentData?: { readonly platform: string };

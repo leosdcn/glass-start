@@ -26,15 +26,20 @@ function readImageSearchUploads() {
     return JSON.parse(readFileSync(join(__dirname, '../src/js/config/image-search-uploads.json'), 'utf8'));
 }
 
-function getContentSecurityPolicy(uploads = readImageSearchUploads()) {
+/**
+ * @param {ReturnType<typeof readImageSearchUploads>} [uploads]
+ * @param {string[]} [scriptHashes]
+ */
+function getContentSecurityPolicy(uploads = readImageSearchUploads(), scriptHashes = []) {
     const uploadPaths = Object.values(uploads).map(({ url }) => {
         const endpoint = new URL(url);
         return endpoint.origin + endpoint.pathname;
     });
     const shared = { ...common, 'form-action': ["'self'", ...uploadPaths, 'https://www.google.com/search'].join(' ') };
+    const inlineScriptPolicy = scriptHashes.length ? scriptHashes : ["'unsafe-inline'"];
     const web = {
         ...shared,
-        'script-src': ["'self'", "'unsafe-inline'", ...suggestions, 'https://static.cloudflareinsights.com'].join(' '),
+        'script-src': ["'self'", ...inlineScriptPolicy, ...suggestions, 'https://static.cloudflareinsights.com'].join(' '),
         'connect-src': ["'self'", ...sharedConnections, 'https://a.favicon.im', 'https://www.google.com',
             'https://*.gstatic.com', 'https://cloudflareinsights.com'].join(' '),
         'worker-src': "'self' blob:"

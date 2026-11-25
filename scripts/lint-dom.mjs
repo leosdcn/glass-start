@@ -102,7 +102,7 @@ export function inspectDOMSources(sources, overlayPath, typesSource) {
         /** @param {EvalValue} value @param {string | undefined} key @returns {EvalValue[]} */
         const getMember = (value, key) => {
             if (value.kind === 'dom' && key) return [{ kind: 'element', id: key }];
-            if (value.kind === 'element' && key === 'style') return [{ kind: 'style', id: value.id }];
+            if (value.kind === 'element' && (key === 'style' || key === 'classList')) return [{ kind: key, id: value.id }];
             if (value.kind === 'document' && key && ['getElementById', 'querySelector'].includes(key)) return [{ kind: key }];
             return [];
         };
@@ -156,7 +156,9 @@ export function inspectDOMSources(sources, overlayPath, typesSource) {
             let targets = [];
             if (node.type === 'AssignmentExpression' && node.left.type === 'MemberExpression') {
                 if (keyOf(node.left) === 'hidden') targets = evaluate(node.left.object).filter(value => value.kind === 'element');
-                if (keyOf(node.left) === 'display') targets = evaluate(node.left.object).filter(value => value.kind === 'style');
+                if (keyOf(node.left) === 'display' || keyOf(node.left) === 'cssText') {
+                    targets = evaluate(node.left.object).filter(value => value.kind === 'style');
+                }
             }
             if (node.type === 'CallExpression' && node.callee.type === 'MemberExpression') {
                 const method = keyOf(node.callee), attribute = stringOf(node.arguments[0]);
@@ -165,6 +167,10 @@ export function inspectDOMSources(sources, overlayPath, typesSource) {
                 }
                 if (method && ['setProperty', 'removeProperty'].includes(method) && attribute === 'display') {
                     targets = evaluate(node.callee.object).filter(value => value.kind === 'style');
+                }
+                if (method && ['add', 'remove', 'toggle'].includes(method)
+                    && node.arguments.some(/** @param {ASTNode} arg */ arg => stringOf(arg) === 'hidden')) {
+                    targets = evaluate(node.callee.object).filter(value => value.kind === 'classList');
                 }
             }
             if (targets.some(value => value.id && modalIds.has(value.id))) {

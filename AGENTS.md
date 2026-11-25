@@ -6,7 +6,7 @@
 
 ## 修改边界
 
-- 以解决问题所需的最小范围修改：修根因与共用实现，避免多余抽象；但单模块超过 ~400 行或函数多职责混杂时，应按职责拆分而非继续追加。
+- 以解决问题所需的最小范围修改：修根因与共用实现，避免多余抽象；当模块或函数多职责混杂时，应按职责拆分而非继续追加。
 - 优先使用原生 Web API，默认保持零第三方运行时依赖。确需引入时，应说明收益，验证产物体积、首屏性能与离线兼容性，并同步调整 `test/infra-module-boundaries.test.mjs`。开发依赖可按需增加，避免无关工具扩张。
 - 应用源码位于 `src/`、`bookmarks.json`、`sw.js`，图标同步更新 `public/icons/`；可按需修改文档、工具与测试。
 - 不手工修改 `dist/` 或 `extension/`（由 `npm run build`、`npm run build:extension` 生成）；扩展清单与图标源码位于 `src/extension/`，版本号以 `package.json` 为准。Tailwind v4 主题配置放在 `src/styles/main.css` 的 `@theme` 中，不创建 `tailwind.config.js`。

@@ -41,7 +41,10 @@ export function updateClock() {
             if (clockEl.firstChild.textContent !== hh) clockEl.firstChild.textContent = hh;
             if (clockEl.lastChild.textContent !== mm) clockEl.lastChild.textContent = mm;
         } else {
-            clockEl.innerHTML = `${hh}<span class="clock-colon mx-0.5 sm:mx-1">:</span>${mm}`;
+            const colonSpan = document.createElement('span');
+            colonSpan.className = 'clock-colon mx-0.5 sm:mx-1';
+            colonSpan.textContent = ':';
+            clockEl.replaceChildren(document.createTextNode(hh), colonSpan, document.createTextNode(mm));
         }
         clockEl.setAttribute('datetime', curTimeStr);
     }

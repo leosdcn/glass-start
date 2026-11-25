@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
-import { launchSession, navigateAndWait, waitFor, sleep } from './support/helpers.mjs';
+import { addNewDocumentScript, launchSession, navigateAndWait, waitFor } from './support/helpers.mjs';
 import { test } from 'node:test';
 
-await test("图标空闲准备与延迟加载", async () => {
+test("图标空闲准备与延迟加载", async () => {
     /** 首批本地图标空闲准备；其余图标在进入、滚动和会话恢复时按需加载。 */
 
 
@@ -20,9 +20,9 @@ await test("图标空闲准备与延迟加载", async () => {
         });
         await send('Network.setBypassServiceWorker', { bypass: true });
         await send('Network.setCacheDisabled', { cacheDisabled: true });
-        await send('Page.addScriptToEvaluateOnNewDocument', { source: `
-        localStorage.setItem('glass_weather_cache', JSON.stringify({timestamp:Date.now(),current:{temp:20},daily:[]}));
-    ` });
+        const removeWeatherSeed = await addNewDocumentScript(send, `
+            localStorage.setItem('glass_weather_cache', JSON.stringify({timestamp:Date.now(),current:{temp:20},daily:[]}));
+        `);
         for (const [width, limit] of [[767, 2], [768, 5]]) {
             await send('Emulation.setDeviceMetricsOverride', { width, height: 915, deviceScaleFactor: 1, mobile: false });
             await navigateAndWait(send, evalJS, `${origin}/?viewport=${width}`, 'typeof switchToNav === "function"');
@@ -185,13 +185,18 @@ await test("图标空闲准备与延迟加载", async () => {
         // 人为延迟空闲回调，确保用户先切屏时不会等待或在动画中补做预加载。
         await evalJS('switchToStart()');
         await waitFor(evalJS, '!isScreenTransitioning()');
-        await send('Page.addScriptToEvaluateOnNewDocument', {source:`
-        window.__queuedIdle = [];
-        window.requestIdleCallback = callback => { __queuedIdle.push(callback); return __queuedIdle.length; };
-    `});
-        await send('Page.reload');
-        // 等待目录和壁纸恢复后的首批图标两个启动任务入队。
-        await waitFor(evalJS, 'typeof switchToNav === "function" && window.__queuedIdle?.length === 2');
+        const removeIdleStub = await addNewDocumentScript(send, `
+            window.__queuedIdle = [];
+            window.requestIdleCallback = callback => { __queuedIdle.push(callback); return __queuedIdle.length; };
+        `);
+        try {
+            await send('Page.reload');
+            // 等待目录和壁纸恢复后的首批图标两个启动任务入队。
+            await waitFor(evalJS, 'typeof switchToNav === "function" && window.__queuedIdle?.length === 2');
+        } finally {
+            await removeIdleStub();
+            await removeWeatherSeed();
+        }
         assert.deepEqual(await evalJS(`(() => {
             const emptyBeforeEntry = dom.navCategories.firstElementChild === null;
             switchToNav();
@@ -226,28 +231,30 @@ await test("图标空闲准备与延迟加载", async () => {
     }
 });
 
-await test("分类位置缓存与侧栏高亮", async () => {
+test("分类位置缓存与侧栏高亮", async () => {
     /** 分类位置缓存复用、布局变化与分类重建后的高亮回归。 */
-
-
-
     const { server, chrome, send, evalJS } = await launchSession();
     try {
+        await evalJS(`(() => {
+            window.__offsetReads = 0;
+            window.__navOffsetDescriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'offsetTop');
+            const get = window.__navOffsetDescriptor.get;
+            Object.defineProperty(HTMLElement.prototype, 'offsetTop', {
+                configurable: true,
+                get() {
+                    if (this.parentElement === dom.navCategories) window.__offsetReads++;
+                    return get.call(this);
+                }
+            });
+        })()`);
         await evalJS('switchToNav()');
         await waitFor(evalJS, '!isScreenTransitioning()');
         await evalJS('document.fonts.ready');
-        await sleep(400); // 等待初始尺寸观察与防抖刷新完成。
+        await waitFor(evalJS, '__offsetReads > 0');
         await evalJS(`(() => {
-        window.__offsetReads = 0;
-        const get = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'offsetTop').get;
-        for (const section of dom.navCategories.children) {
-            Object.defineProperty(section, 'offsetTop', { configurable:true, get() {
-                window.__offsetReads++;
-                return get.call(this);
-            }});
-        }
-        switchToStart();
-    })()`);
+            window.__offsetReads = 0;
+            switchToStart();
+        })()`);
         await waitFor(evalJS, '!isScreenTransitioning()');
         await evalJS('switchToNav()');
         await waitFor(evalJS, '!isScreenTransitioning()');
@@ -266,37 +273,41 @@ await test("分类位置缓存与侧栏高亮", async () => {
 
         // 分类重建必须丢弃旧节点和尺寸，观察器也要跟随新节点。
         const scrollPreserved = await evalJS(`(() => {
-        const before = dom.navContent.scrollTop;
-        const [category, ...categories] = pageData.categories;
-        pageData.categories = [{ ...category, name: category.name + '更新' }, ...categories];
-        renderNavCategories();
-        return before > 0 && dom.navContent.scrollTop === before;
-    })()`);
+            const before = dom.navContent.scrollTop;
+            window.__offsetReads = 0;
+            const [category, ...categories] = pageData.categories;
+            pageData.categories = [{ ...category, name: category.name + '更新' }, ...categories];
+            renderNavCategories();
+            return before > 0 && dom.navContent.scrollTop === before;
+        })()`);
         assert.equal(scrollPreserved, true, '重建已有目录应保留当前滚动位置');
-        await sleep(400);
+        await waitFor(evalJS, '__offsetReads > 0');
         await evalJS(`dom.navContent.scrollTop=document.getElementById('cat-1').offsetTop;
         updateSidebarActive()`);
         assert.equal(await evalJS('dom.sidebarList.querySelector(".active").dataset.target'), 'cat-1');
+        const readsBeforeHeight = await evalJS('window.__offsetReads');
         await evalJS(`dom.navCategories.firstElementChild.style.paddingBottom='1000px'`);
-        await sleep(400);
+        await waitFor(evalJS, `__offsetReads > ${readsBeforeHeight}`);
         await evalJS(`dom.navContent.scrollTop=document.getElementById('cat-1').offsetTop-500;
         updateSidebarActive()`);
         assert.equal(await evalJS('dom.sidebarList.querySelector(".active").dataset.target'), 'cat-0');
+        const readsBeforeResize = await evalJS('window.__offsetReads');
         await send('Emulation.setDeviceMetricsOverride', {
             width:390, height:844, deviceScaleFactor:1, mobile:false
         });
-        await sleep(400);
+        await waitFor(evalJS, `__offsetReads > ${readsBeforeResize}`);
         await evalJS(`dom.navContent.scrollTop=document.getElementById('cat-1').offsetTop;
         updateSidebarActive()`);
         assert.equal(await evalJS('dom.sidebarList.querySelector(".active").dataset.target'), 'cat-1');
         console.log('✅ 稳定切屏复用位置，分类高度变化与重建后仍正确刷新分类高亮');
     } finally {
+        await evalJS('if (window.__navOffsetDescriptor) Object.defineProperty(HTMLElement.prototype, "offsetTop", window.__navOffsetDescriptor)').catch(() => {});
         await chrome.close();
         await server.close();
     }
 });
 
-await test("最后一个分类对齐与滚动边界", async () => {
+test("最后一个分类对齐与滚动边界", async () => {
     const { server, chrome, send, evalJS } = await launchSession();
     try {
         await evalJS('switchToNav()');
@@ -537,6 +548,44 @@ test('移动端视口与侧边栏 Tab 滚动联动及触控规范', async () => 
       };
     })()`);
     assert.ok(restoredInfo.active && restoredInfo.scrollLeft === 0 && restoredInfo.visible);
+  } finally {
+    await chrome.close();
+    await server.close();
+  }
+});
+
+test('首屏指针移动不读取 body.classList，侧栏滚动零数组分配', async () => {
+  const { server, chrome, evalJS } = await launchSession();
+  try {
+    const perfResults = await evalJS(`(() => {
+      let classListReads = 0;
+      const origContains = document.body.classList.contains;
+      document.body.classList.contains = function(...args) {
+        classListReads++;
+        return origContains.apply(this, args);
+      };
+      try {
+        document.dispatchEvent(new PointerEvent('pointermove', { pointerType: 'mouse', bubbles: true }));
+      } finally {
+        document.body.classList.contains = origContains;
+      }
+
+      renderNavCategories();
+      updateSidebarActive();
+      let arrayMaps = 0;
+      const origMap = Array.prototype.map;
+      Array.prototype.map = function(...args) {
+        arrayMaps++;
+        return origMap.apply(this, args);
+      };
+      try {
+        updateSidebarActive();
+      } finally {
+        Array.prototype.map = origMap;
+      }
+      return { classListReads, arrayMaps };
+    })()`);
+    assert.deepEqual(perfResults, { classListReads: 0, arrayMaps: 0 });
   } finally {
     await chrome.close();
     await server.close();

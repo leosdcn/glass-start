@@ -5,7 +5,7 @@ import { escapeHtml, safeUrl } from '../utils/helpers.js';
 import { getCategoryIconHTML } from '../utils/favicon.js';
 import { dom } from '../state/dom.js';
 import { OverlayStack } from '../core/overlay-stack.js';
-import { hideSuggestions } from './search.js';
+import { hideSuggestions } from './search-suggestions.js';
 
 /** @type {Record<string, string>} */
 const KBD = {

@@ -53,12 +53,12 @@ test('跨分辨率与视口切换无多余布局过渡', async () => {
     // 删除未结束时调整尺寸，仍只允许透明度与 transform 动画
     await evalJS('closeCreditsModal(); openEditModal()');
     await settle();
-    const before = await evalJS('modalState.draftBookmarks.length');
+    const before = await evalJS('dom.editList.querySelectorAll(".edit-row-card").length');
     await evalJS("dom.editList.querySelector('.del-btn').click()");
     await resize(390, 844);
     assert.deepEqual(await inspect(), []);
     await settle();
-    assert.equal(await evalJS('modalState.draftBookmarks.length'), before - 1);
+    assert.equal(await evalJS('dom.editList.querySelectorAll(".edit-row-card").length'), before - 1);
     await evalJS(`(() => {
       cancelEditModal();
       const bookmarks = Array.from({length:48}, (_, i) => ({

@@ -35,7 +35,7 @@ test('壁纸主题采样与暗度处理', async () => {
     const gray = { width: 800, height: 800, bands: [{ x: 0, y: 0, width: 800, height: 800, color: 'rgb(150, 150, 150)' }] };
     assert.deepEqual(await sample(gray), { bright: true, tint: [150, 150, 150] }, '零遮罩不应误用默认暗度');
     for (const mask of [20, null, 'invalid']) {
-      assert.deepEqual(await sample({ ...gray, mask }), { bright: false, tint: [140, 140, 140] }, '显式、缺省及非法暗度均正确处理');
+      assert.deepEqual(await sample({ ...gray, mask: /** @type {any} */ (mask) }), { bright: false, tint: [140, 140, 140] }, '显式、缺省及非法暗度均正确处理');
     }
     const split = await sample({ width: 800, height: 800, bands: [
       { x: 0, y: 0, width: 800, height: 800, color: 'rgb(60, 80, 200)' },
@@ -477,5 +477,67 @@ test('壁纸共享加载、图片复用与失败重试', async () => {
       await chrome.close();
       await server.close();
     }
+  }
+});
+
+test('迟到壁纸响应取消、离线拒绝与损坏上传不影响当前选择', async () => {
+  const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+j1ioAAAAASUVORK5CYII=', 'base64');
+  let releaseSlow, releaseBroken;
+  const { server, chrome, send, evalJS } = await launchSession(0, {
+    '/audit-slow.png': (_req, res) => {
+      releaseSlow = () => {
+        res.writeHead(200, { 'Content-Type': 'image/png', 'Cache-Control': 'no-store' });
+        res.end(png);
+      };
+    },
+    '/audit-broken.png': (_req, res) => {
+      releaseBroken = () => {
+        res.writeHead(404);
+        res.end('missing');
+      };
+    }
+  });
+  try {
+    await evalJS(`selectWallpaper(location.origin + '/audit-slow.png'); true;`);
+    await waitFor(() => typeof releaseSlow === 'function', 'slow wallpaper requested');
+    await evalJS(`selectWallpaper(backgrounds[2]); true;`);
+    await waitFor(evalJS, 'state.bg === 2 && !state.customWallpaper');
+    releaseSlow();
+    await evalJS('new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))');
+    assert.equal(await evalJS('state.bg === 2 && !state.customWallpaper && modalState.draftWallpaper === null'), true);
+
+    await evalJS(`selectWallpaper(location.origin + '/audit-broken.png'); true;`);
+    await waitFor(() => typeof releaseBroken === 'function', 'broken wallpaper requested');
+    await evalJS(`selectWallpaper(null); true;`);
+    await waitFor(evalJS, 'state.bg === 0 && !state.customWallpaper');
+    releaseBroken();
+    await evalJS('new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))');
+    assert.equal(await evalJS("OverlayStack.top()?.id !== 'confirmModal' && !state.customWallpaper"), true);
+
+    await evalJS(`(async () => { await openEditModal(); await previewDraftWallpaper(backgrounds[1]); })()`);
+    const beforePreset = await evalJS('getWallpaperSelectionDB().then(JSON.stringify)');
+    await send('Network.enable');
+    await send('Network.emulateNetworkConditions', { offline: true, latency: 0, downloadThroughput: 0, uploadThroughput: 0 });
+    assert.equal(await evalJS('previewDraftWallpaper(backgrounds[7])'), false);
+    assert.equal(await evalJS('getWallpaperSelectionDB().then(JSON.stringify)'), beforePreset);
+    await evalJS('dom.confirmOkBtn.click()');
+    assert.equal(await evalJS('previewDraftWallpaper(backgrounds[1])'), true);
+    await send('Network.emulateNetworkConditions', { offline: false, latency: 0, downloadThroughput: -1, uploadThroughput: -1 });
+    assert.equal(await evalJS('previewDraftWallpaper(backgrounds[7])'), true);
+    await evalJS('cancelEditModal()');
+
+    const upload = await evalJS(`(async () => {
+      await openEditModal(); await previewDraftWallpaper(backgrounds[1]);
+      const before = JSON.stringify(await getWallpaperSelectionDB());
+      uploadWallpaper(new File(['broken-image'], 'broken.png', { type: 'image/png' }));
+      const prepared = await flushWallpaperSelection();
+      return { failed: !prepared, same: before === JSON.stringify(await getWallpaperSelectionDB()),
+        localError: !!dom.wallpaperError.textContent && OverlayStack.top()?.id === 'editModal' };
+    })()`);
+    assert.deepEqual(upload, { failed: true, same: true, localError: true });
+    await evalJS('cancelEditModal()');
+  } finally {
+    await chrome.close();
+    await server.close();
   }
 });

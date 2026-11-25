@@ -77,7 +77,7 @@ test('预览启动异常保留失败退出码和错误输出', () => {
   assert.throws(() => execFileSync(process.execPath, [serverScript, '--no-watch'], {
     env: { ...process.env, AUTO_OPEN: '0', PORT: '65536' },
     stdio: ['ignore', 'pipe', 'pipe'], encoding: 'utf8', timeout: 8000, killSignal: 'SIGKILL'
-  }), error => error.status === 1 && /ERR_SOCKET_BAD_PORT/.test(error.stderr));
+  }), error => error instanceof Error && 'status' in error && error.status === 1 && 'stderr' in error && /ERR_SOCKET_BAD_PORT/.test(String(error.stderr)));
 });
 
 test('图标解码和网页编译被信号中断时实际停止子工具并保留已发布内容', posixOnly, async t => {
@@ -112,11 +112,12 @@ if (process.argv.includes('-m')) {
   });
 }
 `);
+  /** @type {Array<[string, string[]]>} */
   const scriptArgs = [
     ['icons', ['scripts/sync-icons.mjs', '--check-only']],
     ['build', ['scripts/build.cjs']]
   ];
-  for (const signal of ['SIGINT', 'SIGTERM', 'SIGHUP']) {
+  for (const signal of /** @type {NodeJS.Signals[]} */ (['SIGINT', 'SIGTERM', 'SIGHUP'])) {
     for (const [kind, args] of scriptArgs) {
       const marker = `${kind}-${signal}`;
       const child = spawn(process.execPath, args, {

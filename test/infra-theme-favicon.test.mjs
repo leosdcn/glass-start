@@ -70,16 +70,25 @@ await test("主题配置、图标回退与缓存驱逐", async () => {
 
     // 在 defer 应用执行前采样，避免运行时修正掩盖首屏配色错误。
     const built = readFileSync(join(DIST_DIR, 'index.html'), 'utf8');
-    const probe = `<script>window.__headThemeProbe = {
+    const probeBody = (name) => `window.${name} = {
   theme: window.__INITIAL_THEME__, tint: document.documentElement.style.getPropertyValue('--glass-tint'),
   color: document.documentElement.style.backgroundColor,
   bright: document.documentElement.classList.contains('wallpaper-bright'),
   engine: window.__PRE_ENGINE__?.name,
   legacyBgReads: window.startupReads?.legacyBg,
   mask: document.getElementById('bgOverlay')?.style.backgroundColor
-};</script>`;
-    const probeHtml = built.replace('</head>', probe + '</head>')
-      .replace('</body>', probe.replace('__headThemeProbe', '__bodyThemeProbe') + '</body>');
+};`;
+    const headBody = probeBody('__headThemeProbe');
+    const bodyBody = probeBody('__bodyThemeProbe');
+    const sha256 = async (/** @type {string} */ text) => {
+      const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+      return `'sha256-${Buffer.from(digest).toString('base64')}'`;
+    };
+    const probeHashes = `${await sha256(headBody)} ${await sha256(bodyBody)}`;
+    const probeHtml = built
+      .replace(/(<meta\s+http-equiv="Content-Security-Policy"[^>]*script-src[^;"]+)/i, `$1 ${probeHashes}`)
+      .replace('</head>', `<script>${headBody}</script></head>`)
+      .replace('</body>', `<script>${bodyBody}</script></body>`);
     const { server, chrome, send, evalJS } = await launchSession(0, { '/theme-probe.html': probeHtml });
     try {
       // 首屏探针使用独立 HTML 路由；绕过 SW 导航回退，确保每次读取探针页面。

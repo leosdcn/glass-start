@@ -1,35 +1,43 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, mkdirSync, writeFileSync } from 'node:fs';
+import { readFileSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { createRequire } from 'node:module';
+import { createHash } from 'node:crypto';
 import { DIST_DIR, startServer } from './support/server.mjs';
 import { launchChrome, connectCDP } from './support/cdp.mjs';
 import { createEvaluator, waitFor, navigateAndWait } from './support/helpers.mjs';
 
-test('Service Worker v201~v208 更新提示、激活与超时回滚', async () => {
+test('Service Worker v201~v208 更新提示、激活与超时回滚', async t => {
 const { buildAppJavaScript } = createRequire(import.meta.url)('../scripts/build.cjs');
 const html = readFileSync(join(DIST_DIR, 'index.html'), 'utf8');
 const worker = readFileSync(join(DIST_DIR, 'sw.js'), 'utf8');
 const builtVersion = html.match(/__GLASS_BUILD_HTML__="([^"]+)"/)[1];
+const sha256 = text => createHash('sha256').update(text, 'utf8').digest('base64');
+const builtFingerprintHash = sha256(`window.__GLASS_BUILD_HTML__=${JSON.stringify(builtVersion)};`);
 let version = 201, failApp = false;
 let holdApp = false, releaseApp;
 const apps = new Map();
 const route = kind => (req, res) => {
   const stamp = `app-core-v${version}`;
   let body;
-  if (kind === 'html') body = html.replaceAll(builtVersion, stamp);
+  if (kind === 'html') {
+    const stampHash = sha256(`window.__GLASS_BUILD_HTML__=${JSON.stringify(stamp)};`);
+    body = html.replaceAll(builtVersion, stamp).replace(builtFingerprintHash, stampHash);
+  }
   if (kind === 'worker') body = worker.replaceAll(builtVersion, stamp);
   if (kind === 'app') {
     if (req.url.split('?')[0] !== '/app-builds/' + stamp + '.js') {
       res.writeHead(404); res.end(); return;
     }
     if (!apps.has(version)) {
-      const code = buildAppJavaScript({ testMode: true, version: stamp }).outputFiles[0].text;
-      const patched = code.replace(/SW_UPDATE_TIMEOUT:15e3/g, 'SW_UPDATE_TIMEOUT:200');
-      assert.notStrictEqual(patched, code, 'SW_UPDATE_TIMEOUT patch must match compiled bundle');
-      apps.set(version, Buffer.from(patched));
+      const code = buildAppJavaScript({
+        testMode: true,
+        version: stamp,
+        define: { __GLASS_SW_UPDATE_TIMEOUT__: '200' }
+      }).outputFiles[0].text;
+      apps.set(version, Buffer.from(code));
     }
     body = apps.get(version);
   }
@@ -141,9 +149,11 @@ try {
 
   await evalJS(`closeEditModal()`);
   await waitFor(evalJS, `!document.getElementById('editModal').open`);
-  const artifactsDir = process.env.GLASS_SAVE_TEST_ARTIFACTS === '1'
+  const saveArtifacts = process.env.GLASS_SAVE_TEST_ARTIFACTS === '1';
+  const artifactsDir = saveArtifacts
     ? new URL('./artifacts/', import.meta.url)
     : join(process.env.GLASS_TEST_TMPDIR || tmpdir(), 'glass-sw-update-ui');
+  if (!saveArtifacts) t.after(() => rmSync(artifactsDir, { recursive: true, force: true }));
   mkdirSync(artifactsDir, { recursive:true });
   const noticeScreenshot = await send('Page.captureScreenshot', { format:'png' });
   writeFileSync(artifactsDir instanceof URL ? new URL('sw-update-notice.png', artifactsDir) : join(artifactsDir, 'sw-update-notice.png'), Buffer.from(noticeScreenshot.data, 'base64'));
@@ -202,7 +212,7 @@ try {
   assert.equal(await evalJS(`caches.open('glass-scope-%2F-app-core-v204').then(c=>c.match('./app-builds/app-core-v204.js')).then(r=>!!r)`), true);
   console.log('✅ 损坏的等待版本补下载、重新校验后完成升级');
 
-  for (const [next, protectedWork] of [[205, 'draft'], [206, 'search']]) {
+  for (const [next, protectedWork] of /** @type {const} */ ([[205, 'draft'], [206, 'search']])) {
     const previous = version;
     version = next;
     await update();

@@ -133,7 +133,7 @@ function applyFrameAppearance({ theme, tint }) {
 }
 
 /** @param {number} opacity */
-export function setWallpaperDimming(opacity) {
+function setWallpaperDimming(opacity) {
     if (wallpaperOpacity === opacity) return;
     wallpaperOpacity = opacity;
     if (displayedWallpaper) sampleWallpaperFrame(displayedWallpaper, true);

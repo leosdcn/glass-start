@@ -114,7 +114,7 @@ export const CONFIG = Object.freeze({
             }),
             TIMERS: Object.freeze({
                 SW_UPDATE_CHECK_INTERVAL: 5 * 60 * 1000, // 前台更新检查间隔 (ms)
-                SW_UPDATE_TIMEOUT: 15000,    // 用户确认后等待新版接管的上限 (ms)
+                SW_UPDATE_TIMEOUT: typeof __GLASS_SW_UPDATE_TIMEOUT__ === 'number' ? __GLASS_SW_UPDATE_TIMEOUT__ : 15000,    // 用户确认后等待新版接管的上限 (ms)
                 BG_CROSSFADE: 450,            // 壁纸跨图层淡入时长 (ms)
                 WALLPAPER_LOAD_TIMEOUT: 15000, // 壁纸直链加载及解码等待上限 (ms)
                 IMAGE_LINK_CHECK_TIMEOUT: 600, // 搜索框识别无图片后缀的链接等待上限 (ms)

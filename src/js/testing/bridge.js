@@ -14,10 +14,15 @@ import * as domState from '../state/dom.js';
 import * as overlay_stack from '../core/overlay-stack.js';
 import * as screen_state from '../core/screen-state.js';
 import * as wallpaper from '../modules/wallpaper.js';
-import * as search from '../modules/search.js';
+import * as wallpaperStore from '../modules/wallpaper-store.js';
+import * as searchSuggestions from '../modules/search-suggestions.js';
 import * as weather from '../modules/weather.js';
+import * as weatherService from '../modules/weather-service.js';
 import * as bookmarks from '../modules/bookmarks.js';
+import * as bookmarksNav from '../modules/bookmarks-nav.js';
 import * as settings from '../modules/settings.js';
+import * as settingsSession from '../modules/settings-session.js';
+import * as settingsData from '../modules/settings-data.js';
 import * as settingsStaticModals from '../modules/settings-static-modals.js';
 import * as bookmarkPicker from '../modules/bookmark-picker.js';
 import * as editor from '../modules/bookmark-editor.js';
@@ -33,7 +38,7 @@ Object.assign(window, {
     setTransitionMode: screen_state.setTransitionMode,
     getTransitionMode: screen_state.getTransitionMode,
     getWallpaperSelectionDB: idb.getWallpaperSelectionDB,
-    importBookmarksJSON: settings.importBookmarksJSON,
+    importBookmarksJSON: settingsData.importBookmarksJSON,
     previewDraftMaskOpacity: settings.previewDraftMaskOpacity,
     saveEditModal: settings.saveEditModal,
     uploadWallpaper: wallpaper.uploadWallpaper,
@@ -59,55 +64,55 @@ Object.assign(window, {
     switchToStart: screen_state.switchToStart,
     applyWallpaper: wallpaper_renderer.applyWallpaper,
     getPreparedWallpaperImage: wallpaper_renderer.getPreparedWallpaperImage,
-    getCommittedWallpaperUrl: wallpaper.getCommittedWallpaperUrl,
+    getCommittedWallpaperUrl: wallpaperStore.getCommittedWallpaperUrl,
     selectWallpaper: wallpaper.selectWallpaper,
-    commitWallpaperSelection: wallpaper.commitWallpaperSelection,
+    commitWallpaperSelection: wallpaperStore.commitWallpaperSelection,
     previewDraftWallpaper: wallpaper.previewDraftWallpaper,
     resetDraftWallpaper: wallpaper.resetDraftWallpaper,
     DEFAULT_BOOKMARKS: constants.DEFAULT_BOOKMARKS,
     DEFAULT_CATEGORIES: constants.DEFAULT_CATEGORIES,
-    hideSuggestions: search.hideSuggestions,
-    fetchSuggestions: search.fetchSuggestions,
+    hideSuggestions: searchSuggestions.hideSuggestions,
+    fetchSuggestions: searchSuggestions.fetchSuggestions,
     openWeatherPopover: weather.openWeatherPopover,
-    fetchWeatherForecast: weather.fetchWeatherForecast,
+    fetchWeatherForecast: weatherService.fetchWeatherForecast,
     updateWeather: weather.updateWeather,
     renderWeatherCapsule: weather.renderWeatherCapsule,
     renderWeatherPopover: weather.renderWeatherPopover,
     getDerivedBookmarks: bookmarks.getDerivedBookmarks,
     saveUserBookmarks: bookmarks.saveUserBookmarks,
     loadBookmarks: bookmarks.loadBookmarks,
-    restoreWallpaper: wallpaper.restoreWallpaper,
+    restoreWallpaper: wallpaperStore.restoreWallpaper,
     handleIconError: favicon.handleIconError,
     renderBookmarks: bookmarks.renderBookmarks,
-    renderNavCategories: bookmarks.renderNavCategories,
-    preloadVisibleNavIcons: bookmarks.preloadVisibleNavIcons,
-    updateSidebarActive: bookmarks.updateSidebarActive,
+    renderNavCategories: bookmarksNav.renderNavCategories,
+    preloadVisibleNavIcons: bookmarksNav.preloadVisibleNavIcons,
+    updateSidebarActive: bookmarksNav.updateSidebarActive,
     updateClock: clock.updateClock,
     handleEditIconError: editor.handleEditIconError,
     renderEditList: editor.renderEditList,
     collectEditData: editor.collectEditData,
     openEditModal: settings.openEditModal,
-    cancelEditModal: settings.cancelEditModal,
-    closeEditModal: settings.closeEditModal,
+    cancelEditModal: settingsSession.cancelEditModal,
+    closeEditModal: settingsSession.closeEditModal,
     openShortcutModal: settingsStaticModals.openShortcutModal,
     closeShortcutModal: settingsStaticModals.closeShortcutModal,
     openCreditsModal: settingsStaticModals.openCreditsModal,
     closeCreditsModal: settingsStaticModals.closeCreditsModal,
     showConfirm: dialogs.showConfirm,
     openBookmarkPicker: bookmarkPicker.openBookmarkPicker,
-    exportBookmarksJSON: settings.exportBookmarksJSON,
-    resetAllSettings: settings.resetAllSettings,
+    exportBookmarksJSON: settingsData.exportBookmarksJSON,
+    resetAllSettings: settingsData.resetAllSettings,
     init: app.init,
 });
 
 // 可变导出通过只读访问器实时读取，不允许测试直接改写业务状态。
 Object.defineProperties(window, {
     activeSuggestReqId: {
-        get: () => search.getActiveSuggestReqId(),
+        get: () => searchSuggestions.getActiveSuggestReqId(),
         configurable: true
     },
     selectedSuggestionIdx: {
-        get: () => search.getSelectedSuggestionIdx(),
+        get: () => searchSuggestions.getSelectedSuggestionIdx(),
         configurable: true
     },
     isFetchingWeather: {

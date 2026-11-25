@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { DIST_DIR, startServer } from './support/server.mjs';
 import { launchChrome } from './support/cdp.mjs';
-import { createEvaluator, waitFor } from './support/helpers.mjs';
+import { addNewDocumentScript, createEvaluator, waitFor } from './support/helpers.mjs';
 
 test('Service Worker 升级、缓存校验与断网重载集成套件', async t => {
 const source = readFileSync(join(DIST_DIR, 'sw.js'), 'utf8');
@@ -16,7 +16,11 @@ const initialCoreRequests = [];
 const staleAppRequests = [];
 let serveStaleApp = false;
 let secondVersion = 105;
-const activationPaused = Promise.withResolvers();
+const nestedCaches = [
+  'glass-scope-%2Fapp%2F-app-core-neighbor%2F-app-core-v100',
+  'glass-scope-%2Fapp%2F-app-images-neighbor%2F-app-images-app-core-v100'
+];
+const activationPaused = /** @type {PromiseWithResolvers<void>} */ (Promise.withResolvers());
 let releaseActivation;
 const route = (kind) => (req, res) => {
   if (offline) { req.socket.destroy(); return; }
@@ -75,6 +79,11 @@ const route = (kind) => (req, res) => {
   res.end(body);
 };
 let server, chrome;
+t.after(async () => {
+  releaseActivation?.();
+  if (chrome) await chrome.close().catch(() => {});
+  if (server) await server.close().catch(() => {});
+});
 try {
   server = await startServer(0, undefined, {
   '/app/': route('html'), '/app/index.html': route('html'),
@@ -85,7 +94,7 @@ try {
   '/b/sw.js': route('worker'), '/b/wallpapers/bg1.avif': route('image'),
   '/b/activation-gate': (_req, res) => {
     releaseActivation = () => { releaseActivation = undefined; res.end(); };
-    activationPaused.resolve();
+    activationPaused.resolve(undefined);
   },
   '/app/icons/test.png': route('image'),
   '/app/icons/offline.png': route('image'),
@@ -114,6 +123,7 @@ const update = async () => evalJS(`(async () => {
     app:await (await fetch('./app-builds/' + window.__GLASS_BUILD_HTML__ + '.js')).text(), caches:await caches.keys() };
 })()`);
   await send('Page.enable');
+  await t.test('首次安装条件验证与损坏新版拒绝安装', async () => {
   await waitFor(evalJS, 'window.reg && reg.active?.state === "activated"', 15000);
   assert.deepEqual(initialCoreRequests, [
     ['/app/', 200], ['/app/app-builds/app-core-v101.js', 200], ['/app/', 304]
@@ -126,10 +136,6 @@ const update = async () => evalJS(`(async () => {
   await waitFor(evalJS, '!!navigator.serviceWorker.controller && window.appVersion === 101 && !!window.reg');
   assert.equal(await evalJS("caches.keys().then(keys => keys.includes('app-favicons-v1'))"), false);
   await evalJS("Promise.all([caches.open('app-images-v2'), caches.open('unrelated-cache'), caches.open('app-favicons-v1').then(cache => cache.put('https://a.favicon.im/custom.test', new Response('custom-icon')))])");
-  const nestedCaches = [
-    'glass-scope-%2Fapp%2F-app-core-neighbor%2F-app-core-v100',
-    'glass-scope-%2Fapp%2F-app-images-neighbor%2F-app-images-app-core-v100'
-  ];
   await evalJS(`Promise.all(${JSON.stringify(nestedCaches)}.map(key => caches.open(key)))`);
   assert.match(await evalJS("fetch('./icons/test.png').then(r => r.text())"), /image-101/);
   await evalJS("fetch('./icons/offline.png').then(r => r.text())");
@@ -171,7 +177,9 @@ const update = async () => evalJS(`(async () => {
   await send('Target.closeTarget', { targetId });
   assert.equal(await evalJS('!!reg.waiting'), true);
   console.log('✅ 完整新版保持 waiting；关闭其他标签时仍有旧页面，控制权保持旧版');
+  });
 
+  await t.test('激活回收按 scope 隔离、恢复损坏资源与同源多实例并发激活', async () => {
   await send('Page.navigate', { url: origin + '/status.html' });
   await waitFor(evalJS, `(async () => { const r = await navigator.serviceWorker.getRegistration('/app/'); return r?.active?.state === 'activated' && !r.waiting; })()`, 15000);
   const keys = await evalJS('caches.keys()');
@@ -236,13 +244,20 @@ const update = async () => evalJS(`(async () => {
   await send('Page.navigate',{url:origin+'/app/'});
   await waitFor(evalJS,'window.appVersion === 104 && !!navigator.serviceWorker.controller');
   console.log('✅ 激活期间安装下一版，等待构建仍能在断网后接管，退役池按 scope 回收');
+  });
+
+  await t.test('断网回退旧图、缺失旧脚本恢复与终版双实例离线重载', async () => {
   await send('Network.enable');
   await evalJS(`caches.open('glass-scope-%2Fapp%2F-app-core-v104').then(cache=>cache.delete('./wallpapers/bg1.avif'))`);
   offline = true;
   await send('Network.emulateNetworkConditions', { offline:true, latency:0, downloadThroughput:0, uploadThroughput:0 });
-  await send('Page.addScriptToEvaluateOnNewDocument', { source:'window.__offlineUpgradeProbe = true;' });
-  await send('Page.reload');
-  await waitFor(evalJS, 'window.__offlineUpgradeProbe && window.appVersion === 104 && !!navigator.serviceWorker.controller');
+  const removeOfflineProbe = await addNewDocumentScript(send, 'window.__offlineUpgradeProbe = true;');
+  try {
+    await send('Page.reload');
+    await waitFor(evalJS, 'window.__offlineUpgradeProbe && window.appVersion === 104 && !!navigator.serviceWorker.controller');
+  } finally {
+    await removeOfflineProbe();
+  }
   assert.match(await evalJS("fetch('./wallpapers/bg1.avif').then(r => r.text())"), /image-101/);
   assert.match(await evalJS("fetch('./icons/offline.png').then(r => r.text())"), /image-101/);
   const aliasUrl = origin + '/app/index.html?offline=1';
@@ -278,9 +293,8 @@ const update = async () => evalJS(`(async () => {
   await waitFor(evalJS,'window.appVersion === 108 && !!navigator.serviceWorker.controller');
   console.log('✅ GS-14 缺失旧脚本不污染旧池，恢复页升级完整新版，两个实例均可离线重载');
   console.log('✅ 最后一个旧客户端退出后新版激活，旧核心池清理，新版断网重载可用');
+  });
 } finally {
   releaseActivation?.();
-  if (chrome) await chrome.close().catch(() => {});
-  if (server) await server.close().catch(() => {});
 }
 });

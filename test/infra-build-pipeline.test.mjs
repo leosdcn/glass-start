@@ -25,6 +25,7 @@ function temporaryDirectory(t) {
 }
 
 function node(args, { cwd = root, env = {} } = {}) {
+  /** @type {Record<string, string | undefined>} */
   const childEnv = { ...process.env, ...env };
   delete childEnv.NODE_TEST_CONTEXT;
   return exec(process.execPath, args, { cwd, env: childEnv, timeout: 30000 });
@@ -90,6 +91,7 @@ test('运行器强制退出时回收测试进程另行启动的 Chrome 组，并
     writeFileSync(${JSON.stringify(marker)}, String(child.pid));
     Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 15000);
   `);
+  /** @type {Record<string, string | undefined>} */
   const env = { ...process.env, TMPDIR: systemTemp, NODE_DISABLE_COMPILE_CACHE: '1' };
   delete env.NODE_TEST_CONTEXT;
   const runner = spawn(process.execPath, ['test/run.mjs'], { cwd, env, stdio: 'ignore' });
@@ -497,7 +499,7 @@ test('源码文件原子替换后继续监听，并忽略同内容保存和无�
     { path: bookmarks, name: 'bookmarks.json' },
     { path: config, name: 'package.json' },
     { path: source, name: 'src/' }
-  ], { delay: 25, label: 'Test', rebuild: () => {
+  ], { delay: 25, label: 'Test', rebuild: async () => {
     changes.push(fs.readFileSync(bookmarks, 'utf8'));
     return { version: 'test', duration: 0 };
   } });

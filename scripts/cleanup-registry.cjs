@@ -37,4 +37,4 @@ function ensureSignalHandlers() {
     }
 }
 
-module.exports = { registerCleanup, executeCleanups, ensureExitCleanup, ensureSignalHandlers };
+module.exports = { registerCleanup, ensureExitCleanup, ensureSignalHandlers };

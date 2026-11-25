@@ -2,7 +2,7 @@ import { startServer } from './server.mjs';
 import { launchChrome } from './cdp.mjs';
 import assert from 'node:assert/strict';
 
-/** @typedef {(method: string, params?: Record<string, any> | ((params: any) => void), timeoutMs?: number) => Promise<any>} CDPSend */
+/** @typedef {{ (method: string, callback: (params: any) => void): () => void; (method: string, params?: Record<string, any>, timeoutMs?: number): Promise<any> }} CDPSend */
 /** @typedef {(expression: string) => Promise<any>} EvalJS */
 
 /** CDP 协议错误由 send 报告，页面求值异常统一在此抛出。
@@ -19,6 +19,35 @@ export const createEvaluator = send => async expression => {
 export const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 /** @param {EvalJS} evalJS @param {string} key */
 export const pressKey = (evalJS, key) => evalJS(`document.dispatchEvent(new KeyboardEvent('keydown', { key: ${JSON.stringify(key)}, bubbles: true, cancelable: true }))`);
+
+/** 注册新文档脚本并返回对应的注销函数，避免跨重载残留。
+ * @param {CDPSend} send
+ * @param {string} source
+ */
+export async function addNewDocumentScript(send, source) {
+  const { identifier } = await send('Page.addScriptToEvaluateOnNewDocument', { source });
+  return async () => {
+    if (identifier) await send('Page.removeScriptToEvaluateOnNewDocument', { identifier }).catch(() => {});
+  };
+}
+
+/** 构造带 JSONP 脚本拦截的浏览器求值脚本片段（阻止真实外网请求并安全还原）。
+ * @param {string} body
+ */
+export const withJsonpStub = body => `(() => {
+  const append = document.body.appendChild;
+  const requests = [];
+  document.body.appendChild = function(node) {
+    if (node.tagName === 'SCRIPT') { requests.push(node); node.type = 'application/x-test'; }
+    return append.call(this, node);
+  };
+  try {
+    ${body}
+  } finally {
+    hideSuggestions();
+    document.body.appendChild = append;
+  }
+})()`;
 // 状态轮询超时统一为 10 秒，与 Chrome 启动和导航上限保持一致；轮询在条件满足时即刻返回，不增加开销。
 const defaultWaitTimeout = 10000;
 

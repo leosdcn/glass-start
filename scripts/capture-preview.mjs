@@ -3,7 +3,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { startServer } from '../test/support/server.mjs';
 import { launchChrome } from '../test/support/cdp.mjs';
-import { createEvaluator, sleep, waitFor, navigateAndWait } from '../test/support/helpers.mjs';
+import { createEvaluator, waitFor, navigateAndWait } from '../test/support/helpers.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = join(__dirname, '..');
@@ -97,8 +97,14 @@ try {
   await navigateAndWait(send, evalJS, targetUrl,
     `window.__PREVIEW_READY__ && document.documentElement.lang === ${JSON.stringify(language)} && typeof switchToNav === 'function' && !!document.querySelector('.bookmark-item')`);
 
-  // 3. 为壁纸加载及入场动画预留等待时间；固定延时不保证所有资源就绪
-  await sleep(3000);
+  // 3. 等待字体、壁纸绘制及入场图标就绪
+  await evalJS('document.fonts.ready');
+  await waitFor(evalJS, `(() => {
+    const bg = document.getElementById('bgLayer');
+    const icons = [...document.querySelectorAll('#bookmarks img.lazy-icon')];
+    return !!bg?.style.backgroundImage && getComputedStyle(bg).opacity === '1' &&
+      icons.length > 0 && icons.every(img => img.complete && img.naturalWidth > 0);
+  })()`, 10000);
 
   // 4. 固定时钟、天气文字，并将带 fade-in 的元素设为最终态
   await evalJS(`
@@ -120,7 +126,7 @@ try {
       if (weatherTemp) weatherTemp.textContent = '21°';
     })()
   `);
-  await sleep(600);
+  await evalJS('new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))');
 
   // 5. 截取首屏起始页（使用上述等待和固定数据）
   console.log('📸 截取首屏起始页 (' + startFilename + ')...');
@@ -130,8 +136,10 @@ try {
   // 6. 切换到第二屏导航页
   console.log('📸 切换到导航页 (' + navFilename + ')...');
   await evalJS('window.switchToNav()');
-  await waitFor(evalJS, `state.currentSection === 'nav' && !isScreenTransitioning()`);
-  await sleep(1500);
+  await waitFor(evalJS, `state.currentSection === 'nav' && !isScreenTransitioning() &&
+    [...document.querySelectorAll('#navCategories img.lazy-icon')].slice(0, 12).every(img => !img.dataset.navSrc && img.complete)`);
+  await evalJS('Promise.all(document.getElementById("navSection").getAnimations({ subtree: true }).map(a => a.finished.catch(() => {})))');
+  await evalJS('new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))');
 
   const navSnap = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
   await writeFile(join(OUTPUT_DIR, navFilename), Buffer.from(navSnap.data, 'base64'));

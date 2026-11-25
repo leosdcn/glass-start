@@ -3,27 +3,30 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { launchSession, tyOf, pressKey, waitFor } from './support/helpers.mjs';
 
-test('双屏手势与键盘切屏交互套件', async () => {
+test('双屏手势与键盘切屏交互套件', async t => {
   const { server, chrome, send, evalJS } = await launchSession();
-  try {
-    await waitFor(evalJS, 'typeof isScreenTransitioning === "function"');
+  t.after(async () => {
+    await chrome.close();
+    await server.close();
+  });
+  await waitFor(evalJS, 'typeof isScreenTransitioning === "function"');
 
-    const press = (key) => pressKey(evalJS, key);
-    const section = async () => evalJS(`document.getElementById('startSection').getAttribute('aria-hidden') === 'true' ? 'nav' : 'start'`);
-    const focus = async () => evalJS(`document.activeElement ? (document.activeElement.id || document.activeElement.tagName) : 'none'`);
-    const waitForScreen = target => waitFor(evalJS, `state.currentSection === '${target}' && !isScreenTransitioning() && (() => {
-      const el = document.getElementById('${target}Section');
-      const t = el ? getComputedStyle(el).transform : '';
-      return !t || t === 'none' || Math.abs(new DOMMatrixReadOnly(t).m42) < 2;
-    })()`);
-    // 过渡结束后允许亚像素误差，避免 Linux/CI 的 matrix 尾数导致严格等于 0 失败。
-    const nearZero = value => value !== null && Math.abs(value) < 2;
+  const press = (key) => pressKey(evalJS, key);
+  const section = async () => evalJS(`document.getElementById('startSection').getAttribute('aria-hidden') === 'true' ? 'nav' : 'start'`);
+  const focus = async () => evalJS(`document.activeElement ? (document.activeElement.id || document.activeElement.tagName) : 'none'`);
+  const waitForScreen = target => waitFor(evalJS, `state.currentSection === '${target}' && !isScreenTransitioning() && (() => {
+    const el = document.getElementById('${target}Section');
+    const t = el ? getComputedStyle(el).transform : '';
+    return !t || t === 'none' || Math.abs(new DOMMatrixReadOnly(t).m42) < 2;
+  })()`);
+  const nearZero = value => value !== null && Math.abs(value) < 2;
+  const nativeKey = async (key, windowsVirtualKeyCode) => {
+    for (const type of ['keyDown', 'keyUp']) {
+      await send('Input.dispatchKeyEvent', { type, key, code: key, windowsVirtualKeyCode });
+    }
+  };
 
-    // ══════════════════════════════════════════════════════════════════════
-    // 1. 双屏切屏状态机与键盘导航完整闭环
-    // ══════════════════════════════════════════════════════════════════════
-
-    // 1.1 初始状态
+  await t.test('双屏切屏状态机与键盘导航闭环', async () => {
     const init = await evalJS(`(() => {
       const s = document.getElementById('startSection'), n = document.getElementById('navSection');
       return {
@@ -39,7 +42,6 @@ test('双屏手势与键盘切屏交互套件', async () => {
       && tyOf(init.navTransform) > 599 && init.navAria === 'true' && init.startAria !== 'true' && init.gearInteractive;
     assert.ok(initValid, '初始状态合规');
 
-    // 1.2 JS API 切换到 Nav
     await evalJS('window.switchToNav()'); await waitForScreen('nav');
     const navState = await evalJS(`(() => {
       const s = document.getElementById('startSection'), n = document.getElementById('navSection');
@@ -56,19 +58,16 @@ test('双屏手势与键盘切屏交互套件', async () => {
       && navState.navAria !== 'true' && !navState.gearInteractive;
     assert.ok(navValid, '切至 Nav 状态合规');
 
-    // 1.3 切回 Start + ArrowDown 切屏
     await evalJS('window.switchToStart()'); await waitForScreen('start');
     const focusAfterStart = await focus();
     await press('ArrowDown'); await waitForScreen('nav');
     assert.equal(await section(), 'nav');
 
-    // 1.4 盲打自动聚焦
     await evalJS('window.switchToStart()'); await waitForScreen('start');
     await press('g');
     await waitFor(evalJS, 'document.activeElement?.id === "searchInput"');
     assert.equal(await focus(), 'searchInput');
 
-    // 1.5 PageDown 按键切屏
     await evalJS('window.switchToStart()'); await waitForScreen('start');
     await evalJS(`(async () => {
       document.activeElement && document.activeElement.blur && document.activeElement.blur();
@@ -78,12 +77,6 @@ test('双屏手势与键盘切屏交互套件', async () => {
     assert.equal(await evalJS('document.documentElement.dataset.screen === "nav"'), true);
     assert.equal(focusAfterStart, 'BODY');
 
-    // 合成 KeyboardEvent 不触发浏览器默认滚动；用 CDP 真实按键验证切屏后的连续滚动。
-    const nativeKey = async (key, windowsVirtualKeyCode) => {
-      for (const type of ['keyDown', 'keyUp']) {
-        await send('Input.dispatchKeyEvent', { type, key, code: key, windowsVirtualKeyCode });
-      }
-    };
     for (const [key, keyCode] of [['ArrowDown', 40], ['PageDown', 34]]) {
       await evalJS('switchToStart()'); await waitForScreen('start');
       await evalJS('dom.searchInput.focus()');
@@ -91,17 +84,15 @@ test('双屏手势与键盘切屏交互套件', async () => {
       const contentFocused = (await focus()) === 'navContent';
       await nativeKey('ArrowDown', 40);
       await waitFor(evalJS, 'dom.navContent.scrollTop > 0');
-      await new Promise(resolve => setTimeout(resolve, 250));
+      await waitFor(evalJS, 'dom.navContent.getAnimations().length === 0');
       const scrollTop = await evalJS('dom.navContent.scrollTop');
       await nativeKey('ArrowUp', 38);
       await waitFor(evalJS, `dom.navContent.scrollTop < ${scrollTop}`);
       assert.ok(contentFocused && (await section()) === 'nav', `${key} 从搜索框切屏后无需点击即可上下滚动`);
     }
+  });
 
-    // ══════════════════════════════════════════════════════════════════════
-    // 2. 键盘方向键在联想/弹窗与顶端的输入保护
-    // ══════════════════════════════════════════════════════════════════════
-
+  await t.test('键盘方向键在联想、弹窗与侧栏顶端的输入保护', async () => {
     await evalJS('window.switchToStart()'); await waitForScreen('start');
     await evalJS(`(function(){
       const i = document.getElementById('searchInput');
@@ -142,11 +133,9 @@ test('双屏手势与键盘切屏交互套件', async () => {
     await evalJS('document.activeElement && document.activeElement.blur()');
     await press('ArrowUp'); await waitForScreen('start');
     assert.equal(await section(), 'start', 'Nav 顶端 ArrowUp 返回 Start');
+  });
 
-    // ══════════════════════════════════════════════════════════════════════
-    // 3. 滚轮与触屏手势切屏及内部滚动拦截机制
-    // ══════════════════════════════════════════════════════════════════════
-
+  await t.test('滚轮与触屏手势切屏及横向轻扫拦截', async () => {
     await waitFor(evalJS, '!isScreenTransitioning() && OverlayStack.isEmpty()');
     await evalJS(`(function(){
       document.dispatchEvent(new WheelEvent('wheel', { deltaY: 60, cancelable: true }));
@@ -164,7 +153,6 @@ test('双屏手势与键盘切屏交互套件', async () => {
     })()`); await waitForScreen('nav');
     assert.ok(nearZero(tyOf(await evalJS('getComputedStyle(document.getElementById("navSection")).transform'))));
 
-    // 触屏快速轻扫：位移与速度共同决定是否切屏。
     await evalJS('window.switchToStart()'); await waitForScreen('start');
     const flick = async (from, to, target) => {
       await evalJS(`(async () => {
@@ -181,7 +169,6 @@ test('双屏手势与键盘切屏交互套件', async () => {
     await flick(270, 300, 'start');
     assert.ok(nearZero(tyOf(await evalJS('getComputedStyle(dom.startSection).transform'))));
 
-    // 横向轻扫即使带有足够的纵向位移，松手时也不能触发切屏。
     for (const target of ['start', 'nav']) {
       if (target === 'nav') { await evalJS('switchToNav()'); await waitForScreen('nav'); }
       const horizontal = await evalJS(`(() => {
@@ -196,8 +183,5 @@ test('双屏手势与键盘切屏交互套件', async () => {
       })()`);
       assert.ok(horizontal.section === target && !horizontal.transitioning, `${target} 屏横向轻扫不误切屏`);
     }
-  } finally {
-    await chrome.close();
-    await server.close();
-  }
+  });
 });

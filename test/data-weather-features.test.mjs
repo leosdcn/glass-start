@@ -1,18 +1,19 @@
 /** 验证天气胶囊交互、弹窗布局规范、动态演化图标及休眠唤醒感知。 */
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { launchSession, pressKey, waitFor, navigateAndWait } from './support/helpers.mjs';
+import { launchSession, pressKey, waitFor, navigateAndWait, addNewDocumentScript } from './support/helpers.mjs';
 
 test('天气交互、弹窗规范与休眠感知套件', async (t) => {
   const { server, chrome, send, evalJS } = await launchSession();
   const press = (key) => pressKey(evalJS, key);
 
   // 在应用中固定请求边界，避免真实定位网络阻塞测试
-  await send('Page.addScriptToEvaluateOnNewDocument', { source: `
+  const removeFetchStub = await addNewDocumentScript(send, `
     window.fetch = async () => ({ ok: true, json: async () => ({}) });
-  ` });
+  `);
   await navigateAndWait(send, evalJS, `http://127.0.0.1:${server.port}/`,
     'typeof openEditModal === "function" && !!document.querySelector(".bookmark-item") && !isFetchingWeather');
+  await removeFetchStub();
 
   try {
     await t.test('天气胶囊整体缩放、边缘点击、Escape 退栈与 ARIA 状态同步', async () => {
@@ -454,7 +455,7 @@ test('天气交互、弹窗规范与休眠感知套件', async (t) => {
     });
 
     await t.test('拒绝异常预报，重载时跳过历史坏缓存并自动刷新', async () => {
-      await send('Page.addScriptToEvaluateOnNewDocument', { source: `
+      const removeForecastStub = await addNewDocumentScript(send, `
         const fallbackFetch = window.fetch;
         window.fetch = url => {
           if (!String(url).includes('/forecast?')) return fallbackFetch(url);
@@ -463,34 +464,56 @@ test('天气交互、弹窗规范与休眠感知套件', async (t) => {
             current: { temperature_2m: 24 }, daily: { time: ['2026-11-10'] }
           })));
         };
-      ` });
-      const beforeReload = await evalJS(`(async () => {
-        const location = { name: '北京', lat: 39.9, lon: 116.4, language: 'zh-CN', timestamp: Date.now() };
-        const goodCache = { timestamp: Date.now(), location, current: { temp: 21 }, daily: [] };
-        storageSet(CONFIG.KEYS.LANGUAGE, 'zh-CN');
-        storageSet(CONFIG.KEYS.WEATHER_LOC, location);
-        storageSet(CONFIG.KEYS.WEATHER_CACHE, goodCache);
-        renderWeatherCapsule(goodCache);
-        window.fetch = async url => new Response(JSON.stringify(String(url).includes('/forecast?')
-          ? { current: { temperature_2m: 19 }, daily: { time: [{ toString: null }] } } : {}));
-        await updateWeather(true);
-        const result = {
-          stored: storageGet(CONFIG.KEYS.WEATHER_CACHE).current.temp,
-          visible: dom.weatherTemp.textContent,
-          timeOrigin: performance.timeOrigin
-        };
-        storageSet(CONFIG.KEYS.WEATHER_CACHE, {
-          ...goodCache, current: { temp: 19 }, daily: [{ date: { toString: null }, tempMin: 18 }]
-        });
-        return result;
-      })()`);
-      assert.equal(beforeReload.stored, 21);
-      assert.equal(beforeReload.visible, '21°');
-      await send('Page.reload');
-      await waitFor(evalJS, `performance.timeOrigin !== ${beforeReload.timeOrigin} &&
-        document.querySelector('#weatherTemp')?.textContent === '24°' &&
-        JSON.parse(localStorage.getItem('glass_weather_cache'))?.current.temp === 24`);
-      assert.equal(await evalJS('window.tempBeforeForecast'), '--°');
+      `);
+      try {
+        const beforeReload = await evalJS(`(async () => {
+          const location = { name: '北京', lat: 39.9, lon: 116.4, language: 'zh-CN', timestamp: Date.now() };
+          const goodCache = { timestamp: Date.now(), location, current: { temp: 21 }, daily: [] };
+          storageSet(CONFIG.KEYS.LANGUAGE, 'zh-CN');
+          storageSet(CONFIG.KEYS.WEATHER_LOC, location);
+          storageSet(CONFIG.KEYS.WEATHER_CACHE, goodCache);
+          renderWeatherCapsule(goodCache);
+          window.fetch = async url => new Response(JSON.stringify(String(url).includes('/forecast?')
+            ? { current: { temperature_2m: 19 }, daily: { time: [{ toString: null }] } } : {}));
+          await updateWeather(true);
+          const result = {
+            stored: storageGet(CONFIG.KEYS.WEATHER_CACHE).current.temp,
+            visible: dom.weatherTemp.textContent,
+            timeOrigin: performance.timeOrigin
+          };
+          storageSet(CONFIG.KEYS.WEATHER_CACHE, {
+            ...goodCache, current: { temp: 19 }, daily: [{ date: { toString: null }, tempMin: 18 }]
+          });
+          return result;
+        })()`);
+        assert.equal(beforeReload.stored, 21);
+        assert.equal(beforeReload.visible, '21°');
+        await send('Page.reload');
+        await waitFor(evalJS, `performance.timeOrigin !== ${beforeReload.timeOrigin} &&
+          document.querySelector('#weatherTemp')?.textContent === '24°' &&
+          JSON.parse(localStorage.getItem('glass_weather_cache'))?.current.temp === 24`);
+        assert.equal(await evalJS('window.tempBeforeForecast'), '--°');
+      } finally {
+        await removeForecastStub();
+      }
+    });
+
+    await t.test('daily 含 null 损坏缓存启动后不阻断交互且可正常打开设置', async () => {
+      const exceptions = [];
+      const stopExceptions = send('Runtime.exceptionThrown', event => exceptions.push(event.exceptionDetails));
+      const removeNullCacheScript = await addNewDocumentScript(send,
+        "window.__AUDIT_RELOAD__=true;localStorage.setItem('glass_weather_cache',JSON.stringify({timestamp:Date.now(),current:{temp:20},daily:[null]}));");
+      try {
+        await send('Page.reload');
+        await waitFor(evalJS, "window.__AUDIT_RELOAD__ && typeof state !== 'undefined' && document.getElementById('bookmarks').children.length > 0");
+        await evalJS('dom.editBookmarksBtn.click()');
+        await waitFor(evalJS, 'state.editOpen && document.getElementById("editModal").open');
+        await evalJS('cancelEditModal()');
+        assert.deepEqual(exceptions, []);
+      } finally {
+        stopExceptions();
+        await removeNullCacheScript();
+      }
     });
   } finally {
     await chrome.close();

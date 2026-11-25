@@ -74,6 +74,9 @@ test('dist/ 产物完整性与 Cache-Control 标头规则', () => {
   const webPolicy = readFileSync(join(DIST, 'index.html'), 'utf8')
     .match(/http-equiv="Content-Security-Policy" content="([^"]+)"/)?.[1];
   assert.ok(webPolicy);
+  const scriptSrc = webPolicy.split(';').map(part => part.trim()).find(part => part.startsWith('script-src ')) || '';
+  assert.equal(scriptSrc.includes("'unsafe-inline'"), false, 'script-src 应使用内容哈希而非 unsafe-inline');
+  assert.match(scriptSrc, /'sha256-[A-Za-z0-9+/=]+'/, 'script-src 必须包含内联脚本 sha256 哈希');
   assert.equal(rules['/*']['content-security-policy'], webPolicy + "; frame-ancestors 'self'; upgrade-insecure-requests");
   const syncOk = srcHeadersContent.replace('{{WEB_CSP}}', rules['/*']['content-security-policy']).trim() === headersContent.trim();
   assert.ok(validNoCache && appCc.includes('immutable') && validWp && validIcon && syncOk, 'Cache-Control 头配置合规');
@@ -87,10 +90,10 @@ test('dist/ 产物完整性与 Cache-Control 标头规则', () => {
   const subscriptions = [];
   const originalWatch = fs.watch;
   try {
-    fs.watch = (path, options) => {
-      subscriptions.push({ path, recursive: options.recursive });
-      return { close() {} };
-    };
+    fs.watch = /** @type {typeof fs.watch} */ ((path, options) => {
+      subscriptions.push({ path, recursive: typeof options === 'object' ? options?.recursive : undefined });
+      return /** @type {any} */ ({ close() {} });
+    });
     startWatch({ label: 'Test' })();
   } finally {
     fs.watch = originalWatch;
@@ -371,10 +374,10 @@ async function validatePage(css, messages = [], options = {}) {
     writeFileSync(join(directory, 'package.json'), '{"version":"5.5.0"}');
     const code = await validateW3c({ rootDir: directory, documentUrl: '',
       log: message => output.push(message), error: message => output.push(message),
-      fetchImpl: async (url, request) => {
+      fetchImpl: /** @type {typeof fetch} */ (async (url, request) => {
         requests.push({ url, ...request });
-        return { ok: true, json: async () => ({ messages }) };
-      }, ...options });
+        return /** @type {any} */ ({ ok: true, json: async () => ({ messages }) });
+      }), ...options });
     return { code, html, requests, output: output.join('\n') };
   } finally { rmSync(directory, { recursive: true, force: true }); }
 }

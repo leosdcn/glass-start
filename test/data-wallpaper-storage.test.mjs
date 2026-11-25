@@ -190,7 +190,7 @@ await test("现代壁纸选择持久化与优先级", async () => {
 });
 
 await test("IndexedDB 版本升级协商与多连接生命周期 (onversionchange)", async () => {
-    const { server, chrome, send, evalJS } = await launchSession();
+    const { server, chrome, evalJS } = await launchSession();
     try {
         const upgradeNegotiated = await evalJS(`(async () => {
             await getWallpaperSelectionDB();

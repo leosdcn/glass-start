@@ -65,7 +65,8 @@ jobs:
             echo "Running quick CI suite"
             npm test -- unit.test.mjs data-pure-models infra-icon-sync \
               infra-build-pipeline infra-security infra-module-boundaries \
-              lifecycle infra-sw-upgrade infra-chrome-extension infra-resource-cleanup
+              lifecycle infra-sw-upgrade infra-chrome-extension infra-resource-cleanup \
+              ui-overlay-modals
           else
             echo "Running full CI suite"
             npm test

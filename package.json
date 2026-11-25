@@ -1,6 +1,6 @@
 {
   "name": "glass-start",
-  "version": "5.6.5",
+  "version": "5.6.6",
   "description": "Glass Start — 极简纯净的毛玻璃浏览器起始页。",
   "main": "dist/index.html",
   "engines": {
@@ -26,7 +26,7 @@
     "dev": "node scripts/server.cjs",
     "dev:https": "node scripts/server.cjs --https",
     "preview": "npm run build && node scripts/server.cjs --no-watch",
-    "typecheck": "tsc --project tsconfig.json && tsc --project tsconfig.sw.json && tsc --project tsconfig.scripts.json",
+    "typecheck": "tsc --project tsconfig.json && tsc --project tsconfig.sw.json && tsc --project tsconfig.scripts.json && tsc --project tsconfig.tests.json",
     "test:unit": "node test/run.mjs --unit"
   },
   "devDependencies": {

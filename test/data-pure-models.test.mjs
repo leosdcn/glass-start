@@ -171,7 +171,7 @@ test('地名合并重复行政区，保留同名省市并消除前缀重复', ()
     [['中国', '上海市', '黄浦区', '黄浦'], '中国 · 上海市 · 黄浦区'],
     [['中国', '香港特别行政区', '香港'], '中国 · 香港特别行政区']
   ]) {
-    assert.equal(model.formatLocationFullName(parts), expected, parts.join('/'));
+    assert.equal(model.formatLocationFullName(parts), expected, Array.isArray(parts) ? parts.join('/') : String(parts));
   }
 });
 

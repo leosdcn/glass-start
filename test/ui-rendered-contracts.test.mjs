@@ -68,6 +68,7 @@ const verifyFallbackText = async () => {
   for (const result of ratios) assert.ok(result.ratio >= 4.5, `降级文字对比度不足：${JSON.stringify(result)}`);
 };
 try {
+  await t.test('多种视口往返切换，快捷书签即时对齐搜索条', async () => {
   await verify('首屏、导航与预设动态按钮');
   // 先等首屏入场缩放结束，再测相邻帧的响应式布局。
   await waitFor(evalJS, "!dom.bookmarks.parentElement.classList.contains('fade-in')");
@@ -85,7 +86,13 @@ try {
       `${width}px 快捷书签应即时与搜索条对齐：${JSON.stringify(layout)}`);
     assert.equal(layout.columns, width>=768 ? 8 : 4);
   }
+  await chrome.send('Emulation.clearDeviceMetricsOverride');
+  await waitFor(evalJS, 'innerWidth >= 1400');
+  await evalJS('new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))');
   console.log('✅ 2K、1K 与手机尺寸快速往返切换，快捷书签即时对齐搜索条');
+  });
+
+  await t.test('动态按钮类型、弹窗层叠栈及删除位移动画契约', async () => {
   await waitFor(evalJS, "!dom.editBookmarksBtn.classList.contains('fade-in')");
   await pressButtonEdge('editBookmarksBtn', '0.94');
   await waitFor(evalJS, 'document.getElementById("editModal").open');
@@ -140,7 +147,9 @@ try {
   await evalJS("document.getElementById('contract-probe').remove(); dom.shortcutModal.style.display = ''; closeShortcutModal()");
   await verify('还原并关闭');
   console.log('✅ 动态按钮显式声明类型；弹窗可见性与层叠栈一致，别名修改 display 也能检出');
+  });
 
+  await t.test('外观排版、直链原位展开、输入法与预设预览同步', async () => {
   // 外观页不能靠压缩网格行高塞进弹窗；窄屏改由内容区滚动，底部操作仍固定。
   await evalJS('openEditModal()');
   await waitFor(evalJS, 'document.getElementById("editModal").open');
@@ -222,13 +231,15 @@ try {
   assert.equal(await evalJS("document.documentElement.dataset.transitionMode==='sheet' && document.querySelector('#settingsTransitionGrid [data-mode=sheet]').getAttribute('aria-pressed')==='true'"), true);
   const savedBg = await evalJS('state.bg');
   await evalJS('dom.presetWallpaperGrid.querySelectorAll("button")[2].querySelector("svg").dispatchEvent(new MouseEvent("click",{bubbles:true}))');
-  await waitFor(evalJS, 'modalState.draftWallpaper===backgrounds[2] && dom.presetWallpaperGrid.querySelectorAll("button")[2].getAttribute("aria-pressed")==="true"');
+  await waitFor(evalJS, 'dom.bgLayerNext.style.backgroundImage.includes("bg3.avif") && dom.presetWallpaperGrid.querySelectorAll("button")[2].getAttribute("aria-pressed")==="true"');
   assert.equal(await evalJS('dom.presetWallpaperGrid.querySelectorAll("button[aria-pressed=true]").length'), 1);
   assert.equal(await evalJS('state.bg'), savedBg, '预览不修改已保存预设');
   await evalJS("document.querySelector('#settingsTransitionGrid [data-mode=classic]').click(); cancelEditModal()");
   assert.equal(await evalJS('state.bg'), savedBg, '取消设置保留原壁纸');
   console.log('✅ 外观横排保留弹窗高度；六种视口下缩略图无重叠，直链原位展开不推移壁纸，选中态同步');
+  });
 
+  await t.test('减弱动效、减少透明度与滤镜兼容降级对比度', async () => {
   // 同时启用两个系统偏好时，降低透明度仍必须关闭模糊；弹窗不能覆盖实色降级。
   await evalJS('openEditModal()');
   const wasBright = await evalJS("document.documentElement.classList.contains('wallpaper-bright')");
@@ -302,6 +313,7 @@ try {
   await evalJS(`document.documentElement.classList.toggle('wallpaper-bright', ${wasBright}); closeEditModal()`);
   console.log('✅ 深浅背景下减少透明度及滤镜兼容降级的文字保持可读；叠加减弱动效也不重新启用模糊');
   console.log('✅ 减弱动效关闭动画及过渡，保留普通玻璃 22px 与强玻璃 36px');
+  });
 } finally {
   await chrome.close();
   await server.close();

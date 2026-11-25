@@ -3,7 +3,7 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { launchSession, sleep, pressKey, waitFor } from './support/helpers.mjs';
+import { launchSession, pressKey, waitFor } from './support/helpers.mjs';
 
 /** 截图产物输出目录：项目内 test/artifacts/（已 gitignore），相对脚本定位，跨机器可移植 */
 const ARTIFACT_DIR = join(dirname(fileURLToPath(import.meta.url)), 'artifacts');
@@ -29,10 +29,12 @@ const finish = () => {
 let session;
 try {
   session = await launchSession();
-  const { server, chrome, send, evalJS } = session;
+  const { send, evalJS } = session;
 
-  const press = (key) => pressKey(evalJS, key);
+const press = (key) => pressKey(evalJS, key);
 const settled = section => waitFor(evalJS, `state.currentSection === '${section}' && !isScreenTransitioning()`);
+const waitLayout = () => evalJS('document.fonts.ready.then(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))))');
+const waitAnimations = selector => evalJS(`Promise.all(document.querySelector(${JSON.stringify(selector)}).getAnimations({ subtree: true }).map(a => a.finished.catch(() => {})))`);
 
 /** 截图并保存到测试产物目录 */
 async function captureScreenshot(filename) {
@@ -124,7 +126,8 @@ await send('Emulation.setDeviceMetricsOverride', {
   deviceScaleFactor: 2,
   mobile: false,
 });
-await sleep(400);
+await waitFor(evalJS, `window.innerWidth === 1470 && !document.querySelector('.fade-in')`);
+await waitLayout();
 
 const metricsA = await inspectComponentMetrics(START_COMPONENTS);
 await captureScreenshot('visual_test_scenario_A_desktop_start.png');
@@ -172,7 +175,8 @@ await evalJS(`(() => {
   setter.call(i, 'github');
   i.dispatchEvent(new Event('input', { bubbles: true }));
 })()`);
-await sleep(500);
+await waitFor(evalJS, `OverlayStack.has('suggestions') && document.querySelectorAll('#suggestionMenu .suggestion-item').length > 0 && getComputedStyle(document.getElementById('suggestionMenu')).opacity === '1'`);
+await waitAnimations('#suggestionMenu');
 
 const metricsE1 = await inspectComponentMetrics({
   ...START_COMPONENTS,
@@ -199,7 +203,8 @@ await send('Emulation.setDeviceMetricsOverride', {
   deviceScaleFactor: 3,
   mobile: true,
 });
-await sleep(400);
+await waitFor(evalJS, `window.innerWidth === 402`);
+await waitLayout();
 
 const metricsF = await inspectComponentMetrics(START_COMPONENTS);
 await captureScreenshot('visual_test_scenario_F_mobile_start.png');
@@ -248,7 +253,8 @@ await send('Emulation.setDeviceMetricsOverride', { width: 1470, height: 956, dev
 await evalJS('window.switchToStart()');
 await settled('start');
 await evalJS('document.getElementById("editBookmarksBtn").click()');
-await sleep(500);
+await waitFor(evalJS, `document.getElementById('editModal').open && getComputedStyle(document.getElementById('editModal')).opacity === '1'`);
+await waitAnimations('#editModal');
 
 const metricsI = await inspectComponentMetrics({
   editModal: '#editModal',
@@ -275,9 +281,11 @@ pass('场景 F [Desktop 1470x956 (MacBook Air)]: 设置与偏好弹窗渲染 (�
 // 场景 G：天气预报详情卡片展开
 // ══════════════════════════════════════════════════════════════════════
 await press('Escape');
-await sleep(400);
+await waitFor(evalJS, `!document.getElementById('editModal').open && OverlayStack.isEmpty()`);
+await waitAnimations('#editModal');
 await evalJS('document.getElementById("weatherBtn").click()');
-await sleep(500);
+await waitFor(evalJS, `OverlayStack.has('weatherPopover') && getComputedStyle(document.getElementById('weatherPopover')).opacity === '1'`);
+await waitAnimations('#weatherPopover');
 
 const metricsJ = await inspectComponentMetrics({
   weatherWidget: '#weatherWidget',
@@ -302,9 +310,11 @@ pass('场景 G [Desktop 1470x956 (MacBook Air)]: 天气预报详情展开卡片 
 // 场景 H：全站快捷键速查面板 (Cmd/Ctrl + /)
 // ══════════════════════════════════════════════════════════════════════
 await press('Escape');
-await sleep(400);
+await waitFor(evalJS, `!OverlayStack.has('weatherPopover') && OverlayStack.isEmpty()`);
+await waitAnimations('#weatherPopover');
 await evalJS(`document.dispatchEvent(new KeyboardEvent('keydown', { key: '/', code: 'Slash', metaKey: true, bubbles: true }))`);
-await sleep(500);
+await waitFor(evalJS, `document.getElementById('shortcutModal').open && getComputedStyle(document.getElementById('shortcutModal')).opacity === '1'`);
+await waitAnimations('#shortcutModal');
 
 const metricsK = await inspectComponentMetrics({
   shortcutModal: '#shortcutModal',
@@ -326,7 +336,8 @@ pass('场景 H [Desktop 1470x956 (MacBook Air)]: 快捷键速查面板 (⌘/ 触
   }));
 
 await press('Escape');
-await sleep(400);
+await waitFor(evalJS, `!document.getElementById('shortcutModal').open && OverlayStack.isEmpty()`);
+await waitAnimations('#shortcutModal');
 
   const exitCode = finish();
 

@@ -12,7 +12,7 @@ const worker = readFileSync(join(DIST_DIR, 'sw.js'), 'utf8');
 const stamp = readFileSync(join(DIST_DIR, 'index.html'), 'utf8').match(/__GLASS_BUILD_HTML__="([^"]+)"/)[1];
 const html = `<!doctype html><html><head><script>window.__GLASS_BUILD_HTML__="${stamp}";</script></head><body><script>navigator.serviceWorker.register('./sw.js').then(reg=>window.reg=reg)</script></body></html>`;
 
-test('Service Worker 并发图片请求去重与取消隔离', async () => {
+test('Service Worker 并发图片请求去重与取消隔离', async t => {
 const counts = new Map();
 const pending = [];
 let status = 200;
@@ -25,6 +25,11 @@ const image = (req, res) => {
 };
 let server, chrome;
 const release = () => { for (const resolve of pending.splice(0)) resolve(); };
+t.after(async () => {
+    release();
+    if (chrome) await chrome.close().catch(() => {});
+    if (server) await server.close().catch(() => {});
+});
 try {
     server = await startServer(0, undefined, {
         '/burst/':html, '/burst/index.html':html,
@@ -40,54 +45,54 @@ try {
     const evalJS = createEvaluator(send);
     await waitFor(evalJS, 'window.reg?.active?.state === "activated"', 15000);
     await navigateAndWait(send, evalJS, url, '!!navigator.serviceWorker.controller');
-    // 让服务端响应保持未完成，保证所有客户端请求在同一冷缓存窗口内到达。
-    await evalJS(`void (window.burst = Promise.all(Array.from({length:4},()=>fetch('./icons/concurrent.png').then(r=>r.text()))))`);
-    await waitFor(async()=>counts.get('/burst/icons/concurrent.png') > 0, 'true');
-    await new Promise(resolve=>setTimeout(resolve,150));
-    console.log('冷缓存并发 4 次请求，实际下载次数:', counts.get('/burst/icons/concurrent.png'));
-    release();
-    assert.deepEqual(await evalJS('burst'), Array(4).fill('image-body:default'));
-    assert.equal(counts.get('/burst/icons/concurrent.png'),1);
-    assert.equal(await evalJS("fetch('./icons/concurrent.png').then(r=>r.text())"), 'image-body:default');
-    assert.equal(counts.get('/burst/icons/concurrent.png'),1);
-    console.log('✅ 并发请求共享下载，各响应正文可独立消费，后续请求命中缓存');
 
-    status = 503;
-    await evalJS(`void (window.retryBurst=Promise.all(Array.from({length:4},()=>fetch('./icons/retry.png').then(r=>r.status))))`);
-    await waitFor(async()=>counts.get('/burst/icons/retry.png') > 0, 'true');
-    await new Promise(resolve=>setTimeout(resolve,100));
-    release();
-    assert.deepEqual(await evalJS('retryBurst'),[503,503,503,503]);
-    assert.equal(counts.get('/burst/icons/retry.png'),1);
-    status = 200;
-    await evalJS(`void (window.retryResult=fetch('./icons/retry.png').then(r=>r.text()))`);
-    await waitFor(async()=>counts.get('/burst/icons/retry.png') === 2, 'true');
-    release();
-    assert.equal(await evalJS('retryResult'),'image-body:default');
-    console.log('✅ 失败响应不进入持久缓存，下一次请求可以重新下载');
+    await t.test('并发冷缓存请求共享下载并缓存', async () => {
+        await evalJS(`void (window.burst = Promise.all(Array.from({length:4},()=>fetch('./icons/concurrent.png').then(r=>r.text()))))`);
+        await waitFor(async()=>counts.get('/burst/icons/concurrent.png') > 0, 'concurrent image downloaded');
+        await evalJS('new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))');
+        console.log('冷缓存并发 4 次请求，实际下载次数:', counts.get('/burst/icons/concurrent.png'));
+        release();
+        assert.deepEqual(await evalJS('burst'), Array(4).fill('image-body:default'));
+        assert.equal(counts.get('/burst/icons/concurrent.png'),1);
+        assert.equal(await evalJS("fetch('./icons/concurrent.png').then(r=>r.text())"), 'image-body:default');
+        assert.equal(counts.get('/burst/icons/concurrent.png'),1);
+    });
 
-    await evalJS(`void (window.variants=Promise.all(['a','b'].map(value=>fetch('./icons/variants.png',{headers:{'X-Variant':value}}).then(r=>r.text()))))`);
-    await waitFor(async()=>counts.get('/burst/icons/variants.png') === 2, 'true');
-    release();
-    assert.deepEqual(await evalJS('variants'),['image-body:a','image-body:b']);
-    console.log('✅ 请求头不同的资源不合并，保留各自响应语义');
+    await t.test('失败响应不进入持久缓存并支持重试', async () => {
+        status = 503;
+        await evalJS(`void (window.retryBurst=Promise.all(Array.from({length:4},()=>fetch('./icons/retry.png').then(r=>r.status))))`);
+        await waitFor(async()=>counts.get('/burst/icons/retry.png') > 0, 'retry image requested');
+        await evalJS('new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))');
+        release();
+        assert.deepEqual(await evalJS('retryBurst'),[503,503,503,503]);
+        assert.equal(counts.get('/burst/icons/retry.png'),1);
+        status = 200;
+        await evalJS(`void (window.retryResult=fetch('./icons/retry.png').then(r=>r.text()))`);
+        await waitFor(async()=>counts.get('/burst/icons/retry.png') === 2, 'retry succeeded');
+        release();
+        assert.equal(await evalJS('retryResult'),'image-body:default');
+    });
 
-    await evalJS(`void (window.cancelResults=(() => {
-        window.consumerController=new AbortController();
-        const first=fetch('./icons/cancel.png',{signal:consumerController.signal}).then(r=>r.text()).catch(error=>error.name);
-        const second=fetch('./icons/cancel.png').then(r=>r.text());
-        return Promise.all([first,second]);
-    })())`);
-    await waitFor(async()=>counts.get('/burst/icons/cancel.png') > 0,'true');
-    await evalJS('consumerController.abort()');
-    release();
-    assert.deepEqual(await evalJS('cancelResults'),['AbortError','image-body:default']);
-    assert.equal(counts.get('/burst/icons/cancel.png'),1);
-    console.log('✅ 单个消费者取消不影响其他消费者共用的下载');
+    await t.test('请求头变体隔离与单消费者取消隔离', async () => {
+        await evalJS(`void (window.variants=Promise.all(['a','b'].map(value=>fetch('./icons/variants.png',{headers:{'X-Variant':value}}).then(r=>r.text()))))`);
+        await waitFor(async()=>counts.get('/burst/icons/variants.png') === 2, 'variant requests downloaded');
+        release();
+        assert.deepEqual(await evalJS('variants'),['image-body:a','image-body:b']);
+
+        await evalJS(`void (window.cancelResults=(() => {
+            window.consumerController=new AbortController();
+            const first=fetch('./icons/cancel.png',{signal:consumerController.signal}).then(r=>r.text()).catch(error=>error.name);
+            const second=fetch('./icons/cancel.png').then(r=>r.text());
+            return Promise.all([first,second]);
+        })())`);
+        await waitFor(async()=>counts.get('/burst/icons/cancel.png') > 0,'cancel image downloaded');
+        await evalJS('consumerController.abort()');
+        release();
+        assert.deepEqual(await evalJS('cancelResults'),['AbortError','image-body:default']);
+        assert.equal(counts.get('/burst/icons/cancel.png'),1);
+    });
 } finally {
     release();
-    if (chrome) await chrome.close().catch(() => {});
-    if (server) await server.close().catch(() => {});
 }
 });
 
@@ -193,7 +198,7 @@ assert.equal(await snapshot.promise, 201);
 const more = [2, 3, 4].map(i => dispatch('https://example.test/icons/new-' + i + '.png'));
 await Promise.all(more.map(task => task.response));
 await waitFor(() => images.size === 204, 'all new responses stored');
-resumePrune.resolve();
+/** @type {PromiseWithResolvers<void>} */ (resumePrune).resolve();
 await Promise.all([firstWrite, ...more].map(task => task.settled()));
 assert.equal(images.size, 200, '淘汰扫描期间的写入必须触发再次扫描');
 

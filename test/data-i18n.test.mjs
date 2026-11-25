@@ -1,15 +1,17 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { launchSession, waitFor } from './support/helpers.mjs';
+import { addNewDocumentScript, launchSession, waitFor } from './support/helpers.mjs';
 
 test('多语言切换、语言草稿、布局与离线验证套件', async t => {
 const { server, chrome, send, evalJS } = await launchSession();
+let tempArtifactsDir;
 t.after(async () => {
     await chrome.close();
     await server.close();
+    if (tempArtifactsDir) rmSync(tempArtifactsDir, { recursive: true, force: true });
 });
 const ready = () => waitFor(evalJS, `document.documentElement?.lang === 'en' && typeof openEditModal === 'function' && !!document.querySelector('.bookmark-item')`, 10000);
 const firstLocalSuggestion = query => evalJS(`(() => {
@@ -19,17 +21,22 @@ const firstLocalSuggestion = query => evalJS(`(() => {
         return item && { name: item.querySelector('span').textContent, url: item.dataset.url };
     } finally { hideSuggestions(); }
 })()`);
-const chooseEnglish = async () => {
+const selectLanguageAndSave = async lang => {
     await evalJS(`(async () => {
         await openEditModal();
         document.getElementById('tab-btn-data').click();
         dom.languageBtn.click();
-        dom.languageList.querySelector('[data-lang="en"]').click();
+        dom.languageList.querySelector('[data-lang=${JSON.stringify(lang)}]').click();
         dom.doneLanguageBtn.click();
     })()`);
+};
+const chooseEnglish = async () => {
+    await selectLanguageAndSave('en');
     await ready();
 };
+let destinations, autoLanguageLinks;
 try {
+  await t.test('默认中文、语言弹窗取消与切换英文全站目录', async () => {
     assert.equal(await evalJS(`document.title`), 'Glass Start');
     assert.equal(await evalJS(`state.engine`), 'bing');
     assert.deepEqual(await evalJS(`pageData.bookmarks.map(bookmark => bookmark.name)`),
@@ -71,7 +78,7 @@ try {
     assert.deepEqual(await firstLocalSuggestion('快速涂鸦'), { name: 'Quick, Draw!', url: 'https://quickdraw.withgoogle.com' });
 
     // Destinations vary by language; stored bookmark identity must remain stable.
-    const destinations = await evalJS(`(() => {
+    destinations = await evalJS(`(() => {
         const links = [...document.querySelectorAll('.nav-bookmark')].map(link => link.getAttribute('href'));
         return Object.entries(window.__GLASS_I18N__.catalogs['zh-CN'].bookmarks)
             .filter(([, bookmark]) => bookmark.url)
@@ -112,49 +119,54 @@ try {
     assert.equal(quickLink.url, 'https://www.deepl.com/translator');
     assert.equal(quickLink.href, 'https://www.deepl.com/translator');
 
-    const autoLanguageLinks = ['https://www.deepl.com/translator', 'https://tools.pdf24.org', 'https://time.is/', 'https://www.emojiall.com'];
+    autoLanguageLinks = ['https://www.deepl.com/translator', 'https://tools.pdf24.org', 'https://time.is/', 'https://www.emojiall.com'];
     const englishLinks = await evalJS(`[...document.querySelectorAll('.nav-bookmark')].map(link => link.getAttribute('href'))`);
     assert.ok(autoLanguageLinks.every(url => englishLinks.includes(url)), 'English uses shared URLs for automatic language selection');
+  });
 
-    // Hold the deferred app bundle: the head and body bootstrap must translate independently.
+  await t.test('延迟加载应用包时首屏内联脚本独立完成多语言与天气预渲染', async () => {
     await send('Network.enable');
     await send('Network.setBypassServiceWorker', { bypass: true });
     await send('Network.setCacheDisabled', { cacheDisabled: true });
-    const { identifier: weatherCache } = await send('Page.addScriptToEvaluateOnNewDocument', { source: `
+    const removeWeatherCache = await addNewDocumentScript(send, `
         localStorage.setItem('glass_weather_cache', JSON.stringify({
             current: { temp: 24, weatherCode: 2 }, location: { name: 'Shanghai' }, timestamp: Date.now()
         }));
-    ` });
+    `);
     let pausedApp;
     const stopPausing = send('Fetch.requestPaused', event => { pausedApp = event; });
-    await send('Fetch.enable', { patterns: [{ urlPattern: '*/app-builds/*.js' }] });
-    await send('Page.reload');
-    await waitFor(() => Promise.resolve(!!pausedApp), 'deferred app request paused', 10000);
-    await waitFor(evalJS, `document.querySelector('#searchInput')?.placeholder === 'Search...' && !document.documentElement.hasAttribute('data-i18n-pending')`);
-    assert.equal(await evalJS(`typeof openEditModal`), 'undefined', 'app bundle has not executed');
-    assert.equal(await evalJS(`document.getElementById('engineName').textContent`), 'Google');
-    assert.match(await evalJS(`document.getElementById('engineBtn').getAttribute('aria-label')`), /Google/);
-    assert.equal(await evalJS(`document.title`), 'Glass Start');
-    assert.equal(await evalJS(`document.getElementById('weatherCity').textContent`), 'Shanghai');
-    assert.equal(await evalJS(`document.getElementById('weatherTemp').textContent`), '24°');
-    assert.match(await evalJS(`document.getElementById('weatherBtn').getAttribute('aria-label')`), /^Shanghai: 24°,/);
-    await evalJS(`localStorage.removeItem('glass_weather_cache')`);
-    await send('Page.removeScriptToEvaluateOnNewDocument', { identifier: weatherCache });
-    await send('Fetch.continueRequest', { requestId: pausedApp.requestId });
-    await send('Fetch.disable');
-    stopPausing();
-    await send('Network.setBypassServiceWorker', { bypass: false });
-    await send('Network.setCacheDisabled', { cacheDisabled: false });
+    try {
+        await send('Fetch.enable', { patterns: [{ urlPattern: '*/app-builds/*.js' }] });
+        await send('Page.reload');
+        await waitFor(() => Promise.resolve(!!pausedApp), 'deferred app request paused', 10000);
+        await waitFor(evalJS, `document.querySelector('#searchInput')?.placeholder === 'Search...' && !document.documentElement.hasAttribute('data-i18n-pending')`);
+        assert.equal(await evalJS(`typeof openEditModal`), 'undefined', 'app bundle has not executed');
+        assert.equal(await evalJS(`document.getElementById('engineName').textContent`), 'Google');
+        assert.match(await evalJS(`document.getElementById('engineBtn').getAttribute('aria-label')`), /Google/);
+        assert.equal(await evalJS(`document.title`), 'Glass Start');
+        assert.equal(await evalJS(`document.getElementById('weatherCity').textContent`), 'Shanghai');
+        assert.equal(await evalJS(`document.getElementById('weatherTemp').textContent`), '24°');
+        assert.match(await evalJS(`document.getElementById('weatherBtn').getAttribute('aria-label')`), /^Shanghai: 24°,/);
+        await evalJS(`localStorage.removeItem('glass_weather_cache')`);
+    } finally {
+        await removeWeatherCache();
+        if (pausedApp) await send('Fetch.continueRequest', { requestId: pausedApp.requestId }).catch(() => {});
+        await send('Fetch.disable').catch(() => {});
+        stopPausing();
+        await send('Network.setBypassServiceWorker', { bypass: false });
+        await send('Network.setCacheDisabled', { cacheDisabled: false });
+    }
     await send('Page.reload');
     await ready();
+  });
 
+  await t.test('英文下继承字段保存、重排及语言存储失败重试', async () => {
     await evalJS(`dom.engineBtn.click(); dom.dropdownMenu.querySelector('[data-engine="bing"]').click()`);
     await send('Page.reload');
     await ready();
     assert.equal(await evalJS(`state.engine`), 'bing', 'saved engine takes priority over the English default');
     assert.equal(await evalJS(`dom.engineName.textContent`), 'Bing');
 
-    // An untouched inherited field must not become custom when only another field changes.
     await evalJS(`(async () => {
         await openEditModal();
         const input = dom.editList.querySelector('.edit-name');
@@ -169,31 +181,45 @@ try {
     assert.equal(inherited.name, '我的自定义书签');
     assert.equal(inherited.desc, undefined, 'inherited English description stays inherited');
 
-    // Saving a reorder alone must not write any translated default text.
-    await evalJS(`(async () => { await openEditModal(); replaceBookmarkDraft([...modalState.draftBookmarks].reverse(), true); await saveEditModal(); })()`);
+    await evalJS(`(async () => {
+        await openEditModal();
+        const handle = dom.editList.querySelector('.edit-row-card .drag-handle');
+        handle.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }));
+        await saveEditModal();
+    })()`);
     const customCount = await evalJS(`Object.keys(storageGet(CONFIG.KEYS.BOOKMARKS).meta).length`);
     assert.equal(customCount, 1);
 
-    // Exercise real storage failure and retry without discarding the draft.
     const failed = await evalJS(`(async () => {
         await openEditModal();
-        modalState.draftLanguage = 'zh-CN';
+        document.getElementById('tab-btn-data').click();
+        dom.languageBtn.click();
+        dom.languageList.querySelector('[data-lang="zh-CN"]').click();
         const original = Storage.prototype.setItem;
         Storage.prototype.setItem = function(key, value) { if (key === 'glass_language') throw new Error('blocked'); return original.call(this, key, value); };
-        try { await saveEditModal(); return { open: state.editOpen, message: dom.confirmMsg.textContent, saved: storageGet(CONFIG.KEYS.LANGUAGE) }; }
-        finally { Storage.prototype.setItem = original; }
+        try {
+            dom.doneLanguageBtn.click();
+            const deadline = Date.now() + 3000;
+            while (OverlayStack.top()?.id !== 'confirmModal' && Date.now() < deadline) {
+                await new Promise(resolve => setTimeout(resolve, 10));
+            }
+            return { open: state.editOpen, message: dom.confirmMsg.textContent, saved: storageGet(CONFIG.KEYS.LANGUAGE) };
+        } finally {
+            Storage.prototype.setItem = original;
+        }
     })()`);
     assert.equal(failed.open, true);
     assert.equal(failed.saved, 'en');
     assert.match(failed.message, /Could not save the language/);
     await evalJS(`dom.confirmOkBtn.click(); cancelEditModal();`);
+  });
 
+  await t.test('英文天气缓存过滤中文且即时按天气代码本地化', async () => {
     const forecastDates = await evalJS(`Array.from({length: 3}, (_, index) => {
         const date = new Date();
         date.setDate(date.getDate() + index);
         return new Intl.DateTimeFormat('sv-SE').format(date);
     })`);
-    // Cached Chinese descriptions must not leak into the English forecast or its ARIA label.
     const weather = await evalJS(`(() => {
         const cached = { current: { temp: 22, apparent: 21, weatherCode: 0, weatherText: '晴', icon: '☀️' },
             location: { name: 'Shanghai' }, daily: [{ date: ${JSON.stringify(forecastDates[0])}, weatherCode: 3, label: '今天', text: '阴', tempMax: 24, tempMin: 18 }] };
@@ -205,44 +231,33 @@ try {
     assert.match(weather.text, /Feels like/);
     assert.doesNotMatch(weather.text, /[\u4e00-\u9fff]/);
 
-    // Fresh forecasts carry codes and dates; both languages render without stored labels.
     const freshWeather = await evalJS(`(async () => {
         const originalFetch = window.fetch;
-        const originalLocale = window.__GLASS_I18N__.locale;
         try {
             window.fetch = async () => ({ ok: true, json: async () => ({
                 current: { temperature_2m: 22, weather_code: 0, is_day: 1 },
                 daily: { time: ${JSON.stringify(forecastDates)}, weather_code: [3, 999, 2] }
             }) });
             const data = await fetchWeatherForecast({ lat: 31, lon: 121, name: 'Shanghai' });
-            const result = { data, views: {} };
-            for (const locale of ['zh-CN', 'en']) {
-                window.__GLASS_I18N__.locale = locale;
-                renderWeatherCapsule(data); renderWeatherPopover(data);
-                result.views[locale] = { label: dom.weatherBtn.getAttribute('aria-label'), text: dom.weatherPopover.textContent };
-            }
-            return result;
+            renderWeatherCapsule(data); renderWeatherPopover(data);
+            return { data, view: { label: dom.weatherBtn.getAttribute('aria-label'), text: dom.weatherPopover.textContent } };
         } finally {
             window.fetch = originalFetch;
-            window.__GLASS_I18N__.locale = originalLocale;
         }
     })()`);
     assert.equal(Object.hasOwn(freshWeather.data.current, 'weatherText'), false);
     assert.ok(freshWeather.data.daily.every(day => !Object.hasOwn(day, 'text') && !Object.hasOwn(day, 'label')));
-    assert.match(freshWeather.views['zh-CN'].label, /晴/);
-    assert.match(freshWeather.views['zh-CN'].text, /今天/);
-    assert.match(freshWeather.views['zh-CN'].text, /阴/);
-    assert.match(freshWeather.views['zh-CN'].text, /暂无数据/);
-    assert.match(freshWeather.views.en.label, /Clear/);
-    assert.match(freshWeather.views.en.text, /Today/);
-    assert.match(freshWeather.views.en.text, /Overcast/);
-    assert.match(freshWeather.views.en.text, /No data/);
-    assert.doesNotMatch(freshWeather.views.en.text, /[\u4e00-\u9fff]/);
+    assert.match(freshWeather.view.label, /Clear/);
+    assert.match(freshWeather.view.text, /Today/);
+    assert.match(freshWeather.view.text, /Overcast/);
+    assert.match(freshWeather.view.text, /No data/);
+    assert.doesNotMatch(freshWeather.view.text, /[\u4e00-\u9fff]/);
+  });
 
-    // Mobile layout and screenshots use actual rendered UI.
+  await t.test('桌面与移动端英文设置布局、离线切回中文及部分重置恢复', async () => {
     const artifactsDir = process.env.GLASS_SAVE_TEST_ARTIFACTS === '1'
         ? new URL('./artifacts/', import.meta.url)
-        : join(process.env.GLASS_TEST_TMPDIR || tmpdir(), 'glass-i18n');
+        : (tempArtifactsDir = join(process.env.GLASS_TEST_TMPDIR || tmpdir(), `glass-i18n-${process.pid}`));
     mkdirSync(artifactsDir, { recursive: true });
     for (const [width, height] of [[1440, 1000], [390, 844]]) {
         await send('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 1, mobile: width < 640 });
@@ -263,6 +278,7 @@ try {
         }
         await evalJS(`cancelEditModal()`);
     }
+    await send('Emulation.clearDeviceMetricsOverride');
 
     await send('Network.enable');
     await waitFor(evalJS, `!!navigator.serviceWorker.controller`, 10000);
@@ -270,8 +286,29 @@ try {
     await send('Page.reload');
     await ready();
     assert.equal(await evalJS(`pageData.bookmarks.some(bookmark => bookmark.name === '我的自定义书签')`), true);
-    await evalJS(`(async () => { await openEditModal(); modalState.draftLanguage = 'zh-CN'; dom.saveEditBtn.click(); })()`);
+    await selectLanguageAndSave('zh-CN');
     await waitFor(evalJS, `document.documentElement?.lang === 'zh-CN' && !!document.querySelector('.bookmark-item')`, 10000);
+    const zhWeather = await evalJS(`(async () => {
+        const today = new Date();
+        const forecastDates = Array.from({length: 3}, (_, index) => {
+            const date = new Date(today); date.setDate(date.getDate() + index);
+            return new Intl.DateTimeFormat('sv-SE').format(date);
+        });
+        const originalFetch = window.fetch;
+        try {
+            window.fetch = async () => ({ ok: true, json: async () => ({
+                current: { temperature_2m: 22, weather_code: 0, is_day: 1 },
+                daily: { time: forecastDates, weather_code: [3, 999, 2] }
+            }) });
+            const data = await fetchWeatherForecast({ lat: 31, lon: 121, name: 'Shanghai' });
+            renderWeatherCapsule(data); renderWeatherPopover(data);
+            return { label: dom.weatherBtn.getAttribute('aria-label'), text: dom.weatherPopover.textContent };
+        } finally { window.fetch = originalFetch; }
+    })()`);
+    assert.match(zhWeather.label, /晴/);
+    assert.match(zhWeather.text, /今天/);
+    assert.match(zhWeather.text, /阴/);
+    assert.match(zhWeather.text, /暂无数据/);
     assert.equal(await evalJS(`pageData.bookmarks.some(bookmark => bookmark.name === 'Reddit')`), true);
     assert.equal(await evalJS(`pageData.bookmarks.some(bookmark => bookmark.name === '我的自定义书签')`), true);
     await waitFor(evalJS, `!!document.querySelector('.nav-bookmark')`);
@@ -281,49 +318,57 @@ try {
 
     // Reset must use the same locale default as initialization, without requiring a reload.
     await send('Network.emulateNetworkConditions', { offline: false, latency: 0, downloadThroughput: -1, uploadThroughput: -1 });
-    const { identifier: automaticLocale } = await send('Page.addScriptToEvaluateOnNewDocument', { source: `
+    const removeAutoLocale = await addNewDocumentScript(send, `
         Object.defineProperty(navigator, 'languages', { get: () => ['en-US'] });
         localStorage.removeItem('glass_language');
-    ` });
-    await send('Page.reload');
-    await ready();
-    await evalJS(`(async () => {
-        dom.engineBtn.click();
-        dom.dropdownMenu.querySelector('[data-engine="bing"]').click();
-        await openEditModal();
-        document.getElementById('tab-btn-data').click();
-        dom.resetEditBtn.click();
-        dom.confirmOkBtn.click();
-    })()`);
-    await waitFor(evalJS, '!state.editOpen');
-    assert.equal(await evalJS('state.engine'), 'google', 'automatic English reset restores Google immediately');
-    assert.equal(await evalJS('dom.engineName.textContent'), 'Google');
-    assert.equal(await evalJS('localStorage.getItem(CONFIG.KEYS.PREFERRED_ENGINE)'), null);
-    await send('Page.reload');
-    await ready();
-    assert.equal(await evalJS('state.engine'), 'google', 'reset and reload agree on the default engine');
-    await send('Page.removeScriptToEvaluateOnNewDocument', { identifier: automaticLocale });
-    await send('Page.addScriptToEvaluateOnNewDocument', { source: "Object.defineProperty(navigator, 'languages', { get: () => ['en-US'] });" });
-    await evalJS(`(async () => { await openEditModal(); modalState.draftLanguage = 'zh-CN'; dom.saveEditBtn.click(); })()`);
-    await waitFor(evalJS, `document.documentElement.lang === 'zh-CN' && typeof openEditModal === 'function'`);
-    await evalJS(`(async () => {
-        await openEditModal();
-        const remove = Storage.prototype.removeItem;
-        window.restoreStorage = () => { Storage.prototype.removeItem = remove; };
-        Storage.prototype.removeItem = function(key) {
-            if (key === CONFIG.KEYS.NAV_DISCOVERED) throw Error('reset blocked');
-            return remove.call(this, key);
-        };
-        resetAllSettings(); dom.confirmOkBtn.click();
-    })()`);
-    await waitFor(evalJS, `modalState.phase === 'editing' && dom.confirmModal.open && !storageGet(CONFIG.KEYS.LANGUAGE)`);
-    assert.equal(await evalJS(`document.documentElement.lang`), 'zh-CN');
-    await evalJS('restoreStorage(); dom.confirmOkBtn.click(); resetAllSettings(); dom.confirmOkBtn.click()');
-    await ready();
-    assert.equal(await evalJS('state.engine'), 'google', 'retry reconciles the effective locale after a partial reset');
+    `);
+    try {
+        await send('Page.reload');
+        await ready();
+        await evalJS(`(async () => {
+            dom.engineBtn.click();
+            dom.dropdownMenu.querySelector('[data-engine="bing"]').click();
+            await openEditModal();
+            document.getElementById('tab-btn-data').click();
+            dom.resetEditBtn.click();
+            dom.confirmOkBtn.click();
+        })()`);
+        await waitFor(evalJS, '!state.editOpen');
+        assert.equal(await evalJS('state.engine'), 'google', 'automatic English reset restores Google immediately');
+        assert.equal(await evalJS('dom.engineName.textContent'), 'Google');
+        assert.equal(await evalJS('localStorage.getItem(CONFIG.KEYS.PREFERRED_ENGINE)'), null);
+        await send('Page.reload');
+        await ready();
+        assert.equal(await evalJS('state.engine'), 'google', 'reset and reload agree on the default engine');
+    } finally {
+        await removeAutoLocale();
+    }
+
+    const removeEnLanguages = await addNewDocumentScript(send, "Object.defineProperty(navigator, 'languages', { get: () => ['en-US'] });");
+    try {
+        await selectLanguageAndSave('zh-CN');
+        await waitFor(evalJS, `document.documentElement.lang === 'zh-CN' && typeof openEditModal === 'function'`);
+        await evalJS(`(async () => {
+            await openEditModal();
+            const remove = Storage.prototype.removeItem;
+            window.restoreStorage = () => { Storage.prototype.removeItem = remove; };
+            Storage.prototype.removeItem = function(key) {
+                if (key === CONFIG.KEYS.NAV_DISCOVERED) throw Error('reset blocked');
+                return remove.call(this, key);
+            };
+            resetAllSettings(); dom.confirmOkBtn.click();
+        })()`);
+        await waitFor(evalJS, `modalState.phase === 'editing' && dom.confirmModal.open && !storageGet(CONFIG.KEYS.LANGUAGE)`);
+        assert.equal(await evalJS(`document.documentElement.lang`), 'zh-CN');
+        await evalJS('restoreStorage(); dom.confirmOkBtn.click(); resetAllSettings(); dom.confirmOkBtn.click()');
+        await ready();
+        assert.equal(await evalJS('state.engine'), 'google', 'retry reconciles the effective locale after a partial reset');
+    } finally {
+        await removeEnLanguages();
+    }
     console.log('✅ 英文全站、语言草稿与保存失败、书签继承、天气缓存、桌面/触屏布局及离线切换通过');
+  });
 } finally {
-    await chrome.close();
-    await server.close();
+    // cleanup handled by t.after
 }
 });

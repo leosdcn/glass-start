@@ -6,7 +6,7 @@ const { publishWebBuild, ensureSignalHandlers } = require('./publish-build.cjs')
 const fs = require('fs');
 const path = require('path');
 const { execFile } = require('child_process');
-const { randomBytes } = require('node:crypto');
+const { randomBytes, createHash } = require('node:crypto');
 
 /**
  * ==============================================================================
@@ -173,8 +173,8 @@ function buildServiceWorkerAndAssets(targetDir, { extension, version, webHeader 
 }
 
 // 两种构建共用编译选项；生产在编译时裁掉测试入口，测试脚本只由测试服务器持有。
-/** @param {{ testMode?: boolean, extension?: boolean, version?: string, outfile?: string, uploads?: ReturnType<typeof readImageSearchUploads> }} [options] */
-function buildAppJavaScript({ testMode = false, extension = false, version = 'app-core-v' + Date.now(), outfile, uploads = readImageSearchUploads() } = {}) {
+/** @param {{ testMode?: boolean, extension?: boolean, version?: string, outfile?: string, uploads?: ReturnType<typeof readImageSearchUploads>, define?: Record<string, string> }} [options] */
+function buildAppJavaScript({ testMode = false, extension = false, version = 'app-core-v' + Date.now(), outfile, uploads = readImageSearchUploads(), define = {} } = {}) {
     return esbuild.buildSync({
         entryPoints: [PATHS.srcMainJs],
         bundle: true,
@@ -185,7 +185,9 @@ function buildAppJavaScript({ testMode = false, extension = false, version = 'ap
         define: {
             __GLASS_IMAGE_SEARCH_UPLOADS__: JSON.stringify(uploads),
             'window.__GLASS_EXTENSION__': String(extension),
-            ...(testMode ? {} : { 'window.__GLASS_TEST__': 'false' })
+            __GLASS_SW_UPDATE_TIMEOUT__: '15000',
+            ...(testMode ? {} : { 'window.__GLASS_TEST__': 'false' }),
+            ...define
         },
         banner: { js: `window.__GLASS_BUILD_APP__="${version}";\n` },
         metafile: true,
@@ -257,18 +259,29 @@ function injectHeadConfig(html, { marker, entryPath, globalName, binding }) {
     return replaceOnce(html, marker, code.replace(/<\/script/gi, '<\\/script'));
 }
 
+/** @param {string} html */
+function collectInlineScriptHashes(html) {
+    /** @type {Set<string>} */
+    const hashes = new Set();
+    for (const [, attrs, content] of html.matchAll(/<script([^>]*)>([\s\S]*?)<\/script>/gi)) {
+        if (/\bsrc\s*=/i.test(attrs) || /\btype\s*=\s*["']?application\/ld\+json["']?/i.test(attrs)) continue;
+        hashes.add(`'sha256-${createHash('sha256').update(content, 'utf8').digest('base64')}'`);
+    }
+    return [...hashes];
+}
+
 // 5. 注入应用脚本、静态编译后的 Tailwind CSS 与 SVG 精灵。
 /**
  * @param {string} compiledCss
  * @param {string} targetDir
- * @param {{ version: string, appVersion: string, extension: boolean, webMeta: string }} options
+ * @param {{ version: string, appVersion: string, extension: boolean, uploads: ReturnType<typeof readImageSearchUploads> }} options
  */
-function processProductionHtml(compiledCss, targetDir, { version: buildVersion, appVersion, extension, webMeta }) {
+function processProductionHtml(compiledCss, targetDir, { version: buildVersion, appVersion, extension, uploads }) {
     logSection('4/4', '🔧 处理生产环境页面 (dist/index.html)');
     const htmlStart = Date.now();
     let prodHtmlContent = fs.readFileSync(PATHS.srcIndexHtml, 'utf-8');
     prodHtmlContent = replaceOnce(prodHtmlContent, '<!-- INJECT_WEB_CSP -->',
-        extension ? '' : `<meta http-equiv="Content-Security-Policy" content="${webMeta}">`);
+        extension ? '' : '<meta http-equiv="Content-Security-Policy" content="__GLASS_WEB_CSP__">');
     const i18nBootstrap = esbuild.buildSync({
         stdin: { contents: `import { messages } from './src/js/config/locales/index.js'; import enCatalog from './src/js/config/locales/catalog-en.json'; import zhCatalog from './src/js/config/locales/catalog-zh-CN.json'; import { initializeI18n } from './src/js/core/i18n.js'; initializeI18n(messages); window.__GLASS_I18N__.catalogs = { en: enCatalog, 'zh-CN': zhCatalog };`, resolveDir: ROOT_DIR },
         bundle: true, write: false, format: 'iife', target: 'es2020', minify: true, charset: 'utf8',
@@ -346,6 +359,11 @@ function processProductionHtml(compiledCss, targetDir, { version: buildVersion, 
         return minified.trim();
     }
     prodHtmlContent = minifyHtml(prodHtmlContent);
+    const scriptHashes = extension ? [] : collectInlineScriptHashes(prodHtmlContent);
+    const { webMeta, webHeader, extensionPolicy } = getContentSecurityPolicy(uploads, scriptHashes);
+    if (!extension) {
+        prodHtmlContent = replaceOnce(prodHtmlContent, '__GLASS_WEB_CSP__', webMeta);
+    }
     const htmlDuration = Date.now() - htmlStart;
     const htmlKb = (Buffer.byteLength(prodHtmlContent, 'utf-8') / 1024).toFixed(2);
     buildMetrics.stages.html = htmlDuration;
@@ -364,6 +382,7 @@ function processProductionHtml(compiledCss, targetDir, { version: buildVersion, 
     }
 
     fs.writeFileSync(path.join(targetDir, 'index.html'), prodHtmlContent, 'utf-8');
+    return { webHeader, extensionPolicy };
 }
 
 /** @param {string} itemPath @returns {number} */
@@ -432,10 +451,9 @@ function executeBuild(targetDir, compiledCss, { extension = false } = {}) {
     const version = `app-core-v${Date.now()}-${randomBytes(8).toString('hex')}`;
     const { version: appVersion } = JSON.parse(fs.readFileSync(PATHS.pkgJson, 'utf-8'));
     const uploads = readImageSearchUploads();
-    const { webMeta, webHeader, extensionPolicy } = getContentSecurityPolicy(uploads);
-    buildServiceWorkerAndAssets(targetDir, { extension, version, webHeader });
     processProductionAppJs(targetDir, { extension, version, uploads });
-    processProductionHtml(compiledCss, targetDir, { version, appVersion, extension, webMeta });
+    const { webHeader, extensionPolicy } = processProductionHtml(compiledCss, targetDir, { version, appVersion, extension, uploads });
+    buildServiceWorkerAndAssets(targetDir, { extension, version, webHeader });
     return { version, appVersion, extensionPolicy, uploads };
 }
 

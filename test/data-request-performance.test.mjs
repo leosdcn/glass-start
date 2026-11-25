@@ -1,7 +1,7 @@
 /** 重复入口共享请求，输入变化立即作废旧响应，重新定位保持刷新互斥。 */
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { launchSession, waitFor } from './support/helpers.mjs';
+import { addNewDocumentScript, launchSession, waitFor, withJsonpStub } from './support/helpers.mjs';
 
 test('请求合并、联想作废与天气刷新互斥套件', async t => {
 const { server, chrome, send, evalJS } = await launchSession();
@@ -10,9 +10,10 @@ t.after(async () => {
     await server.close();
 });
 try {
+  await t.test('天气首屏缓存只读取一次并延迟渲染详情', async () => {
     await send('Network.enable');
     await send('Network.setBypassServiceWorker', { bypass: true });
-    await send('Page.addScriptToEvaluateOnNewDocument', { source: `
+    const removeWeatherReadProbe = await addNewDocumentScript(send, `
         localStorage.setItem('glass_weather_cache', JSON.stringify({timestamp:Date.now(),current:{temp:20},daily:[]}));
         window.weatherStartupReads = {cache:0, unit:0};
         window.originalWeatherGetItem = Storage.prototype.getItem;
@@ -21,75 +22,68 @@ try {
             if (key === 'glass_temp_unit') weatherStartupReads.unit++;
             return originalWeatherGetItem.call(this, key);
         };
-    ` });
-    await send('Page.reload');
-    await waitFor(evalJS, 'window.weatherStartupReads && typeof updateWeather === "function" && dom.weatherTemp?.textContent === "20°" && !isFetchingWeather');
-    assert.deepEqual(await evalJS('(Storage.prototype.getItem = originalWeatherGetItem, weatherStartupReads)'),
-        {cache:2, unit:2}, '首帧脚本与主应用各读取一次天气和单位');
-    assert.deepEqual(await evalJS(`(() => {
-        const before = dom.weatherPopover.childElementCount;
-        dom.weatherBtn.click();
-        const opened = dom.weatherPopover.querySelector('#tempUnitToggleBtn')?.textContent;
-        dom.weatherBtn.click();
-        return [before, opened];
-    })()`), [0, '20°C'], '缓存天气详情延迟到首次打开时渲染');
+    `);
+    try {
+        await send('Page.reload');
+        await waitFor(evalJS, 'window.weatherStartupReads && typeof updateWeather === "function" && dom.weatherTemp?.textContent === "20°" && !isFetchingWeather');
+        assert.deepEqual(await evalJS('(Storage.prototype.getItem = originalWeatherGetItem, weatherStartupReads)'),
+            {cache:2, unit:2}, '首帧脚本与主应用各读取一次天气和单位');
+        assert.deepEqual(await evalJS(`(() => {
+            const before = dom.weatherPopover.childElementCount;
+            dom.weatherBtn.click();
+            const opened = dom.weatherPopover.querySelector('#tempUnitToggleBtn')?.textContent;
+            dom.weatherBtn.click();
+            return [before, opened];
+        })()`), [0, '20°C'], '缓存天气详情延迟到首次打开时渲染');
+    } finally {
+        await removeWeatherReadProbe();
+        await send('Network.setBypassServiceWorker', { bypass: false });
+    }
+  });
 
-    const jsonp = await evalJS(`(() => {
-        const append = document.body.appendChild;
-        let requests = 0;
-        document.body.appendChild = function(node) {
-            if (node.tagName === 'SCRIPT') { requests++; node.type = 'application/x-test'; }
-            return append.call(this, node);
-        };
-        try {
-            fetchSuggestions('bing', 'performance-pending');
-            const node = dom.suggestionMenu.firstChild;
-            const oldCallback = window['__glassSuggestCb_' + activeSuggestReqId];
-            const id = activeSuggestReqId;
-            fetchSuggestions('bing', ' performance-pending ');
-            const shared = requests === 1 && id === activeSuggestReqId && node === dom.suggestionMenu.firstChild;
-            state.engine = 'bing';
-            dom.searchInput.value = ' performance-pending ';
-            dom.searchInput.dispatchEvent(new Event('input', {bubbles:true}));
-            const inputShared = requests === 1 && id === activeSuggestReqId && node === dom.suggestionMenu.firstChild && !!document.body.querySelector('script[src*="__glassSuggestCb_"]');
-            dom.searchInput.value = 'performance-new';
-            dom.searchInput.dispatchEvent(new Event('input', {bubbles:true}));
-            oldCallback(['old', ['stale-response']]);
-            const staleDiscarded = !dom.suggestionMenu.textContent.includes('stale-response');
-            hideSuggestions();
+  await t.test('JSONP 联想共享请求、缓存与输入选中状态保持', async () => {
+    const jsonp = await evalJS(withJsonpStub(`
+        fetchSuggestions('bing', 'performance-pending');
+        const node = dom.suggestionMenu.firstChild;
+        const oldCallback = window['__glassSuggestCb_' + activeSuggestReqId];
+        const id = activeSuggestReqId;
+        fetchSuggestions('bing', ' performance-pending ');
+        const shared = requests.length === 1 && id === activeSuggestReqId && node === dom.suggestionMenu.firstChild;
+        state.engine = 'bing';
+        dom.searchInput.value = ' performance-pending ';
+        dom.searchInput.dispatchEvent(new Event('input', {bubbles:true}));
+        const inputShared = requests.length === 1 && id === activeSuggestReqId && node === dom.suggestionMenu.firstChild && !!document.body.querySelector('script[src*="__glassSuggestCb_"]');
+        dom.searchInput.value = 'performance-new';
+        dom.searchInput.dispatchEvent(new Event('input', {bubbles:true}));
+        oldCallback(['old', ['stale-response']]);
+        const staleDiscarded = !dom.suggestionMenu.textContent.includes('stale-response');
+        hideSuggestions();
 
-            fetchSuggestions('bing', 'performance-empty');
-            window['__glassSuggestCb_' + activeSuggestReqId](['query', []]);
-            const before = requests;
-            fetchSuggestions('bing', 'performance-empty');
-            const cachedEmpty = requests === before && !dom.suggestionMenu.classList.contains('active');
-            // 即使下一个查询命中缓存，已清理的回调也不能再次覆盖它。
-            fetchSuggestions('bing', 'performance-other');
-            const stale = window['__glassSuggestCb_' + activeSuggestReqId];
-            fetchSuggestions('bing', 'performance-empty');
-            stale(['old', ['late-after-cache']]);
-            const cacheRaceDiscarded = !dom.suggestionMenu.classList.contains('active');
-            fetchSuggestions('bing', 'performance-malformed');
-            window['__glassSuggestCb_' + activeSuggestReqId]({error:'temporary'});
-            const beforeRetry = requests;
-            fetchSuggestions('bing', 'performance-malformed');
-            const malformedRetried = requests === beforeRetry + 1;
-            window['__glassSuggestCb_' + activeSuggestReqId](['query', ['restored suggestion']]);
-            const retryRendered = dom.suggestionMenu.textContent.includes('restored suggestion');
-            return {shared, inputShared, staleDiscarded, cachedEmpty, cacheRaceDiscarded, malformedRetried, retryRendered};
-        } finally { hideSuggestions(); document.body.appendChild = append; }
-    })()`);
+        fetchSuggestions('bing', 'performance-empty');
+        window['__glassSuggestCb_' + activeSuggestReqId](['query', []]);
+        const before = requests.length;
+        fetchSuggestions('bing', 'performance-empty');
+        const cachedEmpty = requests.length === before && !dom.suggestionMenu.classList.contains('active');
+        fetchSuggestions('bing', 'performance-other');
+        const stale = window['__glassSuggestCb_' + activeSuggestReqId];
+        fetchSuggestions('bing', 'performance-empty');
+        stale(['old', ['late-after-cache']]);
+        const cacheRaceDiscarded = !dom.suggestionMenu.classList.contains('active');
+        fetchSuggestions('bing', 'performance-malformed');
+        window['__glassSuggestCb_' + activeSuggestReqId]({error:'temporary'});
+        const beforeRetry = requests.length;
+        fetchSuggestions('bing', 'performance-malformed');
+        const malformedRetried = requests.length === beforeRetry + 1;
+        window['__glassSuggestCb_' + activeSuggestReqId](['query', ['restored suggestion']]);
+        const retryRendered = dom.suggestionMenu.textContent.includes('restored suggestion');
+        return {shared, inputShared, staleDiscarded, cachedEmpty, cacheRaceDiscarded, malformedRetried, retryRendered};
+    `));
     assert.deepEqual(jsonp, {shared:true, inputShared:true, staleDiscarded:true, cachedEmpty:true,
         cacheRaceDiscarded:true, malformedRetried:true, retryRendered:true});
     console.log('✅ JSONP 同查询只请求／渲染一次，输入防抖期间丢弃旧响应，空结果复用缓存');
 
-    const categoryLabel = await evalJS(`(() => {
-        const append = document.body.appendChild;
+    const categoryLabel = await evalJS(withJsonpStub(`
         const categories = pageData.categories;
-        document.body.appendChild = function(node) {
-            if (node.tagName === 'SCRIPT') node.type = 'application/x-test';
-            return append.call(this, node);
-        };
         try {
             fetchSuggestions('bing', 'github.com');
             window['__glassSuggestCb_' + activeSuggestReqId](['github.com', []]);
@@ -99,66 +93,60 @@ try {
             return dom.suggestionMenu.querySelector('[data-idx="0"] > :last-child')?.textContent;
         } finally {
             pageData.categories = categories;
-            hideSuggestions();
-            document.body.appendChild = append;
         }
-    })()`);
+    `));
     assert.equal(categoryLabel, 'Updated category', '查询缓存命中后仍更新改名的分类标签');
 
-    const selection = await evalJS(`(() => {
-        const append = document.body.appendChild;
-        document.body.appendChild = function(node) {
-            if (node.tagName === 'SCRIPT') node.type = 'application/x-test';
-            return append.call(this, node);
+    const selection = await evalJS(withJsonpStub(`
+        const begin = query => {
+            dom.searchInput.value = query;
+            dom.searchInput.dispatchEvent(new Event('input', {bubbles:true}));
+            fetchSuggestions('bing', query);
         };
-        try {
-            const begin = query => {
-                dom.searchInput.value = query;
-                dom.searchInput.dispatchEvent(new Event('input', {bubbles:true}));
-                fetchSuggestions('bing', query);
-            };
-            begin('chat');
-            dom.suggestionMenu.querySelector('.suggestion-item').dispatchEvent(new MouseEvent('mouseover', {bubbles:true}));
-            const before = dom.searchInput.value;
-            window['__glassSuggestCb_' + activeSuggestReqId](['chat',['chat result','chat other']]);
-            const hoverPreserved = before === 'chat' && dom.searchInput.value === 'chat' &&
-                dom.suggestionMenu.querySelector('[data-idx="0"]').classList.contains('active');
-            const observer = new MutationObserver(()=>{});
-            observer.observe(dom.suggestionMenu, {attributes:true, subtree:true});
-            const item = dom.suggestionMenu.querySelector('[data-idx="0"]');
-            for (let i=0; i<30; i++) item.dispatchEvent(new MouseEvent('mouseover',{bubbles:true}));
-            const repeatedWrites = observer.takeRecords().length;
-            dom.suggestionMenu.querySelector('[data-idx="1"]').dispatchEvent(new MouseEvent('mouseover',{bubbles:true}));
-            const changedWrites = observer.takeRecords().length;
-            observer.disconnect();
-            const uniqueSelection = dom.suggestionMenu.querySelectorAll('[aria-selected="true"]').length === 1;
-            hideSuggestions();
+        begin('chat');
+        dom.suggestionMenu.querySelector('.suggestion-item').dispatchEvent(new MouseEvent('mouseover', {bubbles:true}));
+        const before = dom.searchInput.value;
+        window['__glassSuggestCb_' + activeSuggestReqId](['chat',['chat result','chat other']]);
+        const hoverPreserved = before === 'chat' && dom.searchInput.value === 'chat' &&
+            dom.suggestionMenu.querySelector('[data-idx="0"]').classList.contains('active');
+        const observer = new MutationObserver(()=>{});
+        observer.observe(dom.suggestionMenu, {attributes:true, subtree:true});
+        const item = dom.suggestionMenu.querySelector('[data-idx="0"]');
+        for (let i=0; i<30; i++) item.dispatchEvent(new MouseEvent('mouseover',{bubbles:true}));
+        const repeatedWrites = observer.takeRecords().length;
+        dom.suggestionMenu.querySelector('[data-idx="1"]').dispatchEvent(new MouseEvent('mouseover',{bubbles:true}));
+        const changedWrites = observer.takeRecords().length;
+        observer.disconnect();
+        const uniqueSelection = dom.suggestionMenu.querySelectorAll('[aria-selected="true"]').length === 1;
+        hideSuggestions();
 
-            begin('chatg');
-            dom.searchInput.focus();
-            dom.searchInput.dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowDown',bubbles:true,cancelable:true}));
-            const keyboardValue = dom.searchInput.value;
-            window['__glassSuggestCb_' + activeSuggestReqId](['chatg',['chatg result']]);
-            const keyboardPreserved = keyboardValue === 'chatg' && dom.searchInput.value === keyboardValue &&
-                dom.suggestionMenu.querySelector('[data-idx="0"]').classList.contains('active');
-            dom.searchInput.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}));
-            const escaped = dom.searchInput.value === 'chatg';
+        begin('chatg');
+        dom.searchInput.focus();
+        dom.searchInput.dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowDown',bubbles:true,cancelable:true}));
+        const keyboardValue = dom.searchInput.value;
+        window['__glassSuggestCb_' + activeSuggestReqId](['chatg',['chatg result']]);
+        const keyboardPreserved = keyboardValue === 'chatg' && dom.searchInput.value === keyboardValue &&
+            dom.suggestionMenu.querySelector('[data-idx="0"]').classList.contains('active');
+        dom.searchInput.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}));
+        const escaped = dom.searchInput.value === 'chatg';
 
-            begin('git');
-            dom.searchInput.dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowDown',bubbles:true,cancelable:true}));
-            const highlighted = dom.suggestionMenu.querySelector('.suggestion-item.active')?.textContent.includes('GitHub');
-            dom.engineBtn.click();
-            document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true,cancelable:true}));
-            dom.engineBtn.click();
-            dom.dropdownMenu.querySelector('[data-engine="google"]').click();
-            const engineQuery = new URL(document.body.querySelector('script[src*="__glassSuggestCb_"]').src).searchParams.get('q');
-            return {hoverPreserved,repeatedWrites,changedWrites,uniqueSelection,keyboardPreserved,escaped,
-                highlighted, engineQuery, text: dom.searchInput.value};
-        } finally { hideSuggestions(); document.body.appendChild = append; }
-    })()`);
+        begin('git');
+        dom.searchInput.dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowDown',bubbles:true,cancelable:true}));
+        const highlighted = dom.suggestionMenu.querySelector('.suggestion-item.active')?.textContent.includes('GitHub');
+        dom.engineBtn.click();
+        document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true,cancelable:true}));
+        dom.engineBtn.click();
+        dom.dropdownMenu.querySelector('[data-engine="google"]').click();
+        const engineQuery = new URL(document.body.querySelector('script[src*="__glassSuggestCb_"]').src).searchParams.get('q');
+        return {hoverPreserved,repeatedWrites,changedWrites,uniqueSelection,keyboardPreserved,escaped,
+            highlighted, engineQuery, text: dom.searchInput.value};
+    `));
     assert.deepEqual(selection, {hoverPreserved:true,repeatedWrites:0,changedWrites:4,uniqueSelection:true,keyboardPreserved:true,escaped:true,
         highlighted:true, engineQuery:'git', text:'git'});
     console.log('✅ 网络返回保留原查询与键盘选中项，重复悬停零写入，换项只更新两个节点');
+  });
+
+  await t.test('Wikipedia 请求共享、骨架过渡与书签改名区分大小写路径', async () => {
 
     const cors = await evalJS(`(async () => {
         const original = window.fetch;
@@ -191,14 +179,16 @@ try {
     await send('Emulation.setEmulatedMedia', { features:[{name:'prefers-reduced-motion', value:'no-preference'}] });
     const loading = await evalJS(`(async () => {
         const originalFetch = window.fetch;
-        const originalEngine = state.engine;
+        const originalEngine = dom.dropdownMenu.querySelector('[aria-checked="true"]')?.dataset.engine || 'bing';
         const { searchInput, suggestionMenu } = dom;
         const originalValue = searchInput.value;
+        searchInput.value = '';
+        dom.engineBtn.click();
+        dom.dropdownMenu.querySelector('[data-engine="wikipedia"]').click();
         const requestStarted = new Promise(started => {
             window.fetch = () => new Promise(resolve => started(resolve));
         });
         try {
-            state.engine = 'wikipedia';
             searchInput.value = 'github';
             searchInput.dispatchEvent(new Event('input', { bubbles:true }));
             const local = suggestionMenu.querySelector('.suggestion-item[data-url]');
@@ -240,7 +230,8 @@ try {
         } finally {
             hideSuggestions();
             window.fetch = originalFetch;
-            state.engine = originalEngine;
+            dom.engineBtn.click();
+            dom.dropdownMenu.querySelector('[data-engine="' + originalEngine + '"]').click();
             searchInput.value = originalValue;
         }
     })()`);
@@ -253,21 +244,29 @@ try {
 
     const editedSuggestion = await evalJS(`(async () => {
         const originalFetch = window.fetch;
-        const originalBookmarks = pageData.bookmarks;
+        const originalStored = storageGet(CONFIG.KEYS.BOOKMARKS);
         window.fetch = async () => ({ok:true,json:async()=>['rename-check',[]]});
         try {
-            pageData.bookmarks = [{name:'原名称',url:'https://rename-check.test',desc:'原简介',icon:'./icons/github.com.png'}];
+            saveUserBookmarks([{name:'原名称',url:'https://rename-check.test',desc:'原简介',icon:'./icons/github.com.png'}]);
+            loadBookmarks();
             fetchSuggestions('wikipedia','rename-check');
             await new Promise(resolve => setTimeout(resolve, 0));
             const originalNode = dom.suggestionMenu.querySelector('.suggestion-item');
             hideSuggestions();
-            pageData.bookmarks = [{...pageData.bookmarks[0],name:'新名称',desc:'新简介',icon:'./icons/youtube.com.png'}];
+            saveUserBookmarks([{name:'新名称',url:'https://rename-check.test',desc:'新简介',icon:'./icons/youtube.com.png'}]);
+            loadBookmarks();
             fetchSuggestions('wikipedia','rename-check');
             const node = dom.suggestionMenu.querySelector('.suggestion-item');
             return {updated:node.textContent.includes('新名称') && node.textContent.includes('新简介')
                 && node.querySelector('img').getAttribute('src') === './icons/youtube.com.png',
                 replaced:node !== originalNode};
-        } finally { hideSuggestions(); window.fetch = originalFetch; pageData.bookmarks = originalBookmarks; }
+        } finally {
+            hideSuggestions();
+            window.fetch = originalFetch;
+            if (originalStored) storageSet(CONFIG.KEYS.BOOKMARKS, originalStored);
+            else storageRemove(CONFIG.KEYS.BOOKMARKS);
+            loadBookmarks();
+        }
     })()`);
     assert.deepEqual(editedSuggestion, {updated:true,replaced:true});
 
@@ -286,6 +285,9 @@ try {
         } finally { hideSuggestions(); window.fetch = original; }
     })()`);
     assert.deepEqual(paths, ['https://docs.example.test/Docs/A','https://docs.example.test/docs/a']);
+  });
+
+  await t.test('天气定位共享刷新、零坐标校验及重置后中止回写', async () => {
 
     await evalJS(`(() => {
         window.performanceOriginalFetch = window.fetch;
@@ -404,8 +406,8 @@ try {
     assert.equal(await evalJS(empty), true);
     await evalJS('window.fetch = resetWeatherOriginalFetch');
     console.log('✅ 恢复默认立即清空天气，旧定位返回后也不能回写或复原界面');
+  });
 } finally {
-    await chrome.close();
-    await server.close();
+    // cleanup handled by t.after
 }
 });

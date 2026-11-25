@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { launchSession, pressKey, waitFor } from './support/helpers.mjs';
+import { launchSession, pressKey, waitFor, withJsonpStub } from './support/helpers.mjs';
 test('从天气切回搜索、更新候选和输入法确认', async () => {
   const { server, chrome, send, evalJS } = await launchSession();
   const press = (key) => pressKey(evalJS, key);
@@ -151,9 +151,16 @@ test('从天气切回搜索、更新候选和输入法确认', async () => {
 test('新标签页打开候选时保留列表，当前页打开时收起', async () => {
   const { server, chrome, send, evalJS } = await launchSession();
   try {
-    await evalJS(`(() => {
+    await evalJS(`(async () => {
       const url = new URL('#same-tab-bookmark', location.href).href;
-      pageData.bookmarks = [...pageData.bookmarks, {name:'Glass tab fixture', url}];
+      await openEditModal();
+      dom.addBookmarkBtn.click();
+      const row = dom.editList.lastElementChild;
+      row.querySelector('.edit-name').value = 'Glass tab fixture';
+      row.querySelector('.edit-name').dispatchEvent(new Event('input', { bubbles: true }));
+      row.querySelector('.edit-url').value = url;
+      row.querySelector('.edit-url').dispatchEvent(new Event('input', { bubbles: true }));
+      await saveEditModal();
       window.openedSuggestions = [];
       window.open = (...args) => {
         openedSuggestions.push(args);
@@ -610,6 +617,75 @@ test('粘贴图片用当前引擎搜图，文字和网址保留默认粘贴', as
       assert.equal(request.url.split('?')[0], destination);
       assert.equal(await evalJS('dom.imageSearchInput.files.length'), 0);
     }
+  } finally {
+    await chrome.close();
+    await server.close();
+  }
+});
+
+test('联想激活读取模型数据而非 DOM 文本，输入按钮与局部联想节点复用', async () => {
+  const { server, chrome, evalJS } = await launchSession();
+  try {
+    const activation = await evalJS(withJsonpStub(`
+      const open = window.open; let opened = '';
+      window.open = url => { opened = url; };
+      try {
+        dom.searchInput.value = 'audit-unmatched-query'; dom.searchInput.focus();
+        fetchSuggestions('bing', 'audit-unmatched-query');
+        window['__glassSuggestCb_' + activeSuggestReqId](['query', ['first-result', 'second-result']]);
+        const item = dom.suggestionMenu.querySelector('[data-idx="1"] span');
+        item.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+        const selected = selectedSuggestionIdx;
+        item.textContent = 'tampered-result';
+        dom.searchInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', ctrlKey: true, bubbles: true, cancelable: true }));
+        const keyboardUsesModel = opened.includes('second-result') && !opened.includes('tampered-result');
+        const retained = item.isConnected && dom.suggestionMenu.classList.contains('active');
+        item.textContent = 'tampered-click';
+        opened = '';
+        item.dispatchEvent(new MouseEvent('click', { ctrlKey: true, bubbles: true }));
+        return { selected, retained, usesModel: keyboardUsesModel && opened.includes('second-result') && !opened.includes('tampered-click') };
+      } finally { window.open = open; }
+    `));
+    assert.deepEqual(activation, { selected: 1, retained: true, usesModel: true });
+
+    const perfResults = await evalJS(`(() => {
+      let hiddenToggles = 0;
+      const origToggle = dom.searchClearBtn.classList.toggle;
+      dom.searchClearBtn.classList.toggle = function(...args) {
+        hiddenToggles++;
+        return origToggle.apply(this, args);
+      };
+      try {
+        dom.searchInput.value = 'a';
+        dom.searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+        dom.searchInput.value = 'ab';
+        dom.searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+        dom.searchInput.value = 'abc';
+        dom.searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+      } finally {
+        dom.searchClearBtn.classList.toggle = origToggle;
+      }
+
+      dom.searchInput.value = 'githu';
+      dom.searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+      const firstOptNode = dom.suggestionMenu.querySelector('.suggestion-item');
+      dom.searchInput.value = 'github';
+      dom.searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+      const secondOptNode = dom.suggestionMenu.querySelector('.suggestion-item');
+      const domReused = firstOptNode !== null && firstOptNode === secondOptNode;
+      dom.searchInput.value = 'githubxyznonexistentquery';
+      dom.searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+      const loadingWithoutStaleOptions = dom.suggestionMenu.classList.contains('active') &&
+        dom.searchInput.getAttribute('aria-expanded') === 'true' &&
+        !dom.suggestionMenu.querySelector('[role="option"]') &&
+        !!dom.suggestionMenu.lastElementChild.querySelector(':scope > [aria-hidden="true"]');
+
+      hideSuggestions();
+      dom.searchInput.value = '';
+      dom.searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+      return { hiddenToggles, domReused, loadingWithoutStaleOptions };
+    })()`);
+    assert.deepEqual(perfResults, { hiddenToggles: 1, domReused: true, loadingWithoutStaleOptions: true });
   } finally {
     await chrome.close();
     await server.close();

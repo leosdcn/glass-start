@@ -1,6 +1,5 @@
 const fs = require('node:fs');
 const path = require('node:path');
-const os = require('node:os');
 const { randomUUID } = require('node:crypto');
 const { registerCleanup, ensureExitCleanup, ensureSignalHandlers } = require('./cleanup-registry.cjs');
 

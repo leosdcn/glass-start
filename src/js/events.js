@@ -1,6 +1,7 @@
 /** 全局快捷键、页面唤醒和跨业务菜单协调；控件内部事件见各业务事件模块。 */
 import { cancelDragSort } from './modules/bookmark-drag.js';
-import { cancelCategoryPulse, loadBookmarks } from './modules/bookmarks.js';
+import { loadBookmarks } from './modules/bookmarks.js';
+import { cancelCategoryPulse } from './modules/bookmarks-nav.js';
 import { resetActiveCard } from './core/gestures.js';
 import { resetScreenInput, canScrollStartDown } from './core/screen-input.js';
 
@@ -10,7 +11,8 @@ import { state } from './state/store.js';
 import { dom } from './state/dom.js';
 import { OverlayStack } from './core/overlay-stack.js';
 import { switchToStart, switchToNav, isScreenTransitioning, reconcileScreenState } from './core/screen-state.js';
-import { hideSuggestions, cancelSuggestionRequest, closeDropdown, toggleDropdown } from './modules/search.js';
+import { closeDropdown, toggleDropdown } from './modules/search.js';
+import { hideSuggestions, cancelSuggestionRequest } from './modules/search-suggestions.js';
 import { handleSearchKeydown } from './modules/search-events.js';
 import { toggleWeatherPopover, closeWeatherPopover, updateWeather } from './modules/weather.js';
 import { updateClock, stopClockTimer } from './modules/clock.js';

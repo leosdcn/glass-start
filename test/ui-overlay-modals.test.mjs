@@ -4,7 +4,7 @@ import { test } from 'node:test';
 import { launchSession, navigateAndWait, pressKey, waitFor } from './support/helpers.mjs';
 
 test('页面刷新状态保持、跳出返回防白屏与触觉倾斜恢复', async () => {
-  const { server, chrome, send, evalJS } = await launchSession();
+  const { server, chrome, evalJS } = await launchSession();
   try {
     await waitFor(evalJS, 'document.readyState === "complete" && !!window.OverlayStack && !!window.state');
 
@@ -212,7 +212,7 @@ test('天气与引擎菜单退场仍可见，关闭后立即退出键盘焦点�
         return [panel.inert, panel.getAttribute('aria-hidden'), getComputedStyle(panel).visibility, document.activeElement.id];
       })()`);
       assert.deepEqual(state, [true, 'true', 'visible', triggerId]);
-      for (let step = 0; step < tabCount; step++) {
+      for (let step = 0; step < Number(tabCount); step++) {
         for (const type of ['rawKeyDown', 'keyUp']) {
           await send('Input.dispatchKeyEvent', { type, key: 'Tab', code: 'Tab', windowsVirtualKeyCode: 9 });
         }

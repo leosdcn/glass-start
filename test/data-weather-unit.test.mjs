@@ -1,47 +1,40 @@
-/** 无浏览器：执行真实业务模块，仅替换网络、DOM、文件读取与 IDB 边界。 */
+/** 无浏览器：天气定位、预报缓存校验、并发刷新及视图渲染单测。 */
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import vm from 'node:vm';
-import { build } from 'esbuild';
+import { buildUnitBundle, runUnitBundle } from './support/unit-bundle.mjs';
 
-const { outputFiles } = await build({
-    stdin: { contents: `export * from './src/js/modules/weather.js';
-        export * from './src/js/modules/wallpaper.js';
-        export {OverlayStack} from './src/js/core/overlay-stack.js';
-        export {state, modalState} from './src/js/state/store.js';
-        export {CONFIG, backgrounds} from './src/js/config/constants.js';`, resolveDir: process.cwd() },
-    bundle: true, write: false, format: 'cjs', platform: 'node',
-    plugins: [{ name: 'browser-boundaries', setup(builder) {
-        builder.onLoad({ filter: /utils\/idb\.js$/ }, () => ({ contents: `
-            export async function getWallpaperSelectionDB(){return writes.at(-1) || null}
-            export async function setWallpaperSelectionDB(selection){writes.push(selection);return true}
-        ` }));
-        builder.onLoad({ filter: /core\/wallpaper-renderer\.js$/ }, () => ({
-            contents: `export function applyWallpaper(url){rendered.push(url)}
-                export function getPreparedWallpaperImage(){return null}
-                export function setWallpaperDimming(){}
-                export function applyBgEffects(){}
-                export function flushBgEffects(){}
-                export function captureWallpaperFrame(){return null}
-                export function restoreWallpaperFrame(){}`
-        }));
-        builder.onLoad({ filter: /core\/dialogs\.js$/ }, () => ({
-            contents: 'export function showConfirm(message){messages.push(message)}'
-        }));
-    } }]
+const bundleText = await buildUnitBundle(`export * from './src/js/modules/weather.js';
+    export * from './src/js/modules/weather-service.js';
+    export { CONFIG } from './src/js/config/constants.js';`, builder => {
+    builder.onLoad({ filter: /core\/dialogs\.js$/ }, () => ({
+        contents: 'export function showConfirm(message){messages.push(message)}'
+    }));
 });
 
 function fixture() {
-    const timers = new Map(), readers = [], images = [], writes = [], rendered = [], messages = [];
-    let timerId = 0, htmlWrites = 0, canvasCount = 0;
+    const timers = new Map(), messages = [];
+    let timerId = 0, htmlWrites = 0;
     const allowedWeatherSelectors = new Set([
         '[data-weather-status]', '[data-weather-data]', '[data-weather-location]',
         '[data-weather-icon]', '#tempUnitToggleBtn', '[data-weather-current]',
         '[data-weather-range]', '[data-weather-stats]', '[data-weather-forecast]'
     ]);
     const weatherParts = new Map();
+    const popoverClasses = new Set();
+    const popoverAttrs = new Map();
     const popover = {
         innerHTML: '',
+        inert: true,
+        isConnected: true,
+        classList: {
+            add: (...names) => names.forEach(n => popoverClasses.add(n)),
+            remove: (...names) => names.forEach(n => popoverClasses.delete(n)),
+            contains: name => popoverClasses.has(name)
+        },
+        setAttribute: (k, v) => popoverAttrs.set(k, String(v)),
+        removeAttribute: k => popoverAttrs.delete(k),
+        contains: () => false,
+        focus() {},
         querySelector(selector) {
             assert.ok(allowedWeatherSelectors.has(selector), `Unexpected weather selector: ${selector}`);
             if (!weatherParts.has(selector)) {
@@ -58,44 +51,39 @@ function fixture() {
             return weatherParts.get(selector);
         }
     };
-    const storage = new Map(), wallpaperError = { textContent: '' };
-    class Reader {
-        static LOADING = 1;
-        constructor() { readers.push(this); this.readyState = 0; }
-        readAsDataURL() { this.readyState = Reader.LOADING; }
-        abort() { this.readyState = 2; this.onabort?.(); }
-        complete(value) { this.readyState = 2; this.onload?.({ target: { result: value } }); }
-    }
-    const context = vm.createContext({
-        module: { exports: {} }, console, URL, AbortController, AbortSignal, DOMException,
-        Element: class {}, FileReader: Reader,
-        Image: class {
-            constructor() { this.width = 100; this.height = 80; }
-            set src(value) {
-                if (value.startsWith('./') || value.startsWith('data:image/jpeg')) {
-                    Promise.resolve().then(() => this.onload?.());
-                } else if (value) images.push(this);
-            }
+    const btnAttrs = new Map();
+    const weatherBtn = {
+        isConnected: true,
+        setAttribute: (k, v) => btnAttrs.set(k, String(v)),
+        getAttribute: k => btnAttrs.get(k) ?? null,
+        removeAttribute: k => btnAttrs.delete(k),
+        contains: () => false,
+        focus() {}
+    };
+    const storage = new Map();
+    const { context, app } = runUnitBundle(bundleText, {
+        console, URL, AbortController, AbortSignal, DOMException,
+        Element: class {}, HTMLElement: class {}, HTMLDialogElement: class {},
+        localStorage: {
+            getItem: key => storage.get(key) ?? null,
+            setItem: (key, value) => storage.set(key, value),
+            removeItem: key => storage.delete(key)
         },
-        localStorage: { getItem: key => storage.get(key) ?? null,
-            setItem: (key, value) => storage.set(key, value), removeItem: key => storage.delete(key) },
         document: {
             hidden: false,
-            getElementById: key => ({ weatherPopover: popover, wallpaperError })[key] ?? null,
-            createElement(tag) {
-                assert.equal(tag, 'canvas');
-                const number = ++canvasCount;
-                return { getContext: () => ({ drawImage() {}, clearRect() {} }),
-                    toDataURL: () => `data:image/jpeg;base64,upload${number}` };
-            }
+            activeElement: null,
+            getElementById: key => ({ weatherPopover: popover, weatherBtn })[key] ?? null,
+            addEventListener() {},
+            removeEventListener() {}
         },
+        window: { addEventListener() {}, removeEventListener() {} },
         setTimeout: (fn, ms) => { timers.set(++timerId, { fn, ms }); return timerId; },
-        clearTimeout: id => timers.delete(id), writes, rendered, messages
+        clearTimeout: id => timers.delete(id),
+        messages
     });
-    vm.runInContext(outputFiles[0].text, context);
-    const app = context.module.exports;
-    return { context, app, timers, readers, images, writes, rendered, messages, wallpaperError,
-        showPopover() { app.OverlayStack.stack.push({ id: 'weatherPopover' }); },
+    return {
+        context, app, timers, messages,
+        showPopover() { app.openWeatherPopover(); },
         get html() {
             const bodyHidden = weatherParts.get('[data-weather-data]')?.hidden;
             return Array.from(weatherParts.entries(), ([selector, part]) => {
@@ -103,7 +91,9 @@ function fixture() {
                 if (bodyHidden && selector !== '[data-weather-status]') return '';
                 return part.innerHTML + (part.textContent ?? '');
             }).join('');
-        }, get htmlWrites() { return htmlWrites; } };
+        },
+        get htmlWrites() { return htmlWrites; }
+    };
 }
 const drain = async () => { for (let i = 0; i < 12; i++) await Promise.resolve(); };
 
@@ -303,7 +293,7 @@ test('已落盘的空天气或日期损坏的缓存即使在有效期内也会�
         let calls = 0;
         context.fetch = async () => {
             calls++;
-            return { ok: true, json: async () => ({current:{temperature_2m:0}}) };
+            return { ok: true, json: async () => ({ current: { temperature_2m: 0 } }) };
         };
         await app.updateWeather();
         assert.equal(calls, 1);
@@ -349,7 +339,7 @@ test('有效天气缓存时间字段直接渲染，不发起网络请求', async
     f.showPopover();
     const midday = new Date(2026, 9, 31, 12).getTime();
     f.context.Date = class extends Date {
-        constructor(...args) { super(...(args.length ? args : [midday])); }
+        constructor(...args) { super(.../** @type {[any]} */ (args.length ? args : [midday])); }
         static now() { return midday; }
     };
     f.context.localStorage.setItem(app.CONFIG.KEYS.WEATHER_CACHE, JSON.stringify({
@@ -377,106 +367,4 @@ test('预报图标或描述独立变化更新界面，相同内容仍复用', ()
     assert.match(f.html, /小雨/);
     f.app.renderWeatherPopover(structuredClone(data));
     assert.equal(f.htmlWrites, 3);
-});
-
-test('读取中的旧上传不能覆盖后选预设，保存等待新上传处理', async () => {
-    const f = fixture(), { app } = f;
-    app.modalState.phase = 'editing';
-    app.uploadWallpaper({ type: 'image/png', size: 1024 });
-    const lateRead = f.readers[0].onload;
-    await app.previewDraftWallpaper(app.backgrounds[2]);
-    lateRead({ target: { result: 'data:image/png;base64,old' } });
-    await drain();
-    assert.equal(f.readers[0].readyState, 2);
-    assert.equal(f.images.length, 0);
-    assert.equal(app.modalState.draftWallpaper, app.backgrounds[2]);
-    assert.equal(f.writes.length, 0);
-    app.uploadWallpaper({ type: 'image/png', size: 1024 });
-    let saved = false;
-    const saving = app.flushWallpaperSelection().then(result => { saved = result; });
-    await drain();
-    assert.equal(saved, false);
-    f.readers[1].complete('data:image/png;base64,new');
-    await drain();
-    f.images[0].onload();
-    await saving;
-    assert.equal(saved, true);
-    assert.equal(app.modalState.draftWallpaper, 'data:image/png;base64,new');
-    assert.equal(f.writes.length, 0);
-});
-
-test('解码中的旧上传、旧错误回调不能覆盖新上传或重置', async () => {
-    const f = fixture(), { app } = f;
-    app.modalState.phase = 'editing';
-    app.uploadWallpaper({ type: 'image/png', size: 1024 });
-    f.readers[0].complete('data:image/png;base64,old');
-    await drain();
-    const oldLoad = f.images[0].onload, oldError = f.images[0].onerror;
-    app.uploadWallpaper({ type: 'image/png', size: 1024 });
-    f.readers[1].complete('data:image/png;base64,new');
-    await drain();
-    f.images[1].onload();
-    await app.flushWallpaperSelection();
-    oldLoad(); oldError();
-    await drain();
-    assert.equal(f.writes.length, 0);
-    assert.equal(app.modalState.draftWallpaper, 'data:image/png;base64,new');
-    app.uploadWallpaper({ type: 'image/png', size: 1024 });
-    const lateRead = f.readers[2].onload;
-    assert.equal(await app.resetWallpaperSettings(), true);
-    app.revertDraftWallpaper();
-    lateRead({ target: { result: 'data:image/png;base64,late' } });
-    assert.equal(await app.flushWallpaperSelection(), true);
-    assert.equal(app.state.customWallpaper, null);
-    assert.equal(f.messages.length, 0);
-});
-
-test('超限、非法格式、读取或解码失败结束保存等待，重新选择可恢复', async () => {
-    const f = fixture(), { app } = f;
-    app.modalState.phase = 'editing';
-    assert.equal(app.uploadWallpaper({ type: 'image/svg+xml', size: 512 }), false);
-    assert.notEqual(f.wallpaperError.textContent, '');
-    assert.equal(app.uploadWallpaper({ type: 'image/png', size: app.CONFIG.APPEARANCE.MAX_UPLOAD_BYTES + 1 }), false);
-    assert.notEqual(f.wallpaperError.textContent, '');
-    app.uploadWallpaper({ type: 'image/png', size: 1024 });
-    f.readers[0].onerror();
-    assert.equal(await app.flushWallpaperSelection(), false);
-    assert.equal(f.writes.length, 0);
-    assert.notEqual(f.wallpaperError.textContent, '');
-    assert.equal(f.messages.length, 0);
-    app.uploadWallpaper({ type: 'image/png', size: 1024 });
-    f.readers[1].complete('data:image/png;base64,broken');
-    await drain();
-    f.images[0].onerror();
-    assert.equal(await app.flushWallpaperSelection(), false);
-    assert.equal(f.writes.length, 0);
-    await app.previewDraftWallpaper(app.backgrounds[1]);
-    assert.equal(await app.flushWallpaperSelection(), true);
-    assert.equal(app.modalState.draftWallpaper, app.backgrounds[1]);
-});
-
-test('取消设置终止读取或处理中的上传，迟到回调不渲染或保存', async () => {
-    for (const phase of ['read', 'image']) {
-        const f = fixture(), { app } = f;
-        app.modalState.phase = 'editing';
-        app.state.bg = 2;
-        app.uploadWallpaper({ type: 'image/png', size: 1024 });
-        let late;
-        if (phase === 'read') {
-            const callback = f.readers[0].onload;
-            late = () => callback({target:{result:'data:image/png;base64,late'}});
-        } else {
-            f.readers[0].complete('data:image/png;base64,late');
-            await drain();
-            late = f.images[0].onload;
-        }
-        app.revertDraftWallpaper();
-        app.modalState.phase = 'closed';
-        late();
-        await app.flushWallpaperSelection();
-        assert.equal(f.writes.length, 0, phase);
-        assert.equal(f.rendered.at(-1), app.backgrounds[2], phase);
-        assert.equal(f.messages.length, 0, phase);
-        assert.equal(f.readers[0].readyState, 2, phase);
-    }
 });

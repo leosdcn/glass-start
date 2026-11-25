@@ -1,34 +1,32 @@
 /** 无浏览器：通过真实删除／键盘排序入口和壁纸渲染器验证取消与迟到回调。 */
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { build } from 'esbuild';
-import vm from 'node:vm';
 import { readFileSync } from 'node:fs';
+import { buildUnitBundle, runUnitBundle } from './support/unit-bundle.mjs';
 const messages = JSON.parse(readFileSync(new URL('../src/js/config/locales/zh-CN.json', import.meta.url), 'utf8'));
 
-const { outputFiles } = await build({
-    stdin: { contents: `export {bindEditEvents} from './src/js/modules/settings-events.js';
-        export {applyWallpaper} from './src/js/core/wallpaper-renderer.js';
-        export {modalState} from './src/js/state/store.js';`, resolveDir: process.cwd() },
-    bundle: true, write: false, format: 'cjs', platform: 'node',
-    plugins: [{ name: 'unrelated-boundaries', setup(b) {
-        b.onLoad({ filter: /modules\/settings\.js$/ }, () => ({ contents:
-            'export const ' + ['openEditModal', 'saveEditModal', 'cancelEditModal', 'switchSettingsTab', 'previewDraftMaskOpacity',
-                'resetAllSettings', 'importBookmarksJSON', 'exportBookmarksJSON',
-                'openLanguageModal', 'saveLanguageModal', 'cancelLanguageModal',
-                'selectLanguage', 'selectDraftTransitionMode', 'closeWallpaperUrlInput',
-                'openWallpaperUrlInput', 'submitWallpaperUrlInput', 'clearOfflineCache'].map(name => `${name}=()=>{}`).join(',') + ';export const getSettingsTabs=()=>[];'
-        }));
-        b.onLoad({ filter: /modules\/settings-static-modals\.js$/ }, () => ({ contents:
-            'export const openShortcutModal=()=>{},closeShortcutModal=()=>{},openCreditsModal=()=>{},closeCreditsModal=()=>{};' }));
-        b.onLoad({ filter: /modules\/bookmark-picker\.js$/ }, () => ({ contents:
-            'export const openBookmarkPicker=()=>{},closeBookmarkPicker=()=>{},addBookmarkFromPicker=()=>{};' }));
-        b.onLoad({ filter: /modules\/wallpaper\.js$/ }, () => ({ contents:
-            'export const uploadWallpaper=()=>{},previewDraftWallpaper=()=>{},resetDraftWallpaper=()=>{};' }));
-        b.onLoad({ filter: /core\/dialogs\.js$/ }, () => ({ contents: 'export function showConfirm(){}' }));
-        b.onLoad({ filter: /core\/theme-engine\.js$/ }, () => ({ contents:
-            'export function getWallpaperTheme(){};export function setWallpaperTheme(){};export function updateGlassTint(){};export function sampleCustomWallpaperTheme(){};export function syncWallpaperTheme(){};' }));
-    } }]
+const bundleText = await buildUnitBundle(`export {bindEditEvents} from './src/js/modules/settings-events.js';
+    export {applyWallpaper} from './src/js/core/wallpaper-renderer.js';
+    export {modalState} from './src/js/state/store.js';`, b => {
+    b.onLoad({ filter: /modules\/settings\.js$/ }, () => ({ contents:
+        'export const ' + ['openEditModal', 'saveEditModal', 'previewDraftMaskOpacity',
+            'openLanguageModal', 'saveLanguageModal', 'cancelLanguageModal',
+            'selectLanguage', 'selectDraftTransitionMode',
+            'openWallpaperUrlInput', 'submitWallpaperUrlInput'].map(name => `${name}=()=>{}`).join(',')
+    }));
+    b.onLoad({ filter: /modules\/settings-session\.js$/ }, () => ({ contents:
+        'export const cancelEditModal=()=>{},switchSettingsTab=()=>{},closeWallpaperUrlInput=()=>{},getSettingsTabs=()=>[];' }));
+    b.onLoad({ filter: /modules\/settings-data\.js$/ }, () => ({ contents:
+        'export const resetAllSettings=()=>{},importBookmarksJSON=()=>{},exportBookmarksJSON=()=>{},clearOfflineCache=()=>{};' }));
+    b.onLoad({ filter: /modules\/settings-static-modals\.js$/ }, () => ({ contents:
+        'export const openShortcutModal=()=>{},closeShortcutModal=()=>{},openCreditsModal=()=>{},closeCreditsModal=()=>{};' }));
+    b.onLoad({ filter: /modules\/bookmark-picker\.js$/ }, () => ({ contents:
+        'export const openBookmarkPicker=()=>{},closeBookmarkPicker=()=>{},addBookmarkFromPicker=()=>{};' }));
+    b.onLoad({ filter: /modules\/wallpaper\.js$/ }, () => ({ contents:
+        'export const uploadWallpaper=()=>{},previewDraftWallpaper=()=>{},resetDraftWallpaper=()=>{};' }));
+    b.onLoad({ filter: /core\/dialogs\.js$/ }, () => ({ contents: 'export function showConfirm(){}' }));
+    b.onLoad({ filter: /core\/theme-engine\.js$/ }, () => ({ contents:
+        'export function getWallpaperTheme(){};export function setWallpaperTheme(){};export function updateGlassTint(){};export function sampleCustomWallpaperTheme(){};export function syncWallpaperTheme(){};' }));
 });
 
 function fixture() {
@@ -44,10 +42,16 @@ function fixture() {
             for (const fn of [...(this.listeners.get(type) || [])]) fn(event);
         }
     }
-    const motion = new Target(); motion.matches = false;
+    const motion = Object.assign(new Target(), { matches: false });
     class Element extends Target {
-        style = {}; dataset = {}; isConnected = true; textContent = '';
-        animations = [];
+        /** @type {Record<string, any>} */ style = {};
+        /** @type {Record<string, string>} */ dataset = {};
+        isConnected = true; textContent = '';
+        /** @type {Element | null} */ parentNode = null;
+        /** @type {any[]} */ animations = [];
+        /** @type {(selector: string) => any} */ querySelectorAll = () => [];
+        /** @type {(selector: string) => any} */ querySelector = () => null;
+        /** @type {(src: any, target: any) => void} */ insertBefore = () => {};
         constructor(kind) {
             super(); this.kind = kind;
             const names = new Set();
@@ -64,7 +68,7 @@ function fixture() {
         get nextSibling() { return rows[rows.indexOf(this) + 1] ?? null; }
         animate(keyframes) {
             const { promise, resolve, reject } = Promise.withResolvers();
-            const animation = { keyframes, finished: promise, finish: resolve, cancelled: false,
+            const animation = { keyframes, finished: promise, finish: () => resolve(undefined), cancelled: false,
                 cancel() { this.cancelled = true; reject(new Error('cancelled')); } };
             this.animations.push(animation);
             return animation;
@@ -76,9 +80,9 @@ function fixture() {
     const list = new Element('editList');
     rows.forEach(row => row.parentNode = list);
     list.querySelectorAll = selector => {
-        const classMatch = /^\.([a-z0-9_-]+)$/i.exec(selector);
-        if (classMatch) return rows.filter(row => row.kind === classMatch[1]);
-        return rows.slice();
+        if (selector === '.edit-row-card') return rows.filter(row => row.kind === 'edit-row-card');
+        if (selector === '.edit-row-card:not(.removing)') return rows.filter(row => row.kind === 'edit-row-card' && !row.classList.contains('removing'));
+        assert.fail(`Unexpected list.querySelectorAll selector: ${selector}`);
     };
     list.querySelector = selector => rows.find(row => selector.includes(`data-id="${row.dataset.id}"`)) ?? null;
     list.insertBefore = (src, target) => {
@@ -86,18 +90,20 @@ function fixture() {
         rows.splice(target ? rows.indexOf(target) : rows.length, 0, src);
     };
     const base = new Element('bgLayer'), next = new Element('bgLayerNext'), badge = new Element('badge');
-    const document = new Target();
-    document.querySelectorAll = () => [];
-    document.getElementById = id => ({ editList: list, bgLayer: base, bgLayerNext: next, bookmarkCountBadge: badge })[id] ?? null;
-    document.body = new Element('body');
+    const document = Object.assign(new Target(), {
+        querySelectorAll: () => [],
+        getElementById: id => ({ editList: list, bgLayer: base, bgLayerNext: next, bookmarkCountBadge: badge })[id] ?? null,
+        body: new Element('body')
+    });
     const timers = new Map(), images = [], fades = []; let id = 0;
     next.animate = () => {
         const { promise, resolve, reject } = Promise.withResolvers();
-        const fade = { finished: promise, finish: resolve, cancel: () => reject(new Error('cancelled')) };
+        const fade = { keyframes: [], finished: promise, finish: () => resolve(undefined), cancelled: false,
+            cancel: () => reject(new Error('cancelled')) };
         fades.push(fade);
         return fade;
     };
-    const context = vm.createContext({ module: { exports: {} }, console, document, Element,
+    const { app } = runUnitBundle(bundleText, { document, Element,
         window: Object.assign(new Target(), {
             matchMedia: () => motion, __GLASS_I18N__: { locale: 'zh-CN', messages: { 'zh-CN': messages } }
         }), CSS: { escape: value => value },
@@ -105,8 +111,6 @@ function fixture() {
         setTimeout: fn => { timers.set(++id, fn); return id; }, clearTimeout: key => timers.delete(key),
         Image: class { constructor() { images.push(this); this.naturalWidth = 100; this.complete = false; } }
     });
-    vm.runInContext(outputFiles[0].text, context);
-    const app = context.module.exports;
     app.modalState.draftBookmarks = rows.map(row => ({ id: row.dataset.id, name: row.dataset.id, url: 'https://example.test', icon: '' }));
     app.bindEditEvents();
     const child = (row, kind) => { const el = new Element(kind); el.parentNode = row; return el; };

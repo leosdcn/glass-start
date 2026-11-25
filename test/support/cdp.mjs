@@ -1,9 +1,9 @@
-import { spawn, spawnSync } from 'node:child_process';
+import { execFileSync, spawn, spawnSync } from 'node:child_process';
 import { once } from 'node:events';
 import { killChromeProcess, trackChromeProcess } from './chrome-processes.mjs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { rmSync, existsSync, mkdtempSync, mkdirSync, readFileSync } from 'node:fs';
+import { rmSync, existsSync, mkdtempSync, mkdirSync, readFileSync, realpathSync } from 'node:fs';
 import { createRequire } from 'node:module';
 
 const { BASE_CHROME_FLAGS } = createRequire(import.meta.url)('../../scripts/chrome-flags.cjs');
@@ -46,6 +46,36 @@ function isRunning(proc) {
   return Boolean(proc?.pid && proc.exitCode === null && proc.signalCode === null);
 }
 
+/** @param {string} profileDir */
+function findTaggedHelperPids(profileDir) {
+  if (process.platform === 'win32') return [];
+  let realProfileDir = profileDir;
+  try { realProfileDir = realpathSync(profileDir); } catch {}
+  /** @type {number[]} */
+  const pids = [];
+  try {
+    const out = execFileSync('ps', ['-axo', 'pid=,stat=,command='], { encoding: 'utf8', timeout: 2000 });
+    for (const line of out.split('\n')) {
+      const match = /^\s*(\d+)\s+(\S+)\s+(.*)$/.exec(line);
+      if (!match) continue;
+      const pid = Number(match[1]);
+      const [, , stat, cmd] = match;
+      if (pid === process.pid || stat.startsWith('Z')) continue;
+      if (cmd.includes(profileDir) || (realProfileDir !== profileDir && cmd.includes(realProfileDir))) {
+        pids.push(pid);
+      }
+    }
+  } catch {}
+  return pids;
+}
+
+/** @param {string} profileDir */
+function killTaggedHelpers(profileDir) {
+  for (const pid of findTaggedHelperPids(profileDir)) {
+    try { process.kill(pid, 'SIGKILL'); } catch {}
+  }
+}
+
 /** @param {ChromeInstance} instance */
 function cleanupInstance(instance) {
   if (!activeInstances.delete(instance)) return;
@@ -61,6 +91,7 @@ function cleanupInstance(instance) {
 
   try {
     if (instance.proc?.pid && (process.platform !== 'win32' || isRunning(instance.proc))) killChromeProcess(instance.proc.pid);
+    killTaggedHelpers(instance.profileDir);
     rmSync(instance.profileDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 20 });
     if (instance.record) rmSync(instance.record, { force: true });
   } catch (error) {
@@ -90,6 +121,17 @@ async function closeInstance(instance) {
       const killed = once(proc, 'exit', { signal: AbortSignal.timeout(1000) }).catch(() => {});
       killChromeProcess(proc.pid);
       await killed;
+    }
+    if (proc.pid && process.platform !== 'win32') {
+      killChromeProcess(proc.pid);
+      killTaggedHelpers(instance.profileDir);
+      const deadline = Date.now() + 1000;
+      while (Date.now() < deadline) {
+        let alive = false;
+        try { process.kill(-proc.pid, 0); alive = true; } catch {}
+        if (!alive && !findTaggedHelperPids(instance.profileDir).length) break;
+        await new Promise(r => setTimeout(r, 10));
+      }
     }
   } finally {
     cleanupInstance(instance);
@@ -176,14 +218,13 @@ export async function connectCDP(ws, { openTimeoutMs = 15000 } = {}) {
   else if (ws.readyState > WebSocket.OPEN) fail(new Error('CDP connection already closed'));
   await opened;
   return {
-    /** @type {import('./helpers.mjs').CDPSend} */
-    send(method, params = {}, timeoutMs = 15000) {
+    send: /** @type {import('./helpers.mjs').CDPSend} */ ((/** @type {string} */ method, /** @type {Record<string, any> | ((params: any) => void)} */ params = {}, /** @type {number} */ timeoutMs = 15000) => {
       if (typeof params === 'function') {
         if (failure) throw failure;
         const listener = /** @type {(params: any) => void} */ (params);
         if (!listeners.has(method)) listeners.set(method, new Set());
         listeners.get(method)?.add(listener);
-        return Promise.resolve(() => listeners.get(method)?.delete(listener));
+        return () => { listeners.get(method)?.delete(listener); };
       }
       if (!failure && ws.readyState !== WebSocket.OPEN) fail(new Error('CDP connection is not open'));
       if (failure) return Promise.reject(failure);
@@ -197,7 +238,7 @@ export async function connectCDP(ws, { openTimeoutMs = 15000 } = {}) {
         try { ws.send(JSON.stringify({ id:mid, method, params })); }
         catch (error) { fail(new Error('CDP send failed', { cause:error })); }
       });
-    },
+    }),
     close(reason) {
       fail(reason instanceof Error ? reason : new Error(String(reason || 'CDP connection closed by client')));
     }

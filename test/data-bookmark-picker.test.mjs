@@ -91,7 +91,7 @@ await test("目录图标复用与过期预览请求", async () => {
 
         await evalJS(`(async () => {
         await openEditModal();
-        replaceBookmarkDraft(pageData.bookmarks.slice(0,2)); renderEditList();
+        while (dom.editList.querySelectorAll('.edit-row-card').length > 2) dom.editList.lastElementChild.querySelector('.del-btn').click();
         const rows = [...dom.editList.querySelectorAll('.edit-row-card')];
         rows.forEach((row,i) => {
             const input = row.querySelector('.edit-url');
@@ -100,7 +100,7 @@ await test("目录图标复用与过期预览请求", async () => {
         });
     })()`);
         await waitFor(async () => external.some(url=>url.includes('row-0.example')) && external.some(url=>url.includes('row-1.example')), 'true');
-        assert.deepEqual(await evalJS('modalState.draftBookmarks.map(bm=>bm.url)'), ['https://row-0.example/','https://row-1.example/']);
+        assert.deepEqual(await evalJS('[...dom.editList.querySelectorAll(".edit-url")].map(el => el.value)'), ['https://row-0.example/','https://row-1.example/']);
         await evalJS('cancelEditModal()');
         console.log('✅ 两行快速修改 URL 均独立更新图标预览，草稿地址正确');
     } finally {
@@ -135,7 +135,7 @@ await test("挑选器节点复用与目录失效", async () => {
         assert.equal(await evalJS(`(() => {
         window.reusePick=reuseItems.find(item=>!item.disabled);
         window.reuseImage=reusePick.querySelector('img');
-        const before=modalState.draftBookmarks.length;
+        const before=dom.editList.querySelectorAll('.edit-row-card').length;
         const unaffected=reuseItems.find(item=>!item.disabled && item.dataset.url!==reusePick.dataset.url);
         const NativeURL=window.URL;
         let unrelatedParses=0;
@@ -144,7 +144,7 @@ await test("挑选器节点复用与目录失效", async () => {
             return Reflect.construct(target,args,newTarget);
         }});
         try { reusePick.click(); } finally { window.URL=NativeURL; }
-        const added=reusePick.disabled && modalState.draftBookmarks.length===before+1;
+        const added=reusePick.disabled && dom.editList.querySelectorAll('.edit-row-card').length===before+1;
         dom.donePickerBtn.click();openBookmarkPicker();
         return unrelatedParses===0 && added && reusePick.isConnected && reusePick.querySelector('img')===reuseImage && reusePick.disabled;
     })()`),true);
@@ -350,8 +350,7 @@ test('导出前拦截无效的已有书签并返回编辑页', async () => {
         assert.match(result.message, /有效的 URL/);
         const emptyBackup = await evalJS(`(async () => {
             dom.confirmOkBtn.click();
-            replaceBookmarkDraft([]);
-            renderEditList();
+            while (dom.editList.querySelector('.del-btn')) dom.editList.querySelector('.del-btn').click();
             document.getElementById('tab-btn-data').click();
             const create = URL.createObjectURL, click = HTMLAnchorElement.prototype.click;
             let blob;

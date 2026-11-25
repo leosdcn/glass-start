@@ -1,102 +1,113 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { createRequire } from 'node:module';
-import fs, { readFileSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import fs, { readFileSync, existsSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { connectCDP, launchChrome } from './support/cdp.mjs';
 
-test('Chrome MV3 扩展构建、冷启动、三引擎联想、设置保存与离线重载', async () => {
+test('Chrome MV3 扩展构建、冷启动、三引擎联想、设置保存与离线重载', async t => {
 const root = fileURLToPath(new URL('..', import.meta.url));
 const output = join(process.env.GLASS_TEST_TMPDIR || root, 'extension');
 const buildConfigReads = new Map([
     [join(root, 'package.json'), 0],
     [join(root, 'src/js/config/image-search-uploads.json'), 0]
 ]);
-fs.readFileSync = (file, ...options) => {
-    if (buildConfigReads.has(file)) buildConfigReads.set(file, buildConfigReads.get(file) + 1);
+fs.readFileSync = /** @type {typeof readFileSync} */ ((file, ...options) => {
+    if (buildConfigReads.has(String(file))) buildConfigReads.set(String(file), (buildConfigReads.get(String(file)) ?? 0) + 1);
     return readFileSync(file, ...options);
-};
+});
 try {
     await createRequire(import.meta.url)('../scripts/build-extension.cjs').buildExtension(output);
 } finally {
     fs.readFileSync = readFileSync;
 }
-assert.deepEqual([...buildConfigReads.values()], [1, 1], '扩展构建复用版本与上传配置的同一次读取');
-const { createEvaluator, waitFor } = await import('./support/helpers.mjs');
-const manifest = JSON.parse(readFileSync(join(output, 'manifest.json'), 'utf8'));
-const html = readFileSync(join(output, 'index.html'), 'utf8');
-assert.equal(manifest.version, JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')).version);
-assert.ok(html.includes(`>v${manifest.version}</span>`));
-assert.equal(manifest.manifest_version, 3);
-assert.equal(manifest.background, undefined);
-assert.equal(manifest.permissions, undefined);
-assert.equal(manifest.default_locale, 'en');
-assert.equal(manifest.name, '__MSG_extensionName__');
-for (const icon of Object.values(manifest.icons)) assert.ok(existsSync(join(output, icon)), `缺少清单图标 ${icon}`);
-const webHtml = readFileSync(join(process.env.GLASS_TEST_TMPDIR || root, 'dist/index.html'), 'utf8');
-const formAction = policy => policy.match(/(?:^|; )form-action [^;]+/)?.[0];
-assert.equal(formAction(manifest.content_security_policy.extension_pages), formAction(webHtml.match(/Content-Security-Policy" content="([^"]+)"/)[1]));
-assert.ok(!html.includes('http-equiv="Content-Security-Policy"'));
-for (const locale of ['en', 'zh_CN']) {
-    const messages = JSON.parse(readFileSync(join(output, '_locales', locale, 'messages.json'), 'utf8'));
-    assert.ok(messages.extensionName.message && messages.extensionDescription.message);
-}
-assert(!/<script\b(?![^>]*\bsrc=)/i.test(html), '扩展中不得存在内联脚本');
-const firstBootstrap = readFileSync(join(output, 'bootstrap-1.js'), 'utf8');
-assert.match(firstBootstrap, /^window\.__GLASS_BUILD_HTML__=/);
-assert.match(firstBootstrap, /__GLASS_I18N__/, '版本标记和语言初始化共用一个本地阻塞脚本');
-const appScript = readFileSync(join(output, 'app.js'), 'utf8');
-assert(!/__glassSuggestCb_|JsonCallback|callback=/.test(appScript), '扩展编译时裁掉 JSONP');
-for (const { url } of Object.values(JSON.parse(readFileSync(join(root, 'src/js/config/image-search-uploads.json'), 'utf8')))) {
-    assert.ok(appScript.includes(JSON.stringify(url)), '应用脚本使用同一份搜图上传配置');
-}
-assert(!existsSync(join(output, 'sw.js')));
 
+await t.test('扩展构建产物与 CSP/清单安全契约', () => {
+    assert.deepEqual([...buildConfigReads.values()], [1, 1], '扩展构建复用版本与上传配置的同一次读取');
+    const manifest = JSON.parse(readFileSync(join(output, 'manifest.json'), 'utf8'));
+    const html = readFileSync(join(output, 'index.html'), 'utf8');
+    assert.equal(manifest.version, JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')).version);
+    assert.ok(html.includes(`>v${manifest.version}</span>`));
+    assert.equal(manifest.manifest_version, 3);
+    assert.equal(manifest.background, undefined);
+    assert.equal(manifest.permissions, undefined);
+    assert.equal(manifest.default_locale, 'en');
+    assert.equal(manifest.name, '__MSG_extensionName__');
+    for (const icon of Object.values(manifest.icons)) assert.ok(existsSync(join(output, icon)), `缺少清单图标 ${icon}`);
+    const webHtml = readFileSync(join(process.env.GLASS_TEST_TMPDIR || root, 'dist/index.html'), 'utf8');
+    const formAction = policy => policy.match(/(?:^|; )form-action [^;]+/)?.[0];
+    assert.equal(formAction(manifest.content_security_policy.extension_pages), formAction(webHtml.match(/Content-Security-Policy" content="([^"]+)"/)[1]));
+    assert.ok(!html.includes('http-equiv="Content-Security-Policy"'));
+    for (const locale of ['en', 'zh_CN']) {
+        const messages = JSON.parse(readFileSync(join(output, '_locales', locale, 'messages.json'), 'utf8'));
+        assert.ok(messages.extensionName.message && messages.extensionDescription.message);
+    }
+    assert(!/<script\b(?![^>]*\bsrc=)/i.test(html), '扩展中不得存在内联脚本');
+    const firstBootstrap = readFileSync(join(output, 'bootstrap-1.js'), 'utf8');
+    assert.match(firstBootstrap, /^window\.__GLASS_BUILD_HTML__=/);
+    assert.match(firstBootstrap, /__GLASS_I18N__/, '版本标记和语言初始化共用一个本地阻塞脚本');
+    const appScript = readFileSync(join(output, 'app.js'), 'utf8');
+    assert(!/__glassSuggestCb_|JsonCallback|callback=/.test(appScript), '扩展编译时裁掉 JSONP');
+    for (const { url } of Object.values(JSON.parse(readFileSync(join(root, 'src/js/config/image-search-uploads.json'), 'utf8')))) {
+        assert.ok(appScript.includes(JSON.stringify(url)), '应用脚本使用同一份搜图上传配置');
+    }
+    assert(!existsSync(join(output, 'sw.js')));
+});
+
+const { addNewDocumentScript, createEvaluator, waitFor } = await import('./support/helpers.mjs');
 const chrome = await launchChrome({ url: 'about:blank', testMode: false,
     extraArgs: ['--enable-unsafe-extension-debugging'] });
-let browser;
-try {
-    const version = await (await fetch(`http://127.0.0.1:${chrome.cdpPort}/json/version`)).json();
-    browser = await connectCDP(new WebSocket(version.webSocketDebuggerUrl));
-    const { id } = await browser.send('Extensions.loadUnpacked', { path: output });
-    const { send } = chrome;
-    const evalJS = createEvaluator(send);
-    const exceptions = [];
-    await send('Runtime.enable');
-    send('Runtime.exceptionThrown', event => exceptions.push(event.exceptionDetails.text));
-    // 固定远程数据，验证请求和解析，不让第三方服务可用性影响回归测试。
-    await send('Page.addScriptToEvaluateOnNewDocument', { source: `
-        Object.defineProperty(navigator, 'languages', { configurable: true, get: () => ['zh-CN'] });
-        window.__cspViolations = [];
-        document.addEventListener('securitypolicyviolation', e => window.__cspViolations.push(e.violatedDirective));
-        window.__suggestRequests = [];
-        const originalFetch = window.fetch;
-        window.fetch = (url, options) => {
-            const value = String(url);
-            if (/api.bing.com|suggestqueries.google.com|(?:zh|en).wikipedia.org/.test(value)) {
-                window.__suggestRequests.push(value);
-                return Promise.resolve(new Response(JSON.stringify(['glass', ['extension suggestion']])));
-            }
-            if (/myip\.ipip\.net/.test(value)) {
-                return Promise.resolve(new Response(JSON.stringify({ ret: 'ok', data: { location: ['中国', '北京', '北京'] } })));
-            }
-            if (/geocoding-api\.open-meteo\.com/.test(value)) {
-                return Promise.resolve(new Response(JSON.stringify({ results: [{ latitude: 39.9, longitude: 116.4, name: '北京' }] })));
-            }
-            if (/ipwho\.is/.test(value)) {
-                return Promise.resolve(new Response(JSON.stringify({ success: true, latitude: 39.9, longitude: 116.4, city: 'Beijing' })));
-            }
-            if (/api\.open-meteo\.com/.test(value)) {
-                return Promise.resolve(new Response(JSON.stringify({
-                    current: { temperature_2m: 20, weather_code: 0, is_day: 1 },
-                    daily: { temperature_2m_max: [25], temperature_2m_min: [15], weather_code: [0] }
-                })));
-            }
-            return originalFetch(url, options);
-        };
-    ` });
+let browser, tempArtifactsDir, removeExtensionStub;
+t.after(async () => {
+    if (removeExtensionStub) await removeExtensionStub();
+    browser?.close();
+    await chrome.close();
+    if (tempArtifactsDir) rmSync(tempArtifactsDir, { recursive: true, force: true });
+});
+
+const version = await (await fetch(`http://127.0.0.1:${chrome.cdpPort}/json/version`)).json();
+browser = await connectCDP(new WebSocket(version.webSocketDebuggerUrl));
+const { id } = await browser.send('Extensions.loadUnpacked', { path: output });
+const { send } = chrome;
+const evalJS = createEvaluator(send);
+const exceptions = [];
+await send('Runtime.enable');
+send('Runtime.exceptionThrown', event => exceptions.push(event.exceptionDetails.text));
+// 固定远程数据，验证请求和解析，不让第三方服务可用性影响回归测试。
+removeExtensionStub = await addNewDocumentScript(send, `
+    Object.defineProperty(navigator, 'languages', { configurable: true, get: () => ['zh-CN'] });
+    window.__cspViolations = [];
+    document.addEventListener('securitypolicyviolation', e => window.__cspViolations.push(e.violatedDirective));
+    window.__suggestRequests = [];
+    const originalFetch = window.fetch;
+    window.fetch = (url, options) => {
+        const value = String(url);
+        if (/api.bing.com|suggestqueries.google.com|(?:zh|en).wikipedia.org/.test(value)) {
+            window.__suggestRequests.push(value);
+            return Promise.resolve(new Response(JSON.stringify(['glass', ['extension suggestion']])));
+        }
+        if (/myip\.ipip\.net/.test(value)) {
+            return Promise.resolve(new Response(JSON.stringify({ ret: 'ok', data: { location: ['中国', '北京', '北京'] } })));
+        }
+        if (/geocoding-api\.open-meteo\.com/.test(value)) {
+            return Promise.resolve(new Response(JSON.stringify({ results: [{ latitude: 39.9, longitude: 116.4, name: '北京' }] })));
+        }
+        if (/ipwho\.is/.test(value)) {
+            return Promise.resolve(new Response(JSON.stringify({ success: true, latitude: 39.9, longitude: 116.4, city: 'Beijing' })));
+        }
+        if (/api\.open-meteo\.com/.test(value)) {
+            return Promise.resolve(new Response(JSON.stringify({
+                current: { temperature_2m: 20, weather_code: 0, is_day: 1 },
+                daily: { temperature_2m_max: [25], temperature_2m_min: [15], weather_code: [0] }
+            })));
+        }
+        return originalFetch(url, options);
+    };
+`);
+
+await t.test('冷启动暗色画布、三引擎联想与设置离线持久化', async () => {
     // 浅色浏览器、冷缓存、首个脚本尚未加载时也必须先有深色页面底色。
     await send('Network.enable');
     let nextWallpaperRequested = false;
@@ -153,7 +164,9 @@ try {
     await waitFor(evalJS, `document.querySelector('#bookmarks')?.textContent.includes('扩展保存验证')`, 10000);
     await waitFor(evalJS, `document.querySelector('#bgLayer').style.backgroundImage.includes('wallpapers/')`);
     assert.equal(await evalJS('document.querySelector("#clock").offsetWidth > 0'), true);
+});
 
+await t.test('离线预览回滚、浅色壁纸切换与多语言联想', async () => {
     // 设置内只预览：取消后离线重载仍使用原壁纸。
     await evalJS(`document.querySelector('#editBookmarksBtn').click()`);
     await waitFor(evalJS,`document.querySelector('#editModal').open`);
@@ -182,7 +195,9 @@ try {
     await waitFor(evalJS, `window.__suggestRequests.some(url => url.includes('en.wikipedia.org')) && document.querySelector('#suggestionMenu').textContent.includes('extension suggestion')`);
     assert.deepEqual(await evalJS('window.__cspViolations'), []);
     assert.deepEqual(exceptions, []);
+});
 
+await t.test('图标异常回退、数据面板无 SW 提示与重载保留主题', async () => {
     await evalJS(`(async () => {
         const container = document.createElement('div');
         container.className = 'icon-box';
@@ -213,13 +228,16 @@ try {
     await waitFor(evalJS,`document.querySelector('#bgLayer').style.backgroundImage.includes('bg2.avif')`);
     assert.deepEqual(await evalJS('window.__cspViolations'), []);
 
-    const artifactsDir = process.env.GLASS_SAVE_TEST_ARTIFACTS === '1'
+    const saveArtifacts = process.env.GLASS_SAVE_TEST_ARTIFACTS === '1';
+    const artifactsDir = saveArtifacts
         ? join(root, 'test/artifacts')
-        : join(process.env.GLASS_TEST_TMPDIR || tmpdir(), 'glass-chrome-extension');
+        : (tempArtifactsDir = join(process.env.GLASS_TEST_TMPDIR || tmpdir(), `glass-chrome-extension-${process.pid}`));
     mkdirSync(artifactsDir, { recursive: true });
     const screenshot = await send('Page.captureScreenshot', { format: 'png' });
     writeFileSync(join(artifactsDir, 'chrome-extension.png'), Buffer.from(screenshot.data, 'base64'));
+});
 
+await t.test('导航首帧恢复与惰性隔离不卡死', async () => {
     await evalJS(`sessionStorage.setItem('startpage_section', 'nav'); localStorage.removeItem('glass_transition_mode')`);
     let pausedApp;
     const stopAppPause = send('Fetch.requestPaused', event => { pausedApp = event; });
@@ -237,8 +255,5 @@ try {
     assert.equal(await evalJS(navAtTop), true);
     assert.equal(await evalJS(`document.getElementById('startSection').inert && !document.getElementById('navSection').inert`), true);
     console.log('✅ Chrome MV3 扩展通过冷启动底色、导航首帧、三引擎联想、设置保存及离线重载验证');
-} finally {
-    browser?.close();
-    await chrome.close();
-}
+});
 });

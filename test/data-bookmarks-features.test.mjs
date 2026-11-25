@@ -2,13 +2,13 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { readFileSync } from 'node:fs';
-import { createEvaluator, launchSession, pressKey, waitFor, navigateAndWait } from './support/helpers.mjs';
+import { addNewDocumentScript, createEvaluator, launchSession, waitFor, navigateAndWait } from './support/helpers.mjs';
 import { launchChrome } from './support/cdp.mjs';
 import { startServer } from './support/server.mjs';
 
 test('异常书签缓存不阻断启动，清洗保留有效条目、目录继承和空简介', async () => {
   const server = await startServer();
-  let chrome, send, docScriptId;
+  let chrome, send;
   try {
     // 先设置异常记录，再进行应用的首次导航，避免两个文档同时初始化空的 IndexedDB。
     chrome = await launchChrome({ url: 'about:blank' });
@@ -19,7 +19,7 @@ test('异常书签缓存不阻断启动，清洗保留有效条目、目录继�
       { urlPattern: 'https://a.favicon.im/*', resourceType: 'Image' },
       { urlPattern: 'https://www.google.com/s2/favicons*', resourceType: 'Image' }
     ] });
-    ({ identifier: docScriptId } = await send('Page.addScriptToEvaluateOnNewDocument', { source: `
+    const removeDocScript = await addNewDocumentScript(send, `
       window.fetch = async () => ({ ok: true, json: async () => ({}) });
       localStorage.setItem('userBookmarkKeys', JSON.stringify([
         null, 123, {}, 'javascript:alert(1)', 'https://example.com', 'https://github.com'
@@ -29,9 +29,13 @@ test('异常书签缓存不阻断启动，清洗保留有效条目、目录继�
         'https://github.com': {desc:''},
         'https://invalid.test': ['bad']
       }));
-    ` })).identifier;
-    await navigateAndWait(send, evalJS, `http://127.0.0.1:${server.port}/?bookmark-cache=invalid`,
-      'typeof openEditModal === "function" && pageData.bookmarks.length === 2 && !!document.querySelector(".bookmark-item")');
+    `);
+    try {
+      await navigateAndWait(send, evalJS, `http://127.0.0.1:${server.port}/?bookmark-cache=invalid`,
+        'typeof openEditModal === "function" && pageData.bookmarks.length === 2 && !!document.querySelector(".bookmark-item")');
+    } finally {
+      await removeDocScript();
+    }
     const recovered = await evalJS(`(() => {
       const github = pageData.bookmarks.find(bm => bm.url === 'https://github.com');
       const catalog = pageData.categories.flatMap(cat => cat.bookmarks).find(bm => bm.url === github.url);
@@ -64,7 +68,6 @@ test('异常书签缓存不阻断启动，清洗保留有效条目、目录继�
     assert.equal(fallback.count, 8);
     assert.equal(fallback.valid, true);
   } finally {
-    if (send && docScriptId) await send('Page.removeScriptToEvaluateOnNewDocument', { identifier: docScriptId }).catch(() => {});
     try { await chrome?.close(); } finally { await server.close(); }
   }
 });
@@ -80,9 +83,9 @@ test('书签轻量存储模型、自定义图标持久化与系统重置', async
     { urlPattern: 'https://custom.example.dev/*', resourceType: 'Image' },
     { urlPattern: 'https://aaa.example.com/*', resourceType: 'Image' }
   ] });
-  await send('Page.addScriptToEvaluateOnNewDocument', { source: `
+  const removeFetchStub = await addNewDocumentScript(send, `
     window.fetch = async () => ({ ok: true, json: async () => ({}) });
-  ` });
+  `);
 
   try {
     // 2.1 首屏干净启动与防空白兜底
@@ -125,7 +128,6 @@ test('书签轻量存储模型、自定义图标持久化与系统重置', async
 
     // 2.4 saveUserBookmarks 轻量模型与 XSS 安全防御
     await evalJS(`(function(){
-      pageData.categories = [];
       saveUserBookmarks([{ name: '自定义A', url: 'https://aaa.example.com', icon: 'https://aaa.example.com/a.png' }]);
     })()`);
     const saveModel = await evalJS('storageGet(CONFIG.KEYS.BOOKMARKS)');
@@ -136,7 +138,6 @@ test('书签轻量存储模型、自定义图标持久化与系统重置', async
 
     // 重置书签自闭环
     const resetBookmarksCheck = await evalJS(`(async () => {
-      pageData.categories = DEFAULT_CATEGORIES;
       localStorage.setItem('userBookmarkKeys', JSON.stringify(['https://custom-only.test']));
       localStorage.setItem('userCustomMeta', JSON.stringify({ 'https://custom-only.test': { name: '临时测试' } }));
       localStorage.setItem('preferredEngine', 'google');
@@ -150,7 +151,7 @@ test('书签轻量存储模型、自定义图标持久化与系统重置', async
       renderWeatherPopover(weather);
       const fahrenheitBeforeReset = dom.weatherTemp.textContent === '68°'
         && dom.weatherPopover.textContent.includes('68°F');
-      pageData.bookmarks = [{ name: '临时测试', url: 'https://custom-only.test' }];
+      loadBookmarks();
       renderBookmarks();
 
       const origWinDerived = window.getDerivedBookmarks;
@@ -201,6 +202,50 @@ test('书签轻量存储模型、自定义图标持久化与系统重置', async
     })()`);
     assert.deepEqual(reloaded, { count: 8, old: false });
     await evalJS(`localStorage.clear()`);
+  } finally {
+    await removeFetchStub();
+    await chrome.close();
+    await server.close();
+  }
+});
+
+test('多指触屏拖拽排序、失焦及 touchcancel 自动滚动中断保护', async () => {
+  const { server, chrome, send, evalJS } = await launchSession();
+  try {
+    await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] });
+    await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
+    await evalJS(`(async () => {
+      await openEditModal();
+      replaceBookmarkDraft(Array.from({ length: 16 }, (_, i) => ({ id: 'touch_' + i, name: '书签' + i, url: 'https://touch' + i + '.example.test/' })));
+      renderEditList();
+      window.__touch = (id, x, y) => new Touch({ identifier: id, target: dom.editList, clientX: x, clientY: y });
+      window.__dispatch = (type, touches, changed) => dom.editList.querySelector('.drag-handle').dispatchEvent(new TouchEvent(type, { bubbles: true, touches, changedTouches: changed }));
+      const a = dom.editList.querySelectorAll('.edit-row-card')[0].getBoundingClientRect();
+      const b = dom.editList.querySelectorAll('.edit-row-card')[1].getBoundingClientRect();
+      window.__first = __touch(7, a.x + 15, a.y + 20); window.__moved = __touch(7, b.x + 15, b.bottom - 2); window.__other = __touch(8, a.x + 30, a.y + 20);
+      __dispatch('touchstart', [__first], [__first]); __dispatch('touchmove', [__other, __moved], [__moved]);
+    })()`);
+    await evalJS('new Promise(requestAnimationFrame)');
+    const multiTouchState = await evalJS(`(() => {
+      __dispatch('touchend', [__moved], [__other]);
+      return {
+        firstId: modalState.draftBookmarks[0].id,
+        isDragging: Boolean(dom.editList.querySelector('.dragging'))
+      };
+    })()`);
+    assert.deepEqual(multiTouchState, { firstId: 'touch_0', isDragging: true });
+    await evalJS(`__dispatch('touchend', [], [__moved])`);
+    assert.equal(await evalJS(`modalState.draftBookmarks[0].id === 'touch_1'`), true);
+
+    await evalJS(`__dispatch('touchstart', [__first], [__first]); __dispatch('touchmove', [__moved], [__moved])`);
+    await evalJS('new Promise(requestAnimationFrame)');
+    assert.equal(await evalJS(`(() => { const before = JSON.stringify(modalState.draftBookmarks); window.dispatchEvent(new Event('blur')); window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true })); __dispatch('touchend', [], [__moved]); return before === JSON.stringify(modalState.draftBookmarks) && !dom.editList.querySelector('.dragging,.drop-target-above,.drop-target-below'); })()`), true);
+
+    await evalJS(`(() => { dom.editList.scrollTop = 0; const rect = dom.editList.getBoundingClientRect(); const edge = __touch(7, rect.x + 20, rect.bottom - 2); __dispatch('touchstart', [__first], [__first]); __dispatch('touchmove', [edge], [edge]); })()`);
+    await waitFor(evalJS, 'dom.editList.scrollTop > 30');
+    await evalJS("__dispatch('touchcancel', [], [__first]); window.__scrollAfterCancel = dom.editList.scrollTop");
+    await evalJS('new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))');
+    assert.equal(await evalJS('dom.editList.scrollTop === __scrollAfterCancel'), true);
   } finally {
     await chrome.close();
     await server.close();

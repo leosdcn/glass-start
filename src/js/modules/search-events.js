@@ -4,7 +4,8 @@ import { dom } from '../state/dom.js';
 import { settleAnimation } from '../core/motion.js';
 import { OverlayStack } from '../core/overlay-stack.js';
 import { handleRovingKeyNav } from '../utils/helpers.js';
-import { activateSuggestion, selectSuggestion, fetchSuggestions, cancelSuggestionRequest, cancelSearchSubmission, hideSuggestions, closeDropdown, setEngine, getSelectedSuggestionIdx, scheduleSuggestions, handleSuggestionKeyNav, submitImageSearch } from './search.js';
+import { activateSuggestion, cancelSearchSubmission, closeDropdown, setEngine, submitImageSearch } from './search.js';
+import { selectSuggestion, fetchSuggestions, cancelSuggestionRequest, hideSuggestions, getSelectedSuggestionIdx, scheduleSuggestions, handleSuggestionKeyNav } from './search-suggestions.js';
 import { getImageSearchEngine } from './image-search.js';
 
 let isComposing = false;

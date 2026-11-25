@@ -1,10 +1,11 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { createEvaluator, launchSession, waitFor, sleep } from './support/helpers.mjs';
+import { addNewDocumentScript, createEvaluator, launchSession, waitFor } from './support/helpers.mjs';
 import { connectCDP } from './support/cdp.mjs';
 import { FAVICON_CACHE } from '../src/js/utils/offline-cache.js';
 
 test('设置保存、冲突控制、缓存清理与重置恢复集成套件', async t => {
+/** @type {(() => void) | undefined} */
 let releaseWallpaper;
 const { server, chrome, send, evalJS, cdpPort } = await launchSession(0, {
   '/late-wallpaper.png': (_req, res) => {
@@ -21,6 +22,7 @@ t.after(async () => {
   await server.close();
 });
 try {
+  await t.test('等待壁纸预览期间的草稿保留、修改覆盖与取消控制', async () => {
   assert.equal(await evalJS(`(async () => {
     const committed = pageData.bookmarks;
     await openEditModal();
@@ -201,7 +203,9 @@ try {
     assert.equal(latestDraft.name, '等待后的最新名称');
   }
   console.log('✅ 等待壁纸期间的修改保存最新草稿，全部失效的最新书签不会提交');
+  });
 
+  await t.test('壁纸提交锁定、失败部分保存及重置中断保护', async () => {
   // 读取或真实写事务仍待决时，取消入口均不能恢复旧预览。
   for (const phase of ['read', 'write', 'abort']) {
     const committing = await evalJS(`(async () => {
@@ -253,7 +257,7 @@ try {
           name.value = ' 壁纸失败前已保存的书签 ';
           name.dispatchEvent(new Event('input', {bubbles: true}));
           previewDraftMaskOpacity(47);
-          modalState.draftTransitionMode = 'classic';
+          dom.settingsTransitionGrid.querySelector('[data-mode="classic"]')?.click();
 
           const NativeImage = window.Image;
           window.Image = class {};
@@ -502,7 +506,9 @@ try {
   })()`);
   assert.deepEqual(resetDraft,{previewOnly:true,resetSelected:true,cancelKept:true,saved:true});
   console.log('✅ 从非默认预设恢复默认可预览、取消和保存，选中态与持久化一致');
+  });
 
+  await t.test('书签写入失败保留原配置并保留多参数 URL 校验', async () => {
   // 单记录写入失败时，首次保存和更新既有记录都保留原状态。
   for (const existing of [false, true]) {
     await evalJS(`(async () => {
@@ -606,7 +612,9 @@ try {
     parameter:new URL(dom.bookmarks.firstElementChild.href).searchParams.get('b'),
     blocked:safeUrl('javascript:alert(1)',false)})`),{name:'参数书签',href:queryUrl,parameter:'2',blocked:'#'});
   console.log('✅ 书签改名保留多参数 URL，原生属性路径仍拦截不安全协议');
+  });
 
+  await t.test('离线缓存按 scope 清理、保留其他部署与未保存草稿警告', async () => {
   await evalJS(`(async () => {
     await navigator.serviceWorker.ready;
     const other = await navigator.serviceWorker.register('/other/sw.js', {scope:'/other/'});
@@ -624,20 +632,24 @@ try {
     document.querySelector('#tab-btn-data').click(); dom.clearCacheBtn.click();
   })()`);
   await waitFor(evalJS,'OverlayStack.top()?.id === "confirmModal"');
-  await evalJS(`(() => {
-    const remove = CacheStorage.prototype.delete;
-    CacheStorage.prototype.delete = function(key) {
-      if (key === 'glass-scope-%2F-app-images-app-core-vclear-test') return Promise.reject(new Error('delete failed'));
-      return remove.call(this, key);
-    };
-    window.restoreCacheDelete = () => { CacheStorage.prototype.delete = remove; };
-    dom.confirmOkBtn.click();
-  })()`);
-  await waitFor(evalJS, `modalState.phase === 'editing' && OverlayStack.top()?.id === 'confirmModal'`);
-  assert.equal(await evalJS(`modalState.draftBookmarks[0].name`), '清缓存前未保存');
-  await evalJS('restoreCacheDelete(); dom.confirmOkBtn.click(); dom.clearCacheBtn.click()');
+  try {
+    await evalJS(`(() => {
+      const remove = CacheStorage.prototype.delete;
+      CacheStorage.prototype.delete = function(key) {
+        if (key === 'glass-scope-%2F-app-images-app-core-vclear-test') return Promise.reject(new Error('delete failed'));
+        return remove.call(this, key);
+      };
+      window.restoreCacheDelete = () => { CacheStorage.prototype.delete = remove; };
+      dom.confirmOkBtn.click();
+    })()`);
+    await waitFor(evalJS, `modalState.phase === 'editing' && OverlayStack.top()?.id === 'confirmModal'`);
+    assert.equal(await evalJS(`modalState.draftBookmarks[0].name`), '清缓存前未保存');
+  } finally {
+    await evalJS('restoreCacheDelete?.()');
+  }
+  await evalJS('dom.confirmOkBtn.click(); dom.clearCacheBtn.click()');
   await waitFor(evalJS, 'OverlayStack.top()?.id === "confirmModal"');
-  await send('Page.addScriptToEvaluateOnNewDocument',{source:"window.__cacheClearReloaded = true;"});
+  const removeClearProbe = await addNewDocumentScript(send, "window.__cacheClearReloaded = true;");
   assert.equal(await evalJS(`(() => {
     const warned = dom.confirmMsg.textContent.includes('刷新将丢弃未保存的更改');
     const keys = CacheStorage.prototype.keys;
@@ -653,6 +665,7 @@ try {
     await evalJS('releaseCacheKeys()');
   } finally {
     await evalJS('restoreCacheKeys?.()');
+    await removeClearProbe();
   }
   await waitFor(evalJS,'window.__cacheClearReloaded === true && typeof state !== "undefined" && !!document.querySelector(".bookmark-item")',10000);
   assert.deepEqual(await evalJS(`(async () => ({
@@ -685,9 +698,12 @@ try {
   await waitFor(evalJS, '!state.editOpen && !storageGet(CONFIG.KEYS.NAV_DISCOVERED)');
   assert.equal(await evalJS('discoveryHidden'), true);
   assert.equal(await evalJS(`${hint}.visibility`), 'visible');
-  await sleep(700);
+  await waitFor(evalJS, `document.getElementById('scrollDownHint').getAnimations().length === 0`);
   assert.equal(await evalJS(`${hint}.visibility === 'visible' && ${hint}.display !== 'none'`), true);
   console.log('✅ 恢复默认后提示立即恢复，旧淡出时间点经过后仍可见');
+  });
+
+  await t.test('混合有效与无效书签草稿及多标签页并发冲突控制', async () => {
 
   const mixedDraft = await evalJS(`(async () => {
     const before = localStorage.getItem(CONFIG.KEYS.BOOKMARKS);
@@ -797,6 +813,126 @@ try {
   }
   console.log('✅ 两个标签页共享最新书签，保存旧草稿会提示冲突并保留草稿');
   console.log('✅ 设置重置等待书签锁时，其他标签页后保存的壁纸、暗度和首屏提示保持一致');
+  });
+
+  await t.test('存储边界容错、触屏编辑字号、导入会话隔离与部分重置恢复', async () => {
+  const storage = await evalJS(`(() => {
+    const key = 'audit-storage';
+    storageRemove(key);
+    const missing = [storageGet(key, null), storageGet(key, 42)];
+    storageSet(key, 1); localStorage.setItem(key, '2');
+    const external = storageGet(key);
+    localStorage.setItem(key, '{broken');
+    const corrupt = storageGet(key, 7);
+    storageRemove(key);
+    return { missing, external, corrupt };
+  })()`);
+  assert.deepEqual(storage, { missing: [null, 42], external: 2, corrupt: 7 });
+  await assert.rejects(() => evalJS('throw new Error("audit-page-error")'), /audit-page-error/);
+
+  await send('Emulation.setDeviceMetricsOverride', { width: 820, height: 1180, deviceScaleFactor: 1, mobile: true });
+  await send('Emulation.setTouchEmulationEnabled', { enabled: true });
+  try {
+    await waitFor(evalJS, 'matchMedia("(any-pointer: coarse)").matches');
+    await evalJS('openEditModal()');
+    await waitFor(evalJS, 'document.getElementById("editModal").open');
+    const inputFonts = await evalJS("({name:getComputedStyle(dom.editList.querySelector('.edit-name')).fontSize, url:getComputedStyle(dom.urlBgInput).fontSize})");
+    assert.deepEqual(inputFonts, { name: '16px', url: '16px' });
+    await evalJS('cancelEditModal()');
+  } finally {
+    await send('Emulation.setTouchEmulationEnabled', { enabled: false });
+    await send('Emulation.clearDeviceMetricsOverride');
+  }
+
+  await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] });
+  try {
+    await evalJS('resetUserBookmarks(); openEditModal()');
+    for (const selector of ['.edit-name', '.edit-url']) {
+      assert.equal(await evalJS(`(() => {
+        const input = dom.editList.querySelector('${selector}'); input.focus();
+        window.dispatchEvent(new Event('blur')); window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true }));
+        return document.activeElement === input;
+      })()`), true);
+    }
+    assert.equal(await evalJS(`(() => {
+      const handle = dom.editList.querySelector('.drag-handle');
+      const id = handle.closest('.edit-row-card').dataset.id;
+      const reorder = key => document.activeElement.dispatchEvent(new KeyboardEvent('keydown', {
+        key, altKey: true, bubbles: true, cancelable: true
+      }));
+      handle.focus();
+      reorder('ArrowDown');
+      const moved = modalState.draftBookmarks[1].id === id;
+      window.dispatchEvent(new Event('blur'));
+      window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true }));
+      const keptFocus = document.activeElement === handle;
+      reorder('ArrowUp');
+      return moved && keptFocus && modalState.draftBookmarks[0].id === id;
+    })()`), true);
+    await evalJS('cancelEditModal()');
+
+    const imports = await evalJS(`(async () => {
+      await openEditModal();
+      const Native = window.FileReader, readers = [];
+      window.FileReader = class { constructor() { readers.push(this); } readAsText() {} };
+      const release = (index, name) => readers[index].onload?.({ target: { result: JSON.stringify([{ name, url: 'https://import.example.test/' }]) } });
+      try {
+        importBookmarksJSON({}); cancelEditModal(); await openEditModal();
+        release(0, '过期');
+        const noPrompt = OverlayStack.top()?.id === 'editModal';
+        importBookmarksJSON({}); importBookmarksJSON({}); release(1, '旧文件');
+        const latestOnly = OverlayStack.top()?.id === 'editModal';
+        release(2, '新文件'); dom.confirmOkBtn.click();
+        return { noPrompt, latestOnly, name: modalState.draftBookmarks[0].name };
+      } finally {
+        window.FileReader = Native; cancelEditModal();
+      }
+    })()`);
+    assert.deepEqual(imports, { noPrompt: true, latestOnly: true, name: '新文件' });
+
+    await evalJS(`(async () => {
+      storageSet(CONFIG.KEYS.MASK_OPACITY, 20); await openEditModal(); previewDraftMaskOpacity(45);
+      window.__nativeSet = Storage.prototype.setItem;
+      Storage.prototype.setItem = function(key, value) {
+        if (key === CONFIG.KEYS.MASK_OPACITY) throw Error('quota');
+        return __nativeSet.call(this, key, value);
+      };
+      await saveEditModal();
+    })()`);
+    try {
+      assert.equal(await evalJS(`state.editOpen && modalState.draftMaskOpacity === 45 && /背景暗度未能保存/.test(dom.confirmMsg.textContent)`), true);
+    } finally {
+      await evalJS('if (window.__nativeSet) Storage.prototype.setItem = __nativeSet;');
+    }
+    await evalJS('dom.confirmOkBtn.click(); saveEditModal()');
+    await waitFor(evalJS, '!state.editOpen');
+    assert.equal(await evalJS('storageGet(CONFIG.KEYS.MASK_OPACITY)'), 45);
+
+    await evalJS(`(async () => {
+      storageSet(CONFIG.KEYS.BOOKMARK_KEYS, ['https://github.com']);
+      storageSet(CONFIG.KEYS.CUSTOM_META, { 'https://github.com': { name: '旧覆盖' } });
+      await openEditModal(); window.__nativeRemove = Storage.prototype.removeItem;
+      Storage.prototype.removeItem = function(key) {
+        if ([CONFIG.KEYS.CUSTOM_META, CONFIG.KEYS.MASK_OPACITY].includes(key)) throw Error('denied');
+        return __nativeRemove.call(this, key);
+      };
+      resetAllSettings(); dom.confirmOkBtn.click();
+    })()`);
+    try {
+      await waitFor(evalJS, `OverlayStack.top()?.id === 'confirmModal' && /部分设置未能清除/.test(dom.confirmMsg.textContent)`);
+      assert.equal(await evalJS('state.editOpen && modalState.draftMaskOpacity === 45 && dom.maskOpacityInput.value === "45"'), true);
+      assert.equal(await evalJS(`(loadBookmarks(), storageGet(CONFIG.KEYS.CUSTOM_META)['https://github.com'].name === '旧覆盖' &&
+        pageData.bookmarks.length === 8 && pageData.bookmarks.every(bookmark => bookmark.name !== '旧覆盖'))`), true);
+    } finally {
+      await evalJS('if (window.__nativeRemove) Storage.prototype.removeItem = __nativeRemove;');
+    }
+    await evalJS(`dom.confirmOkBtn.click(); setTransitionMode('classic'); resetAllSettings(); dom.confirmOkBtn.click()`);
+    await waitFor(evalJS, '!state.editOpen');
+    assert.equal(await evalJS(`getTransitionMode() === 'sheet' && document.documentElement.dataset.transitionMode === 'sheet' && !localStorage.getItem(CONFIG.KEYS.TRANSITION_MODE) && document.querySelector('.settings-transition-btn[data-mode="sheet"]').getAttribute('aria-pressed') === 'true'`), true);
+  } finally {
+    await send('Emulation.setEmulatedMedia', { features: [] });
+  }
+  });
 } finally {
   releaseWallpaper?.();
 }
