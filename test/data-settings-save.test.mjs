@@ -662,12 +662,15 @@ try {
     return warned && modalState.phase === 'committing' && dom.tabData.inert && state.editOpen;
   })()`), true);
   try {
-    await evalJS('releaseCacheKeys()');
+    try {
+      await evalJS('releaseCacheKeys()');
+    } finally {
+      await evalJS('restoreCacheKeys?.()').catch(() => {});
+    }
+    await waitFor(evalJS,'window.__cacheClearReloaded === true && typeof state !== "undefined" && !!document.querySelector(".bookmark-item")',10000);
   } finally {
-    await evalJS('restoreCacheKeys?.()');
     await removeClearProbe();
   }
-  await waitFor(evalJS,'window.__cacheClearReloaded === true && typeof state !== "undefined" && !!document.querySelector(".bookmark-item")',10000);
   assert.deepEqual(await evalJS(`(async () => ({
     ownRemoved:!await caches.has('glass-scope-%2F-app-images-app-core-vclear-test'),
     ownCoreKept:await caches.has('glass-scope-%2F-app-core-vfuture'),
