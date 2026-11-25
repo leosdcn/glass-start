@@ -20,7 +20,7 @@
 
 .edit-row-card {
     position: relative;
-    transition: background-color 0.15s ease, border-color 0.15s ease, opacity 0.2s ease, transform 0.2s ease, box-shadow 0.15s ease;
+    transition: background-color var(--duration-micro) ease, border-color var(--duration-micro) ease, opacity 0.2s ease, transform 0.2s ease, box-shadow var(--duration-micro) ease;
 }
 @media (hover: hover) and (pointer: fine) {
     body:not(.tab-blurred) .edit-row-card:hover {
@@ -96,7 +96,7 @@ body.drag-settling .drag-handle {
     font-size: 0.8125rem;
     font-weight: 500;
     cursor: pointer;
-    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, scale var(--button-press-duration, var(--duration-press-up)) var(--button-press-ease, var(--ease-spring));
+    transition: background-color var(--duration-micro) ease, color var(--duration-micro) ease, border-color var(--duration-micro) ease, box-shadow var(--duration-micro) ease, scale var(--button-press-duration, var(--duration-press-up)) var(--button-press-ease, var(--ease-spring));
 }
 .confirm-dialog-btn-cancel:focus-visible {
     outline: 2px solid rgba(255, 255, 255, 0.5);
@@ -141,7 +141,7 @@ body.drag-settling .drag-handle {
     font-weight: 500;
     cursor: pointer;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-    transition: background-color 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, color 0.15s ease, scale var(--button-press-duration, var(--duration-press-up)) var(--button-press-ease, var(--ease-spring));
+    transition: background-color var(--duration-micro) ease, box-shadow var(--duration-micro) ease, border-color var(--duration-micro) ease, color var(--duration-micro) ease, scale var(--button-press-duration, var(--duration-press-up)) var(--button-press-ease, var(--ease-spring));
 }
 .confirm-dialog-btn-ok:focus-visible {
     outline: 2px solid rgb(248 113 113);
@@ -196,7 +196,7 @@ body.drag-settling .drag-handle {
 }
 
 .picker-item {
-    transition: background-color 0.15s ease, opacity 0.2s ease, scale var(--button-press-duration, var(--duration-press-up)) var(--button-press-ease, var(--ease-spring));
+    transition: background-color var(--duration-micro) ease, opacity 0.2s ease, scale var(--button-press-duration, var(--duration-press-up)) var(--button-press-ease, var(--ease-spring));
 }
 
 #languageBtn {

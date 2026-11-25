@@ -111,7 +111,7 @@ await test("图标空闲准备与延迟加载", async () => {
           second.click();
           const secondPulse = line2.getAnimations()[0];
           const restarted = firstPulse?.playState === 'idle' && !!secondPulse;
-          handleAppWakeUp();
+          window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true }));
           const woke = secondPulse?.playState === 'idle' && !line2.getAnimations().length;
           first.click();
           const leaving = line1.getAnimations()[0];
@@ -469,7 +469,7 @@ await test("原生滚动与事件阻塞区域", async () => {
         await evalJS('(async () => { await new Promise(requestAnimationFrame); await new Promise(requestAnimationFrame); })()');
         assert.equal(await evalJS('document.querySelector(".nav-bookmark").style.transform'), '');
         assert.equal(await evalJS(`(() => {
-        handleAppWakeUp();
+        window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true }));
         const e = new WheelEvent('wheel',{deltaY:10,cancelable:true,bubbles:true});
         document.dispatchEvent(e);
         return e.defaultPrevented;

@@ -300,7 +300,7 @@ try {
     await evalJS(`(() => {
         dom.navSection.removeEventListener('transitionend', __stopScreenEnd, true);
         switchToStart();
-        handleAppWakeUp();
+        window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true }));
         switchToNav();
     })()`);
     await settled('nav');

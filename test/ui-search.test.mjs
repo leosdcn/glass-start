@@ -99,13 +99,14 @@ test('从天气切回搜索、更新候选和输入法确认', async () => {
         input.value = 'githu';
         fetchSuggestions('bing', input.value);
         const bookmark = dom.suggestionMenu.querySelector('.suggestion-item[data-url]');
+        const getSuggestScript = () => document.body.querySelector('script[src*="__glassSuggestCb_"]');
         const lateResponse = window['__glassSuggestCb_' + activeSuggestReqId];
         input.dispatchEvent(new CompositionEvent('compositionstart'));
         input.value = 'githu aa';
         input.dispatchEvent(new InputEvent('input', {bubbles:true,isComposing:true}));
         lateResponse(['githu',['stale during composition']]);
         const keptOldResults = dom.suggestionMenu.classList.contains('active') && bookmark.isConnected &&
-          !suggestionScriptTag && !dom.suggestionMenu.textContent.includes('stale during composition');
+          !getSuggestScript() && !dom.suggestionMenu.textContent.includes('stale during composition');
         bookmark.dispatchEvent(new MouseEvent('mouseover', {bubbles:true}));
         bookmark.dispatchEvent(new MouseEvent('click', {bubbles:true,ctrlKey:true}));
         const arrowUnclaimed = input.dispatchEvent(new KeyboardEvent('keydown',
@@ -115,7 +116,8 @@ test('从天气切回搜索、更新候选和输入法确认', async () => {
         input.dispatchEvent(new CompositionEvent('compositionend'));
         input.dispatchEvent(new InputEvent('input', {bubbles:true}));
         const committedBookmark = dom.suggestionMenu.querySelector('.suggestion-item[data-url]')?.dataset.url;
-        const committedRequest = suggestionScriptTag && new URL(suggestionScriptTag.src).searchParams.get('query');
+        const committedScript = getSuggestScript();
+        const committedRequest = committedScript && new URL(committedScript.src).searchParams.get('query');
         enter(false);
         const independentEnterSearched = opened.length === 1 && new URL(opened[0]).searchParams.get('q') === '维基百科';
         const tabUnclaimed = input.dispatchEvent(new KeyboardEvent('keydown', {key:'Tab',bubbles:true,cancelable:true}));
@@ -128,7 +130,7 @@ test('从天气切回搜索、更新候选和输入法确认', async () => {
         const clearForText = dom.imageSearchBtn.inert && !dom.searchClearBtn.inert;
         const localResultImmediate = dom.suggestionMenu.classList.contains('active') &&
           dom.suggestionMenu.querySelector('.suggestion-item')?.textContent.includes('GitHub') &&
-          !suggestionScriptTag;
+          !getSuggestScript();
         return { keptOldResults, arrowUnclaimed, imeDidNotSearch, committedBookmark, committedRequest, independentEnterSearched,
           tabUnclaimed, cameraForEmpty, clearForText, localResultImmediate };
       } finally {

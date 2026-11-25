@@ -46,7 +46,11 @@ export async function validateW3c({ rootDir = root, fetchImpl = fetch, log = con
     log(`${c.cyan}${HR_DOUBLE}${c.reset}\n`);
 
     try {
-        const targetName = existsSync(join(rootDir, 'dist', 'index.html')) ? 'dist/index.html' : 'src/index.html';
+        const hasDist = existsSync(join(rootDir, 'dist', 'index.html'));
+        if (!hasDist) {
+            log(`${c.yellow}⚠️  未找到 dist/index.html，正在回退校验源码模板 src/index.html（建议先执行 npm run build）${c.reset}`);
+        }
+        const targetName = hasDist ? 'dist/index.html' : 'src/index.html';
         const rawHtml = readFileSync(join(rootDir, targetName), 'utf-8');
         const { version } = JSON.parse(readFileSync(join(rootDir, 'package.json'), 'utf-8'));
         const blocks = [...rawHtml.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style\s*>/gi)].map(match => {

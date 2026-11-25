@@ -13,7 +13,6 @@ import * as store from '../state/store.js';
 import * as domState from '../state/dom.js';
 import * as overlay_stack from '../core/overlay-stack.js';
 import * as screen_state from '../core/screen-state.js';
-import { handleAppWakeUp } from '../events.js';
 import * as wallpaper from '../modules/wallpaper.js';
 import * as search from '../modules/search.js';
 import * as weather from '../modules/weather.js';
@@ -58,7 +57,6 @@ Object.assign(window, {
     isScreenTransitioning: screen_state.isScreenTransitioning,
     switchToNav: screen_state.switchToNav,
     switchToStart: screen_state.switchToStart,
-    handleAppWakeUp,
     applyWallpaper: wallpaper_renderer.applyWallpaper,
     getPreparedWallpaperImage: wallpaper_renderer.getPreparedWallpaperImage,
     getCommittedWallpaperUrl: wallpaper.getCommittedWallpaperUrl,
@@ -110,10 +108,6 @@ Object.defineProperties(window, {
     },
     selectedSuggestionIdx: {
         get: () => search.getSelectedSuggestionIdx(),
-        configurable: true
-    },
-    suggestionScriptTag: {
-        get: () => search.getSuggestionScriptTag(),
         configurable: true
     },
     isFetchingWeather: {

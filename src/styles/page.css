@@ -37,9 +37,11 @@
     --ease-slide: cubic-bezier(0.28, 0.11, 0.32, 1);
     --ease-pulse: cubic-bezier(0.2, 0.8, 0.2, 1);
     --duration-entrance: 0.54s;
+    --duration-micro: 0.15s;
     --duration-fast: 0.16s;
     --duration-focus: 0.18s;
     --duration-normal: 0.2s;
+    --duration-fade: 0.25s;
     --duration-popover: 0.26s;
     --duration-popover-exit: 0.18s;
     --duration-modal: 0.3s;
@@ -293,7 +295,7 @@ html.wallpaper-bright .nav-bookmark .text-2xs {
 }
 .lazy-icon, .edit-favicon-img {
     opacity: 0;
-    transition: opacity 0.25s var(--ease-exit);
+    transition: opacity var(--duration-fade) var(--ease-exit);
 }
 .lazy-icon.loaded, .edit-favicon-img.loaded {
     opacity: 1;
@@ -703,13 +705,13 @@ html[data-screen="nav"] #editBookmarksBtn {
 }
 
 #weatherRefreshBtn {
-    transition: background-color 0.15s ease;
+    transition: background-color var(--duration-micro) ease;
 }
 #weatherRefreshBtn:active {
     background-color: rgba(255, 255, 255, 0.22);
 }
 #weatherRefreshBtn svg {
-    transition: opacity 0.15s ease, transform 0.25s ease-out;
+    transition: opacity var(--duration-micro) ease, transform var(--duration-fade) ease-out;
 }
 
 .category-block {

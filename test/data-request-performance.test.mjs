@@ -51,7 +51,7 @@ try {
             state.engine = 'bing';
             dom.searchInput.value = ' performance-pending ';
             dom.searchInput.dispatchEvent(new Event('input', {bubbles:true}));
-            const inputShared = requests === 1 && id === activeSuggestReqId && node === dom.suggestionMenu.firstChild && suggestionScriptTag?.isConnected;
+            const inputShared = requests === 1 && id === activeSuggestReqId && node === dom.suggestionMenu.firstChild && !!document.body.querySelector('script[src*="__glassSuggestCb_"]');
             dom.searchInput.value = 'performance-new';
             dom.searchInput.dispatchEvent(new Event('input', {bubbles:true}));
             oldCallback(['old', ['stale-response']]);
@@ -151,7 +151,7 @@ try {
             document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true,cancelable:true}));
             dom.engineBtn.click();
             dom.dropdownMenu.querySelector('[data-engine="google"]').click();
-            const engineQuery = new URL(suggestionScriptTag.src).searchParams.get('q');
+            const engineQuery = new URL(document.body.querySelector('script[src*="__glassSuggestCb_"]').src).searchParams.get('q');
             return {hoverPreserved,repeatedWrites,changedWrites,uniqueSelection,keyboardPreserved,escaped,
                 highlighted, engineQuery, text: dom.searchInput.value};
         } finally { hideSuggestions(); document.body.appendChild = append; }
@@ -306,7 +306,7 @@ try {
     })()`);
     await waitFor(evalJS, 'dom.weatherTemp.textContent === "21°"');
     assert.equal(await evalJS('storageGet(CONFIG.KEYS.WEATHER_CACHE).current.temp'), 20);
-    const pending = await evalJS(`({busy:isFetchingWeather, shared:updateWeather(true) === performanceWeatherUpdate,
+    const pending = await evalJS(`({busy:isFetchingWeather, shared:updateWeather(false) === performanceWeatherUpdate,
         forecasts:performanceWeatherRequests.filter(url=>url.includes('/forecast?')).length})`);
     assert.deepEqual(pending, {busy:true, shared:true, forecasts:1});
     await evalJS(`(async () => {

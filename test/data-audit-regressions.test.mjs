@@ -163,7 +163,7 @@ test('历史工单缺陷回归 (GS-01 ~ GS-15 焦点、导入、存储配额与�
     for (const selector of ['.edit-name', '.edit-url']) {
       assert.equal(await evalJS(`(() => {
         const input = dom.editList.querySelector('${selector}'); input.focus();
-        window.dispatchEvent(new Event('blur')); handleAppWakeUp();
+        window.dispatchEvent(new Event('blur')); window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true }));
         return document.activeElement === input;
       })()`), true);
     }
@@ -177,7 +177,7 @@ test('历史工单缺陷回归 (GS-01 ~ GS-15 焦点、导入、存储配额与�
       reorder('ArrowDown');
       const moved = modalState.draftBookmarks[1].id === id;
       window.dispatchEvent(new Event('blur'));
-      handleAppWakeUp();
+      window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true }));
       const keptFocus = document.activeElement === handle;
       reorder('ArrowUp');
       return moved && keptFocus && modalState.draftBookmarks[0].id === id;
@@ -193,7 +193,7 @@ test('历史工单缺陷回归 (GS-01 ~ GS-15 焦点、导入、存储配额与�
         };
         try {
           ${target === 'nav' ? 'switchToNav' : 'switchToStart'}();
-          handleAppWakeUp();
+          window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true }));
           return state.currentSection;
         } finally {
           Storage.prototype.setItem = native;
@@ -301,7 +301,7 @@ test('历史工单缺陷回归 (GS-01 ~ GS-15 焦点、导入、存储配额与�
     assert.equal(await evalJS(`modalState.draftBookmarks[0].id === 'touch_1'`), true);
     await evalJS(`__dispatch('touchstart', [__first], [__first]); __dispatch('touchmove', [__moved], [__moved])`);
     await evalJS('new Promise(requestAnimationFrame)');
-    assert.equal(await evalJS(`(() => { const before = JSON.stringify(modalState.draftBookmarks); window.dispatchEvent(new Event('blur')); handleAppWakeUp(); __dispatch('touchend', [], [__moved]); return before === JSON.stringify(modalState.draftBookmarks) && !dom.editList.querySelector('.dragging,.drop-target-above,.drop-target-below'); })()`), true);
+    assert.equal(await evalJS(`(() => { const before = JSON.stringify(modalState.draftBookmarks); window.dispatchEvent(new Event('blur')); window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true })); __dispatch('touchend', [], [__moved]); return before === JSON.stringify(modalState.draftBookmarks) && !dom.editList.querySelector('.dragging,.drop-target-above,.drop-target-below'); })()`), true);
     await evalJS(`(() => { dom.editList.scrollTop = 0; const rect = dom.editList.getBoundingClientRect(); const edge = __touch(7, rect.x + 20, rect.bottom - 2); __dispatch('touchstart', [__first], [__first]); __dispatch('touchmove', [edge], [edge]); })()`);
     await waitFor(evalJS, 'dom.editList.scrollTop > 30');
     await evalJS("__dispatch('touchcancel', [], [__first]); window.__scrollAfterCancel = dom.editList.scrollTop");

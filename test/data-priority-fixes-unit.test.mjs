@@ -177,7 +177,7 @@ test('旧地点预报失败时继续等待重新定位，并发布新地点预�
     };
     const task = app.updateWeather();
     await drain();
-    assert.equal(app.updateWeather(true), task);
+    assert.equal(app.updateWeather(), task);
     assert.deepEqual(forecasts, ['1']);
     locate({ ok: true, json: async () => ({ success: true, city: '新地点', latitude: 40, longitude: 50 }) });
     await task;
@@ -187,6 +187,37 @@ test('旧地点预报失败时继续等待重新定位，并发布新地点预�
     assert.equal(saved.current.temp, 26);
     assert.equal(JSON.parse(context.localStorage.getItem(app.CONFIG.KEYS.WEATHER_LOC)).name, '新地点');
     assert.match(f.html, /新地点/);
+});
+
+test('强制刷新 updateWeather(true) 中止非强制在途请求并允许后续强制调用共享', async () => {
+    const { app, context } = fixture();
+    const { WEATHER_LOC, WEATHER_CACHE } = app.CONFIG.KEYS;
+    const old = { name: '旧地点', lat: 1, lon: 2, timestamp: 1 };
+    context.localStorage.setItem(WEATHER_LOC, JSON.stringify(old));
+    context.localStorage.setItem(WEATHER_CACHE, JSON.stringify({ location: old, timestamp: 1, current: { temp: 10 }, daily: [] }));
+    const signals = [];
+    let finishForced;
+    context.fetch = async (url, { signal }) => {
+        signals.push(signal);
+        if (url.includes('ipwho.is') || url.includes('myip.ipip.net')) return { ok: false, status: 503 };
+        if (signals.length === 1) {
+            return new Promise((_, reject) => signal.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')), { once: true }));
+        }
+        return new Promise(resolve => {
+            finishForced = () => resolve({ ok: true, json: async () => ({ current: { temperature_2m: 28 }, daily: {} }) });
+        });
+    };
+    const autoTask = app.updateWeather(false);
+    await drain();
+    const forcedTask = app.updateWeather(true);
+    assert.notEqual(forcedTask, autoTask);
+    assert.equal(app.updateWeather(true), forcedTask);
+    assert.equal(signals[0].aborted, true);
+    await autoTask;
+    await drain();
+    finishForced();
+    await forcedTask;
+    assert.equal(JSON.parse(context.localStorage.getItem(WEATHER_CACHE)).current.temp, 28);
 });
 
 test('新地点预报不等旧请求，失败后旧结果不更新缓存且唤醒会重试', async () => {
@@ -294,7 +325,7 @@ test('天气正文超时结束共享刷新任务，随后可重新刷新', async
         }) };
     };
     const pending = app.updateWeather();
-    assert.equal(app.updateWeather(true), pending);
+    assert.equal(app.updateWeather(), pending);
     await drain();
     assert.equal(f.timers.size, 1, '收到响应头后仍须保留正文读取的超时');
     [...f.timers.values()][0].fn();

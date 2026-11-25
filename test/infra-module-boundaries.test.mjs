@@ -152,7 +152,7 @@ try {
   evalJS = await connect(true);
   await waitFor(evalJS, 'typeof fetchSuggestions === "function"');
   const adapter = await evalJS(`(() => {
-    const getters = ['suggestionScriptTag','selectedSuggestionIdx','activeSuggestReqId','isFetchingWeather'].every(name => {
+    const getters = ['selectedSuggestionIdx','activeSuggestReqId','isFetchingWeather'].every(name => {
       const descriptor = Object.getOwnPropertyDescriptor(window,name);
       return typeof descriptor.get === 'function' && descriptor.set === undefined;
     });
@@ -160,10 +160,10 @@ try {
     document.body.appendChild = function(node) { if(node.tagName === 'SCRIPT') node.type = 'application/x-test'; return append.call(this,node); };
     try {
       fetchSuggestions('bing', 'boundary-proof');
-      const updated = suggestionScriptTag instanceof HTMLScriptElement;
+      const updated = document.body.querySelector('script[src*="__glassSuggestCb_"]') instanceof HTMLScriptElement;
       hideSuggestions();
       dom.date.textContent = 'stale date'; updateClock();
-      return {getters, updated, cleared:suggestionScriptTag === null, date:dom.date.textContent !== 'stale date'};
+      return {getters, updated, cleared:document.body.querySelector('script[src*="__glassSuggestCb_"]') === null, date:dom.date.textContent !== 'stale date'};
     } finally { document.body.appendChild = append; }
   })()`);
   assert.equal(Object.values(adapter).every(Boolean), true, JSON.stringify(adapter));

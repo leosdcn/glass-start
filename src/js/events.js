@@ -40,7 +40,7 @@ const attachTabBlurListeners = () => {
 };
 
 /** 页面恢复时协调业务刷新与交互状态，底层机制不导入业务模块。 */
-export function handleAppWakeUp() {
+function handleAppWakeUp() {
     updateClock();
 
     cancelDragSort();

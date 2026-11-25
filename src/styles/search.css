@@ -91,7 +91,7 @@
     }
 }
 #engineBtn {
-    transition: background-color 0.15s ease, color 0.15s ease, scale var(--button-press-duration, var(--duration-press-up)) var(--button-press-ease, var(--ease-spring));
+    transition: background-color var(--duration-micro) ease, color var(--duration-micro) ease, scale var(--button-press-duration, var(--duration-press-up)) var(--button-press-ease, var(--ease-spring));
 }
 #engineIcon {
     position: relative;
@@ -116,8 +116,8 @@
     pointer-events: auto;
     transition: opacity var(--duration-popover) var(--ease-overshoot),
                 transform var(--duration-popover) var(--ease-overshoot),
-                background-color 0.15s ease,
-                color 0.15s ease,
+                background-color var(--duration-micro) ease,
+                color var(--duration-micro) ease,
                 scale var(--button-press-duration, var(--duration-press-up)) var(--button-press-ease, var(--ease-spring));
 }
 #imageSearchBtn.hidden,
@@ -137,7 +137,7 @@
 .suggestion-item {
     position: relative;
     z-index: 2;
-    transition: color 0.15s ease;
+    transition: color var(--duration-micro) ease;
     border-radius: var(--radius, 1.5rem);
 }
 .suggestion-item > * {

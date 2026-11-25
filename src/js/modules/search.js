@@ -75,8 +75,6 @@ export function selectSuggestion(index, { keyboard = false } = {}) {
     }
 }
 // ——— 搜索建议状态与访问器 ———
-/** @type {HTMLScriptElement | null} 当前活跃的 JSONP 脚本节点（测试探针 / 清理用） */
-let suggestionScriptTag = null;
 /** 当前选中的建议列表项索引（-1 为未选中，公共状态 / 供外部与测试读取） */
 let selectedSuggestionIdx = -1;
 /** @type {ReturnType<typeof setTimeout> | null} 防抖定时器句柄 */
@@ -86,7 +84,6 @@ let activeSuggestReqId = 0;
 
 export function getSelectedSuggestionIdx() { return selectedSuggestionIdx; }
 export function getActiveSuggestReqId() { return activeSuggestReqId; }
-export function getSuggestionScriptTag() { return suggestionScriptTag; }
 /** @type {(() => void) | null} */
 let activeSuggestCleanup = null;
 /** @type {string | null} */
@@ -646,7 +643,6 @@ function requestNetworkSuggestions(engineKey, query, cacheKey, localList, reqId)
             delete /** @type {Record<string, unknown>} */ (/** @type {unknown} */ (window))[cbName];
             script.onerror = null;
             script.remove();
-            if (suggestionScriptTag === script) suggestionScriptTag = null;
         }
         if (activeSuggestCleanup === cleanup) {
             activeSuggestCleanup = null;
@@ -706,7 +702,6 @@ function requestNetworkSuggestions(engineKey, query, cacheKey, localList, reqId)
 
     if (!window.__GLASS_EXTENSION__ && script) {
         /** @type {Record<string, unknown>} */ (/** @type {unknown} */ (window))[cbName] = handleSuggestData;
-        suggestionScriptTag = script;
         script.onerror = handleSuggestFallback;
 
         if (engineKey === 'bing') {

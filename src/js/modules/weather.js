@@ -422,7 +422,7 @@ export function renderWeatherPopover(data, unit) {
     `;
 }
 
-/** @type {{ controller: AbortController, promise: Promise<void> } | null} */
+/** @type {{ controller: AbortController, promise: Promise<void>, forced: boolean } | null} */
 let weatherRefresh = null;
 
 export function isFetchingWeather() {
@@ -460,7 +460,12 @@ function readWeatherCache() {
 export function updateWeather(force = false, initial = false) {
     const paused = !force && typeof document !== 'undefined' && document.hidden;
     if (paused && !initial) return Promise.resolve();
-    if (weatherRefresh) return weatherRefresh.promise;
+    if (weatherRefresh) {
+        if (!force || weatherRefresh.forced) return weatherRefresh.promise;
+        const previous = weatherRefresh;
+        weatherRefresh = null;
+        previous.controller.abort();
+    }
     const cache = readWeatherCache();
     if (initial && cache) displayWeather(cache);
     if (paused) return Promise.resolve();
@@ -477,7 +482,7 @@ export function updateWeather(force = false, initial = false) {
     const promise = executeWeatherUpdate(cache, locCache, force, controller.signal).finally(() => {
         if (weatherRefresh?.controller === controller) weatherRefresh = null;
     });
-    weatherRefresh = { controller, promise };
+    weatherRefresh = { controller, promise, forced: force };
     return promise;
 }
 
